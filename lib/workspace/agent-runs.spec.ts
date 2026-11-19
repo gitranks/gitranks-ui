@@ -92,8 +92,8 @@ describe('the agent runs', () => {
   });
 
   it('leads to the review once ready, to the attempt otherwise', () => {
-    expect(runLinkOf(READY)).toEqual({ href: '/contribute/attempts/att_ready', label: 'Review' });
-    expect(runLinkOf(WORKING)).toEqual({ href: '/contribute/attempts/att_working', label: 'Details' });
+    expect(runLinkOf(READY)).toEqual({ href: '/my/pull-requests/by-attempt/att_ready', label: 'Review' });
+    expect(runLinkOf(WORKING)).toEqual({ href: '/my/pull-requests/by-attempt/att_working', label: 'Details' });
     expect(runLinkOf(runOf({ phase: 'DONE' })).label).toBe('See it');
   });
 

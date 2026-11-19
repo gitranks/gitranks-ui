@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { type ReactNode, useEffect, useState, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { attemptHref } from '@/components/workspace/reviews-ready';
 import { cn } from '@/lib/utils';
 import { readRunsPage } from '@/lib/workspace/actions';
 import { usd } from '@/lib/workspace/format';
+import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 import {
   type ContributeRun,
   type ContributeRunsDay,
@@ -105,7 +105,7 @@ function TableLine({ line }: { line: RunLine }) {
             {foldedLabel(line.runs)}
           </div>
           <Link
-            href={attemptHref(run.attemptId)}
+            href={pullRequestByAttemptPath(run.attemptId)}
             prefetch={false}
             className="line-clamp-1 after:absolute after:inset-0 hover:underline"
           >
@@ -135,7 +135,7 @@ function TableLine({ line }: { line: RunLine }) {
       <td className="max-w-0 px-3 py-3 align-top">
         <div className="truncate font-mono text-xs text-muted-foreground">{issueRefOf(run)}</div>
         <Link
-          href={attemptHref(run.attemptId)}
+          href={pullRequestByAttemptPath(run.attemptId)}
           prefetch={false}
           className="line-clamp-1 font-medium text-foreground after:absolute after:inset-0 hover:underline"
         >
@@ -193,7 +193,7 @@ function CardLine({ line }: { line: RunLine }) {
         <span>{timeOfDay(run.createdAt)}</span>
       </div>
       <Link
-        href={attemptHref(run.attemptId)}
+        href={pullRequestByAttemptPath(run.attemptId)}
         prefetch={false}
         className={cn('line-clamp-2 after:absolute after:inset-0', !folded && 'font-medium text-foreground')}
       >

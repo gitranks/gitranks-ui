@@ -31,17 +31,17 @@ import {
 } from '@/lib/workspace/contribution-moves';
 import type { OrgAccess } from '@/lib/workspace/org-access';
 import { firstStatusOf, nextStatusOf, runStatusOf, type SessionStatus } from '@/lib/workspace/session-status';
-import { attemptPath, nextSessionPath, sessionPath, waitingThreadsOf } from '@/lib/workspace/sessions';
+import { nextSessionPath, type PageAt, pageAtOf, sessionPath, waitingThreadsOf } from '@/lib/workspace/sessions';
 
 /** The proof's stages that wait for nobody: a status line, or one line under the card. */
 const PASSIVE_PROOF: ReadonlySet<string> = new Set(['working', 'posting', 'posted', 'ask-cleared']);
 
 /** A move's address: its session, with `move=` naming it. */
-export function moveHrefOf(firstId: string, move: Pick<Move, 'session' | 'kinds'>): Route {
+export function moveHrefOf(at: PageAt, move: Pick<Move, 'session' | 'kinds'>): Route {
   const kind = encodeURIComponent(move.kinds[0]);
-  if (move.session === 'next' || move.session === 'proof') return `${nextSessionPath(firstId)}&move=${kind}` as Route;
-  if (move.session === 'first') return `${attemptPath(firstId)}?move=${kind}` as Route;
-  return `${sessionPath(firstId, move.session.slice(4))}?move=${kind}` as Route;
+  if (move.session === 'next' || move.session === 'proof') return `${nextSessionPath(at)}&move=${kind}` as Route;
+  if (move.session === 'first') return `${at.base}?move=${kind}` as Route;
+  return `${sessionPath(at, move.session.slice(4))}?move=${kind}` as Route;
 }
 
 /** The card a move draws. */
@@ -127,6 +127,8 @@ export type SessionHeadProps = {
   view: ContributeView;
   now: Date;
   orgAccess: OrgAccess;
+  /** The page's address (by repo and issue, or an earlier attempt's); else the issue's, from the first attempt. */
+  base?: Route;
 };
 
 /**
@@ -134,10 +136,21 @@ export type SessionHeadProps = {
  * rendered and hidden, to swap in place), with every other move of the contribution under it; else one status line,
  * ending with the move another session holds.
  */
-export function SessionHead({ model, pane, move, first, shown, current, view, now, orgAccess }: SessionHeadProps) {
+export function SessionHead({
+  model,
+  pane,
+  move,
+  first,
+  shown,
+  current,
+  view,
+  now,
+  orgAccess,
+  base,
+}: SessionHeadProps) {
   const head = headOf(model, pane, move);
   const blocked = model.hardStop?.blocked ?? new Set();
-  const firstId = first?.attemptId ?? shown.attemptId;
+  const at = pageAtOf(first ?? shown, base);
   const runOf = (one: Move) => {
     const id =
       one.data.card === 'reply-failed' || one.data.card === 'replies'
@@ -168,7 +181,7 @@ export function SessionHead({ model, pane, move, first, shown, current, view, no
           chip: each.chip,
           tone: each.tone,
           title: each.title,
-          href: head.held.includes(each) ? null : moveHrefOf(firstId, each),
+          href: head.held.includes(each) ? null : moveHrefOf(at, each),
         }));
     return (
       <HeadSwitch held={head.held.map(({ kinds }) => ({ id: kinds[0], kinds }))}>
@@ -199,9 +212,7 @@ export function SessionHead({ model, pane, move, first, shown, current, view, no
 
   const elsewhere = head.elsewhere;
   const moveLink = elsewhere ? (
-    <StatusLinkView
-      link={{ href: moveHrefOf(firstId, elsewhere), label: elsewhereLabelOf(elsewhere), external: false }}
-    />
+    <StatusLinkView link={{ href: moveHrefOf(at, elsewhere), label: elsewhereLabelOf(elsewhere), external: false }} />
   ) : null;
 
   /** A status line, the move link in its link's place (the line's own link then in Details). */
@@ -214,7 +225,20 @@ export function SessionHead({ model, pane, move, first, shown, current, view, no
         fact={status.fact}
         bar={status.bar}
         live={status.live}
-        link={moveLink ?? (status.link ? <StatusLinkView link={status.link} /> : null)}
+        link={
+          moveLink ??
+          (status.link ? (
+            <>
+              <StatusLinkView link={status.link} />
+              {status.more ? (
+                <>
+                  <span className="text-muted-foreground"> · </span>
+                  <StatusLinkView link={status.more} />
+                </>
+              ) : null}
+            </>
+          ) : null)
+        }
         details={
           status.details.length || extra || (moveLink && status.link) ? (
             <>
@@ -292,6 +316,7 @@ export function SessionHead({ model, pane, move, first, shown, current, view, no
     current,
     runNumber: current ? runRoundOf(shown, current) : null,
     elsewhere: !!elsewhere,
+    base: at.base,
   });
   const extra =
     shown.state === 'CLAIMING' && shown.claimSteps ? (

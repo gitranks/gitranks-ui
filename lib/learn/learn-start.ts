@@ -9,8 +9,7 @@ import { relativeLabel } from '@/lib/workspace/format';
 import { limitWordsOf } from '@/lib/workspace/limit-words';
 import { MCP_CLIENT_NAMES, MCP_CLIENTS, type McpClient } from '@/lib/workspace/mcp-setup';
 import { isSignedInAgent } from '@/lib/workspace/oauth-consent';
-import { learnAttemptPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
-import { attemptPath } from '@/lib/workspace/sessions';
+import { learnAttemptPath, pullRequestByAttemptPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** The start page of a lesson for one issue: `/learn/start/<owner>/<repo>/<number>`. */
 
@@ -129,7 +128,7 @@ export function lastCallLabel(iso: string, now = new Date()): string {
 }
 
 /** A Fix attempt's page on Contribute. */
-export const fixAttemptPath = (attemptId: string): Route => attemptPath(attemptId);
+export const fixAttemptPath = (attemptId: string): Route => pullRequestByAttemptPath(attemptId);
 
 /**
  * What step 3 says of a Fix attempt on the issue, by its state. From `SUBMITTING` on, its pull request is a regular

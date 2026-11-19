@@ -3,6 +3,7 @@ import type { Route } from 'next';
 import { ATTEMPT_STATES, isOwnAgent, type Tone, timeLabel } from './attempt-format';
 import type { ContributeAttemptDetail, ContributeFollowUpRound } from './contribute.types';
 import { dayLabel, usd } from './format';
+import { pullRequestByAttemptPath, pullRequestPath } from './paths';
 import { type ProofStage, proofStageOf } from './proof';
 
 /**
@@ -14,17 +15,41 @@ import { type ProofStage, proofStageOf } from './proof';
 /** The page's address for the run that has not started yet. */
 export const NEXT_SESSION = 'next';
 
-export const attemptPath = (attemptId: string) => `/contribute/attempts/${encodeURIComponent(attemptId)}` as Route;
-export const nextSessionPath = (attemptId: string) => `${attemptPath(attemptId)}?session=${NEXT_SESSION}` as Route;
 /**
- * A session's address under its contribution's first attempt: the first attempt's own, or a run's beneath it, so moving
- * between them keeps the contribution's layout (its header and sessions) and reads only the session. A run's own
- * address (`attemptPath`) still works: its page sends it here.
+ * Where a contribution's page is: its first attempt, and the page's own address (by repo and issue, or an earlier
+ * attempt's under it, `pullRequestPath`). Its sessions sit under that address, so moving between them keeps the
+ * contribution's layout (its header and sessions) and reads only the session.
  */
-export const sessionPath = (firstId: string, attemptId: string) =>
-  attemptId === firstId
-    ? attemptPath(firstId)
-    : (`${attemptPath(firstId)}/runs/${encodeURIComponent(attemptId)}` as Route);
+export type PageAt = { firstId: string; base: Route };
+
+/** The next step's address: the run that has not started yet, or the moves only the user can take. */
+export const nextSessionPath = (at: PageAt) => `${at.base}?session=${NEXT_SESSION}` as Route;
+
+/** A session's address on the page: the first attempt's is the page itself, a run's is beneath it. */
+export const sessionPath = (at: PageAt, attemptId: string) =>
+  attemptId === at.firstId ? at.base : (`${at.base}/runs/${encodeURIComponent(attemptId)}` as Route);
+
+/**
+ * The page a contribution's first attempt is on: `base` when the page says it (an earlier attempt's sits under the
+ * issue's), else the issue's own address from the attempt's repo and number.
+ */
+export const pageAtOf = (
+  first: Pick<ContributeAttemptDetail, 'attemptId' | 'nameWithOwner' | 'number'>,
+  base?: Route,
+): PageAt => ({
+  firstId: first.attemptId,
+  base:
+    base ??
+    (first.nameWithOwner
+      ? pullRequestPath({ repo: first.nameWithOwner, issue: first.number })
+      : pullRequestByAttemptPath(first.attemptId)),
+});
+
+/**
+ * The page's address in the browser's path, a run's segment aside: what a client part of the page builds its sessions'
+ * addresses from.
+ */
+export const pageBaseOf = (pathname: string) => pathname.replace(/\/runs\/[^/]+\/?$/, '').replace(/\/$/, '') as Route;
 
 export type SessionCard = {
   key: string;
@@ -69,11 +94,11 @@ export const waitingThreadsOf = (first: ContributeAttemptDetail) =>
   first.pullRequest?.state === 'OPEN' ? (first.reviewFeedback?.threads ?? []).filter(({ ignored }) => !ignored) : [];
 
 /** The first attempt's card: its pill from the contribution's model (its pull request's state, or where it stands). */
-function firstCardOf(first: ContributeAttemptDetail, model: TileModel): SessionCard {
+function firstCardOf(first: ContributeAttemptDetail, model: TileModel, at: PageAt): SessionCard {
   const own = isOwnAgent(first);
   return {
     key: first.attemptId,
-    href: attemptPath(first.attemptId),
+    href: at.base,
     title: 'First attempt',
     pill: model.sessions.first?.pill ?? ATTEMPT_STATES[first.state] ?? null,
     meta: [dayLabel(first.createdAt), own ? 'your own agent' : usd(first.costUsd)].filter(Boolean).join(' · '),
@@ -91,13 +116,16 @@ export type TileModel = {
 /**
  * The sessions of the contribution whose first attempt is `first`. Each run comes from the pull request's history; one
  * the history does not list yet (`round`, just started) is added from what was read of it. The list marks the one shown.
+ * Each links under the page's address, `base`.
  */
 export function sessionsOf(
   first: ContributeAttemptDetail,
   round: ContributeAttemptDetail | undefined,
   model: TileModel,
+  base: Route,
 ): SessionCard[] {
-  const cards = [firstCardOf(first, model)];
+  const at: PageAt = { firstId: first.attemptId, base };
+  const cards = [firstCardOf(first, model, at)];
   const history = [...(first.followUps?.history ?? [])];
   // Without the history, a run added here is the latest one: its number is the runs used.
   const numberOf = () => (first.followUps?.history ? history.length + 1 : first.followUps?.used || history.length + 1);
@@ -140,7 +168,7 @@ export function sessionsOf(
     const byAutopilot = entry.by === 'autopilot' && !whoUnknown.has(entry.attemptId);
     cards.push({
       key: entry.attemptId,
-      href: sessionPath(first.attemptId, entry.attemptId),
+      href: sessionPath(at, entry.attemptId),
       title: `Run ${entry.round}`,
       pill: model.sessions[`run:${entry.attemptId}`]?.pill ?? null,
       meta: [dayLabel(entry.at), entry.costUsd > 0 ? usd(entry.costUsd) : null, byAutopilot ? 'by autopilot' : null]
@@ -154,9 +182,7 @@ export function sessionsOf(
   const moveOf = (sessions: string[], cardKind?: string) =>
     model.moves.find((move) => sessions.includes(move.session) && (!cardKind || move.card === cardKind));
   const withMove = (kind: string | undefined) =>
-    (kind
-      ? `${nextSessionPath(first.attemptId)}&move=${encodeURIComponent(kind)}`
-      : nextSessionPath(first.attemptId)) as Route;
+    (kind ? `${nextSessionPath(at)}&move=${encodeURIComponent(kind)}` : nextSessionPath(at)) as Route;
   if (stage) {
     const { meta } = PROOF_TILES[stage];
     const at = stage === 'posted' ? first.proof?.session?.stateAt : null;

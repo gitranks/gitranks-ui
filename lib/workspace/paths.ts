@@ -153,13 +153,13 @@ export const ABOUT_PATH = '/contribute?about=1' as Route;
 export const CONTRIBUTE_TERMS_PATH = '/terms#contribute' as Route;
 
 /**
- * Whether the path is a contribution's or a lesson's own page (`/contribute/attempts/<id>`, a run under it,
- * `/learn/attempts/<id>`), in any spelling the router reads as it: the review link an agent hands its person. A visitor
- * without a session is let through to it, and the page asks them to sign in and comes back to itself; a signed-in user
- * whose attempt it isn't still gets the 404.
+ * Whether the path is a lesson's own page (`/learn/attempts/<id>`), in any spelling the router reads as it: the review
+ * link an agent hands its person. A visitor without a session is let through to it, and the page asks them to sign in
+ * and comes back to itself; a signed-in user whose attempt it isn't still gets the 404. A contribution's old address
+ * (`/contribute/attempts/…`) redirects before the proxy, and the pull request's page is under `/my`.
  */
 export const isAttemptPagePath = (pathname: string): boolean =>
-  decodedMatches(pathname, /^\/+(?:contribute|learn)\/+attempts\/+[^/]+(?:\/+runs\/+[^/]+)?\/?$/i);
+  decodedMatches(pathname, /^\/+learn\/+attempts\/+[^/]+\/?$/i);
 
 /**
  * Whether the path is a page every visitor sees once Contribute is launched: the landing, the MCP docs and the
@@ -266,6 +266,38 @@ export function pullRequestByAttemptPath(
   const query = new URLSearchParams({ ...(opts.view ? { view: opts.view } : {}), ...(opts.query ?? {}) }).toString();
   return (query ? `${path}?${query}` : path) as Route;
 }
+
+/**
+ * An issue the user worked on, as the pull request's page names it: `repo` is `owner/name`. `earlier` is the id of an
+ * older first attempt on the issue (the person discarded one and started again): its page sits under `earlier/<id>`.
+ */
+export type IssueRef = { repo: string; issue: number; earlier?: string | null };
+
+/**
+ * The pull request's page, by repo and issue: `/my/pull-requests/<owner>/<repo>/<issue>`, or an earlier attempt's under
+ * it. `view` names a session: a run's (`{ run }`), or the next step (`'next'`). The address by repo and issue is what
+ * the browser ends on and what people share; a link that knows only an attempt's id uses `pullRequestByAttemptPath`.
+ */
+export function pullRequestPath(ref: IssueRef, view?: { run: string } | 'next'): Route {
+  const [owner = '', name = ''] = ref.repo.split('/');
+  const issue = `${WORKSPACE_PATHS.pullRequests}/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/${ref.issue}`;
+  const base = ref.earlier ? `${issue}/earlier/${encodeURIComponent(ref.earlier)}` : issue;
+  if (view === 'next') return `${base}?session=next` as Route;
+  return (view ? `${base}/runs/${encodeURIComponent(view.run)}` : base) as Route;
+}
+
+/**
+ * Where the person picks another issue, by the side the attempt was on: Contribute's issues (its own page until they
+ * join the Contribute tab) or Learn's.
+ */
+export const PICK_ISSUE_PATHS = {
+  fix: '/contribute/issues' as Route,
+  learn: `${WORKSPACE_PATHS.learn}#issues` as Route,
+} as const;
+
+/** Whether the path is the address by attempt, in any spelling the router reads as it. */
+export const isByAttemptPath = (pathname: string): boolean =>
+  decodedMatches(pathname, /^\/+my\/+pull-requests\/+by-attempt\/+[^/]+\/?$/i);
 
 /** The Pull requests tab's table holds this many rows a page. */
 export const PULL_REQUESTS_PAGE_SIZE = 20;

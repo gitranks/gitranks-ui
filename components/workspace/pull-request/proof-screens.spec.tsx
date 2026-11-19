@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/attempts/A_OC',
+  usePathname: () => '/my/pull-requests/acme/widgets/42',
   useSearchParams: () => new URLSearchParams('session=next'),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');

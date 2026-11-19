@@ -2,11 +2,12 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import type { ByAttemptRead } from './by-attempt';
+import type { ByAttemptRead, IssueAttemptRef } from './by-attempt';
 import {
   type CheckNotesRead,
   ContributeActivityDocument,
   ContributeAttemptBodyUpdateDocument,
+  ContributeAttemptByIssueDocument,
   ContributeAttemptCheckNotesDocument,
   ContributeAttemptCheckStopDocument,
   ContributeAttemptClaimStepsDocument,
@@ -409,10 +410,10 @@ export const loadNeedsYou = cache(async (): Promise<ContributeNeedsYouAnswer | n
 });
 
 /**
- * The attempt an address by attempt names, as far as it needs: a run or a first attempt, Fix or Learn, and its first
- * attempt. Null signed out, when the API does not find it for the viewer, or on any failure.
+ * The attempt an address by attempt names, as far as it needs: a run or a first attempt, Fix or Learn, its issue and
+ * its first attempt. Null signed out, or when the API does not find it for the viewer; `undefined` when the read failed.
  */
-export async function loadAttemptRef(attemptId: string): Promise<ByAttemptRead | null> {
+export async function loadAttemptRef(attemptId: string): Promise<ByAttemptRead | null | undefined> {
   const githubLogin = await viewerLogin();
   if (!githubLogin || !/^[\w-]{1,64}$/.test(attemptId)) return null;
   try {
@@ -423,9 +424,32 @@ export async function loadAttemptRef(attemptId: string): Promise<ByAttemptRead |
     );
     return contributeAttempt ? { ...contributeAttempt, mode: contributeAttempt.mode ?? undefined } : null;
   } catch {
-    return null;
+    return undefined;
   }
 }
+
+/**
+ * The viewer's newest first attempt on an issue, by the address's repo and number: its id and side, the repo's current
+ * name and the earlier attempts. Null signed out, for an address that names no issue of the viewer's (or a repo name
+ * GitHub does not allow); `undefined` when the read failed. Read once per request: the page's layout and its session
+ * both ask.
+ */
+export const loadIssueAttempt = cache(
+  async (owner: string, repo: string, number: number): Promise<IssueAttemptRef | null | undefined> => {
+    const githubLogin = await viewerLogin();
+    if (!githubLogin || !Number.isSafeInteger(number) || number < 1) return null;
+    try {
+      const { contributeAttemptRef } = await graphqlDirect(
+        ContributeAttemptByIssueDocument,
+        { owner, repo, number },
+        { source: 'ssr', githubLogin },
+      );
+      return contributeAttemptRef ?? null;
+    } catch {
+      return undefined;
+    }
+  },
+);
 
 /**
  * One page of the user's pull requests, newest first, under a state chip and a side ("Made with"); `undefined` when

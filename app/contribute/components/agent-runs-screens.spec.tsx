@@ -91,7 +91,7 @@ describe('a run’s row', () => {
     expect(words).toContain('Step 3 of 5: Working');
     expect(words).toContain('12 min · $0.42 of $2');
     expect(words).toContain('go: budget raised to $1.80, the work sent');
-    expect(html).toContain('href="/contribute/attempts/att_working"');
+    expect(html).toContain('href="/my/pull-requests/by-attempt/att_working"');
     expect(words).toContain('Follow-up');
     expect(words).toContain('Addressing review');
     expect(words).toContain('Queued, 1st in line');

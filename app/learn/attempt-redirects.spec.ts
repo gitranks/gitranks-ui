@@ -22,6 +22,13 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadPrNotes: vi.fn(async () => undefined),
   loadRepliesWaiting: vi.fn(async () => undefined),
   loadResolveHumanThreads: vi.fn(async () => undefined),
+  loadIssueAttempt: vi.fn(async () => ({
+    attemptId: 'A_1',
+    mode: 'LEARN',
+    repo: 'driftwood-js/driftwood',
+    number: 871,
+    earlier: null,
+  })),
 }));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnOpen: vi.fn(async () => true),
@@ -36,24 +43,25 @@ const { views } = await import('@/lib/contribute/__fixtures__/contribute-views')
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 
 const params = Promise.resolve({ id: 'A_1' });
+const page = Promise.resolve({ owner: 'driftwood-js', repo: 'driftwood', issue: '871' });
 
 describe('the redirects between a contribution and a lesson', () => {
-  it("keeps the grant's resume when a Learn attempt's Contribute address sends it to its lesson", async () => {
+  it("keeps the grant's resume when a Learn attempt's pull request page sends it to its lesson", async () => {
     vi.mocked(contributeData.loadContribute).mockResolvedValue(views.active);
     vi.mocked(contributeData.loadAttempt).mockResolvedValue(detail({ attemptId: 'A_1', mode: 'LEARN' }));
     await expect(
-      FirstSessionView({ params, searchParams: Promise.resolve({ resume: 'n0nce', session: 'x' }) }),
+      FirstSessionView({ params: page, searchParams: Promise.resolve({ resume: 'n0nce', session: 'x' }) }),
     ).rejects.toThrow('NEXT_REDIRECT /learn/attempts/A_1?resume=n0nce');
-    await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).rejects.toThrow(
+    await expect(FirstSessionView({ params: page, searchParams: Promise.resolve({}) })).rejects.toThrow(
       /^NEXT_REDIRECT \/learn\/attempts\/A_1$/,
     );
   });
 
-  it("keeps the query when a Fix attempt's Learn address sends it to its contribution", async () => {
+  it("keeps the query when a Fix attempt's Learn address sends it to its pull request, by its id", async () => {
     vi.mocked(contributeData.loadContribute).mockResolvedValue(views.active);
     vi.mocked(contributeData.loadAttempt).mockResolvedValue(detail({ attemptId: 'A_1', mode: 'FIX' }));
     await expect(LearnAttemptView({ params, searchParams: Promise.resolve({ resume: 'n0nce' }) })).rejects.toThrow(
-      'NEXT_REDIRECT /contribute/attempts/A_1?resume=n0nce',
+      'NEXT_REDIRECT /my/pull-requests/by-attempt/A_1?resume=n0nce',
     );
   });
 });

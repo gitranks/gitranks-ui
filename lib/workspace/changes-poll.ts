@@ -226,7 +226,7 @@ const REFRESHED_BY: [test: (path: string) => boolean, areas: ContributeChangeAre
   [(path) => path === '/learn', ['ATTEMPTS', 'SETTINGS']],
   // The user's lessons, and a lesson's own page while it waits on the agent.
   [(path) => path === '/learn/lessons' || path.startsWith('/learn/attempts/'), ['ATTEMPTS']],
-  [(path) => under(path, '/my/pull-requests') || path.startsWith('/contribute/attempts/'), ['ATTEMPTS']],
+  [(path) => under(path, '/my/pull-requests'), ['ATTEMPTS']],
   [(path) => path.startsWith('/my/start/') || path === '/my/progress', ['ATTEMPTS']],
   [(path) => under(path, '/my/agent'), ['ATTEMPTS', 'SETTINGS']],
   [(path) => under(path, '/my/settings'), ['SET', 'SETTINGS']],

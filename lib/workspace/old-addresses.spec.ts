@@ -62,6 +62,16 @@ describe('the old workspace addresses', () => {
     ['/contribute/settings/keys?grant=unavailable', '/my/agent/key?grant=unavailable'],
     ['/contribute/settings/own-agent', '/my/agent'],
     ['/Contribute/Me', '/my/pull-requests'],
+    ['/contribute/attempts/A_1', '/my/pull-requests/by-attempt/A_1'],
+    ['/contribute/attempts/A_1/', '/my/pull-requests/by-attempt/A_1'],
+    ['/contribute/attempts/A_1?session=next', '/my/pull-requests/by-attempt/A_1?session=next'],
+    ['/contribute/attempts/A_1?resume=n0nce', '/my/pull-requests/by-attempt/A_1?resume=n0nce'],
+    [
+      '/contribute/attempts/A_1?move=changes&session=next',
+      '/my/pull-requests/by-attempt/A_1?move=changes&session=next',
+    ],
+    ['/contribute/attempts/A_1/runs/A_F1', '/my/pull-requests/by-attempt/A_F1'],
+    ['/contribute/attempts/A_1/runs/A_F1?move=reply-failed', '/my/pull-requests/by-attempt/A_F1?move=reply-failed'],
   ])('%s goes on to %s, for now (307)', (from, to) => {
     expect(redirectOf(from)).toEqual({ location: to, status: 307 });
   });
@@ -71,8 +81,8 @@ describe('the old workspace addresses', () => {
       '/contribute',
       '/contribute?start=agent',
       '/contribute/issues',
-      '/contribute/attempts/A_1',
-      '/contribute/attempts/A_1/runs/R_1',
+      '/contribute/attempts',
+      '/contribute/attempts/A_1/runs',
       '/contribute/maintainers',
       '/contribute/mcp',
       '/contribute/me/x',

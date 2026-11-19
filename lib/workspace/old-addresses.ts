@@ -37,4 +37,8 @@ export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
   // GitHub's consent comes back with `?grant=`, kept by the redirect.
   to('/contribute/settings/keys', '/my/agent/key'),
   to('/contribute/settings/own-agent', '/my/agent'),
+  // A contribution's page and its runs: the address by attempt reads the attempt and goes on to the pull request's
+  // page by repo and issue, the query kept (`?resume=`, `?move=`, `?session=next`).
+  to('/contribute/attempts/:id/runs/:runId', '/my/pull-requests/by-attempt/:runId'),
+  to('/contribute/attempts/:id', '/my/pull-requests/by-attempt/:id'),
 ];

@@ -20,9 +20,9 @@ import {
 } from './follow-up-format';
 import { replyRowOf } from './needs-you-replies';
 import { isToApprove } from './one-comment';
+import { pullRequestByAttemptPath } from './paths';
 import { type ContributePrConventionIssue, httpsOnly, PR_FIX_WORDS } from './pr-conventions';
 import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
-import { nextSessionPath, sessionPath } from './sessions';
 
 /**
  * What waits on an open pull request, as its page builds its moves from it (2026-11-03): each reason with its pill,
@@ -319,7 +319,7 @@ export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] 
   const first = (kind: ContributePrSignalKind) => signals.find((signal) => signal.kind === kind);
   const number = pr.pullRequest.number;
   const prUrl = githubUrlOf(pr.pullRequest.url);
-  const next = nextSessionPath(pr.attemptId);
+  const next = pullRequestByAttemptPath(pr.attemptId, { query: { session: 'next' } });
   const run = nextRunOf(pr);
   // A pull request the user opened by hand takes no run: what a run would do is theirs, on GitHub.
   const byHand = pr.openedBy === 'HAND';
@@ -394,7 +394,7 @@ export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] 
       move: `${by ? `Run ${by}` : 'A run'} drafted ${plural(waiting.length, 'reply', 'replies')} to ${draftsTo(waiting)}. Read and post them.`,
       action: {
         label: waiting.length === 1 ? 'Approve the reply' : 'Approve replies',
-        href: sessionPath(pr.attemptId, waiting[0].attemptId),
+        href: pullRequestByAttemptPath(waiting[0].attemptId),
         aria: `Approve the replies on PR #${number}`,
       },
       secondary: null,
@@ -410,7 +410,7 @@ export function candidatesOf({ pr, drafts, runs, now }: PrContext): Candidate[] 
       move: notPosted.move,
       action: {
         label: notPosted.label,
-        href: `${sessionPath(pr.attemptId, notPosted.runId)}?move=reply-failed` as Route,
+        href: pullRequestByAttemptPath(notPosted.runId, { query: { move: 'reply-failed' } }),
         aria: `${notPosted.label} on PR #${number}`,
       },
       secondary: null,

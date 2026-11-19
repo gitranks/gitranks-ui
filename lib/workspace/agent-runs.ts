@@ -3,6 +3,7 @@ import type { Route } from 'next';
 import { detailText, EVENT_LABELS } from './attempt-format';
 import type { ContributeActivity, ContributeAgentRun, ContributeAgentRunPhase } from './contribute.types';
 import { relativeLabel, usd } from './format';
+import { pullRequestByAttemptPath } from './paths';
 
 /**
  * The user's agent runs as the activity read lists them (`runs`): the Agent tab's count, Right now's lanes, the runs
@@ -152,11 +153,9 @@ export function eventLineOf({ latestEvent }: Pick<ContributeAgentRun, 'latestEve
   return detailText(detail.replace(/^session \S+: /, '')) || EVENT_LABELS[latestEvent.state] || null;
 }
 
-const attemptPath = (attemptId: string) => `/contribute/attempts/${encodeURIComponent(attemptId)}` as Route;
-
 /** Where a run's row leads, and what its link says. */
 export function runLinkOf(run: Pick<ContributeAgentRun, 'attemptId' | 'phase'>): { href: Route; label: string } {
-  const href = attemptPath(run.attemptId);
+  const href = pullRequestByAttemptPath(run.attemptId);
   if (run.phase === 'READY' || run.phase === 'WAITING_FOR_YOU') return { href, label: 'Review' };
   return { href, label: run.phase === 'DONE' ? 'See it' : 'Details' };
 }

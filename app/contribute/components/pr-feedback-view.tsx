@@ -10,6 +10,7 @@ import { PrCard } from '@/components/workspace/pull-request/pr-card';
 import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { isRetryablePrFeedbackError, prFeedbackErrorMessage } from '@/lib/workspace/errors';
+import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 import {
   maintainersSectionPath,
   type PrFeedbackFlow,
@@ -17,7 +18,6 @@ import {
   prRefText,
   reportPathOf,
 } from '@/lib/workspace/pr-feedback';
-import { attemptPath } from '@/lib/workspace/sessions';
 
 const EYEBROW = 'text-xs font-semibold tracking-[0.08em] text-primary uppercase';
 const TITLE = 'text-2xl font-semibold tracking-tight text-balance md:text-[32px] md:leading-tight';
@@ -158,7 +158,7 @@ export function PrFeedbackScreen({
           Notes on it come from other people: the maintainers’ show on your contribution’s page.
         </p>
         <Button asChild variant="outline" className="min-h-11 self-start sm:min-h-9">
-          <Link href={attemptPath(card.attemptId)} prefetch={false}>
+          <Link href={pullRequestByAttemptPath(card.attemptId)} prefetch={false}>
             Open your contribution
           </Link>
         </Button>

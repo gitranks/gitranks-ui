@@ -75,6 +75,6 @@ describe('the approval kept for the way back from GitHub', () => {
   });
 
   it('sends GitHub back to the review with the nonce', () => {
-    expect(resumeHrefOf('A_1', 'n 1')).toBe('/contribute/attempts/A_1?resume=n%201');
+    expect(resumeHrefOf('A_1', 'n 1')).toBe('/my/pull-requests/by-attempt/A_1?resume=n+1');
   });
 });

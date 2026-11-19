@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/attempts/A_1/runs/A_F1',
+  usePathname: () => '/my/pull-requests/driftwood-js/driftwood/871/runs/A_F1',
   useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));

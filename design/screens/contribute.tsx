@@ -552,7 +552,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     id: 'contribute-attempt',
     title: 'A contribution',
     area: 'contribute',
-    route: '/contribute/attempts/[id]',
+    route: '/my/pull-requests/[owner]/[repo]/[issue]',
     sources: [
       'app/contribute/components/review-view.tsx',
       'app/contribute/components/attempt-sessions.tsx',
@@ -577,7 +577,8 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'app/contribute/components/comment-row.tsx',
       'app/contribute/components/comment-row-open.tsx',
       'app/contribute/components/comment-row-actions.tsx',
-      'app/contribute/components/contribution-header.tsx',
+      'components/workspace/pull-request/pull-request-header.tsx',
+      'components/workspace/pull-request/stage-line.ts',
       'app/contribute/components/contribute-notices.tsx',
       'app/contribute/components/pr-notes.tsx',
       'lib/contribute/contribution-moves.ts',
@@ -980,7 +981,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     id: 'contribute-pr-form',
     title: 'The pull request form',
     area: 'contribute',
-    route: '/contribute/attempts/[id]',
+    route: '/my/pull-requests/[owner]/[repo]/[issue]',
     sources: ['app/contribute/components/pr-form.tsx', 'lib/contribute/pr-conventions.ts'],
     states: [
       {
@@ -1080,7 +1081,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     id: 'contribute-attempt-checks',
     title: 'The Checks tab',
     area: 'contribute',
-    route: '/contribute/attempts/[id]',
+    route: '/my/pull-requests/[owner]/[repo]/[issue]',
     sources: ['app/contribute/components/attempt-panels.tsx'],
     states: [
       {

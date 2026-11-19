@@ -55,7 +55,7 @@ describe('Agent runs', () => {
     expect(page).toContain('↳ Follow-up on PR #8136');
     expect(page).toContain('The tests did not pass');
     expect(html).toContain('title="Go/no-go $0.08 · work $0.07"');
-    expect(html).toContain('href="/contribute/attempts/6ae66d0292fedc1b8de48d65"');
+    expect(html).toContain('href="/my/pull-requests/by-attempt/6ae66d0292fedc1b8de48d65"');
   });
 
   it('folds back-to-back runs that never started on one issue into one quiet line', () => {

@@ -57,7 +57,7 @@ describe("the start page's address", () => {
     expect(learnStartNumberOf(1.5)).toBeNull();
     expect(learnStartNumberOf('12')).toBeNull();
     expect(learnStartPath('driftwood-js/driftwood', 934)).toBe('/learn/start/driftwood-js/driftwood/934');
-    expect(fixAttemptPath('A_9')).toBe('/contribute/attempts/A_9');
+    expect(fixAttemptPath('A_9')).toBe('/my/pull-requests/by-attempt/A_9');
   });
 
   it('gives the agent one prompt: the issue and GitRanks Learn', () => {

@@ -676,7 +676,7 @@ describe('issues taken while the page is open', () => {
 
     expect(text(html)).toContain('Your agent is on this · View');
     expect(html).toContain('data-live-status="yours"');
-    expect(html).toMatch(/<a [^>]*href="\/contribute\/attempts\/A_9"[^>]*>View<\/a>/);
+    expect(html).toMatch(/<a [^>]*href="\/my\/pull-requests\/by-attempt\/A_9"[^>]*>View<\/a>/);
     expect(html).toMatch(/<button[^>]*disabled=""/);
     expect(html).not.toContain('href="https://github.com/fern-lang/fern/issues/2481"');
     expect(text(card('CLAIMED_BY_YOU'))).toContain('Your agent is on this');

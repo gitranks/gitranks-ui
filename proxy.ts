@@ -26,6 +26,7 @@ import {
   AGENTS_DOC_PATH,
   isAttemptPagePath,
   isAuthorizePath,
+  isByAttemptPath,
   isContributePath,
   isLandingPath,
   isLedgerPath,
@@ -33,6 +34,7 @@ import {
   isMyPath,
   isOpenAtLaunchPath,
   settingUpHomeOf,
+  WORKSPACE_PATHS,
 } from './lib/workspace/paths';
 import { isPrTimelinePath, prTimelineMarkdownPath, prTimelineRouteOf } from './lib/workspace/pr-timeline-path';
 import { contributeOpen, requestContributeAccess, requestWorkspaceAccess } from './lib/workspace/preview-gate';
@@ -302,8 +304,18 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // by a shared cache. A signed-in account is asked about as on Contribute's pages: the workspace closed to it gets the
   // real 404, and one being set up goes to Contribute's home, carrying the step it was on.
   const myPage = isMyPath(pathname);
+  // The address by attempt is a route that only redirects: a visitor is shown the workspace's sign-in on that same
+  // address, so the sign-in comes back to it.
+  const signInHere = () => {
+    const response = NextResponse.rewrite(new URL(WORKSPACE_PATHS.pullRequests, request.url));
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
+  };
+  const byAttempt = isByAttemptPath(pathname) && (request.method === 'GET' || request.method === 'HEAD');
+  if (byAttempt && !hasSession(request)) return signInHere();
   if (myPage && hasSession(request) && (request.method === 'GET' || request.method === 'HEAD')) {
     const access = await requestWorkspaceAccess(request);
+    if (access === 'signed-out' && byAttempt) return signInHere();
     if (access === 'setting-up') {
       const response = NextResponse.redirect(new URL(settingUpHomeOf(request.nextUrl), request.url));
       response.headers.set('Cache-Control', 'private, no-store');

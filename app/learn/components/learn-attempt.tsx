@@ -41,7 +41,7 @@ import type { CommentActionsInit } from '@/lib/workspace/comment-actions';
 import { loadAttempt, loadContribute, viewerLogin } from '@/lib/workspace/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/workspace/contribute.types';
 import { parsePatch } from '@/lib/workspace/patch';
-import { attemptPath } from '@/lib/workspace/sessions';
+import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
@@ -419,7 +419,7 @@ export async function LearnAttemptView({
   }
   if (!open || !view || !attempt) notFound();
   if (attempt.mode === 'FIX' || !lesson) {
-    if (attempt.mode === 'FIX') redirect(withQuery(attemptPath(attempt.attemptId), query));
+    if (attempt.mode === 'FIX') redirect(withQuery(pullRequestByAttemptPath(attempt.attemptId), query));
     notFound();
   }
   // While the agent works, practice lessons for the learner's goal; never read once the lesson is there.

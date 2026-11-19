@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { type RefObject, useLayoutEffect } from 'react';
 
-import { attemptHref } from '@/components/workspace/reviews-ready';
 import type { LiveStatus } from '@/lib/contribute/live-issues';
+import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 /** What a list row knows of its issue as it is now, and what it tells the list. */
 export type IssueLive = {
@@ -51,7 +51,11 @@ export function IssueLiveStatus({
           {attemptId ? (
             <>
               {' · '}
-              <Link href={attemptHref(attemptId)} prefetch={false} className="font-semibold text-link hover:underline">
+              <Link
+                href={pullRequestByAttemptPath(attemptId)}
+                prefetch={false}
+                className="font-semibold text-link hover:underline"
+              >
                 View
               </Link>
             </>

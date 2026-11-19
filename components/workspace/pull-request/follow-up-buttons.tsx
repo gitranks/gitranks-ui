@@ -7,7 +7,6 @@ import { useEffect, useState, useTransition } from 'react';
 import { offOf, useSessionActions } from './session-actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { attemptHref } from '@/components/workspace/reviews-ready';
 import { cn } from '@/lib/utils';
 import { fixPullRequest, markNeedsYouHandled, retryAttempt, vetoAutopilot } from '@/lib/workspace/actions';
 import { timeLabel } from '@/lib/workspace/attempt-format';
@@ -20,6 +19,7 @@ import {
   vetoErrorMessage,
 } from '@/lib/workspace/follow-up-format';
 import { relativeLabel } from '@/lib/workspace/format';
+import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 const ErrorNote = ({ error }: { error: string | null }) =>
   error ? (
@@ -136,7 +136,7 @@ export function RetryButton({
         return;
       }
       setDone(true);
-      router.push(attemptHref(result.data.attemptId));
+      router.push(pullRequestByAttemptPath(result.data.attemptId));
     });
 
   return (

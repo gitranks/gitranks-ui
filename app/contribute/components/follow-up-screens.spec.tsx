@@ -85,7 +85,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
 
     expect(html).toContain('data-session-head="status"');
     expect(plain).toContain('Your pull request is open Your move is in the next step →');
-    expect(html).toContain('href="/contribute/attempts/A_1?session=next&amp;move=changes"');
+    expect(html).toContain('href="/my/pull-requests/driftwood-js/driftwood/871?session=next&amp;move=changes"');
     expect(html).toContain('data-session="next"');
     expect(plain).toContain('Run 1 Your move');
     expect(plain).not.toMatch(/rounds? (used|left)/);
@@ -214,7 +214,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     const html = review(followUpAttempts.underWay);
 
     expect(html).toContain('data-session="A_F1"');
-    expect(html).toContain('href="/contribute/attempts/A_1/runs/A_F1"');
+    expect(html).toContain('href="/my/pull-requests/driftwood-js/driftwood/871/runs/A_F1"');
     expect(html).not.toContain('data-session="next"');
   });
 
@@ -314,7 +314,7 @@ describe('a follow-up on the review screen', () => {
     expect(html).toContain('data-follow-up-of="1419"');
     expect(plain).toContain('Follows up pull request #1419');
     expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
-    expect(html).toContain('href="/contribute/attempts/A_1"');
+    expect(html).toContain('href="/my/pull-requests/by-attempt/A_1"');
     expect(plain).toContain('The new commits');
     expect(html).toContain('data-file="src/router/normalize-path.ts"');
     expect(html).toContain('data-check="SECRETS"');
@@ -1582,7 +1582,7 @@ describe('the next step, for each thing only the user can do', () => {
     const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={ready} current={run} now={NOW} />);
     expect(html).toContain('data-session-head="status"');
     expect(text(html)).toContain('Your move is on run 2 →');
-    expect(html).toContain('href="/contribute/attempts/A_8/runs/A_F2?move=run-ready"');
+    expect(html).toContain('href="/my/pull-requests/kelp-db/kelp/1400/runs/A_F2?move=run-ready"');
     expect(text(html)).not.toMatch(/Run 2 (is )?working/i);
     const own = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={run} first={ready} now={NOW} />);
     expect(own).toContain('data-move="run-ready"');
@@ -1592,6 +1592,6 @@ describe('the next step, for each thing only the user can do', () => {
   it('says on the other sessions where the move is, with the way to it', () => {
     const html = review(nextForAgreement);
     expect(text(html)).toContain('Your pull request is open Your move is in the next step →');
-    expect(html).toContain('href="/contribute/attempts/A_C?session=next&amp;move=agreement"');
+    expect(html).toContain('href="/my/pull-requests/lantern-ui/lantern/3870?session=next&amp;move=agreement"');
   });
 });

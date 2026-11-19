@@ -11,9 +11,9 @@ import type { Move, MoveKind, MoveTone, RunVariant, SessionRef } from './contrib
 import { hasOutcomes, shortSha } from './follow-up-flow';
 import { timeLeftLabel } from './format';
 import type { ActionId } from './hard-stop';
-import { GROUPS, isGrantBounce, shortLeftOf } from './needs-you';
 import { inOneComment, isHeldBack, isNoReply, isToApprove } from './one-comment';
 import { commitsOf } from './patch';
+import { GROUPS, isGrantBounce, shortLeftOf } from './pr-moves';
 import { BLOCK_REASONS, type RunTrouble, reasonKeyOf, replyTroubleOf } from './reply-trouble';
 import { bounceOf, runNameOf } from './session-status';
 

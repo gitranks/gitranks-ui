@@ -1,13 +1,4 @@
-import {
-  attempt,
-  detail,
-  feedbackThread,
-  followUpOf,
-  followUpRun,
-  followUps,
-  pullRequest,
-} from './contribute-attempts';
-import { replyWaiting } from './contribute-overview';
+import { detail, feedbackThread, followUpRun, followUps, pullRequest } from './contribute-attempts';
 import type {
   ContributeAttemptDetail,
   ContributeContribution,
@@ -17,9 +8,7 @@ import type {
   ContributeProofResult,
   ContributeProofSession,
   ContributePrSignal,
-  ContributeReplyWaiting,
 } from '@/lib/workspace/contribute.types';
-import type { NeedsYouRead } from '@/lib/workspace/needs-you';
 
 /** Signals as the reads raise them, at an hour each before `NOW` (12:00). */
 export const signal = (
@@ -237,144 +226,6 @@ export const prsYours = {
     followUps: followUps({ used: 2, manualRuns: 2 }),
   }),
 } satisfies Record<string, ContributeContribution>;
-
-/** The runs the page read in flight: the follow-up at work on fabric.js, the own agent's on nimbus. */
-export const runsInFlight = [
-  attempt({
-    attemptId: 'A_FAB2',
-    kind: 'FOLLOW_UP',
-    state: 'RUNNING',
-    nameWithOwner: 'fabricjs/fabric.js',
-    followUpOf: { ...followUpOf, attemptId: 'A_PR11195', prId: 'PR_11195', number: 11195 },
-    followUpStep: 'reading',
-    round: followUpRun({ round: 2, attemptId: 'A_FAB2', state: 'RUNNING', pushedSha: null, fixed: 0, replied: 0 }),
-    createdAt: '2026-10-28T11:58:00.000Z',
-  }),
-  attempt({
-    attemptId: 'A_NIM1',
-    kind: 'FOLLOW_UP',
-    state: 'RUNNING',
-    runner: 'MCP',
-    nameWithOwner: 'nimbus-ci/nimbus',
-    followUpOf: { ...followUpOf, attemptId: 'A_PR640', prId: 'PR_640', number: 640 },
-    leaseUntil: '2026-10-28T15:00:00.000Z',
-    createdAt: '2026-10-28T11:30:00.000Z',
-  }),
-];
-
-/** A follow-up ready for review on driftwood #1419: two comments fixed, two replies drafted. */
-export const runReady = attempt({
-  attemptId: 'A_F1',
-  kind: 'FOLLOW_UP',
-  followUpOf,
-  costUsd: 1.12,
-  reviewAt: '2026-10-28T11:00:00.000Z',
-  round: followUpRun({ round: 2, state: 'REVIEW', pushedSha: null, fixed: 2, replied: 0 }),
-  checkStatus: { status: 'PASSED', note: '' },
-});
-
-/** Every row Overview shows: the reviews, a reply to approve, and each reason a pull request needs the user. */
-export const needsEverything = (): NeedsYouRead => ({
-  reviews: [
-    runReady,
-    attempt({
-      attemptId: 'A_NEW',
-      number: 2481,
-      nameWithOwner: 'fern-lang/fern',
-      reviewAt: '2026-10-28T10:00:00.000Z',
-    }),
-  ],
-  replies: [replyWaiting({ prId: 'PR_2205', attemptId: 'A_TIDE1', nameWithOwner: 'tidewave/tide', prNumber: 2205 })],
-  contributions: Object.values(prsNeedingYou),
-  runs: runsInFlight,
-});
-
-/** What Overview shows of it: a few reasons and the runs at work, as the board draws them. */
-export const needsSome = (): NeedsYouRead => ({
-  reviews: [runReady],
-  replies: [],
-  contributions: [
-    prsNeedingYou.agreement,
-    prsNeedingYou.found,
-    prsNeedingYou.dco,
-    prsNeedingYou.cla,
-    prsNeedingYou.working,
-    prsNeedingYou.ownWorking,
-  ],
-  runs: runsInFlight,
-});
-
-/**
- * Replies that did not post, one row per pull request (made-up repos, accounts and words): seven the organization kept
- * out of their threads on kelp; six held back on loam after the first reply got no answer; a one comment that failed
- * on sorrel.
- */
-export const replyRowsPrs = {
-  org: pr(1880, 'kelp-db/kelp', 'Keep the trailing newline in kelp dump', { followUps: followUps({ used: 1 }) }),
-  heldBack: pr(77, 'loam-dev/loam', 'Accept a glob in --exclude', { followUps: followUps({ used: 2 }) }),
-  comment: pr(312, 'sorrel-ui/sorrel', 'Close the menu on Escape', { followUps: followUps({ used: 1 }) }),
-} satisfies Record<string, ContributeContribution>;
-
-const replyOn = (pull: ContributeContribution, runId: string, index: number, patch: Partial<ContributeReplyWaiting>) =>
-  replyWaiting({
-    draftId: `D_${pull.pullRequest.number}_${index}`,
-    prId: pull.pullRequest.prId,
-    attemptId: runId,
-    nameWithOwner: pull.nameWithOwner,
-    prNumber: pull.pullRequest.number,
-    postAs: 'THREAD',
-    batchId: null,
-    waitsForProbe: false,
-    canGoInOneComment: false,
-    heldBack: null,
-    batchRetry: null,
-    ...patch,
-  });
-
-const refusedAt = '2026-10-28T09:30:00.000Z';
-
-/** Needs you with the three pull requests' replies. */
-export const needsReplies = (): NeedsYouRead => ({
-  reviews: [],
-  replies: [
-    ...Array.from({ length: 7 }, (_, index) =>
-      replyOn(replyRowsPrs.org, 'A_KELP1', index, {
-        state: 'FAILED',
-        canGoInOneComment: true,
-        lastError: {
-          reason: 'org_restricted',
-          note: 'GitHub did not let GitRanks post it in its thread.',
-          at: refusedAt,
-        },
-      }),
-    ),
-    ...Array.from({ length: 6 }, (_, index) =>
-      replyOn(replyRowsPrs.heldBack, 'A_LOAM2', index, {
-        canGoInOneComment: true,
-        heldBack: { reason: 'no_answer', note: 'GitHub did not answer the first reply in time.', at: refusedAt },
-      }),
-    ),
-    ...Array.from({ length: 3 }, (_, index) =>
-      replyOn(replyRowsPrs.comment, 'A_SOR1', index, {
-        state: 'FAILED',
-        postAs: 'ONE_COMMENT',
-        batchId: 'B_SOR',
-        asComment: true,
-        batchRetry: 'RESEND',
-        lastError: {
-          reason: 'no_answer',
-          note: 'GitHub did not answer clearly, so the comment may be there already. Try again: it is sent exactly as before and never posted twice.',
-          at: refusedAt,
-        },
-      }),
-    ),
-  ],
-  contributions: Object.values(replyRowsPrs),
-  runs: [],
-});
-
-// ---------------------------------------------------------------------------------------------------------------------
-// The next step, as the contribution page reads it
 
 const first = (patch: Partial<ContributeAttemptDetail>) =>
   detail({

@@ -1,23 +1,12 @@
 import { Suspense } from 'react';
 
-import {
-  ImpactSection,
-  NeedsYouSection,
-  RightNowSection,
-  SectionSkeleton,
-  UpNextSection,
-  WaysSection,
-} from './overview-sections';
+import { ImpactSection, RightNowSection, SectionSkeleton, UpNextSection, WaysSection } from './overview-sections';
 import type { OverviewSections } from './overview-status';
-import { loadOverviewImpact, loadOverviewNeeds, loadOverviewNow } from '@/lib/contribute/contribute.data';
+import { loadOverviewImpact, loadOverviewNow } from '@/lib/contribute/contribute.data';
 import { loadContributeActivity, loadProviderInterests } from '@/lib/workspace/contribute.data';
 import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
 
 type Feed = Promise<ContributeIssuePage | null | undefined>;
-
-async function NeedsYouRead({ view }: { view: ContributeView }) {
-  return <NeedsYouSection view={view} read={await loadOverviewNeeds()} />;
-}
 
 async function RightNowRead({ view, feed }: { view: ContributeView; feed: Feed }) {
   // The runs are the tabs' read too (once per request); without them each lane says what the page read of it.
@@ -46,11 +35,6 @@ async function UpNextRead({ feed }: { feed: Feed }) {
  * `feed` is the feed's first page, read once: Up next shows it, and Right now tells "no issues" from it.
  */
 export const overviewReadSectionsOf = (view: ContributeView, feed: Feed): OverviewSections => ({
-  needs: (
-    <Suspense fallback={<SectionSkeleton className="h-20" />}>
-      <NeedsYouRead view={view} />
-    </Suspense>
-  ),
   now: (
     <Suspense fallback={<SectionSkeleton className="h-44" />}>
       <RightNowRead view={view} feed={feed} />

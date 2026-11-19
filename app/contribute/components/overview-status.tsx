@@ -3,10 +3,10 @@ import type { ReactNode } from 'react';
 
 import { AgentFirstPicks, AgentNextSteps, AgentWelcome } from './agent-connected';
 import { FirstRunGuide } from './first-run-guide';
-import { ImpactSection, NeedsYouSection, RightNowSection, UpNextSection, WaysSection } from './overview-sections';
+import { ImpactSection, RightNowSection, UpNextSection, WaysSection } from './overview-sections';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { agentFirstRunStepOf, firstRunNoticesOf, firstRunStepOf } from '@/lib/contribute/first-run';
-import type { OverviewNeedsRead, OverviewNowRead } from '@/lib/contribute/overview';
+import type { OverviewNowRead } from '@/lib/contribute/overview';
 import { cn } from '@/lib/utils';
 import type {
   ContributeActivity,
@@ -26,7 +26,6 @@ import { ABOUT_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/workspace/paths';
  * fails leaves the rest. Before the first attempt only Ways is shown.
  */
 export type OverviewSections = {
-  needs: ReactNode;
   now: ReactNode;
   impact: ReactNode;
   ways: ReactNode;
@@ -35,7 +34,6 @@ export type OverviewSections = {
 
 /** What each section read, all at once: for a page read in one go, as the specs render it. */
 export type OverviewData = {
-  needs: OverviewNeedsRead;
   now: OverviewNowRead;
   impact: ContributeImpactTotals | undefined;
   noted: readonly ContributeComingSoonProvider[];
@@ -47,7 +45,6 @@ export type OverviewData = {
 
 /** The sections from what they read. */
 export const overviewSectionsOf = (view: ContributeView, data: OverviewData, now?: Date): OverviewSections => ({
-  needs: <NeedsYouSection view={view} read={data.needs} now={now} />,
   now: <RightNowSection view={view} read={data.now} page={data.page} activity={data.activity} now={now} />,
   impact: <ImpactSection view={view} totals={data.impact} />,
   ways: <WaysSection view={view} noted={data.noted} now={now} />,
@@ -137,7 +134,6 @@ export function OverviewScreen({
         </>
       ) : (
         <>
-          {sections.needs}
           {sections.now}
           {sections.upNext}
           {sections.impact}

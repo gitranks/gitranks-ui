@@ -100,3 +100,18 @@ Tokens keep shadcn's names, so stock `components/ui` restyle with no edits. Ligh
   `components/pill` with its `small` size for the mark beside a menu item, …) compose those primitives. Reuse before
   adding: search `components/` and the area's `components/` folder first.
 - One `primary` button per view; beside it `outline` or `secondary`; `ghost` for icon buttons.
+
+### The workspace
+
+Contribute and Learn share one signed-in workspace (`components/workspace/`).
+
+- Five tabs, in this order: Contribute, Learn, Pull requests, Agent, Settings. The header marks Contribute or Learn only
+  on their own pages, never on the shared tabs.
+- The reference line: every row, card and header that names an issue or a pull request opens with `RefChips` (the repo,
+  `Issue #N ↗`, `PR #N ↗`). The title opens our page; the chips open GitHub.
+- The Learn pill (`LearnPill`, violet) marks a Learn pull request wherever one shows.
+- Long lists: upcoming lists use `ShowMore` (10, then 10 more in place); history lists use `Pagination` (20 a page, the
+  page in the address); previews show a fixed few rows and one link. Every list says its total.
+- The limit on open pull requests has one sentence, `LimitNotice`; no page writes its own.
+- Who a block is for is said in words: "Contribute only", "For contributing", "For learning".
+- "Pull request" in headings and sentences; "PR #123" only in chips and dense meta lines.

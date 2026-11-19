@@ -19,7 +19,6 @@ import type {
   ContributeConnectKeyResult,
   ContributeConnectLimits,
   ContributeContribution,
-  ContributeContributions,
   ContributeDeleteDataResult,
   ContributeEmail,
   ContributeFeedbackContext,
@@ -40,6 +39,7 @@ import type {
   ContributeMcpToken,
   ContributeMcpTokenCreated,
   ContributeNeedsYou,
+  ContributeNeedsYouAnswer,
   ContributeNeedsYouCount,
   ContributeOAuthClientWhere,
   ContributeOAuthRequest,
@@ -55,10 +55,10 @@ import type {
   ContributePrNote,
   ContributePrNotes,
   ContributeProof,
-  ContributeProofBrief,
   ContributeProofSession,
   ContributePrSignalKind,
   ContributePrUndoResult,
+  ContributePullRequestsPage,
   ContributeRepliesOneComment,
   ContributeRepliesPlanFields,
   ContributeReplyDraft,
@@ -79,6 +79,7 @@ import type {
   ContributeSetMode,
   ContributeSettings,
   ContributeSettingsInput,
+  ContributeSides,
   Contributor,
 } from './contribute.types';
 import type { ContributeConventionsFields, ContributePrFixKind } from './pr-conventions';
@@ -203,17 +204,6 @@ export const ContributeAttemptOwnAgentDocument = doc<
   { id: string }
 >(`query ContributeAttemptOwnAgent($id: ID!) {
   contributeAttempt(id: $id) { ${OWN_AGENT_FIELDS} result { prTitle } }
-}`);
-
-export const ContributeContributionsOwnAgentDocument = doc<
-  {
-    contributeContributions: {
-      items: Pick<OwnAgentRow, 'attemptId' | 'runner' | 'agent' | 'openedBy'>[];
-    } | null;
-  },
-  { first?: number }
->(`query ContributeContributionsOwnAgent($first: Int) {
-  contributeContributions(first: $first) { items { attemptId runner agent { name model } openedBy } }
 }`);
 
 /** Contribute is launched (`CONTRIBUTE_PREVIEW=true` on the API): open to everyone, signed-out visitors included. */
@@ -737,31 +727,6 @@ export const SetResolveHumansDocument = doc<
   setContributeSettings(settings: { resolveHumanThreads: $on }) { resolveHumanThreads }
 }`);
 
-export const ContributeContributionsDocument = doc<
-  { contributeContributions: ContributeContributions | null },
-  { first?: number }
->(`query ContributeContributions($first: Int) {
-  contributeContributions(first: $first) {
-    items { attemptId issueId repositoryId nameWithOwner issueNumber title costUsd pullRequest { ${PULL_REQUEST} } }
-    totals { open merged closed costUsd }
-  }
-}`);
-
-export const ContributeContributionsFollowUpsDocument = doc<
-  {
-    contributeContributions: {
-      items: FollowUpFieldsOf<
-        Pick<ContributeAttemptFollowUpFields, 'needsYou'> & {
-          followUps: NonNullable<ContributeAttemptFollowUpFields['followUps']>;
-        }
-      >[];
-    } | null;
-  },
-  { first?: number }
->(`query ContributeContributionsFollowUps($first: Int) {
-  contributeContributions(first: $first) { items { attemptId ${NEEDS_YOU} ${FOLLOW_UPS} } }
-}`);
-
 export const StartFollowUpDocument = doc<
   { startFollowUp: ContributeAttempt },
   { prId: string; reason?: string | null }
@@ -800,22 +765,6 @@ export type RunMovesRow = Pick<ContributeAttempt, 'attemptId' | 'round' | 'check
 
 /** The open pull request's last fix, what it fails of the repo's rules, and the agreement to sign. */
 export type ContributionFixesRow = Pick<ContributeContribution, 'attemptId' | 'prFix' | 'prIssues' | 'conventions'>;
-
-export const ContributeContributionsMovesDocument = doc<
-  { contributeContributions: { items: NeedsYouMovesRow[] } | null },
-  { first?: number }
->(`query ContributeContributionsMoves($first: Int) {
-  contributeContributions(first: $first) { items { attemptId ${NEEDS_YOU_MOVES} } }
-}`);
-
-export const ContributeContributionsFixesDocument = doc<
-  { contributeContributions: { items: ContributionFixesRow[] } | null },
-  { first?: number }
->(`query ContributeContributionsFixes($first: Int) {
-  contributeContributions(first: $first) {
-    items { attemptId prFix { kind state note at } prIssues { kind check message suggestion } conventions { cla { check signUrl agreement signComment } } }
-  }
-}`);
 
 export const ContributeAttemptsMovesDocument = doc<
   { contributeAttempts: RunMovesRow[] | null },
@@ -1067,14 +1016,6 @@ export const ContributeAttemptsInMovesDocument = doc<
 }`,
 );
 
-/** When each attempt in review became ready, merged into the attempts by id. */
-export const ContributeAttemptsInReviewAtDocument = doc<
-  { contributeAttempts: { attemptId: string; reviewAt: string | null }[] | null },
-  AttemptStatesVariables
->(`query ContributeAttemptsInReviewAt($states: [ContributeAttemptState!], $first: Int) {
-  contributeAttempts(states: $states, first: $first) { attemptId reviewAt }
-}`);
-
 /** The reply drafts the user can approve now, oldest first. */
 export const ContributeRepliesWaitingDocument = doc<{ contributeRepliesWaiting: ContributeReplyWaiting[] | null }>(
   `query ContributeRepliesWaiting { contributeRepliesWaiting { ${REPLY_DRAFT} nameWithOwner prNumber inReview } }`,
@@ -1140,6 +1081,59 @@ export const ContributeNeedsYouCountDocument = doc<{ contributeNeedsYou: Contrib
   `query ContributeNeedsYouCount { contributeNeedsYou(countOnly: true) { count complete } }`,
 );
 
+const NEEDS_YOU_ITEM = `key kind side working more since orderAt attemptId sessionAttemptId repo issueNumber title
+  pullRequest { id number url } runner autosubmitAt detail
+  action { kind view move url copy target }
+  secondary { kind prId prNumber signalKinds all target }
+  facts {
+    noRun byHand repoSaidNo round nextRound drafts draftsTo fixed skipped checkStatus checks
+    agreement { kind check signComment signUrl } ruleIssues ruleSources { kind label } templateCheck runOutcome
+    proofStage proofBot proofAsks outReason replyTrouble replyRest { same others { round count } } waitEndsAt lastFour
+    fix { kind note } submitError { reason note }
+  }
+  progress { startedAt costUsd budgetUsd submitStep waitUntil leaseUntil changesRequested agentName pushedSha runStep }`;
+
+/** An attempt as the address by attempt reads it: a run or a first attempt, Fix or Learn, and its first attempt. */
+export const ContributeAttemptRefDocument = doc<
+  {
+    contributeAttempt: {
+      attemptId: string;
+      kind: 'FIRST' | 'FOLLOW_UP';
+      mode: ContributeAttemptMode | null;
+      followUpOf: { attemptId: string } | null;
+    } | null;
+  },
+  { id: string }
+>(
+  'query ContributeAttemptRef($id: ID!) { contributeAttempt(id: $id) { attemptId kind mode followUpOf { attemptId } } }',
+);
+
+/** What waits on the user, in order, and the work in progress (the Pull requests tab); null when hidden. */
+export const ContributeNeedsYouDocument = doc<{ contributeNeedsYou: ContributeNeedsYouAnswer | null }>(
+  `query ContributeNeedsYou { contributeNeedsYou { count complete items { ${NEEDS_YOU_ITEM} } inProgress { ${NEEDS_YOU_ITEM} } } }`,
+);
+
+/** Which sides the user uses (Contribute, Learn); null from an older API. */
+export const ContributeSidesDocument = doc<{ contribute: { sides: ContributeSides | null } | null }>(
+  'query ContributeSides { contribute { sides { contribute learn } } }',
+);
+
+/** A page of the Pull requests tab's table, under a state chip and a side, newest first. */
+export const ContributePullRequestsDocument = doc<
+  { contributeContributions: ContributePullRequestsPage | null },
+  { first: number; offset: number; state: 'OPEN' | 'MERGED' | 'CLOSED' | null; mode: ContributeAttemptMode | null }
+>(`query ContributePullRequests($first: Int, $offset: Int, $state: ContributeContributionState, $mode: ContributeAttemptMode) {
+  contributeContributions(first: $first, offset: $offset, state: $state, mode: $mode) {
+    items {
+      attemptId nameWithOwner issueNumber title costUsd runner agent { name model } openedBy mode
+      lesson { slug steps stepsPassed visibility }
+      pullRequest { ${PULL_REQUEST} }
+    }
+    totals { open merged closed byMode { fix { open merged closed reposHelped } learn { open merged closed reposHelped } } }
+    total
+  }
+}`);
+
 export const SetContributeModeDocument = doc<{ setContributeMode: ContributeSet }, { mode: ContributeSetMode }>(
   `mutation SetContributeMode($mode: ContributeSetMode!) { setContributeMode(mode: $mode) { ${SET} } }`,
 );
@@ -1198,19 +1192,11 @@ const PROOF = `proof { prHeadSha ask { bot title detail at headSha reReview } se
 /** What a proof action answers: its id and its new state (the page reads the rest again). */
 const PROOF_MOVED = 'id state';
 type ProofMoved = Pick<ContributeProofSession, 'id' | 'state'>;
-const PROOF_BRIEF = 'proof { ask { bot title at } session { id state stateAt endedReason result { outcome } } }';
 
 export const ContributeAttemptProofDocument = doc<
   { contributeAttempt: { attemptId: string; proof: ContributeProof | null } | null },
   { id: string }
 >(`query ContributeAttemptProof($id: ID!) { contributeAttempt(id: $id) { attemptId ${PROOF} } }`);
-
-export const ContributeContributionsProofDocument = doc<
-  { contributeContributions: { items: { attemptId: string; proof: ContributeProofBrief | null }[] } | null },
-  { first?: number }
->(`query ContributeContributionsProof($first: Int) {
-  contributeContributions(first: $first) { items { attemptId ${PROOF_BRIEF} } }
-}`);
 
 export const ApproveContributeProofDocument = doc<
   { approveContributeProof: ProofMoved },

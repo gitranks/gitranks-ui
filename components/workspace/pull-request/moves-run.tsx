@@ -29,7 +29,6 @@ import { githubUrlOf, isOwnAgent, timeLabel } from '@/lib/workspace/attempt-form
 import { sendsByDefault } from '@/lib/workspace/comment-actions';
 import type { ContributeReplyDraft } from '@/lib/workspace/contribute.types';
 import { runFlowOf } from '@/lib/workspace/contribution-moves';
-import { bracketed } from '@/lib/workspace/needs-you';
 import {
   firstSentenceOf,
   isNoReply,
@@ -38,6 +37,7 @@ import {
   partOf,
   probeLineOf,
 } from '@/lib/workspace/one-comment';
+import { bracketed } from '@/lib/workspace/pr-moves';
 import {
   orgNameOf,
   RETRY_REASONS,

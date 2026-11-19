@@ -7,8 +7,8 @@ import type {
   ContributePrSignalKind,
 } from './contribute.types';
 import { type RepoOutReason, repoOutReasonOf, repoSaidNoOf, USERS_SIGNALS } from './follow-up-format';
-import { botVerdictOf, bracketed, pushDetailOf, runOutcomeOf } from './needs-you';
 import { type ContributePrConventionIssue, type ContributePrFix, httpsOnly } from './pr-conventions';
+import { botVerdictOf, bracketed, pushDetailOf, runOutcomeOf } from './pr-moves';
 import { type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { nextRoundOpen, nextRoundRecommended, nextRunNumberOf, waitingThreadsOf } from './sessions';
 

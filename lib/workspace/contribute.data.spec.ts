@@ -13,13 +13,11 @@ const {
   loadContribute,
   loadContributeEmail,
   loadContributeSet,
-  loadContributions,
   loadProviderInterests,
+  loadRepliesWaiting,
   ownAgentOf,
 } = await import('./contribute.data');
-const { loadIssues, loadOverviewImpact, loadOverviewNeeds, loadOverviewNow } = await import(
-  '@/lib/contribute/contribute.data'
-);
+const { loadIssues, loadOverviewImpact, loadOverviewNow } = await import('@/lib/contribute/contribute.data');
 const {
   ContributeAttemptDocument,
   ContributeAttemptFollowUpsDocument,
@@ -28,7 +26,6 @@ const {
   ContributeAttemptsInDocument,
   ContributeAttemptsInFollowUpsDocument,
   ContributeAttemptsInOwnAgentDocument,
-  ContributeAttemptsInReviewAtDocument,
   ContributeAttemptHoldDocument,
   ContributeAttemptReviewReasonDocument,
   ContributeAttemptRetryDocument,
@@ -41,8 +38,6 @@ const {
   ContributeRepliesWaitingPlanDocument,
   ContributeAttemptRepliesPlanDocument,
   ContributeScheduleCountsDocument,
-  ContributeContributionsDocument,
-  ContributeContributionsFollowUpsDocument,
   ContributeGrantDocument,
   ContributeAttemptCheckNotesDocument,
   ContributeAttemptCheckStopDocument,
@@ -55,8 +50,6 @@ const {
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeProviderInterestsDocument,
-  ContributeContributionsMovesDocument,
-  ContributeContributionsFixesDocument,
   ContributeEmailDocument,
 } = await import('./contribute.documents');
 
@@ -574,7 +567,7 @@ describe("loadAttempt: the agent's decisions, read on their own", () => {
   });
 });
 
-describe('loadAttempts and loadContributions', () => {
+describe('loadAttempts', () => {
   beforeEach(() => {
     graphqlDirect.mockReset();
     auth.mockReset();
@@ -594,11 +587,9 @@ describe('loadAttempts and loadContributions', () => {
   it('are undefined, "not available yet", on any failure or when hidden', async () => {
     graphqlDirect.mockRejectedValue(graphqlError('GRAPHQL_VALIDATION_FAILED'));
     expect(await loadAttempts()).toBeUndefined();
-    expect(await loadContributions()).toBeUndefined();
 
-    graphqlDirect.mockResolvedValue({ contributeAttempts: null, contributeContributions: null });
+    graphqlDirect.mockResolvedValue({ contributeAttempts: null });
     expect(await loadAttempts()).toBeUndefined();
-    expect(await loadContributions()).toBeUndefined();
   });
 });
 
@@ -671,25 +662,6 @@ describe('the follow-up fields, read on their own', () => {
       document === ContributeAttemptDocument ? Promise.resolve({ contributeAttempt: { attemptId: 'A_1' } }) : NOT_YET(),
     );
     expect(await loadAttempt('A_1')).toEqual({ attemptId: 'A_1' });
-  });
-
-  it('merge into My contributions by attempt id', async () => {
-    graphqlDirect.mockImplementation((document) =>
-      document === ContributeContributionsDocument
-        ? Promise.resolve({
-            contributeContributions: {
-              items: [{ attemptId: 'A_1' }],
-              totals: { open: 1, merged: 0, closed: 0, costUsd: 1 },
-            },
-          })
-        : document === ContributeContributionsFollowUpsDocument
-          ? Promise.resolve({
-              contributeContributions: { items: [{ attemptId: 'A_1', needsYou: null, followUps: rounds }] },
-            })
-          : NOT_YET(),
-    );
-
-    expect((await loadContributions())?.items).toEqual([{ attemptId: 'A_1', needsYou: null, followUps: rounds }]);
   });
 
   it("merge the autopilot record's newer fields into the overview's", async () => {
@@ -835,24 +807,6 @@ describe("Overview's loaders, each operation settled on its own", () => {
     expect(await loadAttemptsIn(['REVIEW'])).toBeUndefined();
   });
 
-  it('merges reviewAt into the reviews by id, and leaves it out when it is not answered', async () => {
-    graphqlDirect.mockImplementation(async (document, variables) => {
-      if (document === ContributeAttemptsInDocument && variables.first === 50) {
-        expect(variables).toEqual({ states: ['REVIEW', 'PENDING_AUTOSUBMIT'], first: 50 });
-        return { contributeAttempts: [row('A_1'), row('A_2')] };
-      }
-      if (document === ContributeAttemptsInReviewAtDocument) {
-        return { contributeAttempts: [{ attemptId: 'A_2', reviewAt: '2026-10-27T00:00:00.000Z' }] };
-      }
-      if (document === ContributeRepliesWaitingDocument) return { contributeRepliesWaiting: [] };
-      return notYet();
-    });
-
-    const needs = await loadOverviewNeeds();
-    expect(needs.replies).toEqual([]);
-    expect(needs.reviews?.map((attempt) => attempt.reviewAt)).toEqual([undefined, '2026-10-27T00:00:00.000Z']);
-  });
-
   it("merges each waiting reply's plan by id, and leaves it out when it is not answered", async () => {
     const waiting = { draftId: 'D_1', state: 'DRAFT', attemptId: 'A_F1' };
     const answering = (plan: () => Promise<unknown>) =>
@@ -863,121 +817,9 @@ describe("Overview's loaders, each operation settled on its own", () => {
       });
     const held = { reason: 'no_answer', note: 'No answer.', at: '2026-10-28T11:00:00.000Z' };
     answering(async () => ({ contributeRepliesWaiting: [{ draftId: 'D_1', heldBack: held, waitsForProbe: false }] }));
-    expect((await loadOverviewNeeds()).replies).toEqual([{ ...waiting, heldBack: held, waitsForProbe: false }]);
+    expect(await loadRepliesWaiting()).toEqual([{ ...waiting, heldBack: held, waitsForProbe: false }]);
     answering(() => notYet());
-    expect((await loadOverviewNeeds()).replies).toEqual([waiting]);
-  });
-
-  it('leaves the replies undefined when they are not answered, and the reviews when the attempts are not', async () => {
-    graphqlDirect.mockImplementation(async (document, variables) =>
-      document === ContributeAttemptsInDocument
-        ? { contributeAttempts: [row('A_1', variables.first === 50 ? 'REVIEW' : 'RUNNING')] }
-        : notYet(),
-    );
-    expect(await loadOverviewNeeds()).toEqual({
-      reviews: [row('A_1')],
-      replies: undefined,
-      contributions: undefined,
-      runs: [row('A_1', 'RUNNING')],
-    });
-
-    graphqlDirect.mockImplementation(async (document) =>
-      document === ContributeRepliesWaitingDocument ? { contributeRepliesWaiting: [] } : notYet(),
-    );
-    expect(await loadOverviewNeeds()).toEqual({
-      reviews: undefined,
-      replies: [],
-      contributions: undefined,
-      runs: undefined,
-    });
-  });
-
-  it("reads the open pull requests for Needs you, with the runs' signals and the fixes on their own", async () => {
-    const rounds = {
-      used: 1,
-      autopilotRuns: 0,
-      autopilotMax: 2,
-      manualRuns: 1,
-      recommended: false,
-      currentAttemptId: null,
-    };
-    const ended = {
-      kind: 'RUN_ENDED',
-      at: '2026-10-28T10:00:00.000Z',
-      detail: 'Add proof',
-      attemptId: 'A_F1',
-      round: 1,
-      outcome: 'NO_GO',
-    };
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === ContributeContributionsDocument) {
-        return {
-          contributeContributions: {
-            items: [{ attemptId: 'A_1' }],
-            totals: { open: 1, merged: 0, closed: 0, costUsd: 1 },
-          },
-        };
-      }
-      if (document === ContributeContributionsFollowUpsDocument) {
-        return {
-          contributeContributions: {
-            items: [
-              {
-                attemptId: 'A_1',
-                needsYou: { since: 'x', signals: [{ kind: 'RUN_ENDED', at: ended.at, detail: 'Add proof' }] },
-                followUps: rounds,
-              },
-            ],
-          },
-        };
-      }
-      if (document === ContributeContributionsMovesDocument) {
-        return {
-          contributeContributions: {
-            items: [
-              { attemptId: 'A_1', needsYou: { since: 'x', signals: [ended] }, followUps: { lastEndedAt: ended.at } },
-            ],
-          },
-        };
-      }
-      if (document === ContributeContributionsFixesDocument) {
-        return {
-          contributeContributions: { items: [{ attemptId: 'A_1', prFix: null, prIssues: [], conventions: null }] },
-        };
-      }
-      return notYet();
-    });
-    expect(await loadOverviewNeeds()).toMatchObject({
-      contributions: [
-        {
-          attemptId: 'A_1',
-          needsYou: { since: 'x', signals: [ended] },
-          followUps: { ...rounds, lastEndedAt: ended.at },
-          prFix: null,
-          prIssues: [],
-          conventions: null,
-        },
-      ],
-    });
-
-    // An API without the newer reads: the follow-up fields as they were.
-    graphqlDirect.mockImplementation(async (document) =>
-      document === ContributeContributionsMovesDocument || document === ContributeContributionsFixesDocument
-        ? notYet()
-        : document === ContributeContributionsDocument
-          ? {
-              contributeContributions: {
-                items: [{ attemptId: 'A_1' }],
-                totals: { open: 1, merged: 0, closed: 0, costUsd: 1 },
-              },
-            }
-          : document === ContributeContributionsFollowUpsDocument
-            ? { contributeContributions: { items: [{ attemptId: 'A_1', needsYou: null, followUps: rounds }] } }
-            : notYet(),
-    );
-    expect((await loadOverviewNeeds()).contributions).toEqual([
-      { attemptId: 'A_1', needsYou: null, followUps: rounds },
-    ]);
+    expect(await loadRepliesWaiting()).toEqual([waiting]);
   });
 
   it('reads the attempts in flight and the scheduler counts on their own', async () => {
@@ -1018,7 +860,6 @@ describe("Overview's loaders, each operation settled on its own", () => {
   it('reads nothing without a session', async () => {
     auth.mockResolvedValue(null);
 
-    expect(await loadOverviewNeeds()).toEqual({ reviews: undefined, replies: undefined });
     expect(await loadOverviewNow()).toEqual({ inFlight: undefined, scheduleCounts: undefined });
     expect(await loadOverviewImpact()).toBeUndefined();
     expect(graphqlDirect).not.toHaveBeenCalled();

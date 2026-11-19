@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { ContributeContribution, ContributeProof } from './contribute.types';
 import { contributionMovesOf } from './contribution-moves';
-import { needsYouItemsOf } from './needs-you';
 import { contributionOf, nextStepOf } from './next-step';
+import { candidatesOf } from './pr-moves';
 import {
   agentConnectedOf,
   askedForOf,
@@ -198,9 +198,8 @@ describe('the next step with a proof', () => {
   });
 });
 
-describe("Needs you's row for a proof", () => {
-  const rowOf = (pr: ContributeContribution) =>
-    needsYouItemsOf({ view: views.active, reviews: [], replies: [], contributions: [pr], runs: [], now: NOW }).items[0];
+describe("the pull request's move for a proof", () => {
+  const rowOf = (pr: ContributeContribution) => candidatesOf({ pr, drafts: [], runs: [], now: NOW })[0];
   const withProof = (first: typeof nextForProof.connected) => contributionOf(first) as ContributeContribution;
 
   it('asks for the proof with the bot’s words, and leads to the next step', () => {
@@ -210,7 +209,6 @@ describe("Needs you's row for a proof", () => {
       pill: 'Proof needed',
       move: 'clawsweeper asks for real behavior proof. Your own agent can capture it on your machine.',
       action: { label: 'Get the proof', href: '/contribute/attempts/A_OC?session=next' },
-      working: false,
     });
   });
 
@@ -218,7 +216,6 @@ describe("Needs you's row for a proof", () => {
     expect(rowOf(withProof(nextForProof.working))).toMatchObject({
       kind: 'proof-working',
       pill: 'Your agent',
-      working: true,
     });
     expect(rowOf(withProof(nextForProof.review))).toMatchObject({
       kind: 'proof-review',
@@ -234,7 +231,6 @@ describe("Needs you's row for a proof", () => {
     expect(rowOf(withProof(nextForProof.posted))).toMatchObject({
       kind: 'proof-posted',
       pill: 'Bot reads it',
-      working: true,
     });
   });
 
@@ -259,7 +255,7 @@ describe("Needs you's row for a proof", () => {
         ],
       },
     };
-    expect(rowOf(later)).toMatchObject({ kind: 'bot', working: false });
+    expect(rowOf(later)).toMatchObject({ kind: 'bot' });
   });
 
   it("keeps the bot's own row without a proof, and on a pull request opened by hand", () => {

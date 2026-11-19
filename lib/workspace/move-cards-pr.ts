@@ -2,8 +2,8 @@ import type { ContributeAttemptDetail, ContributeView } from './contribute.types
 import type { Move, MoveKind, NoRun, RuleItem, SessionRef } from './contribution-moves';
 import type { ActionId } from './hard-stop';
 import { plural } from './move-cards';
-import { type Candidate, candidatesOf, FIXED_BY, type NeedsYouKind } from './needs-you';
 import { contributionOf, nextStepOf } from './next-step';
+import { type Candidate, candidatesOf, FIXED_BY, type NeedsYouKind } from './pr-moves';
 import { agentConnectedOf, type ProofStage } from './proof';
 import { waitingThreadsOf } from './sessions';
 

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { AgentConnect } from '@/components/workspace/agent/agent-connect';
 import { CodeBlock } from '@/components/workspace/code-block';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { LimitNotice } from '@/components/workspace/limit-notice';
 import { HEADING } from '@/components/workspace/primitives';
 import { readLearnStartAttempt, readLearnStartIssue } from '@/lib/learn/actions';
 import { LEARN_PATH } from '@/lib/learn/learn-path';
@@ -104,6 +105,13 @@ function IssueSummary({
 /** Why the issue can't be started now, and where to go: Contribute's own notice for a paused account. */
 function Refusal({ copy, code }: { copy: LearnStartRefusalCopy; code: string }) {
   if (copy.kind === 'paused') return <ContributeNotices notices={[{ kind: 'paused' }]} />;
+  if (copy.kind === 'limit') {
+    return (
+      <div data-learn-start-refusal={code}>
+        <LimitNotice count={copy.count} limit={copy.count} className="border-warning/30 bg-warning-soft" />
+      </div>
+    );
+  }
   return (
     <div
       role="status"

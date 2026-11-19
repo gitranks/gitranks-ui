@@ -3,26 +3,10 @@ import 'server-only';
 import { cache } from 'react';
 
 import { ISSUES_PAGE_SIZE } from './live-issues';
-import {
-  IN_FLIGHT_READ,
-  IN_FLIGHT_STATES,
-  NEEDS_YOU_READ,
-  NEEDS_YOU_STATES,
-  type OverviewNeedsRead,
-  type OverviewNowRead,
-} from './overview';
+import { IN_FLIGHT_READ, IN_FLIGHT_STATES, type OverviewNowRead } from './overview';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { loadAttemptsIn, settled, viewerLogin } from '@/lib/workspace/contribute.data';
 import {
-  byAttemptId,
-  loadAttemptsIn,
-  loadContributions,
-  loadRepliesWaiting,
-  settled,
-  viewerLogin,
-  withFields,
-} from '@/lib/workspace/contribute.data';
-import {
-  ContributeAttemptsInReviewAtDocument,
   ContributeImpactDocument,
   ContributeImpactReposDocument,
   ContributeIssuesDocument,
@@ -63,37 +47,7 @@ export async function loadIssues(
   }
 }
 
-/**
- * Overview's "Needs you": the attempts waiting for the user, the replies they can approve, the open pull requests,
- * and the runs in flight ("Right now"'s read, once per request).
- */
-export async function loadOverviewNeeds(): Promise<OverviewNeedsRead> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return { reviews: undefined, replies: undefined, contributions: undefined, runs: undefined };
-
-  const options = { source: 'ssr' as const, githubLogin };
-  const variables = { states: NEEDS_YOU_STATES, first: NEEDS_YOU_READ };
-  const [attempts, reviewAt, replies, contributions, now] = await Promise.allSettled([
-    loadAttemptsIn(NEEDS_YOU_STATES, NEEDS_YOU_READ),
-    graphqlDirect(ContributeAttemptsInReviewAtDocument, variables, options),
-    loadRepliesWaiting(),
-    loadContributions(),
-    loadOverviewNow(),
-  ]);
-  const reviews = settled(attempts);
-  const readyAt = byAttemptId(settled(reviewAt)?.contributeAttempts);
-  return {
-    reviews: reviews?.map((attempt) => withFields(attempt, readyAt.get(attempt.attemptId))),
-    replies: settled(replies),
-    contributions: settled(contributions)?.items,
-    runs: settled(now)?.inFlight,
-  };
-}
-
-/**
- * Overview's "Right now": the attempts in flight, and what the scheduler counts before it starts one. Read once per
- * request: Needs you shows the runs under way from it too.
- */
+/** Overview's "Right now": the attempts in flight, and what the scheduler counts before it starts one. Read once per request. */
 export const loadOverviewNow = cache(async (): Promise<OverviewNowRead> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { inFlight: undefined, scheduleCounts: undefined };

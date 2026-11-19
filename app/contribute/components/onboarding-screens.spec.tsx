@@ -13,7 +13,9 @@ const data = vi.hoisted(() => ({
   loadAttempt: vi.fn(),
   loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
-  loadContributions: vi.fn(),
+  loadNeedsYou: vi.fn(async () => null),
+  loadPullRequestsPage: vi.fn(async () => undefined),
+  loadScheduleCounts: vi.fn(async () => undefined),
   loadRepliesWaiting: vi.fn(),
 }));
 const { signIn } = vi.hoisted(() => ({ signIn: vi.fn() }));
@@ -35,11 +37,12 @@ vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => data);
 vi.mock('@/lib/contribute/contribute.data', () => data);
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
 
 const { Landing } = await import('./landing');
 const { SignInButton, SignInPanel, signInRouteOf, startSignIn } = await import('@/components/workspace/sign-in-dialog');
 const { IssuesView } = await import('./issues-view');
-const { ContributionsView } = await import('@/components/workspace/contributions-view');
+const { PullRequestsView } = await import('@/components/workspace/pull-requests-view');
 const { ContributionLayout, FirstSessionView } = await import('@/components/workspace/pull-request/review-view');
 const { SettingsView } = await import('./settings-view');
 const { Dialog } = await import('@/components/ui/dialog');
@@ -221,7 +224,7 @@ describe('the pages that wait for onboarding', () => {
   const params = Promise.resolve({ id: 'A_1' });
   const pages = {
     issues: () => IssuesView({ searchParams }),
-    me: () => ContributionsView(),
+    me: () => PullRequestsView({ searchParams: Promise.resolve({}) }),
     attempt: () => FirstSessionView({ params, searchParams: Promise.resolve({}) }),
     layout: () => ContributionLayout({ params, children: null }),
     settings: () => SettingsView({ searchParams }),
@@ -233,7 +236,6 @@ describe('the pages that wait for onboarding', () => {
     data.loadIssues.mockResolvedValue(undefined);
     data.loadAttempts.mockResolvedValue(undefined);
     data.loadAttempt.mockResolvedValue(undefined);
-    data.loadContributions.mockResolvedValue(undefined);
     data.loadRepliesWaiting.mockResolvedValue([]);
     return pages[page]();
   };

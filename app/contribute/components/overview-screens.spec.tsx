@@ -10,18 +10,13 @@ vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
 
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
-const { NeedsYouSection, RightNowSection, ImpactSection, WaysSection, UpNextSection } = await import(
-  './overview-sections'
-);
+const { RightNowSection, ImpactSection, WaysSection, UpNextSection } = await import('./overview-sections');
 const { NOW, contributor, firstSpend, key, limits, mcpToken, settings, views } = await import(
   '@/lib/contribute/__fixtures__/contribute-views'
 );
 const { attempt, followUpOf } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { activityOf, QUEUED, WORKING } = await import('@/lib/contribute/__fixtures__/agent-runs');
-const { issuePage, needsNothing, nowIdle, overviewData } = await import(
-  '@/lib/contribute/__fixtures__/contribute-overview'
-);
-const { needsEverything, needsSome, prsNeedingYou } = await import('@/lib/contribute/__fixtures__/needs-you');
+const { issuePage, nowIdle, overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
 
 import type { OverviewData } from './overview-status';
 import type { ContributeAttempt, ContributeView } from '@/lib/workspace/contribute.types';
@@ -55,7 +50,7 @@ describe('Overview, once there is an attempt', () => {
   it('shows the agent runs in Right now, never in a section of their own', () => {
     const html = screen(views.active, { activity: activityOf(WORKING, QUEUED) });
     const headings = [...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/g)].map(([, title]) => title);
-    expect(headings.slice(0, 2)).toEqual(['Needs you', 'Right now']);
+    expect(headings.slice(0, 2)).toEqual(['Right now', 'Up next']);
     expect(html).not.toContain('Working now');
     expect(html).toContain('data-run="att_working"');
     expect(text(html)).toContain('Right now 1 agent working All runs →');
@@ -70,17 +65,11 @@ describe('Overview, once there is an attempt', () => {
     const html = screen(views.active);
     const headings = [...html.matchAll(/<h([12])[^>]*>(.*?)<\/h\1>/g)].map(([, level, title]) => `${level}:${title}`);
 
-    expect(headings).toEqual([
-      '1:Overview',
-      '2:Needs you',
-      '2:Right now',
-      '2:Up next',
-      '2:Your impact',
-      '2:Ways you contribute',
-    ]);
+    expect(headings).toEqual(['1:Overview', '2:Right now', '2:Up next', '2:Your impact', '2:Ways you contribute']);
     expect(html).toMatch(/<h1 class="sr-only">Overview<\/h1>/);
-    expect(html).toMatch(/<h2 id="overview-needs" class="sr-only">Needs you<\/h2>/);
-    for (const id of ['overview-needs', 'overview-now', 'overview-impact', 'overview-ways', 'overview-next']) {
+    // What needs the user is the Pull requests tab's alone.
+    expect(html).not.toContain('overview-needs');
+    for (const id of ['overview-now', 'overview-impact', 'overview-ways', 'overview-next']) {
       expect(html).toContain(`aria-labelledby="${id}"`);
     }
     expect(html).toMatch(/<h3[^>]*>Coming soon:<\/h3>/);
@@ -98,110 +87,18 @@ describe('Overview, once there is an attempt', () => {
   it("says each section's failure alone, the others rendered", () => {
     const html = text(
       screen(views.active, {
-        needs: { reviews: undefined, replies: undefined, contributions: undefined, runs: undefined },
         now: { inFlight: undefined, scheduleCounts: undefined },
         impact: undefined,
         page: undefined,
       }),
     );
 
-    expect(html).toContain("We couldn't check everything right now. My contributions →");
-    expect(html).not.toContain('Nothing needs you right now');
     expect(html).toContain("We can't check your agent right now.");
     expect(html).toContain('$63.40 of $200');
     expect(html).toContain('Your totals are not available yet.');
     expect(html).toContain('Your Claude key Connected');
     expect(html).toContain('Your picks are not available right now.');
     expect(html).toContain('All picks in Issues →');
-  });
-});
-
-describe('Needs you', () => {
-  const needs = (view: ContributeView, read: Partial<Parameters<typeof NeedsYouSection>[0]['read']>) =>
-    renderToStaticMarkup(<NeedsYouSection view={view} read={{ ...needsNothing, ...read }} now={NOW} />);
-
-  it('says nothing needs the user only when every read answered', () => {
-    const clear = needs(views.active, needsNothing);
-    expect(clear).toContain('data-needs="clear"');
-    expect(text(clear)).toContain(
-      "Nothing needs you right now. A review or anything on your pull requests shows up here and in My contributions the moment it's ready.",
-    );
-
-    for (const read of [{ reviews: undefined }, { replies: undefined }, { contributions: undefined }]) {
-      const html = needs(views.active, read);
-      expect(html).toContain('data-needs="unchecked"');
-      expect(text(html)).not.toContain('Nothing needs you');
-      expect(html).toContain('href="/my/pull-requests"');
-    }
-  });
-
-  it('says each move in a sentence, with its button, the PR rows too, and the runs at work after them, not counted', () => {
-    const html = needs(views.active, needsSome());
-    const plain = text(html);
-    expect(html).toMatch(/<h2[^>]*>5 things need you<span[^>]*> · 2 runs working<\/span><\/h2>/);
-    expect(plain).toContain(
-      'Run 2 ready driftwood-js/driftwood · PR #1419 Nested layouts re-render on every navigation Your move: Run 2 fixed 2 comments. Approve to push it. Review run 2',
-    );
-    expect(plain).toContain(
-      `Agreement to sign lantern-ui/lantern · PR #4021 a11y: duplicate ids in the input field Your move: Only you can sign the repo's DCO; its bot records it from this comment on PR #4021, word for word: "I have read the DCO Document and I hereby sign the DCO" Copy and open the PR ↗ I posted it`,
-    );
-    expect(html).toContain('data-copy-and-open=""');
-    expect(plain).toContain(
-      'Bot blocks merge openclaw/openclaw · PR #190187 sessions.abort loses the typed message Your move: clawsweeper holds the merge until you do what it asks: "Blocked before merge — 1 item remains: Add real behavior proof" Read what it asks. · and 1 more See what it asks',
-    );
-    expect(html).toContain('href="/contribute/attempts/A_PR190187?session=next"');
-    expect(plain).toContain('Sign-off missing tern-lang/tern-fmt · PR #4410');
-    expect(plain).toContain(
-      'Run 2 working fabricjs/fabric.js · PR #11195 loadFromJSON swallows a failed image Reading comments · started 2 minutes ago. It comes back here when it is ready. Watch run 2',
-    );
-    expect(plain).toContain('Run 1 with your agent nimbus-ci/nimbus · PR #640');
-    expect(html.match(/data-working="true"/g)).toHaveLength(2);
-    // The runs at work come last, after every row that needs the user.
-    expect(plain.indexOf('Run 2 working')).toBeGreaterThan(plain.indexOf('CLA to sign'));
-  });
-
-  it('shows five rows that need the user, then the runs at work, and the rest in My contributions', () => {
-    const html = needs(views.active, needsEverything());
-    expect(html.match(/<li data-row=/g)).toHaveLength(9);
-    expect(html).toMatch(/<h2[^>]*>14 things need you/);
-    expect(text(html)).toContain('and 9 more in My contributions →');
-  });
-
-  it('says only the runs at work when nothing else waits', () => {
-    const html = needs(views.active, { contributions: [prsNeedingYou.working], runs: [] });
-    expect(html).toMatch(/<h2[^>]*>Nothing needs you<span[^>]*> · 1 run working<\/span><\/h2>/);
-    expect(html).toContain('data-needs="0"');
-  });
-
-  it('asks for GitHub access on a bounced first submit, once, from its review', () => {
-    const bounced: ContributeAttempt = attempt({
-      submit: {
-        step: 'FORK',
-        waitUntil: null,
-        fork: null,
-        branch: null,
-        lastError: { reason: 'grant_revoked', note: 'GitHub access was revoked.', at: '2026-10-28T10:00:00.000Z' },
-      },
-    });
-    const html = needs(views.grantMissing, { reviews: [bounced] });
-
-    expect(html.match(/data-row=/g)).toHaveLength(1);
-    expect(text(html)).toContain(
-      'GitHub access driftwood-js/driftwood · issue #871 Nested layouts re-render on every navigation Your move: Allow GitHub access so the pull request opens under your account. Allow GitHub access',
-    );
-    expect(html).toContain('href="/contribute/attempts/A_1"');
-  });
-
-  it('asks for a new key when Anthropic refused it, and for a way when there is none', () => {
-    expect(text(needs(views.keyInvalid, needsNothing))).toContain(
-      'Key refused Claude key …k3Qa Your move: Anthropic refused your Claude key, so no run can start. Connect a working key. Connect a new key',
-    );
-    expect(text(needs(views.onboardedNoPath, needsNothing))).toContain(
-      'Not set up Your move: Nothing can start until GitRanks has your Claude key or your own agent is connected. Add your Claude key Connect your own agent',
-    );
-    // A pause or a used-up key is a state, in Right now.
-    expect(needs(views.paused, needsNothing)).toContain('data-needs="clear"');
-    expect(needs(views.exhausted, needsNothing)).toContain('data-needs="clear"');
   });
 });
 
@@ -470,9 +367,9 @@ describe('Your impact', () => {
   const impact = (totals: Parameters<typeof ImpactSection>[0]['totals']) =>
     text(renderToStaticMarkup(<ImpactSection view={views.active} totals={totals} />));
 
-  it('shows four tiles and the way to My contributions', () => {
+  it('shows four tiles and the way to the pull requests', () => {
     expect(impact({ open: 2, merged: 7, closed: 1, reposHelped: 6 })).toBe(
-      'Your impact My contributions → 7 pull requests merged 2 open, waiting on maintainers 6 repos helped 1 of 5 merged to unlock autopilot',
+      'Your impact Pull requests → 7 pull requests merged 2 open, waiting on maintainers 6 repos helped 1 of 5 merged to unlock autopilot',
     );
   });
 
@@ -637,33 +534,14 @@ describe('Overview before the first attempt', () => {
     expect(html).not.toContain('aria-labelledby="overview-now"');
   });
 
-  it('keeps every key notice out of the sections once there is an attempt', () => {
-    expect(
-      screen({ ...views.firstKey, contributor: contributor({ credentials: [key({ state: 'INVALID' })] }) }),
-    ).toContain('data-row="key"');
+  it('keeps every key notice out of the sections once there is an attempt: the Pull requests tab says it', () => {
+    const html = screen({ ...views.firstKey, contributor: contributor({ credentials: [key({ state: 'INVALID' })] }) });
+    expect(html).not.toContain('data-notice=');
+    expect(html).not.toContain('data-row="key"');
   });
 });
 
 describe('the review fixes, rendered', () => {
-  it('shows a bounced review as a review, without the bounce note, once GitHub access is granted', () => {
-    const bounced = attempt({
-      submit: {
-        step: 'FORK',
-        waitUntil: null,
-        fork: null,
-        branch: null,
-        lastError: { reason: 'grant_missing', note: 'GitHub access is not connected.', at: '2026-10-28T10:00:00.000Z' },
-      },
-    });
-    const html = renderToStaticMarkup(
-      <NeedsYouSection view={views.active} read={{ ...needsNothing, reviews: [bounced] }} now={NOW} />,
-    );
-
-    expect(html).toContain('data-row="review"');
-    expect(html).not.toContain('data-row="grant"');
-    expect(text(html)).not.toContain('not connected');
-  });
-
   it("says it can't check either agent while whose the attempt in flight is is unread", () => {
     const { runner: _runner, ...unread } = attempt({ state: 'RUNNING' });
     const html = renderToStaticMarkup(

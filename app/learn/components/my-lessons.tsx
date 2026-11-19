@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { LearnSettingUp } from './learn-setting-up';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
-import { ListRow, ListSection } from '@/components/workspace/contributions-view';
+import { ListRow, ListSection } from '@/components/workspace/list-row';
 import { HEADING, PageTitle } from '@/components/workspace/primitives';
 import { loadLearnOpen, loadLearnProfile, loadLearnSetup, loadMyLessons } from '@/lib/learn/learn.data';
 import type { MyLesson } from '@/lib/learn/learn.types';

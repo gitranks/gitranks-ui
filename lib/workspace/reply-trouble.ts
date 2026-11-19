@@ -1,6 +1,6 @@
 import type { ContributeReplyDraft } from './contribute.types';
-import { clipped } from './needs-you';
 import { isNoReply } from './one-comment';
+import { clipped } from './pr-moves';
 
 /**
  * Replies GitHub did not take, as the contribution's page says them: grouped by the run that drafted them, then by why.

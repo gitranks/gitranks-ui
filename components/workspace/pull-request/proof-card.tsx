@@ -25,8 +25,8 @@ import type {
 } from '@/lib/workspace/contribute.types';
 import { relativeLabel } from '@/lib/workspace/format';
 import { MCP_CLIENT_NAMES } from '@/lib/workspace/mcp-setup';
-import { clipped } from '@/lib/workspace/needs-you';
 import type { UserMove } from '@/lib/workspace/next-step';
+import { clipped } from '@/lib/workspace/pr-moves';
 import type { ProofStage } from '@/lib/workspace/proof';
 import {
   lastUsedTokenOf,

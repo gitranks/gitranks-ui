@@ -9,9 +9,9 @@ import {
   isTablessPath,
   isWorkspacePath,
   KEY_REPLACE_PATH,
-  learnAttemptPath,
   movedAnchorOf,
   pullRequestByAttemptPath,
+  pullRequestsPath,
   RUNS_PATH,
   SETTINGS_PATHS,
   settingsPathOf,
@@ -136,23 +136,34 @@ describe('which pages are which', () => {
 });
 
 describe("one attempt's page, by its id", () => {
-  it("is Contribute's attempt page, which sends a Learn attempt on to its lesson", () => {
-    expect(pullRequestByAttemptPath('A_1')).toBe('/contribute/attempts/A_1');
-    expect(pullRequestByAttemptPath('a/b')).toBe('/contribute/attempts/a%2Fb');
+  it('is the address by attempt, which finds the attempt and goes on to its page', () => {
+    expect(pullRequestByAttemptPath('A_1')).toBe('/my/pull-requests/by-attempt/A_1');
+    expect(pullRequestByAttemptPath('a/b')).toBe('/my/pull-requests/by-attempt/a%2Fb');
   });
 
-  it("is the lesson's page when the lesson is asked for", () => {
-    expect(pullRequestByAttemptPath('A_1', { view: 'lesson' })).toBe('/learn/attempts/A_1');
-    expect(pullRequestByAttemptPath('A_1', { view: 'lesson' })).toBe(learnAttemptPath('A_1'));
+  it("asks for a Learn attempt's lesson with view=lesson", () => {
+    expect(pullRequestByAttemptPath('A_1', { view: 'lesson' })).toBe('/my/pull-requests/by-attempt/A_1?view=lesson');
   });
 
   it('keeps the query it is given', () => {
     expect(pullRequestByAttemptPath('A_1', { query: { session: 'next' } })).toBe(
-      '/contribute/attempts/A_1?session=next',
+      '/my/pull-requests/by-attempt/A_1?session=next',
     );
     expect(pullRequestByAttemptPath('A_1', { query: { resume: 'n 1', move: 'x' } })).toBe(
-      '/contribute/attempts/A_1?resume=n+1&move=x',
+      '/my/pull-requests/by-attempt/A_1?resume=n+1&move=x',
     );
-    expect(pullRequestByAttemptPath('A_1', { query: {} })).toBe('/contribute/attempts/A_1');
+    expect(pullRequestByAttemptPath('A_1', { query: {} })).toBe('/my/pull-requests/by-attempt/A_1');
+  });
+});
+
+describe('the Pull requests tab under its filters', () => {
+  it('says only what differs from the first page of everything', () => {
+    expect(pullRequestsPath()).toBe('/my/pull-requests');
+    expect(pullRequestsPath({ page: 1 })).toBe('/my/pull-requests');
+    expect(pullRequestsPath({ state: 'open' })).toBe('/my/pull-requests?state=open');
+    expect(pullRequestsPath({ made: 'learn', page: 3 })).toBe('/my/pull-requests?made=learn&page=3');
+    expect(pullRequestsPath({ state: 'merged', made: 'contribute', page: 2 })).toBe(
+      '/my/pull-requests?state=merged&made=contribute&page=2',
+    );
   });
 });

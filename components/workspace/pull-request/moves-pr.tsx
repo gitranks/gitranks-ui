@@ -19,8 +19,8 @@ import { FOLLOW_UP_THREADS_MAX } from '@/lib/workspace/follow-up-flow';
 import { autopilotLineOf, FILLED_NOTE_HINT, signalText } from '@/lib/workspace/follow-up-format';
 import { usd } from '@/lib/workspace/format';
 import type { ActionId } from '@/lib/workspace/hard-stop';
-import { clipped } from '@/lib/workspace/needs-you';
 import { PR_FIX_WORDS } from '@/lib/workspace/pr-conventions';
+import { clipped } from '@/lib/workspace/pr-moves';
 import { noRunWhyOf } from '@/lib/workspace/session-status';
 import { waitingThreadsOf } from '@/lib/workspace/sessions';
 

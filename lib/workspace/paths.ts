@@ -254,15 +254,31 @@ export const settingsPathOf = (anchor: string): Route =>
 export const learnAttemptPath = (attemptId: string) => `/learn/attempts/${encodeURIComponent(attemptId)}` as Route;
 
 /**
- * The page of one attempt, by its id alone: today Contribute's attempt page, which sends a Learn attempt on to its
- * lesson; `view: 'lesson'` asks for the lesson. `query` is kept on the address.
+ * The page of one attempt, by its id alone: `/my/pull-requests/by-attempt/<id>`, which finds the attempt and goes on to
+ * its page, the query kept (`?resume=`, `?move=`, `?session=next`). `view: 'lesson'` asks for a Learn attempt's
+ * lesson. Every row of a list links this way: a row is one attempt.
  */
 export function pullRequestByAttemptPath(
   attemptId: string,
   opts: { view?: 'lesson'; query?: Record<string, string> } = {},
 ): Route {
-  const path =
-    opts.view === 'lesson' ? learnAttemptPath(attemptId) : `/contribute/attempts/${encodeURIComponent(attemptId)}`;
-  const query = new URLSearchParams(opts.query ?? {}).toString();
+  const path = `${WORKSPACE_PATHS.pullRequests}/by-attempt/${encodeURIComponent(attemptId)}`;
+  const query = new URLSearchParams({ ...(opts.view ? { view: opts.view } : {}), ...(opts.query ?? {}) }).toString();
   return (query ? `${path}?${query}` : path) as Route;
+}
+
+/** The Pull requests tab's table holds this many rows a page. */
+export const PULL_REQUESTS_PAGE_SIZE = 20;
+
+/** The Pull requests tab's filters: a state chip, a side ("Made with"), a page. */
+export type PullRequestsFilter = { state?: 'open' | 'merged' | 'closed'; made?: 'contribute' | 'learn'; page?: number };
+
+/** The Pull requests tab under its filters; the first page has no `?page`. */
+export function pullRequestsPath(filter: PullRequestsFilter = {}): Route {
+  const query = new URLSearchParams();
+  if (filter.state) query.set('state', filter.state);
+  if (filter.made) query.set('made', filter.made);
+  if (filter.page && filter.page > 1) query.set('page', String(filter.page));
+  const text = query.toString();
+  return (text ? `${WORKSPACE_PATHS.pullRequests}?${text}` : WORKSPACE_PATHS.pullRequests) as Route;
 }

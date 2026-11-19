@@ -123,8 +123,8 @@ describe("Learn home's words", () => {
 
   it('words each limit that leaves no room for a new lesson, with where it is held', () => {
     expect(roomWordsOf({ limit: 'open_prs_at_a_time', value: 2 })).toEqual({
-      text: '2 of your pull requests are waiting on maintainers. A new lesson can start when one is merged or closed.',
-      link: { href: '/learn/lessons', label: 'My lessons' },
+      text: '2 of your pull requests are waiting on maintainers. A new one can start when one is merged or closed.',
+      link: { href: '/my/pull-requests', label: 'Pull requests' },
     });
     expect(roomWordsOf({ limit: 'open_prs_at_a_time', value: 1 })?.text).toMatch(/^1 of your pull requests is/);
     expect(roomWordsOf({ limit: 'attempts_at_a_time', value: 1 })).toEqual({

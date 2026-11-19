@@ -189,7 +189,7 @@ describe('Start your own lesson', () => {
       [startViews.daily, "You've taken today's claims. Try again tomorrow."],
       [
         startViews.limitPrs,
-        '2 of your pull requests are waiting on maintainers. A new lesson can start when one is merged or closed. My lessons →',
+        '2 of your pull requests are waiting on maintainers. A new one can start when one is merged or closed. Pull requests · Change the limit in Settings',
       ],
       [
         startViews.limitAttempts,

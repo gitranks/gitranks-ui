@@ -103,7 +103,6 @@ const CALLS: Record<string, unknown[]> = {
   takeBackContributeProof: ['PF_1'],
   postContributeProofReply: ['PF_1', 'Thanks for the review.'],
   retryContributeProof: ['PF_1'],
-  readRunsPage: [{ href: '/my/agent/runs', after: 'c1' }],
 };
 
 /** The actions about what the user works on: open to every signed-in login. */

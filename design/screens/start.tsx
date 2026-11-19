@@ -37,7 +37,7 @@ const frame = (children: ReactNode) => (
 /** Step 1's connect steps, embedded: the token made and its setup for Claude Code, unless `props` says otherwise. */
 const connectSteps = (props: Partial<AgentConnectViewProps> = {}) => (
   <AgentConnectView
-    mode="learn"
+    embedded
     client="claude-code"
     onClient={noop}
     stage="token"

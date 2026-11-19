@@ -338,3 +338,31 @@ export const views = {
     grantAvailable: true,
   },
 } satisfies Record<string, ContributeView>;
+
+/** The own agent connected: a token its agent called with an hour ago. */
+const ownAgentConnected = {
+  paths: { hosted: true, mcp: true },
+  tokens: [mcpToken({ lastUsedAt: '2026-10-28T09:00:00.000Z' })],
+};
+
+/** The Agent tab's people (W1 §9.4): both agents, the own agent alone, the hosted one alone, a learner. */
+export const agentTabViews = {
+  both: { ...views.active, ownAgent: ownAgentConnected, sides: { contribute: true, learn: true } },
+  ownOnly: {
+    ...views.agentOnboarded,
+    contributor: contributor({ credentials: [], plan: null, settings: null, spend: null, onboardedVia: 'MCP' }),
+    ownAgent: { ...ownAgentConnected, paths: { hosted: false, mcp: true } },
+    sides: { contribute: true, learn: false },
+  },
+  hostedOnly: {
+    ...views.active,
+    ownAgent: { paths: { hosted: true, mcp: false }, tokens: [] },
+    sides: { contribute: true, learn: false },
+  },
+  learner: {
+    ...views.agentOnboarded,
+    ownAgent: { ...ownAgentConnected, paths: { hosted: false, mcp: true } },
+    sides: { contribute: false, learn: true },
+  },
+  keyInvalid: { ...views.keyInvalid, ownAgent: ownAgentConnected, sides: { contribute: true, learn: true } },
+} satisfies Record<string, ContributeView>;

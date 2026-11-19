@@ -1,13 +1,3 @@
-/** What the user's own agent does with us, under its title. `signIn`: agents sign in with GitHub, a token the fallback. */
-export const ownAgentTextOf = (signIn: boolean): string =>
-  [
-    'Claude Code, Codex, Cursor, Gemini CLI, Antigravity or VS Code on your machine finds issues here, works on one and hands the change back through our MCP server.',
-    signIn ? "It signs in with your GitHub account; a personal token is there for a client that can't." : null,
-    'You still review and approve every pull request here. Your agent and its model are your own: no Claude key is needed.',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
 /** The longest name a token may have, and the longest note sent back to the user's own agent. */
 export const MCP_TOKEN_NAME_MAX = 40;
 export const SEND_BACK_NOTE_MAX = 2_000;
@@ -15,7 +5,7 @@ export const SEND_BACK_NOTE_MAX = 2_000;
 export const MCP_TOKENS_MAX = 5;
 /**
  * What the user asks their own agent first, once it is connected: one prompt everywhere we show one (the connect step,
- * the consent page, Settings, Overview, the MCP docs).
+ * the consent page, Overview, the MCP docs).
  */
 export const AGENT_FIRST_PROMPT = 'Find me an open-source issue to work on with GitRanks.';
 /** Where the user's own agent connects. */
@@ -46,7 +36,7 @@ export const MCP_CLIENT_NAMES: Record<McpClient, string> = {
  */
 export const tokenInConfigOf = (client: McpClient): boolean => client === 'antigravity';
 
-/** What the setup shows in place of the token where it has none (Settings, the MCP docs). */
+/** What the setup shows in place of the token where it has none (the MCP docs). */
 export const MCP_TOKEN_PLACEHOLDER = '<your GitRanks token>';
 
 /** One of our clients, from a query parameter or anything else untrusted. */
@@ -288,7 +278,7 @@ const SETTINGS_WHERE: Record<McpClient, string> = {
 };
 
 /**
- * Ready-made setup for each client, as Settings lists it, checked against each client's own docs: every one reads the
+ * Ready-made setup for each client, as the MCP docs list it, checked against each client's own docs: every one reads the
  * token from `GITRANKS_MCP_TOKEN` but Antigravity, which holds it in its config (`tokenInConfigOf`). Claude Code's
  * shell expands it once, when the server is added for every project (`--scope user`), and Claude Code keeps the token
  * in its own config; Codex, Cursor and Gemini CLI read the variable each time they start.
@@ -395,7 +385,7 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup {
   }
 }
 
-/** The sign-in setup of each client, as Settings lists it (macOS), in `MCP_CLIENTS` order. */
+/** The sign-in setup of each client, as the MCP docs list it (macOS), in `MCP_CLIENTS` order. */
 export const MCP_SIGN_IN_SETUPS: readonly McpSignInSetup[] = MCP_CLIENTS.map((client) =>
   mcpSignInSetupOf(client, 'mac'),
 );

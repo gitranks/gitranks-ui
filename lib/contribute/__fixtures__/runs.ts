@@ -141,3 +141,69 @@ export const pageOf = (fields: Partial<ContributeRunsPage> = {}): ContributeRuns
   ],
   ...fields,
 });
+
+/** A Learn run of the user's own agent: no cost, an open pull request. */
+export const OWN_LEARN = runOf({
+  attemptId: '6ae6700192fedc1b8de48e01',
+  nameWithOwner: 'tidewave/tide',
+  number: 958,
+  title: 'Dark mode toggle flashes on first load',
+  runner: 'MCP',
+  model: null,
+  effort: null,
+  agent: { name: 'CLAUDE_CODE', model: null },
+  pullRequest: { number: 2207, url: 'https://github.com/tidewave/tide/pull/2207' },
+  costUsd: 0,
+  goNoGoUsd: 0,
+  workUsd: 0,
+  createdAt: '2026-10-31T16:20:00.000Z',
+  startedAt: '2026-10-31T16:20:01.000Z',
+  finishedAt: '2026-10-31T16:41:00.000Z',
+  mode: 'LEARN',
+});
+
+/** The Agent tab's preview: the latest runs of both agents, all time. */
+export const previewPageOf = (fields: Partial<ContributeRunsPage> = {}): ContributeRunsPage =>
+  pageOf({ items: [NO_GO, runOf({ mode: 'FIX' }), OWN_LEARN, FOLLOW_UP, MERGED], ...fields });
+
+/** A learner's runs: their own agent's Learn runs, and the lessons they wrote. */
+export const learnerPageOf = (fields: Partial<ContributeRunsPage> = {}): ContributeRunsPage =>
+  pageOf({
+    items: [
+      runOf({ ...OWN_LEARN, attemptId: 'L_1', state: 'RUNNING', outcome: 'RUNNING', pullRequest: null }),
+      OWN_LEARN,
+      runOf({
+        ...OWN_LEARN,
+        attemptId: 'L_3',
+        nameWithOwner: 'quill-md/quill',
+        number: 512,
+        title: 'Escape pipes in table cells',
+        state: 'STOPPED',
+        outcome: 'NO_GO',
+        endReason: 'NO_GO',
+        endDetail: 'Fixed on the main branch.',
+        noGoCategory: 'ALREADY_FIXED',
+        pullRequest: null,
+        createdAt: '2026-10-24T16:40:00.000Z',
+      }),
+    ],
+    totals: {
+      runs: 9,
+      started: 9,
+      costUsd: 0,
+      prs: 4,
+      merged: 1,
+      closed: 0,
+      noGo: 2,
+      noGoCostUsd: 0,
+      noGoByCategory: [{ category: 'ALREADY_FIXED', count: 2 }],
+      lessons: 7,
+      lessonsPassed: 5,
+    },
+    repos: ['tidewave/tide', 'quill-md/quill'],
+    days: [
+      { day: '2026-10-31', runs: 2, costUsd: 0, prs: 1 },
+      { day: '2026-10-24', runs: 1, costUsd: 0, prs: 0 },
+    ],
+    ...fields,
+  });

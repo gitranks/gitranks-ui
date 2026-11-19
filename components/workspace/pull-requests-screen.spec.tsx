@@ -8,7 +8,8 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 
-const { PullRequestsScreen, audienceOf } = await import('./pull-requests-screen');
+const { PullRequestsScreen } = await import('./pull-requests-screen');
+const { audienceOf } = await import('@/lib/workspace/audience');
 const { boardItems, emptyPage, learnerPage, needsYouAnswer, pullRequestsPage } = await import(
   '@/lib/contribute/__fixtures__/pull-requests'
 );

@@ -70,7 +70,10 @@ describe("the API's filter (runsFilterOf)", () => {
 describe('a run in words', () => {
   it('says the runner, its time and why it ended', () => {
     expect(runnerLabelOf(run({}))).toBe('Hosted · Sonnet 5.5');
-    expect(runnerLabelOf(run({ runner: 'MCP', agent: { name: 'CLAUDE_CODE', model: 'opus' } }))).toBe('Claude Code');
+    expect(runnerLabelOf(run({ runner: 'MCP', agent: { name: 'CLAUDE_CODE', model: 'opus' } }))).toBe(
+      'Your own agent · Claude Code',
+    );
+    expect(runnerLabelOf(run({ runner: 'MCP', agent: null }))).toBe('Your own agent');
     expect(durationLabel('2026-10-31T21:05:00.710Z', '2026-10-31T21:08:05.623Z')).toBe('3m 05s');
     expect(durationLabel('2026-10-31T21:05:00Z', '2026-10-31T21:05:32Z')).toBe('32s');
     expect(durationLabel('2026-10-31T21:05:00Z', null)).toBe('');
@@ -149,5 +152,6 @@ describe('the runs by day (runDaysOf)', () => {
     expect(dayRowLabel('2026-10-12', NOW)).toBe('Mon, Oct 12');
     expect(daySumLabel({ day: '2026-10-31', runs: 25, costUsd: 2.28, prs: 4 }, usd)).toBe('25 runs · $2.28 · 4 PRs');
     expect(daySumLabel({ day: '2026-10-30', runs: 1, costUsd: 0.07, prs: 0 }, usd)).toBe('1 run · $0.07');
+    expect(daySumLabel({ day: '2026-10-31', runs: 3, costUsd: 0, prs: 1 }, null)).toBe('3 runs · 1 PR');
   });
 });

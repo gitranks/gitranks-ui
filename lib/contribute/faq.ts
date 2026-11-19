@@ -74,7 +74,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
         id: 'agent-sign-in',
         question: 'How does my own agent connect?',
         answer:
-          "It signs in with your GitHub account. Add our MCP server to your agent and sign in as its setup says: your browser opens GitRanks, where you press Allow. It can then see the issues picked for you and claim one, hand back changes for your review, and see your claims and pull requests. It can't open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub access. The Agent tab lists every agent you connected, each with Disconnect. A client that can't sign in, or a script, uses a personal token you make there.",
+          "It signs in with your GitHub account. Add our MCP server to your agent and sign in as its setup says: your browser opens GitRanks, where you press Allow. It can then see the issues picked for you and claim one, hand back changes for your review, and see your claims and pull requests. It can't open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub access. The Agent tab lists every agent you connected, each with Disconnect. A client that can't sign in, or a script, uses a personal token: make one under Connect another agent there.",
         more: { href: MCP_DOCS_PATH, label: 'Setup for each agent' },
       },
       {

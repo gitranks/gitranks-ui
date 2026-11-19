@@ -19,9 +19,8 @@ import { fileURLToPath } from 'node:url';
 
 /** The crossings left today, as `<file> -> <module>` (the module's path without its extension). */
 export const ALLOWED = [
-  // Learn's pages over Contribute's: the landing's parts and the Overview's agent card.
+  // Learn's pages over Contribute's: the landing's parts.
   'app/learn/components/learn-landing.tsx -> app/contribute/components/landing',
-  'app/learn/components/learn-profile.tsx -> app/contribute/components/overview-sections',
   'app/learn/components/recent-lessons.tsx -> app/contribute/components/landing',
   // The maintainers' light sign-in, which a Learn result's reaction uses too.
   'lib/contribute/maintainer-token.ts -> lib/learn/learn-path',

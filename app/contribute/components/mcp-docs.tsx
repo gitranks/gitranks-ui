@@ -372,8 +372,9 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
                   <HashSafeLink href={LANDING_WAYS_PATH} className={LINK}>
                     GitRanks Contribute
                   </HashSafeLink>
-                  , choose your own agent and create a token there, or on the Agent tab. It is shown once, so copy it
-                  then.
+                  , choose your own agent and create a token there, or later under &ldquo;Connect another agent&rdquo;
+                  on the Agent tab, in its &ldquo;{USE_A_TOKEN_INSTEAD}&rdquo; fold. Give it a name you will recognise.
+                  It is shown once, so copy it then.
                 </li>
                 <li>
                   Save it in your environment as <code className="font-mono text-sm">{MCP_TOKEN_ENV}</code>, where the

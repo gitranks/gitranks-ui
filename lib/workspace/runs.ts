@@ -71,6 +71,8 @@ export type ContributeRun = {
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
+  /** The run's side (a follow-up's is its first attempt's); null or left out from an older API. */
+  mode?: 'FIX' | 'LEARN' | null;
 };
 
 export type ContributeRunsTotals = {
@@ -83,6 +85,9 @@ export type ContributeRunsTotals = {
   noGo: number;
   noGoCostUsd: number;
   noGoByCategory: { category: ContributeNoGoCategory; count: number }[];
+  /** The Learn runs that wrote a lesson, and of those the ones the user passed; null from an older API. */
+  lessons?: number | null;
+  lessonsPassed?: number | null;
 };
 
 export type ContributeRunsPage = {
@@ -104,8 +109,11 @@ export type ContributeRunsFilter = {
   from?: string;
 };
 
-/** A page's size: the API's most. */
-export const RUNS_PAGE_SIZE = 50;
+/** The history's rows a page (decision 6: history lists page by 20, the page in the address). */
+export const RUNS_PAGE_SIZE = 20;
+
+/** The Agent tab's preview: the latest few runs, never more. */
+export const RUNS_PREVIEW_SIZE = 5;
 
 export const RUN_OUTCOMES: Record<ContributeRunOutcome, { label: string; tone: Tone | 'quiet' }> = {
   RUNNING: { label: 'Agent working', tone: 'violet' },
@@ -153,7 +161,7 @@ export const RANGES: { value: RunsRange; label: string; days: number | null }[] 
 ];
 export const DEFAULT_RANGE: RunsRange = '30d';
 
-/** The page's query, as the URL keeps it: the filters alone, never a cursor. */
+/** The page's filters, as the URL keeps them; the page number is kept beside them (`runsPageOf`). */
 export type RunsQuery = {
   outcome?: ContributeRunOutcomeFilter;
   reason?: ContributeNoGoCategory;
@@ -192,14 +200,29 @@ export function runsQueryOf(params: Params): RunsQuery {
   };
 }
 
-/** The page's URL for a query; the defaults stay out of it. */
-export function runsHref(query: RunsQuery): string {
+/** The most runs the API skips for a numbered page: a page past it is never asked for. */
+export const RUNS_OFFSET_MAX = 10_000;
+/** The last page the history can ask for. */
+export const RUNS_PAGE_MAX = Math.floor(RUNS_OFFSET_MAX / RUNS_PAGE_SIZE) + 1;
+
+/** The page number the URL asks for (`?page=3`), at most `RUNS_PAGE_MAX`; 1 for none or anything that is not one. */
+export function runsPageOf(params: Params): number {
+  const page = Number(one(params.page));
+  return Number.isInteger(page) && page > 1 ? Math.min(page, RUNS_PAGE_MAX) : 1;
+}
+
+/**
+ * The page's URL for a query, and a page of it; the defaults (and page 1) stay out of it. A filter's link leaves the
+ * page out, so a new filter starts on its first page.
+ */
+export function runsHref(query: RunsQuery, page = 1): string {
   const search = new URLSearchParams();
   if (query.outcome) search.set('outcome', query.outcome.toLowerCase());
   if (query.reason) search.set('reason', query.reason.toLowerCase());
   if (query.repo) search.set('repo', query.repo);
   if (query.runner) search.set('runner', query.runner === 'MCP' ? 'own' : 'hosted');
   if (query.range !== DEFAULT_RANGE) search.set('range', query.range);
+  if (page > 1) search.set('page', String(page));
   const text = search.toString();
   return text ? `${WORKSPACE_PATHS.agentRuns}?${text}` : WORKSPACE_PATHS.agentRuns;
 }
@@ -207,9 +230,6 @@ export function runsHref(query: RunsQuery): string {
 /** Whether any filter is set beyond the default dates. */
 export const isFiltered = (query: RunsQuery) =>
   !!(query.outcome || query.reason || query.repo || query.runner || query.range !== DEFAULT_RANGE);
-
-/** A range's start as `runsFilterOf` writes it: midnight UTC. */
-export const RANGE_START = /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/;
 
 /** The API's filter for a query; the range counts back from `now`, to the start of that UTC day. */
 export function runsFilterOf(query: RunsQuery, now = new Date()): ContributeRunsFilter {
@@ -231,9 +251,12 @@ export const issueRefOf = (run: Pick<ContributeRun, 'nameWithOwner' | 'number'>)
 
 export const runTitleOf = (run: Pick<ContributeRun, 'title' | 'number'>) => run.title?.trim() || `Issue #${run.number}`;
 
-/** `Hosted · Sonnet 5.5`, or the user's own agent by the name it gave. */
+/** `Hosted · Sonnet 5.5`, or `Your own agent · Claude Code` by the name it gave. */
 export function runnerLabelOf(run: Pick<ContributeRun, 'runner' | 'model' | 'agent'>): string {
-  if (run.runner === 'MCP') return run.agent ? (AGENT_NAMES[run.agent.name] ?? 'Your agent') : 'Your agent';
+  if (run.runner === 'MCP') {
+    const name = run.agent ? AGENT_NAMES[run.agent.name] : undefined;
+    return name ? `Your own agent · ${name}` : 'Your own agent';
+  }
   const model = run.model ? MODELS[run.model] : undefined;
   return model ? `Hosted · ${model.replace(/^Claude /, '')}` : 'Hosted';
 }
@@ -331,6 +354,9 @@ export function runReasonOf(run: ContributeRun): string {
   }
 }
 
+/** Whether the run was on Learn's side: a Learn pull request, a lesson's run. */
+export const isLearnRun = (run: Pick<ContributeRun, 'mode'>) => run.mode === 'LEARN';
+
 /** A run's start day, `2026-10-31` (UTC, as the API counts days). */
 export const dayKeyOf = (iso: string) => iso.slice(0, 10);
 
@@ -373,10 +399,13 @@ export function runDaysOf(runs: ContributeRun[]): RunDay[] {
   return days;
 }
 
-/** `25 runs · $2.28 · 4 PRs`: a day row's sums, over every run of the day the filter matches. */
-export function daySumLabel(day: ContributeRunsDay | undefined, usd: (amount: number) => string): string {
+/**
+ * `25 runs · $2.28 · 4 PRs`: a day row's sums, over every run of the day the filter matches. `usd` null leaves the
+ * money out (a learner's own agent spends nothing through us).
+ */
+export function daySumLabel(day: ContributeRunsDay | undefined, usd: ((amount: number) => string) | null): string {
   if (!day) return '';
-  const parts = [`${day.runs} run${day.runs === 1 ? '' : 's'}`, usd(day.costUsd)];
+  const parts = [`${day.runs} run${day.runs === 1 ? '' : 's'}`, ...(usd ? [usd(day.costUsd)] : [])];
   if (day.prs) parts.push(`${day.prs} PR${day.prs === 1 ? '' : 's'}`);
   return parts.join(' · ');
 }

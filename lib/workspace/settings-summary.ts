@@ -1,13 +1,13 @@
-import { attemptsCapNoteOf } from './access-limits';
+import { attemptsCapNoteOf, effectiveSettingOf } from './access-limits';
 import type {
   ContributeCredential,
   ContributeGrant,
   ContributeIssueSize,
   ContributeLimits,
-  ContributeOwnAgent,
   ContributeSettings,
+  ContributeSpend,
 } from './contribute.types';
-import { EFFORTS, MODELS, maskedKey, ordinalDay, PACES, plural, relativeLabel, SIZES, usd } from './format';
+import { dayLabel, EFFORTS, MODELS, maskedKey, ordinalDay, plural, SIZES, usd } from './format';
 
 /** What we say of the Claude key's state, after its last 4. */
 export const KEY_STATES: Record<ContributeCredential['state'], string> = {
@@ -22,22 +22,37 @@ export const sizeLabelOf = (size: ContributeIssueSize | null) =>
   size ? `Up to ${SIZES[size].toLowerCase()}` : 'Any size';
 
 /**
- * "$100 a cycle · Even, then a final sweep · renews on the 1st", and "· 1 at a time (new-account limit)" while the
- * access level holds the attempts at a time below the setting.
+ * The Budget and pacing row: "$63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt" (before any spend,
+ * "$200 a cycle · renews on the 14th"), and "· 1 at a time (new-account limit)" while the access level holds the
+ * attempts at a time below the setting.
  */
-export const budgetSummaryOf = (settings: ContributeSettings, limits?: ContributeLimits | null) =>
+export const budgetSummaryOf = (
+  settings: ContributeSettings,
+  spend?: ContributeSpend | null,
+  limits?: ContributeLimits | null,
+) =>
   [
-    `${usd(settings.cycleCapUsd)} a cycle`,
-    PACES[settings.pace].title,
-    `renews on ${ordinalDay(settings.renewalDay)}`,
+    spend
+      ? `${usd(spend.cycleUsd)} of ${usd(settings.cycleCapUsd)} used this cycle`
+      : `${usd(settings.cycleCapUsd)} a cycle`,
+    spend ? `renews ${dayLabel(spend.cycleEnd)}` : `renews on ${ordinalDay(settings.renewalDay)}`,
+    `up to ${usd(settings.attemptCapUsd)} an attempt`,
     attemptsCapNoteOf(settings, limits),
   ]
     .filter(Boolean)
     .join(' · ');
 
-/** "Claude Sonnet 5.5, high effort · PRs up to 400 lines, 15 files". */
-export const agentSummaryOf = (settings: ContributeSettings) =>
-  `${MODELS[settings.mainModel]}, ${EFFORTS[settings.effort].toLowerCase()} effort · PRs up to ${settings.maxChangedLines.toLocaleString('en-US')} lines, ${plural(settings.maxFiles, 'file')}`;
+/** The Model and effort row: "Claude Sonnet 5.5, medium effort". */
+export const modelSummaryOf = (settings: ContributeSettings) =>
+  `${MODELS[settings.mainModel]}, ${EFFORTS[settings.effort].toLowerCase()} effort`;
+
+/** The pull request limits: "PRs up to 400 lines, 15 files · 3 open at a time" (what holds now, a cap included). */
+export const prLimitsSummaryOf = (settings: ContributeSettings, limits?: ContributeLimits | null) =>
+  `PRs up to ${settings.maxChangedLines.toLocaleString('en-US')} lines, ${plural(settings.maxFiles, 'file')} · ${effectiveSettingOf(settings, limits, 'openPrsAtATime')} open at a time`;
+
+/** "1 at a time", with the access level's cap when it holds below the setting. */
+export const attemptsSummaryOf = (settings: ContributeSettings, limits?: ContributeLimits | null) =>
+  attemptsCapNoteOf(settings, limits) ?? `${settings.attemptsAtATime} at a time`;
 
 /** "…a1b2 · works", or "Not connected". */
 export const keySummaryOf = (credential: ContributeCredential | undefined) =>
@@ -49,19 +64,4 @@ export function grantSummaryOf(grant: ContributeGrant | undefined, available: bo
   if (!available) return 'Not available yet. It is coming soon.';
   if (grant === undefined) return 'Status not available yet. Grant it, or revoke it on GitHub, any time.';
   return 'Not allowed: pull requests cannot be opened for you';
-}
-
-/** "2 tokens · last used 3 hours ago"; `undefined` while the API does not answer it yet. */
-export function ownAgentSummaryOf(ownAgent: ContributeOwnAgent | undefined, now?: Date): string {
-  if (ownAgent === undefined) return 'Not available yet. It is coming soon.';
-  const { tokens } = ownAgent;
-  if (!tokens.length) return ownAgent.signIn ? 'No agent connected yet' : 'No token yet';
-  const used = tokens
-    .map(({ lastUsedAt }) => lastUsedAt)
-    .filter((at): at is string => !!at)
-    .sort()
-    .at(-1);
-  // Agents that signed in are no tokens: the count says connections once there is one.
-  const noun = tokens.some(({ kind }) => kind === 'OAUTH') ? 'connection' : 'token';
-  return `${plural(tokens.length, noun)} · ${used ? `last used ${relativeLabel(used, now)}` : 'never used'}`;
 }

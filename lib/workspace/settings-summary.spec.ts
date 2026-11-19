@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { movedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './paths';
-import { ownAgentSummaryOf } from './settings-summary';
+import { attemptsSummaryOf, budgetSummaryOf, modelSummaryOf, prLimitsSummaryOf } from './settings-summary';
 import { resolve, smallReposSet, stackSet } from '@/lib/contribute/__fixtures__/contribute-sets';
+import { contributor, limits, settings } from '@/lib/contribute/__fixtures__/contribute-views';
 import { modeChipOf, stackPendingOf } from '@/lib/contribute/set-format';
 import { keptListOf, listSummaryOf, preferencesSummaryOf, waitingLibrariesOf } from '@/lib/contribute/work-summary';
 
@@ -19,26 +20,20 @@ describe('the Settings summary', () => {
     ).toMatch(/^Rust, Go, Python \+2 · Bugs, Docs · up to medium$/);
   });
 
-  it('says how many tokens and when one was last used', () => {
-    const now = new Date('2026-10-31T12:00:00.000Z');
-    const token = { id: 't', name: 'laptop', last4: 'ab12', createdAt: '2026-10-01T00:00:00.000Z' };
-    expect(ownAgentSummaryOf(undefined)).toBe('Not available yet. It is coming soon.');
-    expect(ownAgentSummaryOf({ paths: { mcp: true } as never, tokens: [] })).toBe('No token yet');
-    expect(ownAgentSummaryOf({ paths: { mcp: true } as never, tokens: [], signIn: true })).toBe(
-      'No agent connected yet',
+  it("says the hosted agent's budget and model in a line each", () => {
+    expect(budgetSummaryOf(settings, contributor().spend, limits.standard)).toBe(
+      '$63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt',
     );
-    expect(
-      ownAgentSummaryOf(
-        {
-          paths: { mcp: true } as never,
-          tokens: [
-            { ...token, lastUsedAt: '2026-10-31T09:00:00.000Z' },
-            { ...token, id: 'u', lastUsedAt: null },
-          ],
-        },
-        now,
-      ),
-    ).toBe('2 tokens · last used 3 hours ago');
+    expect(budgetSummaryOf(settings, null)).toBe('$200 a cycle · renews on the 14th · up to $5 an attempt');
+    expect(budgetSummaryOf({ ...settings, attemptsAtATime: 3 }, null, limits.newAccount)).toContain(
+      '· 1 at a time (new-account limit)',
+    );
+    expect(modelSummaryOf(settings)).toBe('Claude Sonnet 5.5, medium effort');
+    expect(prLimitsSummaryOf(settings, limits.standard)).toBe('PRs up to 400 lines, 15 files · 3 open at a time');
+    expect(attemptsSummaryOf(settings, limits.standard)).toBe('1 at a time');
+    expect(attemptsSummaryOf({ ...settings, attemptsAtATime: 3 }, limits.newAccount)).toBe(
+      '1 at a time (new-account limit)',
+    );
   });
 });
 

@@ -32,7 +32,6 @@ const data = vi.hoisted(() => ({
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(),
   loadMyLessons: vi.fn(),
-  loadOwnAgent: vi.fn(),
   loadMyLearnAttempts: vi.fn(async () => ({ current: null, lastPullRequest: null })),
   loadLearnIssues: vi.fn(async () => undefined),
   loadPracticeLessons: vi.fn(async () => undefined),
@@ -50,7 +49,6 @@ const { LearnProfileScreen, LearnProfileView } = await import('./learn-profile')
 const { MyLessonsScreen, MyLessonsView } = await import('./my-lessons');
 const { goalSavedWordsOf } = await import('./goal-saved-next');
 const { emptyIssues, practiceNext } = await import('@/lib/learn/__fixtures__/home');
-const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { emptyProfile, filledProfile, myLessons } = await import('@/lib/learn/__fixtures__/profile');
 const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
 
@@ -134,9 +132,7 @@ describe('Learn for maintainers', () => {
 
 describe('Goal and level', () => {
   it('starts with no goal picked, the levels guessed and marked, no domain, and Save off', () => {
-    const html = renderToStaticMarkup(
-      <LearnProfileScreen profile={emptyProfile} ownAgent={views.onboardedNoPath.ownAgent} />,
-    );
+    const html = renderToStaticMarkup(<LearnProfileScreen profile={emptyProfile} />);
     expect(html).toContain('data-learn-profile="empty"');
     expect(text(html)).toContain('A language');
     expect(text(html)).toContain('How one project works');
@@ -145,14 +141,12 @@ describe('Goal and level', () => {
     expect(text(html)).toContain('We guessed from your public GitHub work.');
     expect(text(html)).toContain('Pick what you want to learn.');
     expect(html).toContain('type="submit" disabled=""');
-    expect(html).toContain('data-learn-agent="Not set up"');
-    expect(html).toContain('href="/my/agent/connect"');
+    // The user's agent is on the Agent tab alone.
+    expect(html).not.toContain('data-learn-agent');
   });
 
-  it('shows a saved profile: the goal with its language, Your goal first, the focus ticked, the agent connected', () => {
-    const html = renderToStaticMarkup(
-      <LearnProfileScreen profile={filledProfile} ownAgent={views.agentOnboarded.ownAgent} />,
-    );
+  it('shows a saved profile: the goal with its language, Your goal first, the focus ticked', () => {
+    const html = renderToStaticMarkup(<LearnProfileScreen profile={filledProfile} />);
     expect(html).toContain('data-learn-profile="filled"');
     expect(html).toMatch(/data-goal="LANGUAGE"[^>]*class="[^"]*border-primary/);
     expect(text(html)).toContain('TypeScript Your goal · 2 repos, since Oct 2026');
@@ -160,18 +154,12 @@ describe('Goal and level', () => {
     expect(html.match(/role="checkbox"[^>]*aria-checked="true"/g)).toHaveLength(2);
     expect(html).toContain('type="submit"');
     expect(html).not.toContain('type="submit" disabled=""');
-    expect(html).toContain('data-learn-agent="Connected"');
-    // The agent card keeps its state and link; it no longer hands out a prompt.
-    expect(text(html)).not.toContain('Ask it:');
-    expect(text(html)).not.toContain('Find me an issue to learn from on GitRanks');
     expect(html).not.toContain('data-saved-next');
   });
 
   it('once saved, says so by the button and shows the next step under the form', () => {
     const saved = (next: Parameters<typeof goalSavedWordsOf>[0], profile = filledProfile) =>
-      renderToStaticMarkup(
-        <LearnProfileScreen profile={profile} ownAgent={views.agentOnboarded.ownAgent} saved={{ next }} />,
-      );
+      renderToStaticMarkup(<LearnProfileScreen profile={profile} saved={{ next }} />);
     const issues = saved(practiceNext.own);
     expect(text(issues)).toContain('Save Saved');
     expect(text(issues)).not.toContain('ask your agent');
@@ -207,9 +195,7 @@ describe('Goal and level', () => {
   });
 
   it('names every goal, level and focus control by its text', () => {
-    const html = renderToStaticMarkup(
-      <LearnProfileScreen profile={filledProfile} ownAgent={views.agentOnboarded.ownAgent} />,
-    );
+    const html = renderToStaticMarkup(<LearnProfileScreen profile={filledProfile} />);
     const radios = controlNames(html, 'radio');
     expect(radios).toContain('A language');
     expect(radios).toContain('How one project works');
@@ -223,9 +209,8 @@ describe('Goal and level', () => {
     ]);
   });
 
-  it('says when the agent could not be read, and when there are no languages yet', () => {
-    const html = renderToStaticMarkup(<LearnProfileScreen profile={null} ownAgent={undefined} />);
-    expect(text(html)).toContain("We can't check your agent right now.");
+  it('says when there are no languages yet', () => {
+    const html = renderToStaticMarkup(<LearnProfileScreen profile={null} />);
     expect(text(html)).toContain('No languages yet.');
   });
 });
@@ -262,7 +247,6 @@ describe("Learn's gate on its own pages", () => {
     data.loadLearnOpen.mockResolvedValue(false);
     data.loadLearnProfile.mockRejectedValue(new Error('down'));
     data.loadMyLessons.mockResolvedValue(undefined);
-    data.loadOwnAgent.mockResolvedValue(undefined);
   };
 
   afterEach(() => {
@@ -304,7 +288,6 @@ describe("Learn's gate on its own pages", () => {
     data.loadLearnSetup.mockResolvedValue(true);
     data.loadLearnProfile.mockResolvedValue(null);
     data.loadMyLessons.mockResolvedValue([]);
-    data.loadOwnAgent.mockResolvedValue(undefined);
     for (const html of [
       renderToStaticMarkup(await LearnProfileView()),
       renderToStaticMarkup(await MyLessonsView()),
@@ -320,7 +303,6 @@ describe("Learn's gate on its own pages", () => {
     data.loadLearnOpen.mockResolvedValue(true);
     data.loadLearnProfile.mockResolvedValue(filledProfile);
     data.loadMyLessons.mockResolvedValue(myLessons);
-    data.loadOwnAgent.mockResolvedValue(views.agentOnboarded.ownAgent);
     recent.readRecentLessons.mockResolvedValue(recentLessons);
     // `/learn` is Learn home for them; the front door moved to `/learn/about`.
     const home = await LearnHomeView();

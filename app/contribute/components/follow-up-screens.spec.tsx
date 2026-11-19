@@ -24,7 +24,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
 
 const { ReviewScreen, grantNeededOf } = await import('@/components/workspace/pull-request/review-view');
 const { allKindsOf } = await import('@/components/workspace/pull-request/move-card');
-const { AgentScreen } = await import('./settings-view');
+const { AgentScreen } = await import('@/components/workspace/agent/agent-screen');
 const {
   AUTOPILOT_CONFIRM_LINES,
   AUTOPILOT_LAUNCH_LINE,

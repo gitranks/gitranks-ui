@@ -40,7 +40,7 @@ const loaders: BadgeLoaders = {
   user: async (login) => findBadgeFacts('user', login),
   org: async (login) => findBadgeFacts('org', login),
   repo: async (owner, name) => findBadgeFacts('repo', `${owner}/${name}`),
-  package: async (name) => findBadgeFacts('package', `npm/${name}`),
+  package: async (registry, name) => findBadgeFacts('package', `${registry}/${name}`),
 };
 
 /**

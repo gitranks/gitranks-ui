@@ -144,13 +144,6 @@ export const LEARN_START_SCREENS: Screen[] = [
           page({ view: startViews.taken, connection: null, connect: connectSteps({ stage: 'none', shown: null }) }),
       },
       {
-        id: 'untitled',
-        title: "GitHub's title not read: the issue as owner/repo#n, and the page goes on",
-        path: START_PATH,
-        height: 1080,
-        render: () => page({ view: startViews.untitled }),
-      },
-      {
         id: 'refused-paused',
         title: "A paused account: Contribute's paused notice",
         path: START_PATH,

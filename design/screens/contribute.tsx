@@ -2028,15 +2028,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         height: 6000,
         render: () => publicPage(<McpDocsScreen />),
       },
-      {
-        id: 'phone',
-        title: 'Phone',
-        path: '/contribute/mcp',
-        signedOut: true,
-        width: 390,
-        height: 9100,
-        render: () => publicPage(<McpDocsScreen />),
-      },
     ],
   },
   {
@@ -2059,15 +2050,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         height: 2850,
         render: () => publicPage(<FaqScreen />),
       },
-      {
-        id: 'phone',
-        title: 'Phone',
-        path: '/contribute/faq',
-        signedOut: true,
-        width: 390,
-        height: 5000,
-        render: () => publicPage(<FaqScreen />),
-      },
     ],
   },
   {
@@ -2083,15 +2065,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/terms',
         signedOut: true,
         height: 4650,
-        render: () => <TermsScreen contribute />,
-      },
-      {
-        id: 'launched-phone',
-        title: 'Once Contribute is open, phone',
-        path: '/terms',
-        signedOut: true,
-        width: 390,
-        height: 7100,
         render: () => <TermsScreen contribute />,
       },
       {

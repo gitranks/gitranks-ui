@@ -295,7 +295,7 @@ export const ContributePausedDocument = doc<{ contribute: { contributor: { pause
 export const ContributeLimitsDocument = doc<{
   contribute: { contributor: { limits: ContributeLimits } | null } | null;
 }>(
-  'query ContributeLimits { contribute { contributor { limits { level reason attemptsAtATime openPrsAtATime claimsPerDay revealsPerDay } } } }',
+  'query ContributeLimits { contribute { contributor { limits { level reason attemptsAtATime openPrsAtATime openPrsEffective openPrsOverride claimsPerDay revealsPerDay } } } }',
 );
 
 export const ContributeIssuesDocument = doc<

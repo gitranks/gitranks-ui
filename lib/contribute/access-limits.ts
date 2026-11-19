@@ -10,12 +10,20 @@ export type CappedSetting = 'attemptsAtATime' | 'openPrsAtATime';
 export const capsOf = (limits: ContributeLimits | null | undefined): ContributeLimits | null =>
   limits?.level === 'REDUCED' ? limits : null;
 
-/** What holds of a setting now: the setting, or the level's cap when that is lower. The setting itself is kept. */
+/** The open pull request limit set for the account, which holds over the setting and the level's cap; null with none. */
+export const openPrsOverrideOf = (limits: ContributeLimits | null | undefined): number | null =>
+  typeof limits?.openPrsOverride === 'number' ? limits.openPrsOverride : null;
+
+/**
+ * What holds of a setting now: the setting, or the level's cap when that is lower. The setting itself is kept. The open
+ * pull request limit is the API's `openPrsEffective` when it answers one (it carries a limit set for the account).
+ */
 export const effectiveSettingOf = (
   settings: Pick<ContributeSettings, CappedSetting>,
   limits: ContributeLimits | null | undefined,
   field: CappedSetting,
 ): number => {
+  if (field === 'openPrsAtATime' && typeof limits?.openPrsEffective === 'number') return limits.openPrsEffective;
   const caps = capsOf(limits);
   return caps ? Math.min(settings[field], caps[field]) : settings[field];
 };
@@ -23,13 +31,16 @@ export const effectiveSettingOf = (
 /** Why the cap holds, as the settings say it: while the account is new, or for now. */
 const isNewAccount = (limits: ContributeLimits) => limits.reason === 'NEW_ACCOUNT';
 
-/** The field's hint under a cap: "Up to 1 while your account is new", "Up to 2 for now". Null with no cap. */
+/**
+ * The field's hint under a cap: "Up to 1 while your account is new", "Up to 2 for now". Null with no cap, and for the
+ * open pull request limit while one is set for the account (the setting does not hold then).
+ */
 export function capHintOf(
   limits: ContributeLimits | null | undefined,
   field: CappedSetting,
 ): { max: number; text: string } | null {
   const caps = capsOf(limits);
-  if (!caps) return null;
+  if (!caps || (field === 'openPrsAtATime' && openPrsOverrideOf(limits) !== null)) return null;
   return { max: caps[field], text: isNewAccount(caps) ? 'while your account is new' : 'for now' };
 }
 

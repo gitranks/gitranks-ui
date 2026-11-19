@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { type CappedSetting, capHintOf, capRefusalOf } from '@/lib/contribute/access-limits';
+import { type CappedSetting, capHintOf, capRefusalOf, openPrsOverrideOf } from '@/lib/contribute/access-limits';
 import type {
   ContributeDcoMode,
   ContributeEffort,
@@ -305,7 +305,7 @@ export const moreLimitsSummaryOf = (draft: Draft) =>
 /**
  * Budget and pacing, or the agent and pull requests, on their Settings page: what most people change up front, the
  * rest folded with its values shown, and one Save for the page. `limits` caps attempts and open PRs at a time while
- * the access level holds them lower.
+ * the access level holds them lower, and shows an open PR limit set for the account in place of that setting.
  */
 export function SettingsForm({
   settings,
@@ -365,6 +365,7 @@ export function SettingsForm({
     />
   );
 
+  const prsOverride = openPrsOverrideOf(limits);
   const lines = Number(draft.maxChangedLines);
   const files = Number(draft.maxFiles);
   const large = lines > DEFAULT_MAX_LINES || files > DEFAULT_MAX_FILES;
@@ -543,13 +544,31 @@ export function SettingsForm({
               <Field label="Files" htmlFor={field('maxFiles')}>
                 {textInput('maxFiles')}
               </Field>
-              <Field
-                label="Open PRs at a time"
-                htmlFor={field('openPrsAtATime')}
-                hint={capHint(limits, 'openPrsAtATime')}
-              >
-                {textInput('openPrsAtATime', undefined, !!capHintOf(limits, 'openPrsAtATime'))}
-              </Field>
+              {prsOverride === null ? (
+                <Field
+                  label="Open PRs at a time"
+                  htmlFor={field('openPrsAtATime')}
+                  hint={capHint(limits, 'openPrsAtATime')}
+                >
+                  {textInput('openPrsAtATime', undefined, !!capHintOf(limits, 'openPrsAtATime'))}
+                </Field>
+              ) : (
+                // A limit set for the account holds over the setting: shown, not edited. The setting is kept and
+                // saved as it is, and holds again once that limit is lifted.
+                <Field
+                  label="Open PRs at a time"
+                  htmlFor={field('openPrsAtATime')}
+                  hint="Set for your account by GitRanks."
+                >
+                  <Input
+                    id={field('openPrsAtATime')}
+                    readOnly
+                    value={String(prsOverride)}
+                    aria-describedby={`${field('openPrsAtATime')}-hint`}
+                    className={cn(inputClass, 'bg-muted text-muted-foreground')}
+                  />
+                </Field>
+              )}
             </div>
             {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
             <ReposAskLessNote />

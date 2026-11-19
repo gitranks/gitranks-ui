@@ -1633,9 +1633,19 @@ type ContributeLimits {
   level: ContributeAccessLevel!
 
   """
-  The most open pull requests at a time that hold now: the settings field’s maximum
+  The most open pull requests at a time the access level allows: the settings field’s maximum. Not the limit that holds: openPrsEffective
   """
   openPrsAtATime: Int!
+
+  """
+  The open pull request limit that holds now, the one number to show and compare against: the limit set for the account when there is one, else the smaller of the setting and openPrsAtATime
+  """
+  openPrsEffective: Int
+
+  """
+  The open pull request limit set for this account by GitRanks, over the setting; null when none is set
+  """
+  openPrsOverride: Int
 
   """Why REDUCED; null at any other level"""
   reason: ContributeAccessReason

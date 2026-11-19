@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { limits, settings } from './__fixtures__/contribute-views';
-import { attemptsCapNoteOf, capHintOf, capRefusalOf, capsOf, effectiveSettingOf } from './access-limits';
+import {
+  attemptsCapNoteOf,
+  capHintOf,
+  capRefusalOf,
+  capsOf,
+  effectiveSettingOf,
+  openPrsOverrideOf,
+} from './access-limits';
 import { budgetSummaryOf } from './settings-summary';
 
 describe('the access level on the settings', () => {
@@ -19,6 +26,32 @@ describe('the access level on the settings', () => {
     expect(effectiveSettingOf(stored, limits.newAccount, 'attemptsAtATime')).toBe(1);
     expect(effectiveSettingOf(stored, limits.newAccount, 'openPrsAtATime')).toBe(1);
     expect(effectiveSettingOf(stored, limits.followThrough, 'openPrsAtATime')).toBe(1);
+  });
+
+  it('reads the open PR limit that holds from the API, and works it out as before when it is not answered', () => {
+    const three = { ...settings, openPrsAtATime: 3 };
+    expect(effectiveSettingOf(three, { ...limits.standard, openPrsEffective: 3 }, 'openPrsAtATime')).toBe(3);
+    expect(effectiveSettingOf(three, { ...limits.newAccount, openPrsEffective: 2 }, 'openPrsAtATime')).toBe(2);
+    // Not answered, or null: the setting under the reduced level's cap, as before.
+    expect(effectiveSettingOf(three, limits.newAccount, 'openPrsAtATime')).toBe(2);
+    expect(effectiveSettingOf(three, { ...limits.standard, openPrsEffective: null }, 'openPrsAtATime')).toBe(3);
+    // Only the open PR limit: attempts at a time are worked out as before.
+    expect(effectiveSettingOf(three, { ...limits.newAccount, openPrsEffective: 16 }, 'attemptsAtATime')).toBe(1);
+  });
+
+  it('holds a limit set for the account over the setting and the cap, with no hint for it', () => {
+    const three = { ...settings, openPrsAtATime: 3 };
+    expect(effectiveSettingOf(three, limits.openPrsSet, 'openPrsAtATime')).toBe(16);
+    const reduced = { ...limits.newAccount, openPrsEffective: 16, openPrsOverride: 16 };
+    expect(effectiveSettingOf(three, reduced, 'openPrsAtATime')).toBe(16);
+    expect(capHintOf(reduced, 'openPrsAtATime')).toBeNull();
+    expect(capRefusalOf(reduced, 'openPrsAtATime', 'Open PRs at a time', 5, 3)).toBeNull();
+    // The attempts' cap still holds and is hinted.
+    expect(capHintOf(reduced, 'attemptsAtATime')).toEqual({ max: 1, text: 'while your account is new' });
+    expect(openPrsOverrideOf(reduced)).toBe(16);
+    expect(openPrsOverrideOf(limits.newAccount)).toBeNull();
+    expect(openPrsOverrideOf({ ...limits.newAccount, openPrsOverride: null })).toBeNull();
+    expect(openPrsOverrideOf(undefined)).toBeNull();
   });
 
   it('says why the cap holds: while the account is new, else for now', () => {

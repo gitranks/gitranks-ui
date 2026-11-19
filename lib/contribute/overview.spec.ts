@@ -66,6 +66,27 @@ describe('rightNowOf', () => {
     });
   });
 
+  it('counts the open PRs cap as the API answers it, a limit set for the account included', () => {
+    const set = { ...both, contributor: contributor({ limits: limits.openPrsSet }) };
+    // At the setting (3), under the limit set for the account (16): not held.
+    expect(hostedOf(set, { inFlight: [], scheduleCounts: { prBound: 3, queued: 0 } })?.kind).not.toBe('pr-cap');
+    // At that limit: held, and Settings, which shows it, stays linked.
+    expect(hostedOf(set, { inFlight: [], scheduleCounts: { prBound: 16, queued: 0 } })).toEqual({
+      kind: 'pr-cap',
+      prBound: 16,
+      cap: 16,
+    });
+
+    // Set below the setting on smaller limits: still the limit set for the account, and still linked.
+    const reduced = { ...limits.newAccount, openPrsEffective: 1, openPrsOverride: 1 };
+    const below = { ...both, contributor: contributor({ limits: reduced }) };
+    expect(hostedOf(below, { inFlight: [], scheduleCounts: { prBound: 1, queued: 0 } })).toEqual({
+      kind: 'pr-cap',
+      prBound: 1,
+      cap: 1,
+    });
+  });
+
   it('holds a suspended account before anything else, and says nothing will start', () => {
     const suspended = { ...both, contributor: contributor({ limits: limits.suspended }) };
     expect(hostedOf(suspended, { inFlight: [], scheduleCounts: { prBound: 0, queued: 3 } })).toEqual({

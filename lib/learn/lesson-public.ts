@@ -46,6 +46,8 @@ export function stubTextOf(visibility: LessonVisibility | 'MISSING'): { title: s
         title: 'This lesson is paused',
         text: 'We are reading reports on its questions. The results that pull requests link to stay up.',
       };
+    case 'MISSING':
+      return { title: 'This page is not available', text: 'The address may be wrong, or the page was hidden.' };
     default:
       return {
         title: 'This lesson is not available',

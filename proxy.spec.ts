@@ -26,6 +26,11 @@ const { lessonGate } = vi.hoisted(() => ({
 }));
 // Learn is not open to everyone: a visitor's /learn stays a 404.
 vi.mock('./lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => false }));
+// Learn for the request's signed-in viewer, as the API answers it.
+const { learnAccess } = vi.hoisted(() => ({
+  learnAccess: vi.fn(async (_req?: unknown): Promise<'open' | 'closed' | 'signed-out'> => 'open'),
+}));
+vi.mock('./lib/learn/learn-gate', () => ({ requestLearnAccess: learnAccess }));
 vi.mock('./lib/learn/lesson-gate', () => ({
   LESSON_MISSING_PATH: '/learn/lessons/_missing',
   lessonGateOf: lessonGate,
@@ -697,7 +702,55 @@ describe('proxy', () => {
       },
     );
 
-    it('lets a signed-in visitor through to the closed pages, which ask the API whether Learn is open to them', async () => {
+    it('answers a signed-in viewer Learn is not open to with a 404 nobody caches, before any page renders', async () => {
+      learnAccess.mockResolvedValue('closed');
+      try {
+        for (const path of [...CLOSED.slice(0, 5), '/learn/attempts/A_1', '/learn/start/driftwood-js/driftwood/934']) {
+          const response = await proxy(request('authjs.session-token=t', path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+          expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+        }
+        // The pages open to everyone are not asked about.
+        learnAccess.mockClear();
+        const lesson = await proxy(request('authjs.session-token=t', '/learn/lessons/route-cache-miss-8f3k'), event);
+        expect(lesson?.headers.get('x-middleware-rewrite')).not.toBe('https://gitranks.com/_404');
+        expect(learnAccess).not.toHaveBeenCalled();
+      } finally {
+        learnAccess.mockResolvedValue('open');
+      }
+    });
+
+    it("asks nothing for a page's own actions (a POST): the API checks those itself", async () => {
+      learnAccess.mockClear();
+      learnAccess.mockResolvedValue('closed');
+      try {
+        const post = new NextRequest('https://gitranks.com/learn/attempts/A_1', {
+          method: 'POST',
+          headers: { cookie: 'authjs.session-token=t' },
+        });
+        const response = await proxy(post, event);
+        expect(response?.headers.get('x-middleware-rewrite')).not.toBe('https://gitranks.com/_404');
+        expect(learnAccess).not.toHaveBeenCalled();
+      } finally {
+        learnAccess.mockResolvedValue('open');
+      }
+    });
+
+    it("treats a session the server cannot read as a visitor's: only a lesson's own page lets it through", async () => {
+      learnAccess.mockResolvedValue('signed-out');
+      try {
+        for (const path of ['/learn', '/learn/profile', '/learn/lessons']) {
+          const response = await proxy(request('authjs.session-token=t', path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+        }
+        const attempt = await proxy(request('authjs.session-token=t', '/learn/attempts/A_1'), event);
+        expect(attempt?.headers.get('x-middleware-rewrite')).toBeNull();
+      } finally {
+        learnAccess.mockResolvedValue('open');
+      }
+    });
+
+    it('lets a signed-in viewer Learn is open to through to its pages', async () => {
       for (const path of [
         ...CLOSED.slice(0, 5),
         '/learn/attempts/A_1',

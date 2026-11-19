@@ -14,7 +14,7 @@ const NO_INDEX_FOLLOW = { index: false, follow: true } as const;
 
 /** A closed lesson's link, or one with nothing behind it: its stub's words, never kept by search engines. */
 const stubMetadata = (visibility: LessonVisibility | null): Metadata => ({
-  title: visibility ? stubTextOf(visibility).title : 'Lesson not found',
+  title: stubTextOf(visibility ?? 'MISSING').title,
   robots: NO_INDEX,
 });
 

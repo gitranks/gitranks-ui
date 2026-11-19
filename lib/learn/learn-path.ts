@@ -1,7 +1,11 @@
 import type { Route } from 'next';
 
-/** Learn's front door, and how Learn works. */
+/** Learn home for a signed-in learner; the front door for a visitor. */
 export const LEARN_PATH = '/learn' as Route;
+/** Learn home's practice lessons: a state without the section shows its top (the issues: `LEARN_ISSUES_PATH`). */
+export const LEARN_PRACTICE_PATH = '/learn#practice' as Route;
+/** The front door for a signed-in learner: how Learn works. */
+export const LEARN_ABOUT_PATH = '/learn/about' as Route;
 /** The user's lessons: their Learn attempts and the shared lessons they passed. */
 export const MY_LESSONS_PATH = '/learn/lessons' as Route;
 /** The user's goal and level. */

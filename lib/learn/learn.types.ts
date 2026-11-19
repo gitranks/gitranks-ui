@@ -1,5 +1,7 @@
 /** GitRanks Learn, as the API answers it: a lesson on a fix the user's own agent made, and the user's run through it. */
 
+import type { ContributeAttemptEvent, ContributeAttemptState } from '@/lib/contribute/contribute.types';
+
 export type LessonVisibility = 'PRIVATE' | 'PUBLIC' | 'REMOVED' | 'HIDDEN' | 'HELD';
 export type LessonStepState = 'OPEN' | 'KNEW' | 'FIRST_TRY' | 'TRY_N' | 'REPORTED';
 export type LessonQuestionType = 'SINGLE' | 'MULTI';
@@ -263,3 +265,92 @@ export type LearnPromo = { show: boolean; reason: string | null; language: strin
 
 /** A login's Learn record, from their public passes: lessons, topics learned, pull requests opened and merged. */
 export type LearnRecord = { lessons: number; topics: string[]; prsOpened: number; prsMerged: number };
+
+/** A saved Learn goal, as the issues for it name it: `kind` is language, project or domain; `level` its level's name. */
+export type LearnGoalView = { kind: string; value: string; level: string | null };
+
+/**
+ * Why the issues for the goal are empty: none fit it today, Learn can't find issues for it, the day's cap on new issues,
+ * or GitHub's titles could not be read.
+ */
+export type LearnIssuesEmpty = 'NONE_TODAY' | 'GOAL_UNSUPPORTED' | 'CAP' | 'UNREAD';
+
+/** An open issue a lesson can be written for: picked from the ready issues for the viewer's goal. */
+export type LearnIssue = {
+  issueId: string;
+  url: string;
+  /** `owner/name`. */
+  repo: string;
+  number: number;
+  title: string;
+  /** The repository's GitHub language, as GitHub names it ("TypeScript"). */
+  language: string | null;
+  /** `S`, `M`, or null. */
+  size: string | null;
+  /** One line on why it was picked. */
+  why: string | null;
+};
+
+/** The limit that leaves the viewer no room for a new claim: `attempts_at_a_time` or `open_prs_at_a_time`. */
+export type LearnRoom = { limit: string; value: number };
+
+/** The issues for the viewer's goal, with why there are none and whether they have room to start one. */
+export type LearnIssues = {
+  /** Null when no goal is saved. */
+  goal: LearnGoalView | null;
+  items: LearnIssue[];
+  /** The list's length before `first` and the day's cap. */
+  total: number;
+  /** Null whenever `total` is above 0, and with no goal. */
+  empty: LearnIssuesEmpty | null;
+  capReached: boolean;
+  /** Null when the viewer has room for a new claim. */
+  room: LearnRoom | null;
+};
+
+/** Who a lesson was written for: their goal's kind and value, and their level's name. */
+export type LessonWrittenFor = { kind: string; value: string; level: string };
+
+/** Another learner's finished lesson for the same goal, offered as practice. */
+export type PracticeLesson = {
+  slug: string;
+  title: string;
+  repo: string | null;
+  issue: number | null;
+  issueTitle: string | null;
+  language: string | null;
+  author: LessonAuthor;
+  writtenFor: LessonWrittenFor;
+  publishedAt: string;
+  passes: number;
+  topics: string[];
+  steps: number;
+  minutes: number;
+};
+
+export type PracticeLessons = { items: PracticeLesson[]; total: number };
+
+export type LearnPrState = 'OPEN' | 'MERGED' | 'CLOSED';
+
+/** One of the viewer's Learn attempts, as Learn home shows it. */
+export type MyLearnAttempt = {
+  attemptId: string;
+  stage: LearnStage;
+  /** Tells `SUBMITTING` apart from `REVIEW` while the pull request can be approved. */
+  state: ContributeAttemptState;
+  /** `owner/name`; null only when neither the attempt nor the pool has one. */
+  repo: string | null;
+  issueNumber: number;
+  issueUrl: string | null;
+  /** Null until the agent's first brief stores it. */
+  title: string | null;
+  latestEvent: ContributeAttemptEvent | null;
+  prUrl: string | null;
+  prOpenedAt: string | null;
+  prState: LearnPrState | null;
+  /** The lesson result's page, once the lesson is public. */
+  resultUrl: string | null;
+};
+
+/** The viewer's newest Learn attempt in progress, and their newest one's pull request opened in the last 14 days. */
+export type MyLearnAttempts = { current: MyLearnAttempt | null; lastPullRequest: MyLearnAttempt | null };

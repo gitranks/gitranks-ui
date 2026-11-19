@@ -29,7 +29,7 @@ describe("the home page's Learn section", () => {
     expect(html).toContain(
       'You started your first TypeScript repo 3 weeks ago. Your agent fixes a real TypeScript issue, and you get a 10-minute lesson on the fix.',
     );
-    expect(html).toContain('href="/learn/profile"');
+    expect(html).toContain('href="/learn"');
     expect(html).toContain('Not for me');
     expect(html).toContain('Only you see this.');
   });

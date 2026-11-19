@@ -4,6 +4,7 @@ import { type ReactNode, Suspense } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
 import { ExampleLessonCard } from './example-lesson-card';
+import { LearnHomeSignedIn } from './learn-home';
 import { LearnSignInButton } from './learn-sign-in';
 import { RecentLessons } from './recent-lessons';
 import { H2, MUTED_SECTION, WIDTH } from '@/app/contribute/components/landing';
@@ -12,11 +13,11 @@ import { buttonVariants } from '@/components/ui/button';
 import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
 import { learnFrontDoorOpenToVisitor } from '@/lib/learn/learn-front-door';
-import { LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
+import { LEARN_MAINTAINERS_PATH, LEARN_PATH } from '@/lib/learn/learn-path';
 import { readRecentLessons } from '@/lib/learn/recent-lessons.data';
 import { cn } from '@/lib/utils';
 
-/** Who reads the front door: a visitor signs in first, a signed-in user goes straight to Goal and level. */
+/** Who reads the front door: a visitor signs in first, a signed-in user goes straight to Learn home. */
 export type LearnLandingViewer = 'visitor' | 'signed-in';
 
 const HANDOFF = [
@@ -72,7 +73,7 @@ const QUESTIONS = [
 const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase';
 const START_CLASS = cn(buttonVariants({ size: 'lg' }), 'min-h-11 px-5 text-base font-semibold max-sm:w-full');
 
-/** "Start learning": a visitor's signs in first and comes back to Goal and level; a signed-in user's goes there. */
+/** "Start learning": a visitor's signs in first and comes back to Learn home; a signed-in user's goes there. */
 function StartLearning({ viewer, className }: { viewer: LearnLandingViewer; className?: string }) {
   const content = (
     <>
@@ -84,7 +85,7 @@ function StartLearning({ viewer, className }: { viewer: LearnLandingViewer; clas
     return <LearnSignInButton className={cn(START_CLASS, className)}>{content}</LearnSignInButton>;
   }
   return (
-    <Link href={LEARN_PROFILE_PATH} prefetch={false} className={cn(START_CLASS, className)}>
+    <Link href={LEARN_PATH} prefetch={false} className={cn(START_CLASS, className)}>
       {content}
     </Link>
   );
@@ -118,8 +119,8 @@ function FooterExample() {
 /**
  * Learn's front door: what a lesson is, with an example to try, the handoff between the terminal and the site, what
  * every lesson covers, the newest shared lessons (`recentLessons`, left out when not given), what maintainers see, and the
- * questions. Built from the Contribute landing's sections. The same page for a visitor and a signed-in user; only
- * "Start learning" changes.
+ * questions. Built from the Contribute landing's sections. A visitor reads it at `/learn`, a signed-in user at
+ * `/learn/about`; only "Start learning" changes.
  */
 export function LearnLanding({ viewer, recentLessons }: { viewer: LearnLandingViewer; recentLessons?: ReactNode }) {
   return (
@@ -234,20 +235,29 @@ export function LearnLanding({ viewer, recentLessons }: { viewer: LearnLandingVi
   );
 }
 
+/** The front door's newest shared lessons, in their own Suspense: a slow read leaves the list out for a moment. */
+export const recentLessonsSlot = () => (
+  <Suspense fallback={null}>
+    <LoadedRecentLessons />
+  </Suspense>
+);
+
 /**
- * The front door, behind Learn's gate: not found for anyone Learn is not open to. A visitor gets this far only once the
- * API says Learn is open to everyone (the proxy decides), and then reads its visitor version.
+ * `/learn`, behind Learn's gate: not found for anyone Learn is not open to. A signed-in user it is open to gets Learn
+ * home. A visitor gets this far only once the API says Learn is open to everyone (the proxy decides), and then reads the
+ * front door.
  */
 export async function LearnHomeView() {
   const viewer = await frontDoorViewer();
   if (!viewer) notFound();
-  // In its own Suspense: a slow read leaves the list out for a moment, never the page.
-  const recent = (
-    <Suspense fallback={null}>
-      <LoadedRecentLessons />
-    </Suspense>
-  );
-  return <LearnLanding viewer={viewer} recentLessons={recent} />;
+  if (viewer === 'signed-in') return <LearnHomeSignedIn />;
+  return <LearnLanding viewer={viewer} recentLessons={recentLessonsSlot()} />;
+}
+
+/** `/learn/about`: the front door for a signed-in user Learn is open to; not found for anyone else. */
+export async function LearnAboutView() {
+  if (!(await loadLearnOpen())) notFound();
+  return <LearnLanding viewer="signed-in" recentLessons={recentLessonsSlot()} />;
 }
 
 /** The front door's newest shared lessons, read once the page is open to its reader. */

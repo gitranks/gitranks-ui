@@ -15,8 +15,11 @@ import {
   AnswerLessonQuestionDocument,
   AnswerWarmupDocument,
   DismissLearnPromoDocument,
+  LearnIssuesDocument,
   LogCopyForAgentDocument,
   MarkStepShownDocument,
+  MyLearnAttemptsDocument,
+  PracticeLessonsDocument,
   RateLessonDocument,
   ReactToResultDocument,
   RemoveLessonDocument,
@@ -28,6 +31,7 @@ import {
   StartSharedLessonRunDocument,
 } from '@/lib/learn/learn.documents';
 import type {
+  LearnIssues,
   LearnProfile,
   LessonAnswerResult,
   LessonReaction,
@@ -35,7 +39,10 @@ import type {
   LessonResultReaction,
   LessonRun,
   LessonWarmupAnswer,
+  MyLearnAttempts,
+  PracticeLessons,
 } from '@/lib/learn/learn.types';
+import { ISSUES_SHOWN, PRACTICE_ALL } from '@/lib/learn/learn-home';
 import { githubLoginOf, lessonResultPath, lessonSlugOf, REACT_PARAM } from '@/lib/learn/learn-path';
 import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
@@ -261,4 +268,27 @@ export async function signInToReact(form: FormData): Promise<void> {
 /** "Not for me": the viewer's Learn suggestions stay hidden, on the home page and their profile, from then on. */
 export async function dismissLearnPromo(): Promise<ContributeActionResult<boolean>> {
   return run(DismissLearnPromoDocument, {}, (data) => data.dismissLearnPromo);
+}
+
+/** How many of a list the browser may ask for: a whole number from `min` to `max`, else null. */
+const countOf = (value: unknown, min: number, max: number) =>
+  typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max ? value : null;
+
+/** The viewer's Learn attempt in progress and their newest pull request, read again while Learn home shows it. */
+export async function readMyLearnAttempts(): Promise<ContributeActionResult<MyLearnAttempts>> {
+  return run(MyLearnAttemptsDocument, {}, (data) => data.myLearnAttempts);
+}
+
+/** Other learners' lessons for the viewer's goal: "Show all" reads up to 30 in place. */
+export async function readPracticeLessons(first: number): Promise<ContributeActionResult<PracticeLessons>> {
+  const count = countOf(first, 1, PRACTICE_ALL);
+  if (count === null) return invalid();
+  return run(PracticeLessonsDocument, { first: count }, (data) => data.practiceLessons);
+}
+
+/** The issues for the viewer's goal, `first` of them; 0 answers how many there are and reveals none. */
+export async function readLearnIssues(first: number): Promise<ContributeActionResult<LearnIssues>> {
+  const count = countOf(first, 0, ISSUES_SHOWN);
+  if (count === null) return invalid();
+  return run(LearnIssuesDocument, { first: count }, (data) => data.learnIssues);
 }

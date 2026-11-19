@@ -27,12 +27,16 @@ const data = vi.hoisted(() => ({
   loadLearnSetup: vi.fn(),
   loadMyLessons: vi.fn(),
   loadOwnAgent: vi.fn(),
+  loadMyLearnAttempts: vi.fn(async () => ({ current: null, lastPullRequest: null })),
+  loadLearnIssues: vi.fn(async () => undefined),
+  loadPracticeLessons: vi.fn(async () => undefined),
 }));
 vi.mock('@/lib/learn/learn.data', () => data);
 const recent = vi.hoisted(() => ({ readRecentLessons: vi.fn(async () => [] as PublicLesson[]) }));
 vi.mock('@/lib/learn/recent-lessons.data', () => recent);
 
-const { LearnHomeView, LearnLanding } = await import('./learn-landing');
+const { LearnAboutView, LearnHomeView, LearnLanding } = await import('./learn-landing');
+const { LearnHomeSignedIn } = await import('./learn-home');
 const { publishedDayOf, RecentLessons } = await import('./recent-lessons');
 const { recentLessons } = await import('@/lib/learn/__fixtures__/recent-lessons');
 const { LearnMaintainers } = await import('./learn-maintainers');
@@ -59,13 +63,14 @@ const text = (html: string) =>
     .trim();
 
 describe("Learn's front door", () => {
-  it('signs a visitor in from Start learning, and sends a signed-in user to Goal and level', () => {
+  it('signs a visitor in from Start learning, and sends a signed-in user to Learn home', () => {
     const visitor = renderToStaticMarkup(<LearnLanding viewer="visitor" />);
     expect(visitor.match(/data-sign-in="learn"/g)).toHaveLength(2);
     expect(visitor).not.toContain('href="/learn/profile"');
     const member = renderToStaticMarkup(<LearnLanding viewer="signed-in" />);
     expect(member).not.toContain('data-sign-in');
-    expect(member.match(/href="\/learn\/profile"/g)).toHaveLength(2);
+    expect(member).not.toContain('href="/learn/profile"');
+    expect(member.match(/href="\/learn"/g)).toHaveLength(2);
   });
 
   it('shows the example lesson with its diagram and question, the parts, and the way to maintainers', () => {
@@ -218,6 +223,7 @@ describe("Learn's gate on its own pages", () => {
     closed();
     data.loadLearnSetup.mockResolvedValue(true);
     await expect(LearnHomeView()).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(LearnAboutView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(MyLessonsView()).rejects.toThrow('NEXT_NOT_FOUND');
     expect(recent.readRecentLessons).not.toHaveBeenCalled();
@@ -248,7 +254,11 @@ describe("Learn's gate on its own pages", () => {
     data.loadLearnProfile.mockResolvedValue(null);
     data.loadMyLessons.mockResolvedValue([]);
     data.loadOwnAgent.mockResolvedValue(undefined);
-    for (const html of [renderToStaticMarkup(await LearnProfileView()), renderToStaticMarkup(await MyLessonsView())]) {
+    for (const html of [
+      renderToStaticMarkup(await LearnProfileView()),
+      renderToStaticMarkup(await MyLessonsView()),
+      renderToStaticMarkup(await LearnHomeSignedIn()),
+    ]) {
       expect(html).toContain('data-learn-setting-up');
       expect(text(html)).toContain('Setting up your GitRanks account. This takes about a minute. Refresh');
       expect(html).not.toContain('data-learn-profile=');
@@ -261,9 +271,13 @@ describe("Learn's gate on its own pages", () => {
     data.loadMyLessons.mockResolvedValue(myLessons);
     data.loadOwnAgent.mockResolvedValue(views.agentOnboarded.ownAgent);
     recent.readRecentLessons.mockResolvedValue(recentLessons);
+    // `/learn` is Learn home for them; the front door moved to `/learn/about`.
     const home = await LearnHomeView();
-    expect(renderToStaticMarkup(home)).toContain('data-landing-viewer="signed-in"');
-    expect(await recentOf(home)).toContain('data-recent-lessons');
+    expect(home.type).toBe(LearnHomeSignedIn);
+    expect(renderToStaticMarkup(await LearnHomeSignedIn())).toContain('data-learn-home="goal-set"');
+    const about = await LearnAboutView();
+    expect(renderToStaticMarkup(about)).toContain('data-landing-viewer="signed-in"');
+    expect(await recentOf(about)).toContain('data-recent-lessons');
     expect(renderToStaticMarkup(await LearnProfileView())).toContain('data-learn-profile="filled"');
     expect(renderToStaticMarkup(await MyLessonsView())).toContain('data-lesson="A_3"');
   });

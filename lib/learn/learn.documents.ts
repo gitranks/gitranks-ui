@@ -3,6 +3,7 @@ import { parse } from 'graphql';
 import type {
   ContributeAttemptMode,
   LearnAttemptLesson,
+  LearnIssues,
   LearnProfile,
   LearnProfileInput,
   LearnPromo,
@@ -17,7 +18,9 @@ import type {
   LessonRun,
   LessonStub,
   LessonWarmupAnswer,
+  MyLearnAttempts,
   MyLesson,
+  PracticeLessons,
   PublicLesson,
 } from './learn.types';
 import type DocumentNode from '@/types/typed-document-node';
@@ -172,6 +175,53 @@ export const SaveLearnProfileDocument = doc<{ saveLearnProfile: LearnProfile }, 
 /** The viewer's Learn attempts and the shared lessons they passed. */
 export const MyLessonsDocument = doc<{ myLessons: MyLesson[] }>(
   'query MyLessons { myLessons { slug attemptId title repo state passedAt } }',
+);
+
+/** An issue a lesson can be written for: the same fields wherever Learn lists one. */
+export const LEARN_ISSUE = 'issueId url repo number title language size why';
+
+/**
+ * The issues for the viewer's goal (`first`: 0 to 10; 0 answers the total alone and reveals nothing), why there are
+ * none, and whether they have room to start one.
+ */
+export const LearnIssuesDocument = doc<{ learnIssues: LearnIssues }, { first: number }>(
+  `query LearnIssues($first: Int) {
+  learnIssues(first: $first) {
+    goal { kind value level }
+    items { ${LEARN_ISSUE} }
+    total empty capReached
+    room { limit value }
+  }
+}`,
+);
+
+/** Other learners' public lessons for the viewer's goal (`first`: 1 to 30), and how many there are. */
+export const PracticeLessonsDocument = doc<{ practiceLessons: PracticeLessons }, { first: number }>(
+  `query PracticeLessons($first: Int) {
+  practiceLessons(first: $first) {
+    items {
+      slug title repo issue issueTitle language
+      author { login agentName agentFamily }
+      writtenFor { kind value level }
+      publishedAt passes topics steps minutes
+    }
+    total
+  }
+}`,
+);
+
+const MY_LEARN_ATTEMPT = `attemptId stage state repo issueNumber issueUrl title
+  latestEvent { state detail at }
+  prUrl prOpenedAt prState resultUrl`;
+
+/** The viewer's Learn attempt in progress, and their newest one's pull request opened in the last 14 days. */
+export const MyLearnAttemptsDocument = doc<{ myLearnAttempts: MyLearnAttempts }>(
+  `query MyLearnAttempts {
+  myLearnAttempts {
+    current { ${MY_LEARN_ATTEMPT} }
+    lastPullRequest { ${MY_LEARN_ATTEMPT} }
+  }
+}`,
 );
 
 const KEYED_QUESTION = 'id stepId role type prompt options { id text correct why }';

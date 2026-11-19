@@ -31,6 +31,15 @@ export const CONTRIBUTE_SOURCES = [
   'learn_promo_signed_in',
   /** GitRanks Learn suggested on the signed-in user's own profile, in the Contribute block's place. */
   'learn_promo_profile',
+  /** "Learn" in the header menu. */
+  'learn_menu',
+  /** Learn home: Show my issues (the goal question), Start on an issue, Take this lesson on a practice card. */
+  'learn_home_goal',
+  'learn_home_issue',
+  'learn_home_practice',
+  /** A practice lesson: Skip it, pick your issue; Start on an issue once it is passed. */
+  'learn_practice_skip',
+  'learn_practice_passed_issue',
   /** GitRanks Learn's start page for one issue: a connect made there, and its views. */
   'learn_start',
   /** Copy the prompt, on Learn's start page. */

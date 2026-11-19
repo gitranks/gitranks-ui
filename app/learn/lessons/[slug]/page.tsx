@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { LessonPageView } from '@/app/learn/components/lesson-page';
+import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
 import { loadLessonPage } from '@/lib/learn/lesson-public.data';
 import { lessonPageMetadata } from '@/lib/learn/lesson-seo';
 
@@ -12,7 +13,8 @@ export const instant = false;
 
 export async function generateMetadata({ params }: PageProps<'/learn/lessons/[slug]'>): Promise<Metadata> {
   const { slug } = await params;
-  return lessonPageMetadata(await loadLessonPage(slug));
+  const [answer, frontDoorOpen] = await Promise.all([loadLessonPage(slug), learnOpenToEveryone()]);
+  return lessonPageMetadata(answer, { frontDoorOpen });
 }
 
 /** A shared lesson: open to every visitor, who reads it; a signed-in user Learn is open to takes it. */

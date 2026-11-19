@@ -621,7 +621,7 @@ export const LEARN_SCREENS: Screen[] = [
     states: [
       {
         id: 'signed-out',
-        title: 'Signed out: every step to read, sign in to answer',
+        title: 'Signed out, once Learn is open to everyone: every step to read, sign in to answer',
         path: LESSON_PATH,
         signedOut: true,
         height: 4300,
@@ -629,7 +629,7 @@ export const LEARN_SCREENS: Screen[] = [
       },
       {
         id: 'phone',
-        title: 'Signed out on a phone',
+        title: 'Signed out on a phone, once Learn is open to everyone',
         path: LESSON_PATH,
         signedOut: true,
         width: 390,
@@ -637,8 +637,25 @@ export const LEARN_SCREENS: Screen[] = [
         render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'visitor' }} />),
       },
       {
+        id: 'guest',
+        title: 'Signed out while Learn is not open to everyone: every step to read, asked nothing',
+        path: LESSON_PATH,
+        signedOut: true,
+        height: 4200,
+        render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'guest' }} />),
+      },
+      {
+        id: 'guest-phone',
+        title: 'Signed out on a phone while Learn is not open to everyone',
+        path: LESSON_PATH,
+        signedOut: true,
+        width: 390,
+        height: 6700,
+        render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'guest' }} />),
+      },
+      {
         id: 'reader',
-        title: 'Signed in, answering not open to the account yet: read only',
+        title: 'Signed in, Learn not open to the account: read only, told nothing of Learn',
         path: LESSON_PATH,
         height: 3900,
         render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'reader', login: 'mona' }} />),

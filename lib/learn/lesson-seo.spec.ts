@@ -5,9 +5,8 @@ vi.hoisted(() => {
 });
 
 const { lessonPage, PUBLIC_HEAD, result } = await import('./__fixtures__/shared');
-const { LEARN_MAINTAINERS_METADATA, learnHomeMetadata, lessonJsonLd, lessonResultMetadata } = await import(
-  './lesson-seo'
-);
+const { LEARN_MAINTAINERS_METADATA, learnHomeMetadata, lessonJsonLd, lessonPageMetadata, lessonResultMetadata } =
+  await import('./lesson-seo');
 
 const LESSON_URL = 'https://example.test/learn/lessons/route-cache-miss-8f3k';
 
@@ -68,5 +67,16 @@ describe('Learn pages for search engines', () => {
     expect(learnHomeMetadata(false).robots).toEqual({ index: false, follow: false });
     expect(learnHomeMetadata(true).robots).toBeUndefined();
     expect(learnHomeMetadata(true).alternates).toEqual({ canonical: '/learn' });
+  });
+
+  it('invites the reader to sign in and take a lesson only once Learn is open to everyone', () => {
+    const description = (frontDoorOpen: boolean) =>
+      String(lessonPageMetadata({ kind: 'found', value: lessonPage }, { frontDoorOpen }).description);
+    // Clipped to 158 characters: the invitation starts after the steps' count.
+    expect(description(true)).toMatch(/question each\. Read it/);
+    expect(description(false)).not.toMatch(/Read it|sign in/i);
+    expect(description(false)).toContain('Made with GitRanks Learn');
+    const [closed] = lessonJsonLd(lessonPage, { frontDoorOpen: false }) as [{ description: string }];
+    expect(closed.description).not.toMatch(/sign in/i);
   });
 });

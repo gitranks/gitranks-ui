@@ -1,4 +1,4 @@
-import type { ContributeActivity, ContributeAgentRun } from '../contribute.types';
+import type { ContributeActivity, ContributeAgentRun } from '@/lib/workspace/contribute.types';
 
 /** The user's agent runs as the activity read answers them, one of each kind of row. */
 

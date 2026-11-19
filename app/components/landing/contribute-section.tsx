@@ -8,11 +8,11 @@ import { type FC, useEffect, useState } from 'react';
 
 import { IssueCardCompact } from '@/app/contribute/components/issue-card-compact';
 import { buttonVariants } from '@/components/ui/button';
-import { contributeSource } from '@/lib/contribute/click-tracking';
-import type { ContributeIssue } from '@/lib/contribute/contribute.types';
-import { AGENT_FIRST_PROMPT } from '@/lib/contribute/mcp-setup';
 import { type ProfileIssuesAnswer, profileIssuesUrl } from '@/lib/contribute/profile-issues';
 import { cn } from '@/lib/utils';
+import { contributeSource } from '@/lib/workspace/click-tracking';
+import type { ContributeIssue } from '@/lib/workspace/contribute.types';
+import { AGENT_FIRST_PROMPT } from '@/lib/workspace/mcp-setup';
 
 const CONTRIBUTE_PATH: Route = '/contribute';
 const ISSUES_PATH: Route = '/contribute/issues';

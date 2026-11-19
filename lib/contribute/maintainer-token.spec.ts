@@ -16,7 +16,7 @@ const { jar, store, currentSessionToken } = vi.hoisted(() => {
 });
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({ cookies: async () => jar }));
-vi.mock('./session-token', () => ({ currentSessionToken }));
+vi.mock('@/lib/workspace/session-token', () => ({ currentSessionToken }));
 
 const {
   MAINTAINER_TOKEN_TTL_MS,

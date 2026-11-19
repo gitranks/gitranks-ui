@@ -3,8 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 
-import { readMyLearnAttempts } from '../actions';
 import { STOP_POLL, useVisiblePoll } from './use-visible-poll';
+import { readMyLearnAttempts } from '@/lib/learn/actions';
 import { OWN_LESSON_POLL_MS, ownLessonKeyOf } from '@/lib/learn/learn-home';
 
 /**

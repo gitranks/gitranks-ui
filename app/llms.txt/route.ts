@@ -1,10 +1,10 @@
 import { connection } from 'next/server';
 
-import { contributeOpen } from '@/lib/contribute/preview-gate';
 import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
 import { readPublicLessons } from '@/lib/learn/public-lessons.data';
 import { llmsTxtOf } from '@/lib/seo/llms-txt';
 import { packagesPublicNow } from '@/lib/sitemap/packages-public';
+import { contributeOpen } from '@/lib/workspace/preview-gate';
 
 /**
  * The site's llms.txt (llmstxt.org): what GitRanks is and its main pages, with Contribute's once it is launched, the

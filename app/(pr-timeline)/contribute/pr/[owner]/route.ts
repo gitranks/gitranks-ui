@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
 import { prTimelineShortTargetOf } from '@/lib/contribute/pr-timeline-gate';
-import { prTimelineRouteOf } from '@/lib/contribute/pr-timeline-path';
 import { SITE_URL } from '@/lib/seo/site';
+import { prTimelineRouteOf } from '@/lib/workspace/pr-timeline-path';
 
 /**
  * The footer's short address, `/contribute/pr/<first attempt id>`: the PR's number is not known while its body is

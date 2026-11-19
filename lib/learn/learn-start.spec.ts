@@ -23,7 +23,7 @@ import {
   mcpClientOfName,
 } from './learn-start';
 import { type LearnStartTick, startLearnStartPoll } from './learn-start-poll';
-import type { ContributeAttemptState, ContributeMcpToken } from '@/lib/contribute/contribute.types';
+import type { ContributeAttemptState, ContributeMcpToken } from '@/lib/workspace/contribute.types';
 
 describe("the start page's address", () => {
   it('names an issue by owner, repository and number, and nothing else', () => {

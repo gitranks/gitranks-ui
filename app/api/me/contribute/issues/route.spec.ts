@@ -18,7 +18,7 @@ vi.mock('@/auth', () => ({
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
 const { GET } = (await import('./route')) as unknown as { GET: (req: NextRequest) => Promise<Response> };
-const { IssuesForProfileDocument } = await import('@/lib/contribute/contribute.documents');
+const { IssuesForProfileDocument } = await import('@/lib/workspace/contribute.documents');
 
 const get = (login?: string) =>
   GET(new NextRequest(`https://gitranks.com/api/me/contribute/issues${login ? `?login=${login}` : ''}`));

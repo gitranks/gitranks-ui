@@ -76,10 +76,10 @@ vi.mock('@/graphql/helpers/fetch-countries', async () => {
   const { countries } = await import('@/components/ranking-table/__fixtures__/global-rankings');
   return { fetchCountries: async () => countries };
 });
-vi.mock('@/app/contribute/actions', async () => (await import('./inert')).inert());
-vi.mock('@/app/contribute/runs/actions', async () => (await import('./inert')).inert());
+vi.mock('@/lib/workspace/actions', async () => (await import('./inert')).inert());
+vi.mock('@/lib/workspace/runs.actions', async () => (await import('./inert')).inert());
 // Named, with the one a form posts to: a form's action checks the export exists, which `inert()`'s proxy does not answer.
-vi.mock('@/app/learn/actions', async () => ({
+vi.mock('@/lib/learn/actions', async () => ({
   ...Object.fromEntries(
     [
       'startLessonRun',
@@ -123,8 +123,8 @@ vi.mock('@/app/contribute/maintainers/actions', () => ({
 }));
 // The badge preview draws itself on the server, as the boards are drawn.
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', async () => (await import('./inert')).inert());
-vi.mock('@/lib/contribute/runs.data', async () => (await import('./inert')).inert());
+vi.mock('@/lib/workspace/contribute.data', async () => (await import('./inert')).inert());
+vi.mock('@/lib/workspace/runs.data', async () => (await import('./inert')).inert());
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({
   useReportPendingNavigation: () => {},
   LinkPendingStatus: () => null,

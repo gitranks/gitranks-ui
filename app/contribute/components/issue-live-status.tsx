@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { type RefObject, useLayoutEffect } from 'react';
 
-import { attemptHref } from './reviews-ready';
+import { attemptHref } from '@/components/workspace/reviews-ready';
 import type { LiveStatus } from '@/lib/contribute/live-issues';
 
 /** What a list row knows of its issue as it is now, and what it tells the list. */

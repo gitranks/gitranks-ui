@@ -1,16 +1,16 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/contribute/preview-gate', () => ({ contributeShown: vi.fn() }));
+vi.mock('@/lib/workspace/preview-gate', () => ({ contributeShown: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
-vi.mock('./scroll-to-hash', () => ({ ScrollToHash: () => <span data-scroll-to-hash /> }));
+vi.mock('@/components/workspace/scroll-to-hash', () => ({ ScrollToHash: () => <span data-scroll-to-hash /> }));
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
 
 const { FaqScreen } = await import('./faq');
 const { McpDocsScreen } = await import('./mcp-docs');
 const { LaunchedTerms, TermsScreen } = await import('@/app/terms/terms');
 const { LaunchedMorePages } = await import('./launched-more-pages');
-const { contributeShown } = await import('@/lib/contribute/preview-gate');
+const { contributeShown } = await import('@/lib/workspace/preview-gate');
 const { loadLearnOpen } = await import('@/lib/learn/learn.data');
 const { FAQ_GROUPS, LANDING_QUESTIONS } = await import('@/lib/contribute/faq');
 const {
@@ -23,9 +23,9 @@ const {
   MCP_DOC_TROUBLES,
   MCP_PLUGIN_DOCS_SHOWN,
 } = await import('@/lib/contribute/mcp-docs');
-const { MCP_INSTALL_LINKS } = await import('@/lib/contribute/mcp-install-links');
+const { MCP_INSTALL_LINKS } = await import('@/lib/workspace/mcp-install-links');
 const { AGENT_FIRST_PROMPT, MCP_CLIENTS, mcpSetupLinesOf, mcpSignInSetupOf } = await import(
-  '@/lib/contribute/mcp-setup'
+  '@/lib/workspace/mcp-setup'
 );
 
 const text = (html: string) =>

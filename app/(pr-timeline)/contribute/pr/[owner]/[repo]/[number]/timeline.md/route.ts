@@ -1,7 +1,7 @@
-import { parsePrLink } from '@/lib/contribute/pr-feedback';
 import { publicPrTimeline } from '@/lib/contribute/pr-timeline.data';
-import { prTimelinePath } from '@/lib/contribute/pr-timeline-path';
 import { prTimelineMarkdownOf } from '@/lib/contribute/pr-timeline-seo';
+import { parsePrLink } from '@/lib/workspace/pr-feedback';
+import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 /**
  * A pull request timeline as Markdown, for agents: only at this address (the page's own answers HTML to everyone). The

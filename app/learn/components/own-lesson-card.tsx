@@ -2,15 +2,15 @@ import { ArrowRight, Clock, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { HEADING } from '@/app/contribute/components/primitives';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
-import { eventLabelOf, githubUrlOf, type Tone } from '@/lib/contribute/attempt-format';
-import { relativeLabel } from '@/lib/contribute/format';
+import { HEADING } from '@/components/workspace/primitives';
 import type { LearnPrState, MyLearnAttempt } from '@/lib/learn/learn.types';
 import { attemptTitleOf, type OwnCard, prNumberOf } from '@/lib/learn/learn-home';
 import { learnAttemptPath } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
+import { eventLabelOf, githubUrlOf, type Tone } from '@/lib/workspace/attempt-format';
+import { relativeLabel } from '@/lib/workspace/format';
 
 const BUTTON = 'min-h-11 px-5 font-semibold max-sm:w-full';
 

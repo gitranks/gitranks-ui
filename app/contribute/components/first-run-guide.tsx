@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { noticeCopyOf } from './contribute-notices';
-import { PauseButton } from './pause-button';
-import { HEADING } from './primitives';
-import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
-import { CONNECT_KEY_PATH } from '@/lib/contribute/contribute-path';
+import { noticeCopyOf } from '@/components/workspace/contribute-notices';
+import { PauseButton } from '@/components/workspace/pause-button';
+import { HEADING } from '@/components/workspace/primitives';
 import { type FirstRunStep, firstRunStepOf } from '@/lib/contribute/first-run';
-import { dayLabel, KINDS, LANGUAGES, relativeLabel, SIZES, usd } from '@/lib/contribute/format';
-import { settingsPathOf } from '@/lib/contribute/settings-paths';
+import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
+import { dayLabel, KINDS, LANGUAGES, relativeLabel, SIZES, usd } from '@/lib/workspace/format';
+import { CONNECT_KEY_PATH } from '@/lib/workspace/paths';
+import { settingsPathOf } from '@/lib/workspace/settings-paths';
 
 export const WORK_SETTINGS_PATH = settingsPathOf('work');
 const LIMITS_SETTINGS_PATH = settingsPathOf('more-limits');

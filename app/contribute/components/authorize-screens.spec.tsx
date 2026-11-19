@@ -3,15 +3,15 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock('@/app/contribute/actions', () => ({ approveContributeOAuth: vi.fn() }));
-vi.mock('@/app/contribute/review-sign-in.actions', () => ({ approveContributeOAuthAsReviewer: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({ approveContributeOAuth: vi.fn() }));
+vi.mock('@/lib/workspace/review-sign-in.actions', () => ({ approveContributeOAuthAsReviewer: vi.fn() }));
 
 const { AuthorizeScreen, authorizeStateFor } = await import('./authorize-view');
 const { AuthorizeNextStep } = await import('./authorize-next-step');
-const { AGENT_FIRST_PROMPT } = await import('@/lib/contribute/mcp-setup');
+const { AGENT_FIRST_PROMPT } = await import('@/lib/workspace/mcp-setup');
 const { CONTACT_EMAIL } = await import('@/lib/legal');
 
-import type { ContributeOAuthRequest } from '@/lib/contribute/contribute.types';
+import type { ContributeOAuthRequest } from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html

@@ -13,12 +13,12 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
-vi.mock('@/app/learn/actions', () => ({ signInToReact: vi.fn(), readPracticeNext: vi.fn() }));
+vi.mock('@/lib/learn/actions', () => ({ signInToReact: vi.fn(), readPracticeNext: vi.fn() }));
 // Whether Learn is open to everyone, as the API answers it: closed here.
 const everyone = vi.hoisted(() => ({ open: false }));
 vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({ viewerLogin: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnOpen: vi.fn(),
   loadLearnSetup: vi.fn(),
@@ -37,7 +37,7 @@ const { LessonResultScreen, LessonResultView } = await import('./lesson-result')
 const { LessonStubScreen } = await import('./lesson-stub');
 const data = await import('@/lib/learn/lesson-public.data');
 const { hasReactionMark } = await import('@/lib/learn/react-mark');
-const { viewerLogin } = await import('@/lib/contribute/contribute.data');
+const { viewerLogin } = await import('@/lib/workspace/contribute.data');
 const { loadLearnOpen, loadLearnProfile, loadLearnSetup } = await import('@/lib/learn/learn.data');
 const { practiceNext } = await import('@/lib/learn/__fixtures__/home');
 const { filledProfile } = await import('@/lib/learn/__fixtures__/profile');

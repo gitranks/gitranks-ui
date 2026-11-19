@@ -1,9 +1,9 @@
 import Link from 'next/link';
 
-import { CodeBlock } from './code-block';
-import { MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
-import { AGENT_FIRST_PROMPT } from '@/lib/contribute/mcp-setup';
+import { CodeBlock } from '@/components/workspace/code-block';
 import { CONTACT_EMAIL } from '@/lib/legal';
+import { AGENT_FIRST_PROMPT } from '@/lib/workspace/mcp-setup';
+import { MCP_DOCS_PATH } from '@/lib/workspace/paths';
 
 const LINK = 'font-semibold text-link hover:underline';
 

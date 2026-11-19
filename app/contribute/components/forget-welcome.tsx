@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-import { forgetWelcomeOf } from '@/lib/contribute/agent-connect';
+import { forgetWelcomeOf } from '@/lib/workspace/agent-connect';
 
 /**
  * Takes `?welcome=agent` out of the address once the welcome is shown, so a reload or that history entry shows the

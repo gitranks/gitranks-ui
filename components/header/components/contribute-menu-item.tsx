@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { mainMenuItemClass } from './menu-styles';
 import { Pill } from '@/components/pill/pill';
 import { NavigationMenuItem, NavigationMenuLink } from '@/components/ui/navigation-menu';
-import { contributeSource } from '@/lib/contribute/click-tracking';
 import { cn } from '@/lib/utils';
+import { contributeSource } from '@/lib/workspace/click-tracking';
 
 /** "Contribute", shown to everyone. */
 export function ContributeMenuItem({ active }: Readonly<{ active?: boolean }>) {

@@ -1,9 +1,9 @@
 import type { Route } from 'next';
 
-import type { PrRef } from './pr-feedback';
 import { PrTimelineByAttemptDocument, PrTimelineDocument } from './pr-timeline.documents';
-import { prTimelineFallbackPath, prTimelinePath } from './pr-timeline-path';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import type { PrRef } from '@/lib/workspace/pr-feedback';
+import { prTimelineFallbackPath, prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 /*
  * A pull request timeline's gate, asked by the proxy before anything renders: the page streams, so its own notFound()

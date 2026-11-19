@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 
 import { PrFeedbackScreen } from '../../components/pr-feedback-view';
-import { orgAccessOf } from '@/lib/contribute/org-access';
-import { prTargetOf } from '@/lib/contribute/pr-feedback';
 import { loadPrReport } from '@/lib/contribute/pr-feedback.data';
 import { publicTimelinePathOf } from '@/lib/contribute/pr-timeline.data';
+import { orgAccessOf } from '@/lib/workspace/org-access';
+import { prTargetOf } from '@/lib/workspace/pr-feedback';
 
 export const metadata: Metadata = {
   title: 'Tell us how a PR went',

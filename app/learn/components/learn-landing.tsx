@@ -5,17 +5,17 @@ import { FaGithub } from 'react-icons/fa';
 
 import { ExampleLessonCard } from './example-lesson-card';
 import { LearnHomeSignedIn } from './learn-home';
-import { LearnSignInButton } from './learn-sign-in';
 import { RecentLessons } from './recent-lessons';
 import { H2, MUTED_SECTION, WIDTH } from '@/app/contribute/components/landing';
+import { LearnSignInButton } from '@/components/learn/learn-sign-in';
 import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { buttonVariants } from '@/components/ui/button';
-import { viewerLogin } from '@/lib/contribute/contribute.data';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
 import { learnFrontDoorOpenToVisitor } from '@/lib/learn/learn-front-door';
 import { LEARN_MAINTAINERS_PATH, LEARN_PATH } from '@/lib/learn/learn-path';
 import { readRecentLessons } from '@/lib/learn/recent-lessons.data';
 import { cn } from '@/lib/utils';
+import { viewerLogin } from '@/lib/workspace/contribute.data';
 
 /** Who reads the front door: a visitor signs in first, a signed-in user goes straight to Learn home. */
 export type LearnLandingViewer = 'visitor' | 'signed-in';

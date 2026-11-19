@@ -10,7 +10,7 @@ vi.mock('./layout-left-column', () => ({ LayoutLeftColumn: ({ children }: PropsW
 // The owner's "Issues for you" block reads the session in the browser; a signed-out visitor sees nothing of it.
 vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }));
 // Learn's "Not for me" is a server action: nothing here calls it.
-vi.mock('@/app/learn/actions', () => ({ dismissLearnPromo: async () => ({ ok: true, data: true }) }));
+vi.mock('@/lib/learn/actions', () => ({ dismissLearnPromo: async () => ({ ok: true, data: true }) }));
 
 // The first percentage line after the card's title, with React's text-node separators removed.
 const contributionsRankLine = (rankGlobal: ProfileUser['rankGlobal']) =>

@@ -1,4 +1,4 @@
-import type { ContributeIssue } from './contribute.types';
+import type { ContributeIssue } from '@/lib/workspace/contribute.types';
 
 /** The profile block "Issues for you" shows this many. */
 export const PROFILE_ISSUES_MAX = 3;

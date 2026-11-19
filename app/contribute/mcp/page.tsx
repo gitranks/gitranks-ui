@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 import { McpDocsScreen } from '../components/mcp-docs';
-import { AGENTS_DOC_PATH, MCP_DOCS_PATH } from '@/lib/contribute/contribute-path';
 import { pageMetadata } from '@/lib/seo/page-metadata';
+import { AGENTS_DOC_PATH, MCP_DOCS_PATH } from '@/lib/workspace/paths';
 
 const page = pageMetadata({
   title: { absolute: 'MCP server · GitRanks Contribute' },

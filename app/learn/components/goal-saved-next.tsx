@@ -2,8 +2,8 @@ import { ArrowRight } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 
-import { HEADING } from '@/app/contribute/components/primitives';
 import { Button } from '@/components/ui/button';
+import { HEADING } from '@/components/workspace/primitives';
 import type { PracticeNext } from '@/lib/learn/learn.types';
 import { attemptTitleOf, currentOf } from '@/lib/learn/learn-home';
 import { LEARN_PATH, learnAttemptPath } from '@/lib/learn/learn-path';

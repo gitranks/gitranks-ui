@@ -3,7 +3,7 @@
 import { type RefObject, useEffect, useRef } from 'react';
 
 import { reportLearnEvent } from '@/components/contribute-click-tracker/contribute-click-tracker';
-import type { LearnSource } from '@/lib/contribute/click-tracking';
+import type { LearnSource } from '@/lib/workspace/click-tracking';
 
 /** The Learn suggestions, each with its own place in the click log. */
 export type PromoSource = Extract<LearnSource, `learn_promo_${string}`>;

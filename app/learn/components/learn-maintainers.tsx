@@ -1,10 +1,10 @@
 import { GitPullRequest, GraduationCap, type LucideIcon, Terminal } from 'lucide-react';
 import Link from 'next/link';
 
-import { CodeBlock } from '@/app/contribute/components/code-block';
 import { buttonVariants } from '@/components/ui/button';
-import { MAINTAINERS_PATH, MAINTAINERS_REPORT_PATH } from '@/lib/contribute/contribute-path';
+import { CodeBlock } from '@/components/workspace/code-block';
 import { cn } from '@/lib/utils';
+import { MAINTAINERS_PATH, MAINTAINERS_REPORT_PATH } from '@/lib/workspace/paths';
 
 const MEANS: { Icon: LucideIcon; title: string; text: string }[] = [
   {

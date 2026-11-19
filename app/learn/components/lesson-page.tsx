@@ -3,15 +3,14 @@ import { notFound } from 'next/navigation';
 
 import { LearnSetupRefresh } from './learn-setting-up';
 import { LearnViewReport } from './learn-view-report';
-import type { LessonFlowStart } from './lesson-flow';
 import { LessonEyebrow, LessonMeta } from './lesson-header';
-import { LessonIntro, ReadLesson, SignInToTake } from './lesson-read';
 import { LessonStubScreen } from './lesson-stub';
 import { PracticeContext } from './practice-context';
 import { SharedLesson } from './shared-lesson';
-import { HEADING } from '@/app/contribute/components/primitives';
 import { JsonLd } from '@/components/json-ld/json-ld';
-import { viewerLogin } from '@/lib/contribute/contribute.data';
+import type { LessonFlowStart } from '@/components/learn/lesson-flow';
+import { LessonIntro, ReadLesson, SignInToTake } from '@/components/learn/lesson-read';
+import { HEADING } from '@/components/workspace/primitives';
 import { loadLearnOpen, loadLearnProfile, loadLearnSetup } from '@/lib/learn/learn.data';
 import type { LearnGoalView, LessonPage, LessonRun, PracticeNext } from '@/lib/learn/learn.types';
 import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
@@ -21,6 +20,7 @@ import { LEARN_SETTING_UP_TEXT } from '@/lib/learn/lesson-format';
 import { isAuthorOf, passesShown } from '@/lib/learn/lesson-public';
 import { loadLessonPage, loadMyLessonRun } from '@/lib/learn/lesson-public.data';
 import { lessonJsonLd } from '@/lib/learn/lesson-seo';
+import { viewerLogin } from '@/lib/workspace/contribute.data';
 
 /** A page's own container, as the lesson pages draw it. */
 export const LESSON_MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';

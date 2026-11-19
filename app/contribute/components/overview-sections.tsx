@@ -3,31 +3,16 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { type LaneNote, LiveRunsLabel, RightNowLanes } from './agent-runs';
-import { ComingSoon } from './coming-soon';
-import { noticeCopyOf } from './contribute-notices';
 import { LiveUpNext } from './live-issues';
-import { NeedsYouRow } from './needs-you-rows';
-import { PauseButton } from './pause-button';
-import { HEADING, Meter } from './primitives';
 import { StillRanking } from './still-ranking';
 import { Pill } from '@/components/pill/pill';
 import { Skeleton } from '@/components/ui/skeleton';
-import { attemptTitleOf, repoOf, type Tone } from '@/lib/contribute/attempt-format';
-import type {
-  ContributeActivity,
-  ContributeAttempt,
-  ContributeComingSoonProvider,
-  ContributeImpactTotals,
-  ContributeIssuePage,
-  ContributeKeyState,
-  ContributeView,
-} from '@/lib/contribute/contribute.types';
-import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, RUNS_PATH } from '@/lib/contribute/contribute-path';
-import { claudeKeyOf } from '@/lib/contribute/contribute-state';
-import { dayLabel, MODELS, maskedKey, planOf, relativeLabel, usd } from '@/lib/contribute/format';
-import { AGENT_FIRST_PROMPT } from '@/lib/contribute/mcp-setup';
-import { needsYouItemsOf, shownItemsOf } from '@/lib/contribute/needs-you';
+import { type LaneNote, LiveRunsLabel, RightNowLanes } from '@/components/workspace/agent/agent-runs';
+import { ComingSoon } from '@/components/workspace/agent/coming-soon';
+import { noticeCopyOf } from '@/components/workspace/contribute-notices';
+import { NeedsYouRow } from '@/components/workspace/needs-you-rows';
+import { PauseButton } from '@/components/workspace/pause-button';
+import { HEADING, Meter } from '@/components/workspace/primitives';
 import {
   type HostedHold,
   type HostedState,
@@ -41,8 +26,23 @@ import {
   rightNowOf,
   UP_NEXT_PICKS,
 } from '@/lib/contribute/overview';
-import { settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
+import { attemptTitleOf, repoOf, type Tone } from '@/lib/workspace/attempt-format';
+import type {
+  ContributeActivity,
+  ContributeAttempt,
+  ContributeComingSoonProvider,
+  ContributeImpactTotals,
+  ContributeIssuePage,
+  ContributeKeyState,
+  ContributeView,
+} from '@/lib/workspace/contribute.types';
+import { claudeKeyOf } from '@/lib/workspace/contribute-state';
+import { dayLabel, MODELS, maskedKey, planOf, relativeLabel, usd } from '@/lib/workspace/format';
+import { AGENT_FIRST_PROMPT } from '@/lib/workspace/mcp-setup';
+import { needsYouItemsOf, shownItemsOf } from '@/lib/workspace/needs-you';
+import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, RUNS_PATH } from '@/lib/workspace/paths';
+import { settingsPathOf } from '@/lib/workspace/settings-paths';
 
 const ME_PATH: Route = '/contribute/me';
 const ISSUES_PATH: Route = '/contribute/issues';

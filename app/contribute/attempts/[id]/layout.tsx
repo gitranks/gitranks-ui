@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 
-import { ContributePageSkeleton } from '../../components/page-skeleton';
-import { ContributionLayout } from '../../components/review-view';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
+import { ContributionLayout } from '@/components/workspace/pull-request/review-view';
 
 /**
  * A contribution's layout, around the session shown: moving between its sessions (the first attempt, each run, the

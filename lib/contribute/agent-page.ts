@@ -4,8 +4,8 @@ import { parse } from 'graphql';
 import { cache } from 'react';
 
 import type { AgentPage } from './agent-page.types';
-import { viewerEmail, viewerLogin } from './contribute.data';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { viewerEmail, viewerLogin } from '@/lib/workspace/contribute.data';
 import type DocumentNode from '@/types/typed-document-node';
 
 const AgentPageDocument = parse(`query ContributeAgentPage {

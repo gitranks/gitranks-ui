@@ -8,7 +8,7 @@ const { requestMaySeePackages, sessionTokenOf, signedFetch } = vi.hoisted(() => 
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/packages/packages-gate', () => ({ requestMaySeePackages }));
-vi.mock('@/lib/contribute/session-token', () => ({ sessionTokenOf }));
+vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 vi.mock('@/lib/signed-fetch', () => ({ signedFetch }));
 
 const { POST } = await import('./route');

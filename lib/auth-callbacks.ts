@@ -2,10 +2,10 @@ import type { NextAuthConfig } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 
 import { authModeOf, CONTRIBUTE_PROVIDER, IDENTITY_PROVIDER, TOKEN_PROVIDER } from './auth-providers';
-import { grantSignInAllowed } from './contribute/grant-adapter';
 import { dropExpiredMaintainerToken, lightSignInSession } from './contribute/maintainer-token';
-import { currentSessionToken } from './contribute/session-token';
 import { verifiedEmailOf } from './follow/verified-email';
+import { grantSignInAllowed } from './workspace/grant-adapter';
+import { currentSessionToken } from './workspace/session-token';
 
 /** The store of sign-in accounts, as the callbacks use it: one row updated after a token refresh. */
 export type AuthAccounts = {

@@ -1,5 +1,5 @@
 import type { ContributeAttemptMode } from './learn.types';
-import type { ContributeAttemptState } from '@/lib/contribute/contribute.types';
+import type { ContributeAttemptState } from '@/lib/workspace/contribute.types';
 
 /** The start page of a lesson for one issue, as the API answers it. */
 

@@ -16,7 +16,7 @@ import {
   type McpDocPlugin,
   TOKEN_PLACEHOLDER,
 } from './mcp-docs';
-import { MCP_INSTALL_LINKS, type McpInstallClient } from './mcp-install-links';
+import { MCP_INSTALL_LINKS, type McpInstallClient } from '@/lib/workspace/mcp-install-links';
 
 const SITE = 'https://gitranks.com';
 

@@ -2,8 +2,8 @@ import { FaGithub } from 'react-icons/fa';
 import { FaBluesky, FaMastodon, FaXTwitter } from 'react-icons/fa6';
 
 import { Link } from '../link/link';
-import { contributeSource } from '@/lib/contribute/click-tracking';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
+import { contributeSource } from '@/lib/workspace/click-tracking';
 
 const SITE_LINKS = [
   { href: '/by/stars/1', label: 'Developer Rankings' },

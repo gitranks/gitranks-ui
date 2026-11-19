@@ -6,7 +6,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/contribute',
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
-vi.mock('@/app/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/actions', () => ({}));
 
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
 const { NeedsYouSection, RightNowSection, ImpactSection, WaysSection, UpNextSection } = await import(
@@ -23,7 +23,7 @@ const { issuePage, needsNothing, nowIdle, overviewData } = await import(
 const { needsEverything, needsSome, prsNeedingYou } = await import('@/lib/contribute/__fixtures__/needs-you');
 
 import type { OverviewData } from './overview-status';
-import type { ContributeAttempt, ContributeView } from '@/lib/contribute/contribute.types';
+import type { ContributeAttempt, ContributeView } from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html

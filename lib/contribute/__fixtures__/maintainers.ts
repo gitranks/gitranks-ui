@@ -6,7 +6,7 @@ import type {
   ContributePrFeedbackResult,
   ContributePrNotes,
   ContributePrViewer,
-} from '@/lib/contribute/contribute.types';
+} from '@/lib/workspace/contribute.types';
 
 /** A repo the maintainers page lists for the signed-in visitor. */
 export const maintainerRepo = (patch: Partial<ContributeMaintainerRepo>): ContributeMaintainerRepo => ({

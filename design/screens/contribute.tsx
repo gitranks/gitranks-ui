@@ -2,21 +2,8 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { changedCommentStates, reviewCommentStates, sessionHeadStates } from './contribute-moves';
-import { AgentConnectView } from '@/app/contribute/components/agent-connect';
-import { ChecksPanel, ReadinessPanel } from '@/app/contribute/components/attempt-panels';
-import {
-  AUTOPILOT_CONFIRM_ACTION,
-  AUTOPILOT_CONFIRM_LEAD,
-  AUTOPILOT_CONFIRM_TITLE,
-  AUTOPILOT_HOW_LEAD,
-  AUTOPILOT_HOW_TITLE,
-  AutopilotConfirmLines,
-  AutopilotHowItWorks,
-  AutopilotRecord,
-} from '@/app/contribute/components/autopilot-section';
 import { ContributeBadgePreview } from '@/app/contribute/components/contribute-badge-preview';
 import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
-import { ContributionsScreen } from '@/app/contribute/components/contributions-view';
 import { FaqScreen } from '@/app/contribute/components/faq';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
@@ -26,17 +13,30 @@ import { McpDocsScreen } from '@/app/contribute/components/mcp-docs';
 import { OverviewScreen, overviewSectionsOf } from '@/app/contribute/components/overview-status';
 import { HelpedSent, ReportSent } from '@/app/contribute/components/pr-feedback-forms';
 import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
-import { PrForm, type PrFormProps } from '@/app/contribute/components/pr-form';
 import { PrTimelineScreen } from '@/app/contribute/components/pr-timeline-view';
 import { MorePages } from '@/app/contribute/components/public-pages';
-import { RulesOpen } from '@/app/contribute/components/repo-rules';
-import { prFormPropsOf, ReviewScreen } from '@/app/contribute/components/review-view';
-import { RunsScreen } from '@/app/contribute/components/runs-view';
 import { FormSettingsScreen } from '@/app/contribute/components/settings-pages';
 import { SettingsScreen } from '@/app/contribute/components/settings-view';
 import { TermsScreen } from '@/app/terms/terms';
 import { Header } from '@/components/header/header';
 import { Button } from '@/components/ui/button';
+import { AgentConnectView } from '@/components/workspace/agent/agent-connect';
+import { RunsScreen } from '@/components/workspace/agent/runs-view';
+import {
+  AUTOPILOT_CONFIRM_ACTION,
+  AUTOPILOT_CONFIRM_LEAD,
+  AUTOPILOT_CONFIRM_TITLE,
+  AUTOPILOT_HOW_LEAD,
+  AUTOPILOT_HOW_TITLE,
+  AutopilotConfirmLines,
+  AutopilotHowItWorks,
+  AutopilotRecord,
+} from '@/components/workspace/autopilot-section';
+import { ContributionsScreen } from '@/components/workspace/contributions-view';
+import { ChecksPanel, ReadinessPanel } from '@/components/workspace/pull-request/attempt-panels';
+import { PrForm, type PrFormProps } from '@/components/workspace/pull-request/pr-form';
+import { RulesOpen } from '@/components/workspace/pull-request/repo-rules';
+import { prFormPropsOf, ReviewScreen } from '@/components/workspace/pull-request/review-view';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 import {
   attempt,
@@ -87,6 +87,9 @@ import {
   maintainerRules,
 } from '@/lib/contribute/__fixtures__/repo-rules';
 import { pageOf } from '@/lib/contribute/__fixtures__/runs';
+import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
+import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
+import type { PrTimeline } from '@/lib/contribute/pr-timeline.types';
 import type {
   ContributeActivity,
   ContributeAttemptDetail,
@@ -96,13 +99,10 @@ import type {
   ContributeReplyWaiting,
   ContributeSubmitError,
   ContributeView,
-} from '@/lib/contribute/contribute.types';
-import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
-import type { NeedsYouRead } from '@/lib/contribute/needs-you';
-import { type PrFeedbackFlow, prUrlOf } from '@/lib/contribute/pr-feedback';
-import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
-import type { PrTimeline } from '@/lib/contribute/pr-timeline.types';
-import { runsQueryOf } from '@/lib/contribute/runs';
+} from '@/lib/workspace/contribute.types';
+import type { NeedsYouRead } from '@/lib/workspace/needs-you';
+import { type PrFeedbackFlow, prUrlOf } from '@/lib/workspace/pr-feedback';
+import { runsQueryOf } from '@/lib/workspace/runs';
 
 /** A made-up token of the real shape, as the connect page shows it once. */
 const SHOWN_TOKEN = 'gr_8Kq2vN4tXb7RwL1mZc9HpYe3Ud6SfA0jQg5Ko2Ti8Lm';

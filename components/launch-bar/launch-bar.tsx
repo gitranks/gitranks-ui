@@ -10,7 +10,7 @@ import {
   PRODUCT_HUNT_BARS,
 } from './launch-bar.consts';
 import { LaunchBarClock, LaunchBarDismiss, ProductHuntBarLink } from './launch-bar-dismiss';
-import { contributeSource } from '@/lib/contribute/click-tracking';
+import { contributeSource } from '@/lib/workspace/click-tracking';
 
 /** In the head: picks the bar before it paints, and hides it where it should not show (see `LAUNCH_BAR_SCRIPT`). */
 export function LaunchBarScript() {

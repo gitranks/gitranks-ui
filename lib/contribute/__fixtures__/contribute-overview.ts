@@ -1,6 +1,6 @@
-import type { ContributeIssue, ContributeIssuePage, ContributeReplyWaiting } from '../contribute.types';
 import type { OverviewNeedsRead, OverviewNowRead } from '../overview';
 import { attempt, followUpOf, replyDraft } from './contribute-attempts';
+import type { ContributeIssue, ContributeIssuePage, ContributeReplyWaiting } from '@/lib/workspace/contribute.types';
 
 /** A pick of the feed. */
 export const issue = (patch: Partial<ContributeIssue> = {}): ContributeIssue => ({

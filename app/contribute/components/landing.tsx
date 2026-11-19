@@ -2,14 +2,17 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { Fragment, type ReactNode } from 'react';
 
-import { ComingSoon } from './coming-soon';
 import { HashSafeLink } from './public-pages';
-import { SignInButton, type SignInPath } from './sign-in-dialog';
 import { Pill } from '@/components/pill/pill';
 import { buttonVariants } from '@/components/ui/button';
+import { ComingSoon } from '@/components/workspace/agent/coming-soon';
+import { SignInButton, type SignInPath } from '@/components/workspace/sign-in-dialog';
 import { type AgentPageStats, agentPageStatsLineOf } from '@/lib/contribute/agent-page.types';
-import { contributeSource } from '@/lib/contribute/click-tracking';
-import type { ContributeComingSoonProvider } from '@/lib/contribute/contribute.types';
+import { LANDING_QUESTIONS } from '@/lib/contribute/faq';
+import { cn } from '@/lib/utils';
+import { contributeSource } from '@/lib/workspace/click-tracking';
+import type { ContributeComingSoonProvider } from '@/lib/workspace/contribute.types';
+import type { LandingViewer } from '@/lib/workspace/contribute-state';
 import {
   AGENTS_DOC_PATH,
   CONNECT_AGENT_PATH,
@@ -18,10 +21,7 @@ import {
   FAQ_PATH,
   MAINTAINERS_PATH,
   MCP_DOCS_PATH,
-} from '@/lib/contribute/contribute-path';
-import type { LandingViewer } from '@/lib/contribute/contribute-state';
-import { LANDING_QUESTIONS } from '@/lib/contribute/faq';
-import { cn } from '@/lib/utils';
+} from '@/lib/workspace/paths';
 
 const ACTIONS: Record<SignInPath, { label: string; href: Route }> = {
   key: { label: 'Start with my Claude key', href: CONNECT_KEY_PATH },

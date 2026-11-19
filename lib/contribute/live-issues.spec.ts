@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { issue } from './__fixtures__/contribute-overview';
-import type { ContributeIssue, ContributeIssuePage, ContributeIssueStatus } from './contribute.types';
-import type { ContributeActionResult } from './errors';
 import {
   createLiveFeed,
   FILL_READS_MAX,
@@ -11,6 +9,8 @@ import {
   type LiveFeedOptions,
   skipOutcomeOf,
 } from './live-issues';
+import type { ContributeIssue, ContributeIssuePage, ContributeIssueStatus } from '@/lib/workspace/contribute.types';
+import type { ContributeActionResult } from '@/lib/workspace/errors';
 
 type StatusRead = ContributeActionResult<ContributeIssueStatus[] | null>;
 

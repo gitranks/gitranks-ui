@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { ContributePageSkeleton } from '../components/page-skeleton';
 import { SettingsView } from '../components/settings-view';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'Contribute settings' };
 

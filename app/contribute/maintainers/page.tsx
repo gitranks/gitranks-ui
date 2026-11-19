@@ -10,15 +10,15 @@ import {
   MaintainersScreen,
   PrStrip,
 } from '../components/maintainers-view';
-import { PrLinkForm } from '../components/pr-link-form';
-import type { ContributeMaintainerFacts, ContributePrCard } from '@/lib/contribute/contribute.types';
-import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
-import { BADGE_EXAMPLE_REPO } from '@/lib/contribute/maintainer-config';
+import { PrLinkForm } from '@/components/workspace/pr-link-form';
 import { loadMaintainerRepos } from '@/lib/contribute/maintainers.data';
-import { orgAccessOf } from '@/lib/contribute/org-access';
-import { attemptIdOf, prUrlOf } from '@/lib/contribute/pr-feedback';
 import { loadMaintainerFacts, loadPrStrip } from '@/lib/contribute/pr-feedback.data';
 import { publicTimelinePathOf } from '@/lib/contribute/pr-timeline.data';
+import type { ContributeMaintainerFacts, ContributePrCard } from '@/lib/workspace/contribute.types';
+import { BADGE_EXAMPLE_REPO } from '@/lib/workspace/maintainer-config';
+import { orgAccessOf } from '@/lib/workspace/org-access';
+import { MAINTAINERS_PATH } from '@/lib/workspace/paths';
+import { attemptIdOf, prUrlOf } from '@/lib/workspace/pr-feedback';
 
 export const metadata: Metadata = {
   title: 'For maintainers',

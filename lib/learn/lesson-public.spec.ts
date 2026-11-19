@@ -25,7 +25,7 @@ import {
   stubTextOf,
 } from './lesson-public';
 import { lessonPageMetadata, lessonResultMetadata } from './lesson-seo';
-import type { PrFeedbackErrorCode } from '@/lib/contribute/errors';
+import type { PrFeedbackErrorCode } from '@/lib/workspace/errors';
 
 describe('the result addresses', () => {
   it('writes a result page and knows it, exactly', () => {

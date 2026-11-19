@@ -6,7 +6,7 @@ import type { FollowFailure } from './follow.types';
 import type { FollowAnswer, FollowCaller } from './follow-api';
 import { isVerifiedAccountEmail } from './verified-email';
 import { accountEmailOf } from '@/lib/account-email';
-import { sessionTokenOf } from '@/lib/contribute/session-token';
+import { sessionTokenOf } from '@/lib/workspace/session-token';
 import { rejectWrongOrigin } from '@/utils/reject-wrong-origin';
 
 // What every follow route shares: the gate, who asks, the body, and the answer. Every answer is per viewer and is

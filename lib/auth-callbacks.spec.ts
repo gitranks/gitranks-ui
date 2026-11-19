@@ -9,7 +9,7 @@ const { jar, currentSessionToken, lightSignInSession } = vi.hoisted(() => ({
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({ cookies: async () => jar }));
-vi.mock('./contribute/session-token', () => ({ currentSessionToken }));
+vi.mock('./workspace/session-token', () => ({ currentSessionToken }));
 vi.mock('./contribute/maintainer-token', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./contribute/maintainer-token')>();
   return { ...actual, lightSignInSession: lightSignInSession.mockImplementation(actual.lightSignInSession) };

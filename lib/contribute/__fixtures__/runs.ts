@@ -1,4 +1,4 @@
-import type { ContributeRun, ContributeRunsPage } from '../runs';
+import type { ContributeRun, ContributeRunsPage } from '@/lib/workspace/runs';
 
 /** Runs as the API answers them: the owner's of 2026-10-30/31, cut to the shapes the page draws. */
 export const runOf = (fields: Partial<ContributeRun> = {}): ContributeRun => ({

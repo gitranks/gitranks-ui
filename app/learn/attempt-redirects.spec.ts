@@ -12,9 +12,9 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
-vi.mock('@/app/learn/actions', () => ({}));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({
+vi.mock('@/lib/learn/actions', () => ({}));
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({
   viewerLogin: vi.fn(async () => 'octocat'),
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
@@ -28,9 +28,9 @@ vi.mock('@/lib/learn/learn.data', () => ({
   loadAttemptLesson: vi.fn(async () => null),
 }));
 
-const { FirstSessionView } = await import('@/app/contribute/components/review-view');
+const { FirstSessionView } = await import('@/components/workspace/pull-request/review-view');
 const { LearnAttemptView } = await import('./components/learn-attempt');
-const contributeData = await import('@/lib/contribute/contribute.data');
+const contributeData = await import('@/lib/workspace/contribute.data');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 

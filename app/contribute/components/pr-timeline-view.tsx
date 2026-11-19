@@ -1,12 +1,10 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { Eyebrow, HEADING, Panel } from './primitives';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { reportPathOf } from '@/lib/contribute/pr-feedback';
+import { Eyebrow, HEADING, Panel } from '@/components/workspace/primitives';
 import type { PrTimeline, PrTimelineMilestone } from '@/lib/contribute/pr-timeline.types';
-import { prTimelineFallbackPath } from '@/lib/contribute/pr-timeline-path';
 import {
   dayHeadingOf,
   dayKeyOf,
@@ -17,6 +15,8 @@ import {
   timeOf,
 } from '@/lib/contribute/pr-timeline-words';
 import { cn } from '@/lib/utils';
+import { reportPathOf } from '@/lib/workspace/pr-feedback';
+import { prTimelineFallbackPath } from '@/lib/workspace/pr-timeline-path';
 
 const external = { target: '_blank', rel: 'noreferrer' } as const;
 

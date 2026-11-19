@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { LedgerScreen } from '../components/ledger-view';
-import { LEDGER_PATH } from '@/lib/contribute/contribute-path';
 import { loadLedger } from '@/lib/contribute/ledger.data';
 import { pageMetadata } from '@/lib/seo/page-metadata';
+import { LEDGER_PATH } from '@/lib/workspace/paths';
 
 const TITLE = 'Contribute ledger';
 

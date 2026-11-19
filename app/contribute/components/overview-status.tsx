@@ -2,22 +2,22 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { AgentFirstPicks, AgentNextSteps, AgentWelcome } from './agent-connected';
-import { ContributeNotices } from './contribute-notices';
 import { FirstRunGuide } from './first-run-guide';
 import { ImpactSection, NeedsYouSection, RightNowSection, UpNextSection, WaysSection } from './overview-sections';
+import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { agentFirstRunStepOf, firstRunNoticesOf, firstRunStepOf } from '@/lib/contribute/first-run';
+import type { OverviewNeedsRead, OverviewNowRead } from '@/lib/contribute/overview';
+import { cn } from '@/lib/utils';
 import type {
   ContributeActivity,
   ContributeComingSoonProvider,
   ContributeImpactTotals,
   ContributeIssuePage,
   ContributeView,
-} from '@/lib/contribute/contribute.types';
-import { ABOUT_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
-import { accessNoticesOf, contributeNoticesOf } from '@/lib/contribute/contribute-state';
-import { agentFirstRunStepOf, firstRunNoticesOf, firstRunStepOf } from '@/lib/contribute/first-run';
-import type { McpClient } from '@/lib/contribute/mcp-setup';
-import type { OverviewNeedsRead, OverviewNowRead } from '@/lib/contribute/overview';
-import { cn } from '@/lib/utils';
+} from '@/lib/workspace/contribute.types';
+import { accessNoticesOf, contributeNoticesOf } from '@/lib/workspace/contribute-state';
+import type { McpClient } from '@/lib/workspace/mcp-setup';
+import { ABOUT_PATH, FAQ_PATH, MAINTAINERS_PATH } from '@/lib/workspace/paths';
 
 /** The landing again, for a user who is onboarded. */
 

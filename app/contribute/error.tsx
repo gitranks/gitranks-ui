@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 
-import { HEADING } from './components/primitives';
 import { Button } from '@/components/ui/button';
+import { HEADING } from '@/components/workspace/primitives';
 
 /** A Contribute page that could not load its data: an outage, never "not found". */
 export default function ContributeError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {

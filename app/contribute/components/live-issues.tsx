@@ -14,20 +14,12 @@ import {
   useSyncExternalStore,
 } from 'react';
 
-import { readIssueStatuses, readIssuesPage } from '../actions';
 import { IssueCard } from './issue-card';
 import { IssueCardCompact } from './issue-card-compact';
 import type { IssueLive } from './issue-live-status';
 import { isGone, useFocusOnGone } from './issue-live-status';
 import { type IssuesQuery, issuesHref } from './issues-filter';
 import { OtherIssuesDivider, SetIssuesHeading } from './issues-mode';
-import { onContributeChanges } from '@/lib/contribute/changes-bus';
-import type {
-  ContributeDailyCap,
-  ContributeIssue,
-  ContributeIssuesFilter,
-  ContributeSet,
-} from '@/lib/contribute/contribute.types';
 import {
   createLiveFeed,
   ISSUES_PAGE_SIZE,
@@ -37,6 +29,14 @@ import {
 } from '@/lib/contribute/live-issues';
 import { tiersOf } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
+import { readIssueStatuses, readIssuesPage } from '@/lib/workspace/actions';
+import { onContributeChanges } from '@/lib/workspace/changes-bus';
+import type {
+  ContributeDailyCap,
+  ContributeIssue,
+  ContributeIssuesFilter,
+  ContributeSet,
+} from '@/lib/workspace/contribute.types';
 
 type LivePage = { items: ContributeIssue[]; total: number; next: string | null; dailyCap?: ContributeDailyCap | null };
 

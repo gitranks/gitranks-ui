@@ -4,7 +4,7 @@ import type {
   ContributeMaintainerRepoRules,
   ContributeRepoRules,
   ContributeRuleSource,
-} from '@/lib/contribute/contribute.types';
+} from '@/lib/workspace/contribute.types';
 
 const REPO = 'driftwood-js/driftwood';
 const file = (path: string): ContributeRuleSource => ({

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { firstSpend, key, NOW, views } from './__fixtures__/contribute-views';
-import type { ContributeIssuePage, ContributeView } from './contribute.types';
-import type { ContributeNotice } from './contribute-state';
 import { agentFirstRunStepOf, firstRunNoticesOf, firstRunStepOf, isAgentFirstRun, isFirstRun } from './first-run';
+import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
+import type { ContributeNotice } from '@/lib/workspace/contribute-state';
 
 const ISSUE = {
   issueId: 'I_1',

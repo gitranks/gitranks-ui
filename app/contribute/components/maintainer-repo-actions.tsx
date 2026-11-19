@@ -9,10 +9,10 @@ import type {
   ContributeMaintainerRepo,
   ContributePrAction,
   ContributeStoppedPr,
-} from '@/lib/contribute/contribute.types';
-import { type PrFeedbackErrorCode, prFeedbackErrorMessage } from '@/lib/contribute/errors';
-import { fullDayLabel } from '@/lib/contribute/maintainers-format';
-import { prUrlOf } from '@/lib/contribute/pr-feedback';
+} from '@/lib/workspace/contribute.types';
+import { type PrFeedbackErrorCode, prFeedbackErrorMessage } from '@/lib/workspace/errors';
+import { fullDayLabel } from '@/lib/workspace/maintainers-format';
+import { prUrlOf } from '@/lib/workspace/pr-feedback';
 
 type Row = { key: string; feedbackId: string; kind: ContributePrAction; label: string; since: string; by: string };
 

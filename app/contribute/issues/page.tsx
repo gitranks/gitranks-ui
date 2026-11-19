@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
 import { IssuesView } from '../components/issues-view';
-import { ContributePageSkeleton } from '../components/page-skeleton';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'Issues for you' };
 

@@ -2,11 +2,11 @@ import 'server-only';
 
 import { cacheLife, cacheTag } from 'next/cache';
 
-import type { PrRef } from './pr-feedback';
 import { PrTimelineByAttemptDocument, PrTimelineDocument, PublicPrTimelinesDocument } from './pr-timeline.documents';
 import type { PrTimeline, PublicPrTimeline } from './pr-timeline.types';
-import { prTimelinePath } from './pr-timeline-path';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import type { PrRef } from '@/lib/workspace/pr-feedback';
+import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 /** A build-time param no repository has: the build renders the not-found page without asking for data. */
 export const NO_PR = { owner: '_', repo: '_', number: '1' } as const;

@@ -5,14 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition } from 'react';
 
-import { setContributeFallback, setContributeMode } from '../actions';
-import { Eyebrow } from './primitives';
-import { useSettledPick } from './radio-pills';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import type { ContributeLanguage, ContributeSet, ContributeSetMode } from '@/lib/contribute/contribute.types';
-import { contributeSetErrorMessage } from '@/lib/contribute/errors';
-import { LANGUAGES } from '@/lib/contribute/format';
+import { Eyebrow } from '@/components/workspace/primitives';
+import { useSettledPick } from '@/components/workspace/settings/radio-pills';
 import {
   MODES,
   modeChipOf,
@@ -23,8 +19,12 @@ import {
   setSizeOf,
   stackPendingOf,
 } from '@/lib/contribute/set-format';
-import { SETTINGS_PATHS, settingsPathOf } from '@/lib/contribute/settings-paths';
 import { cn } from '@/lib/utils';
+import { setContributeFallback, setContributeMode } from '@/lib/workspace/actions';
+import type { ContributeLanguage, ContributeSet, ContributeSetMode } from '@/lib/workspace/contribute.types';
+import { contributeSetErrorMessage } from '@/lib/workspace/errors';
+import { LANGUAGES } from '@/lib/workspace/format';
+import { SETTINGS_PATHS, settingsPathOf } from '@/lib/workspace/settings-paths';
 
 const ICONS = { STACK: Layers, REPOS: LayoutGrid, ALL: Globe } as const;
 

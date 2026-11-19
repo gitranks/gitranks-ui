@@ -11,7 +11,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('next/server', () => ({ connection: vi.fn(async () => undefined) }));
 const { graphqlDirect } = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
-vi.mock('@/lib/contribute/session-token', () => ({ sessionTokenOf: vi.fn() }));
+vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf: vi.fn() }));
 
 const gate = (everyone: boolean) => ({ packagesGate: { everyone, viewer: false } });
 

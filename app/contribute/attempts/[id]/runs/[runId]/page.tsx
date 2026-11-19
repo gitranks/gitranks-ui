@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { ContributeSessionSkeleton } from '../../../../components/page-skeleton';
-import { RunSessionView } from '../../../../components/review-view';
+import { ContributeSessionSkeleton } from '@/components/workspace/page-skeleton';
+import { RunSessionView } from '@/components/workspace/pull-request/review-view';
 
 export const metadata: Metadata = { title: 'A contribution' };
 

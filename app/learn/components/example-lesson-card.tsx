@@ -1,5 +1,5 @@
-import { Diagram } from './diagram';
 import { ExampleQuestion } from './example-question';
+import { Diagram } from '@/components/learn/diagram';
 import { Badge } from '@/components/ui/badge';
 import { EXAMPLE_LESSON } from '@/lib/learn/example-lesson';
 import { cn } from '@/lib/utils';

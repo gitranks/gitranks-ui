@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { ContributePageSkeleton } from '@/app/contribute/components/page-skeleton';
 import { LearnStartView } from '@/app/learn/components/learn-start';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'Start your own lesson', robots: { index: false, follow: false } };
 

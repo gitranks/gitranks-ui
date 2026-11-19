@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // The proxy with Learn open to everyone (the API's answer), everything else as it is.
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => vi.fn(() => new Response(null)) }) }));
-vi.mock('./lib/contribute/preview-gate', () => ({
+vi.mock('./lib/workspace/preview-gate', () => ({
   requestContributeAccess: async () => 'hidden',
   contributeOpen: async () => false,
 }));
@@ -23,7 +23,7 @@ const everyone = vi.hoisted(() => ({ open: true }));
 vi.mock('./lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
 // With Learn open to everyone, every signed-in viewer is one it is open to; a session the server cannot read is none.
 const access = vi.hoisted(() => ({ value: 'open' as 'open' | 'signed-out' }));
-vi.mock('./lib/learn/learn-gate', () => ({ requestLearnAccess: async () => access.value }));
+vi.mock('./lib/workspace/gate', () => ({ requestLearnAccess: async () => access.value }));
 
 const { default: proxy } = await import('./proxy');
 

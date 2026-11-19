@@ -2,24 +2,24 @@ import { Cpu, GitPullRequest, KeyRound, LayoutGrid, SquareTerminal, Wallet } fro
 import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 
-import { AutopilotSection } from './autopilot-section';
-import { ContributeNotices } from './contribute-notices';
-import { CycleSummary } from './cycle-summary';
-import { DeleteDataSection } from './delete-data-section';
-import { EmailSection } from './email-section';
-import { PauseButton } from './pause-button';
-import { PreferencesSection } from './preferences-section';
-import { ReposAskLessNote } from './repo-rules';
-import { SettingsAnchors } from './settings-anchors';
-import { SettingsGroup, SettingsList, SettingsRow } from './settings-rows';
-import { SettingsWorkGroup } from './settings-work-group';
+import { PreferencesSection } from '@/components/contribute/preferences-section';
+import { SettingsWorkGroup } from '@/components/contribute/settings-work-group';
+import { AutopilotSection } from '@/components/workspace/autopilot-section';
+import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { CycleSummary } from '@/components/workspace/cycle-summary';
+import { PauseButton } from '@/components/workspace/pause-button';
+import { ReposAskLessNote } from '@/components/workspace/pull-request/repo-rules';
+import { DeleteDataSection } from '@/components/workspace/settings/delete-data-section';
+import { EmailSection } from '@/components/workspace/settings/email-section';
+import { SettingsAnchors } from '@/components/workspace/settings/settings-anchors';
+import { SettingsGroup, SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
 import {
   loadContribute,
   loadContributeEmail,
   loadContributeSet,
   loadContributeSetup,
-} from '@/lib/contribute/contribute.data';
-import type { ContributeEmail, ContributeSet, ContributeView } from '@/lib/contribute/contribute.types';
+} from '@/lib/workspace/contribute.data';
+import type { ContributeEmail, ContributeSet, ContributeView } from '@/lib/workspace/contribute.types';
 import {
   claudeKeyOf,
   contributeNoticesOf,
@@ -27,17 +27,17 @@ import {
   isOwnAgentOnly,
   isPaused,
   settingsOf,
-} from '@/lib/contribute/contribute-state';
-import { grantRefusalOf } from '@/lib/contribute/grant-refusal';
-import { contributeHidden } from '@/lib/contribute/setting-up';
-import { SETTINGS_PATHS } from '@/lib/contribute/settings-paths';
+} from '@/lib/workspace/contribute-state';
+import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
+import { contributeHidden } from '@/lib/workspace/setting-up';
+import { SETTINGS_PATHS } from '@/lib/workspace/settings-paths';
 import {
   agentSummaryOf,
   budgetSummaryOf,
   grantSummaryOf,
   keySummaryOf,
   ownAgentSummaryOf,
-} from '@/lib/contribute/settings-summary';
+} from '@/lib/workspace/settings-summary';
 
 /** Reads the user for a Settings page: a 404 to someone Contribute is not open to, Contribute's home before signing up. */
 export async function loadSettingsView(): Promise<ContributeView> {

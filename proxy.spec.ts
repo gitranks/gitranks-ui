@@ -10,7 +10,7 @@ const { maySeeContribute, settingUp, open } = vi.hoisted(() => ({
   settingUp: vi.fn(async () => false),
   open: vi.fn(async () => false),
 }));
-vi.mock('./lib/contribute/preview-gate', () => ({
+vi.mock('./lib/workspace/preview-gate', () => ({
   requestContributeAccess: async (req: unknown) =>
     (await maySeeContribute(req)) ? 'allowed' : (await settingUp()) ? 'setting-up' : 'hidden',
   contributeOpen: open,
@@ -30,7 +30,7 @@ vi.mock('./lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => 
 const { learnAccess } = vi.hoisted(() => ({
   learnAccess: vi.fn(async (_req?: unknown): Promise<'open' | 'closed' | 'signed-out'> => 'open'),
 }));
-vi.mock('./lib/learn/learn-gate', () => ({ requestLearnAccess: learnAccess }));
+vi.mock('./lib/workspace/gate', () => ({ requestLearnAccess: learnAccess }));
 vi.mock('./lib/learn/lesson-gate', () => ({
   LESSON_MISSING_PATH: '/learn/lessons/_missing',
   lessonGateOf: lessonGate,

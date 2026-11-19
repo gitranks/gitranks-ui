@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { AgentPage } from './agent-page.types';
 import { agentsDocOf } from './agents-doc';
 import { MCP_DOC_CLIENTS, MCP_DOC_MORE_CLIENTS, MCP_DOC_TOOLS, MCP_PLUGIN_DOCS_SHOWN } from './mcp-docs';
-import { MCP_INSTALL_LINKS } from './mcp-install-links';
+import { MCP_INSTALL_LINKS } from '@/lib/workspace/mcp-install-links';
 
 const PAGE: AgentPage = {
   stats: { readyIssues: 3124, repos: 1412, languages: [], checkedAt: '2026-11-12T12:04:00Z' },

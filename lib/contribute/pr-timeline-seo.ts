@@ -1,8 +1,8 @@
 import type { PrTimeline } from './pr-timeline.types';
-import { prTimelineMarkdownPath, prTimelinePath } from './pr-timeline-path';
 import { dayHeadingOf, factsOf, fullDateOf, milestoneWordsOf, stateWordOf, timeOf } from './pr-timeline-words';
 import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
 import { absoluteUrl } from '@/lib/seo/site';
+import { prTimelineMarkdownPath, prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 const prOf = (timeline: PrTimeline) => ({ nameWithOwner: timeline.nameWithOwner, number: timeline.number });
 

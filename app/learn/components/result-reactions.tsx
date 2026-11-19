@@ -6,12 +6,11 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
-import { reactOnReturn, reactToLessonResult, signInToReact } from '../actions';
 import { avatarOf } from './lesson-header';
 import { GithubAvatar } from '@/app/components/landing/landing-ui';
 import { reportLearnEvent } from '@/components/contribute-click-tracker/contribute-click-tracker';
 import { Button } from '@/components/ui/button';
-import { MAINTAINERS_REPORT_PATH } from '@/lib/contribute/contribute-path';
+import { reactOnReturn, reactToLessonResult, signInToReact } from '@/lib/learn/actions';
 import type { LessonReaction, LessonResultReaction } from '@/lib/learn/learn.types';
 import {
   ownResultLineOf,
@@ -22,6 +21,7 @@ import {
 } from '@/lib/learn/lesson-public';
 import { dropReturnQuery, settleReturnedPick } from '@/lib/learn/react-return';
 import { cn } from '@/lib/utils';
+import { MAINTAINERS_REPORT_PATH } from '@/lib/workspace/paths';
 
 const BUTTONS: { value: LessonReaction; label: string; Icon: typeof ThumbsUp }[] = [
   { value: 'YES', label: 'Yes, it helped', Icon: ThumbsUp },

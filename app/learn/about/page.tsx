@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { ContributePageSkeleton } from '@/app/contribute/components/page-skeleton';
 import { LearnAboutView } from '@/app/learn/components/learn-landing';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { LEARN_ABOUT_METADATA } from '@/lib/learn/lesson-seo';
 
 /** One front door for search engines: this copy points at `/learn` and is not indexed. */

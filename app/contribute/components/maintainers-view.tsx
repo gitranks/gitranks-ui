@@ -3,17 +3,19 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { signInAsMaintainer } from '../maintainers/actions';
-import { CopyButton } from './copy-button';
 import { MAINTAINER_SETTINGS_SHOWN } from './maintainer-repo-extras';
 import { MaintainerReposForm } from './maintainer-repos-form';
-import { PrCardFacts } from './pr-card';
-import { PrLinkForm } from './pr-link-form';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { ContributeMaintainerFacts, ContributePrCard } from '@/lib/contribute/contribute.types';
-import { MAINTAINERS_PATH } from '@/lib/contribute/contribute-path';
-import { type MaintainerErrorCode, maintainerErrorMessage } from '@/lib/contribute/errors';
+import { CopyButton } from '@/components/workspace/copy-button';
+import { PrLinkForm } from '@/components/workspace/pr-link-form';
+import { PrCardFacts } from '@/components/workspace/pull-request/pr-card';
+import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
+import { CONTACT_EMAIL } from '@/lib/legal';
+import { cn } from '@/lib/utils';
+import type { ContributeMaintainerFacts, ContributePrCard } from '@/lib/workspace/contribute.types';
+import { type MaintainerErrorCode, maintainerErrorMessage } from '@/lib/workspace/errors';
 import {
   anyPageKey,
   BADGE_EXAMPLE_REPO,
@@ -24,11 +26,9 @@ import {
   contributeBadgeMarkdown,
   countOf,
   liveKeysOf,
-} from '@/lib/contribute/maintainer-config';
-import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
-import { reportPathOf } from '@/lib/contribute/pr-feedback';
-import { CONTACT_EMAIL } from '@/lib/legal';
-import { cn } from '@/lib/utils';
+} from '@/lib/workspace/maintainer-config';
+import { MAINTAINERS_PATH } from '@/lib/workspace/paths';
+import { reportPathOf } from '@/lib/workspace/pr-feedback';
 
 /** The page's sections, in order, as "On this page" lists them. */
 export const MAINTAINER_SECTIONS = [

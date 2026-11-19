@@ -4,12 +4,12 @@ import type { ReactNode } from 'react';
 
 import { LearnGoalQuick } from './learn-goal-quick';
 import { LearnHomeLive } from './learn-home-live';
-import { LearnIssuesSection } from './learn-issues';
 import { LearnSettingUp } from './learn-setting-up';
 import { CHANGED_YOUR_MIND, OwnLessonCard, PullRequestCard } from './own-lesson-card';
 import { PracticeSection } from './practice-lessons';
 import { PATH_ICONS, StepStrip } from './stage-strip';
-import { HEADING } from '@/app/contribute/components/primitives';
+import { LearnIssuesSection } from '@/components/learn/learn-issues';
+import { HEADING } from '@/components/workspace/primitives';
 import {
   loadLearnIssues,
   loadLearnProfile,

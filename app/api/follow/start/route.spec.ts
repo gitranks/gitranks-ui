@@ -9,7 +9,7 @@ const { requestMaySeePackages, sessionTokenOf, startFollow, readLinkToken } = vi
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/packages/packages-gate', () => ({ requestMaySeePackages }));
-vi.mock('@/lib/contribute/session-token', () => ({ sessionTokenOf }));
+vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 vi.mock('@/lib/follow/follow-api', () => ({ startFollow }));
 vi.mock('@/lib/link-token/link-cookie', () => ({ readLinkToken }));
 

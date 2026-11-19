@@ -1,6 +1,6 @@
 /** GitRanks Learn, as the API answers it: a lesson on a fix the user's own agent made, and the user's run through it. */
 
-import type { ContributeAttemptEvent, ContributeAttemptState } from '@/lib/contribute/contribute.types';
+import type { ContributeAttemptEvent, ContributeAttemptState } from '@/lib/workspace/contribute.types';
 
 export type LessonVisibility = 'PRIVATE' | 'PUBLIC' | 'REMOVED' | 'HIDDEN' | 'HELD';
 export type LessonStepState = 'OPEN' | 'KNEW' | 'FIRST_TRY' | 'TRY_N' | 'REPORTED';

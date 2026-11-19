@@ -11,13 +11,13 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
-vi.mock('@/app/learn/actions', () => ({
+vi.mock('@/lib/learn/actions', () => ({
   saveLearnProfile: vi.fn(),
   readMyLearnAttempts: vi.fn(),
   readPracticeLessons: vi.fn(),
 }));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({ viewerLogin: vi.fn(async () => 'octocat') }));
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin: vi.fn(async () => 'octocat') }));
 const data = vi.hoisted(() => ({
   loadLearnOpen: vi.fn(async () => true),
   loadLearnProfile: vi.fn(),

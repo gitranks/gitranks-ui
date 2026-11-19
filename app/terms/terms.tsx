@@ -1,9 +1,9 @@
-import { ScrollToHash } from '@/app/contribute/components/scroll-to-hash';
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
-import { contributeShown } from '@/lib/contribute/preview-gate';
+import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
 import { LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
+import { contributeShown } from '@/lib/workspace/preview-gate';
 
 /*
  * The Terms of service. Short on purpose: what EU/UK consumer law requires for a free service, plus the clauses that

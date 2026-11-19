@@ -13,12 +13,12 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 
-const { KeyConnect } = await import('./key-connect');
-const { LimitsManual } = await import('./limits-manual');
-const { Matching } = await import('./matching');
+const { KeyConnect } = await import('@/components/workspace/agent/key-connect');
+const { LimitsManual } = await import('@/components/workspace/settings/limits-manual');
+const { Matching } = await import('@/components/workspace/matching');
 const { FirstRunGuide } = await import('./first-run-guide');
 const { IssuesScreen } = await import('./issues-view');
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
@@ -26,14 +26,14 @@ const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-
 
 /** Overview's sections from reads that all answered. */
 const sections = (view: ContributeView) => overviewSectionsOf(view, overviewData(), NOW);
-const { ReviewScreen, grantNeededOf } = await import('./review-view');
+const { ReviewScreen, grantNeededOf } = await import('@/components/workspace/pull-request/review-view');
 const { NOW, firstSpend, key, limits, settings, views } = await import(
   '@/lib/contribute/__fixtures__/contribute-views'
 );
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
-const { manualDraftOf } = await import('@/lib/contribute/connect-limits');
+const { manualDraftOf } = await import('@/lib/workspace/connect-limits');
 
-import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
+import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html

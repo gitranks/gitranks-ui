@@ -11,10 +11,10 @@ import {
 import type { LessonPage, LessonReaction, LessonResultPage, LessonRun } from './learn.types';
 import { githubLoginOf, lessonSlugOf } from './learn-path';
 import { type LessonPageAnswer, type LessonResultAnswer, publicAnswerOf } from './lesson-public';
-import { ContributeUnavailableError, viewerLogin } from '@/lib/contribute/contribute.data';
-import { contributeErrorOf, prFeedbackErrorOf } from '@/lib/contribute/errors';
 import { currentMaintainerToken } from '@/lib/contribute/maintainer-token';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { ContributeUnavailableError, viewerLogin } from '@/lib/workspace/contribute.data';
+import { contributeErrorOf, prFeedbackErrorOf } from '@/lib/workspace/errors';
 
 /**
  * A public read's failure: nothing to show (an unknown lesson, or an API that does not know the read yet) answers

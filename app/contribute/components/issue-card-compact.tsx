@@ -2,11 +2,11 @@ import type { RefObject } from 'react';
 
 import { GONE, IssueLiveStatus, isGone } from './issue-live-status';
 import { Pill } from '@/components/pill/pill';
-import { githubUrlOf } from '@/lib/contribute/attempt-format';
-import type { ContributeIssue } from '@/lib/contribute/contribute.types';
-import { GOOD_FIRST_LABEL, LANGUAGES } from '@/lib/contribute/format';
 import type { LiveStatus } from '@/lib/contribute/live-issues';
 import { cn } from '@/lib/utils';
+import { githubUrlOf } from '@/lib/workspace/attempt-format';
+import type { ContributeIssue } from '@/lib/workspace/contribute.types';
+import { GOOD_FIRST_LABEL, LANGUAGES } from '@/lib/workspace/format';
 
 /** "repo · #n · language · size M", what is known of it. */
 const whereOf = (issue: ContributeIssue) =>

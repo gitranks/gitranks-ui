@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react';
 import { mainMenuItemClass } from './menu-styles';
 import { Pill } from '@/components/pill/pill';
 import { NavigationMenuItem, NavigationMenuLink } from '@/components/ui/navigation-menu';
-import { contributeSource } from '@/lib/contribute/click-tracking';
 import {
   learnOpenInBrowser,
   learnOpenKnown,
@@ -16,6 +15,7 @@ import {
 } from '@/lib/learn/learn-open';
 import { LEARN_PATH } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
+import { contributeSource } from '@/lib/workspace/click-tracking';
 
 /** "Learn · New", the link drawn alone: for the menu and the catalogue's boards. */
 export function LearnMenuLink({ active }: Readonly<{ active?: boolean }>) {

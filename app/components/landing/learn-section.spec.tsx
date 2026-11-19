@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-auth/react', () => ({ useSession: () => ({ data: { user: { githubLogin: 'octocat' } } }) }));
-vi.mock('@/app/learn/actions', () => ({ dismissLearnPromo: vi.fn(async () => ({ ok: true, data: true })) }));
+vi.mock('@/lib/learn/actions', () => ({ dismissLearnPromo: vi.fn(async () => ({ ok: true, data: true })) }));
 
 const { LearnSectionView } = await import('./learn-section');
 const { LandingPromos, LandingPromosView } = await import('./landing-promos');

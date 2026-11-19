@@ -2,8 +2,8 @@ import type { Route } from 'next';
 
 import { LessonPageGateDocument, LessonResultGateDocument } from './learn.documents';
 import { type LessonRoute, lessonResultPath } from './learn-path';
-import { contributeErrorOf } from '@/lib/contribute/errors';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { contributeErrorOf } from '@/lib/workspace/errors';
 
 /*
  * A shared lesson's page and its result pages stream: the response starts with a 200 before the page reads the lesson,

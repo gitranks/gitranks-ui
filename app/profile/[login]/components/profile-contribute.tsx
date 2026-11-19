@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 
 import { ProfileContributeBlock } from './profile-contribute-block';
 import { ProfileLearnBlock } from './profile-learn-block';
-import { dismissLearnPromo } from '@/app/learn/actions';
 import { reportPromo } from '@/app/learn/components/use-promo-report';
 import { isProfileOwner } from '@/lib/contribute/profile-issues';
 import {
@@ -14,6 +13,7 @@ import {
   ownIssueOf,
   ownMatchOf,
 } from '@/lib/contribute/profile-picks';
+import { dismissLearnPromo } from '@/lib/learn/actions';
 import type { ShownPromo } from '@/lib/learn/learn-promo';
 import { readLearnPromo } from '@/lib/learn/learn-promo-read';
 import { loginFromPath } from '@/utils/login-from-path';

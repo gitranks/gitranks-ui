@@ -7,10 +7,10 @@ import {
   LearnStartRoomDocument,
 } from './learn-start.documents';
 import type { LearnStartAttempt, LearnStartView } from './learn-start.types';
-import { ContributeOnboardingDocument } from '@/lib/contribute/contribute.documents';
-import { type ContributeActionResult, contributeErrorOf } from '@/lib/contribute/errors';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type { RequestSource } from '@/lib/signed-fetch';
+import { ContributeOnboardingDocument } from '@/lib/workspace/contribute.documents';
+import { type ContributeActionResult, contributeErrorOf } from '@/lib/workspace/errors';
 
 type Reader = { source: RequestSource; githubLogin: string };
 

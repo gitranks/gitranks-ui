@@ -1,10 +1,3 @@
-import type {
-  ContributeAttemptDetail,
-  ContributeReplyDraft,
-  ContributeReplyWaiting,
-  ContributeSubmitError,
-  ContributeView,
-} from '../contribute.types';
 import {
   attempts,
   detail,
@@ -21,6 +14,13 @@ import {
 import { NOW, views } from './contribute-views';
 import { nextForDco, nextForProof, nextForRun, proofResult, proofSession, signal } from './needs-you';
 import { inReview, notPosted, posted } from './review-comments';
+import type {
+  ContributeAttemptDetail,
+  ContributeReplyDraft,
+  ContributeReplyWaiting,
+  ContributeSubmitError,
+  ContributeView,
+} from '@/lib/workspace/contribute.types';
 
 /**
  * A contribution in each state its session head draws (made-up repos, accounts and text): a first attempt in review,

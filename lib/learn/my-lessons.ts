@@ -2,8 +2,8 @@ import type { Route } from 'next';
 
 import type { MyLesson, MyLessonState } from './learn.types';
 import { learnAttemptPath } from './learn-path';
-import type { Tone } from '@/lib/contribute/attempt-format';
-import { dayLabel } from '@/lib/contribute/format';
+import type { Tone } from '@/lib/workspace/attempt-format';
+import { dayLabel } from '@/lib/workspace/format';
 
 /** Each state's pill. */
 export const MY_LESSON_STATES: Record<MyLessonState, { label: string; tone: Tone }> = {

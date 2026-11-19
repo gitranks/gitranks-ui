@@ -8,30 +8,30 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 
-const { ConnectScreen } = await import('./connect-view');
-const { renewalDayOptionsOf } = await import('./key-connect');
+const { ConnectScreen } = await import('@/components/workspace/agent/connect-view');
+const { renewalDayOptionsOf } = await import('@/components/workspace/agent/key-connect');
 const { ALL, FILTER_OPTIONS, activeFiltersOf } = await import('./issues-filters');
-const { helperModelLabelOf, testModelLabelOf } = await import('./settings-form');
-const { sizeLabelOf } = await import('./preferences-fields');
-const { KINDS, LANGUAGES } = await import('@/lib/contribute/format');
+const { helperModelLabelOf, testModelLabelOf } = await import('@/components/workspace/settings/settings-form');
+const { sizeLabelOf } = await import('@/components/contribute/preferences-fields');
+const { KINDS, LANGUAGES } = await import('@/lib/workspace/format');
 const { SettingsScreen } = await import('./settings-view');
 const { FormSettingsScreen, KeysSettingsScreen, OwnAgentSettingsScreen } = await import('./settings-pages');
-const { PreferencesFields } = await import('./preferences-fields');
+const { PreferencesFields } = await import('@/components/contribute/preferences-fields');
 const { IssuesScreen } = await import('./issues-view');
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
 const { issuePage, overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
-const { ContributeNotices } = await import('./contribute-notices');
-const { ConnectResult } = await import('./connect-result');
+const { ContributeNotices } = await import('@/components/workspace/contribute-notices');
+const { ConnectResult } = await import('@/components/workspace/agent/connect-result');
 const { IssueCard } = await import('./issue-card');
 const { LiveAnnouncer, LiveIssueList, LiveRowItem } = await import('./live-issues');
 const { LIVE_EXIT_AFTER_MS, LIVE_LEAVE_MS, createLiveFeed } = await import('@/lib/contribute/live-issues');
 const { NOW, limits, mcpToken, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { contributeNoticesOf } = await import('@/lib/contribute/contribute-state');
+const { contributeNoticesOf } = await import('@/lib/workspace/contribute-state');
 
-import type { ContributeConnectResult, ContributeIssue, ContributeView } from '@/lib/contribute/contribute.types';
+import type { ContributeConnectResult, ContributeIssue, ContributeView } from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html
@@ -353,7 +353,7 @@ describe('the settings screen', () => {
   });
 
   it('saves a page in one patch, or names the first field that is not a number', async () => {
-    const { moreLimitsSummaryOf, pagePatchOf } = await import('./settings-form');
+    const { moreLimitsSummaryOf, pagePatchOf } = await import('@/components/workspace/settings/settings-form');
     const draft = {
       cycleCapUsd: '$200',
       weekCapUsd: '',
@@ -792,7 +792,7 @@ describe('issues taken while the page is open', () => {
 
 describe('the heading scale', () => {
   it('gives the page title, a section and a part their own step, each above the text under it', async () => {
-    const { HEADING, PageTitle, PanelTitle, SubTitle } = await import('./primitives');
+    const { HEADING, PageTitle, PanelTitle, SubTitle } = await import('@/components/workspace/primitives');
     const html = renderToStaticMarkup(
       <>
         <PageTitle title="Issues for you" text="42 open issues" />
@@ -809,7 +809,7 @@ describe('the heading scale', () => {
   });
 
   it('heads the Issues page with its h1, and Settings with section headings at the section step', async () => {
-    const { HEADING } = await import('./primitives');
+    const { HEADING } = await import('@/components/workspace/primitives');
 
     expect(renderToStaticMarkup(<IssuesScreen view={views.active} page={undefined} query={{}} now={NOW} />)).toContain(
       `<h1 class="${HEADING.page}">Issues for you</h1>`,
@@ -946,7 +946,7 @@ describe('the access level', () => {
   });
 
   it('refuses a value typed above the cap on save, and keeps the stored one', async () => {
-    const { pagePatchOf } = await import('./settings-form');
+    const { pagePatchOf } = await import('@/components/workspace/settings/settings-form');
     const draft = {
       cycleCapUsd: '$200',
       weekCapUsd: '',

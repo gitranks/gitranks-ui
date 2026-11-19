@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContributeSetRepoIssues } from './contribute.types';
 import { setRepoEmptyLineOf } from './set-issues-format';
+import type { ContributeSetRepoIssues } from '@/lib/workspace/contribute.types';
 
 const active = (issues: ContributeSetRepoIssues | null) => ({ status: 'ACTIVE' as const, issues });
 

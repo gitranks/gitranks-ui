@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { HEADING, PageTitle } from './primitives';
 import { Pill } from '@/components/pill/pill';
-import { dayLabel } from '@/lib/contribute/format';
+import { HEADING, PageTitle } from '@/components/workspace/primitives';
 import type {
   ContributeLedger,
   ContributeLedgerPr,
@@ -14,6 +13,7 @@ import type {
   ContributeLedgerTotals,
   ContributeLedgerWeek,
 } from '@/lib/contribute/ledger.types';
+import { dayLabel } from '@/lib/workspace/format';
 
 /**
  * The Contribute ledger (ledger design 2026-11-03 §4): every pull request Contribute users opened in other people's

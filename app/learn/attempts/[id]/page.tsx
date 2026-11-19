@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
 import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
-import { ContributePageSkeleton } from '@/app/contribute/components/page-skeleton';
 import { LearnAttemptFrame, LearnAttemptView } from '@/app/learn/components/learn-attempt';
-import { viewerLogin } from '@/lib/contribute/contribute.data';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
+import { viewerLogin } from '@/lib/workspace/contribute.data';
 
 /** "A lesson" to its signed-in owner; a visitor's sign-in names nothing of Learn. */
 export async function generateMetadata(): Promise<Metadata> {

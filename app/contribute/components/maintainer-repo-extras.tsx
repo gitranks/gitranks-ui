@@ -1,5 +1,5 @@
 import { MaintainerRepoSettings } from './maintainer-repo-settings';
-import type { ContributeConfigKey, ContributeMaintainerRepo } from '@/lib/contribute/contribute.types';
+import type { ContributeConfigKey, ContributeMaintainerRepo } from '@/lib/workspace/contribute.types';
 
 /**
  * Whether "Your repos" offers a repository's rules, so the page may point there ("Set the same rules after signing

@@ -12,7 +12,7 @@ import type {
   ContributeSetReason,
   ContributeSetRepo,
   ContributeSetRepoStatus,
-} from './contribute.types';
+} from '@/lib/workspace/contribute.types';
 
 /** The longest add input: a GitHub link to a repo. */
 export const ADD_INPUT_MAX = 200;

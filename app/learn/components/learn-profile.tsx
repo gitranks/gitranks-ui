@@ -5,11 +5,11 @@ import { notFound } from 'next/navigation';
 import { LearnProfileForm } from './learn-profile-form';
 import { LearnSettingUp } from './learn-setting-up';
 import { agentWayOf } from '@/app/contribute/components/overview-sections';
-import { HEADING } from '@/app/contribute/components/primitives';
 import { Pill } from '@/components/pill/pill';
-import type { ContributeOwnAgent } from '@/lib/contribute/contribute.types';
+import { HEADING } from '@/components/workspace/primitives';
 import { loadLearnOpen, loadLearnProfile, loadLearnSetup, loadOwnAgent } from '@/lib/learn/learn.data';
 import type { LearnProfile, PracticeNext } from '@/lib/learn/learn.types';
+import type { ContributeOwnAgent } from '@/lib/workspace/contribute.types';
 
 const SIDE_CARD = 'flex flex-col gap-3 rounded-xl border bg-card p-4.5';
 

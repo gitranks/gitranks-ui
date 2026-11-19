@@ -2,17 +2,17 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 
-import { skipIssue } from '../actions';
-import { ConfirmDialog } from './confirm-dialog';
 import { GONE, type IssueLive, IssueLiveStatus, isGone, useFocusOnGone } from './issue-live-status';
-import { IssueRepoRules } from './issue-repo-rules';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
-import { githubUrlOf } from '@/lib/contribute/attempt-format';
-import type { ContributeIssue } from '@/lib/contribute/contribute.types';
-import { GOOD_FIRST_LABEL, LANGUAGES, SIZES } from '@/lib/contribute/format';
+import { ConfirmDialog } from '@/components/workspace/confirm-dialog';
+import { IssueRepoRules } from '@/components/workspace/pull-request/issue-repo-rules';
 import { skipOutcomeOf } from '@/lib/contribute/live-issues';
 import { cn } from '@/lib/utils';
+import { skipIssue } from '@/lib/workspace/actions';
+import { githubUrlOf } from '@/lib/workspace/attempt-format';
+import type { ContributeIssue } from '@/lib/workspace/contribute.types';
+import { GOOD_FIRST_LABEL, LANGUAGES, SIZES } from '@/lib/workspace/format';
 
 /** The one GitHub label shown: a beginner-friendly one where there is one, else the first. */
 const labelOf = (labels: string[]) => labels.find((label) => GOOD_FIRST_LABEL.test(label)) ?? labels[0];

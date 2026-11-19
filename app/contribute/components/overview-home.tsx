@@ -15,8 +15,8 @@ import {
   loadOverviewNeeds,
   loadOverviewNow,
   loadProviderInterests,
-} from '@/lib/contribute/contribute.data';
-import type { ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
+} from '@/lib/workspace/contribute.data';
+import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
 
 type Feed = Promise<ContributeIssuePage | null | undefined>;
 

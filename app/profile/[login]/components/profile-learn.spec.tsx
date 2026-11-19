@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const { useSession } = vi.hoisted(() => ({ useSession: vi.fn() }));
 vi.mock('next-auth/react', () => ({ useSession }));
-vi.mock('@/app/learn/actions', () => ({ dismissLearnPromo: vi.fn(async () => ({ ok: true, data: true })) }));
+vi.mock('@/lib/learn/actions', () => ({ dismissLearnPromo: vi.fn(async () => ({ ok: true, data: true })) }));
 const { reportLearnEvent } = vi.hoisted(() => ({ reportLearnEvent: vi.fn() }));
 vi.mock('@/components/contribute-click-tracker/contribute-click-tracker', () => ({ reportLearnEvent }));
 

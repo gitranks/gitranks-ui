@@ -4,23 +4,9 @@ import NextAuth from 'next-auth';
 import authConfig from './auth.config';
 import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
 import { prefersMarkdown } from './lib/contribute/accept-markdown';
-import {
-  AGENTS_DOC_PATH,
-  isAttemptPagePath,
-  isAuthorizePath,
-  isContributePath,
-  isLandingPath,
-  isLedgerPath,
-  isMaintainersPath,
-  isOpenAtLaunchPath,
-  settingUpHomeOf,
-} from './lib/contribute/contribute-path';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
-import { isPrTimelinePath, prTimelineMarkdownPath, prTimelineRouteOf } from './lib/contribute/pr-timeline-path';
-import { contributeOpen, requestContributeAccess } from './lib/contribute/preview-gate';
 import { learnOpenToEveryone } from './lib/learn/learn-everyone';
-import { requestLearnAccess } from './lib/learn/learn-gate';
 import {
   isLearnHomePath,
   isLearnOpenPath,
@@ -35,6 +21,20 @@ import { packagesPublic, requestMaySeePackages } from './lib/packages/packages-g
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
+import { requestLearnAccess } from './lib/workspace/gate';
+import {
+  AGENTS_DOC_PATH,
+  isAttemptPagePath,
+  isAuthorizePath,
+  isContributePath,
+  isLandingPath,
+  isLedgerPath,
+  isMaintainersPath,
+  isOpenAtLaunchPath,
+  settingUpHomeOf,
+} from './lib/workspace/paths';
+import { isPrTimelinePath, prTimelineMarkdownPath, prTimelineRouteOf } from './lib/workspace/pr-timeline-path';
+import { contributeOpen, requestContributeAccess } from './lib/workspace/preview-gate';
 
 const { auth } = NextAuth(authConfig);
 

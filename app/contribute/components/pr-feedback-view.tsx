@@ -2,22 +2,22 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { MaintainerSignIn } from './maintainers-view';
-import { PrCard } from './pr-card';
 import { PrHelpedForm, type PrHelpedInitial, PrReportForm, type PrReportInitial } from './pr-feedback-forms';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { isRetryablePrFeedbackError, prFeedbackErrorMessage } from '@/lib/contribute/errors';
+import { PrCard } from '@/components/workspace/pull-request/pr-card';
+import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
+import { CONTACT_EMAIL } from '@/lib/legal';
+import { isRetryablePrFeedbackError, prFeedbackErrorMessage } from '@/lib/workspace/errors';
 import {
   maintainersSectionPath,
   type PrFeedbackFlow,
   type PrTarget,
   prRefText,
   reportPathOf,
-} from '@/lib/contribute/pr-feedback';
-import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
-import { attemptPath } from '@/lib/contribute/sessions';
-import { CONTACT_EMAIL } from '@/lib/legal';
+} from '@/lib/workspace/pr-feedback';
+import { attemptPath } from '@/lib/workspace/sessions';
 
 const EYEBROW = 'text-xs font-semibold tracking-[0.08em] text-primary uppercase';
 const TITLE = 'text-2xl font-semibold tracking-tight text-balance md:text-[32px] md:leading-tight';

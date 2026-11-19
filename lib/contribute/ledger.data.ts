@@ -2,10 +2,10 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import { viewerEmail, viewerLogin } from './contribute.data';
 import { ContributeLedgerDocument } from './ledger.documents';
 import type { ContributeLedger } from './ledger.types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { viewerEmail, viewerLogin } from '@/lib/workspace/contribute.data';
 
 /**
  * The Contribute ledger (ledger design 2026-11-03 §6), or null when the API hides it from this visitor: everyone while

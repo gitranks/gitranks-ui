@@ -13,11 +13,11 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
-vi.mock('@/app/learn/actions', () => ({ readAttemptStage: vi.fn() }));
+vi.mock('@/lib/learn/actions', () => ({ readAttemptStage: vi.fn() }));
 const everyone = vi.hoisted(() => ({ open: true }));
 vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
-vi.mock('@/app/contribute/actions', () => ({}));
-vi.mock('@/lib/contribute/contribute.data', () => ({
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/workspace/contribute.data', () => ({
   viewerLogin: vi.fn(async () => 'octocat'),
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
@@ -29,12 +29,12 @@ vi.mock('@/lib/learn/learn.data', () => ({
   loadPracticeLessons: vi.fn(),
 }));
 
-const { QuestionCard } = await import('./question-card');
+const { QuestionCard } = await import('@/components/learn/question-card');
 const { LearnAttemptFrame, LearnAttemptScreen, LearnAttemptView } = await import('./learn-attempt');
 const { generateMetadata: attemptMetadata } = await import('@/app/learn/attempts/[id]/page');
 const learnData = await import('@/lib/learn/learn.data');
-const { phaseOf } = await import('./lesson-flow');
-const { Diagram } = await import('./diagram');
+const { phaseOf } = await import('@/components/learn/lesson-flow');
+const { Diagram } = await import('@/components/learn/diagram');
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
@@ -175,7 +175,7 @@ describe('the question card', () => {
 
 describe('code in lesson text', () => {
   it('keeps the spaces inside a code span, which can be the point of a question', async () => {
-    const { RichText } = await import('./rich-text');
+    const { RichText } = await import('@/components/learn/rich-text');
     const html = renderToStaticMarkup(<RichText text="What does `'a  b'.replace(/ /g, '-')` return?" />);
     expect(html.replaceAll('&#x27;', "'")).toContain("'a  b'.replace(/ /g, '-')");
     expect(html).toMatch(/<code class="[^"]*whitespace-break-spaces/);
@@ -373,7 +373,7 @@ describe("a Learn attempt's page while the account is being set up", () => {
   });
 
   it('reads practice lessons only while the agent works', async () => {
-    const data = await import('@/lib/contribute/contribute.data');
+    const data = await import('@/lib/workspace/contribute.data');
     vi.mocked(learnData.loadLearnOpen).mockResolvedValue(true);
     vi.mocked(learnData.loadLearnSetup).mockResolvedValue(false);
     vi.mocked(data.loadContribute).mockResolvedValue(views.active);
@@ -390,7 +390,7 @@ describe("a Learn attempt's page while the account is being set up", () => {
   });
 
   it('asks a visitor without a session to sign in, in place of a not found, before reading anything', async () => {
-    const data = await import('@/lib/contribute/contribute.data');
+    const data = await import('@/lib/workspace/contribute.data');
     vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
     vi.mocked(learnData.loadLearnOpen).mockClear();
     const html = renderToStaticMarkup(await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) }));
@@ -400,7 +400,7 @@ describe("a Learn attempt's page while the account is being set up", () => {
   });
 
   it("draws Learn's tabs above the page for a signed-in viewer only, and titles a visitor's tab Sign in", async () => {
-    const data = await import('@/lib/contribute/contribute.data');
+    const data = await import('@/lib/workspace/contribute.data');
     vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
     const visitor = renderToStaticMarkup(await LearnAttemptFrame({ children: <p>page</p> }));
     expect(text(visitor)).toBe('page');
@@ -412,7 +412,7 @@ describe("a Learn attempt's page while the account is being set up", () => {
   });
 
   it('names nothing of Learn to that visitor while Learn is not open to everyone', async () => {
-    const data = await import('@/lib/contribute/contribute.data');
+    const data = await import('@/lib/workspace/contribute.data');
     vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
     everyone.open = false;
     try {

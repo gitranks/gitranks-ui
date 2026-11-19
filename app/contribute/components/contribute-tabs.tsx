@@ -1,6 +1,6 @@
 import { ContributeTabsNav } from './contribute-tabs-nav';
-import { loadContribute, loadContributeActivity, loadContributeVersion } from '@/lib/contribute/contribute.data';
-import { isOnboarded } from '@/lib/contribute/contribute-state';
+import { loadContribute, loadContributeActivity, loadContributeVersion } from '@/lib/workspace/contribute.data';
+import { isOnboarded } from '@/lib/workspace/contribute-state';
 
 /**
  * Contribute's tabs for the viewer: only once they are onboarded (a visitor has no view), with what the API is working

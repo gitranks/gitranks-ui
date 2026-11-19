@@ -3,16 +3,16 @@
 import Link from 'next/link';
 import { type ReactNode, useState, useTransition } from 'react';
 
-import { readPracticeLessons } from '../actions';
-import { HEADING } from '@/app/contribute/components/primitives';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
-import { type ContributeSource, contributeSource } from '@/lib/contribute/click-tracking';
-import { dayLabel } from '@/lib/contribute/format';
+import { HEADING } from '@/components/workspace/primitives';
+import { readPracticeLessons } from '@/lib/learn/actions';
 import type { PracticeLesson, PracticeLessons } from '@/lib/learn/learn.types';
 import { levelPhraseOf, PRACTICE_ALL, wantedOf } from '@/lib/learn/learn-home';
 import { lessonPath } from '@/lib/learn/learn-path';
 import { agentNameOf } from '@/lib/learn/lesson-public';
+import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
+import { dayLabel } from '@/lib/workspace/format';
 
 /** "5 steps · 10 min · 14 passed". */
 const figuresOf = (lesson: Pick<PracticeLesson, 'steps' | 'minutes' | 'passes'>) =>

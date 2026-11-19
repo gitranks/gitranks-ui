@@ -9,21 +9,25 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-vi.mock('@/app/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/actions', () => ({}));
 // The fold's opener runs in the browser alone: the block says which fold it opens.
-vi.mock('./open-on-hash', () => ({ OpenOnHash: ({ id }: { id: string }) => <i data-open-on-hash={id} /> }));
+vi.mock('@/components/workspace/open-on-hash', () => ({
+  OpenOnHash: ({ id }: { id: string }) => <i data-open-on-hash={id} />,
+}));
 vi.mock('@/app/contribute/maintainers/actions', () => ({ setMaintainerConfig: vi.fn() }));
-vi.mock('@/lib/contribute/contribute.data', () => ({
+vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadIssues: vi.fn(),
   loadAttempt: vi.fn(),
   loadResolveHumanThreads: vi.fn(async () => undefined),
 }));
 
-const { AttemptRepoRules, openRepoRules, ReposAskLessNote, RulesOpen } = await import('./repo-rules');
-const { IssueRepoRules } = await import('./issue-repo-rules');
+const { AttemptRepoRules, openRepoRules, ReposAskLessNote, RulesOpen } = await import(
+  '@/components/workspace/pull-request/repo-rules'
+);
+const { IssueRepoRules } = await import('@/components/workspace/pull-request/issue-repo-rules');
 const { MaintainerRepoExtras } = await import('./maintainer-repo-extras');
-const { ReviewScreen } = await import('./review-view');
+const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
 const { IssueCard } = await import('./issue-card');
 const { SettingsScreen } = await import('./settings-view');
 
@@ -38,9 +42,9 @@ import {
   maintainerConfig,
   maintainerRules,
 } from '@/lib/contribute/__fixtures__/repo-rules';
-import type { ContributeAttemptDetail, ContributeSubmitError } from '@/lib/contribute/contribute.types';
-import { GITHUB_APPS_URL } from '@/lib/contribute/org-access';
-import { settingsAfterSave } from '@/lib/contribute/repo-rules';
+import type { ContributeAttemptDetail, ContributeSubmitError } from '@/lib/workspace/contribute.types';
+import { GITHUB_APPS_URL } from '@/lib/workspace/org-access';
+import { settingsAfterSave } from '@/lib/workspace/repo-rules';
 
 const text = (html: string) =>
   html

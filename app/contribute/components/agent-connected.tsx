@@ -1,18 +1,18 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 
-import { CodeBlock } from './code-block';
 import { guessedLineOf, WORK_SETTINGS_PATH } from './first-run-guide';
 import { ForgetWelcome } from './forget-welcome';
-import { PauseButton } from './pause-button';
-import { HEADING } from './primitives';
 import { StillRanking } from './still-ranking';
-import { githubUrlOf } from '@/lib/contribute/attempt-format';
-import type { ContributeIssue, ContributeIssuePage, ContributeView } from '@/lib/contribute/contribute.types';
+import { CodeBlock } from '@/components/workspace/code-block';
+import { PauseButton } from '@/components/workspace/pause-button';
+import { HEADING } from '@/components/workspace/primitives';
 import { agentFirstRunStepOf } from '@/lib/contribute/first-run';
-import { KIND_ONE, LANGUAGES } from '@/lib/contribute/format';
-import { AGENT_FIRST_PROMPT, MCP_CLIENT_NAMES, type McpClient } from '@/lib/contribute/mcp-setup';
 import { cn } from '@/lib/utils';
+import { githubUrlOf } from '@/lib/workspace/attempt-format';
+import type { ContributeIssue, ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
+import { KIND_ONE, LANGUAGES } from '@/lib/workspace/format';
+import { AGENT_FIRST_PROMPT, MCP_CLIENT_NAMES, type McpClient } from '@/lib/workspace/mcp-setup';
 
 const ISSUES_PATH: Route = '/contribute/issues';
 

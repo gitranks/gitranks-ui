@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { ContributePageSkeleton } from '@/app/contribute/components/page-skeleton';
 import { LearnProfileView } from '@/app/learn/components/learn-profile';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'Goal and level', robots: { index: false, follow: false } };
 

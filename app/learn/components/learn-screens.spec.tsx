@@ -14,6 +14,8 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/app/learn/actions', () => ({ readAttemptStage: vi.fn() }));
+const everyone = vi.hoisted(() => ({ open: true }));
+vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({
   viewerLogin: vi.fn(async () => 'octocat'),
@@ -383,5 +385,19 @@ describe("a Learn attempt's page while the account is being set up", () => {
     expect(html).toContain('data-attempt-sign-in="lesson"');
     expect(text(html)).toContain('Sign in to see this lesson');
     expect(learnData.loadLearnOpen).not.toHaveBeenCalled();
+  });
+
+  it('names nothing of Learn to that visitor while Learn is not open to everyone', async () => {
+    const data = await import('@/lib/contribute/contribute.data');
+    vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
+    everyone.open = false;
+    try {
+      const html = renderToStaticMarkup(await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) }));
+      expect(html).toContain('data-attempt-sign-in="page"');
+      expect(text(html)).toContain('Sign in to see this page');
+      expect(text(html)).not.toMatch(/learn|lesson/i);
+    } finally {
+      everyone.open = true;
+    }
   });
 });

@@ -1,4 +1,5 @@
 import { LearnOpenDocument } from './learn.documents';
+import { sessionTokenOf } from '@/lib/contribute/session-token';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /**
@@ -13,4 +14,16 @@ export async function learnOpenFor(githubLogin: string | null | undefined): Prom
   } catch {
     return false;
   }
+}
+
+/**
+ * Learn for the request's signed-in viewer, as the proxy reads it before a page renders: `open`, `closed`, or
+ * `signed-out` when the request carries no session the server can read (none, or an expired one).
+ */
+export type LearnAccess = 'open' | 'closed' | 'signed-out';
+
+export async function requestLearnAccess(req: { headers: Headers }): Promise<LearnAccess> {
+  const token = await sessionTokenOf(req);
+  if (!token?.githubLogin || token.error) return 'signed-out';
+  return (await learnOpenFor(token.githubLogin)) ? 'open' : 'closed';
 }

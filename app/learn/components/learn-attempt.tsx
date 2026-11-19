@@ -38,6 +38,7 @@ import { parsePatch } from '@/lib/contribute/patch';
 import { attemptPath } from '@/lib/contribute/sessions';
 import { loadAttemptLesson, loadLearnOpen, loadLearnSetup, loadPracticeLessons } from '@/lib/learn/learn.data';
 import type { LearnAttemptLesson, LessonStep, PracticeLessons } from '@/lib/learn/learn.types';
+import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
 import { endedReasonOf, WAIT_PRACTICE } from '@/lib/learn/learn-home';
 import { LEARN_PRACTICE_PATH, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
 import { LEARN_ISSUES_PATH } from '@/lib/learn/learn-start';
@@ -400,7 +401,8 @@ export async function LearnAttemptView({
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams ?? Promise.resolve({})]);
   // Signed out: the link an agent hands its person, opened where they are not signed in. The sign-in, back here.
-  if (!(await viewerLogin())) return <AttemptSignIn what="lesson" />;
+  // While Learn is not open to everyone it names nothing of Learn.
+  if (!(await viewerLogin())) return <AttemptSignIn what={(await learnOpenToEveryone()) ? 'lesson' : 'page'} />;
   const [open, settingUp, view, attempt, lesson] = await Promise.all([
     loadLearnOpen(),
     loadLearnSetup(),

@@ -21,6 +21,8 @@ vi.mock('./lib/learn/lesson-gate', () => ({
 }));
 const everyone = vi.hoisted(() => ({ open: true }));
 vi.mock('./lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
+// With Learn open to everyone, every signed-in viewer is one it is open to.
+vi.mock('./lib/learn/learn-gate', () => ({ requestLearnAccess: async () => 'open' }));
 
 const { default: proxy } = await import('./proxy');
 

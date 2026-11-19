@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { graphqlDirect } = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
+const { sessionTokenOf } = vi.hoisted(() => ({ sessionTokenOf: vi.fn() }));
+vi.mock('@/lib/contribute/session-token', () => ({ sessionTokenOf }));
 
-const { learnOpenFor } = await import('./learn-gate');
+const { learnOpenFor, requestLearnAccess } = await import('./learn-gate');
 const { isLearnOpenPath, isLearnPath, learnAttemptPath } = await import('./learn-path');
 
 describe('the Learn gate', () => {
@@ -87,5 +89,19 @@ describe("Learn's paths", () => {
   it("writes an attempt's page with its id encoded", () => {
     expect(learnAttemptPath('A_1')).toBe('/learn/attempts/A_1');
     expect(learnAttemptPath('a/b')).toBe('/learn/attempts/a%2Fb');
+  });
+
+  it("reads the request's session: open, closed, or signed out without a readable one", async () => {
+    const req = { headers: new Headers() };
+    sessionTokenOf.mockResolvedValueOnce(null);
+    expect(await requestLearnAccess(req)).toBe('signed-out');
+    sessionTokenOf.mockResolvedValueOnce({ githubLogin: 'octocat', error: 'RefreshTokenError' });
+    expect(await requestLearnAccess(req)).toBe('signed-out');
+    expect(graphqlDirect).not.toHaveBeenCalled();
+    sessionTokenOf.mockResolvedValue({ githubLogin: 'octocat' });
+    graphqlDirect.mockResolvedValueOnce({ learnOpen: true });
+    expect(await requestLearnAccess(req)).toBe('open');
+    graphqlDirect.mockResolvedValueOnce({ learnOpen: false });
+    expect(await requestLearnAccess(req)).toBe('closed');
   });
 });

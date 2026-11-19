@@ -10,7 +10,8 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
+const auth = vi.hoisted(() => ({ status: 'authenticated' }));
+vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null, status: auth.status }) }));
 vi.mock('@/app/learn/actions', () => ({
   saveLearnProfile: vi.fn(),
   readMyLearnAttempts: vi.fn(),
@@ -375,5 +376,15 @@ describe("Learn's tabs", () => {
     }
     expect(tabs('/learn/attempts/A_1')).toMatch(/aria-current="page"[^>]*href="\/learn\/lessons"/);
     nav.pathname = '/learn';
+  });
+
+  it("are not drawn on an attempt's page for a visitor, who is asked to sign in there", () => {
+    auth.status = 'unauthenticated';
+    try {
+      expect(text(tabs('/learn/attempts/A_1'))).not.toMatch(/learn|lesson/i);
+    } finally {
+      auth.status = 'authenticated';
+      nav.pathname = '/learn';
+    }
   });
 });

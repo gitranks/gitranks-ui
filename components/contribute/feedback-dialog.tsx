@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Textarea } from '@/components/ui/textarea';
 import { Eyebrow } from '@/components/workspace/primitives';
 import { RadioPills } from '@/components/workspace/settings/radio-pills';
+import { sendContributeFeedback } from '@/lib/contribute/actions';
 import { FEEDBACK_TOPICS, feedbackContextLine, feedbackProblemOf, type SetRules } from '@/lib/contribute/set-format';
-import { sendContributeFeedback } from '@/lib/workspace/actions';
 import type { ContributeFeedbackContext, ContributeFeedbackTopic } from '@/lib/workspace/contribute.types';
 import { contributeSetErrorMessage } from '@/lib/workspace/errors';
 

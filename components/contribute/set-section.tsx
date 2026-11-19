@@ -6,9 +6,9 @@ import { useState, useTransition } from 'react';
 import { FeedbackDialog, type FeedbackOpen } from './feedback-dialog';
 import { announceActivity } from '@/components/workspace/activity';
 import { RadioPills, useSettledPick } from '@/components/workspace/settings/radio-pills';
+import { setContributeFallback } from '@/lib/contribute/actions';
 import { FALLBACKS, settlingOf, stackPendingOf } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
-import { setContributeFallback } from '@/lib/workspace/actions';
 import type { ContributeSet, ContributeSetFallback, ContributeSetListMode } from '@/lib/workspace/contribute.types';
 import {
   type ContributeSetAction,

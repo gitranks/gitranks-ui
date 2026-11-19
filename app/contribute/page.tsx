@@ -8,13 +8,13 @@ import { OverviewScreen } from './components/overview-status';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
+import { loadIssues } from '@/lib/contribute/contribute.data';
 import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
 import { isAgentWelcome } from '@/lib/workspace/agent-connect';
 import {
   loadAttempts,
   loadContribute,
   loadContributeSetup,
-  loadIssues,
   loadProviderInterests,
   viewerLogin,
 } from '@/lib/workspace/contribute.data';

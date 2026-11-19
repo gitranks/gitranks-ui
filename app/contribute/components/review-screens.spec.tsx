@@ -10,6 +10,7 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadIssues: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadAttempts: vi.fn(),
   loadContributions: vi.fn(),
 }));
+vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 
 const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
 const { signOffOf, submitWaitsOf } = await import('@/components/workspace/pull-request/pr-form');
@@ -43,7 +45,7 @@ const {
   stopped,
 } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { END_REASONS, LIVE_STATES } = await import('@/lib/workspace/attempt-format');
-const { settingsPathOf } = await import('@/lib/workspace/settings-paths');
+const { settingsPathOf } = await import('@/lib/workspace/paths');
 const { attemptRules } = await import('@/lib/contribute/__fixtures__/repo-rules');
 
 import type {

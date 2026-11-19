@@ -12,6 +12,7 @@ import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Meter, SubTitle } from '@/components/workspace/primitives';
+import { addToContributeSet, ignoreContributeRepo, removeFromContributeSet } from '@/lib/contribute/actions';
 import {
   ADD_INPUT_MAX,
   addNoticeOf,
@@ -24,7 +25,6 @@ import {
 } from '@/lib/contribute/set-format';
 import { setRepoEmptyLineOf } from '@/lib/contribute/set-issues-format';
 import { cn } from '@/lib/utils';
-import { addToContributeSet, ignoreContributeRepo, removeFromContributeSet } from '@/lib/workspace/actions';
 import type {
   ContributeSet,
   ContributeSetAddResult,
@@ -32,7 +32,7 @@ import type {
   ContributeSetRepo,
 } from '@/lib/workspace/contribute.types';
 import { dayLabel, LANGUAGES } from '@/lib/workspace/format';
-import { settingsPathOf } from '@/lib/workspace/settings-paths';
+import { settingsPathOf } from '@/lib/workspace/paths';
 
 /** Rows a group shows before "Show more". */
 const GROUP_ROWS = 5;

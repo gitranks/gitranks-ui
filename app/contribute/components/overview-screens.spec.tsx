@@ -7,6 +7,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
 
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
 const { NeedsYouSection, RightNowSection, ImpactSection, WaysSection, UpNextSection } = await import(

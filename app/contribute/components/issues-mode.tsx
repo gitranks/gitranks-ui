@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Eyebrow } from '@/components/workspace/primitives';
 import { useSettledPick } from '@/components/workspace/settings/radio-pills';
+import { setContributeFallback, setContributeMode } from '@/lib/contribute/actions';
 import {
   MODES,
   modeChipOf,
@@ -20,11 +21,10 @@ import {
   stackPendingOf,
 } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
-import { setContributeFallback, setContributeMode } from '@/lib/workspace/actions';
 import type { ContributeLanguage, ContributeSet, ContributeSetMode } from '@/lib/workspace/contribute.types';
 import { contributeSetErrorMessage } from '@/lib/workspace/errors';
 import { LANGUAGES } from '@/lib/workspace/format';
-import { SETTINGS_PATHS, settingsPathOf } from '@/lib/workspace/settings-paths';
+import { SETTINGS_PATHS, settingsPathOf } from '@/lib/workspace/paths';
 
 const ICONS = { STACK: Layers, REPOS: LayoutGrid, ALL: Globe } as const;
 

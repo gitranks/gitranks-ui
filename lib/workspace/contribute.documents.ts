@@ -6,6 +6,7 @@ import type {
   ContributeAttemptDetail,
   ContributeAttemptFollowUpFields,
   ContributeAttemptLive,
+  ContributeAttemptMode,
   ContributeAttemptState,
   ContributeAttemptSubmit,
   ContributeAutopilot,
@@ -1234,3 +1235,42 @@ export const PostContributeProofReplyDocument = doc<
 export const RetryContributeProofDocument = doc<{ retryContributeProof: ProofMoved }, { id: string }>(
   `mutation RetryContributeProof($id: ID!) { retryContributeProof(id: $id) { ${PROOF_MOVED} } }`,
 );
+
+/** A Learn attempt's own fields, read beside the attempt so an API without them leaves it as it was. */
+export const ContributeAttemptLearnDocument = doc<
+  {
+    contributeAttempt: {
+      attemptId: string;
+      mode: ContributeAttemptMode;
+      learnActiveAt: string | null;
+      learnGatePassed: boolean | null;
+    } | null;
+  },
+  { id: string }
+>(`query ContributeAttemptLearn($id: ID!) {
+  contributeAttempt(id: $id) { attemptId mode learnActiveAt learnGatePassed }
+}`);
+
+type LearnRow = { attemptId: string; mode: ContributeAttemptMode; learnActiveAt: string | null };
+
+/** The attempts' Learn fields, read beside a list of attempts. */
+export const ContributeAttemptsLearnDocument = doc<
+  { contributeAttempts: LearnRow[] | null },
+  { state?: string; first?: number }
+>(`query ContributeAttemptsLearn($state: ContributeAttemptState, $first: Int) {
+  contributeAttempts(state: $state, first: $first) { attemptId mode learnActiveAt }
+}`);
+
+export const ContributeAttemptsInLearnDocument = doc<
+  { contributeAttempts: LearnRow[] | null },
+  { states: string[]; first?: number }
+>(`query ContributeAttemptsInLearn($states: [ContributeAttemptState!], $first: Int) {
+  contributeAttempts(states: $states, first: $first) { attemptId mode learnActiveAt }
+}`);
+
+export const SetPrTimelineDocument = doc<
+  { setContributePrTimeline: { attemptId: string; shown: boolean } },
+  { attemptId: string; shown: boolean }
+>(`mutation SetPrTimeline($attemptId: ID!, $shown: Boolean!) {
+  setContributePrTimeline(attemptId: $attemptId, shown: $shown) { attemptId shown }
+}`);

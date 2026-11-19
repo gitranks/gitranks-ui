@@ -6,8 +6,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/contribute/runs',
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock('@/lib/workspace/actions', () => ({}));
-vi.mock('@/lib/workspace/runs.actions', () => ({ readRunsPage: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({ readRunsPage: vi.fn() }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadContributeActivity: vi.fn() }));
 vi.mock('@/lib/workspace/runs.data', () => ({ loadRuns: vi.fn() }));
 

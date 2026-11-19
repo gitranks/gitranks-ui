@@ -22,11 +22,10 @@ import {
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
 import { replyRowOf } from './needs-you-replies';
 import { isToApprove } from './one-comment';
-import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from './paths';
+import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, learnAttemptPath } from './paths';
 import { type ContributePrConventionIssue, httpsOnly, PR_FIX_WORDS } from './pr-conventions';
 import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { attemptPath, nextSessionPath, sessionPath } from './sessions';
-import { learnAttemptPath } from '@/lib/learn/learn-path';
 
 /**
  * "Needs you" on Overview and My contributions (2026-11-03): one row per thing that waits for the user, each saying

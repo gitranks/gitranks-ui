@@ -38,10 +38,3 @@ export const PrTimelineByAttemptDocument = doc<
 export const PublicPrTimelinesDocument = doc<{ publicPrTimelines: PublicPrTimeline[] }>(
   'query PublicPrTimelines { publicPrTimelines { nameWithOwner number modifiedAt } }',
 );
-
-export const SetPrTimelineDocument = doc<
-  { setContributePrTimeline: { attemptId: string; shown: boolean } },
-  { attemptId: string; shown: boolean }
->(`mutation SetPrTimeline($attemptId: ID!, $shown: Boolean!) {
-  setContributePrTimeline(attemptId: $attemptId, shown: $shown) { attemptId shown }
-}`);

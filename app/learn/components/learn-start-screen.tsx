@@ -12,7 +12,8 @@ import { AgentConnect } from '@/components/workspace/agent/agent-connect';
 import { CodeBlock } from '@/components/workspace/code-block';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { HEADING } from '@/components/workspace/primitives';
-import { LEARN_PATH, learnAttemptPath } from '@/lib/learn/learn-path';
+import { readLearnStartAttempt, readLearnStartIssue } from '@/lib/learn/actions';
+import { LEARN_PATH } from '@/lib/learn/learn-path';
 import {
   agentNameOf,
   fixAttemptPath,
@@ -30,12 +31,11 @@ import {
 } from '@/lib/learn/learn-start';
 import type { LearnStartAttempt, LearnStartIssueRow, LearnStartView } from '@/lib/learn/learn-start.types';
 import { startLearnStartPoll } from '@/lib/learn/learn-start-poll';
-import { readLearnStartAttempt, readLearnStartIssue } from '@/lib/learn/start.actions';
 import { cn } from '@/lib/utils';
 import type { ContributeIssueSize, ContributeMcpToken } from '@/lib/workspace/contribute.types';
 import { SIZES } from '@/lib/workspace/format';
 import type { McpClient } from '@/lib/workspace/mcp-setup';
-import { settingsPathOf } from '@/lib/workspace/settings-paths';
+import { learnAttemptPath, settingsPathOf } from '@/lib/workspace/paths';
 
 const card = 'flex flex-col gap-3.5 rounded-2xl bg-card p-4.5 sm:p-5.5';
 const activeCard = 'border-2 border-primary';

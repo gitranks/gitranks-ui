@@ -15,7 +15,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/lib/workspace/actions', () => ({}));
-vi.mock('@/lib/learn/start.actions', () => ({ readLearnStartIssue: vi.fn(), readLearnStartAttempt: vi.fn() }));
+vi.mock('@/lib/learn/actions', () => ({ readLearnStartIssue: vi.fn(), readLearnStartAttempt: vi.fn() }));
 const { viewerLogin } = vi.hoisted(() => ({ viewerLogin: vi.fn(async (): Promise<string | null> => 'octocat') }));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   viewerLogin,

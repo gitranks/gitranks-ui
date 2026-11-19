@@ -14,12 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { setContributeMode } from '@/lib/contribute/actions';
 import { MODES } from '@/lib/contribute/set-format';
+import { keptListOf } from '@/lib/contribute/work-summary';
 import { cn } from '@/lib/utils';
-import { setContributeMode } from '@/lib/workspace/actions';
 import type { ContributeSet, ContributeSetMode } from '@/lib/workspace/contribute.types';
-import { switchPathOf } from '@/lib/workspace/settings-paths';
-import { keptListOf } from '@/lib/workspace/settings-summary';
+import { switchPathOf } from '@/lib/workspace/paths';
 
 const ICONS = { STACK: Layers, REPOS: LayoutGrid, ALL: Globe } as const;
 

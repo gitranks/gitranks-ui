@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { LearnSetupRefresh } from './learn-setting-up';
 import { LearnViewReport } from './learn-view-report';
 import { LessonEyebrow, LessonMeta } from './lesson-header';
 import { LessonStubScreen } from './lesson-stub';
@@ -11,6 +10,7 @@ import { JsonLd } from '@/components/json-ld/json-ld';
 import type { LessonFlowStart } from '@/components/learn/lesson-flow';
 import { LessonIntro, ReadLesson, SignInToTake } from '@/components/learn/lesson-read';
 import { HEADING } from '@/components/workspace/primitives';
+import { LearnSetupRefresh } from '@/components/workspace/setup-refresh';
 import { loadLearnOpen, loadLearnProfile, loadLearnSetup } from '@/lib/learn/learn.data';
 import type { LearnGoalView, LessonPage, LessonRun, PracticeNext } from '@/lib/learn/learn.types';
 import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';

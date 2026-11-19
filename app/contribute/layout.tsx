@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { type ReactNode, Suspense } from 'react';
 
 import { ContributeTabs } from './components/contribute-tabs';
-import { HeaderLine } from './components/contribute-tabs-nav';
 import { Header } from '@/components/header/header';
 import { LaunchBarSeen } from '@/components/launch-bar/launch-bar-dismiss';
+import { HeaderLine } from '@/components/workspace/header-line';
 
 export const metadata: Metadata = {
   title: 'Contribute',

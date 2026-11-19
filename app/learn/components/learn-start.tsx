@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { LearnStart } from './learn-start-screen';
 import { loadLearnOpen, loadLearnProfile, loadOwnAgent } from '@/lib/learn/learn.data';
-import { LEARN_PATH, learnAttemptPath } from '@/lib/learn/learn-path';
+import { LEARN_PATH } from '@/lib/learn/learn-path';
 import {
   learnGoalLabelOf,
   learnStartConnectionOf,
@@ -13,6 +13,7 @@ import { learnStartOnboarded, learnStartViewOf } from '@/lib/learn/learn-start.d
 import type { LearnStartView as LearnStartAnswer } from '@/lib/learn/learn-start.types';
 import { ContributeUnavailableError, viewerLogin } from '@/lib/workspace/contribute.data';
 import { contributeMcpSignIn } from '@/lib/workspace/mcp-sign-in';
+import { learnAttemptPath } from '@/lib/workspace/paths';
 
 /** An issue the API would not take as named: the page says it can't be started here, as for one it won't show. */
 const unavailable = (repo: string, number: number): LearnStartAnswer => ({

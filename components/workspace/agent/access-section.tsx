@@ -14,7 +14,7 @@ import { contributeErrorMessage } from '@/lib/workspace/errors';
 import { dayLabel, maskedKey, relativeLabel, shortId } from '@/lib/workspace/format';
 import type { GrantRefusal } from '@/lib/workspace/grant-refusal';
 import { GITHUB_APPS_URL } from '@/lib/workspace/org-access';
-import { SETTINGS_PATHS } from '@/lib/workspace/settings-paths';
+import { SETTINGS_PATHS } from '@/lib/workspace/paths';
 import { grantSummaryOf, KEY_STATES } from '@/lib/workspace/settings-summary';
 
 export { GITHUB_APPS_URL };

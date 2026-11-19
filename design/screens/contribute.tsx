@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { Screen } from '../registry';
 import { changedCommentStates, reviewCommentStates, sessionHeadStates } from './contribute-moves';
 import { ContributeBadgePreview } from '@/app/contribute/components/contribute-badge-preview';
-import { ContributeTabsNav, HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
+import { ContributeTabsNav } from '@/app/contribute/components/contribute-tabs-nav';
 import { FaqScreen } from '@/app/contribute/components/faq';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
@@ -33,6 +33,7 @@ import {
   AutopilotRecord,
 } from '@/components/workspace/autopilot-section';
 import { ContributionsScreen } from '@/components/workspace/contributions-view';
+import { HeaderLine } from '@/components/workspace/header-line';
 import { ChecksPanel, ReadinessPanel } from '@/components/workspace/pull-request/attempt-panels';
 import { PrForm, type PrFormProps } from '@/components/workspace/pull-request/pr-form';
 import { RulesOpen } from '@/components/workspace/pull-request/repo-rules';

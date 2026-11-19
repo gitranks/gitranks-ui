@@ -8,7 +8,7 @@ import type { McpClient } from '@/lib/workspace/mcp-setup';
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace, push: vi.fn(), refresh: vi.fn() }) }));
 const actions = vi.hoisted(() => ({ readLearnStartIssue: vi.fn(), readLearnStartAttempt: vi.fn() }));
-vi.mock('@/lib/learn/start.actions', () => actions);
+vi.mock('@/lib/learn/actions', () => actions);
 const tracker = vi.hoisted(() => ({ reportLearnEvent: vi.fn(), reportContributeConnect: vi.fn() }));
 vi.mock('@/components/contribute-click-tracker/contribute-click-tracker', () => tracker);
 // Step 1's connect steps, as a button that says the agent has called.

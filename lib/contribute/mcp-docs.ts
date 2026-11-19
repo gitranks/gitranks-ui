@@ -20,7 +20,7 @@ import {
   VS_CODE_TOKEN_LINES,
   VS_CODE_TOKEN_WHERE,
 } from '@/lib/workspace/own-agent-setups';
-import { settingsPathOf } from '@/lib/workspace/settings-paths';
+import { settingsPathOf } from '@/lib/workspace/paths';
 
 /** What the docs put where a token goes: never a real one. The setup's own placeholder. */
 export const TOKEN_PLACEHOLDER = MCP_TOKEN_PLACEHOLDER;

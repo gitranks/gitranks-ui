@@ -6,17 +6,10 @@ import { PrTimelineByAttemptDocument, PrTimelineDocument, PublicPrTimelinesDocum
 import type { PrTimeline, PublicPrTimeline } from './pr-timeline.types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type { PrRef } from '@/lib/workspace/pr-feedback';
-import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
+import { prTimelineAttemptTagOf, prTimelinePath, prTimelineTagOf } from '@/lib/workspace/pr-timeline-path';
 
 /** A build-time param no repository has: the build renders the not-found page without asking for data. */
 export const NO_PR = { owner: '_', repo: '_', number: '1' } as const;
-
-/** One PR's cache tag by its owner attempt's id (the API's answer to the contributor's switch names it). */
-export const prTimelineAttemptTagOf = (attemptId: string) => `pr-timeline-attempt:${attemptId}`;
-
-/** One PR's cache tag: the contributor's Hide expires it at once. */
-export const prTimelineTagOf = ({ nameWithOwner, number }: PrRef) =>
-  `pr-timeline:${nameWithOwner.toLowerCase()}#${number}`;
 
 /**
  * The public page's read, signed out, the same for everyone it is shown to: kept two minutes fresh and five at most,

@@ -29,8 +29,8 @@ import {
   settingsOf,
 } from '@/lib/workspace/contribute-state';
 import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
+import { SETTINGS_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
-import { SETTINGS_PATHS } from '@/lib/workspace/settings-paths';
 import {
   agentSummaryOf,
   budgetSummaryOf,

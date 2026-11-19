@@ -12,6 +12,7 @@ import { StillRanking } from './still-ranking';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { HEADING, Meter } from '@/components/workspace/primitives';
 import { ReviewsReady } from '@/components/workspace/reviews-ready';
+import { loadIssues } from '@/lib/contribute/contribute.data';
 import {
   agentFirstRunStepOf,
   firstRunNoticesOf,
@@ -19,13 +20,7 @@ import {
   isAgentFirstRun,
   isFirstRun,
 } from '@/lib/contribute/first-run';
-import {
-  loadAttempts,
-  loadContribute,
-  loadContributeSet,
-  loadContributeSetup,
-  loadIssues,
-} from '@/lib/workspace/contribute.data';
+import { loadAttempts, loadContribute, loadContributeSet, loadContributeSetup } from '@/lib/workspace/contribute.data';
 import type {
   ContributeAttempt,
   ContributeIssuePage,
@@ -39,8 +34,8 @@ import {
   isSuspended,
 } from '@/lib/workspace/contribute-state';
 import { dayLabel, relativeLabel, usd } from '@/lib/workspace/format';
+import { settingsPathOf } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
-import { settingsPathOf } from '@/lib/workspace/settings-paths';
 
 export async function IssuesView({
   searchParams,

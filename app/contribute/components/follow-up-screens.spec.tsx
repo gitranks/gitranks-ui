@@ -12,6 +12,7 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
 // A marker where the page reads itself again, so the static markup shows it.
 vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),

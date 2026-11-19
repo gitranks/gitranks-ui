@@ -40,9 +40,8 @@ import {
   USE_A_TOKEN_INSTEAD,
 } from '@/lib/workspace/mcp-setup';
 import { personalTokensOf } from '@/lib/workspace/oauth-consent';
-import { CONNECT_KEY_PATH, MCP_DOCS_PATH } from '@/lib/workspace/paths';
+import { CONNECT_KEY_PATH, MCP_DOCS_PATH, settingsPathOf } from '@/lib/workspace/paths';
 import { nextSessionPath } from '@/lib/workspace/sessions';
-import { settingsPathOf } from '@/lib/workspace/settings-paths';
 
 /** Where step 2 stands: no token yet, the token shown with its setup, or the setup done. */
 export type AgentStage = 'none' | 'token' | 'added';

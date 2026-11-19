@@ -32,11 +32,14 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-auth/react', () => ({ signIn, signOut: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/components/signin-button/signin-button', () => ({ default: () => <span data-avatar-menu /> }));
 vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => data);
+vi.mock('@/lib/contribute/contribute.data', () => data);
 
 const { Landing } = await import('./landing');
 const { SignInButton, SignInPanel, signInRouteOf, startSignIn } = await import('@/components/workspace/sign-in-dialog');
-const { ContributeTabsNav, HeaderLine, contributeTabsShown } = await import('./contribute-tabs-nav');
+const { ContributeTabsNav, contributeTabsShown } = await import('./contribute-tabs-nav');
+const { HeaderLine } = await import('@/components/workspace/header-line');
 const { ContributeTabs } = await import('./contribute-tabs');
 const { default: ContributeLayout } = await import('../layout');
 const { IssuesView } = await import('./issues-view');

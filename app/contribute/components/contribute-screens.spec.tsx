@@ -9,7 +9,9 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
+vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 
 const { ConnectScreen } = await import('@/components/workspace/agent/connect-view');
 const { renewalDayOptionsOf } = await import('@/components/workspace/agent/key-connect');

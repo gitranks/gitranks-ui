@@ -17,11 +17,11 @@ import {
 } from '@/components/ui/dialog';
 import { SettingsRow } from '@/components/workspace/settings-rows';
 import { useHashOpen } from '@/components/workspace/use-hash-open';
+import { savePreferences } from '@/lib/contribute/actions';
 import { plural } from '@/lib/contribute/set-format';
-import { savePreferences } from '@/lib/workspace/actions';
+import { preferencesSummaryOf } from '@/lib/contribute/work-summary';
 import type { ContributePreferences } from '@/lib/workspace/contribute.types';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
-import { preferencesSummaryOf } from '@/lib/workspace/settings-summary';
 
 const draftOf = (preferences: ContributePreferences | null): PreferencesDraft => ({
   languages: preferences?.languages ?? [],

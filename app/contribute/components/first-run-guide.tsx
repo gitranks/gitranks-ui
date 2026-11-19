@@ -7,8 +7,7 @@ import { HEADING } from '@/components/workspace/primitives';
 import { type FirstRunStep, firstRunStepOf } from '@/lib/contribute/first-run';
 import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
 import { dayLabel, KINDS, LANGUAGES, relativeLabel, SIZES, usd } from '@/lib/workspace/format';
-import { CONNECT_KEY_PATH } from '@/lib/workspace/paths';
-import { settingsPathOf } from '@/lib/workspace/settings-paths';
+import { CONNECT_KEY_PATH, settingsPathOf } from '@/lib/workspace/paths';
 
 export const WORK_SETTINGS_PATH = settingsPathOf('work');
 const LIMITS_SETTINGS_PATH = settingsPathOf('more-limits');

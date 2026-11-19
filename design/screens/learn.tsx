@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
-import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { LearnAttemptScreen } from '@/app/learn/components/learn-attempt';
 import { LearnHomeScreen } from '@/app/learn/components/learn-home';
 import { LearnLanding } from '@/app/learn/components/learn-landing';
@@ -15,6 +14,7 @@ import { MyLessonsScreen } from '@/app/learn/components/my-lessons';
 import { RecentLessons } from '@/app/learn/components/recent-lessons';
 import { Header } from '@/components/header/header';
 import type { LessonFlowStart } from '@/components/learn/lesson-flow';
+import { HeaderLine } from '@/components/workspace/header-line';
 import { detail, pullRequest } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { views } from '@/lib/contribute/__fixtures__/contribute-views';
 import {

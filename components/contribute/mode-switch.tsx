@@ -9,12 +9,12 @@ import { SetListEditor } from './set-list-editor';
 import { FallbackChoice, useSetWrite } from './set-section';
 import { Button } from '@/components/ui/button';
 import { Panel } from '@/components/workspace/primitives';
+import { setContributeMode } from '@/lib/contribute/actions';
 import { FALLBACKS, listOf, modeTitleOf, plural } from '@/lib/contribute/set-format';
+import { keptListOf, waitingLibrariesOf } from '@/lib/contribute/work-summary';
 import { cn } from '@/lib/utils';
-import { setContributeMode } from '@/lib/workspace/actions';
 import type { ContributeSet, ContributeSetListMode } from '@/lib/workspace/contribute.types';
-import { SETTINGS_PATHS } from '@/lib/workspace/settings-paths';
-import { keptListOf, waitingLibrariesOf } from '@/lib/workspace/settings-summary';
+import { SETTINGS_PATHS } from '@/lib/workspace/paths';
 
 /** The switch's steps, by the list it builds. */
 export const switchStepsOf = (target: ContributeSetListMode) => [

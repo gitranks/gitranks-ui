@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 
 import { HEADING, PageTitle } from './primitives';
 import { cn } from '@/lib/utils';
-import { SETTINGS_PATHS } from '@/lib/workspace/settings-paths';
+import { SETTINGS_PATHS } from '@/lib/workspace/paths';
 
 /** A group of the Settings summary: its title, and its rows in one bordered list. */
 export function SettingsGroup({

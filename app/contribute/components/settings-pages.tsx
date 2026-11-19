@@ -17,7 +17,7 @@ import type { ContributeSet, ContributeSetListMode, ContributeView } from '@/lib
 import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, settingsOf } from '@/lib/workspace/contribute-state';
 import { type GrantRefusal, grantRefusalOf } from '@/lib/workspace/grant-refusal';
 import { ownAgentTextOf } from '@/lib/workspace/mcp-setup';
-import { SETTINGS_PATHS, switchModeOf } from '@/lib/workspace/settings-paths';
+import { SETTINGS_PATHS, switchModeOf } from '@/lib/workspace/paths';
 
 export async function WorkSettingsView() {
   const [, set] = await Promise.all([loadSettingsView(), loadContributeSet()]);

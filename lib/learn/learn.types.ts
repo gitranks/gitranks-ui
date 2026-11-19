@@ -15,7 +15,6 @@ export type LessonDiagramLayout = 'FLOW' | 'SEQUENCE';
 /** What the two sides of a before-and-after are: small diagrams, or code excerpts. */
 export type LessonCompareOf = 'DIAGRAM' | 'CODE';
 export type LessonReportReason = 'WRONG_KEY' | 'UNCLEAR' | 'OFF_TOPIC' | 'TWO_FIT';
-export type ContributeAttemptMode = 'FIX' | 'LEARN';
 
 /** Where a Learn attempt is, from the claim to the pull request. */
 export type LearnStage =

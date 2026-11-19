@@ -1,15 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { movedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './settings-paths';
-import {
-  keptListOf,
-  listSummaryOf,
-  ownAgentSummaryOf,
-  preferencesSummaryOf,
-  waitingLibrariesOf,
-} from './settings-summary';
+import { movedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './paths';
+import { ownAgentSummaryOf } from './settings-summary';
 import { resolve, smallReposSet, stackSet } from '@/lib/contribute/__fixtures__/contribute-sets';
 import { modeChipOf, stackPendingOf } from '@/lib/contribute/set-format';
+import { keptListOf, listSummaryOf, preferencesSummaryOf, waitingLibrariesOf } from '@/lib/contribute/work-summary';
 
 describe('the Settings summary', () => {
   it('says the preferences in short, naming three languages and counting the rest', () => {

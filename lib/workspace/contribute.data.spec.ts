@@ -14,13 +14,12 @@ const {
   loadContributeEmail,
   loadContributeSet,
   loadContributions,
-  loadIssues,
-  loadOverviewImpact,
-  loadOverviewNeeds,
-  loadOverviewNow,
   loadProviderInterests,
   ownAgentOf,
 } = await import('./contribute.data');
+const { loadIssues, loadOverviewImpact, loadOverviewNeeds, loadOverviewNow } = await import(
+  '@/lib/contribute/contribute.data'
+);
 const {
   ContributeAttemptDocument,
   ContributeAttemptFollowUpsDocument,

@@ -1,13 +1,14 @@
 import type { Route } from 'next';
 
 import type { LearnProfile } from './learn.types';
-import { LEARN_PATH, learnAttemptPath, MY_LESSONS_PATH } from './learn-path';
+import { LEARN_PATH, MY_LESSONS_PATH } from './learn-path';
 import type { LearnStartView } from './learn-start.types';
 import { LEVELS } from './profile-form';
 import type { ContributeAttemptState, ContributeMcpToken } from '@/lib/workspace/contribute.types';
 import { relativeLabel } from '@/lib/workspace/format';
 import { MCP_CLIENT_NAMES, MCP_CLIENTS, type McpClient } from '@/lib/workspace/mcp-setup';
 import { isSignedInAgent } from '@/lib/workspace/oauth-consent';
+import { learnAttemptPath } from '@/lib/workspace/paths';
 import { attemptPath } from '@/lib/workspace/sessions';
 
 /** The start page of a lesson for one issue: `/learn/start/<owner>/<repo>/<number>`. */

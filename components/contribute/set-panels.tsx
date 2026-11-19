@@ -16,9 +16,9 @@ import {
 } from '@/components/ui/dialog';
 import { Eyebrow } from '@/components/workspace/primitives';
 import { useHashOpen } from '@/components/workspace/use-hash-open';
+import { unignoreContributeRepo } from '@/lib/contribute/actions';
 import { SOURCE_RULES, WORK_RULES } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
-import { unignoreContributeRepo } from '@/lib/workspace/actions';
 import type { ContributeIgnoredRepo, ContributeSet } from '@/lib/workspace/contribute.types';
 
 function Rules({ title, rules }: { title: string; rules: string[] }) {

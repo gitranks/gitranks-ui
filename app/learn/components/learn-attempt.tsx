@@ -10,12 +10,12 @@ import { LessonShare } from './lesson-share';
 import { CHANGED_YOUR_MIND } from './own-lesson-card';
 import { PracticeRows } from './practice-lessons';
 import { StageStrip } from './stage-strip';
-import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { LessonFlow, type LessonFlowStart, StepArticle } from '@/components/learn/lesson-flow';
 import { LESSON_GRID } from '@/components/learn/lesson-steps';
 import { WrittenFor } from '@/components/learn/written-for';
 import { Button } from '@/components/ui/button';
 import { DiffViewer } from '@/components/workspace/diff-viewer';
+import { HeaderLine } from '@/components/workspace/header-line';
 import { HEADING, PageTitle } from '@/components/workspace/primitives';
 import {
   ChecksPanel,

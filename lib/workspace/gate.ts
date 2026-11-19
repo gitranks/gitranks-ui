@@ -1,6 +1,11 @@
+import { parse } from 'graphql';
+
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { LearnOpenDocument } from '@/lib/learn/learn.documents';
 import { sessionTokenOf } from '@/lib/workspace/session-token';
+import type DocumentNode from '@/types/typed-document-node';
+
+/** Whether Learn is open to the signed-in viewer. */
+export const LearnOpenDocument = parse('query LearnOpen { learnOpen }') as DocumentNode<{ learnOpen: boolean }>;
 
 /**
  * Whether GitRanks Learn is open to this GitHub login (the API's `learnOpen`). Closed without a login, and on any

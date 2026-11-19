@@ -41,8 +41,7 @@ import { claudeKeyOf } from '@/lib/workspace/contribute-state';
 import { dayLabel, MODELS, maskedKey, planOf, relativeLabel, usd } from '@/lib/workspace/format';
 import { AGENT_FIRST_PROMPT } from '@/lib/workspace/mcp-setup';
 import { needsYouItemsOf, shownItemsOf } from '@/lib/workspace/needs-you';
-import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, RUNS_PATH } from '@/lib/workspace/paths';
-import { settingsPathOf } from '@/lib/workspace/settings-paths';
+import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, RUNS_PATH, settingsPathOf } from '@/lib/workspace/paths';
 
 const ME_PATH: Route = '/contribute/me';
 const ISSUES_PATH: Route = '/contribute/issues';

@@ -6,7 +6,8 @@ const { sessionTokenOf } = vi.hoisted(() => ({ sessionTokenOf: vi.fn() }));
 vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 
 const { learnOpenFor, requestLearnAccess } = await import('./gate');
-const { isLearnOpenPath, isLearnPath, learnAttemptPath } = await import('@/lib/learn/learn-path');
+const { isLearnOpenPath, isLearnPath } = await import('@/lib/learn/learn-path');
+const { learnAttemptPath } = await import('./paths');
 
 describe('the Learn gate', () => {
   beforeEach(() => {

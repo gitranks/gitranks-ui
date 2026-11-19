@@ -48,3 +48,10 @@ export const prTimelineMarkdownPath = (pr: PrRef): Route => `${prTimelinePath(pr
 /** Where the short address goes when it has no page to show: the maintainers page, about that PR. */
 export const prTimelineFallbackPath = (attemptId: string): Route =>
   `${MAINTAINERS_PATH}?${new URLSearchParams({ from: attemptId })}` as Route;
+
+/** One PR's cache tag by its owner attempt's id (the API's answer to the contributor's switch names it). */
+export const prTimelineAttemptTagOf = (attemptId: string) => `pr-timeline-attempt:${attemptId}`;
+
+/** One PR's cache tag: the contributor's Hide expires it at once. */
+export const prTimelineTagOf = ({ nameWithOwner, number }: PrRef) =>
+  `pr-timeline:${nameWithOwner.toLowerCase()}#${number}`;

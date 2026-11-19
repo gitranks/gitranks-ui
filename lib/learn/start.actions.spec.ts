@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('server-only', () => ({}));
+vi.mock('@/auth', () => ({ auth: vi.fn(), signIn: vi.fn() }));
 const { viewerLogin } = vi.hoisted(() => ({ viewerLogin: vi.fn(async (): Promise<string | null> => 'octocat') }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin }));
 const data = vi.hoisted(() => ({ learnStartViewOf: vi.fn(), learnStartAttemptOf: vi.fn() }));
 vi.mock('@/lib/learn/learn-start.data', () => data);
 
-const { readLearnStartAttempt, readLearnStartIssue } = await import('./start.actions');
+const { readLearnStartAttempt, readLearnStartIssue } = await import('./actions');
 
 describe("the start page's actions", () => {
   beforeEach(() => {

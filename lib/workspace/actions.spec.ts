@@ -7,7 +7,7 @@ vi.mock('next/cache', async (load) => ({ ...(await load<typeof import('next/cach
 vi.mock('@/auth', () => ({ auth }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
-const actions = await import('./actions');
+const actions = { ...(await import('./actions')), ...(await import('@/lib/contribute/actions')) };
 const {
   AddToContributeSetDocument,
   ApproveAttemptDocument,
@@ -97,6 +97,7 @@ const CALLS: Record<string, unknown[]> = {
   takeBackContributeProof: ['PF_1'],
   postContributeProofReply: ['PF_1', 'Thanks for the review.'],
   retryContributeProof: ['PF_1'],
+  readRunsPage: [{ href: '/contribute/runs', after: 'c1' }],
 };
 
 /** The actions about what the user works on: open to every signed-in login. */

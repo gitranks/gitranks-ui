@@ -4,10 +4,10 @@ import type { ReactNode } from 'react';
 
 import { AuthorizeActions, AuthorizeCancel, AuthorizeReviewSignIn, AuthorizeSignIn } from './authorize-actions';
 import { AuthorizeDocsLine, AuthorizeNextStep } from './authorize-next-step';
-import { LearnSetupRefresh } from '@/app/learn/components/learn-setting-up';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { NO_PROFILE_TITLE, SETTING_UP_TITLE } from '@/components/workspace/setting-up';
 import { SettingUpAutoRefresh } from '@/components/workspace/setting-up-refresh';
+import { LearnSetupRefresh } from '@/components/workspace/setup-refresh';
 import type { ContributeOAuthRequest } from '@/lib/workspace/contribute.types';
 import {
   AGENT_CAN,
@@ -18,8 +18,7 @@ import {
   REVIEW_SIGN_IN_SHOWN,
   waitingLineOf,
 } from '@/lib/workspace/oauth-consent';
-import { MCP_DOCS_PATH } from '@/lib/workspace/paths';
-import { settingsPathOf } from '@/lib/workspace/settings-paths';
+import { MCP_DOCS_PATH, settingsPathOf } from '@/lib/workspace/paths';
 
 /** What the consent page shows: one state per variant of the copy. */
 export type AuthorizeState =

@@ -10,8 +10,9 @@ import { HEADING } from '@/components/workspace/primitives';
 import { readPracticeNext } from '@/lib/learn/actions';
 import type { PracticeNext } from '@/lib/learn/learn.types';
 import { attemptTitleOf, goalValueOf } from '@/lib/learn/learn-home';
-import { LEARN_PATH, LEARN_PRACTICE_PATH, learnAttemptPath } from '@/lib/learn/learn-path';
+import { LEARN_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
 import { LEARN_ISSUES_PATH } from '@/lib/learn/learn-start';
+import { learnAttemptPath } from '@/lib/workspace/paths';
 
 const CARD = 'flex flex-col gap-3 rounded-xl border-2 border-primary bg-card p-5';
 const BUTTON = 'min-h-11 self-start px-5 font-semibold max-sm:w-full';

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { LearnAttemptFrame, LearnAttemptView } from '@/app/learn/components/learn-attempt';
+import { HeaderLine } from '@/components/workspace/header-line';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { viewerLogin } from '@/lib/workspace/contribute.data';
 

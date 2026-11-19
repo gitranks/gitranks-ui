@@ -4,10 +4,10 @@ import type {
   ContributePrFix,
   ContributeRepoConventions,
 } from './pr-conventions';
-import type { ContributeAttemptMode } from '@/lib/learn/learn.types';
 
 /** GitRanks Contribute as the GitRanks GraphQL API answers it. */
 
+export type ContributeAttemptMode = 'FIX' | 'LEARN';
 export type ContributeLiveProvider = 'ANTHROPIC';
 export type ContributeKeyState = 'VALID' | 'INVALID' | 'EXHAUSTED' | 'LIMIT_REACHED';
 export type ContributePace = 'EVEN' | 'FAST' | 'QUEUED';

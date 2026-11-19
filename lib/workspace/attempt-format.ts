@@ -17,7 +17,7 @@ import type {
   ContributeRiskLevel,
   ContributeSubmitStep,
 } from './contribute.types';
-import { movedAnchorOf, SETTINGS_PATHS } from './settings-paths';
+import { movedAnchorOf, SETTINGS_PATHS } from './paths';
 
 export type Tone = 'neutral' | 'green' | 'violet' | 'amber' | 'red';
 

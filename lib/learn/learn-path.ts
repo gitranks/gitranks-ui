@@ -13,9 +13,6 @@ export const LEARN_PROFILE_PATH = '/learn/profile' as Route;
 /** What a Learn pull request is, for maintainers. Open to everyone. */
 export const LEARN_MAINTAINERS_PATH = '/learn/maintainers' as Route;
 
-/** A Learn attempt's page: the lesson, then the pull request. */
-export const learnAttemptPath = (attemptId: string) => `/learn/attempts/${encodeURIComponent(attemptId)}` as Route;
-
 /** Matches the path, decoded as the router reads it, against `pattern`; a path that does not decode never matches. */
 function decodedMatches(pathname: string, pattern: RegExp): boolean {
   try {

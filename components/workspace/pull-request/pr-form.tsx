@@ -39,6 +39,7 @@ import {
   tabStoreOf,
   takePendingApproval,
 } from '@/lib/workspace/grant-resume';
+import { settingsPathOf } from '@/lib/workspace/paths';
 import {
   type ChecklistItem,
   type ContributeRepoConventions,
@@ -46,7 +47,6 @@ import {
   titleBlocks,
 } from '@/lib/workspace/pr-conventions';
 import { runLong } from '@/lib/workspace/session-head-logic';
-import { settingsPathOf } from '@/lib/workspace/settings-paths';
 
 export type PrFormProps = {
   attemptId: string;

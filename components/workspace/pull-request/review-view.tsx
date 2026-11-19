@@ -11,7 +11,6 @@ import type { SessionActionsSeed } from './session-actions';
 import { SessionPane } from './session-pane';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { HEADING } from '@/components/workspace/primitives';
-import { learnAttemptPath } from '@/lib/learn/learn-path';
 import {
   loadAttempt,
   loadContribute,
@@ -31,6 +30,7 @@ import { accessNoticesOf, isContributePageOpen, settingsOf } from '@/lib/workspa
 import { type ContributionMoves, contributionMovesOf, onPane } from '@/lib/workspace/contribution-moves';
 import { RESUME_PARAM } from '@/lib/workspace/grant-resume';
 import { orgAccessOf, orgRestrictionOf, threadsBlockedOf } from '@/lib/workspace/org-access';
+import { learnAttemptPath } from '@/lib/workspace/paths';
 import { isFinishedAttempt } from '@/lib/workspace/repo-rules';
 import {
   attemptPath,

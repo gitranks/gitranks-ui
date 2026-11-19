@@ -2,16 +2,12 @@
 
 import { revalidateTag } from 'next/cache';
 
-import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
-import { prTimelineAttemptTagOf, prTimelineTagOf } from '@/lib/contribute/pr-timeline.data';
-import { SetPrTimelineDocument } from '@/lib/contribute/pr-timeline.documents';
-import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { run } from '@/lib/workspace/action-run';
 import { agentConnectedOf } from '@/lib/workspace/agent-connect';
 import { PR_BODY_MAX, PR_TITLE_MAX } from '@/lib/workspace/attempt-format';
-import { viewerEmail, viewerLogin } from '@/lib/workspace/contribute.data';
+import { viewerLogin } from '@/lib/workspace/contribute.data';
 import {
-  AddToContributeSetDocument,
   ApproveAttemptDocument,
   ApproveAttemptWithTimelineDocument,
   ApproveContributeOAuthDocument,
@@ -26,9 +22,6 @@ import {
   ContributeAttemptLiveDocument,
   ContributeChangesDocument,
   ContributeFeedComputedDocument,
-  ContributeIssueStatusDocument,
-  ContributeIssuesDocument,
-  ContributeIssuesWithRulesDocument,
   ContributeMcpConnectionsUsedDocument,
   ContributeOnboardingDocument,
   ContributeOwnAgentDocument,
@@ -39,16 +32,13 @@ import {
   DismissReplyDocument,
   FixContributePullRequestDocument,
   HideContributePrNoteDocument,
-  IgnoreContributeRepoDocument,
   IgnoreReviewThreadsDocument,
   MarkNeedsYouHandledDocument,
   MarkNeedsYouHandledKindsDocument,
   NoteProviderInterestDocument,
   PauseContributingDocument,
   PostContributeProofReplyDocument,
-  RemoveFromContributeSetDocument,
   RemoveLlmKeyDocument,
-  ResolveContributeStackDocument,
   ResumeContributingDocument,
   RetryAttemptDocument,
   RetryContributeProofDocument,
@@ -56,18 +46,13 @@ import {
   RevokeMcpTokenDocument,
   SendBackContributeProofDocument,
   SendBackToAgentDocument,
-  SendContributeFeedbackDocument,
   SetContributeEmailDocument,
-  SetContributeFallbackDocument,
-  SetContributeModeDocument,
   SetContributeSettingsDocument,
-  SetPreferencesDocument,
+  SetPrTimelineDocument,
   SetResolveHumansDocument,
-  SkipIssueDocument,
   StartFollowUpDocument,
   StartFollowUpOnDocument,
   TakeBackContributeProofDocument,
-  UnignoreContributeRepoDocument,
   VetoAutopilotDocument,
   WithdrawProviderInterestDocument,
 } from '@/lib/workspace/contribute.documents';
@@ -82,39 +67,19 @@ import type {
   ContributeConnectLimits,
   ContributeDeleteDataResult,
   ContributeEmail,
-  ContributeFeedbackContext,
-  ContributeFeedbackTopic,
-  ContributeIssuePage,
-  ContributeIssueStatus,
-  ContributeIssuesFilter,
   ContributeMcpTokenCreated,
-  ContributePreferences,
-  ContributePreferencesInput,
   ContributePrNote,
   ContributeProofSession,
   ContributePrSignalKind,
   ContributeRepliesOneComment,
   ContributeReplyDraft,
   ContributeReplyUserDismissReason,
-  ContributeSet,
-  ContributeSetAddResult,
-  ContributeSetFallback,
-  ContributeSetList,
-  ContributeSetListMode,
-  ContributeSetMode,
-  ContributeSetReason,
   ContributeSettings,
   ContributeSettingsInput,
 } from '@/lib/workspace/contribute.types';
-import {
-  type ContributeActionResult,
-  type ContributeSetActionResult,
-  contributeErrorOf,
-  contributeSetErrorOf,
-} from '@/lib/workspace/errors';
+import { type ContributeActionResult, contributeErrorOf } from '@/lib/workspace/errors';
 import { FOLLOW_UP_THREADS_MAX } from '@/lib/workspace/follow-up-flow';
 import { FOLLOW_UP_NOTE_MAX, PR_SIGNAL_KINDS } from '@/lib/workspace/follow-up-format';
-import { KINDS, LANGUAGES, SIZES } from '@/lib/workspace/format';
 import { MCP_TOKEN_NAME_MAX, SEND_BACK_NOTE_MAX } from '@/lib/workspace/mcp-setup';
 import { isSafeRedirect, requestIdOf } from '@/lib/workspace/oauth-consent';
 import { isRequestKey, ONE_COMMENT_DRAFTS_MAX } from '@/lib/workspace/one-comment';
@@ -124,34 +89,17 @@ import {
   PR_FIX_KINDS,
 } from '@/lib/workspace/pr-conventions';
 import { objectIdOf, parsePrLink } from '@/lib/workspace/pr-feedback';
+import { prTimelineAttemptTagOf, prTimelineTagOf } from '@/lib/workspace/pr-timeline-path';
 import { PROOF_NOTE_MAX, PROOF_REPLY_MAX } from '@/lib/workspace/proof';
-import type DocumentNode from '@/types/typed-document-node';
-
-/** A write (a mutation) carries the session's email, so the emails the user asks for have an address; a read never. */
-const isWrite = (document: DocumentNode<unknown, never>) =>
-  (document as unknown as { definitions: { kind: string; operation?: string }[] }).definitions.some(
-    (definition) => definition.kind === 'OperationDefinition' && definition.operation === 'mutation',
-  );
-
-const accountEmailFor = async (document: DocumentNode<unknown, never>) =>
-  isWrite(document) ? await viewerEmail() : undefined;
-
-/** Every action runs as the session's user, never one named in its arguments. */
-async function run<TData, TVariables extends Record<string, unknown>, T>(
-  document: DocumentNode<TData, TVariables>,
-  variables: TVariables | undefined,
-  pick: (data: TData) => T,
-): Promise<ContributeActionResult<T>> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
-  try {
-    const accountEmail = await accountEmailFor(document as DocumentNode<unknown, never>);
-    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
-    return { ok: true, data: pick(data) };
-  } catch (error) {
-    return { ok: false, ...contributeErrorOf(error) };
-  }
-}
+import {
+  type ContributeRunsPage,
+  RANGE_START,
+  RUNS_PAGE_SIZE,
+  runsFilterOf,
+  runsHref,
+  runsQueryOf,
+} from '@/lib/workspace/runs';
+import { ContributeRunsDocument } from '@/lib/workspace/runs.documents';
 
 export type ConnectKeyInput = {
   key: string;
@@ -213,12 +161,6 @@ export async function saveContributeSettings(
   return run(SetContributeSettingsDocument, { settings }, (data) => data.setContributeSettings);
 }
 
-export async function savePreferences(
-  preferences: ContributePreferencesInput,
-): Promise<ContributeActionResult<ContributePreferences>> {
-  return run(SetPreferencesDocument, { preferences }, (data) => data.setPreferences);
-}
-
 export async function noteProviderInterest(
   provider: ContributeComingSoonProvider,
 ): Promise<ContributeActionResult<boolean>> {
@@ -250,58 +192,6 @@ export async function resumeContributing(): Promise<ContributeActionResult<boole
 /** Turns GitRanks email on or off for the user: the same switch as an email's unsubscribe link. */
 export async function setContributeEmail(on: boolean): Promise<ContributeActionResult<ContributeEmail>> {
   return run(SetContributeEmailDocument, { on: on === true }, (data) => data.setContributeEmail);
-}
-
-export async function skipIssue(issueId: string): Promise<ContributeActionResult<boolean>> {
-  return run(SkipIssueDocument, { issueId: String(issueId) }, (data) => data.skipIssue);
-}
-
-/**
- * The shown issues as they are now, in the order given: at most the first 50 ids are asked. Null when the API hides
- * it from the user; none for no ids, without a call.
- */
-export async function readIssueStatuses(
-  issueIds: string[],
-): Promise<ContributeActionResult<ContributeIssueStatus[] | null>> {
-  const ids = (Array.isArray(issueIds) ? issueIds : [])
-    .filter((id) => typeof id === 'string' && id)
-    .slice(0, ISSUE_STATUS_IDS_MAX);
-  if (!ids.length) return { ok: true, data: [] };
-  return run(ContributeIssueStatusDocument, { issueIds: ids }, (data) => data.contributeIssueStatus);
-}
-
-export type IssuesPageInput = { filter?: ContributeIssuesFilter; after: string; first: number };
-
-/** The feed's filters, their known values alone. */
-function issuesFilterOf(filter: ContributeIssuesFilter | undefined): ContributeIssuesFilter {
-  if (!filter || typeof filter !== 'object') return {};
-  const known = <T extends string>(values: unknown, allowed: Record<T, unknown>) =>
-    (Array.isArray(values) ? values : []).filter(
-      (value): value is T => typeof value === 'string' && Object.hasOwn(allowed, value),
-    );
-  const languages = known(filter.languages, LANGUAGES);
-  const kinds = known(filter.kinds, KINDS);
-  const maxSize = known([filter.maxSize], SIZES)[0];
-  return {
-    ...(languages.length ? { languages } : {}),
-    ...(kinds.length ? { kinds } : {}),
-    ...(maxSize ? { maxSize } : {}),
-  };
-}
-
-/** More of the feed after a cursor, under the same filters: what fills a page whose issues were taken meanwhile. */
-export async function readIssuesPage(
-  input: IssuesPageInput,
-): Promise<ContributeActionResult<ContributeIssuePage | null>> {
-  const after = typeof input?.after === 'string' ? input.after : '';
-  if (!after || after.length > 512) return invalid('No more issues to read.');
-  const first = Math.min(Math.max(Math.trunc(Number(input.first)) || 1, 1), ISSUES_PAGE_SIZE);
-  const filter = issuesFilterOf(input.filter);
-  const variables = { first, after, ...(Object.keys(filter).length ? { filter } : {}) };
-  const read = await run(ContributeIssuesWithRulesDocument, variables, (data) => data.contributeIssues);
-  // An API without the repos' rules: the page as it was.
-  if (read.ok || read.error !== 'NOT_AVAILABLE_YET') return read;
-  return run(ContributeIssuesDocument, variables, (data) => data.contributeIssues);
 }
 
 export type ApproveAttemptInput = {
@@ -806,54 +696,6 @@ export async function retryContributeProof(id: string): Promise<ContributeAction
   return run(RetryContributeProofDocument, { id: String(id) }, (data) => proofMoved(data.retryContributeProof));
 }
 
-/** What the user works on: the mode, the lists and the ignored repos. */
-async function runSet<TData, TVariables extends Record<string, unknown>, T>(
-  document: DocumentNode<TData, TVariables>,
-  variables: TVariables | undefined,
-  pick: (data: TData) => T,
-): Promise<ContributeSetActionResult<T>> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
-  try {
-    const accountEmail = await accountEmailFor(document as DocumentNode<unknown, never>);
-    const data = await graphqlDirect(document, variables, { source: 'client', githubLogin, accountEmail });
-    return { ok: true, data: pick(data) };
-  } catch (error) {
-    return { ok: false, ...contributeSetErrorOf(error) };
-  }
-}
-
-const MODES: ContributeSetMode[] = ['ALL', 'STACK', 'REPOS'];
-const LIST_MODES: ContributeSetListMode[] = ['STACK', 'REPOS'];
-const LISTS: ContributeSetList[] = ['SOURCES', 'REPOS'];
-const FALLBACKS: ContributeSetFallback[] = ['SET_ONLY', 'THEN_ALL'];
-const TOPICS: ContributeFeedbackTopic[] = ['GATES', 'MODES', 'OTHER'];
-const REASONS: ContributeSetReason[] = [
-  'PRIVATE',
-  'DELETED',
-  'FORK',
-  'ARCHIVED',
-  'ISSUES_DISABLED',
-  'PUSHED',
-  'NO_PERSON_ACTIVITY',
-  'LICENSE',
-  'LANGUAGE',
-  'OUTSIDE_MERGES',
-  'OPTED_OUT',
-  'CLOSED_NO_AI',
-  'HOSTILE_CLOSE',
-  'AI_BAN',
-  'CONTRIBUTE_OFF',
-  'OUTSIDE_PRS_CLOSED',
-  'GATED_CONTRIBUTORS',
-  'NO_MANIFEST',
-];
-
-const oneOf = <T extends string>(values: readonly T[], value: unknown): value is T =>
-  typeof value === 'string' && (values as readonly string[]).includes(value);
-
-const invalid = (message: string) => ({ ok: false as const, error: 'INVALID' as const, message });
-
 const VERSION = /^\d{1,15}\.\d{1,15}$/;
 
 /**
@@ -893,99 +735,6 @@ export async function readContributeChanges(
   }
 }
 
-/** Switches where the user's issues come from; each mode keeps its own list. */
-export async function setContributeMode(mode: ContributeSetMode): Promise<ContributeSetActionResult<ContributeSet>> {
-  if (!oneOf(MODES, mode)) return invalid('Pick one of the three modes.');
-  return runSet(SetContributeModeDocument, { mode }, (data) => data.setContributeMode);
-}
-
-/** What a mode with a list does when the list has nothing ready. */
-export async function setContributeFallback(
-  mode: ContributeSetListMode,
-  fallback: ContributeSetFallback,
-): Promise<ContributeSetActionResult<ContributeSet>> {
-  if (!oneOf(LIST_MODES, mode) || !oneOf(FALLBACKS, fallback)) return invalid('Pick one of the two choices.');
-  return runSet(SetContributeFallbackDocument, { mode, fallback }, (data) => data.setContributeFallback);
-}
-
-/** Adds "@me", a user or org (its repos that pass the rules), or one repo to a list. */
-export async function addToContributeSet(
-  list: ContributeSetList,
-  input: string,
-): Promise<ContributeSetActionResult<ContributeSetAddResult>> {
-  const trimmed = String(input ?? '').trim();
-  if (!oneOf(LISTS, list)) return invalid('Pick a list to add to.');
-  if (!trimmed) return invalid('Enter a repo (owner/name), a GitHub link, a user or an org.');
-  if (trimmed.length > ADD_INPUT_MAX) return invalid(`Keep it to ${ADD_INPUT_MAX} characters at most.`);
-  return runSet(AddToContributeSetDocument, { list, input: trimmed }, (data) => data.addToContributeSet);
-}
-
-/** Takes repos off a list, freeing their places. */
-export async function removeFromContributeSet(
-  list: ContributeSetList,
-  repositoryIds: string[],
-): Promise<ContributeSetActionResult<ContributeSet>> {
-  const ids = (Array.isArray(repositoryIds) ? repositoryIds : []).map(String).filter(Boolean);
-  if (!oneOf(LISTS, list) || !ids.length) return invalid('Pick a repo to remove.');
-  return runSet(RemoveFromContributeSetDocument, { list, repositoryIds: ids }, (data) => data.removeFromContributeSet);
-}
-
-/** Takes a repo off every list and onto the ignored repos: nothing brings it back. */
-export async function ignoreContributeRepo(repositoryId: string): Promise<ContributeSetActionResult<ContributeSet>> {
-  return runSet(
-    IgnoreContributeRepoDocument,
-    { repositoryId: String(repositoryId) },
-    (data) => data.ignoreContributeRepo,
-  );
-}
-
-/** Takes a repo off the ignored repos. */
-export async function unignoreContributeRepo(repositoryId: string): Promise<ContributeSetActionResult<ContributeSet>> {
-  return runSet(
-    UnignoreContributeRepoDocument,
-    { repositoryId: String(repositoryId) },
-    (data) => data.unignoreContributeRepo,
-  );
-}
-
-/** Works out the libraries of the user's stack again. */
-export async function resolveContributeStack(): Promise<ContributeSetActionResult<ContributeSet>> {
-  return runSet(ResolveContributeStackDocument, undefined, (data) => data.resolveContributeStack);
-}
-
-/** The context sent with a feedback message, its known fields alone. */
-function feedbackContextOf(context: ContributeFeedbackContext | undefined): ContributeFeedbackContext | undefined {
-  if (!context || typeof context !== 'object') return undefined;
-  const repo = typeof context.repo === 'string' ? context.repo.trim().slice(0, ADD_INPUT_MAX) : '';
-  const reasons = Array.isArray(context.reasons) ? context.reasons.filter((reason) => oneOf(REASONS, reason)) : [];
-  const sent: ContributeFeedbackContext = {
-    ...(oneOf(MODES, context.mode) ? { mode: context.mode } : {}),
-    ...(repo ? { repo } : {}),
-    ...(reasons.length ? { reasons } : {}),
-  };
-  return Object.keys(sent).length ? sent : undefined;
-}
-
-/** Sends the user's message about the rules, the modes or anything else, with where they wrote it. */
-export async function sendContributeFeedback(
-  topic: ContributeFeedbackTopic,
-  text: string,
-  context?: ContributeFeedbackContext,
-): Promise<ContributeSetActionResult<boolean>> {
-  const trimmed = String(text ?? '').trim();
-  if (!oneOf(TOPICS, topic)) return invalid('Pick what your message is about.');
-  if (!trimmed) return invalid('Write a few words first.');
-  if (trimmed.length > FEEDBACK_MAX) {
-    return invalid(`Keep it to ${FEEDBACK_MAX.toLocaleString('en-US')} characters at most.`);
-  }
-  const sent = feedbackContextOf(context);
-  return runSet(
-    SendContributeFeedbackDocument,
-    { topic, text: trimmed, ...(sent ? { context: sent } : {}) },
-    (data) => data.sendContributeFeedback,
-  );
-}
-
 /** Hides a "this PR helped" note from the user's contribution page, or shows it again. */
 export async function hidePrNote(
   feedbackId: string,
@@ -998,4 +747,34 @@ export async function hidePrNote(
     { feedbackId: id, hidden: hidden === true },
     (data) => data.hideContributePrNote,
   );
+}
+
+/** `from`: the first page's range start, so a page read after UTC midnight keeps the same days. */
+export type RunsPageInput = { href: string; after: string; from?: string };
+
+/**
+ * The next page of the Runs page after a cursor, under the filters of the page's URL (`href`, read again here: the
+ * client's word is only the URL it shows).
+ */
+export async function readRunsPage(input: RunsPageInput): Promise<ContributeActionResult<ContributeRunsPage | null>> {
+  const after = typeof input?.after === 'string' ? input.after : '';
+  if (!after || after.length > 64) return { ok: false, error: 'INVALID', message: 'No more runs to read.' };
+  const href = typeof input?.href === 'string' ? input.href : '';
+  const query = runsQueryOf(Object.fromEntries(new URLSearchParams(href.split('?')[1] ?? '')));
+  if (runsHref(query) !== href) return { ok: false, error: 'INVALID', message: 'Reload the page to read more runs.' };
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
+  const filter = runsFilterOf(query);
+  // The same days as the first page: its start, when the range has one and it is ours.
+  if (filter.from && typeof input.from === 'string' && RANGE_START.test(input.from)) filter.from = input.from;
+  try {
+    const { contributeRuns } = await graphqlDirect(
+      ContributeRunsDocument,
+      { filter, after, first: RUNS_PAGE_SIZE },
+      { source: 'client', githubLogin },
+    );
+    return { ok: true, data: contributeRuns };
+  } catch (error) {
+    return { ok: false, ...contributeErrorOf(error) };
+  }
 }

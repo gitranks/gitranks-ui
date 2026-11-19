@@ -10,6 +10,7 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/contribute/actions', () => ({}));
 // The fold's opener runs in the browser alone: the block says which fold it opens.
 vi.mock('@/components/workspace/open-on-hash', () => ({
   OpenOnHash: ({ id }: { id: string }) => <i data-open-on-hash={id} />,

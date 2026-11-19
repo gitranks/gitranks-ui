@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { HEADING } from '@/components/workspace/primitives';
 import type { LearnPrState, MyLearnAttempt } from '@/lib/learn/learn.types';
 import { attemptTitleOf, type OwnCard, prNumberOf } from '@/lib/learn/learn-home';
-import { learnAttemptPath } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
 import { eventLabelOf, githubUrlOf, type Tone } from '@/lib/workspace/attempt-format';
 import { relativeLabel } from '@/lib/workspace/format';
+import { learnAttemptPath } from '@/lib/workspace/paths';
 
 const BUTTON = 'min-h-11 px-5 font-semibold max-sm:w-full';
 

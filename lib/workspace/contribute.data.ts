@@ -17,6 +17,7 @@ import {
   ContributeAttemptFollowUpFlowDocument,
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptHoldDocument,
+  ContributeAttemptLearnDocument,
   ContributeAttemptMovesDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptProofDocument,
@@ -29,9 +30,10 @@ import {
   ContributeAttemptsFollowUpsDocument,
   ContributeAttemptsInDocument,
   ContributeAttemptsInFollowUpsDocument,
+  ContributeAttemptsInLearnDocument,
   ContributeAttemptsInMovesDocument,
   ContributeAttemptsInOwnAgentDocument,
-  ContributeAttemptsInReviewAtDocument,
+  ContributeAttemptsLearnDocument,
   ContributeAttemptsMovesDocument,
   ContributeAttemptsOwnAgentDocument,
   ContributeAttemptTimelineDocument,
@@ -46,10 +48,6 @@ import {
   ContributeContributionsProofDocument,
   ContributeEmailDocument,
   ContributeGrantDocument,
-  ContributeImpactDocument,
-  ContributeImpactReposDocument,
-  ContributeIssuesDocument,
-  ContributeIssuesWithRulesDocument,
   ContributeLimitsDocument,
   ContributeMcpConnectionsDocument,
   ContributeOnboardingDocument,
@@ -62,7 +60,6 @@ import {
   ContributeRepliesWaitingDocument,
   ContributeRepliesWaitingPlanDocument,
   ContributeResolveHumansDocument,
-  ContributeScheduleCountsDocument,
   ContributeSetDocument,
   ContributeSetupDocument,
   type FollowUpFlowRead,
@@ -78,9 +75,6 @@ import type {
   ContributeContributions,
   ContributeEmail,
   ContributeFollowUps,
-  ContributeImpactTotals,
-  ContributeIssuePage,
-  ContributeIssuesFilter,
   ContributeLimits,
   ContributeMcpToken,
   ContributeNeedsYou,
@@ -98,21 +92,7 @@ import { contributeMcpSignIn } from './mcp-sign-in';
 import { withRepliesPlanOf, withReplyPlansOf } from './one-comment';
 import { auth } from '@/auth';
 import { accountEmailOf } from '@/lib/account-email';
-import { ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
-import {
-  IN_FLIGHT_READ,
-  IN_FLIGHT_STATES,
-  NEEDS_YOU_READ,
-  NEEDS_YOU_STATES,
-  type OverviewNeedsRead,
-  type OverviewNowRead,
-} from '@/lib/contribute/overview';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import {
-  ContributeAttemptLearnDocument,
-  ContributeAttemptsInLearnDocument,
-  ContributeAttemptsLearnDocument,
-} from '@/lib/learn/learn.documents';
 import type { ContributeConventionsFields } from '@/lib/workspace/pr-conventions';
 
 /**
@@ -139,11 +119,11 @@ export const viewerEmail = cache(async (): Promise<string | undefined> => {
   return session?.error ? undefined : accountEmailOf(session?.user?.email);
 });
 
-const settled = <T>(result: PromiseSettledResult<T>): T | undefined =>
+export const settled = <T>(result: PromiseSettledResult<T>): T | undefined =>
   result.status === 'fulfilled' ? result.value : undefined;
 
 /** `extra`'s fields over `item`, the ones it does not hold left out, so they read as "not available yet". */
-const withFields = <T extends object>(item: T, extra: object | undefined): T => {
+export const withFields = <T extends object>(item: T, extra: object | undefined): T => {
   if (!extra) return item;
   const fields = Object.fromEntries(
     Object.entries(extra).filter(([key, value]) => key !== 'attemptId' && value !== undefined),
@@ -152,7 +132,7 @@ const withFields = <T extends object>(item: T, extra: object | undefined): T => 
 };
 
 /** Rows of a second read by attempt id, to merge into the first read's. */
-const byAttemptId = <T extends { attemptId: string }>(rows: T[] | null | undefined) =>
+export const byAttemptId = <T extends { attemptId: string }>(rows: T[] | null | undefined) =>
   new Map((Array.isArray(rows) ? rows : []).map((row) => [row.attemptId, row]));
 
 /** The autopilot record with the newer fields the API answered; those it did not are left out. */
@@ -329,33 +309,6 @@ export async function loadProviderInterests(): Promise<ContributeComingSoonProvi
   }
 }
 
-/** One page of issues for the signed-in user; `undefined` when the API does not answer the feed (yet). */
-export async function loadIssues(
-  filter: ContributeIssuesFilter,
-  after?: string,
-): Promise<ContributeIssuePage | null | undefined> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-
-  const variables = {
-    first: ISSUES_PAGE_SIZE,
-    ...(after ? { after } : {}),
-    ...(Object.keys(filter).length ? { filter } : {}),
-  };
-  const options = { source: 'ssr' as const, githubLogin };
-  try {
-    return (await graphqlDirect(ContributeIssuesWithRulesDocument, variables, options)).contributeIssues;
-  } catch (error) {
-    // An API without the repos' rules: the feed as it was.
-    if (contributeErrorOf(error).error !== 'NOT_AVAILABLE_YET') return undefined;
-  }
-  try {
-    return (await graphqlDirect(ContributeIssuesDocument, variables, options)).contributeIssues;
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * What the signed-in user works on: the mode, the lists and the ignored repos. Null when signed out (nothing is asked
  * then) or the API hides them; `undefined` when the API does not answer. Read once per request.
@@ -512,71 +465,6 @@ export const loadRepliesWaiting = cache(async (): Promise<ContributeReplyWaiting
     return undefined;
   }
 });
-
-/**
- * Overview's "Needs you": the attempts waiting for the user, the replies they can approve, the open pull requests,
- * and the runs in flight ("Right now"'s read, once per request).
- */
-export async function loadOverviewNeeds(): Promise<OverviewNeedsRead> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return { reviews: undefined, replies: undefined, contributions: undefined, runs: undefined };
-
-  const options = { source: 'ssr' as const, githubLogin };
-  const variables = { states: NEEDS_YOU_STATES, first: NEEDS_YOU_READ };
-  const [attempts, reviewAt, replies, contributions, now] = await Promise.allSettled([
-    loadAttemptsIn(NEEDS_YOU_STATES, NEEDS_YOU_READ),
-    graphqlDirect(ContributeAttemptsInReviewAtDocument, variables, options),
-    loadRepliesWaiting(),
-    loadContributions(),
-    loadOverviewNow(),
-  ]);
-  const reviews = settled(attempts);
-  const readyAt = byAttemptId(settled(reviewAt)?.contributeAttempts);
-  return {
-    reviews: reviews?.map((attempt) => withFields(attempt, readyAt.get(attempt.attemptId))),
-    replies: settled(replies),
-    contributions: settled(contributions)?.items,
-    runs: settled(now)?.inFlight,
-  };
-}
-
-/**
- * Overview's "Right now": the attempts in flight, and what the scheduler counts before it starts one. Read once per
- * request: Needs you shows the runs under way from it too.
- */
-export const loadOverviewNow = cache(async (): Promise<OverviewNowRead> => {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return { inFlight: undefined, scheduleCounts: undefined };
-
-  const [inFlight, counts] = await Promise.allSettled([
-    loadAttemptsIn(IN_FLIGHT_STATES, IN_FLIGHT_READ),
-    graphqlDirect(ContributeScheduleCountsDocument, undefined, { source: 'ssr', githubLogin }),
-  ]);
-  const scheduleCounts = settled(counts)?.contribute?.contributor?.scheduleCounts;
-  return {
-    inFlight: settled(inFlight),
-    scheduleCounts:
-      typeof scheduleCounts?.prBound === 'number' && typeof scheduleCounts.queued === 'number'
-        ? scheduleCounts
-        : undefined,
-  };
-});
-
-/** Overview's "Your impact": the totals, with `reposHelped` when the API answers it; `undefined` when it does not. */
-export async function loadOverviewImpact(): Promise<ContributeImpactTotals | undefined> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-
-  const options = { source: 'ssr' as const, githubLogin };
-  const [totals, repos] = await Promise.allSettled([
-    graphqlDirect(ContributeImpactDocument, undefined, options),
-    graphqlDirect(ContributeImpactReposDocument, undefined, options),
-  ]);
-  const main = settled(totals)?.contributeContributions?.totals;
-  if (!main) return undefined;
-  const reposHelped = settled(repos)?.contributeContributions?.totals.reposHelped;
-  return { ...main, ...(typeof reposHelped === 'number' ? { reposHelped } : {}) };
-}
 
 /**
  * One of the signed-in user's attempts, for the review: null when there is none for them (not theirs, signed out or

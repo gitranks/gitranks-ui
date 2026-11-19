@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-import { movedAnchorOf } from '@/lib/workspace/settings-paths';
+import { movedAnchorOf } from '@/lib/workspace/paths';
 
 /**
  * Sends a link to a section of the old one-page Settings (`#limits`, `#access`…) on to the page it is on now, and

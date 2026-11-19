@@ -18,9 +18,9 @@ import {
 import { SettingsGroup, SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
 import { useHashOpen } from '@/components/workspace/use-hash-open';
 import { plural } from '@/lib/contribute/set-format';
+import { listSummaryOf } from '@/lib/contribute/work-summary';
 import type { ContributePreferences, ContributeSet } from '@/lib/workspace/contribute.types';
-import { SETTINGS_PATHS } from '@/lib/workspace/settings-paths';
-import { listSummaryOf } from '@/lib/workspace/settings-summary';
+import { SETTINGS_PATHS } from '@/lib/workspace/paths';
 
 /**
  * "What you work on" on the Settings summary: the three modes, the current list's row (it opens the list's page), the

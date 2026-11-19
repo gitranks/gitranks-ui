@@ -1,5 +1,7 @@
 import type { Route } from 'next';
 
+import type { ContributeSetListMode } from './contribute.types';
+
 /**
  * Contribute's pages: `/contribute` and everything under it. Matched on the decoded path, as the router matches it,
  * so a percent-encoded, doubled-slash or upper-case spelling of it is matched too. A path that does not decode is
@@ -138,3 +140,47 @@ export const RUNS_PATH: Route = '/contribute/runs';
 export const AGENTS_DOC_PATH = '/contribute/agents.md';
 /** Where an agent sends its person: the landing with the own-agent sign-in open (signed in: the connect step). */
 export const START_AGENT_PATH = '/contribute?start=agent' as Route;
+
+/** Settings, a summary of every setting, and the pages each one is changed on. */
+export const SETTINGS_PATHS = {
+  summary: '/contribute/settings' as Route,
+  work: '/contribute/settings/work' as Route,
+  budget: '/contribute/settings/budget' as Route,
+  agent: '/contribute/settings/agent' as Route,
+  keys: '/contribute/settings/keys' as Route,
+  ownAgent: '/contribute/settings/own-agent' as Route,
+};
+
+/**
+ * Where each section of the one long Settings page now lives, by its old `#anchor`. Links in the app use it, and the
+ * summary sends an old link (a bookmark, a notice) on to it. Anchors not here stay on the summary: what you work on
+ * (`#modes`), and the filters (`#work`), rules and ignored repos, whose dialogs open at their anchor.
+ */
+const ANCHORS: Record<string, Route> = {
+  limits: SETTINGS_PATHS.budget,
+  pacing: `${SETTINGS_PATHS.budget}#pacing` as Route,
+  'more-limits': `${SETTINGS_PATHS.budget}#more-limits` as Route,
+  agent: SETTINGS_PATHS.agent,
+  prs: `${SETTINGS_PATHS.agent}#prs` as Route,
+  access: SETTINGS_PATHS.keys,
+  'own-agent': SETTINGS_PATHS.ownAgent,
+};
+
+/** The guided switch to a mode with a list. */
+export const switchPathOf = (mode: ContributeSetListMode): Route =>
+  `/contribute/settings/switch/${mode.toLowerCase()}` as Route;
+
+/** The mode a switch page's segment names, or null for any other segment. */
+export const switchModeOf = (segment: string): ContributeSetListMode | null =>
+  segment === 'stack' ? 'STACK' : segment === 'repos' ? 'REPOS' : null;
+
+/** The page an old Settings `#anchor` is on now, or null when it stays on the summary. */
+export const movedAnchorOf = (anchor: string): Route | null =>
+  Object.hasOwn(ANCHORS, anchor) ? ANCHORS[anchor] : null;
+
+/** Where a Settings section is: its own page, or the summary at its anchor. */
+export const settingsPathOf = (anchor: string): Route =>
+  movedAnchorOf(anchor) ?? (`${SETTINGS_PATHS.summary}#${anchor}` as Route);
+
+/** A Learn attempt's page: the lesson, then the pull request. */
+export const learnAttemptPath = (attemptId: string) => `/learn/attempts/${encodeURIComponent(attemptId)}` as Route;

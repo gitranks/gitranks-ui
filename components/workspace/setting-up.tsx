@@ -1,7 +1,7 @@
 import { Loader2 } from 'lucide-react';
 
 import { SettingUpAutoRefresh } from './setting-up-refresh';
-import { LearnSetupRefresh } from '@/app/learn/components/learn-setting-up';
+import { LearnSetupRefresh } from '@/components/workspace/setup-refresh';
 
 export const SETTING_UP_TITLE = 'Setting up your GitRanks account';
 export const NO_PROFILE_TITLE = "We couldn't set up your GitRanks account yet";

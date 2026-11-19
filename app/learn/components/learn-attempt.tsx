@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { AttemptStageWatch } from './attempt-stage-watch';
 import { LearnSettingUp } from './learn-setting-up';
+import { LearnTabs } from './learn-tabs';
 import { LessonFlow, type LessonFlowStart, StepArticle } from './lesson-flow';
 import { LessonShare } from './lesson-share';
 import { LESSON_GRID } from './lesson-steps';
@@ -20,6 +21,7 @@ import {
   YourNotePanel,
 } from '@/app/contribute/components/attempt-panels';
 import { AttemptSignIn } from '@/app/contribute/components/attempt-sign-in';
+import { HeaderLine } from '@/app/contribute/components/contribute-tabs-nav';
 import { DiffViewer } from '@/app/contribute/components/diff-viewer';
 import { CardError, DiscardAttemptButton } from '@/app/contribute/components/head-actions';
 import { PrForm } from '@/app/contribute/components/pr-form';
@@ -38,6 +40,7 @@ import { parsePatch } from '@/lib/contribute/patch';
 import { attemptPath } from '@/lib/contribute/sessions';
 import { loadAttemptLesson, loadLearnOpen, loadLearnSetup, loadPracticeLessons } from '@/lib/learn/learn.data';
 import type { LearnAttemptLesson, LessonStep, PracticeLessons } from '@/lib/learn/learn.types';
+import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
 import { endedReasonOf, WAIT_PRACTICE } from '@/lib/learn/learn-home';
 import { LEARN_PRACTICE_PATH, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
 import { LEARN_ISSUES_PATH } from '@/lib/learn/learn-start';
@@ -388,6 +391,20 @@ export function LearnAttemptScreen({
 }
 
 /**
+ * Above an attempt's page: Learn's tabs for a signed-in viewer, the header's line for a visitor (the sign-in, which
+ * names nothing of Learn while it is not open to everyone). Decided on the server, so the tabs never pop in.
+ */
+export async function LearnAttemptFrame({ children }: { children: ReactNode }) {
+  const signedIn = Boolean(await viewerLogin());
+  return (
+    <>
+      {signedIn ? <LearnTabs inPage /> : <HeaderLine />}
+      {children}
+    </>
+  );
+}
+
+/**
  * The page's reads: Learn open to the viewer, their attempt, and its lesson. Anything else is a 404; a Fix attempt goes
  * to its Contribute page.
  */
@@ -400,7 +417,8 @@ export async function LearnAttemptView({
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams ?? Promise.resolve({})]);
   // Signed out: the link an agent hands its person, opened where they are not signed in. The sign-in, back here.
-  if (!(await viewerLogin())) return <AttemptSignIn what="lesson" />;
+  // While Learn is not open to everyone it names nothing of Learn.
+  if (!(await viewerLogin())) return <AttemptSignIn what={(await learnOpenToEveryone()) ? 'lesson' : 'page'} />;
   const [open, settingUp, view, attempt, lesson] = await Promise.all([
     loadLearnOpen(),
     loadLearnSetup(),

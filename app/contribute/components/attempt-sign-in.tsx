@@ -11,6 +11,8 @@ import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 const COPY = {
   contribution: { eyebrow: 'GitRanks Contribute', title: 'Sign in to see this contribution' },
   lesson: { eyebrow: 'GitRanks Learn', title: 'Sign in to see this lesson' },
+  // A lesson's page while Learn is not open to everyone: the page names nothing of it to a visitor.
+  page: { eyebrow: 'GitRanks', title: 'Sign in to see this page' },
 };
 
 /**

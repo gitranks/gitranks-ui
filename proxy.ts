@@ -20,6 +20,7 @@ import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
 import { isPrTimelinePath, prTimelineMarkdownPath, prTimelineRouteOf } from './lib/contribute/pr-timeline-path';
 import { contributeOpen, requestContributeAccess } from './lib/contribute/preview-gate';
 import { learnOpenToEveryone } from './lib/learn/learn-everyone';
+import { requestLearnAccess } from './lib/learn/learn-gate';
 import {
   isLearnHomePath,
   isLearnOpenPath,
@@ -232,23 +233,30 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // cache (it would be served to someone who is let in). The page for maintainers and the agent sign-in's consent page
   // (which tells a visitor off the preview so itself) are open to everyone, and once
   // Contribute is launched so are the landing, the MCP docs and the questions, to visitors without a session too.
-  // Learn is behind its own list of people, which the proxy cannot read: a closed Learn page answers a visitor without
-  // a session with the 404 here, and a signed-in one goes on to the page, which asks the API whether Learn is open to
-  // them. A shared lesson, its result pages and the page for maintainers are open to everyone; the front door too once
+  // Learn is behind its own list of people, which the API answers: a closed Learn page answers a visitor without a
+  // session, and a signed-in viewer Learn is not open to, with the 404 here; a signed-in one it is open to goes on. A shared lesson, its result pages and the page for maintainers are open to everyone; the front door too once
   // the API says Learn is open to everyone (the home page's Learn section links there and follows the same answer,
   // asked once a minute per server, only for a visitor's `/learn`). A contribution's or a
   // lesson's own page lets a visitor without a session through: it is the link an agent hands its person, and the page
   // asks them to sign in and comes back to itself (`isAttemptPagePath`).
-  if (
-    isLearnPath(pathname) &&
-    !isLearnOpenPath(pathname) &&
-    !isAttemptPagePath(pathname) &&
-    !hasSession(request) &&
-    !(isLearnHomePath(pathname) && (await learnOpenToEveryone()))
-  ) {
-    const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
-    response.headers.set('Cache-Control', 'private, no-store');
-    return response;
+  // A request with a session is asked here too, before anything renders: an account Learn is not open to gets the
+  // real 404, not Learn's shell (its header, tabs and titles) streamed ahead of the page's own not-found. A session the
+  // server cannot read (expired) is a visitor's.
+  // Only a page view is asked (GET, HEAD): a page's own actions are checked by the API itself. An ask that takes too
+  // long lets the request on, to the page's own check.
+  if (isLearnPath(pathname) && !isLearnOpenPath(pathname)) {
+    const access = !hasSession(request)
+      ? 'signed-out'
+      : request.method === 'GET' || request.method === 'HEAD'
+        ? await requestLearnAccess(request)
+        : 'open';
+    const visitorLetThrough = async () =>
+      isAttemptPagePath(pathname) || (isLearnHomePath(pathname) && (await learnOpenToEveryone()));
+    if (access === 'closed' || (access === 'signed-out' && !(await visitorLetThrough()))) {
+      const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
   }
   // The admin pages answer a visitor without a session with a real 404 here, before anything renders: the page reads
   // the session, so it is sent behind a prerendered shell, and its own not-found would come after a 200. Nothing is

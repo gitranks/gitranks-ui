@@ -16,12 +16,15 @@ import {
 /**
  * Learn's tabs under the header: Learn home (with how Learn works and the page that starts a lesson), My lessons (an
  * attempt's page belongs to it), Goal and level. Not on the pages open to every visitor (a shared lesson, the page for
- * maintainers), which show the header's line.
+ * maintainers), which show the header's line. An attempt's page draws them itself, for a signed-in viewer alone.
  */
-export function LearnTabs() {
+export function LearnTabs({ inPage = false }: { inPage?: boolean }) {
   const pathname = usePathname();
   if (isLearnTablessPath(pathname)) return <HeaderLine />;
   const attempt = pathname.startsWith('/learn/attempts/');
+  // An attempt's page is let through to a visitor (the sign-in), so it draws its own line or tabs once the server knows
+  // who is there (`LearnAttemptFrame`): nothing from the layout.
+  if (attempt && !inPage) return null;
   const home = pathname === LEARN_ABOUT_PATH || pathname.startsWith('/learn/start/');
   return (
     <TabsBar>

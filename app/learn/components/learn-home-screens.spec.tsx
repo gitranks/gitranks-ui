@@ -373,7 +373,13 @@ describe("Learn's tabs", () => {
     for (const path of ['/learn', '/learn/about', '/learn/start/a/b/1']) {
       expect(tabs(path), path).toMatch(/aria-current="page"[^>]*href="\/learn">Learn home/);
     }
-    expect(tabs('/learn/attempts/A_1')).toMatch(/aria-current="page"[^>]*href="\/learn\/lessons"/);
+    nav.pathname = '/learn';
+  });
+
+  it("leave an attempt's page to draw its own (the page knows who is there): nothing from the layout", () => {
+    expect(tabs('/learn/attempts/A_1')).toBe('');
+    nav.pathname = '/learn/attempts/A_1';
+    expect(renderToStaticMarkup(<LearnTabs inPage />)).toMatch(/aria-current="page"[^>]*href="\/learn\/lessons"/);
     nav.pathname = '/learn';
   });
 });

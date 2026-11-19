@@ -212,6 +212,21 @@ export function issueSizeOf(issue: Pick<LearnIssue, 'size'>): string | null {
   }
 }
 
+/** Why a Learn attempt ended without a pull request, in a line: the issue moved, the agent gave it back, or it stopped. */
+export function endedReasonOf(reason: string | null | undefined): string {
+  switch (reason) {
+    case 'CLAIM_LOST':
+      return 'The issue changed before your agent could start (someone else took it, or it was closed).';
+    case 'RELEASED':
+      return 'Your agent gave the issue back.';
+    default:
+      return 'Your agent stopped working on it.';
+  }
+}
+
+/** How many practice lessons a lesson's page shows while the agent works. */
+export const WAIT_PRACTICE = 2;
+
 /** How many practice lessons Learn home shows, and the most "Show all" reads. */
 export const PRACTICE_SHOWN = 3;
 export const PRACTICE_ALL = 30;

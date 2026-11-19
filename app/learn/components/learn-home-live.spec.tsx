@@ -5,11 +5,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push: vi.fn(), replace: vi.fn() }) }));
-const actions = vi.hoisted(() => ({ readMyLearnAttempts: vi.fn(), readPracticeLessons: vi.fn() }));
+const actions = vi.hoisted(() => ({
+  readMyLearnAttempts: vi.fn(),
+  readPracticeLessons: vi.fn(),
+  readAttemptStage: vi.fn(),
+}));
 vi.mock('../actions', () => actions);
 
 const { LearnHomeLive } = await import('./learn-home-live');
 const { PracticeSection } = await import('./practice-lessons');
+const { AttemptStageWatch } = await import('./attempt-stage-watch');
 const { myLearnAttempts, practiceLessons, PRACTICE } = await import('@/lib/learn/__fixtures__/home');
 const { OWN_LESSON_POLL_MS, ownLessonKeyOf } = await import('@/lib/learn/learn-home');
 
@@ -81,6 +86,28 @@ describe("Learn home's re-read of the own lesson", () => {
     await tick();
     await tick();
     expect(actions.readMyLearnAttempts).toHaveBeenCalledTimes(3);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe("a lesson page's re-read while the agent works", () => {
+  it('reads the stage every 15 seconds and reads the page again once it changed', async () => {
+    actions.readAttemptStage.mockResolvedValue({ ok: true, data: 'AGENT_WORKING' });
+    await act(async () => root.render(<AttemptStageWatch attemptId="A_1" stage="AGENT_WORKING" />));
+    await tick();
+    expect(actions.readAttemptStage).toHaveBeenCalledWith('A_1');
+    expect(refresh).not.toHaveBeenCalled();
+    actions.readAttemptStage.mockResolvedValue({ ok: true, data: 'WARMUP' });
+    await tick();
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops once the attempt is no longer the viewer’s to read', async () => {
+    actions.readAttemptStage.mockResolvedValue({ ok: false, error: 'NOT_FOUND' });
+    await act(async () => root.render(<AttemptStageWatch attemptId="A_1" stage="AGENT_WORKING" />));
+    await tick();
+    await tick();
+    expect(actions.readAttemptStage).toHaveBeenCalledTimes(1);
     expect(refresh).not.toHaveBeenCalled();
   });
 });

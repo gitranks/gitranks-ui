@@ -13,7 +13,7 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
-vi.mock('@/app/learn/actions', () => ({}));
+vi.mock('@/app/learn/actions', () => ({ readAttemptStage: vi.fn() }));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({
   viewerLogin: vi.fn(async () => 'octocat'),
@@ -24,6 +24,7 @@ vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnOpen: vi.fn(),
   loadLearnSetup: vi.fn(),
   loadAttemptLesson: vi.fn(),
+  loadPracticeLessons: vi.fn(),
 }));
 
 const { QuestionCard } = await import('./question-card');
@@ -35,6 +36,7 @@ const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attemp
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
 const { ExampleQuestion } = await import('./example-question');
+const { practiceLessons } = await import('@/lib/learn/__fixtures__/home');
 const { EXAMPLE_LESSON } = await import('@/lib/learn/example-lesson');
 const { CAUSE_HINT, CAUSE_QUESTION, FIX_QUESTION, FIX_WHY, lessons, STEPS, WARMUP } = await import(
   '@/lib/learn/__fixtures__/lesson'
@@ -278,6 +280,65 @@ describe("a Learn attempt's page", () => {
     expect(removed).not.toContain('Take it down');
   });
 
+  it('while the agent works: no email promised, the terminal, how to give the issue back, practice if they like', () => {
+    const html = renderToStaticMarkup(
+      <LearnAttemptScreen
+        view={views.active}
+        attempt={detail({ mode: 'LEARN' })}
+        lesson={lessons.working}
+        practice={practiceLessons()}
+      />,
+    );
+    expect(text(html)).not.toMatch(/email/i);
+    expect(text(html)).toContain('your lesson opens on this page. Your agent tells you in the terminal too.');
+    expect(text(html)).toContain('Changed your mind? Ask your agent to release the issue.');
+    expect(html).toContain('data-meanwhile');
+    expect(text(html)).toContain('While you wait: a practice lesson, if you like');
+    // Two of them, then all of them on Learn home.
+    expect(html.match(/data-practice-lesson=/g)).toHaveLength(2);
+    expect(text(html)).toContain('Made for octocat, who wanted to learn TypeScript (some experience)');
+    expect(html).toMatch(/href="\/learn#practice"[^>]*>All practice lessons →/);
+    expect(html.indexOf('What happens next')).toBeLessThan(html.indexOf('data-meanwhile'));
+    // No practice lesson for the goal: the section is left out.
+    expect(screen(lessons.working)).not.toContain('data-meanwhile');
+    expect(
+      renderToStaticMarkup(
+        <LearnAttemptScreen
+          view={views.active}
+          attempt={detail({ mode: 'LEARN' })}
+          lesson={lessons.working}
+          practice={practiceLessons({ items: [], total: 0 })}
+        />,
+      ),
+    ).not.toContain('data-meanwhile');
+  });
+
+  it('once ended, says why in plain words and leads to another issue', () => {
+    const ended = (patch: Parameters<typeof detail>[0]) =>
+      text(
+        renderToStaticMarkup(
+          <LearnAttemptScreen
+            view={views.active}
+            attempt={detail({ mode: 'LEARN', ...patch })}
+            lesson={lessons.ended}
+          />,
+        ),
+      );
+    expect(ended({ endReason: 'CLAIM_LOST', endDetail: 'claim_lost' })).toContain(
+      'The issue changed before your agent could start (someone else took it, or it was closed).',
+    );
+    expect(ended({ endReason: 'RELEASED', endDetail: 'released' })).toContain('Your agent gave the issue back.');
+    const stopped = ended({ endReason: 'MCP_IDLE', endDetail: 'mcp_idle' });
+    expect(stopped).toContain('Your agent stopped working on it.');
+    // Never the raw end detail.
+    expect(stopped).not.toContain('mcp_idle');
+    expect(stopped).toContain('Pick another issue');
+    const html = renderToStaticMarkup(
+      <LearnAttemptScreen view={views.active} attempt={detail({ mode: 'LEARN' })} lesson={lessons.ended} />,
+    );
+    expect(html).toMatch(/data-variant="default"[^>]*href="\/learn#issues"/);
+  });
+
   it('shows no stage strip for a pull request opened by hand or an attempt that ended', () => {
     for (const lesson of [lessons.handPr, lessons.ended]) {
       expect(screen(lesson)).not.toContain('Where you are');
@@ -295,6 +356,23 @@ describe("a Learn attempt's page while the account is being set up", () => {
 
     vi.mocked(learnData.loadLearnOpen).mockResolvedValue(false);
     await expect(LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) })).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('reads practice lessons only while the agent works', async () => {
+    const data = await import('@/lib/contribute/contribute.data');
+    vi.mocked(learnData.loadLearnOpen).mockResolvedValue(true);
+    vi.mocked(learnData.loadLearnSetup).mockResolvedValue(false);
+    vi.mocked(data.loadContribute).mockResolvedValue(views.active);
+    vi.mocked(data.loadAttempt).mockResolvedValue(detail({ mode: 'LEARN' }));
+    vi.mocked(learnData.loadPracticeLessons).mockResolvedValue(practiceLessons());
+    vi.mocked(learnData.loadAttemptLesson).mockResolvedValue(lessons.working);
+    const html = renderToStaticMarkup(await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) }));
+    expect(learnData.loadPracticeLessons).toHaveBeenCalledWith(2);
+    expect(html).toContain('data-meanwhile');
+    vi.mocked(learnData.loadPracticeLessons).mockClear();
+    vi.mocked(learnData.loadAttemptLesson).mockResolvedValue(lessons.ended);
+    await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) });
+    expect(learnData.loadPracticeLessons).not.toHaveBeenCalled();
   });
 
   it('asks a visitor without a session to sign in, in place of a not found, before reading anything', async () => {

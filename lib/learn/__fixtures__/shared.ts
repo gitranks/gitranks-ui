@@ -15,6 +15,7 @@ export const PUBLIC_HEAD = {
   publishedAt: '2026-10-28T11:30:00.000Z',
   passes: 14,
   subject: { ...HEAD.subject, pr: 902, prUrl: 'https://github.com/driftwood-js/driftwood/pull/902' },
+  writtenForGoal: { kind: 'language', value: 'TypeScript', level: 'Some' },
 };
 
 export const lessonPage: LessonPage = { __typename: 'LessonPage', head: PUBLIC_HEAD, steps: STEPS };

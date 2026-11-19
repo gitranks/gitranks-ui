@@ -13,7 +13,11 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
-vi.mock('@/app/learn/actions', () => ({ saveLearnProfile: vi.fn() }));
+vi.mock('@/app/learn/actions', () => ({
+  saveLearnProfile: vi.fn(),
+  readMyLearnAttempts: vi.fn(),
+  readLearnIssues: vi.fn(),
+}));
 vi.mock('@/app/contribute/actions', () => ({}));
 const { everyone, viewerLogin } = vi.hoisted(() => ({
   everyone: vi.fn(async () => false),
@@ -42,6 +46,8 @@ const { recentLessons } = await import('@/lib/learn/__fixtures__/recent-lessons'
 const { LearnMaintainers } = await import('./learn-maintainers');
 const { LearnProfileScreen, LearnProfileView } = await import('./learn-profile');
 const { MyLessonsScreen, MyLessonsView } = await import('./my-lessons');
+const { goalSavedWordsOf } = await import('./goal-saved-next');
+const { emptyIssues, practiceNext } = await import('@/lib/learn/__fixtures__/home');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { emptyProfile, filledProfile, myLessons } = await import('@/lib/learn/__fixtures__/profile');
 const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
@@ -153,7 +159,49 @@ describe('Goal and level', () => {
     expect(html).toContain('type="submit"');
     expect(html).not.toContain('type="submit" disabled=""');
     expect(html).toContain('data-learn-agent="Connected"');
-    expect(text(html)).toContain('Find me an issue to learn from on GitRanks');
+    // The agent card keeps its state and link; it no longer hands out a prompt.
+    expect(text(html)).not.toContain('Ask it:');
+    expect(text(html)).not.toContain('Find me an issue to learn from on GitRanks');
+    expect(html).not.toContain('data-saved-next');
+  });
+
+  it('once saved, says so by the button and shows the next step under the form', () => {
+    const saved = (next: Parameters<typeof goalSavedWordsOf>[0], profile = filledProfile) =>
+      renderToStaticMarkup(
+        <LearnProfileScreen profile={profile} ownAgent={views.agentOnboarded.ownAgent} saved={{ next }} />,
+      );
+    const issues = saved(practiceNext.own);
+    expect(text(issues)).toContain('Save Saved');
+    expect(text(issues)).not.toContain('ask your agent');
+    expect(issues).toContain('data-saved-next="issues"');
+    expect(text(issues)).toContain('Next: an issue to learn from 4 open issues fit TypeScript.');
+    expect(issues).toMatch(/href="\/learn#issues"[^>]*>See issues for TypeScript/);
+
+    const lesson = saved(practiceNext.back);
+    expect(text(lesson)).toContain(
+      'Your next lesson can start once “Route params lose their type after a redirect” is done.',
+    );
+    expect(lesson).toMatch(/href="\/learn\/attempts\/A_1"[^>]*>Back to your lesson/);
+
+    const unsupported = saved(practiceNext.unsupported, { ...filledProfile, goalValue: 'C++' });
+    expect(text(unsupported)).toContain(
+      'Learn can’t find issues for C++ yet. Pick a language from the list on Learn home.',
+    );
+    expect(unsupported).toMatch(/href="\/learn"[^>]*>Back to Learn home/);
+  });
+
+  it('words each next step after a save', () => {
+    expect(goalSavedWordsOf({ current: null, issues: emptyIssues.noneToday }, 'Go').text).toBe(
+      'None fit Go today. New ones come in every day.',
+    );
+    expect(goalSavedWordsOf({ current: null, issues: { ...emptyIssues.noneToday, total: 1 } }, 'Go').text).toMatch(
+      /^1 open issue fits Go\./,
+    );
+    // Nothing read: Learn home, whose list says the rest.
+    expect(goalSavedWordsOf(null, 'Go')).toMatchObject({
+      text: 'Learn home lists the open issues for your goal.',
+      action: { href: '/learn#issues', label: 'See issues for Go' },
+    });
   });
 
   it('names every goal, level and focus control by its text', () => {
@@ -191,16 +239,17 @@ describe('My lessons', () => {
     expect(html.match(/data-variant="outline"/g)).toHaveLength(3);
   });
 
-  it('says how the first lesson starts, and when the list did not load', () => {
+  it('says each lesson is made for an issue picked on Learn home, and when the list did not load', () => {
     const empty = renderToStaticMarkup(<MyLessonsScreen lessons={[]} />);
     expect(text(empty)).toContain('No lessons yet');
-    expect(text(empty)).toContain('Find me an issue to learn from on GitRanks');
-    expect(empty).toContain('href="/learn/profile"');
-    expect(text(empty)).toContain('Set your goal and level first');
-    // With a goal saved, the link changes it instead of asking for it first.
-    const withGoal = text(renderToStaticMarkup(<MyLessonsScreen lessons={[]} hasGoal />));
-    expect(withGoal).toContain('Change your goal and level');
-    expect(withGoal).not.toContain('Set your goal and level first');
+    expect(text(empty)).toContain('Each lesson here is written by your agent for an issue you pick');
+    expect(text(empty)).not.toContain('Find me an issue to learn from on GitRanks');
+    expect(empty).not.toContain('href="/learn/profile"');
+    expect(empty).toMatch(/data-variant="default"[^>]*href="\/learn"[^>]*>Pick an issue for your first lesson/);
+    // With no goal saved, practice waits for one: Learn home asks it first.
+    expect(empty).toMatch(/href="\/learn"[^>]*>Or see a practice lesson first/);
+    const withGoal = renderToStaticMarkup(<MyLessonsScreen lessons={[]} hasGoal />);
+    expect(withGoal).toMatch(/href="\/learn#practice"[^>]*>Or see a practice lesson first/);
     const failed = renderToStaticMarkup(<MyLessonsScreen lessons={undefined} />);
     expect(text(failed)).toContain('Your lessons are not available right now.');
   });

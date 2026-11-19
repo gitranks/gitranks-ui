@@ -1,15 +1,15 @@
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { LearnSettingUp } from './learn-setting-up';
-import { CodeBlock } from '@/app/contribute/components/code-block';
 import { ListRow, ListSection } from '@/app/contribute/components/contributions-view';
-import { PageTitle } from '@/app/contribute/components/primitives';
+import { HEADING, PageTitle } from '@/app/contribute/components/primitives';
 import { Pill } from '@/components/pill/pill';
+import { Button } from '@/components/ui/button';
 import { loadLearnOpen, loadLearnProfile, loadLearnSetup, loadMyLessons } from '@/lib/learn/learn.data';
 import type { MyLesson } from '@/lib/learn/learn.types';
-import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
-import { LEARN_AGENT_PROMPT } from '@/lib/learn/lesson-format';
+import { LEARN_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
 import { type MyLessonRow, myLessonGroupsOf } from '@/lib/learn/my-lessons';
 
 function Rows({ rows, quiet = false }: { rows: MyLessonRow[]; quiet?: boolean }) {
@@ -30,29 +30,39 @@ function Rows({ rows, quiet = false }: { rows: MyLessonRow[]; quiet?: boolean })
   ));
 }
 
-/** No lessons yet: how the first one starts, after the goal when it is not set yet. */
+/**
+ * No lessons yet: each one is written for an issue the user picks, so the first starts on Learn home (whose state
+ * decides what shows: the goal question first when none is saved). A practice lesson first, if they like.
+ */
 function FirstLesson({ hasGoal }: { hasGoal: boolean }) {
   return (
     <section
       aria-labelledby="first-lesson"
       data-section="no-lessons"
-      className="flex flex-col gap-4 rounded-xl border bg-card p-5 sm:p-6"
+      className="flex flex-col items-start gap-3 rounded-xl border bg-card p-5"
     >
-      <div className="flex flex-col gap-1">
-        <h2 id="first-lesson" className="text-lg font-semibold">
-          No lessons yet
-        </h2>
-        <p className="max-w-prose text-sm text-muted-foreground">
-          Your first one starts in your terminal. Ask your agent for an issue to learn from: it fixes it and writes the
-          lesson, and the lesson shows here when it is ready.
-        </p>
+      <h2 id="first-lesson" className={HEADING.card}>
+        No lessons yet
+      </h2>
+      <p className="max-w-prose text-sm text-muted-foreground">
+        Each lesson here is written by your agent for an issue you pick, about that exact fix. Your first one starts on
+        Learn home.
+      </p>
+      <div className="flex w-full flex-wrap items-center gap-x-5 gap-y-2">
+        <Button asChild className="min-h-11 px-5 font-semibold max-sm:w-full">
+          <Link href={LEARN_PATH} prefetch={false}>
+            Pick an issue for your first lesson
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </Button>
+        <Link
+          href={hasGoal ? LEARN_PRACTICE_PATH : LEARN_PATH}
+          prefetch={false}
+          className="text-sm font-semibold text-muted-foreground hover:text-foreground max-sm:inline-flex max-sm:min-h-11 max-sm:items-center"
+        >
+          Or see a practice lesson first
+        </Link>
       </div>
-      <CodeBlock label="Ask your agent" copyLabel="Copy the prompt" wrap className="max-w-xl">
-        {LEARN_AGENT_PROMPT}
-      </CodeBlock>
-      <Link href={LEARN_PROFILE_PATH} prefetch={false} className="self-start text-sm font-semibold text-link">
-        {hasGoal ? 'Change your goal and level →' : 'Set your goal and level first →'}
-      </Link>
     </section>
   );
 }
@@ -68,7 +78,7 @@ export function MyLessonsScreen({
   hasGoal = false,
 }: {
   lessons: MyLesson[] | undefined;
-  /** The viewer has a Learn goal: the empty state points to changing it, not setting it first. */
+  /** The viewer has a Learn goal: the empty state's practice link goes straight to Learn home's practice lessons. */
   hasGoal?: boolean;
   /** The viewer's GitRanks account is still being set up: no lessons can be read yet. */
   settingUp?: boolean;

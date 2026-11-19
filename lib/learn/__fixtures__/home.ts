@@ -5,6 +5,7 @@ import type {
   MyLearnAttempts,
   PracticeLesson,
   PracticeLessons,
+  PracticeNext,
 } from '../learn.types';
 
 const issue = (repo: string, number: number, title: string, size: string, why: string): LearnIssue => ({
@@ -172,4 +173,13 @@ export const myLearnAttempts: Record<
   prOpen: { current: null, lastPullRequest: opened({}) },
   merged: { current: null, lastPullRequest: opened({ state: 'MERGED', prState: 'MERGED' }) },
   closed: { current: null, lastPullRequest: opened({ state: 'CLOSED', prState: 'CLOSED' }) },
+};
+
+/** What a passed practice lesson, and Goal and level once saved, offer next. */
+export const practiceNext: Record<'own' | 'back' | 'noGoal' | 'unsupported' | 'unread', PracticeNext> = {
+  own: { current: null, issues: learnIssues({ items: ISSUES.slice(0, 2) }) },
+  back: { current: myAttempt(), issues: null },
+  noGoal: { current: null, issues: learnIssues({ goal: null, items: [], total: 0 }) },
+  unsupported: { current: null, issues: emptyIssues.unsupported },
+  unread: { current: null, issues: null },
 };

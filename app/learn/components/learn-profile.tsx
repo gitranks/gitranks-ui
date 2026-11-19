@@ -9,8 +9,7 @@ import { HEADING } from '@/app/contribute/components/primitives';
 import { Pill } from '@/components/pill/pill';
 import type { ContributeOwnAgent } from '@/lib/contribute/contribute.types';
 import { loadLearnOpen, loadLearnProfile, loadLearnSetup, loadOwnAgent } from '@/lib/learn/learn.data';
-import type { LearnProfile } from '@/lib/learn/learn.types';
-import { LEARN_AGENT_PROMPT } from '@/lib/learn/lesson-format';
+import type { LearnProfile, PracticeNext } from '@/lib/learn/learn.types';
 
 const SIDE_CARD = 'flex flex-col gap-3 rounded-xl border bg-card p-4.5';
 
@@ -26,7 +25,6 @@ const LESSON_STEPS = [
  */
 function AgentCard({ ownAgent, now }: { ownAgent: ContributeOwnAgent | undefined; now?: Date }) {
   const way = agentWayOf({ ownAgent }, now);
-  const connected = way.state?.label === 'Connected';
   return (
     <section aria-labelledby="learn-agent" className={SIDE_CARD} data-learn-agent={way.state?.label ?? 'unknown'}>
       <div className="flex items-center justify-between gap-2">
@@ -39,7 +37,6 @@ function AgentCard({ ownAgent, now }: { ownAgent: ContributeOwnAgent | undefined
         <Terminal aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
         <span>{way.text}</span>
       </p>
-      {connected ? <p className="text-xs text-muted-foreground">Ask it: “{LEARN_AGENT_PROMPT}”.</p> : null}
       <Link
         href={way.action.href}
         prefetch={false}
@@ -80,6 +77,7 @@ export function LearnProfileScreen({
   ownAgent,
   settingUp = false,
   now,
+  saved,
 }: {
   profile: LearnProfile | null;
   /** The user's own agent; undefined when it was not read. */
@@ -87,6 +85,8 @@ export function LearnProfileScreen({
   /** The viewer's GitRanks account is still being set up: nothing can be saved yet. */
   settingUp?: boolean;
   now?: Date;
+  /** The catalogue's boards: the form just saved, with the next step under it. */
+  saved?: { next: PracticeNext | null };
 }) {
   return (
     <>
@@ -97,7 +97,7 @@ export function LearnProfileScreen({
         </p>
       </header>
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        {settingUp ? <LearnSettingUp /> : <LearnProfileForm profile={profile} />}
+        {settingUp ? <LearnSettingUp /> : <LearnProfileForm profile={profile} saved={saved} />}
         <aside className="flex min-w-0 flex-col gap-4">
           <AgentCard ownAgent={ownAgent} now={now} />
           <HowALessonGoes />

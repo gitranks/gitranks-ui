@@ -13,12 +13,16 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
-vi.mock('@/app/learn/actions', () => ({ signInToReact: vi.fn() }));
+vi.mock('@/app/learn/actions', () => ({ signInToReact: vi.fn(), readPracticeNext: vi.fn() }));
 // Whether Learn is open to everyone, as the API answers it: closed here.
 vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => false }));
 vi.mock('@/app/contribute/actions', () => ({}));
 vi.mock('@/lib/contribute/contribute.data', () => ({ viewerLogin: vi.fn() }));
-vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(), loadLearnSetup: vi.fn() }));
+vi.mock('@/lib/learn/learn.data', () => ({
+  loadLearnOpen: vi.fn(),
+  loadLearnSetup: vi.fn(),
+  loadLearnProfile: vi.fn(async () => null),
+}));
 vi.mock('@/lib/learn/react-mark', () => ({ hasReactionMark: vi.fn() }));
 vi.mock('@/lib/learn/lesson-public.data', () => ({
   loadLessonPage: vi.fn(),
@@ -33,7 +37,9 @@ const { LessonStubScreen } = await import('./lesson-stub');
 const data = await import('@/lib/learn/lesson-public.data');
 const { hasReactionMark } = await import('@/lib/learn/react-mark');
 const { viewerLogin } = await import('@/lib/contribute/contribute.data');
-const { loadLearnOpen, loadLearnSetup } = await import('@/lib/learn/learn.data');
+const { loadLearnOpen, loadLearnProfile, loadLearnSetup } = await import('@/lib/learn/learn.data');
+const { practiceNext } = await import('@/lib/learn/__fixtures__/home');
+const { filledProfile } = await import('@/lib/learn/__fixtures__/profile');
 const { lessonPage, PUBLIC_HEAD, result, sharedRuns } = await import('@/lib/learn/__fixtures__/shared');
 const { STEPS } = await import('@/lib/learn/__fixtures__/lesson');
 
@@ -97,12 +103,10 @@ describe('a shared lesson', () => {
     expect(html).toContain('data-share-result="off"');
     expect(html).toMatch(/role="switch"/);
     expect(text(html)).not.toContain('pull request is now yours');
-    // What comes next: a lesson on the user's own fix, and where it shows.
-    expect(html).toContain('data-next-lesson');
-    expect(text(html)).toContain('Next: a lesson on your own fix');
-    expect(text(html)).toContain('Find me an issue to learn from on GitRanks');
-    expect(html).toContain('href="/learn/lessons"');
     expect(text(html)).toContain('What this lesson covers');
+    // What comes next is read once the card shows: nothing drawn before.
+    expect(html).not.toContain('data-next-step');
+    expect(text(html)).not.toContain('Find me an issue to learn from on GitRanks');
 
     const shared = renderToStaticMarkup(
       <LessonPageScreen
@@ -125,6 +129,7 @@ describe('a shared lesson', () => {
       <LessonPageScreen page={lessonPage} viewer={{ kind: 'taker', login: 'octocat', run: sharedRuns.passed }} />,
     );
     expect(author).toContain('data-share-result="author"');
+    expect(author).not.toContain('data-next-step');
   });
 
   it('reads the lesson as anyone would, and the run only for a viewer Learn is open to', async () => {
@@ -151,9 +156,24 @@ describe('a shared lesson', () => {
 
     vi.mocked(loadLearnSetup).mockResolvedValue(false);
     vi.mocked(data.loadMyLessonRun).mockResolvedValue(null);
-    expect(renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' }))).toContain(
-      'data-viewer="taker"',
+    vi.mocked(loadLearnProfile).mockResolvedValue(filledProfile);
+    const taker = renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' }));
+    expect(taker).toContain('data-viewer="taker"');
+    // Another learner's lesson is practice, and their goal says "also".
+    expect(taker).toContain('data-practice="true"');
+    expect(text(taker)).toContain('octocat , who also wanted to learn TypeScript (some experience)');
+    // An unread goal leaves "also" out, never the page.
+    vi.mocked(loadLearnProfile).mockRejectedValueOnce(new Error('down'));
+    expect(text(renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' })))).toContain(
+      'octocat , who wanted to learn TypeScript',
     );
+    // Its author reads it as before: no goal read.
+    vi.mocked(loadLearnProfile).mockClear();
+    vi.mocked(viewerLogin).mockResolvedValue('octocat');
+    expect(renderToStaticMarkup(await LessonPageView({ slug: 'route-cache-miss-8f3k' }))).not.toContain(
+      'data-practice',
+    );
+    expect(loadLearnProfile).not.toHaveBeenCalled();
 
     vi.mocked(data.loadLessonPage).mockResolvedValue({ kind: 'stub', visibility: 'HELD' });
     expect(text(renderToStaticMarkup(await LessonPageView({ slug: 'x' })))).toContain('This lesson is paused');
@@ -163,6 +183,103 @@ describe('a shared lesson', () => {
 
     vi.mocked(data.loadLessonPage).mockResolvedValue({ kind: 'stub', visibility: 'HIDDEN' });
     await expect(LessonPageView({ slug: 'x' })).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+});
+
+describe('a practice lesson', () => {
+  const MONA_GOAL = { kind: 'language', value: 'TypeScript', level: 'Some' };
+  const practice = (patch: Record<string, unknown> = {}) =>
+    renderToStaticMarkup(
+      <LessonPageScreen page={lessonPage} viewer={{ kind: 'taker', login: 'mona', run: null, ...patch }} />,
+    );
+
+  it('leads back to Learn home, is marked optional, and says where it came from and what it teaches', () => {
+    const html = practice({ goal: MONA_GOAL });
+    expect(html).toContain('data-practice="true"');
+    expect(html).toMatch(/href="\/learn"[^>]*>← Learn home/);
+    expect(text(html)).toContain('Practice lesson · optional');
+    expect(html).toContain('data-lesson-context');
+    const strip = text(html.slice(html.indexOf('data-lesson-context'), html.indexOf('</dl>')));
+    expect(strip).toContain('The issue Nested layouts re-render on every navigation #871');
+    expect(strip).toContain('Made for octocat , who also wanted to learn TypeScript (some experience)');
+    expect(strip).toContain('Made Oct 28, 2026 · from pull request #902');
+    expect(strip).toContain('You learn Cache keys Path normalisation');
+    // The pull request's state is not shown.
+    expect(strip).not.toMatch(/merged|is open|closed/i);
+    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/902"');
+  });
+
+  it('says "also" only when the lesson was written for the viewer\'s own goal', () => {
+    expect(text(practice({ goal: { kind: 'language', value: 'JavaScript', level: 'Some' } }))).toContain(
+      'octocat , who wanted to learn TypeScript',
+    );
+    expect(text(practice({ goal: null }))).not.toContain('also wanted');
+  });
+
+  it("opens with what a practice lesson is for, and the way past it to the viewer's own issue", () => {
+    const html = practice();
+    expect(text(html)).toContain('A practice lesson: see how a lesson works');
+    expect(text(html)).toContain('Yours will be written for the issue you pick, by your agent, for your goal.');
+    expect(html).toMatch(/<a [^>]*data-contribute-source="learn_practice_skip"[^>]*>Skip it: pick your issue →/);
+    expect(html).toMatch(/<a [^>]*href="\/learn#issues"[^>]*>Skip it/);
+    expect(text(html)).toContain('Skip it: pick your issue →');
+    expect(text(html)).toContain('Start the lesson');
+  });
+
+  it("keeps today's page for its author, the reader and the visitor", () => {
+    for (const viewer of [
+      { kind: 'taker', login: 'OctoCat', run: null },
+      { kind: 'reader', login: 'mona' },
+      { kind: 'visitor' },
+    ] as const) {
+      const html = renderToStaticMarkup(<LessonPageScreen page={lessonPage} viewer={viewer} />);
+      expect(html, viewer.kind).not.toContain('data-practice');
+      expect(html, viewer.kind).not.toContain('data-lesson-context');
+      expect(text(html), viewer.kind).not.toContain('Practice lesson');
+      expect(text(html), viewer.kind).toContain('A 10-minute lesson from a real fix');
+    }
+  });
+
+  const passed = (next: unknown) =>
+    renderToStaticMarkup(
+      <LessonPageScreen
+        page={lessonPage}
+        viewer={{ kind: 'taker', login: 'mona', run: sharedRuns.passed, next } as never}
+      />,
+    );
+
+  it("once passed, offers the viewer's own lesson: two issues, all of them, or another practice lesson", () => {
+    const html = passed(practiceNext.own);
+    expect(html).toContain('data-next-step="own"');
+    expect(text(html)).toContain('Now your own lesson');
+    expect(text(html)).toContain('Two issues for TypeScript:');
+    expect(html.match(/data-learn-issue=/g)).toHaveLength(2);
+    expect(html.match(/data-contribute-source="learn_practice_passed_issue"/g)).toHaveLength(2);
+    expect(html).toContain('aria-label="Start with my agent: driftwood-js/driftwood#934"');
+    expect(html).toContain('href="/learn#issues"');
+    expect(text(html)).toContain('All issues for your goal →');
+    expect(html).toContain('href="/learn#practice"');
+    expect(text(html)).toContain('Or another practice lesson');
+    expect(text(html)).not.toContain('Find me an issue to learn from');
+  });
+
+  it('once passed with a lesson of their own in progress, leads back to it, with no issue', () => {
+    const html = passed(practiceNext.back);
+    expect(html).toContain('data-next-step="back"');
+    expect(text(html)).toContain('Back to your lesson');
+    expect(html).toContain('href="/learn/attempts/A_1"');
+    expect(html).not.toContain('data-learn-issue');
+  });
+
+  it('once passed with no goal, asks for it first; read failed, the links alone', () => {
+    const noGoal = passed(practiceNext.noGoal);
+    expect(noGoal).toContain('data-next-step="goal"');
+    expect(text(noGoal)).toContain('Tell us what you want to learn');
+    expect(noGoal).toMatch(/href="\/learn"/);
+    const unread = passed(null);
+    expect(unread).toContain('data-next-step="own"');
+    expect(unread).not.toContain('data-learn-issue');
+    expect(unread).toContain('href="/learn#issues"');
   });
 });
 

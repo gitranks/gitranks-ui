@@ -16,7 +16,17 @@ export const stepsLineOf = (count: number) =>
   `${WORDS[count] ?? count} step${count === 1 ? '' : 's'}, one question each.`;
 
 /** The lesson's one call to action, beside what it is: sign in, start, or why answering is closed. */
-export function LessonIntro({ steps, text, action }: { steps: number; text: string; action?: ReactNode }) {
+export function LessonIntro({
+  steps,
+  text,
+  action,
+  title = 'A 10-minute lesson from a real fix',
+}: {
+  steps: number;
+  text: ReactNode;
+  action?: ReactNode;
+  title?: string;
+}) {
   return (
     <section
       className="flex flex-col gap-2 rounded-xl border border-primary/20 bg-brand-soft px-5 py-4"
@@ -24,7 +34,7 @@ export function LessonIntro({ steps, text, action }: { steps: number; text: stri
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="text-lg font-semibold">A 10-minute lesson from a real fix</h2>
+          <h2 className="text-lg font-semibold">{title}</h2>
           <p className="text-sm text-muted-foreground">
             {stepsLineOf(steps)} {text}
           </p>

@@ -98,6 +98,8 @@ export type LessonHead = {
   passes: number;
   /** "learn TypeScript, level Some". */
   writtenFor: string | null;
+  /** The same, as its parts; null for a lesson written for no saved goal. Left out by reads that don't ask for it. */
+  writtenForGoal?: LessonWrittenFor | null;
   topics: string[];
 };
 
@@ -354,3 +356,9 @@ export type MyLearnAttempt = {
 
 /** The viewer's newest Learn attempt in progress, and their newest one's pull request opened in the last 14 days. */
 export type MyLearnAttempts = { current: MyLearnAttempt | null; lastPullRequest: MyLearnAttempt | null };
+
+/**
+ * What a passed practice lesson offers next: the viewer's own lesson in progress, or the first issues for their goal
+ * (`issues.goal` null: no goal saved yet). Null parts were not read.
+ */
+export type PracticeNext = { current: MyLearnAttempt | null; issues: LearnIssues | null };

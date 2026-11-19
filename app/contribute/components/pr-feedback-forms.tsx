@@ -2,7 +2,12 @@
 
 import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
 
-import { sendPrHelped, sendPrReport, signInAsMaintainer, undoPrAction } from '../maintainers/actions';
+import {
+  sendPrHelped,
+  sendPrReport,
+  signInAsMaintainer,
+  undoPrAction,
+} from '@/app/(public)/contribute/maintainers/actions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

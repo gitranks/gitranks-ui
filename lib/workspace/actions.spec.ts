@@ -89,7 +89,8 @@ const CALLS: Record<string, unknown[]> = {
   unignoreContributeRepo: ['R_1'],
   resolveContributeStack: [],
   readAttemptLive: ['A_1'],
-  readContributeChanges: ['3.1', false],
+  readWorkspaceChanges: ['3.1', { activity: false, needsYou: false }],
+  readNeedsYouCount: [],
   sendContributeFeedback: ['GATES', 'lodash is left out', { mode: 'STACK', githubLogin: 'mallory' }],
   approveContributeProof: ['PF_1', true],
   sendBackContributeProof: ['PF_1', 'Capture the log too'],
@@ -97,7 +98,7 @@ const CALLS: Record<string, unknown[]> = {
   takeBackContributeProof: ['PF_1'],
   postContributeProofReply: ['PF_1', 'Thanks for the review.'],
   retryContributeProof: ['PF_1'],
-  readRunsPage: [{ href: '/contribute/runs', after: 'c1' }],
+  readRunsPage: [{ href: '/my/agent/runs', after: 'c1' }],
 };
 
 /** The actions about what the user works on: open to every signed-in login. */
@@ -1017,10 +1018,19 @@ describe("readIssuesPage on an API without the repos' rules", () => {
   });
 });
 
-describe('readContributeChanges', () => {
+describe('readWorkspaceChanges', () => {
   const CHANGES = { version: '4.2', activity: false, changed: [] };
   const ACTIVITY = { items: [], runs: [], readAt: '2026-10-31T21:00:00.000Z' };
+  const NONE = { activity: false, needsYou: false };
   const as = (githubLogin: string) => auth.mockResolvedValue({ user: { githubLogin }, expires: '2099-01-01' });
+  /** Answers each read by its document's operation, so reads made side by side get their own answer. */
+  const answer = (by: Record<string, unknown>) =>
+    graphqlDirect.mockImplementation(async (document: { definitions: { name?: { value: string } }[] }) => {
+      const name = document.definitions[0]?.name?.value ?? '';
+      const value = by[name];
+      if (value instanceof Error) throw value;
+      return value;
+    });
 
   beforeEach(() => {
     graphqlDirect.mockReset();
@@ -1031,7 +1041,7 @@ describe('readContributeChanges', () => {
   it('reads what moved since the version held, and nothing more when nothing runs', async () => {
     graphqlDirect.mockResolvedValueOnce({ contributeChanges: CHANGES });
 
-    expect(await actions.readContributeChanges('3.2', false)).toEqual({ ok: true, data: { changes: CHANGES } });
+    expect(await actions.readWorkspaceChanges('3.2', NONE)).toEqual({ ok: true, data: { changes: CHANGES } });
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
     expect(graphqlDirect.mock.calls[0][1]).toEqual({ since: '3.2' });
   });
@@ -1039,8 +1049,8 @@ describe('readContributeChanges', () => {
   it('sends no version it could not have had from a read', async () => {
     graphqlDirect.mockResolvedValue({ contributeChanges: CHANGES });
 
-    await actions.readContributeChanges('3', false);
-    await actions.readContributeChanges({ since: '1.1' } as never, false);
+    await actions.readWorkspaceChanges('3', NONE);
+    await actions.readWorkspaceChanges({ since: '1.1' } as never, NONE);
     expect(graphqlDirect.mock.calls.map(([, variables]) => variables)).toEqual([{ since: null }, { since: null }]);
   });
 
@@ -1049,15 +1059,41 @@ describe('readContributeChanges', () => {
     ['running', { ...CHANGES, activity: true }, false],
     ['the list moved', { ...CHANGES, changed: ['SET'] }, false],
     ['work started or ended', { ...CHANGES, changed: ['ACTIVITY'] }, false],
-  ])('reads the work in progress in the same call when %s', async (_why, changes, withActivity) => {
-    graphqlDirect.mockResolvedValueOnce({ contributeChanges: changes }).mockResolvedValueOnce({
-      contributeActivity: ACTIVITY,
-    });
+  ])('reads the work in progress in the same call when %s', async (_why, changes, activity) => {
+    answer({ ContributeChanges: { contributeChanges: changes }, ContributeActivity: { contributeActivity: ACTIVITY } });
 
-    expect(await actions.readContributeChanges('3.2', withActivity as boolean)).toEqual({
+    expect(await actions.readWorkspaceChanges('3.2', { activity: activity as boolean, needsYou: false })).toEqual({
       ok: true,
       data: { changes, activity: ACTIVITY },
     });
+  });
+
+  it.each([
+    ['asked', { ...CHANGES }, true],
+    ['an attempt moved', { ...CHANGES, changed: ['ATTEMPTS'] }, false],
+    ['the settings moved', { ...CHANGES, changed: ['SETTINGS'] }, false],
+  ])('reads the count of what needs the user in the same call when %s', async (_why, changes, needsYou) => {
+    answer({
+      ContributeChanges: { contributeChanges: changes },
+      ContributeNeedsYouCount: { contributeNeedsYou: { count: 3, complete: true } },
+    });
+
+    expect(await actions.readWorkspaceChanges('3.2', { activity: false, needsYou: needsYou as boolean })).toEqual({
+      ok: true,
+      data: { changes, needsYou: 3 },
+    });
+  });
+
+  it('answers a count the API does not give as null, and leaves out one that failed', async () => {
+    const changes = { ...CHANGES, changed: ['ATTEMPTS'] };
+    answer({
+      ContributeChanges: { contributeChanges: changes },
+      ContributeNeedsYouCount: { contributeNeedsYou: null },
+    });
+    expect(await actions.readWorkspaceChanges('3.2', NONE)).toEqual({ ok: true, data: { changes, needsYou: null } });
+
+    answer({ ContributeChanges: { contributeChanges: changes }, ContributeNeedsYouCount: new Error('down') });
+    expect(await actions.readWorkspaceChanges('3.2', NONE)).toEqual({ ok: true, data: { changes } });
   });
 
   it('reads the whole work in progress for any login; leaves the activity out when it fails', async () => {
@@ -1066,21 +1102,47 @@ describe('readContributeChanges', () => {
     const reads = { kind: 'FIRST_READS', label: 'Reading issues from 1 of 2 repos' };
     const run = { attemptId: 'a1', phase: 'WORKING', active: true };
     const activity = { ...ACTIVITY, items: [reads], runs: [run] };
-    graphqlDirect
-      .mockResolvedValueOnce({ contributeChanges: changes })
-      .mockResolvedValueOnce({ contributeActivity: activity });
-    expect(await actions.readContributeChanges('3.2', true)).toEqual({ ok: true, data: { changes, activity } });
+    answer({ ContributeChanges: { contributeChanges: changes }, ContributeActivity: { contributeActivity: activity } });
+    expect(await actions.readWorkspaceChanges('3.2', { activity: true, needsYou: false })).toEqual({
+      ok: true,
+      data: { changes, activity },
+    });
 
-    graphqlDirect.mockResolvedValueOnce({ contributeChanges: changes }).mockRejectedValueOnce(new Error('down'));
-    expect(await actions.readContributeChanges('3.2', true)).toEqual({ ok: true, data: { changes } });
+    answer({ ContributeChanges: { contributeChanges: changes }, ContributeActivity: new Error('down') });
+    expect(await actions.readWorkspaceChanges('3.2', { activity: true, needsYou: false })).toEqual({
+      ok: true,
+      data: { changes },
+    });
   });
 
   it('answers null when the API hides Contribute, and an error when it fails', async () => {
     graphqlDirect.mockResolvedValueOnce({ contributeChanges: null });
-    expect(await actions.readContributeChanges(null, true)).toEqual({ ok: true, data: null });
+    expect(await actions.readWorkspaceChanges(null, { activity: true, needsYou: true })).toEqual({
+      ok: true,
+      data: null,
+    });
 
     graphqlDirect.mockRejectedValueOnce(new Error('down'));
-    expect(await actions.readContributeChanges(null, false)).toMatchObject({ ok: false });
+    expect(await actions.readWorkspaceChanges(null, NONE)).toMatchObject({ ok: false });
+  });
+});
+
+describe('readNeedsYouCount', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+  });
+
+  it('reads the count alone; null when the API does not give it; an error when it fails or nobody is signed in', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    graphqlDirect.mockResolvedValueOnce({ contributeNeedsYou: { count: 2, complete: false } });
+    expect(await actions.readNeedsYouCount()).toEqual({ ok: true, data: 2 });
+    graphqlDirect.mockResolvedValueOnce({ contributeNeedsYou: null });
+    expect(await actions.readNeedsYouCount()).toEqual({ ok: true, data: null });
+    graphqlDirect.mockRejectedValueOnce(new Error('down'));
+    expect(await actions.readNeedsYouCount()).toMatchObject({ ok: false });
+    auth.mockResolvedValue(null);
+    expect(await actions.readNeedsYouCount()).toEqual({ ok: false, error: 'SIGNED_OUT' });
   });
 });
 

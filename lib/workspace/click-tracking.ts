@@ -1,4 +1,4 @@
-import { isContributePath } from './paths';
+import { isContributePath, isInsidePath, isMyPath } from './paths';
 
 /**
  * Where a click into Contribute came from: one id per place on the site that links there. Add a place here, then mark
@@ -44,6 +44,8 @@ export const CONTRIBUTE_SOURCES = [
   'learn_start',
   /** Copy the prompt, on Learn's start page. */
   'learn_start_copy',
+  /** The workspace's own tabs: moving between them is never counted (`clickOf` drops it on every page). */
+  'workspace_tab',
   /** A link to Contribute that carries no mark. */
   'other',
 ] as const;
@@ -59,12 +61,15 @@ export const CONTRIBUTE_SOURCE_ATTR = 'data-contribute-source';
 export const contributeSource = (source: ContributeSource) => ({ [CONTRIBUTE_SOURCE_ATTR]: source }) as const;
 
 /**
- * Sources whose links sit on Contribute's own pages (its landing's buttons, and the header's Learn on every page); any
- * other click there is moving around inside it.
+ * Sources whose links sit on Contribute's own pages and the workspace's under `/my` (its landing's buttons, and the
+ * header's Learn on every page); any other click there is moving around inside it.
  */
 const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>(['contribute_landing', 'learn_menu']);
 
 export const CLICK_REPORT_PATH = '/api/contribute/click';
+
+/** The workspace tabs' own mark. */
+const TAB_SOURCE: ContributeSource = 'workspace_tab';
 
 /** `learn_view` and `learn_click`: something of Learn's shown, or a click on it, named by `event` and `source`. */
 export type ClickKind = 'click' | 'landing' | 'connect' | 'learn_view' | 'learn_click';
@@ -130,8 +135,8 @@ export type ClickFacts = {
 
 /**
  * What a click counts as, or null when it is not a step into Contribute: a marked link or button always counts under
- * its own mark; a link to Contribute counts under the section's mark, else as `other`. On Contribute's own pages only
- * the marks made for them count.
+ * its own mark; a link to Contribute or the workspace under `/my` counts under the section's mark, else as `other`. On
+ * those pages only the marks made for them count. The workspace's tabs never count, on any page.
  */
 export function clickOf({
   own,
@@ -140,11 +145,12 @@ export function clickOf({
   pagePath,
   origin,
 }: ClickFacts): { source: string; target?: string } | null {
+  if (own === TAB_SOURCE || around === TAB_SOURCE) return null;
   const path = pathOf(href, origin);
-  const target = path && isContributePath(path) ? path : null;
+  const target = path && isInsidePath(path) ? path : null;
   const source = own || (target ? around || 'other' : null);
   if (!source) return null;
-  if (isContributePath(pagePath) && !INSIDE_SOURCES.has(source)) return null;
+  if (isInsidePath(pagePath) && !INSIDE_SOURCES.has(source)) return null;
   return path ? { source, target: path } : { source };
 }
 
@@ -158,7 +164,7 @@ const tagOf = (params: URLSearchParams, name: string) =>
 function implicitSourceOf(pathname: string, params: URLSearchParams): string | undefined {
   if (params.get('start') === 'agent') return 'mcp_agent';
   // Where `?start=agent` sends a signed-in visitor, before the page (and this) runs.
-  if (/^\/contribute\/connect\/?$/.test(pathname) && params.get('path') === 'agent') return 'mcp_agent';
+  if (/^\/my\/agent\/connect\/?$/.test(pathname)) return 'mcp_agent';
   if (/^\/contribute\/maintainers\/?$/.test(pathname) && params.has('from')) return 'pr_footer';
   return undefined;
 }
@@ -191,8 +197,12 @@ export function entryOf(pathname: string, search: string, referrer: string, orig
   return Object.fromEntries(Object.entries(entry).filter(([, value]) => value)) as Entry;
 }
 
-/** A visit that started on Contribute: its first page is one of Contribute's. */
-export const isLanding = (pagePath: string) => isContributePath(pagePath);
+/**
+ * A visit that started on Contribute: its first page is one of Contribute's, or a workspace page under `/my` reached
+ * from a tagged link (an email's); a bookmark of one is not.
+ */
+export const isLanding = (pagePath: string, search = '') =>
+  isContributePath(pagePath) || (isMyPath(pagePath) && new URLSearchParams(search).has('utm_source'));
 
 /** Whether an entry names a channel: campaign tags or another site. A visit typed in or bookmarked names none. */
 export const namesChannel = (entry: Entry) => Boolean(entry.utmSource || entry.utmCampaign || entry.referrerHost);

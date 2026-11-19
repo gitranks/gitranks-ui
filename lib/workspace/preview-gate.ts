@@ -75,6 +75,16 @@ export async function requestContributeAccess(req: { headers: Headers }): Promis
   return contributeAccessOf(token.githubLogin);
 }
 
+/**
+ * The request's viewer for the workspace's pages under `/my`: `signed-out` when the request carries no session the
+ * server can read (none, or an expired one), which the page answers with its sign-in; else their `ContributeAccess`.
+ */
+export async function requestWorkspaceAccess(req: { headers: Headers }): Promise<ContributeAccess | 'signed-out'> {
+  const token = await sessionTokenOf(req);
+  if (!token?.githubLogin || token.error) return 'signed-out';
+  return contributeAccessOf(token.githubLogin);
+}
+
 /** Whether the request's signed-in user may see Contribute; a visitor without a session never may. */
 export async function requestMaySeeContribute(req: { headers: Headers }): Promise<boolean> {
   return (await requestContributeAccess(req)) === 'allowed';

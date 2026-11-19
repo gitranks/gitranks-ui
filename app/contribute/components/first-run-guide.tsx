@@ -7,10 +7,10 @@ import { HEADING } from '@/components/workspace/primitives';
 import { type FirstRunStep, firstRunStepOf } from '@/lib/contribute/first-run';
 import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
 import { dayLabel, KINDS, LANGUAGES, relativeLabel, SIZES, usd } from '@/lib/workspace/format';
-import { CONNECT_KEY_PATH, settingsPathOf } from '@/lib/workspace/paths';
+import { CONNECT_KEY_PATH, settingsPathOf, WORKSPACE_ANCHORS } from '@/lib/workspace/paths';
 
 export const WORK_SETTINGS_PATH = settingsPathOf('work');
-const LIMITS_SETTINGS_PATH = settingsPathOf('more-limits');
+const LIMITS_SETTINGS_PATH = WORKSPACE_ANCHORS.attemptsRow;
 
 type StepCopy = { when: string; title: string; text: ReactNode; action?: ReactNode; working?: boolean };
 

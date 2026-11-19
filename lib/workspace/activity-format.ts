@@ -5,12 +5,15 @@ import type {
   ContributeActivityTab,
 } from './contribute.types';
 
-/** The Contribute tab a path belongs to; null for one with no activity (My contributions, an attempt). */
+/**
+ * The activity tab a path belongs to: Contribute's front tab and its Issues page, and Settings; null for one with no
+ * activity (the pull requests, an attempt, the Agent tab, Learn).
+ */
 export function activityTabOf(pathname: string): ContributeActivityTab | null {
   const path = pathname.replace(/\/+$/, '');
-  if (path === '/contribute' || path === '/contribute/connect') return 'OVERVIEW';
+  if (path === '/contribute') return 'OVERVIEW';
   if (path === '/contribute/issues') return 'ISSUES';
-  if (path === '/contribute/settings' || path.startsWith('/contribute/settings/')) return 'SETTINGS';
+  if (path === '/my/settings' || path.startsWith('/my/settings/')) return 'SETTINGS';
   return null;
 }
 

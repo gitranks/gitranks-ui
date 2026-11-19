@@ -29,7 +29,6 @@ const data = vi.hoisted(() => ({
 vi.mock('@/lib/learn/learn.data', () => data);
 
 const { LearnHomeScreen, LearnHomeSignedIn } = await import('./learn-home');
-const { LearnTabs } = await import('./learn-tabs');
 const { quickGoalInputOf } = await import('./learn-goal-quick');
 const { PracticeSection } = await import('./practice-lessons');
 const { emptyIssues, learnIssues, myLearnAttempts, practiceLessons } = await import('@/lib/learn/__fixtures__/home');
@@ -65,7 +64,6 @@ const home = (
     <LearnHomeScreen
       state={learnHomeStateOf({ settingUp: false, profile, attempts })}
       profile={profile}
-      attempts={attempts}
       issues={'issues' in parts ? parts.issues : learnIssues()}
       practice={'practice' in parts ? parts.practice : practiceLessons()}
       now={NOW}
@@ -359,27 +357,5 @@ describe('the quick goal', () => {
     });
     expect(quickGoalInputOf(null, 'Python', 0)?.levels).toEqual([{ language: 'Python', level: 0 }]);
     expect(quickGoalInputOf(filledProfile, ' ', 1)).toBeNull();
-  });
-});
-
-describe("Learn's tabs", () => {
-  const tabs = (pathname: string) => {
-    nav.pathname = pathname;
-    return renderToStaticMarkup(<LearnTabs />);
-  };
-
-  it('are Learn home, My lessons, Goal and level, with Learn home holding how Learn works and the start page', () => {
-    expect(text(tabs('/learn'))).toBe('Learn home My lessons Goal and level');
-    for (const path of ['/learn', '/learn/about', '/learn/start/a/b/1']) {
-      expect(tabs(path), path).toMatch(/aria-current="page"[^>]*href="\/learn">Learn home/);
-    }
-    nav.pathname = '/learn';
-  });
-
-  it("leave an attempt's page to draw its own (the page knows who is there): nothing from the layout", () => {
-    expect(tabs('/learn/attempts/A_1')).toBe('');
-    nav.pathname = '/learn/attempts/A_1';
-    expect(renderToStaticMarkup(<LearnTabs inPage />)).toMatch(/aria-current="page"[^>]*href="\/learn\/lessons"/);
-    nav.pathname = '/learn';
   });
 });

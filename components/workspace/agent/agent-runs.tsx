@@ -1,16 +1,14 @@
 'use client';
 
-import { Bot, Cloud, SquareTerminal } from 'lucide-react';
+import { Cloud, SquareTerminal } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useSyncExternalStore } from 'react';
 
 import { Pill } from '@/components/pill/pill';
-import { useActivity } from '@/components/workspace/activity';
 import { LiveDot } from '@/components/workspace/primitives';
 
 export { LiveDot };
 
-import { Tab } from '@/components/tabs/tabs';
 import { cn } from '@/lib/utils';
 import {
   durationLabel,
@@ -31,7 +29,6 @@ import {
 } from '@/lib/workspace/agent-runs';
 import { contributeActivitySnapshot, onContributeActivity } from '@/lib/workspace/changes-bus';
 import type { ContributeActivity, ContributeAgentRun } from '@/lib/workspace/contribute.types';
-import { RUNS_PATH } from '@/lib/workspace/paths';
 
 /**
  * The work in progress as the page read it, or as the one poll read it since, whichever is newer: the page is a sibling
@@ -129,57 +126,6 @@ function RunList({ runs, readAt }: { runs: readonly ContributeAgentRun[]; readAt
         <RunRow key={run.attemptId} run={run} readAt={readAt} />
       ))}
     </ul>
-  );
-}
-
-/**
- * The robot tab, at the end of Contribute's tabs and held there while a phone's tabs scroll: every agent run, live and
- * past. While agents work it spins and counts them; with runs queued, quiet or waiting for the user, a grey dot and
- * their count; else the robot alone. Its name says the same in words.
- */
-export function AgentRunsTab() {
-  return (
-    <Tab
-      href={RUNS_PATH}
-      // On a phone the tabs scroll under it; its ground stops a pixel short, so the bar's line runs on under it.
-      className="sticky right-0 ms-auto bg-no-repeat max-sm:bg-linear-to-b max-sm:from-background max-sm:to-background max-sm:bg-size-[100%_calc(100%-1px)]"
-    >
-      <AgentRunsTabLabel runs={runsOf(useActivity())} />
-    </Tab>
-  );
-}
-
-export function AgentRunsTabLabel({ runs }: { runs: readonly ContributeAgentRun[] }) {
-  const { working, waiting, label } = runsTabMarkOf(runs);
-  const count = working || waiting;
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 align-middle"
-      title={label ? `Agent runs · ${label}` : 'Agent runs'}
-      data-agent-runs={working ? 'working' : waiting ? 'waiting' : 'none'}
-    >
-      <Bot aria-hidden="true" className="size-4.5" />
-      <span className="sr-only">{label ? `Agent runs: ${label}` : 'Agent runs'}</span>
-      {working ? (
-        <span
-          aria-hidden="true"
-          className="size-3 flex-none rounded-full border-2 border-primary/20 border-t-primary motion-safe:animate-spin"
-        />
-      ) : waiting ? (
-        <span aria-hidden="true" className="size-1.5 rounded-full bg-muted-foreground/60" />
-      ) : null}
-      {count ? (
-        <span
-          aria-hidden="true"
-          className={cn(
-            'inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1.5 font-mono text-[11px] font-semibold tabular-nums',
-            working ? 'bg-brand-soft text-brand-soft-foreground' : 'bg-muted text-foreground/70',
-          )}
-        >
-          {count}
-        </span>
-      ) : null}
-    </span>
   );
 }
 

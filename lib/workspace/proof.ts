@@ -7,6 +7,7 @@ import type {
   ContributeProofState,
   ContributeView,
 } from './contribute.types';
+import { WORKSPACE_PATHS } from './paths';
 
 /**
  * Proof from the user's own agent (2026-11-03): a review bot asks for proof of the fix that only the user's machine can
@@ -148,7 +149,7 @@ export const proofFilePathOf = (proofId: string, slot: number): string =>
 
 /** The connect page for the own-agent path, showing the proof's prompt as its last step. */
 export const proofConnectPathOf = (attemptId: string): Route =>
-  `/contribute/connect?path=agent&proof=${encodeURIComponent(attemptId)}` as Route;
+  `${WORKSPACE_PATHS.agentConnect}?proof=${encodeURIComponent(attemptId)}` as Route;
 
 /** `?proof=<attemptId>` on the connect page, when it names one. */
 export const proofParamOf = (value: string | string[] | undefined): string | null => {

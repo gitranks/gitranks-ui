@@ -89,20 +89,6 @@ export function learnHomeStateOf({
   return { kind: 'goal-set' };
 }
 
-/** The own-lesson cards that change by themselves: the page reads the attempt again every 15 seconds while one shows. */
-export const isLiveCard = (state: LearnHomeState): boolean => state.kind === 'own';
-
-/** What a re-read compares: a new value means the page shows something else now. */
-export const ownLessonKeyOf = (attempts: MyLearnAttempts | null | undefined): string => {
-  const current = currentOf(attempts);
-  if (current) return `${current.attemptId}|${current.stage}|${current.state}|${current.latestEvent?.at ?? ''}`;
-  const pr = attempts?.lastPullRequest;
-  return pr ? `pr|${pr.attemptId}|${pr.prState ?? ''}` : 'none';
-};
-
-/** How often Learn home and the lesson page read the attempt again while it moves. */
-export const OWN_LESSON_POLL_MS = 15_000;
-
 /** One step of the path to a first pull request. */
 export type PathStep = { key: 'goal' | 'agent' | 'pass'; where: string; title: string };
 

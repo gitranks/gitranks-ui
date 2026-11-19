@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/settings',
+  usePathname: () => '/my/settings',
   useSearchParams: () => new URLSearchParams(),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
@@ -23,8 +23,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
 const { OwnAgentSection, OWN_AGENT_SAFETY, SetupLines } = await import(
   '@/components/workspace/agent/own-agent-section'
 );
-const { SettingsScreen } = await import('./settings-view');
-const { OwnAgentSettingsScreen } = await import('./settings-pages');
+const { AgentScreen } = await import('./settings-view');
 const { OwnAgentConnectScreen, ConnectScreen } = await import('@/components/workspace/agent/connect-view');
 const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
 const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
@@ -173,17 +172,17 @@ describe('Settings, your own agent', () => {
     expect(plain).not.toContain('Create token');
   });
 
-  it('is a section of Settings, and a contributor with their own agent alone sees no spending limits to set', () => {
-    const plain = text(renderToStaticMarkup(<SettingsScreen view={agentOnly} now={NOW} />));
+  it('is a section of the Agent tab, and a contributor with their own agent alone sees no spending limits to set', () => {
+    const plain = text(renderToStaticMarkup(<AgentScreen view={agentOnly} now={NOW} />));
     expect(plain).toContain('Your own agent (MCP)');
     expect(plain).toContain('Your own agent spends nothing through us');
     expect(plain).not.toContain('Cycle cap');
   });
 
-  it('has its own Settings page, titled once', () => {
-    const html = renderToStaticMarkup(<OwnAgentSettingsScreen view={agentOnly} now={NOW} />);
-    expect(html.match(/Your own agent \(MCP\)<\/h[12]>/g)).toHaveLength(1);
-    expect(html).toContain('<h1');
+  it('is titled once on the Agent tab, with the tab its page', () => {
+    const html = renderToStaticMarkup(<AgentScreen view={agentOnly} now={NOW} />);
+    expect(html.match(/Your own agent \(MCP\)<\/h[123]>/g)).toHaveLength(1);
+    expect(html).toContain('<h1 class="sr-only">Agent</h1>');
     expect(text(html)).toContain('Create token');
   });
 

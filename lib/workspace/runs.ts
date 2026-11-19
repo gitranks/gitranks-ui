@@ -20,6 +20,7 @@ import type {
   ContributeModel,
 } from './contribute.types';
 import { EFFORTS, MODELS } from './format';
+import { WORKSPACE_PATHS } from './paths';
 
 /** The Runs page: every run the user's agents made, newest first, a page at a time, with totals over the filter. */
 
@@ -200,7 +201,7 @@ export function runsHref(query: RunsQuery): string {
   if (query.runner) search.set('runner', query.runner === 'MCP' ? 'own' : 'hosted');
   if (query.range !== DEFAULT_RANGE) search.set('range', query.range);
   const text = search.toString();
-  return text ? `/contribute/runs?${text}` : '/contribute/runs';
+  return text ? `${WORKSPACE_PATHS.agentRuns}?${text}` : WORKSPACE_PATHS.agentRuns;
 }
 
 /** Whether any filter is set beyond the default dates. */

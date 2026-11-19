@@ -19,8 +19,8 @@ const { ALL, FILTER_OPTIONS, activeFiltersOf } = await import('./issues-filters'
 const { helperModelLabelOf, testModelLabelOf } = await import('@/components/workspace/settings/settings-form');
 const { sizeLabelOf } = await import('@/components/contribute/preferences-fields');
 const { KINDS, LANGUAGES } = await import('@/lib/workspace/format');
-const { SettingsScreen } = await import('./settings-view');
-const { FormSettingsScreen, KeysSettingsScreen, OwnAgentSettingsScreen } = await import('./settings-pages');
+const { AgentScreen, SettingsScreen } = await import('./settings-view');
+const { FormSettingsScreen, KeyScreen } = await import('./settings-pages');
 const { PreferencesFields } = await import('@/components/contribute/preferences-fields');
 const { IssuesScreen } = await import('./issues-view');
 const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
@@ -47,11 +47,11 @@ const notices = (view: ContributeView) =>
 
 describe('the notices above the Contribute pages', () => {
   it.each([
-    ['noKey', 'no-key', 'Connect your Claude key to start', '/contribute/connect'],
-    ['keyInvalid', 'key-invalid', 'Your Claude key stopped working', '/contribute/connect'],
+    ['noKey', 'no-key', 'Connect your Claude key to start', '/my/agent/key'],
+    ['keyInvalid', 'key-invalid', 'Your Claude key stopped working', '/my/agent/key'],
     ['exhausted', 'exhausted', 'Your credits are used up for this cycle', 'renew on Nov 14'],
     ['limitReached', 'limit-reached', "Your workspace's spend limit is reached", 'on Nov 1'],
-    ['paused', 'paused', 'Contributing is paused', 'Resume in Settings'],
+    ['paused', 'paused', 'Contributing is paused', 'Resume on the Agent tab'],
   ] as const)('show the %s state', (name, kind, title, detail) => {
     const html = notices(views[name]);
 
@@ -109,7 +109,7 @@ describe('the connect screen', () => {
     expect(plain).toContain("it can charge your card as soon as it's on, even while your plan's credits remain");
     expect(html).toMatch(/type="checkbox"[^>]*required/);
     expect(html).toContain('type="password"');
-    expect(html).toContain('href="/contribute/connect?path=agent"');
+    expect(html).toContain('href="/my/agent/connect"');
     expect(plain).toContain('Open the Claude Console ↗');
   });
 
@@ -224,8 +224,15 @@ describe("the key check's result", () => {
   });
 });
 
-describe('the settings screen', () => {
-  const render = (view: ContributeView) => renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />);
+describe('the Agent and Settings tabs', () => {
+  /** The two tabs' summaries, one after the other: every setting is on one of them. */
+  const render = (view: ContributeView) =>
+    renderToStaticMarkup(
+      <>
+        <AgentScreen view={view} now={NOW} />
+        <SettingsScreen view={view} />
+      </>,
+    );
   /** The pages the summary's rows open, one after the other. */
   const pages = (view: ContributeView, grantRefusal?: 'refused' | 'unavailable') =>
     renderToStaticMarkup(
@@ -233,7 +240,7 @@ describe('the settings screen', () => {
         <FormSettingsScreen page="budget" view={view} />
         <FormSettingsScreen page="agent" view={view} />
         <PreferencesFields value={{ languages: [], kinds: [], maxSize: null }} onChange={() => {}} />
-        <KeysSettingsScreen view={view} grantRefusal={grantRefusal} now={NOW} />
+        <KeyScreen view={view} grantRefusal={grantRefusal} today={30} now={NOW} />
       </>,
     );
 
@@ -258,8 +265,14 @@ describe('the settings screen', () => {
     ]) {
       expect(plain).toContain(label);
     }
-    for (const page of ['budget', 'agent', 'keys', 'own-agent']) {
-      expect(html).toContain(`href="/contribute/settings/${page}"`);
+    for (const page of [
+      '/my/agent/budget',
+      '/my/agent/model',
+      '/my/agent/key',
+      '/my/agent#own-agent',
+      '/my/agent/key#github',
+    ]) {
+      expect(html).toContain(`href="${page}"`);
     }
     expect(html).not.toContain('role="combobox"');
     expect(html).not.toContain('aria-label="Settings sections"');
@@ -425,8 +438,8 @@ describe('the settings screen', () => {
     expect(text(pages(views.keyInvalid))).toContain('Connect a new key');
     expect(text(pages(views.exhausted))).toContain('credits used up until Nov 14');
     expect(text(pages(views.limitReached))).toContain('workspace limit reached until Nov 1');
-    expect(text(pages(views.noKey))).toContain('Not connected');
-    expect(text(pages(views.noKey))).toContain('Connect your Claude key →');
+    // With no key the key's page is where one is connected.
+    expect(text(pages(views.noKey))).toContain('Connect your Claude key');
   });
 
   it('connects a missing grant and revokes a granted one', () => {
@@ -816,15 +829,17 @@ describe('the heading scale', () => {
     expect(renderToStaticMarkup(<IssuesScreen view={views.active} page={undefined} query={{}} now={NOW} />)).toContain(
       `<h1 class="${HEADING.page}">Issues for you</h1>`,
     );
-    const settings = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} />);
+    const settings = renderToStaticMarkup(<SettingsScreen view={views.active} />);
     expect(settings).toContain('<h1 class="sr-only">Settings</h1>');
-    expect(settings).toContain(`class="${HEADING.block}">Budget and the agent</h2>`);
+    const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
+    expect(agent).toContain('<h1 class="sr-only">Agent</h1>');
+    expect(agent).toContain(`class="${HEADING.block}">Budget and the agent</h2>`);
     const budget = renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.active} />);
     expect(budget).toContain(`<h1 class="${HEADING.page}">Budget and pacing</h1>`);
     expect(renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.active} />)).toContain(
       `<h2 class="${HEADING.block}">Pull requests</h2>`,
     );
-    expect(renderToStaticMarkup(<KeysSettingsScreen view={views.active} now={NOW} />)).toContain(
+    expect(renderToStaticMarkup(<KeyScreen view={views.active} today={30} now={NOW} />)).toContain(
       `<h1 class="${HEADING.page}">Keys and access</h1>`,
     );
   });
@@ -835,8 +850,8 @@ describe('the confirms before what cannot be undone', () => {
     const view = { ...views.active, ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken()] } };
     const html = renderToStaticMarkup(
       <>
-        <KeysSettingsScreen view={view} now={NOW} />
-        <OwnAgentSettingsScreen view={view} now={NOW} />
+        <KeyScreen view={view} today={30} now={NOW} />
+        <AgentScreen view={view} now={NOW} />
       </>,
     );
     const triggersOf = (markup: string) =>
@@ -844,13 +859,10 @@ describe('the confirms before what cannot be undone', () => {
         text(label).trim(),
       );
 
-    expect(triggersOf(html)).toEqual(['Remove key', 'Revoke', 'Revoke Claude Code on macOS']);
+    expect(triggersOf(html)).toEqual(['Remove key', 'Revoke', 'How autopilot works', 'Revoke Claude Code on macOS']);
     expect(text(html)).not.toContain('Yes, remove it');
-    // The summary acts on none of them: its dialogs are the filters and how autopilot works.
-    expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} now={NOW} />))).toEqual([
-      'Edit',
-      'How autopilot works',
-    ]);
+    // The Settings tab acts on none of them: its one dialog is the filters.
+    expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} />))).toEqual(['Edit']);
   });
 });
 
@@ -890,7 +902,7 @@ describe('the access level', () => {
     );
   });
 
-  it("shows on the overview, the issues and settings, and not on the key's connect screen", () => {
+  it("shows on the overview, the issues and the Agent tab, and not on the key's connect screen", () => {
     const overview = renderToStaticMarkup(
       <OverviewScreen
         view={views.followThrough}
@@ -907,9 +919,7 @@ describe('the access level', () => {
 
     const issues = renderToStaticMarkup(<IssuesScreen view={views.newAccount} page={issuePage} query={{}} now={NOW} />);
     expect(issues).toContain('data-notice="new-account"');
-    expect(renderToStaticMarkup(<SettingsScreen view={views.suspended} now={NOW} />)).toContain(
-      'data-notice="suspended"',
-    );
+    expect(renderToStaticMarkup(<AgentScreen view={views.suspended} now={NOW} />)).toContain('data-notice="suspended"');
     expect(renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.newAccount} />)).toContain(
       'data-notice="new-account"',
     );
@@ -917,13 +927,13 @@ describe('the access level', () => {
   });
 
   it('adds the attempts the limit holds to the budget line, below the setting alone', () => {
-    expect(text(renderToStaticMarkup(<SettingsScreen view={views.newAccount} now={NOW} />))).toContain(
+    expect(text(renderToStaticMarkup(<AgentScreen view={views.newAccount} now={NOW} />))).toContain(
       '$200 a cycle · Even, then a final sweep · renews on the 14th · 1 at a time (new-account limit)',
     );
-    expect(text(renderToStaticMarkup(<SettingsScreen view={views.followThrough} now={NOW} />))).toContain(
+    expect(text(renderToStaticMarkup(<AgentScreen view={views.followThrough} now={NOW} />))).toContain(
       'renews on the 14th · 1 at a time (limit for now)',
     );
-    expect(text(renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} />))).not.toContain('at a time');
+    expect(text(renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />))).not.toContain('at a time');
   });
 
   it('caps attempts and open PRs at a time on their pages, with the hint tied to the field', () => {

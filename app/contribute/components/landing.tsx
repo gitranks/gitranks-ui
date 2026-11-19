@@ -21,6 +21,7 @@ import {
   FAQ_PATH,
   MAINTAINERS_PATH,
   MCP_DOCS_PATH,
+  WORKSPACE_PATHS,
 } from '@/lib/workspace/paths';
 
 const ACTIONS: Record<SignInPath, { label: string; href: Route }> = {
@@ -191,7 +192,7 @@ function MidSetupStrip() {
             Continue setup →
           </Link>
           <Link
-            href="/contribute/settings"
+            href={WORKSPACE_PATHS.settings}
             prefetch={false}
             className="font-medium text-muted-foreground hover:text-foreground"
           >

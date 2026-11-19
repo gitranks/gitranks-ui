@@ -8,15 +8,15 @@ import type { ContributeAttemptState, ContributeMcpToken } from '@/lib/workspace
 import { relativeLabel } from '@/lib/workspace/format';
 import { MCP_CLIENT_NAMES, MCP_CLIENTS, type McpClient } from '@/lib/workspace/mcp-setup';
 import { isSignedInAgent } from '@/lib/workspace/oauth-consent';
-import { learnAttemptPath } from '@/lib/workspace/paths';
+import { learnAttemptPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { attemptPath } from '@/lib/workspace/sessions';
 
 /** The start page of a lesson for one issue: `/learn/start/<owner>/<repo>/<number>`. */
 
 /** Learn home's issues, where every "back to the issues" goes. */
 export const LEARN_ISSUES_PATH = `${LEARN_PATH}#issues` as Route;
-/** My contributions, where `LIMIT_REACHED` on attempts at a time sends the viewer. */
-export const MY_CONTRIBUTIONS_PATH: Route = '/contribute/me';
+/** The pull requests, where `LIMIT_REACHED` on attempts at a time sends the viewer. */
+export const MY_CONTRIBUTIONS_PATH: Route = WORKSPACE_PATHS.pullRequests;
 
 /** How often step 3 asks whether the agent has taken the issue, while the page is shown. */
 export const LEARN_START_POLL_MS = 5_000;
@@ -177,7 +177,7 @@ export function learnLimitWordsOf(
   }
   return {
     text: 'Your agent is working on another issue. A new lesson can start when that one is done.',
-    link: { href: MY_CONTRIBUTIONS_PATH, label: 'My contributions' },
+    link: { href: MY_CONTRIBUTIONS_PATH, label: 'Pull requests' },
   };
 }
 

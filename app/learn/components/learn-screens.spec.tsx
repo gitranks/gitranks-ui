@@ -13,7 +13,7 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
-vi.mock('@/lib/learn/actions', () => ({ readAttemptStage: vi.fn() }));
+vi.mock('@/lib/learn/actions', () => ({}));
 const everyone = vi.hoisted(() => ({ open: true }));
 vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
 vi.mock('@/lib/workspace/actions', () => ({}));
@@ -30,8 +30,8 @@ vi.mock('@/lib/learn/learn.data', () => ({
 }));
 
 const { QuestionCard } = await import('@/components/learn/question-card');
-const { LearnAttemptFrame, LearnAttemptScreen, LearnAttemptView } = await import('./learn-attempt');
-const { generateMetadata: attemptMetadata } = await import('@/app/learn/attempts/[id]/page');
+const { LearnAttemptScreen, LearnAttemptView } = await import('./learn-attempt');
+const { generateMetadata: attemptMetadata } = await import('@/app/(workspace)/learn/attempts/[id]/page');
 const learnData = await import('@/lib/learn/learn.data');
 const { phaseOf } = await import('@/components/learn/lesson-flow');
 const { Diagram } = await import('@/components/learn/diagram');
@@ -399,15 +399,10 @@ describe("a Learn attempt's page while the account is being set up", () => {
     expect(learnData.loadLearnOpen).not.toHaveBeenCalled();
   });
 
-  it("draws Learn's tabs above the page for a signed-in viewer only, and titles a visitor's tab Sign in", async () => {
+  it("titles a visitor's tab Sign in, and the owner's A lesson", async () => {
     const data = await import('@/lib/workspace/contribute.data');
     vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
-    const visitor = renderToStaticMarkup(await LearnAttemptFrame({ children: <p>page</p> }));
-    expect(text(visitor)).toBe('page');
-    vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
     expect((await attemptMetadata()).title).toBe('Sign in');
-    const owner = renderToStaticMarkup(await LearnAttemptFrame({ children: <p>page</p> }));
-    expect(text(owner)).toContain('My lessons');
     expect((await attemptMetadata()).title).toBe('A lesson');
   });
 

@@ -1,0 +1,107 @@
+'use client';
+
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useRef } from 'react';
+
+import { Tab } from '@/components/tabs/tabs';
+import { TabsBar } from '@/components/tabs/tabs-bar';
+import { ActivityBar, ActivityDot, useWorkspaceLive } from '@/components/workspace/activity';
+import { ChangesProvider } from '@/components/workspace/changes-provider';
+import { HeaderLine } from '@/components/workspace/header-line';
+import { runsOf, runsTabMarkOf } from '@/lib/workspace/agent-runs';
+import { contributeSource } from '@/lib/workspace/click-tracking';
+import type { ContributeActivity } from '@/lib/workspace/contribute.types';
+import type { WorkspaceTab } from '@/lib/workspace/gate';
+import { activeTabOf, WORKSPACE_TABS, workspaceTabsShown } from '@/lib/workspace/workspace-tabs';
+
+/** Every tab link's mark: moving between tabs is never counted as a step into Contribute. */
+const TAB_MARK = contributeSource('workspace_tab');
+
+/**
+ * The workspace's tabs under the header, as a profile's are, or the header's line when they do not show; with them,
+ * the one poll (`ChangesProvider`) and the bar for the current tab's work. It reads the path and the query, so it
+ * renders inside a Suspense boundary.
+ */
+export function WorkspaceTabsNav({
+  tabs,
+  activity = null,
+  version = null,
+  needsYou = null,
+}: {
+  tabs: readonly WorkspaceTab[];
+  activity?: ContributeActivity | null;
+  version?: string | null;
+  needsYou?: number | null;
+}) {
+  const pathname = usePathname();
+  const search = useSearchParams();
+  if (!workspaceTabsShown(pathname, search.get('as'), tabs)) return <HeaderLine />;
+  return (
+    <ChangesProvider version={version} activity={activity} needsYou={needsYou}>
+      <WorkspaceTabsBar tabs={tabs} active={activeTabOf(pathname, search)} />
+      <ActivityBar />
+    </ChangesProvider>
+  );
+}
+
+/**
+ * The tabs, the current one marked: Contribute and Settings with a dot while work for them runs, Pull requests with
+ * the count of what needs the user, Agent with a spinner and the number of agents at work. On a phone the bar scrolls
+ * sideways, and the current tab is scrolled into sight.
+ */
+export function WorkspaceTabsBar({ tabs, active }: { tabs: readonly WorkspaceTab[]; active: WorkspaceTab | null }) {
+  const { activity, needsYou } = useWorkspaceLive();
+  const bar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!active) return;
+    bar.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }, [active]);
+
+  return (
+    <div ref={bar} data-workspace-tabs="">
+      <TabsBar>
+        {tabs.map((tab) => {
+          const { label, href } = WORKSPACE_TABS[tab];
+          const count = tab === 'pull-requests' && needsYou ? needsYou : undefined;
+          return (
+            <Tab
+              key={tab}
+              href={href}
+              active={active === tab}
+              count={count}
+              tone="brand"
+              countLabel={count ? 'need you' : undefined}
+              data={{ ...TAB_MARK, 'data-workspace-tab': tab }}
+            >
+              {label}
+              {tab === 'contribute' ? <ActivityDot tab={['OVERVIEW', 'ISSUES']} /> : null}
+              {tab === 'settings' ? <ActivityDot tab="SETTINGS" /> : null}
+              {tab === 'agent' ? <AgentMark activity={activity} /> : null}
+            </Tab>
+          );
+        })}
+      </TabsBar>
+    </div>
+  );
+}
+
+/** While agents work: a spinner and their number ("2 at work" for screen readers). Queued or waiting runs show nothing. */
+export function AgentMark({ activity }: { activity: ContributeActivity | null }) {
+  const { working } = runsTabMarkOf(runsOf(activity));
+  if (!working) return null;
+  return (
+    <span className="ms-1.5 inline-flex items-center gap-1.5 align-middle" data-agent-runs="working">
+      <span
+        aria-hidden="true"
+        className="size-3 flex-none rounded-full border-2 border-primary/20 border-t-primary motion-safe:animate-spin"
+      />
+      <span
+        aria-hidden="true"
+        className="inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-brand-soft px-1.5 font-mono text-[11px] font-semibold tabular-nums text-brand-soft-foreground"
+      >
+        {working}
+      </span>
+      <span className="sr-only"> {working} at work</span>
+    </span>
+  );
+}

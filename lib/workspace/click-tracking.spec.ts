@@ -61,8 +61,36 @@ describe('clickOf: what a click counts as', () => {
     });
   });
 
+  it('the workspace’s pages under /my are inside too: moving around there counts nothing', () => {
+    expect(clickOf({ href: '/contribute', pagePath: '/my/agent', origin })).toBeNull();
+    expect(clickOf({ around: 'footer', href: '/my/settings', pagePath: '/my/pull-requests', origin })).toBeNull();
+    expect(clickOf({ own: 'contribute_landing', href: null, pagePath: '/my/agent', origin })).toEqual({
+      source: 'contribute_landing',
+    });
+  });
+
+  it('a link to /my from outside the workspace counts as a step in, as one to Contribute', () => {
+    expect(clickOf({ href: '/my/pull-requests?x=1', pagePath: '/profile/a', origin })).toEqual({
+      source: 'other',
+      target: '/my/pull-requests',
+    });
+    expect(
+      clickOf({ around: 'learn_lesson', href: '/my/agent/connect', pagePath: '/learn/lessons/x', origin }),
+    ).toEqual({ source: 'learn_lesson', target: '/my/agent/connect' });
+  });
+
+  it('never counts the workspace’s own tabs, from any page, Learn’s included', () => {
+    const tab = contributeSource('workspace_tab')['data-contribute-source'];
+    for (const pagePath of ['/learn', '/learn/lessons', '/my/agent', '/contribute']) {
+      for (const href of ['/contribute', '/learn', '/my/pull-requests', '/my/agent', '/my/settings']) {
+        expect(clickOf({ own: tab, href, pagePath, origin }), `${pagePath} → ${href}`).toBeNull();
+        expect(clickOf({ around: tab, href, pagePath, origin }), `${pagePath} → ${href}`).toBeNull();
+      }
+    }
+  });
+
   it('counts the header’s Learn from every page, Contribute’s own too', () => {
-    for (const pagePath of ['/', '/contribute/issues']) {
+    for (const pagePath of ['/', '/contribute/issues', '/my/agent']) {
       expect(clickOf({ own: 'learn_menu', href: '/learn', pagePath, origin }), pagePath).toEqual({
         source: 'learn_menu',
         target: '/learn',
@@ -100,7 +128,10 @@ describe('entryOf: how the visit began', () => {
     });
     expect(entryOf('/contribute', '?start=agent&utm_source=x', '', origin)).toEqual({ utmSource: 'x' });
     expect(entryOf('/contribute', '?start=agent', `${origin}/profile/a`, origin)).toEqual({});
-    expect(entryOf('/contribute/connect', '?path=agent', '', origin)).toEqual({ utmSource: 'mcp_agent' });
+    // Where `?start=agent` sends a signed-in person, and the old address's redirect lands.
+    expect(entryOf('/my/agent/connect', '', '', origin)).toEqual({ utmSource: 'mcp_agent' });
+    expect(entryOf('/my/agent/connect', '?path=agent', '', origin)).toEqual({ utmSource: 'mcp_agent' });
+    expect(entryOf('/my/agent/connect', '', `${origin}/my/agent`, origin)).toEqual({});
   });
 
   it('reads Product Hunt’s own `ref` when the link has no utm_source', () => {
@@ -117,6 +148,13 @@ describe('isLanding', () => {
     expect(isLanding('/contribute')).toBe(true);
     expect(isLanding('/contribute/mcp')).toBe(true);
     expect(isLanding('/contributors')).toBe(false);
+  });
+
+  it('is a first page under /my only from a tagged link (an email’s), not a bookmark', () => {
+    expect(isLanding('/my/pull-requests', '?utm_source=email&utm_campaign=needs_you')).toBe(true);
+    expect(isLanding('/my/settings')).toBe(false);
+    expect(isLanding('/my/settings', '?ref=x')).toBe(false);
+    expect(isLanding('/learn', '?utm_source=email')).toBe(false);
   });
 });
 

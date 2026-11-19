@@ -100,7 +100,6 @@ vi.mock('@/lib/learn/actions', async () => ({
       'readMyLearnAttempts',
       'readPracticeLessons',
       'readLearnIssueCount',
-      'readAttemptStage',
       'readPracticeNext',
       'readLearnStartIssue',
       'readLearnStartAttempt',
@@ -115,7 +114,7 @@ vi.mock('@/lib/learn/learn-open', async (importOriginal) => ({
   learnOpenKnown: () => ((globalThis as DesignGlobals).__designPath ?? '').startsWith('/learn'),
 }));
 // Named: the sign-in form checks the export exists, which `inert()`'s proxy does not answer.
-vi.mock('@/app/contribute/maintainers/actions', () => ({
+vi.mock('@/app/(public)/contribute/maintainers/actions', () => ({
   signInAsMaintainer: async () => {},
   optOutMaintainerRepos: async () => {},
   optInMaintainerRepos: async () => {},

@@ -44,23 +44,23 @@ describe('the Settings summary', () => {
 
 describe('the Settings pages', () => {
   it('sends each old section anchor to the page it is on now, and keeps the rest on the summary', () => {
-    expect(movedAnchorOf('limits')).toBe('/contribute/settings/budget');
-    expect(movedAnchorOf('prs')).toBe('/contribute/settings/agent#prs');
-    expect(movedAnchorOf('more-limits')).toBe('/contribute/settings/budget#more-limits');
-    expect(movedAnchorOf('access')).toBe('/contribute/settings/keys');
-    expect(movedAnchorOf('own-agent')).toBe('/contribute/settings/own-agent');
+    expect(movedAnchorOf('limits')).toBe('/my/agent/budget');
+    expect(movedAnchorOf('prs')).toBe('/my/agent/model#prs');
+    expect(movedAnchorOf('more-limits')).toBe('/my/agent/budget#more-limits');
+    expect(movedAnchorOf('access')).toBe('/my/agent/key');
+    expect(movedAnchorOf('own-agent')).toBe('/my/agent');
     expect(movedAnchorOf('modes')).toBeNull();
-    expect(settingsPathOf('work')).toBe('/contribute/settings#work');
+    expect(settingsPathOf('work')).toBe('/my/settings#work');
     expect(movedAnchorOf('autopilot')).toBeNull();
     expect(movedAnchorOf('constructor')).toBeNull();
-    expect(settingsPathOf('danger')).toBe('/contribute/settings#danger');
+    expect(settingsPathOf('danger')).toBe('/my/settings#danger');
   });
 });
 
 describe('what you work on, in short', () => {
   it('names each switch page by its mode, and reads the mode back', () => {
-    expect(switchPathOf('STACK')).toBe('/contribute/settings/switch/stack');
-    expect(switchPathOf('REPOS')).toBe('/contribute/settings/switch/repos');
+    expect(switchPathOf('STACK')).toBe('/my/settings/work/switch/stack');
+    expect(switchPathOf('REPOS')).toBe('/my/settings/work/switch/repos');
     expect(switchModeOf('stack')).toBe('STACK');
     expect(switchModeOf('repos')).toBe('REPOS');
     expect(switchModeOf('all')).toBeNull();

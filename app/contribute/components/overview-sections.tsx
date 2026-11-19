@@ -41,9 +41,16 @@ import { claudeKeyOf } from '@/lib/workspace/contribute-state';
 import { dayLabel, MODELS, maskedKey, planOf, relativeLabel, usd } from '@/lib/workspace/format';
 import { AGENT_FIRST_PROMPT } from '@/lib/workspace/mcp-setup';
 import { needsYouItemsOf, shownItemsOf } from '@/lib/workspace/needs-you';
-import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, RUNS_PATH, settingsPathOf } from '@/lib/workspace/paths';
+import {
+  CONNECT_AGENT_PATH,
+  CONNECT_KEY_PATH,
+  RUNS_PATH,
+  settingsPathOf,
+  WORKSPACE_ANCHORS,
+  WORKSPACE_PATHS,
+} from '@/lib/workspace/paths';
 
-const ME_PATH: Route = '/contribute/me';
+const ME_PATH: Route = WORKSPACE_PATHS.pullRequests;
 const ISSUES_PATH: Route = '/contribute/issues';
 const settingsAt = settingsPathOf;
 
@@ -175,8 +182,8 @@ export function NeedsYouSection({ view, read, now }: { view: ContributeView; rea
 
 type CardCopy = { label: string; title: string; text?: string; action?: ReactNode; busy?: boolean };
 
-const settingsLink = (anchor: string, label: string) => (
-  <Link href={settingsAt(anchor)} prefetch={false} className={ACTION_LINK}>
+const settingsLink = (anchor: string | Route, label: string) => (
+  <Link href={anchor.startsWith('/') ? (anchor as Route) : settingsAt(anchor)} prefetch={false} className={ACTION_LINK}>
     {label} →
   </Link>
 );
@@ -242,7 +249,9 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
         title: 'When a slot frees',
         text: state.slots > 1 ? `All ${state.slots} of your slots are busy.` : 'Your one slot is busy.',
         // Held below the setting by the account's limits: Settings cannot add a slot.
-        action: state.limited ? undefined : settingsLink('more-limits', 'Attempts at a time in Settings'),
+        action: state.limited
+          ? undefined
+          : settingsLink(WORKSPACE_ANCHORS.attemptsRow, 'Attempts at a time in Settings'),
       };
     case 'slots-taken':
       return {
@@ -250,14 +259,16 @@ export function hostedCopyOf(state: HostedState, now = new Date()): CardCopy {
         title:
           state.slots > 1 ? `Your own agent holds all ${state.slots} of your slots` : 'Your own agent holds your slot',
         text: 'A new attempt starts when it hands back its patch or releases the issue.',
-        action: state.limited ? undefined : settingsLink('more-limits', 'Attempts at a time in Settings'),
+        action: state.limited
+          ? undefined
+          : settingsLink(WORKSPACE_ANCHORS.attemptsRow, 'Attempts at a time in Settings'),
       };
     case 'pr-cap':
       return {
         label: 'Waiting',
         title: 'At your open PRs cap',
         text: `${state.prBound} of ${state.cap} pull requests are open or on their way. The next attempt starts when one is merged, closed or discarded.`,
-        action: state.limited ? undefined : settingsLink('prs', 'Open PRs at a time in Settings'),
+        action: state.limited ? undefined : settingsLink(WORKSPACE_ANCHORS.limitRow, 'Open PRs at a time in Settings'),
       };
     case 'nothing-queued':
       return {

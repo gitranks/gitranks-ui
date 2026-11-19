@@ -224,7 +224,7 @@ describe('the MCP docs', () => {
       expect(said).toContain(line);
     }
     expect(said).toContain('Reload or restart the client');
-    expect(html).toContain('href="/contribute/settings#work"');
+    expect(html).toContain('href="/my/settings#work"');
   });
 
   it('end with help: the contact address, the plugin issues and the questions', () => {

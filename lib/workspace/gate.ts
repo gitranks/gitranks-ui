@@ -1,8 +1,10 @@
 import { parse } from 'graphql';
+import type { Route } from 'next';
 
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, isOnboarded } from '@/lib/workspace/contribute-state';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import type { ContributeAccess } from '@/lib/workspace/preview-gate';
 import { sessionTokenOf } from '@/lib/workspace/session-token';
 import type DocumentNode from '@/types/typed-document-node';
@@ -93,4 +95,16 @@ export function tabsOf(gate: WorkspaceGate): WorkspaceTab[] {
   return gate.learnOpen
     ? ['contribute', 'learn', 'pull-requests', 'agent', 'settings']
     : ['contribute', 'pull-requests', 'agent', 'settings'];
+}
+
+/**
+ * Where a signed-in account that has not entered the workspace yet is sent from a page under `/my`; null when the page
+ * opens. The Agent and Settings pages open (someone mid-setup can revoke a token or delete their data, and connect
+ * their agent); every other page goes to Contribute's home, which starts them.
+ */
+export function notEnteredTargetOf(pathname: string, _search?: URLSearchParams): Route | null {
+  const path = pathname.replace(/\/+$/, '');
+  if (!/^\/my(?:\/|$)/.test(path)) return null;
+  if (/^\/my\/(?:agent|settings)(?:\/|$)/.test(path)) return null;
+  return WORKSPACE_PATHS.contribute;
 }

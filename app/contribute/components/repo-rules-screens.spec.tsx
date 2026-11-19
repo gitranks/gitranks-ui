@@ -15,7 +15,7 @@ vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/components/workspace/open-on-hash', () => ({
   OpenOnHash: ({ id }: { id: string }) => <i data-open-on-hash={id} />,
 }));
-vi.mock('@/app/contribute/maintainers/actions', () => ({ setMaintainerConfig: vi.fn() }));
+vi.mock('@/app/(public)/contribute/maintainers/actions', () => ({ setMaintainerConfig: vi.fn() }));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadIssues: vi.fn(),
@@ -30,7 +30,7 @@ const { IssueRepoRules } = await import('@/components/workspace/pull-request/iss
 const { MaintainerRepoExtras } = await import('./maintainer-repo-extras');
 const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
 const { IssueCard } = await import('./issue-card');
-const { SettingsScreen } = await import('./settings-view');
+const { AgentScreen } = await import('./settings-view');
 
 import { attempts, followUpAttempts } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { issue, replyWaiting } from '@/lib/contribute/__fixtures__/contribute-overview';
@@ -346,8 +346,8 @@ describe('Settings: repos can ask for less', () => {
     expect(html).toContain('href="/contribute/maintainers"');
   });
 
-  it('sits under Budget and the agent in Settings', () => {
-    const html = renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} />);
+  it('sits under Budget and the agent on the Agent tab', () => {
+    const html = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
 
     expect(html.indexOf('data-repo-rules-note')).toBeGreaterThan(html.indexOf('settings-budget'));
     expect(html.indexOf('data-repo-rules-note')).toBeLessThan(html.indexOf('settings-connections'));

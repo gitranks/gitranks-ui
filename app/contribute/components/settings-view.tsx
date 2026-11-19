@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { PreferencesSection } from '@/components/contribute/preferences-section';
 import { SettingsWorkGroup } from '@/components/contribute/settings-work-group';
+import { OwnAgentSection } from '@/components/workspace/agent/own-agent-section';
 import { AutopilotSection } from '@/components/workspace/autopilot-section';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { CycleSummary } from '@/components/workspace/cycle-summary';
@@ -29,7 +30,7 @@ import {
   settingsOf,
 } from '@/lib/workspace/contribute-state';
 import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
-import { SETTINGS_PATHS } from '@/lib/workspace/paths';
+import { GITHUB_ACCESS_PATH, SETTINGS_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 import {
   agentSummaryOf,
@@ -58,27 +59,24 @@ export async function SettingsView({
     loadContributeSet(),
     loadContributeEmail(),
   ]);
-  // GitHub's consent comes back here when it was not saved: its answer is on the page of keys and access.
+  // GitHub's consent comes back here when it was not saved: its answer is with GitHub's access, on the key's page.
   const grant = grantRefusalOf(params.grant);
-  if (grant) redirect(`${SETTINGS_PATHS.keys}?grant=${grant}` as Route);
+  if (grant) redirect(`${SETTINGS_PATHS.keys}?grant=${grant}#github` as Route);
   // What the user works on was asked (the read is not null) but did not load.
   return <SettingsScreen view={view} set={set} setFailed={set === undefined} email={email} />;
 }
 
 /**
- * Settings, at rest: where things stand and Pause, then each setting as a row with its value in plain words, grouped by
- * what it is about, and Delete last. Each row opens the page it is changed on; autopilot's and email's toggles are on
- * their rows.
+ * Settings, at rest: what the user works on, GitHub's access, email, and Delete last. Each row opens the page it is
+ * changed on; email's toggles are on their rows. What the agents do and spend is on the Agent tab.
  */
 export function SettingsScreen({
   view,
-  now,
   set,
   setFailed = false,
   email = null,
 }: {
   view: ContributeView;
-  now?: Date;
   /** What the user works on; null when signed out or the API hides it, `undefined` when it did not load. */
   set?: ContributeSet | null;
   /** What the user works on did not load. */
@@ -86,18 +84,11 @@ export function SettingsScreen({
   /** Contribute's email; its group is left out when null (hidden, or not answered) or without an address to send to. */
   email?: ContributeEmail | null;
 }) {
-  const { contributor } = view;
-  const settings = settingsOf(view);
-  // The pause and the key's trouble are shown where they are acted on, in the status card and under Keys.
-  const notices = contributeNoticesOf(view).filter(({ kind }) => kind !== 'paused');
-  const preferences = contributor?.preferences ?? null;
+  const preferences = view.contributor?.preferences ?? null;
 
   return (
     <>
       <h1 className="sr-only">Settings</h1>
-      <ContributeNotices notices={notices} />
-      {contributor ? <CycleSummary view={view} now={now} action={<PauseButton paused={isPaused(view)} />} /> : null}
-
       {set ? (
         <SettingsWorkGroup set={set} preferences={preferences} />
       ) : (
@@ -114,6 +105,46 @@ export function SettingsScreen({
           </SettingsList>
         </SettingsGroup>
       )}
+
+      <SettingsGroup id="settings-github" title="GitHub">
+        <SettingsList>
+          <SettingsRow
+            icon={GitPullRequest}
+            href={GITHUB_ACCESS_PATH}
+            title="GitHub pull requests"
+            value={grantSummaryOf(view.grant, view.grantAvailable)}
+          />
+        </SettingsList>
+      </SettingsGroup>
+
+      {/* Checked inline: a function from the client file can't be called here, on the server. */}
+      {email?.to ? <EmailSection email={{ ...email, to: email.to }} /> : null}
+
+      <DeleteDataSection />
+      <SettingsAnchors />
+    </>
+  );
+}
+
+export async function AgentView() {
+  return <AgentScreen view={await loadSettingsView()} />;
+}
+
+/**
+ * The Agent tab, at rest: where things stand and Pause, the hosted agent's budget, model and autopilot, the
+ * connections (the Claude key, the user's own agent), and the own agent's tokens and setup.
+ */
+export function AgentScreen({ view, now }: { view: ContributeView; now?: Date }) {
+  const { contributor } = view;
+  const settings = settingsOf(view);
+  // The pause and the key's trouble are shown where they are acted on, in the status card and under the key.
+  const notices = contributeNoticesOf(view).filter(({ kind }) => kind !== 'paused');
+
+  return (
+    <>
+      <h1 className="sr-only">Agent</h1>
+      <ContributeNotices notices={notices} />
+      {contributor ? <CycleSummary view={view} now={now} action={<PauseButton paused={isPaused(view)} />} /> : null}
 
       <SettingsGroup id="settings-budget" title="Budget and the agent">
         <SettingsList>
@@ -166,25 +197,18 @@ export function SettingsScreen({
             data={{ 'data-key-state': claudeKeyOf(view)?.state ?? 'none' }}
           />
           <SettingsRow
-            icon={GitPullRequest}
-            href={SETTINGS_PATHS.keys}
-            title="GitHub pull requests"
-            value={grantSummaryOf(view.grant, view.grantAvailable)}
-          />
-          <SettingsRow
             icon={SquareTerminal}
-            href={SETTINGS_PATHS.ownAgent}
+            href={OWN_AGENT_ANCHOR}
             title="Your own agent (MCP)"
             value={ownAgentSummaryOf(view.ownAgent, now)}
           />
         </SettingsList>
       </SettingsGroup>
 
-      {/* Checked inline: a function from the client file can't be called here, on the server. */}
-      {email?.to ? <EmailSection email={{ ...email, to: email.to }} /> : null}
-
-      <DeleteDataSection />
-      <SettingsAnchors />
+      <OwnAgentSection ownAgent={view.ownAgent} now={now} />
     </>
   );
 }
+
+/** The own agent's section, further down the Agent tab. */
+const OWN_AGENT_ANCHOR = `${SETTINGS_PATHS.ownAgent}#own-agent` as Route;

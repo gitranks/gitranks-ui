@@ -8,7 +8,6 @@ import {
   AnswerLessonQuestionDocument,
   AnswerWarmupDocument,
   DismissLearnPromoDocument,
-  LearnAttemptStageDocument,
   LearnIssuesDocument,
   LogCopyForAgentDocument,
   MarkStepShownDocument,
@@ -27,7 +26,6 @@ import {
 import type {
   LearnIssues,
   LearnProfile,
-  LearnStage,
   LessonAnswerResult,
   LessonReaction,
   LessonReportReason,
@@ -298,13 +296,6 @@ export async function readPracticeLessons(first: number): Promise<ContributeActi
  */
 export async function readLearnIssueCount(): Promise<ContributeActionResult<LearnIssues>> {
   return run(LearnIssuesDocument, { first: 0 }, (data) => data.learnIssues);
-}
-
-/** Where the viewer's Learn attempt is now, read again while its page waits for the agent; null when there is none. */
-export async function readAttemptStage(attemptId: string): Promise<ContributeActionResult<LearnStage | null>> {
-  const id = idOf(attemptId);
-  if (!id) return invalid();
-  return run(LearnAttemptStageDocument, { attemptId: id }, (data) => data.learnAttemptLesson?.stage ?? null);
 }
 
 /** How many issues a passed practice lesson shows. */

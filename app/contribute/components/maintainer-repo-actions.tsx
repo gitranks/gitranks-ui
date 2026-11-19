@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 
-import { undoPrAction } from '../maintainers/actions';
+import { undoPrAction } from '@/app/(public)/contribute/maintainers/actions';
 import { Button } from '@/components/ui/button';
 import type {
   ContributeBlockedContributor,

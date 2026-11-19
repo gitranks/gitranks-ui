@@ -16,6 +16,14 @@ type TabProps = {
   pathnames?: string[];
   /** A number after the label, in a small pill: how many the tab holds. */
   count?: number;
+  /** The count's pill: muted (how many the tab holds), or the brand's (how many wait on the user). */
+  tone?: 'muted' | 'brand';
+  /** Words after the count for screen readers alone ("need you"). */
+  countLabel?: string;
+  /** Whether the tab is the current one, when its owner decides it (otherwise it is read from the path). */
+  active?: boolean;
+  /** Data attributes for the link. */
+  data?: Record<`data-${string}`, string>;
   /** Classes for the tab's list item, as one held at the end of the bar. */
   className?: string;
 };
@@ -41,11 +49,24 @@ const TabPendingHint: FC = () => {
   );
 };
 
-export const Tab: FC<TabProps> = ({ href, children, exact, pathnames, count, className }) => {
+export const Tab: FC<TabProps> = ({
+  href,
+  children,
+  exact,
+  pathnames,
+  count,
+  tone = 'muted',
+  countLabel,
+  active: decided,
+  data,
+  className,
+}) => {
   const pathname = usePathname();
   let active = false;
 
-  if (exact) {
+  if (decided !== undefined) {
+    active = decided;
+  } else if (exact) {
     active = pathname === href;
   } else if (pathnames && pathnames.length > 0) {
     active = pathnames.includes(pathname);
@@ -59,6 +80,7 @@ export const Tab: FC<TabProps> = ({ href, children, exact, pathnames, count, cla
         href={href as Route}
         prefetch={false}
         aria-current={active ? 'page' : undefined}
+        {...data}
         className={cn('relative inline-block whitespace-nowrap px-3 pb-4 sm:px-4 border-b-2 rounded-t-lg', {
           'border-transparent hover:border-muted-foreground': !active,
           'border-foreground text-foreground font-semibold': active,
@@ -70,14 +92,19 @@ export const Tab: FC<TabProps> = ({ href, children, exact, pathnames, count, cla
           <>
             {' '}
             <span
-              data-tab-count=""
-              className={cn(
-                'ms-0.5 rounded-full bg-muted px-1.5 font-mono text-[11px] tabular-nums',
-                active ? 'text-foreground' : 'text-muted-foreground',
-              )}
+              data-tab-count={tone === 'brand' ? 'brand' : ''}
+              className={
+                tone === 'brand'
+                  ? 'ms-0.5 rounded-full bg-brand-soft px-1.5 font-mono text-[11px] font-semibold tabular-nums text-brand-soft-foreground'
+                  : cn(
+                      'ms-0.5 rounded-full bg-muted px-1.5 font-mono text-[11px] tabular-nums',
+                      active ? 'text-foreground' : 'text-muted-foreground',
+                    )
+              }
             >
               {formatFull(count)}
             </span>
+            {countLabel ? <span className="sr-only"> {countLabel}</span> : null}
           </>
         )}
         <TabPendingHint />

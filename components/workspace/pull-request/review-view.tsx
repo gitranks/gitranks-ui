@@ -3,7 +3,6 @@ import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { SessionsList } from './attempt-sessions';
-import { AttemptSignIn } from './attempt-sign-in';
 import { BackLink, ContributionHeader } from './contribution-header';
 import { PrNotesPanel } from './pr-notes';
 import { AttemptRepoRules } from './repo-rules';
@@ -11,6 +10,7 @@ import type { SessionActionsSeed } from './session-actions';
 import { SessionPane } from './session-pane';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { HEADING } from '@/components/workspace/primitives';
+import { WorkspaceSignIn } from '@/components/workspace/workspace-sign-in';
 import {
   loadAttempt,
   loadContribute,
@@ -97,7 +97,7 @@ export async function ContributionLayout({
 }) {
   const { id } = await params;
   const gated = await gate(id);
-  if (!gated) return <AttemptSignIn what="contribution" />;
+  if (!gated) return <WorkspaceSignIn what="contribution" />;
   const { view, attempt } = gated;
   if (!attempt || attempt.kind === 'FOLLOW_UP') return children;
   const { current, prNotes, replies } = await contributionOf(attempt);

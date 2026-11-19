@@ -35,10 +35,10 @@ describe('the URL keeps the filters (runsQueryOf, runsHref)', () => {
       range: '7d',
     });
     expect(runsHref(query)).toBe(
-      '/contribute/runs?outcome=no_go&reason=needs_design&repo=can1357%2Foh-my-pi&runner=own&range=7d',
+      '/my/agent/runs?outcome=no_go&reason=needs_design&repo=can1357%2Foh-my-pi&runner=own&range=7d',
     );
     expect(runsQueryOf(Object.fromEntries(new URLSearchParams(runsHref(query).split('?')[1])))).toEqual(query);
-    expect(runsHref(runsQueryOf({}))).toBe('/contribute/runs');
+    expect(runsHref(runsQueryOf({}))).toBe('/my/agent/runs');
   });
 
   it('drops what it does not know', () => {

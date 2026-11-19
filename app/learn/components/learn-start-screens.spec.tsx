@@ -135,7 +135,7 @@ describe('Start your own lesson', () => {
     expect(plain).toContain('Waiting for Claude Code');
     expect(plain).toContain('You can close it: Learn home and My lessons link your lesson');
     expect(plain).not.toContain('email');
-    expect(html).toContain('href="/contribute/settings');
+    expect(html).toContain('href="/my/agent');
     expect(html).toContain('href="/learn#issues"');
   });
 
@@ -193,7 +193,7 @@ describe('Start your own lesson', () => {
       ],
       [
         startViews.limitAttempts,
-        'Your agent is working on another issue. A new lesson can start when that one is done. My contributions →',
+        'Your agent is working on another issue. A new lesson can start when that one is done. Pull requests →',
       ],
       [
         startViews.ownInProgress,

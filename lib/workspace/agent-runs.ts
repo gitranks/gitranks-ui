@@ -5,7 +5,7 @@ import type { ContributeActivity, ContributeAgentRun, ContributeAgentRunPhase } 
 import { relativeLabel, usd } from './format';
 
 /**
- * The user's agent runs as the activity read lists them (`runs`): the robot tab's count, Right now's lanes, the runs
+ * The user's agent runs as the activity read lists them (`runs`): the Agent tab's count, Right now's lanes, the runs
  * page's Working now, My contributions' live phase. Live runs come first, oldest first; settled ones (ready, done, stopped) stay ten
  * minutes, then the API leaves them out.
  */
@@ -37,8 +37,8 @@ export function indicatorLabelOf(runs: readonly ContributeAgentRun[]): string {
 }
 
 /**
- * The robot tab's mark: how many agents work (a spinner), else how many runs are live but not working (queued, the
- * user's own agent gone quiet, waiting for the user: a grey dot), and the words for both. Settled runs mark nothing.
+ * How many agents work (the Agent tab's spinner), else how many runs are live but not working (queued, the user's own
+ * agent gone quiet, waiting for the user), and the words for both. Settled runs count for nothing.
  */
 export function runsTabMarkOf(runs: readonly ContributeAgentRun[]): {
   working: number;

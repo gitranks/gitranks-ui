@@ -25,41 +25,51 @@ import type {
 /** The repos an item lists before "Show N more". */
 const REPOS_SHOWN = 8;
 
-type ActivityState = { activity: ContributeActivity | null; announced: boolean };
-const ActivityContext = createContext<ActivityState>({ activity: null, announced: false });
+/**
+ * What the one poll last read, for the tabs and the bar under them: the work in progress, the count of what needs the
+ * user (null: not known, no count shown), and whether the user just started something.
+ */
+export type WorkspaceLive = { activity: ContributeActivity | null; needsYou: number | null; announced: boolean };
+const ActivityContext = createContext<WorkspaceLive>({ activity: null, needsYou: null, announced: false });
 
 /** Tells the poll the user just started something long: it reads at once, and the bar says they can leave the page. */
 export function announceActivity() {
   window.dispatchEvent(new Event(ACTIVITY_STARTED_EVENT));
 }
 
-/** The user's work in progress for the tabs and the bar under them, as the one poll (`ChangesProvider`) last read it. */
+/** The one poll's reads (`ChangesProvider`), for the tabs and the bar under them. */
 export function ActivityProvider({
   activity,
+  needsYou = null,
   announced,
   children,
 }: {
   activity: ContributeActivity | null;
+  needsYou?: number | null;
   announced: boolean;
   children: ReactNode;
 }) {
-  return <ActivityContext.Provider value={{ activity, announced }}>{children}</ActivityContext.Provider>;
+  return <ActivityContext.Provider value={{ activity, needsYou, announced }}>{children}</ActivityContext.Provider>;
 }
+
+/** What the tabs' poll last read. */
+export const useWorkspaceLive = () => useContext(ActivityContext);
 
 /** The work in progress the tabs' poll last read. */
 export const useActivity = () => useContext(ActivityContext).activity;
 
-/** A small dot on a tab with work in progress. */
-export function ActivityDot({ tab }: { tab: ContributeActivityTab }) {
+/** A small dot on a tab with work in progress on any of the activity's `tab`s it stands for. */
+export function ActivityDot({ tab }: { tab: ContributeActivityTab | readonly ContributeActivityTab[] }) {
   const { activity } = useContext(ActivityContext);
-  const items = itemsOn(activity, tab);
+  const tabs = typeof tab === 'string' ? [tab] : tab;
+  const items = [...new Set(tabs.flatMap((one) => itemsOn(activity, one)))];
   if (!items.length) return null;
   const running = items.some(isRunning);
   return (
     <>
       <span
         aria-hidden="true"
-        data-activity-dot={tab}
+        data-activity-dot={tabs.join(' ')}
         className={cn(
           'ms-1.5 inline-block size-1.5 rounded-full align-middle',
           running ? 'bg-primary motion-safe:animate-pulse' : 'bg-muted-foreground/60',

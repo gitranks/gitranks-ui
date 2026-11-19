@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import type { Screen } from '../registry';
 import { changedCommentStates, reviewCommentStates, sessionHeadStates } from './contribute-moves';
 import { ContributeBadgePreview } from '@/app/contribute/components/contribute-badge-preview';
-import { ContributeTabsNav } from '@/app/contribute/components/contribute-tabs-nav';
 import { FaqScreen } from '@/app/contribute/components/faq';
 import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
@@ -16,7 +15,7 @@ import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
 import { PrTimelineScreen } from '@/app/contribute/components/pr-timeline-view';
 import { MorePages } from '@/app/contribute/components/public-pages';
 import { FormSettingsScreen } from '@/app/contribute/components/settings-pages';
-import { SettingsScreen } from '@/app/contribute/components/settings-view';
+import { AgentScreen, SettingsScreen } from '@/app/contribute/components/settings-view';
 import { TermsScreen } from '@/app/terms/terms';
 import { Header } from '@/components/header/header';
 import { Button } from '@/components/ui/button';
@@ -38,6 +37,7 @@ import { ChecksPanel, ReadinessPanel } from '@/components/workspace/pull-request
 import { PrForm, type PrFormProps } from '@/components/workspace/pull-request/pr-form';
 import { RulesOpen } from '@/components/workspace/pull-request/repo-rules';
 import { prFormPropsOf, ReviewScreen } from '@/components/workspace/pull-request/review-view';
+import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 import {
   attempt,
@@ -177,11 +177,14 @@ const stopped = runOf({
   latestEvent: { state: 'STOPPED', detail: 'No-go: nothing here needs a code change.', at: '2026-10-31T11:58:00.000Z' },
 });
 
-/** The page as the Contribute layout frames it: the site header, then the tabs. */
-const frame = (children: ReactNode, activity: ContributeActivity = activityOf()) => (
+/** Every tab, as an account Learn is open to sees them. */
+const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
+
+/** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */
+const frame = (children: ReactNode, activity: ContributeActivity = activityOf(), needsYou: number | null = 2) => (
   <>
-    <Header section="contribute" />
-    <ContributeTabsNav onboarded activity={activity} />
+    <Header />
+    <WorkspaceTabsNav tabs={TABS} activity={activity} needsYou={needsYou} />
     {children}
   </>
 );
@@ -586,13 +589,13 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     id: 'contribute-runs',
     title: 'Agent runs',
     area: 'contribute',
-    route: '/contribute/runs',
+    route: '/my/agent/runs',
     sources: ['app/contribute/components/runs-view.tsx', 'lib/contribute/runs.ts'],
     states: [
       {
         id: 'history',
         title: 'History',
-        path: '/contribute/runs',
+        path: '/my/agent/runs',
         height: 2000,
         render: () =>
           frame(
@@ -1159,13 +1162,13 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     id: 'contribute-connect-agent',
     title: 'Connect your own agent',
     area: 'contribute',
-    route: '/contribute/connect',
+    route: '/my/agent/connect',
     sources: ['app/contribute/components/agent-connect.tsx', 'app/contribute/components/connect-view.tsx'],
     states: [
       {
         id: 'token',
         title: 'The token and its setup: Claude Code',
-        path: '/contribute/connect?path=agent',
+        path: '/my/agent/connect',
         height: 1400,
         render: () =>
           frame(
@@ -1189,7 +1192,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       {
         id: 'token-antigravity',
         title: "The token in Antigravity's config: one step",
-        path: '/contribute/connect?path=agent',
+        path: '/my/agent/connect',
         height: 1400,
         render: () =>
           frame(
@@ -1213,7 +1216,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       {
         id: 'proof-prompt',
         title: 'From a proof card: the proof prompt last',
-        path: '/contribute/connect?path=agent&proof=A_OC',
+        path: '/my/agent/connect?proof=A_OC',
         height: 1500,
         render: () =>
           frame(
@@ -1246,7 +1249,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     id: 'contribute-me',
     title: 'My contributions',
     area: 'contribute',
-    route: '/contribute/me',
+    route: '/my/pull-requests',
     sources: [
       'app/contribute/components/contributions-view.tsx',
       'app/contribute/components/needs-you-rows.tsx',
@@ -1256,7 +1259,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       {
         id: 'list',
         title: 'Open, merged and stopped',
-        path: '/contribute/me',
+        path: '/my/pull-requests',
         height: 1800,
         render: () =>
           frame(
@@ -1278,14 +1281,14 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       {
         id: 'needs-you',
         title: 'Needs you: each move, a run working',
-        path: '/contribute/me',
+        path: '/my/pull-requests',
         height: 2600,
         render: () => mine(),
       },
       {
         id: 'needs-you-phone',
         title: 'Needs you · phone',
-        path: '/contribute/me',
+        path: '/my/pull-requests',
         width: 390,
         height: 5200,
         render: () => mine(),
@@ -1293,7 +1296,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       {
         id: 'needs-you-yours',
         title: 'Needs you: a conversation comment, checks only you can clear, a review comment beside one',
-        path: '/contribute/me',
+        path: '/my/pull-requests',
         height: 1300,
         render: () => mineYours(),
       },
@@ -1386,33 +1389,32 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     ],
   },
   {
-    id: 'contribute-settings',
-    title: 'Settings',
+    id: 'contribute-agent',
+    title: 'Agent',
     area: 'contribute',
-    route: '/contribute/settings',
+    route: '/my/agent',
     sources: [
       'app/contribute/components/settings-view.tsx',
       'app/contribute/components/settings-pages.tsx',
       'app/contribute/components/autopilot-section.tsx',
-      'app/contribute/components/email-section.tsx',
     ],
     states: [
       {
         id: 'summary',
         title: 'Summary',
-        path: '/contribute/settings',
+        path: '/my/agent',
         height: 1900,
         render: () =>
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <SettingsScreen view={views.active} now={NOW} email={email.on} />
+              <AgentScreen view={views.active} now={NOW} />
             </main>,
           ),
       },
       {
         id: 'autopilot-how',
         title: 'How autopilot works, at launch',
-        path: '/contribute/settings',
+        path: '/my/agent',
         height: 1800,
         render: () =>
           frame(
@@ -1420,7 +1422,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
               title={AUTOPILOT_HOW_TITLE}
               page={
                 <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-                  <SettingsScreen view={views.autopilotComing} now={NOW} />
+                  <AgentScreen view={views.autopilotComing} now={NOW} />
                 </main>
               }
             >
@@ -1438,7 +1440,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       {
         id: 'autopilot-confirm',
         title: 'Turning autopilot on: confirm first',
-        path: '/contribute/settings',
+        path: '/my/agent',
         height: 1800,
         render: () =>
           frame(
@@ -1446,7 +1448,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
               title={AUTOPILOT_CONFIRM_TITLE}
               page={
                 <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-                  <SettingsScreen view={autopilotOff} now={NOW} />
+                  <AgentScreen view={autopilotOff} now={NOW} />
                 </main>
               }
             >
@@ -1465,12 +1467,33 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       {
         id: 'new-account',
         title: 'A new account: the limit beside the budget',
-        path: '/contribute/settings',
+        path: '/my/agent',
         height: 1900,
         render: () =>
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <SettingsScreen view={views.newAccount} now={NOW} />
+              <AgentScreen view={views.newAccount} now={NOW} />
+            </main>,
+          ),
+      },
+    ],
+  },
+  {
+    id: 'contribute-settings',
+    title: 'Settings',
+    area: 'contribute',
+    route: '/my/settings',
+    sources: ['app/contribute/components/settings-view.tsx', 'components/workspace/settings/email-section.tsx'],
+    states: [
+      {
+        id: 'summary',
+        title: 'Summary',
+        path: '/my/settings',
+        height: 1400,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen view={views.active} email={email.on} />
             </main>,
           ),
       },
@@ -1480,7 +1503,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     id: 'contribute-settings-agent',
     title: 'Agent and pull requests',
     area: 'contribute',
-    route: '/contribute/settings/agent',
+    route: '/my/agent/model',
     sources: [
       'app/contribute/components/settings-pages.tsx',
       'app/contribute/components/settings-form.tsx',
@@ -1490,7 +1513,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       {
         id: 'form',
         title: 'The agent and the pull requests’ limits: repos can ask for less',
-        path: '/contribute/settings/agent',
+        path: '/my/agent/model',
         height: 1500,
         render: () =>
           frame(
@@ -1507,7 +1530,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     area: 'contribute',
     route: '/contribute/maintainers',
     sources: [
-      'app/contribute/maintainers/page.tsx',
+      'app/(public)/contribute/maintainers/page.tsx',
       'app/contribute/components/maintainers-view.tsx',
       'app/contribute/components/maintainer-repos-form.tsx',
       'app/contribute/components/maintainer-repo-settings.tsx',
@@ -1613,7 +1636,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     area: 'contribute',
     route: '/contribute/maintainers/report',
     sources: [
-      'app/contribute/maintainers/report/page.tsx',
+      'app/(public)/contribute/maintainers/report/page.tsx',
       'app/contribute/components/pr-feedback-view.tsx',
       'app/contribute/components/pr-feedback-forms.tsx',
       'lib/contribute/pr-feedback.ts',
@@ -1787,7 +1810,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     title: 'Contribute ledger',
     area: 'contribute',
     route: '/contribute/ledger',
-    sources: ['app/contribute/ledger/page.tsx', 'app/contribute/components/ledger-view.tsx'],
+    sources: ['app/(public)/contribute/ledger/page.tsx', 'app/contribute/components/ledger-view.tsx'],
     states: [
       {
         id: 'preview',
@@ -1820,7 +1843,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     area: 'contribute',
     route: '/contribute/mcp',
     sources: [
-      'app/contribute/mcp/page.tsx',
+      'app/(public)/contribute/mcp/page.tsx',
       'app/contribute/components/mcp-docs.tsx',
       'app/contribute/components/public-pages.tsx',
       'lib/contribute/mcp-docs.ts',
@@ -1842,7 +1865,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     area: 'contribute',
     route: '/contribute/faq',
     sources: [
-      'app/contribute/faq/page.tsx',
+      'app/(public)/contribute/faq/page.tsx',
       'app/contribute/components/faq.tsx',
       'app/contribute/components/public-pages.tsx',
       'lib/contribute/faq.ts',

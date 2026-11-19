@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/app/contribute/maintainers/actions', () => ({
+vi.mock('@/app/(public)/contribute/maintainers/actions', () => ({
   signInAsMaintainer: vi.fn(),
   optOutMaintainerRepos: vi.fn(),
   optInMaintainerRepos: vi.fn(),

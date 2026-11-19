@@ -59,7 +59,7 @@ describe('Overview, once there is an attempt', () => {
     expect(html).not.toContain('Working now');
     expect(html).toContain('data-run="att_working"');
     expect(text(html)).toContain('Right now 1 agent working All runs →');
-    expect(html).toContain('href="/contribute/runs"');
+    expect(html).toContain('href="/my/agent/runs"');
     // With none, the hosted lane says what holds it.
     const idle = screen(views.active, { activity: activityOf() });
     expect(idle).not.toContain('data-run=');
@@ -131,7 +131,7 @@ describe('Needs you', () => {
       const html = needs(views.active, read);
       expect(html).toContain('data-needs="unchecked"');
       expect(text(html)).not.toContain('Nothing needs you');
-      expect(html).toContain('href="/contribute/me"');
+      expect(html).toContain('href="/my/pull-requests"');
     }
   });
 
@@ -300,7 +300,7 @@ describe('Right now', () => {
     expect(text(slots)).toContain(
       'Waiting Your own agent holds your slot A new attempt starts when it hands back its patch or releases the issue. Attempts at a time in Settings →',
     );
-    expect(slots).toContain('href="/contribute/settings/budget#more-limits"');
+    expect(slots).toContain('href="/my/agent/budget#more-limits"');
 
     const three = { ...both, contributor: contributor({ settings: { ...settings, attemptsAtATime: 3 } }) };
     const allSlots = now(three, {
@@ -313,7 +313,7 @@ describe('Right now', () => {
     expect(text(cap)).toContain(
       'Waiting At your open PRs cap 3 of 3 pull requests are open or on their way. The next attempt starts when one is merged, closed or discarded. Open PRs at a time in Settings →',
     );
-    expect(cap).toContain('href="/contribute/settings/agent#prs"');
+    expect(cap).toContain('href="/my/agent/model#prs"');
 
     const queuedView = {
       ...views.active,
@@ -323,7 +323,7 @@ describe('Right now', () => {
     expect(text(queued)).toContain(
       'Waiting Nothing queued Your pacing is "Only issues I queue", and none is queued. Pacing in Settings →',
     );
-    expect(queued).toContain('href="/contribute/settings/budget#pacing"');
+    expect(queued).toContain('href="/my/agent/budget#pacing"');
   });
 
   it('never says soon while a hold holds, or while the attempts in flight or the counts are not answered', () => {
@@ -455,7 +455,7 @@ describe('Right now', () => {
   });
 
   it('leaves the way to a new key to Needs you', () => {
-    expect(now(views.keyInvalid)).not.toContain('href="/contribute/connect"');
+    expect(now(views.keyInvalid)).not.toContain('href="/my/agent/key"');
   });
 
   it('shows both agents for a user with both', () => {
@@ -494,8 +494,8 @@ describe('Ways you contribute', () => {
     expect(text(html)).toContain(
       'Your own agent Connected Claude Code on macOS · 1 token live · last call 3 hours ago Manage in Settings →',
     );
-    expect(html).toContain('href="/contribute/settings/keys"');
-    expect(html).toContain('href="/contribute/settings/own-agent"');
+    expect(html).toContain('href="/my/agent/key"');
+    expect(html).toContain('href="/my/agent"');
   });
 
   it('offers each way not set up, dashed', () => {
@@ -507,7 +507,7 @@ describe('Ways you contribute', () => {
     expect(text(html)).toContain(
       'Your own agent Not set up Claude Code, Codex, Cursor, Gemini CLI or Antigravity asks GitRanks for an issue. About a minute. Connect your own agent →',
     );
-    expect(html).toContain('href="/contribute/connect?path=agent"');
+    expect(html).toContain('href="/my/agent/connect"');
   });
 
   it('says a refused key and a waiting one, and when it cannot check the agent', () => {

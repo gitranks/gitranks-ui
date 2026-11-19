@@ -145,7 +145,7 @@ describe('Goal and level', () => {
     expect(text(html)).toContain('Pick what you want to learn.');
     expect(html).toContain('type="submit" disabled=""');
     expect(html).toContain('data-learn-agent="Not set up"');
-    expect(html).toContain('href="/contribute/connect?path=agent"');
+    expect(html).toContain('href="/my/agent/connect"');
   });
 
   it('shows a saved profile: the goal with its language, Your goal first, the focus ticked, the agent connected', () => {

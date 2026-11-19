@@ -5,6 +5,8 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn(), signOut: vi.fn(), useSessio
 vi.mock('@/components/signin-button/signin-button', () => ({ default: () => <span data-sign-in-button /> }));
 const packagesOpen = vi.hoisted(() => ({ value: false }));
 vi.mock('@/lib/packages/packages-open', () => ({ usePackagesOpen: () => packagesOpen.value }));
+const nav = vi.hoisted(() => ({ pathname: '/' }));
+vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 
 const { Header } = await import('./header');
 const { MainMenu } = await import('./components/main-menu');
@@ -52,6 +54,30 @@ describe('the Package Rankings menu entry', () => {
     expect(html).toMatch(
       /href="\/repos\/1".*Repository Rankings.*href="\/packages\/npm\/downloads\/1".*Package Rankings/s,
     );
+  });
+});
+
+describe("the menu's mark", () => {
+  /** The menu items marked as the current section. */
+  const marked = (html: string) =>
+    [...html.matchAll(/<a [^>]*data-active=""[^>]*>([A-Za-z]+)/g)].map(([, label]) => label);
+  const at = (pathname: string, section?: 'contribute' | 'rankings') => {
+    nav.pathname = pathname;
+    return marked(renderToStaticMarkup(<MainMenu section={section} />));
+  };
+
+  it("marks Contribute by the path on Contribute's pages when no section is named, never on the workspace's /my", () => {
+    expect(at('/contribute')).toEqual(['Contribute']);
+    expect(at('/contribute/issues')).toEqual(['Contribute']);
+    expect(at('/contribute/maintainers')).toEqual(['Contribute']);
+    for (const path of ['/my/pull-requests', '/my/agent', '/my/settings', '/', '/profile/a']) {
+      expect(at(path), path).toEqual([]);
+    }
+  });
+
+  it('follows the section a page names over its path', () => {
+    expect(at('/contribute/issues', 'rankings')).toEqual([]);
+    expect(at('/', 'contribute')).toEqual(['Contribute']);
   });
 });
 

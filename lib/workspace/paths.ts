@@ -3,28 +3,69 @@ import type { Route } from 'next';
 import type { ContributeSetListMode } from './contribute.types';
 
 /**
- * The pages of the signed-in workspace, Contribute's and Learn's, at today's addresses. Links to them are built from
- * here, so a page that moves changes this table and not its links.
+ * The pages of the signed-in workspace, Contribute's and Learn's: the two front tabs, then everything under `/my`. Links
+ * to them are built from here, so a page that moves changes this table and not its links. Goal and level and the
+ * user's lessons keep Learn's addresses until their own pages under `/my` are built.
  */
 export const WORKSPACE_PATHS = {
   contribute: '/contribute' as Route,
   learn: '/learn' as Route,
   /** The user's pull requests, both sides. */
-  pullRequests: '/contribute/me' as Route,
-  /** The own agent's part of Settings. */
-  agent: '/contribute/settings/own-agent' as Route,
-  agentConnect: '/contribute/connect?path=agent' as Route,
-  agentKey: '/contribute/settings/keys' as Route,
-  agentModel: '/contribute/settings/agent' as Route,
-  agentBudget: '/contribute/settings/budget' as Route,
-  agentRuns: '/contribute/runs' as Route,
-  settings: '/contribute/settings' as Route,
-  settingsWork: '/contribute/settings/work' as Route,
+  pullRequests: '/my/pull-requests' as Route,
+  /** The agents that work for the user: their own, and the hosted one on their Claude key. */
+  agent: '/my/agent' as Route,
+  agentConnect: '/my/agent/connect' as Route,
+  agentKey: '/my/agent/key' as Route,
+  agentModel: '/my/agent/model' as Route,
+  agentBudget: '/my/agent/budget' as Route,
+  agentRuns: '/my/agent/runs' as Route,
+  settings: '/my/settings' as Route,
+  settingsWork: '/my/settings/work' as Route,
   /** Learn's goal and level. */
   settingsGoal: '/learn/profile' as Route,
   /** The user's lessons. */
   progress: '/learn/lessons' as Route,
 } as const;
+
+/**
+ * The rows other pages link to by what they are, wherever their page is now: the limit on open pull requests, attempts
+ * at a time, the filters of what the user works on, Learn's goal, the Claude key, the budget.
+ */
+export const WORKSPACE_ANCHORS = {
+  limitRow: `${WORKSPACE_PATHS.agentModel}#prs` as Route,
+  attemptsRow: `${WORKSPACE_PATHS.agentBudget}#more-limits` as Route,
+  work: `${WORKSPACE_PATHS.settings}#work` as Route,
+  forLearning: WORKSPACE_PATHS.settingsGoal,
+  agentKey: WORKSPACE_PATHS.agentKey,
+  agentBudget: WORKSPACE_PATHS.agentBudget,
+} as const;
+
+/** GitHub's permission to open pull requests: on the key's page, for every account. */
+export const GITHUB_ACCESS_PATH = `${WORKSPACE_PATHS.agentKey}#github` as Route;
+
+/** Where a Claude key is connected over the one there is: the key's page shows the key itself otherwise. */
+export const KEY_REPLACE_PATH = `${WORKSPACE_PATHS.agentKey}?replace=1` as Route;
+
+/** Matches the path, decoded as the router reads it, against `pattern`; a path that does not decode never matches. */
+function decodedMatches(pathname: string, pattern: RegExp): boolean {
+  try {
+    return pattern.test(decodeURIComponent(pathname));
+  } catch {
+    return false;
+  }
+}
+
+/** The pages under `/my`, in any spelling the router reads as them. A path that does not decode is matched on its start. */
+export function isMyPath(pathname: string): boolean {
+  try {
+    return /^\/+my(?:[/\\]|$)/i.test(decodeURIComponent(pathname));
+  } catch {
+    return /^\/+my/i.test(pathname);
+  }
+}
+
+/** The pages of Contribute and of the workspace under `/my`: a click there is moving around inside, not a step in. */
+export const isInsidePath = (pathname: string): boolean => isContributePath(pathname) || isMyPath(pathname);
 
 /**
  * Contribute's pages: `/contribute` and everything under it. Matched on the decoded path, as the router matches it,
@@ -120,15 +161,6 @@ export const CONTRIBUTE_TERMS_PATH = '/terms#contribute' as Route;
 export const isAttemptPagePath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+(?:contribute|learn)\/+attempts\/+[^/]+(?:\/+runs\/+[^/]+)?\/?$/i);
 
-/** Matches the path, decoded as the router reads it, against `pattern`; a path that does not decode never matches. */
-function decodedMatches(pathname: string, pattern: RegExp): boolean {
-  try {
-    return pattern.test(decodeURIComponent(pathname));
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Whether the path is a page every visitor sees once Contribute is launched: the landing, the MCP docs and the
  * questions, in any spelling the router reads as them. Until then only the preview list sees them.
@@ -137,27 +169,35 @@ export const isOpenAtLaunchPath = (pathname: string): boolean =>
   isLandingPath(pathname) || decodedMatches(pathname, /^\/+contribute\/+(?:mcp|faq|agents\.md)\/?$/i);
 
 /**
- * Whether the path is one of the pages about Contribute rather than the user's workspace, which show no tabs: the
- * maintainers page and its report page, the ledger, the MCP docs, the questions and the agent sign-in's consent page.
+ * Whether the path is one of the pages about Contribute or Learn rather than the user's workspace, which show no tabs:
+ * Contribute's maintainers page and its report page, the ledger, the MCP docs, the questions and the agent sign-in's
+ * consent page; how Learn works, Learn's page for maintainers, and a shared lesson with its result pages.
  */
 export const isTablessPath = (pathname: string): boolean =>
-  decodedMatches(pathname, /^\/+contribute\/+(?:maintainers(?:\/+report)?|ledger|mcp|faq|authorize)\/?$/i);
+  decodedMatches(pathname, /^\/+contribute\/+(?:maintainers(?:\/+report)?|ledger|mcp|faq|authorize)\/?$/i) ||
+  decodedMatches(pathname, /^\/+learn\/+(?:about|maintainers)\/?$/i) ||
+  decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i);
+
+/** The workspace's pages: Contribute's and Learn's, and everything under `/my`, in any spelling the router reads. */
+export const isWorkspacePath = (pathname: string): boolean =>
+  isContributePath(pathname) || isMyPath(pathname) || decodedMatches(pathname, /^\/+learn(?:[/\\]|$)/i);
 
 /**
- * Where a Contribute page sends an account being set up: Contribute's home, which says so and reads itself again until
- * the account is ready, carrying the way of contributing the user picked (`start`), so the home goes on to its first
- * step then.
+ * Where a workspace page sends an account being set up: Contribute's home, which says so and reads itself again until
+ * the account is ready, carrying the way of contributing the user picked (`start`) from the two connect pages, so the
+ * home goes on to that step then.
  */
 export function settingUpHomeOf(url: { pathname: string; searchParams: URLSearchParams }): string {
-  if (!/^\/+contribute\/+connect\/?$/i.test(url.pathname)) return '/contribute';
-  return url.searchParams.get('path') === 'agent' ? '/contribute?start=agent' : '/contribute?start=key';
+  if (decodedMatches(url.pathname, /^\/+my\/+agent\/+connect\/?$/i)) return '/contribute?start=agent';
+  if (decodedMatches(url.pathname, /^\/+my\/+agent\/+key\/?$/i)) return '/contribute?start=key';
+  return '/contribute';
 }
 
 /** Where each way of contributing starts: a Claude key we run the agent on, or the user's own agent. */
-export const CONNECT_KEY_PATH: Route = '/contribute/connect';
+export const CONNECT_KEY_PATH: Route = WORKSPACE_PATHS.agentKey;
 export const CONNECT_AGENT_PATH: Route = WORKSPACE_PATHS.agentConnect;
 
-/** Every agent run: the live ones, then the history. The robot tab and Right now's "All runs" lead there. */
+/** Every agent run: the live ones, then the history. Right now's "All runs" leads there. */
 export const RUNS_PATH: Route = WORKSPACE_PATHS.agentRuns;
 
 /** The page for AI agents, in markdown: a route handler, so links to it are plain anchors, never the router's. */
@@ -176,9 +216,10 @@ export const SETTINGS_PATHS = {
 };
 
 /**
- * Where each section of the one long Settings page now lives, by its old `#anchor`. Links in the app use it, and the
- * summary sends an old link (a bookmark, a notice) on to it. Anchors not here stay on the summary: what you work on
- * (`#modes`), and the filters (`#work`), rules and ignored repos, whose dialogs open at their anchor.
+ * Where each section of the one long Settings page now lives, by its old `#anchor`: the spending limits, pacing and
+ * the agent's model on the Agent tab's pages, as the pull request settings until they get their own page. Links in the
+ * app use it, and the summary sends an old link (a bookmark, a notice) on to it. Anchors not here stay on the summary:
+ * what you work on (`#modes`), and the filters (`#work`), rules and ignored repos, whose dialogs open at their anchor.
  */
 const ANCHORS: Record<string, Route> = {
   limits: SETTINGS_PATHS.budget,
@@ -192,7 +233,7 @@ const ANCHORS: Record<string, Route> = {
 
 /** The guided switch to a mode with a list. */
 export const switchPathOf = (mode: ContributeSetListMode): Route =>
-  `/contribute/settings/switch/${mode.toLowerCase()}` as Route;
+  `${WORKSPACE_PATHS.settingsWork}/switch/${mode.toLowerCase()}` as Route;
 
 /** The mode a switch page's segment names, or null for any other segment. */
 export const switchModeOf = (segment: string): ContributeSetListMode | null =>

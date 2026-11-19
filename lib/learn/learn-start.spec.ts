@@ -233,7 +233,7 @@ describe('refusals', () => {
     expect(words(startViews.limitAttempts)).toEqual({
       kind: 'notice',
       text: 'Your agent is working on another issue. A new lesson can start when that one is done.',
-      action: { href: '/contribute/me', label: 'My contributions' },
+      action: { href: '/my/pull-requests', label: 'Pull requests' },
     });
   });
 

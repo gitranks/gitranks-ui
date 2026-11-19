@@ -3,7 +3,6 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { LearnGoalQuick } from './learn-goal-quick';
-import { LearnHomeLive } from './learn-home-live';
 import { LearnSettingUp } from './learn-setting-up';
 import { CHANGED_YOUR_MIND, OwnLessonCard, PullRequestCard } from './own-lesson-card';
 import { PracticeSection } from './practice-lessons';
@@ -17,26 +16,18 @@ import {
   loadMyLearnAttempts,
   loadPracticeLessons,
 } from '@/lib/learn/learn.data';
-import type {
-  LearnGoalView,
-  LearnIssues,
-  LearnProfile,
-  MyLearnAttempts,
-  PracticeLessons,
-} from '@/lib/learn/learn.types';
+import type { LearnGoalView, LearnIssues, LearnProfile, PracticeLessons } from '@/lib/learn/learn.types';
 import {
   goalValueOf,
   goalViewOf,
   ISSUES_SHOWN,
-  isLiveCard,
   LEARN_PATH_STEPS,
   type LearnHomeState,
   learnHomeStateOf,
-  ownLessonKeyOf,
   PRACTICE_SHOWN,
   pathMarksOf,
 } from '@/lib/learn/learn-home';
-import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
+import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
 
 /** Learn home's container, as Learn's other pages draw theirs. */
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
@@ -119,7 +110,10 @@ function HowALessonIsMade() {
   );
 }
 
-/** The links under every state: how Learn works, the page for maintainers, My lessons. */
+/**
+ * The links under every state: how Learn works, the page for maintainers, the user's lessons and their goal and level
+ * (which have no tab of their own in the workspace yet).
+ */
 const FOOTER_LINK = 'font-semibold text-link hover:underline max-sm:inline-flex max-sm:min-h-11 max-sm:items-center';
 
 function HomeFooter() {
@@ -133,6 +127,9 @@ function HomeFooter() {
       </Link>
       <Link href={MY_LESSONS_PATH} prefetch={false} className={FOOTER_LINK}>
         My lessons
+      </Link>
+      <Link href={LEARN_PROFILE_PATH} prefetch={false} className={FOOTER_LINK}>
+        Goal and level
       </Link>
     </nav>
   );
@@ -156,8 +153,6 @@ const Muted = ({ children }: { children: ReactNode }) => <p className="text-sm t
 export type LearnHomeData = {
   state: LearnHomeState;
   profile: LearnProfile | null;
-  /** The viewer's attempts as read, for the live re-read to compare against. */
-  attempts?: MyLearnAttempts;
   /** Read for the states with the issues; undefined when the API did not answer. */
   issues?: LearnIssues;
   /** Read for the states with practice; undefined when the API did not answer. */
@@ -170,7 +165,7 @@ export type LearnHomeData = {
  * question, the own lesson's card, the pull request's card, the issues for the goal, practice lessons. Each state ends
  * in one next step. Links to how Learn works, the page for maintainers and My lessons close it.
  */
-export function LearnHomeScreen({ state, profile, attempts, issues, practice, now }: LearnHomeData) {
+export function LearnHomeScreen({ state, profile, issues, practice, now }: LearnHomeData) {
   const goal = issues?.goal ?? goalViewOf(profile);
   const goalText = goalValueOf(goal);
   let content: ReactNode;
@@ -251,7 +246,6 @@ export function LearnHomeScreen({ state, profile, attempts, issues, practice, no
       <HomeHeader state={state} />
       {content}
       <HomeFooter />
-      {isLiveCard(state) ? <LearnHomeLive watching={ownLessonKeyOf(attempts)} /> : null}
     </main>
   );
 }
@@ -273,5 +267,5 @@ export async function LearnHomeSignedIn() {
     listed ? loadLearnIssues(ISSUES_SHOWN) : undefined,
     practiced ? loadPracticeLessons(PRACTICE_SHOWN) : undefined,
   ]);
-  return <LearnHomeScreen state={state} profile={profile} attempts={attempts} issues={issues} practice={practice} />;
+  return <LearnHomeScreen state={state} profile={profile} issues={issues} practice={practice} />;
 }

@@ -67,7 +67,7 @@ describe('needsYouItemsOf: the setup', () => {
       pill: 'Key refused',
       where: 'Claude key …k3Qa',
       move: 'Anthropic refused your Claude key, so no run can start. Connect a working key.',
-      action: { label: 'Connect a new key', href: '/contribute/connect' },
+      action: { label: 'Connect a new key', href: '/my/agent/key?replace=1' },
     });
 
     const [way] = items({}, views.onboardedNoPath).items;
@@ -75,8 +75,8 @@ describe('needsYouItemsOf: the setup', () => {
       kind: 'no-way',
       pill: 'Not set up',
       move: 'Nothing can start until GitRanks has your Claude key or your own agent is connected.',
-      action: { label: 'Add your Claude key', href: '/contribute/connect' },
-      secondary: { label: 'Connect your own agent', href: '/contribute/connect?path=agent' },
+      action: { label: 'Add your Claude key', href: '/my/agent/key' },
+      secondary: { label: 'Connect your own agent', href: '/my/agent/connect' },
     });
   });
 

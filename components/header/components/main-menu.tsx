@@ -74,8 +74,9 @@ export function MainMenu({ className, section }: Readonly<{ className?: string; 
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
-      <ContributeMenuItem active={section === 'contribute'} />
-      <LearnMenuItem active={section === 'learn'} />
+      {/* With no section named, the two mark themselves by the path: the workspace's layout reads no path. */}
+      <ContributeMenuItem active={section ? section === 'contribute' : undefined} />
+      <LearnMenuItem active={section ? section === 'learn' : undefined} />
     </PhoneMenu>
   );
 }

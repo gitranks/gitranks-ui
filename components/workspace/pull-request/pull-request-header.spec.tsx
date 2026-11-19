@@ -24,6 +24,12 @@ const header = (props: Parameters<typeof PullRequestHeader>[0]) =>
   renderToStaticMarkup(<PullRequestHeader now={NOW} {...props} />);
 
 describe("the pull request's header", () => {
+  it("draws a run's page with its first attempt's header", () => {
+    const html = header({ attempt: followUp(), first: attempts.prOpen });
+    expect(text(html)).toContain('PR #1419 ↗');
+    expect(html).toContain('data-pr-state="OPEN"');
+  });
+
   it('says the way back, the issue as chips, whose agent, the title, then where the attempt stands', () => {
     const html = header({ attempt: detail({ state: 'RUNNING', pullRequest: null }) });
     expect(text(html)).toBe(
@@ -82,12 +88,5 @@ describe("the pull request's header", () => {
     expect(text(html)).toMatch(/^An earlier attempt on this issue\. See the latest → ← Pull requests/);
     expect(html).toContain(`href="${latest}"`);
     expect(header({ attempt: attempts.prOpen })).not.toContain('data-earlier-attempt');
-  });
-
-  it('names, for a run whose first attempt is not known, the pull request it follows up by its chip', () => {
-    const html = header({ attempt: followUp() });
-    expect(text(html)).toContain('PR #1419 ↗');
-    expect(text(html)).toContain('Follows up pull request #1419 ↗');
-    expect(html).toContain('href="/my/pull-requests/by-attempt/A_1"');
   });
 });

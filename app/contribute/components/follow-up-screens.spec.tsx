@@ -307,14 +307,10 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
 });
 
 describe('a follow-up on the review screen', () => {
-  it('shows it as a follow-up of the pull request, with its new commits, checks and cost', () => {
+  it('shows its new commits, checks and cost', () => {
     const html = review(followUpAttempts.review);
     const plain = text(html);
 
-    expect(html).toContain('data-follow-up-of="1419"');
-    expect(plain).toContain('Follows up pull request #1419');
-    expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
-    expect(html).toContain('href="/my/pull-requests/by-attempt/A_1"');
     expect(plain).toContain('The new commits');
     expect(html).toContain('data-file="src/router/normalize-path.ts"');
     expect(html).toContain('data-check="SECRETS"');
@@ -435,12 +431,6 @@ describe('a follow-up on the review screen', () => {
       'To give the next run more room, raise "Each run" under More limits in Budget and pacing.',
     );
     expect(text(review(followUpAttempts.discarded))).not.toContain('Open More limits');
-  });
-
-  it('says the pull request it follows up is not available yet without the field', () => {
-    expect(text(review({ ...followUpAttempts.review, followUpOf: undefined }))).toContain(
-      'The pull request it follows up is not available yet.',
-    );
   });
 });
 

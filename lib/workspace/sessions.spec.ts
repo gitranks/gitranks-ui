@@ -58,8 +58,12 @@ describe("a session's address, under its page's", () => {
     const first = { attemptId: 'A_1', nameWithOwner: 'acme/widgets', number: 42 };
     expect(pageAtOf(first)).toEqual({ firstId: 'A_1', base: '/my/pull-requests/acme/widgets/42' });
     expect(pageAtOf(first, `${PAGE}/earlier/A_1` as Route).base).toBe(`${PAGE}/earlier/A_1`);
-    // No repo name known: the address by attempt finds it.
-    expect(pageAtOf({ ...first, nameWithOwner: null }).base).toBe('/my/pull-requests/by-attempt/A_1');
+    // No repo name known: the address by attempt finds it, and each session goes by its own id.
+    const unnamed = pageAtOf({ ...first, nameWithOwner: null });
+    expect(unnamed.base).toBe('/my/pull-requests/by-attempt/A_1');
+    expect(sessionPath(unnamed, 'A_F2')).toBe('/my/pull-requests/by-attempt/A_F2');
+    expect(sessionPath(unnamed, 'A_1')).toBe('/my/pull-requests/by-attempt/A_1');
+    expect(nextSessionPath(unnamed)).toBe('/my/pull-requests/by-attempt/A_1?session=next');
   });
 
   it("reads the page's address off the browser's path, a run's segment aside", () => {

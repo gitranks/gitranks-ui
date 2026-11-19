@@ -658,13 +658,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () => contributionPage(attempts.closed),
       },
       {
-        id: 'follow-up-alone',
-        title: 'A run whose first attempt is not known: the pull request it follows up, the notes after it',
-        path: '/contribute/attempts/A_F1',
-        height: 2000,
-        render: () => contributionPage(followUpAttempts.review, { notes: prNotes() }),
-      },
-      {
         id: 'contribution-phone',
         title: 'The sessions, the session shown, the rules and the notes, in phone order · phone',
         path: '/contribute/attempts/A_1',

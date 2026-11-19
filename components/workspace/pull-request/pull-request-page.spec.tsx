@@ -113,9 +113,10 @@ describe("the pull request's page, by repo and issue", () => {
     const html = renderToStaticMarkup(await ContributionLayout({ params: params(), children: <span data-session /> }));
     expect(html).toBe('<span data-session="true"></span>');
     vi.mocked(data.loadIssueAttempt).mockResolvedValue(ref());
-    await expect(FirstSessionView({ params: params({ issue: '0871' }), searchParams: query() })).rejects.toThrow(
-      'NEXT_NOT_FOUND',
-    );
+    // Another spelling of the issue's number moves to the API's.
+    await expect(
+      FirstSessionView({ params: params({ issue: '0871' }), searchParams: query({ session: 'next' }) }),
+    ).rejects.toThrow(`NEXT_REDIRECT ${PAGE}?session=next`);
   });
 
   it('answers the 404 for an issue the viewer never attempted, or an issue that is no number', async () => {
@@ -123,9 +124,11 @@ describe("the pull request's page, by repo and issue", () => {
     await expect(ContributionLayout({ params: params(), children: null })).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(FirstSessionView({ params: params(), searchParams: query() })).rejects.toThrow('NEXT_NOT_FOUND');
     vi.mocked(data.loadIssueAttempt).mockResolvedValue(ref());
-    await expect(FirstSessionView({ params: params({ issue: 'abc' }), searchParams: query() })).rejects.toThrow(
-      'NEXT_NOT_FOUND',
-    );
+    for (const issue of ['abc', '0', '2147483648', '12345678901', '-1']) {
+      await expect(FirstSessionView({ params: params({ issue }), searchParams: query() }), issue).rejects.toThrow(
+        'NEXT_NOT_FOUND',
+      );
+    }
   });
 
   it("says the page didn't load while the API does not answer", async () => {

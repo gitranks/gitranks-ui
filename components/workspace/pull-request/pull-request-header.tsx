@@ -26,12 +26,11 @@ import type {
   ContributeAttemptDetail,
   ContributeAttemptPullRequest,
   ContributeCheckNote,
-  ContributeFollowUpOf,
   ContributePrNotes,
 } from '@/lib/workspace/contribute.types';
 import { dayLabel, MODELS, relativeLabel } from '@/lib/workspace/format';
 import { hardStopOf } from '@/lib/workspace/hard-stop';
-import { pullRequestByAttemptPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** Back to the user's contributions. */
 export const BackLink = () => (
@@ -136,43 +135,6 @@ export function CheckNotes({ notes }: { notes: readonly ContributeCheckNote[] | 
   );
 }
 
-/** The pull request a follow-up works on: `pull request #1419 ↗`, or words while it is not known. */
-export function FollowUpOfLink({ followUpOf }: { followUpOf: ContributeFollowUpOf | null | undefined }) {
-  if (!followUpOf) return <>the pull request</>;
-  const url = githubUrlOf(followUpOf.url);
-  return url ? (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-link hover:underline">
-      pull request #{followUpOf.number} ↗
-    </a>
-  ) : (
-    <>pull request #{followUpOf.number}</>
-  );
-}
-
-/** A run whose first attempt is not known: the pull request it follows up, and the change that opened it. */
-function FollowUpOfLine({ followUpOf }: { followUpOf: ContributeFollowUpOf | null | undefined }) {
-  return (
-    <p data-follow-up-of={followUpOf?.number ?? ''} className="text-sm text-muted-foreground">
-      {followUpOf === undefined ? (
-        'The pull request it follows up is not available yet.'
-      ) : (
-        <>
-          Follows up <FollowUpOfLink followUpOf={followUpOf} />
-          {followUpOf ? (
-            <>
-              {' '}
-              ·{' '}
-              <Link href={pullRequestByAttemptPath(followUpOf.attemptId)} prefetch={false} className="text-link">
-                the change that opened it
-              </Link>
-            </>
-          ) : null}
-        </>
-      )}
-    </p>
-  );
-}
-
 const NEWCOMERS = 'The maintainers keep it for people new to the project.';
 
 /** The issue's newcomers label, as the repo wrote it: what it means on a hover or a tap. */
@@ -261,9 +223,9 @@ function StageStatus({ line }: { line: StageLine }) {
  * The pull request's page's header (W1 §8.2), one for both sides: the way back (and, on an earlier attempt, the line
  * to the latest above it), the reference line (the repo, `Issue #N ↗`, `PR #N ↗` once it exists, the Learn pill, whose
  * agent wrote it, the newcomers chip), the issue's title, then one status line: the pull request's, with its failing
- * checks that call nobody and a maintainer's stop under it; before it exists, the stage (`stageLineOf`); for a run
- * whose first attempt is not known, the pull request it follows up. The lesson line and the two views come with the
- * Lesson view.
+ * checks that call nobody and a maintainer's stop under it; before it exists, the stage (`stageLineOf`). A run is
+ * always drawn under its first attempt (every run names it), so the header is the first attempt's. The lesson line and
+ * the two views come with the Lesson view.
  */
 export function PullRequestHeader({
   attempt,
@@ -272,7 +234,7 @@ export function PullRequestHeader({
   earlier,
   now,
 }: {
-  /** Names the issue: the first attempt, or a run read on its own. */
+  /** Names the issue: the first attempt, or a run (`first` then is its first attempt). */
   attempt: ContributeAttemptDetail;
   /** The first attempt, when `attempt` is a run (a first attempt is its own). */
   first?: ContributeAttemptDetail;
@@ -299,17 +261,7 @@ export function PullRequestHeader({
         </p>
       ) : null}
       <BackLink />
-      <RefChips
-        repo={attempt.nameWithOwner}
-        issue={attempt.number}
-        pr={
-          pr
-            ? { number: pr.number, url: pr.url }
-            : attempt.followUpOf
-              ? { number: attempt.followUpOf.number, url: attempt.followUpOf.url }
-              : null
-        }
-      >
+      <RefChips repo={attempt.nameWithOwner} issue={attempt.number} pr={pr ? { number: pr.number, url: pr.url } : null}>
         {(named ?? attempt).mode === 'LEARN' ? <LearnPill /> : null}
         <Pill tone="neutral">{agentLineOf(named ?? attempt)}</Pill>
         {attempt.newcomersLabel ? <NewcomersChip label={attempt.newcomersLabel} /> : null}
@@ -322,16 +274,9 @@ export function PullRequestHeader({
         </>
       ) : stage ? (
         <StageStatus line={stage} />
-      ) : attempt.kind === 'FOLLOW_UP' ? (
-        <FollowUpOfLine followUpOf={attempt.followUpOf} />
       ) : null}
       {stopped ? (
-        <MaintainerStoppedLine
-          stopped={stopped}
-          repo={repo}
-          url={githubUrlOf(pr?.url ?? attempt.followUpOf?.url)}
-          number={pr?.number ?? attempt.followUpOf?.number}
-        />
+        <MaintainerStoppedLine stopped={stopped} repo={repo} url={githubUrlOf(pr?.url)} number={pr?.number} />
       ) : null}
     </header>
   );

@@ -295,9 +295,15 @@ export const PICK_ISSUE_PATHS = {
   learn: `${WORKSPACE_PATHS.learn}#issues` as Route,
 } as const;
 
-/** Whether the path is the address by attempt, in any spelling the router reads as it. */
+/** An attempt's id as the API writes it: anything else names no attempt, for anyone. */
+export const ATTEMPT_ID = /^[\w-]{1,64}$/;
+
+/**
+ * Whether the path is the address by attempt with a well-formed id, in any spelling the router reads as it. A malformed
+ * id is a 404 for anyone, signed in or not.
+ */
 export const isByAttemptPath = (pathname: string): boolean =>
-  decodedMatches(pathname, /^\/+my\/+pull-requests\/+by-attempt\/+[^/]+\/?$/i);
+  decodedMatches(pathname, /^\/+my\/+pull-requests\/+by-attempt\/+[\w-]{1,64}\/?$/i);
 
 /** The Pull requests tab's table holds this many rows a page. */
 export const PULL_REQUESTS_PAGE_SIZE = 20;

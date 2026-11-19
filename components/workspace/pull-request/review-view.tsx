@@ -60,6 +60,9 @@ async function gate() {
   return { view };
 }
 
+/** GraphQL's largest `Int`: an issue's number above it names no issue. */
+const MAX_INT = 2_147_483_647;
+
 /** What the address names, read once per request (the layout and the session's page both ask). */
 type PageRead =
   /** No issue of the viewer's at this address, or an attempt id that is not an earlier one on it: a 404. */
@@ -83,13 +86,14 @@ type PageRead =
  * case) moves to the current one.
  */
 const readPage = cache(async (owner: string, repo: string, issue: string, earlierId?: string): Promise<PageRead> => {
-  if (!/^[1-9]\d{0,9}$/.test(issue)) return { kind: 'missing' };
-  const number = Number(issue);
+  // An issue's number, in any spelling of it (`0871`), up to GraphQL's largest `Int`.
+  const number = /^\d{1,10}$/.test(issue) ? Number(issue) : 0;
+  if (number < 1 || number > MAX_INT) return { kind: 'missing' };
   const ref = await loadIssueAttempt(owner, repo, number);
   if (ref === undefined) return { kind: 'unread' };
   if (ref === null) return { kind: 'missing' };
   const earlier = earlierId && earlierId !== ref.attemptId ? earlierId : null;
-  if (ref.repo !== `${owner}/${repo}` || ref.number !== number || (earlierId && !earlier)) {
+  if (ref.repo !== `${owner}/${repo}` || issue !== String(ref.number) || (earlierId && !earlier)) {
     return { kind: 'move', ref: { repo: ref.repo, issue: ref.number, earlier } };
   }
   const first = await loadAttempt(earlier ?? ref.attemptId).catch(() => undefined);

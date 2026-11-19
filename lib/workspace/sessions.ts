@@ -3,7 +3,7 @@ import type { Route } from 'next';
 import { ATTEMPT_STATES, isOwnAgent, type Tone, timeLabel } from './attempt-format';
 import type { ContributeAttemptDetail, ContributeFollowUpRound } from './contribute.types';
 import { dayLabel, usd } from './format';
-import { pullRequestByAttemptPath, pullRequestPath } from './paths';
+import { pullRequestByAttemptPath, pullRequestPath, WORKSPACE_PATHS } from './paths';
 import { type ProofStage, proofStageOf } from './proof';
 
 /**
@@ -22,12 +22,25 @@ export const NEXT_SESSION = 'next';
  */
 export type PageAt = { firstId: string; base: Route };
 
-/** The next step's address: the run that has not started yet, or the moves only the user can take. */
-export const nextSessionPath = (at: PageAt) => `${at.base}?session=${NEXT_SESSION}` as Route;
+/** A page known only by its first attempt's id (no repo name): the address by attempt, which finds it. */
+const byAttemptBase = (at: PageAt) => at.base.startsWith(`${WORKSPACE_PATHS.pullRequests}/by-attempt/`);
 
-/** A session's address on the page: the first attempt's is the page itself, a run's is beneath it. */
-export const sessionPath = (at: PageAt, attemptId: string) =>
-  attemptId === at.firstId ? at.base : (`${at.base}/runs/${encodeURIComponent(attemptId)}` as Route);
+/** The next step's address: the run that has not started yet, or the moves only the user can take. */
+export const nextSessionPath = (at: PageAt): Route =>
+  byAttemptBase(at)
+    ? pullRequestByAttemptPath(at.firstId, { query: { session: NEXT_SESSION } })
+    : (`${at.base}?session=${NEXT_SESSION}` as Route);
+
+/**
+ * A session's address on the page: the first attempt's is the page itself, a run's is beneath it (or, on a page known
+ * only by its id, the run's own address by attempt).
+ */
+export const sessionPath = (at: PageAt, attemptId: string): Route =>
+  attemptId === at.firstId
+    ? at.base
+    : byAttemptBase(at)
+      ? pullRequestByAttemptPath(attemptId)
+      : (`${at.base}/runs/${encodeURIComponent(attemptId)}` as Route);
 
 /**
  * The page a contribution's first attempt is on: `base` when the page says it (an earlier attempt's sits under the

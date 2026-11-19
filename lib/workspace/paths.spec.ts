@@ -189,6 +189,9 @@ describe("the pull request's page, by repo and issue", () => {
       '/my/pull-requests/by-attempt',
       '/my/pull-requests/by-attempt/A_1/x',
       '/my/pull-requests/acme/w/1',
+      // A malformed id names no attempt: the route answers its 404 to anyone.
+      '/my/pull-requests/by-attempt/a.b',
+      `/my/pull-requests/by-attempt/${'x'.repeat(65)}`,
     ]) {
       expect(isByAttemptPath(path), path).toBe(false);
     }

@@ -20,7 +20,7 @@ import { isPackagePath, packageMarkdownRewriteOf } from './lib/packages/package-
 import { packagesPublic, requestMaySeePackages } from './lib/packages/packages-gate';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
-import { SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
+import { SESSION_COOKIE, SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
 import { requestLearnAccess } from './lib/workspace/gate';
 import {
   AGENTS_DOC_PATH,
@@ -54,7 +54,6 @@ const NOT_FOUND_PATH = '/_404';
 const ADMIN_PATH = /^\/admin(?:\/|$)/;
 
 // `__Secure-` over HTTPS, bare in local dev; `.0`, `.1`… when the JWT is split across cookies.
-const SESSION_COOKIE = /^(__Secure-)?authjs\.session-token(\.\d+)?$/;
 
 /** Whether the request carries a session cookie (valid or not: the page decides). */
 const hasSession = (request: NextRequest) => request.cookies.getAll().some(({ name }) => SESSION_COOKIE.test(name));

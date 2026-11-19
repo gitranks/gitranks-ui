@@ -437,7 +437,7 @@ export async function loadAttemptRef(attemptId: string): Promise<ByAttemptRead |
 export const loadIssueAttempt = cache(
   async (owner: string, repo: string, number: number): Promise<IssueAttemptRef | null | undefined> => {
     const githubLogin = await viewerLogin();
-    if (!githubLogin || !Number.isSafeInteger(number) || number < 1) return null;
+    if (!githubLogin || !Number.isSafeInteger(number) || number < 1 || number > 2_147_483_647) return null;
     try {
       const { contributeAttemptRef } = await graphqlDirect(
         ContributeAttemptByIssueDocument,

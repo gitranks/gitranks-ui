@@ -1255,14 +1255,6 @@ describe('the review screen', () => {
       expect(review(attempts.prOpen)).not.toContain('data-pr-stopped');
       expect(review(saidNo)).not.toContain('data-pr-stopped');
     });
-
-    it('sits under the line of the pull request a run follows up, when its first attempt is not known', () => {
-      const html = renderToStaticMarkup(
-        <ReviewScreen view={views.active} attempt={followUpAttempts.review} now={NOW} prNotes={STOPPED} />,
-      );
-      expect(html.indexOf('data-pr-stopped')).toBeGreaterThan(html.indexOf('data-follow-up-of'));
-      expect(html.indexOf('data-pr-stopped')).toBeLessThan(html.indexOf('</header>'));
-    });
   });
 
   it("says how long a change waits for review: 48 hours for the user's own agent's claim, seven days otherwise", () => {

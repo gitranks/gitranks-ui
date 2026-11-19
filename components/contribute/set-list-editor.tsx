@@ -17,7 +17,6 @@ import {
   ADD_INPUT_MAX,
   addNoticeOf,
   listOf,
-  plural,
   rulesOf,
   type SetRules,
   statusOf,
@@ -31,7 +30,7 @@ import type {
   ContributeSetListMode,
   ContributeSetRepo,
 } from '@/lib/workspace/contribute.types';
-import { dayLabel, LANGUAGES } from '@/lib/workspace/format';
+import { dayLabel, LANGUAGES, plural } from '@/lib/workspace/format';
 import { settingsPathOf } from '@/lib/workspace/paths';
 
 /** Rows a group shows before "Show more". */

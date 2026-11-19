@@ -9,11 +9,11 @@ import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';
 import { SubTitle } from '@/components/workspace/primitives';
 import { ignoreContributeRepo, resolveContributeStack } from '@/lib/contribute/actions';
-import { plural, reasonsText, statusOf } from '@/lib/contribute/set-format';
+import { reasonsText, statusOf } from '@/lib/contribute/set-format';
 import { setRepoEmptyLineOf } from '@/lib/contribute/set-issues-format';
 import { cn } from '@/lib/utils';
 import type { ContributeSet, ContributeStackTarget } from '@/lib/workspace/contribute.types';
-import { relativeLabel } from '@/lib/workspace/format';
+import { plural, relativeLabel } from '@/lib/workspace/format';
 
 /** Libraries shown before "Show all". */
 const TARGET_ROWS = 10;

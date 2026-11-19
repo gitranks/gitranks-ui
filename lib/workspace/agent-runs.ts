@@ -97,6 +97,10 @@ export function stepsOf(run: Pick<ContributeAgentRun, 'phase' | 'kind'>): { step
         SUBMITTING: 4,
         DONE: 5,
       };
+  // A Learn run writes its lesson after the work: the step shows while it does (a run does not say its side).
+  if (!followUp && run.phase === 'WRITING_LESSON') {
+    return { steps: [...steps.slice(0, 3), 'Writing your lesson', ...steps.slice(3)], at: 3 };
+  }
   return { steps, at: order[run.phase] ?? 0 };
 }
 

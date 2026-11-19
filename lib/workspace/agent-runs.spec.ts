@@ -61,6 +61,10 @@ describe('the agent runs', () => {
     expect(stepsOf(FOLLOW_UP)).toEqual({ steps: ['Queued', 'Addressing review', 'Checks', 'Ready', 'Pushed'], at: 1 });
     expect(stepsOf(runOf({ kind: 'FOLLOW_UP', phase: 'SUBMITTING' })).at).toBe(4);
     expect(stepsOf(runOf({ phase: 'SUBMITTING' })).at).toBe(4);
+    expect(stepsOf(runOf({ phase: 'WRITING_LESSON' }))).toEqual({
+      steps: ['Queued', 'Checking the issue', 'Working', 'Writing your lesson', 'Checks', 'Ready'],
+      at: 3,
+    });
   });
 
   it('says how long in a few words', () => {

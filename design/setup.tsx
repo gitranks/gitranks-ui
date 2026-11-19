@@ -126,6 +126,7 @@ vi.mock('@/app/contribute/maintainers/actions', () => ({
 // The badge preview draws itself on the server, as the boards are drawn.
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', async () => (await import('./inert')).inert());
+vi.mock('@/lib/contribute/contribute.data', async () => (await import('./inert')).inert());
 vi.mock('@/lib/workspace/runs.data', async () => (await import('./inert')).inert());
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({
   useReportPendingNavigation: () => {},

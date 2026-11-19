@@ -14,7 +14,6 @@ import {
   MODES,
   modeChipOf,
   modeSummaryOf,
-  plural,
   readingLibrariesOf,
   setReposOf,
   setSizeOf,
@@ -23,7 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { ContributeLanguage, ContributeSet, ContributeSetMode } from '@/lib/workspace/contribute.types';
 import { contributeSetErrorMessage } from '@/lib/workspace/errors';
-import { LANGUAGES } from '@/lib/workspace/format';
+import { LANGUAGES, plural } from '@/lib/workspace/format';
 import { SETTINGS_PATHS, settingsPathOf } from '@/lib/workspace/paths';
 
 const ICONS = { STACK: Layers, REPOS: LayoutGrid, ALL: Globe } as const;

@@ -191,3 +191,6 @@ export const maskedKey = (last4: string) => `…${last4}`;
 /** A long id, its head and tail: `wrkspc_01J…7HKf`. */
 export const shortId = (id: string | null | undefined) =>
   !id ? '' : id.length > 14 ? `${id.slice(0, 10)}…${id.slice(-4)}` : id;
+
+export const plural = (count: number, one: string, many = `${one}s`) =>
+  `${count.toLocaleString('en-US')} ${count === 1 ? one : many}`;

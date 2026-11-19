@@ -7,8 +7,7 @@ import type {
   ContributeOwnAgent,
   ContributeSettings,
 } from './contribute.types';
-import { EFFORTS, MODELS, maskedKey, ordinalDay, PACES, relativeLabel, SIZES, usd } from './format';
-import { plural } from './move-cards';
+import { EFFORTS, MODELS, maskedKey, ordinalDay, PACES, plural, relativeLabel, SIZES, usd } from './format';
 
 /** What we say of the Claude key's state, after its last 4. */
 export const KEY_STATES: Record<ContributeCredential['state'], string> = {

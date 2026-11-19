@@ -10,10 +10,11 @@ import { FallbackChoice, useSetWrite } from './set-section';
 import { Button } from '@/components/ui/button';
 import { Panel } from '@/components/workspace/primitives';
 import { setContributeMode } from '@/lib/contribute/actions';
-import { FALLBACKS, listOf, modeTitleOf, plural } from '@/lib/contribute/set-format';
+import { FALLBACKS, listOf, modeTitleOf } from '@/lib/contribute/set-format';
 import { keptListOf, waitingLibrariesOf } from '@/lib/contribute/work-summary';
 import { cn } from '@/lib/utils';
 import type { ContributeSet, ContributeSetListMode } from '@/lib/workspace/contribute.types';
+import { plural } from '@/lib/workspace/format';
 import { SETTINGS_PATHS } from '@/lib/workspace/paths';
 
 /** The switch's steps, by the list it builds. */

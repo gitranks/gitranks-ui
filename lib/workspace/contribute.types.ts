@@ -1139,6 +1139,8 @@ export type ContributeAgentRunPhase =
   | 'QUEUED'
   | 'CHECKING_ISSUE'
   | 'WORKING'
+  /** A Learn run: the agent writes the lesson after its work. */
+  | 'WRITING_LESSON'
   | 'ADDRESSING_REVIEW'
   | 'RUNNING_CHECKS'
   | 'WAITING_FOR_YOU'

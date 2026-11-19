@@ -1,6 +1,6 @@
-import { liveTargetsOf, modeSummaryOf, modeTitleOf, plural, readingLibrariesOf, stackPendingOf } from './set-format';
+import { liveTargetsOf, modeSummaryOf, modeTitleOf, readingLibrariesOf, stackPendingOf } from './set-format';
 import type { ContributePreferences, ContributeSet, ContributeSetListMode } from '@/lib/workspace/contribute.types';
-import { KINDS, LANGUAGES } from '@/lib/workspace/format';
+import { KINDS, LANGUAGES, plural } from '@/lib/workspace/format';
 import { sizeLabelOf } from '@/lib/workspace/settings-summary';
 
 /** Languages named before "+N". */

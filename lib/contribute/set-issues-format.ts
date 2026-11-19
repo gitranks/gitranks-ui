@@ -1,5 +1,5 @@
-import { plural } from './set-format';
 import type { ContributeSetRepo, ContributeSetSkipKind } from '@/lib/workspace/contribute.types';
+import { plural } from '@/lib/workspace/format';
 
 /** How many kinds the line names; the rest are summed as "other". */
 const KINDS_SHOWN = 3;

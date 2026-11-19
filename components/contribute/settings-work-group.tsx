@@ -17,9 +17,9 @@ import {
 } from '@/components/ui/dialog';
 import { SettingsGroup, SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
 import { useHashOpen } from '@/components/workspace/use-hash-open';
-import { plural } from '@/lib/contribute/set-format';
 import { listSummaryOf } from '@/lib/contribute/work-summary';
 import type { ContributePreferences, ContributeSet } from '@/lib/workspace/contribute.types';
+import { plural } from '@/lib/workspace/format';
 import { SETTINGS_PATHS } from '@/lib/workspace/paths';
 
 /**

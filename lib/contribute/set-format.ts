@@ -13,6 +13,7 @@ import type {
   ContributeSetRepo,
   ContributeSetRepoStatus,
 } from '@/lib/workspace/contribute.types';
+import { plural } from '@/lib/workspace/format';
 
 /** The longest add input: a GitHub link to a repo. */
 export const ADD_INPUT_MAX = 200;
@@ -185,9 +186,6 @@ export const setSizeOf = (set: ContributeSet, mode: ContributeSetListMode) =>
 /** The repos a mode works on now, for the counts the Issues page gives. */
 export const setReposOf = (set: ContributeSet, mode: ContributeSetListMode): ContributeSetRepo[] =>
   mode === 'STACK' ? countedTargetsOf(set) : set.repos.repos.filter(({ status }) => status !== 'UNSUPPORTED');
-
-export const plural = (count: number, one: string, many = `${one}s`) =>
-  `${count.toLocaleString('en-US')} ${count === 1 ? one : many}`;
 
 /** A language as short as the mode chip says it. */
 const SHORT_LANGUAGES: Record<ContributeLanguage, string> = {

@@ -359,7 +359,7 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
           <p data-sign-in-start>
             Your agent signs in with your GitHub account. Add GitRanks to it below and sign in as its setup says: your
             browser opens GitRanks, where you sign in with GitHub and press Allow. Nothing to copy, and nothing secret
-            to keep. Every agent you connect is listed in Contribute&apos;s Settings, each with Disconnect.
+            to keep. Every agent you connect is listed on Contribute&apos;s Agent tab, each with Disconnect.
           </p>
           <details className="text-sm" data-token-start>
             <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
@@ -372,7 +372,8 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
                   <HashSafeLink href={LANDING_WAYS_PATH} className={LINK}>
                     GitRanks Contribute
                   </HashSafeLink>
-                  , choose your own agent and create a token there, or in Settings. It is shown once, so copy it then.
+                  , choose your own agent and create a token there, or on the Agent tab. It is shown once, so copy it
+                  then.
                 </li>
                 <li>
                   Save it in your environment as <code className="font-mono text-sm">{MCP_TOKEN_ENV}</code>, where the
@@ -549,14 +550,14 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
               We keep the name its client gives itself, the address it returns to after signing in, hashes of its
               tokens, and when it connected and was last used. Nothing for you to copy or keep secret.
             </li>
-            <li>It is listed in Contribute&apos;s Settings. Disconnect there stops it at once.</li>
+            <li>It is listed on Contribute&apos;s Agent tab. Disconnect there stops it at once.</li>
           </ul>
           <h3 className="text-base font-semibold">A personal token</h3>
           <ul className="flex list-disc flex-col gap-2 pl-5">
             <li>
               For a client that can&apos;t sign in, or a script. It starts with{' '}
               <code className="font-mono text-sm">gr_</code>. Make one per computer or agent, up to {MCP_TOKENS_MAX} at
-              once; each has a name you can see in Settings.
+              once; each has a name you can see on the Agent tab.
             </li>
             <li>
               It lets an agent find, claim and hand back work for you. It can&apos;t open a pull request, read your
@@ -566,7 +567,7 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
               We keep a hash of it, its last 4 characters, its name and when it was last used, never the token. Our
               proxy and the server keep it out of our logs.
             </li>
-            <li>Revoke it any time in Contribute&apos;s Settings. A revoked token stops working at once.</li>
+            <li>Revoke it any time on Contribute&apos;s Agent tab. A revoked token stops working at once.</li>
           </ul>
         </DocSection>
 

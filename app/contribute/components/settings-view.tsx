@@ -1,5 +1,6 @@
 import { Cpu, GitPullRequest, KeyRound, LayoutGrid, SquareTerminal, Wallet } from 'lucide-react';
 import type { Route } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { PreferencesSection } from '@/components/contribute/preferences-section';
@@ -30,7 +31,7 @@ import {
   settingsOf,
 } from '@/lib/workspace/contribute-state';
 import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
-import { GITHUB_ACCESS_PATH, SETTINGS_PATHS } from '@/lib/workspace/paths';
+import { GITHUB_ACCESS_PATH, SETTINGS_PATHS, settingsPathOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 import {
   agentSummaryOf,
@@ -68,7 +69,9 @@ export async function SettingsView({
 
 /**
  * Settings, at rest: what the user works on, GitHub's access, email, and Delete last. Each row opens the page it is
- * changed on; email's toggles are on their rows. What the agents do and spend is on the Agent tab.
+ * changed on; email's toggles are on their rows. What the agents do and spend is on the Agent tab, and a line at the
+ * top says so: links sent before the move (emails, agents' replies) still open Settings for autopilot, pause and the
+ * limits.
  */
 export function SettingsScreen({
   view,
@@ -89,6 +92,12 @@ export function SettingsScreen({
   return (
     <>
       <h1 className="sr-only">Settings</h1>
+      <p className="text-sm text-muted-foreground" data-moved-to-agent="">
+        Autopilot, pause, the Claude key, budget and pull request limits are on the{' '}
+        <Link href={WORKSPACE_PATHS.agent} prefetch={false} className="font-semibold text-link">
+          Agent tab →
+        </Link>
+      </p>
       {set ? (
         <SettingsWorkGroup set={set} preferences={preferences} />
       ) : (
@@ -144,7 +153,11 @@ export function AgentScreen({ view, now }: { view: ContributeView; now?: Date })
     <>
       <h1 className="sr-only">Agent</h1>
       <ContributeNotices notices={notices} />
-      {contributor ? <CycleSummary view={view} now={now} action={<PauseButton paused={isPaused(view)} />} /> : null}
+      {contributor ? (
+        <div id="pause" className="scroll-mt-20">
+          <CycleSummary view={view} now={now} action={<PauseButton paused={isPaused(view)} />} />
+        </div>
+      ) : null}
 
       <SettingsGroup id="settings-budget" title="Budget and the agent">
         <SettingsList>
@@ -198,7 +211,7 @@ export function AgentScreen({ view, now }: { view: ContributeView; now?: Date })
           />
           <SettingsRow
             icon={SquareTerminal}
-            href={OWN_AGENT_ANCHOR}
+            href={settingsPathOf('own-agent')}
             title="Your own agent (MCP)"
             value={ownAgentSummaryOf(view.ownAgent, now)}
           />
@@ -209,6 +222,3 @@ export function AgentScreen({ view, now }: { view: ContributeView; now?: Date })
     </>
   );
 }
-
-/** The own agent's section, further down the Agent tab. */
-const OWN_AGENT_ANCHOR = `${SETTINGS_PATHS.ownAgent}#own-agent` as Route;

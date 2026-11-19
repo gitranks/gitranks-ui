@@ -130,7 +130,7 @@ describe('the landing', () => {
     expect(html).not.toContain('data-landing="mid-setup"');
   });
 
-  it('offers a user mid-setup to carry on, and Settings, in words that fit either sign-in', () => {
+  it('offers a user mid-setup to carry on, and the Agent tab, in words that fit either sign-in', () => {
     const html = renderToStaticMarkup(<Landing viewer="mid-setup" />);
     const plain = text(html);
 
@@ -139,7 +139,7 @@ describe('the landing', () => {
     expect(plain).not.toContain('Your token is ready');
     expect(plain).toContain('Continue setup →');
     expect(count(html, AGENT_HREF)).toBe(4);
-    expect(html).toContain('href="/my/settings"');
+    expect(html).toContain('href="/my/agent"');
   });
 
   it("shows the user's coming-soon list as the API keeps it, and none of it to a visitor", () => {

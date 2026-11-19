@@ -24,10 +24,9 @@ import { ContributeUnavailableError, ownAgentOf, viewerLogin } from '@/lib/works
 import { ContributeMcpConnectionsDocument, ContributeOwnAgentDocument } from '@/lib/workspace/contribute.documents';
 import type { ContributeOwnAgent } from '@/lib/workspace/contribute.types';
 import { contributeErrorOf } from '@/lib/workspace/errors';
-import { learnOpenFor } from '@/lib/workspace/gate';
 
-/** Whether Learn is open to the signed-in viewer; closed signed out. Read once per request. */
-export const loadLearnOpen = cache(async (): Promise<boolean> => learnOpenFor(await viewerLogin()));
+/** Whether Learn is open to the signed-in viewer: the workspace gate's own read, once per request. */
+export { loadLearnOpen } from '@/lib/workspace/gate.data';
 
 /**
  * Whether the viewer's GitRanks account is still being set up: a new account Learn is open to, which GitRanks has not

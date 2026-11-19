@@ -58,7 +58,7 @@ function OsPicker({ os, onOs }: { os: McpOs; onOs: (os: McpOs) => void }) {
 }
 
 /** What making a new one does, and that creating a token never revokes the others. */
-export const REPLACE_NOTE = `A new one revokes this token, so only one stays live; run the setup it shows again. Claude Code keeps the token it read when GitRanks was added, so its setup removes that entry first; Antigravity holds it in its MCP config, so put the new one there; the other agents read the variable when they start, so restart them. Otherwise, creating a token never revokes the others: up to ${MCP_TOKENS_MAX} stay live, listed in Settings.`;
+export const REPLACE_NOTE = `A new one revokes this token, so only one stays live; run the setup it shows again. Claude Code keeps the token it read when GitRanks was added, so its setup removes that entry first; Antigravity holds it in its MCP config, so put the new one there; the other agents read the variable when they start, so restart them. Otherwise, creating a token never revokes the others: up to ${MCP_TOKENS_MAX} stay live, listed on the Agent tab.`;
 
 /**
  * B1b, the token just created, in place: shown whole this once, the line that saves it on this computer (the OS

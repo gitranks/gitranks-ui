@@ -228,7 +228,10 @@ const ANCHORS: Record<string, Route> = {
   agent: SETTINGS_PATHS.agent,
   prs: `${SETTINGS_PATHS.agent}#prs` as Route,
   access: SETTINGS_PATHS.keys,
-  'own-agent': SETTINGS_PATHS.ownAgent,
+  'own-agent': `${SETTINGS_PATHS.ownAgent}#own-agent` as Route,
+  // The status card with Pause, and autopilot: on the Agent tab.
+  pause: `${WORKSPACE_PATHS.agent}#pause` as Route,
+  autopilot: `${WORKSPACE_PATHS.agent}#autopilot` as Route,
 };
 
 /** The guided switch to a mode with a list. */

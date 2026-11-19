@@ -135,9 +135,9 @@ function PendingCard({
       <CardFooter className="flex flex-col items-stretch gap-3">
         <AuthorizeActions requestId={requestId} clientName={name} />
         <p className="text-sm text-muted-foreground">
-          You can disconnect it any time in{' '}
+          You can disconnect it any time on the{' '}
           <Link href={settingsPathOf('own-agent')} prefetch={false} className={LINK}>
-            Settings
+            Agent tab
           </Link>
           .
         </p>

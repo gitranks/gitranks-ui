@@ -150,11 +150,17 @@ describe('isLanding', () => {
     expect(isLanding('/contributors')).toBe(false);
   });
 
-  it('is a first page under /my only from a tagged link (an email’s), not a bookmark', () => {
-    expect(isLanding('/my/pull-requests', '?utm_source=email&utm_campaign=needs_you')).toBe(true);
+  it('is a first page under /my whose entry names a source, not a bookmark', () => {
+    const entry = (path: string, search = '', referrer = '') => entryOf(path, search, referrer, origin);
+    expect(isLanding('/my/pull-requests', entry('/my/pull-requests', '?utm_source=email&utm_campaign=x'))).toBe(true);
+    // An agent sending its person to connect it, straight or through the old address's redirect.
+    expect(isLanding('/my/agent/connect', entry('/my/agent/connect'))).toBe(true);
+    expect(isLanding('/my/agent/connect', entry('/my/agent/connect', '?path=agent&proof=A_1'))).toBe(true);
+    // From our own pages, or a bookmark: not a landing.
+    expect(isLanding('/my/agent/connect', entry('/my/agent/connect', '', `${origin}/my/agent`))).toBe(false);
+    expect(isLanding('/my/settings', entry('/my/settings'))).toBe(false);
     expect(isLanding('/my/settings')).toBe(false);
-    expect(isLanding('/my/settings', '?ref=x')).toBe(false);
-    expect(isLanding('/learn', '?utm_source=email')).toBe(false);
+    expect(isLanding('/learn', entry('/learn', '?utm_source=email'))).toBe(false);
   });
 });
 

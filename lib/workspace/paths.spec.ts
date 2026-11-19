@@ -75,7 +75,9 @@ describe('the workspace addresses', () => {
     expect(movedAnchorOf('agent')).toBe('/my/agent/model');
     expect(movedAnchorOf('prs')).toBe('/my/agent/model#prs');
     expect(movedAnchorOf('access')).toBe('/my/agent/key');
-    expect(movedAnchorOf('own-agent')).toBe('/my/agent');
+    expect(movedAnchorOf('own-agent')).toBe('/my/agent#own-agent');
+    expect(movedAnchorOf('pause')).toBe('/my/agent#pause');
+    expect(movedAnchorOf('autopilot')).toBe('/my/agent#autopilot');
     for (const anchor of ['modes', 'work', 'ignored', 'email', 'toString']) expect(movedAnchorOf(anchor)).toBeNull();
     expect(settingsPathOf('work')).toBe('/my/settings#work');
   });

@@ -278,6 +278,16 @@ describe('the Agent and Settings tabs', () => {
     expect(html).not.toContain('aria-label="Settings sections"');
   });
 
+  it('says on Settings where autopilot, pause, the key and the limits went, and anchors them on the Agent tab', () => {
+    const settings = renderToStaticMarkup(<SettingsScreen view={views.active} />);
+    expect(text(settings)).toContain(
+      'Autopilot, pause, the Claude key, budget and pull request limits are on the Agent tab →',
+    );
+    expect(settings).toMatch(/data-moved-to-agent=""[^]*?href="\/my\/agent"/);
+    const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
+    for (const id of ['pause', 'autopilot', 'own-agent']) expect(agent).toContain(`id="${id}"`);
+  });
+
   it('has every setting on the pages the rows open', () => {
     const plain = text(pages(views.active));
 

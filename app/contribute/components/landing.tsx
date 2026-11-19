@@ -192,11 +192,11 @@ function MidSetupStrip() {
             Continue setup →
           </Link>
           <Link
-            href={WORKSPACE_PATHS.settings}
+            href={WORKSPACE_PATHS.agent}
             prefetch={false}
             className="font-medium text-muted-foreground hover:text-foreground"
           >
-            Settings
+            Agent
           </Link>
         </span>
       </div>

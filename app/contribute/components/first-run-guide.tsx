@@ -58,7 +58,7 @@ export function firstRunCopyOf(step: FirstRunStep, view: ContributeView, now = n
         text: 'An attempt may spend up to its cap, and no allowance under your caps ever covers one.',
         action: (
           <Link href={LIMITS_SETTINGS_PATH} prefetch={false} className="text-sm font-semibold text-link">
-            Raise them in Settings →
+            Raise them on the Agent tab →
           </Link>
         ),
       };

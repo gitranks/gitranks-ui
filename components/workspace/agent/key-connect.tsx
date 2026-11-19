@@ -305,7 +305,7 @@ export function KeyConnect({
             </Select>
             <span className="text-xs text-muted-foreground">
               So we can spread the agent&apos;s work over your month: credits that would expire get used before the
-              reset, and it never runs dry in the first week. Not sure? Keep our guess and change it in Settings.
+              reset, and it never runs dry in the first week. Not sure? Keep our guess and change it on the Agent tab.
             </span>
           </div>
         </section>
@@ -337,7 +337,7 @@ export function KeyConnect({
             </ul>
           </div>
           <span className="text-xs text-muted-foreground">
-            All of it is in Settings, whenever you want to change it.
+            All of it is on the Agent tab, whenever you want to change it.
           </span>
         </section>
 

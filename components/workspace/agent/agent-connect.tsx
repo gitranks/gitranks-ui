@@ -69,7 +69,7 @@ export type AgentConnectViewProps = {
   onReplace: () => void;
   /** A token is being made or replaced. */
   working?: boolean;
-  /** Every live token is taken: one must be revoked in Settings first. */
+  /** Every live token is taken: one must be revoked on the Agent tab first. */
   full?: boolean;
   /** The API does not answer the tokens: nothing can be made here yet. */
   unavailable?: boolean;
@@ -253,7 +253,7 @@ export function AgentConnectView({
         {name} signs in to GitRanks with your GitHub account, and you allow it in your browser. It can see the issues
         picked for you and claim one, hand back changes for your review, and see your claims and pull requests. It
         can&apos;t open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub access.
-        Disconnect it any time in Settings.
+        Disconnect it any time on the Agent tab.
       </p>
       <p className="text-sm text-muted-foreground">{signInSetup.where}</p>
       <CodeBlock label={signInSetup.label} file={signInSetup.file} copyLabel={`Copy the ${name} setup`}>
@@ -280,7 +280,7 @@ export function AgentConnectView({
               <>
                 You have {MCP_TOKENS_MAX} live tokens.{' '}
                 <Link href={settingsPathOf('own-agent')} prefetch={false} className="font-semibold text-link">
-                  Revoke one in Settings
+                  Revoke one on the Agent tab
                 </Link>{' '}
                 to create another.
               </>
@@ -298,7 +298,8 @@ export function AgentConnectView({
     <div className="flex flex-col items-start gap-3">
       <p className="max-w-2xl text-sm text-foreground/80">
         Your agent connects to GitRanks with this token, as you: it finds issues, claims one, hands back the patch and
-        sees your contributions. It can&apos;t open a pull request or spend anything, and you can revoke it in Settings.
+        sees your contributions. It can&apos;t open a pull request or spend anything, and you can revoke it on the Agent
+        tab.
       </p>
       <Button
         type="button"
@@ -311,18 +312,18 @@ export function AgentConnectView({
       </Button>
       <span className="text-xs text-muted-foreground">
         {revokedOnly ? (
-          <>We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it in Settings.</>
+          <>We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it on the Agent tab.</>
         ) : full ? (
           <>
             You have {MCP_TOKENS_MAX} live tokens.{' '}
             <Link href={settingsPathOf('own-agent')} prefetch={false} className="font-semibold text-link">
-              Revoke one in Settings
+              Revoke one on the Agent tab
             </Link>{' '}
             to create another.
           </>
         ) : (
           <>
-            We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it in Settings. Creating a token never
+            We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it on the Agent tab. Creating a token never
             revokes the others: up to {MCP_TOKENS_MAX} stay live.
           </>
         )}

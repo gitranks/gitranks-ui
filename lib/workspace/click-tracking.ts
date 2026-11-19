@@ -198,11 +198,11 @@ export function entryOf(pathname: string, search: string, referrer: string, orig
 }
 
 /**
- * A visit that started on Contribute: its first page is one of Contribute's, or a workspace page under `/my` reached
- * from a tagged link (an email's); a bookmark of one is not.
+ * A visit that started on Contribute: its first page is one of Contribute's, or a workspace page under `/my` whose
+ * entry names a source (an email's tagged link, an agent sending its person to connect it); a bookmark of one is not.
  */
-export const isLanding = (pagePath: string, search = '') =>
-  isContributePath(pagePath) || (isMyPath(pagePath) && new URLSearchParams(search).has('utm_source'));
+export const isLanding = (pagePath: string, entry: Entry = {}) =>
+  isContributePath(pagePath) || (isMyPath(pagePath) && !!entry.utmSource);
 
 /** Whether an entry names a channel: campaign tags or another site. A visit typed in or bookmarked names none. */
 export const namesChannel = (entry: Entry) => Boolean(entry.utmSource || entry.utmCampaign || entry.referrerHost);

@@ -14,7 +14,6 @@ import {
   levelFor,
   levelPhraseOf,
   ownCardOf,
-  ownLessonKeyOf,
   pathMarksOf,
   prNumberOf,
   roomWordsOf,
@@ -77,17 +76,6 @@ describe("Learn home's state", () => {
     expect(pathMarksOf(state(myLearnAttempts.approve))).toEqual(['done', 'done', 'now']);
     expect(pathMarksOf(state(myLearnAttempts.prOpen))).toEqual(['done', 'done', 'done']);
   });
-
-  it('reads the page again only when what it shows moved', () => {
-    const working = ownLessonKeyOf(myLearnAttempts.working);
-    expect(ownLessonKeyOf(myLearnAttempts.working)).toBe(working);
-    expect(ownLessonKeyOf(myLearnAttempts.ready)).not.toBe(working);
-    expect(ownLessonKeyOf(myLearnAttempts.submitting)).not.toBe(ownLessonKeyOf(myLearnAttempts.approve));
-    expect(
-      ownLessonKeyOf({ current: myAttempt({ latestEvent: { state: 'CHECKS', detail: null, at: 'later' } }) } as never),
-    ).not.toBe(working);
-    expect(ownLessonKeyOf(myLearnAttempts.prOpen)).not.toBe(ownLessonKeyOf(myLearnAttempts.none));
-  });
 });
 
 describe("Learn home's words", () => {
@@ -141,7 +129,7 @@ describe("Learn home's words", () => {
     expect(roomWordsOf({ limit: 'open_prs_at_a_time', value: 1 })?.text).toMatch(/^1 of your pull requests is/);
     expect(roomWordsOf({ limit: 'attempts_at_a_time', value: 1 })).toEqual({
       text: 'Your agent is working on another issue. A new lesson can start when that one is done.',
-      link: { href: '/contribute/me', label: 'My contributions' },
+      link: { href: '/my/pull-requests', label: 'Pull requests' },
     });
     // A limit this page doesn't know is worded as the attempts' one, as the start page does.
     expect(roomWordsOf({ limit: 'something_else', value: 1 }).text).toMatch(/^Your agent is working/);

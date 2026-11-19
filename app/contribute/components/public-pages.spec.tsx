@@ -224,7 +224,7 @@ describe('the MCP docs', () => {
       expect(said).toContain(line);
     }
     expect(said).toContain('Reload or restart the client');
-    expect(html).toContain('href="/contribute/settings#work"');
+    expect(html).toContain('href="/my/settings#work"');
   });
 
   it('end with help: the contact address, the plugin issues and the questions', () => {
@@ -266,7 +266,7 @@ describe('the questions', () => {
     expect(said).toContain('How does my own agent connect?');
     expect(said).toContain('It signs in with your GitHub account.');
     expect(said).toContain("It can't open a pull request, push or post on GitHub");
-    expect(said).toContain('uses a personal token you make in Settings');
+    expect(said).toContain('uses a personal token you make there');
     expect(said).not.toContain('revoke your tokens');
   });
 

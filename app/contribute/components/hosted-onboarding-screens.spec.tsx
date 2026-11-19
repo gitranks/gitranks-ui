@@ -251,7 +251,7 @@ describe('A3, what happens next before the first attempt', () => {
     expect(text(paused)).not.toContain('Nothing for you to do');
 
     expect(guide(withContributor({ spend: { ...spend, nextAttemptAt: null } }))).toContain(
-      'href="/contribute/settings/budget#more-limits"',
+      'href="/my/agent/budget#more-limits"',
     );
   });
 
@@ -261,7 +261,7 @@ describe('A3, what happens next before the first attempt', () => {
     expect(text(html)).toContain(
       "We guessed what you'd like: every kind and size of issue, your profile's languages first, within your $100 monthly cap, paced across your cycle.",
     );
-    expect(html).toContain('href="/contribute/settings#work"');
+    expect(html).toContain('href="/my/settings#work"');
     expect(text(guide(views.active))).toContain('bugs, Rust first, within your $200 monthly cap');
   });
 
@@ -307,7 +307,7 @@ describe('A3, what happens next before the first attempt', () => {
 
     expect(html).toContain('data-first-run="key-invalid"');
     expect(plain).toContain('Your key stopped working');
-    expect(html).toContain('href="/contribute/connect"');
+    expect(html).toContain('href="/my/agent/key"');
     expect(plain).not.toContain('usually within minutes');
     expect(plain).not.toContain('Nothing for you to do');
     // Step 1 says it: the notice is not said twice.

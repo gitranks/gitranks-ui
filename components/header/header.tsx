@@ -9,7 +9,10 @@ import { cn } from '@/lib/utils';
 type HeaderProps = {
   /** Text after the logo and a "/": a profile's login, or a section's name. Not a link. */
   title?: string;
-  /** The menu item to mark: the section the page belongs to. Set by the section's layout, as the header reads no path. */
+  /**
+   * The menu item to mark: the section the page belongs to. Left out, Contribute and Learn mark themselves on their own
+   * pages by the path (the workspace's layout reads none), and nothing on the workspace's pages under `/my`.
+   */
   section?: MenuSection;
 };
 

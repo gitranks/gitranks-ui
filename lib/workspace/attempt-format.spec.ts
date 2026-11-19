@@ -57,14 +57,14 @@ describe('endMoveOf: what the user does after an attempt ended', () => {
   it('says the step and where to take it, for a first attempt', () => {
     const end = (endReason: ContributeAttemptEndReason | null, more: Parameters<typeof endMoveOf>[0] | object = {}) =>
       endMoveOf({ endReason, endDetail: null, ...more });
-    expect(end('BUDGET')).toMatchObject({ href: '/contribute/settings/budget#more-limits', link: 'Open More limits' });
-    expect(end('KEY_INVALID')).toMatchObject({ href: '/contribute/settings/keys' });
+    expect(end('BUDGET')).toMatchObject({ href: '/my/agent/budget#more-limits', link: 'Open More limits' });
+    expect(end('KEY_INVALID')).toMatchObject({ href: '/my/agent/key' });
     expect(end('EXHAUSTED')?.text).toMatch(/Claude Console .* Billing/);
     expect(end('CLAIM_LOST')?.text).toMatch(/^Nothing waits on you/);
     expect(end('USER')).toBeNull();
     expect(end(null)).toBeNull();
     // A failed check links to the user's own limit only when it was one of them.
-    expect(end('CHECKS_FAILED', { endDetail: 'max_files' })).toMatchObject({ href: '/contribute/settings/agent#prs' });
+    expect(end('CHECKS_FAILED', { endDetail: 'max_files' })).toMatchObject({ href: '/my/agent/model#prs' });
     expect(end('CHECKS_FAILED', { endDetail: 'secrets' })).toEqual({ text: 'Nothing waits on you.' });
     // A failed submission points at its note only while there is one.
     expect(end('SUBMIT_FAILED')).toEqual({ text: 'Nothing was submitted.' });

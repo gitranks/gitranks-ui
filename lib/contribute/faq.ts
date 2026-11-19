@@ -74,7 +74,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
         id: 'agent-sign-in',
         question: 'How does my own agent connect?',
         answer:
-          "It signs in with your GitHub account. Add our MCP server to your agent and sign in as its setup says: your browser opens GitRanks, where you press Allow. It can then see the issues picked for you and claim one, hand back changes for your review, and see your claims and pull requests. It can't open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub access. Settings lists every agent you connected, each with Disconnect. A client that can't sign in, or a script, uses a personal token you make in Settings.",
+          "It signs in with your GitHub account. Add our MCP server to your agent and sign in as its setup says: your browser opens GitRanks, where you press Allow. It can then see the issues picked for you and claim one, hand back changes for your review, and see your claims and pull requests. It can't open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub access. The Agent tab lists every agent you connected, each with Disconnect. A client that can't sign in, or a script, uses a personal token you make there.",
         more: { href: MCP_DOCS_PATH, label: 'Setup for each agent' },
       },
       {
@@ -144,7 +144,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
         id: 'leave',
         question: 'How do I stop?',
         answer:
-          'Pause any time. Remove your key, disconnect your agent, revoke the GitHub access, or delete your Contribute data in Settings (a few records stay a while; the Privacy policy says which). Your merged pull requests stay yours.',
+          'Pause any time, remove your key or disconnect your agent on the Agent tab. Revoke the GitHub access or delete your Contribute data in Settings (a few records stay a while; the Privacy policy says which). Your merged pull requests stay yours.',
         more: { href: '/privacy#contribute' as Route, label: 'What the Privacy policy says stays' },
       },
     ],

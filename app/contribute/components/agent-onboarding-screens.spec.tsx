@@ -131,7 +131,7 @@ describe('B1, your own agent', () => {
     expect(plain).toContain("I've added it");
     expect(plain).toContain('Lost it before saving it? Make a new one');
     expect(plain).toContain('A new one revokes this token, so only one stays live');
-    expect(plain).toContain('creating a token never revokes the others: up to 5 stay live, listed in Settings');
+    expect(plain).toContain('creating a token never revokes the others: up to 5 stay live, listed on the Agent tab');
     // Every copy icon is a 44px button with a name.
     expect(html).toContain('aria-label="Copy the token"');
     expect(html).toContain('aria-label="Copy the command"');
@@ -257,7 +257,7 @@ describe('B1, your own agent', () => {
 
   it('sends a user with every token taken to Settings, and says when tokens are not available yet', () => {
     const full = b1({ full: true });
-    expect(full.plain).toContain('You have 5 live tokens. Revoke one in Settings to create another.');
+    expect(full.plain).toContain('You have 5 live tokens. Revoke one on the Agent tab to create another.');
     expect(full.html).toMatch(/<button[^>]* type="button" disabled=""[^>]*>Create a GitRanks token/);
     expect(b1({ unavailable: true }).plain).toContain('Not available yet');
   });

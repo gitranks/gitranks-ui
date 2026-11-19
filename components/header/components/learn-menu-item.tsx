@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 import { mainMenuItemClass } from './menu-styles';
 import { Pill } from '@/components/pill/pill';
@@ -13,7 +14,7 @@ import {
   learnOpenToVisitorsInBrowser,
   learnOpenToVisitorsKnown,
 } from '@/lib/learn/learn-open';
-import { LEARN_PATH } from '@/lib/learn/learn-path';
+import { isLearnPath, LEARN_PATH } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 
@@ -35,9 +36,24 @@ export function LearnMenuLink({ active }: Readonly<{ active?: boolean }>) {
 
 /**
  * "Learn · New", for a signed-in viewer Learn is open to, and for a visitor once it is open to everyone: asked in the
- * browser once the page is up, as pages are cached for everyone. Nothing until the answer comes, or closed.
+ * browser once the page is up, as pages are cached for everyone. Nothing until the answer comes, or closed. Marked when
+ * `active`, or with `active` left out, on Learn's own pages.
  */
 export function LearnMenuItem({ active }: Readonly<{ active?: boolean }>) {
+  if (active !== undefined) return <LearnMenuItemShown active={active} />;
+  // The path is known only per request on a page with an unknown segment: unmarked until then.
+  return (
+    <Suspense fallback={<LearnMenuItemShown active={false} />}>
+      <LearnMenuItemByPath />
+    </Suspense>
+  );
+}
+
+function LearnMenuItemByPath() {
+  return <LearnMenuItemShown active={isLearnPath(usePathname())} />;
+}
+
+function LearnMenuItemShown({ active }: Readonly<{ active: boolean }>) {
   const { data: session, status } = useSession();
   const login = session && !session.error ? (session.user?.githubLogin ?? null) : null;
   const visitor = status === 'unauthenticated' || Boolean(session?.error);

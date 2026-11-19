@@ -2,7 +2,7 @@
 
 import { type KeyboardEvent, useId, useRef, useState } from 'react';
 
-import { setMaintainerConfig } from '../maintainers/actions';
+import { setMaintainerConfig } from '@/app/(public)/contribute/maintainers/actions';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RuleSource } from '@/components/workspace/pull-request/repo-rules';

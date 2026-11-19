@@ -4,20 +4,25 @@ import { notFound, redirect } from 'next/navigation';
 import { loadSettingsView } from './settings-view';
 import { ModeSwitch } from '@/components/contribute/mode-switch';
 import { SetListScreen } from '@/components/contribute/set-list-screen';
-import { AccessSection } from '@/components/workspace/agent/access-section';
-import { OwnAgentSection } from '@/components/workspace/agent/own-agent-section';
+import { GithubAccessSection, KeyPanel } from '@/components/workspace/agent/access-section';
+import { ConnectScreen } from '@/components/workspace/agent/connect-view';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
-import { Panel, PanelTitle } from '@/components/workspace/primitives';
+import { HEADING, Panel, PanelTitle } from '@/components/workspace/primitives';
 import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
 import { SettingsForm, type SettingsFormPage } from '@/components/workspace/settings/settings-form';
 import { SettingsPageHead } from '@/components/workspace/settings-rows';
 import { MODES, modeTitleOf } from '@/lib/contribute/set-format';
-import { loadContributeSet } from '@/lib/workspace/contribute.data';
+import {
+  loadContribute,
+  loadContributeSet,
+  loadContributeSetup,
+  loadProfileLanguages,
+} from '@/lib/workspace/contribute.data';
 import type { ContributeSet, ContributeSetListMode, ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, settingsOf } from '@/lib/workspace/contribute-state';
 import { type GrantRefusal, grantRefusalOf } from '@/lib/workspace/grant-refusal';
-import { ownAgentTextOf } from '@/lib/workspace/mcp-setup';
-import { SETTINGS_PATHS, switchModeOf } from '@/lib/workspace/paths';
+import { CONNECT_KEY_PATH, SETTINGS_PATHS, switchModeOf } from '@/lib/workspace/paths';
+import { contributeHidden } from '@/lib/workspace/setting-up';
 
 export async function WorkSettingsView() {
   const [, set] = await Promise.all([loadSettingsView(), loadContributeSet()]);
@@ -115,7 +120,7 @@ function NoSettingsPanel({ view }: { view: ContributeView }) {
             : 'They start from your plan once a key is connected, and every one of them is yours to change.'
         }
       />
-      <Link href="/contribute/connect" prefetch={false} className="text-sm font-semibold text-link">
+      <Link href={CONNECT_KEY_PATH} prefetch={false} className="text-sm font-semibold text-link">
         Connect your Claude key →
       </Link>
     </Panel>
@@ -143,7 +148,7 @@ export function FormSettingsScreen({ page, view }: { page: SettingsFormPage; vie
   const settings = settingsOf(view);
   return (
     <>
-      <SettingsPageHead title={title} text={text} />
+      <SettingsPageHead title={title} text={text} back="agent" />
       <PageNotices view={view} />
       {settings ? (
         <SettingsForm settings={settings} page={page} limits={view.contributor?.limits} />
@@ -155,54 +160,68 @@ export function FormSettingsScreen({ page, view }: { page: SettingsFormPage; vie
   );
 }
 
-export async function KeysSettingsView({
+export async function KeyView({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params] = await Promise.all([loadSettingsView(), searchParams]);
-  return <KeysSettingsScreen view={view} grantRefusal={grantRefusalOf(params.grant)} />;
+  const [view, params, languages] = await Promise.all([loadContribute(), searchParams, loadProfileLanguages()]);
+  if (!view) contributeHidden(await loadContributeSetup());
+  return (
+    <KeyScreen
+      view={view}
+      grantRefusal={grantRefusalOf(params.grant)}
+      replace={params.replace === '1'}
+      today={new Date().getUTCDate()}
+      profileLanguages={languages}
+    />
+  );
 }
 
-/** The Claude key and GitHub's pull request access. */
-export function KeysSettingsScreen({
+/**
+ * The Claude key the hosted agent runs on: connect one when there is none (or over the one there is, `replace`), else
+ * the key itself; and under either, GitHub's permission to open pull requests, which every account needs.
+ */
+export function KeyScreen({
   view,
   grantRefusal,
+  replace = false,
+  today,
+  profileLanguages,
   now,
 }: {
   view: ContributeView;
   grantRefusal?: GrantRefusal;
+  replace?: boolean;
+  today: number;
+  profileLanguages?: string[];
   now?: Date;
 }) {
+  const key = claudeKeyOf(view);
+  const github = (
+    <GithubAccessSection grant={view.grant} grantAvailable={view.grantAvailable} grantRefusal={grantRefusal} />
+  );
+  if (!key || replace) {
+    return (
+      <>
+        <ConnectScreen view={view} today={today} profileLanguages={profileLanguages} />
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-2.5">
+          <h2 className={HEADING.block}>GitHub</h2>
+          {github}
+        </div>
+      </>
+    );
+  }
   return (
-    <>
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <SettingsPageHead
         title="Keys and access"
         text="The Claude key hosted attempts run on, and GitHub's permission to open pull requests for you."
+        back="agent"
       />
       <PageNotices view={view} />
-      <AccessSection
-        credential={claudeKeyOf(view)}
-        grant={view.grant}
-        grantAvailable={view.grantAvailable}
-        grantRefusal={grantRefusal}
-        signIn={view.ownAgent?.signIn === true}
-        now={now}
-      />
-    </>
-  );
-}
-
-export async function OwnAgentSettingsView() {
-  return <OwnAgentSettingsScreen view={await loadSettingsView()} />;
-}
-
-/** The user's own agent: the agents that signed in, the tokens, and the setup. */
-export function OwnAgentSettingsScreen({ view, now }: { view: ContributeView; now?: Date }) {
-  return (
-    <>
-      <SettingsPageHead title="Your own agent (MCP)" text={ownAgentTextOf(view.ownAgent?.signIn === true)} />
-      <OwnAgentSection ownAgent={view.ownAgent} now={now} titled={false} />
-    </>
+      <KeyPanel credential={key} now={now} />
+      {github}
+    </div>
   );
 }

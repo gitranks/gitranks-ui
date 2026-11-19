@@ -55,7 +55,7 @@ describe('the consent page of an agent sign-in', () => {
     expect(plain).toContain('hand back changes for you to review here;');
     expect(plain).toContain('see your claims and pull requests.');
     expect(plain).toContain("It won't be able to open a pull request, push, or post on GitHub");
-    expect(plain).toContain('You can disconnect it any time in Settings');
+    expect(plain).toContain('You can disconnect it any time on the Agent tab');
     expect(plain).toContain('7 issues are waiting for you, in acme/widgets, acme/gadgets and acme/tools.');
     expect(html).toContain('data-authorize="allow"');
     expect(html).toContain(`href="${CANCEL}"`);

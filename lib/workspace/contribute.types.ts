@@ -1199,8 +1199,18 @@ export type ContributeChanges = {
   changed: ContributeChangeArea[];
 };
 
-/** A poll's answer: what moved, and the work in progress when it was read too (left out when it was not). */
-export type ContributeChangesRead = { changes: ContributeChanges; activity?: ContributeActivity | null };
+/** How many things wait on the user, and whether every list behind the count was read (`contributeNeedsYou`). */
+export type ContributeNeedsYouCount = { count: number; complete: boolean };
+
+/**
+ * A poll's answer: what moved, the work in progress when it was read too, and the count of what needs the user when it
+ * was read too (each left out when it was not; null when the API did not answer it).
+ */
+export type ContributeChangesRead = {
+  changes: ContributeChanges;
+  activity?: ContributeActivity | null;
+  needsYou?: number | null;
+};
 
 /** How a repo got on a list: "@me", a user or org (its login), or on its own. */
 export type ContributeSetRepoVia = { kind: ContributeSetRepoViaKind; login: string | null };

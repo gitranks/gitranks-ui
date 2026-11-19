@@ -79,12 +79,6 @@ export const LearnAttemptLessonDocument = doc<{ learnAttemptLesson: LearnAttempt
 }`,
 );
 
-/** Where the viewer's Learn attempt is, alone: read again while its page waits for the agent. */
-export const LearnAttemptStageDocument = doc<
-  { learnAttemptLesson: Pick<LearnAttemptLesson, 'stage'> | null },
-  { attemptId: string }
->('query LearnAttemptStage($attemptId: ID!) { learnAttemptLesson(attemptId: $attemptId) { stage } }');
-
 export const StartLessonRunDocument = doc<{ startLessonRun: LessonRun }, { attemptId: string }>(
   `mutation StartLessonRun($attemptId: ID!) { startLessonRun(attemptId: $attemptId) { ${RUN} } }`,
 );

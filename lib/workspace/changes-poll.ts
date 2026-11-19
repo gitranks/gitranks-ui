@@ -4,7 +4,7 @@ import type { ContributeActivity, ContributeChangeArea, ContributeChangesRead } 
 import type { ContributeActionResult } from './errors';
 
 /**
- * Contribute's one poll: a cheap read of what moved for the user since the version the page holds
+ * The workspace's one poll: a cheap read of what moved for the user since the version the page holds
  * (`contributeChanges`). Nothing moved, nothing happens; something did, only the parts it touches are read again.
  */
 
@@ -216,16 +216,20 @@ export function takesVersion(read: string | null | undefined, held: string | nul
   return !(next[0] <= current[0] && next[1] <= current[1]);
 }
 
+/** Whether `path` is `prefix` or a page under it. */
+const under = (path: string, prefix: string) => path === prefix || path.startsWith(`${prefix}/`);
+
 /** The areas that make each page read itself again; `ISSUES` never does (the cards ask about themselves). */
 const REFRESHED_BY: [test: (path: string) => boolean, areas: ContributeChangeArea[]][] = [
-  [(path) => path === '/contribute', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
-  [(path) => path === '/contribute/connect', ['FEED', 'SETTINGS']],
-  // The first-run guide shows here too, and says when the first attempt starts.
-  [(path) => path === '/contribute/issues', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
-  [(path) => path === '/contribute/me', ['ATTEMPTS']],
-  [(path) => path === '/contribute/runs', ['ATTEMPTS']],
-  [(path) => path.startsWith('/contribute/attempts/'), ['ATTEMPTS']],
-  [(path) => path === '/contribute/settings' || path.startsWith('/contribute/settings/'), ['SET', 'SETTINGS']],
+  // The first-run guide shows on the Issues page too, and says when the first attempt starts.
+  [(path) => path === '/contribute' || path === '/contribute/issues', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
+  [(path) => path === '/learn', ['ATTEMPTS', 'SETTINGS']],
+  // The user's lessons, and a lesson's own page while it waits on the agent.
+  [(path) => path === '/learn/lessons' || path.startsWith('/learn/attempts/'), ['ATTEMPTS']],
+  [(path) => under(path, '/my/pull-requests') || path.startsWith('/contribute/attempts/'), ['ATTEMPTS']],
+  [(path) => path.startsWith('/my/start/') || path === '/my/progress', ['ATTEMPTS']],
+  [(path) => under(path, '/my/agent'), ['ATTEMPTS', 'SETTINGS']],
+  [(path) => under(path, '/my/settings'), ['SET', 'SETTINGS']],
 ];
 
 /** Whether the page at `pathname` reads itself again for these changes. */
@@ -313,13 +317,18 @@ export const ANNOUNCE_READ_WAIT_MS = 2_000;
 const FINAL_ERRORS = new Set(['SIGNED_OUT', 'NOT_FOUND']);
 
 export type ChangesSessionDeps = {
-  read: (since: string | null, withActivity: boolean) => Promise<ContributeActionResult<ContributeChangesRead | null>>;
+  read: (
+    since: string | null,
+    ask: { activity: boolean; needsYou: boolean },
+  ) => Promise<ContributeActionResult<ContributeChangesRead | null>>;
   /** The page reads itself again. */
   refresh: () => void;
   /** The parts that follow the poll hear what moved. */
   emit: (changed: readonly ContributeChangeArea[]) => void;
   /** The work in progress the bar shows. */
   showActivity: (activity: ContributeActivity | null) => void;
+  /** The count of what needs the user, read with the changes (null: the API does not answer it). */
+  showNeedsYou?: (count: number | null) => void;
   pathname: () => string;
   /** A page waits on something soon (the bus's holds). */
   held?: () => boolean;
@@ -353,7 +362,7 @@ export function createChangesSession(
         waitingReadDue: at - held.activityReadAt >= ACTIVITY_WAITING_READ_MS,
         runsReadDue: at - held.activityReadAt >= ACTIVITY_RUNS_READ_MS,
       });
-      const result = await deps.read(sent, withActivity);
+      const result = await deps.read(sent, { activity: withActivity, needsYou: false });
       if (!active) return 'stop';
       if (!result.ok) return FINAL_ERRORS.has(result.error) ? 'stop' : 'failed';
       if (!result.data) return 'stop';
@@ -367,6 +376,7 @@ export function createChangesSession(
         changed = false;
       }
       if (step.tookActivity) deps.showActivity(result.data.activity ?? null);
+      if (result.data.needsYou !== undefined) deps.showNeedsYou?.(result.data.needsYou);
       deps.emit(result.data.changes.changed);
       if (step.moved || changed) deps.refresh();
       return 'ok';

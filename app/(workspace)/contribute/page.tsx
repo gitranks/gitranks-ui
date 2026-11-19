@@ -1,0 +1,121 @@
+import type { Metadata } from 'next';
+import { notFound, redirect } from 'next/navigation';
+import { Suspense } from 'react';
+
+import { Landing } from '@/app/contribute/components/landing';
+import { overviewReadSectionsOf } from '@/app/contribute/components/overview-home';
+import { OverviewScreen } from '@/app/contribute/components/overview-status';
+import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
+import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
+import { loadAgentPage } from '@/lib/contribute/agent-page';
+import { loadIssues } from '@/lib/contribute/contribute.data';
+import { isAgentFirstRun, isFirstRun } from '@/lib/contribute/first-run';
+import { isAgentWelcome } from '@/lib/workspace/agent-connect';
+import {
+  loadAttempts,
+  loadContribute,
+  loadContributeSetup,
+  loadProviderInterests,
+  viewerLogin,
+} from '@/lib/workspace/contribute.data';
+import { contributeHomeOf, isOwnAgentOnly } from '@/lib/workspace/contribute-state';
+import { AGENTS_DOC_PATH, CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from '@/lib/workspace/paths';
+import { contributeOpen } from '@/lib/workspace/preview-gate';
+
+/** The landing's markdown, for agents: named in the head, and served on `Accept: text/markdown`. */
+export const metadata: Metadata = { alternates: { types: { 'text/markdown': AGENTS_DOC_PATH } } };
+
+/** The attempts the welcome reads to tell whether the user's own agent has made one. */
+const AGENT_ATTEMPTS_READ = 20;
+
+/** Contribute's home: the landing until the user is onboarded, then the overview. */
+export default function ContributeHomePage({ searchParams }: PageProps<'/contribute'>) {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto w-full max-w-7xl px-4 pt-8 pb-16">
+          <ContributePageSkeleton />
+        </main>
+      }
+    >
+      <ContributeHome searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, 'searchParams'>) {
+  const params = await searchParams;
+  // Read beside the view, for the overview's first-run check; the landing does not wait for it. The welcome of the
+  // user's own agent looks further back, for an attempt of the agent's beside the key's.
+  const attempts = loadAttempts(undefined, isAgentWelcome(params.welcome) ? AGENT_ATTEMPTS_READ : 1).catch(
+    () => undefined,
+  );
+  // The landing's numbers line, read beside the view: it never holds the page up, and a failed read leaves it out.
+  const agentPage = loadAgentPage();
+  const view = await loadContribute();
+  // Where an agent sends its person: a visitor gets the own-agent sign-in open over the landing,
+  // anyone signed in goes straight to connecting their agent (an onboarded member's landing is the overview).
+  const startAgent = params.start === 'agent';
+  if (startAgent && view) redirect(CONNECT_AGENT_PATH);
+  // Back from setting up a new account (`settingUpHomeOf`): on to the Claude key's first step.
+  if (params.start === 'key' && view) redirect(CONNECT_KEY_PATH);
+  if (!view) {
+    // A new GitHub account, signed in and read for the first time now: what happens, until its account is ready.
+    if (await loadContributeSetup()) {
+      return (
+        <main className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16">
+          <ContributeSettingUp />
+        </main>
+      );
+    }
+    const open = await contributeOpen();
+    // Launched, signed in, and no profile here nor one on its way: the landing's sign-in would lead nowhere.
+    if (open && (await viewerLogin())) {
+      return (
+        <main className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16">
+          <ContributeNoProfile />
+        </main>
+      );
+    }
+    // Launched, the landing is everyone's (§9.3): a visitor without a session.
+    if (open) {
+      return <Landing viewer="visitor" noted={[]} startAgent={startAgent} stats={(await agentPage)?.stats} />;
+    }
+    notFound();
+  }
+
+  const home = contributeHomeOf(view, params);
+  if (home.screen === 'overview') {
+    // The feed's first page, read once: the guide's picks, Up next, and Right now's "no issues".
+    const feed = loadIssues({});
+    const sections = overviewReadSectionsOf(view, feed);
+    if (home.welcome) {
+      // The welcome of the user's own agent: its guide until it has made an attempt, which a hosted one is not.
+      const read = await attempts;
+      return (
+        <OverviewScreen
+          view={view}
+          sections={sections}
+          welcome={home.welcome}
+          agentFirstRun={isAgentFirstRun(view, read) ? { page: await feed } : undefined}
+        />
+      );
+    }
+    // Before the first attempt, the guide says whether anything is picked yet: a key's (A3), or the own agent's (B2).
+    const latest = await attempts;
+    if (isFirstRun(view, latest)) {
+      return <OverviewScreen view={view} sections={sections} firstRun={{ page: await feed }} />;
+    }
+    const agentFirstRun = isOwnAgentOnly(view) && isAgentFirstRun(view, latest);
+    return (
+      <OverviewScreen
+        view={view}
+        sections={sections}
+        agentFirstRun={agentFirstRun ? { page: await feed } : undefined}
+      />
+    );
+  }
+  // A visitor's page starts with nothing noted, the preview of it too.
+  const noted = home.viewer === 'visitor' ? [] : await loadProviderInterests();
+  return <Landing viewer={home.viewer} preview={home.preview} noted={noted} stats={(await agentPage)?.stats} />;
+}

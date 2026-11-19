@@ -30,11 +30,12 @@ import {
   isLandingPath,
   isLedgerPath,
   isMaintainersPath,
+  isMyPath,
   isOpenAtLaunchPath,
   settingUpHomeOf,
 } from './lib/workspace/paths';
 import { isPrTimelinePath, prTimelineMarkdownPath, prTimelineRouteOf } from './lib/workspace/pr-timeline-path';
-import { contributeOpen, requestContributeAccess } from './lib/workspace/preview-gate';
+import { contributeOpen, requestContributeAccess, requestWorkspaceAccess } from './lib/workspace/preview-gate';
 
 const { auth } = NextAuth(authConfig);
 
@@ -296,6 +297,25 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     }
   }
 
+  // The workspace's pages under `/my` are what emails and agents link: a visitor without a session (or with one the
+  // server cannot read) goes on to the page, which asks them to sign in and comes back to the same address, never kept
+  // by a shared cache. A signed-in account is asked about as on Contribute's pages: the workspace closed to it gets the
+  // real 404, and one being set up goes to Contribute's home, carrying the step it was on.
+  const myPage = isMyPath(pathname);
+  if (myPage && hasSession(request) && (request.method === 'GET' || request.method === 'HEAD')) {
+    const access = await requestWorkspaceAccess(request);
+    if (access === 'setting-up') {
+      const response = NextResponse.redirect(new URL(settingUpHomeOf(request.nextUrl), request.url));
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
+    if (access === 'hidden') {
+      const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
+  }
+
   // The landing in markdown, for an agent that asks for it at least as much as HTML: rewritten here, before Auth.js, which would turn
   // the rewrite into an external one. Never kept by a shared cache: the same URL answers HTML to everyone else. Every
   // other answer of the landing says where its markdown is and that it differs by `Accept`.
@@ -322,6 +342,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // session-aware API routes wrap their handlers in `auth()` themselves.
   if (!hasSession(request)) {
     if (!request.cookies.has(SESSION_HINT_COOKIE)) {
+      // A workspace page's sign-in is never kept by a shared cache: the same address shows the user's own once signed in.
+      if (myPage) {
+        const response = NextResponse.next();
+        response.headers.set('Cache-Control', 'private, no-store');
+        return response;
+      }
       if (!ENTITY_PAGE.test(request.nextUrl.pathname)) {
         return served(NextResponse.next());
       }

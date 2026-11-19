@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/settings',
+  usePathname: () => '/my/settings',
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
@@ -45,7 +45,7 @@ const text = (html: string) =>
 const settings = (set?: ContributeSet | null) => renderToStaticMarkup(<WorkSettingsScreen now={NOW} set={set} />);
 /** The Settings summary. */
 const summary = (set?: ContributeSet | null, setFailed = false) =>
-  renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} set={set} setFailed={setFailed} />);
+  renderToStaticMarkup(<SettingsScreen view={views.active} set={set} setFailed={setFailed} />);
 const noWrite = async () => null;
 
 /** Whether the radio pill with this label is the checked one. */
@@ -65,7 +65,7 @@ describe('Settings, what to work on', () => {
     const cards = html.slice(start, html.indexOf('</ul>', start));
 
     expect(cards).toMatch(/data-mode="STACK" data-current="true"><div aria-current="true"/);
-    expect(cards).toContain('href="/contribute/settings/switch/repos"');
+    expect(cards).toContain('href="/my/settings/work/switch/repos"');
     expect(cards).toContain('aria-label="Switch to Support these repos"');
     expect(cards).toMatch(/<button[^>]*aria-label="Switch to All issues"/);
     for (const title of ['Support my stack', 'Support these repos', 'All issues']) expect(text(cards)).toContain(title);
@@ -80,7 +80,7 @@ describe('Settings, what to work on', () => {
     const plain = text(html);
 
     expect(html).toContain('data-list-row="STACK"');
-    expect(html).toContain('href="/contribute/settings/work"');
+    expect(html).toContain('href="/my/settings/work"');
     expect(plain).toContain('Your stack 50 libraries from 3 repos · then all issues');
     expect(plain).toContain('Filters Rust · Bugs · any size');
     expect(html).toContain('aria-label="Edit filters"');
@@ -93,7 +93,7 @@ describe('Settings, what to work on', () => {
 
   it('opens the list on its own page, with the libraries and what happens when they have nothing ready', () => {
     const html = settings(stackSet());
-    expect(html).toContain('href="/contribute/settings"');
+    expect(html).toContain('href="/my/settings"');
     expect(html).toContain('data-list="SOURCES"');
     expect(html).toContain('data-targets="READY"');
     expect(html).toContain('data-fallback="THEN_ALL"');
@@ -109,7 +109,8 @@ describe('Settings, what to work on', () => {
     const html = summary(undefined, true);
     expect(text(html)).toContain("Your lists didn't load. Reload the page to try again");
     expect(text(html)).toContain('Filters Rust · Bugs · any size');
-    expect(html).toContain('href="/contribute/settings/budget"');
+    // The rest of Settings is there as usual.
+    expect(html).toContain('href="/my/agent/key#github"');
   });
 
   it("Stack: the sources by how they were added, the libraries they use, and what happens when they're empty", () => {
@@ -194,7 +195,7 @@ describe('Settings, what to work on', () => {
     const plain = text(html);
 
     expect(plain).toContain('All issues has no list to edit.');
-    expect(html).toContain('href="/contribute/settings"');
+    expect(html).toContain('href="/my/settings"');
     expect(plain).not.toContain("Your stack's sources");
     expect(plain).not.toContain('have nothing ready');
   });
@@ -254,7 +255,7 @@ describe('switching what you work on', () => {
     expect(html).toContain('data-list="SOURCES"');
     expect(plain).toContain('3 / 50 repos');
     expect(plain).toContain('Next');
-    expect(html).toContain('href="/contribute/settings"');
+    expect(html).toContain('href="/my/settings"');
   });
 
   it('reviews the switch: from and to, the list, what happens when it is quiet, and what is kept', () => {
@@ -370,7 +371,7 @@ describe('Issues for you, by mode', () => {
       'We check them for new issues every 12 hours. 3 repos are still being read for the first time.',
     );
     expect(plain).toContain('Work on all issues meanwhile');
-    expect(html).toContain('href="/contribute/settings/work"');
+    expect(html).toContain('href="/my/settings/work"');
     expect(plain).toContain('Add more repos');
     expect(plain).toContain('Language filter: Rust. 12 of them are in other languages.');
 

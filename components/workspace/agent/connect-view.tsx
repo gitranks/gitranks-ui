@@ -2,12 +2,7 @@ import { AgentConnect, type AgentConnectProof } from './agent-connect';
 import { KeyConnect } from './key-connect';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { manualDraftFromSettings, type StoredLimits } from '@/lib/workspace/connect-limits';
-import {
-  loadAttempt,
-  loadContribute,
-  loadContributeSetup,
-  loadProfileLanguages,
-} from '@/lib/workspace/contribute.data';
+import { loadAttempt, loadContribute, loadContributeSetup } from '@/lib/workspace/contribute.data';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isOnboarded, withoutAccessNotices } from '@/lib/workspace/contribute-state';
 import { LANGUAGES } from '@/lib/workspace/format';
@@ -15,17 +10,15 @@ import { CONNECT_AGENT_PATH } from '@/lib/workspace/paths';
 import { proofParamOf, proofPromptOf } from '@/lib/workspace/proof';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 
-export async function ConnectView({
+/** The own agent's connect page: the agent, a token and its setup, then the agent's first call. */
+export async function OwnAgentConnectView({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params, languages] = await Promise.all([loadContribute(), searchParams, loadProfileLanguages()]);
+  const [view, params] = await Promise.all([loadContribute(), searchParams]);
   if (!view) contributeHidden(await loadContributeSetup());
-  if (params?.path === 'agent') {
-    return <OwnAgentConnectScreen view={view} proof={await proofOf(proofParamOf(params.proof))} />;
-  }
-  return <ConnectScreen view={view} today={new Date().getUTCDate()} profileLanguages={languages} />;
+  return <OwnAgentConnectScreen view={view} proof={await proofOf(proofParamOf(params?.proof))} />;
 }
 
 /** Where the own-agent path starts. */

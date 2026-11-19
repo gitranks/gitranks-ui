@@ -13,6 +13,7 @@ import { loadContribute, loadContributeActivity, loadContributeSetup } from '@/l
 import type { ContributeActivity, ContributeView } from '@/lib/workspace/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
 import { usd } from '@/lib/workspace/format';
+import { RUNS_PATH } from '@/lib/workspace/paths';
 import {
   type ContributeRunsPage,
   type ContributeRunsTotals,
@@ -286,7 +287,7 @@ export function RunsScreen({
         ) : (
           <Empty title="No runs match these filters">
             Try a wider date range or another outcome.{' '}
-            <Link href="/contribute/runs" prefetch={false} scroll={false} className="font-semibold text-link">
+            <Link href={RUNS_PATH} prefetch={false} scroll={false} className="font-semibold text-link">
               Clear the filters
             </Link>
           </Empty>

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/runs',
+  usePathname: () => '/my/agent/runs',
   useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock('@/lib/workspace/actions', () => ({ readRunsPage: vi.fn() }));
@@ -67,14 +67,12 @@ describe('Agent runs', () => {
 
   it('keeps the filters in the links: the chips, and a category on the bar that a second click takes back to every no-go', () => {
     const html = render({ query: runsQueryOf({ reason: 'needs_design', repo: 'can1357/oh-my-pi' }) });
-    expect(html).toContain('href="/contribute/runs?outcome=no_go&amp;repo=can1357%2Foh-my-pi"');
-    expect(html).toContain('href="/contribute/runs?repo=can1357%2Foh-my-pi"');
+    expect(html).toContain('href="/my/agent/runs?outcome=no_go&amp;repo=can1357%2Foh-my-pi"');
+    expect(html).toContain('href="/my/agent/runs?repo=can1357%2Foh-my-pi"');
     // The category picked is current, and its link drops it back to every no-go; the others switch to theirs.
-    expect(html).toMatch(
-      /aria-current="true"[^>]*href="\/contribute\/runs\?outcome=no_go&amp;repo=can1357%2Foh-my-pi"/,
-    );
+    expect(html).toMatch(/aria-current="true"[^>]*href="\/my\/agent\/runs\?outcome=no_go&amp;repo=can1357%2Foh-my-pi"/);
     expect(html).toContain(
-      'href="/contribute/runs?outcome=no_go&amp;reason=cannot_reproduce&amp;repo=can1357%2Foh-my-pi"',
+      'href="/my/agent/runs?outcome=no_go&amp;reason=cannot_reproduce&amp;repo=can1357%2Foh-my-pi"',
     );
   });
 

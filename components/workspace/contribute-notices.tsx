@@ -7,6 +7,7 @@ import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
 import type { ContributeNotice } from '@/lib/workspace/contribute-state';
 import { dayLabel } from '@/lib/workspace/format';
+import { CONNECT_KEY_PATH, KEY_REPLACE_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 type NoticeCopy = { title: string; text: ReactNode; action?: { href: Route; label: string }; tone: 'info' | 'warn' };
 
@@ -30,14 +31,14 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         tone: 'info',
         title: 'Connect your Claude key to start',
         text: 'Nothing runs until there is a key. It takes about two minutes in the Claude Console.',
-        action: { href: '/contribute/connect', label: 'Connect Claude' },
+        action: { href: CONNECT_KEY_PATH, label: 'Connect Claude' },
       };
     case 'key-invalid':
       return {
         tone: 'warn',
         title: 'Your Claude key stopped working',
         text: 'Anthropic refused it: it was deleted, or it is not the key you meant. Contributing is paused until you connect a working one.',
-        action: { href: '/contribute/connect', label: 'Connect a new key' },
+        action: { href: KEY_REPLACE_PATH, label: 'Connect a new key' },
       };
     case 'exhausted':
       return {
@@ -56,7 +57,7 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         tone: 'info',
         title: 'Contributing is paused',
         text: 'No new attempts start until you resume. Your settings and queue are kept.',
-        action: { href: '/contribute/settings', label: 'Resume in Settings' },
+        action: { href: WORKSPACE_PATHS.agent, label: 'Resume on the Agent tab' },
       };
     case 'new-account':
       return {

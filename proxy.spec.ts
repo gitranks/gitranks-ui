@@ -5,16 +5,22 @@ const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'a
 
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
-const { maySeeContribute, settingUp, open } = vi.hoisted(() => ({
+const { maySeeContribute, settingUp, open, sessionRead } = vi.hoisted(() => ({
   maySeeContribute: vi.fn(async (_req?: unknown) => false),
   settingUp: vi.fn(async () => false),
   open: vi.fn(async () => false),
+  // Whether the session the request carries can be read (not expired).
+  sessionRead: { ok: true },
 }));
-vi.mock('./lib/workspace/preview-gate', () => ({
-  requestContributeAccess: async (req: unknown) =>
-    (await maySeeContribute(req)) ? 'allowed' : (await settingUp()) ? 'setting-up' : 'hidden',
-  contributeOpen: open,
-}));
+vi.mock('./lib/workspace/preview-gate', () => {
+  const access = async (req: unknown) =>
+    (await maySeeContribute(req)) ? 'allowed' : (await settingUp()) ? 'setting-up' : 'hidden';
+  return {
+    requestContributeAccess: access,
+    requestWorkspaceAccess: async (req: unknown) => (sessionRead.ok ? access(req) : 'signed-out'),
+    contributeOpen: open,
+  };
+});
 const { ledgerOpen } = vi.hoisted(() => ({ ledgerOpen: vi.fn(async () => false) }));
 vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: ledgerOpen }));
 const { timelineGate } = vi.hoisted(() => ({
@@ -77,6 +83,7 @@ describe('proxy', () => {
     packagesPublic.mockResolvedValue(false);
     maySeePackages.mockReset();
     maySeePackages.mockResolvedValue(false);
+    sessionRead.ok = true;
   });
 
   describe('packages', () => {
@@ -449,9 +456,8 @@ describe('proxy', () => {
     it("sends a new account being set up to Contribute's home, with the way it picked, never cached", async () => {
       settingUp.mockResolvedValue(true);
       for (const [path, to] of [
-        ['/contribute/connect?path=agent', 'https://gitranks.com/contribute?start=agent'],
-        ['/contribute/connect', 'https://gitranks.com/contribute?start=key'],
-        ['/contribute/settings', 'https://gitranks.com/contribute'],
+        ['/contribute/issues', 'https://gitranks.com/contribute'],
+        ['/contribute/attempts/A_1', 'https://gitranks.com/contribute'],
       ]) {
         const response = await proxy(request('authjs.session-token=t', path), event);
         expect(response?.headers.get('location'), path).toBe(to);
@@ -604,6 +610,70 @@ describe('proxy', () => {
       await proxy(request('authjs.session-token=t', '/contributors'), event);
       await proxy(request(undefined, '/by/stars/1'), event);
 
+      expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("the workspace's pages under /my", () => {
+    const PAGES = ['/my/pull-requests', '/my/agent', '/my/agent/connect', '/my/settings/work', '/MY//Settings'];
+
+    it('lets a visitor without a session through to the sign-in, asked about nothing and never cached', async () => {
+      for (const path of PAGES) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();
+        expect(response?.headers.get('location'), path).toBeNull();
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+      }
+      expect(maySeeContribute).not.toHaveBeenCalled();
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it("lets a session the server cannot read through to the sign-in, as a visitor's", async () => {
+      sessionRead.ok = false;
+      const response = await proxy(request('authjs.session-token=t', '/my/settings'), event);
+      expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+
+    it('answers a signed-in account the workspace is hidden from with a 404 nobody caches', async () => {
+      for (const path of PAGES) {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+      }
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it("sends an account being set up to Contribute's home, carrying the connect step, never cached", async () => {
+      settingUp.mockResolvedValue(true);
+      for (const [path, to] of [
+        ['/my/agent/connect', 'https://gitranks.com/contribute?start=agent'],
+        ['/my/agent/connect?proof=A_1', 'https://gitranks.com/contribute?start=agent'],
+        ['/my/agent/key', 'https://gitranks.com/contribute?start=key'],
+        ['/my/settings', 'https://gitranks.com/contribute'],
+        ['/my/pull-requests', 'https://gitranks.com/contribute'],
+      ]) {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.headers.get('location'), path).toBe(to);
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+      }
+    });
+
+    it('lets in a signed-in user the API lets in, as any signed-in page', async () => {
+      maySeeContribute.mockResolvedValue(true);
+      const response = await proxy(request('authjs.session-token=t', '/my/agent'), event);
+      expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(withSession).toHaveBeenCalledOnce();
+      expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+    });
+
+    it("asks nothing for a page's own actions (a POST), and nothing for a path that only starts with my", async () => {
+      const post = new NextRequest('https://gitranks.com/my/settings', {
+        method: 'POST',
+        headers: { cookie: 'authjs.session-token=t' },
+      });
+      await proxy(post, event);
+      await proxy(request(undefined, '/myself'), event);
       expect(maySeeContribute).not.toHaveBeenCalled();
     });
   });

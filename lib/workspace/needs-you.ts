@@ -22,7 +22,7 @@ import {
 import { maskedKey, relativeLabel, timeLeftLabel } from './format';
 import { replyRowOf } from './needs-you-replies';
 import { isToApprove } from './one-comment';
-import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, learnAttemptPath } from './paths';
+import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH, KEY_REPLACE_PATH, learnAttemptPath } from './paths';
 import { type ContributePrConventionIssue, httpsOnly, PR_FIX_WORDS } from './pr-conventions';
 import { askedForOf, type ProofStage, proofStageOf, proofTellsBlock, proofWaits } from './proof';
 import { attemptPath, nextSessionPath, sessionPath } from './sessions';
@@ -1064,7 +1064,7 @@ export function needsYouItemsOf({
       title: null,
       move: 'Anthropic refused your Claude key, so no run can start. Connect a working key.',
       more: 0,
-      action: { label: 'Connect a new key', href: CONNECT_KEY_PATH, aria: 'Connect a new Claude key' },
+      action: { label: 'Connect a new key', href: KEY_REPLACE_PATH, aria: 'Connect a new Claude key' },
       secondary: null,
       working: false,
       group: GROUPS.key,

@@ -26,12 +26,13 @@ import type {
 } from '@/lib/workspace/contribute.types';
 import { dayLabel, relativeLabel } from '@/lib/workspace/format';
 import { hardStopOf } from '@/lib/workspace/hard-stop';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { attemptPath } from '@/lib/workspace/sessions';
 
 /** Back to the user's contributions. */
 export const BackLink = () => (
-  <Link href="/contribute/me" prefetch={false} className="text-sm font-semibold text-link">
-    ← My contributions
+  <Link href={WORKSPACE_PATHS.pullRequests} prefetch={false} className="text-sm font-semibold text-link">
+    ← Pull requests
   </Link>
 );
 

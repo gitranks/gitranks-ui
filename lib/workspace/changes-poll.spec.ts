@@ -254,24 +254,45 @@ describe('what a read does', () => {
     ['/contribute', ['ATTEMPTS'], true],
     ['/contribute', ['FEED'], true],
     ['/contribute/', ['SETTINGS'], true],
-    ['/contribute/connect', ['FEED'], true],
     ['/contribute/issues', ['FEED'], true],
     ['/contribute/issues', ['ATTEMPTS'], true],
     ['/contribute/issues', ['ISSUES'], false],
-    ['/contribute/me', ['ATTEMPTS'], true],
-    ['/contribute/me', ['SET', 'FEED'], false],
-    ['/contribute/runs', ['ATTEMPTS'], true],
-    ['/contribute/runs', ['SET', 'FEED'], false],
+    ['/learn', ['ATTEMPTS'], true],
+    ['/learn', ['SETTINGS'], true],
+    ['/learn', ['FEED', 'SET'], false],
+    ['/learn/lessons', ['ATTEMPTS'], true],
+    ['/learn/lessons', ['SETTINGS'], false],
+    ['/learn/attempts/A_1', ['ATTEMPTS'], true],
+    ['/learn/profile', ['ATTEMPTS', 'SETTINGS'], false],
+    ['/my/pull-requests', ['ATTEMPTS'], true],
+    ['/my/pull-requests', ['SET', 'FEED', 'SETTINGS'], false],
+    ['/my/pull-requests/by-attempt/A_1', ['ATTEMPTS'], true],
     ['/contribute/attempts/A_1', ['ATTEMPTS'], true],
-    ['/contribute/settings/budget', ['SETTINGS'], true],
-    ['/contribute/settings', ['ATTEMPTS'], false],
+    ['/contribute/attempts/A_1/runs/R_1', ['ATTEMPTS'], true],
+    ['/my/start/acme/widgets/42', ['ATTEMPTS'], true],
+    ['/my/progress', ['ATTEMPTS'], true],
+    ['/my/agent', ['ATTEMPTS'], true],
+    ['/my/agent', ['SETTINGS'], true],
+    ['/my/agent/runs', ['ATTEMPTS'], true],
+    ['/my/agent/budget', ['SET', 'FEED'], false],
+    ['/my/settings', ['SET'], true],
+    ['/my/settings/work', ['SETTINGS'], true],
+    ['/my/settings', ['ATTEMPTS'], false],
+    ['/my/agents', ['ATTEMPTS', 'SETTINGS'], false],
     ['/contribute/maintainers', ['SETTINGS', 'SET'], false],
   ] as const)('%s reads itself again for %j: %s', (path, changed, refresh) => {
     expect(refreshesFor(path, changed)).toBe(refresh);
   });
 
   it('never reads a page again for an issue’s availability or the work alone: those parts ask themselves', () => {
-    for (const path of ['/contribute', '/contribute/issues', '/contribute/me', '/contribute/settings']) {
+    for (const path of [
+      '/contribute',
+      '/contribute/issues',
+      '/learn',
+      '/my/pull-requests',
+      '/my/agent',
+      '/my/settings',
+    ]) {
       expect(refreshesFor(path, ['ISSUES', 'ACTIVITY'])).toBe(false);
     }
   });
@@ -358,7 +379,7 @@ describe('what a read does', () => {
     const moved = afterChangesRead(
       held,
       { changes: { version: '4.2', activity: false, changed: [] }, activity: after },
-      '/contribute/settings',
+      '/my/settings',
       9,
     );
     expect(moved).toMatchObject({ moved: true, changed: false });
@@ -367,7 +388,7 @@ describe('what a read does', () => {
     const same = afterChangesRead(
       moved.held,
       { changes: { version: '4.2', activity: true, changed: [] }, activity: after },
-      '/contribute/settings',
+      '/my/settings',
       10,
     );
     expect(same).toMatchObject({ moved: false, changed: false });
@@ -375,7 +396,7 @@ describe('what a read does', () => {
     const ended = afterChangesRead(
       same.held,
       { changes: { version: '5.2', activity: false, changed: ['ACTIVITY'] }, activity: activityOf() },
-      '/contribute/me',
+      '/my/pull-requests',
       11,
     );
     expect(ended).toMatchObject({ moved: true, changed: false, held: { running: false } });
@@ -385,7 +406,7 @@ describe('what a read does', () => {
     const step = afterChangesRead(
       heldOf('4.2', null, 0),
       { changes: { version: '5.2', activity: true, changed: ['SET'] }, activity: activityOf(item('STACK_RESOLVE')) },
-      '/contribute/me',
+      '/my/pull-requests',
       1,
     );
     expect(step).toMatchObject({ moved: false, changed: false, held: { running: true } });
@@ -438,6 +459,7 @@ describe('the poll session', () => {
       refresh: vi.fn(),
       emit: vi.fn(),
       showActivity: vi.fn(),
+      showNeedsYou: vi.fn(),
       pathname: () => options.path ?? '/contribute',
       now: () => Date.now(),
     };
@@ -448,7 +470,7 @@ describe('the poll session', () => {
     const { session, deps } = sessionOf([answer('4.2')]);
 
     expect(await session.tick()).toBe('ok');
-    expect(deps.read).toHaveBeenCalledWith('4.2', false);
+    expect(deps.read).toHaveBeenCalledWith('4.2', { activity: false, needsYou: false });
     expect(deps.refresh).not.toHaveBeenCalled();
     expect(deps.emit).toHaveBeenCalledWith([]);
     expect(deps.showActivity).not.toHaveBeenCalled();
@@ -461,7 +483,7 @@ describe('the poll session', () => {
     expect(deps.refresh).toHaveBeenCalledTimes(1);
     expect(deps.emit).toHaveBeenCalledWith(['ATTEMPTS', 'ISSUES']);
     await session.tick();
-    expect(deps.read).toHaveBeenLastCalledWith('5.2', false);
+    expect(deps.read).toHaveBeenLastCalledWith('5.2', { activity: false, needsYou: false });
     expect(deps.refresh).toHaveBeenCalledTimes(1);
   });
 
@@ -485,7 +507,7 @@ describe('the poll session', () => {
     await tick;
     expect(deps.refresh).not.toHaveBeenCalled();
     await session.tick();
-    expect(deps.read).toHaveBeenLastCalledWith('5.2', false);
+    expect(deps.read).toHaveBeenLastCalledWith('5.2', { activity: false, needsYou: false });
   });
 
   it('a page read during a read, older than its answer: the answer wins and refreshes', async () => {
@@ -499,12 +521,12 @@ describe('the poll session', () => {
     await tick;
     expect(deps.refresh).toHaveBeenCalledTimes(1);
     await session.tick();
-    expect(deps.read).toHaveBeenLastCalledWith('6.2', false);
+    expect(deps.read).toHaveBeenLastCalledWith('6.2', { activity: false, needsYou: false });
   });
 
   it('a start of the user’s goes fast, reads the bar, and waits for their own page read', async () => {
     const { session, deps } = sessionOf([answer('5.2', [], { activity: activityOf(item('FIRST_READS')) })], {
-      path: '/contribute/settings',
+      path: '/my/settings',
     });
 
     expect(session.cadence()).toBe('normal');
@@ -514,13 +536,28 @@ describe('the poll session', () => {
     expect(session.takePage('5.2', null)).toBe(true);
     expect(session.announceWaited()).toBe(false);
     await session.tick();
-    expect(deps.read).toHaveBeenCalledWith('5.2', true);
+    expect(deps.read).toHaveBeenCalledWith('5.2', { activity: true, needsYou: false });
     // The page already shows the write; the first work seen moved nothing.
     expect(deps.refresh).not.toHaveBeenCalled();
     expect(deps.showActivity).toHaveBeenCalledWith(activityOf(item('FIRST_READS')));
     // A first read runs: fast past the announce too.
     vi.advanceTimersByTime(ANNOUNCE_MS);
     expect(session.cadence()).toBe('fast');
+  });
+
+  it('hands on the count of what needs the user when the read brought it, and nothing when it did not', async () => {
+    const { session, deps } = sessionOf([
+      answer('5.2', ['ATTEMPTS'], { needsYou: 3 }),
+      answer('5.3', ['SETTINGS'], { needsYou: null }),
+      answer('5.4'),
+    ]);
+
+    await session.tick();
+    expect(deps.showNeedsYou).toHaveBeenLastCalledWith(3);
+    await session.tick();
+    expect(deps.showNeedsYou).toHaveBeenLastCalledWith(null);
+    await session.tick();
+    expect(deps.showNeedsYou).toHaveBeenCalledTimes(2);
   });
 
   it('a start with no page read after it reads at the wait’s end', () => {

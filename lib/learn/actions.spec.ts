@@ -5,9 +5,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('@/auth', () => ({ auth }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
-const { readAttemptStage, readLearnIssueCount, readPracticeLessons, readPracticeNext, saveLearnProfile } = await import(
-  './actions'
-);
+const { readLearnIssueCount, readPracticeLessons, readPracticeNext, saveLearnProfile } = await import('./actions');
 const { LearnIssuesDocument, MyLearnAttemptsDocument } = await import('@/lib/learn/learn.documents');
 const { learnIssues, myLearnAttempts } = await import('@/lib/learn/__fixtures__/home');
 const { SaveLearnProfileDocument } = await import('@/lib/learn/learn.documents');
@@ -103,17 +101,6 @@ describe("Learn home's reads from the browser", () => {
     expect(await readPracticeNext()).toMatchObject({ ok: false });
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
     expect(graphqlDirect).toHaveBeenCalledWith(MyLearnAttemptsDocument, {}, expect.anything());
-  });
-
-  it("reads an attempt's stage by a short id only", async () => {
-    graphqlDirect.mockResolvedValue({ learnAttemptLesson: { stage: 'WARMUP' } });
-    for (const id of ['', ' ', 'x'.repeat(201), 12]) {
-      expect(await readAttemptStage(id as string), String(id)).toMatchObject({ ok: false, error: 'INVALID' });
-    }
-    expect(graphqlDirect).not.toHaveBeenCalled();
-    expect(await readAttemptStage('A_1')).toEqual({ ok: true, data: 'WARMUP' });
-    graphqlDirect.mockResolvedValue({ learnAttemptLesson: null });
-    expect(await readAttemptStage('A_1')).toEqual({ ok: true, data: null });
   });
 
   it('asks nothing signed out', async () => {

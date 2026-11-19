@@ -7,14 +7,13 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/contribute/issues',
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock('@/lib/workspace/actions', () => ({ readContributeChanges: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({ readWorkspaceChanges: vi.fn(), readNeedsYouCount: vi.fn() }));
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({ useReportPendingNavigation: () => {} }));
 vi.mock('@/lib/workspace/contribute.data', () => ({}));
 
-const { AgentRunsTabLabel, LiveRunPhase, LiveRunsLabel, RightNowLanes, WorkingNowSection } = await import(
+const { LiveRunPhase, LiveRunsLabel, RightNowLanes, WorkingNowSection } = await import(
   '@/components/workspace/agent/agent-runs'
 );
-const { ContributeTabsNav } = await import('./contribute-tabs-nav');
 const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
 const { activityOf, FOLLOW_UP, QUEUED, READY, runOf, WORKING } = await import(
   '@/lib/contribute/__fixtures__/agent-runs'
@@ -30,35 +29,6 @@ const text = (html: string) =>
     .replaceAll('&quot;', '"')
     .replaceAll('&amp;', '&')
     .replace(/\s+/g, ' ');
-
-describe('the robot tab', () => {
-  it('ends the tabs on every tab, a spinner and the count while agents work, its name in words', () => {
-    const html = renderToStaticMarkup(
-      <ContributeTabsNav onboarded activity={activityOf(WORKING, FOLLOW_UP, QUEUED, READY)} />,
-    );
-    expect(html).toContain('href="/contribute/runs"');
-    expect(html).toContain('data-agent-runs="working"');
-    expect(html).toContain('motion-safe:animate-spin');
-    expect(text(html)).toContain('Agent runs: 2 agents working 2');
-    expect(html).toContain('title="Agent runs · 2 agents working"');
-  });
-
-  it('shows a grey dot and the count with runs live but none working, the robot alone otherwise', () => {
-    const queued = renderToStaticMarkup(<AgentRunsTabLabel runs={[QUEUED]} />);
-    expect(queued).toContain('data-agent-runs="waiting"');
-    expect(text(queued)).toContain('Agent runs: 1 queued 1');
-    expect(queued).not.toContain('animate-');
-    for (const runs of [[READY], []]) {
-      const html = renderToStaticMarkup(<AgentRunsTabLabel runs={runs} />);
-      expect(html).toContain('data-agent-runs="none"');
-      expect(text(html).trim()).toBe('Agent runs');
-    }
-    // With no runs it is still there: the history is behind it.
-    expect(renderToStaticMarkup(<ContributeTabsNav onboarded activity={activityOf()} />)).toContain(
-      'href="/contribute/runs"',
-    );
-  });
-});
 
 describe("Right now's lanes", () => {
   const lanes = (activity: ReturnType<typeof activityOf> | null, props: Record<string, ReactNode> = {}) =>

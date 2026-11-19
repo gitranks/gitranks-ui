@@ -8,6 +8,7 @@ const {
   contributeOpen,
   contributePreviewAllowed,
   requestContributeAccess,
+  requestWorkspaceAccess,
   requestMaySeeContribute,
   resetContributeOpen,
 } = await import('./preview-gate');
@@ -177,15 +178,31 @@ describe('the Contribute preview gate', () => {
     expect(await requestContributeAccess(req)).toBe('hidden');
   });
 
+  it("reads the workspace's viewer: signed out without a session it can read, else Contribute's access", async () => {
+    sessionTokenOf.mockResolvedValue(null);
+    expect(await requestWorkspaceAccess(req)).toBe('signed-out');
+    sessionTokenOf.mockResolvedValue({ githubLogin: 'octocat', error: 'RefreshTokenError' });
+    expect(await requestWorkspaceAccess(req)).toBe('signed-out');
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    sessionTokenOf.mockResolvedValue({ githubLogin: 'octocat' });
+    graphqlDirect.mockResolvedValue({ contribute: { previewAllowed: true }, contributeSetup: false });
+    expect(await requestWorkspaceAccess(req)).toBe('allowed');
+    graphqlDirect.mockResolvedValue({ contribute: null, contributeSetup: true });
+    expect(await requestWorkspaceAccess(req)).toBe('setting-up');
+    graphqlDirect.mockRejectedValue(new Error('GraphQL error! 502'));
+    expect(await requestWorkspaceAccess(req)).toBe('hidden');
+  });
+
   it('sends an account being set up home, keeping the way of contributing it picked', () => {
     const at = (path: string) => {
       const url = new URL(`https://gitranks.com${path}`);
       return settingUpHomeOf({ pathname: url.pathname, searchParams: url.searchParams });
     };
-    expect(at('/contribute/connect?path=agent')).toBe('/contribute?start=agent');
-    expect(at('/contribute/connect')).toBe('/contribute?start=key');
-    expect(at('/contribute/connect/')).toBe('/contribute?start=key');
-    expect(at('/contribute/settings')).toBe('/contribute');
+    expect(at('/my/agent/connect')).toBe('/contribute?start=agent');
+    expect(at('/my/agent/key')).toBe('/contribute?start=key');
+    expect(at('/my/agent/key/')).toBe('/contribute?start=key');
+    expect(at('/my/settings')).toBe('/contribute');
     expect(at('/contribute/issues?x=1')).toBe('/contribute');
   });
 });

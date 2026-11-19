@@ -47,6 +47,7 @@ import type {
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
 import { AUTOPILOT_UNLOCK_AT, dayLabel, relativeLabel, timeLeftLabel, usd } from '@/lib/workspace/format';
 import { type NeedsYouItems, needsYouItemsOf } from '@/lib/workspace/needs-you';
+import { RUNS_PATH } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 
 export async function ContributionsView() {
@@ -495,7 +496,7 @@ function HowAttemptsEnded({ attempts }: { attempts: ContributeAttempt[] | undefi
         </ul>
       ) : null}
       {attempts.length ? (
-        <Link href="/contribute/runs" prefetch={false} className="text-sm font-semibold text-link" data-see-all-runs>
+        <Link href={RUNS_PATH} prefetch={false} className="text-sm font-semibold text-link" data-see-all-runs>
           See all runs ›
         </Link>
       ) : null}

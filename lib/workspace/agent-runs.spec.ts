@@ -26,7 +26,7 @@ describe('the agent runs', () => {
     expect(indicatorLabelOf([])).toBe('');
   });
 
-  it('marks the robot tab with how many work, else how many wait, and nothing for settled runs', () => {
+  it('marks the Agent tab with how many work, else how many wait, and nothing for settled runs', () => {
     expect(runsTabMarkOf([WORKING, FOLLOW_UP, QUEUED, READY])).toEqual({
       working: 2,
       waiting: 0,

@@ -138,7 +138,7 @@ export function ContributeClickTracker() {
   useEffect(() => {
     const { entry, landing } = readEntry();
     // Not a page that answered 404: a closed page of Contribute keeps its address.
-    if (landing && isLanding(window.location.pathname) && !document.querySelector('[data-not-found]')) {
+    if (landing && isLanding(window.location.pathname, entry) && !document.querySelector('[data-not-found]')) {
       send({ kind: 'landing', path: window.location.pathname, ...entry });
     }
 

@@ -59,7 +59,7 @@ describe('Overview, once there is an attempt', () => {
     expect(html).not.toContain('Working now');
     expect(html).toContain('data-run="att_working"');
     expect(text(html)).toContain('Right now 1 agent working All runs →');
-    expect(html).toContain('href="/contribute/runs"');
+    expect(html).toContain('href="/my/agent/runs"');
     // With none, the hosted lane says what holds it.
     const idle = screen(views.active, { activity: activityOf() });
     expect(idle).not.toContain('data-run=');
@@ -131,7 +131,7 @@ describe('Needs you', () => {
       const html = needs(views.active, read);
       expect(html).toContain('data-needs="unchecked"');
       expect(text(html)).not.toContain('Nothing needs you');
-      expect(html).toContain('href="/contribute/me"');
+      expect(html).toContain('href="/my/pull-requests"');
     }
   });
 
@@ -247,12 +247,12 @@ describe('Right now', () => {
     };
     const busy = now(reduced, hosted({}));
     expect(text(busy)).toContain('Your one slot is busy.');
-    expect(busy).not.toContain('Attempts at a time in Settings');
+    expect(busy).not.toContain('Attempts at a time on the Agent tab');
     const prCap = now(reduced, { inFlight: [], scheduleCounts: { prBound: 2, queued: 0 } });
     expect(text(prCap)).toContain('2 of 2 pull requests are open or on their way.');
-    expect(prCap).not.toContain('Open PRs at a time in Settings');
+    expect(prCap).not.toContain('Open PRs at a time on the Agent tab');
     // Held by the setting itself: Settings can change it.
-    expect(now(views.active, hosted({}))).toContain('Attempts at a time in Settings');
+    expect(now(views.active, hosted({}))).toContain('Attempts at a time on the Agent tab');
   });
 
   it('names a hosted follow-up by its pull request', () => {
@@ -274,7 +274,7 @@ describe('Right now', () => {
     [
       'no-room',
       withSpend(null),
-      'Next attempt None can start Your caps leave no room for one attempt. Raise them in Settings →',
+      'Next attempt None can start Your caps leave no room for one attempt. Raise them on the Agent tab →',
     ],
     ['paced', views.active, 'Next attempt In 2 hours Paced across your cycle, on one of your top picks.'],
     [
@@ -298,9 +298,9 @@ describe('Right now', () => {
     const slots = now(both, agentHolds);
     expect(slots).toContain('data-hosted="slots-taken"');
     expect(text(slots)).toContain(
-      'Waiting Your own agent holds your slot A new attempt starts when it hands back its patch or releases the issue. Attempts at a time in Settings →',
+      'Waiting Your own agent holds your slot A new attempt starts when it hands back its patch or releases the issue. Attempts at a time on the Agent tab →',
     );
-    expect(slots).toContain('href="/contribute/settings/budget#more-limits"');
+    expect(slots).toContain('href="/my/agent/budget#more-limits"');
 
     const three = { ...both, contributor: contributor({ settings: { ...settings, attemptsAtATime: 3 } }) };
     const allSlots = now(three, {
@@ -311,9 +311,9 @@ describe('Right now', () => {
 
     const cap = now(views.active, { inFlight: [], scheduleCounts: { prBound: 3, queued: 0 } });
     expect(text(cap)).toContain(
-      'Waiting At your open PRs cap 3 of 3 pull requests are open or on their way. The next attempt starts when one is merged, closed or discarded. Open PRs at a time in Settings →',
+      'Waiting At your open PRs cap 3 of 3 pull requests are open or on their way. The next attempt starts when one is merged, closed or discarded. Open PRs at a time on the Agent tab →',
     );
-    expect(cap).toContain('href="/contribute/settings/agent#prs"');
+    expect(cap).toContain('href="/my/agent/model#prs"');
 
     const queuedView = {
       ...views.active,
@@ -321,9 +321,9 @@ describe('Right now', () => {
     };
     const queued = now(queuedView);
     expect(text(queued)).toContain(
-      'Waiting Nothing queued Your pacing is "Only issues I queue", and none is queued. Pacing in Settings →',
+      'Waiting Nothing queued Your pacing is "Only issues I queue", and none is queued. Pacing on the Agent tab →',
     );
-    expect(queued).toContain('href="/contribute/settings/budget#pacing"');
+    expect(queued).toContain('href="/my/agent/budget#pacing"');
   });
 
   it('never says soon while a hold holds, or while the attempts in flight or the counts are not answered', () => {
@@ -352,7 +352,7 @@ describe('Right now', () => {
     // One slot, and it is busy: the next waits for it, said beside the cycle and on the lane.
     expect(text(html)).toContain('Hosted agent on your Claude key · Sonnet 5.5 1 of 1 at a time');
     expect(text(html)).toContain(
-      'Next attempt When a slot frees Your one slot is busy. Attempts at a time in Settings →',
+      'Next attempt When a slot frees Your one slot is busy. Attempts at a time on the Agent tab →',
     );
     const two = { ...views.active, contributor: contributor({ settings: { ...settings, attemptsAtATime: 2 } }) };
     const free = now(two, hosted({}));
@@ -455,7 +455,7 @@ describe('Right now', () => {
   });
 
   it('leaves the way to a new key to Needs you', () => {
-    expect(now(views.keyInvalid)).not.toContain('href="/contribute/connect"');
+    expect(now(views.keyInvalid)).not.toContain('href="/my/agent/key"');
   });
 
   it('shows both agents for a user with both', () => {
@@ -486,16 +486,16 @@ describe('Ways you contribute', () => {
   const ways = (view: ContributeView, noted: Parameters<typeof WaysSection>[0]['noted'] = []) =>
     renderToStaticMarkup(<WaysSection view={view} noted={noted} now={NOW} />);
 
-  it('shows a connected key and a connected agent, each with the way to Settings', () => {
+  it('shows a connected key and a connected agent, each with the way to the Agent tab', () => {
     const html = ways(both);
     expect(text(html)).toContain(
-      'Your Claude key Connected Claude Ultra · ends in …k3Qa · up to $200 a month Manage in Settings →',
+      'Your Claude key Connected Claude Ultra · ends in …k3Qa · up to $200 a month Manage on the Agent tab →',
     );
     expect(text(html)).toContain(
-      'Your own agent Connected Claude Code on macOS · 1 token live · last call 3 hours ago Manage in Settings →',
+      'Your own agent Connected Claude Code on macOS · 1 token live · last call 3 hours ago Manage on the Agent tab →',
     );
-    expect(html).toContain('href="/contribute/settings/keys"');
-    expect(html).toContain('href="/contribute/settings/own-agent"');
+    expect(html).toContain('href="/my/agent/key"');
+    expect(html).toContain('href="/my/agent#own-agent"');
   });
 
   it('offers each way not set up, dashed', () => {
@@ -507,13 +507,13 @@ describe('Ways you contribute', () => {
     expect(text(html)).toContain(
       'Your own agent Not set up Claude Code, Codex, Cursor, Gemini CLI or Antigravity asks GitRanks for an issue. About a minute. Connect your own agent →',
     );
-    expect(html).toContain('href="/contribute/connect?path=agent"');
+    expect(html).toContain('href="/my/agent/connect"');
   });
 
   it('says a refused key and a waiting one, and when it cannot check the agent', () => {
     expect(ways(views.keyInvalid)).toContain('data-way-state="Refused"');
     expect(ways(views.limitReached)).toContain('data-way-state="Waiting"');
-    expect(text(ways(views.active))).toContain("Your own agent We can't check your agent right now. Settings →");
+    expect(text(ways(views.active))).toContain("Your own agent We can't check your agent right now. Agent tab →");
   });
 
   it('shows the coming-soon providers compact, each with its toggle', () => {

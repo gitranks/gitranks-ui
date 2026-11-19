@@ -23,6 +23,7 @@ import {
   ContributeChangesDocument,
   ContributeFeedComputedDocument,
   ContributeMcpConnectionsUsedDocument,
+  ContributeNeedsYouCountDocument,
   ContributeOnboardingDocument,
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
@@ -59,6 +60,7 @@ import {
 import type {
   ContributeAttempt,
   ContributeAttemptLive,
+  ContributeChangeArea,
   ContributeChanges,
   ContributeChangesRead,
   ContributeClaudePlan,
@@ -698,15 +700,18 @@ export async function retryContributeProof(id: string): Promise<ContributeAction
 
 const VERSION = /^\d{1,15}\.\d{1,15}$/;
 
+/** The areas whose change may change what needs the user: the count is read again with them. */
+const NEEDS_YOU_AREAS: readonly ContributeChangeArea[] = ['ATTEMPTS', 'SETTINGS'];
+
 /**
- * Contribute's one poll: what moved since `since` (a version a previous read answered; null for none). The work in
- * progress is read in the same call when `withActivity`, when a long read may run, or when it may have started or
- * ended; a failed read of it leaves it out.
- * Null when the API hides Contribute from the user.
+ * The workspace's one poll: what moved since `since` (a version a previous read answered; null for none). Read in the
+ * same call: the work in progress when `ask.activity`, when a long read may run, or when it may have started or ended;
+ * the count of what needs the user when `ask.needsYou`, or when an attempt or the settings moved. A failed read of
+ * either leaves it out. Null when the API hides Contribute from the user.
  */
-export async function readContributeChanges(
+export async function readWorkspaceChanges(
   since: string | null,
-  withActivity: boolean,
+  ask: { activity: boolean; needsYou: boolean },
 ): Promise<ContributeActionResult<ContributeChangesRead | null>> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
@@ -721,18 +726,51 @@ export async function readContributeChanges(
     return { ok: false, ...contributeErrorOf(error) };
   }
   if (!changes) return { ok: true, data: null };
-  const reads =
-    withActivity === true || changes.activity || changes.changed.some((area) => area === 'ACTIVITY' || area === 'SET');
-  if (!reads) return { ok: true, data: { changes } };
+  const withActivity =
+    ask?.activity === true || changes.activity || changes.changed.some((area) => area === 'ACTIVITY' || area === 'SET');
+  const withCount = ask?.needsYou === true || changes.changed.some((area) => NEEDS_YOU_AREAS.includes(area));
+  const options = { source: 'client' as const, githubLogin };
+  const [activity, needsYou] = await Promise.all([
+    withActivity
+      ? graphqlDirect(ContributeActivityDocument, undefined, options).then(
+          ({ contributeActivity }) => contributeActivity,
+          () => undefined,
+        )
+      : undefined,
+    withCount ? countOf(githubLogin) : undefined,
+  ]);
+  return {
+    ok: true,
+    data: {
+      changes,
+      ...(activity === undefined ? {} : { activity }),
+      ...(needsYou === undefined ? {} : { needsYou }),
+    },
+  };
+}
+
+/** The count of what needs the user; null when the API hides it or does not answer it yet, undefined when it failed. */
+async function countOf(githubLogin: string): Promise<number | null | undefined> {
   try {
-    const { contributeActivity } = await graphqlDirect(ContributeActivityDocument, undefined, {
+    const { contributeNeedsYou } = await graphqlDirect(ContributeNeedsYouCountDocument, undefined, {
       source: 'client',
       githubLogin,
     });
-    return { ok: true, data: { changes, activity: contributeActivity } };
+    return contributeNeedsYou?.count ?? null;
   } catch {
-    return { ok: true, data: { changes } };
+    return undefined;
   }
+}
+
+/**
+ * The count of what needs the user alone, for the Pull requests tab after a move to another page: null when the API
+ * hides it or does not answer it yet.
+ */
+export async function readNeedsYouCount(): Promise<ContributeActionResult<number | null>> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
+  const count = await countOf(githubLogin);
+  return count === undefined ? { ok: false, error: 'FAILED' } : { ok: true, data: count };
 }
 
 /** Hides a "this PR helped" note from the user's contribution page, or shows it again. */

@@ -40,6 +40,7 @@ import type {
   ContributeMcpToken,
   ContributeMcpTokenCreated,
   ContributeNeedsYou,
+  ContributeNeedsYouCount,
   ContributeOAuthClientWhere,
   ContributeOAuthRequest,
   ContributeOnboardedVia,
@@ -1129,6 +1130,14 @@ export const ContributeActivityDocument = doc<{ contributeActivity: ContributeAc
 /** What moved for the user since `since`: one cheap read; null when the API hides it. */
 export const ContributeChangesDocument = doc<{ contributeChanges: ContributeChanges | null }, { since: string | null }>(
   `query ContributeChanges($since: String) { contributeChanges(since: $since) { version activity changed } }`,
+);
+
+/**
+ * How many things wait on the user (the Pull requests tab's count) and whether every list behind it was read; null when
+ * the API hides it or does not answer it yet.
+ */
+export const ContributeNeedsYouCountDocument = doc<{ contributeNeedsYou: ContributeNeedsYouCount | null }>(
+  `query ContributeNeedsYouCount { contributeNeedsYou(countOnly: true) { count complete } }`,
 );
 
 export const SetContributeModeDocument = doc<{ setContributeMode: ContributeSet }, { mode: ContributeSetMode }>(

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/me',
+  usePathname: () => '/my/pull-requests',
   useSearchParams: () => new URLSearchParams(),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
@@ -26,7 +26,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
 const { ReviewScreen, grantNeededOf } = await import('@/components/workspace/pull-request/review-view');
 const { ContributionsScreen } = await import('@/components/workspace/contributions-view');
 const { allKindsOf } = await import('@/components/workspace/pull-request/move-card');
-const { SettingsScreen } = await import('./settings-view');
+const { AgentScreen } = await import('./settings-view');
 const {
   AUTOPILOT_CONFIRM_LINES,
   AUTOPILOT_LAUNCH_LINE,
@@ -632,7 +632,7 @@ describe('a follow-up on the review screen', () => {
     expect(html).toContain('data-status="STOPPED"');
     expect(text(html)).toContain('Stopped: reached your $5 limit per run');
     expect(text(html)).toContain('Open More limits →');
-    expect(html).toContain('href="/contribute/settings/budget#more-limits"');
+    expect(html).toContain('href="/my/agent/budget#more-limits"');
     expect(text(html)).toContain(
       'To give the next run more room, raise "Each run" under More limits in Budget and pacing.',
     );
@@ -872,11 +872,11 @@ describe('refusals, in plain words', () => {
 });
 
 describe('autopilot', () => {
-  /** Its row on the Settings summary, and what its How autopilot works dialog opens: the description and the record. */
+  /** Its row on the Agent tab, and what its How autopilot works dialog opens: the description and the record. */
   const settings = (view: ContributeView) =>
     renderToStaticMarkup(
       <>
-        <SettingsScreen view={view} now={NOW} />
+        <AgentScreen view={view} now={NOW} />
         {view.contributor ? <AutopilotHowItWorks autopilot={view.contributor.autopilot} /> : null}
         {view.contributor ? <AutopilotRecord autopilot={view.contributor.autopilot} /> : null}
       </>,

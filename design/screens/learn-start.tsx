@@ -2,9 +2,9 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { LearnStartScreen, type LearnStartScreenProps } from '@/app/learn/components/learn-start-screen';
-import { LearnTabs } from '@/app/learn/components/learn-tabs';
 import { Header } from '@/components/header/header';
 import { AgentConnectView, type AgentConnectViewProps } from '@/components/workspace/agent/agent-connect';
+import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import {
   fixAttemptOf,
   START_GOAL,
@@ -20,11 +20,14 @@ const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
 const SHOWN_TOKEN = 'gr_8Kq2vN4tXb7RwL1mZc9HpYe3Ud6SfA0jQg5Ko2Ti8Lm';
 const noop = () => {};
 
-/** The page as the Learn layout frames it: the site header, then Learn's tabs. */
+/** Every tab, as an account Learn is open to sees them. */
+const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
+
+/** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */
 const frame = (children: ReactNode) => (
   <>
-    <Header section="learn" />
-    <LearnTabs />
+    <Header />
+    <WorkspaceTabsNav tabs={TABS} needsYou={2} />
     <main className={MAIN}>{children}</main>
   </>
 );

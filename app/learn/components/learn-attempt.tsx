@@ -3,9 +3,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { AttemptStageWatch } from './attempt-stage-watch';
 import { LearnSettingUp } from './learn-setting-up';
-import { LearnTabs } from './learn-tabs';
 import { LessonShare } from './lesson-share';
 import { CHANGED_YOUR_MIND } from './own-lesson-card';
 import { PracticeRows } from './practice-lessons';
@@ -15,7 +13,6 @@ import { LESSON_GRID } from '@/components/learn/lesson-steps';
 import { WrittenFor } from '@/components/learn/written-for';
 import { Button } from '@/components/ui/button';
 import { DiffViewer } from '@/components/workspace/diff-viewer';
-import { HeaderLine } from '@/components/workspace/header-line';
 import { HEADING, PageTitle } from '@/components/workspace/primitives';
 import {
   ChecksPanel,
@@ -24,7 +21,6 @@ import {
   TimelinePanel,
   YourNotePanel,
 } from '@/components/workspace/pull-request/attempt-panels';
-import { AttemptSignIn } from '@/components/workspace/pull-request/attempt-sign-in';
 import { CardError, DiscardAttemptButton } from '@/components/workspace/pull-request/head-actions';
 import { PrForm } from '@/components/workspace/pull-request/pr-form';
 import { prFormPropsOf, withQuery } from '@/components/workspace/pull-request/review-view';
@@ -32,6 +28,7 @@ import { SendBackForm } from '@/components/workspace/pull-request/send-back-form
 import { SessionActionsProvider } from '@/components/workspace/pull-request/session-actions';
 import { type SessionTab, SessionTabs } from '@/components/workspace/session-tabs';
 import { Box } from '@/components/workspace/status-box';
+import { WorkspaceSignIn } from '@/components/workspace/workspace-sign-in';
 import { loadAttemptLesson, loadLearnOpen, loadLearnSetup, loadPracticeLessons } from '@/lib/learn/learn.data';
 import type { LearnAttemptLesson, LessonStep, PracticeLessons } from '@/lib/learn/learn.types';
 import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
@@ -143,7 +140,6 @@ function Waiting({
         <WhileYouWait practice={practice} />
         <TimelinePanel attempt={attempt} />
       </div>
-      <AttemptStageWatch attemptId={attempt.attemptId} stage={lesson.stage} />
     </div>
   );
 }
@@ -391,20 +387,6 @@ export function LearnAttemptScreen({
 }
 
 /**
- * Above an attempt's page: Learn's tabs for a signed-in viewer, the header's line for a visitor (the sign-in, which
- * names nothing of Learn while it is not open to everyone). Decided on the server, so the tabs never pop in.
- */
-export async function LearnAttemptFrame({ children }: { children: ReactNode }) {
-  const signedIn = Boolean(await viewerLogin());
-  return (
-    <>
-      {signedIn ? <LearnTabs inPage /> : <HeaderLine />}
-      {children}
-    </>
-  );
-}
-
-/**
  * The page's reads: Learn open to the viewer, their attempt, and its lesson. Anything else is a 404; a Fix attempt goes
  * to its Contribute page.
  */
@@ -418,7 +400,7 @@ export async function LearnAttemptView({
   const [{ id }, query] = await Promise.all([params, searchParams ?? Promise.resolve({})]);
   // Signed out: the link an agent hands its person, opened where they are not signed in. The sign-in, back here.
   // While Learn is not open to everyone it names nothing of Learn.
-  if (!(await viewerLogin())) return <AttemptSignIn what={(await learnOpenToEveryone()) ? 'lesson' : 'page'} />;
+  if (!(await viewerLogin())) return <WorkspaceSignIn what={(await learnOpenToEveryone()) ? 'lesson' : 'page'} />;
   const [open, settingUp, view, attempt, lesson] = await Promise.all([
     loadLearnOpen(),
     loadLearnSetup(),

@@ -50,6 +50,7 @@ import {
   ContributeGrantDocument,
   ContributeLimitsDocument,
   ContributeMcpConnectionsDocument,
+  ContributeNeedsYouCountDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
@@ -361,6 +362,24 @@ export const loadContributeActivity = cache(async (): Promise<ContributeActivity
       githubLogin,
     });
     return contributeActivity;
+  } catch {
+    return null;
+  }
+});
+
+/**
+ * How many things wait on the signed-in user: the Pull requests tab's count. Null when the API hides it, does not
+ * answer it yet, or fails: the tab shows no count then. Read once per request.
+ */
+export const loadNeedsYouCount = cache(async (): Promise<number | null> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+  try {
+    const { contributeNeedsYou } = await graphqlDirect(ContributeNeedsYouCountDocument, undefined, {
+      source: 'ssr',
+      githubLogin,
+    });
+    return contributeNeedsYou?.count ?? null;
   } catch {
     return null;
   }

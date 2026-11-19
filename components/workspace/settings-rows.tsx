@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 
 import { HEADING, PageTitle } from './primitives';
 import { cn } from '@/lib/utils';
-import { SETTINGS_PATHS } from '@/lib/workspace/paths';
+import { SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** A group of the Settings summary: its title, and its rows in one bordered list. */
 export function SettingsGroup({
@@ -102,16 +102,25 @@ export function SettingsRow({
 }
 
 /** A Settings page's head: back to the summary, its title and what it is for. */
-export function SettingsPageHead({ title, text }: { title: string; text?: ReactNode }) {
+export function SettingsPageHead({
+  title,
+  text,
+  back = 'settings',
+}: {
+  title: string;
+  text?: ReactNode;
+  /** The tab the page is under: its back link leads there. */
+  back?: 'settings' | 'agent';
+}) {
   return (
     <div className="flex flex-col gap-3">
       <Link
-        href={SETTINGS_PATHS.summary}
+        href={back === 'agent' ? WORKSPACE_PATHS.agent : SETTINGS_PATHS.summary}
         prefetch={false}
         className="inline-flex items-center gap-1.5 self-start rounded text-sm font-medium text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
-        Settings
+        {back === 'agent' ? 'Agent' : 'Settings'}
       </Link>
       <PageTitle title={title} text={text} />
     </div>

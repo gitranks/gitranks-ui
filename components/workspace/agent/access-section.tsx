@@ -14,7 +14,7 @@ import { contributeErrorMessage } from '@/lib/workspace/errors';
 import { dayLabel, maskedKey, relativeLabel, shortId } from '@/lib/workspace/format';
 import type { GrantRefusal } from '@/lib/workspace/grant-refusal';
 import { GITHUB_APPS_URL } from '@/lib/workspace/org-access';
-import { SETTINGS_PATHS } from '@/lib/workspace/paths';
+import { GITHUB_ACCESS_PATH, KEY_REPLACE_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { grantSummaryOf, KEY_STATES } from '@/lib/workspace/settings-summary';
 
 export { GITHUB_APPS_URL };
@@ -67,7 +67,7 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
     return (
       <Row title="Claude API key" detail={said ?? 'Not connected'}>
         <Button asChild variant="outline" className="h-10">
-          <Link href="/contribute/connect" prefetch={false}>
+          <Link href={WORKSPACE_PATHS.agentKey} prefetch={false}>
             Connect
           </Link>
         </Button>
@@ -91,7 +91,7 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
     <Row title="Claude API key" detail={said ?? detail}>
       {credential.state === 'INVALID' ? (
         <Button asChild variant="outline" className="h-10">
-          <Link href="/contribute/connect" prefetch={false}>
+          <Link href={KEY_REPLACE_PATH} prefetch={false}>
             Connect a new key
           </Link>
         </Button>
@@ -124,7 +124,7 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
 /** The GitHub grant's line: connect when missing, revoke when there. */
 function GrantRow({ grant, available }: { grant: ContributeGrant | undefined; available: boolean }) {
   const router = useRouter();
-  const { grant: allow, pending: granting } = useGrantGithub(SETTINGS_PATHS.keys);
+  const { grant: allow, pending: granting } = useGrantGithub(GITHUB_ACCESS_PATH);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<ReactNode>(null);
   const [confirming, setConfirming] = useState(false);
@@ -215,25 +215,31 @@ const REFUSALS: Record<GrantRefusal, string> = {
   unavailable: 'GitHub access was not saved: pull request access is not available yet.',
 };
 
-export function AccessSection({
-  credential,
+/** The Claude key the hosted agent runs on: what we keep of it, and its removal; connect one when there is none. */
+export function KeyPanel({ credential, now }: { credential: ContributeCredential | undefined; now?: Date }) {
+  return (
+    <Panel id="access" className="gap-1">
+      <KeyRow credential={credential} now={now} />
+    </Panel>
+  );
+}
+
+/**
+ * GitHub's permission to open pull requests for the user, whichever agent works for them: allow it, see it, revoke it;
+ * and why GitHub's consent was not saved, when it came back with a `grant` refusal.
+ */
+export function GithubAccessSection({
   grant,
   grantAvailable,
   grantRefusal,
-  signIn = false,
-  now,
 }: {
-  credential: ContributeCredential | undefined;
   grant: ContributeGrant | undefined;
   grantAvailable: boolean;
   /** GitHub sent back another account than the one signed in, or a grant that cannot be stored here. */
   grantRefusal?: GrantRefusal;
-  /** Agents sign in with GitHub: the own-agent row says so, the tokens second. */
-  signIn?: boolean;
-  now?: Date;
 }) {
   return (
-    <Panel id="access" className="gap-1">
+    <Panel id="github" className="scroll-mt-20 gap-1">
       {grantRefusal ? (
         <p role="alert" data-grant-refusal={grantRefusal} className="text-sm text-destructive">
           {REFUSALS[grantRefusal]} GitHub may still list GitRanks Contribute as authorized; you may want to revoke it in{' '}
@@ -243,22 +249,7 @@ export function AccessSection({
           .
         </p>
       ) : null}
-      <KeyRow credential={credential} now={now} />
       <GrantRow grant={grant} available={grantAvailable} />
-      <Row
-        title="Your own agent (MCP)"
-        detail={
-          signIn
-            ? "Agents signed in with GitHub, and tokens for a client that can't sign in."
-            : 'Tokens for Claude Code, Codex, Cursor, Gemini CLI, Antigravity or VS Code on your machine.'
-        }
-      >
-        <Button asChild variant="outline" className="h-10">
-          <Link href={SETTINGS_PATHS.ownAgent} prefetch={false}>
-            {signIn ? 'Manage' : 'Tokens'}
-          </Link>
-        </Button>
-      </Row>
     </Panel>
   );
 }

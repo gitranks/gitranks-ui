@@ -7,10 +7,10 @@ import { HEADING } from '@/components/workspace/primitives';
 import { type FirstRunStep, firstRunStepOf } from '@/lib/contribute/first-run';
 import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
 import { dayLabel, KINDS, LANGUAGES, relativeLabel, SIZES, usd } from '@/lib/workspace/format';
-import { CONNECT_KEY_PATH, settingsPathOf } from '@/lib/workspace/paths';
+import { CONNECT_KEY_PATH, settingsPathOf, WORKSPACE_ANCHORS } from '@/lib/workspace/paths';
 
 export const WORK_SETTINGS_PATH = settingsPathOf('work');
-const LIMITS_SETTINGS_PATH = settingsPathOf('more-limits');
+const LIMITS_SETTINGS_PATH = WORKSPACE_ANCHORS.attemptsRow;
 
 type StepCopy = { when: string; title: string; text: ReactNode; action?: ReactNode; working?: boolean };
 
@@ -58,7 +58,7 @@ export function firstRunCopyOf(step: FirstRunStep, view: ContributeView, now = n
         text: 'An attempt may spend up to its cap, and no allowance under your caps ever covers one.',
         action: (
           <Link href={LIMITS_SETTINGS_PATH} prefetch={false} className="text-sm font-semibold text-link">
-            Raise them in Settings →
+            Raise them on the Agent tab →
           </Link>
         ),
       };

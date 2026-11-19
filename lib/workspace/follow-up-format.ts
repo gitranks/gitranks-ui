@@ -129,15 +129,15 @@ const FOLLOW_UP_REFUSALS: [RegExp, string][] = [
   [/paused on our side/i, 'New agent sessions are paused on our side for now. Try again later.'],
   [
     /contributing is paused/i,
-    'Contributing is paused. Click Resume contributing on Overview or in Settings (connect a working Claude key first if it asks), then start the run.',
+    'Contributing is paused. Click Resume contributing on Overview or on the Agent tab (connect a working Claude key first if it asks), then start the run.',
   ],
   [
     /key/i,
-    'Your Claude key cannot start a session now: none is connected, Anthropic refused it, or its credits ran out. Connect a working one under Keys and access in Settings, then start the run.',
+    'Your Claude key cannot start a session now: none is connected, Anthropic refused it, or its credits ran out. Connect a working one under Keys and access on the Agent tab, then start the run.',
   ],
   [
     /limit/i,
-    'Your spend limits leave no room for another run now. Raise them, or lower Each run, in Budget and pacing in Settings, or wait until they reset.',
+    'Your spend limits leave no room for another run now. Raise them, or lower Each run, in Budget and pacing on the Agent tab, or wait until they reset.',
   ],
   [
     /opted out|AI-assisted/i,

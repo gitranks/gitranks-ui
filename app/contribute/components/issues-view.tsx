@@ -34,7 +34,7 @@ import {
   isSuspended,
 } from '@/lib/workspace/contribute-state';
 import { dayLabel, relativeLabel, usd } from '@/lib/workspace/format';
-import { settingsPathOf } from '@/lib/workspace/paths';
+import { CONNECT_KEY_PATH, settingsPathOf } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 
 export async function IssuesView({
@@ -227,7 +227,7 @@ export function IssuesScreen({
             ) : (
               <span className="text-sm text-muted-foreground">
                 Nothing is spent until a key is connected.{' '}
-                <Link href="/contribute/connect" prefetch={false} className="font-semibold text-link">
+                <Link href={CONNECT_KEY_PATH} prefetch={false} className="font-semibold text-link">
                   Connect Claude
                 </Link>
               </span>

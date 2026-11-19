@@ -2,9 +2,13 @@
 
 import { useState, useTransition } from 'react';
 
-import { optInMaintainerRepos, optOutMaintainerRepos, signInAsMaintainer } from '../maintainers/actions';
 import { MaintainerRepoActions } from './maintainer-repo-actions';
 import { MaintainerRepoExtras } from './maintainer-repo-extras';
+import {
+  optInMaintainerRepos,
+  optOutMaintainerRepos,
+  signInAsMaintainer,
+} from '@/app/(public)/contribute/maintainers/actions';
 import { Pill } from '@/components/pill/pill';
 import { StarCount } from '@/components/star-count/star-count';
 import { Button } from '@/components/ui/button';

@@ -4,6 +4,7 @@ import type { NextConfig } from 'next';
 import { HTML_LIMITED_BOT_UA_RE } from 'next/dist/shared/lib/router/utils/html-bots';
 
 import { LINK_PAGE_HEADERS, LINK_PAGE_SOURCES } from './lib/link-token/link-token';
+import { OLD_WORKSPACE_REDIRECTS } from './lib/workspace/old-addresses';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -104,6 +105,8 @@ const nextConfig: NextConfig = {
       { source: '/country/sitemap.xml', destination: '/sitemaps/countries/sitemap.xml', permanent: true },
       { source: '/language/sitemap.xml', destination: '/sitemaps/languages/sitemap.xml', permanent: true },
       { source: '/orgs/sitemap.xml', destination: '/sitemaps/orgs/sitemap.xml', permanent: true },
+      // Old workspace addresses (2026-11). Remove after 2027-03-01.
+      ...OLD_WORKSPACE_REDIRECTS,
     ];
   },
 };

@@ -57,7 +57,7 @@ describe('the proof card', () => {
     expect(plain).toContain('clawsweeper · blocks the merge');
     expect(plain).toContain('“Add real behavior proof”');
     expect(plain).toContain('Why only you');
-    expect(html).toContain('href="/contribute/connect?path=agent&amp;proof=A_OC"');
+    expect(html).toContain('href="/my/agent/connect?proof=A_OC"');
     expect(plain).toContain('Connect your agent →');
     expect(plain).toContain('gitranks-proof/190186');
     expect(plain).toContain('Add it on GitHub yourself ↗');

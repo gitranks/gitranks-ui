@@ -8,7 +8,7 @@ const { setContributeEmail, refresh } = vi.hoisted(() => ({ setContributeEmail: 
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh, push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/settings',
+  usePathname: () => '/my/settings',
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
@@ -21,7 +21,7 @@ const { EMAIL_AUTOPILOT_NOTE, EMAIL_OFF, EMAIL_TITLE, EmailSection } = await imp
   '@/components/workspace/settings/email-section'
 );
 const { SettingsScreen } = await import('./settings-view');
-const { NOW, email: fixture, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { email: fixture, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 
 import type { ContributeEmail } from '@/lib/workspace/contribute.types';
 
@@ -37,7 +37,7 @@ const text = (html: string) =>
     .replace(/\s+/g, ' ');
 
 const settings = (email?: ContributeEmail | null) =>
-  renderToStaticMarkup(<SettingsScreen view={views.active} now={NOW} email={email} />);
+  renderToStaticMarkup(<SettingsScreen view={views.active} email={email} />);
 
 describe("Settings' email row", () => {
   it('says where the email goes when it is on, under its own anchor, with the autopilot note', () => {
@@ -81,7 +81,7 @@ describe("Settings' email row", () => {
     expect(html).not.toContain('id="email"');
     expect(html).not.toContain('id="settings-email"');
     expect(text(html)).not.toContain(EMAIL_TITLE);
-    expect(text(html)).toContain('Connections');
+    expect(text(html)).toContain('GitHub pull requests');
   });
 });
 

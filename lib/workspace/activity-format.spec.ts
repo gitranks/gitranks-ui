@@ -18,12 +18,13 @@ const item = (over: Partial<ContributeActivityItem> = {}): ContributeActivityIte
 describe('the activity, as the bar reads it', () => {
   it('belongs to the overview, issues and settings tabs', () => {
     expect(activityTabOf('/contribute')).toBe('OVERVIEW');
-    expect(activityTabOf('/contribute/connect/')).toBe('OVERVIEW');
+    expect(activityTabOf('/contribute/')).toBe('OVERVIEW');
     expect(activityTabOf('/contribute/issues')).toBe('ISSUES');
-    expect(activityTabOf('/contribute/settings')).toBe('SETTINGS');
-    expect(activityTabOf('/contribute/settings/switch/stack')).toBe('SETTINGS');
-    expect(activityTabOf('/contribute/settingsx')).toBeNull();
-    expect(activityTabOf('/contribute/me')).toBeNull();
+    expect(activityTabOf('/my/settings')).toBe('SETTINGS');
+    expect(activityTabOf('/my/settings/work/switch/stack')).toBe('SETTINGS');
+    expect(activityTabOf('/my/settingsx')).toBeNull();
+    expect(activityTabOf('/my/pull-requests')).toBeNull();
+    expect(activityTabOf('/my/agent/connect')).toBeNull();
     expect(itemsOn({ items: [item()], runs: [], readAt: '' }, 'OVERVIEW')).toEqual([]);
     expect(itemsOn({ items: [item()], runs: [], readAt: '' }, null)).toEqual([]);
     expect(itemsOn(null, 'ISSUES')).toEqual([]);

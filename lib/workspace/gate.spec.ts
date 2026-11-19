@@ -5,7 +5,7 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 const { sessionTokenOf } = vi.hoisted(() => ({ sessionTokenOf: vi.fn() }));
 vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 
-const { learnOpenFor, requestLearnAccess, tabsOf, workspaceGateOf } = await import('./gate');
+const { learnOpenFor, notEnteredTargetOf, requestLearnAccess, tabsOf, workspaceGateOf } = await import('./gate');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { isLearnOpenPath, isLearnPath } = await import('@/lib/learn/learn-path');
 const { learnAttemptPath } = await import('./paths');
@@ -161,5 +161,25 @@ describe("the workspace gate, over today's answers", () => {
     expect(tabsOf({ kind: 'signed-out' })).toEqual([]);
     expect(tabsOf({ kind: 'hidden' })).toEqual([]);
     expect(tabsOf({ kind: 'setting-up' })).toEqual([]);
+  });
+});
+
+describe('where an account that has not entered goes from a page under /my', () => {
+  it('opens the Agent and Settings pages, as someone mid-setup may need them', () => {
+    for (const path of ['/my/agent', '/my/agent/', '/my/agent/connect', '/my/agent/key', '/my/settings/work']) {
+      expect(notEnteredTargetOf(path), path).toBeNull();
+    }
+  });
+
+  it("sends every other page to Contribute's home, a lesson's Start page too", () => {
+    for (const path of ['/my/pull-requests', '/my/pull-requests/acme/widgets/42', '/my/start/acme/widgets/42', '/my']) {
+      expect(notEnteredTargetOf(path), path).toBe('/contribute');
+    }
+    expect(notEnteredTargetOf('/my/start/acme/widgets/42', new URLSearchParams('lesson=1'))).toBe('/contribute');
+  });
+
+  it('decides nothing outside /my', () => {
+    for (const path of ['/contribute', '/learn', '/my-agent', '/myself'])
+      expect(notEnteredTargetOf(path), path).toBeNull();
   });
 });

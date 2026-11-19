@@ -6,7 +6,6 @@ import { LearnHomeScreen } from '@/app/learn/components/learn-home';
 import { LearnLanding } from '@/app/learn/components/learn-landing';
 import { LearnMaintainers } from '@/app/learn/components/learn-maintainers';
 import { LearnProfileScreen } from '@/app/learn/components/learn-profile';
-import { LearnTabs } from '@/app/learn/components/learn-tabs';
 import { LessonPageScreen } from '@/app/learn/components/lesson-page';
 import { LessonResultScreen, type ResultViewer } from '@/app/learn/components/lesson-result';
 import { LessonStubScreen } from '@/app/learn/components/lesson-stub';
@@ -15,6 +14,7 @@ import { RecentLessons } from '@/app/learn/components/recent-lessons';
 import { Header } from '@/components/header/header';
 import type { LessonFlowStart } from '@/components/learn/lesson-flow';
 import { HeaderLine } from '@/components/workspace/header-line';
+import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { detail, pullRequest } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { views } from '@/lib/contribute/__fixtures__/contribute-views';
 import {
@@ -44,19 +44,22 @@ import type { ContributeAttemptDetail } from '@/lib/workspace/contribute.types';
 /** A page's own container, as its `page.tsx` draws it. */
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
 
-/** The page as the Learn layout frames it: the site header, then Learn's tabs. */
+/** Every tab, as an account Learn is open to sees them. */
+const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
+
+/** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */
 const frame = (children: ReactNode) => (
   <>
-    <Header section="learn" />
-    <LearnTabs />
+    <Header />
+    <WorkspaceTabsNav tabs={TABS} needsYou={2} />
     <main className={MAIN}>{children}</main>
   </>
 );
 
 /** A page that draws its own `main` (the front door, the page for maintainers), under the header and `line`. */
-const bare = (children: ReactNode, line: ReactNode = <LearnTabs />) => (
+const bare = (children: ReactNode, line: ReactNode = <WorkspaceTabsNav tabs={TABS} needsYou={2} />) => (
   <>
-    <Header section="learn" />
+    <Header />
     {line}
     {children}
   </>
@@ -76,7 +79,6 @@ const home = (
     <LearnHomeScreen
       state={learnHomeStateOf({ settingUp, profile, attempts })}
       profile={profile}
-      attempts={attempts}
       issues={issues}
       practice={practice}
     />,
@@ -140,7 +142,7 @@ const MONA_GOAL = { kind: 'language', value: 'TypeScript', level: 'Some' };
 
 const PATH = '/learn/attempts/A_1';
 
-/** A shared lesson's page and its result pages: open to everyone, so under the header's line, without Learn's tabs. */
+/** A shared lesson's page and its result pages: open to everyone, so under the header's line, without the workspace's tabs. */
 const LESSON_PATH = '/learn/lessons/route-cache-miss-8f3k';
 const RESULT_PATH = `${LESSON_PATH}/passes/octocat`;
 const open = (children: ReactNode) => bare(children, <HeaderLine />);
@@ -347,7 +349,7 @@ export const LEARN_SCREENS: Screen[] = [
     title: 'Learn for maintainers',
     area: 'learn',
     route: '/learn/maintainers',
-    sources: ['app/learn/maintainers/page.tsx', 'app/learn/components/learn-maintainers.tsx'],
+    sources: ['app/(public)/learn/maintainers/page.tsx', 'app/learn/components/learn-maintainers.tsx'],
     states: [
       {
         id: 'default',
@@ -355,7 +357,7 @@ export const LEARN_SCREENS: Screen[] = [
         path: '/learn/maintainers',
         signedOut: true,
         height: 1030,
-        render: () => bare(<LearnMaintainers />),
+        render: () => open(<LearnMaintainers />),
       },
     ],
   },

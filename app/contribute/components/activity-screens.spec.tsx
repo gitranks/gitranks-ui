@@ -1,17 +1,19 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-let pathname = '/contribute/settings';
+let pathname = '/my/settings';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => pathname,
   useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock('@/lib/workspace/actions', () => ({ readContributeChanges: vi.fn() }));
+vi.mock('@/lib/workspace/actions', () => ({ readWorkspaceChanges: vi.fn(), readNeedsYouCount: vi.fn() }));
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({ useReportPendingNavigation: () => {} }));
 
 const { ActivityBarView } = await import('@/components/workspace/activity');
-const { ContributeTabsNav } = await import('./contribute-tabs-nav');
+const { WorkspaceTabsNav } = await import('@/components/workspace/workspace-tabs-nav');
+
+const TABS = ['contribute', 'pull-requests', 'agent', 'settings'] as const;
 
 import type { ContributeActivity, ContributeActivityItem } from '@/lib/workspace/contribute.types';
 
@@ -138,23 +140,23 @@ describe('the tabs with work in progress', () => {
   const activity: ContributeActivity = { items: [reads], runs: [], readAt: NOW.toISOString() };
 
   it('dots the tabs the work belongs to, and shows the bar on them', () => {
-    pathname = '/contribute/settings';
-    const html = renderToStaticMarkup(<ContributeTabsNav onboarded activity={activity} />);
+    pathname = '/my/settings';
+    const html = renderToStaticMarkup(<WorkspaceTabsNav tabs={TABS} activity={activity} />);
 
-    expect(html).toContain('data-activity-dot="ISSUES"');
+    // Contribute's one dot stands for its Overview and its Issues page.
+    expect(html).toContain('data-activity-dot="OVERVIEW ISSUES"');
     expect(html).toContain('data-activity-dot="SETTINGS"');
-    expect(html).not.toContain('data-activity-dot="OVERVIEW"');
     expect(text(html)).toContain('Settings (working)');
     expect(html).toContain('data-activity-bar');
   });
 
   it('shows no bar on a tab the work does not belong to, nor without work', () => {
-    pathname = '/contribute/me';
-    expect(renderToStaticMarkup(<ContributeTabsNav onboarded activity={activity} />)).not.toContain(
+    pathname = '/my/pull-requests';
+    expect(renderToStaticMarkup(<WorkspaceTabsNav tabs={TABS} activity={activity} />)).not.toContain(
       'data-activity-bar',
     );
     pathname = '/contribute/issues';
-    const quiet = renderToStaticMarkup(<ContributeTabsNav onboarded activity={{ items: [], runs: [], readAt: '' }} />);
+    const quiet = renderToStaticMarkup(<WorkspaceTabsNav tabs={TABS} activity={{ items: [], runs: [], readAt: '' }} />);
     expect(quiet).not.toContain('data-activity');
   });
 });

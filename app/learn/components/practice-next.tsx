@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { readPracticeNext } from '../actions';
-import { LearnIssueRow, RoomNote } from './learn-issues';
+import { IssuesEmpty, LearnIssueRow, RoomNote } from './learn-issues';
 import { HEADING } from '@/app/contribute/components/primitives';
 import { Button } from '@/components/ui/button';
 import type { PracticeNext } from '@/lib/learn/learn.types';
@@ -16,17 +16,19 @@ import { LEARN_ISSUES_PATH } from '@/lib/learn/learn-start';
 const CARD = 'flex flex-col gap-3 rounded-xl border-2 border-primary bg-card p-5';
 const BUTTON = 'min-h-11 self-start px-5 font-semibold max-sm:w-full';
 
-/** The issues' own links: all of them on Learn home, or another practice lesson. */
-function MoreLinks() {
+/** The issues' own links: all of them on Learn home (none for a goal Learn can't find issues for), or more practice. */
+function MoreLinks({ issues = true }: { issues?: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-      <Link
-        href={LEARN_ISSUES_PATH}
-        prefetch={false}
-        className="text-sm font-semibold text-link hover:underline max-sm:inline-flex max-sm:min-h-11 max-sm:items-center"
-      >
-        All issues for your goal →
-      </Link>
+      {issues ? (
+        <Link
+          href={LEARN_ISSUES_PATH}
+          prefetch={false}
+          className="text-sm font-semibold text-link hover:underline max-sm:inline-flex max-sm:min-h-11 max-sm:items-center"
+        >
+          All issues for your goal →
+        </Link>
+      ) : null}
       <Link
         href={LEARN_PRACTICE_PATH}
         prefetch={false}
@@ -126,8 +128,11 @@ export function PracticeNextCard({ next: given }: { next?: PracticeNext | null }
             />
           ))}
         </ul>
+      ) : issues ? (
+        // None to start: why, as Learn home words it.
+        <IssuesEmpty issues={issues} goal={goal} />
       ) : null}
-      <MoreLinks />
+      <MoreLinks issues={issues?.empty !== 'GOAL_UNSUPPORTED'} />
     </section>
   );
 }

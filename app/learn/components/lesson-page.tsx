@@ -153,9 +153,12 @@ async function lessonViewerOf(page: LessonPage): Promise<LessonViewer> {
   const login = await viewerLogin();
   if (!login) return { kind: 'visitor' };
   if (!(await loadLearnOpen())) return { kind: 'reader', login };
-  const [settingUp, run] = await Promise.all([loadLearnSetup(), loadMyLessonRun(page.head.slug)]);
-  if (settingUp) return { kind: 'setup', login };
   // The taker's goal says whether the lesson's was the same ("also"); the author's own page needs none.
-  const goal = isAuthorOf(page.head, login) ? null : goalViewOf(await loadLearnProfile().catch(() => null));
-  return { kind: 'taker', login, run, goal };
+  const [settingUp, run, profile] = await Promise.all([
+    loadLearnSetup(),
+    loadMyLessonRun(page.head.slug),
+    isAuthorOf(page.head, login) ? null : loadLearnProfile().catch(() => null),
+  ]);
+  if (settingUp) return { kind: 'setup', login };
+  return { kind: 'taker', login, run, goal: goalViewOf(profile) };
 }

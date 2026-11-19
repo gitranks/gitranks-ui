@@ -233,5 +233,3 @@ export const PRACTICE_ALL = 30;
 
 /** How many issues Learn home asks for. */
 export const ISSUES_SHOWN = 10;
-/** The most issues the browser may ask for: a passed practice lesson shows two. */
-export const ISSUES_READ_MAX = 2;

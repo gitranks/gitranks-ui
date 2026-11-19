@@ -7,13 +7,11 @@ import { levelPhraseOf, sameGoal, wantedOf } from '@/lib/learn/learn-home';
 import { writtenForOf } from '@/lib/learn/lesson-format';
 import { pullRequestOf } from '@/lib/learn/lesson-public';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 /** "Nov 14, 2026", in UTC; empty for a date that does not parse. */
 export function madeDayOf(iso: string | null | undefined): string {
   const date = iso ? new Date(iso) : null;
   if (!date || Number.isNaN(date.getTime())) return '';
-  return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 function Cell({ term, children }: { term: string; children: ReactNode }) {

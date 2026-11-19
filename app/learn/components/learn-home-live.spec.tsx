@@ -102,6 +102,15 @@ describe("a lesson page's re-read while the agent works", () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
+  it('reads the page once, then stops, when the viewer has no lesson there any more', async () => {
+    actions.readAttemptStage.mockResolvedValue({ ok: true, data: null });
+    await act(async () => root.render(<AttemptStageWatch attemptId="A_1" stage="AGENT_WORKING" />));
+    await tick();
+    await tick();
+    expect(actions.readAttemptStage).toHaveBeenCalledTimes(1);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
   it('stops once the attempt is no longer the viewer’s to read', async () => {
     actions.readAttemptStage.mockResolvedValue({ ok: false, error: 'NOT_FOUND' });
     await act(async () => root.render(<AttemptStageWatch attemptId="A_1" stage="AGENT_WORKING" />));

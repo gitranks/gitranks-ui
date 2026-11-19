@@ -45,7 +45,7 @@ import type {
   PracticeLessons,
   PracticeNext,
 } from '@/lib/learn/learn.types';
-import { currentOf, ISSUES_READ_MAX, PRACTICE_ALL } from '@/lib/learn/learn-home';
+import { currentOf, PRACTICE_ALL } from '@/lib/learn/learn-home';
 import { githubLoginOf, lessonResultPath, lessonSlugOf, REACT_PARAM } from '@/lib/learn/learn-path';
 import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
@@ -290,13 +290,11 @@ export async function readPracticeLessons(first: number): Promise<ContributeActi
 }
 
 /**
- * The issues for the viewer's goal, `first` of them, at most the two a passed practice lesson shows; 0 answers how
- * many there are and reveals none.
+ * How many issues fit the viewer's goal, and why none do (`learnIssues(first: 0)`): no row comes back, so none is
+ * revealed. The browser can ask for nothing more; issues themselves are read only where the page shows them.
  */
-export async function readLearnIssues(first: number): Promise<ContributeActionResult<LearnIssues>> {
-  const count = countOf(first, 0, ISSUES_READ_MAX);
-  if (count === null) return invalid();
-  return run(LearnIssuesDocument, { first: count }, (data) => data.learnIssues);
+export async function readLearnIssueCount(): Promise<ContributeActionResult<LearnIssues>> {
+  return run(LearnIssuesDocument, { first: 0 }, (data) => data.learnIssues);
 }
 
 /** Where the viewer's Learn attempt is now, read again while its page waits for the agent; null when there is none. */
@@ -318,6 +316,6 @@ export async function readPracticeNext(): Promise<ContributeActionResult<Practic
   if (!attempts.ok) return attempts;
   const current = currentOf(attempts.data);
   if (current) return { ok: true, data: { current, issues: null } };
-  const issues = await readLearnIssues(PASSED_ISSUES);
+  const issues = await run(LearnIssuesDocument, { first: PASSED_ISSUES }, (data) => data.learnIssues);
   return issues.ok ? { ok: true, data: { current: null, issues: issues.data } } : issues;
 }

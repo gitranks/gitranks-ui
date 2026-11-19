@@ -19,7 +19,12 @@ export function AttemptStageWatch({ attemptId, stage }: { attemptId: string; sta
     const result = await readAttemptStage(attemptId);
     // Signed out, or the attempt is no longer the viewer's to read: asking again changes nothing.
     if (!result.ok) return result.error === 'SIGNED_OUT' || result.error === 'NOT_FOUND' ? STOP_POLL : undefined;
-    if (result.data && result.data !== stage) startTransition(() => router.refresh());
+    // No lesson for the viewer any more (Learn closed to them, say): the page reads itself again once, and says so.
+    if (result.data === null) {
+      startTransition(() => router.refresh());
+      return STOP_POLL;
+    }
+    if (result.data !== stage) startTransition(() => router.refresh());
   }, OWN_LESSON_POLL_MS);
   return null;
 }

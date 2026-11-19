@@ -1,10 +1,10 @@
 'use client';
 
 import { Check } from 'lucide-react';
-import { type ReactNode, useId, useState } from 'react';
+import { type ReactNode, useId, useRef, useState } from 'react';
 
 import { GoalSavedNext } from './goal-saved-next';
-import { readLearnIssues, readMyLearnAttempts, saveLearnProfile } from '@/app/learn/actions';
+import { readLearnIssueCount, readMyLearnAttempts, saveLearnProfile } from '@/app/learn/actions';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
 import type { LearnGoalKind, LearnProfile, PracticeNext } from '@/lib/learn/learn.types';
+import { currentOf } from '@/lib/learn/learn-home';
 import {
   FOCUS,
   type LearnProfileForm as Form,
@@ -87,10 +88,10 @@ function GoalValue({ kind, form, onChange }: { kind: LearnGoalKind; form: Form; 
 async function readSavedNext(): Promise<PracticeNext> {
   const [attempts, issues] = await Promise.all([
     readMyLearnAttempts().catch(() => null),
-    readLearnIssues(0).catch(() => null),
+    readLearnIssueCount().catch(() => null),
   ]);
   return {
-    current: attempts?.ok ? (attempts.data.current ?? null) : null,
+    current: attempts?.ok ? currentOf(attempts.data) : null,
     issues: issues?.ok ? issues.data : null,
   };
 }
@@ -117,11 +118,14 @@ export function LearnProfileForm({
   });
   // The panel under the form: undefined until a save's next step is read.
   const [next, setNext] = useState<PracticeNext | null | undefined>(drawnSaved?.next);
+  // The save the panel's read belongs to: an edit or a newer save makes an older read's answer stale.
+  const asked = useRef(0);
   const id = useId();
   const change = (value: Form) => {
     setForm(value);
     setStatus({ saved: false, error: null });
     setNext(undefined);
+    asked.current += 1;
   };
   const problem = formProblemOf(form);
   const rows = levelRowsOf(form);
@@ -135,7 +139,11 @@ export function LearnProfileForm({
       if (result.ok) {
         setForm(formOf(result.data));
         setStatus({ saved: true, error: null });
-        setNext(await readSavedNext());
+        setSaving(false);
+        asked.current += 1;
+        const mine = asked.current;
+        const read = await readSavedNext();
+        if (asked.current === mine) setNext(read);
       } else {
         setStatus({
           saved: false,
@@ -299,7 +307,13 @@ export function LearnProfileForm({
         </Section>
       </fieldset>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={!!problem || saving} className="min-h-11 px-5 font-semibold">
+        <Button
+          type="submit"
+          disabled={!!problem || saving}
+          // Once saved, the panel's button below is the view's one primary action.
+          variant={status.saved && next !== undefined ? 'outline' : 'default'}
+          className="min-h-11 px-5 font-semibold"
+        >
           {saving ? 'Saving…' : 'Save'}
         </Button>
         {status.saved ? null : (

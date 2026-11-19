@@ -271,6 +271,20 @@ describe('a practice lesson', () => {
     expect(html).not.toContain('data-learn-issue');
   });
 
+  it('once passed with no issue to start, says why as Learn home does', () => {
+    const unsupported = passed(practiceNext.unsupported);
+    expect(unsupported).toContain('data-issues-empty="goal-unsupported"');
+    expect(text(unsupported)).toContain('Learn can’t find issues for this goal yet.');
+    // No list to go to for that goal.
+    expect(text(unsupported)).not.toContain('All issues for your goal');
+    const none = passed({
+      current: null,
+      issues: { ...practiceNext.own.issues, items: [], total: 0, empty: 'NONE_TODAY' },
+    });
+    expect(text(none)).toContain('No open issues fit TypeScript today.');
+    expect(text(none)).toContain('All issues for your goal →');
+  });
+
   it('once passed with no goal, asks for it first; read failed, the links alone', () => {
     const noGoal = passed(practiceNext.noGoal);
     expect(noGoal).toContain('data-next-step="goal"');

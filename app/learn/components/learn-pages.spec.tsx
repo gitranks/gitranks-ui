@@ -16,7 +16,7 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: 
 vi.mock('@/app/learn/actions', () => ({
   saveLearnProfile: vi.fn(),
   readMyLearnAttempts: vi.fn(),
-  readLearnIssues: vi.fn(),
+  readLearnIssueCount: vi.fn(),
 }));
 vi.mock('@/app/contribute/actions', () => ({}));
 const { everyone, viewerLogin } = vi.hoisted(() => ({

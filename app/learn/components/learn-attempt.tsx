@@ -1,12 +1,15 @@
-import { GitPullRequest, GraduationCap, type LucideIcon, Terminal } from 'lucide-react';
+import { ArrowRight, GitPullRequest, GraduationCap, type LucideIcon, Terminal } from 'lucide-react';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { AttemptStageWatch } from './attempt-stage-watch';
 import { LearnSettingUp } from './learn-setting-up';
 import { LessonFlow, type LessonFlowStart, StepArticle } from './lesson-flow';
 import { LessonShare } from './lesson-share';
 import { LESSON_GRID } from './lesson-steps';
+import { CHANGED_YOUR_MIND } from './own-lesson-card';
+import { PracticeRows } from './practice-lessons';
 import { StageStrip } from './stage-strip';
 import { WrittenFor } from './written-for';
 import {
@@ -26,15 +29,18 @@ import { SendBackForm } from '@/app/contribute/components/send-back-form';
 import { SessionActionsProvider } from '@/app/contribute/components/session-actions';
 import { type SessionTab, SessionTabs } from '@/app/contribute/components/session-tabs';
 import { Box } from '@/app/contribute/components/status-box';
+import { Button } from '@/components/ui/button';
 import { isOwnAgent } from '@/lib/contribute/attempt-format';
 import type { CommentActionsInit } from '@/lib/contribute/comment-actions';
 import { loadAttempt, loadContribute, viewerLogin } from '@/lib/contribute/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/contribute/contribute.types';
 import { parsePatch } from '@/lib/contribute/patch';
 import { attemptPath } from '@/lib/contribute/sessions';
-import { loadAttemptLesson, loadLearnOpen, loadLearnSetup } from '@/lib/learn/learn.data';
-import type { LearnAttemptLesson, LessonStep } from '@/lib/learn/learn.types';
-import { MY_LESSONS_PATH } from '@/lib/learn/learn-path';
+import { loadAttemptLesson, loadLearnOpen, loadLearnSetup, loadPracticeLessons } from '@/lib/learn/learn.data';
+import type { LearnAttemptLesson, LessonStep, PracticeLessons } from '@/lib/learn/learn.types';
+import { endedReasonOf, WAIT_PRACTICE } from '@/lib/learn/learn-home';
+import { LEARN_PRACTICE_PATH, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
+import { LEARN_ISSUES_PATH } from '@/lib/learn/learn-start';
 import { subjectLineOf } from '@/lib/learn/lesson-format';
 
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
@@ -57,8 +63,42 @@ const WHAT_NEXT: { Icon: LucideIcon; title: string; text: string }[] = [
   },
 ];
 
-/** While the agent works: what happens next, and what it did so far. */
-function Waiting({ attempt, lesson }: { attempt: ContributeAttemptDetail; lesson: LearnAttemptLesson }) {
+/** While the agent works, if the learner likes: two practice lessons for their goal. Left out when there is none. */
+function WhileYouWait({ practice }: { practice: PracticeLessons | undefined }) {
+  const items = practice?.items.slice(0, WAIT_PRACTICE) ?? [];
+  if (!items.length) return null;
+  return (
+    <section
+      aria-labelledby="while-you-wait"
+      className="flex flex-col gap-3 rounded-xl border bg-card p-5"
+      data-meanwhile=""
+    >
+      <h2 id="while-you-wait" className={HEADING.card}>
+        While you wait: a practice lesson, if you like
+      </h2>
+      <Text>Optional. Made for the same goal as yours, and it doesn’t touch your agent’s work.</Text>
+      <PracticeRows lessons={items} />
+      <Link
+        href={LEARN_PRACTICE_PATH}
+        prefetch={false}
+        className="self-start text-sm font-semibold text-link hover:underline max-sm:inline-flex max-sm:min-h-11 max-sm:items-center"
+      >
+        All practice lessons →
+      </Link>
+    </section>
+  );
+}
+
+/** While the agent works: what happens next, what it did so far, and a practice lesson if the learner likes. */
+function Waiting({
+  attempt,
+  lesson,
+  practice,
+}: {
+  attempt: ContributeAttemptDetail;
+  lesson: LearnAttemptLesson;
+  practice: PracticeLessons | undefined;
+}) {
   const rewriting = lesson.stage === 'AGENT_REWRITING';
   return (
     <div className={LESSON_GRID}>
@@ -76,8 +116,10 @@ function Waiting({ attempt, lesson }: { attempt: ContributeAttemptDetail; lesson
           <Text>
             {rewriting
               ? 'It writes a new fix or a better lesson. When both pass our checks, the lesson opens here again, with the steps you passed kept where they did not change.'
-              : 'Nothing to do here yet. When the fix passes our checks, your lesson opens on this page. We also email you.'}
+              : 'Nothing to do here yet. When the fix passes our checks, your lesson opens on this page.'}{' '}
+            Your agent tells you in the terminal too.
           </Text>
+          <Text>{CHANGED_YOUR_MIND}</Text>
         </Box>
         <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
           <h2 className={HEADING.card}>What happens next</h2>
@@ -95,8 +137,10 @@ function Waiting({ attempt, lesson }: { attempt: ContributeAttemptDetail; lesson
             ))}
           </ol>
         </section>
+        <WhileYouWait practice={practice} />
         <TimelinePanel attempt={attempt} />
       </div>
+      <AttemptStageWatch attemptId={attempt.attemptId} stage={lesson.stage} />
     </div>
   );
 }
@@ -273,12 +317,15 @@ export function LearnAttemptScreen({
   attempt,
   lesson,
   start,
+  practice,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail;
   lesson: LearnAttemptLesson;
   /** The catalogue's boards: a flow drawn part-way. */
   start?: LessonFlowStart;
+  /** Practice lessons for the learner's goal, read while the agent works. */
+  practice?: PracticeLessons;
 }) {
   const subject = subjectLineOf(lesson.head, { repo: attempt.nameWithOwner, number: attempt.number });
   const title = attempt.title ?? lesson.head?.subject.issueTitle ?? lesson.head?.title ?? `Issue #${attempt.number}`;
@@ -286,16 +333,19 @@ export function LearnAttemptScreen({
 
   let content: ReactNode;
   if (waiting) {
-    content = <Waiting attempt={attempt} lesson={lesson} />;
+    content = <Waiting attempt={attempt} lesson={lesson} practice={practice} />;
   } else if (lesson.stage === 'ENDED') {
     content = (
       <>
         <Box state="LEARN_ENDED" tone="muted">
           <h2 className={HEADING.card}>This attempt ended</h2>
-          <Text>
-            {attempt.endDetail?.trim() ||
-              'No pull request opens from it, and its lesson stays private. Your agent can pick another issue.'}
-          </Text>
+          <Text>{endedReasonOf(attempt.endReason)} No pull request opens from it, and its lesson stays private.</Text>
+          <Button asChild className="min-h-11 self-start px-5 font-semibold max-sm:w-full">
+            <Link href={LEARN_ISSUES_PATH} prefetch={false}>
+              Pick another issue
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
         </Box>
         <Details attempt={attempt} steps={[]} />
       </>
@@ -372,5 +422,8 @@ export async function LearnAttemptView({
     if (attempt.mode === 'FIX') redirect(withQuery(attemptPath(attempt.attemptId), query));
     notFound();
   }
-  return <LearnAttemptScreen view={view} attempt={attempt} lesson={lesson} />;
+  // While the agent works, practice lessons for the learner's goal; never read once the lesson is there.
+  const waiting = lesson.stage === 'AGENT_WORKING' || lesson.stage === 'AGENT_REWRITING';
+  const practice = waiting ? await loadPracticeLessons(WAIT_PRACTICE) : undefined;
+  return <LearnAttemptScreen view={view} attempt={attempt} lesson={lesson} practice={practice} />;
 }

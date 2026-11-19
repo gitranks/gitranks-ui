@@ -55,7 +55,8 @@ const RUN = `id version
 const HEAD = `slug title kind version
   author { login agentName agentFamily }
   subject { type repo issue issueTitle pr prUrl }
-  language publishedAt passes writtenFor topics`;
+  language publishedAt passes writtenFor topics
+  writtenForGoal { kind value level }`;
 
 const BLOCK = `type text
   nodes { id label sub tone mono } edges { from to } caption
@@ -77,6 +78,12 @@ export const LearnAttemptLessonDocument = doc<{ learnAttemptLesson: LearnAttempt
   }
 }`,
 );
+
+/** Where the viewer's Learn attempt is, alone: read again while its page waits for the agent. */
+export const LearnAttemptStageDocument = doc<
+  { learnAttemptLesson: Pick<LearnAttemptLesson, 'stage'> | null },
+  { attemptId: string }
+>('query LearnAttemptStage($attemptId: ID!) { learnAttemptLesson(attemptId: $attemptId) { stage } }');
 
 /** A Learn attempt's own fields, read beside the attempt so an API without them leaves it as it was. */
 export const ContributeAttemptLearnDocument = doc<

@@ -81,13 +81,59 @@ export function PracticeLessonCard({ lesson, source }: { lesson: PracticeLesson;
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t pt-3">
         <span className="font-mono text-xs text-muted-foreground tabular-nums">{figuresOf(lesson)}</span>
         <Button asChild variant="outline" className="max-sm:min-h-11 max-sm:w-full">
-          <Link href={href} prefetch={false} {...(source ? contributeSource(source) : {})}>
+          <Link
+            href={href}
+            prefetch={false}
+            aria-label={`Take this lesson: ${lesson.title}`}
+            {...(source ? contributeSource(source) : {})}
+          >
             Take this lesson
-            <span className="sr-only">: {lesson.title}</span>
           </Link>
         </Button>
       </div>
     </article>
+  );
+}
+
+/** Practice lessons as short rows: where, how long, who each was made for, and Take this lesson. */
+export function PracticeRows({ lessons }: { lessons: readonly PracticeLesson[] }) {
+  return (
+    <ul className="divide-y overflow-hidden rounded-xl border">
+      {lessons.map((lesson) => {
+        const where = lesson.repo ? `${lesson.repo}${lesson.issue ? ` · issue #${lesson.issue}` : ''}` : null;
+        const level = levelPhraseOf(lesson.writtenFor.level);
+        const href = lessonPath(lesson.slug);
+        return (
+          <li
+            key={lesson.slug}
+            className="flex flex-wrap items-center gap-3 px-4 py-3.5 sm:px-5"
+            data-practice-lesson={lesson.slug}
+          >
+            <div className="flex min-w-0 flex-1 basis-64 flex-col gap-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                {where ? <span className="font-mono break-all text-foreground/80">{where}</span> : null}
+                {lesson.language ? <span>{lesson.language}</span> : null}
+                <span className="tabular-nums">
+                  {lesson.steps} {lesson.steps === 1 ? 'step' : 'steps'} · {lesson.minutes} min
+                </span>
+              </div>
+              <Link href={href} prefetch={false} className="font-semibold text-pretty text-foreground hover:underline">
+                {lesson.title}
+              </Link>
+              <span className="text-sm text-muted-foreground">
+                Made for {lesson.author.login ?? 'a learner'}, {wantedOf(lesson.writtenFor)} {lesson.writtenFor.value}
+                {level ? ` (${level})` : ''}
+              </span>
+            </div>
+            <Button asChild variant="outline" className="max-sm:min-h-11 max-sm:w-full">
+              <Link href={href} prefetch={false} aria-label={`Take this lesson: ${lesson.title}`}>
+                Take this lesson
+              </Link>
+            </Button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

@@ -15,6 +15,7 @@ import {
   AnswerLessonQuestionDocument,
   AnswerWarmupDocument,
   DismissLearnPromoDocument,
+  LearnAttemptStageDocument,
   LearnIssuesDocument,
   LogCopyForAgentDocument,
   MarkStepShownDocument,
@@ -33,6 +34,7 @@ import {
 import type {
   LearnIssues,
   LearnProfile,
+  LearnStage,
   LessonAnswerResult,
   LessonReaction,
   LessonReportReason,
@@ -41,8 +43,9 @@ import type {
   LessonWarmupAnswer,
   MyLearnAttempts,
   PracticeLessons,
+  PracticeNext,
 } from '@/lib/learn/learn.types';
-import { ISSUES_READ_MAX, PRACTICE_ALL } from '@/lib/learn/learn-home';
+import { currentOf, PRACTICE_ALL } from '@/lib/learn/learn-home';
 import { githubLoginOf, lessonResultPath, lessonSlugOf, REACT_PARAM } from '@/lib/learn/learn-path';
 import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
@@ -287,11 +290,32 @@ export async function readPracticeLessons(first: number): Promise<ContributeActi
 }
 
 /**
- * The issues for the viewer's goal, `first` of them, at most the two a passed practice lesson shows; 0 answers how
- * many there are and reveals none.
+ * How many issues fit the viewer's goal, and why none do (`learnIssues(first: 0)`): no row comes back, so none is
+ * revealed. The browser can ask for nothing more; issues themselves are read only where the page shows them.
  */
-export async function readLearnIssues(first: number): Promise<ContributeActionResult<LearnIssues>> {
-  const count = countOf(first, 0, ISSUES_READ_MAX);
-  if (count === null) return invalid();
-  return run(LearnIssuesDocument, { first: count }, (data) => data.learnIssues);
+export async function readLearnIssueCount(): Promise<ContributeActionResult<LearnIssues>> {
+  return run(LearnIssuesDocument, { first: 0 }, (data) => data.learnIssues);
+}
+
+/** Where the viewer's Learn attempt is now, read again while its page waits for the agent; null when there is none. */
+export async function readAttemptStage(attemptId: string): Promise<ContributeActionResult<LearnStage | null>> {
+  const id = idOf(attemptId);
+  if (!id) return invalid();
+  return run(LearnAttemptStageDocument, { attemptId: id }, (data) => data.learnAttemptLesson?.stage ?? null);
+}
+
+/** How many issues a passed practice lesson shows. */
+const PASSED_ISSUES = 2;
+
+/**
+ * What a passed practice lesson offers next: the viewer's own lesson in progress when there is one (no issue is read
+ * then, so none is revealed), else the first two issues for their goal.
+ */
+export async function readPracticeNext(): Promise<ContributeActionResult<PracticeNext>> {
+  const attempts = await readMyLearnAttempts();
+  if (!attempts.ok) return attempts;
+  const current = currentOf(attempts.data);
+  if (current) return { ok: true, data: { current, issues: null } };
+  const issues = await run(LearnIssuesDocument, { first: PASSED_ISSUES }, (data) => data.learnIssues);
+  return issues.ok ? { ok: true, data: { current: null, issues: issues.data } } : issues;
 }

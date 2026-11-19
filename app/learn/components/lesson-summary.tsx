@@ -5,14 +5,15 @@ import Link from 'next/link';
 import { useId, useState, useTransition } from 'react';
 
 import { rateLesson, shareMyResult } from '../actions';
+import { PracticeNextCard } from './practice-next';
 import { HEADING } from '@/app/contribute/components/primitives';
 import { Box } from '@/app/contribute/components/status-box';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { contributeErrorMessage } from '@/lib/contribute/errors';
-import type { LessonHead, LessonRun, LessonStep } from '@/lib/learn/learn.types';
-import { lessonResultPath, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
-import { LEARN_AGENT_PROMPT, warmupCountOf } from '@/lib/learn/lesson-format';
+import type { LessonHead, LessonRun, LessonStep, PracticeNext } from '@/lib/learn/learn.types';
+import { lessonResultPath } from '@/lib/learn/learn-path';
+import { warmupCountOf } from '@/lib/learn/lesson-format';
 import { isStepDone } from '@/lib/learn/question';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +37,8 @@ export type SummaryShare = {
   login: string;
   /** The viewer wrote the lesson: their result is public already, as their pull request links to it. */
   author: boolean;
+  /** What the passed card offers next, when already read (the catalogue); else it is read once the card shows. */
+  next?: PracticeNext | null;
 };
 
 /**
@@ -106,22 +109,6 @@ export function ShareMyResult({ run, share }: { run: LessonRun; share: SummarySh
           {error}
         </p>
       ) : null}
-    </div>
-  );
-}
-
-/** After a shared lesson: the next one is the user's own, on an issue their agent fixes. */
-function NextLesson() {
-  return (
-    <div className="flex flex-col gap-2 border-t pt-3" data-next-lesson="">
-      <h3 className="text-sm font-semibold">Next: a lesson on your own fix</h3>
-      <p className="text-sm text-muted-foreground">
-        Ask your agent: “{LEARN_AGENT_PROMPT}”. It fixes a real issue and writes the lesson, which shows in{' '}
-        <Link href={MY_LESSONS_PATH} prefetch={false} className="font-semibold text-link hover:underline">
-          My lessons
-        </Link>
-        .
-      </p>
     </div>
   );
 }
@@ -225,8 +212,9 @@ export function LessonSummary({
           </span>
         </div>
         {share ? <ShareMyResult run={run} share={share} /> : null}
-        {share && !share.author ? <NextLesson /> : null}
       </section>
+      {/* A practice lesson passed: what's next is the learner's own lesson. */}
+      {share && !share.author ? <PracticeNextCard next={share.next} /> : null}
     </>
   );
 }

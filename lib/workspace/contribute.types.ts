@@ -1008,9 +1008,6 @@ export type ContributeContribution = {
   proof?: ContributeProofBrief | null;
 };
 
-/** The totals Overview's impact shows; `reposHelped` is asked on its own, `undefined` while it is not answered. */
-export type ContributeImpactTotals = { open: number; merged: number; closed: number; reposHelped?: number };
-
 export type ContributeContributions = {
   items: ContributeContribution[];
   totals: { open: number; merged: number; closed: number; costUsd: number };

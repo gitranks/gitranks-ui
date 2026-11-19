@@ -1031,16 +1031,6 @@ export const ContributeScheduleCountsDocument = doc<{
   contribute: { contributor: { scheduleCounts: ContributeScheduleCounts | null } | null } | null;
 }>('query ContributeScheduleCounts { contribute { contributor { scheduleCounts { prBound queued } } } }');
 
-/** The totals of My contributions, without its list. */
-export const ContributeImpactDocument = doc<{
-  contributeContributions: { totals: { open: number; merged: number; closed: number } } | null;
-}>('query ContributeImpact { contributeContributions(first: 1) { totals { open merged closed } } }');
-
-/** The repos the user's merged pull requests helped. */
-export const ContributeImpactReposDocument = doc<{
-  contributeContributions: { totals: { reposHelped: number | null } } | null;
-}>('query ContributeImpactRepos { contributeContributions(first: 1) { totals { reposHelped } } }');
-
 // What the user works on: the mode, the lists and the ignored repos. Read and written in operations of their own, so
 // an API without them leaves the rest of the pages working.
 const SET_REPO =

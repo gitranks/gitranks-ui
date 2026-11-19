@@ -977,7 +977,7 @@ describe('readIssueStatuses and readIssuesPage', () => {
     });
     expect(graphqlDirect).toHaveBeenCalledWith(
       ContributeIssuesWithRulesDocument,
-      { first: 20, after: 'c2', filter: { languages: ['RUST'], maxSize: 'M' } },
+      { first: 10, after: 'c2', filter: { languages: ['RUST'], maxSize: 'M' } },
       { source: 'client', githubLogin: 'octocat' },
     );
     expect(graphqlDirect).toHaveBeenCalledTimes(1);

@@ -74,7 +74,7 @@ describe('the Start page, Fix it', () => {
   it('shows the issue, then the three steps, with the Fix prompt and its page opening', () => {
     const { html, plain } = screen('fix');
     expect(plain).toContain('Issues for you');
-    expect(html).toContain('href="/contribute/issues"');
+    expect(html).toContain('href="/contribute#issues"');
     expect(plain).toContain(
       'Fix this issue Your agent fixes this issue on your computer. You review the change here, then approve the pull request. Nothing reaches GitHub before you approve.',
     );

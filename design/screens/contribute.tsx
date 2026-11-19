@@ -1,15 +1,14 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { changedCommentStates, reviewCommentStates, sessionHeadStates } from './contribute-moves';
+import { ContributeTabScreen } from '@/app/(workspace)/contribute/components/contribute-tab';
 import { ContributeBadgePreview } from '@/app/contribute/components/contribute-badge-preview';
 import { FaqScreen } from '@/app/contribute/components/faq';
-import { IssuesScreen } from '@/app/contribute/components/issues-view';
 import { Landing } from '@/app/contribute/components/landing';
 import { LedgerScreen } from '@/app/contribute/components/ledger-view';
 import { MaintainerReposPanel, MaintainersScreen, PrStrip } from '@/app/contribute/components/maintainers-view';
 import { McpDocsScreen } from '@/app/contribute/components/mcp-docs';
-import { OverviewScreen, overviewSectionsOf } from '@/app/contribute/components/overview-status';
 import { HelpedSent, ReportSent } from '@/app/contribute/components/pr-feedback-forms';
 import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
 import { PrTimelineScreen } from '@/app/contribute/components/pr-timeline-view';
@@ -46,7 +45,6 @@ import { ShowMore } from '@/components/workspace/show-more';
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 import {
-  attempt,
   attempts,
   decisionAttempts,
   detail,
@@ -56,7 +54,7 @@ import {
   repoConventions,
   stopped as stoppedAttempt,
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
-import { issuePage, nowIdle, overviewData, replyWaiting } from '@/lib/contribute/__fixtures__/contribute-overview';
+import { issuePage, replyWaiting } from '@/lib/contribute/__fixtures__/contribute-overview';
 import {
   agentTabViews,
   contributor,
@@ -220,33 +218,24 @@ const rulesPage: ContributeIssuePage = {
   })),
 };
 
-const overview = (view: ContributeView, activity: ContributeActivity, working: boolean) =>
+/** The Contribute tab, as its page reads it: both agents, the numbers, Learn open, nothing paused. */
+const tab = (
+  view: ContributeView,
+  activity: ContributeActivity,
+  patch: Partial<ComponentProps<typeof ContributeTabScreen>> = {},
+) =>
   frame(
-    <OverviewScreen
+    <ContributeTabScreen
       view={view}
+      agents={{ hosted: true, own: true }}
+      learnOpen
+      tab={{ totals: { open: 2, merged: 7, closed: 4, reposHelped: 6 }, pausedByYou: false, hostedLevel: 'MANUAL' }}
+      page={issuePage}
+      activity={activity}
+      counts={{ prBound: 2 }}
+      query={{}}
       now={NOW}
-      sections={overviewSectionsOf(
-        view,
-        {
-          ...overviewData(),
-          activity,
-          now: working
-            ? {
-                ...nowIdle,
-                inFlight: [
-                  attempt({ state: 'RUNNING', runner: 'MANAGED_AGENTS' }),
-                  attempt({
-                    attemptId: 'A_own',
-                    state: 'RUNNING',
-                    runner: 'MCP',
-                    agent: { name: 'CLAUDE_CODE', model: null },
-                  }),
-                ],
-              }
-            : nowIdle,
-        },
-        NOW,
-      )}
+      {...patch}
     />,
     activity,
   );
@@ -487,52 +476,92 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     ],
   },
   {
-    id: 'contribute-overview',
-    title: 'Overview',
+    id: 'contribute-tab',
+    title: 'Contribute tab',
     area: 'contribute',
     route: '/contribute',
     sources: [
-      'app/contribute/components/overview-status.tsx',
-      'app/contribute/components/overview-sections.tsx',
-      'app/contribute/components/agent-runs.tsx',
-      'lib/contribute/overview.ts',
+      'app/(workspace)/contribute/page.tsx',
+      'app/(workspace)/contribute/components/contribute-tab.tsx',
+      'app/(workspace)/contribute/components/contribute-tab-view.tsx',
+      'app/(workspace)/contribute/components/issue-list.tsx',
+      'app/(workspace)/contribute/components/picks-dialog.tsx',
+      'components/workspace/issue-row.tsx',
+      'components/workspace/right-now.tsx',
+      'lib/contribute/contribute-tab.ts',
     ],
     states: [
       {
         id: 'working',
-        title: 'Agents working',
+        title: 'Agents working: Right now above the issues',
         path: '/contribute',
-        height: 1900,
-        render: () => overview(both, busy, true),
+        height: 2100,
+        render: () => tab(both, busy),
       },
       {
-        id: 'idle',
-        title: 'Nothing running',
+        id: 'quiet',
+        title: 'Nothing running: the numbers, then the issues',
         path: '/contribute',
         height: 1700,
-        render: () => overview(both, activityOf(), false),
+        render: () => tab(both, activityOf()),
       },
       {
-        id: 'working-phone',
+        id: 'limit',
+        title: 'At the open pull request limit: its notice over the rows, which have no Start',
+        path: '/contribute',
+        height: 1600,
+        render: () => tab(both, activityOf(), { counts: { prBound: 3 } }),
+      },
+      {
+        id: 'paused-by-you',
+        title: 'Paused by you: Resume over the rows',
+        path: '/contribute',
+        height: 1700,
+        render: () =>
+          tab(views.paused, activityOf(), { tab: { totals: null, pausedByYou: true, hostedLevel: 'MANUAL' } }),
+      },
+      {
+        id: 'nothing-connected',
+        title: 'Nothing connected now: every Start opens the Start page',
+        path: '/contribute',
+        height: 1700,
+        render: () => tab(both, activityOf(), { agents: { hosted: false, own: false } }),
+      },
+      {
+        id: 'first-picks',
+        title: 'The first picks still being ranked',
+        path: '/contribute',
+        height: 900,
+        render: () => tab(both, activityOf(), { page: { items: [], next: null, total: 0, computedAt: null } }),
+      },
+      {
+        id: 'held',
+        title: 'The account is held: no issues, no Start',
+        path: '/contribute',
+        height: 800,
+        render: () => tab(views.suspended, activityOf()),
+      },
+      {
+        id: 'repo-rules',
+        title: 'Each repo’s rules on its row, closed; a repo with none says so',
+        path: '/contribute',
+        height: 1800,
+        render: () => tab(both, activityOf(), { page: rulesPage }),
+      },
+      {
+        id: 'daily-cap',
+        title: "Today's new issues seen",
+        path: '/contribute',
+        height: 1800,
+        render: () => tab(both, activityOf(), { page: { ...issuePage, dailyCap: { limit: 150, reached: true } } }),
+      },
+      {
+        id: 'phone',
         title: 'Agents working · phone',
         path: '/contribute',
         width: 390,
-        height: 3400,
-        render: () => overview(both, busy, true),
-      },
-      {
-        id: 'follow-through',
-        title: 'Lower limits: claims ran out',
-        path: '/contribute',
-        height: 1800,
-        render: () => overview(views.followThrough, activityOf(), false),
-      },
-      {
-        id: 'suspended',
-        title: 'Paused for this account',
-        path: '/contribute',
-        height: 1800,
-        render: () => overview(views.suspended, activityOf(), false),
+        height: 3600,
+        render: () => tab(both, busy),
       },
     ],
   },
@@ -1304,92 +1333,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
             <ShowMore shown={10} total={38} noun="issue" onMore={noop} />
           </main>
         ),
-      },
-    ],
-  },
-  {
-    id: 'contribute-issues',
-    title: 'Issues for you',
-    area: 'contribute',
-    route: '/contribute/issues',
-    sources: [
-      'app/contribute/components/issues-view.tsx',
-      'app/contribute/components/live-issues.tsx',
-      'app/contribute/components/issue-repo-rules.tsx',
-      'app/contribute/components/contribute-notices.tsx',
-    ],
-    states: [
-      {
-        id: 'feed',
-        title: 'The feed',
-        path: '/contribute/issues',
-        height: 1800,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <IssuesScreen view={views.active} page={issuePage} query={{}} now={NOW} />
-            </main>,
-          ),
-      },
-      {
-        id: 'repo-rules',
-        title: 'Each repo’s rules on its card, closed; a repo with none says so',
-        path: '/contribute/issues',
-        height: 1800,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <IssuesScreen view={views.active} page={rulesPage} query={{}} now={NOW} />
-            </main>,
-          ),
-      },
-      {
-        id: 'repo-rules-open',
-        title: 'The rules opened',
-        path: '/contribute/issues',
-        height: 1800,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <RulesOpen.Provider value>
-                <IssuesScreen
-                  view={views.active}
-                  page={{ ...rulesPage, items: rulesPage.items.slice(0, 1) }}
-                  query={{}}
-                  now={NOW}
-                />
-              </RulesOpen.Provider>
-            </main>,
-          ),
-      },
-      {
-        id: 'new-account',
-        title: 'A new account: smaller limits',
-        path: '/contribute/issues',
-        height: 1800,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <IssuesScreen view={views.newAccount} page={issuePage} query={{}} now={NOW} />
-            </main>,
-          ),
-      },
-      {
-        id: 'daily-cap',
-        title: "Today's new issues seen",
-        path: '/contribute/issues',
-        height: 1800,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <IssuesScreen
-                view={views.active}
-                page={{ ...issuePage, dailyCap: { limit: 150, reached: true } }}
-                query={{}}
-                now={NOW}
-              />
-            </main>,
-          ),
       },
     ],
   },

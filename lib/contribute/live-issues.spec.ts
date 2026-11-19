@@ -82,6 +82,26 @@ describe('a live list of issues', () => {
     expect(ids(feed)).not.toContain('I_3');
   });
 
+  it('grows in place: more rows shown, read from the next issues when it holds fewer', async () => {
+    const readMore = vi.fn(async (_after: string, first: number) => ({
+      ok: true as const,
+      data: {
+        items: ISSUES.slice(0, first).map((each, at) => ({ ...each, issueId: `M_${at}` })),
+        next: null,
+        total: 42,
+        computedAt: null,
+      },
+    }));
+    const feed = feedOf({ limit: 2, next: 'c2', readMore });
+    expect(ids(feed)).toHaveLength(2);
+    await feed.grow(2);
+    expect(ids(feed)).toHaveLength(4);
+    expect(readMore).not.toHaveBeenCalled();
+    await feed.grow(3);
+    expect(readMore).toHaveBeenCalledWith('c2', 3);
+    expect(ids(feed)).toHaveLength(7);
+  });
+
   it('lets a row its Start found gone leave once, its status kept and asked about no more', async () => {
     const readStatus = vi.fn(async (_ids: string[]): Promise<StatusRead> => ({ ok: true, data: [] }));
     const feed = feedOf({ readStatus, limit: 4 });

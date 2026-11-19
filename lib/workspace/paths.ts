@@ -275,11 +275,10 @@ export function pullRequestPath(ref: IssueRef, view?: { run: string } | 'next'):
 }
 
 /**
- * Where the person picks another issue, by the side the attempt was on: Contribute's issues (its own page until they
- * join the Contribute tab) or Learn's.
+ * Where the person picks an issue, by side: the Contribute tab's issues, or Learn's.
  */
 export const PICK_ISSUE_PATHS = {
-  fix: '/contribute/issues' as Route,
+  fix: '/contribute#issues' as Route,
   learn: `${WORKSPACE_PATHS.learn}#issues` as Route,
 } as const;
 

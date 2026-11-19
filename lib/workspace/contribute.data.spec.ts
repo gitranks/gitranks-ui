@@ -17,7 +17,7 @@ const {
   loadRepliesWaiting,
   ownAgentOf,
 } = await import('./contribute.data');
-const { loadIssues, loadOverviewImpact, loadOverviewNow } = await import('@/lib/contribute/contribute.data');
+const { loadIssues } = await import('@/lib/contribute/contribute.data');
 const {
   ContributeAttemptDocument,
   ContributeAttemptFollowUpsDocument,
@@ -31,13 +31,10 @@ const {
   ContributeAttemptRetryDocument,
   ContributeAutopilotDocument,
   ContributeAutopilotNoticeDocument,
-  ContributeImpactDocument,
   ContributeLimitsDocument,
-  ContributeImpactReposDocument,
   ContributeRepliesWaitingDocument,
   ContributeRepliesWaitingPlanDocument,
   ContributeAttemptRepliesPlanDocument,
-  ContributeScheduleCountsDocument,
   ContributeGrantDocument,
   ContributeAttemptCheckNotesDocument,
   ContributeAttemptCheckStopDocument,
@@ -820,49 +817,6 @@ describe("Overview's loaders, each operation settled on its own", () => {
     expect(await loadRepliesWaiting()).toEqual([{ ...waiting, heldBack: held, waitsForProbe: false }]);
     answering(() => notYet());
     expect(await loadRepliesWaiting()).toEqual([waiting]);
-  });
-
-  it('reads the attempts in flight and the scheduler counts on their own', async () => {
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === ContributeAttemptsInDocument) return { contributeAttempts: [] };
-      if (document === ContributeScheduleCountsDocument) {
-        return { contribute: { contributor: { scheduleCounts: { prBound: 2, queued: 0 } } } };
-      }
-      return notYet();
-    });
-    expect(await loadOverviewNow()).toEqual({ inFlight: [], scheduleCounts: { prBound: 2, queued: 0 } });
-
-    graphqlDirect.mockImplementation(async (document) =>
-      document === ContributeAttemptsInDocument ? { contributeAttempts: [] } : notYet(),
-    );
-    expect(await loadOverviewNow()).toEqual({ inFlight: [], scheduleCounts: undefined });
-  });
-
-  it('reads the totals, and repos helped on its own', async () => {
-    const totals = { open: 2, merged: 7, closed: 1 };
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === ContributeImpactDocument) return { contributeContributions: { totals } };
-      if (document === ContributeImpactReposDocument)
-        return { contributeContributions: { totals: { reposHelped: 6 } } };
-      return notYet();
-    });
-    expect(await loadOverviewImpact()).toEqual({ ...totals, reposHelped: 6 });
-
-    graphqlDirect.mockImplementation(async (document) =>
-      document === ContributeImpactDocument ? { contributeContributions: { totals } } : notYet(),
-    );
-    expect(await loadOverviewImpact()).toEqual(totals);
-
-    graphqlDirect.mockImplementation(notYet);
-    expect(await loadOverviewImpact()).toBeUndefined();
-  });
-
-  it('reads nothing without a session', async () => {
-    auth.mockResolvedValue(null);
-
-    expect(await loadOverviewNow()).toEqual({ inFlight: undefined, scheduleCounts: undefined });
-    expect(await loadOverviewImpact()).toBeUndefined();
-    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });
 

@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
@@ -17,22 +17,14 @@ vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 
 const { ConnectScreen } = await import('@/components/workspace/agent/connect-view');
 const { renewalDayOptionsOf } = await import('@/components/workspace/agent/key-connect');
-const { ALL, FILTER_OPTIONS, activeFiltersOf } = await import('./issues-filters');
 const { helperModelLabelOf, testModelLabelOf } = await import('@/components/workspace/settings/settings-form');
 const { sizeLabelOf } = await import('@/components/contribute/preferences-fields');
-const { KINDS, LANGUAGES } = await import('@/lib/workspace/format');
 const { SettingsScreen } = await import('./settings-view');
 const { AgentScreen } = await import('@/components/workspace/agent/agent-screen');
 const { FormSettingsScreen, KeyScreen } = await import('./settings-pages');
 const { PreferencesFields } = await import('@/components/contribute/preferences-fields');
-const { IssuesScreen } = await import('./issues-view');
-const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
-const { issuePage, overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
 const { ContributeNotices } = await import('@/components/workspace/contribute-notices');
 const { ConnectResult } = await import('@/components/workspace/agent/connect-result');
-const { IssueCard } = await import('./issue-card');
-const { LiveAnnouncer, LiveIssueList, LiveRowItem } = await import('./live-issues');
-const { LIVE_EXIT_AFTER_MS, LIVE_LEAVE_MS, createLiveFeed } = await import('@/lib/contribute/live-issues');
 const { NOW, limits, mcpToken, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { contributeNoticesOf } = await import('@/lib/workspace/contribute-state');
 
@@ -67,25 +59,6 @@ describe('the notices above the Contribute pages', () => {
     expect(notices(views.active)).toBe('');
     expect(notices(views.fieldsMissing)).toBe('');
     expect(notices(views.grantMissing)).toBe('');
-  });
-});
-
-describe('the overview', () => {
-  it('ends with the maintainers strip and the way back to how Contribute works, not the pitch', () => {
-    const view = views.active;
-    const html = renderToStaticMarkup(
-      <OverviewScreen view={view} sections={overviewSectionsOf(view, overviewData(), NOW)} now={NOW} />,
-    );
-    const plain = text(html);
-
-    expect(html).toContain('data-overview="footer"');
-    expect(plain).toContain('Maintain a repo? At most one PR at a time, and every PR says it was made with AI.');
-    expect(plain).not.toContain('four a month');
-    expect(html).toContain('href="/contribute/maintainers"');
-    expect(plain).toContain('How Contribute works');
-    expect(html.replaceAll('&amp;', '&')).toContain('href="/contribute?about=1"');
-    expect(plain).not.toContain('Fix real open-source issues');
-    expect(plain).toContain('$63.40 of $200');
   });
 });
 
@@ -496,7 +469,7 @@ describe('the Agent and Settings tabs', () => {
   });
 });
 
-const ISSUE: ContributeIssue = {
+const _ISSUE: ContributeIssue = {
   issueId: 'I_1',
   repositoryId: 'R_1',
   nameWithOwner: 'fern-lang/fern',
@@ -511,310 +484,6 @@ const ISSUE: ContributeIssue = {
   rank: 1,
   why: "you write Rust, and you've contributed to fern-lang/fern-lsp",
 };
-
-describe('issues for you', () => {
-  const render = (page: Parameters<typeof IssuesScreen>[0]['page'], query = {}) =>
-    renderToStaticMarkup(<IssuesScreen view={views.active} page={page} query={query} now={NOW} />);
-
-  it('keeps the filters behind one button that counts and names the ones set, and offers the same items', () => {
-    const none = render(undefined);
-    expect(none).toContain('data-filters="0"');
-    expect(none).not.toContain('role="combobox"');
-    expect(text(none)).not.toContain('Clear');
-
-    const set = render(undefined, { language: 'GO', kind: 'DOCS', size: 'M' });
-    expect(set).toContain('data-filters="3"');
-    expect(text(set)).toContain('Filters 3 : Go, Docs, Up to medium, where known');
-    expect(text(set)).toContain('Clear the filters');
-    expect(activeFiltersOf({ size: 'S' })).toEqual(['Up to small, where known']);
-    expect(FILTER_OPTIONS.language.map(({ value }) => value)).toEqual([ALL, ...Object.keys(LANGUAGES)]);
-    expect(FILTER_OPTIONS.kind.map(({ value }) => value)).toEqual([ALL, ...Object.keys(KINDS)]);
-    expect(FILTER_OPTIONS.size).toEqual([
-      { value: ALL, label: 'Any size' },
-      { value: 'S', label: 'Up to small, where known' },
-      { value: 'M', label: 'Up to medium, where known' },
-      { value: 'L', label: 'Up to large, where known' },
-    ]);
-  });
-
-  it('lists the picks as rows: where, the size where known, why, one label and the count of the rest, and Skip', () => {
-    const html = render({
-      items: [ISSUE, { ...ISSUE, issueId: 'I_2', size: null, rank: 2, labels: ['formatter'] }],
-      next: 'c2',
-      total: 42,
-      computedAt: '2026-10-28T09:00:00.000Z',
-    });
-    const plain = text(html);
-
-    expect(plain).toContain('42 open issues match your languages and topics · picked 3 hours ago');
-    expect(html.match(/<li data-live-row="I_\d"[^>]*><div[^>]*><article data-issue=/g)).toHaveLength(2);
-    expect(plain).toContain('fern-lang/fern · #2481');
-    expect(plain).toContain('Size small');
-    expect(html.match(/data-size="[SML]"/g)).toHaveLength(1);
-    expect(plain).not.toContain('not known');
-    expect(plain).toContain("Why it was picked: you write Rust, and you've contributed to fern-lang/fern-lsp");
-    // One label, a beginner one first, and how many more: the kind and the match rank are not repeated.
-    expect(plain).toContain('good first issue +1 , also labelled formatter');
-    expect(plain).not.toContain('Best match');
-    expect(plain).toContain('Skip fern-lang/fern #2481');
-    // Skip only opens its confirm: it is the dialog's trigger, not the action.
-    expect(html).toMatch(
-      /<button[^>]*aria-haspopup="dialog"[^>]*>Skip<span class="sr-only"> fern-lang\/fern #2481<\/span>/,
-    );
-    expect(html).toContain('href="/contribute/issues?after=c2"');
-  });
-
-  it('keeps how picks work folded', () => {
-    const html = render(undefined);
-
-    expect(html).toMatch(/<details[^>]*data-how-picks-work/);
-    expect(html).not.toMatch(/<details[^>]*open/);
-  });
-
-  it('keeps the filters on the next page', () => {
-    const html = render({ items: [ISSUE], next: 'c2', total: 1, computedAt: null }, { language: 'RUST', size: 'M' });
-
-    expect(html.replaceAll('&amp;', '&')).toContain('href="/contribute/issues?language=RUST&size=M&after=c2"');
-  });
-
-  it('says when the feed is not available yet, empty, or empty under filters', () => {
-    expect(text(render(undefined))).toContain('Issues are not available yet');
-    expect(text(render({ items: [], next: null, total: 0, computedAt: '2026-10-28T07:00:00.000Z' }))).toContain(
-      'No issues picked for you yet',
-    );
-    // Not computed yet: the first picks are on their way, and the page reads itself again.
-    const ranking = render({ items: [], next: null, total: 0, computedAt: null });
-    expect(text(ranking)).toContain('Your first picks are still being ranked');
-    expect(ranking).toContain('data-ranking="waiting"');
-    expect(text(render({ items: [], next: null, total: 0, computedAt: null }, { kind: 'DOCS' }))).toContain(
-      'No issues match these filters',
-    );
-  });
-
-  it("shows the page's notices, and asks for no GitHub access up front", () => {
-    expect(renderToStaticMarkup(<IssuesScreen view={views.paused} page={undefined} query={{}} />)).toContain(
-      'data-notice="paused"',
-    );
-    expect(renderToStaticMarkup(<IssuesScreen view={views.grantMissing} page={undefined} query={{}} />)).not.toContain(
-      'data-notice',
-    );
-  });
-
-  it('links the issue only when its link points at GitHub, and shows the title as text otherwise', () => {
-    expect(renderToStaticMarkup(<IssueCard issue={ISSUE} />)).toContain(
-      'href="https://github.com/fern-lang/fern/issues/2481"',
-    );
-    for (const url of ['javascript:alert(1)', 'http://github.com/x', 'https://github.com.evil.example/x']) {
-      const html = renderToStaticMarkup(<IssueCard issue={{ ...ISSUE, url }} />);
-
-      expect(html).not.toContain('href=');
-      expect(text(html)).toContain('Formatter drops a trailing comment in match arms');
-    }
-  });
-
-  it('says when the maintainers keep an issue for first-time contributors, and only then', () => {
-    expect(text(renderToStaticMarkup(<IssueCard issue={{ ...ISSUE, forNewcomers: true }} />))).toContain(
-      'For first-time contributors: the maintainers keep it for people new to the project.',
-    );
-    expect(renderToStaticMarkup(<IssueCard issue={ISSUE} />)).not.toContain('data-first-timers');
-  });
-
-  it('reads an issue without a title by its number', () => {
-    expect(
-      text(renderToStaticMarkup(<IssueCard issue={{ ...ISSUE, title: null, labels: [], kind: null }} />)),
-    ).toContain('Issue #2481');
-  });
-});
-
-describe('issues taken while the page is open', () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  const card = (status: 'AVAILABLE' | 'TAKEN' | 'CLAIMED_BY_YOU', attemptId: string | null = null) =>
-    renderToStaticMarkup(<IssueCard issue={ISSUE} live={{ status, attemptId }} />);
-  const feedOf = (reducedMotion = false) =>
-    createLiveFeed({
-      items: [ISSUE, { ...ISSUE, issueId: 'I_2', number: 2482 }],
-      total: 42,
-      next: null,
-      limit: 20,
-      readStatus: async () => ({ ok: true, data: [] }),
-      reducedMotion: () => reducedMotion,
-    });
-  const list = (feed: ReturnType<typeof feedOf>) =>
-    renderToStaticMarkup(<LiveIssueList rows={feed.getSnapshot().rows} feed={feed} />);
-  /** The classes of each row itself, where its fade and fold would be. */
-  const rowClassesOf = (html: string) =>
-    [...html.matchAll(/<li data-live-row="[^"]+"[^>]*class="([^"]*)"/g)].map(([, c]) => c);
-
-  it('leave a free card as it was, with Skip and the link on, and no status line', () => {
-    const html = card('AVAILABLE');
-
-    expect(html).not.toContain('data-live-status');
-    expect(html).not.toContain('data-gone');
-    expect(html).toContain('href="https://github.com/fern-lang/fern/issues/2481"');
-    expect(html).not.toContain(' disabled=""');
-    expect(html).not.toContain('aria-disabled');
-  });
-
-  it('say a taken issue is taken, dimmed, with Skip and the link off and no error', () => {
-    const html = card('TAKEN');
-
-    // A place for the focus, not a live region of its own: the list announces it once.
-    expect(html).toMatch(/<p tabindex="-1" data-live-status="taken"[^>]*>Taken by another contributor<\/p>/);
-    expect(html).not.toContain('role="status"');
-    expect(html).toContain('data-gone="true"');
-    expect(html).toContain('opacity-60');
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Skip/);
-    expect(html).not.toContain('href="https://github.com/fern-lang/fern/issues/2481"');
-    expect(html).toMatch(/<a target="_blank" rel="noopener noreferrer" class="[^"]*opacity-60">Formatter drops/);
-    expect(html).not.toContain('role="alert"');
-  });
-
-  it("say the user's own agent is on it, with the way to its attempt, and nothing to click on the issue", () => {
-    const html = card('CLAIMED_BY_YOU', 'A_9');
-
-    expect(text(html)).toContain('Your agent is on this · See the run');
-    expect(html).toContain('data-live-status="yours"');
-    expect(html).toMatch(/<a [^>]*href="\/my\/pull-requests\/by-attempt\/A_9"[^>]*>See the run<\/a>/);
-    expect(html).toMatch(/<button[^>]*disabled=""/);
-    expect(html).not.toContain('href="https://github.com/fern-lang/fern/issues/2481"');
-    expect(text(card('CLAIMED_BY_YOU'))).toContain('Your agent is on this');
-    expect(card('CLAIMED_BY_YOU')).not.toContain('See the run');
-  });
-
-  it('show a taken row at once, fold it away after the moment, then leave it out of the list', async () => {
-    vi.useFakeTimers();
-    const feed = feedOf();
-
-    feed.apply([{ issueId: 'I_1', status: 'TAKEN', attemptId: null }]);
-    const shown = list(feed);
-    expect(text(shown)).toContain('Taken by another contributor');
-    expect(shown).toMatch(/<button[^>]*disabled=""[^>]*>Skip<span class="sr-only"> fern-lang\/fern #2481/);
-    expect(shown).not.toContain('data-leaving');
-
-    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
-    const leaving = list(feed);
-    expect(leaving).toMatch(/<li data-live-row="I_1" data-leaving="true" class="[^"]*grid-rows-\[0fr\][^"]*opacity-0/);
-    expect(leaving).toContain('transition-[grid-template-rows,opacity]');
-
-    await vi.advanceTimersByTimeAsync(LIVE_LEAVE_MS);
-    const after = list(feed);
-    expect(after).not.toContain('data-live-row="I_1"');
-    expect(after).toContain('data-live-row="I_2"');
-    expect(feed.getSnapshot().total).toBe(41);
-  });
-
-  it('leave at once, with no fade or fold, under reduced motion', async () => {
-    vi.useFakeTimers();
-    const feed = feedOf(true);
-    const renders: string[] = [];
-    feed.subscribe(() => renders.push(list(feed)));
-
-    feed.apply([{ issueId: 'I_1', status: 'TAKEN', attemptId: null }]);
-    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
-
-    expect(list(feed)).not.toContain('data-live-row="I_1"');
-    expect(renders.length).toBeGreaterThan(1);
-    for (const html of renders) {
-      for (const classes of rowClassesOf(html)) expect(classes).toBe('grid grid-rows-[1fr]');
-      expect(html).not.toContain('data-leaving');
-    }
-  });
-
-  it('turn a row taken from a Skip refused as taken', async () => {
-    vi.useFakeTimers();
-    const feed = feedOf();
-
-    feed.markTaken('I_2');
-    const html = list(feed);
-    expect(html.match(/Taken by another contributor/g)).toHaveLength(1);
-    expect(html).not.toContain('role="alert"');
-  });
-
-  it('fill a page left short with the next issue, and count the one that left out', async () => {
-    vi.useFakeTimers();
-    const readMore = vi.fn(async () => ({
-      ok: true as const,
-      data: { items: [{ ...ISSUE, issueId: 'I_3', number: 2483 }], next: 'c3', total: 41, computedAt: null },
-    }));
-    const feed = createLiveFeed({
-      items: [ISSUE, { ...ISSUE, issueId: 'I_2', number: 2482 }],
-      total: 42,
-      next: 'c2',
-      limit: 2,
-      readStatus: async () => ({ ok: true, data: [] }),
-      readMore,
-      reducedMotion: () => true,
-    });
-
-    feed.apply([{ issueId: 'I_1', status: 'TAKEN', attemptId: null }]);
-    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS);
-
-    expect(readMore).toHaveBeenCalledWith('c2', 1);
-    const html = list(feed);
-    expect(html.match(/data-live-row="(I_\d)"/g)).toEqual(['data-live-row="I_2"', 'data-live-row="I_3"']);
-    expect(feed.getSnapshot()).toMatchObject({ total: 41, next: 'c3' });
-  });
-
-  it('fold a row with the classes that animate it only while it leaves', () => {
-    const row = { issue: ISSUE, status: 'TAKEN' as const, attemptId: null };
-    const still = renderToStaticMarkup(<LiveRowItem row={{ ...row, leaving: false }}>x</LiveRowItem>);
-    const leaving = renderToStaticMarkup(<LiveRowItem row={{ ...row, leaving: true }}>x</LiveRowItem>);
-
-    expect(still).not.toContain('transition');
-    expect(leaving).toContain('motion-reduce:transition-none');
-    expect(leaving).toContain('duration-300');
-  });
-
-  it("announce each issue taken, or that the user's agent is on it, once, in the list's own live region", () => {
-    const rows = [
-      { issue: ISSUE, status: 'TAKEN' as const, attemptId: null, leaving: false },
-      {
-        issue: { ...ISSUE, issueId: 'I_2', number: 7 },
-        status: 'CLAIMED_BY_YOU' as const,
-        attemptId: 'A_1',
-        leaving: false,
-      },
-      { issue: { ...ISSUE, issueId: 'I_3', number: 8 }, status: 'AVAILABLE' as const, attemptId: null, leaving: false },
-    ];
-    const html = renderToStaticMarkup(<LiveAnnouncer rows={rows} />);
-
-    expect(html).toMatch(/^<p role="status" class="sr-only">/);
-    expect(text(html).trim()).toBe(
-      'fern-lang/fern #2481: taken by another contributor. fern-lang/fern #7: your agent is on this.',
-    );
-    expect(renderToStaticMarkup(<LiveAnnouncer rows={[rows[2]]} />)).toBe('<p role="status" class="sr-only"></p>');
-  });
-
-  it('keep the same column, live region first, whether the page has issues, none, or is not available', () => {
-    const column = (page: Parameters<typeof IssuesScreen>[0]['page']) =>
-      renderToStaticMarkup(<IssuesScreen view={views.active} page={page} query={{}} now={NOW} />).match(
-        /<div tabindex="-1" class="outline-none flex min-w-0 flex-\[999_1_640px\] flex-col gap-4"><p role="status" class="sr-only"><\/p>/g,
-      );
-
-    expect(column({ items: [ISSUE], next: null, total: 1, computedAt: null })).toHaveLength(1);
-    expect(column({ items: [], next: null, total: 0, computedAt: '2026-10-28T07:00:00.000Z' })).toHaveLength(1);
-    expect(column(undefined)).toHaveLength(1);
-  });
-
-  it('count the page from its total, and mark every row as live', () => {
-    const html = renderToStaticMarkup(
-      <IssuesScreen
-        view={views.active}
-        page={{ items: [ISSUE], next: null, total: 7, computedAt: null }}
-        query={{}}
-        now={NOW}
-      />,
-    );
-
-    expect(html).toContain('data-total="7"');
-    expect(text(html)).toContain('7 open issues match your languages and topics');
-    expect(html).toContain('data-live-row="I_1"');
-    expect(html).toMatch(/<div tabindex="-1" class="outline-none flex/);
-  });
-});
 
 describe('the heading scale', () => {
   it('gives the page title, a section and a part their own step, each above the text under it', async () => {
@@ -834,12 +503,9 @@ describe('the heading scale', () => {
     expect(new Set(Object.values(HEADING)).size).toBe(4);
   });
 
-  it('heads the Issues page with its h1, and Settings with section headings at the section step', async () => {
+  it('heads Settings with section headings at the section step', async () => {
     const { HEADING } = await import('@/components/workspace/primitives');
 
-    expect(renderToStaticMarkup(<IssuesScreen view={views.active} page={undefined} query={{}} now={NOW} />)).toContain(
-      `<h1 class="${HEADING.page}">Issues for you</h1>`,
-    );
     const settings = renderToStaticMarkup(<SettingsScreen view={views.active} />);
     expect(settings).toContain('<h1 class="sr-only">Settings</h1>');
     const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
@@ -911,30 +577,6 @@ describe('the access level', () => {
     expect(text(suspended)).toContain(
       "Contribute is paused for this account Activity on this account looks automated, so it can't see or claim issues for now. If we got this wrong, write to hello@gitranks.com and we'll look at it.",
     );
-  });
-
-  it("shows on the overview, the issues and the Agent tab, and not on the key's connect screen", () => {
-    const overview = renderToStaticMarkup(
-      <OverviewScreen
-        view={views.followThrough}
-        sections={overviewSectionsOf(views.followThrough, overviewData(), NOW)}
-        now={NOW}
-      />,
-    );
-    expect(overview).toContain('data-notice="follow-through"');
-    // The home's other notices are Needs you's rows.
-    const pausedHome = renderToStaticMarkup(
-      <OverviewScreen view={views.paused} sections={overviewSectionsOf(views.paused, overviewData(), NOW)} now={NOW} />,
-    );
-    expect(pausedHome).not.toContain('data-notice');
-
-    const issues = renderToStaticMarkup(<IssuesScreen view={views.newAccount} page={issuePage} query={{}} now={NOW} />);
-    expect(issues).toContain('data-notice="new-account"');
-    expect(renderToStaticMarkup(<AgentScreen view={views.suspended} now={NOW} />)).toContain('data-notice="suspended"');
-    expect(renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.newAccount} />)).toContain(
-      'data-notice="new-account"',
-    );
-    expect(renderToStaticMarkup(<ConnectScreen view={views.newAccount} today={30} />)).not.toContain('data-notice');
   });
 
   it('adds the attempts the limit holds to the budget line, below the setting alone', () => {
@@ -1016,64 +658,5 @@ describe('the access level', () => {
     const small = pagePatchOf('agent', draft, { limits: reduced, stored });
     expect(small).toMatchObject({ patch: { openPrsAtATime: 3 } });
     expect(small).not.toHaveProperty('invalid');
-  });
-
-  it("ends the feed with the day's cap once it is reached, the count in mono", () => {
-    const capped = { ...issuePage, dailyCap: { limit: 150, reached: true } };
-    const html = renderToStaticMarkup(<IssuesScreen view={views.active} page={capped} query={{}} now={NOW} />);
-
-    expect(html).toContain('data-feed-end="daily-cap"');
-    expect(text(html)).toContain(
-      "That's today's new issues You've seen 150 new issues today, the most we show in a day. More arrive at 00:00 UTC; the ones you've seen stay on this list until then.",
-    );
-    expect(html).toContain('<span class="font-mono tabular-nums text-foreground">150</span>');
-    // After the rows.
-    expect(html.indexOf('data-feed-end')).toBeGreaterThan(html.lastIndexOf('data-live-row'));
-
-    // While the feed has more, the list does not end yet: no card.
-    const more = { ...capped, next: 'c20' };
-    expect(renderToStaticMarkup(<IssuesScreen view={views.active} page={more} query={{}} now={NOW} />)).not.toContain(
-      'data-feed-end',
-    );
-
-    const near = { ...issuePage, dailyCap: { limit: 150, reached: false } };
-    expect(renderToStaticMarkup(<IssuesScreen view={views.active} page={near} query={{}} now={NOW} />)).not.toContain(
-      'data-feed-end',
-    );
-  });
-
-  it('shows a suspended account no feed: a quiet empty state, never the ranking wait or the filters', () => {
-    const empty = { items: [], next: null, total: 0, computedAt: null };
-    const html = renderToStaticMarkup(<IssuesScreen view={views.suspended} page={empty} query={{}} now={NOW} />);
-    const plain = text(html);
-
-    expect(plain).toContain('No issues for now Contribute is paused for this account, so no issues are shown.');
-    expect(html).not.toContain('data-ranking');
-    expect(plain).not.toContain('still being ranked');
-    expect(html).toContain('data-notice="suspended"');
-    const filtered = renderToStaticMarkup(
-      <IssuesScreen view={views.suspended} page={empty} query={{ kind: 'DOCS' }} now={NOW} />,
-    );
-    expect(text(filtered)).not.toContain('No issues match these filters');
-  });
-
-  it("says the day's cap, not that nothing is picked, when it leaves the page empty", () => {
-    const empty = {
-      items: [],
-      next: null,
-      total: 40,
-      computedAt: NOW.toISOString(),
-      dailyCap: { limit: 40, reached: true },
-    };
-    const html = renderToStaticMarkup(<IssuesScreen view={views.newAccount} page={empty} query={{}} now={NOW} />);
-
-    expect(html).toContain('data-feed-end="daily-cap"');
-    expect(text(html)).not.toContain('No issues picked for you yet');
-
-    // Empty with more after it: the list reads on, and says nothing is picked only once the feed has no more.
-    const more = { ...empty, next: 'c20', dailyCap: null };
-    const reading = renderToStaticMarkup(<IssuesScreen view={views.active} page={more} query={{}} now={NOW} />);
-    expect(text(reading)).not.toContain('No issues picked for you yet');
-    expect(reading).toContain('More issues');
   });
 });

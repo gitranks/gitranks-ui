@@ -120,7 +120,7 @@ describe('the first attempt’s status line', () => {
     expect(budget).toMatchObject({
       title: 'Stopped: reached your $5 limit per run',
       lead: { kind: 'pill', label: 'Stopped' },
-      link: { label: 'Pick another issue →', href: '/contribute/issues' },
+      link: { label: 'Pick another issue →', href: '/contribute#issues' },
       more: { label: 'Budget and pacing →', href: '/my/agent/budget' },
     });
     expect(budget.fact).toMatch(
@@ -148,18 +148,18 @@ describe('the first attempt’s status line', () => {
       return { link: link?.href, more: more?.href ?? null, back: !!fact?.endsWith(NOT_BACK_LINE) };
     };
     for (const reason of ['FAILED', 'CHECKS_FAILED', 'USER', 'REVIEW_EXPIRED', 'NO_GO', 'CANCELLED'] as const) {
-      expect(next(reason), reason).toEqual({ link: '/contribute/issues', more: null, back: true });
+      expect(next(reason), reason).toEqual({ link: '/contribute#issues', more: null, back: true });
     }
-    expect(next('TIMEOUT')).toEqual({ link: '/contribute/issues', more: '/my/agent/budget', back: true });
+    expect(next('TIMEOUT')).toEqual({ link: '/contribute#issues', more: '/my/agent/budget', back: true });
     expect(next('KEY_INVALID')).toEqual({ link: '/my/agent/key', more: null, back: true });
     expect(next('EXHAUSTED')).toEqual({ link: '/my/agent', more: null, back: true });
     expect(next('LIMIT_REACHED')).toEqual({ link: '/my/agent', more: null, back: true });
     expect(next('CHECKS_FAILED', 'max_files')).toMatchObject({
-      link: '/contribute/issues',
+      link: '/contribute#issues',
       more: '/my/agent/model#prs',
     });
     // Someone else has the issue: nothing to say of the person's list.
-    expect(next('CLAIM_LOST')).toEqual({ link: '/contribute/issues', more: null, back: false });
+    expect(next('CLAIM_LOST')).toEqual({ link: '/contribute#issues', more: null, back: false });
     // A Learn attempt picks another of Learn's issues.
     const learn = firstStatusOf(detail({ ...stopped('USER'), mode: 'LEARN' }), { now: NOW });
     expect(learn.link?.href).toBe('/learn#issues');
@@ -200,7 +200,7 @@ describe('the first attempt’s status line', () => {
     expect(discarded.fact).toBe(
       'It was cancelled before it finished. The issue went back to the pool, and nothing was submitted. This issue does not come back to your list.',
     );
-    expect(discarded.link).toMatchObject({ label: 'Pick another issue →', href: '/contribute/issues' });
+    expect(discarded.link).toMatchObject({ label: 'Pick another issue →', href: '/contribute#issues' });
     const refused = firstStatusOf(detail({ state: 'DISCARDED', endReason: 'CANCELLED', endDetail: 'repo_no_gfi' }), {
       now: NOW,
     });

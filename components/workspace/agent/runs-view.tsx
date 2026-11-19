@@ -17,7 +17,7 @@ import { loadContribute, loadContributeActivity, loadContributeSetup } from '@/l
 import type { ContributeActivity, ContributeView } from '@/lib/workspace/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
 import { loadLearnOpen } from '@/lib/workspace/gate.data';
-import { RUNS_PATH } from '@/lib/workspace/paths';
+import { PICK_ISSUE_PATHS, RUNS_PATH } from '@/lib/workspace/paths';
 import {
   type ContributeRunsPage,
   type ContributeRunsTotals,
@@ -220,7 +220,7 @@ export function RunsScreen({
       <Empty title="No runs yet">
         An agent starts on an issue for you as your limits allow. Each run shows here, with what it found and what it
         cost.{' '}
-        <Link href="/contribute/issues" prefetch={false} className="font-semibold text-link">
+        <Link href={PICK_ISSUE_PATHS.fix} prefetch={false} className="font-semibold text-link">
           See the issues picked for you
         </Link>
       </Empty>

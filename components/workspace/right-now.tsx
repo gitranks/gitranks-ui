@@ -88,10 +88,13 @@ export function RightNow({
   activity,
   side,
   notes,
+  slots,
 }: {
   activity: ContributeActivity | null | undefined;
   side: RunSide;
   notes?: Partial<Record<LaneName, LaneNote>>;
+  /** The hosted agent's runs at a time: its lane says "{busy} of {slots} at a time" unless `notes` says otherwise. */
+  slots?: number | null;
 }) {
   const live = useLiveActivity(activity);
   const { hosted, own } = rightNowOf(runsOf(live), side);
@@ -116,7 +119,10 @@ export function RightNow({
           <Lane
             name="hosted"
             runs={hosted}
-            note={{ note: notes?.hosted?.note ?? LANES.hosted.note, aside: notes?.hosted?.aside }}
+            note={{
+              note: notes?.hosted?.note ?? LANES.hosted.note,
+              aside: notes?.hosted?.aside ?? (slots ? `${hosted.length} of ${slots} at a time` : null),
+            }}
           />
         ) : null}
         {own.length ? (

@@ -980,6 +980,17 @@ describe('the access level', () => {
       patch: { attemptsAtATime: 1 },
     });
     expect(pagePatchOf('budget', draft)).toMatchObject({ patch: { attemptsAtATime: 2 } });
+
+    // A limit set for the account is never saved as the setting: the stored one goes back as it is.
+    const stored = { attemptsAtATime: 2, openPrsAtATime: 3 };
+    const set = pagePatchOf('agent', draft, { limits: limits.openPrsSet, stored });
+    expect(set).toMatchObject({ patch: { openPrsAtATime: 3 } });
+    expect(set).not.toHaveProperty('invalid');
+    // On smaller limits too, with the stored value above the level's cap: kept, and not refused.
+    const reduced = { ...limits.newAccount, openPrsEffective: 16, openPrsOverride: 16 };
+    const small = pagePatchOf('agent', draft, { limits: reduced, stored });
+    expect(small).toMatchObject({ patch: { openPrsAtATime: 3 } });
+    expect(small).not.toHaveProperty('invalid');
   });
 
   it("ends the feed with the day's cap once it is reached, the count in mono", () => {

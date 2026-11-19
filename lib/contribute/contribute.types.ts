@@ -177,7 +177,8 @@ export type ContributeLimits = {
   openPrsAtATime: number;
   /**
    * The open pull requests at a time that hold now: the setting under the level's maximum, or the limit set for the
-   * account. Left out (or null) while the API does not answer it: `effectiveSettingOf` then works it out.
+   * account. Null when the API does not work it out: `effectiveSettingOf` then works it out as before. The limits read
+   * selects it, so an API without the field answers no limits at all.
    */
   openPrsEffective?: number | null;
   /** The open pull request limit set for the account, which holds over the setting; null with none. */

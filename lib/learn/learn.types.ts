@@ -1,6 +1,7 @@
 /** GitRanks Learn, as the API answers it: a lesson on a fix the user's own agent made, and the user's run through it. */
 
 import type { ContributeAttemptEvent, ContributeAttemptState } from '@/lib/workspace/contribute.types';
+import type { StartIssueRow } from '@/lib/workspace/start/start-page.types';
 
 export type LessonVisibility = 'PRIVATE' | 'PUBLIC' | 'REMOVED' | 'HIDDEN' | 'HELD';
 export type LessonStepState = 'OPEN' | 'KNEW' | 'FIRST_TRY' | 'TRY_N' | 'REPORTED';
@@ -310,20 +311,7 @@ export type LearnGoalView = { kind: string; value: string; level: string | null 
 export type LearnIssuesEmpty = 'NONE_TODAY' | 'GOAL_UNSUPPORTED' | 'CAP' | 'UNREAD';
 
 /** An open issue a lesson can be written for: picked from the ready issues for the viewer's goal. */
-export type LearnIssue = {
-  issueId: string;
-  url: string;
-  /** `owner/name`. */
-  repo: string;
-  number: number;
-  title: string;
-  /** The repository's GitHub language, as GitHub names it ("TypeScript"). */
-  language: string | null;
-  /** `S`, `M`, or null. */
-  size: string | null;
-  /** One line on why it was picked. */
-  why: string | null;
-};
+export type LearnIssue = StartIssueRow;
 
 /** The limit that leaves the viewer no room for a new claim: `attempts_at_a_time` or `open_prs_at_a_time`. */
 export type LearnRoom = { limit: string; value: number };

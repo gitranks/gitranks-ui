@@ -1,0 +1,165 @@
+import type { ReactElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
+  usePathname: () => '/my/start/driftwood-js/driftwood/934',
+  useSearchParams: () => new URLSearchParams(),
+  notFound: () => {
+    throw new Error('NEXT_NOT_FOUND');
+  },
+  redirect: (to: string) => {
+    throw new Error(`NEXT_REDIRECT ${to}`);
+  },
+}));
+vi.mock('server-only', () => ({}));
+vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
+vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/workspace/start/start-page.actions', () => ({}));
+const { viewerLogin } = vi.hoisted(() => ({ viewerLogin: vi.fn(async (): Promise<string | null> => 'octocat') }));
+vi.mock('@/lib/workspace/contribute.data', () => ({
+  viewerLogin,
+  loadContributeVersion: vi.fn(async () => '1.1'),
+  loadContributeActivity: vi.fn(async () => null),
+  loadNeedsYouCount: vi.fn(async () => 0),
+}));
+const learn = vi.hoisted(() => ({ loadLearnOpen: vi.fn(), loadLearnProfile: vi.fn() }));
+vi.mock('@/lib/learn/learn.data', () => learn);
+const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn() }));
+vi.mock('@/lib/workspace/gate.data', () => gate);
+const start = vi.hoisted(() => ({ loadStartPageView: vi.fn() }));
+vi.mock('@/lib/workspace/start/start-page.data', () => start);
+// The poll outside the tabs: a mark, so the page says where it mounts it.
+vi.mock('@/components/workspace/workspace-live', () => ({
+  WorkspaceLive: ({ children }: { children: ReactElement }) => <div data-workspace-live="">{children}</div>,
+}));
+
+const { default: StartPage } = await import('./page');
+const { default: LearnStartPage } = await import('@/app/(workspace)/learn/start/[owner]/[repo]/[number]/page');
+const { filledProfile, emptyProfile } = await import('@/lib/learn/__fixtures__/profile');
+const { startPageViewOf } = await import('@/lib/workspace/start/__fixtures__/start-page');
+
+const text = (html: string) =>
+  html
+    .replace(/<[^>]+>/g, ' ')
+    .replaceAll('&#x27;', "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/** The page's inner part, as its Suspense boundary renders it. */
+async function renderInner(page: ReactElement): Promise<string> {
+  const main = page.props as { children: ReactElement };
+  const suspense = main.children as ReactElement<{ children: ReactElement }>;
+  const inner = suspense.props.children as ReactElement<Record<string, unknown>>;
+  const render = inner.type as (props: Record<string, unknown>) => Promise<ReactElement>;
+  return renderToStaticMarkup(await render(inner.props));
+}
+
+const OPEN = { kind: 'open', entered: true, agents: { hosted: false, own: true }, learnOpen: true } as const;
+const ROUTE = { owner: 'driftwood-js', repo: 'driftwood', issue: '934' };
+
+const startPage = (search: Record<string, string> = {}, route: Record<string, string> = ROUTE) =>
+  renderInner(
+    StartPage({ params: Promise.resolve(route), searchParams: Promise.resolve(search) } as never) as ReactElement,
+  );
+const learnStartPage = (route = { owner: 'driftwood-js', repo: 'driftwood', number: '934' }) =>
+  renderInner(LearnStartPage({ params: Promise.resolve(route) } as never) as ReactElement);
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  viewerLogin.mockResolvedValue('octocat');
+  gate.loadWorkspaceGate.mockResolvedValue(OPEN);
+  learn.loadLearnOpen.mockResolvedValue(true);
+  learn.loadLearnProfile.mockResolvedValue(filledProfile);
+  start.loadStartPageView.mockImplementation(async (_ref, _mode, goal) => ({
+    kind: 'view',
+    view: startPageViewOf({ goal }),
+  }));
+});
+
+describe('the Start page at /my/start', () => {
+  const REF = { repo: 'driftwood-js/driftwood', issue: 934 };
+
+  it('is Fix it by default, without reading the goal', async () => {
+    const html = await startPage();
+    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null);
+    expect(learn.loadLearnProfile).not.toHaveBeenCalled();
+    expect(html).toContain('data-start-mode="fix"');
+    expect(text(html)).toContain('Fix this issue');
+    expect(html).not.toContain('data-workspace-live');
+  });
+
+  it('is lesson mode for ?lesson=1, with the saved goal, back to the tab it came from', async () => {
+    const html = await startPage({ lesson: '1' });
+    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'lesson', 'TypeScript, Some');
+    expect(html).toContain('data-start-mode="lesson"');
+    expect(html).toContain('href="/learn#issues"');
+    expect(await startPage({ lesson: '1', from: 'contribute' })).toContain('href="/contribute/issues"');
+    learn.loadLearnProfile.mockResolvedValueOnce(emptyProfile);
+    expect(text(await startPage({ lesson: '1' }))).toContain('Your lesson will be written for a general reader.');
+  });
+
+  it('sends lesson mode to Fix mode for an account Learn is not open to, and when the API closes it', async () => {
+    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, learnOpen: false });
+    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /my/start/driftwood-js/driftwood/934');
+    start.loadStartPageView.mockResolvedValueOnce({ kind: 'not-found' });
+    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /my/start/driftwood-js/driftwood/934');
+  });
+
+  it('is not found for an address that names no issue, and where the API has no page in Fix mode', async () => {
+    await expect(startPage({}, { ...ROUTE, issue: 'x' })).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(startPage({}, { ...ROUTE, owner: '-acme' })).rejects.toThrow('NEXT_NOT_FOUND');
+    start.loadStartPageView.mockResolvedValueOnce({ kind: 'not-found' });
+    await expect(startPage()).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it("sends an account that has not entered where the gate says, and moves on to the viewer's attempt", async () => {
+    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false });
+    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /contribute');
+    start.loadStartPageView.mockResolvedValueOnce({ kind: 'claimed', href: '/my/pull-requests/by-attempt/A_9' });
+    await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /my/pull-requests/by-attempt/A_9');
+  });
+});
+
+describe("Learn's start page at /learn/start, still there", () => {
+  const REF = { repo: 'driftwood-js/driftwood', issue: 934 };
+
+  it('renders the same page in lesson mode, under the tabs for an account that has entered', async () => {
+    const html = await learnStartPage();
+    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'lesson', 'TypeScript, Some');
+    expect(html).toContain('data-start-mode="lesson"');
+    expect(text(html)).toContain('Fix this issue and learn from it');
+    expect(html).not.toContain('data-workspace-live');
+  });
+
+  it('mounts the poll itself for an account that has not entered, which has no tabs', async () => {
+    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false });
+    expect(await learnStartPage()).toContain('data-workspace-live');
+  });
+
+  it('needs no saved goal any more', async () => {
+    learn.loadLearnProfile.mockResolvedValueOnce(null);
+    expect(text(await learnStartPage())).toContain('Your lesson will be written for a general reader.');
+    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'lesson', null);
+  });
+
+  it('is not found where Learn is closed, signed out, for an address that names no issue, or with no page', async () => {
+    learn.loadLearnOpen.mockResolvedValueOnce(false);
+    await expect(learnStartPage()).rejects.toThrow('NEXT_NOT_FOUND');
+    viewerLogin.mockResolvedValueOnce(null);
+    await expect(learnStartPage()).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(learnStartPage({ owner: 'acme', repo: 'router', number: 'x' })).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(start.loadStartPageView).not.toHaveBeenCalled();
+    start.loadStartPageView.mockResolvedValueOnce({ kind: 'not-found' });
+    await expect(learnStartPage()).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it("moves on to the viewer's own attempt", async () => {
+    start.loadStartPageView.mockResolvedValueOnce({
+      kind: 'claimed',
+      href: '/my/pull-requests/by-attempt/A_7?view=lesson',
+    });
+    await expect(learnStartPage()).rejects.toThrow('NEXT_REDIRECT /my/pull-requests/by-attempt/A_7?view=lesson');
+  });
+});

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
 
 /**
  * A button (outline unless `variant` says) that copies `text`, says "Copied" for a moment, and tells a screen reader
@@ -17,6 +18,7 @@ export function CopyButton({
   variant = 'outline',
   disabled = false,
   onCopy,
+  source,
 }: {
   text: string;
   label: string;
@@ -25,6 +27,8 @@ export function CopyButton({
   variant?: 'outline' | 'default';
   disabled?: boolean;
   onCopy?: () => void;
+  /** Counts each copy as a click from this place (`contributeSource`). */
+  source?: ContributeSource;
 }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -50,6 +54,7 @@ export function CopyButton({
         onClick={copy}
         disabled={disabled}
         className={cn('min-h-11 sm:min-h-10', className)}
+        {...(source ? contributeSource(source) : {})}
       >
         {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
         {copied ? 'Copied' : label}

@@ -101,8 +101,6 @@ vi.mock('@/lib/learn/actions', async () => ({
       'readPracticeLessons',
       'readLearnIssueCount',
       'readPracticeNext',
-      'readLearnStartIssue',
-      'readLearnStartAttempt',
     ].map((name) => [name, async () => undefined]),
   ),
   signInToReact: async () => {},

@@ -11,8 +11,7 @@ import { readPracticeNext } from '@/lib/learn/actions';
 import type { PracticeNext } from '@/lib/learn/learn.types';
 import { attemptTitleOf, goalValueOf } from '@/lib/learn/learn-home';
 import { LEARN_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
-import { LEARN_ISSUES_PATH } from '@/lib/learn/learn-start';
-import { learnAttemptPath } from '@/lib/workspace/paths';
+import { learnAttemptPath, PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
 const CARD = 'flex flex-col gap-3 rounded-xl border-2 border-primary bg-card p-5';
 const BUTTON = 'min-h-11 self-start px-5 font-semibold max-sm:w-full';
@@ -23,7 +22,7 @@ function MoreLinks({ issues = true }: { issues?: boolean }) {
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
       {issues ? (
         <Link
-          href={LEARN_ISSUES_PATH}
+          href={PICK_ISSUE_PATHS.learn}
           prefetch={false}
           className="text-sm font-semibold text-link hover:underline max-sm:inline-flex max-sm:min-h-11 max-sm:items-center"
         >

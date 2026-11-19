@@ -8,10 +8,11 @@ import { HEADING } from '@/components/workspace/primitives';
 import type { LearnGoalView, LearnIssue, LearnIssues, LearnRoom } from '@/lib/learn/learn.types';
 import { goalValueOf, issueSizeOf, roomWordsOf } from '@/lib/learn/learn-home';
 import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
-import { isOpenPrsLimit, learnStartPath } from '@/lib/learn/learn-start';
 import { cn } from '@/lib/utils';
 import { githubUrlOf } from '@/lib/workspace/attempt-format';
 import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
+import { learnStartPath } from '@/lib/workspace/paths';
+import { isOpenPrsLimit } from '@/lib/workspace/start/start-page';
 
 /** A Start button's look: the first row's is the page's one primary action. */
 export type StartLook = { label: string; primary: boolean };

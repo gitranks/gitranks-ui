@@ -34,14 +34,13 @@ import type { LearnAttemptLesson, LessonStep, PracticeLessons } from '@/lib/lear
 import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
 import { endedReasonOf, WAIT_PRACTICE } from '@/lib/learn/learn-home';
 import { LEARN_PRACTICE_PATH, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
-import { LEARN_ISSUES_PATH } from '@/lib/learn/learn-start';
 import { subjectLineOf } from '@/lib/learn/lesson-format';
 import { isOwnAgent } from '@/lib/workspace/attempt-format';
 import type { CommentActionsInit } from '@/lib/workspace/comment-actions';
 import { loadAttempt, loadContribute, viewerLogin } from '@/lib/workspace/contribute.data';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/workspace/contribute.types';
 import { parsePatch } from '@/lib/workspace/patch';
-import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
+import { PICK_ISSUE_PATHS, pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 
@@ -340,7 +339,7 @@ export function LearnAttemptScreen({
           <h2 className={HEADING.card}>This attempt ended</h2>
           <Text>{endedReasonOf(attempt.endReason)} No pull request opens from it, and its lesson stays private.</Text>
           <Button asChild className="min-h-11 self-start px-5 font-semibold max-sm:w-full">
-            <Link href={LEARN_ISSUES_PATH} prefetch={false}>
+            <Link href={PICK_ISSUE_PATHS.learn} prefetch={false}>
               Pick another issue
               <ArrowRight aria-hidden="true" />
             </Link>

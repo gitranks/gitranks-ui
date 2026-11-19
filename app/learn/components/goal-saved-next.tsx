@@ -7,8 +7,7 @@ import { HEADING } from '@/components/workspace/primitives';
 import type { PracticeNext } from '@/lib/learn/learn.types';
 import { attemptTitleOf, currentOf } from '@/lib/learn/learn-home';
 import { LEARN_PATH } from '@/lib/learn/learn-path';
-import { LEARN_ISSUES_PATH } from '@/lib/learn/learn-start';
-import { learnAttemptPath } from '@/lib/workspace/paths';
+import { learnAttemptPath, PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
 /** The panel's words and its one button. */
 type Words = { title: string; text: string; action: { href: Route; label: string } };
@@ -28,7 +27,7 @@ export function goalSavedWordsOf(next: PracticeNext | null, goal: string): Words
     };
   }
   const issues = next?.issues ?? null;
-  const see = { href: LEARN_ISSUES_PATH, label: `See issues for ${goal}` };
+  const see = { href: PICK_ISSUE_PATHS.learn, label: `See issues for ${goal}` };
   const title = 'Next: an issue to learn from';
   if (issues?.empty === 'GOAL_UNSUPPORTED') {
     return {

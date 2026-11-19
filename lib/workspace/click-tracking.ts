@@ -40,10 +40,14 @@ export const CONTRIBUTE_SOURCES = [
   /** A practice lesson: Skip it, pick your issue; Start on an issue once it is passed. */
   'learn_practice_skip',
   'learn_practice_passed_issue',
-  /** GitRanks Learn's start page for one issue: a connect made there, and its views. */
+  /** The Start page for one issue with a lesson (and Learn's older address of it): a connect made there, and its views. */
   'learn_start',
-  /** Copy the prompt, on Learn's start page. */
+  /** Copy the prompt, on the Start page with a lesson. */
   'learn_start_copy',
+  /** The Start page for one issue, Fix it: a connect made there, and its views. */
+  'contribute_start',
+  /** Copy the prompt, on the Start page, Fix it. */
+  'contribute_start_copy',
   /** The workspace's own tabs: moving between them is never counted (`clickOf` drops it on every page). */
   'workspace_tab',
   /** A link to Contribute that carries no mark. */
@@ -61,10 +65,15 @@ export const CONTRIBUTE_SOURCE_ATTR = 'data-contribute-source';
 export const contributeSource = (source: ContributeSource) => ({ [CONTRIBUTE_SOURCE_ATTR]: source }) as const;
 
 /**
- * Sources whose links sit on Contribute's own pages and the workspace's under `/my` (its landing's buttons, and the
- * header's Learn on every page); any other click there is moving around inside it.
+ * Sources whose links sit on Contribute's own pages and the workspace's under `/my` (its landing's buttons, the header's
+ * Learn on every page, and the Start page's Copy the prompt); any other click there is moving around inside it.
  */
-const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>(['contribute_landing', 'learn_menu']);
+const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>([
+  'contribute_landing',
+  'learn_menu',
+  'learn_start_copy',
+  'contribute_start_copy',
+]);
 
 export const CLICK_REPORT_PATH = '/api/contribute/click';
 
@@ -75,8 +84,8 @@ const TAB_SOURCE: ContributeSource = 'workspace_tab';
 export type ClickKind = 'click' | 'landing' | 'connect' | 'learn_view' | 'learn_click';
 export type ConnectWay = 'key' | 'agent';
 
-/** Where a Learn event happened: one of Learn's pages, or one of its suggestions. */
-export type LearnSource = Extract<ContributeSource, `learn_${string}`>;
+/** Where a Learn event happened: one of Learn's pages, or one of its suggestions; or the Start page in Fix mode. */
+export type LearnSource = Extract<ContributeSource, `learn_${string}`> | 'contribute_start';
 
 /**
  * What a Learn report counts: something shown (`learn_view`: a lesson's page, a result page, a suggestion) or a click
@@ -85,8 +94,18 @@ export type LearnSource = Extract<ContributeSource, `learn_${string}`>;
 export type LearnEvent =
   | {
       kind: 'learn_view';
-      /** `learn_start_view`: the start page shown; `learn_start_claimed`: it went on to the lesson page. */
-      event: 'lesson_opened' | 'result_opened' | 'promo_shown' | 'learn_start_view' | 'learn_start_claimed';
+      /**
+       * `learn_start_view`: the Start page with a lesson shown; `learn_start_claimed`: it went on to the lesson. The
+       * Start page in Fix mode sends `contribute_start_view` and `contribute_start_claimed` the same way.
+       */
+      event:
+        | 'lesson_opened'
+        | 'result_opened'
+        | 'promo_shown'
+        | 'learn_start_view'
+        | 'learn_start_claimed'
+        | 'contribute_start_view'
+        | 'contribute_start_claimed';
       source: LearnSource;
     }
   | {

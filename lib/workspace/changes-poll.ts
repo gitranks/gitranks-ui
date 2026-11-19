@@ -227,7 +227,8 @@ const REFRESHED_BY: [test: (path: string) => boolean, areas: ContributeChangeAre
   // The user's lessons, and a lesson's own page while it waits on the agent.
   [(path) => path === '/learn/lessons' || path.startsWith('/learn/attempts/'), ['ATTEMPTS']],
   [(path) => under(path, '/my/pull-requests'), ['ATTEMPTS']],
-  [(path) => path.startsWith('/my/start/') || path === '/my/progress', ['ATTEMPTS']],
+  // Not the Start page: it asks about its issue itself, on `ATTEMPTS` (a page read would read GitHub again).
+  [(path) => path === '/my/progress', ['ATTEMPTS']],
   [(path) => under(path, '/my/agent'), ['ATTEMPTS', 'SETTINGS']],
   [(path) => under(path, '/my/settings'), ['SET', 'SETTINGS']],
 ];

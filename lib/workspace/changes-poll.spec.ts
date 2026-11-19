@@ -269,7 +269,9 @@ describe('what a read does', () => {
     ['/my/pull-requests/by-attempt/A_1', ['ATTEMPTS'], true],
     ['/my/pull-requests/acme/widgets/42', ['ATTEMPTS'], true],
     ['/my/pull-requests/acme/widgets/42/runs/R_1', ['ATTEMPTS'], true],
-    ['/my/start/acme/widgets/42', ['ATTEMPTS'], true],
+    // The Start page asks about its issue itself (`useChanges`): a page read would read GitHub again.
+    ['/my/start/acme/widgets/42', ['ATTEMPTS'], false],
+    ['/learn/start/acme/widgets/42', ['ATTEMPTS'], false],
     ['/my/progress', ['ATTEMPTS'], true],
     ['/my/agent', ['ATTEMPTS'], true],
     ['/my/agent', ['SETTINGS'], true],

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { phaseTextOf } from './agent-runs';
 import type { ContributeAgentRunPhase } from './contribute.types';
-import { RUN_STEPS, runKindOf, stepMarksOf, stepNameOf, stepsLabelOf, stepsOf } from './run-steps';
+import { runSideOf } from './right-now';
+import { isLearnRun, RUN_STEPS, runKindOf, stepMarksOf, stepNameOf, stepsLabelOf, stepsOf } from './run-steps';
 import { FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 
 const ALL: ContributeAgentRunPhase[] = [
@@ -29,6 +31,13 @@ describe("a run's steps", () => {
       learn: ['Taking the issue', 'Fixing the issue', 'Writing your lesson', 'Checks', 'Lesson ready'],
       'follow-up': ['Queued', 'Addressing review', 'Checks', 'Ready for your review', 'Pushing'],
     });
+  });
+
+  it('has one rule for a Learn run, which Right now uses too', () => {
+    expect(isLearnRun(learn('WORKING'))).toBe(true);
+    expect(isLearnRun(runOf({ phase: 'WRITING_LESSON', mode: null }))).toBe(true);
+    expect(isLearnRun(fix('WORKING'))).toBe(false);
+    expect(runSideOf(learn('WORKING'))).toBe('learn');
   });
 
   it('knows the kind: a follow-up by its kind, a Learn run by its side or its lesson phase', () => {
@@ -101,5 +110,16 @@ describe("a run's steps", () => {
       { name: 'Ready for your review', mark: 'left' },
       { name: 'Pushing', mark: 'left' },
     ]);
+  });
+
+  it("is the row's status too, while an agent works: one name per step; the API's words otherwise", () => {
+    expect(phaseTextOf(learn('CHECKING_ISSUE'))).toBe('Taking the issue');
+    expect(phaseTextOf(learn('WORKING'))).toBe('Fixing the issue');
+    expect(phaseTextOf(runOf({ phase: 'WORKING', label: 'Working on a fix' }))).toBe('Working');
+    expect(phaseTextOf(followUp('ADDRESSING_REVIEW'))).toBe('Addressing review');
+    expect(phaseTextOf(runOf({ phase: 'QUEUED', label: 'Queued, 1st in line' }))).toBe('Queued, 1st in line');
+    expect(phaseTextOf(runOf({ phase: 'SUBMITTING', label: 'Opening the pull request' }))).toBe(
+      'Opening the pull request',
+    );
   });
 });

@@ -14,6 +14,8 @@ export type IssueLive = {
   onTaken?: () => void;
   /** The user skipped it: it is not asked about again. */
   onSkipped?: () => void;
+  /** Its Start found the issue gone and says why: the row leaves as a taken one does, its status kept. */
+  onFold?: () => void;
 };
 
 /** The issue is no longer free: its controls are off, and the card is dimmed. */

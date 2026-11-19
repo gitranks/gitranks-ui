@@ -68,7 +68,10 @@ describe('the Start control', () => {
 
   it('says Starting… and is off while its start is sent; off while another row sends one', () => {
     const hosted = startControlOf('contribute', REF, { hosted: true, own: false });
-    expect(render(hosted, { sending: true })).toMatch(/<button[^>]*disabled=""[^>]*>Starting…/);
+    // Its own start: off for a second press but still focusable (`aria-disabled`, not `disabled`).
+    const sending = render(hosted, { sending: true });
+    expect(sending).toMatch(/<button[^>]*aria-disabled="true"[^>]*>Starting…/);
+    expect(sending).not.toContain('disabled=""');
     const menu = startControlOf('contribute', REF, { hosted: true, own: true });
     expect(render(menu, { disabled: true })).toMatch(/<button[^>]*disabled=""/);
     // A link is drawn as an inert button while another row's start is sent.

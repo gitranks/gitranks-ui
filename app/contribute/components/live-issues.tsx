@@ -185,6 +185,7 @@ const liveOf = (feed: LiveFeed, row: LiveRow): IssueLive => ({
   attemptId: row.attemptId,
   onTaken: () => feed.markTaken(row.issue.issueId),
   onSkipped: () => feed.forget(row.issue.issueId),
+  onFold: () => feed.fold(row.issue.issueId),
 });
 
 /**

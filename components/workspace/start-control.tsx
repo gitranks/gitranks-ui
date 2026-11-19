@@ -4,7 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createContext, type ReactNode, useContext, useMemo, useState, useTransition } from 'react';
+import { createContext, type ReactNode, useContext, useMemo, useRef, useState, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -39,24 +39,42 @@ export function IssueStartsProvider({ children }: { children: ReactNode }) {
 export function useHostedStart(
   issueId: string,
   ref: { repo: string; issue: number },
-  facts?: IssueStartFacts,
-  initialRefusal: IssueStartRefusalCopy | null = null,
+  {
+    facts,
+    initialRefusal = null,
+    onRefused,
+  }: {
+    facts?: IssueStartFacts;
+    initialRefusal?: IssueStartRefusalCopy | null;
+    /** A Start refused: the page re-reads what it holds (the limit's state, the list) as the refusal asks. */
+    onRefused?: (refusal: IssueStartRefusalCopy) => void;
+  } = {},
 ) {
   const router = useRouter();
   const page = useContext(IssueStartsContext);
   const [sending, startSending] = useTransition();
   const [refusal, setRefusal] = useState<IssueStartRefusalCopy | null>(initialRefusal);
+  // The latest callback, without starting anew when the page draws a new one.
+  const refused = useRef(onRefused);
+  refused.current = onRefused;
+  const busy = useRef(false);
   const start = () => {
-    if (page?.sending) return;
+    if (busy.current || page?.sending) return;
+    busy.current = true;
     page?.setSending(issueId);
-    setRefusal(null);
     startSending(async () => {
       try {
         const result = await startIssue(issueId).catch(() => null);
         const outcome = await hostedStartOutcomeOf(result, ref, () => readStartPageAttempt(ref.repo, ref.issue), facts);
-        if (outcome.kind === 'open') router.push(outcome.href);
-        else setRefusal(outcome.refusal);
+        if (outcome.kind === 'open') {
+          router.push(outcome.href);
+          return;
+        }
+        // Kept until the answer: the refusal's "Try again" stays where the focus is while it is sent again.
+        setRefusal(outcome.refusal);
+        refused.current?.(outcome.refusal);
       } finally {
+        busy.current = false;
         page?.setSending(null);
       }
     });
@@ -70,7 +88,7 @@ export function useHostedStart(
   };
 }
 
-const BUTTON = 'h-10 px-4 font-semibold max-sm:min-h-11';
+const BUTTON = 'h-10 px-4 font-semibold max-sm:min-h-11 aria-disabled:cursor-default aria-disabled:opacity-60';
 const ITEM = 'min-h-11 cursor-pointer sm:min-h-9';
 
 /**
@@ -95,10 +113,12 @@ export function StartControl({
   label: string;
 }) {
   const variant = primary ? 'default' : 'outline';
-  const off = sending || disabled;
+  // While its own start is sent the control keeps the focus (`aria-disabled`, the start ignores a second press);
+  // another row's start turns it off for good until that one is answered.
+  const busy = sending ? { 'aria-disabled': true } : {};
   const sr = <span className="sr-only"> {label}</span>;
   if (control.kind === 'link') {
-    return off ? (
+    return disabled ? (
       <Button type="button" variant={variant} disabled className={BUTTON}>
         {control.label}
         {sr}
@@ -117,8 +137,9 @@ export function StartControl({
       <Button
         type="button"
         variant={variant}
-        disabled={off}
-        onClick={onHosted}
+        disabled={disabled}
+        {...busy}
+        onClick={sending ? undefined : onHosted}
         className={BUTTON}
         data-start-control="hosted"
       >
@@ -129,8 +150,16 @@ export function StartControl({
   }
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild disabled={off}>
-        <Button type="button" variant={variant} className={cn(BUTTON, 'gap-1.5 pr-3')} data-start-control="menu">
+      <DropdownMenuTrigger asChild disabled={disabled}>
+        <Button
+          type="button"
+          variant={variant}
+          {...busy}
+          onPointerDown={sending ? (event) => event.preventDefault() : undefined}
+          onKeyDown={sending ? (event) => event.preventDefault() : undefined}
+          className={cn(BUTTON, 'gap-1.5 pr-3')}
+          data-start-control="menu"
+        >
           {sending ? 'Starting…' : control.label}
           {sr}
           <ChevronDown aria-hidden="true" className="size-4" />

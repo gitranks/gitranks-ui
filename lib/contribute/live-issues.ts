@@ -77,6 +77,11 @@ export type LiveFeed = {
   markTaken: (issueId: string) => void;
   /** A row that is settled here (the user skipped it): never asked about again. */
   forget: (issueId: string) => void;
+  /**
+   * A row its own action found gone (a Start refused: taken, closed, no longer available): it says why itself, so it
+   * keeps its status and only leaves, as a taken row does. Once.
+   */
+  fold: (issueId: string) => void;
   /** Called with a row's id just before it leaves the list, so the focus can move off it. */
   onBeforeRemove: (handler: ((issueId: string) => void) | null) => void;
   /**
@@ -244,6 +249,12 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
     },
     forget: (issueId) => {
       settled.add(issueId);
+    },
+    fold: (issueId) => {
+      // The row says why itself: no status of its own, it only leaves, once.
+      if (settled.has(issueId)) return;
+      settled.add(issueId);
+      scheduleExit(issueId);
     },
     onBeforeRemove: (handler) => {
       beforeRemove = handler;

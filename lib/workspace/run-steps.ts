@@ -52,11 +52,30 @@ const AT: Record<RunKind, Partial<Record<ContributeAgentRunPhase, number>>> = {
   },
 };
 
-/** A run's kind: a follow-up by its kind, a Learn run by its side (or its lesson phase, from an API without the side). */
+/** Whether a run is Learn's: by its side, or by its lesson phase from an API that does not say the side. */
+export const isLearnRun = (run: Pick<ContributeAgentRun, 'mode' | 'phase'>) =>
+  run.mode === 'LEARN' || run.phase === 'WRITING_LESSON';
+
+/** A run's kind: a follow-up by its kind, else a first run of its side. */
 export function runKindOf(run: Pick<ContributeAgentRun, 'kind' | 'phase' | 'mode'>): RunKind {
   if (run.kind === 'FOLLOW_UP') return 'follow-up';
-  return run.mode === 'LEARN' || run.phase === 'WRITING_LESSON' ? 'learn' : 'fix';
+  return isLearnRun(run) ? 'learn' : 'fix';
 }
+
+/**
+ * The phases an agent works in, which a step names. Not: queued (waiting), the autopilot's hour, submitting (no agent
+ * works), settled.
+ */
+export const WORKING_PHASES: readonly ContributeAgentRunPhase[] = [
+  'CHECKING_ISSUE',
+  'WORKING',
+  'WRITING_LESSON',
+  'ADDRESSING_REVIEW',
+  'RUNNING_CHECKS',
+];
+
+/** Whether an agent works on the run now, by its phase: its status is then the name of its step. */
+export const isWorkingPhase = (run: Pick<ContributeAgentRun, 'phase'>) => WORKING_PHASES.includes(run.phase);
 
 /** The steps a run walks, and the one it is on (0-based; the list's length once all are done). */
 export function stepsOf(run: Pick<ContributeAgentRun, 'phase' | 'kind' | 'mode'>): {

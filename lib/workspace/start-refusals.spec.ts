@@ -138,10 +138,13 @@ describe("an issue row's refused hosted Start", () => {
       action: { href: '/my/agent/budget', label: 'Budget and pacing' },
     });
     expect(words({ refusal: 'BUDGET' })?.text).toBe('Your budget leaves no room for one more run.');
-    expect(words({ refusal: 'KEY_WAITING', until: UNTIL })).toMatchObject({
+    expect(words({ refusal: 'KEY_WAITING', until: UNTIL }, { keyWaiting: 'EXHAUSTED' })).toMatchObject({
       text: 'Your Claude credits are used up until Nov 21.',
       action: { href: '/my/agent', label: 'Agent' },
     });
+    // The page did not say which: a sentence true of both.
+    expect(words({ refusal: 'KEY_WAITING', until: UNTIL })?.text).toBe("Your Claude key can't be used until Nov 21.");
+    expect(words({ refusal: 'KEY_WAITING' })?.text).toBe("Your Claude key can't be used.");
     expect(words({ refusal: 'KEY_WAITING', until: UNTIL }, { keyWaiting: 'LIMIT_REACHED' })?.text).toBe(
       'Your Claude workspace reached its spend limit until Nov 21.',
     );

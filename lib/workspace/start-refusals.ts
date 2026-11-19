@@ -174,7 +174,9 @@ export function issueStartRefusalOf(answer: IssueStart, facts: IssueStartFacts =
       return say(
         facts.keyWaiting === 'LIMIT_REACHED'
           ? `Your Claude workspace reached its spend limit${until(answer.until)}.`
-          : `Your Claude credits are used up${until(answer.until)}.`,
+          : facts.keyWaiting === 'EXHAUSTED'
+            ? `Your Claude credits are used up${until(answer.until)}.`
+            : `Your Claude key can't be used${until(answer.until)}.`,
         { href: WORKSPACE_PATHS.agent, label: 'Agent' },
       );
     case 'NO_KEY':

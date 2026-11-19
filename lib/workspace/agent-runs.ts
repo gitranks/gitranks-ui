@@ -4,6 +4,7 @@ import { detailText, EVENT_LABELS } from './attempt-format';
 import type { ContributeActivity, ContributeAgentRun, ContributeAgentRunPhase } from './contribute.types';
 import { relativeLabel, usd } from './format';
 import { pullRequestByAttemptPath } from './paths';
+import { isWorkingPhase, stepNameOf } from './run-steps';
 
 /**
  * The user's agent runs as the activity read lists them (`runs`): the Agent tab's count, Right now's lanes, the runs
@@ -75,9 +76,16 @@ const SETTLED_TEXT: Record<SettledPhase, string> = {
   STOPPED: 'Stopped',
 };
 
-/** A run's few words of state, settled ones as the user acts on them. */
-export const phaseTextOf = (run: Pick<ContributeAgentRun, 'phase' | 'label'>) =>
-  isSettled(run) ? SETTLED_TEXT[run.phase as SettledPhase] : run.label;
+/**
+ * A run's few words of state: settled ones as the user acts on them; one an agent works on by its step's name (the
+ * name its bars and their hover card say); queued, waiting and submitting ones as the API says.
+ */
+export const phaseTextOf = (run: Pick<ContributeAgentRun, 'phase' | 'label' | 'kind' | 'mode'>) =>
+  isSettled(run)
+    ? SETTLED_TEXT[run.phase as SettledPhase]
+    : isWorkingPhase(run)
+      ? (stepNameOf(run) ?? run.label)
+      : run.label;
 
 /** `42 s`, `12 min`, `1 h 05 min`. */
 export function durationLabel(seconds: number): string {

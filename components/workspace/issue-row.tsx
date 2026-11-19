@@ -2,7 +2,7 @@
 
 import type { Route } from 'next';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
@@ -32,34 +32,52 @@ import type { IssueStartFacts, IssueStartRefusalCopy } from '@/lib/workspace/sta
 
 const link = 'font-semibold text-link hover:underline';
 
-/** Why the row's hosted Start did not start: one sentence (or the limit's notice) and its one next step. */
-function RowRefusal({ refusal, onRetry }: { refusal: IssueStartRefusalCopy; onRetry: () => void }) {
-  if (refusal.limit) {
-    return (
-      <div data-start-refusal={refusal.code}>
-        <LimitNotice {...refusal.limit} />
-      </div>
-    );
-  }
+/**
+ * Why the row's hosted Start did not start: one sentence (or the limit's notice) and its one next step. It takes the
+ * focus when it comes (`ref`, not in the tab order), so a keyboard or screen-reader user hears it where they were.
+ */
+function RowRefusal({
+  refusal,
+  sending,
+  onRetry,
+  ref,
+}: {
+  refusal: IssueStartRefusalCopy;
+  sending: boolean;
+  onRetry: () => void;
+  ref: RefObject<HTMLDivElement | null>;
+}) {
   const { action } = refusal;
   return (
-    <p role="status" data-start-refusal={refusal.code} className="text-sm text-foreground">
-      {refusal.text}
-      {action ? ' ' : null}
-      {action && 'retry' in action ? (
-        <Button type="button" variant="link" onClick={onRetry} className="h-auto p-0 font-semibold text-link">
-          {action.label}
-        </Button>
-      ) : action?.external ? (
-        <a href={action.href} className={link}>
-          {action.label} →
-        </a>
-      ) : action ? (
-        <Link href={action.href} prefetch={false} className={link}>
-          {action.label} →
-        </Link>
-      ) : null}
-    </p>
+    <div ref={ref} tabIndex={-1} data-start-refusal={refusal.code} className="text-sm text-foreground outline-none">
+      {refusal.limit ? (
+        <LimitNotice {...refusal.limit} />
+      ) : (
+        <p>
+          {refusal.text}
+          {action ? ' ' : null}
+          {action && 'retry' in action ? (
+            <Button
+              type="button"
+              variant="link"
+              aria-disabled={sending || undefined}
+              onClick={sending ? undefined : onRetry}
+              className="h-auto p-0 font-semibold text-link aria-disabled:opacity-60"
+            >
+              {sending ? 'Trying again…' : action.label}
+            </Button>
+          ) : action?.external ? (
+            <a href={action.href} className={link}>
+              {action.label} →
+            </a>
+          ) : action ? (
+            <Link href={action.href} prefetch={false} className={link}>
+              {action.label} →
+            </Link>
+          ) : null}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -84,6 +102,11 @@ export type IssueRowProps = {
   facts?: IssueStartFacts;
   /** A refused Start the row shows from the start (the catalogue's states). */
   initialRefusal?: IssueStartRefusalCopy | null;
+  /**
+   * Its hosted Start was refused: the page re-reads what the refusal changes (`LIMIT_REACHED`: the limit's state;
+   * `REPO_UNAVAILABLE`: the list).
+   */
+  onRefused?: (refusal: IssueStartRefusalCopy) => void;
 };
 
 /**
@@ -105,27 +128,42 @@ export function IssueRow({
   startHref,
   facts,
   initialRefusal = null,
+  onRefused,
 }: IssueRowProps) {
   const ref = { repo: issue.repo, issue: issue.number };
-  const hosted = useHostedStart(issue.issueId, ref, facts, initialRefusal);
+  const hosted = useHostedStart(issue.issueId, ref, { facts, initialRefusal, onRefused });
   const [skipped, setSkipped] = useState(false);
   const [takenHere, setTakenHere] = useState(false);
   const row = useRef<HTMLElement>(null);
   const line = useRef<HTMLParagraphElement>(null);
+  const said = useRef<HTMLDivElement>(null);
   const done = useRef<HTMLParagraphElement>(null);
   const refusal = hosted.refusal;
   const folded = refusal?.row === 'folds';
   const status = live?.status && live.status !== 'AVAILABLE' ? live.status : takenHere ? 'TAKEN' : 'AVAILABLE';
   const gone = isGone(status) || folded;
-  useFocusOnGone(gone, row, line);
+  // A folded row's status line is its refusal, which says why.
+  useFocusOnGone(gone, row, folded ? said : line);
   useEffect(() => {
     if (skipped) done.current?.focus();
   }, [skipped]);
-  // A Start refused because the issue is gone: the list lets the row go as it does a taken one.
-  const onTaken = live?.onTaken;
+  // A refusal that comes while the focus is in the row (or was let go): it moves to the refusal, which says it.
+  const shownRefusal = useRef(initialRefusal);
   useEffect(() => {
-    if (folded) onTaken?.();
-  }, [folded, onTaken]);
+    if (!refusal || refusal === shownRefusal.current) return;
+    shownRefusal.current = refusal;
+    const focus = document.activeElement;
+    if (!focus || focus === document.body || row.current?.contains(focus)) said.current?.focus();
+  }, [refusal]);
+  // A Start refused because the issue is gone: the list lets the row go, once, without calling it taken.
+  const fold = useRef(live?.onFold);
+  fold.current = live?.onFold;
+  const foldedOnce = useRef(false);
+  useEffect(() => {
+    if (!folded || foldedOnce.current) return;
+    foldedOnce.current = true;
+    fold.current?.();
+  }, [folded]);
 
   const where = `${issue.repo} #${issue.number}`;
   if (skipped) {
@@ -198,8 +236,10 @@ export function IssueRow({
           </p>
         ) : null}
         {contribute ? <IssueRepoRules rules={issue.repoRules} className={cn(gone && GONE)} /> : null}
-        {refusal ? <RowRefusal refusal={refusal} onRetry={hosted.start} /> : null}
-        {live || takenHere ? <IssueLiveStatus ref={line} status={status} attemptId={live?.attemptId ?? null} /> : null}
+        {refusal ? <RowRefusal ref={said} refusal={refusal} sending={hosted.sending} onRetry={hosted.start} /> : null}
+        {(live || takenHere) && !folded ? (
+          <IssueLiveStatus ref={line} status={status} attemptId={live?.attemptId ?? null} />
+        ) : null}
       </div>
       {showControl || (contribute && menu) ? (
         <div className="flex flex-none items-center gap-1 max-sm:[&>*:first-child]:flex-1">

@@ -82,6 +82,20 @@ describe('a live list of issues', () => {
     expect(ids(feed)).not.toContain('I_3');
   });
 
+  it('lets a row its Start found gone leave once, its status kept and asked about no more', async () => {
+    const readStatus = vi.fn(async (_ids: string[]): Promise<StatusRead> => ({ ok: true, data: [] }));
+    const feed = feedOf({ readStatus, limit: 4 });
+    feed.fold('I_2');
+    feed.fold('I_2');
+    expect(rowOf(feed, 'I_2')?.status).toBe('AVAILABLE');
+    expect(readStatus).not.toHaveBeenCalled();
+    await feed.poll();
+    expect(readStatus.mock.calls[0][0]).not.toContain('I_2');
+    await vi.advanceTimersByTimeAsync(LIVE_EXIT_AFTER_MS + LIVE_LEAVE_MS);
+    expect(ids(feed)).not.toContain('I_2');
+    expect(feed.getSnapshot().total).toBe(41);
+  });
+
   it("turns a Skip refused as taken into a taken row, and then the user's own claim if a read says so", async () => {
     const readStatus = vi.fn(async (): Promise<StatusRead> => ({ ok: true, data: [yours('I_1', 'A_1')] }));
     const feed = feedOf({ readStatus });

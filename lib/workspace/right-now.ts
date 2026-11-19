@@ -1,32 +1,24 @@
-import type { ContributeAgentRun, ContributeAgentRunPhase } from './contribute.types';
+import type { ContributeAgentRun } from './contribute.types';
 import { relativeLabel } from './format';
+import { isLearnRun, isWorkingPhase } from './run-steps';
 
 /**
  * Right now, on both front tabs: the runs an agent works on at this moment, each tab its own side's. Absent with none.
  */
 
-/** The phases an agent works in. Not: queued (waiting), the autopilot's hour (Needs you), submitting (no agent works). */
-export const RIGHT_NOW_PHASES: readonly ContributeAgentRunPhase[] = [
-  'CHECKING_ISSUE',
-  'WORKING',
-  'WRITING_LESSON',
-  'ADDRESSING_REVIEW',
-  'RUNNING_CHECKS',
-];
-
 /** Which front tab a run shows on. */
 export type RunSide = 'fix' | 'learn';
 
-/** A run's side: Learn's by its mode (or its lesson phase, from an API without the mode); anything else is Contribute's. */
+/** A run's side: Learn's (`isLearnRun`), else Contribute's. */
 export const runSideOf = (run: Pick<ContributeAgentRun, 'mode' | 'phase'>): RunSide =>
-  run.mode === 'LEARN' || run.phase === 'WRITING_LESSON' ? 'learn' : 'fix';
+  isLearnRun(run) ? 'learn' : 'fix';
 
 /** The runs one tab's Right now shows, a lane each: the hosted agent's, and the person's own agent's. */
 export function rightNowOf(
   runs: readonly ContributeAgentRun[],
   side: RunSide,
 ): { hosted: ContributeAgentRun[]; own: ContributeAgentRun[] } {
-  const shown = runs.filter((run) => RIGHT_NOW_PHASES.includes(run.phase) && runSideOf(run) === side);
+  const shown = runs.filter((run) => isWorkingPhase(run) && runSideOf(run) === side);
   return {
     hosted: shown.filter(({ runner }) => runner !== 'MCP'),
     own: shown.filter(({ runner }) => runner === 'MCP'),

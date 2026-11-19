@@ -60,7 +60,8 @@ export type CardKind =
 export type MoveTone = 'violet' | 'amber' | 'red';
 
 /** Why no run may take what waits: the PR was opened by hand, the repo said no, or a maintainer stopped our work. */
-export type NoRun = 'hand' | 'said-no' | 'stopped';
+/** Why no run of ours may start: opened by hand, the repo said no, a maintainer stopped it, or a Learn pull request. */
+export type NoRun = 'hand' | 'said-no' | 'stopped' | 'learn';
 
 /** One rule the open pull request breaks, as the rules card lists it. `failed`: a one-click fix for it did not go. */
 export type RuleItem = {
@@ -163,6 +164,11 @@ export type MovesInput = {
   replies?: ContributeReplyWaiting[];
   prNotes?: ContributePrNotes;
   now: Date;
+  /**
+   * A Learn attempt whose Lesson view the viewer has (Learn open to them): before its pull request, its moves are the
+   * lesson's, on that view.
+   */
+  lessonView?: boolean;
 };
 
 /** The proof's tile, by its stage: its own words win over "Your move". */
@@ -261,6 +267,7 @@ export function contributionMovesOf({
   replies,
   prNotes,
   now,
+  lessonView = false,
 }: MovesInput): ContributionMoves {
   const hardStop = hardStopOf({ first, prNotes });
   const blocked: ReadonlySet<ActionId> = hardStop?.blocked ?? new Set();
@@ -331,8 +338,11 @@ export function contributionMovesOf({
   if (run) runs.set(run.attemptId, { attemptId: run.attemptId, state: run.state, round: runRoundOf(first, run) });
 
   // Session moves: the first attempt's before its pull request, the run under way's.
+  // A Learn pull request's change is its own agent's (W1 §8.1): no run of ours is offered, whatever the account has.
+  const learn = first.mode === 'LEARN';
+  // Before a Learn pull request opens, the review, the submit and its bounces are the Lesson view's.
   const sessionMoves = [
-    ...(pr ? [] : firstMovesOf(view, first, now, blocked)),
+    ...(pr || (learn && lessonView) ? [] : firstMovesOf(view, first, now, blocked)),
     ...(run ? runMovesOf(view, run, runRoundOf(first, run), now) : []),
   ].sort((a, b) => a.group - b.group || a.at - b.at);
 
@@ -344,7 +354,7 @@ export function contributionMovesOf({
     const { cards, replySlot } =
       underWay || reading
         ? { cards: [], replySlot: 0 }
-        : prCardsOf({ first, view, now, mayStart, noRun, blocked, signingOff, round: nextRound });
+        : prCardsOf({ first, view, now, mayStart, noRun, blocked, signingOff, round: nextRound, learn });
     const slotted = [...cards, ...replyMoves.map((move, index) => ({ slot: replySlot + index / 1000, move }))].sort(
       (a, b) => a.slot - b.slot,
     );
@@ -430,8 +440,8 @@ export function contributionMovesOf({
     };
   }
 
-  // A Learn pull request's change is the own agent's alone (W1 §8.1): what a run would take, its card asks the agent.
-  const hostedStart = first.mode === 'LEARN' ? false : mayStart;
+  // What a run would take on a Learn pull request, its card asks the own agent for.
+  const hostedStart = learn ? false : mayStart;
   return {
     moves,
     sessions,

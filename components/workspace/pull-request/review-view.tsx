@@ -169,7 +169,7 @@ export async function ContributionLayout({ params, children }: { params: Promise
   const { first, base, earlier } = page;
   const [{ current, prNotes, replies }, lesson] = await Promise.all([contributionOf(first), lessonOf(first)]);
   const now = new Date();
-  const model = contributionMovesOf({ view, first, current, replies, prNotes, now });
+  const model = contributionMovesOf({ view, first, current, replies, prNotes, now, lessonView: !!lesson });
   return (
     <ContributionShell
       view={view}
@@ -228,7 +228,7 @@ export async function lessonPageOf(params: Promise<PageParams>) {
 export const LessonUnavailable = () => <Unavailable />;
 
 /** The address with the query it came with (a grant's resume, the move named), `session` aside unless `keep`. */
-export function withQuery(path: Route, query: Query, { keep = false }: { keep?: boolean } = {}): Route {
+function withQuery(path: Route, query: Query, { keep = false }: { keep?: boolean } = {}): Route {
   const params = new URLSearchParams(path.includes('?') ? path.slice(path.indexOf('?') + 1) : '');
   for (const [key, value] of Object.entries(query)) {
     if (key === 'session' && !keep) continue;
@@ -281,9 +281,19 @@ export async function FirstSessionView({
   const { first: attempt, base } = page;
   const at = { firstId: attempt.attemptId, base };
   const next = paramOf(query, 'session') === NEXT_SESSION;
-  const { current, prNotes, replies } = await contributionOf(attempt);
+  const [{ current, prNotes, replies }, lesson] = await Promise.all([contributionOf(attempt), lessonOf(attempt)]);
+  const lessonView = !!lesson;
   const now = new Date();
-  const model = contributionMovesOf({ view, first: attempt, current, shown: attempt, replies, prNotes, now });
+  const model = contributionMovesOf({
+    view,
+    first: attempt,
+    current,
+    shown: attempt,
+    replies,
+    prNotes,
+    now,
+    lessonView,
+  });
   if (next) {
     const underWay = attempt.followUps?.currentAttemptId;
     if (underWay) redirect(withQuery(sessionPath(at, underWay), query));
@@ -302,6 +312,7 @@ export async function FirstSessionView({
       now={now}
       resolveHumans={resolveHumans}
       base={base}
+      lessonView={lessonView}
     />
   );
 }
@@ -517,7 +528,16 @@ export function ReviewScreen({
   const underWay = first?.followUps?.currentAttemptId;
   const run = current ?? (followUp && attempt.attemptId === underWay ? attempt : undefined);
   const waiting = replies?.filter(({ prId }) => prId === first?.pullRequest?.prId);
-  const model = contributionMovesOf({ view, first, current: run, shown: attempt, replies: waiting, prNotes, now });
+  const model = contributionMovesOf({
+    view,
+    first,
+    current: run,
+    shown: attempt,
+    replies: waiting,
+    prNotes,
+    now,
+    lessonView: !!lesson,
+  });
   const showNext = !!first && next && !underWay && first.pullRequest?.state === 'OPEN' && nextPaneShows(model, first);
 
   return (
@@ -548,6 +568,7 @@ export function ReviewScreen({
         now={now}
         resolveHumans={resolveHumans}
         base={base}
+        lessonView={!!lesson}
       />
     </ContributionShell>
   );

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { LearnSettingUp } from './learn-setting-up';
 import { LessonShare } from './lesson-share';
+import { MoveOnOnceOpen, WatchingOpen } from './opening-move-on';
 import { CHANGED_YOUR_MIND } from './own-lesson-card';
 import { PracticeRows } from './practice-lessons';
 import { LessonFlow, type LessonFlowStart } from '@/components/learn/lesson-flow';
@@ -178,6 +179,7 @@ function Opening({ attempt, now }: { attempt: ContributeAttemptDetail; now?: Dat
           ? "It opens after 00:00 UTC: today's limit of new pull requests is reached."
           : 'This page moves on by itself. It usually takes under a minute.'}
       </Text>
+      <WatchingOpen attemptId={attempt.attemptId} />
       {tomorrow ? null : (
         <LiveSubmit
           attempt={{
@@ -192,6 +194,14 @@ function Opening({ attempt, now }: { attempt: ContributeAttemptDetail; now?: Dat
       )}
     </Box>
   );
+}
+
+/** The share card's title by the pull request's state: the lesson stays `PR_OPEN` after a merge or a close. */
+function prTitleOf(pr: number | null, state: string): string {
+  const name = pr ? `Pull request #${pr}` : 'Your pull request';
+  if (state === 'MERGED') return `${name} was merged, and your lesson is public`;
+  if (state === 'CLOSED') return `${name} was closed without merging`;
+  return `${name} is open, and your lesson is public`;
 }
 
 /** Where the learner goes next once the pull request is open: the next lesson, on Learn. */
@@ -249,8 +259,11 @@ function paneOf(
       );
     case 'PR_OPEN': {
       const visibility = lesson.visibility;
+      const prState = attempt.pullRequest?.state ?? 'OPEN';
       return (
         <>
+          {/* A tab that watched the pull request open here goes on to it. */}
+          <MoveOnOnceOpen attemptId={attempt.attemptId} to={base} />
           {visibility === 'REMOVED' ? (
             <Box state="LEARN_REMOVED" tone="muted">
               <h2 className={HEADING.card}>You took this lesson down</h2>
@@ -263,14 +276,14 @@ function paneOf(
             </Box>
           ) : (
             <>
-              <Box state="LEARN_PR_OPEN">
-                <h2 className={HEADING.card}>
-                  {pr ? `Pull request #${pr} is open, and your lesson is public` : 'Your pull request is open'}
-                </h2>
+              <Box state={`LEARN_PR_${prState}`}>
+                <h2 className={HEADING.card}>{prTitleOf(pr, prState)}</h2>
                 <Text>
                   {visibility === 'HELD'
                     ? 'The lesson page is paused while we read reports on its questions. Your result, which the pull request links to, stays up.'
-                    : 'The pull request links to your result. Anyone with the lesson link can take it.'}
+                    : prState === 'CLOSED'
+                      ? 'Your lesson stays public: the pull request still links to your result. You can take it down below.'
+                      : 'The pull request links to your result. Anyone with the lesson link can take it.'}
                 </Text>
               </Box>
               {lesson.head ? (

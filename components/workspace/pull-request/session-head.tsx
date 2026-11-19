@@ -141,6 +141,8 @@ export type SessionHeadProps = {
   orgAccess: OrgAccess;
   /** The page's address (by repo and issue, or an earlier attempt's); else the issue's, from the first attempt. */
   base?: Route;
+  /** A Learn attempt whose Lesson view the viewer has. */
+  lessonView?: boolean;
 };
 
 /**
@@ -159,6 +161,7 @@ export function SessionHead({
   now,
   orgAccess,
   base,
+  lessonView = false,
 }: SessionHeadProps) {
   const head = headOf(model, pane, move);
   const blocked = model.hardStop?.blocked ?? new Set();
@@ -270,8 +273,10 @@ export function SessionHead({
     </div>
   );
 
-  // A Learn attempt before its pull request: the lesson leads, and its summary and submit are on the Lesson view.
-  if (pane === 'first' && shown.kind === 'FIRST' && shown.mode === 'LEARN' && !shown.pullRequest) {
+  // A Learn attempt before its pull request, with its Lesson view: the lesson leads, and its summary and submit are
+  // there (the model leaves its first session's moves to that view, so no card comes before this). Without one (Learn
+  // closed to the account), the first attempt's pane as a contribution's.
+  if (lessonView && pane === 'first' && shown.kind === 'FIRST' && shown.mode === 'LEARN' && !shown.pullRequest) {
     return line(
       statusLine({
         name: 'LEARN_LESSON',

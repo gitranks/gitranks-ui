@@ -27,8 +27,13 @@ export function learnViewOf(stage: LearnStage | null | undefined, hasPullRequest
   return LESSON_STAGES.has(stage) ? 'lesson' : 'pr';
 }
 
-/** The pull request is asked for by its address alone: the own agent finds it, its first fix and its branch. */
-export const learnFollowUpPromptOf = (pullRequestUrl: string) => `Continue my GitRanks pull request ${pullRequestUrl}`;
+/**
+ * What the person pastes in their own agent for a change on a Learn pull request: the pull request by its address, and
+ * the id the agent's follow-up tool takes today, so it starts the follow-up through GitRanks; the change comes back for
+ * the person to read before anything is pushed.
+ */
+export const learnFollowUpPromptOf = (pullRequestUrl: string, prId: string) =>
+  `Continue my GitRanks pull request ${pullRequestUrl}: start the follow-up with start_follow_up (prId ${prId}), then submit the change for my review. Don't push anything yourself.`;
 
 /** "Oct 28". */
 const dayOf = (iso: string | null | undefined) => {

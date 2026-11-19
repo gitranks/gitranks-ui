@@ -28,10 +28,11 @@ const { LessonViewScreen } = await import('@/app/learn/components/lesson-view');
 const { contributionMovesOf } = await import('@/lib/workspace/contribution-moves');
 const { learnViewOf } = await import('@/lib/learn/learn-view');
 const { NOW, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { detail, feedbackThread, followUpAttempts, pullRequest } = await import(
+const { detail, feedbackThread, followUpAttempts, followUps, pullRequest } = await import(
   '@/lib/contribute/__fixtures__/contribute-attempts'
 );
 const { lessons } = await import('@/lib/learn/__fixtures__/lesson');
+const { nextForDco, nextForProof, nextForYou } = await import('@/lib/contribute/__fixtures__/needs-you');
 
 import type { LearnAttemptLesson } from '@/lib/learn/learn.types';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/workspace/contribute.types';
@@ -220,7 +221,7 @@ describe('the Learn states of the pull request page (W1 §8.6)', () => {
     expect(html).toContain('data-move="learn-prompt"');
     expect(text(html)).toContain('Change 1 Your move');
     expect(text(html)).toContain(
-      'Continue my GitRanks pull request https://github.com/driftwood-js/driftwood/pull/1419',
+      "Continue my GitRanks pull request https://github.com/driftwood-js/driftwood/pull/1419: start the follow-up with start_follow_up (prId PR_1), then submit the change for my review. Don't push anything yourself.",
     );
     expect(text(html)).toContain('Paste this in Claude Code, in any folder');
     expect(text(html)).toContain('Read what changed, then push it');
@@ -304,5 +305,167 @@ describe('the Learn states of the pull request page (W1 §8.6)', () => {
     expect(tags.find((tag) => tag.includes('data-view="pr"'))).toContain('aria-current="page"');
     expect(tags.find((tag) => tag.includes('data-view="lesson"'))).toContain(`href="${BASE}/lesson"`);
     expect(tags.find((tag) => tag.includes('data-view="lesson"'))).not.toContain('aria-current');
+  });
+});
+
+/** No run of ours, in words or as a control: no Start run, Try run, a run's note, or a start that is live. */
+function expectNoHostedRun(html: string, where: string) {
+  expect(text(html), where).not.toMatch(/\b(?:Start|Try) run \d|Start run\b|with this note/);
+  expect(html, where).not.toContain('data-start=');
+  expect(html, where).not.toContain('data-start-anyway');
+}
+
+describe('a Learn pull request never offers the hosted agent, nor a second submit', () => {
+  /** Every lesson stage, with the attempt's state as it stands there. */
+  const STAGES = [
+    [lessons.working, learn({ state: 'RUNNING' })],
+    [{ ...lessons.working, stage: 'AGENT_REWRITING' as const }, learn({ state: 'RUNNING' })],
+    [lessons.warmup, learn({ state: 'REVIEW' })],
+    [lessons.step, learn({ state: 'REVIEW' })],
+    [lessons.blocked, learn({ state: 'REVIEW' })],
+    [lessons.ready, learn({ state: 'REVIEW', learnGatePassed: true })],
+    [lessons.prOpen, open()],
+    [lessons.prOpen, open({ ...followUpAttempts.prNeedsYou, mode: 'LEARN', runner: 'MCP' })],
+    [lessons.prOpen, open({ state: 'MERGED', pullRequest: pullRequest({ state: 'MERGED' }) })],
+    [lessons.handPr, learn({ state: 'REVIEW', openedBy: 'HAND' })],
+    [lessons.ended, learn({ state: 'DISCARDED', endReason: 'USER' })],
+  ] as const;
+
+  it.each(STAGES.map(([lesson, attempt]) => [`${lesson.stage} · ${attempt.state}`, lesson, attempt] as const))(
+    '%s: no run of ours on either view, and one submit at most, on the lesson',
+    (_, lesson, attempt) => {
+      for (const html of [prView(attempt, lesson), prView(attempt, lesson, true)]) {
+        expectNoHostedRun(html, 'pull request view');
+        // The submit is the Lesson view's alone.
+        expect(html).not.toContain('data-pr-form=');
+        expect(text(html)).not.toContain('Submit pull request');
+      }
+      const lessonHtml = lessonView(attempt, lesson);
+      expectNoHostedRun(lessonHtml, 'lesson view');
+      expect((lessonHtml.match(/data-pr-form=/g) ?? []).length).toBeLessThanOrEqual(1);
+    },
+  );
+
+  it('3, 5, 7 · before its pull request, the Pull request view leads to the lesson, with no review card or form', () => {
+    const lastError = { reason: 'transient', note: 'GitHub did not answer.', at: NOW.toISOString() };
+    const failed = { step: 'PUSH' as const, waitUntil: null, fork: null, branch: null, lastError };
+    for (const [lesson, attempt] of [
+      [lessons.step, learn({ state: 'REVIEW' })],
+      [lessons.ready, learn({ state: 'REVIEW', learnGatePassed: true })],
+      [lessons.ready, learn({ state: 'REVIEW', learnGatePassed: true, submit: failed })],
+    ] as const) {
+      const html = prView(attempt, lesson);
+      expect(html).toContain('data-status="LEARN_LESSON"');
+      expect(text(html)).toContain('This pull request opens from its lesson');
+      expect(html).toContain(`href="${BASE}/lesson"`);
+      expect(html).not.toMatch(/data-move="(?:own-review|review|grant)"/);
+      expect(headerOf(html).shown).toBe('pr');
+    }
+  });
+
+  it("19 · Learn closed to the account: before its pull request, the first pane is a contribution's, no link to a lesson", () => {
+    const html = prView(learn({ state: 'REVIEW' }), null);
+    expect(html).not.toContain('data-status="LEARN_LESSON"');
+    expect(html).not.toContain(`href="${BASE}/lesson"`);
+  });
+
+  it('a run that stopped on a Learn pull request: the own agent picks it up, no Try run', () => {
+    const stopped = open({
+      ...nextForYou,
+      mode: 'LEARN',
+      runner: 'MCP',
+      needsYou: {
+        since: '',
+        signals: [
+          {
+            kind: 'RUN_ENDED' as const,
+            at: '2026-10-28T10:52:00.000Z',
+            detail: 'It stopped',
+            attemptId: 'A_OC1',
+            round: 1,
+            outcome: 'STOPPED',
+          },
+        ],
+      },
+    });
+    const html = prView(stopped, lessons.prOpen, true);
+    expect(html).toContain('data-move="stopped"');
+    expectNoHostedRun(html, 'stopped');
+    expect(text(html)).toContain('Ask your agent to pick it up again');
+  });
+
+  it("a proof that found the fix broken: no run of ours with the proof's note", () => {
+    const broken = open({ ...nextForProof.fixBroken, mode: 'LEARN', runner: 'MCP' });
+    const html = prView(broken, lessons.prOpen, true);
+    expectNoHostedRun(html, 'broken proof');
+  });
+
+  it('12 · read the change, then push: the run of the own agent, under its change', () => {
+    const run = followUpAttempts.review;
+    const first = open({
+      ...followUpAttempts.prNeedsYou,
+      attemptId: run.followUpOf?.attemptId ?? 'A_1',
+      mode: 'LEARN',
+      runner: 'MCP',
+      followUps: followUps({ used: 1, currentAttemptId: run.attemptId }),
+    });
+    nav.pathname = `${BASE}/runs/${run.attemptId}`;
+    const html = renderToStaticMarkup(
+      <ReviewScreen view={views.active} attempt={run} first={first} lesson={lessons.prOpen} base={BASE} now={NOW} />,
+    );
+    expect(text(html)).toContain('Push the commits');
+    expect(text(html)).toContain('Lesson and first fix');
+    expect(text(html)).toContain('Change 1');
+    expectNoHostedRun(html, 'run review');
+  });
+
+  it('13 · another thing needs the person: its card, as on a Contribute pull request', () => {
+    const dco = open({ ...nextForDco, mode: 'LEARN', runner: 'MCP' });
+    const html = prView(dco, lessons.prOpen, true);
+    expect(html).toContain('data-move="dco"');
+    expectNoHostedRun(html, 'dco');
+  });
+
+  it('the Lesson view words a merged or closed pull request as it is, not as open', () => {
+    const merged = text(
+      lessonView(open({ state: 'MERGED', pullRequest: pullRequest({ state: 'MERGED' }) }), lessons.prOpen),
+    );
+    expect(merged).toContain('Pull request #902 was merged, and your lesson is public');
+    const closed = text(
+      lessonView(open({ state: 'CLOSED', pullRequest: pullRequest({ state: 'CLOSED' }) }), lessons.prOpen),
+    );
+    expect(closed).toContain('Pull request #902 was closed without merging');
+    expect(closed).toContain('Your lesson stays public');
+    expect(closed).not.toContain('is open');
+  });
+
+  it('with the agent connected: one control named "Copy the prompt", the main button, and the connection', () => {
+    const first = open({
+      ...followUpAttempts.prNeedsYou,
+      mode: 'LEARN',
+      runner: 'MCP',
+      agent: { name: 'CLAUDE_CODE', model: null },
+    });
+    const connected = {
+      ...views.active,
+      ownAgent: {
+        paths: { hosted: true, mcp: true },
+        tokens: [
+          {
+            id: 'T_1',
+            name: 'Claude Code',
+            last4: null,
+            createdAt: '2026-10-20T10:00:00.000Z',
+            lastUsedAt: new Date(NOW.getTime() - 2 * 3_600_000).toISOString(),
+          },
+        ],
+      },
+    };
+    const html = prView(first, lessons.prOpen, true, connected);
+    expect(html.match(/Copy the prompt/g)).toHaveLength(1);
+    expect(text(html)).toContain(
+      'Claude Code is connected · last call 2 hours ago · this page moves on by itself when it starts',
+    );
+    expect(text(html)).not.toContain('Connect your agent');
   });
 });

@@ -60,9 +60,11 @@ describe("the header's lesson line", () => {
 });
 
 describe("the own agent's prompt for a change", () => {
-  it('names the pull request by its address alone', () => {
-    expect(learnFollowUpPromptOf('https://github.com/driftwood-js/driftwood/pull/1419')).toBe(
-      'Continue my GitRanks pull request https://github.com/driftwood-js/driftwood/pull/1419',
+  it('names the pull request and the id the follow-up tool takes, and never asks the agent to push', () => {
+    const prompt = learnFollowUpPromptOf('https://github.com/driftwood-js/driftwood/pull/1419', 'PR_kwDO1419');
+    expect(prompt).toBe(
+      "Continue my GitRanks pull request https://github.com/driftwood-js/driftwood/pull/1419: start the follow-up with start_follow_up (prId PR_kwDO1419), then submit the change for my review. Don't push anything yourself.",
     );
+    expect(prompt).not.toMatch(/\bpush (it|the|your)/i);
   });
 });

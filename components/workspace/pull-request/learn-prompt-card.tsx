@@ -36,7 +36,7 @@ function connectionOf(view: ContributeView, name: string | null, now: Date): str
 export function LearnPromptCard({ move, first, view, now, round }: CardProps & { round: number }) {
   if (!first) return null;
   const prUrl = githubUrlOf(first.pullRequest?.url) ?? '';
-  const prompt = learnFollowUpPromptOf(prUrl);
+  const prompt = learnFollowUpPromptOf(prUrl, first.pullRequest?.prId ?? '');
   const name = agentNameOf(first);
   const connection = connectionOf(view, name, now);
   const kinds = move.data.card === 'next-run' ? move.data.kinds : [];
@@ -65,7 +65,7 @@ export function LearnPromptCard({ move, first, view, now, round }: CardProps & {
               </Link>
             </Button>
           )}
-          <CodeBlock label={`Paste this in ${name ?? 'your agent'}, in any folder`} copyLabel="Copy the prompt" wrap>
+          <CodeBlock label={`Paste this in ${name ?? 'your agent'}, in any folder`} copyLabel="Copy" wrap>
             {prompt}
           </CodeBlock>
           {connection ? (

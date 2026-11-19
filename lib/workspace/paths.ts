@@ -3,6 +3,30 @@ import type { Route } from 'next';
 import type { ContributeSetListMode } from './contribute.types';
 
 /**
+ * The pages of the signed-in workspace, Contribute's and Learn's, at today's addresses. Links to them are built from
+ * here, so a page that moves changes this table and not its links.
+ */
+export const WORKSPACE_PATHS = {
+  contribute: '/contribute' as Route,
+  learn: '/learn' as Route,
+  /** The user's pull requests, both sides. */
+  pullRequests: '/contribute/me' as Route,
+  /** The own agent's part of Settings. */
+  agent: '/contribute/settings/own-agent' as Route,
+  agentConnect: '/contribute/connect?path=agent' as Route,
+  agentKey: '/contribute/settings/keys' as Route,
+  agentModel: '/contribute/settings/agent' as Route,
+  agentBudget: '/contribute/settings/budget' as Route,
+  agentRuns: '/contribute/runs' as Route,
+  settings: '/contribute/settings' as Route,
+  settingsWork: '/contribute/settings/work' as Route,
+  /** Learn's goal and level. */
+  settingsGoal: '/learn/profile' as Route,
+  /** The user's lessons. */
+  progress: '/learn/lessons' as Route,
+} as const;
+
+/**
  * Contribute's pages: `/contribute` and everything under it. Matched on the decoded path, as the router matches it,
  * so a percent-encoded, doubled-slash or upper-case spelling of it is matched too. A path that does not decode is
  * matched on its start alone, so a malformed one is kept out rather than let through.
@@ -131,10 +155,10 @@ export function settingUpHomeOf(url: { pathname: string; searchParams: URLSearch
 
 /** Where each way of contributing starts: a Claude key we run the agent on, or the user's own agent. */
 export const CONNECT_KEY_PATH: Route = '/contribute/connect';
-export const CONNECT_AGENT_PATH = '/contribute/connect?path=agent' as Route;
+export const CONNECT_AGENT_PATH: Route = WORKSPACE_PATHS.agentConnect;
 
 /** Every agent run: the live ones, then the history. The robot tab and Right now's "All runs" lead there. */
-export const RUNS_PATH: Route = '/contribute/runs';
+export const RUNS_PATH: Route = WORKSPACE_PATHS.agentRuns;
 
 /** The page for AI agents, in markdown: a route handler, so links to it are plain anchors, never the router's. */
 export const AGENTS_DOC_PATH = '/contribute/agents.md';
@@ -143,12 +167,12 @@ export const START_AGENT_PATH = '/contribute?start=agent' as Route;
 
 /** Settings, a summary of every setting, and the pages each one is changed on. */
 export const SETTINGS_PATHS = {
-  summary: '/contribute/settings' as Route,
-  work: '/contribute/settings/work' as Route,
-  budget: '/contribute/settings/budget' as Route,
-  agent: '/contribute/settings/agent' as Route,
-  keys: '/contribute/settings/keys' as Route,
-  ownAgent: '/contribute/settings/own-agent' as Route,
+  summary: WORKSPACE_PATHS.settings,
+  work: WORKSPACE_PATHS.settingsWork,
+  budget: WORKSPACE_PATHS.agentBudget,
+  agent: WORKSPACE_PATHS.agentModel,
+  keys: WORKSPACE_PATHS.agentKey,
+  ownAgent: WORKSPACE_PATHS.agent,
 };
 
 /**
@@ -184,3 +208,17 @@ export const settingsPathOf = (anchor: string): Route =>
 
 /** A Learn attempt's page: the lesson, then the pull request. */
 export const learnAttemptPath = (attemptId: string) => `/learn/attempts/${encodeURIComponent(attemptId)}` as Route;
+
+/**
+ * The page of one attempt, by its id alone: today Contribute's attempt page, which sends a Learn attempt on to its
+ * lesson; `view: 'lesson'` asks for the lesson. `query` is kept on the address.
+ */
+export function pullRequestByAttemptPath(
+  attemptId: string,
+  opts: { view?: 'lesson'; query?: Record<string, string> } = {},
+): Route {
+  const path =
+    opts.view === 'lesson' ? learnAttemptPath(attemptId) : `/contribute/attempts/${encodeURIComponent(attemptId)}`;
+  const query = new URLSearchParams(opts.query ?? {}).toString();
+  return (query ? `${path}?${query}` : path) as Route;
+}

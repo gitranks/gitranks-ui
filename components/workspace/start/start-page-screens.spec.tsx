@@ -34,7 +34,7 @@ const noop = () => {};
 
 const connectSteps = (
   <AgentConnectView
-    mode="learn"
+    embedded
     client="claude-code"
     onClient={noop}
     stage="none"
@@ -110,7 +110,7 @@ describe('the Start page, Fix it', () => {
 
   it('keeps step 1 to connect under a refusal, and hides steps 2 and 3', () => {
     const { html, plain } = screen('fix', { issue: startViews.taken, connection: null });
-    expect(html).toContain('data-connect-mode="learn"');
+    expect(html).toContain('data-connect-mode="embedded"');
     expect(html).toContain('data-start-refusal="TAKEN"');
     expect(plain).toContain("Someone else's agent took this issue. Issues for you →");
     expect(plain).not.toContain('2 · ');

@@ -6,13 +6,17 @@ import type { ReactNode } from 'react';
 import { WorkingNowSection } from './agent-runs';
 import { RunsFilters } from './runs-filters';
 import { RunsList } from './runs-list';
+import { RunsTiles } from './runs-tiles';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
-import { HEADING, PageTitle } from '@/components/workspace/primitives';
+import { Pagination } from '@/components/workspace/pagination';
+import { HEADING } from '@/components/workspace/primitives';
+import { SettingsPageHead } from '@/components/workspace/settings-rows';
 import { cn } from '@/lib/utils';
+import { audienceOf } from '@/lib/workspace/audience';
 import { loadContribute, loadContributeActivity, loadContributeSetup } from '@/lib/workspace/contribute.data';
 import type { ContributeActivity, ContributeView } from '@/lib/workspace/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
-import { usd } from '@/lib/workspace/format';
+import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import { RUNS_PATH } from '@/lib/workspace/paths';
 import {
   type ContributeRunsPage,
@@ -21,9 +25,11 @@ import {
   NO_GO_CATEGORIES,
   OUTCOME_FILTERS,
   percentLabel,
+  RUNS_PAGE_SIZE,
   type RunsQuery,
   runsFilterOf,
   runsHref,
+  runsPageOf,
   runsQueryOf,
 } from '@/lib/workspace/runs';
 import { loadRuns } from '@/lib/workspace/runs.data';
@@ -34,86 +40,33 @@ export async function RunsView({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const query = runsQueryOf(await searchParams);
+  const params = await searchParams;
+  const query = runsQueryOf(params);
+  const number = runsPageOf(params);
   const now = new Date();
-  const filter = runsFilterOf(query, now);
-  const [view, page, activity] = await Promise.all([
+  const [view, page, activity, learnOpen] = await Promise.all([
     loadContribute(),
-    loadRuns(filter),
+    loadRuns(runsFilterOf(query, now), { page: number }),
     loadContributeActivity().catch(() => null),
+    loadLearnOpen(),
   ]);
   if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'runs')) redirect('/contribute');
-  return <RunsScreen view={view} page={page} query={query} activity={activity} from={filter.from} now={now} />;
-}
-
-function Tile({
-  label,
-  value,
-  text,
-  name,
-  className,
-}: {
-  label: string;
-  value: string;
-  text: string;
-  name: string;
-  className?: string;
-}) {
+  // A page past the end: the last page.
+  if (page && !page.items.length && number > 1) {
+    const last = Math.max(1, Math.ceil(page.totals.runs / RUNS_PAGE_SIZE));
+    if (last < number) redirect(runsHref(query, last) as Route);
+  }
   return (
-    <div
-      data-total={name}
-      className={cn('flex min-w-0 flex-col gap-1 rounded-xl border bg-card px-4 py-3.5', className)}
-    >
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="font-mono text-2xl font-bold tabular-nums">{value}</span>
-      <span className="text-xs text-muted-foreground">{text}</span>
-    </div>
-  );
-}
-
-function Totals({ totals }: { totals: ContributeRunsTotals }) {
-  const decided = totals.merged + totals.closed;
-  const notStarted = totals.runs - totals.started;
-  return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-      <Tile
-        name="runs"
-        label="Runs"
-        value={totals.runs.toLocaleString('en-US')}
-        text={notStarted ? `${notStarted} didn't start` : 'All reached the agent'}
-      />
-      <Tile
-        name="spent"
-        label="Spent"
-        value={usd(totals.costUsd)}
-        text={
-          totals.started
-            ? `${usd(Math.round((totals.costUsd / totals.started) * 100) / 100)} a started run`
-            : 'Nothing yet'
-        }
-      />
-      <Tile
-        name="prs"
-        label="Pull requests"
-        value={String(totals.prs)}
-        text={`${totals.merged} merged · ${totals.closed} closed · ${totals.prs - decided} open`}
-      />
-      <Tile
-        name="merge-rate"
-        label="Merge rate"
-        value={percentLabel(totals.merged, decided)}
-        text={`of ${decided} decided`}
-      />
-      {/* On phones the no-go card says the rate. */}
-      <Tile
-        name="no-go-rate"
-        label="No-go rate"
-        value={percentLabel(totals.noGo, totals.started)}
-        text={`${totals.noGo} of ${totals.started} started · ${usd(totals.noGoCostUsd)}`}
-        className="max-lg:hidden"
-      />
-    </div>
+    <RunsScreen
+      view={view}
+      page={page}
+      query={query}
+      number={number}
+      learner={audienceOf(view.sides, learnOpen) === 'learner'}
+      activity={activity}
+      now={now}
+    />
   );
 }
 
@@ -224,27 +177,28 @@ function Empty({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /**
- * Agent runs: the runs at work now (live from the poll), then the history: totals and the no-go breakdown over the
- * filter, the outcome chips, the other filters, and the runs by day with Load more. The URL keeps the filters.
- * `page` is `undefined` when the API does not answer it.
+ * Runs: the runs at work now (live from the poll), then the history: totals and the no-go breakdown over the filter,
+ * the outcome chips, the other filters, and a page of the runs by day (20 a page, the page in the address). The URL
+ * keeps the filters. `page` is `undefined` when the API does not answer it. A learner sees no spend.
  */
 export function RunsScreen({
   view,
   page,
   query,
+  number = 1,
+  learner = false,
   activity,
-  from,
   now,
 }: {
   view: ContributeView;
   page: ContributeRunsPage | undefined;
   query: RunsQuery;
+  /** The page of the history shown, from 1. */
+  number?: number;
+  learner?: boolean;
   activity?: ContributeActivity | null;
-  /** The first page's range start, for the pages Load more reads. */
-  from?: string;
   now?: Date;
 }) {
-  const href = runsHref(query);
   let history: ReactNode;
   if (!page) {
     history = (
@@ -265,14 +219,23 @@ export function RunsScreen({
   } else {
     history = (
       <>
-        <Totals totals={page.totals} />
+        <RunsTiles totals={page.totals} variant="history" learner={learner} />
         <NoGoBreakdown totals={page.totals} query={query} />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <OutcomeChips page={page} query={query} />
           <RunsFilters query={query} repos={page.repos} />
         </div>
         {page.items.length ? (
-          <RunsList key={href} page={page} href={href} from={from} now={now} />
+          <>
+            <RunsList runs={page.items} days={page.days} cost={!learner} now={now} />
+            <Pagination
+              page={number}
+              pageSize={RUNS_PAGE_SIZE}
+              total={page.totals.runs}
+              noun="run"
+              hrefOf={(each) => runsHref(query, each) as Route}
+            />
+          </>
         ) : !isFiltered(query) ? (
           <Empty title="No runs in the last 30 days">
             <Link
@@ -299,7 +262,11 @@ export function RunsScreen({
   return (
     <>
       <ContributeNotices notices={contributeNoticesOf(view)} />
-      <PageTitle title="Agent runs" text="Every run an agent made for you, newest first. Times are UTC." />
+      <SettingsPageHead
+        title="Runs"
+        text={`Every run ${learner ? 'your agent' : 'an agent'} made for you, newest first. Times are UTC.`}
+        back="agent"
+      />
       <WorkingNowSection activity={activity} />
       <section aria-labelledby="runs-history" className="flex flex-col gap-4" data-section="runs-history">
         <h2 id="runs-history" className={HEADING.section}>

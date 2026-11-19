@@ -70,7 +70,10 @@ describe("the API's filter (runsFilterOf)", () => {
 describe('a run in words', () => {
   it('says the runner, its time and why it ended', () => {
     expect(runnerLabelOf(run({}))).toBe('Hosted · Sonnet 5.5');
-    expect(runnerLabelOf(run({ runner: 'MCP', agent: { name: 'CLAUDE_CODE', model: 'opus' } }))).toBe('Claude Code');
+    expect(runnerLabelOf(run({ runner: 'MCP', agent: { name: 'CLAUDE_CODE', model: 'opus' } }))).toBe(
+      'Your own agent · Claude Code',
+    );
+    expect(runnerLabelOf(run({ runner: 'MCP', agent: null }))).toBe('Your own agent');
     expect(durationLabel('2026-10-31T21:05:00.710Z', '2026-10-31T21:08:05.623Z')).toBe('3m 05s');
     expect(durationLabel('2026-10-31T21:05:00Z', '2026-10-31T21:05:32Z')).toBe('32s');
     expect(durationLabel('2026-10-31T21:05:00Z', null)).toBe('');

@@ -13,6 +13,7 @@ import { RefChips } from './ref-chips';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { costOrAgentOf, isOwnAgent } from '@/lib/workspace/attempt-format';
+import { audienceOf } from '@/lib/workspace/audience';
 import type {
   ContributeActivity,
   ContributeNeedsYouAnswer,
@@ -48,13 +49,6 @@ export type PullRequestsData = {
   activity?: ContributeActivity | null;
   now?: Date;
 };
-
-/** Who the page is for: both sides, a learner (no Contribute), or a contributor (no Learn, or Learn not open). */
-export function audienceOf(sides: ContributeSides | null | undefined, learnOpen: boolean) {
-  if (!learnOpen) return 'contributor' as const;
-  if (!sides || sides.contribute === sides.learn) return 'both' as const;
-  return sides.learn ? ('learner' as const) : ('contributor' as const);
-}
 
 /** The title and the limit's line: "3 of 8 open at a time · Change in Settings". */
 function Head({ limit, text }: { limit?: LimitCounts; text?: ReactNode }) {

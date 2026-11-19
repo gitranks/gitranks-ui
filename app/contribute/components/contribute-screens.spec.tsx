@@ -11,6 +11,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/issue-actions', () => ({}));
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 
@@ -20,7 +21,8 @@ const { ALL, FILTER_OPTIONS, activeFiltersOf } = await import('./issues-filters'
 const { helperModelLabelOf, testModelLabelOf } = await import('@/components/workspace/settings/settings-form');
 const { sizeLabelOf } = await import('@/components/contribute/preferences-fields');
 const { KINDS, LANGUAGES } = await import('@/lib/workspace/format');
-const { AgentScreen, SettingsScreen } = await import('./settings-view');
+const { SettingsScreen } = await import('./settings-view');
+const { AgentScreen } = await import('@/components/workspace/agent/agent-screen');
 const { FormSettingsScreen, KeyScreen } = await import('./settings-pages');
 const { PreferencesFields } = await import('@/components/contribute/preferences-fields');
 const { IssuesScreen } = await import('./issues-view');
@@ -246,22 +248,19 @@ describe('the Agent and Settings tabs', () => {
     );
 
   it('sums up every setting in a row with its value, each opening its page, and the delete', () => {
-    const html = render(views.active);
+    const html = render({ ...views.active, ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken()] } });
     const plain = text(html);
 
     for (const label of [
       'What you work on',
       'What you work on Rust · Bugs · any size',
-      'Budget and the agent',
-      'Budget and pacing',
-      '$200 a cycle · Even, then a final sweep · renews on the 14th',
-      'Agent and pull requests',
-      'Claude Sonnet 5.5, medium effort · PRs up to 400 lines, 15 files',
+      'Hosted agent Contribute only',
+      'Budget and pacing $63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt',
+      'Model and effort Claude Sonnet 5.5, medium effort',
       'Autopilot',
-      'Connections',
-      'Claude API key',
+      'Claude API key …k3Qa · works',
       'GitHub pull requests',
-      'Your own agent (MCP)',
+      'Your own agent',
       'Delete all Contribute data',
     ]) {
       expect(plain).toContain(label);
@@ -270,7 +269,7 @@ describe('the Agent and Settings tabs', () => {
       '/my/agent/budget',
       '/my/agent/model',
       '/my/agent/key',
-      '/my/agent#own-agent',
+      '/my/agent/connect',
       '/my/agent/key#github',
     ]) {
       expect(html).toContain(`href="${page}"`);
@@ -444,7 +443,8 @@ describe('the Agent and Settings tabs', () => {
   it('shows the key and its state, and asks for one when there is none', () => {
     expect(render(views.active)).toContain('data-key-state="VALID"');
     expect(text(render(views.keyInvalid))).toContain('refused by Anthropic');
-    expect(text(render(views.noKey))).toContain('Claude API key Not connected');
+    // No key: the hosted agent says what it is, and Use a Claude key.
+    expect(render(views.noKey)).toMatch(/data-hosted="pitch"[\s\S]*href="\/my\/agent\/key"[^>]*>Use a Claude key/);
     expect(pages(views.active)).toContain('data-key-state="VALID"');
     expect(text(pages(views.keyInvalid))).toContain('Connect a new key');
     expect(text(pages(views.exhausted))).toContain('credits used up until Nov 14');
@@ -843,8 +843,8 @@ describe('the heading scale', () => {
     const settings = renderToStaticMarkup(<SettingsScreen view={views.active} />);
     expect(settings).toContain('<h1 class="sr-only">Settings</h1>');
     const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
-    expect(agent).toContain('<h1 class="sr-only">Agent</h1>');
-    expect(agent).toContain(`class="${HEADING.block}">Budget and the agent</h2>`);
+    expect(agent).toContain(`<h1 class="${HEADING.page}">Agent</h1>`);
+    expect(agent).toContain(`class="${HEADING.section}">Hosted agent</h2>`);
     const budget = renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.active} />);
     expect(budget).toContain(`<h1 class="${HEADING.page}">Budget and pacing</h1>`);
     expect(renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.active} />)).toContain(
@@ -870,7 +870,7 @@ describe('the confirms before what cannot be undone', () => {
         text(label).trim(),
       );
 
-    expect(triggersOf(html)).toEqual(['Remove key', 'Revoke', 'How autopilot works', 'Revoke Claude Code on macOS']);
+    expect(triggersOf(html)).toEqual(['Remove key', 'Revoke', 'Revoke Claude Code on macOS', 'How autopilot works']);
     expect(text(html)).not.toContain('Yes, remove it');
     // The Settings tab acts on none of them: its one dialog is the filters.
     expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} />))).toEqual(['Edit']);
@@ -939,10 +939,10 @@ describe('the access level', () => {
 
   it('adds the attempts the limit holds to the budget line, below the setting alone', () => {
     expect(text(renderToStaticMarkup(<AgentScreen view={views.newAccount} now={NOW} />))).toContain(
-      '$200 a cycle · Even, then a final sweep · renews on the 14th · 1 at a time (new-account limit)',
+      '$63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt · 1 at a time (new-account limit)',
     );
     expect(text(renderToStaticMarkup(<AgentScreen view={views.followThrough} now={NOW} />))).toContain(
-      'renews on the 14th · 1 at a time (limit for now)',
+      'up to $5 an attempt · 1 at a time (limit for now)',
     );
     expect(text(renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />))).not.toContain('at a time');
   });

@@ -57,7 +57,7 @@ function RowBody({ icon: Icon, title, value }: { icon: LucideIcon; title: ReactN
 
 /**
  * One setting on the summary: what it is and its value in plain words. With `href` the whole row opens the page it is
- * changed on; without one, `children` are its controls.
+ * changed on (`cta` names the move, "Edit", in place of the chevron); without one, `children` are its controls.
  */
 export function SettingsRow({
   id,
@@ -65,6 +65,7 @@ export function SettingsRow({
   title,
   value,
   href,
+  cta,
   children,
   data,
 }: {
@@ -73,6 +74,7 @@ export function SettingsRow({
   title: ReactNode;
   value: ReactNode;
   href?: Route;
+  cta?: string;
   children?: ReactNode;
   /** `data-*` attributes for the row. */
   data?: Record<`data-${string}`, string>;
@@ -86,7 +88,13 @@ export function SettingsRow({
           className="flex items-center gap-3 px-4 py-3.5 outline-none hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset"
         >
           <RowBody icon={icon} title={title} value={value} />
-          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+          {cta ? (
+            <span className="shrink-0 rounded-md border bg-background px-3 py-1.5 text-sm font-medium shadow-xs">
+              {cta}
+            </span>
+          ) : (
+            <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+          )}
         </Link>
       </li>
     );

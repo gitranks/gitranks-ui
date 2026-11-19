@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckIcon } from 'lucide-react';
+import { ArrowLeft, CheckIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from 'react';
 import { flushSync } from 'react-dom';
@@ -40,7 +40,13 @@ import {
   USE_A_TOKEN_INSTEAD,
 } from '@/lib/workspace/mcp-setup';
 import { personalTokensOf } from '@/lib/workspace/oauth-consent';
-import { CONNECT_KEY_PATH, MCP_DOCS_PATH, pullRequestByAttemptPath, settingsPathOf } from '@/lib/workspace/paths';
+import {
+  CONNECT_KEY_PATH,
+  MCP_DOCS_PATH,
+  pullRequestByAttemptPath,
+  settingsPathOf,
+  WORKSPACE_PATHS,
+} from '@/lib/workspace/paths';
 
 /** Where step 2 stands: no token yet, the token shown with its setup, or the setup done. */
 export type AgentStage = 'none' | 'token' | 'added';
@@ -91,14 +97,18 @@ export type AgentConnectViewProps = {
    */
   signIn?: boolean;
   /**
-   * `learn`: the steps inside Learn's start page, under its own heading: the agent and its setup, then the wait for its
-   * first call. No title, no Claude key link and no first prompt of Contribute's: the page goes on to its own prompt.
+   * The steps inside another page (the Start page, onboarding), under its own heading: the agent and its setup, then
+   * the wait for its first call. No back link, no title, no Claude key link and no first prompt: the page around it
+   * offers those, and goes on to its own prompt.
    */
-  mode?: AgentConnectMode;
+  embedded?: boolean;
+  /** Learn is open to the account: the lead says one connection serves both, and the next step names Learn. */
+  learnOpen?: boolean;
+  /** "Contributing only? You can also use a Claude key →": left out for someone who uses Learn alone. */
+  keyLink?: boolean;
+  /** Once the agent says hello the page stays, with the next step: the account was in the workspace already. */
+  stay?: boolean;
 };
-
-/** Contribute's connect page, or Learn's start page. */
-export type AgentConnectMode = 'contribute' | 'learn';
 
 /** The proof the page was reached for: its contribution, its prompt and its pull request's number. */
 export type AgentConnectProof = { attemptId: string; prompt: string; prNumber: number };
@@ -134,11 +144,13 @@ export function AgentConnectView({
   focus = null,
   proof = null,
   signIn = false,
-  mode = 'contribute',
+  embedded = false,
+  learnOpen = false,
+  keyLink = true,
+  stay = false,
 }: AgentConnectViewProps) {
   const id = useId();
   const name = MCP_CLIENT_NAMES[client];
-  const learn = mode === 'learn';
   const added = stage === 'added' || connected;
   const signInSetup = signIn ? mcpSignInSetupOf(client, os) : null;
   const connectHeading = useRef<HTMLHeadingElement>(null);
@@ -343,9 +355,9 @@ export function AgentConnectView({
     </div>
   ) : null;
 
-  // What starts the agent's first call: Contribute's prompt asks for one; in Learn, starting the agent (and signing it
+  // What starts the agent's first call: the page's prompt asks for one; embedded, starting the agent (and signing it
   // in) is the call, and the page's own prompt comes after.
-  const waitingText = learn ? (
+  const waitingText = embedded ? (
     <>
       <span className="font-semibold">Waiting for {name} to call GitRanks…</span>{' '}
       <span className="text-muted-foreground">
@@ -381,7 +393,7 @@ export function AgentConnectView({
           <span className="text-sm font-semibold">
             {proof
               ? `Your agent is connected. Taking you back to PR #${proof.prNumber}…`
-              : learn
+              : embedded || stay
                 ? 'Your agent is connected.'
                 : 'Your agent is connected. Taking you on…'}
           </span>
@@ -389,8 +401,8 @@ export function AgentConnectView({
           <span className="text-sm">{waitingText}</span>
         )}
       </div>
-      {/* Learn's sign-in says how to check it already. */}
-      {hint && !connected && !(learn && signInSetup) ? (
+      {/* The embedded sign-in says how to check it already. */}
+      {hint && !connected && !(embedded && signInSetup) ? (
         // In the status region, so it is announced when it appears.
         <span className="text-xs text-muted-foreground" data-agent-hint>
           {signInSetup ? (
@@ -409,13 +421,31 @@ export function AgentConnectView({
           )}
         </span>
       ) : null}
+      {connected && stay && !proof ? (
+        <p className="text-sm" data-agent-next="">
+          Next, pick an issue on{' '}
+          <Link href={WORKSPACE_PATHS.contribute} prefetch={false} className="font-semibold text-link hover:underline">
+            Contribute
+          </Link>
+          {learnOpen ? (
+            <>
+              {' '}
+              or{' '}
+              <Link href={WORKSPACE_PATHS.learn} prefetch={false} className="font-semibold text-link hover:underline">
+                Learn
+              </Link>
+            </>
+          ) : null}{' '}
+          and press Start.
+        </p>
+      ) : null}
     </div>
   );
 
-  if (learn) {
-    // Inside Learn's start page, under its "Connect your agent": the agent, its setup, then the wait for its call.
+  if (embedded) {
+    // Inside another page, under its "Connect your agent": the agent, its setup, then the wait for its call.
     return (
-      <div className="flex flex-col gap-3.5" data-connect-path="agent" data-connect-mode="learn">
+      <div className="flex flex-col gap-3.5" data-connect-path="agent" data-connect-mode="embedded">
         {picker}
         <div ref={connectBlock} tabIndex={-1} className="flex flex-col gap-3.5 outline-none" data-agent-stage={stage}>
           {connectBody}
@@ -433,15 +463,32 @@ export function AgentConnectView({
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 sm:gap-5" data-connect-path="agent">
       <div className="flex flex-col gap-2 pb-1">
-        <span className="text-xs font-semibold text-primary">About a minute · no Claude key needed</span>
+        <Link
+          href={WORKSPACE_PATHS.agent}
+          prefetch={false}
+          className="inline-flex items-center gap-1.5 self-start rounded text-sm font-semibold text-link max-sm:min-h-11"
+        >
+          <ArrowLeft aria-hidden="true" className="size-4" />
+          Agent
+        </Link>
+        <span className="text-xs font-semibold text-primary">About a minute · once per computer</span>
         <h1 className={HEADING.page}>Connect your own agent</h1>
         <p className="text-foreground/80">
-          Your agent asks GitRanks for an issue, fixes it on your machine and hands the change back. You review it here
-          before anything reaches GitHub.
+          Your agent fixes issues on your computer, with the plan you already pay for, and hands each change back.
+          Nothing reaches GitHub before you approve it.{learnOpen ? ' One connection serves Contribute and Learn.' : ''}
         </p>
-        <Link href={CONNECT_KEY_PATH} prefetch={false} className="text-sm font-semibold text-link">
-          Use your Claude key instead →
-        </Link>
+        {keyLink ? (
+          <p className="text-sm text-muted-foreground" data-key-link="">
+            Contributing only?{' '}
+            <Link
+              href={CONNECT_KEY_PATH}
+              prefetch={false}
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              You can also use a Claude key →
+            </Link>
+          </p>
+        ) : null}
       </div>
 
       <section aria-labelledby={`${id}-a1`} className={cn(card, idleCard)}>
@@ -495,8 +542,8 @@ export function AgentConnectView({
  * B1 with its state: the token lives in this component's memory alone, never in storage or the URL. While a token is
  * live and the page is shown, it asks every 3s whether the agent has called; once it has, the token is taken off the
  * page (which the router may keep, hidden) and the page goes on to B2 in its place, the layout read again for the tabs.
- * In Learn (`mode: 'learn'`) it tells `onConnected` instead, and the start page goes on in place. `tokens` is
- * `undefined` while the API does not answer them.
+ * For an account already in the workspace the page stays instead, and says the next step. `embedded`, it tells
+ * `onConnected`, and the page around it goes on in place. `tokens` is `undefined` while the API does not answer them.
  */
 export function AgentConnect({
   onboarded,
@@ -504,7 +551,9 @@ export function AgentConnect({
   proof = null,
   signIn = false,
   openedAt = null,
-  mode = 'contribute',
+  embedded = false,
+  learnOpen = false,
+  keyLink = true,
   onConnected,
   connectSource,
 }: {
@@ -517,9 +566,13 @@ export function AgentConnect({
   signIn?: boolean;
   /** When the server rendered the page: a sign-in used after it is the agent calling, for a user onboarded before. */
   openedAt?: string | null;
-  /** `learn`: the steps inside Learn's start page, which `onConnected` hears from instead of a move to Contribute. */
-  mode?: AgentConnectMode;
-  /** Learn: the agent has called, with the client picked here (our guess: the call does not say which client made it). */
+  /** The steps inside another page, which `onConnected` hears from instead of a move to Contribute. */
+  embedded?: boolean;
+  /** Learn is open to the account (the page's lead and its next step). */
+  learnOpen?: boolean;
+  /** The page's "You can also use a Claude key" line. */
+  keyLink?: boolean;
+  /** Embedded: the agent has called, with the client picked here (our guess: the call does not say which client made it). */
   onConnected?: (client: McpClient) => void;
   /** Where the connect is counted from, in place of the click that led here. */
   connectSource?: ContributeSource;
@@ -564,17 +617,19 @@ export function AgentConnect({
       setConnected(true);
     });
     if (!proof) reportContributeConnect('agent', connectSource);
-    if (mode === 'learn') {
+    if (embedded) {
       onConnected?.(clientRef.current);
       return;
     }
+    // In the workspace already: the page stays, with the next step.
+    if (!proof && onboarded) return;
     goTo(
       proof
         ? pullRequestByAttemptPath(proof.attemptId, { query: { session: 'next' } })
         : agentWelcomeHref(clientRef.current),
       { replace: true },
     );
-  }, [goTo, proof, mode, onConnected, connectSource]);
+  }, [goTo, proof, embedded, onboarded, onConnected, connectSource]);
 
   useEffect(() => {
     const detected = mcpOsOf(typeof navigator === 'undefined' ? null : (navigator as NavigatorLike));
@@ -703,7 +758,10 @@ export function AgentConnect({
       focus={focus}
       proof={proof}
       signIn={viaSignIn}
-      mode={mode}
+      embedded={embedded}
+      learnOpen={learnOpen}
+      keyLink={keyLink}
+      stay={onboarded && !proof}
     />
   );
 }

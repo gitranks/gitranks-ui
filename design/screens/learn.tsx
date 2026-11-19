@@ -425,35 +425,21 @@ export const LEARN_SCREENS: Screen[] = [
         title: 'First visit: no goal yet, the levels guessed, the agent not set up',
         path: '/learn/profile',
         height: 1170,
-        render: () => frame(<LearnProfileScreen profile={emptyProfile} ownAgent={views.onboardedNoPath.ownAgent} />),
+        render: () => frame(<LearnProfileScreen profile={emptyProfile} />),
       },
       {
         id: 'saved',
         title: 'Saved: Saved by the button, and the next step under the form, the issues for the goal',
         path: '/learn/profile',
         height: 1340,
-        render: () =>
-          frame(
-            <LearnProfileScreen
-              profile={filledProfile}
-              ownAgent={views.agentOnboarded.ownAgent}
-              saved={{ next: practiceNext.own }}
-            />,
-          ),
+        render: () => frame(<LearnProfileScreen profile={filledProfile} saved={{ next: practiceNext.own }} />),
       },
       {
         id: 'saved-lesson',
         title: 'Saved with a lesson in progress: back to it',
         path: '/learn/profile',
         height: 1340,
-        render: () =>
-          frame(
-            <LearnProfileScreen
-              profile={filledProfile}
-              ownAgent={views.agentOnboarded.ownAgent}
-              saved={{ next: practiceNext.back }}
-            />,
-          ),
+        render: () => frame(<LearnProfileScreen profile={filledProfile} saved={{ next: practiceNext.back }} />),
       },
       {
         id: 'saved-unsupported',
@@ -464,7 +450,6 @@ export const LEARN_SCREENS: Screen[] = [
           frame(
             <LearnProfileScreen
               profile={{ ...filledProfile, goalValue: 'C++' }}
-              ownAgent={views.agentOnboarded.ownAgent}
               saved={{ next: practiceNext.unsupported }}
             />,
           ),
@@ -474,7 +459,7 @@ export const LEARN_SCREENS: Screen[] = [
         title: 'A new account: its GitRanks account is still being set up',
         path: '/learn/profile',
         height: 900,
-        render: () => frame(<LearnProfileScreen profile={null} ownAgent={undefined} settingUp />),
+        render: () => frame(<LearnProfileScreen profile={null} settingUp />),
       },
     ],
   },

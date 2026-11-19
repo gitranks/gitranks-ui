@@ -1,15 +1,10 @@
-import { Terminal } from 'lucide-react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { LearnProfileForm } from './learn-profile-form';
 import { LearnSettingUp } from './learn-setting-up';
-import { agentWayOf } from '@/app/contribute/components/overview-sections';
-import { Pill } from '@/components/pill/pill';
 import { HEADING } from '@/components/workspace/primitives';
-import { loadLearnOpen, loadLearnProfile, loadLearnSetup, loadOwnAgent } from '@/lib/learn/learn.data';
+import { loadLearnOpen, loadLearnProfile, loadLearnSetup } from '@/lib/learn/learn.data';
 import type { LearnProfile, PracticeNext } from '@/lib/learn/learn.types';
-import type { ContributeOwnAgent } from '@/lib/workspace/contribute.types';
 
 const SIDE_CARD = 'flex flex-col gap-3 rounded-xl border bg-card p-4.5';
 
@@ -18,35 +13,6 @@ const LESSON_STEPS = [
   'You take a 10-minute lesson on the fix, here.',
   'You approve the pull request. It opens in your name.',
 ];
-
-/**
- * The user's own agent, as Contribute's overview reads it: connected (its name, its connections, its last call), not
- * set up yet, or, unread, that it cannot be checked now.
- */
-function AgentCard({ ownAgent, now }: { ownAgent: ContributeOwnAgent | undefined; now?: Date }) {
-  const way = agentWayOf({ ownAgent }, now);
-  return (
-    <section aria-labelledby="learn-agent" className={SIDE_CARD} data-learn-agent={way.state?.label ?? 'unknown'}>
-      <div className="flex items-center justify-between gap-2">
-        <h2 id="learn-agent" className="text-base font-semibold">
-          Your agent
-        </h2>
-        {way.state ? <Pill tone={way.state.tone}>{way.state.label}</Pill> : null}
-      </div>
-      <p className="flex items-start gap-2 text-sm">
-        <Terminal aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-        <span>{way.text}</span>
-      </p>
-      <Link
-        href={way.action.href}
-        prefetch={false}
-        className="self-start text-sm font-semibold text-link hover:underline"
-      >
-        {way.action.label}
-      </Link>
-    </section>
-  );
-}
 
 function HowALessonGoes() {
   return (
@@ -69,22 +35,18 @@ function HowALessonGoes() {
 }
 
 /**
- * Goal and level: the form every lesson is written for, beside the user's agent and how a lesson goes. `profile` is
- * null before the user has one. While a new account is being set up, the setup line stands in for the form.
+ * Goal and level: the form every lesson is written for, beside how a lesson goes (the user's agent is on the Agent
+ * tab). `profile` is null before the user has one. While a new account is being set up, the setup line stands in for
+ * the form.
  */
 export function LearnProfileScreen({
   profile,
-  ownAgent,
   settingUp = false,
-  now,
   saved,
 }: {
   profile: LearnProfile | null;
-  /** The user's own agent; undefined when it was not read. */
-  ownAgent: ContributeOwnAgent | undefined;
   /** The viewer's GitRanks account is still being set up: nothing can be saved yet. */
   settingUp?: boolean;
-  now?: Date;
   /** The catalogue's boards: the form just saved, with the next step under it. */
   saved?: { next: PracticeNext | null };
 }) {
@@ -99,7 +61,6 @@ export function LearnProfileScreen({
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         {settingUp ? <LearnSettingUp /> : <LearnProfileForm profile={profile} saved={saved} />}
         <aside className="flex min-w-0 flex-col gap-4">
-          <AgentCard ownAgent={ownAgent} now={now} />
           <HowALessonGoes />
         </aside>
       </div>
@@ -110,10 +71,9 @@ export function LearnProfileScreen({
 /** Goal and level, read per request. Behind Learn's gate: not found for anyone Learn is not open to. */
 export async function LearnProfileView() {
   const profile = loadLearnProfile();
-  const ownAgent = loadOwnAgent();
   const settingUp = loadLearnSetup();
   // Read together; a closed Learn is a 404 whatever the profile read does.
   profile.catch(() => {});
   if (!(await loadLearnOpen())) notFound();
-  return <LearnProfileScreen profile={await profile} ownAgent={await ownAgent} settingUp={await settingUp} />;
+  return <LearnProfileScreen profile={await profile} settingUp={await settingUp} />;
 }

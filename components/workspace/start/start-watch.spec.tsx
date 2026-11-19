@@ -17,14 +17,18 @@ vi.mock('@/components/contribute-click-tracker/contribute-click-tracker', () => 
 vi.mock('@/components/workspace/agent/agent-connect', () => ({
   AgentConnect: ({
     onConnected,
-    mode,
+    embedded,
     connectSource,
   }: {
     onConnected: (client: McpClient) => void;
-    mode: string;
+    embedded?: boolean;
     connectSource: string;
   }) => (
-    <button type="button" data-fake-connect={`${mode}:${connectSource}`} onClick={() => onConnected('codex')}>
+    <button
+      type="button"
+      data-fake-connect={`${embedded ? 'embedded' : 'page'}:${connectSource}`}
+      onClick={() => onConnected('codex')}
+    >
       Agent called
     </button>
   ),
@@ -180,7 +184,7 @@ describe('the Start page, waiting for the agent', () => {
     await mount('fix', startPageViewOf({ connection: null }));
     expect(stage()).toBe('connect');
     expect(fastChangesHeld()).toBe(false);
-    expect(container.querySelector('[data-fake-connect="learn:contribute_start"]')).not.toBeNull();
+    expect(container.querySelector('[data-fake-connect="embedded:contribute_start"]')).not.toBeNull();
     await poll('ATTEMPTS');
     expect(actions.readStartPageAttempt).not.toHaveBeenCalled();
 
@@ -194,7 +198,7 @@ describe('the Start page, waiting for the agent', () => {
   it('connects in lesson mode as Learn’s start page did, and opens the lesson the second ask names', async () => {
     actions.readStartPageIssue.mockResolvedValueOnce({ ok: true, data: startViews.yoursLesson });
     await mount('lesson', startPageViewOf({ connection: null }));
-    expect(container.querySelector('[data-fake-connect="learn:learn_start"]')).not.toBeNull();
+    expect(container.querySelector('[data-fake-connect="embedded:learn_start"]')).not.toBeNull();
     await click('[data-fake-connect]');
     expect(actions.readStartPageIssue).toHaveBeenCalledWith(START_REF.repo, START_REF.issue, 'lesson');
     expect(replace).toHaveBeenCalledWith('/my/pull-requests/driftwood-js/driftwood/934');

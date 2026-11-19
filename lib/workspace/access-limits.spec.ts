@@ -71,10 +71,10 @@ describe('the access level on the settings', () => {
     expect(attemptsCapNoteOf(three, limits.standard)).toBeNull();
     expect(attemptsCapNoteOf(three, limits.suspended)).toBeNull();
 
-    expect(budgetSummaryOf(three, limits.newAccount)).toBe(
-      '$200 a cycle · Even, then a final sweep · renews on the 14th · 1 at a time (new-account limit)',
+    expect(budgetSummaryOf(three, null, limits.newAccount)).toBe(
+      '$200 a cycle · renews on the 14th · up to $5 an attempt · 1 at a time (new-account limit)',
     );
-    expect(budgetSummaryOf(three)).toBe('$200 a cycle · Even, then a final sweep · renews on the 14th');
+    expect(budgetSummaryOf(three)).toBe('$200 a cycle · renews on the 14th · up to $5 an attempt');
   });
 
   it('refuses a value typed above the cap, and keeps the stored one for when the limit lifts', () => {

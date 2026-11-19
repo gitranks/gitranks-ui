@@ -15,11 +15,12 @@ import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
 import { PrTimelineScreen } from '@/app/contribute/components/pr-timeline-view';
 import { MorePages } from '@/app/contribute/components/public-pages';
 import { FormSettingsScreen } from '@/app/contribute/components/settings-pages';
-import { AgentScreen, SettingsScreen } from '@/app/contribute/components/settings-view';
+import { SettingsScreen } from '@/app/contribute/components/settings-view';
 import { TermsScreen } from '@/app/terms/terms';
 import { Header } from '@/components/header/header';
 import { Button } from '@/components/ui/button';
 import { AgentConnectView } from '@/components/workspace/agent/agent-connect';
+import { AgentScreen } from '@/components/workspace/agent/agent-screen';
 import { RunsScreen } from '@/components/workspace/agent/runs-view';
 import {
   AUTOPILOT_CONFIRM_ACTION,
@@ -56,7 +57,15 @@ import {
   stopped as stoppedAttempt,
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { issuePage, nowIdle, overviewData, replyWaiting } from '@/lib/contribute/__fixtures__/contribute-overview';
-import { contributor, email, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
+import {
+  agentTabViews,
+  contributor,
+  email,
+  mcpToken,
+  NOW,
+  settings,
+  views,
+} from '@/lib/contribute/__fixtures__/contribute-views';
 import { emptyLedger, ledger, publicLedger } from '@/lib/contribute/__fixtures__/ledger';
 import {
   allLiveFacts,
@@ -89,7 +98,7 @@ import {
   maintainerConfig,
   maintainerRules,
 } from '@/lib/contribute/__fixtures__/repo-rules';
-import { pageOf } from '@/lib/contribute/__fixtures__/runs';
+import { learnerPageOf, OWN_LEARN, pageOf, previewPageOf } from '@/lib/contribute/__fixtures__/runs';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
 import type { PrTimeline } from '@/lib/contribute/pr-timeline.types';
@@ -532,17 +541,46 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     title: 'Agent runs',
     area: 'contribute',
     route: '/my/agent/runs',
-    sources: ['app/contribute/components/runs-view.tsx', 'lib/contribute/runs.ts'],
+    sources: [
+      'components/workspace/agent/runs-view.tsx',
+      'components/workspace/agent/runs-list.tsx',
+      'components/workspace/agent/runs-tiles.tsx',
+      'lib/workspace/runs.ts',
+    ],
     states: [
       {
         id: 'history',
-        title: 'History',
-        path: '/my/agent/runs',
+        title: 'History: a page of 20, the page in the address',
+        path: '/my/agent/runs?page=2',
         height: 2000,
         render: () =>
           frame(
             <main className={MAIN}>
-              <RunsScreen view={views.active} page={pageOf()} query={runsQueryOf({})} now={NOW} />
+              <RunsScreen
+                view={views.active}
+                page={pageOf({ totals: { ...pageOf().totals, runs: 46 } })}
+                query={runsQueryOf({})}
+                number={2}
+                now={NOW}
+              />
+            </main>,
+          ),
+      },
+      {
+        id: 'learner',
+        title: 'A learner: no spend, their lessons',
+        path: '/my/agent/runs',
+        height: 1400,
+        render: () =>
+          frame(
+            <main className={MAIN}>
+              <RunsScreen
+                view={agentTabViews.learner}
+                page={learnerPageOf()}
+                query={runsQueryOf({})}
+                learner
+                now={NOW}
+              />
             </main>,
           ),
       },
@@ -1105,11 +1143,12 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         id: 'token',
         title: 'The token and its setup: Claude Code',
         path: '/my/agent/connect',
-        height: 1400,
+        height: 1500,
         render: () =>
           frame(
             <main className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 pt-9 pb-16">
               <AgentConnectView
+                learnOpen
                 client="claude-code"
                 onClient={noop}
                 stage="token"
@@ -1360,20 +1399,90 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     area: 'contribute',
     route: '/my/agent',
     sources: [
-      'app/contribute/components/settings-view.tsx',
-      'app/contribute/components/settings-pages.tsx',
-      'app/contribute/components/autopilot-section.tsx',
+      'components/workspace/agent/agent-screen.tsx',
+      'components/workspace/agent/own-agent-block.tsx',
+      'components/workspace/agent/hosted-agent-block.tsx',
+      'components/workspace/agent/hosted-agent-control.tsx',
+      'components/workspace/agent/runs-preview.tsx',
+      'components/workspace/autopilot-section.tsx',
     ],
     states: [
       {
         id: 'summary',
-        title: 'Summary',
+        title: 'Both agents set up',
         path: '/my/agent',
-        height: 1900,
+        height: 2300,
         render: () =>
           frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <AgentScreen view={views.active} now={NOW} />
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen view={agentTabViews.both} learnOpen runs={previewPageOf()} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'learner',
+        title: 'A learner: their own agent, the hosted agent closed to a line',
+        path: '/my/agent',
+        height: 1300,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen
+                view={agentTabViews.learner}
+                learnOpen
+                runs={learnerPageOf()}
+                activity={activityOf(WORKING)}
+                now={NOW}
+              />
+            </main>,
+          ),
+      },
+      {
+        id: 'own-only',
+        title: 'Their own agent alone: what the hosted agent is',
+        path: '/my/agent',
+        height: 1500,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen view={agentTabViews.ownOnly} runs={previewPageOf({ items: [OWN_LEARN] })} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'hosted-only',
+        title: 'The hosted agent alone: no agent connected',
+        path: '/my/agent',
+        height: 2100,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen view={agentTabViews.hostedOnly} runs={pageOf({ items: [] })} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'key-refused',
+        title: 'The key refused: the notice above the hosted agent',
+        path: '/my/agent',
+        height: 2300,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen view={agentTabViews.keyInvalid} learnOpen runs={undefined} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'phone',
+        title: 'Phone',
+        path: '/my/agent',
+        width: 390,
+        height: 3400,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen view={agentTabViews.both} learnOpen runs={previewPageOf()} now={NOW} />
             </main>,
           ),
       },
@@ -1387,8 +1496,8 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
             <OpenDialog
               title={AUTOPILOT_HOW_TITLE}
               page={
-                <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-                  <AgentScreen view={views.autopilotComing} now={NOW} />
+                <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+                  <AgentScreen view={views.autopilotComing} runs={previewPageOf()} now={NOW} />
                 </main>
               }
             >
@@ -1413,8 +1522,8 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
             <OpenDialog
               title={AUTOPILOT_CONFIRM_TITLE}
               page={
-                <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-                  <AgentScreen view={autopilotOff} now={NOW} />
+                <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+                  <AgentScreen view={autopilotOff} runs={previewPageOf()} now={NOW} />
                 </main>
               }
             >
@@ -1437,8 +1546,8 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         height: 1900,
         render: () =>
           frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <AgentScreen view={views.newAccount} now={NOW} />
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen view={views.newAccount} runs={previewPageOf()} now={NOW} />
             </main>,
           ),
       },

@@ -105,7 +105,11 @@ describe('B1, your own agent', () => {
     expect(html).toContain('data-agent-stage="none"');
     expect(html).toContain('data-agent-hello="next"');
     expect(plain).toContain('Connect your own agent');
-    expect(plain).toContain('Use your Claude key instead');
+    expect(plain).toContain('About a minute · once per computer');
+    expect(html).toMatch(/href="\/my\/agent"[^>]*>.*Agent<\/a>/);
+    expect(plain).toContain('Contributing only? You can also use a Claude key →');
+    expect(html).toMatch(/data-key-link=""[^>]*>.*href="\/my\/agent\/key"/);
+    expect(plain).not.toContain('One connection serves Contribute and Learn.');
     for (const client of ['Claude Code', 'Codex CLI', 'Cursor', 'Gemini CLI']) expect(plain).toContain(client);
     expect(html).toMatch(/aria-pressed="true"[^>]*>Claude Code</);
     expect(plain).toContain("It can't open a pull request or spend anything");
@@ -240,6 +244,30 @@ describe('B1, your own agent', () => {
     expect(plain).not.toContain('Show the setup again');
   });
 
+  it('says one connection serves both sides while Learn is open, and leaves the key out for Learn alone', () => {
+    const { plain } = b1({ learnOpen: true, keyLink: false });
+    expect(plain).toContain(
+      'Nothing reaches GitHub before you approve it. One connection serves Contribute and Learn.',
+    );
+    expect(plain).not.toContain('You can also use a Claude key');
+  });
+
+  it('stays once the agent says hello for someone in the workspace already, with the next step', () => {
+    const both = b1({ stage: 'added', connected: true, stay: true, learnOpen: true });
+    expect(both.plain).toContain('Your agent is connected.');
+    expect(both.plain).not.toContain('Taking you on');
+    expect(both.plain).toContain('Next, pick an issue on Contribute or Learn and press Start.');
+    expect(both.html).toMatch(/data-agent-next=""[^>]*>.*href="\/contribute".*href="\/learn"/);
+    expect(b1({ stage: 'added', connected: true, stay: true }).plain).toContain(
+      'Next, pick an issue on Contribute and press Start.',
+    );
+    // Before the call, and on the way back to a proof, there is no next step here.
+    expect(b1({ stage: 'added', stay: true }).html).not.toContain('data-agent-next');
+    expect(
+      b1({ stage: 'added', connected: true, stay: true, proof: { attemptId: 'A_1', prompt: 'p', prNumber: 7 } }).html,
+    ).not.toContain('data-agent-next');
+  });
+
   it('says Copied from beside each copy button, not inside it', () => {
     const { html } = b1({ stage: 'token', shown: TOKEN });
     expect(html).toMatch(/aria-label="Copy the token"[^>]*>(?:(?!<\/button>).)*<\/button><span role="status"/s);
@@ -274,14 +302,15 @@ describe('B1, your own agent', () => {
   });
 });
 
-describe("B1 in Learn's start page", () => {
-  it('keeps the agent and its setup, without the title, the Claude key link or the first prompt', () => {
-    const { html, plain } = b1({ mode: 'learn', stage: 'token', shown: TOKEN });
-    expect(html).toContain('data-connect-mode="learn"');
+describe('B1 embedded in another page (the Start page)', () => {
+  it('keeps the agent and its setup, without the back link, the title, the Claude key link or the first prompt', () => {
+    const { html, plain } = b1({ embedded: true, stage: 'token', shown: TOKEN, learnOpen: true });
+    expect(html).toContain('data-connect-mode="embedded"');
     expect(html).not.toContain('<h1');
     expect(html).not.toContain('<h2');
+    expect(html).not.toContain('href="/my/agent"');
     expect(plain).not.toContain('Connect your own agent');
-    expect(plain).not.toContain('Use your Claude key instead');
+    expect(plain).not.toContain('Claude key');
     expect(plain).not.toContain(AGENT_FIRST_PROMPT);
     expect(plain).toContain('Claude Code');
     expect(plain).toContain('Your GitRanks token is ready.');
@@ -290,7 +319,7 @@ describe("B1 in Learn's start page", () => {
   });
 
   it('once added, waits for the call that starting the agent makes, with no prompt to send', () => {
-    const { html, plain } = b1({ mode: 'learn', stage: 'added', shown: TOKEN });
+    const { html, plain } = b1({ embedded: true, stage: 'added', shown: TOKEN });
     expect(html).toContain('data-agent-hello="waiting"');
     expect(plain).toContain('Waiting for Claude Code to call GitRanks…');
     expect(plain).toContain('Start Claude Code, or restart it if it is open: it calls GitRanks as it starts.');
@@ -299,23 +328,23 @@ describe("B1 in Learn's start page", () => {
   });
 
   it("says how to sign the agent in while it waits, the hint's check not said twice", () => {
-    const { plain } = b1({ mode: 'learn', signIn: true, stage: 'added', hint: true });
+    const { plain } = b1({ embedded: true, signIn: true, stage: 'added', hint: true });
     expect(plain).toContain('Start Claude Code and sign it in. In Claude Code, type /mcp');
     expect(plain.match(/type \/mcp/g)).toHaveLength(1);
   });
 
   it('shows nothing of the hello before the setup is added', () => {
-    const { html } = b1({ mode: 'learn' });
+    const { html } = b1({ embedded: true });
     expect(html).not.toContain('data-agent-hello');
     expect(html).toContain('data-agent-stage="none"');
   });
 
   it('starts on the same stage as on Contribute', () => {
     const back = renderToStaticMarkup(
-      <AgentConnect mode="learn" onboarded={false} tokens={views.midSetup.ownAgent.tokens} />,
+      <AgentConnect embedded onboarded={false} tokens={views.midSetup.ownAgent.tokens} />,
     );
     expect(back).toContain('data-agent-stage="added"');
-    expect(back).toContain('data-connect-mode="learn"');
+    expect(back).toContain('data-connect-mode="embedded"');
   });
 });
 

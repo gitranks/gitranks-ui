@@ -1,16 +1,10 @@
-import { Cpu, GitPullRequest, KeyRound, LayoutGrid, SquareTerminal, Wallet } from 'lucide-react';
+import { GitPullRequest, LayoutGrid } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { PreferencesSection } from '@/components/contribute/preferences-section';
 import { SettingsWorkGroup } from '@/components/contribute/settings-work-group';
-import { OwnAgentSection } from '@/components/workspace/agent/own-agent-section';
-import { AutopilotSection } from '@/components/workspace/autopilot-section';
-import { ContributeNotices } from '@/components/workspace/contribute-notices';
-import { CycleSummary } from '@/components/workspace/cycle-summary';
-import { PauseButton } from '@/components/workspace/pause-button';
-import { ReposAskLessNote } from '@/components/workspace/pull-request/repo-rules';
 import { DeleteDataSection } from '@/components/workspace/settings/delete-data-section';
 import { EmailSection } from '@/components/workspace/settings/email-section';
 import { SettingsAnchors } from '@/components/workspace/settings/settings-anchors';
@@ -22,24 +16,11 @@ import {
   loadContributeSetup,
 } from '@/lib/workspace/contribute.data';
 import type { ContributeEmail, ContributeSet, ContributeView } from '@/lib/workspace/contribute.types';
-import {
-  claudeKeyOf,
-  contributeNoticesOf,
-  isContributePageOpen,
-  isOwnAgentOnly,
-  isPaused,
-  settingsOf,
-} from '@/lib/workspace/contribute-state';
+import { isContributePageOpen } from '@/lib/workspace/contribute-state';
 import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
-import { GITHUB_ACCESS_PATH, SETTINGS_PATHS, settingsPathOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { GITHUB_ACCESS_PATH, SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
-import {
-  agentSummaryOf,
-  budgetSummaryOf,
-  grantSummaryOf,
-  keySummaryOf,
-  ownAgentSummaryOf,
-} from '@/lib/workspace/settings-summary';
+import { grantSummaryOf } from '@/lib/workspace/settings-summary';
 
 /** Reads the user for a Settings page: a 404 to someone Contribute is not open to, Contribute's home before signing up. */
 export async function loadSettingsView(): Promise<ContributeView> {
@@ -131,94 +112,6 @@ export function SettingsScreen({
 
       <DeleteDataSection />
       <SettingsAnchors />
-    </>
-  );
-}
-
-export async function AgentView() {
-  return <AgentScreen view={await loadSettingsView()} />;
-}
-
-/**
- * The Agent tab, at rest: where things stand and Pause, the hosted agent's budget, model and autopilot, the
- * connections (the Claude key, the user's own agent), and the own agent's tokens and setup.
- */
-export function AgentScreen({ view, now }: { view: ContributeView; now?: Date }) {
-  const { contributor } = view;
-  const settings = settingsOf(view);
-  // The pause and the key's trouble are shown where they are acted on, in the status card and under the key.
-  const notices = contributeNoticesOf(view).filter(({ kind }) => kind !== 'paused');
-
-  return (
-    <>
-      <h1 className="sr-only">Agent</h1>
-      <ContributeNotices notices={notices} />
-      {contributor ? (
-        <div id="pause" className="scroll-mt-20">
-          <CycleSummary view={view} now={now} action={<PauseButton paused={isPaused(view)} />} />
-        </div>
-      ) : null}
-
-      <SettingsGroup id="settings-budget" title="Budget and the agent">
-        <SettingsList>
-          {settings ? (
-            <>
-              <SettingsRow
-                icon={Wallet}
-                href={SETTINGS_PATHS.budget}
-                title="Budget and pacing"
-                value={budgetSummaryOf(settings, contributor?.limits)}
-              />
-              <SettingsRow
-                icon={Cpu}
-                href={SETTINGS_PATHS.agent}
-                title="Agent and pull requests"
-                value={agentSummaryOf(settings)}
-              />
-            </>
-          ) : (
-            <SettingsRow
-              icon={Wallet}
-              href={SETTINGS_PATHS.budget}
-              title="Spending limits, pacing and the agent"
-              value={
-                isOwnAgentOnly(view)
-                  ? 'Your own agent spends nothing through us. These come with a Claude key, if you connect one for hosted attempts.'
-                  : 'They start from your plan once a key is connected, and every one of them is yours to change.'
-              }
-            />
-          )}
-          {contributor ? (
-            <AutopilotSection
-              autopilot={contributor.autopilot}
-              login={contributor.login}
-              enabled={settings?.autopilot ?? false}
-              canSave={!!settings}
-            />
-          ) : null}
-        </SettingsList>
-        <ReposAskLessNote className="px-1" />
-      </SettingsGroup>
-
-      <SettingsGroup id="settings-connections" title="Connections">
-        <SettingsList>
-          <SettingsRow
-            icon={KeyRound}
-            href={SETTINGS_PATHS.keys}
-            title="Claude API key"
-            value={keySummaryOf(claudeKeyOf(view))}
-            data={{ 'data-key-state': claudeKeyOf(view)?.state ?? 'none' }}
-          />
-          <SettingsRow
-            icon={SquareTerminal}
-            href={settingsPathOf('own-agent')}
-            title="Your own agent (MCP)"
-            value={ownAgentSummaryOf(view.ownAgent, now)}
-          />
-        </SettingsList>
-      </SettingsGroup>
-
-      <OwnAgentSection ownAgent={view.ownAgent} now={now} />
     </>
   );
 }

@@ -23,8 +23,6 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { ContributeUnavailableError, viewerLogin } from '@/lib/workspace/contribute.data';
 import { contributeErrorOf } from '@/lib/workspace/errors';
 
-/** The viewer's own agent, for Goal and level's card: the workspace's own read, once per request. */
-export { loadOwnAgent } from '@/lib/workspace/contribute.data';
 /** Whether Learn is open to the signed-in viewer: the workspace gate's own read, once per request. */
 export { loadLearnOpen } from '@/lib/workspace/gate.data';
 

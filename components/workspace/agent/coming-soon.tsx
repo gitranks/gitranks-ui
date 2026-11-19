@@ -188,19 +188,23 @@ function ProviderMark({
 /**
  * The providers that are coming, each with a "Notify me" that counts towards which comes first. A visitor's opens the
  * sign-in; a signed-in user's puts the provider on their list, or takes it off. `noted`: the user's list as the API
- * keeps it. `compact`: Overview's, inside "Ways you contribute": one line of what is coming, its "Notify me" opening
- * the mark, the title and the toggle of each, for a signed-in user.
+ * keeps it. `compact`: one line of what is coming (Overview's, inside "Ways you contribute", and the Agent tab's,
+ * under the hosted agent, with its own `title`), its "Notify me" opening the mark, the title and the toggle of each,
+ * for a signed-in user.
  */
 export function ComingSoon({
   viewer,
   preview = false,
   noted: initial = [],
   variant = 'landing',
+  title = 'Coming soon:',
 }: {
   viewer: LandingViewer;
   preview?: boolean;
   noted?: readonly ContributeComingSoonProvider[];
   variant?: 'landing' | 'compact';
+  /** The compact line's lead. */
+  title?: string;
 }) {
   const visitor = viewer === 'visitor';
   const { noted, busy, flip } = useNotify(visitor ? [] : initial);
@@ -212,7 +216,7 @@ export function ComingSoon({
       <div className="flex flex-col gap-2.5 rounded-xl border border-dashed px-4 py-3" data-overview="coming-soon">
         <div className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
           <div>
-            <h3 className="inline font-semibold text-foreground">Coming soon:</h3> {comingSoonLineOf()}
+            <h3 className="inline font-semibold text-foreground">{title}</h3> {comingSoonLineOf()}
           </div>
           <button
             type="button"

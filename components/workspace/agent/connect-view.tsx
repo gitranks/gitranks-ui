@@ -6,6 +6,7 @@ import { loadAttempt, loadContribute, loadContributeSetup } from '@/lib/workspac
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isOnboarded, withoutAccessNotices } from '@/lib/workspace/contribute-state';
 import { LANGUAGES } from '@/lib/workspace/format';
+import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import { CONNECT_AGENT_PATH } from '@/lib/workspace/paths';
 import { proofParamOf, proofPromptOf } from '@/lib/workspace/proof';
 import { contributeHidden } from '@/lib/workspace/setting-up';
@@ -16,9 +17,9 @@ export async function OwnAgentConnectView({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params] = await Promise.all([loadContribute(), searchParams]);
+  const [view, params, learnOpen] = await Promise.all([loadContribute(), searchParams, loadLearnOpen()]);
   if (!view) contributeHidden(await loadContributeSetup());
-  return <OwnAgentConnectScreen view={view} proof={await proofOf(proofParamOf(params?.proof))} />;
+  return <OwnAgentConnectScreen view={view} learnOpen={learnOpen} proof={await proofOf(proofParamOf(params?.proof))} />;
 }
 
 /** Where the own-agent path starts. */
@@ -26,17 +27,22 @@ export const OWN_AGENT_PATH = CONNECT_AGENT_PATH;
 
 /**
  * B1, the own-agent path: the agent, a token and its setup, then the agent's first call. Nothing asks for a key or for
- * preferences (guessed, changed in Settings), and GitHub access is asked for on the first review.
+ * preferences (guessed, changed in Settings), and GitHub access is asked for on the first review. One connection
+ * serves Contribute and Learn; the Claude key is offered as the other way to contribute, not to someone on Learn alone.
  */
 export function OwnAgentConnectScreen({
   view,
+  learnOpen = false,
   proof = null,
 }: {
   view: ContributeView;
+  learnOpen?: boolean;
   proof?: AgentConnectProof | null;
 }) {
   return (
     <AgentConnect
+      learnOpen={learnOpen}
+      keyLink={view.sides?.contribute !== false}
       onboarded={isOnboarded(view)}
       tokens={view.ownAgent?.tokens}
       proof={proof}

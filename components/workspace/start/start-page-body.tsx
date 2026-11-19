@@ -218,7 +218,7 @@ function LiveStartPage({
       connect={
         // The embedded connect steps: no title or back link of their own, and the page goes on in place.
         <AgentConnect
-          mode="learn"
+          embedded
           onboarded={agent.onboarded}
           tokens={agent.tokens}
           signIn={agent.signIn}

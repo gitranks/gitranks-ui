@@ -11,6 +11,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
@@ -19,17 +20,14 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadRepliesWaiting: vi.fn(),
 }));
 
-const { OwnAgentSection, OWN_AGENT_SAFETY, SetupLines } = await import(
-  '@/components/workspace/agent/own-agent-section'
-);
-const { AgentScreen } = await import('./settings-view');
+const { OwnAgentBlock } = await import('@/components/workspace/agent/own-agent-block');
+const { AgentScreen } = await import('@/components/workspace/agent/agent-screen');
 const { OwnAgentConnectScreen, ConnectScreen } = await import('@/components/workspace/agent/connect-view');
 const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
 const { NOW, views, contributor } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { detail, ownAgentAttempt } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { contributeNoticesOf } = await import('@/lib/workspace/contribute-state');
-const { AGENT_FIRST_PROMPT, MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/workspace/mcp-setup');
-const { OWN_AGENT_SETUPS } = await import('@/lib/workspace/own-agent-setups');
+const { MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/workspace/mcp-setup');
 
 import type { ContributeOwnAgent, ContributeView } from '@/lib/workspace/contribute.types';
 
@@ -51,7 +49,7 @@ const agentOnly: ContributeView = {
   ownAgent: withTokens,
 };
 
-describe('Settings, your own agent, with agents that signed in', () => {
+describe('the Agent tab, your own agent', () => {
   const SIGNED_IN = {
     id: 'T_2',
     kind: 'OAUTH' as const,
@@ -61,125 +59,47 @@ describe('Settings, your own agent, with agents that signed in', () => {
     createdAt: '2026-11-12T09:00:00.000Z',
     lastUsedAt: new Date(NOW.getTime() - 2 * 60 * 60 * 1000).toISOString(),
   };
+  const block = (ownAgent: ContributeOwnAgent | undefined, learnOpen = true) =>
+    renderToStaticMarkup(<OwnAgentBlock ownAgent={ownAgent} learnOpen={learnOpen} now={NOW} />);
 
-  it('shows a sign-in as when it signed in and was used, with Disconnect, never a last 4', () => {
-    const html = renderToStaticMarkup(
-      <OwnAgentSection ownAgent={{ ...withTokens, tokens: [TOKEN, SIGNED_IN] }} now={NOW} />,
-    );
+  it('shows one card per connection: a sign-in by its last call and day, with Disconnect, never a last 4', () => {
+    const html = block({ ...withTokens, tokens: [TOKEN, SIGNED_IN] });
     const plain = text(html);
+    expect(html).toContain('id="own-agent"');
     expect(html).toContain('data-mcp-token="T_2"');
-    expect(plain).toContain('Claude Code signed in Nov 12 · used 2 hours ago');
+    expect(plain).toContain('Claude Code Connected Last call 2 hours ago · signed in Nov 12');
     expect(plain).toContain('Disconnect Claude Code');
     expect(plain).not.toContain('gr_…null');
-    expect(plain).toContain('gr_…Qx9z');
+    // A token not used yet is live, not connected.
+    expect(plain).toContain('laptop Not used yet No call yet · token gr_…Qx9z');
+    expect(plain).toContain('Revoke laptop');
   });
 
-  it('counts personal tokens alone against their cap', () => {
-    const signedIn = Array.from({ length: 6 }, (_, at) => ({ ...SIGNED_IN, id: `S_${at}` }));
-    const html = renderToStaticMarkup(
-      <OwnAgentSection ownAgent={{ ...withTokens, tokens: [TOKEN, ...signedIn] }} now={NOW} />,
-    );
-    expect(text(html)).not.toContain('revoke one to create another');
-  });
-
-  it("leads the setup with the client's sign-in, its token setup in a fold, once agents sign in", () => {
-    const html = renderToStaticMarkup(<OwnAgentSection ownAgent={{ ...withTokens, signIn: true }} now={NOW} />);
+  it('says what it serves, links another connection and the MCP docs, and holds no setup of its own', () => {
+    const html = block(withTokens);
     const plain = text(html);
-    expect(plain).toContain(`claude mcp add --scope user --transport http gitranks ${MCP_URL}`);
-    expect(plain).toContain('Use a token instead');
-    expect(html).toContain('data-token-fold');
-    // The token setup is still there, in the fold.
-    expect(plain).toContain('GITRANKS_MCP_TOKEN');
-
-    // The setup leads; the personal tokens follow it.
-    expect(plain.indexOf('Set up your agent')).toBeLessThan(plain.indexOf('Personal tokens'));
-    expect(plain.indexOf('Personal tokens')).toBeLessThan(plain.indexOf('gr_…Qx9z'));
-    expect(plain.indexOf('gr_…Qx9z')).toBeLessThan(plain.indexOf('Create token'));
-    expect(plain).toContain('No agent connected yet.');
-
-    const off = renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />);
-    expect(off).not.toContain('data-token-fold');
-    expect(text(off).indexOf('Create token')).toBeLessThan(text(off).indexOf('Set up your agent'));
-  });
-
-  it('lists the agents that signed in above the setup, and the personal tokens under theirs', () => {
-    const plain = text(
-      renderToStaticMarkup(
-        <OwnAgentSection ownAgent={{ ...withTokens, tokens: [TOKEN, SIGNED_IN], signIn: true }} now={NOW} />,
-      ),
-    );
-    expect(plain.indexOf('Disconnect Claude Code')).toBeLessThan(plain.indexOf('Set up your agent'));
-    expect(plain.indexOf('Personal tokens')).toBeLessThan(plain.indexOf('Revoke laptop'));
-    expect(plain).toContain('It signs in with your GitHub account');
-    expect(text(renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />))).not.toContain(
-      'It signs in with your GitHub account',
-    );
-  });
-
-  it('says what to ask an agent once one is connected, and nothing before', () => {
-    const asked = (ownAgent: ContributeOwnAgent) => {
-      const html = renderToStaticMarkup(<OwnAgentSection ownAgent={ownAgent} now={NOW} />);
-      return html.includes('data-own-agent-next') && text(html).includes(AGENT_FIRST_PROMPT);
-    };
-    expect(asked({ ...withTokens, tokens: [SIGNED_IN], signIn: true })).toBe(true);
-    expect(asked({ ...withTokens, tokens: [{ ...TOKEN, lastUsedAt: NOW.toISOString() }] })).toBe(true);
-    const tokenOnly = text(
-      renderToStaticMarkup(
-        <OwnAgentSection
-          ownAgent={{ ...withTokens, tokens: [{ ...TOKEN, lastUsedAt: NOW.toISOString() }], signIn: true }}
-          now={NOW}
-        />,
-      ),
-    );
-    expect(tokenOnly).toContain(AGENT_FIRST_PROMPT);
-    expect(tokenOnly).toContain('No agent signed in. Yours connects with a personal token, listed below.');
-    expect(tokenOnly).not.toContain('No agent connected yet.');
-    expect(asked({ ...withTokens, tokens: [TOKEN], signIn: true })).toBe(false);
-    expect(asked(withTokens)).toBe(false);
-  });
-
-  it('says no agent is connected yet, not that there is no token', () => {
-    const plain = text(
-      renderToStaticMarkup(<OwnAgentSection ownAgent={{ ...withTokens, tokens: [], signIn: true }} now={NOW} />),
-    );
-    expect(plain).toContain('No agent connected yet.');
-    expect(plain).not.toContain('No token yet');
-  });
-});
-
-describe('Settings, your own agent', () => {
-  it('lists the tokens by their last 4 alone, with the setup for each client and the safety line', () => {
-    const html = renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />);
-    const plain = text(html);
-
-    expect(html).toContain('id="own-agent"');
-    expect(html).toContain('data-mcp-token="T_1"');
-    expect(plain).toContain('gr_…Qx9z');
-    expect(plain).toContain('never used');
-    expect(plain).toContain('Create token');
-    expect(html).toContain('data-setup="claude-code"');
-    expect(plain).toContain(`claude mcp add --scope user --transport http gitranks ${MCP_URL}`);
-    expect(plain).toContain(OWN_AGENT_SAFETY);
-  });
-
-  it('says it is coming while the API does not answer it, and offers no create', () => {
-    const plain = text(renderToStaticMarkup(<OwnAgentSection ownAgent={undefined} now={NOW} />));
-    expect(plain).toContain('Not available yet');
+    expect(plain).toContain('Your own agent For Contribute and Learn');
+    expect(text(block(withTokens, false))).toContain('Your own agent For Contribute ');
+    expect(html).toMatch(/href="\/my\/agent\/connect"[^>]*>Connect another agent/);
+    expect(html).toMatch(/href="\/contribute\/mcp"[^>]*>The MCP docs: setup and tools for every agent →/);
     expect(plain).not.toContain('Create token');
+    expect(html).not.toContain('data-setup=');
   });
 
-  it('is a section of the Agent tab, and a contributor with their own agent alone sees no spending limits to set', () => {
-    const plain = text(renderToStaticMarkup(<AgentScreen view={agentOnly} now={NOW} />));
-    expect(plain).toContain('Your own agent (MCP)');
-    expect(plain).toContain('Your own agent spends nothing through us');
-    expect(plain).not.toContain('Cycle cap');
+  it('says no agent is connected, with Connect your agent, and when its read failed', () => {
+    const none = block({ ...withTokens, tokens: [] });
+    expect(text(none)).toContain('No agent is connected.');
+    expect(none).toMatch(/href="\/my\/agent\/connect"[^>]*>Connect your agent/);
+    expect(text(block(undefined))).toContain("Your connections didn't load. Reload to try again.");
   });
 
-  it('is titled once on the Agent tab, with the tab its page', () => {
+  it('is a block of the Agent tab, and a contributor with their own agent alone sees the hosted pitch, no limits', () => {
     const html = renderToStaticMarkup(<AgentScreen view={agentOnly} now={NOW} />);
-    expect(html.match(/Your own agent \(MCP\)<\/h[123]>/g)).toHaveLength(1);
-    expect(html).toContain('<h1 class="sr-only">Agent</h1>');
-    expect(text(html)).toContain('Create token');
+    const plain = text(html);
+    expect(html.match(/>Your own agent<\/h2>/g)).toHaveLength(1);
+    expect(html).toContain('data-hosted="pitch"');
+    expect(plain).toContain('Use a Claude key');
+    expect(plain).not.toContain('Budget and pacing');
   });
 
   it('asks no key of a contributor who has their own agent', () => {
@@ -222,37 +142,6 @@ describe('the setup lines', () => {
   });
 });
 
-describe('the setup picker', () => {
-  it("offers VS Code after the connect flow's clients, with its sign-in, one-click install and token setup", () => {
-    expect(OWN_AGENT_SETUPS.map(({ id }) => id)).toEqual([...MCP_SETUPS.map(({ client }) => client), 'vs-code']);
-    const vsCode = OWN_AGENT_SETUPS.find(({ id }) => id === 'vs-code');
-    expect(JSON.parse(vsCode?.signIn.lines ?? '{}')).toEqual({ servers: { gitranks: { type: 'http', url: MCP_URL } } });
-    expect(vsCode?.install?.href).toContain('https://vscode.dev/redirect/mcp/install');
-    expect(JSON.parse(vsCode?.token.lines ?? '{}').mcpServers.gitranks.headers.Authorization).toBe(
-      `Bearer \${GITRANKS_MCP_TOKEN}`,
-    );
-    expect(vsCode?.token.where).toContain('.copilot\\mcp-config.json on Windows');
-    // Every client with a one-click install gets it: Cursor and VS Code.
-    expect(OWN_AGENT_SETUPS.filter(({ install }) => install).map(({ id }) => id)).toEqual(['cursor', 'vs-code']);
-
-    const plain = text(renderToStaticMarkup(<OwnAgentSection ownAgent={withTokens} now={NOW} />));
-    expect(plain).toContain('VS Code');
-    expect(plain).not.toContain('VS Code, other clients');
-  });
-
-  it("shows a client's one-click install and its lines by hand when agents sign in, and no install with tokens alone", () => {
-    const cursor = OWN_AGENT_SETUPS.find(({ id }) => id === 'cursor');
-    const tokensOnly = renderToStaticMarkup(<SetupLines />);
-    expect(tokensOnly).not.toContain('data-install-link');
-
-    // The picker starts on Claude Code, which has no install link: no button, and its sign-in lines as they are.
-    const signIn = renderToStaticMarkup(<SetupLines signIn />);
-    expect(signIn).not.toContain('data-install-link');
-    expect(text(signIn)).not.toContain('Or by hand:');
-    expect(cursor?.install?.label).toBe('Add to Cursor');
-  });
-});
-
 describe('Connect, with your own agent', () => {
   it('offers the own-agent path beside the key, and that path asks for no key, no preferences and no GitHub access', () => {
     expect(text(renderToStaticMarkup(<ConnectScreen view={views.noKey} today={14} />))).toContain(
@@ -265,7 +154,7 @@ describe('Connect, with your own agent', () => {
     );
     const plain = text(html);
     expect(html).toContain('data-connect-path="agent"');
-    expect(plain).toContain('no Claude key needed');
+    expect(plain).toContain('About a minute · once per computer');
     expect(plain).toContain('Create a GitRanks token');
     // GitHub access is asked for on the first review, and the preferences are guessed.
     expect(plain).not.toContain('GitHub access');

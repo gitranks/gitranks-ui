@@ -7,6 +7,7 @@ import { ActivityProvider } from './activity';
 import { readNeedsYouCount, readWorkspaceChanges } from '@/lib/workspace/actions';
 import { ACTIVITY_STARTED_EVENT } from '@/lib/workspace/activity-format';
 import {
+  changesPollRunning,
   clearChangesWake,
   emitContributeChanges,
   fastChangesHeld,
@@ -37,11 +38,17 @@ export function ChangesProvider({
   version,
   activity: initial,
   needsYou: initialCount = null,
+  standby = false,
   children,
 }: {
   version: string | null;
   activity: ContributeActivity | null;
   needsYou?: number | null;
+  /**
+   * A poll for a page without the tabs (`WorkspaceLive`): it starts only when no other poll runs in the tab, and gives
+   * way to the tabs' poll when that one starts. Mounted twice, the poll runs once.
+   */
+  standby?: boolean;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -100,6 +107,7 @@ export function ChangesProvider({
   }, [session, version, initial]);
 
   useEffect(() => {
+    if (standby && changesPollRunning()) return;
     const polling = startChangesPolling(
       async () => {
         const outcome = await session.tick();
@@ -110,7 +118,6 @@ export function ChangesProvider({
       { document, window },
     );
     readNow.current = polling.readNow;
-    setChangesWake(polling.readNow);
     let wait: ReturnType<typeof setTimeout> | undefined;
     const onStarted = () => {
       session.announce();
@@ -122,7 +129,10 @@ export function ChangesProvider({
       }, ANNOUNCE_READ_WAIT_MS);
     };
     window.addEventListener(ACTIVITY_STARTED_EVENT, onStarted);
-    return () => {
+    let stopped = false;
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
       session.stop();
       polling.stop();
       clearTimeout(wait);
@@ -130,7 +140,9 @@ export function ChangesProvider({
       clearChangesWake(polling.readNow);
       window.removeEventListener(ACTIVITY_STARTED_EVENT, onStarted);
     };
-  }, [session]);
+    setChangesWake(polling.readNow, standby ? { stop } : undefined);
+    return stop;
+  }, [session, standby]);
 
   useEffect(() => {
     if (announcedAt === null) return;

@@ -4,12 +4,12 @@ import { BADGES_SCREENS } from './badges';
 import { CONTRIBUTE_SCREENS } from './contribute';
 import { LANDING_SCREENS } from './landing';
 import { LEARN_SCREENS } from './learn';
-import { LEARN_START_SCREENS } from './learn-start';
 import { ORG_SCREENS } from './org';
 import { PACKAGE_SCREENS } from './package';
 import { PROFILE_SCREENS } from './profile';
 import { RANKINGS_SCREENS } from './rankings';
 import { REPO_SCREENS } from './repo';
+import { START_SCREENS } from './start';
 
 /** Every screen in the catalogue, by area, in the order of `AREAS`. */
 export const SCREENS: Screen[] = [
@@ -22,6 +22,6 @@ export const SCREENS: Screen[] = [
   ...BADGES_SCREENS,
   ...CONTRIBUTE_SCREENS,
   ...LEARN_SCREENS,
-  ...LEARN_START_SCREENS,
+  ...START_SCREENS,
   ...ADMIN_SCREENS,
 ];

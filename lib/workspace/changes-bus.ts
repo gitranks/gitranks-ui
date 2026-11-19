@@ -45,14 +45,27 @@ export const fastChangesHeld = () => fastHolds > 0;
 /** Whether the one poll runs in this tab (it does under the tabs, once the user is onboarded). */
 export const changesPollRunning = () => wake !== null;
 
-/** The poll's read-now, called when a page starts holding it fast. */
-export function setChangesWake(readNow: () => void): void {
+/** A poll that stands by (`WorkspaceLive`'s): how to stop it when the tabs' own poll starts. */
+let standby: { readNow: () => void; stop: () => void } | null = null;
+
+/**
+ * The poll's read-now, called when a page starts holding it fast. One poll runs in a tab: the tabs' poll stops one that
+ * stood by (`stop`) before it takes its place.
+ */
+export function setChangesWake(readNow: () => void, standing?: { stop: () => void }): void {
+  if (!standing && standby) {
+    const { stop } = standby;
+    standby = null;
+    stop();
+  }
   wake = readNow;
+  if (standing) standby = { readNow, stop: standing.stop };
 }
 
 /** The poll stopped: its read-now goes, unless another poll's took its place. */
 export function clearChangesWake(readNow: () => void): void {
   if (wake === readNow) wake = null;
+  if (standby?.readNow === readNow) standby = null;
 }
 
 type ActivityListener = () => void;

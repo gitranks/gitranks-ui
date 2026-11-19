@@ -1,3 +1,5 @@
+import type { Route } from 'next';
+
 import type {
   LearnGoalView,
   LearnIssue,
@@ -8,8 +10,10 @@ import type {
   MyLearnAttempt,
   MyLearnAttempts,
 } from './learn.types';
-import { learnLimitWordsOf } from './learn-start';
 import { LEVELS, levelRowsOf } from './profile-form';
+import { limitWordsOf } from '@/lib/workspace/limit-words';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { isOpenPrsLimit } from '@/lib/workspace/start/start-page';
 
 /**
  * The stages of a Learn attempt that count as in progress: the agent works or rewrites, the lesson waits for the user
@@ -181,8 +185,19 @@ export const sameGoal = (
   written.kind.toLowerCase() === goal.kind.toLowerCase() &&
   written.value.trim().toLowerCase() === goal.value.trim().toLowerCase();
 
-/** The words for the limit that leaves the viewer no room for a new lesson: the start page's, with its count. */
-export const roomWordsOf = (room: LearnRoom) => learnLimitWordsOf(room.limit, room.value);
+/**
+ * The words for the limit that leaves the viewer no room for a new lesson, and where what holds it shows: the open pull
+ * requests (`room.value`: how many may be open) or, for any other limit, the attempts at a time.
+ */
+export function roomWordsOf(room: LearnRoom): { text: string; link: { href: Route; label: string } } {
+  const link = { href: WORKSPACE_PATHS.pullRequests, label: 'Pull requests' };
+  if (isOpenPrsLimit(room.limit)) {
+    // The one wording of the limit (`LimitNotice`, which the list draws in its place).
+    const { lead, rest } = limitWordsOf({ count: room.value, limit: room.value });
+    return { text: `${lead} ${rest}`, link };
+  }
+  return { text: 'Your agent is working on another issue. A new lesson can start when that one is done.', link };
+}
 
 /** "Size small": an issue's size in the row's words; null when it has none. */
 export function issueSizeOf(issue: Pick<LearnIssue, 'size'>): string | null {

@@ -297,6 +297,25 @@ export function ownAgentOf(
   };
 }
 
+/**
+ * The viewer's own agent, as Contribute reads it (its connections and their last calls), read alone, not with the rest
+ * of Contribute: Goal and level's card and the Start page. Undefined signed out or when the API does not answer it.
+ */
+export const loadOwnAgent = cache(async (): Promise<ContributeOwnAgent | undefined> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return undefined;
+  const options = { source: 'ssr' as const, githubLogin };
+  const [agent, connections] = await Promise.allSettled([
+    graphqlDirect(ContributeOwnAgentDocument, undefined, options),
+    graphqlDirect(ContributeMcpConnectionsDocument, undefined, options),
+  ]);
+  if (agent.status === 'rejected') return undefined;
+  return ownAgentOf(
+    agent.value.contribute,
+    connections.status === 'fulfilled' ? connections.value.contribute?.mcpTokens : null,
+  );
+});
+
 /** The languages the matching moment shows. */
 export const PROFILE_LANGUAGES_MAX = 4;
 

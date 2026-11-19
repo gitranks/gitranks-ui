@@ -21,8 +21,8 @@ import {
   wantedOf,
 } from './learn-home';
 import { LEARN_ABOUT_PATH, LEARN_PRACTICE_PATH } from './learn-path';
-import { LEARN_ISSUES_PATH, learnStartPath } from './learn-start';
 import { LEARN_ABOUT_METADATA } from './lesson-seo';
+import { learnStartPath, PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
 const state = (attempts = myLearnAttempts.none, profile = filledProfile, settingUp = false) =>
   learnHomeStateOf({ settingUp, profile, attempts });
@@ -146,7 +146,7 @@ describe("Learn home's addresses", () => {
   it('starts a lesson at /learn/start/<owner>/<repo>/<number>', () => {
     expect(learnStartPath('driftwood-js/driftwood', 934)).toBe('/learn/start/driftwood-js/driftwood/934');
     expect(learnStartPath('a b/c', 1)).toBe('/learn/start/a%20b/c/1');
-    expect([LEARN_ISSUES_PATH, LEARN_PRACTICE_PATH, LEARN_ABOUT_PATH]).toEqual([
+    expect([PICK_ISSUE_PATHS.learn, LEARN_PRACTICE_PATH, LEARN_ABOUT_PATH]).toEqual([
       '/learn#issues',
       '/learn#practice',
       '/learn/about',

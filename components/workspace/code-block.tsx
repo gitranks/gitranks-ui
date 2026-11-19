@@ -75,7 +75,8 @@ export function CodeBlock({
 }: {
   /** Where it goes: a shell, a file's path, or the agent. */
   label: string;
-  copyLabel: string;
+  /** The copy icon's name; none: no icon (the page has its own copy control). */
+  copyLabel?: string;
   children: string;
   /** The label is a path, set in the mono face. */
   file?: boolean;
@@ -91,9 +92,9 @@ export function CodeBlock({
 }) {
   return (
     <div className={cn('dark overflow-hidden rounded-xl bg-background text-foreground ring-1 ring-border', className)}>
-      <div className="flex items-center justify-between gap-2 border-b pl-3.5">
+      <div className={cn('flex items-center justify-between gap-2 border-b pl-3.5', !copyLabel && 'py-2.5 pr-3.5')}>
         <span className={cn('min-w-0 truncate text-xs text-muted-foreground', file && 'font-mono')}>{label}</span>
-        <CopyIcon text={children} label={copyLabel} source={copySource} />
+        {copyLabel ? <CopyIcon text={children} label={copyLabel} source={copySource} /> : null}
       </div>
       <pre
         className={cn(

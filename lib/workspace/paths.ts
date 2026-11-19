@@ -305,6 +305,30 @@ export const ATTEMPT_ID = /^[\w-]{1,64}$/;
 export const isByAttemptPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+my\/+pull-requests\/+by-attempt\/+[\w-]{1,64}\/?$/i);
 
+/**
+ * The Start page for one issue: `/my/start/<owner>/<repo>/<issue>`. `lesson` asks for its lesson mode (`?lesson=1`);
+ * `from: 'contribute'` sends lesson mode's back link to Contribute's issues instead of Learn's.
+ */
+export function startPath(
+  ref: Pick<IssueRef, 'repo' | 'issue'>,
+  opts: { lesson?: boolean; from?: 'contribute' } = {},
+): Route {
+  const [owner = '', name = ''] = ref.repo.split('/');
+  const path = `/my/start/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/${ref.issue}`;
+  const query = new URLSearchParams({
+    ...(opts.lesson ? { lesson: '1' } : {}),
+    ...(opts.from ? { from: opts.from } : {}),
+  });
+  const text = query.toString();
+  return (text ? `${path}?${text}` : path) as Route;
+}
+
+/** Learn's own start page for an issue of `repo` (`owner/name`): the Start page in lesson mode, at Learn's address. */
+export function learnStartPath(repo: string, number: number): Route {
+  const [owner, name] = repo.split('/');
+  return `/learn/start/${encodeURIComponent(owner)}/${encodeURIComponent(name ?? '')}/${number}` as Route;
+}
+
 /** The Pull requests tab's table holds this many rows a page. */
 export const PULL_REQUESTS_PAGE_SIZE = 20;
 

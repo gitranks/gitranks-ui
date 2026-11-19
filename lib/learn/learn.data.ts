@@ -20,11 +20,11 @@ import type {
   PracticeLessons,
 } from './learn.types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { ContributeUnavailableError, ownAgentOf, viewerLogin } from '@/lib/workspace/contribute.data';
-import { ContributeMcpConnectionsDocument, ContributeOwnAgentDocument } from '@/lib/workspace/contribute.documents';
-import type { ContributeOwnAgent } from '@/lib/workspace/contribute.types';
+import { ContributeUnavailableError, viewerLogin } from '@/lib/workspace/contribute.data';
 import { contributeErrorOf } from '@/lib/workspace/errors';
 
+/** The viewer's own agent, for Goal and level's card: the workspace's own read, once per request. */
+export { loadOwnAgent } from '@/lib/workspace/contribute.data';
 /** Whether Learn is open to the signed-in viewer: the workspace gate's own read, once per request. */
 export { loadLearnOpen } from '@/lib/workspace/gate.data';
 
@@ -100,25 +100,6 @@ export const loadMyLessons = cache(async (): Promise<MyLesson[] | undefined> => 
     if (error === 'NOT_FOUND' || error === 'SIGNED_OUT') return [];
     return undefined;
   }
-});
-
-/**
- * The viewer's own agent, as Contribute reads it (its connections and their last calls), for Goal and level's card:
- * read alone, not with the rest of Contribute. Undefined signed out or when the API does not answer it.
- */
-export const loadOwnAgent = cache(async (): Promise<ContributeOwnAgent | undefined> => {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-  const options = { source: 'ssr' as const, githubLogin };
-  const [agent, connections] = await Promise.allSettled([
-    graphqlDirect(ContributeOwnAgentDocument, undefined, options),
-    graphqlDirect(ContributeMcpConnectionsDocument, undefined, options),
-  ]);
-  if (agent.status === 'rejected') return undefined;
-  return ownAgentOf(
-    agent.value.contribute,
-    connections.status === 'fulfilled' ? connections.value.contribute?.mcpTokens : null,
-  );
 });
 
 /** A Learn read for the viewer that answers nothing when it fails: the page leaves its part out or says so. */

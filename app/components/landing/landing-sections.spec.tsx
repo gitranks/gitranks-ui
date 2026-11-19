@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-const { FaqSection } = await import('./landing-sections');
+const { FaqSection, InsightTicker } = await import('./landing-sections');
+const { SegmentType } = await import('@/types/generated/graphql');
 
 const QUESTIONS = [
   'How is my GitHub rank calculated?',
@@ -86,5 +87,23 @@ describe('FaqSection', () => {
         expect(acceptedAnswer.text.endsWith(label)).toBe(false);
       }
     }
+  });
+});
+
+describe('InsightTicker', () => {
+  it('shows the newest post with a link to its page', () => {
+    const insight = {
+      id: 'post-1',
+      segments: [{ type: SegmentType.Text, text: 'A new rank for the week' }],
+      entities: null,
+    } as unknown as Parameters<typeof InsightTicker>[0]['insight'];
+    const html = renderToStaticMarkup(<InsightTicker insight={insight} />);
+
+    expect(html).toContain('A new rank for the week');
+    expect(html).toMatch(/<a [^>]*href="\/insights\/post-1"[^>]*>Details<\/a>/);
+  });
+
+  it('draws nothing when there is no post', () => {
+    expect(renderToStaticMarkup(<InsightTicker />)).toBe('');
   });
 });

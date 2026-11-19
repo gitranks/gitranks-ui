@@ -4,12 +4,12 @@ import { isContributePath, isInsidePath, isMyPath } from './paths';
  * Where a click into Contribute came from: one id per place on the site that links there. Add a place here, then mark
  * its link (or the section around its links) with `contributeSource('<id>')`:
  *
- *   <Link href="/contribute" {...contributeSource('top_bar')}>
+ *   <Link href="/contribute" {...contributeSource('landing_block')}>
  *
  * A link to Contribute with no mark is still counted, as `other`.
  */
 export const CONTRIBUTE_SOURCES = [
-  /** The announcement bar above the header. */
+  /** The announcement bar above the header, now removed: kept so clicks this browser saved from it still count. */
   'top_bar',
   /** The Contribute section of the home page. */
   'landing_block',

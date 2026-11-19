@@ -53,7 +53,11 @@ export const InsightTicker: FC<{ insight?: Insight }> = ({ insight }) => {
         <span className="min-w-0 truncate [&_a]:font-medium [&_a]:no-underline">
           <InsightText insight={insight} />
         </span>
-        <Link href={`/insights/${insight.id}`} prefetch={false} className="shrink-0 text-link underline">
+        <Link
+          href={`/insights/${insight.id}`}
+          prefetch={false}
+          className="inline-flex shrink-0 items-center text-link underline max-sm:min-h-11"
+        >
           Details
         </Link>
       </Container>

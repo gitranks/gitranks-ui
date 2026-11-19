@@ -11,7 +11,6 @@ import { ContributeClickTracker } from '@/components/contribute-click-tracker/co
 import { DailyUpdatesVisit } from '@/components/daily-updates-visit/daily-updates-visit';
 import { Footer } from '@/components/footer/footer';
 import { JsonLd } from '@/components/json-ld/json-ld';
-import { LaunchBar, LaunchBarScript } from '@/components/launch-bar/launch-bar';
 import { NavigationProgress } from '@/components/navigation-progress/navigation-progress';
 import { SessionProvider } from '@/components/session-provider/session-provider';
 import { ThemeProvider } from '@/components/theme-provider/theme-provider';
@@ -60,7 +59,6 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         <BrowserCheck />
-        <LaunchBarScript />
         {/* In the head, not the body: tools that copy the page's text (directory listings, readers) then leave it out. */}
         <JsonLd payloads={buildSiteJsonLd()} />
         <link rel="preconnect" href="https://avatars.githubusercontent.com" crossOrigin="anonymous" />
@@ -78,8 +76,6 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
                 <DailyUpdatesVisit />
               </Suspense>
               <div className="flex flex-col min-h-screen">
-                {/* The announcement above every page's header. The same HTML for everyone: the browser picks the bar. */}
-                <LaunchBar />
                 {/* No Suspense around the page: React streams a large finished boundary into a hidden
                     segment after the footer, and a fallback here would also turn every notFound()
                     into a 200. Routes that need a fallback add their own boundary. */}

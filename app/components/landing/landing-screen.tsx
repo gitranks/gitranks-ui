@@ -35,12 +35,6 @@ import type { CountryQuery, CountrySummaryQuery, LanguageSummaryQuery } from '@/
 
 const EXAMPLE_COUNT = 3;
 
-/**
- * The latest social post, in a strip under the header. Off while Contribute's launch bar runs above the header
- * (components/launch-bar): set to `true` to bring it back.
- */
-const SHOW_LATEST_POST_STRIP = false;
-
 /** What the landing shows, as its cached reads return it (see `landing-data.ts`). */
 export type LandingData = {
   insights: Awaited<ReturnType<typeof fetchLandingInsights>>;
@@ -140,7 +134,7 @@ export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
   return (
     <>
       <Header />
-      {SHOW_LATEST_POST_STRIP && <InsightTicker insight={insights[0]} />}
+      <InsightTicker insight={insights[0]} />
       <main>
         <Hero developersRanked={developersRanked} examples={examples} stats={stats} />
         <Container>

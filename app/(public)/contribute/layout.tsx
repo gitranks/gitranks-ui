@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import { Header } from '@/components/header/header';
-import { LaunchBarSeen } from '@/components/launch-bar/launch-bar-dismiss';
 import { HeaderLine } from '@/components/workspace/header-line';
 
 export const metadata: Metadata = {
@@ -17,7 +16,6 @@ export const metadata: Metadata = {
 export default function ContributePublicLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <LaunchBarSeen />
       <Header section="contribute" />
       <HeaderLine />
       {children}

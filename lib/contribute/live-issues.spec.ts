@@ -1,16 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { issue } from './__fixtures__/contribute-overview';
-import {
-  createLiveFeed,
-  FILL_READS_MAX,
-  LIVE_EXIT_AFTER_MS,
-  LIVE_LEAVE_MS,
-  type LiveFeedOptions,
-  skipOutcomeOf,
-} from './live-issues';
+import { createLiveFeed, FILL_READS_MAX, LIVE_EXIT_AFTER_MS, LIVE_LEAVE_MS, type LiveFeedOptions } from './live-issues';
 import type { ContributeIssue, ContributeIssuePage, ContributeIssueStatus } from '@/lib/workspace/contribute.types';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
+import { skipOutcomeOf } from '@/lib/workspace/issue-row';
 
 type StatusRead = ContributeActionResult<ContributeIssueStatus[] | null>;
 

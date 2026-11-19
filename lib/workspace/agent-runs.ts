@@ -79,32 +79,6 @@ const SETTLED_TEXT: Record<SettledPhase, string> = {
 export const phaseTextOf = (run: Pick<ContributeAgentRun, 'phase' | 'label'>) =>
   isSettled(run) ? SETTLED_TEXT[run.phase as SettledPhase] : run.label;
 
-/** The steps a run walks, and the one it is on (0-based; past the last once it is done). */
-export function stepsOf(run: Pick<ContributeAgentRun, 'phase' | 'kind'>): { steps: string[]; at: number } {
-  const followUp = run.kind === 'FOLLOW_UP';
-  const steps = followUp
-    ? ['Queued', 'Addressing review', 'Checks', 'Ready', 'Pushed']
-    : ['Queued', 'Checking the issue', 'Working', 'Checks', 'Ready'];
-  const order: Partial<Record<ContributeAgentRunPhase, number>> = followUp
-    ? { QUEUED: 0, ADDRESSING_REVIEW: 1, RUNNING_CHECKS: 2, WAITING_FOR_YOU: 3, READY: 3, SUBMITTING: 4, DONE: 5 }
-    : {
-        QUEUED: 0,
-        CHECKING_ISSUE: 1,
-        WORKING: 2,
-        RUNNING_CHECKS: 3,
-        WAITING_FOR_YOU: 4,
-        READY: 4,
-        // Submitting comes after the review: the last step stays lit until the PR opens.
-        SUBMITTING: 4,
-        DONE: 5,
-      };
-  // A Learn run writes its lesson after the work: the step shows while it does (a run does not say its side).
-  if (!followUp && run.phase === 'WRITING_LESSON') {
-    return { steps: [...steps.slice(0, 3), 'Writing your lesson', ...steps.slice(3)], at: 3 };
-  }
-  return { steps, at: order[run.phase] ?? 0 };
-}
-
 /** `42 s`, `12 min`, `1 h 05 min`. */
 export function durationLabel(seconds: number): string {
   const total = Math.max(0, Math.round(seconds));

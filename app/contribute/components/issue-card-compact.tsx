@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 
-import { GONE, IssueLiveStatus, isGone } from './issue-live-status';
 import { Pill } from '@/components/pill/pill';
+import { GONE, IssueLiveStatus, isGone } from '@/components/workspace/issue-live-status';
 import type { LiveStatus } from '@/lib/contribute/live-issues';
 import { cn } from '@/lib/utils';
 import { githubUrlOf } from '@/lib/workspace/attempt-format';

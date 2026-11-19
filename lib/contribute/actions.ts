@@ -17,7 +17,6 @@ import {
   SetContributeFallbackDocument,
   SetContributeModeDocument,
   SetPreferencesDocument,
-  SkipIssueDocument,
   UnignoreContributeRepoDocument,
 } from '@/lib/workspace/contribute.documents';
 import type {
@@ -48,10 +47,6 @@ export async function savePreferences(
   preferences: ContributePreferencesInput,
 ): Promise<ContributeActionResult<ContributePreferences>> {
   return run(SetPreferencesDocument, { preferences }, (data) => data.setPreferences);
-}
-
-export async function skipIssue(issueId: string): Promise<ContributeActionResult<boolean>> {
-  return run(SkipIssueDocument, { issueId: String(issueId) }, (data) => data.skipIssue);
 }
 
 /**

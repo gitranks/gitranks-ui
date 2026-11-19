@@ -42,6 +42,7 @@ vi.mock('next-auth/react', () => ({ signIn, signOut: vi.fn(), useSession: () => 
 vi.mock('@/components/signin-button/signin-button', () => ({ default: () => <span data-avatar-menu /> }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/issue-actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => data);
 vi.mock('@/lib/contribute/contribute.data', () => data);
 vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));

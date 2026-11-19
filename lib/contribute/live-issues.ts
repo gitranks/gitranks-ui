@@ -4,7 +4,7 @@ import type {
   ContributeIssuePage,
   ContributeIssueStatus,
 } from '@/lib/workspace/contribute.types';
-import { type ContributeActionResult, contributeErrorMessage } from '@/lib/workspace/errors';
+import type { ContributeActionResult } from '@/lib/workspace/errors';
 
 /** A page of the feed, as the Issues list reads it. */
 export const ISSUES_PAGE_SIZE = 20;
@@ -293,16 +293,4 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
       timers.clear();
     },
   };
-}
-
-/**
- * What a Skip's answer does to its card: skipped; taken meanwhile (no error to show, the card turns taken and leaves);
- * or failed, with the message its dialog shows.
- */
-export function skipOutcomeOf(
-  result: ContributeActionResult<boolean>,
-): { kind: 'skipped' } | { kind: 'taken' } | { kind: 'failed'; message: string } {
-  if (result.ok) return { kind: 'skipped' };
-  if (result.error === 'ISSUE_TAKEN') return { kind: 'taken' };
-  return { kind: 'failed', message: contributeErrorMessage(result.error, result.message) };
 }

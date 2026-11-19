@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { type RefObject, useLayoutEffect } from 'react';
 
-import type { LiveStatus } from '@/lib/contribute/live-issues';
+import type { ContributeIssueStatusValue as LiveStatus } from '@/lib/workspace/contribute.types';
 import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 /** What a list row knows of its issue as it is now, and what it tells the list. */
@@ -24,7 +24,7 @@ export const GONE = 'opacity-60';
 
 /**
  * The card's status line, once the issue is no longer free: "Taken by another contributor", or "Your agent is on this
- * · View" with the user's attempt. Not a live region (the list has one); the focus moves here when the card's
+ * · See the run" with the user's attempt. Not a live region (the list has one); the focus moves here when the card's
  * controls turn off under it.
  */
 export function IssueLiveStatus({
@@ -56,7 +56,7 @@ export function IssueLiveStatus({
                 prefetch={false}
                 className="font-semibold text-link hover:underline"
               >
-                View
+                See the run
               </Link>
             </>
           ) : null}

@@ -1164,6 +1164,8 @@ export type ContributeAgentRun = {
   runner: ContributeAttemptRunner;
   state: ContributeAttemptState;
   phase: ContributeAgentRunPhase;
+  /** The run's side (a follow-up's is its first attempt's); null from an API that does not say it yet. */
+  mode?: ContributeAttemptMode | null;
   /** One plain line, e.g. "Running checks", "Queued, 2nd in line". */
   label: string;
   /** An agent works on it now; false while it waits (queued, the autopilot's hour) or settled. */

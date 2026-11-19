@@ -35,7 +35,8 @@ export function ConfirmDialog({
   onCloseAutoFocus,
   actionVariant = 'destructive',
 }: {
-  trigger: ReactElement;
+  /** The button that opens it; none when something else opens it (a menu's item), which then takes the focus back. */
+  trigger?: ReactElement;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -56,7 +57,7 @@ export function ConfirmDialog({
 }) {
   return (
     <AlertDialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+      {trigger ? <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger> : null}
       <AlertDialogContent onCloseAutoFocus={onCloseAutoFocus}>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>

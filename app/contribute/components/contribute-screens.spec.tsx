@@ -10,6 +10,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
+vi.mock('@/lib/workspace/issue-actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 
@@ -674,13 +675,13 @@ describe('issues taken while the page is open', () => {
   it("say the user's own agent is on it, with the way to its attempt, and nothing to click on the issue", () => {
     const html = card('CLAIMED_BY_YOU', 'A_9');
 
-    expect(text(html)).toContain('Your agent is on this · View');
+    expect(text(html)).toContain('Your agent is on this · See the run');
     expect(html).toContain('data-live-status="yours"');
-    expect(html).toMatch(/<a [^>]*href="\/my\/pull-requests\/by-attempt\/A_9"[^>]*>View<\/a>/);
+    expect(html).toMatch(/<a [^>]*href="\/my\/pull-requests\/by-attempt\/A_9"[^>]*>See the run<\/a>/);
     expect(html).toMatch(/<button[^>]*disabled=""/);
     expect(html).not.toContain('href="https://github.com/fern-lang/fern/issues/2481"');
     expect(text(card('CLAIMED_BY_YOU'))).toContain('Your agent is on this');
-    expect(card('CLAIMED_BY_YOU')).not.toContain('View');
+    expect(card('CLAIMED_BY_YOU')).not.toContain('See the run');
   });
 
   it('show a taken row at once, fold it away after the moment, then leave it out of the list', async () => {

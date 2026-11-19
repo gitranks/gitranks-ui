@@ -16,10 +16,10 @@ import {
 
 import { IssueCard } from './issue-card';
 import { IssueCardCompact } from './issue-card-compact';
-import type { IssueLive } from './issue-live-status';
-import { isGone, useFocusOnGone } from './issue-live-status';
 import { type IssuesQuery, issuesHref } from './issues-filter';
 import { OtherIssuesDivider, SetIssuesHeading } from './issues-mode';
+import type { IssueLive } from '@/components/workspace/issue-live-status';
+import { isGone, useFocusOnGone } from '@/components/workspace/issue-live-status';
 import { readIssueStatuses, readIssuesPage } from '@/lib/contribute/actions';
 import {
   createLiveFeed,

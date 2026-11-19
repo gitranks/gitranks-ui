@@ -114,7 +114,8 @@ describe('B1, your own agent', () => {
     expect(html).toMatch(/aria-pressed="true"[^>]*>Claude Code</);
     expect(plain).toContain("It can't open a pull request or spend anything");
     expect(plain).toContain('Create a GitRanks token');
-    expect(plain).toContain('We name it “Claude Code on macOS”');
+    expect(html).toMatch(/data-token-name=""[^>]*>.*Token name.*value="Claude Code on macOS"/);
+    expect(plain).toContain('We list it on the Agent tab by this name.');
     expect(plain).toContain('Creating a token never revokes the others: up to 5 stay live');
     expect(plain).toContain('Comes next, once GitRanks is added to Claude Code');
     expect(html).not.toContain('data-token-ready');

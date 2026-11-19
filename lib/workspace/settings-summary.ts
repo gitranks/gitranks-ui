@@ -1,4 +1,4 @@
-import { attemptsCapNoteOf } from './access-limits';
+import { attemptsCapNoteOf, effectiveSettingOf } from './access-limits';
 import type {
   ContributeCredential,
   ContributeGrant,
@@ -7,7 +7,7 @@ import type {
   ContributeSettings,
   ContributeSpend,
 } from './contribute.types';
-import { dayLabel, EFFORTS, MODELS, maskedKey, ordinalDay, SIZES, usd } from './format';
+import { dayLabel, EFFORTS, MODELS, maskedKey, ordinalDay, plural, SIZES, usd } from './format';
 
 /** What we say of the Claude key's state, after its last 4. */
 export const KEY_STATES: Record<ContributeCredential['state'], string> = {
@@ -45,6 +45,14 @@ export const budgetSummaryOf = (
 /** The Model and effort row: "Claude Sonnet 5.5, medium effort". */
 export const modelSummaryOf = (settings: ContributeSettings) =>
   `${MODELS[settings.mainModel]}, ${EFFORTS[settings.effort].toLowerCase()} effort`;
+
+/** The pull request limits: "PRs up to 400 lines, 15 files · 3 open at a time" (what holds now, a cap included). */
+export const prLimitsSummaryOf = (settings: ContributeSettings, limits?: ContributeLimits | null) =>
+  `PRs up to ${settings.maxChangedLines.toLocaleString('en-US')} lines, ${plural(settings.maxFiles, 'file')} · ${effectiveSettingOf(settings, limits, 'openPrsAtATime')} open at a time`;
+
+/** "1 at a time", with the access level's cap when it holds below the setting. */
+export const attemptsSummaryOf = (settings: ContributeSettings, limits?: ContributeLimits | null) =>
+  attemptsCapNoteOf(settings, limits) ?? `${settings.attemptsAtATime} at a time`;
 
 /** "…a1b2 · works", or "Not connected". */
 export const keySummaryOf = (credential: ContributeCredential | undefined) =>

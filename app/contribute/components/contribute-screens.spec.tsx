@@ -944,7 +944,9 @@ describe('the access level', () => {
     expect(text(renderToStaticMarkup(<AgentScreen view={views.followThrough} now={NOW} />))).toContain(
       'up to $5 an attempt · 1 at a time (limit for now)',
     );
-    expect(text(renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />))).not.toContain('at a time');
+    expect(text(renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />))).not.toContain(
+      'an attempt · 1 at a time',
+    );
   });
 
   it('caps attempts and open PRs at a time on their pages, with the hint tied to the field', () => {

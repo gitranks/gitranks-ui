@@ -200,10 +200,15 @@ export function runsQueryOf(params: Params): RunsQuery {
   };
 }
 
-/** The page number the URL asks for (`?page=3`); 1 for none or anything that is not one. */
+/** The most runs the API skips for a numbered page: a page past it is never asked for. */
+export const RUNS_OFFSET_MAX = 10_000;
+/** The last page the history can ask for. */
+export const RUNS_PAGE_MAX = Math.floor(RUNS_OFFSET_MAX / RUNS_PAGE_SIZE) + 1;
+
+/** The page number the URL asks for (`?page=3`), at most `RUNS_PAGE_MAX`; 1 for none or anything that is not one. */
 export function runsPageOf(params: Params): number {
   const page = Number(one(params.page));
-  return Number.isInteger(page) && page > 1 ? page : 1;
+  return Number.isInteger(page) && page > 1 ? Math.min(page, RUNS_PAGE_MAX) : 1;
 }
 
 /**
@@ -394,10 +399,13 @@ export function runDaysOf(runs: ContributeRun[]): RunDay[] {
   return days;
 }
 
-/** `25 runs · $2.28 · 4 PRs`: a day row's sums, over every run of the day the filter matches. */
-export function daySumLabel(day: ContributeRunsDay | undefined, usd: (amount: number) => string): string {
+/**
+ * `25 runs · $2.28 · 4 PRs`: a day row's sums, over every run of the day the filter matches. `usd` null leaves the
+ * money out (a learner's own agent spends nothing through us).
+ */
+export function daySumLabel(day: ContributeRunsDay | undefined, usd: ((amount: number) => string) | null): string {
   if (!day) return '';
-  const parts = [`${day.runs} run${day.runs === 1 ? '' : 's'}`, usd(day.costUsd)];
+  const parts = [`${day.runs} run${day.runs === 1 ? '' : 's'}`, ...(usd ? [usd(day.costUsd)] : [])];
   if (day.prs) parts.push(`${day.prs} PR${day.prs === 1 ? '' : 's'}`);
   return parts.join(' · ');
 }

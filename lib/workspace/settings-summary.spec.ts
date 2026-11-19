@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { movedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './paths';
-import { budgetSummaryOf, modelSummaryOf } from './settings-summary';
+import { attemptsSummaryOf, budgetSummaryOf, modelSummaryOf, prLimitsSummaryOf } from './settings-summary';
 import { resolve, smallReposSet, stackSet } from '@/lib/contribute/__fixtures__/contribute-sets';
 import { contributor, limits, settings } from '@/lib/contribute/__fixtures__/contribute-views';
 import { modeChipOf, stackPendingOf } from '@/lib/contribute/set-format';
@@ -29,6 +29,11 @@ describe('the Settings summary', () => {
       '· 1 at a time (new-account limit)',
     );
     expect(modelSummaryOf(settings)).toBe('Claude Sonnet 5.5, medium effort');
+    expect(prLimitsSummaryOf(settings, limits.standard)).toBe('PRs up to 400 lines, 15 files · 3 open at a time');
+    expect(attemptsSummaryOf(settings, limits.standard)).toBe('1 at a time');
+    expect(attemptsSummaryOf({ ...settings, attemptsAtATime: 3 }, limits.newAccount)).toBe(
+      '1 at a time (new-account limit)',
+    );
   });
 });
 

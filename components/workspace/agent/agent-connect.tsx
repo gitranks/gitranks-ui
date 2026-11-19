@@ -8,6 +8,7 @@ import { flushSync } from 'react-dom';
 import { MakeNewToken, REPLACE_NOTE, TokenReady } from './token-ready';
 import { reportContributeConnect } from '@/components/contribute-click-tracker/contribute-click-tracker';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { CodeBlock } from '@/components/workspace/code-block';
 import { HEADING } from '@/components/workspace/primitives';
 import { useOnboardedPush } from '@/components/workspace/use-onboarded-push';
@@ -28,6 +29,7 @@ import {
   ANTIGRAVITY_RELOAD,
   MCP_CLIENT_NAMES,
   MCP_CLIENTS,
+  MCP_TOKEN_NAME_MAX,
   MCP_TOKENS_MAX,
   type McpClient,
   type McpOs,
@@ -108,6 +110,9 @@ export type AgentConnectViewProps = {
   keyLink?: boolean;
   /** Once the agent says hello the page stays, with the next step: the account was in the workspace already. */
   stay?: boolean;
+  /** The name the next token gets; the client and the OS until the user writes another. */
+  tokenName?: string;
+  onTokenName?: (name: string) => void;
 };
 
 /** The proof the page was reached for: its contribution, its prompt and its pull request's number. */
@@ -148,7 +153,10 @@ export function AgentConnectView({
   learnOpen = false,
   keyLink = true,
   stay = false,
+  tokenName,
+  onTokenName = () => {},
 }: AgentConnectViewProps) {
+  const tokenNameValue = tokenName ?? mcpTokenNameOf(client, os);
   const id = useId();
   const name = MCP_CLIENT_NAMES[client];
   const added = stage === 'added' || connected;
@@ -193,6 +201,21 @@ export function AgentConnectView({
         VS Code or another agent? The MCP docs →
       </Link>
     </>
+  );
+
+  // The token's name, as the Agent tab lists it: the client and the OS until the user writes their own.
+  const nameField = (
+    <label htmlFor={`${id}-token-name`} className="flex w-full max-w-sm flex-col gap-1 text-sm" data-token-name="">
+      <span className="font-medium">Token name</span>
+      <Input
+        id={`${id}-token-name`}
+        value={tokenNameValue}
+        onChange={(event) => onTokenName(event.target.value)}
+        maxLength={MCP_TOKEN_NAME_MAX}
+        disabled={working}
+        className="h-10 rounded-lg text-sm"
+      />
+    </label>
   );
 
   const connectBody = unavailable ? (
@@ -283,6 +306,7 @@ export function AgentConnectView({
           {USE_A_TOKEN_INSTEAD}
         </summary>
         <div className="mt-2 flex flex-col items-start gap-3">
+          {full ? null : nameField}
           <Button type="button" variant="outline" onClick={onCreate} disabled={working || full} className={plainButton}>
             {working ? 'Creating…' : 'Create a GitRanks token'}
           </Button>
@@ -297,8 +321,8 @@ export function AgentConnectView({
               </>
             ) : (
               <>
-                We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and show its setup here. For clients that
-                can&apos;t sign in, and for scripts.
+                We show its setup here, and list it on the Agent tab by this name. For clients that can&apos;t sign in,
+                and for scripts.
               </>
             )}
           </span>
@@ -312,6 +336,7 @@ export function AgentConnectView({
         sees your contributions. It can&apos;t open a pull request or spend anything, and you can revoke it on the Agent
         tab.
       </p>
+      {full ? null : nameField}
       <Button
         type="button"
         size="lg"
@@ -323,7 +348,7 @@ export function AgentConnectView({
       </Button>
       <span className="text-xs text-muted-foreground">
         {revokedOnly ? (
-          <>We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it on the Agent tab.</>
+          <>We list it on the Agent tab by this name.</>
         ) : full ? (
           <>
             You have {MCP_TOKENS_MAX} live tokens.{' '}
@@ -334,8 +359,8 @@ export function AgentConnectView({
           </>
         ) : (
           <>
-            We name it &ldquo;{mcpTokenNameOf(client, os)}&rdquo; and list it on the Agent tab. Creating a token never
-            revokes the others: up to {MCP_TOKENS_MAX} stay live.
+            We list it on the Agent tab by this name. Creating a token never revokes the others: up to {MCP_TOKENS_MAX}{' '}
+            stay live.
           </>
         )}
       </span>
@@ -583,6 +608,9 @@ export function AgentConnect({
   const [client, setClient] = useState<McpClient>('claude-code');
   const [os, setOs] = useState<McpOs>('mac');
   const [detectedOs, setDetectedOs] = useState<McpOs | null>(null);
+  // A name the user wrote for the next token; the client and the OS until they do.
+  const [customName, setCustomName] = useState<string | null>(null);
+  const tokenName = customName?.trim() ? customName : mcpTokenNameOf(client, os);
   const [shown, setShown] = useState<{ token: string; id: string } | null>(null);
   // The token made here, by its id alone: watched still once the token itself is off the page.
   const [madeId, setMadeId] = useState<string | null>(null);
@@ -678,7 +706,7 @@ export function AgentConnect({
   const create = () =>
     startTransition(async () => {
       setError(null);
-      const result = await createMcpToken(mcpTokenNameOf(client, os));
+      const result = await createMcpToken(tokenName.trim());
       if (!result.ok) {
         setError(contributeErrorMessage(result.error, result.message));
         return;
@@ -696,7 +724,7 @@ export function AgentConnect({
     if (!current) return;
     startTransition(async () => {
       setError(null);
-      const result = await replaceToken(current, mcpTokenNameOf(client, os), {
+      const result = await replaceToken(current, tokenName.trim(), {
         revoke: revokeMcpToken,
         create: createMcpToken,
       });
@@ -762,6 +790,8 @@ export function AgentConnect({
       learnOpen={learnOpen}
       keyLink={keyLink}
       stay={onboarded && !proof}
+      tokenName={customName ?? tokenName}
+      onTokenName={setCustomName}
     />
   );
 }

@@ -74,7 +74,16 @@ export async function RunsView({
  * Why the agents said no-go: every no-go under the repo, runner and dates by category, whatever is picked; each part a
  * link that filters the list to it, and picked, back to every no-go.
  */
-function NoGoBreakdown({ totals, query }: { totals: ContributeRunsTotals; query: RunsQuery }) {
+function NoGoBreakdown({
+  totals,
+  query,
+  learner,
+}: {
+  totals: ContributeRunsTotals;
+  query: RunsQuery;
+  /** No no-go rate for a learner. */
+  learner: boolean;
+}) {
   const parts = totals.noGoByCategory;
   if (!parts.length && !totals.noGo) return null;
   const sum = parts.reduce((all, { count }) => all + count, 0);
@@ -91,7 +100,7 @@ function NoGoBreakdown({ totals, query }: { totals: ContributeRunsTotals; query:
           Why agents said no-go, or ran out
         </h2>
         <span className="text-xs text-muted-foreground">
-          {!query.outcome && !query.reason ? (
+          {!learner && !query.outcome && !query.reason ? (
             <span className="lg:hidden">{percentLabel(totals.noGo, totals.started)} of started runs · </span>
           ) : null}
           {sum ? `${sum} no-go${sum === 1 ? '' : 's'} · pick one to filter` : `${totals.noGo} no-gos`}
@@ -220,7 +229,7 @@ export function RunsScreen({
     history = (
       <>
         <RunsTiles totals={page.totals} variant="history" learner={learner} />
-        <NoGoBreakdown totals={page.totals} query={query} />
+        <NoGoBreakdown totals={page.totals} query={query} learner={learner} />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <OutcomeChips page={page} query={query} />
           <RunsFilters query={query} repos={page.repos} />

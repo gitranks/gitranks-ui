@@ -266,7 +266,7 @@ describe('the questions', () => {
     expect(said).toContain('How does my own agent connect?');
     expect(said).toContain('It signs in with your GitHub account.');
     expect(said).toContain("It can't open a pull request, push or post on GitHub");
-    expect(said).toContain('uses a personal token you make there');
+    expect(said).toContain('uses a personal token: make one under Connect another agent there');
     expect(said).not.toContain('revoke your tokens');
   });
 

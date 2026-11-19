@@ -152,5 +152,6 @@ describe('the runs by day (runDaysOf)', () => {
     expect(dayRowLabel('2026-10-12', NOW)).toBe('Mon, Oct 12');
     expect(daySumLabel({ day: '2026-10-31', runs: 25, costUsd: 2.28, prs: 4 }, usd)).toBe('25 runs · $2.28 · 4 PRs');
     expect(daySumLabel({ day: '2026-10-30', runs: 1, costUsd: 0.07, prs: 0 }, usd)).toBe('1 run · $0.07');
+    expect(daySumLabel({ day: '2026-10-31', runs: 3, costUsd: 0, prs: 1 }, null)).toBe('3 runs · 1 PR');
   });
 });

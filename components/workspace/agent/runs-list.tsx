@@ -298,7 +298,7 @@ export function RunsList({
               <tr className="border-t bg-muted/60">
                 <th colSpan={columns} scope="rowgroup" className="py-2 pr-5 pl-5 text-left text-xs font-normal">
                   <span className="font-semibold text-foreground">{dayRowLabel(day.day, now)}</span>
-                  <span className="text-muted-foreground"> · {daySumLabel(sums.get(day.day), usd)}</span>
+                  <span className="text-muted-foreground"> · {daySumLabel(sums.get(day.day), cost ? usd : null)}</span>
                 </th>
               </tr>
               {day.lines.map((line) => (
@@ -318,7 +318,7 @@ export function RunsList({
           <div key={day.day} data-day={day.day} className="flex flex-col gap-2">
             <h3 className="flex justify-between gap-2 px-0.5 pt-2 text-xs font-normal text-muted-foreground">
               <span className="font-semibold text-foreground">{dayRowLabel(day.day, now)}</span>
-              <span>{daySumLabel(sums.get(day.day), usd)}</span>
+              <span>{daySumLabel(sums.get(day.day), cost ? usd : null)}</span>
             </h3>
             <ul className="flex flex-col gap-2">
               {day.lines.map((line) => (

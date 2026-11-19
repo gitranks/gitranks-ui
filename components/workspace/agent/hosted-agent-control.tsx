@@ -8,13 +8,20 @@ import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, isPaused, settingsOf } from '@/lib/workspace/contribute-state';
 import { relativeLabel } from '@/lib/workspace/format';
 
-/** Where new hosted attempts stand: paused by the user, active on a working key, or waiting on the key. */
+/**
+ * Where new attempts stand: paused by the user (both agents stop), waiting on a key that stopped working, active with
+ * the hosted agent's next attempt, or active for the user's own agent alone.
+ */
 export function hostedStatusOf(view: ContributeView, now?: Date) {
   const spend = view.contributor?.spend;
+  const key = claudeKeyOf(view);
   if (isPaused(view)) {
     return { label: 'Paused', tone: 'neutral' as const, text: 'No new attempt starts until you resume.' };
   }
-  if (claudeKeyOf(view)?.state !== 'VALID') {
+  if (!key) {
+    return { label: 'Active', tone: 'green' as const, text: 'Your agent can start new issues.' };
+  }
+  if (key.state !== 'VALID') {
     return { label: 'Waiting', tone: 'amber' as const, text: 'No new attempt starts until your key works again.' };
   }
   return {
@@ -30,8 +37,8 @@ export function hostedStatusOf(view: ContributeView, now?: Date) {
 
 /**
  * The slot for how much the hosted agent does by itself (W1 §9.3). Until the three levels fill it, it holds today's two
- * controls: the status line with Pause or Resume (`#pause`), and autopilot (`#autopilot`). Nothing without a
- * contributor.
+ * controls: the status line with Pause or Resume (`#pause`), and autopilot (`#autopilot`). Both act on the user's own
+ * agent too, so the tab draws it for every contributor, with a key or not. Nothing without a contributor.
  */
 export function HostedAgentControl({ view, now }: { view: ContributeView; now?: Date }) {
   const { contributor } = view;

@@ -107,14 +107,30 @@ export function SubTitle({ children, className }: { children: ReactNode; classNa
   return <h3 className={cn(HEADING.block, className)}>{children}</h3>;
 }
 
-/** A thin bar for spend against a cap. */
-export function Meter({ value, max, label }: { value: number; max: number; label: string }) {
+/**
+ * A thin bar for spend against a cap. `inline`: drawn with spans, for a place only phrasing content may go (a row's
+ * line inside its link), a little thinner.
+ */
+export function Meter({
+  value,
+  max,
+  label,
+  inline = false,
+  className,
+}: {
+  value: number;
+  max: number;
+  label: string;
+  inline?: boolean;
+  className?: string;
+}) {
   const percent = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
+  const Box = inline ? 'span' : 'div';
   return (
-    <div className="h-2 overflow-hidden rounded bg-muted">
+    <Box className={cn('block overflow-hidden rounded bg-muted', inline ? 'h-1.5' : 'h-2', className)}>
       <meter className="sr-only" aria-label={label} min={0} max={max} value={value} />
-      <div aria-hidden="true" className="h-full rounded bg-primary" style={{ width: `${percent}%` }} />
-    </div>
+      <Box aria-hidden="true" className="block h-full rounded bg-primary" style={{ width: `${percent}%` }} />
+    </Box>
   );
 }
 

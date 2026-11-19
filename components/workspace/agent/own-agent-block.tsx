@@ -17,6 +17,9 @@ import { dayLabel, relativeLabel } from '@/lib/workspace/format';
 import { isSignedInAgent } from '@/lib/workspace/oauth-consent';
 import { CONNECT_AGENT_PATH, MCP_DOCS_PATH } from '@/lib/workspace/paths';
 
+/** Said under the connections: the agent works on strangers' text. */
+export const OWN_AGENT_SAFETY = 'Your agent reads issue text written by strangers. Keep its permission prompts on.';
+
 /** A connection's line: its last call, then the token's last 4 or when the agent signed in. */
 export function connectionLineOf(token: ContributeMcpToken, now?: Date): string {
   const call = token.lastUsedAt ? `Last call ${relativeLabel(token.lastUsedAt, now)}` : 'No call yet';
@@ -171,6 +174,9 @@ export function OwnAgentBlock({
               The MCP docs: setup and tools for every agent →
             </Link>
           </div>
+          <p data-safety="" className="text-sm font-medium">
+            {OWN_AGENT_SAFETY}
+          </p>
         </>
       ) : (
         <div

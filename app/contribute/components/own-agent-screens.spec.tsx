@@ -20,7 +20,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadRepliesWaiting: vi.fn(),
 }));
 
-const { OwnAgentBlock } = await import('@/components/workspace/agent/own-agent-block');
+const { OwnAgentBlock, OWN_AGENT_SAFETY } = await import('@/components/workspace/agent/own-agent-block');
 const { AgentScreen } = await import('@/components/workspace/agent/agent-screen');
 const { OwnAgentConnectScreen, ConnectScreen } = await import('@/components/workspace/agent/connect-view');
 const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
@@ -84,6 +84,7 @@ describe('the Agent tab, your own agent', () => {
     expect(html).toMatch(/href="\/contribute\/mcp"[^>]*>The MCP docs: setup and tools for every agent →/);
     expect(plain).not.toContain('Create token');
     expect(html).not.toContain('data-setup=');
+    expect(plain).toContain(OWN_AGENT_SAFETY);
   });
 
   it('says no agent is connected, with Connect your agent, and when its read failed', () => {

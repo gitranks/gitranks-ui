@@ -7,8 +7,20 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
+const reads = vi.hoisted(() => ({
+  loadContribute: vi.fn(),
+  loadContributeActivity: vi.fn(async () => null),
+  loadContributeSetup: vi.fn(),
+  loadProviderInterests: vi.fn(async () => []),
+  loadLearnOpen: vi.fn(async () => true),
+  loadRuns: vi.fn(),
+}));
+vi.mock('@/lib/workspace/contribute.data', () => reads);
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: reads.loadLearnOpen }));
+vi.mock('@/lib/workspace/runs.data', () => ({ loadRuns: reads.loadRuns }));
 
 const { AgentScreen } = await import('./agent-screen');
+const { AgentView } = await import('./agent-view');
 const { agentTabViews, NOW, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { learnerPageOf, previewPageOf, pageOf, NO_GO, OWN_LEARN } = await import('@/lib/contribute/__fixtures__/runs');
 const { activityOf, WORKING } = await import('@/lib/contribute/__fixtures__/agent-runs');
@@ -61,7 +73,9 @@ describe('the Agent tab, both agents set up', () => {
     expect(plain).toContain('Pause contributing');
     expect(html).toContain('id="autopilot"');
     expect(plain).toContain('Claude API key …k3Qa · works Edit');
-    expect(plain).toContain('Model and effort Claude Sonnet 5.5, medium effort Edit');
+    expect(plain).toContain(
+      'Model and effort Claude Sonnet 5.5, medium effort · PRs up to 400 lines, 15 files · 3 open at a time Edit',
+    );
     expect(plain).toContain(
       'Budget and pacing $63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt Edit',
     );
@@ -122,7 +136,39 @@ describe('the Agent tab, by who uses it (W1 §9.4)', () => {
     expect(plain).toContain('What it costs');
     expect(html).toMatch(/href="\/my\/agent\/key"[^>]*>Use a Claude key/);
     expect(plain).not.toContain('Budget and pacing');
-    expect(html).not.toContain('id="pause"');
+  });
+
+  it('keeps Pause, Resume and autopilot for every contributor, with or without a key, at their old anchors', () => {
+    for (const view of [agentTabViews.ownOnly, agentTabViews.learner]) {
+      const { html, plain } = render({ view, runs: learnerPageOf() });
+      expect(html).toContain('id="pause"');
+      expect(html).toContain('id="autopilot"');
+      expect(plain).toContain('Pause and limits New attempts Active Your agent can start new issues.');
+      expect(plain).toContain('Pause contributing');
+    }
+    const paused = {
+      ...agentTabViews.ownOnly,
+      paused: true,
+      contributor: { ...agentTabViews.ownOnly.contributor, status: 'PAUSED' as const },
+    };
+    expect(render({ view: paused }).plain).toContain('Resume contributing');
+  });
+
+  it('links the pull request and attempts limits without a key while there are settings, and with one in the model row', () => {
+    const plan = {
+      ...agentTabViews.ownOnly,
+      contributor: { ...agentTabViews.both.contributor, credentials: [] },
+    };
+    const { html, plain } = render({ view: plan });
+    expect(plain).toContain('Pull requests PRs up to 400 lines, 15 files · 3 open at a time Edit');
+    expect(plain).toContain('Attempts at a time 1 at a time Edit');
+    expect(html).toContain('href="/my/agent/model#prs"');
+    expect(html).toContain('href="/my/agent/budget#more-limits"');
+    // Their own agent alone, with no settings: nothing to link.
+    expect(render({ view: agentTabViews.ownOnly }).html).not.toContain('href="/my/agent/model#prs"');
+    expect(render().plain).toContain(
+      'Model and effort Claude Sonnet 5.5, medium effort · PRs up to 400 lines, 15 files · 3 open at a time Edit',
+    );
   });
 
   it('closes the hosted agent to one line for a learner, opening its pitch in place, and shows no spend', () => {
@@ -185,5 +231,15 @@ describe('the Agent tab, by who uses it (W1 §9.4)', () => {
     expect(plain).toContain("The runs didn't load. Reload to try again.");
     expect(plain).toContain("Your connections didn't load. Reload to try again.");
     expect(html).toContain('id="pause"');
+  });
+});
+
+describe('AgentView', () => {
+  it('reads the latest five runs, all time, for the preview', async () => {
+    reads.loadContribute.mockResolvedValue(agentTabViews.both);
+    reads.loadRuns.mockResolvedValue(previewPageOf());
+    const html = renderToStaticMarkup(await AgentView());
+    expect(reads.loadRuns).toHaveBeenCalledWith({}, { size: 5 });
+    expect(html).toContain('data-runs-preview');
   });
 });

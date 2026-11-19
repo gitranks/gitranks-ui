@@ -5,16 +5,28 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/my/agent/runs',
   useSearchParams: () => new URLSearchParams(),
+  redirect: (to: string) => {
+    throw new Error(`NEXT_REDIRECT ${to}`);
+  },
 }));
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
-vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadContributeActivity: vi.fn() }));
-vi.mock('@/lib/workspace/runs.data', () => ({ loadRuns: vi.fn() }));
+const reads = vi.hoisted(() => ({
+  loadLearnOpen: vi.fn(async () => false),
+  loadContribute: vi.fn(),
+  loadContributeActivity: vi.fn(async () => null),
+  loadRuns: vi.fn(),
+}));
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: reads.loadLearnOpen }));
+vi.mock('@/lib/workspace/contribute.data', () => ({
+  loadContribute: reads.loadContribute,
+  loadContributeActivity: reads.loadContributeActivity,
+}));
+vi.mock('@/lib/workspace/runs.data', () => ({ loadRuns: reads.loadRuns }));
 
-const { RunsScreen } = await import('./runs-view');
+const { RunsScreen, RunsView } = await import('./runs-view');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { activityOf, WORKING } = await import('@/lib/contribute/__fixtures__/agent-runs');
 const { learnerPageOf, pageOf } = await import('@/lib/contribute/__fixtures__/runs');
-const { runsHref, runsPageOf, runsQueryOf } = await import('@/lib/workspace/runs');
+const { RUNS_PAGE_MAX, runsHref, runsPageOf, runsQueryOf } = await import('@/lib/workspace/runs');
 
 const NOW = new Date('2026-10-31T23:20:00.000Z');
 const text = (html: string) =>
@@ -59,6 +71,9 @@ describe('Runs', () => {
     expect(runsPageOf({ page: '3' })).toBe(3);
     expect(runsPageOf({ page: '0' })).toBe(1);
     expect(runsPageOf({ page: 'x' })).toBe(1);
+    // Past the most runs the API skips, the last page it can read.
+    expect(RUNS_PAGE_MAX).toBe(501);
+    expect(runsPageOf({ page: '9999' })).toBe(501);
     expect(runsHref(query, 1)).toBe('/my/agent/runs?outcome=no_go&repo=can1357%2Foh-my-pi');
     // Everything on one page: no pages.
     expect(render({ page: pageOf({ totals: { ...pageOf().totals, runs: 20 } }) })).not.toContain('data-pagination');
@@ -79,6 +94,8 @@ describe('Runs', () => {
     expect(page).toContain('Lessons written 7 5 passed by you');
     expect(page).not.toContain('Spent');
     expect(page).not.toContain('No-go rate');
+    expect(page).not.toMatch(/\$\d/);
+    expect(page).not.toContain('of started runs');
     expect(html).not.toMatch(/>Cost<\/th>/);
     expect(page).toContain('Your own agent · Claude Code');
     expect(page).toMatch(/tidewave\/tide Issue #958 .* Learn /);
@@ -132,5 +149,22 @@ describe('Runs', () => {
       'No runs in the last 30 days',
     );
     expect(text(render({ page: undefined }))).toContain('Your runs are not available right now');
+  });
+});
+
+describe('RunsView', () => {
+  it('reads the page the address asks for, and sends a page past the end to the last, the filters kept', async () => {
+    reads.loadContribute.mockResolvedValue(views.active);
+    reads.loadRuns.mockResolvedValue(pageOf({ items: [], days: [], totals: { ...pageOf().totals, runs: 46 } }));
+    const searchParams = Promise.resolve({ outcome: 'no_go', page: '9' });
+    await expect(RunsView({ searchParams })).rejects.toThrow('NEXT_REDIRECT /my/agent/runs?outcome=no_go&page=3');
+    expect(reads.loadRuns).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'NO_GO' }), { page: 9 });
+  });
+
+  it('draws the page it asked for when it has runs', async () => {
+    reads.loadContribute.mockResolvedValue(views.active);
+    reads.loadRuns.mockResolvedValue(pageOf({ totals: { ...pageOf().totals, runs: 46 } }));
+    const html = renderToStaticMarkup(await RunsView({ searchParams: Promise.resolve({ page: '2' }) }));
+    expect(text(html)).toContain('21–40 of 46 runs');
   });
 });

@@ -224,8 +224,8 @@ const REFRESHED_BY: [test: (path: string) => boolean, areas: ContributeChangeAre
   // The first-run guide shows on the Issues page too, and says when the first attempt starts.
   [(path) => path === '/contribute' || path === '/contribute/issues', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
   [(path) => path === '/learn', ['ATTEMPTS', 'SETTINGS']],
-  // The user's lessons, and a lesson's own page while it waits on the agent.
-  [(path) => path === '/learn/lessons' || path.startsWith('/learn/attempts/'), ['ATTEMPTS']],
+  // The user's lessons.
+  [(path) => path === '/learn/lessons', ['ATTEMPTS']],
   [(path) => under(path, '/my/pull-requests'), ['ATTEMPTS']],
   // Not the Start page: it asks about its issue itself, on `ATTEMPTS` (a page read would read GitHub again).
   [(path) => path === '/my/progress', ['ATTEMPTS']],

@@ -41,4 +41,6 @@ export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
   // page by repo and issue, the query kept (`?resume=`, `?move=`, `?session=next`).
   to('/contribute/attempts/:id/runs/:runId', '/my/pull-requests/by-attempt/:runId'),
   to('/contribute/attempts/:id', '/my/pull-requests/by-attempt/:id'),
+  // A lesson's page: the address by attempt opens the view its stage names, the query kept.
+  to('/learn/attempts/:id', '/my/pull-requests/by-attempt/:id'),
 ];

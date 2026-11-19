@@ -14,35 +14,6 @@ import { cleanSequence } from './sequence-layout';
 /** What a new account reads while GitRanks sets up its account, before Learn can answer for it. */
 export const LEARN_SETTING_UP_TEXT = 'Setting up your GitRanks account. This takes about a minute.';
 
-/** Where a stage of the strip is: done, the one now, or still to come. */
-export type StageMark = 'done' | 'now' | 'next';
-
-/** The three stages of a Learn attempt: the agent's fix, the lesson, the approval. */
-export const STAGES = [
-  { key: 'fix', where: '1 · In your terminal', title: 'Your agent fixes the issue' },
-  { key: 'lesson', where: '2 · Here, about 10 minutes', title: 'You take the lesson' },
-  { key: 'approve', where: '3 · Here', title: 'You approve the pull request' },
-] as const;
-
-/** Each stage's mark at a Learn stage; null where the strip is not shown (a hand-opened pull request, an end). */
-export function stageMarksOf(stage: LearnStage): [StageMark, StageMark, StageMark] | null {
-  switch (stage) {
-    case 'AGENT_WORKING':
-    case 'AGENT_REWRITING':
-      return ['now', 'next', 'next'];
-    case 'WARMUP':
-    case 'LESSON':
-    case 'BLOCKED':
-      return ['done', 'now', 'next'];
-    case 'READY_TO_APPROVE':
-      return ['done', 'done', 'now'];
-    case 'PR_OPEN':
-      return ['done', 'done', 'done'];
-    default:
-      return null;
-  }
-}
-
 /** The stages where the lesson's steps are shown in the rail. */
 export const showsSteps = (stage: LearnStage) =>
   stage !== 'AGENT_WORKING' && stage !== 'AGENT_REWRITING' && stage !== 'ENDED';

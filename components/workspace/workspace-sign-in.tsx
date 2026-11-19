@@ -18,7 +18,7 @@ const COPY = {
 };
 
 /**
- * A workspace page for a visitor without a session: a contribution's or a lesson's page (`isAttemptPagePath`), the
+ * A workspace page for a visitor without a session: a pull request's or a lesson's page, the
  * link an agent hands its person, and every page under `/my`, which emails and agents link; often opened in another
  * browser. The GitHub sign-in, back to this very address with its query and hash; then the page shows the user's own,
  * and a 404 to anyone it is not open to.

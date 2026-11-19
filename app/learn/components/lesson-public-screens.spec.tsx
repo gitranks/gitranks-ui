@@ -285,7 +285,7 @@ describe('a practice lesson', () => {
     const html = passed(practiceNext.back);
     expect(html).toContain('data-next-step="back"');
     expect(text(html)).toContain('Back to your lesson');
-    expect(html).toContain('href="/learn/attempts/A_1"');
+    expect(html).toContain('href="/my/pull-requests/by-attempt/A_1"');
     expect(html).not.toContain('data-learn-issue');
   });
 

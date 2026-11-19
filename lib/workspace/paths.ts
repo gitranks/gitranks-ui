@@ -153,15 +153,6 @@ export const ABOUT_PATH = '/contribute?about=1' as Route;
 export const CONTRIBUTE_TERMS_PATH = '/terms#contribute' as Route;
 
 /**
- * Whether the path is a lesson's own page (`/learn/attempts/<id>`), in any spelling the router reads as it: the review
- * link an agent hands its person. A visitor without a session is let through to it, and the page asks them to sign in
- * and comes back to itself; a signed-in user whose attempt it isn't still gets the 404. A contribution's old address
- * (`/contribute/attempts/…`) redirects before the proxy, and the pull request's page is under `/my`.
- */
-export const isAttemptPagePath = (pathname: string): boolean =>
-  decodedMatches(pathname, /^\/+learn\/+attempts\/+[^/]+\/?$/i);
-
-/**
  * Whether the path is a page every visitor sees once Contribute is launched: the landing, the MCP docs and the
  * questions, in any spelling the router reads as them. Until then only the preview list sees them.
  */
@@ -249,9 +240,6 @@ export const movedAnchorOf = (anchor: string): Route | null =>
 /** Where a Settings section is: its own page, or the summary at its anchor. */
 export const settingsPathOf = (anchor: string): Route =>
   movedAnchorOf(anchor) ?? (`${SETTINGS_PATHS.summary}#${anchor}` as Route);
-
-/** A Learn attempt's page: the lesson, then the pull request. */
-export const learnAttemptPath = (attemptId: string) => `/learn/attempts/${encodeURIComponent(attemptId)}` as Route;
 
 /**
  * The page of one attempt, by its id alone: `/my/pull-requests/by-attempt/<id>`, which finds the attempt and goes on to

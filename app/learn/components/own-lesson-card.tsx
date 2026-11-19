@@ -10,7 +10,7 @@ import { attemptTitleOf, type OwnCard, prNumberOf } from '@/lib/learn/learn-home
 import { cn } from '@/lib/utils';
 import { eventLabelOf, githubUrlOf, type Tone } from '@/lib/workspace/attempt-format';
 import { relativeLabel } from '@/lib/workspace/format';
-import { learnAttemptPath } from '@/lib/workspace/paths';
+import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 const BUTTON = 'min-h-11 px-5 font-semibold max-sm:w-full';
 
@@ -131,7 +131,7 @@ export function OwnLessonCard({ attempt, card, now }: { attempt: MyLearnAttempt;
       {words.action ? (
         <div className="flex flex-wrap gap-3">
           <Button asChild className={BUTTON}>
-            <Link href={learnAttemptPath(attempt.attemptId)} prefetch={false}>
+            <Link href={pullRequestByAttemptPath(attempt.attemptId)} prefetch={false}>
               {words.action}
               <ArrowRight aria-hidden="true" />
             </Link>

@@ -1,9 +1,11 @@
+import type { Route } from 'next';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('server-only', () => ({}));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/learn/attempts/A_1',
+  usePathname: () => '/my/pull-requests/driftwood-js/driftwood/871/lesson',
   useSearchParams: () => new URLSearchParams(),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
@@ -22,6 +24,11 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
 }));
+const page = vi.hoisted(() => ({ lessonPageOf: vi.fn() }));
+vi.mock('@/components/workspace/pull-request/review-view', async (original) => ({
+  ...(await original<typeof import('@/components/workspace/pull-request/review-view')>()),
+  lessonPageOf: page.lessonPageOf,
+}));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnOpen: vi.fn(),
   loadLearnSetup: vi.fn(),
@@ -30,8 +37,7 @@ vi.mock('@/lib/learn/learn.data', () => ({
 }));
 
 const { QuestionCard } = await import('@/components/learn/question-card');
-const { LearnAttemptScreen, LearnAttemptView } = await import('./learn-attempt');
-const { generateMetadata: attemptMetadata } = await import('@/app/(workspace)/learn/attempts/[id]/page');
+const { LessonViewScreen, LessonView } = await import('./lesson-view');
 const learnData = await import('@/lib/learn/learn.data');
 const { phaseOf } = await import('@/components/learn/lesson-flow');
 const { Diagram } = await import('@/components/learn/diagram');
@@ -200,8 +206,9 @@ describe('a diagram', () => {
 });
 
 const attempt = detail({ mode: 'LEARN', runner: 'MCP', sendBacksLeft: 2, prFooter: 'footer' });
-const screen = (lesson: Parameters<typeof LearnAttemptScreen>[0]['lesson'], at = attempt) =>
-  renderToStaticMarkup(<LearnAttemptScreen view={views.active} attempt={at} lesson={lesson} />);
+const BASE = '/my/pull-requests/driftwood-js/driftwood/871' as Route;
+const screen = (lesson: Parameters<typeof LessonViewScreen>[0]['lesson'], at = attempt) =>
+  renderToStaticMarkup(<LessonViewScreen view={views.active} attempt={at} lesson={lesson} base={BASE} />);
 
 describe("the lesson's phase", () => {
   it('runs from opening to the warm-up, the steps and the summary, by the run', () => {
@@ -219,12 +226,14 @@ describe("the lesson's phase", () => {
   });
 });
 
-describe("a Learn attempt's page", () => {
+describe("a Learn pull request's Lesson view", () => {
   it('while the agent works, says the lesson comes next', () => {
     const html = screen(lessons.working);
-    expect(text(html)).toContain('Your agent is fixing this issue');
-    expect(html).toMatch(/data-stage="fix" data-mark="now"/);
+    expect(text(html)).toContain('Your agent is writing your lesson');
     expect(html).not.toContain('Lesson steps');
+    // The three-step strip, the way back to the lessons and the issue's line are the header's now.
+    expect(html).not.toContain('Where you are');
+    expect(text(html)).not.toContain('← My lessons');
   });
 
   it('opens a run when the lesson has none yet', () => {
@@ -276,6 +285,11 @@ describe("a Learn attempt's page", () => {
     expect(html).toContain('1 of 3');
     expect(html).toContain('This lesson goes public when the pull request opens');
     expect(html).toContain('Submit pull request');
+    // The change is the Pull request view's: one line leads there.
+    expect(html).toContain('Read the changes →');
+    expect(screen(lessons.ready)).toContain(`href="${BASE}"`);
+    // No Details tabs: Changes, Checks and Activity are the Pull request view's, the lesson is this view.
+    expect(screen(lessons.ready)).not.toContain('data-session-tabs');
     // The same form as a contribution's page: back from GitHub's access screen (`?resume=`), it opens the pull request.
     expect(screen(lessons.ready)).toContain(`data-pr-form="${attempt.attemptId}"`);
   });
@@ -286,6 +300,7 @@ describe("a Learn attempt's page", () => {
     expect(html).toContain('gitranks.com/learn/lessons/route-cache-miss-8f3k/passes/octocat');
     expect(html).toContain('Take it down');
     expect(html).not.toContain('Submit pull request');
+    expect(html).toContain('Start the next lesson →');
 
     const removed = text(
       screen({ ...lessons.prOpen, visibility: 'REMOVED' }, detail({ ...attempt, state: 'PR_OPEN' })),
@@ -296,10 +311,11 @@ describe("a Learn attempt's page", () => {
 
   it('while the agent works: no email promised, the terminal, how to give the issue back, practice if they like', () => {
     const html = renderToStaticMarkup(
-      <LearnAttemptScreen
+      <LessonViewScreen
         view={views.active}
         attempt={detail({ mode: 'LEARN' })}
         lesson={lessons.working}
+        base={BASE}
         practice={practiceLessons()}
       />,
     );
@@ -317,10 +333,11 @@ describe("a Learn attempt's page", () => {
     expect(screen(lessons.working)).not.toContain('data-meanwhile');
     expect(
       renderToStaticMarkup(
-        <LearnAttemptScreen
+        <LessonViewScreen
           view={views.active}
           attempt={detail({ mode: 'LEARN' })}
           lesson={lessons.working}
+          base={BASE}
           practice={practiceLessons({ items: [], total: 0 })}
         />,
       ),
@@ -331,10 +348,11 @@ describe("a Learn attempt's page", () => {
     const ended = (patch: Parameters<typeof detail>[0]) =>
       text(
         renderToStaticMarkup(
-          <LearnAttemptScreen
+          <LessonViewScreen
             view={views.active}
             attempt={detail({ mode: 'LEARN', ...patch })}
             lesson={lessons.ended}
+            base={BASE}
           />,
         ),
       );
@@ -348,75 +366,62 @@ describe("a Learn attempt's page", () => {
     expect(stopped).not.toContain('mcp_idle');
     expect(stopped).toContain('Pick another issue');
     const html = renderToStaticMarkup(
-      <LearnAttemptScreen view={views.active} attempt={detail({ mode: 'LEARN' })} lesson={lessons.ended} />,
+      <LessonViewScreen view={views.active} attempt={detail({ mode: 'LEARN' })} lesson={lessons.ended} base={BASE} />,
     );
     expect(html).toMatch(/data-variant="default"[^>]*href="\/learn#issues"/);
   });
 
-  it('shows no stage strip for a pull request opened by hand or an attempt that ended', () => {
-    for (const lesson of [lessons.handPr, lessons.ended]) {
-      expect(screen(lesson)).not.toContain('Where you are');
-    }
+  it("says a pull request opened by hand is the person's own, the lesson private", () => {
     expect(text(screen(lessons.handPr))).toContain('You opened the pull request yourself');
+  });
+
+  it("while the pull request opens: the stepper, or the wait for tomorrow's slot", () => {
+    const submit = { step: 'PUSH' as const, waitUntil: null, fork: null, branch: null, lastError: null };
+    const opening = text(screen(lessons.ready, detail({ ...attempt, state: 'SUBMITTING', submit })));
+    expect(opening).toContain(
+      'Opening your pull request… This page moves on by itself. It usually takes under a minute.',
+    );
+    expect(opening).not.toContain('Submit pull request');
+    const tomorrow = text(
+      screen(lessons.ready, detail({ ...attempt, state: 'SUBMITTING', submit: { ...submit, step: 'WAITING_CAP' } })),
+    );
+    expect(tomorrow).toContain("It opens after 00:00 UTC: today's limit of new pull requests is reached.");
   });
 });
 
-describe("a Learn attempt's page while the account is being set up", () => {
-  it('says so with a refresh, in place of a not found; closed to anyone Learn is not open to', async () => {
+describe("the Lesson view's page", () => {
+  const read = (lesson = lessons.working) => ({ view: views.active, first: attempt, lesson, base: BASE });
+
+  it('says the account is being set up, with a refresh', async () => {
+    page.lessonPageOf.mockResolvedValue(read());
     vi.mocked(learnData.loadLearnOpen).mockResolvedValue(true);
     vi.mocked(learnData.loadLearnSetup).mockResolvedValue(true);
-    const html = renderToStaticMarkup(await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) }));
+    const html = renderToStaticMarkup(
+      await LessonView({ params: Promise.resolve({ owner: 'a', repo: 'b', issue: '1' }) }),
+    );
     expect(text(html)).toContain('Setting up your GitRanks account. This takes about a minute. Refresh');
-
-    vi.mocked(learnData.loadLearnOpen).mockResolvedValue(false);
-    await expect(LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) })).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
   it('reads practice lessons only while the agent works', async () => {
-    const data = await import('@/lib/workspace/contribute.data');
     vi.mocked(learnData.loadLearnOpen).mockResolvedValue(true);
     vi.mocked(learnData.loadLearnSetup).mockResolvedValue(false);
-    vi.mocked(data.loadContribute).mockResolvedValue(views.active);
-    vi.mocked(data.loadAttempt).mockResolvedValue(detail({ mode: 'LEARN' }));
     vi.mocked(learnData.loadPracticeLessons).mockResolvedValue(practiceLessons());
-    vi.mocked(learnData.loadAttemptLesson).mockResolvedValue(lessons.working);
-    const html = renderToStaticMarkup(await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) }));
+    page.lessonPageOf.mockResolvedValue(read(lessons.working));
+    const params = Promise.resolve({ owner: 'a', repo: 'b', issue: '1' });
+    const html = renderToStaticMarkup(await LessonView({ params }));
     expect(learnData.loadPracticeLessons).toHaveBeenCalledWith(2);
     expect(html).toContain('data-meanwhile');
     vi.mocked(learnData.loadPracticeLessons).mockClear();
-    vi.mocked(learnData.loadAttemptLesson).mockResolvedValue(lessons.ended);
-    await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) });
+    page.lessonPageOf.mockResolvedValue(read(lessons.ended));
+    await LessonView({ params });
     expect(learnData.loadPracticeLessons).not.toHaveBeenCalled();
   });
 
-  it('asks a visitor without a session to sign in, in place of a not found, before reading anything', async () => {
-    const data = await import('@/lib/workspace/contribute.data');
-    vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
-    vi.mocked(learnData.loadLearnOpen).mockClear();
-    const html = renderToStaticMarkup(await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) }));
-    expect(html).toContain('data-attempt-sign-in="lesson"');
-    expect(text(html)).toContain('Sign in to see this lesson');
-    expect(learnData.loadLearnOpen).not.toHaveBeenCalled();
-  });
-
-  it("titles a visitor's tab Sign in, and the owner's A lesson", async () => {
-    const data = await import('@/lib/workspace/contribute.data');
-    vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
-    expect((await attemptMetadata()).title).toBe('Sign in');
-    expect((await attemptMetadata()).title).toBe('A lesson');
-  });
-
-  it('names nothing of Learn to that visitor while Learn is not open to everyone', async () => {
-    const data = await import('@/lib/workspace/contribute.data');
-    vi.mocked(data.viewerLogin).mockResolvedValueOnce(null);
-    everyone.open = false;
-    try {
-      const html = renderToStaticMarkup(await LearnAttemptView({ params: Promise.resolve({ id: 'A_1' }) }));
-      expect(html).toContain('data-attempt-sign-in="page"');
-      expect(text(html)).toContain('Sign in to see this page');
-      expect(text(html)).not.toMatch(/learn|lesson/i);
-    } finally {
-      everyone.open = true;
-    }
+  it("says the page didn't load while the API does not answer, and nothing to a visitor (the layout signs in)", async () => {
+    const params = Promise.resolve({ owner: 'a', repo: 'b', issue: '1' });
+    page.lessonPageOf.mockResolvedValue('unread');
+    expect(renderToStaticMarkup(await LessonView({ params }))).toContain('data-review="unavailable"');
+    page.lessonPageOf.mockResolvedValue(null);
+    expect(await LessonView({ params })).toBeNull();
   });
 });

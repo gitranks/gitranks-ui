@@ -8,7 +8,6 @@ vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 const { learnOpenFor, notEnteredTargetOf, requestLearnAccess, tabsOf, workspaceGateOf } = await import('./gate');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { isLearnOpenPath, isLearnPath } = await import('@/lib/learn/learn-path');
-const { learnAttemptPath } = await import('./paths');
 
 describe('the Learn gate', () => {
   beforeEach(() => {
@@ -86,11 +85,6 @@ describe("Learn's paths", () => {
     ]) {
       expect(isLearnOpenPath(path), path).toBe(false);
     }
-  });
-
-  it("writes an attempt's page with its id encoded", () => {
-    expect(learnAttemptPath('A_1')).toBe('/learn/attempts/A_1');
-    expect(learnAttemptPath('a/b')).toBe('/learn/attempts/a%2Fb');
   });
 
   it("reads the request's session: open, closed, or signed out without a readable one", async () => {

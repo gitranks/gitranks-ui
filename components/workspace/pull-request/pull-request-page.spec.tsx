@@ -27,7 +27,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadResolveHumanThreads: vi.fn(async () => undefined),
 }));
 
-const { ContributionLayout, FirstSessionView, RunSessionView } = await import('./review-view');
+const { ContributionLayout, FirstSessionView, lessonPageOf, RunSessionView } = await import('./review-view');
 const data = await import('@/lib/workspace/contribute.data');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { attempts, detail, followUp, followUpAttempts } = await import(
@@ -161,11 +161,17 @@ describe("the pull request's page, by repo and issue", () => {
     );
   });
 
-  it("keeps a Learn attempt's page on its lesson for now, but its next step here", async () => {
+  it("draws a Learn attempt's Pull request view, and sends its Lesson view's other spellings to the current one", async () => {
     vi.mocked(data.loadIssueAttempt).mockResolvedValue(ref({ mode: 'LEARN' }));
     has({ ...attempts.prOpen, mode: 'LEARN' });
-    await expect(FirstSessionView({ params: params(), searchParams: query({ resume: 'n0nce' }) })).rejects.toThrow(
-      'NEXT_REDIRECT /learn/attempts/A_1?resume=n0nce',
+    expect(await FirstSessionView({ params: params(), searchParams: query({ resume: 'n0nce' }) })).toBeTruthy();
+    vi.mocked(data.loadIssueAttempt).mockResolvedValue(ref({ mode: 'LEARN', repo: 'driftwood-js/driftwood-next' }));
+    await expect(lessonPageOf(params())).rejects.toThrow(
+      'NEXT_REDIRECT /my/pull-requests/driftwood-js/driftwood-next/871/lesson',
     );
+  });
+
+  it("sends a Fix attempt's Lesson view to its page", async () => {
+    await expect(lessonPageOf(params())).rejects.toThrow(`NEXT_REDIRECT ${PAGE}`);
   });
 });

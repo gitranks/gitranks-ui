@@ -430,7 +430,20 @@ export function contributionMovesOf({
     };
   }
 
-  return { moves, sessions, nextTileTitle, hardStop, mayStart, noRun, proofStage, reading, signingOff, nextRound };
+  // A Learn pull request's change is the own agent's alone (W1 §8.1): what a run would take, its card asks the agent.
+  const hostedStart = first.mode === 'LEARN' ? false : mayStart;
+  return {
+    moves,
+    sessions,
+    nextTileTitle,
+    hardStop,
+    mayStart: hostedStart,
+    noRun,
+    proofStage,
+    reading,
+    signingOff,
+    nextRound,
+  };
 }
 
 /** The panes a contribution shows: the first attempt, a run, or the next step (which shows the proof too). */

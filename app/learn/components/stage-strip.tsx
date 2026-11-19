@@ -1,16 +1,8 @@
-import { BookOpen, GitPullRequest, GraduationCap, Lock, type LucideIcon, Terminal } from 'lucide-react';
+import { BookOpen, GitPullRequest, Lock, type LucideIcon, Terminal } from 'lucide-react';
 
 import { Pill } from '@/components/pill/pill';
-import type { LearnStage } from '@/lib/learn/learn.types';
 import type { PathMark } from '@/lib/learn/learn-home';
-import { STAGES, stageMarksOf } from '@/lib/learn/lesson-format';
 import { cn } from '@/lib/utils';
-
-const ICONS: Record<(typeof STAGES)[number]['key'], LucideIcon> = {
-  fix: Terminal,
-  lesson: GraduationCap,
-  approve: GitPullRequest,
-};
 
 function Mark({ mark }: { mark: PathMark }) {
   if (mark === 'done') return <Pill tone="green">Done</Pill>;
@@ -76,18 +68,6 @@ export function StepStrip({
       })}
     </ol>
   );
-}
-
-const ATTEMPT_STEPS: StripStep[] = STAGES.map((stage) => ({ ...stage, Icon: ICONS[stage.key] }));
-
-/**
- * Where the user is in a Learn attempt: the agent fixes the issue (in their terminal), they take the lesson, they
- * approve the pull request. Nothing for an attempt that left the flow.
- */
-export function StageStrip({ stage }: { stage: LearnStage }) {
-  const marks = stageMarksOf(stage);
-  if (!marks) return null;
-  return <StepStrip steps={ATTEMPT_STEPS} marks={marks} label="Where you are" />;
 }
 
 /** The icons of Learn home's path: the goal, the agent's fix, the pass and the pull request. */

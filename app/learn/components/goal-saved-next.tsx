@@ -7,7 +7,7 @@ import { HEADING } from '@/components/workspace/primitives';
 import type { PracticeNext } from '@/lib/learn/learn.types';
 import { attemptTitleOf, currentOf } from '@/lib/learn/learn-home';
 import { LEARN_PATH } from '@/lib/learn/learn-path';
-import { learnAttemptPath, PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
+import { PICK_ISSUE_PATHS, pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 /** The panel's words and its one button. */
 type Words = { title: string; text: string; action: { href: Route; label: string } };
@@ -23,7 +23,7 @@ export function goalSavedWordsOf(next: PracticeNext | null, goal: string): Words
     return {
       title: 'Your lesson is in progress',
       text: `Your next lesson can start once “${attemptTitleOf(current)}” is done.`,
-      action: { href: learnAttemptPath(current.attemptId), label: 'Back to your lesson' },
+      action: { href: pullRequestByAttemptPath(current.attemptId), label: 'Back to your lesson' },
     };
   }
   const issues = next?.issues ?? null;

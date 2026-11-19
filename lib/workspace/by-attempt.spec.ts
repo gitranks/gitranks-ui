@@ -39,29 +39,24 @@ describe('the address by attempt', () => {
     expect(at(older)).toBe(`${PAGE}/earlier/A_0/runs/A_F1`);
   });
 
-  it("sends a Learn attempt to its lesson, unless the link asks for the pull request's next step or a move", () => {
+  it('sends a Learn attempt to the view its lesson names, the lesson asked by name, a move to the next step', () => {
     const learn = read({ mode: 'LEARN' });
-    expect(at(learn)).toBe('/learn/attempts/A_1');
-    expect(at(learn, 'resume=n0nce')).toBe('/learn/attempts/A_1?resume=n0nce');
-    expect(at(learn, 'session=next')).toBe(`${PAGE}?session=next`);
-    // The page shows a Learn pull request's moves on its next step alone, and sends the rest to the lesson: a move is
-    // asked for there, so it lands on the move and not back on the lesson.
-    expect(at(learn, 'move=changes')).toBe(`${PAGE}?move=changes&session=next`);
-    expect(at(learn, 'resume=n0nce&move=changes')).toBe(`${PAGE}?resume=n0nce&move=changes&session=next`);
+    const lessonAt = (query = '', view: 'pr' | 'lesson' | null = 'lesson') =>
+      byAttemptTargetOf(learn, issue(), new URLSearchParams(query), view);
+    expect(lessonAt()).toBe(`${PAGE}/lesson`);
+    expect(lessonAt('resume=n0nce')).toBe(`${PAGE}/lesson?resume=n0nce`);
+    expect(lessonAt('', 'pr')).toBe(PAGE);
     // The lesson asked for by name: view= is the address's own word, dropped on the way.
-    expect(at(learn, 'view=lesson')).toBe('/learn/attempts/A_1');
-    expect(at(learn, 'view=lesson&session=next')).toBe('/learn/attempts/A_1?session=next');
+    expect(lessonAt('view=lesson', 'pr')).toBe(`${PAGE}/lesson`);
+    // The next step, or a move on it: the Pull request view's next step.
+    expect(lessonAt('session=next')).toBe(`${PAGE}?session=next`);
+    expect(lessonAt('move=changes')).toBe(`${PAGE}?move=changes&session=next`);
+    // No Lesson view (Learn closed to the viewer): the Pull request view.
+    expect(lessonAt('', null)).toBe(PAGE);
+    expect(lessonAt('view=lesson', null)).toBe(PAGE);
     // A Learn attempt's runs show on the pull request's page.
     const run = read({ attemptId: 'A_F2', kind: 'FOLLOW_UP', mode: undefined, followUpOf: { attemptId: 'A_1' } });
-    expect(at(run, '', issue({ mode: 'LEARN' }))).toBe(`${PAGE}/runs/A_F2`);
-  });
-
-  it('never sends a Learn first attempt to the pull request without the next step, where the page would send it back', () => {
-    const learn = read({ mode: 'LEARN' });
-    for (const query of ['', 'resume=n0nce', 'session=next', 'move=changes', 'view=lesson', 'move=x&view=lesson']) {
-      const target = at(learn, query) ?? '';
-      if (target.startsWith('/my/pull-requests/')) expect(target, query).toMatch(/[?&]session=next(?:&|$)/);
-    }
+    expect(byAttemptTargetOf(run, issue({ mode: 'LEARN' }), new URLSearchParams(), 'lesson')).toBe(`${PAGE}/runs/A_F2`);
   });
 
   it('has no page for an attempt the issue read does not know, or a run without its first attempt', () => {

@@ -2,6 +2,7 @@ import type {
   LearnAttemptLesson,
   LearnStage,
   LessonBlock,
+  LessonCompareSide,
   LessonDiagramEdge,
   LessonDiagramNode,
   LessonDiffLine,
@@ -20,6 +21,7 @@ const EMPTY_BLOCK: LessonBlock = {
   nodes: null,
   edges: null,
   caption: null,
+  layout: null,
   file: null,
   lines: null,
   mark: null,
@@ -29,6 +31,12 @@ const EMPTY_BLOCK: LessonBlock = {
   fromLine: null,
   toLine: null,
   excerpt: null,
+  compareOf: null,
+  before: null,
+  after: null,
+  columns: null,
+  rows: null,
+  ring: null,
 };
 
 export const text = (value: string): LessonBlock => ({ ...EMPTY_BLOCK, type: 'TEXT', text: value });
@@ -39,11 +47,97 @@ export const diagramNode = (
   extra: Partial<Omit<LessonDiagramNode, 'id' | 'label'>> = {},
 ): LessonDiagramNode => ({ id, label, sub: null, tone: 'PLAIN', mono: false, ...extra });
 
-export const diagram = (nodes: LessonDiagramNode[], edges: [string, string][], caption: string): LessonBlock => ({
+export const diagramEdge = (
+  from: string,
+  to: string,
+  extra: Partial<Omit<LessonDiagramEdge, 'from' | 'to'>> = {},
+): LessonDiagramEdge => ({ from, to, label: null, reply: false, tone: 'PLAIN', ...extra });
+
+/** An edge as a pair, or with its label (and tone, or a reply) as well. */
+type EdgeOf =
+  | [string, string]
+  | [string, string, string]
+  | [string, string, string, Partial<Omit<LessonDiagramEdge, 'from' | 'to' | 'label'>>];
+const edgesOf = (edges: EdgeOf[]) =>
+  edges.map(([from, to, label, extra]) => diagramEdge(from, to, { label: label ?? null, ...extra }));
+
+export const diagram = (nodes: LessonDiagramNode[], edges: EdgeOf[], caption: string): LessonBlock => ({
   ...EMPTY_BLOCK,
   type: 'DIAGRAM',
   nodes,
-  edges: edges.map(([from, to]): LessonDiagramEdge => ({ from, to })),
+  edges: edgesOf(edges),
+  caption,
+});
+
+/** A call sequence: actors left to right, calls top to bottom, each with its label. */
+export const sequence = (
+  actors: LessonDiagramNode[],
+  calls: [string, string, string, Partial<Omit<LessonDiagramEdge, 'from' | 'to' | 'label'>>?][],
+  caption: string,
+): LessonBlock => ({
+  ...EMPTY_BLOCK,
+  type: 'DIAGRAM',
+  layout: 'SEQUENCE',
+  nodes: actors,
+  edges: calls.map(([from, to, label, extra]) => diagramEdge(from, to, { label, ...extra })),
+  caption,
+});
+
+const EMPTY_SIDE: LessonCompareSide = {
+  nodes: null,
+  edges: null,
+  path: null,
+  fromLine: null,
+  toLine: null,
+  excerpt: null,
+};
+
+/** A before-and-after of two small diagrams. */
+export const compareDiagrams = (
+  before: { nodes: LessonDiagramNode[]; edges: EdgeOf[] },
+  after: { nodes: LessonDiagramNode[]; edges: EdgeOf[] },
+  caption: string,
+): LessonBlock => ({
+  ...EMPTY_BLOCK,
+  type: 'COMPARE',
+  compareOf: 'DIAGRAM',
+  before: { ...EMPTY_SIDE, nodes: before.nodes, edges: edgesOf(before.edges) },
+  after: { ...EMPTY_SIDE, nodes: after.nodes, edges: edgesOf(after.edges) },
+  caption,
+});
+
+const codeSide = (path: string, fromLine: number, excerpt: string): LessonCompareSide => ({
+  ...EMPTY_SIDE,
+  path,
+  fromLine,
+  toLine: fromLine + excerpt.split('\n').length - 1,
+  excerpt,
+});
+
+/** A before-and-after of one file's lines: at the lesson's commit, then after the fix. */
+export const compareCode = (
+  path: string,
+  before: { fromLine: number; excerpt: string },
+  after: { fromLine: number; excerpt: string },
+  caption: string,
+): LessonBlock => ({
+  ...EMPTY_BLOCK,
+  type: 'COMPARE',
+  compareOf: 'CODE',
+  repo: 'driftwood-js/driftwood',
+  commit: '4f1c2ab9e7d3',
+  before: codeSide(path, before.fromLine, before.excerpt),
+  after: codeSide(path, after.fromLine, after.excerpt),
+  caption,
+});
+
+/** A table of cases, the row at `ring` ringed. */
+export const table = (columns: string[], rows: string[][], ring: number | null, caption: string): LessonBlock => ({
+  ...EMPTY_BLOCK,
+  type: 'TABLE',
+  columns,
+  rows,
+  ring,
   caption,
 });
 
@@ -201,6 +295,99 @@ export const STEPS: LessonStep[] = [
     ],
   },
 ];
+
+/** Step 2 told with the lesson's newer visuals: a labelled arrow, a call sequence, a table and two before-and-afters. */
+export const VISUALS_STEP: LessonStep = {
+  id: 's2',
+  parts: ['cause'],
+  title: 'Two spellings of one route got two cache entries',
+  blocks: [
+    text(
+      'Follow one navigation from `/docs/` to `/docs`: the router asks for the layouts, and the cache is asked by key.',
+    ),
+    sequence(
+      [
+        diagramNode('router', 'Router', { sub: 'on navigate' }),
+        diagramNode('resolve', 'resolveLayouts', { mono: true }),
+        diagramNode('cache', 'layout cache'),
+        diagramNode('build', 'build', { mono: true }),
+      ],
+      [
+        ['router', 'resolve', 'resolveLayouts(route)'],
+        ['resolve', 'cache', 'cache.get(route.path)', { tone: 'ACCENT' }],
+        ['cache', 'resolve', 'undefined: no entry', { reply: true }],
+        ['resolve', 'build', 'build(key)'],
+        ['build', 'resolve', 'every layout, built again', { reply: true }],
+        ['resolve', 'router', 'layouts', { reply: true }],
+      ],
+      'One navigation to `/docs`: the lookup by the raw path misses, so every layout is built again.',
+    ),
+    table(
+      ['Path typed', 'Cache key', 'Layouts'],
+      [
+        ['`/docs/`', '`"/docs/"`', 'built, then cached'],
+        ['`/docs`', '`"/docs"`', 'built again: no entry for this key'],
+        ['`/docs/#intro`', '`"/docs/"`', 'from the cache'],
+      ],
+      1,
+      'Each spelling of the page is its own key.',
+    ),
+    diagram(
+      [
+        diagramNode('a', '/docs', { mono: true }),
+        diagramNode('key', 'cache key', { tone: 'ACCENT' }),
+        diagramNode('miss', 'no entry', { tone: 'WARN' }),
+      ],
+      [
+        ['a', 'key', 'route.path'],
+        ['key', 'miss', 'cache.get', { tone: 'WARN' }],
+      ],
+      'The key is the path as typed, so the second spelling misses.',
+    ),
+    compareCode(
+      'src/router/layout-cache.ts',
+      {
+        fromLine: 40,
+        excerpt:
+          'export function resolveLayouts(route: Route) {\n  const cache = getLayoutCache()\n  const key = route.path\n  return build(key)\n}',
+      },
+      {
+        fromLine: 40,
+        excerpt:
+          'export function resolveLayouts(route: Route) {\n  const cache = getLayoutCache()\n  const key = normalizePath(route.path)\n  const hit = cache.get(key)\n  if (hit) return hit\n  return build(key)\n}',
+      },
+      'The key line before and after the fix.',
+    ),
+    compareDiagrams(
+      {
+        nodes: [
+          diagramNode('a', '/docs/', { mono: true }),
+          diagramNode('b', '/docs', { mono: true }),
+          diagramNode('two', 'two entries', { tone: 'WARN' }),
+        ],
+        edges: [
+          ['a', 'two'],
+          ['b', 'two'],
+        ],
+      },
+      {
+        nodes: [
+          diagramNode('a', '/docs/', { mono: true }),
+          diagramNode('b', '/docs', { mono: true }),
+          diagramNode('one', 'one entry', { tone: 'ACCENT' }),
+        ],
+        edges: [
+          ['a', 'one', 'normalizePath'],
+          ['b', 'one'],
+        ],
+      },
+      'Two spellings: two entries before the fix, one after.',
+    ),
+  ],
+};
+
+/** The lesson with step 2 told in the newer visuals. */
+export const VISUAL_STEPS: LessonStep[] = STEPS.map((step) => (step.id === VISUALS_STEP.id ? VISUALS_STEP : step));
 
 const option = (id: string, value: string) => ({ id, text: value });
 
@@ -426,5 +613,7 @@ export const lessons = {
     counts: { opens: 38, passes: 14, reactionsYes: 1, reactionsNo: 0, reported: 0 },
   }),
   handPr: lesson('HAND_PR', { run: runs.step }),
+  /** Step 2 in the newer visuals, its question asked. */
+  visuals: lesson('LESSON', { steps: VISUAL_STEPS, run: runs.step }),
   ended: lesson('ENDED'),
 };

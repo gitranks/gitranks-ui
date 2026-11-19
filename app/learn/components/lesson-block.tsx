@@ -1,28 +1,15 @@
+import type { ReactNode } from 'react';
+
+import { CaseTable } from './case-table';
+import { CodeExcerpt } from './code-excerpt';
+import { CompareBlock } from './compare-block';
 import { Diagram } from './diagram';
+import { RichText } from './rich-text';
+import { SequenceDiagram } from './sequence-diagram';
 import { Counts, LINE_CLASSES } from '@/app/contribute/components/diff-viewer';
 import type { PatchLineKind } from '@/lib/contribute/patch';
 import type { LessonBlock as Block, LessonDiffLineKind } from '@/lib/learn/learn.types';
-import { codeSpansOf } from '@/lib/learn/question';
 import { cn } from '@/lib/utils';
-
-/** Plain text with `code` spans, as a lesson writes it: never HTML. */
-export function RichText({ text }: { text: string }) {
-  return (
-    <>
-      {codeSpansOf(text).map((part, index) =>
-        part.code ? (
-          // Parts never move: the index is the part. Spaces in code mean something ('a  b' is not 'a b'): kept, and
-          // wrapped only where they are.
-          <code key={index} className="whitespace-break-spaces rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.85em]">
-            {part.text}
-          </code>
-        ) : (
-          part.text
-        ),
-      )}
-    </>
-  );
-}
 
 const DIFF_KINDS: Record<LessonDiffLineKind, PatchLineKind> = { HUNK: 'hunk', CTX: 'context', ADD: 'add', DEL: 'del' };
 
@@ -61,47 +48,25 @@ function DiffBlock({ block }: { block: Block }) {
   );
 }
 
-/** Code the step quotes: its file and lines at the commit the lesson was written on, numbered. */
-function CodeBlockView({ block }: { block: Block }) {
-  const lines = (block.excerpt ?? '').split('\n');
-  const from = block.fromLine ?? 1;
-  const to = block.toLine ?? from + lines.length - 1;
-  const href =
-    block.repo && block.commit && block.path
-      ? `https://github.com/${block.repo}/blob/${block.commit}/${block.path}#L${from}-L${to}`
-      : null;
+/** A drawn block (a diagram, a before-and-after, a table) in a figure, its caption under it. */
+function Figure({ kind, caption, children }: { kind: string; caption: string | null; children: ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-lg border bg-card" data-block="code">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-muted/50 px-5 py-2.5 font-mono text-xs">
-        <span className="min-w-0 font-medium break-all text-foreground">{block.path}</span>
-        {href ? (
-          <a href={href} target="_blank" rel="noreferrer" className="whitespace-nowrap text-link hover:underline">
-            lines {from}–{to} ↗<span className="sr-only"> (opens in a new tab)</span>
-          </a>
-        ) : (
-          <span className="whitespace-nowrap text-muted-foreground">
-            lines {from}–{to}
-          </span>
-        )}
-      </div>
-      <div className="overflow-x-auto font-mono text-xs leading-relaxed">
-        <div className="min-w-max py-1">
-          {lines.map((line, index) => (
-            // Lines never move: the index is the line.
-            <div key={index} className="grid grid-cols-[3rem_auto] whitespace-pre text-foreground/90">
-              <span aria-hidden="true" className="pe-3 text-end text-muted-foreground select-none">
-                {from + index}
-              </span>
-              <span className="pe-5">{line || ' '}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <figure className="m-0 flex min-w-0 flex-col gap-2.5 rounded-lg border bg-muted/40 p-4" data-block={kind}>
+      {children}
+      {caption ? (
+        <figcaption className="text-xs text-muted-foreground">
+          <RichText text={caption} />
+        </figcaption>
+      ) : null}
+    </figure>
   );
 }
 
-/** One block of a lesson's step, each type drawn by its own view: text, a diagram, a hunk of the fix, or code. */
+/**
+ * One block of a lesson's step, each type drawn by its own view: text, a diagram (boxes and arrows, or a call
+ * sequence), a hunk of the fix, code, a before-and-after, or a table. A type this page does not know draws nothing, so
+ * a page loaded before a new type ships skips it.
+ */
 export function LessonBlock({ block, id }: { block: Block; id: string }) {
   switch (block.type) {
     case 'TEXT':
@@ -110,21 +75,43 @@ export function LessonBlock({ block, id }: { block: Block; id: string }) {
           <RichText text={block.text} />
         </p>
       ) : null;
-    case 'DIAGRAM':
+    case 'DIAGRAM': {
+      const label = block.caption ?? 'A diagram of this step';
       return (
-        <figure className="m-0 flex flex-col gap-2.5 rounded-lg border bg-muted/40 p-4" data-block="diagram">
-          <Diagram id={id} nodes={block.nodes} edges={block.edges} label={block.caption ?? 'A diagram of this step'} />
-          {block.caption ? (
-            <figcaption className="text-xs text-muted-foreground">
-              <RichText text={block.caption} />
-            </figcaption>
-          ) : null}
-        </figure>
+        <Figure kind="diagram" caption={block.caption}>
+          {block.layout === 'SEQUENCE' ? (
+            <SequenceDiagram id={id} nodes={block.nodes} edges={block.edges} label={label} />
+          ) : (
+            <Diagram id={id} nodes={block.nodes} edges={block.edges} label={label} />
+          )}
+        </Figure>
       );
+    }
     case 'DIFF':
       return <DiffBlock block={block} />;
     case 'CODE':
-      return <CodeBlockView block={block} />;
+      return (
+        <CodeExcerpt
+          repo={block.repo}
+          commit={block.commit}
+          path={block.path}
+          fromLine={block.fromLine}
+          toLine={block.toLine}
+          excerpt={block.excerpt}
+        />
+      );
+    case 'COMPARE':
+      return (
+        <Figure kind="compare" caption={block.caption}>
+          <CompareBlock block={block} id={id} label={block.caption ?? 'This step before and after the fix'} />
+        </Figure>
+      );
+    case 'TABLE':
+      return block.columns?.length && block.rows?.length ? (
+        <Figure kind="table" caption={block.caption}>
+          <CaseTable columns={block.columns} rows={block.rows} ring={block.ring} />
+        </Figure>
+      ) : null;
     default:
       return null;
   }

@@ -175,7 +175,7 @@ describe('the question card', () => {
 
 describe('code in lesson text', () => {
   it('keeps the spaces inside a code span, which can be the point of a question', async () => {
-    const { RichText } = await import('./lesson-block');
+    const { RichText } = await import('./rich-text');
     const html = renderToStaticMarkup(<RichText text="What does `'a  b'.replace(/ /g, '-')` return?" />);
     expect(html.replaceAll('&#x27;', "'")).toContain("'a  b'.replace(/ /g, '-')");
     expect(html).toMatch(/<code class="[^"]*whitespace-break-spaces/);
@@ -243,6 +243,17 @@ describe("a Learn attempt's page", () => {
     expect(step).toContain('data-lesson-phase="step"');
     expect(text(step)).toContain('Step 2 of 5 · Cause');
     expect(text(step)).toContain('1 of 5 passed');
+    expect(text(step)).toContain('Copy for my agent');
+  });
+
+  it("draws a step's newer visuals: a call sequence, a table, an arrow label and two before-and-afters", () => {
+    const step = screen(lessons.visuals);
+    expect(step).toContain('data-lesson-phase="step"');
+    expect(step).toContain('data-diagram="sequence"');
+    expect(step).toContain('data-block="table"');
+    expect(step).toContain('data-arrow-label=""');
+    expect(step).toContain('data-compare="CODE"');
+    expect(step).toContain('data-compare="DIAGRAM"');
     expect(text(step)).toContain('Copy for my agent');
   });
 

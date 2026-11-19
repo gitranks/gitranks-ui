@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import type { ReactNode } from 'react';
 
 import {
@@ -269,12 +270,15 @@ export function SessionPane({
   seed,
   now = new Date(),
   resolveHumans,
+  base,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail;
   first?: ContributeAttemptDetail;
   current?: ContributeAttemptDetail;
   model: ContributionMoves;
+  /** The page's address its sessions sit under; else the issue's, from the first attempt. */
+  base?: Route;
   next?: boolean;
   /** `?move=`: the held card to show. */
   move?: string | null;
@@ -335,6 +339,7 @@ export function SessionPane({
           view={view}
           now={now}
           orgAccess={orgAccessOf()}
+          base={base}
         />
         {showNext ? (
           threads.length ? (

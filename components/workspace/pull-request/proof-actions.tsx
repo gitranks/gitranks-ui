@@ -1,6 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import type { Route } from 'next';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useId, useState, useTransition } from 'react';
 
 import { offOf, useSessionActions } from './session-actions';
@@ -18,7 +19,7 @@ import {
 import { holdFastChanges } from '@/lib/workspace/changes-bus';
 import { attemptActionErrorMessage, type ContributeActionResult } from '@/lib/workspace/errors';
 import { PROOF_NOTE_MAX, PROOF_REPLY_MAX } from '@/lib/workspace/proof';
-import { attemptPath } from '@/lib/workspace/sessions';
+import { pageBaseOf } from '@/lib/workspace/sessions';
 
 const BIG = 'min-h-11 px-4 font-semibold';
 
@@ -267,6 +268,9 @@ export function ProofFixBrokenActions({
   const [text, setText] = useState(note);
   const { act, error, busy, router } = useProofAction();
   // The run started but the proof was not discarded: said, with the way to the run, and Discard left to click.
+  // The run's session, under the page this proof is on.
+  const base = pageBaseOf(usePathname());
+  const runPath = (runId: string) => `${base}/runs/${encodeURIComponent(runId)}` as Route;
   const [started, setStarted] = useState<{ runId: string; error: string } | null>(null);
   const start = () =>
     act(
@@ -283,7 +287,7 @@ export function ProofFixBrokenActions({
           });
           return { ok: true, data: null };
         }
-        router.push(attemptPath(run.data.attemptId));
+        router.push(runPath(run.data.attemptId));
         return run;
       },
       () => {},
@@ -317,7 +321,7 @@ export function ProofFixBrokenActions({
       {started ? (
         <p role="alert" className="text-sm text-destructive" data-proof-discard-failed="">
           Run {round} started, but this proof wasn't discarded: {started.error}{' '}
-          <a href={attemptPath(started.runId)} className="font-semibold text-link">
+          <a href={runPath(started.runId)} className="font-semibold text-link">
             Go to run {round} →
           </a>
         </p>

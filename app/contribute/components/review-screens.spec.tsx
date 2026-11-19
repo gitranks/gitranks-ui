@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/attempts/A_1',
+  usePathname: () => '/my/pull-requests/driftwood-js/driftwood/871',
   useSearchParams: () => new URLSearchParams(),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
@@ -326,7 +326,7 @@ describe('the contribution page', () => {
     const line = review(busy);
     expect(line).toContain('data-status="RUN_UNDER_WAY"');
     expect(text(line)).toContain('Watch the run →');
-    expect(line).toContain('href="/contribute/attempts/A_1/runs/A_F3"');
+    expect(line).toContain('href="/my/pull-requests/driftwood-js/driftwood/871/runs/A_F3"');
     // The next step is not shown while a run works: the page is the first attempt's.
     const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={busy} next now={NOW} />);
     expect(html).toContain('data-shown-session="A_1"');
@@ -348,7 +348,7 @@ describe('the review screen', () => {
 
     expect(plain).toContain('First attempt · ready for you');
     expect(plain).toContain('Review the change, then open the pull request');
-    expect(plain).toContain('driftwood-js/driftwood · issue #871');
+    expect(plain).toContain('driftwood-js/driftwood Issue #871 ↗');
     expect(plain).toContain('Nested layouts re-render on every navigation');
     expect(html).not.toContain('data-first-timers');
     // The label as a chip on the repo line, what it means on a hover or a tap, and for screen readers.
@@ -1119,7 +1119,7 @@ describe('the review screen', () => {
 
       expect(html).toContain(`data-pr-state="${prState}"`);
       expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
-      expect(header).toContain('Pull request #1419');
+      expect(header).toContain('PR #1419 ↗');
       expect(rail).toContain(`First attempt ${pill}`);
       expect(header).toContain(words);
       // A closed pull request shows no checks.
@@ -1199,18 +1199,17 @@ describe('the review screen', () => {
 
     it('says a review waiting and checks running in muted words, and when it was read', () => {
       const html = headerOf({ checks: 'PENDING', syncedAt: '2026-10-28T11:48:00.000Z' });
-      expect(text(html)).toContain(
-        'Open · Pull request #1419 ↗ · Waiting for review · Checks running · read 12 minutes ago',
-      );
+      // The number and its link are the reference line's `PR #N ↗` chip; the status line says the state alone.
+      expect(text(html)).toContain('Open · Waiting for review · Checks running · read 12 minutes ago');
       expect(pillOf(html, 'review')).toBeUndefined();
       expect(pillOf(html, 'checks')).toBeUndefined();
-      expect(html).toContain('<span class="max-sm:sr-only">Pull request </span>');
+      expect(html).toContain('href="https://github.com/driftwood-js/driftwood/pull/1419"');
     });
 
     it('says only when a merged or closed pull request ended, without its review, checks or read', () => {
       for (const [name, words] of [
-        ['merged', 'Merged · Pull request #1419 ↗ · merged 5 minutes ago'],
-        ['closed', 'Closed · Pull request #1419 ↗ · closed without merging, 5 minutes ago'],
+        ['merged', 'Merged · merged 5 minutes ago'],
+        ['closed', 'Closed · closed without merging, 5 minutes ago'],
       ] as const) {
         const html = review(attempts[name]);
         const line = text(html.slice(html.indexOf('data-pr-state'), html.indexOf('</header>')));
@@ -1255,14 +1254,6 @@ describe('the review screen', () => {
       };
       expect(review(attempts.prOpen)).not.toContain('data-pr-stopped');
       expect(review(saidNo)).not.toContain('data-pr-stopped');
-    });
-
-    it('sits under the line of the pull request a run follows up, when its first attempt is not known', () => {
-      const html = renderToStaticMarkup(
-        <ReviewScreen view={views.active} attempt={followUpAttempts.review} now={NOW} prNotes={STOPPED} />,
-      );
-      expect(html.indexOf('data-pr-stopped')).toBeGreaterThan(html.indexOf('data-follow-up-of'));
-      expect(html.indexOf('data-pr-stopped')).toBeLessThan(html.indexOf('</header>'));
     });
   });
 
@@ -1539,17 +1530,18 @@ describe('the review screen', () => {
     const plain = text(review(attempts.bare));
 
     expect(plain).toContain('Issue #871');
-    expect(plain).toContain('a repo · issue #871');
+    expect(plain).toContain('a repo Issue #871');
     expect(plain).toContain("The agent's summary is not available yet.");
     expect(plain).toContain('The timeline is not available yet.');
     expect(plain).toContain('The diff is not available yet.');
   });
 
-  it('says the review is not available yet while the API does not answer it', () => {
+  it("says the page didn't load while the API does not answer it, with the way back", () => {
     const html = review(undefined);
 
     expect(html).toContain('data-review="unavailable"');
-    expect(text(html)).toContain('Reviews are not available yet');
+    expect(text(html)).toContain("This page didn't load Reload to try again.");
+    expect(html).toContain('href="/my/pull-requests"');
   });
 });
 
@@ -1560,7 +1552,7 @@ describe('the attempts waiting for review, on Issues for you and the overview', 
     const html = renderToStaticMarkup(<ReviewsReady attempts={waiting} />);
 
     expect(html).toContain('data-reviews-ready="1"');
-    expect(html).toContain('href="/contribute/attempts/A_1"');
+    expect(html).toContain('href="/my/pull-requests/by-attempt/A_1"');
     expect(html).not.toContain('A_2');
     expect(text(html)).toContain('A change is ready for your review');
   });
@@ -1575,7 +1567,7 @@ describe('the attempts waiting for review, on Issues for you and the overview', 
       renderToStaticMarkup(
         <IssuesScreen view={views.active} page={undefined} query={{}} now={NOW} reviews={waiting} />,
       ),
-    ).toContain('href="/contribute/attempts/A_1"');
+    ).toContain('href="/my/pull-requests/by-attempt/A_1"');
   });
 });
 

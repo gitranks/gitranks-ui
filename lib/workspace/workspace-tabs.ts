@@ -25,7 +25,7 @@ export function activeTabOf(pathname: string, search: Pick<URLSearchParams, 'get
   const path = pathname.replace(/\/+$/, '') || '/';
   if (path.startsWith('/my/start/')) return search.get('lesson') === '1' ? 'learn' : 'contribute';
   if (path === '/contribute' || path === '/contribute/issues') return 'contribute';
-  if (path.startsWith('/contribute/attempts/') || path.startsWith('/learn/attempts/')) return 'pull-requests';
+  if (path.startsWith('/learn/attempts/')) return 'pull-requests';
   if (
     path === '/learn' ||
     path === '/learn/lessons' ||

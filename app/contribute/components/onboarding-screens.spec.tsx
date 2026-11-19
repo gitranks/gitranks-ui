@@ -17,6 +17,13 @@ const data = vi.hoisted(() => ({
   loadPullRequestsPage: vi.fn(async () => undefined),
   loadScheduleCounts: vi.fn(async () => undefined),
   loadRepliesWaiting: vi.fn(),
+  loadIssueAttempt: vi.fn(async () => ({
+    attemptId: 'A_1',
+    mode: 'FIX',
+    repo: 'driftwood-js/driftwood',
+    number: 871,
+    earlier: null,
+  })),
 }));
 const { signIn } = vi.hoisted(() => ({ signIn: vi.fn() }));
 
@@ -221,7 +228,7 @@ describe('the sign-in', () => {
 
 describe('the pages that wait for onboarding', () => {
   const searchParams = Promise.resolve({});
-  const params = Promise.resolve({ id: 'A_1' });
+  const params = Promise.resolve({ owner: 'driftwood-js', repo: 'driftwood', issue: '871' });
   const pages = {
     issues: () => IssuesView({ searchParams }),
     me: () => PullRequestsView({ searchParams: Promise.resolve({}) }),
@@ -270,6 +277,8 @@ describe('the pages that wait for onboarding', () => {
     data.viewerLogin.mockResolvedValue('octocat');
     data.loadContribute.mockResolvedValue(views.active);
     data.loadAttempt.mockResolvedValue(null);
+    await expect(ContributionLayout({ params, children: null })).rejects.toThrow('NEXT_NOT_FOUND');
+    data.loadIssueAttempt.mockResolvedValueOnce(null as never);
     await expect(ContributionLayout({ params, children: null })).rejects.toThrow('NEXT_NOT_FOUND');
   });
 

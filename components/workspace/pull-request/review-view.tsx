@@ -1,10 +1,10 @@
 import type { Route } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { cache, type ReactNode } from 'react';
 
 import { SessionsList } from './attempt-sessions';
-import { BackLink, ContributionHeader } from './contribution-header';
 import { PrNotesPanel } from './pr-notes';
+import { BackLink, PullRequestHeader } from './pull-request-header';
 import { AttemptRepoRules } from './repo-rules';
 import type { SessionActionsSeed } from './session-actions';
 import { SessionPane } from './session-pane';
@@ -15,6 +15,7 @@ import {
   loadAttempt,
   loadContribute,
   loadContributeSetup,
+  loadIssueAttempt,
   loadPrNotes,
   loadRepliesWaiting,
   loadResolveHumanThreads,
@@ -30,11 +31,11 @@ import { accessNoticesOf, isContributePageOpen, settingsOf } from '@/lib/workspa
 import { type ContributionMoves, contributionMovesOf, onPane } from '@/lib/workspace/contribution-moves';
 import { RESUME_PARAM } from '@/lib/workspace/grant-resume';
 import { orgAccessOf, orgRestrictionOf, threadsBlockedOf } from '@/lib/workspace/org-access';
-import { learnAttemptPath } from '@/lib/workspace/paths';
+import { type IssueRef, learnAttemptPath, pullRequestByAttemptPath, pullRequestPath } from '@/lib/workspace/paths';
 import { isFinishedAttempt } from '@/lib/workspace/repo-rules';
 import {
-  attemptPath,
   NEXT_SESSION,
+  pageAtOf,
   runsLabelOf,
   sessionPath,
   sessionsOf,
@@ -44,17 +45,85 @@ import { contributeHidden } from '@/lib/workspace/setting-up';
 
 type Query = Record<string, string | string[] | undefined>;
 
+/** The page's address, as the router reads it: the issue, and on an earlier attempt's page its id. */
+export type PageParams = { owner: string; repo: string; issue: string; attemptId?: string };
+
 /**
- * The gates every page of a contribution passes: signed in, let in, and the attempt theirs. Null signed out: the layout
- * asks the visitor to sign in (the link an agent hands its person), and the session's page shows nothing under it.
+ * The gates every page of a pull request passes: signed in, and let in. Null signed out: the workspace's layout asks
+ * the visitor to sign in (the link an agent hands its person), and the page shows nothing under it.
  */
-async function gate(id: string) {
+async function gate() {
   if (!(await viewerLogin())) return null;
-  const [view, attempt] = await Promise.all([loadContribute(), loadAttempt(id)]);
+  const view = await loadContribute();
   if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
-  if (attempt === null) notFound();
-  return { view, attempt };
+  return { view };
+}
+
+/** GraphQL's largest `Int`: an issue's number above it names no issue. */
+const MAX_INT = 2_147_483_647;
+
+/** What the address names, read once per request (the layout and the session's page both ask). */
+type PageRead =
+  /** No issue of the viewer's at this address, or an attempt id that is not an earlier one on it: a 404. */
+  | { kind: 'missing' }
+  /** The API did not answer. */
+  | { kind: 'unread' }
+  /** The repo's name changed (or its letter case, or the issue's spelling), or the "earlier" attempt is the latest. */
+  | { kind: 'move'; ref: IssueRef }
+  | {
+      kind: 'page';
+      first: ContributeAttemptDetail;
+      /** The page's own address: the issue's, or the earlier attempt's under it. */
+      base: Route;
+      /** On an earlier attempt's page: the latest's address. */
+      earlier: { latest: Route } | null;
+    };
+
+/**
+ * The viewer's first attempt the address names: the issue's newest (`contributeAttemptRef`), or with `attemptId` an
+ * older first attempt on the same issue. An address in another spelling than the API's (a renamed repo, another letter
+ * case) moves to the current one.
+ */
+const readPage = cache(async (owner: string, repo: string, issue: string, earlierId?: string): Promise<PageRead> => {
+  // An issue's number, in any spelling of it (`0871`), up to GraphQL's largest `Int`.
+  const number = /^\d{1,10}$/.test(issue) ? Number(issue) : 0;
+  if (number < 1 || number > MAX_INT) return { kind: 'missing' };
+  const ref = await loadIssueAttempt(owner, repo, number);
+  if (ref === undefined) return { kind: 'unread' };
+  if (ref === null) return { kind: 'missing' };
+  const earlier = earlierId && earlierId !== ref.attemptId ? earlierId : null;
+  if (ref.repo !== `${owner}/${repo}` || issue !== String(ref.number) || (earlierId && !earlier)) {
+    return { kind: 'move', ref: { repo: ref.repo, issue: ref.number, earlier } };
+  }
+  const first = await loadAttempt(earlier ?? ref.attemptId).catch(() => undefined);
+  if (first === undefined) return { kind: 'unread' };
+  if (first === null || first.kind !== 'FIRST') return { kind: 'missing' };
+  if (earlier) {
+    // An older first attempt on this very issue: listed by the API, or named so (its repo may have been renamed since).
+    const named = (first.nameWithOwner ?? '').toLowerCase();
+    const same =
+      first.number === ref.number &&
+      (!!ref.earlier?.includes(earlier) ||
+        named === ref.repo.toLowerCase() ||
+        named === `${owner}/${repo}`.toLowerCase());
+    if (!same) return { kind: 'missing' };
+  }
+  const latest = pullRequestPath({ repo: ref.repo, issue: ref.number });
+  return {
+    kind: 'page',
+    first,
+    base: earlier ? pullRequestPath({ repo: ref.repo, issue: ref.number, earlier }) : latest,
+    earlier: earlier ? { latest } : null,
+  };
+});
+
+/** The page the params name, or the 404. */
+async function pageOf(params: Promise<PageParams>) {
+  const { owner, repo, issue, attemptId } = await params;
+  const page = await readPage(owner, repo, issue, attemptId);
+  if (page.kind === 'missing') notFound();
+  return page;
 }
 
 /** One value of a query parameter. */
@@ -83,47 +152,44 @@ async function contributionOf(first: ContributeAttemptDetail) {
 }
 
 /**
- * The contribution's layout, read from its first attempt: the issue and its pull request on top, then its sessions
- * beside the one shown (`children`), its repo's rules and the maintainers' notes. Moving between the sessions keeps it
- * and reads only the session. Any other attempt in the address (a run's own address, or a review the API does not
- * answer) leaves the page to itself.
+ * The pull request's layout, read from its first attempt: the header on top, then its sessions beside the one shown
+ * (`children`), its repo's rules and the maintainers' notes. Moving between the sessions keeps it and reads only the
+ * session. An address the page moves on from (a rename, the latest named as earlier) or does not read leaves the page
+ * to itself.
  */
-export async function ContributionLayout({
-  params,
-  children,
-}: {
-  params: Promise<{ id: string }>;
-  children: ReactNode;
-}) {
-  const { id } = await params;
-  const gated = await gate(id);
+export async function ContributionLayout({ params, children }: { params: Promise<PageParams>; children: ReactNode }) {
+  const gated = await gate();
   if (!gated) return <WorkspaceSignIn what="contribution" />;
-  const { view, attempt } = gated;
-  if (!attempt || attempt.kind === 'FOLLOW_UP') return children;
-  const { current, prNotes, replies } = await contributionOf(attempt);
+  const page = await pageOf(params);
+  if (page.kind !== 'page') return children;
+  const { view } = gated;
+  const { first, base, earlier } = page;
+  const { current, prNotes, replies } = await contributionOf(first);
   const now = new Date();
-  const model = contributionMovesOf({ view, first: attempt, current, replies, prNotes, now });
+  const model = contributionMovesOf({ view, first, current, replies, prNotes, now });
   return (
     <ContributionShell
       view={view}
-      attempt={attempt}
-      first={attempt}
+      attempt={first}
+      first={first}
       run={current}
       prNotes={prNotes}
       replies={replies}
       model={model}
       now={now}
+      base={base}
+      earlier={earlier}
     >
       {children}
     </ContributionShell>
   );
 }
 
-/** The address with the query it came with (a grant's resume, the move named), `session` aside. */
-export function withQuery(path: Route, query: Query): Route {
+/** The address with the query it came with (a grant's resume, the move named), `session` aside unless `keep`. */
+export function withQuery(path: Route, query: Query, { keep = false }: { keep?: boolean } = {}): Route {
   const params = new URLSearchParams(path.includes('?') ? path.slice(path.indexOf('?') + 1) : '');
   for (const [key, value] of Object.entries(query)) {
-    if (key === 'session') continue;
+    if (key === 'session' && !keep) continue;
     for (const one of Array.isArray(value) ? value : value === undefined ? [] : [value]) params.append(key, one);
   }
   const base = path.includes('?') ? path.slice(0, path.indexOf('?')) : path;
@@ -141,43 +207,47 @@ export const nextPaneShows = (model: ContributionMoves, first: ContributeAttempt
   waitingThreadsOf(first).length > 0 ||
   model.mayStart;
 
+/** The page's API did not answer: say so, with the way back. */
+function Unavailable() {
+  return (
+    <div className="flex flex-col items-start gap-3" data-review="unavailable">
+      <BackLink />
+      <h1 className={HEADING.page}>This page didn't load</h1>
+      <p className="text-muted-foreground">Reload to try again.</p>
+    </div>
+  );
+}
+
 /**
- * The first attempt's page, or the next step (`?session=next`). A run's own address goes under its first attempt, so it
- * shows in the contribution's layout; one whose first attempt is not known shows on its own. The next step goes to the
- * run under way while there is one, and to the first attempt when it would show nothing.
+ * The first attempt's session, the page itself, or the next step (`?session=next`). The next step goes to the run
+ * under way while there is one, and to the first attempt when it would show nothing. A Learn attempt's page is its
+ * lesson for now: only its next step (follow-ups on its pull request) and its runs show here.
  */
 export async function FirstSessionView({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<PageParams>;
   searchParams: Promise<Query>;
 }) {
-  const [{ id }, query] = await Promise.all([params, searchParams]);
-  const [gated, resolveHumans] = await Promise.all([gate(id), loadResolveHumanThreads()]);
+  const [gated, resolveHumans, query] = await Promise.all([gate(), loadResolveHumanThreads(), searchParams]);
   if (!gated) return null;
-  const { view, attempt } = gated;
-  if (!attempt) return <ReviewScreen view={view} attempt={undefined} />;
-  const move = paramOf(query, 'move');
-  if (attempt.kind === 'FOLLOW_UP') {
-    const first = await firstOf(attempt);
-    if (first) redirect(withQuery(sessionPath(first.attemptId, attempt.attemptId), query));
-    const prNotes = await loadPrNotes(attempt.attemptId);
-    return <ReviewScreen view={view} attempt={attempt} resolveHumans={resolveHumans} prNotes={prNotes} move={move} />;
-  }
+  const page = await pageOf(params);
+  if (page.kind === 'unread') return <Unavailable />;
+  if (page.kind === 'move') redirect(withQuery(pullRequestPath(page.ref), query, { keep: true }));
+  const { view } = gated;
+  const { first: attempt, base } = page;
+  const at = { firstId: attempt.attemptId, base };
   const next = paramOf(query, 'session') === NEXT_SESSION;
-  // A Learn attempt's page is its lesson; its next step (follow-ups on its pull request) stays here. The query goes
-  // along: back from GitHub's access screen, the grant's resume opens the pull request there.
+  // The query goes along: back from GitHub's access screen, the grant's resume opens the pull request there.
   if (attempt.mode === 'LEARN' && !next) redirect(withQuery(learnAttemptPath(attempt.attemptId), query));
   const { current, prNotes, replies } = await contributionOf(attempt);
   const now = new Date();
   const model = contributionMovesOf({ view, first: attempt, current, shown: attempt, replies, prNotes, now });
   if (next) {
     const underWay = attempt.followUps?.currentAttemptId;
-    if (underWay) redirect(withQuery(sessionPath(attempt.attemptId, underWay), query));
-    if (attempt.pullRequest?.state !== 'OPEN' || !nextPaneShows(model, attempt)) {
-      redirect(withQuery(attemptPath(attempt.attemptId), query));
-    }
+    if (underWay) redirect(withQuery(sessionPath(at, underWay), query));
+    if (attempt.pullRequest?.state !== 'OPEN' || !nextPaneShows(model, attempt)) redirect(withQuery(base, query));
   }
   return (
     <SessionPane
@@ -187,33 +257,45 @@ export async function FirstSessionView({
       current={current}
       model={model}
       next={next}
-      move={move}
+      move={paramOf(query, 'move')}
       resumed={!!paramOf(query, RESUME_PARAM)}
       now={now}
       resolveHumans={resolveHumans}
+      base={base}
     />
   );
 }
 
-/** A follow-up run's page, under its first attempt; an address that pairs it with another goes to its own. */
+/**
+ * A follow-up run's session, under its first attempt's page. An id that is not a run of this page's first attempt goes
+ * to its own page, by its id.
+ */
 export async function RunSessionView({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string; runId: string }>;
+  params: Promise<PageParams & { runId: string }>;
   searchParams: Promise<Query>;
 }) {
-  const [{ id, runId }, query] = await Promise.all([params, searchParams]);
-  const [gated, resolveHumans] = await Promise.all([gate(runId), loadResolveHumanThreads()]);
+  const [{ runId }, gated, resolveHumans, query] = await Promise.all([
+    params,
+    gate(),
+    loadResolveHumanThreads(),
+    searchParams,
+  ]);
   if (!gated) return null;
-  const { view, attempt } = gated;
-  if (!attempt) return <ReviewScreen view={view} attempt={undefined} />;
-  if (attempt.kind !== 'FOLLOW_UP' || attempt.followUpOf?.attemptId !== id)
-    redirect(withQuery(attemptPath(runId), query));
-  const first = await firstOf(attempt);
-  const { current, prNotes, replies } = first
-    ? await contributionOf(first)
-    : { current: undefined, prNotes: await loadPrNotes(attempt.attemptId), replies: undefined };
+  const page = await pageOf(params);
+  if (page.kind === 'unread') return <Unavailable />;
+  if (page.kind === 'move') redirect(withQuery(pullRequestPath(page.ref, { run: runId }), query, { keep: true }));
+  const { view } = gated;
+  const { first, base } = page;
+  const attempt = await loadAttempt(runId).catch(() => undefined);
+  if (attempt === undefined) return <Unavailable />;
+  if (attempt === null) notFound();
+  if (attempt.kind !== 'FOLLOW_UP' || attempt.followUpOf?.attemptId !== first.attemptId) {
+    redirect(withQuery(pullRequestByAttemptPath(runId), query, { keep: true }));
+  }
+  const { current, prNotes, replies } = await contributionOf(first);
   const now = new Date();
   const model = contributionMovesOf({ view, first, current, shown: attempt, replies, prNotes, now });
   return (
@@ -226,15 +308,9 @@ export async function RunSessionView({
       move={paramOf(query, 'move')}
       now={now}
       resolveHumans={resolveHumans}
+      base={base}
     />
   );
-}
-
-/** A run's first attempt, the one whose pull request it follows up; undefined when that read is no part of its page. */
-async function firstOf(run: ContributeAttemptDetail): Promise<ContributeAttemptDetail | undefined> {
-  const of = run.followUpOf;
-  const read = of ? await loadAttempt(of.attemptId).catch(() => undefined) : undefined;
-  return read?.kind === 'FIRST' && (!read.pullRequest || read.pullRequest.prId === of?.prId) ? read : undefined;
 }
 
 /** The two limits the rail's rules read: a client component, so nothing else of the settings goes to the browser. */
@@ -270,6 +346,8 @@ export function ContributionShell({
   prNotes,
   replies,
   model,
+  base,
+  earlier,
   children,
 }: {
   view: ContributeView;
@@ -277,6 +355,10 @@ export function ContributionShell({
   first?: ContributeAttemptDetail;
   run?: ContributeAttemptDetail;
   shown?: string;
+  /** The page's address its sessions sit under; else the issue's, from the first attempt. */
+  base?: Route;
+  /** On an earlier attempt's page: the latest's address. */
+  earlier?: { latest: Route } | null;
   now?: Date;
   /** The maintainers' say on its PR: a stop, and "this PR helped" notes. */
   prNotes?: ContributePrNotes;
@@ -285,7 +367,7 @@ export function ContributionShell({
   model: ContributionMoves;
   children: ReactNode;
 }) {
-  const cards = first ? sessionsOf(first, run, model) : null;
+  const cards = first ? sessionsOf(first, run, model, pageAtOf(first, base).base) : null;
   const session = first
     ? { firstId: first.attemptId, nextShown: !!model.nextTileTitle || !!model.proofStage, shown }
     : null;
@@ -294,7 +376,7 @@ export function ContributionShell({
     <div className="flex flex-col gap-5" data-contribution={first?.attemptId ?? attempt.attemptId}>
       {/* The access level holds every attempt and run; the key's trouble is Needs you's to say. */}
       <ContributeNotices notices={accessNoticesOf(view)} variant="line" />
-      <ContributionHeader attempt={attempt} first={first} prNotes={prNotes} now={now} />
+      <PullRequestHeader attempt={attempt} first={first} prNotes={prNotes} earlier={earlier} now={now} />
 
       <div className={cards ? RAIL_GRID : PANE_GRID}>
         {cards && first && session ? <SessionsList cards={cards} rounds={runsLabelOf(first)} {...session} /> : null}
@@ -341,6 +423,8 @@ export function ReviewScreen({
   replies,
   seed,
   resumed = false,
+  base,
+  earlier,
 }: {
   view: ContributeView;
   attempt: ContributeAttemptDetail | undefined;
@@ -356,16 +440,12 @@ export function ReviewScreen({
   replies?: ContributeReplyWaiting[];
   seed?: SessionActionsSeed;
   resumed?: boolean;
+  /** The page's address; else the issue's, from the first attempt. */
+  base?: Route;
+  /** On an earlier attempt's page: the latest's address. */
+  earlier?: { latest: Route } | null;
 }) {
-  if (!attempt) {
-    return (
-      <div className="flex flex-col items-start gap-3" data-review="unavailable">
-        <BackLink />
-        <h1 className={HEADING.page}>Reviews are not available yet</h1>
-        <p className="text-muted-foreground">This is coming soon. Check back shortly.</p>
-      </div>
-    );
-  }
+  if (!attempt) return <Unavailable />;
 
   const followUp = attempt.kind === 'FOLLOW_UP';
   const first = followUp ? firstRead : attempt;
@@ -387,6 +467,8 @@ export function ReviewScreen({
       prNotes={prNotes}
       replies={waiting}
       model={model}
+      base={base}
+      earlier={earlier}
     >
       <SessionPane
         view={view}
@@ -400,6 +482,7 @@ export function ReviewScreen({
         seed={seed}
         now={now}
         resolveHumans={resolveHumans}
+        base={base}
       />
     </ContributionShell>
   );

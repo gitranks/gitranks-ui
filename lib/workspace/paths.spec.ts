@@ -4,13 +4,17 @@ import {
   CONNECT_AGENT_PATH,
   CONNECT_KEY_PATH,
   GITHUB_ACCESS_PATH,
+  isAttemptPagePath,
+  isByAttemptPath,
   isInsidePath,
   isMyPath,
   isTablessPath,
   isWorkspacePath,
   KEY_REPLACE_PATH,
   movedAnchorOf,
+  PICK_ISSUE_PATHS,
   pullRequestByAttemptPath,
+  pullRequestPath,
   pullRequestsPath,
   RUNS_PATH,
   SETTINGS_PATHS,
@@ -153,6 +157,54 @@ describe("one attempt's page, by its id", () => {
       '/my/pull-requests/by-attempt/A_1?resume=n+1&move=x',
     );
     expect(pullRequestByAttemptPath('A_1', { query: {} })).toBe('/my/pull-requests/by-attempt/A_1');
+  });
+});
+
+describe("the pull request's page, by repo and issue", () => {
+  it('names the issue, an earlier attempt on it, a run and the next step', () => {
+    const ref = { repo: 'acme/widgets', issue: 42 };
+    expect(pullRequestPath(ref)).toBe('/my/pull-requests/acme/widgets/42');
+    expect(pullRequestPath(ref, 'next')).toBe('/my/pull-requests/acme/widgets/42?session=next');
+    expect(pullRequestPath(ref, { run: 'A_F2' })).toBe('/my/pull-requests/acme/widgets/42/runs/A_F2');
+    expect(pullRequestPath({ ...ref, earlier: 'A_0' })).toBe('/my/pull-requests/acme/widgets/42/earlier/A_0');
+    expect(pullRequestPath({ ...ref, earlier: 'A_0' }, { run: 'A_F1' })).toBe(
+      '/my/pull-requests/acme/widgets/42/earlier/A_0/runs/A_F1',
+    );
+    expect(pullRequestPath({ ...ref, earlier: null }, 'next')).toBe('/my/pull-requests/acme/widgets/42?session=next');
+    // GitHub's names need no escaping, but nothing else reaches the path unescaped.
+    expect(pullRequestPath({ repo: 'a.b/c_d-e', issue: 1 }, { run: 'x/y' })).toBe(
+      '/my/pull-requests/a.b/c_d-e/1/runs/x%2Fy',
+    );
+  });
+
+  it('knows the address by attempt in any spelling, and nothing under it', () => {
+    for (const path of [
+      '/my/pull-requests/by-attempt/A_1',
+      '/my/pull-requests/by-attempt/A_1/',
+      '/MY//Pull-Requests/By-Attempt/A_1',
+    ]) {
+      expect(isByAttemptPath(path), path).toBe(true);
+    }
+    for (const path of [
+      '/my/pull-requests/by-attempt',
+      '/my/pull-requests/by-attempt/A_1/x',
+      '/my/pull-requests/acme/w/1',
+      // A malformed id names no attempt: the route answers its 404 to anyone.
+      '/my/pull-requests/by-attempt/a.b',
+      `/my/pull-requests/by-attempt/${'x'.repeat(65)}`,
+    ]) {
+      expect(isByAttemptPath(path), path).toBe(false);
+    }
+  });
+
+  it("lets a visitor through to a lesson's own page only: a contribution's old address redirects first", () => {
+    expect(isAttemptPagePath('/learn/attempts/A_1')).toBe(true);
+    expect(isAttemptPagePath('/contribute/attempts/A_1')).toBe(false);
+    expect(isAttemptPagePath('/learn/attempts/A_1/runs/A_2')).toBe(false);
+  });
+
+  it("picks another issue on the attempt's side", () => {
+    expect(PICK_ISSUE_PATHS).toEqual({ fix: '/contribute/issues', learn: '/learn#issues' });
   });
 });
 

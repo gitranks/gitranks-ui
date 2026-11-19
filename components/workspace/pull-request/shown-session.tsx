@@ -2,7 +2,7 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 
-import { NEXT_SESSION, nextSessionPath, sessionPath } from '@/lib/workspace/sessions';
+import { NEXT_SESSION } from '@/lib/workspace/sessions';
 
 /** Where the shown session is told: by its page (`shown`), or by the address, under the contribution's layout. */
 export type ShownSession = {
@@ -25,7 +25,3 @@ export function useShownSession({ firstId, nextShown, shown }: ShownSession): st
   if (run) return decodeURIComponent(run);
   return session === NEXT_SESSION && nextShown ? NEXT_SESSION : firstId;
 }
-
-/** The shown session's address, as the layout's links name it. */
-export const shownPathOf = (firstId: string, shown: string) =>
-  shown === NEXT_SESSION ? nextSessionPath(firstId) : sessionPath(firstId, shown);

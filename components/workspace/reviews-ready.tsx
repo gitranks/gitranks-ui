@@ -1,12 +1,9 @@
-import type { Route } from 'next';
 import Link from 'next/link';
 
 import { HEADING } from './primitives';
 import { attemptTitleOf, repoOf } from '@/lib/workspace/attempt-format';
 import type { ContributeAttempt } from '@/lib/workspace/contribute.types';
-
-/** The review screen of one attempt. */
-export const attemptHref = (attemptId: string) => `/contribute/attempts/${encodeURIComponent(attemptId)}` as Route;
+import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 /** The attempts waiting for the user's review, above Issues for you; nothing when none waits. */
 export function ReviewsReady({ attempts }: { attempts: ContributeAttempt[] | undefined }) {
@@ -31,7 +28,11 @@ export function ReviewsReady({ attempts }: { attempts: ContributeAttempt[] | und
               </span>{' '}
               {attemptTitleOf(attempt)}
             </span>
-            <Link href={attemptHref(attempt.attemptId)} prefetch={false} className="text-sm font-semibold text-link">
+            <Link
+              href={pullRequestByAttemptPath(attempt.attemptId)}
+              prefetch={false}
+              className="text-sm font-semibold text-link"
+            >
               Review →
             </Link>
           </li>

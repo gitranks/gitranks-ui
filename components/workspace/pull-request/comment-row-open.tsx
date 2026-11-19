@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 import { CommentRowActions } from './comment-row-actions';
 import { OrgAccessLink, ReplyCopyBar, ReplyText } from './reply-text';
@@ -14,7 +15,7 @@ import { whereOfThread } from '@/lib/workspace/follow-up-flow';
 import { isOrgRestricted, type OrgAccess, replyLinkOf } from '@/lib/workspace/org-access';
 import { reasonKeyOf } from '@/lib/workspace/reply-trouble';
 import { noReplyLineOf, type RowState, type rowActionsOf } from '@/lib/workspace/review-comments';
-import { sessionPath } from '@/lib/workspace/sessions';
+import { pageBaseOf, sessionPath } from '@/lib/workspace/sessions';
 
 const REASON_LABELS = {
   FIXED: "Why it's fixed: ",
@@ -75,6 +76,8 @@ export function DraftOpen({
   resolveSaid: boolean;
 }) {
   const session = useSessionActions();
+  // The run's session sits under the page this row is on.
+  const base = pageBaseOf(usePathname());
   const comment = draft.comment;
   const where = comment ? whereOfThread(comment) : '';
   const pr = prNumber ? `pull request #${prNumber}` : 'the pull request';
@@ -170,7 +173,7 @@ export function DraftOpen({
       ) : null}
       {firstId ? (
         <Link
-          href={sessionPath(firstId, draft.attemptId)}
+          href={sessionPath({ firstId, base }, draft.attemptId)}
           prefetch={false}
           className="self-start text-sm font-semibold text-link"
         >

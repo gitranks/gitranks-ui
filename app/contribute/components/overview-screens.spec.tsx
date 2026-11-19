@@ -476,7 +476,7 @@ describe('Up next', () => {
     expect(taken).not.toContain(`href="${pick.url}"`);
     expect(taken).toMatch(/<a target="_blank" rel="noopener noreferrer" class="[^"]*opacity-60">/);
     expect(text(yours)).toContain('Your agent is on this · View');
-    expect(yours).toContain('href="/contribute/attempts/A_7"');
+    expect(yours).toContain('href="/my/pull-requests/by-attempt/A_7"');
     expect(yours).not.toContain(`href="${pick.url}"`);
     // A free pick, and the profile block's card (not live), have no status line.
     expect(

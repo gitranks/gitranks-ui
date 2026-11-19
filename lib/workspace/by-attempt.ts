@@ -1,48 +1,59 @@
 import type { Route } from 'next';
 
-import type { ContributeAttempt } from './contribute.types';
-import { learnAttemptPath } from './paths';
-import { attemptPath, sessionPath } from './sessions';
+import type { ContributeAttempt, ContributeAttemptMode } from './contribute.types';
+import { learnAttemptPath, pullRequestPath } from './paths';
 
-/** What the address by attempt needs to know of the attempt it names. */
-export type ByAttemptRead = Pick<ContributeAttempt, 'attemptId' | 'kind' | 'mode'> & {
+/** What the address by attempt needs to know of the attempt it names: its issue, its kind and side, its first. */
+export type ByAttemptRead = Pick<ContributeAttempt, 'attemptId' | 'kind' | 'mode' | 'nameWithOwner' | 'number'> & {
   followUpOf: { attemptId: string } | null;
 };
 
-/** The query's text, without `view` (the address by attempt's own word), as it was asked. */
-function queryOf(search: URLSearchParams): string {
+/**
+ * The viewer's newest first attempt on an issue (follow-ups left out), as the API answers it: its id and side, the
+ * repo's current name (a rename, or another letter case, differs from the address) and the older first attempts.
+ */
+export type IssueAttemptRef = {
+  attemptId: string;
+  mode: ContributeAttemptMode;
+  repo: string;
+  number: number;
+  earlier: string[] | null;
+};
+
+/** The query's text, without `view` (the address by attempt's own word), as it was asked, after `extra`. */
+function queryOf(search: URLSearchParams, extra: Record<string, string> = {}): string {
   const kept = new URLSearchParams(search);
   kept.delete('view');
+  for (const [key, value] of Object.entries(extra)) kept.set(key, value);
   const text = kept.toString();
   return text ? `?${text}` : '';
 }
 
 /**
  * Where `/my/pull-requests/by-attempt/<id>` sends the browser, with the whole query but `view` kept (GitHub's consent
- * comes back with `?resume=`, a row may name `?move=`, an agent `?session=next`). For now the pages of today:
- * - a follow-up run: its session, under its first attempt;
- * - a Fix attempt: Contribute's attempt page;
- * - a Learn attempt: its lesson's page, unless the link asks for the pull request's next step (`?session=next`) or a
- *   move (`?move=`), which Contribute's attempt page shows on its next step only (so a move gets `session=next`);
- *   `?view=lesson` always asks for the lesson.
- * Unread (signed out, not found, the API down): Contribute's attempt page, which asks a visitor to sign in and
- * answers anyone else with what it finds.
+ * comes back with `?resume=`, a row may name `?move=`, an agent `?session=next`). Null when the attempt has no page
+ * (its repo or its first attempt is not known, or the issue has no attempt of the viewer's): the route answers 404.
+ * - a follow-up run: its session, `…/runs/<id>`, under its first attempt's page;
+ * - a Fix first attempt: the pull request's page by repo and issue;
+ * - a Learn first attempt: its lesson's page, unless the link asks for the pull request's next step (`?session=next`)
+ *   or a move (`?move=`), which the pull request's page shows a Learn attempt on its next step only (so a move gets
+ *   `session=next`); `?view=lesson` always asks for the lesson.
+ * A first attempt that is not the issue's newest opens at `…/earlier/<id>`.
  */
-export function byAttemptTargetOf(attemptId: string, attempt: ByAttemptRead | null, search: URLSearchParams): Route {
-  const query = queryOf(search);
-  const to = (path: string) => `${path}${query}` as Route;
-  if (!attempt) return to(attemptPath(attemptId));
-  if (attempt.kind === 'FOLLOW_UP' && attempt.followUpOf) {
-    return to(sessionPath(attempt.followUpOf.attemptId, attempt.attemptId));
-  }
-  if (attempt.mode !== 'LEARN') return to(attemptPath(attempt.attemptId));
-  const lesson = search.get('view') === 'lesson';
-  if (lesson || (search.get('session') !== 'next' && !search.has('move'))) {
+export function byAttemptTargetOf(
+  attempt: ByAttemptRead,
+  issue: IssueAttemptRef | null,
+  search: URLSearchParams,
+): Route | null {
+  const followUp = attempt.kind === 'FOLLOW_UP';
+  const firstId = followUp ? attempt.followUpOf?.attemptId : attempt.attemptId;
+  if (!firstId || !issue) return null;
+  const ref = { repo: issue.repo, issue: issue.number, earlier: firstId === issue.attemptId ? null : firstId };
+  const to = (path: Route, extra?: Record<string, string>) => `${path}${queryOf(search, extra)}` as Route;
+  if (followUp) return to(pullRequestPath(ref, { run: attempt.attemptId }));
+  if (attempt.mode !== 'LEARN') return to(pullRequestPath(ref));
+  if (search.get('view') === 'lesson' || (search.get('session') !== 'next' && !search.has('move'))) {
     return to(learnAttemptPath(attempt.attemptId));
   }
-  // Contribute's page shows a Learn pull request's moves only on its next step: a move asks for it.
-  const next = new URLSearchParams(search);
-  next.delete('view');
-  next.set('session', 'next');
-  return `${attemptPath(attempt.attemptId)}?${next.toString()}` as Route;
+  return to(pullRequestPath(ref), { session: 'next' });
 }

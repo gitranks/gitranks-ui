@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import { describe, expect, it } from 'vitest';
 
 import type { ContributeAttemptDetail, ContributeFollowUpRound } from './contribute.types';
@@ -6,7 +7,11 @@ import {
   nextRoundOpen,
   nextRoundRecommended,
   nextRunNumberOf,
+  nextSessionPath,
+  pageAtOf,
+  pageBaseOf,
   runsLabelOf,
+  sessionPath,
   sessionsOf as tilesOf,
   waitingThreadsOf,
 } from './sessions';
@@ -15,7 +20,10 @@ import { NOW, views } from '@/lib/contribute/__fixtures__/contribute-views';
 
 /** The tiles as the layout draws them: their pills and the next tile from the contribution's model. */
 const sessionsOf = (first: ContributeAttemptDetail, run?: ContributeAttemptDetail) =>
-  tilesOf(first, run, contributionMovesOf({ view: views.active, first, current: run, now: NOW }));
+  tilesOf(first, run, contributionMovesOf({ view: views.active, first, current: run, now: NOW }), PAGE);
+
+/** The page's address the tiles link under (an earlier attempt's page passes its own). */
+const PAGE = '/my/pull-requests/acme/widgets/42' as Route;
 
 const round = (patch: Partial<ContributeFollowUpRound> = {}): ContributeFollowUpRound => ({
   round: 1,
@@ -36,6 +44,36 @@ const round = (patch: Partial<ContributeFollowUpRound> = {}): ContributeFollowUp
   ...patch,
 });
 
+describe("a session's address, under its page's", () => {
+  it('builds each session under the page: the first attempt is the page, a run beneath it, the next step its query', () => {
+    const at = { firstId: 'A_1', base: PAGE };
+    expect(sessionPath(at, 'A_1')).toBe(PAGE);
+    expect(sessionPath(at, 'A_F2')).toBe(`${PAGE}/runs/A_F2`);
+    expect(nextSessionPath(at)).toBe(`${PAGE}?session=next`);
+    const earlier = { firstId: 'A_0', base: `${PAGE}/earlier/A_0` as Route };
+    expect(sessionPath(earlier, 'A_F1')).toBe(`${PAGE}/earlier/A_0/runs/A_F1`);
+  });
+
+  it("takes the page's address when it says it, else the issue's from the first attempt", () => {
+    const first = { attemptId: 'A_1', nameWithOwner: 'acme/widgets', number: 42 };
+    expect(pageAtOf(first)).toEqual({ firstId: 'A_1', base: '/my/pull-requests/acme/widgets/42' });
+    expect(pageAtOf(first, `${PAGE}/earlier/A_1` as Route).base).toBe(`${PAGE}/earlier/A_1`);
+    // No repo name known: the address by attempt finds it, and each session goes by its own id.
+    const unnamed = pageAtOf({ ...first, nameWithOwner: null });
+    expect(unnamed.base).toBe('/my/pull-requests/by-attempt/A_1');
+    expect(sessionPath(unnamed, 'A_F2')).toBe('/my/pull-requests/by-attempt/A_F2');
+    expect(sessionPath(unnamed, 'A_1')).toBe('/my/pull-requests/by-attempt/A_1');
+    expect(nextSessionPath(unnamed)).toBe('/my/pull-requests/by-attempt/A_1?session=next');
+  });
+
+  it("reads the page's address off the browser's path, a run's segment aside", () => {
+    expect(pageBaseOf(PAGE)).toBe(PAGE);
+    expect(pageBaseOf(`${PAGE}/`)).toBe(PAGE);
+    expect(pageBaseOf(`${PAGE}/runs/A_F2`)).toBe(PAGE);
+    expect(pageBaseOf(`${PAGE}/earlier/A_0/runs/A_F1`)).toBe(`${PAGE}/earlier/A_0`);
+  });
+});
+
 describe("a contribution's sessions", () => {
   it('lists the first attempt alone before its pull request, as it stands', () => {
     const [card, ...rest] = sessionsOf(attempts.review);
@@ -44,7 +82,7 @@ describe("a contribution's sessions", () => {
       title: 'First attempt',
       pill: { label: 'Your move', tone: 'amber' },
       meta: 'Oct 28 · $2.36',
-      href: '/contribute/attempts/A_1',
+      href: PAGE,
     });
     expect(card).not.toHaveProperty('note');
   });
@@ -73,12 +111,12 @@ describe("a contribution's sessions", () => {
     expect(cards[1].meta).toBe('Oct 28 · $0.31 · by autopilot');
     expect(cards.every((card) => !('note' in card))).toBe(true);
     expect(cards[2]).toMatchObject({ title: 'Run 2', pill: { label: 'Discarded' }, meta: 'Oct 28 · $0.12' });
-    expect(cards[2].href).toBe('/contribute/attempts/A_1/runs/A_F2');
+    expect(cards[2].href).toBe(`${PAGE}/runs/A_F2`);
     expect(cards[3]).toMatchObject({
       title: 'Run 3',
       pill: { label: 'Your move', tone: 'amber' },
       meta: 'Waits for you',
-      href: '/contribute/attempts/A_1?session=next&move=changes',
+      href: `${PAGE}?session=next&move=changes`,
       draft: true,
     });
     expect(runsLabelOf(first)).toBe('2 runs · $0.43');
@@ -125,7 +163,7 @@ describe("a contribution's sessions", () => {
     const shown = sessionsOf(first, followUpAttempts.review);
     expect(shown.map(({ key }) => key)).toEqual(['A_1', 'A_F1']);
     // A run back for review holds its move: "Your move", never "Ready for you".
-    expect(shown[1]).toMatchObject({ pill: { label: 'Your move' }, href: '/contribute/attempts/A_1/runs/A_F1' });
+    expect(shown[1]).toMatchObject({ pill: { label: 'Your move' }, href: `${PAGE}/runs/A_F1` });
   });
 
   it('numbers a run added without the history as the latest, and words a state it does not know', () => {

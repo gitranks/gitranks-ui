@@ -1100,12 +1100,30 @@ export const ContributeAttemptRefDocument = doc<
       attemptId: string;
       kind: 'FIRST' | 'FOLLOW_UP';
       mode: ContributeAttemptMode | null;
+      nameWithOwner: string | null;
+      number: number;
       followUpOf: { attemptId: string } | null;
     } | null;
   },
   { id: string }
 >(
-  'query ContributeAttemptRef($id: ID!) { contributeAttempt(id: $id) { attemptId kind mode followUpOf { attemptId } } }',
+  'query ContributeAttemptRef($id: ID!) { contributeAttempt(id: $id) { attemptId kind mode nameWithOwner number followUpOf { attemptId } } }',
+);
+
+/** The viewer's newest first attempt on an issue, the repo's current name, and the earlier ones (the page's address). */
+export const ContributeAttemptByIssueDocument = doc<
+  {
+    contributeAttemptRef: {
+      attemptId: string;
+      mode: ContributeAttemptMode;
+      repo: string;
+      number: number;
+      earlier: string[] | null;
+    } | null;
+  },
+  { owner: string; repo: string; number: number }
+>(
+  'query ContributeAttemptByIssue($owner: String!, $repo: String!, $number: Int!) { contributeAttemptRef(owner: $owner, repo: $repo, number: $number) { attemptId mode repo number earlier } }',
 );
 
 /** What waits on the user, in order, and the work in progress (the Pull requests tab); null when hidden. */

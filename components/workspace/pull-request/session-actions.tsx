@@ -1,9 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import type { Route } from 'next';
+import { usePathname, useRouter } from 'next/navigation';
 import { createContext, type ReactNode, useContext, useMemo, useReducer, useState } from 'react';
 
-import { attemptHref } from '@/components/workspace/reviews-ready';
 import {
   approveAttempt,
   approveFollowUp,
@@ -33,6 +33,7 @@ import {
 import { attemptActionErrorMessage, type ContributeActionResult } from '@/lib/workspace/errors';
 import { followUpErrorMessage } from '@/lib/workspace/follow-up-format';
 import { CONNECTION_FAILED_OF, runLong } from '@/lib/workspace/session-head-logic';
+import { pageBaseOf } from '@/lib/workspace/sessions';
 
 export type { ActionError, ActionSource, ActionState, PendingSource } from '@/lib/workspace/comment-actions';
 
@@ -120,6 +121,8 @@ export function SessionActionsProvider({
   children: ReactNode;
 }) {
   const router = useRouter();
+  // A run started here is a session of this page: its address sits under the page's.
+  const base = pageBaseOf(usePathname());
   const [state, dispatch] = useReducer(commentActionsReducer, init, (from) => ({
     ...commentActionsInit(from),
     pending: seed?.pending ?? null,
@@ -212,7 +215,7 @@ export function SessionActionsProvider({
         return;
       }
       dispatch({ type: 'went-through', source: 'start' });
-      router.push(attemptHref(result.data.attemptId));
+      router.push(`${base}/runs/${encodeURIComponent(result.data.attemptId)}` as Route);
     },
     startState: view.startState,
     startPlainState: view.startPlainState,

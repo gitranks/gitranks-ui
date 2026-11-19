@@ -154,14 +154,14 @@ describe('Start your own lesson', () => {
     expect(running.plain).toContain(
       'Your agent took it as a regular fix, without a lesson. Ask your agent to release it, then paste the prompt again.',
     );
-    expect(running.html).toContain('href="/contribute/attempts/A_9"');
+    expect(running.html).toContain('href="/my/pull-requests/by-attempt/A_9"');
     expect(running.plain).not.toContain('Pick another issue →');
     expect(running.plain).toContain(PROMPT);
 
     const open = screen({ fix: fixAttemptOf('PR_OPEN') });
     expect(open.plain).toContain("so it can't be a lesson. Pick another issue.");
     expect(open.plain).toContain('Pick another issue →');
-    expect(open.html).toContain('href="/contribute/attempts/A_9"');
+    expect(open.html).toContain('href="/my/pull-requests/by-attempt/A_9"');
     // No prompt to paste again for this issue.
     expect(open.plain).not.toContain(PROMPT);
     expect(open.plain).toContain('2 · Paste one prompt in your agent Not for this issue: pick another one.');

@@ -1,5 +1,7 @@
 import type { Route } from 'next';
 
+import { pullRequestByAttemptPath } from './paths';
+
 /**
  * The first pull request asks for the GitHub grant from its submit button: the approval waits in the tab while GitHub
  * asks, and the review page sends it once the user is back with the grant. Kept in `sessionStorage`, so it never
@@ -36,9 +38,9 @@ export function tabStoreOf(source: { readonly sessionStorage: SessionStore } | u
   }
 }
 
-/** Where GitHub sends the user back: the review, with the nonce. */
-export const resumeHrefOf = (attemptId: string, nonce: string) =>
-  `/contribute/attempts/${encodeURIComponent(attemptId)}?${RESUME_PARAM}=${encodeURIComponent(nonce)}` as Route;
+/** Where GitHub sends the user back: the review, by its attempt's id, with the nonce (the page keeps the query). */
+export const resumeHrefOf = (attemptId: string, nonce: string): Route =>
+  pullRequestByAttemptPath(attemptId, { query: { [RESUME_PARAM]: nonce } });
 
 /** Keeps the approval for the way back; false when the tab cannot keep it (storage off or blocked). */
 export function savePendingApproval(store: SessionStore | null, approval: PendingApproval): boolean {

@@ -419,25 +419,7 @@ describe('proxy', () => {
       });
     });
 
-    it.each([
-      '/contribute/attempts/A_1',
-      '/contribute/attempts/A_1/',
-      '/contribute/attempts/A_1/runs/A_2',
-      '/Contribute//Attempts/A_1',
-      '/contribute%2Fattempts%2FA_1',
-    ])(
-      "lets a visitor without a session through to a contribution's own page %s, which asks them to sign in",
-      async (path) => {
-        const response = await proxy(request(undefined, path), event);
-        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
-        expect(maySeeContribute).not.toHaveBeenCalled();
-        expect(withSession).not.toHaveBeenCalled();
-      },
-    );
-
-    it("keeps a contribution's page behind the gate for a signed-in user the API does not let in, and the rest for everyone", async () => {
-      const signedIn = await proxy(request('authjs.session-token=t', '/contribute/attempts/A_1'), event);
-      expect(signedIn?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+    it("keeps what is left under a contribution's old address behind the gate (the address itself redirects first)", async () => {
       for (const path of ['/contribute/attempts', '/contribute/attempts/A_1/files', '/contribute/attempts/A_1/runs']) {
         const response = await proxy(request(undefined, path), event);
         expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
@@ -457,7 +439,7 @@ describe('proxy', () => {
       settingUp.mockResolvedValue(true);
       for (const [path, to] of [
         ['/contribute/issues', 'https://gitranks.com/contribute'],
-        ['/contribute/attempts/A_1', 'https://gitranks.com/contribute'],
+        ['/contribute/settings', 'https://gitranks.com/contribute'],
       ]) {
         const response = await proxy(request('authjs.session-token=t', path), event);
         expect(response?.headers.get('location'), path).toBe(to);
@@ -626,6 +608,28 @@ describe('proxy', () => {
       }
       expect(maySeeContribute).not.toHaveBeenCalled();
       expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      '/my/pull-requests/by-attempt/A_1',
+      '/my/pull-requests/by-attempt/A_1?session=next&resume=n0nce',
+      '/MY//pull-requests/by-attempt/A_1/',
+    ])('shows a visitor the sign-in on the address by attempt %s itself, so it comes back there', async (path) => {
+      const response = await proxy(request(undefined, path), event);
+      expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/my/pull-requests');
+      expect(response?.headers.get('location')).toBeNull();
+      expect(response?.headers.get('cache-control')).toBe('private, no-store');
+      expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+
+    it('shows the sign-in on the address by attempt to a session the server cannot read, and lets a signed-in one on', async () => {
+      sessionRead.ok = false;
+      const expired = await proxy(request('authjs.session-token=t', '/my/pull-requests/by-attempt/A_1'), event);
+      expect(expired?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/my/pull-requests');
+      sessionRead.ok = true;
+      maySeeContribute.mockResolvedValue(true);
+      const signedIn = await proxy(request('authjs.session-token=t', '/my/pull-requests/by-attempt/A_1'), event);
+      expect(signedIn?.headers.get('x-middleware-rewrite')).toBeNull();
     });
 
     it("lets a session the server cannot read through to the sign-in, as a visitor's", async () => {

@@ -12,7 +12,7 @@ vi.mock('@/app/(public)/contribute/maintainers/actions', () => ({
 vi.mock('@/lib/workspace/actions', () => ({ hidePrNote: vi.fn() }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/attempts/A_1',
+  usePathname: () => '/my/pull-requests/driftwood-js/driftwood/871',
   useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock('@/lib/workspace/contribute.data', () => ({
@@ -368,7 +368,7 @@ describe('the report pages', () => {
     const html = screen({ state: 'found', card: prCard({ isAuthor: true }), viewer: prViewer() });
 
     expect(text(html)).toContain('This is your own pull request');
-    expect(html).toContain('href="/contribute/attempts/6650a1b2c3d4e5f6a7b8c9d0"');
+    expect(html).toContain('href="/my/pull-requests/by-attempt/6650a1b2c3d4e5f6a7b8c9d0"');
     expect(html).not.toContain('<form');
   });
 

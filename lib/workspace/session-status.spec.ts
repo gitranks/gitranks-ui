@@ -6,6 +6,7 @@ import { contributionMovesOf } from './contribution-moves';
 import {
   bounceOf,
   firstStatusOf,
+  NOT_BACK_LINE,
   nextStatusOf,
   noRunWhyOf,
   roundLeadOf,
@@ -114,14 +115,17 @@ describe('the first attempt’s status line', () => {
     expect(line).toMatchObject({ title: 'Run 1 is fixing', link: { label: 'Watch run 1 →' }, live: true });
   });
 
-  it('says a stop short, its spend, and the end move’s link', () => {
+  it('says a stop short, its spend, that the issue does not come back, and where to go next', () => {
     const budget = firstStatusOf(stopped('BUDGET'), { now: NOW });
     expect(budget).toMatchObject({
       title: 'Stopped: reached your $5 limit per run',
       lead: { kind: 'pill', label: 'Stopped' },
-      link: { label: 'Open More limits →' },
+      link: { label: 'Pick another issue →', href: '/contribute/issues' },
+      more: { label: 'Budget and pacing →', href: '/my/agent/budget' },
     });
-    expect(budget.fact).toMatch(/spent; the issue went back to the pool$/);
+    expect(budget.fact).toMatch(
+      /spent; the issue went back to the pool\. This issue does not come back to your list\.$/,
+    );
     const failed = firstStatusOf(
       detail({
         ...stopped('SUBMIT_FAILED'),
@@ -132,7 +136,36 @@ describe('the first attempt’s status line', () => {
     expect(failed).toMatchObject({
       title: 'Stopped: the pull request could not be opened',
       lead: { kind: 'pill', label: 'Failed', tone: 'red' },
+      link: { label: 'Pick another issue →' },
+      more: null,
     });
+    expect(failed.fact).toMatch(/This issue does not come back to your list\.$/);
+  });
+
+  it('offers by why it stopped: another issue, the key, the Agent tab, or the limits a check went over', () => {
+    const next = (reason: ContributeAttemptEndReason, endDetail: string | null = null) => {
+      const { link, more, fact } = firstStatusOf(detail({ ...stopped(reason, endDetail) }), { now: NOW });
+      return { link: link?.href, more: more?.href ?? null, back: !!fact?.endsWith(NOT_BACK_LINE) };
+    };
+    for (const reason of ['FAILED', 'CHECKS_FAILED', 'USER', 'REVIEW_EXPIRED', 'NO_GO', 'CANCELLED'] as const) {
+      expect(next(reason), reason).toEqual({ link: '/contribute/issues', more: null, back: true });
+    }
+    expect(next('TIMEOUT')).toEqual({ link: '/contribute/issues', more: '/my/agent/budget', back: true });
+    expect(next('KEY_INVALID')).toEqual({ link: '/my/agent/key', more: null, back: true });
+    expect(next('EXHAUSTED')).toEqual({ link: '/my/agent', more: null, back: true });
+    expect(next('LIMIT_REACHED')).toEqual({ link: '/my/agent', more: null, back: true });
+    expect(next('CHECKS_FAILED', 'max_files')).toMatchObject({
+      link: '/contribute/issues',
+      more: '/my/agent/model#prs',
+    });
+    // Someone else has the issue: nothing to say of the person's list.
+    expect(next('CLAIM_LOST')).toEqual({ link: '/contribute/issues', more: null, back: false });
+    // A Learn attempt picks another of Learn's issues.
+    const learn = firstStatusOf(detail({ ...stopped('USER'), mode: 'LEARN' }), { now: NOW });
+    expect(learn.link?.href).toBe('/learn#issues');
+    // A run's stop keeps its own words: the pull request exists.
+    const run = firstStatusOf(detail({ ...stopped('USER'), pullRequest: pullRequest() }), { now: NOW });
+    expect(run.link?.label).not.toBe('Pick another issue →');
   });
 
   it('leaves the no-go’s reason and the limit note to the decisions card when it shows them', () => {
@@ -165,12 +198,13 @@ describe('the first attempt’s status line', () => {
     const discarded = firstStatusOf(detail({ state: 'DISCARDED', endReason: 'CANCELLED' }), { now: NOW });
     expect(discarded).toMatchObject({ title: 'Discarded', lead: { kind: 'pill', label: 'Discarded' } });
     expect(discarded.fact).toBe(
-      'It was cancelled before it finished. The issue went back to the pool, and nothing was submitted.',
+      'It was cancelled before it finished. The issue went back to the pool, and nothing was submitted. This issue does not come back to your list.',
     );
+    expect(discarded.link).toMatchObject({ label: 'Pick another issue →', href: '/contribute/issues' });
     const refused = firstStatusOf(detail({ state: 'DISCARDED', endReason: 'CANCELLED', endDetail: 'repo_no_gfi' }), {
       now: NOW,
     });
-    expect(refused.fact).toMatch(/Nothing was submitted\.$/);
+    expect(refused.fact).toMatch(/Nothing was submitted\. This issue does not come back to your list\.$/);
     expect(refused.details).toHaveLength(2);
   });
 

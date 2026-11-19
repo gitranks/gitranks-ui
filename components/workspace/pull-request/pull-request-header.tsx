@@ -1,11 +1,16 @@
+import type { Route } from 'next';
 import Link from 'next/link';
 import { Fragment, type ReactNode } from 'react';
 
+import { type StageLine, stageLineOf } from './stage-line';
 import { AdaptiveTooltip } from '@/components/adaptive-tooltip/adaptive-tooltip';
 import { Pill } from '@/components/pill/pill';
 import { NoticeLine } from '@/components/workspace/contribute-notices';
+import { LearnPill } from '@/components/workspace/learn-pill';
 import { HEADING } from '@/components/workspace/primitives';
+import { RefChips } from '@/components/workspace/ref-chips';
 import {
+  AGENT_NAMES,
   attemptTitleOf,
   githubUrlOf,
   isOwnAgent,
@@ -21,13 +26,11 @@ import type {
   ContributeAttemptDetail,
   ContributeAttemptPullRequest,
   ContributeCheckNote,
-  ContributeFollowUpOf,
   ContributePrNotes,
 } from '@/lib/workspace/contribute.types';
-import { dayLabel, relativeLabel } from '@/lib/workspace/format';
+import { dayLabel, MODELS, relativeLabel } from '@/lib/workspace/format';
 import { hardStopOf } from '@/lib/workspace/hard-stop';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
-import { attemptPath } from '@/lib/workspace/sessions';
 
 /** Back to the user's contributions. */
 export const BackLink = () => (
@@ -92,29 +95,14 @@ function prPartsOf(pullRequest: ContributeAttemptPullRequest, now?: Date): Part[
 }
 
 /**
- * The pull request in one line: its state, a link to it, then while it is open its review, its checks and when it was
- * last read from GitHub; once it ended, when it was merged or closed.
+ * The pull request in one line: its state, then while it is open its review, its checks and when it was last read from
+ * GitHub; once it ended, when it was merged or closed. Its number and link are the header's `PR #N ↗` chip.
  */
 export function PullRequestStatus({ pullRequest, now }: { pullRequest: ContributeAttemptPullRequest; now?: Date }) {
   const state = toneLabelOf(PR_STATES, pullRequest.state);
-  const url = githubUrlOf(pullRequest.url);
-  const name = (
-    <>
-      <span className="max-sm:sr-only">Pull request </span>#{pullRequest.number}
-    </>
-  );
-
   return (
     <div data-pr-state={pullRequest.state} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
       <Pill tone={state.tone}>{state.label}</Pill>
-      <Dot />
-      {url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-link hover:underline">
-          {name} ↗
-        </a>
-      ) : (
-        <span className="font-semibold">{name}</span>
-      )}
       {prPartsOf(pullRequest, now).map(({ key, node }) => (
         <Fragment key={key}>
           <Dot />
@@ -144,43 +132,6 @@ export function CheckNotes({ notes }: { notes: readonly ContributeCheckNote[] | 
         </li>
       ))}
     </ul>
-  );
-}
-
-/** The pull request a follow-up works on: `pull request #1419 ↗`, or words while it is not known. */
-export function FollowUpOfLink({ followUpOf }: { followUpOf: ContributeFollowUpOf | null | undefined }) {
-  if (!followUpOf) return <>the pull request</>;
-  const url = githubUrlOf(followUpOf.url);
-  return url ? (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="font-semibold text-link hover:underline">
-      pull request #{followUpOf.number} ↗
-    </a>
-  ) : (
-    <>pull request #{followUpOf.number}</>
-  );
-}
-
-/** A run whose first attempt is not known: the pull request it follows up, and the change that opened it. */
-function FollowUpOfLine({ followUpOf }: { followUpOf: ContributeFollowUpOf | null | undefined }) {
-  return (
-    <p data-follow-up-of={followUpOf?.number ?? ''} className="text-sm text-muted-foreground">
-      {followUpOf === undefined ? (
-        'The pull request it follows up is not available yet.'
-      ) : (
-        <>
-          Follows up <FollowUpOfLink followUpOf={followUpOf} />
-          {followUpOf ? (
-            <>
-              {' '}
-              ·{' '}
-              <Link href={attemptPath(followUpOf.attemptId)} prefetch={false} className="text-link">
-                the change that opened it
-              </Link>
-            </>
-          ) : null}
-        </>
-      )}
-    </p>
   );
 }
 
@@ -248,58 +199,84 @@ function MaintainerStoppedLine({
   );
 }
 
+/** "Hosted agent · Sonnet 5.5" or "Your own agent · Claude Code": whose agent wrote it. */
+export function agentLineOf(attempt: Pick<ContributeAttemptDetail, 'runner' | 'agent' | 'model'>): string {
+  if (isOwnAgent(attempt)) {
+    const name = attempt.agent && attempt.agent.name !== 'OTHER' ? AGENT_NAMES[attempt.agent.name] : null;
+    return name ? `Your own agent · ${name}` : 'Your own agent';
+  }
+  const model = attempt.model ? MODELS[attempt.model]?.replace(/^Claude /, '') : null;
+  return model ? `Hosted agent · ${model}` : 'Hosted agent';
+}
+
+/** The pill and words where the pull request's line goes, while no pull request exists. */
+function StageStatus({ line }: { line: StageLine }) {
+  return (
+    <div data-stage={line.name} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      <Pill tone={line.pill.tone}>{line.pill.label}</Pill>
+      {line.text ? <Muted>{line.text}</Muted> : null}
+    </div>
+  );
+}
+
 /**
- * The contribution's header: back to the list, the issue and its chips, its title, then the pull request's state in
- * one line with its failing checks that call nobody under it (or, for a run whose first attempt is not known, the pull
- * request it follows up), and a maintainer's stop.
+ * The pull request's page's header (W1 §8.2), one for both sides: the way back (and, on an earlier attempt, the line
+ * to the latest above it), the reference line (the repo, `Issue #N ↗`, `PR #N ↗` once it exists, the Learn pill, whose
+ * agent wrote it, the newcomers chip), the issue's title, then one status line: the pull request's, with its failing
+ * checks that call nobody and a maintainer's stop under it; before it exists, the stage (`stageLineOf`). A run is
+ * always drawn under its first attempt (every run names it), so the header is the first attempt's. The lesson line and
+ * the two views come with the Lesson view.
  */
-export function ContributionHeader({
+export function PullRequestHeader({
   attempt,
   first,
   prNotes,
+  earlier,
   now,
 }: {
-  /** Names the issue: the first attempt, or a run read on its own. */
+  /** Names the issue: the first attempt, or a run (`first` then is its first attempt). */
   attempt: ContributeAttemptDetail;
+  /** The first attempt, when `attempt` is a run (a first attempt is its own). */
   first?: ContributeAttemptDetail;
   prNotes?: ContributePrNotes;
+  /** An earlier attempt on the issue: the address of the latest, for the line above. */
+  earlier?: { latest: Route } | null;
   now?: Date;
 }) {
-  const issueUrl = githubUrlOf(attempt.url);
   const repo = repoOf(attempt);
+  const named = first ?? (attempt.kind === 'FIRST' ? attempt : undefined);
+  const pr = named?.pullRequest ?? null;
   const stop = hardStopOf({ first, prNotes });
   const stopped = stop?.kind === 'maintainer_stopped' ? prNotes?.stopped : null;
+  const stage = named && !pr ? stageLineOf(named, now) : null;
 
   return (
-    <header className="flex flex-col gap-2">
+    <header className="flex flex-col gap-2" data-pr-header="">
+      {earlier ? (
+        <p data-earlier-attempt="" className="text-sm text-muted-foreground">
+          An earlier attempt on this issue.{' '}
+          <Link href={earlier.latest} prefetch={false} className="font-semibold text-link">
+            See the latest →
+          </Link>
+        </p>
+      ) : null}
       <BackLink />
-      <span className="flex flex-wrap items-center gap-2.5 font-mono text-sm text-muted-foreground">
-        {issueUrl ? (
-          <a href={issueUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-            {repo} · issue #{attempt.number} ↗
-          </a>
-        ) : (
-          `${repo} · issue #${attempt.number}`
-        )}
-        {isOwnAgent(attempt) ? <Pill tone="violet">Your own agent</Pill> : null}
+      <RefChips repo={attempt.nameWithOwner} issue={attempt.number} pr={pr ? { number: pr.number, url: pr.url } : null}>
+        {(named ?? attempt).mode === 'LEARN' ? <LearnPill /> : null}
+        <Pill tone="neutral">{agentLineOf(named ?? attempt)}</Pill>
         {attempt.newcomersLabel ? <NewcomersChip label={attempt.newcomersLabel} /> : null}
-      </span>
+      </RefChips>
       <h1 className={HEADING.page}>{attemptTitleOf(attempt)}</h1>
-      {first?.pullRequest ? (
+      {pr ? (
         <>
-          <PullRequestStatus pullRequest={first.pullRequest} now={now} />
-          {first.pullRequest.state === 'OPEN' ? <CheckNotes notes={first.checkNotes} /> : null}
+          <PullRequestStatus pullRequest={pr} now={now} />
+          {pr.state === 'OPEN' ? <CheckNotes notes={named?.checkNotes} /> : null}
         </>
-      ) : attempt.kind === 'FOLLOW_UP' ? (
-        <FollowUpOfLine followUpOf={attempt.followUpOf} />
+      ) : stage ? (
+        <StageStatus line={stage} />
       ) : null}
       {stopped ? (
-        <MaintainerStoppedLine
-          stopped={stopped}
-          repo={repo}
-          url={githubUrlOf(first?.pullRequest?.url ?? attempt.followUpOf?.url)}
-          number={first?.pullRequest?.number ?? attempt.followUpOf?.number}
-        />
+        <MaintainerStoppedLine stopped={stopped} repo={repo} url={githubUrlOf(pr?.url)} number={pr?.number} />
       ) : null}
     </header>
   );

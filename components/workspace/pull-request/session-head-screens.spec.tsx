@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let search = '';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/attempts/A_1',
+  usePathname: () => '/my/pull-requests/driftwood-js/driftwood/871',
   useSearchParams: () => new URLSearchParams(search),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
@@ -23,12 +23,14 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadPrNotes: vi.fn(async () => undefined),
   loadRepliesWaiting: vi.fn(async () => []),
   loadResolveHumanThreads: vi.fn(async () => undefined),
+  loadIssueAttempt: vi.fn(),
 }));
 
 const { ReviewScreen, FirstSessionView, nextPaneShows } = await import('./review-view');
 const { useSessionActions } = await import('./session-actions');
 const { MarkHandledButton } = await import('./follow-up-buttons');
 const data = await import('@/lib/workspace/contribute.data');
+const { pullRequestPath } = await import('@/lib/workspace/paths');
 const { NOW, mcpToken, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { prNotes } = await import('@/lib/contribute/__fixtures__/maintainers');
 const { replyWaiting } = await import('@/lib/contribute/__fixtures__/contribute-overview');
@@ -296,7 +298,7 @@ describe('?move= and Also waiting', () => {
     expect(shown).toMatch(/data-also="dco"[\s\S]*?<button[^>]*>Open/);
     // A run's replies are another pane's: a link to it, naming the move.
     const replies = page(afterRun({ needsYou: nextForDco.needsYou }), { next: true, replies: refused(2) });
-    expect(replies).toContain('href="/contribute/attempts/A_1/runs/A_F1?move=reply-failed"');
+    expect(replies).toContain('href="/my/pull-requests/driftwood-js/driftwood/871/runs/A_F1?move=reply-failed"');
   });
 
   it('ends the status line with the move another session holds', () => {
@@ -723,21 +725,36 @@ describe('where ?session=next goes', () => {
     vi.mocked(data.loadAttempt).mockImplementation(async (id: string) =>
       id === first.attemptId ? first : (followUp({ attemptId: id }) as never),
     );
-    return FirstSessionView({ params: Promise.resolve({ id: first.attemptId }), searchParams: Promise.resolve(query) });
+    const repo = first.nameWithOwner ?? 'acme/widgets';
+    vi.mocked(data.loadIssueAttempt).mockResolvedValue({
+      attemptId: first.attemptId,
+      mode: first.mode ?? 'FIX',
+      repo,
+      number: first.number,
+      earlier: null,
+    });
+    const [owner, name] = repo.split('/');
+    return FirstSessionView({
+      params: Promise.resolve({ owner, repo: name, issue: String(first.number) }),
+      searchParams: Promise.resolve(query),
+    });
   };
+  /** The pull request's page of a first attempt, by its repo and issue. */
+  const pageOf = (first: ContributeAttemptDetail) =>
+    pullRequestPath({ repo: first.nameWithOwner ?? 'acme/widgets', issue: first.number });
 
   it('goes to the run under way, keeping the move', async () => {
     const underWay = detail({ ...nextForRun, followUps: followUps({ used: 1, currentAttemptId: 'A_F2' }) });
     await expect(view(underWay, { session: 'next', move: 'run-ready' })).rejects.toThrow(
-      'REDIRECT /contribute/attempts/A_8/runs/A_F2?move=run-ready',
+      `REDIRECT ${pageOf(underWay)}/runs/A_F2?move=run-ready`,
     );
   });
 
   it('goes to the first attempt on a merged pull request, or with nothing there', async () => {
     const merged = detail({ ...nextForRun, state: 'MERGED', pullRequest: pullRequest({ state: 'MERGED' }) });
-    await expect(view(merged, { session: 'next' })).rejects.toThrow('REDIRECT /contribute/attempts/A_8');
+    await expect(view(merged, { session: 'next' })).rejects.toThrow(`REDIRECT ${pageOf(merged)}`);
     const hand = detail({ ...followUpAttempts.quiet, openedBy: 'HAND' });
-    await expect(view(hand, { session: 'next' })).rejects.toThrow('REDIRECT /contribute/attempts/A_1');
+    await expect(view(hand, { session: 'next' })).rejects.toThrow(`REDIRECT ${pageOf(hand)}`);
   });
 
   it('stays on the next step when something is there', async () => {

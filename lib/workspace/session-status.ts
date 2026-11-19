@@ -1,3 +1,5 @@
+import type { Route } from 'next';
+
 import {
   ATTEMPT_STATES,
   checkLimitOf,
@@ -19,6 +21,8 @@ import type { ContributeAttemptDetail, ContributeAttemptPullRequest } from './co
 import { shownByDecisions } from './decisions';
 import { followUpStepOf } from './follow-up-flow';
 import { relativeLabel, timeLeftLabel, usd } from './format';
+import { PICK_ISSUE_PATHS, WORKSPACE_PATHS } from './paths';
+import { pageAtOf, sessionPath } from './sessions';
 
 /**
  * Where a session stands, in one line (M3), when nothing waits on it: a lead (a live dot, a pill or a check), a title,
@@ -36,6 +40,8 @@ export type SessionStatus = {
   title: string;
   fact: string | null;
   link: StatusLink | null;
+  /** A second link after it: an attempt that stopped before its pull request names where to look as well. */
+  more: StatusLink | null;
   /** Behind Details, one sentence each. */
   details: string[];
   /** The live states' progress: Reading · Fixing · Checks · Ready, or the push's steps. */
@@ -48,6 +54,7 @@ export const line = (status: Partial<SessionStatus> & Pick<SessionStatus, 'name'
   lead: null,
   fact: null,
   link: null,
+  more: null,
   details: [],
   bar: null,
   live: false,
@@ -165,15 +172,59 @@ function stopDetailsOf(attempt: ContributeAttemptDetail): string[] {
   ].filter((part): part is string => !!part);
 }
 
+/** Said under a first attempt that ended before its pull request: the person's list does not offer it again. */
+export const NOT_BACK_LINE = 'This issue does not come back to your list.';
+
+/**
+ * Where the person goes after a first attempt ended before any pull request (nothing else starts afterwards at "You
+ * start each issue"): another issue, on the attempt's side; for a run that hit a cap, Budget and pacing too; a refused
+ * key, the key; credits or the spend limit, the Agent tab; a check over the person's own limits, those limits too. And
+ * whether to say the issue does not come back to their list: always, but for a lost claim (someone else has it).
+ */
+export function endedNextOf(
+  first: Pick<ContributeAttemptDetail, 'endReason' | 'endDetail' | 'mode'> & { kind?: ContributeAttemptDetail['kind'] },
+): { link: StatusLink; more: StatusLink | null; line: string | null } {
+  const pick: StatusLink = {
+    href: PICK_ISSUE_PATHS[first.mode === 'LEARN' ? 'learn' : 'fix'],
+    label: 'Pick another issue →',
+    external: false,
+  };
+  const ours = (href: string, label: string): StatusLink => ({ href, label, external: false });
+  const line = first.endReason === 'CLAIM_LOST' ? null : NOT_BACK_LINE;
+  switch (first.endReason) {
+    case 'KEY_INVALID':
+      return { link: ours(WORKSPACE_PATHS.agentKey, 'Replace the key →'), more: null, line };
+    case 'EXHAUSTED':
+    case 'LIMIT_REACHED':
+      return { link: ours(WORKSPACE_PATHS.agent, 'Agent →'), more: null, line };
+    case 'BUDGET':
+    case 'TIMEOUT':
+      return { link: pick, more: ours(WORKSPACE_PATHS.agentBudget, 'Budget and pacing →'), line };
+    case 'CHECKS_FAILED': {
+      const move = endMoveOf(first);
+      return { link: pick, more: move?.href && move.link ? ours(move.href, `${move.link} →`) : null, line };
+    }
+    default:
+      return { link: pick, more: null, line };
+  }
+}
+
+/** A first attempt that ended before its pull request: its next step and the line, on the status line. */
+const endedBeforePr = (attempt: ContributeAttemptDetail) => attempt.kind !== 'FOLLOW_UP' && !attempt.pullRequest;
+
 /** A stopped session's line: its reason short, what it spent, the end move's link. */
 export function stoppedOf(attempt: ContributeAttemptDetail): SessionStatus {
   const run = attempt.kind === 'FOLLOW_UP';
+  const ended = endedBeforePr(attempt) ? endedNextOf(attempt) : null;
+  const withLine = (fact: string) => (ended?.line ? `${fact}. ${ended.line}` : fact);
   if (attempt.endReason === 'SUBMIT_FAILED') {
     return line({
       name: 'SUBMIT_FAILED',
       lead: pill('Failed', 'red'),
       title: run ? 'Stopped: the push did not go through' : 'Stopped: the pull request could not be opened',
-      fact: `${usd(attempt.costUsd)} spent`,
+      fact: withLine(`${usd(attempt.costUsd)} spent`),
+      link: ended?.link ?? null,
+      more: ended?.more ?? null,
       details: attempt.submit?.lastError?.note ? [attempt.submit.lastError.note] : [],
     });
   }
@@ -184,14 +235,21 @@ export function stoppedOf(attempt: ContributeAttemptDetail): SessionStatus {
     name: 'STOPPED',
     lead: pill('Stopped', 'neutral'),
     title: reason ? `Stopped: ${reason}` : 'Stopped',
-    fact: `${usd(attempt.costUsd)} spent; ${
-      run
-        ? 'nothing was pushed or posted'
-        : ranOut
-          ? 'nothing was decided, and the issue went back to the pool'
-          : 'the issue went back to the pool'
-    }`,
-    link: move?.href && move.link ? { href: move.href, label: `${move.link} →`, external: false } : null,
+    fact: withLine(
+      `${usd(attempt.costUsd)} spent; ${
+        run
+          ? 'nothing was pushed or posted'
+          : ranOut
+            ? 'nothing was decided, and the issue went back to the pool'
+            : 'the issue went back to the pool'
+      }`,
+    ),
+    link: ended
+      ? ended.link
+      : move?.href && move.link
+        ? { href: move.href, label: `${move.link} →`, external: false }
+        : null,
+    more: ended?.more ?? null,
     details: [...stopDetailsOf(attempt), ...(move?.href ? [move.text] : [])],
   });
 }
@@ -204,6 +262,7 @@ export function firstStatusOf(
     current,
     runNumber,
     elsewhere,
+    base,
   }: {
     now: Date;
     /** The run under way, read beside it. */
@@ -212,6 +271,8 @@ export function firstStatusOf(
     runNumber?: number | null;
     /** A move waits on another session: the line points at it. */
     elsewhere?: boolean;
+    /** The page's address, when it is not the issue's own (an earlier attempt's). */
+    base?: Route;
   },
 ): SessionStatus {
   const own = isOwnAgent(first);
@@ -288,7 +349,7 @@ export function firstStatusOf(
           title: `${runNameOf(runNumber ?? null)} ${doing}`,
           fact: run ? [sinceOf(run.createdAt, now), usd(run.costUsd)].filter(Boolean).join(' · ') : null,
           link: {
-            href: `/contribute/attempts/${encodeURIComponent(first.attemptId)}/runs/${encodeURIComponent(runId)}`,
+            href: sessionPath(pageAtOf(first, base), runId),
             label: `Watch ${runNumber ? `run ${runNumber}` : 'the run'} →`,
             external: false,
           },
@@ -325,13 +386,16 @@ export function firstStatusOf(
       return stoppedOf(first);
     case 'DISCARDED': {
       const refused = claimRefusedOf(first);
+      const ended = endedBeforePr(first) ? endedNextOf(first) : null;
       return line({
         name: 'DISCARDED',
         lead: pill('Discarded', 'neutral'),
         title: 'Discarded',
         fact: `${endReasonLabelOf(first) ?? 'It was discarded.'} ${
           refused ? 'Nothing was submitted.' : 'The issue went back to the pool, and nothing was submitted.'
-        }`,
+        }${ended?.line ? ` ${ended.line}` : ''}`,
+        link: ended?.link ?? null,
+        more: ended?.more ?? null,
         details: refused ? [refused.why, refused.move.text] : [],
       });
     }

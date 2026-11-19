@@ -1,3 +1,4 @@
+import type { Route } from 'next';
 import { describe, expect, it } from 'vitest';
 
 import type { ContributeContribution, ContributeProof } from './contribute.types';
@@ -178,15 +179,16 @@ describe('the next step with a proof', () => {
       ...views.active,
       ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken({ lastUsedAt: NOW.toISOString() })] },
     };
+    const PAGE = '/my/pull-requests/acme/widgets/42' as Route;
     const tilesOf = (first: typeof nextForYou) =>
-      sessionsOf(first, undefined, contributionMovesOf({ view: connected, first, now: NOW }));
+      sessionsOf(first, undefined, contributionMovesOf({ view: connected, first, now: NOW }), PAGE);
     const tiles = tilesOf(nextForProof.review);
     // The proof's tile has the next step's key, so the address marks it, with its move; the run's tile beside it its own.
     expect(tiles.map(({ key, href }) => [key, href])).toEqual([
-      ['A_OC', '/contribute/attempts/A_OC'],
-      ['A_OC1', '/contribute/attempts/A_OC/runs/A_OC1'],
-      ['next', '/contribute/attempts/A_OC?session=next&move=proof-review'],
-      ['next-run', '/contribute/attempts/A_OC?session=next'],
+      ['A_OC', PAGE],
+      ['A_OC1', `${PAGE}/runs/A_OC1`],
+      ['next', `${PAGE}?session=next&move=proof-review`],
+      ['next-run', `${PAGE}?session=next`],
     ]);
     expect(tiles.find(({ key }) => key === 'next')).toMatchObject({
       title: 'Proof',
@@ -208,7 +210,7 @@ describe("the pull request's move for a proof", () => {
       kind: 'proof',
       pill: 'Proof needed',
       move: 'clawsweeper asks for real behavior proof. Your own agent can capture it on your machine.',
-      action: { label: 'Get the proof', href: '/contribute/attempts/A_OC?session=next' },
+      action: { label: 'Get the proof', href: '/my/pull-requests/by-attempt/A_OC?session=next' },
     });
   });
 

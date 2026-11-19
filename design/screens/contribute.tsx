@@ -552,7 +552,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     id: 'contribute-attempt',
     title: 'A contribution',
     area: 'contribute',
-    route: '/contribute/attempts/[id]',
+    route: '/my/pull-requests/[owner]/[repo]/[issue]',
     sources: [
       'app/contribute/components/review-view.tsx',
       'app/contribute/components/attempt-sessions.tsx',
@@ -577,7 +577,8 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'app/contribute/components/comment-row.tsx',
       'app/contribute/components/comment-row-open.tsx',
       'app/contribute/components/comment-row-actions.tsx',
-      'app/contribute/components/contribution-header.tsx',
+      'components/workspace/pull-request/pull-request-header.tsx',
+      'components/workspace/pull-request/stage-line.ts',
       'app/contribute/components/contribute-notices.tsx',
       'app/contribute/components/pr-notes.tsx',
       'lib/contribute/contribution-moves.ts',
@@ -655,13 +656,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/contribute/attempts/A_1',
         height: 1200,
         render: () => contributionPage(attempts.closed),
-      },
-      {
-        id: 'follow-up-alone',
-        title: 'A run whose first attempt is not known: the pull request it follows up, the notes after it',
-        path: '/contribute/attempts/A_F1',
-        height: 2000,
-        render: () => contributionPage(followUpAttempts.review, { notes: prNotes() }),
       },
       {
         id: 'contribution-phone',
@@ -980,7 +974,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     id: 'contribute-pr-form',
     title: 'The pull request form',
     area: 'contribute',
-    route: '/contribute/attempts/[id]',
+    route: '/my/pull-requests/[owner]/[repo]/[issue]',
     sources: ['app/contribute/components/pr-form.tsx', 'lib/contribute/pr-conventions.ts'],
     states: [
       {
@@ -1080,7 +1074,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     id: 'contribute-attempt-checks',
     title: 'The Checks tab',
     area: 'contribute',
-    route: '/contribute/attempts/[id]',
+    route: '/my/pull-requests/[owner]/[repo]/[issue]',
     sources: ['app/contribute/components/attempt-panels.tsx'],
     states: [
       {

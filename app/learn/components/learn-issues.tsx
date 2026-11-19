@@ -68,9 +68,13 @@ export function LearnIssueRow({
           variant={start.primary ? 'default' : 'outline'}
           className={cn('min-h-11 max-sm:w-full', start.primary ? 'px-5 font-semibold' : 'px-4')}
         >
-          <Link href={learnStartPath(issue.repo, issue.number)} prefetch={false} {...contributeSource(source)}>
+          <Link
+            href={learnStartPath(issue.repo, issue.number)}
+            prefetch={false}
+            aria-label={`${start.label}: ${where}`}
+            {...contributeSource(source)}
+          >
             {start.label}
-            <span className="sr-only"> a lesson on {where}</span>
           </Link>
         </Button>
       ) : null}
@@ -85,7 +89,11 @@ export function GoalChips({ goal }: { goal: LearnGoalView }) {
       For your goal:
       <Pill tone="violet">{goalValueOf(goal)}</Pill>
       {goal.level ? <Pill tone="violet">{goal.level}</Pill> : null}
-      <Link href={LEARN_PROFILE_PATH} prefetch={false} className="font-semibold text-link hover:underline">
+      <Link
+        href={LEARN_PROFILE_PATH}
+        prefetch={false}
+        className="font-semibold text-link hover:underline max-sm:inline-flex max-sm:min-h-11 max-sm:items-center"
+      >
         Change
       </Link>
     </span>
@@ -112,8 +120,9 @@ const ChangeGoal = ({ primary = false }: { primary?: boolean }) => (
 
 /** The day's cap on new issues, in the words Contribute's feed uses there. */
 const CAP_TITLE = 'That’s today’s new issues';
-const CAP_TEXT =
-  'You’ve seen the most new issues we show in a day. More arrive at 00:00 UTC; the ones you’ve seen stay here until then.';
+const CAP_TEXT = 'You’ve seen the most new issues we show in a day. More arrive at 00:00 UTC.';
+/** Under a list the cap cut short: the issues already shown stay. */
+const CAP_KEEPS = 'The ones you’ve seen stay here until then.';
 
 /** Why the list is empty, worded apart for each reason; `goal` is what the viewer wants to learn. */
 export function IssuesEmpty({ issues, goal }: { issues: LearnIssues | undefined; goal: string }) {
@@ -152,7 +161,6 @@ export function IssuesEmpty({ issues, goal }: { issues: LearnIssues | undefined;
 /** No room for a new lesson: the limit's words in place of the Start buttons. */
 export function RoomNote({ room }: { room: LearnRoom }) {
   const words = roomWordsOf(room);
-  if (!words) return null;
   return (
     <p
       data-room={room.limit}
@@ -218,7 +226,7 @@ export function LearnIssuesSection({
       )}
       {items.length && issues?.capReached ? (
         <p className="text-sm text-muted-foreground" data-issues-cap="">
-          {CAP_TITLE}. {CAP_TEXT}
+          {CAP_TITLE}. {CAP_TEXT} {CAP_KEEPS}
         </p>
       ) : null}
     </section>

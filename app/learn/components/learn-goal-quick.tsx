@@ -154,7 +154,11 @@ export function LearnGoalQuick({ profile }: { profile: LearnProfile | null }) {
           {busy ? 'Saving…' : 'Show my issues'}
         </Button>
       </fieldset>
-      <Link href={LEARN_PROFILE_PATH} prefetch={false} className="self-start text-sm font-semibold text-link">
+      <Link
+        href={LEARN_PROFILE_PATH}
+        prefetch={false}
+        className="self-start text-sm font-semibold text-link max-sm:inline-flex max-sm:min-h-11 max-sm:items-center"
+      >
         More choices: what to focus on →
       </Link>
       {error ? (

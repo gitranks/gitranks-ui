@@ -42,7 +42,7 @@ import type {
   MyLearnAttempts,
   PracticeLessons,
 } from '@/lib/learn/learn.types';
-import { ISSUES_SHOWN, PRACTICE_ALL } from '@/lib/learn/learn-home';
+import { ISSUES_READ_MAX, PRACTICE_ALL } from '@/lib/learn/learn-home';
 import { githubLoginOf, lessonResultPath, lessonSlugOf, REACT_PARAM } from '@/lib/learn/learn-path';
 import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
@@ -286,9 +286,12 @@ export async function readPracticeLessons(first: number): Promise<ContributeActi
   return run(PracticeLessonsDocument, { first: count }, (data) => data.practiceLessons);
 }
 
-/** The issues for the viewer's goal, `first` of them; 0 answers how many there are and reveals none. */
+/**
+ * The issues for the viewer's goal, `first` of them, at most the two a passed practice lesson shows; 0 answers how
+ * many there are and reveals none.
+ */
 export async function readLearnIssues(first: number): Promise<ContributeActionResult<LearnIssues>> {
-  const count = countOf(first, 0, ISSUES_SHOWN);
+  const count = countOf(first, 0, ISSUES_READ_MAX);
   if (count === null) return invalid();
   return run(LearnIssuesDocument, { first: count }, (data) => data.learnIssues);
 }

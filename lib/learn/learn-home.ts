@@ -1,5 +1,3 @@
-import type { Route } from 'next';
-
 import type {
   LearnGoalView,
   LearnIssue,
@@ -10,7 +8,7 @@ import type {
   MyLearnAttempt,
   MyLearnAttempts,
 } from './learn.types';
-import { MY_CONTRIBUTIONS_PATH } from './learn-start';
+import { learnLimitWordsOf } from './learn-start';
 import { LEVELS, levelRowsOf } from './profile-form';
 
 /**
@@ -197,25 +195,8 @@ export const sameGoal = (
   written.kind.toLowerCase() === goal.kind.toLowerCase() &&
   written.value.trim().toLowerCase() === goal.value.trim().toLowerCase();
 
-/** The words for a limit that leaves no room for a new lesson, with the page that shows what holds it. */
-export function roomWordsOf(room: LearnRoom): { text: string; link: { href: Route; label: string } } | null {
-  switch (room.limit.toLowerCase()) {
-    case 'open_prs_at_a_time': {
-      const count = room.value;
-      return {
-        text: `${count} of your pull requests ${count === 1 ? 'is' : 'are'} waiting on maintainers. A new lesson can start when one is merged or closed.`,
-        link: { href: '/learn/lessons' as Route, label: 'My lessons' },
-      };
-    }
-    case 'attempts_at_a_time':
-      return {
-        text: 'Your agent is working on another issue. A new lesson can start when that one is done.',
-        link: { href: MY_CONTRIBUTIONS_PATH, label: 'My contributions' },
-      };
-    default:
-      return null;
-  }
-}
+/** The words for the limit that leaves the viewer no room for a new lesson: the start page's, with its count. */
+export const roomWordsOf = (room: LearnRoom) => learnLimitWordsOf(room.limit, room.value);
 
 /** "Size small": an issue's size in the row's words; null when it has none. */
 export function issueSizeOf(issue: Pick<LearnIssue, 'size'>): string | null {
@@ -237,3 +218,5 @@ export const PRACTICE_ALL = 30;
 
 /** How many issues Learn home asks for. */
 export const ISSUES_SHOWN = 10;
+/** The most issues the browser may ask for: a passed practice lesson shows two. */
+export const ISSUES_READ_MAX = 2;

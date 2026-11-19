@@ -194,7 +194,8 @@ export function PullRequestCard({ attempt }: { attempt: MyLearnAttempt }) {
       <p className="max-w-prose text-sm text-muted-foreground">{words.text}</p>
       <div className="flex flex-wrap gap-3">
         {prUrl ? (
-          <Button asChild className={BUTTON}>
+          // Outline: the view's one primary action is the next lesson's Start, below.
+          <Button asChild variant="outline" className={BUTTON}>
             <a href={prUrl} target="_blank" rel="noreferrer">
               See the pull request ↗<span className="sr-only"> (opens in a new tab)</span>
             </a>

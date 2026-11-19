@@ -127,7 +127,7 @@ describe('Learn home, goal set', () => {
       '/learn/start/hearth/hearth-api/341',
     ]);
     expect(html.match(/data-contribute-source="learn_home_issue"/g)).toHaveLength(4);
-    expect(text(html)).toContain('Start with my agent a lesson on driftwood-js/driftwood#934');
+    expect(html).toContain('aria-label="Start with my agent: driftwood-js/driftwood#934"');
     expect(text(html)).toContain('Why it was picked: you want to learn TypeScript, and it has a clear reproduction');
     expect(text(html)).toContain('Size small');
     // One primary action: the first row's.
@@ -267,6 +267,9 @@ describe('Learn home, the pull request', () => {
     expect(html).toContain('href="https://gitranks.com/learn/lessons/route-params-redirect-k2p9/passes/octocat"');
     expect(text(html)).toContain('Your next lesson');
     expect(text(html)).toContain('Start the next one');
+    // One primary action: the next lesson's Start; the pull request's link is outline.
+    expect(html.match(/data-variant="default"/g)).toHaveLength(1);
+    expect(html).toMatch(/data-variant="default"[^>]*href="\/learn\/start\/driftwood-js\/driftwood\/934"/);
     expect(text(html)).toContain('Practice, optional');
   });
 
@@ -315,6 +318,16 @@ describe("Learn home's reads", () => {
 
     await signedIn(myLearnAttempts.none, emptyProfile);
     expect(data.loadLearnIssues).not.toHaveBeenCalled();
+  });
+
+  it('reads no issue when the attempts could not be read: a lesson may be in progress', async () => {
+    data.loadMyLearnAttempts.mockResolvedValue(undefined);
+    data.loadLearnProfile.mockResolvedValue(filledProfile);
+    data.loadPracticeLessons.mockResolvedValue(practiceLessons());
+    const html = renderToStaticMarkup(await LearnHomeSignedIn());
+    expect(data.loadLearnIssues).not.toHaveBeenCalled();
+    expect(html).toContain('data-issues-empty="unread"');
+    expect(html).not.toContain('href="/learn/start/');
   });
 
   it('shows the setup line to a new account, without reading its profile', async () => {

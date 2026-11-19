@@ -158,6 +158,28 @@ export function learnStartFixOf(state: ContributeAttemptState): { text: string; 
   }
 }
 
+/**
+ * The words for a limit that leaves no room for a new lesson, and where what holds it shows: the open pull requests
+ * (`count`: how many may be open, when known) or, for any other limit, the attempts at a time. The start page's
+ * `LIMIT_REACHED` and Learn home's issues say the same.
+ */
+export function learnLimitWordsOf(
+  limit: string | null | undefined,
+  count?: number | null,
+): { text: string; link: { href: Route; label: string } } {
+  if (limit?.toLowerCase() === 'open_prs_at_a_time') {
+    const who = count ? `${count} of your pull requests ${count === 1 ? 'is' : 'are'}` : 'Your open pull requests are';
+    return {
+      text: `${who} waiting on maintainers. A new lesson can start when one is merged or closed.`,
+      link: { href: MY_LESSONS_PATH, label: 'My lessons' },
+    };
+  }
+  return {
+    text: 'Your agent is working on another issue. A new lesson can start when that one is done.',
+    link: { href: MY_CONTRIBUTIONS_PATH, label: 'My contributions' },
+  };
+}
+
 /** A refusal's words and where it leads; `paused` uses Contribute's own notice. */
 export type LearnStartRefusalCopy =
   | { kind: 'paused' }
@@ -187,16 +209,10 @@ export function learnStartRefusalOf({ start, current, openPrs }: LearnStartView)
     }
     case 'ACCOUNT_PAUSED':
       return { kind: 'paused' };
-    case 'LIMIT_REACHED':
-      return start.limit === 'open_prs_at_a_time'
-        ? notice(
-            `${openPrs ? `${openPrs} of your pull requests are` : 'Your open pull requests are'} waiting on maintainers. A new lesson can start when one is merged or closed.`,
-            { href: MY_LESSONS_PATH, label: 'My lessons' },
-          )
-        : notice('Your agent is working on another issue. A new lesson can start when that one is done.', {
-            href: MY_CONTRIBUTIONS_PATH,
-            label: 'My contributions',
-          });
+    case 'LIMIT_REACHED': {
+      const words = learnLimitWordsOf(start.limit, openPrs);
+      return notice(words.text, words.link);
+    }
     case 'DAILY_LIMIT':
       return notice("You've taken today's claims. Try again tomorrow.", null);
     case 'UNAVAILABLE':

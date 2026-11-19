@@ -60,6 +60,15 @@ describe('clickOf: what a click counts as', () => {
       source: 'contribute_landing',
     });
   });
+
+  it('counts the header’s Learn from every page, Contribute’s own too', () => {
+    for (const pagePath of ['/', '/contribute/issues']) {
+      expect(clickOf({ own: 'learn_menu', href: '/learn', pagePath, origin }), pagePath).toEqual({
+        source: 'learn_menu',
+        target: '/learn',
+      });
+    }
+  });
 });
 
 describe('entryOf: how the visit began', () => {

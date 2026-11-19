@@ -112,10 +112,13 @@ export function PracticeSection({
   title: string;
   text: ReactNode;
 }) {
-  const [items, setItems] = useState(practice?.items ?? []);
-  const [total, setTotal] = useState(practice?.total ?? 0);
+  // Only "Show all" is kept here: a new read of the page (Learn home reads itself again while a lesson moves) shows
+  // its own lessons.
+  const [all, setAll] = useState<PracticeLessons | null>(null);
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
+  const items = all?.items ?? practice?.items ?? [];
+  const total = all?.total ?? practice?.total ?? 0;
   if (!items.length) return null;
   const more = total > items.length && items.length < PRACTICE_ALL;
 
@@ -124,8 +127,7 @@ export function PracticeSection({
       setFailed(false);
       const result = await readPracticeLessons(PRACTICE_ALL).catch(() => null);
       if (result?.ok && result.data.items.length) {
-        setItems(result.data.items);
-        setTotal(result.data.total);
+        setAll(result.data);
       } else {
         setFailed(true);
       }

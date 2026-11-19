@@ -58,8 +58,11 @@ export const CONTRIBUTE_SOURCE_ATTR = 'data-contribute-source';
  */
 export const contributeSource = (source: ContributeSource) => ({ [CONTRIBUTE_SOURCE_ATTR]: source }) as const;
 
-/** Sources whose links sit on Contribute's own pages; any other click there is moving around inside it. */
-const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>(['contribute_landing']);
+/**
+ * Sources whose links sit on Contribute's own pages (its landing's buttons, and the header's Learn on every page); any
+ * other click there is moving around inside it.
+ */
+const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>(['contribute_landing', 'learn_menu']);
 
 export const CLICK_REPORT_PATH = '/api/contribute/click';
 

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 
 import { readMyLearnAttempts } from '../actions';
-import { useVisiblePoll } from './use-visible-poll';
+import { STOP_POLL, useVisiblePoll } from './use-visible-poll';
 import { OWN_LESSON_POLL_MS, ownLessonKeyOf } from '@/lib/learn/learn-home';
 
 /**
@@ -16,7 +16,9 @@ export function LearnHomeLive({ watching }: { watching: string }) {
   const [, startTransition] = useTransition();
   useVisiblePoll(async () => {
     const result = await readMyLearnAttempts();
-    if (result.ok && ownLessonKeyOf(result.data) !== watching) startTransition(() => router.refresh());
+    // Signed out, or Learn closed to the account meanwhile: asking again changes nothing.
+    if (!result.ok) return result.error === 'SIGNED_OUT' || result.error === 'NOT_FOUND' ? STOP_POLL : undefined;
+    if (ownLessonKeyOf(result.data) !== watching) startTransition(() => router.refresh());
   }, OWN_LESSON_POLL_MS);
   return null;
 }

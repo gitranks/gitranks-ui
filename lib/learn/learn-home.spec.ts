@@ -143,7 +143,8 @@ describe("Learn home's words", () => {
       text: 'Your agent is working on another issue. A new lesson can start when that one is done.',
       link: { href: '/contribute/me', label: 'My contributions' },
     });
-    expect(roomWordsOf({ limit: 'something_else', value: 1 })).toBeNull();
+    // A limit this page doesn't know is worded as the attempts' one, as the start page does.
+    expect(roomWordsOf({ limit: 'something_else', value: 1 }).text).toMatch(/^Your agent is working/);
   });
 
   it("words an issue's size as Contribute's row does", () => {

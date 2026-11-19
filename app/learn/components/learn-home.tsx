@@ -120,16 +120,18 @@ function HowALessonIsMade() {
 }
 
 /** The links under every state: how Learn works, the page for maintainers, My lessons. */
+const FOOTER_LINK = 'font-semibold text-link hover:underline max-sm:inline-flex max-sm:min-h-11 max-sm:items-center';
+
 function HomeFooter() {
   return (
     <nav aria-label="More about Learn" className="flex flex-wrap gap-x-5 gap-y-2 border-t pt-3 text-sm">
-      <Link href={LEARN_ABOUT_PATH} prefetch={false} className="font-semibold text-link hover:underline">
+      <Link href={LEARN_ABOUT_PATH} prefetch={false} className={FOOTER_LINK}>
         How Learn works
       </Link>
-      <Link href={LEARN_MAINTAINERS_PATH} prefetch={false} className="font-semibold text-link hover:underline">
+      <Link href={LEARN_MAINTAINERS_PATH} prefetch={false} className={FOOTER_LINK}>
         Learn for maintainers
       </Link>
-      <Link href={MY_LESSONS_PATH} prefetch={false} className="font-semibold text-link hover:underline">
+      <Link href={MY_LESSONS_PATH} prefetch={false} className={FOOTER_LINK}>
         My lessons
       </Link>
     </nav>
@@ -260,8 +262,13 @@ export async function LearnHomeSignedIn() {
   // A new account's profile cannot be read yet: its setup line stands for everything else.
   const profile = settingUp ? null : await loadLearnProfile();
   const state = learnHomeStateOf({ settingUp, profile, attempts });
-  const listed = state.kind === 'goal-set' || state.kind === 'pull-request';
-  const practiced = listed || (state.kind === 'own' && (state.card === 'working' || state.card === 'ready'));
+  // With the viewer's attempts unread, a lesson of theirs may be in progress: no issue is read (none revealed), and the
+  // list says it couldn't load.
+  const listed = (state.kind === 'goal-set' || state.kind === 'pull-request') && attempts !== undefined;
+  const practiced =
+    state.kind === 'goal-set' ||
+    state.kind === 'pull-request' ||
+    (state.kind === 'own' && (state.card === 'working' || state.card === 'ready'));
   const [issues, practice] = await Promise.all([
     listed ? loadLearnIssues(ISSUES_SHOWN) : undefined,
     practiced ? loadPracticeLessons(PRACTICE_SHOWN) : undefined,

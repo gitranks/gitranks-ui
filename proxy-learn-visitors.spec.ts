@@ -44,6 +44,11 @@ describe('Learn open to visitors', () => {
       '/learn/attempts/A_1/more',
       '/learn/about',
       '/learn/start/driftwood-js/driftwood/934',
+      // Learn's flow opens to visitors in one later change, all three steps together.
+      '/learn/start',
+      '/learn/start/',
+      '/learn/start/issues',
+      '/learn/start/issues?language=Go&level=1',
       '/learn/x',
     ]) {
       expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');

@@ -132,6 +132,10 @@ describe('the Contribute preview gate', () => {
       expect(isContributeFlowPath(path), path).toBe(false);
     }
     expect(isContributeFlowPath('/contribute/start%')).toBe(false);
+    // Learn's flow is not Contribute's: it is not opened by the launch.
+    for (const path of ['/learn/start', '/learn/start/issues', '/learn/start/acme/widgets/42']) {
+      expect(isOpenAtLaunchPath(path), path).toBe(false);
+    }
   });
 
   it("takes the agent sign-in's consent page alone as it, in the spellings the router reads as it", () => {

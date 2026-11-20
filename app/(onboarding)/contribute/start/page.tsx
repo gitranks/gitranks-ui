@@ -7,7 +7,7 @@ import { FlowFrame, FlowHead } from '@/components/workspace/getting-in/flow-fram
 import { flowPanelOf } from '@/components/workspace/getting-in/flow-place';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
-import { type WorkPicks, workPicksOf } from '@/lib/contribute/start-flow';
+import { needsProfileLanguages, type WorkPicks, workPicksOf, workStartPicksOf } from '@/lib/contribute/start-flow';
 import { loadFlowProfileLanguages } from '@/lib/contribute/start-flow.data';
 import { loadContribute } from '@/lib/workspace/contribute.data';
 import { loadContributeFlowPlace } from '@/lib/workspace/getting-in.data';
@@ -25,18 +25,11 @@ export default function ContributeWorkPage({ searchParams }: PageProps<'/contrib
   );
 }
 
-/**
- * The picks the step starts from: a signed-in person's saved ones; with none saved, the address's, the languages
- * otherwise pre-ticked from their GitRanks profile; a visitor's, the address's.
- */
+/** The picks the step starts from (`workStartPicksOf`); the profile is read only when it decides something. */
 async function initialPicks(signedIn: boolean, address: WorkPicks): Promise<WorkPicks> {
-  if (!signedIn) return address;
-  const saved = (await loadContribute())?.contributor?.preferences;
-  if (saved) return { languages: saved.languages, kinds: saved.kinds };
-  return {
-    languages: address.languages.length ? address.languages : await loadFlowProfileLanguages(),
-    kinds: address.kinds,
-  };
+  const saved = signedIn ? (await loadContribute())?.contributor?.preferences : null;
+  const profile = needsProfileLanguages(signedIn, saved, address) ? await loadFlowProfileLanguages() : [];
+  return workStartPicksOf({ signedIn, saved, address, profile });
 }
 
 async function ContributeWork({ searchParams }: Pick<PageProps<'/contribute/start'>, 'searchParams'>) {

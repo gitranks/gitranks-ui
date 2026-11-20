@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { withWorkPicks, workPicksOf, workPicksQuery } from './start-flow';
+import { needsProfileLanguages, withWorkPicks, workPicksOf, workPicksQuery, workStartPicksOf } from './start-flow';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 
 describe('What you work on, in the address', () => {
@@ -36,5 +36,40 @@ describe('What you work on, in the address', () => {
     expect(withWorkPicks(GETTING_IN_PATHS.contributeAgent, { languages: [], kinds: [] })).toBe(
       '/contribute/start/agent',
     );
+  });
+});
+
+describe('the picks What you work on starts from', () => {
+  const address = { languages: ['RUST' as const], kinds: ['BUG' as const] };
+  const saved = { languages: ['GO' as const], kinds: ['DOCS' as const] };
+
+  it('a visitor gets the address', () => {
+    expect(workStartPicksOf({ signedIn: false, saved: null, address, profile: ['PYTHON'] })).toEqual(address);
+    expect(needsProfileLanguages(false, null, { languages: [], kinds: [] })).toBe(false);
+  });
+
+  it('saved preferences show as saved, never overwritten by the address', () => {
+    expect(workStartPicksOf({ signedIn: true, saved, address, profile: ['PYTHON'] })).toEqual(saved);
+    expect(needsProfileLanguages(true, saved, { languages: [], kinds: [] })).toBe(false);
+  });
+
+  it('with nothing saved, the address’s languages win over the profile', () => {
+    expect(workStartPicksOf({ signedIn: true, saved: null, address, profile: ['PYTHON'] })).toEqual(address);
+    expect(needsProfileLanguages(true, null, address)).toBe(false);
+  });
+
+  it('with nothing saved and no languages in the address, the profile’s are pre-ticked, the kinds kept', () => {
+    const kindsOnly = { languages: [], kinds: ['TESTS' as const] };
+    expect(needsProfileLanguages(true, null, kindsOnly)).toBe(true);
+    expect(workStartPicksOf({ signedIn: true, saved: null, address: kindsOnly, profile: ['PYTHON', 'GO'] })).toEqual({
+      languages: ['PYTHON', 'GO'],
+      kinds: ['TESTS'],
+    });
+  });
+
+  it('an unread profile pre-ticks nothing', () => {
+    expect(
+      workStartPicksOf({ signedIn: true, saved: undefined, address: { languages: [], kinds: [] }, profile: [] }),
+    ).toEqual({ languages: [], kinds: [] });
   });
 });

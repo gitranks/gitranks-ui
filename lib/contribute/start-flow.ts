@@ -1,6 +1,6 @@
 import type { Route } from 'next';
 
-import type { ContributeIssueKind, ContributeLanguage } from '@/lib/workspace/contribute.types';
+import type { ContributeIssueKind, ContributeLanguage, ContributePreferences } from '@/lib/workspace/contribute.types';
 import { KINDS, LANGUAGES } from '@/lib/workspace/format';
 
 /**
@@ -45,3 +45,28 @@ export function withWorkPicks(path: Route, picks: WorkPicks): Route {
   const query = workPicksQuery(picks);
   return (query ? `${path}?${query}` : path) as Route;
 }
+
+/**
+ * The picks What you work on starts from (§5.4, §6.2): a visitor's are the address's. Signed in, saved preferences show
+ * as saved, whatever the address says (a saved answer is never overwritten by an address); with none saved, the
+ * address's picks, the languages otherwise pre-ticked from their profile (`profile`, none when unread).
+ */
+export function workStartPicksOf({
+  signedIn,
+  saved,
+  address,
+  profile,
+}: {
+  signedIn: boolean;
+  saved: Pick<ContributePreferences, 'languages' | 'kinds'> | null | undefined;
+  address: WorkPicks;
+  profile: readonly ContributeLanguage[];
+}): WorkPicks {
+  if (!signedIn) return address;
+  if (saved) return { languages: [...saved.languages], kinds: [...saved.kinds] };
+  return { languages: address.languages.length ? address.languages : [...profile], kinds: address.kinds };
+}
+
+/** Whether the profile's languages are asked for: signed in, nothing saved, and no languages in the address. */
+export const needsProfileLanguages = (signedIn: boolean, saved: unknown, address: WorkPicks): boolean =>
+  signedIn && !saved && !address.languages.length;

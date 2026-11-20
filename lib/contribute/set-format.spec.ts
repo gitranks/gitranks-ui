@@ -5,7 +5,6 @@ import {
   addNoticeOf,
   addTargetOf,
   feedbackProblemOf,
-  modeChipOf,
   modeSummaryOf,
   reasonsText,
   reasonText,
@@ -233,23 +232,7 @@ describe('the lists', () => {
   });
 });
 
-describe('the Issues page by mode', () => {
-  it('names the mode and its size', () => {
-    expect(modeChipOf(stackSet())).toEqual({ title: 'Supporting your stack', detail: '50 libraries', quiet: false });
-    expect(modeChipOf(stackSet({ stack: { ...stackSet().stack, fallback: 'SET_ONLY' } }), ['JS_TS'])).toEqual({
-      title: 'Supporting your stack',
-      detail: '50 libraries · only these · JS/TS',
-      quiet: false,
-    });
-    expect(modeChipOf(fullReposSet(), ['GO', 'RUST'])).toEqual({
-      title: 'Supporting 50 repos',
-      detail: 'only these · Go, Rust',
-      quiet: false,
-    });
-    expect(modeChipOf(stackSet({ mode: 'ALL' }))).toEqual({ title: 'All issues', detail: '', quiet: true });
-    expect(modeChipOf(stackSet({ mode: 'ALL' }), ['GO', 'RUST', 'PHP']).detail).toBe('3 languages');
-  });
-
+describe('the modes', () => {
   it('sums up each mode in the switcher', () => {
     expect(modeSummaryOf(stackSet(), 'STACK')).toBe('50 libraries from 3 repos');
     expect(modeSummaryOf(stackSet(), 'REPOS')).toBe('No repos added yet');

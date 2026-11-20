@@ -3,9 +3,9 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useRef, useState, useTransition } from 'react';
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState, useTransition } from 'react';
 
-import { filterOf, type IssuesQuery, isFiltered } from '@/app/contribute/components/issues-filter';
+import { filterOf, type IssuesQuery, isFiltered, issuesHref } from '@/app/contribute/components/issues-filter';
 import { OtherIssuesDivider, SetIssuesHeading, SetOnlyEmpty } from '@/app/contribute/components/issues-mode';
 import { DailyCapEnd, LiveAnnouncer, LiveRowItem, liveOf, useLiveFeed } from '@/app/contribute/components/live-issues';
 import { StillRanking } from '@/app/contribute/components/still-ranking';
@@ -33,6 +33,25 @@ import type { IssueStartFacts } from '@/lib/workspace/start-refusals';
 
 const link = 'font-semibold text-link hover:underline';
 const NO_QUERY: IssuesQuery = {};
+
+/** The list's count as it is now: the page's total, less the issues that left the list since. */
+const IssuesTotalContext = createContext<{ total: number | null; setTotal: (total: number) => void } | null>(null);
+
+/** Around the list and the count over it, so the count follows the list. */
+export function IssuesTotalProvider({ children }: { children: ReactNode }) {
+  const [total, setTotal] = useState<number | null>(null);
+  return <IssuesTotalContext.Provider value={{ total, setTotal }}>{children}</IssuesTotalContext.Provider>;
+}
+
+/** "38 open issues", live: as the list counts them once it is drawn, the page's total until then. */
+export function LiveIssuesCount({ total: read }: { total: number }) {
+  const total = useContext(IssuesTotalContext)?.total ?? read;
+  return (
+    <span data-total={total}>
+      {total.toLocaleString('en-US')} open issue{total === 1 ? '' : 's'}
+    </span>
+  );
+}
 
 /** A state of the list in place of its rows: one title, one line, one next step. */
 function ListNote({ title, children, name }: { title: string; children?: ReactNode; name: string }) {
@@ -104,7 +123,6 @@ export type ContributeIssueListProps = {
   languages?: ContributeLanguage[];
   /** For a refused hosted Start's words. */
   facts?: IssueStartFacts;
-  /** The rows' Start leads to the Start page from a page outside the tabs too. */
   className?: string;
 };
 
@@ -159,6 +177,8 @@ export function ContributeIssueList({
   } else {
     body = (
       <LiveRows
+        // Other filters are another list: it starts again at its first 10.
+        key={issuesHref(filter)}
         page={page}
         agents={agents}
         menu={menu}
@@ -210,6 +230,10 @@ function LiveRows({
     root,
   );
   const [growing, startGrowing] = useTransition();
+  const setTotal = useContext(IssuesTotalContext)?.setTotal;
+  useEffect(() => {
+    setTotal?.(snapshot.total);
+  }, [setTotal, snapshot.total]);
   const byId = new Map(snapshot.rows.map((row) => [row.issue.issueId, row]));
   const split = set
     ? tiersOf(
@@ -292,13 +316,16 @@ function LiveRows({
           rowsOf(snapshot.rows.map(({ issue }) => issue))
         )}
         {capped ? <DailyCapEnd cap={capped} /> : null}
-        <ShowMore
-          shown={snapshot.rows.length}
-          total={snapshot.total}
-          noun="issue"
-          pending={growing}
-          onMore={() => startGrowing(() => feed.grow(ISSUES_PAGE_SIZE))}
-        />
+        {/* Only while there is more to show: none at the day's cap or the end, whatever the total says. */}
+        {snapshot.more && !capped ? (
+          <ShowMore
+            shown={snapshot.rows.length}
+            total={Math.max(snapshot.total, snapshot.rows.length + 1)}
+            noun="issue"
+            pending={growing}
+            onMore={() => startGrowing(() => feed.grow(ISSUES_PAGE_SIZE))}
+          />
+        ) : null}
       </div>
     </IssueStartsProvider>
   );

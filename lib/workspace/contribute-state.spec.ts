@@ -110,7 +110,7 @@ describe('contributeHomeOf', () => {
     expect(contributeHomeOf(views.newcomer, {})).toEqual({ screen: 'landing', viewer: 'signed-in', preview: false });
     expect(contributeHomeOf(views.noKey, {})).toEqual({ screen: 'landing', viewer: 'signed-in', preview: false });
     expect(contributeHomeOf(views.midSetup, {})).toEqual({ screen: 'landing', viewer: 'mid-setup', preview: false });
-    expect(contributeHomeOf(views.active, {})).toEqual({ screen: 'overview' });
+    expect(contributeHomeOf(views.active, {})).toEqual({ screen: 'tab' });
   });
 
   it('shows an onboarded user the landing again from "How Contribute works"', () => {
@@ -128,21 +128,15 @@ describe('contributeHomeOf', () => {
     expect(contributeHomeOf(views.active, { as: 'visitor' })).toEqual(visitor);
     expect(contributeHomeOf(views.midSetup, { as: ['visitor'] })).toEqual(visitor);
     expect(contributeHomeOf(views.newcomer, { as: 'visitor', about: '1' })).toEqual(visitor);
-    expect(contributeHomeOf(views.active, { as: 'someone' })).toEqual({ screen: 'overview' });
+    expect(contributeHomeOf(views.active, { as: 'someone' })).toEqual({ screen: 'tab' });
   });
 
-  it('opens the overview with the welcome once the own agent has called, the client read back', () => {
-    expect(contributeHomeOf(views.agentOnboarded, { welcome: 'agent', client: 'codex' })).toEqual({
-      screen: 'overview',
-      welcome: 'codex',
-    });
-    expect(contributeHomeOf(views.agentOnboarded, { welcome: 'agent', client: 'nope' })).toEqual({
-      screen: 'overview',
-      welcome: 'claude-code',
-    });
-    expect(contributeHomeOf(views.agentOnboarded, { welcome: 'other' })).toEqual({ screen: 'overview' });
+  it('opens the tab after the own agent connected, the welcome no page of its own', () => {
+    // The address as the connect step leaves it: the page passes its whole query.
+    const welcome: Record<string, string> = { welcome: 'agent', client: 'codex' };
+    expect(contributeHomeOf(views.agentOnboarded, welcome)).toEqual({ screen: 'tab' });
     // Not onboarded yet, the welcome is the landing still.
-    expect(contributeHomeOf(views.midSetup, { welcome: 'agent' }).screen).toBe('landing');
+    expect(contributeHomeOf(views.midSetup, welcome).screen).toBe('landing');
   });
 });
 

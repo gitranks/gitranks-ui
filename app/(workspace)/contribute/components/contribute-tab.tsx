@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
-import { ContributeIssueList } from './issue-list';
+import { ContributeIssueList, IssuesTotalProvider, LiveIssuesCount } from './issue-list';
 import { PicksDialog } from './picks-dialog';
 import type { IssuesQuery } from '@/app/contribute/components/issues-filter';
 import { IssuesFilters } from '@/app/contribute/components/issues-filters';
@@ -117,55 +117,57 @@ export function ContributeTabScreen({
         slots={settings ? effectiveSettingOf(settings, limits, 'attemptsAtATime') : null}
       />
 
-      <section aria-labelledby="issues-heading" id="issues" className="flex scroll-mt-24 flex-col gap-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <h2 id="issues-heading" className={HEADING.section}>
-              Issues for you
-            </h2>
-            {limit || held ? null : (
-              <p className="max-w-prose text-sm text-foreground/80" data-intro="">
-                {intro.text}
-                {intro.agentLink ? (
-                  <>
-                    <Link href={WORKSPACE_PATHS.agent} prefetch={false} className={link}>
-                      Agent tab
-                    </Link>
-                    {intro.after}
-                  </>
-                ) : null}
-              </p>
-            )}
-            {page && !held ? (
-              <p className="text-sm text-muted-foreground" data-total={page.total}>
-                {page.total.toLocaleString('en-US')} open issue{page.total === 1 ? '' : 's'} match your languages and
-                topics{page.computedAt ? ` · picked ${relativeLabel(page.computedAt, now)}` : ''} ·{' '}
-                <Link href={WORKSPACE_PATHS.settingsWork} prefetch={false} className={link}>
-                  What you work on
-                </Link>
-              </p>
-            ) : null}
-          </div>
-          {held ? null : (
-            <div className="flex items-center gap-2">
-              <PicksDialog />
-              <IssuesFilters query={query} />
+      <IssuesTotalProvider>
+        <section aria-labelledby="issues-heading" id="issues" className="flex scroll-mt-24 flex-col gap-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <h2 id="issues-heading" className={HEADING.section}>
+                Issues for you
+              </h2>
+              {limit || held ? null : (
+                <p className="max-w-prose text-sm text-foreground/80" data-intro="">
+                  {intro.text}
+                  {intro.agentLink ? (
+                    <>
+                      <Link href={WORKSPACE_PATHS.agent} prefetch={false} className={link}>
+                        Agent tab
+                      </Link>
+                      {intro.after}
+                    </>
+                  ) : null}
+                </p>
+              )}
+              {page && !held ? (
+                <p className="text-sm text-muted-foreground">
+                  <LiveIssuesCount total={page.total} /> match your languages and topics
+                  {page.computedAt ? ` · picked ${relativeLabel(page.computedAt, now)}` : ''} ·{' '}
+                  <Link href={WORKSPACE_PATHS.settingsWork} prefetch={false} className={link}>
+                    What you work on
+                  </Link>
+                </p>
+              ) : null}
             </div>
-          )}
-        </div>
-        <ContributeIssueList
-          page={page}
-          agents={agents}
-          filter={query}
-          learnOpen={learnOpen}
-          held={held}
-          pausedByYou={tab.pausedByYou}
-          limit={limit}
-          set={set}
-          languages={view.contributor?.preferences?.languages ?? []}
-          facts={{ capUsd: settings?.attemptCapUsd ?? null, keyWaiting }}
-        />
-      </section>
+            {held ? null : (
+              <div className="flex items-center gap-2">
+                <PicksDialog />
+                <IssuesFilters query={query} />
+              </div>
+            )}
+          </div>
+          <ContributeIssueList
+            page={page}
+            agents={agents}
+            filter={query}
+            learnOpen={learnOpen}
+            held={held}
+            pausedByYou={tab.pausedByYou}
+            limit={limit}
+            set={set}
+            languages={view.contributor?.preferences?.languages ?? []}
+            facts={{ capUsd: settings?.attemptCapUsd ?? null, keyWaiting }}
+          />
+        </section>
+      </IssuesTotalProvider>
     </main>
   );
 }

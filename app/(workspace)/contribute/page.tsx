@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
+import { ContributeTabSkeleton } from '@/app/(workspace)/contribute/components/contribute-tab-skeleton';
 import { ContributeTab } from '@/app/(workspace)/contribute/components/contribute-tab-view';
 import { issuesQueryOf } from '@/app/contribute/components/issues-filter';
 import { Landing } from '@/app/contribute/components/landing';
-import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
 import {
@@ -25,13 +25,7 @@ export const metadata: Metadata = { alternates: { types: { 'text/markdown': AGEN
 /** Contribute's home: the landing until the user is onboarded, then the Contribute tab. */
 export default function ContributeHomePage({ searchParams }: PageProps<'/contribute'>) {
   return (
-    <Suspense
-      fallback={
-        <main className="mx-auto w-full max-w-7xl px-4 pt-8 pb-16">
-          <ContributePageSkeleton />
-        </main>
-      }
-    >
+    <Suspense fallback={<ContributeTabSkeleton />}>
       <ContributeHome searchParams={searchParams} />
     </Suspense>
   );
@@ -43,7 +37,7 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   const agentPage = loadAgentPage();
   const view = await loadContribute();
   // Where an agent sends its person: a visitor gets the own-agent sign-in open over the landing,
-  // anyone signed in goes straight to connecting their agent (an onboarded member's landing is the overview).
+  // anyone signed in goes straight to connecting their agent (an onboarded member's is the Contribute tab).
   const startAgent = params.start === 'agent';
   if (startAgent && view) redirect(CONNECT_AGENT_PATH);
   // Back from setting up a new account (`settingUpHomeOf`): on to the Claude key's first step.
@@ -74,7 +68,7 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   }
 
   const home = contributeHomeOf(view, params);
-  if (home.screen === 'overview') {
+  if (home.screen === 'tab') {
     // The tab; `?welcome=agent` from the own agent's connect step is taken as the tab itself.
     const gate = await loadWorkspaceGate();
     const open = gate.kind === 'open';

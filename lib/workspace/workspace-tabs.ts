@@ -24,7 +24,7 @@ const under = (path: string, prefix: string) => path === prefix || path.startsWi
 export function activeTabOf(pathname: string, search: Pick<URLSearchParams, 'get'>): WorkspaceTab | null {
   const path = pathname.replace(/\/+$/, '') || '/';
   if (path.startsWith('/my/start/')) return search.get('lesson') === '1' ? 'learn' : 'contribute';
-  if (path === '/contribute' || path === '/contribute/issues') return 'contribute';
+  if (path === '/contribute') return 'contribute';
   if (
     path === '/learn' ||
     path === '/learn/lessons' ||

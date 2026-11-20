@@ -9,7 +9,6 @@ const {
   ContributeUnavailableError,
   loadAttempt,
   loadAttempts,
-  loadAttemptsIn,
   loadContribute,
   loadContributeEmail,
   loadContributeSet,
@@ -23,9 +22,6 @@ const {
   ContributeAttemptFollowUpsDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
-  ContributeAttemptsInDocument,
-  ContributeAttemptsInFollowUpsDocument,
-  ContributeAttemptsInOwnAgentDocument,
   ContributeAttemptHoldDocument,
   ContributeAttemptReviewReasonDocument,
   ContributeAttemptRetryDocument,
@@ -771,37 +767,13 @@ describe('loadProviderInterests', () => {
   });
 });
 
-describe("Overview's loaders, each operation settled on its own", () => {
+describe('the loaders, each operation settled on its own', () => {
   const notYet = () => Promise.reject(new Error('[{"message":"Cannot query field"}]'));
-  const row = (attemptId: string, state = 'REVIEW') => ({ attemptId, state, updatedAt: '2026-10-28T10:00:00.000Z' });
 
   beforeEach(() => {
     graphqlDirect.mockReset();
     auth.mockReset();
     auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
-  });
-
-  it('reads attempts in several states at once, with their follow-up and own-agent fields', async () => {
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === ContributeAttemptsInDocument) return { contributeAttempts: [row('A_1', 'RUNNING')] };
-      if (document === ContributeAttemptsInFollowUpsDocument) {
-        return { contributeAttempts: [{ attemptId: 'A_1', autosubmitAt: null }] };
-      }
-      if (document === ContributeAttemptsInOwnAgentDocument)
-        return { contributeAttempts: [{ attemptId: 'A_1', runner: 'MCP' }] };
-      return notYet();
-    });
-
-    expect(await loadAttemptsIn(['CLAIMING', 'RUNNING', 'CHECKS'], 5)).toEqual([
-      { ...row('A_1', 'RUNNING'), autosubmitAt: null, runner: 'MCP' },
-    ]);
-    expect(graphqlDirect.mock.calls[0].slice(1)).toEqual([
-      { states: ['CLAIMING', 'RUNNING', 'CHECKS'], first: 5 },
-      { source: 'ssr', githubLogin: 'octocat' },
-    ]);
-
-    graphqlDirect.mockImplementation(notYet);
-    expect(await loadAttemptsIn(['REVIEW'])).toBeUndefined();
   });
 
   it("merges each waiting reply's plan by id, and leaves it out when it is not answered", async () => {

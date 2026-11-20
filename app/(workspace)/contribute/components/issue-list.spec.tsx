@@ -69,6 +69,28 @@ describe("Contribute's issue list", () => {
     expect(button('Show 5 more')).not.toBeNull();
   });
 
+  it('keeps its grown rows through a refresh, and starts again at 10 under other filters', async () => {
+    contribute.readIssuesPage.mockResolvedValueOnce({
+      ok: true,
+      data: { items: picks(11, 10), next: 'c3', total: 25, computedAt: null },
+    });
+    const first = { items: picks(1, 10), next: 'c2', total: 25, computedAt: '2026-10-28T07:00:00.000Z' };
+    const list = (page: typeof first, filter = {}) => (
+      <ContributeIssueList page={page} agents={AGENTS} filter={filter} />
+    );
+    await render(list(first));
+    await act(async () => button('Show 10 more')?.click());
+    expect(container.querySelectorAll('article[data-issue]')).toHaveLength(20);
+    // The page read again (a refresh): the same first page, a new object.
+    await render(list({ ...first, items: picks(1, 10) }));
+    expect(container.querySelectorAll('article[data-issue]')).toHaveLength(20);
+    expect(contribute.readIssuesPage).toHaveBeenCalledTimes(1);
+    // Other filters: another list, its first 10.
+    await render(list({ ...first, items: picks(1, 10) }, { language: 'GO' }));
+    expect(container.querySelectorAll('article[data-issue]')).toHaveLength(10);
+    expect(container.textContent).toContain('Showing 10 of 25 issues');
+  });
+
   it('resumes a pause the person set, then reads the page again', async () => {
     workspace.resumeContributing.mockResolvedValueOnce({ ok: true, data: true });
     await render(

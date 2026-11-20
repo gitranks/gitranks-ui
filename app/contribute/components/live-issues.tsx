@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { onContributeChanges } from '@/lib/workspace/changes-bus';
 import type { ContributeDailyCap, ContributeIssue, ContributeIssuesFilter } from '@/lib/workspace/contribute.types';
 
-export type LivePage = {
+type LivePage = {
   items: ContributeIssue[];
   total: number;
   next: string | null;

@@ -204,40 +204,6 @@ export const languagesLabelOf = (languages: ContributeLanguage[] = []) =>
     ? `${languages.length} languages`
     : languages.map((language) => SHORT_LANGUAGES[language]).join(', ');
 
-/**
- * The mode chip on the Issues page: "Supporting your stack · 50 libraries · JS/TS", or a quiet "All issues" that opens
- * the switcher.
- */
-export function modeChipOf(
-  set: ContributeSet,
-  languages: ContributeLanguage[] = [],
-): { title: string; detail: string; quiet: boolean } {
-  const filter = languagesLabelOf(languages);
-  const withFilter = (detail: string) => [detail, filter].filter(Boolean).join(' · ');
-  if (set.mode === 'ALL') return { title: 'All issues', detail: filter, quiet: true };
-  const only = (set.mode === 'STACK' ? set.stack.fallback : set.repos.fallback) === 'SET_ONLY';
-  if (set.mode === 'STACK' && stackPendingOf(set)) {
-    return {
-      title: 'Supporting your stack',
-      detail: withFilter('working out libraries · all issues until then'),
-      quiet: false,
-    };
-  }
-  if (set.mode === 'STACK') {
-    const libraries = plural(setSizeOf(set, 'STACK'), 'library', 'libraries');
-    return {
-      title: 'Supporting your stack',
-      detail: withFilter(only ? `${libraries} · only these` : libraries),
-      quiet: false,
-    };
-  }
-  return {
-    title: `Supporting ${plural(set.repos.count, 'repo')}`,
-    detail: withFilter(only ? 'only these' : 'then all issues'),
-    quiet: false,
-  };
-}
-
 /** Each mode's line in the Issues page's switcher. */
 export function modeSummaryOf(set: ContributeSet, mode: ContributeSetMode): string {
   if (mode === 'STACK') {

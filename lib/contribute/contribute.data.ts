@@ -9,17 +9,13 @@ import { ContributeIssuesDocument, ContributeIssuesWithRulesDocument } from '@/l
 import type { ContributeIssuePage, ContributeIssuesFilter } from '@/lib/workspace/contribute.types';
 import { contributeErrorOf } from '@/lib/workspace/errors';
 
-/** One page of issues for the signed-in user; `undefined` when the API does not answer the feed (yet). */
-export async function loadIssues(
-  filter: ContributeIssuesFilter,
-  after?: string,
-): Promise<ContributeIssuePage | null | undefined> {
+/** The first page of issues for the signed-in user; `undefined` when the API does not answer the feed (yet). */
+export async function loadIssues(filter: ContributeIssuesFilter): Promise<ContributeIssuePage | null | undefined> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return undefined;
 
   const variables = {
     first: ISSUES_PAGE_SIZE,
-    ...(after ? { after } : {}),
     ...(Object.keys(filter).length ? { filter } : {}),
   };
   const options = { source: 'ssr' as const, githubLogin };

@@ -168,8 +168,10 @@ describe('the Contribute tab', () => {
     expect(ranking.html).toContain('data-ranking="waiting"');
     const unanswered = render({ page: undefined });
     expect(unanswered.plain).toContain('Issues are not available right now. Try again in a minute. Try again');
-    const capped = render({ page: { ...issuePage, dailyCap: { limit: 150, reached: true } } });
+    const capped = render({ page: { ...issuePage, next: null, total: 300, dailyCap: { limit: 150, reached: true } } });
     expect(capped.html).toContain('data-feed-end="daily-cap"');
+    // Its next step is none: no "Show 10 more", though the total is past the rows.
+    expect(capped.html).not.toContain('data-show-more');
     expect(capped.html.indexOf('data-feed-end')).toBeGreaterThan(capped.html.lastIndexOf('data-live-row'));
   });
 });

@@ -20,6 +20,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadIssues: vi.fn(),
 }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
 
 const { SettingsScreen } = await import('./settings-view');
 const { SwitchSettingsScreen, WorkSettingsScreen } = await import('./settings-pages');

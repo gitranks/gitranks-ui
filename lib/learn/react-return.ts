@@ -5,13 +5,18 @@
  */
 
 type Place = {
-  readonly location: Pick<Location, 'pathname' | 'hash'>;
+  readonly location: Pick<Location, 'pathname' | 'hash'> & Partial<Pick<Location, 'search'>>;
   readonly history: Pick<History, 'replaceState' | 'state'>;
 };
 
-/** Drops the query (the pick and the sign-in's state) from the address, with no navigation and the history's state kept. */
+/**
+ * Drops the query (the pick and the sign-in's state) from the address, with no navigation and the history's state kept.
+ * A footer link's `?from=` stays: the Learn maintainers page reads its pull request from it.
+ */
 export function dropReturnQuery(place: Place): void {
-  place.history.replaceState(place.history.state, '', `${place.location.pathname}${place.location.hash}`);
+  const from = new URLSearchParams(place.location.search ?? '').get('from');
+  const query = from ? `?${new URLSearchParams({ from })}` : '';
+  place.history.replaceState(place.history.state, '', `${place.location.pathname}${query}${place.location.hash}`);
 }
 
 /** Stores the returned pick, then cleans the address, whether the store went through or not. */

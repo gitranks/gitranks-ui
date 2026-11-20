@@ -53,6 +53,8 @@ export function ResultReactions({
   prompt: firstPrompt = null,
   own: firstOwn = false,
   author = false,
+  report = true,
+  from = null,
 }: {
   slug: string;
   /** The result page's login. */
@@ -72,6 +74,10 @@ export function ResultReactions({
   own?: boolean;
   /** The result is the lesson author's, whose pull request it is (the own person's line names it). */
   author?: boolean;
+  /** The Report link under the answers; off where the page offers its own. */
+  report?: boolean;
+  /** On the Learn maintainers page: its footer link's id, so the sign-in comes back there. */
+  from?: string | null;
 }) {
   const [reactions, setReactions] = useState<readonly LessonResultReaction[]>(firstReactions);
   const [mine, setMine] = useState<LessonReaction | null>(firstMine);
@@ -198,6 +204,7 @@ export function ResultReactions({
           <input type="hidden" name="slug" value={slug} />
           <input type="hidden" name="login" value={login} />
           <input type="hidden" name="reaction" value={prompt} />
+          {from ? <input type="hidden" name="from" value={from} /> : null}
           <span className="text-sm">
             Sign in with GitHub to send your answer: it checks your role on {repo ?? 'the repository'}. Answers from its
             maintainers and collaborators appear here with their names.
@@ -231,9 +238,15 @@ export function ResultReactions({
           ))}
         </ul>
       ) : null}
-      <Link href={reportHrefOf(repo, pr)} prefetch={false} className="text-sm font-semibold text-link hover:underline">
-        Report this pull request
-      </Link>
+      {report ? (
+        <Link
+          href={reportHrefOf(repo, pr)}
+          prefetch={false}
+          className="text-sm font-semibold text-link hover:underline"
+        >
+          Report this pull request
+        </Link>
+      ) : null}
     </section>
   );
 }

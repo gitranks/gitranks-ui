@@ -1,5 +1,7 @@
 import { GitPullRequest, GraduationCap, type LucideIcon, Terminal } from 'lucide-react';
+import type { Route } from 'next';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 import { buttonVariants } from '@/components/ui/button';
 import { CodeBlock } from '@/components/workspace/code-block';
@@ -30,15 +32,43 @@ export const LEARN_CONFIG_EXAMPLE = `learn: welcome   # take Learn pull requests
 
 const CARD = 'flex flex-col gap-3 rounded-xl border bg-card p-5';
 
+/** "Report this pull request", carrying the footer link's id (`?from=`) when the page has one. */
+export function LearnReportLink({ from = null }: { from?: string | null }) {
+  return (
+    <Link
+      href={from ? (`${MAINTAINERS_REPORT_PATH}?${new URLSearchParams({ from })}` as Route) : MAINTAINERS_REPORT_PATH}
+      prefetch={false}
+      className={cn(buttonVariants({ variant: 'outline' }), 'min-h-11 px-5 font-semibold max-sm:w-full')}
+    >
+      Report this pull request
+    </Link>
+  );
+}
+
 /**
  * What a pull request made with GitRanks Learn is, for the maintainer who got one: who wrote it, what the author did,
  * that the repository's rules apply, the `learn: welcome` key, and the ways to set rules or report it. Open to every
  * visitor: the footer of every Learn pull request links here.
  */
-export function LearnMaintainers() {
+export function LearnMaintainers({
+  context = null,
+  lesson = null,
+  from = null,
+  report = null,
+}: {
+  /** The pull request a footer link came from (`?from=`): at the top, before anything is explained. */
+  context?: ReactNode;
+  /** Its lesson, the author's result and the feedback: after "What that means", before the rules. */
+  lesson?: ReactNode;
+  /** The footer link's id, which the report link carries. */
+  from?: string | null;
+  /** The report link, in place of the one `from` makes: the page streams the footer link's id into it. */
+  report?: ReactNode;
+} = {}) {
   return (
     <main className="flex flex-col">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-10 pb-16">
+        {context}
         <header className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <span className="rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
@@ -76,6 +106,8 @@ export function LearnMaintainers() {
           </ul>
         </section>
 
+        {lesson}
+
         <section aria-labelledby="learn-rules" className={CARD}>
           <h2 id="learn-rules" className="text-lg font-semibold">
             Your rules apply
@@ -96,13 +128,7 @@ export function LearnMaintainers() {
             >
               Set rules for my repository
             </Link>
-            <Link
-              href={MAINTAINERS_REPORT_PATH}
-              prefetch={false}
-              className={cn(buttonVariants({ variant: 'outline' }), 'min-h-11 px-5 font-semibold max-sm:w-full')}
-            >
-              Report this pull request
-            </Link>
+            {report ?? <LearnReportLink from={from} />}
           </div>
         </section>
       </div>

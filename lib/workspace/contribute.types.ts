@@ -1767,6 +1767,11 @@ export type ContributePrCard = {
   agentPhrase: string;
   /** The signed-in visitor is its contributor. */
   isAuthor: boolean;
+  /**
+   * A GitRanks Learn pull request's lesson: `slug` while its page is open to everyone, null while it is not public.
+   * Null for any other pull request.
+   */
+  learn: { slug: string | null } | null;
 };
 
 /** The signed-in visitor in the PR's repo. */

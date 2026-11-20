@@ -10,6 +10,7 @@ import {
   REACT_PARAM,
   reactionParamOf,
 } from '@/lib/workspace/paths';
+import { attemptIdOf } from '@/lib/workspace/pr-feedback';
 import { currentSessionToken } from '@/lib/workspace/session-token';
 
 /**
@@ -47,12 +48,20 @@ export function maintainerSignInCookie(secure = process.env.NODE_ENV === 'produc
 /** Any local address, read against a base no address of ours has; anything else answers another origin. */
 const LOCAL_BASE = 'https://gitranks.invalid';
 
-/** The paths the light sign-in returns to: the maintainers page, its report page, and a Learn result page. */
-const isReturnPath = (pathname: string) => MAINTAINER_RETURN_PATHS.includes(pathname) || isLessonResultPath(pathname);
+/** The Learn maintainers page, where a Learn pull request's footer lands (`?from=`) with its reactions block. */
+const LEARN_MAINTAINERS = '/learn/maintainers';
+
+/**
+ * The paths the light sign-in returns to: the maintainers page, its report page, a Learn result page and the Learn
+ * maintainers page.
+ */
+const isReturnPath = (pathname: string) =>
+  MAINTAINER_RETURN_PATHS.includes(pathname) || pathname === LEARN_MAINTAINERS || isLessonResultPath(pathname);
 
 /**
  * Where the page's sign-in may return to: `returnTo` when it is one of the maintainers page's own paths (its query
- * kept, any nonce in it dropped) or a Learn result page (only its `?react=yes|no` kept), else the maintainers page.
+ * kept, any nonce in it dropped), a Learn result page (only its `?react=yes|no` kept) or the Learn maintainers page
+ * (only its `?from=` and `?react=yes|no` kept), else the maintainers page.
  * Never another path or another site.
  */
 export function maintainerReturnOf(returnTo: unknown): URL {
@@ -66,6 +75,14 @@ export function maintainerReturnOf(returnTo: unknown): URL {
       const reaction = reactionParamOf(url.searchParams.get(REACT_PARAM));
       url.search = '';
       if (reaction) url.searchParams.set(REACT_PARAM, reaction.toLowerCase());
+      return url;
+    }
+    if (url.pathname === LEARN_MAINTAINERS) {
+      const from = attemptIdOf(url.searchParams.get('from'));
+      const reaction = reactionParamOf(url.searchParams.get(REACT_PARAM));
+      url.search = '';
+      if (from) url.searchParams.set('from', from);
+      if (from && reaction) url.searchParams.set(REACT_PARAM, reaction.toLowerCase());
       return url;
     }
     url.searchParams.delete(NONCE_PARAM);

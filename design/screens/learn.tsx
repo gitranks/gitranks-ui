@@ -5,6 +5,7 @@ import { LEARN_FLOW_SCREENS } from './getting-in';
 import { LearnTabScreen } from '@/app/(workspace)/learn/components/learn-tab';
 import { LEARN_VISITOR_START, LearnLanding } from '@/app/learn/components/learn-landing';
 import { LearnMaintainers } from '@/app/learn/components/learn-maintainers';
+import { PrContext, PrLesson } from '@/app/learn/components/learn-pr-lesson';
 import { LessonPageScreen } from '@/app/learn/components/lesson-page';
 import { LessonResultScreen, type ResultViewer } from '@/app/learn/components/lesson-result';
 import { LessonStubScreen } from '@/app/learn/components/lesson-stub';
@@ -18,6 +19,7 @@ import {
 import { HeaderLine } from '@/components/workspace/header-line';
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { activityOf, runOf } from '@/lib/contribute/__fixtures__/agent-runs';
+import { prCard } from '@/lib/contribute/__fixtures__/maintainers';
 import {
   emptyIssues,
   learnIssues,
@@ -38,6 +40,7 @@ import type {
   PracticeLessons,
 } from '@/lib/learn/learn.types';
 import { learnTabStateOf } from '@/lib/learn/learn-tab';
+import type { PrLessonRead } from '@/lib/learn/pr-lesson';
 import {
   learnedPage,
   lessonsPage,
@@ -142,6 +145,31 @@ const stubPage = (visibility: LessonVisibility | 'MISSING') => open(<LessonStubS
 
 /** A maintainer from the pull request, without the light sign-in: nothing stored yet. */
 const MAINTAINER: ResultViewer = { canReact: false, mine: null, returned: null };
+
+/** A Learn pull request's footer link: the maintainers page with its first attempt. */
+const FROM_PR_PATH = '/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0';
+/** The lesson's pull request, as the footer link names it. */
+const LEARN_PR = prCard({
+  number: 902,
+  title: 'Keep nested layouts cached across navigations',
+  contributorLogin: 'octocat',
+  agentPhrase: 'GitRanks Learn and Claude Code (Opus)',
+  learn: { slug: 'route-cache-miss-8f3k' },
+});
+const prLesson = (viewer: ResultViewer = MAINTAINER): PrLessonRead => ({
+  kind: 'lesson',
+  card: LEARN_PR,
+  result: result(),
+  viewer: { own: false, ...viewer },
+});
+const fromPr = (read: PrLessonRead) =>
+  open(
+    <LearnMaintainers
+      context={<PrContext card={read.card} />}
+      lesson={<PrLesson read={read} />}
+      from={read.card.attemptId}
+    />,
+  );
 const resultPage = (page: LessonResultPage = result(), viewer: ResultViewer = MAINTAINER) =>
   open(<LessonResultScreen result={page} viewer={viewer} />);
 
@@ -369,6 +397,40 @@ export const LEARN_SCREENS: Screen[] = [
         signedOut: true,
         height: 1030,
         render: () => open(<LearnMaintainers />),
+      },
+      {
+        id: 'from-pr',
+        title:
+          'From a Learn pull request’s footer: the pull request on top, then what it is, its lesson, Did this help?, your rules',
+        path: FROM_PR_PATH,
+        signedOut: true,
+        height: 1690,
+        render: () => fromPr(prLesson()),
+      },
+      {
+        id: 'from-pr-sign-in',
+        title: 'After a click on “Yes, it helped”, signed out: the GitHub sign-in',
+        path: FROM_PR_PATH,
+        signedOut: true,
+        height: 1810,
+        render: () => fromPr(prLesson({ ...MAINTAINER, prompt: 'YES' })),
+      },
+      {
+        id: 'from-pr-phone',
+        title: 'From the footer, on a phone',
+        path: FROM_PR_PATH,
+        signedOut: true,
+        width: 390,
+        height: 2140,
+        render: () => fromPr(prLesson()),
+      },
+      {
+        id: 'from-pr-closed',
+        title: 'Its lesson held, hidden or removed: the pull request on top, one neutral line, no feedback',
+        path: FROM_PR_PATH,
+        signedOut: true,
+        height: 1300,
+        render: () => fromPr({ kind: 'closed', card: { ...LEARN_PR, learn: { slug: null } } }),
       },
     ],
   },

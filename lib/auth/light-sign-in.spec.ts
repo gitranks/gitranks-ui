@@ -148,6 +148,12 @@ describe("the maintainers page's sign-in mark", () => {
     returnsTo(redirectTo);
     expect(await takeMaintainerSignIn()).toBe(true);
 
+    expect(String(maintainerReturnOf('/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0&react=yes&s=old&x=1#top'))).toBe(
+      'https://gitranks.invalid/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0&react=yes',
+    );
+    expect(String(maintainerReturnOf('/learn/maintainers?from=nope&react=yes'))).toBe(
+      'https://gitranks.invalid/learn/maintainers',
+    );
     expect(String(maintainerReturnOf('/learn/lessons/a-1/passes/Mona-Lisa?react=no'))).toBe(
       'https://gitranks.invalid/learn/lessons/a-1/passes/Mona-Lisa?react=no',
     );

@@ -89,4 +89,17 @@ describe('the way back from a reaction sign-in', () => {
     });
     expect(replaceState).toHaveBeenCalledWith(state, '', '/learn/lessons/route-cache-miss-8f3k/passes/octocat#react');
   });
+
+  it('keeps a footer link’s ?from= on the Learn maintainers page, dropping the pick and the nonce', () => {
+    const replaceState = vi.fn();
+    dropReturnQuery({
+      location: {
+        pathname: '/learn/maintainers',
+        search: '?from=6650a1b2c3d4e5f6a7b8c9d0&react=yes&s=00000000-0000-0000-0000-000000000000',
+        hash: '',
+      },
+      history: { replaceState, state: null },
+    });
+    expect(replaceState).toHaveBeenCalledWith(null, '', '/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0');
+  });
 });

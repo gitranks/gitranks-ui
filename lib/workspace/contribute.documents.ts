@@ -885,7 +885,7 @@ export const OptInReposDocument = doc<{ optInRepos: ContributeOptOutResult[] }, 
 
 // The maintainers page's facts, and the notes on a PR. A GitHub token is always a variable.
 const PR_CARD =
-  'attemptId repositoryId nameWithOwner number title openedAt contributorLogin reviewed agentPhrase isAuthor';
+  'attemptId repositoryId nameWithOwner number title openedAt contributorLogin reviewed agentPhrase isAuthor learn { slug }';
 const PR_FEEDBACK_RESULT = 'feedbackId kind number label added role actions { kind appliedAt undoneAt }';
 const PR_NOTE = 'feedbackId login role likes word at hidden';
 

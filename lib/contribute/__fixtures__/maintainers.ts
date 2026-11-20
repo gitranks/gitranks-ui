@@ -102,6 +102,7 @@ export const prCard = (patch: Partial<ContributePrCard> = {}): ContributePrCard 
   reviewed: true,
   agentPhrase: 'GitRanks Contribute powered by Claude (Opus)',
   isAuthor: false,
+  learn: null,
   ...patch,
 });
 

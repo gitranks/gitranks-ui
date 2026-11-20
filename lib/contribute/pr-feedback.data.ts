@@ -14,10 +14,10 @@ const STRIP_REVALIDATE_SEC = 5 * 60;
 /** The page waits no longer than this for a read it can do without: an outage must not hold its first byte. */
 export const PAGE_READ_TIMEOUT_MS = 2500;
 
-const TIMED_OUT = Symbol('timed out');
+export const TIMED_OUT = Symbol('timed out');
 
 /** `read`, or `TIMED_OUT` once `ms` pass first. */
-async function within<T>(read: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+export async function within<T>(read: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
     timer = setTimeout(() => resolve(TIMED_OUT), ms);

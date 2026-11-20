@@ -34,7 +34,7 @@ import {
   AutopilotConfirmLines,
   AutopilotHowItWorks,
   AutopilotRecord,
-} from '@/components/workspace/autopilot-section';
+} from '@/components/workspace/autopilot';
 import { HeaderLine } from '@/components/workspace/header-line';
 import { LearnPill } from '@/components/workspace/learn-pill';
 import { LimitNotice } from '@/components/workspace/limit-notice';
@@ -156,13 +156,27 @@ const held = detail({
     : null,
 });
 
-/** Autopilot open and unlocked, the setting off: what the confirmation shows over. */
+/** Autopilot open and unlocked, the level below it: what the confirmation shows over. */
 const autopilotOff: ContributeView = {
   ...views.autopilotUnlocked,
   contributor: views.autopilotUnlocked.contributor
-    ? { ...views.autopilotUnlocked.contributor, settings: { ...settings, autopilot: false } }
+    ? { ...views.autopilotUnlocked.contributor, settings: { ...settings, hostedLevel: 'NEXT' } }
     : null,
 };
+
+/** The Agent tab with the hosted agent at a level: its contributor's settings and autopilot record as given. */
+const agentAt = (
+  hostedLevel: 'MANUAL' | 'NEXT' | 'AUTOPILOT',
+  autopilot: Partial<NonNullable<ContributeView['contributor']>['autopilot']> = {},
+  patch: Partial<ContributeView> = {},
+): ContributeView => ({
+  ...agentTabViews.both,
+  contributor: contributor({
+    settings: { ...settings, hostedLevel },
+    autopilot: { ...contributor().autopilot, available: true, ...autopilot },
+  }),
+  ...patch,
+});
 
 /** A key and a live token the agent has called with: both lanes of Right now. */
 const both: ContributeView = {
@@ -1353,7 +1367,8 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'components/workspace/agent/hosted-agent-block.tsx',
       'components/workspace/agent/hosted-agent-control.tsx',
       'components/workspace/agent/runs-preview.tsx',
-      'components/workspace/autopilot-section.tsx',
+      'components/workspace/agent/hosted-level-picker.tsx',
+      'components/workspace/autopilot.tsx',
     ],
     states: [
       {
@@ -1365,6 +1380,59 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
               <AgentScreen view={agentTabViews.both} learnOpen runs={previewPageOf()} now={NOW} />
+            </main>,
+          ),
+      },
+      {
+        id: 'level-next',
+        title: 'It starts the next issue by itself: when it starts the next one',
+        path: '/my/agent',
+        height: 2300,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen
+                view={agentAt('NEXT')}
+                learnOpen
+                runs={previewPageOf()}
+                counts={{ prBound: 1, queued: 0 }}
+                now={NOW}
+              />
+            </main>,
+          ),
+      },
+      {
+        id: 'autopilot-relocked',
+        title: 'Autopilot chosen, then locked again: it works as the level above',
+        path: '/my/agent',
+        height: 2300,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen
+                view={agentAt('AUTOPILOT', { mergedCount: 6, mergedToUnlock: 4, lockedAt: '2026-10-20T08:00:00.000Z' })}
+                learnOpen
+                runs={previewPageOf()}
+                counts={{ prBound: 1, queued: 0 }}
+                now={NOW}
+              />
+            </main>,
+          ),
+      },
+      {
+        id: 'paused-by-you',
+        title: 'Paused by you: Resume over the levels',
+        path: '/my/agent',
+        height: 2400,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen
+                view={agentAt('MANUAL', {}, { paused: true, pausedByYou: true })}
+                learnOpen
+                runs={previewPageOf()}
+                now={NOW}
+              />
             </main>,
           ),
       },

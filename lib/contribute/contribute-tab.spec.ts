@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { limits, settings } from './__fixtures__/contribute-views';
-import { introLineOf, limitReachedOf, numberTilesOf } from './contribute-tab';
+import { introLineOf, numberTilesOf } from './contribute-tab';
 import { isFiltered, issuesHref, issuesQueryOf } from '@/app/contribute/components/issues-filter';
 
 describe("the Contribute tab's parts", () => {
@@ -13,14 +12,6 @@ describe("the Contribute tab's parts", () => {
       '64%',
     ]);
     expect(numberTilesOf(null).map(({ value }) => value)).toEqual(['–', '–', '–', '–']);
-  });
-
-  it('is at the limit once what it counts reaches what holds: the setting, the cap, a limit set for the account', () => {
-    expect(limitReachedOf({ prBound: 3 }, settings, limits.standard)).toEqual({ count: 3, limit: 3 });
-    expect(limitReachedOf({ prBound: 2 }, settings, limits.standard)).toBeNull();
-    expect(limitReachedOf({ prBound: 2 }, settings, limits.newAccount)).toEqual({ count: 2, limit: 2 });
-    expect(limitReachedOf({ prBound: 3 }, settings, limits.openPrsSet)).toBeNull();
-    expect(limitReachedOf(undefined, settings, limits.standard)).toBeNull();
   });
 
   it('says how Start works by the agents and the level', () => {

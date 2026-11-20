@@ -29,7 +29,7 @@ export const settings: ContributeSettings = {
   maxFiles: 15,
   openPrsAtATime: 3,
   dco: 'ASK',
-  autopilot: false,
+  hostedLevel: 'MANUAL',
 };
 
 export const key = (patch: Partial<ContributeCredential> = {}): ContributeCredential => ({
@@ -255,7 +255,13 @@ export const views = {
     paused: false,
     grantAvailable: true,
   },
-  paused: { contributor: contributor({ status: 'PAUSED' }), grant: connected, paused: true, grantAvailable: true },
+  paused: {
+    contributor: contributor({ status: 'PAUSED' }),
+    grant: connected,
+    paused: true,
+    pausedByYou: true,
+    grantAvailable: true,
+  },
   /** A new account, on smaller limits: its settings ask for 3 at a time and 3 open PRs, the limits hold 1 and 2. */
   newAccount: {
     contributor: contributor({
@@ -299,7 +305,7 @@ export const views = {
         lockedAt: null,
         available: true,
       },
-      settings: { ...settings, autopilot: true },
+      settings: { ...settings, hostedLevel: 'AUTOPILOT' },
     }),
     grant: connected,
     paused: false,

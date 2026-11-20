@@ -24,7 +24,6 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
 
 const { ReviewScreen, grantNeededOf } = await import('@/components/workspace/pull-request/review-view');
 const { allKindsOf } = await import('@/components/workspace/pull-request/move-card');
-const { AgentScreen } = await import('@/components/workspace/agent/agent-screen');
 const {
   AUTOPILOT_CONFIRM_LINES,
   AUTOPILOT_LAUNCH_LINE,
@@ -32,8 +31,8 @@ const {
   AutopilotHowItWorks,
   AutopilotRecord,
   autopilotErrorMessage,
-} = await import('@/components/workspace/autopilot-section');
-const { NOW, views, settings: baseSettings } = await import('@/lib/contribute/__fixtures__/contribute-views');
+} = await import('@/components/workspace/autopilot');
+const { NOW, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { feedbackThread, flowDraft, followUpAttempts, followUpOf, followUpRun, followUps, noReplyDraft, replyDraft } =
   await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const {
@@ -160,7 +159,7 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
       ...views.active,
       contributor: {
         ...contributor,
-        settings: { ...contributor.settings!, autopilot: true },
+        settings: { ...contributor.settings!, hostedLevel: 'AUTOPILOT' },
         autopilot: { ...contributor.autopilot, unlocked: true },
       },
     };
@@ -660,61 +659,29 @@ describe('refusals, in plain words', () => {
 });
 
 describe('autopilot', () => {
-  /** Its row on the Agent tab, and what its How autopilot works dialog opens: the description and the record. */
-  const settings = (view: ContributeView) =>
-    renderToStaticMarkup(
-      <>
-        <AgentScreen view={view} now={NOW} />
-        {view.contributor ? <AutopilotHowItWorks autopilot={view.contributor.autopilot} /> : null}
-        {view.contributor ? <AutopilotRecord autopilot={view.contributor.autopilot} /> : null}
-      </>,
-    );
+  /** How autopilot works, as its dialog opens it on the Agent tab: the description and the record. */
+  const howItWorks = (view: ContributeView) =>
+    view.contributor
+      ? renderToStaticMarkup(
+          <>
+            <AutopilotHowItWorks autopilot={view.contributor.autopilot} />
+            <AutopilotRecord autopilot={view.contributor.autopilot} />
+          </>,
+        )
+      : '';
 
-  it('says it opens after launch month while it is not open, with the record and the toggle off', () => {
-    const html = settings(views.autopilotComing);
-    const plain = text(html);
+  it('says it opens after launch month while it is not open, with the record', () => {
+    const plain = text(howItWorks(views.autopilotComing));
 
-    expect(html).toContain('data-autopilot-available="false"');
-    expect(plain).toContain('After launch month');
     expect(plain).toContain(AUTOPILOT_LAUNCH_LINE);
-    expect(plain).toContain('How autopilot works');
-    expect(plain).not.toContain('Details');
     expect(plain).toContain('Merged through GitRanks 4');
     expect(plain).toContain('Still needed to unlock 1');
     expect(plain).toContain('Closed without merging in a row 1 of 2');
     expect(plain).toContain('4 of 5 merged PRs');
-    expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
-  });
-
-  it('lets a setting left on be turned off while autopilot is not open', () => {
-    const view = {
-      ...views.autopilotComing,
-      contributor: {
-        ...views.autopilotComing.contributor,
-        autopilot: { ...views.autopilotComing.contributor.autopilot, unlocked: true, mergedToUnlock: 0 },
-        settings: { ...baseSettings, autopilot: true },
-      },
-    };
-    const html = settings(view);
-    const checkbox = html.match(/<input[^>]*type="checkbox"[^>]*>/)?.[0] ?? '';
-
-    expect(html).toContain('data-autopilot-available="false"');
-    expect(checkbox).toContain('checked=""');
-    expect(checkbox).not.toContain('disabled=""');
-    expect(text(html)).toContain('After launch month');
-  });
-
-  it('says it is not available yet while the API does not answer whether it is open', () => {
-    const html = settings(views.active);
-
-    expect(html).toContain('data-autopilot-available="unknown"');
-    expect(text(html)).toContain('After launch month');
-    expect(text(html)).toContain(AUTOPILOT_LAUNCH_LINE);
-    expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
   });
 
   it('says every limit before it is on: when it submits, the hour, what it never does, follow-ups, GitHub, lock', () => {
-    const plain = text(settings(views.autopilotUnlocked));
+    const plain = text(howItWorks(views.autopilotUnlocked));
 
     expect(plain).not.toContain(AUTOPILOT_LAUNCH_LINE);
     for (const heading of ['When it submits', 'An hour to stop it', 'What it never does', 'Follow-ups', 'On GitHub']) {
@@ -727,6 +694,7 @@ describe('autopilot', () => {
     expect(plain).toContain('it may start up to 2 runs on that pull request, on your key');
     expect(plain).toContain("Opened by @you's autopilot, not reviewed by a human");
     expect(plain).toContain('It unlocks after 5 of your pull requests are merged through GitRanks. Two closed');
+    expect(plain).toContain('Still needed to unlock none, unlocked');
   });
 
   it('asks before turning it on, in six lines that name the beginner issues', () => {
@@ -737,64 +705,18 @@ describe('autopilot', () => {
     expect(plain).toContain('Up to 2 follow-up runs per pull request, on your key.');
   });
 
-  it('lets the user turn it on or off once it is open and unlocked', () => {
-    const html = settings(views.autopilotUnlocked);
-
-    expect(html).toContain('data-autopilot="unlocked"');
-    expect(html).toContain('data-autopilot-available="true"');
-    expect(html).not.toContain('data-autopilot-coming');
-    expect(text(html)).toContain('Still needed to unlock none, unlocked');
-    expect(html).not.toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
-  });
-
-  it('says when it locked again, and counts the merges since', () => {
-    const plain = text(settings(views.autopilotRelocked));
-
-    expect(plain).toContain('Locked on Oct 20 · 1 of 5 merged since');
-    expect(plain).toContain('Locked on Oct 20: two pull requests in a row were closed without merging.');
-    expect(plain).toContain('1 of 5 merged PRs');
-  });
-
-  it('says where the emails before each submission go, and refuses to turn it on with no email', () => {
-    const withNotice = (noticeTo: string | null) => ({
+  it('says when it locked again, and says where the emails before each submission go', () => {
+    expect(text(howItWorks(views.autopilotRelocked))).toContain(
+      'Locked on Oct 20: two pull requests in a row were closed without merging.',
+    );
+    const mailed = {
       ...views.autopilotUnlocked,
       contributor: {
         ...views.autopilotUnlocked.contributor,
-        autopilot: { ...views.autopilotUnlocked.contributor.autopilot, noticeTo },
-        settings: { ...baseSettings, autopilot: false },
+        autopilot: { ...views.autopilotUnlocked.contributor.autopilot, noticeTo: 'm•••@gmail.com' },
       },
-    });
-    const mailed = settings(withNotice('m•••@gmail.com'));
-    expect(text(mailed)).toContain('Emails before each submission go to m•••@gmail.com');
-    expect(text(mailed)).toContain('Before each submission we email you at m•••@gmail.com.');
-    expect(mailed).not.toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
-
-    const unmailed = settings(withNotice(null));
-    expect(unmailed).toContain('data-autopilot-no-email');
-    expect(text(unmailed)).toContain('Sign in again and share your GitHub email to turn it on.');
-    expect(unmailed).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""/);
-
-    // A setting left on with no address: its changes wait for the review, and it can still be turned off.
-    const leftOn = withNotice(null);
-    const html = settings({
-      ...leftOn,
-      contributor: { ...leftOn.contributor, settings: { ...baseSettings, autopilot: true } },
-    });
-    const checkbox = html.match(/<input[^>]*type="checkbox"[^>]*>/)?.[0] ?? '';
-    expect(checkbox).toContain('checked=""');
-    expect(checkbox).not.toContain('disabled=""');
-    expect(text(html)).toContain('so its changes wait for your review');
-
-    // Locked: signing in again would not turn it on, so the row does not say so.
-    const locked = withNotice(null);
-    const lockedHtml = settings({
-      ...locked,
-      contributor: {
-        ...locked.contributor,
-        autopilot: { ...locked.contributor.autopilot, unlocked: false, mergedToUnlock: 1 },
-      },
-    });
-    expect(lockedHtml).not.toContain('data-autopilot-no-email');
+    };
+    expect(text(howItWorks(mailed))).toContain('Before each submission we email you at m•••@gmail.com.');
   });
 
   it('words the refusal to turn it on with no email', () => {
@@ -824,6 +746,10 @@ describe('autopilot', () => {
     expect(text(reviewing('notice_late'))).toContain('we could not email you first');
     expect(text(reviewing('no_email'))).toContain('we have no email to tell you first');
     expect(text(reviewing('autopilot_off'))).toContain('turned off or locked before it did');
+    expect(reviewing('own_agent')).toContain('data-autopilot-review-reason="own_agent"');
+    expect(text(reviewing('own_agent'))).toContain(
+      "Autopilot did not submit it: autopilot submits only the hosted agent's changes, so it waits for your review.",
+    );
     expect(reviewing('override')).toContain('data-autopilot-review-reason="override"');
     expect(text(reviewing('override'))).toContain('You chose to work on this one, so you approve its pull request.');
     expect(reviewing('vetoed')).not.toContain('data-autopilot-review-reason');

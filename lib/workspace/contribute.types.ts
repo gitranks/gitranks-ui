@@ -11,8 +11,16 @@ export type ContributeAttemptMode = 'FIX' | 'LEARN';
 export type ContributeLiveProvider = 'ANTHROPIC';
 export type ContributeKeyState = 'VALID' | 'INVALID' | 'EXHAUSTED' | 'LIMIT_REACHED';
 export type ContributePace = 'EVEN' | 'FAST' | 'QUEUED';
-/** The paces a key connect may set: `QUEUED` is set in Settings alone. */
+/**
+ * The paces the forms offer, and a key connect may set. A stored `QUEUED` ("only issues I queue", from before the
+ * levels) is shown as `EVEN` (`shownPaceOf`): starting issues is the hosted agent's level now.
+ */
 export type ContributeConnectPace = Exclude<ContributePace, 'QUEUED'>;
+/**
+ * How much the hosted agent does by itself: you start each issue (`MANUAL`), it also starts the next one by itself
+ * (`NEXT`), and it also submits the pull requests of its own changes (`AUTOPILOT`).
+ */
+export type ContributeHostedLevel = 'MANUAL' | 'NEXT' | 'AUTOPILOT';
 export type ContributeModel = 'CLAUDE_SONNET_5_5' | 'CLAUDE_OPUS_5_5' | 'CLAUDE_HAIKU_5_5';
 export type ContributeEffort = 'LOW' | 'MEDIUM' | 'HIGH' | 'XHIGH' | 'MAX';
 export type ContributeDcoMode = 'ASK' | 'STANDING';
@@ -75,7 +83,7 @@ export type ContributeSettings = {
   maxFiles: number;
   openPrsAtATime: number;
   dco: ContributeDcoMode;
-  autopilot: boolean;
+  hostedLevel: ContributeHostedLevel;
 };
 
 export type ContributeSettingsInput = Partial<ContributeSettings>;
@@ -122,14 +130,16 @@ export type ContributeAutopilot = {
 
 /**
  * Why autopilot left a change for the user's review: no email to tell them first (`no_email`), the email not sent in
- * time (`notice_late`), autopilot turned off or locked meanwhile (`autopilot_off`), the user's Stop (`vetoed`), a
- * run the user forced past a no-go, theirs to approve (`override`), or a hold: a beginner issue (`beginner_issue`), one
- * it could not read to check (`issue_unread`), a repo that asks for a person's review (`repo_manual_only`).
+ * time (`notice_late`), autopilot turned off or locked meanwhile (`autopilot_off`), a change the user's own agent made,
+ * which autopilot does not submit (`own_agent`), the user's Stop (`vetoed`), a run the user forced past a no-go, theirs
+ * to approve (`override`), or a hold: a beginner issue (`beginner_issue`), one it could not read to check
+ * (`issue_unread`), a repo that asks for a person's review (`repo_manual_only`).
  */
 export type ContributeAutopilotReviewReason =
   | 'no_email'
   | 'notice_late'
   | 'autopilot_off'
+  | 'own_agent'
   | 'vetoed'
   | 'override'
   | 'beginner_issue'
@@ -275,6 +285,8 @@ export type ContributeView = {
   sides?: ContributeSides | null;
   grant: ContributeGrant | undefined;
   paused: boolean | undefined;
+  /** Paused by the user themselves (not by a refused key); `undefined` while the API does not answer it. */
+  pausedByYou?: boolean;
   /** Pull request access can be granted here (the app and its key ring are configured). */
   grantAvailable: boolean;
   /** The user's own agent: their paths and live tokens; `undefined` while the API does not answer them. */

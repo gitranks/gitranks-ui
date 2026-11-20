@@ -7,6 +7,7 @@ import {
   manualDraftOf,
   manualLimitsOf,
   manualSummaryOf,
+  paceAfterConnectOf,
   renewalLabelOf,
 } from './connect-limits';
 import type { ContributeSettings } from './contribute.types';
@@ -125,8 +126,9 @@ describe('a key connected before', () => {
     expect(same['Week and day']).toBe('$40 a week: the smallest cap wins');
     expect(same['At a time']).toBe('2 attempts, and at most 3 of your PRs open');
     expect(same['Each PR']).toBe('at most 250 changed lines in 15 files');
+    // A stored "only issues I queue" reads as the even spread, as the forms show it.
     expect(picked('plan', 'MAX_5X', manualDraftOf(), { plan: 'MAX_5X', settings: stored }).Pacing).toBe(
-      'only on issues you queue',
+      'spread across your month',
     );
   });
 
@@ -153,16 +155,16 @@ describe('a key connected before', () => {
     expect(picked('plan', 'MAX_5X', manualDraftOf()).Issues).toBe('every kind and size');
   });
 
-  it('starts the hand-set limits from the stored settings, a QUEUED pace kept', () => {
+  it('starts the hand-set limits from the stored settings, a QUEUED pace shown as the even spread', () => {
     const draft = manualDraftOf(manualDraftFromSettings(stored));
 
-    expect(draft).toEqual({ month: '150', week: '40', day: '', attempt: '3', pace: 'QUEUED' });
+    expect(draft).toEqual({ month: '150', week: '40', day: '', attempt: '3', pace: 'EVEN' });
     expect(manualSummaryOf(draft)).toBe(
-      'At most $150 a month, $40 a week and $3 an attempt, only on issues you queue.',
+      'At most $150 a month, $40 a week and $3 an attempt, spread across your month.',
     );
   });
 
-  it('sends only what the user changed, and never turns a QUEUED pace into another', () => {
+  it('sends only what the user changed, and no pace over a QUEUED one left as shown', () => {
     const untouched = manualLimitsOf(manualDraftOf(manualDraftFromSettings(stored)));
     if (!untouched.ok) throw new Error('the stored limits hold');
     expect(connectLimitsOf(untouched.limits, stored)).toEqual({});
@@ -171,9 +173,16 @@ describe('a key connected before', () => {
     if (!edited.ok) throw new Error('the edited limits hold');
     expect(connectLimitsOf(edited.limits, stored)).toEqual({ dayCapUsd: 10 });
 
+    // Fast over a stored QUEUED: the connect never sets the level, so the pace is saved after it, with the level.
     const paced = manualLimitsOf(manualDraftOf({ ...manualDraftFromSettings(stored), pace: 'FAST' }));
     if (!paced.ok) throw new Error('the paced limits hold');
-    expect(connectLimitsOf(paced.limits, stored)).toEqual({ pace: 'FAST' });
+    expect(connectLimitsOf(paced.limits, stored)).toEqual({});
+    expect(paceAfterConnectOf(paced.limits, stored)).toEqual({ pace: 'FAST', hostedLevel: 'MANUAL' });
+    expect(paceAfterConnectOf(untouched.limits, stored)).toBeNull();
+    // Over a pace the connect takes, it goes with the connect, and nothing after.
+    const even = { ...stored, pace: 'EVEN' as const };
+    expect(connectLimitsOf(paced.limits, even)).toEqual({ pace: 'FAST' });
+    expect(paceAfterConnectOf(paced.limits, even)).toBeNull();
 
     // A first key sends them all.
     const first = manualLimitsOf(manualDraftOf());

@@ -95,7 +95,7 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 
 const CREDENTIAL = 'provider last4 orgId workspaceId state blockedUntil ready checkedAt lastError';
 const SETTINGS = `cycleCapUsd weekCapUsd dayCapUsd attemptCapUsd attemptsAtATime pace sweepDays renewalDay mainModel
-  helperModel testModel effort maxChangedLines maxFiles openPrsAtATime dco autopilot`;
+  helperModel testModel effort maxChangedLines maxFiles openPrsAtATime dco hostedLevel`;
 const PREFERENCES = 'languages topicIds kinds maxSize';
 const ISSUE = 'issueId repositoryId nameWithOwner number url title labels language kind size score rank why';
 const PULL_REQUEST = 'prId number url state openedAt mergedAt closedAt reviewDecision checks syncedAt';
@@ -279,9 +279,10 @@ export const ContributeGrantDocument = doc<{ contribute: { grant: ContributeGran
   'query ContributeGrant { contribute { grant { connected login } } }',
 );
 
-export const ContributePausedDocument = doc<{ contribute: { contributor: { paused: boolean } | null } | null }>(
-  'query ContributePaused { contribute { contributor { paused } } }',
-);
+/** Paused, and whether by the user themselves (`pausedByYou`, not a refused key), until the levels replace the pause. */
+export const ContributePausedDocument = doc<{
+  contribute: { contributor: { paused: boolean; pausedByYou: boolean } | null } | null;
+}>('query ContributePaused { contribute { contributor { paused pausedByYou } } }');
 
 /** The account's access level and the limits it sets now: read on its own, so an API without it leaves the rest. */
 export const ContributeLimitsDocument = doc<{
@@ -440,10 +441,6 @@ export const DeleteContributeDataDocument = doc<{ deleteContributeData: Contribu
 
 export const RevokeGithubGrantDocument = doc<{ revokeGithubGrant: boolean }>(
   'mutation RevokeGithubGrant { revokeGithubGrant }',
-);
-
-export const PauseContributingDocument = doc<{ pauseContributing: boolean }>(
-  'mutation PauseContributing { pauseContributing }',
 );
 
 export const ResumeContributingDocument = doc<{ resumeContributing: boolean }>(

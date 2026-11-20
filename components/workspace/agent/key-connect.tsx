@@ -13,7 +13,7 @@ import { ISSUES_PATH, Matching } from '@/components/workspace/matching';
 import { HEADING } from '@/components/workspace/primitives';
 import { LimitsManual } from '@/components/workspace/settings/limits-manual';
 import { cn } from '@/lib/utils';
-import { connectClaudeKey } from '@/lib/workspace/actions';
+import { connectClaudeKey, saveContributeSettings } from '@/lib/workspace/actions';
 import {
   appliedLimitsOf,
   connectLimitsOf,
@@ -22,6 +22,7 @@ import {
   manualDraftOf,
   manualLimitsOf,
   PLAN_CHOICES,
+  paceAfterConnectOf,
   renewalLabelOf,
   type StoredLimits,
 } from '@/lib/workspace/connect-limits';
@@ -114,7 +115,7 @@ export function KeyConnect({
         plan: mode === 'manual' ? 'CREDITS' : plan,
         renewalDay: day,
         confirmedLimit: confirmed,
-        // Only what differs from the stored settings: a replace keeps the rest, a QUEUED pace among it.
+        // Only what differs from the stored settings: a replace keeps the rest, and never sets the level.
         ...(mode === 'manual' && own.ok
           ? { cycleCapUsd: own.cycleCapUsd, limits: connectLimitsOf(own.limits, stored?.settings ?? null) }
           : {}),
@@ -126,6 +127,12 @@ export function KeyConnect({
       }
       setOutcome(result.data);
       if (!STORED_RESULTS.has(result.data.result)) return;
+      // A pace changed over a stored "only issues I queue": saved with the level as it is, as Budget and pacing does.
+      const pace = mode === 'manual' && own.ok ? paceAfterConnectOf(own.limits, stored?.settings ?? null) : null;
+      if (pace) {
+        const saved = await saveContributeSettings(pace).catch(() => null);
+        if (!saved?.ok) setError(contributeErrorMessage(saved?.error ?? 'FAILED', saved?.message));
+      }
       if (firstKey) reportContributeConnect('key');
       setKey('');
       if (firstKey) setMatching(true);

@@ -37,7 +37,6 @@ import {
   MarkNeedsYouHandledDocument,
   MarkNeedsYouHandledKindsDocument,
   NoteProviderInterestDocument,
-  PauseContributingDocument,
   PostContributeProofReplyDocument,
   RemoveLlmKeyDocument,
   ResumeContributingDocument,
@@ -172,10 +171,6 @@ export async function deleteContributeData(): Promise<ContributeActionResult<Con
 
 export async function revokeGithubGrant(): Promise<ContributeActionResult<boolean>> {
   return run(RevokeGithubGrantDocument, undefined, (data) => data.revokeGithubGrant);
-}
-
-export async function pauseContributing(): Promise<ContributeActionResult<boolean>> {
-  return run(PauseContributingDocument, undefined, (data) => data.pauseContributing);
 }
 
 export async function resumeContributing(): Promise<ContributeActionResult<boolean>> {

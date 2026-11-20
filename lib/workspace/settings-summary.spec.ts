@@ -57,7 +57,7 @@ describe('the Settings pages', () => {
     expect(movedAnchorOf('more-limits')).toBe('/my/agent/budget#more-limits');
     expect(movedAnchorOf('access')).toBe('/my/agent/key');
     expect(movedAnchorOf('own-agent')).toBe('/my/agent#own-agent');
-    expect(movedAnchorOf('pause')).toBe('/my/agent#pause');
+    expect(movedAnchorOf('pause')).toBe('/my/agent#hosted-level');
     expect(movedAnchorOf('modes')).toBe('/my/settings/work#modes');
     expect(settingsPathOf('work')).toBe('/my/settings/work#work');
     expect(movedAnchorOf('autopilot')).toBe('/my/agent#autopilot');

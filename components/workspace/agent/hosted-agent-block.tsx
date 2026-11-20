@@ -8,11 +8,16 @@ import { Pill } from '@/components/pill/pill';
 import { buttonVariants } from '@/components/ui/button';
 import { ClosedGroupLine } from '@/components/workspace/closed-group-line';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { PausedByYouNotice } from '@/components/workspace/paused-notice';
 import { HEADING, Meter } from '@/components/workspace/primitives';
 import { ReposAskLessNote } from '@/components/workspace/pull-request/repo-rules';
-import { SettingsGroup, SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
+import { SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
 import { cn } from '@/lib/utils';
-import type { ContributeComingSoonProvider, ContributeView } from '@/lib/workspace/contribute.types';
+import type {
+  ContributeComingSoonProvider,
+  ContributeScheduleCounts,
+  ContributeView,
+} from '@/lib/workspace/contribute.types';
 import type { ContributeNotice } from '@/lib/workspace/contribute-state';
 import { claudeKeyOf, settingsOf } from '@/lib/workspace/contribute-state';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -75,16 +80,17 @@ function Block({ children, state }: { children: ReactNode; state: string }) {
 }
 
 /**
- * The Agent tab's "Hosted agent" (W1 §9.2, §9.4). With a Claude key: the key's trouble first, the control slot
- * (`HostedAgentControl`), the key, model and budget rows, what repos can turn off, and what is coming. Without one: its
- * pitch for a contributor, or one closed line for a learner, which opens the pitch in place; above it, "Pause and
- * autopilot" holds the slot, which acts on the user's own agent too.
+ * The Agent tab's "Hosted agent" (W1 §9.2, §9.4). With a Claude key: the key's trouble first, the control
+ * (`HostedAgentControl`: its level, and Resume while the user's own pause holds), the key, model and budget rows, what
+ * repos can turn off, and what is coming. Without one: its pitch for a contributor, or one closed line for a learner,
+ * which opens the pitch in place; above it, Resume while the user's own pause holds.
  */
 export function HostedAgentBlock({
   view,
   learner,
   notices,
   noted,
+  counts,
   now,
 }: {
   view: ContributeView;
@@ -94,6 +100,8 @@ export function HostedAgentBlock({
   notices: ContributeNotice[];
   /** The providers the user asked to hear about. */
   noted: readonly ContributeComingSoonProvider[];
+  /** The pull requests open or on their way, for when the agent starts its next issue by itself. */
+  counts?: ContributeScheduleCounts;
   now?: Date;
 }) {
   const key = claudeKeyOf(view);
@@ -106,13 +114,9 @@ export function HostedAgentBlock({
   const spend = contributor?.spend;
 
   if (!key) {
-    // Pause and autopilot act on the user's own agent too: they stay on the tab without a key, until the levels (W2)
-    // take them. The limits on its pull requests and claims are in Settings.
-    const controls = contributor ? (
-      <SettingsGroup id="contributing" title="Pause and autopilot">
-        <HostedAgentControl view={view} now={now} />
-      </SettingsGroup>
-    ) : null;
+    // No levels and no autopilot without a key: autopilot acts on the hosted agent's changes alone. Resume stays while
+    // the user's own pause holds (it stops their own agent too).
+    const controls = contributor ? <PausedByYouNotice view={view} anchor /> : null;
     if (learner) {
       return (
         <>
@@ -146,7 +150,7 @@ export function HostedAgentBlock({
     <Block state="set-up">
       <Head />
       <ContributeNotices notices={notices} />
-      <HostedAgentControl view={view} now={now} />
+      <HostedAgentControl view={view} counts={counts} now={now} />
       <SettingsList>
         <SettingsRow
           icon={KeyRound}

@@ -136,11 +136,6 @@ export function LimitsManual({
             );
           })}
         </div>
-        {draft.pace === 'QUEUED' ? (
-          <span data-pace="queued" className="text-xs text-muted-foreground">
-            Now the agent works only on issues you queue. That stays as it is unless you pick one of these.
-          </span>
-        ) : null}
       </fieldset>
 
       <div

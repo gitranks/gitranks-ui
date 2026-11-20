@@ -84,13 +84,24 @@ describe('the Settings tab (W1 §10)', () => {
     expect(plain).toContain('Open pull requests at a time Up to 3 · 3 open now Edit');
     expect(plain).toContain('Repos can ask for less: their rules lower these limits for their pull requests.');
     expect(plain).toContain('For contributing For developers who want merged pull requests.');
-    expect(plain).toContain('Pause, autopilot, and the hosted agent with its key and budget are on the Agent tab .');
+    expect(plain).toContain('Autopilot and the hosted agent with its key and budget are on the Agent tab .');
+    expect(html).not.toContain('data-list-note="paused-by-you"');
     expect(plain).toContain(
       'For learning For people who want to learn from real fixes. Goal and level TypeScript · some experience · focus: how the language works, patterns the project uses Edit',
     );
     expect(html).toContain('href="/my/settings/goal"');
     // The interim line that sent everything to the Agent tab is gone.
     expect(html).not.toContain('data-moved-to-agent');
+  });
+
+  it('offers Resume where an agent\'s "resume it at …" link lands, while the user\'s own pause holds', () => {
+    const { html, plain } = render({ view: { ...settingsViews.both, paused: true, pausedByYou: true } });
+    expect(plain).toContain("Contributing is paused, so your own agent can't take an issue. Resume");
+    expect(html.indexOf('data-list-note="paused-by-you"')).toBeLessThan(html.indexOf('data-agent-line'));
+    // A refused key's pause: the key's page says it, with no Resume here.
+    expect(render({ view: { ...settingsViews.both, paused: true, pausedByYou: false } }).html).not.toContain(
+      'data-list-note="paused-by-you"',
+    );
   });
 
   it('closes For learning to a line for a contributor, and leaves it out where Learn is not open', () => {
@@ -207,7 +218,7 @@ describe('the old anchors', () => {
   });
 
   it.each([
-    ['#pause', '/my/agent#pause'],
+    ['#pause', '/my/agent#hosted-level'],
     ['#prs', '/my/settings/pull-requests'],
     ['#more-limits', '/my/agent/budget#more-limits'],
     ['#ignored', '/my/settings/work#ignored'],

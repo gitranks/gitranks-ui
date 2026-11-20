@@ -1,11 +1,7 @@
 'use client';
 
-import { Zap } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { type ReactElement, type ReactNode, useId, useState, useTransition } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
-import { SettingsRow } from './settings-rows';
-import { Pill } from '@/components/pill/pill';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -25,15 +21,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { saveContributeSettings } from '@/lib/workspace/actions';
 import type { ContributeAutopilot } from '@/lib/workspace/contribute.types';
 import { type ContributeErrorCode, contributeErrorMessage } from '@/lib/workspace/errors';
 import { AUTOPILOT_UNLOCK_AT, dayLabel } from '@/lib/workspace/format';
+import { AUTOPILOT_LOCK_AT, autopilotRecordOf } from '@/lib/workspace/hosted-level';
 
-export { AUTOPILOT_UNLOCK_AT };
-
-/** Closed-unmerged pull requests in a row that lock it again. */
-export const AUTOPILOT_LOCK_AT = 2;
 /** Follow-up runs autopilot may start on one pull request, and none once the user started one there. */
 export const AUTOPILOT_FOLLOW_UPS_MAX = 2;
 
@@ -49,13 +41,14 @@ export const AUTOPILOT_CONFIRM_ACTION = 'Turn on autopilot';
 export const AUTOPILOT_LAUNCH_LINE =
   'Autopilot opens about a month after launch. Until then every pull request waits for your review, and your record keeps counting.';
 
-const NO_EMAIL =
+/** No address for its emails: it cannot be chosen until the user shares one. */
+export const AUTOPILOT_NO_EMAIL =
   'Autopilot emails you before each submission, and we have no email for you. Sign in again and share your GitHub email to turn it on.';
-/** The setting is on, but there is no address: nothing is submitted for the user, every change waits for them. */
-const NO_EMAIL_ON =
+/** Chosen, with no address: nothing is submitted for the user, every change waits for them. */
+export const AUTOPILOT_NO_EMAIL_ON =
   'Autopilot emails you before each submission, and we have no email for you, so its changes wait for your review. Sign in again and share your GitHub email.';
 
-/** Why turning autopilot on or off did not go through, in plain words. */
+/** Why choosing autopilot did not go through, in plain words. */
 export function autopilotErrorMessage(error: ContributeErrorCode, message?: string): string {
   if (error === 'INVALID' && /unlocks after/i.test(message ?? '')) {
     return `Autopilot is locked: it unlocks after ${AUTOPILOT_UNLOCK_AT} pull requests merged through GitRanks.`;
@@ -64,137 +57,9 @@ export function autopilotErrorMessage(error: ContributeErrorCode, message?: stri
     return AUTOPILOT_LAUNCH_LINE;
   }
   if (error === 'INVALID' && /emails you/i.test(message ?? '')) {
-    return NO_EMAIL;
+    return AUTOPILOT_NO_EMAIL;
   }
   return contributeErrorMessage(error, message);
-}
-
-/** Where the record stands: locked, open, merges still needed and made toward unlocking, the closed streak. */
-function recordOf(autopilot: ContributeAutopilot) {
-  const locked = !autopilot.unlocked;
-  const toUnlock = locked ? Math.max(0, autopilot.mergedToUnlock ?? AUTOPILOT_UNLOCK_AT - autopilot.mergedCount) : 0;
-  return {
-    locked,
-    open: autopilot.available === true,
-    // `undefined`: the API does not say yet; only a known "none" blocks turning it on.
-    noEmail: autopilot.noticeTo === null,
-    toUnlock,
-    progress: Math.min(AUTOPILOT_UNLOCK_AT, Math.max(0, AUTOPILOT_UNLOCK_AT - toUnlock)),
-    streak: Math.min(autopilot.closedUnmergedStreak, AUTOPILOT_LOCK_AT),
-  };
-}
-
-/**
- * Autopilot's row in Settings: the user's record (merged through GitRanks, still needed to unlock, closed without merging in a row) and
- * a toggle they own once it is unlocked, and How autopilot works: every limit, then the record (autopilot limits spec §4).
- * Turning it on asks first; turning it off saves at once. While autopilot is not open (`available` false, or not known
- * yet) its pill says it opens after launch month and the toggle cannot be turned on; a setting left on can always be
- * turned off.
- */
-export function AutopilotSection({
-  autopilot,
-  login,
-  enabled,
-  canSave,
-}: {
-  autopilot: ContributeAutopilot;
-  /** The user's login, as the autopilot footer names them. */
-  login?: string;
-  enabled: boolean;
-  /** Settings exist only once a key is connected. */
-  canSave: boolean;
-}) {
-  const router = useRouter();
-  const id = useId();
-  const [on, setOn] = useState(enabled);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  const { locked, open, noEmail, progress } = recordOf(autopilot);
-  const canTurnOn = open && !locked && !noEmail;
-  const checked = canTurnOn ? on : on && enabled;
-
-  const [confirming, setConfirming] = useState(false);
-  // Turning it on asks first, with what changes (autopilot limits spec §4.3); turning it off saves at once.
-  const change = (next: boolean) => (next ? setConfirming(true) : toggle(false));
-  const toggle = (next: boolean) => {
-    setConfirming(false);
-    setOn(next);
-    setError(null);
-    startTransition(async () => {
-      const result = await saveContributeSettings({ autopilot: next });
-      if (!result.ok) {
-        setOn(!next);
-        setError(autopilotErrorMessage(result.error, result.message));
-        return;
-      }
-      router.refresh();
-    });
-  };
-
-  return (
-    <SettingsRow
-      id="autopilot"
-      icon={Zap}
-      title={
-        <>
-          Autopilot
-          {open ? null : <Pill tone="violet">After launch month</Pill>}
-        </>
-      }
-      value={
-        <>
-          {!locked
-            ? `Unlocked: ${autopilot.mergedCount} merged through GitRanks`
-            : autopilot.lockedAt
-              ? `Locked on ${dayLabel(autopilot.lockedAt)} · ${progress} of ${AUTOPILOT_UNLOCK_AT} merged since`
-              : `${progress} of ${AUTOPILOT_UNLOCK_AT} merged PRs toward unlocking`}
-          {open && autopilot.noticeTo ? (
-            <span data-autopilot-notice-to className="block">
-              Emails before each submission go to {autopilot.noticeTo}
-            </span>
-          ) : null}
-          {open && noEmail && !locked && canSave && !error ? (
-            <span data-autopilot-no-email className="block text-warning">
-              {checked ? NO_EMAIL_ON : NO_EMAIL}
-            </span>
-          ) : null}
-          {error ? (
-            <span role="alert" className="block text-destructive">
-              {error}
-            </span>
-          ) : null}
-          <HowItWorksDialog autopilot={autopilot} login={login} trigger={howItWorksLink()} />
-        </>
-      }
-      data={{
-        'data-autopilot': locked ? 'locked' : 'unlocked',
-        'data-autopilot-available': autopilot.available === undefined ? 'unknown' : String(autopilot.available),
-      }}
-    >
-      <AutopilotConfirm
-        autopilot={autopilot}
-        login={login}
-        open={confirming}
-        onOpenChange={setConfirming}
-        onConfirm={() => toggle(true)}
-      />
-      <label
-        htmlFor={`${id}-autopilot`}
-        className={cn('flex items-center gap-2.5 text-sm', !canTurnOn && 'text-muted-foreground')}
-      >
-        <input
-          id={`${id}-autopilot`}
-          type="checkbox"
-          checked={checked}
-          disabled={pending || !canSave || (!canTurnOn && !checked)}
-          onChange={(event) => change(event.target.checked)}
-          aria-label="Autopilot"
-          className="size-4.5 accent-primary"
-        />
-        {checked ? 'On' : open && locked ? 'Locked' : 'Off'}
-      </label>
-    </SettingsRow>
-  );
 }
 
 /**
@@ -202,7 +67,7 @@ export function AutopilotSection({
  * unlock progress. How it works is the dialog's (`AutopilotHowItWorks`), so nothing is said twice.
  */
 export function AutopilotRecord({ autopilot }: { autopilot: ContributeAutopilot }) {
-  const { locked, toUnlock, progress, streak } = recordOf(autopilot);
+  const { locked, toUnlock, progress, streak } = autopilotRecordOf(autopilot);
   return (
     <div className="flex flex-col gap-4">
       <dl data-autopilot-record className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 text-sm">
@@ -250,8 +115,8 @@ export function AutopilotRecord({ autopilot }: { autopilot: ContributeAutopilot 
 }
 
 /**
- * The link by the setting that opens how autopilot works (autopilot limits spec §4.1): an element, not a component, so
- * the dialog's trigger gives the button itself its click and its ARIA.
+ * The link that opens how autopilot works (autopilot limits spec §4.1): an element, not a component, so the dialog's
+ * trigger gives the button itself its click and its ARIA.
  */
 function howItWorksLink() {
   return (
@@ -263,6 +128,11 @@ function howItWorksLink() {
       {AUTOPILOT_HOW_TITLE}
     </button>
   );
+}
+
+/** "How autopilot works" as a link, opening the full description, then the user's record. */
+export function AutopilotHowLink({ autopilot, login }: { autopilot: ContributeAutopilot; login?: string }) {
+  return <HowItWorksDialog autopilot={autopilot} login={login} trigger={howItWorksLink()} />;
 }
 
 /** "How autopilot works", opened by `trigger`: the full description, then the user's record. */
@@ -373,7 +243,7 @@ export const AUTOPILOT_CONFIRM_LINES = [
 ];
 
 /** "Turn on autopilot?": what changes, and a link to read more; Cancel keeps it off (autopilot limits spec §4.3). */
-function AutopilotConfirm({
+export function AutopilotConfirm({
   autopilot,
   login,
   open,

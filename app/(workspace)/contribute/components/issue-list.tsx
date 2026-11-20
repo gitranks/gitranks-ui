@@ -12,20 +12,19 @@ import { StillRanking } from '@/app/contribute/components/still-ranking';
 import { Button } from '@/components/ui/button';
 import { IssueRow } from '@/components/workspace/issue-row';
 import { LimitNotice } from '@/components/workspace/limit-notice';
+import { PausedNotice } from '@/components/workspace/paused-notice';
 import { ShowMore } from '@/components/workspace/show-more';
 import { IssueStartsProvider } from '@/components/workspace/start-control';
 import { ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { tiersOf } from '@/lib/contribute/set-format';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
-import { resumeContributing } from '@/lib/workspace/actions';
 import type {
   ContributeIssue,
   ContributeIssuePage,
   ContributeLanguage,
   ContributeSet,
 } from '@/lib/workspace/contribute.types';
-import { contributeErrorMessage } from '@/lib/workspace/errors';
 import { type ConnectedAgents, issueRowOfContribute } from '@/lib/workspace/issue-row';
 import type { LimitCounts } from '@/lib/workspace/limit-words';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -59,44 +58,6 @@ function ListNote({ title, children, name }: { title: string; children?: ReactNo
     <div className="flex flex-col gap-1 rounded-xl border border-dashed px-5 py-8 text-center" data-list-note={name}>
       <span className="font-semibold">{title}</span>
       {children ? <span className="text-sm text-muted-foreground">{children}</span> : null}
-    </div>
-  );
-}
-
-/** "Contributing is paused" over the rows, with Resume: the list as it was last computed stays under it. */
-function PausedNotice() {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const resume = () => {
-    if (pending) return;
-    startTransition(async () => {
-      setError(null);
-      const result = await resumeContributing().catch(() => null);
-      if (result?.ok) router.refresh();
-      else setError(contributeErrorMessage(result?.error ?? 'FAILED', result?.message));
-    });
-  };
-  return (
-    <div
-      role="status"
-      data-list-note="paused"
-      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3"
-    >
-      <p className="max-w-prose text-sm font-medium">Contributing is paused, so your agent can&apos;t take an issue.</p>
-      <Button
-        type="button"
-        onClick={resume}
-        aria-disabled={pending || undefined}
-        className="min-h-11 px-5 font-semibold max-sm:w-full sm:min-h-10 aria-disabled:opacity-60"
-      >
-        {pending ? 'Resuming…' : 'Resume'}
-      </Button>
-      {error ? (
-        <p role="alert" className="w-full text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -194,7 +155,9 @@ export function ContributeIssueList({
   }
   return (
     <div className={cn('flex flex-col gap-4', className)} data-issue-list="">
-      {held ? null : pausedByYou ? <PausedNotice /> : null}
+      {held ? null : pausedByYou ? (
+        <PausedNotice name="paused" text="Contributing is paused, so your agent can't take an issue." />
+      ) : null}
       {held || !limit ? null : <LimitNotice {...limit} />}
       {body}
     </div>

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { LearnRecord } from '@/lib/learn/learn.types';
+
 const { graphqlDirect } = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
 
 vi.mock('server-only', () => ({}));
@@ -13,7 +15,15 @@ const { LearnRecordDocument } = await import('@/lib/learn/learn.documents');
 const get = (login: string) =>
   GET(new Request(`https://gitranks.com/api/learn/record/${login}`), { params: Promise.resolve({ login }) });
 
-const RECORD = { lessons: 4, topics: ['Cache keys'], prsOpened: 3, prsMerged: 2 };
+const RECORD = {
+  login: 'octocat',
+  lessons: 4,
+  newThings: 2,
+  topics: ['Cache keys'],
+  prsOpened: 3,
+  prsMerged: 2,
+  reposHelped: 1,
+} satisfies LearnRecord;
 
 describe("the route for a login's Learn record", () => {
   beforeEach(() => graphqlDirect.mockReset());

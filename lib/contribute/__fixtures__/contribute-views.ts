@@ -373,6 +373,15 @@ export const agentTabViews = {
     sides: { contribute: false, learn: true },
   },
   keyInvalid: { ...views.keyInvalid, ownAgent: ownAgentConnected, sides: { contribute: true, learn: true } },
+  /** Entered once, then the key and the last connection were removed: nothing connected now. */
+  nothing: {
+    ...views.agentOnboarded,
+    contributor: contributor({ credentials: [], plan: null, settings: null, spend: null, onboardedVia: 'MCP' }),
+    ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] },
+    sides: { contribute: true, learn: true },
+  },
+  /** Not entered yet (preferences saved, no agent), opening the Agent tab by its address. */
+  notEntered: { ...views.noKey, ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] } },
 } satisfies Record<string, ContributeView>;
 
 /** The Settings tab's people (W1 §10.3): using both sides, a contributor, a learner (own agent, settings stored). */

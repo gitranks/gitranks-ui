@@ -1,7 +1,9 @@
+import { AgentFirst } from './agent-first';
 import { HostedAgentBlock } from './hosted-agent-block';
 import { OwnAgentBlock } from './own-agent-block';
 import { RunsPreview } from './runs-preview';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { PausedByYouNotice } from '@/components/workspace/paused-notice';
 import { PageTitle } from '@/components/workspace/primitives';
 import { isSettled } from '@/lib/workspace/agent-runs';
 import { audienceOf } from '@/lib/workspace/audience';
@@ -11,7 +13,7 @@ import type {
   ContributeScheduleCounts,
   ContributeView,
 } from '@/lib/workspace/contribute.types';
-import { type ContributeNotice, contributeNoticesOf } from '@/lib/workspace/contribute-state';
+import { type ContributeNotice, contributeNoticesOf, hasNoAgent, isOnboarded } from '@/lib/workspace/contribute-state';
 import type { ContributeRunsPage } from '@/lib/workspace/runs';
 
 /** The key's trouble: shown above the hosted block, where it is fixed. */
@@ -36,7 +38,8 @@ export type AgentData = {
 /**
  * The Agent tab (W1 §9): who does the work. The account's notices on top, then the user's own agent, the hosted agent
  * (the key's notices above it), and a preview of the runs. A learner (Learn alone) sees the hosted agent as one closed
- * line and no spend.
+ * line and no spend. With nothing connected (no key, no agent of their own, no token waiting), the two ways as cards
+ * (`AgentFirst`) instead.
  */
 export function AgentScreen({ view, learnOpen = false, runs, activity, noted = [], counts, now }: AgentData) {
   const learner = audienceOf(view.sides, learnOpen) === 'learner';
@@ -44,6 +47,28 @@ export function AgentScreen({ view, learnOpen = false, runs, activity, noted = [
   // The pause is said in the hosted agent's block, with Resume while it is the user's own.
   const top = notices.filter(({ kind }) => kind !== 'paused' && !KEY_NOTICES.includes(kind));
   const atWork = (activity?.runs ?? []).filter((run) => !isSettled(run)).length;
+
+  if (hasNoAgent(view)) {
+    // Nothing connected: the two ways and what comes next. Above them the access notices, and the user's own pause with
+    // its Resume (the notice's link would lead to this very page); no key's notices, since a key is one of the two
+    // ways. The runs only when there are some.
+    return (
+      <>
+        <PageTitle
+          title="Agent"
+          text="Who does the work: your own agent on your computer, or the hosted agent on your Claude key. Neither is set up yet."
+        />
+        <ContributeNotices
+          notices={notices.filter(({ kind }) => kind !== 'no-key' && kind !== 'paused' && !KEY_NOTICES.includes(kind))}
+        />
+        <PausedByYouNotice view={view} anchor />
+        <AgentFirst entered={isOnboarded(view)} learnOpen={learnOpen} />
+        {runs?.items.length ? (
+          <RunsPreview page={runs} learner={learner} learnOpen={learnOpen} atWork={atWork} />
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <>

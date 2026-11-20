@@ -31,15 +31,6 @@ export const KINDS: Record<ContributeIssueKind, string> = {
   PERFORMANCE: 'Performance',
 };
 
-export const KIND_ONE: Record<ContributeIssueKind, string> = {
-  BUG: 'bug',
-  FEATURE: 'feature',
-  DOCS: 'docs',
-  TESTS: 'tests',
-  REFACTOR: 'refactor',
-  PERFORMANCE: 'performance',
-};
-
 /** A label that says an issue suits a first contribution. */
 export const GOOD_FIRST_LABEL = /good.first|beginner|easy|starter/i;
 

@@ -18,7 +18,6 @@ import type {
   ContributeComingSoonProvider,
   ContributeConnectKeyResult,
   ContributeConnectLimits,
-  ContributeContribution,
   ContributeDeleteDataResult,
   ContributeEmail,
   ContributeFeedbackContext,
@@ -759,9 +758,6 @@ export type NeedsYouMovesRow = {
 
 /** A follow-up's round, our checks and its step, in a list. */
 export type RunMovesRow = Pick<ContributeAttempt, 'attemptId' | 'round' | 'checkStatus' | 'followUpStep'>;
-
-/** The open pull request's last fix, what it fails of the repo's rules, and the agreement to sign. */
-export type ContributionFixesRow = Pick<ContributeContribution, 'attemptId' | 'prFix' | 'prIssues' | 'conventions'>;
 
 export const ContributeAttemptsMovesDocument = doc<
   { contributeAttempts: RunMovesRow[] | null },

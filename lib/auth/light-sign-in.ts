@@ -8,9 +8,10 @@ import { MAINTAINER_RETURN_PATHS, MAINTAINERS_PATH } from '@/lib/workspace/paths
 import { currentSessionToken } from '@/lib/workspace/session-token';
 
 /**
- * The maintainers page lists a visitor's repositories with the GitHub token of their light sign-in, which the site
- * otherwise never keeps. The page's sign-in button leaves a mark holding a random nonce, and sends the sign-in back to
- * the page with that nonce in its address. The sign-in's callback keeps the token only when both agree, so a mark left
+ * The light sign-in, site-wide: the maintainers pages (Contribute's) and a Learn result's reaction both start one, so
+ * it belongs to neither side. The maintainers page lists a visitor's repositories with the GitHub token of their light
+ * sign-in, which the site otherwise never keeps. The page's sign-in button leaves a mark holding a random nonce, and
+ * sends the sign-in back to the page with that nonce in its address. The sign-in's callback keeps the token only when both agree, so a mark left
  * by a sign-in abandoned at GitHub is never applied to another one. The token then stays in the session for
  * `MAINTAINER_TOKEN_TTL_MS`: an encrypted cookie only the server opens, never put in what the browser is given (the
  * `session` callback, `lib/auth-callbacks.ts`).

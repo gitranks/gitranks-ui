@@ -75,7 +75,7 @@ export const START_SCREENS: Screen[] = [
   {
     id: 'start',
     title: 'Start page',
-    area: 'contribute',
+    area: 'workspace',
     route: '/my/start/[owner]/[repo]/[issue]',
     sources: [
       'app/(workspace)/my/start/[owner]/[repo]/[issue]/page.tsx',

@@ -31,7 +31,7 @@ describe('agents.md', () => {
 
   it('has the agent hand its person the review link after submit_patch, as nothing opens on GitHub before', () => {
     expect(doc).toContain(
-      'After `submit_patch`, give your person the review link from its answer (https://gitranks.com/contribute/attempts/<id>)',
+      'After `submit_patch`, give your person the review link from its answer (https://gitranks.com/my/pull-requests/<owner>/<repo>/<issue>)',
     );
     expect(doc).toContain('While their autopilot is off, nothing opens on GitHub until they approve it.');
   });

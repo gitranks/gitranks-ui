@@ -136,14 +136,3 @@ export function RightNow({
     </section>
   );
 }
-
-/** While the runs are read: a block the height of one lane. */
-export function RightNowSkeleton() {
-  return (
-    <div
-      aria-hidden="true"
-      className="h-36 motion-safe:animate-pulse rounded-xl border bg-muted/40"
-      data-right-now-skeleton=""
-    />
-  );
-}

@@ -2,7 +2,6 @@ import type {
   ContributeFeedbackContext,
   ContributeFeedbackTopic,
   ContributeIssue,
-  ContributeLanguage,
   ContributeSet,
   ContributeSetAddResult,
   ContributeSetFallback,
@@ -28,9 +27,6 @@ export const MODES: { mode: ContributeSetMode; title: string; text: string }[] =
 ];
 
 export const modeTitleOf = (mode: ContributeSetMode) => MODES.find((entry) => entry.mode === mode)?.title ?? mode;
-
-/** The list a mode is edited through. */
-export const LIST_OF: Record<ContributeSetListMode, ContributeSetList> = { STACK: 'SOURCES', REPOS: 'REPOS' };
 
 export const FALLBACKS: { fallback: ContributeSetFallback; label: string }[] = [
   { fallback: 'SET_ONLY', label: 'Wait for new issues' },
@@ -186,23 +182,6 @@ export const setSizeOf = (set: ContributeSet, mode: ContributeSetListMode) =>
 /** The repos a mode works on now, for the counts the Issues page gives. */
 export const setReposOf = (set: ContributeSet, mode: ContributeSetListMode): ContributeSetRepo[] =>
   mode === 'STACK' ? countedTargetsOf(set) : set.repos.repos.filter(({ status }) => status !== 'UNSUPPORTED');
-
-/** A language as short as the mode chip says it. */
-const SHORT_LANGUAGES: Record<ContributeLanguage, string> = {
-  JS_TS: 'JS/TS',
-  PYTHON: 'Python',
-  GO: 'Go',
-  RUST: 'Rust',
-  JAVA: 'Java',
-  PHP: 'PHP',
-  RUBY: 'Ruby',
-};
-
-/** The language filter as the mode chip says it: "JS/TS", "Go, Rust", "3 languages"; '' for none. */
-export const languagesLabelOf = (languages: ContributeLanguage[] = []) =>
-  languages.length > 2
-    ? `${languages.length} languages`
-    : languages.map((language) => SHORT_LANGUAGES[language]).join(', ');
 
 /** Each mode's line in the Issues page's switcher. */
 export function modeSummaryOf(set: ContributeSet, mode: ContributeSetMode): string {

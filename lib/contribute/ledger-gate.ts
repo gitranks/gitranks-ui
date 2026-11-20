@@ -32,9 +32,3 @@ async function askOpen(now: number): Promise<boolean> {
   }
   return open.value;
 }
-
-/** Forgets the cached answer (tests). */
-export function resetContributeLedgerOpen(): void {
-  open = null;
-  asking = null;
-}

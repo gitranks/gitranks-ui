@@ -71,17 +71,6 @@ export const eventLabelOf = (
       : 'Done'
     : labelOf(EVENT_LABELS, event.state);
 
-/** States an attempt is still moving in, before a pull request. */
-export const IN_PROGRESS_STATES: ContributeAttemptState[] = [
-  'QUEUED',
-  'CLAIMING',
-  'RUNNING',
-  'CHECKS',
-  'PENDING_AUTOSUBMIT',
-  'SUBMITTING',
-  'FOLLOW_UP',
-];
-
 /** States whose page changes on its own: the page reads them again every little while. */
 export const LIVE_STATES: ContributeAttemptState[] = [
   'QUEUED',

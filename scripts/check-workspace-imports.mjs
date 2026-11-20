@@ -22,10 +22,6 @@ export const ALLOWED = [
   // Learn's pages over Contribute's: the landing's parts.
   'app/learn/components/learn-landing.tsx -> app/contribute/components/landing',
   'app/learn/components/recent-lessons.tsx -> app/contribute/components/landing',
-  // The maintainers' light sign-in, which a Learn result's reaction uses too.
-  'lib/contribute/maintainer-token.ts -> lib/learn/learn-path',
-  'lib/learn/actions.ts -> lib/contribute/maintainer-token',
-  'lib/learn/lesson-public.data.ts -> lib/contribute/maintainer-token',
   // Learn's promo reads the profile's issues.
   'lib/learn/learn-promo.ts -> lib/contribute/profile-issues',
 ];

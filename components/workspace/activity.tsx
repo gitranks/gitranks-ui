@@ -55,9 +55,6 @@ export function ActivityProvider({
 /** What the tabs' poll last read. */
 export const useWorkspaceLive = () => useContext(ActivityContext);
 
-/** The work in progress the tabs' poll last read. */
-export const useActivity = () => useContext(ActivityContext).activity;
-
 /** A small dot on a tab with work in progress on any of the activity's `tab`s it stands for. */
 export function ActivityDot({ tab }: { tab: ContributeActivityTab | readonly ContributeActivityTab[] }) {
   const { activity } = useContext(ActivityContext);

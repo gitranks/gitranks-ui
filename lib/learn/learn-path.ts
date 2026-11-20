@@ -6,8 +6,6 @@ export const LEARN_PATH = '/learn' as Route;
 export const LEARN_PRACTICE_PATH = '/learn#practice' as Route;
 /** The front door for a signed-in learner: how Learn works. */
 export const LEARN_ABOUT_PATH = '/learn/about' as Route;
-/** The user's goal and level. */
-export const LEARN_PROFILE_PATH = '/my/settings/goal' as Route;
 /** What a Learn pull request is, for maintainers. Open to everyone. */
 export const LEARN_MAINTAINERS_PATH = '/learn/maintainers' as Route;
 
@@ -42,9 +40,6 @@ export const isLearnOpenPath = (pathname: string): boolean =>
 
 /** Learn's front door, `/learn`, in any spelling the router reads as it. */
 export const isLearnHomePath = (pathname: string): boolean => decodedMatches(pathname, /^\/+learn\/?$/i);
-
-/** The Learn pages that show no tabs: the ones open to every visitor. */
-export const isLearnTablessPath = isLearnOpenPath;
 
 /** A lesson's slug: its title in kebab case and a few random characters; letters, digits and hyphens. */
 const SLUG = '[A-Za-z0-9][A-Za-z0-9-]{0,99}';

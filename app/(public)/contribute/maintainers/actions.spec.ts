@@ -13,7 +13,7 @@ vi.mock('next/headers', () => ({ cookies: async () => jar }));
 vi.mock('@/auth', () => ({ signIn }));
 
 const actions = await import('./actions');
-const { maintainerSignInCookie } = await import('@/lib/contribute/maintainer-token');
+const { maintainerSignInCookie } = await import('@/lib/auth/light-sign-in');
 
 const TOKEN = 'gho_maintainerPageToken123';
 const session = (patch: Record<string, unknown> = {}) => ({

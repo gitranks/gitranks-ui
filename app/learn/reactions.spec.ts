@@ -21,8 +21,8 @@ vi.mock('next/headers', () => ({ cookies: async () => jar }));
 vi.mock('@/auth', () => ({ auth: vi.fn(), signIn }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('@/lib/workspace/session-token', () => ({ currentSessionToken: vi.fn() }));
-vi.mock('@/lib/contribute/maintainer-token', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/contribute/maintainer-token')>()),
+vi.mock('@/lib/auth/light-sign-in', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/auth/light-sign-in')>()),
   currentMaintainerToken: token,
 }));
 

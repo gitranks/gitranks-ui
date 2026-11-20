@@ -7,11 +7,10 @@ import { LimitNotice } from '@/components/workspace/limit-notice';
 import { HEADING } from '@/components/workspace/primitives';
 import type { LearnGoalView, LearnIssue, LearnIssues, LearnRoom } from '@/lib/learn/learn.types';
 import { goalValueOf, issueSizeOf, roomWordsOf } from '@/lib/learn/learn-home';
-import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';
 import { githubUrlOf } from '@/lib/workspace/attempt-format';
 import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
-import { learnStartPath } from '@/lib/workspace/paths';
+import { learnStartPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { isOpenPrsLimit } from '@/lib/workspace/start/start-page';
 
 /** A Start button's look: the first row's is the page's one primary action. */
@@ -92,7 +91,7 @@ export function GoalChips({ goal }: { goal: LearnGoalView }) {
       <Pill tone="violet">{goalValueOf(goal)}</Pill>
       {goal.level ? <Pill tone="violet">{goal.level}</Pill> : null}
       <Link
-        href={LEARN_PROFILE_PATH}
+        href={WORKSPACE_PATHS.settingsGoal}
         prefetch={false}
         className="font-semibold text-link hover:underline max-sm:inline-flex max-sm:min-h-11 max-sm:items-center"
       >
@@ -114,7 +113,7 @@ function ListNote({ id, title, children }: { id: string; title?: string; childre
 
 const ChangeGoal = ({ primary = false }: { primary?: boolean }) => (
   <Button asChild variant={primary ? 'default' : 'outline'} className="min-h-11 font-semibold max-sm:w-full">
-    <Link href={LEARN_PROFILE_PATH} prefetch={false}>
+    <Link href={WORKSPACE_PATHS.settingsGoal} prefetch={false}>
       Change your goal
     </Link>
   </Button>

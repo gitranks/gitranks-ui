@@ -483,9 +483,6 @@ function PostedList({
   );
 }
 
-/** The proof's line while it waits for nobody: its agent at work, posting, posted, or the ask gone. */
-export type ProofLine = { title: string; node: ReactNode };
-
 /**
  * The proof's status line on the next step's pane, for the stages that wait for nobody; `compact`, its one muted line
  * under the card the pane shows ("Proof: … · its link"). Null for the stages that are moves.

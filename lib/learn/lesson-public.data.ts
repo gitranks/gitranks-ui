@@ -11,7 +11,7 @@ import {
 import type { LessonPage, LessonReaction, LessonResultPage, LessonRun } from './learn.types';
 import { githubLoginOf, lessonSlugOf } from './learn-path';
 import { type LessonPageAnswer, type LessonResultAnswer, publicAnswerOf } from './lesson-public';
-import { currentMaintainerToken } from '@/lib/contribute/maintainer-token';
+import { currentMaintainerToken } from '@/lib/auth/light-sign-in';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { ContributeUnavailableError, viewerLogin } from '@/lib/workspace/contribute.data';
 import { contributeErrorOf, prFeedbackErrorOf } from '@/lib/workspace/errors';

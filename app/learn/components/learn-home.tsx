@@ -27,7 +27,7 @@ import {
   PRACTICE_SHOWN,
   pathMarksOf,
 } from '@/lib/learn/learn-home';
-import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
+import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** Learn home's container, as Learn's other pages draw theirs. */
@@ -128,7 +128,7 @@ function HomeFooter() {
       <Link href={WORKSPACE_PATHS.progress} prefetch={false} className={FOOTER_LINK}>
         Your progress
       </Link>
-      <Link href={LEARN_PROFILE_PATH} prefetch={false} className={FOOTER_LINK}>
+      <Link href={WORKSPACE_PATHS.settingsGoal} prefetch={false} className={FOOTER_LINK}>
         Goal and level
       </Link>
     </nav>

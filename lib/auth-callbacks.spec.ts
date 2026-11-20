@@ -10,13 +10,13 @@ const { jar, currentSessionToken, lightSignInSession } = vi.hoisted(() => ({
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({ cookies: async () => jar }));
 vi.mock('./workspace/session-token', () => ({ currentSessionToken }));
-vi.mock('./contribute/maintainer-token', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./contribute/maintainer-token')>();
+vi.mock('./auth/light-sign-in', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./auth/light-sign-in')>();
   return { ...actual, lightSignInSession: lightSignInSession.mockImplementation(actual.lightSignInSession) };
 });
 
 const { createAuthCallbacks } = await import('./auth-callbacks');
-const { withMaintainerToken } = await import('./contribute/maintainer-token');
+const { withMaintainerToken } = await import('./auth/light-sign-in');
 
 const TOKEN = 'gho_maintainerPageToken123';
 const updateOne = vi.fn(async () => ({}));

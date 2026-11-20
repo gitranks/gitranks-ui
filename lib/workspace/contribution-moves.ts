@@ -23,7 +23,7 @@ import { mayStartOf, pickOf } from './session-head-logic';
 import { type BounceWords, firstStatusOf, nextStatusOf, roundLeadOf, runStatusOf } from './session-status';
 import { nextRunNumberOf, proofTileStageOf, waitingThreadsOf } from './sessions';
 
-export { runFlowOf, runReadyTitleOf, runRoundOf } from './move-cards';
+export { runFlowOf, runRoundOf } from './move-cards';
 export { addressTitleOf, ruleItemTitleOf } from './move-cards-pr';
 
 /**

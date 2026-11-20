@@ -9,7 +9,6 @@ import type {
   ContributeReplyWaiting,
   ContributeView,
 } from './contribute.types';
-import { FOLLOW_UP_STEP_LABELS, FOLLOW_UP_STEPS, type FollowUpStep } from './follow-up-flow';
 import {
   clearsAllOf,
   PR_SIGNAL_KINDS,
@@ -234,23 +233,6 @@ export function botVerdictOf(signal: Pick<ContributePrSignal, 'detail'>): { by: 
 export function runOutcomeOf(signal: Pick<ContributePrSignal, 'outcome'>): 'no_go' | 'stopped' | 'push_failed' {
   const outcome = String(signal.outcome ?? '').toLowerCase();
   return outcome === 'stopped' || outcome === 'push_failed' ? outcome : 'no_go';
-}
-
-/** The step a follow-up in flight is on: the list's `followUpStep`, else what its state says. */
-export function runStepOf(run: Pick<ContributeAttempt, 'state' | 'followUpStep'>): string {
-  const step = String(run.followUpStep ?? '').toLowerCase();
-  if ((FOLLOW_UP_STEPS as readonly string[]).includes(step)) return FOLLOW_UP_STEP_LABELS[step as FollowUpStep];
-  switch (run.state) {
-    case 'QUEUED':
-    case 'CLAIMING':
-      return 'Starting';
-    case 'CHECKS':
-      return FOLLOW_UP_STEP_LABELS.checks;
-    case 'SUBMITTING':
-      return 'Pushing';
-    default:
-      return 'Working';
-  }
 }
 
 /**

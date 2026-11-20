@@ -1,6 +1,5 @@
 import { cleanDiagram } from './diagram-layout';
 import type {
-  LearnStage,
   LessonBlock,
   LessonCompareSide,
   LessonDiagramEdge,
@@ -13,10 +12,6 @@ import { cleanSequence } from './sequence-layout';
 
 /** What a new account reads while GitRanks sets up its account, before Learn can answer for it. */
 export const LEARN_SETTING_UP_TEXT = 'Setting up your GitRanks account. This takes about a minute.';
-
-/** The stages where the lesson's steps are shown in the rail. */
-export const showsSteps = (stage: LearnStage) =>
-  stage !== 'AGENT_WORKING' && stage !== 'AGENT_REWRITING' && stage !== 'ENDED';
 
 /** "the repo · issue #871", the lesson's subject in one line; null when it names no issue. */
 export function subjectLineOf(

@@ -1,13 +1,10 @@
-import { liveTargetsOf, modeSummaryOf, modeTitleOf, readingLibrariesOf, stackPendingOf } from './set-format';
+import { liveTargetsOf, modeSummaryOf, readingLibrariesOf, stackPendingOf } from './set-format';
 import type { ContributePreferences, ContributeSet, ContributeSetListMode } from '@/lib/workspace/contribute.types';
 import { KINDS, LANGUAGES, plural } from '@/lib/workspace/format';
 import { sizeLabelOf } from '@/lib/workspace/settings-summary';
 
 /** Languages named before "+N". */
 const LANGUAGES_SHOWN = 3;
-
-/** "Support my stack · 50 libraries from 4 repos". */
-export const workSummaryOf = (set: ContributeSet) => `${modeTitleOf(set.mode)} · ${modeSummaryOf(set, set.mode)}`;
 
 const fallbackOf = (set: ContributeSet, mode: ContributeSetListMode) =>
   mode === 'STACK' ? set.stack.fallback : set.repos.fallback;

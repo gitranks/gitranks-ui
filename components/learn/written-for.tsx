@@ -1,8 +1,8 @@
 import Link from 'next/link';
 
-import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { writtenForOf } from '@/lib/learn/lesson-format';
 import { cn } from '@/lib/utils';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /**
  * Who the lesson was written for: "Written for your goal: learn TypeScript, level some." with a link to change them
@@ -41,7 +41,7 @@ export function WrittenFor({
     );
   }
   const change = (
-    <Link href={LEARN_PROFILE_PATH} prefetch={false} className="text-link hover:underline">
+    <Link href={WORKSPACE_PATHS.settingsGoal} prefetch={false} className="text-link hover:underline">
       {short ? 'Change' : 'Change goal and level'}
     </Link>
   );

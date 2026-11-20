@@ -252,10 +252,10 @@ export const recentLessonsSlot = () => (
 /**
  * Where the front door's button leads an account Learn is open to: the step of Learn's flow that is left for one that
  * has not entered (§4.1: Pick an issue once a goal is saved, else Your goal), or Open Learn for one that has. Null for an
- * account being set up or with no profile, which the Learn tab speaks to.
+ * account being set up or with no profile, which the Learn tab speaks to, and when the gate could not be read (`null`).
  */
-async function signedInStartOf(gate: WorkspaceGate): Promise<LandingStart | null> {
-  if (gate.kind !== 'open') return null;
+async function signedInStartOf(gate: WorkspaceGate | null): Promise<LandingStart | null> {
+  if (gate?.kind !== 'open') return null;
   if (gate.entered) return { member: true };
   return { href: learnResumeOf(hasGoal(await loadLearnProfile())), signedIn: true };
 }
@@ -268,7 +268,8 @@ async function signedInStartOf(gate: WorkspaceGate): Promise<LandingStart | null
  */
 export async function LearnHomeView() {
   if (await loadLearnOpen()) {
-    const start = await signedInStartOf(await loadWorkspaceGate());
+    // A gate that can't be read is no reason for an error page: the Learn tab, as before the front door showed here.
+    const start = await signedInStartOf(await loadWorkspaceGate().catch(() => null));
     if (!start || 'member' in start) return <LearnTab />;
     return <LearnLanding start={start} recentLessons={recentLessonsSlot()} />;
   }
@@ -281,7 +282,7 @@ export async function LearnHomeView() {
 /** `/learn/about`: how Learn works, for anyone Learn is open to; not found for anyone else. */
 export async function LearnAboutView() {
   if (!(await loadLearnOpen())) notFound();
-  const start = (await signedInStartOf(await loadWorkspaceGate())) ?? {
+  const start = (await signedInStartOf(await loadWorkspaceGate().catch(() => null))) ?? {
     href: GETTING_IN_PATHS.learnGoal,
     signedIn: true,
   };

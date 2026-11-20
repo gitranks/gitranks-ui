@@ -164,10 +164,28 @@ describe("Learn's front door for an account that has not entered", () => {
     expect(renderToStaticMarkup(await LearnAboutView())).toContain('data-landing-viewer="signed-in"');
   });
 
-  it('an account being set up keeps the Learn tab, which says so', async () => {
+  it('an account being set up or with no profile keeps the Learn tab; How Learn works starts it at Your goal', async () => {
     data.loadLearnOpen.mockResolvedValue(true);
-    gate.loadWorkspaceGate.mockResolvedValue({ kind: 'setting-up' });
+    for (const kind of ['setting-up', 'hidden']) {
+      gate.loadWorkspaceGate.mockResolvedValue({ kind });
+      expect((await LearnHomeView()).type, kind).toBe(LearnTab);
+      const about = renderToStaticMarkup(await LearnAboutView());
+      expect(
+        about.match(/<a[^>]*data-landing-start[^>]*>/g)?.filter((a) => a.includes('href="/learn/start"')),
+        kind,
+      ).toHaveLength(2);
+      expect(about, kind).toContain('data-contribute-source="learn_landing"');
+    }
+  });
+
+  it('a gate that cannot be read shows no error: the Learn tab at /learn, Your goal from How Learn works', async () => {
+    data.loadLearnOpen.mockResolvedValue(true);
+    gate.loadWorkspaceGate.mockRejectedValue(new Error('down'));
+    data.loadLearnProfile.mockClear();
     expect((await LearnHomeView()).type).toBe(LearnTab);
+    const about = renderToStaticMarkup(await LearnAboutView());
+    expect(about.match(/href="\/learn\/start"/g)).toHaveLength(2);
+    expect(data.loadLearnProfile).not.toHaveBeenCalled();
   });
 });
 

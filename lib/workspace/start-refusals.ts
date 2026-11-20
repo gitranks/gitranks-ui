@@ -69,7 +69,7 @@ export function startRefusalOf(
         `${name ? `Your lesson on “${name}” is` : 'Another lesson of yours is'} in progress. One lesson of your own at a time: this one can start once that one is done.`,
         current
           ? { href: pullRequestByAttemptPath(current.attemptId, { view: 'lesson' }), label: 'Back to your lesson' }
-          : { href: WORKSPACE_PATHS.progress, label: 'My lessons' },
+          : { href: WORKSPACE_PATHS.pullRequests, label: 'Pull requests' },
       );
     }
     case 'PAUSED_BY_YOU':

@@ -96,11 +96,13 @@ describe('the Learn record on a profile', () => {
     expect(html).toContain('topics learned');
     expect(html).toContain('pull requests opened');
     expect(html).toContain('+4 more');
-    expect(html).not.toContain('All lessons');
+    expect(html).not.toContain('Your progress');
   });
 
-  it('gives the owner the way to their lessons', () => {
-    expect(renderToStaticMarkup(<LearnRecordCard record={learnRecord} own />)).toContain('href="/learn/lessons"');
+  it('gives the owner the way to their progress', () => {
+    const html = renderToStaticMarkup(<LearnRecordCard record={learnRecord} own />);
+    expect(html).toContain('href="/my/progress"');
+    expect(html).toContain('Your progress →');
   });
 
   it('says one in the singular', () => {

@@ -236,18 +236,6 @@ export type LearnProfileInput = {
   focus: LearnFocus[];
 };
 
-export type MyLessonState = 'IN_PROGRESS' | 'PASSED' | 'PR_OPEN' | 'REMOVED' | 'ENDED';
-
-/** One of the user's lessons: a Learn attempt of theirs (`attemptId`), or a shared lesson they passed (`slug`). */
-export type MyLesson = {
-  slug: string | null;
-  attemptId: string | null;
-  title: string;
-  repo: string | null;
-  state: MyLessonState;
-  passedAt: string | null;
-};
-
 /** A maintainer's answer to "Did this help you review the pull request?". */
 export type LessonReaction = 'YES' | 'NO';
 

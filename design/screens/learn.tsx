@@ -10,10 +10,10 @@ import { LessonPageScreen } from '@/app/learn/components/lesson-page';
 import { LessonResultScreen, type ResultViewer } from '@/app/learn/components/lesson-result';
 import { LessonStubScreen } from '@/app/learn/components/lesson-stub';
 import { LessonViewScreen } from '@/app/learn/components/lesson-view';
-import { MyLessonsScreen } from '@/app/learn/components/my-lessons';
 import { RecentLessons } from '@/app/learn/components/recent-lessons';
 import { Header } from '@/components/header/header';
 import type { LessonFlowStart } from '@/components/learn/lesson-flow';
+import { ProgressScreen } from '@/components/learn/progress/progress-screen';
 import { HeaderLine } from '@/components/workspace/header-line';
 import { ContributionShell, ReviewScreen } from '@/components/workspace/pull-request/review-view';
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
@@ -32,7 +32,7 @@ import {
   practiceNext,
 } from '@/lib/learn/__fixtures__/home';
 import { CAUSE_HINT, CAUSE_QUESTION, FIX_QUESTION, FIX_WHY, lessons } from '@/lib/learn/__fixtures__/lesson';
-import { emptyProfile, filledProfile, myLessons } from '@/lib/learn/__fixtures__/profile';
+import { emptyProfile, filledProfile } from '@/lib/learn/__fixtures__/profile';
 import { recentLessons } from '@/lib/learn/__fixtures__/recent-lessons';
 import { lessonPage, result, sharedRuns } from '@/lib/learn/__fixtures__/shared';
 import type {
@@ -45,9 +45,25 @@ import type {
   PracticeLessons,
 } from '@/lib/learn/learn.types';
 import { learnHomeStateOf } from '@/lib/learn/learn-home';
+import {
+  learnedPage,
+  lessonsPage,
+  mergedPage,
+  progressCounts,
+  reposPage,
+  zeroCounts,
+} from '@/lib/learn/progress/__fixtures__/progress';
 import { DONT_KNOW } from '@/lib/learn/question';
 import type { ContributeAttemptDetail } from '@/lib/workspace/contribute.types';
 import { contributionMovesOf } from '@/lib/workspace/contribution-moves';
+
+/** Your progress's lists, one per view. */
+const progress = {
+  lessons: { view: 'lessons', lessons: lessonsPage },
+  learned: { view: 'learned', lessons: learnedPage },
+  repos: { view: 'repos', repos: reposPage },
+  merged: { view: 'merged', merged: mergedPage },
+} as const;
 
 /** A page's own container, as its `page.tsx` draws it. */
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
@@ -446,30 +462,102 @@ export const LEARN_SCREENS: Screen[] = [
     ],
   },
   {
-    id: 'my-lessons',
-    title: 'My lessons',
+    id: 'progress',
+    title: 'Your progress',
     area: 'learn',
-    route: '/learn/lessons',
+    route: '/my/progress',
     sources: [
-      'app/learn/lessons/page.tsx',
-      'app/learn/components/my-lessons.tsx',
-      'lib/learn/my-lessons.ts',
-      'app/contribute/components/contributions-view.tsx',
+      'app/(workspace)/my/progress/page.tsx',
+      'components/learn/progress/progress-view.tsx',
+      'components/learn/progress/progress-screen.tsx',
+      'components/learn/progress/progress-lists.tsx',
+      'components/learn/progress/learned-lesson-card.tsx',
+      'components/learn/progress/learn-lesson-state-pill.tsx',
+      'lib/learn/progress/progress.ts',
     ],
     states: [
       {
-        id: 'empty',
-        title: 'No lessons yet: pick an issue on Learn home, or a practice lesson first',
-        path: '/learn/lessons',
-        height: 480,
-        render: () => frame(<MyLessonsScreen lessons={[]} hasGoal />),
+        id: 'lessons',
+        title:
+          'Lessons passed: own lessons with their pull request’s state, practice lessons, one taken down, Not finished',
+        path: '/my/progress',
+        height: 1700,
+        render: () => frame(<ProgressScreen view="lessons" page={1} counts={progressCounts} list={progress.lessons} />),
       },
       {
-        id: 'filled',
-        title: 'In progress, then done: own attempts and a shared lesson passed',
-        path: '/learn/lessons',
-        height: 820,
-        render: () => frame(<MyLessonsScreen lessons={myLessons} />),
+        id: 'learned',
+        title: 'New things learned: one card per lesson, a tile per new step',
+        path: '/my/progress?view=learned',
+        height: 1600,
+        render: () => frame(<ProgressScreen view="learned" page={1} counts={progressCounts} list={progress.learned} />),
+      },
+      {
+        id: 'repos',
+        title: 'Repos helped: one row per repository, its first pull requests',
+        path: '/my/progress?view=repos',
+        height: 760,
+        render: () => frame(<ProgressScreen view="repos" page={1} counts={progressCounts} list={progress.repos} />),
+      },
+      {
+        id: 'merged',
+        title: 'Pull requests merged, newest first, the lesson while it is there',
+        path: '/my/progress?view=merged',
+        height: 1060,
+        render: () => frame(<ProgressScreen view="merged" page={1} counts={progressCounts} list={progress.merged} />),
+      },
+      {
+        id: 'empty',
+        title: 'Nothing passed yet: the four tabs at 0 and the way to a first lesson',
+        path: '/my/progress',
+        height: 560,
+        render: () => frame(<ProgressScreen view="lessons" page={1} counts={zeroCounts} />),
+      },
+      {
+        id: 'nothing-new',
+        title: 'Lessons passed, none taught a new thing',
+        path: '/my/progress?view=learned',
+        height: 600,
+        render: () =>
+          frame(
+            <ProgressScreen
+              view="learned"
+              page={1}
+              counts={{ ...zeroCounts, lessonsPassed: 2 }}
+              list={{ view: 'learned', lessons: { items: [], total: 0, notFinished: [] } }}
+            />,
+          ),
+      },
+      {
+        id: 'none-merged',
+        title: 'No pull request merged yet, two open',
+        path: '/my/progress?view=merged',
+        height: 620,
+        render: () =>
+          frame(
+            <ProgressScreen
+              view="merged"
+              page={1}
+              counts={{ ...progressCounts, prsMerged: 0, reposHelped: 0 }}
+              list={{ view: 'merged', merged: { items: [], total: 0 } }}
+              openPrs={2}
+            />,
+          ),
+      },
+      {
+        id: 'phone',
+        title: 'Lessons passed on a phone: the tabs scroll, the state and the button under each row',
+        path: '/my/progress',
+        width: 390,
+        height: 3000,
+        render: () => frame(<ProgressScreen view="lessons" page={1} counts={progressCounts} list={progress.lessons} />),
+      },
+      {
+        id: 'phone-learned',
+        title: 'New things learned on a phone: one column of tiles',
+        path: '/my/progress?view=learned',
+        width: 390,
+        height: 3000,
+        render: () => frame(<ProgressScreen view="learned" page={1} counts={progressCounts} list={progress.learned} />),
       },
     ],
   },

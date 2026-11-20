@@ -13,14 +13,28 @@ import { cn } from '@/lib/utils';
 export type ViewTab = { key: string; label: string; href: Route; count?: number; pathEnds?: string };
 
 /**
- * In-page tabs as links (W1 §11): the pull request's two views, a progress page's views. The tab whose path end the
- * browser's path has is the current one. A row of links, never a tablist: each view has its own address.
+ * In-page tabs as links: the pull request's two views, a progress page's views. The tab whose path end the browser's
+ * path has is the current one; views that share one path and differ by their query name it (`current`). A row of
+ * links, never a tablist: each view has its own address.
  */
-export function ViewTabs({ tabs, label, className }: { tabs: ViewTab[]; label: string; className?: string }) {
+export function ViewTabs({
+  tabs,
+  label,
+  current: named,
+  className,
+}: {
+  tabs: ViewTab[];
+  label: string;
+  /** The current view's key, for views told apart by the query rather than the path. */
+  current?: string;
+  className?: string;
+}) {
   const pathname = usePathname();
   const path = pathname.replace(/\/+$/, '');
   const current =
-    tabs.find((tab) => tab.pathEnds && path.endsWith(tab.pathEnds))?.key ?? tabs.find((tab) => !tab.pathEnds)?.key;
+    named ??
+    tabs.find((tab) => tab.pathEnds && path.endsWith(tab.pathEnds))?.key ??
+    tabs.find((tab) => !tab.pathEnds)?.key;
   return (
     <nav
       aria-label={label}

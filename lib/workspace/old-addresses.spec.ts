@@ -79,6 +79,8 @@ describe('the old workspace addresses', () => {
     ['/contribute/attempts/A_1/runs/A_F1?move=reply-failed', '/my/pull-requests/by-attempt/A_F1?move=reply-failed'],
     ['/learn/attempts/A_1', '/my/pull-requests/by-attempt/A_1'],
     ['/learn/attempts/A_1?resume=n0nce', '/my/pull-requests/by-attempt/A_1?resume=n0nce'],
+    ['/learn/lessons', '/my/progress'],
+    ['/learn/lessons/', '/my/progress'],
   ])('%s goes on to %s, for now (307)', (from, to) => {
     expect(redirectOf(from)).toEqual({ location: to, status: 307 });
   });
@@ -95,8 +97,8 @@ describe('the old workspace addresses', () => {
       '/contribute/me/x',
       '/contribute/settings/elsewhere',
       '/learn',
-      '/learn/lessons',
       '/learn/lessons/a-lesson-1x',
+      '/learn/lessons/a-lesson-1x/passes/octocat',
       '/learn/start/acme/widgets/42',
       '/my/pull-requests',
     ]) {

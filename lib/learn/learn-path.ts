@@ -6,8 +6,6 @@ export const LEARN_PATH = '/learn' as Route;
 export const LEARN_PRACTICE_PATH = '/learn#practice' as Route;
 /** The front door for a signed-in learner: how Learn works. */
 export const LEARN_ABOUT_PATH = '/learn/about' as Route;
-/** The user's lessons: their Learn attempts and the shared lessons they passed. */
-export const MY_LESSONS_PATH = '/learn/lessons' as Route;
 /** The user's goal and level. */
 export const LEARN_PROFILE_PATH = '/my/settings/goal' as Route;
 /** What a Learn pull request is, for maintainers. Open to everyone. */
@@ -36,7 +34,7 @@ export function isLearnPath(pathname: string): boolean {
 
 /**
  * The Learn pages open to every visitor: a shared lesson and its result pages (`/learn/lessons/<slug>…`, which pull
- * requests link to), and the page for maintainers. `/learn/lessons` itself is the user's own list, so it is not.
+ * requests link to), and the page for maintainers. `/learn/lessons` itself is not: it goes on to Your progress.
  */
 export const isLearnOpenPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+learn\/+maintainers\/?$/i) ||

@@ -26,4 +26,11 @@ describe('Pagination', () => {
   it('is absent when every row fits on one page', () => {
     expect(renderToStaticMarkup(<Pagination page={1} total={20} noun="run" hrefOf={hrefOf} />)).toBe('');
   });
+
+  it('says the range alone on one page when asked to, and nothing for an empty list', () => {
+    const one = renderToStaticMarkup(<Pagination page={1} total={7} noun="lesson" hrefOf={hrefOf} always />);
+    expect(text(one)).toBe('1–7 of 7 lessons');
+    expect(one).not.toContain('href=');
+    expect(renderToStaticMarkup(<Pagination page={1} total={0} noun="lesson" hrefOf={hrefOf} always />)).toBe('');
+  });
 });

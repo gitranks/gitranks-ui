@@ -7,16 +7,17 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 /**
- * A row of the user's lists: what it is about (a repo and its state), its title, a line of what happened, and the
- * button that leads to it. Learn's My lessons draws its rows with it too.
+ * A row of the user's lists: its reference line (the repo, the issue and pull request, a pill), its title, a line of
+ * what happened, and on the right its state and the button that leads to it. On a phone the state and the button go
+ * under the rest, on one line. Your progress draws its rows with it.
  */
 export function ListRow({
   id,
   state,
-  meta,
-  pills,
+  refs,
   title,
   text,
+  aside,
   href,
   action,
   quiet = false,
@@ -26,10 +27,12 @@ export function ListRow({
   /** What the row is: its id goes in `data-attempt` or `data-lesson`. */
   kind?: 'attempt' | 'lesson';
   state: string;
-  meta: ReactNode;
-  pills: ReactNode;
+  /** The reference line: `RefChips`, with its pills. */
+  refs: ReactNode;
   title: ReactNode;
   text: ReactNode;
+  /** Beside the button: a state pill. */
+  aside?: ReactNode;
   href: Route | null;
   action: string;
   /** A row with nothing to do: its button is the outline one, so the view keeps one primary action. */
@@ -42,20 +45,22 @@ export function ListRow({
       data-state={state}
       className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 last:border-b-0"
     >
-      <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-0.5">
-        <span className="flex flex-wrap items-center gap-2">
-          {meta ? <span className="font-mono text-xs text-muted-foreground">{meta}</span> : null}
-          {pills}
-        </span>
-        <span className="font-medium">{title}</span>
+      <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-1">
+        {refs}
+        <span className="text-base font-medium text-pretty">{title}</span>
         <span className="text-xs text-muted-foreground">{text}</span>
       </div>
-      {href ? (
-        <Button asChild variant={quiet ? 'outline' : 'default'} className="min-h-10 px-4 font-semibold">
-          <Link href={href} prefetch={false}>
-            {action}
-          </Link>
-        </Button>
+      {aside || href ? (
+        <div className="flex shrink-0 items-center gap-3">
+          {aside}
+          {href ? (
+            <Button asChild variant={quiet ? 'outline' : 'default'} className="min-h-10 px-4 font-semibold">
+              <Link href={href} prefetch={false}>
+                {action}
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </li>
   );

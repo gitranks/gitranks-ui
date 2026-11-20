@@ -9,7 +9,8 @@ const STEP = cn(buttonVariants({ variant: 'ghost', size: 'default' }), 'gap-1 px
 
 /**
  * A history list's pages (decision 6): "1–20 of 46 pull requests" and Previous / Next as links, the page in the
- * address. Absent when everything fits on one page.
+ * address. When everything fits on one page it is absent, or with `always` the range alone ("1–7 of 7 lessons"), for
+ * a list whose total is said nowhere else.
  */
 export function Pagination({
   page,
@@ -17,6 +18,7 @@ export function Pagination({
   total,
   noun,
   hrefOf,
+  always = false,
 }: {
   page: number;
   pageSize?: number;
@@ -24,8 +26,9 @@ export function Pagination({
   /** One of what the list holds: "pull request". */
   noun: string;
   hrefOf: (page: number) => Route;
+  always?: boolean;
 }) {
-  if (total <= pageSize) return null;
+  if (total <= 0 || (total <= pageSize && !always)) return null;
   const last = Math.ceil(total / pageSize);
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);

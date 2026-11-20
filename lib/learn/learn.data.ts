@@ -8,17 +8,9 @@ import {
   LearnProfileDocument,
   LearnSetupDocument,
   MyLearnAttemptsDocument,
-  MyLessonsDocument,
   PracticeLessonsDocument,
 } from './learn.documents';
-import type {
-  LearnAttemptLesson,
-  LearnIssues,
-  LearnProfile,
-  MyLearnAttempts,
-  MyLesson,
-  PracticeLessons,
-} from './learn.types';
+import type { LearnAttemptLesson, LearnIssues, LearnProfile, MyLearnAttempts, PracticeLessons } from './learn.types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { ContributeUnavailableError, viewerLogin } from '@/lib/workspace/contribute.data';
 import { contributeErrorOf } from '@/lib/workspace/errors';
@@ -79,24 +71,6 @@ export const loadLearnProfile = cache(async (): Promise<LearnProfile | null> => 
     const { error } = contributeErrorOf(failure);
     if (error === 'NOT_FOUND' || error === 'SIGNED_OUT' || error === 'NOT_AVAILABLE_YET') return null;
     throw new ContributeUnavailableError();
-  }
-});
-
-/**
- * The viewer's lessons: their Learn attempts and the shared lessons they passed, as the API orders them. Empty signed
- * out or when Learn is not open to them; undefined when the API does not answer, which the page says. Read once per
- * request.
- */
-export const loadMyLessons = cache(async (): Promise<MyLesson[] | undefined> => {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return [];
-  try {
-    const { myLessons } = await graphqlDirect(MyLessonsDocument, undefined, { source: 'ssr', githubLogin });
-    return myLessons ?? [];
-  } catch (failure) {
-    const { error } = contributeErrorOf(failure);
-    if (error === 'NOT_FOUND' || error === 'SIGNED_OUT') return [];
-    return undefined;
   }
 });
 

@@ -13,11 +13,14 @@ import { contributeOpen } from './preview-gate';
  */
 export async function loadContributeFlowPlace(
   step: ContributeFlowStep,
+  query?: string,
 ): Promise<{ place: FlowPlace; gate: WorkspaceGate }> {
   const gate = await loadWorkspaceGate();
   const [launched, hasAttempt] = await Promise.all([
     gate.kind === 'signed-out' || gate.kind === 'hidden' ? contributeOpen() : true,
-    gate.kind === 'open' && gate.entered ? loadAttempts(undefined, 1).then(hasAnyAttempt) : false,
+    gate.kind === 'open' && gate.entered && step !== 'agent-own'
+      ? loadAttempts(undefined, 1).then(hasAnyAttempt)
+      : false,
   ]);
-  return { place: contributeFlowPlaceOf(step, { gate, launched, hasAttempt }), gate };
+  return { place: contributeFlowPlaceOf(step, { gate, launched, hasAttempt, query }), gate };
 }

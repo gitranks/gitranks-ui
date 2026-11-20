@@ -1,14 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  agentConnectedOf,
-  agentWelcomeHref,
-  forgetWelcomeOf,
-  isAgentWelcome,
-  replaceToken,
-  unusedTokenOf,
-  welcomeClientOf,
-} from './agent-connect';
+import { agentConnectedOf, replaceToken, unusedTokenOf } from './agent-connect';
 import { mcpToken } from '@/lib/contribute/__fixtures__/contribute-views';
 
 /** A made-up token of the real shape: `gr_` and 43 base62 characters. */
@@ -79,19 +71,6 @@ describe('replaceToken', () => {
   });
 });
 
-describe('the welcome', () => {
-  it('goes to the overview with the client picked, which it reads back, Claude Code otherwise', () => {
-    expect(agentWelcomeHref('gemini-cli')).toBe('/contribute?welcome=agent&client=gemini-cli');
-    expect(isAgentWelcome('agent')).toBe(true);
-    expect(isAgentWelcome(['agent'])).toBe(true);
-    expect(isAgentWelcome('key')).toBe(false);
-    expect(welcomeClientOf('codex')).toBe('codex');
-    expect(welcomeClientOf(['cursor'])).toBe('cursor');
-    expect(welcomeClientOf('<script>')).toBe('claude-code');
-    expect(welcomeClientOf(undefined)).toBe('claude-code');
-  });
-});
-
 describe('unusedTokenOf', () => {
   it('is the newest token the agent has not called with', () => {
     const used = mcpToken({ id: 'T_1', lastUsedAt: '2026-10-27T10:00:00Z' });
@@ -108,13 +87,5 @@ describe('unusedTokenOf', () => {
     const signedIn = mcpToken({ id: 'T_2', kind: 'OAUTH', last4: null });
     expect(unusedTokenOf([token, signedIn])?.id).toBe('T_1');
     expect(unusedTokenOf([signedIn])).toBeUndefined();
-  });
-});
-
-describe('forgetWelcomeOf', () => {
-  it("takes the welcome's parameters out of the address, and leaves the rest", () => {
-    expect(forgetWelcomeOf('https://gitranks.com/contribute?welcome=agent&client=codex')).toBe('/contribute');
-    expect(forgetWelcomeOf('https://gitranks.com/contribute?welcome=agent&as=x#top')).toBe('/contribute?as=x#top');
-    expect(forgetWelcomeOf('https://gitranks.com/contribute')).toBeNull();
   });
 });

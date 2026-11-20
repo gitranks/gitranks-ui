@@ -4,7 +4,7 @@ import type { Route } from 'next';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, isOnboarded } from '@/lib/workspace/contribute-state';
-import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { GETTING_IN_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import type { ContributeAccess } from '@/lib/workspace/preview-gate';
 import { sessionTokenOf } from '@/lib/workspace/session-token';
 import type DocumentNode from '@/types/typed-document-node';
@@ -99,12 +99,18 @@ export function tabsOf(gate: WorkspaceGate): WorkspaceTab[] {
 
 /**
  * Where a signed-in account that has not entered the workspace yet is sent from a page under `/my`; null when the page
- * opens. The Agent and Settings pages open (someone mid-setup can revoke a token or delete their data, and connect
- * their agent); every other page goes to Contribute's home, which starts them.
+ * opens. The Agent and Settings pages open (someone mid-setup can revoke a token or delete their data), but for the
+ * agent's connect page, whose step of Contribute's flow it goes to with its query. A Start page in Fix mode goes to the
+ * flow's first step; every other page to Contribute's home, which starts them.
  */
-export function notEnteredTargetOf(pathname: string, _search?: URLSearchParams): Route | null {
+export function notEnteredTargetOf(pathname: string, search?: URLSearchParams): Route | null {
   const path = pathname.replace(/\/+$/, '');
   if (!/^\/my(?:\/|$)/.test(path)) return null;
+  if (path === WORKSPACE_PATHS.agentConnect) {
+    const query = search?.toString();
+    return (query ? `${GETTING_IN_PATHS.contributeAgentOwn}?${query}` : GETTING_IN_PATHS.contributeAgentOwn) as Route;
+  }
   if (/^\/my\/(?:agent|settings)(?:\/|$)/.test(path)) return null;
+  if (/^\/my\/start\//.test(path) && search?.get('lesson') !== '1') return GETTING_IN_PATHS.contributeWork;
   return WORKSPACE_PATHS.contribute;
 }

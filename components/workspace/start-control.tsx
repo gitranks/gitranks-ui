@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
 import { startIssue } from '@/lib/workspace/issue-actions';
 import type { StartControlKind } from '@/lib/workspace/issue-row';
 import { readStartPageAttempt } from '@/lib/workspace/start/start-page.actions';
@@ -103,6 +104,7 @@ export function StartControl({
   disabled = false,
   onHosted,
   label,
+  source,
 }: {
   control: StartControlKind;
   primary?: boolean;
@@ -111,8 +113,11 @@ export function StartControl({
   onHosted: () => void;
   /** Which issue, for a screen reader: "acme/widgets #42". */
   label: string;
+  /** The click's mark, where the page counts its Starts (the first issue of Contribute's flow). */
+  source?: ContributeSource;
 }) {
   const variant = primary ? 'default' : 'outline';
+  const mark = source ? contributeSource(source) : {};
   // While its own start is sent the control keeps the focus (`aria-disabled`, the start ignores a second press);
   // another row's start turns it off for good until that one is answered.
   const busy = sending ? { 'aria-disabled': true } : {};
@@ -125,7 +130,7 @@ export function StartControl({
       </Button>
     ) : (
       <Button asChild variant={variant} className={BUTTON}>
-        <Link href={control.href} prefetch={false} data-start-control="link">
+        <Link href={control.href} prefetch={false} data-start-control="link" {...mark}>
           {control.label}
           {sr}
         </Link>
@@ -142,6 +147,7 @@ export function StartControl({
         onClick={sending ? undefined : onHosted}
         className={BUTTON}
         data-start-control="hosted"
+        {...mark}
       >
         {sending ? 'Starting…' : control.label}
         {sr}
@@ -159,6 +165,7 @@ export function StartControl({
           onKeyDown={sending ? (event) => event.preventDefault() : undefined}
           className={cn(BUTTON, 'gap-1.5 pr-3')}
           data-start-control="menu"
+          {...mark}
         >
           {sending ? 'Starting…' : control.label}
           {sr}

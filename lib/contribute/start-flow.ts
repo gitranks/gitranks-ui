@@ -31,6 +31,9 @@ export function workPicksOf(query: Query): WorkPicks {
   };
 }
 
+/** Whether the address carries any pick. */
+export const hasPicks = (picks: WorkPicks): boolean => picks.languages.length > 0 || picks.kinds.length > 0;
+
 /** The query that carries the picks (`languages=…&kinds=…`, empty lists left out); empty for none. */
 export function workPicksQuery(picks: WorkPicks): string {
   const query = new URLSearchParams();
@@ -70,3 +73,18 @@ export function workStartPicksOf({
 /** Whether the profile's languages are asked for: signed in, nothing saved, and no languages in the address. */
 export const needsProfileLanguages = (signedIn: boolean, saved: unknown, address: WorkPicks): boolean =>
   signedIn && !saved && !address.languages.length;
+
+const MATCH = 'These open issues match what you work on:';
+
+/**
+ * Your first issue's line, by what is connected (§5.6): the own agent by its name (`agent`, "Your agent" when unknown),
+ * the Claude key, or both.
+ */
+export function firstIssueLineOf(agents: { hosted: boolean; own: boolean }, agent: string | null): string {
+  if (agents.hosted && agents.own) {
+    return `Your agents are connected. ${MATCH} press Start on one and choose who works on it.`;
+  }
+  if (agents.hosted)
+    return `Your Claude key is connected. ${MATCH} press Start on one, and the hosted agent begins at once.`;
+  return `${agent ?? 'Your agent'} is connected. ${MATCH} press Start on one, and you get one prompt to paste in your agent.`;
+}

@@ -137,15 +137,12 @@ function StartAction({
   viewer,
   preview,
   wide = false,
-  open = false,
   className,
 }: {
   path: SignInPath;
   viewer: LandingViewer;
   preview: boolean;
   wide?: boolean;
-  /** The visitor's sign-in opens with the page (`?start=agent`). */
-  open?: boolean;
   className?: string;
 }) {
   const { label, href } = ACTIONS[path];
@@ -158,7 +155,7 @@ function StartAction({
   );
   if (viewer === 'visitor') {
     return (
-      <SignInButton path={path} preview={preview} defaultOpen={open} className={classes} source="contribute_landing">
+      <SignInButton path={path} preview={preview} className={classes} source="contribute_landing">
         {label}
       </SignInButton>
     );
@@ -212,18 +209,15 @@ export function Landing({
   viewer,
   preview = false,
   noted,
-  startAgent = false,
   stats = null,
 }: {
   viewer: LandingViewer;
   preview?: boolean;
   noted?: readonly ContributeComingSoonProvider[];
-  /** An agent sent its person here (`?start=agent`): the hero's own-agent sign-in opens with the page. */
-  startAgent?: boolean;
   /** The pool's public numbers, a line under the hero's actions; left out when unread. */
   stats?: AgentPageStats | null;
 }) {
-  const action = (path: SignInPath, props: { wide?: boolean; open?: boolean; className?: string } = {}) => (
+  const action = (path: SignInPath, props: { wide?: boolean; className?: string } = {}) => (
     <StartAction path={path} viewer={viewer} preview={preview} {...props} />
   );
 
@@ -244,7 +238,7 @@ export function Landing({
           </p>
           <div className="flex flex-wrap gap-3">
             {action('key', { wide: true })}
-            {action('agent', { wide: true, open: startAgent })}
+            {action('agent', { wide: true })}
           </div>
           <p className="text-sm text-muted-foreground">
             Free to use. Nothing reaches GitHub without your OK. Leave any time.

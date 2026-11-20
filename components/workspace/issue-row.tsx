@@ -19,6 +19,7 @@ import { IssueRepoRules } from '@/components/workspace/pull-request/issue-repo-r
 import { RefChips } from '@/components/workspace/ref-chips';
 import { StartControl, useHostedStart } from '@/components/workspace/start-control';
 import { cn } from '@/lib/utils';
+import type { ContributeSource } from '@/lib/workspace/click-tracking';
 import { GOOD_FIRST_LABEL } from '@/lib/workspace/format';
 import {
   type ConnectedAgents,
@@ -107,6 +108,8 @@ export type IssueRowProps = {
    * `REPO_UNAVAILABLE`: the list).
    */
   onRefused?: (refusal: IssueStartRefusalCopy) => void;
+  /** The mark on Start, where the page counts its Starts. */
+  startSource?: ContributeSource;
 };
 
 /**
@@ -129,6 +132,7 @@ export function IssueRow({
   facts,
   initialRefusal = null,
   onRefused,
+  startSource,
 }: IssueRowProps) {
   const ref = { repo: issue.repo, issue: issue.number };
   const hosted = useHostedStart(issue.issueId, ref, { facts, initialRefusal, onRefused });
@@ -251,6 +255,7 @@ export function IssueRow({
               disabled={hosted.blocked}
               onHosted={hosted.start}
               label={where}
+              source={startSource}
             />
           ) : null}
           {contribute && menu ? (

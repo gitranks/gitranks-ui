@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { WorkStep } from '@/components/contribute/work-step';
+import { WorkStep } from '@/components/contribute/start/work-step';
 import { FlowBookmark } from '@/components/workspace/getting-in/flow-bookmark';
 import { FlowFrame, FlowHead } from '@/components/workspace/getting-in/flow-frame';
-import { flowPanelOf } from '@/components/workspace/getting-in/flow-place';
+import { CONTRIBUTE_FLOW_PANELS, flowPanelOf } from '@/components/workspace/getting-in/flow-place';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
-import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
 import { needsProfileLanguages, type WorkPicks, workPicksOf, workStartPicksOf } from '@/lib/contribute/start-flow';
 import { loadFlowProfileLanguages } from '@/lib/contribute/start-flow.data';
 import { loadContribute } from '@/lib/workspace/contribute.data';
@@ -34,7 +33,7 @@ async function initialPicks(signedIn: boolean, address: WorkPicks): Promise<Work
 
 async function ContributeWork({ searchParams }: Pick<PageProps<'/contribute/start'>, 'searchParams'>) {
   const [params, { place, gate }] = await Promise.all([searchParams, loadContributeFlowPlace('work')]);
-  const panel = flowPanelOf(place, { settingUp: <ContributeSettingUp />, noProfile: <ContributeNoProfile /> });
+  const panel = flowPanelOf(place, CONTRIBUTE_FLOW_PANELS);
   const signedIn = gate.kind !== 'signed-out';
   return (
     <>

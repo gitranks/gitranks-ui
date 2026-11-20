@@ -24,6 +24,10 @@ const to = (source: string, destination: string, has?: OldAddressRedirect['has']
 });
 
 export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
+  // The landing's old ways in: an agent sending its person to connect it (`?start=agent`, which the agent server and
+  // the agents' page print), and a new account's way back to the Claude key. Both are steps of Contribute's flow now.
+  to('/contribute', '/contribute/start/agent/own?from=agent', [{ type: 'query', key: 'start', value: 'agent' }]),
+  to('/contribute', '/contribute/start/agent/key', [{ type: 'query', key: 'start', value: 'key' }]),
   // Issues for you is the Contribute tab's list now: its filters kept, at the list (an old `?after=` is ignored there).
   to('/contribute/issues', '/contribute#issues'),
   to('/contribute/me', '/my/pull-requests'),

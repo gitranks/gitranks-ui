@@ -18,9 +18,12 @@ import {
   matchingLinesOf,
   matchingTicksOf,
 } from '@/lib/workspace/matching';
-import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
+import { GETTING_IN_PATHS, PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
 export const ISSUES_PATH: Route = PICK_ISSUE_PATHS.fix;
+
+/** Where the matching moment goes on to: the first issue, the last step of Contribute's flow. */
+const FIRST_ISSUE_PATH = GETTING_IN_PATHS.contributeIssue;
 
 /** Where each chip floats beside the orb; on a phone they sit closer in. */
 const CHIP_PLACES = [
@@ -33,7 +36,7 @@ const CHIP_PLACES = [
 /**
  * The matching moment after a key is stored, in place of the form: an orb with rings, the profile's languages
  * floating in, and four lines that tick one by one. The last ticks once the picks are computed (asked every 1.5s);
- * then the page goes on to Issues by itself. Without picks after 20s it goes on anyway. Reduced motion stops the
+ * then the page goes on to the first issue by itself. Without picks after 20s it goes on anyway. Reduced motion stops the
  * animation, never the ticks.
  */
 export function Matching({ languages, initialTicks = 0 }: { languages: string[]; initialTicks?: number }) {
@@ -44,7 +47,7 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
   const goOn = useCallback(() => {
     if (gone.current) return;
     gone.current = true;
-    push(ISSUES_PATH);
+    push(FIRST_ISSUE_PATH);
   }, [push]);
   const [elapsed, setElapsed] = useState(0);
   const [computed, setComputed] = useState(false);
@@ -132,7 +135,7 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
         </h1>
         <p className="max-w-lg text-muted-foreground">
           {done
-            ? 'Ranked by your languages and the repos you know. Your agent starts on one of the top ones shortly.'
+            ? 'Ranked by your languages and the repos you know. Pick one and press Start.'
             : 'This takes a few seconds. We look for issues maintainers want solved, in repos that handle outside PRs.'}
         </p>
       </div>
@@ -168,7 +171,7 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
       {done ? (
         <Button asChild size="lg" className="min-h-12 px-5.5 text-base font-semibold">
           <Link
-            href={ISSUES_PATH}
+            href={FIRST_ISSUE_PATH}
             prefetch={false}
             onClick={(event) => {
               // The way on reads the layout again, for the tabs; a new tab or window loads it whole anyway.

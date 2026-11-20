@@ -138,9 +138,10 @@ describe('which pages are which', () => {
 
   it("sends an account being set up to Contribute's home, carrying the connect step it was on", () => {
     const at = (path: string) => settingUpHomeOf(new URL(path, 'https://gitranks.com'));
-    expect(at('/my/agent/connect')).toBe('/contribute?start=agent');
-    expect(at('/my/agent/connect/?proof=A_1')).toBe('/contribute?start=agent');
-    expect(at('/my/agent/key')).toBe('/contribute?start=key');
+    expect(at('/my/agent/connect')).toBe('/contribute/start/agent/own');
+    expect(at('/my/agent/connect/?proof=A_1')).toBe('/contribute/start/agent/own?proof=A_1');
+    expect(at('/my/agent/connect?from=agent')).toBe('/contribute/start/agent/own?from=agent');
+    expect(at('/my/agent/key')).toBe('/contribute/start/agent/key');
     for (const path of ['/my/agent', '/my/settings', '/my/pull-requests', '/contribute/issues']) {
       expect(at(path), path).toBe('/contribute');
     }

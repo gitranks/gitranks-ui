@@ -1,10 +1,17 @@
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
 import type { FlowPlace } from '@/lib/workspace/getting-in';
 
 /** The panels a step shows in its frame in place of itself: its side's setting-up and no-profile panels. */
 export type FlowPanels = { settingUp: ReactNode; noProfile: ReactNode };
+
+/** Contribute's: the account being set up (the page reads itself again until it is ready), and no profile. */
+export const CONTRIBUTE_FLOW_PANELS: FlowPanels = {
+  settingUp: <ContributeSettingUp />,
+  noProfile: <ContributeNoProfile />,
+};
 
 /**
  * A step's place when it is not the step itself: the redirect and the 404 happen here, a panel is returned to draw in

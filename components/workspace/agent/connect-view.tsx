@@ -1,3 +1,5 @@
+import type { Route } from 'next';
+
 import { AgentConnect, type AgentConnectProof } from './agent-connect';
 import { KeyConnect } from './key-connect';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
@@ -69,10 +71,16 @@ export function ConnectScreen({
   view,
   today,
   profileLanguages = [],
+  ownAgentHref,
+  eyebrow,
 }: {
   view: ContributeView;
   today: number;
   profileLanguages?: string[];
+  /** Where "Use your own agent instead" goes (the Agent tab's connect page unless said). */
+  ownAgentHref?: Route;
+  /** The line over a first key's title (KeyConnect's own unless said). */
+  eyebrow?: string;
 }) {
   const { contributor } = view;
   const key = claudeKeyOf(view);
@@ -96,6 +104,8 @@ export function ConnectScreen({
       replacing={!!key}
       languages={preferred.length ? preferred : profileLanguages}
       notices={keyNotices.length ? <ContributeNotices notices={keyNotices} /> : null}
+      ownAgentHref={ownAgentHref}
+      eyebrow={eyebrow}
     />
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import type { Route } from 'next';
-import { useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 
 import type { FlowSide } from '@/lib/workspace/getting-in';
 import {
@@ -51,4 +51,24 @@ export function FlowBookmark({ side }: { side: FlowSide }) {
     store(withBookmark(stored(), side, `${window.location.pathname}${window.location.search}`, Date.now()));
   }, [side]);
   return null;
+}
+
+/**
+ * Around the part of a step that leaves the flow into the workspace (a Start, Skip for now): a click on a Start control
+ * or on a link marked `data-flow-leave` forgets `side`'s step, so the landing no longer resumes there.
+ */
+export function FlowExit({ side, children }: { side: FlowSide; children: ReactNode }) {
+  return (
+    // It only listens to the clicks of the controls inside; a keyboard press on one arrives as its click.
+    <div
+      className="contents"
+      onClickCapture={(event) => {
+        if (event.target instanceof Element && event.target.closest('[data-start-control], [data-flow-leave]')) {
+          forgetFlowBookmark(side);
+        }
+      }}
+    >
+      {children}
+    </div>
+  );
 }

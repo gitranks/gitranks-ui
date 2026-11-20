@@ -162,7 +162,8 @@ describe('A2, matching', () => {
     expect(html).toContain('data-matching="done"');
     expect(plain).toContain('Your first issues are ready');
     expect(html.match(/data-line="done"/g)).toHaveLength(4);
-    expect(html).toContain('href="/contribute#issues"');
+    expect(html).toContain('href="/contribute/start/issue"');
+    expect(plain).toContain('Pick one and press Start.');
     expect(plain).toContain('See my issues');
   });
 });

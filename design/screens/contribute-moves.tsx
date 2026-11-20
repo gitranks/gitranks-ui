@@ -10,14 +10,12 @@ import {
   followUp,
   followUpAttempts,
   noReplyDraft,
-  replyDraft,
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { NOW, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import { prNotes } from '@/lib/contribute/__fixtures__/maintainers';
 import {
   nextForCheckYours,
   nextForConversation,
-  nextForProof,
   nextForRun,
   nextForSilent,
   nextForYou,
@@ -41,17 +39,14 @@ import {
   oneRefused,
   orgRefusedOneComment,
   postedInOneComment,
-  proof,
   repoOut,
   rules,
   runDone,
   runEnded,
   runInReview,
-  runReadyFirstInOrg,
   runs,
   severalMoves,
   underWay,
-  unknownState,
   waitingForProbe,
   waitingOf,
 } from '@/lib/contribute/__fixtures__/session-head';
@@ -159,20 +154,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     },
   },
   {
-    id: 'replies-one-comment-refused',
-    title: 'GitHub refused the one comment too: copy the replies, or dismiss them',
-    path: RUN,
-    height: 2200,
-    render: () => {
-      const { drafts, plan } = oneCommentFailed(
-        'org_restricted',
-        "GitHub refused the comment too: this repository's organization keeps GitRanks Contribute from commenting here. Copy the replies and post them on the pull request yourself.",
-        null,
-      );
-      return runPage(page, runDone(drafts, plan));
-    },
-  },
-  {
     id: 'replies-held-back',
     title: 'The first reply did not reach its thread: the other 6 were held back, to post as one comment',
     path: RUN,
@@ -195,13 +176,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     path: RUN,
     height: 1800,
     render: () => runPage(page, runDone(postedInOneComment(), { probeFirst: true })),
-  },
-  {
-    id: 'run-ready-first-in-org',
-    title: 'A run ready in an organization where no reply of GitRanks has posted yet',
-    path: RUN,
-    height: 2400,
-    render: () => runPage(page, runReadyFirstInOrg()),
   },
   {
     id: 'reply-failed-alone',
@@ -246,13 +220,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     render: () => firstPage(page, firstAttempt.ownBounced),
   },
   {
-    id: 'review-form-open',
-    title: 'The pull request form open: the card draws no primary, Submit is the one',
-    path: FIRST,
-    height: 2600,
-    render: () => firstPage(page, decisionAttempts.went, { seed: { formOpen: true } }),
-  },
-  {
     id: 'run-ready',
     title: 'A run ready: push its commits and post its replies',
     path: RUN,
@@ -279,13 +246,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     path: RUN,
     height: 2300,
     render: () => runPage(page, runs.bounced),
-  },
-  {
-    id: 'run-bounced-org',
-    title: 'A run’s push the organization refused (amber)',
-    path: RUN,
-    height: 2300,
-    render: () => runPage(page, runs.bouncedOrg),
   },
   {
     id: 'run-bounced-branch-conflict',
@@ -358,13 +318,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     render: () => firstPage(page, dco.byHand, { next: true }),
   },
   {
-    id: 'dco-failed',
-    title: 'The sign-off did not go through',
-    path: NEXT,
-    height: 1500,
-    render: () => firstPage(page, dco.failed, { next: true }),
-  },
-  {
     id: 'silent',
     title: 'No answer in 30 days: keep it open',
     path: NEXT,
@@ -414,27 +367,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     render: () => firstPage(page, handOpened.changes, { next: true }),
   },
   {
-    id: 'proof-unreadable',
-    title: 'Proof from your agent: it can’t be shown',
-    path: NEXT,
-    height: 1400,
-    render: () => firstPage(page, proof.unreadable, { next: true, view: connected }),
-  },
-  {
-    id: 'proof-failed',
-    title: 'Proof from your agent: posting failed',
-    path: NEXT,
-    height: 1400,
-    render: () => firstPage(page, nextForProof.failed, { next: true, view: connected }),
-  },
-  {
-    id: 'proof-posting',
-    title: 'Proof from your agent: posting it',
-    path: NEXT,
-    height: 1300,
-    render: () => firstPage(page, proof.posting, { next: true, view: connected }),
-  },
-  {
     id: 'claim-refused',
     title: 'The repo’s rules refused the claim',
     path: FIRST,
@@ -447,21 +379,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     path: FIRST,
     height: 1300,
     render: () => firstPage(page, firstAttempt.cancelled),
-  },
-  {
-    id: 'submit-error',
-    title: 'The submit failed: its error in the card',
-    path: FIRST,
-    height: 2000,
-    render: () =>
-      firstPage(page, decisionAttempts.went, {
-        seed: {
-          error: {
-            source: 'submit',
-            text: 'Your PR could not be opened: the connection failed. Your title and description are as you left them. Submit again.',
-          },
-        },
-      }),
   },
   {
     id: 'run-working',
@@ -535,12 +452,11 @@ export const reviewCommentStates = (page: Page): ScreenState[] => [
         ),
       ),
   },
-  ...[1280, 390].map((width) => ({
-    id: width === 390 ? 'replies-after-push-phone' : 'replies-after-push',
-    title: `Posted, resolved, left for GitHub, no reply, resolved on GitHub${width === 390 ? ' · phone' : ''}`,
+  {
+    id: 'replies-after-push',
+    title: 'Posted, resolved, left for GitHub, no reply, resolved on GitHub',
     path: RUN,
-    width,
-    height: width === 390 ? 2600 : 1700,
+    height: 1700,
     render: () =>
       runPage(
         page,
@@ -552,7 +468,7 @@ export const reviewCommentStates = (page: Page): ScreenState[] => [
           flowDraft({ draftId: 'D_5', state: 'DISMISSED', dismissedReason: 'THREAD_RESOLVED' }),
         ]),
       ),
-  })),
+  },
   {
     id: 'run-verdicts-no-reply',
     title: 'A run’s verdicts on the failing checks, and two threads that need no reply',
@@ -675,20 +591,6 @@ export const reviewCommentStates = (page: Page): ScreenState[] => [
     path: RUN,
     height: 1800,
     render: () => runPage(page, runDone([posted('D_1'), notPosted('D_2', 'forbidden')])),
-  },
-  {
-    id: 'reply-draft-not-sent',
-    title: 'A reply left out of the push, still to post',
-    path: RUN,
-    height: 1700,
-    render: () => runPage(page, runDone([posted('D_1'), replyDraft({ draftId: 'D_2', send: false })])),
-  },
-  {
-    id: 'reply-unknown-state',
-    title: 'A reply in a state this page does not know',
-    path: RUN,
-    height: 1600,
-    render: () => runPage(page, runDone(unknownState())),
   },
   {
     id: 'replies-autopilot',

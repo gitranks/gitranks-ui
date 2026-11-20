@@ -24,12 +24,12 @@ import { loadContribute } from '@/lib/workspace/contribute.data';
 import { isSuspended } from '@/lib/workspace/contribute-state';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 
-const PRACTICE_TITLE = 'Practice first?';
-const PRACTICE_TEXT =
+export const PRACTICE_TITLE = 'Practice first?';
+export const PRACTICE_TEXT =
   'See how a lesson works on a finished fix before your own. Each was written for another learner with the same goal, and needs no agent.';
 
 /** Pick an issue's head: its title, the line for the goal, and the goal's chips with Change (back to Your goal). */
-function IssuesHead({ goal, changeHref }: { goal: LearnGoalView | null; changeHref: Route }) {
+export function IssuesHead({ goal, changeHref }: { goal: LearnGoalView | null; changeHref: Route }) {
   return (
     <FlowHead title="Pick an issue for your lesson" text={learnIssuesTextOf(goal)}>
       {goal ? <GoalChips goal={goal} changeHref={changeHref} /> : null}
@@ -38,7 +38,7 @@ function IssuesHead({ goal, changeHref }: { goal: LearnGoalView | null; changeHr
 }
 
 /** The list's place on the step. */
-const Issues = ({ who, children }: { who: 'visitor' | 'account'; children: ReactNode }) => (
+export const Issues = ({ who, children }: { who: 'visitor' | 'account'; children: ReactNode }) => (
   <section aria-label="Issues" className="flex flex-col gap-4" data-learn-flow-issues={who}>
     {children}
   </section>

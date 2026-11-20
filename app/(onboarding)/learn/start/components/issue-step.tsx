@@ -21,7 +21,7 @@ import { loadStartPageView } from '@/lib/workspace/start/start-page.data';
 
 type IssueRef = { repo: string; issue: number };
 
-const BACK_LABEL = 'Issues for your goal';
+export const BACK_LABEL = 'Issues for your goal';
 const link = 'font-semibold text-link hover:underline';
 
 /** Back to Pick an issue, the goal kept: in the address for a visitor (and until it is saved), saved otherwise. */
@@ -116,7 +116,7 @@ export async function SavingIssueStep({
 }
 
 /** Section 1 once signed in, collapsed to one line. */
-function SignedIn({ login }: { login: string | null }) {
+export function SignedIn({ login }: { login: string | null }) {
   return (
     <section className="flex flex-col gap-2 rounded-2xl border bg-card p-4.5 sm:p-5.5" data-flow-signed-in="">
       <div className="flex items-center justify-between gap-2">

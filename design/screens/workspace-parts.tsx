@@ -155,20 +155,6 @@ export const WORKSPACE_PART_SCREENS: Screen[] = [
         render: () => contributeRows(),
       },
       {
-        id: 'hosted-only',
-        title: 'Contribute, the hosted agent only: Start begins at once',
-        path: '/contribute',
-        height: 560,
-        render: () => contributeRows({ agents: { hosted: true, own: false } }),
-      },
-      {
-        id: 'own-only',
-        title: 'Contribute, the own agent only: Start opens the Start page',
-        path: '/contribute',
-        height: 560,
-        render: () => contributeRows({ agents: { hosted: false, own: true } }),
-      },
-      {
         id: 'none-connected',
         title: 'Contribute, nothing connected now: Start opens the Start page, whose first step connects the agent',
         path: '/contribute',

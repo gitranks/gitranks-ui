@@ -415,9 +415,6 @@ export const olderReview = followUp({
   replyDrafts: [replyDraft(), replyDraft({ draftId: 'D_2', comment: null, text: 'Fixed the lint.' })],
 });
 
-/** A reply in a state this page does not know. */
-export const unknownState = () => [posted('D_1'), flowDraft({ draftId: 'D_2', state: 'ARCHIVED' as never })];
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Replies as one comment: the organization keeps them out of their threads, so they go together, quoting each thread.
 

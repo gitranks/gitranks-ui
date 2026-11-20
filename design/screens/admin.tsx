@@ -21,9 +21,18 @@ const page = (board: HeroBoard) => (
   </>
 );
 
+/** One state on desktop. */
+const one = (id: string, title: string, board: HeroBoard, height: number): ScreenState => ({
+  id,
+  title,
+  path: PATH,
+  height,
+  render: () => page(board),
+});
+
 /** One state on desktop and on a phone. */
 const both = (id: string, title: string, board: HeroBoard, height: number, phoneHeight: number): ScreenState[] => [
-  { id, title, path: PATH, height, render: () => page(board) },
+  one(id, title, board, height),
   {
     id: `${id}-phone`,
     title: `${title}, phone`,
@@ -54,8 +63,8 @@ export const ADMIN_SCREENS: Screen[] = [
     ],
     states: [
       ...both('board', 'Live, next and coming weeks', boardOf(), 1290, 2110),
-      ...both('preview', 'Before launch', previewBoard(), 1270, 2060),
-      ...both('empty-week', 'Nobody this week or next', boardOf({ live: [], upcoming: [] }), 850, 1280),
+      one('preview', 'Before launch', previewBoard(), 1270),
+      one('empty-week', 'Nobody this week or next', boardOf({ live: [], upcoming: [] }), 850),
     ],
   },
 ];

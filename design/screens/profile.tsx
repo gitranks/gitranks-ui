@@ -119,14 +119,6 @@ export const PROFILE_SCREENS: Screen[] = [
         render: () => overview(onDailyUpdates(DailyUpdateReason.Owner), strongBadges),
       },
       {
-        id: 'daily-owner-off',
-        title: 'Your profile, daily updates off',
-        path: `/profile/${strongProfile.login}`,
-        height: 3000,
-        viewer: ownerViewer({ state: 'never', until: null }),
-        render: () => overview(strongProfile, strongBadges),
-      },
-      {
         id: 'daily-owner-on',
         title: 'Your profile, daily updates on',
         path: `/profile/${strongProfile.login}`,

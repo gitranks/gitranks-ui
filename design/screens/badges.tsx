@@ -97,14 +97,6 @@ export const BADGES_SCREENS: Screen[] = [
         render: () => builder(BUILDER.embed),
       },
       {
-        id: 'embed-check-failed',
-        title: '4 · Embed, the check failed',
-        path: BUILDER.embed,
-        height: 1000,
-        badgeCheck: { status: 'unavailable' },
-        render: () => builder(BUILDER.embed),
-      },
-      {
         id: 'badge-repo',
         title: '2 · Pick a badge, for a repository',
         path: BUILDER.repoBadge,

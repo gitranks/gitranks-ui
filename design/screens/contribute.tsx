@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from 'react';
 
 import type { Screen } from '../registry';
+import { CONTRIBUTE_FLOW_SCREENS } from './getting-in';
 import { ContributeTabScreen } from '@/app/(workspace)/contribute/components/contribute-tab';
 import { ContributeBadgePreview } from '@/app/contribute/components/contribute-badge-preview';
 import { FaqScreen } from '@/app/contribute/components/faq';
@@ -227,6 +228,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     sources: [
       'app/contribute/components/landing.tsx',
       'app/contribute/components/landing-view.tsx',
+      'app/(public)/contribute/about/page.tsx',
       'components/workspace/getting-in/resume-link.tsx',
       'components/workspace/agent/coming-soon.tsx',
       'components/workspace/sign-in-dialog.tsx',
@@ -248,8 +250,37 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           </>
         ),
       },
+      {
+        id: 'phone',
+        title: 'Signed out, on a phone: the sections stacked, Start contributing full width',
+        path: '/contribute',
+        signedOut: true,
+        width: 390,
+        height: 7700,
+        render: () => (
+          <>
+            <Header section="contribute" />
+            <HeaderLine />
+            <Landing viewer="visitor" start={{ href: GETTING_IN_PATHS.contributeWork, signedIn: false }} noted={[]} />
+          </>
+        ),
+      },
+      {
+        id: 'about',
+        title: 'How Contribute works, for a member: the same page, Open Contribute',
+        path: '/contribute/about',
+        height: 4100,
+        render: () => (
+          <>
+            <Header section="contribute" />
+            <HeaderLine />
+            <Landing viewer="signed-in" start={{ member: true }} noted={[]} />
+          </>
+        ),
+      },
     ],
   },
+  ...CONTRIBUTE_FLOW_SCREENS,
   {
     id: 'contribute-tab',
     title: 'Contribute tab',

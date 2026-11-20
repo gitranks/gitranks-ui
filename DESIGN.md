@@ -110,6 +110,13 @@ Contribute and Learn share one signed-in workspace (`components/workspace/`).
   `lib/workspace/paths.ts`, never written by hand.
 - Five tabs, in this order: Contribute, Learn, Pull requests, Agent, Settings. The header marks Contribute or Learn only
   on their own pages, never on the shared tabs.
+- Getting in: each side has one landing page with one button (Start contributing, Start learning), then a short flow
+  with no tabs (`app/(onboarding)/`, `components/workspace/getting-in/`): the site header, one line of numbered steps
+  (`FlowSteps`), the step in a `max-w-3xl` column. Contribute: What you work on → Your agent → Your first issue. Learn:
+  Your goal → Pick an issue → Your agent, at the issue's own start address. Sign-in is asked only at the first step that
+  needs an account, in one card (`FlowSignIn`); the steps after it show dimmed. The tabs appear once an agent has
+  connected. Members read the same landing at `/contribute/about` and `/learn/about`, its button "Open Contribute" or
+  "Open Learn".
 - The reference line: every row, card and header that names an issue or a pull request opens with `RefChips` (the repo,
   `Issue #N ↗`, `PR #N ↗`). The title opens our page; the chips open GitHub.
 - The Learn pill (`LearnPill`, violet) marks a Learn pull request wherever one shows.

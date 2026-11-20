@@ -6,6 +6,7 @@ import type { FC, ReactNode } from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { contributeSource } from '@/lib/workspace/click-tracking';
+import { START_AGENT_PATH } from '@/lib/workspace/paths';
 
 /** One issue as the owner's block shows it: where, what, the repository's language, and why it is a good one. */
 export type OwnerIssue = {
@@ -113,7 +114,7 @@ export const ProfileContributeBlock: FC<{
           <p className="max-w-prose text-sm text-muted-foreground">{lead}</p>
         </div>
         <Link
-          href={(connected ? '/contribute#issues' : '/contribute?start=agent') as Route}
+          href={(connected ? '/contribute#issues' : `${START_AGENT_PATH}?from=profile`) as Route}
           prefetch={false}
           className={cn(buttonVariants({ size: 'sm' }), 'shrink-0 font-semibold max-sm:min-h-11 max-sm:w-full')}
         >

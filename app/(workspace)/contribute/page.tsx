@@ -6,6 +6,7 @@ import { ContributeTabSkeleton } from '@/app/(workspace)/contribute/components/c
 import { ContributeTab } from '@/app/(workspace)/contribute/components/contribute-tab-view';
 import { issuesQueryOf } from '@/app/contribute/components/issues-filter';
 import { Landing } from '@/app/contribute/components/landing';
+import { signedInStartOf, VISITOR_START } from '@/app/contribute/components/landing-view';
 import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
 import {
@@ -21,8 +22,14 @@ import { hasAnyAttempt } from '@/lib/workspace/getting-in';
 import { AGENTS_DOC_PATH, GETTING_IN_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeOpen } from '@/lib/workspace/preview-gate';
 
-/** The landing's markdown, for agents: named in the head, and served on `Accept: text/markdown`. */
-export const metadata: Metadata = { alternates: { types: { 'text/markdown': AGENTS_DOC_PATH } } };
+/**
+ * The landing's markdown, for agents: named in the head, and served on `Accept: text/markdown`. Not indexed, set here as
+ * well as on the section, so the landing stays out of search whatever its layout says.
+ */
+export const metadata: Metadata = {
+  alternates: { types: { 'text/markdown': AGENTS_DOC_PATH } },
+  robots: { index: false, follow: false },
+};
 
 /** Contribute's home: the landing until the user is onboarded, then the Contribute tab. */
 export default function ContributeHomePage({ searchParams }: PageProps<'/contribute'>) {
@@ -58,7 +65,7 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
     }
     // Launched, the landing is everyone's (§9.3): a visitor without a session.
     if (open) {
-      return <Landing viewer="visitor" noted={[]} stats={(await agentPage)?.stats} />;
+      return <Landing viewer="visitor" start={VISITOR_START} noted={[]} stats={(await agentPage)?.stats} />;
     }
     notFound();
   }
@@ -83,7 +90,15 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
       />
     );
   }
-  // A visitor's page starts with nothing noted, the preview of it too.
-  const noted = home.viewer === 'visitor' ? [] : await loadProviderInterests();
-  return <Landing viewer={home.viewer} preview={home.preview} noted={noted} stats={(await agentPage)?.stats} />;
+  // A visitor's page starts with nothing noted and at the flow's first step, the preview of it too.
+  const visitor = home.viewer === 'visitor';
+  return (
+    <Landing
+      viewer={home.viewer}
+      start={visitor ? VISITOR_START : signedInStartOf(view)}
+      preview={home.preview}
+      noted={visitor ? [] : await loadProviderInterests()}
+      stats={(await agentPage)?.stats}
+    />
+  );
 }

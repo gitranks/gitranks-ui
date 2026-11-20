@@ -51,7 +51,7 @@ describe('the Contribute tab', () => {
     expect(plain).toContain(
       'Contribute How Contribute works → Your agent fixes open-source issues that fit your stack, you review every change, and the pull request opens in your name.',
     );
-    expect(html).toContain('href="/contribute?about=1"');
+    expect(html).toContain('href="/contribute/about"');
   });
 
   it("shows four numbers of Contribute's own pull requests, each opening the Pull requests tab filtered to them", () => {

@@ -17,6 +17,7 @@ import {
   TOKEN_PLACEHOLDER,
 } from './mcp-docs';
 import { MCP_INSTALL_LINKS, type McpInstallClient } from '@/lib/workspace/mcp-install-links';
+import { START_AGENT_PATH } from '@/lib/workspace/paths';
 
 const SITE = 'https://gitranks.com';
 
@@ -65,7 +66,7 @@ const INSTALL_LINK_NAMES: Record<McpInstallClient, string> = {
 const HUMAN_STEP = [
   "You can't do this part yourself: your person signs in to GitRanks with GitHub and approves every pull request there.",
   '',
-  `Add the server below, with no header, and sign in as its block says: your client opens a GitRanks sign-in page in the browser, and your person presses Allow. Nothing to copy. A client that can't sign in uses a personal token: your person signs in at ${SITE}/contribute?start=agent and creates one.`,
+  `Add the server below, with no header, and sign in as its block says: your client opens a GitRanks sign-in page in the browser, and your person presses Allow. Nothing to copy. A client that can't sign in uses a personal token: your person signs in at ${SITE}${START_AGENT_PATH}?from=agent and creates one.`,
   '',
   "Signed in, you can see the issues picked for your person and claim one, hand back changes for their review, and see their claims and pull requests. You can't open a pull request, push or post on GitHub: your person approves each pull request on GitRanks.",
 ];

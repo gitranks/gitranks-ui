@@ -49,7 +49,7 @@ vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => f
 vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false), loadAttemptLesson: vi.fn() }));
 
 const { Landing } = await import('./landing');
-const { SignInButton, SignInPanel, signInRouteOf, startSignIn } = await import('@/components/workspace/sign-in-dialog');
+const { SignInButton, SignInPanel, startSignIn } = await import('@/components/workspace/sign-in-dialog');
 const { PullRequestsView } = await import('@/components/workspace/pull-requests-view');
 const { ContributionLayout, FirstSessionView } = await import('@/components/workspace/pull-request/review-view');
 const { SettingsView } = await import('@/app/(workspace)/my/settings/components/settings-view');
@@ -70,11 +70,14 @@ const count = (html: string, needle: string) => html.split(needle).length - 1;
 
 const KEY_HREF = 'href="/my/agent/key"';
 const AGENT_HREF = 'href="/my/agent/connect"';
+/** A visitor's way in: the flow's first step. */
+const VISITOR_START = { href: '/contribute/start', signedIn: false } as Parameters<typeof Landing>[0]['start'];
+const SIGNED_IN_START = { href: '/contribute/start/agent', signedIn: true } as Parameters<typeof Landing>[0]['start'];
 const DIALOG_TRIGGER = 'aria-haspopup="dialog"';
 
 describe('the landing', () => {
   it('walks a visitor from an issue to a merged pull request, in the order of the design', () => {
-    const plain = text(renderToStaticMarkup(<Landing viewer="visitor" />));
+    const plain = text(renderToStaticMarkup(<Landing viewer="visitor" start={VISITOR_START} />));
     const sections = [
       'Fix real open-source issues with the AI you already pay for',
       'Two ways to contribute. Pick either, add the other later.',
@@ -94,7 +97,7 @@ describe('the landing', () => {
   });
 
   it('states the facts the product holds to', () => {
-    const plain = text(renderToStaticMarkup(<Landing viewer="visitor" />));
+    const plain = text(renderToStaticMarkup(<Landing viewer="visitor" start={VISITOR_START} />));
 
     // The hold of an issue for the user's own agent.
     expect(plain).toContain(
@@ -119,52 +122,67 @@ describe('the landing', () => {
     expect(plain).not.toMatch(/Max 5x|Max 20x/);
   });
 
-  it("opens the sign-in from every one of a visitor's buttons, never the steps themselves", () => {
-    const html = renderToStaticMarkup(<Landing viewer="visitor" />);
+  it('has one start action, Start contributing, in the hero and again in the closing row: a link into the flow', () => {
+    const html = renderToStaticMarkup(<Landing viewer="visitor" start={VISITOR_START} />);
+    const starts = [...html.matchAll(/<a [^>]*data-landing-start[^>]*>([^<]*)<\/a>/g)];
 
     expect(html).toContain('data-landing-viewer="visitor"');
-    // The two ways, three times each, and the eight coming-soon cards' "Notify me".
-    expect(count(html, DIALOG_TRIGGER)).toBe(14);
-    expect(count(text(html), 'Start with my Claude key')).toBe(3);
-    expect(count(text(html), 'Connect my own agent')).toBe(3);
+    expect(starts.map(([, label]) => label)).toEqual(['Start contributing', 'Start contributing']);
+    for (const [tag] of starts) {
+      expect(tag).toContain('href="/contribute/start"');
+      expect(tag).toContain('data-contribute-source="contribute_landing"');
+      expect(tag).not.toContain('data-sign-in');
+    }
+    // The hero's comes before the closing row's.
+    expect(html.indexOf('data-landing-start')).toBeLessThan(html.indexOf('Ready for your first issue?'));
+    expect(html.lastIndexOf('data-landing-start')).toBeGreaterThan(html.indexOf('Ready for your first issue?'));
+    // No more start buttons: the ways are facts, and only the eight "Notify me" open the sign-in.
+    expect(text(html)).not.toContain('Start with my Claude key');
+    expect(text(html)).not.toContain('Connect my own agent');
+    expect(count(html, DIALOG_TRIGGER)).toBe(8);
     expect(html).not.toContain(KEY_HREF);
     expect(html).not.toContain(AGENT_HREF);
     expect(html).not.toContain('data-landing="mid-setup"');
   });
 
-  it("sends a signed-in user's buttons straight to the Claude key and to their own agent", () => {
-    const html = renderToStaticMarkup(<Landing viewer="signed-in" />);
+  it("starts a signed-in user at the server's step, the button the same", () => {
+    const html = renderToStaticMarkup(<Landing viewer="signed-in" start={SIGNED_IN_START} />);
 
-    expect(count(html, KEY_HREF)).toBe(3);
-    expect(count(html, AGENT_HREF)).toBe(3);
+    expect(count(html, 'href="/contribute/start/agent"')).toBe(2);
     expect(html).not.toContain(DIALOG_TRIGGER);
-    expect(html).not.toContain('data-landing="mid-setup"');
+    expect(text(html)).not.toContain('Almost there');
   });
 
-  it('offers a user mid-setup to carry on, and the Agent tab, in words that fit either sign-in', () => {
-    const html = renderToStaticMarkup(<Landing viewer="mid-setup" />);
-    const plain = text(html);
+  it('opens Contribute for a member reading how it works', () => {
+    const html = renderToStaticMarkup(<Landing viewer="signed-in" start={{ member: true }} />);
+    const starts = [...html.matchAll(/<a [^>]*data-landing-start[^>]*>([^<]*)<\/a>/g)];
 
-    expect(html).toContain('data-landing="mid-setup"');
-    expect(plain).toContain("Almost there. Your agent hasn't connected yet.");
-    expect(plain).not.toContain('Your token is ready');
-    expect(plain).toContain('Continue setup →');
-    expect(count(html, AGENT_HREF)).toBe(4);
-    expect(html).toContain('href="/my/agent"');
+    expect(starts.map(([, label]) => label)).toEqual(['Open Contribute', 'Open Contribute']);
+    for (const [tag] of starts) expect(tag).toContain('href="/contribute"');
+  });
+
+  it('says the workspace’s words: Pull requests, the Agent tab', () => {
+    const plain = text(renderToStaticMarkup(<Landing viewer="visitor" start={VISITOR_START} />));
+
+    expect(plain).toContain('Reviews and comments show up in Pull requests');
+    expect(plain).toContain('You can add the other later on the Agent tab.');
+    expect(plain).not.toContain('My contributions');
   });
 
   it("shows the user's coming-soon list as the API keeps it, and none of it to a visitor", () => {
-    const signedIn = renderToStaticMarkup(<Landing viewer="signed-in" noted={['GEMINI', 'CURSOR']} />);
-    const visitor = renderToStaticMarkup(<Landing viewer="visitor" preview noted={['GEMINI']} />);
+    const signedIn = renderToStaticMarkup(
+      <Landing viewer="signed-in" start={SIGNED_IN_START} noted={['GEMINI', 'CURSOR']} />,
+    );
+    const visitor = renderToStaticMarkup(<Landing viewer="visitor" start={VISITOR_START} preview noted={['GEMINI']} />);
 
     expect(count(signedIn, 'aria-pressed="true"')).toBe(2);
     expect(text(signedIn)).toContain("You're on the list for 2 of these.");
     expect(visitor).not.toContain('aria-pressed');
-    expect(text(visitor)).toContain('Sign in with GitHub to be told when one opens');
+    expect(text(visitor)).toContain('Press Notify me to be told when one opens');
   });
 
   it('links the opt-out for maintainers', () => {
-    const html = renderToStaticMarkup(<Landing viewer="signed-in" />);
+    const html = renderToStaticMarkup(<Landing viewer="signed-in" start={SIGNED_IN_START} />);
 
     expect(text(html)).toContain('Maintain a repo? Opt it out →');
     expect(html).toContain('href="/contribute/maintainers"');
@@ -181,45 +199,34 @@ describe('the sign-in', () => {
 
   beforeEach(() => signIn.mockReset());
 
-  it('names the way picked, what GitHub shares, and that repo access waits for the first submit', () => {
-    const html = panel({ path: 'key' });
+  it('says what GitHub shares, and that repo access waits for the first submit', () => {
+    const html = panel({});
     const plain = text(html);
 
-    expect(plain).toContain('Your Claude key');
+    expect(plain).toContain('GitRanks Contribute');
     expect(html).toMatch(/<h2[^>]*id="[^"]+"[^>]*>Sign in to continue<\/h2>/);
     expect(plain).toContain('GitHub shares your public profile and email with us, read-only.');
-    expect(plain).toContain('You come straight back, to the next step');
+    expect(plain).toContain('You come straight back here');
     expect(plain).toContain("No access to your repos. That's asked once, at your first submit");
     expect(html).toMatch(/<button[^>]*data-sign-in="github"[^>]*>.*Continue with GitHub<\/button>/);
     expect(plain).toContain('Not now');
-    expect(text(panel({ path: 'agent' }))).toContain('Your own agent');
   });
 
-  it('signs in with the identity sign-in, back to the step of the way picked', async () => {
+  it('signs in with the identity sign-in, back to the landing', async () => {
     signIn.mockResolvedValue(undefined);
-
-    await startSignIn('key');
-    await startSignIn('agent');
     await startSignIn();
-
-    expect(signIn.mock.calls).toEqual([
-      ['github-basic', { redirectTo: '/my/agent/key' }],
-      ['github-basic', { redirectTo: '/my/agent/connect' }],
-      ['github-basic', { redirectTo: '/contribute' }],
-    ]);
-    expect(signInRouteOf('agent')).toBe('/my/agent/connect');
+    expect(signIn.mock.calls).toEqual([['github-basic', { redirectTo: '/contribute' }]]);
   });
 
-  it('only goes on to the step for a signed-in user seeing the visitor view', () => {
-    const html = panel({ path: 'agent', preview: true });
+  it('only goes back to the landing for a signed-in user seeing the visitor view', () => {
+    const html = panel({ preview: true });
 
-    expect(html).toMatch(/<a [^>]*data-sign-in="preview"[^>]*>/);
-    expect(html.match(/<a [^>]*data-sign-in="preview"[^>]*>/)?.[0]).toContain(AGENT_HREF);
+    expect(html.match(/<a [^>]*data-sign-in="preview"[^>]*>/)?.[0]).toContain('href="/contribute"');
     expect(html).not.toContain('data-sign-in="github"');
   });
 
   it('is closed until its button is pressed', () => {
-    const html = renderToStaticMarkup(<SignInButton path="key">Start with my Claude key</SignInButton>);
+    const html = renderToStaticMarkup(<SignInButton>Notify me</SignInButton>);
 
     expect(html).toContain(DIALOG_TRIGGER);
     expect(html).toContain('aria-expanded="false"');

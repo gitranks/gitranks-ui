@@ -108,31 +108,19 @@ const firstOf = (value: string | string[] | null | undefined) => (Array.isArray(
 
 export const isAsVisitor = (as: string | string[] | null | undefined) => firstOf(as) === AS_VISITOR;
 
-/** Who the landing is for: its buttons sign a visitor in first, and a mid-setup user is offered to carry on. */
-export type LandingViewer = 'visitor' | 'signed-in' | 'mid-setup';
+/** Who reads the landing: its Notify me signs a visitor in first, and toggles for a signed-in user. */
+export type LandingViewer = 'visitor' | 'signed-in';
 
-/**
- * What `/contribute` shows. `preview` is a signed-in user seeing the visitor's landing (`?as=visitor`): its sign-in
- * goes straight on, as they are signed in already.
- */
+/** What `/contribute` shows. `preview` is a signed-in user seeing the visitor's landing (`?as=visitor`). */
 export type ContributeHome = { screen: 'tab' } | { screen: 'landing'; viewer: LandingViewer; preview: boolean };
 
 /**
- * `/contribute` for the signed-in user: the landing until they are onboarded, then the Contribute tab. `?about=1` shows
- * an onboarded user the landing again ("How Contribute works"), and `?as=visitor` shows anyone the visitor's landing.
+ * `/contribute` for the signed-in user: the landing until they have entered, then the Contribute tab. `?as=visitor`
+ * shows anyone the visitor's landing; how Contribute works has its own page for members (`/contribute/about`).
  */
-export function contributeHomeOf(
-  view: ContributeView,
-  params: {
-    as?: string | string[];
-    about?: string | string[];
-  },
-): ContributeHome {
+export function contributeHomeOf(view: ContributeView, params: { as?: string | string[] }): ContributeHome {
   if (isAsVisitor(params.as)) return { screen: 'landing', viewer: 'visitor', preview: true };
-  if (!isOnboarded(view)) {
-    return { screen: 'landing', viewer: isMidSetup(view) ? 'mid-setup' : 'signed-in', preview: false };
-  }
-  if (firstOf(params.about) === '1') return { screen: 'landing', viewer: 'signed-in', preview: false };
+  if (!isOnboarded(view)) return { screen: 'landing', viewer: 'signed-in', preview: false };
   return { screen: 'tab' };
 }
 

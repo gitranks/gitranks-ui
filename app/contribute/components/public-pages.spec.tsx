@@ -206,7 +206,7 @@ describe('the MCP docs', () => {
     for (const step of MCP_DOC_NEXT_STEPS) expect(said).toContain(step);
     expect(said).toContain('While autopilot is off, nothing reaches GitHub before you approve it.');
     expect(html).toContain('href="/contribute"');
-    expect(html).toContain('href="/contribute?start=agent"');
+    expect(html).toContain('href="/contribute/start/agent/own"');
     expect(said).toContain('Connect your agent');
   });
 

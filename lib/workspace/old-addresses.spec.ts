@@ -82,6 +82,8 @@ describe('the old workspace addresses', () => {
     ['/learn/lessons', '/my/progress'],
     ['/learn/lessons/', '/my/progress'],
     ['/contribute?start=key', '/contribute/start/agent/key?start=key'],
+    ['/contribute?about=1', '/contribute/about?about=1'],
+    ['/contribute/?about=1', '/contribute/about?about=1'],
   ])('%s goes on to %s, for now (307)', (from, to) => {
     expect(redirectOf(from)).toEqual({ location: to, status: 307 });
   });
@@ -90,7 +92,6 @@ describe('the old workspace addresses', () => {
     for (const address of [
       '/contribute',
       '/contribute?start=other',
-      '/contribute?about=1',
       '/contribute/start',
       '/contribute/issues/x',
       '/contribute/attempts',

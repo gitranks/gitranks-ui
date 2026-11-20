@@ -28,6 +28,8 @@ export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
   // the agents' page print), and a new account's way back to the Claude key. Both are steps of Contribute's flow now.
   to('/contribute', '/contribute/start/agent/own?from=agent', [{ type: 'query', key: 'start', value: 'agent' }]),
   to('/contribute', '/contribute/start/agent/key', [{ type: 'query', key: 'start', value: 'key' }]),
+  // How Contribute works, for members: a page of its own.
+  to('/contribute', '/contribute/about', [{ type: 'query', key: 'about', value: '1' }]),
   // Issues for you is the Contribute tab's list now: its filters kept, at the list (an old `?after=` is ignored there).
   to('/contribute/issues', '/contribute#issues'),
   to('/contribute/me', '/my/pull-requests'),

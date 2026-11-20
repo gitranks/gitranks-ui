@@ -181,8 +181,8 @@ export const MCP_DOCS_PATH = '/contribute/mcp' as Route;
 /** The questions people ask before they start. Everyone's once launched. */
 export const FAQ_PATH = '/contribute/faq' as Route;
 
-/** The landing for anyone, members too (a member's `/contribute` is their overview). */
-export const ABOUT_PATH = '/contribute?about=1' as Route;
+/** How Contribute works: the landing for anyone, members too (a member's `/contribute` is the Contribute tab). */
+export const ABOUT_PATH = '/contribute/about' as Route;
 
 /** Contribute's section of the Terms of service. */
 export const CONTRIBUTE_TERMS_PATH = '/terms#contribute' as Route;
@@ -211,23 +211,24 @@ export const isContributeFlowPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+contribute\/+start(?:[/\\]|$)/i);
 
 /**
- * Whether the path is a page every visitor sees once Contribute is launched: the landing, the MCP docs, the questions
- * and the steps of Contribute's flow, in any spelling the router reads as them. Until then only the preview list sees
+ * Whether the path is a page every visitor sees once Contribute is launched: the landing and how Contribute works, the
+ * MCP docs, the questions and the steps of Contribute's flow, in any spelling the router reads as them. Until then only the preview list sees
  * them.
  */
 export const isOpenAtLaunchPath = (pathname: string): boolean =>
   isLandingPath(pathname) ||
   isContributeFlowPath(pathname) ||
-  decodedMatches(pathname, /^\/+contribute\/+(?:mcp|faq|agents\.md)\/?$/i);
+  decodedMatches(pathname, /^\/+contribute\/+(?:about|mcp|faq|agents\.md)\/?$/i);
 
 /**
  * Whether the path is one of the pages about Contribute or Learn rather than the user's workspace, which show no tabs:
- * Contribute's maintainers page and its report page, the ledger, the MCP docs, the questions and the agent sign-in's
+ * how Contribute works, Contribute's maintainers page and its report page, the ledger, the MCP docs, the questions and
+ * the agent sign-in's
  * consent page; the steps of Contribute's flow; how Learn works, Learn's page for maintainers, and a shared lesson with
  * its result pages.
  */
 export const isTablessPath = (pathname: string): boolean =>
-  decodedMatches(pathname, /^\/+contribute\/+(?:maintainers(?:\/+report)?|ledger|mcp|faq|authorize)\/?$/i) ||
+  decodedMatches(pathname, /^\/+contribute\/+(?:about|maintainers(?:\/+report)?|ledger|mcp|faq|authorize)\/?$/i) ||
   isContributeFlowPath(pathname) ||
   decodedMatches(pathname, /^\/+learn\/+(?:about|maintainers)\/?$/i) ||
   decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i);
@@ -253,8 +254,8 @@ export function settingUpHomeOf(url: { pathname: string; search?: string }): str
 
 /** The page for AI agents, in markdown: a route handler, so links to it are plain anchors, never the router's. */
 export const AGENTS_DOC_PATH = '/contribute/agents.md';
-/** Where an agent sends its person: an old address, sent on to the own-agent step of Contribute's flow. */
-export const START_AGENT_PATH = '/contribute?start=agent' as Route;
+/** Where a person goes to connect their own agent: the own-agent step of Contribute's flow. */
+export const START_AGENT_PATH = GETTING_IN_PATHS.contributeAgentOwn;
 
 /** Settings, a summary of every setting, and the pages each one is changed on. */
 export const SETTINGS_PATHS = {

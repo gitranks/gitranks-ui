@@ -30,9 +30,9 @@ export const PROVIDER_ICONS: Partial<Record<ContributeComingSoonProvider, IconTy
 
 const EMAIL_ONCE = "We'll email you once, when it opens";
 
-/** The header's note beside the title: a visitor is asked to sign in first. */
+/** The header's note beside the title: a visitor's Notify me signs them in first. */
 export const comingSoonNoteOf = (viewer: LandingViewer) =>
-  viewer === 'visitor' ? 'Sign in with GitHub to be told when one opens' : EMAIL_ONCE;
+  viewer === 'visitor' ? 'Press Notify me to be told when one opens' : EMAIL_ONCE;
 
 /** Overview's one line of what is coming: the first two, and how many more. */
 export function comingSoonLineOf(): string {

@@ -97,6 +97,9 @@ describe('the Contribute preview gate', () => {
   it('opens the landing, the MCP docs and the questions at the launch, and draws no tabs on the pages for anyone', () => {
     expect(isOpenAtLaunchPath('/contribute')).toBe(true);
     expect(isOpenAtLaunchPath('/contribute/mcp')).toBe(true);
+    expect(isOpenAtLaunchPath('/contribute/about')).toBe(true);
+    expect(isOpenAtLaunchPath('/contribute/about/x')).toBe(false);
+    expect(isTablessPath('/contribute/about')).toBe(true);
     expect(isOpenAtLaunchPath('/Contribute/FAQ/')).toBe(true);
     expect(isOpenAtLaunchPath('/contribute/%6dcp')).toBe(true);
     expect(isOpenAtLaunchPath('/contribute/mcp/tokens')).toBe(false);

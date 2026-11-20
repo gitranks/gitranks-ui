@@ -96,11 +96,18 @@ describe('contributeFlowPlaceOf: who belongs on which step of Contribute', () =>
 const learn = (
   step: 'goal' | 'issues' | 'issue',
   gate: WorkspaceGate,
-  facts: Partial<{ openToEveryone: boolean; goalSaved: boolean; goalInAddress: boolean; launched: boolean }> = {},
+  facts: Partial<{
+    openToEveryone: boolean;
+    goalSaved: boolean;
+    goalInAddress: boolean;
+    launched: boolean;
+    learnOpen: boolean;
+  }> = {},
 ) =>
   learnFlowPlaceOf(step, {
     gate,
     launched: facts.launched ?? true,
+    learnOpen: facts.learnOpen ?? true,
     openToEveryone: facts.openToEveryone ?? true,
     goalSaved: facts.goalSaved ?? false,
     goalInAddress: facts.goalInAddress ?? false,
@@ -110,9 +117,15 @@ const learn = (
 describe('learnFlowPlaceOf: who belongs on which step of Learn', () => {
   it('a visitor sees every step while Learn is open to everyone, and the 404 otherwise', () => {
     for (const step of ['goal', 'issues', 'issue'] as const) {
-      expect(learn(step, SIGNED_OUT), step).toEqual({ kind: 'page' });
+      expect(learn(step, SIGNED_OUT, { goalInAddress: true }), step).toEqual({ kind: 'page' });
       expect(learn(step, SIGNED_OUT, { openToEveryone: false }), step).toEqual({ kind: 'not-found' });
     }
+  });
+
+  it('a visitor on Pick an issue with no goal in the address is asked it first; the other steps need none', () => {
+    expect(learn('issues', SIGNED_OUT)).toEqual({ kind: 'redirect', to: '/learn/start' });
+    expect(learn('goal', SIGNED_OUT)).toEqual({ kind: 'page' });
+    expect(learn('issue', SIGNED_OUT)).toEqual({ kind: 'page' });
   });
 
   it('an account being set up waits; one with no profile sees its panel once launched, a 404 before', () => {
@@ -124,6 +137,13 @@ describe('learnFlowPlaceOf: who belongs on which step of Learn', () => {
   it('an account Learn is not open to gets the 404', () => {
     expect(learn('goal', open(false, undefined, false))).toEqual({ kind: 'not-found' });
     expect(learn('issue', open(true, undefined, false))).toEqual({ kind: 'not-found' });
+  });
+
+  it('being set up or with no profile, an account Learn is not open to gets the 404, never a Learn panel', () => {
+    for (const step of ['goal', 'issues', 'issue'] as const) {
+      expect(learn(step, SETTING_UP, { learnOpen: false }), step).toEqual({ kind: 'not-found' });
+      expect(learn(step, HIDDEN, { learnOpen: false }), step).toEqual({ kind: 'not-found' });
+    }
   });
 
   it('signed in and not entered: Pick an issue with no goal saved and none in the address goes to step 1', () => {

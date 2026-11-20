@@ -80,12 +80,15 @@ export function contributeFlowPlaceOf(
 }
 
 /**
- * The facts a Learn step is decided by: whether Learn is open to everyone (a visitor's way in), whether the account has
- * a goal saved, whether the address carries one, and the issue step 3 is at.
+ * The facts a Learn step is decided by: whether Learn is open to everyone (a visitor's way in), whether it is open to
+ * this account (`learnOpen`: the gate's own for an open account; asked apart for one being set up or with no profile,
+ * whose gate does not carry it), whether the account has a goal saved, whether the address carries one, and the issue
+ * step 3 is at.
  */
 export type LearnFlowFacts = {
   gate: WorkspaceGate;
   launched: boolean;
+  learnOpen: boolean;
   openToEveryone: boolean;
   goalSaved: boolean;
   goalInAddress: boolean;
@@ -95,12 +98,18 @@ export type LearnFlowFacts = {
 /** What Learn's step `step` does for the person who opens it (§5.3, §6.2). */
 export function learnFlowPlaceOf(
   step: LearnFlowStep,
-  { gate, launched, openToEveryone, goalSaved, goalInAddress, issue }: LearnFlowFacts,
+  { gate, launched, learnOpen, openToEveryone, goalSaved, goalInAddress, issue }: LearnFlowFacts,
 ): FlowPlace {
-  if (gate.kind === 'signed-out') return openToEveryone ? PAGE : { kind: 'not-found' };
+  if (gate.kind === 'signed-out') {
+    if (!openToEveryone) return { kind: 'not-found' };
+    // A visitor's goal lives in the address alone: Pick an issue without one asks it first.
+    return step === 'issues' && !goalInAddress ? redirectTo(GETTING_IN_PATHS.learnGoal) : PAGE;
+  }
+  // An account Learn is not open to gets the 404 before anything else, a panel included: no Learn text reaches it.
+  if (!(gate.kind === 'open' ? gate.learnOpen : learnOpen)) return { kind: 'not-found' };
   const shared = sharedPlaceOf(gate, launched);
   if (shared) return shared;
-  if (gate.kind !== 'open' || !gate.learnOpen) return { kind: 'not-found' };
+  if (gate.kind !== 'open') return { kind: 'not-found' };
   if (!gate.entered) {
     return step === 'issues' && !goalSaved && !goalInAddress ? redirectTo(GETTING_IN_PATHS.learnGoal) : PAGE;
   }

@@ -3,13 +3,9 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { dropFlowQuery } from '@/components/workspace/getting-in/drop-query';
 import { savePreferences } from '@/lib/contribute/actions';
 import { hasPicks, workPicksOf } from '@/lib/contribute/start-flow';
-
-/** The address without its query, with no navigation and the history's state kept. */
-function dropQuery() {
-  window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.hash}`);
-}
 
 /**
  * What a visitor picked on step 1, applied once from the browser after the sign-in brought them back here (§6.2): saved
@@ -26,12 +22,12 @@ export function ApplyWorkPicks({ saved }: { saved: boolean }) {
     startTransition(async () => {
       const picks = workPicksOf(new URLSearchParams(window.location.search));
       if (saved || !hasPicks(picks)) {
-        if (window.location.search) dropQuery();
+        if (window.location.search) dropFlowQuery();
         return;
       }
       const result = await savePreferences({ languages: picks.languages, kinds: picks.kinds }).catch(() => null);
       setFailed(!result?.ok);
-      if (result?.ok) dropQuery();
+      if (result?.ok) dropFlowQuery();
     });
 
   useEffect(() => {

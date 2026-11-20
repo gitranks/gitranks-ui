@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import { type ReactNode, useState, useTransition } from 'react';
 
 import { LearnCapNote, LearnHeldNote, LearnIssuesEmpty, LearnRoomNote } from '@/components/learn/learn-issue-notes';
@@ -40,6 +41,8 @@ export type LearnIssueListProps = {
   more?: boolean;
   /** Where a click on a row's Start counts as coming from (the rows only, never the notes' links). */
   source?: ContributeSource;
+  /** Where the notes' Change your goal leads: the goal's page in Settings by default. */
+  changeHref?: Route;
   className?: string;
 };
 
@@ -56,13 +59,14 @@ export function LearnIssueList({
   held = false,
   more = true,
   source,
+  changeHref,
   className,
 }: LearnIssueListProps) {
   let body: ReactNode;
   if (held) {
     body = <LearnHeldNote />;
   } else if (!issues?.items.length) {
-    body = <LearnIssuesEmpty issues={issues} goal={goalValueOf(issues?.goal)} />;
+    body = <LearnIssuesEmpty issues={issues} goal={goalValueOf(issues?.goal)} changeHref={changeHref} />;
   } else {
     body = (
       <GrowingRows

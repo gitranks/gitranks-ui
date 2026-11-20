@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -24,9 +25,12 @@ function ListNote({ id, title, children }: { id: string; title?: string; childre
   );
 }
 
-const ChangeGoal = ({ primary = false }: { primary?: boolean }) => (
+/** Where Change your goal leads by default: the goal's page in Settings. Learn's flow sends it to Your goal. */
+const GOAL_PAGE = WORKSPACE_PATHS.settingsGoal;
+
+const ChangeGoal = ({ primary = false, href = GOAL_PAGE }: { primary?: boolean; href?: Route }) => (
   <Button asChild variant={primary ? 'default' : 'outline'} className="min-h-11 font-semibold max-sm:w-full">
-    <Link href={WORKSPACE_PATHS.settingsGoal} prefetch={false}>
+    <Link href={href} prefetch={false}>
       Change your goal
     </Link>
   </Button>
@@ -48,10 +52,18 @@ export function LearnCapNote() {
 }
 
 /**
- * Why the list is empty, worded apart for each reason; `goal` is what the viewer wants to learn. `issues` undefined:
- * the API did not answer, and the note offers to read the page again.
+ * Why the list is empty, worded apart for each reason; `goal` is what the viewer wants to learn, `changeHref` where
+ * changing it leads. `issues` undefined: the API did not answer, and the note offers to read the page again.
  */
-export function LearnIssuesEmpty({ issues, goal }: { issues: LearnIssues | undefined; goal: string }) {
+export function LearnIssuesEmpty({
+  issues,
+  goal,
+  changeHref = GOAL_PAGE,
+}: {
+  issues: LearnIssues | undefined;
+  goal: string;
+  changeHref?: Route;
+}) {
   const router = useRouter();
   switch (issues?.empty) {
     case 'NONE_TODAY':
@@ -60,14 +72,14 @@ export function LearnIssuesEmpty({ issues, goal }: { issues: LearnIssues | undef
           <p className="text-sm text-muted-foreground">
             No open issues fit {goal || 'your goal'} today. New ones come in every day.
           </p>
-          <ChangeGoal />
+          <ChangeGoal href={changeHref} />
         </ListNote>
       );
     case 'GOAL_UNSUPPORTED':
       return (
         <ListNote id="goal-unsupported">
           <p className="text-sm text-muted-foreground">Learn can’t find issues for this goal yet.</p>
-          <ChangeGoal primary />
+          <ChangeGoal primary href={changeHref} />
         </ListNote>
       );
     case 'CAP':
@@ -91,6 +103,18 @@ export function LearnIssuesEmpty({ issues, goal }: { issues: LearnIssues | undef
         </ListNote>
       );
   }
+}
+
+/** A visitor's day list for `language` is empty: none is ready today, and the goal can be changed. */
+export function LearnNoneReady({ language, changeHref }: { language: string; changeHref: Route }) {
+  return (
+    <ListNote id="none-today">
+      <p className="text-sm text-muted-foreground">
+        No open {language} issues are ready today. New ones come in every day.
+      </p>
+      <ChangeGoal href={changeHref} />
+    </ListNote>
+  );
 }
 
 /**

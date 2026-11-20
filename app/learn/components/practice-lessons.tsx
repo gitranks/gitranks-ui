@@ -152,7 +152,7 @@ const practiceKey = ({ slug }: PracticeLesson) => slug;
  * Practice lessons (`#practice`): other learners' lessons for the viewer's goal, marked optional, with how many there
  * are; the first 3, then "Show 10 more" reads the list again with 10 more (13, 23, … up to 93) and adds the cards not
  * shown yet under the others, which stay in place. For a visitor (`visitor`), `practice` is the language's whole public
- * list as read (up to 30): "Show 3 more" shows 3 more of it in place, and the count names no lessons passed. Left out
+ * list as read (up to 30): "Show 10 more" shows 10 more of it in place, and the count names no lessons passed. Left out
  * when no lesson matches the goal, or the API did not answer.
  */
 export function PracticeSection({
@@ -225,8 +225,7 @@ export function PracticeSection({
           shown={items.length}
           total={most}
           noun="practice lesson"
-          step={PRACTICE_FIRST}
-          onMore={() => setShown((count) => count + PRACTICE_FIRST)}
+          onMore={() => setShown((count) => grownTo(count, most))}
         />
       ) : ended || asked >= PRACTICE_MAX ? (
         items.length < most ? (

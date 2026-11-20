@@ -9,11 +9,12 @@ const reads = vi.hoisted(() => ({
   contributeOpen: vi.fn(async () => true),
   learnOpenToEveryone: vi.fn(async () => false),
   loadLearnProfile: vi.fn(),
+  loadLearnOpen: vi.fn(async () => true),
 }));
 vi.mock('@/lib/workspace/gate.data', () => ({ loadWorkspaceGate: reads.loadWorkspaceGate }));
 vi.mock('@/lib/workspace/preview-gate', () => ({ contributeOpen: reads.contributeOpen }));
 vi.mock('./learn-everyone', () => ({ learnOpenToEveryone: reads.learnOpenToEveryone }));
-vi.mock('./learn.data', () => ({ loadLearnProfile: reads.loadLearnProfile }));
+vi.mock('./learn.data', () => ({ loadLearnProfile: reads.loadLearnProfile, loadLearnOpen: reads.loadLearnOpen }));
 
 const { loadLearnFlowPlace, readLearnPublicIssues, readLearnPublicPractice, LEARN_PUBLIC_PRACTICE_MAX } = await import(
   './start-flow.data'
@@ -70,9 +71,23 @@ describe("where a person belongs on Learn's flow", () => {
     reads.loadWorkspaceGate.mockResolvedValue(open(false, false));
     expect((await loadLearnFlowPlace('goal', { goalInAddress: false })).place).toEqual({ kind: 'not-found' });
     expect(reads.loadLearnProfile).not.toHaveBeenCalled();
+    expect(reads.loadLearnOpen).not.toHaveBeenCalled();
     reads.loadWorkspaceGate.mockResolvedValue({ kind: 'hidden' });
     expect((await loadLearnFlowPlace('goal', { goalInAddress: false })).place).toEqual({ kind: 'no-profile' });
     expect(reads.contributeOpen).toHaveBeenCalledOnce();
+  });
+
+  it('being set up or with no profile, an account Learn is not open to gets the 404: Learn is asked apart', async () => {
+    for (const kind of ['setting-up', 'hidden'] as const) {
+      reads.loadWorkspaceGate.mockResolvedValue({ kind });
+      reads.loadLearnOpen.mockResolvedValueOnce(false);
+      expect((await loadLearnFlowPlace('issues', { goalInAddress: true })).place, kind).toEqual({
+        kind: 'not-found',
+      });
+    }
+    expect(reads.loadLearnOpen).toHaveBeenCalledTimes(2);
+    reads.loadWorkspaceGate.mockResolvedValue({ kind: 'setting-up' });
+    expect((await loadLearnFlowPlace('goal', { goalInAddress: false })).place).toEqual({ kind: 'setting-up' });
   });
 });
 

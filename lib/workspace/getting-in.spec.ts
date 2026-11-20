@@ -96,11 +96,18 @@ describe('contributeFlowPlaceOf: who belongs on which step of Contribute', () =>
 const learn = (
   step: 'goal' | 'issues' | 'issue',
   gate: WorkspaceGate,
-  facts: Partial<{ openToEveryone: boolean; goalSaved: boolean; goalInAddress: boolean; launched: boolean }> = {},
+  facts: Partial<{
+    openToEveryone: boolean;
+    goalSaved: boolean;
+    goalInAddress: boolean;
+    launched: boolean;
+    learnOpen: boolean;
+  }> = {},
 ) =>
   learnFlowPlaceOf(step, {
     gate,
     launched: facts.launched ?? true,
+    learnOpen: facts.learnOpen ?? true,
     openToEveryone: facts.openToEveryone ?? true,
     goalSaved: facts.goalSaved ?? false,
     goalInAddress: facts.goalInAddress ?? false,
@@ -130,6 +137,13 @@ describe('learnFlowPlaceOf: who belongs on which step of Learn', () => {
   it('an account Learn is not open to gets the 404', () => {
     expect(learn('goal', open(false, undefined, false))).toEqual({ kind: 'not-found' });
     expect(learn('issue', open(true, undefined, false))).toEqual({ kind: 'not-found' });
+  });
+
+  it('being set up or with no profile, an account Learn is not open to gets the 404, never a Learn panel', () => {
+    for (const step of ['goal', 'issues', 'issue'] as const) {
+      expect(learn(step, SETTING_UP, { learnOpen: false }), step).toEqual({ kind: 'not-found' });
+      expect(learn(step, HIDDEN, { learnOpen: false }), step).toEqual({ kind: 'not-found' });
+    }
   });
 
   it('signed in and not entered: Pick an issue with no goal saved and none in the address goes to step 1', () => {

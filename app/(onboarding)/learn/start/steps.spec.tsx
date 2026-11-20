@@ -39,6 +39,7 @@ vi.mock('@/lib/workspace/contribute.data', () => workspace);
 
 const { default: GoalPage } = await import('./page');
 const { default: IssuesPage } = await import('./issues/page');
+const { ApplyLearnGoal } = await import('./components/apply-goal');
 const { ISSUES, PRACTICE, emptyIssues, learnIssues, practiceLessons } = await import('@/lib/learn/__fixtures__/home');
 const { emptyProfile, filledProfile } = await import('@/lib/learn/__fixtures__/profile');
 
@@ -62,6 +63,14 @@ async function resolved(node: ReactNode): Promise<ReactNode> {
   return cloneElement(node as ReactElement<{ children?: ReactNode }>, { children: await resolved(props.children) });
 }
 
+/** Every element of `type` in a resolved tree. */
+function elementsOf(node: ReactNode, type: unknown): ReactElement<Record<string, unknown>>[] {
+  if (Array.isArray(node)) return node.flatMap((child) => elementsOf(child, type));
+  if (!isValidElement(node)) return [];
+  const element = node as ReactElement<Record<string, unknown> & { children?: ReactNode }>;
+  return [...(element.type === type ? [element] : []), ...elementsOf(element.props.children, type)];
+}
+
 async function render(page: (props: never) => ReactElement, search: Record<string, string> = {}): Promise<string> {
   return renderToStaticMarkup(await resolved(page({ searchParams: Promise.resolve(search) } as never)));
 }
@@ -74,9 +83,13 @@ const PAGE = { kind: 'page' };
 const GOAL = { language: 'TypeScript', level: '1' };
 /** What a visitor's list holds: rows without their node id. */
 const PUBLIC_ITEMS = ISSUES.slice(0, 2).map(({ issueId: _id, ...issue }) => issue);
+/** 15 public practice lessons of 20 for the language, as the kept answer holds them. */
 const PUBLIC_PRACTICE = {
-  items: [...PRACTICE, ...PRACTICE.slice(0, 2).map((lesson) => ({ ...lesson, slug: `${lesson.slug}-b` }))],
-  total: 7,
+  items: Array.from({ length: 15 }, (_, index) => ({
+    ...PRACTICE[index % PRACTICE.length],
+    slug: `practice-${index}`,
+  })),
+  total: 20,
 };
 
 beforeEach(() => {
@@ -150,21 +163,22 @@ describe('Pick an issue: a visitor', () => {
     expect(html).not.toContain('/my/start');
     expect(html).toContain('data-contribute-source="learn_flow_issue"');
     expect(words).toContain('Showing 2 of about 38 issues');
-    expect(words).not.toContain('Show 10 more');
+    const list = html.slice(html.indexOf('data-learn-flow-issues="visitor"'), html.indexOf('id="practice"'));
+    expect(text(list)).not.toContain('Show 10 more');
     expect(words).toContain('Sign in with GitHub to see all');
     expect(html).toContain('data-contribute-source="learn_flow_more"');
     expect(flow.readLearnPublicIssues).toHaveBeenCalledWith('TypeScript');
     expect(data.loadLearnIssues).not.toHaveBeenCalled();
   });
 
-  it('shows 3 public practice lessons, then 3 more in place, counted for the language alone', async () => {
+  it('shows 3 public practice lessons, then Show 10 more in place, counted for the language alone', async () => {
     at(PAGE, SIGNED_OUT);
     const html = await render(IssuesPage, GOAL);
     expect(text(html)).toContain('Practice first? Optional');
     expect(html.match(/data-practice-lesson=/g)).toHaveLength(3);
-    expect(text(html)).toContain('7 for TypeScript');
+    expect(text(html)).toContain('20 for TypeScript');
     expect(text(html)).not.toContain('you haven’t passed');
-    expect(text(html)).toContain('Showing 3 of 5 practice lessons Show 2 more');
+    expect(text(html)).toContain('Showing 3 of 15 practice lessons Show 10 more');
     expect(html).toContain('data-contribute-source="learn_flow_practice"');
     expect(data.loadPracticeLessons).not.toHaveBeenCalled();
   });
@@ -202,6 +216,21 @@ describe('Pick an issue: signed in', () => {
     expect(words).not.toContain('Sign in with GitHub to see all');
     expect(words).toContain('7 for TypeScript you haven’t passed');
     expect(flow.readLearnPublicIssues).not.toHaveBeenCalled();
+  });
+
+  it('back from the sign-in with another goal saved: the saved goal’s list and chips, and nothing is written', async () => {
+    at(PAGE, OPEN, filledProfile);
+    const tree = await resolved(IssuesPage({ searchParams: Promise.resolve({ language: 'Go', level: '2' }) } as never));
+    const html = renderToStaticMarkup(tree);
+    expect(text(html)).toContain('For your goal: TypeScript Some Change');
+    expect(text(html)).not.toContain('Saving your goal…');
+    expect(text(html)).not.toContain('For your goal: Go');
+    expect(data.loadLearnIssues).toHaveBeenCalled();
+    expect(html.match(/data-issue=/g)).toHaveLength(ISSUES.length);
+    // The address's goal only leaves the address: the apply step is told the account has its own.
+    const applies = elementsOf(tree, ApplyLearnGoal);
+    expect(applies).toHaveLength(1);
+    expect(applies[0].props).toMatchObject({ saved: true, goal: { language: 'Go', level: 2 } });
   });
 
   it("the list's notes send Change your goal to step 1", async () => {

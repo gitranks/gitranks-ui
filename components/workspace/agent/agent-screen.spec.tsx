@@ -267,6 +267,24 @@ describe('the Agent tab with nothing connected', () => {
     expect(html).not.toContain('id="own-agent"');
     expect(html).not.toContain('id="hosted-agent"');
     expect(html).not.toContain('id="runs"');
+    expect(plain).not.toContain('Connect your Claude key to start');
+  });
+
+  it("keeps the user's own pause above the cards, with Resume", () => {
+    const { html, plain } = render({
+      view: { ...agentTabViews.nothing, pausedByYou: true },
+      runs: pageOf({ items: [] }),
+    });
+    expect(plain).toContain("Contributing is paused, so your own agent can't take an issue.");
+    expect(plain).toContain('Resume');
+    expect(plain).not.toContain('Resume on the Agent tab');
+    expect(html.indexOf('paused-by-you')).toBeLessThan(html.indexOf('data-agent-first'));
+  });
+
+  it('is not shown when their own agent was not read: the read failed, not "nothing connected"', () => {
+    const { html } = render({ view: { ...agentTabViews.nothing, ownAgent: undefined } });
+    expect(html).toContain('data-own-agent="failed"');
+    expect(html).not.toContain('data-agent-first');
   });
 
   it('names no Learn where Learn is not open to the account', () => {

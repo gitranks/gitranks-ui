@@ -3,6 +3,7 @@ import { HostedAgentBlock } from './hosted-agent-block';
 import { OwnAgentBlock } from './own-agent-block';
 import { RunsPreview } from './runs-preview';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { PausedByYouNotice } from '@/components/workspace/paused-notice';
 import { PageTitle } from '@/components/workspace/primitives';
 import { isSettled } from '@/lib/workspace/agent-runs';
 import { audienceOf } from '@/lib/workspace/audience';
@@ -48,15 +49,19 @@ export function AgentScreen({ view, learnOpen = false, runs, activity, noted = [
   const atWork = (activity?.runs ?? []).filter((run) => !isSettled(run)).length;
 
   if (hasNoAgent(view)) {
-    // Nothing connected: the two ways and what comes next; the pause and the access notices above them, and the runs
-    // only when there are some.
+    // Nothing connected: the two ways and what comes next. Above them the access notices, and the user's own pause with
+    // its Resume (the notice's link would lead to this very page); no key's notices, since a key is one of the two
+    // ways. The runs only when there are some.
     return (
       <>
         <PageTitle
           title="Agent"
           text="Who does the work: your own agent on your computer, or the hosted agent on your Claude key. Neither is set up yet."
         />
-        <ContributeNotices notices={notices.filter(({ kind }) => !KEY_NOTICES.includes(kind))} />
+        <ContributeNotices
+          notices={notices.filter(({ kind }) => kind !== 'no-key' && kind !== 'paused' && !KEY_NOTICES.includes(kind))}
+        />
+        <PausedByYouNotice view={view} anchor />
         <AgentFirst entered={isOnboarded(view)} learnOpen={learnOpen} />
         {runs?.items.length ? (
           <RunsPreview page={runs} learner={learner} learnOpen={learnOpen} atWork={atWork} />

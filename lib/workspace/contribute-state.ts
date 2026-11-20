@@ -53,10 +53,11 @@ export const isOwnAgentOnly = (view: ContributeView | null | undefined): boolean
 
 /**
  * Nothing connected now: no Claude key, no live connection of their own agent and no token of one (a token waiting for
- * its agent's first call stays on the Agent tab, where it can be revoked).
+ * its agent's first call stays on the Agent tab, where it can be revoked). False when their own agent was not read:
+ * that is not known, and the Agent tab says the read failed.
  */
 export const hasNoAgent = (view: ContributeView | null | undefined): boolean =>
-  !claudeKeyOf(view) && !view?.ownAgent?.paths.mcp && !view?.ownAgent?.tokens.length;
+  !!view?.ownAgent && !claudeKeyOf(view) && !view.ownAgent.paths.mcp && !view.ownAgent.tokens.length;
 
 /**
  * The user's spending limits, pacing and agent settings; null with their own agent alone and no plan, where they have

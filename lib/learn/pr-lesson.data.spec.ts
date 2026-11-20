@@ -19,7 +19,7 @@ vi.mock('./lesson-public.data', () => ({ loadLessonResult, loadMyResultReaction 
 vi.mock('./react-mark', () => ({ hasReactionMark }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin }));
 
-const { loadPrLesson } = await import('./pr-lesson.data');
+const { loadLearnPrCard, loadPrLesson } = await import('./pr-lesson.data');
 const { prLessonTargetOf } = await import('./pr-lesson');
 
 const ID = '6650a1b2c3d4e5f6a7b8c9d0';
@@ -34,26 +34,27 @@ describe('the Learn maintainers page’s footer link (Learn spec §9.3)', () => 
     loadMyResultReaction.mockResolvedValue({ canReact: false, reaction: null });
   });
 
-  it('reads nothing more for an unknown id or a Contribute pull request', async () => {
-    loadPrStrip.mockResolvedValueOnce(null).mockResolvedValueOnce(prCard());
-    expect(await loadPrLesson(ID, undefined)).toBeNull();
-    expect(await loadPrLesson(ID, undefined)).toBeNull();
+  it('shows on top only a Learn pull request’s card: none for an unknown id or a Contribute pull request', async () => {
+    loadPrStrip.mockResolvedValueOnce(null).mockResolvedValueOnce(prCard()).mockResolvedValueOnce(LEARN);
+    expect(await loadLearnPrCard(ID)).toBeNull();
+    expect(await loadLearnPrCard(ID)).toBeNull();
+    expect(await loadLearnPrCard(ID)).toBe(LEARN);
+    expect(await loadPrLesson(null, undefined)).toBeNull();
+    expect(await loadPrLesson(prCard(), undefined)).toBeNull();
     expect(loadLessonResult).not.toHaveBeenCalled();
   });
 
   it('a lesson not public now is the neutral line, read from the card alone', async () => {
     const card = { ...LEARN, learn: { slug: null } };
-    loadPrStrip.mockResolvedValue(card);
-    expect(await loadPrLesson(ID, undefined)).toEqual({ kind: 'closed', card });
+    expect(await loadPrLesson(card, undefined)).toEqual({ kind: 'closed', card });
     expect(loadLessonResult).not.toHaveBeenCalled();
   });
 
   it('reads the author’s public result, the same for everyone, and the visitor’s reaction', async () => {
-    loadPrStrip.mockResolvedValue(LEARN);
     loadLessonResult.mockResolvedValue({ kind: 'found', value: result() });
     loadMyResultReaction.mockResolvedValue({ canReact: true, reaction: 'YES' });
 
-    const read = await loadPrLesson(ID, undefined);
+    const read = await loadPrLesson(LEARN, undefined);
     expect(loadLessonResult).toHaveBeenCalledWith(SLUG, 'octocat');
     expect(read).toMatchObject({
       kind: 'lesson',
@@ -63,32 +64,30 @@ describe('the Learn maintainers page’s footer link (Learn spec §9.3)', () => 
   });
 
   it('takes a pick back from the sign-in only with the mark this browser left, and none for the author', async () => {
-    loadPrStrip.mockResolvedValue(LEARN);
     loadLessonResult.mockResolvedValue({ kind: 'found', value: result() });
     hasReactionMark.mockResolvedValueOnce(true);
-    expect(await loadPrLesson(ID, 'no')).toMatchObject({ viewer: { returned: 'NO' } });
+    expect(await loadPrLesson(LEARN, 'no')).toMatchObject({ viewer: { returned: 'NO' } });
     expect(hasReactionMark).toHaveBeenCalledWith(SLUG, 'octocat', 'NO');
 
     viewerLogin.mockResolvedValue('OctoCat');
     loadMyResultReaction.mockClear();
-    expect(await loadPrLesson(ID, undefined)).toMatchObject({ viewer: { own: true, canReact: false, mine: null } });
+    expect(await loadPrLesson(LEARN, undefined)).toMatchObject({ viewer: { own: true, canReact: false, mine: null } });
     expect(loadMyResultReaction).not.toHaveBeenCalled();
   });
 
-  it('a stub is the neutral line; a failed read or a result not the author’s adds nothing', async () => {
-    loadPrStrip.mockResolvedValue(LEARN);
+  it('a stub or no public result is the neutral line; a failed read or a result not the author’s adds nothing', async () => {
     loadLessonResult.mockResolvedValueOnce({ kind: 'stub', visibility: 'REMOVED' });
-    expect(await loadPrLesson(ID, undefined)).toEqual({ kind: 'closed', card: LEARN });
-
-    loadLessonResult.mockRejectedValueOnce(new Error('down'));
-    expect(await loadPrLesson(ID, undefined)).toBeNull();
+    expect(await loadPrLesson(LEARN, undefined)).toEqual({ kind: 'closed', card: LEARN });
 
     loadLessonResult.mockResolvedValueOnce(null);
-    expect(await loadPrLesson(ID, undefined)).toBeNull();
+    expect(await loadPrLesson(LEARN, undefined)).toEqual({ kind: 'closed', card: LEARN });
+
+    loadLessonResult.mockRejectedValueOnce(new Error('down'));
+    expect(await loadPrLesson(LEARN, undefined)).toBeNull();
 
     const other = result({ login: 'mona', loginAtPass: 'mona' });
     loadLessonResult.mockResolvedValueOnce({ kind: 'found', value: other });
-    expect(await loadPrLesson(ID, undefined)).toBeNull();
+    expect(await loadPrLesson(LEARN, undefined)).toBeNull();
   });
 
   it('names the read a card leads to', () => {

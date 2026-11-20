@@ -5,7 +5,8 @@ import { LearnMaintainers, LearnReportLink } from '@/app/learn/components/learn-
 import { PrContext, PrLesson } from '@/app/learn/components/learn-pr-lesson';
 import { LEARN_MAINTAINERS_METADATA } from '@/lib/learn/lesson-seo';
 import type { PrLessonRead } from '@/lib/learn/pr-lesson';
-import { loadPrLesson } from '@/lib/learn/pr-lesson.data';
+import { loadLearnPrCard, loadPrLesson } from '@/lib/learn/pr-lesson.data';
+import type { ContributePrCard } from '@/lib/workspace/contribute.types';
 import { attemptIdOf } from '@/lib/workspace/pr-feedback';
 
 export const metadata: Metadata = LEARN_MAINTAINERS_METADATA;
@@ -19,13 +20,14 @@ type Query = PageProps<'/learn/maintainers'>['searchParams'];
  * or a slow read adds nothing.
  */
 export default function LearnMaintainersPage({ searchParams }: PageProps<'/learn/maintainers'>) {
-  // One read of the footer link, shared by the two places that show it.
-  const read = searchParams.then(({ from, react }) => (attemptIdOf(from) ? loadPrLesson(from, react) : null));
+  // The footer link's pull request, on top as soon as it is read; its lesson and the author's result after it.
+  const card = searchParams.then(({ from }) => (attemptIdOf(from) ? loadLearnPrCard(from) : null));
+  const read = Promise.all([card, searchParams]).then(([learnCard, { react }]) => loadPrLesson(learnCard, react));
   return (
     <LearnMaintainers
       context={
         <Suspense fallback={null}>
-          <ContextSlot read={read} />
+          <ContextSlot card={card} />
         </Suspense>
       }
       lesson={
@@ -42,9 +44,9 @@ export default function LearnMaintainersPage({ searchParams }: PageProps<'/learn
   );
 }
 
-async function ContextSlot({ read }: { read: Promise<PrLessonRead | null> }) {
-  const answer = await read;
-  return answer ? <PrContext card={answer.card} /> : null;
+async function ContextSlot({ card }: { card: Promise<ContributePrCard | null> }) {
+  const read = await card;
+  return read ? <PrContext card={read} /> : null;
 }
 
 async function LessonSlot({ read }: { read: Promise<PrLessonRead | null> }) {

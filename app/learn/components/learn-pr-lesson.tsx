@@ -24,6 +24,7 @@ function PrChips({ card }: { card: ContributePrCard }) {
     <div className="flex flex-wrap items-center gap-1.5">
       <a href={`https://github.com/${card.nameWithOwner}`} target="_blank" rel="noopener noreferrer" className={CHIP}>
         {card.nameWithOwner}
+        <span className="sr-only"> (opens in a new tab)</span>
       </a>
       <a href={url} target="_blank" rel="noopener noreferrer" className={CHIP}>
         #{card.number} ↗<span className="sr-only"> (opens in a new tab)</span>

@@ -15,7 +15,7 @@ import { loadContribute, loadContributeSetup, loadProfileLanguages } from '@/lib
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, settingsOf } from '@/lib/workspace/contribute-state';
 import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
-import { CONNECT_KEY_PATH, SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 
 /** The Agent tab's own pages: Save goes back to it. */
@@ -38,7 +38,7 @@ function NoSettingsPanel({ view }: { view: ContributeView }) {
             : 'They start from your plan once a key is connected, and every one of them is yours to change.'
         }
       />
-      <Link href={CONNECT_KEY_PATH} prefetch={false} className="text-sm font-semibold text-link">
+      <Link href={WORKSPACE_PATHS.agentKey} prefetch={false} className="text-sm font-semibold text-link">
         Connect your Claude key →
       </Link>
     </Panel>

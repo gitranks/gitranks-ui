@@ -30,7 +30,7 @@ import type { ContributeEmail, ContributeSet, ContributeView } from '@/lib/works
 import { claudeKeyOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
 import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
-import { ABOUT_PATH, CONNECT_AGENT_PATH, SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { ABOUT_PATH, SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 import {
   attemptsSummaryOf,
@@ -162,7 +162,11 @@ function PullRequestsGroup({ view, openPrs }: { view: ContributeView; openPrs?: 
               These start when your agent connects: the size of a pull request, how many are open at a time, and the
               sign-off.
             </span>
-            <Link href={CONNECT_AGENT_PATH} prefetch={false} className="font-semibold text-link hover:underline">
+            <Link
+              href={WORKSPACE_PATHS.agentConnect}
+              prefetch={false}
+              className="font-semibold text-link hover:underline"
+            >
               Connect your agent →
             </Link>
           </li>

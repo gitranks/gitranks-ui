@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CONNECT_AGENT_PATH,
-  CONNECT_KEY_PATH,
   GITHUB_ACCESS_PATH,
   isByAttemptPath,
   isInsidePath,
@@ -15,7 +13,6 @@ import {
   pullRequestByAttemptPath,
   pullRequestPath,
   pullRequestsPath,
-  RUNS_PATH,
   SETTINGS_PATHS,
   settingsPathOf,
   settingUpHomeOf,
@@ -57,9 +54,9 @@ describe('the workspace addresses', () => {
       keys: '/my/agent/key',
       ownAgent: '/my/agent',
     });
-    expect(RUNS_PATH).toBe('/my/agent/runs');
-    expect(CONNECT_AGENT_PATH).toBe('/my/agent/connect');
-    expect(CONNECT_KEY_PATH).toBe('/my/agent/key');
+    expect(WORKSPACE_PATHS.agentRuns).toBe('/my/agent/runs');
+    expect(WORKSPACE_PATHS.agentConnect).toBe('/my/agent/connect');
+    expect(WORKSPACE_PATHS.agentKey).toBe('/my/agent/key');
     expect(switchPathOf('STACK')).toBe('/my/settings/work/switch/stack');
   });
 

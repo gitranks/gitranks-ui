@@ -27,7 +27,7 @@ import type {
 } from '@/lib/workspace/contribute.types';
 import { accessNoticesOf } from '@/lib/workspace/contribute-state';
 import { type GrantRefusal, grantRefusalOf } from '@/lib/workspace/grant-refusal';
-import { CONNECT_AGENT_PATH, SETTINGS_PATHS, switchModeOf } from '@/lib/workspace/paths';
+import { SETTINGS_PATHS, switchModeOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 
 /** Settings' own pages: Save goes back to it. */
@@ -173,7 +173,7 @@ export function PullRequestsSettingsScreen({ view }: { view: ContributeView }) {
             title="Not set yet"
             text="These start when your agent connects, and every one of them is yours to change."
           />
-          <Link href={CONNECT_AGENT_PATH} prefetch={false} className="text-sm font-semibold text-link">
+          <Link href={WORKSPACE_PATHS.agentConnect} prefetch={false} className="text-sm font-semibold text-link">
             Connect your agent →
           </Link>
         </Panel>

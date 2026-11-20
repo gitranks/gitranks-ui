@@ -8,6 +8,8 @@
 // | components/workspace/                   | itself, lib/workspace/; its pull-request/ folder also lib/learn/        |
 // | components/contribute/                  | itself, lib/contribute/, lib/workspace/, components/workspace/          |
 // | components/learn/                       | itself, lib/learn/, lib/workspace/, components/workspace/               |
+// | lib/auth/ (site-wide: any folder may    | itself, lib/workspace/                                                  |
+// |   import it)                            |                                                                         |
 // | Contribute's pages (app/contribute/)    | anything but lib/learn/, components/learn/ and Learn's pages            |
 // | Learn's pages (app/learn/)              | anything but lib/contribute/, components/contribute/ and Contribute's   |
 //
@@ -19,16 +21,15 @@ import { fileURLToPath } from 'node:url';
 
 /** The crossings left today, as `<file> -> <module>` (the module's path without its extension). */
 export const ALLOWED = [
-  // Learn's pages over Contribute's: the landing's parts.
+  // Learn's landing over Contribute's: the landing's parts, until the two landings are rebuilt.
   'app/learn/components/learn-landing.tsx -> app/contribute/components/landing',
   'app/learn/components/recent-lessons.tsx -> app/contribute/components/landing',
-  // Learn's promo reads the profile's issues.
-  'lib/learn/learn-promo.ts -> lib/contribute/profile-issues',
 ];
 
 /** The folder rule's name for a path, or null for a site-wide module every folder may import. */
 export function zoneOf(path) {
   if (path.startsWith('lib/workspace/')) return 'lib/workspace';
+  if (path.startsWith('lib/auth/')) return 'lib/auth';
   if (path.startsWith('lib/contribute/')) return 'lib/contribute';
   if (path.startsWith('lib/learn/')) return 'lib/learn';
   if (path.startsWith('components/workspace/pull-request/')) return 'components/workspace/pull-request';
@@ -44,6 +45,7 @@ const MAY_IMPORT = {
   'lib/workspace': ['lib/workspace'],
   'lib/contribute': ['lib/contribute', 'lib/workspace'],
   'lib/learn': ['lib/learn', 'lib/workspace'],
+  'lib/auth': ['lib/auth', 'lib/workspace'],
   'components/workspace': ['components/workspace', 'components/workspace/pull-request', 'lib/workspace'],
   'components/workspace/pull-request': [
     'components/workspace',
@@ -76,7 +78,8 @@ const MAY_NOT_IMPORT = {
 export function crosses(from, to) {
   const a = zoneOf(from);
   const b = zoneOf(to);
-  if (!a || !b) return false;
+  // Site-wide modules: every folder may import them. `lib/auth/` is one, with its own imports checked.
+  if (!a || !b || b === 'lib/auth') return false;
   if (MAY_IMPORT[a]) return !MAY_IMPORT[a].includes(b);
   return (MAY_NOT_IMPORT[a] ?? []).includes(b);
 }

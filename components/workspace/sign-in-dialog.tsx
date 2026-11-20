@@ -18,14 +18,14 @@ import {
 } from '@/components/ui/dialog';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
-import { CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from '@/lib/workspace/paths';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** The way of contributing a visitor picked: a Claude key, or their own agent. */
 export type SignInPath = 'key' | 'agent';
 
 const PATHS: Record<SignInPath, { label: string; route: Route }> = {
-  key: { label: 'Your Claude key', route: CONNECT_KEY_PATH },
-  agent: { label: 'Your own agent', route: CONNECT_AGENT_PATH },
+  key: { label: 'Your Claude key', route: WORKSPACE_PATHS.agentKey },
+  agent: { label: 'Your own agent', route: WORKSPACE_PATHS.agentConnect },
 };
 
 /** Where the sign-in brings the visitor back: the first step of the way they picked, or the landing. */

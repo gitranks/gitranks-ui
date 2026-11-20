@@ -15,7 +15,7 @@ import type { ContributeMcpToken, ContributeOwnAgent } from '@/lib/workspace/con
 import { contributeErrorMessage } from '@/lib/workspace/errors';
 import { dayLabel, relativeLabel } from '@/lib/workspace/format';
 import { isSignedInAgent } from '@/lib/workspace/oauth-consent';
-import { CONNECT_AGENT_PATH, MCP_DOCS_PATH } from '@/lib/workspace/paths';
+import { MCP_DOCS_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** Said under the connections: the agent works on strangers' text. */
 export const OWN_AGENT_SAFETY = 'Your agent reads issue text written by strangers. Keep its permission prompts on.';
@@ -164,7 +164,7 @@ export function OwnAgentBlock({
           </ul>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link
-              href={CONNECT_AGENT_PATH}
+              href={WORKSPACE_PATHS.agentConnect}
               prefetch={false}
               className={cn(buttonVariants({ variant: 'outline' }), 'min-h-10 px-4')}
             >
@@ -185,7 +185,7 @@ export function OwnAgentBlock({
         >
           <span className="text-sm text-muted-foreground">No agent is connected.</span>
           <Link
-            href={CONNECT_AGENT_PATH}
+            href={WORKSPACE_PATHS.agentConnect}
             prefetch={false}
             className={cn(buttonVariants(), 'min-h-10 px-4 font-semibold')}
           >

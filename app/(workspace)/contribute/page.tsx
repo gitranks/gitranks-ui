@@ -16,7 +16,7 @@ import {
 } from '@/lib/workspace/contribute.data';
 import { contributeHomeOf } from '@/lib/workspace/contribute-state';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
-import { AGENTS_DOC_PATH, CONNECT_AGENT_PATH, CONNECT_KEY_PATH } from '@/lib/workspace/paths';
+import { AGENTS_DOC_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeOpen } from '@/lib/workspace/preview-gate';
 
 /** The landing's markdown, for agents: named in the head, and served on `Accept: text/markdown`. */
@@ -39,9 +39,9 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   // Where an agent sends its person: a visitor gets the own-agent sign-in open over the landing,
   // anyone signed in goes straight to connecting their agent (an onboarded member's is the Contribute tab).
   const startAgent = params.start === 'agent';
-  if (startAgent && view) redirect(CONNECT_AGENT_PATH);
+  if (startAgent && view) redirect(WORKSPACE_PATHS.agentConnect);
   // Back from setting up a new account (`settingUpHomeOf`): on to the Claude key's first step.
-  if (params.start === 'key' && view) redirect(CONNECT_KEY_PATH);
+  if (params.start === 'key' && view) redirect(WORKSPACE_PATHS.agentKey);
   if (!view) {
     // A new GitHub account, signed in and read for the first time now: what happens, until its account is ready.
     if (await loadContributeSetup()) {

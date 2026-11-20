@@ -19,7 +19,6 @@ import { practiceLessons } from '@/lib/learn/__fixtures__/home';
 import { CAUSE_HINT, CAUSE_QUESTION, FIX_QUESTION, FIX_WHY, lessons } from '@/lib/learn/__fixtures__/lesson';
 import { filledProfile } from '@/lib/learn/__fixtures__/profile';
 import type { LearnAttemptLesson, PracticeLessons } from '@/lib/learn/learn.types';
-import { DONT_KNOW } from '@/lib/learn/question';
 import type { ContributeAttemptDetail } from '@/lib/workspace/contribute.types';
 import { contributionMovesOf } from '@/lib/workspace/contribution-moves';
 
@@ -197,13 +196,6 @@ export const WORKSPACE_LESSON_SCREENS: Screen[] = [
         render: () => page(lessons.working, working, undefined, practiceLessons()),
       },
       {
-        id: 'warm-up',
-        title: 'The fix is ready: three warm-up questions first',
-        path: PATH,
-        height: 1690,
-        render: () => page(lessons.warmup, undefined, { warmupPicks: { w1: ['w1a'], w3: [DONT_KNOW] } }),
-      },
-      {
         id: 'step',
         title: 'A step and its question, an answer picked',
         path: PATH,
@@ -245,14 +237,6 @@ export const WORKSPACE_LESSON_SCREENS: Screen[] = [
         render: () => page(lessons.ready, learnAttempt({ learnGatePassed: true })),
       },
       {
-        id: 'phone',
-        title: 'A step on a phone',
-        path: PATH,
-        width: 390,
-        height: 1700,
-        render: () => page(lessons.step, undefined, { picked: ['q2a2'] }),
-      },
-      {
         id: 'blocked',
         title: 'Two steps with every question reported: the questions need fixing',
         path: PATH,
@@ -274,25 +258,6 @@ export const WORKSPACE_LESSON_SCREENS: Screen[] = [
               pullRequest: pullRequest({ number: 902, url: 'https://github.com/driftwood-js/driftwood/pull/902' }),
             }),
           ),
-      },
-      {
-        id: 'removed',
-        title: 'The author took the lesson down',
-        path: PATH,
-        height: 1300,
-        render: () =>
-          page(
-            { ...lessons.prOpen, visibility: 'REMOVED' },
-            learnAttempt({ state: 'PR_OPEN', pullRequest: pullRequest({ number: 902 }) }),
-          ),
-      },
-      {
-        id: 'hand-pr',
-        title: 'A pull request opened by hand: no footer, the lesson stays private',
-        path: PATH,
-        height: 1300,
-        render: () =>
-          page(lessons.handPr, learnAttempt({ state: 'PR_OPEN', openedBy: 'HAND', pullRequest: pullRequest() })),
       },
       {
         id: 'opening',

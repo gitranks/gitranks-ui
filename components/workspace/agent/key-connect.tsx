@@ -28,7 +28,7 @@ import {
 } from '@/lib/workspace/connect-limits';
 import type { ContributeClaudePlan, ContributeConnectKeyResult } from '@/lib/workspace/contribute.types';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
-import { CONNECT_AGENT_PATH } from '@/lib/workspace/paths';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 const CONSOLE_URL = 'https://platform.claude.com/settings/workspaces';
 const DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
@@ -159,7 +159,7 @@ export function KeyConnect({
             See your issues →
           </Link>
         ) : (
-          <Link href={CONNECT_AGENT_PATH} prefetch={false} className="text-sm font-semibold text-link">
+          <Link href={WORKSPACE_PATHS.agentConnect} prefetch={false} className="text-sm font-semibold text-link">
             Use your own agent instead →
           </Link>
         )}

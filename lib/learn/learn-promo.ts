@@ -2,7 +2,7 @@ import type { LearnPromo, LearnPromoIssue, LearnPromoPlacement, LearnRecord } fr
 import { githubLoginOf } from './learn-path';
 import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
 import type { OwnerIssue } from '@/app/profile/[login]/components/profile-contribute-block';
-import { isProfileOwner } from '@/lib/contribute/profile-issues';
+import { isProfileOwner } from '@/utils/profile-owner';
 
 /**
  * GitRanks Learn suggested to someone it may suit: on the home page in place of Contribute's section, and on their own

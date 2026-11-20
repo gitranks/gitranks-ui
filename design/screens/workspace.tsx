@@ -1315,49 +1315,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
             </main>,
           ),
       },
-      {
-        id: 'no-email',
-        title: 'No email address: the switch off, and why',
-        path: '/my/settings',
-        height: 1600,
-        render: () =>
-          frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <SettingsScreen view={views.active} email={{ on: true, to: null }} />
-            </main>,
-          ),
-      },
-      {
-        id: 'not-yet',
-        title: 'Before the agent connects: the limits start then',
-        path: '/my/settings',
-        height: 1300,
-        render: () =>
-          frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <SettingsScreen view={{ ...views.noKey, sides: { contribute: true, learn: false } }} email={email.on} />
-            </main>,
-          ),
-      },
-      {
-        id: 'phone',
-        title: 'Phone',
-        path: '/my/settings',
-        width: 390,
-        height: 2600,
-        render: () =>
-          frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <SettingsScreen
-                view={settingsViews.both}
-                learnOpen
-                email={email.on}
-                profile={filledProfile}
-                openPrs={3}
-              />
-            </main>,
-          ),
-      },
     ],
   },
   {

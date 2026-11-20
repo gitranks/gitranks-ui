@@ -23,6 +23,15 @@ describe('the workspace import rule', () => {
     expect(crosses('lib/workspace/needs-you.ts', 'components/workspace/primitives')).toBe(true);
   });
 
+  it('lets every folder use the light sign-in, which imports neither side', () => {
+    expect(zoneOf('lib/auth/light-sign-in.ts')).toBe('lib/auth');
+    expect(crosses('lib/contribute/maintainers.data.ts', 'lib/auth/light-sign-in')).toBe(false);
+    expect(crosses('lib/learn/actions.ts', 'lib/auth/light-sign-in')).toBe(false);
+    expect(crosses('lib/auth/light-sign-in.ts', 'lib/workspace/paths')).toBe(false);
+    expect(crosses('lib/auth/light-sign-in.ts', 'lib/learn/learn-path')).toBe(true);
+    expect(crosses('lib/auth/light-sign-in.ts', 'lib/contribute/profile-issues')).toBe(true);
+  });
+
   it('keeps the two sides apart, both ways', () => {
     expect(crosses('lib/contribute/overview.ts', 'lib/workspace/format')).toBe(false);
     expect(crosses('lib/contribute/overview.ts', 'lib/learn/learn-path')).toBe(true);

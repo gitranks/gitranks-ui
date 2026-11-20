@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { isProfileOwner, profileIssuesUrl } from './profile-issues';
+import { profileIssuesUrl } from './profile-issues';
+import { isProfileOwner } from '@/utils/profile-owner';
 
 describe('who the profile blocks ask for', () => {
   it('is the signed-in owner alone, whatever the case of the login', () => {

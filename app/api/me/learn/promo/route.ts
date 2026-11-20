@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 
 import type { AuthRequest } from '@/app/api/profile/[login]/route';
 import { auth } from '@/auth';
-import { isProfileOwner } from '@/lib/contribute/profile-issues';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { LearnPromoDocument } from '@/lib/learn/learn.documents';
 import { type LearnPromoAnswer, promoPlacementOf, shownPromoOf } from '@/lib/learn/learn-promo';
+import { isProfileOwner } from '@/utils/profile-owner';
 
 /** Never kept: "Not for me" must hide the suggestion on the next page. */
 const NO_STORE = { 'Cache-Control': 'private, no-store' };

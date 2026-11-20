@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
-import { FIRST_ISSUE_SIGN_IN } from '../sign-in-copy';
+import { FIRST_ISSUE, FIRST_ISSUE_SIGN_IN } from '../copy';
 import { ContributeIssueList } from '@/app/(workspace)/contribute/components/issue-list';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { FlowBookmark, FlowExit } from '@/components/workspace/getting-in/flow-bookmark';
@@ -42,7 +42,7 @@ async function ContributeFirstIssue() {
       <>
         {panel ?? (
           <>
-            <FlowHead title="Pick your first issue" text="Issues picked for what you work on, ready for your agent." />
+            <FlowHead title={FIRST_ISSUE.title} text={FIRST_ISSUE.visitorText} />
             <FlowSignIn {...FIRST_ISSUE_SIGN_IN} source="contribute_flow_sign_in" />
           </>
         )}
@@ -63,7 +63,7 @@ async function ContributeFirstIssue() {
   return (
     <>
       <FlowHead
-        title="Pick your first issue"
+        title={FIRST_ISSUE.title}
         text={firstIssueLineOf(gate.agents, client ? MCP_CLIENT_NAMES[client] : null)}
       />
       {view ? <ContributeNotices notices={accessNoticesOf(view).filter(({ kind }) => kind !== 'suspended')} /> : null}
@@ -78,9 +78,9 @@ async function ContributeFirstIssue() {
           languages={view?.contributor?.preferences?.languages ?? []}
           facts={{ capUsd: settings?.attemptCapUsd ?? null, keyWaiting }}
           source="contribute_flow_issue"
-          noneTitle="No open issues match what you work on yet. New ones come in every day."
+          noneTitle={FIRST_ISSUE.none}
         />
-        <p className="text-sm text-muted-foreground">You review every change before anything reaches GitHub.</p>
+        <p className="text-sm text-muted-foreground">{FIRST_ISSUE.review}</p>
         <Link
           href={WORKSPACE_PATHS.contribute}
           prefetch={false}
@@ -88,7 +88,7 @@ async function ContributeFirstIssue() {
           className="self-start text-sm font-semibold text-link hover:underline max-sm:min-h-11"
           {...contributeSource('contribute_flow_skip')}
         >
-          Skip for now: open Contribute
+          {FIRST_ISSUE.skip}
         </Link>
       </FlowExit>
       <FlowBookmark side="contribute" />

@@ -440,18 +440,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
           contributionPage({ ...followUpAttempts.prNeedsYou, repoRules: attemptRules() }, { notes: prNotes() }),
       },
       {
-        id: 'review',
-        title: 'First attempt, ready for review',
-        path: '/my/pull-requests/driftwood-js/driftwood/871',
-        height: 2000,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <ReviewScreen view={views.active} attempt={decisionAttempts.went} now={NOW} />
-            </main>,
-          ),
-      },
-      {
         id: 'repo-rules',
         title: 'Repo rules in the rail, closed to one line',
         path: '/my/pull-requests/driftwood-js/driftwood/871',
@@ -471,14 +459,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
         path: '/my/pull-requests/driftwood-js/driftwood/871',
         height: 2000,
         render: () => contributionPage({ ...decisionAttempts.went, repoRules: attemptNoRules() }, { rulesOpen: true }),
-      },
-      {
-        id: 'repo-rules-caps',
-        title: 'A repo that sets only limits',
-        path: '/my/pull-requests/driftwood-js/driftwood/871',
-        height: 1300,
-        render: () =>
-          contributionPage({ ...decisionAttempts.went, repoRules: attemptRules({ lines: [] }) }, { rulesOpen: true }),
       },
       {
         id: 'repo-rules-org',
@@ -608,14 +588,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
         title: 'Next step: sign off the commits',
         path: '/my/pull-requests/tern-lang/tern-fmt/4400?session=next',
         height: 1500,
-        render: () => attemptPage(nextForDco, true),
-      },
-      {
-        id: 'next-dco-phone',
-        title: 'Next step: sign off · phone',
-        path: '/my/pull-requests/tern-lang/tern-fmt/4400?session=next',
-        width: 390,
-        height: 2200,
         render: () => attemptPage(nextForDco, true),
       },
       {
@@ -750,13 +722,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
     route: '/my/pull-requests/[owner]/[repo]/[issue]',
     sources: ['components/workspace/pull-request/pr-form.tsx', 'lib/workspace/pr-conventions.ts'],
     states: [
-      {
-        id: 'plain',
-        title: 'No repo rules read',
-        path: '/my/pull-requests/driftwood-js/driftwood/871',
-        height: 1100,
-        render: () => prFormPage(attempts.review, { conventions: null, dcoRequired: undefined, dcoMode: 'ASK' }),
-      },
       {
         id: 'repo-asks',
         title: 'Everything the repo asks, met',
@@ -1071,6 +1036,36 @@ export const WORKSPACE_SCREENS: Screen[] = [
           ),
       },
       {
+        id: 'nothing-connected-contribute',
+        title: 'Nothing connected, Learn not open to the account: no word of Learn',
+        path: '/my/agent',
+        height: 800,
+        render: () => (
+          <>
+            <Header />
+            <WorkspaceTabsNav tabs={TABS.filter((tab) => tab !== 'learn')} activity={activityOf()} needsYou={2} />
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen view={agentTabViews.nothing} runs={pageOf({ items: [] })} now={NOW} />
+            </main>
+          </>
+        ),
+      },
+      {
+        id: 'not-entered',
+        title: 'Not entered yet, by its address: no tabs, both ways lead into the flow',
+        path: '/my/agent',
+        height: 800,
+        render: () => (
+          <>
+            <Header />
+            <WorkspaceTabsNav tabs={[]} />
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen view={agentTabViews.notEntered} learnOpen runs={pageOf({ items: [] })} now={NOW} />
+            </main>
+          </>
+        ),
+      },
+      {
         id: 'summary',
         title: 'Both agents set up',
         path: '/my/agent',
@@ -1079,24 +1074,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
               <AgentScreen view={agentTabViews.both} learnOpen runs={previewPageOf()} now={NOW} />
-            </main>,
-          ),
-      },
-      {
-        id: 'level-next',
-        title: 'It starts the next issue by itself: when it starts the next one',
-        path: '/my/agent',
-        height: 2300,
-        render: () =>
-          frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
-              <AgentScreen
-                view={agentAt('NEXT')}
-                learnOpen
-                runs={previewPageOf()}
-                counts={{ prBound: 1, queued: 0 }}
-                now={NOW}
-              />
             </main>,
           ),
       },
@@ -1281,24 +1258,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
       'components/workspace/settings/delete-data-section.tsx',
     ],
     states: [
-      {
-        id: 'summary',
-        title: 'Uses both: every group',
-        path: '/my/settings',
-        height: 1900,
-        render: () =>
-          frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <SettingsScreen
-                view={settingsViews.both}
-                learnOpen
-                email={email.on}
-                profile={filledProfile}
-                openPrs={3}
-              />
-            </main>,
-          ),
-      },
       {
         id: 'contributor',
         title: 'A contributor: For learning closed to a line',

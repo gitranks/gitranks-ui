@@ -246,13 +246,6 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     render: () => firstPage(page, firstAttempt.ownBounced),
   },
   {
-    id: 'review-form-open',
-    title: 'The pull request form open: the card draws no primary, Submit is the one',
-    path: FIRST,
-    height: 2600,
-    render: () => firstPage(page, decisionAttempts.went, { seed: { formOpen: true } }),
-  },
-  {
     id: 'run-ready',
     title: 'A run ready: push its commits and post its replies',
     path: RUN,
@@ -535,12 +528,11 @@ export const reviewCommentStates = (page: Page): ScreenState[] => [
         ),
       ),
   },
-  ...[1280, 390].map((width) => ({
-    id: width === 390 ? 'replies-after-push-phone' : 'replies-after-push',
-    title: `Posted, resolved, left for GitHub, no reply, resolved on GitHub${width === 390 ? ' · phone' : ''}`,
+  {
+    id: 'replies-after-push',
+    title: 'Posted, resolved, left for GitHub, no reply, resolved on GitHub',
     path: RUN,
-    width,
-    height: width === 390 ? 2600 : 1700,
+    height: 1700,
     render: () =>
       runPage(
         page,
@@ -552,7 +544,7 @@ export const reviewCommentStates = (page: Page): ScreenState[] => [
           flowDraft({ draftId: 'D_5', state: 'DISMISSED', dismissedReason: 'THREAD_RESOLVED' }),
         ]),
       ),
-  })),
+  },
   {
     id: 'run-verdicts-no-reply',
     title: 'A run’s verdicts on the failing checks, and two threads that need no reply',

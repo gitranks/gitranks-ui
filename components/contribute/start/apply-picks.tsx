@@ -37,6 +37,11 @@ export function ApplyWorkPicks({ saved }: { saved: boolean }) {
   });
 
   if (!failed) return null;
+  return <PicksNotSaved pending={pending} onRetry={apply} />;
+}
+
+/** The picks' save failed: one quiet line with Try again. */
+export function PicksNotSaved({ pending, onRetry }: { pending: boolean; onRetry: () => void }) {
   return (
     <p role="status" className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground" data-picks="unsaved">
       Your picks from step 1 could not be saved.
@@ -44,7 +49,7 @@ export function ApplyWorkPicks({ saved }: { saved: boolean }) {
         type="button"
         variant="link"
         disabled={pending}
-        onClick={apply}
+        onClick={onRetry}
         className="h-auto p-0 font-semibold text-link"
       >
         Try again

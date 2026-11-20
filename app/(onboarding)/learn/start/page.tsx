@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
+import { GOAL_VISITOR_NOTE } from './copy';
 import { LearnGoalQuick } from '@/app/learn/components/learn-goal-quick';
 import { FlowBookmark } from '@/components/workspace/getting-in/flow-bookmark';
 import { FlowFrame } from '@/components/workspace/getting-in/flow-frame';
@@ -41,9 +42,7 @@ async function LearnGoalStep({ searchParams }: Pick<PageProps<'/learn/start'>, '
             profile={profile}
             flow={{ initial: address ?? learnGoalPickOfProfile(profile), draft: visitor }}
           />
-          {visitor ? (
-            <p className="text-sm text-muted-foreground">Nothing is saved yet. You sign in when you start an issue.</p>
-          ) : null}
+          {visitor ? <p className="text-sm text-muted-foreground">{GOAL_VISITOR_NOTE}</p> : null}
         </>
       )}
       <FlowBookmark side="learn" />

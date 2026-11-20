@@ -33,14 +33,6 @@ export const LANDING_SCREENS: Screen[] = [
     sources: SOURCES,
     states: [
       {
-        id: 'signed-out',
-        title: 'Signed out',
-        path: '/',
-        signedOut: true,
-        height: 6000,
-        render: () => <LandingScreen {...landingData} />,
-      },
-      {
         id: 'signed-in',
         title: 'Signed in, with Contribute',
         path: '/',
@@ -63,30 +55,12 @@ export const LANDING_SCREENS: Screen[] = [
         render: () => <LandingScreen {...landingData} learn={{ promo: landingPromo }} />,
       },
       {
-        id: 'likely-learner-phone',
-        title: 'Signed in, Learn suggested in place of Contribute · phone',
-        path: '/',
-        width: 390,
-        height: 6500,
-        render: () => <LandingScreen {...landingData} learn={{ promo: landingPromo }} />,
-      },
-      {
         id: 'unsung-hero',
         title: 'Unsung hero of the week, signed in or out',
         path: '/',
         signedOut: true,
         packagesOpen: true,
         height: 6100,
-        render: () => <LandingScreen {...landingData} />,
-      },
-      {
-        id: 'unsung-hero-phone',
-        title: 'Unsung hero of the week · phone',
-        path: '/',
-        signedOut: true,
-        packagesOpen: true,
-        width: 390,
-        height: 6900,
         render: () => <LandingScreen {...landingData} />,
       },
       {

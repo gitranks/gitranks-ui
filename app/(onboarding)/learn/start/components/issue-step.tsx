@@ -2,7 +2,9 @@ import { Check } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import type { ReactNode } from 'react';
 
+import { BACK_LABEL, SIGN_IN_SECTION_TITLE, signInSectionTextOf, writtenForOf } from '../copy';
 import { ApplyLearnGoal } from './apply-goal';
 import { IssueStepBody } from './issue-step-body';
 import { Pill } from '@/components/pill/pill';
@@ -21,7 +23,6 @@ import { loadStartPageView } from '@/lib/workspace/start/start-page.data';
 
 type IssueRef = { repo: string; issue: number };
 
-const BACK_LABEL = 'Issues for your goal';
 const link = 'font-semibold text-link hover:underline';
 
 /** Back to Pick an issue, the goal kept: in the address for a visitor (and until it is saved), saved otherwise. */
@@ -46,7 +47,7 @@ async function publicCardOf(ref: IssueRef, goal: LearnGoalPick | null): Promise<
       ),
     };
   }
-  const goalLine = `Your lesson will be written for: ${learnGoalLabelOfPick(goal)}`;
+  const goalLine = writtenForOf(learnGoalLabelOfPick(goal));
   const list = await readLearnPublicIssues(goal.language);
   const listed = list.ok
     ? list.data?.items.find((item) => item.number === ref.issue && item.repo.toLowerCase() === ref.repo.toLowerCase())
@@ -59,7 +60,6 @@ async function publicCardOf(ref: IssueRef, goal: LearnGoalPick | null): Promise<
  * the prompt are dimmed until then, and nothing is asked for them.
  */
 export async function VisitorIssueStep({ issueRef, goal }: { issueRef: IssueRef; goal: LearnGoalPick | null }) {
-  const comes = goal ? ` Your goal comes with you: ${learnGoalLabelOfPick(goal)}.` : '';
   return (
     <>
       <FlowBack href={backOf(goal)}>{BACK_LABEL}</FlowBack>
@@ -68,13 +68,7 @@ export async function VisitorIssueStep({ issueRef, goal }: { issueRef: IssueRef;
         view={null}
         card={await publicCardOf(issueRef, goal)}
         locked
-        firstSection={
-          <FlowSignIn
-            title="1 · Sign in with GitHub"
-            text={`The lesson and the pull request will be in your name.${comes}`}
-            source="learn_flow_sign_in"
-          />
-        }
+        firstSection={<VisitorSignIn goal={goal} />}
         backHref={backOf(goal)}
         backLabel={BACK_LABEL}
       />
@@ -115,12 +109,23 @@ export async function SavingIssueStep({
   );
 }
 
+/** Section 1 for a visitor: sign in with GitHub, back to this address with the goal in it. */
+export function VisitorSignIn({ goal }: { goal: LearnGoalPick | null }) {
+  return (
+    <FlowSignIn
+      title={SIGN_IN_SECTION_TITLE}
+      text={signInSectionTextOf(goal ? learnGoalLabelOfPick(goal) : null)}
+      source="learn_flow_sign_in"
+    />
+  );
+}
+
 /** Section 1 once signed in, collapsed to one line. */
-function SignedIn({ login }: { login: string | null }) {
+export function SignedIn({ login }: { login: string | null }) {
   return (
     <section className="flex flex-col gap-2 rounded-2xl border bg-card p-4.5 sm:p-5.5" data-flow-signed-in="">
       <div className="flex items-center justify-between gap-2">
-        <h2 className={HEADING.card}>1 · Sign in with GitHub</h2>
+        <h2 className={HEADING.card}>{SIGN_IN_SECTION_TITLE}</h2>
         <Pill tone="green">
           <Check aria-hidden="true" />
           Done
@@ -129,6 +134,25 @@ function SignedIn({ login }: { login: string | null }) {
       <p className="text-sm text-muted-foreground">{login ? `Signed in as @${login}.` : 'Signed in.'}</p>
     </section>
   );
+}
+
+/**
+ * The issue card's goal line for a signed-in person: their saved goal, and when the address carries another one, that
+ * the lesson is written for the saved goal, with Change. Nothing when no goal is saved.
+ */
+export function accountGoalLineOf(goal: LearnGoalPick | null, profile: LearnProfile | null): ReactNode {
+  const saved = learnGoalLabelOf(profile);
+  if (goal && goalDiffersFrom(goal, profile)) {
+    return (
+      <>
+        Your lesson will be written for your saved goal: {saved}.{' '}
+        <Link href={GETTING_IN_PATHS.learnGoal} prefetch={false} className={link}>
+          Change
+        </Link>
+      </>
+    );
+  }
+  return saved ? writtenForOf(saved) : undefined;
 }
 
 /**
@@ -150,17 +174,6 @@ export async function AccountIssueStep({
   const [load, login] = await Promise.all([loadStartPageView(issueRef, 'lesson', saved), viewerLogin()]);
   if (load.kind === 'not-found') notFound();
   if (load.kind === 'claimed') redirect(load.href);
-  const goalLine =
-    goal && goalDiffersFrom(goal, profile) ? (
-      <>
-        Your lesson will be written for your saved goal: {saved}.{' '}
-        <Link href={GETTING_IN_PATHS.learnGoal} prefetch={false} className={link}>
-          Change
-        </Link>
-      </>
-    ) : saved ? (
-      `Your lesson will be written for: ${saved}`
-    ) : undefined;
   return (
     <>
       <FlowBack href={backOf(null)}>{BACK_LABEL}</FlowBack>
@@ -168,7 +181,7 @@ export async function AccountIssueStep({
         <IssueStepBody
           issueRef={issueRef}
           view={load.view}
-          card={{ goalLine }}
+          card={{ goalLine: accountGoalLineOf(goal, profile) }}
           firstSection={
             <>
               <ApplyLearnGoal goal={goal} profile={profile} saved />

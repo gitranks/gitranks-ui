@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { CONNECT_SIGN_IN } from '../../sign-in-copy';
+import { BACK_TO_CHOICE, CONNECT_SIGN_IN, OWN_AGENT_HEAD } from '../../copy';
 import { OwnAgentStep } from '@/components/contribute/start/own-agent-step';
 import { FlowBookmark } from '@/components/workspace/getting-in/flow-bookmark';
 import { FlowBack, FlowFrame } from '@/components/workspace/getting-in/flow-frame';
@@ -13,16 +13,16 @@ import { loadContribute } from '@/lib/workspace/contribute.data';
 import { loadContributeFlowPlace } from '@/lib/workspace/getting-in.data';
 import { GETTING_IN_PATHS, searchParamsOf } from '@/lib/workspace/paths';
 
-export const metadata: Metadata = { title: 'Connect your own agent' };
+export const metadata: Metadata = { title: OWN_AGENT_HEAD.title };
 
 /** Contribute's flow, step 2 with the person's own agent: the connect steps, then on to the first issue. */
 export default function ContributeOwnAgentPage({ searchParams }: PageProps<'/contribute/start/agent/own'>) {
   return (
     <FlowFrame side="contribute" step={2}>
       <div className="flex flex-col gap-2">
-        <FlowBack href={GETTING_IN_PATHS.contributeAgent}>Two ways</FlowBack>
-        <span className="text-xs font-semibold text-primary">About a minute · no Claude key needed</span>
-        <h1 className={HEADING.page}>Connect your own agent</h1>
+        <FlowBack href={GETTING_IN_PATHS.contributeAgent}>{BACK_TO_CHOICE}</FlowBack>
+        <span className="text-xs font-semibold text-primary">{OWN_AGENT_HEAD.eyebrow}</span>
+        <h1 className={HEADING.page}>{OWN_AGENT_HEAD.title}</h1>
       </div>
       <Suspense fallback={<ContributePageSkeleton />}>
         <ContributeOwnAgent searchParams={searchParams} />

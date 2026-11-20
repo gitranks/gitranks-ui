@@ -79,29 +79,12 @@ export const PACKAGE_SCREENS: Screen[] = [
     ],
     states: [
       {
-        id: 'ranked',
-        title: 'Read and ranked',
-        path: RANKED_PATH,
-        packagesOpen: true,
-        height: 1500,
-        render: () => page(rankedPackage),
-      },
-      {
         id: 'no-dependents',
         title: 'No repository with 100+ stars uses it yet',
         path: packagePath(quietPackage.name),
         packagesOpen: true,
         height: 1300,
         render: () => page(quietPackage),
-      },
-      {
-        id: 'signed-out',
-        title: 'Signed out: Refresh',
-        path: RANKED_PATH,
-        signedOut: true,
-        packagesOpen: true,
-        height: 1500,
-        render: () => page(rankedPackage),
       },
       {
         id: 'signed-out-deal',
@@ -114,22 +97,6 @@ export const PACKAGE_SCREENS: Screen[] = [
           <OpenRefreshDialog
             page={page(rankedPackage)}
             message={packageDealOf(rankedPackage.name, rankedPackage.repo?.nameWithOwner)}
-          />
-        ),
-      },
-      {
-        id: 'follow-signed-out',
-        title: 'Signed out, Follow pressed: every channel starts with Connect',
-        path: RANKED_PATH,
-        signedOut: true,
-        packagesOpen: true,
-        height: 1100,
-        render: () => (
-          <OpenFollowDialog
-            page={page(rankedPackage)}
-            label={rankedPackage.name}
-            view={followChannelsOf(false)}
-            signedIn={false}
           />
         ),
       },

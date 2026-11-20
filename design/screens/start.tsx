@@ -79,7 +79,7 @@ export const START_SCREENS: Screen[] = [
     route: '/my/start/[owner]/[repo]/[issue]',
     sources: [
       'app/(workspace)/my/start/[owner]/[repo]/[issue]/page.tsx',
-      'app/(workspace)/learn/start/[owner]/[repo]/[number]/page.tsx',
+      'app/(onboarding)/learn/start/[owner]/[repo]/[issue]/page.tsx',
       'components/workspace/start/start-page-body.tsx',
       'components/workspace/start/start-page-screen.tsx',
       'components/workspace/start/start-refusal.tsx',
@@ -117,13 +117,6 @@ export const START_SCREENS: Screen[] = [
         render: () => page('fix', { issue: startViews.limitPrs }),
       },
       {
-        id: 'fix-limit-attempts',
-        title: 'Fix it, as many issues at work as the limit allows',
-        path: START_PATH,
-        height: 760,
-        render: () => page('fix', { issue: startViews.limitAttempts }),
-      },
-      {
         id: 'fix-paused-by-you',
         title: 'Fix it, contributing paused by the person: Resume',
         path: START_PATH,
@@ -143,13 +136,6 @@ export const START_SCREENS: Screen[] = [
         path: START_PATH,
         height: 720,
         render: () => page('fix', { issue: startViews.unavailable }),
-      },
-      {
-        id: 'lesson',
-        title: 'With a lesson, connected: the prompt, and "Just fix it, no lesson" under it',
-        path: LESSON_PATH,
-        height: 1180,
-        render: () => page('lesson'),
       },
       {
         id: 'lesson-no-goal',

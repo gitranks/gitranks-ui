@@ -4,7 +4,7 @@ import type { LearnProfile, MyLearnAttempt, MyLearnAttempts } from './learn.type
 import { currentOf, hasGoal } from './learn-home';
 import { PROGRESS_TABS, PROGRESS_VIEWS, progressPath } from './progress/progress';
 import type { LearnProgressCounts } from './progress/progress.types';
-import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
+import { type IssueRef, pullRequestByAttemptPath, startPath } from '@/lib/workspace/paths';
 
 /**
  * The Learn tab (`/learn`, signed in, Learn open): which state it is in, the path to a first pull request with its
@@ -43,9 +43,10 @@ export function learnTabStateOf({
 }): LearnTabState {
   if (held) return { kind: 'held' };
   if (settingUp) return { kind: 'setting-up' };
-  if (!hasGoal(profile)) return { kind: 'no-goal' };
+  // A lesson in progress comes before the goal: one started from Contribute's issues may have none saved.
   const current = currentOf(attempts);
   if (current) return isWorking(current) ? { kind: 'working', current } : { kind: 'lesson', current };
+  if (!hasGoal(profile)) return { kind: 'no-goal' };
   return { kind: 'ready' };
 }
 
@@ -61,7 +62,7 @@ export const LEARN_PATH_STEPS: readonly PathStep[] = [
 /** Where a step of the path is: done, the one now, the agent working on it, or still to come. */
 export type PathMark = 'done' | 'now' | 'working' | 'next';
 
-/** Each step's mark: by whether a goal is saved, then by the viewer's own lesson in progress. */
+/** Each step's mark: by the viewer's own lesson in progress, then by whether a goal is saved. */
 export function pathMarksOf({
   goal,
   current,
@@ -69,9 +70,8 @@ export function pathMarksOf({
   goal: boolean;
   current: MyLearnAttempt | null;
 }): [PathMark, PathMark, PathMark] {
-  if (!goal) return ['now', 'next', 'next'];
-  if (!current) return ['done', 'now', 'next'];
-  return isWorking(current) ? ['done', 'working', 'next'] : ['done', 'done', 'now'];
+  if (current) return isWorking(current) ? ['done', 'working', 'next'] : ['done', 'done', 'now'];
+  return goal ? ['done', 'now', 'next'] : ['now', 'next', 'next'];
 }
 
 /**
@@ -129,6 +129,20 @@ export const learnTilesOf = (counts: LearnProgressCounts): { label: string; valu
     value: counts[PROGRESS_TABS[view].count].toLocaleString('en-US'),
     href: progressPath({ view }),
   }));
+
+/**
+ * Where a Learn row's Start a lesson leads, as the page that places the list says it (plain strings, so a server page
+ * can pass them): `base` then `/<owner>/<repo>/<issue>`, then `query`. The Start page in lesson mode by default.
+ */
+export type LearnStartTarget = { base: string; query?: string };
+
+export function learnStartHrefOf(ref: Pick<IssueRef, 'repo' | 'issue'>, target?: LearnStartTarget): Route {
+  if (!target) return startPath(ref, { lesson: true });
+  const [owner = '', name = ''] = ref.repo.split('/');
+  const path = `${target.base.replace(/\/+$/, '')}/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/${ref.issue}`;
+  const query = target.query?.replace(/^\?/, '');
+  return (query ? `${path}?${query}` : path) as Route;
+}
 
 /** Below the lists while the viewer's own lesson is in progress: a page rule, not a refusal. */
 export const ONE_AT_A_TIME = 'One lesson of your own at a time. More issues show here once this one is done.';

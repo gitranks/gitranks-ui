@@ -1,20 +1,25 @@
 'use client';
 
-import type { Route } from 'next';
 import { type ReactNode, useState, useTransition } from 'react';
 
 import { LearnCapNote, LearnHeldNote, LearnIssuesEmpty, LearnRoomNote } from '@/components/learn/learn-issue-notes';
 import { IssueRow } from '@/components/workspace/issue-row';
 import { ShowMore } from '@/components/workspace/show-more';
 import { IssueStartsProvider } from '@/components/workspace/start-control';
+import { useStableRows } from '@/components/workspace/use-stable-rows';
 import { readLearnIssues } from '@/lib/learn/actions';
 import type { LearnIssue, LearnIssues } from '@/lib/learn/learn.types';
 import { goalValueOf } from '@/lib/learn/learn-home';
-import { grownTo, LEARN_ISSUES_FIRST, LEARN_ISSUES_MAX } from '@/lib/learn/learn-tab';
+import {
+  grownTo,
+  LEARN_ISSUES_FIRST,
+  LEARN_ISSUES_MAX,
+  type LearnStartTarget,
+  learnStartHrefOf,
+} from '@/lib/learn/learn-tab';
 import { cn } from '@/lib/utils';
 import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
 import { type ConnectedAgents, issueRowOfLearn } from '@/lib/workspace/issue-row';
-import type { IssueRef } from '@/lib/workspace/paths';
 
 /** A Learn row's Start a lesson leads to the Start page in lesson mode; no agent is offered. */
 const NO_AGENTS: ConnectedAgents = { hosted: false, own: false };
@@ -22,15 +27,18 @@ const NO_AGENTS: ConnectedAgents = { hosted: false, own: false };
 export type LearnIssueListProps = {
   /** The first read of the issues for the goal; undefined when the API did not answer it. */
   issues: LearnIssues | undefined;
-  /** Where each row's Start a lesson leads; the Start page in lesson mode by default. */
-  startHref?: (ref: IssueRef) => Route;
+  /**
+   * Where each row's Start a lesson leads: `base` + `/<owner>/<repo>/<issue>` + `query`, plain strings so a server page
+   * can pass them. The Start page in lesson mode by default.
+   */
+  start?: LearnStartTarget;
   /** The first row's Start is the view's primary button: false when the page holds its primary elsewhere. */
   primary?: boolean;
   /** GitRanks holds the account: its notice, no rows, no Start. */
   held?: boolean;
   /** "Show 10 more": false leaves it out (a list placed for a visitor, or a short preview). */
   more?: boolean;
-  /** Where a click on a row's Start counts as coming from. */
+  /** Where a click on a row's Start counts as coming from (the rows only, never the notes' links). */
   source?: ContributeSource;
   className?: string;
 };
@@ -43,7 +51,7 @@ export type LearnIssueListProps = {
  */
 export function LearnIssueList({
   issues,
-  startHref,
+  start,
   primary = true,
   held = false,
   more = true,
@@ -61,48 +69,46 @@ export function LearnIssueList({
         // Another goal is another list: it starts again at its first 10.
         key={goalValueOf(issues.goal)}
         issues={issues}
-        startHref={startHref}
+        start={start}
         primary={primary}
         more={more}
+        source={source}
       />
     );
   }
   return (
-    <div
-      className={cn('flex flex-col gap-4', className)}
-      data-learn-issue-list=""
-      {...(source ? contributeSource(source) : {})}
-    >
+    <div className={cn('flex flex-col gap-4', className)} data-learn-issue-list="">
       {body}
     </div>
   );
 }
 
+const issueKey = ({ issueId }: LearnIssue) => issueId;
+
 /**
  * The rows, and "Show 10 more": the list is ordered again on each read, so it is read again with a larger `first`
- * (20, 30, … up to 100) and only the rows not shown yet are added under the others; rows already there never move. A
- * read that adds nothing ends it; the count line stays.
+ * (20, 30, … up to 100) and only the rows not shown yet are added under the others. Rows already there never move, a
+ * new read of the page included. A read that adds nothing, or the day's cap, ends it; the count line stays.
  */
 function GrowingRows({
   issues,
-  startHref,
+  start,
   primary,
   more,
+  source,
 }: Required<Pick<LearnIssueListProps, 'primary' | 'more'>> &
-  Pick<LearnIssueListProps, 'startHref'> & { issues: LearnIssues }) {
-  // Only what "Show 10 more" added is kept here: the page's own read (it reads itself again) shows its rows first.
-  const [added, setAdded] = useState<LearnIssue[]>([]);
+  Pick<LearnIssueListProps, 'start' | 'source'> & { issues: LearnIssues }) {
+  const { rows, add } = useStableRows(issues.items, issueKey);
   const [asked, setAsked] = useState(Math.max(issues.items.length, LEARN_ISSUES_FIRST));
   const [ended, setEnded] = useState(false);
   const [capReached, setCapReached] = useState(false);
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const shownIds = new Set(issues.items.map(({ issueId }) => issueId));
-  const rows = [...issues.items, ...added.filter(({ issueId }) => !shownIds.has(issueId))];
   const total = Math.max(issues.total, rows.length);
   const room = issues.room;
-  const growing = more && !ended && asked < LEARN_ISSUES_MAX && rows.length < total;
+  const capped = issues.capReached || capReached;
+  const growing = more && !ended && !capped && asked < LEARN_ISSUES_MAX && rows.length < total;
 
   const showMore = () =>
     startTransition(async () => {
@@ -113,18 +119,15 @@ function GrowingRows({
         setFailed(true);
         return;
       }
-      const held = new Set(rows.map(({ issueId }) => issueId));
-      const fresh = result.data.items.filter(({ issueId }) => !held.has(issueId));
       setAsked(first);
-      setAdded((before) => [...before, ...fresh]);
       if (result.data.capReached) setCapReached(true);
-      if (!fresh.length) setEnded(true);
+      if (!add(result.data.items)) setEnded(true);
     });
 
   return (
     <IssueStartsProvider>
       {room ? <LearnRoomNote room={room} /> : null}
-      <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+      <ul className="divide-y overflow-hidden rounded-xl border bg-card" {...(source ? contributeSource(source) : {})}>
         {rows.map((issue, index) => {
           const row = issueRowOfLearn(issue);
           return (
@@ -135,13 +138,13 @@ function GrowingRows({
                 agents={NO_AGENTS}
                 primary={primary && index === 0}
                 control={!room}
-                startHref={startHref?.({ repo: row.repo, issue: row.number })}
+                startHref={learnStartHrefOf({ repo: row.repo, issue: row.number }, start)}
               />
             </li>
           );
         })}
       </ul>
-      {issues.capReached || capReached ? <LearnCapNote /> : null}
+      {capped ? <LearnCapNote /> : null}
       {growing ? (
         <ShowMore shown={rows.length} total={total} noun="issue" pending={pending} onMore={showMore} />
       ) : more && rows.length < total ? (

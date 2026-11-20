@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/button';
 import { HEADING } from '@/components/workspace/primitives';
 import { RefChips } from '@/components/workspace/ref-chips';
 import { ShowMore } from '@/components/workspace/show-more';
+import { useStableRows } from '@/components/workspace/use-stable-rows';
 import { readPracticeLessons } from '@/lib/learn/actions';
 import type { PracticeLesson, PracticeLessons } from '@/lib/learn/learn.types';
 import { levelPhraseOf, wantedOf } from '@/lib/learn/learn-home';
 import { lessonPath } from '@/lib/learn/learn-path';
-import { grownTo, PRACTICE_MAX } from '@/lib/learn/learn-tab';
+import { grownTo, PRACTICE_FIRST, PRACTICE_MAX } from '@/lib/learn/learn-tab';
 import { agentNameOf } from '@/lib/learn/lesson-public';
 import { cn } from '@/lib/utils';
 import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
@@ -145,10 +146,12 @@ export function PracticeGrid({ children }: { children: ReactNode }) {
   return <div className="grid grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-4">{children}</div>;
 }
 
+const practiceKey = ({ slug }: PracticeLesson) => slug;
+
 /**
  * The Learn tab's practice lessons (`#practice`): other learners' lessons for the viewer's goal, marked optional, with
- * how many there are; the first 3, then "Show 10 more" reads the list again with 10 more (13, 23, … up to 93) and shows
- * the answer in place. Left out when no lesson matches the goal, or the API did not answer.
+ * how many there are; the first 3, then "Show 10 more" reads the list again with 10 more (13, 23, … up to 93) and adds
+ * the cards not shown yet under the others, which stay in place. Left out when no lesson matches the goal, or the API did not answer.
  */
 export function PracticeSection({
   practice,
@@ -162,24 +165,30 @@ export function PracticeSection({
   title: string;
   text: ReactNode;
 }) {
-  // Only what "Show 10 more" read is kept here: a new read of the page shows its own lessons until then.
-  const [grown, setGrown] = useState<PracticeLessons | null>(null);
+  // The cards shown keep their places: a new read (the page's, or "Show 10 more"'s) only adds the ones not shown yet.
+  const { rows: items, add } = useStableRows(practice?.items ?? [], practiceKey);
+  const [answered, setAnswered] = useState<number | null>(null);
+  const [asked, setAsked] = useState(Math.max(practice?.items.length ?? 0, PRACTICE_FIRST));
+  const [ended, setEnded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
-  const items = grown?.items ?? practice?.items ?? [];
-  const total = grown?.total ?? practice?.total ?? 0;
   if (!items.length) return null;
+  const total = Math.max(answered ?? practice?.total ?? 0, items.length);
   const most = Math.min(total, PRACTICE_MAX);
 
   const showMore = () =>
     startTransition(async () => {
       setFailed(false);
-      const result = await readPracticeLessons(grownTo(items.length, PRACTICE_MAX)).catch(() => null);
-      if (result?.ok && result.data.items.length > items.length) {
-        setGrown(result.data);
-      } else {
+      const first = grownTo(asked, PRACTICE_MAX);
+      const result = await readPracticeLessons(first).catch(() => null);
+      if (!result?.ok) {
         setFailed(true);
+        return;
       }
+      setAsked(first);
+      setAnswered(result.data.total);
+      // Nothing new (the list got shorter meanwhile): the control ends, its count line stays.
+      if (!add(result.data.items)) setEnded(true);
     });
 
   return (
@@ -202,7 +211,15 @@ export function PracticeSection({
           <PracticeLessonCard key={lesson.slug} lesson={lesson} source="learn_home_practice" />
         ))}
       </PracticeGrid>
-      <ShowMore shown={items.length} total={most} noun="practice lesson" pending={pending} onMore={showMore} />
+      {ended || asked >= PRACTICE_MAX ? (
+        items.length < most ? (
+          <p className="text-sm text-muted-foreground" data-show-more-ended="">
+            Showing {items.length} of {most} practice lessons
+          </p>
+        ) : null
+      ) : (
+        <ShowMore shown={items.length} total={most} noun="practice lesson" pending={pending} onMore={showMore} />
+      )}
       {failed ? (
         <p role="alert" className="text-sm text-destructive">
           Couldn’t load them. Try again in a minute.

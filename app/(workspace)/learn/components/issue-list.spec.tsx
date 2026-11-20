@@ -99,15 +99,56 @@ describe("Learn's issue list", () => {
         issues={learnIssues({ items: issues(1, 10), total: 38 })}
         more={false}
         primary={false}
-        startHref={(ref) => `/learn/start/${ref.repo}/${ref.issue}` as never}
+        start={{ base: '/learn/start', query: 'goal=TypeScript' }}
       />,
     );
     expect(button('Show 10 more')).toBeNull();
     const starts = [...container.querySelectorAll('a[data-start-control="link"]')];
     expect(starts).toHaveLength(10);
-    expect(starts[0]?.getAttribute('href')).toBe('/learn/start/acme/widgets/1');
+    expect(starts[0]?.getAttribute('href')).toBe('/learn/start/acme/widgets/1?goal=TypeScript');
     expect(container.querySelector('[data-variant="default"]')).toBeNull();
     expect(learn.readLearnIssues).not.toHaveBeenCalled();
+  });
+
+  it('keeps the rows shown in place when the page reads itself again in another order', async () => {
+    learn.readLearnIssues.mockResolvedValueOnce({ ok: true, data: learnIssues({ items: issues(1, 20), total: 38 }) });
+    const list = (items: LearnIssue[]) => <LearnIssueList issues={learnIssues({ items, total: 38 })} />;
+    await render(list(issues(1, 10)));
+    await act(async () => button('Show 10 more')?.click());
+    const before = shown();
+    expect(before).toHaveLength(20);
+    // The new read: reordered, a grown row now in the top 10, a first-read row left out, one row never shown.
+    const reread = [issue(15), ...issues(2, 8).reverse(), issue(31)];
+    await render(list(reread));
+    expect(shown()).toEqual([...before, 'I_31']);
+    // Each row is drawn from the newest data read for it.
+    await render(list([{ ...issue(3), title: 'Renamed upstream' }, ...issues(4, 9)]));
+    expect(container.querySelector('article[data-issue="I_3"]')?.textContent).toContain('Renamed upstream');
+    expect(shown().slice(0, 3)).toEqual(['I_1', 'I_2', 'I_3']);
+  });
+
+  it('offers no Show 10 more once the day’s cap is reached, keeping the count line', async () => {
+    await render(<LearnIssueList issues={learnIssues({ items: issues(1, 10), total: 38, capReached: true })} />);
+    expect(button('Show 10 more')).toBeNull();
+    expect(container.textContent).toContain('That’s today’s new issues');
+    expect(container.textContent).toContain('Showing 10 of 38 issues');
+  });
+
+  it('counts a click as from the list on its rows only, never on its notes’ links', async () => {
+    await render(
+      <LearnIssueList
+        issues={learnIssues({ items: issues(1, 2), room: { limit: 'open_prs_at_a_time', value: 2 } })}
+        source="learn_home_issue"
+      />,
+    );
+    const marked = [...container.querySelectorAll('[data-contribute-source]')];
+    expect(marked.map((each) => each.tagName)).toEqual(['UL']);
+    expect(container.querySelector('[data-room] [data-contribute-source]')).toBeNull();
+    expect(container.querySelector('[data-room]')?.closest('[data-contribute-source]')).toBeNull();
+    await render(
+      <LearnIssueList issues={learnIssues({ items: [], total: 0, empty: 'NONE_TODAY' })} source="learn_home_issue" />,
+    );
+    expect(container.querySelector('[data-contribute-source]')).toBeNull();
   });
 
   it('draws the held notice itself, with no rows', async () => {
@@ -121,7 +162,7 @@ describe("The Learn tab's practice lessons", () => {
   const lessons = (count: number): PracticeLesson[] =>
     Array.from({ length: count }, (_, at) => ({ ...PRACTICE[0], slug: `lesson-${at}`, title: `Lesson ${at}` }));
 
-  it('shows 3 first, then reads 13, 23, … and shows the answer in place', async () => {
+  it('shows 3 first, then reads 13, 23, … and adds the new cards under the others', async () => {
     learn.readPracticeLessons.mockResolvedValueOnce({
       ok: true,
       data: practiceLessons({ items: lessons(13), total: 15 }),
@@ -147,6 +188,50 @@ describe("The Learn tab's practice lessons", () => {
     expect(learn.readPracticeLessons).toHaveBeenLastCalledWith(23);
     expect(container.querySelectorAll('[data-practice-lesson]')).toHaveLength(15);
     expect(button('Show 2 more')).toBeNull();
+  });
+
+  it('keeps the cards shown in place when the newest-first list moved meanwhile', async () => {
+    // A lesson published meanwhile comes first in the answer: the cards shown stay where they are.
+    const fresh = { ...PRACTICE[0], slug: 'new-one', title: 'New one' };
+    learn.readPracticeLessons.mockResolvedValueOnce({
+      ok: true,
+      data: practiceLessons({ items: [fresh, ...lessons(12)], total: 16 }),
+    });
+    await render(
+      <PracticeSection
+        practice={practiceLessons({ items: lessons(3), total: 15 })}
+        goal="TypeScript"
+        title="t"
+        text="x"
+      />,
+    );
+    await act(async () => button('Show 10 more')?.click());
+    const slugs = [...container.querySelectorAll('[data-practice-lesson]')].map((card) =>
+      card.getAttribute('data-practice-lesson'),
+    );
+    expect(slugs.slice(0, 3)).toEqual(['lesson-0', 'lesson-1', 'lesson-2']);
+    expect(slugs).toHaveLength(13);
+    expect(slugs.at(-1)).toBe('lesson-11');
+    expect(slugs).toContain('new-one');
+  });
+
+  it('ends without an error when a read adds nothing (the list got shorter)', async () => {
+    learn.readPracticeLessons.mockResolvedValueOnce({
+      ok: true,
+      data: practiceLessons({ items: lessons(3), total: 3 }),
+    });
+    await render(
+      <PracticeSection
+        practice={practiceLessons({ items: lessons(3), total: 15 })}
+        goal="TypeScript"
+        title="t"
+        text="x"
+      />,
+    );
+    await act(async () => button('Show 10 more')?.click());
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(button('Show 10 more')).toBeNull();
+    expect(container.querySelectorAll('[data-practice-lesson]')).toHaveLength(3);
   });
 
   it('asks for at most 93', async () => {

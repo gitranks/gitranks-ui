@@ -7,6 +7,7 @@ import {
   grownTo,
   headPartOf,
   LEARN_ISSUES_MAX,
+  learnStartHrefOf,
   learnTabStateOf,
   learnTilesOf,
   PRACTICE_MAX,
@@ -22,14 +23,19 @@ const state = (attempts: MyLearnAttempts | undefined = myLearnAttempts.none, pro
 const COUNTS: LearnProgressCounts = { lessonsPassed: 7, newThings: 19, reposHelped: 2, prsMerged: 2, prsOpened: 3 };
 
 describe("The Learn tab's state", () => {
-  it('decides the states in order: held, setting up, no goal, the agent working, the lesson waiting, ready', () => {
+  it('decides the states in order: held, setting up, the agent working, the lesson waiting, no goal, ready', () => {
     expect(learnTabStateOf({ held: true, settingUp: true, profile: null, attempts: undefined }).kind).toBe('held');
     expect(state(myLearnAttempts.working, emptyProfile, true).kind).toBe('held');
     expect(learnTabStateOf({ held: false, settingUp: true, profile: filledProfile, attempts: undefined }).kind).toBe(
       'setting-up',
     );
-    expect(state(myLearnAttempts.working, emptyProfile).kind).toBe('no-goal');
-    expect(state(myLearnAttempts.working, { ...filledProfile, goalValue: '  ' }).kind).toBe('no-goal');
+    // A lesson in progress comes before the goal: one started from Contribute's issues may have none saved.
+    expect(state(myLearnAttempts.working, emptyProfile).kind).toBe('working');
+    expect(
+      state({ current: myAttempt({ stage: 'LESSON', state: 'REVIEW' }), lastPullRequest: null }, emptyProfile).kind,
+    ).toBe('lesson');
+    expect(state(myLearnAttempts.none, emptyProfile).kind).toBe('no-goal');
+    expect(state(myLearnAttempts.none, { ...filledProfile, goalValue: '  ' }).kind).toBe('no-goal');
     expect(state(myLearnAttempts.working).kind).toBe('working');
     expect(state({ current: myAttempt({ stage: 'AGENT_REWRITING' }), lastPullRequest: null }).kind).toBe('working');
     for (const attempts of [
@@ -55,6 +61,18 @@ describe("The Learn tab's state", () => {
     expect(marks(myLearnAttempts.ready)).toEqual(['done', 'done', 'now']);
     expect(marks(myLearnAttempts.blocked)).toEqual(['done', 'done', 'now']);
     expect(marks(myLearnAttempts.submitting)).toEqual(['done', 'done', 'now']);
+    // The lesson in progress marks the path, a goal saved or not.
+    expect(marks(myLearnAttempts.ready, false)).toEqual(['done', 'done', 'now']);
+    expect(marks(myLearnAttempts.working, false)).toEqual(['done', 'working', 'next']);
+  });
+
+  it("leads a Learn row's Start a lesson where the page that places the list says, the Start page by default", () => {
+    const ref = { repo: 'acme/my widgets', issue: 7 };
+    expect(learnStartHrefOf(ref)).toBe('/my/start/acme/my%20widgets/7?lesson=1');
+    expect(learnStartHrefOf(ref, { base: '/learn/start' })).toBe('/learn/start/acme/my%20widgets/7');
+    expect(learnStartHrefOf(ref, { base: '/learn/start/', query: '?goal=TypeScript' })).toBe(
+      '/learn/start/acme/my%20widgets/7?goal=TypeScript',
+    );
   });
 
   it('makes step 3 the link to the lesson by its stage, and a line while the pull request is opened', () => {

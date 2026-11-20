@@ -266,6 +266,19 @@ describe("The Learn tab, the viewer's own lesson", () => {
     expect(submitting).not.toContain('href="/my/pull-requests/by-attempt/A_1?view=lesson"');
   });
 
+  it('puts a waiting lesson before the goal question: with no goal saved, step 3 is still the one primary link', () => {
+    const html = tab(
+      { current: myAttempt({ stage: 'LESSON', state: 'REVIEW' }), lastPullRequest: null },
+      { profile: emptyProfile },
+    );
+    expect(html).toContain('data-learn-tab="lesson"');
+    expect(marks(html)).toEqual(['done', 'done', 'now']);
+    expect(html).not.toContain('data-goal-first');
+    expect(html).toMatch(/data-variant="default"[^>]*href="\/my\/pull-requests\/by-attempt\/A_1\?view=lesson"/);
+    expect(primaries(html)).toBe(1);
+    expect(tab(myLearnAttempts.working, { profile: emptyProfile })).toContain('data-learn-tab="working"');
+  });
+
   it('after the first Learn pull request: four numbers in the path’s place, and nothing of a later lesson', () => {
     const html = tab(myLearnAttempts.ready, { counts: COUNTS });
     expect(html).toContain('data-number-tiles="learn"');

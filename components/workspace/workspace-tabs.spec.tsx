@@ -24,7 +24,7 @@ vi.mock('@/lib/workspace/actions', () => ({ readWorkspaceChanges: vi.fn(), readN
 vi.mock('@/lib/workspace/contribute.data', () => data);
 vi.mock('@/lib/workspace/gate.data', () => gate);
 
-const { WorkspaceTabsNav } = await import('./workspace-tabs-nav');
+const { revealSideways, WorkspaceTabsNav } = await import('./workspace-tabs-nav');
 const { WorkspaceTabs } = await import('./workspace-tabs');
 const { HeaderLine } = await import('./header-line');
 const { default: WorkspaceLayout } = await import('@/app/(workspace)/layout');
@@ -197,6 +197,23 @@ describe('the tab bar', () => {
       expect(text(quiet)).toBe('Agent');
       expect(quiet).not.toContain('animate-');
     }
+  });
+});
+
+describe('the current tab on a phone', () => {
+  const box = (left: number, right: number) => ({ getBoundingClientRect: () => ({ left, right }) }) as HTMLElement;
+  const bar = (scrollLeft: number) => Object.assign(box(0, 360), { scrollLeft });
+
+  it('scrolls the bar sideways just enough to show it, and nothing else', () => {
+    const right = bar(0);
+    revealSideways(right, box(330, 420));
+    expect(right.scrollLeft).toBe(60);
+    const left = bar(100);
+    revealSideways(left, box(-40, 50));
+    expect(left.scrollLeft).toBe(60);
+    const shown = bar(20);
+    revealSideways(shown, box(10, 100));
+    expect(shown.scrollLeft).toBe(20);
   });
 });
 

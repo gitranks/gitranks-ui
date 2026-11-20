@@ -8,6 +8,7 @@ import { TabsBar } from '@/components/tabs/tabs-bar';
 import { ActivityBar, ActivityDot, useWorkspaceLive } from '@/components/workspace/activity';
 import { ChangesProvider } from '@/components/workspace/changes-provider';
 import { HeaderLine } from '@/components/workspace/header-line';
+import { scrollToHash } from '@/components/workspace/scroll-to-hash';
 import { runsOf, runsTabMarkOf } from '@/lib/workspace/agent-runs';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeActivity } from '@/lib/workspace/contribute.types';
@@ -52,9 +53,15 @@ export function WorkspaceTabsNav({
 export function WorkspaceTabsBar({ tabs, active }: { tabs: readonly WorkspaceTab[]; active: WorkspaceTab | null }) {
   const { activity, needsYou } = useWorkspaceLive();
   const bar = useRef<HTMLDivElement>(null);
+  // The bar streams in on its own. Arriving after the screen, it pushes the section a link landed on (`#email`) down by
+  // its height; browsers without scroll anchoring (Safari) leave the view where it was, so the link's jump is made
+  // again. Before the screen is there, the id names nothing and the screen's own jump follows.
+  useEffect(scrollToHash, []);
   useEffect(() => {
     if (!active) return;
-    bar.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    const tab = bar.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    const list = tab?.closest('ul');
+    if (tab && list) revealSideways(list, tab);
   }, [active]);
 
   return (
@@ -83,6 +90,18 @@ export function WorkspaceTabsBar({ tabs, active }: { tabs: readonly WorkspaceTab
       </TabsBar>
     </div>
   );
+}
+
+/**
+ * Scrolls `list` sideways just enough to show `item`, and nothing else. `scrollIntoView` would also scroll the page up
+ * to the bar: a link to a section further down (`/my/settings#email`) lands there, then the bar's late render took the
+ * page back to the top.
+ */
+export function revealSideways(list: HTMLElement, item: HTMLElement): void {
+  const shown = list.getBoundingClientRect();
+  const box = item.getBoundingClientRect();
+  if (box.left < shown.left) list.scrollLeft -= shown.left - box.left;
+  else if (box.right > shown.right) list.scrollLeft += box.right - shown.right;
 }
 
 /** While agents work: a spinner and their number ("2 at work" for screen readers). Queued or waiting runs show nothing. */

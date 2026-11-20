@@ -21,15 +21,22 @@ import { openPrsOverrideOf } from '@/lib/workspace/access-limits';
 import { type Audience, audienceOf } from '@/lib/workspace/audience';
 import {
   loadContribute,
-  loadContributeEmail,
+  loadContributeEmailSettings,
   loadContributeSet,
   loadContributeSetup,
   loadScheduleCounts,
 } from '@/lib/workspace/contribute.data';
-import type { ContributeEmail, ContributeSet, ContributeView } from '@/lib/workspace/contribute.types';
+import type {
+  ContributeEmailSettings,
+  ContributeNeedsYouEmail,
+  ContributeSet,
+  ContributeView,
+} from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
+import { emailHintOf } from '@/lib/workspace/email-settings';
 import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
+import { autopilotOnOf } from '@/lib/workspace/hosted-level';
 import { ABOUT_PATH, SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 import {
@@ -66,7 +73,7 @@ export async function SettingsView({
     loadSummaryView(),
     searchParams,
     loadContributeSet(),
-    loadContributeEmail(),
+    loadContributeEmailSettings(),
     loadLearnOpen(),
     loadScheduleCounts(),
   ]);
@@ -81,7 +88,9 @@ export async function SettingsView({
       learnOpen={learnOpen}
       set={set}
       setFailed={set === undefined}
-      email={email}
+      email={email ?? null}
+      emailFailed={email === undefined}
+      emailHint={emailHintOf(params.email)}
       profile={profile ?? null}
       profileFailed={profile === undefined}
       openPrs={counts?.prBound}
@@ -239,8 +248,8 @@ function LearningGroup({ profile, failed }: { profile: LearnProfile | null; fail
 /**
  * Settings (W1 §10): tell GitRanks about you, once. The pull request limits and GitHub's access (both agents'), the
  * email, then each side's group, the one the person uses first, the other closed to a line; Delete last. With Learn not
- * open to the account, no Learn group at all. Each row opens the page it is changed on; the email's switch is on its
- * row. Old links to a section of the one-page Settings go on to where it is now (`SettingsAnchors`).
+ * open to the account, no Learn group at all. Each row opens the page it is changed on; the Email rows change on the
+ * page itself. Old links to a section of the one-page Settings go on to where it is now (`SettingsAnchors`).
  */
 export function SettingsScreen({
   view,
@@ -248,6 +257,8 @@ export function SettingsScreen({
   set,
   setFailed = false,
   email = null,
+  emailFailed = false,
+  emailHint = null,
   profile = null,
   profileFailed = false,
   openPrs,
@@ -258,8 +269,12 @@ export function SettingsScreen({
   set?: ContributeSet | null;
   /** What the user works on did not load. */
   setFailed?: boolean;
-  /** Contribute's email; its group is left out only when the API does not answer it. */
-  email?: ContributeEmail | null;
+  /** The Email rows; null when the API hides them (the group is left out). */
+  email?: ContributeEmailSettings | null;
+  /** The Email rows did not load: the group says so. */
+  emailFailed?: boolean;
+  /** The choice an email's "instead" link offers (`?email=`): the group asks before switching. */
+  emailHint?: ContributeNeedsYouEmail | null;
   /** Learn's goal and level: null when none is saved. */
   profile?: LearnProfile | null;
   /** The goal did not load. */
@@ -301,7 +316,9 @@ export function SettingsScreen({
         </Link>
         .
       </p>
-      {email ? <EmailRows email={email} /> : null}
+      {email || emailFailed ? (
+        <EmailRows settings={email ?? undefined} autopilotOn={autopilotOnOf(view.contributor)} hint={emailHint} />
+      ) : null}
       <div className="flex flex-col gap-8 border-t pt-8">
         {audience === 'learner' ? (
           <>

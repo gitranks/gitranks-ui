@@ -1264,6 +1264,7 @@ export const WORKSPACE_SCREENS: Screen[] = [
     sources: [
       'app/(workspace)/my/settings/components/settings-view.tsx',
       'components/workspace/settings/email-rows.tsx',
+      'lib/workspace/email-settings.ts',
       'components/workspace/settings/delete-data-section.tsx',
     ],
     states: [
@@ -1312,6 +1313,50 @@ export const WORKSPACE_SCREENS: Screen[] = [
                 profile={filledProfile}
                 openPrs={1}
               />
+            </main>,
+          ),
+      },
+      {
+        id: 'email-hint',
+        title: 'Opened from an email\'s "one summary a day instead" link: asked before switching',
+        path: '/my/settings?email=daily#email',
+        height: 1900,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen
+                view={settingsViews.both}
+                learnOpen
+                email={email.on}
+                emailHint="ONCE_A_DAY"
+                profile={filledProfile}
+                openPrs={3}
+              />
+            </main>,
+          ),
+      },
+      {
+        id: 'email-no-address',
+        title: 'No email address: both Email rows disabled under why',
+        path: '/my/settings',
+        height: 1650,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen view={settingsViews.contributor} learnOpen email={email.noAddress} openPrs={3} />
+            </main>,
+          ),
+      },
+      {
+        id: 'email-daily-phone',
+        title: 'Once a day, the choices wrapped under the title · phone',
+        path: '/my/settings',
+        width: 390,
+        height: 2300,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen view={settingsViews.contributor} learnOpen email={email.daily} openPrs={3} />
             </main>,
           ),
       },

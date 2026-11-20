@@ -46,7 +46,7 @@ import {
   RevokeMcpTokenDocument,
   SendBackContributeProofDocument,
   SendBackToAgentDocument,
-  SetContributeEmailDocument,
+  SetContributeEmailSettingsDocument,
   SetContributeSettingsDocument,
   SetPrTimelineDocument,
   SetResolveHumansDocument,
@@ -67,7 +67,8 @@ import type {
   ContributeConnectKeyResult,
   ContributeConnectLimits,
   ContributeDeleteDataResult,
-  ContributeEmail,
+  ContributeEmailSettings,
+  ContributeEmailSettingsInput,
   ContributeMcpTokenCreated,
   ContributePrNote,
   ContributeProofSession,
@@ -78,6 +79,7 @@ import type {
   ContributeSettings,
   ContributeSettingsInput,
 } from '@/lib/workspace/contribute.types';
+import { emailSettingsInputOf } from '@/lib/workspace/email-settings';
 import { type ContributeActionResult, contributeErrorOf } from '@/lib/workspace/errors';
 import { FOLLOW_UP_THREADS_MAX } from '@/lib/workspace/follow-up-flow';
 import { FOLLOW_UP_NOTE_MAX, PR_SIGNAL_KINDS } from '@/lib/workspace/follow-up-format';
@@ -177,9 +179,16 @@ export async function resumeContributing(): Promise<ContributeActionResult<boole
   return run(ResumeContributingDocument, undefined, (data) => data.resumeContributing);
 }
 
-/** Turns GitRanks email on or off for the user: the same switch as an email's unsubscribe link. */
-export async function setContributeEmail(on: boolean): Promise<ContributeActionResult<ContributeEmail>> {
-  return run(SetContributeEmailDocument, { on: on === true }, (data) => data.setContributeEmail);
+/**
+ * Saves the user's Email rows, or (with the time zone alone) notes their browser's zone. Only the fields given, and
+ * only well-formed ones, are sent; a call with none is refused here.
+ */
+export async function setContributeEmailSettings(
+  input: ContributeEmailSettingsInput,
+): Promise<ContributeActionResult<ContributeEmailSettings>> {
+  const variables = emailSettingsInputOf(input);
+  if (!Object.keys(variables).length) return { ok: false, error: 'INVALID' };
+  return run(SetContributeEmailSettingsDocument, variables, (data) => data.setContributeEmailSettings);
 }
 
 export type ApproveAttemptInput = {

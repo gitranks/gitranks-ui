@@ -19,6 +19,7 @@ import { FOLLOW_UP_THREADS_MAX } from '@/lib/workspace/follow-up-flow';
 import { autopilotLineOf, FILLED_NOTE_HINT, signalText } from '@/lib/workspace/follow-up-format';
 import { usd } from '@/lib/workspace/format';
 import type { ActionId } from '@/lib/workspace/hard-stop';
+import { autopilotOnOf } from '@/lib/workspace/hosted-level';
 import { PR_FIX_WORDS } from '@/lib/workspace/pr-conventions';
 import { clipped } from '@/lib/workspace/pr-moves';
 import { noRunWhyOf } from '@/lib/workspace/session-status';
@@ -130,7 +131,7 @@ export function NextRunCard({ move, first, view, now, rider }: CardProps) {
             : lead === 'other'
               ? "Something changed on the pull request that this page can't name."
               : `GitRanks sees something a run can act on. The agent reads every review, comment and check, fixes what it can and drafts replies, ${limit}.`;
-  const autopilotOn = view.contributor?.settings?.hostedLevel === 'AUTOPILOT' && !!view.contributor.autopilot?.unlocked;
+  const autopilotOn = autopilotOnOf(view.contributor);
   const byAuthor = Object.fromEntries(
     (first.reviewFeedback?.threads ?? []).map((thread) => [thread.commentId, thread.author || 'a reviewer']),
   );

@@ -1,6 +1,6 @@
 import type {
   ContributeCredential,
-  ContributeEmail,
+  ContributeEmailSettings,
   ContributeGrant,
   ContributeLimits,
   ContributeMcpToken,
@@ -149,11 +149,13 @@ const notOnboarded = { onboardedAt: null, onboardedVia: null } as const;
 const connected: ContributeGrant = { connected: true, login: 'octocat' };
 
 /** One view for each state a Contribute page renders. */
-/** Contribute's email, on and off, as Settings' Email row shows it. */
+/** The Email rows of Settings: the defaults, a summary a day, all off, and no address. */
 export const email = {
-  on: { on: true, to: 'o•••@example.com' },
-  off: { on: false, to: 'o•••@example.com' },
-} satisfies Record<string, ContributeEmail>;
+  on: { to: 'o•••@example.com', needsYou: 'AFTER_30_MINUTES', ended: true, timeZone: 'Europe/Warsaw' },
+  daily: { to: 'o•••@example.com', needsYou: 'ONCE_A_DAY', ended: true, timeZone: 'Europe/Warsaw' },
+  off: { to: 'o•••@example.com', needsYou: 'OFF', ended: false, timeZone: null },
+  noAddress: { to: null, needsYou: 'AFTER_30_MINUTES', ended: true, timeZone: null },
+} satisfies Record<string, ContributeEmailSettings>;
 
 export const views = {
   newcomer: { contributor: null, grant: { connected: false, login: null }, paused: false, grantAvailable: true },

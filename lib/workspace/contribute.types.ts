@@ -1473,12 +1473,25 @@ export type ContributeSet = {
   limits: ContributeSetLimits;
 };
 
-/** Contribute's email for the user: review reminders and other updates (not other GitRanks email). */
-export type ContributeEmail = {
-  /** False once they unsubscribed, by an email's one-click link or in Settings. */
-  on: boolean;
-  /** The address it goes to, masked ("o•••@example.com"); null when none is stored, so none is sent. */
+/** When something needs the user: one email 30 minutes after it started waiting, one summary a day, or none. */
+export type ContributeNeedsYouEmail = 'AFTER_30_MINUTES' | 'ONCE_A_DAY' | 'OFF';
+
+/** The Email rows of Settings, Contribute's and Learn's alike. */
+export type ContributeEmailSettings = {
+  /** The address the emails go to, masked ("o•••@example.com"); null when none is known, so none is sent. */
   to: string | null;
+  needsYou: ContributeNeedsYouEmail;
+  /** One email each time a pull request of theirs is merged or closed. */
+  ended: boolean;
+  /** The time zone (IANA) a browser of theirs last sent; null while none has. */
+  timeZone: string | null;
+};
+
+/** A save of the Email rows: a field left out keeps its value; the browser's time zone goes with it when known. */
+export type ContributeEmailSettingsInput = {
+  needsYou?: ContributeNeedsYouEmail;
+  ended?: boolean;
+  timeZone?: string;
 };
 
 /** What one add did, and the set after it. */

@@ -7,7 +7,7 @@ import { createContext, type ReactNode, useContext, useEffect, useId, useRef, us
 import { cn } from '@/lib/utils';
 import {
   ACTIVITY_STARTED_EVENT,
-  activityTabOf,
+  activityTabsOf,
   etaOf,
   isRunning,
   itemsOn,
@@ -62,7 +62,7 @@ export const useActivity = () => useContext(ActivityContext).activity;
 export function ActivityDot({ tab }: { tab: ContributeActivityTab | readonly ContributeActivityTab[] }) {
   const { activity } = useContext(ActivityContext);
   const tabs = typeof tab === 'string' ? [tab] : tab;
-  const items = [...new Set(tabs.flatMap((one) => itemsOn(activity, one)))];
+  const items = itemsOn(activity, tabs);
   if (!items.length) return null;
   const running = items.some(isRunning);
   return (
@@ -83,7 +83,7 @@ export function ActivityDot({ tab }: { tab: ContributeActivityTab | readonly Con
 /** The bar under the tabs, on the tab the current work belongs to. */
 export function ActivityBar() {
   const { activity, announced } = useContext(ActivityContext);
-  const items = itemsOn(activity, activityTabOf(usePathname()));
+  const items = itemsOn(activity, activityTabsOf(usePathname()));
   const [now, setNow] = useState<Date | null>(null);
 
   // The estimates count down on the reader's clock; the server render shows none.

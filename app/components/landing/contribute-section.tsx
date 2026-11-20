@@ -13,9 +13,10 @@ import { cn } from '@/lib/utils';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeIssue } from '@/lib/workspace/contribute.types';
 import { AGENT_FIRST_PROMPT } from '@/lib/workspace/mcp-setup';
+import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
 const CONTRIBUTE_PATH: Route = '/contribute';
-const ISSUES_PATH: Route = '/contribute/issues';
+const ISSUES_PATH: Route = PICK_ISSUE_PATHS.fix;
 
 /** Who is looking: a user Contribute is open to, without picks yet, or a contributor with picks of their own. */
 export type ContributeViewer = 'member' | 'contributor';

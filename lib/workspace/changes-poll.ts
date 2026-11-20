@@ -221,8 +221,8 @@ const under = (path: string, prefix: string) => path === prefix || path.startsWi
 
 /** The areas that make each page read itself again; `ISSUES` never does (the cards ask about themselves). */
 const REFRESHED_BY: [test: (path: string) => boolean, areas: ContributeChangeArea[]][] = [
-  // The first-run guide shows on the Issues page too, and says when the first attempt starts.
-  [(path) => path === '/contribute' || path === '/contribute/issues', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
+  // The Contribute tab: its numbers, its runs, its list and the limit's state.
+  [(path) => path === '/contribute', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
   [(path) => path === '/learn', ['ATTEMPTS', 'SETTINGS']],
   // The user's lessons.
   [(path) => path === '/learn/lessons', ['ATTEMPTS']],

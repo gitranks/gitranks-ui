@@ -31,11 +31,6 @@ import {
   ContributeAttemptSubmitClockDocument,
   ContributeAttemptsDocument,
   ContributeAttemptsFollowUpsDocument,
-  ContributeAttemptsInDocument,
-  ContributeAttemptsInFollowUpsDocument,
-  ContributeAttemptsInLearnDocument,
-  ContributeAttemptsInMovesDocument,
-  ContributeAttemptsInOwnAgentDocument,
   ContributeAttemptsLearnDocument,
   ContributeAttemptsMovesDocument,
   ContributeAttemptsOwnAgentDocument,
@@ -583,30 +578,6 @@ function attemptsOf([main, ...extras]: [
   const rows = extras.map((extra) => byAttemptId(settled(extra)?.contributeAttempts));
   return attempts.map((attempt) =>
     rows.reduce((merged, row) => withFields(merged, row.get(attempt.attemptId)), attempt),
-  );
-}
-
-/**
- * The signed-in user's attempts in any of `states`, newest first, with their follow-up, own-agent and Learn fields;
- * `undefined` when the API does not answer (an API that does not take `states` yet among them).
- */
-export async function loadAttemptsIn(
-  states: ContributeAttemptState[],
-  first = 20,
-): Promise<ContributeAttempt[] | undefined> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-
-  const variables = { states, first };
-  const options = { source: 'ssr' as const, githubLogin };
-  return attemptsOf(
-    await Promise.allSettled([
-      graphqlDirect(ContributeAttemptsInDocument, variables, options),
-      graphqlDirect(ContributeAttemptsInFollowUpsDocument, variables, options),
-      graphqlDirect(ContributeAttemptsInOwnAgentDocument, variables, options),
-      graphqlDirect(ContributeAttemptsInMovesDocument, variables, options),
-      graphqlDirect(ContributeAttemptsInLearnDocument, variables, options),
-    ]),
   );
 }
 

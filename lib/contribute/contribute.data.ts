@@ -1,36 +1,21 @@
 import 'server-only';
 
-import { cache } from 'react';
-
+import type { ContributeTabRead } from './contribute-tab';
+import { ContributeTabStateDocument, ContributeTabTotalsDocument } from './contribute-tab.documents';
 import { ISSUES_PAGE_SIZE } from './live-issues';
-import { IN_FLIGHT_READ, IN_FLIGHT_STATES, type OverviewNowRead } from './overview';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { loadAttemptsIn, settled, viewerLogin } from '@/lib/workspace/contribute.data';
-import {
-  ContributeImpactDocument,
-  ContributeImpactReposDocument,
-  ContributeIssuesDocument,
-  ContributeIssuesWithRulesDocument,
-  ContributeScheduleCountsDocument,
-} from '@/lib/workspace/contribute.documents';
-import type {
-  ContributeImpactTotals,
-  ContributeIssuePage,
-  ContributeIssuesFilter,
-} from '@/lib/workspace/contribute.types';
+import { settled, viewerLogin } from '@/lib/workspace/contribute.data';
+import { ContributeIssuesDocument, ContributeIssuesWithRulesDocument } from '@/lib/workspace/contribute.documents';
+import type { ContributeIssuePage, ContributeIssuesFilter } from '@/lib/workspace/contribute.types';
 import { contributeErrorOf } from '@/lib/workspace/errors';
 
-/** One page of issues for the signed-in user; `undefined` when the API does not answer the feed (yet). */
-export async function loadIssues(
-  filter: ContributeIssuesFilter,
-  after?: string,
-): Promise<ContributeIssuePage | null | undefined> {
+/** The first page of issues for the signed-in user; `undefined` when the API does not answer the feed (yet). */
+export async function loadIssues(filter: ContributeIssuesFilter): Promise<ContributeIssuePage | null | undefined> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return undefined;
 
   const variables = {
     first: ISSUES_PAGE_SIZE,
-    ...(after ? { after } : {}),
     ...(Object.keys(filter).length ? { filter } : {}),
   };
   const options = { source: 'ssr' as const, githubLogin };
@@ -47,37 +32,22 @@ export async function loadIssues(
   }
 }
 
-/** Overview's "Right now": the attempts in flight, and what the scheduler counts before it starts one. Read once per request. */
-export const loadOverviewNow = cache(async (): Promise<OverviewNowRead> => {
+/**
+ * What the Contribute tab reads beside the user's view: its side's totals, who paused, the hosted agent's level. Each
+ * read on its own: one the API does not answer leaves its part out ("–", no Resume, the level not known).
+ */
+export async function loadContributeTab(): Promise<ContributeTabRead> {
   const githubLogin = await viewerLogin();
-  if (!githubLogin) return { inFlight: undefined, scheduleCounts: undefined };
-
-  const [inFlight, counts] = await Promise.allSettled([
-    loadAttemptsIn(IN_FLIGHT_STATES, IN_FLIGHT_READ),
-    graphqlDirect(ContributeScheduleCountsDocument, undefined, { source: 'ssr', githubLogin }),
-  ]);
-  const scheduleCounts = settled(counts)?.contribute?.contributor?.scheduleCounts;
-  return {
-    inFlight: settled(inFlight),
-    scheduleCounts:
-      typeof scheduleCounts?.prBound === 'number' && typeof scheduleCounts.queued === 'number'
-        ? scheduleCounts
-        : undefined,
-  };
-});
-
-/** Overview's "Your impact": the totals, with `reposHelped` when the API answers it; `undefined` when it does not. */
-export async function loadOverviewImpact(): Promise<ContributeImpactTotals | undefined> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-
+  if (!githubLogin) return { totals: null, pausedByYou: false, hostedLevel: null };
   const options = { source: 'ssr' as const, githubLogin };
-  const [totals, repos] = await Promise.allSettled([
-    graphqlDirect(ContributeImpactDocument, undefined, options),
-    graphqlDirect(ContributeImpactReposDocument, undefined, options),
+  const [totals, state] = await Promise.allSettled([
+    graphqlDirect(ContributeTabTotalsDocument, undefined, options),
+    graphqlDirect(ContributeTabStateDocument, undefined, options),
   ]);
-  const main = settled(totals)?.contributeContributions?.totals;
-  if (!main) return undefined;
-  const reposHelped = settled(repos)?.contributeContributions?.totals.reposHelped;
-  return { ...main, ...(typeof reposHelped === 'number' ? { reposHelped } : {}) };
+  const contributor = settled(state)?.contribute?.contributor;
+  return {
+    totals: settled(totals)?.contributeContributions?.totals.byMode?.fix ?? null,
+    pausedByYou: contributor?.pausedByYou === true,
+    hostedLevel: contributor?.settings?.hostedLevel ?? null,
+  };
 }

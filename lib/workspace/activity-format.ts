@@ -6,20 +6,24 @@ import type {
 } from './contribute.types';
 
 /**
- * The activity tab a path belongs to: Contribute's front tab and its Issues page, and Settings; null for one with no
+ * The activity tabs a path shows: the Contribute tab, which holds the issues too, and Settings; none for a page with no
  * activity (the pull requests, an attempt, the Agent tab, Learn).
  */
-export function activityTabOf(pathname: string): ContributeActivityTab | null {
+export function activityTabsOf(pathname: string): ContributeActivityTab[] {
   const path = pathname.replace(/\/+$/, '');
-  if (path === '/contribute') return 'OVERVIEW';
-  if (path === '/contribute/issues') return 'ISSUES';
-  if (path === '/my/settings' || path.startsWith('/my/settings/')) return 'SETTINGS';
-  return null;
+  if (path === '/contribute') return ['OVERVIEW', 'ISSUES'];
+  if (path === '/my/settings' || path.startsWith('/my/settings/')) return ['SETTINGS'];
+  return [];
 }
 
-/** The items a tab shows. */
-export const itemsOn = (activity: ContributeActivity | null, tab: ContributeActivityTab | null) =>
-  tab ? (activity?.items ?? []).filter(({ tabs }) => tabs.includes(tab)) : [];
+/** The items any of `tabs` shows, each once, in the activity's order. */
+export const itemsOn = (
+  activity: ContributeActivity | null,
+  tabs: ContributeActivityTab | readonly ContributeActivityTab[] | null,
+) => {
+  const on: readonly ContributeActivityTab[] = tabs === null ? [] : typeof tabs === 'string' ? [tabs] : tabs;
+  return (activity?.items ?? []).filter(({ tabs: its }) => its.some((tab) => on.includes(tab)));
+};
 
 /** Items that only wait (nothing moves until a slot frees or the user resumes): read again rarely. */
 const WAITING_KINDS: ContributeActivityItem['kind'][] = ['FIRST_READS_WAITING', 'READS_PAUSED'];

@@ -81,7 +81,7 @@ describe('the Contribute section on the home page', () => {
     expect(html).toContain('data-picks="own"');
     expect(html).toContain('Up next for you');
     expect(html).toContain('href="https://github.com/acme/widgets/issues/7"');
-    expect(html).toContain('href="/contribute/issues"');
+    expect(html).toContain('href="/contribute#issues"');
     expect(html).toMatch(/<a [^>]*href="\/contribute">Open Contribute/);
     expect(html).not.toContain('Example picks');
     expect(html).not.toContain('Fix it with');

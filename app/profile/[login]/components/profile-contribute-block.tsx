@@ -113,7 +113,7 @@ export const ProfileContributeBlock: FC<{
           <p className="max-w-prose text-sm text-muted-foreground">{lead}</p>
         </div>
         <Link
-          href={(connected ? '/contribute/issues' : '/contribute?start=agent') as Route}
+          href={(connected ? '/contribute#issues' : '/contribute?start=agent') as Route}
           prefetch={false}
           className={cn(buttonVariants({ size: 'sm' }), 'shrink-0 font-semibold max-sm:min-h-11 max-sm:w-full')}
         >

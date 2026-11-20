@@ -10,6 +10,7 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/workspace/start/start-page.actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/issue-actions', () => ({}));
 // The fold's opener runs in the browser alone: the block says which fold it opens.
@@ -30,7 +31,8 @@ const { AttemptRepoRules, openRepoRules, ReposAskLessNote, RulesOpen } = await i
 const { IssueRepoRules } = await import('@/components/workspace/pull-request/issue-repo-rules');
 const { MaintainerRepoExtras } = await import('./maintainer-repo-extras');
 const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
-const { IssueCard } = await import('./issue-card');
+const { IssueRow } = await import('@/components/workspace/issue-row');
+const { issueRowOfContribute } = await import('@/lib/workspace/issue-row');
 const { AgentScreen } = await import('@/components/workspace/agent/agent-screen');
 
 import { attempts, followUpAttempts } from '@/lib/contribute/__fixtures__/contribute-attempts';
@@ -331,7 +333,13 @@ describe('the rules on an issue card', () => {
   });
 
   it('sits on the card under why it was picked', () => {
-    const html = renderToStaticMarkup(<IssueCard issue={issue({ repoRules: issueRules() })} />);
+    const html = renderToStaticMarkup(
+      <IssueRow
+        issue={issueRowOfContribute(issue({ repoRules: issueRules() }))}
+        side="contribute"
+        agents={{ hosted: true, own: false }}
+      />,
+    );
 
     expect(html.indexOf('data-repo-rules')).toBeGreaterThan(html.indexOf('data-why'));
   });

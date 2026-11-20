@@ -16,19 +16,19 @@ export type IssuesQuery = {
   language?: ContributeLanguage;
   kind?: ContributeIssueKind;
   size?: ContributeIssueSize;
-  after?: string;
 };
 
-/** The feed's filters from the URL; anything unknown is dropped. */
+/** The feed's filters from the URL; anything unknown is dropped (an old `?after=` page among them). */
 export function issuesQueryOf(params: Params): IssuesQuery {
-  const after = one(params.after);
   return {
     language: pick(one(params.language), LANGUAGES),
     kind: pick(one(params.kind), KINDS),
     size: pick(one(params.size), SIZES),
-    ...(after && after.length <= 512 ? { after } : {}),
   };
 }
+
+/** Whether a filter is set. */
+export const isFiltered = (query: IssuesQuery) => !!(query.language || query.kind || query.size);
 
 export function filterOf(query: IssuesQuery): ContributeIssuesFilter {
   return {
@@ -38,13 +38,12 @@ export function filterOf(query: IssuesQuery): ContributeIssuesFilter {
   };
 }
 
-/** The feed's URL for a query. */
+/** The list's address for a query: the Contribute tab at its issues, the filters in the query. */
 export function issuesHref(query: IssuesQuery): string {
   const search = new URLSearchParams();
   if (query.language) search.set('language', query.language);
   if (query.kind) search.set('kind', query.kind);
   if (query.size) search.set('size', query.size);
-  if (query.after) search.set('after', query.after);
   const text = search.toString();
-  return text ? `/contribute/issues?${text}` : '/contribute/issues';
+  return text ? `/contribute?${text}#issues` : '/contribute#issues';
 }

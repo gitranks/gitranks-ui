@@ -7,7 +7,7 @@ import type {
 import type { ContributeActionResult } from '@/lib/workspace/errors';
 
 /** A page of the feed, as the Issues list reads it. */
-export const ISSUES_PAGE_SIZE = 20;
+export const ISSUES_PAGE_SIZE = 10;
 /** The most ids one status read asks about. */
 export const ISSUE_STATUS_IDS_MAX = 50;
 
@@ -42,6 +42,8 @@ export type LiveSnapshot = {
   next: string | null;
   /** The day's cap on new issues as last read; null while well under it or not read with the page. */
   dailyCap: ContributeDailyCap | null;
+  /** Rows beyond those shown: held already, or after the cursor. False at the day's cap and at the end. */
+  more: boolean;
 };
 
 /** Why a status read made the reads stop: the API hides it, does not know it yet, or the session ended. */
@@ -68,6 +70,8 @@ export type LiveFeed = {
   poll: () => Promise<PollOutcome>;
   /** Fills a short list from the next issues, while the feed has more: a page the day's cap left short, at once. */
   fill: () => Promise<void>;
+  /** "Show 10 more": `count` more rows shown, read from the next issues when the list holds fewer. */
+  grow: (count: number) => Promise<void>;
   /** The statuses read, applied: a taken or claimed row says so, then leaves. */
   apply: (statuses: ContributeIssueStatus[]) => void;
   /**
@@ -108,12 +112,19 @@ const FINAL_ERRORS = new Set(['SIGNED_OUT', 'NOT_FOUND', 'NOT_AVAILABLE_YET']);
  * each leaves after a moment, the total counts it out, and a page left short is filled from the next issues.
  */
 export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
-  const { limit, readStatus, readMore, reducedMotion = () => false } = options;
+  const { readStatus, readMore, reducedMotion = () => false } = options;
+  let limit = options.limit;
   let rows: LiveRow[] = options.items.map((issue) => ({ issue, status: 'AVAILABLE', attemptId: null, leaving: false }));
   let total = options.total;
   let next = options.next;
   let dailyCap = options.dailyCap ?? null;
-  let snapshot: LiveSnapshot = { rows: rows.slice(0, limit), total, next, dailyCap };
+  let snapshot: LiveSnapshot = {
+    rows: rows.slice(0, limit),
+    total,
+    next,
+    dailyCap,
+    more: rows.length > limit || next !== null,
+  };
   const settled = new Set<string>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const listeners = new Set<() => void>();
@@ -128,7 +139,7 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
   let generation = 0;
 
   const emit = () => {
-    snapshot = { rows: rows.slice(0, limit), total, next, dailyCap };
+    snapshot = { rows: rows.slice(0, limit), total, next, dailyCap, more: rows.length > limit || next !== null };
     for (const listener of listeners) listener();
   };
   const fresh = (issue: ContributeIssue): LiveRow => ({ issue, status: 'AVAILABLE', attemptId: null, leaving: false });
@@ -242,6 +253,11 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
     },
     getSnapshot: () => snapshot,
     fill,
+    grow: (count) => {
+      limit += Math.max(0, count);
+      emit();
+      return fill();
+    },
     apply,
     markTaken: (issueId) => {
       apply([{ issueId, status: 'TAKEN', attemptId: null }]);
@@ -282,9 +298,20 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
         merged.splice(Math.min(at, merged.length), 0, row);
         uncounted.add(issueId);
       }
-      rows = merged;
+      // A list grown past the page (Show 10 more) keeps the rows it holds after the page's last one, and its further
+      // cursor: a read of the first page again does not shrink it back and read them all again.
+      const lastAt = page.items.length ? was.get(page.items[page.items.length - 1].issueId)?.at : undefined;
+      const kept =
+        page.next !== null && lastAt !== undefined
+          ? rows
+              .slice(lastAt + 1)
+              .filter(
+                ({ issue, status }) => status === 'AVAILABLE' && !ids.has(issue.issueId) && !settled.has(issue.issueId),
+              )
+          : [];
+      rows = [...merged, ...kept];
       total = page.total;
-      next = page.next;
+      next = kept.length ? next : page.next;
       if (page.dailyCap !== undefined) dailyCap = page.dailyCap;
       emit();
       void fill();

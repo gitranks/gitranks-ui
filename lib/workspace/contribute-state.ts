@@ -1,6 +1,4 @@
-import { isAgentWelcome, welcomeClientOf } from './agent-connect';
 import type { ContributeCredential, ContributeLimits, ContributeSettings, ContributeView } from './contribute.types';
-import type { McpClient } from './mcp-setup';
 
 /**
  * What stands between the user and their next attempt, most pressing first. The GitHub grant is not among them: it is
@@ -116,22 +114,18 @@ export type LandingViewer = 'visitor' | 'signed-in' | 'mid-setup';
  * What `/contribute` shows. `preview` is a signed-in user seeing the visitor's landing (`?as=visitor`): its sign-in
  * goes straight on, as they are signed in already.
  */
-export type ContributeHome =
-  /** `welcome`: the user's own agent just connected (`?welcome=agent`), with the client they picked. */
-  { screen: 'overview'; welcome?: McpClient } | { screen: 'landing'; viewer: LandingViewer; preview: boolean };
+export type ContributeHome = { screen: 'tab' } | { screen: 'landing'; viewer: LandingViewer; preview: boolean };
 
 /**
- * `/contribute` for the signed-in user: the landing until they are onboarded, then the overview. `?about=1` shows an
- * onboarded user the landing again ("How Contribute works"), and `?as=visitor` shows anyone the visitor's landing.
- * `?welcome=agent&client=…` opens the overview with the welcome of a user whose own agent just connected.
+ * `/contribute` for the signed-in user: the landing until they are onboarded, then the Contribute tab. `?about=1` shows
+ * an onboarded user the landing again ("How Contribute works"), and `?as=visitor` shows anyone the visitor's landing.
+ * `?welcome=agent` (the own agent's connect step) is the tab itself.
  */
 export function contributeHomeOf(
   view: ContributeView,
   params: {
     as?: string | string[];
     about?: string | string[];
-    welcome?: string | string[];
-    client?: string | string[];
   },
 ): ContributeHome {
   if (isAsVisitor(params.as)) return { screen: 'landing', viewer: 'visitor', preview: true };
@@ -139,8 +133,7 @@ export function contributeHomeOf(
     return { screen: 'landing', viewer: isMidSetup(view) ? 'mid-setup' : 'signed-in', preview: false };
   }
   if (firstOf(params.about) === '1') return { screen: 'landing', viewer: 'signed-in', preview: false };
-  if (isAgentWelcome(params.welcome)) return { screen: 'overview', welcome: welcomeClientOf(params.client) };
-  return { screen: 'overview' };
+  return { screen: 'tab' };
 }
 
 /** The pages of Contribute that wait for the user: Issues, My contributions, an attempt's review, Settings. */

@@ -254,9 +254,6 @@ describe('what a read does', () => {
     ['/contribute', ['ATTEMPTS'], true],
     ['/contribute', ['FEED'], true],
     ['/contribute/', ['SETTINGS'], true],
-    ['/contribute/issues', ['FEED'], true],
-    ['/contribute/issues', ['ATTEMPTS'], true],
-    ['/contribute/issues', ['ISSUES'], false],
     ['/learn', ['ATTEMPTS'], true],
     ['/learn', ['SETTINGS'], true],
     ['/learn', ['FEED', 'SET'], false],
@@ -287,14 +284,7 @@ describe('what a read does', () => {
   });
 
   it('never reads a page again for an issue’s availability or the work alone: those parts ask themselves', () => {
-    for (const path of [
-      '/contribute',
-      '/contribute/issues',
-      '/learn',
-      '/my/pull-requests',
-      '/my/agent',
-      '/my/settings',
-    ]) {
+    for (const path of ['/contribute', '/learn', '/my/pull-requests', '/my/agent', '/my/settings']) {
       expect(refreshesFor(path, ['ISSUES', 'ACTIVITY'])).toBe(false);
     }
   });
@@ -490,7 +480,7 @@ describe('the poll session', () => {
   });
 
   it('an issue’s availability alone refreshes no page: the cards hear it', async () => {
-    const { session, deps } = sessionOf([answer('4.3', ['ISSUES'])], { path: '/contribute/issues' });
+    const { session, deps } = sessionOf([answer('4.3', ['ISSUES'])], { path: '/contribute' });
 
     await session.tick();
     expect(deps.refresh).not.toHaveBeenCalled();

@@ -50,7 +50,7 @@ export function IssuesFilters({ query }: { query: IssuesQuery }) {
   const active = activeFiltersOf(query);
 
   const change = (next: Partial<IssuesQuery>) =>
-    startTransition(() => router.replace(issuesHref({ ...query, ...next, after: undefined }) as Route));
+    startTransition(() => router.replace(issuesHref({ ...query, ...next }) as Route, { scroll: false }));
 
   return (
     <div className="flex items-center gap-1" aria-busy={pending} data-filters={active.length}>

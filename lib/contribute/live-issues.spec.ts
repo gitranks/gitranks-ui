@@ -82,6 +82,49 @@ describe('a live list of issues', () => {
     expect(ids(feed)).not.toContain('I_3');
   });
 
+  it('grows in place: more rows shown, read from the next issues when it holds fewer', async () => {
+    const readMore = vi.fn(async (_after: string, first: number) => ({
+      ok: true as const,
+      data: {
+        items: ISSUES.slice(0, first).map((each, at) => ({ ...each, issueId: `M_${at}` })),
+        next: null,
+        total: 42,
+        computedAt: null,
+      },
+    }));
+    const feed = feedOf({ limit: 2, next: 'c2', readMore });
+    expect(ids(feed)).toHaveLength(2);
+    await feed.grow(2);
+    expect(ids(feed)).toHaveLength(4);
+    expect(readMore).not.toHaveBeenCalled();
+    await feed.grow(3);
+    expect(readMore).toHaveBeenCalledWith('c2', 3);
+    expect(ids(feed)).toHaveLength(7);
+  });
+
+  it('keeps a grown list through a read of its first page again, and says when nothing more is left', async () => {
+    const more = ISSUES.map((each, at) => ({ ...each, issueId: `M_${at}`, number: 100 + at }));
+    const readMore = vi.fn(async () => ({
+      ok: true as const,
+      data: { items: more, next: 'c3', total: 42, computedAt: null },
+    }));
+    const feed = feedOf({ limit: 4, next: 'c2', readMore });
+    await feed.grow(4);
+    expect(ids(feed)).toHaveLength(8);
+    readMore.mockClear();
+    // The first page read again, as a refresh brings it.
+    feed.reset({ items: ISSUES, total: 42, next: 'c2' });
+    expect(ids(feed)).toHaveLength(8);
+    expect(feed.getSnapshot().next).toBe('c3');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(readMore).not.toHaveBeenCalled();
+
+    // At the end, or the day's cap: nothing more, whatever the total.
+    const end = feedOf({ items: ISSUES, limit: 4, next: null, total: 300 });
+    expect(end.getSnapshot().more).toBe(false);
+    expect(feedOf({ items: ISSUES, limit: 2, next: null }).getSnapshot().more).toBe(true);
+  });
+
   it('lets a row its Start found gone leave once, its status kept and asked about no more', async () => {
     const readStatus = vi.fn(async (_ids: string[]): Promise<StatusRead> => ({ ok: true, data: [] }));
     const feed = feedOf({ readStatus, limit: 4 });

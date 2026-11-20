@@ -128,7 +128,6 @@ describe('the tab bar', () => {
   it.each([
     ['/contribute', '', 'contribute'],
     ['/contribute/', '', 'contribute'],
-    ['/contribute/issues', '', 'contribute'],
     ['/my/start/acme/widgets/42', '', 'contribute'],
     ['/my/start/acme/widgets/42', 'lesson=1', 'learn'],
     ['/learn', '', 'learn'],

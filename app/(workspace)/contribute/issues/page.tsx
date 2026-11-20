@@ -1,17 +1,11 @@
-import type { Metadata } from 'next';
-import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 
-import { IssuesView } from '@/app/contribute/components/issues-view';
-import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
+import { issuesHref, issuesQueryOf } from '@/app/contribute/components/issues-filter';
 
-export const metadata: Metadata = { title: 'Issues for you' };
-
-export default function ContributeIssuesPage({ searchParams }: PageProps<'/contribute/issues'>) {
-  return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16">
-      <Suspense fallback={<ContributePageSkeleton />}>
-        <IssuesView searchParams={searchParams} />
-      </Suspense>
-    </main>
-  );
+/**
+ * Issues for you moved to the Contribute tab: an old link goes there, to its issues, with its filters (an `?after=`
+ * page is dropped: the list grows in place now).
+ */
+export default async function ContributeIssuesPage({ searchParams }: PageProps<'/contribute/issues'>) {
+  redirect(issuesHref(issuesQueryOf(await searchParams)) as never);
 }

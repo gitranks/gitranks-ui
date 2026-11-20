@@ -95,7 +95,7 @@ describe('the Start page at /my/start', () => {
     expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'lesson', 'TypeScript, Some');
     expect(html).toContain('data-start-mode="lesson"');
     expect(html).toContain('href="/learn#issues"');
-    expect(await startPage({ lesson: '1', from: 'contribute' })).toContain('href="/contribute/issues"');
+    expect(await startPage({ lesson: '1', from: 'contribute' })).toContain('href="/contribute#issues"');
     learn.loadLearnProfile.mockResolvedValueOnce(emptyProfile);
     expect(text(await startPage({ lesson: '1' }))).toContain('Your lesson will be written for a general reader.');
   });

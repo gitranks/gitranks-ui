@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => '/contribute/issues',
+  usePathname: () => '/contribute',
   useSearchParams: () => new URLSearchParams(),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
@@ -22,17 +22,9 @@ vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 const { KeyConnect } = await import('@/components/workspace/agent/key-connect');
 const { LimitsManual } = await import('@/components/workspace/settings/limits-manual');
 const { Matching } = await import('@/components/workspace/matching');
-const { FirstRunGuide } = await import('./first-run-guide');
-const { IssuesScreen } = await import('./issues-view');
-const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
-const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
 
-/** Overview's sections from reads that all answered. */
-const sections = (view: ContributeView) => overviewSectionsOf(view, overviewData(), NOW);
 const { ReviewScreen, grantNeededOf } = await import('@/components/workspace/pull-request/review-view');
-const { NOW, firstSpend, key, limits, settings, views } = await import(
-  '@/lib/contribute/__fixtures__/contribute-views'
-);
+const { NOW, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { manualDraftOf } = await import('@/lib/workspace/connect-limits');
 
@@ -61,7 +53,7 @@ const ISSUE = {
   rank: 1,
   why: 'you write Rust',
 };
-const page: ContributeIssuePage = {
+const _page: ContributeIssuePage = {
   items: [ISSUE, { ...ISSUE, issueId: 'I_2', number: 918, rank: 2 }],
   next: null,
   total: 2,
@@ -169,165 +161,8 @@ describe('A2, matching', () => {
     expect(html).toContain('data-matching="done"');
     expect(plain).toContain('Your first issues are ready');
     expect(html.match(/data-line="done"/g)).toHaveLength(4);
-    expect(html).toContain('href="/contribute/issues"');
+    expect(html).toContain('href="/contribute#issues"');
     expect(plain).toContain('See my issues');
-  });
-});
-
-describe('A3, what happens next before the first attempt', () => {
-  const guide = (view: ContributeView, feed: ContributeIssuePage | null | undefined = page) =>
-    renderToStaticMarkup(<FirstRunGuide view={view} page={feed} now={NOW} />);
-  const spend = firstSpend;
-  const withContributor = (patch: Partial<NonNullable<ContributeView['contributor']>>): ContributeView => ({
-    ...views.firstKey,
-    contributor: { ...views.firstKey.contributor, ...patch },
-  });
-
-  it.each([
-    ['paused', { ...withContributor({ status: 'PAUSED' }), paused: true }, 'Contributing is paused'],
-    [
-      'key-waiting',
-      withContributor({ credentials: [key({ state: 'EXHAUSTED', blockedUntil: '2026-11-14T00:00:00.000Z' })] }),
-      'Your agent starts on Nov 14',
-    ],
-    [
-      'key-waiting',
-      withContributor({ credentials: [key({ state: 'LIMIT_REACHED', blockedUntil: null })] }),
-      'Your agent starts once your key can spend again',
-    ],
-    [
-      'no-room',
-      withContributor({ spend: { ...spend, nextAttemptAt: null } }),
-      'Your caps leave no room for one attempt',
-    ],
-    [
-      'paced',
-      withContributor({ spend: { ...spend, nextAttemptAt: '2026-10-30T12:00:00.000Z' } }),
-      'Your agent starts on one of your top picks in 2 days',
-    ],
-    ['soon', views.firstKey, 'Your agent starts on one of your top picks'],
-  ] as const)('step 1 says when it is %s', (kind, view, title) => {
-    const html = guide(view);
-
-    expect(html).toContain(`data-first-run="${kind}"`);
-    expect(text(html)).toContain(title);
-  });
-
-  it('says a suspended account starts nothing, with no spinner and nothing to wait for', () => {
-    const html = guide(withContributor({ limits: limits.suspended }), {
-      ...page,
-      items: [],
-      total: 0,
-      computedAt: null,
-    });
-    const plain = text(html);
-
-    expect(html).toContain('data-first-run="suspended"');
-    expect(plain).toContain('1 · not for now Contribute is paused for this account');
-    expect(html).toContain('href="mailto:hello@gitranks.com"');
-    expect(html).not.toContain('animate-spin');
-    expect(plain).not.toContain('Nothing for you to do until step 2');
-  });
-
-  it('says the picks are still being found while the feed is empty', () => {
-    expect(text(guide(views.firstKey, { ...page, items: [], total: 0 }))).toContain(
-      "We're still finding issues for you",
-    );
-  });
-
-  it('starts "usually within minutes", on the key, and never names an issue', () => {
-    const plain = text(guide(views.firstKey));
-
-    expect(plain).toContain('1 · next, usually within minutes');
-    expect(plain).toContain('within your per-attempt cap ($5)');
-    expect(plain).not.toContain(ISSUE.title);
-    expect(plain).toContain('Nothing for you to do until step 2');
-    expect(plain).toContain('You review the change');
-    expect(plain).toContain('The first time, GitHub asks you for one permission');
-  });
-
-  it('offers Resume to a paused contributor, and Settings to one whose caps leave no room', () => {
-    const paused = guide({ ...withContributor({ status: 'PAUSED' }), paused: true });
-    expect(paused).toContain('data-paused="true"');
-    expect(text(paused)).not.toContain('Nothing for you to do');
-
-    expect(guide(withContributor({ spend: { ...spend, nextAttemptAt: null } }))).toContain(
-      'href="/my/agent/budget#more-limits"',
-    );
-  });
-
-  it('says what we guessed, from the settings as they are, with the way to change it', () => {
-    const html = guide(views.firstKey);
-
-    expect(text(html)).toContain(
-      "We guessed what you'd like: every kind and size of issue, your profile's languages first, within your $100 monthly cap, paced across your cycle.",
-    );
-    expect(html).toContain('href="/my/settings#work"');
-    expect(text(guide(views.active))).toContain('bugs, Rust first, within your $200 monthly cap');
-  });
-
-  it('opens Issues, with the picks under it', () => {
-    const html = renderToStaticMarkup(<IssuesScreen view={views.firstKey} page={page} query={{}} now={NOW} firstRun />);
-    const plain = text(html);
-
-    expect(html).toMatch(/<h1[^>]*>You&#x27;re in. Here&#x27;s what happens next<\/h1>/);
-    expect(html).toMatch(/<h2[^>]*>Picked for you<\/h2>/);
-    expect(plain.indexOf("You're in")).toBeLessThan(plain.indexOf('Picked for you'));
-    expect(html.match(/data-issue="/g)).toHaveLength(page.items.length);
-  });
-
-  it('leaves out only the notice step 1 restates, and keeps every other block', () => {
-    const paused = { ...views.firstKey.contributor, status: 'PAUSED' as const };
-    const exhausted = { credentials: [key({ state: 'EXHAUSTED', blockedUntil: '2026-11-14T00:00:00.000Z' })] };
-    const issues = (view: ContributeView) =>
-      renderToStaticMarkup(<IssuesScreen view={view} page={page} query={{}} now={NOW} firstRun />);
-    const overview = (view: ContributeView) =>
-      renderToStaticMarkup(<OverviewScreen view={view} sections={sections(view)} now={NOW} firstRun={{ page }} />);
-
-    for (const render of [issues, overview]) {
-      // Paused alone: step 1 says it, the notice goes.
-      const pausedOnly = render({ ...views.firstKey, contributor: paused, paused: true });
-      expect(pausedOnly).toContain('data-first-run="paused"');
-      expect(pausedOnly).not.toContain('data-notice="paused"');
-
-      // Paused and used up: step 1 says the pause, the notice says the key.
-      const both = render({ ...views.firstKey, contributor: { ...paused, ...exhausted }, paused: true });
-      expect(both).toContain('data-first-run="paused"');
-      expect(both).toContain('data-notice="exhausted"');
-      expect(both).not.toContain('data-notice="paused"');
-    }
-  });
-
-  it('says a key that stopped working, and the way to a new one, never "usually within minutes"', () => {
-    const invalid = {
-      ...views.firstKey,
-      contributor: { ...views.firstKey.contributor, credentials: [key({ state: 'INVALID' })] },
-    };
-    const html = renderToStaticMarkup(<IssuesScreen view={invalid} page={page} query={{}} now={NOW} firstRun />);
-    const plain = text(html);
-
-    expect(html).toContain('data-first-run="key-invalid"');
-    expect(plain).toContain('Your key stopped working');
-    expect(html).toContain('href="/my/agent/key"');
-    expect(plain).not.toContain('usually within minutes');
-    expect(plain).not.toContain('Nothing for you to do');
-    // Step 1 says it: the notice is not said twice.
-    expect(html).not.toContain('data-notice="key-invalid"');
-  });
-
-  it("takes the place of Overview's sections but Ways, and gives way to them once there is an attempt", () => {
-    const first = renderToStaticMarkup(
-      <OverviewScreen view={views.firstKey} sections={sections(views.firstKey)} now={NOW} firstRun={{ page }} />,
-    );
-    expect(first).toContain('data-first-run="soon"');
-    expect(first).not.toContain('data-now="cycle"');
-    expect(first).toContain('id="overview-ways"');
-
-    const later = renderToStaticMarkup(
-      <OverviewScreen view={views.firstKey} sections={sections(views.firstKey)} now={NOW} />,
-    );
-    expect(later).not.toContain('data-first-run');
-    expect(later).toContain('data-now="cycle"');
   });
 });
 

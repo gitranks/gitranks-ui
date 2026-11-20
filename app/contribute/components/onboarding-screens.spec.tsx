@@ -50,7 +50,6 @@ vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => fals
 
 const { Landing } = await import('./landing');
 const { SignInButton, SignInPanel, signInRouteOf, startSignIn } = await import('@/components/workspace/sign-in-dialog');
-const { IssuesView } = await import('./issues-view');
 const { PullRequestsView } = await import('@/components/workspace/pull-requests-view');
 const { ContributionLayout, FirstSessionView } = await import('@/components/workspace/pull-request/review-view');
 const { SettingsView } = await import('./settings-view');
@@ -232,7 +231,6 @@ describe('the pages that wait for onboarding', () => {
   const searchParams = Promise.resolve({});
   const params = Promise.resolve({ owner: 'driftwood-js', repo: 'driftwood', issue: '871' });
   const pages = {
-    issues: () => IssuesView({ searchParams }),
     me: () => PullRequestsView({ searchParams: Promise.resolve({}) }),
     attempt: () => FirstSessionView({ params, searchParams: Promise.resolve({}) }),
     layout: () => ContributionLayout({ params, children: null }),
@@ -249,15 +247,12 @@ describe('the pages that wait for onboarding', () => {
     return pages[page]();
   };
 
-  it.each(['issues', 'me', 'attempt', 'layout'] as const)(
-    'sends a user not onboarded from %s to the landing',
-    async (page) => {
-      await expect(visit(page, views.midSetup)).rejects.toThrow('NEXT_REDIRECT /contribute');
-      await expect(visit(page, views.noKey)).rejects.toThrow('NEXT_REDIRECT /contribute');
-    },
-  );
+  it.each(['me', 'attempt', 'layout'] as const)('sends a user not onboarded from %s to the landing', async (page) => {
+    await expect(visit(page, views.midSetup)).rejects.toThrow('NEXT_REDIRECT /contribute');
+    await expect(visit(page, views.noKey)).rejects.toThrow('NEXT_REDIRECT /contribute');
+  });
 
-  it.each(['issues', 'me', 'attempt', 'settings'] as const)('opens %s to an onboarded user', async (page) => {
+  it.each(['me', 'attempt', 'settings'] as const)('opens %s to an onboarded user', async (page) => {
     await expect(visit(page, views.active)).resolves.toBeTruthy();
   });
 

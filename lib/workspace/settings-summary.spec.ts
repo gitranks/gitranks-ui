@@ -4,7 +4,7 @@ import { movedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './pat
 import { attemptsSummaryOf, budgetSummaryOf, modelSummaryOf, prLimitsSummaryOf } from './settings-summary';
 import { resolve, smallReposSet, stackSet } from '@/lib/contribute/__fixtures__/contribute-sets';
 import { contributor, limits, settings } from '@/lib/contribute/__fixtures__/contribute-views';
-import { modeChipOf, stackPendingOf } from '@/lib/contribute/set-format';
+import { stackPendingOf } from '@/lib/contribute/set-format';
 import { keptListOf, listSummaryOf, preferencesSummaryOf, waitingLibrariesOf } from '@/lib/contribute/work-summary';
 
 describe('the Settings summary', () => {
@@ -69,7 +69,6 @@ describe('what you work on, in short', () => {
     expect(waitingLibrariesOf(fresh)).toContain('Until one is read, your agent works on all issues.');
     const setOnly = stackSet({ stack: { ...stackSet().stack, fallback: 'SET_ONLY', resolve: null } });
     expect(listSummaryOf(setOnly)).toBe('Working out your libraries from 3 repos · all issues until then');
-    expect(modeChipOf(setOnly).detail).toBe('working out libraries · all issues until then');
     // Every library found still read for the first time: pending, and it says so.
     const justNow = new Date().toISOString();
     const reading = resolve({

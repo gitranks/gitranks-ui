@@ -1,4 +1,5 @@
 import { print } from 'graphql';
+import type { ComponentProps } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -10,6 +11,7 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/workspace/start/start-page.actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/issue-actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({
@@ -18,12 +20,33 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadIssues: vi.fn(),
 }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
 
 const { SettingsScreen } = await import('./settings-view');
 const { SwitchSettingsScreen, WorkSettingsScreen } = await import('./settings-pages');
 const { SwitchReview } = await import('@/components/contribute/mode-switch');
 const { IgnoredList, RulesContent } = await import('@/components/contribute/set-panels');
-const { IssuesScreen } = await import('./issues-view');
+const { ContributeTabScreen } = await import('@/app/(workspace)/contribute/components/contribute-tab');
+/** The Contribute tab, as Issues for you was: a hosted agent, nothing else read. */
+const IssuesScreen = ({
+  view,
+  page,
+  query,
+  now,
+  set,
+}: Pick<ComponentProps<typeof ContributeTabScreen>, 'view' | 'page' | 'query' | 'now' | 'set'>) => (
+  <ContributeTabScreen
+    view={view}
+    agents={{ hosted: true, own: false }}
+    learnOpen={false}
+    tab={{ totals: null, pausedByYou: false, hostedLevel: null }}
+    page={page}
+    set={set}
+    activity={null}
+    query={query}
+    now={now}
+  />
+);
 const { FeedbackForm } = await import('@/components/contribute/feedback-dialog');
 const { Dialog } = await import('@/components/ui/dialog');
 const { ContributeIssuesDocument, IssuesForProfileDocument } = await import('@/lib/workspace/contribute.documents');
@@ -317,18 +340,6 @@ describe('Issues for you, by mode', () => {
     query: Parameters<typeof IssuesScreen>[0]['query'] = {},
   ) => renderToStaticMarkup(<IssuesScreen view={views.active} page={page} query={query} now={NOW} set={set} />);
   const somePage = { items: [issue({})], next: null, total: 1, computedAt: '2026-10-28T07:00:00.000Z' };
-
-  it('says the mode by the title, with the language filter, and a quiet way into a mode in All issues', () => {
-    expect(text(render(stackSet(), somePage))).toContain('Supporting your stack · 50 libraries · Rust');
-    expect(text(render(fullReposSet(), somePage))).toContain('Supporting 50 repos · only these · Rust');
-    expect(
-      text(render(smallReposSet({ repos: { ...smallReposSet().repos, fallback: 'THEN_ALL' } }), somePage)),
-    ).toContain('Supporting 12 repos · then all issues · Rust');
-    const all = render(stackSet({ mode: 'ALL' }), somePage);
-    expect(all).toContain('data-mode-chip="ALL"');
-    expect(text(all)).toContain('All issues · Rust');
-    expect(render(undefined, somePage)).not.toContain('data-mode-chip');
-  });
 
   it("puts the list's issues first, and the other issues under a divider", () => {
     const html = render(stackSet(), {

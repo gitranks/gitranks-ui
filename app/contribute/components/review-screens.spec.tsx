@@ -27,7 +27,6 @@ const { DiffViewer, LARGE_FILE_LINES, MAX_FILE_LINES, MAX_TOTAL_LINES } = await 
   '@/components/workspace/diff-viewer'
 );
 const { ReviewsReady } = await import('@/components/workspace/reviews-ready');
-const { IssuesScreen } = await import('./issues-view');
 const { NOW, views, settings } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const {
   PATCH,
@@ -1546,7 +1545,7 @@ describe('the review screen', () => {
   });
 });
 
-describe('the attempts waiting for review, on Issues for you and the overview', () => {
+describe('the attempts waiting for review', () => {
   const waiting = [attempt(), attempt({ attemptId: 'A_2', state: 'RUNNING' })];
 
   it('links each attempt in review to its review screen', () => {
@@ -1561,14 +1560,6 @@ describe('the attempts waiting for review, on Issues for you and the overview', 
   it('shows nothing when none waits, or the API does not answer', () => {
     expect(renderToStaticMarkup(<ReviewsReady attempts={[]} />)).toBe('');
     expect(renderToStaticMarkup(<ReviewsReady attempts={undefined} />)).toBe('');
-  });
-
-  it('sits above the feed', () => {
-    expect(
-      renderToStaticMarkup(
-        <IssuesScreen view={views.active} page={undefined} query={{}} now={NOW} reviews={waiting} />,
-      ),
-    ).toContain('href="/my/pull-requests/by-attempt/A_1"');
   });
 });
 

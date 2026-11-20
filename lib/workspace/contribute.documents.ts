@@ -980,42 +980,6 @@ export const HideContributePrNoteDocument = doc<
 }`,
 );
 
-// Overview: each operation is new, so an API without one leaves the rest of the page working.
-type AttemptStatesVariables = { states: ContributeAttemptState[]; first?: number };
-
-/** The attempts in any of `states`, newest first. */
-export const ContributeAttemptsInDocument = doc<
-  { contributeAttempts: ContributeAttempt[] | null },
-  AttemptStatesVariables
->(`query ContributeAttemptsIn($states: [ContributeAttemptState!], $first: Int) {
-  contributeAttempts(states: $states, first: $first) { ${ATTEMPT} }
-}`);
-
-export const ContributeAttemptsInFollowUpsDocument = doc<
-  { contributeAttempts: FollowUpFieldsOf<ContributeAttemptFollowUpFields>[] | null },
-  AttemptStatesVariables
->(`query ContributeAttemptsInFollowUps($states: [ContributeAttemptState!], $first: Int) {
-  contributeAttempts(states: $states, first: $first) { ${FOLLOW_UP_FIELDS} }
-}`);
-
-export const ContributeAttemptsInOwnAgentDocument = doc<
-  { contributeAttempts: OwnAgentRow[] | null },
-  AttemptStatesVariables
->(
-  `query ContributeAttemptsInOwnAgent($states: [ContributeAttemptState!], $first: Int) {
-  contributeAttempts(states: $states, first: $first) { ${OWN_AGENT_FIELDS} }
-}`,
-);
-
-export const ContributeAttemptsInMovesDocument = doc<
-  { contributeAttempts: RunMovesRow[] | null },
-  AttemptStatesVariables
->(
-  `query ContributeAttemptsInMoves($states: [ContributeAttemptState!], $first: Int) {
-  contributeAttempts(states: $states, first: $first) { ${RUN_MOVES} }
-}`,
-);
-
 /** The reply drafts the user can approve now, oldest first. */
 export const ContributeRepliesWaitingDocument = doc<{ contributeRepliesWaiting: ContributeReplyWaiting[] | null }>(
   `query ContributeRepliesWaiting { contributeRepliesWaiting { ${REPLY_DRAFT} nameWithOwner prNumber inReview } }`,
@@ -1030,16 +994,6 @@ export const ContributeRepliesWaitingPlanDocument = doc<{ contributeRepliesWaiti
 export const ContributeScheduleCountsDocument = doc<{
   contribute: { contributor: { scheduleCounts: ContributeScheduleCounts | null } | null } | null;
 }>('query ContributeScheduleCounts { contribute { contributor { scheduleCounts { prBound queued } } } }');
-
-/** The totals of My contributions, without its list. */
-export const ContributeImpactDocument = doc<{
-  contributeContributions: { totals: { open: number; merged: number; closed: number } } | null;
-}>('query ContributeImpact { contributeContributions(first: 1) { totals { open merged closed } } }');
-
-/** The repos the user's merged pull requests helped. */
-export const ContributeImpactReposDocument = doc<{
-  contributeContributions: { totals: { reposHelped: number | null } } | null;
-}>('query ContributeImpactRepos { contributeContributions(first: 1) { totals { reposHelped } } }');
 
 // What the user works on: the mode, the lists and the ignored repos. Read and written in operations of their own, so
 // an API without them leaves the rest of the pages working.
@@ -1273,13 +1227,6 @@ export const ContributeAttemptsLearnDocument = doc<
   { state?: string; first?: number }
 >(`query ContributeAttemptsLearn($state: ContributeAttemptState, $first: Int) {
   contributeAttempts(state: $state, first: $first) { attemptId mode learnActiveAt }
-}`);
-
-export const ContributeAttemptsInLearnDocument = doc<
-  { contributeAttempts: LearnRow[] | null },
-  { states: string[]; first?: number }
->(`query ContributeAttemptsInLearn($states: [ContributeAttemptState!], $first: Int) {
-  contributeAttempts(states: $states, first: $first) { attemptId mode learnActiveAt }
 }`);
 
 export const SetPrTimelineDocument = doc<

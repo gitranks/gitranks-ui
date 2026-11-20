@@ -19,15 +19,12 @@ vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loa
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 
 const { AgentConnect, AgentConnectView } = await import('@/components/workspace/agent/agent-connect');
-const { OverviewScreen, overviewSectionsOf } = await import('./overview-status');
-const { overviewData } = await import('@/lib/contribute/__fixtures__/contribute-overview');
-const { IssuesScreen } = await import('./issues-view');
-const { NOW, mcpToken, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { mcpToken, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { AGENT_FIRST_PROMPT } = await import('@/lib/workspace/mcp-setup');
 
 import type { ComponentProps } from 'react';
 
-import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
+import type { ContributeIssuePage } from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html
@@ -364,133 +361,10 @@ const ISSUE = {
   rank: 1,
   why: 'you write Rust',
 };
-const page: ContributeIssuePage = {
+const _page: ContributeIssuePage = {
   items: [1, 2, 3, 4].map((rank) => ({ ...ISSUE, issueId: `I_${rank}`, number: 2480 + rank, rank })),
   next: null,
   total: 4,
   computedAt: '2026-10-28T11:59:00.000Z',
 };
-const ranking: ContributeIssuePage = { items: [], next: null, total: 0, computedAt: null };
-
-/** Overview's sections from reads that all answered. */
-const sections = (view: ContributeView) => overviewSectionsOf(view, overviewData(), NOW);
-
-describe('B2, your agent is connected', () => {
-  it('welcomes the client picked, says what happens next, and that the first picks are still being ranked', () => {
-    const html = renderToStaticMarkup(
-      <OverviewScreen
-        view={views.agentOnboarded}
-        sections={sections(views.agentOnboarded)}
-        welcome="codex"
-        agentFirstRun={{ page: ranking }}
-        now={NOW}
-      />,
-    );
-    const plain = text(html);
-
-    expect(html).toContain('data-agent-welcome="codex"');
-    expect(html).toMatch(/<h1[^>]*>Your agent is connected<\/h1>/);
-    expect(html).not.toContain('>Overview</h1>');
-    expect(plain).toContain('Codex CLI called GitRanks a moment ago');
-    expect(plain).toContain('What happens next');
-    expect(plain).toContain('Prompt for Codex CLI');
-    expect(plain).toContain(AGENT_FIRST_PROMPT);
-    expect(plain).toContain(
-      "held for you 24 hours from your agent's last step, 48 hours without a patch that passes the checks, and 7 days at most",
-    );
-    expect(plain).toContain('The first time, GitHub asks you for one permission');
-    expect(plain).toContain("We guessed what you'd like: bugs, Rust first.");
-    // Their own agent spends nothing through us: no cap, no pace.
-    expect(plain).not.toContain('monthly cap');
-    expect(plain).toContain('Change it in Settings');
-    expect(html).toContain('data-agent-picks="ranking"');
-    expect(plain).toContain('Your first picks are still being ranked');
-    expect(html).toContain('data-ranking="waiting"');
-  });
-
-  it('shows the top three picks once they are ranked', () => {
-    const html = renderToStaticMarkup(
-      <OverviewScreen
-        view={views.agentOnboarded}
-        sections={sections(views.agentOnboarded)}
-        welcome="claude-code"
-        agentFirstRun={{ page }}
-        now={NOW}
-      />,
-    );
-    const plain = text(html);
-
-    expect(html).toContain('data-agent-picks="ready"');
-    expect(html).not.toContain('data-ranking=');
-    expect(plain).toContain('What your agent sees first');
-    expect(plain).toContain('fern-lang/fern · #2481');
-    expect(plain).toContain('bug · Rust · size S');
-    expect(html.match(/data-issue="/g)).toHaveLength(3);
-    expect(html).not.toContain('data-issue="I_4"');
-  });
-
-  it("keeps the welcome and gives way to Overview's sections once the agent has made an attempt", () => {
-    const html = renderToStaticMarkup(
-      <OverviewScreen
-        view={views.agentOnboarded}
-        sections={sections(views.agentOnboarded)}
-        welcome="cursor"
-        now={NOW}
-      />,
-    );
-
-    expect(html).toContain('data-agent-welcome="cursor"');
-    expect(html).not.toContain('data-agent-next');
-  });
-
-  it("says the user's pause holds the agent's claim in step 1, its notice left out, and keeps a key's notices", () => {
-    const paused = renderToStaticMarkup(
-      <OverviewScreen
-        view={{ ...views.agentOnboarded, paused: true }}
-        sections={sections({ ...views.agentOnboarded, paused: true })}
-        welcome="claude-code"
-        agentFirstRun={{ page }}
-        now={NOW}
-      />,
-    );
-    expect(paused).toContain('data-agent-step="paused"');
-    expect(text(paused)).toContain('Contributing is paused');
-    expect(text(paused)).toContain('Resume');
-    expect(paused).not.toContain('data-notice="paused"');
-
-    // A refused key holds the attempts we run, not the agent's: its notice stays, and step 1 is the agent's claim.
-    const invalid = renderToStaticMarkup(
-      <OverviewScreen
-        view={{ ...views.keyInvalid, ownAgent: views.agentOnboarded.ownAgent }}
-        sections={sections({ ...views.keyInvalid, ownAgent: views.agentOnboarded.ownAgent })}
-        welcome="claude-code"
-        agentFirstRun={{ page }}
-        now={NOW}
-      />,
-    );
-    expect(invalid).not.toContain('data-agent-step="paused"');
-    expect(text(invalid)).toContain('your agent claims an issue');
-    expect(invalid).toContain('data-notice="key-invalid"');
-  });
-
-  it('opens Overview and Issues with the next steps, before the first attempt, without the welcome', () => {
-    const overview = renderToStaticMarkup(
-      <OverviewScreen
-        view={views.agentOnboarded}
-        sections={sections(views.agentOnboarded)}
-        agentFirstRun={{ page }}
-        now={NOW}
-      />,
-    );
-    expect(overview).toContain('>Overview</h1>');
-    expect(overview).not.toContain('data-agent-welcome');
-    expect(text(overview)).toContain('Prompt for your agent');
-
-    const issues = text(
-      renderToStaticMarkup(<IssuesScreen view={views.agentOnboarded} page={page} query={{}} now={NOW} agentFirstRun />),
-    );
-    expect(issues).toContain('What happens next');
-    expect(issues).toContain('Picked for you');
-    expect(issues).not.toContain('What your agent sees first');
-  });
-});
+const _ranking: ContributeIssuePage = { items: [], next: null, total: 0, computedAt: null };

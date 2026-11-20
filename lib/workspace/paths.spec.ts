@@ -197,7 +197,7 @@ describe("the pull request's page, by repo and issue", () => {
   });
 
   it("picks another issue on the attempt's side", () => {
-    expect(PICK_ISSUE_PATHS).toEqual({ fix: '/contribute/issues', learn: '/learn#issues' });
+    expect(PICK_ISSUE_PATHS).toEqual({ fix: '/contribute#issues', learn: '/learn#issues' });
   });
 });
 

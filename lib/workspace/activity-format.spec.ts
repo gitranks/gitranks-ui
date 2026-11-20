@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { activitySignatureOf, activityTabOf, etaOf, itemsOn, shareOf, summaryOf } from './activity-format';
+import { activitySignatureOf, activityTabsOf, etaOf, itemsOn, shareOf, summaryOf } from './activity-format';
 import type { ContributeActivityItem } from './contribute.types';
 
 const item = (over: Partial<ContributeActivityItem> = {}): ContributeActivityItem => ({
@@ -17,14 +17,19 @@ const item = (over: Partial<ContributeActivityItem> = {}): ContributeActivityIte
 
 describe('the activity, as the bar reads it', () => {
   it('belongs to the overview, issues and settings tabs', () => {
-    expect(activityTabOf('/contribute')).toBe('OVERVIEW');
-    expect(activityTabOf('/contribute/')).toBe('OVERVIEW');
-    expect(activityTabOf('/contribute/issues')).toBe('ISSUES');
-    expect(activityTabOf('/my/settings')).toBe('SETTINGS');
-    expect(activityTabOf('/my/settings/work/switch/stack')).toBe('SETTINGS');
-    expect(activityTabOf('/my/settingsx')).toBeNull();
-    expect(activityTabOf('/my/pull-requests')).toBeNull();
-    expect(activityTabOf('/my/agent/connect')).toBeNull();
+    // The Contribute tab holds the issues too: their progress shows there.
+    expect(activityTabsOf('/contribute')).toEqual(['OVERVIEW', 'ISSUES']);
+    expect(activityTabsOf('/contribute/')).toEqual(['OVERVIEW', 'ISSUES']);
+    expect(activityTabsOf('/my/settings')).toEqual(['SETTINGS']);
+    expect(activityTabsOf('/my/settings/work/switch/stack')).toEqual(['SETTINGS']);
+    expect(activityTabsOf('/my/settingsx')).toEqual([]);
+    expect(activityTabsOf('/my/pull-requests')).toEqual([]);
+    expect(activityTabsOf('/my/agent/connect')).toEqual([]);
+    // The list's progress, on the Contribute tab: once, whichever of its tabs names it.
+    const tab = activityTabsOf('/contribute');
+    expect(
+      itemsOn({ items: [item(), item({ tabs: ['OVERVIEW', 'ISSUES'] })], runs: [], readAt: '' }, tab),
+    ).toHaveLength(2);
     expect(itemsOn({ items: [item()], runs: [], readAt: '' }, 'OVERVIEW')).toEqual([]);
     expect(itemsOn({ items: [item()], runs: [], readAt: '' }, null)).toEqual([]);
     expect(itemsOn(null, 'ISSUES')).toEqual([]);

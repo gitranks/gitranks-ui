@@ -1,4 +1,3 @@
-import type { OverviewNowRead } from '../overview';
 import { attempt, followUpOf, replyDraft } from './contribute-attempts';
 import type { ContributeIssue, ContributeIssuePage, ContributeReplyWaiting } from '@/lib/workspace/contribute.types';
 
@@ -67,17 +66,4 @@ export const followUpInReview = attempt({
   followUpOf,
   costUsd: 1.12,
   reviewAt: '2026-10-28T11:00:00.000Z',
-});
-
-/** Every read of "Needs you" answered, and nothing waits. */
-
-/** Every read of "Right now" answered: nothing in flight, nothing counted. */
-export const nowIdle: OverviewNowRead = { inFlight: [], scheduleCounts: { prBound: 0, queued: 0 } };
-
-/** What each section read, every read answered, with nothing waiting or in flight. */
-export const overviewData = () => ({
-  now: nowIdle,
-  impact: { open: 2, merged: 7, closed: 1, reposHelped: 6 },
-  noted: [] as const,
-  page: issuePage,
 });

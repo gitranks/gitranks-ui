@@ -34,7 +34,7 @@ describe("the Contribute block on the owner's own profile", () => {
     const plain = text(html);
     expect(plain).toContain('Picked for you, best first');
     expect(plain).toContain('All my issues');
-    expect(html).toContain('href="/contribute/issues"');
+    expect(html).toContain('href="/contribute#issues"');
     expect(plain).toContain('kunchenguid/gh-axi #195');
     expect(plain).toContain('A maintainer asked for this change');
   });

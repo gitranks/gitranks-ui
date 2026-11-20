@@ -18,8 +18,9 @@ import {
   matchingLinesOf,
   matchingTicksOf,
 } from '@/lib/workspace/matching';
+import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
-export const ISSUES_PATH: Route = '/contribute/issues';
+export const ISSUES_PATH: Route = PICK_ISSUE_PATHS.fix;
 
 /** Where each chip floats beside the orb; on a phone they sit closer in. */
 const CHIP_PLACES = [

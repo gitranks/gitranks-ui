@@ -133,7 +133,7 @@ const FOLLOW_UP_REFUSALS: [RegExp, string][] = [
   ],
   [
     /key/i,
-    'Your Claude key cannot start a session now: none is connected, Anthropic refused it, or its credits ran out. Connect a working one under Keys and access on the Agent tab, then start the run.',
+    'Your Claude key cannot start a session now: none is connected, Anthropic refused it, or its credits ran out. Connect a working one on the Agent tab, under Claude API key, then start the run.',
   ],
   [
     /limit/i,

@@ -50,7 +50,7 @@ describe('the Pull requests tab', () => {
     const html = screen();
     const plain = text(html);
     expect(plain).toMatch(/^Pull requests 3 of 8 open at a time · Change in Settings Needs you · 3/);
-    expect(html).toContain('href="/my/agent/model#prs"');
+    expect(html).toContain('href="/my/settings/pull-requests#open"');
     expect(html.indexOf('data-section="needs-you"')).toBeLessThan(html.indexOf('data-section="in-progress"'));
     expect(html.indexOf('data-section="in-progress"')).toBeLessThan(html.indexOf('aria-label="State"'));
     expect(html.indexOf('aria-label="State"')).toBeLessThan(html.indexOf('<table'));

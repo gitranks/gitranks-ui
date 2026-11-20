@@ -16,11 +16,17 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/workspace/actions', () => ({ setContributeEmail }));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
+vi.mock('@/lib/learn/learn.data', () => ({
+  loadLearnProfile: vi.fn(),
+  loadLearnSetup: vi.fn(),
+  loadLearnOpen: vi.fn(),
+}));
 
-const { EMAIL_AUTOPILOT_NOTE, EMAIL_OFF, EMAIL_TITLE, EmailSection } = await import(
-  '@/components/workspace/settings/email-section'
+const { EMAIL_AUTOPILOT_NOTE, EMAIL_NO_ADDRESS, EMAIL_OFF, EMAIL_TITLE, EmailRows } = await import(
+  '@/components/workspace/settings/email-rows'
 );
-const { SettingsScreen } = await import('./settings-view');
+const { SettingsScreen } = await import('@/app/(workspace)/my/settings/components/settings-view');
 const { email: fixture, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 
 import type { ContributeEmail } from '@/lib/workspace/contribute.types';
@@ -73,15 +79,26 @@ describe("Settings' email row", () => {
   it.each([
     ['hidden', null],
     ['not read', undefined],
-    ['on without an address', { on: true, to: null }],
-    ['off without an address', { on: false, to: null }],
   ] as const)('is left out when the email is %s, and the page still renders', (_, email) => {
     const html = settings(email);
 
     expect(html).not.toContain('id="email"');
     expect(html).not.toContain('id="settings-email"');
     expect(text(html)).not.toContain(EMAIL_TITLE);
-    expect(text(html)).toContain('GitHub pull requests');
+    expect(text(html)).toContain('GitHub access');
+  });
+
+  it.each([
+    ['on', { on: true, to: null }],
+    ['off', { on: false, to: null }],
+  ] as const)('is drawn with no address (%s): the switch off and disabled, under why', (_, email) => {
+    const html = settings(email);
+    const row = html.slice(html.indexOf('id="email"'));
+
+    expect(row).toContain('data-email="no-address"');
+    expect(text(row)).toContain(EMAIL_NO_ADDRESS);
+    expect(row).toMatch(/<input[^>]*disabled=""/);
+    expect(row).not.toMatch(/<input[^>]*checked=""/);
   });
 });
 
@@ -113,7 +130,7 @@ describe('the email switch', () => {
 
   it('is reached by its label, and turning it off saves at once, says it is off and refreshes the page', async () => {
     const save = held();
-    act(() => root.render(<EmailSection email={fixture.on} />));
+    act(() => root.render(<EmailRows email={fixture.on} />));
     const label = container.querySelector(`label[for="${toggle().id}"]`);
     expect(label?.textContent).toBe('On');
     expect(toggle().getAttribute('aria-describedby')).toBeTruthy();
@@ -138,7 +155,7 @@ describe('the email switch', () => {
 
   it('ignores another change while one is saving', async () => {
     const save = held();
-    act(() => root.render(<EmailSection email={fixture.on} />));
+    act(() => root.render(<EmailRows email={fixture.on} />));
 
     await act(async () => toggle().click());
     await act(async () => toggle().click());
@@ -157,7 +174,7 @@ describe('the email switch', () => {
 
   it('turns it back on, and shows the address the API answers', async () => {
     setContributeEmail.mockResolvedValue({ ok: true, data: { on: true, to: TO } });
-    act(() => root.render(<EmailSection email={{ on: false, to: 'x•••@example.com' }} />));
+    act(() => root.render(<EmailRows email={{ on: false, to: 'x•••@example.com' }} />));
 
     await act(async () => toggle().click());
 
@@ -167,21 +184,21 @@ describe('the email switch', () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('drops out, without the old address, when the save answers no address, and refreshes the page', async () => {
+  it('says there is no address, without the old one, when the save answers none, and refreshes the page', async () => {
     setContributeEmail.mockResolvedValue({ ok: true, data: { on: true, to: null } });
-    act(() => root.render(<EmailSection email={fixture.off} />));
+    act(() => root.render(<EmailRows email={fixture.off} />));
 
     await act(async () => toggle().click());
 
-    expect(container.querySelector('#email')).toBeNull();
-    expect(container.querySelector('#settings-email')).toBeNull();
+    expect(container.querySelector('#email')?.getAttribute('data-email')).toBe('no-address');
+    expect(toggle().disabled).toBe(true);
     expect(container.textContent).not.toContain(TO);
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it('moves back and says why when the save fails, without a refresh', async () => {
     setContributeEmail.mockResolvedValue({ ok: false, error: 'FAILED' });
-    act(() => root.render(<EmailSection email={fixture.on} />));
+    act(() => root.render(<EmailRows email={fixture.on} />));
 
     await act(async () => toggle().click());
 
@@ -193,7 +210,7 @@ describe('the email switch', () => {
 
   it('moves back when the call itself throws, and takes the next change', async () => {
     setContributeEmail.mockRejectedValueOnce(new Error('network'));
-    act(() => root.render(<EmailSection email={fixture.off} />));
+    act(() => root.render(<EmailRows email={fixture.off} />));
 
     await act(async () => toggle().click());
 

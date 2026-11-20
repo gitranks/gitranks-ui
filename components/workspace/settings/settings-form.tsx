@@ -1,6 +1,8 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
+import type { Route } from 'next';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useId, useState, useTransition } from 'react';
 
@@ -24,6 +26,13 @@ import type {
 } from '@/lib/workspace/contribute.types';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
 import { EFFORTS, MODELS, ordinalDay, PACES, parseAmount } from '@/lib/workspace/format';
+import { WORKSPACE_ANCHORS } from '@/lib/workspace/paths';
+
+/** The sign-off choices, as the form and the Settings row say them. */
+export const DCO_CHOICES = [
+  ['ASK', 'Ask me on each PR to a repo that requires it'],
+  ['STANDING', 'Sign off automatically when a repo requires DCO'],
+] as const satisfies readonly (readonly [ContributeDcoMode, string])[];
 
 /** Above these, one line says that large pull requests are merged less often. */
 const DEFAULT_MAX_LINES = 400;
@@ -137,7 +146,6 @@ export function patchOf(
             weekCapUsd: optional('Each week', draft.weekCapUsd),
             dayCapUsd: optional('Each day', draft.dayCapUsd),
             attemptCapUsd: required('Each run', draft.attemptCapUsd),
-            attemptsAtATime: capped('attemptsAtATime', 'Attempts at a time'),
           },
         };
       case 'pacing':
@@ -163,6 +171,7 @@ export function patchOf(
             maxChangedLines: required('Changed lines', draft.maxChangedLines, true),
             maxFiles: required('Files', draft.maxFiles, true),
             openPrsAtATime: capped('openPrsAtATime', 'Open PRs at a time'),
+            attemptsAtATime: capped('attemptsAtATime', 'Attempts at a time'),
             dco: draft.dco,
           },
         };
@@ -256,13 +265,14 @@ function Fold({
   );
 }
 
-/** Each page's sections, saved together, and the fields its fold holds. */
+/**
+ * Each page's sections, saved together, and the fields its fold holds: the Agent tab's budget and model (the hosted
+ * agent's), and Settings' pull requests (both agents').
+ */
 const PAGES = {
-  budget: {
-    sections: ['limits', 'pacing'],
-    folded: ['Each week', 'Each day', 'Each run', 'Attempts at a time', 'Sweep days'],
-  },
-  agent: { sections: ['agent', 'prs'], folded: [] },
+  budget: { sections: ['limits', 'pacing'], folded: ['Each week', 'Each day', 'Each run', 'Sweep days'] },
+  model: { sections: ['agent'], folded: [] },
+  'pull-requests': { sections: ['prs'], folded: [] },
 } as const satisfies Record<string, { sections: SettingsSection[]; folded: string[] }>;
 
 export type SettingsFormPage = keyof typeof PAGES;
@@ -297,24 +307,27 @@ export const moreLimitsSummaryOf = (draft: Draft) =>
     capLabel(draft.weekCapUsd, 'week'),
     capLabel(draft.dayCapUsd, 'day'),
     capLabel(draft.attemptCapUsd, 'attempt'),
-    `${draft.attemptsAtATime.trim() || '?'} at a time`,
     `sweep ${draft.sweepDays.trim() === '1' ? '1 day' : `${draft.sweepDays.trim() || '?'} days`}`,
     `renews on ${ordinalDay(draft.renewalDay)}`,
   ].join(' · ');
 
 /**
- * Budget and pacing, or the agent and pull requests, on their Settings page: what most people change up front, the
- * rest folded with its values shown, and one Save for the page. `limits` caps attempts and open PRs at a time while
- * the access level holds them lower, and shows an open PR limit set for the account in place of that setting.
+ * One settings page's form: budget and pacing, or the model and effort (the Agent tab's), or the pull request limits
+ * (Settings'). What most people change up front, the rest folded with its values shown, and one Save for the page,
+ * which goes back to `back` once saved. `limits` caps attempts and open PRs at a time while the access level holds them
+ * lower, and shows an open PR limit set for the account in place of that setting.
  */
 export function SettingsForm({
   settings,
   page,
   limits,
+  back,
 }: {
   settings: ContributeSettings;
   page: SettingsFormPage;
   limits?: ContributeLimits | null;
+  /** Where Save goes once it went through, and its name in the line beside Save. */
+  back: { href: Route; label: string };
 }) {
   const router = useRouter();
   const id = useId();
@@ -343,6 +356,7 @@ export function SettingsForm({
       if (result.ok) {
         setDraft(draftOf(result.data));
         setStatus({ ok: true, text: 'Saved.' });
+        router.push(back.href);
         router.refresh();
       } else {
         // The server may refuse a folded field (an attempt cap above a cap that is set): show it.
@@ -386,7 +400,7 @@ export function SettingsForm({
   );
 
   return (
-    <Panel id={page === 'budget' ? 'limits' : 'agent'}>
+    <Panel id={page === 'budget' ? 'limits' : page === 'model' ? 'agent' : 'pull-requests'}>
       {page === 'budget' ? (
         <>
           <Field label="Each billing cycle" htmlFor={field('cycleCapUsd')}>
@@ -445,13 +459,6 @@ export function SettingsForm({
               <Field label="Each run" htmlFor={field('attemptCapUsd')}>
                 {textInput('attemptCapUsd')}
               </Field>
-              <Field
-                label="Attempts at a time"
-                htmlFor={field('attemptsAtATime')}
-                hint={capHint(limits, 'attemptsAtATime')}
-              >
-                {textInput('attemptsAtATime', undefined, !!capHintOf(limits, 'attemptsAtATime'))}
-              </Field>
               <Field label="Sweep days" htmlFor={field('sweepDays')}>
                 {textInput('sweepDays')}
               </Field>
@@ -474,9 +481,17 @@ export function SettingsForm({
               Leave week or day empty for no limit. A no-go check uses at most a tenth of the attempt limit before the
               agent decides whether to go on.
             </span>
+            <Link
+              href={WORKSPACE_ANCHORS.attemptsRow}
+              prefetch={false}
+              className="self-start text-sm font-semibold text-link hover:underline"
+              data-attempts-moved=""
+            >
+              Attempts at a time is in Settings →
+            </Link>
           </Fold>
         </>
-      ) : (
+      ) : page === 'model' ? (
         <>
           <div className="grid gap-3.5 sm:grid-cols-2">
             <Field label="Main model" htmlFor={field('mainModel')}>
@@ -531,19 +546,26 @@ export function SettingsForm({
               </Field>
             </div>
           </Fold>
-
-          <div id="prs" className="flex scroll-mt-20 flex-col gap-3.5 border-t pt-4">
+        </>
+      ) : (
+        <>
+          <div id="size" className="flex scroll-mt-20 flex-col gap-3.5">
             <div className="flex flex-col gap-1">
-              <h2 className={HEADING.block}>Pull requests</h2>
+              <h2 className={HEADING.block}>Pull request size</h2>
               <span className="text-sm text-muted-foreground">An attempt above these limits stops before review.</span>
             </div>
-            <div className="grid gap-3.5 sm:grid-cols-3">
+            <div className="grid gap-3.5 sm:grid-cols-2">
               <Field label="Changed lines" htmlFor={field('maxChangedLines')}>
                 {textInput('maxChangedLines')}
               </Field>
               <Field label="Files" htmlFor={field('maxFiles')}>
                 {textInput('maxFiles')}
               </Field>
+            </div>
+            {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
+          </div>
+          <div className="grid gap-3.5 border-t pt-4 sm:grid-cols-2">
+            <div id="open" className="scroll-mt-20">
               {prsOverride === null ? (
                 <Field
                   label="Open PRs at a time"
@@ -570,36 +592,39 @@ export function SettingsForm({
                 </Field>
               )}
             </div>
-            {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
-            <ReposAskLessNote />
-            <div className="flex flex-col gap-2">
-              <span id={`${field('dco')}-legend`} className="text-sm font-medium">
-                DCO sign-off, for repos that require it
-              </span>
-              <span id={`${field('dco')}-help`} className="-mt-1 text-xs text-muted-foreground">
-                Some repos require a Developer Certificate of Origin sign-off on every commit; elsewhere nothing is
-                asked and nothing is signed off.
-              </span>
-              <RadioGroup
-                aria-labelledby={`${field('dco')}-legend`}
-                aria-describedby={`${field('dco')}-help`}
-                value={draft.dco}
-                onValueChange={(next) => set('dco', next as ContributeDcoMode)}
-                className="gap-2"
+            <div id="attempts" className="scroll-mt-20">
+              <Field
+                label="Attempts at a time"
+                htmlFor={field('attemptsAtATime')}
+                hint={capHint(limits, 'attemptsAtATime')}
               >
-                {(
-                  [
-                    ['ASK', 'Ask me on each PR to a repo that requires it'],
-                    ['STANDING', 'Sign off automatically when a repo requires DCO'],
-                  ] as const
-                ).map(([dco, label]) => (
-                  <label key={dco} htmlFor={`${field('dco')}-${dco}`} className="flex items-center gap-2.5 text-sm">
-                    <RadioGroupItem id={`${field('dco')}-${dco}`} value={dco} />
-                    {label}
-                  </label>
-                ))}
-              </RadioGroup>
+                {textInput('attemptsAtATime', undefined, !!capHintOf(limits, 'attemptsAtATime'))}
+              </Field>
             </div>
+          </div>
+          <ReposAskLessNote text="Repos can ask for less: their rules lower these limits for their pull requests." />
+          <div id="dco" className="flex scroll-mt-20 flex-col gap-2 border-t pt-4">
+            <span id={`${field('dco')}-legend`} className="text-sm font-medium">
+              DCO sign-off, for repos that require it
+            </span>
+            <span id={`${field('dco')}-help`} className="-mt-1 text-xs text-muted-foreground">
+              Some repos require a Developer Certificate of Origin sign-off on every commit; elsewhere nothing is asked
+              and nothing is signed off.
+            </span>
+            <RadioGroup
+              aria-labelledby={`${field('dco')}-legend`}
+              aria-describedby={`${field('dco')}-help`}
+              value={draft.dco}
+              onValueChange={(next) => set('dco', next as ContributeDcoMode)}
+              className="gap-2"
+            >
+              {DCO_CHOICES.map(([dco, label]) => (
+                <label key={dco} htmlFor={`${field('dco')}-${dco}`} className="flex items-center gap-2.5 text-sm">
+                  <RadioGroupItem id={`${field('dco')}-${dco}`} value={dco} />
+                  {label}
+                </label>
+              ))}
+            </RadioGroup>
           </div>
         </>
       )}
@@ -608,6 +633,11 @@ export function SettingsForm({
         <Button type="button" size="lg" onClick={save} disabled={pending} className="px-5 font-semibold">
           {pending ? 'Saving…' : 'Save'}
         </Button>
+        {status ? null : (
+          <span className="text-sm text-muted-foreground" data-save-back="">
+            Saving takes you back to {back.label}.
+          </span>
+        )}
         {status ? (
           <span
             role={status.ok ? 'status' : 'alert'}

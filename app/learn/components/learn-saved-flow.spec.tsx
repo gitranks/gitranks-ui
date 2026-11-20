@@ -3,20 +3,19 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }) }));
+const router = vi.hoisted(() => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => router }));
 const actions = vi.hoisted(() => ({
   saveLearnProfile: vi.fn(),
   readMyLearnAttempts: vi.fn(),
-  readLearnIssueCount: vi.fn(),
   readPracticeNext: vi.fn(),
 }));
 vi.mock('@/lib/learn/actions', () => actions);
-vi.mock('@/lib/learn/actions', () => actions);
 
-const { LearnProfileForm } = await import('./learn-profile-form');
+const { LearnProfileForm } = await import('@/components/learn/learn-profile-form');
 const { PracticeNextCard } = await import('@/components/learn/practice-next');
 const { filledProfile } = await import('@/lib/learn/__fixtures__/profile');
-const { learnIssues, myLearnAttempts, practiceNext } = await import('@/lib/learn/__fixtures__/home');
+const { practiceNext } = await import('@/lib/learn/__fixtures__/home');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 // The form's radios and checkboxes measure themselves; jsdom has no ResizeObserver.
@@ -48,46 +47,22 @@ const submit = async () => {
 };
 
 describe('Goal and level, saved', () => {
-  it('says Saved and shows how many issues fit the goal, read with no row revealed', async () => {
+  it('says Saved and goes back to Settings', async () => {
     actions.saveLearnProfile.mockResolvedValue({ ok: true, data: filledProfile });
-    actions.readMyLearnAttempts.mockResolvedValue({ ok: true, data: myLearnAttempts.none });
-    actions.readLearnIssueCount.mockResolvedValue({ ok: true, data: learnIssues({ items: [], total: 4 }) });
     await act(async () => root.render(<LearnProfileForm profile={filledProfile} />));
-    expect(container.querySelector('[data-saved-next]')).toBeNull();
+    expect(container.textContent).toContain('Saving takes you back to Settings.');
     await submit();
     expect(actions.saveLearnProfile).toHaveBeenCalledTimes(1);
-    expect(actions.readLearnIssueCount).toHaveBeenCalledTimes(1);
     expect(container.querySelector('[role="status"]')?.textContent).toBe('Saved');
-    expect(container.querySelector('[data-saved-next]')?.textContent).toContain('4 open issues fit TypeScript.');
-    // The panel's button is the one primary action now.
-    expect(container.querySelector('button[type="submit"]')?.getAttribute('data-variant')).toBe('outline');
+    expect(router.push).toHaveBeenCalledWith('/my/settings');
   });
 
-  it('leads back to the lesson in progress, never one that is not', async () => {
-    actions.saveLearnProfile.mockResolvedValue({ ok: true, data: filledProfile });
-    actions.readMyLearnAttempts.mockResolvedValue({ ok: true, data: myLearnAttempts.working });
-    actions.readLearnIssueCount.mockResolvedValue({ ok: true, data: learnIssues({ items: [], total: 4 }) });
+  it('stays, with why, when the save is refused', async () => {
+    actions.saveLearnProfile.mockResolvedValue({ ok: false, error: 'NOT_FOUND' });
     await act(async () => root.render(<LearnProfileForm profile={filledProfile} />));
     await submit();
-    expect(container.querySelector('[data-saved-next]')?.getAttribute('data-saved-next')).toBe('lesson');
-    expect(container.querySelector('a[href="/my/pull-requests/by-attempt/A_1"]')).not.toBeNull();
-  });
-
-  it('falls back to Learn home when neither read answers, and hides the panel on the next edit', async () => {
-    actions.saveLearnProfile.mockResolvedValue({ ok: true, data: filledProfile });
-    actions.readMyLearnAttempts.mockRejectedValue(new Error('down'));
-    actions.readLearnIssueCount.mockResolvedValue({ ok: false, error: 'FAILED' });
-    await act(async () => root.render(<LearnProfileForm profile={filledProfile} />));
-    await submit();
-    expect(container.querySelector('[data-saved-next]')?.textContent).toContain(
-      'Learn home lists the open issues for your goal.',
-    );
-    const focus = container.querySelector<HTMLButtonElement>('button[role="checkbox"]');
-    await act(async () => {
-      focus?.click();
-    });
-    expect(container.querySelector('[data-saved-next]')).toBeNull();
-    expect(container.querySelector('[role="status"]')?.textContent).toBe('');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('could not be saved');
+    expect(router.push).not.toHaveBeenCalled();
   });
 });
 

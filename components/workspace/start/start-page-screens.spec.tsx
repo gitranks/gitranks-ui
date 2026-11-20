@@ -145,7 +145,7 @@ describe('the Start page with a lesson', () => {
       'Learn Fix this issue and learn from it Your agent fixes this issue on your computer and also writes a lesson on the fix.',
     );
     expect(plain).toContain('Your lesson will be written for: TypeScript, Some · Change');
-    expect(html).toContain('href="/learn/profile"');
+    expect(html).toContain('href="/my/settings/goal"');
     expect(plain).not.toContain('Why it was picked');
     expect(plain).toContain('Your agent forks the project, fixes the issue and writes your lesson.');
     expect(plain).toContain(`Fix ${ISSUE_URL} with GitRanks Learn and teach me`);

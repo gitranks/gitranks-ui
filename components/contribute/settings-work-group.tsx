@@ -1,6 +1,7 @@
 'use client';
 
 import { Ban, Layers, LayoutGrid } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import { ModeCards } from './mode-cards';
 import { PreferencesSection } from './preferences-section';
@@ -23,22 +24,28 @@ import { plural } from '@/lib/workspace/format';
 import { SETTINGS_PATHS } from '@/lib/workspace/paths';
 
 /**
- * "What you work on" on the Settings summary: the three modes, the current list's row (it opens the list's page), the
- * filters, and the ignored repos; "How we pick repos" beside the title. Reads the page again while a list is read.
+ * "What you work on", on its Settings page: the three modes, the filters and the ignored repos, with the current mode's
+ * list under them (`list`, drawn by the page) or, without one, its row; "How we pick repos" beside the title. Reads the
+ * page again while a list is read.
  */
 export function SettingsWorkGroup({
   set: loaded,
   preferences,
+  title = 'What you work on',
+  list,
 }: {
   set: ContributeSet;
   preferences: ContributePreferences | null;
+  title?: string;
+  /** The current mode's list, in place of its row. */
+  list?: ReactNode;
 }) {
   const { set, write, setFeedback, feedbackDialog } = useSetWrite(loaded);
 
   return (
     <SettingsGroup
       id="modes"
-      title="What you work on"
+      title={title}
       action={
         <RulesDialog
           className="text-sm font-medium"
@@ -48,7 +55,7 @@ export function SettingsWorkGroup({
     >
       <ModeCards set={set} write={write} />
       <SettingsList>
-        {set.mode === 'ALL' ? null : (
+        {set.mode === 'ALL' || list ? null : (
           <SettingsRow
             icon={set.mode === 'STACK' ? Layers : LayoutGrid}
             href={SETTINGS_PATHS.work}
@@ -60,6 +67,7 @@ export function SettingsWorkGroup({
         <PreferencesSection preferences={preferences} modes />
         <IgnoredRow set={set} write={write} />
       </SettingsList>
+      {set.mode === 'ALL' ? null : list}
       {feedbackDialog}
     </SettingsGroup>
   );

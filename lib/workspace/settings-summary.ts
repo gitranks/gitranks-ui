@@ -1,4 +1,4 @@
-import { attemptsCapNoteOf, effectiveSettingOf } from './access-limits';
+import { type CappedSetting, capHintOf, effectiveSettingOf } from './access-limits';
 import type {
   ContributeCredential,
   ContributeGrant,
@@ -23,21 +23,15 @@ export const sizeLabelOf = (size: ContributeIssueSize | null) =>
 
 /**
  * The Budget and pacing row: "$63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt" (before any spend,
- * "$200 a cycle · renews on the 14th"), and "· 1 at a time (new-account limit)" while the access level holds the
- * attempts at a time below the setting.
+ * "$200 a cycle · renews on the 14th").
  */
-export const budgetSummaryOf = (
-  settings: ContributeSettings,
-  spend?: ContributeSpend | null,
-  limits?: ContributeLimits | null,
-) =>
+export const budgetSummaryOf = (settings: ContributeSettings, spend?: ContributeSpend | null) =>
   [
     spend
       ? `${usd(spend.cycleUsd)} of ${usd(settings.cycleCapUsd)} used this cycle`
       : `${usd(settings.cycleCapUsd)} a cycle`,
     spend ? `renews ${dayLabel(spend.cycleEnd)}` : `renews on ${ordinalDay(settings.renewalDay)}`,
     `up to ${usd(settings.attemptCapUsd)} an attempt`,
-    attemptsCapNoteOf(settings, limits),
   ]
     .filter(Boolean)
     .join(' · ');
@@ -46,13 +40,42 @@ export const budgetSummaryOf = (
 export const modelSummaryOf = (settings: ContributeSettings) =>
   `${MODELS[settings.mainModel]}, ${EFFORTS[settings.effort].toLowerCase()} effort`;
 
-/** The pull request limits: "PRs up to 400 lines, 15 files · 3 open at a time" (what holds now, a cap included). */
-export const prLimitsSummaryOf = (settings: ContributeSettings, limits?: ContributeLimits | null) =>
-  `PRs up to ${settings.maxChangedLines.toLocaleString('en-US')} lines, ${plural(settings.maxFiles, 'file')} · ${effectiveSettingOf(settings, limits, 'openPrsAtATime')} open at a time`;
+/** The cap's words when the access level holds a setting below what the user set: " while your account is new". */
+function capWordsOf(settings: ContributeSettings, limits: ContributeLimits | null | undefined, field: CappedSetting) {
+  const hint = capHintOf(limits, field);
+  return hint && hint.max < settings[field] ? ` ${hint.text}` : '';
+}
 
-/** "1 at a time", with the access level's cap when it holds below the setting. */
-export const attemptsSummaryOf = (settings: ContributeSettings, limits?: ContributeLimits | null) =>
-  attemptsCapNoteOf(settings, limits) ?? `${settings.attemptsAtATime} at a time`;
+/**
+ * Settings' Open pull requests at a time row: "Up to 8 · 3 open now", the limit that holds (a cap, or a limit set for
+ * the account, included) and, when known, how many count against it now.
+ */
+export function openPrsSummaryOf(
+  settings: ContributeSettings,
+  limits: ContributeLimits | null | undefined,
+  open?: number,
+): string {
+  const limit = effectiveSettingOf(settings, limits, 'openPrsAtATime');
+  const now = typeof open === 'number' ? ` · ${open} open now` : '';
+  return `Up to ${limit}${capWordsOf(settings, limits, 'openPrsAtATime')}${now}`;
+}
+
+/** Settings' Attempts at a time row: "Up to 2 issues in work at once", "1 issue in work at once while your account is new". */
+export function attemptsSummaryOf(settings: ContributeSettings, limits?: ContributeLimits | null): string {
+  const limit = effectiveSettingOf(settings, limits, 'attemptsAtATime');
+  const words = limit === 1 ? '1 issue in work at once' : `Up to ${limit} issues in work at once`;
+  return `${words}${capWordsOf(settings, limits, 'attemptsAtATime')}`;
+}
+
+/** Settings' Pull request size row: "Up to 400 changed lines, 15 files · a larger change stops before review". */
+export const prSizeSummaryOf = (settings: ContributeSettings) =>
+  `Up to ${settings.maxChangedLines.toLocaleString('en-US')} changed lines, ${plural(settings.maxFiles, 'file')} · a larger change stops before review`;
+
+/** Settings' DCO sign-off row. */
+export const dcoSummaryOf = (settings: Pick<ContributeSettings, 'dco'>) =>
+  settings.dco === 'STANDING'
+    ? 'Sign off automatically when a repo requires it'
+    : 'Ask me each time a repo requires it';
 
 /** "…a1b2 · works", or "Not connected". */
 export const keySummaryOf = (credential: ContributeCredential | undefined) =>

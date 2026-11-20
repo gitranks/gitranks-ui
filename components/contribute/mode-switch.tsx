@@ -71,7 +71,7 @@ export function ModeSwitch({
         return;
       }
       setSwitched(before);
-      router.push(SETTINGS_PATHS.summary);
+      router.push(SETTINGS_PATHS.work);
     });
   };
   // A change on its way (an add, a pick) lands before the next step reads the list.
@@ -129,7 +129,7 @@ export function ModeSwitch({
 
       <div className="flex flex-wrap items-center gap-2">
         <Button asChild variant="ghost">
-          <Link href={SETTINGS_PATHS.summary} prefetch={false}>
+          <Link href={SETTINGS_PATHS.work} prefetch={false}>
             Cancel
           </Link>
         </Button>

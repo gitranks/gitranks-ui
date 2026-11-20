@@ -13,22 +13,21 @@ export const EMAIL_TITLE = 'Email from Contribute';
 export const EMAIL_OFF = 'Off. You get no review reminders or other Contribute email.';
 export const EMAIL_AUTOPILOT_NOTE = "Autopilot's notices still come while autopilot is on.";
 
-/** Contribute's email with an address to send it to: the only kind Settings shows. */
-export type ShownEmail = ContributeEmail & { to: string };
+/** With no address stored nothing is ever sent: the row is drawn, off, and says how to give one. */
+export const EMAIL_NO_ADDRESS =
+  'We have no email address for you. Add a public email on GitHub, or sign in again to share one.';
 
-/** The email has an address: with none stored nothing is ever sent, so Settings shows no row. */
-export const isShownEmail = (email: ContributeEmail | null | undefined): email is ShownEmail => !!email?.to;
-
-/** Where the email goes, in plain words: the masked address, or off. */
-export const emailValueOf = ({ on, to }: ShownEmail): string =>
-  on ? `Review reminders and other Contribute email go to ${to}.` : EMAIL_OFF;
+/** Where the email goes, in plain words: the masked address, off, or that there is no address. */
+export const emailValueOf = ({ on, to }: ContributeEmail): string =>
+  !to ? EMAIL_NO_ADDRESS : on ? `Review reminders and other Contribute email go to ${to}.` : EMAIL_OFF;
 
 /**
- * Settings' Email group: one row (`#email`, so a link or an email can point at it) with whether Contribute's email is on
- * and where it goes, and a switch that saves at once. The switch moves when clicked and moves back, with why, when the
- * save fails; a change while one is saving is ignored. A save that answers no address takes the group away.
+ * Settings' Email group, the slot W4 fills with its rows (`EmailRows`). Until then, today's one row (`#email`, so a link
+ * or an email can point at it): whether Contribute's email is on and where it goes, and a switch that saves at once.
+ * The switch moves when clicked and moves back, with why, when the save fails; a change while one is saving is
+ * ignored. The group is always drawn: with no address the switch is off and disabled, under why.
  */
-export function EmailSection({ email }: { email: ShownEmail }) {
+export function EmailRows({ email }: { email: ContributeEmail }) {
   const router = useRouter();
   const id = useId();
   const [shown, setShown] = useState<ContributeEmail>(email);
@@ -56,7 +55,7 @@ export function EmailSection({ email }: { email: ShownEmail }) {
     });
   };
 
-  if (!isShownEmail(shown)) return null;
+  const noAddress = !shown.to;
   return (
     <SettingsGroup id="settings-email" title="Email">
       <SettingsList>
@@ -69,7 +68,7 @@ export function EmailSection({ email }: { email: ShownEmail }) {
               <span id={`${id}-value`} className="block">
                 {emailValueOf(shown)}
               </span>
-              <span className="block text-xs">{EMAIL_AUTOPILOT_NOTE}</span>
+              {noAddress ? null : <span className="block text-xs">{EMAIL_AUTOPILOT_NOTE}</span>}
               {error ? (
                 <span role="alert" className="block text-destructive">
                   {error}
@@ -77,7 +76,7 @@ export function EmailSection({ email }: { email: ShownEmail }) {
               ) : null}
             </>
           }
-          data={{ 'data-email': shown.on ? 'on' : 'off' }}
+          data={{ 'data-email': noAddress ? 'no-address' : shown.on ? 'on' : 'off' }}
         >
           <label
             htmlFor={`${id}-email`}
@@ -91,11 +90,12 @@ export function EmailSection({ email }: { email: ShownEmail }) {
               aria-label={EMAIL_TITLE}
               aria-describedby={`${id}-value`}
               aria-disabled={pending || undefined}
-              checked={shown.on}
+              checked={shown.on && !noAddress}
+              disabled={noAddress}
               onChange={(event) => toggle(event.target.checked)}
               className="size-4.5 accent-primary aria-disabled:opacity-60"
             />
-            {shown.on ? 'On' : 'Off'}
+            {shown.on && !noAddress ? 'On' : 'Off'}
           </label>
         </SettingsRow>
       </SettingsList>

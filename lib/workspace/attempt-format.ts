@@ -132,19 +132,19 @@ const END_MOVES: Record<ContributeAttemptEndReason, EndMove | null> = {
   FAILED: { text: `${NOTHING}: a new attempt can take the issue again.` },
   CHECKS_FAILED: { text: `${NOTHING}.` },
   KEY_INVALID: {
-    text: 'Connect a working Claude key in Keys and access; nothing starts until you do.',
+    text: 'Connect a working Claude key on its Claude API key page; nothing starts until you do.',
     href: SETTINGS_PATHS.keys,
-    link: 'Open Keys and access',
+    link: 'Open Claude API key',
   },
   EXHAUSTED: {
-    text: "Add credits in the Claude Console (platform.claude.com, Settings, Billing), then connect the key again in Keys and access. GitRanks can't add credits for you.",
+    text: "Add credits in the Claude Console (platform.claude.com, Settings, Billing), then connect the key again on its Claude API key page. GitRanks can't add credits for you.",
     href: SETTINGS_PATHS.keys,
-    link: 'Open Keys and access',
+    link: 'Open Claude API key',
   },
   LIMIT_REACHED: {
-    text: "Raise your workspace's spend limit in the Claude Console (platform.claude.com, Settings, Limits), then connect the key again in Keys and access, or wait for its next month. GitRanks can't change it for you.",
+    text: "Raise your workspace's spend limit in the Claude Console (platform.claude.com, Settings, Limits), then connect the key again on its Claude API key page, or wait for its next month. GitRanks can't change it for you.",
     href: SETTINGS_PATHS.keys,
-    link: 'Open Keys and access',
+    link: 'Open Claude API key',
   },
   CANCELLED: null,
   USER: null,
@@ -158,12 +158,12 @@ const END_MOVES: Record<ContributeAttemptEndReason, EndMove | null> = {
 /** A check over the user's own limits: raising them lets the next attempt through. */
 const OVER_LIMIT: Record<string, EndMove> = {
   max_changed_lines: {
-    text: 'To let a larger change through, raise "Changed lines" under Pull requests in Agent and pull requests.',
+    text: 'To let a larger change through, raise "Changed lines" under Pull request size in Settings.',
     href: movedAnchorOf('prs') ?? SETTINGS_PATHS.agent,
     link: 'Open Pull requests',
   },
   max_files: {
-    text: 'To let a larger change through, raise "Files" under Pull requests in Agent and pull requests.',
+    text: 'To let a larger change through, raise "Files" under Pull request size in Settings.',
     href: movedAnchorOf('prs') ?? SETTINGS_PATHS.agent,
     link: 'Open Pull requests',
   },

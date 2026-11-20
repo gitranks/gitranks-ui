@@ -37,8 +37,10 @@ describe('the workspace addresses', () => {
       agentBudget: '/my/agent/budget',
       agentRuns: '/my/agent/runs',
       settings: '/my/settings',
+      settingsGithub: '/my/settings/github',
+      settingsPullRequests: '/my/settings/pull-requests',
       settingsWork: '/my/settings/work',
-      settingsGoal: '/learn/profile',
+      settingsGoal: '/my/settings/goal',
       progress: '/learn/lessons',
     });
   });
@@ -46,6 +48,9 @@ describe('the workspace addresses', () => {
   it('are the ones the older names give', () => {
     expect(SETTINGS_PATHS).toEqual({
       summary: '/my/settings',
+      github: '/my/settings/github',
+      pullRequests: '/my/settings/pull-requests',
+      goal: '/my/settings/goal',
       work: '/my/settings/work',
       budget: '/my/agent/budget',
       agent: '/my/agent/model',
@@ -58,16 +63,16 @@ describe('the workspace addresses', () => {
     expect(switchPathOf('STACK')).toBe('/my/settings/work/switch/stack');
   });
 
-  it('name the rows other pages link to where they are until Settings is laid out', () => {
+  it('name the rows other pages link to where they are', () => {
     expect(WORKSPACE_ANCHORS).toEqual({
-      limitRow: '/my/agent/model#prs',
-      attemptsRow: '/my/agent/budget#more-limits',
-      work: '/my/settings#work',
-      forLearning: '/learn/profile',
+      limitRow: '/my/settings/pull-requests#open',
+      attemptsRow: '/my/settings/pull-requests#attempts',
+      work: '/my/settings/work#work',
+      forLearning: '/my/settings/goal',
       agentKey: '/my/agent/key',
       agentBudget: '/my/agent/budget',
     });
-    expect(GITHUB_ACCESS_PATH).toBe('/my/agent/key#github');
+    expect(GITHUB_ACCESS_PATH).toBe('/my/settings/github');
     expect(KEY_REPLACE_PATH).toBe('/my/agent/key?replace=1');
   });
 
@@ -76,13 +81,18 @@ describe('the workspace addresses', () => {
     expect(movedAnchorOf('pacing')).toBe('/my/agent/budget#pacing');
     expect(movedAnchorOf('more-limits')).toBe('/my/agent/budget#more-limits');
     expect(movedAnchorOf('agent')).toBe('/my/agent/model');
-    expect(movedAnchorOf('prs')).toBe('/my/agent/model#prs');
+    expect(movedAnchorOf('prs')).toBe('/my/settings/pull-requests');
+    expect(movedAnchorOf('github')).toBe('/my/settings/github');
     expect(movedAnchorOf('access')).toBe('/my/agent/key');
     expect(movedAnchorOf('own-agent')).toBe('/my/agent#own-agent');
     expect(movedAnchorOf('pause')).toBe('/my/agent#pause');
     expect(movedAnchorOf('autopilot')).toBe('/my/agent#autopilot');
-    for (const anchor of ['modes', 'work', 'ignored', 'email', 'toString']) expect(movedAnchorOf(anchor)).toBeNull();
-    expect(settingsPathOf('work')).toBe('/my/settings#work');
+    for (const anchor of ['modes', 'work', 'ignored', 'rules']) {
+      expect(movedAnchorOf(anchor)).toBe(`/my/settings/work#${anchor}`);
+    }
+    for (const anchor of ['email', 'danger', 'toString']) expect(movedAnchorOf(anchor)).toBeNull();
+    expect(settingsPathOf('work')).toBe('/my/settings/work#work');
+    expect(settingsPathOf('email')).toBe('/my/settings#email');
   });
 });
 
@@ -122,7 +132,7 @@ describe('which pages are which', () => {
     ]) {
       expect(isTablessPath(path), path).toBe(true);
     }
-    for (const path of ['/contribute', '/contribute/issues', '/learn', '/learn/lessons', '/learn/profile', '/my']) {
+    for (const path of ['/contribute', '/contribute/issues', '/learn', '/learn/lessons', '/my/settings/goal', '/my']) {
       expect(isTablessPath(path), path).toBe(false);
     }
   });

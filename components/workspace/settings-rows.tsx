@@ -7,15 +7,23 @@ import { HEADING, PageTitle } from './primitives';
 import { cn } from '@/lib/utils';
 import { SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
-/** A group of the Settings summary: its title, and its rows in one bordered list. */
+/**
+ * A group of the Settings summary: its title (`size` "section" for a side's group, with `text` under it), and its rows
+ * in one bordered list.
+ */
 export function SettingsGroup({
   id,
   title,
+  text,
+  size = 'block',
   action,
   children,
 }: {
   id: string;
   title: string;
+  /** Under the title: who the group is for. */
+  text?: string;
+  size?: 'block' | 'section';
   /** Beside the title: a help link. */
   action?: ReactNode;
   children: ReactNode;
@@ -23,11 +31,12 @@ export function SettingsGroup({
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="flex scroll-mt-20 flex-col gap-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 id={`${id}-title`} className={HEADING.block}>
+        <h2 id={`${id}-title`} className={HEADING[size]}>
           {title}
         </h2>
         {action}
       </div>
+      {text ? <p className="-mt-1 text-sm text-muted-foreground">{text}</p> : null}
       {children}
     </section>
   );

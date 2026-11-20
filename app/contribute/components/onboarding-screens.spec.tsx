@@ -52,7 +52,7 @@ const { Landing } = await import('./landing');
 const { SignInButton, SignInPanel, signInRouteOf, startSignIn } = await import('@/components/workspace/sign-in-dialog');
 const { PullRequestsView } = await import('@/components/workspace/pull-requests-view');
 const { ContributionLayout, FirstSessionView } = await import('@/components/workspace/pull-request/review-view');
-const { SettingsView } = await import('./settings-view');
+const { SettingsView } = await import('@/app/(workspace)/my/settings/components/settings-view');
 const { Dialog } = await import('@/components/ui/dialog');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 

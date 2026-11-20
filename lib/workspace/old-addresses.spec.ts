@@ -63,7 +63,8 @@ describe('the old workspace addresses', () => {
     ['/contribute/issues?language=RUST&size=M', '/contribute?language=RUST&size=M#issues'],
     ['/contribute/settings/agent', '/my/agent/model'],
     ['/contribute/settings/keys', '/my/agent/key'],
-    ['/contribute/settings/keys?grant=unavailable', '/my/agent/key?grant=unavailable'],
+    ['/contribute/settings/keys?grant=unavailable', '/my/settings/github?grant=unavailable'],
+    ['/learn/profile', '/my/settings/goal'],
     ['/contribute/settings/own-agent', '/my/agent'],
     ['/Contribute/Me', '/my/pull-requests'],
     ['/contribute/attempts/A_1', '/my/pull-requests/by-attempt/A_1'],
@@ -96,7 +97,6 @@ describe('the old workspace addresses', () => {
       '/learn',
       '/learn/lessons',
       '/learn/lessons/a-lesson-1x',
-      '/learn/profile',
       '/learn/start/acme/widgets/42',
       '/my/pull-requests',
     ]) {

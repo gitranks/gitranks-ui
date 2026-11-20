@@ -260,7 +260,7 @@ describe('what a read does', () => {
     ['/learn/lessons', ['ATTEMPTS'], true],
     ['/learn/lessons', ['SETTINGS'], false],
     ['/my/pull-requests/acme/widgets/42/lesson', ['ATTEMPTS'], true],
-    ['/learn/profile', ['ATTEMPTS', 'SETTINGS'], false],
+    ['/my/settings/goal', ['SET', 'SETTINGS'], true],
     ['/my/pull-requests', ['ATTEMPTS'], true],
     ['/my/pull-requests', ['SET', 'FEED', 'SETTINGS'], false],
     ['/my/pull-requests/by-attempt/A_1', ['ATTEMPTS'], true],

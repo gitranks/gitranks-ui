@@ -45,19 +45,6 @@ export function capHintOf(
 }
 
 /**
- * The budget line's note when the attempts at a time that hold are below the setting: "1 at a time (new-account
- * limit)", "1 at a time (limit for now)". Null otherwise.
- */
-export function attemptsCapNoteOf(
-  settings: Pick<ContributeSettings, 'attemptsAtATime'>,
-  limits: ContributeLimits | null | undefined,
-): string | null {
-  const caps = capsOf(limits);
-  if (!caps || caps.attemptsAtATime >= settings.attemptsAtATime) return null;
-  return `${caps.attemptsAtATime} at a time (${isNewAccount(caps) ? 'new-account limit' : 'limit for now'})`;
-}
-
-/**
  * A value typed above the cap, refused with what the cap is: "Attempts at a time: up to 1 while your account is new."
  * A value as stored is kept even above it: the stored setting comes back when the limit lifts. Null when it passes.
  */

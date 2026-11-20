@@ -366,3 +366,14 @@ export const agentTabViews = {
   },
   keyInvalid: { ...views.keyInvalid, ownAgent: ownAgentConnected, sides: { contribute: true, learn: true } },
 } satisfies Record<string, ContributeView>;
+
+/** The Settings tab's people (W1 §10.3): using both sides, a contributor, a learner (own agent, settings stored). */
+export const settingsViews = {
+  both: { ...views.active, sides: { contribute: true, learn: true } },
+  contributor: { ...views.active, sides: { contribute: true, learn: false } },
+  learner: {
+    ...views.agentOnboarded,
+    contributor: contributor({ credentials: [], plan: null, spend: null, onboardedVia: 'MCP' }),
+    sides: { contribute: false, learn: true },
+  },
+} satisfies Record<string, ContributeView>;

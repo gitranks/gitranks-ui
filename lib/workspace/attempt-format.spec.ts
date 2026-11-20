@@ -64,7 +64,7 @@ describe('endMoveOf: what the user does after an attempt ended', () => {
     expect(end('USER')).toBeNull();
     expect(end(null)).toBeNull();
     // A failed check links to the user's own limit only when it was one of them.
-    expect(end('CHECKS_FAILED', { endDetail: 'max_files' })).toMatchObject({ href: '/my/agent/model#prs' });
+    expect(end('CHECKS_FAILED', { endDetail: 'max_files' })).toMatchObject({ href: '/my/settings/pull-requests' });
     expect(end('CHECKS_FAILED', { endDetail: 'secrets' })).toEqual({ text: 'Nothing waits on you.' });
     // A failed submission points at its note only while there is one.
     expect(end('SUBMIT_FAILED')).toEqual({ text: 'Nothing was submitted.' });

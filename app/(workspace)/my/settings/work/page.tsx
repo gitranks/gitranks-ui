@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { WorkSettingsView } from '@/app/contribute/components/settings-pages';
+import { WorkSettingsView } from '@/app/(workspace)/my/settings/components/settings-pages';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'What you work on' };

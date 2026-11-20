@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { SwitchSettingsView } from '@/app/contribute/components/settings-pages';
+import { SwitchSettingsView } from '@/app/(workspace)/my/settings/components/settings-pages';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'Switch what you work on' };

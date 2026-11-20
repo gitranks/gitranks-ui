@@ -24,7 +24,6 @@ import {
   StartSharedLessonRunDocument,
 } from '@/lib/learn/learn.documents';
 import type {
-  LearnIssues,
   LearnProfile,
   LessonAnswerResult,
   LessonReaction,
@@ -285,14 +284,6 @@ export async function readPracticeLessons(first: number): Promise<ContributeActi
   const count = countOf(first, 1, PRACTICE_ALL);
   if (count === null) return invalid();
   return run(PracticeLessonsDocument, { first: count }, (data) => data.practiceLessons);
-}
-
-/**
- * How many issues fit the viewer's goal, and why none do (`learnIssues(first: 0)`): no row comes back, so none is
- * revealed. The browser can ask for nothing more; issues themselves are read only where the page shows them.
- */
-export async function readLearnIssueCount(): Promise<ContributeActionResult<LearnIssues>> {
-  return run(LearnIssuesDocument, { first: 0 }, (data) => data.learnIssues);
 }
 
 /** How many issues a passed practice lesson shows. */

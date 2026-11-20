@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { FormSettingsView } from '@/app/contribute/components/settings-pages';
+import { FormSettingsView } from '@/app/(workspace)/my/agent/components/agent-pages';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'Budget and pacing' };

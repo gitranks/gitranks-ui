@@ -18,20 +18,14 @@ const under = (path: string, prefix: string) => path === prefix || path.startsWi
 
 /**
  * The tab a page belongs to; null for none. Learn's own pages that have no tab of their own yet (the user's lessons,
- * goal and level, the start page for one issue) are Learn's; an attempt's page is the pull requests'. A Start page
+ * the start page for one issue) are Learn's; an attempt's page is the pull requests'. A Start page
  * is the Learn tab's for a lesson (`?lesson=1`), else Contribute's.
  */
 export function activeTabOf(pathname: string, search: Pick<URLSearchParams, 'get'>): WorkspaceTab | null {
   const path = pathname.replace(/\/+$/, '') || '/';
   if (path.startsWith('/my/start/')) return search.get('lesson') === '1' ? 'learn' : 'contribute';
   if (path === '/contribute') return 'contribute';
-  if (
-    path === '/learn' ||
-    path === '/learn/lessons' ||
-    path === '/learn/profile' ||
-    path.startsWith('/learn/start/') ||
-    path === '/my/progress'
-  ) {
+  if (path === '/learn' || path === '/learn/lessons' || path.startsWith('/learn/start/') || path === '/my/progress') {
     return 'learn';
   }
   if (under(path, WORKSPACE_PATHS.pullRequests)) return 'pull-requests';

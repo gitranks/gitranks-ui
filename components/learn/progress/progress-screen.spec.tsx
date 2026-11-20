@@ -15,7 +15,7 @@ const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn() }));
 vi.mock('@/lib/workspace/gate.data', () => gate);
 const data = vi.hoisted(() => ({ loadLearnProgress: vi.fn(), loadProgressList: vi.fn() }));
 vi.mock('@/lib/learn/progress/progress.data', () => data);
-const contribute = vi.hoisted(() => ({ loadPullRequestsPage: vi.fn() }));
+const contribute = vi.hoisted(() => ({ loadPullRequestsPage: vi.fn(), viewerLogin: vi.fn(async () => 'octocat') }));
 vi.mock('@/lib/workspace/contribute.data', () => contribute);
 
 const { ProgressScreen } = await import('./progress-screen');
@@ -360,5 +360,62 @@ describe('the page’s reads and gate', () => {
     const html = renderToStaticMarkup(await view({ view: 'repos' }));
     expect(contribute.loadPullRequestsPage).toHaveBeenCalledWith({ page: 1, state: 'OPEN', mode: 'LEARN' });
     expect(text(html)).toContain('3 are open.');
+  });
+
+  it('gives the Share control the viewer’s public link and what their public page counts', async () => {
+    gate.loadWorkspaceGate.mockResolvedValue(open);
+    data.loadLearnProgress.mockResolvedValue({
+      counts: progressCounts,
+      publicCounts: { ...progressCounts, lessonsPassed: 5 },
+    });
+    data.loadProgressList.mockResolvedValue({ view: 'lessons', lessons: lessonsPage });
+    const html = renderToStaticMarkup(await view());
+    expect(html).toContain('data-share="differ"');
+    expect(text(html)).toContain('Your public page counts 5 lessons.');
+  });
+});
+
+describe('Your progress: Share', () => {
+  const share = (publicCounts: ProgressScreenProps['counts'] | null) =>
+    screen({ share: { url: 'https://gitranks.com/learn/progress/octocat', publicCounts: publicCounts ?? null } });
+
+  it('copies the public link when the public page counts as much as Your progress', () => {
+    const html = share(progressCounts);
+    expect(html).toContain('data-share="equal"');
+    expect(text(html)).toContain('Share your progress');
+    expect(text(html)).toContain('Copies your public link. Posted anywhere, it shows a card with your numbers.');
+    expect(text(html)).not.toContain('Your public page counts');
+  });
+
+  it('says why the public page counts less', () => {
+    const html = share({ ...progressCounts, lessonsPassed: 1, newThings: 2 });
+    expect(html).toContain('data-share="differ"');
+    expect(text(html)).toContain(
+      'Your public page counts 1 lesson. A lesson is counted there once its pull request is open, and a practice lesson once you share your result.',
+    );
+  });
+
+  it('names the count that differs: merged pull requests whose repository is no longer public', () => {
+    const html = share({ ...progressCounts, prsMerged: progressCounts.prsMerged - 1, reposHelped: 1 });
+    expect(html).toContain('data-share="differ"');
+    expect(text(html)).not.toContain('lesson is counted there');
+    expect(text(html)).toContain(
+      `Your public page counts ${progressCounts.prsMerged - 1} pull requests merged in 1 repository. A merged pull request is counted there while its repository is public.`,
+    );
+    const learned = share({ ...progressCounts, newThings: 3 });
+    expect(text(learned)).toContain(
+      'Your public page counts 3 new things learned. It counts the new things of the results that are public.',
+    );
+  });
+
+  it('offers no button before anything is public, and nothing before a first pass', () => {
+    const none = share(null);
+    expect(none).toContain('data-share="no-record"');
+    expect(text(none)).toContain(
+      'You can share once your first pull request opens, or after you share a practice result.',
+    );
+    expect(text(none)).not.toContain('Share your progress');
+    const empty = screen({ counts: zeroCounts, list: undefined, share: { url: 'u', publicCounts: null } });
+    expect(empty).not.toContain('data-share');
   });
 });

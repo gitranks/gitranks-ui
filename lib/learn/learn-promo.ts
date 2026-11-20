@@ -90,7 +90,15 @@ export function learnRecordOf(record: Partial<LearnRecord> | null | undefined): 
   const topics = [
     ...new Set((Array.isArray(record?.topics) ? record.topics : []).flatMap((topic) => textOf(topic) ?? [])),
   ];
-  return { lessons, topics, prsOpened: countOf(record?.prsOpened), prsMerged: countOf(record?.prsMerged) };
+  return {
+    login: textOf(record?.login),
+    lessons,
+    newThings: countOf(record?.newThings),
+    topics,
+    prsOpened: countOf(record?.prsOpened),
+    prsMerged: countOf(record?.prsMerged),
+    reposHelped: countOf(record?.reposHelped),
+  };
 }
 
 /** Topics the record card names; the rest are counted. */

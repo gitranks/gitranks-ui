@@ -20,13 +20,16 @@ describe('the Privacy policy', () => {
   it('has a GitRanks Learn section, linked from the contents and dated', () => {
     expect(html).toContain('id="learn"');
     expect(html).toContain('href="#learn"');
-    expect(plain).toContain('18 November 2026');
+    expect(plain).toContain('20 November 2026');
   });
 
   it('says what Learn makes public, under whose name, and what deleting removes', () => {
     expect(plain).toContain('the lesson becomes public under your GitHub username');
     expect(plain).toContain('never the options you got wrong');
     expect(plain).toContain('Its form for machines also gives your GitHub account id');
+    expect(plain).toContain(
+      'Your public results also show on your public progress page, with the Learn pull requests that were merged, and in the image a link to that page shows when it is posted.',
+    );
     expect(plain).toContain('anyone signed in with GitHub can say whether a lesson result helped');
     expect(plain).toContain(
       'may be shown on the result page with their username, avatar and role; others are never shown',

@@ -68,6 +68,9 @@ describe("Learn's paths", () => {
       '/learn/lessons/route-cache-miss-8f3k',
       '/learn/lessons/route-cache-miss-8f3k/passes/octocat',
       '/Learn//Lessons//x',
+      // A person's public progress page (it answers 404 itself for a login with no public record).
+      '/learn/progress/octocat',
+      '/learn/progress/OctoCat/',
     ]) {
       expect(isLearnOpenPath(path), path).toBe(true);
     }
@@ -82,6 +85,10 @@ describe("Learn's paths", () => {
       '/learn/maintainers/x',
       '/learn/maintainers%2F..%2Fprofile',
       '/learn/lessons/%E0%A4%A',
+      '/learn/progress',
+      '/learn/progress/',
+      '/learn/progress/octocat/x',
+      '/learn/progress/octocat%2F..%2Fprofile',
     ]) {
       expect(isLearnOpenPath(path), path).toBe(false);
     }

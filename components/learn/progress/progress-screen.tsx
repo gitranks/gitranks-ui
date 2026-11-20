@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { LearnedLessons, MergedPullRequests, NotFinished, PassedLessons, ReposHelped } from './progress-lists';
+import { ShareProgress } from './share-progress';
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/workspace/pagination';
 import { HEADING, PageTitle } from '@/components/workspace/primitives';
@@ -33,6 +34,8 @@ export type ProgressScreenProps = {
   list?: ProgressList;
   /** The viewer's Learn pull requests open now, for the merged views' empty state; null when not known. */
   openPrs?: number | null;
+  /** The Share control's facts: the viewer's public link and what their public page counts. */
+  share?: { url: string; publicCounts: LearnProgressCounts | null };
 };
 
 /** One sentence above each view's list. */
@@ -51,13 +54,16 @@ const NOUNS: Record<ProgressView, string> = {
   merged: 'pull request',
 };
 
-function Head() {
+function Head({ share }: { share?: ReactNode }) {
   return (
     <div className="flex flex-col gap-3">
       <Link href={LEARN_PATH} prefetch={false} className="self-start text-sm font-semibold text-link hover:underline">
         ← Learn
       </Link>
-      <PageTitle title="Your progress" text="What you have learned so far, and where your fixes landed." />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <PageTitle title="Your progress" text="What you have learned so far, and where your fixes landed." />
+        {share}
+      </div>
     </div>
   );
 }
@@ -159,7 +165,7 @@ function ViewBody({ list, openPrs }: { list: ProgressList; openPrs: number | nul
  * (Lessons passed, New things learned, Repos helped, Pull requests merged), the view and its page in the address.
  * It shows no Contribute numbers and nothing that needs the viewer: that is the Pull requests tab's.
  */
-export function ProgressScreen({ view, page, counts, list, openPrs }: ProgressScreenProps) {
+export function ProgressScreen({ view, page, counts, list, openPrs, share }: ProgressScreenProps) {
   if (!counts) {
     return (
       <div data-progress="unavailable" className="flex flex-col gap-5">
@@ -177,7 +183,13 @@ export function ProgressScreen({ view, page, counts, list, openPrs }: ProgressSc
   }));
   return (
     <div data-progress={empty ? 'empty' : view} className="flex flex-col gap-5">
-      <Head />
+      <Head
+        share={
+          share && !empty ? (
+            <ShareProgress url={share.url} counts={counts} publicCounts={share.publicCounts} />
+          ) : undefined
+        }
+      />
       <ViewTabs tabs={tabs} label="Your progress" current={view} />
       {empty ? (
         <>

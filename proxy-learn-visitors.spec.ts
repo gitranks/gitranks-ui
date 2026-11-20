@@ -19,6 +19,13 @@ vi.mock('./lib/learn/lesson-gate', () => ({
   LESSON_MISSING_PATH: '/learn/lessons/_missing',
   lessonGateOf: async () => ({ kind: 'page' }),
 }));
+const progressGate = vi.hoisted(() => ({ value: 'page' as 'page' | 'missing', asked: [] as string[] }));
+vi.mock('./lib/learn/public-progress/progress-gate', () => ({
+  progressGateOf: async (login: string) => {
+    progressGate.asked.push(login);
+    return progressGate.value;
+  },
+}));
 const everyone = vi.hoisted(() => ({ open: true }));
 vi.mock('./lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
 // With Learn open to everyone, every signed-in viewer is one it is open to; a session the server cannot read is none.
@@ -90,6 +97,29 @@ describe('Learn open to visitors', () => {
       );
     } finally {
       access.value = 'open';
+    }
+  });
+
+  it('lets everyone through to a public progress page with a record, while Learn is not open to everyone too', async () => {
+    everyone.open = false;
+    progressGate.asked.length = 0;
+    try {
+      const response = await visit('/learn/progress/octocat');
+      expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(progressGate.asked).toEqual(['octocat']);
+    } finally {
+      everyone.open = true;
+    }
+  });
+
+  it('answers a public progress page with no record, or another spelling of the login, with a 404 nobody keeps', async () => {
+    progressGate.value = 'missing';
+    try {
+      const response = await visit('/learn/progress/OctoCat');
+      expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+      expect(response?.headers.get('Cache-Control')).toBe('private, no-store');
+    } finally {
+      progressGate.value = 'page';
     }
   });
 });

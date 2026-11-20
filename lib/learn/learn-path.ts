@@ -34,11 +34,13 @@ export function isLearnPath(pathname: string): boolean {
 
 /**
  * The Learn pages open to every visitor: a shared lesson and its result pages (`/learn/lessons/<slug>…`, which pull
- * requests link to), and the page for maintainers. `/learn/lessons` itself is not: it goes on to Your progress.
+ * requests link to), a person's public progress page (`/learn/progress/<login>`), and the page for maintainers.
+ * `/learn/lessons` itself is not: it goes on to Your progress.
  */
 export const isLearnOpenPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+learn\/+maintainers\/?$/i) ||
-  decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i);
+  decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i) ||
+  decodedMatches(pathname, /^\/+learn\/+progress\/+[^/\\]+\/?$/i);
 
 /** Learn's front door, `/learn`, in any spelling the router reads as it. */
 export const isLearnHomePath = (pathname: string): boolean => decodedMatches(pathname, /^\/+learn\/?$/i);
@@ -60,6 +62,17 @@ export const lessonPath = (slug: string) => `/learn/lessons/${encodeURIComponent
 /** One login's result on a lesson: the link in the pull request, and the proof of the pass. */
 export const lessonResultPath = (slug: string, login: string) =>
   `/learn/lessons/${encodeURIComponent(slug)}/passes/${encodeURIComponent(login)}` as Route;
+
+/** A person's public progress page: their public lessons and numbers, the link Share copies. */
+export const publicProgressPath = (login: string, page = 1) =>
+  `/learn/progress/${encodeURIComponent(login)}${page > 1 ? `?page=${page}` : ''}` as Route;
+
+const PUBLIC_PROGRESS_ROUTE = new RegExp(`^/learn/progress/(${LOGIN})/?$`);
+
+/** The login of a path as `publicProgressPath` writes it (a trailing slash allowed); null for any other path. */
+export function publicProgressRouteOf(pathname: string): string | null {
+  return PUBLIC_PROGRESS_ROUTE.exec(pathname)?.[1] ?? null;
+}
 
 const RESULT_JSON_PATH = new RegExp(`^/learn/lessons/(${SLUG})/passes/(${LOGIN})\\.json$`);
 

@@ -287,7 +287,20 @@ export type LearnPromoIssue = {
 export type LearnPromo = { show: boolean; reason: string | null; language: string | null; issues: LearnPromoIssue[] };
 
 /** A login's Learn record, from their public passes: lessons, topics learned, pull requests opened and merged. */
-export type LearnRecord = { lessons: number; topics: string[]; prsOpened: number; prsMerged: number };
+/**
+ * A person's public Learn record: only what is already public. `login` is the spelling GitRanks stores (the one
+ * address their public page and card answer under); null from an API that does not send it yet. `newThings`: the new
+ * things of their public passes; `reposHelped`: the repositories that merged their Learn pull requests.
+ */
+export type LearnRecord = {
+  login: string | null;
+  lessons: number;
+  newThings: number;
+  topics: string[];
+  prsOpened: number;
+  prsMerged: number;
+  reposHelped: number;
+};
 
 /** A saved Learn goal, as the issues for it name it: `kind` is language, project or domain; `level` its level's name. */
 export type LearnGoalView = { kind: string; value: string; level: string | null };

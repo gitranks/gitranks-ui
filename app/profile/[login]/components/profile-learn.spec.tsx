@@ -97,6 +97,8 @@ describe('the Learn record on a profile', () => {
     expect(html).toContain('pull requests opened');
     expect(html).toContain('+4 more');
     expect(html).not.toContain('Your progress');
+    // The title opens the public progress page, for every reader.
+    expect(html).toContain('href="/learn/progress/octocat"');
   });
 
   it('gives the owner the way to their progress', () => {
@@ -107,7 +109,17 @@ describe('the Learn record on a profile', () => {
 
   it('says one in the singular', () => {
     const html = renderToStaticMarkup(
-      <LearnRecordCard record={{ lessons: 1, topics: ['Rounding'], prsOpened: 1, prsMerged: 0 }} />,
+      <LearnRecordCard
+        record={{
+          login: 'octocat',
+          lessons: 1,
+          newThings: 1,
+          topics: ['Rounding'],
+          prsOpened: 1,
+          prsMerged: 0,
+          reposHelped: 0,
+        }}
+      />,
     );
     expect(html).toContain('lesson done');
     expect(html).toContain('topic learned');

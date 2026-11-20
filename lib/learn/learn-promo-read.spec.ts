@@ -50,8 +50,20 @@ describe('reading a Learn suggestion in the browser', () => {
   });
 
   it("reads a login's record, and nothing on a failure", async () => {
-    fetchMock.mockImplementationOnce(() => json({ record: { lessons: 1, topics: [], prsOpened: 0, prsMerged: 0 } }));
-    expect(await readLearnRecord('octocat')).toEqual({ lessons: 1, topics: [], prsOpened: 0, prsMerged: 0 });
+    fetchMock.mockImplementationOnce(() =>
+      json({
+        record: { login: 'octocat', lessons: 1, newThings: 2, topics: [], prsOpened: 0, prsMerged: 0, reposHelped: 0 },
+      }),
+    );
+    expect(await readLearnRecord('octocat')).toEqual({
+      login: 'octocat',
+      lessons: 1,
+      newThings: 2,
+      topics: [],
+      prsOpened: 0,
+      prsMerged: 0,
+      reposHelped: 0,
+    });
     expect(fetchMock).toHaveBeenLastCalledWith('/api/learn/record/octocat');
     fetchMock.mockImplementationOnce(() => json({ error: 'x' }, 500));
     expect(await readLearnRecord('octocat')).toBeNull();

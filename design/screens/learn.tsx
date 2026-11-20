@@ -10,6 +10,10 @@ import { LessonStubScreen } from '@/app/learn/components/lesson-stub';
 import { RecentLessons } from '@/app/learn/components/recent-lessons';
 import { Header } from '@/components/header/header';
 import { ProgressScreen } from '@/components/learn/progress/progress-screen';
+import {
+  PublicProgressScreen,
+  type PublicProgressScreenProps,
+} from '@/components/learn/progress/public-progress-screen';
 import { HeaderLine } from '@/components/workspace/header-line';
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { activityOf, runOf } from '@/lib/contribute/__fixtures__/agent-runs';
@@ -42,6 +46,7 @@ import {
   zeroCounts,
 } from '@/lib/learn/progress/__fixtures__/progress';
 import type { LearnProgressCounts } from '@/lib/learn/progress/progress.types';
+import { publicProgress } from '@/lib/learn/public-progress/__fixtures__/public-progress';
 
 /** Your progress's lists, one per view. */
 const progress = {
@@ -138,6 +143,23 @@ const stubPage = (visibility: LessonVisibility | 'MISSING') => open(<LessonStubS
 const MAINTAINER: ResultViewer = { canReact: false, mine: null, returned: null };
 const resultPage = (page: LessonResultPage = result(), viewer: ResultViewer = MAINTAINER) =>
   open(<LessonResultScreen result={page} viewer={viewer} />);
+
+/** Your progress with its Share control, as a learner with a public record (or none) reads it. */
+const shared = (publicCounts: LearnProgressCounts | null) => ({
+  view: 'lessons' as const,
+  page: 1,
+  counts: progressCounts,
+  list: progress.lessons,
+  share: { url: 'https://gitranks.com/learn/progress/octocat', publicCounts },
+});
+
+/** octocat's public progress page, open to everyone: under the header's line, without the workspace's tabs. */
+const PUBLIC_PROGRESS_PATH = '/learn/progress/octocat';
+const publicPage = (props: Partial<PublicProgressScreenProps> = {}) => (
+  <main className={MAIN}>
+    <PublicProgressScreen login="octocat" page={1} progress={publicProgress} own={false} everyone={false} {...props} />
+  </main>
+);
 
 export const LEARN_SCREENS: Screen[] = [
   {
@@ -368,7 +390,9 @@ export const LEARN_SCREENS: Screen[] = [
       'components/learn/progress/progress-lists.tsx',
       'components/learn/progress/learned-lesson-card.tsx',
       'components/learn/progress/learn-lesson-state-pill.tsx',
+      'components/learn/progress/share-progress.tsx',
       'lib/learn/progress/progress.ts',
+      'lib/learn/public-progress/public-progress.ts',
     ],
     states: [
       {
@@ -453,6 +477,91 @@ export const LEARN_SCREENS: Screen[] = [
         width: 390,
         height: 3000,
         render: () => frame(<ProgressScreen view="learned" page={1} counts={progressCounts} list={progress.learned} />),
+      },
+      {
+        id: 'share',
+        title: 'Share: the public page counts as much as Your progress',
+        path: '/my/progress',
+        height: 1700,
+        render: () => frame(<ProgressScreen {...shared(progressCounts)} />),
+      },
+      {
+        id: 'share-differ',
+        title: 'Share: the public page counts fewer lessons, and says why',
+        path: '/my/progress',
+        height: 1700,
+        render: () => frame(<ProgressScreen {...shared({ ...progressCounts, lessonsPassed: 5, newThings: 9 })} />),
+      },
+      {
+        id: 'share-none',
+        title: 'Share: nothing public yet, no button',
+        path: '/my/progress',
+        height: 1700,
+        render: () => frame(<ProgressScreen {...shared(null)} />),
+      },
+      {
+        id: 'share-phone',
+        title: 'Share on a phone: under the title, full width',
+        path: '/my/progress',
+        width: 390,
+        height: 3100,
+        render: () => frame(<ProgressScreen {...shared({ ...progressCounts, lessonsPassed: 5 })} />),
+      },
+    ],
+  },
+  {
+    id: 'public-progress',
+    title: 'A public progress page',
+    area: 'learn',
+    route: '/learn/progress/[login]',
+    sources: [
+      'app/(public)/learn/progress/[login]/page.tsx',
+      'components/learn/progress/public-progress-view.tsx',
+      'components/learn/progress/public-progress-screen.tsx',
+      'components/learn/progress/learned-lesson-card.tsx',
+      'lib/learn/public-progress/public-progress.ts',
+      'lib/learn/public-progress/public-progress-seo.ts',
+    ],
+    states: [
+      {
+        id: 'signed-out',
+        title: 'Signed out: the numbers and the public lessons, a pull request only once merged',
+        path: PUBLIC_PROGRESS_PATH,
+        signedOut: true,
+        height: 1400,
+        render: () => open(publicPage()),
+      },
+      {
+        id: 'own',
+        title: 'The person themself: one line to Your progress',
+        path: PUBLIC_PROGRESS_PATH,
+        height: 1460,
+        render: () => open(publicPage({ own: true })),
+      },
+      {
+        id: 'everyone',
+        title: 'Once Learn is open to everyone: the way in at the end',
+        path: PUBLIC_PROGRESS_PATH,
+        signedOut: true,
+        height: 1460,
+        render: () => open(publicPage({ everyone: true })),
+      },
+      {
+        id: 'unavailable',
+        title: 'The read failed',
+        path: PUBLIC_PROGRESS_PATH,
+        signedOut: true,
+        height: 420,
+        render: () => open(publicPage({ progress: 'unavailable' })),
+      },
+      {
+        id: 'phone',
+        title: 'On a phone: the numbers in a 2 × 2 grid, the rows stacked',
+        path: PUBLIC_PROGRESS_PATH,
+        signedOut: true,
+        width: 390,
+        height: 2300,
+        render: () => open(publicPage()),
       },
     ],
   },

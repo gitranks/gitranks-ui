@@ -69,6 +69,8 @@ export const CONTRIBUTE_SOURCES = [
   'learn_flow_practice',
   'learn_flow_more',
   'learn_flow_sign_in',
+  /** Your progress (its Share button) and a person's public progress page (shown). */
+  'learn_progress',
   /** The workspace's own tabs: moving between them is never counted (`clickOf` drops it on every page). */
   'workspace_tab',
   /** A link to Contribute that carries no mark. */
@@ -149,12 +151,15 @@ export type LearnEvent =
         | 'learn_start_view'
         | 'learn_start_claimed'
         | 'contribute_start_view'
-        | 'contribute_start_claimed';
+        | 'contribute_start_claimed'
+        /** A person's public progress page shown. */
+        | 'progress_opened';
       source: LearnSource;
     }
   | {
       kind: 'learn_click';
-      event: 'reaction_clicked' | 'promo_clicked' | 'promo_dismissed';
+      /** `progress_share`: Your progress' Share button pressed. */
+      event: 'reaction_clicked' | 'promo_clicked' | 'promo_dismissed' | 'progress_share';
       source: LearnSource;
       detail?: string;
     };

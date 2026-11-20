@@ -41,6 +41,7 @@ vi.mock('./lib/learn/lesson-gate', () => ({
   LESSON_MISSING_PATH: '/learn/lessons/_missing',
   lessonGateOf: lessonGate,
 }));
+vi.mock('./lib/learn/public-progress/progress-gate', () => ({ progressGateOf: async () => 'page' }));
 
 const { packagesPublic, maySeePackages } = vi.hoisted(() => ({
   packagesPublic: vi.fn(async () => false),

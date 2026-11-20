@@ -107,13 +107,19 @@ export function attemptActionErrorMessage(error: ContributeErrorCode, message?: 
   return contributeErrorMessage(error, message);
 }
 
+/** A "Try again" refused while contributing is paused. */
+export const RETRY_PAUSED =
+  'Contributing is paused until your Claude key works again. Replace it on the Agent tab, then try again.';
+
 /**
  * A failed "Try again" or "Work on it anyway". The stop was tried again already, or can't be: reload to see the new
- * run. The issue closed since the no-go: the API's own words say so. Anything else as the other attempt calls.
+ * run. Contributing is paused, which only a refused key does now: replace the key (an older API says "Resume"). The
+ * issue closed since the no-go: the API's own words say so. Anything else as the other attempt calls.
  */
 export function retryErrorMessage(error: ContributeErrorCode, message?: string): string {
   if (error === 'INVALID' && /tried again already|can't be tried again/i.test(message ?? ''))
     return 'It was tried again already, or it can no longer be. Reload the page.';
+  if (error === 'INVALID' && /resume contributing/i.test(message ?? '')) return RETRY_PAUSED;
   return attemptActionErrorMessage(error, message);
 }
 

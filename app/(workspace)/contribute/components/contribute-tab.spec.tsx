@@ -128,7 +128,8 @@ describe('the Contribute tab', () => {
     expect(render({ view, counts: { prBound: 3 } }).html).not.toContain('data-limit-notice');
   });
 
-  it('has no Resume: a paused account sees its rows with their Start, and the key says why', () => {
+  // Why, and the way on, is the Start's refusal (the key: issue-list.spec) and the Agent tab's key notice.
+  it('has no Resume: a paused account sees its rows with their Start', () => {
     const { html, plain } = render({ view: views.paused });
     expect(html).not.toContain('data-list-note="paused"');
     expect(plain).not.toContain('Resume');

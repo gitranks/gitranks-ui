@@ -101,6 +101,21 @@ describe("Contribute's issue list", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
+  it("says why a paused account's Start can't run, with the key as the way on (no Resume)", async () => {
+    issues.startIssue.mockResolvedValueOnce({
+      ok: true,
+      data: { attempt: null, started: false, refusal: 'KEY_INVALID', value: null, holder: null, until: null },
+    });
+    await render(
+      <ContributeIssueList page={{ items: picks(1, 2), next: null, total: 2, computedAt: null }} agents={AGENTS} />,
+    );
+    await act(async () => container.querySelector<HTMLButtonElement>('[data-start-control="hosted"]')?.click());
+    expect(container.textContent).toContain('Your Claude key stopped working. Nothing can start on it.');
+    const replace = [...container.querySelectorAll('a')].find((link) => link.textContent?.includes('Replace the key'));
+    expect(replace?.getAttribute('href')).toBe('/my/agent/key?replace=1');
+    expect(container.textContent).not.toContain('Resume');
+  });
+
   it('can be placed without its menu, and shows no Start at the limit', async () => {
     const page = { items: picks(1, 2), next: null, total: 2, computedAt: null };
     await render(<ContributeIssueList page={page} agents={AGENTS} menu={false} />);

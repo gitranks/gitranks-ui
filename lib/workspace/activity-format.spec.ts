@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { activitySignatureOf, activityTabsOf, etaOf, itemsOn, shareOf, summaryOf } from './activity-format';
+import {
+  activitySignatureOf,
+  activityTabsOf,
+  etaOf,
+  itemsOn,
+  labelOf,
+  shareOf,
+  summaryOf,
+  WAIT_TEXT,
+} from './activity-format';
 import type { ContributeActivityItem } from './contribute.types';
 
 const item = (over: Partial<ContributeActivityItem> = {}): ContributeActivityItem => ({
@@ -47,6 +56,16 @@ describe('the activity, as the bar reads it', () => {
     ).not.toBe(before);
     expect(activitySignatureOf({ items: [], runs: [], readAt: 'c' })).toBe('');
     expect(activitySignatureOf(null)).toBe('');
+  });
+
+  it('words reads held by a pause by the key, never by a Resume that is gone', () => {
+    const held = item({ kind: 'READS_PAUSED', label: 'Reading 2 repos starts when you resume', done: null });
+    const two = { ...held, repos: [...held.repos, { ...held.repos[0], repositoryId: 'R_2' }] };
+    expect(labelOf(two)).toBe('Reading 2 repos starts when your Claude key works again');
+    expect(labelOf(held)).toBe('Reading 1 repo starts when your Claude key works again');
+    expect(summaryOf([held, item()])).toBe('Reading 1 repo starts when your Claude key works again · 1 more');
+    expect(WAIT_TEXT.READS_PAUSED).not.toMatch(/resume/i);
+    expect(labelOf(item())).toBe('Reading issues from 2 of 3 repos');
   });
 
   it('says the first line, how many more, an estimate and a share', () => {

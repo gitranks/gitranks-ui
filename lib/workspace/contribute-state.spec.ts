@@ -24,12 +24,7 @@ describe('contributeNoticesOf', () => {
     // The grant is asked for on the first review, never up front.
     expect(kinds(views.grantMissing)).toEqual([]);
     // A pause is a refused key's: the key's notice alone says it.
-    expect(kinds(views.paused)).toEqual([]);
-    const keyPaused = {
-      ...views.keyInvalid,
-      contributor: { ...views.keyInvalid.contributor, status: 'PAUSED' as const },
-    };
-    expect(kinds(keyPaused)).toEqual(['key-invalid']);
+    expect(kinds(views.paused)).toEqual(['key-invalid']);
     expect(kinds(views.active)).toEqual([]);
   });
 

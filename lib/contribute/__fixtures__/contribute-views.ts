@@ -250,7 +250,7 @@ export const views = {
   },
   /** Paused, as a refused key leaves the account: the key's notice says it. */
   paused: {
-    contributor: contributor({ status: 'PAUSED' }),
+    contributor: contributor({ status: 'PAUSED', credentials: [key({ state: 'INVALID' })] }),
     grant: connected,
     grantAvailable: true,
   },

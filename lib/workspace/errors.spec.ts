@@ -8,6 +8,7 @@ import {
   contributeSetErrorOf,
   maintainerErrorMessage,
   maintainerErrorOf,
+  RETRY_PAUSED,
   retryErrorMessage,
 } from './errors';
 
@@ -90,13 +91,17 @@ describe('retryErrorMessage', () => {
     expect(retryErrorMessage('INVALID', 'It was tried again already.')).toBe(reload);
   });
 
-  it("says the API's own words for an issue closed since the no-go, and for the key or a pause", () => {
+  it("says the API's own words for an issue closed since the no-go, and for the key", () => {
     for (const message of [
       'It can no longer be tried again: the issue is closed now.',
       'Connect your Claude key before trying again.',
-      'Resume contributing before trying again.',
     ])
       expect(retryErrorMessage('INVALID', message)).toBe(message);
+  });
+
+  it('words a pause by the key, which is the only way out of one now, not by a Resume that is gone', () => {
+    expect(retryErrorMessage('INVALID', 'Resume contributing before trying again.')).toBe(RETRY_PAUSED);
+    expect(RETRY_PAUSED).not.toMatch(/resume/i);
   });
 
   it('says a missing attempt as the other attempt calls do', () => {

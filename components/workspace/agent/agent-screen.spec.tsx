@@ -87,9 +87,12 @@ describe('the Agent tab, both agents set up', () => {
     expect(plain).toContain('Coming soon for the hosted agent: your ChatGPT plan');
   });
 
-  it('offers no Resume on a paused account: the levels as they are, and no notice of its own', () => {
+  it("says a paused account's refused key, with the way to replace it, and no Resume", () => {
     const paused = { ...agentTabViews.both, ...views.paused, ownAgent: agentTabViews.both.ownAgent };
     const { html, plain } = render({ view: paused });
+    expect(html).toContain('data-notice="key-invalid"');
+    expect(html).toMatch(/href="\/my\/agent\/key\?replace=1"[^>]*>Connect a new key/);
+    expect(plain).toContain('Contributing is paused until you connect a working one.');
     expect(plain).not.toContain('Resume');
     expect(html).toContain('data-hosted-level=');
     expect(html).not.toContain('data-notice="paused"');

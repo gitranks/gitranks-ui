@@ -145,7 +145,8 @@ describe("the hosted agent's levels", () => {
     expect(text(autopilot)).toContain('Next issue: in about 2 hours');
   });
 
-  it("promises no next issue on a paused account, and has no Resume: the key's row says it", () => {
+  // Why is the key's notice above the control, in the hosted agent's block (agent-screen.spec).
+  it('promises no next issue on a paused account, and has no Resume', () => {
     const paused = viewOf('NEXT');
     const byKey = render({ ...paused, contributor: { ...paused.contributor!, status: 'PAUSED' } });
     expect(byKey.html).toContain('data-hosted-level=');

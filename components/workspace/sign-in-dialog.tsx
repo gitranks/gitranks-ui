@@ -47,15 +47,12 @@ export function SignInButton({
   preview = false,
   className,
   label,
-  defaultOpen = false,
   source,
   children,
 }: {
   path?: SignInPath;
   /** A signed-in user seeing the visitor's page: the sign-in only goes on to the next step. */
   preview?: boolean;
-  /** Opens with the page (`/contribute?start=agent`, where an agent sends its person). */
-  defaultOpen?: boolean;
   className?: string;
   /** The button's accessible name, when its text alone does not say what it is for. */
   label?: string;
@@ -63,7 +60,7 @@ export function SignInButton({
   source?: ContributeSource;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

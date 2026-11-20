@@ -49,6 +49,15 @@ export const GITHUB_ACCESS_PATH = WORKSPACE_PATHS.settingsGithub;
 /** Where a Claude key is connected over the one there is: the key's page shows the key itself otherwise. */
 export const KEY_REPLACE_PATH = `${WORKSPACE_PATHS.agentKey}?replace=1` as Route;
 
+/** A page's `searchParams` as the query the browser sent, every value of a repeated key kept. */
+export function searchParamsOf(params: Record<string, string | string[] | undefined> | undefined): URLSearchParams {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params ?? {})) {
+    for (const one of Array.isArray(value) ? value : value === undefined ? [] : [value]) query.append(key, one);
+  }
+  return query;
+}
+
 /** Matches the path, decoded as the router reads it, against `pattern`; a path that does not decode never matches. */
 function decodedMatches(pathname: string, pattern: RegExp): boolean {
   try {

@@ -11,12 +11,12 @@ import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { HEADING } from '@/components/workspace/primitives';
 import { loadContribute } from '@/lib/workspace/contribute.data';
 import { loadContributeFlowPlace } from '@/lib/workspace/getting-in.data';
-import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
+import { GETTING_IN_PATHS, searchParamsOf } from '@/lib/workspace/paths';
 
 export const metadata: Metadata = { title: 'Connect your own agent' };
 
 /** Contribute's flow, step 2 with the person's own agent: the connect steps, then on to the first issue. */
-export default function ContributeOwnAgentPage() {
+export default function ContributeOwnAgentPage({ searchParams }: PageProps<'/contribute/start/agent/own'>) {
   return (
     <FlowFrame side="contribute" step={2}>
       <div className="flex flex-col gap-2">
@@ -25,14 +25,16 @@ export default function ContributeOwnAgentPage() {
         <h1 className={HEADING.page}>Connect your own agent</h1>
       </div>
       <Suspense fallback={<ContributePageSkeleton />}>
-        <ContributeOwnAgent />
+        <ContributeOwnAgent searchParams={searchParams} />
       </Suspense>
     </FlowFrame>
   );
 }
 
-async function ContributeOwnAgent() {
-  const { place, gate } = await loadContributeFlowPlace('agent-own');
+async function ContributeOwnAgent({ searchParams }: Pick<PageProps<'/contribute/start/agent/own'>, 'searchParams'>) {
+  // An account that has entered is sent on to the Agent tab's connect page, the query (`?from=agent`) kept.
+  const query = searchParamsOf(await searchParams).toString();
+  const { place, gate } = await loadContributeFlowPlace('agent-own', query);
   const panel = flowPanelOf(place, CONTRIBUTE_FLOW_PANELS);
   let step = panel;
   if (!step && place.kind === 'sign-in') {

@@ -63,8 +63,8 @@ function innerOf(node: ReactNode): ReactElement | null {
 }
 
 /** The page whole: the frame as drawn, with its async part rendered in place of the Suspense boundary. */
-async function render(page: () => ReactElement): Promise<string> {
-  const frame = page();
+async function render(page: (props: never) => ReactElement, search: Record<string, string> = {}): Promise<string> {
+  const frame = page({ searchParams: Promise.resolve(search) } as never);
   const inner = innerOf(frame);
   if (!inner) throw new Error('no async part');
   const drawn = await (inner.type as (props: object) => Promise<ReactElement>)(inner.props as object);
@@ -137,6 +137,12 @@ describe('Your agent: your own agent and a Claude key', () => {
     const html = await render(OwnAgentPage);
     expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).not.toContain('data-flow-sign-in');
+  });
+
+  it('an account that has entered goes on to the Agent tab’s connect page, the query kept', async () => {
+    at('redirect', open(true), '/my/agent/connect?from=agent');
+    await expect(render(OwnAgentPage, { from: 'agent' })).rejects.toThrow('NEXT_REDIRECT /my/agent/connect?from=agent');
+    expect(place.loadContributeFlowPlace).toHaveBeenCalledWith('agent-own', 'from=agent');
   });
 
   it('signed in, the key’s one screen, its other way the own-agent step', async () => {

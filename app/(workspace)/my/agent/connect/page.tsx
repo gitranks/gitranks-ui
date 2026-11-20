@@ -6,7 +6,7 @@ import { OwnAgentConnectView } from '@/components/workspace/agent/connect-view';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { notEnteredTargetOf } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
-import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { searchParamsOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 export const metadata: Metadata = { title: 'Connect your agent' };
 
@@ -22,20 +22,11 @@ export default function AgentConnectPage({ searchParams }: Params) {
   );
 }
 
-/** The page's query as the browser sent it. */
-function queryOf(params: Record<string, string | string[] | undefined>): URLSearchParams {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    for (const one of Array.isArray(value) ? value : value === undefined ? [] : [value]) query.append(key, one);
-  }
-  return query;
-}
-
 /** An account that has not entered connects its agent in Contribute's flow, the query kept. */
 async function AgentConnect({ searchParams }: Pick<Params, 'searchParams'>) {
   const [gate, params] = await Promise.all([loadWorkspaceGate(), searchParams]);
   if (gate.kind === 'open' && !gate.entered) {
-    const to = notEnteredTargetOf(WORKSPACE_PATHS.agentConnect, queryOf(params));
+    const to = notEnteredTargetOf(WORKSPACE_PATHS.agentConnect, searchParamsOf(params));
     if (to) redirect(to);
   }
   return <OwnAgentConnectView searchParams={searchParams} />;

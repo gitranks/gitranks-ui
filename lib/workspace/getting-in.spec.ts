@@ -60,15 +60,27 @@ describe('contributeFlowPlaceOf: who belongs on which step of Contribute', () =>
   });
 
   it('entered with no attempt yet: on to the first issue; the first issue itself shows', () => {
-    for (const step of ['work', 'agent', 'agent-own', 'agent-key'] as const) {
+    for (const step of ['work', 'agent', 'agent-key'] as const) {
       expect(contribute(step, open(true)), step).toEqual({ kind: 'redirect', to: '/contribute/start/issue' });
     }
     expect(contribute('issue', open(true))).toEqual({ kind: 'page' });
     expect(contribute('issue', open(true, { hosted: true, own: false }))).toEqual({ kind: 'page' });
   });
 
-  it('entered with an attempt: every step goes to the Contribute tab', () => {
-    for (const step of STEPS) {
+  it('entered: the own-agent step goes to the Agent tab’s connect page, the query kept', () => {
+    for (const hasAttempt of [false, true]) {
+      expect(
+        contributeFlowPlaceOf('agent-own', { gate: open(true), launched: true, hasAttempt, query: 'from=agent' }),
+      ).toEqual({ kind: 'redirect', to: '/my/agent/connect?from=agent' });
+    }
+    expect(contribute('agent-own', open(true, { hosted: false, own: false }))).toEqual({
+      kind: 'redirect',
+      to: '/my/agent/connect',
+    });
+  });
+
+  it('entered with an attempt: every other step goes to the Contribute tab', () => {
+    for (const step of STEPS.filter((each) => each !== 'agent-own')) {
       expect(contribute(step, open(true), true, true), step).toEqual({ kind: 'redirect', to: '/contribute' });
     }
   });

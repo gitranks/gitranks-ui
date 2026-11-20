@@ -47,8 +47,11 @@ function sharedPlaceOf(gate: WorkspaceGate, launched: boolean): FlowPlace | null
   return null;
 }
 
-/** The facts a Contribute step is decided by. `hasAttempt` is read only for an account that has entered. */
-export type ContributeFlowFacts = { gate: WorkspaceGate; launched: boolean; hasAttempt: boolean };
+/**
+ * The facts a Contribute step is decided by. `hasAttempt` is read only for an account that has entered; `query` is the
+ * step's own (`?from=agent`), kept where the step sends someone on to the same thing elsewhere.
+ */
+export type ContributeFlowFacts = { gate: WorkspaceGate; launched: boolean; hasAttempt: boolean; query?: string };
 
 /** Contribute's steps that need an account: a visitor meets the sign-in card there. */
 const ACCOUNT_STEPS: readonly ContributeFlowStep[] = ['agent-own', 'agent-key', 'issue'];
@@ -56,7 +59,7 @@ const ACCOUNT_STEPS: readonly ContributeFlowStep[] = ['agent-own', 'agent-key', 
 /** What Contribute's step `step` does for the person who opens it (§5.3). */
 export function contributeFlowPlaceOf(
   step: ContributeFlowStep,
-  { gate, launched, hasAttempt }: ContributeFlowFacts,
+  { gate, launched, hasAttempt, query = '' }: ContributeFlowFacts,
 ): FlowPlace {
   if (gate.kind === 'signed-out') {
     if (!launched) return { kind: 'not-found' };
@@ -66,7 +69,11 @@ export function contributeFlowPlaceOf(
   if (shared) return shared;
   if (gate.kind !== 'open') return { kind: 'not-found' };
   if (!gate.entered) return step === 'issue' ? redirectTo(GETTING_IN_PATHS.contributeAgent) : PAGE;
-  // Entered: the flow is behind them. The first issue is still to pick until any attempt exists.
+  // Entered: the flow is behind them. An agent's link to connect it (`?start=agent`) still leads to connecting one,
+  // on the Agent tab's page. The first issue is still to pick until any attempt exists.
+  if (step === 'agent-own') {
+    return redirectTo((query ? `${WORKSPACE_PATHS.agentConnect}?${query}` : WORKSPACE_PATHS.agentConnect) as Route);
+  }
   if (hasAttempt) return redirectTo(WORKSPACE_PATHS.contribute);
   if (step !== 'issue') return redirectTo(GETTING_IN_PATHS.contributeIssue);
   return gate.agents.hosted || gate.agents.own ? PAGE : redirectTo(WORKSPACE_PATHS.agent);

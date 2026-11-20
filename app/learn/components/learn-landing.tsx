@@ -1,24 +1,26 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { type ReactNode, Suspense } from 'react';
-import { FaGithub } from 'react-icons/fa';
 
 import { ExampleLessonCard } from './example-lesson-card';
 import { RecentLessons } from './recent-lessons';
 import { LearnTab } from '@/app/(workspace)/learn/components/learn-tab-view';
-import { H2, MUTED_SECTION, WIDTH } from '@/app/contribute/components/landing';
-import { LearnSignInButton } from '@/components/learn/learn-sign-in';
 import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { buttonVariants } from '@/components/ui/button';
-import { loadLearnOpen } from '@/lib/learn/learn.data';
+import { H2, MUTED_SECTION, WIDTH } from '@/components/workspace/getting-in/landing-parts';
+import { ResumeLink } from '@/components/workspace/getting-in/resume-link';
+import { loadLearnOpen, loadLearnProfile } from '@/lib/learn/learn.data';
 import { learnFrontDoorOpenToVisitor } from '@/lib/learn/learn-front-door';
+import { hasGoal } from '@/lib/learn/learn-home';
 import { LEARN_MAINTAINERS_PATH, LEARN_PATH } from '@/lib/learn/learn-path';
 import { readRecentLessons } from '@/lib/learn/recent-lessons.data';
 import { cn } from '@/lib/utils';
+import { contributeSource } from '@/lib/workspace/click-tracking';
 import { viewerLogin } from '@/lib/workspace/contribute.data';
-
-/** Who reads the front door: a visitor signs in first, a signed-in user goes straight to the Learn tab. */
-export type LearnLandingViewer = 'visitor' | 'signed-in';
+import type { WorkspaceGate } from '@/lib/workspace/gate';
+import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
+import { type LandingStart, learnResumeOf } from '@/lib/workspace/getting-in';
+import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 
 const HANDOFF = [
   {
@@ -73,21 +75,34 @@ const QUESTIONS = [
 const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase';
 const START_CLASS = cn(buttonVariants({ size: 'lg' }), 'min-h-11 px-5 text-base font-semibold max-sm:w-full');
 
-/** "Start learning": a visitor's signs in first and comes back to the Learn tab; a signed-in user's goes there. */
-function StartLearning({ viewer, className }: { viewer: LearnLandingViewer; className?: string }) {
-  const content = (
-    <>
-      <FaGithub aria-hidden="true" className="size-4 shrink-0" />
-      Start learning
-    </>
-  );
-  if (viewer === 'visitor') {
-    return <LearnSignInButton className={cn(START_CLASS, className)}>{content}</LearnSignInButton>;
+/** A visitor's way in, the same for every visitor: Your goal (a bookmark may resume them further on). */
+export const LEARN_VISITOR_START: LandingStart = { href: GETTING_IN_PATHS.learnGoal, signedIn: false };
+
+/**
+ * The front door's one button, in the hero and again beside the questions: Start learning, a plain link into Learn's
+ * flow at `start.href` (swapped in the browser for this browser's step when that is where the person resumes), marked
+ * `learn_landing`. For a member reading how Learn works: Open Learn, back to the Learn tab, unmarked (no start).
+ */
+function StartLearning({ start, className }: { start: LandingStart; className?: string }) {
+  const classes = cn(START_CLASS, className);
+  if ('member' in start) {
+    return (
+      <Link href={LEARN_PATH} prefetch={false} className={classes} data-landing-start="">
+        Open Learn
+      </Link>
+    );
   }
   return (
-    <Link href={LEARN_PATH} prefetch={false} className={cn(START_CLASS, className)}>
-      {content}
-    </Link>
+    <ResumeLink
+      side="learn"
+      href={start.href}
+      signedIn={start.signedIn}
+      className={classes}
+      data-landing-start=""
+      {...contributeSource('learn_landing')}
+    >
+      Start learning
+    </ResumeLink>
   );
 }
 
@@ -119,10 +134,11 @@ function FooterExample() {
 /**
  * Learn's front door: what a lesson is, with an example to try, the handoff between the terminal and the site, what
  * every lesson covers, the newest shared lessons (`recentLessons`, left out when not given), what maintainers see, and the
- * questions. Built from the Contribute landing's sections. A visitor reads it at `/learn`, a signed-in user at
- * `/learn/about`; only "Start learning" changes.
+ * questions. Built from the same parts as Contribute's landing. A visitor and an account that has not entered read it at
+ * `/learn`, anyone Learn is open to at `/learn/about`; only the one button's target changes (`start`).
  */
-export function LearnLanding({ viewer, recentLessons }: { viewer: LearnLandingViewer; recentLessons?: ReactNode }) {
+export function LearnLanding({ start, recentLessons }: { start: LandingStart; recentLessons?: ReactNode }) {
+  const viewer = 'member' in start ? 'member' : start.signedIn ? 'signed-in' : 'visitor';
   return (
     <main className="flex flex-col" data-landing-viewer={viewer}>
       <section className={cn(WIDTH, 'flex flex-wrap items-center gap-9 pt-8 pb-11 sm:gap-14 sm:pt-14 sm:pb-16')}>
@@ -141,16 +157,7 @@ export function LearnLanding({ viewer, recentLessons }: { viewer: LearnLandingVi
             how it fits the project. Pass the check, and the pull request opens in your name.
           </p>
           <div className="flex flex-wrap gap-3">
-            <StartLearning viewer={viewer} />
-            <a
-              href="#lesson"
-              className={cn(
-                buttonVariants({ variant: 'outline', size: 'lg' }),
-                'min-h-11 px-5 text-base font-semibold max-sm:w-full',
-              )}
-            >
-              See a lesson
-            </a>
+            <StartLearning start={start} />
           </div>
           <p className="text-sm text-muted-foreground">
             Free to use. Works with Claude Code, Codex, Cursor, Gemini CLI and other agents.
@@ -226,8 +233,8 @@ export function LearnLanding({ viewer, recentLessons }: { viewer: LearnLandingVi
       <section className={cn(WIDTH, 'flex flex-wrap gap-12 py-11 sm:py-16')}>
         <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2.5">
           <h2 className={H2}>Questions</h2>
-          <p className="text-muted-foreground">Ready? Set your goal and connect your agent.</p>
-          <StartLearning viewer={viewer} className="self-start" />
+          <p className="text-muted-foreground">Ready? Tell us what you want to learn.</p>
+          <StartLearning start={start} className="self-start" />
         </div>
         <QuestionsBlock items={QUESTIONS} className="flex min-w-0 flex-[2_1_560px] flex-col gap-5.5" />
       </section>
@@ -243,31 +250,46 @@ export const recentLessonsSlot = () => (
 );
 
 /**
- * `/learn`, behind Learn's gate: not found for anyone Learn is not open to. A signed-in user it is open to gets the
- * Learn tab. A visitor gets this far only once the API says Learn is open to everyone (the proxy decides), and then reads the
- * front door.
+ * Where the front door's button leads an account Learn is open to: the step of Learn's flow that is left for one that
+ * has not entered (§4.1: Pick an issue once a goal is saved, else Your goal), or Open Learn for one that has. Null for an
+ * account being set up or with no profile, which the Learn tab speaks to, and when the gate could not be read (`null`).
  */
-export async function LearnHomeView() {
-  const viewer = await frontDoorViewer();
-  if (!viewer) notFound();
-  if (viewer === 'signed-in') return <LearnTab />;
-  return <LearnLanding viewer={viewer} recentLessons={recentLessonsSlot()} />;
+async function signedInStartOf(gate: WorkspaceGate | null): Promise<LandingStart | null> {
+  if (gate?.kind !== 'open') return null;
+  if (gate.entered) return { member: true };
+  return { href: learnResumeOf(hasGoal(await loadLearnProfile())), signedIn: true };
 }
 
-/** `/learn/about`: the front door for a signed-in user Learn is open to; not found for anyone else. */
+/**
+ * `/learn`, behind Learn's gate: not found for anyone Learn is not open to. An account that has entered gets the Learn
+ * tab, and so does one being set up (the tab says so); one that has not entered reads the front door, its button at the
+ * step of the flow left for it. A visitor gets this far only once the API says Learn is open to everyone (the proxy
+ * decides), and then reads the front door, its button at Your goal.
+ */
+export async function LearnHomeView() {
+  if (await loadLearnOpen()) {
+    // A gate that can't be read is no reason for an error page: the Learn tab, as before the front door showed here.
+    const start = await signedInStartOf(await loadWorkspaceGate().catch(() => null));
+    if (!start || 'member' in start) return <LearnTab />;
+    return <LearnLanding start={start} recentLessons={recentLessonsSlot()} />;
+  }
+  if (!(await viewerLogin()) && (await learnFrontDoorOpenToVisitor())) {
+    return <LearnLanding start={LEARN_VISITOR_START} recentLessons={recentLessonsSlot()} />;
+  }
+  notFound();
+}
+
+/** `/learn/about`: how Learn works, for anyone Learn is open to; not found for anyone else. */
 export async function LearnAboutView() {
   if (!(await loadLearnOpen())) notFound();
-  return <LearnLanding viewer="signed-in" recentLessons={recentLessonsSlot()} />;
+  const start = (await signedInStartOf(await loadWorkspaceGate().catch(() => null))) ?? {
+    href: GETTING_IN_PATHS.learnGoal,
+    signedIn: true,
+  };
+  return <LearnLanding start={start} recentLessons={recentLessonsSlot()} />;
 }
 
 /** The front door's newest shared lessons, read once the page is open to its reader. */
 async function LoadedRecentLessons() {
   return <RecentLessons lessons={await readRecentLessons()} />;
-}
-
-/** Who reads the front door, or null when it is not open to them. */
-async function frontDoorViewer(): Promise<LearnLandingViewer | null> {
-  if (await loadLearnOpen()) return 'signed-in';
-  if (!(await viewerLogin()) && (await learnFrontDoorOpenToVisitor())) return 'visitor';
-  return null;
 }

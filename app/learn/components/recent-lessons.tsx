@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { H2, WIDTH } from '@/app/contribute/components/landing';
+import { H2, WIDTH } from '@/components/workspace/getting-in/landing-parts';
 import type { PublicLesson } from '@/lib/learn/learn.types';
 import { lessonPath } from '@/lib/learn/learn-path';
 import { cn } from '@/lib/utils';

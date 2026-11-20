@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { LearnTabScreen } from '@/app/(workspace)/learn/components/learn-tab';
-import { LearnLanding } from '@/app/learn/components/learn-landing';
+import { LEARN_VISITOR_START, LearnLanding } from '@/app/learn/components/learn-landing';
 import { LearnMaintainers } from '@/app/learn/components/learn-maintainers';
 import { LessonPageScreen } from '@/app/learn/components/lesson-page';
 import { LessonResultScreen, type ResultViewer } from '@/app/learn/components/lesson-result';
@@ -328,10 +328,10 @@ export const LEARN_SCREENS: Screen[] = [
       'app/learn/components/learn-landing.tsx',
       'app/learn/components/recent-lessons.tsx',
       'app/learn/components/example-question.tsx',
-      'components/learn/learn-sign-in.tsx',
+      'components/workspace/getting-in/resume-link.tsx',
       'components/learn/diagram.tsx',
       'lib/learn/example-lesson.ts',
-      'app/contribute/components/landing.tsx',
+      'components/workspace/getting-in/landing-parts.ts',
     ],
     states: [
       {
@@ -342,7 +342,7 @@ export const LEARN_SCREENS: Screen[] = [
         height: 2480,
         render: () =>
           bare(
-            <LearnLanding viewer="visitor" recentLessons={<RecentLessons lessons={recentLessons} />} />,
+            <LearnLanding start={LEARN_VISITOR_START} recentLessons={<RecentLessons lessons={recentLessons} />} />,
             <HeaderLine />,
           ),
       },
@@ -355,7 +355,7 @@ export const LEARN_SCREENS: Screen[] = [
         height: 4500,
         render: () =>
           bare(
-            <LearnLanding viewer="visitor" recentLessons={<RecentLessons lessons={recentLessons} />} />,
+            <LearnLanding start={LEARN_VISITOR_START} recentLessons={<RecentLessons lessons={recentLessons} />} />,
             <HeaderLine />,
           ),
       },

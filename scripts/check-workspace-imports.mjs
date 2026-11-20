@@ -19,12 +19,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** The crossings left today, as `<file> -> <module>` (the module's path without its extension). */
-export const ALLOWED = [
-  // Learn's landing over Contribute's: the landing's parts, until the two landings are rebuilt.
-  'app/learn/components/learn-landing.tsx -> app/contribute/components/landing',
-  'app/learn/components/recent-lessons.tsx -> app/contribute/components/landing',
-];
+/** The crossings left today, as `<file> -> <module>` (the module's path without its extension): none now. */
+export const ALLOWED = [];
 
 /** The folder rule's name for a path, or null for a site-wide module every folder may import. */
 export function zoneOf(path) {

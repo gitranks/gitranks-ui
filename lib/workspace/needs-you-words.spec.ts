@@ -246,6 +246,23 @@ describe('the words of each kind, from its facts', () => {
     );
     // One no run adds to (opened by hand, a repo that said no) stays GitHub's.
     expect(said({ runner: 'MCP', facts: facts({ noRun: true, byHand: true }) }).label).toBe('Open the pull request');
+    expect(said({ kind: 'OTHER', runner: 'MCP' })).toEqual({
+      pill: 'Something changed',
+      move: 'Something changed on it. Your agent looks at it; you read it and push.',
+      label: 'See what changed',
+    });
+    expect(
+      said({ kind: 'RUN_STOPPED', runner: 'MCP', detail: 'Ran out of budget.', facts: facts({ round: 1 }) }),
+    ).toEqual({
+      pill: 'Run 1 stopped',
+      move: 'Run 1 stopped: Ran out of budget. Ask your agent to pick it up again, or handle it yourself.',
+      label: 'See what to do',
+    });
+    expect(said({ kind: 'PUSH_FAILED', runner: 'MCP', facts: facts({ round: 1 }) })).toMatchObject({
+      pill: 'Run 1 not pushed',
+      label: 'See what to do',
+    });
+    expect(said({ kind: 'RUN_STOPPED', facts: facts({ round: 1, nextRound: 2 }) }).label).toBe('Try run 2');
   });
 
   it('the replies to approve, and those that did not post', () => {

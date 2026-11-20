@@ -538,6 +538,21 @@ function countedOf(entry: NeedsYouEntry, now: Date): Said | null {
       const name = facts.round ? `Run ${facts.round}` : 'The last run';
       const said = entry.kind === 'push-failed' ? pushDetailOf(detail) : detail?.trim();
       const why = said ? clipped(said, 200) : null;
+      if (ownAgent && !facts.noRun && (entry.kind === 'push-failed' || entry.kind === 'run-stopped')) {
+        return {
+          tone: 'red',
+          pill:
+            entry.kind === 'push-failed'
+              ? facts.round
+                ? `Run ${facts.round} not pushed`
+                : 'Push failed'
+              : facts.round
+                ? `Run ${facts.round} stopped`
+                : 'Run stopped',
+          move: `${entry.kind === 'push-failed' ? `${name}'s commits could not be pushed` : `${name} stopped`}${why ? `: ${sentence(why)}` : '.'} Ask your agent to pick it up again, or handle it yourself.`,
+          label: 'See what to do',
+        };
+      }
       if (entry.kind === 'push-failed') {
         return {
           tone: 'red',
@@ -611,6 +626,14 @@ function countedOf(entry: NeedsYouEntry, now: Date): Said | null {
       };
     }
     case 'other':
+      if (ownAgent && !facts.noRun) {
+        return {
+          tone: 'amber',
+          pill: 'Something changed',
+          move: 'Something changed on it. Your agent looks at it; you read it and push.',
+          label: 'See what changed',
+        };
+      }
       return {
         tone: 'amber',
         pill: 'Something changed',

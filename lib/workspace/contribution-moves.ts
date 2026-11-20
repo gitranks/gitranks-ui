@@ -423,12 +423,15 @@ export function contributionMovesOf({
       statusLead: holds('proof') ? null : (PROOF_LEADS[proofStage] ?? null),
     };
   }
+  // What a run would take on a pull request the own agent makes the changes on, its card asks that agent for: no run of
+  // ours, so no tile for one either.
+  const hostedStart = ownAgent ? false : mayStart;
   const threads = waitingThreadsOf(first).length;
   const nextHolds = holds('next');
   const nextTileTitle =
     !open || underWay
       ? null
-      : mayStart
+      : hostedStart
         ? `Run ${nextRound}`
         : nextHolds || (threads > 0 && !reading)
           ? 'Next step'
@@ -442,8 +445,6 @@ export function contributionMovesOf({
     };
   }
 
-  // What a run would take on a pull request the own agent makes the changes on, its card asks that agent for.
-  const hostedStart = ownAgent ? false : mayStart;
   return {
     moves,
     sessions,

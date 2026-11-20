@@ -360,7 +360,8 @@ export function prCardsOf({
           ...stopped,
           card: 'stopped',
           round,
-          noRun: ownAgent ? 'own-agent' : mayStart ? null : (noRun ?? 'stopped'),
+          // Where no run may start (a repo that said no, a maintainer's stop), GitHub's, whoever made the pull request.
+          noRun: mayStart ? (ownAgent ? 'own-agent' : null) : (noRun ?? 'stopped'),
         },
       },
     });

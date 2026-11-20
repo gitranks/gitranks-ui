@@ -11,8 +11,8 @@ const { loadPrStrip, loadLessonResult, loadMyResultReaction, hasReactionMark, vi
   viewerLogin: vi.fn(),
 }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/contribute/pr-feedback.data', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/contribute/pr-feedback.data')>()),
+vi.mock('@/lib/workspace/pr-card.data', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/workspace/pr-card.data')>()),
   loadPrStrip,
 }));
 vi.mock('./lesson-public.data', () => ({ loadLessonResult, loadMyResultReaction }));

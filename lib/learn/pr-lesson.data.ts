@@ -4,10 +4,10 @@ import { isAuthorResult, isOwnResult } from './lesson-public';
 import { loadLessonResult, loadMyResultReaction } from './lesson-public.data';
 import { type PrLessonRead, prLessonTargetOf } from './pr-lesson';
 import { hasReactionMark } from './react-mark';
-import { loadPrStrip, PAGE_READ_TIMEOUT_MS, TIMED_OUT, within } from '@/lib/contribute/pr-feedback.data';
 import { viewerLogin } from '@/lib/workspace/contribute.data';
 import type { ContributePrCard } from '@/lib/workspace/contribute.types';
 import { reactionParamOf } from '@/lib/workspace/paths';
+import { loadPrStrip, PAGE_READ_TIMEOUT_MS, TIMED_OUT, within } from '@/lib/workspace/pr-card.data';
 
 /**
  * The footer link's pull request (`?from=`) as the Learn maintainers page shows it on top: its public card, for a Learn

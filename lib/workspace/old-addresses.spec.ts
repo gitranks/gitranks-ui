@@ -34,7 +34,7 @@ function redirectOf(address: string): { location: string; status: number } | nul
     });
     const search = new URLSearchParams(parsedDestination.query as Record<string, string>).toString();
     return {
-      location: `${parsedDestination.pathname}${search ? `?${search}` : ''}`,
+      location: `${parsedDestination.pathname}${search ? `?${search}` : ''}${parsedDestination.hash ?? ''}`,
       status: 'statusCode' in rule && rule.statusCode ? rule.statusCode : rule.permanent ? 308 : 307,
     };
   }
@@ -57,6 +57,10 @@ describe('the old workspace addresses', () => {
     ['/contribute/settings/switch/stack', '/my/settings/work/switch/stack'],
     ['/contribute/settings/switch/repos/', '/my/settings/work/switch/repos'],
     ['/contribute/settings/budget', '/my/agent/budget'],
+    ['/contribute/issues', '/contribute#issues'],
+    ['/contribute/issues/', '/contribute#issues'],
+    ['/contribute/issues?x=1', '/contribute?x=1#issues'],
+    ['/contribute/issues?language=RUST&size=M', '/contribute?language=RUST&size=M#issues'],
     ['/contribute/settings/agent', '/my/agent/model'],
     ['/contribute/settings/keys', '/my/agent/key'],
     ['/contribute/settings/keys?grant=unavailable', '/my/agent/key?grant=unavailable'],
@@ -82,7 +86,7 @@ describe('the old workspace addresses', () => {
     for (const address of [
       '/contribute',
       '/contribute?start=agent',
-      '/contribute/issues',
+      '/contribute/issues/x',
       '/contribute/attempts',
       '/contribute/attempts/A_1/runs',
       '/contribute/maintainers',

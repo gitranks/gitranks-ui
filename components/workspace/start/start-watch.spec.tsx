@@ -79,7 +79,7 @@ const mount = (mode: StartMode, view: StartPageView | null = startPageViewOf(), 
       issueRef={START_REF}
       mode={mode}
       view={view}
-      backHref="/contribute/issues"
+      backHref="/contribute#issues"
       backLabel="Issues for you"
       frame="tabs"
       {...extra}

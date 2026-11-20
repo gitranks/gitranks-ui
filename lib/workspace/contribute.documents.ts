@@ -19,7 +19,8 @@ import type {
   ContributeConnectKeyResult,
   ContributeConnectLimits,
   ContributeDeleteDataResult,
-  ContributeEmail,
+  ContributeEmailSettings,
+  ContributeEmailSettingsInput,
   ContributeFeedbackContext,
   ContributeFeedbackTopic,
   ContributeFollowUpRound,
@@ -446,13 +447,21 @@ export const ResumeContributingDocument = doc<{ resumeContributing: boolean }>(
   'mutation ResumeContributing { resumeContributing }',
 );
 
-/** GitRanks email: on or off, and where it goes. Null when the API hides Contribute from the user. */
-export const ContributeEmailDocument = doc<{ contributeEmail: ContributeEmail | null }>(
-  'query ContributeEmail { contributeEmail { on to } }',
+const EMAIL_SETTINGS_FIELDS = 'to needsYou ended timeZone';
+
+/** The Email rows of Settings. Null when the API hides Contribute from the user. */
+export const ContributeEmailSettingsDocument = doc<{ contributeEmailSettings: ContributeEmailSettings | null }>(
+  `query ContributeEmailSettings { contributeEmailSettings { ${EMAIL_SETTINGS_FIELDS} } }`,
 );
 
-export const SetContributeEmailDocument = doc<{ setContributeEmail: ContributeEmail }, { on: boolean }>(
-  'mutation SetContributeEmail($on: Boolean!) { setContributeEmail(on: $on) { on to } }',
+/** Saves the Email rows; a variable left out keeps its value. */
+export const SetContributeEmailSettingsDocument = doc<
+  { setContributeEmailSettings: ContributeEmailSettings },
+  ContributeEmailSettingsInput
+>(
+  `mutation SetContributeEmailSettings($needsYou: ContributeNeedsYouEmail, $ended: Boolean, $timeZone: String) {
+    setContributeEmailSettings(needsYou: $needsYou, ended: $ended, timeZone: $timeZone) { ${EMAIL_SETTINGS_FIELDS} }
+  }`,
 );
 
 export const SkipIssueDocument = doc<{ skipIssue: boolean }, { issueId: string }>(

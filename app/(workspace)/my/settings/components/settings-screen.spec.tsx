@@ -23,7 +23,7 @@ const reads = vi.hoisted(() => ({
   loadContribute: vi.fn(),
   loadContributeSetup: vi.fn(),
   loadContributeSet: vi.fn(async () => null),
-  loadContributeEmail: vi.fn(async () => null),
+  loadContributeEmailSettings: vi.fn(async () => null),
   loadScheduleCounts: vi.fn(async () => undefined),
   loadProfileLanguages: vi.fn(async () => []),
 }));
@@ -71,13 +71,9 @@ describe('the Settings tab (W1 §10)', () => {
     expect(plain).toContain(
       'Settings How your pull requests go out and how we reach you, then what you work on and what you want to learn.',
     );
-    const order = [
-      'id="pull-requests"',
-      'id="settings-email"',
-      'id="for-contributing"',
-      'id="for-learning"',
-      'id="danger"',
-    ].map((id) => html.indexOf(id));
+    const order = ['id="pull-requests"', 'id="email"', 'id="for-contributing"', 'id="for-learning"', 'id="danger"'].map(
+      (id) => html.indexOf(id),
+    );
     expect(order.every((at) => at > -1)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
     expect(plain).toContain('GitHub access public_repo, as @octocat Edit');

@@ -38,7 +38,7 @@ import {
   ContributeAutopilotDocument,
   ContributeAutopilotNoticeDocument,
   ContributeChangesDocument,
-  ContributeEmailDocument,
+  ContributeEmailSettingsDocument,
   ContributeGrantDocument,
   ContributeLimitsDocument,
   ContributeMcpConnectionsDocument,
@@ -70,7 +70,7 @@ import type {
   ContributeAttemptState,
   ContributeAutopilot,
   ContributeComingSoonProvider,
-  ContributeEmail,
+  ContributeEmailSettings,
   ContributeFollowUps,
   ContributeLimits,
   ContributeMcpToken,
@@ -369,21 +369,21 @@ export const loadContributeSet = cache(async (): Promise<ContributeSet | null | 
 });
 
 /**
- * GitRanks email for the signed-in user: on or off, and where it goes. Null when signed out, when the API hides it or
- * does not answer: Settings shows no email row then. Read once per request.
+ * The Email rows of Settings for the signed-in user. Null when signed out or when the API hides it (Settings leaves the
+ * group out then); undefined when the read failed, so the group says so and offers to try again. Read once per request.
  */
-export const loadContributeEmail = cache(async (): Promise<ContributeEmail | null> => {
+export const loadContributeEmailSettings = cache(async (): Promise<ContributeEmailSettings | null | undefined> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return null;
 
   try {
-    const { contributeEmail } = await graphqlDirect(ContributeEmailDocument, undefined, {
+    const { contributeEmailSettings } = await graphqlDirect(ContributeEmailSettingsDocument, undefined, {
       source: 'ssr',
       githubLogin,
     });
-    return contributeEmail ?? null;
+    return contributeEmailSettings ?? null;
   } catch {
-    return null;
+    return undefined;
   }
 });
 

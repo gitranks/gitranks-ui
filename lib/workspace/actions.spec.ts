@@ -32,7 +32,7 @@ const {
   ContributeOwnAgentDocument,
   CreateMcpTokenDocument,
   RetryAttemptDocument,
-  SetContributeEmailDocument,
+  SetContributeEmailSettingsDocument,
   DiscardAttemptDocument,
   RevokeMcpTokenDocument,
   SendBackToAgentDocument,
@@ -59,7 +59,7 @@ const CALLS: Record<string, unknown[]> = {
   withdrawProviderInterest: ['OPENAI'],
   deleteContributeData: [],
   revokeGithubGrant: [],
-  setContributeEmail: [false],
+  setContributeEmailSettings: [{ needsYou: 'OFF', githubLogin: 'mallory' }],
   resumeContributing: [],
   skipIssue: ['I_1'],
   startIssue: ['I_1'],
@@ -199,22 +199,38 @@ describe('the Contribute server actions', () => {
     expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('accountEmail', expect.anything());
   });
 
-  it('turns GitRanks email on or off with a plain boolean, and answers what the API saved', async () => {
+  it('saves the Email rows with only the fields given and well-formed, and answers what the API saved', async () => {
     auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
-    graphqlDirect.mockResolvedValueOnce({ setContributeEmail: { on: false, to: 'o•••@example.com' } });
-    await expect(actions.setContributeEmail(false)).resolves.toEqual({
-      ok: true,
-      data: { on: false, to: 'o•••@example.com' },
-    });
-    expect(graphqlDirect.mock.calls[0][0]).toBe(SetContributeEmailDocument);
-    expect(graphqlDirect.mock.calls[0][1]).toEqual({ on: false });
+    const saved = { to: 'o•••@example.com', needsYou: 'ONCE_A_DAY', ended: true, timeZone: 'Europe/Warsaw' };
+    graphqlDirect.mockResolvedValueOnce({ setContributeEmailSettings: saved });
+    await expect(
+      actions.setContributeEmailSettings({ needsYou: 'ONCE_A_DAY', timeZone: ' Europe/Warsaw ' }),
+    ).resolves.toEqual({ ok: true, data: saved });
+    expect(graphqlDirect.mock.calls[0][0]).toBe(SetContributeEmailSettingsDocument);
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ needsYou: 'ONCE_A_DAY', timeZone: 'Europe/Warsaw' });
 
+    // The switch alone; a choice the API has no name for and a zone too long to be one are left out.
     graphqlDirect.mockClear();
-    await actions.setContributeEmail('yes' as unknown as boolean);
-    expect(graphqlDirect.mock.calls[0][1]).toEqual({ on: false });
+    await actions.setContributeEmailSettings({
+      ended: false,
+      needsYou: 'WEEKLY' as never,
+      timeZone: 'x'.repeat(65),
+    });
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ ended: false });
+
+    // Nothing left to save: refused here, with no call.
+    graphqlDirect.mockClear();
+    await expect(actions.setContributeEmailSettings({ ended: 'yes' as never })).resolves.toEqual({
+      ok: false,
+      error: 'INVALID',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
 
     graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify([{ extensions: { code: 'NOT_FOUND' } }])));
-    await expect(actions.setContributeEmail(true)).resolves.toMatchObject({ ok: false, error: 'NOT_FOUND' });
+    await expect(actions.setContributeEmailSettings({ ended: true })).resolves.toMatchObject({
+      ok: false,
+      error: 'NOT_FOUND',
+    });
   });
 
   it.each(SET_ACTIONS)('%s goes to the API for any signed-in login: the modes are open to everyone', async (name) => {

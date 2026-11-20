@@ -1,104 +1,239 @@
 'use client';
 
-import { Mail } from 'lucide-react';
+import { Bell, SquareCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useId, useRef, useState, useTransition } from 'react';
+import { useId, useRef, useState, useSyncExternalStore, useTransition } from 'react';
 
+import { Button } from '@/components/ui/button';
+import { SegmentedRadios, useSettledPick } from '@/components/workspace/settings/radio-pills';
 import { SettingsGroup, SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
-import { setContributeEmail } from '@/lib/workspace/actions';
-import type { ContributeEmail } from '@/lib/workspace/contribute.types';
+import { setContributeEmailSettings } from '@/lib/workspace/actions';
+import type { ContributeEmailSettings, ContributeNeedsYouEmail } from '@/lib/workspace/contribute.types';
+import {
+  addressLineOf,
+  browserTimeZone,
+  EMAIL_AUTOPILOT_NOTE,
+  EMAIL_NO_ADDRESS,
+  EMAIL_READ_FAILED,
+  EMAIL_REPLACES_REMINDERS,
+  ENDED_TITLE,
+  endedLineOf,
+  hintQuestionOf,
+  keepLabelOf,
+  NEEDS_YOU_LABELS,
+  NEEDS_YOU_TITLE,
+  needsYouLineOf,
+  rememberSentTimeZone,
+  withoutEmailHint,
+} from '@/lib/workspace/email-settings';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
 
-export const EMAIL_TITLE = 'Email from Contribute';
-export const EMAIL_OFF = 'Off. You get no review reminders or other Contribute email.';
-export const EMAIL_AUTOPILOT_NOTE = "Autopilot's notices still come while autopilot is on.";
+const CHOICES = (Object.keys(NEEDS_YOU_LABELS) as ContributeNeedsYouEmail[]).map((value) => ({
+  value,
+  label: NEEDS_YOU_LABELS[value],
+}));
 
-/** With no address stored nothing is ever sent: the row is drawn, off, and says how to give one. */
-export const EMAIL_NO_ADDRESS =
-  'We have no email address for you. Add a public email on GitHub, or sign in again to share one.';
+const noSubscribe = () => () => {};
 
-/** Where the email goes, in plain words: the masked address, off, or that there is no address. */
-export const emailValueOf = ({ on, to }: ContributeEmail): string =>
-  !to ? EMAIL_NO_ADDRESS : on ? `Review reminders and other Contribute email go to ${to}.` : EMAIL_OFF;
+/** Takes the email's switch hint out of the address, so a reload or a shared link does not ask again. */
+const dropHintFromAddress = () => window.history.replaceState(null, '', withoutEmailHint(window.location.href));
+
+type Patch = { needsYou?: ContributeNeedsYouEmail; ended?: boolean };
 
 /**
- * Settings' Email group, the slot W4 fills with its rows (`EmailRows`). Until then, today's one row (`#email`, so a link
- * or an email can point at it): whether Contribute's email is on and where it goes, and a switch that saves at once.
- * The switch moves when clicked and moves back, with why, when the save fails; a change while one is saving is
- * ignored. The group is always drawn: with no address the switch is off and disabled, under why.
+ * Settings' Email group (`#email`): when something needs the user (After 30 minutes, Once a day, Off) and when a pull
+ * request is merged or closed, for Contribute and Learn alike. A change saves at once with the browser's time zone: the
+ * control moves, and moves back with why when the save fails; a change while one saves is ignored. With no address
+ * both controls are disabled under why. Opened from an email's "instead" link (`hint`), it asks before switching.
+ * `settings` undefined: the read failed, and the group says so.
  */
-export function EmailRows({ email }: { email: ContributeEmail }) {
+export function EmailRows({
+  settings,
+  autopilotOn = false,
+  hint = null,
+}: {
+  settings: ContributeEmailSettings | undefined;
+  /** Autopilot's notices still come: said while it is on. */
+  autopilotOn?: boolean;
+  /** The choice an email's link offers. */
+  hint?: ContributeNeedsYouEmail | null;
+}) {
+  return (
+    <SettingsGroup id="email" title="Email">
+      {settings ? <Rows settings={settings} autopilotOn={autopilotOn} hint={hint} /> : <ReadFailed />}
+    </SettingsGroup>
+  );
+}
+
+function ReadFailed() {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  return (
+    <div
+      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3.5 text-sm"
+      data-email="failed"
+    >
+      <span className="text-muted-foreground">{EMAIL_READ_FAILED}</span>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={pending}
+        className="max-sm:min-h-11"
+        onClick={() => startTransition(() => router.refresh())}
+      >
+        Try again
+      </Button>
+    </div>
+  );
+}
+
+function Rows({
+  settings,
+  autopilotOn,
+  hint,
+}: {
+  settings: ContributeEmailSettings;
+  autopilotOn: boolean;
+  hint: ContributeNeedsYouEmail | null;
+}) {
   const router = useRouter();
   const id = useId();
-  const [shown, setShown] = useState<ContributeEmail>(email);
+  const [shown, setShown] = useState(settings);
   const [error, setError] = useState<string | null>(null);
+  const [hintOpen, setHintOpen] = useState(hint !== null);
   const [pending, startTransition] = useTransition();
+  // The last values the API holds: what a failed save moves back to.
+  const saved = useRef(settings);
   // Set at once, before the transition's pending state renders, so a quick second change is ignored too.
   const saving = useRef(false);
+  // The summary's time zone: the one stored, else the one this browser would send (known only once in the browser).
+  const browserZone = useSyncExternalStore(noSubscribe, browserTimeZone, () => null);
 
-  const toggle = (next: boolean) => {
+  const save = (patch: Patch, onSaved?: () => void) => {
     if (saving.current) return;
     saving.current = true;
-    const before = shown;
-    setShown({ ...before, on: next });
+    setShown((now) => ({ ...now, ...patch }));
     setError(null);
+    const zone = browserTimeZone();
     startTransition(async () => {
-      const result = await setContributeEmail(next).catch(() => null);
+      const result = await setContributeEmailSettings({ ...patch, ...(zone ? { timeZone: zone } : {}) }).catch(
+        () => null,
+      );
       saving.current = false;
       if (!result?.ok) {
-        setShown(before);
+        setShown(saved.current);
         setError(result ? contributeErrorMessage(result.error, result.message) : contributeErrorMessage('FAILED'));
         return;
       }
+      saved.current = result.data;
       setShown(result.data);
+      if (zone) rememberSentTimeZone(zone);
+      onSaved?.();
       router.refresh();
     });
   };
+  // Arrowing through the choices picks each in turn: the control moves at once, the last pick is saved.
+  const pickNeedsYou = useSettledPick((needsYou: ContributeNeedsYouEmail) => save({ needsYou }));
 
   const noAddress = !shown.to;
+  const hinted = hintOpen && hint !== null && !noAddress && shown.needsYou !== hint ? hint : null;
+  const closeHint = () => {
+    setHintOpen(false);
+    dropHintFromAddress();
+  };
+
   return (
-    <SettingsGroup id="settings-email" title="Email">
+    <>
+      {hinted ? (
+        <div
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-primary/40 bg-brand-soft px-4 py-3 text-sm"
+          data-email-hint={hinted}
+        >
+          <span className="font-medium text-brand-soft-foreground">{hintQuestionOf(hinted)}</span>
+          <span className="ml-auto flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              size="sm"
+              disabled={pending}
+              className="max-sm:min-h-11"
+              onClick={() => save({ needsYou: hinted }, closeHint)}
+            >
+              Switch
+            </Button>
+            <button
+              type="button"
+              onClick={closeHint}
+              className="rounded px-1 text-sm font-semibold text-link hover:underline max-sm:min-h-11"
+            >
+              {keepLabelOf(shown.needsYou)}
+            </button>
+          </span>
+        </div>
+      ) : null}
       <SettingsList>
         <SettingsRow
-          id="email"
-          icon={Mail}
-          title={EMAIL_TITLE}
+          icon={Bell}
+          title={NEEDS_YOU_TITLE}
           value={
-            <>
-              <span id={`${id}-value`} className="block">
-                {emailValueOf(shown)}
-              </span>
-              {noAddress ? null : <span className="block text-xs">{EMAIL_AUTOPILOT_NOTE}</span>}
-              {error ? (
-                <span role="alert" className="block text-destructive">
-                  {error}
-                </span>
-              ) : null}
-            </>
+            <span id={`${id}-needs-you`} className="block text-pretty">
+              {needsYouLineOf(shown.needsYou, shown.timeZone ?? browserZone ?? 'UTC')}
+            </span>
           }
-          data={{ 'data-email': noAddress ? 'no-address' : shown.on ? 'on' : 'off' }}
+          data={{ 'data-email-row': 'needs-you', 'data-email-needs-you': shown.needsYou }}
+        >
+          <SegmentedRadios
+            legend={NEEDS_YOU_TITLE}
+            options={CHOICES}
+            value={shown.needsYou}
+            disabled={noAddress}
+            describedBy={`${id}-needs-you`}
+            onChange={(needsYou) => {
+              if (saving.current) return;
+              setShown((now) => ({ ...now, needsYou }));
+              pickNeedsYou(needsYou);
+            }}
+          />
+        </SettingsRow>
+        <SettingsRow
+          icon={SquareCheck}
+          title={ENDED_TITLE}
+          value={<span id={`${id}-ended`}>{endedLineOf(shown.ended)}</span>}
+          data={{ 'data-email-row': 'ended', 'data-email-ended': shown.ended ? 'on' : 'off' }}
         >
           <label
-            htmlFor={`${id}-email`}
+            htmlFor={`${id}-ended-switch`}
             className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm sm:min-h-0"
           >
             <input
-              id={`${id}-email`}
+              id={`${id}-ended-switch`}
               type="checkbox"
               // biome-ignore lint/a11y/useAriaPropsForRole: a native checkbox: the switch role reads its checked state, so aria-checked would only repeat it.
               role="switch"
-              aria-label={EMAIL_TITLE}
-              aria-describedby={`${id}-value`}
+              aria-label={`Email ${ENDED_TITLE.toLowerCase()}`}
+              aria-describedby={`${id}-ended`}
               aria-disabled={pending || undefined}
-              checked={shown.on && !noAddress}
+              checked={shown.ended}
               disabled={noAddress}
-              onChange={(event) => toggle(event.target.checked)}
-              className="size-4.5 accent-primary aria-disabled:opacity-60"
+              onChange={(event) => save({ ended: event.target.checked })}
+              className="size-4.5 accent-primary disabled:opacity-60 aria-disabled:opacity-60"
             />
-            {shown.on && !noAddress ? 'On' : 'Off'}
+            {shown.ended ? 'On' : 'Off'}
           </label>
         </SettingsRow>
       </SettingsList>
-    </SettingsGroup>
+      {error ? (
+        <p role="alert" className="px-1 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+      <p className="px-1 text-sm text-muted-foreground" data-email-to={noAddress ? 'none' : 'known'}>
+        {noAddress
+          ? EMAIL_NO_ADDRESS
+          : [addressLineOf(shown.to as string), autopilotOn ? EMAIL_AUTOPILOT_NOTE : null, EMAIL_REPLACES_REMINDERS]
+              .filter(Boolean)
+              .join(' ')}
+      </p>
+    </>
   );
 }

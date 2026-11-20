@@ -94,3 +94,66 @@ export function RadioPills<T extends string>({
     </fieldset>
   );
 }
+
+/**
+ * One choice of a few, as one segmented control: native radios, so arrows move between them and the group is read as
+ * one, with its legend for screen readers only (the row's title says it on screen). Wraps on a phone, each choice 44 px
+ * high.
+ */
+export function SegmentedRadios<T extends string>({
+  legend,
+  options,
+  value,
+  onChange,
+  disabled = false,
+  describedBy,
+  className,
+}: {
+  legend: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  disabled?: boolean;
+  /** The ids of the group's hint and status, read with it. */
+  describedBy?: string;
+  className?: string;
+}) {
+  const id = useId();
+  return (
+    <fieldset
+      disabled={disabled}
+      aria-describedby={describedBy}
+      className={cn('m-0 min-w-0 border-0 p-0 disabled:opacity-60', className)}
+    >
+      <legend className="sr-only">{legend}</legend>
+      <div className="flex flex-wrap gap-0.75 rounded-lg bg-muted p-0.75">
+        {options.map((option) => {
+          const on = option.value === value;
+          return (
+            <label
+              key={option.value}
+              htmlFor={`${id}-${option.value}`}
+              data-choice={option.value}
+              className={cn(
+                'flex min-h-8 items-center justify-center rounded-md px-2.5 text-sm font-semibold whitespace-nowrap transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 max-sm:min-h-11 max-sm:flex-1',
+                disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+                on ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <input
+                id={`${id}-${option.value}`}
+                type="radio"
+                name={`${id}-choice`}
+                value={option.value}
+                checked={on}
+                onChange={() => onChange(option.value)}
+                className="sr-only"
+              />
+              {option.label}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}

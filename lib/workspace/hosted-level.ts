@@ -10,6 +10,14 @@ import type {
 import { AUTOPILOT_UNLOCK_AT, dayLabel, shownPaceOf, timeLeftLabel } from './format';
 import { limitReachedOf } from './limit-words';
 
+/** Autopilot is on: the hosted agent's level chosen, and unlocked by the user's record. */
+export const autopilotOnOf = (
+  contributor:
+    | { settings?: Pick<ContributeSettings, 'hostedLevel'> | null; autopilot?: ContributeAutopilot | null }
+    | null
+    | undefined,
+): boolean => contributor?.settings?.hostedLevel === 'AUTOPILOT' && !!contributor.autopilot?.unlocked;
+
 /** The three levels of the hosted agent, in order: each includes the one before it. */
 export const HOSTED_LEVELS: { level: ContributeHostedLevel; title: string; text: string }[] = [
   { level: 'MANUAL', title: 'You start each issue', text: 'Nothing runs until you press Start on an issue.' },

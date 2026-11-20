@@ -9,7 +9,8 @@ import {
   progressViewOf,
 } from '@/lib/learn/progress/progress';
 import { loadLearnProgress, loadProgressList } from '@/lib/learn/progress/progress.data';
-import { loadPullRequestsPage } from '@/lib/workspace/contribute.data';
+import { publicProgressUrlOf } from '@/lib/learn/public-progress/public-progress';
+import { loadPullRequestsPage, viewerLogin } from '@/lib/workspace/contribute.data';
 import { notEnteredTargetOf } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -48,6 +49,9 @@ export async function ProgressView({ searchParams }: { searchParams: Promise<Sea
 
   const list = await listRead;
   if (list === null) notFound();
+  // The Share control's link: the login the viewer is signed in with.
+  const login = await viewerLogin();
+  const share = login ? { url: publicProgressUrlOf(login), publicCounts: progress?.publicCounts ?? null } : undefined;
   const last = list ? lastPageOf(progressTotalOf(list)) : page;
   if (page > last) redirect(progressPath({ view, page: last }));
   // No merged pull request yet: how many are open now, the Pull requests tab's own count.
@@ -55,5 +59,5 @@ export async function ProgressView({ searchParams }: { searchParams: Promise<Sea
   const openPrs = noneMerged
     ? ((await loadPullRequestsPage({ page: 1, state: 'OPEN', mode: 'LEARN' }))?.total ?? null)
     : undefined;
-  return <ProgressScreen view={view} page={page} counts={counts} list={list} openPrs={openPrs} />;
+  return <ProgressScreen view={view} page={page} counts={counts} list={list} openPrs={openPrs} share={share} />;
 }

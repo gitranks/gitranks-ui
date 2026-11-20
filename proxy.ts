@@ -13,8 +13,10 @@ import {
   isLearnPath,
   lessonResultJsonRouteOf,
   lessonRouteOf,
+  publicProgressRouteOf,
 } from './lib/learn/learn-path';
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
+import { progressGateOf } from './lib/learn/public-progress/progress-gate';
 import { isLinkPagePath, LINK_PAGE_HEADERS } from './lib/link-token/link-token';
 import { isPackagePath, packageMarkdownRewriteOf } from './lib/packages/package-paths';
 import { packagesPublic, requestMaySeePackages } from './lib/packages/packages-gate';
@@ -163,6 +165,16 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
       response.headers.set('Cache-Control', 'private, no-store');
       return response;
     }
+  }
+
+  // A person's public progress page streams too: their record is asked for here first. None, or the login asked under
+  // another spelling than the one stored, gets the 404, which no shared cache keeps (a record may appear soon).
+  const progressLogin =
+    request.method === 'GET' || request.method === 'HEAD' ? publicProgressRouteOf(request.nextUrl.pathname) : null;
+  if (progressLogin && (await progressGateOf(progressLogin)) === 'missing') {
+    const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
   }
 
   // A pull request's timeline (its page and its Markdown twin): the API is asked here before anything renders, signed

@@ -289,7 +289,7 @@ export const DismissLearnPromoDocument = doc<{ dismissLearnPromo: boolean }>(
 
 /** A login's public Learn record, the same for every reader; null without a public pass. */
 export const LearnRecordDocument = doc<{ learnRecord: LearnRecord | null }, { login: string }>(
-  'query LearnRecord($login: String!) { learnRecord(login: $login) { lessons topics prsOpened prsMerged } }',
+  'query LearnRecord($login: String!) { learnRecord(login: $login) { login lessons newThings topics prsOpened prsMerged reposHelped } }',
 );
 
 /** Every public lesson whose page is open, newest published first: anonymous, for the sitemaps and llms.txt. */

@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { LearnViewReport } from './learn-view-report';
 import { LessonEyebrow, LessonMeta } from './lesson-header';
 import { LessonStubScreen } from './lesson-stub';
 import { PracticeContext } from './practice-context';
 import { SharedLesson } from './shared-lesson';
 import { JsonLd } from '@/components/json-ld/json-ld';
+import { LearnViewReport } from '@/components/learn/learn-view-report';
 import type { LessonFlowStart } from '@/components/learn/lesson-flow';
 import { LessonIntro, ReadLesson, SignInToTake } from '@/components/learn/lesson-read';
 import { HEADING } from '@/components/workspace/primitives';

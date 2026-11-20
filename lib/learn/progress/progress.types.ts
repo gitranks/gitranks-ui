@@ -13,7 +13,11 @@ export type LearnProgressCounts = {
   prsOpened: number;
 };
 
-export type LearnProgress = { counts: LearnProgressCounts };
+/**
+ * `publicCounts`: what the viewer's public progress page counts (only what is already public); null without a public
+ * record, and from an API that does not send it yet.
+ */
+export type LearnProgress = { counts: LearnProgressCounts; publicCounts?: LearnProgressCounts | null };
 
 /** The viewer's own lesson (written for their pull request), or another learner's they took as practice. */
 export type LearnProgressLessonKind = 'OWN' | 'PRACTICE';

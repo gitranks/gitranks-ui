@@ -14,7 +14,12 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 
 /** The viewer's Learn numbers. */
 export const LearnProgressDocument = doc<{ learnProgress: LearnProgress }>(
-  'query LearnProgress { learnProgress { counts { lessonsPassed newThings reposHelped prsMerged prsOpened } } }',
+  `query LearnProgress {
+    learnProgress {
+      counts { lessonsPassed newThings reposHelped prsMerged prsOpened }
+      publicCounts { lessonsPassed newThings reposHelped prsMerged prsOpened }
+    }
+  }`,
 );
 
 const LESSON = `kind slug title repo issueNumber passedAt

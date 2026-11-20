@@ -20,8 +20,11 @@ export const metadata: Metadata = pageMetadata({
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
-/** The Privacy policy's own date: it changed after `LAST_UPDATED` (GitRanks Learn and following a package, 2026-11-18). */
-const PRIVACY_UPDATED = '2026-11-18';
+/**
+ * The Privacy policy's own date: it changed after `LAST_UPDATED` (GitRanks Learn and following a package, 2026-11-18;
+ * the public progress page, 2026-11-20).
+ */
+const PRIVACY_UPDATED = '2026-11-20';
 
 const sections: LegalSection[] = [
   {
@@ -266,8 +269,9 @@ const sections: LegalSection[] = [
             the questions you were asked with their right answers, never the options you got wrong. Its form for
             machines also gives your GitHub account id. Anyone can read them, search engines may list them, and the pull
             request links to your result. Your public results also show as a Learn record on your profile (lessons,
-            topics, and the Learn pull requests opened and merged). If you take someone else&apos;s lesson, your result
-            stays private unless you share it.
+            topics, and the Learn pull requests opened and merged). Your public results also show on your public
+            progress page, with the Learn pull requests that were merged, and in the image a link to that page shows
+            when it is posted. If you take someone else&apos;s lesson, your result stays private unless you share it.
           </li>
           <li>
             <B>Reactions</B>: anyone signed in with GitHub can say whether a lesson result helped review its pull

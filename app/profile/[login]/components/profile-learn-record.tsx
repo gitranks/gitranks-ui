@@ -6,6 +6,7 @@ import { type FC, useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import type { LearnRecord } from '@/lib/learn/learn.types';
+import { publicProgressPath } from '@/lib/learn/learn-path';
 import { recordTopicsOf } from '@/lib/learn/learn-promo';
 import { readLearnRecord } from '@/lib/learn/learn-promo-read';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -27,8 +28,8 @@ const statsOf = (record: LearnRecord) => [
 
 /**
  * A developer's GitRanks Learn record, the same for everyone who reads the profile: lessons passed and shared, the
- * topics they covered, and the pull requests that came of them. `own`: the owner reads it, with the way to their
- * progress. Nothing without a record.
+ * topics they covered, and the pull requests that came of them. Its title opens their public progress page, for every
+ * reader. `own`: the owner reads it, with the way to their progress. Nothing without a record.
  */
 export const LearnRecordCard: FC<{ record: LearnRecord | null; own?: boolean }> = ({ record, own }) => {
   if (!record) return null;
@@ -41,7 +42,13 @@ export const LearnRecordCard: FC<{ record: LearnRecord | null; own?: boolean }> 
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="profile-learn-record" className="text-xl font-semibold tracking-tight">
-          Learned on real issues
+          {record.login ? (
+            <Link href={publicProgressPath(record.login)} prefetch={false} className="hover:underline">
+              Learned on real issues
+            </Link>
+          ) : (
+            'Learned on real issues'
+          )}
         </h2>
         {own ? (
           <Link

@@ -2,12 +2,12 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
-import { LearnViewReport } from './learn-view-report';
 import { avatarOf, LessonEyebrow, LessonMeta } from './lesson-header';
 import { LESSON_MAIN } from './lesson-page';
 import { LessonStubScreen } from './lesson-stub';
 import { ResultReactions } from './result-reactions';
 import { GithubAvatar } from '@/app/components/landing/landing-ui';
+import { LearnViewReport } from '@/components/learn/learn-view-report';
 import { StepArticle } from '@/components/learn/lesson-flow';
 import { Figure } from '@/components/learn/lesson-summary';
 import { QuestionCard } from '@/components/learn/question-card';

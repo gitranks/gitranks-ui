@@ -8,13 +8,14 @@ import {
   formatCompactCount,
   formatFullCount,
 } from './archive';
+import { SOCIAL_CARD_SIZE } from '@/badge/v3/links';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 import { UNSUNG_HEROES_PATH } from '@/lib/unsung-hero/unsung-hero';
 
 /** The archive's own link preview image, 1200×630: the week's hero, or the archive itself in a week with none. */
 export const ARCHIVE_CARD_PATH = `${UNSUNG_HEROES_PATH}/card.png`;
-export const ARCHIVE_CARD_SIZE = { width: 1200, height: 630 } as const;
+export const ARCHIVE_CARD_SIZE = SOCIAL_CARD_SIZE;
 
 /**
  * The preview image's address. It names the week it shows, so a site that keeps a link preview by its image's address

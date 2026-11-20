@@ -122,11 +122,25 @@ describe('the Learn record', () => {
 
   it('keeps each topic once and counts below zero as none', () => {
     expect(learnRecordOf({ lessons: 2, topics: ['A', ' A ', '', 'B'], prsOpened: -1, prsMerged: 1 })).toEqual({
+      login: null,
       lessons: 2,
+      newThings: 0,
       topics: ['A', 'B'],
       prsOpened: 0,
       prsMerged: 1,
+      reposHelped: 0,
     });
+    expect(
+      learnRecordOf({
+        login: 'OctoCat',
+        lessons: 1,
+        newThings: 3,
+        topics: [],
+        prsOpened: 1,
+        prsMerged: 1,
+        reposHelped: 1,
+      }),
+    ).toMatchObject({ login: 'OctoCat', newThings: 3, reposHelped: 1 });
   });
 
   it('names five topics and counts the rest', () => {

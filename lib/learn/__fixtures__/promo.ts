@@ -41,7 +41,10 @@ export const promoColors = { typescript: '#3178c6', javascript: '#f1e05a' };
 
 /** A record of four lessons. */
 export const learnRecord: LearnRecord = {
+  login: 'octocat',
   lessons: 4,
+  newThings: 7,
+  reposHelped: 1,
   topics: [
     'Cache keys',
     'Map key equality',

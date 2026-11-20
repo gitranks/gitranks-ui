@@ -43,6 +43,8 @@ export type StartPageBodyProps = {
   backLabel: string;
   /** `flow`: no back link row of its own (the page draws its own step line above). */
   frame: 'tabs' | 'flow';
+  /** Called once as the page moves on to the pull request's page (the agent took the issue): a flow forgets its step. */
+  onLeave?: () => void;
 };
 
 /**
@@ -96,6 +98,7 @@ function LiveStartPage({
   backHref,
   backLabel,
   frame,
+  onLeave,
 }: StartPageBodyProps & { view: StartPageView }) {
   const router = useRouter();
   const { repo, issue: number } = issueRef;
@@ -118,6 +121,8 @@ function LiveStartPage({
   // The router as of the last render: the wait keeps running across renders, whatever object it is.
   const routerRef = useRef(router);
   routerRef.current = router;
+  const leave = useRef(onLeave);
+  leave.current = onLeave;
   const events = EVENTS[mode];
 
   useEffect(() => {
@@ -132,6 +137,7 @@ function LiveStartPage({
         if (gone.current) return;
         gone.current = true;
         reportLearnEvent({ kind: 'learn_view', event: events.claimed, source: events.source });
+        leave.current?.();
         // In place of this page: Back returns to the list, not to a page that would move on again.
         routerRef.current.replace(startPullRequestPathOf({ repo, issue: number }, issueRead.current));
         return;

@@ -186,11 +186,19 @@ describe('where an account that has not entered goes from a page under /my', () 
     );
   });
 
-  it("sends every other page to Contribute's home, a lesson's Start page too for now", () => {
+  it("sends a lesson's Start page to Learn's step for the issue", () => {
+    expect(notEnteredTargetOf('/my/start/acme/widgets/42', new URLSearchParams('lesson=1'))).toBe(
+      '/learn/start/acme/widgets/42',
+    );
+    expect(notEnteredTargetOf('/my/start/acme/widgets/42/', new URLSearchParams('lesson=1&from=contribute'))).toBe(
+      '/learn/start/acme/widgets/42',
+    );
+  });
+
+  it("sends every other page to Contribute's home", () => {
     for (const path of ['/my/pull-requests', '/my/pull-requests/acme/widgets/42', '/my']) {
       expect(notEnteredTargetOf(path), path).toBe('/contribute');
     }
-    expect(notEnteredTargetOf('/my/start/acme/widgets/42', new URLSearchParams('lesson=1'))).toBe('/contribute');
   });
 
   it('decides nothing outside /my', () => {

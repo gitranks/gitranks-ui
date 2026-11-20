@@ -11,8 +11,9 @@ const contribute = vi.hoisted(() => ({
 vi.mock('@/lib/workspace/contribute.data', () => contribute);
 vi.mock('@/lib/workspace/mcp-sign-in', () => ({ contributeMcpSignIn: vi.fn(async () => true) }));
 
-const { loadStartPageContributor, loadStartPageView, startPageAttemptOf, startPageOnboarded, startPageViewOf } =
-  await import('./start-page.data');
+const { loadStartPageView, startPageAttemptOf, startPageOnboarded, startPageViewOf } = await import(
+  './start-page.data'
+);
 const { fixAttemptOf, startViews } = await import('./__fixtures__/start-page');
 const { mcpToken } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { print } = await import('graphql');
@@ -209,23 +210,5 @@ describe("the Start page's load", () => {
 
     answer({ StartPageIssue: new Error('down'), ContributeOnboarding: onboarded });
     await expect(loadStartPageView(ref, 'fix', null)).rejects.toBeInstanceOf(contribute.ContributeUnavailableError);
-  });
-});
-
-describe('whether the viewer has a contributor row', () => {
-  beforeEach(() => {
-    graphqlDirect.mockReset();
-    contribute.viewerLogin.mockResolvedValue('octocat');
-  });
-
-  it('answers it, and nothing when it is not known', async () => {
-    graphqlDirect.mockResolvedValueOnce({ contribute: { contributor: null } });
-    expect(await loadStartPageContributor()).toBe(false);
-    graphqlDirect.mockResolvedValueOnce({ contribute: { contributor: { onboardedAt: null, onboardedVia: null } } });
-    expect(await loadStartPageContributor()).toBe(true);
-    graphqlDirect.mockRejectedValueOnce(new Error('down'));
-    expect(await loadStartPageContributor()).toBeNull();
-    contribute.viewerLogin.mockResolvedValueOnce(null);
-    expect(await loadStartPageContributor()).toBeNull();
   });
 });

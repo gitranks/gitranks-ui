@@ -34,11 +34,22 @@ vi.mock('./lib/workspace/gate', () => ({ requestLearnAccess: async () => access.
 
 const { default: proxy } = await import('./proxy');
 
+/** Learn's flow: Your goal, Pick an issue and an issue's own step, in the spellings the router reads as them. */
+const FLOW = [
+  '/learn/start',
+  '/learn/start/',
+  '/Learn/Start',
+  '/learn/start/issues',
+  '/learn/start/issues?language=Go&level=1',
+  '/learn/start/driftwood-js/driftwood/934',
+  '/learn/start/driftwood-js/driftwood/934?language=Go&level=1',
+];
+
 const visit = (path: string) => proxy(new NextRequest(`https://gitranks.com${path}`), {} as NextFetchEvent);
 
 describe('Learn open to visitors', () => {
-  it('lets a visitor without a session through to the front door alone', async () => {
-    for (const path of ['/learn', '/learn/', '/Learn']) {
+  it("lets a visitor without a session through to the front door and the three steps of Learn's flow alone", async () => {
+    for (const path of ['/learn', '/learn/', '/Learn', ...FLOW]) {
       expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBeNull();
     }
   });
@@ -50,12 +61,9 @@ describe('Learn open to visitors', () => {
       '/learn/attempts',
       '/learn/attempts/A_1/more',
       '/learn/about',
-      '/learn/start/driftwood-js/driftwood/934',
-      // Learn's flow opens to visitors in one later change, all three steps together.
-      '/learn/start',
-      '/learn/start/',
-      '/learn/start/issues',
-      '/learn/start/issues?language=Go&level=1',
+      '/learn/start/driftwood-js/driftwood',
+      '/learn/start/driftwood-js/driftwood/934/more',
+      '/learn/start/issues/more',
       '/learn/x',
     ]) {
       expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
@@ -73,10 +81,10 @@ describe('Learn open to visitors', () => {
     }
   });
 
-  it('keeps the front door from visitors while Learn is not open to everyone', async () => {
+  it("keeps the front door and Learn's flow from visitors while Learn is not open to everyone", async () => {
     everyone.open = false;
     try {
-      for (const path of ['/learn', '/learn/']) {
+      for (const path of ['/learn', '/learn/', ...FLOW]) {
         expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
       }
     } finally {
@@ -97,6 +105,15 @@ describe('Learn open to visitors', () => {
       );
     } finally {
       access.value = 'open';
+    }
+  });
+
+  it("answers a visitor's 404 on Learn's flow so no shared cache keeps it", async () => {
+    everyone.open = false;
+    try {
+      expect((await visit('/learn/start/issues'))?.headers.get('cache-control')).toBe('private, no-store');
+    } finally {
+      everyone.open = true;
     }
   });
 

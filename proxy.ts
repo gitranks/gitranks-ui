@@ -31,6 +31,7 @@ import {
   isContributeFlowPath,
   isContributePath,
   isLandingPath,
+  isLearnFlowPath,
   isLedgerPath,
   isMaintainersPath,
   isMyPath,
@@ -249,10 +250,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // Contribute is launched so are the landing, the MCP docs, the questions and the steps of Contribute's flow, to
   // visitors without a session too.
   // Learn is behind its own list of people, which the API answers: a closed Learn page answers a visitor without a
-  // session, and a signed-in viewer Learn is not open to, with the 404 here; a signed-in one it is open to goes on. A shared lesson, its result pages and the page for maintainers are open to everyone; the front door too once
-  // the API says Learn is open to everyone (the home page's Learn section links there and follows the same answer,
-  // asked once a minute per server, only for a visitor's `/learn`). A contribution's or a lesson's old address
-  // redirects before this, to the pull request's page under `/my`, which asks a visitor to sign in.
+  // session, and a signed-in viewer Learn is not open to, with the 404 here; a signed-in one it is open to goes on. A
+  // shared lesson, its result pages and the page for maintainers are open to everyone; the front door and the three
+  // steps of Learn's flow too once the API says Learn is open to everyone (the home page's Learn section links there and
+  // follows the same answer, asked once a minute per server, only for a visitor's `/learn` and its flow). A
+  // contribution's or a lesson's old address redirects before this, to the pull request's page under `/my`, which asks
+  // a visitor to sign in.
   // A request with a session is asked here too, before anything renders: an account Learn is not open to gets the
   // real 404, not Learn's shell (its header, tabs and titles) streamed ahead of the page's own not-found. A session the
   // server cannot read (expired) is a visitor's.
@@ -264,7 +267,8 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
       : request.method === 'GET' || request.method === 'HEAD'
         ? await requestLearnAccess(request)
         : 'open';
-    const visitorLetThrough = async () => isLearnHomePath(pathname) && (await learnOpenToEveryone());
+    const visitorLetThrough = async () =>
+      (isLearnHomePath(pathname) || isLearnFlowPath(pathname)) && (await learnOpenToEveryone());
     if (access === 'closed' || (access === 'signed-out' && !(await visitorLetThrough()))) {
       const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
       response.headers.set('Cache-Control', 'private, no-store');

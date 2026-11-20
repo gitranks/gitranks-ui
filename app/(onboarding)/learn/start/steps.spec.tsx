@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
+import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -42,34 +42,7 @@ const { default: IssuesPage } = await import('./issues/page');
 const { ApplyLearnGoal } = await import('./components/apply-goal');
 const { ISSUES, PRACTICE, emptyIssues, learnIssues, practiceLessons } = await import('@/lib/learn/__fixtures__/home');
 const { emptyProfile, filledProfile } = await import('@/lib/learn/__fixtures__/profile');
-
-const text = (html: string) =>
-  html
-    .replace(/<[^>]+>/g, ' ')
-    .replaceAll('&#x27;', "'")
-    .replaceAll('&amp;', '&')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-/** The element tree with every async server component awaited in place. */
-async function resolved(node: ReactNode): Promise<ReactNode> {
-  if (Array.isArray(node)) return Promise.all(node.map(resolved));
-  if (!isValidElement(node)) return node;
-  const { type, props } = node as ReactElement<{ children?: ReactNode }>;
-  if (typeof type === 'function' && type.constructor.name === 'AsyncFunction') {
-    return resolved(await (type as (props: object) => Promise<ReactNode>)(props));
-  }
-  if (props.children === undefined) return node;
-  return cloneElement(node as ReactElement<{ children?: ReactNode }>, { children: await resolved(props.children) });
-}
-
-/** Every element of `type` in a resolved tree. */
-function elementsOf(node: ReactNode, type: unknown): ReactElement<Record<string, unknown>>[] {
-  if (Array.isArray(node)) return node.flatMap((child) => elementsOf(child, type));
-  if (!isValidElement(node)) return [];
-  const element = node as ReactElement<Record<string, unknown> & { children?: ReactNode }>;
-  return [...(element.type === type ? [element] : []), ...elementsOf(element.props.children, type)];
-}
+const { elementsOf, resolved, text } = await import('./__fixtures__/render');
 
 async function render(page: (props: never) => ReactElement, search: Record<string, string> = {}): Promise<string> {
   return renderToStaticMarkup(await resolved(page({ searchParams: Promise.resolve(search) } as never)));

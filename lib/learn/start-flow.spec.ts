@@ -4,8 +4,10 @@ import { ISSUES } from './__fixtures__/home';
 import { emptyProfile, filledProfile } from './__fixtures__/profile';
 import { learnStartHrefOf } from './learn-tab';
 import {
+  goalDiffersFrom,
   goalViewOfPick,
   issueStepTargetOf,
+  learnGoalLabelOfPick,
   learnGoalPickOf,
   learnGoalPickOfProfile,
   learnGoalQuery,
@@ -79,5 +81,22 @@ describe("Pick an issue's rows", () => {
     const list = learnIssuesOfPublic({ language: 'TypeScript', items, total: 40 }, goal);
     expect(list.items.map(({ issueId }) => issueId)).toEqual(['driftwood-js/driftwood#934', 'tidewave/tide#958']);
     expect(list).toMatchObject({ goal, total: 2, empty: null, capReached: false, room: null });
+  });
+});
+
+describe("Your agent's goal words", () => {
+  it('names the goal an address carries as a lesson card does', () => {
+    expect(learnGoalLabelOfPick({ language: 'Go', level: 2 })).toBe('Go, Comfortable');
+    expect(learnGoalLabelOfPick({ language: 'Go', level: null })).toBe('Go, New to it');
+  });
+
+  it('tells a goal in the address apart from the saved one', () => {
+    expect(goalDiffersFrom({ language: 'TypeScript', level: 1 }, filledProfile)).toBe(false);
+    expect(goalDiffersFrom({ language: 'TypeScript', level: null }, filledProfile)).toBe(false);
+    expect(goalDiffersFrom({ language: 'TypeScript', level: 3 }, filledProfile)).toBe(true);
+    expect(goalDiffersFrom({ language: 'Go', level: 1 }, filledProfile)).toBe(true);
+    expect(
+      goalDiffersFrom({ language: 'Go', level: 1 }, { ...filledProfile, goalKind: 'PROJECT', goalValue: 'a/b' }),
+    ).toBe(true);
   });
 });

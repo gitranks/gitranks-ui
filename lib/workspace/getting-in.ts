@@ -111,7 +111,8 @@ export function learnFlowPlaceOf(
   if (shared) return shared;
   if (gate.kind !== 'open') return { kind: 'not-found' };
   if (!gate.entered) {
-    return step === 'issues' && !goalSaved && !goalInAddress ? redirectTo(GETTING_IN_PATHS.learnGoal) : PAGE;
+    // Pick an issue and Your agent need a goal: saved, or in the address to save first; Your goal asks it otherwise.
+    return step !== 'goal' && !goalSaved && !goalInAddress ? redirectTo(GETTING_IN_PATHS.learnGoal) : PAGE;
   }
   // Entered: on to the Learn tab, or the issue's Start page in lesson mode; a goal the address carries and the account
   // lacks is saved first.

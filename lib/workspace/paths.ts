@@ -211,6 +211,13 @@ export const isContributeFlowPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+contribute\/+start(?:[/\\]|$)/i);
 
 /**
+ * Whether the path is a step of Learn's flow, in any spelling the router reads: `/learn/start`, `/learn/start/issues`,
+ * or an issue's own start address `/learn/start/<owner>/<repo>/<issue>`.
+ */
+export const isLearnFlowPath = (pathname: string): boolean =>
+  decodedMatches(pathname, /^\/+learn\/+start(?:\/+issues|\/+[^/\\]+\/+[^/\\]+\/+[^/\\]+)?\/?$/i);
+
+/**
  * Whether the path is a page every visitor sees once Contribute is launched: the landing and how Contribute works, the
  * MCP docs, the questions and the steps of Contribute's flow, in any spelling the router reads as them. Until then only the preview list sees
  * them.
@@ -224,12 +231,13 @@ export const isOpenAtLaunchPath = (pathname: string): boolean =>
  * Whether the path is one of the pages about Contribute or Learn rather than the user's workspace, which show no tabs:
  * how Contribute works, Contribute's maintainers page and its report page, the ledger, the MCP docs, the questions and
  * the agent sign-in's
- * consent page; the steps of Contribute's flow; how Learn works, Learn's page for maintainers, and a shared lesson with
- * its result pages.
+ * consent page; the steps of Contribute's flow and of Learn's; how Learn works, Learn's page for maintainers, and a
+ * shared lesson with its result pages.
  */
 export const isTablessPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+contribute\/+(?:about|maintainers(?:\/+report)?|ledger|mcp|faq|authorize)\/?$/i) ||
   isContributeFlowPath(pathname) ||
+  isLearnFlowPath(pathname) ||
   decodedMatches(pathname, /^\/+learn\/+(?:about|maintainers)\/?$/i) ||
   decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i);
 

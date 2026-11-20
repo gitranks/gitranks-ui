@@ -14,6 +14,7 @@ const {
 } = await import('./preview-gate');
 const {
   isAuthorizePath,
+  isContributeFlowPath,
   isContributePath,
   isLandingPath,
   isMaintainersPath,
@@ -109,6 +110,28 @@ describe('the Contribute preview gate', () => {
     expect(isTablessPath('/contribute/maintainers/x')).toBe(false);
     expect(isTablessPath('/contribute/authorize')).toBe(true);
     expect(isTablessPath('/contribute')).toBe(false);
+  });
+
+  it('opens the steps of Contribute’s flow at the launch, in any spelling, and nothing that only starts like them', () => {
+    for (const path of [
+      '/contribute/start',
+      '/contribute/start/',
+      '/contribute/start/agent',
+      '/contribute/start/agent/own',
+      '/contribute/start/agent/key',
+      '/contribute/start/issue',
+      '/Contribute/Start',
+      '/contribute//start/agent',
+      '/contribute/%73tart',
+    ]) {
+      expect(isContributeFlowPath(path), path).toBe(true);
+      expect(isOpenAtLaunchPath(path), path).toBe(true);
+      expect(isTablessPath(path), path).toBe(true);
+    }
+    for (const path of ['/contribute', '/contribute/started', '/contribute/starts/agent', '/learn/start', '/start']) {
+      expect(isContributeFlowPath(path), path).toBe(false);
+    }
+    expect(isContributeFlowPath('/contribute/start%')).toBe(false);
   });
 
   it("takes the agent sign-in's consent page alone as it, in the spellings the router reads as it", () => {

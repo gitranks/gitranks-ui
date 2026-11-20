@@ -26,6 +26,7 @@ import {
   AGENTS_DOC_PATH,
   isAuthorizePath,
   isByAttemptPath,
+  isContributeFlowPath,
   isContributePath,
   isLandingPath,
   isLedgerPath,
@@ -233,7 +234,8 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared
   // cache (it would be served to someone who is let in). The page for maintainers and the agent sign-in's consent page
   // (which tells a visitor off the preview so itself) are open to everyone, and once
-  // Contribute is launched so are the landing, the MCP docs and the questions, to visitors without a session too.
+  // Contribute is launched so are the landing, the MCP docs, the questions and the steps of Contribute's flow, to
+  // visitors without a session too.
   // Learn is behind its own list of people, which the API answers: a closed Learn page answers a visitor without a
   // session, and a signed-in viewer Learn is not open to, with the 404 here; a signed-in one it is open to goes on. A shared lesson, its result pages and the page for maintainers are open to everyone; the front door too once
   // the API says Learn is open to everyone (the home page's Learn section links there and follows the same answer,
@@ -281,8 +283,9 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     !(isOpenAtLaunchPath(pathname) && (await contributeOpen()))
   ) {
     const access = await requestContributeAccess(request);
-    // A new account being set up goes to Contribute's home, which says so (and is let through itself).
-    if (access === 'setting-up' && !isLandingPath(pathname)) {
+    // A new account being set up goes to Contribute's home, which says so (and is let through itself). A step of
+    // Contribute's flow says so in place, so the address and the answers it carries are kept.
+    if (access === 'setting-up' && !isLandingPath(pathname) && !isContributeFlowPath(pathname)) {
       const response = NextResponse.redirect(new URL(settingUpHomeOf(request.nextUrl), request.url));
       response.headers.set('Cache-Control', 'private, no-store');
       return response;

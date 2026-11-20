@@ -10,6 +10,8 @@ describe('the workspace import rule', () => {
     expect(zoneOf('components/workspace/pull-request/review-view.tsx')).toBe('components/workspace/pull-request');
     expect(zoneOf('app/contribute/components/landing.tsx')).toBe('app/contribute');
     expect(zoneOf('app/(workspace)/learn/page.tsx')).toBe('app/learn');
+    expect(zoneOf('app/(onboarding)/contribute/start/page.tsx')).toBe('app/contribute');
+    expect(zoneOf('app/(onboarding)/learn/start/page.tsx')).toBe('app/learn');
     expect(zoneOf('components/ui/button.tsx')).toBeNull();
     expect(zoneOf('lib/utils.ts')).toBeNull();
     expect(zoneOf('app/(pr-timeline)/contribute/pr/[owner]/route.ts')).toBeNull();

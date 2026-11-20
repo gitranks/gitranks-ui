@@ -1,8 +1,11 @@
 import type { ContributeEmailSettingsInput, ContributeNeedsYouEmail } from '@/lib/workspace/contribute.types';
 
-/** The three choices of "When something needs you", in the control's order, with their names. */
+/**
+ * The three choices of "When something needs you", in the control's order, with their names. "Immediately" keeps its
+ * short wait (an item that clears on its own sends nothing), which the words leave out.
+ */
 export const NEEDS_YOU_LABELS: Record<ContributeNeedsYouEmail, string> = {
-  AFTER_30_MINUTES: 'After 30 minutes',
+  AFTER_30_MINUTES: 'Immediately',
   ONCE_A_DAY: 'Once a day',
   OFF: 'Off',
 };
@@ -14,7 +17,7 @@ export const ENDED_TITLE = 'When a pull request is merged or closed';
 export function needsYouLineOf(choice: ContributeNeedsYouEmail, zone: string): string {
   if (choice === 'ONCE_A_DAY') return `One summary at 8:00 in the morning, ${zone} time, while something waits.`;
   if (choice === 'OFF') return 'No email when something needs you. It still shows under Pull requests.';
-  return 'One email if something still needs you 30 minutes after it started waiting.';
+  return 'One email when something waits for you.';
 }
 
 export const endedLineOf = (on: boolean): string =>
@@ -24,15 +27,13 @@ export const endedLineOf = (on: boolean): string =>
 export const EMAIL_NO_ADDRESS =
   'We have no email address for you, so no email is sent. Sign in again and share your GitHub email.';
 export const EMAIL_AUTOPILOT_NOTE = "Autopilot's notices still come while autopilot is on.";
-/** Said until the old reminder emails are long gone. */
-export const EMAIL_REPLACES_REMINDERS = 'These replace the review reminder emails.';
 export const EMAIL_READ_FAILED = 'Email settings did not load.';
 
 export const addressLineOf = (to: string): string => `Email goes to ${to}.`;
 
 /**
- * The choice an email's "instead" link offers (`?email=daily` or `?email=after-30`); null for anything else. Opening
- * the link changes nothing: the page asks first.
+ * The choice an email's "instead" link offers (`?email=daily`, or `?email=after-30` for Immediately, the value emails
+ * already sent carry); null for anything else. Opening the link changes nothing: the page asks first.
  */
 export function emailHintOf(value: string | string[] | undefined): ContributeNeedsYouEmail | null {
   const hint = Array.isArray(value) ? value[0] : value;
@@ -43,11 +44,16 @@ export function emailHintOf(value: string | string[] | undefined): ContributeNee
 
 /** The question above the rows while an email's link offers another choice. */
 export const hintQuestionOf = (hint: ContributeNeedsYouEmail): string =>
-  hint === 'ONCE_A_DAY' ? 'Switch to one summary a day?' : 'Switch to an email after 30 minutes?';
+  hint === 'ONCE_A_DAY' ? 'Switch to one summary a day?' : 'Switch to immediate emails?';
 
-/** "Keep after 30 minutes", "Keep once a day", "Keep emails off". */
-export const keepLabelOf = (current: ContributeNeedsYouEmail): string =>
-  current === 'OFF' ? 'Keep emails off' : `Keep ${NEEDS_YOU_LABELS[current].toLowerCase()}`;
+/** The link that keeps the stored choice: "Keep immediate emails", "Keep once a day", "Keep emails off". */
+const KEEP_LABELS: Record<ContributeNeedsYouEmail, string> = {
+  AFTER_30_MINUTES: 'Keep immediate emails',
+  ONCE_A_DAY: 'Keep once a day',
+  OFF: 'Keep emails off',
+};
+
+export const keepLabelOf = (current: ContributeNeedsYouEmail): string => KEEP_LABELS[current];
 
 /** The address without the hint, on the Email group: what Switch and Keep leave in the address bar. */
 export function withoutEmailHint(href: string): string {

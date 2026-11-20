@@ -15,7 +15,6 @@ import {
   EMAIL_AUTOPILOT_NOTE,
   EMAIL_NO_ADDRESS,
   EMAIL_READ_FAILED,
-  EMAIL_REPLACES_REMINDERS,
   ENDED_TITLE,
   endedLineOf,
   hintQuestionOf,
@@ -41,7 +40,7 @@ const dropHintFromAddress = () => window.history.replaceState(null, '', withoutE
 type Patch = { needsYou?: ContributeNeedsYouEmail; ended?: boolean };
 
 /**
- * Settings' Email group (`#email`): when something needs the user (After 30 minutes, Once a day, Off) and when a pull
+ * Settings' Email group (`#email`): when something needs the user (Immediately, Once a day, Off) and when a pull
  * request is merged or closed, for Contribute and Learn alike. A change saves at once with the browser's time zone: the
  * control moves, and moves back with why when the save fails; a change while one saves is ignored. With no address
  * both controls are disabled under why. Opened from an email's "instead" link (`hint`), it asks before switching.
@@ -234,9 +233,7 @@ function Rows({
       <p className="px-1 text-sm text-muted-foreground" data-email-to={noAddress ? 'none' : 'known'}>
         {noAddress
           ? EMAIL_NO_ADDRESS
-          : [addressLineOf(shown.to as string), autopilotOn ? EMAIL_AUTOPILOT_NOTE : null, EMAIL_REPLACES_REMINDERS]
-              .filter(Boolean)
-              .join(' ')}
+          : [addressLineOf(shown.to as string), autopilotOn ? EMAIL_AUTOPILOT_NOTE : null].filter(Boolean).join(' ')}
       </p>
     </>
   );

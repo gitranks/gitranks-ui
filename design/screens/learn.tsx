@@ -262,6 +262,20 @@ export const LEARN_SCREENS: Screen[] = [
           }),
       },
       {
+        id: 'cap',
+        title: 'The day’s new issues are all shown',
+        path: '/learn',
+        height: 1220,
+        render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.cap }),
+      },
+      {
+        id: 'unread',
+        title: 'The issues could not be loaded',
+        path: '/learn',
+        height: 1200,
+        render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.unread }),
+      },
+      {
         id: 'held',
         title: 'The account is held: no issues, practice stays',
         path: '/learn',
@@ -376,14 +390,6 @@ export const LEARN_SCREENS: Screen[] = [
     ],
     states: [
       {
-        id: 'lessons',
-        title:
-          'Lessons passed: own lessons with their pull request’s state, practice lessons, one taken down, Not finished',
-        path: '/my/progress',
-        height: 1700,
-        render: () => frame(<ProgressScreen view="lessons" page={1} counts={progressCounts} list={progress.lessons} />),
-      },
-      {
         id: 'learned',
         title: 'New things learned: one card per lesson, a tile per new step',
         path: '/my/progress?view=learned',
@@ -464,6 +470,13 @@ export const LEARN_SCREENS: Screen[] = [
         height: 1700,
         render: () => frame(<ProgressScreen {...shared({ ...progressCounts, lessonsPassed: 5, newThings: 9 })} />),
       },
+      {
+        id: 'share-none',
+        title: 'Share: nothing public yet, no button',
+        path: '/my/progress',
+        height: 1700,
+        render: () => frame(<ProgressScreen {...shared(null)} />),
+      },
     ],
   },
   {
@@ -480,14 +493,6 @@ export const LEARN_SCREENS: Screen[] = [
       'lib/learn/public-progress/public-progress-seo.ts',
     ],
     states: [
-      {
-        id: 'signed-out',
-        title: 'Signed out: the numbers and the public lessons, a pull request only once merged',
-        path: PUBLIC_PROGRESS_PATH,
-        signedOut: true,
-        height: 1400,
-        render: () => open(publicPage()),
-      },
       {
         id: 'own',
         title: 'The person themself: one line to Your progress',
@@ -703,14 +708,6 @@ export const LEARN_SCREENS: Screen[] = [
       'lib/learn/lesson-seo.ts',
     ],
     states: [
-      {
-        id: 'review',
-        title: 'From the pull request: the result per step, the lesson with the answers, a reaction',
-        path: RESULT_PATH,
-        signedOut: true,
-        height: 4700,
-        render: () => resultPage(),
-      },
       {
         id: 'sign-in',
         title: 'After a click on “Yes, it helped”, signed out: the GitHub sign-in',

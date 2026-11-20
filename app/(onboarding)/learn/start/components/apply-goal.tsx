@@ -75,6 +75,19 @@ export function ApplyLearnGoal({
       </p>
     );
   }
+  return <GoalSaveFailed pending={pending} onRetry={apply} moveTo={moveTo} />;
+}
+
+/** The goal's save failed: Try again, and a way on without saving when the page moves on. */
+export function GoalSaveFailed({
+  pending,
+  onRetry,
+  moveTo,
+}: {
+  pending: boolean;
+  onRetry: () => void;
+  moveTo?: Route;
+}) {
   return (
     <div
       role="alert"
@@ -83,7 +96,7 @@ export function ApplyLearnGoal({
     >
       <p className="text-muted-foreground">Your goal could not be saved.</p>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Button type="button" variant="outline" disabled={pending} onClick={apply} className="min-h-11 font-semibold">
+        <Button type="button" variant="outline" disabled={pending} onClick={onRetry} className="min-h-11 font-semibold">
           {pending ? 'Trying again…' : 'Try again'}
         </Button>
         {moveTo ? (

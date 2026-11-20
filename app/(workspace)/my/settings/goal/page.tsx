@@ -3,8 +3,12 @@ import { Suspense } from 'react';
 
 import { GoalSettingsView } from '@/app/(workspace)/my/settings/components/settings-pages';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
+import { learnPageMetadata } from '@/lib/workspace/learn-page-title';
 
-export const metadata: Metadata = { title: 'Goal and level' };
+/** Named only to an account Learn is open to (`learnPageMetadata`). */
+export function generateMetadata(): Promise<Metadata> {
+  return learnPageMetadata('Goal and level');
+}
 
 /** Goal and level: what every lesson is written for. A 404 where Learn is not open. */
 export default function GoalSettingsPage() {

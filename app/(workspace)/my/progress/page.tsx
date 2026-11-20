@@ -3,16 +3,11 @@ import { Suspense } from 'react';
 
 import { ProgressView } from '@/components/learn/progress/progress-view';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
-import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
+import { learnPageMetadata } from '@/lib/workspace/learn-page-title';
 
-/**
- * The page's title names it only to someone Learn is open to. A visitor reads the layout's sign-in card under a title
- * as plain as the card's; anyone else gets the site's own title (they get the 404).
- */
-export async function generateMetadata(): Promise<Metadata> {
-  const gate = await loadWorkspaceGate().catch(() => null);
-  if (gate?.kind === 'open' && gate.learnOpen) return { title: 'Your progress' };
-  return gate?.kind === 'signed-out' ? { title: 'Sign in' } : {};
+/** Named only to an account Learn is open to (`learnPageMetadata`). */
+export function generateMetadata(): Promise<Metadata> {
+  return learnPageMetadata('Your progress');
 }
 
 /** Your progress: what the user has learned so far, and where their fixes landed. Read per request. */

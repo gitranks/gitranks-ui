@@ -162,20 +162,6 @@ export const WORKSPACE_PART_SCREENS: Screen[] = [
         render: () => contributeRows({ agents: { hosted: false, own: false } }),
       },
       {
-        id: 'limit',
-        title: 'Contribute, at the open pull request limit: no Start, the menu stays',
-        path: '/contribute',
-        height: 520,
-        render: () => contributeRows({ control: false }),
-      },
-      {
-        id: 'no-menu',
-        title: 'Placed by another page with menu={false}: no "⋯"',
-        path: '/contribute',
-        height: 520,
-        render: () => contributeRows({ menu: false }),
-      },
-      {
         id: 'learn',
         title: 'Learn: Start a lesson, never a menu',
         path: '/learn',

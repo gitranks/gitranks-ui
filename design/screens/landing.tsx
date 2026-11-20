@@ -33,14 +33,6 @@ export const LANDING_SCREENS: Screen[] = [
     sources: SOURCES,
     states: [
       {
-        id: 'signed-out',
-        title: 'Signed out',
-        path: '/',
-        signedOut: true,
-        height: 6000,
-        render: () => <LandingScreen {...landingData} />,
-      },
-      {
         id: 'signed-in',
         title: 'Signed in, with Contribute',
         path: '/',

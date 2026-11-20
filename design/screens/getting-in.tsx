@@ -2,21 +2,33 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
-import { CHOICE_SIGN_IN } from '@/app/(onboarding)/contribute/start/sign-in-copy';
-import { BACK_LABEL, SignedIn } from '@/app/(onboarding)/learn/start/components/issue-step';
-import { IssueStepBody } from '@/app/(onboarding)/learn/start/components/issue-step-body';
 import {
-  Issues,
-  IssuesHead,
+  AGENT_HEAD,
+  BACK_TO_CHOICE,
+  CHOICE_SIGN_IN,
+  FIRST_ISSUE,
+  OWN_AGENT_HEAD,
+  WORK_HEAD,
+} from '@/app/(onboarding)/contribute/start/copy';
+import { ApplyLearnGoal, GoalSaveFailed } from '@/app/(onboarding)/learn/start/components/apply-goal';
+import { accountGoalLineOf, SignedIn, VisitorSignIn } from '@/app/(onboarding)/learn/start/components/issue-step';
+import { IssueStepBody } from '@/app/(onboarding)/learn/start/components/issue-step-body';
+import { Issues, IssuesHead } from '@/app/(onboarding)/learn/start/components/issues-step';
+import { SeeAllIssues } from '@/app/(onboarding)/learn/start/components/see-all';
+import {
+  BACK_LABEL,
+  GOAL_VISITOR_NOTE,
   PRACTICE_TEXT,
   PRACTICE_TITLE,
-} from '@/app/(onboarding)/learn/start/components/issues-step';
-import { SeeAllIssues } from '@/app/(onboarding)/learn/start/components/see-all';
+  STARTING_ASKS,
+  writtenForOf,
+} from '@/app/(onboarding)/learn/start/copy';
 import { ContributeIssueList } from '@/app/(workspace)/contribute/components/issue-list';
 import { LearnIssueList } from '@/app/(workspace)/learn/components/issue-list';
 import { LearnGoalQuick } from '@/app/learn/components/learn-goal-quick';
 import { PracticeSection } from '@/app/learn/components/practice-lessons';
 import { AgentChoice } from '@/components/contribute/start/agent-choice';
+import { PicksNotSaved } from '@/components/contribute/start/apply-picks';
 import { OwnAgentStep } from '@/components/contribute/start/own-agent-step';
 import { WorkStep } from '@/components/contribute/start/work-step';
 import { Header } from '@/components/header/header';
@@ -62,22 +74,20 @@ const flow = (side: FlowSide, step: FlowStepNumber, children: ReactNode) => (
 const NO_PICKS: WorkPicks = { languages: [], kinds: [] };
 /** A signed-in person's languages, pre-ticked from their profile's top three. */
 const PROFILE_PICKS: WorkPicks = { languages: ['JS_TS', 'GO', 'RUST'], kinds: [] };
-const WORK_HEAD = {
-  title: 'What do you work on?',
-  text: 'Issues are picked for these. You can change them any time in Settings.',
-} as const;
+const noop = () => {};
 
-/** Step 2's choice, as `/contribute/start/agent` draws it: the sign-in card above the dimmed cards for a visitor. */
-const agentChoice = (visitor: boolean) =>
+/**
+ * Step 2's choice, as `/contribute/start/agent` draws it: the sign-in card above the dimmed cards for a visitor; signed
+ * in, the line that the picks of step 1 could not be saved when `unsaved`.
+ */
+const agentChoice = (visitor: boolean, unsaved = false) =>
   flow(
     'contribute',
     2,
     <>
-      <FlowHead
-        title="Who does the work?"
-        text="An agent writes each fix and you review it before anything reaches GitHub. Pick one way now; you can add the other later."
-      />
+      <FlowHead {...AGENT_HEAD} />
       {visitor ? <FlowSignIn {...CHOICE_SIGN_IN} source="contribute_flow_sign_in" /> : null}
+      {unsaved ? <PicksNotSaved pending={false} onRetry={noop} /> : null}
       <AgentChoice enabled={!visitor} />
     </>,
   );
@@ -88,7 +98,7 @@ const firstIssue = (page = issuePage) =>
     'contribute',
     3,
     <>
-      <FlowHead title="Pick your first issue" text={firstIssueLineOf({ hosted: false, own: true }, 'Claude Code')} />
+      <FlowHead title={FIRST_ISSUE.title} text={firstIssueLineOf({ hosted: false, own: true }, 'Claude Code')} />
       <ContributeIssueList
         page={page}
         agents={{ hosted: false, own: true }}
@@ -96,15 +106,15 @@ const firstIssue = (page = issuePage) =>
         languages={['JS_TS']}
         facts={{ capUsd: null, keyWaiting: null }}
         source="contribute_flow_issue"
-        noneTitle="No open issues match what you work on yet. New ones come in every day."
+        noneTitle={FIRST_ISSUE.none}
       />
-      <p className="text-sm text-muted-foreground">You review every change before anything reaches GitHub.</p>
+      <p className="text-sm text-muted-foreground">{FIRST_ISSUE.review}</p>
       <Link
         href={WORKSPACE_PATHS.contribute}
         prefetch={false}
         className="self-start text-sm font-semibold text-link hover:underline max-sm:min-h-11"
       >
-        Skip for now: open Contribute
+        {FIRST_ISSUE.skip}
       </Link>
     </>,
   );
@@ -188,11 +198,11 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
         render: () => agentChoice(true),
       },
       {
-        id: 'signed-in',
-        title: 'Signed in: your own agent recommended, or a Claude key',
-        path: GETTING_IN_PATHS.contributeAgent,
-        height: 720,
-        render: () => agentChoice(false),
+        id: 'picks-unsaved',
+        title: 'Signed in, the picks of step 1 not saved: one quiet line with Try again; the cards still work',
+        path: `${GETTING_IN_PATHS.contributeAgent}?languages=rust,go`,
+        height: 760,
+        render: () => agentChoice(false, true),
       },
       {
         id: 'phone',
@@ -227,9 +237,9 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
             2,
             <>
               <div className="flex flex-col gap-2">
-                <FlowBack href={GETTING_IN_PATHS.contributeAgent}>Two ways</FlowBack>
-                <span className="text-xs font-semibold text-primary">About a minute · no Claude key needed</span>
-                <h1 className={HEADING.page}>Connect your own agent</h1>
+                <FlowBack href={GETTING_IN_PATHS.contributeAgent}>{BACK_TO_CHOICE}</FlowBack>
+                <span className="text-xs font-semibold text-primary">{OWN_AGENT_HEAD.eyebrow}</span>
+                <h1 className={HEADING.page}>{OWN_AGENT_HEAD.title}</h1>
               </div>
               <OwnAgentStep tokens={[]} signIn={false} learnOpen openedAt="2026-10-28T12:00:00.000Z" />
             </>,
@@ -259,7 +269,7 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
             'contribute',
             2,
             <>
-              <FlowBack href={GETTING_IN_PATHS.contributeAgent}>Two ways</FlowBack>
+              <FlowBack href={GETTING_IN_PATHS.contributeAgent}>{BACK_TO_CHOICE}</FlowBack>
               <ConnectScreen
                 view={views.noKey}
                 today={28}
@@ -324,9 +334,7 @@ const goalStep = (visitor: boolean) =>
     1,
     <>
       <LearnGoalQuick profile={visitor ? null : filledProfile} flow={{ initial: null, draft: visitor }} />
-      {visitor ? (
-        <p className="text-sm text-muted-foreground">Nothing is saved yet. You sign in when you start an issue.</p>
-      ) : null}
+      {visitor ? <p className="text-sm text-muted-foreground">{GOAL_VISITOR_NOTE}</p> : null}
     </>,
   );
 
@@ -341,7 +349,7 @@ const visitorIssues = (ready = true) => {
       <Issues who="visitor">
         {ready ? (
           <>
-            <p className="text-sm text-muted-foreground sm:self-end">Starting asks you to sign in with GitHub.</p>
+            <p className="text-sm text-muted-foreground sm:self-end">{STARTING_ASKS}</p>
             <LearnIssueList
               issues={learnIssuesOfPublic(PUBLIC_ISSUES, view)}
               start={issueStepTargetOf(GOAL)}
@@ -369,7 +377,7 @@ const visitorIssues = (ready = true) => {
 
 /** Your agent for a visitor, at the issue's own start address: sign in first, the steps after it dimmed. */
 const visitorIssueStep = (listed: boolean) => {
-  const goalLine = `Your lesson will be written for: ${learnGoalLabelOfPick(GOAL)}`;
+  const goalLine = writtenForOf(learnGoalLabelOfPick(GOAL));
   const back = withLearnGoal(GETTING_IN_PATHS.learnIssues, GOAL);
   const [first] = PUBLIC_ISSUES.items;
   return flow(
@@ -382,19 +390,54 @@ const visitorIssueStep = (listed: boolean) => {
         view={null}
         card={listed ? { repo: first.repo, title: first.title, goalLine } : { goalLine }}
         locked
-        firstSection={
-          <FlowSignIn
-            title="1 · Sign in with GitHub"
-            text={`The lesson and the pull request will be in your name. Your goal comes with you: ${learnGoalLabelOfPick(GOAL)}.`}
-            source="learn_flow_sign_in"
-          />
-        }
+        firstSection={<VisitorSignIn goal={GOAL} />}
         backHref={back}
         backLabel={BACK_LABEL}
       />
     </>,
   );
 };
+
+/**
+ * Your agent for a signed-in person with a goal saved (TypeScript, Some), the agent connected: section 1 done, the
+ * prompt to paste. `goal` is a goal the address still carries.
+ */
+const accountIssueStep = (goal: LearnGoalPick | null) =>
+  flow(
+    'learn',
+    3,
+    <>
+      <FlowBack href={GETTING_IN_PATHS.learnIssues}>{BACK_LABEL}</FlowBack>
+      {/* The poll the page holds itself (`WorkspaceLive`), with nothing read yet. */}
+      <ChangesProvider version={null} activity={null} needsYou={null} standby>
+        <IssueStepBody
+          issueRef={START_REF}
+          view={startPageViewOf()}
+          card={{ goalLine: accountGoalLineOf(goal, filledProfile) }}
+          firstSection={<SignedIn login="octocat" />}
+          backHref={GETTING_IN_PATHS.learnIssues}
+          backLabel={BACK_LABEL}
+        />
+      </ChangesProvider>
+    </>,
+  );
+
+/** Pick an issue back from the sign-in with no goal saved yet: the goal in the address saved in the list's place. */
+const savingIssues = (failed: boolean) =>
+  flow(
+    'learn',
+    2,
+    <>
+      <IssuesHead goal={goalViewOfPick(GOAL)} changeHref={CHANGE} />
+      <Issues who="account">
+        {failed ? (
+          <GoalSaveFailed pending={false} onRetry={noop} />
+        ) : (
+          <ApplyLearnGoal goal={GOAL} profile={null} saved={false} />
+        )}
+      </Issues>
+    </>,
+  );
 
 const LEARN_ISSUE_PATH = `${LEARN_START_PATH}?language=TypeScript&level=1`;
 
@@ -458,6 +501,20 @@ export const LEARN_FLOW_SCREENS: Screen[] = [
         signedOut: true,
         height: 1460,
         render: () => visitorIssues(false),
+      },
+      {
+        id: 'saving',
+        title: 'Back from Sign in with GitHub to see all, no goal saved yet: the address’s goal saved first',
+        path: `${GETTING_IN_PATHS.learnIssues}?language=TypeScript&level=1`,
+        height: 460,
+        render: () => savingIssues(false),
+      },
+      {
+        id: 'save-failed',
+        title: 'The goal could not be saved: Try again',
+        path: `${GETTING_IN_PATHS.learnIssues}?language=TypeScript&level=1`,
+        height: 500,
+        render: () => savingIssues(true),
       },
       {
         id: 'signed-in',
@@ -535,25 +592,14 @@ export const LEARN_FLOW_SCREENS: Screen[] = [
         title: 'Signed in, the agent connected: section 1 done, the prompt to paste',
         path: LEARN_START_PATH,
         height: 1420,
-        render: () =>
-          flow(
-            'learn',
-            3,
-            <>
-              <FlowBack href={GETTING_IN_PATHS.learnIssues}>{BACK_LABEL}</FlowBack>
-              {/* The poll the page holds itself (`WorkspaceLive`), with nothing read yet. */}
-              <ChangesProvider version={null} activity={null} needsYou={null} standby>
-                <IssueStepBody
-                  issueRef={START_REF}
-                  view={startPageViewOf()}
-                  card={{ goalLine: `Your lesson will be written for: ${startPageViewOf().goal}` }}
-                  firstSection={<SignedIn login="octocat" />}
-                  backHref={GETTING_IN_PATHS.learnIssues}
-                  backLabel={BACK_LABEL}
-                />
-              </ChangesProvider>
-            </>,
-          ),
+        render: () => accountIssueStep(null),
+      },
+      {
+        id: 'other-goal',
+        title: 'Signed in with another goal saved than the address carries: the saved one is used, with Change',
+        path: `${LEARN_START_PATH}?language=Python&level=0`,
+        height: 1420,
+        render: () => accountIssueStep({ language: 'Python', level: 0 }),
       },
     ],
   },

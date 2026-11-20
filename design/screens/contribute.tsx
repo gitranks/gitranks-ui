@@ -305,13 +305,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () => tab(both, busy),
       },
       {
-        id: 'quiet',
-        title: 'Nothing running: the numbers, then the issues',
-        path: '/contribute',
-        height: 1700,
-        render: () => tab(both, activityOf()),
-      },
-      {
         id: 'limit',
         title: 'At the open pull request limit: its notice over the rows, which have no Start',
         path: '/contribute',

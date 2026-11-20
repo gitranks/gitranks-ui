@@ -117,6 +117,13 @@ export const START_SCREENS: Screen[] = [
         render: () => page('fix', { issue: startViews.limitPrs }),
       },
       {
+        id: 'fix-paused-by-you',
+        title: 'Fix it, contributing paused by the person: Resume',
+        path: START_PATH,
+        height: 760,
+        render: () => page('fix', { issue: startViews.pausedByYou }),
+      },
+      {
         id: 'fix-taken',
         title: "Fix it, someone else's agent took the issue",
         path: START_PATH,
@@ -129,13 +136,6 @@ export const START_SCREENS: Screen[] = [
         path: START_PATH,
         height: 720,
         render: () => page('fix', { issue: startViews.unavailable }),
-      },
-      {
-        id: 'lesson',
-        title: 'With a lesson, connected: the prompt, and "Just fix it, no lesson" under it',
-        path: LESSON_PATH,
-        height: 1180,
-        render: () => page('lesson'),
       },
       {
         id: 'lesson-no-goal',

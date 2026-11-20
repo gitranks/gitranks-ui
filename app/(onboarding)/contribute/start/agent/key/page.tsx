@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { CONNECT_SIGN_IN } from '../../sign-in-copy';
+import { BACK_TO_CHOICE, CONNECT_SIGN_IN, KEY_HEAD } from '../../copy';
 import { ConnectScreen } from '@/components/workspace/agent/connect-view';
 import { FlowBookmark } from '@/components/workspace/getting-in/flow-bookmark';
 import { FlowBack, FlowFrame, FlowHead } from '@/components/workspace/getting-in/flow-frame';
@@ -12,13 +12,13 @@ import { loadContribute, loadProfileLanguages } from '@/lib/workspace/contribute
 import { loadContributeFlowPlace } from '@/lib/workspace/getting-in.data';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 
-export const metadata: Metadata = { title: 'Connect your Claude key' };
+export const metadata: Metadata = { title: KEY_HEAD.title };
 
 /** Contribute's flow, step 2 with a Claude key: the key's one screen, then the matching moment and the first issue. */
 export default function ContributeKeyPage() {
   return (
     <FlowFrame side="contribute" step={2}>
-      <FlowBack href={GETTING_IN_PATHS.contributeAgent}>Two ways</FlowBack>
+      <FlowBack href={GETTING_IN_PATHS.contributeAgent}>{BACK_TO_CHOICE}</FlowBack>
       <Suspense fallback={<ContributePageSkeleton />}>
         <ContributeKey />
       </Suspense>
@@ -33,10 +33,7 @@ async function ContributeKey() {
   if (!step && place.kind === 'sign-in') {
     step = (
       <>
-        <FlowHead
-          title="Connect your Claude key"
-          text="The hosted agent runs Claude on your key and brings you a tested change to review."
-        />
+        <FlowHead {...KEY_HEAD} />
         <FlowSignIn {...CONNECT_SIGN_IN} source="contribute_flow_sign_in" />
       </>
     );

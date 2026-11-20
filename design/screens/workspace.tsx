@@ -65,7 +65,7 @@ import {
   needsYouAnswer,
   pullRequestsPage,
 } from '@/lib/contribute/__fixtures__/pull-requests';
-import { attemptRules } from '@/lib/contribute/__fixtures__/repo-rules';
+import { attemptNoRules, attemptRules } from '@/lib/contribute/__fixtures__/repo-rules';
 import { learnerPageOf, OWN_LEARN, pageOf, previewPageOf } from '@/lib/contribute/__fixtures__/runs';
 import { filledProfile } from '@/lib/learn/__fixtures__/profile';
 import type {
@@ -379,6 +379,16 @@ export const WORKSPACE_SCREENS: Screen[] = [
           }),
       },
       {
+        id: 'notes-hidden',
+        title: 'Notes from the maintainers, one hidden',
+        path: '/my/pull-requests/driftwood-js/driftwood/871',
+        height: 1200,
+        render: () =>
+          contributionPage(attempts.prOpen, {
+            notes: prNotes({ notes: prNotes().notes.map((note, index) => ({ ...note, hidden: index === 1 })) }),
+          }),
+      },
+      {
         id: 'account-new',
         title: 'A new account: its smaller limits in one line',
         path: '/my/pull-requests/driftwood-js/driftwood/871',
@@ -400,11 +410,25 @@ export const WORKSPACE_SCREENS: Screen[] = [
         render: () => contributionPage(prOpenWith({ checks: 'PENDING' })),
       },
       {
+        id: 'pr-approved',
+        title: 'Pull request approved',
+        path: '/my/pull-requests/driftwood-js/driftwood/871',
+        height: 1200,
+        render: () => contributionPage(prOpenWith({ reviewDecision: 'APPROVED' })),
+      },
+      {
         id: 'pr-merged',
         title: 'Pull request merged',
         path: '/my/pull-requests/driftwood-js/driftwood/871',
         height: 1200,
         render: () => contributionPage(attempts.merged),
+      },
+      {
+        id: 'pr-closed',
+        title: 'Pull request closed without merging',
+        path: '/my/pull-requests/driftwood-js/driftwood/871',
+        height: 1200,
+        render: () => contributionPage(attempts.closed),
       },
       {
         id: 'contribution-phone',
@@ -414,18 +438,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
         height: 1900,
         render: () =>
           contributionPage({ ...followUpAttempts.prNeedsYou, repoRules: attemptRules() }, { notes: prNotes() }),
-      },
-      {
-        id: 'review',
-        title: 'First attempt, ready for review',
-        path: '/my/pull-requests/driftwood-js/driftwood/871',
-        height: 2000,
-        render: () =>
-          frame(
-            <main className={MAIN}>
-              <ReviewScreen view={views.active} attempt={decisionAttempts.went} now={NOW} />
-            </main>,
-          ),
       },
       {
         id: 'repo-rules',
@@ -440,6 +452,13 @@ export const WORKSPACE_SCREENS: Screen[] = [
         path: '/my/pull-requests/driftwood-js/driftwood/871',
         height: 1300,
         render: () => contributionPage({ ...decisionAttempts.went, repoRules: attemptRules() }, { rulesOpen: true }),
+      },
+      {
+        id: 'repo-rules-empty',
+        title: 'A repo with no rules: your limits apply',
+        path: '/my/pull-requests/driftwood-js/driftwood/871',
+        height: 2000,
+        render: () => contributionPage({ ...decisionAttempts.went, repoRules: attemptNoRules() }, { rulesOpen: true }),
       },
       {
         id: 'repo-rules-org',
@@ -703,13 +722,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
     route: '/my/pull-requests/[owner]/[repo]/[issue]',
     sources: ['components/workspace/pull-request/pr-form.tsx', 'lib/workspace/pr-conventions.ts'],
     states: [
-      {
-        id: 'plain',
-        title: 'No repo rules read',
-        path: '/my/pull-requests/driftwood-js/driftwood/871',
-        height: 1100,
-        render: () => prFormPage(attempts.review, { conventions: null, dcoRequired: undefined, dcoMode: 'ASK' }),
-      },
       {
         id: 'repo-asks',
         title: 'Everything the repo asks, met',
@@ -1066,6 +1078,24 @@ export const WORKSPACE_SCREENS: Screen[] = [
           ),
       },
       {
+        id: 'autopilot-relocked',
+        title: 'Autopilot chosen, then locked again: it works as the level above',
+        path: '/my/agent',
+        height: 2300,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen
+                view={agentAt('AUTOPILOT', { mergedCount: 6, mergedToUnlock: 4, lockedAt: '2026-10-20T08:00:00.000Z' })}
+                learnOpen
+                runs={previewPageOf()}
+                counts={{ prBound: 1, queued: 0 }}
+                now={NOW}
+              />
+            </main>,
+          ),
+      },
+      {
         id: 'paused-by-you',
         title: 'Paused by you: Resume over the levels',
         path: '/my/agent',
@@ -1228,24 +1258,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
       'components/workspace/settings/delete-data-section.tsx',
     ],
     states: [
-      {
-        id: 'summary',
-        title: 'Uses both: every group',
-        path: '/my/settings',
-        height: 1900,
-        render: () =>
-          frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <SettingsScreen
-                view={settingsViews.both}
-                learnOpen
-                email={email.on}
-                profile={filledProfile}
-                openPrs={3}
-              />
-            </main>,
-          ),
-      },
       {
         id: 'contributor',
         title: 'A contributor: For learning closed to a line',

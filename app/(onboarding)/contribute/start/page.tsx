@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
+import { WORK_HEAD } from './copy';
 import { WorkStep } from '@/components/contribute/start/work-step';
 import { FlowBookmark } from '@/components/workspace/getting-in/flow-bookmark';
 import { FlowFrame, FlowHead } from '@/components/workspace/getting-in/flow-frame';
@@ -39,10 +40,7 @@ async function ContributeWork({ searchParams }: Pick<PageProps<'/contribute/star
     <>
       {panel ?? (
         <>
-          <FlowHead
-            title="What do you work on?"
-            text="Issues are picked for these. You can change them any time in Settings."
-          />
+          <FlowHead {...WORK_HEAD} />
           <WorkStep initial={await initialPicks(signedIn, workPicksOf(params))} signedIn={signedIn} />
         </>
       )}

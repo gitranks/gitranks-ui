@@ -1,33 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('server-only', () => ({}));
-const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn() }));
-vi.mock('@/lib/workspace/gate.data', () => gate);
+// The three Learn pages under `/my` take their title from one helper, each with its own name.
+const title = vi.hoisted(() => ({ learnPageMetadata: vi.fn(async (name: string) => ({ title: name })) }));
+vi.mock('@/lib/workspace/learn-page-title', () => title);
 vi.mock('@/components/learn/progress/progress-view', () => ({ ProgressView: () => null }));
+vi.mock('@/app/learn/components/lesson-view', () => ({ LessonView: () => null }));
+vi.mock('@/app/(workspace)/my/settings/components/settings-pages', () => ({ GoalSettingsView: () => null }));
 
-const { generateMetadata } = await import('./page');
-
-const OPEN = { kind: 'open', entered: true, agents: { hosted: false, own: true }, learnOpen: true } as const;
+const pages = {
+  'Your progress': await import('./page'),
+  'A lesson': await import('../pull-requests/[owner]/[repo]/[issue]/(latest)/lesson/page'),
+  'A lesson, earlier': await import('../pull-requests/[owner]/[repo]/[issue]/earlier/[attemptId]/lesson/page'),
+  'Goal and level': await import('../settings/goal/page'),
+};
 
 beforeEach(() => vi.clearAllMocks());
 
-describe('Your progress: the page title', () => {
-  it('names the page to an account Learn is open to', async () => {
-    gate.loadWorkspaceGate.mockResolvedValue(OPEN);
-    expect(await generateMetadata()).toEqual({ title: 'Your progress' });
-  });
-
-  it('a visitor reads a plain sign-in title, never the Learn page’s name', async () => {
-    gate.loadWorkspaceGate.mockResolvedValue({ kind: 'signed-out' });
-    expect(await generateMetadata()).toEqual({ title: 'Sign in' });
-  });
-
-  it('an account Learn is not open to, hidden, or a failed read: the site’s own title', async () => {
-    for (const answer of [{ ...OPEN, learnOpen: false }, { kind: 'hidden' }, { kind: 'setting-up' }]) {
-      gate.loadWorkspaceGate.mockResolvedValue(answer);
-      expect(await generateMetadata()).toEqual({});
-    }
-    gate.loadWorkspaceGate.mockRejectedValue(new Error('down'));
-    expect(await generateMetadata()).toEqual({});
+describe('the Learn pages under /my', () => {
+  it.each(Object.entries(pages))('%s asks for its title through the gate, with no static title', async (name, page) => {
+    expect('metadata' in page).toBe(false);
+    await page.generateMetadata();
+    expect(title.learnPageMetadata).toHaveBeenCalledWith(name.replace(', earlier', ''));
   });
 });

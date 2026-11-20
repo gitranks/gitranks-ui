@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 import type { ReactNode } from 'react';
 
+import { PRACTICE_TEXT, PRACTICE_TITLE, STARTING_ASKS } from '../copy';
 import { ApplyLearnGoal } from './apply-goal';
 import { SeeAllIssues } from './see-all';
 import { LearnIssueList } from '@/app/(workspace)/learn/components/issue-list';
@@ -23,10 +24,6 @@ import { readLearnPublicIssues, readLearnPublicPractice } from '@/lib/learn/star
 import { loadContribute } from '@/lib/workspace/contribute.data';
 import { isSuspended } from '@/lib/workspace/contribute-state';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
-
-export const PRACTICE_TITLE = 'Practice first?';
-export const PRACTICE_TEXT =
-  'See how a lesson works on a finished fix before your own. Each was written for another learner with the same goal, and needs no agent.';
 
 /** Pick an issue's head: its title, the line for the goal, and the goal's chips with Change (back to Your goal). */
 export function IssuesHead({ goal, changeHref }: { goal: LearnGoalView | null; changeHref: Route }) {
@@ -66,7 +63,7 @@ export async function VisitorIssues({ goal }: { goal: LearnGoalPick }) {
   } else {
     body = (
       <>
-        <p className="text-sm text-muted-foreground sm:self-end">Starting asks you to sign in with GitHub.</p>
+        <p className="text-sm text-muted-foreground sm:self-end">{STARTING_ASKS}</p>
         <LearnIssueList
           issues={learnIssuesOfPublic(list, view)}
           start={issueStepTargetOf(goal)}

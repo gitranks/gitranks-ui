@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { CHOICE_SIGN_IN } from '../sign-in-copy';
+import { AGENT_HEAD, CHOICE_SIGN_IN } from '../copy';
 import { AgentChoice } from '@/components/contribute/start/agent-choice';
 import { ApplyWorkPicks } from '@/components/contribute/start/apply-picks';
 import { FlowBookmark } from '@/components/workspace/getting-in/flow-bookmark';
@@ -33,10 +33,7 @@ async function ContributeAgentChoice() {
     <>
       {panel ?? (
         <>
-          <FlowHead
-            title="Who does the work?"
-            text="An agent writes each fix and you review it before anything reaches GitHub. Pick one way now; you can add the other later."
-          />
+          <FlowHead {...AGENT_HEAD} />
           {visitor ? (
             <FlowSignIn {...CHOICE_SIGN_IN} source="contribute_flow_sign_in" />
           ) : (

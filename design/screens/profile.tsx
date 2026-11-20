@@ -91,13 +91,6 @@ export const PROFILE_SCREENS: Screen[] = [
     ],
     states: [
       {
-        id: 'strong',
-        title: 'Near the top of every ranking',
-        path: `/profile/${strongProfile.login}`,
-        height: 3000,
-        render: () => overview(strongProfile, strongBadges),
-      },
-      {
         id: 'newcomer',
         title: 'A newcomer, not ranked yet',
         path: `/profile/${newcomerProfile.login}`,
@@ -209,26 +202,11 @@ export const PROFILE_SCREENS: Screen[] = [
         render: () => learn(true),
       },
       {
-        id: 'owner-promo-no-record',
-        title: 'The owner Learn may suit, no public pass yet: no record',
-        path: `/profile/${strongProfile.login}`,
-        height: 440,
-        render: () => learn(false),
-      },
-      {
         id: 'owner-promo-no-issues',
         title: 'The owner Learn may suit, no issues to list',
         path: `/profile/${strongProfile.login}`,
         height: 240,
         render: () => alone(<ProfileLearnBlock promo={{ ...profilePromo, issues: [] }} />),
-      },
-      {
-        id: 'record',
-        title: 'The Learn record, as anyone reads it',
-        path: `/profile/${strongProfile.login}`,
-        signedOut: true,
-        height: 260,
-        render: () => alone(<LearnRecordCard record={learnRecord} />),
       },
       {
         id: 'owner-promo-phone',

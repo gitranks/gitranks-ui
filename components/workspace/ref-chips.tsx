@@ -27,6 +27,22 @@ function Chip({ href, icon, children }: { href: string | null; icon: ReactNode; 
   );
 }
 
+/** GitHub's page of `repo`; null for anything not of GitHub's `owner/name` shape, which stays text. */
+export const repoUrlOf = (repo: string | null) =>
+  repo && /^[\w.-]+\/[\w.-]+$/.test(repo) ? `https://github.com/${repo}` : null;
+
+/** `PR #N ↗` alone, to GitHub: the pull request's own address, else the repo's pull request by its number. */
+export function PullRequestChip({ repo, pr }: { repo: string | null; pr: { number: number; url?: string | null } }) {
+  return (
+    <Chip
+      href={githubUrlOf(pr.url ?? '') ?? (repoUrlOf(repo) ? `${repoUrlOf(repo)}/pull/${pr.number}` : null)}
+      icon={<GitPullRequest aria-hidden="true" className="size-3" />}
+    >
+      PR #{pr.number}
+    </Chip>
+  );
+}
+
 /**
  * "This is the issue, this is the pull request" (decision 5): the repo in mono, then `Issue #N ↗` and, when one
  * exists, `PR #N ↗`, both to GitHub in a new tab; then `children` (the Learn pill, a state). The row's title opens our
@@ -46,8 +62,7 @@ export function RefChips({
   children?: ReactNode;
   className?: string;
 }) {
-  // Only a name of GitHub's shape becomes a link; anything else stays text.
-  const base = repo && /^[\w.-]+\/[\w.-]+$/.test(repo) ? `https://github.com/${repo}` : null;
+  const base = repoUrlOf(repo);
   const icon = 'size-3';
   return (
     <span
@@ -60,14 +75,7 @@ export function RefChips({
           Issue #{issue}
         </Chip>
       ) : null}
-      {pr ? (
-        <Chip
-          href={githubUrlOf(pr.url ?? '') ?? (base ? `${base}/pull/${pr.number}` : null)}
-          icon={<GitPullRequest aria-hidden="true" className={icon} />}
-        >
-          PR #{pr.number}
-        </Chip>
-      ) : null}
+      {pr ? <PullRequestChip repo={repo} pr={pr} /> : null}
       {children ? <span className="contents font-sans">{children}</span> : null}
     </span>
   );

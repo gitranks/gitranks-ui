@@ -7,9 +7,9 @@ import { type FC, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { isProfileOwner } from '@/lib/contribute/profile-issues';
 import type { LearnRecord } from '@/lib/learn/learn.types';
-import { MY_LESSONS_PATH } from '@/lib/learn/learn-path';
 import { recordTopicsOf } from '@/lib/learn/learn-promo';
 import { readLearnRecord } from '@/lib/learn/learn-promo-read';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { loginFromPath } from '@/utils/login-from-path';
 
 const n = (value: number) => value.toLocaleString('en-US');
@@ -28,7 +28,7 @@ const statsOf = (record: LearnRecord) => [
 /**
  * A developer's GitRanks Learn record, the same for everyone who reads the profile: lessons passed and shared, the
  * topics they covered, and the pull requests that came of them. `own`: the owner reads it, with the way to their
- * lessons. Nothing without a record.
+ * progress. Nothing without a record.
  */
 export const LearnRecordCard: FC<{ record: LearnRecord | null; own?: boolean }> = ({ record, own }) => {
   if (!record) return null;
@@ -44,8 +44,12 @@ export const LearnRecordCard: FC<{ record: LearnRecord | null; own?: boolean }> 
           Learned on real issues
         </h2>
         {own ? (
-          <Link href={MY_LESSONS_PATH} prefetch={false} className="text-sm font-semibold text-link hover:underline">
-            All lessons →
+          <Link
+            href={WORKSPACE_PATHS.progress}
+            prefetch={false}
+            className="text-sm font-semibold text-link hover:underline"
+          >
+            Your progress →
           </Link>
         ) : null}
       </div>

@@ -41,7 +41,7 @@ describe('the workspace addresses', () => {
       settingsPullRequests: '/my/settings/pull-requests',
       settingsWork: '/my/settings/work',
       settingsGoal: '/my/settings/goal',
-      progress: '/learn/lessons',
+      progress: '/my/progress',
     });
   });
 

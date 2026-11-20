@@ -27,7 +27,8 @@ import {
   PRACTICE_SHOWN,
   pathMarksOf,
 } from '@/lib/learn/learn-home';
-import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH, MY_LESSONS_PATH } from '@/lib/learn/learn-path';
+import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH, LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** Learn home's container, as Learn's other pages draw theirs. */
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
@@ -111,8 +112,7 @@ function HowALessonIsMade() {
 }
 
 /**
- * The links under every state: how Learn works, the page for maintainers, the user's lessons and their goal and level
- * (which have no tab of their own in the workspace yet).
+ * The links under every state: how Learn works, the page for maintainers, Your progress, and the goal and level.
  */
 const FOOTER_LINK = 'font-semibold text-link hover:underline max-sm:inline-flex max-sm:min-h-11 max-sm:items-center';
 
@@ -125,8 +125,8 @@ function HomeFooter() {
       <Link href={LEARN_MAINTAINERS_PATH} prefetch={false} className={FOOTER_LINK}>
         Learn for maintainers
       </Link>
-      <Link href={MY_LESSONS_PATH} prefetch={false} className={FOOTER_LINK}>
-        My lessons
+      <Link href={WORKSPACE_PATHS.progress} prefetch={false} className={FOOTER_LINK}>
+        Your progress
       </Link>
       <Link href={LEARN_PROFILE_PATH} prefetch={false} className={FOOTER_LINK}>
         Goal and level
@@ -163,7 +163,7 @@ export type LearnHomeData = {
 /**
  * Learn home (`/learn`, signed in): the header, the path to a first pull request, then the state's own part: the goal
  * question, the own lesson's card, the pull request's card, the issues for the goal, practice lessons. Each state ends
- * in one next step. Links to how Learn works, the page for maintainers and My lessons close it.
+ * in one next step. Links to how Learn works, the page for maintainers and Your progress close it.
  */
 export function LearnHomeScreen({ state, profile, issues, practice, now }: LearnHomeData) {
   const goal = issues?.goal ?? goalViewOf(profile);

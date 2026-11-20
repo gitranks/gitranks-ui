@@ -224,8 +224,6 @@ const REFRESHED_BY: [test: (path: string) => boolean, areas: ContributeChangeAre
   // The Contribute tab: its numbers, its runs, its list and the limit's state.
   [(path) => path === '/contribute', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
   [(path) => path === '/learn', ['ATTEMPTS', 'SETTINGS']],
-  // The user's lessons.
-  [(path) => path === '/learn/lessons', ['ATTEMPTS']],
   [(path) => under(path, '/my/pull-requests'), ['ATTEMPTS']],
   // Not the Start page: it asks about its issue itself, on `ATTEMPTS` (a page read would read GitHub again).
   [(path) => path === '/my/progress', ['ATTEMPTS']],

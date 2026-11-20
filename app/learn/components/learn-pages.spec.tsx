@@ -30,7 +30,6 @@ const data = vi.hoisted(() => ({
   loadLearnOpen: vi.fn(),
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(),
-  loadMyLessons: vi.fn(),
   loadMyLearnAttempts: vi.fn(async () => ({ current: null, lastPullRequest: null })),
   loadLearnIssues: vi.fn(async () => undefined),
   loadPracticeLessons: vi.fn(async () => undefined),
@@ -48,8 +47,7 @@ const { LearnMaintainers } = await import('./learn-maintainers');
 const { GoalSettingsScreen: LearnProfileScreen, GoalSettingsView: LearnProfileView } = await import(
   '@/app/(workspace)/my/settings/components/settings-pages'
 );
-const { MyLessonsScreen, MyLessonsView } = await import('./my-lessons');
-const { emptyProfile, filledProfile, myLessons } = await import('@/lib/learn/__fixtures__/profile');
+const { emptyProfile, filledProfile } = await import('@/lib/learn/__fixtures__/profile');
 const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
 
 /** The front door's recent lessons, as `LearnHomeView` lazily reads them (inside their own Suspense), rendered. */
@@ -187,38 +185,10 @@ describe('Goal and level', () => {
   });
 });
 
-describe('My lessons', () => {
-  it('lists what is going, then what is done, with outline buttons on the done ones', () => {
-    const html = renderToStaticMarkup(<MyLessonsScreen lessons={myLessons} />);
-    expect(text(html)).toContain('In progress · 1');
-    expect(text(html)).toContain('Done · 3');
-    expect(html).toContain('href="/my/pull-requests/by-attempt/A_3"');
-    expect(html).toContain('href="/learn/lessons/retry-backoff-jitter-2m9q"');
-    expect(html.indexOf('lessons-going')).toBeLessThan(html.indexOf('lessons-done'));
-    expect(html.match(/data-variant="outline"/g)).toHaveLength(3);
-  });
-
-  it('says each lesson is made for an issue picked on Learn home, and when the list did not load', () => {
-    const empty = renderToStaticMarkup(<MyLessonsScreen lessons={[]} />);
-    expect(text(empty)).toContain('No lessons yet');
-    expect(text(empty)).toContain('Each lesson here is written by your agent for an issue you pick');
-    expect(text(empty)).not.toContain('Find me an issue to learn from on GitRanks');
-    expect(empty).not.toContain('href="/my/settings/goal"');
-    expect(empty).toMatch(/data-variant="default"[^>]*href="\/learn"[^>]*>Pick an issue for your first lesson/);
-    // With no goal saved, practice waits for one: Learn home asks it first.
-    expect(empty).toMatch(/href="\/learn"[^>]*>Or see a practice lesson first/);
-    const withGoal = renderToStaticMarkup(<MyLessonsScreen lessons={[]} hasGoal />);
-    expect(withGoal).toMatch(/href="\/learn#practice"[^>]*>Or see a practice lesson first/);
-    const failed = renderToStaticMarkup(<MyLessonsScreen lessons={undefined} />);
-    expect(text(failed)).toContain('Your lessons are not available right now.');
-  });
-});
-
 describe("Learn's gate on its own pages", () => {
   const closed = () => {
     data.loadLearnOpen.mockResolvedValue(false);
     data.loadLearnProfile.mockRejectedValue(new Error('down'));
-    data.loadMyLessons.mockResolvedValue(undefined);
   };
 
   afterEach(() => {
@@ -232,7 +202,6 @@ describe("Learn's gate on its own pages", () => {
     await expect(LearnHomeView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(LearnAboutView()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
-    await expect(MyLessonsView()).rejects.toThrow('NEXT_NOT_FOUND');
     expect(recent.readRecentLessons).not.toHaveBeenCalled();
   });
 
@@ -246,7 +215,6 @@ describe("Learn's gate on its own pages", () => {
       expect(renderToStaticMarkup(home)).toContain('data-landing-viewer="visitor"');
       expect(await recentOf(home)).toContain('href="/learn/lessons/why-1h30m-came-back-as-one-hour-p47ocg"');
       await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
-      await expect(MyLessonsView()).rejects.toThrow('NEXT_NOT_FOUND');
       // A signed-in person Learn is not open to still gets a 404 (the list, not everyone, decides for them).
       viewerLogin.mockResolvedValueOnce('stranger');
       await expect(LearnHomeView()).rejects.toThrow('NEXT_NOT_FOUND');
@@ -255,14 +223,12 @@ describe("Learn's gate on its own pages", () => {
     }
   });
 
-  it('says a new account is being set up, in place of the form and the list, with a refresh', async () => {
+  it('says a new account is being set up, in place of the form and Learn home, with a refresh', async () => {
     data.loadLearnOpen.mockResolvedValue(true);
     data.loadLearnSetup.mockResolvedValue(true);
     data.loadLearnProfile.mockResolvedValue(null);
-    data.loadMyLessons.mockResolvedValue([]);
     for (const html of [
       renderToStaticMarkup(await LearnProfileView()),
-      renderToStaticMarkup(await MyLessonsView()),
       renderToStaticMarkup(await LearnHomeSignedIn()),
     ]) {
       expect(html).toContain('data-learn-setting-up');
@@ -274,7 +240,6 @@ describe("Learn's gate on its own pages", () => {
   it('draws the pages for a user Learn is open to', async () => {
     data.loadLearnOpen.mockResolvedValue(true);
     data.loadLearnProfile.mockResolvedValue(filledProfile);
-    data.loadMyLessons.mockResolvedValue(myLessons);
     recent.readRecentLessons.mockResolvedValue(recentLessons);
     // `/learn` is Learn home for them; the front door moved to `/learn/about`.
     const home = await LearnHomeView();
@@ -284,6 +249,5 @@ describe("Learn's gate on its own pages", () => {
     expect(renderToStaticMarkup(about)).toContain('data-landing-viewer="signed-in"');
     expect(await recentOf(about)).toContain('data-recent-lessons');
     expect(renderToStaticMarkup(await LearnProfileView())).toContain('data-learn-profile="filled"');
-    expect(renderToStaticMarkup(await MyLessonsView())).toContain('data-lesson="A_3"');
   });
 });

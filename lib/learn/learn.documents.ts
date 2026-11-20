@@ -18,7 +18,6 @@ import type {
   LessonStub,
   LessonWarmupAnswer,
   MyLearnAttempts,
-  MyLesson,
   PracticeLessons,
   PublicLesson,
 } from './learn.types';
@@ -139,11 +138,6 @@ export const LearnProfileDocument = doc<{ learnProfile: LearnProfile | null }>(
 
 export const SaveLearnProfileDocument = doc<{ saveLearnProfile: LearnProfile }, { input: LearnProfileInput }>(
   `mutation SaveLearnProfile($input: LearnProfileInput!) { saveLearnProfile(input: $input) { ${PROFILE} } }`,
-);
-
-/** The viewer's Learn attempts and the shared lessons they passed. */
-export const MyLessonsDocument = doc<{ myLessons: MyLesson[] }>(
-  'query MyLessons { myLessons { slug attemptId title repo state passedAt } }',
 );
 
 /** An issue a lesson can be written for: the same fields wherever Learn lists one. */

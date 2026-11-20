@@ -4,8 +4,7 @@ import type { ContributeSetListMode } from './contribute.types';
 
 /**
  * The pages of the signed-in workspace, Contribute's and Learn's: the two front tabs, then everything under `/my`. Links
- * to them are built from here, so a page that moves changes this table and not its links. The user's lessons keep
- * Learn's address until their own page under `/my` is built.
+ * to them are built from here, so a page that moves changes this table and not its links.
  */
 export const WORKSPACE_PATHS = {
   contribute: '/contribute' as Route,
@@ -27,8 +26,8 @@ export const WORKSPACE_PATHS = {
   settingsWork: '/my/settings/work' as Route,
   /** Learn's goal and level. */
   settingsGoal: '/my/settings/goal' as Route,
-  /** The user's lessons. */
-  progress: '/learn/lessons' as Route,
+  /** Your progress: what the user has learned, and where their Learn pull requests landed. */
+  progress: '/my/progress' as Route,
 } as const;
 
 /**

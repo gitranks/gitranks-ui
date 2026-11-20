@@ -48,4 +48,6 @@ export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
   to('/learn/profile', '/my/settings/goal'),
   // A lesson's page: the address by attempt opens the view its stage names, the query kept.
   to('/learn/attempts/:id', '/my/pull-requests/by-attempt/:id'),
+  // My lessons: Your progress now. Only the list itself: a shared lesson's page under it stays.
+  to('/learn/lessons', '/my/progress'),
 ];

@@ -100,10 +100,11 @@ describe('Learn home, no goal yet', () => {
     expect(html).not.toContain('id="practice"');
   });
 
-  it('ends with how Learn works, the page for maintainers and My lessons', () => {
+  it('ends with how Learn works, the page for maintainers and Your progress', () => {
     expect(html).toContain('href="/learn/about"');
     expect(html).toContain('href="/learn/maintainers"');
-    expect(html).toContain('href="/learn/lessons"');
+    expect(text(html)).toContain('Your progress');
+    expect(html).toContain('href="/my/progress"');
   });
 });
 

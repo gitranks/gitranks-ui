@@ -32,7 +32,7 @@ describe("the Start page's refusals", () => {
     });
   });
 
-  it('links the lesson in progress, or My lessons when it was not read', () => {
+  it('links the lesson in progress, or the Pull requests tab when it was not read', () => {
     expect(words(startViews.ownInProgress)).toEqual({
       kind: 'notice',
       text: 'Your lesson on “Keep trailing comments when formatting match arms” is in progress. One lesson of your own at a time: this one can start once that one is done.',
@@ -41,7 +41,7 @@ describe("the Start page's refusals", () => {
     expect(words(startViewOf({ refusal: 'OWN_IN_PROGRESS' }))).toEqual({
       kind: 'notice',
       text: 'Another lesson of yours is in progress. One lesson of your own at a time: this one can start once that one is done.',
-      action: { href: '/learn/lessons', label: 'My lessons' },
+      action: { href: '/my/pull-requests', label: 'Pull requests' },
     });
   });
 

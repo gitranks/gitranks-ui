@@ -215,7 +215,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   const { contribute } = overview.value;
   if (!contribute?.previewAllowed) return null;
 
-  const pausedField = settled(paused)?.contribute?.contributor?.paused;
+  const pausedFields = settled(paused)?.contribute?.contributor;
   const onboardingFields = settled(onboarding)?.contribute;
   const limitsField = limitsOf(settled(limits)?.contribute?.contributor?.limits);
   const { contributor } = contribute;
@@ -238,7 +238,8 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
       : withAutopilot,
     grant: settled(grant)?.contribute?.grant ?? undefined,
     ...sidesOf(settled(sides)?.contribute?.sides),
-    paused: typeof pausedField === 'boolean' ? pausedField : undefined,
+    paused: typeof pausedFields?.paused === 'boolean' ? pausedFields.paused : undefined,
+    ...(typeof pausedFields?.pausedByYou === 'boolean' ? { pausedByYou: pausedFields.pausedByYou } : {}),
     grantAvailable: isGrantAvailable(),
     ownAgent: ownAgentOf(
       settled(ownAgent)?.contribute,

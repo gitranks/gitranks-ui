@@ -99,12 +99,11 @@ describe('A1, "I\'ll set them myself"', () => {
     expect(render()).toMatch(/id="l-month"[^>]*aria-describedby="l-month-hint"/);
   });
 
-  it('keeps a QUEUED pace from the stored settings, with neither card picked', () => {
-    const html = render({ pace: 'QUEUED' });
+  it('offers no "only issues I queue" pace: starting issues is the hosted agent\'s level', () => {
+    const html = render();
 
-    expect(html).not.toContain('aria-pressed="true"');
-    expect(html).toContain('data-pace="queued"');
-    expect(text(html)).toContain('only on issues you queue');
+    expect(html).not.toContain('data-pace="queued"');
+    expect(text(html)).not.toContain('only on issues you queue');
   });
 
   it('opens with the hand-set limits for a key connected with them, and sums them up in what we apply', () => {
@@ -133,7 +132,9 @@ describe('A1, "I\'ll set them myself"', () => {
     expect(plain).toContain('Your limits and picks stay as they are');
     expect(plain).toContain('at most $150, your monthly cap as it is');
     expect(plain).toContain('at most $3, it stops at the cap');
-    expect(plain).toContain('only on issues you queue');
+    // A stored "only issues I queue" reads as the even spread, as the forms show it.
+    expect(plain).toContain('spread across your month');
+    expect(plain).not.toContain('only on issues you queue');
     expect(plain).not.toContain("the Max plan's monthly allowance");
   });
 });

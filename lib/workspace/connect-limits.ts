@@ -3,11 +3,12 @@ import type {
   ContributeConnectLimits,
   ContributeConnectPace,
   ContributeModel,
-  ContributePace,
   ContributePreferences,
   ContributeSettings,
+  ContributeSettingsInput,
 } from './contribute.types';
-import { KINDS, LANGUAGES, MODELS, ordinalDay, parseAmount, planOf, SIZES, usd } from './format';
+import { KINDS, LANGUAGES, MODELS, ordinalDay, parseAmount, planOf, SIZES, shownPaceOf, usd } from './format';
+import { paceSaveOf } from './hosted-level';
 
 /**
  * What a first key starts from, as the API sets it: the connect sends only what the user changed, so these describe
@@ -59,16 +60,13 @@ export const PLAN_CHOICES: { plan: ContributeClaudePlan; label: string }[] = [
 /** How the limits are set: from the plan's monthly allowance, or by hand. */
 export type LimitsMode = 'plan' | 'manual';
 
-/**
- * "I'll set them myself" as typed: amounts as text, the pace picked. `QUEUED` only ever comes from the stored settings
- * (the screen offers the other two): it is kept until the user picks one.
- */
+/** "I'll set them myself" as typed: amounts as text, the pace picked. */
 export type ManualLimitsDraft = {
   month: string;
   week: string;
   day: string;
   attempt: string;
-  pace: ContributePace;
+  pace: ContributeConnectPace;
 };
 
 export type ManualField = 'month' | 'week' | 'day' | 'attempt';
@@ -87,7 +85,7 @@ export type ManualLimitsSet = {
   weekCapUsd: number | null;
   dayCapUsd: number | null;
   attemptCapUsd: number;
-  pace: ContributePace;
+  pace: ContributeConnectPace;
 };
 
 export type ManualLimits =
@@ -163,17 +161,14 @@ export function manualLimitsOf(draft: ManualLimitsDraft): ManualLimits {
   };
 }
 
-const PACE_TEXT: Record<ContributePace, string> = {
+const PACE_TEXT: Record<ContributeConnectPace, string> = {
   EVEN: 'spread across your month',
   FAST: 'as fast as those caps allow',
-  QUEUED: 'only on issues you queue',
 };
-
-const isConnectPace = (pace: ContributePace): pace is ContributeConnectPace => pace === 'EVEN' || pace === 'FAST';
 
 /**
  * The stored settings as "I'll set them myself" starts from them, for a key connected before: the amounts as they are,
- * and the pace, `QUEUED` included, so a replace never shows (or sends) a pace the user did not pick.
+ * and the pace as the forms show it (a stored `QUEUED` as `EVEN`).
  */
 export function manualDraftFromSettings(settings: ContributeSettings): Partial<ManualLimitsDraft> {
   const amount = (value: number | null) => (value === null ? '' : String(value));
@@ -182,23 +177,38 @@ export function manualDraftFromSettings(settings: ContributeSettings): Partial<M
     week: amount(settings.weekCapUsd),
     day: amount(settings.dayCapUsd),
     attempt: amount(settings.attemptCapUsd),
-    pace: settings.pace,
+    pace: shownPaceOf(settings.pace),
   };
 }
 
 /**
  * The `limits` a connect sends from the hand-set ones: on a key connected before, only the fields that differ from the
- * stored settings (the API keeps the rest); on a first one, all of them. The pace goes only when it is one the connect
- * takes, so a `QUEUED` pace the user left alone stays `QUEUED`.
+ * stored settings (the API keeps the rest); on a first one, all of them. The pace is compared with the one shown, and
+ * never sent over a stored `QUEUED`: the API would read it as "start issues by itself", and a connect never sets the
+ * hosted agent's level (`paceAfterConnectOf` saves that pace after it).
  */
 export function connectLimitsOf(set: ManualLimitsSet, stored: ContributeSettings | null): ContributeConnectLimits {
-  const changed = <K extends keyof ManualLimitsSet>(field: K) => !stored || stored[field] !== set[field];
+  const shown = stored ? { ...stored, pace: shownPaceOf(stored.pace) } : null;
+  const changed = <K extends keyof ManualLimitsSet>(field: K) => !shown || shown[field] !== set[field];
   return {
     ...(changed('weekCapUsd') ? { weekCapUsd: set.weekCapUsd } : {}),
     ...(changed('dayCapUsd') ? { dayCapUsd: set.dayCapUsd } : {}),
     ...(changed('attemptCapUsd') ? { attemptCapUsd: set.attemptCapUsd } : {}),
-    ...(changed('pace') && isConnectPace(set.pace) ? { pace: set.pace } : {}),
+    ...(changed('pace') && stored?.pace !== 'QUEUED' ? { pace: set.pace } : {}),
   };
+}
+
+/**
+ * The settings save that follows a connect over a stored `QUEUED` pace the user changed: the pace with the level as it
+ * is, as Budget and pacing saves it (`paceSaveOf`). Null when there is nothing to save.
+ */
+export function paceAfterConnectOf(
+  set: ManualLimitsSet,
+  stored: ContributeSettings | null,
+): ContributeSettingsInput | null {
+  if (stored?.pace !== 'QUEUED') return null;
+  const patch = paceSaveOf({ pace: set.pace }, stored);
+  return patch.pace === undefined ? null : patch;
 }
 
 /** The live line under the manual limits: what they add up to, or what is still missing. */
@@ -226,10 +236,9 @@ export type StoredLimits = {
   preferences?: ContributePreferences | null;
 };
 
-const PICKED_PACE: Record<ContributePace, string> = {
+const PICKED_PACE: Record<ContributeConnectPace, string> = {
   EVEN: 'spread across your month',
   FAST: 'as fast as the caps allow',
-  QUEUED: 'only on issues you queue',
 };
 
 function pickedIssuesOf(preferences: ContributePreferences | null | undefined): string {
@@ -264,7 +273,8 @@ export function appliedLimitsOf(
     : CONNECT_DEFAULTS.attemptCapUsd;
   const attempt =
     set?.attemptCapUsd ?? (mode === 'manual' ? (kept?.attemptCapUsd ?? CONNECT_DEFAULTS.attemptCapUsd) : keptAttempt);
-  const pace: ContributePace = mode === 'manual' ? manual.pace : (kept?.pace ?? CONNECT_DEFAULTS.pace);
+  const pace: ContributeConnectPace =
+    mode === 'manual' ? manual.pace : shownPaceOf(kept?.pace ?? CONNECT_DEFAULTS.pace);
   const week = mode === 'manual' ? (set?.weekCapUsd ?? null) : (kept?.weekCapUsd ?? null);
   const day = mode === 'manual' ? (set?.dayCapUsd ?? null) : (kept?.dayCapUsd ?? null);
   const periodCaps = [
@@ -318,7 +328,10 @@ export function appliedLimitsOf(
       },
       {
         label: 'Pull requests',
-        value: kept?.autopilot ? 'autopilot submits the low-risk ones, as you set it' : 'each waits for your review',
+        value:
+          kept?.hostedLevel === 'AUTOPILOT'
+            ? 'autopilot submits the low-risk ones, as you set it'
+            : 'each waits for your review',
       },
       { label: 'Pacing', value: PICKED_PACE[pace] },
     ],

@@ -233,8 +233,8 @@ const ANCHORS: Record<string, Route> = {
   ignored: `${SETTINGS_PATHS.work}#ignored` as Route,
   rules: `${SETTINGS_PATHS.work}#rules` as Route,
   'own-agent': `${SETTINGS_PATHS.ownAgent}#own-agent` as Route,
-  // The status card with Pause, and autopilot: on the Agent tab.
-  pause: `${WORKSPACE_PATHS.agent}#pause` as Route,
+  // Pause and autopilot were here: the hosted agent's level (with Resume, while a pause holds) and its Autopilot card.
+  pause: `${WORKSPACE_PATHS.agent}#hosted-level` as Route,
   autopilot: `${WORKSPACE_PATHS.agent}#autopilot` as Route,
 };
 

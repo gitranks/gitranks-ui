@@ -78,7 +78,8 @@ export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
   else if (key.state === 'EXHAUSTED') notices.push({ kind: 'exhausted', until: key.blockedUntil });
   else if (key.state === 'LIMIT_REACHED') notices.push({ kind: 'limit-reached', until: key.blockedUntil });
 
-  if (view.contributor && isPaused(view)) notices.push({ kind: 'paused' });
+  // Resume is the user's own pause's way out alone: a refused key's pause is the key's notice.
+  if (view.contributor && view.pausedByYou) notices.push({ kind: 'paused' });
   notices.push(...access.filter(({ kind }) => kind !== 'suspended'));
   return notices;
 }

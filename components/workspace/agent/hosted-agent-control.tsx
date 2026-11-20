@@ -1,72 +1,49 @@
-import { Activity } from 'lucide-react';
-
-import { Pill } from '@/components/pill/pill';
-import { AutopilotSection } from '@/components/workspace/autopilot-section';
-import { PauseButton } from '@/components/workspace/pause-button';
-import { SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
-import type { ContributeView } from '@/lib/workspace/contribute.types';
-import { claudeKeyOf, isPaused, settingsOf } from '@/lib/workspace/contribute-state';
-import { relativeLabel } from '@/lib/workspace/format';
+import { HostedLevelPicker } from './hosted-level-picker';
+import { PausedByYouNotice } from '@/components/workspace/paused-notice';
+import type { ContributeScheduleCounts, ContributeView } from '@/lib/workspace/contribute.types';
+import { isPaused, settingsOf } from '@/lib/workspace/contribute-state';
+import { nextIssueLineOf } from '@/lib/workspace/hosted-level';
 
 /**
- * Where new attempts stand: paused by the user (both agents stop), waiting on a key that stopped working, active with
- * the hosted agent's next attempt, or active for the user's own agent alone.
+ * The hosted agent's control (W1 §9.3's slot): how much it does by itself, one of three levels, with when it starts its
+ * next issue by itself; over it, Resume while the user's own pause holds. Drawn with a key and its settings; nothing
+ * otherwise (the own agent alone has no autopilot: it acts on the hosted agent's changes only).
  */
-export function hostedStatusOf(view: ContributeView, now?: Date) {
-  const spend = view.contributor?.spend;
-  const key = claudeKeyOf(view);
-  if (isPaused(view)) {
-    return { label: 'Paused', tone: 'neutral' as const, text: 'No new attempt starts until you resume.' };
-  }
-  if (!key) {
-    return { label: 'Active', tone: 'green' as const, text: 'Your agent can start new issues.' };
-  }
-  if (key.state !== 'VALID') {
-    return { label: 'Waiting', tone: 'amber' as const, text: 'No new attempt starts until your key works again.' };
-  }
-  return {
-    label: 'Active',
-    tone: 'green' as const,
-    text: !spend
-      ? 'The first attempt starts as your limits allow.'
-      : spend.nextAttemptAt
-        ? `Next attempt ${relativeLabel(spend.nextAttemptAt, now)}.`
-        : 'No attempt can start under your limits.',
-  };
-}
-
-/**
- * The slot for how much the hosted agent does by itself (W1 §9.3). Until the three levels fill it, it holds today's two
- * controls: the status line with Pause or Resume (`#pause`), and autopilot (`#autopilot`). Both act on the user's own
- * agent too, so the tab draws it for every contributor, with a key or not. Nothing without a contributor.
- */
-export function HostedAgentControl({ view, now }: { view: ContributeView; now?: Date }) {
+export function HostedAgentControl({
+  view,
+  counts,
+  now,
+}: {
+  view: ContributeView;
+  /** The pull requests open or on their way, against the limit; `undefined` when not answered. */
+  counts?: ContributeScheduleCounts;
+  now?: Date;
+}) {
   const { contributor } = view;
-  if (!contributor) return null;
-  const status = hostedStatusOf(view, now);
   const settings = settingsOf(view);
+  if (!contributor || !settings) return null;
+  // Said under whichever card that starts issues by itself is selected, so a pick shows it before the page reads again.
+  const nextIssue = nextIssueLineOf(
+    'NEXT',
+    {
+      paused: view.pausedByYou ? 'you' : isPaused(view) ? 'key' : null,
+      spend: contributor.spend,
+      counts,
+      settings,
+      limits: contributor.limits,
+    },
+    now,
+  );
+  // `#hosted-level`, where the old `#pause` link goes: Resume first while a pause holds, then the levels.
   return (
-    <SettingsList>
-      <SettingsRow
-        id="pause"
-        icon={Activity}
-        title={
-          <>
-            New attempts
-            <Pill tone={status.tone}>{status.label}</Pill>
-          </>
-        }
-        value={status.text}
-        data={{ 'data-hosted-status': status.label.toLowerCase() }}
-      >
-        <PauseButton paused={isPaused(view)} />
-      </SettingsRow>
-      <AutopilotSection
+    <div id="hosted-level" className="flex scroll-mt-20 flex-col gap-3">
+      <PausedByYouNotice view={view} />
+      <HostedLevelPicker
+        level={settings.hostedLevel}
         autopilot={contributor.autopilot}
         login={contributor.login}
-        enabled={settings?.autopilot ?? false}
-        canSave={!!settings}
+        nextIssue={nextIssue}
       />
-    </SettingsList>
+    </div>
   );
 }

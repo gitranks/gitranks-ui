@@ -25,6 +25,8 @@ export const AUTOPILOT_REVIEW_NOTES: Partial<
   no_email: () => 'Autopilot did not submit it: we have no email to tell you first, so it waits for your review.',
   notice_late: () => 'Autopilot did not submit it: we could not email you first, so it waits for your review.',
   autopilot_off: () => 'Autopilot did not submit it: autopilot was turned off or locked before it did.',
+  own_agent: () =>
+    "Autopilot did not submit it: autopilot submits only the hosted agent's changes, so it waits for your review.",
   override: () => 'You chose to work on this one, so you approve its pull request.',
   beginner_issue: (source) =>
     `Autopilot did not submit it: it never submits on beginner issues${source ? ` (${source})` : ''}, so it waits for your review.`,

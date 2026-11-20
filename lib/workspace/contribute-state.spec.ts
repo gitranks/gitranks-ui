@@ -24,6 +24,9 @@ describe('contributeNoticesOf', () => {
     // The grant is asked for on the first review, never up front.
     expect(kinds(views.grantMissing)).toEqual([]);
     expect(kinds(views.paused)).toEqual(['paused']);
+    // Resume is for the user's own pause: a refused key's pause is the key's notice alone.
+    expect(kinds({ ...views.paused, pausedByYou: false })).toEqual([]);
+    expect(kinds({ ...views.keyInvalid, paused: true, pausedByYou: false })).toEqual(['key-invalid']);
     expect(kinds(views.active)).toEqual([]);
   });
 

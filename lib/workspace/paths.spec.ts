@@ -85,7 +85,7 @@ describe('the workspace addresses', () => {
     expect(movedAnchorOf('github')).toBe('/my/settings/github');
     expect(movedAnchorOf('access')).toBe('/my/agent/key');
     expect(movedAnchorOf('own-agent')).toBe('/my/agent#own-agent');
-    expect(movedAnchorOf('pause')).toBe('/my/agent#pause');
+    expect(movedAnchorOf('pause')).toBe('/my/agent#hosted-level');
     expect(movedAnchorOf('autopilot')).toBe('/my/agent#autopilot');
     for (const anchor of ['modes', 'work', 'ignored', 'rules']) {
       expect(movedAnchorOf(anchor)).toBe(`/my/settings/work#${anchor}`);

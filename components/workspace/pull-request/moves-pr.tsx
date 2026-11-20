@@ -130,7 +130,7 @@ export function NextRunCard({ move, first, view, now, rider }: CardProps) {
             : lead === 'other'
               ? "Something changed on the pull request that this page can't name."
               : `GitRanks sees something a run can act on. The agent reads every review, comment and check, fixes what it can and drafts replies, ${limit}.`;
-  const autopilotOn = !!view.contributor?.settings?.autopilot && !!view.contributor.autopilot?.unlocked;
+  const autopilotOn = view.contributor?.settings?.hostedLevel === 'AUTOPILOT' && !!view.contributor.autopilot?.unlocked;
   const byAuthor = Object.fromEntries(
     (first.reviewFeedback?.threads ?? []).map((thread) => [thread.commentId, thread.author || 'a reviewer']),
   );

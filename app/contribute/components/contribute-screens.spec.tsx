@@ -273,10 +273,10 @@ describe('the Agent and Settings tabs', () => {
 
   it('says on Settings where the hosted agent went, and anchors pause and autopilot on the Agent tab', () => {
     const settings = renderToStaticMarkup(<SettingsScreen view={views.active} />);
-    expect(text(settings)).toContain('Pause, autopilot, and the hosted agent with its key and budget are on the Agent tab .');
+    expect(text(settings)).toContain('Autopilot and the hosted agent with its key and budget are on the Agent tab .');
     expect(settings).toMatch(/data-agent-line=""[\s\S]*?href="\/my\/agent"/);
     const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
-    for (const id of ['pause', 'autopilot', 'own-agent']) expect(agent).toContain(`id="${id}"`);
+    for (const id of ['hosted-level', 'autopilot', 'own-agent']) expect(agent).toContain(`id="${id}"`);
   });
 
   it('has every setting on the pages the rows open', () => {
@@ -290,7 +290,6 @@ describe('the Agent and Settings tabs', () => {
       'Attempts at a time',
       'Even, then a final sweep',
       'As fast as possible',
-      'Only issues I queue',
       'Sweep days',
       'Credits renew on',
       'Main model',
@@ -422,11 +421,23 @@ describe('the Agent and Settings tabs', () => {
     );
   });
 
-  it('pauses an active contributor and resumes a paused one', () => {
-    expect(render(views.active)).toContain('data-paused="false"');
-    expect(text(render(views.active))).toContain('Pause contributing');
-    expect(render(views.paused)).toContain('data-paused="true"');
-    expect(text(render(views.paused))).toContain('Resume contributing');
+  it('has no Pause, and resumes a contributor their own pause holds', () => {
+    expect(text(render(views.active))).not.toContain('Pause contributing');
+    expect(render(views.active)).not.toContain('data-list-note="paused-by-you"');
+    expect(render(views.paused)).toContain('data-list-note="paused-by-you"');
+  });
+
+  it('shows a stored "only issues I queue" pace as the even spread, and offers no third pace', () => {
+    const queued = {
+      ...views.active,
+      contributor: { ...views.active.contributor, settings: { ...settings, pace: 'QUEUED' as const } },
+    };
+    const html = renderToStaticMarkup(<FormSettingsScreen page="budget" view={queued} />);
+    const checked = [...html.matchAll(/role="radio" aria-checked="true"[^>]*value="([^"]*)"/g)].map(([, v]) => v);
+
+    expect(checked).toEqual(['EVEN']);
+    expect(html).not.toContain('value="QUEUED"');
+    expect(text(html)).not.toContain('Only issues I queue');
   });
 
   it('shows the key and its state, and asks for one when there is none', () => {
@@ -474,14 +485,16 @@ describe('the Agent and Settings tabs', () => {
     expect(html).not.toContain('data-notice="grant-missing"');
   });
 
-  it('locks autopilot until five merged pull requests, then lets the user turn it on', () => {
+  it('locks autopilot until five merged pull requests, then lets the user choose it', () => {
     const locked = render(views.active);
     expect(locked).toContain('data-autopilot="locked"');
-    expect(text(locked)).toContain('1 of 5 merged PRs');
+    expect(locked).toMatch(
+      /role="radio"[^>]*value="AUTOPILOT"[^>]*disabled=""|role="radio"[^>]*disabled=""[^>]*value="AUTOPILOT"/,
+    );
 
     const unlocked = render(views.autopilotUnlocked);
     expect(unlocked).toContain('data-autopilot="unlocked"');
-    expect(text(unlocked)).toContain('On');
+    expect(unlocked).toMatch(/role="radio" aria-checked="true"[^>]*value="AUTOPILOT"/);
   });
 });
 

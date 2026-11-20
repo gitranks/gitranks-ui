@@ -8,7 +8,7 @@ import { IssuesFilters } from '@/app/contribute/components/issues-filters';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { HEADING } from '@/components/workspace/primitives';
 import { RightNow } from '@/components/workspace/right-now';
-import { type ContributeTabRead, introLineOf, limitReachedOf, numberTilesOf } from '@/lib/contribute/contribute-tab';
+import { type ContributeTabRead, introLineOf, numberTilesOf } from '@/lib/contribute/contribute-tab';
 import { effectiveSettingOf } from '@/lib/workspace/access-limits';
 import { lastUsedTokenOf } from '@/lib/workspace/agent-way';
 import type {
@@ -21,6 +21,7 @@ import type {
 import { accessNoticesOf, claudeKeyOf, isSuspended } from '@/lib/workspace/contribute-state';
 import { MODELS, relativeLabel } from '@/lib/workspace/format';
 import type { ConnectedAgents } from '@/lib/workspace/issue-row';
+import { limitReachedOf } from '@/lib/workspace/limit-words';
 import { ABOUT_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 const link = 'font-semibold text-link hover:underline';

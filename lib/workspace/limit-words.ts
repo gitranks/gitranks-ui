@@ -1,3 +1,6 @@
+import { effectiveSettingOf } from './access-limits';
+import type { ContributeLimits, ContributeScheduleCounts, ContributeSettings } from './contribute.types';
+
 /**
  * The one sentence for the limit on open pull requests (decision 7), wherever a page says it: the Pull requests tab,
  * the front tabs, Learn home and the Learn start page. `count`: what the limit counts (the pull requests open and those
@@ -31,4 +34,22 @@ export function limitLineOf({ count, limit, open }: LimitCounts): string {
   return typeof open === 'number' && open < count
     ? `${count} of ${limit} open or on their way`
     : `${count} of ${limit} open at a time`;
+}
+
+/**
+ * At the open pull request limit: what the limit counts (`prBound`) has reached what holds (the setting, the level's
+ * cap, or a limit set for the account). Null while either is not known, or below the limit.
+ */
+export function limitReachedOf(
+  counts: Pick<ContributeScheduleCounts, 'prBound'> | null | undefined,
+  settings: Pick<ContributeSettings, 'attemptsAtATime' | 'openPrsAtATime'> | null | undefined,
+  limits: ContributeLimits | null | undefined,
+): LimitCounts | null {
+  const limit = settings
+    ? effectiveSettingOf(settings, limits, 'openPrsAtATime')
+    : typeof limits?.openPrsEffective === 'number'
+      ? limits.openPrsEffective
+      : null;
+  if (typeof counts?.prBound !== 'number' || typeof limit !== 'number') return null;
+  return counts.prBound >= limit ? { count: counts.prBound, limit } : null;
 }

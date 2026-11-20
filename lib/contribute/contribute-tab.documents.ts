@@ -1,7 +1,6 @@
 import { parse } from 'graphql';
 
-import type { HostedLevel } from './contribute-tab';
-import type { ContributeSideTotals } from '@/lib/workspace/contribute.types';
+import type { ContributeHostedLevel, ContributeSideTotals } from '@/lib/workspace/contribute.types';
 import type DocumentNode from '@/types/typed-document-node';
 
 /** Contribute's pull requests by state, for the tab's four numbers. */
@@ -16,6 +15,6 @@ export const ContributeTabStateDocument = parse(
   'query ContributeTabState { contribute { contributor { pausedByYou settings { hostedLevel } } } }',
 ) as DocumentNode<{
   contribute: {
-    contributor: { pausedByYou: boolean | null; settings: { hostedLevel: HostedLevel | null } | null } | null;
+    contributor: { pausedByYou: boolean | null; settings: { hostedLevel: ContributeHostedLevel | null } | null } | null;
   } | null;
 }>;

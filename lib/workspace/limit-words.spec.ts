@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { limitLineOf, limitWordsOf } from './limit-words';
+import { limitLineOf, limitReachedOf, limitWordsOf } from './limit-words';
+import { limits, settings } from '@/lib/contribute/__fixtures__/contribute-views';
 
 const said = (counts: Parameters<typeof limitWordsOf>[0]) => {
   const { lead, rest } = limitWordsOf(counts);
@@ -34,5 +35,15 @@ describe('the one sentence for the open pull request limit', () => {
     expect(limitLineOf({ count: 3, limit: 8, open: 3 })).toBe('3 of 8 open at a time');
     expect(limitLineOf({ count: 3, limit: 8 })).toBe('3 of 8 open at a time');
     expect(limitLineOf({ count: 8, limit: 8, open: 6 })).toBe('8 of 8 open or on their way');
+  });
+});
+
+describe('the open pull request limit reached', () => {
+  it('is at the limit once what it counts reaches what holds: the setting, the cap, a limit set for the account', () => {
+    expect(limitReachedOf({ prBound: 3 }, settings, limits.standard)).toEqual({ count: 3, limit: 3 });
+    expect(limitReachedOf({ prBound: 2 }, settings, limits.standard)).toBeNull();
+    expect(limitReachedOf({ prBound: 2 }, settings, limits.newAccount)).toEqual({ count: 2, limit: 2 });
+    expect(limitReachedOf({ prBound: 3 }, settings, limits.openPrsSet)).toBeNull();
+    expect(limitReachedOf(undefined, settings, limits.standard)).toBeNull();
   });
 });

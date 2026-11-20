@@ -8,6 +8,7 @@ import { audienceOf } from '@/lib/workspace/audience';
 import type {
   ContributeActivity,
   ContributeComingSoonProvider,
+  ContributeScheduleCounts,
   ContributeView,
 } from '@/lib/workspace/contribute.types';
 import { type ContributeNotice, contributeNoticesOf } from '@/lib/workspace/contribute-state';
@@ -27,6 +28,8 @@ export type AgentData = {
   activity?: ContributeActivity | null;
   /** The providers the user asked to hear about. */
   noted?: readonly ContributeComingSoonProvider[];
+  /** The pull requests open or on their way, for when the hosted agent starts its next issue; undefined unread. */
+  counts?: ContributeScheduleCounts;
   now?: Date;
 };
 
@@ -35,10 +38,10 @@ export type AgentData = {
  * (the key's notices above it), and a preview of the runs. A learner (Learn alone) sees the hosted agent as one closed
  * line and no spend.
  */
-export function AgentScreen({ view, learnOpen = false, runs, activity, noted = [], now }: AgentData) {
+export function AgentScreen({ view, learnOpen = false, runs, activity, noted = [], counts, now }: AgentData) {
   const learner = audienceOf(view.sides, learnOpen) === 'learner';
   const notices = contributeNoticesOf(view);
-  // The pause is said in the hosted agent's status line.
+  // The pause is said in the hosted agent's block, with Resume while it is the user's own.
   const top = notices.filter(({ kind }) => kind !== 'paused' && !KEY_NOTICES.includes(kind));
   const atWork = (activity?.runs ?? []).filter((run) => !isSettled(run)).length;
 
@@ -59,6 +62,7 @@ export function AgentScreen({ view, learnOpen = false, runs, activity, noted = [
         learner={learner}
         notices={notices.filter(({ kind }) => KEY_NOTICES.includes(kind))}
         noted={noted}
+        counts={counts}
         now={now}
       />
       <RunsPreview page={runs} learner={learner} learnOpen={learnOpen} atWork={atWork} />

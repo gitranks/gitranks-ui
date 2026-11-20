@@ -1,19 +1,9 @@
 import type { Route } from 'next';
 
-import { effectiveSettingOf } from '@/lib/workspace/access-limits';
-import type {
-  ContributeLimits,
-  ContributeScheduleCounts,
-  ContributeSettings,
-  ContributeSideTotals,
-} from '@/lib/workspace/contribute.types';
-import type { LimitCounts } from '@/lib/workspace/limit-words';
+import type { ContributeHostedLevel, ContributeSideTotals } from '@/lib/workspace/contribute.types';
 import { pullRequestsPath } from '@/lib/workspace/paths';
 
 /** The Contribute tab: its four numbers, the line over the issues, and the limit state. */
-
-/** How much the hosted agent does by itself: you start each issue, it starts the next too, and under autopilot. */
-export type HostedLevel = 'MANUAL' | 'NEXT' | 'AUTOPILOT';
 
 /** What the tab reads beside the user's view: its side's totals, who paused, the hosted agent's level. */
 export type ContributeTabRead = {
@@ -22,7 +12,7 @@ export type ContributeTabRead = {
   /** The person paused contributing themselves; false from an API that does not say. */
   pausedByYou: boolean;
   /** Null from an API without levels. */
-  hostedLevel: HostedLevel | null;
+  hostedLevel: ContributeHostedLevel | null;
 };
 
 export type NumberTile = { value: string; label: string; href: Route };
@@ -56,28 +46,10 @@ export function numberTilesOf(totals: ContributeSideTotals | null | undefined): 
   ];
 }
 
-/**
- * At the open pull request limit: what the limit counts (`prBound`) has reached what holds (the setting, the level's
- * cap, or a limit set for the account). Null while either is not known, or below the limit.
- */
-export function limitReachedOf(
-  counts: Pick<ContributeScheduleCounts, 'prBound'> | null | undefined,
-  settings: Pick<ContributeSettings, 'attemptsAtATime' | 'openPrsAtATime'> | null | undefined,
-  limits: ContributeLimits | null | undefined,
-): LimitCounts | null {
-  const limit = settings
-    ? effectiveSettingOf(settings, limits, 'openPrsAtATime')
-    : typeof limits?.openPrsEffective === 'number'
-      ? limits.openPrsEffective
-      : null;
-  if (typeof counts?.prBound !== 'number' || typeof limit !== 'number') return null;
-  return counts.prBound >= limit ? { count: counts.prBound, limit } : null;
-}
-
 /** The line under "Issues for you": by the agents connected now and the hosted agent's level. */
 export type IntroLine = { text: string; agentLink: boolean; after?: string };
 
-export function introLineOf(agents: { hosted: boolean; own: boolean }, level: HostedLevel | null): IntroLine {
+export function introLineOf(agents: { hosted: boolean; own: boolean }, level: ContributeHostedLevel | null): IntroLine {
   if (agents.hosted) {
     return level === 'NEXT' || level === 'AUTOPILOT'
       ? {

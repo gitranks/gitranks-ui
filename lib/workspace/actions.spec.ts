@@ -59,7 +59,6 @@ const CALLS: Record<string, unknown[]> = {
   withdrawProviderInterest: ['OPENAI'],
   deleteContributeData: [],
   revokeGithubGrant: [],
-  pauseContributing: [],
   setContributeEmail: [false],
   resumeContributing: [],
   skipIssue: ['I_1'],

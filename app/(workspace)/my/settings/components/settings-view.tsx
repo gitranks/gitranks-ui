@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { ClosedGroupLine } from '@/components/workspace/closed-group-line';
+import { PausedByYouNotice } from '@/components/workspace/paused-notice';
 import { PageTitle } from '@/components/workspace/primitives';
 import { ReposAskLessNote } from '@/components/workspace/pull-request/repo-rules';
 import { DeleteDataSection } from '@/components/workspace/settings/delete-data-section';
@@ -286,9 +287,11 @@ export function SettingsScreen({
     <>
       <PageTitle title="Settings" text={TITLE_LINE[audience]} />
       <PullRequestsGroup view={view} openPrs={openPrs} />
-      {/* Old links (the agents' "resume it at …", autopilot's emails) still land here: say where these went, for all. */}
+      {/* Old links (the agents' "resume it at …", autopilot's emails) still land here: Resume while the user's own pause
+          holds, and where the rest went, for all. */}
+      <PausedByYouNotice view={view} />
       <p className="-mt-3 px-1 text-sm text-muted-foreground" data-agent-line="">
-        Pause, autopilot, and the hosted agent with its key and budget are on the{' '}
+        Autopilot and the hosted agent with its key and budget are on the{' '}
         <Link href={WORKSPACE_PATHS.agent} prefetch={false} className="font-semibold text-link hover:underline">
           Agent tab
         </Link>

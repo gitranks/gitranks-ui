@@ -52,6 +52,9 @@ const { LearnTab } = await import('@/app/(workspace)/learn/components/learn-tab-
 const { publishedDayOf, RecentLessons } = await import('./recent-lessons');
 const { recentLessons } = await import('@/lib/learn/__fixtures__/recent-lessons');
 const { LearnMaintainers } = await import('./learn-maintainers');
+const { PrContext, PrLesson } = await import('./learn-pr-lesson');
+const { prCard } = await import('@/lib/contribute/__fixtures__/maintainers');
+const { result: lessonResult } = await import('@/lib/learn/__fixtures__/shared');
 const { GoalSettingsScreen: LearnProfileScreen, GoalSettingsView: LearnProfileView } = await import(
   '@/app/(workspace)/my/settings/components/settings-pages'
 );
@@ -197,6 +200,54 @@ describe('Learn for maintainers', () => {
     expect(text(html)).toContain('.github/gitranks.yml');
     expect(html).toContain('href="/contribute/maintainers"');
     expect(html).toContain('href="/contribute/maintainers/report"');
+    expect(html).not.toContain('data-pr-context');
+    expect(html).not.toContain('data-pr-lesson');
+  });
+
+  const LEARN_PR = prCard({ number: 902, contributorLogin: 'octocat', learn: { slug: 'route-cache-miss-8f3k' } });
+  const VIEWER = { canReact: false, mine: null, returned: null, own: false };
+  const fromPr = (lesson: Parameters<typeof PrLesson>[0]['read']) =>
+    renderToStaticMarkup(
+      <LearnMaintainers
+        context={<PrContext card={lesson.card} />}
+        lesson={<PrLesson read={lesson} />}
+        from={lesson.card.attemptId}
+      />,
+    );
+
+  it('from a footer: the pull request first, then what it is, its lesson, Did this help?, and the rules (§9.3)', () => {
+    const html = fromPr({ kind: 'lesson', card: LEARN_PR, result: lessonResult(), viewer: VIEWER });
+    const order = [
+      'You came here from this pull request',
+      'You got a pull request made with GitRanks Learn',
+      'What that means',
+      'This pull request’s lesson',
+      'Did this help you review the pull request?',
+      'Your rules apply',
+    ].map((words) => text(html).indexOf(words));
+    expect(order.every((at) => at >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    // The top block is the pull request alone: no actions before anything is explained.
+    const top = html.slice(
+      html.indexOf('data-pr-context'),
+      html.indexOf('</section>', html.indexOf('data-pr-context')),
+    );
+    expect(top).not.toMatch(/<button|lessons\//);
+    expect(top).toContain('href="https://github.com/driftwood-js/driftwood/pull/902"');
+    expect(html).toContain('href="/learn/lessons/route-cache-miss-8f3k"');
+    expect(html).toContain('href="/learn/lessons/route-cache-miss-8f3k/passes/octocat"');
+    expect(text(html)).toContain('octocat passed 5 of 5 steps');
+    // One Report link, the rules block's, carrying the footer link's id.
+    expect(text(html).match(/Report this pull request/g)).toHaveLength(1);
+    expect(html).toContain(`href="/contribute/maintainers/report?from=${LEARN_PR.attemptId}"`);
+  });
+
+  it('a lesson not public now: the pull request, one neutral line, no result and no feedback', () => {
+    const html = fromPr({ kind: 'closed', card: { ...LEARN_PR, learn: { slug: null } } });
+    expect(text(html)).toContain('You came here from this pull request');
+    expect(text(html)).toContain('It is not public right now.');
+    expect(html).not.toContain('/learn/lessons/');
+    expect(text(html)).not.toContain('Did this help');
   });
 });
 

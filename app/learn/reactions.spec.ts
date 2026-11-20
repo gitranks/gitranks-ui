@@ -83,6 +83,15 @@ describe('reactions on a result page', () => {
     expect(store.get(reactMarkCookie().name)).toBe(`${SLUG}/octocat/NO`);
   });
 
+  it('signs in back to the Learn maintainers page, its footer link kept, from the form there (§9.3)', async () => {
+    await signInToReact(form({ slug: SLUG, login: 'octocat', reaction: 'YES', from: '6650a1b2c3d4e5f6a7b8c9d0' }));
+
+    expect(signIn.mock.calls[0][1].redirectTo).toMatch(
+      /^\/learn\/maintainers\?from=6650a1b2c3d4e5f6a7b8c9d0&react=yes&s=[0-9a-f-]{36}$/,
+    );
+    expect(store.get(reactMarkCookie().name)).toBe(`${SLUG}/octocat/YES`);
+  });
+
   it('signs in back to the maintainers page for a form that names no result page', async () => {
     await signInToReact(form({ slug: SLUG, login: '../contribute', reaction: 'NO' }));
 

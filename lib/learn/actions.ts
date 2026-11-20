@@ -37,7 +37,7 @@ import type {
   PracticeNext,
 } from '@/lib/learn/learn.types';
 import { currentOf } from '@/lib/learn/learn-home';
-import { githubLoginOf, lessonResultPath, lessonSlugOf } from '@/lib/learn/learn-path';
+import { githubLoginOf, LEARN_MAINTAINERS_PATH, lessonResultPath, lessonSlugOf } from '@/lib/learn/learn-path';
 import { LEARN_ISSUES_MAX, PRACTICE_MAX } from '@/lib/learn/learn-tab';
 import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
@@ -50,6 +50,7 @@ import {
   prFeedbackErrorOf,
 } from '@/lib/workspace/errors';
 import { REACT_PARAM } from '@/lib/workspace/paths';
+import { attemptIdOf } from '@/lib/workspace/pr-feedback';
 import type DocumentNode from '@/types/typed-document-node';
 
 /** Ids as the API takes them: short strings, never anything else from the browser. */
@@ -261,10 +262,14 @@ export async function signInToReact(form: FormData): Promise<void> {
   const login = githubLoginOf(form.get('login'));
   const reaction = reactionOf(form.get('reaction'));
   const marked = slug && login && reaction ? await markReaction(slug, login, reaction) : false;
-  const returnTo =
-    marked && slug && login && reaction
-      ? `${lessonResultPath(slug, login)}?${REACT_PARAM}=${reaction.toLowerCase()}`
-      : undefined;
+  // From the Learn maintainers page (`from`: the pull request's footer link), back to it; else to the result page.
+  const from = attemptIdOf(form.get('from'));
+  const back = from
+    ? `${LEARN_MAINTAINERS_PATH}?${new URLSearchParams({ from })}&`
+    : slug && login
+      ? `${lessonResultPath(slug, login)}?`
+      : '';
+  const returnTo = marked && reaction && back ? `${back}${REACT_PARAM}=${reaction.toLowerCase()}` : undefined;
   await signIn(IDENTITY_PROVIDER, { redirectTo: await markMaintainerSignIn(returnTo) });
 }
 

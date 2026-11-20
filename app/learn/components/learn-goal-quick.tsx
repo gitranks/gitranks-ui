@@ -31,7 +31,7 @@ export function quickGoalInputOf(
 }
 
 /**
- * Learn home's goal question: a language Learn finds issues for, the level in it (pre-set to what Goal and level would
+ * The Learn tab's goal question: a language Learn finds issues for, the level in it (pre-set to what Goal and level would
  * show for it), and Show my issues. It saves the goal as Goal and level does, then reads the page again in place, which
  * then shows the issues. Projects, domains and the focus stay on Goal and level.
  */

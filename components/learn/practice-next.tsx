@@ -4,19 +4,25 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { IssuesEmpty, LearnIssueRow, RoomNote } from './learn-issues';
+import { LearnIssuesEmpty, LearnRoomNote } from './learn-issue-notes';
 import { Button } from '@/components/ui/button';
+import { IssueRow } from '@/components/workspace/issue-row';
 import { HEADING } from '@/components/workspace/primitives';
 import { readPracticeNext } from '@/lib/learn/actions';
 import type { PracticeNext } from '@/lib/learn/learn.types';
 import { attemptTitleOf, goalValueOf } from '@/lib/learn/learn-home';
 import { LEARN_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
+import { contributeSource } from '@/lib/workspace/click-tracking';
+import { issueRowOfLearn } from '@/lib/workspace/issue-row';
 import { PICK_ISSUE_PATHS, pullRequestByAttemptPath } from '@/lib/workspace/paths';
+
+/** A Learn row's Start a lesson leads to the Start page in lesson mode; no agent is offered. */
+const NO_AGENTS = { hosted: false, own: false };
 
 const CARD = 'flex flex-col gap-3 rounded-xl border-2 border-primary bg-card p-5';
 const BUTTON = 'min-h-11 self-start px-5 font-semibold max-sm:w-full';
 
-/** The issues' own links: all of them on Learn home (none for a goal Learn can't find issues for), or more practice. */
+/** The issues' own links: all of them on the Learn tab (none for a goal Learn can't find issues for), or more practice. */
 function MoreLinks({ issues = true }: { issues?: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -41,7 +47,7 @@ function MoreLinks({ issues = true }: { issues?: boolean }) {
 }
 
 /**
- * The card a passed practice lesson ends with, decided like Learn home: back to the viewer's own lesson in progress,
+ * The card a passed practice lesson ends with, decided like the Learn tab: back to the viewer's own lesson in progress,
  * their goal first when none is saved, else "Now your own lesson" with the first two issues for their goal. `next` is
  * read once the card shows (a practice pass reveals no issue before); the catalogue draws it from fixtures.
  */
@@ -116,21 +122,24 @@ export function PracticeNextCard({ next: given }: { next?: PracticeNext | null }
         That lesson was written for someone else’s fix. Yours is written for the issue you pick, by your agent, for your
         goal.{items.length ? ` ${items.length === 1 ? 'An issue' : 'Two issues'}${goal ? ` for ${goal}` : ''}:` : ''}
       </p>
-      {room && items.length ? <RoomNote room={room} /> : null}
+      {room && items.length ? <LearnRoomNote room={room} /> : null}
       {items.length ? (
-        <ul className="divide-y overflow-hidden rounded-xl border">
+        <ul className="divide-y overflow-hidden rounded-xl border" {...contributeSource('learn_practice_passed_issue')}>
           {items.map((issue, index) => (
-            <LearnIssueRow
-              key={issue.issueId}
-              issue={issue}
-              source="learn_practice_passed_issue"
-              start={room ? null : { label: index === 0 ? 'Start with my agent' : 'Start', primary: index === 0 }}
-            />
+            <li key={issue.issueId}>
+              <IssueRow
+                issue={issueRowOfLearn(issue)}
+                side="learn"
+                agents={NO_AGENTS}
+                primary={index === 0}
+                control={!room}
+              />
+            </li>
           ))}
         </ul>
       ) : issues ? (
-        // None to start: why, as Learn home words it.
-        <IssuesEmpty issues={issues} goal={goal} />
+        // None to start: why, as the Learn tab words it.
+        <LearnIssuesEmpty issues={issues} goal={goal} />
       ) : null}
       <MoreLinks issues={issues?.empty !== 'GOAL_UNSUPPORTED'} />
     </section>

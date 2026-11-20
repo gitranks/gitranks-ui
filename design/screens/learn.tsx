@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
-import { LearnHomeScreen } from '@/app/learn/components/learn-home';
+import { LearnTabScreen } from '@/app/(workspace)/learn/components/learn-tab';
 import { LearnLanding } from '@/app/learn/components/learn-landing';
 import { LearnMaintainers } from '@/app/learn/components/learn-maintainers';
 import { LessonPageScreen } from '@/app/learn/components/lesson-page';
@@ -12,9 +12,11 @@ import { Header } from '@/components/header/header';
 import { ProgressScreen } from '@/components/learn/progress/progress-screen';
 import { HeaderLine } from '@/components/workspace/header-line';
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
+import { activityOf, runOf } from '@/lib/contribute/__fixtures__/agent-runs';
 import {
   emptyIssues,
   learnIssues,
+  myAttempt,
   myLearnAttempts,
   practiceLessons,
   practiceNext,
@@ -30,7 +32,7 @@ import type {
   MyLearnAttempts,
   PracticeLessons,
 } from '@/lib/learn/learn.types';
-import { learnHomeStateOf } from '@/lib/learn/learn-home';
+import { learnTabStateOf } from '@/lib/learn/learn-tab';
 import {
   learnedPage,
   lessonsPage,
@@ -39,6 +41,7 @@ import {
   reposPage,
   zeroCounts,
 } from '@/lib/learn/progress/__fixtures__/progress';
+import type { LearnProgressCounts } from '@/lib/learn/progress/progress.types';
 
 /** Your progress's lists, one per view. */
 const progress = {
@@ -72,22 +75,53 @@ const bare = (children: ReactNode, line: ReactNode = <WorkspaceTabsNav tabs={TAB
   </>
 );
 
-/** Learn home as a signed-in learner reads it: a TypeScript goal, the issues for it and practice, unless named. */
-const home = (
+/** The viewer's own agent writing the lesson of their Learn attempt, as Right now shows it. */
+const WRITING = activityOf(
+  runOf({
+    attemptId: 'A_1',
+    nameWithOwner: 'driftwood-js/driftwood',
+    number: 934,
+    title: 'Route params lose their type after a redirect',
+    runner: 'MCP',
+    mode: 'LEARN',
+    phase: 'WRITING_LESSON',
+    elapsedSeconds: 18 * 60,
+    spendUsd: 0,
+    budgetUsd: 0,
+    lastCallAt: '2026-10-31T11:58:00.000Z',
+    latestEvent: { state: 'RUNNING', detail: 'Checks passed', at: '2026-10-31T11:57:00.000Z' },
+  }),
+);
+
+/** The Learn tab as a signed-in learner reads it: a TypeScript goal, the issues for it and practice, unless named. */
+const learnTab = (
   attempts: MyLearnAttempts,
   {
     profile = filledProfile,
     issues = learnIssues(),
     practice = practiceLessons(),
+    counts = zeroCounts,
     settingUp = false,
-  }: { profile?: LearnProfile | null; issues?: LearnIssues; practice?: PracticeLessons; settingUp?: boolean } = {},
+    held = false,
+  }: {
+    profile?: LearnProfile | null;
+    issues?: LearnIssues;
+    practice?: PracticeLessons;
+    counts?: LearnProgressCounts;
+    settingUp?: boolean;
+    held?: boolean;
+  } = {},
 ) =>
   bare(
-    <LearnHomeScreen
-      state={learnHomeStateOf({ settingUp, profile, attempts })}
+    <LearnTabScreen
+      state={learnTabStateOf({ held, settingUp, profile, attempts })}
       profile={profile}
+      attempts={attempts}
+      counts={counts}
       issues={issues}
       practice={practice}
+      activity={attempts.current?.stage === 'AGENT_WORKING' ? WRITING : null}
+      agentName="Claude Code"
     />,
   );
 
@@ -107,19 +141,22 @@ const resultPage = (page: LessonResultPage = result(), viewer: ResultViewer = MA
 
 export const LEARN_SCREENS: Screen[] = [
   {
-    id: 'learn-home',
-    title: 'Learn home',
+    id: 'learn-tab',
+    title: 'Learn tab',
     area: 'learn',
     route: '/learn',
     sources: [
       'app/(workspace)/learn/page.tsx',
-      'app/learn/components/learn-home.tsx',
+      'app/(workspace)/learn/components/learn-tab.tsx',
+      'app/(workspace)/learn/components/learn-tab-view.tsx',
+      'app/(workspace)/learn/components/issue-list.tsx',
       'app/learn/components/learn-goal-quick.tsx',
-      'components/learn/learn-issues.tsx',
       'app/learn/components/practice-lessons.tsx',
-      'app/learn/components/own-lesson-card.tsx',
       'app/learn/components/stage-strip.tsx',
-      'lib/learn/learn-home.ts',
+      'components/learn/learn-issue-notes.tsx',
+      'components/workspace/issue-row.tsx',
+      'components/workspace/right-now.tsx',
+      'lib/learn/learn-tab.ts',
     ],
     states: [
       {
@@ -127,77 +164,74 @@ export const LEARN_SCREENS: Screen[] = [
         title: 'No goal yet: what do you want to learn, and how every lesson is made',
         path: '/learn',
         height: 1240,
-        render: () => home(myLearnAttempts.none, { profile: emptyProfile }),
+        render: () => learnTab(myLearnAttempts.none, { profile: emptyProfile }),
       },
       {
         id: 'ready',
-        title: 'Goal set: pick an issue for your lesson, practice first if you like',
+        title: 'Goal set: Learn something new, practice lessons optional',
         path: '/learn',
         height: 1820,
-        render: () => home(myLearnAttempts.none),
+        render: () => learnTab(myLearnAttempts.none),
+      },
+      {
+        id: 'numbers',
+        title: 'After a first Learn pull request: four numbers in the path’s place',
+        path: '/learn',
+        height: 1820,
+        render: () => learnTab(myLearnAttempts.none, { counts: progressCounts }),
       },
       {
         id: 'working',
-        title: 'Your agent is working: your lesson card, how to give it back, practice while you wait',
+        title: 'Your agent is working: Right now, practice while you wait',
         path: '/learn',
-        height: 1500,
-        render: () => home(myLearnAttempts.working),
+        height: 1300,
+        render: () => learnTab(myLearnAttempts.working),
       },
       {
         id: 'lesson-ready',
-        title: 'Your lesson is ready: take it',
+        title: 'Your first lesson is ready: step 3 is the link',
         path: '/learn',
-        height: 1440,
-        render: () => home(myLearnAttempts.ready),
+        height: 1100,
+        render: () =>
+          learnTab({
+            current: myAttempt({ stage: 'WARMUP', state: 'REVIEW', lessonMinutes: 10 }),
+            lastPullRequest: null,
+          }),
       },
       {
         id: 'blocked',
-        title: 'The lesson’s questions need fixing: send it back from its page',
+        title: 'The lesson’s questions need fixing: open it',
         path: '/learn',
-        height: 760,
-        render: () => home(myLearnAttempts.blocked),
+        height: 1100,
+        render: () => learnTab(myLearnAttempts.blocked),
       },
       {
         id: 'approve',
-        title: 'You passed: approve your pull request',
+        title: 'You passed: submit your pull request',
         path: '/learn',
-        height: 700,
-        render: () => home(myLearnAttempts.approve),
+        height: 1100,
+        render: () => learnTab(myLearnAttempts.approve),
       },
       {
         id: 'submitting',
         title: 'Opening your pull request',
         path: '/learn',
-        height: 680,
-        render: () => home(myLearnAttempts.submitting),
-      },
-      {
-        id: 'pr-open',
-        title: 'Your pull request is open: what maintainers do next, your next lesson, practice',
-        path: '/learn',
-        height: 1900,
-        render: () => home(myLearnAttempts.prOpen),
-      },
-      {
-        id: 'pr-merged',
-        title: 'Your pull request was merged',
-        path: '/learn',
-        height: 1880,
-        render: () => home(myLearnAttempts.merged),
+        height: 1100,
+        render: () => learnTab(myLearnAttempts.submitting),
       },
       {
         id: 'no-room',
-        title: 'No room for a new lesson: the issues stay, Start gives way to why',
+        title: 'At the open pull request limit: the issues stay, without Start',
         path: '/learn',
-        height: 1820,
-        render: () => home(myLearnAttempts.none, { issues: emptyIssues.noRoom }),
+        height: 1900,
+        render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.noRoom }),
       },
       {
         id: 'none-today',
         title: 'No open issues fit the goal today',
         path: '/learn',
         height: 1220,
-        render: () => home(myLearnAttempts.none, { issues: emptyIssues.noneToday }),
+        render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.noneToday }),
       },
       {
         id: 'goal-unsupported',
@@ -205,7 +239,7 @@ export const LEARN_SCREENS: Screen[] = [
         path: '/learn',
         height: 760,
         render: () =>
-          home(myLearnAttempts.none, {
+          learnTab(myLearnAttempts.none, {
             profile: { ...filledProfile, goalValue: 'C++' },
             issues: emptyIssues.unsupported,
             practice: practiceLessons({ items: [], total: 0 }),
@@ -216,37 +250,48 @@ export const LEARN_SCREENS: Screen[] = [
         title: 'The day’s new issues are all shown',
         path: '/learn',
         height: 1220,
-        render: () => home(myLearnAttempts.none, { issues: emptyIssues.cap }),
+        render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.cap }),
       },
       {
         id: 'unread',
         title: 'The issues could not be loaded',
         path: '/learn',
         height: 1200,
-        render: () => home(myLearnAttempts.none, { issues: emptyIssues.unread }),
+        render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.unread }),
+      },
+      {
+        id: 'held',
+        title: 'The account is held: no issues, practice stays',
+        path: '/learn',
+        height: 1100,
+        render: () => learnTab(myLearnAttempts.none, { held: true }),
       },
       {
         id: 'setting-up',
         title: 'A new account: its GitRanks account is still being set up',
         path: '/learn',
         height: 560,
-        render: () => home(myLearnAttempts.none, { profile: null, settingUp: true }),
+        render: () => learnTab(myLearnAttempts.none, { profile: null, settingUp: true }),
       },
       {
         id: 'phone',
-        title: 'No goal yet, on a phone: only the step you are at shows',
-        path: '/learn',
-        width: 390,
-        height: 1700,
-        render: () => home(myLearnAttempts.none, { profile: emptyProfile }),
-      },
-      {
-        id: 'phone-ready',
-        title: 'Goal set, on a phone',
+        title: 'After a first Learn pull request, on a phone: numbers two by two',
         path: '/learn',
         width: 390,
         height: 3300,
-        render: () => home(myLearnAttempts.none),
+        render: () => learnTab(myLearnAttempts.none, { counts: progressCounts }),
+      },
+      {
+        id: 'phone-lesson-ready',
+        title: 'Your first lesson is ready, on a phone: step 3 with its button full width',
+        path: '/learn',
+        width: 390,
+        height: 2200,
+        render: () =>
+          learnTab({
+            current: myAttempt({ stage: 'WARMUP', state: 'REVIEW', lessonMinutes: 10 }),
+            lastPullRequest: null,
+          }),
       },
     ],
   },

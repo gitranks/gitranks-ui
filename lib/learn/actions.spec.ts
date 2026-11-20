@@ -5,7 +5,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('@/auth', () => ({ auth }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
-const { readPracticeLessons, readPracticeNext, saveLearnProfile } = await import('./actions');
+const { readLearnIssues, readPracticeLessons, readPracticeNext, saveLearnProfile } = await import('./actions');
 const { LearnIssuesDocument, MyLearnAttemptsDocument } = await import('@/lib/learn/learn.documents');
 const { learnIssues, myLearnAttempts } = await import('@/lib/learn/__fixtures__/home');
 const { SaveLearnProfileDocument } = await import('@/lib/learn/learn.documents');
@@ -59,21 +59,32 @@ describe('saving Goal and level', () => {
   });
 });
 
-describe("Learn home's reads from the browser", () => {
+describe("The Learn tab's reads from the browser", () => {
   beforeEach(() => {
     graphqlDirect.mockReset();
     auth.mockReset();
     auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
   });
 
-  it('asks for up to 30 practice lessons', async () => {
+  it('asks for up to 93 practice lessons', async () => {
     graphqlDirect.mockResolvedValue({ practiceLessons: { items: [], total: 0 }, learnIssues: { items: [] } });
-    for (const first of [0, 31, 1.5, '3', null]) {
+    for (const first of [0, 94, 1.5, '3', null]) {
       expect(await readPracticeLessons(first as number), String(first)).toMatchObject({ ok: false, error: 'INVALID' });
     }
     expect(graphqlDirect).not.toHaveBeenCalled();
-    expect(await readPracticeLessons(30)).toMatchObject({ ok: true });
-    expect(graphqlDirect.mock.calls.map(([, variables]) => variables)).toEqual([{ first: 30 }]);
+    expect(await readPracticeLessons(93)).toMatchObject({ ok: true });
+    expect(graphqlDirect.mock.calls.map(([, variables]) => variables)).toEqual([{ first: 93 }]);
+  });
+
+  it('asks for up to 100 issues for the goal', async () => {
+    graphqlDirect.mockResolvedValue({ learnIssues: { items: [], total: 0 } });
+    for (const first of [0, 101, 2.5, '20', null]) {
+      expect(await readLearnIssues(first as number), String(first)).toMatchObject({ ok: false, error: 'INVALID' });
+    }
+    expect(graphqlDirect).not.toHaveBeenCalled();
+    expect(await readLearnIssues(20)).toMatchObject({ ok: true });
+    expect(await readLearnIssues(100)).toMatchObject({ ok: true });
+    expect(graphqlDirect.mock.calls.map(([, variables]) => variables)).toEqual([{ first: 20 }, { first: 100 }]);
   });
 
   it("reads a passed practice lesson's two issues only with no lesson of the viewer's own in progress", async () => {

@@ -1,19 +1,12 @@
-import type { Route } from 'next';
-
 import type {
   LearnGoalView,
-  LearnIssue,
   LearnProfile,
-  LearnRoom,
   LearnStage,
   LessonWrittenFor,
   MyLearnAttempt,
   MyLearnAttempts,
 } from './learn.types';
 import { LEVELS, levelRowsOf } from './profile-form';
-import { limitWordsOf } from '@/lib/workspace/limit-words';
-import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
-import { isOpenPrsLimit } from '@/lib/workspace/start/start-page';
 
 /**
  * The stages of a Learn attempt that count as in progress: the agent works or rewrites, the lesson waits for the user
@@ -38,88 +31,9 @@ export const currentOf = (attempts: MyLearnAttempts | null | undefined): MyLearn
   return current && isInProgress(current.stage) ? current : null;
 };
 
-/** What Learn home shows, decided in this order. */
-export type LearnHomeState =
-  /** A new account GitRanks is still setting up. */
-  | { kind: 'setting-up' }
-  /** No Learn goal saved yet: the goal question. */
-  | { kind: 'no-goal' }
-  /** The viewer's own lesson in progress. */
-  | { kind: 'own'; card: OwnCard; attempt: MyLearnAttempt }
-  /** The viewer's newest Learn pull request, opened in the last 14 days. */
-  | { kind: 'pull-request'; attempt: MyLearnAttempt }
-  /** A goal, and nothing of their own going on: the issues. */
-  | { kind: 'goal-set' };
-
-/** Which own-lesson card shows: the agent works, the lesson is ready, its questions need fixing, or it can be approved. */
-export type OwnCard = 'working' | 'ready' | 'blocked' | 'approve' | 'submitting';
-
-/** The own-lesson card for an attempt in progress. */
-export function ownCardOf(attempt: Pick<MyLearnAttempt, 'stage' | 'state'>): OwnCard {
-  switch (attempt.stage) {
-    case 'AGENT_WORKING':
-    case 'AGENT_REWRITING':
-      return 'working';
-    case 'WARMUP':
-    case 'LESSON':
-      return 'ready';
-    case 'BLOCKED':
-      return 'blocked';
-    default:
-      return attempt.state === 'SUBMITTING' || attempt.state === 'PENDING_AUTOSUBMIT' ? 'submitting' : 'approve';
-  }
-}
-
 /** Whether a Learn goal is saved. */
 export const hasGoal = (profile: LearnProfile | null | undefined): boolean =>
   !!profile?.goalKind && !!profile.goalValue?.trim();
-
-/** Learn home's state, in the order the states are decided. */
-export function learnHomeStateOf({
-  settingUp,
-  profile,
-  attempts,
-}: {
-  settingUp: boolean;
-  profile: LearnProfile | null | undefined;
-  attempts: MyLearnAttempts | null | undefined;
-}): LearnHomeState {
-  if (settingUp) return { kind: 'setting-up' };
-  if (!hasGoal(profile)) return { kind: 'no-goal' };
-  const current = currentOf(attempts);
-  if (current) return { kind: 'own', card: ownCardOf(current), attempt: current };
-  const pr = attempts?.lastPullRequest ?? null;
-  if (pr) return { kind: 'pull-request', attempt: pr };
-  return { kind: 'goal-set' };
-}
-
-/** One step of the path to a first pull request. */
-export type PathStep = { key: 'goal' | 'agent' | 'pass'; where: string; title: string };
-
-/** Learn home's path, in the attempt page's stage style. */
-export const LEARN_PATH_STEPS: readonly PathStep[] = [
-  { key: 'goal', where: '1 · Here, one minute', title: 'Tell us what you want to learn' },
-  { key: 'agent', where: '2 · Your terminal', title: 'Your agent fixes an issue and writes your lesson' },
-  { key: 'pass', where: '3 · Here', title: 'Pass your lesson, open the pull request' },
-];
-
-/** Where a step of the path is: done, the one now, the agent working on it, or still to come. */
-export type PathMark = 'done' | 'now' | 'working' | 'next';
-
-/** Each step's mark in a state of Learn home. */
-export function pathMarksOf(state: LearnHomeState): [PathMark, PathMark, PathMark] {
-  switch (state.kind) {
-    case 'setting-up':
-    case 'no-goal':
-      return ['now', 'next', 'next'];
-    case 'goal-set':
-      return ['done', 'now', 'next'];
-    case 'own':
-      return state.card === 'working' ? ['done', 'working', 'next'] : ['done', 'done', 'now'];
-    default:
-      return ['done', 'done', 'done'];
-  }
-}
 
 /** "owner/repo#12": an issue named before its title is known. */
 export const issueRefOf = (attempt: Pick<MyLearnAttempt, 'repo' | 'issueNumber'>): string =>
@@ -128,12 +42,6 @@ export const issueRefOf = (attempt: Pick<MyLearnAttempt, 'repo' | 'issueNumber'>
 /** The attempt's issue title, or `owner/repo#n` until the agent's first brief stores it. */
 export const attemptTitleOf = (attempt: Pick<MyLearnAttempt, 'title' | 'repo' | 'issueNumber'>): string =>
   attempt.title?.trim() || issueRefOf(attempt);
-
-/** The number of a pull request from its address; null when the address names none. */
-export function prNumberOf(url: string | null | undefined): number | null {
-  const match = url ? /\/pull\/(\d+)(?:[/?#]|$)/.exec(url) : null;
-  return match ? Number(match[1]) : null;
-}
 
 /** The languages Learn finds issues for, as GitHub names them: the goal question offers these alone. */
 export const LEARN_GOAL_LANGUAGES = [
@@ -185,34 +93,6 @@ export const sameGoal = (
   written.kind.toLowerCase() === goal.kind.toLowerCase() &&
   written.value.trim().toLowerCase() === goal.value.trim().toLowerCase();
 
-/**
- * The words for the limit that leaves the viewer no room for a new lesson, and where what holds it shows: the open pull
- * requests (`room.value`: how many may be open) or, for any other limit, the attempts at a time.
- */
-export function roomWordsOf(room: LearnRoom): { text: string; link: { href: Route; label: string } } {
-  const link = { href: WORKSPACE_PATHS.pullRequests, label: 'Pull requests' };
-  if (isOpenPrsLimit(room.limit)) {
-    // The one wording of the limit (`LimitNotice`, which the list draws in its place).
-    const { lead, rest } = limitWordsOf({ count: room.value, limit: room.value });
-    return { text: `${lead} ${rest}`, link };
-  }
-  return { text: 'Your agent is working on another issue. A new lesson can start when that one is done.', link };
-}
-
-/** "Size small": an issue's size in the row's words; null when it has none. */
-export function issueSizeOf(issue: Pick<LearnIssue, 'size'>): string | null {
-  switch (issue.size?.toUpperCase()) {
-    case 'S':
-      return 'Size small';
-    case 'M':
-      return 'Size medium';
-    case 'L':
-      return 'Size large';
-    default:
-      return null;
-  }
-}
-
 /** Why a Learn attempt ended without a pull request, in a line: the issue moved, the agent gave it back, or it stopped. */
 export function endedReasonOf(reason: string | null | undefined): string {
   switch (reason) {
@@ -227,10 +107,3 @@ export function endedReasonOf(reason: string | null | undefined): string {
 
 /** How many practice lessons a lesson's page shows while the agent works. */
 export const WAIT_PRACTICE = 2;
-
-/** How many practice lessons Learn home shows, and the most "Show all" reads. */
-export const PRACTICE_SHOWN = 3;
-export const PRACTICE_ALL = 30;
-
-/** How many issues Learn home asks for. */
-export const ISSUES_SHOWN = 10;

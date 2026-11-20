@@ -19,7 +19,7 @@ const issue = (repo: string, number: number, title: string, size: string, why: s
   why,
 });
 
-/** Four open TypeScript issues, as Learn home lists them for the goal. */
+/** Four open TypeScript issues, as the Learn tab lists them for the goal. */
 export const ISSUES: LearnIssue[] = [
   issue(
     'driftwood-js/driftwood',
@@ -91,7 +91,7 @@ const practice = (patch: Partial<PracticeLesson> & Pick<PracticeLesson, 'slug' |
   ...patch,
 });
 
-/** Three of seven practice lessons for TypeScript, as Learn home shows them first. */
+/** Three of seven practice lessons for TypeScript, as the Learn tab shows them first. */
 export const PRACTICE: PracticeLesson[] = [
   practice({ slug: 'route-cache-miss-8f3k', title: 'Why nested layouts rebuilt on every navigation' }),
   practice({
@@ -144,6 +144,7 @@ export const myAttempt = (patch: Partial<MyLearnAttempt> = {}): MyLearnAttempt =
   prOpenedAt: null,
   prState: null,
   resultUrl: null,
+  lessonMinutes: null,
   ...patch,
 });
 
@@ -158,7 +159,7 @@ const opened = (patch: Partial<MyLearnAttempt>): MyLearnAttempt =>
     ...patch,
   });
 
-/** The viewer's own lesson in each state Learn home words apart. */
+/** The viewer's own lesson in each state the Learn tab words apart. */
 export const myLearnAttempts: Record<
   'none' | 'working' | 'noTitle' | 'ready' | 'blocked' | 'approve' | 'submitting' | 'prOpen' | 'merged' | 'closed',
   MyLearnAttempts
@@ -166,7 +167,7 @@ export const myLearnAttempts: Record<
   none: { current: null, lastPullRequest: null },
   working: { current: myAttempt(), lastPullRequest: null },
   noTitle: { current: myAttempt({ title: null, latestEvent: null }), lastPullRequest: null },
-  ready: { current: myAttempt({ stage: 'WARMUP', state: 'REVIEW' }), lastPullRequest: null },
+  ready: { current: myAttempt({ stage: 'WARMUP', state: 'REVIEW', lessonMinutes: 10 }), lastPullRequest: null },
   blocked: { current: myAttempt({ stage: 'BLOCKED', state: 'REVIEW' }), lastPullRequest: null },
   approve: { current: myAttempt({ stage: 'READY_TO_APPROVE', state: 'REVIEW' }), lastPullRequest: null },
   submitting: { current: myAttempt({ stage: 'READY_TO_APPROVE', state: 'SUBMITTING' }), lastPullRequest: null },

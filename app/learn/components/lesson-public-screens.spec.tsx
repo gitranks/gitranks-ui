@@ -12,6 +12,8 @@ vi.mock('next/navigation', () => ({
     throw new Error(`NEXT_REDIRECT ${to}`);
   },
 }));
+vi.mock('@/lib/workspace/issue-actions', () => ({ startIssue: vi.fn(), skipIssue: vi.fn() }));
+vi.mock('@/lib/workspace/start/start-page.actions', () => ({ readStartPageAttempt: vi.fn() }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/lib/learn/actions', () => ({ signInToReact: vi.fn(), readPracticeNext: vi.fn() }));
 // Whether Learn is open to everyone, as the API answers it: closed here.
@@ -271,9 +273,11 @@ describe('a practice lesson', () => {
     expect(html).toContain('data-next-step="own"');
     expect(text(html)).toContain('Now your own lesson');
     expect(text(html)).toContain('Two issues for TypeScript:');
-    expect(html.match(/data-learn-issue=/g)).toHaveLength(2);
-    expect(html.match(/data-contribute-source="learn_practice_passed_issue"/g)).toHaveLength(2);
-    expect(html).toContain('aria-label="Start with my agent: driftwood-js/driftwood#934"');
+    expect(html.match(/data-side="learn"/g)).toHaveLength(2);
+    expect(html.match(/data-contribute-source="learn_practice_passed_issue"/g)).toHaveLength(1);
+    // Learn's row: Start a lesson to the Start page, the first one primary.
+    expect(html).toMatch(/data-variant="default"[^>]*href="\/my\/start\/driftwood-js\/driftwood\/934\?lesson=1"/);
+    expect(text(html).match(/Start a lesson/g)).toHaveLength(2);
     expect(html).toContain('href="/learn#issues"');
     expect(text(html)).toContain('All issues for your goal →');
     expect(html).toContain('href="/learn#practice"');
@@ -286,10 +290,10 @@ describe('a practice lesson', () => {
     expect(html).toContain('data-next-step="back"');
     expect(text(html)).toContain('Back to your lesson');
     expect(html).toContain('href="/my/pull-requests/by-attempt/A_1"');
-    expect(html).not.toContain('data-learn-issue');
+    expect(html).not.toContain('data-side="learn"');
   });
 
-  it('once passed with no issue to start, says why as Learn home does', () => {
+  it('once passed with no issue to start, says why as the Learn tab does', () => {
     const unsupported = passed(practiceNext.unsupported);
     expect(unsupported).toContain('data-issues-empty="goal-unsupported"');
     expect(text(unsupported)).toContain('Learn can’t find issues for this goal yet.');
@@ -310,7 +314,7 @@ describe('a practice lesson', () => {
     expect(noGoal).toMatch(/href="\/learn"/);
     const unread = passed(null);
     expect(unread).toContain('data-next-step="own"');
-    expect(unread).not.toContain('data-learn-issue');
+    expect(unread).not.toContain('data-side="learn"');
     expect(unread).toContain('href="/learn#issues"');
   });
 });

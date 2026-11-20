@@ -33,7 +33,7 @@ export const CONTRIBUTE_SOURCES = [
   'learn_promo_profile',
   /** "Learn" in the header menu. */
   'learn_menu',
-  /** Learn home: Show my issues (the goal question), Start on an issue, Take this lesson on a practice card. */
+  /** The Learn tab: Show my issues (the goal question), Start a lesson on an issue, Take this lesson on a practice card. */
   'learn_home_goal',
   'learn_home_issue',
   'learn_home_practice',

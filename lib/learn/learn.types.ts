@@ -342,7 +342,7 @@ export type PracticeLessons = { items: PracticeLesson[]; total: number };
 
 export type LearnPrState = 'OPEN' | 'MERGED' | 'CLOSED';
 
-/** One of the viewer's Learn attempts, as Learn home shows it. */
+/** One of the viewer's Learn attempts, as the Learn tab shows it. */
 export type MyLearnAttempt = {
   attemptId: string;
   stage: LearnStage;
@@ -360,6 +360,8 @@ export type MyLearnAttempt = {
   prState: LearnPrState | null;
   /** The lesson result's page, once the lesson is public. */
   resultUrl: string | null;
+  /** The bound lesson's length in minutes; null before a lesson is bound. */
+  lessonMinutes: number | null;
 };
 
 /** The viewer's newest Learn attempt in progress, and their newest one's pull request opened in the last 14 days. */

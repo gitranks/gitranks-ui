@@ -6,11 +6,16 @@ import { type ReactNode, useState, useTransition } from 'react';
 import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { HEADING } from '@/components/workspace/primitives';
+import { RefChips } from '@/components/workspace/ref-chips';
+import { ShowMore } from '@/components/workspace/show-more';
+import { useStableRows } from '@/components/workspace/use-stable-rows';
 import { readPracticeLessons } from '@/lib/learn/actions';
 import type { PracticeLesson, PracticeLessons } from '@/lib/learn/learn.types';
-import { levelPhraseOf, PRACTICE_ALL, wantedOf } from '@/lib/learn/learn-home';
+import { levelPhraseOf, wantedOf } from '@/lib/learn/learn-home';
 import { lessonPath } from '@/lib/learn/learn-path';
+import { grownTo, PRACTICE_FIRST, PRACTICE_MAX } from '@/lib/learn/learn-tab';
 import { agentNameOf } from '@/lib/learn/lesson-public';
+import { cn } from '@/lib/utils';
 import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
 import { dayLabel } from '@/lib/workspace/format';
 
@@ -23,16 +28,15 @@ const figuresOf = (lesson: Pick<PracticeLesson, 'steps' | 'minutes' | 'passes'>)
  * wanted to learn, when and with which agent, what it teaches, and Take this lesson.
  */
 export function PracticeLessonCard({ lesson, source }: { lesson: PracticeLesson; source?: ContributeSource }) {
-  const where = lesson.repo ? `${lesson.repo}${lesson.issue ? ` · issue #${lesson.issue}` : ''}` : null;
   const login = lesson.author.login;
   const level = levelPhraseOf(lesson.writtenFor.level);
   const href = lessonPath(lesson.slug);
   return (
     <article className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4" data-practice-lesson={lesson.slug}>
-      {where || lesson.language ? (
+      {lesson.repo || lesson.language ? (
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          {where ? <span className="font-mono break-all text-foreground/80">{where}</span> : <span />}
-          {lesson.language ? <span>{lesson.language}</span> : null}
+          {lesson.repo ? <RefChips repo={lesson.repo} issue={lesson.issue} className="min-w-0" /> : <span />}
+          {lesson.language ? <Pill>{lesson.language}</Pill> : null}
         </div>
       ) : null}
       <div className="flex flex-col gap-1">
@@ -142,9 +146,12 @@ export function PracticeGrid({ children }: { children: ReactNode }) {
   return <div className="grid grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-4">{children}</div>;
 }
 
+const practiceKey = ({ slug }: PracticeLesson) => slug;
+
 /**
- * Learn home's practice (`#practice`): other learners' lessons for the viewer's goal, marked optional, with how many
- * there are; "Show all" reads up to 30 in place. Left out when no lesson matches the goal, or the API did not answer.
+ * The Learn tab's practice lessons (`#practice`): other learners' lessons for the viewer's goal, marked optional, with
+ * how many there are; the first 3, then "Show 10 more" reads the list again with 10 more (13, 23, … up to 93) and adds
+ * the cards not shown yet under the others, which stay in place. Left out when no lesson matches the goal, or the API did not answer.
  */
 export function PracticeSection({
   practice,
@@ -158,33 +165,39 @@ export function PracticeSection({
   title: string;
   text: ReactNode;
 }) {
-  // Only "Show all" is kept here: a new read of the page (Learn home reads itself again while a lesson moves) shows
-  // its own lessons.
-  const [all, setAll] = useState<PracticeLessons | null>(null);
+  // The cards shown keep their places: a new read (the page's, or "Show 10 more"'s) only adds the ones not shown yet.
+  const { rows: items, add } = useStableRows(practice?.items ?? [], practiceKey);
+  const [answered, setAnswered] = useState<number | null>(null);
+  const [asked, setAsked] = useState(Math.max(practice?.items.length ?? 0, PRACTICE_FIRST));
+  const [ended, setEnded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
-  const items = all?.items ?? practice?.items ?? [];
-  const total = all?.total ?? practice?.total ?? 0;
   if (!items.length) return null;
-  const more = total > items.length && items.length < PRACTICE_ALL;
+  const total = Math.max(answered ?? practice?.total ?? 0, items.length);
+  const most = Math.min(total, PRACTICE_MAX);
 
-  const showAll = () =>
+  const showMore = () =>
     startTransition(async () => {
       setFailed(false);
-      const result = await readPracticeLessons(PRACTICE_ALL).catch(() => null);
-      if (result?.ok && result.data.items.length) {
-        setAll(result.data);
-      } else {
+      const first = grownTo(asked, PRACTICE_MAX);
+      const result = await readPracticeLessons(first).catch(() => null);
+      if (!result?.ok) {
         setFailed(true);
+        return;
       }
+      setAsked(first);
+      setAnswered(result.data.total);
+      // Nothing new (the list got shorter meanwhile): the control ends, its count line stays.
+      if (!add(result.data.items)) setEnded(true);
     });
 
   return (
-    <section aria-labelledby="practice-title" id="practice" className="flex scroll-mt-4 flex-col gap-4 pt-3">
+    <section aria-labelledby="practice-title" id="practice" className="flex scroll-mt-24 flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <h2 id="practice-title" className={HEADING.section}>
+          <h2 id="practice-title" className={cn(HEADING.section, 'flex flex-wrap items-center gap-2.5')}>
             {title}
+            <Pill>Optional</Pill>
           </h2>
           <p className="max-w-prose text-sm text-muted-foreground">{text}</p>
         </div>
@@ -198,17 +211,19 @@ export function PracticeSection({
           <PracticeLessonCard key={lesson.slug} lesson={lesson} source="learn_home_practice" />
         ))}
       </PracticeGrid>
-      {more ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" variant="outline" disabled={pending} onClick={showAll} className="max-sm:min-h-11">
-            {pending ? 'Loading…' : `Show all ${Math.min(total, PRACTICE_ALL)}`}
-          </Button>
-          {failed ? (
-            <span role="alert" className="text-sm text-destructive">
-              Couldn’t load them. Try again in a minute.
-            </span>
-          ) : null}
-        </div>
+      {ended || asked >= PRACTICE_MAX ? (
+        items.length < most ? (
+          <p className="text-sm text-muted-foreground" data-show-more-ended="">
+            Showing {items.length} of {most} practice lessons
+          </p>
+        ) : null
+      ) : (
+        <ShowMore shown={items.length} total={most} noun="practice lesson" pending={pending} onMore={showMore} />
+      )}
+      {failed ? (
+        <p role="alert" className="text-sm text-destructive">
+          Couldn’t load them. Try again in a minute.
+        </p>
       ) : null}
     </section>
   );

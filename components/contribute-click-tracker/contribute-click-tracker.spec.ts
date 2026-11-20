@@ -31,10 +31,10 @@ describe('reports from the browser', () => {
     vi.unstubAllGlobals();
   });
 
-  it('names a connect by the click that led to it', async () => {
+  it('names a connect by the click that led to it, the issue’s step named without the issue', async () => {
     reportContributeConnect('agent');
     expect(await sent(beacon)).toEqual([
-      { kind: 'connect', path: '/learn/start/driftwood-js/driftwood/934', target: 'agent', source: 'learn_home_issue' },
+      { kind: 'connect', path: '/learn/start/issue', target: 'agent', source: 'learn_home_issue' },
     ]);
     expect(stored.has('contribute_last_click_v1')).toBe(false);
   });
@@ -42,7 +42,7 @@ describe('reports from the browser', () => {
   it('names a connect by the place it was made, when told, and still forgets the click', async () => {
     reportContributeConnect('agent', 'learn_start');
     expect(await sent(beacon)).toEqual([
-      { kind: 'connect', path: '/learn/start/driftwood-js/driftwood/934', target: 'agent', source: 'learn_start' },
+      { kind: 'connect', path: '/learn/start/issue', target: 'agent', source: 'learn_start' },
     ]);
     expect(stored.has('contribute_last_click_v1')).toBe(false);
   });
@@ -50,9 +50,9 @@ describe('reports from the browser', () => {
   it("counts the start page's views and its move to the lesson page", async () => {
     reportLearnEvent({ kind: 'learn_view', event: 'learn_start_view', source: 'learn_start' });
     reportLearnEvent({ kind: 'learn_view', event: 'learn_start_claimed', source: 'learn_start' });
-    expect((await sent(beacon)).map(({ event, source }) => [event, source])).toEqual([
-      ['learn_start_view', 'learn_start'],
-      ['learn_start_claimed', 'learn_start'],
+    expect((await sent(beacon)).map(({ event, source, path }) => [event, source, path])).toEqual([
+      ['learn_start_view', 'learn_start', '/learn/start/issue'],
+      ['learn_start_claimed', 'learn_start', '/learn/start/issue'],
     ]);
   });
 });

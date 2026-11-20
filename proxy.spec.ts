@@ -447,6 +447,55 @@ describe('proxy', () => {
       }
     });
 
+    describe('the steps of Contribute’s flow', () => {
+      const STEPS = [
+        '/contribute/start',
+        '/contribute/start?languages=go&kinds=bug',
+        '/contribute/start/agent',
+        '/contribute/start/agent/own?from=agent',
+        '/contribute/start/agent/key',
+        '/contribute/start/issue',
+      ];
+
+      it('once launched, are open to a visitor as the landing is: nothing asked about them, no cookie set', async () => {
+        open.mockResolvedValue(true);
+        for (const path of STEPS) {
+          const response = await proxy(request(undefined, path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();
+          expect(response?.headers.get('location'), path).toBeNull();
+          expect(response?.headers.get('cache-control'), path).toBeNull();
+          expect(response?.headers.get('set-cookie'), path).toBeNull();
+          // The landing's markdown twin stays the landing's own.
+          expect(response?.headers.get('link'), path).toBeNull();
+        }
+        expect(maySeeContribute).not.toHaveBeenCalled();
+        expect(withSession).not.toHaveBeenCalled();
+      });
+
+      it('before the launch, answer a visitor and an account off the preview with the 404 nobody caches', async () => {
+        for (const cookie of [undefined, 'authjs.session-token=t']) {
+          for (const path of STEPS) {
+            const response = await proxy(request(cookie, path), event);
+            expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+            expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+          }
+        }
+      });
+
+      it('keep a new account being set up on the step, its answers in the address, before the launch and after', async () => {
+        settingUp.mockResolvedValue(true);
+        for (const launched of [false, true]) {
+          open.mockResolvedValue(launched);
+          for (const path of STEPS) {
+            const response = await proxy(request('authjs.session-token=t', path), event);
+            expect(response?.headers.get('location'), path).toBeNull();
+            expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();
+            expect(response?.headers.get('cache-control'), path).toBe('private, no-cache');
+          }
+        }
+      });
+    });
+
     it('lets the home itself through for an account being set up before the launch, which says so there', async () => {
       settingUp.mockResolvedValue(true);
       const response = await proxy(request('authjs.session-token=t', '/contribute'), event);

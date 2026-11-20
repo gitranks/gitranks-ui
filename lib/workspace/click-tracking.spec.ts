@@ -5,6 +5,8 @@ import {
   contributeSource,
   entryOf,
   firstEntryOf,
+  flowStepPathOf,
+  isFlowSource,
   isLanding,
   LAST_CLICK_DAYS,
   lastClickOf,
@@ -96,6 +98,63 @@ describe('clickOf: what a click counts as', () => {
         target: '/learn',
       });
     }
+  });
+});
+
+describe('the flows that start Contribute and Learn', () => {
+  it('count their marked steps on Contribute’s pages, where moving around counts nothing', () => {
+    for (const own of [
+      'contribute_flow_work',
+      'contribute_flow_sign_in',
+      'contribute_flow_own',
+      'contribute_flow_key',
+      'contribute_flow_issue',
+      'contribute_flow_skip',
+    ]) {
+      expect(clickOf({ own, pagePath: '/contribute/start', origin }), own).toEqual({ source: own });
+    }
+    expect(clickOf({ href: '/contribute/start/agent', pagePath: '/contribute/start', origin })).toBeNull();
+  });
+
+  it('count Learn’s steps and its landing button', () => {
+    expect(clickOf({ own: 'learn_landing', href: '/learn/start', pagePath: '/learn', origin })).toEqual({
+      source: 'learn_landing',
+      target: '/learn/start',
+    });
+    expect(clickOf({ own: 'learn_flow_goal', pagePath: '/learn/start', origin })).toEqual({
+      source: 'learn_flow_goal',
+    });
+  });
+
+  it('are counted but never remembered for a connect', () => {
+    for (const source of ['contribute_flow_work', 'contribute_flow_issue', 'learn_flow_sign_in', 'learn_flow_more']) {
+      expect(isFlowSource(source), source).toBe(true);
+    }
+    for (const source of ['contribute_landing', 'learn_landing', 'learn_start', 'main_menu']) {
+      expect(isFlowSource(source), source).toBe(false);
+    }
+  });
+
+  it('name an issue’s step as /learn/start/issue, never the owner, repo or number', () => {
+    expect(flowStepPathOf('/learn/start/acme/widgets/42')).toBe('/learn/start/issue');
+    expect(flowStepPathOf('/learn/start/acme/widgets/42/')).toBe('/learn/start/issue');
+    for (const path of ['/learn/start', '/learn/start/issues', '/contribute/start/agent/own', '/my/start/a/b/1']) {
+      expect(flowStepPathOf(path), path).toBe(path);
+    }
+    expect(
+      clickOf({
+        own: 'learn_flow_issue',
+        href: '/learn/start/acme/widgets/42?language=Go',
+        pagePath: '/learn/start/issues',
+        origin,
+      }),
+    ).toEqual({ source: 'learn_flow_issue', target: '/learn/start/issue' });
+  });
+
+  it('read an agent’s person arriving at the own-agent step as the agent’s channel', () => {
+    expect(entryOf('/contribute/start/agent/own', '?from=agent', '', origin)).toEqual({ utmSource: 'mcp_agent' });
+    expect(entryOf('/contribute/start/agent/own', '?from=profile', '', origin)).toEqual({});
+    expect(entryOf('/contribute/start/agent/own', '?from=agent', `${origin}/contribute`, origin)).toEqual({});
   });
 });
 

@@ -36,8 +36,8 @@ export function zoneOf(path) {
   if (path.startsWith('components/workspace/')) return 'components/workspace';
   if (path.startsWith('components/contribute/')) return 'components/contribute';
   if (path.startsWith('components/learn/')) return 'components/learn';
-  if (/^app\/(?:\(workspace\)\/)?contribute\//.test(path)) return 'app/contribute';
-  if (/^app\/(?:\(workspace\)\/)?learn\//.test(path)) return 'app/learn';
+  if (/^app\/(?:\((?:workspace|onboarding)\)\/)?contribute\//.test(path)) return 'app/contribute';
+  if (/^app\/(?:\((?:workspace|onboarding)\)\/)?learn\//.test(path)) return 'app/learn';
   return null;
 }
 

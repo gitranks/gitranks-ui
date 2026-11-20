@@ -179,19 +179,47 @@ export const ABOUT_PATH = '/contribute?about=1' as Route;
 export const CONTRIBUTE_TERMS_PATH = '/terms#contribute' as Route;
 
 /**
- * Whether the path is a page every visitor sees once Contribute is launched: the landing, the MCP docs and the
- * questions, in any spelling the router reads as them. Until then only the preview list sees them.
+ * The steps of the flows that start Contribute and Learn (getting in, §5.3): a landing's one button leads into them,
+ * and each step's page checks who opens it.
+ */
+export const GETTING_IN_PATHS = {
+  /** Contribute, step 1: what you work on. */
+  contributeWork: '/contribute/start' as Route,
+  /** Contribute, step 2: who does the work, your own agent or a Claude key. */
+  contributeAgent: '/contribute/start/agent' as Route,
+  contributeAgentOwn: '/contribute/start/agent/own' as Route,
+  contributeAgentKey: '/contribute/start/agent/key' as Route,
+  /** Contribute, step 3: your first issue. */
+  contributeIssue: '/contribute/start/issue' as Route,
+  /** Learn, step 1: your goal. Step 3 is an issue's own start address (`learnStartPath`). */
+  learnGoal: '/learn/start' as Route,
+  /** Learn, step 2: pick an issue. */
+  learnIssues: '/learn/start/issues' as Route,
+} as const;
+
+/** Whether the path is a step of Contribute's flow, `/contribute/start` or under it, in any spelling the router reads. */
+export const isContributeFlowPath = (pathname: string): boolean =>
+  decodedMatches(pathname, /^\/+contribute\/+start(?:[/\\]|$)/i);
+
+/**
+ * Whether the path is a page every visitor sees once Contribute is launched: the landing, the MCP docs, the questions
+ * and the steps of Contribute's flow, in any spelling the router reads as them. Until then only the preview list sees
+ * them.
  */
 export const isOpenAtLaunchPath = (pathname: string): boolean =>
-  isLandingPath(pathname) || decodedMatches(pathname, /^\/+contribute\/+(?:mcp|faq|agents\.md)\/?$/i);
+  isLandingPath(pathname) ||
+  isContributeFlowPath(pathname) ||
+  decodedMatches(pathname, /^\/+contribute\/+(?:mcp|faq|agents\.md)\/?$/i);
 
 /**
  * Whether the path is one of the pages about Contribute or Learn rather than the user's workspace, which show no tabs:
  * Contribute's maintainers page and its report page, the ledger, the MCP docs, the questions and the agent sign-in's
- * consent page; how Learn works, Learn's page for maintainers, and a shared lesson with its result pages.
+ * consent page; the steps of Contribute's flow; how Learn works, Learn's page for maintainers, and a shared lesson with
+ * its result pages.
  */
 export const isTablessPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+contribute\/+(?:maintainers(?:\/+report)?|ledger|mcp|faq|authorize)\/?$/i) ||
+  isContributeFlowPath(pathname) ||
   decodedMatches(pathname, /^\/+learn\/+(?:about|maintainers)\/?$/i) ||
   decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i);
 

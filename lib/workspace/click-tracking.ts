@@ -48,6 +48,27 @@ export const CONTRIBUTE_SOURCES = [
   'contribute_start',
   /** Copy the prompt, on the Start page, Fix it. */
   'contribute_start_copy',
+  /**
+   * The flow that starts Contribute: Continue on What you work on, Sign in with GitHub on any of its steps, Connect your
+   * agent and Use a Claude key on Your agent, Start on a row and Skip for now on Your first issue.
+   */
+  'contribute_flow_work',
+  'contribute_flow_sign_in',
+  'contribute_flow_own',
+  'contribute_flow_key',
+  'contribute_flow_issue',
+  'contribute_flow_skip',
+  /** Start learning, on Learn's landing. */
+  'learn_landing',
+  /**
+   * The flow that starts Learn: Show issues on Your goal; Start a lesson, Take this lesson and Sign in with GitHub to see
+   * all on Pick an issue; Sign in with GitHub on Your agent.
+   */
+  'learn_flow_goal',
+  'learn_flow_issue',
+  'learn_flow_practice',
+  'learn_flow_more',
+  'learn_flow_sign_in',
   /** The workspace's own tabs: moving between them is never counted (`clickOf` drops it on every page). */
   'workspace_tab',
   /** A link to Contribute that carries no mark. */
@@ -65,15 +86,38 @@ export const CONTRIBUTE_SOURCE_ATTR = 'data-contribute-source';
 export const contributeSource = (source: ContributeSource) => ({ [CONTRIBUTE_SOURCE_ATTR]: source }) as const;
 
 /**
- * Sources whose links sit on Contribute's own pages and the workspace's under `/my` (its landing's buttons, the header's
- * Learn on every page, and the Start page's Copy the prompt); any other click there is moving around inside it.
+ * Sources whose links sit on Contribute's own pages and the workspace's under `/my` (its landing's buttons, the steps of
+ * its flow, the header's Learn on every page, and the Start page's Copy the prompt); any other click there is moving
+ * around inside it.
  */
 const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>([
   'contribute_landing',
+  'contribute_flow_work',
+  'contribute_flow_sign_in',
+  'contribute_flow_own',
+  'contribute_flow_key',
+  'contribute_flow_issue',
+  'contribute_flow_skip',
   'learn_menu',
   'learn_start_copy',
   'contribute_start_copy',
 ]);
+
+/**
+ * A click on a step of the flows that start Contribute and Learn: counted, never remembered for a later connect, which
+ * keeps naming the click that led into the flow.
+ */
+export const isFlowSource = (source: string): boolean =>
+  source.startsWith('contribute_flow_') || source.startsWith('learn_flow_');
+
+/** Learn's step 3, at an issue's own start address: `/learn/start/<owner>/<repo>/<issue>`. */
+const LEARN_ISSUE_STEP = /^\/learn\/start\/[^/]+\/[^/]+\/[^/]+\/?$/;
+
+/**
+ * A page's or a link's path as a report names it: Learn's step for one issue is `/learn/start/issue`, so no report
+ * says which issue a visitor picked. Every other path as it is.
+ */
+export const flowStepPathOf = (path: string): string => (LEARN_ISSUE_STEP.test(path) ? '/learn/start/issue' : path);
 
 export const CLICK_REPORT_PATH = '/api/contribute/click';
 
@@ -170,7 +214,7 @@ export function clickOf({
   const source = own || (target ? around || 'other' : null);
   if (!source) return null;
   if (isInsidePath(pagePath) && !INSIDE_SOURCES.has(source)) return null;
-  return path ? { source, target: path } : { source };
+  return path ? { source, target: flowStepPathOf(path) } : { source };
 }
 
 const tagOf = (params: URLSearchParams, name: string) =>
@@ -178,10 +222,12 @@ const tagOf = (params: URLSearchParams, name: string) =>
 
 /**
  * Links of ours that carry no campaign tags but say where they were put: an agent sending its person to sign in
- * (`/contribute?start=agent`) and the footer of a pull request we opened (`/contribute/maintainers?from=<attempt>`).
+ * (`/contribute?start=agent`, and the own-agent step it leads to, `?from=agent`) and the footer of a pull request we
+ * opened (`/contribute/maintainers?from=<attempt>`).
  */
 function implicitSourceOf(pathname: string, params: URLSearchParams): string | undefined {
   if (params.get('start') === 'agent') return 'mcp_agent';
+  if (/^\/contribute\/start\/agent\/own\/?$/.test(pathname) && params.get('from') === 'agent') return 'mcp_agent';
   // Where `?start=agent` sends a signed-in visitor, before the page (and this) runs.
   if (/^\/my\/agent\/connect\/?$/.test(pathname)) return 'mcp_agent';
   if (/^\/contribute\/maintainers\/?$/.test(pathname) && params.has('from')) return 'pr_footer';

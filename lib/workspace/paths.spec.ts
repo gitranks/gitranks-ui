@@ -122,6 +122,8 @@ describe('which pages are which', () => {
       '/contribute/mcp',
       '/contribute/faq',
       '/contribute/authorize',
+      '/contribute/start',
+      '/contribute/start/agent/own',
       '/learn/about',
       '/learn/maintainers',
       '/learn/lessons/a-lesson-1x',

@@ -27,19 +27,14 @@ describe('the follow routes’ bodies', () => {
     expect(eventsOf({ notable: true, digest: true })).toBeNull();
   });
 
-  it('take a press with an address only when email is a channel, trimmed', () => {
+  it('take a press with its channels once each, and never an address from the body', () => {
     expect(
       startBodyOf({ packages: [pkg('x')], events: ALL, channels: ['telegram', 'telegram'], email: 'ignored' }),
-    ).toEqual({
-      packages: [pkg('x')],
-      events: ALL,
-      channels: ['telegram'],
-    });
-    expect(startBodyOf({ packages: [pkg('x')], events: ALL, channels: ['email'], email: ' me@example.com ' })).toEqual({
+    ).toEqual({ packages: [pkg('x')], events: ALL, channels: ['telegram'] });
+    expect(startBodyOf({ packages: [pkg('x')], events: ALL, channels: ['email'], email: 'me@example.com' })).toEqual({
       packages: [pkg('x')],
       events: ALL,
       channels: ['email'],
-      email: 'me@example.com',
     });
   });
 
@@ -47,8 +42,6 @@ describe('the follow routes’ bodies', () => {
     ['no switch on', { events: { notable: false, digest: false, milestones: false }, channels: ['telegram'] }],
     ['no channel', { events: ALL, channels: [] }],
     ['an unknown channel', { events: ALL, channels: ['sms'] }],
-    ['email without an address', { events: ALL, channels: ['email'] }],
-    ['email with no address shape', { events: ALL, channels: ['email'], email: 'me@' }],
   ])('refuse a press with %s', (_, rest) => {
     expect(startBodyOf({ packages: [pkg('x')], ...rest })).toBeNull();
   });

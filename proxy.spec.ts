@@ -745,7 +745,7 @@ describe('proxy', () => {
   });
 
   describe('the pages a link in our email opens', () => {
-    const LINK_PAGES = ['/l/confirm', '/follow/confirm', '/follow/unfollow', '/following', '/following/'];
+    const LINK_PAGES = ['/l/unfollow', '/follow/unfollow', '/following', '/following/'];
 
     it.each(LINK_PAGES)('%s signed in: keeps private, no-store (not the signed-in no-cache)', async (path) => {
       const response = await proxy(request('authjs.session-token=t', path), event);

@@ -24,7 +24,7 @@ describe('the viewer’s follows of a slot', () => {
   it('follow it all only when every package has an active follow', () => {
     expect(followsAll(packages, [row('1', 'a', 'email'), row('2', 'b', 'telegram')])).toBe(true);
     expect(followsAll(packages, [row('1', 'a', 'email'), row('2', 'b', 'telegram')], 'email')).toBe(false);
-    expect(followsAll(packages, [row('1', 'a', 'email'), row('2', 'b', 'email', 'pending')])).toBe(false);
+    expect(followsAll(packages, [row('1', 'a', 'email'), row('2', 'b', 'email', 'removed')])).toBe(false);
     expect(followsAll(packages, [])).toBe(false);
   });
 

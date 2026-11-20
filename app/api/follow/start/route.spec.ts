@@ -1,22 +1,21 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { requestMaySeePackages, sessionTokenOf, startFollow, readLinkToken } = vi.hoisted(() => ({
+const { requestMaySeePackages, sessionTokenOf, startFollow } = vi.hoisted(() => ({
   requestMaySeePackages: vi.fn(async (_req: unknown) => true),
   sessionTokenOf: vi.fn(),
   startFollow: vi.fn(),
-  readLinkToken: vi.fn(async (_kind: string): Promise<string | null> => null),
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/packages/packages-gate', () => ({ requestMaySeePackages }));
 vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 vi.mock('@/lib/follow/follow-api', () => ({ startFollow }));
-vi.mock('@/lib/link-token/link-cookie', () => ({ readLinkToken }));
 
 const { POST } = await import('./route');
 
 const ALL = { notable: true, digest: true, milestones: true };
-const press = { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'], email: 'me@example.com' };
+const press = { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'] };
+const sent = { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'] };
 const call = (body: unknown, headers: Record<string, string> = { origin: 'https://gitranks.com' }) =>
   POST(
     new NextRequest('https://gitranks.com/api/follow/start', {
@@ -31,7 +30,6 @@ describe('POST /api/follow/start', () => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://gitranks.com');
     requestMaySeePackages.mockReset().mockResolvedValue(true);
     sessionTokenOf.mockReset().mockResolvedValue(null);
-    readLinkToken.mockReset().mockResolvedValue(null);
     startFollow.mockReset().mockResolvedValue({ ok: true, data: { refusal: null, notHeld: [], results: [] } });
   });
 
@@ -48,7 +46,7 @@ describe('POST /api/follow/start', () => {
   });
 
   it('refuses a body of another shape', async () => {
-    expect((await call({ ...press, email: 'nope' })).status).toBe(400);
+    expect((await call({ ...press, channels: ['fax'] })).status).toBe(400);
     expect(startFollow).not.toHaveBeenCalled();
   });
 
@@ -58,11 +56,7 @@ describe('POST /api/follow/start', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
     expect(await response.json()).toEqual({ refusal: null, notHeld: [], results: [] });
-    expect(startFollow).toHaveBeenCalledWith(
-      { accountEmailVerified: false, visitorAddress: '203.0.113.7' },
-      { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'], email: 'me@example.com' },
-      null,
-    );
+    expect(startFollow).toHaveBeenCalledWith({ accountEmailVerified: false, visitorAddress: '203.0.113.7' }, sent);
   });
 
   it('names the viewer from the session alone, whatever the body says', async () => {
@@ -76,52 +70,31 @@ describe('POST /api/follow/start', () => {
         accountEmailVerified: false,
         visitorAddress: '203.0.113.7',
       },
-      { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'], email: 'me@example.com' },
-      null,
+      sent,
     );
 
     // Signed out: a login in the body names nobody.
     sessionTokenOf.mockResolvedValue(null);
     await call({ ...press, githubLogin: 'octocat', accountEmail: 'octo@example.com', accountEmailVerified: true });
-    expect(startFollow).toHaveBeenLastCalledWith(
-      { accountEmailVerified: false, visitorAddress: '203.0.113.7' },
-      { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'], email: 'me@example.com' },
-      null,
-    );
+    expect(startFollow).toHaveBeenLastCalledWith({ accountEmailVerified: false, visitorAddress: '203.0.113.7' }, sent);
   });
 
-  it('passes the settings link’s key from its cookie, never from the body, and never answers it', async () => {
-    const key = 'k'.repeat(43);
-    readLinkToken.mockResolvedValue(key);
-    startFollow.mockResolvedValue({
-      ok: true,
-      data: {
-        refusal: null,
-        notHeld: [],
-        results: [
-          { channel: 'email', package: { registry: 'npm', name: 'x' }, result: 'active', url: null, limit: null },
-        ],
-      },
+  it('never passes on an address or a settings key from the body', async () => {
+    sessionTokenOf.mockResolvedValue({
+      githubLogin: 'octocat',
+      email: 'octo@example.com',
+      verifiedEmail: 'octo@example.com',
     });
-
-    const response = await call({ ...press, manageToken: 'from-the-body' });
-
-    expect(readLinkToken).toHaveBeenCalledWith('settings');
-    expect(startFollow).toHaveBeenCalledWith(
-      { accountEmailVerified: false, visitorAddress: '203.0.113.7' },
-      { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'], email: 'me@example.com' },
-      key,
+    await call({ ...press, email: 'stranger@example.com', manageToken: 'k'.repeat(43) });
+    expect(startFollow).toHaveBeenLastCalledWith(
+      {
+        githubLogin: 'octocat',
+        accountEmail: 'octo@example.com',
+        accountEmailVerified: true,
+        visitorAddress: '203.0.113.7',
+      },
+      sent,
     );
-    const text = await response.text();
-    expect(text).not.toContain(key);
-    expect(JSON.parse(text).results[0].result).toBe('active');
-  });
-
-  it('asks nothing about the cookie for a press it refuses', async () => {
-    await call({ ...press, email: 'nope' });
-    requestMaySeePackages.mockResolvedValue(false);
-    await call(press);
-    expect(readLinkToken).not.toHaveBeenCalled();
   });
 
   it('answers the API’s failure with its status', async () => {

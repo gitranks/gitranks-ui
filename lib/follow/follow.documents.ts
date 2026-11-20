@@ -10,7 +10,7 @@ import type DocumentNode from '@/types/typed-document-node';
 /**
  * Following packages, written out here rather than in `.gql` files, as the package pages' operations are: the fields
  * are newer than the generated schema, and an API that does not answer them yet fails only these operations. Enum
- * values come back in upper case (`EMAIL`, `PENDING`); `follow-api.ts` reads them in lower case.
+ * values come back in upper case (`EMAIL`, `ACTIVE`); `follow-api.ts` reads them in lower case.
  */
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
   parse(source) as DocumentNode<TData, TVariables>;
@@ -67,8 +67,6 @@ export const FollowPackagesDocument = doc<
     packages: ApiPackageInput[];
     events: ApiEvents;
     channels: string[];
-    email: string | null;
-    manageToken: string | null;
     visitorAddress: string | null;
   }
 >(
@@ -76,16 +74,12 @@ export const FollowPackagesDocument = doc<
     $packages: [FollowPackageInput!]!
     $events: FollowEventSwitchesInput!
     $channels: [FollowChannelName!]!
-    $email: String
-    $manageToken: String
     $visitorAddress: String
   ) {
     followPackages(
       packages: $packages
       events: $events
       channels: $channels
-      email: $email
-      manageToken: $manageToken
       visitorAddress: $visitorAddress
     ) {
       refusal

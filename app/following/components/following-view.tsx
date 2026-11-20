@@ -180,7 +180,6 @@ function FollowRow({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <PackageName pkg={follow.package} className={cn(removed && 'text-muted-foreground')} />
-          {follow.status === 'PENDING' && <span className="text-xs text-muted-foreground">Not confirmed yet</span>}
           {removed && <span className="text-xs text-muted-foreground">Unfollowed</span>}
         </div>
         <Button

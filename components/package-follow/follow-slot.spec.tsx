@@ -10,11 +10,12 @@ import type { FollowSlotProps } from './follow-slot';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const { session, gate } = vi.hoisted(() => ({
+const { session, gate, signIn } = vi.hoisted(() => ({
   session: { current: { data: null } as { data: unknown } },
   gate: { open: true },
+  signIn: vi.fn(async () => undefined),
 }));
-vi.mock('next-auth/react', () => ({ useSession: () => session.current }));
+vi.mock('next-auth/react', () => ({ useSession: () => session.current, signIn }));
 vi.mock('@/lib/packages/packages-open', () => ({ usePackagesOpen: () => gate.open }));
 
 const { FollowSlot } = await import('./follow-slot');
@@ -62,12 +63,6 @@ describe('FollowSlot', () => {
       (el as HTMLElement).click();
     });
   };
-  const type = async (input: HTMLInputElement, value: string) => {
-    await act(async () => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, value);
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-  };
   const openDialog = async (text = 'Follow') => {
     await click(button(text, container));
     await act(async () => {});
@@ -77,6 +72,8 @@ describe('FollowSlot', () => {
   beforeEach(() => {
     gate.open = true;
     session.current = { data: null };
+    signIn.mockClear();
+    window.history.replaceState(null, '', '/package/npm/react-resize-detector');
     routes = {
       '/api/follow/channels': () => visitorChannels,
       '/api/follow/state': () => ({ follows: [] }),
@@ -147,8 +144,12 @@ describe('FollowSlot', () => {
       expect(dialog()?.textContent).toContain('Follow react-resize-detector');
       expect(calls('/api/follow/channels')[0][0]).toBe('/api/follow/channels?package=react-resize-detector');
       expect(dialog()?.textContent).toContain('Right away. Today 4 of its 16 dependents have 1,000+ stars.');
-      expect(row('email')?.querySelector('input')).toBeTruthy();
+      // Email starts like the chats: no address to type, the same Connect.
+      expect(row('email')?.querySelector('input')).toBeNull();
+      expect(row('email')?.textContent).toContain('Not connected');
+      expect(button('Connect', row('email') ?? document.body)).toBeTruthy();
       expect(row('telegram')?.textContent).toContain('Not connected');
+      expect((button('Follow', dialog() ?? document.body) as HTMLButtonElement).disabled).toBe(true);
       // A closed channel is not drawn.
       expect(row('whatsapp')).toBeNull();
     });
@@ -168,28 +169,26 @@ describe('FollowSlot', () => {
       expect(existsSync(join(process.cwd(), 'app', LINK_PAGES.settings, 'page.tsx'))).toBe(true);
     });
 
-    it('sends a visitor’s email follow and asks them to check their inbox', async () => {
-      routes['/api/follow/start'] = () => ({
-        refusal: null,
-        notHeld: [],
-        results: [{ channel: 'email', package: one[0], result: 'pending', url: null, limit: null }],
-      });
+    it('opens a visitor’s Email row in place with why, and signs in back to this page', async () => {
       await render();
       await openDialog();
 
-      const follow = button('Follow', dialog() ?? document.body) as HTMLButtonElement;
-      expect(follow.disabled).toBe(true);
-      await type(row('email')?.querySelector('input') as HTMLInputElement, 'me@example.com');
-      expect(follow.disabled).toBe(false);
-      await click(follow);
+      await click(button('Connect', row('email') ?? document.body));
+      expect(row('email')?.textContent).toContain('Needs a GitHub sign-in');
+      expect(row('email')?.textContent).toContain('We only email the address GitHub has verified for your account');
+      expect(row('email')?.textContent).toContain('You come back to this page to finish.');
+      expect(button('Connect', row('email') ?? document.body)?.getAttribute('aria-expanded')).toBe('true');
+      // Nothing to follow yet: email waits for the sign-in.
+      expect((button('Follow', dialog() ?? document.body) as HTMLButtonElement).disabled).toBe(true);
 
-      expect(bodyOf('/api/follow/start')).toEqual({
-        packages: one,
-        events: ALL,
-        channels: ['email'],
-        email: 'me@example.com',
+      await click(button('Sign in with GitHub', row('email') ?? document.body));
+      expect(signIn).toHaveBeenCalledWith('github-basic', {
+        redirectTo: '/package/npm/react-resize-detector?follow=email%3Areact-resize-detector',
       });
-      expect(dialog()?.textContent).toContain('Check your inbox to confirm');
+      expect(calls('/api/follow/start')).toHaveLength(0);
+
+      await click(button('Connect', row('email') ?? document.body));
+      expect(row('email')?.textContent).not.toContain('Needs a GitHub sign-in');
     });
 
     it('gives Telegram’s link when a visitor connects it', async () => {
@@ -202,7 +201,6 @@ describe('FollowSlot', () => {
       await render();
       await openDialog();
 
-      await click(row('email')?.querySelector('[role="checkbox"]'));
       await click(button('Connect', row('telegram') ?? document.body));
       expect(row('telegram')?.textContent).toContain('You finish in Telegram after Follow');
       await click(button('Follow', dialog() ?? document.body));
@@ -234,7 +232,6 @@ describe('FollowSlot', () => {
 
       expect(calls('/api/follow/channels')[0][0]).toBe('/api/follow/channels');
       expect(dialog()?.textContent).not.toContain('Today');
-      await click(row('email')?.querySelector('[role="checkbox"]'));
       await click(button('Connect', row('telegram') ?? document.body));
       await click(button('Follow', dialog() ?? document.body));
 
@@ -269,19 +266,104 @@ describe('FollowSlot', () => {
       expect(button('Follow', container)).toBeTruthy();
     });
 
-    it('offers a signed-in viewer their own email as the address', async () => {
+    it('follows a signed-in viewer at their verified email at once, with no address in the press', async () => {
       session.current = { data: { user: { githubLogin: 'octocat', email: 'octo@example.com' } } };
+      routes['/api/follow/channels'] = () => ({ ...visitorChannels, verifiedEmail: 'octo@example.com' });
+      routes['/api/follow/start'] = () => ({
+        refusal: null,
+        notHeld: [],
+        results: [{ channel: 'email', package: one[0], result: 'active', url: null, limit: null }],
+      });
       await render();
       await openDialog();
 
-      expect(row('email')?.querySelector('input')?.value).toBe('octo@example.com');
+      expect(row('email')?.textContent).toContain('octo@example.com · verified on GitHub');
+      expect(row('email')?.querySelector('input')).toBeNull();
+      expect(row('email')?.querySelector('[role="checkbox"]')?.getAttribute('aria-checked')).toBe('true');
+      await click(button('Follow', dialog() ?? document.body));
+
+      expect(bodyOf('/api/follow/start')).toEqual({ packages: one, events: ALL, channels: ['email'] });
+      expect(dialog()?.textContent).toContain('You follow react-resize-detector');
+      expect(dialog()?.textContent).toContain('Following on Email. We write to octo@example.com.');
+    });
+
+    it('tells a signed-in viewer with no verified email why, and leaves the chats open', async () => {
+      session.current = { data: { user: { githubLogin: 'octocat' } } };
+      await render();
+      await openDialog();
+
+      expect(row('email')?.textContent).toContain('No verified email from your GitHub sign-in');
+      expect(row('email')?.querySelector('[role="checkbox"]')).toBeNull();
+      expect((button('GitHub email settings', row('email') ?? document.body) as HTMLAnchorElement).href).toBe(
+        'https://github.com/settings/emails',
+      );
+      // Signing in again reads the verified email again, and comes back to this dialog.
+      await click(button('Sign in again', row('email') ?? document.body));
+      expect(signIn).toHaveBeenCalledWith('github-basic', {
+        redirectTo: '/package/npm/react-resize-detector?follow=email%3Areact-resize-detector',
+      });
+      expect((button('Follow', dialog() ?? document.body) as HTMLButtonElement).disabled).toBe(true);
+      expect(button('Connect', row('telegram') ?? document.body)).toBeTruthy();
+    });
+
+    it('opens again for a viewer back from the sign-in, and takes the mark out of the address', async () => {
+      session.current = { data: { user: { githubLogin: 'octocat', email: 'octo@example.com' } } };
+      window.history.replaceState(
+        null,
+        '',
+        '/package/npm/react-resize-detector?tab=used-by&follow=email%3Areact-resize-detector',
+      );
+      await render();
+      await act(async () => {});
+
+      expect(dialog()?.textContent).toContain('Follow react-resize-detector');
+      expect(`${window.location.pathname}${window.location.search}`).toBe(
+        '/package/npm/react-resize-detector?tab=used-by',
+      );
+    });
+
+    it('back from the sign-in, starts from what the viewer follows already, never starting it again', async () => {
+      session.current = { data: { user: { githubLogin: 'octocat', email: 'octo@example.com' } } };
+      routes['/api/follow/channels'] = () => ({ ...visitorChannels, verifiedEmail: 'octo@example.com' });
+      const quiet = { notable: true, digest: false, milestones: true };
+      routes['/api/follow/state'] = () => ({
+        follows: [{ id: 'f1', channel: 'email', package: one[0], status: 'active', events: quiet }],
+      });
+      window.history.replaceState(null, '', '/package/npm/react-resize-detector?follow=email%3Areact-resize-detector');
+      await render();
+      await act(async () => {});
+
+      expect(row('email')?.textContent).toContain('Following');
+      expect(button('Unfollow', row('email') ?? document.body)).toBeTruthy();
+      const digest = [...(dialog()?.querySelectorAll('[role="checkbox"]') ?? [])][1];
+      expect(digest?.getAttribute('aria-checked')).toBe('false');
+      expect((button('Follow', dialog() ?? document.body) as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('a mark for another slot (a Used by filter not kept) opens nothing', async () => {
+      session.current = { data: { user: { githubLogin: 'octocat', email: 'octo@example.com' } } };
+      window.history.replaceState(null, '', '/package/npm/react-resize-detector?follow=email%3Afoo');
+      await render();
+      await act(async () => {});
+
+      expect(dialog()).toBeNull();
+      expect(window.location.search).toBe('');
+    });
+
+    it('a visitor back without a session: the mark goes, the dialog stays closed', async () => {
+      window.history.replaceState(null, '', '/package/npm/react-resize-detector?follow=email%3Areact-resize-detector');
+      await render();
+      await act(async () => {});
+
+      expect(dialog()).toBeNull();
+      expect(window.location.search).toBe('');
     });
 
     it('says GitRanks has no data for a package it does not hold', async () => {
       routes['/api/follow/start'] = () => ({ refusal: 'not_held', notHeld: [one[0]], results: [] });
       await render();
       await openDialog();
-      await type(row('email')?.querySelector('input') as HTMLInputElement, 'me@example.com');
+      await click(button('Connect', row('telegram') ?? document.body));
       await click(button('Follow', dialog() ?? document.body));
 
       expect(dialog()?.textContent).toContain(

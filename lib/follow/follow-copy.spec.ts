@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { FollowChannelOption, FollowStartAnswer, FollowStartOutcome } from './follow.types';
+import type { FollowChannelOption, FollowStartAnswer, FollowStartOutcome, FollowStartResult } from './follow.types';
 import { channelHint, chatLinkOf, eventSwitches, failureView, outcomeView } from './follow-copy';
 
 const pkg = (name: string) => ({ registry: 'npm', name });
@@ -43,6 +43,10 @@ describe('the Follow dialog’s words', () => {
     expect(channelHint(option({ channel: 'email', addressHint: 'm•••@gmail.com' }), true)).toBe(
       'Following · m•••@gmail.com',
     );
+    expect(channelHint(option({ channel: 'email' }), false, 'octo@example.com')).toBe(
+      'octo@example.com · verified on GitHub',
+    );
+    expect(channelHint(option({ channel: 'email' }), false)).toBe('Not connected');
   });
 
   it('open a chat link only on the chat app’s own site', () => {
@@ -56,10 +60,11 @@ describe('the Follow dialog’s words', () => {
 });
 
 describe('what a press of Follow became', () => {
-  it('asks to check the inbox after an email follow', () => {
-    const view = outcomeView(answer([outcome('email', 'x', 'pending')]), 'x');
-    expect(view.title).toBe('Check your inbox to confirm');
-    expect(view.notes).toEqual([expect.objectContaining({ channel: 'email', tone: 'next' })]);
+  it('says where an email follow writes', () => {
+    expect(outcomeView(answer([outcome('email', 'x', 'active')]), 'x', 'octo@example.com')).toEqual({
+      title: 'You follow x',
+      notes: [{ channel: 'email', tone: 'done', text: 'Following on Email. We write to octo@example.com.' }],
+    });
   });
 
   it('gives Telegram’s link from the code, to finish in the chat', () => {
@@ -95,9 +100,10 @@ describe('what a press of Follow became', () => {
   it.each([
     ['limit', 'too many follow requests'],
     ['closed', "isn't open here yet"],
-    ['invalid_email', "doesn't look like an email address"],
-  ] as const)('explains a %s refusal', (result, words) => {
-    const view = outcomeView(answer([outcome('email', 'x', result)]), 'x');
+    ['sign_in', 'with a verified email'],
+    ['invalid_email', 'try again in a few minutes'],
+  ] as const)('explains a %s refusal, and one the page does not know', (result, words) => {
+    const view = outcomeView(answer([outcome('email', 'x', result as FollowStartResult)]), 'x');
     expect(view.title).toBe('Not followed');
     expect(view.notes[0].tone).toBe('problem');
     expect(view.notes[0].text.toLowerCase()).toContain(words.toLowerCase());
@@ -112,11 +118,7 @@ describe('what a press of Follow became', () => {
 
   it('keeps the channels in the dialog’s order', () => {
     const view = outcomeView(
-      answer([
-        outcome('whatsapp', 'x', 'active'),
-        outcome('email', 'x', 'pending'),
-        outcome('telegram', 'x', 'active'),
-      ]),
+      answer([outcome('whatsapp', 'x', 'active'), outcome('email', 'x', 'active'), outcome('telegram', 'x', 'active')]),
       'x',
     );
     expect(view.notes.map(({ channel }) => channel)).toEqual(['email', 'telegram', 'whatsapp']);

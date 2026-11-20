@@ -35,7 +35,7 @@ describe('GET /api/follow/channels', () => {
   it('asks for one package by its name, never kept by a cache', async () => {
     const response = await call('?package=%40nebula%2Fui');
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(await response.json()).toEqual({ ...channels, settingsLink: false });
+    expect(await response.json()).toEqual({ ...channels, settingsLink: false, verifiedEmail: null });
     expect(readFollowChannels).toHaveBeenCalledWith(
       { accountEmailVerified: false },
       { registry: 'npm', name: '@nebula/ui' },
@@ -50,13 +50,32 @@ describe('GET /api/follow/channels', () => {
     const text = await response.text();
 
     expect(readLinkToken).toHaveBeenCalledWith('settings');
-    expect(JSON.parse(text)).toEqual({ ...channels, settingsLink: true });
+    expect(JSON.parse(text)).toEqual({ ...channels, settingsLink: true, verifiedEmail: null });
     expect(text).not.toContain(key);
   });
 
   it('offers Settings to a signed-in viewer, whose own list it opens on', async () => {
     sessionTokenOf.mockResolvedValue({ githubLogin: 'octocat' });
-    expect(await (await call()).json()).toEqual({ ...channels, settingsLink: true });
+    expect(await (await call()).json()).toEqual({ ...channels, settingsLink: true, verifiedEmail: null });
+  });
+
+  it('answers a signed-in viewer their own email only when GitHub had it verified at the sign-in', async () => {
+    sessionTokenOf.mockResolvedValue({
+      githubLogin: 'octocat',
+      email: 'Octo@Example.com',
+      verifiedEmail: 'octo@example.com',
+    });
+    expect((await (await call()).json()).verifiedEmail).toBe('Octo@Example.com');
+
+    sessionTokenOf.mockResolvedValue({ githubLogin: 'octocat', email: 'octo@example.com' });
+    expect((await (await call()).json()).verifiedEmail).toBeNull();
+
+    sessionTokenOf.mockResolvedValue({
+      githubLogin: 'octocat',
+      email: 'new@example.com',
+      verifiedEmail: 'old@example.com',
+    });
+    expect((await (await call()).json()).verifiedEmail).toBeNull();
   });
 
   it('refuses a name npm never takes', async () => {

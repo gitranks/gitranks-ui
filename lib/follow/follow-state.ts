@@ -1,8 +1,8 @@
 import type { FollowChannel, FollowEvents, FollowPackage, FollowRow } from './follow.types';
 import { packageKeyOf } from '@/lib/packages/registries';
 
-// The signed-in viewer's follows as the slot and its dialog read them. Only an active follow counts: a pending one waits
-// for its confirmation, and a removed one is kept a while only for Undo.
+// The signed-in viewer's follows as the slot and its dialog read them. Only an active follow counts: a removed one is
+// kept a while only for Undo.
 
 /** Every switch on: what a first follow asks for unless the person turns one off. */
 export const ALL_EVENTS: FollowEvents = { notable: true, digest: true, milestones: true };

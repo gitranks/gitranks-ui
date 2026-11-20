@@ -13,20 +13,11 @@ import { isPackageName, isRegistryId, packageKeyOf } from '@/lib/packages/regist
 // What the follow routes take from the browser, checked before anything is asked: a body of another shape is refused
 // whole. Who is asking is never read from a body: the route reads it from the session.
 
-/** The longest email address taken. */
-export const EMAIL_MAX_LENGTH = 254;
-
-/** An address's shape, as the dialog checks it before sending; the final word on an address is not the site's. */
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
 /** A follow's id as the API answers it. */
 const FOLLOW_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/** Whether a text looks like an email address. */
-export const isEmailShape = (value: string): boolean => value.length <= EMAIL_MAX_LENGTH && EMAIL.test(value);
 
 /** One package of a body: a registry the site lists and a name the registry takes; null for anything else. */
 function packageOf(item: unknown): FollowPackage | null {
@@ -61,7 +52,10 @@ export function eventsOf(value: unknown): FollowEvents | null {
   };
 }
 
-/** A Follow press: packages, switches with one on at least, channels, and an address when email is one. */
+/**
+ * A Follow press: packages, switches with one on at least, and channels. An email follow's address is never in the
+ * body: it is the signed-in account's verified email, which the route reads from the session.
+ */
 export function startBodyOf(value: unknown): FollowStartBody | null {
   if (!isRecord(value)) return null;
   const packages = packagesOf(value.packages);
@@ -71,12 +65,7 @@ export function startBodyOf(value: unknown): FollowStartBody | null {
   const { channels } = value;
   if (!Array.isArray(channels) || channels.length === 0 || channels.length > FOLLOW_CHANNELS.length) return null;
   if (!channels.every((channel) => (FOLLOW_CHANNELS as readonly unknown[]).includes(channel))) return null;
-  const unique = [...new Set(channels as FollowChannel[])];
-
-  if (!unique.includes('email')) return { packages, events, channels: unique };
-  const email = typeof value.email === 'string' ? value.email.trim() : '';
-  if (!isEmailShape(email)) return null;
-  return { packages, events, channels: unique, email };
+  return { packages, events, channels: [...new Set(channels as FollowChannel[])] };
 }
 
 /** A change of one follow: its id with new switches, `remove`, or `undo` (one of the last two at most). */

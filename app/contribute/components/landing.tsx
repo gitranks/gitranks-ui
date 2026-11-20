@@ -135,13 +135,8 @@ function StartButton({ start }: { start: LandingStart }) {
   const classes = cn(buttonVariants({ size: 'lg' }), 'min-h-11.5 px-5 text-base font-semibold max-sm:flex-[1_1_100%]');
   if ('member' in start) {
     return (
-      <Link
-        href={WORKSPACE_PATHS.contribute}
-        prefetch={false}
-        className={classes}
-        data-landing-start=""
-        {...contributeSource('contribute_landing')}
-      >
+      // Unmarked: a member going back to their tab is no start, and the landing's mark counts starts.
+      <Link href={WORKSPACE_PATHS.contribute} prefetch={false} className={classes} data-landing-start="">
         Open Contribute
       </Link>
     );

@@ -18,6 +18,8 @@ vi.mock('@/lib/workspace/actions', () => ({}));
 const data = vi.hoisted(() => ({
   loadContribute: vi.fn(),
   loadProviderInterests: vi.fn(async () => []),
+  loadContributeSetup: vi.fn(async () => false),
+  viewerLogin: vi.fn(async (): Promise<string | null> => null),
 }));
 vi.mock('@/lib/workspace/contribute.data', () => data);
 const gate = vi.hoisted(() => ({ contributeOpen: vi.fn(async () => true) }));
@@ -37,7 +39,11 @@ const startsOf = (html: string) =>
     label,
   ]);
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  data.loadContributeSetup.mockResolvedValue(false);
+  data.viewerLogin.mockResolvedValue(null);
+});
 
 describe('where the landing’s button leads a signed-in person', () => {
   it('the step that is left: the agent’s connect step mid-setup, step 2 with preferences saved, else step 1', () => {
@@ -54,12 +60,29 @@ describe('where the landing’s button leads a signed-in person', () => {
 describe('how Contribute works, /contribute/about', () => {
   const about = async () => renderToStaticMarkup((await ContributeAboutView()) as ReactElement);
 
-  it('offers a member Open Contribute, with no tabs and no start into the flow', async () => {
+  it('offers a member Open Contribute, with no tabs and no start into the flow, and counts no start', async () => {
     data.loadContribute.mockResolvedValue(views.active);
-    expect(startsOf(await about())).toEqual([
+    const html = await about();
+    expect(startsOf(html)).toEqual([
       ['/contribute', 'Open Contribute'],
       ['/contribute', 'Open Contribute'],
     ]);
+    for (const [tag] of html.matchAll(/<a [^>]*data-landing-start[^>]*>/g)) {
+      expect(tag).not.toContain('data-contribute-source');
+    }
+  });
+
+  it('tells an account being set up, or one with no profile, so, as /contribute does', async () => {
+    data.loadContribute.mockResolvedValue(null);
+    data.loadContributeSetup.mockResolvedValue(true);
+    data.viewerLogin.mockResolvedValue('octocat');
+    const settingUp = await about();
+    expect(settingUp).toContain('data-contribute-setting-up');
+    expect(settingUp).not.toContain('data-landing-start');
+    data.loadContributeSetup.mockResolvedValue(false);
+    const noProfile = await about();
+    expect(noProfile).toContain('data-contribute-no-profile');
+    expect(noProfile).not.toContain('data-landing-start');
   });
 
   it('starts anyone else at their step, a visitor at the first', async () => {

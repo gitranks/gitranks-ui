@@ -58,6 +58,11 @@ describe('the MCP docs, sign-in first', () => {
     expect(plain).toContain("Don't use the Authenticate button on the Manage MCP Servers page");
     // The token steps sit in a fold of their own, after the sign-in.
     expect(html.indexOf('data-sign-in-start')).toBeLessThan(html.indexOf('data-token-start'));
+    // Its first step leads to the own-agent step, where a token is made in the same fold.
+    const link = html.match(/<a [^>]*data-token-connect[^>]*>([^<]*)<\/a>/);
+    expect(link?.[0]).toContain('href="/contribute/start/agent/own"');
+    expect(link?.[1]).toBe('Connect your own agent');
+    expect(html).not.toContain('/contribute/about#ways');
   });
 
   it('open with the clip of the Claude Code setup: muted, with controls, never playing from the markup', () => {

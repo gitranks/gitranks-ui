@@ -1,26 +1,18 @@
 import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { ContributeTabSkeleton } from '@/app/(workspace)/contribute/components/contribute-tab-skeleton';
 import { ContributeTab } from '@/app/(workspace)/contribute/components/contribute-tab-view';
 import { issuesQueryOf } from '@/app/contribute/components/issues-filter';
 import { Landing } from '@/app/contribute/components/landing';
-import { signedInStartOf, VISITOR_START } from '@/app/contribute/components/landing-view';
-import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
+import { noViewPanelOf, signedInStartOf, VISITOR_START } from '@/app/contribute/components/landing-view';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
-import {
-  loadAttempts,
-  loadContribute,
-  loadContributeSetup,
-  loadProviderInterests,
-  viewerLogin,
-} from '@/lib/workspace/contribute.data';
+import { loadAttempts, loadContribute, loadProviderInterests } from '@/lib/workspace/contribute.data';
 import { contributeHomeOf } from '@/lib/workspace/contribute-state';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { hasAnyAttempt } from '@/lib/workspace/getting-in';
 import { AGENTS_DOC_PATH, GETTING_IN_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
-import { contributeOpen } from '@/lib/workspace/preview-gate';
 
 /**
  * The landing's markdown, for agents: named in the head, and served on `Accept: text/markdown`. Not indexed, set here as
@@ -46,28 +38,12 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   const agentPage = loadAgentPage();
   const view = await loadContribute();
   if (!view) {
-    // A new GitHub account, signed in and read for the first time now: what happens, until its account is ready.
-    if (await loadContributeSetup()) {
-      return (
-        <main className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16">
-          <ContributeSettingUp />
-        </main>
-      );
-    }
-    const open = await contributeOpen();
-    // Launched, signed in, and no profile here nor one on its way: the landing's sign-in would lead nowhere.
-    if (open && (await viewerLogin())) {
-      return (
-        <main className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16">
-          <ContributeNoProfile />
-        </main>
-      );
-    }
-    // Launched, the landing is everyone's (§9.3): a visitor without a session.
-    if (open) {
-      return <Landing viewer="visitor" start={VISITOR_START} noted={[]} stats={(await agentPage)?.stats} />;
-    }
-    notFound();
+    // Being set up, or no profile: the panel that says so. Launched, the landing is everyone's: a visitor's.
+    return (
+      (await noViewPanelOf()) ?? (
+        <Landing viewer="visitor" start={VISITOR_START} noted={[]} stats={(await agentPage)?.stats} />
+      )
+    );
   }
 
   const home = contributeHomeOf(view, params);

@@ -6,9 +6,6 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/contribute',
   useSearchParams: () => new URLSearchParams(),
-  redirect: (to: string) => {
-    throw new Error(`NEXT_REDIRECT ${to}`);
-  },
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
@@ -16,7 +13,6 @@ vi.mock('@/lib/workspace/issue-actions', () => ({}));
 vi.mock('@/lib/workspace/start/start-page.actions', () => ({}));
 
 const { ContributeTabScreen } = await import('./contribute-tab');
-const { default: ContributeIssuesPage } = await import('../issues/page');
 const { issuePage } = await import('@/lib/contribute/__fixtures__/contribute-overview');
 const { activityOf, runOf } = await import('@/lib/contribute/__fixtures__/agent-runs');
 const { NOW, limits, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
@@ -173,16 +169,5 @@ describe('the Contribute tab', () => {
     // Its next step is none: no "Show 10 more", though the total is past the rows.
     expect(capped.html).not.toContain('data-show-more');
     expect(capped.html.indexOf('data-feed-end')).toBeGreaterThan(capped.html.lastIndexOf('data-live-row'));
-  });
-});
-
-describe('Issues for you, moved', () => {
-  it('sends an old link to the tab at its issues, keeping its filters and dropping a page', async () => {
-    await expect(
-      ContributeIssuesPage({ searchParams: Promise.resolve({ language: 'RUST', size: 'M', after: 'c2' }) } as never),
-    ).rejects.toThrow('NEXT_REDIRECT /contribute?language=RUST&size=M#issues');
-    await expect(ContributeIssuesPage({ searchParams: Promise.resolve({}) } as never)).rejects.toThrow(
-      'NEXT_REDIRECT /contribute#issues',
-    );
   });
 });

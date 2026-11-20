@@ -24,6 +24,8 @@ const to = (source: string, destination: string, has?: OldAddressRedirect['has']
 });
 
 export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
+  // Issues for you is the Contribute tab's list now: its filters kept, at the list (an old `?after=` is ignored there).
+  to('/contribute/issues', '/contribute#issues'),
   to('/contribute/me', '/my/pull-requests'),
   to('/contribute/runs', '/my/agent/runs'),
   // The own agent's way in, then the Claude key's (which holds GitHub's access too, until it has a page of its own).

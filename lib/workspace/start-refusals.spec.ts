@@ -4,7 +4,7 @@ import type { IssueStart } from './issue-start';
 import { startViewOf, startViews } from './start/__fixtures__/start-page';
 import { ISSUE_START_FAILED, issueStartRefusalOf, startRefusalOf } from './start-refusals';
 
-const BACK = { href: '/contribute/issues' as const, label: 'Issues for you' };
+const BACK = { href: '/contribute#issues' as const, label: 'Issues for you' };
 const words = (view = startViews.open) => startRefusalOf(view, BACK);
 
 describe("the Start page's refusals", () => {

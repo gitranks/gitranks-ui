@@ -697,12 +697,12 @@ describe('proxy', () => {
       expect(withSession).not.toHaveBeenCalled();
     });
 
-    it("sends an account being set up to Contribute's home, carrying the connect step, never cached", async () => {
+    it("sends an account being set up to the connect step of Contribute's flow, else home, never cached", async () => {
       settingUp.mockResolvedValue(true);
       for (const [path, to] of [
-        ['/my/agent/connect', 'https://gitranks.com/contribute?start=agent'],
-        ['/my/agent/connect?proof=A_1', 'https://gitranks.com/contribute?start=agent'],
-        ['/my/agent/key', 'https://gitranks.com/contribute?start=key'],
+        ['/my/agent/connect', 'https://gitranks.com/contribute/start/agent/own'],
+        ['/my/agent/connect?proof=A_1', 'https://gitranks.com/contribute/start/agent/own?proof=A_1'],
+        ['/my/agent/key', 'https://gitranks.com/contribute/start/agent/key'],
         ['/my/settings', 'https://gitranks.com/contribute'],
         ['/my/pull-requests', 'https://gitranks.com/contribute'],
       ]) {

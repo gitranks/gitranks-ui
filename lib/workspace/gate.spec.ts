@@ -160,13 +160,27 @@ describe("the workspace gate, over today's answers", () => {
 
 describe('where an account that has not entered goes from a page under /my', () => {
   it('opens the Agent and Settings pages, as someone mid-setup may need them', () => {
-    for (const path of ['/my/agent', '/my/agent/', '/my/agent/connect', '/my/agent/key', '/my/settings/work']) {
+    for (const path of ['/my/agent', '/my/agent/', '/my/agent/key', '/my/agent/runs', '/my/settings/work']) {
       expect(notEnteredTargetOf(path), path).toBeNull();
     }
   });
 
-  it("sends every other page to Contribute's home, a lesson's Start page too", () => {
-    for (const path of ['/my/pull-requests', '/my/pull-requests/acme/widgets/42', '/my/start/acme/widgets/42', '/my']) {
+  it('sends the agent’s connect page to the own-agent step of Contribute’s flow, the query kept', () => {
+    expect(notEnteredTargetOf('/my/agent/connect')).toBe('/contribute/start/agent/own');
+    expect(notEnteredTargetOf('/my/agent/connect/', new URLSearchParams('from=agent'))).toBe(
+      '/contribute/start/agent/own?from=agent',
+    );
+  });
+
+  it('sends a Start page in Fix mode to the flow’s first step', () => {
+    expect(notEnteredTargetOf('/my/start/acme/widgets/42')).toBe('/contribute/start');
+    expect(notEnteredTargetOf('/my/start/acme/widgets/42', new URLSearchParams('from=contribute'))).toBe(
+      '/contribute/start',
+    );
+  });
+
+  it("sends every other page to Contribute's home, a lesson's Start page too for now", () => {
+    for (const path of ['/my/pull-requests', '/my/pull-requests/acme/widgets/42', '/my']) {
       expect(notEnteredTargetOf(path), path).toBe('/contribute');
     }
     expect(notEnteredTargetOf('/my/start/acme/widgets/42', new URLSearchParams('lesson=1'))).toBe('/contribute');

@@ -1,3 +1,6 @@
+import { ArrowLeft } from 'lucide-react';
+import type { Route } from 'next';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { type FlowStepNumber, FlowSteps } from './flow-steps';
@@ -31,5 +34,19 @@ export function FlowHead({ title, text, children }: { title: string; text: strin
       <p className="max-w-prose text-base text-muted-foreground">{text}</p>
       {children}
     </div>
+  );
+}
+
+/** A step's way back to the step before it, over its title. */
+export function FlowBack({ href, children }: { href: Route; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      prefetch={false}
+      className="inline-flex items-center gap-1.5 self-start rounded text-sm font-semibold text-link max-sm:min-h-11"
+    >
+      <ArrowLeft aria-hidden="true" className="size-4" />
+      {children}
+    </Link>
   );
 }

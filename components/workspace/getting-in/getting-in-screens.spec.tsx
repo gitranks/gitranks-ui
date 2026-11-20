@@ -10,7 +10,7 @@ vi.mock('next-auth/react', () => ({ signIn }));
 const { FlowSteps } = await import('./flow-steps');
 const { FlowFrame } = await import('./flow-frame');
 const { FlowSignIn } = await import('./flow-sign-in');
-const { FlowBookmark, forgetFlowBookmark, readFlowBookmark } = await import('./flow-bookmark');
+const { FlowBookmark, FlowExit, forgetFlowBookmark, readFlowBookmark } = await import('./flow-bookmark');
 const { ResumeLink } = await import('./resume-link');
 const { BOOKMARK_KEY } = await import('@/lib/workspace/getting-in-bookmark');
 const { IDENTITY_PROVIDER } = await import('@/lib/auth-providers');
@@ -129,6 +129,27 @@ describe('the bookmark in the browser', () => {
     expect(JSON.parse(window.localStorage.getItem(BOOKMARK_KEY) ?? '{}')).not.toHaveProperty('learn');
     forgetFlowBookmark('contribute');
     expect(window.localStorage.getItem(BOOKMARK_KEY)).toBeNull();
+  });
+
+  it('is forgotten when a Start or a marked way out inside the step is clicked, not on other clicks', async () => {
+    window.history.replaceState(null, '', '/contribute/start/issue');
+    await render(
+      <>
+        <FlowBookmark side="contribute" />
+        <FlowExit side="contribute">
+          <button type="button" data-more="">
+            Show 10 more
+          </button>
+          <button type="button" data-start-control="hosted">
+            Start
+          </button>
+        </FlowExit>
+      </>,
+    );
+    await act(async () => container.querySelector<HTMLButtonElement>('[data-more]')?.click());
+    expect(readFlowBookmark('contribute')).toBe('/contribute/start/issue');
+    await act(async () => container.querySelector<HTMLButtonElement>('[data-start-control]')?.click());
+    expect(readFlowBookmark('contribute')).toBeNull();
   });
 
   it('with storage blocked keeps nothing and the link starts at the server’s step', async () => {

@@ -228,19 +228,23 @@ export const isWorkspacePath = (pathname: string): boolean =>
   isContributePath(pathname) || isMyPath(pathname) || decodedMatches(pathname, /^\/+learn(?:[/\\]|$)/i);
 
 /**
- * Where a workspace page sends an account being set up: Contribute's home, which says so and reads itself again until
- * the account is ready, carrying the way of contributing the user picked (`start`) from the two connect pages, so the
- * home goes on to that step then.
+ * Where a workspace page sends an account being set up: the two connect pages to their steps of Contribute's flow
+ * (which say so in place and keep the query), any other page to Contribute's home, which says so too. Both read
+ * themselves again until the account is ready.
  */
-export function settingUpHomeOf(url: { pathname: string; searchParams: URLSearchParams }): string {
-  if (decodedMatches(url.pathname, /^\/+my\/+agent\/+connect\/?$/i)) return '/contribute?start=agent';
-  if (decodedMatches(url.pathname, /^\/+my\/+agent\/+key\/?$/i)) return '/contribute?start=key';
+export function settingUpHomeOf(url: { pathname: string; search?: string }): string {
+  if (decodedMatches(url.pathname, /^\/+my\/+agent\/+connect\/?$/i)) {
+    return `${GETTING_IN_PATHS.contributeAgentOwn}${url.search ?? ''}`;
+  }
+  if (decodedMatches(url.pathname, /^\/+my\/+agent\/+key\/?$/i)) {
+    return `${GETTING_IN_PATHS.contributeAgentKey}${url.search ?? ''}`;
+  }
   return '/contribute';
 }
 
 /** The page for AI agents, in markdown: a route handler, so links to it are plain anchors, never the router's. */
 export const AGENTS_DOC_PATH = '/contribute/agents.md';
-/** Where an agent sends its person: the landing with the own-agent sign-in open (signed in: the connect step). */
+/** Where an agent sends its person: an old address, sent on to the own-agent step of Contribute's flow. */
 export const START_AGENT_PATH = '/contribute?start=agent' as Route;
 
 /** Settings, a summary of every setting, and the pages each one is changed on. */

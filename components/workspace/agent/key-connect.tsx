@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, type ReactNode, useId, useState, useTransition } from 'react';
@@ -59,6 +60,10 @@ export type KeyConnectProps = {
   languages?: string[];
   /** The key's own trouble, under the heading. */
   notices?: ReactNode;
+  /** Where "Use your own agent instead" goes: the Agent tab's connect page, or the own-agent step of the flow. */
+  ownAgentHref?: Route;
+  /** The line over the title for a first key: "The only step" unless the page is a step of a longer flow. */
+  eyebrow?: string;
 };
 
 /**
@@ -76,6 +81,8 @@ export function KeyConnect({
   firstKey = !replacing,
   languages = [],
   notices,
+  ownAgentHref = WORKSPACE_PATHS.agentConnect,
+  eyebrow = 'The only step · about two minutes',
 }: KeyConnectProps) {
   const router = useRouter();
   const id = useId();
@@ -145,9 +152,7 @@ export function KeyConnect({
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 sm:gap-5" data-connect-path="key">
       <div className="flex flex-col gap-2 pb-1">
-        <span className="text-xs font-semibold text-primary">
-          {replacing ? 'Replace your key' : 'The only step · about two minutes'}
-        </span>
+        <span className="text-xs font-semibold text-primary">{replacing ? 'Replace your key' : eyebrow}</span>
         <h1 className={HEADING.page}>{replacing ? 'Connect a new Claude key' : 'Connect your Claude key'}</h1>
         <p className="text-foreground/80">
           {replacing
@@ -159,7 +164,7 @@ export function KeyConnect({
             See your issues →
           </Link>
         ) : (
-          <Link href={WORKSPACE_PATHS.agentConnect} prefetch={false} className="text-sm font-semibold text-link">
+          <Link href={ownAgentHref} prefetch={false} className="text-sm font-semibold text-link">
             Use your own agent instead →
           </Link>
         )}

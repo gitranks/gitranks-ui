@@ -81,6 +81,7 @@ describe('the old workspace addresses', () => {
     ['/learn/attempts/A_1?resume=n0nce', '/my/pull-requests/by-attempt/A_1?resume=n0nce'],
     ['/learn/lessons', '/my/progress'],
     ['/learn/lessons/', '/my/progress'],
+    ['/contribute?start=key', '/contribute/start/agent/key?start=key'],
   ])('%s goes on to %s, for now (307)', (from, to) => {
     expect(redirectOf(from)).toEqual({ location: to, status: 307 });
   });
@@ -88,7 +89,9 @@ describe('the old workspace addresses', () => {
   it('leaves alone the addresses that stay, and the ones other pages still answer', () => {
     for (const address of [
       '/contribute',
-      '/contribute?start=agent',
+      '/contribute?start=other',
+      '/contribute?about=1',
+      '/contribute/start',
       '/contribute/issues/x',
       '/contribute/attempts',
       '/contribute/attempts/A_1/runs',
@@ -104,6 +107,15 @@ describe('the old workspace addresses', () => {
     ]) {
       expect(redirectOf(address), address).toBeNull();
     }
+  });
+
+  it('sends an agent’s person to the own-agent step, named as the agent’s channel', () => {
+    const to = redirectOf('/contribute?start=agent');
+    expect(to?.status).toBe(307);
+    const url = new URL(to?.location ?? '', 'https://gitranks.com');
+    expect(url.pathname).toBe('/contribute/start/agent/own');
+    expect(url.searchParams.get('from')).toBe('agent');
+    expect(redirectOf('/contribute/?start=agent')?.location).toContain('/contribute/start/agent/own');
   });
 
   it('lists the row on the query before the plain row of the same path', () => {

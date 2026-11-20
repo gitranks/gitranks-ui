@@ -120,7 +120,6 @@ export type ContributeHome = { screen: 'tab' } | { screen: 'landing'; viewer: La
 /**
  * `/contribute` for the signed-in user: the landing until they are onboarded, then the Contribute tab. `?about=1` shows
  * an onboarded user the landing again ("How Contribute works"), and `?as=visitor` shows anyone the visitor's landing.
- * `?welcome=agent` (the own agent's connect step) is the tab itself.
  */
 export function contributeHomeOf(
   view: ContributeView,

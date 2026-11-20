@@ -14,13 +14,7 @@ import { HEADING } from '@/components/workspace/primitives';
 import { useOnboardedPush } from '@/components/workspace/use-onboarded-push';
 import { cn } from '@/lib/utils';
 import { createMcpToken, readAgentConnected, revokeMcpToken } from '@/lib/workspace/actions';
-import {
-  AGENT_HINT_MS,
-  AGENT_POLL_MS,
-  agentWelcomeHref,
-  replaceToken,
-  unusedTokenOf,
-} from '@/lib/workspace/agent-connect';
+import { AGENT_HINT_MS, AGENT_POLL_MS, replaceToken, unusedTokenOf } from '@/lib/workspace/agent-connect';
 import type { ContributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeMcpToken } from '@/lib/workspace/contribute.types';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
@@ -42,7 +36,13 @@ import {
   USE_A_TOKEN_INSTEAD,
 } from '@/lib/workspace/mcp-setup';
 import { personalTokensOf } from '@/lib/workspace/oauth-consent';
-import { MCP_DOCS_PATH, pullRequestByAttemptPath, settingsPathOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import {
+  GETTING_IN_PATHS,
+  MCP_DOCS_PATH,
+  pullRequestByAttemptPath,
+  settingsPathOf,
+  WORKSPACE_PATHS,
+} from '@/lib/workspace/paths';
 
 /** Where step 2 stands: no token yet, the token shown with its setup, or the setup done. */
 export type AgentStage = 'none' | 'token' | 'added';
@@ -81,7 +81,7 @@ export type AgentConnectViewProps = {
   replaced?: boolean;
   /** The old token was revoked and the new one could not be made: say so, and offer to try again. */
   revokedOnly?: boolean;
-  /** The agent has called: the token is off the page, which is on its way to the welcome. */
+  /** The agent has called: the token is off the page, which is on its way to the next step. */
   connected?: boolean;
   /** Where focus goes after the button that had it is gone; `n` tells one move from the next. */
   focus?: AgentFocus | null;
@@ -645,10 +645,11 @@ export function AgentConnect({
     }
     // In the workspace already: the page stays, with the next step.
     if (!proof && onboarded) return;
+    // A first connect goes on to the first issue, the last step of Contribute's flow.
     goTo(
       proof
         ? pullRequestByAttemptPath(proof.attemptId, { query: { session: 'next' } })
-        : agentWelcomeHref(clientRef.current),
+        : GETTING_IN_PATHS.contributeIssue,
       { replace: true },
     );
   }, [goTo, proof, embedded, onboarded, onConnected, connectSource]);

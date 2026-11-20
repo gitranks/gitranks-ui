@@ -1,8 +1,5 @@
-import type { Route } from 'next';
-
 import type { ContributeMcpToken, ContributeMcpTokenCreated } from './contribute.types';
 import type { ContributeActionResult } from './errors';
-import { isMcpClient, type McpClient } from './mcp-setup';
 
 /** The own-agent path: the token, the setup, then the agent's first call. */
 
@@ -10,32 +7,6 @@ import { isMcpClient, type McpClient } from './mcp-setup';
 export const AGENT_POLL_MS = 3_000;
 /** Still no call after this: the page says where the variable must be. */
 export const AGENT_HINT_MS = 180_000;
-
-/** `?welcome=agent` on `/contribute`: the agent just connected. */
-export const AGENT_WELCOME = 'agent';
-
-const firstOf = (value: string | string[] | null | undefined) => (Array.isArray(value) ? value[0] : value);
-
-export const isAgentWelcome = (welcome: string | string[] | null | undefined) => firstOf(welcome) === AGENT_WELCOME;
-
-/** The client picked on the way in, our guess: the call does not say which client made it. Claude Code otherwise. */
-export const welcomeClientOf = (client: string | string[] | null | undefined): McpClient => {
-  const value = firstOf(client);
-  return isMcpClient(value) ? value : 'claude-code';
-};
-
-/** Where the page goes once the agent has called. */
-export const agentWelcomeHref = (client: McpClient): Route =>
-  `/contribute?welcome=${AGENT_WELCOME}&client=${encodeURIComponent(client)}` as Route;
-
-/** The address without the welcome's parameters, or null when it has none. Path, other parameters and hash stay. */
-export function forgetWelcomeOf(href: string): string | null {
-  const url = new URL(href);
-  if (!url.searchParams.has('welcome') && !url.searchParams.has('client')) return null;
-  url.searchParams.delete('welcome');
-  url.searchParams.delete('client');
-  return `${url.pathname}${url.search}${url.hash}`;
-}
 
 /**
  * The live token a user who left mid-setup comes back to: the newest one their agent has not used (an agent that signed

@@ -221,14 +221,14 @@ describe('the Contribute preview gate', () => {
     expect(await requestWorkspaceAccess(req)).toBe('hidden');
   });
 
-  it('sends an account being set up home, keeping the way of contributing it picked', () => {
+  it('sends an account being set up to the step of the way of contributing it picked, else home', () => {
     const at = (path: string) => {
       const url = new URL(`https://gitranks.com${path}`);
-      return settingUpHomeOf({ pathname: url.pathname, searchParams: url.searchParams });
+      return settingUpHomeOf({ pathname: url.pathname, search: url.search });
     };
-    expect(at('/my/agent/connect')).toBe('/contribute?start=agent');
-    expect(at('/my/agent/key')).toBe('/contribute?start=key');
-    expect(at('/my/agent/key/')).toBe('/contribute?start=key');
+    expect(at('/my/agent/connect')).toBe('/contribute/start/agent/own');
+    expect(at('/my/agent/key')).toBe('/contribute/start/agent/key');
+    expect(at('/my/agent/key/')).toBe('/contribute/start/agent/key');
     expect(at('/my/settings')).toBe('/contribute');
     expect(at('/contribute/issues?x=1')).toBe('/contribute');
   });

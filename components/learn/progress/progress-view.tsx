@@ -38,8 +38,13 @@ export async function ProgressView({ searchParams }: { searchParams: Promise<Sea
   const progress = await progressRead;
   if (progress === null) notFound();
   const counts = progress?.counts;
-  // Nothing passed: the page shows the way to a first lesson, and no list.
-  if (!counts || counts.lessonsPassed === 0) return <ProgressScreen view={view} page={1} counts={counts} />;
+  if (!counts) return <ProgressScreen view={view} page={1} counts={counts} />;
+  // Nothing passed: the way to a first lesson, and on the first view what was started and not finished (a practice
+  // lesson to continue, an attempt that ended), which the API answers with no pass too.
+  if (counts.lessonsPassed === 0) {
+    const started = view === 'lessons' ? await listRead : undefined;
+    return <ProgressScreen view={view} page={1} counts={counts} list={started ?? undefined} />;
+  }
 
   const list = await listRead;
   if (list === null) notFound();

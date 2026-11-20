@@ -99,7 +99,8 @@ describe('a passed lesson’s row', () => {
       note: 'Its author took it down',
     });
     const hidden: LearnProgressLesson = { ...practice, visibility: 'HIDDEN' };
-    expect(progressLessonLinksOf(hidden).note).toBe('Its author took it down');
+    // Hidden by GitRanks, not by its author.
+    expect(progressLessonLinksOf(hidden)).toEqual({ lesson: null, action: null, note: 'Taken down' });
     // A held page opens for no one: nothing to link, nothing to say.
     expect(progressLessonLinksOf({ ...practice, visibility: 'HELD' })).toEqual({
       lesson: null,

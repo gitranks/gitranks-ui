@@ -26,7 +26,10 @@ export type ProgressScreenProps = {
   page: number;
   /** The viewer's numbers; undefined when the read failed. */
   counts: LearnProgressCounts | undefined;
-  /** A page of the view's list; undefined when the read failed. Not read before a first lesson is passed. */
+  /**
+   * A page of the view's list; undefined when the read failed. Before a first lesson is passed only the first view's
+   * is read, for Not finished.
+   */
   list?: ProgressList;
   /** The viewer's Learn pull requests open now, for the merged views' empty state; null when not known. */
   openPrs?: number | null;
@@ -177,7 +180,10 @@ export function ProgressScreen({ view, page, counts, list, openPrs }: ProgressSc
       <Head />
       <ViewTabs tabs={tabs} label="Your progress" current={view} />
       {empty ? (
-        <NoLessons />
+        <>
+          <NoLessons />
+          {list?.view === 'lessons' ? <NotFinished rows={list.lessons.notFinished} /> : null}
+        </>
       ) : (
         <>
           <p className="max-w-prose text-sm text-muted-foreground">{VIEW_TEXT[view]}</p>

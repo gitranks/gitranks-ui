@@ -136,10 +136,11 @@ export function progressLessonLinksOf(lesson: LearnProgressLesson): ProgressLess
   }
   // A practice lesson opens only while its page does: public, not held.
   const page = !down && lesson.visibility === 'PUBLIC' && lesson.slug ? lessonPath(lesson.slug) : null;
+  // Its author took it down (`REMOVED`); one GitRanks hid (`HIDDEN`) is only "Taken down".
   return {
     lesson: page,
     action: page ? { href: page, label: 'See the lesson' } : null,
-    note: down ? 'Its author took it down' : null,
+    note: lesson.visibility === 'REMOVED' ? 'Its author took it down' : down ? 'Taken down' : null,
   };
 }
 

@@ -250,6 +250,20 @@ describe('the states with nothing to list', () => {
     expect(html).not.toContain('data-next-lesson');
   });
 
+  it('nothing passed, one practice lesson started: the card, then Not finished · 1 with Continue', () => {
+    const started = { ...lessonsPage, items: [], total: 0, notFinished: [fixtures.notFinished[0]] };
+    const html = screen({ counts: zeroCounts, list: { view: 'lessons', lessons: started } });
+    const plain = text(html);
+    expect(plain).toContain('No lessons yet');
+    expect(plain).toContain('Not finished · 1');
+    expect(plain).toContain('Why the submit button stayed disabled Started Oct 22 · 2 of 5 steps passed Continue');
+    expect(html.indexOf('data-section="no-lessons"')).toBeLessThan(html.indexOf('data-section="not-finished"'));
+    expect(html).toMatch(/href="\/learn\/lessons\/submit-button-disabled-4t7n"[^>]*>Continue</);
+    // The card keeps the one primary step.
+    expect(html.match(/data-variant="default"/g)).toHaveLength(1);
+    expect(plain).not.toContain('of 0 lessons');
+  });
+
   it('says the read failed, with the title alone', () => {
     const html = screen({ counts: undefined, list: undefined });
     expect(text(html)).toBe(
@@ -326,6 +340,14 @@ describe('the page’s reads and gate', () => {
     data.loadLearnProgress.mockResolvedValue({ counts: zeroCounts });
     data.loadProgressList.mockResolvedValue({ view: 'repos', repos: { items: [], total: 0 } });
     expect(renderToStaticMarkup(await view({ view: 'repos' }))).toContain('data-section="no-lessons"');
+    expect(data.loadProgressList).toHaveBeenCalledWith('repos', 1);
+    data.loadProgressList.mockResolvedValue({
+      view: 'lessons',
+      lessons: { items: [], total: 0, notFinished: fixtures.notFinished },
+    });
+    const first = renderToStaticMarkup(await view());
+    expect(first).toContain('data-section="no-lessons"');
+    expect(text(first)).toContain('Not finished · 2');
     data.loadLearnProgress.mockResolvedValue(undefined);
     expect(renderToStaticMarkup(await view())).toContain('data-progress="unavailable"');
   });

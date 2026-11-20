@@ -131,7 +131,7 @@ describe('the tab bar', () => {
     ['/my/start/acme/widgets/42', '', 'contribute'],
     ['/my/start/acme/widgets/42', 'lesson=1', 'learn'],
     ['/learn', '', 'learn'],
-    ['/learn/lessons', '', 'learn'],
+    ['/my/progress/', '', 'learn'],
     ['/my/settings/goal', '', 'settings'],
     ['/my/settings/pull-requests', '', 'settings'],
     ['/learn/start/acme/widgets/42', '', 'learn'],

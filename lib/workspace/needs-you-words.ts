@@ -11,7 +11,7 @@ import { FOLLOW_UP_STEP_LABELS, type FollowUpStep, shortSha } from './follow-up-
 import { repoOutTextOf, silentTextOf } from './follow-up-format';
 import { maskedKey, relativeLabel, timeLeftLabel, usd } from './format';
 import { closingWordsOf, replyWordsOf } from './needs-you-replies';
-import { CONNECT_AGENT_PATH, KEY_REPLACE_PATH, pullRequestByAttemptPath } from './paths';
+import { KEY_REPLACE_PATH, pullRequestByAttemptPath, WORKSPACE_PATHS } from './paths';
 import { PR_FIX_WORDS } from './pr-conventions';
 import { clipped, pushDetailOf, shortLeftOf } from './pr-moves';
 import { askedForOf } from './proof';
@@ -232,7 +232,7 @@ export function buttonOf(entry: NeedsYouEntry, label: string): NeedsYouButton | 
     return { label: `${label} ↗`, external: action.url, copy: action.copy, aria: `${aria} (opens GitHub)` };
   }
   if (action.kind === 'AGENT') {
-    return { label, href: action.target === 'CONNECT' ? CONNECT_AGENT_PATH : KEY_REPLACE_PATH, aria };
+    return { label, href: action.target === 'CONNECT' ? WORKSPACE_PATHS.agentConnect : KEY_REPLACE_PATH, aria };
   }
   const move: Record<string, string> = action.move ? { move: action.move } : {};
   // A run's own page: the address by attempt finds its first attempt (replies on a pull request the list does not hold
@@ -257,7 +257,7 @@ export function buttonOf(entry: NeedsYouEntry, label: string): NeedsYouButton | 
 function secondaryOf(entry: NeedsYouEntry, label: string): NeedsYouSecondAction | null {
   const { secondary } = entry;
   if (!secondary) return null;
-  if (secondary.kind === 'AGENT') return { label: 'Connect your own agent', href: CONNECT_AGENT_PATH };
+  if (secondary.kind === 'AGENT') return { label: 'Connect your own agent', href: WORKSPACE_PATHS.agentConnect };
   if (!secondary.prId || !secondary.prNumber) return null;
   return {
     label,

@@ -20,7 +20,9 @@ Both links are private to the owner.
 ## The canvas
 
 One canvas, one page per area (Landing, Developer profile, Repository, Package, Organization, Rankings, Badges,
-Contribute, Learn, Admin), plus To review and Archive.
+Contribute, Workspace, Learn, Admin), plus To review and Archive. Workspace holds the signed-in pages both sides share
+(Pull requests, a pull request's page with its Lesson view, Agent, Settings, the Start page, the parts both front tabs
+use); Contribute and Learn hold their own tab and their public pages.
 
 - **Live boards** (`project/current/<area>/<screen>--<state>.dc.html`) are drawn from this repo's code by
   `pnpm design:export`: the real components, rendered from fixtures, with the app's own stylesheet

@@ -224,5 +224,3 @@ export function resultFactsOf(page: LessonResultPage, origin: string) {
     url: new URL(lessonResultPath(page.head.slug, page.login), origin).toString(),
   };
 }
-
-export type ResultFacts = ReturnType<typeof resultFactsOf>;

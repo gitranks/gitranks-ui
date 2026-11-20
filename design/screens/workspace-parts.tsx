@@ -136,7 +136,7 @@ export const WORKSPACE_PART_SCREENS: Screen[] = [
   {
     id: 'issue-row',
     title: 'Issue row',
-    area: 'contribute',
+    area: 'workspace',
     route: '/contribute',
     sources: [
       'components/workspace/issue-row.tsx',
@@ -245,7 +245,7 @@ export const WORKSPACE_PART_SCREENS: Screen[] = [
   {
     id: 'right-now',
     title: 'Right now',
-    area: 'contribute',
+    area: 'workspace',
     route: '/contribute',
     sources: [
       'components/workspace/right-now.tsx',

@@ -7,7 +7,7 @@ import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
 import type { ContributeNotice } from '@/lib/workspace/contribute-state';
 import { dayLabel } from '@/lib/workspace/format';
-import { CONNECT_KEY_PATH, KEY_REPLACE_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { KEY_REPLACE_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 type NoticeCopy = { title: string; text: ReactNode; action?: { href: Route; label: string }; tone: 'info' | 'warn' };
 
@@ -31,7 +31,7 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         tone: 'info',
         title: 'Connect your Claude key to start',
         text: 'Nothing runs until there is a key. It takes about two minutes in the Claude Console.',
-        action: { href: CONNECT_KEY_PATH, label: 'Connect Claude' },
+        action: { href: WORKSPACE_PATHS.agentKey, label: 'Connect Claude' },
       };
     case 'key-invalid':
       return {

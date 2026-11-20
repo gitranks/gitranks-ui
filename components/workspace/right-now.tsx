@@ -11,7 +11,7 @@ import { RunStepsCard } from '@/components/workspace/run-steps';
 import { cn } from '@/lib/utils';
 import { durationLabel, eventLineOf, runsOf, runTitleOf, spendLabelOf } from '@/lib/workspace/agent-runs';
 import type { ContributeActivity, ContributeAgentRun } from '@/lib/workspace/contribute.types';
-import { pullRequestByAttemptPath, RUNS_PATH } from '@/lib/workspace/paths';
+import { pullRequestByAttemptPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { lastCallOf, type RunSide, rightNowOf, runPrOf, workingLabelOf } from '@/lib/workspace/right-now';
 import { stepNameOf, stepsOf } from '@/lib/workspace/run-steps';
 
@@ -109,7 +109,7 @@ export function RightNow({
         </h2>
         <span className="flex items-baseline gap-3 text-sm">
           <span className="text-muted-foreground">{workingLabelOf(count)}</span>
-          <Link href={RUNS_PATH} prefetch={false} className={link}>
+          <Link href={WORKSPACE_PATHS.agentRuns} prefetch={false} className={link}>
             All runs →
           </Link>
         </span>
@@ -134,16 +134,5 @@ export function RightNow({
         ) : null}
       </div>
     </section>
-  );
-}
-
-/** While the runs are read: a block the height of one lane. */
-export function RightNowSkeleton() {
-  return (
-    <div
-      aria-hidden="true"
-      className="h-36 motion-safe:animate-pulse rounded-xl border bg-muted/40"
-      data-right-now-skeleton=""
-    />
   );
 }

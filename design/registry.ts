@@ -12,6 +12,8 @@ export const AREAS = {
   rankings: 'Rankings',
   badges: 'Badges',
   contribute: 'Contribute',
+  /** The signed-in pages both sides share: Pull requests, a pull request's page, Agent, Settings, the Start page. */
+  workspace: 'Workspace',
   learn: 'Learn',
   admin: 'Admin',
 } as const;

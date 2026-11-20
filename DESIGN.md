@@ -105,6 +105,9 @@ Tokens keep shadcn's names, so stock `components/ui` restyle with no edits. Ligh
 
 Contribute and Learn share one signed-in workspace (`components/workspace/`).
 
+- Its addresses: the two front tabs at `/contribute` and `/learn`; everything else under `/my` (`/my/pull-requests`, a
+  pull request's page by repo and issue, `/my/agent`, `/my/settings`, `/my/start/…`). Links are built from
+  `lib/workspace/paths.ts`, never written by hand.
 - Five tabs, in this order: Contribute, Learn, Pull requests, Agent, Settings. The header marks Contribute or Learn only
   on their own pages, never on the shared tabs.
 - The reference line: every row, card and header that names an issue or a pull request opens with `RefChips` (the repo,

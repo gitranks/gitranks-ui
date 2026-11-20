@@ -279,8 +279,6 @@ const PAGES = {
 export type SettingsFormPage = keyof typeof PAGES;
 
 /** One patch for a page's sections, or the label of the first field that is not a valid number. */
-export type { Draft as SettingsDraft };
-
 export function pagePatchOf(
   page: SettingsFormPage,
   draft: Draft,

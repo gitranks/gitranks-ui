@@ -10,11 +10,11 @@ import { HEADING } from '@/components/workspace/primitives';
 import { saveLearnProfile } from '@/lib/learn/actions';
 import type { LearnProfile, LearnProfileInput } from '@/lib/learn/learn.types';
 import { LEARN_GOAL_LANGUAGES, levelFor } from '@/lib/learn/learn-home';
-import { LEARN_PROFILE_PATH } from '@/lib/learn/learn-path';
 import { formOf, inputOf, LEVELS, withLevel } from '@/lib/learn/profile-form';
 import { cn } from '@/lib/utils';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /**
  * What the quick goal saves: the language as the goal and its level, every other saved level and the focus kept as
@@ -155,7 +155,7 @@ export function LearnGoalQuick({ profile }: { profile: LearnProfile | null }) {
         </Button>
       </fieldset>
       <Link
-        href={LEARN_PROFILE_PATH}
+        href={WORKSPACE_PATHS.settingsGoal}
         prefetch={false}
         className="self-start text-sm font-semibold text-link max-sm:inline-flex max-sm:min-h-11 max-sm:items-center"
       >

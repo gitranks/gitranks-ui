@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { ProfileContributeBlock } from './profile-contribute-block';
 import { ProfileLearnBlock } from './profile-learn-block';
 import { reportPromo } from '@/app/learn/components/use-promo-report';
-import { isProfileOwner } from '@/lib/contribute/profile-issues';
 import {
   OWN_PROFILE_BLOCK_PATH,
   type OwnProfileBlockAnswer,
@@ -17,6 +16,7 @@ import { dismissLearnPromo } from '@/lib/learn/actions';
 import type { ShownPromo } from '@/lib/learn/learn-promo';
 import { readLearnPromo } from '@/lib/learn/learn-promo-read';
 import { loginFromPath } from '@/utils/login-from-path';
+import { isProfileOwner } from '@/utils/profile-owner';
 
 /** One JSON read; null on any failure (the block is left out, never an error). */
 async function read<T>(url: string): Promise<T | null> {

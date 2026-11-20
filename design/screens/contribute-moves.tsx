@@ -117,9 +117,9 @@ const connected: ContributeView = {
   ownAgent: { paths: { hosted: true, mcp: true }, tokens: [] },
 };
 
-const NEXT = '/contribute/attempts/A_1?session=next';
-const FIRST = '/contribute/attempts/A_1';
-const RUN = '/contribute/attempts/A_1/runs/A_F1';
+const NEXT = '/my/pull-requests/driftwood-js/driftwood/871?session=next';
+const FIRST = '/my/pull-requests/driftwood-js/driftwood/871';
+const RUN = '/my/pull-requests/driftwood-js/driftwood/871/runs/A_F1';
 
 /** The session head's states: each status line, move card and variant. */
 export const sessionHeadStates = (page: Page): ScreenState[] => [

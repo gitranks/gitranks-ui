@@ -1,13 +1,13 @@
 import type { Route } from 'next';
 
+import { GITHUB_LOGIN as LOGIN, LESSON_SLUG as SLUG } from '@/lib/workspace/paths';
+
 /** Learn home for a signed-in learner; the front door for a visitor. */
 export const LEARN_PATH = '/learn' as Route;
 /** Learn home's practice lessons: a state without the section shows its top (the issues: `LEARN_ISSUES_PATH`). */
 export const LEARN_PRACTICE_PATH = '/learn#practice' as Route;
 /** The front door for a signed-in learner: how Learn works. */
 export const LEARN_ABOUT_PATH = '/learn/about' as Route;
-/** The user's goal and level. */
-export const LEARN_PROFILE_PATH = '/my/settings/goal' as Route;
 /** What a Learn pull request is, for maintainers. Open to everyone. */
 export const LEARN_MAINTAINERS_PATH = '/learn/maintainers' as Route;
 
@@ -43,14 +43,6 @@ export const isLearnOpenPath = (pathname: string): boolean =>
 /** Learn's front door, `/learn`, in any spelling the router reads as it. */
 export const isLearnHomePath = (pathname: string): boolean => decodedMatches(pathname, /^\/+learn\/?$/i);
 
-/** The Learn pages that show no tabs: the ones open to every visitor. */
-export const isLearnTablessPath = isLearnOpenPath;
-
-/** A lesson's slug: its title in kebab case and a few random characters; letters, digits and hyphens. */
-const SLUG = '[A-Za-z0-9][A-Za-z0-9-]{0,99}';
-/** A GitHub login: letters, digits and hyphens, up to 39 characters. It never holds a dot. */
-const LOGIN = '[A-Za-z0-9][A-Za-z0-9-]{0,38}';
-
 const SLUG_RE = new RegExp(`^${SLUG}$`);
 const LOGIN_RE = new RegExp(`^${LOGIN}$`);
 
@@ -69,11 +61,7 @@ export const lessonPath = (slug: string) => `/learn/lessons/${encodeURIComponent
 export const lessonResultPath = (slug: string, login: string) =>
   `/learn/lessons/${encodeURIComponent(slug)}/passes/${encodeURIComponent(login)}` as Route;
 
-const RESULT_PATH = new RegExp(`^/learn/lessons/${SLUG}/passes/${LOGIN}$`);
 const RESULT_JSON_PATH = new RegExp(`^/learn/lessons/(${SLUG})/passes/(${LOGIN})\\.json$`);
-
-/** Whether the path is a result page, exactly as `lessonResultPath` writes it: no other spelling, nothing under it. */
-export const isLessonResultPath = (pathname: string): boolean => RESULT_PATH.test(pathname);
 
 /**
  * Where `/learn/lessons/<slug>/passes/<login>.json` is answered: the route handler over the result page's read (a page
@@ -100,14 +88,4 @@ export function lessonRouteOf(pathname: string): LessonRoute | null {
   if (result) return { slug: result[1], login: result[2] };
   const lesson = LESSON_PAGE_ROUTE.exec(pathname);
   return lesson ? { slug: lesson[1] } : null;
-}
-
-/** The query parameter a result page's reaction travels in through the sign-in: `?react=yes|no`. */
-export const REACT_PARAM = 'react';
-
-/** `?react=` as the API's reaction; null for anything but `yes` and `no`. */
-export function reactionParamOf(value: unknown): 'YES' | 'NO' | null {
-  if (value === 'yes') return 'YES';
-  if (value === 'no') return 'NO';
-  return null;
 }

@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 
 import type { AuthRequest } from '@/app/api/profile/[login]/route';
 import { auth } from '@/auth';
-import { isProfileOwner, PROFILE_ISSUES_MAX } from '@/lib/contribute/profile-issues';
+import { PROFILE_ISSUES_MAX } from '@/lib/contribute/profile-issues';
 import type { OwnProfileBlockAnswer } from '@/lib/contribute/profile-picks';
 import { OwnProfilePicksDocument } from '@/lib/contribute/profile-picks.data';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { isProfileOwner } from '@/utils/profile-owner';
 
 const NO_STORE = { 'Cache-Control': 'private, no-store' };
 

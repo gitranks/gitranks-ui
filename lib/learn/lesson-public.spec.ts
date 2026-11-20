@@ -2,14 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { lessonPage, PUBLIC_HEAD, result, stub } from './__fixtures__/shared';
 import type { LessonPage } from './learn.types';
-import {
-  githubLoginOf,
-  isLessonResultPath,
-  lessonResultJsonRouteOf,
-  lessonResultPath,
-  lessonSlugOf,
-  reactionParamOf,
-} from './learn-path';
+import { githubLoginOf, lessonResultJsonRouteOf, lessonResultPath, lessonSlugOf } from './learn-path';
 import {
   askedByStepOf,
   isAuthorOf,
@@ -26,6 +19,7 @@ import {
 } from './lesson-public';
 import { lessonPageMetadata, lessonResultMetadata } from './lesson-seo';
 import type { PrFeedbackErrorCode } from '@/lib/workspace/errors';
+import { isLessonResultPath, reactionParamOf } from '@/lib/workspace/paths';
 
 describe('the result addresses', () => {
   it('writes a result page and knows it, exactly', () => {

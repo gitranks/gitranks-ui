@@ -88,32 +88,6 @@ export const roundTalliesOf = (round: ContributeFollowUpRound): string[] =>
     round.resolved ? `${round.resolved} resolved` : null,
   ].filter((tally) => tally !== null);
 
-/**
- * A run as one line: "Run 1 pushed 46de700 · 5 fixed · 2 replied · 2 resolved", or what it came to when nothing was
- * pushed ("Run 2 discarded, nothing pushed").
- */
-export function roundLineOf(round: ContributeFollowUpRound): string {
-  const head = `Run ${round.round}`;
-  const sha = shortSha(round.pushedSha);
-  const tallies = roundTalliesOf(round);
-  const tail = tallies.length ? ` · ${tallies.join(' · ')}` : '';
-  switch (round.state) {
-    case 'DONE':
-      return `${head} ${sha ? `pushed ${sha}` : 'done, no commits'}${tail}`;
-    case 'DISCARDED':
-      return `${head} discarded, nothing pushed`;
-    case 'STOPPED':
-      return `${head} stopped, nothing pushed`;
-    case 'REVIEW':
-    case 'PENDING_AUTOSUBMIT':
-      return `${head} waiting for you${tail}`;
-    case 'SUBMITTING':
-      return `${head} pushing${tail}`;
-    default:
-      return `${head} under way`;
-  }
-}
-
 /** The reply as it will read on GitHub: its prefix ("Fixed in <the new commit>: ") and the text. */
 export function replyPreviewOf(prefix: string | null | undefined, text: string): string {
   const shown = (prefix ?? '').replace('<commit>', 'the new commit');

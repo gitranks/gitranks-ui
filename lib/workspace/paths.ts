@@ -105,6 +105,29 @@ export const MAINTAINERS_REPORT_PATH = '/contribute/maintainers/report';
 /** The paths the maintainers page's own sign-in may return to. */
 export const MAINTAINER_RETURN_PATHS: readonly string[] = [MAINTAINERS_PATH, MAINTAINERS_REPORT_PATH];
 
+/** A lesson's slug: its title in kebab case and a few random characters; letters, digits and hyphens. */
+export const LESSON_SLUG = '[A-Za-z0-9][A-Za-z0-9-]{0,99}';
+/** A GitHub login: letters, digits and hyphens, up to 39 characters. It never holds a dot. */
+export const GITHUB_LOGIN = '[A-Za-z0-9][A-Za-z0-9-]{0,38}';
+
+const RESULT_PATH = new RegExp(`^/learn/lessons/${LESSON_SLUG}/passes/${GITHUB_LOGIN}$`);
+
+/**
+ * Whether the path is a lesson's result page, exactly as `lessonResultPath` writes it: no other spelling, nothing under
+ * it. The light sign-in returns there too, with a reaction (`REACT_PARAM`).
+ */
+export const isLessonResultPath = (pathname: string): boolean => RESULT_PATH.test(pathname);
+
+/** The query parameter a result page's reaction travels in through the sign-in: `?react=yes|no`. */
+export const REACT_PARAM = 'react';
+
+/** `?react=` as the API's reaction; null for anything but `yes` and `no`. */
+export function reactionParamOf(value: unknown): 'YES' | 'NO' | null {
+  if (value === 'yes') return 'YES';
+  if (value === 'no') return 'NO';
+  return null;
+}
+
 /**
  * Whether the path is the maintainers page or its report page, in any spelling the router reads as them; nothing else
  * under them, and no path that does not decode, is.
@@ -186,13 +209,6 @@ export function settingUpHomeOf(url: { pathname: string; searchParams: URLSearch
   if (decodedMatches(url.pathname, /^\/+my\/+agent\/+key\/?$/i)) return '/contribute?start=key';
   return '/contribute';
 }
-
-/** Where each way of contributing starts: a Claude key we run the agent on, or the user's own agent. */
-export const CONNECT_KEY_PATH: Route = WORKSPACE_PATHS.agentKey;
-export const CONNECT_AGENT_PATH: Route = WORKSPACE_PATHS.agentConnect;
-
-/** Every agent run: the live ones, then the history. Right now's "All runs" leads there. */
-export const RUNS_PATH: Route = WORKSPACE_PATHS.agentRuns;
 
 /** The page for AI agents, in markdown: a route handler, so links to it are plain anchors, never the router's. */
 export const AGENTS_DOC_PATH = '/contribute/agents.md';

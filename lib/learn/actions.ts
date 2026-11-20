@@ -1,8 +1,8 @@
 'use server';
 
 import { signIn } from '@/auth';
+import { currentMaintainerToken, markMaintainerSignIn } from '@/lib/auth/light-sign-in';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
-import { currentMaintainerToken, markMaintainerSignIn } from '@/lib/contribute/maintainer-token';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import {
   AnswerLessonQuestionDocument,
@@ -36,7 +36,7 @@ import type {
   PracticeNext,
 } from '@/lib/learn/learn.types';
 import { currentOf, PRACTICE_ALL } from '@/lib/learn/learn-home';
-import { githubLoginOf, lessonResultPath, lessonSlugOf, REACT_PARAM } from '@/lib/learn/learn-path';
+import { githubLoginOf, lessonResultPath, lessonSlugOf } from '@/lib/learn/learn-path';
 import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
 import { markReaction, takeReactionMark } from '@/lib/learn/react-mark';
@@ -47,6 +47,7 @@ import {
   type PrFeedbackErrorCode,
   prFeedbackErrorOf,
 } from '@/lib/workspace/errors';
+import { REACT_PARAM } from '@/lib/workspace/paths';
 import type DocumentNode from '@/types/typed-document-node';
 
 /** Ids as the API takes them: short strings, never anything else from the browser. */

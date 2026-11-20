@@ -7,7 +7,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   ContributeUnavailableError: class extends Error {},
   viewerLogin: vi.fn(),
 }));
-vi.mock('@/lib/contribute/maintainer-token', () => ({ currentMaintainerToken: vi.fn() }));
+vi.mock('@/lib/auth/light-sign-in', () => ({ currentMaintainerToken: vi.fn() }));
 
 const { GET } = await import('./route');
 const { LessonResultDocument } = await import('@/lib/learn/learn.documents');

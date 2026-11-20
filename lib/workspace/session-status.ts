@@ -453,4 +453,4 @@ export const unknownOf = (attempt: ContributeAttemptDetail) => {
 };
 
 export { nextStatusOf, noRunWhyOf, roundLeadOf, runStatusOf } from './run-status';
-export { type BounceSecondary, type BounceWords, bounceOf, firstSentence, settledStepsOf } from './submit-bounce';
+export { type BounceWords, bounceOf, firstSentence, settledStepsOf } from './submit-bounce';

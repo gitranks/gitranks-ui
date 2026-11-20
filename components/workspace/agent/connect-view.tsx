@@ -7,7 +7,6 @@ import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isOnboarded, withoutAccessNotices } from '@/lib/workspace/contribute-state';
 import { LANGUAGES } from '@/lib/workspace/format';
 import { loadLearnOpen } from '@/lib/workspace/gate.data';
-import { CONNECT_AGENT_PATH } from '@/lib/workspace/paths';
 import { proofParamOf, proofPromptOf } from '@/lib/workspace/proof';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 
@@ -21,9 +20,6 @@ export async function OwnAgentConnectView({
   if (!view) contributeHidden(await loadContributeSetup());
   return <OwnAgentConnectScreen view={view} learnOpen={learnOpen} proof={await proofOf(proofParamOf(params?.proof))} />;
 }
-
-/** Where the own-agent path starts. */
-export const OWN_AGENT_PATH = CONNECT_AGENT_PATH;
 
 /**
  * B1, the own-agent path: the agent, a token and its setup, then the agent's first call. Nothing asks for a key or for

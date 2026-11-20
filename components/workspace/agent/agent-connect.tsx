@@ -42,13 +42,7 @@ import {
   USE_A_TOKEN_INSTEAD,
 } from '@/lib/workspace/mcp-setup';
 import { personalTokensOf } from '@/lib/workspace/oauth-consent';
-import {
-  CONNECT_KEY_PATH,
-  MCP_DOCS_PATH,
-  pullRequestByAttemptPath,
-  settingsPathOf,
-  WORKSPACE_PATHS,
-} from '@/lib/workspace/paths';
+import { MCP_DOCS_PATH, pullRequestByAttemptPath, settingsPathOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** Where step 2 stands: no token yet, the token shown with its setup, or the setup done. */
 export type AgentStage = 'none' | 'token' | 'added';
@@ -506,7 +500,7 @@ export function AgentConnectView({
           <p className="text-sm text-muted-foreground" data-key-link="">
             Contributing only?{' '}
             <Link
-              href={CONNECT_KEY_PATH}
+              href={WORKSPACE_PATHS.agentKey}
               prefetch={false}
               className="underline underline-offset-4 hover:text-foreground"
             >

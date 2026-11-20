@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { currentMaintainerToken } from './maintainer-token';
+import { currentMaintainerToken } from '@/lib/auth/light-sign-in';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { MaintainerReposDocument, MaintainerReposWithRulesDocument } from '@/lib/workspace/contribute.documents';
 import type { ContributeMaintainerRepos } from '@/lib/workspace/contribute.types';

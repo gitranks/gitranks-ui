@@ -1,8 +1,8 @@
 'use server';
 
 import { signIn } from '@/auth';
+import { currentMaintainerToken, markMaintainerSignIn } from '@/lib/auth/light-sign-in';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
-import { currentMaintainerToken, markMaintainerSignIn } from '@/lib/contribute/maintainer-token';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import {
   ContributePrHelpedDocument,

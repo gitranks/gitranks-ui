@@ -5,12 +5,12 @@ import { useSession } from 'next-auth/react';
 import { type FC, useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { isProfileOwner } from '@/lib/contribute/profile-issues';
 import type { LearnRecord } from '@/lib/learn/learn.types';
 import { recordTopicsOf } from '@/lib/learn/learn-promo';
 import { readLearnRecord } from '@/lib/learn/learn-promo-read';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { loginFromPath } from '@/utils/login-from-path';
+import { isProfileOwner } from '@/utils/profile-owner';
 
 const n = (value: number) => value.toLocaleString('en-US');
 

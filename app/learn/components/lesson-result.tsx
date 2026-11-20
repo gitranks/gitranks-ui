@@ -23,7 +23,7 @@ import type {
   LessonStepResult,
 } from '@/lib/learn/learn.types';
 import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
-import { LEARN_MAINTAINERS_PATH, lessonPath, lessonResultPath, reactionParamOf } from '@/lib/learn/learn-path';
+import { LEARN_MAINTAINERS_PATH, lessonPath, lessonResultPath } from '@/lib/learn/learn-path';
 import {
   askedByStepOf,
   isAuthorResult,
@@ -38,6 +38,7 @@ import { stepResultLabel } from '@/lib/learn/question';
 import { hasReactionMark } from '@/lib/learn/react-mark';
 import { viewerLogin } from '@/lib/workspace/contribute.data';
 import { fullDayLabel } from '@/lib/workspace/maintainers-format';
+import { reactionParamOf } from '@/lib/workspace/paths';
 
 const CARD = 'flex flex-col gap-2 rounded-xl border bg-card p-4.5';
 

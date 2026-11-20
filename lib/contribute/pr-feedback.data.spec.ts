@@ -6,7 +6,7 @@ const { signedFetch, currentMaintainerToken } = vi.hoisted(() => ({
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/signed-fetch', () => ({ signedFetch }));
-vi.mock('./maintainer-token', () => ({ currentMaintainerToken }));
+vi.mock('@/lib/auth/light-sign-in', () => ({ currentMaintainerToken }));
 vi.mock('next/cache', () => ({ cacheLife: () => {} }));
 
 const { loadMaintainerFacts, loadPrReport, loadPrStrip } = await import('./pr-feedback.data');

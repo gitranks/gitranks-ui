@@ -2,7 +2,7 @@ import 'server-only';
 
 import { cacheLife } from 'next/cache';
 
-import { currentMaintainerToken } from './maintainer-token';
+import { currentMaintainerToken } from '@/lib/auth/light-sign-in';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { ContributeMaintainerFactsDocument, ContributePrCardDocument } from '@/lib/workspace/contribute.documents';
 import type { ContributeMaintainerFacts, ContributePrCard, ContributePrViewer } from '@/lib/workspace/contribute.types';

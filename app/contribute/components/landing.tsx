@@ -15,8 +15,6 @@ import type { ContributeComingSoonProvider } from '@/lib/workspace/contribute.ty
 import type { LandingViewer } from '@/lib/workspace/contribute-state';
 import {
   AGENTS_DOC_PATH,
-  CONNECT_AGENT_PATH,
-  CONNECT_KEY_PATH,
   CONTRIBUTE_TERMS_PATH,
   FAQ_PATH,
   MAINTAINERS_PATH,
@@ -25,8 +23,8 @@ import {
 } from '@/lib/workspace/paths';
 
 const ACTIONS: Record<SignInPath, { label: string; href: Route }> = {
-  key: { label: 'Start with my Claude key', href: CONNECT_KEY_PATH },
-  agent: { label: 'Connect my own agent', href: CONNECT_AGENT_PATH },
+  key: { label: 'Start with my Claude key', href: WORKSPACE_PATHS.agentKey },
+  agent: { label: 'Connect my own agent', href: WORKSPACE_PATHS.agentConnect },
 };
 
 const WAYS: {
@@ -188,7 +186,7 @@ function MidSetupStrip() {
           <span className="font-semibold">Almost there.</span> Your agent hasn't connected yet.
         </span>
         <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
-          <Link href={CONNECT_AGENT_PATH} prefetch={false} className="font-semibold text-link">
+          <Link href={WORKSPACE_PATHS.agentConnect} prefetch={false} className="font-semibold text-link">
             Continue setup →
           </Link>
           <Link

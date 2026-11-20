@@ -4,14 +4,7 @@ import { contributeErrorMessage } from './errors';
 import { dayLabel, usd } from './format';
 import type { IssueStart, IssueStartRefusal } from './issue-start';
 import type { LimitCounts } from './limit-words';
-import {
-  CONNECT_KEY_PATH,
-  KEY_REPLACE_PATH,
-  pullRequestByAttemptPath,
-  RUNS_PATH,
-  WORKSPACE_ANCHORS,
-  WORKSPACE_PATHS,
-} from './paths';
+import { KEY_REPLACE_PATH, pullRequestByAttemptPath, WORKSPACE_ANCHORS, WORKSPACE_PATHS } from './paths';
 import { isOpenPrsLimit } from './start/start-page';
 import type { StartPageIssueView, StartPageRefusal } from './start/start-page.types';
 import { CONTACT_EMAIL } from '@/lib/legal';
@@ -143,7 +136,7 @@ export function issueStartRefusalOf(answer: IssueStart, facts: IssueStartFacts =
         busyText(answer.value),
         answer.holder
           ? { href: pullRequestByAttemptPath(answer.holder.id), label: 'See the run' }
-          : { href: RUNS_PATH, label: 'All runs' },
+          : { href: WORKSPACE_PATHS.agentRuns, label: 'All runs' },
       );
     case 'CLAIM_PENDING':
       return say('Your last Start is still being checked. Try again in a minute.', TRY_AGAIN);
@@ -180,7 +173,7 @@ export function issueStartRefusalOf(answer: IssueStart, facts: IssueStartFacts =
         { href: WORKSPACE_PATHS.agent, label: 'Agent' },
       );
     case 'NO_KEY':
-      return say('The hosted agent needs a Claude key.', { href: CONNECT_KEY_PATH, label: 'Add a key' });
+      return say('The hosted agent needs a Claude key.', { href: WORKSPACE_PATHS.agentKey, label: 'Add a key' });
     case 'TAKEN':
       return say("Someone else's agent took this issue.", null, 'folds');
     case 'CLOSED':

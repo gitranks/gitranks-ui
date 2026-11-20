@@ -29,7 +29,7 @@ const {
   markMaintainerSignIn,
   takeMaintainerSignIn,
   withMaintainerToken,
-} = await import('./maintainer-token');
+} = await import('./light-sign-in');
 
 const NOW = Date.UTC(2026, 9, 29, 12);
 const SESSION = { sub: 'user-1', githubLogin: 'octocat', authMode: 'identity' as const };

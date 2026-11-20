@@ -54,7 +54,9 @@ export function WorkspaceTabsBar({ tabs, active }: { tabs: readonly WorkspaceTab
   const bar = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!active) return;
-    bar.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    const tab = bar.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    const list = tab?.closest('ul');
+    if (tab && list) revealSideways(list, tab);
   }, [active]);
 
   return (
@@ -83,6 +85,18 @@ export function WorkspaceTabsBar({ tabs, active }: { tabs: readonly WorkspaceTab
       </TabsBar>
     </div>
   );
+}
+
+/**
+ * Scrolls `list` sideways just enough to show `item`, and nothing else. `scrollIntoView` would also scroll the page up
+ * to the bar: a link to a section further down (`/my/settings#email`) lands there, then the bar's late render took the
+ * page back to the top.
+ */
+export function revealSideways(list: HTMLElement, item: HTMLElement): void {
+  const shown = list.getBoundingClientRect();
+  const box = item.getBoundingClientRect();
+  if (box.left < shown.left) list.scrollLeft -= shown.left - box.left;
+  else if (box.right > shown.right) list.scrollLeft += box.right - shown.right;
 }
 
 /** While agents work: a spinner and their number ("2 at work" for screen readers). Queued or waiting runs show nothing. */

@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  attemptsCapNoteOf,
-  capHintOf,
-  capRefusalOf,
-  capsOf,
-  effectiveSettingOf,
-  openPrsOverrideOf,
-} from './access-limits';
-import { budgetSummaryOf } from './settings-summary';
+import { capHintOf, capRefusalOf, capsOf, effectiveSettingOf, openPrsOverrideOf } from './access-limits';
+import { attemptsSummaryOf, budgetSummaryOf, openPrsSummaryOf } from './settings-summary';
 import { limits, settings } from '@/lib/contribute/__fixtures__/contribute-views';
 
 describe('the access level on the settings', () => {
@@ -63,17 +56,15 @@ describe('the access level on the settings', () => {
     expect(capHintOf({ ...limits.followThrough, reason: null }, 'attemptsAtATime')?.text).toBe('for now');
   });
 
-  it('adds the attempts the cap holds to the budget line only when they are below the setting', () => {
+  it('says the attempts and open pull requests that hold, with the cap only when it is below the setting', () => {
     const three = { ...settings, attemptsAtATime: 3 };
-    expect(attemptsCapNoteOf(three, limits.newAccount)).toBe('1 at a time (new-account limit)');
-    expect(attemptsCapNoteOf(three, limits.followThrough)).toBe('1 at a time (limit for now)');
-    expect(attemptsCapNoteOf(settings, limits.newAccount)).toBeNull();
-    expect(attemptsCapNoteOf(three, limits.standard)).toBeNull();
-    expect(attemptsCapNoteOf(three, limits.suspended)).toBeNull();
-
-    expect(budgetSummaryOf(three, null, limits.newAccount)).toBe(
-      '$200 a cycle · renews on the 14th · up to $5 an attempt · 1 at a time (new-account limit)',
-    );
+    expect(attemptsSummaryOf(three, limits.newAccount)).toBe('1 issue in work at once while your account is new');
+    expect(attemptsSummaryOf(three, limits.followThrough)).toBe('1 issue in work at once for now');
+    expect(attemptsSummaryOf(settings, limits.newAccount)).toBe('1 issue in work at once');
+    expect(attemptsSummaryOf(three, limits.standard)).toBe('Up to 3 issues in work at once');
+    expect(attemptsSummaryOf(three, limits.suspended)).toBe('Up to 3 issues in work at once');
+    expect(openPrsSummaryOf(settings, limits.standard, 2)).toBe('Up to 3 · 2 open now');
+    expect(openPrsSummaryOf({ ...settings, openPrsAtATime: 8 }, limits.followThrough)).toBe('Up to 2 for now');
     expect(budgetSummaryOf(three)).toBe('$200 a cycle · renews on the 14th · up to $5 an attempt');
   });
 

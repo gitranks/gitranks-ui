@@ -6,9 +6,9 @@ import { isGrantAvailable } from './grant-availability';
 import { CONTRIBUTE_PROVIDER } from '@/lib/auth-providers';
 
 /** Where GitHub's consent lands when it came from another GitHub account than the signed-in one. */
-export const GRANT_REFUSED_PATH = '/my/agent/key?grant=refused#github';
+export const GRANT_REFUSED_PATH = '/my/settings/github?grant=refused';
 /** Where it lands when a grant cannot be stored here (the app or its key ring is not configured). */
-export const GRANT_UNAVAILABLE_PATH = '/my/agent/key?grant=unavailable#github';
+export const GRANT_UNAVAILABLE_PATH = '/my/settings/github?grant=unavailable';
 
 type ReadSession = () => Promise<JWT | null>;
 

@@ -4,8 +4,8 @@ import type { ContributeSetListMode } from './contribute.types';
 
 /**
  * The pages of the signed-in workspace, Contribute's and Learn's: the two front tabs, then everything under `/my`. Links
- * to them are built from here, so a page that moves changes this table and not its links. Goal and level and the
- * user's lessons keep Learn's addresses until their own pages under `/my` are built.
+ * to them are built from here, so a page that moves changes this table and not its links. The user's lessons keep
+ * Learn's address until their own page under `/my` is built.
  */
 export const WORKSPACE_PATHS = {
   contribute: '/contribute' as Route,
@@ -20,9 +20,13 @@ export const WORKSPACE_PATHS = {
   agentBudget: '/my/agent/budget' as Route,
   agentRuns: '/my/agent/runs' as Route,
   settings: '/my/settings' as Route,
+  /** GitHub's permission to open pull requests, for every account. */
+  settingsGithub: '/my/settings/github' as Route,
+  /** The limits on pull requests and attempts, which bind both agents. */
+  settingsPullRequests: '/my/settings/pull-requests' as Route,
   settingsWork: '/my/settings/work' as Route,
   /** Learn's goal and level. */
-  settingsGoal: '/learn/profile' as Route,
+  settingsGoal: '/my/settings/goal' as Route,
   /** The user's lessons. */
   progress: '/learn/lessons' as Route,
 } as const;
@@ -32,16 +36,16 @@ export const WORKSPACE_PATHS = {
  * at a time, the filters of what the user works on, Learn's goal, the Claude key, the budget.
  */
 export const WORKSPACE_ANCHORS = {
-  limitRow: `${WORKSPACE_PATHS.agentModel}#prs` as Route,
-  attemptsRow: `${WORKSPACE_PATHS.agentBudget}#more-limits` as Route,
-  work: `${WORKSPACE_PATHS.settings}#work` as Route,
+  limitRow: `${WORKSPACE_PATHS.settingsPullRequests}#open` as Route,
+  attemptsRow: `${WORKSPACE_PATHS.settingsPullRequests}#attempts` as Route,
+  work: `${WORKSPACE_PATHS.settingsWork}#work` as Route,
   forLearning: WORKSPACE_PATHS.settingsGoal,
   agentKey: WORKSPACE_PATHS.agentKey,
   agentBudget: WORKSPACE_PATHS.agentBudget,
 } as const;
 
-/** GitHub's permission to open pull requests: on the key's page, for every account. */
-export const GITHUB_ACCESS_PATH = `${WORKSPACE_PATHS.agentKey}#github` as Route;
+/** GitHub's permission to open pull requests: its own Settings page, for every account. */
+export const GITHUB_ACCESS_PATH = WORKSPACE_PATHS.settingsGithub;
 
 /** Where a Claude key is connected over the one there is: the key's page shows the key itself otherwise. */
 export const KEY_REPLACE_PATH = `${WORKSPACE_PATHS.agentKey}?replace=1` as Route;
@@ -199,6 +203,9 @@ export const START_AGENT_PATH = '/contribute?start=agent' as Route;
 /** Settings, a summary of every setting, and the pages each one is changed on. */
 export const SETTINGS_PATHS = {
   summary: WORKSPACE_PATHS.settings,
+  github: WORKSPACE_PATHS.settingsGithub,
+  pullRequests: WORKSPACE_PATHS.settingsPullRequests,
+  goal: WORKSPACE_PATHS.settingsGoal,
   work: WORKSPACE_PATHS.settingsWork,
   budget: WORKSPACE_PATHS.agentBudget,
   agent: WORKSPACE_PATHS.agentModel,
@@ -207,18 +214,24 @@ export const SETTINGS_PATHS = {
 };
 
 /**
- * Where each section of the one long Settings page now lives, by its old `#anchor`: the spending limits, pacing and
- * the agent's model on the Agent tab's pages, as the pull request settings until they get their own page. Links in the
- * app use it, and the summary sends an old link (a bookmark, a notice) on to it. Anchors not here stay on the summary:
- * what you work on (`#modes`), and the filters (`#work`), rules and ignored repos, whose dialogs open at their anchor.
+ * Where each section of the one long Settings page now lives, by its old `#anchor` (W1 §4.2): the spending limits and
+ * pacing, the model and the key on the Agent tab's pages; the pull request limits on Settings' own page; what you work
+ * on, its filters and ignored repos on the work page, whose dialogs open at their anchor. Links in the app use it, and
+ * the summary sends an old link (a bookmark, a notice) on to it. Anchors not here (`#email`, `#danger`) stay on the
+ * summary.
  */
 const ANCHORS: Record<string, Route> = {
   limits: SETTINGS_PATHS.budget,
   pacing: `${SETTINGS_PATHS.budget}#pacing` as Route,
   'more-limits': `${SETTINGS_PATHS.budget}#more-limits` as Route,
   agent: SETTINGS_PATHS.agent,
-  prs: `${SETTINGS_PATHS.agent}#prs` as Route,
+  prs: SETTINGS_PATHS.pullRequests,
   access: SETTINGS_PATHS.keys,
+  github: SETTINGS_PATHS.github,
+  modes: `${SETTINGS_PATHS.work}#modes` as Route,
+  work: `${SETTINGS_PATHS.work}#work` as Route,
+  ignored: `${SETTINGS_PATHS.work}#ignored` as Route,
+  rules: `${SETTINGS_PATHS.work}#rules` as Route,
   'own-agent': `${SETTINGS_PATHS.ownAgent}#own-agent` as Route,
   // The status card with Pause, and autopilot: on the Agent tab.
   pause: `${WORKSPACE_PATHS.agent}#pause` as Route,

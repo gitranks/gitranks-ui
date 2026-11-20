@@ -156,7 +156,7 @@ describe('the first attempt’s status line', () => {
     expect(next('LIMIT_REACHED')).toEqual({ link: '/my/agent', more: null, back: true });
     expect(next('CHECKS_FAILED', 'max_files')).toMatchObject({
       link: '/contribute#issues',
-      more: '/my/agent/model#prs',
+      more: '/my/settings/pull-requests#size',
     });
     // Someone else has the issue: nothing to say of the person's list.
     expect(next('CLAIM_LOST')).toEqual({ link: '/contribute#issues', more: null, back: false });

@@ -89,7 +89,7 @@ describe('Learn home, no goal yet', () => {
     // Nothing to save until a language is picked.
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""[^>]*data-contribute-source="learn_home_goal"/);
     expect(text(html)).toContain('Show my issues');
-    expect(html).toContain('href="/learn/profile"');
+    expect(html).toContain('href="/my/settings/goal"');
     expect(text(html)).toContain('More choices: what to focus on');
   });
 
@@ -180,7 +180,7 @@ describe('Learn home, goal set', () => {
     });
     expect(text(unsupported)).toContain('Learn can’t find issues for this goal yet. Change your goal');
     // With no row to start, Change your goal is the primary action.
-    expect(unsupported).toMatch(/data-variant="default"[^>]*href="\/learn\/profile"/);
+    expect(unsupported).toMatch(/data-variant="default"[^>]*href="\/my\/settings\/goal"/);
 
     const cap = home(myLearnAttempts.none, { issues: emptyIssues.cap });
     expect(text(cap)).toContain('That’s today’s new issues');

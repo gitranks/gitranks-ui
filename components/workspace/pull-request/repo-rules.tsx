@@ -283,11 +283,14 @@ function AskLink() {
   );
 }
 
-/** Settings' line under the caps and autopilot: repos may ask for less, and what they can ask for. */
-export function ReposAskLessNote({ className }: { className?: string }) {
+/**
+ * The line under the caps and autopilot: repos may ask for less, and what they can ask for. `text`: the page's own
+ * words for it (Settings' pull request limits).
+ */
+export function ReposAskLessNote({ className, text = REPOS_ASK_LESS }: { className?: string; text?: string }) {
   return (
     <p data-repo-rules-note="" className={cn('text-sm text-muted-foreground', className)}>
-      {REPOS_ASK_LESS}{' '}
+      {text}{' '}
       <Link href={MAINTAINERS_PATH} prefetch={false} className="font-medium text-link hover:underline">
         {ASK_LINK}
       </Link>

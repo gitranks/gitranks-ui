@@ -19,7 +19,7 @@ describe('LimitNotice', () => {
       '<span class="font-semibold text-foreground">8 of your pull requests are waiting on maintainers.</span>',
     );
     expect(html).toContain('href="/my/pull-requests"');
-    expect(html).toContain('href="/my/agent/model#prs"');
+    expect(html).toContain('href="/my/settings/pull-requests#open"');
   });
 
   it('says which wait on the user when some are not open yet', () => {

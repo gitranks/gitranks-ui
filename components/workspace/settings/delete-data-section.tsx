@@ -21,8 +21,25 @@ import { contributeErrorMessage } from '@/lib/workspace/errors';
 /** The word the user types to confirm. */
 export const DELETE_CONFIRMATION = 'delete';
 
-/** Deletes every Contribute row on the user, the GitHub grant included, after a typed confirmation. */
-export function DeleteDataSection() {
+/**
+ * What deleting removes, as the person has it: the Claude key only with a key, the lessons only with Learn open. "your
+ * Claude key, your agent tokens, the GitHub access, your settings, and your attempts and lessons".
+ */
+export function deletedThingsOf({ hasKey, learnOpen }: { hasKey: boolean; learnOpen: boolean }): string {
+  return [
+    hasKey ? 'your Claude key' : null,
+    'your agent tokens',
+    'the GitHub access',
+    'your settings',
+    learnOpen ? 'and your attempts and lessons' : 'and your attempt history',
+  ]
+    .filter(Boolean)
+    .join(', ');
+}
+
+/** Deletes every row on the user, the GitHub grant included, after a typed confirmation. */
+export function DeleteDataSection({ hasKey = true, learnOpen = false }: { hasKey?: boolean; learnOpen?: boolean }) {
+  const things = deletedThingsOf({ hasKey, learnOpen });
   const router = useRouter();
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -50,10 +67,10 @@ export function DeleteDataSection() {
   return (
     <Panel id="danger" tone="danger" className="flex-row flex-wrap items-center justify-between">
       <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-1">
-        <h2 className={HEADING.section}>Delete all Contribute data</h2>
+        <h2 className={HEADING.section}>Delete all data</h2>
         <span className="text-sm text-muted-foreground">
-          Removes your key, the GitHub access, your settings and attempt history. PRs already on GitHub stay there, and
-          so do our records for stopping abuse: up to 180 days, or longer while a flag on your account is still open.
+          Removes {things}. Pull requests already on GitHub stay there, and so do our records for stopping abuse: up to
+          180 days, or longer while a flag on your account is still open.
         </span>
         {done ? (
           <span role="status" className="text-sm font-medium">
@@ -68,8 +85,8 @@ export function DeleteDataSection() {
                 </a>
                 .
               </>
-            )}{' '}
-            Delete the key in the Claude Console too.
+            )}
+            {hasKey ? ' Delete the key in the Claude Console too.' : null}
           </span>
         ) : null}
       </div>
@@ -85,10 +102,10 @@ export function DeleteDataSection() {
       <Dialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete all Contribute data?</DialogTitle>
+            <DialogTitle>Delete all your data?</DialogTitle>
             <DialogDescription>
-              Your key, the GitHub access, your settings, preferences and attempt history go now, and cannot be brought
-              back. Pull requests already on GitHub stay there.
+              {things.charAt(0).toUpperCase() + things.slice(1)} go now, and cannot be brought back. Pull requests
+              already on GitHub stay there.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">

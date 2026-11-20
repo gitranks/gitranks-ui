@@ -28,7 +28,7 @@ export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
   to('/contribute/issues', '/contribute#issues'),
   to('/contribute/me', '/my/pull-requests'),
   to('/contribute/runs', '/my/agent/runs'),
-  // The own agent's way in, then the Claude key's (which holds GitHub's access too, until it has a page of its own).
+  // The own agent's way in, then the Claude key's. GitHub's access has its own Settings page.
   to('/contribute/connect', '/my/agent/connect', [{ type: 'query', key: 'path', value: 'agent' }]),
   to('/contribute/connect', '/my/agent/key'),
   to('/contribute/settings', '/my/settings'),
@@ -36,13 +36,16 @@ export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
   to('/contribute/settings/switch/:mode', '/my/settings/work/switch/:mode'),
   to('/contribute/settings/budget', '/my/agent/budget'),
   to('/contribute/settings/agent', '/my/agent/model'),
-  // GitHub's consent comes back with `?grant=`, kept by the redirect.
+  // GitHub's consent came back here with `?grant=`: its answer is on GitHub's own page now, the query kept.
+  to('/contribute/settings/keys', '/my/settings/github', [{ type: 'query', key: 'grant' }]),
   to('/contribute/settings/keys', '/my/agent/key'),
   to('/contribute/settings/own-agent', '/my/agent'),
   // A contribution's page and its runs: the address by attempt reads the attempt and goes on to the pull request's
   // page by repo and issue, the query kept (`?resume=`, `?move=`, `?session=next`).
   to('/contribute/attempts/:id/runs/:runId', '/my/pull-requests/by-attempt/:runId'),
   to('/contribute/attempts/:id', '/my/pull-requests/by-attempt/:id'),
+  // Learn's goal and level: a Settings page now.
+  to('/learn/profile', '/my/settings/goal'),
   // A lesson's page: the address by attempt opens the view its stage names, the query kept.
   to('/learn/attempts/:id', '/my/pull-requests/by-attempt/:id'),
 ];

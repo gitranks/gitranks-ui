@@ -248,3 +248,24 @@ export function learnGoalLabelOf(profile: LearnProfile | null | undefined): stri
   const level = profile.levels.find((row) => row.language.trim().toLowerCase() === key)?.level ?? 0;
   return `${value}, ${LEVELS[Math.min(LEVELS.length - 1, Math.max(0, Math.round(level)))]}`;
 }
+
+/** A level in a running line: "some experience". */
+const LEVEL_WORDS = ['new to it', 'some experience', 'comfortable', 'expert'] as const;
+
+/**
+ * Settings' Goal and level row: "TypeScript · some experience · focus: how the language works, tests and tooling".
+ * Null without a goal.
+ */
+export function learnProfileSummaryOf(profile: LearnProfile | null | undefined): string | null {
+  const value = profile?.goalValue?.trim();
+  if (!profile?.goalKind || !value) return null;
+  const parts = [value];
+  if (profile.goalKind === 'LANGUAGE') {
+    const key = value.toLowerCase();
+    const level = profile.levels.find((row) => row.language.trim().toLowerCase() === key)?.level ?? 0;
+    parts.push(LEVEL_WORDS[Math.min(LEVEL_MAX, Math.max(0, Math.round(level)))]);
+  }
+  const focus = FOCUS.filter(({ value: each }) => profile.focus.includes(each)).map(({ label }) => label.toLowerCase());
+  if (focus.length) parts.push(`focus: ${focus.join(', ')}`);
+  return parts.join(' · ');
+}

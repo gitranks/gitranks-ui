@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { movedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './paths';
-import { attemptsSummaryOf, budgetSummaryOf, modelSummaryOf, prLimitsSummaryOf } from './settings-summary';
+import {
+  attemptsSummaryOf,
+  budgetSummaryOf,
+  dcoSummaryOf,
+  modelSummaryOf,
+  openPrsSummaryOf,
+  prSizeSummaryOf,
+} from './settings-summary';
 import { resolve, smallReposSet, stackSet } from '@/lib/contribute/__fixtures__/contribute-sets';
 import { contributor, limits, settings } from '@/lib/contribute/__fixtures__/contribute-views';
 import { stackPendingOf } from '@/lib/contribute/set-format';
@@ -21,32 +28,38 @@ describe('the Settings summary', () => {
   });
 
   it("says the hosted agent's budget and model in a line each", () => {
-    expect(budgetSummaryOf(settings, contributor().spend, limits.standard)).toBe(
+    expect(budgetSummaryOf(settings, contributor().spend)).toBe(
       '$63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt',
     );
     expect(budgetSummaryOf(settings, null)).toBe('$200 a cycle · renews on the 14th · up to $5 an attempt');
-    expect(budgetSummaryOf({ ...settings, attemptsAtATime: 3 }, null, limits.newAccount)).toContain(
-      '· 1 at a time (new-account limit)',
-    );
     expect(modelSummaryOf(settings)).toBe('Claude Sonnet 5.5, medium effort');
-    expect(prLimitsSummaryOf(settings, limits.standard)).toBe('PRs up to 400 lines, 15 files · 3 open at a time');
-    expect(attemptsSummaryOf(settings, limits.standard)).toBe('1 at a time');
-    expect(attemptsSummaryOf({ ...settings, attemptsAtATime: 3 }, limits.newAccount)).toBe(
-      '1 at a time (new-account limit)',
+  });
+
+  it("says Settings' pull request rows in words", () => {
+    expect(prSizeSummaryOf(settings)).toBe('Up to 400 changed lines, 15 files · a larger change stops before review');
+    expect(dcoSummaryOf(settings)).toBe('Ask me each time a repo requires it');
+    expect(dcoSummaryOf({ dco: 'STANDING' })).toBe('Sign off automatically when a repo requires it');
+    expect(attemptsSummaryOf({ ...settings, attemptsAtATime: 2 }, limits.standard)).toBe(
+      'Up to 2 issues in work at once',
     );
+    expect(openPrsSummaryOf({ ...settings, openPrsAtATime: 8 }, limits.standard, 3)).toBe('Up to 8 · 3 open now');
   });
 });
 
 describe('the Settings pages', () => {
   it('sends each old section anchor to the page it is on now, and keeps the rest on the summary', () => {
     expect(movedAnchorOf('limits')).toBe('/my/agent/budget');
-    expect(movedAnchorOf('prs')).toBe('/my/agent/model#prs');
+    expect(movedAnchorOf('prs')).toBe('/my/settings/pull-requests');
+    expect(movedAnchorOf('agent')).toBe('/my/agent/model');
+    expect(movedAnchorOf('github')).toBe('/my/settings/github');
+    expect(movedAnchorOf('ignored')).toBe('/my/settings/work#ignored');
+    expect(movedAnchorOf('email')).toBeNull();
     expect(movedAnchorOf('more-limits')).toBe('/my/agent/budget#more-limits');
     expect(movedAnchorOf('access')).toBe('/my/agent/key');
     expect(movedAnchorOf('own-agent')).toBe('/my/agent#own-agent');
     expect(movedAnchorOf('pause')).toBe('/my/agent#pause');
-    expect(movedAnchorOf('modes')).toBeNull();
-    expect(settingsPathOf('work')).toBe('/my/settings#work');
+    expect(movedAnchorOf('modes')).toBe('/my/settings/work#modes');
+    expect(settingsPathOf('work')).toBe('/my/settings/work#work');
     expect(movedAnchorOf('autopilot')).toBe('/my/agent#autopilot');
     expect(movedAnchorOf('constructor')).toBeNull();
     expect(settingsPathOf('danger')).toBe('/my/settings#danger');

@@ -9,7 +9,7 @@ export const LEARN_ABOUT_PATH = '/learn/about' as Route;
 /** The user's lessons: their Learn attempts and the shared lessons they passed. */
 export const MY_LESSONS_PATH = '/learn/lessons' as Route;
 /** The user's goal and level. */
-export const LEARN_PROFILE_PATH = '/learn/profile' as Route;
+export const LEARN_PROFILE_PATH = '/my/settings/goal' as Route;
 /** What a Learn pull request is, for maintainers. Open to everyone. */
 export const LEARN_MAINTAINERS_PATH = '/learn/maintainers' as Route;
 

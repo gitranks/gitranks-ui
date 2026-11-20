@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { SettingsView } from '@/app/contribute/components/settings-view';
+import { SettingsView } from '@/app/(workspace)/my/settings/components/settings-view';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 
 export const metadata: Metadata = { title: 'Settings' };

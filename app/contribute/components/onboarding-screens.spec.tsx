@@ -52,7 +52,7 @@ const { Landing } = await import('./landing');
 const { SignInButton, SignInPanel, signInRouteOf, startSignIn } = await import('@/components/workspace/sign-in-dialog');
 const { PullRequestsView } = await import('@/components/workspace/pull-requests-view');
 const { ContributionLayout, FirstSessionView } = await import('@/components/workspace/pull-request/review-view');
-const { SettingsView } = await import('./settings-view');
+const { SettingsView } = await import('@/app/(workspace)/my/settings/components/settings-view');
 const { Dialog } = await import('@/components/ui/dialog');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 
@@ -289,8 +289,9 @@ describe('the pages that wait for onboarding', () => {
     await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).resolves.toBeTruthy();
   });
 
-  it('keeps Settings open to a contributor mid-setup, and sends a user with no contributor row to the landing', async () => {
+  it('keeps Settings open to a contributor mid-setup, and to an account with no contributor row yet', async () => {
     await expect(visit('settings', views.midSetup)).resolves.toBeTruthy();
-    await expect(visit('settings', views.newcomer)).rejects.toThrow('NEXT_REDIRECT /contribute');
+    // A learner who has not connected an agent comes back here from their goal: the summary opens.
+    await expect(visit('settings', views.newcomer)).resolves.toBeTruthy();
   });
 });

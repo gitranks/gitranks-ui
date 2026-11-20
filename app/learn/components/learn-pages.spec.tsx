@@ -16,7 +16,6 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: 
 vi.mock('@/lib/learn/actions', () => ({
   saveLearnProfile: vi.fn(),
   readMyLearnAttempts: vi.fn(),
-  readLearnIssueCount: vi.fn(),
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
@@ -39,16 +38,17 @@ const data = vi.hoisted(() => ({
 vi.mock('@/lib/learn/learn.data', () => data);
 const recent = vi.hoisted(() => ({ readRecentLessons: vi.fn(async () => [] as PublicLesson[]) }));
 vi.mock('@/lib/learn/recent-lessons.data', () => recent);
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
 
 const { LearnAboutView, LearnHomeView, LearnLanding } = await import('./learn-landing');
 const { LearnHomeSignedIn } = await import('./learn-home');
 const { publishedDayOf, RecentLessons } = await import('./recent-lessons');
 const { recentLessons } = await import('@/lib/learn/__fixtures__/recent-lessons');
 const { LearnMaintainers } = await import('./learn-maintainers');
-const { LearnProfileScreen, LearnProfileView } = await import('./learn-profile');
+const { GoalSettingsScreen: LearnProfileScreen, GoalSettingsView: LearnProfileView } = await import(
+  '@/app/(workspace)/my/settings/components/settings-pages'
+);
 const { MyLessonsScreen, MyLessonsView } = await import('./my-lessons');
-const { goalSavedWordsOf } = await import('./goal-saved-next');
-const { emptyIssues, practiceNext } = await import('@/lib/learn/__fixtures__/home');
 const { emptyProfile, filledProfile, myLessons } = await import('@/lib/learn/__fixtures__/profile');
 const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
 
@@ -72,10 +72,10 @@ describe("Learn's front door", () => {
   it('signs a visitor in from Start learning, and sends a signed-in user to Learn home', () => {
     const visitor = renderToStaticMarkup(<LearnLanding viewer="visitor" />);
     expect(visitor.match(/data-sign-in="learn"/g)).toHaveLength(2);
-    expect(visitor).not.toContain('href="/learn/profile"');
+    expect(visitor).not.toContain('href="/my/settings/goal"');
     const member = renderToStaticMarkup(<LearnLanding viewer="signed-in" />);
     expect(member).not.toContain('data-sign-in');
-    expect(member).not.toContain('href="/learn/profile"');
+    expect(member).not.toContain('href="/my/settings/goal"');
     expect(member.match(/href="\/learn"/g)).toHaveLength(2);
   });
 
@@ -157,41 +157,13 @@ describe('Goal and level', () => {
     expect(html).not.toContain('data-saved-next');
   });
 
-  it('once saved, says so by the button and shows the next step under the form', () => {
-    const saved = (next: Parameters<typeof goalSavedWordsOf>[0], profile = filledProfile) =>
-      renderToStaticMarkup(<LearnProfileScreen profile={profile} saved={{ next }} />);
-    const issues = saved(practiceNext.own);
-    expect(text(issues)).toContain('Save Saved');
-    expect(text(issues)).not.toContain('ask your agent');
-    expect(issues).toContain('data-saved-next="issues"');
-    expect(text(issues)).toContain('Next: an issue to learn from 4 open issues fit TypeScript.');
-    expect(issues).toMatch(/href="\/learn#issues"[^>]*>See issues for TypeScript/);
-
-    const lesson = saved(practiceNext.back);
-    expect(text(lesson)).toContain(
-      'Your next lesson can start once “Route params lose their type after a redirect” is done.',
-    );
-    expect(lesson).toMatch(/href="\/my\/pull-requests\/by-attempt\/A_1"[^>]*>Back to your lesson/);
-
-    const unsupported = saved(practiceNext.unsupported, { ...filledProfile, goalValue: 'C++' });
-    expect(text(unsupported)).toContain(
-      'Learn can’t find issues for C++ yet. Pick a language from the list on Learn home.',
-    );
-    expect(unsupported).toMatch(/href="\/learn"[^>]*>Back to Learn home/);
-  });
-
-  it('words each next step after a save', () => {
-    expect(goalSavedWordsOf({ current: null, issues: emptyIssues.noneToday }, 'Go').text).toBe(
-      'None fit Go today. New ones come in every day.',
-    );
-    expect(goalSavedWordsOf({ current: null, issues: { ...emptyIssues.noneToday, total: 1 } }, 'Go').text).toMatch(
-      /^1 open issue fits Go\./,
-    );
-    // Nothing read: Learn home, whose list says the rest.
-    expect(goalSavedWordsOf(null, 'Go')).toMatchObject({
-      text: 'Learn home lists the open issues for your goal.',
-      action: { href: '/learn#issues', label: 'See issues for Go' },
-    });
+  it('is a Settings page: back to Settings, and Saving takes you back there', () => {
+    const html = renderToStaticMarkup(<LearnProfileScreen profile={filledProfile} />);
+    expect(html).toMatch(/href="\/my\/settings"[^>]*>.*Settings<\/a>/);
+    expect(text(html)).toContain('Goal and level');
+    expect(text(html)).toContain('Saving takes you back to Settings.');
+    // The agent and how-a-lesson-goes cards are gone.
+    expect(text(html)).not.toContain('How a lesson goes');
   });
 
   it('names every goal, level and focus control by its text', () => {
@@ -231,7 +203,7 @@ describe('My lessons', () => {
     expect(text(empty)).toContain('No lessons yet');
     expect(text(empty)).toContain('Each lesson here is written by your agent for an issue you pick');
     expect(text(empty)).not.toContain('Find me an issue to learn from on GitRanks');
-    expect(empty).not.toContain('href="/learn/profile"');
+    expect(empty).not.toContain('href="/my/settings/goal"');
     expect(empty).toMatch(/data-variant="default"[^>]*href="\/learn"[^>]*>Pick an issue for your first lesson/);
     // With no goal saved, practice waits for one: Learn home asks it first.
     expect(empty).toMatch(/href="\/learn"[^>]*>Or see a practice lesson first/);

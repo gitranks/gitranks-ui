@@ -213,18 +213,17 @@ const sections: LegalSection[] = [
             Basis: legitimate interests, in respecting maintainers&apos; choices.
           </li>
           <li>
-            <B>Deleting it</B>: in Contribute&apos;s settings, choose <B>Delete all Contribute data</B>. It stops runs
-            under way, deletes your key, settings, preferences, suggestions, runs and their history, drafted replies,
-            agent connections and tokens and feedback, and your GitRanks Learn data (see{' '}
-            <A href="#learn">GitRanks Learn</A>), and revokes the GitHub access. If GitHub can&apos;t be told, revoke
-            the access in your GitHub settings. Removing your data from GitRanks (see{' '}
-            <A href="#removal">Removing your data</A>) does the same. Forks, commits, pull requests and comments on
-            GitHub stay there, as does your key at your AI provider, and so do the copies of your feedback we received
-            as messages. We may keep records of the pull requests opened through Contribute and that they were
-            AI-assisted. We also keep the records we need to stop abuse of Contribute: an access level we set on your
-            account and flags about misuse, for up to 180 days after you delete (an open flag until 180 days after it is
-            resolved), and checks we made of other GitHub accounts, for 30 days. Basis: legitimate interests, in keeping
-            Contribute fair and safe.
+            <B>Deleting it</B>: in Settings, choose <B>Delete all data</B>. It stops runs under way, deletes your key,
+            settings, preferences, suggestions, runs and their history, drafted replies, agent connections and tokens
+            and feedback, and your GitRanks Learn data (see <A href="#learn">GitRanks Learn</A>), and revokes the GitHub
+            access. If GitHub can&apos;t be told, revoke the access in your GitHub settings. Removing your data from
+            GitRanks (see <A href="#removal">Removing your data</A>) does the same. Forks, commits, pull requests and
+            comments on GitHub stay there, as does your key at your AI provider, and so do the copies of your feedback
+            we received as messages. We may keep records of the pull requests opened through Contribute and that they
+            were AI-assisted. We also keep the records we need to stop abuse of Contribute: an access level we set on
+            your account and flags about misuse, for up to 180 days after you delete (an open flag until 180 days after
+            it is resolved), and checks we made of other GitHub accounts, for 30 days. Basis: legitimate interests, in
+            keeping Contribute fair and safe.
           </li>
         </List>
       </>
@@ -290,7 +289,7 @@ const sections: LegalSection[] = [
             for our own numbers until you delete your data.
           </li>
           <li>
-            <B>Deleting it</B>: <B>Delete all Contribute data</B> and removing your data from GitRanks also delete your
+            <B>Deleting it</B>: <B>Delete all data</B> in Settings and removing your data from GitRanks also delete your
             Learn profile, the lessons you wrote with every result, event and report on them (other people&apos;s
             results on them included), your own results, answers, events, reports and reactions on other lessons, and
             the reactions others left on your results. Pull requests and their links stay on GitHub.

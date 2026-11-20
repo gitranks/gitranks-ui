@@ -5,7 +5,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('@/auth', () => ({ auth }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
-const { readLearnIssueCount, readPracticeLessons, readPracticeNext, saveLearnProfile } = await import('./actions');
+const { readPracticeLessons, readPracticeNext, saveLearnProfile } = await import('./actions');
 const { LearnIssuesDocument, MyLearnAttemptsDocument } = await import('@/lib/learn/learn.documents');
 const { learnIssues, myLearnAttempts } = await import('@/lib/learn/__fixtures__/home');
 const { SaveLearnProfileDocument } = await import('@/lib/learn/learn.documents');
@@ -66,16 +66,14 @@ describe("Learn home's reads from the browser", () => {
     auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
   });
 
-  it('asks for up to 30 practice lessons, and the count of issues alone', async () => {
+  it('asks for up to 30 practice lessons', async () => {
     graphqlDirect.mockResolvedValue({ practiceLessons: { items: [], total: 0 }, learnIssues: { items: [] } });
     for (const first of [0, 31, 1.5, '3', null]) {
       expect(await readPracticeLessons(first as number), String(first)).toMatchObject({ ok: false, error: 'INVALID' });
     }
     expect(graphqlDirect).not.toHaveBeenCalled();
     expect(await readPracticeLessons(30)).toMatchObject({ ok: true });
-    // The count reveals nothing: the browser can't ask for a row.
-    expect(await (readLearnIssueCount as (first?: number) => Promise<unknown>)(10)).toMatchObject({ ok: true });
-    expect(graphqlDirect.mock.calls.map(([, variables]) => variables)).toEqual([{ first: 30 }, { first: 0 }]);
+    expect(graphqlDirect.mock.calls.map(([, variables]) => variables)).toEqual([{ first: 30 }]);
   });
 
   it("reads a passed practice lesson's two issues only with no lesson of the viewer's own in progress", async () => {

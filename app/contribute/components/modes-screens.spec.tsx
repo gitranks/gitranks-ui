@@ -20,10 +20,18 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadIssues: vi.fn(),
 }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
+vi.mock('@/lib/learn/actions', () => ({}));
+vi.mock('@/lib/learn/learn.data', () => ({
+  loadLearnProfile: vi.fn(),
+  loadLearnSetup: vi.fn(),
+  loadLearnOpen: vi.fn(),
+}));
 
-const { SettingsScreen } = await import('./settings-view');
-const { SwitchSettingsScreen, WorkSettingsScreen } = await import('./settings-pages');
+const { SettingsScreen } = await import('@/app/(workspace)/my/settings/components/settings-view');
+const { SwitchSettingsScreen, WorkSettingsScreen } = await import(
+  '@/app/(workspace)/my/settings/components/settings-pages'
+);
 const { SwitchReview } = await import('@/components/contribute/mode-switch');
 const { IgnoredList, RulesContent } = await import('@/components/contribute/set-panels');
 const { ContributeTabScreen } = await import('@/app/(workspace)/contribute/components/contribute-tab');
@@ -66,7 +74,8 @@ const text = (html: string) =>
     .replace(/\s+/g, ' ');
 
 /** The list's page. */
-const settings = (set?: ContributeSet | null) => renderToStaticMarkup(<WorkSettingsScreen now={NOW} set={set} />);
+const settings = (set?: ContributeSet | null) =>
+  renderToStaticMarkup(<WorkSettingsScreen now={NOW} set={set} preferences={views.active.contributor.preferences} />);
 /** The Settings summary. */
 const summary = (set?: ContributeSet | null, setFailed = false) =>
   renderToStaticMarkup(<SettingsScreen view={views.active} set={set} setFailed={setFailed} />);
@@ -83,8 +92,8 @@ const rowOf = (html: string, repo: string) => {
 };
 
 describe('Settings, what to work on', () => {
-  it('shows the three modes on Settings, the current one filled, and the rest switching', () => {
-    const html = summary(stackSet());
+  it('shows the three modes on the work page, the current one filled, and the rest switching', () => {
+    const html = settings(stackSet());
     const start = html.indexOf('aria-label="Where your issues come from"');
     const cards = html.slice(start, html.indexOf('</ul>', start));
 
@@ -94,25 +103,28 @@ describe('Settings, what to work on', () => {
     expect(cards).toMatch(/<button[^>]*aria-label="Switch to All issues"/);
     for (const title of ['Support my stack', 'Support these repos', 'All issues']) expect(text(cards)).toContain(title);
     expect(text(cards)).toContain('Current');
-    // Nothing switches on the summary itself: no radios, no list editor.
-    expect(html).not.toMatch(/<input[^>]*type="radio"/);
-    expect(html).not.toContain('data-list="SOURCES"');
+    // The summary keeps one row, which opens the work page: no cards, no list.
+    const row = summary(stackSet());
+    expect(row).not.toContain('aria-label="Where your issues come from"');
+    expect(row).not.toContain('data-list="SOURCES"');
+    expect(text(row)).toContain('What you work on Support my stack · Rust · Bugs · any size Edit');
+    expect(row).toContain('href="/my/settings/work"');
   });
 
-  it('sums up the current list, the filters and the ignored repos in rows, with how we pick repos beside them', () => {
-    const html = summary(stackSet());
+  it('draws the list in place on the work page, with the filters and the ignored repos in rows and how we pick repos', () => {
+    const html = settings(stackSet());
     const plain = text(html);
 
-    expect(html).toContain('data-list-row="STACK"');
-    expect(html).toContain('href="/my/settings/work"');
-    expect(plain).toContain('Your stack 50 libraries from 3 repos · then all issues');
+    // The list is on the page itself: no row that opens it.
+    expect(html).not.toContain('data-list-row="STACK"');
+    expect(html).toContain('data-list="SOURCES"');
     expect(plain).toContain('Filters Rust · Bugs · any size');
     expect(html).toContain('aria-label="Edit filters"');
     expect(plain).toContain('Ignored repos 3 repos never picked, in any mode');
     expect(html).toContain('aria-label="Manage ignored repos"');
     expect(plain).toContain('How we pick repos');
-    expect(text(summary(smallReposSet()))).toContain('Your repos 12 repos saved · 3 being read · only these');
-    expect(summary(stackSet({ mode: 'ALL' }))).not.toContain('data-list-row');
+    expect(text(summary(smallReposSet()))).toContain('What you work on Support these repos ·');
+    expect(text(summary(stackSet({ mode: 'ALL' })))).toContain('What you work on Rust · Bugs · any size');
   });
 
   it('opens the list on its own page, with the libraries and what happens when they have nothing ready', () => {
@@ -127,14 +139,18 @@ describe('Settings, what to work on', () => {
 
   it('says when what you work on did not load, and keeps the filters', () => {
     expect(text(settings(undefined))).not.toContain("didn't load");
-    const failed = text(renderToStaticMarkup(<WorkSettingsScreen now={NOW} set={undefined} setFailed />));
+    const failed = text(
+      renderToStaticMarkup(
+        <WorkSettingsScreen now={NOW} set={undefined} setFailed preferences={views.active.contributor.preferences} />,
+      ),
+    );
     expect(failed).toContain("Your lists didn't load. Reload the page to try again");
 
+    expect(failed).toContain('Filters Rust · Bugs · any size');
     const html = summary(undefined, true);
     expect(text(html)).toContain("Your lists didn't load. Reload the page to try again");
-    expect(text(html)).toContain('Filters Rust · Bugs · any size');
     // The rest of Settings is there as usual.
-    expect(html).toContain('href="/my/agent/key#github"');
+    expect(html).toContain('href="/my/settings/github"');
   });
 
   it("Stack: the sources by how they were added, the libraries they use, and what happens when they're empty", () => {
@@ -218,7 +234,8 @@ describe('Settings, what to work on', () => {
     const html = settings(stackSet({ mode: 'ALL' }));
     const plain = text(html);
 
-    expect(plain).toContain('All issues has no list to edit.');
+    expect(html).toMatch(/data-mode="ALL" data-current="true"/);
+    expect(html).not.toContain('data-list=');
     expect(html).toContain('href="/my/settings"');
     expect(plain).not.toContain("Your stack's sources");
     expect(plain).not.toContain('have nothing ready');

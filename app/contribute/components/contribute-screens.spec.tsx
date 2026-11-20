@@ -14,14 +14,23 @@ vi.mock('@/lib/workspace/issue-actions', () => ({}));
 vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
+vi.mock('@/lib/learn/actions', () => ({}));
+vi.mock('@/lib/learn/learn.data', () => ({
+  loadLearnProfile: vi.fn(),
+  loadLearnSetup: vi.fn(),
+  loadLearnOpen: vi.fn(),
+}));
 
 const { ConnectScreen } = await import('@/components/workspace/agent/connect-view');
 const { renewalDayOptionsOf } = await import('@/components/workspace/agent/key-connect');
 const { helperModelLabelOf, testModelLabelOf } = await import('@/components/workspace/settings/settings-form');
 const { sizeLabelOf } = await import('@/components/contribute/preferences-fields');
-const { SettingsScreen } = await import('./settings-view');
+const { SettingsScreen } = await import('@/app/(workspace)/my/settings/components/settings-view');
 const { AgentScreen } = await import('@/components/workspace/agent/agent-screen');
-const { FormSettingsScreen, KeyScreen } = await import('./settings-pages');
+const { FormSettingsScreen, KeyScreen } = await import('@/app/(workspace)/my/agent/components/agent-pages');
+const { GithubSettingsScreen, PullRequestsSettingsScreen } = await import(
+  '@/app/(workspace)/my/settings/components/settings-pages'
+);
 const { PreferencesFields } = await import('@/components/contribute/preferences-fields');
 const { ContributeNotices } = await import('@/components/workspace/contribute-notices');
 const { ConnectResult } = await import('@/components/workspace/agent/connect-result');
@@ -214,9 +223,11 @@ describe('the Agent and Settings tabs', () => {
     renderToStaticMarkup(
       <>
         <FormSettingsScreen page="budget" view={view} />
-        <FormSettingsScreen page="agent" view={view} />
+        <FormSettingsScreen page="model" view={view} />
         <PreferencesFields value={{ languages: [], kinds: [], maxSize: null }} onChange={() => {}} />
-        <KeyScreen view={view} grantRefusal={grantRefusal} today={30} now={NOW} />
+        <PullRequestsSettingsScreen view={view} />
+        <KeyScreen view={view} today={30} now={NOW} />
+        <GithubSettingsScreen view={view} grantRefusal={grantRefusal} />
       </>,
     );
 
@@ -232,9 +243,13 @@ describe('the Agent and Settings tabs', () => {
       'Model and effort Claude Sonnet 5.5, medium effort',
       'Autopilot',
       'Claude API key …k3Qa · works',
-      'GitHub pull requests',
+      'GitHub access public_repo, as @octocat',
+      'Open pull requests at a time Up to 3',
+      'Attempts at a time 1 issue in work at once',
+      'Pull request size Up to 400 changed lines, 15 files · a larger change stops before review',
+      'DCO sign-off Ask me each time a repo requires it',
       'Your own agent',
-      'Delete all Contribute data',
+      'Delete all data',
     ]) {
       expect(plain).toContain(label);
     }
@@ -243,7 +258,12 @@ describe('the Agent and Settings tabs', () => {
       '/my/agent/model',
       '/my/agent/key',
       '/my/agent/connect',
-      '/my/agent/key#github',
+      '/my/settings/github',
+      '/my/settings/pull-requests#open',
+      '/my/settings/pull-requests#attempts',
+      '/my/settings/pull-requests#size',
+      '/my/settings/pull-requests#dco',
+      '/my/settings/work',
     ]) {
       expect(html).toContain(`href="${page}"`);
     }
@@ -251,12 +271,10 @@ describe('the Agent and Settings tabs', () => {
     expect(html).not.toContain('aria-label="Settings sections"');
   });
 
-  it('says on Settings where autopilot, pause, the key and the limits went, and anchors them on the Agent tab', () => {
+  it('says on Settings where the hosted agent went, and anchors pause and autopilot on the Agent tab', () => {
     const settings = renderToStaticMarkup(<SettingsScreen view={views.active} />);
-    expect(text(settings)).toContain(
-      'Autopilot, pause, the Claude key, budget and pull request limits are on the Agent tab →',
-    );
-    expect(settings).toMatch(/data-moved-to-agent=""[\s\S]*?href="\/my\/agent"/);
+    expect(text(settings)).toContain('Pause, autopilot, and the hosted agent with its key and budget are on the Agent tab .');
+    expect(settings).toMatch(/data-agent-line=""[\s\S]*?href="\/my\/agent"/);
     const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
     for (const id of ['pause', 'autopilot', 'own-agent']) expect(agent).toContain(`id="${id}"`);
   });
@@ -286,7 +304,9 @@ describe('the Agent and Settings tabs', () => {
       'Languages',
       'Issue kinds',
       'Largest issue size',
-      'Keys and access',
+      'Claude API key',
+      'GitHub access',
+      'Attempts at a time is in Settings →',
     ]) {
       expect(plain).toContain(label);
     }
@@ -330,16 +350,14 @@ describe('the Agent and Settings tabs', () => {
 
     expect(html).toContain('data-fold="closed"');
     expect(html).toMatch(/aria-expanded="false"[^>]*>.*More limits/);
-    expect(plain).toContain(
-      'no week cap · $15 a day · $5 an attempt · 1 at a time · sweep 3 days · renews on the 14th',
-    );
+    expect(plain).toContain('no week cap · $15 a day · $5 an attempt · sweep 3 days · renews on the 14th');
     // Folded, still on the page: the draft and the labels stay.
     expect(html).toMatch(/<div id="[^"]*-more" hidden=""/);
     expect(html.match(/>Save</g)).toHaveLength(1);
   });
 
   it('puts the main model and effort first on the agent page, the smaller tasks folded, and one Save', () => {
-    const html = renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.active} />);
+    const html = renderToStaticMarkup(<FormSettingsScreen page="model" view={views.active} />);
     const plain = text(html);
 
     expect(plain).toContain('Models for smaller tasks');
@@ -376,33 +394,31 @@ describe('the Agent and Settings tabs', () => {
         weekCapUsd: null,
         dayCapUsd: 15,
         attemptCapUsd: 5,
-        attemptsAtATime: 1,
         pace: 'EVEN',
         sweepDays: 3,
         renewalDay: 14,
       },
     });
-    expect(pagePatchOf('agent', draft)).toEqual({
+    expect(pagePatchOf('model', draft)).toEqual({
       patch: {
         mainModel: 'CLAUDE_SONNET_5_5',
         helperModel: 'CLAUDE_HAIKU_5_5',
         testModel: null,
         effort: 'MEDIUM',
-        maxChangedLines: 400,
-        maxFiles: 15,
-        openPrsAtATime: 3,
-        dco: 'ASK',
       },
     });
+    expect(pagePatchOf('pull-requests', draft)).toEqual({
+      patch: { maxChangedLines: 400, maxFiles: 15, openPrsAtATime: 3, attemptsAtATime: 1, dco: 'ASK' },
+    });
     expect(pagePatchOf('budget', { ...draft, sweepDays: 'soon' })).toEqual({ invalid: 'Sweep days' });
-    expect(pagePatchOf('agent', { ...draft, maxFiles: '' })).toEqual({ invalid: 'Files' });
+    expect(pagePatchOf('pull-requests', { ...draft, maxFiles: '' })).toEqual({ invalid: 'Files' });
 
     // The fold's line says what was typed, even what Save will refuse.
     expect(moreLimitsSummaryOf(draft)).toBe(
-      'no week cap · $15 a day · $5 an attempt · 1 at a time · sweep 3 days · renews on the 14th',
+      'no week cap · $15 a day · $5 an attempt · sweep 3 days · renews on the 14th',
     );
     expect(moreLimitsSummaryOf({ ...draft, weekCapUsd: 'abc', attemptCapUsd: '5', sweepDays: '1' })).toBe(
-      'week cap “abc” · $15 a day · $5 an attempt · 1 at a time · sweep 1 day · renews on the 14th',
+      'week cap “abc” · $15 a day · $5 an attempt · sweep 1 day · renews on the 14th',
     );
   });
 
@@ -452,7 +468,7 @@ describe('the Agent and Settings tabs', () => {
     const html = pages(view);
 
     expect(html).toContain('data-grant-available="false"');
-    expect(text(render(view))).toContain('GitHub pull requests Not available yet. It is coming soon.');
+    expect(text(render(view))).toContain('GitHub access Not available yet. It is coming soon.');
     expect(text(html)).toContain('Not available yet. It is coming soon.');
     expect(text(html)).not.toContain('Allow on GitHub');
     expect(html).not.toContain('data-notice="grant-missing"');
@@ -507,17 +523,18 @@ describe('the heading scale', () => {
     const { HEADING } = await import('@/components/workspace/primitives');
 
     const settings = renderToStaticMarkup(<SettingsScreen view={views.active} />);
-    expect(settings).toContain('<h1 class="sr-only">Settings</h1>');
+    expect(settings).toContain(`<h1 class="${HEADING.page}">Settings</h1>`);
+    expect(settings).toContain(`class="${HEADING.section}">For contributing</h2>`);
     const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
     expect(agent).toContain(`<h1 class="${HEADING.page}">Agent</h1>`);
     expect(agent).toContain(`class="${HEADING.section}">Hosted agent</h2>`);
     const budget = renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.active} />);
     expect(budget).toContain(`<h1 class="${HEADING.page}">Budget and pacing</h1>`);
-    expect(renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.active} />)).toContain(
-      `<h2 class="${HEADING.block}">Pull requests</h2>`,
+    expect(renderToStaticMarkup(<PullRequestsSettingsScreen view={views.active} />)).toContain(
+      `<h2 class="${HEADING.block}">Pull request size</h2>`,
     );
     expect(renderToStaticMarkup(<KeyScreen view={views.active} today={30} now={NOW} />)).toContain(
-      `<h1 class="${HEADING.page}">Keys and access</h1>`,
+      `<h1 class="${HEADING.page}">Claude API key</h1>`,
     );
   });
 });
@@ -528,6 +545,7 @@ describe('the confirms before what cannot be undone', () => {
     const html = renderToStaticMarkup(
       <>
         <KeyScreen view={view} today={30} now={NOW} />
+        <GithubSettingsScreen view={view} />
         <AgentScreen view={view} now={NOW} />
       </>,
     );
@@ -538,8 +556,8 @@ describe('the confirms before what cannot be undone', () => {
 
     expect(triggersOf(html)).toEqual(['Remove key', 'Revoke', 'Revoke Claude Code on macOS', 'How autopilot works']);
     expect(text(html)).not.toContain('Yes, remove it');
-    // The Settings tab acts on none of them: its one dialog is the filters.
-    expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} />))).toEqual(['Edit']);
+    // The Settings tab acts on none of them: each row opens its page.
+    expect(triggersOf(renderToStaticMarkup(<SettingsScreen view={view} />))).toEqual([]);
   });
 });
 
@@ -579,33 +597,33 @@ describe('the access level', () => {
     );
   });
 
-  it('adds the attempts the limit holds to the budget line, below the setting alone', () => {
-    expect(text(renderToStaticMarkup(<AgentScreen view={views.newAccount} now={NOW} />))).toContain(
-      '$63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt · 1 at a time (new-account limit)',
+  it("says the attempts the limit holds on Settings' row, below the setting alone", () => {
+    expect(text(renderToStaticMarkup(<SettingsScreen view={views.newAccount} />))).toContain(
+      'Attempts at a time 1 issue in work at once while your account is new',
     );
-    expect(text(renderToStaticMarkup(<AgentScreen view={views.followThrough} now={NOW} />))).toContain(
-      'up to $5 an attempt · 1 at a time (limit for now)',
+    expect(text(renderToStaticMarkup(<SettingsScreen view={views.followThrough} />))).toContain(
+      'Attempts at a time 1 issue in work at once for now',
     );
-    expect(text(renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />))).not.toContain(
-      'an attempt · 1 at a time',
+    expect(text(renderToStaticMarkup(<SettingsScreen view={views.active} />))).toContain(
+      'Attempts at a time 1 issue in work at once Edit',
     );
   });
 
   it('caps attempts and open PRs at a time on their pages, with the hint tied to the field', () => {
-    const budget = renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.newAccount} />);
-    expect(text(budget)).toContain('Attempts at a time Up to 1 while your account is new');
-    expect(budget).toMatch(/aria-describedby="([^"]*attemptsAtATime-hint)"[^>]*>.*id="\1"/s);
+    const prs = renderToStaticMarkup(<PullRequestsSettingsScreen view={views.newAccount} />);
+    expect(text(prs)).toContain('Attempts at a time Up to 1 while your account is new');
+    expect(prs).toMatch(/aria-describedby="([^"]*attemptsAtATime-hint)"[^>]*>.*id="\1"/s);
 
-    const agent = renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.followThrough} />);
+    const agent = renderToStaticMarkup(<PullRequestsSettingsScreen view={views.followThrough} />);
     expect(text(agent)).toContain('Open PRs at a time Up to 2 for now');
 
-    const standard = renderToStaticMarkup(<FormSettingsScreen page="agent" view={views.active} />);
+    const standard = renderToStaticMarkup(<PullRequestsSettingsScreen view={views.active} />);
     expect(standard).not.toContain('data-cap-hint');
   });
 
   it('shows an open PRs limit set for the account in place of the setting, not to be edited', () => {
     const view = { ...views.active, contributor: { ...views.active.contributor, limits: limits.openPrsSet } };
-    const agent = renderToStaticMarkup(<FormSettingsScreen page="agent" view={view} />);
+    const agent = renderToStaticMarkup(<PullRequestsSettingsScreen view={view} />);
     expect(text(agent)).toContain('Open PRs at a time Set for your account by GitRanks.');
     expect(agent).toMatch(/readOnly=""[^>]*value="16"|value="16"[^>]*readOnly=""/);
     expect(agent).toMatch(/aria-describedby="([^"]*openPrsAtATime-hint)"[^>]*>.*id="\1"/s);
@@ -634,28 +652,30 @@ describe('the access level', () => {
     };
     const caps = { limits: limits.newAccount, stored: { attemptsAtATime: 1, openPrsAtATime: 3 } };
 
-    expect(pagePatchOf('budget', draft, caps)).toEqual({
+    expect(pagePatchOf('pull-requests', draft, caps)).toEqual({
       invalid: 'Attempts at a time',
       message: 'Attempts at a time: up to 1 while your account is new.',
     });
     // Open PRs at 3 is as stored: kept for when the limit lifts.
-    expect(pagePatchOf('agent', draft, caps)).toMatchObject({ patch: { openPrsAtATime: 3 } });
-    expect(pagePatchOf('agent', { ...draft, openPrsAtATime: '4' }, caps)).toMatchObject({
+    expect(pagePatchOf('pull-requests', { ...draft, attemptsAtATime: '1' }, caps)).toMatchObject({
+      patch: { openPrsAtATime: 3 },
+    });
+    expect(pagePatchOf('pull-requests', { ...draft, attemptsAtATime: '1', openPrsAtATime: '4' }, caps)).toMatchObject({
       message: 'Open PRs at a time: up to 2 while your account is new.',
     });
-    expect(pagePatchOf('budget', { ...draft, attemptsAtATime: '1' }, caps)).toMatchObject({
+    expect(pagePatchOf('pull-requests', { ...draft, attemptsAtATime: '1' }, caps)).toMatchObject({
       patch: { attemptsAtATime: 1 },
     });
-    expect(pagePatchOf('budget', draft)).toMatchObject({ patch: { attemptsAtATime: 2 } });
+    expect(pagePatchOf('pull-requests', draft)).toMatchObject({ patch: { attemptsAtATime: 2 } });
 
     // A limit set for the account is never saved as the setting: the stored one goes back as it is.
     const stored = { attemptsAtATime: 2, openPrsAtATime: 3 };
-    const set = pagePatchOf('agent', draft, { limits: limits.openPrsSet, stored });
+    const set = pagePatchOf('pull-requests', draft, { limits: limits.openPrsSet, stored });
     expect(set).toMatchObject({ patch: { openPrsAtATime: 3 } });
     expect(set).not.toHaveProperty('invalid');
     // On smaller limits too, with the stored value above the level's cap: kept, and not refused.
     const reduced = { ...limits.newAccount, openPrsEffective: 16, openPrsOverride: 16 };
-    const small = pagePatchOf('agent', draft, { limits: reduced, stored });
+    const small = pagePatchOf('pull-requests', { ...draft, attemptsAtATime: '1' }, { limits: reduced, stored });
     expect(small).toMatchObject({ patch: { openPrsAtATime: 3 } });
     expect(small).not.toHaveProperty('invalid');
   });

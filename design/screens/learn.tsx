@@ -2,10 +2,10 @@ import type { Route } from 'next';
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
+import { GoalSettingsScreen } from '@/app/(workspace)/my/settings/components/settings-pages';
 import { LearnHomeScreen } from '@/app/learn/components/learn-home';
 import { LearnLanding } from '@/app/learn/components/learn-landing';
 import { LearnMaintainers } from '@/app/learn/components/learn-maintainers';
-import { LearnProfileScreen } from '@/app/learn/components/learn-profile';
 import { LessonPageScreen } from '@/app/learn/components/lesson-page';
 import { LessonResultScreen, type ResultViewer } from '@/app/learn/components/lesson-result';
 import { LessonStubScreen } from '@/app/learn/components/lesson-stub';
@@ -51,6 +51,8 @@ import { contributionMovesOf } from '@/lib/workspace/contribution-moves';
 
 /** A page's own container, as its `page.tsx` draws it. */
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
+/** A Settings page's column. */
+const SETTINGS_MAIN = 'mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16';
 
 /** Every tab, as an account Learn is open to sees them. */
 const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
@@ -411,55 +413,35 @@ export const LEARN_SCREENS: Screen[] = [
     id: 'learn-profile',
     title: 'Goal and level',
     area: 'learn',
-    route: '/learn/profile',
+    route: '/my/settings/goal',
     sources: [
-      'app/learn/profile/page.tsx',
-      'app/learn/components/learn-profile.tsx',
-      'app/learn/components/learn-profile-form.tsx',
+      'app/(workspace)/my/settings/goal/page.tsx',
+      'app/(workspace)/my/settings/components/settings-pages.tsx',
+      'components/learn/learn-profile-form.tsx',
       'app/learn/components/learn-setting-up.tsx',
       'lib/learn/profile-form.ts',
     ],
     states: [
       {
         id: 'empty',
-        title: 'First visit: no goal yet, the levels guessed, the agent not set up',
-        path: '/learn/profile',
+        title: 'First visit: no goal yet, the levels guessed',
+        path: '/my/settings/goal',
         height: 1170,
-        render: () => frame(<LearnProfileScreen profile={emptyProfile} />),
+        render: () => bare(<main className={SETTINGS_MAIN}>{<GoalSettingsScreen profile={emptyProfile} />}</main>),
       },
       {
-        id: 'saved',
-        title: 'Saved: Saved by the button, and the next step under the form, the issues for the goal',
-        path: '/learn/profile',
-        height: 1340,
-        render: () => frame(<LearnProfileScreen profile={filledProfile} saved={{ next: practiceNext.own }} />),
-      },
-      {
-        id: 'saved-lesson',
-        title: 'Saved with a lesson in progress: back to it',
-        path: '/learn/profile',
-        height: 1340,
-        render: () => frame(<LearnProfileScreen profile={filledProfile} saved={{ next: practiceNext.back }} />),
-      },
-      {
-        id: 'saved-unsupported',
-        title: 'Saved a goal Learn can’t find issues for: back to Learn home',
-        path: '/learn/profile',
-        height: 1340,
-        render: () =>
-          frame(
-            <LearnProfileScreen
-              profile={{ ...filledProfile, goalValue: 'C++' }}
-              saved={{ next: practiceNext.unsupported }}
-            />,
-          ),
+        id: 'filled',
+        title: 'A goal saved: Save goes back to Settings',
+        path: '/my/settings/goal',
+        height: 1240,
+        render: () => bare(<main className={SETTINGS_MAIN}>{<GoalSettingsScreen profile={filledProfile} />}</main>),
       },
       {
         id: 'setting-up',
         title: 'A new account: its GitRanks account is still being set up',
-        path: '/learn/profile',
-        height: 900,
-        render: () => frame(<LearnProfileScreen profile={null} settingUp />),
+        path: '/my/settings/goal',
+        height: 600,
+        render: () => bare(<main className={SETTINGS_MAIN}>{<GoalSettingsScreen profile={null} settingUp />}</main>),
       },
     ],
   },

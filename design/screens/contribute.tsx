@@ -3,6 +3,12 @@ import type { ComponentProps, ReactNode } from 'react';
 import type { Screen } from '../registry';
 import { changedCommentStates, reviewCommentStates, sessionHeadStates } from './contribute-moves';
 import { ContributeTabScreen } from '@/app/(workspace)/contribute/components/contribute-tab';
+import { FormSettingsScreen } from '@/app/(workspace)/my/agent/components/agent-pages';
+import {
+  GithubSettingsScreen,
+  PullRequestsSettingsScreen,
+} from '@/app/(workspace)/my/settings/components/settings-pages';
+import { SettingsScreen } from '@/app/(workspace)/my/settings/components/settings-view';
 import { ContributeBadgePreview } from '@/app/contribute/components/contribute-badge-preview';
 import { FaqScreen } from '@/app/contribute/components/faq';
 import { Landing } from '@/app/contribute/components/landing';
@@ -13,8 +19,6 @@ import { HelpedSent, ReportSent } from '@/app/contribute/components/pr-feedback-
 import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
 import { PrTimelineScreen } from '@/app/contribute/components/pr-timeline-view';
 import { MorePages } from '@/app/contribute/components/public-pages';
-import { FormSettingsScreen } from '@/app/contribute/components/settings-pages';
-import { SettingsScreen } from '@/app/contribute/components/settings-view';
 import { TermsScreen } from '@/app/terms/terms';
 import { Header } from '@/components/header/header';
 import { Button } from '@/components/ui/button';
@@ -62,6 +66,7 @@ import {
   mcpToken,
   NOW,
   settings,
+  settingsViews,
   views,
 } from '@/lib/contribute/__fixtures__/contribute-views';
 import { emptyLedger, ledger, publicLedger } from '@/lib/contribute/__fixtures__/ledger';
@@ -100,6 +105,7 @@ import { learnerPageOf, OWN_LEARN, pageOf, previewPageOf } from '@/lib/contribut
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
 import type { PrTimeline } from '@/lib/contribute/pr-timeline.types';
+import { filledProfile } from '@/lib/learn/__fixtures__/profile';
 import type {
   ContributeActivity,
   ContributeAttemptDetail,
@@ -1501,17 +1507,148 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     title: 'Settings',
     area: 'contribute',
     route: '/my/settings',
-    sources: ['app/contribute/components/settings-view.tsx', 'components/workspace/settings/email-section.tsx'],
+    sources: [
+      'app/(workspace)/my/settings/components/settings-view.tsx',
+      'components/workspace/settings/email-rows.tsx',
+      'components/workspace/settings/delete-data-section.tsx',
+    ],
     states: [
       {
         id: 'summary',
-        title: 'Summary',
+        title: 'Uses both: every group',
         path: '/my/settings',
-        height: 1400,
+        height: 1900,
         render: () =>
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <SettingsScreen view={views.active} email={email.on} />
+              <SettingsScreen
+                view={settingsViews.both}
+                learnOpen
+                email={email.on}
+                profile={filledProfile}
+                openPrs={3}
+              />
+            </main>,
+          ),
+      },
+      {
+        id: 'contributor',
+        title: 'A contributor: For learning closed to a line',
+        path: '/my/settings',
+        height: 1650,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen view={settingsViews.contributor} learnOpen email={email.on} openPrs={3} />
+            </main>,
+          ),
+      },
+      {
+        id: 'learner',
+        title: 'A learner: For learning first, For contributing closed',
+        path: '/my/settings',
+        height: 1650,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen
+                view={settingsViews.learner}
+                learnOpen
+                email={email.on}
+                profile={filledProfile}
+                openPrs={1}
+              />
+            </main>,
+          ),
+      },
+      {
+        id: 'no-email',
+        title: 'No email address: the switch off, and why',
+        path: '/my/settings',
+        height: 1600,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen view={views.active} email={{ on: true, to: null }} />
+            </main>,
+          ),
+      },
+      {
+        id: 'not-yet',
+        title: 'Before the agent connects: the limits start then',
+        path: '/my/settings',
+        height: 1300,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen view={{ ...views.noKey, sides: { contribute: true, learn: false } }} email={email.on} />
+            </main>,
+          ),
+      },
+      {
+        id: 'phone',
+        title: 'Phone',
+        path: '/my/settings',
+        width: 390,
+        height: 2600,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <SettingsScreen
+                view={settingsViews.both}
+                learnOpen
+                email={email.on}
+                profile={filledProfile}
+                openPrs={3}
+              />
+            </main>,
+          ),
+      },
+    ],
+  },
+  {
+    id: 'contribute-settings-pull-requests',
+    title: 'Pull requests',
+    area: 'contribute',
+    route: '/my/settings/pull-requests',
+    sources: [
+      'app/(workspace)/my/settings/components/settings-pages.tsx',
+      'components/workspace/settings/settings-form.tsx',
+    ],
+    states: [
+      {
+        id: 'form',
+        title: 'The limits for both agents: size, open, attempts, sign-off',
+        path: '/my/settings/pull-requests',
+        height: 1250,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <PullRequestsSettingsScreen view={views.active} />
+            </main>,
+          ),
+      },
+    ],
+  },
+  {
+    id: 'contribute-settings-github',
+    title: 'GitHub access',
+    area: 'contribute',
+    route: '/my/settings/github',
+    sources: [
+      'app/(workspace)/my/settings/components/settings-pages.tsx',
+      'components/workspace/agent/access-section.tsx',
+    ],
+    states: [
+      {
+        id: 'refused',
+        title: 'GitHub sent back another account',
+        path: '/my/settings/github?grant=refused',
+        height: 700,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <GithubSettingsScreen view={views.grantMissing} grantRefusal="refused" />
             </main>,
           ),
       },
@@ -1519,24 +1656,32 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
   },
   {
     id: 'contribute-settings-agent',
-    title: 'Agent and pull requests',
+    title: 'Model and effort',
     area: 'contribute',
     route: '/my/agent/model',
-    sources: [
-      'app/contribute/components/settings-pages.tsx',
-      'app/contribute/components/settings-form.tsx',
-      'app/contribute/components/repo-rules.tsx',
-    ],
+    sources: ['app/(workspace)/my/agent/components/agent-pages.tsx', 'components/workspace/settings/settings-form.tsx'],
     states: [
       {
         id: 'form',
-        title: 'The agent and the pull requests’ limits: repos can ask for less',
+        title: 'The hosted agent’s models and effort',
         path: '/my/agent/model',
-        height: 1500,
+        height: 900,
         render: () =>
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
-              <FormSettingsScreen page="agent" view={views.active} />
+              <FormSettingsScreen page="model" view={views.active} />
+            </main>,
+          ),
+      },
+      {
+        id: 'budget',
+        title: 'Budget and pacing, attempts at a time in Settings',
+        path: '/my/agent/budget#more-limits',
+        height: 1200,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16">
+              <FormSettingsScreen page="budget" view={views.active} />
             </main>,
           ),
       },

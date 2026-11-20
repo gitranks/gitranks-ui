@@ -1,4 +1,4 @@
-import { Cpu, GitPullRequest, KeyRound, Layers, Wallet } from 'lucide-react';
+import { Cpu, KeyRound, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -15,14 +15,8 @@ import { cn } from '@/lib/utils';
 import type { ContributeComingSoonProvider, ContributeView } from '@/lib/workspace/contribute.types';
 import type { ContributeNotice } from '@/lib/workspace/contribute-state';
 import { claudeKeyOf, settingsOf } from '@/lib/workspace/contribute-state';
-import { WORKSPACE_ANCHORS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
-import {
-  attemptsSummaryOf,
-  budgetSummaryOf,
-  keySummaryOf,
-  modelSummaryOf,
-  prLimitsSummaryOf,
-} from '@/lib/workspace/settings-summary';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { budgetSummaryOf, keySummaryOf, modelSummaryOf } from '@/lib/workspace/settings-summary';
 
 /** What the hosted agent is, for someone without a key: where it runs, what it costs, and the way to start it. */
 export function HostedAgentPitch() {
@@ -84,7 +78,7 @@ function Block({ children, state }: { children: ReactNode; state: string }) {
  * The Agent tab's "Hosted agent" (W1 §9.2, §9.4). With a Claude key: the key's trouble first, the control slot
  * (`HostedAgentControl`), the key, model and budget rows, what repos can turn off, and what is coming. Without one: its
  * pitch for a contributor, or one closed line for a learner, which opens the pitch in place; above it, "Pause and
- * limits" holds the slot and the limits that bind the user's own agent too.
+ * autopilot" holds the slot, which acts on the user's own agent too.
  */
 export function HostedAgentBlock({
   view,
@@ -112,29 +106,11 @@ export function HostedAgentBlock({
   const spend = contributor?.spend;
 
   if (!key) {
-    // Pause and autopilot act on the user's own agent too, and the limits on its pull requests and claims: they stay
-    // on the tab without a key, until the levels (W2) and Settings (U7) take them.
+    // Pause and autopilot act on the user's own agent too: they stay on the tab without a key, until the levels (W2)
+    // take them. The limits on its pull requests and claims are in Settings.
     const controls = contributor ? (
-      <SettingsGroup id="contributing" title="Pause and limits">
+      <SettingsGroup id="contributing" title="Pause and autopilot">
         <HostedAgentControl view={view} now={now} />
-        {settings ? (
-          <SettingsList>
-            <SettingsRow
-              icon={GitPullRequest}
-              href={WORKSPACE_ANCHORS.limitRow}
-              cta="Edit"
-              title="Pull requests"
-              value={prLimitsSummaryOf(settings, contributor.limits)}
-            />
-            <SettingsRow
-              icon={Layers}
-              href={WORKSPACE_ANCHORS.attemptsRow}
-              cta="Edit"
-              title="Attempts at a time"
-              value={attemptsSummaryOf(settings, contributor.limits)}
-            />
-          </SettingsList>
-        ) : null}
       </SettingsGroup>
     ) : null;
     if (learner) {
@@ -185,11 +161,7 @@ export function HostedAgentBlock({
           href={WORKSPACE_PATHS.agentModel}
           cta="Edit"
           title="Model and effort"
-          value={
-            settings
-              ? `${modelSummaryOf(settings)} · ${prLimitsSummaryOf(settings, contributor?.limits)}`
-              : 'They start from your plan, and are yours to change.'
-          }
+          value={settings ? modelSummaryOf(settings) : 'They start from your plan, and are yours to change.'}
         />
         <SettingsRow
           icon={Wallet}
@@ -199,7 +171,7 @@ export function HostedAgentBlock({
           value={
             settings ? (
               <>
-                {budgetSummaryOf(settings, spend, contributor?.limits)}
+                {budgetSummaryOf(settings, spend)}
                 {spend ? (
                   <Meter
                     inline

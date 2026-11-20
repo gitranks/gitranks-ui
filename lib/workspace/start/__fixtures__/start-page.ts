@@ -81,7 +81,6 @@ export const startViews = {
     },
   ),
   accountPaused: startViewOf({ refusal: 'ACCOUNT_PAUSED' }),
-  pausedByYou: startViewOf({ refusal: 'PAUSED_BY_YOU' }),
   daily: startViewOf({ refusal: 'DAILY_LIMIT' }),
   repoUnavailable: startViewOf({ refusal: 'REPO_UNAVAILABLE' }),
   yoursFix: startViewOf({ refusal: 'YOURS', attempt: fixAttemptOf('RUNNING') }),

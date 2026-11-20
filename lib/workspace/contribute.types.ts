@@ -10,12 +10,8 @@ import type {
 export type ContributeAttemptMode = 'FIX' | 'LEARN';
 export type ContributeLiveProvider = 'ANTHROPIC';
 export type ContributeKeyState = 'VALID' | 'INVALID' | 'EXHAUSTED' | 'LIMIT_REACHED';
-export type ContributePace = 'EVEN' | 'FAST' | 'QUEUED';
-/**
- * The paces the forms offer, and a key connect may set. A stored `QUEUED` ("only issues I queue", from before the
- * levels) is shown as `EVEN` (`shownPaceOf`): starting issues is the hosted agent's level now.
- */
-export type ContributeConnectPace = Exclude<ContributePace, 'QUEUED'>;
+/** How the issues the hosted agent starts by itself are spread; whether it starts any is its level. */
+export type ContributePace = 'EVEN' | 'FAST';
 /**
  * How much the hosted agent does by itself: you start each issue (`MANUAL`), it also starts the next one by itself
  * (`NEXT`), and it also submits the pull requests of its own changes (`AUTOPILOT`).
@@ -209,7 +205,7 @@ export type ContributeConnectLimits = {
   weekCapUsd?: number | null;
   dayCapUsd?: number | null;
   attemptCapUsd?: number;
-  pace?: ContributeConnectPace;
+  pace?: ContributePace;
 };
 
 export type ContributeConnectKeyResult = {
@@ -276,17 +272,14 @@ export type ContributeIssueStatus = {
 };
 
 /**
- * What the Contribute pages render from. `grant` and `paused` come from fields the API may not answer yet: `undefined`
- * is "not available yet", which the pages show as such instead of failing.
+ * What the Contribute pages render from. `grant` comes from a field the API may not answer yet: `undefined` is "not
+ * available yet", which the pages show as such instead of failing.
  */
 export type ContributeView = {
   contributor: Contributor | null;
   /** Which sides the user uses; `undefined` while the API does not answer it. */
   sides?: ContributeSides | null;
   grant: ContributeGrant | undefined;
-  paused: boolean | undefined;
-  /** Paused by the user themselves (not by a refused key); `undefined` while the API does not answer it. */
-  pausedByYou?: boolean;
   /** Pull request access can be granted here (the app and its key ring are configured). */
   grantAvailable: boolean;
   /** The user's own agent: their paths and live tokens; `undefined` while the API does not answer them. */

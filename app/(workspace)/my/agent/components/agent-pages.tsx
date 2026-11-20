@@ -23,7 +23,7 @@ const BACK_TO_AGENT = { href: WORKSPACE_PATHS.agent, label: 'the Agent tab' };
 
 /** The notices the Agent tab shows, on the pages where they are acted on: the key's trouble, the caps reached. */
 function PageNotices({ view }: { view: ContributeView }) {
-  return <ContributeNotices notices={contributeNoticesOf(view).filter(({ kind }) => kind !== 'paused')} />;
+  return <ContributeNotices notices={contributeNoticesOf(view)} />;
 }
 
 /** With their own agent alone, or before a key: the hosted agent's limits have nothing to limit yet, and why. */

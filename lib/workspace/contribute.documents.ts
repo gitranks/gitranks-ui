@@ -279,11 +279,6 @@ export const ContributeGrantDocument = doc<{ contribute: { grant: ContributeGran
   'query ContributeGrant { contribute { grant { connected login } } }',
 );
 
-/** Paused, and whether by the user themselves (`pausedByYou`, not a refused key), until the levels replace the pause. */
-export const ContributePausedDocument = doc<{
-  contribute: { contributor: { paused: boolean; pausedByYou: boolean } | null } | null;
-}>('query ContributePaused { contribute { contributor { paused pausedByYou } } }');
-
 /** The account's access level and the limits it sets now: read on its own, so an API without it leaves the rest. */
 export const ContributeLimitsDocument = doc<{
   contribute: { contributor: { limits: ContributeLimits } | null } | null;
@@ -441,10 +436,6 @@ export const DeleteContributeDataDocument = doc<{ deleteContributeData: Contribu
 
 export const RevokeGithubGrantDocument = doc<{ revokeGithubGrant: boolean }>(
   'mutation RevokeGithubGrant { revokeGithubGrant }',
-);
-
-export const ResumeContributingDocument = doc<{ resumeContributing: boolean }>(
-  'mutation ResumeContributing { resumeContributing }',
 );
 
 const EMAIL_SETTINGS_FIELDS = 'to needsYou ended timeZone';

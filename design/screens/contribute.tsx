@@ -114,7 +114,7 @@ const tab = (
       view={view}
       agents={{ hosted: true, own: true }}
       learnOpen
-      tab={{ totals: { open: 2, merged: 7, closed: 4, reposHelped: 6 }, pausedByYou: false, hostedLevel: 'MANUAL' }}
+      tab={{ totals: { open: 2, merged: 7, closed: 4, reposHelped: 6 }, hostedLevel: 'MANUAL' }}
       page={issuePage}
       activity={activity}
       counts={{ prBound: 2 }}
@@ -310,14 +310,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/contribute',
         height: 1600,
         render: () => tab(both, activityOf(), { counts: { prBound: 3 } }),
-      },
-      {
-        id: 'paused-by-you',
-        title: 'Paused by you: Resume over the rows',
-        path: '/contribute',
-        height: 1700,
-        render: () =>
-          tab(views.paused, activityOf(), { tab: { totals: null, pausedByYou: true, hostedLevel: 'MANUAL' } }),
       },
       {
         id: 'nothing-connected',

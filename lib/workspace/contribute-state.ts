@@ -9,7 +9,6 @@ export type ContributeNotice =
   | { kind: 'key-invalid' }
   | { kind: 'exhausted'; until: string | null }
   | { kind: 'limit-reached'; until: string | null }
-  | { kind: 'paused' }
   /** Smaller limits while the account is new: every new account starts so. */
   | { kind: 'new-account'; limits: ContributeLimits }
   /** Smaller limits for now: the recent claims ran out without a pull request. */
@@ -70,8 +69,8 @@ export const settingsOf = (view: ContributeView): ContributeSettings | null =>
 export const claudeKeyOf = (view: ContributeView | null | undefined): ContributeCredential | undefined =>
   view?.contributor?.credentials.find((credential) => credential.provider === 'ANTHROPIC');
 
-/** Paused by the user: the dedicated field when the API answers it, else the contributor's status. */
-export const isPaused = (view: ContributeView) => view.paused ?? view.contributor?.status === 'PAUSED';
+/** Paused: by a refused key, which the key's notice says. */
+export const isPaused = (view: ContributeView) => view.contributor?.status === 'PAUSED';
 
 export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
   const access = accessNoticesOf(view);
@@ -86,8 +85,6 @@ export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
   else if (key.state === 'EXHAUSTED') notices.push({ kind: 'exhausted', until: key.blockedUntil });
   else if (key.state === 'LIMIT_REACHED') notices.push({ kind: 'limit-reached', until: key.blockedUntil });
 
-  // Resume is the user's own pause's way out alone: a refused key's pause is the key's notice.
-  if (view.contributor && view.pausedByYou) notices.push({ kind: 'paused' });
   notices.push(...access.filter(({ kind }) => kind !== 'suspended'));
   return notices;
 }

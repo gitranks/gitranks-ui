@@ -4,10 +4,9 @@ import type {
   ContributeLimits,
   ContributeScheduleCounts,
   ContributeSettings,
-  ContributeSettingsInput,
   ContributeSpend,
 } from './contribute.types';
-import { AUTOPILOT_UNLOCK_AT, dayLabel, shownPaceOf, timeLeftLabel } from './format';
+import { AUTOPILOT_UNLOCK_AT, dayLabel, timeLeftLabel } from './format';
 import { limitReachedOf } from './limit-words';
 
 /** Autopilot is on: the hosted agent's level chosen, and unlocked by the user's record. */
@@ -37,22 +36,21 @@ export const HOSTED_LEVELS: { level: ContributeHostedLevel; title: string; text:
 const SOON_MS = 5 * 60_000;
 
 /**
- * When the hosted agent starts its next issue by itself, under the levels that do (`NEXT` and `AUTOPILOT`): after the
- * user resumes, while their own pause holds; at the open pull request limit, when one is merged or closed; with no
- * room in the budget, never; else soon, or in about that long. Null at `MANUAL`, while the spend is not known, and
- * while a refused key pauses it (the key's row says so).
+ * When the hosted agent starts its next issue by itself, under the levels that do (`NEXT` and `AUTOPILOT`): at the open
+ * pull request limit, when one is merged or closed; with no room in the budget, never; else soon, or in about that
+ * long. Null at `MANUAL`, while the spend is not known, and while the account is paused (a refused key's row says so).
  */
 export function nextIssueLineOf(
   level: ContributeHostedLevel,
   {
-    paused = null,
+    paused = false,
     spend,
     counts,
     settings,
     limits,
   }: {
-    /** Paused by the user themselves (`you`), or by a refused key (`key`). */
-    paused?: 'you' | 'key' | null;
+    /** Paused: by a refused key, whose row says so. */
+    paused?: boolean;
     spend: Pick<ContributeSpend, 'nextAttemptAt'> | null | undefined;
     counts: Pick<ContributeScheduleCounts, 'prBound'> | null | undefined;
     settings: Pick<ContributeSettings, 'attemptsAtATime' | 'openPrsAtATime'> | null | undefined;
@@ -60,8 +58,7 @@ export function nextIssueLineOf(
   },
   now = new Date(),
 ): string | null {
-  if (level === 'MANUAL' || paused === 'key') return null;
-  if (paused === 'you') return 'Next issue: after you resume';
+  if (level === 'MANUAL' || paused) return null;
   if (!spend) return null;
   if (limitReachedOf(counts, settings, limits)) return 'Next issue: when a pull request is merged or closed';
   if (!spend.nextAttemptAt) return 'Next issue: your budget leaves no room for a run';
@@ -110,21 +107,6 @@ export function autopilotChoiceOf(autopilot: ContributeAutopilot, level: Contrib
     canChoose: open && !locked && !noEmail,
     lockedAfterChosen: level === 'AUTOPILOT' && locked,
   };
-}
-
-/**
- * A budget and pacing save never moves the level. The pace goes only when it is not the one the form showed; over a
- * stored `QUEUED` pace (shown as `EVEN`) it goes with the level as it is, since the API would read even or fast over
- * `QUEUED` as "start issues by itself".
- */
-export function paceSaveOf(
-  patch: ContributeSettingsInput,
-  stored: Pick<ContributeSettings, 'pace' | 'hostedLevel'>,
-): ContributeSettingsInput {
-  if (patch.pace === undefined) return patch;
-  const { pace, ...rest } = patch;
-  if (pace === shownPaceOf(stored.pace)) return rest;
-  return stored.pace === 'QUEUED' ? { ...patch, hostedLevel: stored.hostedLevel } : patch;
 }
 
 /** Where the level control stands: the level last sent (or read), the card shown, the Autopilot confirm open. */

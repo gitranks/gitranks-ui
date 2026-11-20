@@ -39,7 +39,6 @@ import {
   NoteProviderInterestDocument,
   PostContributeProofReplyDocument,
   RemoveLlmKeyDocument,
-  ResumeContributingDocument,
   RetryAttemptDocument,
   RetryContributeProofDocument,
   RevokeGithubGrantDocument,
@@ -173,10 +172,6 @@ export async function deleteContributeData(): Promise<ContributeActionResult<Con
 
 export async function revokeGithubGrant(): Promise<ContributeActionResult<boolean>> {
   return run(RevokeGithubGrantDocument, undefined, (data) => data.revokeGithubGrant);
-}
-
-export async function resumeContributing(): Promise<ContributeActionResult<boolean>> {
-  return run(ResumeContributingDocument, undefined, (data) => data.resumeContributing);
 }
 
 /**

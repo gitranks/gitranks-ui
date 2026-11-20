@@ -1,13 +1,12 @@
 import { HostedLevelPicker } from './hosted-level-picker';
-import { PausedByYouNotice } from '@/components/workspace/paused-notice';
 import type { ContributeScheduleCounts, ContributeView } from '@/lib/workspace/contribute.types';
 import { isPaused, settingsOf } from '@/lib/workspace/contribute-state';
 import { nextIssueLineOf } from '@/lib/workspace/hosted-level';
 
 /**
  * The hosted agent's control (W1 §9.3's slot): how much it does by itself, one of three levels, with when it starts its
- * next issue by itself; over it, Resume while the user's own pause holds. Drawn with a key and its settings; nothing
- * otherwise (the own agent alone has no autopilot: it acts on the hosted agent's changes only).
+ * next issue by itself. Drawn with a key and its settings; nothing otherwise (the own agent alone has no autopilot: it
+ * acts on the hosted agent's changes only).
  */
 export function HostedAgentControl({
   view,
@@ -26,7 +25,7 @@ export function HostedAgentControl({
   const nextIssue = nextIssueLineOf(
     'NEXT',
     {
-      paused: view.pausedByYou ? 'you' : isPaused(view) ? 'key' : null,
+      paused: isPaused(view),
       spend: contributor.spend,
       counts,
       settings,
@@ -34,10 +33,9 @@ export function HostedAgentControl({
     },
     now,
   );
-  // `#hosted-level`, where the old `#pause` link goes: Resume first while a pause holds, then the levels.
+  // `#hosted-level`, where the old `#pause` link goes.
   return (
-    <div id="hosted-level" className="flex scroll-mt-20 flex-col gap-3">
-      <PausedByYouNotice view={view} />
+    <div id="hosted-level" className="scroll-mt-20">
       <HostedLevelPicker
         level={settings.hostedLevel}
         autopilot={contributor.autopilot}

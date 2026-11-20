@@ -145,17 +145,12 @@ describe("the hosted agent's levels", () => {
     expect(text(autopilot)).toContain('Next issue: in about 2 hours');
   });
 
-  it("puts Resume over the levels while the user's own pause holds, and nothing for a key's pause", () => {
-    const paused = render(viewOf('NEXT', OPEN, { paused: true, pausedByYou: true }));
-    expect(paused.plain).toContain("Contributing is paused, so your own agent can't take an issue. Resume");
-    expect(paused.html.indexOf('data-list-note="paused-by-you"')).toBeLessThan(
-      paused.html.indexOf('data-hosted-level='),
-    );
-    expect(text(card(paused.html, 'NEXT'))).toContain('Next issue: after you resume');
-    const byKey = render(viewOf('NEXT', OPEN, { paused: true, pausedByYou: false }));
-    expect(byKey.html).not.toContain('data-list-note="paused-by-you"');
-    // A refused key's pause: the key's row says it, and no next issue is promised.
+  it("promises no next issue on a paused account, and has no Resume: the key's row says it", () => {
+    const paused = viewOf('NEXT');
+    const byKey = render({ ...paused, contributor: { ...paused.contributor!, status: 'PAUSED' } });
+    expect(byKey.html).toContain('data-hosted-level=');
     expect(byKey.html).not.toContain('data-next-issue');
+    expect(byKey.plain).not.toContain('Resume');
     expect(render(viewOf('NEXT')).plain).not.toContain('Contributing is paused');
   });
 

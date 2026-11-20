@@ -16,7 +16,6 @@ vi.mock('next/navigation', () => ({
 vi.mock('server-only', () => ({}));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/lib/learn/actions', () => ({ saveLearnProfile: vi.fn() }));
-vi.mock('@/lib/workspace/actions', () => ({ resumeContributing: vi.fn() }));
 vi.mock('@/lib/workspace/start/start-page.actions', () => ({
   readStartPageAttempt: vi.fn(),
   readStartPageIssue: vi.fn(),

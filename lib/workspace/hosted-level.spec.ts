@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { autopilotChoiceOf, type LevelPicking, levelPickStep, nextIssueLineOf, paceSaveOf } from './hosted-level';
+import { autopilotChoiceOf, type LevelPicking, levelPickStep, nextIssueLineOf } from './hosted-level';
 import { contributor, limits, NOW, settings } from '@/lib/contribute/__fixtures__/contribute-views';
 
 const at = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000).toISOString();
@@ -17,13 +17,9 @@ describe('when the hosted agent starts its next issue by itself', () => {
     expect(nextIssueLineOf('NEXT', { ...facts(at(180)), spend: null }, NOW)).toBeNull();
   });
 
-  it('waits for Resume while the user paused, and says nothing while a refused key pauses it', () => {
-    expect(nextIssueLineOf('NEXT', { ...facts(at(180)), paused: 'you' }, NOW)).toBe('Next issue: after you resume');
-    expect(nextIssueLineOf('AUTOPILOT', { ...facts(at(180), 3), paused: 'you' }, NOW)).toBe(
-      'Next issue: after you resume',
-    );
-    expect(nextIssueLineOf('NEXT', { ...facts(at(180)), paused: 'key' }, NOW)).toBeNull();
-    expect(nextIssueLineOf('MANUAL', { ...facts(at(180)), paused: 'you' }, NOW)).toBeNull();
+  it('says nothing while the account is paused (a refused key, whose row says so)', () => {
+    expect(nextIssueLineOf('NEXT', { ...facts(at(180)), paused: true }, NOW)).toBeNull();
+    expect(nextIssueLineOf('AUTOPILOT', { ...facts(at(180), 3), paused: true }, NOW)).toBeNull();
   });
 
   it('waits on a pull request once the open ones reach the limit, before anything else', () => {
@@ -89,28 +85,6 @@ describe('the Autopilot card', () => {
   it('chosen and then locked again, it works as the level above', () => {
     expect(autopilotChoiceOf({ ...autopilot, available: true }, 'AUTOPILOT').lockedAfterChosen).toBe(true);
     expect(autopilotChoiceOf({ ...autopilot, available: true }, 'NEXT').lockedAfterChosen).toBe(false);
-  });
-});
-
-describe('a budget and pacing save', () => {
-  it('sends the pace only when it changed from the one shown', () => {
-    expect(paceSaveOf({ pace: 'EVEN', sweepDays: 3 }, { pace: 'EVEN', hostedLevel: 'NEXT' })).toEqual({ sweepDays: 3 });
-    expect(paceSaveOf({ pace: 'FAST', sweepDays: 3 }, { pace: 'EVEN', hostedLevel: 'NEXT' })).toEqual({
-      pace: 'FAST',
-      sweepDays: 3,
-    });
-    expect(paceSaveOf({ cycleCapUsd: 50 }, { pace: 'QUEUED', hostedLevel: 'MANUAL' })).toEqual({ cycleCapUsd: 50 });
-  });
-
-  it('leaves a stored "only issues I queue" as it is unless changed, and then keeps the level with it', () => {
-    expect(paceSaveOf({ pace: 'EVEN', sweepDays: 3 }, { pace: 'QUEUED', hostedLevel: 'MANUAL' })).toEqual({
-      sweepDays: 3,
-    });
-    expect(paceSaveOf({ pace: 'FAST', sweepDays: 3 }, { pace: 'QUEUED', hostedLevel: 'MANUAL' })).toEqual({
-      pace: 'FAST',
-      sweepDays: 3,
-      hostedLevel: 'MANUAL',
-    });
   });
 });
 

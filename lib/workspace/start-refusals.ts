@@ -25,10 +25,7 @@ export type StartRefusalAction =
 
 export type StartRefusalCopy =
   /** The open pull request limit: `LimitNotice`, its one wording, with its two links. */
-  | { kind: 'limit'; counts: LimitCounts }
-  /** A pause the viewer set: the sentence and Resume, which the page runs. */
-  | { kind: 'paused-by-you'; text: string }
-  | { kind: 'notice'; text: string; action: StartRefusalAction | null };
+  { kind: 'limit'; counts: LimitCounts } | { kind: 'notice'; text: string; action: StartRefusalAction | null };
 
 /** "One of your issues is being worked on, …", "3 of your issues are being worked on, …": `limit` is what holds. */
 export function busyText(limit: number | null): string {
@@ -65,8 +62,6 @@ export function startRefusalOf(
           : { href: WORKSPACE_PATHS.pullRequests, label: 'Pull requests' },
       );
     }
-    case 'PAUSED_BY_YOU':
-      return { kind: 'paused-by-you', text: "Contributing is paused, so your agent can't take an issue." };
     case 'ACCOUNT_PAUSED':
       return notice("This account can't start issues right now.", {
         href: `mailto:${CONTACT_EMAIL}`,

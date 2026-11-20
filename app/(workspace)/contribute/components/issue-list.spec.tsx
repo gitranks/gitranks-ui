@@ -7,8 +7,6 @@ const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push: vi.fn(), replace: vi.fn() }) }));
 const contribute = vi.hoisted(() => ({ readIssuesPage: vi.fn(), readIssueStatuses: vi.fn() }));
 vi.mock('@/lib/contribute/actions', () => contribute);
-const workspace = vi.hoisted(() => ({ resumeContributing: vi.fn() }));
-vi.mock('@/lib/workspace/actions', () => workspace);
 const issues = vi.hoisted(() => ({ startIssue: vi.fn(), skipIssue: vi.fn() }));
 vi.mock('@/lib/workspace/issue-actions', () => issues);
 vi.mock('@/lib/workspace/start/start-page.actions', () => ({ readStartPageAttempt: vi.fn() }));
@@ -89,20 +87,6 @@ describe("Contribute's issue list", () => {
     await render(list({ ...first, items: picks(1, 10) }, { language: 'GO' }));
     expect(container.querySelectorAll('article[data-issue]')).toHaveLength(10);
     expect(container.textContent).toContain('Showing 10 of 25 issues');
-  });
-
-  it('resumes a pause the person set, then reads the page again', async () => {
-    workspace.resumeContributing.mockResolvedValueOnce({ ok: true, data: true });
-    await render(
-      <ContributeIssueList
-        page={{ items: picks(1, 2), next: null, total: 2, computedAt: null }}
-        agents={AGENTS}
-        pausedByYou
-      />,
-    );
-    await act(async () => button('Resume')?.click());
-    expect(workspace.resumeContributing).toHaveBeenCalledTimes(1);
-    expect(refresh).toHaveBeenCalled();
   });
 
   it('reads the page again when a Start meets the limit, so it shows the limit state', async () => {

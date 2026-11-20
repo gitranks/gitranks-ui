@@ -8,7 +8,6 @@ import { Pill } from '@/components/pill/pill';
 import { buttonVariants } from '@/components/ui/button';
 import { ClosedGroupLine } from '@/components/workspace/closed-group-line';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
-import { PausedByYouNotice } from '@/components/workspace/paused-notice';
 import { HEADING, Meter } from '@/components/workspace/primitives';
 import { ReposAskLessNote } from '@/components/workspace/pull-request/repo-rules';
 import { SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
@@ -81,9 +80,8 @@ function Block({ children, state }: { children: ReactNode; state: string }) {
 
 /**
  * The Agent tab's "Hosted agent" (W1 §9.2, §9.4). With a Claude key: the key's trouble first, the control
- * (`HostedAgentControl`: its level, and Resume while the user's own pause holds), the key, model and budget rows, what
- * repos can turn off, and what is coming. Without one: its pitch for a contributor, or one closed line for a learner,
- * which opens the pitch in place; above it, Resume while the user's own pause holds.
+ * (`HostedAgentControl`: its level), the key, model and budget rows, what repos can turn off, and what is coming.
+ * Without one: its pitch for a contributor, or one closed line for a learner, which opens the pitch in place.
  */
 export function HostedAgentBlock({
   view,
@@ -114,35 +112,27 @@ export function HostedAgentBlock({
   const spend = contributor?.spend;
 
   if (!key) {
-    // No levels and no autopilot without a key: autopilot acts on the hosted agent's changes alone. Resume stays while
-    // the user's own pause holds (it stops their own agent too).
-    const controls = contributor ? <PausedByYouNotice view={view} anchor /> : null;
+    // No levels and no autopilot without a key: autopilot acts on the hosted agent's changes alone.
     if (learner) {
       return (
-        <>
-          {controls}
-          <ClosedGroupLine
-            id="hosted-agent"
-            title="Hosted agent"
-            text="· for Contribute · not set up."
-            link={{ href: WORKSPACE_PATHS.agentKey, label: 'What it is' }}
-          >
-            <HostedAgentPitch />
-          </ClosedGroupLine>
-        </>
+        <ClosedGroupLine
+          id="hosted-agent"
+          title="Hosted agent"
+          text="· for Contribute · not set up."
+          link={{ href: WORKSPACE_PATHS.agentKey, label: 'What it is' }}
+        >
+          <HostedAgentPitch />
+        </ClosedGroupLine>
       );
     }
     return (
-      <>
-        {controls}
-        <Block state="pitch">
-          <Head />
-          <div className="rounded-xl border bg-card p-4 sm:p-5">
-            <HostedAgentPitch />
-          </div>
-          {comingSoon}
-        </Block>
-      </>
+      <Block state="pitch">
+        <Head />
+        <div className="rounded-xl border bg-card p-4 sm:p-5">
+          <HostedAgentPitch />
+        </div>
+        {comingSoon}
+      </Block>
     );
   }
 

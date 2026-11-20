@@ -33,7 +33,7 @@ const render = (props: Partial<ComponentProps<typeof ContributeTabScreen>> = {})
       view={views.active}
       agents={{ hosted: true, own: true }}
       learnOpen
-      tab={{ totals: TOTALS, pausedByYou: false, hostedLevel: 'MANUAL' }}
+      tab={{ totals: TOTALS, hostedLevel: 'MANUAL' }}
       page={issuePage}
       activity={activityOf()}
       counts={{ prBound: 1 }}
@@ -63,13 +63,13 @@ describe('the Contribute tab', () => {
     expect(html).toContain('href="/my/pull-requests?state=open&amp;made=contribute"');
     expect(html).toContain('href="/my/pull-requests?made=contribute"');
     // Nothing answered: dashes, still links.
-    const none = render({ tab: { totals: null, pausedByYou: false, hostedLevel: null } });
+    const none = render({ tab: { totals: null, hostedLevel: null } });
     expect(none.plain).toContain('– pull requests merged – open, waiting on maintainers – repos helped –');
     expect(none.html.match(/href="\/my\/pull-requests\?/g)).toHaveLength(4);
     // Nothing decided yet: no percent.
-    expect(
-      render({ tab: { totals: { ...TOTALS, merged: 0, closed: 0 }, pausedByYou: false, hostedLevel: null } }).plain,
-    ).toContain('– merged, of those decided');
+    expect(render({ tab: { totals: { ...TOTALS, merged: 0, closed: 0 }, hostedLevel: null } }).plain).toContain(
+      '– merged, of those decided',
+    );
   });
 
   it('shows Right now only while a Contribute run is at work', () => {
@@ -94,7 +94,7 @@ describe('the Contribute tab', () => {
     expect(html).toContain('href="/my/settings/work"');
     expect(plain).toContain('How picks work');
     expect(html).toContain('data-filters="0"');
-    expect(render({ tab: { totals: null, pausedByYou: false, hostedLevel: 'NEXT' } }).plain).toContain(
+    expect(render({ tab: { totals: null, hostedLevel: 'NEXT' } }).plain).toContain(
       'The hosted agent also starts the next one by itself; change that on the Agent tab',
     );
     expect(render({ agents: { hosted: false, own: true } }).plain).toContain(
@@ -128,10 +128,10 @@ describe('the Contribute tab', () => {
     expect(render({ view, counts: { prBound: 3 } }).html).not.toContain('data-limit-notice');
   });
 
-  it('paused by the person: the notice and Resume over the rows, which keep their Start', () => {
-    const { html, plain } = render({ tab: { totals: TOTALS, pausedByYou: true, hostedLevel: 'MANUAL' } });
-    expect(html).toContain('data-list-note="paused"');
-    expect(plain).toContain("Contributing is paused, so your agent can't take an issue. Resume");
+  it('has no Resume: a paused account sees its rows with their Start, and the key says why', () => {
+    const { html, plain } = render({ view: views.paused });
+    expect(html).not.toContain('data-list-note="paused"');
+    expect(plain).not.toContain('Resume');
     expect(html).toContain('data-start-control');
   });
 

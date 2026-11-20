@@ -73,7 +73,6 @@ async function ContributeFirstIssue() {
           agents={gate.agents}
           menu={false}
           held={held}
-          pausedByYou={view?.pausedByYou === true}
           limit={limit}
           languages={view?.contributor?.preferences?.languages ?? []}
           facts={{ capUsd: settings?.attemptCapUsd ?? null, keyWaiting }}

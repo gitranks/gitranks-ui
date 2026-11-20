@@ -129,7 +129,7 @@ const FOLLOW_UP_REFUSALS: [RegExp, string][] = [
   [/paused on our side/i, 'New agent sessions are paused on our side for now. Try again later.'],
   [
     /contributing is paused/i,
-    'Contributing is paused. Click Resume contributing on Overview or on the Agent tab (connect a working Claude key first if it asks), then start the run.',
+    'Contributing is paused. Connect a working Claude key on the Agent tab, under Claude API key, then start the run.',
   ],
   [
     /key/i,

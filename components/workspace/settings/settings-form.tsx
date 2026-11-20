@@ -16,17 +16,16 @@ import { cn } from '@/lib/utils';
 import { type CappedSetting, capHintOf, capRefusalOf, openPrsOverrideOf } from '@/lib/workspace/access-limits';
 import { saveContributeSettings } from '@/lib/workspace/actions';
 import type {
-  ContributeConnectPace,
   ContributeDcoMode,
   ContributeEffort,
   ContributeLimits,
   ContributeModel,
+  ContributePace,
   ContributeSettings,
   ContributeSettingsInput,
 } from '@/lib/workspace/contribute.types';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
-import { EFFORTS, MODELS, ordinalDay, PACES, parseAmount, shownPaceOf } from '@/lib/workspace/format';
-import { paceSaveOf } from '@/lib/workspace/hosted-level';
+import { EFFORTS, MODELS, ordinalDay, PACES, parseAmount } from '@/lib/workspace/format';
 import { WORKSPACE_ANCHORS } from '@/lib/workspace/paths';
 
 /** The sign-off choices, as the form and the Settings row say them. */
@@ -63,7 +62,7 @@ type Draft = Record<
   | 'openPrsAtATime',
   string
 > & {
-  pace: ContributeConnectPace;
+  pace: ContributePace;
   renewalDay: number;
   mainModel: ContributeModel;
   helperModel: ContributeModel;
@@ -84,7 +83,7 @@ const draftOf = (settings: ContributeSettings): Draft => ({
   maxChangedLines: String(settings.maxChangedLines),
   maxFiles: String(settings.maxFiles),
   openPrsAtATime: String(settings.openPrsAtATime),
-  pace: shownPaceOf(settings.pace),
+  pace: settings.pace,
   renewalDay: settings.renewalDay,
   mainModel: settings.mainModel,
   helperModel: settings.helperModel,
@@ -351,7 +350,7 @@ export function SettingsForm({
       return;
     }
     startTransition(async () => {
-      const result = await saveContributeSettings(paceSaveOf(built.patch, settings));
+      const result = await saveContributeSettings(built.patch);
       if (result.ok) {
         setDraft(draftOf(result.data));
         setStatus({ ok: true, text: 'Saved.' });
@@ -417,10 +416,10 @@ export function SettingsForm({
             <RadioGroup
               aria-labelledby={`${field('pace')}-legend`}
               value={draft.pace}
-              onValueChange={(next) => set('pace', next as ContributeConnectPace)}
+              onValueChange={(next) => set('pace', next as ContributePace)}
               className="gap-2"
             >
-              {(Object.keys(PACES) as ContributeConnectPace[]).map((pace) => (
+              {(Object.keys(PACES) as ContributePace[]).map((pace) => (
                 <label
                   key={pace}
                   htmlFor={`${field('pace')}-${pace}`}

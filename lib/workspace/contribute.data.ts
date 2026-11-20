@@ -47,7 +47,6 @@ import {
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
-  ContributePausedDocument,
   ContributePrNotesDocument,
   ContributeProfileLanguagesDocument,
   ContributeProviderInterestsDocument,
@@ -185,37 +184,24 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   await loadContributeVersion();
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [
-    overview,
-    grant,
-    paused,
-    autopilot,
-    autopilotNotice,
-    ownAgent,
-    onboarding,
-    limits,
-    connections,
-    signIn,
-    sides,
-  ] = await Promise.allSettled([
-    graphqlDirect(ContributeOverviewDocument, undefined, options),
-    graphqlDirect(ContributeGrantDocument, undefined, options),
-    graphqlDirect(ContributePausedDocument, undefined, options),
-    graphqlDirect(ContributeAutopilotDocument, undefined, options),
-    graphqlDirect(ContributeAutopilotNoticeDocument, undefined, options),
-    graphqlDirect(ContributeOwnAgentDocument, undefined, options),
-    graphqlDirect(ContributeOnboardingDocument, undefined, options),
-    graphqlDirect(ContributeLimitsDocument, undefined, options),
-    graphqlDirect(ContributeMcpConnectionsDocument, undefined, options),
-    contributeMcpSignIn(),
-    graphqlDirect(ContributeSidesDocument, undefined, options),
-  ]);
+  const [overview, grant, autopilot, autopilotNotice, ownAgent, onboarding, limits, connections, signIn, sides] =
+    await Promise.allSettled([
+      graphqlDirect(ContributeOverviewDocument, undefined, options),
+      graphqlDirect(ContributeGrantDocument, undefined, options),
+      graphqlDirect(ContributeAutopilotDocument, undefined, options),
+      graphqlDirect(ContributeAutopilotNoticeDocument, undefined, options),
+      graphqlDirect(ContributeOwnAgentDocument, undefined, options),
+      graphqlDirect(ContributeOnboardingDocument, undefined, options),
+      graphqlDirect(ContributeLimitsDocument, undefined, options),
+      graphqlDirect(ContributeMcpConnectionsDocument, undefined, options),
+      contributeMcpSignIn(),
+      graphqlDirect(ContributeSidesDocument, undefined, options),
+    ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
   const { contribute } = overview.value;
   if (!contribute?.previewAllowed) return null;
 
-  const pausedFields = settled(paused)?.contribute?.contributor;
   const onboardingFields = settled(onboarding)?.contribute;
   const limitsField = limitsOf(settled(limits)?.contribute?.contributor?.limits);
   const { contributor } = contribute;
@@ -238,8 +224,6 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
       : withAutopilot,
     grant: settled(grant)?.contribute?.grant ?? undefined,
     ...sidesOf(settled(sides)?.contribute?.sides),
-    paused: typeof pausedFields?.paused === 'boolean' ? pausedFields.paused : undefined,
-    ...(typeof pausedFields?.pausedByYou === 'boolean' ? { pausedByYou: pausedFields.pausedByYou } : {}),
     grantAvailable: isGrantAvailable(),
     ownAgent: ownAgentOf(
       settled(ownAgent)?.contribute,

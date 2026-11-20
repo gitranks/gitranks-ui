@@ -33,12 +33,12 @@ export async function loadIssues(filter: ContributeIssuesFilter): Promise<Contri
 }
 
 /**
- * What the Contribute tab reads beside the user's view: its side's totals, who paused, the hosted agent's level. Each
- * read on its own: one the API does not answer leaves its part out ("–", no Resume, the level not known).
+ * What the Contribute tab reads beside the user's view: its side's totals and the hosted agent's level. Each read on
+ * its own: one the API does not answer leaves its part out ("–", the level not known).
  */
 export async function loadContributeTab(): Promise<ContributeTabRead> {
   const githubLogin = await viewerLogin();
-  if (!githubLogin) return { totals: null, pausedByYou: false, hostedLevel: null };
+  if (!githubLogin) return { totals: null, hostedLevel: null };
   const options = { source: 'ssr' as const, githubLogin };
   const [totals, state] = await Promise.allSettled([
     graphqlDirect(ContributeTabTotalsDocument, undefined, options),
@@ -47,7 +47,6 @@ export async function loadContributeTab(): Promise<ContributeTabRead> {
   const contributor = settled(state)?.contribute?.contributor;
   return {
     totals: settled(totals)?.contributeContributions?.totals.byMode?.fix ?? null,
-    pausedByYou: contributor?.pausedByYou === true,
     hostedLevel: contributor?.settings?.hostedLevel ?? null,
   };
 }

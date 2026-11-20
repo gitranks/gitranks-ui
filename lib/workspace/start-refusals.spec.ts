@@ -45,11 +45,7 @@ describe("the Start page's refusals", () => {
     });
   });
 
-  it('tells the two pauses apart: Resume for the person’s own, a note to us for one GitRanks holds', () => {
-    expect(words(startViews.pausedByYou)).toEqual({
-      kind: 'paused-by-you',
-      text: "Contributing is paused, so your agent can't take an issue.",
-    });
+  it('words an account GitRanks holds with a note to us', () => {
     expect(words(startViews.accountPaused)).toEqual({
       kind: 'notice',
       text: "This account can't start issues right now.",

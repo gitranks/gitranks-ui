@@ -5,12 +5,10 @@ import { pullRequestsPath } from '@/lib/workspace/paths';
 
 /** The Contribute tab: its four numbers, the line over the issues, and the limit state. */
 
-/** What the tab reads beside the user's view: its side's totals, who paused, the hosted agent's level. */
+/** What the tab reads beside the user's view: its side's totals and the hosted agent's level. */
 export type ContributeTabRead = {
   /** Contribute's pull requests by state; null when the API does not answer them. */
   totals: ContributeSideTotals | null;
-  /** The person paused contributing themselves; false from an API that does not say. */
-  pausedByYou: boolean;
   /** Null from an API without levels. */
   hostedLevel: ContributeHostedLevel | null;
 };

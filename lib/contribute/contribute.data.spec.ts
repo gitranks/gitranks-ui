@@ -25,33 +25,33 @@ describe("the Contribute tab's own reads", () => {
     viewerLogin.mockResolvedValue('octocat');
   });
 
-  it("reads Contribute's totals, who paused and the hosted agent's level, as the viewer", async () => {
+  it("reads Contribute's totals and the hosted agent's level, as the viewer", async () => {
     answer(
       async () => ({ contributeContributions: { totals: { byMode: { fix: FIX } } } }),
-      async () => ({ contribute: { contributor: { pausedByYou: true, settings: { hostedLevel: 'NEXT' } } } }),
+      async () => ({ contribute: { contributor: { settings: { hostedLevel: 'NEXT' } } } }),
     );
-    expect(await loadContributeTab()).toEqual({ totals: FIX, pausedByYou: true, hostedLevel: 'NEXT' });
+    expect(await loadContributeTab()).toEqual({ totals: FIX, hostedLevel: 'NEXT' });
     expect(graphqlDirect.mock.calls.every(([, , options]) => options.githubLogin === 'octocat')).toBe(true);
   });
 
   it('reads nothing without a session', async () => {
     viewerLogin.mockResolvedValueOnce(null);
-    expect(await loadContributeTab()).toEqual({ totals: null, pausedByYou: false, hostedLevel: null });
+    expect(await loadContributeTab()).toEqual({ totals: null, hostedLevel: null });
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
-  it('keeps who paused when the totals fail, and the totals when the rest fails', async () => {
-    answer(fails, async () => ({ contribute: { contributor: { pausedByYou: true, settings: null } } }));
-    expect(await loadContributeTab()).toEqual({ totals: null, pausedByYou: true, hostedLevel: null });
+  it('keeps the level when the totals fail, and the totals when the rest fails', async () => {
+    answer(fails, async () => ({ contribute: { contributor: { settings: { hostedLevel: 'MANUAL' } } } }));
+    expect(await loadContributeTab()).toEqual({ totals: null, hostedLevel: 'MANUAL' });
     answer(async () => ({ contributeContributions: { totals: { byMode: { fix: FIX } } } }), fails);
-    expect(await loadContributeTab()).toEqual({ totals: FIX, pausedByYou: false, hostedLevel: null });
+    expect(await loadContributeTab()).toEqual({ totals: FIX, hostedLevel: null });
   });
 
-  it('reads an unanswered pause as not paused, and an API without the sides as no totals', async () => {
+  it('reads an unanswered level as not known, and an API without the sides as no totals', async () => {
     answer(
       async () => ({ contributeContributions: { totals: { byMode: null } } }),
-      async () => ({ contribute: { contributor: { pausedByYou: null, settings: { hostedLevel: null } } } }),
+      async () => ({ contribute: { contributor: { settings: { hostedLevel: null } } } }),
     );
-    expect(await loadContributeTab()).toEqual({ totals: null, pausedByYou: false, hostedLevel: null });
+    expect(await loadContributeTab()).toEqual({ totals: null, hostedLevel: null });
   });
 });

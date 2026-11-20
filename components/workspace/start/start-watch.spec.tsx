@@ -9,8 +9,6 @@ const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace, push: vi.fn(), refresh: vi.fn() }) }));
 const actions = vi.hoisted(() => ({ readStartPageIssue: vi.fn(), readStartPageAttempt: vi.fn() }));
 vi.mock('@/lib/workspace/start/start-page.actions', () => actions);
-const workspace = vi.hoisted(() => ({ resumeContributing: vi.fn() }));
-vi.mock('@/lib/workspace/actions', () => workspace);
 const tracker = vi.hoisted(() => ({ reportLearnEvent: vi.fn(), reportContributeConnect: vi.fn() }));
 vi.mock('@/components/contribute-click-tracker/contribute-click-tracker', () => tracker);
 // Step 1's connect steps, as a button that says the agent has called.
@@ -60,7 +58,6 @@ beforeEach(() => {
   root = createRoot(container);
   actions.readStartPageAttempt.mockResolvedValue({ ok: true, data: null });
   actions.readStartPageIssue.mockResolvedValue({ ok: true, data: startViews.open });
-  workspace.resumeContributing.mockResolvedValue({ ok: true, data: true });
   setChangesWake(pollReadNow);
 });
 
@@ -262,16 +259,6 @@ describe('the Start page, waiting for the agent', () => {
     expect(container.textContent).toContain('Fix this issue');
   });
 
-  it('resumes a pause the person set, then asks the issue again', async () => {
-    actions.readStartPageIssue.mockResolvedValueOnce({ ok: true, data: startViews.open });
-    await mount('fix', startPageViewOf({ issue: startViews.pausedByYou }));
-    expect(stage()).toBe('refused');
-    await press('Resume');
-    expect(workspace.resumeContributing).toHaveBeenCalledTimes(1);
-    expect(actions.readStartPageIssue).toHaveBeenCalledTimes(1);
-    expect(stage()).toBe('waiting');
-  });
-
   it('asks every 10 seconds by itself in a tab where no poll runs, within the same 30 minutes', async () => {
     clearChangesWake(pollReadNow);
     actions.readStartPageAttempt.mockResolvedValueOnce({ ok: true, data: null });
@@ -328,21 +315,6 @@ describe('the Start page, waiting for the agent', () => {
     await mount('fix', startPageViewOf({ issue: startViews.taken }));
     await poll('ATTEMPTS');
     expect(actions.readStartPageIssue).not.toHaveBeenCalled();
-  });
-
-  it('says why Resume failed, and keeps the refusal', async () => {
-    workspace.resumeContributing.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
-    await mount('fix', startPageViewOf({ issue: startViews.pausedByYou }));
-    await press('Resume');
-    expect(container.querySelector('[role="alert"]')?.textContent).toBeTruthy();
-    expect(actions.readStartPageIssue).not.toHaveBeenCalled();
-    expect(stage()).toBe('refused');
-    workspace.resumeContributing.mockRejectedValueOnce(new Error('offline'));
-    await press('Resume');
-    expect(container.querySelector('[role="alert"]')?.textContent).toBeTruthy();
-    // A Resume that goes through clears it.
-    await press('Resume');
-    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 
   it('lets the poll go once the page is gone', async () => {

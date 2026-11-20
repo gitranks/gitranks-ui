@@ -29,16 +29,14 @@ vi.mock('@/lib/learn/learn.data', () => ({
 const { EmailRows } = await import('./email-rows');
 const { SettingsScreen } = await import('@/app/(workspace)/my/settings/components/settings-view');
 const { email: fixture, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { EMAIL_AUTOPILOT_NOTE, EMAIL_NO_ADDRESS, EMAIL_READ_FAILED, EMAIL_REPLACES_REMINDERS } = await import(
-  '@/lib/workspace/email-settings'
-);
+const { EMAIL_AUTOPILOT_NOTE, EMAIL_NO_ADDRESS, EMAIL_READ_FAILED } = await import('@/lib/workspace/email-settings');
 
 import type { ComponentProps } from 'react';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const TO = fixture.on.to;
-const AFTER_30_LINE = 'One email if something still needs you 30 minutes after it started waiting.';
+const IMMEDIATELY_LINE = 'One email when something waits for you.';
 const OFF_LINE = 'No email when something needs you. It still shows under Pull requests.';
 const dailyLine = (zone: string) => `One summary at 8:00 in the morning, ${zone} time, while something waits.`;
 
@@ -57,13 +55,14 @@ describe("Settings' Email rows, as the server draws them", () => {
     const group = html.slice(html.indexOf('id="email"'));
     const plain = text(group);
 
-    expect(plain).toContain(`When something needs you ${AFTER_30_LINE}`);
+    expect(plain).toContain(`When something needs you ${IMMEDIATELY_LINE}`);
     expect(group).toMatch(/type="radio"[^>]*checked=""[^>]*value="AFTER_30_MINUTES"/);
     expect(group.match(/<input[^>]*type="radio"[^>]*checked=""/g)).toHaveLength(1);
-    expect(plain).toContain('After 30 minutes Once a day Off');
+    expect(plain).toContain('Immediately Once a day Off');
     expect(plain).toContain('When a pull request is merged or closed One email each time.');
     expect(group).toMatch(/type="checkbox"[^>]*role="switch"[^>]*checked=""/);
-    expect(plain).toContain(`Email goes to ${TO}. ${EMAIL_REPLACES_REMINDERS}`);
+    expect(plain).toContain(`Email goes to ${TO}.`);
+    expect(plain).not.toContain('review reminder');
     // Autopilot's note only while autopilot is on.
     expect(plain).not.toContain(EMAIL_AUTOPILOT_NOTE);
     expect(group).not.toMatch(/<(input|fieldset)[^>]*\sdisabled=/);
@@ -87,7 +86,7 @@ describe("Settings' Email rows, as the server draws them", () => {
 
   it('adds the autopilot note while autopilot is on', () => {
     const html = renderToStaticMarkup(<EmailRows settings={fixture.on} autopilotOn />);
-    expect(text(html)).toContain(`Email goes to ${TO}. ${EMAIL_AUTOPILOT_NOTE} ${EMAIL_REPLACES_REMINDERS}`);
+    expect(text(html)).toContain(`Email goes to ${TO}. ${EMAIL_AUTOPILOT_NOTE}`);
   });
 
   it('disables both controls under one line when there is no address, and offers no switch hint', () => {
@@ -115,9 +114,9 @@ describe("Settings' Email rows, as the server draws them", () => {
 
   it('asks before switching when an email link offers another choice, and says nothing when it is the stored one', () => {
     const daily = text(settings({ email: fixture.on, emailHint: 'ONCE_A_DAY' }));
-    expect(daily).toContain('Switch to one summary a day? Switch Keep after 30 minutes');
+    expect(daily).toContain('Switch to one summary a day? Switch Keep immediate emails');
     const after30 = text(settings({ email: fixture.off, emailHint: 'AFTER_30_MINUTES' }));
-    expect(after30).toContain('Switch to an email after 30 minutes? Switch Keep emails off');
+    expect(after30).toContain('Switch to immediate emails? Switch Keep emails off');
     expect(settings({ email: fixture.daily, emailHint: 'ONCE_A_DAY' })).not.toContain('data-email-hint');
   });
 });
@@ -291,7 +290,7 @@ describe('the Email rows in the browser', () => {
     await pick('OFF');
 
     expect(radio('AFTER_30_MINUTES').checked).toBe(true);
-    expect(needsYouLine()).toContain(AFTER_30_LINE);
+    expect(needsYouLine()).toContain(IMMEDIATELY_LINE);
     expect(alert()).toBe('Something went wrong. Try again in a minute.');
     expect(refresh).not.toHaveBeenCalled();
   });

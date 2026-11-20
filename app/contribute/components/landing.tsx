@@ -6,6 +6,7 @@ import { HashSafeLink } from './public-pages';
 import { Pill } from '@/components/pill/pill';
 import { buttonVariants } from '@/components/ui/button';
 import { ComingSoon } from '@/components/workspace/agent/coming-soon';
+import { H2, MUTED_SECTION, WIDTH } from '@/components/workspace/getting-in/landing-parts';
 import { ResumeLink } from '@/components/workspace/getting-in/resume-link';
 import { type AgentPageStats, agentPageStatsLineOf } from '@/lib/contribute/agent-page.types';
 import { LANDING_QUESTIONS } from '@/lib/contribute/faq';
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeComingSoonProvider } from '@/lib/workspace/contribute.types';
 import type { LandingViewer } from '@/lib/workspace/contribute-state';
+import type { LandingStart } from '@/lib/workspace/getting-in';
 import {
   AGENTS_DOC_PATH,
   CONTRIBUTE_TERMS_PATH,
@@ -117,18 +119,6 @@ const FOOT_LINKS: { href: Route; label: string; plain?: boolean }[] = [
   { href: FAQ_PATH, label: 'Questions' },
   { href: CONTRIBUTE_TERMS_PATH, label: 'Terms' },
 ];
-
-/** The landing's section heading, width and muted band; Learn's front door is built from them too. */
-export const H2 = 'text-2xl font-bold tracking-tight text-balance md:text-3xl';
-export const WIDTH = 'mx-auto w-full max-w-7xl px-4';
-export const MUTED_SECTION = 'border-y bg-muted/40';
-
-/**
- * Where the landing's one button leads: into Contribute's flow at `href` (the server's step, swapped in the browser for
- * the step this browser was last on when that is where the person resumes), or, for a member reading how Contribute
- * works, back to Contribute itself.
- */
-export type LandingStart = { href: Route; signedIn: boolean } | { member: true };
 
 /** The landing's one button, in the hero and again in the closing row. Full width on a phone. */
 function StartButton({ start }: { start: LandingStart }) {

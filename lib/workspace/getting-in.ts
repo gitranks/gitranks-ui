@@ -122,6 +122,13 @@ export function learnFlowPlaceOf(
 }
 
 /**
+ * Where a landing's one button leads: into its flow at `href` (the server's step, swapped in the browser for the step
+ * this browser was last on when that is where the person resumes), or, for a member reading how it works, back to the
+ * side itself.
+ */
+export type LandingStart = { href: Route; signedIn: boolean } | { member: true };
+
+/**
  * Where Contribute's landing button resumes a signed-in person who has not entered (§4.1): their agent's connect step
  * while a token of theirs waits for its first call, step 2 once preferences are saved, else step 1.
  */

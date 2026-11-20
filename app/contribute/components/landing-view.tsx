@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { Landing, type LandingStart } from './landing';
+import { Landing } from './landing';
 import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
 import {
@@ -12,7 +12,7 @@ import {
 } from '@/lib/workspace/contribute.data';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { isOnboarded } from '@/lib/workspace/contribute-state';
-import { contributeResumeOf } from '@/lib/workspace/getting-in';
+import { contributeResumeOf, type LandingStart } from '@/lib/workspace/getting-in';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 import { contributeOpen } from '@/lib/workspace/preview-gate';
 

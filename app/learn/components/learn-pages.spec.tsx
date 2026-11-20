@@ -43,9 +43,11 @@ vi.mock('@/lib/learn/learn.data', () => data);
 vi.mock('@/lib/learn/progress/progress.data', () => ({ loadLearnProgress: vi.fn(async () => undefined) }));
 const recent = vi.hoisted(() => ({ readRecentLessons: vi.fn(async () => [] as PublicLesson[]) }));
 vi.mock('@/lib/learn/recent-lessons.data', () => recent);
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
+const ENTERED = { kind: 'open', entered: true, agents: { hosted: false, own: true }, learnOpen: true };
+const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn(async (): Promise<unknown> => ENTERED) }));
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false), ...gate }));
 
-const { LearnAboutView, LearnHomeView, LearnLanding } = await import('./learn-landing');
+const { LEARN_VISITOR_START, LearnAboutView, LearnHomeView, LearnLanding } = await import('./learn-landing');
 const { LearnTab } = await import('@/app/(workspace)/learn/components/learn-tab-view');
 const { publishedDayOf, RecentLessons } = await import('./recent-lessons');
 const { recentLessons } = await import('@/lib/learn/__fixtures__/recent-lessons');
@@ -73,20 +75,40 @@ const text = (html: string) =>
     .trim();
 
 describe("Learn's front door", () => {
-  it('signs a visitor in from Start learning, and sends a signed-in user to the Learn tab', () => {
-    const visitor = renderToStaticMarkup(<LearnLanding viewer="visitor" />);
-    expect(visitor.match(/data-sign-in="learn"/g)).toHaveLength(2);
-    expect(visitor).not.toContain('href="/my/settings/goal"');
-    const member = renderToStaticMarkup(<LearnLanding viewer="signed-in" />);
-    expect(member).not.toContain('data-sign-in');
-    expect(member).not.toContain('href="/my/settings/goal"');
-    expect(member.match(/href="\/learn"/g)).toHaveLength(2);
+  it('has one button, Start learning, a plain link into the flow with the mark, in the hero and beside the questions', () => {
+    const visitor = renderToStaticMarkup(<LearnLanding start={LEARN_VISITOR_START} />);
+    const starts = visitor.match(/<a[^>]*data-landing-start[^>]*>/g) ?? [];
+    expect(starts).toHaveLength(2);
+    for (const start of starts) {
+      expect(start).toContain('href="/learn/start"');
+      expect(start).toContain('data-contribute-source="learn_landing"');
+    }
+    expect(visitor).not.toContain('data-sign-in');
+    expect(text(visitor)).not.toContain('See a lesson');
+    expect(visitor).not.toContain('href="#lesson"');
+    expect(text(visitor)).toContain('Ready? Tell us what you want to learn. Start learning');
+    expect(visitor.match(/>Start learning</g)).toHaveLength(2);
+    expect(visitor).toContain('data-landing-viewer="visitor"');
+
+    const signedIn = renderToStaticMarkup(
+      <LearnLanding start={{ href: '/learn/start/issues' as never, signedIn: true }} />,
+    );
+    expect(
+      signedIn.match(
+        /<a[^>]*data-landing-start[^>]*href="\/learn\/start\/issues"|<a[^>]*href="\/learn\/start\/issues"[^>]*data-landing-start/g,
+      ),
+    ).toHaveLength(2);
+
+    const member = renderToStaticMarkup(<LearnLanding start={{ member: true }} />);
+    expect(text(member)).toContain('Open Learn');
+    expect(text(member)).not.toContain('Start learning');
+    expect(member).not.toContain('learn_landing');
+    expect(member.match(/<a[^>]*data-landing-start[^>]*>/g)?.every((a) => a.includes('href="/learn"'))).toBe(true);
   });
 
   it('shows the example lesson with its diagram and question, the parts, and the way to maintainers', () => {
-    const html = renderToStaticMarkup(<LearnLanding viewer="visitor" />);
+    const html = renderToStaticMarkup(<LearnLanding start={LEARN_VISITOR_START} />);
     expect(html).toContain('id="lesson"');
-    expect(html).toContain('href="#lesson"');
     expect(html).toContain('data-diagram=');
     expect(html.match(/role="radio"/g)).toHaveLength(2);
     expect(text(html)).toContain('Two spellings of one route got two cache entries');
@@ -98,7 +120,7 @@ describe("Learn's front door", () => {
 
   it('lists the newest shared lessons, each a link to its page, with its repository, language and day', () => {
     const html = renderToStaticMarkup(
-      <LearnLanding viewer="visitor" recentLessons={<RecentLessons lessons={recentLessons} />} />,
+      <LearnLanding start={LEARN_VISITOR_START} recentLessons={<RecentLessons lessons={recentLessons} />} />,
     );
     expect(html).toContain('data-recent-lessons');
     expect(html.match(/href="\/learn\/lessons\/[^"]+"/g)).toEqual([
@@ -112,7 +134,7 @@ describe("Learn's front door", () => {
   });
 
   it('leaves the list out when no lesson is shared yet, or the API did not answer', () => {
-    expect(renderToStaticMarkup(<LearnLanding viewer="visitor" />)).not.toContain('Recent lessons');
+    expect(renderToStaticMarkup(<LearnLanding start={LEARN_VISITOR_START} />)).not.toContain('Recent lessons');
     expect(renderToStaticMarkup(<RecentLessons lessons={[]} />)).toBe('');
   });
 
@@ -120,6 +142,32 @@ describe("Learn's front door", () => {
     expect(publishedDayOf('2026-11-14T23:59:59.000Z')).toBe('14 Nov 2026');
     expect(publishedDayOf('2026-09-01T00:00:00.000Z')).toBe('1 Sep 2026');
     expect(publishedDayOf('not a date')).toBe('');
+  });
+});
+
+describe("Learn's front door for an account that has not entered", () => {
+  const NOT_ENTERED = { ...ENTERED, entered: false, agents: { hosted: false, own: false } };
+
+  afterEach(() => gate.loadWorkspaceGate.mockResolvedValue(ENTERED));
+
+  it('reads the front door at /learn, its button at the step of the flow left for it', async () => {
+    data.loadLearnOpen.mockResolvedValue(true);
+    gate.loadWorkspaceGate.mockResolvedValue(NOT_ENTERED);
+    data.loadLearnProfile.mockResolvedValueOnce(filledProfile);
+    let html = renderToStaticMarkup(await LearnHomeView());
+    expect(html).toContain('data-landing-viewer="signed-in"');
+    expect(html.match(/href="\/learn\/start\/issues"/g)).toHaveLength(2);
+    data.loadLearnProfile.mockResolvedValueOnce(emptyProfile);
+    html = renderToStaticMarkup(await LearnHomeView());
+    expect(html.match(/href="\/learn\/start"/g)).toHaveLength(2);
+    data.loadLearnProfile.mockResolvedValueOnce(emptyProfile);
+    expect(renderToStaticMarkup(await LearnAboutView())).toContain('data-landing-viewer="signed-in"');
+  });
+
+  it('an account being set up keeps the Learn tab, which says so', async () => {
+    data.loadLearnOpen.mockResolvedValue(true);
+    gate.loadWorkspaceGate.mockResolvedValue({ kind: 'setting-up' });
+    expect((await LearnHomeView()).type).toBe(LearnTab);
   });
 });
 
@@ -244,12 +292,13 @@ describe("Learn's gate on its own pages", () => {
     data.loadLearnOpen.mockResolvedValue(true);
     data.loadLearnProfile.mockResolvedValue(filledProfile);
     recent.readRecentLessons.mockResolvedValue(recentLessons);
-    // `/learn` is the Learn tab for them; the front door moved to `/learn/about`.
+    // `/learn` is the Learn tab for an account that has entered; the front door is at `/learn/about`, with Open Learn.
     const home = await LearnHomeView();
     expect(home.type).toBe(LearnTab);
     expect(renderToStaticMarkup(await LearnTab())).toContain('data-learn-tab="ready"');
     const about = await LearnAboutView();
-    expect(renderToStaticMarkup(about)).toContain('data-landing-viewer="signed-in"');
+    expect(renderToStaticMarkup(about)).toContain('data-landing-viewer="member"');
+    expect(text(renderToStaticMarkup(about))).toContain('Open Learn');
     expect(await recentOf(about)).toContain('data-recent-lessons');
     expect(renderToStaticMarkup(await LearnProfileView())).toContain('data-learn-profile="filled"');
   });

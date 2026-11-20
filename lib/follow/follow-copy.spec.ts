@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { FollowChannelOption, FollowStartAnswer, FollowStartOutcome } from './follow.types';
+import type { FollowChannelOption, FollowStartAnswer, FollowStartOutcome, FollowStartResult } from './follow.types';
 import { channelHint, chatLinkOf, eventSwitches, failureView, outcomeView } from './follow-copy';
 
 const pkg = (name: string) => ({ registry: 'npm', name });
@@ -100,9 +100,10 @@ describe('what a press of Follow became', () => {
   it.each([
     ['limit', 'too many follow requests'],
     ['closed', "isn't open here yet"],
-    ['sign_in', 'GitHub has verified'],
-  ] as const)('explains a %s refusal', (result, words) => {
-    const view = outcomeView(answer([outcome('email', 'x', result)]), 'x');
+    ['sign_in', 'with a verified email'],
+    ['invalid_email', 'try again in a few minutes'],
+  ] as const)('explains a %s refusal, and one the page does not know', (result, words) => {
+    const view = outcomeView(answer([outcome('email', 'x', result as FollowStartResult)]), 'x');
     expect(view.title).toBe('Not followed');
     expect(view.notes[0].tone).toBe('problem');
     expect(view.notes[0].text.toLowerCase()).toContain(words.toLowerCase());

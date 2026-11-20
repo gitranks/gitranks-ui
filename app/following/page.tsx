@@ -13,7 +13,7 @@ import { isInvalidLinkQuery, LINK_ERROR_PARAM } from '@/lib/link-token/link-toke
 export const metadata = linkPageMetadata('Email settings');
 
 /**
- * Where an email's "Email settings" lands, through `/l/settings` (or the confirmation page's link after its press):
+ * Where an email's "Email settings" lands, through `/l/settings`:
  * every package the address follows. Without that link, a signed-in viewer sees every package their account follows,
  * on every channel. Opening the page changes nothing; each change is a press.
  */

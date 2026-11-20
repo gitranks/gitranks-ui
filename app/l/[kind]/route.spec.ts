@@ -35,6 +35,10 @@ describe('/l/<kind>, where a link in our email lands', () => {
     },
   );
 
+  it('no longer lands a confirmation link: those emails are not sent any more', async () => {
+    expect((await land('confirm', `?t=${FOLLOW_TOKEN}`)).status).toBe(404);
+  });
+
   it('is never indexed, cached or passed on in a Referer', async () => {
     const response = await land('unfollow', `?t=${FOLLOW_TOKEN}`);
     expect(response.headers.get('referrer-policy')).toBe('no-referrer');
@@ -43,7 +47,6 @@ describe('/l/<kind>, where a link in our email lands', () => {
   });
 
   it('changes nothing: a landing asks the API nothing', async () => {
-    await land('unfollow', `?t=${FOLLOW_TOKEN}`);
     await land('unfollow', `?t=${FOLLOW_TOKEN}`);
     await land('settings', `?t=${MANAGE_TOKEN}`);
     expect(graphqlDirect).not.toHaveBeenCalled();

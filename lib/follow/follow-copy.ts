@@ -65,11 +65,14 @@ export function eventSwitches(numbers?: { dependents: number | null; notable: nu
 /** The Email row signed out, after Connect: why email asks for a sign-in. */
 export const EMAIL_SIGN_IN_TEXT =
   'Sign in with GitHub to follow by email. We only email the address GitHub has verified for your account, so nobody can sign someone else up, and our emails stay out of spam.';
-export const EMAIL_SIGN_IN_NOTE = 'You come back here with Email on.';
+export const EMAIL_SIGN_IN_NOTE = 'You come back to this page to finish.';
 /** The Email row of a signed-in account with no verified email on GitHub. */
-export const EMAIL_UNVERIFIED_HINT = 'No verified email on your GitHub account';
+export const EMAIL_UNVERIFIED_HINT = 'No verified email from your GitHub sign-in';
 export const EMAIL_UNVERIFIED_TEXT =
-  'We only email an address GitHub has verified. Add or verify one in your GitHub email settings, then sign in again. Telegram and WhatsApp work without it.';
+  'We only email an address GitHub has verified, and we read it when you sign in. Sign in again; if GitHub has none, add or verify one in your GitHub email settings first. Telegram and WhatsApp work without it.';
+/** A press's email answer when the API found no verified email for the session. */
+const EMAIL_SIGN_IN_PROBLEM =
+  'Email needs a GitHub sign-in with a verified email. Sign in again and try once more; Telegram and WhatsApp work without it.';
 /** Where GitHub's email settings are. */
 export const GITHUB_EMAIL_SETTINGS = 'https://github.com/settings/emails';
 
@@ -129,6 +132,8 @@ export function failureView(failure: FollowFailure): FollowOutcomeView {
   return { title: 'Not followed', notes: [{ channel: null, tone: 'problem', text: text[failure] }] };
 }
 
+const KNOWN_RESULTS: ReadonlySet<string> = new Set(['active', 'connect', 'closed', 'limit', 'full', 'sign_in']);
+
 /**
  * One channel's answers as what the person reads, in that order: what to do next first, then what was followed.
  * `verifiedEmail` is the address an email follow went to.
@@ -162,7 +167,11 @@ function channelNotes(
   }
 
   if (count('sign_in') > 0) {
-    notes.push({ channel, tone: 'problem', text: EMAIL_UNVERIFIED_TEXT });
+    notes.push({ channel, tone: 'problem', text: EMAIL_SIGN_IN_PROBLEM });
+  }
+  // An answer this page does not know (an API newer or older than it): never a silent result.
+  if (outcomes.some((one) => !KNOWN_RESULTS.has(one.result))) {
+    notes.push({ channel, tone: 'problem', text: `Not followed on ${label}. Try again in a few minutes.` });
   }
   if (count('closed') > 0) {
     notes.push({ channel, tone: 'problem', text: `Following by ${label} isn't open here yet.` });

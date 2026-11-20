@@ -2,7 +2,7 @@
 
 import { Bell, Check, ExternalLink, Mail, MessageCircle, Send } from 'lucide-react';
 import { signIn } from 'next-auth/react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useId, useState } from 'react';
 import { SiGithub } from 'react-icons/si';
 
 import { Button } from '@/components/ui/button';
@@ -77,9 +77,12 @@ function startingChannels(view: FollowChannelsView, followed: (channel: FollowCh
   );
 }
 
-/** The GitHub sign-in, back to this page with the dialog open again (`followReturnPathOf`). */
-function signInForEmail() {
-  return signIn(IDENTITY_PROVIDER, { redirectTo: followReturnPathOf(window.location.href) });
+/**
+ * The GitHub sign-in, back to this page with this slot's dialog open again (`followReturnPathOf`). Signed in already,
+ * it reads the account's verified email again.
+ */
+function signInForEmail(label: string) {
+  return signIn(IDENTITY_PROVIDER, { redirectTo: followReturnPathOf(window.location.href, label) });
 }
 
 /**
@@ -105,6 +108,8 @@ export function FollowDialog({
   const [sending, setSending] = useState(false);
   const [outcome, setOutcome] = useState<FollowOutcomeView | null>(null);
   const [rowProblem, setRowProblem] = useState<string | null>(null);
+  // The person changed a switch or a channel: follows that arrive late no longer reset the form.
+  const [touched, setTouched] = useState(false);
   const one = packages.length === 1 ? packages[0] : null;
   const followed = (channel: FollowChannel) => !!login && followsAll(packages, follows, channel);
 
@@ -116,6 +121,7 @@ export function FollowDialog({
     setOutcome(null);
     setRowProblem(null);
     setEmailOpen(false);
+    setTouched(false);
     setEvents(startingEvents(packages, follows));
     let live = true;
     fetchFollowChannels(one).then((answer) => {
@@ -128,21 +134,35 @@ export function FollowDialog({
     };
   }, [open]);
 
+  // Follows read after the dialog opened (a press before the slot's read answered): the form starts from them, unless
+  // the person already changed it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a change of the follows re-seeds the form.
+  useEffect(() => {
+    if (!open || touched) return;
+    setEvents(startingEvents(packages, follows));
+    if (loaded?.ok) setSelected(startingChannels(loaded.data, followed));
+  }, [follows]);
+
   const options = loaded?.ok ? loaded.data.channels.filter((option) => option.open) : [];
   const verifiedEmail = loaded?.ok ? loaded.data.verifiedEmail : null;
   const existing = login ? activeFollowsOf(packages, follows) : [];
-  const newChannels = options.map(({ channel }) => channel).filter((channel) => selected.has(channel));
+  // A channel followed already is never started again: its row offers Unfollow.
+  const newChannels = options
+    .map(({ channel }) => channel)
+    .filter((channel) => selected.has(channel) && !followed(channel));
   const eventsChanged = existing.length > 0 && existing.some((row) => !sameEvents(row.events, events));
   const anyEvent = events.notable || events.digest || events.milestones;
   const canSubmit = !sending && anyEvent && (newChannels.length > 0 || eventsChanged);
 
-  const toggle = (channel: FollowChannel, on: boolean) =>
+  const toggle = (channel: FollowChannel, on: boolean) => {
+    setTouched(true);
     setSelected((now) => {
       const next = new Set(now);
       if (on) next.add(channel);
       else next.delete(channel);
       return next;
     });
+  };
 
   /** The viewer's follows again, after a press changed them: the slot then shows "Following". */
   const refreshFollows = async () => {
@@ -212,7 +232,10 @@ export function FollowDialog({
           loaded={loaded}
           oneNumbers={!!one}
           events={events}
-          onEvents={setEvents}
+          onEvents={(next) => {
+            setTouched(true);
+            setEvents(next);
+          }}
           signedIn={!!login}
           selected={selected}
           followed={followed}
@@ -225,7 +248,7 @@ export function FollowDialog({
           onToggle={toggle}
           onUnfollow={unfollow}
           onSubmit={submit}
-          onSignIn={signInForEmail}
+          onSignIn={() => signInForEmail(label)}
         />
       </DialogContent>
     </Dialog>
@@ -348,6 +371,22 @@ function ChannelRow({ option, verifiedEmail, ...props }: ChannelRowProps) {
   const followed = props.followed(channel);
   const disabled = props.sending;
   const [signingIn, setSigningIn] = useState(false);
+  const moreId = useId();
+  const signInButton = (text: string, variant: 'default' | 'outline') => (
+    <Button
+      type="button"
+      size="sm"
+      variant={variant}
+      disabled={signingIn}
+      onClick={() => {
+        setSigningIn(true);
+        props.onSignIn().catch(() => setSigningIn(false));
+      }}
+    >
+      <SiGithub aria-hidden />
+      {text}
+    </Button>
+  );
 
   let hint = channelHint(option, followed, verifiedEmail);
   let control: ReactNode;
@@ -379,42 +418,49 @@ function ChannelRow({ option, verifiedEmail, ...props }: ChannelRowProps) {
       </Button>
     );
   } else if (channel === 'email' && !props.signedIn) {
-    // A visitor: the same Connect as the chats, which opens the row with why email asks for a sign-in.
-    control = connect(props.emailOpen, () => props.onEmailOpen(!props.emailOpen));
+    // A visitor: the same Connect as the chats, which opens the row in place with why email asks for a sign-in. It
+    // opens a part of the row, it connects nothing: `aria-expanded`, no check.
+    control = (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-expanded={props.emailOpen}
+        aria-controls={moreId}
+        disabled={disabled}
+        onClick={() => props.onEmailOpen(!props.emailOpen)}
+      >
+        Connect
+      </Button>
+    );
     if (props.emailOpen) {
       hint = 'Needs a GitHub sign-in';
       more = (
-        <div className="flex flex-col gap-3 border-t pt-3">
+        <div id={moreId} className="flex flex-col gap-3 border-t pt-3">
           <p className="text-sm">{EMAIL_SIGN_IN_TEXT}</p>
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              size="sm"
-              disabled={signingIn}
-              onClick={() => {
-                setSigningIn(true);
-                props.onSignIn().catch(() => setSigningIn(false));
-              }}
-            >
-              <SiGithub aria-hidden />
-              Sign in with GitHub
-            </Button>
+            {signInButton('Sign in with GitHub', 'default')}
             <span className="text-xs text-muted-foreground">{EMAIL_SIGN_IN_NOTE}</span>
           </div>
         </div>
       );
     }
   } else if (channel === 'email' && !verifiedEmail) {
+    // Signed in, but the sign-in carried no verified email (none on GitHub, a sign-in from before we read it, or
+    // GitHub slow to answer): signing in again reads it again.
     hint = EMAIL_UNVERIFIED_HINT;
-    control = (
-      <Button asChild variant="outline" size="sm">
-        <a href={GITHUB_EMAIL_SETTINGS} target="_blank" rel="noopener noreferrer">
-          GitHub settings
-          <ExternalLink aria-hidden />
-        </a>
-      </Button>
+    control = signInButton('Sign in again', 'outline');
+    more = (
+      <div className="flex flex-col gap-3 border-t pt-3">
+        <p className="text-sm text-muted-foreground">{EMAIL_UNVERIFIED_TEXT}</p>
+        <Button asChild variant="link" size="sm" className="self-start px-0">
+          <a href={GITHUB_EMAIL_SETTINGS} target="_blank" rel="noopener noreferrer">
+            GitHub email settings
+            <ExternalLink aria-hidden />
+          </a>
+        </Button>
+      </div>
     );
-    more = <p className="border-t pt-3 text-sm text-muted-foreground">{EMAIL_UNVERIFIED_TEXT}</p>;
   } else if (channel !== 'email' && !option.linked) {
     if (selected) hint = `You finish in ${label} after Follow`;
     control = connect(selected, () => props.onToggle(channel, !selected));

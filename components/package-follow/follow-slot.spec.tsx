@@ -176,13 +176,14 @@ describe('FollowSlot', () => {
       await click(button('Connect', row('email') ?? document.body));
       expect(row('email')?.textContent).toContain('Needs a GitHub sign-in');
       expect(row('email')?.textContent).toContain('We only email the address GitHub has verified for your account');
-      expect(row('email')?.textContent).toContain('You come back here with Email on.');
+      expect(row('email')?.textContent).toContain('You come back to this page to finish.');
+      expect(button('Connect', row('email') ?? document.body)?.getAttribute('aria-expanded')).toBe('true');
       // Nothing to follow yet: email waits for the sign-in.
       expect((button('Follow', dialog() ?? document.body) as HTMLButtonElement).disabled).toBe(true);
 
       await click(button('Sign in with GitHub', row('email') ?? document.body));
       expect(signIn).toHaveBeenCalledWith('github-basic', {
-        redirectTo: '/package/npm/react-resize-detector?follow=email',
+        redirectTo: '/package/npm/react-resize-detector?follow=email%3Areact-resize-detector',
       });
       expect(calls('/api/follow/start')).toHaveLength(0);
 
@@ -291,18 +292,27 @@ describe('FollowSlot', () => {
       await render();
       await openDialog();
 
-      expect(row('email')?.textContent).toContain('No verified email on your GitHub account');
+      expect(row('email')?.textContent).toContain('No verified email from your GitHub sign-in');
       expect(row('email')?.querySelector('[role="checkbox"]')).toBeNull();
-      expect((button('GitHub settings', row('email') ?? document.body) as HTMLAnchorElement).href).toBe(
+      expect((button('GitHub email settings', row('email') ?? document.body) as HTMLAnchorElement).href).toBe(
         'https://github.com/settings/emails',
       );
+      // Signing in again reads the verified email again, and comes back to this dialog.
+      await click(button('Sign in again', row('email') ?? document.body));
+      expect(signIn).toHaveBeenCalledWith('github-basic', {
+        redirectTo: '/package/npm/react-resize-detector?follow=email%3Areact-resize-detector',
+      });
       expect((button('Follow', dialog() ?? document.body) as HTMLButtonElement).disabled).toBe(true);
       expect(button('Connect', row('telegram') ?? document.body)).toBeTruthy();
     });
 
     it('opens again for a viewer back from the sign-in, and takes the mark out of the address', async () => {
       session.current = { data: { user: { githubLogin: 'octocat', email: 'octo@example.com' } } };
-      window.history.replaceState(null, '', '/package/npm/react-resize-detector?tab=used-by&follow=email');
+      window.history.replaceState(
+        null,
+        '',
+        '/package/npm/react-resize-detector?tab=used-by&follow=email%3Areact-resize-detector',
+      );
       await render();
       await act(async () => {});
 
@@ -312,8 +322,36 @@ describe('FollowSlot', () => {
       );
     });
 
+    it('back from the sign-in, starts from what the viewer follows already, never starting it again', async () => {
+      session.current = { data: { user: { githubLogin: 'octocat', email: 'octo@example.com' } } };
+      routes['/api/follow/channels'] = () => ({ ...visitorChannels, verifiedEmail: 'octo@example.com' });
+      const quiet = { notable: true, digest: false, milestones: true };
+      routes['/api/follow/state'] = () => ({
+        follows: [{ id: 'f1', channel: 'email', package: one[0], status: 'active', events: quiet }],
+      });
+      window.history.replaceState(null, '', '/package/npm/react-resize-detector?follow=email%3Areact-resize-detector');
+      await render();
+      await act(async () => {});
+
+      expect(row('email')?.textContent).toContain('Following');
+      expect(button('Unfollow', row('email') ?? document.body)).toBeTruthy();
+      const digest = [...(dialog()?.querySelectorAll('[role="checkbox"]') ?? [])][1];
+      expect(digest?.getAttribute('aria-checked')).toBe('false');
+      expect((button('Follow', dialog() ?? document.body) as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('a mark for another slot (a Used by filter not kept) opens nothing', async () => {
+      session.current = { data: { user: { githubLogin: 'octocat', email: 'octo@example.com' } } };
+      window.history.replaceState(null, '', '/package/npm/react-resize-detector?follow=email%3Afoo');
+      await render();
+      await act(async () => {});
+
+      expect(dialog()).toBeNull();
+      expect(window.location.search).toBe('');
+    });
+
     it('a visitor back without a session: the mark goes, the dialog stays closed', async () => {
-      window.history.replaceState(null, '', '/package/npm/react-resize-detector?follow=email');
+      window.history.replaceState(null, '', '/package/npm/react-resize-detector?follow=email%3Areact-resize-detector');
       await render();
       await act(async () => {});
 

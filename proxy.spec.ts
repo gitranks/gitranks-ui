@@ -345,6 +345,7 @@ describe('proxy', () => {
   describe('Contribute', () => {
     it.each([
       '/contribute',
+      '/contribute/about',
       '/contribute/connect',
       '/contribute/settings',
       '/contribute/issues',
@@ -366,6 +367,7 @@ describe('proxy', () => {
         '/contribute',
         '/contribute/',
         '/contribute?as=visitor',
+        '/contribute/about',
         '/contribute/mcp',
         '/contribute/faq',
       ]) {
@@ -425,6 +427,16 @@ describe('proxy', () => {
         const response = await proxy(request(undefined, path), event);
         expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
       }
+    });
+
+    it('keeps the markdown twin and its Link header to the landing, not how Contribute works', async () => {
+      open.mockResolvedValue(true);
+      const about = await proxy(
+        new NextRequest('https://gitranks.com/contribute/about', { headers: { accept: 'text/markdown' } }),
+        event,
+      );
+      expect(about?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(about?.headers.get('link')).toBeNull();
     });
 
     it('once launched, keeps every other Contribute page for signed-in users the API lets in', async () => {

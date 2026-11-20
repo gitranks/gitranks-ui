@@ -21,7 +21,7 @@ describe("the Contribute block on the owner's own profile", () => {
     expect(plain).toContain('Issues for you to fix');
     expect(plain).toContain('Picked for your TypeScript and JavaScript from 3,105 open-source issues ready');
     expect(plain).toContain('Connect my agent');
-    expect(html).toContain('href="/contribute?start=agent"');
+    expect(html).toContain('href="/contribute/start/agent/own?from=profile"');
     expect(html).toContain('data-contribute-source="profile_issues_block"');
     expect(html.match(/data-issue=/g)).toHaveLength(3);
     expect(html).toContain('background-color:#3178c6');

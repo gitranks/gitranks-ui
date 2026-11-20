@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 
-import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
+import { DocLayout, DocSection, MorePages, PublicPageHead } from './public-pages';
 import { Pill } from '@/components/pill/pill';
 import { buttonVariants } from '@/components/ui/button';
 import { SetupClip } from '@/components/workspace/agent/setup-clip';
@@ -45,7 +45,7 @@ import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
 import { MCP_INSTALL_LINKS, mcpInstallLinkOf } from '@/lib/workspace/mcp-install-links';
 import { USE_A_TOKEN_INSTEAD } from '@/lib/workspace/mcp-setup';
-import { ABOUT_PATH, AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH, START_AGENT_PATH } from '@/lib/workspace/paths';
+import { AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH, START_AGENT_PATH } from '@/lib/workspace/paths';
 
 const SECTIONS = [
   { id: 'start', title: 'Before you start' },
@@ -285,9 +285,6 @@ function ExampleBrief() {
   );
 }
 
-/** The landing's two ways in, members too: a visitor signs in there and picks their own agent; connect is members-only. */
-const LANDING_WAYS_PATH = `${ABOUT_PATH}#ways` as Route;
-
 /** The clients the docs list: the connect flow's, then claude.ai (which can only sign in), then VS Code. */
 const CLIENTS = [...MCP_DOC_CLIENTS.slice(0, -1), CLAUDE_APP_DOC, ...MCP_DOC_CLIENTS.slice(-1)];
 
@@ -369,12 +366,12 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
               <ol className="flex list-decimal flex-col gap-2 pl-5">
                 <li>
                   Sign in with GitHub on{' '}
-                  <HashSafeLink href={LANDING_WAYS_PATH} className={LINK}>
-                    GitRanks Contribute
-                  </HashSafeLink>
-                  , choose your own agent and create a token there, or later under &ldquo;Connect another agent&rdquo;
-                  on the Agent tab, in its &ldquo;{USE_A_TOKEN_INSTEAD}&rdquo; fold. Give it a name you will recognise.
-                  It is shown once, so copy it then.
+                  <Link href={START_AGENT_PATH} prefetch={false} className={LINK} data-token-connect="">
+                    Connect your own agent
+                  </Link>{' '}
+                  and create a token there, in its &ldquo;{USE_A_TOKEN_INSTEAD}&rdquo; fold, or later under
+                  &ldquo;Connect another agent&rdquo; on the Agent tab. Give it a name you will recognise. It is shown
+                  once, so copy it then.
                 </li>
                 <li>
                   Save it in your environment as <code className="font-mono text-sm">{MCP_TOKEN_ENV}</code>, where the

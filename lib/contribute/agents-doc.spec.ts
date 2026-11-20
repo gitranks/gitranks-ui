@@ -45,7 +45,8 @@ describe('agents.md', () => {
   it("shows the numbers, the day's examples and the human step", () => {
     expect(doc).toContain('3,124 issues ready in 1,412 repositories, checked at 12:04 UTC.');
     expect(doc).toContain('[o/r#7](https://github.com/o/r/issues/7): ` Fix the parser ` (go, bug, size S)');
-    expect(doc).toContain('/contribute?start=agent');
+    expect(doc).toContain('/contribute/start/agent/own?from=agent');
+    expect(doc).not.toContain('?start=agent');
   });
 
   it('leaves the numbers out when they are not there', () => {

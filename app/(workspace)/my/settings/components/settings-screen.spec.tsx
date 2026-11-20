@@ -120,7 +120,7 @@ describe('the Settings tab (W1 §10)', () => {
     expect(plain).toContain(
       'For contributing · not set up. Contribute sends pull requests without a lesson. How Contribute works',
     );
-    expect(html).toMatch(/href="\/contribute\?about=1"[^>]*>How Contribute works/);
+    expect(html).toMatch(/href="\/contribute\/about"[^>]*>How Contribute works/);
     expect(plain).toContain(
       'Removes your agent tokens, the GitHub access, your settings, and your attempts and lessons.',
     );

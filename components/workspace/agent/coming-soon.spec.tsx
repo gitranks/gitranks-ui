@@ -85,13 +85,14 @@ describe('the coming-soon cards', () => {
     expect(count(html, DIALOG_TRIGGER)).toBe(8);
     expect(html).not.toContain('aria-pressed');
     expect(html).toContain('aria-label="Notify me when Gemini opens"');
-    expect(count(plain, 'Notify me')).toBe(8);
+    // The eight buttons, and the note that names them.
+    expect(count(plain, 'Notify me')).toBe(9);
     expect(plain).not.toContain('On the list');
-    expect(plain).toContain('Sign in with GitHub to be told when one opens');
+    expect(plain).toContain('Press Notify me to be told when one opens');
     expect(html).toMatch(/<p role="status"[^>]*><\/p>/);
   });
 
-  it.each(['signed-in', 'mid-setup'] as const)(
+  it.each(['signed-in'] as const)(
     "gives a %s user a toggle on every card, those on the user's list pressed",
     (viewer) => {
       const html = renderToStaticMarkup(<ComingSoon viewer={viewer} noted={['COPILOT']} />);
@@ -137,10 +138,9 @@ describe('the status line', () => {
     expect(of('MISTRAL', 'XAI')).toBe("You're on the list for xAI Grok. We'll email you once, when it opens.");
   });
 
-  it("asks a visitor to sign in, and tells a user they're emailed once", () => {
-    expect(comingSoonNoteOf('visitor')).toBe('Sign in with GitHub to be told when one opens');
+  it("asks a visitor to press Notify me, and tells a user they're emailed once", () => {
+    expect(comingSoonNoteOf('visitor')).toBe('Press Notify me to be told when one opens');
     expect(comingSoonNoteOf('signed-in')).toBe("We'll email you once, when it opens");
-    expect(comingSoonNoteOf('mid-setup')).toBe("We'll email you once, when it opens");
   });
 });
 

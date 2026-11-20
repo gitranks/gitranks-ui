@@ -109,20 +109,11 @@ describe('isMidSetup', () => {
 });
 
 describe('contributeHomeOf', () => {
-  it('is the landing until the user is onboarded, then the overview', () => {
+  it('is the landing until the user has entered, mid-setup too, then the tab', () => {
     expect(contributeHomeOf(views.newcomer, {})).toEqual({ screen: 'landing', viewer: 'signed-in', preview: false });
     expect(contributeHomeOf(views.noKey, {})).toEqual({ screen: 'landing', viewer: 'signed-in', preview: false });
-    expect(contributeHomeOf(views.midSetup, {})).toEqual({ screen: 'landing', viewer: 'mid-setup', preview: false });
+    expect(contributeHomeOf(views.midSetup, {})).toEqual({ screen: 'landing', viewer: 'signed-in', preview: false });
     expect(contributeHomeOf(views.active, {})).toEqual({ screen: 'tab' });
-  });
-
-  it('shows an onboarded user the landing again from "How Contribute works"', () => {
-    expect(contributeHomeOf(views.active, { about: '1' })).toEqual({
-      screen: 'landing',
-      viewer: 'signed-in',
-      preview: false,
-    });
-    expect(contributeHomeOf(views.midSetup, { about: '1' }).screen).toBe('landing');
   });
 
   it("shows anyone the visitor's landing under ?as=visitor", () => {
@@ -130,16 +121,7 @@ describe('contributeHomeOf', () => {
 
     expect(contributeHomeOf(views.active, { as: 'visitor' })).toEqual(visitor);
     expect(contributeHomeOf(views.midSetup, { as: ['visitor'] })).toEqual(visitor);
-    expect(contributeHomeOf(views.newcomer, { as: 'visitor', about: '1' })).toEqual(visitor);
     expect(contributeHomeOf(views.active, { as: 'someone' })).toEqual({ screen: 'tab' });
-  });
-
-  it('opens the tab after the own agent connected, the welcome no page of its own', () => {
-    // The address as the connect step leaves it: the page passes its whole query.
-    const welcome: Record<string, string> = { welcome: 'agent', client: 'codex' };
-    expect(contributeHomeOf(views.agentOnboarded, welcome)).toEqual({ screen: 'tab' });
-    // Not onboarded yet, the welcome is the landing still.
-    expect(contributeHomeOf(views.midSetup, welcome).screen).toBe('landing');
   });
 });
 

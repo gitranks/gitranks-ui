@@ -6,7 +6,7 @@ import { HashSafeLink } from './public-pages';
 import { Pill } from '@/components/pill/pill';
 import { buttonVariants } from '@/components/ui/button';
 import { ComingSoon } from '@/components/workspace/agent/coming-soon';
-import { SignInButton, type SignInPath } from '@/components/workspace/sign-in-dialog';
+import { ResumeLink } from '@/components/workspace/getting-in/resume-link';
 import { type AgentPageStats, agentPageStatsLineOf } from '@/lib/contribute/agent-page.types';
 import { LANDING_QUESTIONS } from '@/lib/contribute/faq';
 import { cn } from '@/lib/utils';
@@ -22,13 +22,8 @@ import {
   WORKSPACE_PATHS,
 } from '@/lib/workspace/paths';
 
-const ACTIONS: Record<SignInPath, { label: string; href: Route }> = {
-  key: { label: 'Start with my Claude key', href: WORKSPACE_PATHS.agentKey },
-  agent: { label: 'Connect my own agent', href: WORKSPACE_PATHS.agentConnect },
-};
-
 const WAYS: {
-  path: SignInPath;
+  path: 'key' | 'agent';
   who: string;
   title: string;
   text: string;
@@ -87,7 +82,7 @@ const STEPS = [
   {
     label: '05 · maintainers reply',
     title: 'You see it here',
-    text: 'Reviews and comments show up on My contributions, with a draft reply or a follow-up commit when they ask for changes.',
+    text: 'Reviews and comments show up in Pull requests, with a draft reply or a follow-up commit when they ask for changes.',
   },
 ];
 
@@ -129,41 +124,34 @@ export const WIDTH = 'mx-auto w-full max-w-7xl px-4';
 export const MUTED_SECTION = 'border-y bg-muted/40';
 
 /**
- * One of the two ways in. A visitor's opens the sign-in first; a signed-in user's goes straight to the step. `wide`:
- * the hero's and the closing row's, full width on a phone.
+ * Where the landing's one button leads: into Contribute's flow at `href` (the server's step, swapped in the browser for
+ * the step this browser was last on when that is where the person resumes), or, for a member reading how Contribute
+ * works, back to Contribute itself.
  */
-function StartAction({
-  path,
-  viewer,
-  preview,
-  wide = false,
-  className,
-}: {
-  path: SignInPath;
-  viewer: LandingViewer;
-  preview: boolean;
-  wide?: boolean;
-  className?: string;
-}) {
-  const { label, href } = ACTIONS[path];
-  const classes = cn(
-    buttonVariants({ variant: path === 'key' ? 'default' : 'outline', size: 'lg' }),
-    'text-base font-semibold',
-    wide ? 'min-h-11.5 max-sm:flex-[1_1_100%]' : 'min-h-11',
-    path === 'key' ? 'px-5' : 'px-4.5',
-    className,
-  );
-  if (viewer === 'visitor') {
+export type LandingStart = { href: Route; signedIn: boolean } | { member: true };
+
+/** The landing's one button, in the hero and again in the closing row. Full width on a phone. */
+function StartButton({ start }: { start: LandingStart }) {
+  const classes = cn(buttonVariants({ size: 'lg' }), 'min-h-11.5 px-5 text-base font-semibold max-sm:flex-[1_1_100%]');
+  if ('member' in start) {
     return (
-      <SignInButton path={path} preview={preview} className={classes} source="contribute_landing">
-        {label}
-      </SignInButton>
+      // Unmarked: a member going back to their tab is no start, and the landing's mark counts starts.
+      <Link href={WORKSPACE_PATHS.contribute} prefetch={false} className={classes} data-landing-start="">
+        Open Contribute
+      </Link>
     );
   }
   return (
-    <Link href={href} prefetch={false} className={classes} {...contributeSource('contribute_landing')}>
-      {label}
-    </Link>
+    <ResumeLink
+      side="contribute"
+      href={start.href}
+      signedIn={start.signedIn}
+      className={classes}
+      data-landing-start=""
+      {...contributeSource('contribute_landing')}
+    >
+      Start contributing
+    </ResumeLink>
   );
 }
 
@@ -172,59 +160,27 @@ function ExampleCard({ children }: { children: ReactNode }) {
 }
 
 /**
- * A user who chose their own agent and whose agent has not connected yet (`isMidSetup`: the path chosen, a token or not):
- * carry on, or Settings.
- */
-function MidSetupStrip() {
-  return (
-    <div className="border-b border-primary/20 bg-brand-soft" data-landing="mid-setup">
-      <div className={cn(WIDTH, 'flex flex-wrap items-center justify-between gap-3 py-3 text-sm')}>
-        <span>
-          <span className="font-semibold">Almost there.</span> Your agent hasn't connected yet.
-        </span>
-        <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
-          <Link href={WORKSPACE_PATHS.agentConnect} prefetch={false} className="font-semibold text-link">
-            Continue setup →
-          </Link>
-          <Link
-            href={WORKSPACE_PATHS.agent}
-            prefetch={false}
-            className="font-medium text-muted-foreground hover:text-foreground"
-          >
-            Agent
-          </Link>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Contribute's landing: what it does from an issue to a merged pull request, the two ways in, the ways that are coming,
- * what is set for the user, the questions. The same page for a visitor, a signed-in user and one mid-setup; only the
- * buttons and the strip change. `preview`: a signed-in user seeing the visitor's page (`?as=visitor`). `noted`: the
- * coming-soon providers the user asked to be told about.
+ * Contribute's landing: what it does from an issue to a merged pull request, the two ways an agent works, the ways that
+ * are coming, what is set for the user, the questions. One button, Start contributing, into the flow (for a member
+ * reading how it works, Open Contribute). `preview`: a signed-in user seeing the visitor's page (`?as=visitor`).
+ * `noted`: the coming-soon providers the user asked to be told about.
  */
 export function Landing({
   viewer,
+  start,
   preview = false,
   noted,
   stats = null,
 }: {
   viewer: LandingViewer;
+  start: LandingStart;
   preview?: boolean;
   noted?: readonly ContributeComingSoonProvider[];
-  /** The pool's public numbers, a line under the hero's actions; left out when unread. */
+  /** The pool's public numbers, a line under the hero's button; left out when unread. */
   stats?: AgentPageStats | null;
 }) {
-  const action = (path: SignInPath, props: { wide?: boolean; className?: string } = {}) => (
-    <StartAction path={path} viewer={viewer} preview={preview} {...props} />
-  );
-
   return (
     <main className="flex flex-col" data-landing-viewer={viewer}>
-      {viewer === 'mid-setup' ? <MidSetupStrip /> : null}
-
       <section className={cn(WIDTH, 'flex flex-wrap items-center gap-9 pt-8 pb-11 sm:gap-14 sm:pt-14 sm:pb-16')}>
         <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
           <Pill tone="violet">Beta</Pill>
@@ -237,8 +193,7 @@ export function Landing({
             opens in your name.
           </p>
           <div className="flex flex-wrap gap-3">
-            {action('key', { wide: true })}
-            {action('agent', { wide: true })}
+            <StartButton start={start} />
           </div>
           <p className="text-sm text-muted-foreground">
             Free to use. Nothing reaches GitHub without your OK. Leave any time.
@@ -317,7 +272,6 @@ export function Landing({
                     </Fragment>
                   ))}
                 </dl>
-                {action(path, { className: 'self-start' })}
               </div>
             ))}
           </div>
@@ -363,7 +317,7 @@ export function Landing({
         <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2.5">
           <h2 className={H2}>Questions</h2>
           <p className="text-muted-foreground">
-            Still unsure which way fits you? Start with either. You can add the other later from Settings.
+            Still unsure which way fits you? Start with either. You can add the other later on the Agent tab.
           </p>
           <Link href={FAQ_PATH} prefetch={false} className="self-start font-semibold text-link hover:underline">
             All questions →
@@ -383,8 +337,7 @@ export function Landing({
         <div className={cn(WIDTH, 'flex flex-wrap items-center justify-between gap-5 pt-12 pb-16')}>
           <h2 className="text-2xl font-bold">Ready for your first issue?</h2>
           <div className="flex flex-wrap gap-3 max-sm:w-full">
-            {action('key', { wide: true })}
-            {action('agent', { wide: true })}
+            <StartButton start={start} />
           </div>
           <p className="basis-full text-sm text-muted-foreground">
             Maintain a repo?{' '}

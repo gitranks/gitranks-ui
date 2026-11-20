@@ -40,6 +40,9 @@ export function AuthorizeNextStep({ clientName }: { clientName?: string }) {
       <CodeBlock label={`Prompt for ${clientName ?? 'your agent'}`} copyLabel="Copy the prompt" wrap>
         {AGENT_FIRST_PROMPT}
       </CodeBlock>
+      <p className="text-muted-foreground" data-authorize-back="">
+        Started on gitranks.com? Go back to that tab: it moves on by itself.
+      </p>
       <p className="text-muted-foreground">
         It shows you a few issues to choose from. While autopilot is off, each pull request waits for your approval at{' '}
         <Link href="/contribute" prefetch={false} className={LINK}>

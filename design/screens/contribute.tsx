@@ -45,6 +45,7 @@ import type {
   ContributeMaintainerFacts,
   ContributeView,
 } from '@/lib/workspace/contribute.types';
+import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 import { type PrFeedbackFlow, prUrlOf } from '@/lib/workspace/pr-feedback';
 
 /** A key and a live token the agent has called with: both lanes of Right now. */
@@ -225,6 +226,8 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     route: '/contribute',
     sources: [
       'app/contribute/components/landing.tsx',
+      'app/contribute/components/landing-view.tsx',
+      'components/workspace/getting-in/resume-link.tsx',
       'components/workspace/agent/coming-soon.tsx',
       'components/workspace/sign-in-dialog.tsx',
       'lib/workspace/format.ts',
@@ -241,7 +244,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
           <>
             <Header section="contribute" />
             <HeaderLine />
-            <Landing viewer="visitor" noted={[]} />
+            <Landing viewer="visitor" start={{ href: GETTING_IN_PATHS.contributeWork, signedIn: false }} noted={[]} />
           </>
         ),
       },

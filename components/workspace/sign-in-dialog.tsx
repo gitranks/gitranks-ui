@@ -18,40 +18,29 @@ import {
 } from '@/components/ui/dialog';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
-import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
-/** The way of contributing a visitor picked: a Claude key, or their own agent. */
-export type SignInPath = 'key' | 'agent';
+/** Where the sign-in brings the visitor back: Contribute's landing, where they asked for it. */
+export const SIGN_IN_ROUTE: Route = '/contribute';
 
-const PATHS: Record<SignInPath, { label: string; route: Route }> = {
-  key: { label: 'Your Claude key', route: WORKSPACE_PATHS.agentKey },
-  agent: { label: 'Your own agent', route: WORKSPACE_PATHS.agentConnect },
-};
-
-/** Where the sign-in brings the visitor back: the first step of the way they picked, or the landing. */
-export const signInRouteOf = (path?: SignInPath): Route => (path ? PATHS[path].route : '/contribute');
-
-/** The identity sign-in (read-only profile and email), back to the way the visitor picked. */
-export const startSignIn = (path?: SignInPath) => signIn(IDENTITY_PROVIDER, { redirectTo: signInRouteOf(path) });
+/** The identity sign-in (read-only profile and email), back to the landing. */
+export const startSignIn = () => signIn(IDENTITY_PROVIDER, { redirectTo: SIGN_IN_ROUTE });
 
 /** GitHub's own dark button, on the foreground token. */
 const CONTINUE_CLASS =
   'min-h-12 gap-2.5 rounded-lg bg-foreground px-5 text-base font-semibold text-background hover:bg-foreground/85 disabled:opacity-60';
 
 /**
- * A visitor's action button: it opens the sign-in over the page. The dialog holds focus while open, closes on Escape,
+ * A visitor's Notify me on the landing: it opens the sign-in over the page. The dialog holds focus while open, closes on Escape,
  * and gives focus back to this button.
  */
 export function SignInButton({
-  path,
   preview = false,
   className,
   label,
   source,
   children,
 }: {
-  path?: SignInPath;
-  /** A signed-in user seeing the visitor's page: the sign-in only goes on to the next step. */
+  /** A signed-in user seeing the visitor's page: the sign-in only goes back to the landing. */
   preview?: boolean;
   className?: string;
   /** The button's accessible name, when its text alone does not say what it is for. */
@@ -72,7 +61,7 @@ export function SignInButton({
         showCloseButton={false}
         className="flex flex-col gap-5 rounded-2xl p-8 shadow-2xl motion-reduce:animate-none sm:max-w-md max-sm:p-6"
       >
-        <SignInPanel path={path} preview={preview} source={source} onLeave={() => setOpen(false)} />
+        <SignInPanel preview={preview} source={source} onLeave={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   );
@@ -80,12 +69,10 @@ export function SignInButton({
 
 /** What the sign-in shares and what it does not, and the button that starts it. Rendered inside the dialog. */
 export function SignInPanel({
-  path,
   preview = false,
   source,
   onLeave,
 }: {
-  path?: SignInPath;
   preview?: boolean;
   /** Where a click on its button counts from (`contributeSource`). */
   source?: ContributeSource;
@@ -93,7 +80,6 @@ export function SignInPanel({
   onLeave?: () => void;
 }) {
   const [pending, setPending] = useState(false);
-  const route = signInRouteOf(path);
   const continueWithGithub = (
     <>
       <FaGithub aria-hidden="true" className="size-5" />
@@ -104,9 +90,7 @@ export function SignInPanel({
   return (
     <>
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-          {path ? PATHS[path].label : 'GitRanks Contribute'}
-        </span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-primary">GitRanks Contribute</span>
         <DialogTitle className="text-2xl leading-tight font-bold">Sign in to continue</DialogTitle>
         <DialogDescription className="text-base leading-normal text-foreground/80">
           We use your GitHub sign-in to match issues to the languages and repos on your profile. GitHub shares your
@@ -116,7 +100,7 @@ export function SignInPanel({
       <ul className="flex flex-col gap-2.5 text-sm text-foreground/80">
         <li className="flex gap-2.5">
           <CheckIcon aria-hidden="true" strokeWidth={2.4} className="mt-px size-4.5 flex-none text-positive" />
-          {path ? 'You come straight back, to the next step' : 'You come straight back here'}
+          You come straight back here
         </li>
         <li className="flex gap-2.5">
           <CheckIcon aria-hidden="true" strokeWidth={2.4} className="mt-px size-4.5 flex-none text-positive" />
@@ -127,7 +111,7 @@ export function SignInPanel({
         // Signed in already: the button goes on to the step, as the sign-in would.
         <Button asChild className={CONTINUE_CLASS}>
           <Link
-            href={route}
+            href={SIGN_IN_ROUTE}
             prefetch={false}
             data-sign-in="preview"
             onClick={onLeave}
@@ -145,7 +129,7 @@ export function SignInPanel({
           {...(source ? contributeSource(source) : {})}
           onClick={() => {
             setPending(true);
-            startSignIn(path).catch(() => setPending(false));
+            startSignIn().catch(() => setPending(false));
           }}
         >
           {continueWithGithub}

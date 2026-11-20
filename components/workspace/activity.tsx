@@ -11,6 +11,7 @@ import {
   etaOf,
   isRunning,
   itemsOn,
+  labelOf,
   STAGE_TEXT,
   shareOf,
   summaryOf,
@@ -212,7 +213,7 @@ function ItemDetails({ item, now }: { item: ContributeActivityItem; now: Date | 
   return (
     <div className="flex flex-col gap-2 px-4 py-3" data-activity={item.kind}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-        <span className="text-sm font-medium">{item.label}</span>
+        <span className="text-sm font-medium">{labelOf(item)}</span>
         {progress ? <span className="text-xs text-muted-foreground">{progress}</span> : null}
       </div>
       {note ? <p className="text-xs text-muted-foreground">{note}</p> : null}

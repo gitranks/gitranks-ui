@@ -25,7 +25,7 @@ export const itemsOn = (
   return (activity?.items ?? []).filter(({ tabs: its }) => its.some((tab) => on.includes(tab)));
 };
 
-/** Items that only wait (nothing moves until a slot frees or the user resumes): read again rarely. */
+/** Items that only wait (nothing moves until a slot frees or the key works again): read again rarely. */
 const WAITING_KINDS: ContributeActivityItem['kind'][] = ['FIRST_READS_WAITING', 'READS_PAUSED'];
 
 /** Whether an item is work under way (its line moves), not a wait. */
@@ -40,11 +40,22 @@ export const activitySignatureOf = (activity: ContributeActivity | null) =>
     .map(({ kind, done, repos }) => `${kind}:${done ?? ''}:${repos.map(({ stage }) => stage[0]).join('')}`)
     .join('|');
 
+/**
+ * An item's line: the API's, except while contributing is paused, which only a refused key does now (the API's line
+ * still says "when you resume", and there is no Resume).
+ */
+export function labelOf(item: ContributeActivityItem): string {
+  if (item.kind !== 'READS_PAUSED') return item.label;
+  const count = item.repos.length;
+  const what = count === 1 ? '1 repo' : count ? `${count} repos` : 'new repos';
+  return `Reading ${what} starts when your Claude key works again`;
+}
+
 /** The bar's one line: the first item's, and how many more there are. */
 export function summaryOf(items: ContributeActivityItem[]): string {
   if (!items.length) return '';
   const more = items.length - 1;
-  return more ? `${items[0].label} · ${more} more` : items[0].label;
+  return more ? `${labelOf(items[0])} · ${more} more` : labelOf(items[0]);
 }
 
 /** A repo's stage in a few words. */
@@ -75,7 +86,7 @@ export const shareOf = ({ done, total }: Pick<ContributeActivityItem, 'done' | '
 /** What a waiting item says it waits for. */
 export const WAIT_TEXT: Partial<Record<ContributeActivityItem['kind'], string>> = {
   FIRST_READS_WAITING: "New repos are read in turn, and these are in the queue. We can't promise a time for them.",
-  READS_PAUSED: 'Contributing is paused, so new repos are not read yet.',
+  READS_PAUSED: 'Contributing is paused until your Claude key works again: replace it on the Agent tab.',
 };
 
 /** The window event a page sends when the user starts something long: the bar reads at once and says so. */

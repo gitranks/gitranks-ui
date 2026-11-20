@@ -15,8 +15,6 @@ export type StartPageRefusal =
   | 'OWN_IN_PROGRESS'
   /** GitRanks holds the account. */
   | 'ACCOUNT_PAUSED'
-  /** The viewer paused contributing. */
-  | 'PAUSED_BY_YOU'
   /** No room for a new claim: `limit` names which. */
   | 'LIMIT_REACHED'
   /** The day's claims are taken. */

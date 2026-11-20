@@ -64,7 +64,6 @@ const page = (mode: StartMode, props: Partial<StartPageScreenProps> = {}) =>
       connect={connectSteps()}
       fix={null}
       onCheckAgain={noop}
-      onResume={noop}
       back={startBackOf(mode)}
       frame="tabs"
       {...props}
@@ -115,13 +114,6 @@ export const START_SCREENS: Screen[] = [
         path: START_PATH,
         height: 760,
         render: () => page('fix', { issue: startViews.limitPrs }),
-      },
-      {
-        id: 'fix-paused-by-you',
-        title: 'Fix it, contributing paused by the person: Resume',
-        path: START_PATH,
-        height: 760,
-        render: () => page('fix', { issue: startViews.pausedByYou }),
       },
       {
         id: 'fix-taken',

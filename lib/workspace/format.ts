@@ -3,7 +3,6 @@ import { formatDistanceStrict } from 'date-fns';
 import type {
   ContributeClaudePlan,
   ContributeComingSoonProvider,
-  ContributeConnectPace,
   ContributeEffort,
   ContributeIssueKind,
   ContributeIssueSize,
@@ -51,16 +50,10 @@ export const EFFORTS: Record<ContributeEffort, string> = {
 };
 
 /** How the issues the hosted agent starts by itself are spread. */
-export const PACES: Record<ContributeConnectPace, { title: string; text: string }> = {
+export const PACES: Record<ContributePace, { title: string; text: string }> = {
   EVEN: { title: 'Even, then a final sweep', text: "Spread across the cycle; use what's left before it expires" },
   FAST: { title: 'As fast as possible', text: 'Work whenever good issues wait, until a limit stops it' },
 };
-
-/**
- * The pace as the forms show it: a stored `QUEUED` ("only issues I queue", from before the hosted agent's levels) as
- * `EVEN`, the default spread for the day the agent starts issues by itself.
- */
-export const shownPaceOf = (pace: ContributePace): ContributeConnectPace => (pace === 'QUEUED' ? 'EVEN' : pace);
 
 /** The plans the credits come from, with what each gives a month (null: the user says). */
 export const PLANS: { plan: ContributeClaudePlan; title: string; text: string; creditUsd: number | null }[] = [

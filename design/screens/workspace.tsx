@@ -1096,23 +1096,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
           ),
       },
       {
-        id: 'paused-by-you',
-        title: 'Paused by you: Resume over the levels',
-        path: '/my/agent',
-        height: 2400,
-        render: () =>
-          frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
-              <AgentScreen
-                view={agentAt('MANUAL', {}, { paused: true, pausedByYou: true })}
-                learnOpen
-                runs={previewPageOf()}
-                now={NOW}
-              />
-            </main>,
-          ),
-      },
-      {
         id: 'learner',
         title: 'A learner: their own agent, the hosted agent closed to a line',
         path: '/my/agent',

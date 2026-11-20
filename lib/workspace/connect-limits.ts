@@ -1,14 +1,12 @@
 import type {
   ContributeClaudePlan,
   ContributeConnectLimits,
-  ContributeConnectPace,
   ContributeModel,
+  ContributePace,
   ContributePreferences,
   ContributeSettings,
-  ContributeSettingsInput,
 } from './contribute.types';
-import { KINDS, LANGUAGES, MODELS, ordinalDay, parseAmount, planOf, SIZES, shownPaceOf, usd } from './format';
-import { paceSaveOf } from './hosted-level';
+import { KINDS, LANGUAGES, MODELS, ordinalDay, parseAmount, planOf, SIZES, usd } from './format';
 
 /**
  * What a first key starts from, as the API sets it: the connect sends only what the user changed, so these describe
@@ -34,7 +32,7 @@ export const CONNECT_DEFAULTS = {
   dayCapUsd: number | null;
   attemptCapUsd: number;
   attemptsAtATime: number;
-  pace: ContributeConnectPace;
+  pace: ContributePace;
   mainModel: ContributeModel;
   helperModel: ContributeModel;
   testModel: ContributeModel | null;
@@ -66,7 +64,7 @@ export type ManualLimitsDraft = {
   week: string;
   day: string;
   attempt: string;
-  pace: ContributeConnectPace;
+  pace: ContributePace;
 };
 
 export type ManualField = 'month' | 'week' | 'day' | 'attempt';
@@ -85,7 +83,7 @@ export type ManualLimitsSet = {
   weekCapUsd: number | null;
   dayCapUsd: number | null;
   attemptCapUsd: number;
-  pace: ContributeConnectPace;
+  pace: ContributePace;
 };
 
 export type ManualLimits =
@@ -161,14 +159,14 @@ export function manualLimitsOf(draft: ManualLimitsDraft): ManualLimits {
   };
 }
 
-const PACE_TEXT: Record<ContributeConnectPace, string> = {
+const PACE_TEXT: Record<ContributePace, string> = {
   EVEN: 'spread across your month',
   FAST: 'as fast as those caps allow',
 };
 
 /**
- * The stored settings as "I'll set them myself" starts from them, for a key connected before: the amounts as they are,
- * and the pace as the forms show it (a stored `QUEUED` as `EVEN`).
+ * The stored settings as "I'll set them myself" starts from them, for a key connected before: the amounts and the pace
+ * as they are.
  */
 export function manualDraftFromSettings(settings: ContributeSettings): Partial<ManualLimitsDraft> {
   const amount = (value: number | null) => (value === null ? '' : String(value));
@@ -177,38 +175,22 @@ export function manualDraftFromSettings(settings: ContributeSettings): Partial<M
     week: amount(settings.weekCapUsd),
     day: amount(settings.dayCapUsd),
     attempt: amount(settings.attemptCapUsd),
-    pace: shownPaceOf(settings.pace),
+    pace: settings.pace,
   };
 }
 
 /**
  * The `limits` a connect sends from the hand-set ones: on a key connected before, only the fields that differ from the
- * stored settings (the API keeps the rest); on a first one, all of them. The pace is compared with the one shown, and
- * never sent over a stored `QUEUED`: the API would read it as "start issues by itself", and a connect never sets the
- * hosted agent's level (`paceAfterConnectOf` saves that pace after it).
+ * stored settings (the API keeps the rest); on a first one, all of them.
  */
 export function connectLimitsOf(set: ManualLimitsSet, stored: ContributeSettings | null): ContributeConnectLimits {
-  const shown = stored ? { ...stored, pace: shownPaceOf(stored.pace) } : null;
-  const changed = <K extends keyof ManualLimitsSet>(field: K) => !shown || shown[field] !== set[field];
+  const changed = <K extends keyof ManualLimitsSet>(field: K) => !stored || stored[field] !== set[field];
   return {
     ...(changed('weekCapUsd') ? { weekCapUsd: set.weekCapUsd } : {}),
     ...(changed('dayCapUsd') ? { dayCapUsd: set.dayCapUsd } : {}),
     ...(changed('attemptCapUsd') ? { attemptCapUsd: set.attemptCapUsd } : {}),
-    ...(changed('pace') && stored?.pace !== 'QUEUED' ? { pace: set.pace } : {}),
+    ...(changed('pace') ? { pace: set.pace } : {}),
   };
-}
-
-/**
- * The settings save that follows a connect over a stored `QUEUED` pace the user changed: the pace with the level as it
- * is, as Budget and pacing saves it (`paceSaveOf`). Null when there is nothing to save.
- */
-export function paceAfterConnectOf(
-  set: ManualLimitsSet,
-  stored: ContributeSettings | null,
-): ContributeSettingsInput | null {
-  if (stored?.pace !== 'QUEUED') return null;
-  const patch = paceSaveOf({ pace: set.pace }, stored);
-  return patch.pace === undefined ? null : patch;
 }
 
 /** The live line under the manual limits: what they add up to, or what is still missing. */
@@ -236,7 +218,7 @@ export type StoredLimits = {
   preferences?: ContributePreferences | null;
 };
 
-const PICKED_PACE: Record<ContributeConnectPace, string> = {
+const PICKED_PACE: Record<ContributePace, string> = {
   EVEN: 'spread across your month',
   FAST: 'as fast as the caps allow',
 };
@@ -273,8 +255,7 @@ export function appliedLimitsOf(
     : CONNECT_DEFAULTS.attemptCapUsd;
   const attempt =
     set?.attemptCapUsd ?? (mode === 'manual' ? (kept?.attemptCapUsd ?? CONNECT_DEFAULTS.attemptCapUsd) : keptAttempt);
-  const pace: ContributeConnectPace =
-    mode === 'manual' ? manual.pace : shownPaceOf(kept?.pace ?? CONNECT_DEFAULTS.pace);
+  const pace: ContributePace = mode === 'manual' ? manual.pace : (kept?.pace ?? CONNECT_DEFAULTS.pace);
   const week = mode === 'manual' ? (set?.weekCapUsd ?? null) : (kept?.weekCapUsd ?? null);
   const day = mode === 'manual' ? (set?.dayCapUsd ?? null) : (kept?.dayCapUsd ?? null);
   const periodCaps = [

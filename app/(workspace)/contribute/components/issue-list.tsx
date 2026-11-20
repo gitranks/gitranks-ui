@@ -12,7 +12,6 @@ import { StillRanking } from '@/app/contribute/components/still-ranking';
 import { Button } from '@/components/ui/button';
 import { IssueRow } from '@/components/workspace/issue-row';
 import { LimitNotice } from '@/components/workspace/limit-notice';
-import { PausedNotice } from '@/components/workspace/paused-notice';
 import { ShowMore } from '@/components/workspace/show-more';
 import { IssueStartsProvider } from '@/components/workspace/start-control';
 import { ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
@@ -77,8 +76,6 @@ export type ContributeIssueListProps = {
   learnOpen?: boolean;
   /** GitRanks holds the account: no issues, no Start. */
   held?: boolean;
-  /** The person paused contributing: the notice and Resume over the rows. */
-  pausedByYou?: boolean;
   /** At the open pull request limit: its notice over the rows, which have no Start. */
   limit?: LimitCounts | null;
   /** What the person works on: their list's issues apart from the others, and why a list-only mode is empty. */
@@ -94,9 +91,8 @@ export type ContributeIssueListProps = {
 };
 
 /**
- * Contribute's issues for the person, without the tab's head: the list's own notices (the account held, the pause
- * with Resume, the limit), then the rows, live (a taken or started row leaves and the next one fills its place), and
- * "Show 10 more". Or why there are none, each with one next step. A page that places the list outside the tabs gets
+ * Contribute's issues for the person, without the tab's head: the list's own notices (the account held, the limit),
+ * then the rows, live (a taken or started row leaves and the next one fills its place), and "Show 10 more". Or why there are none, each with one next step. A page that places the list outside the tabs gets
  * the same notices.
  */
 export function ContributeIssueList({
@@ -106,7 +102,6 @@ export function ContributeIssueList({
   filter = NO_QUERY,
   learnOpen = false,
   held = false,
-  pausedByYou = false,
   limit = null,
   set,
   languages = [],
@@ -165,9 +160,6 @@ export function ContributeIssueList({
   }
   return (
     <div className={cn('flex flex-col gap-4', className)} data-issue-list="">
-      {held ? null : pausedByYou ? (
-        <PausedNotice name="paused" text="Contributing is paused, so your agent can't take an issue." />
-      ) : null}
       {held || !limit ? null : <LimitNotice {...limit} />}
       {body}
     </div>

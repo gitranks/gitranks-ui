@@ -80,7 +80,7 @@ describe('loadContribute', () => {
   it('leaves the fields the API does not answer yet undefined', async () => {
     answer(async () => ({ contribute: { previewAllowed: true, contributor: null } }));
 
-    expect(await loadContribute()).toMatchObject({ contributor: null, grant: undefined, paused: undefined });
+    expect(await loadContribute()).toMatchObject({ contributor: null, grant: undefined });
     expect(graphqlDirect.mock.calls.some(([document]) => document === ContributeGrantDocument)).toBe(true);
   });
 

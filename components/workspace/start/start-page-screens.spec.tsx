@@ -60,7 +60,6 @@ const screen = (mode: StartMode, props: Partial<ComponentProps<typeof StartPageS
       connect={connectSteps}
       fix={null}
       onCheckAgain={noop}
-      onResume={noop}
       back={startBackOf(mode)}
       frame="tabs"
       now={NOW}
@@ -116,13 +115,10 @@ describe('the Start page, Fix it', () => {
     expect(plain).not.toContain('2 · ');
   });
 
-  it('draws the limit in its one notice, and Resume for a pause the person set', () => {
+  it('draws the limit in its one notice, and a note to us for an account GitRanks holds', () => {
     const limit = screen('fix', { issue: startViews.limitPrs });
     expect(limit.html).toContain('data-limit-notice="2"');
     expect(limit.plain).toContain('2 of your pull requests are waiting on maintainers.');
-    const paused = screen('fix', { issue: startViews.pausedByYou });
-    expect(paused.plain).toContain("Contributing is paused, so your agent can't take an issue. Resume");
-    expect(screen('fix', { issue: startViews.pausedByYou, resuming: true }).plain).toContain('Resuming…');
     const held = screen('fix', { issue: startViews.accountPaused });
     expect(held.html).toContain('href="mailto:hello@gitranks.com"');
   });

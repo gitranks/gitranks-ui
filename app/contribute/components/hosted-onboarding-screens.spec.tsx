@@ -123,7 +123,7 @@ describe('A1, "I\'ll set them myself"', () => {
   it('says on a replace the limits as they are stored, not the defaults', () => {
     const stored = {
       plan: 'MAX_5X' as const,
-      settings: { ...settings, cycleCapUsd: 150, attemptCapUsd: 3, pace: 'QUEUED' as const },
+      settings: { ...settings, cycleCapUsd: 150, attemptCapUsd: 3, pace: 'EVEN' as const },
     };
     const plain = text(
       renderToStaticMarkup(<KeyConnect defaultPlan="MAX_5X" stored={stored} guessDay={30} replacing />),
@@ -132,7 +132,6 @@ describe('A1, "I\'ll set them myself"', () => {
     expect(plain).toContain('Your limits and picks stay as they are');
     expect(plain).toContain('at most $150, your monthly cap as it is');
     expect(plain).toContain('at most $3, it stops at the cap');
-    // A stored "only issues I queue" reads as the even spread, as the forms show it.
     expect(plain).toContain('spread across your month');
     expect(plain).not.toContain('only on issues you queue');
     expect(plain).not.toContain("the Max plan's monthly allowance");

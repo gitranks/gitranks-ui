@@ -52,13 +52,6 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         title: "Your workspace's spend limit is reached",
         text: `The Claude Console stopped this workspace at its monthly limit. Work starts again ${untilText(notice.until, 'when the limit resets on the 1st')}, or raise the limit in the Console.`,
       };
-    case 'paused':
-      return {
-        tone: 'info',
-        title: 'Contributing is paused',
-        text: 'No new attempts start until you resume. Your settings and queue are kept.',
-        action: { href: WORKSPACE_PATHS.agent, label: 'Resume on the Agent tab' },
-      };
     case 'new-account':
       return {
         tone: 'info',

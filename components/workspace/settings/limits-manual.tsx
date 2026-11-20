@@ -10,11 +10,11 @@ import {
   manualLimitsOf,
   manualSummaryOf,
 } from '@/lib/workspace/connect-limits';
-import type { ContributeConnectPace } from '@/lib/workspace/contribute.types';
+import type { ContributePace } from '@/lib/workspace/contribute.types';
 
 const inputClass = 'h-11 rounded-lg px-2.5 text-sm';
 
-const PACES: { pace: ContributeConnectPace; title: string; text: string }[] = [
+const PACES: { pace: ContributePace; title: string; text: string }[] = [
   {
     pace: 'EVEN',
     title: 'Spread across the month',

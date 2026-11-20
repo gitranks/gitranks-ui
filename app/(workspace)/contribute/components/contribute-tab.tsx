@@ -138,7 +138,6 @@ export function ContributeTabScreen({
             filter={query}
             learnOpen={learnOpen}
             held={held}
-            pausedByYou={tab.pausedByYou}
             limit={limit}
             set={set}
             languages={view.contributor?.preferences?.languages ?? []}

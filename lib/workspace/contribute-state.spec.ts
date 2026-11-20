@@ -23,10 +23,8 @@ describe('contributeNoticesOf', () => {
     expect(kinds(views.limitReached)).toEqual(['limit-reached']);
     // The grant is asked for on the first review, never up front.
     expect(kinds(views.grantMissing)).toEqual([]);
-    expect(kinds(views.paused)).toEqual(['paused']);
-    // Resume is for the user's own pause: a refused key's pause is the key's notice alone.
-    expect(kinds({ ...views.paused, pausedByYou: false })).toEqual([]);
-    expect(kinds({ ...views.keyInvalid, paused: true, pausedByYou: false })).toEqual(['key-invalid']);
+    // A pause is a refused key's: the key's notice alone says it.
+    expect(kinds(views.paused)).toEqual(['key-invalid']);
     expect(kinds(views.active)).toEqual([]);
   });
 
@@ -34,11 +32,10 @@ describe('contributeNoticesOf', () => {
     expect(contributeNoticesOf(views.exhausted)[0]).toEqual({ kind: 'exhausted', until: '2026-11-14T00:00:00.000Z' });
   });
 
-  it('reads the pause from the status when the API does not answer it yet', () => {
+  it('reads the pause from the status', () => {
     expect(kinds(views.fieldsMissing)).toEqual([]);
-    expect(isPaused({ ...views.fieldsMissing, contributor: { ...views.active.contributor, status: 'PAUSED' } })).toBe(
-      true,
-    );
+    expect(isPaused(views.paused)).toBe(true);
+    expect(isPaused(views.active)).toBe(false);
   });
 });
 
@@ -56,12 +53,15 @@ describe('accessNoticesOf', () => {
     expect(accessNoticesOf({ ...views.active, contributor: ownerSet })).toEqual([]);
   });
 
-  it('puts a suspension first, and smaller limits after what the key and the pause need', () => {
+  it('puts a suspension first, and smaller limits after what the key needs', () => {
     const suspendedNoKey = { ...views.noKey, contributor: { ...views.noKey.contributor, limits: limits.suspended } };
     expect(kinds(suspendedNoKey)).toEqual(['suspended', 'no-key']);
-    const newAndPaused = { ...views.paused, contributor: { ...views.paused.contributor, limits: limits.newAccount } };
-    expect(kinds(newAndPaused)).toEqual(['paused', 'new-account']);
-    expect(withoutAccessNotices(contributeNoticesOf(newAndPaused)).map(({ kind }) => kind)).toEqual(['paused']);
+    const newAndInvalid = {
+      ...views.keyInvalid,
+      contributor: { ...views.keyInvalid.contributor, limits: limits.newAccount },
+    };
+    expect(kinds(newAndInvalid)).toEqual(['key-invalid', 'new-account']);
+    expect(withoutAccessNotices(contributeNoticesOf(newAndInvalid)).map(({ kind }) => kind)).toEqual(['key-invalid']);
   });
 });
 

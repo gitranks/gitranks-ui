@@ -87,15 +87,15 @@ describe('the Agent tab, both agents set up', () => {
     expect(plain).toContain('Coming soon for the hosted agent: your ChatGPT plan');
   });
 
-  it("says the user's own pause over the levels, with Resume, and no notice of its own", () => {
+  it("says a paused account's refused key, with the way to replace it, and no Resume", () => {
     const paused = { ...agentTabViews.both, ...views.paused, ownAgent: agentTabViews.both.ownAgent };
     const { html, plain } = render({ view: paused });
-    expect(plain).toContain("Contributing is paused, so your own agent can't take an issue. Resume");
-    expect(html.indexOf('data-list-note="paused-by-you"')).toBeLessThan(html.indexOf('data-hosted-level='));
+    expect(html).toContain('data-notice="key-invalid"');
+    expect(html).toMatch(/href="\/my\/agent\/key\?replace=1"[^>]*>Connect a new key/);
+    expect(plain).toContain('Contributing is paused until you connect a working one.');
+    expect(plain).not.toContain('Resume');
+    expect(html).toContain('data-hosted-level=');
     expect(html).not.toContain('data-notice="paused"');
-    // A key's pause is the key's notice, not the user's: no Resume.
-    const byKey = { ...paused, pausedByYou: false };
-    expect(render({ view: byKey }).html).not.toContain('data-list-note="paused-by-you"');
   });
 
   it('previews the latest runs: the four tiles, the reference line, the Learn pill, the outcome and the cost', () => {
@@ -141,25 +141,18 @@ describe('the Agent tab, by who uses it (W1 §9.4)', () => {
     expect(plain).not.toContain('Budget and pacing');
   });
 
-  it('offers no level and no autopilot without a key, and keeps Resume while their own pause holds', () => {
-    for (const view of [agentTabViews.ownOnly, agentTabViews.learner]) {
+  it('offers no level, no autopilot and no Resume without a key', () => {
+    const paused = {
+      ...agentTabViews.ownOnly,
+      contributor: { ...agentTabViews.ownOnly.contributor, status: 'PAUSED' as const },
+    };
+    for (const view of [agentTabViews.ownOnly, agentTabViews.learner, paused]) {
       const { html, plain } = render({ view, runs: learnerPageOf() });
       expect(html).not.toContain('id="hosted-level"');
       expect(html).not.toContain('id="autopilot"');
       expect(plain).not.toContain('Pause contributing');
-      expect(html).not.toContain('data-list-note="paused-by-you"');
+      expect(plain).not.toContain('Resume');
     }
-    const paused = {
-      ...agentTabViews.ownOnly,
-      paused: true,
-      pausedByYou: true,
-      contributor: { ...agentTabViews.ownOnly.contributor, status: 'PAUSED' as const },
-    };
-    const { html, plain } = render({ view: paused });
-    expect(plain).toContain("Contributing is paused, so your own agent can't take an issue. Resume");
-    // The old `#pause` link lands on it.
-    expect(html).toMatch(/id="hosted-level"[^>]*data-list-note="paused-by-you"/);
-    expect(html).not.toContain('data-hosted-level=');
   });
 
   it('leaves the pull request and attempts limits to Settings, and the model row to the model', () => {
@@ -268,17 +261,6 @@ describe('the Agent tab with nothing connected', () => {
     expect(html).not.toContain('id="hosted-agent"');
     expect(html).not.toContain('id="runs"');
     expect(plain).not.toContain('Connect your Claude key to start');
-  });
-
-  it("keeps the user's own pause above the cards, with Resume", () => {
-    const { html, plain } = render({
-      view: { ...agentTabViews.nothing, pausedByYou: true },
-      runs: pageOf({ items: [] }),
-    });
-    expect(plain).toContain("Contributing is paused, so your own agent can't take an issue.");
-    expect(plain).toContain('Resume');
-    expect(plain).not.toContain('Resume on the Agent tab');
-    expect(html.indexOf('paused-by-you')).toBeLessThan(html.indexOf('data-agent-first'));
   });
 
   it('is not shown when their own agent was not read: the read failed, not "nothing connected"', () => {

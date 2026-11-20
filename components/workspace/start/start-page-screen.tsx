@@ -210,10 +210,6 @@ export type StartPageScreenProps = {
   timedOut?: boolean;
   checking?: boolean;
   onCheckAgain?: () => void;
-  resuming?: boolean;
-  onResume?: () => void;
-  /** Resume failed: why, under its button. */
-  resumeError?: string | null;
   /** Drawn before "Connect your agent"; the steps after it are then numbered from 2. */
   firstSection?: ReactNode;
   /** The steps after `firstSection` drawn dimmed and inert. */
@@ -242,9 +238,6 @@ export function StartPageScreen({
   timedOut = false,
   checking = false,
   onCheckAgain,
-  resuming = false,
-  onResume,
-  resumeError = null,
   firstSection,
   locked = false,
   back,
@@ -450,15 +443,7 @@ export function StartPageScreen({
 
       <IssueCard issueRef={issueRef} mode={mode} issue={issue} card={given} goal={goal} />
 
-      {refusal ? (
-        <StartRefusal
-          copy={refusal}
-          code={issue?.start.refusal ?? ''}
-          resuming={resuming}
-          onResume={onResume}
-          resumeError={resumeError}
-        />
-      ) : null}
+      {refusal ? <StartRefusal copy={refusal} code={issue?.start.refusal ?? ''} /> : null}
 
       {firstSection}
       {locked ? (

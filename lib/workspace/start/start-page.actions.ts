@@ -9,8 +9,8 @@ import type { ContributeActionResult } from '@/lib/workspace/errors';
 const invalid = (): ContributeActionResult<never> => ({ ok: false, error: 'INVALID' });
 
 /**
- * The Start page asks again whether the issue can be started in its mode: once the agent has connected, after Resume,
- * and on Check again. As the session's user, for an issue named the way the page's address names it.
+ * The Start page asks again whether the issue can be started in its mode: once the agent has connected, and on Check
+ * again. As the session's user, for an issue named the way the page's address names it.
  */
 export async function readStartPageIssue(
   repo: string,

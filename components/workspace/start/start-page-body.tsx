@@ -7,9 +7,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState, useTransition
 import { reportLearnEvent } from '@/components/contribute-click-tracker/contribute-click-tracker';
 import { AgentConnect } from '@/components/workspace/agent/agent-connect';
 import { type StartPageCard, StartPageScreen } from '@/components/workspace/start/start-page-screen';
-import { resumeContributing } from '@/lib/workspace/actions';
 import { changesPollRunning } from '@/lib/workspace/changes-bus';
-import { contributeErrorMessage } from '@/lib/workspace/errors';
 import type { McpClient } from '@/lib/workspace/mcp-setup';
 import {
   learnStartFixOf,
@@ -112,8 +110,6 @@ function LiveStartPage({
   // A new wait, with its 30 minutes, after each ask of the issue.
   const [round, setRound] = useState(0);
   const [checking, startChecking] = useTransition();
-  const [resuming, startResuming] = useTransition();
-  const [resumeError, setResumeError] = useState<string | null>(null);
   const gone = useRef(false);
   // The issue as last read, for the repo's spelling in the pull request's address.
   const issueRead = useRef(issue);
@@ -176,17 +172,6 @@ function LiveStartPage({
     [askIssue],
   );
 
-  const onResume = useCallback(
-    () =>
-      startResuming(async () => {
-        setResumeError(null);
-        const result = await resumeContributing().catch(() => null);
-        if (result?.ok) askIssue();
-        else setResumeError(contributeErrorMessage(result?.error ?? 'FAILED', result?.message));
-      }),
-    [askIssue],
-  );
-
   // Nothing to wait for once the agent's regular pull request is open: the page says to pick another issue.
   const fixDone = !!fix && learnStartFixOf(fix.state).pickAnother;
   const waits = startStepsOpen(issue) && (!!connection || !!fix) && !fixDone && !timedOut;
@@ -238,9 +223,6 @@ function LiveStartPage({
       timedOut={timedOut}
       checking={checking}
       onCheckAgain={askIssue}
-      resuming={resuming}
-      onResume={onResume}
-      resumeError={resumeError}
       firstSection={firstSection}
       back={{ href: backHref, label: backLabel }}
       frame={frame}

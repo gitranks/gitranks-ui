@@ -90,14 +90,14 @@ describe('the Settings tab (W1 §10)', () => {
     expect(html).not.toContain('data-moved-to-agent');
   });
 
-  it('offers Resume where an agent\'s "resume it at …" link lands, while the user\'s own pause holds', () => {
-    const { html, plain } = render({ view: { ...settingsViews.both, paused: true, pausedByYou: true } });
-    expect(plain).toContain("Contributing is paused, so your own agent can't take an issue. Resume");
-    expect(html.indexOf('data-list-note="paused-by-you"')).toBeLessThan(html.indexOf('data-agent-line'));
-    // A refused key's pause: the key's page says it, with no Resume here.
-    expect(render({ view: { ...settingsViews.both, paused: true, pausedByYou: false } }).html).not.toContain(
-      'data-list-note="paused-by-you"',
-    );
+  it('offers no Resume where an agent\'s old "resume it at …" link lands', () => {
+    const paused = {
+      ...settingsViews.both,
+      contributor: { ...settingsViews.both.contributor!, status: 'PAUSED' as const },
+    };
+    const { html, plain } = render({ view: paused });
+    expect(plain).not.toContain('Resume');
+    expect(html).toContain('data-agent-line');
   });
 
   it('closes For learning to a line for a contributor, and leaves it out where Learn is not open', () => {

@@ -577,7 +577,7 @@ describe('refusals, in plain words', () => {
     ['The pull request is not open', 'The pull request is no longer open'],
     ['A follow-up is already under way on this pull request', 'A follow-up is already running'],
     ['New sessions are paused on our side for now', 'New agent sessions are paused on our side'],
-    ['Contributing is paused', 'Contributing is paused. Click Resume contributing'],
+    ['Contributing is paused', 'Contributing is paused. Connect a working Claude key'],
     ['Your Claude key cannot start a session now', 'Your Claude key cannot start a session now: none is connected'],
     ['Your limits leave no room for another attempt now', 'Your spend limits leave no room'],
     ['The pull request has no branch of ours to add commits to', 'You opened this pull request yourself'],
@@ -589,7 +589,7 @@ describe('refusals, in plain words', () => {
     ],
     [
       'Contributing is paused: click Resume contributing on Overview or in Contribute settings (connect a working Claude key first if it asks), then start the run',
-      'Contributing is paused. Click Resume contributing',
+      'Contributing is paused. Connect a working Claude key',
     ],
     [
       'Your Claude key cannot start a session now (none connected, Anthropic refused it, or its credits ran out): connect a working key in Contribute settings, Keys and access, then start the run',

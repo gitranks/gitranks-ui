@@ -60,7 +60,6 @@ const CALLS: Record<string, unknown[]> = {
   deleteContributeData: [],
   revokeGithubGrant: [],
   setContributeEmailSettings: [{ needsYou: 'OFF', githubLogin: 'mallory' }],
-  resumeContributing: [],
   skipIssue: ['I_1'],
   startIssue: ['I_1'],
   readIssueStatuses: [['I_1', 'I_2']],

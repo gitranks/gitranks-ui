@@ -7,8 +7,6 @@ const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push: vi.fn(), replace: vi.fn() }) }));
 const contribute = vi.hoisted(() => ({ readIssuesPage: vi.fn(), readIssueStatuses: vi.fn() }));
 vi.mock('@/lib/contribute/actions', () => contribute);
-const workspace = vi.hoisted(() => ({ resumeContributing: vi.fn() }));
-vi.mock('@/lib/workspace/actions', () => workspace);
 const issues = vi.hoisted(() => ({ startIssue: vi.fn(), skipIssue: vi.fn() }));
 vi.mock('@/lib/workspace/issue-actions', () => issues);
 vi.mock('@/lib/workspace/start/start-page.actions', () => ({ readStartPageAttempt: vi.fn() }));
@@ -91,20 +89,6 @@ describe("Contribute's issue list", () => {
     expect(container.textContent).toContain('Showing 10 of 25 issues');
   });
 
-  it('resumes a pause the person set, then reads the page again', async () => {
-    workspace.resumeContributing.mockResolvedValueOnce({ ok: true, data: true });
-    await render(
-      <ContributeIssueList
-        page={{ items: picks(1, 2), next: null, total: 2, computedAt: null }}
-        agents={AGENTS}
-        pausedByYou
-      />,
-    );
-    await act(async () => button('Resume')?.click());
-    expect(workspace.resumeContributing).toHaveBeenCalledTimes(1);
-    expect(refresh).toHaveBeenCalled();
-  });
-
   it('reads the page again when a Start meets the limit, so it shows the limit state', async () => {
     issues.startIssue.mockResolvedValueOnce({
       ok: true,
@@ -115,6 +99,21 @@ describe("Contribute's issue list", () => {
     );
     await act(async () => container.querySelector<HTMLButtonElement>('[data-start-control="hosted"]')?.click());
     expect(refresh).toHaveBeenCalled();
+  });
+
+  it("says why a paused account's Start can't run, with the key as the way on (no Resume)", async () => {
+    issues.startIssue.mockResolvedValueOnce({
+      ok: true,
+      data: { attempt: null, started: false, refusal: 'KEY_INVALID', value: null, holder: null, until: null },
+    });
+    await render(
+      <ContributeIssueList page={{ items: picks(1, 2), next: null, total: 2, computedAt: null }} agents={AGENTS} />,
+    );
+    await act(async () => container.querySelector<HTMLButtonElement>('[data-start-control="hosted"]')?.click());
+    expect(container.textContent).toContain('Your Claude key stopped working. Nothing can start on it.');
+    const replace = [...container.querySelectorAll('a')].find((link) => link.textContent?.includes('Replace the key'));
+    expect(replace?.getAttribute('href')).toBe('/my/agent/key?replace=1');
+    expect(container.textContent).not.toContain('Resume');
   });
 
   it('can be placed without its menu, and shows no Start at the limit', async () => {

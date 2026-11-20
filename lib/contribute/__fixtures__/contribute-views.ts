@@ -158,7 +158,7 @@ export const email = {
 } satisfies Record<string, ContributeEmailSettings>;
 
 export const views = {
-  newcomer: { contributor: null, grant: { connected: false, login: null }, paused: false, grantAvailable: true },
+  newcomer: { contributor: null, grant: { connected: false, login: null }, grantAvailable: true },
   noKey: {
     contributor: contributor({
       credentials: [],
@@ -169,7 +169,6 @@ export const views = {
       ...notOnboarded,
     }),
     grant: { connected: false, login: null },
-    paused: false,
     grantAvailable: true,
   },
   /** A token for their own agent is live, and the agent has not called yet: setup, not onboarding. */
@@ -184,7 +183,6 @@ export const views = {
       ...notOnboarded,
     }),
     grant: { connected: false, login: null },
-    paused: false,
     grantAvailable: true,
     ownAgent: { paths: { hosted: false, mcp: true }, tokens: [mcpToken()] },
   },
@@ -199,7 +197,6 @@ export const views = {
       onboardedVia: 'MCP',
     }),
     grant: { connected: false, login: null },
-    paused: false,
     grantAvailable: true,
     ownAgent: {
       paths: { hosted: false, mcp: true },
@@ -210,11 +207,10 @@ export const views = {
   onboardedNoPath: {
     contributor: contributor({ credentials: [], settings: null, spend: null }),
     grant: connected,
-    paused: false,
     grantAvailable: true,
     ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] },
   },
-  active: { contributor: contributor(), grant: connected, paused: false, grantAvailable: true },
+  active: { contributor: contributor(), grant: connected, grantAvailable: true },
   /**
    * A key just connected from Max: onboarded, every setting guessed, nothing spent, the first attempt free to start,
    * and no GitHub access yet.
@@ -228,19 +224,16 @@ export const views = {
       onboardedAt: '2026-10-28T11:58:00.000Z',
     }),
     grant: { connected: false, login: null },
-    paused: false,
     grantAvailable: true,
   },
   keyInvalid: {
     contributor: contributor({ credentials: [key({ state: 'INVALID' })] }),
     grant: connected,
-    paused: false,
     grantAvailable: true,
   },
   exhausted: {
     contributor: contributor({ credentials: [key({ state: 'EXHAUSTED', blockedUntil: '2026-11-14T00:00:00.000Z' })] }),
     grant: connected,
-    paused: false,
     grantAvailable: true,
   },
   limitReached: {
@@ -248,20 +241,17 @@ export const views = {
       credentials: [key({ state: 'LIMIT_REACHED', blockedUntil: '2026-11-01T00:00:00.000Z' })],
     }),
     grant: connected,
-    paused: false,
     grantAvailable: true,
   },
   grantMissing: {
     contributor: contributor(),
     grant: { connected: false, login: null },
-    paused: false,
     grantAvailable: true,
   },
+  /** Paused, as a refused key leaves the account: the key's notice says it. */
   paused: {
-    contributor: contributor({ status: 'PAUSED' }),
+    contributor: contributor({ status: 'PAUSED', credentials: [key({ state: 'INVALID' })] }),
     grant: connected,
-    paused: true,
-    pausedByYou: true,
     grantAvailable: true,
   },
   /** A new account, on smaller limits: its settings ask for 3 at a time and 3 open PRs, the limits hold 1 and 2. */
@@ -271,30 +261,26 @@ export const views = {
       limits: limits.newAccount,
     }),
     grant: connected,
-    paused: false,
     grantAvailable: true,
   },
   /** Smaller limits for now: most recent claims ran out without a pull request. */
   followThrough: {
     contributor: contributor({ settings: { ...settings, attemptsAtATime: 2 }, limits: limits.followThrough }),
     grant: connected,
-    paused: false,
     grantAvailable: true,
   },
   /** Paused by the owner: nothing new starts. */
   suspended: {
     contributor: contributor({ limits: limits.suspended }),
     grant: connected,
-    paused: false,
     grantAvailable: true,
   },
   /** An API that does not answer the grant and the pause yet. */
-  fieldsMissing: { contributor: contributor(), grant: undefined, paused: undefined, grantAvailable: true },
+  fieldsMissing: { contributor: contributor(), grant: undefined, grantAvailable: true },
   /** An API that does not answer the onboarding yet: the fields are left out. */
   onboardingMissing: {
     contributor: (({ onboardedAt: _at, onboardedVia: _via, ...rest }) => rest)(contributor()),
     grant: connected,
-    paused: false,
     grantAvailable: true,
   },
   autopilotUnlocked: {
@@ -310,7 +296,6 @@ export const views = {
       settings: { ...settings, hostedLevel: 'AUTOPILOT' },
     }),
     grant: connected,
-    paused: false,
     grantAvailable: true,
   },
   /** Autopilot is not open yet: the record is read, the setting cannot be turned on. */
@@ -326,7 +311,6 @@ export const views = {
       },
     }),
     grant: connected,
-    paused: false,
     grantAvailable: true,
   },
   /** Locked again by two pull requests closed without merging: five merged since then unlock it. */
@@ -342,7 +326,6 @@ export const views = {
       },
     }),
     grant: connected,
-    paused: false,
     grantAvailable: true,
   },
 } satisfies Record<string, ContributeView>;

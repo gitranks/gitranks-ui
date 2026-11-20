@@ -55,7 +55,6 @@ describe('the notices above the Contribute pages', () => {
     ['keyInvalid', 'key-invalid', 'Your Claude key stopped working', '/my/agent/key'],
     ['exhausted', 'exhausted', 'Your credits are used up for this cycle', 'renew on Nov 14'],
     ['limitReached', 'limit-reached', "Your workspace's spend limit is reached", 'on Nov 1'],
-    ['paused', 'paused', 'Contributing is paused', 'Resume on the Agent tab'],
   ] as const)('show the %s state', (name, kind, title, detail) => {
     const html = notices(views[name]);
 
@@ -421,22 +420,20 @@ describe('the Agent and Settings tabs', () => {
     );
   });
 
-  it('has no Pause, and resumes a contributor their own pause holds', () => {
-    expect(text(render(views.active))).not.toContain('Pause contributing');
-    expect(render(views.active)).not.toContain('data-list-note="paused-by-you"');
-    expect(render(views.paused)).toContain('data-list-note="paused-by-you"');
+  it('has no Pause and no Resume', () => {
+    for (const view of [views.active, views.paused]) {
+      expect(text(render(view))).not.toContain('Pause contributing');
+      expect(text(render(view))).not.toContain('Resume');
+    }
   });
 
-  it('shows a stored "only issues I queue" pace as the even spread, and offers no third pace', () => {
-    const queued = {
-      ...views.active,
-      contributor: { ...views.active.contributor, settings: { ...settings, pace: 'QUEUED' as const } },
-    };
-    const html = renderToStaticMarkup(<FormSettingsScreen page="budget" view={queued} />);
+  it('offers the two paces, the stored one checked', () => {
+    const html = renderToStaticMarkup(<FormSettingsScreen page="budget" view={views.active} />);
     const checked = [...html.matchAll(/role="radio" aria-checked="true"[^>]*value="([^"]*)"/g)].map(([, v]) => v);
+    const offered = [...html.matchAll(/role="radio"[^>]*value="([^"]*)"/g)].map(([, v]) => v);
 
-    expect(checked).toEqual(['EVEN']);
-    expect(html).not.toContain('value="QUEUED"');
+    expect(checked).toEqual([settings.pace]);
+    expect(offered.filter((value) => value === 'EVEN' || value === 'FAST').sort()).toEqual(['EVEN', 'FAST']);
     expect(text(html)).not.toContain('Only issues I queue');
   });
 

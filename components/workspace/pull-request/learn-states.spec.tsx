@@ -218,7 +218,7 @@ describe('the Learn states of the pull request page (W1 §8.6)', () => {
       reviewFeedback: { readAt: NOW.toISOString(), threads: [feedbackThread()] },
     });
     const html = prView(first, lessons.prOpen, true);
-    expect(html).toContain('data-move="learn-prompt"');
+    expect(html).toContain('data-move="agent-prompt"');
     expect(text(html)).toContain('Change 1 Your move');
     expect(text(html)).toContain(
       "Continue my GitRanks pull request https://github.com/driftwood-js/driftwood/pull/1419: start the follow-up with start_follow_up (prId PR_1), then submit the change for my review. Don't push anything yourself.",

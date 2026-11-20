@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button';
 import { CodeBlock } from '@/components/workspace/code-block';
 import { CopyButton } from '@/components/workspace/copy-button';
 import { HEADING } from '@/components/workspace/primitives';
-import { learnFollowUpPromptOf } from '@/lib/learn/learn-view';
-import { AGENT_NAMES, githubUrlOf } from '@/lib/workspace/attempt-format';
+import { AGENT_NAMES, followUpPromptOf, githubUrlOf } from '@/lib/workspace/attempt-format';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/workspace/contribute.types';
 import { relativeLabel } from '@/lib/workspace/format';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { lastUsedTokenOf } from '@/lib/workspace/proof';
+import { sessionNamesOf } from '@/lib/workspace/sessions';
 
 /** The agent that wrote the first fix, by name: "Claude Code"; "your agent" for one it does not name. */
 const agentNameOf = (first: ContributeAttemptDetail) =>
@@ -27,34 +27,40 @@ function connectionOf(view: ContributeView, name: string | null, now: Date): str
   return [`${name ?? 'Your agent'} is connected`, when ? `last call ${when}` : null].filter(Boolean).join(' · ');
 }
 
+/** The card's lead: a Learn pull request's change needs no new lesson; any other is the agent's that made it. */
+const leadOf = (first: ContributeAttemptDetail) =>
+  first.mode === 'LEARN'
+    ? 'A follow-up change needs no new lesson: your agent makes it, you read it and push.'
+    : 'Your agent made this pull request, so it makes the follow-up too: you read the change and push it.';
+
 /**
- * A change a maintainer asked for on a Learn pull request (W1 §8.6 state 10): the person's own agent makes it, they
- * read it and push. Never the hosted agent: no run to start, no note for it, also for a person with a Claude key. The
- * prompt names the pull request by its address; the agent finds the rest. When the agent starts, the poll names the
- * attempts, the page reads itself again and shows the run.
+ * A change a maintainer asked for on a pull request the person's own agent made, a Learn one always (W1 §8.6 state
+ * 10): that agent makes it, they read it and push. Never the hosted agent: no run to start, no note for it, also for a
+ * person with a Claude key. The prompt names the pull request by its address; the agent finds the rest. When the agent
+ * starts, the poll names the attempts, the page reads itself again and shows the run.
  */
-export function LearnPromptCard({ move, first, view, now, round }: CardProps & { round: number }) {
+export function AgentPromptCard({ move, first, view, now, round }: CardProps & { round: number }) {
   if (!first) return null;
   const prUrl = githubUrlOf(first.pullRequest?.url) ?? '';
-  const prompt = learnFollowUpPromptOf(prUrl, first.pullRequest?.prId ?? '');
+  const prompt = followUpPromptOf(prUrl, first.pullRequest?.prId ?? '');
   const name = agentNameOf(first);
   const connection = connectionOf(view, name, now);
   const kinds = move.data.card === 'next-run' ? move.data.kinds : [];
   const threadUrl = githubUrlOf(first.reviewFeedback?.threads.find(({ ignored }) => !ignored)?.url) ?? prUrl;
   return (
-    <div className="flex flex-col gap-3" data-move="learn-prompt" id={move.kinds[0]}>
+    <div className="flex flex-col gap-3" data-move="agent-prompt" id={move.kinds[0]}>
       <section
-        aria-labelledby="learn-prompt-title"
+        aria-labelledby="agent-prompt-title"
         className="flex flex-col gap-4 rounded-xl border border-primary/30 bg-card p-4 ring-2 ring-primary/10 sm:p-5"
       >
         <div className="flex flex-col gap-1.5">
-          <span className="font-mono text-xs tracking-wider text-muted-foreground uppercase">Change {round}</span>
-          <h2 id="learn-prompt-title" className="text-lg font-semibold">
+          <span className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
+            {sessionNamesOf(first.mode).run(round)}
+          </span>
+          <h2 id="agent-prompt-title" className="text-lg font-semibold">
             Your move
           </h2>
-          <p className="text-sm text-muted-foreground">
-            A follow-up change needs no new lesson: your agent makes it, you read it and push.
-          </p>
+          <p className="text-sm text-muted-foreground">{leadOf(first)}</p>
         </div>
         <div className="flex flex-col gap-3 border-t pt-4" data-prompt-step="1">
           <h3 className={HEADING.block}>1 · Ask your agent to make the change</h3>

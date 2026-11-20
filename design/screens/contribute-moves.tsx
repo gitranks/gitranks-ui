@@ -717,4 +717,16 @@ export const changedCommentStates = {
       },
       { next: true },
     ),
+  /** The same comments on a pull request the person's own agent made: the prompt for that agent, never a run of ours. */
+  ownAgentNext: (page: Page) =>
+    firstPage(
+      page,
+      {
+        ...followUpAttempts.prNeedsYou,
+        runner: 'MCP',
+        agent: { name: 'CLAUDE_CODE', model: null },
+        reviewFeedback: { threads: waitingThreads(), readAt: '2026-10-28T11:48:00.000Z' },
+      },
+      { next: true },
+    ),
 };

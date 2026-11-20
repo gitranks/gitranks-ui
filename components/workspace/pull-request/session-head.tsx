@@ -1,9 +1,9 @@
 import type { Route } from 'next';
 import type { ReactNode } from 'react';
 
+import { AgentPromptCard } from './agent-prompt-card';
 import { type AlsoRow, AlsoWaiting, HeadSwitch, HeldCard, StartAnyway } from './also-waiting';
 import { StartRun } from './head-actions';
-import { LearnPromptCard } from './learn-prompt-card';
 import type { CardProps } from './move-props';
 import { AutopilotCard, GrantCard, RetryCard, ReviewCard } from './moves-first';
 import { AgreementCard, NextRunCard, RulesCard } from './moves-pr';
@@ -20,7 +20,7 @@ import {
 import { ProofMoveCard, ProofStatus } from './proof-card';
 import { ClaimSteps, StatusLine, StatusLinkView } from './status-line';
 import { LiveSubmit, SubmitStepsSettled } from './submit-stepper';
-import { githubUrlOf } from '@/lib/workspace/attempt-format';
+import { githubUrlOf, ownAgentChangesOf } from '@/lib/workspace/attempt-format';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/workspace/contribute.types';
 import {
   type ContributionMoves,
@@ -76,9 +76,13 @@ function Card(props: CardProps) {
     case 'replies':
       return <RepliesCard {...props} />;
     case 'next-run':
-      // A Learn pull request's change is its own agent's: the prompt to give it, never a run of ours.
-      return props.first?.mode === 'LEARN' && props.move.data.card === 'next-run' && !props.move.data.noRun ? (
-        <LearnPromptCard {...props} round={props.model.nextRound} />
+      // A change on a pull request the own agent made (a Learn one always) is that agent's: the prompt to give it, never
+      // a run of ours.
+      return props.first &&
+        ownAgentChangesOf(props.first) &&
+        props.move.data.card === 'next-run' &&
+        !props.move.data.noRun ? (
+        <AgentPromptCard {...props} round={props.model.nextRound} />
       ) : (
         <NextRunCard {...props} />
       );

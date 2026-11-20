@@ -232,6 +232,22 @@ describe('the words of each kind, from its facts', () => {
     );
   });
 
+  it("a pull request the own agent made on Contribute: that agent's, as on Learn, never a run of ours", () => {
+    expect(said({ runner: 'MCP' })).toEqual({
+      pill: 'Changes requested',
+      move: 'A maintainer asked for a change. Your agent makes it; you read it and push.',
+      label: 'See what they asked',
+    });
+    expect(said({ kind: 'COMMENT', runner: 'MCP' }).move).toBe(
+      'Someone commented on it. Your agent answers it; you read it and push.',
+    );
+    expect(said({ kind: 'CHECK', runner: 'MCP', facts: facts({ checks: ['lint'] }) }).move).toBe(
+      'lint fails on your pull request. Your agent fixes it; you read it and push.',
+    );
+    // One no run adds to (opened by hand, a repo that said no) stays GitHub's.
+    expect(said({ runner: 'MCP', facts: facts({ noRun: true, byHand: true }) }).label).toBe('Open the pull request');
+  });
+
   it('the replies to approve, and those that did not post', () => {
     expect(said({ kind: 'REPLIES', facts: facts({ round: 1, drafts: 1, draftsTo: '@mo' }) })).toEqual({
       pill: 'Replies to approve',

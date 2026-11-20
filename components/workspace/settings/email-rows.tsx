@@ -110,9 +110,13 @@ function Rows({
   // The summary's time zone: the one stored, else the one this browser would send (known only once in the browser).
   const browserZone = useSyncExternalStore(noSubscribe, browserTimeZone, () => null);
 
-  const save = (patch: Patch, onSaved?: () => void) => {
+  const save = (given: Patch, onSaved?: () => void) => {
     if (saving.current) return;
     saving.current = true;
+    // A choice picked just before, still waiting to be saved, goes in this same save (one save at a time), unless
+    // this save sets the choice itself.
+    const waiting = pickNeedsYou.cancel();
+    const patch: Patch = { ...(waiting ? { needsYou: waiting.value } : {}), ...given };
     setShown((now) => ({ ...now, ...patch }));
     setError(null);
     const zone = browserTimeZone();

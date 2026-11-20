@@ -36,7 +36,14 @@ export function useSettledPick<T>(save: (value: T) => void, ms = 350) {
     waiting.current = null;
     if (pending) latest.current(pending.value);
   };
-  return Object.assign(pick, { flush });
+  /** Takes the pick still waiting, unsaved, for a caller that sends it in its own save; null when none waits. */
+  const cancel = (): { value: T } | null => {
+    clearTimeout(timer.current);
+    const pending = waiting.current;
+    waiting.current = null;
+    return pending;
+  };
+  return Object.assign(pick, { flush, cancel });
 }
 
 /** Choices as pills: native radios, so arrows move between them and the group is read as one. */

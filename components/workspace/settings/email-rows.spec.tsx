@@ -206,6 +206,45 @@ describe('the Email rows in the browser', () => {
     expect(setContributeEmailSettings).toHaveBeenCalledWith({ needsYou: 'OFF', timeZone: 'Europe/Warsaw' });
   });
 
+  it('sends a pick still waiting in the same save when the merged-or-closed switch is pressed', async () => {
+    zone('Europe/Warsaw');
+    setContributeEmailSettings.mockResolvedValue({
+      ok: true,
+      data: { ...fixture.on, needsYou: 'ONCE_A_DAY', ended: false },
+    });
+    mount();
+
+    await act(async () => radio('ONCE_A_DAY').click());
+    await act(async () => vi.advanceTimersByTime(100));
+    await act(async () => toggle().click());
+    // The pick's own timer finds nothing left to save.
+    await act(async () => vi.advanceTimersByTime(400));
+
+    expect(setContributeEmailSettings).toHaveBeenCalledTimes(1);
+    expect(setContributeEmailSettings).toHaveBeenCalledWith({
+      needsYou: 'ONCE_A_DAY',
+      ended: false,
+      timeZone: 'Europe/Warsaw',
+    });
+    expect(radio('ONCE_A_DAY').checked).toBe(true);
+    expect(toggle().checked).toBe(false);
+  });
+
+  it('lets the hint’s Switch win over a pick still waiting, in one save', async () => {
+    zone(undefined);
+    setContributeEmailSettings.mockResolvedValue({ ok: true, data: fixture.daily });
+    mount({ hint: 'ONCE_A_DAY' });
+
+    await act(async () => radio('OFF').click());
+    // Off differs from the hint too, so the question stays up.
+    await act(async () => button('Switch').click());
+    await act(async () => vi.advanceTimersByTime(400));
+
+    expect(setContributeEmailSettings).toHaveBeenCalledTimes(1);
+    expect(setContributeEmailSettings).toHaveBeenCalledWith({ needsYou: 'ONCE_A_DAY' });
+    expect(radio('ONCE_A_DAY').checked).toBe(true);
+  });
+
   it('still saves when the browser tells no usable zone', async () => {
     zone('Etc/Unknown');
     setContributeEmailSettings.mockResolvedValue({ ok: true, data: { ...fixture.on, ended: false } });

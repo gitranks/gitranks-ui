@@ -4,8 +4,8 @@ import { type ReactNode, Suspense } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
 import { ExampleLessonCard } from './example-lesson-card';
-import { LearnHomeSignedIn } from './learn-home';
 import { RecentLessons } from './recent-lessons';
+import { LearnTab } from '@/app/(workspace)/learn/components/learn-tab-view';
 import { H2, MUTED_SECTION, WIDTH } from '@/app/contribute/components/landing';
 import { LearnSignInButton } from '@/components/learn/learn-sign-in';
 import { QuestionsBlock } from '@/components/questions-block/questions-block';
@@ -17,7 +17,7 @@ import { readRecentLessons } from '@/lib/learn/recent-lessons.data';
 import { cn } from '@/lib/utils';
 import { viewerLogin } from '@/lib/workspace/contribute.data';
 
-/** Who reads the front door: a visitor signs in first, a signed-in user goes straight to Learn home. */
+/** Who reads the front door: a visitor signs in first, a signed-in user goes straight to the Learn tab. */
 export type LearnLandingViewer = 'visitor' | 'signed-in';
 
 const HANDOFF = [
@@ -73,7 +73,7 @@ const QUESTIONS = [
 const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase';
 const START_CLASS = cn(buttonVariants({ size: 'lg' }), 'min-h-11 px-5 text-base font-semibold max-sm:w-full');
 
-/** "Start learning": a visitor's signs in first and comes back to Learn home; a signed-in user's goes there. */
+/** "Start learning": a visitor's signs in first and comes back to the Learn tab; a signed-in user's goes there. */
 function StartLearning({ viewer, className }: { viewer: LearnLandingViewer; className?: string }) {
   const content = (
     <>
@@ -243,14 +243,14 @@ export const recentLessonsSlot = () => (
 );
 
 /**
- * `/learn`, behind Learn's gate: not found for anyone Learn is not open to. A signed-in user it is open to gets Learn
- * home. A visitor gets this far only once the API says Learn is open to everyone (the proxy decides), and then reads the
+ * `/learn`, behind Learn's gate: not found for anyone Learn is not open to. A signed-in user it is open to gets the
+ * Learn tab. A visitor gets this far only once the API says Learn is open to everyone (the proxy decides), and then reads the
  * front door.
  */
 export async function LearnHomeView() {
   const viewer = await frontDoorViewer();
   if (!viewer) notFound();
-  if (viewer === 'signed-in') return <LearnHomeSignedIn />;
+  if (viewer === 'signed-in') return <LearnTab />;
   return <LearnLanding viewer={viewer} recentLessons={recentLessonsSlot()} />;
 }
 

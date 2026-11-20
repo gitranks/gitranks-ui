@@ -31,7 +31,7 @@ export type StartRefusalCopy =
   | { kind: 'notice'; text: string; action: StartRefusalAction | null };
 
 /** "One of your issues is being worked on, …", "3 of your issues are being worked on, …": `limit` is what holds. */
-function busyText(limit: number | null): string {
+export function busyText(limit: number | null): string {
   const lead =
     limit === 1
       ? 'One of your issues is being worked on'

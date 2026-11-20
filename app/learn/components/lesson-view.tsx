@@ -6,7 +6,6 @@ import type { ReactNode } from 'react';
 import { LearnSettingUp } from './learn-setting-up';
 import { LessonShare } from './lesson-share';
 import { MoveOnOnceOpen, WatchingOpen } from './opening-move-on';
-import { CHANGED_YOUR_MIND } from './own-lesson-card';
 import { PracticeRows } from './practice-lessons';
 import { LessonFlow, type LessonFlowStart } from '@/components/learn/lesson-flow';
 import { LESSON_GRID } from '@/components/learn/lesson-steps';
@@ -35,6 +34,10 @@ import type { CommentActionsInit } from '@/lib/workspace/comment-actions';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/workspace/contribute.types';
 import { parsePatch } from '@/lib/workspace/patch';
 import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
+
+/** How to give the issue back while the agent works. */
+const CHANGED_YOUR_MIND =
+  'Changed your mind? Ask your agent to release the issue. If your agent stops, the claim ends by itself within 24 hours.';
 
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 

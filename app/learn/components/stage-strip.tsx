@@ -1,7 +1,8 @@
 import { BookOpen, GitPullRequest, Lock, type LucideIcon, Terminal } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import { Pill } from '@/components/pill/pill';
-import type { PathMark } from '@/lib/learn/learn-home';
+import type { PathMark } from '@/lib/learn/learn-tab';
 import { cn } from '@/lib/utils';
 
 function Mark({ mark }: { mark: PathMark }) {
@@ -16,8 +17,11 @@ function Mark({ mark }: { mark: PathMark }) {
   );
 }
 
-/** One step of a strip: where it happens, what happens, its icon. */
-export type StripStep = { key: string; where: string; title: string; Icon: LucideIcon };
+/**
+ * One step of a strip: where it happens, what happens, its icon; `action`, on the step now, takes its mark's place (the
+ * button to the lesson, or a line while the pull request is opened).
+ */
+export type StripStep = { key: string; where: string; title: string; Icon: LucideIcon; action?: ReactNode };
 
 /**
  * Steps in a row, each with its mark: done, the one now (or the agent working on it), or next. On a phone only the
@@ -50,6 +54,7 @@ export function StepStrip({
             className={cn(
               'flex min-w-0 items-center gap-3 rounded-xl border px-3 py-2.5',
               now && 'border-primary bg-brand-soft/40 ring-1 ring-primary',
+              item.action && 'max-sm:flex-wrap',
               !shownOnPhone && 'max-sm:hidden',
             )}
           >
@@ -60,9 +65,15 @@ export function StepStrip({
               <span className="font-mono text-xs break-words text-muted-foreground">{item.where}</span>
               <span className="text-sm font-semibold break-words">{item.title}</span>
             </span>
-            <span className="flex-none">
-              <Mark mark={marks[index]} />
-            </span>
+            {item.action ? (
+              <span className="flex-none max-sm:basis-full" data-step-action="">
+                {item.action}
+              </span>
+            ) : (
+              <span className="flex-none">
+                <Mark mark={marks[index]} />
+              </span>
+            )}
           </li>
         );
       })}
@@ -70,7 +81,7 @@ export function StepStrip({
   );
 }
 
-/** The icons of Learn home's path: the goal, the agent's fix, the pass and the pull request. */
+/** The icons of the Learn tab's path: the goal, the agent's fix, the pass and the pull request. */
 export const PATH_ICONS: Record<'goal' | 'agent' | 'pass', LucideIcon> = {
   goal: BookOpen,
   agent: Terminal,

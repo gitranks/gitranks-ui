@@ -1,4 +1,3 @@
-import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 import { ContributeIssueList, IssuesTotalProvider, LiveIssuesCount } from './issue-list';
@@ -6,6 +5,7 @@ import { PicksDialog } from './picks-dialog';
 import type { IssuesQuery } from '@/app/contribute/components/issues-filter';
 import { IssuesFilters } from '@/app/contribute/components/issues-filters';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { NumberTiles } from '@/components/workspace/number-tiles';
 import { HEADING } from '@/components/workspace/primitives';
 import { RightNow } from '@/components/workspace/right-now';
 import { type ContributeTabRead, introLineOf, numberTilesOf } from '@/lib/contribute/contribute-tab';
@@ -40,29 +40,6 @@ export type ContributeTabData = {
   query: IssuesQuery;
   now?: Date;
 };
-
-/** The four numbers, each a link to the Pull requests tab filtered to Contribute. */
-function Numbers({ tab }: { tab: ContributeTabRead }) {
-  return (
-    <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-contribute-numbers="">
-      {numberTilesOf(tab.totals).map((tile) => (
-        <li key={tile.label}>
-          <Link
-            href={tile.href}
-            prefetch={false}
-            className="group flex h-full flex-col gap-1 rounded-xl border bg-card p-4 shadow-sm transition-colors hover:bg-accent/40"
-          >
-            <span className="flex items-start justify-between gap-2">
-              <span className="font-mono text-2xl font-bold tabular-nums">{tile.value}</span>
-              <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground group-hover:text-foreground" />
-            </span>
-            <span className="text-sm text-muted-foreground">{tile.label}</span>
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 /**
  * The Contribute tab: its head and four numbers, Right now while a Contribute run is at work, then Issues for you
@@ -105,7 +82,7 @@ export function ContributeTabScreen({
           Your agent fixes open-source issues that fit your stack, you review every change, and the pull request opens
           in your name.
         </p>
-        <Numbers tab={tab} />
+        <NumberTiles tiles={numberTilesOf(tab.totals)} name="contribute" />
       </div>
 
       <RightNow

@@ -10,6 +10,8 @@ const actions = vi.hoisted(() => ({
   readMyLearnAttempts: vi.fn(),
   readPracticeNext: vi.fn(),
 }));
+vi.mock('@/lib/workspace/issue-actions', () => ({ startIssue: vi.fn(), skipIssue: vi.fn() }));
+vi.mock('@/lib/workspace/start/start-page.actions', () => ({ readStartPageAttempt: vi.fn() }));
 vi.mock('@/lib/learn/actions', () => actions);
 
 const { LearnProfileForm } = await import('@/components/learn/learn-profile-form');
@@ -71,14 +73,14 @@ describe("a passed practice lesson's next step", () => {
     actions.readPracticeNext.mockResolvedValue({ ok: true, data: practiceNext.own });
     await act(async () => root.render(<PracticeNextCard />));
     expect(actions.readPracticeNext).toHaveBeenCalledTimes(1);
-    expect(container.querySelectorAll('[data-learn-issue]')).toHaveLength(2);
+    expect(container.querySelectorAll('[data-side="learn"]')).toHaveLength(2);
   });
 
   it('shows its links alone when that read fails', async () => {
     actions.readPracticeNext.mockResolvedValue({ ok: false, error: 'FAILED' });
     await act(async () => root.render(<PracticeNextCard />));
     expect(container.querySelector('[data-next-step="own"]')).not.toBeNull();
-    expect(container.querySelector('[data-learn-issue]')).toBeNull();
+    expect(container.querySelector('[data-side="learn"]')).toBeNull();
     expect(container.querySelector('a[href="/learn#issues"]')).not.toBeNull();
   });
 

@@ -144,7 +144,7 @@ export const SaveLearnProfileDocument = doc<{ saveLearnProfile: LearnProfile }, 
 export const LEARN_ISSUE = 'issueId url repo number title language size why';
 
 /**
- * The issues for the viewer's goal (`first`: 0 to 10; 0 answers the total alone and reveals nothing), why there are
+ * The issues for the viewer's goal (`first`: 0 to 100; 0 answers the total alone and reveals nothing), why there are
  * none, and whether they have room to start one.
  */
 export const LearnIssuesDocument = doc<{ learnIssues: LearnIssues }, { first: number }>(
@@ -158,7 +158,7 @@ export const LearnIssuesDocument = doc<{ learnIssues: LearnIssues }, { first: nu
 }`,
 );
 
-/** Other learners' public lessons for the viewer's goal (`first`: 1 to 30), and how many there are. */
+/** Other learners' public lessons for the viewer's goal (`first`: 1 to 93), and how many there are. */
 export const PracticeLessonsDocument = doc<{ practiceLessons: PracticeLessons }, { first: number }>(
   `query PracticeLessons($first: Int) {
   practiceLessons(first: $first) {
@@ -175,7 +175,7 @@ export const PracticeLessonsDocument = doc<{ practiceLessons: PracticeLessons },
 
 const MY_LEARN_ATTEMPT = `attemptId stage state repo issueNumber issueUrl title
   latestEvent { state detail at }
-  prUrl prOpenedAt prState resultUrl`;
+  prUrl prOpenedAt prState resultUrl lessonMinutes`;
 
 /** The viewer's Learn attempt in progress, and their newest one's pull request opened in the last 14 days. */
 export const MyLearnAttemptsDocument = doc<{ myLearnAttempts: MyLearnAttempts }>(

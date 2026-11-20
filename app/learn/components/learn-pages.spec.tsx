@@ -12,6 +12,7 @@ vi.mock('next/navigation', () => ({
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
+vi.mock('@/lib/workspace/start/start-page.actions', () => ({ readStartPageAttempt: vi.fn() }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/lib/learn/actions', () => ({
   saveLearnProfile: vi.fn(),
@@ -24,7 +25,11 @@ const { everyone, viewerLogin } = vi.hoisted(() => ({
   everyone: vi.fn(async () => false),
   viewerLogin: vi.fn(async (): Promise<string | undefined> => undefined),
 }));
-vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), viewerLogin }));
+vi.mock('@/lib/workspace/contribute.data', () => ({
+  loadContribute: vi.fn(async () => null),
+  loadContributeActivity: vi.fn(async () => null),
+  viewerLogin,
+}));
 vi.mock('@/lib/learn/learn-front-door', () => ({ learnFrontDoorOpenToVisitor: everyone }));
 const data = vi.hoisted(() => ({
   loadLearnOpen: vi.fn(),
@@ -35,12 +40,13 @@ const data = vi.hoisted(() => ({
   loadPracticeLessons: vi.fn(async () => undefined),
 }));
 vi.mock('@/lib/learn/learn.data', () => data);
+vi.mock('@/lib/learn/progress/progress.data', () => ({ loadLearnProgress: vi.fn(async () => undefined) }));
 const recent = vi.hoisted(() => ({ readRecentLessons: vi.fn(async () => [] as PublicLesson[]) }));
 vi.mock('@/lib/learn/recent-lessons.data', () => recent);
 vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
 
 const { LearnAboutView, LearnHomeView, LearnLanding } = await import('./learn-landing');
-const { LearnHomeSignedIn } = await import('./learn-home');
+const { LearnTab } = await import('@/app/(workspace)/learn/components/learn-tab-view');
 const { publishedDayOf, RecentLessons } = await import('./recent-lessons');
 const { recentLessons } = await import('@/lib/learn/__fixtures__/recent-lessons');
 const { LearnMaintainers } = await import('./learn-maintainers');
@@ -67,7 +73,7 @@ const text = (html: string) =>
     .trim();
 
 describe("Learn's front door", () => {
-  it('signs a visitor in from Start learning, and sends a signed-in user to Learn home', () => {
+  it('signs a visitor in from Start learning, and sends a signed-in user to the Learn tab', () => {
     const visitor = renderToStaticMarkup(<LearnLanding viewer="visitor" />);
     expect(visitor.match(/data-sign-in="learn"/g)).toHaveLength(2);
     expect(visitor).not.toContain('href="/my/settings/goal"');
@@ -223,14 +229,11 @@ describe("Learn's gate on its own pages", () => {
     }
   });
 
-  it('says a new account is being set up, in place of the form and Learn home, with a refresh', async () => {
+  it('says a new account is being set up, in place of the form and the Learn tab, with a refresh', async () => {
     data.loadLearnOpen.mockResolvedValue(true);
     data.loadLearnSetup.mockResolvedValue(true);
     data.loadLearnProfile.mockResolvedValue(null);
-    for (const html of [
-      renderToStaticMarkup(await LearnProfileView()),
-      renderToStaticMarkup(await LearnHomeSignedIn()),
-    ]) {
+    for (const html of [renderToStaticMarkup(await LearnProfileView()), renderToStaticMarkup(await LearnTab())]) {
       expect(html).toContain('data-learn-setting-up');
       expect(text(html)).toContain('Setting up your GitRanks account. This takes about a minute. Refresh');
       expect(html).not.toContain('data-learn-profile=');
@@ -241,10 +244,10 @@ describe("Learn's gate on its own pages", () => {
     data.loadLearnOpen.mockResolvedValue(true);
     data.loadLearnProfile.mockResolvedValue(filledProfile);
     recent.readRecentLessons.mockResolvedValue(recentLessons);
-    // `/learn` is Learn home for them; the front door moved to `/learn/about`.
+    // `/learn` is the Learn tab for them; the front door moved to `/learn/about`.
     const home = await LearnHomeView();
-    expect(home.type).toBe(LearnHomeSignedIn);
-    expect(renderToStaticMarkup(await LearnHomeSignedIn())).toContain('data-learn-home="goal-set"');
+    expect(home.type).toBe(LearnTab);
+    expect(renderToStaticMarkup(await LearnTab())).toContain('data-learn-tab="ready"');
     const about = await LearnAboutView();
     expect(renderToStaticMarkup(about)).toContain('data-landing-viewer="signed-in"');
     expect(await recentOf(about)).toContain('data-recent-lessons');

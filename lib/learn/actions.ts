@@ -24,6 +24,7 @@ import {
   StartSharedLessonRunDocument,
 } from '@/lib/learn/learn.documents';
 import type {
+  LearnIssues,
   LearnProfile,
   LessonAnswerResult,
   LessonReaction,
@@ -35,8 +36,9 @@ import type {
   PracticeLessons,
   PracticeNext,
 } from '@/lib/learn/learn.types';
-import { currentOf, PRACTICE_ALL } from '@/lib/learn/learn-home';
+import { currentOf } from '@/lib/learn/learn-home';
 import { githubLoginOf, lessonResultPath, lessonSlugOf } from '@/lib/learn/learn-path';
+import { LEARN_ISSUES_MAX, PRACTICE_MAX } from '@/lib/learn/learn-tab';
 import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
 import { markReaction, takeReactionMark } from '@/lib/learn/react-mark';
@@ -275,16 +277,26 @@ export async function dismissLearnPromo(): Promise<ContributeActionResult<boolea
 const countOf = (value: unknown, min: number, max: number) =>
   typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max ? value : null;
 
-/** The viewer's Learn attempt in progress and their newest pull request, read again while Learn home shows it. */
+/** The viewer's Learn attempt in progress and their newest pull request, read again for a passed practice lesson's next step. */
 export async function readMyLearnAttempts(): Promise<ContributeActionResult<MyLearnAttempts>> {
   return run(MyLearnAttemptsDocument, {}, (data) => data.myLearnAttempts);
 }
 
-/** Other learners' lessons for the viewer's goal: "Show all" reads up to 30 in place. */
+/** Other learners' lessons for the viewer's goal: "Show 10 more" reads up to 93 in place. */
 export async function readPracticeLessons(first: number): Promise<ContributeActionResult<PracticeLessons>> {
-  const count = countOf(first, 1, PRACTICE_ALL);
+  const count = countOf(first, 1, PRACTICE_MAX);
   if (count === null) return invalid();
   return run(PracticeLessonsDocument, { first: count }, (data) => data.practiceLessons);
+}
+
+/**
+ * The issues for the viewer's goal: "Show 10 more" reads the list again with a larger `first`, up to 100. Rows already
+ * shown cost no new reveal.
+ */
+export async function readLearnIssues(first: number): Promise<ContributeActionResult<LearnIssues>> {
+  const count = countOf(first, 1, LEARN_ISSUES_MAX);
+  if (count === null) return invalid();
+  return run(LearnIssuesDocument, { first: count }, (data) => data.learnIssues);
 }
 
 /** How many issues a passed practice lesson shows. */

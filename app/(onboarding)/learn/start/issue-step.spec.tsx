@@ -118,10 +118,16 @@ describe('Your agent: a visitor', () => {
     expect(words).not.toContain('someone/elsewhere');
     expect(words).toContain('Your lesson will be written for: TypeScript, Some');
 
-    const bare = text(await render({}, { owner: 'someone', repo: 'elsewhere', issue: '7' }));
+    const bareHtml = await render({}, { owner: 'someone', repo: 'elsewhere', issue: '7' });
+    const bare = text(bareHtml);
     expect(bare).toContain('The issue you picked');
     expect(bare).toContain('The lesson and the pull request will be in your name.');
     expect(bare).not.toContain('Your goal comes with you');
+    // No goal: the card leads to Your goal, never to a lesson "for a general reader" or to Settings.
+    expect(bare).toContain('Your lesson is written for your goal. Pick your goal');
+    expect(bareHtml).toMatch(/href="\/learn\/start"[^>]*>Pick your goal/);
+    expect(bare).not.toContain('general reader');
+    expect(bareHtml).not.toContain('/my/settings/goal');
   });
 
   it('a list that could not be read shows the issue by its number alone', async () => {

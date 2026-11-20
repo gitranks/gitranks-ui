@@ -52,6 +52,13 @@ describe('Learn open to visitors', () => {
     for (const path of ['/learn', '/learn/', '/Learn', ...FLOW]) {
       expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBeNull();
     }
+    // The same answer for every visitor: no cookie set, nothing that keeps it per person, no move elsewhere.
+    for (const path of FLOW) {
+      const response = await visit(path);
+      expect(response?.headers.get('set-cookie'), path).toBeNull();
+      expect(response?.headers.get('cache-control'), path).toBeNull();
+      expect(response?.headers.get('location'), path).toBeNull();
+    }
   });
 
   it("keeps Learn's other closed pages from visitors", async () => {

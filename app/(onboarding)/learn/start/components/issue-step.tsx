@@ -30,10 +30,22 @@ const backOf = (goal: LearnGoalPick | null): Route => withLearnGoal(GETTING_IN_P
 /**
  * The issue's card before anything is read for the person: the repo and title only for an issue on the day's public
  * list for the address's language (step 2's own read), so the page never presents a repository GitRanks did not list;
- * otherwise "The issue you picked" and its Issue chip. The goal comes with the person.
+ * otherwise "The issue you picked" and its Issue chip. The goal comes with the person, or the card leads to Your goal.
  */
 async function publicCardOf(ref: IssueRef, goal: LearnGoalPick | null): Promise<StartPageCard> {
-  if (!goal) return {};
+  // No goal in the address: the lesson is written for one, so the card leads to Your goal (never to Settings).
+  if (!goal) {
+    return {
+      goalLine: (
+        <>
+          Your lesson is written for your goal.{' '}
+          <Link href={GETTING_IN_PATHS.learnGoal} prefetch={false} className={link}>
+            Pick your goal
+          </Link>
+        </>
+      ),
+    };
+  }
   const goalLine = `Your lesson will be written for: ${learnGoalLabelOfPick(goal)}`;
   const list = await readLearnPublicIssues(goal.language);
   const listed = list.ok

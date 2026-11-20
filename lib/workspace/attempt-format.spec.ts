@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { editableBodyOf, endMoveOf, endReasonLabelOf, eventLabelOf, footerPreviewOf } from './attempt-format';
+import {
+  editableBodyOf,
+  endMoveOf,
+  endReasonLabelOf,
+  eventLabelOf,
+  followUpPromptOf,
+  footerPreviewOf,
+  ownAgentChangesOf,
+} from './attempt-format';
 import type { ContributeAttemptEndReason } from './contribute.types';
 
 const FOOTER =
@@ -144,5 +152,27 @@ describe('eventLabelOf', () => {
   it('says every other state as before', () => {
     expect(eventLabelOf({ state: 'RUNNING' }, { patch: null })).toBe('The agent started');
     expect(eventLabelOf({ state: 'PR_OPEN' }, { patch: 'x' })).toBe('Pull request opened');
+  });
+});
+
+describe("the own agent's prompt for a change", () => {
+  it('names the pull request and the id the follow-up tool takes, and never asks the agent to push', () => {
+    const prompt = followUpPromptOf('https://github.com/driftwood-js/driftwood/pull/1419', 'PR_kwDO1419');
+    expect(prompt).toBe(
+      "Continue my GitRanks pull request https://github.com/driftwood-js/driftwood/pull/1419: start the follow-up with start_follow_up (prId PR_kwDO1419), then submit the change for my review. Don't push anything yourself.",
+    );
+    expect(prompt).not.toMatch(/\bpush (it|the|your)/i);
+  });
+});
+
+describe('who makes the changes on a pull request', () => {
+  it("is the person's own agent for a Learn pull request and for one their agent made", () => {
+    expect(ownAgentChangesOf({ mode: 'LEARN', runner: 'MCP' })).toBe(true);
+    expect(ownAgentChangesOf({ mode: 'FIX', runner: 'MCP' })).toBe(true);
+  });
+
+  it('is a run of ours for one the hosted agent made', () => {
+    expect(ownAgentChangesOf({ mode: 'FIX', runner: 'MANAGED_AGENTS' })).toBe(false);
+    expect(ownAgentChangesOf({ mode: 'FIX' })).toBe(false);
   });
 });

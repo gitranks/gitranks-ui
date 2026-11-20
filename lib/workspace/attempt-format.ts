@@ -502,6 +502,21 @@ export const githubUrlOf = (url: string | null | undefined): string | null => {
 /** Made by the user's own agent: nothing was spent on their key, so its agent stands where a cost would. */
 export const isOwnAgent = (attempt: { runner?: string | null }): boolean => attempt.runner === 'MCP';
 
+/**
+ * The person's own agent makes the changes on this pull request: it made the pull request (a Learn one always is its).
+ * Its next step is the prompt to give that agent, never a run of ours, whatever the account has.
+ */
+export const ownAgentChangesOf = (first: { mode?: string | null; runner?: string | null }): boolean =>
+  first.mode === 'LEARN' || isOwnAgent(first);
+
+/**
+ * What the person pastes in their own agent for a change on their pull request: the pull request by its address, and
+ * the id the agent's follow-up tool takes today, so it starts the follow-up through GitRanks; the change comes back for
+ * the person to read before anything is pushed.
+ */
+export const followUpPromptOf = (pullRequestUrl: string, prId: string) =>
+  `Continue my GitRanks pull request ${pullRequestUrl}: start the follow-up with start_follow_up (prId ${prId}), then submit the change for my review. Don't push anything yourself.`;
+
 /** What an attempt cost, or, for the user's own agent, which agent made it. */
 export const costOrAgentOf = (
   attempt: { runner?: string | null; agent?: ContributeAgent | null; costUsd: number },

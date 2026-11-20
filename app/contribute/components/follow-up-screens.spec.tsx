@@ -113,6 +113,27 @@ describe('the follow-ups of a pull request, on its first attempt', () => {
     expect(next).toContain('data-variant="default"');
   });
 
+  it('gives the prompt for the own agent on a pull request it made, never a run of ours, also with a Claude key', () => {
+    const own = { ...followUpAttempts.prNeedsYou, runner: 'MCP' as const };
+    const next = review(own, views.active, true);
+    const nextText = text(next);
+    expect(next).toContain('data-move="agent-prompt"');
+    expect(nextText).toContain(
+      'Your agent made this pull request, so it makes the follow-up too: you read the change and push it.',
+    );
+    expect(nextText).toContain('Ask your agent to make the change');
+    expect(nextText).toContain('Run 1 Your move');
+    expect(nextText).not.toContain('Change 1');
+    expect(nextText).toContain(
+      "Continue my GitRanks pull request https://github.com/driftwood-js/driftwood/pull/1419: start the follow-up with start_follow_up (prId PR_1), then submit the change for my review. Don't push anything yourself.",
+    );
+    expect(nextText).not.toMatch(/Start run \d/);
+    expect(next).not.toContain('data-move="next-run"');
+    expect(next).not.toContain('data-start=');
+    // The first attempt's line still sends the person to the next step, where the prompt waits.
+    expect(text(review(own))).toContain('Your pull request is open Your move is in the next step →');
+  });
+
   it('offers a run with nothing waiting too, behind "Start a run anyway": the user says what they think is wrong', () => {
     const html = review(followUpAttempts.quiet, views.active, true);
     const plain = text(html);

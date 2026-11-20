@@ -64,7 +64,7 @@ export function prCardsOf({
   blocked,
   signingOff,
   round,
-  learn = false,
+  ownAgent = false,
 }: {
   first: ContributeAttemptDetail;
   view: ContributeView;
@@ -74,8 +74,8 @@ export function prCardsOf({
   blocked: ReadonlySet<ActionId>;
   signingOff: boolean;
   round: number;
-  /** A Learn pull request: what a run would take is the own agent's, and no card starts a run of ours. */
-  learn?: boolean;
+  /** The person's own agent makes the changes: what a run would take is that agent's, and no card starts a run of ours. */
+  ownAgent?: boolean;
 }): { cards: PrCard[]; replySlot: number } {
   const pr = contributionOf(first);
   if (!pr) return { cards: [], replySlot: 0 };
@@ -119,7 +119,7 @@ export function prCardsOf({
     const check = signals.find(({ kind }) => kind === 'CHECK_FAILED')?.detail?.trim() || 'A check';
     const checks = check.includes(', ') ? 'checks' : 'check';
     const title =
-      learn && !github
+      ownAgent && !github
         ? 'Ask your agent to make the change'
         : github
           ? lead === 'changes'
@@ -150,7 +150,7 @@ export function prCardsOf({
         kindLine: PILLS[lead] ?? 'Next run',
         title,
         chip: nextChip,
-        actions: github || learn ? [] : ['start_run'],
+        actions: github || ownAgent ? [] : ['start_run'],
         data: {
           card: 'next-run',
           round,
@@ -303,7 +303,7 @@ export function prCardsOf({
           title: PROOF_TITLES[proof.stage] ?? 'Prove the fix on your machine',
           chip: 'Proof',
           actions: ['post_proof', 'retry_proof', 'proof_reply', 'proof_fix'],
-          data: { ...proof, card: 'proof', round, mayStart: mayStart && !learn },
+          data: { ...proof, card: 'proof', round, mayStart: mayStart && !ownAgent },
         },
       });
     }
@@ -355,12 +355,13 @@ export function prCardsOf({
             : 'Run stopped',
         title: unpushed ? `${name}'s commits weren't pushed` : `${name} stopped`,
         chip: nextChip,
-        actions: learn ? [] : ['start_run'],
+        actions: ownAgent ? [] : ['start_run'],
         data: {
           ...stopped,
           card: 'stopped',
           round,
-          noRun: learn ? 'learn' : mayStart ? null : (noRun ?? 'stopped'),
+          // Where no run may start (a repo that said no, a maintainer's stop), GitHub's, whoever made the pull request.
+          noRun: mayStart ? (ownAgent ? 'own-agent' : null) : (noRun ?? 'stopped'),
         },
       },
     });

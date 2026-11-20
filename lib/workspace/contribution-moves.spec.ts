@@ -282,6 +282,31 @@ describe('the next run’s kinds', () => {
   });
 });
 
+describe("a pull request the person's own agent made", () => {
+  const ownStopped = afterRun({
+    runner: 'MCP',
+    needsYou: {
+      since: NOW.toISOString(),
+      signals: [signal('RUN_ENDED', { outcome: 'STOPPED', round: 1, detail: 'Ran out of budget.' })],
+    },
+  });
+
+  it('offers no run of ours: no tile for one with nothing waiting', () => {
+    expect(model(afterRun()).nextTileTitle).toBe('Run 2');
+    expect(model(afterRun({ runner: 'MCP' }))).toMatchObject({ nextTileTitle: null, mayStart: false });
+  });
+
+  it("asks its agent to pick up a stopped run, and leaves one under a maintainer's stop to GitHub", () => {
+    const [own] = model(ownStopped).moves;
+    expect(own.data.card === 'stopped' && own.data.noRun).toBe('own-agent');
+    const stop = { prNotes: prNotes({ stopped: { login: 'sam-w', at: NOW.toISOString() } }) };
+    const [held] = model(ownStopped, stop).moves;
+    expect(held.data.card === 'stopped' && held.data.noRun).toBe('stopped');
+    const [hosted] = model({ ...ownStopped, runner: 'MANAGED_AGENTS' }).moves;
+    expect(hosted.data.card === 'stopped' && hosted.data.noRun).toBeNull();
+  });
+});
+
 describe('replies per run', () => {
   const page = afterRun({
     followUps: followUps({

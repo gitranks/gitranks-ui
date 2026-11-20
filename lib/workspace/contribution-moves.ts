@@ -1,4 +1,4 @@
-import { ATTEMPT_STATES, isOwnAgent, type Tone, wordsOf } from './attempt-format';
+import { ATTEMPT_STATES, isOwnAgent, ownAgentChangesOf, type Tone, wordsOf } from './attempt-format';
 import type {
   ContributeAttemptDetail,
   ContributeFollowUpRound,
@@ -61,7 +61,7 @@ export type MoveTone = 'violet' | 'amber' | 'red';
 
 /** Why no run may take what waits: the PR was opened by hand, the repo said no, or a maintainer stopped our work. */
 /** Why no run of ours may start: opened by hand, the repo said no, a maintainer stopped it, or a Learn pull request. */
-export type NoRun = 'hand' | 'said-no' | 'stopped' | 'learn';
+export type NoRun = 'hand' | 'said-no' | 'stopped' | 'own-agent';
 
 /** One rule the open pull request breaks, as the rules card lists it. `failed`: a one-click fix for it did not go. */
 export type RuleItem = {
@@ -338,8 +338,10 @@ export function contributionMovesOf({
   if (run) runs.set(run.attemptId, { attemptId: run.attemptId, state: run.state, round: runRoundOf(first, run) });
 
   // Session moves: the first attempt's before its pull request, the run under way's.
-  // A Learn pull request's change is its own agent's (W1 §8.1): no run of ours is offered, whatever the account has.
   const learn = first.mode === 'LEARN';
+  // A change on a pull request the person's own agent made (a Learn one always) is that agent's: no run of ours is
+  // offered, whatever the account has.
+  const ownAgent = ownAgentChangesOf(first);
   // Before a Learn pull request opens, the review, the submit and its bounces are the Lesson view's.
   const sessionMoves = [
     ...(pr || (learn && lessonView) ? [] : firstMovesOf(view, first, now, blocked)),
@@ -354,7 +356,7 @@ export function contributionMovesOf({
     const { cards, replySlot } =
       underWay || reading
         ? { cards: [], replySlot: 0 }
-        : prCardsOf({ first, view, now, mayStart, noRun, blocked, signingOff, round: nextRound, learn });
+        : prCardsOf({ first, view, now, mayStart, noRun, blocked, signingOff, round: nextRound, ownAgent });
     const slotted = [...cards, ...replyMoves.map((move, index) => ({ slot: replySlot + index / 1000, move }))].sort(
       (a, b) => a.slot - b.slot,
     );
@@ -421,12 +423,15 @@ export function contributionMovesOf({
       statusLead: holds('proof') ? null : (PROOF_LEADS[proofStage] ?? null),
     };
   }
+  // What a run would take on a pull request the own agent makes the changes on, its card asks that agent for: no run of
+  // ours, so no tile for one either.
+  const hostedStart = ownAgent ? false : mayStart;
   const threads = waitingThreadsOf(first).length;
   const nextHolds = holds('next');
   const nextTileTitle =
     !open || underWay
       ? null
-      : mayStart
+      : hostedStart
         ? `Run ${nextRound}`
         : nextHolds || (threads > 0 && !reading)
           ? 'Next step'
@@ -440,8 +445,6 @@ export function contributionMovesOf({
     };
   }
 
-  // What a run would take on a Learn pull request, its card asks the own agent for.
-  const hostedStart = learn ? false : mayStart;
   return {
     moves,
     sessions,

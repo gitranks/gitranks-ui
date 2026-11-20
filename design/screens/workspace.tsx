@@ -528,6 +528,13 @@ export const WORKSPACE_SCREENS: Screen[] = [
         render: () => changedCommentStates.nextRound(page),
       },
       {
+        id: 'next-own-agent',
+        title: 'The next step on a pull request your own agent made: the prompt for it',
+        path: '/my/pull-requests/driftwood-js/driftwood/871?session=next',
+        height: 1900,
+        render: () => changedCommentStates.ownAgentNext(page),
+      },
+      {
         id: 'proof-not-connected',
         title: 'Proof from your agent: connect it first',
         path: '/my/pull-requests/openclaw/openclaw/160004?session=next',

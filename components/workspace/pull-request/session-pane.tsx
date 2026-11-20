@@ -20,7 +20,7 @@ import { SessionHead } from './session-head';
 import { SubmitPanel } from './submit-panel';
 import { DiffViewer } from '@/components/workspace/diff-viewer';
 import { type SessionTab, SessionTabs } from '@/components/workspace/session-tabs';
-import { editableBodyOf, repoOf } from '@/lib/workspace/attempt-format';
+import { editableBodyOf, ownAgentChangesOf, repoOf } from '@/lib/workspace/attempt-format';
 import type { CommentActionsInit } from '@/lib/workspace/comment-actions';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/workspace/contribute.types';
 import {
@@ -320,8 +320,8 @@ export function SessionPane({
     threads,
     resolveHumans,
     blocked,
-    // A Learn pull request's change is the own agent's: no run of ours starts from it.
-    canStart: first && first.mode !== 'LEARN' ? nextRoundOpen(first) : false,
+    // A change on a pull request the own agent made (a Learn one always) is that agent's: no run of ours starts from it.
+    canStart: first && !ownAgentChangesOf(first) ? nextRoundOpen(first) : false,
   };
   const form =
     !showNext && !followUp && attempt.state === 'REVIEW' ? !!attempt.submit?.lastError || resumed : undefined;

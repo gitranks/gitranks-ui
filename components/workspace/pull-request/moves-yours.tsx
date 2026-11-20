@@ -211,7 +211,7 @@ export function StoppedCard({ move, first, rider }: CardProps) {
               : [
                   `Click Try run ${data.round}, write in its note what to do differently, and start it. It starts from the pull request as it is now${unpushed ? ' and makes the change again' : ''}.`,
                 ]),
-            data.noRun === 'learn'
+            data.noRun === 'own-agent'
               ? "Ask your agent to pick it up again, or make the change on GitHub yourself, then click I'll handle it: this leaves Needs you."
               : `${data.noRun ? 'Make' : 'Or make'} the change on GitHub yourself, then click I'll handle it: this leaves Needs you.`,
           ]}

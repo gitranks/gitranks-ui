@@ -276,6 +276,8 @@ type Said = { tone: Tone; pill: string; move: string; label: string; done?: stri
 function countedOf(entry: NeedsYouEntry, now: Date): Said | null {
   const { facts, detail } = entry;
   const learn = entry.side === 'learn';
+  // A pull request the own agent made (a Learn one always): that agent makes its changes, never a run of ours.
+  const ownAgent = learn || entry.runner === 'MCP';
   const pr = entry.pullRequest?.number;
   const run = facts.nextRound ? `run ${facts.nextRound}` : 'a run';
   const noRunWhy = facts.byHand ? 'a pull request you opened yourself' : 'a pull request in a repo that said no';
@@ -392,7 +394,7 @@ function countedOf(entry: NeedsYouEntry, now: Date): Said | null {
       return { ...words, move: closing ? `${words.move} ${closing}` : words.move };
     }
     case 'changes':
-      if (learn && !facts.noRun) {
+      if (ownAgent && !facts.noRun) {
         return {
           tone: 'amber',
           pill: 'Changes requested',
@@ -410,7 +412,7 @@ function countedOf(entry: NeedsYouEntry, now: Date): Said | null {
         done: "I've done it",
       };
     case 'comment':
-      if (learn && !facts.noRun) {
+      if (ownAgent && !facts.noRun) {
         return {
           tone: 'amber',
           pill: 'New comment',
@@ -430,7 +432,7 @@ function countedOf(entry: NeedsYouEntry, now: Date): Said | null {
     case 'check': {
       const names = clipped(facts.checks.length ? facts.checks.join(', ') : detail?.trim() || 'A check', 80);
       const fails = facts.checks.length > 1 || names.includes(', ') ? 'fail' : 'fails';
-      if (learn && !facts.noRun) {
+      if (ownAgent && !facts.noRun) {
         return {
           tone: 'red',
           pill: 'Check failing',
@@ -536,6 +538,21 @@ function countedOf(entry: NeedsYouEntry, now: Date): Said | null {
       const name = facts.round ? `Run ${facts.round}` : 'The last run';
       const said = entry.kind === 'push-failed' ? pushDetailOf(detail) : detail?.trim();
       const why = said ? clipped(said, 200) : null;
+      if (ownAgent && !facts.noRun && (entry.kind === 'push-failed' || entry.kind === 'run-stopped')) {
+        return {
+          tone: 'red',
+          pill:
+            entry.kind === 'push-failed'
+              ? facts.round
+                ? `Run ${facts.round} not pushed`
+                : 'Push failed'
+              : facts.round
+                ? `Run ${facts.round} stopped`
+                : 'Run stopped',
+          move: `${entry.kind === 'push-failed' ? `${name}'s commits could not be pushed` : `${name} stopped`}${why ? `: ${sentence(why)}` : '.'} Ask your agent to pick it up again, or handle it yourself.`,
+          label: 'See what to do',
+        };
+      }
       if (entry.kind === 'push-failed') {
         return {
           tone: 'red',
@@ -609,6 +626,14 @@ function countedOf(entry: NeedsYouEntry, now: Date): Said | null {
       };
     }
     case 'other':
+      if (ownAgent && !facts.noRun) {
+        return {
+          tone: 'amber',
+          pill: 'Something changed',
+          move: 'Something changed on it. Your agent looks at it; you read it and push.',
+          label: 'See what changed',
+        };
+      }
       return {
         tone: 'amber',
         pill: 'Something changed',

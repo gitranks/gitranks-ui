@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { lessons } from './__fixtures__/lesson';
 import type { LearnStage } from './learn.types';
-import { learnFollowUpPromptOf, learnViewOf, lessonLineOf } from './learn-view';
+import { learnViewOf, lessonLineOf } from './learn-view';
 
 describe('which view a link to a Learn attempt opens', () => {
   it('opens the lesson until the pull request is submitted, and when none comes', () => {
@@ -56,15 +56,5 @@ describe("the header's lesson line", () => {
 
   it('says nothing for an attempt that ended', () => {
     expect(lessonLineOf(lessons.ended)).toBeNull();
-  });
-});
-
-describe("the own agent's prompt for a change", () => {
-  it('names the pull request and the id the follow-up tool takes, and never asks the agent to push', () => {
-    const prompt = learnFollowUpPromptOf('https://github.com/driftwood-js/driftwood/pull/1419', 'PR_kwDO1419');
-    expect(prompt).toBe(
-      "Continue my GitRanks pull request https://github.com/driftwood-js/driftwood/pull/1419: start the follow-up with start_follow_up (prId PR_kwDO1419), then submit the change for my review. Don't push anything yourself.",
-    );
-    expect(prompt).not.toMatch(/\bpush (it|the|your)/i);
   });
 });

@@ -28,7 +28,7 @@ const learn = vi.hoisted(() => ({ loadLearnOpen: vi.fn(), loadLearnProfile: vi.f
 vi.mock('@/lib/learn/learn.data', () => learn);
 const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn() }));
 vi.mock('@/lib/workspace/gate.data', () => gate);
-const start = vi.hoisted(() => ({ loadStartPageView: vi.fn(), loadStartPageContributor: vi.fn() }));
+const start = vi.hoisted(() => ({ loadStartPageView: vi.fn() }));
 vi.mock('@/lib/workspace/start/start-page.data', () => start);
 // The poll outside the tabs: a mark, so the page says where it mounts it.
 vi.mock('@/components/workspace/workspace-live', () => ({
@@ -36,7 +36,6 @@ vi.mock('@/components/workspace/workspace-live', () => ({
 }));
 
 const { default: StartPage } = await import('./page');
-const { default: LearnStartPage } = await import('@/app/(workspace)/learn/start/[owner]/[repo]/[number]/page');
 const { filledProfile, emptyProfile } = await import('@/lib/learn/__fixtures__/profile');
 const { startPageViewOf } = await import('@/lib/workspace/start/__fixtures__/start-page');
 
@@ -63,8 +62,6 @@ const startPage = (search: Record<string, string> = {}, route: Record<string, st
   renderInner(
     StartPage({ params: Promise.resolve(route), searchParams: Promise.resolve(search) } as never) as ReactElement,
   );
-const learnStartPage = (route = { owner: 'driftwood-js', repo: 'driftwood', number: '934' }) =>
-  renderInner(LearnStartPage({ params: Promise.resolve(route) } as never) as ReactElement);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -116,58 +113,13 @@ describe('the Start page at /my/start', () => {
 
   it("sends an account that has not entered where the gate says, and moves on to the viewer's attempt", async () => {
     gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false });
-    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /contribute');
+    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /learn/start/driftwood-js/driftwood/934');
+    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false });
+    await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /contribute/start');
+    // Learn not open to them: lesson mode is Fix mode, whose own way in they get.
+    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false, learnOpen: false });
+    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /my/start/driftwood-js/driftwood/934');
     start.loadStartPageView.mockResolvedValueOnce({ kind: 'claimed', href: '/my/pull-requests/by-attempt/A_9' });
     await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /my/pull-requests/by-attempt/A_9');
-  });
-});
-
-describe("Learn's start page at /learn/start, still there", () => {
-  const REF = { repo: 'driftwood-js/driftwood', issue: 934 };
-
-  it('renders the same page in lesson mode, with the poll that stands by for when no tabs show', async () => {
-    const html = await learnStartPage();
-    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'lesson', 'TypeScript, Some');
-    expect(html).toContain('data-start-mode="lesson"');
-    expect(text(html)).toContain('Fix this issue and learn from it');
-    expect(html).toContain('data-workspace-live');
-    expect(start.loadStartPageContributor).not.toHaveBeenCalled();
-  });
-
-  it('needs no saved goal from an account set up already; one that is not goes to Learn home for its goal', async () => {
-    start.loadStartPageContributor.mockResolvedValue(true);
-    learn.loadLearnProfile.mockResolvedValueOnce(null);
-    expect(text(await learnStartPage())).toContain('Your lesson will be written for a general reader.');
-    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'lesson', null);
-
-    start.loadStartPageView.mockClear();
-    start.loadStartPageContributor.mockResolvedValueOnce(false);
-    learn.loadLearnProfile.mockResolvedValueOnce(emptyProfile);
-    await expect(learnStartPage()).rejects.toThrow('NEXT_REDIRECT /learn');
-    expect(start.loadStartPageView).not.toHaveBeenCalled();
-
-    // Not known: the page, which says so if the issue can't start.
-    start.loadStartPageContributor.mockResolvedValueOnce(null);
-    learn.loadLearnProfile.mockResolvedValueOnce(emptyProfile);
-    expect(await learnStartPage()).toContain('data-start-mode="lesson"');
-  });
-
-  it('is not found where Learn is closed, signed out, for an address that names no issue, or with no page', async () => {
-    learn.loadLearnOpen.mockResolvedValueOnce(false);
-    await expect(learnStartPage()).rejects.toThrow('NEXT_NOT_FOUND');
-    viewerLogin.mockResolvedValueOnce(null);
-    await expect(learnStartPage()).rejects.toThrow('NEXT_NOT_FOUND');
-    await expect(learnStartPage({ owner: 'acme', repo: 'router', number: 'x' })).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(start.loadStartPageView).not.toHaveBeenCalled();
-    start.loadStartPageView.mockResolvedValueOnce({ kind: 'not-found' });
-    await expect(learnStartPage()).rejects.toThrow('NEXT_NOT_FOUND');
-  });
-
-  it("moves on to the viewer's own attempt", async () => {
-    start.loadStartPageView.mockResolvedValueOnce({
-      kind: 'claimed',
-      href: '/my/pull-requests/by-attempt/A_7?view=lesson',
-    });
-    await expect(learnStartPage()).rejects.toThrow('NEXT_REDIRECT /my/pull-requests/by-attempt/A_7?view=lesson');
   });
 });

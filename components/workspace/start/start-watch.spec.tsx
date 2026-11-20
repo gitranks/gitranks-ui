@@ -73,7 +73,11 @@ afterEach(() => {
 });
 
 const render = (node: ReactNode) => act(async () => root.render(node));
-const mount = (mode: StartMode, view: StartPageView | null = startPageViewOf(), extra: { locked?: boolean } = {}) =>
+const mount = (
+  mode: StartMode,
+  view: StartPageView | null = startPageViewOf(),
+  extra: { locked?: boolean; onLeave?: () => void } = {},
+) =>
   render(
     <StartPageBody
       issueRef={START_REF}
@@ -152,6 +156,16 @@ describe('the Start page, waiting for the agent', () => {
     });
     await poll('ATTEMPTS');
     expect(replace).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells the page it leaves once, as it moves on to the pull request’s page (a flow forgets its step)', async () => {
+    const onLeave = vi.fn();
+    actions.readStartPageAttempt.mockResolvedValue({ ok: true, data: lessonAttempt });
+    await mount('lesson', startPageViewOf(), { onLeave });
+    await poll('ATTEMPTS');
+    await poll('ATTEMPTS');
+    expect(onLeave).toHaveBeenCalledOnce();
+    expect(replace).toHaveBeenCalledOnce();
   });
 
   it('in lesson mode, words a Fix claim while it lives, and drops the words once it is released', async () => {

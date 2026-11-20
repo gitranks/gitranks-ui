@@ -134,7 +134,6 @@ describe('the tab bar', () => {
     ['/my/progress/', '', 'learn'],
     ['/my/settings/goal', '', 'settings'],
     ['/my/settings/pull-requests', '', 'settings'],
-    ['/learn/start/acme/widgets/42', '', 'learn'],
     ['/my/progress', '', 'learn'],
     ['/my/pull-requests', '', 'pull-requests'],
     ['/my/pull-requests/by-attempt/A_1', '', 'pull-requests'],
@@ -166,7 +165,15 @@ describe('the tab bar', () => {
     const line = renderToStaticMarkup(<HeaderLine />);
     expect(tabsAt('/contribute', '', { tabs: [] })).toBe(line);
     expect(tabsAt('/contribute', 'as=visitor')).toBe(line);
-    for (const path of ['/contribute/maintainers', '/contribute/mcp', '/learn/about', '/learn/lessons/a-lesson-1x']) {
+    for (const path of [
+      '/contribute/maintainers',
+      '/contribute/mcp',
+      '/learn/about',
+      '/learn/lessons/a-lesson-1x',
+      '/learn/start',
+      '/learn/start/issues',
+      '/learn/start/acme/widgets/42',
+    ]) {
       expect(tabsAt(path), path).toBe(line);
     }
     // Only on the landing does the visitor's view hide them.

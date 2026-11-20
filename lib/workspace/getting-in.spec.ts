@@ -146,12 +146,13 @@ describe('learnFlowPlaceOf: who belongs on which step of Learn', () => {
     }
   });
 
-  it('signed in and not entered: Pick an issue with no goal saved and none in the address goes to step 1', () => {
+  it('signed in and not entered: steps 2 and 3 with no goal saved and none in the address go to step 1', () => {
     expect(learn('goal', open(false))).toEqual({ kind: 'page' });
-    expect(learn('issues', open(false))).toEqual({ kind: 'redirect', to: '/learn/start' });
-    expect(learn('issues', open(false), { goalSaved: true })).toEqual({ kind: 'page' });
-    expect(learn('issues', open(false), { goalInAddress: true })).toEqual({ kind: 'page' });
-    expect(learn('issue', open(false))).toEqual({ kind: 'page' });
+    for (const step of ['issues', 'issue'] as const) {
+      expect(learn(step, open(false)), step).toEqual({ kind: 'redirect', to: '/learn/start' });
+      expect(learn(step, open(false), { goalSaved: true }), step).toEqual({ kind: 'page' });
+      expect(learn(step, open(false), { goalInAddress: true }), step).toEqual({ kind: 'page' });
+    }
   });
 
   it('entered: the Learn tab, or the issue’s Start page in lesson mode; a goal only the address has is saved first', () => {

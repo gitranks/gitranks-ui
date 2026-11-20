@@ -83,3 +83,16 @@ export const issueStepTargetOf = (goal: LearnGoalPick | null): LearnStartTarget 
   base: '/learn/start',
   ...(goal ? { query: learnGoalQuery(goal) } : {}),
 });
+
+/** The goal an address carries, in the words a lesson's card uses: "TypeScript, Some" (a missing level: New to it). */
+export const learnGoalLabelOfPick = (goal: LearnGoalPick): string => `${goal.language}, ${LEVELS[goal.level ?? 0]}`;
+
+/**
+ * Whether the goal an address carries differs from the saved one: another language, another level both name, or a
+ * saved goal that is not one of Learn's languages. The saved goal stands either way; the page says which it is.
+ */
+export function goalDiffersFrom(goal: LearnGoalPick, profile: LearnProfile | null | undefined): boolean {
+  const saved = learnGoalPickOfProfile(profile);
+  if (!saved || saved.language !== goal.language) return true;
+  return goal.level !== null && saved.level !== null && goal.level !== saved.level;
+}

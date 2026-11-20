@@ -115,21 +115,6 @@ export async function startPageOnboarded(reader: Reader): Promise<boolean> {
   }
 }
 
-/**
- * Whether the viewer has a contributor row: false when the API answers none (a Learn account that has not saved a goal
- * or connected an agent yet), null when it can't be read.
- */
-export async function loadStartPageContributor(): Promise<boolean | null> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return null;
-  try {
-    const data = await graphqlDirect(ContributeOnboardingDocument, undefined, { source: 'ssr', githubLogin });
-    return !!data?.contribute?.contributor;
-  } catch {
-    return null;
-  }
-}
-
 /** What the Start page renders: its view; the 404 (signed out, or closed to the viewer in this mode); or a move on. */
 export type StartPageLoad =
   | { kind: 'view'; view: StartPageView }

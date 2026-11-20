@@ -244,3 +244,54 @@ describe('AgentView', () => {
     expect(html).toContain('data-runs-preview');
   });
 });
+
+describe('the Agent tab with nothing connected', () => {
+  it('shows the two ways as cards, your own agent first and recommended, then what comes next', () => {
+    const { html, plain } = render({ view: agentTabViews.nothing, runs: pageOf({ items: [] }) });
+    expect(plain).toContain(
+      'Who does the work: your own agent on your computer, or the hosted agent on your Claude key. Neither is set up yet.',
+    );
+    const own = html.indexOf('data-agent-way="own"');
+    const hosted = html.indexOf('data-agent-way="hosted"');
+    expect(own).toBeGreaterThan(-1);
+    expect(hosted).toBeGreaterThan(own);
+    expect(plain).toContain('Your own agent Recommended Where it runs');
+    expect(plain).toContain('What it is for Contribute and Learn');
+    expect(plain).toContain('What it is for Contribute only. Learn always uses your own agent.');
+    expect(html).toContain('href="/contribute/mcp"');
+    expect(html).toMatch(/href="\/my\/agent\/connect"[^>]*>Connect your agent/);
+    expect(html).toMatch(/href="\/my\/agent\/key"[^>]*>Use a Claude key/);
+    expect(plain).toContain(
+      'Next, pick an issue on Contribute or Learn and press Start. You can set up the other way later.',
+    );
+    expect(html).not.toContain('id="own-agent"');
+    expect(html).not.toContain('id="hosted-agent"');
+    expect(html).not.toContain('id="runs"');
+  });
+
+  it('names no Learn where Learn is not open to the account', () => {
+    const { plain } = render({ view: agentTabViews.nothing, learnOpen: false, runs: pageOf({ items: [] }) });
+    expect(plain).not.toContain('Learn');
+    expect(plain).not.toContain('What it is for');
+    expect(plain).toContain('Next, pick an issue on Contribute and press Start.');
+  });
+
+  it('keeps the runs when there are some', () => {
+    const { html } = render({ view: agentTabViews.nothing, runs: previewPageOf() });
+    expect(html).toContain('id="runs"');
+  });
+
+  it('leads an account that has not entered into the flow', () => {
+    const { html, plain } = render({ view: agentTabViews.notEntered, runs: pageOf({ items: [] }) });
+    expect(html).toContain('data-agent-first="not-entered"');
+    expect(html).toMatch(/href="\/contribute\/start\/agent\/own"[^>]*>Connect your agent/);
+    expect(html).toMatch(/href="\/contribute\/start\/agent\/key"[^>]*>Use a Claude key/);
+    expect(plain).toContain('Then you pick your first issue.');
+  });
+
+  it('is not shown while a token waits for its agent, or anything is connected', () => {
+    for (const view of [views.midSetup, agentTabViews.ownOnly, agentTabViews.hostedOnly, agentTabViews.both]) {
+      expect(render({ view }).html).not.toContain('data-agent-first');
+    }
+  });
+});

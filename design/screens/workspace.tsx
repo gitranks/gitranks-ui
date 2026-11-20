@@ -1054,9 +1054,22 @@ export const WORKSPACE_SCREENS: Screen[] = [
       'components/workspace/agent/hosted-agent-control.tsx',
       'components/workspace/agent/runs-preview.tsx',
       'components/workspace/agent/hosted-level-picker.tsx',
+      'components/workspace/agent/agent-first.tsx',
       'components/workspace/autopilot.tsx',
     ],
     states: [
+      {
+        id: 'nothing-connected',
+        title: 'Nothing connected now: the two ways, your own agent recommended',
+        path: '/my/agent',
+        height: 900,
+        render: () =>
+          frame(
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen view={agentTabViews.nothing} learnOpen runs={pageOf({ items: [] })} now={NOW} />
+            </main>,
+          ),
+      },
       {
         id: 'summary',
         title: 'Both agents set up',

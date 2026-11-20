@@ -41,9 +41,18 @@ import {
 
 /** Reads the user for a Settings page: a 404 to someone Contribute is not open to, Contribute's home before signing up. */
 export async function loadSettingsView(): Promise<ContributeView> {
+  const view = await loadSummaryView();
+  if (!isContributePageOpen(view, 'settings')) redirect('/contribute');
+  return view;
+}
+
+/**
+ * Reads the user for the summary, which opens to every account in the workspace, one that has not connected an agent
+ * yet included (a learner who saved a goal comes back here): its rows say what starts when the agent connects.
+ */
+async function loadSummaryView(): Promise<ContributeView> {
   const view = await loadContribute();
   if (!view) contributeHidden(await loadContributeSetup());
-  if (!isContributePageOpen(view, 'settings')) redirect('/contribute');
   return view;
 }
 
@@ -53,7 +62,7 @@ export async function SettingsView({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [view, params, set, email, learnOpen, counts] = await Promise.all([
-    loadSettingsView(),
+    loadSummaryView(),
     searchParams,
     loadContributeSet(),
     loadContributeEmail(),
@@ -192,13 +201,6 @@ function ContributingGroup({
           data={{ 'data-row': 'work' }}
         />
       </SettingsList>
-      <p className="px-1 text-sm text-muted-foreground" data-agent-line="">
-        The hosted agent, its key and budget are on the{' '}
-        <Link href={WORKSPACE_PATHS.agent} prefetch={false} className="font-semibold text-link hover:underline">
-          Agent tab
-        </Link>
-        .
-      </p>
     </SettingsGroup>
   );
 }
@@ -284,6 +286,14 @@ export function SettingsScreen({
     <>
       <PageTitle title="Settings" text={TITLE_LINE[audience]} />
       <PullRequestsGroup view={view} openPrs={openPrs} />
+      {/* Old links (the agents' "resume it at …", autopilot's emails) still land here: say where these went, for all. */}
+      <p className="-mt-3 px-1 text-sm text-muted-foreground" data-agent-line="">
+        Pause, autopilot, and the hosted agent with its key and budget are on the{' '}
+        <Link href={WORKSPACE_PATHS.agent} prefetch={false} className="font-semibold text-link hover:underline">
+          Agent tab
+        </Link>
+        .
+      </p>
       {email ? <EmailRows email={email} /> : null}
       <div className="flex flex-col gap-8 border-t pt-8">
         {audience === 'learner' ? (

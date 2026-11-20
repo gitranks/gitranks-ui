@@ -16,7 +16,6 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: 
 vi.mock('@/lib/learn/actions', () => ({
   saveLearnProfile: vi.fn(),
   readMyLearnAttempts: vi.fn(),
-  readLearnIssueCount: vi.fn(),
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));

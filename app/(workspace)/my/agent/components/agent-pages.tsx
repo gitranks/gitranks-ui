@@ -122,9 +122,19 @@ export function KeyScreen({
   now?: Date;
 }) {
   const key = claudeKeyOf(view);
-  if (!key || replace) return <ConnectScreen view={view} today={today} profileLanguages={profileLanguages} />;
+  // GitHub's access was on this page until it got its own: a link or a consent still carrying `#github` goes there.
+  const github = <SettingsAnchors only={['github']} />;
+  if (!key || replace) {
+    return (
+      <>
+        <ConnectScreen view={view} today={today} profileLanguages={profileLanguages} />
+        {github}
+      </>
+    );
+  }
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      {github}
       <SettingsPageHead title="Claude API key" text="The key hosted attempts run on." back="agent" />
       <PageNotices view={view} />
       <KeyPanel credential={key} now={now} />

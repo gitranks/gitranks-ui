@@ -28,7 +28,7 @@ export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
   to('/contribute/issues', '/contribute#issues'),
   to('/contribute/me', '/my/pull-requests'),
   to('/contribute/runs', '/my/agent/runs'),
-  // The own agent's way in, then the Claude key's (which holds GitHub's access too, until it has a page of its own).
+  // The own agent's way in, then the Claude key's. GitHub's access has its own Settings page.
   to('/contribute/connect', '/my/agent/connect', [{ type: 'query', key: 'path', value: 'agent' }]),
   to('/contribute/connect', '/my/agent/key'),
   to('/contribute/settings', '/my/settings'),

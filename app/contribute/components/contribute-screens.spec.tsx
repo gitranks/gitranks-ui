@@ -273,7 +273,7 @@ describe('the Agent and Settings tabs', () => {
 
   it('says on Settings where the hosted agent went, and anchors pause and autopilot on the Agent tab', () => {
     const settings = renderToStaticMarkup(<SettingsScreen view={views.active} />);
-    expect(text(settings)).toContain('The hosted agent, its key and budget are on the Agent tab .');
+    expect(text(settings)).toContain('Pause, autopilot, and the hosted agent with its key and budget are on the Agent tab .');
     expect(settings).toMatch(/data-agent-line=""[\s\S]*?href="\/my\/agent"/);
     const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
     for (const id of ['pause', 'autopilot', 'own-agent']) expect(agent).toContain(`id="${id}"`);

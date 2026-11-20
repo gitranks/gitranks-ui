@@ -19,15 +19,24 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/workspace/actions', () => workspace);
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/learn/actions', () => ({}));
-vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn() }));
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
+const reads = vi.hoisted(() => ({
+  loadContribute: vi.fn(),
+  loadContributeSetup: vi.fn(),
+  loadContributeSet: vi.fn(async () => null),
+  loadContributeEmail: vi.fn(async () => null),
+  loadScheduleCounts: vi.fn(async () => undefined),
+  loadProfileLanguages: vi.fn(async () => []),
+}));
+vi.mock('@/lib/workspace/contribute.data', () => reads);
+vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(),
   loadLearnOpen: vi.fn(),
 }));
 
-const { SettingsScreen } = await import('./settings-view');
+const { SettingsScreen, SettingsView } = await import('./settings-view');
+const { KeyScreen, KeyView } = await import('@/app/(workspace)/my/agent/components/agent-pages');
 const { PullRequestsSettingsScreen } = await import('./settings-pages');
 const { SettingsAnchors } = await import('@/components/workspace/settings/settings-anchors');
 const { contributor, email, limits, settingsViews, views } = await import(
@@ -75,7 +84,7 @@ describe('the Settings tab (W1 §10)', () => {
     expect(plain).toContain('Open pull requests at a time Up to 3 · 3 open now Edit');
     expect(plain).toContain('Repos can ask for less: their rules lower these limits for their pull requests.');
     expect(plain).toContain('For contributing For developers who want merged pull requests.');
-    expect(plain).toContain('The hosted agent, its key and budget are on the Agent tab .');
+    expect(plain).toContain('Pause, autopilot, and the hosted agent with its key and budget are on the Agent tab .');
     expect(plain).toContain(
       'For learning For people who want to learn from real fixes. Goal and level TypeScript · some experience · focus: how the language works, patterns the project uses Edit',
     );
@@ -219,5 +228,49 @@ describe('the old anchors', () => {
     root = createRoot(container);
     await act(async () => root.render(<SettingsAnchors only={['prs']} />));
     expect(router.replace).not.toHaveBeenCalled();
+  });
+});
+
+describe('the reads of Settings and the key page', () => {
+  const params = (query: Record<string, string> = {}) => ({ searchParams: Promise.resolve(query) });
+
+  it('opens the summary to an account with no agent yet (a learner who saved a goal comes back here)', async () => {
+    reads.loadContribute.mockResolvedValue(views.newcomer);
+    const html = renderToStaticMarkup(await SettingsView(params()));
+    expect(text(html)).toContain('These start when your agent connects');
+    expect(html).toContain('id="danger"');
+  });
+
+  it.each([
+    ['the summary', () => SettingsView(params({ grant: 'refused' }))],
+    ['the key page', () => KeyView(params({ grant: 'refused' }))],
+  ])("sends GitHub's refused consent from %s on to GitHub's page", async (_, read) => {
+    reads.loadContribute.mockResolvedValue(views.active);
+    await expect(read()).rejects.toThrow('NEXT_REDIRECT /my/settings/github?grant=refused');
+  });
+});
+
+describe("the key page's old #github", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+  });
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    vi.clearAllMocks();
+    window.history.replaceState(null, '', '/');
+  });
+
+  it.each([
+    ['with a key', views.active],
+    ['without one', views.newcomer],
+  ])('goes on to GitHub access in Settings, %s', async (_, view) => {
+    window.history.replaceState(null, '', '/my/agent/key#github');
+    await act(async () => root.render(<KeyScreen view={view} today={14} />));
+    expect(router.replace).toHaveBeenCalledWith('/my/settings/github');
   });
 });

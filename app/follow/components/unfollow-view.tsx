@@ -40,10 +40,8 @@ export function UnfollowView({ state, action, pending = false }: Readonly<Unfoll
           </p>
         ) : (
           <p className="text-sm">
-            We will not email {addressHint} about <PackageName pkg={follow.package} /> again.
-            {state.note === 'deleted'
-              ? ' It was never confirmed, so there is nothing to undo.'
-              : ' Changed your mind? You can undo this for 7 days.'}
+            We will not email {addressHint} about <PackageName pkg={follow.package} /> again. Changed your mind? You can
+            undo this for 7 days.
           </p>
         )}
         {!state.note && (
@@ -69,10 +67,7 @@ export function UnfollowView({ state, action, pending = false }: Readonly<Unfoll
       <LinkHead eyebrow={state.note === 'undone' ? 'Following again' : 'Unfollow'} title={`Unfollow ${label}?`} />
       <p className="text-sm">
         {state.note === 'undone' ? 'You follow it again. ' : ''}
-        {follow.status === 'PENDING'
-          ? `This follow is waiting for its confirmation at ${addressHint}.`
-          : `We email ${addressHint} about it.`}{' '}
-        Unfollow, and we stop.
+        We email {addressHint} about it. Unfollow, and we stop.
       </p>
       <form action={action}>
         <Button type="submit" name="change" value="remove" disabled={pending} className="max-sm:min-h-11">

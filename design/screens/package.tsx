@@ -1,4 +1,5 @@
 import { withBadgeFacts } from '../images';
+import { followChannelsOf, OpenFollowDialog } from '../open-follow-dialog';
 import { OpenRefreshDialog } from '../open-refresh-dialog';
 import type { Screen } from '../registry';
 import {
@@ -12,6 +13,7 @@ import type { PackageFacts } from '@/badge/v3/facts';
 import { packageBig } from '@/badge/v3/fixtures';
 import { packageDealOf } from '@/components/refresh-dialogs/refresh-messages';
 import type { PackagePage } from '@/graphql/package-page';
+import { outcomeView } from '@/lib/follow/follow-copy';
 import { packagePath } from '@/utils/package-paths';
 
 /** A read package's badge data, from its page's: what its Badges card shows tells the page's own story. */
@@ -52,6 +54,10 @@ const page = (pkg: PackagePage | 'unavailable', name = rankedPackage.name) => (
 
 const RANKED_PATH = packagePath(rankedPackage.name);
 
+/** The Follow dialog's boards: the viewer's verified email, and the package a press followed. */
+const FOLLOW_EMAIL = 'octo-dev@example.com';
+const FOLLOWED = { registry: 'npm', name: rankedPackage.name };
+
 export const PACKAGE_SCREENS: Screen[] = [
   {
     id: 'package-page',
@@ -67,6 +73,9 @@ export const PACKAGE_SCREENS: Screen[] = [
       'app/package/[registry]/[...name]/components/package-updates-button.tsx',
       'app/package/[registry]/[...name]/components/package-badge-section.tsx',
       'components/dependents/dependents-table.tsx',
+      'components/package-follow/follow-slot.tsx',
+      'components/package-follow/follow-dialog.tsx',
+      'lib/follow/follow-copy.ts',
     ],
     states: [
       {
@@ -105,6 +114,98 @@ export const PACKAGE_SCREENS: Screen[] = [
           <OpenRefreshDialog
             page={page(rankedPackage)}
             message={packageDealOf(rankedPackage.name, rankedPackage.repo?.nameWithOwner)}
+          />
+        ),
+      },
+      {
+        id: 'follow-signed-out',
+        title: 'Signed out, Follow pressed: every channel starts with Connect',
+        path: RANKED_PATH,
+        signedOut: true,
+        packagesOpen: true,
+        height: 1100,
+        render: () => (
+          <OpenFollowDialog
+            page={page(rankedPackage)}
+            label={rankedPackage.name}
+            view={followChannelsOf(false)}
+            signedIn={false}
+          />
+        ),
+      },
+      {
+        id: 'follow-signed-out-email',
+        title: 'Signed out, Connect on Email: why, and the GitHub sign-in',
+        path: RANKED_PATH,
+        signedOut: true,
+        packagesOpen: true,
+        height: 1100,
+        render: () => (
+          <OpenFollowDialog
+            page={page(rankedPackage)}
+            label={rankedPackage.name}
+            view={followChannelsOf(false)}
+            signedIn={false}
+            emailOpen
+          />
+        ),
+      },
+      {
+        id: 'follow-signed-in',
+        title: 'Signed in, Follow pressed: Email at the verified address',
+        path: RANKED_PATH,
+        packagesOpen: true,
+        height: 1100,
+        render: () => (
+          <OpenFollowDialog
+            page={page(rankedPackage)}
+            label={rankedPackage.name}
+            view={followChannelsOf(true, FOLLOW_EMAIL)}
+            signedIn
+            selected={['email', 'whatsapp']}
+          />
+        ),
+      },
+      {
+        id: 'follow-done',
+        title: 'Signed in, after Follow',
+        path: RANKED_PATH,
+        packagesOpen: true,
+        height: 900,
+        render: () => (
+          <OpenFollowDialog
+            page={page(rankedPackage)}
+            label={rankedPackage.name}
+            view={followChannelsOf(true, FOLLOW_EMAIL)}
+            signedIn
+            outcome={outcomeView(
+              {
+                refusal: null,
+                notHeld: [],
+                results: [
+                  { channel: 'email', package: FOLLOWED, result: 'active', url: null, limit: null },
+                  { channel: 'whatsapp', package: FOLLOWED, result: 'active', url: null, limit: null },
+                ],
+              },
+              rankedPackage.name,
+              FOLLOW_EMAIL,
+            )}
+          />
+        ),
+      },
+      {
+        id: 'follow-no-verified-email',
+        title: 'Signed in, no verified email on GitHub',
+        path: RANKED_PATH,
+        packagesOpen: true,
+        height: 1100,
+        render: () => (
+          <OpenFollowDialog
+            page={page(rankedPackage)}
+            label={rankedPackage.name}
+            view={followChannelsOf(true)}
+            signedIn
+            selected={['whatsapp']}
           />
         ),
       },

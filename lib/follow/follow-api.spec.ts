@@ -105,7 +105,7 @@ describe('the follow API calls', () => {
           refusal: null,
           notHeld: [],
           results: [
-            { channel: 'EMAIL', package: { registry: 'npm', name: 'x' }, result: 'PENDING', url: null, limit: null },
+            { channel: 'EMAIL', package: { registry: 'npm', name: 'x' }, result: 'ACTIVE', url: null, limit: null },
             {
               channel: 'TELEGRAM',
               package: { registry: 'npm', name: 'x' },
@@ -122,7 +122,6 @@ describe('the follow API calls', () => {
       packages: [{ registry: 'npm', name: 'x' }],
       events: ALL,
       channels: ['email', 'telegram'],
-      email: 'me@example.com',
     });
 
     expect(sent().body.query).toContain('followPackages(');
@@ -130,8 +129,6 @@ describe('the follow API calls', () => {
       packages: [{ registry: 'NPM', name: 'x' }],
       events: ALL,
       channels: ['EMAIL', 'TELEGRAM'],
-      email: 'me@example.com',
-      manageToken: null,
       visitorAddress: '203.0.113.7',
     });
     expect(read).toMatchObject({
@@ -139,23 +136,19 @@ describe('the follow API calls', () => {
       data: {
         refusal: null,
         results: [
-          { channel: 'email', result: 'pending' },
+          { channel: 'email', result: 'active' },
           { channel: 'telegram', result: 'connect', url: 'https://t.me/bot?start=f_c' },
         ],
       },
     });
   });
 
-  it('pass the key of an address’s settings with a press when the route has one', async () => {
+  it('never send an email address: the API takes it from the signed call', async () => {
     answer({ data: { followPackages: { refusal: null, notHeld: [], results: [] } } });
-    const key = 'k'.repeat(43);
-    await startFollow(
-      visitor,
-      { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'], email: 'me@example.com' },
-      key,
-    );
-    expect(sent().body.query).toContain('manageToken: $manageToken');
-    expect(sent().body.variables).toMatchObject({ manageToken: key });
+    await startFollow(visitor, { packages: [{ registry: 'npm', name: 'x' }], events: ALL, channels: ['email'] });
+    expect(sent().body.query).not.toContain('email:');
+    expect(sent().body.query).not.toContain('manageToken');
+    expect(Object.keys(sent().body.variables)).not.toContain('email');
   });
 
   it('read a refusal and the packages GitRanks does not hold', async () => {

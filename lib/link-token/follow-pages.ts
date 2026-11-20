@@ -1,8 +1,6 @@
 import type {
   FollowChangeByTokenAnswer,
   FollowChannel,
-  FollowConfirmAnswer,
-  FollowConfirmPeekAnswer,
   FollowEvents,
   FollowPackage,
   FollowSubscriber,
@@ -20,20 +18,11 @@ export const TIMED_OUT = { kind: 'timed-out' } as const satisfies LinkTrouble;
 export const UNAVAILABLE = { kind: 'unavailable' } as const satisfies LinkTrouble;
 export const UNKNOWN = { kind: 'unknown' } as const satisfies LinkTrouble;
 
-/** `/follow/confirm`. `settings`: the press kept the address's settings key, so the page links to `/following`. */
-export type ConfirmState =
-  | LinkTrouble
-  | { kind: 'pending'; packages: FollowPackage[]; events: FollowEvents | null }
-  | { kind: 'confirmed'; packages: FollowPackage[]; settings: boolean }
-  | { kind: 'already-confirmed'; packages: FollowPackage[] }
-  | { kind: 'expired' };
-
 /**
  * What the last press on `/follow/unfollow` did, when the follow alone does not say it: Undo followed it again
- * (`undone`), Undo was refused and it stays unfollowed (`undo-refused`), or the follow was never confirmed, so the
- * Unfollow deleted it and there is nothing to undo (`deleted`).
+ * (`undone`), or Undo was refused and it stays unfollowed (`undo-refused`).
  */
-export type UnfollowNote = 'undone' | 'undo-refused' | 'deleted';
+export type UnfollowNote = 'undone' | 'undo-refused';
 
 /** `/follow/unfollow`: the link's one follow, at its address. */
 export type UnfollowState =
@@ -56,34 +45,6 @@ export type SettingsNotice =
 /** `/following`: every follow of the address, by its settings link. */
 export type SettingsState = LinkTrouble | { kind: 'list'; subscribers: FollowSubscriber[]; notice?: SettingsNotice };
 
-/** The confirmation page on load. */
-export function confirmStateOfPeek(answer: FollowConfirmPeekAnswer): ConfirmState {
-  switch (answer.result) {
-    case 'PENDING':
-      return answer.packages.length ? { kind: 'pending', packages: answer.packages, events: answer.events } : UNKNOWN;
-    case 'ALREADY_CONFIRMED':
-      return { kind: 'already-confirmed', packages: answer.packages };
-    case 'EXPIRED':
-      return { kind: 'expired' };
-    default:
-      return UNKNOWN;
-  }
-}
-
-/** The confirmation page after its press; `settings` says whether the press's settings key was kept. */
-export function confirmStateOfPress(answer: FollowConfirmAnswer, settings: boolean): ConfirmState {
-  switch (answer.result) {
-    case 'CONFIRMED':
-      return { kind: 'confirmed', packages: answer.packages, settings };
-    case 'ALREADY_CONFIRMED':
-      return { kind: 'already-confirmed', packages: answer.packages };
-    case 'EXPIRED':
-      return { kind: 'expired' };
-    default:
-      return UNKNOWN;
-  }
-}
-
 /** The Unfollow page from what its link reaches: one follow at one address, or nothing. */
 export function unfollowStateOf(subscribers: FollowSubscriber[]): UnfollowState {
   const subscriber = subscribers.find((each) => each.follows.length);
@@ -94,8 +55,7 @@ export function unfollowStateOf(subscribers: FollowSubscriber[]): UnfollowState 
 
 /**
  * The Unfollow page after a press, from the follow as the change answered it. A change that reached no follow is a link
- * that no longer works. An Undo answered still unfollowed was refused. Unfollowing a follow never confirmed deletes it,
- * so it shows as unfollowed with no Undo.
+ * that no longer works. An Undo answered still unfollowed was refused.
  */
 export function unfollowStateAfter(
   previous: Extract<UnfollowState, { kind: 'follow' }>,
@@ -105,8 +65,7 @@ export function unfollowStateAfter(
   const { follow } = answer;
   if (!follow) return UNKNOWN;
   const base = { kind: 'follow', follow, addressHint: previous.addressHint } as const;
-  if (change === 'undo') return { ...base, note: follow.status === 'REMOVED' ? 'undo-refused' : 'undone' };
-  return previous.follow.status === 'PENDING' && follow.status === 'REMOVED' ? { ...base, note: 'deleted' } : base;
+  return change === 'undo' ? { ...base, note: follow.status === 'REMOVED' ? 'undo-refused' : 'undone' } : base;
 }
 
 /**

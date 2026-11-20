@@ -3,15 +3,11 @@ import 'server-only';
 import {
   FollowChangeByTokenDocument,
   type FollowChangeByTokenVariables,
-  FollowConfirmDocument,
-  FollowConfirmPeekDocument,
   FollowingByTokenDocument,
   FollowStopAllByTokenDocument,
 } from './follow-links.documents';
-import type { FollowChangeByTokenAnswer, FollowConfirmAnswer, FollowSubscriber } from './follow-links.types';
+import type { FollowChangeByTokenAnswer, FollowSubscriber } from './follow-links.types';
 import {
-  type ConfirmState,
-  confirmStateOfPeek,
   type SettingsNotice,
   type SettingsState,
   settingsNoticeAfter,
@@ -33,25 +29,6 @@ const ask = <TData, TVariables extends Record<string, unknown>>(
   document: DocumentNode<TData, TVariables>,
   variables: TVariables,
 ) => graphqlDirect(document, variables, { source: 'ssr' });
-
-/** What the confirmation link would confirm; changes nothing. */
-export async function peekConfirm(token: string): Promise<ConfirmState> {
-  try {
-    const { followConfirmPeek } = await ask(FollowConfirmPeekDocument, { token });
-    return confirmStateOfPeek(followConfirmPeek);
-  } catch {
-    return UNAVAILABLE;
-  }
-}
-
-/** The confirmation's press; null when following cannot be reached. */
-export async function pressConfirm(token: string): Promise<FollowConfirmAnswer | null> {
-  try {
-    return (await ask(FollowConfirmDocument, { token })).followConfirm;
-  } catch {
-    return null;
-  }
-}
 
 type Asker = { manageToken: string } | { followToken: string };
 

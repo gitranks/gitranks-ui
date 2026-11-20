@@ -7,8 +7,6 @@
 
 /** Each kind of link, and the page it opens. */
 export const LINK_PAGES = {
-  /** A follow's confirmation email: the packages and one Confirm button. */
-  confirm: '/follow/confirm',
   /** An email's "Unfollow <package>": that follow alone. */
   unfollow: '/follow/unfollow',
   /** An email's "Email settings": every follow of the address. */

@@ -71,12 +71,19 @@ function channelsQueryOf(pkg: FollowPackage | null): string {
   return `?${params}`;
 }
 
-/** The dialog's channels; for one package, its dependents now too; and whether Settings will open here. */
+/**
+ * The dialog's channels; for one package, its dependents now too; whether Settings will open here; and the signed-in
+ * viewer's verified email, the address an email follow uses.
+ */
 export function fetchFollowChannels(pkg: FollowPackage | null): Promise<FollowCall<FollowChannelsView>> {
   const query = channelsQueryOf(pkg);
   return call(`${FOLLOW_ROUTES.channels}${query}`, undefined, (body) =>
     isRecord(body) && Array.isArray(body.channels)
-      ? { ...(body as FollowChannels), settingsLink: body.settingsLink === true }
+      ? {
+          ...(body as FollowChannels),
+          settingsLink: body.settingsLink === true,
+          verifiedEmail: typeof body.verifiedEmail === 'string' && body.verifiedEmail ? body.verifiedEmail : null,
+        }
       : UNREAD,
   );
 }

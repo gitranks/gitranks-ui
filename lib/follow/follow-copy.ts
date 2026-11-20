@@ -62,10 +62,28 @@ export function eventSwitches(numbers?: { dependents: number | null; notable: nu
   return switches;
 }
 
-/** A channel row's second line, before Follow is pressed. */
-export function channelHint(option: FollowChannelOption, followed: boolean): string {
+/** The Email row signed out, after Connect: why email asks for a sign-in. */
+export const EMAIL_SIGN_IN_TEXT =
+  'Sign in with GitHub to follow by email. We only email the address GitHub has verified for your account, so nobody can sign someone else up, and our emails stay out of spam.';
+export const EMAIL_SIGN_IN_NOTE = 'You come back here with Email on.';
+/** The Email row of a signed-in account with no verified email on GitHub. */
+export const EMAIL_UNVERIFIED_HINT = 'No verified email on your GitHub account';
+export const EMAIL_UNVERIFIED_TEXT =
+  'We only email an address GitHub has verified. Add or verify one in your GitHub email settings, then sign in again. Telegram and WhatsApp work without it.';
+/** Where GitHub's email settings are. */
+export const GITHUB_EMAIL_SETTINGS = 'https://github.com/settings/emails';
+
+/**
+ * A channel row's second line, before Follow is pressed. `verifiedEmail` is the signed-in viewer's verified address,
+ * the one an email follow uses.
+ */
+export function channelHint(
+  option: FollowChannelOption,
+  followed: boolean,
+  verifiedEmail: string | null = null,
+): string {
   if (followed) return option.addressHint ? `Following · ${option.addressHint}` : 'Following';
-  if (option.channel === 'email') return option.addressHint ?? '';
+  if (option.channel === 'email') return verifiedEmail ? `${verifiedEmail} · verified on GitHub` : 'Not connected';
   if (!option.linked) return 'Not connected';
   return option.rankUpdates ? 'Connected · you get rank updates here' : 'Connected';
 }
@@ -104,15 +122,23 @@ export function failureView(failure: FollowFailure): FollowOutcomeView {
   const text: Record<FollowFailure, string> = {
     not_found: "Following isn't available right now.",
     sign_in: 'Your session has ended. Sign in again and try once more.',
-    invalid: 'Something in the request was off. Check the email address and try again.',
+    invalid: 'Something in the request was off. Try again.',
     unavailable: UNAVAILABLE_TEXT,
     failed: UNAVAILABLE_TEXT,
   };
   return { title: 'Not followed', notes: [{ channel: null, tone: 'problem', text: text[failure] }] };
 }
 
-/** One channel's answers as what the person reads, in that order: what to do next first, then what was followed. */
-function channelNotes(channel: FollowChannel, outcomes: FollowStartOutcome[], total: number): FollowNote[] {
+/**
+ * One channel's answers as what the person reads, in that order: what to do next first, then what was followed.
+ * `verifiedEmail` is the address an email follow went to.
+ */
+function channelNotes(
+  channel: FollowChannel,
+  outcomes: FollowStartOutcome[],
+  total: number,
+  verifiedEmail: string | null,
+): FollowNote[] {
   const label = CHANNEL_LABELS[channel];
   const count = (result: FollowStartOutcome['result']) => outcomes.filter((one) => one.result === result).length;
   const notes: FollowNote[] = [];
@@ -135,15 +161,8 @@ function channelNotes(channel: FollowChannel, outcomes: FollowStartOutcome[], to
     );
   }
 
-  if (count('pending') > 0) {
-    notes.push({
-      channel,
-      tone: 'next',
-      text: 'We sent you a link to confirm. Nothing else comes until you press it, and it stops working in 7 days.',
-    });
-  }
-  if (count('invalid_email') > 0) {
-    notes.push({ channel, tone: 'problem', text: "That doesn't look like an email address." });
+  if (count('sign_in') > 0) {
+    notes.push({ channel, tone: 'problem', text: EMAIL_UNVERIFIED_TEXT });
   }
   if (count('closed') > 0) {
     notes.push({ channel, tone: 'problem', text: `Following by ${label} isn't open here yet.` });
@@ -161,7 +180,7 @@ function channelNotes(channel: FollowChannel, outcomes: FollowStartOutcome[], to
   if (full) {
     const limit = full.limit ?? 0;
     const rule = `${ADDRESS_NOUNS[channel]} can follow ${formatCount(limit)} ${limit === 1 ? 'package' : 'packages'}`;
-    const followed = active + count('pending') + count('connect');
+    const followed = active + count('connect');
     notes.push({
       channel,
       tone: 'problem',
@@ -171,17 +190,23 @@ function channelNotes(channel: FollowChannel, outcomes: FollowStartOutcome[], to
           : `Not followed on ${label}: ${rule}, and it follows that many already.`,
     });
   } else if (active > 0) {
-    notes.push({
-      channel,
-      tone: 'done',
-      text: total > 1 && active < total ? `Following ${active} of ${total} on ${label}.` : `Following on ${label}.`,
-    });
+    const following =
+      total > 1 && active < total ? `Following ${active} of ${total} on ${label}.` : `Following on ${label}.`;
+    const where = channel === 'email' && verifiedEmail ? ` We write to ${verifiedEmail}.` : '';
+    notes.push({ channel, tone: 'done', text: `${following}${where}` });
   }
   return notes;
 }
 
-/** What a press of Follow became, as the dialog says it once the answer is in. */
-export function outcomeView(answer: FollowStartAnswer, label: string): FollowOutcomeView {
+/**
+ * What a press of Follow became, as the dialog says it once the answer is in. `verifiedEmail`: the address an email
+ * follow went to.
+ */
+export function outcomeView(
+  answer: FollowStartAnswer,
+  label: string,
+  verifiedEmail: string | null = null,
+): FollowOutcomeView {
   if (answer.refusal === 'not_held') {
     const names = answer.notHeld.map(({ name }) => name).join(', ');
     return {
@@ -200,16 +225,14 @@ export function outcomeView(answer: FollowStartAnswer, label: string): FollowOut
   const total = new Set(answer.results.map(({ package: pkg }) => `${pkg.registry}/${pkg.name}`)).size;
   const notes = FOLLOW_CHANNELS.flatMap((channel) => {
     const outcomes = answer.results.filter((one) => one.channel === channel);
-    return outcomes.length ? channelNotes(channel, outcomes, total) : [];
+    return outcomes.length ? channelNotes(channel, outcomes, total, verifiedEmail) : [];
   });
 
   const results = new Set(answer.results.map(({ result }) => result));
-  const title = results.has('pending')
-    ? 'Check your inbox to confirm'
-    : results.has('connect')
-      ? 'One more step'
-      : results.has('active')
-        ? `You follow ${label}`
-        : 'Not followed';
+  const title = results.has('connect')
+    ? 'One more step'
+    : results.has('active')
+      ? `You follow ${label}`
+      : 'Not followed';
   return { title, notes };
 }

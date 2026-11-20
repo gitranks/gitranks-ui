@@ -9,7 +9,9 @@ import { requestMaySeePackages } from '@/lib/packages/packages-gate';
 import { DEFAULT_REGISTRY } from '@/lib/packages/registries';
 
 /**
- * The Follow dialog's channels, asked when it opens: `{ channels, dependents, notable, settingsLink }`. With
+ * The Follow dialog's channels, asked when it opens: `{ channels, dependents, notable, settingsLink, verifiedEmail }`.
+ * `verifiedEmail` is the signed-in viewer's own email when GitHub had it verified at the sign-in, the address an email
+ * follow uses; null otherwise. With
  * `?package=<name>` (one package, on `?registry=<registry>` or the default registry) the answer also says how many repositories use it now. `settingsLink` says
  * whether Settings will open here: for a signed-in viewer, or a browser holding an email settings link's key (read here
  * from its cookie; the key is never answered). Only
@@ -28,5 +30,6 @@ export async function GET(req: NextRequest) {
   const answer = await readFollowChannels(caller, packages?.[0] ?? null);
   // Settings opens on a signed-in viewer's own list, or on an email settings link this browser holds.
   const settingsLink = !!caller.githubLogin || (await readLinkToken('settings')) !== null;
-  return followAnswer(answer, (data): FollowChannelsView => ({ ...data, settingsLink }));
+  const verifiedEmail = caller.accountEmailVerified ? (caller.accountEmail ?? null) : null;
+  return followAnswer(answer, (data): FollowChannelsView => ({ ...data, settingsLink, verifiedEmail }));
 }

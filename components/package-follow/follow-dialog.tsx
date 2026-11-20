@@ -1,19 +1,14 @@
 'use client';
 
-import { Bell, Check, Mail, MessageCircle, Send } from 'lucide-react';
-import { type ReactNode, useEffect, useId, useState } from 'react';
+import { Bell, Check, ExternalLink, Mail, MessageCircle, Send } from 'lucide-react';
+import { signIn } from 'next-auth/react';
+import { type ReactNode, useEffect, useState } from 'react';
+import { SiGithub } from 'react-icons/si';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import {
   FOLLOW_CHANNELS,
   type FollowChannel,
@@ -28,6 +23,10 @@ import { fetchFollowChannels, fetchFollowState, postFollowChange, postFollowStar
 import {
   CHANNEL_LABELS,
   channelHint,
+  EMAIL_SIGN_IN_NOTE,
+  EMAIL_SIGN_IN_TEXT,
+  EMAIL_UNVERIFIED_HINT,
+  EMAIL_UNVERIFIED_TEXT,
   eventSwitches,
   FOLLOW_DIALOG_LEAD,
   FOLLOW_DIALOG_NOTE,
@@ -35,9 +34,10 @@ import {
   type FollowNote,
   type FollowOutcomeView,
   failureView,
+  GITHUB_EMAIL_SETTINGS,
   outcomeView,
 } from '@/lib/follow/follow-copy';
-import { EMAIL_MAX_LENGTH, isEmailShape } from '@/lib/follow/follow-request';
+import { followReturnPathOf } from '@/lib/follow/follow-return';
 import { activeFollowsOf, followsAll, sameEvents, startingEvents, withChanged } from '@/lib/follow/follow-state';
 import { LINK_PAGES } from '@/lib/link-token/link-token';
 
@@ -48,8 +48,6 @@ export type FollowDialogProps = {
   label: string;
   /** The signed-in viewer; undefined for a visitor. */
   login?: string;
-  /** The signed-in viewer's email, offered as the address of an email follow. */
-  sessionEmail?: string;
   /** The signed-in viewer's follows of the packages, as the slot read them. */
   follows: FollowRow[];
   onFollowsChange: (follows: FollowRow[]) => void;
@@ -64,23 +62,32 @@ const CHANNEL_ICONS: Record<FollowChannel, ReactNode> = {
 /** Where Settings in the small print goes: the email settings page. */
 const SETTINGS_PATH = LINK_PAGES.settings;
 
-type Loaded = { ok: true; data: FollowChannelsView } | { ok: false; failure: FollowFailure } | null;
+export type FollowLoaded = { ok: true; data: FollowChannelsView } | { ok: false; failure: FollowFailure } | null;
 
-/** The channels a press of Follow starts on by default: email, and a chat the viewer's account already has. */
-function startingChannels(options: FollowChannelOption[], followed: (channel: FollowChannel) => boolean) {
+/**
+ * The channels a press of Follow starts on by default: email at a signed-in viewer's verified address, and a chat the
+ * viewer's account already has.
+ */
+function startingChannels(view: FollowChannelsView, followed: (channel: FollowChannel) => boolean): Set<FollowChannel> {
   return new Set(
-    options
+    view.channels
       .filter((option) => option.open && !followed(option.channel))
-      .filter((option) => option.channel === 'email' || option.linked === true)
+      .filter((option) => (option.channel === 'email' ? !!view.verifiedEmail : option.linked === true))
       .map((option) => option.channel),
   );
 }
 
+/** The GitHub sign-in, back to this page with the dialog open again (`followReturnPathOf`). */
+function signInForEmail() {
+  return signIn(IDENTITY_PROVIDER, { redirectTo: followReturnPathOf(window.location.href) });
+}
+
 /**
- * The Follow dialog: what to send (three switches), where (a row per channel open to this viewer), and Follow. A
- * visitor types an email address or connects a chat; a signed-in viewer's account's chats follow at once, and the
- * channels they already follow on show "Following" with Unfollow. After the press it says what became of each channel:
- * a confirmation email sent, a chat to open, followed, or why not.
+ * The Follow dialog: what to send (three switches), where (a row per channel open to this viewer), and Follow. Email
+ * goes only to a signed-in viewer's GitHub-verified address: a visitor's Connect opens the Email row in place with why
+ * and the GitHub sign-in, which brings them back here with the dialog open. Chats work signed out too; a signed-in
+ * viewer's account's chats follow at once, and the channels they already follow on show "Following" with Unfollow.
+ * After the press it says what became of each channel: followed, a chat to open, or why not.
  */
 export function FollowDialog({
   open,
@@ -88,18 +95,16 @@ export function FollowDialog({
   packages,
   label,
   login,
-  sessionEmail,
   follows,
   onFollowsChange,
 }: Readonly<FollowDialogProps>) {
-  const [loaded, setLoaded] = useState<Loaded>(null);
+  const [loaded, setLoaded] = useState<FollowLoaded>(null);
   const [events, setEvents] = useState<FollowEvents>(() => startingEvents(packages, follows));
   const [selected, setSelected] = useState<Set<FollowChannel>>(new Set());
-  const [email, setEmail] = useState(sessionEmail ?? '');
+  const [emailOpen, setEmailOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [outcome, setOutcome] = useState<FollowOutcomeView | null>(null);
   const [rowProblem, setRowProblem] = useState<string | null>(null);
-  const emailId = useId();
   const one = packages.length === 1 ? packages[0] : null;
   const followed = (channel: FollowChannel) => !!login && followsAll(packages, follows, channel);
 
@@ -110,13 +115,13 @@ export function FollowDialog({
     setLoaded(null);
     setOutcome(null);
     setRowProblem(null);
+    setEmailOpen(false);
     setEvents(startingEvents(packages, follows));
-    setEmail(sessionEmail ?? '');
     let live = true;
     fetchFollowChannels(one).then((answer) => {
       if (!live) return;
       setLoaded(answer);
-      setSelected(answer.ok ? startingChannels(answer.data.channels, followed) : new Set());
+      setSelected(answer.ok ? startingChannels(answer.data, followed) : new Set());
     });
     return () => {
       live = false;
@@ -124,13 +129,12 @@ export function FollowDialog({
   }, [open]);
 
   const options = loaded?.ok ? loaded.data.channels.filter((option) => option.open) : [];
+  const verifiedEmail = loaded?.ok ? loaded.data.verifiedEmail : null;
   const existing = login ? activeFollowsOf(packages, follows) : [];
   const newChannels = options.map(({ channel }) => channel).filter((channel) => selected.has(channel));
   const eventsChanged = existing.length > 0 && existing.some((row) => !sameEvents(row.events, events));
   const anyEvent = events.notable || events.digest || events.milestones;
-  const emailReady = !newChannels.includes('email') || isEmailShape(email.trim());
-  const canSubmit = !sending && anyEvent && emailReady && (newChannels.length > 0 || eventsChanged);
-  const primaryLabel = newChannels.length === 0 && eventsChanged ? 'Save' : 'Follow';
+  const canSubmit = !sending && anyEvent && (newChannels.length > 0 || eventsChanged);
 
   const toggle = (channel: FollowChannel, on: boolean) =>
     setSelected((now) => {
@@ -183,13 +187,8 @@ export function FollowDialog({
 
     let view: FollowOutcomeView = { title: 'Saved', notes: [] };
     if (newChannels.length > 0) {
-      const answer = await postFollowStart({
-        packages,
-        events,
-        channels: newChannels,
-        ...(newChannels.includes('email') ? { email: email.trim() } : {}),
-      });
-      view = answer.ok ? outcomeView(answer.data, label) : failureView(answer.failure);
+      const answer = await postFollowStart({ packages, events, channels: newChannels });
+      view = answer.ok ? outcomeView(answer.data, label, verifiedEmail) : failureView(answer.failure);
       await refreshFollows();
     }
 
@@ -197,25 +196,97 @@ export function FollowDialog({
     setSending(false);
   };
 
-  const body = outcome ? (
-    <OutcomeBody
-      outcome={outcome}
-      onBack={() => setOutcome(null)}
-      backable={outcome.notes.some((note) => note.tone === 'problem')}
-    />
-  ) : (
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="gap-5 sm:max-w-[520px]">
+        <DialogHeader className="text-left">
+          <DialogTitle className="text-xl [overflow-wrap:anywhere]">
+            {outcome ? outcome.title : `Follow ${label}`}
+          </DialogTitle>
+          <DialogDescription>{outcome ? label : FOLLOW_DIALOG_LEAD}</DialogDescription>
+        </DialogHeader>
+        <FollowDialogBody
+          close={() => onOpenChange(false)}
+          outcome={outcome}
+          onBack={() => setOutcome(null)}
+          loaded={loaded}
+          oneNumbers={!!one}
+          events={events}
+          onEvents={setEvents}
+          signedIn={!!login}
+          selected={selected}
+          followed={followed}
+          emailOpen={emailOpen}
+          onEmailOpen={setEmailOpen}
+          sending={sending}
+          canSubmit={canSubmit}
+          saveOnly={newChannels.length === 0 && eventsChanged}
+          rowProblem={rowProblem}
+          onToggle={toggle}
+          onUnfollow={unfollow}
+          onSubmit={submit}
+          onSignIn={signInForEmail}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export type FollowDialogBodyProps = {
+  close: () => void;
+  outcome: FollowOutcomeView | null;
+  onBack: () => void;
+  loaded: FollowLoaded;
+  /** One package: the first switch says how many of its dependents have 1,000+ stars. */
+  oneNumbers: boolean;
+  events: FollowEvents;
+  onEvents: (events: FollowEvents) => void;
+  signedIn: boolean;
+  selected: ReadonlySet<FollowChannel>;
+  followed: (channel: FollowChannel) => boolean;
+  /** A visitor pressed Connect on Email: the row is open with why and the sign-in. */
+  emailOpen: boolean;
+  onEmailOpen: (open: boolean) => void;
+  sending: boolean;
+  canSubmit: boolean;
+  /** Nothing new to follow, only the switches of existing follows changed: the button says Save. */
+  saveOnly: boolean;
+  rowProblem: string | null;
+  onToggle: (channel: FollowChannel, on: boolean) => void;
+  onUnfollow: (channel: FollowChannel) => void;
+  onSubmit: () => void;
+  onSignIn: () => Promise<unknown>;
+};
+
+/** What the dialog shows under its title: the form, or what a press became. Drawn from its props alone. */
+export function FollowDialogBody(props: Readonly<FollowDialogBodyProps>) {
+  const { close, outcome, onBack, loaded, oneNumbers, events, onEvents, sending, canSubmit, saveOnly } = props;
+  if (outcome) {
+    return (
+      <OutcomeBody
+        outcome={outcome}
+        onBack={onBack}
+        onClose={close}
+        backable={outcome.notes.some((note) => note.tone === 'problem')}
+      />
+    );
+  }
+
+  const options = loaded?.ok ? loaded.data.channels.filter((option) => option.open) : [];
+  const primaryLabel = saveOnly ? 'Save' : 'Follow';
+  return (
     <>
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           What to send
         </legend>
-        {eventSwitches(one && loaded?.ok ? loaded.data : null).map((item) => (
+        {eventSwitches(oneNumbers && loaded?.ok ? loaded.data : null).map((item) => (
           // biome-ignore lint/a11y/noLabelWithoutControl: the checkbox inside is the control.
           <label key={item.name} className="flex items-start gap-3 text-sm">
             <Checkbox
               className="mt-0.5"
               checked={events[item.name]}
-              onCheckedChange={(checked) => setEvents((now) => ({ ...now, [item.name]: checked === true }))}
+              onCheckedChange={(checked) => onEvents({ ...events, [item.name]: checked === true })}
             />
             <span className="flex flex-col">
               <span className="font-medium">{item.title}</span>
@@ -234,46 +305,18 @@ export function FollowDialog({
         {loaded?.ok && options.length === 0 && (
           <p className="text-sm text-muted-foreground">No channel takes follows right now. Try again later.</p>
         )}
-        {FOLLOW_CHANNELS.flatMap((channel) => options.filter((option) => option.channel === channel)).map((option) => (
-          <ChannelRow
-            key={option.channel}
-            option={option}
-            followed={followed(option.channel)}
-            selected={selected.has(option.channel)}
-            disabled={sending}
-            onToggle={(on) => toggle(option.channel, on)}
-            onUnfollow={() => unfollow(option.channel)}
-          >
-            {option.channel === 'email' && selected.has('email') && !followed('email') && (
-              <div className="flex flex-col gap-1">
-                <label htmlFor={emailId} className="sr-only">
-                  Email address
-                </label>
-                <Input
-                  id={emailId}
-                  type="email"
-                  autoComplete="email"
-                  inputMode="email"
-                  placeholder="you@example.com"
-                  maxLength={EMAIL_MAX_LENGTH}
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  aria-invalid={email.trim() !== '' && !isEmailShape(email.trim())}
-                />
-              </div>
-            )}
-          </ChannelRow>
-        ))}
-        {rowProblem && <p className="text-sm text-destructive">{rowProblem}</p>}
+        {loaded?.ok &&
+          FOLLOW_CHANNELS.flatMap((channel) => options.filter((option) => option.channel === channel)).map((option) => (
+            <ChannelRow key={option.channel} option={option} verifiedEmail={loaded.data.verifiedEmail} {...props} />
+          ))}
+        {props.rowProblem && <p className="text-sm text-destructive">{props.rowProblem}</p>}
       </fieldset>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <DialogClose asChild>
-          <Button type="button" variant="ghost">
-            Cancel
-          </Button>
-        </DialogClose>
-        <Button type="button" onClick={submit} disabled={!canSubmit}>
+        <Button type="button" variant="ghost" onClick={close}>
+          Cancel
+        </Button>
+        <Button type="button" onClick={props.onSubmit} disabled={!canSubmit}>
           <Bell aria-hidden />
           {sending ? `${primaryLabel}…` : primaryLabel}
         </Button>
@@ -293,80 +336,97 @@ export function FollowDialog({
       </p>
     </>
   );
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-5 sm:max-w-[520px]">
-        <DialogHeader className="text-left">
-          <DialogTitle className="text-xl [overflow-wrap:anywhere]">
-            {outcome ? outcome.title : `Follow ${label}`}
-          </DialogTitle>
-          <DialogDescription>{outcome ? label : FOLLOW_DIALOG_LEAD}</DialogDescription>
-        </DialogHeader>
-        {body}
-      </DialogContent>
-    </Dialog>
-  );
 }
 
-type ChannelRowProps = {
-  option: FollowChannelOption;
-  followed: boolean;
-  selected: boolean;
-  disabled: boolean;
-  onToggle: (on: boolean) => void;
-  onUnfollow: () => void;
-  children?: ReactNode;
-};
+type ChannelRowProps = Readonly<FollowDialogBodyProps & { option: FollowChannelOption; verifiedEmail: string | null }>;
 
-/** One channel: its name and state, and On, Connect or Unfollow. */
-function ChannelRow({ option, followed, selected, disabled, onToggle, onUnfollow, children }: ChannelRowProps) {
-  const label = CHANNEL_LABELS[option.channel];
-  const chatToConnect = option.channel !== 'email' && !option.linked;
-  const hint =
-    chatToConnect && selected && !followed ? `You finish in ${label} after Follow` : channelHint(option, followed);
+/** One channel: its name and state, and On, Connect or Unfollow; the Email row also says why when it needs more. */
+function ChannelRow({ option, verifiedEmail, ...props }: ChannelRowProps) {
+  const { channel } = option;
+  const label = CHANNEL_LABELS[channel];
+  const selected = props.selected.has(channel);
+  const followed = props.followed(channel);
+  const disabled = props.sending;
+  const [signingIn, setSigningIn] = useState(false);
 
+  let hint = channelHint(option, followed, verifiedEmail);
   let control: ReactNode;
+  let more: ReactNode = null;
+
+  const connect = (pressed: boolean, onPress: () => void) => (
+    <Button type="button" variant="outline" size="sm" aria-pressed={pressed} disabled={disabled} onClick={onPress}>
+      {pressed && <Check aria-hidden />}
+      Connect
+    </Button>
+  );
+  const onBox = (
+    // biome-ignore lint/a11y/noLabelWithoutControl: the checkbox inside is the control.
+    <label className="flex items-center gap-2 text-sm">
+      <Checkbox
+        checked={selected}
+        disabled={disabled}
+        onCheckedChange={(checked) => props.onToggle(channel, checked === true)}
+        aria-label={`${label}: on`}
+      />
+      On
+    </label>
+  );
+
   if (followed) {
     control = (
-      <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={onUnfollow}>
+      <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => props.onUnfollow(channel)}>
         Unfollow
       </Button>
     );
-  } else if (chatToConnect) {
+  } else if (channel === 'email' && !props.signedIn) {
+    // A visitor: the same Connect as the chats, which opens the row with why email asks for a sign-in.
+    control = connect(props.emailOpen, () => props.onEmailOpen(!props.emailOpen));
+    if (props.emailOpen) {
+      hint = 'Needs a GitHub sign-in';
+      more = (
+        <div className="flex flex-col gap-3 border-t pt-3">
+          <p className="text-sm">{EMAIL_SIGN_IN_TEXT}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              size="sm"
+              disabled={signingIn}
+              onClick={() => {
+                setSigningIn(true);
+                props.onSignIn().catch(() => setSigningIn(false));
+              }}
+            >
+              <SiGithub aria-hidden />
+              Sign in with GitHub
+            </Button>
+            <span className="text-xs text-muted-foreground">{EMAIL_SIGN_IN_NOTE}</span>
+          </div>
+        </div>
+      );
+    }
+  } else if (channel === 'email' && !verifiedEmail) {
+    hint = EMAIL_UNVERIFIED_HINT;
     control = (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        aria-pressed={selected}
-        disabled={disabled}
-        onClick={() => onToggle(!selected)}
-      >
-        {selected && <Check aria-hidden />}
-        Connect
+      <Button asChild variant="outline" size="sm">
+        <a href={GITHUB_EMAIL_SETTINGS} target="_blank" rel="noopener noreferrer">
+          GitHub settings
+          <ExternalLink aria-hidden />
+        </a>
       </Button>
     );
+    more = <p className="border-t pt-3 text-sm text-muted-foreground">{EMAIL_UNVERIFIED_TEXT}</p>;
+  } else if (channel !== 'email' && !option.linked) {
+    if (selected) hint = `You finish in ${label} after Follow`;
+    control = connect(selected, () => props.onToggle(channel, !selected));
   } else {
-    control = (
-      // biome-ignore lint/a11y/noLabelWithoutControl: the checkbox inside is the control.
-      <label className="flex items-center gap-2 text-sm">
-        <Checkbox
-          checked={selected}
-          disabled={disabled}
-          onCheckedChange={(checked) => onToggle(checked === true)}
-          aria-label={`${label}: on`}
-        />
-        On
-      </label>
-    );
+    control = onBox;
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border p-3" data-channel={option.channel}>
+    <div className="flex flex-col gap-3 rounded-md border p-3" data-channel={channel}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="text-muted-foreground">{CHANNEL_ICONS[option.channel]}</span>
+          <span className="text-muted-foreground">{CHANNEL_ICONS[channel]}</span>
           <div className="flex min-w-0 flex-col">
             <span className="text-sm font-medium">{label}</span>
             {hint && <span className="text-xs text-muted-foreground [overflow-wrap:anywhere]">{hint}</span>}
@@ -374,7 +434,7 @@ function ChannelRow({ option, followed, selected, disabled, onToggle, onUnfollow
         </div>
         {control}
       </div>
-      {children}
+      {more}
     </div>
   );
 }
@@ -383,10 +443,12 @@ function ChannelRow({ option, followed, selected, disabled, onToggle, onUnfollow
 function OutcomeBody({
   outcome,
   onBack,
+  onClose,
   backable,
 }: {
   outcome: FollowOutcomeView;
   onBack: () => void;
+  onClose: () => void;
   backable: boolean;
 }) {
   return (
@@ -414,9 +476,9 @@ function OutcomeBody({
             Back
           </Button>
         )}
-        <DialogClose asChild>
-          <Button type="button">Close</Button>
-        </DialogClose>
+        <Button type="button" onClick={onClose}>
+          Close
+        </Button>
       </div>
     </>
   );

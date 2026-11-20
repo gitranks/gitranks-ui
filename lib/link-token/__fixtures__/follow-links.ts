@@ -1,7 +1,6 @@
 import type { FollowSubscriber, PackageFollow } from '../follow-links.types';
 
 /** Tokens of a stored token's shape: 43 base64url characters, as 32 random bytes are written. */
-export const CONFIRM_TOKEN = 'cOnFiRm_tOkEn-0123456789abcdefghijklmnopqrs';
 export const FOLLOW_TOKEN = 'fOlLoW_tOkEn-0123456789abcdefghijklmnopqrstu';
 export const MANAGE_TOKEN = 'mAnAgE_tOkEn-0123456789abcdefghijklmnopqrstu';
 

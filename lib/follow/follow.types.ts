@@ -43,9 +43,16 @@ export type FollowChannels = {
  * a browser holding an email settings link's key now), so the dialog offers Settings only then. The key itself never
  * reaches the browser.
  */
-export type FollowChannelsView = FollowChannels & { settingsLink: boolean };
+export type FollowChannelsView = FollowChannels & {
+  settingsLink: boolean;
+  /**
+   * The signed-in viewer's email when GitHub had it verified at the sign-in: the only address an email follow uses.
+   * Null for a visitor and for an account without one.
+   */
+  verifiedEmail: string | null;
+};
 
-export type FollowStatus = 'pending' | 'active' | 'removed';
+export type FollowStatus = 'active' | 'removed';
 
 /** One package followed at one of the signed-in viewer's addresses. */
 export type FollowRow = {
@@ -57,11 +64,11 @@ export type FollowRow = {
 };
 
 /**
- * What became of one package on one channel after Follow. `active`: followed. `pending`: a confirmation email was sent.
- * `connect`: finished in the chat `url` opens. `closed`: the channel takes no follows here. `limit`: too many requests
- * for now. `full`: the address follows as many packages as the channel allows (`limit`). `invalid_email`: not an address.
+ * What became of one package on one channel after Follow. `active`: followed. `connect`: finished in the chat `url`
+ * opens. `closed`: the channel takes no follows here. `limit`: too many requests for now. `full`: the address follows as
+ * many packages as the channel allows (`limit`). `sign_in`: email needs a signed-in account whose email GitHub verified.
  */
-export type FollowStartResult = 'active' | 'pending' | 'connect' | 'closed' | 'limit' | 'full' | 'invalid_email';
+export type FollowStartResult = 'active' | 'connect' | 'closed' | 'limit' | 'full' | 'sign_in';
 
 export type FollowStartOutcome = {
   channel: FollowChannel;
@@ -86,7 +93,6 @@ export type FollowStartBody = {
   packages: FollowPackage[];
   events: FollowEvents;
   channels: FollowChannel[];
-  email?: string;
 };
 
 /** A change of one of the signed-in viewer's follows: its switches, Unfollow, or Undo. */

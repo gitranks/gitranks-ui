@@ -1,12 +1,6 @@
 import { parse } from 'graphql';
 
-import type {
-  FollowChangeByTokenAnswer,
-  FollowConfirmAnswer,
-  FollowConfirmPeekAnswer,
-  FollowEvents,
-  FollowSubscriber,
-} from './follow-links.types';
+import type { FollowChangeByTokenAnswer, FollowEvents, FollowSubscriber } from './follow-links.types';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
@@ -19,20 +13,6 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 
 const FOLLOW_FIELDS = 'id channel status package { registry name } events { notable digest milestones }';
 const SUBSCRIBER_FIELDS = `id channel addressHint paused follows { ${FOLLOW_FIELDS} }`;
-
-/** The confirmation page on load: what the press would confirm. Changes nothing. */
-export const FollowConfirmPeekDocument = doc<{ followConfirmPeek: FollowConfirmPeekAnswer }, { token: string }>(
-  `query FollowConfirmPeek($token: String!) {
-    followConfirmPeek(token: $token) { result packages { registry name } events { notable digest milestones } }
-  }`,
-);
-
-/** The confirmation page's press. Only a link's first press answers the address's settings key. */
-export const FollowConfirmDocument = doc<{ followConfirm: FollowConfirmAnswer }, { token: string }>(
-  `mutation FollowConfirm($token: String!) {
-    followConfirm(token: $token) { result packages { registry name } manageToken }
-  }`,
-);
 
 /** The follows a settings link (its address's) or an Unfollow link (that follow alone) reaches. */
 export const FollowingByTokenDocument = doc<

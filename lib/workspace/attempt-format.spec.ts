@@ -31,6 +31,29 @@ describe('editableBodyOf', () => {
     expect(editableBodyOf('Made with GitRanks Contribute, then edited by hand.')).toBe(
       'Made with GitRanks Contribute, then edited by hand.',
     );
+    expect(editableBodyOf('Made with GitRanks Learn, then edited by hand.')).toBe(
+      'Made with GitRanks Learn, then edited by hand.',
+    );
+  });
+
+  it("takes out today's footer: both lines in one <sub>, on one line", () => {
+    const say =
+      'Something off? [Tell us or opt out in one step](https://gitranks.com/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0) — maintainers are always in control';
+    expect(
+      editableBodyOf(
+        `Done.\n\n<sub>Made with [GitRanks Contribute](https://gitranks.com/contribute/pr/6650a1b2c3d4e5f6a7b8c9d0) and Codex (GPT) · Reviewed and submitted by @octocat<br>${say}</sub>`,
+      ),
+    ).toBe('Done.');
+  });
+
+  it("takes out a Learn pull request's footer, on one line or on two", () => {
+    const made =
+      'Made with [GitRanks Learn](https://gitranks.com/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0), where developers learn on real issues · Claude Code (Opus) wrote this fix and taught it to @mira-dev, who [passed a check on the lesson](https://gitranks.com/learn/lessons/empty-config-abcdef/passes/mira-dev) and submitted it';
+    const say =
+      'Something off? [Tell us or opt out in one step](https://gitranks.com/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0) — maintainers are always in control';
+    expect(editableBodyOf(`Done.\n\n<sub>${made}<br>${say}</sub>`)).toBe('Done.');
+    expect(editableBodyOf(`Done.\n\n<sub>${made}</sub><br>\n<sub>${say}</sub>`)).toBe('Done.');
+    expect(editableBodyOf(`Done.\n\n<sub>${made}</sub>`)).toBe('Done.');
   });
 });
 

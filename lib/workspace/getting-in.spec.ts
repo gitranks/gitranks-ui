@@ -110,9 +110,15 @@ const learn = (
 describe('learnFlowPlaceOf: who belongs on which step of Learn', () => {
   it('a visitor sees every step while Learn is open to everyone, and the 404 otherwise', () => {
     for (const step of ['goal', 'issues', 'issue'] as const) {
-      expect(learn(step, SIGNED_OUT), step).toEqual({ kind: 'page' });
+      expect(learn(step, SIGNED_OUT, { goalInAddress: true }), step).toEqual({ kind: 'page' });
       expect(learn(step, SIGNED_OUT, { openToEveryone: false }), step).toEqual({ kind: 'not-found' });
     }
+  });
+
+  it('a visitor on Pick an issue with no goal in the address is asked it first; the other steps need none', () => {
+    expect(learn('issues', SIGNED_OUT)).toEqual({ kind: 'redirect', to: '/learn/start' });
+    expect(learn('goal', SIGNED_OUT)).toEqual({ kind: 'page' });
+    expect(learn('issue', SIGNED_OUT)).toEqual({ kind: 'page' });
   });
 
   it('an account being set up waits; one with no profile sees its panel once launched, a 404 before', () => {

@@ -314,6 +314,18 @@ export type LearnIssuesEmpty = 'NONE_TODAY' | 'GOAL_UNSUPPORTED' | 'CAP' | 'UNRE
 /** An open issue a lesson can be written for: picked from the ready issues for the viewer's goal. */
 export type LearnIssue = StartIssueRow;
 
+/** An issue of a language's day list for visitors: as Learn's own list words it, without its node id. */
+export type LearnPublicIssue = Omit<LearnIssue, 'issueId'>;
+
+/** A language's day list for visitors: a short list, the same for every visitor that day. */
+export type LearnPublicIssues = {
+  /** The language, as GitHub names it. */
+  language: string;
+  items: LearnPublicIssue[];
+  /** The language's ready issues, approximate: said as "about". */
+  total: number;
+};
+
 /** The limit that leaves the viewer no room for a new claim: `attempts_at_a_time` or `open_prs_at_a_time`. */
 export type LearnRoom = { limit: string; value: number };
 

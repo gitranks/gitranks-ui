@@ -7,7 +7,7 @@ import { LearnGoalQuick } from '@/app/learn/components/learn-goal-quick';
 import { LearnSettingUp } from '@/app/learn/components/learn-setting-up';
 import { PracticeSection } from '@/app/learn/components/practice-lessons';
 import { PATH_ICONS, StepStrip } from '@/app/learn/components/stage-strip';
-import { Pill } from '@/components/pill/pill';
+import { GoalChips } from '@/components/learn/goal-chips';
 import { Button } from '@/components/ui/button';
 import { NumberTiles } from '@/components/workspace/number-tiles';
 import { HEADING } from '@/components/workspace/primitives';
@@ -24,6 +24,7 @@ import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path
 import {
   headPartOf,
   type LearnTabState,
+  learnIssuesTextOf,
   learnTilesOf,
   ONE_AT_A_TIME,
   pathMarksOf,
@@ -117,37 +118,6 @@ function Path({ profile, attempts }: { profile: LearnProfile | null; attempts: M
   );
 }
 
-/** "For your goal: TypeScript · Some · Change": the goal the list is for, and the way to change it. */
-function GoalChips({ goal }: { goal: LearnGoalView }) {
-  return (
-    <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground" data-goal-chips="">
-      For your goal:
-      <Pill tone="violet">{goalValueOf(goal)}</Pill>
-      {goal.level ? <Pill tone="violet">{goal.level}</Pill> : null}
-      <Link
-        href={WORKSPACE_PATHS.settingsGoal}
-        prefetch={false}
-        className={`${link} max-sm:inline-flex max-sm:min-h-11 max-sm:items-center`}
-      >
-        Change
-      </Link>
-    </span>
-  );
-}
-
-/** The issues' line, by the goal: a language's issues, or one project's. */
-function issuesTextOf(goal: LearnGoalView | null): string {
-  const value = goalValueOf(goal);
-  const kind = goal?.kind.toLowerCase();
-  const where =
-    kind === 'language' && value
-      ? `Open ${value} issues from projects that take outside pull requests.`
-      : kind === 'project' && value
-        ? `Open issues in ${value}.`
-        : 'Open issues from projects that take outside pull requests.';
-  return `${where} Your lesson is written for the issue you pick.`;
-}
-
 /** Learn something new (`#issues`): the heading, its line and the goal, then the list with its own notices. */
 function LearnSomethingNew({
   issues,
@@ -167,9 +137,9 @@ function LearnSomethingNew({
           <h2 id="issues-title" className={HEADING.section}>
             Learn something new
           </h2>
-          <p className="max-w-prose text-sm text-muted-foreground">{issuesTextOf(goal)}</p>
+          <p className="max-w-prose text-sm text-muted-foreground">{learnIssuesTextOf(goal)}</p>
         </div>
-        {goal && !held ? <GoalChips goal={goal} /> : null}
+        {goal && !held ? <GoalChips goal={goal} changeHref={WORKSPACE_PATHS.settingsGoal} /> : null}
       </div>
       <LearnIssueList issues={issues} held={held} primary={primary} source="learn_home_issue" />
     </section>

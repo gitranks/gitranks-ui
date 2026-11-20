@@ -7,6 +7,7 @@ import type {
   LearnProfileInput,
   LearnPromo,
   LearnPromoPlacement,
+  LearnPublicIssues,
   LearnRecord,
   LessonAnswerResult,
   LessonPage,
@@ -140,8 +141,11 @@ export const SaveLearnProfileDocument = doc<{ saveLearnProfile: LearnProfile }, 
   `mutation SaveLearnProfile($input: LearnProfileInput!) { saveLearnProfile(input: $input) { ${PROFILE} } }`,
 );
 
+/** An issue a lesson can be written for, as a visitor's list words it too: everything but its node id. */
+const LEARN_PUBLIC_ISSUE = 'url repo number title language size why';
+
 /** An issue a lesson can be written for: the same fields wherever Learn lists one. */
-export const LEARN_ISSUE = 'issueId url repo number title language size why';
+export const LEARN_ISSUE = `issueId ${LEARN_PUBLIC_ISSUE}`;
 
 /**
  * The issues for the viewer's goal (`first`: 0 to 100; 0 answers the total alone and reveals nothing), why there are
@@ -158,16 +162,43 @@ export const LearnIssuesDocument = doc<{ learnIssues: LearnIssues }, { first: nu
 }`,
 );
 
+const PRACTICE_LESSON = `slug title repo issue issueTitle language
+      author { login agentName agentFamily }
+      writtenFor { kind value level }
+      publishedAt passes topics steps minutes`;
+
 /** Other learners' public lessons for the viewer's goal (`first`: 1 to 93), and how many there are. */
 export const PracticeLessonsDocument = doc<{ practiceLessons: PracticeLessons }, { first: number }>(
   `query PracticeLessons($first: Int) {
   practiceLessons(first: $first) {
-    items {
-      slug title repo issue issueTitle language
-      author { login agentName agentFamily }
-      writtenFor { kind value level }
-      publishedAt passes topics steps minutes
-    }
+    items { ${PRACTICE_LESSON} }
+    total
+  }
+}`,
+);
+
+/**
+ * A language's day list for visitors, asked without a viewer: a short list, the same for every visitor that day.
+ * Null while Learn is not open to everyone, or for a language Learn finds no issues for.
+ */
+export const LearnPublicIssuesDocument = doc<{ learnPublicIssues: LearnPublicIssues | null }, { language: string }>(
+  `query LearnPublicIssues($language: String!) {
+  learnPublicIssues(language: $language) {
+    language
+    items { ${LEARN_PUBLIC_ISSUE} }
+    total
+  }
+}`,
+);
+
+/** Public practice lessons for a language (`first`: 1 to 30), asked without a viewer; null on the same conditions. */
+export const LearnPublicPracticeDocument = doc<
+  { learnPublicPractice: PracticeLessons | null },
+  { language: string; first: number }
+>(
+  `query LearnPublicPractice($language: String!, $first: Int) {
+  learnPublicPractice(language: $language, first: $first) {
+    items { ${PRACTICE_LESSON} }
     total
   }
 }`,

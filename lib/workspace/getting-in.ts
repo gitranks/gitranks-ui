@@ -97,7 +97,11 @@ export function learnFlowPlaceOf(
   step: LearnFlowStep,
   { gate, launched, openToEveryone, goalSaved, goalInAddress, issue }: LearnFlowFacts,
 ): FlowPlace {
-  if (gate.kind === 'signed-out') return openToEveryone ? PAGE : { kind: 'not-found' };
+  if (gate.kind === 'signed-out') {
+    if (!openToEveryone) return { kind: 'not-found' };
+    // A visitor's goal lives in the address alone: Pick an issue without one asks it first.
+    return step === 'issues' && !goalInAddress ? redirectTo(GETTING_IN_PATHS.learnGoal) : PAGE;
+  }
   const shared = sharedPlaceOf(gate, launched);
   if (shared) return shared;
   if (gate.kind !== 'open' || !gate.learnOpen) return { kind: 'not-found' };

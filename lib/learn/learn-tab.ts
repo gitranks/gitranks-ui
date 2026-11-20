@@ -1,7 +1,7 @@
 import type { Route } from 'next';
 
-import type { LearnProfile, MyLearnAttempt, MyLearnAttempts } from './learn.types';
-import { currentOf, hasGoal } from './learn-home';
+import type { LearnGoalView, LearnProfile, MyLearnAttempt, MyLearnAttempts } from './learn.types';
+import { currentOf, goalValueOf, hasGoal } from './learn-home';
 import { PROGRESS_TABS, PROGRESS_VIEWS, progressPath } from './progress/progress';
 import type { LearnProgressCounts } from './progress/progress.types';
 import { type IssueRef, pullRequestByAttemptPath, startPath } from '@/lib/workspace/paths';
@@ -142,6 +142,22 @@ export function learnStartHrefOf(ref: Pick<IssueRef, 'repo' | 'issue'>, target?:
   const path = `${target.base.replace(/\/+$/, '')}/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/${ref.issue}`;
   const query = target.query?.replace(/^\?/, '');
   return (query ? `${path}?${query}` : path) as Route;
+}
+
+/**
+ * The issues' line, by the goal: a language's issues, or one project's. The Learn tab and Pick an issue say it under
+ * their titles.
+ */
+export function learnIssuesTextOf(goal: Pick<LearnGoalView, 'kind' | 'value'> | null): string {
+  const value = goalValueOf(goal);
+  const kind = goal?.kind.toLowerCase();
+  const where =
+    kind === 'language' && value
+      ? `Open ${value} issues from projects that take outside pull requests.`
+      : kind === 'project' && value
+        ? `Open issues in ${value}.`
+        : 'Open issues from projects that take outside pull requests.';
+  return `${where} Your lesson is written for the issue you pick.`;
 }
 
 /** Below the lists while the viewer's own lesson is in progress: a page rule, not a refusal. */

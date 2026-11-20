@@ -13,6 +13,12 @@ export const CONTRIBUTE_FLOW_PANELS: FlowPanels = {
   noProfile: <ContributeNoProfile />,
 };
 
+/** Learn's: the same two panels, named for Learn. */
+export const LEARN_FLOW_PANELS: FlowPanels = {
+  settingUp: <ContributeSettingUp product="Learn" />,
+  noProfile: <ContributeNoProfile product="Learn" />,
+};
+
 /**
  * A step's place when it is not the step itself: the redirect and the 404 happen here, a panel is returned to draw in
  * the frame. Null for the step (with its sign-in card, or saving the address's answer first): the page draws it.

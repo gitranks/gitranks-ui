@@ -149,32 +149,41 @@ export function PracticeGrid({ children }: { children: ReactNode }) {
 const practiceKey = ({ slug }: PracticeLesson) => slug;
 
 /**
- * The Learn tab's practice lessons (`#practice`): other learners' lessons for the viewer's goal, marked optional, with
- * how many there are; the first 3, then "Show 10 more" reads the list again with 10 more (13, 23, … up to 93) and adds
- * the cards not shown yet under the others, which stay in place. Left out when no lesson matches the goal, or the API did not answer.
+ * Practice lessons (`#practice`): other learners' lessons for the viewer's goal, marked optional, with how many there
+ * are; the first 3, then "Show 10 more" reads the list again with 10 more (13, 23, … up to 93) and adds the cards not
+ * shown yet under the others, which stay in place. For a visitor (`visitor`), `practice` is the language's whole public
+ * list as read (up to 30): "Show 3 more" shows 3 more of it in place, and the count names no lessons passed. Left out
+ * when no lesson matches the goal, or the API did not answer.
  */
 export function PracticeSection({
   practice,
   goal,
   title,
   text,
+  source = 'learn_home_practice',
+  visitor = false,
 }: {
   practice: PracticeLessons | undefined;
   /** The goal's own words: "TypeScript". */
   goal: string;
   title: string;
   text: ReactNode;
+  /** Where a click on Take this lesson counts as coming from. */
+  source?: ContributeSource;
+  visitor?: boolean;
 }) {
   // The cards shown keep their places: a new read (the page's, or "Show 10 more"'s) only adds the ones not shown yet.
-  const { rows: items, add } = useStableRows(practice?.items ?? [], practiceKey);
+  const { rows, add } = useStableRows(practice?.items ?? [], practiceKey);
   const [answered, setAnswered] = useState<number | null>(null);
   const [asked, setAsked] = useState(Math.max(practice?.items.length ?? 0, PRACTICE_FIRST));
+  const [shown, setShown] = useState(PRACTICE_FIRST);
   const [ended, setEnded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
+  const items = visitor ? rows.slice(0, shown) : rows;
   if (!items.length) return null;
   const total = Math.max(answered ?? practice?.total ?? 0, items.length);
-  const most = Math.min(total, PRACTICE_MAX);
+  const most = visitor ? Math.min(total, rows.length) : Math.min(total, PRACTICE_MAX);
 
   const showMore = () =>
     startTransition(async () => {
@@ -202,16 +211,24 @@ export function PracticeSection({
           <p className="max-w-prose text-sm text-muted-foreground">{text}</p>
         </div>
         <span className="text-sm text-muted-foreground" data-practice-total={total}>
-          <span className="font-mono tabular-nums">{total.toLocaleString('en-US')}</span> for {goal || 'your goal'} you
-          haven’t passed
+          <span className="font-mono tabular-nums">{total.toLocaleString('en-US')}</span> for {goal || 'your goal'}
+          {visitor ? null : ' you haven’t passed'}
         </span>
       </div>
       <PracticeGrid>
         {items.map((lesson) => (
-          <PracticeLessonCard key={lesson.slug} lesson={lesson} source="learn_home_practice" />
+          <PracticeLessonCard key={lesson.slug} lesson={lesson} source={source} />
         ))}
       </PracticeGrid>
-      {ended || asked >= PRACTICE_MAX ? (
+      {visitor ? (
+        <ShowMore
+          shown={items.length}
+          total={most}
+          noun="practice lesson"
+          step={PRACTICE_FIRST}
+          onMore={() => setShown((count) => count + PRACTICE_FIRST)}
+        />
+      ) : ended || asked >= PRACTICE_MAX ? (
         items.length < most ? (
           <p className="text-sm text-muted-foreground" data-show-more-ended="">
             Showing {items.length} of {most} practice lessons

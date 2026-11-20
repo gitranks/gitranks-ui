@@ -11,9 +11,24 @@ import { type ShareState, shareStateOf } from '@/lib/learn/public-progress/publi
 /** The helper line under a Share button. */
 const SHARE_TEXT = 'Copies your public link. Posted anywhere, it shows a card with your numbers.';
 
-/** Why the public page counts less than Your progress, with its count. */
-export const differText = (lessons: number) =>
-  `Your public page counts ${lessons} ${lessons === 1 ? 'lesson' : 'lessons'}. A lesson is counted there once its pull request is open, and a practice lesson once you share your result.`;
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+/**
+ * Why the public page counts less than Your progress, said of the count that differs: the lessons first, then the new
+ * things, then the merged pull requests and their repositories. Null when they are the same.
+ */
+export function differTextOf(counts: LearnProgressCounts, publicCounts: LearnProgressCounts): string | null {
+  if (publicCounts.lessonsPassed !== counts.lessonsPassed) {
+    return `Your public page counts ${plural(publicCounts.lessonsPassed, 'lesson', 'lessons')}. A lesson is counted there once its pull request is open, and a practice lesson once you share your result.`;
+  }
+  if (publicCounts.newThings !== counts.newThings) {
+    return `Your public page counts ${plural(publicCounts.newThings, 'new thing', 'new things')} learned. It counts the new things of the results that are public.`;
+  }
+  if (publicCounts.prsMerged !== counts.prsMerged || publicCounts.reposHelped !== counts.reposHelped) {
+    return `Your public page counts ${plural(publicCounts.prsMerged, 'pull request', 'pull requests')} merged in ${plural(publicCounts.reposHelped, 'repository', 'repositories')}. A merged pull request is counted there while its repository is public.`;
+  }
+  return null;
+}
 
 /** No public record yet: nothing to share. */
 export const NO_RECORD_TEXT = 'You can share once your first pull request opens, or after you share a practice result.';
@@ -80,7 +95,7 @@ export function ShareProgress({
       ) : null}
       <p className="text-sm text-muted-foreground sm:text-right">
         {SHARE_TEXT}
-        {state === 'differ' && publicCounts ? ` ${differText(publicCounts.lessonsPassed)}` : null}
+        {state === 'differ' && publicCounts ? ` ${differTextOf(counts, publicCounts) ?? ''}` : null}
       </p>
     </div>
   );

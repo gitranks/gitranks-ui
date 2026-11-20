@@ -395,6 +395,19 @@ describe('Your progress: Share', () => {
     );
   });
 
+  it('names the count that differs: merged pull requests whose repository is no longer public', () => {
+    const html = share({ ...progressCounts, prsMerged: progressCounts.prsMerged - 1, reposHelped: 1 });
+    expect(html).toContain('data-share="differ"');
+    expect(text(html)).not.toContain('lesson is counted there');
+    expect(text(html)).toContain(
+      `Your public page counts ${progressCounts.prsMerged - 1} pull requests merged in 1 repository. A merged pull request is counted there while its repository is public.`,
+    );
+    const learned = share({ ...progressCounts, newThings: 3 });
+    expect(text(learned)).toContain(
+      'Your public page counts 3 new things learned. It counts the new things of the results that are public.',
+    );
+  });
+
   it('offers no button before anything is public, and nothing before a first pass', () => {
     const none = share(null);
     expect(none).toContain('data-share="no-record"');

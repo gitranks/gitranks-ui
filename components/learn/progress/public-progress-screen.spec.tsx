@@ -162,6 +162,18 @@ describe('the page’s link preview and the card', () => {
     const redirect = await card.GET(request, { params: params('octocat') } as never);
     expect(images[0].url.endsWith(redirect.headers.get('Location') ?? '-')).toBe(true);
     expect(data.loadPublicRecord).toHaveBeenCalledWith('octocat');
+    // The route reads the whole query: only exactly `?v=<numbers>` is drawn.
+    const at = (search: string) =>
+      card.GET(
+        { nextUrl: new URL(`https://gitranks.com/badge/user/octocat/learn-card.png${search}`) } as NextRequest,
+        { params: params('octocat') } as never,
+      );
+    expect((await at('?v=2-3-1')).status).toBe(200);
+    for (const search of ['?v=2-3-1&x=1', '?v=2-3-1&v=x']) {
+      const response = await at(search);
+      expect([response.status, response.headers.get('Cache-Control')], search).toEqual([308, 'no-store']);
+      expect(response.headers.get('Location')).toBe('/badge/user/octocat/learn-card.png?v=2-3-1');
+    }
   });
 
   it('keeps no card in the preview of another spelling of the login, and answers its card 404, kept nowhere', async () => {

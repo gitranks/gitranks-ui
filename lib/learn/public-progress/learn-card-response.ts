@@ -20,13 +20,14 @@ const text = (body: string, status: number, headers: Record<string, string>) =>
   new Response(body, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', ...headers } });
 
 /**
- * The card's answer for a login and the `v` asked. The card exists for the stored spelling of a login with a public
- * record alone, and is drawn for its current numbers alone: any other `v` (missing, made up, or a minute behind) is a
- * 308 to the current address, so one login has one drawable address at a time.
+ * The card's answer for a login and the query asked (`?v=…`, as the address writes it). The card exists for the stored
+ * spelling of a login with a public record alone, and is drawn for its current numbers alone, under exactly
+ * `?v=<numbers>`: any other query (no `v`, a made-up or old one, a second `v`, any other parameter) is a 308 to the
+ * current address, so one login has one drawable address at a time and no query makes it draw again.
  */
 export async function learnCardResponse(
   loginAsked: string,
-  version: string | null,
+  search: string,
   read: (login: string) => Promise<LearnRecord | null>,
   draw: (login: string, record: LearnRecord) => Promise<Uint8Array<ArrayBuffer>>,
 ): Promise<Response> {
@@ -40,7 +41,7 @@ export async function learnCardResponse(
   }
   if (!record) return text('Not found', 404, LEARN_CARD_HEADERS.missing);
   if (!isStoredSpelling(record, login)) return text('Not found', 404, LEARN_CARD_HEADERS.never);
-  if (version !== learnCardVersionOf(record)) {
+  if (search !== `?v=${learnCardVersionOf(record)}`) {
     return new Response(null, {
       status: 308,
       headers: { Location: learnCardUrlOf(login, record), ...LEARN_CARD_HEADERS.never },

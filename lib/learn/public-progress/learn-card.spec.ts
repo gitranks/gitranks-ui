@@ -24,8 +24,8 @@ const sizeOf = (png: Uint8Array) => {
   return { width: view.getUint32(16), height: view.getUint32(20) };
 };
 
-const respond = (login: string, v: string | null, read: () => Promise<LearnRecord | null>) =>
-  learnCardResponse(login, v, read, async () => new Uint8Array([1, 2, 3]));
+const respond = (login: string, search: string, read: () => Promise<LearnRecord | null>) =>
+  learnCardResponse(login, search, read, async () => new Uint8Array([1, 2, 3]));
 
 describe('the Learn progress card', () => {
   it('is drawn at 1200 × 630, a long login and figures at 0 too', async () => {
@@ -38,7 +38,7 @@ describe('the Learn progress card', () => {
   }, 30_000);
 
   it('draws the current numbers, kept an hour in a shared cache and nothing stale after it', async () => {
-    const response = await respond('octocat', '7-19-2', async () => record());
+    const response = await respond('octocat', '?v=7-19-2', async () => record());
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('image/png');
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=300');
@@ -48,10 +48,20 @@ describe('the Learn progress card', () => {
     ).not.toMatch(/stale/);
   });
 
-  it('sends a missing, made-up or old `v` to the current address, kept nowhere', async () => {
-    for (const v of [null, '', 'x', '7-19-1', '7-19-2-0']) {
-      const response = await respond('octocat', v, async () => record());
-      expect(response.status, String(v)).toBe(308);
+  it('sends any other query to the current address, kept nowhere: no query makes it draw again', async () => {
+    for (const search of [
+      '',
+      '?v=',
+      '?v=x',
+      '?v=7-19-1',
+      '?v=7-19-2-0',
+      '?v=7-19-2&x=1',
+      '?v=7-19-2&v=x',
+      '?x=1&v=7-19-2',
+      '?v=7%2D19%2D2',
+    ]) {
+      const response = await respond('octocat', search, async () => record());
+      expect(response.status, search).toBe(308);
       expect(response.headers.get('Location')).toBe('/badge/user/octocat/learn-card.png?v=7-19-2');
       expect(response.headers.get('Cache-Control')).toBe('no-store');
       expect(response.headers.get('Cloudflare-CDN-Cache-Control')).toBeNull();
@@ -59,17 +69,17 @@ describe('the Learn progress card', () => {
   });
 
   it('answers 404 without a record (kept a minute) and for another spelling of the login (kept nowhere)', async () => {
-    const none = await respond('octocat', '7-19-2', async () => null);
+    const none = await respond('octocat', '?v=7-19-2', async () => null);
     expect([none.status, none.headers.get('Cache-Control')]).toEqual([404, 'public, max-age=60']);
     expect(none.headers.get('Cloudflare-CDN-Cache-Control')).toBeNull();
-    const spelled = await respond('OctoCat', '7-19-2', async () => record({ login: 'octocat' }));
+    const spelled = await respond('OctoCat', '?v=7-19-2', async () => record({ login: 'octocat' }));
     expect([spelled.status, spelled.headers.get('Cache-Control')]).toEqual([404, 'no-store']);
-    const notALogin = await respond('-bad-', '7-19-2', async () => record());
+    const notALogin = await respond('-bad-', '?v=7-19-2', async () => record());
     expect(notALogin.status).toBe(404);
   });
 
   it('answers a short unavailable when the record cannot be read or drawn: never a card with zeros', async () => {
-    const failed = await respond('octocat', '7-19-2', async () => {
+    const failed = await respond('octocat', '?v=7-19-2', async () => {
       throw new Error('down');
     });
     expect(failed.status).toBe(503);
@@ -77,7 +87,7 @@ describe('the Learn progress card', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const broken = await learnCardResponse(
       'octocat',
-      '7-19-2',
+      '?v=7-19-2',
       async () => record(),
       async () => {
         throw new Error('satori');

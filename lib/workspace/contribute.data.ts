@@ -21,6 +21,7 @@ import {
   ContributeAttemptHoldDocument,
   ContributeAttemptLearnDocument,
   ContributeAttemptMovesDocument,
+  ContributeAttemptOneCommentFirstDocument,
   ContributeAttemptOwnAgentDocument,
   ContributeAttemptProofDocument,
   ContributeAttemptRefDocument,
@@ -660,6 +661,10 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
   const repliesPlan = Promise.resolve(graphqlDirect(ContributeAttemptRepliesPlanDocument, { id }, options)).catch(
     () => undefined,
   );
+  // Whether the run's replies go straight to one comment, and why each went as a comment; left out when not answered.
+  const oneCommentFirst = Promise.resolve(
+    graphqlDirect(ContributeAttemptOneCommentFirstDocument, { id }, options),
+  ).catch(() => undefined);
   // A follow-up run's new description for its pull request; left out when not answered.
   const bodyUpdate = Promise.resolve(graphqlDirect(ContributeAttemptBodyUpdateDocument, { id }, options)).catch(
     () => undefined,
@@ -688,8 +693,11 @@ async function readAttempt(id: string): Promise<ContributeAttemptDetail | null |
     );
     const flowRead = (await flow)?.contributeAttempt;
     const withFlow = withRepliesPlanOf(
-      withFollowUpFlow(withFollowUps, flowRead?.attemptId === contributeAttempt.attemptId ? flowRead : undefined),
-      (await repliesPlan)?.contributeAttempt,
+      withRepliesPlanOf(
+        withFollowUpFlow(withFollowUps, flowRead?.attemptId === contributeAttempt.attemptId ? flowRead : undefined),
+        (await repliesPlan)?.contributeAttempt,
+      ),
+      (await oneCommentFirst)?.contributeAttempt,
     );
     const dcoRead = (await dco)?.contributeAttempt;
     const withDco =

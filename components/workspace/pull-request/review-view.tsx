@@ -456,6 +456,7 @@ export function ContributionShell({
               // Never the session shown: the layout stays as the user moves between them.
               access={orgRestrictionOf({ first, current: run, replies })}
               threadsBlocked={!!threadsBlockedOf({ first, current: run })}
+              probeFirst={(first.probeFirst ?? run?.probeFirst) === true}
               org={orgOf(first)}
               orgAccess={orgAccessOf()}
             />

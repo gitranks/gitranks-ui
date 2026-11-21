@@ -37,6 +37,7 @@ import {
   partOf,
   probeLineOf,
 } from '@/lib/workspace/one-comment';
+import { orgWhoOf } from '@/lib/workspace/org-access';
 import { bracketed } from '@/lib/workspace/pr-moves';
 import {
   orgNameOf,
@@ -93,12 +94,14 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
     error: errors,
   };
   const status = run.checkStatus;
-  // The run's first reply is tried in its thread first: said under the push, never promising one comment.
+  // The run's first reply is tried in its thread first (said under the push, never promising one comment), or the
+  // replies go straight to one comment: an info, not a failure.
   const probe = probeLineOf(run);
   const probeLine = probe ? (
     <ProbeLine
       org={probe.org}
       blocked={probe.blocked}
+      oneComment={probe.oneComment}
       prNumber={pr.number}
       threadDraftIds={(run.replyDrafts ?? []).flatMap((draft) =>
         draft.comment && !isNoReply(draft) ? [draft.draftId] : [],
@@ -196,7 +199,10 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
     );
   }
   const tests = variant === 'tests';
-  const what = `The commits go onto #${pr.number ?? ''}'s branch on your fork; each reply posts in its thread${probe ? ', or in one comment with the others if the organization blocks the first' : ''}, in your name.${run.prBodyUpdate ? " The pull request's description is replaced by the new one shown below, before any reply." : ''} Nothing goes to GitHub before you approve it.`;
+  const how = probe?.oneComment
+    ? 'the replies to review threads post together as one comment on the pull request'
+    : `each reply posts in its thread${probe ? ', or in one comment with the others if the organization blocks the first' : ''}`;
+  const what = `The commits go onto #${pr.number ?? ''}'s branch on your fork; ${how}, in your name.${run.prBodyUpdate ? " The pull request's description is replaced by the new one shown below, before any reply." : ''} Nothing goes to GitHub before you approve it.`;
   return (
     <MoveCard
       {...common}
@@ -213,7 +219,8 @@ export function RunReadyCard({ move, first, run, blocked, orgAccess, rider }: Ca
       body={
         <div className="flex flex-col gap-2">
           {probeLine}
-          <ResolveLine probe={!!probe} />
+          {/* One comment resolves no thread. */}
+          {probe?.oneComment ? null : <ResolveLine probe={!!probe} />}
           <ResolveHumansSetting />
         </div>
       }
@@ -293,19 +300,35 @@ export function RunAutopilotCard({ move, run, now, rider }: CardProps) {
   );
 }
 
-/** Why the organization's refusal keeps replies out of their threads, and how it lifts. */
-function OrgWhy({ org, access }: { org: string; access: CardProps['orgAccess'] }) {
+/**
+ * Why the organization's refusal keeps replies out of their threads: an info, with no ask to the organization; the
+ * card posts them as one comment. When GitHub refused the one comment too (`access`), who can lift it, and where to ask.
+ */
+function OrgWhy({ org, access }: { org: string; access: CardProps['orgAccess'] | null }) {
+  if (!access) {
+    return (
+      <>
+        <p data-org-info="">
+          {orgWhoOf(org)} doesn&apos;t let apps reply in review threads. Post the replies as one comment on the pull
+          request instead: pull requests and plain comments still go through.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <RepoRulesLink />
+        </div>
+      </>
+    );
+  }
   return (
     <>
-      <p>
-        The organization turned on GitHub&apos;s OAuth app access restriction. Pull requests and plain comments still go
-        through; review-thread replies don&apos;t. Only an owner of {org} can lift it for GitRanks.
+      <p data-org-comment-refused="">
+        GitHub refused the one comment too: {org} turned on GitHub&apos;s OAuth app access restriction, which keeps
+        GitRanks from commenting on its pull requests. Only an owner of {org} can lift it for GitRanks.
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <OrgAccessButton access={access} />
         <RepoRulesLink />
       </div>
-      <p>Once an owner approves it, replies post in their threads again.</p>
+      <p>Once an owner approves it, GitRanks can post the replies again.</p>
     </>
   );
 }
@@ -436,6 +459,10 @@ export function ReplyFailedCard({ move, first, run, view, blocked, orgAccess, ri
     ...(held ? [held.reason.trim().toLowerCase()] : []),
   ]);
   const restricted = reasons.has('org_restricted');
+  // GitHub refused the one comment itself for the organization: not the review threads' case.
+  const commentRestricted = card.failedBatches.some(
+    ({ batch }) => batch.lastError?.reason?.trim().toLowerCase() === 'org_restricted',
+  );
   const grant = [...reasons].some((reason) => reason === 'grant_missing' || reason === 'grant_revoked');
   const notes = thread.shared
     .filter(({ reason }) => reason !== 'org_restricted' && !reason.startsWith('grant_'))
@@ -447,7 +474,7 @@ export function ReplyFailedCard({ move, first, run, view, blocked, orgAccess, ri
   const whyBody =
     restricted || grant || notes.length || rests.length || heldRest || retry || copyInWhy || tries.length > 1 ? (
       <div className="flex flex-col gap-2" data-reply-trouble={runId}>
-        {restricted ? <OrgWhy org={org} access={orgAccess} /> : null}
+        {restricted ? <OrgWhy org={org} access={commentRestricted ? orgAccess : null} /> : null}
         {((grant && view.grantAvailable && !grantConnected && !restricted) || grantFirst) &&
         !(retry && grantOnly && !grantConnected) ? (
           <GrantButton label="Allow GitHub access again" />

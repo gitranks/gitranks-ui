@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Lock } from 'lucide-react';
+import { ChevronDown, Info, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { createContext, type ReactNode, useContext } from 'react';
 
@@ -10,7 +10,7 @@ import { OpenOnHash } from '@/components/workspace/open-on-hash';
 import { Panel } from '@/components/workspace/primitives';
 import { cn } from '@/lib/utils';
 import type { ContributeRepoRules, ContributeRuleSource, ContributeSettings } from '@/lib/workspace/contribute.types';
-import type { OrgAccess } from '@/lib/workspace/org-access';
+import { type OrgAccess, threadRepliesInfoOf } from '@/lib/workspace/org-access';
 import { MAINTAINERS_PATH } from '@/lib/workspace/paths';
 import { httpsOnly } from '@/lib/workspace/pr-conventions';
 import { type CapRow, capRowsOf, REPOS_ASK_LESS, RULES_NONE, RULES_NONE_REVIEW } from '@/lib/workspace/repo-rules';
@@ -140,10 +140,13 @@ function Limits({ caps }: { caps: CapRow[] }) {
   );
 }
 
-/** How GitHub lets GitRanks act in the repo, from what proves a restriction now. */
+/**
+ * How GitHub lets GitRanks act in the repo, from what proves a restriction now: a refused submit blocks it; replies kept
+ * out of their review threads go as one comment, an info, not a failure.
+ */
 const ACCESS = {
-  submit: { short: 'access blocked', line: 'act in its repositories' },
-  replies: { short: 'replies blocked', line: 'reply in review threads' },
+  submit: { short: 'access blocked', tone: 'amber' },
+  replies: { short: 'replies as one comment', tone: 'neutral' },
 } as const;
 
 function AccessFact({
@@ -151,28 +154,36 @@ function AccessFact({
   org,
   orgAccess,
   threadsBlocked,
+  probeFirst,
 }: {
   access: 'submit' | 'replies';
   org: string;
   orgAccess: OrgAccess;
   threadsBlocked: boolean;
+  probeFirst: boolean;
 }) {
-  // The refusal GitRanks keeps for the organization: what it does about it, run after run.
-  const kept = access === 'replies' && threadsBlocked;
+  if (access === 'replies') {
+    // The refusal GitRanks keeps for the organization (`threadsBlocked`), or a reply refused in its thread: no ask.
+    return (
+      <div
+        data-repo-access={access}
+        data-threads-blocked={threadsBlocked || undefined}
+        className="flex items-start gap-2 text-muted-foreground"
+      >
+        <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+        <p className="min-w-0">
+          {threadRepliesInfoOf(org)}
+          {/* The kept refusal is a week old or more: the next run tries one reply in its thread first. */}
+          {threadsBlocked && probeFirst ? ' GitRanks tries one reply in its thread again once a week.' : null}
+        </p>
+      </div>
+    );
+  }
   return (
-    <div data-repo-access={access} data-threads-blocked={kept || undefined} className="flex items-start gap-2">
+    <div data-repo-access={access} className="flex items-start gap-2">
       <Lock aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-warning" />
       <div className="flex min-w-0 flex-col gap-1">
-        {kept ? (
-          <p>
-            {org} blocks review-thread replies: GitRanks tries the first reply in its thread, then posts the rest as one
-            comment.
-          </p>
-        ) : (
-          <p>
-            {org} only lets apps it approved {ACCESS[access].line}, and GitRanks isn&apos;t one yet.
-          </p>
-        )}
+        <p>{org} only lets apps it approved act in its repositories, and GitRanks isn&apos;t one yet.</p>
         <OrgAccessLink access={orgAccess} />
       </div>
     </div>
@@ -192,6 +203,7 @@ export function AttemptRepoRules({
   finished = false,
   access,
   threadsBlocked = false,
+  probeFirst = false,
   org,
   orgAccess,
 }: {
@@ -202,8 +214,10 @@ export function AttemptRepoRules({
   finished?: boolean;
   /** What proves the organization keeps GitRanks out now: a refused submit, or refused replies. */
   access: 'submit' | 'replies' | null;
-  /** The organization refuses review-thread replies, as GitRanks keeps it: the replies line says what GitRanks does. */
+  /** The organization refuses review-thread replies, as GitRanks keeps it (marked on the replies line). */
   threadsBlocked?: boolean;
+  /** A run's approval tries one reply in its thread first (with the kept refusal: it is a week old or more). */
+  probeFirst?: boolean;
   /** The organization, as the repo's owner: "driftwood-js", or "The organization". */
   org: string;
   /** Where the user asks the organization for access, read on the server. */
@@ -222,7 +236,7 @@ export function AttemptRepoRules({
     'none'
   ) : null;
   const limit = access ? (
-    <Pill tone="amber">{ACCESS[access].short}</Pill>
+    <Pill tone={ACCESS[access].tone}>{ACCESS[access].short}</Pill>
   ) : rules.caps ? (
     <>
       <span className="font-mono tabular-nums">{rules.caps.lines}</span> lines
@@ -265,7 +279,13 @@ export function AttemptRepoRules({
           ) : null}
           {kind !== 'none' && caps.length ? <Limits caps={caps} /> : null}
           {access ? (
-            <AccessFact access={access} org={org} orgAccess={orgAccess} threadsBlocked={threadsBlocked} />
+            <AccessFact
+              access={access}
+              org={org}
+              orgAccess={orgAccess}
+              threadsBlocked={threadsBlocked}
+              probeFirst={probeFirst}
+            />
           ) : null}
           <AskLink />
         </div>

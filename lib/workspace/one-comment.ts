@@ -47,6 +47,7 @@ export function withRepliesPlanOf(
     ...attempt,
     ...(has(read, 'threadRepliesBlocked') ? { threadRepliesBlocked: read.threadRepliesBlocked ?? null } : {}),
     ...(typeof read.probeFirst === 'boolean' ? { probeFirst: read.probeFirst } : {}),
+    ...(typeof read.oneCommentFirst === 'boolean' ? { oneCommentFirst: read.oneCommentFirst } : {}),
     ...(has(read, 'oneComment') ? { oneComment: read.oneComment ?? null } : {}),
     ...(Array.isArray(read.copyBodies) ? { copyBodies: read.copyBodies } : {}),
     ...(Array.isArray(read.replyBatches) ? { replyBatches: read.replyBatches } : {}),
@@ -208,15 +209,17 @@ export const partOf = (batch: Pick<ContributeReplyBatch, 'part' | 'parts'>) =>
   batch.parts > 1 ? `Part ${batch.part} of ${batch.parts}` : null;
 
 /**
- * The run's approval line when its first reply is tried in its thread first: the organization (its login), and whether
+ * The run's approval line when its first reply is tried in its thread first, or its replies go straight to one comment
+ * (`oneComment`: the organization refused GitRanks' thread replies lately): the organization (its login), and whether
  * it is known to refuse thread replies. Null when the run goes to its threads directly, or the API does not say.
  */
 export function probeLineOf(
-  run: Pick<ContributeAttemptDetail, 'probeFirst' | 'threadRepliesBlocked' | 'nameWithOwner'>,
-): { org: string; blocked: boolean } | null {
-  const blocked = !!run.threadRepliesBlocked;
+  run: Pick<ContributeAttemptDetail, 'probeFirst' | 'oneCommentFirst' | 'threadRepliesBlocked' | 'nameWithOwner'>,
+): { org: string; blocked: boolean; oneComment: boolean } | null {
+  const oneComment = run.oneCommentFirst === true;
+  const blocked = oneComment || !!run.threadRepliesBlocked;
   if (!blocked && run.probeFirst !== true) return null;
-  return { org: run.threadRepliesBlocked?.org?.trim() || orgOf(run.nameWithOwner), blocked };
+  return { org: run.threadRepliesBlocked?.org?.trim() || orgOf(run.nameWithOwner), blocked, oneComment };
 }
 
 /** The one comment's text as the confirm shows it: each part under its number when it was split. */

@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import type { ContributeSubmitError } from './contribute.types';
 import {
+  commentInsteadInfoOf,
   GITHUB_APPS_URL,
   isOrgRestricted,
   orgAccessOf,
   orgRestrictionOf,
   replyCopyOf,
   replyLinkOf,
+  threadRepliesInfoOf,
 } from './org-access';
 import { flowDraft, followUp, followUpAttempts, replyDraft } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { replyWaiting } from '@/lib/contribute/__fixtures__/contribute-overview';
@@ -24,6 +26,22 @@ describe('orgAccessOf', () => {
     expect(orgAccessOf(undefined)).toEqual({ url: GITHUB_APPS_URL, app: false });
     expect(orgAccessOf('  ')).toEqual({ url: GITHUB_APPS_URL, app: false });
     expect(orgAccessOf('a/../b')).toEqual({ url: GITHUB_APPS_URL, app: false });
+  });
+});
+
+describe('threadRepliesInfoOf', () => {
+  it('says the replies go as one comment, naming the organization when it is known', () => {
+    expect(threadRepliesInfoOf('driftwood-js', '#1419')).toBe(
+      "driftwood-js doesn't let apps reply in review threads, so replies are posted as one comment on #1419.",
+    );
+    for (const org of [null, '', 'the organization', 'The organization']) {
+      expect(threadRepliesInfoOf(org)).toBe(
+        "This organization doesn't let apps reply in review threads, so replies are posted as one comment.",
+      );
+    }
+    expect(commentInsteadInfoOf('driftwood-js')).toBe(
+      "driftwood-js doesn't let apps reply in review threads, so this reply was posted as a comment on the pull request.",
+    );
   });
 });
 

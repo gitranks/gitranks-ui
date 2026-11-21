@@ -199,14 +199,50 @@ describe('the run’s approval line', () => {
         probeFirst: true,
         threadRepliesBlocked: { org: 'driftwood-js', since: 'x', lastRefusedAt: 'x' },
       }),
-    ).toEqual({ org: 'driftwood-js', blocked: true });
+    ).toEqual({ org: 'driftwood-js', blocked: true, oneComment: false });
     expect(probeLineOf({ ...run, probeFirst: true, threadRepliesBlocked: null })).toEqual({
       org: 'driftwood-js',
       blocked: false,
+      oneComment: false,
     });
     // A personal account's repo, or an API that does not say: no line.
     expect(probeLineOf({ ...run, probeFirst: false, threadRepliesBlocked: null })).toBeNull();
+    expect(probeLineOf({ ...run, probeFirst: false, oneCommentFirst: false, threadRepliesBlocked: null })).toBeNull();
     expect(probeLineOf(run)).toBeNull();
+  });
+
+  it('says the replies go as one comment when the organization refused them lately', () => {
+    const blocked = { org: 'driftwood-js', since: 'x', lastRefusedAt: 'x' };
+    const run = { nameWithOwner: 'driftwood-js/driftwood', probeFirst: false, threadRepliesBlocked: blocked };
+    expect(probeLineOf({ ...run, oneCommentFirst: true })).toEqual({
+      org: 'driftwood-js',
+      blocked: true,
+      oneComment: true,
+    });
+    // Its refusal 7 days old or more: the first reply is tried in its thread again.
+    expect(probeLineOf({ ...run, probeFirst: true, oneCommentFirst: false })).toMatchObject({ oneComment: false });
+  });
+});
+
+describe('the one-comment-first read', () => {
+  const attempt = {
+    attemptId: 'A_1',
+    replyDrafts: [{ draftId: 'D_1' }, { draftId: 'D_2' }],
+  } as unknown as Parameters<typeof withRepliesPlanOf>[0];
+
+  it("merges the run's flag and each reply's comment reason, and leaves them out for an older API", () => {
+    const read = {
+      attemptId: 'A_1',
+      oneCommentFirst: true,
+      replyDrafts: [{ draftId: 'D_1', commentReason: 'org_restricted' }],
+    };
+    expect(withRepliesPlanOf(attempt, read)).toMatchObject({
+      oneCommentFirst: true,
+      replyDrafts: [{ draftId: 'D_1', commentReason: 'org_restricted' }, { draftId: 'D_2' }],
+    });
+    const older = withRepliesPlanOf(attempt, { attemptId: 'A_1' });
+    expect('oneCommentFirst' in older).toBe(false);
+    expect(older.replyDrafts).toEqual(attempt.replyDrafts);
   });
 });
 

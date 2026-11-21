@@ -309,7 +309,7 @@ describe('?move= and Also waiting', () => {
 });
 
 describe('replies that did not reach GitHub', () => {
-  it('says a shared organization refusal once, with Copy all, Dismiss and the way past it in Why', () => {
+  it('says a shared organization refusal once, with Copy all, Dismiss and an info in Why (no ask)', () => {
     const html = page(runOf({ replyDrafts: refused(7) }), { first: afterRun(), replies: refused(7) });
     const card = html.slice(html.indexOf('data-move="reply-failed"'), html.indexOf('data-panel="agent-did"'));
     const plain = text(card);
@@ -320,7 +320,12 @@ describe('replies that did not reach GitHub', () => {
     expect(plain).toContain('Dismiss');
     expect(plain).not.toContain('Try all again');
     expect(plain).toContain("Why can't GitRanks reply in the threads?");
-    expect(card).toContain('data-org-access');
+    expect(plain).toContain(
+      "driftwood-js doesn't let apps reply in review threads. Post the replies as one comment on the pull request instead: pull requests and plain comments still go through.",
+    );
+    expect(card).toContain('data-org-info');
+    expect(card).not.toContain('data-org-access');
+    expect(plain).not.toContain('Request access');
     expect(plain).toContain("See the repo's rules");
     expect(buttons(html).some((label) => label.startsWith('Approve again'))).toBe(false);
     // The rows say only "Not posted".
@@ -471,6 +476,19 @@ describe('replies as one comment', () => {
     expect(buttons(cardOf(html))[0]).toBe('Post it as a comment on #1419');
   });
 
+  it('says who can lift it, with where to ask, when GitHub refused the one comment too', () => {
+    const { drafts, plan } = fixtures.oneCommentFailed('org_restricted', 'GitHub refused the comment too.', null);
+    const card = cardOf(page(runOf({ replyDrafts: drafts, ...plan }), { first: afterRun(), replies: waiting(drafts) }));
+    expect(card).toContain('data-org-comment-refused');
+    expect(text(card)).toContain(
+      "GitHub refused the one comment too: driftwood-js turned on GitHub's OAuth app access restriction",
+    );
+    expect(text(card)).toContain('Only an owner of driftwood-js can lift it for GitRanks.');
+    expect(text(card)).not.toMatch(/plain comments still go through|in their threads again/);
+    expect(card).toContain('data-org-access');
+    expect(card).not.toContain('data-org-info');
+  });
+
   it('leads with Dismiss once the pull request is gone', () => {
     const { drafts, plan } = fixtures.oneCommentFailed('not_found', 'The pull request is no longer on GitHub.', null);
     const html = page(runOf({ replyDrafts: drafts, ...plan }), { first: afterRun(), replies: waiting(drafts) });
@@ -498,6 +516,39 @@ describe('replies as one comment', () => {
     expect(text(page(fixtures.runInReview(), { first: fixtures.underWay(fixtures.runInReview()) }))).not.toContain(
       'GitRanks tries the first reply',
     );
+  });
+
+  it('says, under the push, that the replies go as one comment where the organization refused them lately', () => {
+    const run = fixtures.runReadyOneCommentFirst();
+    const html = page(run, { first: fixtures.underWay(run) });
+    const words = text(html);
+    expect(html).toContain('data-probe-line="one-comment"');
+    expect(words).toContain(
+      "driftwood-js doesn't let apps reply in review threads, so replies are posted as one comment on #1419.",
+    );
+    expect(words).not.toContain('GitRanks tries the first reply');
+    // One comment resolves no thread; no ask to the organization.
+    expect(html).not.toContain('data-resolve-line');
+    expect(words).toContain('the replies to review threads post together as one comment on the pull request');
+    expect(html).not.toContain('data-org-access');
+  });
+
+  it('draws the replies going in one comment, and a posted one says why as an info', () => {
+    const going = fixtures.goingInOneComment();
+    const goingHtml = page(runOf({ replyDrafts: going, probeFirst: false, oneCommentFirst: true }), {
+      first: afterRun(),
+      replies: waiting(going),
+    });
+    expect(goingHtml.match(/data-row-state="goes-in-one-comment"/g)).toHaveLength(4);
+    expect(text(goingHtml)).toContain('Goes in one comment');
+    expect(text(goingHtml)).not.toContain('Waits for the first reply');
+    expect(goingHtml).not.toContain('data-move="replies"');
+
+    const posted = fixtures.postedInOneComment('org_restricted');
+    const postedHtml = page(runOf({ replyDrafts: posted }), { first: afterRun() });
+    expect(postedHtml.match(/data-row-state="posted-one-comment"/g)).toHaveLength(7);
+    expect(postedHtml).not.toContain('data-move="reply-failed"');
+    expect(postedHtml).not.toMatch(/data-reply-error|Not posted/);
   });
 });
 

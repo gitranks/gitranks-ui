@@ -118,7 +118,6 @@ function commentsPropsOf(
     grantAvailable: view.grantAvailable,
     cardReasons: Object.fromEntries(runIds.map((runId) => [runId, [...cardReasonsOf(model, runId)]])),
     cardShown,
-    orgAccess: orgAccessOf(),
     now,
   };
 }
@@ -159,6 +158,8 @@ function SessionDetails({
           updatedAt: attempt.updatedAt,
           hasPatch: !!attempt.patch?.trim(),
           flow,
+          // What an approval would do now, not the run's own plan (no field gives it): see RowContext.
+          oneCommentFirst: attempt.oneCommentFirst === true,
         }}
         {...commentsPropsOf(context, [attempt.attemptId], prNumber)}
       />

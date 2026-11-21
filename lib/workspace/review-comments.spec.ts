@@ -268,6 +268,9 @@ describe('the rows of replies as one comment', () => {
     const held = flowDraft({ send: false, heldBack: { reason: 'no_answer', note: 'No answer.', at: 'x' } });
     const posted = flowDraft({ state: 'POSTED', asComment: true, postAs: 'ONE_COMMENT', batchId: 'B_1' });
     expect(rowStateOf('perReply', waits, ctx())).toBe('waits-for-probe');
+    // The organization refused thread replies lately: no first reply to wait for, it goes in one comment.
+    expect(rowStateOf('perReply', waits, { ...ctx(), oneCommentFirst: true })).toBe('goes-in-one-comment');
+    expect(chipOf('goes-in-one-comment')).toEqual({ label: 'Goes in one comment', tone: 'neutral', check: false });
     expect(rowStateOf('perReply', held, ctx())).toBe('held-back');
     expect(rowStateOf('perReply', posted, ctx())).toBe('posted-one-comment');
     // A reply posted as its own comment keeps its words.

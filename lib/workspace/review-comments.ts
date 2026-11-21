@@ -40,6 +40,7 @@ export type RowState =
   | 'no-reply-needed'
   | 'draft-not-sent'
   | 'waits-for-probe'
+  | 'goes-in-one-comment'
   | 'held-back'
   | 'dismissed-by-hand'
   | 'dismissed'
@@ -63,6 +64,12 @@ export type RowContext = {
   runState: ContributeAttemptState | null;
   /** The reasons said at the run's scope (by the move card, or by the list's own line): its rows say only "Not posted". */
   saidElsewhere: ReadonlySet<string>;
+  /**
+   * The run's replies go straight to one comment (the organization refused thread replies lately): none waits. The API's
+   * `oneCommentFirst` says what an approval would do now (the organization's refusal and its age), not the run's own
+   * plan, which no field gives: a run that probed before the flag turned can read "Goes in one comment" for a while.
+   */
+  oneCommentFirst?: boolean;
 };
 
 /** The mode a run's comments read in, from its state and whether its API speaks the follow-up flow. */
@@ -98,8 +105,9 @@ export function rowStateOf(mode: RowMode, draft: ContributeReplyDraft, ctx: RowC
     case 'FAILED':
       return ctx.saidElsewhere.has(reasonKeyOf(draft)) ? 'not-posted-elsewhere' : 'not-posted-own';
     case 'DRAFT':
-      // The run's plan: held until its first reply answers in its thread, or given back when that did not go.
-      if (waitsForProbe(draft)) return 'waits-for-probe';
+      // The run's plan: held until its first reply answers in its thread (or, with no thread tried, for the one
+      // comment), or given back when that did not go.
+      if (waitsForProbe(draft)) return ctx.oneCommentFirst ? 'goes-in-one-comment' : 'waits-for-probe';
       if (isHeldBack(draft)) return 'held-back';
       if (draft.send === true && (ctx.runState === 'SUBMITTING' || ctx.runState === 'DONE')) return 'posting';
       if (!draft.text.trim()) return draft.outcome === 'NEEDS_YOU' ? 'left-for-github' : 'no-reply';
@@ -129,6 +137,7 @@ const GROUP_OF: Record<RowState, GroupId> = {
   'held-back': 'not-posted',
   posting: 'posted',
   'waits-for-probe': 'posted',
+  'goes-in-one-comment': 'posted',
   'posted-one-comment': 'posted',
   posted: 'posted',
   'posted-comment': 'posted',
@@ -227,6 +236,8 @@ export function chipOf(state: RowState, draft?: ContributeReplyDraft): Chip | nu
       return { label: 'Posted in one comment', tone: 'green', check: true };
     case 'waits-for-probe':
       return { label: 'Waits for the first reply', tone: 'neutral', check: false };
+    case 'goes-in-one-comment':
+      return { label: 'Goes in one comment', tone: 'neutral', check: false };
     case 'held-back':
       return { label: 'Held back', tone: 'amber', check: false };
     case 'posted-resolved':

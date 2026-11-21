@@ -71,10 +71,18 @@ export function threadsBlockedOf({
  * organization" when it is not known.
  */
 export function threadRepliesInfoOf(org: string | null | undefined, where?: string | null): string {
-  const name = org?.trim();
-  const who = !name || /^the organization$/i.test(name) ? 'This organization' : name;
-  return `${who} doesn't let apps reply in review threads, so replies are posted as one comment${where ? ` on ${where}` : ''}.`;
+  return `${orgWhoOf(org)} doesn't let apps reply in review threads, so replies are posted as one comment${where ? ` on ${where}` : ''}.`;
 }
+
+/** The organization at the start of a sentence: its login, or "This organization" when it is not known. */
+export function orgWhoOf(org: string | null | undefined): string {
+  const name = org?.trim();
+  return !name || /^the organization$/i.test(name) ? 'This organization' : name;
+}
+
+/** The same info on a reply posted as its own comment on the pull request ("Post as a comment instead"). */
+export const commentInsteadInfoOf = (org: string | null | undefined): string =>
+  `${orgWhoOf(org)} doesn't let apps reply in review threads, so this reply was posted as a comment on the pull request.`;
 
 /**
  * Where the user asks an organization to approve the app: the app's own page on GitHub (`app`), where each organization

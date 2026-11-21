@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ContributeSubmitError } from './contribute.types';
 import {
+  commentInsteadInfoOf,
   GITHUB_APPS_URL,
   isOrgRestricted,
   orgAccessOf,
@@ -38,6 +39,9 @@ describe('threadRepliesInfoOf', () => {
         "This organization doesn't let apps reply in review threads, so replies are posted as one comment.",
       );
     }
+    expect(commentInsteadInfoOf('driftwood-js')).toBe(
+      "driftwood-js doesn't let apps reply in review threads, so this reply was posted as a comment on the pull request.",
+    );
   });
 });
 

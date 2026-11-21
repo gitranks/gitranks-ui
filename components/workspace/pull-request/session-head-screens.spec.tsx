@@ -321,7 +321,7 @@ describe('replies that did not reach GitHub', () => {
     expect(plain).not.toContain('Try all again');
     expect(plain).toContain("Why can't GitRanks reply in the threads?");
     expect(plain).toContain(
-      "driftwood-js doesn't let apps reply in review threads, so replies are posted as one comment. Pull requests and plain comments still go through.",
+      "driftwood-js doesn't let apps reply in review threads. Post the replies as one comment on the pull request instead: pull requests and plain comments still go through.",
     );
     expect(card).toContain('data-org-info');
     expect(card).not.toContain('data-org-access');
@@ -474,6 +474,19 @@ describe('replies as one comment', () => {
     const html = page(run, { first: afterRun(), replies: waiting([refused, leftOut]) });
     // One reply goes: the failed one; the left-out draft stays the user's.
     expect(buttons(cardOf(html))[0]).toBe('Post it as a comment on #1419');
+  });
+
+  it('says who can lift it, with where to ask, when GitHub refused the one comment too', () => {
+    const { drafts, plan } = fixtures.oneCommentFailed('org_restricted', 'GitHub refused the comment too.', null);
+    const card = cardOf(page(runOf({ replyDrafts: drafts, ...plan }), { first: afterRun(), replies: waiting(drafts) }));
+    expect(card).toContain('data-org-comment-refused');
+    expect(text(card)).toContain(
+      "GitHub refused the one comment too: driftwood-js turned on GitHub's OAuth app access restriction",
+    );
+    expect(text(card)).toContain('Only an owner of driftwood-js can lift it for GitRanks.');
+    expect(text(card)).not.toMatch(/plain comments still go through|in their threads again/);
+    expect(card).toContain('data-org-access');
+    expect(card).not.toContain('data-org-info');
   });
 
   it('leads with Dismiss once the pull request is gone', () => {

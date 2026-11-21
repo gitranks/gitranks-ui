@@ -13,7 +13,7 @@ import { githubUrlOf } from '@/lib/workspace/attempt-format';
 import { editAfterTyping } from '@/lib/workspace/comment-actions';
 import type { ContributeFeedbackThread, ContributeReplyDraft } from '@/lib/workspace/contribute.types';
 import { whereOfThread } from '@/lib/workspace/follow-up-flow';
-import { isOrgRestricted, replyLinkOf, threadRepliesInfoOf } from '@/lib/workspace/org-access';
+import { commentInsteadInfoOf, isOrgRestricted, replyLinkOf, threadRepliesInfoOf } from '@/lib/workspace/org-access';
 import { reasonKeyOf } from '@/lib/workspace/reply-trouble';
 import { noReplyLineOf, type RowState, type rowActionsOf } from '@/lib/workspace/review-comments';
 import { pageBaseOf, sessionPath } from '@/lib/workspace/sessions';
@@ -155,7 +155,7 @@ export function DraftOpen({
       {state === 'goes-in-one-comment' || (draft.state === 'POSTED' && isOrgRestricted(draft.commentReason)) ? (
         <p className="flex items-start gap-2 text-sm text-muted-foreground" data-comment-reason="org_restricted">
           <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          <span>{threadRepliesInfoOf(org)}</span>
+          <span>{state === 'posted-comment' ? commentInsteadInfoOf(org) : threadRepliesInfoOf(org)}</span>
         </p>
       ) : null}
       {own ? (

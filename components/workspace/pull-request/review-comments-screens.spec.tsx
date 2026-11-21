@@ -382,6 +382,14 @@ describe('review comments, one list (M7)', () => {
     expect(html).toContain('data-comment-reason="org_restricted"');
     expect(text(html)).toContain(INFO);
     expect(html).not.toMatch(/data-reply-error|data-org-access|bg-negative|text-warning/);
+    // A reply sent alone as a comment ("Post as a comment instead"): posted as a comment on the pull request.
+    const alone = posted('D_1', { postAs: 'COMMENT', asComment: true, commentReason: 'org_restricted' });
+    const aloneHtml = render({ drafts: [alone], openRows: ['D_1'] });
+    expect(aloneHtml).toContain('data-row-state="posted-comment"');
+    expect(text(aloneHtml)).toContain(
+      "driftwood-js doesn't let apps reply in review threads, so this reply was posted as a comment on the pull request.",
+    );
+    expect(text(aloneHtml)).not.toContain('one comment');
     // An older API says no reason: no info.
     const { commentReason: _, ...older } = sent;
     expect(render({ drafts: [older], openRows: ['D_1'] })).not.toContain('data-comment-reason');

@@ -37,7 +37,7 @@ import {
   partOf,
   probeLineOf,
 } from '@/lib/workspace/one-comment';
-import { threadRepliesInfoOf } from '@/lib/workspace/org-access';
+import { orgWhoOf } from '@/lib/workspace/org-access';
 import { bracketed } from '@/lib/workspace/pr-moves';
 import {
   orgNameOf,
@@ -301,14 +301,17 @@ export function RunAutopilotCard({ move, run, now, rider }: CardProps) {
 }
 
 /**
- * Why the organization's refusal keeps replies out of their threads: an info, with no ask to the organization. When it
- * refused the one comment too (`access`), how it lifts, and where to ask.
+ * Why the organization's refusal keeps replies out of their threads: an info, with no ask to the organization; the
+ * card posts them as one comment. When GitHub refused the one comment too (`access`), who can lift it, and where to ask.
  */
 function OrgWhy({ org, access }: { org: string; access: CardProps['orgAccess'] | null }) {
   if (!access) {
     return (
       <>
-        <p data-org-info="">{threadRepliesInfoOf(org)} Pull requests and plain comments still go through.</p>
+        <p data-org-info="">
+          {orgWhoOf(org)} doesn&apos;t let apps reply in review threads. Post the replies as one comment on the pull
+          request instead: pull requests and plain comments still go through.
+        </p>
         <div className="flex flex-wrap items-center gap-3">
           <RepoRulesLink />
         </div>
@@ -317,15 +320,15 @@ function OrgWhy({ org, access }: { org: string; access: CardProps['orgAccess'] |
   }
   return (
     <>
-      <p>
-        The organization turned on GitHub&apos;s OAuth app access restriction. Pull requests and plain comments still go
-        through; review-thread replies don&apos;t. Only an owner of {org} can lift it for GitRanks.
+      <p data-org-comment-refused="">
+        GitHub refused the one comment too: {org} turned on GitHub&apos;s OAuth app access restriction, which keeps
+        GitRanks from commenting on its pull requests. Only an owner of {org} can lift it for GitRanks.
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <OrgAccessButton access={access} />
         <RepoRulesLink />
       </div>
-      <p>Once an owner approves it, replies post in their threads again.</p>
+      <p>Once an owner approves it, GitRanks can post the replies again.</p>
     </>
   );
 }

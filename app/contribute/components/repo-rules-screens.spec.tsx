@@ -235,6 +235,13 @@ describe('"This repo\'s rules" on the attempt (block A)', () => {
     );
     expect(kept).toContain('data-threads-blocked="true"');
     expect(kept).not.toContain('data-org-access');
+    expect(text(kept)).not.toContain('once a week');
+    // The kept refusal a week old or more: the next run tries one reply in its thread first.
+    expect(text(opened(attemptRules(), { access: 'replies', threadsBlocked: true, probeFirst: true }))).toContain(
+      'so replies are posted as one comment. GitRanks tries one reply in its thread again once a week.',
+    );
+    // An organization not known to refuse them, where none has posted yet: no clause.
+    expect(text(opened(attemptRules(), { access: 'replies', probeFirst: true }))).not.toContain('once a week');
     // A refused submit says its own line, the kept refusal or not.
     expect(text(opened(attemptRules(), { access: 'submit', threadsBlocked: true }))).toContain(
       'driftwood-js only lets apps it approved act in its repositories',

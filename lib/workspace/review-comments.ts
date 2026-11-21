@@ -64,7 +64,11 @@ export type RowContext = {
   runState: ContributeAttemptState | null;
   /** The reasons said at the run's scope (by the move card, or by the list's own line): its rows say only "Not posted". */
   saidElsewhere: ReadonlySet<string>;
-  /** The run's replies go straight to one comment (the organization refused thread replies lately): none waits. */
+  /**
+   * The run's replies go straight to one comment (the organization refused thread replies lately): none waits. The API's
+   * `oneCommentFirst` says what an approval would do now (the organization's refusal and its age), not the run's own
+   * plan, which no field gives: a run that probed before the flag turned can read "Goes in one comment" for a while.
+   */
   oneCommentFirst?: boolean;
 };
 

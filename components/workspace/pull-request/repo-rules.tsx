@@ -154,11 +154,13 @@ function AccessFact({
   org,
   orgAccess,
   threadsBlocked,
+  probeFirst,
 }: {
   access: 'submit' | 'replies';
   org: string;
   orgAccess: OrgAccess;
   threadsBlocked: boolean;
+  probeFirst: boolean;
 }) {
   if (access === 'replies') {
     // The refusal GitRanks keeps for the organization (`threadsBlocked`), or a reply refused in its thread: no ask.
@@ -169,7 +171,11 @@ function AccessFact({
         className="flex items-start gap-2 text-muted-foreground"
       >
         <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-        <p className="min-w-0">{threadRepliesInfoOf(org)}</p>
+        <p className="min-w-0">
+          {threadRepliesInfoOf(org)}
+          {/* The kept refusal is a week old or more: the next run tries one reply in its thread first. */}
+          {threadsBlocked && probeFirst ? ' GitRanks tries one reply in its thread again once a week.' : null}
+        </p>
       </div>
     );
   }
@@ -197,6 +203,7 @@ export function AttemptRepoRules({
   finished = false,
   access,
   threadsBlocked = false,
+  probeFirst = false,
   org,
   orgAccess,
 }: {
@@ -209,6 +216,8 @@ export function AttemptRepoRules({
   access: 'submit' | 'replies' | null;
   /** The organization refuses review-thread replies, as GitRanks keeps it (marked on the replies line). */
   threadsBlocked?: boolean;
+  /** A run's approval tries one reply in its thread first (with the kept refusal: it is a week old or more). */
+  probeFirst?: boolean;
   /** The organization, as the repo's owner: "driftwood-js", or "The organization". */
   org: string;
   /** Where the user asks the organization for access, read on the server. */
@@ -270,7 +279,13 @@ export function AttemptRepoRules({
           ) : null}
           {kind !== 'none' && caps.length ? <Limits caps={caps} /> : null}
           {access ? (
-            <AccessFact access={access} org={org} orgAccess={orgAccess} threadsBlocked={threadsBlocked} />
+            <AccessFact
+              access={access}
+              org={org}
+              orgAccess={orgAccess}
+              threadsBlocked={threadsBlocked}
+              probeFirst={probeFirst}
+            />
           ) : null}
           <AskLink />
         </div>

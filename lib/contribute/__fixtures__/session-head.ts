@@ -559,7 +559,7 @@ export const goingInOneComment = () =>
     planned(flowDraft({ draftId, state: 'DRAFT', send: true, comment: botThread(draftId, 3 + index) }), {
       waitsForProbe: true,
       postAs: 'ONE_COMMENT',
-      commentReason: 'org_restricted',
+      commentReason: null,
     }),
   );
 

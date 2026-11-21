@@ -352,7 +352,8 @@ describe("loadAttempt: the run's replies plan, read on its own", () => {
     const reading = (oneCommentFirst: () => Promise<unknown>) =>
       graphqlDirect.mockImplementation((document) => {
         if (document === ContributeAttemptOneCommentFirstDocument) return oneCommentFirst();
-        if (document === ContributeAttemptRepliesPlanDocument) return Promise.resolve({ contributeAttempt: PLAN });
+        if (document === ContributeAttemptRepliesPlanDocument)
+          return Promise.resolve({ contributeAttempt: { ...PLAN, probeFirst: false } });
         if (document === ContributeAttemptFollowUpsDocument)
           return Promise.resolve({ contributeAttempt: { attemptId: 'A_1', replyDrafts: [posted] } });
         return Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'DONE' } });
@@ -367,7 +368,7 @@ describe("loadAttempt: the run's replies plan, read on its own", () => {
       }),
     );
     expect(await loadAttempt('A_1')).toMatchObject({
-      probeFirst: true,
+      probeFirst: false,
       oneCommentFirst: true,
       replyDrafts: [{ draftId: 'D_1', state: 'POSTED', postAs: 'THREAD', commentReason: 'org_restricted' }],
     });
@@ -380,7 +381,7 @@ describe("loadAttempt: the run's replies plan, read on its own", () => {
       reading(oneCommentFirst);
       const read = await loadAttempt('A_1');
       expect('oneCommentFirst' in (read ?? {})).toBe(false);
-      expect(read).toMatchObject({ probeFirst: true, threadRepliesBlocked: PLAN.threadRepliesBlocked });
+      expect(read).toMatchObject({ probeFirst: false, threadRepliesBlocked: PLAN.threadRepliesBlocked });
       expect(read?.replyDrafts?.[0] && 'commentReason' in read.replyDrafts[0]).toBe(false);
     }
   });

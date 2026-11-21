@@ -929,7 +929,15 @@ export type ContributeReplyPlanFields = {
   heldBack: ContributeReplyHeldBack | null;
   /** A failed one comment's member: what that comment's Try again does; null otherwise. */
   batchRetry: ContributeReplyBatchRetry | null;
+  /**
+   * Why it went (or goes) as a comment in place of its thread: `org_restricted`, the organization does not let GitRanks
+   * reply in review threads. An info, not a failure; null otherwise. Read on its own.
+   */
+  commentReason: ContributeReplyCommentReason | null;
 };
+
+/** Why a reply went as a comment in place of its thread (a string the API may add to). */
+export type ContributeReplyCommentReason = 'org_restricted' | (string & {});
 
 export type ContributeReplyBatchState = 'POSTING' | 'POSTED' | 'FAILED';
 
@@ -960,6 +968,11 @@ export type ContributeRepliesPlanFields = {
   threadRepliesBlocked: ContributeThreadRepliesBlocked | null;
   /** A run's approval tries one reply in its thread first. */
   probeFirst: boolean;
+  /**
+   * A run's approval posts its thread replies as one comment at once, with no thread send: the organization refused
+   * GitRanks' thread replies lately. Read on its own.
+   */
+  oneCommentFirst: boolean;
   /** A run: what "Post them as one comment" would post now; null when no reply can go. */
   oneComment: ContributeOneCommentPreview | null;
   /** A run: every thread reply not posted, as the one comment's text in parts, for Copy all. */

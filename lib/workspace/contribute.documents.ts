@@ -646,6 +646,17 @@ export const ContributeAttemptRepliesPlanDocument = doc<{ contributeAttempt: Rep
 );
 
 /**
+ * Whether a run's replies go straight to one comment (the organization refused GitRanks' thread replies lately), and
+ * why each reply went as a comment: read on their own, so an API without them leaves the plan above.
+ */
+export const ContributeAttemptOneCommentFirstDocument = doc<
+  { contributeAttempt: RepliesPlanRead | null },
+  { id: string }
+>(`query ContributeAttemptOneCommentFirst($id: ID!) {
+  contributeAttempt(id: $id) { attemptId oneCommentFirst replyDrafts { draftId commentReason } }
+}`);
+
+/**
  * Posts a run's thread replies that did not reach their threads as one comment on the pull request (`draftIds`), or
  * tries one failed comment again (`batchId`). `requestId` is the click's key: the same key never posts twice.
  */

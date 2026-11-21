@@ -495,7 +495,7 @@ describe('a run’s replies on its page', () => {
     expect(text(waiting)).toContain('You can copy it once its commits are on the pull request.');
   });
 
-  it("links where to ask the organization on a lone refusal, by the app's page or the list of apps", () => {
+  it('asks nothing of the organization on a lone reply it refused in its thread', () => {
     const failed = (id?: string) => {
       vi.stubEnv('AUTH_GITHUB_CONTRIBUTE_ID', id ?? '');
       try {
@@ -510,17 +510,11 @@ describe('a run’s replies on its page', () => {
         vi.unstubAllEnvs();
       }
     };
-    const app = failed('Ov23liAbc');
-    expect(app).toContain('data-reply-error="org_restricted"');
-    expect(app).toContain('data-org-access="app"');
-    expect(app).toContain('href="https://github.com/settings/connections/applications/Ov23liAbc"');
-    expect(text(app)).toContain('Request access for the organization ↗');
-    const apps = failed();
-    expect(apps).toContain('data-org-access="apps"');
-    expect(apps).toContain('href="https://github.com/settings/applications"');
-    expect(lone({ lastError: { reason: 'forbidden', note: 'No.', at: NOW.toISOString() } })).not.toContain(
-      'data-org-access',
-    );
+    for (const html of [failed('Ov23liAbc'), failed()]) {
+      expect(html).toContain('data-reply-error="org_restricted"');
+      expect(html).not.toContain('data-org-access');
+      expect(text(html)).not.toContain('Request access');
+    }
   });
 
   it("refused push by the repository's organization: the card says it once, with where to ask, and no grant bounce", () => {

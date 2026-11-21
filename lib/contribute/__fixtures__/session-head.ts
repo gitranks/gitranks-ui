@@ -553,17 +553,35 @@ export const waitingForProbe = () => [
   ),
 ];
 
-/** The organization refused the first reply, and the seven went as one comment. */
-export const postedInOneComment = () =>
+/** After the push, where the organization refused thread replies lately: no thread is tried, all go as one comment. */
+export const goingInOneComment = () =>
+  ['D_1', 'D_2', 'D_3', 'D_4'].map((draftId, index) =>
+    planned(flowDraft({ draftId, state: 'DRAFT', send: true, comment: botThread(draftId, 3 + index) }), {
+      waitsForProbe: true,
+      postAs: 'ONE_COMMENT',
+      commentReason: 'org_restricted',
+    }),
+  );
+
+/**
+ * The organization refused the first reply, and the seven went as one comment. `commentReason`: why, as an API that
+ * says it gives it (left out: an older API).
+ */
+export const postedInOneComment = (commentReason?: string | null) =>
   ids(7).map((draftId) =>
     planned(posted(draftId, { url: COMMENT_URL, asComment: true, comment: botThread(draftId, 3) }), {
       postAs: 'ONE_COMMENT',
       batchId: BATCH,
+      ...(commentReason !== undefined ? { commentReason } : {}),
     }),
   );
 
 /** A run ready to push, in an organization that refused GitRanks' thread replies before. */
 export const runReadyBlocked = () => runInReview({ threadRepliesBlocked: threadsBlocked, probeFirst: true });
+
+/** A run ready to push, in an organization that refused GitRanks' thread replies lately: they go as one comment. */
+export const runReadyOneCommentFirst = () =>
+  runInReview({ threadRepliesBlocked: threadsBlocked, probeFirst: false, oneCommentFirst: true });
 
 /** A run ready to push, in an organization where no reply of GitRanks has posted yet. */
 export const runReadyFirstInOrg = () => runInReview({ threadRepliesBlocked: null, probeFirst: true });

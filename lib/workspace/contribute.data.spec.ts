@@ -30,6 +30,7 @@ const {
   ContributeLimitsDocument,
   ContributeRepliesWaitingDocument,
   ContributeRepliesWaitingPlanDocument,
+  ContributeAttemptOneCommentFirstDocument,
   ContributeAttemptRepliesPlanDocument,
   ContributeGrantDocument,
   ContributeAttemptCheckNotesDocument,
@@ -343,6 +344,44 @@ describe("loadAttempt: the run's replies plan, read on its own", () => {
       const read = await loadAttempt('A_1');
       expect('probeFirst' in (read ?? {})).toBe(false);
       expect(read?.replyDrafts).toEqual([draft]);
+    }
+  });
+
+  it("merges the one-comment-first flag and each reply's comment reason; an older API keeps the plan", async () => {
+    const posted = { draftId: 'D_1', state: 'POSTED' };
+    const reading = (oneCommentFirst: () => Promise<unknown>) =>
+      graphqlDirect.mockImplementation((document) => {
+        if (document === ContributeAttemptOneCommentFirstDocument) return oneCommentFirst();
+        if (document === ContributeAttemptRepliesPlanDocument) return Promise.resolve({ contributeAttempt: PLAN });
+        if (document === ContributeAttemptFollowUpsDocument)
+          return Promise.resolve({ contributeAttempt: { attemptId: 'A_1', replyDrafts: [posted] } });
+        return Promise.resolve({ contributeAttempt: { attemptId: 'A_1', state: 'DONE' } });
+      });
+    reading(() =>
+      Promise.resolve({
+        contributeAttempt: {
+          attemptId: 'A_1',
+          oneCommentFirst: true,
+          replyDrafts: [{ draftId: 'D_1', commentReason: 'org_restricted' }],
+        },
+      }),
+    );
+    expect(await loadAttempt('A_1')).toMatchObject({
+      probeFirst: true,
+      oneCommentFirst: true,
+      replyDrafts: [{ draftId: 'D_1', state: 'POSTED', postAs: 'THREAD', commentReason: 'org_restricted' }],
+    });
+
+    for (const oneCommentFirst of [
+      () => Promise.resolve({ contributeAttempt: { attemptId: 'A_2', oneCommentFirst: true } }),
+      () => Promise.reject(new Error('[{"message":"Cannot query field \\"oneCommentFirst\\""}]')),
+      () => Promise.reject(new Error('GraphQL error! 502: Bad Gateway')),
+    ]) {
+      reading(oneCommentFirst);
+      const read = await loadAttempt('A_1');
+      expect('oneCommentFirst' in (read ?? {})).toBe(false);
+      expect(read).toMatchObject({ probeFirst: true, threadRepliesBlocked: PLAN.threadRepliesBlocked });
+      expect(read?.replyDrafts?.[0] && 'commentReason' in read.replyDrafts[0]).toBe(false);
     }
   });
 });

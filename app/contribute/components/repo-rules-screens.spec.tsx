@@ -204,31 +204,37 @@ describe('"This repo\'s rules" on the attempt (block A)', () => {
   });
 
   it('says how GitHub lets GitRanks act here when a refusal proves the organization keeps it out', () => {
+    // Replies kept out of their threads: an info, in a neutral pill, with no ask to the organization.
     const replies = opened(attemptRules(), { access: 'replies' });
-    expect(summaryOf(replies)).toBe('Repo rules · 6 · replies blocked');
+    expect(summaryOf(replies)).toBe('Repo rules · 6 · replies as one comment');
+    expect(replies).toMatch(/<summary[^>]*>.*bg-muted[^>]*>replies as one comment<\/span>/);
+    expect(replies).not.toContain('bg-warning-soft');
     expect(text(replies)).toContain(
-      "driftwood-js only lets apps it approved reply in review threads, and GitRanks isn't one yet.",
+      "driftwood-js doesn't let apps reply in review threads, so replies are posted as one comment.",
     );
     expect(replies).toContain('data-repo-access="replies"');
-    expect(replies).toContain('data-org-access');
+    expect(replies).not.toContain('data-org-access');
+    expect(text(replies)).not.toContain('Request access');
 
+    // A refused submit keeps its warning and where to ask.
     const submit = opened(attemptRules(), { access: 'submit' });
     expect(summaryOf(submit)).toBe('Repo rules · 6 · access blocked');
+    expect(submit).toMatch(/<summary[^>]*>.*bg-warning-soft[^>]*>access blocked<\/span>/);
     expect(text(submit)).toContain(
       "driftwood-js only lets apps it approved act in its repositories, and GitRanks isn't one yet.",
     );
     expect(submit).toContain('data-repo-access="submit"');
+    expect(submit).toContain('data-org-access');
   });
 
   it('says what GitRanks does where the organization’s refusal of thread replies is kept', () => {
     const kept = opened(attemptRules(), { access: 'replies', threadsBlocked: true });
-    expect(summaryOf(kept)).toBe('Repo rules · 6 · replies blocked');
-    expect(kept).toMatch(/<summary[^>]*>.*bg-warning-soft[^>]*>replies blocked<\/span>/);
+    expect(summaryOf(kept)).toBe('Repo rules · 6 · replies as one comment');
     expect(text(kept)).toContain(
-      'driftwood-js blocks review-thread replies: GitRanks tries the first reply in its thread, then posts the rest as one comment.',
+      "driftwood-js doesn't let apps reply in review threads, so replies are posted as one comment.",
     );
     expect(kept).toContain('data-threads-blocked="true"');
-    expect(kept).toContain('data-org-access');
+    expect(kept).not.toContain('data-org-access');
     // A refused submit says its own line, the kept refusal or not.
     expect(text(opened(attemptRules(), { access: 'submit', threadsBlocked: true }))).toContain(
       'driftwood-js only lets apps it approved act in its repositories',
@@ -274,8 +280,8 @@ describe('"This repo\'s rules" on the attempt (block A)', () => {
       renderToStaticMarkup(<ReviewScreen view={views.active} attempt={first} now={NOW} replies={replies} />);
     const refused = replyWaiting({ state: 'FAILED', lastError: REFUSED });
 
-    it('says the replies are blocked when one of this pull request’s replies was refused for it', () => {
-      expect(text(page([refused]))).toContain('Repo rules · 6 · replies blocked');
+    it('says the replies go as one comment when one of this pull request’s replies was refused for it', () => {
+      expect(text(page([refused]))).toContain('Repo rules · 6 · replies as one comment');
     });
 
     it('leaves out another pull request’s replies', () => {

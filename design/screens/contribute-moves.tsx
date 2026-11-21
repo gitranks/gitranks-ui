@@ -29,6 +29,7 @@ import {
   dco,
   firstAttempt,
   firstWithDrafts,
+  goingInOneComment,
   handOpened,
   heldBackRun,
   leftOut,
@@ -48,6 +49,7 @@ import {
   runEnded,
   runInReview,
   runReadyFirstInOrg,
+  runReadyOneCommentFirst,
   runs,
   severalMoves,
   underWay,
@@ -56,7 +58,6 @@ import {
   waitingOf,
 } from '@/lib/contribute/__fixtures__/session-head';
 import type { ContributeAttemptDetail, ContributeReplyDraft, ContributeView } from '@/lib/workspace/contribute.types';
-import { orgAccessOf } from '@/lib/workspace/org-access';
 
 /**
  * The contribution page's session head (a status line, or one move card with Also waiting) and its review comments, in
@@ -190,6 +191,13 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     render: () => runPage(page, runDone(waitingForProbe(), { probeFirst: true })),
   },
   {
+    id: 'replies-go-in-one-comment',
+    title: 'After the push, where the organization refused thread replies lately: all go in one comment',
+    path: RUN,
+    height: 1800,
+    render: () => runPage(page, runDone(goingInOneComment(), { probeFirst: false, oneCommentFirst: true })),
+  },
+  {
     id: 'replies-posted-one-comment',
     title: 'The 7 replies posted in one comment',
     path: RUN,
@@ -202,6 +210,13 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
     path: RUN,
     height: 2400,
     render: () => runPage(page, runReadyFirstInOrg()),
+  },
+  {
+    id: 'run-ready-one-comment-first',
+    title: 'A run ready in an organization that refused thread replies lately: the replies go as one comment',
+    path: RUN,
+    height: 2400,
+    render: () => runPage(page, runReadyOneCommentFirst()),
   },
   {
     id: 'reply-failed-alone',
@@ -647,7 +662,6 @@ export const reviewCommentStates = (page: Page): ScreenState[] => [
             grantAvailable
             cardReasons={{}}
             cardShown
-            orgAccess={orgAccessOf()}
             now={NOW}
             defaultOpen={['ignored']}
           />

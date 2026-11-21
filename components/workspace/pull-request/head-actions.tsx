@@ -1,5 +1,6 @@
 'use client';
 
+import { Info } from 'lucide-react';
 import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 import { useId, useState } from 'react';
@@ -17,6 +18,7 @@ import { ConfirmDialog } from '@/components/workspace/confirm-dialog';
 import { useGrantGithub } from '@/components/workspace/use-grant-github';
 import type { ActionSource } from '@/lib/workspace/comment-actions';
 import { SEND_BACK_NOTE_MAX } from '@/lib/workspace/mcp-setup';
+import { threadRepliesInfoOf } from '@/lib/workspace/org-access';
 import { errorPlaceOf, startArgsOf } from '@/lib/workspace/session-head-logic';
 
 /**
@@ -251,17 +253,21 @@ export function ResolveLine({ probe = false }: { probe?: boolean }) {
 
 /**
  * The run's approval line when its first reply is tried in its thread first: the organization refused GitRanks' thread
- * replies before (`blocked`), or none of them has posted there yet. Shown while a thread reply is ticked to post; the
- * organization's name holds why.
+ * replies before (`blocked`), or none of them has posted there yet; the organization's name holds why. When the
+ * organization refused them lately (`oneComment`), the replies go straight to one comment: said as an info, not a
+ * failure. Shown while a thread reply is ticked to post.
  */
 export function ProbeLine({
   org,
   blocked,
+  oneComment = false,
   prNumber,
   threadDraftIds,
 }: {
   org: string;
   blocked: boolean;
+  /** The replies go as one comment at once, with no thread tried first. */
+  oneComment?: boolean;
   prNumber: number | null;
   /** The run's replies to review threads (a top-level reply never tests the setting). */
   threadDraftIds: string[];
@@ -272,6 +278,14 @@ export function ProbeLine({
     ? replies.input().some(({ draftId, send }) => send && threads.has(draftId))
     : threadDraftIds.length > 0;
   if (!ticked) return null;
+  if (oneComment) {
+    return (
+      <p className="flex items-start gap-2 text-sm text-muted-foreground" data-probe-line="one-comment">
+        <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+        <span>{threadRepliesInfoOf(org, prNumber ? `#${prNumber}` : 'the pull request')}</span>
+      </p>
+    );
+  }
   const why = blocked
     ? `${org} only lets apps it has approved post in review threads, and it refused GitRanks' replies there before.`
     : `No reply of GitRanks has posted in ${org}'s review threads yet, and an organization can keep apps it hasn't approved out of them.`;

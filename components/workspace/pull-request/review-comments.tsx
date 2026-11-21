@@ -19,7 +19,6 @@ import type {
 import { HELD_BACK_REASON } from '@/lib/workspace/contribution-moves';
 import { replyBlockOf } from '@/lib/workspace/follow-up-format';
 import type { ActionId } from '@/lib/workspace/hard-stop';
-import type { OrgAccess } from '@/lib/workspace/org-access';
 import { reasonKeyOf, replyTroubleLineOf } from '@/lib/workspace/reply-trouble';
 import {
   type CommentGroup,
@@ -52,6 +51,8 @@ export type ReviewCommentsProps = {
     updatedAt: string;
     hasPatch: boolean;
     flow: boolean;
+    /** Its replies go straight to one comment: the organization refused thread replies lately. */
+    oneCommentFirst?: boolean;
   } | null;
   /** The first attempt, when its own list is shown. */
   first?: {
@@ -70,7 +71,6 @@ export type ReviewCommentsProps = {
   cardReasons: Record<string, string[]>;
   /** The pane draws a move card (a row's discard error shows there, else under the row). */
   cardShown: boolean;
-  orgAccess: OrgAccess;
   now?: Date;
   /** Collapsed groups drawn open (the catalogue). */
   defaultOpen?: GroupId[];
@@ -106,6 +106,7 @@ export function ReviewComments(props: ReviewCommentsProps) {
             state: rowStateOf(mode, draft, {
               runState: run?.state ?? null,
               saidElsewhere: new Set(said(draft) ? [reasonKeyOf(draft)] : []),
+              oneCommentFirst: run?.oneCommentFirst === true,
             }),
             draft,
           }));
@@ -209,7 +210,7 @@ export function ReviewComments(props: ReviewCommentsProps) {
                   : `${draft.state}|${draft.updatedAt}`
             }
             prNumber={props.prNumber}
-            orgAccess={props.orgAccess}
+            org={props.org}
             firstId={!run && first ? first.attemptId : null}
             resolveSaid={resolveLines.some((line) => line.reason === reasonKeyOf(draft))}
           />

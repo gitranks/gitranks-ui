@@ -53,7 +53,6 @@ const base: ReviewCommentsProps = {
   grantAvailable: true,
   cardReasons: {},
   cardShown: true,
-  orgAccess: { url: 'https://github.com/settings/connections/applications/abc', app: true },
   now: new Date('2026-10-28T12:00:00.000Z'),
 };
 
@@ -108,12 +107,12 @@ describe('review comments, one list (M7)', () => {
     expect(html).toContain('bg-negative/10');
   });
 
-  it('4. a lone forbidden reply goes as a comment, a lone org refusal links the org, a lone not-found only copies', () => {
+  it('4. a lone forbidden reply goes as a comment, a lone org refusal too (no ask), a lone not-found only copies', () => {
     const forbidden = text(render({ drafts: [notPosted('D_1', 'forbidden')] }));
     expect(forbidden).toContain('Post as a comment instead');
     expect(forbidden).not.toContain('Try again');
     const org = render({ drafts: [notPosted('D_1', 'org_restricted')] });
-    expect(count(org, 'data-org-access')).toBe(1);
+    expect(count(org, 'data-org-access')).toBe(0);
     expect(text(org)).toContain('Post as a comment instead');
     const gone = render({ drafts: [notPosted('D_1', 'not_found', { canPostAsComment: false })] });
     expect(gone).toContain('data-reply-error="not_found"');
@@ -367,6 +366,33 @@ describe('review comments, one list (M7)', () => {
     expect(html).toContain('data-variant="outline"');
     expect(text(html)).toContain('Post this reply');
     expect(html).not.toContain('data-variant="default"');
+  });
+
+  it('22. a reply the organization kept out of its thread: posted in one comment, with an info, not a failure', () => {
+    const INFO = "driftwood-js doesn't let apps reply in review threads, so replies are posted as one comment.";
+    const sent = posted('D_1', {
+      batchId: 'B_1',
+      postAs: 'ONE_COMMENT',
+      asComment: true,
+      commentReason: 'org_restricted',
+    });
+    const html = render({ drafts: [sent], openRows: ['D_1'] });
+    expect(html).toContain('data-row-state="posted-one-comment"');
+    expect(text(html)).toContain('Posted in one comment');
+    expect(html).toContain('data-comment-reason="org_restricted"');
+    expect(text(html)).toContain(INFO);
+    expect(html).not.toMatch(/data-reply-error|data-org-access|bg-negative|text-warning/);
+    // An older API says no reason: no info.
+    const { commentReason: _, ...older } = sent;
+    expect(render({ drafts: [older], openRows: ['D_1'] })).not.toContain('data-comment-reason');
+
+    // Approved where the organization refused thread replies lately: it goes in one comment, nothing waits.
+    const going = flowDraft({ draftId: 'D_2', state: 'DRAFT', send: true, waitsForProbe: true, postAs: 'ONE_COMMENT' });
+    const goingHtml = render({ drafts: [going], openRows: ['D_2'], run: { ...RUN, oneCommentFirst: true } });
+    expect(goingHtml).toContain('data-row-state="goes-in-one-comment"');
+    expect(text(goingHtml)).toContain('Goes in one comment');
+    expect(text(goingHtml)).toContain(INFO);
+    expect(text(goingHtml)).not.toContain("It goes with the run's first reply");
   });
 
   it('draws nothing without a row', () => {

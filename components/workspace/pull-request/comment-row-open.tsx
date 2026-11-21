@@ -1,10 +1,11 @@
 'use client';
 
+import { Info } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { CommentRowActions } from './comment-row-actions';
-import { OrgAccessLink, ReplyCopyBar, ReplyText } from './reply-text';
+import { ReplyCopyBar, ReplyText } from './reply-text';
 import { offOf, useSessionActions } from './session-actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +13,7 @@ import { githubUrlOf } from '@/lib/workspace/attempt-format';
 import { editAfterTyping } from '@/lib/workspace/comment-actions';
 import type { ContributeFeedbackThread, ContributeReplyDraft } from '@/lib/workspace/contribute.types';
 import { whereOfThread } from '@/lib/workspace/follow-up-flow';
-import { isOrgRestricted, type OrgAccess, replyLinkOf } from '@/lib/workspace/org-access';
+import { isOrgRestricted, replyLinkOf, threadRepliesInfoOf } from '@/lib/workspace/org-access';
 import { reasonKeyOf } from '@/lib/workspace/reply-trouble';
 import { noReplyLineOf, type RowState, type rowActionsOf } from '@/lib/workspace/review-comments';
 import { pageBaseOf, sessionPath } from '@/lib/workspace/sessions';
@@ -58,7 +59,7 @@ export function DraftOpen({
   actions,
   version,
   prNumber,
-  orgAccess,
+  org,
   firstId,
   resolveSaid,
 }: {
@@ -69,7 +70,8 @@ export function DraftOpen({
   actions: ReturnType<typeof rowActionsOf> | null;
   version: string;
   prNumber: number | null;
-  orgAccess: OrgAccess;
+  /** The repository's owner: "driftwood-js", or "the organization". */
+  org: string;
   /** On the first attempt: its id, for the link to the reply's run. */
   firstId: string | null;
   /** A shared resolve failure the Posted group says once. */
@@ -150,13 +152,18 @@ export function DraftOpen({
           it, in one comment with the others.
         </p>
       ) : null}
+      {state === 'goes-in-one-comment' || (draft.state === 'POSTED' && isOrgRestricted(draft.commentReason)) ? (
+        <p className="flex items-start gap-2 text-sm text-muted-foreground" data-comment-reason="org_restricted">
+          <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span>{threadRepliesInfoOf(org)}</span>
+        </p>
+      ) : null}
       {own ? (
         <p role="alert" data-reply-error={reason} className="text-sm break-words text-warning">
           {draft.lastError?.note?.trim() ||
             (state === 'resolve-failed' ? 'GitHub did not resolve the thread.' : 'It was not posted.')}
         </p>
       ) : null}
-      {own && state === 'not-posted-own' && isOrgRestricted(reason) ? <OrgAccessLink access={orgAccess} /> : null}
       {actions ? (
         <CommentRowActions
           draft={draft}

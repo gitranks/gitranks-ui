@@ -11,7 +11,14 @@ import { CONTRIBUTE_RULES_PATH, fairUseAnswerPathOf } from '@/lib/workspace/fair
 import { dayLabel } from '@/lib/workspace/format';
 import { KEY_REPLACE_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
-type NoticeCopy = { title: string; text: ReactNode; action?: { href: Route; label: string }; tone: 'info' | 'warn' };
+type NoticeCopy = {
+  title: string;
+  text: ReactNode;
+  action?: { href: Route; label: string };
+  /** A plain link beside the action: the rule a fair-use block points to. */
+  more?: { href: Route; label: string };
+  tone: 'info' | 'warn';
+};
 
 const untilText = (until: string | null, fallback: string) => (until ? `on ${dayLabel(until)}` : fallback);
 
@@ -103,11 +110,11 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
 }
 
 /**
- * A fair-use rule blocked the account: its message and answer page in place of the automated-activity words, or the
- * rule in the Terms when the message could not be read.
+ * A fair-use rule blocked the account: still paused, but the block's message, its answer page and the rule in the Terms
+ * in place of the automated-activity words; the rule alone when the message could not be read.
  */
 function fairUseBlockCopyOf(block: NonNullable<Extract<ContributeNotice, { kind: 'suspended' }>['fairUse']>['block']) {
-  const copy: NoticeCopy = { tone: 'warn', title: 'A message from GitRanks', text: null };
+  const copy: NoticeCopy = { tone: 'warn', title: 'Contribute is paused for this account', text: null };
   if (!block) {
     return {
       ...copy,
@@ -126,6 +133,7 @@ function fairUseBlockCopyOf(block: NonNullable<Extract<ContributeNotice, { kind:
     ...copy,
     text: <FairUseMessage notice={block} />,
     action: { href: fairUseAnswerPathOf(block.id), label: 'Answer' },
+    more: { href: CONTRIBUTE_RULES_PATH, label: 'Terms of service' },
   };
 }
 
@@ -191,6 +199,19 @@ const ActionLink = ({ action }: { action: NonNullable<NoticeCopy['action']> }) =
   </Link>
 );
 
+/** The notice's action, with its plain link beside it when it has one. */
+const Actions = ({ copy }: { copy: NoticeCopy }) =>
+  copy.more ? (
+    <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      {copy.action ? <ActionLink action={copy.action} /> : null}
+      <Link href={copy.more.href} prefetch={false} className="text-sm text-link hover:underline">
+        {copy.more.label}
+      </Link>
+    </span>
+  ) : copy.action ? (
+    <ActionLink action={copy.action} />
+  ) : null;
+
 /**
  * The notices above a Contribute page; nothing when there are none. A box each (`box`), or a line each with its
  * explanation under "Why?" (`line`, on a contribution's page).
@@ -221,9 +242,9 @@ export function ContributeNotices({
               why={
                 <>
                   {copy.text}
-                  {copy.action ? (
+                  {copy.action || copy.more ? (
                     <span className="mt-1.5 block">
-                      <ActionLink action={copy.action} />
+                      <Actions copy={copy} />
                     </span>
                   ) : null}
                 </>
@@ -247,7 +268,7 @@ export function ContributeNotices({
               <span className="font-semibold">{copy.title}</span>
               <span className="text-sm text-muted-foreground">{copy.text}</span>
             </div>
-            {copy.action ? <ActionLink action={copy.action} /> : null}
+            <Actions copy={copy} />
           </div>
         );
       })}

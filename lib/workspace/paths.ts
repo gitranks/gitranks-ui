@@ -409,3 +409,11 @@ export function pullRequestsPath(filter: PullRequestsFilter = {}): Route {
   const text = query.toString();
   return (text ? `${WORKSPACE_PATHS.pullRequests}?${text}` : WORKSPACE_PATHS.pullRequests) as Route;
 }
+
+/**
+ * Whether the path is a fair-use message's answer page, `/contribute/answer/<noticeId>`, in any spelling the router
+ * reads as it. Its email and its agent link reach people signed out too, so it asks them to sign in as `/my` does; the
+ * page itself says not found for an id that is not the user's.
+ */
+export const isFairUseAnswerPath = (pathname: string): boolean =>
+  decodedMatches(pathname, /^\/+contribute\/+answer\/+[^/\\][^\\]*$/i);

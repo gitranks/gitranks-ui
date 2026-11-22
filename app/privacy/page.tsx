@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { TermsRulesLink } from './terms-rules-link';
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
 import { pageMetadata } from '@/lib/seo/page-metadata';
@@ -216,12 +217,11 @@ const sections: LegalSection[] = [
             Basis: legitimate interests, in respecting maintainers&apos; choices.
           </li>
           <li>
-            <B>Fair use</B>: pull requests for issues from your list go through GitRanks (see the{' '}
-            <A href="/terms#contribute-rules">Terms of service</A>). To check that, we compare the issues we showed you
-            with the pull requests you open for them, and count the issues you view. What we find, the messages we send
-            you about it and your answers are kept for up to 180 days after the last change, even after you delete your
-            Contribute data, and longer while a shorter list or a block is in place. Basis: legitimate interests, in
-            keeping Contribute fair.
+            <B>Fair use</B>: pull requests for issues from your list go through GitRanks (see the <TermsRulesLink />
+            ). To check that, we compare the issues we showed you with the pull requests you open for them, and count
+            the issues you view. What we find, the messages we send you about it and your answers are kept for up to 180
+            days after the last change, even after you delete your Contribute data, and longer while a shorter list or a
+            block is in place. Basis: legitimate interests, in keeping Contribute fair.
           </li>
           <li>
             <B>Deleting it</B>: in Settings, choose <B>Delete all data</B>. It stops runs under way, deletes your key,
@@ -233,8 +233,9 @@ const sections: LegalSection[] = [
             we received as messages. We may keep records of the pull requests opened through Contribute and that they
             were AI-assisted. We also keep the records we need to stop abuse of Contribute: an access level we set on
             your account and flags about misuse, for up to 180 days after you delete (an open flag until 180 days after
-            it is resolved), and checks we made of other GitHub accounts, for 30 days. Basis: legitimate interests, in
-            keeping Contribute fair and safe.
+            it is resolved), checks we made of other GitHub accounts, for 30 days, and what our fair-use checks found,
+            with the messages we sent you about it and your answers, as long as <B>Fair use</B> above says. Basis:
+            legitimate interests, in keeping Contribute fair and safe.
           </li>
         </List>
       </>

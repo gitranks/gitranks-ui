@@ -609,6 +609,46 @@ describe('proxy', () => {
     });
   });
 
+  describe("a fair-use message's answer page", () => {
+    const PAGES = ['/contribute/answer/583231-outsidePr-1-1', '/Contribute//answer/a%2Fb%3D-viewing-2-7'];
+
+    it('lets a visitor without a session through to the sign-in, before the launch too, never cached', async () => {
+      for (const path of PAGES) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();
+        expect(response?.headers.get('location'), path).toBeNull();
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+      }
+      expect(maySeeContribute).not.toHaveBeenCalled();
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it("lets a session the server cannot read through to the sign-in, as a visitor's", async () => {
+      sessionRead.ok = false;
+      const response = await proxy(request('authjs.session-token=t', PAGES[0]), event);
+      expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(maySeeContribute).not.toHaveBeenCalled();
+    });
+
+    it('answers a signed-in account Contribute is hidden from with a 404 nobody caches; lets one it is open to on', async () => {
+      const hidden = await proxy(request('authjs.session-token=t', PAGES[0]), event);
+      expect(hidden?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+      expect(hidden?.headers.get('cache-control')).toBe('private, no-store');
+
+      maySeeContribute.mockResolvedValue(true);
+      const open = await proxy(request('authjs.session-token=t', PAGES[0]), event);
+      expect(open?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(open?.headers.get('cache-control')).toBe('private, no-cache');
+    });
+
+    it('keeps the 404 for a visitor on any other Contribute page and on the bare answer address', async () => {
+      for (const path of ['/contribute/answer', '/contribute/answer/', '/contribute/settings']) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+      }
+    });
+  });
+
   describe('the pages a link in our email opens', () => {
     const LINK_PAGES = [
       '/l/unfollow',

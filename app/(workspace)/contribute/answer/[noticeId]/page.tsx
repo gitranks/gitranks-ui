@@ -10,8 +10,8 @@ type Params = PageProps<'/contribute/answer/[noticeId]'>;
 
 /**
  * A message from GitRanks about how the user uses Contribute, and their answer to it: the page its banner, its email and
- * the user's agent link. Only the message's own user sees it; signed out, or a message the API does not answer for
- * them, it is not found. Not indexed.
+ * the user's agent link. Signed out, it asks the visitor to sign in and comes back here; only the message's own user
+ * sees it, and a message the API does not answer for the signed-in user is not found. Not indexed.
  */
 export default function FairUseAnswerPage({ params }: Params) {
   return (

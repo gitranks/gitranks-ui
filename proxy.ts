@@ -29,6 +29,7 @@ import {
   isByAttemptPath,
   isContributeFlowPath,
   isContributePath,
+  isFairUseAnswerPath,
   isLandingPath,
   isLearnFlowPath,
   isLedgerPath,
@@ -269,6 +270,9 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     response.headers.set('Cache-Control', 'private, no-store');
     return response;
   }
+  // A fair-use message's answer page is what its email and the user's agent link, often opened where the user is not
+  // signed in: asked about as the pages under `/my` are (below), never with Contribute's 404 for visitors.
+  const answerPage = isFairUseAnswerPath(pathname);
   // The ledger has its own switch (ledger design §6): open, it goes on as any public page; closed, a visitor without a
   // session gets the 404 here, and a signed-in one goes on to the page, which asks the API whether they are on its list.
   if (isLedgerPath(pathname)) {
@@ -278,6 +282,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
       return response;
     }
   } else if (
+    !answerPage &&
     isContributePath(pathname) &&
     !isPrTimelinePath(pathname) &&
     !isMaintainersPath(pathname) &&
@@ -299,11 +304,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     }
   }
 
-  // The workspace's pages under `/my` are what emails and agents link: a visitor without a session (or with one the
+  // The workspace's pages under `/my`, and a fair-use message's answer page, are what emails and agents link: a visitor without a session (or with one the
   // server cannot read) goes on to the page, which asks them to sign in and comes back to the same address, never kept
   // by a shared cache. A signed-in account is asked about as on Contribute's pages: the workspace closed to it gets the
   // real 404, and one being set up goes to Contribute's home, carrying the step it was on.
-  const myPage = isMyPath(pathname);
+  const myPage = isMyPath(pathname) || answerPage;
   // The address by attempt is a route that only redirects: a visitor is shown the workspace's sign-in on that same
   // address, so the sign-in comes back to it.
   const signInHere = () => {

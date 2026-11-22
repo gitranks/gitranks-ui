@@ -88,20 +88,30 @@ describe('the access level’s notice for an account a fair-use rule blocked', (
       .replace(/ ([.,])/g, '$1')
       .trim();
 
-  it('says the block’s message with its answer page, in place of the automated-activity words', () => {
+  it('stays paused, with the block’s message, its answer page and the rule in place of the automated-activity words', () => {
     const notices = accessNoticesOf(fairUseBlocked);
     expect(notices).toEqual([{ kind: 'suspended', fairUse: { block: blockNotice } }]);
     const html = renderToStaticMarkup(<ContributeNotices notices={notices} />);
-    expect(plain(html)).toContain(`A message from GitRanks ${blockNotice.text} Answer →`);
+    expect(plain(html)).toContain(
+      `Contribute is paused for this account ${blockNotice.text} Answer → Terms of service`,
+    );
     expect(html).toContain('href="/contribute/answer/583231-outsidePr-3-1"');
+    expect(html).toContain('href="/terms#contribute-rules"');
     expect(html).not.toContain('looks automated');
     expect(html).not.toContain('mailto:');
+  });
+
+  it('says the account is paused on a pull request’s line too, the message and both links under "Why?"', () => {
+    const html = renderToStaticMarkup(<ContributeNotices notices={accessNoticesOf(fairUseBlocked)} variant="line" />);
+    expect(plain(html)).toContain(
+      `Contribute is paused for this account Why? ${blockNotice.text} Answer → Terms of service`,
+    );
   });
 
   it('points to the rule when the block’s message could not be read', () => {
     const view = { ...fairUseBlocked, fairUseBlock: null };
     const html = renderToStaticMarkup(<ContributeNotices notices={accessNoticesOf(view)} />);
-    expect(plain(html)).toContain('A message from GitRanks Read the rule in our Terms of service.');
+    expect(plain(html)).toContain('Contribute is paused for this account Read the rule in our Terms of service.');
     expect(html).toContain('href="/terms#contribute-rules"');
     expect(html).not.toContain('looks automated');
   });

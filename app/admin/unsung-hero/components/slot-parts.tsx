@@ -1,5 +1,6 @@
 import type { HeroSlot } from '../admin.types';
 import {
+  cancelLiveConfirm,
   cancelStateOf,
   type MailLine,
   markableOf,
@@ -76,17 +77,29 @@ export function SlotActions({
             copy={markNotifiedConfirm(slot.repo.nameWithOwner)}
           />
         )}
-        {cancel.kind !== 'none' && (
-          <PressButton
+        {cancel.kind === 'cancellable' && slot.status === 'LIVE' ? (
+          <ConfirmPress
             action={action}
             pending={pending}
-            disabled={cancel.kind === 'locked'}
             intent="cancel"
             fields={{ id: slot.id }}
+            label="Cancel"
             variant="destructive-outline"
-          >
-            Cancel
-          </PressButton>
+            copy={cancelLiveConfirm(slot.repo.nameWithOwner)}
+          />
+        ) : (
+          cancel.kind !== 'none' && (
+            <PressButton
+              action={action}
+              pending={pending}
+              disabled={cancel.kind === 'locked'}
+              intent="cancel"
+              fields={{ id: slot.id }}
+              variant="destructive-outline"
+            >
+              Cancel
+            </PressButton>
+          )
         )}
       </div>
       {markable && (

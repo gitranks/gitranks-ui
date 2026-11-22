@@ -60,14 +60,18 @@ describe('the slot states', () => {
       expect(cancelStateOf(slotOf({ status, noHeadsUp: true, headsUp: null }))).toEqual({ kind: 'cancellable' });
     }
     expect(cancelStateOf(slotOf({ status: 'DONE', noHeadsUp: true, headsUp: null }))).toEqual({ kind: 'none' });
+    expect(cancelStateOf(slotOf({ status: 'NOTIFIED', noHeadsUp: true, headsUp: null }))).toMatchObject({
+      kind: 'locked',
+    });
   });
 
   it('a slot with no heads-up says so, in the weeks and the past', () => {
-    for (const status of ['SCHEDULED', 'LIVE', 'DONE'] as const) {
-      expect(headsUpLine(slotOf({ status, noHeadsUp: true, headsUp: null }))).toEqual({
-        text: 'No heads-up: the maintainer gets no email before the week',
-        tone: 'neutral',
-      });
+    expect(headsUpLine(slotOf({ status: 'SCHEDULED', noHeadsUp: true, headsUp: null }))).toEqual({
+      text: 'No heads-up: the maintainer gets no email before the week',
+      tone: 'neutral',
+    });
+    for (const status of ['LIVE', 'DONE', 'CANCELLED'] as const) {
+      expect(headsUpLine(slotOf({ status, noHeadsUp: true, headsUp: null }))?.text).toBe('No heads-up was sent');
     }
   });
 
@@ -164,7 +168,11 @@ describe('the weeks Schedule offers', () => {
       ['2026-W45', 'Nov 2 – 8 (2026-W45)'],
       ['2026-W46', 'Nov 9 – 15 (2026-W46)'],
     ]);
-    expect(off).toHaveLength(8);
+    // Through the same last week: a week picked with the heads-up is still there with none.
+    expect(off).toHaveLength(9);
+    expect(off.at(-1)?.week).toBe(weekOptionsOf(board).at(-1)?.week);
+    // Before the cutoff both start at next week.
+    expect(weekOptionsOf(boardOf(), { headsUp: false })).toEqual(weekOptionsOf(boardOf()));
   });
 });
 

@@ -20,7 +20,8 @@ export type WeekOption = { week: string; startsAt: string; label: string; taken:
 
 /**
  * The weeks Schedule may pick: the first still open and the ones after it. With the heads-up that is the first week
- * whose 97 hours have not begun; with none, next week. A week already holding a slot of the kind scheduled now (a
+ * whose 97 hours have not begun, and `WEEKS_OFFERED` weeks; with none, next week on, through the same last week, so a
+ * week picked with the heads-up is still there with none. A week already holding a slot of the kind scheduled now (a
  * preview before launch, a real one after) is marked taken.
  */
 export function weekOptionsOf(
@@ -32,7 +33,9 @@ export function weekOptionsOf(
   );
   const open = headsUp ? board.firstOpenWeek : board.nextWeek;
   const first = new Date(open.startsAt).getTime();
-  return Array.from({ length: WEEKS_OFFERED }, (_, index) => {
+  const last = new Date(board.firstOpenWeek.startsAt).getTime() + (WEEKS_OFFERED - 1) * WEEK_MS;
+  const length = Math.max(WEEKS_OFFERED, Math.round((last - first) / WEEK_MS) + 1);
+  return Array.from({ length }, (_, index) => {
     const startsAt = new Date(first + index * WEEK_MS);
     const week = index === 0 ? open.week : isoWeekOf(startsAt);
     const endsAt = new Date(startsAt.getTime() + WEEK_MS);

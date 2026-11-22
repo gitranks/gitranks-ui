@@ -219,7 +219,13 @@ export function ScheduleDialog({
               Checked {stamp(check.at)} for {check.package.name}
             </p>
             <CheckFacts check={check} />
-            <MissLabels misses={check.misses} />
+            <MissLabels
+              misses={
+                headsUp
+                  ? check.misses
+                  : check.misses.map((miss) => (miss.code === 'NO_EMAIL' ? { ...miss, blocks: false } : miss))
+              }
+            />
             {refusals.length > 0 && (
               <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-destructive">
                 {refusals.map((refusal) => (

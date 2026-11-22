@@ -102,7 +102,7 @@ describe('the Schedule dialog’s heads-up choice', () => {
     );
     // The native select's options follow the items in the order they mounted: compare them as a set.
     expect(weekValues()).toContain('2026-W45');
-    expect(weekValues()).toHaveLength(8);
+    expect(weekValues()).toHaveLength(9);
     // The pick stays on the week chosen while it is still offered.
     expect(dialog().querySelector('button#hero-week')?.textContent).toContain('2026-W46');
 

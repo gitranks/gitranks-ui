@@ -145,15 +145,24 @@ describe('/admin/unsung-hero for the admin', () => {
     expect(html).toContain('With no heads-up, a week can be scheduled until it starts');
   });
 
-  it('marks a slot with no heads-up in the Weeks list, and lets it be cancelled while live', async () => {
+  it('marks a slot with no heads-up in the Weeks list; Cancel while live asks first', async () => {
+    const coming = slotOf({ id: '6721a0f0c0ffee0000000021', status: 'SCHEDULED', noHeadsUp: true, headsUp: null });
     const quiet = slotOf({ id: '6721a0f0c0ffee0000000020', status: 'LIVE', noHeadsUp: true, headsUp: null });
     answerBy(signedFetch, {
-      UnsungHeroAdmin: () => jsonResponse({ data: { unsungHeroAdmin: boardOf({ live: [quiet], upcoming: [] }) } }),
+      UnsungHeroAdmin: () =>
+        jsonResponse({ data: { unsungHeroAdmin: boardOf({ live: [quiet], upcoming: [coming] }) } }),
     });
     const { html } = (await render()) as { html: string };
     expect(html).toContain('No heads-up: the maintainer gets no email before the week');
-    expect(html).toMatch(/<button(?![^>]*disabled="")[^>]*>Cancel<\/button>/);
-    expect(html).toContain(`name="id" value="${quiet.id}"`);
+    expect(html).toContain('No heads-up was sent');
+    expect(html).not.toContain('Locked:');
+    // The coming one is cancelled with one press; the live one's button opens the question and posts nothing.
+    expect(html).toContain(`name="id" value="${coming.id}"`);
+    expect(html).not.toContain(`name="id" value="${quiet.id}"`);
+    const cancels = html.match(/<button[^>]*>Cancel<\/button>/g) ?? [];
+    expect(cancels).toHaveLength(2);
+    for (const button of cancels) expect(button).not.toContain('disabled=""');
+    expect(cancels.filter((button) => button.includes('aria-haspopup="dialog"'))).toHaveLength(1);
   });
 
   it('puts Skip and Mark notified behind a confirm step: their buttons on the board post nothing', async () => {

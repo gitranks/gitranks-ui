@@ -156,7 +156,13 @@ function mailLine(name: 'Heads-up' | 'Recap', mail: HeroMail): MailLine | null {
 export function headsUpLine(slot: Pick<HeroSlot, 'status' | 'startsAt' | 'headsUp' | 'noHeadsUp'>): MailLine | null {
   const line = slot.headsUp ? mailLine('Heads-up', slot.headsUp) : null;
   if (line) return line;
-  if (slot.noHeadsUp) return { text: 'No heads-up: the maintainer gets no email before the week', tone: 'neutral' };
+  if (slot.noHeadsUp) {
+    const text =
+      slot.status === 'SCHEDULED'
+        ? 'No heads-up: the maintainer gets no email before the week'
+        : 'No heads-up was sent';
+    return { text, tone: 'neutral' };
+  }
   if (slot.status !== 'SCHEDULED') return null;
   const from = new Date(new Date(slot.startsAt).getTime() - HEADS_UP_LEAD_HOURS * HOUR_MS).toISOString();
   return { text: `Heads-up not sent yet: it goes out from ${stamp(from)}`, tone: 'neutral' };
@@ -177,7 +183,7 @@ export function cancelStateOf(slot: Pick<HeroSlot, 'status' | 'preview' | 'heads
   if (slot.status === 'CANCELLED' || slot.status === 'OPTED_OUT') return { kind: 'none' };
   if (slot.preview) return { kind: 'cancellable' };
   if (slot.status === 'DONE') return { kind: 'none' };
-  if (slot.noHeadsUp) return { kind: 'cancellable' };
+  if (slot.noHeadsUp && (slot.status === 'SCHEDULED' || slot.status === 'LIVE')) return { kind: 'cancellable' };
   if (slot.status === 'SCHEDULED') {
     if (!slot.headsUp?.queuedAt || slot.headsUp.held) return { kind: 'cancellable' };
     return {
@@ -203,6 +209,13 @@ export const skipConfirm = (nameWithOwner: string) => ({
   title: `Skip ${nameWithOwner}?`,
   description: 'It will not be listed again, on this shortlist or any later one. This cannot be undone from this page.',
   confirm: 'Skip it',
+});
+
+/** The confirm step before cancelling a live hero: it leaves the home page at once. */
+export const cancelLiveConfirm = (nameWithOwner: string) => ({
+  title: `Cancel ${nameWithOwner} while it is live?`,
+  description: 'It leaves the home page at once and does not become a past hero. This cannot be undone.',
+  confirm: 'Cancel it',
 });
 
 /** The confirm step before Mark notified: the slot is then the maintainer's, and can no longer be cancelled. */

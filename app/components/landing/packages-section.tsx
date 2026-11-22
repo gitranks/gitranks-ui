@@ -14,7 +14,8 @@ import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { buttonVariants } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
-import { DEFAULT_REGISTRY, registryLabelList } from '@/lib/packages/registries';
+import { FOLLOW_CARD_TITLE } from '@/lib/follow/follow-copy';
+import { DEFAULT_REGISTRY, REGISTRIES, registryLabelList } from '@/lib/packages/registries';
 import { REGISTRY_ICONS } from '@/lib/packages/registry-icons';
 import { cn } from '@/lib/utils';
 import { packagePath, packageRankingPath } from '@/utils/package-paths';
@@ -50,7 +51,7 @@ const POINTS = [
     title: 'A page for every package',
     text: `Its ranks, the repositories with ${DEPENDENT_MIN_STARS}+ stars that depend on it, and a badge for its README.`,
   },
-  { icon: Bell, title: 'Follow a package', text: 'Know when a big project starts using it.' },
+  { icon: Bell, title: 'Follow a package', text: `${FOLLOW_CARD_TITLE}.` },
 ];
 
 /** What a tab's numbers count, under its rows. */
@@ -106,7 +107,8 @@ const PackageRow: FC<{ row: PackageRankRows[number] }> = ({ row }) => (
 export const PackagesSection: FC<LandingPackages> = ({ boards, ranked, downloadsTo }) => {
   if (!boards.length) return null;
 
-  const registries = registryLabelList();
+  // The rows and the count are the default registry's; the "for now" line names every listed registry.
+  const registry = REGISTRIES[DEFAULT_REGISTRY].label;
 
   return (
     <section
@@ -121,11 +123,11 @@ export const PackagesSection: FC<LandingPackages> = ({ boards, ranked, downloads
           <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Package rankings</span>
         </div>
         <h2 id="packages" className="text-2xl font-semibold tracking-tight text-balance md:text-3xl lg:text-4xl">
-          The {registries} packages open source runs on
+          The {registry} packages open source runs on
         </h2>
         <p className="max-w-prose text-muted-foreground lg:text-lg">
-          {ranked ? `${formatFull(ranked)} ${registries} packages` : `${registries} packages`}, ranked by downloads and
-          by the GitHub repositories that depend on them.
+          {ranked ? `${formatFull(ranked)} ${registry} packages` : `${registry} packages`}, ranked by downloads and by
+          the GitHub repositories that depend on them.
         </p>
         <ul className="flex flex-col gap-4">
           {POINTS.map(({ icon: Icon, title, text }) => (
@@ -145,7 +147,9 @@ export const PackagesSection: FC<LandingPackages> = ({ boards, ranked, downloads
             See package rankings
             <ArrowRight aria-hidden />
           </Link>
-          <span className="text-sm text-muted-foreground">{registries} for now. More registries are on the way.</span>
+          <span className="text-sm text-muted-foreground">
+            {registryLabelList()} for now. More registries are on the way.
+          </span>
         </div>
       </div>
 
@@ -154,7 +158,7 @@ export const PackagesSection: FC<LandingPackages> = ({ boards, ranked, downloads
         className="min-w-0 gap-0 overflow-hidden rounded-xl border bg-card shadow-sm"
       >
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-4 py-3">
-          <h3 className="font-semibold">Top {registries} packages</h3>
+          <h3 className="font-semibold">Top {registry} packages</h3>
           <div className="-mx-4 max-w-[calc(100%+2rem)] overflow-x-auto px-4 sm:mx-0 sm:max-w-full sm:px-0">
             <TabsList>
               {boards.map(({ order }) => (

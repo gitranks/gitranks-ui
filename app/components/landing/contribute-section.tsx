@@ -238,7 +238,8 @@ function useOwnPicks(login: string | null): ContributeIssue[] {
 }
 
 /**
- * GitRanks Contribute on the home page, shown to everyone: the pitch, and picks beside it. A contributor sees their own
+ * GitRanks Contribute on the home page, shown to everyone: the pitch, and picks beside it. Off the home page since
+ * 2026-11-22, in favour of the package rankings, until Contribute's rework; kept for it. A contributor sees their own
  * top picks in place of the examples.
  */
 export const ContributeSection: FC = () => {

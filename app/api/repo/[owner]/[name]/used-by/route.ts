@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { parseUsedByQuery } from './used-by-query';
+import { repoPackageKeyOf } from '@/app/repo/[owner]/[name]/utils/repo-package-registry';
 import { DEPENDENTS_PAGE_SIZE } from '@/components/dependents/dependents.consts';
 import { fetchRepoPackages, fetchRepoUsedBy, UNAVAILABLE } from '@/graphql/helpers/fetch-repo-packages';
+import { packageKeyOf } from '@/lib/packages/registries';
 import { parseRepoParams } from '@/utils/repo-paths';
 
 /** A failure or a bad query: never kept by a shared cache. */
@@ -34,7 +36,8 @@ export async function GET(req: NextRequest, { params }: RouteContext<'/api/repo/
       return answer({ message: 'Package data is not available right now' }, 503, PRIVATE);
     }
     // Only a package the repository lists is read: any other name would be one more cached page of nothing.
-    if (query.package !== null && !packages.items.some(({ name: listed }) => listed === query.package)) {
+    const cut = query.package;
+    if (cut !== null && !packages.items.some((listed) => repoPackageKeyOf(listed) === packageKeyOf(cut))) {
       return answer({ page: { total: 0, archived: 0, items: [] } }, 200, PUBLIC);
     }
 

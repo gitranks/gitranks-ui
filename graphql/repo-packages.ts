@@ -97,6 +97,8 @@ export type RepoUsedByQueryVariables = {
   limit?: number;
   /** One of the repository's packages; any other name answers an empty page. */
   package?: string | null;
+  /** The registry `package` is on; npm when none is given. */
+  registry?: PackageRegistry | null;
   hideArchived?: boolean;
 };
 
@@ -108,10 +110,11 @@ export const RepoUsedByDocument = doc<RepoUsedByQuery, RepoUsedByQueryVariables>
     $offset: Int = 0
     $limit: Int = 25
     $package: String
+    $registry: PackageRegistry
     $hideArchived: Boolean = false
   ) {
     repo(owner: $owner, name: $name) {
-      usedBy(offset: $offset, limit: $limit, package: $package, hideArchived: $hideArchived) {
+      usedBy(offset: $offset, limit: $limit, package: $package, registry: $registry, hideArchived: $hideArchived) {
         total
         archived
         items {

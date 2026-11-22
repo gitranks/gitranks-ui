@@ -113,7 +113,12 @@ describe('UsedByScreen', () => {
 describe('the list', () => {
   it('reads more from the route handler, the filter and the toggle in its query', () => {
     expect(usedByRouteQuery(0, null, false)).toBe('');
-    expect(usedByRouteQuery(25, '@nebula/ui', true)).toBe('?offset=25&package=%40nebula%2Fui&archived=0');
+    expect(usedByRouteQuery(25, { registry: 'npm', name: '@nebula/ui' }, true)).toBe(
+      '?offset=25&package=%40nebula%2Fui&archived=0',
+    );
+    expect(usedByRouteQuery(0, { registry: 'pypi', name: 'nebula-ui' }, false)).toBe(
+      '?package=nebula-ui&registry=pypi',
+    );
   });
 
   it('follows the package the list is cut to, else the most used, else all of four or more', () => {

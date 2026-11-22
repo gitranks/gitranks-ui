@@ -206,6 +206,33 @@ export const PAST: HeroSlot[] = [
   }),
 ];
 
+/** The shortlist's row of a repository that has a slot: listed until the next rebuild leaves it out. */
+export const candidateWithSlotOf = (slot: HeroSlot, position: number): HeroCandidate =>
+  candidateOf({
+    position,
+    repo: { githubId: slot.repo.githubId, nameWithOwner: slot.repo.nameWithOwner, createdAt: null },
+    package: slot.package,
+    weeklyDownloads: slot.facts.weeklyDownloads,
+    stars: 942,
+    owner: {
+      githubId: slot.maintainer.githubId,
+      login: slot.maintainer.login,
+      type: 'User',
+      followers: 120,
+      hasEmail: true,
+    },
+    misses: [],
+  });
+
+/** The shortlist after scheduling: the live hero, a coming week's, and one whose slot was cancelled (open again). */
+export const SHORTLIST_WITH_SLOTS: HeroCandidate[] = [
+  candidateOf(),
+  candidateWithSlotOf(LIVE, 2),
+  CHECKED,
+  candidateWithSlotOf(NOT_TOLD, 4),
+  candidateWithSlotOf(PAST[1], 5),
+];
+
 export function boardOf(overrides: Partial<HeroBoard> = {}): HeroBoard {
   return {
     live: [LIVE],

@@ -1,7 +1,18 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { boardOf, CHECKED, HELD, LIVE, liveCheckOf, NO_RECEIPT, NOT_TOLD, PAST, slotOf } from './__fixtures__/board';
+import {
+  boardOf,
+  CHECKED,
+  HELD,
+  LIVE,
+  liveCheckOf,
+  NO_RECEIPT,
+  NOT_TOLD,
+  PAST,
+  SHORTLIST_WITH_SLOTS,
+  slotOf,
+} from './__fixtures__/board';
 import { HERO_REFUSALS } from './admin.types';
 import {
   cancelReasonText,
@@ -12,6 +23,7 @@ import {
   REFUSAL_TEXT,
   recapLine,
   skipConfirm,
+  takenTag,
   weekShort,
 } from './admin-copy';
 import { isoWeekOf, weekOptionsOf } from './admin-weeks';
@@ -22,6 +34,7 @@ const { AdminBoard } = await import('./components/admin-board');
 const { CheckFacts, HeadsUpPreview } = await import('./components/schedule-dialog');
 const { SlotActions } = await import('./components/slot-parts');
 const { OptOutsTable, PastTable } = await import('./components/past');
+const { slotsByRepoOf } = await import('./components/shortlist');
 
 const text = (html: string) =>
   html
@@ -242,6 +255,31 @@ describe('the board', () => {
     expect(render(<AdminBoard state={{ board: boardOf(), notice, check: null }} />)).toContain(
       REFUSAL_TEXT.NOT_CANCELLABLE,
     );
+  });
+
+  it('tags a candidate that has a slot with its state and week, without Skip, and with Schedule off', () => {
+    const board = boardOf({ shortlist: SHORTLIST_WITH_SLOTS });
+    const markup = renderToStaticMarkup(<AdminBoard state={{ board, notice: null, check: null }} />);
+    const shortlist = text(markup.slice(markup.indexOf('Candidate')));
+    expect(shortlist).toContain('mona/scroll-guard scroll-guard Live · Oct 26 – Nov 1 942');
+    expect(shortlist).toContain('mona/hide-rest hide-rest Scheduled · Nov 9 – 15 942');
+    // A cancelled slot leaves its repository open again.
+    expect(shortlist).toContain('hubot/micro-queue micro-queue 942 98.8M — 120 Jan 2023 Skip Schedule');
+    expect(shortlist.match(/Skip/g)).toHaveLength(3);
+    const schedule = markup.slice(markup.indexOf('Candidate')).match(/<button[^>]*>Schedule<\/button>/g) ?? [];
+    expect(schedule.filter((button) => button.includes('disabled=""'))).toHaveLength(2);
+    expect(schedule).toHaveLength(5);
+  });
+
+  it('names a slot on the shortlist by its state: scheduled, live, featured, opted out', () => {
+    expect(takenTag(NOT_TOLD)).toBe('Scheduled · Nov 9 – 15');
+    expect(takenTag({ ...NO_RECEIPT, status: 'NOTIFIED' })).toBe('Scheduled · Nov 2 – 8');
+    expect(takenTag(LIVE)).toBe('Live · Oct 26 – Nov 1');
+    expect(takenTag(PAST[0])).toBe('Featured · Oct 19 – 25');
+    expect(takenTag(PAST[2])).toBe('Opted out · Oct 5 – 11');
+    expect(slotsByRepoOf(PAST).has(PAST[1].repo.githubId)).toBe(false);
+    // The live slot wins over an older one of the same repository.
+    expect(slotsByRepoOf([LIVE, PAST[3]]).get(LIVE.repo.githubId)?.status).toBe('LIVE');
   });
 
   it('with nobody next week, asks for one by the day scheduling closes', () => {

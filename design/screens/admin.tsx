@@ -1,5 +1,5 @@
 import type { Screen, ScreenState } from '../registry';
-import { boardOf } from '@/app/admin/unsung-hero/__fixtures__/board';
+import { boardOf, SHORTLIST_WITH_SLOTS } from '@/app/admin/unsung-hero/__fixtures__/board';
 import type { HeroBoard } from '@/app/admin/unsung-hero/admin.types';
 import { AdminBoard } from '@/app/admin/unsung-hero/components/admin-board';
 import { Header } from '@/components/header/header';
@@ -56,6 +56,7 @@ export const ADMIN_SCREENS: Screen[] = [
     ],
     states: [
       ...both('board', 'Live, next and coming weeks', boardOf(), 1290, 2110),
+      one('shortlist-slots', 'Shortlist rows that have a slot', boardOf({ shortlist: SHORTLIST_WITH_SLOTS }), 1580),
       one('empty-week', 'Nobody this week or next', boardOf({ live: [], upcoming: [] }), 850),
     ],
   },

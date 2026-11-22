@@ -5,6 +5,7 @@ import {
   type MailLine,
   markableOf,
   markNotifiedConfirm,
+  registryLabel,
   STATUS_LABEL,
   STATUS_TONE,
 } from '../admin-copy';
@@ -27,7 +28,9 @@ export function SlotName({ slot }: Readonly<{ slot: HeroSlot }>) {
           {slot.repo.nameWithOwner}
         </Link>
       </div>
-      <span className="text-xs text-muted-foreground break-all">{slot.package.name}</span>
+      <span className="text-xs text-muted-foreground break-all">
+        {registryLabel(slot.package.registry)} · {slot.package.displayName ?? slot.package.name}
+      </span>
     </div>
   );
 }

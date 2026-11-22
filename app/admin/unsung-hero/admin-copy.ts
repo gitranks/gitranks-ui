@@ -1,4 +1,6 @@
 import type { HeroCancelReason, HeroMail, HeroRefusal, HeroSlot, HeroStatus, HeroWeek } from './admin.types';
+import { REGISTRIES, registryOfApi } from '@/lib/packages/registries';
+import { type ApiHeroUsageFacts, type HeroUsage, heroUsageOf } from '@/lib/unsung-hero/hero-usage';
 
 // Words, numbers and dates of the board. Every date is UTC: weeks start Monday 00:00 UTC.
 
@@ -36,6 +38,55 @@ const STAMP = new Intl.DateTimeFormat('en-US', {
   hourCycle: 'h23',
   timeZone: 'UTC',
 });
+
+/** Registries in the order the shortlist's switch lists them, as the API names them, with their written names. */
+const REGISTRY_LABELS: Record<string, string> = {
+  NPM: 'npm',
+  PYPI: 'PyPI',
+  MAVEN: 'Maven Central',
+  NUGET: 'NuGet',
+  GO: 'Go',
+  PACKAGIST: 'Packagist',
+  RUBYGEMS: 'RubyGems',
+  PUB: 'pub.dev',
+  CRATES: 'crates.io',
+};
+const REGISTRY_ORDER = Object.keys(REGISTRY_LABELS);
+
+/** A registry as written, `npm`, `PyPI`; the site's own name first, the API's for one nobody wrote down. */
+export function registryLabel(api: string): string {
+  const id = registryOfApi(api);
+  return id ? REGISTRIES[id].label : (REGISTRY_LABELS[api] ?? api);
+}
+
+/** Registries in the switch's order: the known ones first, any other after, by name. */
+export const byRegistryOrder = (a: string, b: string): number => {
+  const at = (api: string) => (REGISTRY_ORDER.includes(api) ? REGISTRY_ORDER.indexOf(api) : REGISTRY_ORDER.length);
+  return at(a) - at(b) || a.localeCompare(b);
+};
+
+/** A row's usage: its downloads in their period, or for Maven and Go its dependents. */
+export const usageOfRow = (facts: ApiHeroUsageFacts): HeroUsage => heroUsageOf(facts);
+
+/** A downloads cell: `98.8M a week`, `4.5M a month`; a dash with none. */
+export function downloadsCell(usage: HeroUsage): string {
+  return usage.downloads !== null && usage.downloadsPer ? `${compact(usage.downloads)} a ${usage.downloadsPer}` : '—';
+}
+
+/** A slot's figure in the Weeks and Past tables: `98.8M a week`, `4.5M a month`, `used by 45`; a dash with none. */
+export function usageCell(usage: HeroUsage): string {
+  if (usage.downloads !== null && usage.downloadsPer) return downloadsCell(usage);
+  return usage.dependents ? `used by ${full(usage.dependents)}` : '—';
+}
+
+/** The downloads column's header for one registry's rows: by their period, or none for a registry with no counts. */
+export function downloadsHeader(usages: readonly HeroUsage[]): string | null {
+  const periods = new Set(usages.map(({ downloadsPer }) => downloadsPer));
+  if (periods.size === 1 && periods.has('week')) return 'Weekly downloads';
+  if (periods.size === 1 && periods.has('month')) return 'Monthly downloads';
+  if (periods.size === 1 && periods.has(null)) return null;
+  return 'Downloads';
+}
 
 /** `1,745`; a dash when unknown. */
 export const full = (n: number | null | undefined): string => (typeof n === 'number' ? FULL.format(n) : '—');

@@ -12,7 +12,7 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 
 const MAIL = 'queuedAt sentAt held markedBy noReceipt';
 const MISS = 'code label blocks';
-const PACKAGE = 'registry name';
+const PACKAGE = 'registry name displayName';
 
 const SLOT = `
   id week startsAt endsAt status
@@ -20,7 +20,7 @@ const SLOT = `
   package { ${PACKAGE} }
   maintainer { githubId login name hasEmail }
   line reason text noHeadsUp
-  facts { weeklyDownloads dependents contributors }
+  facts { weeklyDownloads downloads downloadsPer dependents contributors }
   headsUp { ${MAIL} }
   recap { ${MAIL} }
   starsAtStart starsNow starsGained visits githubClicks
@@ -30,7 +30,7 @@ const SLOT = `
 const LIVE_CHECK = `
   at outcome package { ${PACKAGE} } nameWithOwner githubStars isFork isArchived licenseSpdx pushedAt
   ownerLogin ownerType ownerFollowers firstName hasEmail advisories advisoriesIncomplete
-  lookupAnswered linked weeklyDownloads dependents optedOut
+  lookupAnswered linked weeklyDownloads downloads downloadsPer dependents optedOut
   misses { ${MISS} }
   refusals refusalsWithoutHeadsUp
 `;
@@ -50,7 +50,7 @@ export const UnsungHeroAdminDocument = doc<{ unsungHeroAdmin: HeroBoard | null }
         position
         repo { githubId nameWithOwner createdAt }
         package { ${PACKAGE} }
-        weeklyDownloads downloadsRank dependents stars pushedAt
+        weeklyDownloads downloadsRank downloads downloadsPer rank rankBy dependents stars pushedAt
         owner { githubId login type followers hasEmail }
         score
         misses { ${MISS} }

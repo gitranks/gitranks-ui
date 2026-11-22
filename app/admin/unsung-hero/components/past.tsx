@@ -1,5 +1,16 @@
 import type { HeroOptOut, HeroSlot } from '../admin.types';
-import { cancelReasonText, compact, day, full, gained, headsUpLine, recapLine, stamp, weekShort } from '../admin-copy';
+import {
+  cancelReasonText,
+  day,
+  full,
+  gained,
+  headsUpLine,
+  recapLine,
+  stamp,
+  usageCell,
+  usageOfRow,
+  weekShort,
+} from '../admin-copy';
 import type { PressAction } from './press';
 import { MailLineText, SlotActions, SlotName, SlotStatus } from './slot-parts';
 
@@ -34,7 +45,7 @@ export function PastTable({
               Outcome
             </th>
             <th scope="col" className="px-2 py-2 text-right font-medium">
-              Weekly downloads
+              Downloads
             </th>
             <th scope="col" className="px-2 py-2 text-right font-medium">
               Stars when featured
@@ -76,7 +87,7 @@ export function PastTable({
                   <MailLineText line={recapLine(slot)} />
                 </div>
               </td>
-              <td className="px-2 py-3 text-right font-mono tabular-nums">{compact(slot.facts.weeklyDownloads)}</td>
+              <td className="px-2 py-3 text-right font-mono tabular-nums">{usageCell(usageOfRow(slot.facts))}</td>
               <td className="px-2 py-3 text-right font-mono tabular-nums">{full(slot.starsAtStart)}</td>
               <td className="px-2 py-3 text-right font-mono tabular-nums text-positive-strong">
                 {gained(slot.starsGained)}

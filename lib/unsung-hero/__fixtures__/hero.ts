@@ -9,6 +9,7 @@ export const unsungHero: UnsungHero = {
   package: { registry: 'NPM', name: 'scroll-guard' },
   line: 'Ships inside @octo-ui/dialog',
   weeklyDownloads: 98_800_000,
+  usage: { downloads: 98_800_000, downloadsPer: 'week', dependents: 4_120 },
   starsAtStart: 942,
   starsGained: 51,
 };

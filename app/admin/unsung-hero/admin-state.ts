@@ -19,6 +19,8 @@ export type AdminPress =
       intent: 'schedule';
       repoGithubId: string;
       week: string;
+      /** The registry as the API names it, `NPM`, `PYPI`: the row's. */
+      registry: string;
       name: string;
       line: string;
       reason: string | null;
@@ -31,7 +33,10 @@ export type AdminPress =
 const ID = /^[A-Za-z0-9_=+/-]{1,100}$/;
 /** Room past the API's own limits, so the API's refusal says what is too long. */
 const WORDS_MAX = 2_000;
-const NAME_MAX = 214;
+/** The longest package name of any registry (Maven's `group:artifact`). */
+const NAME_MAX = 500;
+/** A registry as the API names it. */
+const REGISTRY = /^[A-Z]{1,20}$/;
 
 const idOf = (value: FormDataEntryValue | null): string | null =>
   typeof value === 'string' && ID.test(value) ? value : null;
@@ -56,12 +61,14 @@ export function adminPressOf(form: FormData): AdminPress | null {
       const repoGithubId = idOf(form.get('repoGithubId'));
       const week = wordsOf(form.get('week'), 16)?.trim();
       const name = wordsOf(form.get('name'), NAME_MAX)?.trim();
+      const registryField = form.get('registry');
+      const registry = typeof registryField === 'string' && REGISTRY.test(registryField) ? registryField : null;
       const line = wordsOf(form.get('line'));
       const text = wordsOf(form.get('text'));
-      if (!repoGithubId || !week || !name || line === null || text === null) return null;
+      if (!repoGithubId || !week || !registry || !name || line === null || text === null) return null;
       const headsUp = form.get('headsUp') !== 'false';
       const reason = headsUp ? wordsOf(form.get('reason'))?.trim() || null : null;
-      return { intent, repoGithubId, week, name, line, reason, text, headsUp };
+      return { intent, repoGithubId, week, registry, name, line, reason, text, headsUp };
     }
     case 'cancel':
     case 'mark-notified': {

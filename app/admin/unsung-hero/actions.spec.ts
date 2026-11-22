@@ -101,6 +101,7 @@ describe('Schedule', () => {
     intent: 'schedule',
     repoGithubId: '149283910',
     week: '2026-W45',
+    registry: 'NPM',
     name: 'ref-hook',
     line: 'Ships inside @example/dialog',
     reason: '  ',
@@ -155,6 +156,7 @@ describe('Schedule', () => {
       intent: 'schedule',
       repoGithubId: '149283910',
       week: '2026-W45',
+      registry: 'PYPI',
       name: 'ref-hook',
       line: 'Ships inside @example/dialog',
       reason: 'left over from before',
@@ -163,7 +165,7 @@ describe('Schedule', () => {
     });
     const state = await pressAdmin(BEFORE, off);
     expect(sentOf(signedFetch)[0].variables).toEqual({
-      input: expect.objectContaining({ headsUp: false, reason: null }),
+      input: expect.objectContaining({ registry: 'PYPI', headsUp: false, reason: null }),
     });
     expect(state.notice?.text).toBe(
       'Scheduled mona/scroll-guard for Nov 2 – 8 with no heads-up: the maintainer gets no email before the week.',
@@ -273,6 +275,8 @@ describe('a press that does not go through', () => {
     [{ intent: 'cancel', id: 'not an id!' }],
     [{ intent: 'skip' }],
     [{ intent: 'schedule', repoGithubId: '1', week: '2026-W45' }],
+    [{ intent: 'schedule', repoGithubId: '1', week: '2026-W45', name: 'a', line: 'l', text: 't' }],
+    [{ intent: 'schedule', repoGithubId: '1', week: '2026-W45', registry: 'npm', name: 'a', line: 'l', text: 't' }],
   ])('a form that names no known press changes nothing and asks nothing: %j', async (fields) => {
     expect(await pressAdmin(BEFORE, form(fields as Record<string, string>))).toBe(BEFORE);
     expect(signedFetch).not.toHaveBeenCalled();

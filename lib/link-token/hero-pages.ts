@@ -1,5 +1,6 @@
 import { type LinkTrouble, UNKNOWN } from './follow-pages';
 import type { ApiHeroLink, ApiHeroLinkAnswer } from './hero-links.documents';
+import { type HeroUsage, heroUsageOf } from '@/lib/unsung-hero/hero-usage';
 
 /** Where the week a link names stands: before it, during it, after it, opted out of, or called off. */
 export type HeroLinkWeek = 'upcoming' | 'live' | 'done' | 'opted-out' | 'cancelled';
@@ -14,7 +15,7 @@ export type HeroLink = {
   maintainer: { login: string; name: string | null };
   line: string;
   text: string;
-  facts: { weeklyDownloads: number; contributors: number | null };
+  facts: { weeklyDownloads: number; usage: HeroUsage; contributors: number | null };
   /** GitHub's star count as last read; null when none is known. */
   stars: number | null;
   /** GitHub's star count when the week started; null before. */
@@ -60,7 +61,11 @@ export function heroLinkOf(api: ApiHeroLink): HeroLink | null {
     maintainer: { login: api.maintainer.login, name: api.maintainer.name ?? null },
     line: api.line,
     text: api.text,
-    facts: { weeklyDownloads: api.facts.weeklyDownloads, contributors: api.facts.contributors ?? null },
+    facts: {
+      weeklyDownloads: api.facts.weeklyDownloads,
+      usage: heroUsageOf(api.facts),
+      contributors: api.facts.contributors ?? null,
+    },
     stars: api.stars ?? null,
     starsAtStart: api.starsAtStart ?? null,
     canOptOut: api.canOptOut === true,

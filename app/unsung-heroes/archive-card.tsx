@@ -2,6 +2,7 @@ import 'server-only';
 
 import { ARCHIVE_LEAD, type Archive, formatCompactCount, formatFullCount } from './archive';
 import { CARD_COLORS, drawSocialCard, Figure, Frame } from '@/lib/social-card/social-card';
+import { heroUsageFigure } from '@/lib/unsung-hero/hero-usage';
 import { heroWeekLabel } from '@/lib/unsung-hero/unsung-hero';
 
 // The archive's link preview, 1200×630, in the site's light colours: this week's hero (its name, line, downloads and
@@ -14,6 +15,7 @@ const nameSize = (name: string) => (name.length > 44 ? 48 : name.length > 28 ? 5
 
 function HeroCard({ hero }: Readonly<{ hero: NonNullable<Archive['live']> }>) {
   const name = hero.repo.nameWithOwner;
+  const usage = heroUsageFigure(hero.usage, hero.usage.downloads === null ? formatFullCount : formatCompactCount);
   return (
     <Frame eyebrow={`Unsung hero · ${heroWeekLabel(hero)}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -21,7 +23,7 @@ function HeroCard({ hero }: Readonly<{ hero: NonNullable<Archive['live']> }>) {
         <div style={{ display: 'flex', fontSize: 32, color: MUTED }}>{hero.line}</div>
       </div>
       <div style={{ display: 'flex', gap: 80, borderTop: `2px solid ${RULE}`, paddingTop: 32 }}>
-        <Figure value={formatCompactCount(hero.weeklyDownloads)} label="downloads a week" />
+        {usage && <Figure value={usage.value} label={usage.label} />}
         {hero.starsAtStart !== null && <Figure value={formatFullCount(hero.starsAtStart)} label="stars" />}
       </div>
     </Frame>

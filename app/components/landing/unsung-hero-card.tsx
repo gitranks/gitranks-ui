@@ -7,6 +7,7 @@ import type { FC } from 'react';
 
 import { formatCompact, formatFull, GithubAvatar } from './landing-ui';
 import { Button } from '@/components/ui/button';
+import { heroUsageFigure } from '@/lib/unsung-hero/hero-usage';
 import { heroWeekLabel, UNSUNG_HEROES_PATH, type UnsungHero } from '@/lib/unsung-hero/unsung-hero';
 import { reportHeroHit } from '@/lib/unsung-hero/use-unsung-hero';
 import { getRepoPath } from '@/utils/repo-paths';
@@ -32,6 +33,7 @@ const Figure: FC<{ value: string; label: string }> = ({ value, label }) => (
 export const UnsungHeroCard: FC<{ hero: UnsungHero }> = ({ hero }) => {
   const { nameWithOwner } = hero.repo;
   const [owner] = nameWithOwner.split('/');
+  const usage = heroUsageFigure(hero.usage, hero.usage.downloads === null ? formatFull : formatCompact);
 
   return (
     <section
@@ -52,7 +54,7 @@ export const UnsungHeroCard: FC<{ hero: UnsungHero }> = ({ hero }) => {
         </div>
       </Link>
       <div className="grid grid-cols-2 gap-4">
-        <Figure value={formatCompact(hero.weeklyDownloads)} label="downloads a week" />
+        {usage && <Figure value={usage.value} label={usage.label} />}
         {hero.starsAtStart !== null && <Figure value={formatFull(hero.starsAtStart)} label="stars" />}
       </div>
       <p className="text-sm text-muted-foreground">{HERO_CARD_ASK}</p>

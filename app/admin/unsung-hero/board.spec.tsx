@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   boardOf,
   CHECKED,
+  candidateOf,
   HELD,
   LIVE,
   liveCheckOf,
@@ -34,7 +35,7 @@ const { AdminBoard } = await import('./components/admin-board');
 const { CheckFacts, HeadsUpPreview } = await import('./components/schedule-dialog');
 const { SlotActions } = await import('./components/slot-parts');
 const { OptOutsTable, PastTable } = await import('./components/past');
-const { slotsByRepoOf } = await import('./components/shortlist');
+const { registryGroupsOf, ShortlistTable, slotsByRepoOf } = await import('./components/shortlist');
 
 const text = (html: string) =>
   html
@@ -241,8 +242,8 @@ describe('the board', () => {
 
   it('shows the past weeks with how each went or why it ended, and the opt-outs', () => {
     const past = render(<PastTable past={PAST} />);
-    expect(past).toContain('octo-dev/number-check number-check Done Heads-up sent');
-    expect(past).toContain('Recap sent Mon, Oct 26, 00:11 UTC 98.8M 290 +26 318 1,204 356');
+    expect(past).toContain('octo-dev/number-check npm · number-check Done Heads-up sent');
+    expect(past).toContain('Recap sent Mon, Oct 26, 00:11 UTC 98.8M a week 290 +26 318 1,204 356');
     expect(past).toContain('Cancelled The repository belonged to another account at the heads-up');
     expect(past).toContain('Opted out Opted out Fri, Oct 9, 08:00 UTC');
     // A week that ended cannot be cancelled.
@@ -257,14 +258,55 @@ describe('the board', () => {
     );
   });
 
+  it('lists each registry on its own behind a switch, with its label and its period', () => {
+    const pypi = (name: string, position: number) =>
+      candidateOf({
+        repo: { githubId: `P${position}`, nameWithOwner: `py-dev/${name}`, createdAt: null },
+        package: { registry: 'PYPI', name, displayName: name === 'zope-interface' ? 'zope.interface' : null },
+        downloads: 4_480_000,
+        downloadsPer: 'MONTH',
+        position,
+      });
+    const board = boardOf({ shortlist: [pypi('zope-interface', 1), candidateOf(), pypi('mail-parser', 2)] });
+    const markup = renderToStaticMarkup(<AdminBoard state={{ board, notice: null, check: null }} />);
+    // npm first, then PyPI, each with its count
+    expect(text(markup)).toMatch(/npm\s*1\s*PyPI\s*2/);
+    // The open tab is npm's; PyPI's rows are in their own panel, numbered on their own.
+    expect(markup).toContain('Weekly downloads');
+    expect(
+      registryGroupsOf(board.shortlist).map(({ registry, rows }) => [registry, rows.map(({ position }) => position)]),
+    ).toEqual([
+      ['NPM', [1]],
+      ['PYPI', [1, 2]],
+    ]);
+    const pypiRows = renderToStaticMarkup(
+      <ShortlistTable shortlist={board.shortlist.filter(({ package: p }) => p.registry === 'PYPI')} builtAt={null} />,
+    );
+    expect(text(pypiRows)).toContain('Monthly downloads');
+    expect(text(pypiRows)).toContain('py-dev/zope-interface PyPI · zope.interface');
+    expect(text(pypiRows)).toContain('4.5M a month');
+  });
+
+  it('leaves the downloads column out for a registry with no counts', () => {
+    const go = candidateOf({
+      package: { registry: 'GO', name: 'example.com/toml' },
+      downloads: null,
+      downloadsPer: null,
+      dependents: 45,
+    });
+    const rows = text(renderToStaticMarkup(<ShortlistTable shortlist={[go]} builtAt={null} />));
+    expect(rows).not.toContain('downloads');
+    expect(rows).toContain('Go · example.com/toml');
+  });
+
   it('tags a candidate that has a slot with its state and week, without Skip, and with Schedule off', () => {
     const board = boardOf({ shortlist: SHORTLIST_WITH_SLOTS });
     const markup = renderToStaticMarkup(<AdminBoard state={{ board, notice: null, check: null }} />);
     const shortlist = text(markup.slice(markup.indexOf('Candidate')));
-    expect(shortlist).toContain('mona/scroll-guard scroll-guard Live · Oct 26 – Nov 1 942');
-    expect(shortlist).toContain('mona/hide-rest hide-rest Scheduled · Nov 9 – 15 942');
+    expect(shortlist).toContain('mona/scroll-guard npm · scroll-guard Live · Oct 26 – Nov 1 942');
+    expect(shortlist).toContain('mona/hide-rest npm · hide-rest Scheduled · Nov 9 – 15 942');
     // A cancelled slot leaves its repository open again.
-    expect(shortlist).toContain('hubot/micro-queue micro-queue 942 98.8M — 120 Jan 2023 Skip Schedule');
+    expect(shortlist).toContain('hubot/micro-queue npm · micro-queue 942 98.8M a week — 120 Jan 2023 Skip Schedule');
     expect(shortlist.match(/Skip/g)).toHaveLength(3);
     const schedule = markup.slice(markup.indexOf('Candidate')).match(/<button[^>]*>Schedule<\/button>/g) ?? [];
     expect(schedule.filter((button) => button.includes('disabled=""'))).toHaveLength(2);

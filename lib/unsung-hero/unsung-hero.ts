@@ -1,3 +1,5 @@
+import type { HeroUsage } from './hero-usage';
+
 /**
  * Unsung hero: one open-source project a week that a lot of software runs on and few people star. What the browser
  * and the server share: the hero as the site shows it, the paths that serve it, its cache tag and what a hit names.
@@ -15,8 +17,10 @@ export type UnsungHero = {
   package: { registry: string; name: string };
   /** The card's line under the name. */
   line: string;
-  /** The package's downloads a week when the hero was picked. */
+  /** The package's downloads a week when the hero was picked (a monthly registry's: a week's worth). */
   weeklyDownloads: number;
+  /** How much it is used, as picked: downloads in their period, or the repositories using it. */
+  usage: HeroUsage;
   /** GitHub's star count when the week started; null when it was not read. */
   starsAtStart: number | null;
   /** Stars since the week started, never below zero. */

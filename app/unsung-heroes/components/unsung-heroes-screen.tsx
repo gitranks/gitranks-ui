@@ -18,11 +18,11 @@ export const ARCHIVE_UNAVAILABLE_TEXT = 'Unsung heroes are not available right n
 const HOW_WE_PICK = [
   {
     title: 'Heavily used',
-    text: 'Repositories with 100+ stars depend on it directly, and it is downloaded millions of times a week.',
+    text: 'Repositories with 100+ stars depend on it directly, and it is among the most used packages of its registry.',
   },
   {
     title: 'Few stars for its reach',
-    text: 'Lots of downloads per star, from a personal account without a big following.',
+    text: 'Lots of use per star, from a personal account without a big following.',
   },
   {
     title: 'Maintainer first',

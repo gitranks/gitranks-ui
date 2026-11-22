@@ -1,5 +1,6 @@
 import { parse } from 'graphql';
 
+import type { ApiHeroUsageFacts } from '@/lib/unsung-hero/hero-usage';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
@@ -19,7 +20,7 @@ export type ApiArchiveHero = {
   maintainer: { login: string; name: string | null };
   line: string;
   text: string;
-  facts: { weeklyDownloads: number; contributors: number | null };
+  facts: ApiHeroUsageFacts & { weeklyDownloads: number; contributors: number | null };
   starsAtStart: number | null;
   starsNow: number | null;
   starsGained: number;
@@ -36,7 +37,7 @@ const HERO_FIELDS = `startsAt endsAt live
   package { registry name }
   maintainer { login name }
   line text
-  facts { weeklyDownloads contributors }
+  facts { weeklyDownloads downloads downloadsPer dependents contributors }
   starsAtStart starsNow starsGained`;
 
 /** This week's hero, the past ones newest first, and the totals. */

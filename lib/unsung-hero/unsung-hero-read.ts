@@ -2,6 +2,7 @@ import 'server-only';
 
 import { cacheLife, cacheTag } from 'next/cache';
 
+import { heroUsageOf } from './hero-usage';
 import { UNSUNG_HERO_CACHE_TAG, type UnsungHero } from './unsung-hero';
 import { type ApiUnsungHero, UnsungHeroCurrentDocument } from './unsung-hero.documents';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -18,6 +19,7 @@ export const heroOf = (hero: ApiUnsungHero): UnsungHero => ({
   package: { registry: hero.package.registry, name: hero.package.name },
   line: hero.line,
   weeklyDownloads: hero.facts.weeklyDownloads,
+  usage: heroUsageOf(hero.facts),
   starsAtStart: hero.starsAtStart ?? null,
   starsGained: Math.max(0, hero.starsGained ?? 0),
 });

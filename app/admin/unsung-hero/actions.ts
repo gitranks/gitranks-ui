@@ -71,7 +71,7 @@ async function write(press: AdminPress, caller: AdminCaller): Promise<AdminAnswe
       return scheduleSlot(caller, {
         repoGithubId: press.repoGithubId,
         week: press.week,
-        registry: 'NPM',
+        registry: press.registry,
         name: press.name,
         line: press.line,
         reason: press.reason,

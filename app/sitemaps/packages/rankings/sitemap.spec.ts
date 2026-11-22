@@ -38,6 +38,9 @@ describe('package rankings sitemap', () => {
       // pub.dev's first download count is not read yet.
       '/packages/pub/dependents-stars/1',
       '/packages/pub/dependents/1',
+      '/packages/packagist/downloads/1',
+      '/packages/packagist/dependents-stars/1',
+      '/packages/packagist/dependents/1',
     ]);
   });
 
@@ -176,6 +179,36 @@ describe('package rankings sitemap', () => {
           "priority": 0.9,
           "url": "https://example.test/packages/pub/dependents/2",
         },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/packagist/downloads/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/packagist/dependents-stars/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/packagist/dependents/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/packagist/downloads/2",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/packagist/dependents-stars/2",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/packagist/dependents/2",
+        },
       ]
     `);
   });
@@ -185,12 +218,13 @@ describe('package rankings sitemap', () => {
 
     const all = await paths();
 
-    expect(all).toHaveLength(650);
+    expect(all).toHaveLength(800);
     expect(all.at(149)).toBe('/packages/npm/dependents/50');
     expect(all.at(299)).toBe('/packages/pypi/dependents/50');
     expect(all.at(399)).toBe('/packages/go/dependents/50');
     expect(all.at(549)).toBe('/packages/crates/dependents/50');
-    expect(all.at(-1)).toBe('/packages/pub/dependents/50');
+    expect(all.at(649)).toBe('/packages/pub/dependents/50');
+    expect(all.at(-1)).toBe('/packages/packagist/dependents/50');
   });
 
   it('lists no page before the first ranks, or when they cannot be read', async () => {

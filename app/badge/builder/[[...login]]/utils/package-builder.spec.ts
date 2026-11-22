@@ -90,7 +90,9 @@ describe('a Find search', () => {
     expect(parsePackageSearch('https://www.npmjs.com/package/@types/node')).toBe('npm/@types/node');
     expect(parsePackageSearch('npm:react@19.0.0')).toBe('npm/react');
     expect(parsePackageSearch('@types/node@22')).toBe('npm/@types/node');
-    expect(parsePackageSearch('acme/fastqueue')).toBeNull();
+    // `vendor/package` is a Packagist name.
+    expect(parsePackageSearch('acme/fastqueue')).toBe('packagist/acme/fastqueue');
+    expect(parsePackageSearch('acme/fast/queue')).toBeNull();
     expect(parsePackageSearch('.hidden')).toBeNull();
   });
 
@@ -115,10 +117,14 @@ describe('a Find search', () => {
     ]);
     expect(searchLookups('@types/node', null)).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
     expect(searchLookups('npm:lodash', null)).toEqual([{ kind: 'package', name: 'npm/lodash' }]);
-    expect(searchLookups('acme/fastqueue', null)).toEqual([{ kind: 'repo', name: 'acme/fastqueue' }]);
+    expect(searchLookups('acme/fastqueue', null)).toEqual([
+      { kind: 'repo', name: 'acme/fastqueue' },
+      { kind: 'package', name: 'packagist/acme/fastqueue' },
+    ]);
     expect(searchLookups('react', 'user')).toEqual([{ kind: 'user', name: 'react' }]);
     expect(searchLookups('@types/node', 'package')).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
-    expect(searchLookups('acme/fastqueue', 'package')).toEqual([]);
+    expect(searchLookups('acme/fastqueue', 'package')).toEqual([{ kind: 'package', name: 'packagist/acme/fastqueue' }]);
+    expect(searchLookups('acme/fastqueue', 'repo')).toEqual([{ kind: 'repo', name: 'acme/fastqueue' }]);
     expect(searchLookups('vercel', 'org')).toEqual([{ kind: 'org', name: 'vercel' }]);
   });
 

@@ -24,7 +24,8 @@ import { toast } from 'sonner';
 import { BadgeCheckStatus } from '@/app/badge/builder/[[...login]]/components/badge-check-status';
 import { useBadgeCheck } from '@/app/badge/builder/[[...login]]/hooks/use-badge-check';
 import { builderHref } from '@/app/badge/builder/[[...login]]/utils/builder-state';
-import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
+import { ButtonHint } from '@/components/button-hint/button-hint';
+import { useDailyUpdatesText } from '@/components/daily-updates/daily-updates-line';
 import { useDailyUpdatesViewer } from '@/components/daily-updates/use-daily-updates-viewer';
 import { dealPageOf, keepDealSignIn, takeDealSignIn } from '@/components/refresh-dialogs/deal-sign-in';
 import { RefreshDialog, type RefreshDialogAction } from '@/components/refresh-dialogs/refresh-dialog';
@@ -511,19 +512,27 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   // The owner's own profile with nothing to refresh now: the press says why.
   const ownerDailyOn = (view === 'owner-manual-used' || view === 'owner-on-badge-only') && idle;
 
+  // What the grey lines under the button used to say, now its hint.
+  const ownerDailyOnText = useDailyUpdatesText(
+    view === 'owner-on-badge-only' ? DAILY_UPDATES_LINES.ownerBadge : '',
+    view === 'owner-on-badge-only' ? dailyUpdates?.nextUpdateAt : manual?.nextAt,
+  );
+  const ownerOnText = useDailyUpdatesText(DAILY_UPDATES_LINES.ownerOn, dailyUpdates?.nextUpdateAt);
+  const visitorText = useDailyUpdatesText(
+    view === 'visitor-on-badge' ? DAILY_UPDATES_LINES.byBadge : fillLogin(DAILY_UPDATES_LINES.byOwner, shownLogin),
+    dailyUpdates?.nextUpdateAt,
+  );
+
   const ownerButtons =
     view === 'owner-off' && idle ? (
-      <>
+      <ButtonHint hint={manual?.available === false ? DAILY_UPDATES_LINES.ownerOffUsed : DAILY_UPDATES_LINES.ownerOff}>
         <Button type="button" size="sm" className={child.props.className} onClick={startDailyUpdates}>
           {REFRESH_LABELS.startDaily}
           <RefreshCw className="size-4" />
         </Button>
-        <div className="text-xs text-muted-foreground">
-          {manual?.available === false ? DAILY_UPDATES_LINES.ownerOffUsed : DAILY_UPDATES_LINES.ownerOff}
-        </div>
-      </>
+      </ButtonHint>
     ) : ownerDailyOn ? (
-      <>
+      <ButtonHint hint={ownerDailyOnText}>
         <Button
           type="button"
           size="sm"
@@ -538,23 +547,16 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
           <Check className="size-4" aria-hidden />
           {REFRESH_LABELS.dailyOn}
         </Button>
-        <DailyUpdatesLine
-          lead={view === 'owner-on-badge-only' ? DAILY_UPDATES_LINES.ownerBadge : ''}
-          nextUpdateAt={view === 'owner-on-badge-only' ? dailyUpdates?.nextUpdateAt : manual?.nextAt}
-        />
-      </>
+      </ButtonHint>
     ) : view === 'owner-on' && idle ? (
-      <>
-        {childWithOnClick}
-        <DailyUpdatesLine lead={DAILY_UPDATES_LINES.ownerOn} nextUpdateAt={dailyUpdates?.nextUpdateAt} />
-      </>
+      <ButtonHint hint={ownerOnText}>{childWithOnClick}</ButtonHint>
     ) : null;
 
   return (
-    <div ref={containerRef} className={cn('flex flex-col gap-2', className)}>
+    <div ref={containerRef} className={cn('flex min-w-0 flex-col gap-2', className)}>
       {ownerButtons ??
         (updatesDaily ? (
-          <>
+          <ButtonHint hint={visitorText}>
             <Button
               type="button"
               size="sm"
@@ -565,15 +567,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
               <Check className="size-4" aria-hidden />
               {REFRESH_LABELS.updatesDaily}
             </Button>
-            <DailyUpdatesLine
-              lead={
-                view === 'visitor-on-badge'
-                  ? DAILY_UPDATES_LINES.byBadge
-                  : fillLogin(DAILY_UPDATES_LINES.byOwner, shownLogin)
-              }
-              nextUpdateAt={dailyUpdates?.nextUpdateAt}
-            />
-          </>
+          </ButtonHint>
         ) : (
           childWithOnClick
         ))}
@@ -602,7 +596,8 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
           }
         />
       )}
-      {fetchingDuration !== null && (
+      {/* The profile page's button says it in its label; the not-found page's big button keeps the countdown. */}
+      {fetchingDuration !== null && !ownerStates && (
         <div className="text-xs text-muted-foreground">
           Next check in {Math.floor((CHECK_STATUS_INTERVAL - (fetchingDuration % CHECK_STATUS_INTERVAL)) / 1000)} s
         </div>
@@ -624,7 +619,7 @@ export const FetchUserButtonForProfilePage: FC<Omit<FetchUserButtonProps, 'child
     <FetchUserButton
       {...props}
       ownerStates
-      className={cn('flex-grow', props.className)}
+      className={cn('min-w-0', props.className)}
       dailyLabel={
         <>
           {REFRESH_LABELS.dailyAvailable}
@@ -632,7 +627,7 @@ export const FetchUserButtonForProfilePage: FC<Omit<FetchUserButtonProps, 'child
         </>
       }
     >
-      <Button size="sm" className="flex-grow">
+      <Button size="sm" className="w-full">
         Refresh
         <RefreshCw className="size-4" />
       </Button>

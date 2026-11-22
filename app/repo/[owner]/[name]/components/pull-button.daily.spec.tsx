@@ -9,6 +9,13 @@ import { DailyUpdateReason } from '@/types/generated/graphql';
 import type { RepoPullAllowance } from '@/types/repo-pull.types';
 import type { DailyUpdatesFacts } from '@/utils/daily-updates-view';
 
+// Radix measures a tooltip's trigger when it opens (on focus, as after a dialog closes); jsdom has no ResizeObserver.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const { session, toast, signIn } = vi.hoisted(() => ({
@@ -75,10 +82,14 @@ const answer = (key: string, body: unknown, status?: number) => {
 const calls = (key: string) => fetchMock.mock.calls.filter(([url, init]) => `${init?.method ?? 'GET'} ${url}` === key);
 const bodies = (key: string) => calls(key).map(([, init]) => JSON.parse(String(init?.body)));
 
-/** The button and the line under it, as text. */
+/** The button and its hint (its description, a tooltip on hover), as a reader hears them. */
 const text = () =>
-  [...(document.body.firstElementChild?.querySelectorAll('button, div.text-xs') ?? [])]
-    .map((element) => element.textContent)
+  [...(document.body.firstElementChild?.querySelectorAll('button') ?? [])]
+    .flatMap((element) => {
+      const hint = element.getAttribute('aria-describedby');
+      return [element.textContent, hint ? document.getElementById(hint)?.textContent : null];
+    })
+    .filter(Boolean)
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -265,7 +276,7 @@ describe('PullButton: one button', () => {
       expect(bodies(PICKS)).toEqual([{ kind: 'repo', name: 'acme/fastqueue' }]);
       expect(calls(PULL)).toHaveLength(1);
       expect(toast.success).toHaveBeenCalledExactlyOnceWith('Refreshing now. This repository is on daily updates.');
-      expect(text()).toBe('Fetching… Next check in 20 s');
+      expect(text()).toBe('Fetching…');
     });
 
     it.each<[string, Answer]>([
@@ -459,7 +470,7 @@ describe('PullButton: one button', () => {
       expect(calls(PICKS)).toHaveLength(0);
       expect(dialog()).toBeNull();
       expect(toast.success).toHaveBeenCalledExactlyOnceWith('Thanks for the star! ⭐ Fetching the star history now.');
-      expect(text()).toBe('Fetching… Next check in 20 s');
+      expect(text()).toBe('Fetching…');
     });
 
     it('offers no refresh once today’s fetch is used', async () => {
@@ -610,7 +621,7 @@ describe('PullButton: one button', () => {
 
       expect(calls(PICKS)).toHaveLength(0);
       expect(calls(PULL)).toHaveLength(1);
-      expect(text()).toBe('Fetching… Next check in 20 s');
+      expect(text()).toBe('Fetching…');
     });
 
     it('opens nothing on a repository on daily updates, and leaves another page’s mark', async () => {

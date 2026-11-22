@@ -33,7 +33,8 @@ import {
 } from '../utils/pull-messages';
 import { reloadWithPullNote, showKeptPullNote } from '../utils/pull-note';
 import { PicksDialog } from './picks-dialog';
-import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
+import { ButtonHint } from '@/components/button-hint/button-hint';
+import { useDailyUpdatesText } from '@/components/daily-updates/daily-updates-line';
 import { useDailyUpdatesViewer } from '@/components/daily-updates/use-daily-updates-viewer';
 import { usePicks } from '@/components/daily-updates/use-picks';
 import { dealPageOf, keepDealSignIn, takeDealSignIn } from '@/components/refresh-dialogs/deal-sign-in';
@@ -529,45 +530,38 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
     </>
   );
 
-  const line =
-    elapsed !== null && !reloading ? (
-      <div className="text-xs text-muted-foreground">
-        Next check in {Math.floor((CHECK_STATUS_INTERVAL - (elapsed % CHECK_STATUS_INTERVAL)) / 1000)} s
-      </div>
-    ) : onDaily ? (
-      <DailyUpdatesLine
-        lead={
-          view === 'your-pick'
-            ? copy.lines.yourPick
-            : view === 'on-badge'
-              ? DAILY_UPDATES_NOTES.byBadge
-              : DAILY_UPDATES_NOTES.byPick
-        }
-        nextUpdateAt={facts?.nextUpdateAt}
-      />
-    ) : canPick ? (
-      <div className="text-xs text-muted-foreground">{copy.lines.off}</div>
-    ) : null;
+  // What the grey line under the button used to say, now its hint: why it updates every day and when next, or the
+  // picks it can use.
+  const dailyText = useDailyUpdatesText(
+    view === 'your-pick'
+      ? copy.lines.yourPick
+      : view === 'on-badge'
+        ? DAILY_UPDATES_NOTES.byBadge
+        : DAILY_UPDATES_NOTES.byPick,
+    facts?.nextUpdateAt,
+  );
+  const hint = busyLabel !== null ? undefined : onDaily ? dailyText : canPick ? copy.lines.off : undefined;
 
   return (
-    <div ref={containerRef} className="flex flex-grow flex-col gap-2">
-      <Button
-        size="sm"
-        variant={onDaily ? 'outline' : 'default'}
-        className="flex-grow"
-        onClick={onClick}
-        disabled={busyLabel !== null}
-      >
-        {busyLabel !== null ? (
-          <>
-            {busyLabel}
-            <ClipLoader loading size={16} color="currentColor" />
-          </>
-        ) : (
-          label
-        )}
-      </Button>
-      {line}
+    <div ref={containerRef} className="flex min-w-0 flex-col">
+      <ButtonHint hint={hint}>
+        <Button
+          size="sm"
+          variant={onDaily ? 'outline' : 'default'}
+          className="w-full"
+          onClick={onClick}
+          disabled={busyLabel !== null}
+        >
+          {busyLabel !== null ? (
+            <>
+              {busyLabel}
+              <ClipLoader loading size={16} color="currentColor" />
+            </>
+          ) : (
+            label
+          )}
+        </Button>
+      </ButtonHint>
       {openDialogOf()}
     </div>
   );

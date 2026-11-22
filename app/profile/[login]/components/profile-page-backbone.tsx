@@ -44,8 +44,14 @@ export const NameContainer: FC<BackboneProps> = ({ children, className }) => {
   return <div className={className}>{children}</div>;
 };
 
+/** The left column's buttons, one under another. */
 export const ActionsContainer: FC<BackboneProps> = ({ children, className }) => {
-  return <div className={cn('flex flex-row md:flex-col gap-4', className)}>{children}</div>;
+  return <div className={cn('flex flex-col gap-2', className)}>{children}</div>;
+};
+
+/** One row of the left column's buttons: the main one takes the room, the link out keeps its own width. */
+export const ActionRow: FC<BackboneProps> = ({ children, className }) => {
+  return <div className={cn('grid grid-cols-[minmax(0,1fr)_auto] gap-2', className)}>{children}</div>;
 };
 
 export const DetailsContainer: FC<BackboneProps> = ({ children, className }) => {

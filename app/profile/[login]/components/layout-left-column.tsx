@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
-import { BriefcaseBusiness, ExternalLink, Hourglass, Link2, Mail, Timer, UsersRound } from 'lucide-react';
+import { BriefcaseBusiness, Hourglass, Link2, Mail, Timer, UsersRound } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
@@ -11,6 +11,7 @@ import { Eyebrow } from './profile-card';
 import { ProfileListItem } from './profile-list-item';
 import { ProfileLocation } from './profile-location';
 import {
+  ActionRow,
   ActionsContainer,
   AvatarAndNameContainer,
   AvatarContainer,
@@ -19,8 +20,8 @@ import {
   NameContainer,
   PageContainer,
 } from './profile-page-backbone';
+import { ExternalIconButton } from '@/components/external-icon-button/external-icon-button';
 import { LinkPendingStatus } from '@/components/navigation-progress/navigation-progress';
-import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
@@ -70,19 +71,19 @@ export const LayoutLeftColumn: FC<LayoutLeftColumnProps> = ({ user, children, cl
           </NameContainer>
         </AvatarAndNameContainer>
         <ActionsContainer>
-          <FetchUserButtonForProfilePage
-            fetchingStatus={user.fetchingStatus}
-            fetchingUpdatedAt={user.fetchingUpdatedAt}
-            dailyUpdates={user.dailyUpdates}
-            profileLogin={user.login}
-          />
-          <Button size="sm" variant="outline" className="flex-grow" asChild>
-            <Link href={`https://github.com/${user.login}`} target="_blank" rel="noopener noreferrer">
-              <FaGithub aria-hidden />
-              Open GitHub
-              <ExternalLink className="size-4 text-muted-foreground" aria-hidden />
-            </Link>
-          </Button>
+          <ActionRow>
+            <FetchUserButtonForProfilePage
+              fetchingStatus={user.fetchingStatus}
+              fetchingUpdatedAt={user.fetchingUpdatedAt}
+              dailyUpdates={user.dailyUpdates}
+              profileLogin={user.login}
+            />
+            <ExternalIconButton
+              href={`https://github.com/${user.login}`}
+              label="Open on GitHub"
+              icon={<FaGithub aria-hidden />}
+            />
+          </ActionRow>
         </ActionsContainer>
         <DetailsContainer>
           <div className="flex flex-col gap-1.5">

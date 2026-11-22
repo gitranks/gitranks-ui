@@ -8,6 +8,13 @@ import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 import type { DailyUpdatesFacts } from '@/utils/daily-updates-view';
 
+// Radix measures a tooltip's trigger when it opens (on focus, as after a dialog closes); jsdom has no ResizeObserver.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const { session, toast, signIn } = vi.hoisted(() => ({

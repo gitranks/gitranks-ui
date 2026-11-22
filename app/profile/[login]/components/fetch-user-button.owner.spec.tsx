@@ -9,6 +9,13 @@ import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 import type { DailyUpdatesFacts } from '@/utils/daily-updates-view';
 
+// Radix measures a tooltip's trigger when it opens (on focus, as after a dialog closes); jsdom has no ResizeObserver.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const { session, toast } = vi.hoisted(() => ({
@@ -59,10 +66,14 @@ const answer = (key: string, body: unknown, status?: number) => {
 };
 const calls = () => fetchMock.mock.calls.map(([url, init]) => `${init?.method ?? 'GET'} ${url}`);
 
-// The button and its line, as a reader hears them: one after the other.
+// The button and its hint (its description, a tooltip on hover), as a reader hears them: one after the other.
 const text = () =>
-  [...(document.body.firstElementChild?.firstElementChild?.children ?? [])]
-    .map((element) => element.textContent)
+  [...(document.body.firstElementChild?.querySelectorAll('button') ?? [])]
+    .flatMap((element) => {
+      const hint = element.getAttribute('aria-describedby');
+      return [element.textContent, hint ? document.getElementById(hint)?.textContent : null];
+    })
+    .filter(Boolean)
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();

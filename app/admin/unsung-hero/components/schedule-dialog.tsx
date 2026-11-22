@@ -89,8 +89,11 @@ export function HeadsUpPreview({
   reason,
 }: Readonly<{ candidate: HeroCandidate; check: HeroLiveCheck | null; startsAt: string | null; reason: string }>) {
   const name = repoNameOf(check?.nameWithOwner ?? candidate.repo.nameWithOwner);
-  const usage = heroUsagePhrase(check ? usageOfRow(check) : usageOfRow(candidate), compact);
-  const stars = `${full(check?.githubStars ?? candidate.stars)} stars`;
+  const used = check ? usageOfRow(check) : usageOfRow(candidate);
+  // As the email writes them: downloads compact, a count of repositories in full, one star or many.
+  const usage = heroUsagePhrase(used, used.downloads === null ? full : compact);
+  const starCount = check?.githubStars ?? candidate.stars;
+  const stars = `${full(starCount)} ${starCount === 1 ? 'star' : 'stars'}`;
   const parts = [usage, reason.trim()].filter(Boolean);
   const why = parts.length ? `${parts.join(', ')}${parts.length > 1 ? ',' : ''} and ${stars}` : stars;
   const greeting = check?.firstName ?? check?.ownerLogin ?? candidate.owner.login;

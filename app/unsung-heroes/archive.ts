@@ -110,14 +110,16 @@ const plural = (value: number, one: string, many: string) => `${formatFullCount(
 export function archiveSummaryOf({ live, totals }: Archive): string {
   const parts: string[] = [];
   if (live) {
-    const stars = live.starsAtStart === null ? '' : ` with ${plural(live.starsAtStart, 'star', 'stars')}`;
     const { downloads, downloadsPer, dependents } = live.usage;
-    const used =
-      downloads !== null && downloadsPer
-        ? `downloaded ${formatCountWords(downloads)} times a ${downloadsPer}`
-        : dependents
-          ? `used by ${plural(dependents, 'GitHub repository', 'GitHub repositories')} with 100+ stars`
-          : null;
+    const counted = downloads !== null && downloadsPer;
+    const used = counted
+      ? `downloaded ${formatCountWords(downloads)} times a ${downloadsPer}`
+      : dependents
+        ? `used by ${plural(dependents, 'GitHub repository', 'GitHub repositories')} with 100+ stars`
+        : null;
+    // "with 942 stars" after downloads; after "with 100+ stars" a second "with" would read twice.
+    const starCount = live.starsAtStart === null ? null : plural(live.starsAtStart, 'star', 'stars');
+    const stars = starCount === null ? '' : counted || !used ? ` with ${starCount}` : `, and has ${starCount}`;
     parts.push(`This week's Unsung hero is ${live.repo.nameWithOwner}${used ? `, ${used}` : ''}${stars}.`);
   }
   if (totals.heroes > 0) {

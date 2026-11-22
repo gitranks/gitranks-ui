@@ -236,7 +236,8 @@ export function ShortlistTable({
         </p>
       </div>
       {groups.length > 1 ? (
-        <Tabs defaultValue={groups[0].registry} className="gap-0">
+        // Keyed by the registries listed: when Skip empties the open one, the switch opens the first again.
+        <Tabs key={groups.map(({ registry }) => registry).join()} defaultValue={groups[0].registry} className="gap-0">
           <div className="px-4 pb-3">
             <TabsList aria-label="Registry">
               {groups.map(({ registry, rows }) => (

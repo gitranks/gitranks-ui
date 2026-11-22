@@ -79,7 +79,7 @@ describe('/unsung-heroes', () => {
       }),
     });
     expect(text(render(go))).toContain(
-      "This week's Unsung hero is ada-fixture/line-trim-fixture, used by 45 GitHub repositories with 100+ stars with 942 stars.",
+      "This week's Unsung hero is ada-fixture/line-trim-fixture, used by 45 GitHub repositories with 100+ stars, and has 942 stars.",
     );
     expect(figures(render(go)).slice(4, 5)).toEqual(['45 repositories with 100+ stars use it']);
   });

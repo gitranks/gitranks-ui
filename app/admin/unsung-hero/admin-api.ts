@@ -4,13 +4,20 @@ import { print } from 'graphql';
 
 import {
   UnsungHeroAdminDocument,
+  UnsungHeroApplicationNotPickedDocument,
   UnsungHeroCancelDocument,
   UnsungHeroLiveCheckDocument,
   UnsungHeroMarkNotifiedDocument,
   UnsungHeroScheduleDocument,
   UnsungHeroSkipDocument,
 } from './admin.documents';
-import type { HeroActionResult, HeroBoard, HeroLiveCheckResult, HeroScheduleInput } from './admin.types';
+import type {
+  HeroActionResult,
+  HeroApplicationActionResult,
+  HeroBoard,
+  HeroLiveCheckResult,
+  HeroScheduleInput,
+} from './admin.types';
 import { auth } from '@/auth';
 import { accountEmailOf } from '@/lib/account-email';
 import { type RequestSource, signedFetch } from '@/lib/signed-fetch';
@@ -109,12 +116,19 @@ export const readAdminBoard = (caller: AdminCaller, source: RequestSource = 'ssr
 export const skipCandidate = (caller: AdminCaller, repoGithubId: string): Promise<AdminAnswer<HeroActionResult>> =>
   one(UnsungHeroSkipDocument, { repoGithubId }, caller, (data) => data.unsungHeroSkip);
 
+/** A live check of a shortlist row, or of an application (`applicationId`), which keeps the check. */
 export const liveCheckCandidate = (
   caller: AdminCaller,
   repoGithubId: string,
   packageName: string | null,
+  applicationId: string | null = null,
 ): Promise<AdminAnswer<HeroLiveCheckResult>> =>
-  one(UnsungHeroLiveCheckDocument, { repoGithubId, packageName }, caller, (data) => data.unsungHeroLiveCheck);
+  one(
+    UnsungHeroLiveCheckDocument,
+    { repoGithubId, packageName, ...(applicationId ? { applicationId } : {}) },
+    caller,
+    (data) => data.unsungHeroLiveCheck,
+  );
 
 export const scheduleSlot = (caller: AdminCaller, input: HeroScheduleInput): Promise<AdminAnswer<HeroActionResult>> =>
   one(UnsungHeroScheduleDocument, { input }, caller, (data) => data.unsungHeroSchedule);
@@ -124,3 +138,9 @@ export const cancelSlot = (caller: AdminCaller, id: string): Promise<AdminAnswer
 
 export const markSlotNotified = (caller: AdminCaller, id: string): Promise<AdminAnswer<HeroActionResult>> =>
   one(UnsungHeroMarkNotifiedDocument, { id }, caller, (data) => data.unsungHeroMarkNotified);
+
+export const markApplicationNotPicked = (
+  caller: AdminCaller,
+  id: string,
+): Promise<AdminAnswer<HeroApplicationActionResult>> =>
+  one(UnsungHeroApplicationNotPickedDocument, { id }, caller, (data) => data.unsungHeroApplicationNotPicked);

@@ -1,16 +1,16 @@
 import type { Screen, ScreenState } from '../registry';
-import { boardOf, SHORTLIST_WITH_SLOTS } from '@/app/admin/unsung-hero/__fixtures__/board';
+import { boardOf, boardWithApplications, SHORTLIST_WITH_SLOTS } from '@/app/admin/unsung-hero/__fixtures__/board';
 import type { HeroBoard } from '@/app/admin/unsung-hero/admin.types';
-import { AdminBoard } from '@/app/admin/unsung-hero/components/admin-board';
+import { AdminBoard, type AdminTab } from '@/app/admin/unsung-hero/components/admin-board';
 import { Header } from '@/components/header/header';
 
 const PATH = '/admin/unsung-hero';
 
 /** The page as `page.tsx` draws it for the admin: the header, then the board as the API answered it. */
-const page = (board: HeroBoard) => (
+const page = (board: HeroBoard, tab?: AdminTab) => (
   <>
     <Header />
-    <AdminBoard state={{ board, notice: null, check: null }} />
+    <AdminBoard state={{ board, notice: null, check: null }} tab={tab} />
   </>
 );
 
@@ -47,6 +47,7 @@ export const ADMIN_SCREENS: Screen[] = [
       'app/admin/unsung-hero/components/admin-board.tsx',
       'app/admin/unsung-hero/components/weeks.tsx',
       'app/admin/unsung-hero/components/shortlist.tsx',
+      'app/admin/unsung-hero/components/applications.tsx',
       'app/admin/unsung-hero/components/past.tsx',
       'app/admin/unsung-hero/components/slot-parts.tsx',
       'app/admin/unsung-hero/components/confirm-press.tsx',
@@ -58,6 +59,13 @@ export const ADMIN_SCREENS: Screen[] = [
       ...both('board', 'Live, next and coming weeks', boardOf(), 1290, 2110),
       one('shortlist-slots', 'Shortlist rows that have a slot', boardOf({ shortlist: SHORTLIST_WITH_SLOTS }), 1580),
       one('empty-week', 'Nobody this week or next', boardOf({ live: [], upcoming: [] }), 850),
+      {
+        id: 'applications',
+        title: 'Applications in review: an owner’s, a nomination, misses, not found',
+        path: PATH,
+        height: 1590,
+        render: () => page(boardWithApplications(), 'applications'),
+      },
     ],
   },
 ];

@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { CONTACT_EMAIL } from '@/lib/legal';
+import { forgetHeroApplication } from '@/lib/unsung-hero/hero-application-cookie';
 import type { DataRemovalStatus } from '@/types/data-removal.types';
 import { loginFromPath } from '@/utils/login-from-path';
 
@@ -151,6 +152,7 @@ export function RemovalDialog({
         setRemoving(false);
         return;
       }
+      forgetHeroApplication();
       await signOut({ redirectTo: '/data-removed' });
     } catch {
       toast.error(COPY.failed);

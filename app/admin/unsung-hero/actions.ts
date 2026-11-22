@@ -1,6 +1,6 @@
 'use server';
 
-import type { HeroActionResult, HeroBoard, HeroSlot } from './admin.types';
+import type { HeroActionResult, HeroApplicationRow, HeroBoard, HeroSlot } from './admin.types';
 import {
   type AdminAnswer,
   type AdminCaller,
@@ -8,12 +8,13 @@ import {
   adminCaller,
   cancelSlot,
   liveCheckCandidate,
+  markApplicationNotPicked,
   markSlotNotified,
   readAdminBoard,
   scheduleSlot,
   skipCandidate,
 } from './admin-api';
-import { refusalText, weekShort } from './admin-copy';
+import { APPLICATION_NOT_FOUND_TEXT, applicationNameOf, refusalText, weekShort } from './admin-copy';
 import { type AdminIntent, type AdminNotice, type AdminPress, type AdminState, adminPressOf } from './admin-state';
 
 const FAILURE_TEXT: Record<AdminFailure, string> = {
@@ -31,8 +32,17 @@ const failed = (intent: AdminIntent, failure: AdminFailure): AdminNotice => ({
 /** The repository a press names, as the page last listed it. */
 function nameOf(board: HeroBoard | undefined, repoGithubId: string): string {
   const row = board?.shortlist?.find((candidate) => candidate.repo.githubId === repoGithubId);
-  return row?.repo.nameWithOwner ?? 'the repository';
+  const application = board?.applications?.inReview.find((each) => each.repo?.githubId === repoGithubId);
+  return row?.repo.nameWithOwner ?? application?.repo?.nameWithOwner ?? 'the repository';
 }
+
+/** An application the page last listed, by its id. */
+const applicationOf = (board: HeroBoard | undefined, id: string): HeroApplicationRow | undefined =>
+  board?.applications?.inReview.find((each) => each.id === id);
+
+/** A refusal's words; an application that is gone or no longer in review says so in its own words. */
+const refusalOf = (refusal: string, applicationId: string | null) =>
+  applicationId && refusal === 'NOT_FOUND' ? APPLICATION_NOT_FOUND_TEXT : refusalText(refusal);
 
 function doneText(press: AdminPress, slot: HeroSlot | null, board: HeroBoard | undefined): string {
   const name = slot?.repo.nameWithOwner ?? ('repoGithubId' in press ? nameOf(board, press.repoGithubId) : 'the slot');
@@ -59,7 +69,8 @@ function doneText(press: AdminPress, slot: HeroSlot | null, board: HeroBoard | u
 function noticeOf(press: AdminPress, answer: AdminAnswer<HeroActionResult>, board: HeroBoard | undefined): AdminNotice {
   if (!answer.ok) return failed(press.intent, answer.failure);
   const { refusal, slot } = answer.data;
-  if (refusal) return { intent: press.intent, tone: 'refused', text: refusalText(refusal) };
+  const applicationId = press.intent === 'schedule' ? press.applicationId : null;
+  if (refusal) return { intent: press.intent, tone: 'refused', text: refusalOf(refusal, applicationId) };
   return { intent: press.intent, tone: 'done', text: doneText(press, slot, board) };
 }
 
@@ -77,6 +88,7 @@ async function write(press: AdminPress, caller: AdminCaller): Promise<AdminAnswe
         reason: press.reason,
         text: press.text,
         headsUp: press.headsUp,
+        ...(press.applicationId ? { applicationId: press.applicationId } : {}),
       });
     case 'cancel':
       return cancelSlot(caller, press.id);
@@ -109,13 +121,35 @@ export async function pressAdmin(previous: AdminState, form: FormData): Promise<
   const caller = await adminCaller();
 
   if (press.intent === 'live-check') {
-    const answer = await liveCheckCandidate(caller, press.repoGithubId, press.packageName);
+    const { repoGithubId, applicationId } = press;
+    const answer = await liveCheckCandidate(caller, repoGithubId, press.packageName, applicationId);
     if (!answer.ok) return { ...previous, notice: failed(press.intent, answer.failure) };
     const { check, refusal } = answer.data;
     const notice: AdminNotice = refusal
-      ? { intent: press.intent, tone: 'refused', text: refusalText(refusal) }
+      ? { intent: press.intent, tone: 'refused', text: refusalOf(refusal, applicationId) }
       : { intent: press.intent, tone: 'done', text: 'Live check done.' };
-    return withBoard(previous, caller, notice, { repoGithubId: press.repoGithubId, check, refusal });
+    return withBoard(previous, caller, notice, {
+      repoGithubId,
+      ...(applicationId ? { applicationId } : {}),
+      check,
+      refusal,
+    });
+  }
+
+  if (press.intent === 'not-picked') {
+    const listed = applicationOf(previous?.board, press.id);
+    const answer = await markApplicationNotPicked(caller, press.id);
+    if (!answer.ok) return { ...previous, notice: failed(press.intent, answer.failure) };
+    const { refusal, application } = answer.data;
+    const row = application ?? listed;
+    const notice: AdminNotice = refusal
+      ? { intent: press.intent, tone: 'refused', text: refusalOf(refusal, press.id) }
+      : {
+          intent: press.intent,
+          tone: 'done',
+          text: `Not picked: ${row ? applicationNameOf(row) : 'the application'}. They see it on their page and can apply again.`,
+        };
+    return withBoard(previous, caller, notice);
   }
 
   const answer = await write(press, caller);

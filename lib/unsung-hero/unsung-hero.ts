@@ -39,6 +39,9 @@ export const UNSUNG_HERO_HIT_PATH = '/api/unsung-hero/hit';
 /** The page of past heroes. */
 export const UNSUNG_HEROES_PATH = '/unsung-heroes';
 
+/** Where a signed-in visitor applies for the slot. */
+export const UNSUNG_HERO_APPLY_PATH = '/unsung-heroes/apply';
+
 /** What a hit counts: a view of the hero's repository page, or a press of "Star on GitHub". */
 export const HERO_HIT_KINDS = ['visit', 'github'] as const;
 export type HeroHitKind = (typeof HERO_HIT_KINDS)[number];

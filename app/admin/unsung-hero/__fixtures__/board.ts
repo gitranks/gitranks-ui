@@ -1,4 +1,12 @@
-import type { HeroBoard, HeroCandidate, HeroLiveCheck, HeroMail, HeroSlot } from '../admin.types';
+import type {
+  HeroApplicationRow,
+  HeroApplications,
+  HeroBoard,
+  HeroCandidate,
+  HeroLiveCheck,
+  HeroMail,
+  HeroSlot,
+} from '../admin.types';
 
 // A board as the API answers it on Wednesday, October 28, 2026 at 12:00 UTC: week 44 is live, week 45 closes tonight.
 
@@ -233,6 +241,119 @@ export const SHORTLIST_WITH_SLOTS: HeroCandidate[] = [
   candidateWithSlotOf(PAST[1], 5),
 ];
 
+/** An application sent by its repository's owner, in review, meeting the rules. */
+export function applicationOf(overrides: Partial<HeroApplicationRow> = {}): HeroApplicationRow {
+  return {
+    id: '6731b0f0c0ffee0000000001',
+    status: 'IN_REVIEW',
+    applicant: { login: 'octocat', owned: true },
+    package: { registry: 'NPM', name: 'tiny-clamp' },
+    typed: null,
+    repo: { githubId: '310442211', nameWithOwner: 'octocat/tiny-clamp' },
+    note: 'Most date pickers use it for clamping. I have maintained it alone since 2017.',
+    misses: [],
+    stars: 412,
+    downloads: 2_400_000,
+    downloadsPer: 'WEEK',
+    dependents: 1_920,
+    owner: { githubId: '583231', login: 'octocat', type: 'User', followers: 128, hasEmail: true },
+    sentAt: '2026-10-28T09:14:00.000Z',
+    decidedAt: null,
+    decidedBy: null,
+    slot: null,
+    liveCheck: null,
+    ...overrides,
+  };
+}
+
+/** The applications in each tab: an owner's, a nomination of an organization's package, one that misses two rules, one we could not find; one scheduled, one not picked. */
+export const APPLICATIONS: HeroApplications = {
+  inReview: [
+    applicationOf({
+      id: '6731b0f0c0ffee0000000004',
+      applicant: { login: 'monalisa', owned: false },
+      package: null,
+      typed: 'left-padder',
+      repo: null,
+      note: 'The one everybody uses for padding',
+      misses: [{ code: 'NOT_FOUND', label: 'Package not found', blocks: true }],
+      stars: null,
+      downloads: null,
+      downloadsPer: null,
+      dependents: null,
+      owner: null,
+      sentAt: '2026-10-25T07:55:00.000Z',
+    }),
+    applicationOf({
+      id: '6731b0f0c0ffee0000000003',
+      applicant: { login: 'mona', owned: true },
+      package: { registry: 'PYPI', name: 'tidy-env' },
+      repo: { githubId: '310442213', nameWithOwner: 'mona/tidy-env' },
+      note: null,
+      misses: [
+        { code: 'LIGHT', label: 'Not heavily used yet (310K a month, under PyPI’s line)', blocks: false },
+        { code: 'STARS', label: '1,240 stars (over 1,000)', blocks: false },
+      ],
+      stars: 1_240,
+      downloads: 310_000,
+      downloadsPer: 'MONTH',
+      dependents: 96,
+      owner: { githubId: '582410', login: 'mona', type: 'User', followers: 240, hasEmail: true },
+      sentAt: '2026-10-26T11:40:00.000Z',
+    }),
+    applicationOf({
+      id: '6731b0f0c0ffee0000000002',
+      applicant: { login: 'hubot', owned: false },
+      package: { registry: 'NPM', name: 'fast-diff' },
+      typed: 'https://www.npmjs.com/package/fast-diff',
+      repo: { githubId: '310442212', nameWithOwner: 'diff-tools/fast-diff' },
+      note: 'Every diff viewer I know ships it, and one person maintains it for our org.',
+      misses: [{ code: 'ORGANIZATION', label: 'Owner is an organization', blocks: false }],
+      stars: 640,
+      downloads: 3_100_000,
+      dependents: 214,
+      owner: { githubId: '9919', login: 'diff-tools', type: 'Organization', followers: null, hasEmail: false },
+      sentAt: '2026-10-27T18:02:00.000Z',
+    }),
+    applicationOf(),
+  ],
+  scheduled: [
+    applicationOf({
+      id: '6731b0f0c0ffee0000000005',
+      status: 'SCHEDULED',
+      applicant: { login: 'hubot', owned: true },
+      package: { registry: 'NPM', name: 'key-sorter' },
+      repo: { githubId: '310442214', nameWithOwner: 'hubot/key-sorter' },
+      note: null,
+      sentAt: '2026-10-20T10:00:00.000Z',
+      decidedAt: '2026-10-22T09:00:00.000Z',
+      decidedBy: 'octocat',
+      slot: {
+        id: '6721a0f0c0ffee0000000009',
+        week: '2026-W46',
+        startsAt: '2026-11-09T00:00:00.000Z',
+        status: 'SCHEDULED',
+      },
+    }),
+  ],
+  notPicked: [
+    applicationOf({
+      id: '6731b0f0c0ffee0000000006',
+      status: 'NOT_PICKED',
+      applicant: { login: 'monalisa', owned: true },
+      package: { registry: 'NPM', name: 'color-dots' },
+      repo: { githubId: '310442215', nameWithOwner: 'monalisa/color-dots' },
+      note: 'Tiny, but everywhere.',
+      stars: 2_310,
+      downloads: 40_000,
+      dependents: 12,
+      sentAt: '2026-10-18T10:00:00.000Z',
+      decidedAt: '2026-10-19T08:30:00.000Z',
+      decidedBy: 'octocat',
+    }),
+  ],
+};
+
 export function boardOf(overrides: Partial<HeroBoard> = {}): HeroBoard {
   return {
     live: [LIVE],
@@ -243,6 +364,19 @@ export function boardOf(overrides: Partial<HeroBoard> = {}): HeroBoard {
     shortlistBuiltAt: '2026-10-27T03:04:00.000Z',
     past: PAST,
     optOuts: [{ maintainerGithubId: '170270', login: 'example-dev', at: '2026-10-09T08:00:00.000Z' }],
+    applications: { inReview: [], scheduled: [], notPicked: [] },
+    applicationCounts: { inReview: 0, scheduled: 0, notPicked: 0 },
     ...overrides,
   };
 }
+
+/** The board with applications in every tab. */
+export const boardWithApplications = (): HeroBoard =>
+  boardOf({
+    applications: APPLICATIONS,
+    applicationCounts: {
+      inReview: APPLICATIONS.inReview.length,
+      scheduled: APPLICATIONS.scheduled.length,
+      notPicked: 11,
+    },
+  });

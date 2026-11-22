@@ -1,4 +1,12 @@
-import type { HeroCancelReason, HeroMail, HeroRefusal, HeroSlot, HeroStatus, HeroWeek } from './admin.types';
+import type {
+  HeroApplicationRow,
+  HeroCancelReason,
+  HeroMail,
+  HeroRefusal,
+  HeroSlot,
+  HeroStatus,
+  HeroWeek,
+} from './admin.types';
 import { REGISTRIES, registryOfApi } from '@/lib/packages/registries';
 import { type ApiHeroUsageFacts, type HeroUsage, heroUsageOf } from '@/lib/unsung-hero/hero-usage';
 
@@ -145,7 +153,13 @@ export const REFUSAL_TEXT: Record<HeroRefusal, string> = {
     'This slot can no longer be cancelled: its maintainer was told, or may have been. It ends only by their opt-out or the repository gone.',
   NOT_MARKABLE:
     'This heads-up cannot be marked as sent: it was sent or held already, or was queued less than 6 hours ago.',
+  OWNER_REMOVED: 'The repository’s owner removed their account from GitRanks.',
+  SKIPPED: 'This repository is skipped: it is not featured.',
 };
+
+/** An application's press refused as "not found": it is gone, or no longer in review. */
+export const APPLICATION_NOT_FOUND_TEXT =
+  'That application is no longer in review: it was cancelled, scheduled or marked not picked. Reload the page.';
 
 export const refusalText = (refusal: string): string => REFUSAL_TEXT[refusal as HeroRefusal] ?? `Refused (${refusal}).`;
 
@@ -179,6 +193,22 @@ const TAKEN_WORD: Record<HeroStatus, string> = {
 
 export const takenTag = (slot: Pick<HeroSlot, 'status' | 'startsAt' | 'endsAt'>): string =>
   `${TAKEN_WORD[slot.status]} · ${weekShort(slot)}`;
+
+/** An application's slot as its row says it: `Scheduled · Nov 30 – Dec 6` (its week ends 7 days after it starts). */
+export const applicationSlotTag = (slot: Pick<HeroSlot, 'status' | 'startsAt'>): string =>
+  takenTag({ ...slot, endsAt: new Date(new Date(slot.startsAt).getTime() + 7 * DAY_MS).toISOString() });
+
+/** What an application is for: its repository, else its package, else what was typed. */
+export const applicationNameOf = (row: Pick<HeroApplicationRow, 'repo' | 'package' | 'typed'>): string =>
+  row.repo?.nameWithOwner ??
+  (row.package ? (row.package.displayName ?? row.package.name) : row.typed ? `“${row.typed}”` : 'the application');
+
+/** The confirm step before Not picked: the applicant sees it on their page, with no email. */
+export const notPickedConfirm = (name: string) => ({
+  title: `Not pick ${name}?`,
+  description: 'They see Not picked on their page and can apply again. No email.',
+  confirm: 'Not picked',
+});
 
 const CANCEL_REASON: Record<HeroCancelReason, string> = {
   owner: 'Cancelled by you',

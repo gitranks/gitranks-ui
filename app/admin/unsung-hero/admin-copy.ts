@@ -116,6 +116,19 @@ export const STATUS_TONE: Record<HeroStatus, 'neutral' | 'green' | 'violet' | 'a
   CANCELLED: 'red',
 };
 
+/** What a shortlist row with a slot says, by the slot's state: `Scheduled · Nov 30 – Dec 6`. */
+const TAKEN_WORD: Record<HeroStatus, string> = {
+  SCHEDULED: 'Scheduled',
+  NOTIFIED: 'Scheduled',
+  LIVE: 'Live',
+  DONE: 'Featured',
+  OPTED_OUT: 'Opted out',
+  CANCELLED: 'Cancelled',
+};
+
+export const takenTag = (slot: Pick<HeroSlot, 'status' | 'startsAt' | 'endsAt'>): string =>
+  `${TAKEN_WORD[slot.status]} · ${weekShort(slot)}`;
+
 const CANCEL_REASON: Record<HeroCancelReason, string> = {
   owner: 'Cancelled by you',
   gone: 'The repository is gone: deleted or made private',

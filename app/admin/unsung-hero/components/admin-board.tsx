@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { AdminNotice, AdminState } from '../admin-state';
 import { OptOutsTable, PastTable } from './past';
 import type { PressAction } from './press';
-import { ShortlistTable } from './shortlist';
+import { ShortlistTable, slotsByRepoOf } from './shortlist';
 import { WeekCards, WeeksTable } from './weeks';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -65,6 +65,7 @@ export function AdminBoard({
           <ShortlistTable
             shortlist={board.shortlist}
             builtAt={board.shortlistBuiltAt}
+            slots={slotsByRepoOf([...board.live, ...board.upcoming, ...board.past])}
             action={action}
             pending={pending}
             onSchedule={onSchedule}

@@ -43,6 +43,9 @@ describe('llms.txt', () => {
       - [npm package rankings](https://example.test/packages/npm/downloads/1): npm packages ranked by weekly downloads, by the stars of the repositories that use them, and by how many do. Beta.
       - Package page: https://example.test/package/npm/{name} — who uses an npm package: every repository with 100+ stars that depends on it directly, with downloads and ranks.
       - Package facts in markdown: https://example.test/package/npm/{name}/facts.md — the same as the package page, for agents: dependents, downloads and ranks, each with its link.
+      - [PyPI package rankings](https://example.test/packages/pypi/downloads/1): PyPI packages ranked by monthly downloads, by the stars of the repositories that use them, and by how many do. Beta.
+      - Package page: https://example.test/package/pypi/{name} ({name} in lower case, with each run of \`-\`, \`_\` and \`.\` as one \`-\`) — who uses a PyPI package: every repository with 100+ stars that depends on it directly, with downloads and ranks.
+      - Package facts in markdown: https://example.test/package/pypi/{name}/facts.md — the same as the package page, for agents: dependents, downloads and ranks, each with its link.
       - Repository "Used by": https://example.test/repo/{owner}/{name}/used-by — the same for every package a repository publishes.
       - [How package rankings work](https://example.test/methodology/packages)
       - [Unsung heroes](https://example.test/unsung-heroes): one open-source project a week that a lot of software runs on, and few people star

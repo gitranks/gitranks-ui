@@ -11,7 +11,7 @@ describe('how package rankings work', () => {
     expect(metadata.alternates?.canonical).toBe('/methodology/packages');
   });
 
-  it('explains dependents, what does not count, the three rankings and the reads, npm only', () => {
+  it('explains dependents, what does not count, the three rankings and the reads, for npm and PyPI', () => {
     const html = renderToStaticMarkup(<PackageMethodologyPage />);
 
     for (const heading of [
@@ -26,6 +26,13 @@ describe('how package rankings work', () => {
     for (const order of ['downloads', 'dependents-stars', 'dependents']) {
       expect(html).toContain(`href="/packages/npm/${order}/1"`);
     }
-    expect(html).toContain('Only npm for now.');
+    expect(html).toContain('href="/packages/pypi/downloads/1"');
+    const text = html.replace(/<[^>]+>/g, '').replaceAll('&#x27;', "'");
+    expect(text).toContain("A project's facts come from PyPI's JSON API");
+    expect(text).toContain(
+      "Its downloads come from PyPI's public download statistics, counted one calendar month at a time",
+    );
+    expect(text).toContain('Its dependents come from the dependency files GitHub reports for each repository.');
+    expect(text).toContain('Zope.Interface, zope.interface and zope-interface as one name');
   });
 });

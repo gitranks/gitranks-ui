@@ -11,15 +11,16 @@ import { packageRankingPath } from '@/utils/package-paths';
 
 export const metadata: Metadata = pageMetadata({
   title: 'How package rankings work',
-  description: `How GitRanks ranks npm packages: by weekly downloads, by the stars of the GitHub repositories with ${DEPENDENT_MIN_STARS}+ stars that use them directly, and by how many do. What counts as a dependent, and how often the numbers are read.`,
+  description: `How GitRanks ranks npm and PyPI packages: by downloads, by the stars of the GitHub repositories with ${DEPENDENT_MIN_STARS}+ stars that use them directly, and by how many do. What counts as a dependent, and how often the numbers are read.`,
   path: '/methodology/packages',
 });
 
 /** What each ranking ranks by, and what its change column compares. */
 const RANKINGS: Record<(typeof PACKAGE_RANKING_ORDER_LIST)[number], { ranksBy: string; change: string }> = {
   downloads: {
-    ranksBy: 'Downloads from the npm registry over 7 days; the ranking says which day those 7 days end on',
-    change: 'Against the 7 days before',
+    ranksBy:
+      'Downloads from the npm registry over 7 days, and from PyPI over the last whole calendar month; the ranking says which days it counts',
+    change: 'Against the 7 days before on npm, and the month before on PyPI',
   },
   'dependents-stars': {
     ranksBy: `The stars of every repository with ${DEPENDENT_MIN_STARS}+ stars that uses the package directly, added up`,
@@ -44,17 +45,19 @@ export default function PackageMethodologyPage() {
             </Pill>
           </h1>
           <p>
-            GitRanks ranks npm packages by who uses them on GitHub: how many popular repositories depend on a package,
-            how many stars those repositories have between them, and how often the package is downloaded. Package
-            rankings are new: for now they cover npm packages only, and count direct dependents only.
+            GitRanks ranks npm and PyPI packages by who uses them on GitHub: how many popular repositories depend on a
+            package, how many stars those repositories have between them, and how often the package is downloaded.
+            Package rankings are new: for now they cover npm and PyPI packages only, and count direct dependents only.
+            Each registry is ranked on its own.
           </p>
         </div>
 
         <Section title="What a dependent is">
           <p>
             A dependent is a public GitHub repository with {DEPENDENT_MIN_STARS}+ stars that lists the package in a
-            package.json of its own. A repository counts once for a package, however many of its package.json files list
-            it.
+            dependency file of its own: a package.json for an npm package, a requirements.txt, pyproject.toml or other
+            Python dependency file for a PyPI one. A repository counts once for a package, however many of its files
+            list it.
           </p>
         </Section>
 
@@ -66,7 +69,7 @@ export default function PackageMethodologyPage() {
               dependencies count.
             </li>
             <li>Forks.</li>
-            <li>package.json files in example, docs or test folders.</li>
+            <li>Dependency files in example, docs or test folders.</li>
           </ul>
         </Section>
 
@@ -106,9 +109,10 @@ export default function PackageMethodologyPage() {
         <Section title="How often the numbers are read">
           <p>
             Dependents are read once a month. Ranks are worked out again after each monthly read and at least once a
-            week, so the downloads ranking follows the latest week. Every number carries the date it was read: the
-            dependents&apos; rankings say when the dependents were read, the downloads ranking names the last of its 7
-            days, and each ranking says when its ranks were worked out.
+            week, so the npm downloads ranking follows the latest week, and the PyPI one the latest whole month. Every
+            number carries the date it was read: the dependents&apos; rankings say when the dependents were read, the
+            downloads ranking names the last of its 7 days on npm and its month on PyPI, and each ranking says when its
+            ranks were worked out.
           </p>
           <p>
             A package&apos;s own page can show newer numbers than its ranks: they move on the page as soon as they are
@@ -118,8 +122,17 @@ export default function PackageMethodologyPage() {
 
         <Section title="Registries">
           <p>
-            Only npm for now. The rankings are at{' '}
-            <Link href={packageRankingPath('downloads')}>npm package rankings</Link>.
+            <strong>npm.</strong> A package&apos;s facts and its downloads come from the npm registry, counted by the
+            day; the rankings are at <Link href={packageRankingPath('downloads')}>npm package rankings</Link>.
+          </p>
+          <p>
+            <strong>PyPI.</strong> A project&apos;s facts come from PyPI&apos;s JSON API, and its source repository from
+            the links the project gives there. Its downloads come from PyPI&apos;s public download statistics, counted
+            one calendar month at a time, from the first month GitRanks read on: there are no older numbers. Its
+            dependents come from the dependency files GitHub reports for each repository. PyPI takes{' '}
+            <code>Zope.Interface</code>, <code>zope.interface</code> and <code>zope-interface</code> as one name, so
+            GitRanks does too: its addresses use the lower-case form with dashes. The rankings are at{' '}
+            <Link href={packageRankingPath('downloads', 1, 'pypi')}>PyPI package rankings</Link>.
           </p>
         </Section>
       </Page>

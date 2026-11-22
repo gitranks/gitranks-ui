@@ -173,8 +173,8 @@ export default function MethodologyPage() {
             they own. <Link href="/orgs/1">Browse organization rankings</Link>.
           </p>
           <p>
-            <strong>Package rankings</strong> rank npm packages by weekly downloads and by the GitHub repositories that
-            use them. <Link href={PACKAGE_METHODOLOGY_PATH}>How package rankings work</Link>.
+            <strong>Package rankings</strong> rank npm and PyPI packages by downloads and by the GitHub repositories
+            that use them. <Link href={PACKAGE_METHODOLOGY_PATH}>How package rankings work</Link>.
           </p>
         </Section>
 

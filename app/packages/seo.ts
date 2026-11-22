@@ -12,7 +12,7 @@ import {
 import type { QuestionItem } from '@/components/questions-block/questions-block';
 import { buildPackageRankingItemList } from '@/components/ranking-table/ranking-item-list';
 import type { PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
-import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
+import { downloadsUnitOf, REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { clipText } from '@/lib/seo/clip-text';
 import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
@@ -128,7 +128,7 @@ export function buildPackageRankingQuestions(
   if (first) {
     const after = next.slice(0, 2).map(({ name }) => name);
     const window =
-      order === 'downloads' ? ` ${downloadsWindow(downloadsTo, REGISTRIES[registry].downloads ?? undefined)}` : '';
+      order === 'downloads' ? ` ${downloadsWindow(downloadsTo, downloadsUnitOf(registry) ?? undefined)}` : '';
     items.push({
       question: `Which ${registryLabel} package is first by ${ranking.metricInSentence}?`,
       answer: `${first.name}, with ${count(first.value, ranking.unit)}${window}.${after.length ? ` Then ${joinNames(after)}.` : ''}`,

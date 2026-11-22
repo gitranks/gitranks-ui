@@ -27,7 +27,13 @@ import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { Button } from '@/components/ui/button';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages, RepoUsedBy } from '@/graphql/repo-packages';
-import { DEFAULT_REGISTRY, DOWNLOADS_UNIT_TEXT, REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
+import {
+  DEFAULT_REGISTRY,
+  DOWNLOADS_UNIT_TEXT,
+  downloadsUnitOf,
+  REGISTRIES,
+  spelledNameOf,
+} from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 type UsedByScreenProps = {
@@ -47,14 +53,15 @@ type UsedByScreenProps = {
  */
 function downloadsFromText(packages: RepoPackages | null): string | null {
   const listed = packages ? [...new Set(packages.items.map(registryOfRepoPackage))] : [];
-  const counted = listed.filter((id) => REGISTRIES[id].downloads);
-  // Packages on registries that publish no download counts (Go, Maven Central): nothing is said of downloads.
+  const counted = listed.filter((id) => downloadsUnitOf(id));
+  // Packages on registries with no download counts (Go, Maven Central, pub.dev before its first): nothing is said of
+  // downloads.
   if (listed.length && !counted.length) return null;
   // Packages not known (they could not be read): the default registry's, as the tab always said.
   const ids = counted.length ? counted : [DEFAULT_REGISTRY];
   return (['week', 'month'] as const)
     .flatMap((unit) => {
-      const labels = ids.filter((id) => REGISTRIES[id].downloads === unit).map((id) => REGISTRIES[id].label);
+      const labels = ids.filter((id) => downloadsUnitOf(id) === unit).map((id) => REGISTRIES[id].label);
       return labels.length ? [`from ${listText(labels)}, ${DOWNLOADS_UNIT_TEXT[unit].adjective}`] : [];
     })
     .join(', and ');

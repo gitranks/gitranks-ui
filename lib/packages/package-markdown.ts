@@ -5,6 +5,8 @@ import { formatCount, formatDay } from '@/app/repo/[owner]/[name]/utils/used-by-
 import type { PackageDownloads, PackagePage, PackageRanks } from '@/graphql/package-page';
 import {
   DEFAULT_REGISTRY,
+  downloadsUnitOf,
+  isDownloadsPending,
   REGISTRIES,
   type RegistryId,
   registryHasDownloads,
@@ -49,8 +51,8 @@ function rankLines(registry: RegistryId, ranks: PackageRanks | null | undefined)
  */
 function downloadsLine(registry: RegistryId, downloads: PackageDownloads): string {
   const through = formatDay(downloads.through) ?? downloads.through;
-  const { label, downloads: unit } = REGISTRIES[registry];
-  if (unit === 'month') {
+  const { label } = REGISTRIES[registry];
+  if (downloadsUnitOf(registry) === 'month') {
     return `- Downloads: ${formatCount(downloads.last30Days)} in ${formatMonth(downloads.through)}, ${formatCount(downloads.previous30Days)} the month before (${label} downloads are counted a calendar month at a time).`;
   }
   return `- Downloads: ${formatCount(downloads.lastWeek ?? 0)} in the last 7 days, ${formatCount(downloads.last30Days)} in the last 30 days (through ${through}).`;
@@ -81,9 +83,10 @@ export function packageMarkdownOf(pkg: PackagePage, registry: RegistryId): strin
     pkg.dependentsCount > 0
       ? `- Used by ${plural(pkg.dependentsCount, 'public repository', 'public repositories')} with ${DEPENDENT_MIN_STARS}+ stars (${plural(pkg.dependentsStars, 'star', 'stars')} between them), each listing it in its own ${manifest}.`
       : `- No public repository with ${DEPENDENT_MIN_STARS}+ stars lists it in its own ${manifest} yet.`,
+    // A registry whose first count is not read yet does count downloads: nothing is said of them.
     registryHasDownloads(registry)
       ? pkg.downloads && downloadsLine(registry, pkg.downloads)
-      : `- Downloads: ${REGISTRIES[registry].label} publishes no download counts.`,
+      : !isDownloadsPending(registry) && `- Downloads: ${REGISTRIES[registry].label} publishes no download counts.`,
     readOn && `- Dependents last read: ${readOn}.`,
   ];
   const ranks = rankLines(registry, pkg.ranks);

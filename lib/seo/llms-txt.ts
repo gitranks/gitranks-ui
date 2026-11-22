@@ -1,7 +1,14 @@
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from './site';
 import type { PublicLesson } from '@/lib/learn/learn.types';
 import { LEARN_MAINTAINERS_PATH, LEARN_PATH, lessonPath } from '@/lib/learn/learn-path';
-import { DOWNLOADS_UNIT_TEXT, REGISTRY_IDS, type RegistryId, registryOf } from '@/lib/packages/registries';
+import {
+  DOWNLOADS_UNIT_TEXT,
+  downloadsUnitOf,
+  isDownloadsPending,
+  REGISTRY_IDS,
+  type RegistryId,
+  registryOf,
+} from '@/lib/packages/registries';
 import { packageRankingPath } from '@/utils/package-paths';
 
 /** The most recent public lessons llms.txt names. */
@@ -9,16 +16,19 @@ export const LLMS_TXT_LESSONS = 20;
 
 /**
  * A registry's lines in the packages section: its rankings (by downloads in its own unit; by dependents alone where it
- * publishes no download counts), the address of a package's page, with the form of its name there (`{groupId}/
- * {artifactId}`) and its spelling where the registry takes several as one, and of its facts.
+ * publishes no download counts, or its first count is not read yet: then nothing is said of downloads), the address
+ * of a package's page, with the form of its name there (`{groupId}/{artifactId}`) and its spelling where the registry
+ * takes several as one, and of its facts.
  */
 function registryPackageLines(registry: RegistryId, url: (path: string) => string): string[] {
-  const { article, label, downloads, nameInAddress, addressPattern = '{name}' } = registryOf(registry);
+  const { article, label, nameInAddress, addressPattern = '{name}' } = registryOf(registry);
+  const downloads = downloadsUnitOf(registry);
+  const uncounted = downloads || isDownloadsPending(registry) ? '' : ` ${label} publishes no download counts.`;
   const first = downloads ? 'downloads' : 'dependents-stars';
   const rankedBy = `${downloads ? `${DOWNLOADS_UNIT_TEXT[downloads].adjective} downloads, by ` : ''}the stars of the repositories that use them, and by how many do`;
   const name = nameInAddress ? ` (${addressPattern} ${nameInAddress})` : '';
   return [
-    `- [${label} package rankings](${url(packageRankingPath(first, 1, registry))}): ${label} packages ranked by ${rankedBy}. Beta.${downloads ? '' : ` ${label} publishes no download counts.`}`,
+    `- [${label} package rankings](${url(packageRankingPath(first, 1, registry))}): ${label} packages ranked by ${rankedBy}. Beta.${uncounted}`,
     `- Package page: ${url(`/package/${registry}/${addressPattern}`)}${name} — who uses ${article} ${label} package: every repository with 100+ stars that depends on it directly, with ${downloads ? 'downloads and ' : ''}ranks.`,
     `- Package facts in markdown: ${url(`/package/${registry}/${addressPattern}/facts.md`)} — the same as the package page, for agents: dependents${downloads ? ', downloads' : ''} and ranks, each with its link.`,
   ];

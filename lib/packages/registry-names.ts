@@ -96,8 +96,11 @@ const PUB_NAME = /^[a-z_][a-z0-9_]*$/;
 /** Whether a name is a pub.dev package name, as written (lower case by rule), 64 characters at most. */
 export const isPubName = (name: string) => name.length <= PUB_NAME_MAX_LENGTH && PUB_NAME.test(name);
 
-/** A pub requirement as `pubspec.yaml` writes it (`http: ^1.2.0`): the name before `:`. */
-export const pubRequirementName = (requirement: string) => requirement.replace(/:.*$/, '').trim();
+/**
+ * A pub requirement as `pubspec.yaml` writes it (`http: ^1.2.0`, `http: any`, `http:`): the name before its `:`. A `:`
+ * with a word or `//` straight after it is no pubspec's (`https://…`, `maven:g:a`), so that text is left whole.
+ */
+export const pubRequirementName = (requirement: string) => requirement.replace(/:(?=$|[\s^<>=\d'"]).*$/s, '').trim();
 
 /**
  * A Composer package name, `vendor/package`, by Composer's rule without case: the vendor's runs of letters and digits

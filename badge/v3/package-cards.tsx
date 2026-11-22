@@ -9,7 +9,13 @@ import { Mark } from './glyphs';
 import type { BadgeParams } from './params';
 import { type CardPalette, toneColor } from './schemes';
 import { MONO_FONT } from './shield';
-import { DOWNLOADS_UNIT_TEXT, downloadsCountOf, REGISTRIES, registryDownloadsText } from '@/lib/packages/registries';
+import {
+  DOWNLOADS_UNIT_TEXT,
+  downloadsCountOf,
+  downloadsUnitOf,
+  REGISTRIES,
+  registryDownloadsText,
+} from '@/lib/packages/registries';
 
 /** A package's cards and chart. A package no repository with 100+ stars uses yet says "new", never "0". */
 
@@ -91,7 +97,7 @@ function NewPackage({ palette }: Readonly<{ palette: CardPalette }>): ReactEleme
  */
 export function packageDownloadsCard(pkg: PackageFacts, params: BadgeParams): Drawing | null {
   const downloads = pkg.downloads;
-  const unit = REGISTRIES[pkg.registry].downloads;
+  const unit = downloadsUnitOf(pkg.registry);
   const counted = downloadsCountOf(unit, downloads);
   if (!downloads || !counted) return null;
   const growth = packageGrowthOf(pkg);
@@ -163,7 +169,7 @@ function PackageStat({
  */
 export function packageCard(pkg: PackageFacts, params: BadgeParams): Drawing {
   const perStar = packagePerStarOf(pkg);
-  const unit = REGISTRIES[pkg.registry].downloads;
+  const unit = downloadsUnitOf(pkg.registry);
   const counted = downloadsCountOf(unit, pkg.downloads);
   const stats = [
     ...(counted && unit

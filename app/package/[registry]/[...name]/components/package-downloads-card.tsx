@@ -14,7 +14,7 @@ import { Sparkline } from './sparkline';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import type { PackageDownloads } from '@/graphql/package-page';
-import { DOWNLOADS_UNIT_TEXT, REGISTRIES, type RegistryId } from '@/lib/packages/registries';
+import { DOWNLOADS_UNIT_TEXT, downloadsUnitOf, type RegistryId } from '@/lib/packages/registries';
 import { cn } from '@/lib/utils';
 
 type PackageDownloadsCardProps = {
@@ -63,7 +63,7 @@ const Period: FC<{ period: DownloadsPeriod }> = ({ period }) => (
  * repository, from one. A registry counted a month at a time has the month alone.
  */
 export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ registry, downloads, repo }) => {
-  const unit = REGISTRIES[registry].downloads;
+  const unit = downloadsUnitOf(registry);
   const monthly = unit === 'month';
   // The Week and Month switch, for a registry counted by the week with a whole month in its history.
   const month = monthly ? null : monthPeriodOf(downloads);

@@ -20,9 +20,13 @@ describe('how package rankings work, with every registry listed', () => {
       'lists the package in a dependency file of its own, as GitHub reports them: package.json for npm, requirements.txt or pyproject.toml for PyPI, go.mod for Go, Cargo.toml for crates.io, pubspec.yaml for pub.dev, composer.json for Packagist and pom.xml or build.gradle for Maven Central.',
     );
     expect(text).toContain(
-      'npm and crates.io: vs last week, against the 7 days before. PyPI, pub.dev and Packagist: vs the month before.',
+      'npm and crates.io: vs last week, against the 7 days before. PyPI and Packagist: vs the month before.',
     );
     expect(text).toContain('Go and Maven Central publish no download counts, so they have no downloads ranking.');
+    // pub.dev counts downloads, but its first month is not read yet: no downloads ranking until then.
+    expect(text).toContain(
+      "pub.dev's first monthly download count comes in early December 2026; until then it has no downloads ranking.",
+    );
   });
 
   it('has one paragraph a registry, each linking to its rankings, by dependents’ stars where there are no downloads', () => {
@@ -40,7 +44,7 @@ describe('how package rankings work, with every registry listed', () => {
     for (const [registry, order] of [
       ['go', 'dependents-stars'],
       ['crates', 'downloads'],
-      ['pub', 'downloads'],
+      ['pub', 'dependents-stars'],
       ['packagist', 'downloads'],
       ['maven', 'dependents-stars'],
     ]) {

@@ -20,6 +20,7 @@ import {
   DEFAULT_REGISTRY,
   DOWNLOADS_UNIT_TEXT,
   downloadsCountOf,
+  downloadsUnitOf,
   REGISTRIES,
   registryLabelList,
 } from '@/lib/packages/registries';
@@ -112,7 +113,7 @@ const INVALID: Record<Scope, string> = {
 
 /** A found package's downloads in its registry's unit: " · 1.2M downloads a week"; nothing before they are read. */
 function PackageDownloads({ facts }: Readonly<{ facts: PackageFacts }>) {
-  const unit = REGISTRIES[facts.registry].downloads;
+  const unit = downloadsUnitOf(facts.registry);
   const counted = downloadsCountOf(unit, facts.downloads);
   if (!counted || !unit) return null;
   return (

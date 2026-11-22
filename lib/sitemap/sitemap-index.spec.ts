@@ -160,6 +160,14 @@ describe('sitemap index', () => {
           <lastmod>2026-11-01T00:00:00.000Z</lastmod>
         </sitemap>
         <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/40.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/41.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
           <loc>https://example.test/sitemaps/repo-used-by/sitemap/0.xml</loc>
           <lastmod>2026-11-01T00:00:00.000Z</lastmod>
         </sitemap>
@@ -180,13 +188,14 @@ describe('sitemap index', () => {
     const response = await sitemapIndexResponse();
     const locs = [...(await response.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, loc]) => new URL(loc).pathname);
 
-    expect(locs.slice(-9)).toEqual([
+    expect(locs.slice(-10)).toEqual([
       '/sitemaps/repos/sitemap/0.xml',
       '/sitemaps/packages/rankings/sitemap.xml',
       '/sitemaps/packages/sitemap/0.xml',
       '/sitemaps/packages/sitemap/10.xml',
       '/sitemaps/packages/sitemap/20.xml',
       '/sitemaps/packages/sitemap/30.xml',
+      '/sitemaps/packages/sitemap/40.xml',
       '/sitemaps/repo-used-by/sitemap/0.xml',
       '/sitemaps/repo-used-by/sitemap/1.xml',
       '/sitemaps/repo-contributors/sitemap/0.xml',
@@ -195,6 +204,7 @@ describe('sitemap index', () => {
     expect(fetchPackageSitemapParts).toHaveBeenCalledWith(PackageRegistry.Pypi);
     expect(fetchPackageSitemapParts).toHaveBeenCalledWith(PackageRegistry.Go);
     expect(fetchPackageSitemapParts).toHaveBeenCalledWith(PackageRegistry.Crates);
+    expect(fetchPackageSitemapParts).toHaveBeenCalledWith(PackageRegistry.Pub);
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600, s-maxage=3600');
   });
 });

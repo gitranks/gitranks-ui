@@ -3,11 +3,11 @@ import {
   apiRegistryOf,
   DEFAULT_REGISTRY,
   type DownloadsUnit,
+  downloadsUnitOf,
   isRegistryId,
   REGISTRIES,
   type RegistryId,
   registryHasDownloads,
-  registryOf,
 } from '@/lib/packages/registries';
 import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { PackageRankingType } from '@/types/generated/graphql';
@@ -98,7 +98,7 @@ export const packageRankingOf = (
   order: PackageRankingOrder,
   registry: RegistryId = DEFAULT_REGISTRY,
 ): PackageRanking =>
-  order === 'downloads' && registryOf(registry).downloads === 'month' ? MONTHLY_DOWNLOADS : PACKAGE_RANKINGS[order];
+  order === 'downloads' && downloadsUnitOf(registry) === 'month' ? MONTHLY_DOWNLOADS : PACKAGE_RANKINGS[order];
 
 export const PACKAGE_RANKING_ORDER_LIST = Object.keys(PACKAGE_RANKINGS) as PackageRankingOrder[];
 
@@ -140,9 +140,8 @@ export function packageRankingBasis(
   downloadsTo?: string | null,
   registry: RegistryId = DEFAULT_REGISTRY,
 ) {
-  const { label, downloads } = REGISTRIES[registry];
   return order === 'downloads'
-    ? `Rank is based on ${label} downloads ${downloadsWindow(downloadsTo, downloads ?? undefined)}.`
+    ? `Rank is based on ${REGISTRIES[registry].label} downloads ${downloadsWindow(downloadsTo, downloadsUnitOf(registry) ?? undefined)}.`
     : PACKAGE_RANKINGS[order].basis;
 }
 

@@ -111,6 +111,7 @@ describe('a Find search', () => {
       { kind: 'package', name: 'npm/react' },
       { kind: 'package', name: 'pypi/react' },
       { kind: 'package', name: 'crates/react' },
+      { kind: 'package', name: 'pub/react' },
     ]);
     expect(searchLookups('@types/node', null)).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
     expect(searchLookups('npm:lodash', null)).toEqual([{ kind: 'package', name: 'npm/lodash' }]);
@@ -137,7 +138,8 @@ describe('a Find search', () => {
       { kind: 'package', name: 'pypi/requests' },
     ]);
     expect(searchLookups('pypi:requests', null)).toEqual([{ kind: 'package', name: 'pypi/requests' }]);
-    expect(searchLookups('_private', 'package')).toEqual([]);
+    // pub.dev alone takes a name that starts with `_`: a Dart identifier may.
+    expect(searchLookups('_private', 'package')).toEqual([{ kind: 'package', name: 'pub/_private' }]);
   });
 
   it('looks a PyPI name up in the All scope even when no GitHub login can be it', () => {
@@ -145,6 +147,7 @@ describe('a Find search', () => {
       { kind: 'package', name: 'npm/typing_extensions' },
       { kind: 'package', name: 'pypi/typing-extensions' },
       { kind: 'package', name: 'crates/typing_extensions' },
+      { kind: 'package', name: 'pub/typing_extensions' },
     ]);
     expect(searchLookups('zope.interface', null)).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },

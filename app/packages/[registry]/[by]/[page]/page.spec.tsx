@@ -155,6 +155,9 @@ describe('the package ranking layout', () => {
       { registry: 'crates', by: 'downloads', page: '1' },
       { registry: 'crates', by: 'dependents-stars', page: '1' },
       { registry: 'crates', by: 'dependents', page: '1' },
+      // pub.dev's first download count is not read yet: no downloads ranking.
+      { registry: 'pub', by: 'dependents-stars', page: '1' },
+      { registry: 'pub', by: 'dependents', page: '1' },
     ]);
   });
 

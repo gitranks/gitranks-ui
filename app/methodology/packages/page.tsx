@@ -12,7 +12,11 @@ import { Link } from '@/components/link/link';
 import { Page } from '@/components/page/page';
 import { Pill } from '@/components/pill/pill';
 import {
+  DOWNLOADS_PENDING,
+  DOWNLOADS_UNIT_TEXT,
   type DownloadsUnit,
+  downloadsUnitOf,
+  isDownloadsPending,
   REGISTRIES,
   REGISTRY_IDS,
   type RegistryId,
@@ -28,9 +32,15 @@ export const metadata: Metadata = pageMetadata({
   path: '/methodology/packages',
 });
 
+/**
+ * The listed registries whose downloads are counted in this unit; with `null`, those that publish no download counts. A
+ * registry whose first count is not read yet is in neither.
+ */
+const registriesOf = (unit: DownloadsUnit | null) =>
+  REGISTRY_IDS.filter((id) => !isDownloadsPending(id) && downloadsUnitOf(id) === unit);
+
 /** "npm and crates.io": the labels of the listed registries whose downloads are counted in this unit (`null`: none). */
-const labelsOf = (unit: DownloadsUnit | null) =>
-  listOf(REGISTRY_IDS.filter((id) => registryOf(id).downloads === unit).map((id) => REGISTRIES[id].label));
+const labelsOf = (unit: DownloadsUnit | null) => listOf(registriesOf(unit).map((id) => REGISTRIES[id].label));
 
 /** "a", "a and b", "a, b and c". */
 function listOf(items: readonly string[]): string {
@@ -41,7 +51,17 @@ const WEEKLY = labelsOf('week');
 const MONTHLY = labelsOf('month');
 const UNCOUNTED = labelsOf(null);
 /** One registry or several: "Go publishes … it has", "Go and Maven Central publish … they have". */
-const UNCOUNTED_ONE = REGISTRY_IDS.filter((id) => registryOf(id).downloads === null).length === 1;
+const UNCOUNTED_ONE = registriesOf(null).length === 1;
+
+/**
+ * "pub.dev's first monthly download count comes in early December 2026; until then it has no downloads ranking.": one
+ * sentence for each listed registry that counts downloads but whose first count is not read yet.
+ */
+const PENDING = REGISTRY_IDS.filter(isDownloadsPending).map((id) => {
+  const unit = registryOf(id).downloads;
+  const counted = unit ? `${DOWNLOADS_UNIT_TEXT[unit].adjective} download count` : 'download count';
+  return ` ${REGISTRIES[id].label}'s first ${counted} comes in ${DOWNLOADS_PENDING[id]}; until then it has no downloads ranking.`;
+});
 
 /** What each ranking ranks by, and what its change column compares. */
 const RANKINGS: Record<(typeof PACKAGE_RANKING_ORDER_LIST)[number], { ranksBy: string; change: string }> = {
@@ -51,6 +71,7 @@ const RANKINGS: Record<(typeof PACKAGE_RANKING_ORDER_LIST)[number], { ranksBy: s
       UNCOUNTED
         ? ` ${UNCOUNTED} ${UNCOUNTED_ONE ? 'publishes' : 'publish'} no download counts, so ${UNCOUNTED_ONE ? 'it has' : 'they have'} no downloads ranking.`
         : '',
+      ...PENDING,
     ].join(''),
     change: 'Against the 7 days before',
   },
@@ -65,7 +86,7 @@ const RANKINGS: Record<(typeof PACKAGE_RANKING_ORDER_LIST)[number], { ranksBy: s
 };
 
 /** The first listed registry whose downloads are counted in this unit. */
-const firstOf = (unit: DownloadsUnit) => REGISTRY_IDS.find((id) => registryOf(id).downloads === unit) as RegistryId;
+const firstOf = (unit: DownloadsUnit) => REGISTRY_IDS.find((id) => downloadsUnitOf(id) === unit) as RegistryId;
 
 /**
  * A ranking's change column, by its label and what it compares: "This month: against the monthly read before". The
@@ -82,7 +103,7 @@ const MANIFESTS = listOf(REGISTRY_IDS.map((id) => `${REGISTRIES[id].manifest} fo
 
 /** A registry's rankings, by the ranking it opens on. */
 const rankingsLink = (registry: RegistryId) => (
-  <Link href={packageRankingPath(registryOf(registry).downloads ? 'downloads' : 'dependents-stars', 1, registry)}>
+  <Link href={packageRankingPath(downloadsUnitOf(registry) ? 'downloads' : 'dependents-stars', 1, registry)}>
     {REGISTRIES[registry].label} package rankings
   </Link>
 );

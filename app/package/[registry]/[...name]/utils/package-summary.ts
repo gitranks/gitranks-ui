@@ -5,6 +5,7 @@ import type { PackageDependent, PackagePage } from '@/graphql/package-page';
 import {
   DOWNLOADS_UNIT_TEXT,
   downloadsCountOf,
+  downloadsUnitOf,
   REGISTRIES,
   type RegistryId,
   spelledNameOf,
@@ -42,7 +43,8 @@ type SummaryPackage = Pick<
  * downloads of the last period its registry counts, and of the last 12 months once the history holds them.
  */
 function downloadsSentence(registry: RegistryId, pkg: SummaryPackage): string {
-  const { article, label, downloads: unit } = REGISTRIES[registry];
+  const { article, label } = REGISTRIES[registry];
+  const unit = downloadsUnitOf(registry);
   const name = spelledNameOf(pkg);
   const { downloads } = pkg;
   const counted = downloadsCountOf(unit, downloads);

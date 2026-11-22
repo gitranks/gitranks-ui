@@ -544,7 +544,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
 
   return (
     <div ref={containerRef} className="flex min-w-0 flex-col">
-      <ButtonHint hint={hint}>
+      <ButtonHint hint={hint} actsAtOnce={!onDaily}>
         <Button
           size="sm"
           variant={onDaily ? 'outline' : 'default'}

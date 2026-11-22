@@ -525,7 +525,10 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 
   const ownerButtons =
     view === 'owner-off' && idle ? (
-      <ButtonHint hint={manual?.available === false ? DAILY_UPDATES_LINES.ownerOffUsed : DAILY_UPDATES_LINES.ownerOff}>
+      <ButtonHint
+        hint={manual?.available === false ? DAILY_UPDATES_LINES.ownerOffUsed : DAILY_UPDATES_LINES.ownerOff}
+        actsAtOnce
+      >
         <Button type="button" size="sm" className={child.props.className} onClick={startDailyUpdates}>
           {REFRESH_LABELS.startDaily}
           <RefreshCw className="size-4" />
@@ -549,7 +552,9 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
         </Button>
       </ButtonHint>
     ) : view === 'owner-on' && idle ? (
-      <ButtonHint hint={ownerOnText}>{childWithOnClick}</ButtonHint>
+      <ButtonHint hint={ownerOnText} actsAtOnce>
+        {childWithOnClick}
+      </ButtonHint>
     ) : null;
 
   return (
@@ -596,7 +601,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
           }
         />
       )}
-      {/* The profile page's button says it in its label; the not-found page's big button keeps the countdown. */}
+      {/* The profile page shows no countdown (the busy label says it is fetching); the not-found page's big button keeps it. */}
       {fetchingDuration !== null && !ownerStates && (
         <div className="text-xs text-muted-foreground">
           Next check in {Math.floor((CHECK_STATUS_INTERVAL - (fetchingDuration % CHECK_STATUS_INTERVAL)) / 1000)} s

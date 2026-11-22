@@ -14,6 +14,7 @@ vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/workspace/start/start-page.actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/issue-actions', () => ({}));
+vi.mock('@/lib/workspace/fair-use.actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadContributeSet: vi.fn(),

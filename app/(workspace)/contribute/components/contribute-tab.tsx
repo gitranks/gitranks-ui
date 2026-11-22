@@ -5,6 +5,7 @@ import { PicksDialog } from './picks-dialog';
 import type { IssuesQuery } from '@/app/contribute/components/issues-filter';
 import { IssuesFilters } from '@/app/contribute/components/issues-filters';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
+import { FairUseBanners, ListCutLine } from '@/components/workspace/fair-use-banners';
 import { NumberTiles } from '@/components/workspace/number-tiles';
 import { HEADING } from '@/components/workspace/primitives';
 import { RightNow } from '@/components/workspace/right-now';
@@ -13,12 +14,14 @@ import { effectiveSettingOf } from '@/lib/workspace/access-limits';
 import { lastUsedTokenOf } from '@/lib/workspace/agent-way';
 import type {
   ContributeActivity,
+  ContributeFairUseNotices,
   ContributeIssuePage,
   ContributeScheduleCounts,
   ContributeSet,
   ContributeView,
 } from '@/lib/workspace/contribute.types';
 import { accessNoticesOf, claudeKeyOf, isSuspended } from '@/lib/workspace/contribute-state';
+import { fairUseAnswerPathOf, listSizeLineOf } from '@/lib/workspace/fair-use';
 import { MODELS, relativeLabel } from '@/lib/workspace/format';
 import type { ConnectedAgents } from '@/lib/workspace/issue-row';
 import { limitReachedOf } from '@/lib/workspace/limit-words';
@@ -37,13 +40,16 @@ export type ContributeTabData = {
   set?: ContributeSet | null;
   activity: ContributeActivity | null;
   counts?: Pick<ContributeScheduleCounts, 'prBound'>;
+  /** What the top shows about fair use; null or left out when the API answers nothing. */
+  fairUse?: ContributeFairUseNotices | null;
   query: IssuesQuery;
   now?: Date;
 };
 
 /**
- * The Contribute tab: its head and four numbers, Right now while a Contribute run is at work, then Issues for you
- * (the line on how Start works, the count and the filters, then the list with its own notices).
+ * The Contribute tab: the messages about fair use, its head and four numbers, Right now while a Contribute run is at
+ * work, then Issues for you (the line on the list's size, or the cut's line that cannot be closed; the line on how
+ * Start works, the count and the filters, then the list with its own notices).
  */
 export function ContributeTabScreen({
   view,
@@ -54,6 +60,7 @@ export function ContributeTabScreen({
   set,
   activity,
   counts,
+  fairUse,
   query,
   now,
 }: ContributeTabData) {
@@ -66,9 +73,12 @@ export function ContributeTabScreen({
   const ownName = lastUsedTokenOf(view.ownAgent?.tokens)?.name ?? null;
   const key = claudeKeyOf(view);
   const keyWaiting = key?.state === 'EXHAUSTED' || key?.state === 'LIMIT_REACHED' ? key.state : null;
+  const listCut = held ? null : (fairUse?.listCut ?? null);
+  const sizeLine = held || listCut ? null : listSizeLineOf(page?.listSize);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-contribute-tab="">
+      <FairUseBanners fairUse={fairUse} />
       {/* The account's smaller limits; a held account is the list's own notice. */}
       <ContributeNotices notices={accessNoticesOf(view).filter(({ kind }) => kind !== 'suspended')} />
       <div className="flex flex-col gap-4">
@@ -102,6 +112,12 @@ export function ContributeTabScreen({
               <h2 id="issues-heading" className={HEADING.section}>
                 Issues for you
               </h2>
+              {listCut ? <ListCutLine listCut={listCut} /> : null}
+              {sizeLine ? (
+                <p className="max-w-prose text-sm text-muted-foreground" data-list-size={page?.listSize?.size}>
+                  {sizeLine}
+                </p>
+              ) : null}
               {limit || held ? null : (
                 <p className="max-w-prose text-sm text-foreground/80" data-intro="">
                   {intro.text}
@@ -138,6 +154,7 @@ export function ContributeTabScreen({
             filter={query}
             learnOpen={learnOpen}
             held={held}
+            heldAnswerHref={fairUse?.block ? fairUseAnswerPathOf(fairUse.block.id) : undefined}
             limit={limit}
             set={set}
             languages={view.contributor?.preferences?.languages ?? []}

@@ -80,6 +80,7 @@ vi.mock('@/lib/workspace/actions', async () => (await import('./inert')).inert()
 vi.mock('@/lib/workspace/issue-actions', async () => (await import('./inert')).inert());
 vi.mock('@/lib/workspace/start/start-page.actions', async () => (await import('./inert')).inert());
 vi.mock('@/lib/contribute/actions', async () => (await import('./inert')).inert());
+vi.mock('@/lib/workspace/fair-use.actions', async () => (await import('./inert')).inert());
 // Named: the apply page's lookup, send and cancel, never called on a board.
 vi.mock('@/app/unsung-heroes/apply/actions', () => ({
   resolveApplyPackage: async () => ({ status: 'NOT_FOUND', packages: [] }),

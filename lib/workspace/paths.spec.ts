@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   GITHUB_ACCESS_PATH,
   isByAttemptPath,
+  isFairUseAnswerPath,
   isInsidePath,
   isMyPath,
   isTablessPath,
@@ -203,6 +204,21 @@ describe("the pull request's page, by repo and issue", () => {
       `/my/pull-requests/by-attempt/${'x'.repeat(65)}`,
     ]) {
       expect(isByAttemptPath(path), path).toBe(false);
+    }
+  });
+
+  it("knows a fair-use message's answer page in any spelling, and nothing else of Contribute", () => {
+    for (const path of ['/contribute/answer/583231-outsidePr-1-1', '/Contribute//Answer/a%2Fb%3D-viewing-2-7']) {
+      expect(isFairUseAnswerPath(path), path).toBe(true);
+    }
+    for (const path of [
+      '/contribute/answer',
+      '/contribute/answer/',
+      '/contribute/answers/x',
+      '/contribute',
+      '/my/answer/x',
+    ]) {
+      expect(isFairUseAnswerPath(path), path).toBe(false);
     }
   });
 

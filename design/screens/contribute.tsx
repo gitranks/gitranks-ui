@@ -3,6 +3,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import type { Screen } from '../registry';
 import { CONTRIBUTE_FLOW_SCREENS } from './getting-in';
 import { ContributeTabScreen } from '@/app/(workspace)/contribute/components/contribute-tab';
+import { FairUseAnswerScreen } from '@/app/(workspace)/contribute/components/fair-use-answer';
 import { ContributeBadgePreview } from '@/app/contribute/components/contribute-badge-preview';
 import { FaqScreen } from '@/app/contribute/components/faq';
 import { Landing } from '@/app/contribute/components/landing';
@@ -20,6 +21,16 @@ import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 import { issuePage } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
+import {
+  answeredNotice,
+  blockNotice,
+  fairUse,
+  fairUseBlocked,
+  fairUseNotice,
+  listSize,
+  rulesBanner,
+  warningNotice,
+} from '@/lib/contribute/__fixtures__/fair-use';
 import { emptyLedger, ledger, publicLedger } from '@/lib/contribute/__fixtures__/ledger';
 import {
   allLiveFacts,
@@ -42,6 +53,7 @@ import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
 import type { PrTimeline } from '@/lib/contribute/pr-timeline.types';
 import type {
   ContributeActivity,
+  ContributeFairUseNotice,
   ContributeIssuePage,
   ContributeMaintainerFacts,
   ContributeView,
@@ -126,6 +138,16 @@ const tab = (
   );
 
 const busy = activityOf(WORKING, FOLLOW_UP, own, stopped);
+/** The first page with the list's size: a Pro's 30. */
+const sizedPage: ContributeIssuePage = { ...issuePage, listSize: listSize() };
+
+/** A message's answer page, as the workspace's layout frames it. */
+const answerPage = (notice: ContributeFairUseNotice) =>
+  frame(
+    <main className="mx-auto flex w-full max-w-3xl flex-col px-4 pt-8 pb-16">
+      <FairUseAnswerScreen notice={notice} byEmail />
+    </main>,
+  );
 const ORG_ACCESS_URL = 'https://github.com/settings/applications';
 
 /** The page for maintainers: open to everyone, the site header with no tabs, the visitor's repos in "Opt out". */
@@ -353,6 +375,84 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         width: 390,
         height: 3600,
         render: () => tab(both, busy),
+      },
+      {
+        id: 'rules-banner',
+        title: 'The Terms banner for people who connected an agent before the rule, and the line on the list size',
+        path: '/contribute',
+        height: 1300,
+        render: () => tab(both, activityOf(), { page: sizedPage, fairUse: fairUse({ rulesBanner }) }),
+      },
+      {
+        id: 'fair-use-message',
+        title: 'A message after a pull request opened outside GitRanks: Answer, the Terms, a close button',
+        path: '/contribute',
+        height: 1400,
+        render: () => tab(both, activityOf(), { page: sizedPage, fairUse: fairUse({ notices: [fairUseNotice()] }) }),
+      },
+      {
+        id: 'list-cut',
+        title: 'The list cut: the line that cannot be closed, with its answer page, in place of the size line',
+        path: '/contribute',
+        height: 1200,
+        render: () =>
+          tab(both, activityOf(), {
+            page: { ...issuePage, listSize: listSize({ size: 10, cut: true }) },
+            fairUse: fairUse({ listCut: { text: 'Your list is now 10 issues.', noticeId: warningNotice.id } }),
+          }),
+      },
+      {
+        id: 'fair-use-blocked',
+        title: 'Blocked by a fair-use rule: the block’s message, which cannot be closed; no issues',
+        path: '/contribute',
+        height: 900,
+        render: () =>
+          tab(fairUseBlocked, activityOf(), {
+            page: null,
+            fairUse: fairUse({ notices: [blockNotice], block: blockNotice }),
+          }),
+      },
+    ],
+  },
+  {
+    id: 'contribute-answer',
+    title: 'A message from GitRanks: the answer page',
+    area: 'contribute',
+    route: '/contribute/answer/[noticeId]',
+    sources: [
+      'app/(workspace)/contribute/answer/[noticeId]/page.tsx',
+      'app/(workspace)/contribute/components/fair-use-answer.tsx',
+      'components/workspace/fair-use-message.tsx',
+      'lib/workspace/fair-use.ts',
+    ],
+    states: [
+      {
+        id: 'open',
+        title: 'Opened from the email, the banner or the agent: the message, its choices and a comment',
+        path: '/contribute/answer/583231-outsidePr-1-1',
+        height: 1250,
+        render: () => answerPage(fairUseNotice()),
+      },
+      {
+        id: 'sent',
+        title: 'Sent: the form turns into the answer in the same place; the message stays',
+        path: '/contribute/answer/583231-outsidePr-1-1',
+        height: 1250,
+        render: () => answerPage(answeredNotice),
+      },
+      {
+        id: 'warning',
+        title: 'The warning: no choices, a comment only',
+        path: '/contribute/answer/583231-outsidePr-2-1',
+        height: 1050,
+        render: () => answerPage(warningNotice),
+      },
+      {
+        id: 'blocked',
+        title: 'Blocked: a comment only',
+        path: '/contribute/answer/583231-outsidePr-3-1',
+        height: 1050,
+        render: () => answerPage(blockNotice),
       },
     ],
   },
@@ -725,14 +825,14 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         title: 'Once Contribute is open',
         path: '/terms',
         signedOut: true,
-        height: 4650,
+        height: 4850,
         render: () => <TermsScreen contribute />,
       },
       {
         id: 'learn',
         title: 'With the Learn section, for whoever Learn is open to',
         path: '/terms#learn',
-        height: 5400,
+        height: 5600,
         render: () => <TermsScreen contribute learn />,
       },
     ],

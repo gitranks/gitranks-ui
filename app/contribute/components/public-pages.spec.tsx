@@ -293,7 +293,7 @@ describe('the Terms', () => {
     const shown = text(renderToStaticMarkup(<TermsScreen contribute />));
     const hidden = text(renderToStaticMarkup(<TermsScreen contribute={false} />));
     expect(shown).toContain('GitRanks Contribute');
-    expect(shown).toContain('18 November 2026');
+    expect(shown).toContain('22 November 2026');
     expect(hidden).toContain('31 October 2026');
     expect(shown).toContain('not affiliated with or endorsed by Anthropic');
     expect(shown).toContain('gitranks.com/contribute/maintainers');
@@ -302,6 +302,30 @@ describe('the Terms', () => {
     expect(shown).not.toContain('GitRanks Learn');
     // Maintainers who react are not on Learn's list: the reactions line is in Contribute's section.
     expect(shown).toContain('your reaction may be shown on the result page with your username, avatar and role');
+  });
+
+  it('open Contribute’s section with the rule for issues from your list, at its own anchor', () => {
+    const html = renderToStaticMarkup(<TermsScreen contribute />);
+    const plain = text(html);
+    const rule = html.indexOf('id="contribute-rules"');
+    expect(rule).toBeGreaterThan(html.indexOf('id="contribute"'));
+    expect(rule).toBeLessThan(html.indexOf('Your key, your usage.'));
+    expect(plain).toContain(
+      'Pull requests for issues from your list. GitRanks watches 50,000 repositories and reads about 3,000 issues with AI every day to find the best ones to work on. The lists it makes belong to GitRanks. This costs us money and work, and the service is free for you. Every pull request for an issue from your list is opened through GitRanks, never by hand or with another tool, and carries a small footer with a link to GitRanks. That link is how other developers find us. This is the only thing we ask in return. Do not copy the list or pass it on. If we find a pull request that goes around GitRanks, we ask you why. If it goes on, your list gets shorter. If it still goes on, your account is blocked.',
+    );
+    expect(plain).toContain(
+      'Your agent must follow the rule for issues from your list too: GitRanks tells it so when it connects.',
+    );
+    expect(plain).toContain(
+      'By using GitRanks, its badges, its sign-in or its MCP server through any AI agent, you accept them.',
+    );
+  });
+
+  it('keep the opening without the MCP server while Contribute is hidden', () => {
+    const hidden = text(renderToStaticMarkup(<TermsScreen contribute={false} />));
+    expect(hidden).toContain('By using GitRanks, its badges or its sign-in, you accept them.');
+    expect(hidden).not.toContain('MCP');
+    expect(hidden).not.toContain('contribute-rules');
   });
 
   it('carry the Learn section only with Contribute and Learn open to the reader', () => {
@@ -329,7 +353,7 @@ describe('the launch gate', () => {
     shown.mockResolvedValue(true);
     const open = renderToStaticMarkup(await LaunchedTerms());
     expect(open).toContain('id="contribute"');
-    expect(open).toContain('2026-11-18');
+    expect(open).toContain('2026-11-22');
     expect(open).toContain('data-scroll-to-hash');
 
     shown.mockResolvedValue(false);

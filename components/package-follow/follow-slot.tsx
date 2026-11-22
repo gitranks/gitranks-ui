@@ -2,7 +2,7 @@
 
 import { Bell, BellRing } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { FollowDialog } from './follow-dialog';
 import { ButtonHint } from '@/components/button-hint/button-hint';
@@ -43,19 +43,24 @@ export function FollowSlot({ packages, label, placement }: Readonly<FollowSlotPr
   const [dialogOpen, setDialogOpen] = useState(false);
   // Back from the Email row's sign-in, waiting for the follows before the dialog opens.
   const [returning, setReturning] = useState(false);
-  const names = packages.map(({ name }) => name).join('\n');
+  const names = packages.map(({ registry, name }) => `${registry}:${name}`).join('\n');
+  // Set once a dialog changed the follows: a read answered after that is older, and is dropped.
+  const changed = useRef(false);
 
   // Another slot for the same packages changed them: this one says the same.
   useEffect(() => {
     const onChange = (event: Event) => {
       const { detail } = event as CustomEvent<FollowsChange>;
-      if (detail.names === names) setFollows(detail.follows);
+      if (detail.names !== names) return;
+      changed.current = true;
+      setFollows(detail.follows);
     };
     window.addEventListener(FOLLOWS_CHANGE, onChange);
     return () => window.removeEventListener(FOLLOWS_CHANGE, onChange);
   }, [names]);
 
   const changeFollows = (next: FollowRow[]) => {
+    changed.current = true;
     setFollows(next);
     window.dispatchEvent(new CustomEvent<FollowsChange>(FOLLOWS_CHANGE, { detail: { names, follows: next } }));
   };
@@ -64,11 +69,12 @@ export function FollowSlot({ packages, label, placement }: Readonly<FollowSlotPr
   useEffect(() => {
     setFollows([]);
     setFollowsRead(false);
+    changed.current = false;
     if (!login) return;
     let live = true;
     fetchFollowState(packages).then((answer) => {
       if (!live) return;
-      if (answer.ok) setFollows(answer.data);
+      if (answer.ok && !changed.current) setFollows(answer.data);
       setFollowsRead(true);
     });
     return () => {

@@ -131,6 +131,10 @@ const Facts: FC<{ pkg: PackagePage }> = ({ pkg }) => {
   const releases = pkg.releaseCount
     ? `${formatCount(pkg.releaseCount)} ${pkg.releaseCount === 1 ? 'release' : 'releases'}`
     : null;
+  const repository = pkg.repo?.nameWithOwner ?? pkg.repositoryName;
+  if (!(repository || pkg.latestVersion || releases || firstPublished || maintainersText(pkg) || pkg.license)) {
+    return null;
+  }
 
   return (
     <ul
@@ -203,6 +207,8 @@ const UsedByNone: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, 
   );
 };
 
+const DEPENDENTS_NOT_LOADED = 'Could not load the repositories. Try again in a few minutes.';
+
 const COUNTED =
   "Counted from each repository's own manifests, workspaces included. Lockfiles, forks, and examples, docs or test folders don't count. We read every repository with 100+ stars once a month";
 
@@ -215,10 +221,37 @@ const UsedBy: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, pkg 
   const { name, dependentsCount: count, dependentsStars: stars, dependents } = pkg;
   const read = shortDate(pkg.dependentsReadAt);
 
-  if (!(count > 0 && dependents && dependents.items.length > 0)) {
+  if (count === 0) {
     return (
       <ProfileSection id="used-by" title="Used by">
         <UsedByNone registry={registry} pkg={pkg} />
+      </ProfileSection>
+    );
+  }
+
+  const title = (
+    <>
+      Used by <span className="font-mono tabular-nums">{formatCount(count)}</span>{' '}
+      {count === 1 ? 'repository' : 'repositories'} with 100+ stars
+    </>
+  );
+  const intro =
+    count > 1 ? (
+      <>
+        <span className="font-mono tabular-nums">{formatCount(stars)}</span>
+        {` stars between them · direct dependents, in their own ${manifest}`}
+      </>
+    ) : (
+      `A direct dependent, in its own ${manifest}`
+    );
+
+  // Counted, but the page holds none of its rows: the count stays, and a line says the list did not load.
+  if (!dependents?.items.length) {
+    return (
+      <ProfileSection id="used-by" title={title} intro={intro}>
+        <ProfileCard>
+          <p className="text-sm text-muted-foreground">{DEPENDENTS_NOT_LOADED}</p>
+        </ProfileCard>
       </ProfileSection>
     );
   }
@@ -228,22 +261,8 @@ const UsedBy: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, pkg 
       registry={registry}
       name={name}
       initial={dependents}
-      title={
-        <>
-          Used by <span className="font-mono tabular-nums">{formatCount(count)}</span>{' '}
-          {count === 1 ? 'repository' : 'repositories'} with 100+ stars
-        </>
-      }
-      intro={
-        count > 1 ? (
-          <>
-            <span className="font-mono tabular-nums">{formatCount(stars)}</span>
-            {` stars between them · direct dependents, in their own ${manifest}`}
-          </>
-        ) : (
-          `A direct dependent, in its own ${manifest}`
-        )
-      }
+      title={title}
+      intro={intro}
       footer={
         <p className="text-xs text-muted-foreground">
           {COUNTED}

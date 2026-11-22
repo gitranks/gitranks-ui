@@ -65,7 +65,6 @@ const answer = (key: string, body: unknown, status?: number) => {
 };
 const calls = (key: string) => fetchMock.mock.calls.filter(([url, init]) => `${init?.method ?? 'GET'} ${url}` === key);
 
-/** The button and the line under it, as text. */
 /** The buttons' labels, each with its hint (its tooltip and description). */
 const text = () =>
   [...(document.body.firstElementChild?.querySelectorAll('button') ?? [])]

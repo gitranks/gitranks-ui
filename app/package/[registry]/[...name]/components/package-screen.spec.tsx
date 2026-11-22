@@ -116,6 +116,33 @@ describe('PackageScreen', () => {
     expect(page).not.toContain('About left-pad-next');
   });
 
+  it('keeps the count when the page holds none of the rows, and leaves out facts it has none of', () => {
+    const html = renderToStaticMarkup(
+      <PackageScreen
+        registry="npm"
+        name={rankedPackage.name}
+        pkg={{
+          ...rankedPackage,
+          dependents: null,
+          repo: null,
+          repositoryName: null,
+          latestVersion: null,
+          releaseCount: 0,
+          firstPublishedAt: null,
+          maintainers: [],
+          maintainersCount: 0,
+          license: null,
+        }}
+      />,
+    );
+    const page = text(html);
+
+    expect(page).toContain('Used by 16 repositories with 100+ stars');
+    expect(page).toContain('Could not load the repositories. Try again in a few minutes.');
+    expect(page).not.toContain('No repository with 100+ stars uses');
+    expect(html).not.toContain('aria-label="About the package"');
+  });
+
   it('says only that package data is unavailable, with no button', () => {
     const html = renderToStaticMarkup(<PackageScreen registry="npm" name="@nebula/ui" pkg="unavailable" />);
 

@@ -9,7 +9,6 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const BLOCKING_ROUTES = [
-  '/repo/[owner]/[name]',
   '/profile/[login]',
   '/org/[login]',
   '/insights/[id]',

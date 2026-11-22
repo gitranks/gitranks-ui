@@ -4,9 +4,11 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type PicksState, usePicks } from './use-picks';
-import { PICK_TOASTS } from '@/app/repo/[owner]/[name]/utils/pick-messages';
+import { pickCopyOf } from '@/app/repo/[owner]/[name]/utils/pick-messages';
 import { REFRESH_TOASTS } from '@/components/refresh-dialogs/refresh-messages';
 import type { DailyUpdatesPick, DailyUpdatesViewer, PickRef } from '@/types/daily-updates.types';
+
+const TOASTS = pickCopyOf('repo').toasts;
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -53,7 +55,7 @@ describe('usePicks', () => {
       if (fresh) setViewer(fresh);
       return fresh;
     };
-    state = usePicks({ target: TARGET, viewer: current, setViewer, reload, onPicked, onCloseDialog });
+    state = usePicks({ target: TARGET, viewer: current, setViewer, reload, onPicked, onCloseDialog, toasts: TOASTS });
     viewer = current;
     return null;
   };
@@ -162,11 +164,11 @@ describe('usePicks', () => {
   });
 
   it.each([
-    ['not_held', { status: 'not_held' }, 200, 'info', PICK_TOASTS.notHeld],
-    ['busy', { status: 'busy' }, 200, 'info', PICK_TOASTS.busy],
+    ['not_held', { status: 'not_held' }, 200, 'info', TOASTS.notHeld],
+    ['busy', { status: 'busy' }, 200, 'info', TOASTS.busy],
     ['a removed account (410)', { message: 'Gone' }, 410, 'error', REFRESH_TOASTS.removed],
-    ['a name the API refuses (400)', { message: 'Bad' }, 400, 'error', PICK_TOASTS.notHeld],
-    ['a failure', { message: 'Bad Gateway' }, 502, 'error', PICK_TOASTS.failed],
+    ['a name the API refuses (400)', { message: 'Bad' }, 400, 'error', TOASTS.notHeld],
+    ['a failure', { message: 'Bad Gateway' }, 502, 'error', TOASTS.failed],
   ] as const)('toasts on %s, and picks nothing', async (_, body, status, tone, text) => {
     mount();
     answer(body, status);
@@ -184,7 +186,7 @@ describe('usePicks', () => {
 
     await act(() => state.pick());
 
-    expect(toast.error).toHaveBeenCalledExactlyOnceWith(PICK_TOASTS.failed);
+    expect(toast.error).toHaveBeenCalledExactlyOnceWith(TOASTS.failed);
   });
 
   it('drops the viewer and closes every dialog when daily updates are closed to the visitor (403)', async () => {
@@ -270,7 +272,7 @@ describe('usePicks', () => {
       await pressed;
     });
     expect(state.removing).toBeNull();
-    expect(toast.error).toHaveBeenCalledExactlyOnceWith(PICK_TOASTS.removeFailed);
+    expect(toast.error).toHaveBeenCalledExactlyOnceWith(TOASTS.removeFailed);
   });
 
   it('toasts a removal call that throws, and keeps the picks', async () => {
@@ -279,14 +281,14 @@ describe('usePicks', () => {
 
     await act(() => state.remove({ kind: 'repo', name: 'octo/rocket' }));
 
-    expect(toast.error).toHaveBeenCalledExactlyOnceWith(PICK_TOASTS.removeFailed);
+    expect(toast.error).toHaveBeenCalledExactlyOnceWith(TOASTS.removeFailed);
     expect(state.removing).toBeNull();
     expect(viewer?.picks).toEqual(picked('octo/rocket'));
   });
 
   it.each([
     [410, REFRESH_TOASTS.removed],
-    [400, PICK_TOASTS.notHeld],
+    [400, TOASTS.notHeld],
   ])('toasts a refused removal (%i)', async (status, text) => {
     mount(viewerOf({ picks: picked('octo/rocket') }));
     answer({ message: 'No' }, status);

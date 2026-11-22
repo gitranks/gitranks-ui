@@ -27,7 +27,6 @@ const APP = join(dirname(fileURLToPath(import.meta.url)), '../../app');
  * boundary and bring the 200 back.
  */
 const ROUTES = [
-  { segment: 'repo/[owner]/[name]', module: () => import('@/app/repo/[owner]/[name]/page'), params: ['owner', 'name'] },
   { segment: 'profile/[login]', module: () => import('@/app/profile/[login]/layout'), params: ['login'] },
   { segment: 'org/[login]', module: () => import('@/app/org/[login]/layout'), params: ['login'] },
   { segment: 'insights/[id]', module: () => import('@/app/insights/[id]/page'), params: ['id'] },
@@ -41,7 +40,8 @@ const ROUTES = [
     module: () => import('@/app/repos/language/[language]/[page]/layout'),
     params: ['language', 'page'],
   },
-  // A repository's tabs: their layout lists the params (the Overview's own address is reached only by the proxy).
+  // A repository's tabs: their layout lists the params (the Overview is reached at the repository's own address, by
+  // the proxy).
   ...(['overview', 'used-by', 'contributors'] as const).map((tab) => ({
     segment: `repo/[owner]/[name]/${tab}`,
     module: () => import('@/app/repo/[owner]/[name]/(tabs)/layout'),
@@ -113,7 +113,7 @@ describe('the post-build check', () => {
   });
 
   it('fails on a fallback shell or a missing route', () => {
-    expect(blockingRouteProblems(manifest('/repo/[owner]/[name]'))).toHaveLength(BLOCKING_ROUTES.length);
+    expect(blockingRouteProblems(manifest('/repo/[owner]/[name]/overview'))).toHaveLength(BLOCKING_ROUTES.length);
     const { dynamicRoutes } = manifest(null);
     delete (dynamicRoutes as Record<string, unknown>)['/org/[login]'];
     expect(blockingRouteProblems({ dynamicRoutes })).toEqual(['/org/[login]: not in the prerender manifest']);

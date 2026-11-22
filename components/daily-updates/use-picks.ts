@@ -5,12 +5,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import type { DailyUpdatesViewerState } from './use-daily-updates-viewer';
-import {
-  PICK_TOASTS,
-  PICKS_MAX,
-  type PickCopy,
-  type PickMessageKind,
-} from '@/app/repo/[owner]/[name]/utils/pick-messages';
+import { PICKS_MAX, type PickCopy, type PickMessageKind } from '@/app/repo/[owner]/[name]/utils/pick-messages';
 import { REFRESH_TOASTS } from '@/components/refresh-dialogs/refresh-messages';
 import type {
   DailyUpdatesPickResult,
@@ -32,8 +27,8 @@ type UsePicksOptions = Pick<DailyUpdatesViewerState, 'viewer' | 'setViewer' | 'r
   target: PickRef;
   /** Runs once the target is picked, after the press settles; a package's pick says what its refresh did. */
   onPicked: (refresh?: PickRefreshStatus) => unknown;
-  /** The toasts' words: today's unless the page passes the words that name packages too. */
-  toasts?: PickCopy['toasts'];
+  /** The toasts' words, for the page's kind (`pickCopyOf`). */
+  toasts: PickCopy['toasts'];
   /** Closes the caller's own dialog: a pick's start, and an answer that daily updates are closed, close every one. */
   onCloseDialog?: () => void;
 };
@@ -90,7 +85,7 @@ export function usePicks({
   reload,
   onPicked,
   onCloseDialog,
-  toasts = PICK_TOASTS,
+  toasts,
 }: UsePicksOptions): PicksState {
   const [dialog, setDialog] = useState<PickDialog | null>(null);
   const [picking, setPicking] = useState(false);

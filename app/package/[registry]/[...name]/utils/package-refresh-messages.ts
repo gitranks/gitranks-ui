@@ -1,6 +1,6 @@
 /**
  * Every word of a package's Refresh button that is its own: the lines under "Updates daily", the answers of "Refresh
- * now" and the note after a refresh. The words it shares with repositories are `pickCopyOf(true, 'package')`'s.
+ * now" and the note after a refresh. The words it shares with repositories are `pickCopyOf('package')`'s.
  */
 
 /** The line under "Updates daily", before "Next update in {time}." */

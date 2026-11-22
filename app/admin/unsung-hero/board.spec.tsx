@@ -269,6 +269,9 @@ describe('the board', () => {
     const schedule = markup.slice(markup.indexOf('Candidate')).match(/<button[^>]*>Schedule<\/button>/g) ?? [];
     expect(schedule.filter((button) => button.includes('disabled=""'))).toHaveLength(2);
     expect(schedule).toHaveLength(5);
+    // The tag says why Schedule is off.
+    expect(markup).toContain(`aria-describedby="slot-of-${NOT_TOLD.repo.githubId}"`);
+    expect(markup).toContain(`id="slot-of-${NOT_TOLD.repo.githubId}"`);
   });
 
   it('names a slot on the shortlist by its state: scheduled, live, featured, opted out', () => {

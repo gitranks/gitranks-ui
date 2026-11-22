@@ -128,7 +128,7 @@ export function ShortlistTable({
                         </Link>
                         <span className="text-xs text-muted-foreground break-all">{candidate.package.name}</span>
                         {slot ? (
-                          <div className="flex flex-wrap gap-1">
+                          <div id={`slot-of-${candidate.repo.githubId}`} className="flex flex-wrap gap-1">
                             <Pill tone={STATUS_TONE[slot.status]}>{takenTag(slot)}</Pill>
                           </div>
                         ) : (
@@ -170,6 +170,7 @@ export function ShortlistTable({
                           variant="outline"
                           size="sm"
                           disabled={pending || !!slot}
+                          aria-describedby={slot ? `slot-of-${candidate.repo.githubId}` : undefined}
                           onClick={() => onSchedule?.(candidate.repo.githubId)}
                         >
                           Schedule

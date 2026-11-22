@@ -6,6 +6,7 @@ import type { FC } from 'react';
 import { RegistryChip } from './package-card';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { registryOfRepoPackage, spansRegistries } from '@/app/repo/[owner]/[name]/utils/repo-package-registry';
+import { hasWeeklyDownloads } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { RepoPackages } from '@/graphql/repo-packages';
 import { REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
@@ -15,12 +16,14 @@ const formatCount = (value: number) => value.toLocaleString('en-US');
 
 /**
  * Every package a repository publishes, when there are four or more: how many repositories with 100+ stars use each
- * and its downloads, most used first. The API lists the top 50; the rest are counted.
+ * and its downloads a week, most used first; a package on a registry not counted by the week has a dash there, and
+ * the column is left out when none is. The API lists the top 50; the rest are counted.
  */
 export const PackagesTable: FC<{ packages: Pick<RepoPackages, 'total' | 'items'> }> = ({ packages }) => {
   const more = packages.total - packages.items.length;
   // Packages on more than one registry name each one's.
   const registryChip = spansRegistries(packages.items);
+  const weekly = packages.items.some(hasWeeklyDownloads);
 
   return (
     <ProfileCard className="gap-0 p-0">
@@ -33,7 +36,7 @@ export const PackagesTable: FC<{ packages: Pick<RepoPackages, 'total' | 'items'>
           <TableRow className="hover:bg-transparent">
             <TableHead className="px-4 text-muted-foreground">Package</TableHead>
             <TableHead className="text-right text-muted-foreground">Used by (100+★ repos)</TableHead>
-            <TableHead className="px-4 text-right text-muted-foreground">Downloads a week</TableHead>
+            {weekly && <TableHead className="px-4 text-right text-muted-foreground">Downloads a week</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -57,9 +60,15 @@ export const PackagesTable: FC<{ packages: Pick<RepoPackages, 'total' | 'items'>
                   <span className="text-muted-foreground">none yet</span>
                 )}
               </TableCell>
-              <TableCell className="px-4 py-2.5 text-right font-mono tabular-nums">
-                {formatCount(pkg.downloadsLastWeek)}
-              </TableCell>
+              {weekly && (
+                <TableCell className="px-4 py-2.5 text-right font-mono tabular-nums">
+                  {hasWeeklyDownloads(pkg) && pkg.downloadsLastWeek !== null ? (
+                    formatCount(pkg.downloadsLastWeek)
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

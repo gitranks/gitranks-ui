@@ -134,16 +134,35 @@ export const notReadPackage: PackagePage = {
   refreshRunning: false,
 };
 
+/** PyPI's whole months from the first one read, April 2026, to October 2026: 7 of them, 4.4 million in the last. */
+export const pypiMonths: PackageDownloadsPoint[] = Array.from({ length: 7 }, (_, i) => ({
+  start: new Date(Date.UTC(2026, 3 + i, 1)).toISOString(),
+  downloads: 3_800_000 + i * 100_000,
+}));
+
 /**
- * A package on a registry that folds names, written by it otherwise than its address: `zope.interface` at
- * `zope-interface`, the address name the API answers for any spelling the registry takes as the same. npm stands in for
- * that registry here, as the only one the site lists; npm itself folds no names.
+ * A PyPI project, written by PyPI otherwise than its address: `zope.interface` at `zope-interface`, the address name
+ * the API answers for any spelling PyPI takes as the same. Its downloads are counted a month at a time: no week, the
+ * month just ended and the one before, and its months since the first one read.
  */
 export const spelledPackage: PackagePage = {
   ...rankedPackage,
+  registry: 'PYPI',
   name: 'zope-interface',
   displayName: 'zope.interface',
   repo: { nameWithOwner: 'zopefoundation/zope.interface', stars: 360 },
+  downloads: {
+    through: '2026-10-31T00:00:00.000Z',
+    lastWeek: null,
+    previousWeek: null,
+    last30Days: 4_400_000,
+    previous30Days: 4_300_000,
+    last52Weeks: sum(pypiMonths),
+    previous52Weeks: null,
+    perStar: null,
+    weeks: [],
+    months: pypiMonths,
+  },
 };
 
 /** On daily updates, kept on by a badge in its repository's README. */

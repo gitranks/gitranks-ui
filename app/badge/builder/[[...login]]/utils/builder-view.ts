@@ -1,11 +1,11 @@
 import type { FactsState } from '../hooks/use-entity-facts';
 import { entityName } from './badge-options';
-import { type BuilderState, type BuilderStep, entityLabel, stepOf } from './builder-state';
+import { type BuilderState, type BuilderStep, entityLabel, packageRefOf, stepOf } from './builder-state';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
 import { awaitsRead, type EntityFacts } from '@/badge/v3/facts';
 import { awaitsReadFor } from '@/badge/v3/pending';
 import type { EntityKind } from '@/badge/v3/types';
-import { anyRegistryPackageText } from '@/lib/packages/registries';
+import { anyRegistryPackageText, REGISTRIES } from '@/lib/packages/registries';
 
 const KIND_NAMES: Record<EntityKind, string> = {
   user: 'developer',
@@ -43,9 +43,12 @@ export function builderView(
   const step = stepOf(state);
   if (step === 'find' || !state.kind || !state.name) return { step, notice: null };
   if (!wellFormed || factsState.status === 'missing') {
+    // A package named with its registry says that registry: "no npm package called …".
+    const pkg = state.kind === 'package' ? packageRefOf(state.name) : null;
+    const kindName = pkg ? `${REGISTRIES[pkg.registry].label} package` : KIND_NAMES[state.kind];
     return {
       step: 'find',
-      notice: `GitRanks has no ${KIND_NAMES[state.kind]} called “${entityLabel(state.kind, state.name)}” yet.`,
+      notice: `GitRanks has no ${kindName} called “${entityLabel(state.kind, state.name)}” yet.`,
     };
   }
   if (factsState.status === 'error') {

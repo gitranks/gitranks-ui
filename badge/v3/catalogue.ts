@@ -4,9 +4,13 @@ import type { BadgeParams } from './params';
 import { repoRace, userClimbRace, userStarsRace } from './race';
 import type { BadgeFormat, By, ContributorKey, EntityKind, Scheme } from './types';
 import { UNSUNG_HERO_BADGE } from './unsung-hero-badge';
-import { downloadsPerStar, yearOverYearChange } from '@/app/package/[registry]/[...name]/utils/package-downloads';
+import {
+  downloadsPerStar,
+  yearOfDownloads,
+  yearOverYearChange,
+} from '@/app/package/[registry]/[...name]/utils/package-downloads';
 import { isRankedIn } from '@/badge/utils/is-ranked-in';
-import { registryHasDownloads } from '@/lib/packages/registries';
+import { REGISTRIES, registryHasDownloads } from '@/lib/packages/registries';
 import { UserRankProp } from '@/types/ranking.types';
 
 /** Extras a shield can show after its value (spec §3.1); contributor keys for the contributors shield. */
@@ -321,9 +325,15 @@ function orgAvailability(org: OrgFacts, id: string, params: BadgeParams): Availa
   }
 }
 
-/** Year over year needs the 52 weeks before the last 52. */
+/** Year over year needs the 52 weeks before the last 52 (on a registry counted a month at a time, 24 months). */
 export const packageGrowthOf = (pkg: PackageFacts): number | null =>
-  pkg.downloads ? yearOverYearChange(pkg.downloads) : null;
+  pkg.downloads ? yearOverYearChange(pkg.downloads, REGISTRIES[pkg.registry].downloads ?? undefined) : null;
+
+/** The last 12 months' downloads: on a registry counted a month at a time, once its history holds 12 months. */
+export const packageYearOf = (pkg: PackageFacts): number | null => {
+  const unit = REGISTRIES[pkg.registry].downloads;
+  return pkg.downloads && unit ? yearOfDownloads(unit, pkg.downloads) : null;
+};
 
 /** Downloads a week per star needs a publishing repository with stars. */
 export const packagePerStarOf = (pkg: PackageFacts): number | null => downloadsPerStar(pkg.downloads, pkg.repo);
@@ -347,6 +357,10 @@ function packageAvailability(pkg: PackageFacts, id: string): Availability {
   if (PACKAGE_DOWNLOADS_BADGES.has(id) && !registryHasDownloads(pkg.registry)) {
     return 'never';
   }
+  // Downloads a week per star: a registry counted a month at a time has no week.
+  if (id === 'downloads-per-star' && REGISTRIES[pkg.registry].downloads !== 'week') {
+    return 'never';
+  }
   switch (id) {
     case 'used-by':
     case 'dependents-stars':
@@ -355,8 +369,9 @@ function packageAvailability(pkg: PackageFacts, id: string): Availability {
     case 'used-by-chart':
       return either(used && pkg.dependents.length > 0, true);
     case 'downloads':
-    case 'downloads-year':
       return either(!!pkg.downloads, true);
+    case 'downloads-year':
+      return either(packageYearOf(pkg) !== null, true);
     case 'downloads-growth':
       return either(packageGrowthOf(pkg) !== null, false);
     case 'downloads-per-star':

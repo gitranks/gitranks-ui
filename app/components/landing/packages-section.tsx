@@ -9,13 +9,20 @@ import {
   downloadsWindow,
   PACKAGE_RANKINGS,
   type PackageRankingOrder,
+  packageRankingOf,
 } from '@/app/packages/package-rankings';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import { buttonVariants } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
 import { FOLLOW_CARD_TITLE } from '@/lib/follow/follow-copy';
-import { DEFAULT_REGISTRY, REGISTRIES, registryLabelList } from '@/lib/packages/registries';
+import {
+  DEFAULT_REGISTRY,
+  DOWNLOADS_UNIT_TEXT,
+  REGISTRIES,
+  REGISTRY_IDS,
+  registryLabelList,
+} from '@/lib/packages/registries';
 import { REGISTRY_ICONS } from '@/lib/packages/registry-icons';
 import { cn } from '@/lib/utils';
 import { packagePath, packageRankingPath } from '@/utils/package-paths';
@@ -40,11 +47,17 @@ const ACTION_CLASS = cn(buttonVariants({ size: 'lg' }), 'min-h-11 px-5 text-base
 /** The tabs' names: the rankings' own labels, as the ranking pages' "Rank by" names them. */
 const tabOf = (order: PackageRankingOrder) => PACKAGE_RANKINGS[order].label;
 
+/** "weekly downloads" while every listed registry counts them by the week; "downloads" once their units differ. */
+const DOWNLOADS_RANKED_BY = (() => {
+  const units = new Set(REGISTRY_IDS.flatMap((id) => REGISTRIES[id].downloads ?? []));
+  return units.size === 1 ? `${DOWNLOADS_UNIT_TEXT[[...units][0]].adjective} downloads` : 'downloads';
+})();
+
 const POINTS = [
   {
     icon: ListOrdered,
     title: 'Three rankings',
-    text: 'By weekly downloads, by the stars of the repositories that use a package, and by how many of them use it.',
+    text: `By ${DOWNLOADS_RANKED_BY}, by the stars of the repositories that use a package, and by how many of them use it.`,
   },
   {
     icon: Package,
@@ -57,7 +70,7 @@ const POINTS = [
 /** What a tab's numbers count, under its rows. */
 const basisOf = (order: PackageRankingOrder, downloadsTo: string | null) =>
   order === 'downloads'
-    ? `Downloads ${downloadsWindow(downloadsTo)}`
+    ? `Downloads ${downloadsWindow(downloadsTo, REGISTRIES[DEFAULT_REGISTRY].downloads)}`
     : order === 'dependents'
       ? `Repositories with ${DEPENDENT_MIN_STARS}+ stars that use it directly`
       : `Stars of the repositories with ${DEPENDENT_MIN_STARS}+ stars that use it, added up`;
@@ -173,7 +186,7 @@ export const PackagesSection: FC<LandingPackages> = ({ boards, ranked, downloads
           <TabsContent key={order} value={order} forceMount className="data-[state=inactive]:hidden">
             <div className="flex items-center justify-between px-4 pt-3 pb-1 text-xs text-muted-foreground">
               <span aria-hidden="true">#</span>
-              <span>{PACKAGE_RANKINGS[order].metric}</span>
+              <span>{packageRankingOf(order, DEFAULT_REGISTRY).metric}</span>
             </div>
             <ol className="flex flex-col divide-y">
               {rows.slice(0, LANDING_PACKAGE_ROWS).map((row) => (

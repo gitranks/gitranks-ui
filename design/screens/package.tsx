@@ -36,10 +36,13 @@ const badgeFactsOf = (pkg: PackagePage): PackageFacts => ({
         through: pkg.downloads.through,
         lastWeek: pkg.downloads.lastWeek,
         previousWeek: pkg.downloads.previousWeek,
+        last30Days: pkg.downloads.last30Days,
+        previous30Days: pkg.downloads.previous30Days,
         last52Weeks: pkg.downloads.last52Weeks,
         previous52Weeks: pkg.downloads.previous52Weeks ?? null,
         perStar: pkg.downloads.perStar ?? null,
         weeks: pkg.downloads.weeks ?? [],
+        months: pkg.downloads.months ?? [],
       }
     : null,
 });

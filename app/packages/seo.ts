@@ -7,6 +7,7 @@ import {
   PACKAGE_RANKINGS,
   type PackageRankingOrder,
   packageRankingBasis,
+  packageRankingOf,
 } from './package-rankings';
 import type { QuestionItem } from '@/components/questions-block/questions-block';
 import { buildPackageRankingItemList } from '@/components/ranking-table/ranking-item-list';
@@ -47,7 +48,7 @@ export function buildPackageRankingMetadata(
   input: PackageRankingPage & { rows?: PackageRankRows | null; ranked?: number | null },
 ): Metadata {
   const { registry, registryLabel, order, page, rows, ranked } = input;
-  const ranking = PACKAGE_RANKINGS[order];
+  const ranking = packageRankingOf(order, registry);
   const top = (rows ?? []).slice(0, 3).map(({ name }) => name);
   const description = [
     `${registryLabel} packages ranked by ${ranking.rankedBy}${pageClause(page)}.`,
@@ -110,12 +111,12 @@ export function buildPackageRankingQuestions(
     rows: PackageRankRows;
     readOn?: string | null;
     ranksOn?: string | null;
-    /** The last of the downloads ranking's 7 days, as written in text; no date when unknown. */
+    /** The last day of the downloads ranking's period, as written in text; no date when unknown. */
     downloadsTo?: string | null;
   },
 ): QuestionItem[] {
   const { registry, registryLabel, order, rows, readOn, ranksOn, downloadsTo } = input;
-  const ranking = PACKAGE_RANKINGS[order];
+  const ranking = packageRankingOf(order, registry);
   const [first, ...next] = rows;
   const items: QuestionItem[] = [
     {
@@ -126,7 +127,8 @@ export function buildPackageRankingQuestions(
 
   if (first) {
     const after = next.slice(0, 2).map(({ name }) => name);
-    const window = order === 'downloads' ? ` ${downloadsWindow(downloadsTo)}` : '';
+    const window =
+      order === 'downloads' ? ` ${downloadsWindow(downloadsTo, REGISTRIES[registry].downloads ?? undefined)}` : '';
     items.push({
       question: `Which ${registryLabel} package is first by ${ranking.metricInSentence}?`,
       answer: `${first.name}, with ${count(first.value, ranking.unit)}${window}.${after.length ? ` Then ${joinNames(after)}.` : ''}`,

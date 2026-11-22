@@ -1,7 +1,14 @@
+import { yearOfDownloads } from './package-downloads';
 import type { SummaryPart } from '@/app/profile/[login]/utils/profile-summary';
 import { formatCount, formatDay } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import type { PackageDependent, PackagePage } from '@/graphql/package-page';
-import { REGISTRIES, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
+import {
+  DOWNLOADS_UNIT_TEXT,
+  downloadsCountOf,
+  REGISTRIES,
+  type RegistryId,
+  spelledNameOf,
+} from '@/lib/packages/registries';
 import { getRepoPath } from '@/utils/repo-paths';
 
 const COMPACT_LONG = new Intl.NumberFormat('en-US', {
@@ -30,14 +37,21 @@ type SummaryPackage = Pick<
   | 'firstPublishedAt'
 >;
 
+/**
+ * "react is an npm package downloaded 1,030,000 times last week and 77.9 million times in the last 12 months.": its
+ * downloads of the last period its registry counts, and of the last 12 months once the history holds them.
+ */
 function downloadsSentence(registry: RegistryId, pkg: SummaryPackage): string {
-  const { article, label } = REGISTRIES[registry];
+  const { article, label, downloads: unit } = REGISTRIES[registry];
   const name = spelledNameOf(pkg);
   const { downloads } = pkg;
-  if (!downloads) {
+  const counted = downloadsCountOf(unit, downloads);
+  if (!downloads || !counted) {
     return `${name} is ${article} ${label} package.`;
   }
-  return `${name} is ${article} ${label} package downloaded ${formatCount(downloads.lastWeek)} times last week and ${formatCountLong(downloads.last52Weeks)} times in the last 12 months.`;
+  const year = yearOfDownloads(unit, downloads);
+  const yearText = year === null ? '' : ` and ${formatCountLong(year)} times in the last 12 months`;
+  return `${name} is ${article} ${label} package downloaded ${formatCount(counted.last)} times ${DOWNLOADS_UNIT_TEXT[unit].last}${yearText}.`;
 }
 
 function dependentsParts(pkg: SummaryPackage, top: Pick<PackageDependent, 'nameWithOwner' | 'stars'> | undefined) {

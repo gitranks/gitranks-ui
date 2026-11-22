@@ -14,7 +14,7 @@ describe('the follow routes’ bodies', () => {
   it.each([
     ['none', []],
     ['more than 50', Array.from({ length: 51 }, (_, at) => pkg(`p${at}`))],
-    ['another registry', [{ registry: 'pypi', name: 'x' }]],
+    ['another registry', [{ registry: 'cargo', name: 'x' }]],
     ['a name npm never takes', [pkg('../x')]],
     ['not a list', 'x'],
   ])('refuse packages: %s', (_, value) => {

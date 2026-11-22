@@ -7,6 +7,7 @@ import { PACKAGES_UNAVAILABLE_TEXT } from '../../../tab-seo';
 import {
   buildUsedByQuestions,
   buildUsedBySummary,
+  listText,
   noDependentsNote,
   noDependentsTitle,
 } from '../../../utils/used-by-summary';
@@ -26,7 +27,7 @@ import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { Button } from '@/components/ui/button';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages, RepoUsedBy } from '@/graphql/repo-packages';
-import { registryLabelList, spelledNameOf } from '@/lib/packages/registries';
+import { REGISTRIES, REGISTRY_IDS, spelledNameOf } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 type UsedByScreenProps = {
@@ -39,7 +40,12 @@ type UsedByScreenProps = {
   jsonLd?: object[];
 };
 
-const INTRO = `Repositories with 100+ stars that depend directly on a package this repository publishes. Forks, lockfiles and example folders don't count. Read monthly; downloads from ${registryLabelList()}, weekly.`;
+/** The registries whose downloads the tab shows: those counted by the week, the one count it reads. */
+const WEEKLY_REGISTRIES = listText(
+  REGISTRY_IDS.filter((id) => REGISTRIES[id].downloads === 'week').map((id) => REGISTRIES[id].label),
+);
+
+const INTRO = `Repositories with 100+ stars that depend directly on a package this repository publishes. Forks, lockfiles and example folders don't count. Read monthly; downloads from ${WEEKLY_REGISTRIES}, weekly.`;
 
 const Heading: FC = () => (
   <div className="flex flex-col gap-1">

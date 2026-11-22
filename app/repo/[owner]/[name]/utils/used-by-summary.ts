@@ -47,14 +47,23 @@ function packagesWord(packages: Pick<RepoPackages, 'items'>, one = false): strin
 }
 
 /**
- * "a week on npm" on one registry, "a week" across several (the counts are weekly); `null` on one registry that
- * publishes no download counts, where nothing is said about downloads.
+ * Whether a repository's package has a count of last week's downloads: the one count a repository's packages are
+ * read with, on a registry counted by the week. One counted a month at a time (PyPI) has none here, and neither has a
+ * registry that publishes no download counts.
+ */
+export const hasWeeklyDownloads = (pkg: Pick<RepoPackage, 'registry'>) =>
+  REGISTRIES[registryOfRepoPackage(pkg)].downloads === 'week';
+
+/**
+ * "a week on npm" for the packages on one registry counted by the week (the repository's downloads add up theirs
+ * alone), "a week" across several; `null` when none of its packages is counted by the week, where nothing is said
+ * about downloads.
  */
 export function downloadsPer(packages: Pick<RepoPackages, 'items'>): string | null {
-  const registry = sharedRegistryOf(packages.items);
-  if (!registry) return 'a week';
-  const { downloads: unit, label } = REGISTRIES[registry];
-  return unit ? `a ${unit} on ${label}` : null;
+  const weekly = packages.items.filter(hasWeeklyDownloads);
+  if (packages.items.length > 0 && weekly.length === 0) return null;
+  const registry = sharedRegistryOf(weekly);
+  return registry ? `a week on ${REGISTRIES[registry].label}` : 'a week';
 }
 const repoLink = (nameWithOwner: string): SummaryPart => ({ text: nameWithOwner, href: getRepoPath(nameWithOwner) });
 
@@ -185,8 +194,14 @@ export function noDependentsNote(packages: RepoPackages): string {
   ].join('');
 }
 
-/** "How is this counted?", on the Used by tab and wherever its numbers are explained. */
-export const USED_BY_COUNTED = `From each repository's own ${registryManifestList()} files, workspaces included. Lockfiles, forks and example, docs or test folders don't count. We read every repository with 100+ stars once a month.`;
+/**
+ * "How is this counted?", on the Used by tab and wherever its numbers are explained: the files of the registries the
+ * repository's packages are on (every listed registry's, for none).
+ */
+export function usedByCountedOf(packages: Pick<RepoPackages, 'items'>): string {
+  const registries = [...new Set(packages.items.map(registryOfRepoPackage))];
+  return `From each repository's own ${registryManifestList(registries.length ? registries : undefined)} files, workspaces included. Lockfiles, forks and example, docs or test folders don't count. We read every repository with 100+ stars once a month.`;
+}
 
 /**
  * The Used by tab's questions, each answered from the tab's own numbers: who uses it, which package is used most (with
@@ -213,12 +228,16 @@ export function buildUsedByQuestions(
 
   const [most] = packages.items;
   if (!one && most && most.dependents > 0) {
+    const dependentsText = `${plural(most.dependents, 'repository', 'repositories')} with 100+ stars`;
     items.push({
       question: `Which ${nameWithOwner} package is used most?`,
-      answer: `${spelledNameOf(most)}: ${plural(most.dependents, 'repository', 'repositories')} with 100+ stars and ${formatCount(most.downloadsLastWeek)} downloads a week.`,
+      answer:
+        hasWeeklyDownloads(most) && most.downloadsLastWeek !== null
+          ? `${spelledNameOf(most)}: ${dependentsText} and ${formatCount(most.downloadsLastWeek)} downloads a week.`
+          : `${spelledNameOf(most)}: ${dependentsText}.`,
     });
   }
 
-  items.push({ question: 'How is this counted?', answer: USED_BY_COUNTED });
+  items.push({ question: 'How is this counted?', answer: usedByCountedOf(packages) });
   return items;
 }

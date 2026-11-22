@@ -90,7 +90,7 @@ export const PicksDialog: FC<PicksDialogProps> = ({
                       <span className="[overflow-wrap:anywhere]" translate="no">
                         {name}
                       </span>
-                      <span className="text-xs text-muted-foreground">{PICK_LIST.kinds[pick.kind]}</span>
+                      <span className="text-xs text-muted-foreground">{PICK_LIST.kindOf(pick)}</span>
                     </span>
                     <button
                       type="button"

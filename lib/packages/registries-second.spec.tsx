@@ -20,8 +20,9 @@ import { isImpossibleEntityPath } from '@/lib/routing/entity-routes';
 import { isInvalidRankingPath } from '@/lib/routing/ranking-routes';
 import { packagePath } from '@/utils/package-paths';
 
-// The site lists npm alone. These checks add a second registry to the table, one with no download counts whose names
-// take two segments joined by `:`, to show what the table drives once a second registry lands.
+// The site lists npm and PyPI. These checks add a third registry to the table, one with no download counts whose names
+// take two segments joined by `:`, to show what the table drives for a registry unlike both: no downloads ranking or
+// badges, two segments a name, and its own separator.
 
 const { SECOND } = vi.hoisted(() => ({
   SECOND: {
@@ -31,6 +32,7 @@ const { SECOND } = vi.hoisted(() => ({
     pageUrl: (name: string) => `https://registry.example/artifact/${name.replace(':', '/')}`,
     pageUrlPrefix: /^(?:https?:\/\/)?registry\.example\/artifact\//i,
     isName: (name: string) => /^[\w.-]+:[\w.-]+$/.test(name),
+    canonicalName: (name: string) => name,
     nameMaxLength: 500,
     path: { min: 2, max: 2, join: ':' },
     downloads: null,
@@ -51,7 +53,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 const maven = 'maven' as RegistryId;
 
-describe('a second registry in the table', () => {
+describe('a third registry in the table', () => {
   it('reads its names from their segments, joined by its own separator, and writes them back', () => {
     expect(parsePackageParams('maven', ['org.slf4j', 'slf4j-api'])).toEqual({
       registry: 'maven',
@@ -88,6 +90,7 @@ describe('a second registry in the table', () => {
     expect(npm).toContain('Registry:');
     expect(npm).toContain('href="/packages/maven/dependents-stars/1"');
     expect(npm).toContain('href="/packages/npm/downloads/1"');
+    expect(npm).toContain('href="/packages/pypi/downloads/1"');
 
     const second = renderToStaticMarkup(
       <PackageRankingFrame registry={maven} order="dependents">
@@ -98,9 +101,13 @@ describe('a second registry in the table', () => {
     expect(second).not.toContain('href="/packages/maven/downloads/1"');
   });
 
-  it('names every listed registry in the Beta notice', () => {
-    expect(registryLabelList()).toBe('npm and Maven Central');
-    expect(renderToStaticMarkup(<PackageBetaNotice />)).toContain('<b>npm and Maven Central packages only</b>');
+  it('names every listed registry in the Beta notice, and the files of the page’s own', () => {
+    expect(registryLabelList()).toBe('npm, PyPI and Maven Central');
+    expect(renderToStaticMarkup(<PackageBetaNotice />)).toContain('<b>npm, PyPI and Maven Central packages only</b>');
+    expect(renderToStaticMarkup(<PackageBetaNotice />)).toContain(
+      'in their own package.json, requirements.txt, pyproject.toml or pom.xml.',
+    );
+    expect(renderToStaticMarkup(<PackageBetaNotice registry={maven} />)).toContain('in their own pom.xml.');
   });
 
   it('offers no downloads badge for it', () => {

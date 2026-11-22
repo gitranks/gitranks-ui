@@ -3,6 +3,7 @@ import { DEFAULT_CONTRIBUTOR_VALUE } from '@/badge/v3/contributors';
 import { BadgeParamsError, cutLabel, resolveParams } from '@/badge/v3/params';
 import type { EntityKind } from '@/badge/v3/types';
 import {
+  canonicalNameOf,
   DEFAULT_REGISTRY,
   isPackageName,
   isRegistryId,
@@ -12,6 +13,7 @@ import {
   REGISTRIES,
   REGISTRY_IDS,
   type RegistryId,
+  registryOf,
 } from '@/lib/packages/registries';
 import { isGithubLogin, isRepoSlug } from '@/lib/routing/ranking-routes';
 
@@ -170,27 +172,59 @@ const REGISTRY_PREFIXES = REGISTRY_IDS.map((registry) => ({
   prefix: new RegExp(`(?:${REGISTRIES[registry].pageUrlPrefix.source}|^${registry}:)`, 'i'),
 }));
 
-/** The registry a pasted search names by its page's address or `<registry>:`, and the text after it; `null` for none. */
-function prefixedRegistryOf(input: string): { registry: RegistryId; rest: string } | null {
+/**
+ * The registry a pasted search names by its page's address or `<registry>:`, and the text after it; `null` for none.
+ * `page` says it was the page's address, where what follows the name is the page's own path (PyPI's
+ * `/project/<name>/<version>/`).
+ */
+function prefixedRegistryOf(input: string): { registry: RegistryId; rest: string; page: boolean } | null {
   for (const { registry, prefix } of REGISTRY_PREFIXES) {
     const match = prefix.exec(input);
-    if (match?.index === 0) return { registry, rest: input.slice(match[0].length) };
+    if (match?.index === 0) {
+      return { registry, rest: input.slice(match[0].length), page: !/^[a-z]+:$/i.test(match[0]) };
+    }
   }
   return null;
 }
 
-/**
- * The package a Find search names, as the builder names it (`<registry>/<name>`); `null` when it cannot name one.
- * Spaces are dropped, and so are a registry page's address, `<registry>:` and a version after the name (`react@19`).
- * A name with neither is looked for on the default registry.
- */
-export function parsePackageSearch(input: string): string | null {
-  const trimmed = input.replace(/\s+/g, '');
-  const { registry, rest } = prefixedRegistryOf(trimmed) ?? { registry: DEFAULT_REGISTRY, rest: trimmed };
+/** A pasted page address's name: its first segment, on a registry whose names take one (`django/5.0` is `django`). */
+function pageNameOf(registry: RegistryId, rest: string): string {
+  const { path } = registryOf(registry);
+  return path.max === 1 && path.join === '/' ? rest.split('/')[0] : rest;
+}
+
+/** A searched name on a registry as the builder names it, `<registry>/<name>`; `null` when the registry takes none. */
+function packageKeyOfSearch(registry: RegistryId, rest: string): string | null {
   const bare = rest.replace(/[?#].*$/, '').replace(/\/+$/, '');
   // A version after the name, not a scope's own `@`.
   const name = bare.replace(/(?<=.)@[^/]*$/, '');
-  return isPackageName(registry, name) ? packageKeyOf({ registry, name }) : null;
+  return isPackageName(registry, name) ? packageKeyOf({ registry, name: canonicalNameOf(registry, name) }) : null;
+}
+
+/**
+ * The package a Find search names, as the builder names it (`<registry>/<name>`, the name as the site's addresses
+ * spell it); `null` when it cannot name one. Spaces are dropped, and so are a registry page's address (with what
+ * follows the name in it), `<registry>:` and a version after the name (`react@19`). A name with neither is looked for
+ * on the default registry.
+ */
+export function parsePackageSearch(input: string): string | null {
+  return packageSearchesOf(input)[0] ?? null;
+}
+
+/**
+ * Every package a Find search may name: the one its page address or `<registry>:` names; for a name with neither, the
+ * name on each listed registry that takes it, the default registry first (`requests` on npm, then on PyPI).
+ */
+export function packageSearchesOf(input: string): string[] {
+  const trimmed = input.replace(/\s+/g, '');
+  const prefixed = prefixedRegistryOf(trimmed);
+  if (prefixed) {
+    const { registry, rest, page } = prefixed;
+    const key = packageKeyOfSearch(registry, page ? pageNameOf(registry, rest) : rest);
+    return key ? [key] : [];
+  }
+  const registries = [DEFAULT_REGISTRY, ...REGISTRY_IDS.filter((id) => id !== DEFAULT_REGISTRY)];
+  return registries.flatMap((registry) => packageKeyOfSearch(registry, trimmed) ?? []);
 }
 
 /** What a search asks for: a kind and the name it is asked under. */
@@ -209,18 +243,17 @@ function githubKindsFor(target: SearchTarget, narrowed: EntityKind | null): Enti
  * Narrowed to packages, the search names one package.
  */
 export function searchLookups(input: string, narrowed: EntityKind | null): SearchLookup[] {
-  if (narrowed === 'package') {
-    const pkg = parsePackageSearch(input);
-    return pkg ? [{ kind: 'package', name: pkg }] : [];
-  }
-  const pkg = narrowed ? null : parsePackageSearch(input);
+  const packages = (narrowed === null || narrowed === 'package' ? packageSearchesOf(input) : []).map(
+    (name): SearchLookup => ({ kind: 'package', name }),
+  );
+  if (narrowed === 'package') return packages;
   const trimmed = input.replace(/\s+/g, '');
-  if (pkg && (trimmed.startsWith('@') || prefixedRegistryOf(trimmed) !== null)) {
-    return [{ kind: 'package', name: pkg }];
+  if (packages.length && (trimmed.startsWith('@') || prefixedRegistryOf(trimmed) !== null)) {
+    return packages;
   }
   const target = parseSearch(input);
   const github = target ? githubKindsFor(target, narrowed).map((kind) => ({ kind, name: target.name })) : [];
-  return pkg && target?.kind === 'login' ? [...github, { kind: 'package', name: pkg }] : github;
+  return target?.kind === 'login' ? [...github, ...packages] : github;
 }
 
 const DEFAULT_STYLE: Style = {

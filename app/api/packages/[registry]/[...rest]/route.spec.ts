@@ -102,7 +102,8 @@ describe('package routes', () => {
   it('refuses a path or a query that names nothing', async () => {
     // Params arrive decoded: `%40` is taken as it is, never as a second spelling of `@`.
     for (const path of [
-      'pypi/react/dependents',
+      'cargo/react/dependents',
+      'pypi/a/b/dependents',
       'npm/react',
       'npm/react/badge',
       'npm/nebula/ui/dependents',

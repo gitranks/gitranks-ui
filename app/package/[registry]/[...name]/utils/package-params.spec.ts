@@ -11,7 +11,8 @@ describe('parsePackageParams', () => {
 
   it('refuses another registry, any letter case of npm, a scope without @ and names npm refuses', () => {
     for (const [registry, segments] of [
-      ['pypi', ['react']],
+      ['cargo', ['react']],
+      ['pypi', ['zope', 'interface']],
       ['NPM', ['react']],
       ['npm', []],
       ['npm', ['nebula', 'ui']],

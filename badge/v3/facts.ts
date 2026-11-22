@@ -155,22 +155,27 @@ export type PackageDependentFacts = {
   archived: boolean;
 };
 
-/** One point of a package's weekly downloads: the week's Monday (UTC). */
+/** One point of a package's downloads history: the week's Monday, or the month's first day (UTC). */
 export type DownloadsPoint = { start: string; downloads: number };
 
 /**
- * An npm package's downloads up to `through`, the last day counted: the last 7 days, the last 52 whole weeks and the
- * 52 before (`null` until the history reaches back that far), downloads a week per star of its repository (`null`
- * without one), and the weekly totals, oldest first.
+ * A package's downloads up to `through`, the last day counted: the last 7 days and the 7 before, the last 30 days and
+ * the 30 before, the last 52 whole weeks and the 52 before (`null` until the history reaches back that far), downloads
+ * a week per star of its repository (`null` without one), and the weekly and monthly totals, oldest first. On a
+ * registry counted a month at a time there is no week (`lastWeek`, `previousWeek` and `perStar` are `null`, `weeks`
+ * is empty): `last30Days` is the month just ended, `previous30Days` the month before.
  */
 export type PackageDownloadsFacts = {
   through: string;
-  lastWeek: number;
-  previousWeek: number;
+  lastWeek: number | null;
+  previousWeek: number | null;
+  last30Days: number;
+  previous30Days: number;
   last52Weeks: number;
   previous52Weeks: number | null;
   perStar: number | null;
   weeks: DownloadsPoint[];
+  months: DownloadsPoint[];
 };
 
 /**

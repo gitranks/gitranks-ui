@@ -437,12 +437,18 @@ export function toPackageFacts({ package: pkg }: BadgePackageQuery): PackageFact
     downloads: downloads
       ? {
           through: String(downloads.through),
-          lastWeek: downloads.lastWeek,
-          previousWeek: downloads.previousWeek,
+          lastWeek: downloads.lastWeek ?? null,
+          previousWeek: downloads.previousWeek ?? null,
+          last30Days: downloads.last30Days,
+          previous30Days: downloads.previous30Days,
           last52Weeks: downloads.last52Weeks,
           previous52Weeks: downloads.previous52Weeks ?? null,
           perStar: downloads.perStar ?? null,
           weeks: (downloads.weeks ?? []).map(({ start, downloads: count }) => ({
+            start: String(start),
+            downloads: count,
+          })),
+          months: (downloads.months ?? []).map(({ start, downloads: count }) => ({
             start: String(start),
             downloads: count,
           })),

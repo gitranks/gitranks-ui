@@ -4,6 +4,7 @@ import NextLink from 'next/link';
 import type { FC } from 'react';
 
 import { registryOfRepoPackage } from '@/app/repo/[owner]/[name]/utils/repo-package-registry';
+import { hasWeeklyDownloads } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import type { RepoPackage } from '@/graphql/repo-packages';
 import { REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
@@ -21,8 +22,9 @@ export const RegistryChip: FC<{ label: string }> = ({ label }) => (
 
 /**
  * A package the repository publishes, linking to its page: how many repositories with 100+ stars use it and its
- * downloads (none on a registry that publishes no download counts). `wide` for a repository's only package, with its role spelled out and "Package page". `registryChip`
- * names its registry, for a repository whose packages are on more than one.
+ * downloads a week (none on a registry not counted by the week: its page has its downloads). `wide` for a
+ * repository's only package, with its role spelled out and "Package page". `registryChip` names its registry, for a
+ * repository whose packages are on more than one.
  */
 export const PackageCard: FC<{ pkg: RepoPackage; wide?: boolean; registryChip?: boolean }> = ({
   pkg,
@@ -30,7 +32,8 @@ export const PackageCard: FC<{ pkg: RepoPackage; wide?: boolean; registryChip?: 
   registryChip = false,
 }) => {
   const registry = registryOfRepoPackage(pkg);
-  const { label, downloads: unit } = REGISTRIES[registry];
+  const { label } = REGISTRIES[registry];
+  const weekly = hasWeeklyDownloads(pkg) ? pkg.downloadsLastWeek : null;
   const chip = registryChip && <RegistryChip label={label} />;
   return (
     <NextLink href={packagePath(pkg.name, registry) as Route} prefetch={false} className={CARD}>
@@ -55,12 +58,10 @@ export const PackageCard: FC<{ pkg: RepoPackage; wide?: boolean; registryChip?: 
               </span>{' '}
               <span className="text-xs text-muted-foreground">repos with 100+ stars use it</span>
             </span>
-            {unit && (
+            {weekly !== null && (
               <span>
-                <span className="font-mono text-xl font-semibold tabular-nums">
-                  {pkg.downloadsLastWeek.toLocaleString('en-US')}
-                </span>{' '}
-                <span className="text-xs text-muted-foreground">{`downloads a ${unit}`}</span>
+                <span className="font-mono text-xl font-semibold tabular-nums">{weekly.toLocaleString('en-US')}</span>{' '}
+                <span className="text-xs text-muted-foreground">downloads a week</span>
               </span>
             )}
             <span className="inline-flex items-center gap-1 text-sm font-medium text-link">
@@ -79,12 +80,10 @@ export const PackageCard: FC<{ pkg: RepoPackage; wide?: boolean; registryChip?: 
             {pkg.dependents.toLocaleString('en-US')}
           </span>
           <span className="text-xs text-muted-foreground">repos with 100+ stars use it</span>
-          {unit && (
+          {weekly !== null && (
             <span className="text-xs text-muted-foreground">
-              <span className="font-mono tabular-nums text-foreground">
-                {pkg.downloadsLastWeek.toLocaleString('en-US')}
-              </span>{' '}
-              {`downloads a ${unit}`}
+              <span className="font-mono tabular-nums text-foreground">{weekly.toLocaleString('en-US')}</span>{' '}
+              {'downloads a week'}
             </span>
           )}
         </>

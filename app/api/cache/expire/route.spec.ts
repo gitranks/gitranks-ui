@@ -167,7 +167,7 @@ describe('POST /api/cache/expire', () => {
     ['a tag with a space', { tags: ['repo:octo/hello world'] }],
     ['a tag with a line break', { tags: ['profile:octocat\n'] }],
     ['one bad tag among good ones', { tags: [...TAGS, 'ranking:global'] }],
-    ['a package tag of another registry', { tags: ['package:pypi/requests'] }],
+    ['a package tag of another registry', { tags: ['package:cargo/serde'] }],
     ['a package tag without a registry', { tags: ['package:react'] }],
     ['a package tag with nothing after the registry', { tags: ['package:npm/'] }],
     ['a package tag in capitals', { tags: ['package:npm/React'] }],

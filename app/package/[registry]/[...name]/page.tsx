@@ -9,7 +9,7 @@ import { buildPackageSEO } from './seo';
 import { parsePackageParams } from './utils/package-params';
 import { fetchPackage, isPackageSettling, PACKAGE_UNAVAILABLE } from '@/graphql/helpers/fetch-package';
 import { packageCacheTag } from '@/lib/packages/package-paths';
-import { REGISTRIES, REGISTRY_IDS, segmentsOfName } from '@/lib/packages/registries';
+import { canonicalNameOf, REGISTRIES, REGISTRY_IDS, segmentsOfName } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 // Renders as one piece, like a repository's page; cached data keeps the render cheap. One package a registry is listed
@@ -37,6 +37,9 @@ async function packageParamsOf(params: PageProps<'/package/[registry]/[...name]'
 
 export async function generateMetadata({ params }: PageProps<'/package/[registry]/[...name]'>): Promise<Metadata> {
   const { registry, name } = await packageParamsOf(params);
+  if (canonicalNameOf(registry, name) !== name) {
+    return {};
+  }
   const pkg = await fetchPackage(registry, name);
   if (!pkg || (pkg !== PACKAGE_UNAVAILABLE && pkg.name !== name)) {
     return {};
@@ -48,6 +51,11 @@ export async function generateMetadata({ params }: PageProps<'/package/[registry
 export default async function PackagePageRoute({ params }: PageProps<'/package/[registry]/[...name]'>) {
   // A `%40` for the `@` never gets here: the proxy sends it to the plain spelling, which the page cannot tell apart.
   const { registry, name } = await packageParamsOf(params);
+  // Another spelling of a name the registry takes as one (PyPI's `Django`) goes to the site's own spelling, unread.
+  const canonical = canonicalNameOf(registry, name);
+  if (canonical !== name) {
+    permanentRedirect(packagePath(canonical, registry));
+  }
   cacheTag(packageCacheTag(registry, name));
   const pkg = await fetchPackage(registry, name);
   // No package data now, a refresh under way, or a name nobody has read yet: the page changes soon, so it is kept

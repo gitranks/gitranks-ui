@@ -10,12 +10,15 @@ const plain = (html: string) => html.replaceAll('&#x27;', "'").replaceAll('&amp;
 describe("the home page's package block", () => {
   const html = plain(renderToStaticMarkup(<PackagesSection {...landingPackages} />));
 
-  it('says what is new, how many packages are ranked, and that npm is the only registry for now', () => {
+  it('says what is new, how many npm packages are ranked, and the registries listed for now', () => {
     expect(html).toContain('aria-labelledby="packages"');
     expect(html).toContain('Package rankings');
     expect(html).toContain('The npm packages open source runs on');
     expect(html).toContain('41,870 npm packages, ranked by downloads');
-    expect(html).toContain('npm for now. More registries are on the way.');
+    expect(html).toContain('npm and PyPI for now. More registries are on the way.');
+    // The rows are npm's, by the week; the pitch names no unit while the registries count in different ones.
+    expect(html).toContain('By downloads, by the stars of the repositories that use a package');
+    expect(html).toContain('>Weekly downloads</span>');
   });
 
   it('has one call to action, into the package rankings', () => {

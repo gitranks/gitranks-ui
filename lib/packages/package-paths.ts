@@ -1,4 +1,4 @@
-import { isNameSegmentCount, isRegistryId, type RegistryId } from '@/lib/packages/registries';
+import { canonicalNameOf, isNameSegmentCount, isRegistryId, type RegistryId } from '@/lib/packages/registries';
 
 /** The last segment of a package's facts in markdown: `/package/<registry>/<name>/facts.md`. */
 const PACKAGE_MARKDOWN_FILE = 'facts.md';
@@ -26,9 +26,10 @@ export function packageMarkdownRewriteOf(pathname: string): string | null {
 }
 
 /**
- * One cache tag per package, lower case whatever the spelling: `package:<registry>/<name>`. Whatever sets or expires a
- * package's cache tag writes it with this.
+ * One cache tag per package, lower case whatever the spelling, and in the spelling the site's addresses use where the
+ * registry takes several as one name (PyPI: `package:pypi/zope-interface` for `zope.interface`):
+ * `package:<registry>/<name>`. Whatever sets or expires a package's cache tag writes it with this.
  */
 export function packageCacheTag(registry: RegistryId, name: string) {
-  return `package:${registry}/${name}`.toLowerCase();
+  return `package:${registry}/${canonicalNameOf(registry, name)}`.toLowerCase();
 }

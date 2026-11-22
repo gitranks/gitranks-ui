@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { NPM_NAME_MAX_LENGTH } from './npm-package-name';
+import { foldPypiName, isPypiProjectName, PYPI_NAME_MAX_LENGTH } from './pypi-project-name';
 import {
   anyRegistryPackageText,
   apiRegistryOf,
+  canonicalNameOf,
   DEFAULT_REGISTRY,
+  downloadsCountOf,
   isNameSegmentCount,
   isPackageName,
   isRegistryId,
@@ -24,12 +27,15 @@ import {
 import { PackageRegistry } from '@/types/generated/graphql';
 
 describe('the registry table', () => {
-  it('lists npm alone, the default, as the API names it', () => {
-    expect(REGISTRY_IDS).toEqual(['npm']);
+  it('lists npm, the default, then PyPI, as the API names them', () => {
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi']);
     expect(DEFAULT_REGISTRY).toBe('npm');
     expect(apiRegistryOf('npm')).toBe(PackageRegistry.Npm);
+    expect(apiRegistryOf('pypi')).toBe(PackageRegistry.Pypi);
     expect(registryOfApi('NPM')).toBe('npm');
+    expect(registryOfApi('PYPI')).toBe('pypi');
     expect(registryOfApi('npm')).toBeNull();
+    expect(registryOfApi('CARGO')).toBeNull();
     expect(registryOfApi(null)).toBeNull();
   });
 
@@ -48,9 +54,37 @@ describe('the registry table', () => {
     expect(npm.manifest).toBe('package.json');
   });
 
+  it("keeps PyPI's traits: its page, its one-segment names, its monthly downloads", () => {
+    const pypi = REGISTRIES.pypi;
+    expect(pypi.label).toBe('PyPI');
+    expect(pypi.article).toBe('a');
+    expect(pypi.pageUrl('zope-interface')).toBe('https://pypi.org/project/zope-interface/');
+    expect(pypi.nameMaxLength).toBe(PYPI_NAME_MAX_LENGTH);
+    expect(pypi.path).toEqual({ min: 1, max: 1, join: '/' });
+    expect(pypi.downloads).toBe('month');
+    expect(registryHasDownloads('pypi')).toBe(true);
+    expect(pypi.examples[0]).toBe('requests');
+  });
+
+  it('takes a pasted pypi.org project address, and no other site', () => {
+    const prefix = REGISTRIES.pypi.pageUrlPrefix;
+    for (const url of [
+      'https://pypi.org/project/',
+      'http://www.pypi.org/project/',
+      'pypi.org/project/',
+      'PyPI.org/project/',
+    ]) {
+      expect(prefix.test(url), url).toBe(true);
+    }
+    for (const url of ['https://pypi.org/simple/', 'https://notpypi.org/project/', 'https://test.pypi.org/project/']) {
+      expect(prefix.test(url), url).toBe(false);
+    }
+  });
+
   it('takes a registry only as spelled, never one inherited from an object', () => {
     expect(isRegistryId('npm')).toBe(true);
-    for (const value of ['NPM', 'pypi', 'constructor', 'toString', '', null, 1]) {
+    expect(isRegistryId('pypi')).toBe(true);
+    for (const value of ['NPM', 'PyPI', 'cargo', 'constructor', 'toString', '', null, 1]) {
       expect(isRegistryId(value), String(value)).toBe(false);
     }
   });
@@ -60,6 +94,35 @@ describe('the registry table', () => {
     expect(isPackageName('npm', '@types/node')).toBe(true);
     expect(isPackageName('npm', '.env')).toBe(false);
     expect(isPackageName('npm', 'nebula/ui')).toBe(false);
+  });
+
+  it("checks PyPI names by PyPI's own rule: letters and digits, `.`, `_` and `-` inside, any case, 214 at most", () => {
+    for (const name of [
+      'requests',
+      'Django',
+      'zope.interface',
+      'zope_interface',
+      'a',
+      '1',
+      'A-b.C_9',
+      'x'.repeat(214),
+    ]) {
+      expect(isPackageName('pypi', name), name).toBe(true);
+    }
+    for (const name of ['', '-x', 'x-', '.x', 'x.', '_x', 'x_', 'a b', 'a/b', '@a/b', 'é', 'a+b', 'x'.repeat(215)]) {
+      expect(isPackageName('pypi', name), name).toBe(false);
+      expect(isPypiProjectName(name), name).toBe(false);
+    }
+  });
+
+  it('folds a PyPI name as PyPI compares names, and leaves an npm name as it is', () => {
+    expect(foldPypiName('Django')).toBe('django');
+    expect(canonicalNameOf('pypi', 'zope.interface')).toBe('zope-interface');
+    expect(canonicalNameOf('pypi', 'Zope__Interface')).toBe('zope-interface');
+    expect(canonicalNameOf('pypi', 'a.-_b')).toBe('a-b');
+    expect(canonicalNameOf('pypi', 'requests')).toBe('requests');
+    expect(canonicalNameOf('npm', 'React-Tools')).toBe('React-Tools');
+    expect(canonicalNameOf('npm', '@types/node')).toBe('@types/node');
   });
 });
 
@@ -85,6 +148,16 @@ describe('names and URL segments', () => {
     expect(isNameSegmentCount('npm', ['nebula', 'ui'])).toBe(false);
     expect(isNameSegmentCount('npm', [])).toBe(false);
   });
+
+  it('reads a PyPI name from one segment only', () => {
+    expect(nameOfSegments('pypi', ['zope.interface'])).toBe('zope.interface');
+    expect(nameOfSegments('pypi', ['zope', 'interface'])).toBeNull();
+    expect(nameOfSegments('pypi', ['@types', 'node'])).toBeNull();
+    expect(nameOfSegments('pypi', ['-x'])).toBeNull();
+    expect(segmentsOfName('pypi', 'zope-interface')).toEqual(['zope-interface']);
+    expect(isNameSegmentCount('pypi', ['requests'])).toBe(true);
+    expect(isNameSegmentCount('pypi', ['a', 'b'])).toBe(false);
+  });
 });
 
 describe('package keys', () => {
@@ -92,23 +165,62 @@ describe('package keys', () => {
     expect(packageKeyOf({ registry: 'npm', name: '@types/node' })).toBe('npm/@types/node');
     expect(packageOfKey('npm/@types/node')).toEqual({ registry: 'npm', name: '@types/node' });
     expect(packageOfKey('npm/react')).toEqual({ registry: 'npm', name: 'react' });
-    for (const key of ['react', 'pypi/react', 'npm/', 'npm/.env', 'npm/nebula/ui', '/react', 'NPM/react']) {
+    expect(packageOfKey('pypi/zope-interface')).toEqual({ registry: 'pypi', name: 'zope-interface' });
+    for (const key of [
+      'react',
+      'cargo/react',
+      'npm/',
+      'npm/.env',
+      'npm/nebula/ui',
+      '/react',
+      'NPM/react',
+      'pypi/a/b',
+    ]) {
       expect(packageOfKey(key), key).toBeNull();
     }
   });
 
   it("shows a package's name alone on the default registry", () => {
     expect(packageDisplayNameOf({ registry: 'npm', name: 'react' })).toBe('react');
+    expect(packageDisplayNameOf({ registry: 'pypi', name: 'requests' })).toBe('pypi/requests');
   });
 });
 
 describe('copy from the table', () => {
   it('writes npm as before', () => {
-    expect(registryLabelList()).toBe('npm');
-    expect(registryLabelList('or')).toBe('npm');
-    expect(anyRegistryPackageText()).toBe('npm package');
-    expect(anyRegistryPackageText(true)).toBe('an npm package');
     expect(registryDownloadsText('npm')).toBe('npm downloads a week');
-    expect(registryManifestList()).toBe('package.json');
+    expect(registryManifestList(['npm'])).toBe('package.json');
+  });
+
+  it('names both registries where the copy lists every one', () => {
+    expect(registryLabelList()).toBe('npm and PyPI');
+    expect(registryLabelList('or')).toBe('npm or PyPI');
+    expect(anyRegistryPackageText()).toBe('npm or PyPI package');
+    expect(anyRegistryPackageText(true)).toBe('an npm or PyPI package');
+    expect(registryManifestList()).toBe('package.json, requirements.txt or pyproject.toml');
+    expect(registryManifestList(['pypi'])).toBe('requirements.txt or pyproject.toml');
+  });
+
+  it("says PyPI's downloads as last month's", () => {
+    expect(registryDownloadsText('pypi')).toBe('PyPI downloads last month');
+  });
+});
+
+describe("a package's downloads in its registry's unit", () => {
+  const downloads = { lastWeek: 1_030_000, previousWeek: 990_000, last30Days: 4_400_000, previous30Days: 4_100_000 };
+
+  it("reads last week's on a registry counted by the week, and the month just ended on one counted by the month", () => {
+    expect(downloadsCountOf('week', downloads)).toEqual({ last: 1_030_000, previous: 990_000 });
+    expect(downloadsCountOf('month', { ...downloads, lastWeek: null, previousWeek: null })).toEqual({
+      last: 4_400_000,
+      previous: 4_100_000,
+    });
+  });
+
+  it('has none without counts, without a unit, or without the count of its unit', () => {
+    expect(downloadsCountOf('week', null)).toBeNull();
+    expect(downloadsCountOf(null, downloads)).toBeNull();
+    expect(downloadsCountOf('week', { ...downloads, lastWeek: null })).toBeNull();
+    expect(downloadsCountOf('week', { lastWeek: 5 })).toEqual({ last: 5, previous: null });
   });
 });

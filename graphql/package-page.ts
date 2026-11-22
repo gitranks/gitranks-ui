@@ -18,17 +18,21 @@ export type PackageState = 'READ' | 'NOT_READ';
 /** One point of a download history: the week's Monday, or the month's first day (UTC). */
 export type PackageDownloadsPoint = { start: string; downloads: number };
 
-/** A package's downloads up to `through`, the last day counted. */
+/**
+ * A package's downloads up to `through`, the last day counted. A registry counted a month at a time (PyPI) has no week:
+ * its `lastWeek` and `previousWeek` are `null`, `last30Days` is the month just ended and `previous30Days` the month
+ * before, and its history is in `months` alone.
+ */
 export type PackageDownloads = {
   through: string;
-  lastWeek: number;
-  previousWeek: number;
+  lastWeek: number | null;
+  previousWeek: number | null;
   last30Days: number;
   previous30Days: number;
   last52Weeks: number;
   /** `null` until the history reaches back that far. */
   previous52Weeks?: number | null;
-  /** Last week's downloads per star of the publishing repository; `null` without one. */
+  /** Last week's downloads per star of the publishing repository; `null` without one, and on a registry with no week. */
   perStar?: number | null;
   /** Weekly totals, oldest first, 104 at most. */
   weeks?: PackageDownloadsPoint[] | null;

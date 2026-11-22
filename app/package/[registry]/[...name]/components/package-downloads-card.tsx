@@ -6,6 +6,7 @@ import {
   changeText,
   type DownloadsPeriod,
   downloadsPerStar,
+  lastMonthPeriodOf,
   monthPeriodOf,
   weekPeriodOf,
 } from '../utils/package-downloads';
@@ -13,7 +14,7 @@ import { Sparkline } from './sparkline';
 import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import type { PackageDownloads } from '@/graphql/package-page';
-import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
+import { DOWNLOADS_UNIT_TEXT, REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { cn } from '@/lib/utils';
 
 type PackageDownloadsCardProps = {
@@ -58,14 +59,17 @@ const Period: FC<{ period: DownloadsPeriod }> = ({ period }) => (
 
 /**
  * The package's downloads from its registry: the 7 days to the last day counted, or the last whole month, each against the
- * period before and a year before, with a small line; and its downloads a week per star of its repository, from one.
+ * period before and a year before, with a small line; and its downloads a week (or last month) per star of its
+ * repository, from one. A registry counted a month at a time has the month alone.
  */
 export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ registry, downloads, repo }) => {
   const unit = REGISTRIES[registry].downloads;
-  const month = monthPeriodOf(downloads);
+  const monthly = unit === 'month';
+  // The Week and Month switch, for a registry counted by the week with a whole month in its history.
+  const month = monthly ? null : monthPeriodOf(downloads);
   const [picked, setPicked] = useState<'week' | 'month'>('week');
   const view = picked === 'month' && month ? 'month' : 'week';
-  const period = view === 'month' && month ? month : weekPeriodOf(downloads);
+  const period = monthly ? lastMonthPeriodOf(downloads) : view === 'month' && month ? month : weekPeriodOf(downloads);
   const perStar = downloadsPerStar(downloads, repo);
 
   return (
@@ -96,7 +100,7 @@ export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ registry, 
       {perStar !== null && Math.round(perStar) >= 1 && repo && unit && (
         <p className="text-xs text-muted-foreground">
           <span className="font-mono tabular-nums">{formatCount(Math.round(perStar))}</span>
-          {` downloads a ${unit} per GitHub star of its repository`}
+          {` downloads ${DOWNLOADS_UNIT_TEXT[unit].per} per GitHub star of its repository`}
         </p>
       )}
     </ProfileCard>

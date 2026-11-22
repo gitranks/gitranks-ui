@@ -40,7 +40,9 @@ describe('a package in the builder URL', () => {
     expect(isEntityName('package', 'npm/@types/node')).toBe(true);
     expect(isEntityName('package', 'react')).toBe(false);
     expect(isEntityName('package', 'npm/types/node')).toBe(false);
-    expect(isEntityName('package', 'pypi/react')).toBe(false);
+    expect(isEntityName('package', 'cargo/react')).toBe(false);
+    expect(isEntityName('package', 'pypi/zope-interface')).toBe(true);
+    expect(isEntityName('package', 'pypi/zope/interface')).toBe(false);
     expect(entityLabel('package', 'npm/@types/node')).toBe('@types/node');
     expect(entityLabel('repo', 'acme/fastqueue')).toBe('acme/fastqueue');
     expect(
@@ -57,6 +59,13 @@ describe('a package in the builder URL', () => {
         badgeAvailable: false,
       }),
     ).toEqual({ step: 'find', notice: 'GitRanks has no npm package called “left-pad” yet.' });
+    expect(
+      builderView(parseBuilderQuery(new URLSearchParams('package=pypi/left-pad')), {
+        wellFormed: true,
+        factsState: { status: 'missing' },
+        badgeAvailable: false,
+      }).notice,
+    ).toBe('GitRanks has no PyPI package called “left-pad” yet.');
   });
 });
 
@@ -71,11 +80,22 @@ describe('a Find search', () => {
     expect(parsePackageSearch('.hidden')).toBeNull();
   });
 
+  it("reads a pasted pypi.org address and `pypi:`, in the spelling the site's addresses use", () => {
+    expect(parsePackageSearch('pypi:Django')).toBe('pypi/django');
+    expect(parsePackageSearch('pypi:zope.interface')).toBe('pypi/zope-interface');
+    expect(parsePackageSearch('https://pypi.org/project/Zope.Interface/')).toBe('pypi/zope-interface');
+    expect(parsePackageSearch('https://pypi.org/project/Django/5.1.3/')).toBe('pypi/django');
+    expect(parsePackageSearch('pypi.org/project/requests?tab=history')).toBe('pypi/requests');
+    expect(parsePackageSearch('pypi:@types/node')).toBeNull();
+    expect(parsePackageSearch('https://pypi.org/project/')).toBeNull();
+  });
+
   it('finds a developer, an organization and a package by a name, and only a package for a scoped name or an npm address', () => {
     expect(searchLookups('react', null)).toEqual([
       { kind: 'user', name: 'react' },
       { kind: 'org', name: 'react' },
       { kind: 'package', name: 'npm/react' },
+      { kind: 'package', name: 'pypi/react' },
     ]);
     expect(searchLookups('@types/node', null)).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
     expect(searchLookups('npm:lodash', null)).toEqual([{ kind: 'package', name: 'npm/lodash' }]);
@@ -86,10 +106,26 @@ describe('a Find search', () => {
     expect(searchLookups('vercel', 'org')).toEqual([{ kind: 'org', name: 'vercel' }]);
   });
 
+  it('looks a bare name up on each registry that takes it, npm first, and an address on its own registry alone', () => {
+    expect(searchLookups('Django', 'package')).toEqual([
+      { kind: 'package', name: 'npm/Django' },
+      { kind: 'package', name: 'pypi/django' },
+    ]);
+    expect(searchLookups('zope.interface', 'package')).toEqual([
+      { kind: 'package', name: 'npm/zope.interface' },
+      { kind: 'package', name: 'pypi/zope-interface' },
+    ]);
+    expect(searchLookups('https://pypi.org/project/requests/', null)).toEqual([
+      { kind: 'package', name: 'pypi/requests' },
+    ]);
+    expect(searchLookups('pypi:requests', null)).toEqual([{ kind: 'package', name: 'pypi/requests' }]);
+    expect(searchLookups('_private', 'package')).toEqual([]);
+  });
+
   it("asks for a package by its kind's words, and sends a miss to its page", () => {
-    expect(findHeading('package', null)).toBe('Which npm package is the badge for?');
+    expect(findHeading('package', null)).toBe('Which npm or PyPI package is the badge for?');
     expect(findHeading('package', findBadge('package', 'used-by'))).toBe(
-      'Find your npm package for the “used by” badge',
+      'Find your npm or PyPI package for the “used by” badge',
     );
     expect(missingHref('npm/@nebula/ui', 'package')).toBe('/package/npm/@nebula/ui');
     expect(missingHref('acme/fastqueue', null)).toBe('/repo/acme/fastqueue');
@@ -155,6 +191,7 @@ describe('anyPackageRefOf', () => {
     expect(anyPackageRefOf('npm/@types/node')).toEqual({ registry: 'npm', name: '@types/node' });
     expect(anyPackageRefOf('react')).toEqual({ registry: 'npm', name: 'react' });
     expect(anyPackageRefOf('/npm')).toEqual({ registry: 'npm', name: '/npm' });
-    expect(anyPackageRefOf('pypi/x')).toEqual({ registry: 'npm', name: 'pypi/x' });
+    expect(anyPackageRefOf('pypi/x')).toEqual({ registry: 'pypi', name: 'x' });
+    expect(anyPackageRefOf('cargo/x')).toEqual({ registry: 'npm', name: 'cargo/x' });
   });
 });

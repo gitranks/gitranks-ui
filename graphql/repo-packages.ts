@@ -23,7 +23,8 @@ export type RepoPackage = {
   displayName?: string | null;
   /** Distinct repositories with 100+ stars that depend on it directly. */
   dependents: number;
-  downloadsLastWeek: number;
+  /** `null` on a registry counted a month at a time, which has no week. */
+  downloadsLastWeek: number | null;
 };
 
 /** What a repository publishes, summed over its packages. */
@@ -35,6 +36,7 @@ export type RepoPackages = {
   /** Distinct repositories with 100+ stars that depend on at least one of them. */
   dependents: number;
   dependentsArchived: number;
+  /** Last week's downloads of the packages on registries counted by the week, added up. */
   downloadsLastWeek: number;
   dependentsReadAt?: string | null;
   nextDependentsReadAt?: string | null;

@@ -82,7 +82,7 @@ describe('a package ranking page', () => {
     vi.mocked(fetchPackageRankings).mockResolvedValue([]);
     await expect(screenProps({ page: '7' })).rejects.toThrow('NEXT_NOT_FOUND');
 
-    for (const bad of [{ page: '52' }, { page: '0' }, { by: 'stars' }, { registry: 'NPM' }, { registry: 'pypi' }]) {
+    for (const bad of [{ page: '52' }, { page: '0' }, { by: 'stars' }, { registry: 'NPM' }, { registry: 'cargo' }]) {
       await expect(screenProps(bad), JSON.stringify(bad)).rejects.toThrow('NEXT_NOT_FOUND');
     }
   });
@@ -147,6 +147,9 @@ describe('the package ranking layout', () => {
       { registry: 'npm', by: 'downloads', page: '1' },
       { registry: 'npm', by: 'dependents-stars', page: '1' },
       { registry: 'npm', by: 'dependents', page: '1' },
+      { registry: 'pypi', by: 'downloads', page: '1' },
+      { registry: 'pypi', by: 'dependents-stars', page: '1' },
+      { registry: 'pypi', by: 'dependents', page: '1' },
     ]);
   });
 

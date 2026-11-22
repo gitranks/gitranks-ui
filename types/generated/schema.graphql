@@ -4184,6 +4184,7 @@ enum PackageRankingType {
 
 enum PackageRegistry {
   NPM
+  PYPI
 }
 
 type ProfileForSitemap {
@@ -4667,11 +4668,6 @@ type RepoRankTiers {
   tiers: [Tier!]!
 }
 
-enum RepoSitemapTab {
-  CONTRIBUTORS
-  USED_BY
-}
-
 type RepoSibling {
   repo: Repo!
 
@@ -4680,6 +4676,11 @@ type RepoSibling {
 
   """Active accounts (2+ landed changes in 12 months) the two repos share."""
   shared: Int!
+}
+
+enum RepoSitemapTab {
+  CONTRIBUTORS
+  USED_BY
 }
 
 type RepoStarPoint {

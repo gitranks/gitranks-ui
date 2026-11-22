@@ -14,8 +14,8 @@ describe('package-page sitemap', () => {
     vi.mocked(fetchPackagesForSitemap).mockReset().mockResolvedValue([]);
   });
 
-  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29, crates.io 30–39, pub.dev 40–49', async () => {
-    expect(await generateSitemaps()).toHaveLength(50);
+  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29, crates.io 30–39, pub.dev 40–49, Packagist 50–59', async () => {
+    expect(await generateSitemaps()).toHaveLength(60);
   });
 
   it("lists each package's page at its canonical address, a scoped name as @scope/name", async () => {
@@ -81,8 +81,17 @@ describe('package-page sitemap', () => {
     expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Pub, 5);
   });
 
-  it('reads no part outside 0–49', async () => {
-    expect(await part('50')).toEqual([]);
+  it("lists a Packagist package's page under its registry, its vendor and package as two segments, from the parts after pub.dev's", async () => {
+    vi.mocked(fetchPackagesForSitemap).mockResolvedValue(['laravel/framework']);
+
+    expect((await part('56')).map(({ url }) => url)).toEqual([
+      'https://example.test/package/packagist/laravel/framework',
+    ]);
+    expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Packagist, 6);
+  });
+
+  it('reads no part outside 0–59', async () => {
+    expect(await part('60')).toEqual([]);
     expect(await part('x')).toEqual([]);
     expect(fetchPackagesForSitemap).not.toHaveBeenCalled();
   });

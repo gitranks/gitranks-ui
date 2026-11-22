@@ -11,7 +11,7 @@ describe('how package rankings work', () => {
     expect(metadata.alternates?.canonical).toBe('/methodology/packages');
   });
 
-  it('explains dependents, what does not count, the three rankings and the reads, for npm, PyPI, Go, crates.io and pub.dev', () => {
+  it('explains dependents, what does not count, the three rankings and the reads, for npm, PyPI, Go, crates.io, pub.dev and Packagist', () => {
     const html = renderToStaticMarkup(<PackageMethodologyPage />);
 
     for (const heading of [
@@ -33,13 +33,14 @@ describe('how package rankings work', () => {
     // pub.dev's first download count is not read yet: its rankings open on dependents' stars.
     expect(html).toContain('href="/packages/pub/dependents-stars/1"');
     expect(html).not.toContain('href="/packages/pub/downloads/1"');
+    expect(html).toContain('href="/packages/packagist/downloads/1"');
     const text = html.replace(/<[^>]+>/g, '').replaceAll('&#x27;', "'");
     expect(text).toContain("A project's facts come from PyPI's JSON API");
     expect(text).toContain(
       "Its downloads come from PyPI's public download statistics, counted one calendar month at a time",
     );
     expect(text).toContain(
-      'lists the package in a dependency file of its own, as GitHub reports them: package.json for npm, requirements.txt or pyproject.toml for PyPI, go.mod for Go, Cargo.toml for crates.io and pubspec.yaml for pub.dev.',
+      'lists the package in a dependency file of its own, as GitHub reports them: package.json for npm, requirements.txt or pyproject.toml for PyPI, go.mod for Go, Cargo.toml for crates.io, pubspec.yaml for pub.dev and composer.json for Packagist.',
     );
     // A registry the site does not show yet has no paragraph and no link.
     expect(text).not.toContain('Maven Central');
@@ -51,10 +52,13 @@ describe('how package rankings work', () => {
     );
     expect(text).not.toContain('pub.dev publishes no download counts');
     expect(text).not.toContain('Go and pub.dev');
-    expect(text).toContain('over the last whole calendar month on PyPI;');
+    expect(text).toContain('over the last whole calendar month on PyPI and Packagist;');
     expect(text).toContain('Zope.Interface, zope.interface and zope-interface as one name');
     expect(text).toContain('crates.io takes Serde-JSON and serde_json as one name');
-    expect(text).toContain('npm and crates.io: vs last week, against the 7 days before. PyPI: vs the month before.');
+    expect(text).toContain('packagist.org, with its downloads counted a month at a time, past months included');
+    expect(text).toContain(
+      'npm and crates.io: vs last week, against the 7 days before. PyPI and Packagist: vs the month before.',
+    );
     expect(text).toContain('This month: against the monthly read before');
   });
 });

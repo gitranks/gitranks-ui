@@ -49,6 +49,7 @@ describe('a package page', () => {
       { registry: 'go', name: ['github.com', 'gin-gonic', 'gin'] },
       { registry: 'crates', name: ['serde'] },
       { registry: 'pub', name: ['http'] },
+      { registry: 'packagist', name: ['laravel', 'framework'] },
     ]);
   });
 

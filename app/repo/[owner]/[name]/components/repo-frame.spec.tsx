@@ -2,10 +2,9 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { bigRepo, bigRepoPulse, repoLanguages, repoRankTiers, youngRepo } from '../__fixtures__/repo';
+import { bigRepo, youngRepo } from '../__fixtures__/repo';
 import { RepoBadgeRow, RepoFrame } from './repo-frame';
 import { RepoLayout } from './repo-layout';
-import { RepoScreen } from './repo-screen';
 import { repoBig } from '@/badge/v3/fixtures';
 import { threePackages } from '@/components/dependents/dependents.fixtures';
 
@@ -102,25 +101,8 @@ describe('RepoBadgeRow', () => {
   });
 });
 
-describe("today's repository page", () => {
-  it('keeps its left column: no Badge row, no tabs', () => {
-    const html = render(
-      <RepoScreen
-        repo={bigRepo}
-        pulse={bigRepoPulse}
-        languages={repoLanguages}
-        tiers={repoRankTiers}
-        badgeFacts={repoBig}
-      />,
-    );
-
-    expect(html).not.toContain('>Badge<');
-    expect(html).not.toContain('All badges');
-    expect(html).not.toContain('aria-current');
-    expect(html).not.toContain('used-by');
-  });
-
-  it('keeps the archived chip as it was', () => {
+describe('RepoLayout', () => {
+  it('draws the archived chip under the name', () => {
     const html = render(
       <RepoLayout repo={{ ...youngRepo, isArchived: true }}>
         <p />

@@ -86,9 +86,9 @@ export const ENTITY_PAGE_CACHE_CONTROL = 'private, no-cache, no-store, max-age=0
 const REPO_PAGE = /^\/repo\/([^/]+)\/([^/]+)\/?$/;
 
 /**
- * Where a repository's own page is drawn for a visitor who sees its tabs: `/repo/<owner>/<name>/overview`, a path that
- * asked for by itself is a 404 for everyone. `null` for any other path. Only a path the 404 checks let through gets
- * here, so owner and name are possible GitHub names.
+ * Where a repository's own page is drawn: `/repo/<owner>/<name>/overview`, a path that asked for by itself is a 404.
+ * `null` for any other path. Only a path the 404 checks let through gets here, so owner and name are possible GitHub
+ * names.
  */
 export function repoOverviewRewriteOf(pathname: string): string | null {
   const match = REPO_PAGE.exec(pathname);

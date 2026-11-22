@@ -241,18 +241,7 @@ describe('PullButton: one button', () => {
       answer(VIEWER, viewerOf({ state: 'never', picks: picked('octo/rocket'), newPicksLeftToday: 2 }));
       await mount();
 
-      expect(text()).toBe('Update daily Update up to 3 repos daily.');
-    });
-
-    it('says repos or packages on the page drawn for visitors who see packages, asking nothing more', async () => {
-      answer(VIEWER, viewerOf({ state: 'never', picks: picked('octo/rocket'), newPicksLeftToday: 2 }));
-      await act(async () => {
-        root.render(<PullButton owner="acme" name="fastqueue" dailyUpdates={null} packages />);
-      });
-      await act(async () => {});
-
       expect(text()).toBe('Update daily Update up to 3 repos or packages daily.');
-      expect(fetchMock.mock.calls.map(([url]) => url)).not.toContain('/api/me/packages/open');
     });
 
     it.each([
@@ -344,8 +333,8 @@ describe('PullButton: one button', () => {
       answer(PICKS, { status: 'full' });
       answer(VIEWER, viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas'), newPicksLeftToday: 1 }));
       await press('Update daily');
-      expect(dialogTitle()).toBe('You update 3 repos daily');
-      expect(dialogText()).toContain('Remove one to add this repo.');
+      expect(dialogTitle()).toBe('You update 3 repos and packages daily');
+      expect(dialogText()).toContain('Repos and packages share these 3. Remove one to add acme/fastqueue.');
       expect(dialogText()).not.toContain('Your profile');
 
       answer(REMOVE, { status: 'removed', picks: picked('octo/rocket', 'octo/lantern') });
@@ -388,8 +377,8 @@ describe('PullButton: one button', () => {
       answer(PICKS, { status: 'daily_limit', nextAt: iso(NOW + 12 * HOUR) });
       await press('Update daily');
 
-      expect(dialogTitle()).toBe('No more repos today');
-      expect(dialogText()).toContain('You can add another repo in 12 h.');
+      expect(dialogTitle()).toBe('No more additions today');
+      expect(dialogText()).toContain('You can add another repo or package in 12 h.');
       expect(calls(PULL)).toHaveLength(0);
     });
 
@@ -401,8 +390,8 @@ describe('PullButton: one button', () => {
       answer(VIEWER, viewerOf({ picks: picked('octo/rocket', 'octo/lantern', 'quiet/atlas'), newPicksLeftToday: 0 }));
       await press('Update daily');
 
-      expect(dialogTitle()).toBe('No more repos today');
-      expect(dialogText()).toContain('You can add another repo in 12 h.');
+      expect(dialogTitle()).toBe('No more additions today');
+      expect(dialogText()).toContain('You can add another repo or package in 12 h.');
       expect(buttonNamed('Remove')).toBeUndefined();
     });
 
@@ -536,7 +525,7 @@ describe('PullButton: one button', () => {
       expect(dialogText()).toContain('Next update in 5 h.');
       expect(dialogText()).toContain('We update these every day. They stay on for 7 days after your last visit.');
       expect(dialogText()).toContain('Mona-DevYour profile');
-      expect(dialogText()).toContain('You can add 1 more repo.');
+      expect(dialogText()).toContain('You can add 1 more repo or package.');
       expect(dialogText()).not.toMatch(/\bpicks?\b|a day/i);
       expect(buttonNamed('Refresh now')).toBeDefined();
 
@@ -544,7 +533,7 @@ describe('PullButton: one button', () => {
       await press('Remove', rowOf('octo/rocket'));
       expect(bodies(REMOVE)).toEqual([{ kind: 'repo', name: 'octo/rocket' }]);
       expect(dialogText()).not.toContain('octo/rocket');
-      expect(dialogText()).toContain('You can add 2 more repos.');
+      expect(dialogText()).toContain('You can add 2 more repos or packages.');
 
       answer(PULL, { status: 'running' });
       await press('Refresh now');
@@ -566,7 +555,7 @@ describe('PullButton: one button', () => {
       expect(dialogText()).not.toContain('Next update');
       await press('Done');
       expect(dialog()).toBeNull();
-      expect(text()).toBe('Update daily Update up to 3 repos daily.');
+      expect(text()).toBe('Update daily Update up to 3 repos or packages daily.');
     });
 
     it('shows a held pick as anyone sees it while the visitor’s daily updates are off, and offers no pick of it', async () => {
@@ -592,7 +581,7 @@ describe('PullButton: one button', () => {
       expect(calls(PICKS)).toHaveLength(0);
       expect(calls(PULL)).toHaveLength(1);
       expect(toast.info).toHaveBeenCalledExactlyOnceWith('The star history is already up to date.');
-      expect(text()).toBe('Update daily Update up to 3 repos daily.');
+      expect(text()).toBe('Update daily Update up to 3 repos or packages daily.');
       expect(sessionStorage.getItem(MARK)).toBeNull();
 
       await remount();

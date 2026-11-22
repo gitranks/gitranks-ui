@@ -13,7 +13,7 @@ import { getRepoCacheTag, parseRepoParams } from '@/utils/repo-paths';
 /** From here a repository's promoted set has badges that need no rank. */
 const REPO_BIG_PROMOTION_STARS = PROMOTION.repo.at(-1)?.from ?? 1_000;
 
-// The repository's tabs: Overview (the proxy sends `/repo/<owner>/<name>` there for a visitor who sees them), Used by
+// The repository's tabs: Overview (the proxy sends `/repo/<owner>/<name>` there), Used by
 // and Contributors. Rendered as one piece, like the profile's: one repository is listed in generateStaticParams and no
 // Suspense boundary or loading.tsx sits above the pages, so any other renders on request as a whole page before the
 // response starts, and a page's `notFound()` answers 404 and `permanentRedirect()` a real 308.

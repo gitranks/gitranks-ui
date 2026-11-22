@@ -120,7 +120,7 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
   const { data: session, status } = useSession();
   const login = status === 'authenticated' ? session?.user?.githubLogin : undefined;
   const { viewer, read, setViewer, reload } = useDailyUpdatesViewer(!!login);
-  const copy = pickCopyOf(true, 'package');
+  const copy = pickCopyOf('package');
   const target = packagePickOf({ registry, name });
   const url = packageApiPath(registry, name, 'refresh');
   const page = dealPageOf('package', target.name);
@@ -376,7 +376,6 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
             onOpenChange={onPickOpenChange}
             copy={{ ...full, paragraph: fillName(full.paragraph ?? '', name) }}
             picks={picks.picks}
-            list={copy.list}
             onRemove={picks.remove}
             removing={picks.removing}
             // Once one is removed, "Done" adds this package.
@@ -452,7 +451,6 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
             {...(dialog.yours
               ? {
                   picks: picks.picks,
-                  list: copy.list,
                   profileLogin: login,
                   showLeft: true,
                   onRemove: picks.remove,

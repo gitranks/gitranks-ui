@@ -9,8 +9,8 @@ import {
   PICK_MESSAGES,
   PICK_TOASTS,
   PICKS_MAX,
+  pickCopyOf,
   pickedOutcomeOf,
-  picksLeftText,
 } from './pick-messages';
 import { DAILY_UPDATES_NOTES, PULL_MESSAGES, PULL_TOASTS } from './pull-messages';
 import {
@@ -26,12 +26,12 @@ import {
 describe('pick messages', () => {
   it('labels the button and its line as the design does', () => {
     expect(PICK_LABELS).toEqual({ updateDaily: 'Update daily', updatesDaily: 'Updates daily' });
-    expect(PICK_LINES).toEqual({ off: 'Update up to 3 repos daily.', yourPick: 'You added it.' });
+    expect(PICK_LINES).toEqual({ off: 'Update up to 3 repos or packages daily.', yourPick: 'You added it.' });
   });
 
-  it('words the dialog of a repository on daily updates', () => {
+  it('words the dialog of a repository or package on daily updates', () => {
     expect(ON_DAILY_DIALOG).toEqual({
-      title: 'This repository updates every day',
+      title: 'This {entity} updates every day',
       refresh: 'Refresh now',
       close: 'Close',
       done: 'OK',
@@ -46,21 +46,21 @@ describe('pick messages', () => {
       secondary: 'Close',
     });
     expect(PICK_DIALOGS.allPicksUsed).toEqual({
-      title: 'You update 3 repos daily',
-      paragraph: 'Remove one to add this repo.',
+      title: 'You update 3 repos and packages daily',
+      paragraph: 'Repos and packages share these 3. Remove one to add {name}.',
       primary: 'Done',
       secondary: 'Cancel',
     });
   });
 
-  it('says when another repo can be added', () => {
-    expect(PICK_DIALOGS.dailyLimit.title).toBe('No more repos today');
-    expect(fillTime(PICK_DIALOGS.dailyLimit.paragraph, '12 h')).toBe('You can add another repo in 12 h.');
+  it('says when another repo or package can be added', () => {
+    expect(PICK_DIALOGS.dailyLimit.title).toBe('No more additions today');
+    expect(fillTime(PICK_DIALOGS.dailyLimit.paragraph, '12 h')).toBe('You can add another repo or package in 12 h.');
   });
 
-  it('counts the repos that can still be added in plain words', () => {
-    expect(picksLeftText(1)).toBe('You can add 1 more repo.');
-    expect(picksLeftText(2)).toBe('You can add 2 more repos.');
+  it('counts the repos and packages that can still be added in plain words', () => {
+    expect(PICK_LIST.left(1)).toBe('You can add 1 more repo or package.');
+    expect(PICK_LIST.left(2)).toBe('You can add 2 more repos or packages.');
     expect(PICKS_MAX).toBe(3);
   });
 
@@ -70,21 +70,23 @@ describe('pick messages', () => {
   });
 
   it('keeps the pick when the refresh after it is refused, and says its first update comes soon', () => {
-    const stands = { kind: 'toast', tone: 'success', text: PICK_TOASTS.pickedNoRefresh };
-    expect(PICK_TOASTS.pickedNoRefresh).toBe('This repository is on daily updates. Its first update comes soon.');
-    expect(pickedOutcomeOf(null)).toEqual(stands);
-    expect(pickedOutcomeOf({ kind: 'dialog', dialog: 'used', until: '2026-11-16T00:00:00Z' })).toEqual(stands);
-    expect(pickedOutcomeOf({ kind: 'dialog', dialog: 'signIn' })).toEqual(stands);
-    expect(pickedOutcomeOf({ kind: 'toast', tone: 'error', text: 'GitHub didn’t answer.' })).toEqual(stands);
+    const { toasts } = pickCopyOf('repo');
+    const stands = { kind: 'toast', tone: 'success', text: toasts.pickedNoRefresh };
+    expect(toasts.pickedNoRefresh).toBe('This repository is on daily updates. Its first update comes soon.');
+    expect(pickedOutcomeOf(null, toasts)).toEqual(stands);
+    expect(pickedOutcomeOf({ kind: 'dialog', dialog: 'used', until: '2026-11-16T00:00:00Z' }, toasts)).toEqual(stands);
+    expect(pickedOutcomeOf({ kind: 'dialog', dialog: 'signIn' }, toasts)).toEqual(stands);
+    expect(pickedOutcomeOf({ kind: 'toast', tone: 'error', text: 'GitHub didn’t answer.' }, toasts)).toEqual(stands);
   });
 
   it('says the pick with a refresh that runs, and reloads as always when one ended', () => {
-    expect(pickedOutcomeOf({ kind: 'poll', toast: 'Fetching the star history now.' })).toEqual({
+    const { toasts } = pickCopyOf('repo');
+    expect(pickedOutcomeOf({ kind: 'poll', toast: 'Fetching the star history now.' }, toasts)).toEqual({
       kind: 'poll',
       toast: 'Refreshing now. This repository is on daily updates.',
     });
-    expect(pickedOutcomeOf({ kind: 'poll' })).toEqual({ kind: 'poll', toast: PICK_TOASTS.pickedRefreshing });
-    expect(pickedOutcomeOf({ kind: 'reload', note: 'Updated.' })).toEqual({ kind: 'reload', note: 'Updated.' });
+    expect(pickedOutcomeOf({ kind: 'poll' }, toasts)).toEqual({ kind: 'poll', toast: toasts.pickedRefreshing });
+    expect(pickedOutcomeOf({ kind: 'reload', note: 'Updated.' }, toasts)).toEqual({ kind: 'reload', note: 'Updated.' });
   });
 
   it('never names anyone who picked a repository', () => {
@@ -101,7 +103,7 @@ describe('pick messages', () => {
       PICK_LIST,
       PICK_MESSAGES,
       PICK_TOASTS,
-      [1, 2, 3].map(picksLeftText),
+      [1, 2, 3].map(PICK_LIST.left),
       PULL_MESSAGES,
       PULL_TOASTS,
       DAILY_UPDATES_NOTES,

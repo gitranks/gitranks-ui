@@ -2,16 +2,11 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { bigRepo, bigRepoPulse, repoLanguages, repoRankTiers, youngRepo, youngRepoFacts } from '../__fixtures__/repo';
-import { buildRepoSEO } from '../seo';
+import { bigRepo, bigRepoPulse, repoLanguages, repoRankTiers, youngRepo } from '../__fixtures__/repo';
 import { RepoContributorsSections } from './repo-contributors-sections';
 import { RepoOverviewSections } from './repo-overview-sections';
 import { RepoPulseArea } from './repo-pulse-area';
-import { RepoScreen } from './repo-screen';
 import { REPO_MIN_RANK_STARS } from '@/app/app.consts';
-import { repoBig } from '@/badge/v3/fixtures';
-import { BadgesCard } from '@/components/badges-card/badges-card';
-import { JsonLd } from '@/components/json-ld/json-ld';
 
 vi.mock('next-auth/react', () => ({
   useSession: () => ({ data: null, status: 'loading' }),
@@ -22,16 +17,6 @@ vi.mock('next-auth/react', () => ({
 // The day the fixtures are set on: the badges a page promotes depend on the date.
 const NOW = Date.parse('2026-10-28T12:00:00Z');
 
-/** The big repository with analytics, and the young one without: the two the design catalogue draws. */
-const big = {
-  repo: bigRepo,
-  pulse: bigRepoPulse,
-  languages: repoLanguages,
-  tiers: repoRankTiers,
-  badgeFacts: repoBig,
-};
-const young = { ...big, repo: youngRepo, pulse: null, badgeFacts: youngRepoFacts };
-
 /** The big repository ranked without a tier: its two ranks show as cards. */
 const untiered = { ...bigRepo, rank: bigRepo.rank && { ...bigRepo.rank, tier: null, languageTier: null } };
 
@@ -39,9 +24,6 @@ const untiered = { ...bigRepo, rank: bigRepo.rank && { ...bigRepo.rank, tier: nu
 const render = (element: ReactElement) => renderToStaticMarkup(element).replace(/_R_[0-9a-z]+_/g, '_R_');
 
 const JSON_LD = '<script type="application/ld+json">';
-
-/** The main column's content: from the JSON-LD, its first child, to the column's end. */
-const mainColumn = (html: string) => html.slice(html.indexOf(JSON_LD), html.lastIndexOf('</section>'));
 
 const text = (html: string) =>
   html
@@ -62,46 +44,6 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
-});
-
-describe('RepoScreen', () => {
-  it.each([
-    ['the big repository with analytics', big],
-    ['the young repository', young],
-  ])('fills the main column with the JSON-LD, the overview, the badges and the analytics for %s', (_, props) => {
-    const html = render(<RepoScreen {...props} />);
-    const parts = [
-      <JsonLd key="json-ld" payloads={buildRepoSEO(props.repo).jsonLd} />,
-      <RepoOverviewSections key="overview" repo={props.repo} languages={props.languages} tiers={props.tiers} />,
-      <BadgesCard key="badges" entity={props.badgeFacts} />,
-      <RepoContributorsSections key="contributors" repo={props.repo} pulse={props.pulse} />,
-    ].map(render);
-
-    expect(parts).not.toContain('');
-    expect(mainColumn(html)).toBe(parts.join(''));
-    // Nothing between the column's start and its JSON-LD, and nothing after the column but the page's end.
-    expect(html.slice(0, html.indexOf(JSON_LD))).toMatch(/<\/div><section class="[^"]*">$/);
-    expect(html.slice(html.lastIndexOf('</section>'))).toBe('</section></main>');
-  });
-
-  it('draws the sections in their order: the overview, the badges, the analytics', () => {
-    expect(headings(render(<RepoScreen {...big} />))).toEqual([...OVERVIEW, 'Badges', ...ANALYTICS]);
-  });
-
-  it('ends a young repository with the note on why it has no analytics', () => {
-    const html = render(<RepoScreen {...young} />);
-
-    expect(headings(html)).toEqual(['Repository tier', 'Who builds it', 'Star history', 'Badges']);
-    expect(mainColumn(html).endsWith(`${NOTE}</p>`)).toBe(true);
-  });
-
-  it('draws the left column once, before the main column', () => {
-    const html = render(<RepoScreen {...big} />);
-
-    expect(html.match(/<h1/g)).toHaveLength(1);
-    expect(html.indexOf('<h1')).toBeLessThan(html.indexOf(JSON_LD));
-    expect(html.match(/application\/ld\+json/g)).toHaveLength(buildRepoSEO(bigRepo).jsonLd.filter(Boolean).length);
-  });
 });
 
 describe('RepoOverviewSections', () => {

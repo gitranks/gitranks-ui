@@ -59,11 +59,6 @@ type PullButtonProps = {
   pull?: { status: string; requestedAt?: unknown } | null;
   /** The repository's daily updates, as the page's data has them; `null` or missing while it is not on them. */
   dailyUpdates?: DailyUpdatesFacts;
-  /**
-   * Whether the page is the one drawn for visitors who see packages (the tabbed repository page): its words then say
-   * "repos or packages". Today's page, which everyone else gets, keeps today's words.
-   */
-  packages?: boolean;
 };
 
 /**
@@ -92,7 +87,7 @@ const sinceRequest = (requestedAt: unknown) =>
  * The visitor's own state is read after load, never from the cached page; until it is, the button is Refresh. While the
  * session loads, a press does nothing.
  */
-export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdates, packages = false }) => {
+export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdates }) => {
   const { data: session, status } = useSession();
   const mode = pullModeOf(session, status);
   const login = status === 'authenticated' ? session?.user?.githubLogin : undefined;
@@ -101,8 +96,8 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
   const target: PickRef = { kind: 'repo', name: nameWithOwner };
   const url = pullUrl(owner, name);
   const [dialog, setDialog] = useState<OpenDialog>(null);
-  // The words name packages too on the page drawn for visitors who see them; the proxy decided who that is.
-  const copy = pickCopyOf(packages, 'repo');
+  // Repositories and packages share the picks: the words name both.
+  const copy = pickCopyOf('repo');
   const picks = usePicks({
     target,
     viewer,
@@ -439,7 +434,6 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
               paragraph: fillName(copy.dialogs.allPicksUsed.paragraph ?? '', nameWithOwner),
             }}
             picks={picks.picks}
-            list={copy.list}
             onRemove={picks.remove}
             removing={picks.removing}
             // Once one is removed, "Done" picks this repository.
@@ -499,7 +493,6 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
             {...(dialog.yours
               ? {
                   picks: picks.picks,
-                  list: copy.list,
                   profileLogin: login,
                   showLeft: true,
                   onRemove: picks.remove,

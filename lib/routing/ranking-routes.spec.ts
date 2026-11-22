@@ -50,7 +50,7 @@ describe('isInvalidRankingPath', () => {
     '/repo/vercel/next.js',
     '/repo/facebook/.github',
     `/repo/${'a'.repeat(39)}/${'b'.repeat(100)}`,
-    // A repository's tabs: the packages gate decides who sees them.
+    // A repository's tabs.
     '/repo/vercel/next.js/used-by',
     '/repo/vercel/next.js/used-by/',
     '/repo/vercel/next.js/contributors',

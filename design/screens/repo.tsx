@@ -14,7 +14,6 @@ import { RepoContributorsScreen } from '@/app/repo/[owner]/[name]/(tabs)/contrib
 import { RepoOverviewScreen } from '@/app/repo/[owner]/[name]/(tabs)/overview/components/repo-overview-screen';
 import { UsedByScreen } from '@/app/repo/[owner]/[name]/(tabs)/used-by/components/used-by-screen';
 import { RepoFrame } from '@/app/repo/[owner]/[name]/components/repo-frame';
-import { RepoScreen } from '@/app/repo/[owner]/[name]/components/repo-screen';
 import { repoBig } from '@/badge/v3/fixtures';
 import {
   firstPage,
@@ -30,22 +29,6 @@ import { DailyUpdateReason } from '@/types/generated/graphql';
 
 const badges = withBadgeFacts(repoBig);
 const youngBadges = withBadgeFacts(youngRepoFacts);
-
-/** A young repository: no analytics yet, and most of GitHub's stars from suspected fake accounts. */
-const young = (repo = youngRepo) => (
-  <RepoScreen repo={repo} pulse={null} languages={repoLanguages} tiers={repoRankTiers} badgeFacts={youngBadges} />
-);
-
-/** The young repository on daily updates for one reason, as anyone sees it. */
-const youngOnDailyUpdates = (reason: DailyUpdateReason) =>
-  young({
-    ...youngRepo,
-    dailyUpdates: {
-      reasons: [reason],
-      nextUpdateAt: '2026-10-28T17:00:00.000Z',
-      lastUpdatedAt: '2026-10-27T17:00:00.000Z',
-    },
-  });
 
 /** A signed-in visitor's own daily updates, as the browser reads them: no repository picked, 3 left to add today. */
 const picker = {
@@ -72,8 +55,8 @@ const bigFrame = (packages: RepoPackages | Unavailable | null, tab: ReactElement
 );
 
 /** The tabbed page of the young repository: no package, no analytics. */
-const youngFrame = (tab: ReactElement) => (
-  <RepoFrame repo={youngRepo} packages={null} contributors={null} badgeFacts={youngBadges}>
+const youngFrame = (tab: ReactElement, repo = youngRepo) => (
+  <RepoFrame repo={repo} packages={null} contributors={null} badgeFacts={youngBadges}>
     {tab}
   </RepoFrame>
 );
@@ -91,17 +74,32 @@ const bigOverview = () =>
     />,
   );
 
-/** The young repository's Overview: no package, so no Used by tab and no card. */
-const youngOverview = () =>
+/**
+ * The young repository's Overview: no package, so no Used by tab and no card. No analytics yet, and most of GitHub's
+ * stars from suspected fake accounts.
+ */
+const youngOverview = (repo = youngRepo) =>
   youngFrame(
     <RepoOverviewScreen
-      repo={youngRepo}
+      repo={repo}
       languages={repoLanguages}
       tiers={repoRankTiers}
       packages={null}
       dependents={null}
     />,
+    repo,
   );
+
+/** The young repository on daily updates for one reason, as anyone sees it. */
+const youngOnDailyUpdates = (reason: DailyUpdateReason) =>
+  youngOverview({
+    ...youngRepo,
+    dailyUpdates: {
+      reasons: [reason],
+      nextUpdateAt: '2026-10-28T17:00:00.000Z',
+      lastUpdatedAt: '2026-10-27T17:00:00.000Z',
+    },
+  });
 
 /** `nebula/ui`'s Used by tab for what it publishes, with the first page of its dependents. */
 const usedBy = (packages: RepoPackages | Unavailable, page: typeof firstPage | null = firstPage) =>
@@ -126,70 +124,6 @@ const FRAME_SOURCES = [
 
 export const REPO_SCREENS: Screen[] = [
   {
-    id: 'repo',
-    title: 'Repository',
-    area: 'repo',
-    route: '/repo/[owner]/[name]',
-    sources: [
-      'app/repo/[owner]/[name]/components/repo-screen.tsx',
-      'app/repo/[owner]/[name]/components/repo-overview-sections.tsx',
-      'app/repo/[owner]/[name]/components/repo-contributors-sections.tsx',
-      'app/repo/[owner]/[name]/components/repo-layout.tsx',
-      'app/repo/[owner]/[name]/components/repo-tier-card.tsx',
-      'app/repo/[owner]/[name]/components/who-builds-it-card.tsx',
-      'app/repo/[owner]/[name]/components/stars-best-section.tsx',
-      'app/repo/[owner]/[name]/components/repo-pulse-area.tsx',
-      'app/repo/[owner]/[name]/components/pull-button.tsx',
-    ],
-    states: [
-      {
-        id: 'supernova',
-        title: 'A Supernova with analytics',
-        path: `/repo/${bigRepo.nameWithOwner}`,
-        height: 3800,
-        render: () => (
-          <RepoScreen
-            repo={bigRepo}
-            pulse={bigRepoPulse}
-            languages={repoLanguages}
-            tiers={repoRankTiers}
-            badgeFacts={badges}
-          />
-        ),
-      },
-      {
-        id: 'young',
-        title: 'A young repository, stars not counted',
-        path: `/repo/${youngRepo.nameWithOwner}`,
-        height: 2000,
-        render: () => young(),
-      },
-      {
-        id: 'young-daily-badge',
-        title: 'On daily updates, kept on by a badge: “Updates daily”',
-        path: `/repo/${youngRepo.nameWithOwner}`,
-        height: 2000,
-        render: () => youngOnDailyUpdates(DailyUpdateReason.Badge),
-      },
-      {
-        id: 'young-pick-off',
-        title: 'Signed in, can add a repo: “Update daily”',
-        path: `/repo/${youngRepo.nameWithOwner}`,
-        height: 2000,
-        viewer: picker,
-        render: () => young(),
-      },
-      {
-        id: 'young-phone',
-        title: 'A young repository, stars not counted · phone',
-        path: `/repo/${youngRepo.nameWithOwner}`,
-        width: 390,
-        height: 3000,
-        render: () => young(),
-      },
-    ],
-  },
-  {
     id: 'repo-overview',
     title: 'Repository · Overview',
     area: 'repo',
@@ -200,6 +134,10 @@ export const REPO_SCREENS: Screen[] = [
       'app/repo/[owner]/[name]/(tabs)/overview/components/repo-overview-screen.tsx',
       'app/repo/[owner]/[name]/(tabs)/overview/components/used-by-card.tsx',
       'app/repo/[owner]/[name]/components/repo-overview-sections.tsx',
+      'app/repo/[owner]/[name]/components/repo-tier-card.tsx',
+      'app/repo/[owner]/[name]/components/who-builds-it-card.tsx',
+      'app/repo/[owner]/[name]/components/stars-best-section.tsx',
+      'app/repo/[owner]/[name]/components/pull-button.tsx',
       'components/dependents/dependents-table.tsx',
     ],
     states: [
@@ -212,10 +150,25 @@ export const REPO_SCREENS: Screen[] = [
       },
       {
         id: 'young',
-        title: 'A young repository with no package: no Used by tab',
+        title: 'A young repository with no package: no Used by tab, stars not counted',
         path: `/repo/${youngRepo.nameWithOwner}`,
         height: 1000,
-        render: youngOverview,
+        render: () => youngOverview(),
+      },
+      {
+        id: 'young-daily-badge',
+        title: 'On daily updates, kept on by a badge: “Updates daily”',
+        path: `/repo/${youngRepo.nameWithOwner}`,
+        height: 1000,
+        render: () => youngOnDailyUpdates(DailyUpdateReason.Badge),
+      },
+      {
+        id: 'young-pick-off',
+        title: 'Signed in, can add a repo or package: “Update daily”',
+        path: `/repo/${youngRepo.nameWithOwner}`,
+        height: 1000,
+        viewer: picker,
+        render: () => youngOverview(),
       },
       {
         id: 'supernova-phone',

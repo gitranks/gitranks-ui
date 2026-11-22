@@ -1,4 +1,5 @@
 import type { ApplyRegistry } from './apply.types';
+import { registryHasDownloads, registryOfApi } from '@/lib/packages/registries';
 
 /** One rule of the slot, as the apply page and the agent's prompt both state it. */
 export type ApplyRule = { title: string; text: string };
@@ -16,15 +17,21 @@ export const APPLY_RULES: readonly ApplyRule[] = [
   { title: 'Linked both ways', text: 'The package names the GitHub repository as its source, and GitHub confirms it.' },
 ];
 
-/** Registries that publish no download counts: their packages are read by the projects that depend on them. */
-const NO_DOWNLOAD_COUNTS = ['MAVEN', 'GO'];
+/**
+ * Whether a registry, as the API names it, publishes no download counts, by the site's registry table: its packages are
+ * read by the projects that depend on them. One the table does not list is not said to have none.
+ */
+const publishesNoDownloads = (id: string) => {
+  const registry = registryOfApi(id);
+  return registry !== null && !registryHasDownloads(registry);
+};
 
 /**
  * The rules for these registries: "Heavily used" says how a registry with no download counts is read, naming only
  * such registries as are listed.
  */
 export function applyRulesOf(registries: readonly ApplyRegistry[]): ApplyRule[] {
-  const uncounted = registries.filter(({ id }) => NO_DOWNLOAD_COUNTS.includes(id));
+  const uncounted = registries.filter(({ id }) => publishesNoDownloads(id));
   const [first, ...rest] = APPLY_RULES;
   if (!uncounted.length) return [first, ...rest];
   const publish = uncounted.length > 1 ? 'publish' : 'publishes';

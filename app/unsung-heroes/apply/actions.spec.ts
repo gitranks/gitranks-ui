@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { applicationOf, FOUND, REGISTRIES, viewOf } from './__fixtures__/apply';
 import { answerBy, jsonResponse, sentOf } from '@/app/admin/unsung-hero/__fixtures__/api';
+import { REGISTRY_IDS, REGISTRIES as REGISTRY_TABLE } from '@/lib/packages/registries';
 
 const { currentSessionToken, signedFetch, graphqlDirect } = vi.hoisted(() => ({
   currentSessionToken: vi.fn(),
@@ -70,6 +71,22 @@ describe('looking a nomination up', () => {
         accountEmail: 'octocat@example.com',
       },
     ]);
+  });
+
+  it("passes every listed registry's page link through as typed, for the lookup to read", async () => {
+    answerBy(signedFetch, { HeroApplyResolve: () => jsonResponse({ data: { heroApplyResolve: FOUND } }) });
+    const links = REGISTRY_IDS.map((id) => REGISTRY_TABLE[id].pageUrl(REGISTRY_TABLE[id].examples[0]));
+    expect(links).toEqual([
+      'https://www.npmjs.com/package/react',
+      'https://pypi.org/project/requests/',
+      'https://pkg.go.dev/github.com/gin-gonic/gin',
+      'https://crates.io/crates/serde',
+      'https://pub.dev/packages/http',
+      'https://packagist.org/packages/laravel/framework',
+      'https://central.sonatype.com/artifact/org.slf4j/slf4j-api',
+    ]);
+    for (const link of links) await resolveApplyPackage(` ${link} `);
+    expect(sentOf(signedFetch).map(({ variables }) => (variables as { input: string }).input)).toEqual(links);
   });
 
   it('asks nothing for nothing typed, or for a visitor', async () => {

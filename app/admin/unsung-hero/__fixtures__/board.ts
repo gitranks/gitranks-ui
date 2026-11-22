@@ -27,7 +27,6 @@ export function slotOf(overrides: Partial<HeroSlot> = {}): HeroSlot {
     id: '6721a0f0c0ffee0000000001',
     ...weekOf(44),
     status: 'LIVE',
-    preview: false,
     repo: {
       githubId: '161403371',
       nameWithOwner: 'mona/scroll-guard',
@@ -201,7 +200,6 @@ export const PAST: HeroSlot[] = [
     id: '6721a0f0c0ffee0000000013',
     ...weekOf(40),
     status: 'DONE',
-    preview: true,
     starsAtStart: 930,
     starsNow: 941,
     starsGained: 11,
@@ -210,7 +208,6 @@ export const PAST: HeroSlot[] = [
 
 export function boardOf(overrides: Partial<HeroBoard> = {}): HeroBoard {
   return {
-    preview: false,
     live: [LIVE],
     upcoming: [NO_RECEIPT, NOT_TOLD, HELD],
     nextWeek: { ...weekOf(45), closesAt: '2026-10-28T23:00:00.000Z' },

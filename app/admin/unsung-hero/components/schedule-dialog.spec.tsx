@@ -61,7 +61,6 @@ const open = () =>
         notice={null}
         weeks={weekOptionsOf(BOARD)}
         weeksWithoutHeadsUp={weekOptionsOf(BOARD, { headsUp: false })}
-        preview={false}
         onClose={() => undefined}
       />,
     ),

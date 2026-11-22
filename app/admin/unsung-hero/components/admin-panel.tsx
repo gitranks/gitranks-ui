@@ -29,7 +29,6 @@ export function AdminPanel({ initial }: Readonly<{ initial: AdminState }>) {
       notice={state === openedWith ? null : state.notice}
       weeks={weekOptionsOf(state.board)}
       weeksWithoutHeadsUp={weekOptionsOf(state.board, { headsUp: false })}
-      preview={state.board.preview}
       action={action}
       pending={pending}
       onClose={() => setScheduling(null)}

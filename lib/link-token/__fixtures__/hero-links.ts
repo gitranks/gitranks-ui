@@ -6,7 +6,6 @@ export const HERO_TOKEN = 'hErO_tOkEn-0123456789abcdefghijklmnopqrstuv';
 /** A made-up week: an invented repository and maintainer. */
 export const heroLinkOf = (overrides: Partial<ApiHeroLink> = {}): ApiHeroLink => ({
   state: 'UPCOMING',
-  preview: false,
   startsAt: '2026-11-23T00:00:00.000Z',
   endsAt: '2026-11-30T00:00:00.000Z',
   repo: {

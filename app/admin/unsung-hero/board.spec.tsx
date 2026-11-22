@@ -34,7 +34,7 @@ const text = (html: string) =>
 const render = (element: React.ReactElement) => text(renderToStaticMarkup(element));
 
 describe('the slot states', () => {
-  it('Cancel: a real slot only before its heads-up left (or while held); a preview until it ends', () => {
+  it('Cancel: only before its heads-up left (or while held)', () => {
     expect(cancelStateOf(NOT_TOLD)).toEqual({ kind: 'cancellable' });
     expect(cancelStateOf(HELD)).toEqual({ kind: 'cancellable' });
     expect(cancelStateOf(NO_RECEIPT)).toMatchObject({
@@ -48,14 +48,10 @@ describe('the slot states', () => {
     expect(cancelStateOf(LIVE)).toMatchObject({ kind: 'locked' });
     expect(cancelStateOf(slotOf({ status: 'DONE' }))).toEqual({ kind: 'none' });
     expect(cancelStateOf(slotOf({ status: 'CANCELLED' }))).toEqual({ kind: 'none' });
-
-    for (const status of ['SCHEDULED', 'NOTIFIED', 'LIVE', 'DONE'] as const) {
-      expect(cancelStateOf(slotOf({ status, preview: true }))).toEqual({ kind: 'cancellable' });
-    }
-    expect(cancelStateOf(slotOf({ status: 'OPTED_OUT', preview: true }))).toEqual({ kind: 'none' });
+    expect(cancelStateOf(slotOf({ status: 'OPTED_OUT' }))).toEqual({ kind: 'none' });
   });
 
-  it('Cancel: a real slot with no heads-up until its week ends, live included (nobody was told)', () => {
+  it('Cancel: a slot with no heads-up until its week ends, live included (nobody was told)', () => {
     for (const status of ['SCHEDULED', 'LIVE'] as const) {
       expect(cancelStateOf(slotOf({ status, noHeadsUp: true, headsUp: null }))).toEqual({ kind: 'cancellable' });
     }
@@ -140,8 +136,6 @@ describe('the weeks Schedule offers', () => {
       ['2026-W48', false],
     ]);
     expect(options[3].label).toBe('Nov 23 – 29 (2026-W48)');
-    // A preview holds no real week, and the other way round.
-    expect(weekOptionsOf(boardOf({ preview: true }))[0].taken).toBe(false);
   });
 
   it('with no heads-up, starts at next week even once scheduling with it has closed', () => {
@@ -238,8 +232,8 @@ describe('the board', () => {
     expect(past).toContain('Recap sent Mon, Oct 26, 00:11 UTC 98.8M 290 +26 318 1,204 356');
     expect(past).toContain('Cancelled The repository belonged to another account at the heads-up');
     expect(past).toContain('Opted out Opted out Fri, Oct 9, 08:00 UTC');
-    // A preview that ran can still be cancelled; a real week that ended cannot.
-    expect(past.match(/Cancel(?!led)/g)).toHaveLength(1);
+    // A week that ended cannot be cancelled.
+    expect(past).not.toMatch(/Cancel(?!led)/);
     expect(render(<OptOutsTable optOuts={boardOf().optOuts} />)).toBe('Maintainer Opted out example-dev Oct 9');
   });
 
@@ -247,12 +241,6 @@ describe('the board', () => {
     const notice = { intent: 'cancel', tone: 'refused', text: REFUSAL_TEXT.NOT_CANCELLABLE } as const;
     expect(render(<AdminBoard state={{ board: boardOf(), notice, check: null }} />)).toContain(
       REFUSAL_TEXT.NOT_CANCELLABLE,
-    );
-  });
-
-  it('says before launch that a slot scheduled now is a preview', () => {
-    expect(render(<AdminBoard state={{ board: boardOf({ preview: true }), notice: null, check: null }} />)).toContain(
-      'every slot scheduled now is a preview. Both its emails go to you',
     );
   });
 

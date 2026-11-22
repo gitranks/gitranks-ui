@@ -201,7 +201,6 @@ export function HeroPreviewView({ state }: Readonly<{ state: HeroLinkState }>) {
         <p className="text-sm">
           <WeekSentence link={link} />
         </p>
-        {link.preview && <p className="text-sm text-muted-foreground">A test week: only the GitRanks team sees it.</p>}
         <p className="text-sm text-muted-foreground">
           Rather not be featured? Press “No thanks, opt me out” in our email. No reason needed.
         </p>

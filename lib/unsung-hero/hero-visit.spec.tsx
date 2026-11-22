@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { unsungHero } from './__fixtures__/hero';
@@ -47,6 +48,14 @@ describe('HeroVisit', () => {
     act(() => root.unmount());
     vi.unstubAllGlobals();
     vi.useRealTimers();
+  });
+
+  it('reads no clock while the page renders, so a page built ahead of time can hold it', () => {
+    const now = vi.spyOn(Date, 'now').mockImplementation(() => {
+      throw new Error('the clock was read during render');
+    });
+    expect(renderToStaticMarkup(<HeroVisit owner="octo-labs" name="scroll-guard" />)).toBe('');
+    now.mockRestore();
   });
 
   it("counts a visit of the hero's own repository page, in any letter case, and draws nothing", async () => {

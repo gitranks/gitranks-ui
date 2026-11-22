@@ -97,7 +97,7 @@ describe("a package's name as the registry writes it", () => {
 
     expect(html).toMatch(/<h1[^>]*>zope\.interface<\/h1>/);
     expect(page).toContain('zope.interface is an npm package downloaded');
-    expect(page).toContain('16 repositories with 100+ stars list zope.interface in their own package.json.');
+    expect(page).toContain('About zope.interface');
     expect(page).not.toContain('zope-interface');
     expect(html).toContain('data-follow="package-page" data-label="zope.interface" data-keys="zope-interface"');
     expect(html).toContain('data-updates="zope-interface" data-spelled="zope.interface"');

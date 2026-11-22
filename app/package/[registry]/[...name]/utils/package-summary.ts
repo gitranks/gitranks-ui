@@ -28,7 +28,6 @@ type SummaryPackage = Pick<
   | 'repositoryName'
   | 'latestVersion'
   | 'firstPublishedAt'
-  | 'dependentsReadAt'
 >;
 
 function downloadsSentence(registry: RegistryId, pkg: SummaryPackage): string {
@@ -74,19 +73,13 @@ function versionSentence({ latestVersion, firstPublishedAt }: SummaryPackage): s
 
 /**
  * The package in plain sentences, as a repository's Overview says its own: its downloads, the repositories with 100+
- * stars that depend on it and the most-starred of them, its source repository, its versions, then the read date.
+ * stars that depend on it and the most-starred of them, its source repository and its versions. The read dates are the
+ * About section's own line.
  */
 export function buildPackageSummary(
   registry: RegistryId,
   pkg: SummaryPackage,
   top?: Pick<PackageDependent, 'nameWithOwner' | 'stars'>,
 ): SummaryPart[] {
-  const read = formatDay(pkg.dependentsReadAt);
-  return [
-    downloadsSentence(registry, pkg),
-    ...dependentsParts(pkg, top),
-    ...sourceParts(pkg),
-    ...versionSentence(pkg),
-    ...(read ? [` Dependents read on ${read}.`] : []),
-  ];
+  return [downloadsSentence(registry, pkg), ...dependentsParts(pkg, top), ...sourceParts(pkg), ...versionSentence(pkg)];
 }

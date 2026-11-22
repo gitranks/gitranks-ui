@@ -1,9 +1,9 @@
 'use client';
 
-import { type FC, useRef, useState } from 'react';
+import { type FC, type ReactNode, useRef, useState } from 'react';
 
 import { packageApiPath } from '../utils/package-params';
-import { ProfileCard } from '@/app/profile/[login]/components/profile-card';
+import { ProfileCard, ProfileSection } from '@/app/profile/[login]/components/profile-card';
 import { DEPENDENTS_MAX_OFFSET, DEPENDENTS_PAGE_SIZE } from '@/components/dependents/dependents.consts';
 import { DependentsTable } from '@/components/dependents/dependents-table';
 import { HideArchivedToggle } from '@/components/dependents/hide-archived-toggle';
@@ -53,15 +53,31 @@ export function shownAfter(
 
 const READ_FAILED = 'Could not load the repositories. Try again in a few minutes.';
 
+type PackageDependentsListProps = {
+  registry: RegistryId;
+  name: string;
+  initial: PackageDependents;
+  /** The section's title: "Used by 16 repositories with 100+ stars". */
+  title: ReactNode;
+  /** The line under it. */
+  intro: ReactNode;
+  /** How they are counted, under the list. */
+  footer: ReactNode;
+};
+
 /**
- * A package's dependents, a page at a time: "Hide archived" when it has an archived one, the table with where each
- * declares the package and at which version, and "Show more". The toggle is this page's state, not its URL: the
- * cached page is one, and every change reads the rows from the route handler.
+ * A package's Used by section, its dependents a page at a time: the title with "Hide archived" beside it when it has
+ * an archived one, the table with where each declares the package and at which version, "Show more", and how they are
+ * counted. The toggle is this page's state, not its URL: the cached page is one, and every change reads the rows from
+ * the route handler.
  */
-export const PackageDependentsList: FC<{ registry: RegistryId; name: string; initial: PackageDependents }> = ({
+export const PackageDependentsList: FC<PackageDependentsListProps> = ({
   registry,
   name,
   initial,
+  title,
+  intro,
+  footer,
 }) => {
   const [shown, setShown] = useState<Shown>(() => shownAfter(null, initial, 0, false));
   const [loading, setLoading] = useState(false);
@@ -95,29 +111,31 @@ export const PackageDependentsList: FC<{ registry: RegistryId; name: string; ini
   const showToggle = shown.archived > 0 || shown.hideArchived;
 
   return (
-    // The rows change in place: busy while a read runs, and the count below is said when it changes.
-    <div aria-busy={loading}>
-      <ProfileCard className="gap-0 p-0">
-        {showToggle && (
-          <div className="flex flex-wrap items-center gap-2 p-4">
-            <HideArchivedToggle
-              className="ml-auto"
-              checked={shown.hideArchived}
-              disabled={loading}
-              onChange={(hide) => read(0, hide)}
-            />
-          </div>
-        )}
-        <DependentsTable rows={shown.items} showDeclared />
-        <ShowMore
-          shown={shown.items.length}
-          total={shown.total}
-          more={shown.more}
-          loading={loading}
-          error={error}
-          onMore={() => read(shown.nextOffset, shown.hideArchived)}
-        />
-      </ProfileCard>
-    </div>
+    <ProfileSection
+      id="used-by"
+      title={title}
+      intro={intro}
+      action={
+        showToggle && (
+          <HideArchivedToggle checked={shown.hideArchived} disabled={loading} onChange={(hide) => read(0, hide)} />
+        )
+      }
+    >
+      {/* The rows change in place: busy while a read runs, and the count below is said when it changes. */}
+      <div aria-busy={loading}>
+        <ProfileCard className="gap-0 p-0">
+          <DependentsTable rows={shown.items} showDeclared />
+          <ShowMore
+            shown={shown.items.length}
+            total={shown.total}
+            more={shown.more}
+            loading={loading}
+            error={error}
+            onMore={() => read(shown.nextOffset, shown.hideArchived)}
+          />
+        </ProfileCard>
+      </div>
+      {footer}
+    </ProfileSection>
   );
 };

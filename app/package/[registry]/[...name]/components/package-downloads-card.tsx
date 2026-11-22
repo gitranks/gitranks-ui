@@ -58,7 +58,7 @@ const Period: FC<{ period: DownloadsPeriod }> = ({ period }) => (
 
 /**
  * The package's downloads from its registry: the 7 days to the last day counted, or the last whole month, each against the
- * period before and a year before, with a small line; and its downloads a week per star of its repository.
+ * period before and a year before, with a small line; and its downloads a week per star of its repository, from one.
  */
 export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ registry, downloads, repo }) => {
   const unit = REGISTRIES[registry].downloads;
@@ -93,12 +93,10 @@ export const PackageDownloadsCard: FC<PackageDownloadsCardProps> = ({ registry, 
         )}
       </div>
       <Period period={period} />
-      {perStar !== null && repo && unit && (
+      {perStar !== null && Math.round(perStar) >= 1 && repo && unit && (
         <p className="text-xs text-muted-foreground">
           <span className="font-mono tabular-nums">{formatCount(Math.round(perStar))}</span>
-          {` downloads a ${unit} per GitHub star (`}
-          <span className="font-mono tabular-nums">{formatCount(repo.stars)}</span> stars on {repo.nameWithOwner}
-          ).
+          {` downloads a ${unit} per GitHub star of its repository`}
         </p>
       )}
     </ProfileCard>

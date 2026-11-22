@@ -37,7 +37,7 @@ const headers = (html: string) => [...html.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g
 const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map(([, href]) => href);
 
 describe('PackageScreen', () => {
-  it('draws a ranked package: the left column, the two cards, the summary, who uses it and its downloads', () => {
+  it('draws a ranked package: the left column, the two cards, who uses it, its downloads and, last, About', () => {
     const html = renderToStaticMarkup(
       <PackageScreen registry="npm" name={rankedPackage.name} pkg={rankedPackage} jsonLd={[{}]} />,
     );
@@ -47,32 +47,28 @@ describe('PackageScreen', () => {
     expect(html).toContain('data-updates="react-resize-detector" data-repository="acme/react-resize-detector"');
     expect(html.indexOf('data-follow')).toBeLessThan(html.indexOf('data-updates'));
     expect(hrefs(html)).toContain('https://www.npmjs.com/package/react-resize-detector');
+    expect(html).toContain('aria-label="Open on npm"');
     for (const fact of [
       'npm package',
-      'Repository: acme/react-resize-detector',
-      'Registry: npm',
-      'Latest: 12.3.0 · 125 releases',
-      'First published: Nov 19, 2015',
-      'Maintainers: octo-dev, mona',
-      'License: MIT',
-      'Downloads read Nov 17, 2026',
-      'Dependents read Nov 16, 2026 · monthly',
-      'npm package ranks Beta 16 repos with 100+ stars use it 16,429 stars between them. Direct dependents only.',
-      '#1,234 ↑6 By downloads',
-      '#40 By dependents’ stars',
+      'acme/react-resize-detector 12.3.0 · 125 releases First published Nov 19, 2015 octo-dev, mona MIT license',
+      'Ranks on npm Beta All ranks #1,234 ↑6 Downloads #40 Dependents’ stars #230 ↓2 Dependents',
       '1,797,999 in the week to Nov 16',
-      '1,381 downloads a week per GitHub star ( 1,302 stars on acme/react-resize-detector).',
-      '16 repositories with 100+ stars list react-resize-detector in their own package.json. Together they have 16,429 stars.',
-      'Hide archived',
+      '1,381 downloads a week per GitHub star of its repository',
+      'Used by 16 repositories with 100+ stars 16,429 stars between them · direct dependents, in their own package.json Hide archived',
       'notea-org/notea Archived',
       'package.json +2',
       '1–2 of 16',
       'last read Nov 16, 2026. How we count',
-      '77.9 million in the last 12 months',
+      'Downloads by week 77.9 million in the last 12 months',
       'Weekly downloads from npm, Nov 17, 2025 – Nov 16, 2026.',
+      'About react-resize-detector react-resize-detector is an npm package downloaded',
+      'Downloads from npm through Nov 16, 2026 · Dependents read Nov 16, 2026, next read Dec 1, 2026',
     ]) {
       expect(page, fact).toContain(fact);
     }
+    expect(page).not.toContain('Registry');
+    expect(page.indexOf('Used by')).toBeLessThan(page.indexOf('Downloads by week'));
+    expect(page.lastIndexOf('About react-resize-detector')).toBeGreaterThan(page.indexOf('How we count'));
     expect(headers(html)).toEqual(['#', 'Repository', 'Declared in', 'Version', 'Stars']);
     expect(hrefs(html)).toEqual(
       expect.arrayContaining([
@@ -94,13 +90,14 @@ describe('PackageScreen', () => {
     const page = text(html);
 
     expect(page).toContain('@nebula/ ui');
-    expect(page).toContain('0 repos with 100+ stars use it Direct dependents only.');
-    expect(page).not.toContain('By downloads');
-    expect(page).toContain('Repository: nebula/ui');
+    expect(page).not.toContain('Ranks on npm');
+    expect(page).toContain('nebula/ui 12.3.0');
     expect(hrefs(html)).not.toContain('/repo/nebula/ui');
-    expect(page).toContain('Maintainers: a, b, c, d, e and 4 more');
-    expect(page).toContain('No repository with 100+ stars uses @nebula/ui directly yet');
-    expect(page).toContain('The next read is on December 1, 2026.');
+    expect(page).toContain('a, b, c, d, e and 4 more');
+    expect(page).toContain(
+      'Used by No repository with 100+ stars uses @nebula/ui directly yet We read every repository with 100+ stars once a month; the next read is on December 1, 2026. Follow to hear when one starts using it.',
+    );
+    expect(html).toContain('data-follow="used-by-empty" data-label="@nebula/ui"');
     expect(page).not.toContain('downloads a week per GitHub star');
     expect(html).not.toContain('<table');
   });
@@ -115,8 +112,8 @@ describe('PackageScreen', () => {
     expect(page).toContain('We have not read this package yet');
     expect(html).toContain('data-running="true"');
     expect(html).not.toContain('data-follow');
-    expect(page).not.toContain('Registry');
-    expect(page).not.toContain('npm package ranks');
+    expect(page).not.toContain('Ranks on');
+    expect(page).not.toContain('About left-pad-next');
   });
 
   it('says only that package data is unavailable, with no button', () => {

@@ -21,7 +21,8 @@ import {
   pickCopyOf,
 } from '@/app/repo/[owner]/[name]/utils/pick-messages';
 import { reloadWithPullNote, showKeptPullNote } from '@/app/repo/[owner]/[name]/utils/pull-note';
-import { DailyUpdatesLine } from '@/components/daily-updates/daily-updates-line';
+import { ButtonHint } from '@/components/button-hint/button-hint';
+import { useDailyUpdatesText } from '@/components/daily-updates/daily-updates-line';
 import { useDailyUpdatesViewer } from '@/components/daily-updates/use-daily-updates-viewer';
 import { usePicks } from '@/components/daily-updates/use-picks';
 import { dealPageOf, keepDealSignIn, takeDealSignIn } from '@/components/refresh-dialogs/deal-sign-in';
@@ -487,34 +488,30 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
     </>
   );
 
-  const line = onDaily ? (
-    <DailyUpdatesLine
-      lead={
-        view === 'your-pick'
-          ? copy.lines.yourPick
-          : view === 'on-badge'
-            ? PACKAGE_DAILY_NOTES.byBadge
-            : PACKAGE_DAILY_NOTES.byPick
-      }
-      nextUpdateAt={facts?.nextUpdateAt}
-    />
-  ) : login ? (
-    <div className="text-xs text-muted-foreground">{copy.lines.off}</div>
-  ) : null;
+  const dailyText = useDailyUpdatesText(
+    view === 'your-pick'
+      ? copy.lines.yourPick
+      : view === 'on-badge'
+        ? PACKAGE_DAILY_NOTES.byBadge
+        : PACKAGE_DAILY_NOTES.byPick,
+    facts?.nextUpdateAt,
+  );
+  const hint = busyLabel !== null ? undefined : onDaily ? dailyText : login ? copy.lines.off : undefined;
 
   return (
-    <div ref={containerRef} className="flex flex-grow flex-col gap-2">
-      <Button size="sm" variant="outline" className="flex-grow" onClick={onClick} disabled={busyLabel !== null}>
-        {busyLabel !== null ? (
-          <>
-            {busyLabel}
-            <ClipLoader loading size={16} color="currentColor" />
-          </>
-        ) : (
-          label
-        )}
-      </Button>
-      {busyLabel === null && line}
+    <div ref={containerRef} className="flex min-w-0 flex-col">
+      <ButtonHint hint={hint} actsAtOnce={!onDaily}>
+        <Button size="sm" variant="outline" className="w-full" onClick={onClick} disabled={busyLabel !== null}>
+          {busyLabel !== null ? (
+            <>
+              {busyLabel}
+              <ClipLoader loading size={16} color="currentColor" />
+            </>
+          ) : (
+            label
+          )}
+        </Button>
+      </ButtonHint>
       {openDialogOf()}
     </div>
   );

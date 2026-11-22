@@ -11,8 +11,8 @@ import { fetchRepoLanguages } from '@/graphql/helpers/fetch-repo-languages';
 import { fetchRepoPackages, fetchRepoUsedBy, UNAVAILABLE } from '@/graphql/helpers/fetch-repo-packages';
 import { fetchRepoRankTiers } from '@/graphql/helpers/fetch-repo-rank-tiers';
 
-// Drawn at `/repo/<owner>/<name>` for a visitor who sees the repository's tabs: the proxy sends that address here, and
-// asked for by its own address this page is a 404 for everyone. Its metadata is today's page's.
+// Drawn at `/repo/<owner>/<name>`: the proxy sends that address here, and asked for by its own address this page is a
+// 404. Its metadata is the repository's own.
 
 export async function generateMetadata({ params }: PageProps<'/repo/[owner]/[name]/overview'>): Promise<Metadata> {
   const { owner, name } = await params;

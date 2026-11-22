@@ -1,5 +1,5 @@
 import type { HeroBoard, HeroSlot } from '../admin.types';
-import { compact, day, full, gained, headsUpLine, recapLine, weekShort } from '../admin-copy';
+import { day, full, gained, headsUpLine, recapLine, usageCell, usageOfRow, weekShort } from '../admin-copy';
 import type { PressAction } from './press';
 import { MailLineText, SlotActions, SlotName, SlotStatus } from './slot-parts';
 import { Pill } from '@/components/pill/pill';
@@ -98,7 +98,7 @@ export function WeeksTable({
                   State
                 </th>
                 <th scope="col" className="px-2 py-2 text-right font-medium">
-                  Weekly downloads
+                  Downloads
                 </th>
                 <th scope="col" className="px-2 py-2 text-right font-medium">
                   Stars
@@ -127,7 +127,7 @@ export function WeeksTable({
                       <MailLineText line={recapLine(slot)} />
                     </div>
                   </td>
-                  <td className="px-2 py-3 text-right font-mono tabular-nums">{compact(slot.facts.weeklyDownloads)}</td>
+                  <td className="px-2 py-3 text-right font-mono tabular-nums">{usageCell(usageOfRow(slot.facts))}</td>
                   <td className="px-2 py-3 text-right font-mono tabular-nums">
                     {slot.starsAtStart === null ? '—' : full(slot.starsAtStart)}
                     {slot.status === 'LIVE' && slot.starsNow !== null && slot.starsAtStart !== null && (

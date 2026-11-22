@@ -5,14 +5,18 @@ import { useState } from 'react';
 import type { HeroCandidate, HeroLiveCheck } from '../admin.types';
 import {
   compact,
+  downloadsCell,
+  downloadsHeader,
   full,
   LINE_MAX,
   monthYear,
   REASON_MAX,
   refusalText,
+  registryLabel,
   repoNameOf,
   stamp,
   TEXT_MAX,
+  usageOfRow,
   weekdayDate,
 } from '../admin-copy';
 import type { AdminCheck, AdminNotice } from '../admin-state';
@@ -26,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { heroUsagePhrase } from '@/lib/unsung-hero/hero-usage';
 import { cn } from '@/lib/utils';
 
 const yesNo = (value: boolean | null, yes: string, no: string, unknown = 'Not known') =>
@@ -43,6 +48,7 @@ export function CheckFacts({ check }: Readonly<{ check: HeroLiveCheck }>) {
     : check.advisoriesIncomplete
       ? 'None read, but GitHub lists more than were read'
       : 'None open';
+  const usage = usageOfRow(check);
   const rows: [string, string][] = [
     ['Repository', check.nameWithOwner ?? '—'],
     ['Stars on GitHub', full(check.githubStars)],
@@ -59,7 +65,7 @@ export function CheckFacts({ check }: Readonly<{ check: HeroLiveCheck }>) {
       'GitHub links the package',
       check.lookupAnswered ? yesNo(check.linked, 'Yes', 'No') : 'The package lookup did not answer',
     ],
-    ['Weekly downloads', compact(check.weeklyDownloads)],
+    [downloadsHeader([usage]) ?? 'Downloads', downloadsCell(usage)],
     ['Used by (100+★)', full(check.dependents)],
     ['Opted out before', check.optedOut ? 'Yes' : 'No'],
   ];
@@ -83,11 +89,13 @@ export function HeadsUpPreview({
   reason,
 }: Readonly<{ candidate: HeroCandidate; check: HeroLiveCheck | null; startsAt: string | null; reason: string }>) {
   const name = repoNameOf(check?.nameWithOwner ?? candidate.repo.nameWithOwner);
-  const downloads = compact(check?.weeklyDownloads ?? candidate.weeklyDownloads);
-  const stars = full(check?.githubStars ?? candidate.stars);
-  const why = reason.trim()
-    ? `${downloads} downloads a week, ${reason.trim()}, and ${stars} stars`
-    : `${downloads} downloads a week and ${stars} stars`;
+  const used = check ? usageOfRow(check) : usageOfRow(candidate);
+  // As the email writes them: downloads compact, a count of repositories in full, one star or many.
+  const usage = heroUsagePhrase(used, used.downloads === null ? full : compact);
+  const starCount = check?.githubStars ?? candidate.stars;
+  const stars = `${full(starCount)} ${starCount === 1 ? 'star' : 'stars'}`;
+  const parts = [usage, reason.trim()].filter(Boolean);
+  const why = parts.length ? `${parts.join(', ')}${parts.length > 1 ? ',' : ''} and ${stars}` : stars;
   const greeting = check?.firstName ?? check?.ownerLogin ?? candidate.owner.login;
   return (
     <div className="flex flex-col gap-2 rounded-md border bg-muted/40 p-3 text-sm">
@@ -186,7 +194,10 @@ export function ScheduleDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Schedule {candidate.repo.nameWithOwner}</DialogTitle>
+          <DialogTitle>
+            Schedule {candidate.repo.nameWithOwner}{' '}
+            <span className="font-normal text-muted-foreground">({registryLabel(candidate.package.registry)})</span>
+          </DialogTitle>
           <DialogDescription>
             A live check reads GitHub and the package now. Schedule needs one under 10 minutes old.
           </DialogDescription>
@@ -196,7 +207,7 @@ export function ScheduleDialog({
           <input type="hidden" name="intent" value="live-check" />
           <input type="hidden" name="repoGithubId" value={candidate.repo.githubId} />
           <div className="flex min-w-48 flex-1 flex-col gap-1.5">
-            <Label htmlFor="hero-package">Package</Label>
+            <Label htmlFor="hero-package">{registryLabel(candidate.package.registry)} package</Label>
             <Input
               id="hero-package"
               name="packageName"
@@ -239,6 +250,7 @@ export function ScheduleDialog({
         <form action={action} className="flex flex-col gap-3">
           <input type="hidden" name="intent" value="schedule" />
           <input type="hidden" name="repoGithubId" value={candidate.repo.githubId} />
+          <input type="hidden" name="registry" value={check?.package.registry ?? candidate.package.registry} />
           <input type="hidden" name="name" value={check?.package.name ?? candidate.package.name} />
           <input type="hidden" name="headsUp" value={headsUp ? 'true' : 'false'} />
           <div className="flex flex-col gap-1.5">

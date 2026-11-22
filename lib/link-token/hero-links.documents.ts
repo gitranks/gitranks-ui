@@ -1,5 +1,6 @@
 import { parse } from 'graphql';
 
+import type { ApiHeroUsageFacts } from '@/lib/unsung-hero/hero-usage';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
@@ -35,7 +36,7 @@ export type ApiHeroLink = {
   maintainer: { login: string; name: string | null };
   line: string;
   text: string;
-  facts: { weeklyDownloads: number; contributors: number | null };
+  facts: ApiHeroUsageFacts & { weeklyDownloads: number; contributors: number | null };
   stars: number | null;
   starsAtStart: number | null;
   canOptOut: boolean;
@@ -49,7 +50,7 @@ const LINK_FIELDS = `state startsAt endsAt
   package { registry name }
   maintainer { login name }
   line text
-  facts { weeklyDownloads contributors }
+  facts { weeklyDownloads downloads downloadsPer dependents contributors }
   stars starsAtStart canOptOut undoUntil`;
 
 /** The week a link names; null for a token no week has. Changes nothing. */

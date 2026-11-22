@@ -32,6 +32,7 @@ export const cardHeroOf = (link: HeroLink): UnsungHero => ({
   package: link.package,
   line: link.line,
   weeklyDownloads: link.facts.weeklyDownloads,
+  usage: link.facts.usage,
   starsAtStart: featuredStars(link),
   starsGained: gainedOf(link),
 });
@@ -47,6 +48,7 @@ export const archiveHeroOf = (link: HeroLink): ArchiveHero => ({
   line: link.line,
   text: link.text,
   weeklyDownloads: link.facts.weeklyDownloads,
+  usage: link.facts.usage,
   contributors: link.facts.contributors,
   starsAtStart: featuredStars(link),
   starsNow: link.stars,

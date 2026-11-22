@@ -11,6 +11,7 @@ import {
 import { SOCIAL_CARD_SIZE } from '@/badge/v3/links';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
+import { heroUsagePhrase } from '@/lib/unsung-hero/hero-usage';
 import { UNSUNG_HEROES_PATH } from '@/lib/unsung-hero/unsung-hero';
 
 /** The archive's own link preview image, 1200×630: the week's hero, or the archive itself in a week with none. */
@@ -31,7 +32,8 @@ export function archiveCardAltOf(archive: Archive | null): string {
   const live = archive?.live;
   if (!live) return 'GitRanks Unsung heroes: one open-source project a week that a lot of software runs on';
   const stars = live.starsAtStart === null ? '' : `, ${formatFullCount(live.starsAtStart)} stars`;
-  return `This week's Unsung hero on GitRanks: ${live.repo.nameWithOwner}, ${formatCompactCount(live.weeklyDownloads)} downloads a week${stars}`;
+  const used = heroUsagePhrase(live.usage, live.usage.downloads === null ? formatFullCount : formatCompactCount);
+  return `This week's Unsung hero on GitRanks: ${live.repo.nameWithOwner}${used ? `, ${used}` : ''}${stars}`;
 }
 
 /**

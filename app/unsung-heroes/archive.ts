@@ -1,4 +1,5 @@
 import type { ApiArchive, ApiArchiveHero } from './archive.documents';
+import { type HeroUsage, heroUsageOf } from '@/lib/unsung-hero/hero-usage';
 
 /** A hero as the archive draws it, in "This week" or among the past heroes. Star numbers are GitHub's own count. */
 export type ArchiveHero = {
@@ -16,6 +17,8 @@ export type ArchiveHero = {
   /** The paragraph "This week" says about it. */
   text: string;
   weeklyDownloads: number;
+  /** How much it is used, as picked: downloads in their period, or the repositories using it. */
+  usage: HeroUsage;
   /** Shown only when known: without it "This week" has three figures. */
   contributors: number | null;
   /** When the week started: "stars when featured". */
@@ -35,7 +38,7 @@ export type Archive = {
     heroes: number;
     /** The past heroes' gains (this week's is shown on its own). */
     starsGained: number;
-    /** Every hero's downloads a week when featured, this week's included. */
+    /** Every hero's downloads a week when featured (a month's as a week's worth), this week's included. */
     weeklyDownloads: number;
     /** The first hero's week start; null with none. */
     since: string | null;
@@ -58,6 +61,7 @@ export const archiveHeroOf = (hero: ApiArchiveHero): ArchiveHero => ({
   line: hero.line,
   text: hero.text,
   weeklyDownloads: count(hero.facts.weeklyDownloads) ?? 0,
+  usage: heroUsageOf(hero.facts),
   contributors: count(hero.facts.contributors),
   starsAtStart: count(hero.starsAtStart),
   starsNow: count(hero.starsNow),
@@ -106,10 +110,17 @@ const plural = (value: number, one: string, many: string) => `${formatFullCount(
 export function archiveSummaryOf({ live, totals }: Archive): string {
   const parts: string[] = [];
   if (live) {
-    const stars = live.starsAtStart === null ? '' : ` with ${plural(live.starsAtStart, 'star', 'stars')}`;
-    parts.push(
-      `This week's Unsung hero is ${live.repo.nameWithOwner}, downloaded ${formatCountWords(live.weeklyDownloads)} times a week${stars}.`,
-    );
+    const { downloads, downloadsPer, dependents } = live.usage;
+    const counted = downloads !== null && downloadsPer;
+    const used = counted
+      ? `downloaded ${formatCountWords(downloads)} times a ${downloadsPer}`
+      : dependents
+        ? `used by ${plural(dependents, 'GitHub repository', 'GitHub repositories')} with 100+ stars`
+        : null;
+    // "with 942 stars" after downloads; after "with 100+ stars" a second "with" would read twice.
+    const starCount = live.starsAtStart === null ? null : plural(live.starsAtStart, 'star', 'stars');
+    const stars = starCount === null ? '' : counted || !used ? ` with ${starCount}` : `, and has ${starCount}`;
+    parts.push(`This week's Unsung hero is ${live.repo.nameWithOwner}${used ? `, ${used}` : ''}${stars}.`);
   }
   if (totals.heroes > 0) {
     const since = totals.since ? ` since ${formatMonthYear(totals.since)}` : '';

@@ -1,5 +1,6 @@
 import { parse } from 'graphql';
 
+import type { ApiHeroUsageFacts } from './hero-usage';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
@@ -16,7 +17,7 @@ export type ApiUnsungHero = {
   repo: { nameWithOwner: string };
   package: { registry: string; name: string };
   line: string;
-  facts: { weeklyDownloads: number };
+  facts: ApiHeroUsageFacts & { weeklyDownloads: number };
   starsAtStart: number | null;
   starsGained: number;
 };
@@ -31,7 +32,7 @@ export const UnsungHeroCurrentDocument = doc<{ unsungHero: ApiUnsungHero | null 
       repo { nameWithOwner }
       package { registry name }
       line
-      facts { weeklyDownloads }
+      facts { weeklyDownloads downloads downloadsPer dependents }
       starsAtStart
       starsGained
     }

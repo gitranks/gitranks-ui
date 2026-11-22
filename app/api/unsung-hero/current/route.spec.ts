@@ -49,6 +49,7 @@ describe('GET /api/unsung-hero/current', () => {
         package: { registry: 'NPM', name: 'scroll-guard' },
         line: 'Ships inside @octo-ui/dialog',
         weeklyDownloads: 98_800_000,
+        usage: { downloads: 98_800_000, downloadsPer: 'week', dependents: null },
         starsAtStart: 942,
         starsGained: 12,
       },

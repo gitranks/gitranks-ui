@@ -51,7 +51,8 @@ export type HeroCancelReason =
   | 'not_live'
   | 'removed';
 
-export type HeroRegistry = 'NPM';
+/** A registry as the API names it: `NPM`, `PYPI`. Kept a string: a registry the site lists later still shows. */
+export type HeroRegistry = string;
 
 export type HeroMiss = { code: HeroMissCode; label: string; blocks: boolean };
 
@@ -62,7 +63,11 @@ export type HeroRepo = {
   createdAt: string | null;
 };
 
-export type HeroPackage = { registry: HeroRegistry; name: string };
+/** `displayName`: the registry's spelling, when it differs from the stored name. */
+export type HeroPackage = { registry: HeroRegistry; name: string; displayName?: string | null };
+
+/** Downloads in the registry's period (`WEEK` or `MONTH`); null for a registry read by its dependents. */
+export type HeroDownloads = { downloads?: number | null; downloadsPer?: string | null };
 
 /** One of a slot's two emails. `noReceipt`: queued long enough ago with neither outcome. */
 export type HeroMail = {
@@ -87,7 +92,7 @@ export type HeroSlot = {
   text: string;
   /** Scheduled with no heads-up: the maintainer gets no email before the week and no chance to opt out. */
   noHeadsUp: boolean;
-  facts: { weeklyDownloads: number; dependents: number | null; contributors: number | null };
+  facts: HeroDownloads & { weeklyDownloads: number; dependents: number | null; contributors: number | null };
   headsUp: HeroMail | null;
   recap: HeroMail | null;
   starsAtStart: number | null;
@@ -102,7 +107,7 @@ export type HeroSlot = {
   cancelledReason: string | null;
 };
 
-export type HeroLiveCheck = {
+export type HeroLiveCheck = HeroDownloads & {
   at: string;
   outcome: HeroLiveOutcome;
   package: HeroPackage;
@@ -132,12 +137,15 @@ export type HeroLiveCheck = {
   refusalsWithoutHeadsUp: HeroRefusal[];
 };
 
-export type HeroCandidate = {
+export type HeroCandidate = HeroDownloads & {
   position: number;
   repo: HeroRepo;
   package: HeroPackage;
   weeklyDownloads: number;
   downloadsRank: number;
+  /** The place in the ranking its registry's list is read by: `DOWNLOADS`, or `DEPENDENTS` for Maven and Go. */
+  rank?: number;
+  rankBy?: string;
   dependents: number | null;
   stars: number;
   pushedAt: string | null;

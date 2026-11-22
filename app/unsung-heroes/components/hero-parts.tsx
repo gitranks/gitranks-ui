@@ -7,6 +7,7 @@ import { type ArchiveHero, formatCompactCount, formatFullCount, formatMonthYear,
 import { StarOnGitHub } from './star-on-github';
 import { GithubAvatar } from '@/app/components/landing/landing-ui';
 import { Button } from '@/components/ui/button';
+import { heroUsageFigure } from '@/lib/unsung-hero/hero-usage';
 import { heroWeekLabel } from '@/lib/unsung-hero/unsung-hero';
 import { cn } from '@/lib/utils';
 import { getRepoPath } from '@/utils/repo-paths';
@@ -55,6 +56,7 @@ export function HeroThisWeek({ hero, report = true, headingId = 'this-week' }: R
   const { nameWithOwner } = hero.repo;
   const maintainer = hero.maintainer.name || hero.maintainer.login;
   const since = hero.repo.createdAt ? ` · since ${formatMonthYear(hero.repo.createdAt)}` : '';
+  const usage = heroUsageFigure(hero.usage, hero.usage.downloads === null ? formatFullCount : formatCompactCount);
 
   return (
     <section
@@ -98,7 +100,7 @@ export function HeroThisWeek({ hero, report = true, headingId = 'this-week' }: R
           </div>
         </div>
         <dl className="m-0 grid grid-cols-2 content-start gap-4">
-          <Figure value={formatCompactCount(hero.weeklyDownloads)} label="downloads a week" />
+          {usage && <Figure value={usage.value} label={usage.label} />}
           {hero.starsAtStart !== null && (
             <Figure value={formatFullCount(hero.starsAtStart)} label="stars when featured" />
           )}
@@ -113,6 +115,7 @@ export function HeroThisWeek({ hero, report = true, headingId = 'this-week' }: R
 /** One past hero: its week, name, line and figures when featured, and the stars that week and now. */
 export function PastHeroRow({ hero }: Readonly<{ hero: ArchiveHero }>) {
   const { nameWithOwner } = hero.repo;
+  const usage = heroUsageFigure(hero.usage, hero.usage.downloads === null ? formatFullCount : formatCompactCount);
   return (
     <li
       id={heroAnchorOf(nameWithOwner)}
@@ -130,10 +133,14 @@ export function PastHeroRow({ hero }: Readonly<{ hero: ArchiveHero }>) {
         </Link>
         <span className="text-sm text-muted-foreground">{hero.line}</span>
         <span className="text-xs text-muted-foreground">
-          <Count>{formatCompactCount(hero.weeklyDownloads)}</Count> downloads a week
+          {usage && (
+            <>
+              <Count>{usage.value}</Count> {usage.label}
+            </>
+          )}
           {hero.starsAtStart !== null && (
             <>
-              {' · '}
+              {usage && ' · '}
               <Count>{formatFullCount(hero.starsAtStart)}</Count> stars when featured
             </>
           )}

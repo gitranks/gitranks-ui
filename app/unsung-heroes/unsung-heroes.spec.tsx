@@ -58,6 +58,32 @@ describe('/unsung-heroes', () => {
     );
   });
 
+  it("says a registry's own period, or the repositories using it where a registry counts no downloads", () => {
+    const monthly = archiveOf({
+      ...apiArchive,
+      live: apiHeroOf({
+        package: { registry: 'PYPI', name: 'line-trim-fixture' },
+        facts: { weeklyDownloads: 1_034_000, downloads: 4_480_000, downloadsPer: 'MONTH', contributors: 16 },
+      }),
+    });
+    expect(text(render(monthly))).toContain(
+      "This week's Unsung hero is ada-fixture/line-trim-fixture, downloaded 4.5 million times a month with 942 stars.",
+    );
+    expect(figures(render(monthly)).slice(4, 5)).toEqual(['4.5M downloads a month']);
+
+    const go = archiveOf({
+      ...apiArchive,
+      live: apiHeroOf({
+        package: { registry: 'GO', name: 'example.com/line-trim' },
+        facts: { weeklyDownloads: 0, downloads: null, downloadsPer: null, dependents: 45, contributors: 16 },
+      }),
+    });
+    expect(text(render(go))).toContain(
+      "This week's Unsung hero is ada-fixture/line-trim-fixture, used by 45 GitHub repositories with 100+ stars, and has 942 stars.",
+    );
+    expect(figures(render(go)).slice(4, 5)).toEqual(['45 repositories with 100+ stars use it']);
+  });
+
   it('This week: the dates, the maintainer and age, the text, two links and four figures', () => {
     const html = render(archive);
     const words = text(html);
@@ -109,8 +135,8 @@ describe('/unsung-heroes', () => {
     );
     expect(render(archive)).toContain(`>${ARCHIVE_PICK_NOTE}<`);
     expect(text(render(archive))).toContain(
-      'How we pick Heavily used Repositories with 100+ stars depend on it directly, and it is downloaded millions of ' +
-        'times a week. Few stars for its reach Lots of downloads per star, from a personal account without a big ' +
+      'How we pick Heavily used Repositories with 100+ stars depend on it directly, and it is among the most used ' +
+        'packages of its registry. Few stars for its reach Lots of use per star, from a personal account without a big ' +
         'following. Maintainer first We tell the maintainer 4 days ahead. One click opts them out, no questions asked.',
     );
   });

@@ -71,6 +71,8 @@ import type {
   ContributeAutopilot,
   ContributeComingSoonProvider,
   ContributeEmailSettings,
+  ContributeFairUseNotice,
+  ContributeFairUseNotices,
   ContributeFollowUps,
   ContributeLimits,
   ContributeMcpToken,
@@ -88,6 +90,8 @@ import type {
   ContributeView,
 } from './contribute.types';
 import { contributeErrorOf } from './errors';
+import { fairUseNoticeIdOf } from './fair-use';
+import { ContributeFairUseNoticeDocument, ContributeFairUseNoticesDocument } from './fair-use.documents';
 import { isGrantAvailable } from './grant-availability';
 import { contributeMcpSignIn } from './mcp-sign-in';
 import { withRepliesPlanOf, withReplyPlansOf } from './one-comment';
@@ -206,6 +210,8 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   const onboardingFields = settled(onboarding)?.contribute;
   const limitsField = limitsOf(settled(limits)?.contribute?.contributor?.limits);
   const { contributor } = contribute;
+  // The block's message stands in for the access level's own words: read only for an account a rule blocked.
+  const fairUseBlock = limitsField?.reason === 'FAIR_USE' ? ((await loadFairUseNotices())?.block ?? null) : undefined;
   const withAutopilot = contributor?.autopilot
     ? {
         ...contributor,
@@ -231,8 +237,48 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
       settled(connections)?.contribute?.mcpTokens,
       settled(signIn) === true,
     ),
+    ...(fairUseBlock !== undefined ? { fairUseBlock } : {}),
   };
 });
+
+/**
+ * What the top of Contribute shows about fair use for the signed-in user: the Terms banner, the open messages, the
+ * block's and the list cut's line. Null signed out, when the API hides it or does not answer: nothing is shown then.
+ * Read once per request.
+ */
+export const loadFairUseNotices = cache(async (): Promise<ContributeFairUseNotices | null> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+  try {
+    const { contributeFairUseNotices } = await graphqlDirect(ContributeFairUseNoticesDocument, undefined, {
+      source: 'ssr',
+      githubLogin,
+    });
+    return contributeFairUseNotices ?? null;
+  } catch {
+    return null;
+  }
+});
+
+/**
+ * One of the signed-in user's messages, for its answer page; null for an id the API never gives, another user's, none,
+ * signed out or any failure: the page is not found then.
+ */
+export async function loadFairUseNotice(noticeId: string): Promise<ContributeFairUseNotice | null> {
+  const id = fairUseNoticeIdOf(noticeId);
+  const githubLogin = await viewerLogin();
+  if (!id || !githubLogin) return null;
+  try {
+    const { contributeFairUseNotice } = await graphqlDirect(
+      ContributeFairUseNoticeDocument,
+      { id },
+      { source: 'ssr', githubLogin },
+    );
+    return contributeFairUseNotice ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /** The sides as the API answered them; left out when it does not answer them (yet). */
 function sidesOf(sides: ContributeSides | null | undefined): { sides?: ContributeSides } {

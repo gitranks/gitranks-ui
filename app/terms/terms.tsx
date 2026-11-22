@@ -3,6 +3,7 @@ import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
 import { LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
+import { CONTRIBUTE_RULES_ID } from '@/lib/workspace/fair-use';
 import { contributeShown } from '@/lib/workspace/preview-gate';
 
 /*
@@ -13,7 +14,10 @@ import { contributeShown } from '@/lib/workspace/preview-gate';
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
-/** Contribute's section (B5): whose key, whose pull requests, whose service, and the maintainers' say. */
+/**
+ * Contribute's section (B5): the rule for issues from your list first, then whose key, whose pull requests, whose
+ * service, and the maintainers' say.
+ */
 const CONTRIBUTE: LegalSection = {
   id: 'contribute',
   title: 'GitRanks Contribute',
@@ -26,6 +30,15 @@ const CONTRIBUTE: LegalSection = {
         it uses.
       </P>
       <List>
+        <li id={CONTRIBUTE_RULES_ID} className="scroll-mt-6">
+          <B>Pull requests for issues from your list.</B> GitRanks watches 50,000 repositories and reads about 3,000
+          issues with AI every day to find the best ones to work on. The lists it makes belong to GitRanks. This costs
+          us money and work, and the service is free for you. Every pull request for an issue from your list is opened
+          through GitRanks, never by hand or with another tool, and carries a small footer with a link to GitRanks. That
+          link is how other developers find us. This is the only thing we ask in return. Do not copy the list or pass it
+          on. If we find a pull request that goes around GitRanks, we ask you why. If it goes on, your list gets
+          shorter. If it still goes on, your account is blocked.
+        </li>
         <li>
           <B>Your key, your usage.</B> When you connect a Claude API key, our agent runs on it in your Anthropic
           organization, and Anthropic bills that usage to that organization under its own terms. The organization that
@@ -40,8 +53,9 @@ const CONTRIBUTE: LegalSection = {
         <li>
           <B>Your own agent.</B> Your own agent connects by signing in with your GitHub account, which you allow on
           GitRanks, or with a personal GitRanks token. You are responsible for it, for its provider&apos;s terms, for
-          what it does on your computer and for what it sends us. Keep your tokens private, and disconnect an agent or
-          revoke a token in Contribute&apos;s settings if it may be misused or may have leaked.
+          what it does on your computer and for what it sends us. Your agent must follow the rule for issues from your
+          list too: GitRanks tells it so when it connects. Keep your tokens private, and disconnect an agent or revoke a
+          token in Contribute&apos;s settings if it may be misused or may have leaked.
         </li>
         <li>
           <B>What you let us do.</B> You let us store and process what you and your agent send us (changes, test
@@ -147,7 +161,7 @@ const LEARN: LegalSection = {
 };
 
 /** When the Terms last changed with Contribute's section in them: they show that date only once the section shows. */
-const CONTRIBUTE_TERMS_UPDATED = '2026-11-18';
+const CONTRIBUTE_TERMS_UPDATED = '2026-11-22';
 
 /** The sections; Contribute's only for whoever may see Contribute, and Learn's for whoever Learn is open to. */
 const sectionsOf = (contribute: boolean, learn: boolean): LegalSection[] => [
@@ -158,8 +172,11 @@ const sectionsOf = (contribute: boolean, learn: boolean): LegalSection[] => [
       <P>
         GitRanks (gitranks.com) is run by {OPERATOR_NAME}, a sole trader in Ukraine, at {OPERATOR_ADDRESS}.
         &quot;We&quot; and &quot;us&quot; mean the operator. Contact: {mail}. These terms are the agreement between you
-        and us. By using GitRanks, its badges or its sign-in, you accept them. The <A href="/privacy">Privacy policy</A>{' '}
-        explains how we handle personal data.
+        and us.{' '}
+        {contribute
+          ? 'By using GitRanks, its badges, its sign-in or its MCP server through any AI agent, you accept them.'
+          : 'By using GitRanks, its badges or its sign-in, you accept them.'}{' '}
+        The <A href="/privacy">Privacy policy</A> explains how we handle personal data.
       </P>
     ),
   },

@@ -13,6 +13,13 @@ describe('EXAMPLE_BRIEF', () => {
     expect(EXAMPLE_BRIEF.submit.fields).toContain('brief');
   });
 
+  it('opens with the rule every brief carries: GitRanks alone opens the pull request', () => {
+    expect(EXAMPLE_BRIEF.text.split('\n').slice(0, 2)).toEqual([
+      'Rule: a pull request for an issue from GitRanks is opened only by GitRanks. Never push a branch, fork the repository or open the pull request yourself, for example with `gh pr create`.',
+      '',
+    ]);
+  });
+
   it('names no comment author: every one is "someone"', () => {
     const authors = [...EXAMPLE_BRIEF.text.matchAll(/^--- Comment by (\S+)/gm)].map(([, author]) => author);
     expect(authors.length).toBeGreaterThan(0);

@@ -221,8 +221,8 @@ const under = (path: string, prefix: string) => path === prefix || path.startsWi
 
 /** The areas that make each page read itself again; `ISSUES` never does (the cards ask about themselves). */
 const REFRESHED_BY: [test: (path: string) => boolean, areas: ContributeChangeArea[]][] = [
-  // The Contribute tab: its numbers, its runs, its list and the limit's state.
-  [(path) => path === '/contribute', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS']],
+  // The Contribute tab: its numbers, its runs, its list, the limit's state and the messages about fair use.
+  [(path) => path === '/contribute', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS', 'FAIR_USE']],
   [(path) => path === '/learn', ['ATTEMPTS', 'SETTINGS']],
   [(path) => under(path, '/my/pull-requests'), ['ATTEMPTS']],
   // Not the Start page: it asks about its issue itself, on `ATTEMPTS` (a page read would read GitHub again).

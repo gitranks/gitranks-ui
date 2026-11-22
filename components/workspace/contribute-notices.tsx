@@ -3,9 +3,11 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { FairUseMessage } from './fair-use-message';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
 import type { ContributeNotice } from '@/lib/workspace/contribute-state';
+import { CONTRIBUTE_RULES_PATH, fairUseAnswerPathOf } from '@/lib/workspace/fair-use';
 import { dayLabel } from '@/lib/workspace/format';
 import { KEY_REPLACE_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
@@ -82,6 +84,7 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         ),
       };
     case 'suspended':
+      if (notice.fairUse) return fairUseBlockCopyOf(notice.fairUse.block);
       return {
         tone: 'warn',
         title: 'Contribute is paused for this account',
@@ -97,6 +100,33 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         ),
       };
   }
+}
+
+/**
+ * A fair-use rule blocked the account: its message and answer page in place of the automated-activity words, or the
+ * rule in the Terms when the message could not be read.
+ */
+function fairUseBlockCopyOf(block: NonNullable<Extract<ContributeNotice, { kind: 'suspended' }>['fairUse']>['block']) {
+  const copy: NoticeCopy = { tone: 'warn', title: 'A message from GitRanks', text: null };
+  if (!block) {
+    return {
+      ...copy,
+      text: (
+        <>
+          Read the rule in our{' '}
+          <Link href={CONTRIBUTE_RULES_PATH} prefetch={false} className="text-link hover:underline">
+            Terms of service
+          </Link>
+          .
+        </>
+      ),
+    };
+  }
+  return {
+    ...copy,
+    text: <FairUseMessage notice={block} />,
+    action: { href: fairUseAnswerPathOf(block.id), label: 'Answer' },
+  };
 }
 
 const TONES = {

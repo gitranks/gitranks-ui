@@ -1,4 +1,10 @@
-import type { ContributeCredential, ContributeLimits, ContributeSettings, ContributeView } from './contribute.types';
+import type {
+  ContributeCredential,
+  ContributeFairUseNotice,
+  ContributeLimits,
+  ContributeSettings,
+  ContributeView,
+} from './contribute.types';
 
 /**
  * What stands between the user and their next attempt, most pressing first. The GitHub grant is not among them: it is
@@ -13,8 +19,11 @@ export type ContributeNotice =
   | { kind: 'new-account'; limits: ContributeLimits }
   /** Smaller limits for now: the recent claims ran out without a pull request. */
   | { kind: 'follow-through'; limits: ContributeLimits }
-  /** Nothing new starts for this account: it can't see or claim issues. */
-  | { kind: 'suspended' };
+  /**
+   * Nothing new starts for this account: it can't see or claim issues. `fairUse` when a fair-use rule blocked it, with
+   * the block's message (null when it could not be read).
+   */
+  | { kind: 'suspended'; fairUse?: { block: ContributeFairUseNotice | null } };
 
 /** Contribute is paused for this account by its access level: nothing new starts, no issue is shown. */
 export const isSuspended = (view: ContributeView | null | undefined): boolean =>
@@ -36,7 +45,13 @@ const isAccessKind = (kind: ContributeNotice['kind']) => (ACCESS_NOTICE_KINDS as
 export function accessNoticesOf(view: ContributeView): ContributeNotice[] {
   const limits = view.contributor?.limits;
   if (!limits) return [];
-  if (limits.level === 'SUSPENDED') return [{ kind: 'suspended' }];
+  if (limits.level === 'SUSPENDED') {
+    return [
+      limits.reason === 'FAIR_USE'
+        ? { kind: 'suspended', fairUse: { block: view.fairUseBlock ?? null } }
+        : { kind: 'suspended' },
+    ];
+  }
   if (limits.level !== 'REDUCED') return [];
   if (limits.reason === 'NEW_ACCOUNT') return [{ kind: 'new-account', limits }];
   if (limits.reason === 'FOLLOW_THROUGH') return [{ kind: 'follow-through', limits }];

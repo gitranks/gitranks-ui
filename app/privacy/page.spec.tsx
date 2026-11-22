@@ -20,7 +20,7 @@ describe('the Privacy policy', () => {
   it('has a GitRanks Learn section, linked from the contents and dated', () => {
     expect(html).toContain('id="learn"');
     expect(html).toContain('href="#learn"');
-    expect(plain).toContain('20 November 2026');
+    expect(plain).toContain('22 November 2026');
   });
 
   it('says what Learn makes public, under whose name, and what deleting removes', () => {
@@ -38,6 +38,13 @@ describe('the Privacy policy', () => {
     expect(plain).toContain("other people's results on them included");
     expect(plain).toContain('Learn data: until you delete it or remove your data');
     expect(plain).toContain('Ways into Contribute and Learn pages: six months');
+  });
+
+  it('says how long Contribute keeps what its fair-use checks find, and links the rule', () => {
+    expect(plain).toContain(
+      'What we find, the messages we send you about it and your answers are kept for up to 180 days after the last change, even after you delete your Contribute data, and longer while a shorter list or a block is in place.',
+    );
+    expect(html).toContain('href="/terms#contribute-rules"');
   });
 
   it('keeps the anchors other pages link to', () => {

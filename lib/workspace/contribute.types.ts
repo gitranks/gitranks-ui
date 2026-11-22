@@ -169,13 +169,16 @@ export type Contributor = {
  */
 export type ContributeAccessLevel = 'STANDARD' | 'REDUCED' | 'SUSPENDED';
 
-/** Why the limits are reduced: every new account starts so, or the recent claims ran out. */
-export type ContributeAccessReason = 'NEW_ACCOUNT' | 'FOLLOW_THROUGH';
+/**
+ * Why the limits are reduced: every new account starts so, or the recent claims ran out; or why the account is
+ * suspended: a fair-use rule blocked it.
+ */
+export type ContributeAccessReason = 'NEW_ACCOUNT' | 'FOLLOW_THROUGH' | 'FAIR_USE';
 
 /** The limits that hold for the account now: the settings' maxima and the day's counts. */
 export type ContributeLimits = {
   level: ContributeAccessLevel;
-  /** Why `REDUCED`; null at any other level. */
+  /** Why `REDUCED`, or `FAIR_USE` for a `SUSPENDED` account a fair-use rule blocked; null otherwise. */
   reason: ContributeAccessReason | null;
   /** The most attempts at a time that hold now: the settings field's maximum. */
   attemptsAtATime: number;
@@ -259,6 +262,71 @@ export type ContributeIssuePage = {
   computedAt: string | null;
   /** The day's cap on new issues; null while well under it, and left out where the page is not read with it. */
   dailyCap?: ContributeDailyCap | null;
+  /** How many issues of the list the user sees; null while lists are not capped, left out where it is not read. */
+  listSize?: ContributeListSize | null;
+};
+
+/**
+ * How many issues of the list the user sees ("Show more" stops there): their GitRanks tier's part plus a share for every
+ * pull request merged through GitRanks, up to a maximum; the shorter list's size while the list is cut.
+ */
+export type ContributeListSize = {
+  size: number;
+  /** The GitRanks tier's part of the size. */
+  base: number;
+  /** The GitRanks tier, 1 Rookie to 7 Legend; null when not ranked. */
+  tier: number | null;
+  /** Pull requests merged through GitRanks. */
+  merged: number;
+  /** True while the list is cut: `size` is the shorter list's. */
+  cut: boolean;
+};
+
+/** Contribute's fair-use rules: pull requests opened outside GitRanks, and issues viewed with none worked on. */
+export type ContributeFairUseRule = 'OUTSIDE_PR' | 'VIEWING';
+
+/** Which message a fair-use notice is: its rule and its step (1 a note, 2 the list cut, 3 the block). */
+export type ContributeFairUseNoticeKind =
+  | 'OUTSIDE_PR_1'
+  | 'OUTSIDE_PR_2'
+  | 'OUTSIDE_PR_3'
+  | 'VIEWING_1'
+  | 'VIEWING_2'
+  | 'VIEWING_3';
+
+/** A pull request a fair-use notice names: `owner/name#number` and its page on GitHub. */
+export type ContributeFairUsePr = { name: string; url: string };
+
+/**
+ * A message from GitRanks about how the user uses Contribute, as the API words it: `text` is the whole message, filled
+ * (its pull requests by name; "tell us here" and "answer here" mean its answer page).
+ */
+export type ContributeFairUseNotice = {
+  id: string;
+  kind: ContributeFairUseNoticeKind;
+  rule: ContributeFairUseRule;
+  /** 1 a note, 2 the list cut, 3 the block. */
+  phase: number;
+  text: string;
+  vars: { prs?: ContributeFairUsePr[] | null; n?: number | null; k?: number | null };
+  /** The answers to pick from; none for steps 2 and 3. */
+  choices: { id: string; label: string }[];
+  createdAt: string;
+  dismissedAt: string | null;
+  /** The user's answer; a second one replaces the first. */
+  answer: { choice: string | null; text: string; at: string } | null;
+};
+
+/** What the top of Contribute shows about fair use. */
+export type ContributeFairUseNotices = {
+  /** The Terms banner, until the user closes it: its words, the link's words and where it goes. */
+  rulesBanner: { text: string; linkText: string; path: string } | null;
+  /** The open notices (neither closed nor answered), newest first. */
+  notices: ContributeFairUseNotice[];
+  /** The block's notice while the account is blocked by a rule, closed or not. */
+  block: ContributeFairUseNotice | null;
+  /** While the list is cut: the step's sentence about the list and its notice, for the line that cannot be closed. */
+  listCut: { text: string; noticeId: string } | null;
 };
 
 /** Where a shown issue stands now: still free, taken by the user's own agent, or by another contributor. */
@@ -284,6 +352,11 @@ export type ContributeView = {
   grantAvailable: boolean;
   /** The user's own agent: their paths and live tokens; `undefined` while the API does not answer them. */
   ownAgent?: ContributeOwnAgent;
+  /**
+   * The block's message while a fair-use rule blocks the account (the limits' reason `FAIR_USE`): null when it could not
+   * be read, left out otherwise.
+   */
+  fairUseBlock?: ContributeFairUseNotice | null;
 };
 
 /** Which ways of contributing the user has set up: a Claude key, a token for their own agent. */
@@ -1208,8 +1281,11 @@ export type ContributeAgentRun = {
 
 export type ContributeActivity = { items: ContributeActivityItem[]; runs: ContributeAgentRun[]; readAt: string };
 
-/** What a change touched: an attempt, the issues computed for the user, an issue's availability, the list, settings. */
-export type ContributeChangeArea = 'ATTEMPTS' | 'FEED' | 'ISSUES' | 'SET' | 'SETTINGS' | 'ACTIVITY';
+/**
+ * What a change touched: an attempt, the issues computed for the user, an issue's availability, the list, settings, the
+ * fair-use notices.
+ */
+export type ContributeChangeArea = 'ATTEMPTS' | 'FEED' | 'ISSUES' | 'SET' | 'SETTINGS' | 'ACTIVITY' | 'FAIR_USE';
 
 /** What moved for the user since a version (`contributeChanges`). */
 export type ContributeChanges = {

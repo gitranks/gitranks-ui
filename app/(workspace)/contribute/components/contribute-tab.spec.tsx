@@ -11,11 +11,14 @@ vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/issue-actions', () => ({}));
 vi.mock('@/lib/workspace/start/start-page.actions', () => ({}));
+vi.mock('@/lib/workspace/fair-use.actions', () => ({}));
 
 const { ContributeTabScreen } = await import('./contribute-tab');
 const { issuePage } = await import('@/lib/contribute/__fixtures__/contribute-overview');
 const { activityOf, runOf } = await import('@/lib/contribute/__fixtures__/agent-runs');
 const { NOW, limits, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { blockNotice, fairUse, fairUseBlocked, fairUseNotice, listSize, noFairUse, rulesBanner, warningNotice } =
+  await import('@/lib/contribute/__fixtures__/fair-use');
 
 const text = (html: string) =>
   html
@@ -170,5 +173,89 @@ describe('the Contribute tab', () => {
     // Its next step is none: no "Show 10 more", though the total is past the rows.
     expect(capped.html).not.toContain('data-show-more');
     expect(capped.html.indexOf('data-feed-end')).toBeGreaterThan(capped.html.lastIndexOf('data-live-row'));
+  });
+});
+
+describe('the Contribute tab and fair use', () => {
+  // A link inside a sentence leaves a space before the full stop after it in the plain text.
+  const joined = (plain: string) => plain.replace(/ ([.,])/g, '$1');
+
+  it('draws exactly as before while the API sends no list size and no messages', () => {
+    const before = render().html;
+    expect(render({ fairUse: noFairUse, page: { ...issuePage, listSize: null } }).html).toBe(before);
+    expect(render({ fairUse: null }).html).toBe(before);
+    expect(before).not.toContain('data-fair-use');
+    expect(before).not.toContain('data-list-size');
+    expect(before).not.toContain('data-list-cut');
+  });
+
+  it('says how big the list is and why, over the count', () => {
+    const { html, plain } = render({ page: { ...issuePage, listSize: listSize() } });
+    expect(html).toContain('data-list-size="30"');
+    expect(plain).toContain(
+      'Issues for you You see your top 30 issues. The size comes from your GitRanks tier (Pro: 30) plus 5 for every pull request merged through GitRanks, up to 100.',
+    );
+    expect(render({ page: { ...issuePage, listSize: listSize({ tier: null, base: 10, size: 10 }) } }).plain).toContain(
+      'You see your top 10 issues. The size comes from your GitRanks tier (not ranked yet: 10)',
+    );
+  });
+
+  it('shows the Terms banner with its link to the rule and a close button', () => {
+    const { html, plain } = render({ fairUse: fairUse({ rulesBanner }) });
+    expect(html).toContain('data-fair-use="rules"');
+    expect(html).toContain('data-fair-use-banner="info"');
+    expect(plain).toContain(
+      'We updated our Terms of service GitRanks Contribute has a new rule. By continuing to use Contribute you agree to it. Read the new rule',
+    );
+    expect(html).toContain('href="/terms#contribute-rules"');
+    expect(html).toContain('aria-label="Close"');
+    expect(html.indexOf('data-fair-use="rules"')).toBeLessThan(html.indexOf('<h1'));
+  });
+
+  it('shows a message with its pull request, Answer, the Terms and a close button', () => {
+    const { html, plain } = render({ fairUse: fairUse({ notices: [fairUseNotice()] }) });
+    expect(html).toContain('data-fair-use="notice"');
+    expect(html).toContain('data-fair-use-banner="warning"');
+    expect(joined(plain)).toContain(`A message from GitRanks ${fairUseNotice().text} Answer Terms of service`);
+    expect(html).toContain('href="https://github.com/acme/widgets/pull/412"');
+    expect(html).toContain('href="/contribute/answer/583231-outsidePr-1-1"');
+    expect(html).toContain('aria-label="Close"');
+  });
+
+  it('while the list is cut: the cut line that cannot be closed with its answer page, and no line on the size', () => {
+    const { html, plain } = render({
+      page: { ...issuePage, listSize: listSize({ size: 10, cut: true }) },
+      fairUse: fairUse({ listCut: { text: 'Your list is now 10 issues.', noticeId: warningNotice.id } }),
+    });
+    expect(plain).toContain('Issues for you Your list is now 10 issues. Answer');
+    expect(html).toContain('data-list-cut="583231-outsidePr-2-1"');
+    expect(html).toContain('href="/contribute/answer/583231-outsidePr-2-1"');
+    expect(html).not.toContain('data-list-size');
+    expect(plain).not.toContain('You see your top');
+    // Its message's banner closed: the line stays.
+    expect(html).not.toContain('data-fair-use=');
+  });
+
+  it('ends "Show more" at the list size, whatever the total says', () => {
+    const at = render({ page: { ...issuePage, total: 38, next: 'c2', listSize: listSize({ size: 4 }) } });
+    expect(at.html).not.toContain('data-show-more');
+    const under = render({ page: { ...issuePage, total: 38, next: 'c2', listSize: listSize({ size: 10 }) } });
+    expect(under.plain).toContain('Showing 4 of 10 issues Show 6 more');
+  });
+
+  it('blocked by a rule: the block’s message that cannot be closed, and the held list’s way on is its answer page', () => {
+    const { html, plain } = render({
+      view: fairUseBlocked,
+      page: null,
+      fairUse: fairUse({ notices: [blockNotice], block: blockNotice }),
+    });
+    expect(html.match(/data-fair-use="/g)).toHaveLength(1);
+    expect(html).toContain('data-fair-use="block"');
+    expect(html).not.toContain('aria-label="Close"');
+    expect(joined(plain)).toContain(`A message from GitRanks ${blockNotice.text} Answer Terms of service`);
+    expect(html).not.toContain('data-notice="suspended"');
+    expect(plain).toContain('No issues for now Contribute is paused for this account, so no issues are shown. Answer');
+    expect(html).not.toContain('mailto:');
+    expect(plain).not.toContain('looks automated');
   });
 });

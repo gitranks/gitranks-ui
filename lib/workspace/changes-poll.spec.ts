@@ -278,6 +278,8 @@ describe('what a read does', () => {
     ['/my/settings', ['ATTEMPTS'], false],
     ['/my/agents', ['ATTEMPTS', 'SETTINGS'], false],
     ['/contribute/maintainers', ['SETTINGS', 'SET'], false],
+    ['/contribute', ['FAIR_USE'], true],
+    ['/my/settings', ['FAIR_USE'], false],
   ] as const)('%s reads itself again for %j: %s', (path, changed, refresh) => {
     expect(refreshesFor(path, changed)).toBe(refresh);
   });

@@ -76,6 +76,8 @@ export type ContributeIssueListProps = {
   learnOpen?: boolean;
   /** GitRanks holds the account: no issues, no Start. */
   held?: boolean;
+  /** A fair-use rule holds the account: its message's answer page, the held note's one next step. */
+  heldAnswerHref?: Route;
   /** At the open pull request limit: its notice over the rows, which have no Start. */
   limit?: LimitCounts | null;
   /** What the person works on: their list's issues apart from the others, and why a list-only mode is empty. */
@@ -102,6 +104,7 @@ export function ContributeIssueList({
   filter = NO_QUERY,
   learnOpen = false,
   held = false,
+  heldAnswerHref,
   limit = null,
   set,
   languages = [],
@@ -117,9 +120,15 @@ export function ContributeIssueList({
     body = (
       <ListNote name="held" title="No issues for now">
         Contribute is paused for this account, so no issues are shown.{' '}
-        <a href={`mailto:${CONTACT_EMAIL}`} className={link}>
-          Write to us
-        </a>
+        {heldAnswerHref ? (
+          <Link href={heldAnswerHref} prefetch={false} className={link}>
+            Answer
+          </Link>
+        ) : (
+          <a href={`mailto:${CONTACT_EMAIL}`} className={link}>
+            Write to us
+          </a>
+        )}
       </ListNote>
     );
   } else if (page === undefined) {
@@ -149,6 +158,7 @@ export function ContributeIssueList({
         filter={filter}
         learnOpen={learnOpen}
         limit={limit}
+        size={page?.listSize?.size ?? null}
         set={set}
         languages={languages}
         facts={facts}
@@ -176,6 +186,7 @@ function LiveRows({
   filter,
   learnOpen,
   limit,
+  size,
   set,
   languages,
   facts,
@@ -185,6 +196,8 @@ function LiveRows({
 }: Required<Pick<ContributeIssueListProps, 'agents' | 'menu' | 'filter' | 'learnOpen' | 'languages' | 'noneTitle'>> & {
   page: ContributeIssuePage | null;
   limit: LimitCounts | null;
+  /** The list's size: "Show more" ends there whatever the feed says; null while lists are not capped. */
+  size: number | null;
   set?: ContributeSet | null;
   facts?: IssueStartFacts;
   source?: ContributeSource;
@@ -211,6 +224,7 @@ function LiveRows({
     : null;
   // The cap ends the list: only once no page is left to read.
   const capped = snapshot.dailyCap?.reached && !snapshot.next ? snapshot.dailyCap : null;
+  const atSize = size !== null && snapshot.rows.length >= size;
   const first = snapshot.rows[0]?.issue.issueId;
 
   const rowsOf = (issues: ContributeIssue[], other = false) =>
@@ -285,11 +299,11 @@ function LiveRows({
           rowsOf(snapshot.rows.map(({ issue }) => issue))
         )}
         {capped ? <DailyCapEnd cap={capped} /> : null}
-        {/* Only while there is more to show: none at the day's cap or the end, whatever the total says. */}
-        {snapshot.more && !capped ? (
+        {/* Only while there is more to show: none at the day's cap, the list's size or the end, whatever the total says. */}
+        {snapshot.more && !capped && !atSize ? (
           <ShowMore
             shown={snapshot.rows.length}
-            total={Math.max(snapshot.total, snapshot.rows.length + 1)}
+            total={Math.min(Math.max(snapshot.total, snapshot.rows.length + 1), size ?? Number.POSITIVE_INFINITY)}
             noun="issue"
             pending={growing}
             onMore={() => startGrowing(() => feed.grow(ISSUES_PAGE_SIZE))}

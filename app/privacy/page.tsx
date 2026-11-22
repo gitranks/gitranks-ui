@@ -22,9 +22,9 @@ const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
 /**
  * The Privacy policy's own date: it changed after `LAST_UPDATED` (GitRanks Learn and following a package, 2026-11-18;
- * the public progress page, 2026-11-20).
+ * the public progress page, 2026-11-20; Contribute's fair use, 2026-11-22).
  */
-const PRIVACY_UPDATED = '2026-11-20';
+const PRIVACY_UPDATED = '2026-11-22';
 
 const sections: LegalSection[] = [
   {
@@ -214,6 +214,14 @@ const sections: LegalSection[] = [
             lesson result, on lesson result pages (see <A href="#learn">GitRanks Learn</A>). When you opt a repository
             out, we keep your GitHub account id and username and when you did it, until the repository is opted back in.
             Basis: legitimate interests, in respecting maintainers&apos; choices.
+          </li>
+          <li>
+            <B>Fair use</B>: pull requests for issues from your list go through GitRanks (see the{' '}
+            <A href="/terms#contribute-rules">Terms of service</A>). To check that, we compare the issues we showed you
+            with the pull requests you open for them, and count the issues you view. What we find, the messages we send
+            you about it and your answers are kept for up to 180 days after the last change, even after you delete your
+            Contribute data, and longer while a shorter list or a block is in place. Basis: legitimate interests, in
+            keeping Contribute fair.
           </li>
           <li>
             <B>Deleting it</B>: in Settings, choose <B>Delete all data</B>. It stops runs under way, deletes your key,

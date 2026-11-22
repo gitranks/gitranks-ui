@@ -305,14 +305,17 @@ const ATTEMPT_RULES = `repoRules {
 const MAINTAINER_CONFIG = 'config { key value source setBy ignoredRaw fileReadAt }';
 const MAINTAINER_RULES = `rules { manualOnly lines { kind text quote setBy ${RULE_SOURCE} } }`;
 
-/** The feed with each issue's repo rules: an API without them answers `ContributeIssuesDocument` instead. */
+/**
+ * The feed with each issue's repo rules and the list's size: an API without them answers `ContributeIssuesDocument`
+ * instead.
+ */
 export const ContributeIssuesWithRulesDocument = doc<
   { contributeIssues: ContributeIssuePage | null },
   { first?: number; after?: string; filter?: ContributeIssuesFilter }
 >(`query ContributeIssuesWithRules($first: Int, $after: String, $filter: ContributeIssuesFilter) {
   contributeIssues(first: $first, after: $after, filter: $filter) {
     items { ${ISSUE} tier forNewcomers ${ISSUE_RULES} }
-    next total computedAt dailyCap { limit reached }
+    next total computedAt dailyCap { limit reached } listSize { size base tier merged cut }
   }
 }`);
 

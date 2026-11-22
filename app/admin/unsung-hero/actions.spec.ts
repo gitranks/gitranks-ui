@@ -170,32 +170,14 @@ describe('Schedule', () => {
     );
   });
 
-  it('says a preview’s emails go to the admin', async () => {
-    const slot = slotOf({
-      preview: true,
-      week: '2026-W45',
-      startsAt: '2026-11-02T00:00:00.000Z',
-      endsAt: '2026-11-09T00:00:00.000Z',
-    });
-    answers('UnsungHeroSchedule', 'unsungHeroSchedule', { ok: true, refusal: null, slot });
-    expect((await pressAdmin(BEFORE, press)).notice?.text).toBe(
-      'Scheduled mona/scroll-guard for Nov 2 – 8 as a preview: both emails go to you.',
-    );
-  });
-
-  it.each([
-    'TOO_LATE',
-    'WEEK_TAKEN',
-    'LIVE_CHECK_STALE',
-    'NO_EMAIL',
-    'UNLINKED',
-    'NO_ACCOUNT_EMAIL',
-    'BAD_TEXT',
-  ] as const)('shows the refusal %s as its own words', async (refusal) => {
-    answers('UnsungHeroSchedule', 'unsungHeroSchedule', { ok: false, refusal, slot: null });
-    const state = await pressAdmin(BEFORE, press);
-    expect(state.notice).toEqual({ intent: 'schedule', tone: 'refused', text: REFUSAL_TEXT[refusal] });
-  });
+  it.each(['TOO_LATE', 'WEEK_TAKEN', 'LIVE_CHECK_STALE', 'NO_EMAIL', 'UNLINKED', 'BAD_TEXT'] as const)(
+    'shows the refusal %s as its own words',
+    async (refusal) => {
+      answers('UnsungHeroSchedule', 'unsungHeroSchedule', { ok: false, refusal, slot: null });
+      const state = await pressAdmin(BEFORE, press);
+      expect(state.notice).toEqual({ intent: 'schedule', tone: 'refused', text: REFUSAL_TEXT[refusal] });
+    },
+  );
 });
 
 describe('Cancel and Mark notified', () => {

@@ -88,7 +88,6 @@ export const REFUSAL_TEXT: Record<HeroRefusal, string> = {
   TOO_LATE:
     'Scheduling for that week has closed: with the heads-up the maintainer would get less than 4 days to opt out, and with none the week has started.',
   WEEK_TAKEN: 'That week already has a hero.',
-  NO_ACCOUNT_EMAIL: 'Your session holds no email address, and a preview’s emails go to you. Sign in again.',
   BAD_TEXT: `Write the card’s line and the archive’s text, within their lengths: line and reason ${LINE_MAX}, text ${TEXT_MAX} characters.`,
   NOT_FOUND: 'That slot no longer exists.',
   NOT_CANCELLABLE:
@@ -173,16 +172,14 @@ export const recapLine = (slot: Pick<HeroSlot, 'recap'>): MailLine | null =>
   slot.recap ? mailLine('Recap', slot.recap) : null;
 
 /**
- * Whether Cancel applies, as the API decides it: a preview slot in any state but an ended one; a real one only while
- * `scheduled` and its heads-up not queued, or held (it did not leave); a real one with no heads-up until its week ends
- * (nobody was told). Locked otherwise, with why; `none` for a slot that has ended.
+ * Whether Cancel applies, as the API decides it: only while `scheduled` and its heads-up not queued, or held (it did
+ * not leave); with no heads-up, until its week ends (nobody was told). Locked otherwise, with why; `none` for a slot
+ * that has ended.
  */
 export type CancelState = { kind: 'cancellable' } | { kind: 'locked'; why: string } | { kind: 'none' };
 
-export function cancelStateOf(slot: Pick<HeroSlot, 'status' | 'preview' | 'headsUp' | 'noHeadsUp'>): CancelState {
-  if (slot.status === 'CANCELLED' || slot.status === 'OPTED_OUT') return { kind: 'none' };
-  if (slot.preview) return { kind: 'cancellable' };
-  if (slot.status === 'DONE') return { kind: 'none' };
+export function cancelStateOf(slot: Pick<HeroSlot, 'status' | 'headsUp' | 'noHeadsUp'>): CancelState {
+  if (slot.status === 'CANCELLED' || slot.status === 'OPTED_OUT' || slot.status === 'DONE') return { kind: 'none' };
   if (slot.noHeadsUp && (slot.status === 'SCHEDULED' || slot.status === 'LIVE')) return { kind: 'cancellable' };
   if (slot.status === 'SCHEDULED') {
     if (!slot.headsUp?.queuedAt || slot.headsUp.held) return { kind: 'cancellable' };

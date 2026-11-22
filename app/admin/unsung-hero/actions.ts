@@ -43,13 +43,9 @@ function doneText(press: AdminPress, slot: HeroSlot | null, board: HeroBoard | u
       return `Skipped ${name}: it is not listed again.`;
     case 'schedule':
       if (!press.headsUp) {
-        return slot?.preview
-          ? `Scheduled ${name} for ${dates ?? press.week} as a preview, with no heads-up: the recap goes to you.`
-          : `Scheduled ${name} for ${dates ?? press.week} with no heads-up: the maintainer gets no email before the week.`;
+        return `Scheduled ${name} for ${dates ?? press.week} with no heads-up: the maintainer gets no email before the week.`;
       }
-      return slot?.preview
-        ? `Scheduled ${name} for ${dates ?? press.week} as a preview: both emails go to you.`
-        : `Scheduled ${name} for ${dates ?? press.week}. The heads-up goes to the maintainer 4 days before.`;
+      return `Scheduled ${name} for ${dates ?? press.week}. The heads-up goes to the maintainer 4 days before.`;
     case 'cancel':
       return `Cancelled ${name}${week}.`;
     case 'mark-notified':

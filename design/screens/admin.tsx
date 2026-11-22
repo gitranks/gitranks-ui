@@ -6,13 +6,6 @@ import { Header } from '@/components/header/header';
 
 const PATH = '/admin/unsung-hero';
 
-/** Before launch every slot is a preview: Cancel applies to each, and none holds a real week. */
-const previewBoard = (): HeroBoard => {
-  const board = boardOf({ preview: true });
-  const asPreview = (slots: HeroBoard['live']) => slots.map((slot) => ({ ...slot, preview: true }));
-  return { ...board, live: asPreview(board.live), upcoming: asPreview(board.upcoming) };
-};
-
 /** The page as `page.tsx` draws it for the admin: the header, then the board as the API answered it. */
 const page = (board: HeroBoard) => (
   <>
@@ -63,7 +56,6 @@ export const ADMIN_SCREENS: Screen[] = [
     ],
     states: [
       ...both('board', 'Live, next and coming weeks', boardOf(), 1290, 2110),
-      one('preview', 'Before launch', previewBoard(), 1270),
       one('empty-week', 'Nobody this week or next', boardOf({ live: [], upcoming: [] }), 850),
     ],
   },

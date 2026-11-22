@@ -26,7 +26,6 @@ export function SlotName({ slot }: Readonly<{ slot: HeroSlot }>) {
         >
           {slot.repo.nameWithOwner}
         </Link>
-        {slot.preview && <Pill tone="violet">Preview</Pill>}
       </div>
       <span className="text-xs text-muted-foreground break-all">{slot.package.name}</span>
     </div>

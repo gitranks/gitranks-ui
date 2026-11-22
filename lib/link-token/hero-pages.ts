@@ -7,8 +7,6 @@ export type HeroLinkWeek = 'upcoming' | 'live' | 'done' | 'opted-out' | 'cancell
 /** The week an Unsung hero link names, as its pages show it. Never an address. Dates are ISO strings. */
 export type HeroLink = {
   week: HeroLinkWeek;
-  /** A test week made before the feature was open to everyone. */
-  preview: boolean;
   startsAt: string;
   endsAt: string;
   repo: { nameWithOwner: string; description: string | null; createdAt: string | null };
@@ -51,7 +49,6 @@ export function heroLinkOf(api: ApiHeroLink): HeroLink | null {
   if (!week) return null;
   return {
     week,
-    preview: api.preview === true,
     startsAt: api.startsAt,
     endsAt: api.endsAt,
     repo: {

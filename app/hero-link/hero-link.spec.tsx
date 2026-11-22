@@ -333,12 +333,6 @@ describe('/hero-link/preview', () => {
     expect(html).toContain('id="ada-fixture-line-trim-fixture"');
   });
 
-  it('says a test week is one', () => {
-    expect(text(renderToStaticMarkup(<HeroPreviewView state={linkState({ preview: true })} />))).toContain(
-      'A test week: only the GitRanks team sees it.',
-    );
-  });
-
   it('opted out or called off: nothing to preview', () => {
     const html = renderToStaticMarkup(<HeroPreviewView state={linkState({ state: 'OPTED_OUT', canOptOut: false })} />);
     expect(text(html)).toBe(

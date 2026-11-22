@@ -32,7 +32,6 @@ export const HERO_REFUSALS = [
   'BAD_WEEK',
   'TOO_LATE',
   'WEEK_TAKEN',
-  'NO_ACCOUNT_EMAIL',
   'BAD_TEXT',
   'NOT_FOUND',
   'NOT_CANCELLABLE',
@@ -80,7 +79,6 @@ export type HeroSlot = {
   startsAt: string;
   endsAt: string;
   status: HeroStatus;
-  preview: boolean;
   repo: HeroRepo;
   package: HeroPackage;
   maintainer: { githubId: string; login: string; name: string | null; hasEmail: boolean };
@@ -154,8 +152,6 @@ export type HeroWeek = { week: string; startsAt: string; endsAt: string; closesA
 export type HeroOptOut = { maintainerGithubId: string; login: string; at: string };
 
 export type HeroBoard = {
-  /** The feature is not public: a slot scheduled now is a preview, and its emails go to the person who scheduled it. */
-  preview: boolean;
   live: HeroSlot[];
   /** Scheduled and notified slots, soonest first. */
   upcoming: HeroSlot[];

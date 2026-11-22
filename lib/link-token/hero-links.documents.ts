@@ -28,7 +28,6 @@ export type ApiHeroLinkResult =
 /** The week a link names, as the API answers it. Dates are ISO strings. */
 export type ApiHeroLink = {
   state: ApiHeroLinkState;
-  preview: boolean;
   startsAt: string;
   endsAt: string;
   repo: { nameWithOwner: string; description: string | null; createdAt: string | null };
@@ -45,7 +44,7 @@ export type ApiHeroLink = {
 
 export type ApiHeroLinkAnswer = { result: ApiHeroLinkResult; link: ApiHeroLink | null };
 
-const LINK_FIELDS = `state preview startsAt endsAt
+const LINK_FIELDS = `state startsAt endsAt
   repo { nameWithOwner description createdAt }
   package { registry name }
   maintainer { login name }

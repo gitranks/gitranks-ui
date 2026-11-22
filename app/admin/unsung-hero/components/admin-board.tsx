@@ -58,12 +58,6 @@ export function AdminBoard({
             <TabsTrigger value="opt-outs">Opt-outs</TabsTrigger>
           </TabsList>
         </div>
-        {board.preview && (
-          <p className="rounded-md bg-brand-soft px-3 py-2 text-sm text-brand-soft-foreground">
-            Before launch: every slot scheduled now is a preview. Both its emails go to you, no maintainer is written
-            to, and it holds no real week.
-          </p>
-        )}
         <BoardNotice notice={state.notice} />
         <WeekCards board={board} />
         <WeeksTable board={board} action={action} pending={pending} />

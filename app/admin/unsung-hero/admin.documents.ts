@@ -15,7 +15,7 @@ const MISS = 'code label blocks';
 const PACKAGE = 'registry name';
 
 const SLOT = `
-  id week startsAt endsAt status preview
+  id week startsAt endsAt status
   repo { githubId nameWithOwner description createdAt }
   package { ${PACKAGE} }
   maintainer { githubId login name hasEmail }
@@ -42,7 +42,6 @@ const ACTION = `ok refusal slot { ${SLOT} }`;
 export const UnsungHeroAdminDocument = doc<{ unsungHeroAdmin: HeroBoard | null }>(
   `query UnsungHeroAdmin {
     unsungHeroAdmin {
-      preview
       live { ${SLOT} }
       upcoming { ${SLOT} }
       nextWeek { ${WEEK} }

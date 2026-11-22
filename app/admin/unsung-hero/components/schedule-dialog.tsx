@@ -139,7 +139,6 @@ export function ScheduleDialog({
   notice,
   weeks,
   weeksWithoutHeadsUp,
-  preview,
   action,
   pending,
   onClose,
@@ -151,7 +150,6 @@ export function ScheduleDialog({
   /** The weeks open with the heads-up, and with none (from next week on). */
   weeks: WeekOption[];
   weeksWithoutHeadsUp: WeekOption[];
-  preview: boolean;
   action?: PressAction;
   pending?: boolean;
   onClose: () => void;
@@ -318,11 +316,6 @@ export function ScheduleDialog({
           </div>
           {headsUp && (
             <HeadsUpPreview candidate={candidate} check={check} startsAt={option?.startsAt ?? null} reason={reason} />
-          )}
-          {preview && (
-            <p className="text-sm font-medium">
-              {headsUp ? 'Preview: both emails go to you.' : 'Preview: the recap goes to you.'}
-            </p>
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>

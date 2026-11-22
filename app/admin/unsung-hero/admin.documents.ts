@@ -19,7 +19,7 @@ const SLOT = `
   repo { githubId nameWithOwner description createdAt }
   package { ${PACKAGE} }
   maintainer { githubId login name hasEmail }
-  line reason text
+  line reason text noHeadsUp
   facts { weeklyDownloads dependents contributors }
   headsUp { ${MAIL} }
   recap { ${MAIL} }
@@ -32,7 +32,7 @@ const LIVE_CHECK = `
   ownerLogin ownerType ownerFollowers firstName hasEmail advisories advisoriesIncomplete
   lookupAnswered linked weeklyDownloads dependents optedOut
   misses { ${MISS} }
-  refusals
+  refusals refusalsWithoutHeadsUp
 `;
 
 const WEEK = 'week startsAt endsAt closesAt';

@@ -20,9 +20,11 @@ import type { WeekOption } from '../admin-weeks';
 import type { PressAction } from './press';
 import { MissLabels } from './shortlist';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
@@ -123,15 +125,20 @@ function DialogNotice({ notice }: Readonly<{ notice: AdminNotice | null }>) {
   );
 }
 
+const firstFreeOf = (options: WeekOption[]): string => options.find((option) => !option.taken)?.week ?? '';
+
 /**
  * Schedule: a live check of the repository and package first (a press), then the week and the words, and the heads-up
- * as it will read. Schedule stays off until the check answers nothing that stops it; the API checks it all again.
+ * as it will read. The heads-up can be turned off: then the weeks inside its 97 hours are offered too, no public email
+ * is needed, and the maintainer gets no email before the week and no chance to opt out. Schedule stays off until the
+ * check answers nothing that stops it for that choice; the API checks it all again.
  */
 export function ScheduleDialog({
   candidate,
   lastCheck,
   notice,
   weeks,
+  weeksWithoutHeadsUp,
   preview,
   action,
   pending,
@@ -141,7 +148,9 @@ export function ScheduleDialog({
   /** This page's last live check of the candidate, if any: it alone greets the maintainer by name. */
   lastCheck: AdminCheck | null;
   notice: AdminNotice | null;
+  /** The weeks open with the heads-up, and with none (from next week on). */
   weeks: WeekOption[];
+  weeksWithoutHeadsUp: WeekOption[];
   preview: boolean;
   action?: PressAction;
   pending?: boolean;
@@ -149,20 +158,28 @@ export function ScheduleDialog({
 }>) {
   const check = lastCheck?.check ?? candidate.liveCheck;
   const [packageName, setPackageName] = useState(check?.package.name ?? candidate.package.name);
-  const [week, setWeek] = useState(weeks.find((option) => !option.taken)?.week ?? '');
+  const [headsUp, setHeadsUp] = useState(true);
+  const [week, setWeek] = useState(firstFreeOf(weeks));
   const [line, setLine] = useState('');
   const [reason, setReason] = useState('');
   const [text, setText] = useState('');
 
-  const option = weeks.find((each) => each.week === week) ?? null;
+  const offered = headsUp ? weeks : weeksWithoutHeadsUp;
+  const option = offered.find((each) => each.week === week) ?? null;
+  const refusals = check ? (headsUp ? check.refusals : check.refusalsWithoutHeadsUp) : [];
+  const chooseHeadsUp = (on: boolean) => {
+    setHeadsUp(on);
+    const next = on ? weeks : weeksWithoutHeadsUp;
+    if (!next.some((each) => each.week === week && !each.taken)) setWeek(firstFreeOf(next));
+  };
   const ready =
     !!check &&
-    check.refusals.length === 0 &&
+    refusals.length === 0 &&
     !!option &&
     !option.taken &&
     line.trim().length > 0 &&
     line.trim().length <= LINE_MAX &&
-    reason.trim().length <= REASON_MAX &&
+    (!headsUp || reason.trim().length <= REASON_MAX) &&
     text.trim().length > 0 &&
     text.trim().length <= TEXT_MAX;
   const dialogNotice = notice && (notice.intent === 'live-check' || notice.intent === 'schedule') ? notice : null;
@@ -203,9 +220,9 @@ export function ScheduleDialog({
             </p>
             <CheckFacts check={check} />
             <MissLabels misses={check.misses} />
-            {check.refusals.length > 0 && (
+            {refusals.length > 0 && (
               <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-destructive">
-                {check.refusals.map((refusal) => (
+                {refusals.map((refusal) => (
                   <li key={refusal}>{refusalText(refusal)}</li>
                 ))}
               </ul>
@@ -219,22 +236,38 @@ export function ScheduleDialog({
           <input type="hidden" name="intent" value="schedule" />
           <input type="hidden" name="repoGithubId" value={candidate.repo.githubId} />
           <input type="hidden" name="name" value={check?.package.name ?? candidate.package.name} />
+          <input type="hidden" name="headsUp" value={headsUp ? 'true' : 'false'} />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="hero-heads-up" className="font-normal">
+              <Checkbox
+                id="hero-heads-up"
+                checked={headsUp}
+                onCheckedChange={(value) => chooseHeadsUp(value === true)}
+              />
+              Send the heads-up email
+            </Label>
+            {!headsUp && (
+              <p className="text-sm text-muted-foreground">
+                No heads-up: the maintainer gets no email before the week and no chance to opt out. Any week that has
+                not started can be scheduled, and no public email is needed.
+              </p>
+            )}
+          </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="hero-week">Week</Label>
-            <select
-              id="hero-week"
-              name="week"
-              value={week}
-              onChange={(event) => setWeek(event.target.value)}
-              className="h-9 rounded-md border bg-background px-3 text-sm"
-            >
-              {weeks.map((each) => (
-                <option key={each.week} value={each.week} disabled={each.taken}>
-                  {each.label}
-                  {each.taken ? ' · taken' : ''}
-                </option>
-              ))}
-            </select>
+            <Select name="week" value={week} onValueChange={setWeek}>
+              <SelectTrigger id="hero-week" className="w-full">
+                <SelectValue placeholder="No week free">{option ? option.label : undefined}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {offered.map((each) => (
+                  <SelectItem key={each.week} value={each.week} disabled={each.taken}>
+                    {each.label}
+                    {each.taken ? ' · taken' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
@@ -249,19 +282,21 @@ export function ScheduleDialog({
               onChange={(event) => setLine(event.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="hero-reason">The heads-up’s reason (optional)</Label>
-              <Counted value={reason} max={REASON_MAX} />
+          {headsUp && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="hero-reason">The heads-up’s reason (optional)</Label>
+                <Counted value={reason} max={REASON_MAX} />
+              </div>
+              <Input
+                id="hero-reason"
+                name="reason"
+                value={reason}
+                placeholder="inside @scope/dialog"
+                onChange={(event) => setReason(event.target.value)}
+              />
             </div>
-            <Input
-              id="hero-reason"
-              name="reason"
-              value={reason}
-              placeholder="inside @scope/dialog"
-              onChange={(event) => setReason(event.target.value)}
-            />
-          </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="hero-text">The archive’s text</Label>
@@ -275,8 +310,14 @@ export function ScheduleDialog({
               onChange={(event) => setText(event.target.value)}
             />
           </div>
-          <HeadsUpPreview candidate={candidate} check={check} startsAt={option?.startsAt ?? null} reason={reason} />
-          {preview && <p className="text-sm font-medium">Preview: both emails go to you.</p>}
+          {headsUp && (
+            <HeadsUpPreview candidate={candidate} check={check} startsAt={option?.startsAt ?? null} reason={reason} />
+          )}
+          {preview && (
+            <p className="text-sm font-medium">
+              {headsUp ? 'Preview: both emails go to you.' : 'Preview: the recap goes to you.'}
+            </p>
+          )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               Close

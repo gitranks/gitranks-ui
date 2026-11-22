@@ -55,6 +55,22 @@ describe('the slot states', () => {
     expect(cancelStateOf(slotOf({ status: 'OPTED_OUT', preview: true }))).toEqual({ kind: 'none' });
   });
 
+  it('Cancel: a real slot with no heads-up until its week ends, live included (nobody was told)', () => {
+    for (const status of ['SCHEDULED', 'LIVE'] as const) {
+      expect(cancelStateOf(slotOf({ status, noHeadsUp: true, headsUp: null }))).toEqual({ kind: 'cancellable' });
+    }
+    expect(cancelStateOf(slotOf({ status: 'DONE', noHeadsUp: true, headsUp: null }))).toEqual({ kind: 'none' });
+  });
+
+  it('a slot with no heads-up says so, in the weeks and the past', () => {
+    for (const status of ['SCHEDULED', 'LIVE', 'DONE'] as const) {
+      expect(headsUpLine(slotOf({ status, noHeadsUp: true, headsUp: null }))).toEqual({
+        text: 'No heads-up: the maintainer gets no email before the week',
+        tone: 'neutral',
+      });
+    }
+  });
+
   it('Mark notified: a scheduled slot whose heads-up has no receipt', () => {
     expect(markableOf(NO_RECEIPT)).toBe(true);
     expect(markableOf(HELD)).toBe(false);
@@ -122,6 +138,33 @@ describe('the weeks Schedule offers', () => {
     expect(options[3].label).toBe('Nov 23 – 29 (2026-W48)');
     // A preview holds no real week, and the other way round.
     expect(weekOptionsOf(boardOf({ preview: true }))[0].taken).toBe(false);
+  });
+
+  it('with no heads-up, starts at next week even once scheduling with it has closed', () => {
+    // Thursday: next week (W45) is inside the heads-up's 97 hours, so with it the first open week is W46.
+    const board = boardOf({
+      upcoming: [],
+      live: [],
+      nextWeek: {
+        week: '2026-W45',
+        startsAt: '2026-11-02T00:00:00.000Z',
+        endsAt: '2026-11-09T00:00:00.000Z',
+        closesAt: '2026-10-28T23:00:00.000Z',
+      },
+      firstOpenWeek: {
+        week: '2026-W46',
+        startsAt: '2026-11-09T00:00:00.000Z',
+        endsAt: '2026-11-16T00:00:00.000Z',
+        closesAt: '2026-11-04T23:00:00.000Z',
+      },
+    });
+    expect(weekOptionsOf(board)[0].week).toBe('2026-W46');
+    const off = weekOptionsOf(board, { headsUp: false });
+    expect(off.slice(0, 2).map(({ week, label }) => [week, label])).toEqual([
+      ['2026-W45', 'Nov 2 – 8 (2026-W45)'],
+      ['2026-W46', 'Nov 9 – 15 (2026-W46)'],
+    ]);
+    expect(off).toHaveLength(8);
   });
 });
 
@@ -209,7 +252,9 @@ describe('the board', () => {
     const board = boardOf({ live: [], upcoming: [] });
     const empty = render(<AdminBoard state={{ board, notice: null, check: null }} />);
     expect(empty).toContain('Pick from the shortlist');
-    expect(empty).toContain('Schedule one by Oct 28 so the maintainer gets 4 days to opt out.');
+    expect(empty).toContain(
+      'Schedule one by Oct 28 so the maintainer gets 4 days to opt out, or with no heads-up until the week starts.',
+    );
     expect(empty).toContain('No hero this week');
   });
 });

@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { answerBy, jsonResponse, NOT_FOUND_ANSWER, sentOf } from './__fixtures__/api';
-import { boardOf } from './__fixtures__/board';
+import { boardOf, slotOf } from './__fixtures__/board';
 
 const { auth, signedFetch } = vi.hoisted(() => ({ auth: vi.fn(), signedFetch: vi.fn() }));
 vi.mock('server-only', () => ({}));
@@ -130,6 +130,30 @@ describe('/admin/unsung-hero for the admin', () => {
     expect(html).not.toMatch(/href="[^"]*intent=/);
     const intents = [...html.matchAll(/name="intent" value="([^"]+)"/g)].map(([, intent]) => intent);
     expect(new Set(intents)).toEqual(new Set(['cancel']));
+  });
+
+  it('asks the API which slots have no heads-up, and what a check refuses without one', async () => {
+    await render();
+    const { query } = JSON.parse(String((signedFetch.mock.calls[0][1] as RequestInit).body)) as { query: string };
+    expect(query).toContain('noHeadsUp');
+    expect(query).toContain('refusalsWithoutHeadsUp');
+  });
+
+  it('says how scheduling closes with the heads-up and with none', async () => {
+    const { html } = (await render()) as { html: string };
+    expect(html).toContain('With the heads-up, scheduling for a week closes 97 hours before it starts');
+    expect(html).toContain('With no heads-up, a week can be scheduled until it starts');
+  });
+
+  it('marks a slot with no heads-up in the Weeks list, and lets it be cancelled while live', async () => {
+    const quiet = slotOf({ id: '6721a0f0c0ffee0000000020', status: 'LIVE', noHeadsUp: true, headsUp: null });
+    answerBy(signedFetch, {
+      UnsungHeroAdmin: () => jsonResponse({ data: { unsungHeroAdmin: boardOf({ live: [quiet], upcoming: [] }) } }),
+    });
+    const { html } = (await render()) as { html: string };
+    expect(html).toContain('No heads-up: the maintainer gets no email before the week');
+    expect(html).toMatch(/<button(?![^>]*disabled="")[^>]*>Cancel<\/button>/);
+    expect(html).toContain(`name="id" value="${quiet.id}"`);
   });
 
   it('puts Skip and Mark notified behind a confirm step: their buttons on the board post nothing', async () => {

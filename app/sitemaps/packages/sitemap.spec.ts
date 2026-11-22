@@ -14,8 +14,8 @@ describe('package-page sitemap', () => {
     vi.mocked(fetchPackagesForSitemap).mockReset().mockResolvedValue([]);
   });
 
-  it('has ten parts a registry: npm 0–9, PyPI 10–19', async () => {
-    expect(await generateSitemaps()).toHaveLength(20);
+  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29', async () => {
+    expect(await generateSitemaps()).toHaveLength(30);
   });
 
   it("lists each package's page at its canonical address, a scoped name as @scope/name", async () => {
@@ -58,8 +58,17 @@ describe('package-page sitemap', () => {
     expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Pypi, 2);
   });
 
-  it('reads no part outside 0–19', async () => {
-    expect(await part('20')).toEqual([]);
+  it("lists a Go module's page under its registry, its path kept as written, from the parts after PyPI's", async () => {
+    vi.mocked(fetchPackagesForSitemap).mockResolvedValue(['github.com/BurntSushi/toml']);
+
+    expect((await part('23')).map(({ url }) => url)).toEqual([
+      'https://example.test/package/go/github.com/BurntSushi/toml',
+    ]);
+    expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Go, 3);
+  });
+
+  it('reads no part outside 0–29', async () => {
+    expect(await part('30')).toEqual([]);
     expect(await part('x')).toEqual([]);
     expect(fetchPackagesForSitemap).not.toHaveBeenCalled();
   });

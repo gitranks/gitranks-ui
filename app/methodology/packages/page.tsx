@@ -40,13 +40,17 @@ function listOf(items: readonly string[]): string {
 const WEEKLY = labelsOf('week');
 const MONTHLY = labelsOf('month');
 const UNCOUNTED = labelsOf(null);
+/** One registry or several: "Go publishes … it has", "Go and Maven Central publish … they have". */
+const UNCOUNTED_ONE = REGISTRY_IDS.filter((id) => registryOf(id).downloads === null).length === 1;
 
 /** What each ranking ranks by, and what its change column compares. */
 const RANKINGS: Record<(typeof PACKAGE_RANKING_ORDER_LIST)[number], { ranksBy: string; change: string }> = {
   downloads: {
     ranksBy: [
       `Downloads over 7 days on ${WEEKLY}, and over the last whole calendar month on ${MONTHLY}; the ranking says which days it counts.`,
-      UNCOUNTED ? ` ${UNCOUNTED} publish no download counts, so they have no downloads ranking.` : '',
+      UNCOUNTED
+        ? ` ${UNCOUNTED} ${UNCOUNTED_ONE ? 'publishes' : 'publish'} no download counts, so ${UNCOUNTED_ONE ? 'it has' : 'they have'} no downloads ranking.`
+        : '',
     ].join(''),
     change: 'Against the 7 days before',
   },

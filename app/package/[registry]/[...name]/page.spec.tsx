@@ -46,6 +46,7 @@ describe('a package page', () => {
     expect(await generateStaticParams()).toEqual([
       { registry: 'npm', name: ['react'] },
       { registry: 'pypi', name: ['requests'] },
+      { registry: 'go', name: ['github.com', 'gin-gonic', 'gin'] },
     ]);
   });
 

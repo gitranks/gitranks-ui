@@ -42,9 +42,9 @@ describe('PackageRankingFrame', () => {
       'Rank is based on the stars of every repository with 100+ stars that uses the package directly, added up.',
     );
     expect(html).toMatch(/<form aria-label="Go to a package"/);
-    expect(text).toContain('Package rankings are new. For now we rank npm and PyPI packages only');
+    expect(text).toContain('Package rankings are new. For now we rank npm, PyPI and Go packages only');
     expect(text).toContain('that list the package in their own package.json.');
-    expect(text).toContain('Registry:npmPyPI');
+    expect(text).toContain('Registry:npmPyPIGo');
     expect(html).toContain('href="/methodology/packages"');
     expect(html).toContain('<p>page</p>');
   });

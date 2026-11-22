@@ -20,40 +20,21 @@ import { isImpossibleEntityPath } from '@/lib/routing/entity-routes';
 import { isInvalidRankingPath } from '@/lib/routing/ranking-routes';
 import { packagePath } from '@/utils/package-paths';
 
-// The site lists npm and PyPI. These checks add a third registry to the table, one with no download counts whose names
-// take two segments joined by `:`, to show what the table drives for a registry unlike both: no downloads ranking or
-// badges, two segments a name, and its own separator.
+// Maven Central is unlike npm in every way the table drives: no download counts (so no downloads ranking or badges),
+// two segments a name, joined by `:` in the name and by `/` in the address. These checks follow it through the site.
 
-const { SECOND } = vi.hoisted(() => ({
-  SECOND: {
-    label: 'Maven Central',
-    article: 'a',
-    api: 'MAVEN',
-    pageUrl: (name: string) => `https://registry.example/artifact/${name.replace(':', '/')}`,
-    pageUrlPrefix: /^(?:https?:\/\/)?registry\.example\/artifact\//i,
-    isName: (name: string) => /^[\w.-]+:[\w.-]+$/.test(name),
-    canonicalName: (name: string) => name,
-    nameMaxLength: 500,
-    path: { min: 2, max: 2, join: ':' },
-    downloads: null,
-    manifest: 'pom.xml',
-    examples: ['org.slf4j:slf4j-api'],
-    nameHint: 'group:artifact',
-  },
-}));
-
+// Every row of the table listed, as once these registries go live (the site lists npm and PyPI until then).
 vi.mock('@/lib/packages/registries', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/packages/registries')>();
-  (actual.REGISTRIES as Record<string, unknown>).maven = SECOND;
-  actual.REGISTRY_IDS.push('maven' as RegistryId);
+  actual.REGISTRY_IDS.splice(0, actual.REGISTRY_IDS.length, ...actual.ALL_REGISTRY_IDS);
   return actual;
 });
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
-const maven = 'maven' as RegistryId;
+const maven: RegistryId = 'maven';
 
-describe('a third registry in the table', () => {
+describe('a registry with no download counts and two-part names: Maven Central', () => {
   it('reads its names from their segments, joined by its own separator, and writes them back', () => {
     expect(parsePackageParams('maven', ['org.slf4j', 'slf4j-api'])).toEqual({
       registry: 'maven',
@@ -102,12 +83,15 @@ describe('a third registry in the table', () => {
   });
 
   it('names every listed registry in the Beta notice, and the files of the page’s own', () => {
-    expect(registryLabelList()).toBe('npm, PyPI and Maven Central');
-    expect(renderToStaticMarkup(<PackageBetaNotice />)).toContain('<b>npm, PyPI and Maven Central packages only</b>');
+    const listed = 'npm, PyPI, Go, crates.io, pub.dev, Packagist and Maven Central';
+    expect(registryLabelList()).toBe(listed);
+    expect(renderToStaticMarkup(<PackageBetaNotice />)).toContain(`<b>${listed} packages only</b>`);
     expect(renderToStaticMarkup(<PackageBetaNotice />)).toContain(
-      'in their own package.json, requirements.txt, pyproject.toml or pom.xml.',
+      'in their own package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml, pubspec.yaml, composer.json, pom.xml or build.gradle.',
     );
-    expect(renderToStaticMarkup(<PackageBetaNotice registry={maven} />)).toContain('in their own pom.xml.');
+    expect(renderToStaticMarkup(<PackageBetaNotice registry={maven} />)).toContain(
+      'in their own pom.xml or build.gradle.',
+    );
   });
 
   it('offers no downloads badge for it', () => {
@@ -123,16 +107,20 @@ describe('a third registry in the table', () => {
 
   it('takes its page address and `<registry>:` in the badge builder', () => {
     expect(parsePackageSearch('maven:org.slf4j:slf4j-api')).toBe('maven/org.slf4j:slf4j-api');
-    expect(parsePackageSearch('https://registry.example/artifact/org.slf4j:slf4j-api')).toBe(
+    expect(parsePackageSearch('https://central.sonatype.com/artifact/org.slf4j/slf4j-api/2.0.9')).toBe(
       'maven/org.slf4j:slf4j-api',
     );
+    expect(parsePackageSearch('https://mvnrepository.com/artifact/com.google.guava/guava')).toBe(
+      'maven/com.google.guava:guava',
+    );
+    expect(parsePackageSearch('maven:org.slf4j:slf4j-api:2.0.9')).toBe('maven/org.slf4j:slf4j-api');
     expect(parsePackageSearch('react')).toBe('npm/react');
   });
 
   it('keys the Used by filter and Follow by registry and name, so one name on two registries is two packages', () => {
     const onBoth = [
       { registry: 'NPM' as const, name: 'slf4j' },
-      { registry: 'MAVEN' as RepoPackage['registry'], name: 'slf4j' },
+      { registry: 'MAVEN' as const, name: 'slf4j' },
     ];
     expect(filterOptionsOf(onBoth)).toEqual([
       { value: 'npm/slf4j', name: 'slf4j', registryLabel: 'npm' },
@@ -144,7 +132,7 @@ describe('a third registry in the table', () => {
 
   it('says nothing about downloads on Used by for a registry without download counts', () => {
     const pkg: RepoPackage = {
-      registry: 'MAVEN' as RepoPackage['registry'],
+      registry: 'MAVEN',
       name: 'org.slf4j:slf4j-api',
       dependents: 0,
       downloadsLastWeek: 0,
@@ -165,7 +153,7 @@ describe('a third registry in the table', () => {
 
   it("names each package's registry on a repository whose packages are on both", () => {
     const pkg: RepoPackage = {
-      registry: 'MAVEN' as RepoPackage['registry'],
+      registry: 'MAVEN',
       name: 'org.slf4j:slf4j-api',
       dependents: 3,
       downloadsLastWeek: 0,

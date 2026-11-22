@@ -23,7 +23,13 @@ type RankingHeaderSectionProps = {
   subtitle: ReactNode;
 };
 
-/** A ranking's title, its "Rank by" switch (after any others), and the line on what the rank is based on. */
+/** How many options a switch holds before it may run onto more lines on a narrow screen (the registries, once many). */
+const WRAP_FROM = 4;
+
+/**
+ * A ranking's title, its "Rank by" switch (after any others), and the line on what the rank is based on. A switch with
+ * many options wraps on a narrow screen.
+ */
 export const RankingHeaderSection: FC<RankingHeaderSectionProps> = ({
   title,
   pill,
@@ -31,29 +37,37 @@ export const RankingHeaderSection: FC<RankingHeaderSectionProps> = ({
   optionsLabel,
   switches = [],
   subtitle,
-}) => (
-  <>
-    <div className="flex items-center justify-between gap-4 flex-wrap">
-      {pill ? (
-        <div className="flex items-center gap-2">
+}) => {
+  const wraps = switches.some((switcher) => switcher.options.length >= WRAP_FROM);
+  return (
+    <>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        {pill ? (
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">{title}</h1>
+            {pill}
+          </div>
+        ) : (
           <h1 className="text-2xl font-semibold">{title}</h1>
-          {pill}
+        )}
+
+        <div className={wraps ? 'flex min-w-0 flex-wrap gap-4' : 'flex gap-4'}>
+          {switches.map((switcher) => (
+            <RankingTypeSwitcher
+              key={switcher.label}
+              options={switcher.options}
+              label={switcher.label}
+              wrap={switcher.options.length >= WRAP_FROM}
+            />
+          ))}
+          <RankingTypeSwitcher options={options} label={optionsLabel} />
         </div>
-      ) : (
-        <h1 className="text-2xl font-semibold">{title}</h1>
-      )}
-
-      <div className="flex gap-4">
-        {switches.map((switcher) => (
-          <RankingTypeSwitcher key={switcher.label} options={switcher.options} label={switcher.label} />
-        ))}
-        <RankingTypeSwitcher options={options} label={optionsLabel} />
       </div>
-    </div>
 
-    <div className="text-sm text-muted-foreground">{subtitle}</div>
-  </>
-);
+      <div className="text-sm text-muted-foreground">{subtitle}</div>
+    </>
+  );
+};
 
 type DeveloperRankingHeaderSectionProps = {
   rankingType: RankingTypeClient;

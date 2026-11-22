@@ -11,6 +11,7 @@ import { tierTextClass } from '@/components/tier-chip/tier-chip';
 import { TierIcon } from '@/components/tier-icon/tier-icon';
 import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries';
 import { fetchRankedCounts } from '@/graphql/helpers/fetch-ranked-counts';
+import { registryLabelList } from '@/lib/packages/registries';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
 import { CountrySummaryOrder } from '@/types/generated/graphql';
@@ -173,8 +174,9 @@ export default function MethodologyPage() {
             they own. <Link href="/orgs/1">Browse organization rankings</Link>.
           </p>
           <p>
-            <strong>Package rankings</strong> rank npm and PyPI packages by downloads and by the GitHub repositories
-            that use them. <Link href={PACKAGE_METHODOLOGY_PATH}>How package rankings work</Link>.
+            <strong>Package rankings</strong> rank packages from {registryLabelList()} by the GitHub repositories that
+            use them, and by downloads where the registry counts them.{' '}
+            <Link href={PACKAGE_METHODOLOGY_PATH}>How package rankings work</Link>.
           </p>
         </Section>
 

@@ -24,4 +24,16 @@ describe('packageNameOfInput', () => {
       expect(packageNameOfInput(input, 'npm'), input).toBeNull();
     }
   });
+
+  it("takes each registry's names by its own rule, in the spelling the site's addresses use", () => {
+    expect(packageNameOfInput('Serde-JSON', 'crates')).toBe('serde_json');
+    expect(packageNameOfInput('Laravel/Framework', 'packagist')).toBe('laravel/framework');
+    expect(packageNameOfInput('Zope.Interface', 'pypi')).toBe('zope-interface');
+    expect(packageNameOfInput('github.com/BurntSushi/toml', 'go')).toBe('github.com/BurntSushi/toml');
+    expect(packageNameOfInput('org.slf4j:slf4j-api', 'maven')).toBe('org.slf4j:slf4j-api');
+    expect(packageNameOfInput('provider', 'pub')).toBe('provider');
+    expect(packageNameOfInput('Provider', 'pub')).toBeNull();
+    expect(packageNameOfInput('laravel', 'packagist')).toBeNull();
+    expect(packageNameOfInput('guava', 'maven')).toBeNull();
+  });
 });

@@ -3,7 +3,14 @@ import { formatMonth } from '@/app/package/[registry]/[...name]/utils/package-do
 import { DEPENDENT_MIN_STARS, packageRankingOf } from '@/app/packages/package-rankings';
 import { formatCount, formatDay } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import type { PackageDownloads, PackagePage, PackageRanks } from '@/graphql/package-page';
-import { DEFAULT_REGISTRY, REGISTRIES, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
+import {
+  DEFAULT_REGISTRY,
+  REGISTRIES,
+  type RegistryId,
+  registryHasDownloads,
+  registryOf,
+  spelledNameOf,
+} from '@/lib/packages/registries';
 import { RANKING_MAX_PAGE } from '@/lib/routing/ranking-routes';
 import { absoluteUrl } from '@/lib/seo/site';
 import { PACKAGE_METHODOLOGY_PATH, packagePath, packageRankingPath } from '@/utils/package-paths';
@@ -21,7 +28,11 @@ const plural = (count: number, one: string, many: string) => `${formatCount(coun
 /** "#12 by weekly downloads: <its ranking page>", for each rank the package has, in the rankings' order; a rank past
  * the pages a ranking lists has no link. */
 function rankLines(registry: RegistryId, ranks: PackageRanks | null | undefined): string[] {
-  const of = { downloads: ranks?.downloads, 'dependents-stars': ranks?.dependentsStars, dependents: ranks?.dependents };
+  const of = {
+    downloads: registryHasDownloads(registry) ? ranks?.downloads : null,
+    'dependents-stars': ranks?.dependentsStars,
+    dependents: ranks?.dependents,
+  };
   return Object.entries(of).flatMap(([order, rank]) => {
     if (!rank) return [];
     const page = Math.ceil(rank.rank / ITEMS_PER_PAGE);
@@ -64,12 +75,15 @@ export function packageMarkdownOf(pkg: PackagePage, registry: RegistryId): strin
       `- Latest version: ${pkg.latestVersion}${pkg.releaseCount ? ` (${plural(pkg.releaseCount, 'release', 'releases')})` : ''}`,
     pkg.license && `- License: ${oneLine(pkg.license)}`,
     pkg.deprecated && `- Deprecated: ${oneLine(pkg.deprecated)}`,
+    registryOf(registry).factsCredit && `- Facts from: ${registryOf(registry).factsCredit?.url}`,
   ];
   const usage = [
     pkg.dependentsCount > 0
       ? `- Used by ${plural(pkg.dependentsCount, 'public repository', 'public repositories')} with ${DEPENDENT_MIN_STARS}+ stars (${plural(pkg.dependentsStars, 'star', 'stars')} between them), each listing it in its own ${manifest}.`
       : `- No public repository with ${DEPENDENT_MIN_STARS}+ stars lists it in its own ${manifest} yet.`,
-    pkg.downloads && downloadsLine(registry, pkg.downloads),
+    registryHasDownloads(registry)
+      ? pkg.downloads && downloadsLine(registry, pkg.downloads)
+      : `- Downloads: ${REGISTRIES[registry].label} publishes no download counts.`,
     readOn && `- Dependents last read: ${readOn}.`,
   ];
   const ranks = rankLines(registry, pkg.ranks);

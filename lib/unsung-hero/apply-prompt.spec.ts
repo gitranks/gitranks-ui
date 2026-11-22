@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { APPLY_RULES, applyPromptOf, applyRulesOf, registryLabelOf, registryNamesOf } from './apply-prompt';
+import { ALL_REGISTRY_IDS, REGISTRIES as REGISTRIES_TABLE } from '@/lib/packages/registries';
 
 const REGISTRIES = [
   { id: 'NPM', label: 'npm' },
@@ -34,6 +35,16 @@ describe('Heavily used, by the registries listed', () => {
     expect(first([...REGISTRIES, { id: 'MAVEN', label: 'Maven Central' }])).toContain(
       'For Go and Maven Central, which publish no download counts',
     );
+  });
+
+  it("reads which registries count no downloads from the site's registry table, not a list of its own", () => {
+    // The API names the registries heroes come from: every row of the table, the site showing it yet or not.
+    const listed = ALL_REGISTRY_IDS.map((id) => ({ id: REGISTRIES_TABLE[id].api, label: REGISTRIES_TABLE[id].label }));
+    expect(first(listed)).toContain('For Go and Maven Central, which publish no download counts');
+    // A registry the table does not list is not said to have none.
+    expect(first([{ id: 'NUGET', label: 'NuGet' }])).toBe('Among the most downloaded packages in its registry.');
+    // One the table counts downloads for, however the API names it, is not either.
+    expect(first([{ id: 'CRATES', label: 'crates.io' }])).toBe('Among the most downloaded packages in its registry.');
   });
 
   it('says nothing of them when none is listed', () => {

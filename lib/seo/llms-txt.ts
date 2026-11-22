@@ -8,18 +8,19 @@ import { packageRankingPath } from '@/utils/package-paths';
 export const LLMS_TXT_LESSONS = 20;
 
 /**
- * A registry's lines in the packages section: its rankings (by downloads in its own unit), the address of a package's
- * page, with the spelling of its name there where the registry takes several as one, and of its facts.
+ * A registry's lines in the packages section: its rankings (by downloads in its own unit; by dependents alone where it
+ * publishes no download counts), the address of a package's page, with the form of its name there (`{groupId}/
+ * {artifactId}`) and its spelling where the registry takes several as one, and of its facts.
  */
 function registryPackageLines(registry: RegistryId, url: (path: string) => string): string[] {
-  const { article, label, downloads, nameInAddress } = registryOf(registry);
+  const { article, label, downloads, nameInAddress, addressPattern = '{name}' } = registryOf(registry);
   const first = downloads ? 'downloads' : 'dependents-stars';
   const rankedBy = `${downloads ? `${DOWNLOADS_UNIT_TEXT[downloads].adjective} downloads, by ` : ''}the stars of the repositories that use them, and by how many do`;
-  const name = nameInAddress ? ` ({name} ${nameInAddress})` : '';
+  const name = nameInAddress ? ` (${addressPattern} ${nameInAddress})` : '';
   return [
-    `- [${label} package rankings](${url(packageRankingPath(first, 1, registry))}): ${label} packages ranked by ${rankedBy}. Beta.`,
-    `- Package page: ${url(`/package/${registry}/{name}`)}${name} — who uses ${article} ${label} package: every repository with 100+ stars that depends on it directly, with ${downloads ? 'downloads and ' : ''}ranks.`,
-    `- Package facts in markdown: ${url(`/package/${registry}/{name}/facts.md`)} — the same as the package page, for agents: dependents${downloads ? ', downloads' : ''} and ranks, each with its link.`,
+    `- [${label} package rankings](${url(packageRankingPath(first, 1, registry))}): ${label} packages ranked by ${rankedBy}. Beta.${downloads ? '' : ` ${label} publishes no download counts.`}`,
+    `- Package page: ${url(`/package/${registry}/${addressPattern}`)}${name} — who uses ${article} ${label} package: every repository with 100+ stars that depends on it directly, with ${downloads ? 'downloads and ' : ''}ranks.`,
+    `- Package facts in markdown: ${url(`/package/${registry}/${addressPattern}/facts.md`)} — the same as the package page, for agents: dependents${downloads ? ', downloads' : ''} and ranks, each with its link.`,
   ];
 }
 

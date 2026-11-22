@@ -1,5 +1,5 @@
 import type { IconType } from 'react-icons';
-import { SiNpm, SiPypi } from 'react-icons/si';
+import { SiApachemaven, SiDart, SiGo, SiNpm, SiPackagist, SiPypi, SiRust } from 'react-icons/si';
 
 import type { RegistryId } from '@/lib/packages/registries';
 
@@ -10,4 +10,9 @@ import type { RegistryId } from '@/lib/packages/registries';
 export const REGISTRY_ICONS = {
   npm: SiNpm,
   pypi: SiPypi,
+  go: SiGo,
+  crates: SiRust,
+  pub: SiDart,
+  packagist: SiPackagist,
+  maven: SiApachemaven,
 } as const satisfies Record<RegistryId, IconType>;

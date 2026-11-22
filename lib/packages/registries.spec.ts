@@ -3,14 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { NPM_NAME_MAX_LENGTH } from './npm-package-name';
 import { foldPypiName, isPypiProjectName, PYPI_NAME_MAX_LENGTH } from './pypi-project-name';
 import {
+  ALL_REGISTRY_IDS,
   anyRegistryPackageText,
   apiRegistryOf,
   canonicalNameOf,
   DEFAULT_REGISTRY,
   downloadsCountOf,
+  isListedApiRegistry,
   isNameSegmentCount,
   isPackageName,
   isRegistryId,
+  isRegistryRow,
+  LISTED_REGISTRIES,
   nameOfSegments,
   packageDisplayNameOf,
   packageKeyOf,
@@ -22,6 +26,7 @@ import {
   registryLabelList,
   registryManifestList,
   registryOfApi,
+  registryRowOfApi,
   segmentsOfName,
 } from './registries';
 import { PackageRegistry } from '@/types/generated/graphql';
@@ -39,8 +44,21 @@ describe('the registry table', () => {
     expect(registryOfApi(null)).toBeNull();
   });
 
-  it("names every registry the API's enum has, and no other", () => {
-    expect(REGISTRY_IDS.map((id) => REGISTRIES[id].api).sort()).toEqual(Object.values(PackageRegistry).sort());
+  it("has a row for every registry the API's enum has, and no other", () => {
+    expect(ALL_REGISTRY_IDS.map((id) => REGISTRIES[id].api).sort()).toEqual(Object.values(PackageRegistry).sort());
+  });
+
+  it('shows the registries its list names, in the order of the table: npm and PyPI for now', () => {
+    expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi']);
+    expect(ALL_REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi']);
+    // A row not listed yet: the table knows it, nothing a visitor reaches does.
+    expect(isRegistryRow('go')).toBe(true);
+    expect(isRegistryId('go')).toBe(false);
+    expect(registryRowOfApi('GO')).toBe('go');
+    expect(registryOfApi('GO')).toBeNull();
+    expect(isListedApiRegistry('MAVEN')).toBe(false);
+    expect(isRegistryRow('cargo')).toBe(false);
   });
 
   it("keeps npm's traits: its page, its names, its two segments, its weekly downloads", () => {

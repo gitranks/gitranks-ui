@@ -3565,7 +3565,12 @@ export enum PackageRankingType {
 }
 
 export enum PackageRegistry {
+  Crates = 'CRATES',
+  Go = 'GO',
+  Maven = 'MAVEN',
   Npm = 'NPM',
+  Packagist = 'PACKAGIST',
+  Pub = 'PUB',
   Pypi = 'PYPI'
 }
 

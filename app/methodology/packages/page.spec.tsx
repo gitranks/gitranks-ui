@@ -32,7 +32,12 @@ describe('how package rankings work', () => {
     expect(text).toContain(
       "Its downloads come from PyPI's public download statistics, counted one calendar month at a time",
     );
-    expect(text).toContain('Its dependents come from the dependency files GitHub reports for each repository.');
+    expect(text).toContain(
+      'lists the package in a dependency file of its own, as GitHub reports them: package.json for npm and requirements.txt or pyproject.toml for PyPI.',
+    );
+    // A registry the site does not show yet has no paragraph and no link.
+    expect(text).not.toContain('Maven Central');
+    expect(html).not.toContain('href="/packages/go/');
     expect(text).toContain('Zope.Interface, zope.interface and zope-interface as one name');
     expect(text).toContain('npm: vs last week, against the 7 days before. PyPI: vs the month before.');
     expect(text).toContain('This month: against the monthly read before');

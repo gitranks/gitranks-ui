@@ -27,7 +27,7 @@ import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { Button } from '@/components/ui/button';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages, RepoUsedBy } from '@/graphql/repo-packages';
-import { DOWNLOADS_UNIT_TEXT, REGISTRIES, REGISTRY_IDS, spelledNameOf } from '@/lib/packages/registries';
+import { DEFAULT_REGISTRY, DOWNLOADS_UNIT_TEXT, REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 type UsedByScreenProps = {
@@ -42,13 +42,16 @@ type UsedByScreenProps = {
 
 /**
  * "from npm, weekly", "from npm, weekly, and from PyPI, monthly": where the downloads the tab shows come from and how
- * often each is counted, for the registries of the repository's packages that count them (those counted by the week
- * while its packages are not known).
+ * often each is counted, for the registries of the repository's packages that count them (the default registry while
+ * its packages are not known); `null` when none of them counts downloads.
  */
-function downloadsFromText(packages: RepoPackages | null): string {
+function downloadsFromText(packages: RepoPackages | null): string | null {
   const listed = packages ? [...new Set(packages.items.map(registryOfRepoPackage))] : [];
   const counted = listed.filter((id) => REGISTRIES[id].downloads);
-  const ids = counted.length ? counted : REGISTRY_IDS.filter((id) => REGISTRIES[id].downloads === 'week');
+  // Packages on registries that publish no download counts (Go, Maven Central): nothing is said of downloads.
+  if (listed.length && !counted.length) return null;
+  // Packages not known (they could not be read): the default registry's, as the tab always said.
+  const ids = counted.length ? counted : [DEFAULT_REGISTRY];
   return (['week', 'month'] as const)
     .flatMap((unit) => {
       const labels = ids.filter((id) => REGISTRIES[id].downloads === unit).map((id) => REGISTRIES[id].label);
@@ -57,8 +60,10 @@ function downloadsFromText(packages: RepoPackages | null): string {
     .join(', and ');
 }
 
-const introOf = (packages: RepoPackages | null) =>
-  `Repositories with 100+ stars that depend directly on a package this repository publishes. Forks, lockfiles and example folders don't count. Read monthly; downloads ${downloadsFromText(packages)}.`;
+function introOf(packages: RepoPackages | null): string {
+  const from = downloadsFromText(packages);
+  return `Repositories with 100+ stars that depend directly on a package this repository publishes. Forks, lockfiles and example folders don't count. Read monthly${from ? `; downloads ${from}` : ''}.`;
+}
 
 const Heading: FC<{ packages: RepoPackages | null }> = ({ packages }) => (
   <div className="flex flex-col gap-1">

@@ -1,6 +1,12 @@
 import { parse } from 'graphql';
 
-import type { HeroActionResult, HeroBoard, HeroLiveCheckResult, HeroScheduleInput } from './admin.types';
+import type {
+  HeroActionResult,
+  HeroApplicationActionResult,
+  HeroBoard,
+  HeroLiveCheckResult,
+  HeroScheduleInput,
+} from './admin.types';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
@@ -39,6 +45,21 @@ const WEEK = 'week startsAt endsAt closesAt';
 
 const ACTION = `ok refusal slot { ${SLOT} }`;
 
+const APPLICATION = `
+  id status
+  applicant { login owned }
+  package { ${PACKAGE} }
+  typed
+  repo { githubId nameWithOwner }
+  note
+  misses { ${MISS} }
+  stars downloads downloadsPer dependents
+  owner { githubId login type followers hasEmail }
+  sentAt decidedAt decidedBy
+  slot { id week startsAt status }
+  liveCheck { ${LIVE_CHECK} }
+`;
+
 export const UnsungHeroAdminDocument = doc<{ unsungHeroAdmin: HeroBoard | null }>(
   `query UnsungHeroAdmin {
     unsungHeroAdmin {
@@ -59,6 +80,12 @@ export const UnsungHeroAdminDocument = doc<{ unsungHeroAdmin: HeroBoard | null }
       shortlistBuiltAt
       past { ${SLOT} }
       optOuts { maintainerGithubId login at }
+      applications {
+        inReview { ${APPLICATION} }
+        scheduled { ${APPLICATION} }
+        notPicked { ${APPLICATION} }
+      }
+      applicationCounts { inReview scheduled notPicked }
     }
   }`,
 );
@@ -71,10 +98,10 @@ export const UnsungHeroSkipDocument = doc<{ unsungHeroSkip: HeroActionResult | n
 
 export const UnsungHeroLiveCheckDocument = doc<
   { unsungHeroLiveCheck: HeroLiveCheckResult | null },
-  { repoGithubId: string; packageName: string | null }
+  { repoGithubId: string; packageName: string | null; applicationId?: string }
 >(
-  `mutation UnsungHeroLiveCheck($repoGithubId: String!, $packageName: String) {
-    unsungHeroLiveCheck(repoGithubId: $repoGithubId, packageName: $packageName) {
+  `mutation UnsungHeroLiveCheck($repoGithubId: String!, $packageName: String, $applicationId: ID) {
+    unsungHeroLiveCheck(repoGithubId: $repoGithubId, packageName: $packageName, applicationId: $applicationId) {
       refusal
       check { ${LIVE_CHECK} }
     }
@@ -99,5 +126,14 @@ export const UnsungHeroCancelDocument = doc<{ unsungHeroCancel: HeroActionResult
 export const UnsungHeroMarkNotifiedDocument = doc<{ unsungHeroMarkNotified: HeroActionResult | null }, { id: string }>(
   `mutation UnsungHeroMarkNotified($id: ID!) {
     unsungHeroMarkNotified(id: $id) { ${ACTION} }
+  }`,
+);
+
+export const UnsungHeroApplicationNotPickedDocument = doc<
+  { unsungHeroApplicationNotPicked: HeroApplicationActionResult | null },
+  { id: string }
+>(
+  `mutation UnsungHeroApplicationNotPicked($id: ID!) {
+    unsungHeroApplicationNotPicked(id: $id) { ok refusal application { ${APPLICATION} } }
   }`,
 );

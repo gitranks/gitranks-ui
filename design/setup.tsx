@@ -80,6 +80,12 @@ vi.mock('@/lib/workspace/actions', async () => (await import('./inert')).inert()
 vi.mock('@/lib/workspace/issue-actions', async () => (await import('./inert')).inert());
 vi.mock('@/lib/workspace/start/start-page.actions', async () => (await import('./inert')).inert());
 vi.mock('@/lib/contribute/actions', async () => (await import('./inert')).inert());
+// Named: the apply page's lookup, send and cancel, never called on a board.
+vi.mock('@/app/unsung-heroes/apply/actions', () => ({
+  resolveApplyPackage: async () => ({ status: 'NOT_FOUND', packages: [] }),
+  sendApplication: async () => ({ ok: false, refusal: 'UNAVAILABLE', application: null }),
+  cancelApplication: async () => ({ ok: false, refusal: 'UNAVAILABLE', application: null }),
+}));
 // Named, with the one a form posts to: a form's action checks the export exists, which `inert()`'s proxy does not answer.
 vi.mock('@/lib/learn/actions', async () => ({
   ...Object.fromEntries(

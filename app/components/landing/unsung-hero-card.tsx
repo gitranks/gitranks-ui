@@ -8,7 +8,12 @@ import type { FC } from 'react';
 import { formatCompact, formatFull, GithubAvatar } from './landing-ui';
 import { Button } from '@/components/ui/button';
 import { heroUsageFigure } from '@/lib/unsung-hero/hero-usage';
-import { heroWeekLabel, UNSUNG_HEROES_PATH, type UnsungHero } from '@/lib/unsung-hero/unsung-hero';
+import {
+  heroWeekLabel,
+  UNSUNG_HERO_APPLY_PATH,
+  UNSUNG_HEROES_PATH,
+  type UnsungHero,
+} from '@/lib/unsung-hero/unsung-hero';
 import { reportHeroHit } from '@/lib/unsung-hero/use-unsung-hero';
 import { getRepoPath } from '@/utils/repo-paths';
 
@@ -16,6 +21,8 @@ import { getRepoPath } from '@/utils/repo-paths';
 export const HERO_CARD_ASK = 'Probably in your app too. A star is a free way to say thanks.';
 export const HERO_CARD_NOTE =
   'Our way to back lesser-known maintainers. Nobody pays to be here, nobody gets anything for starring.';
+/** Under the note: where a maintainer, or anyone, asks for a slot. */
+export const HERO_CARD_APPLY = 'Think your package belongs here? Tell us →';
 
 const avatarOf = (owner: string) => `https://avatars.githubusercontent.com/${encodeURIComponent(owner)}`;
 
@@ -75,7 +82,16 @@ export const UnsungHeroCard: FC<{ hero: UnsungHero }> = ({ hero }) => {
           since Monday
         </span>
       </div>
-      <p className="border-t pt-3 text-xs text-muted-foreground">{HERO_CARD_NOTE}</p>
+      <div className="flex flex-col gap-2 border-t pt-3 text-xs text-muted-foreground">
+        <p>{HERO_CARD_NOTE}</p>
+        <Link
+          href={UNSUNG_HERO_APPLY_PATH as Route}
+          prefetch={false}
+          className="self-start font-medium text-foreground hover:underline"
+        >
+          {HERO_CARD_APPLY}
+        </Link>
+      </div>
     </section>
   );
 };

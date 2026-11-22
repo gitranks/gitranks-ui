@@ -10,6 +10,7 @@ import { PROFILE_SCREENS } from './profile';
 import { RANKINGS_SCREENS } from './rankings';
 import { REPO_SCREENS } from './repo';
 import { START_SCREENS } from './start';
+import { UNSUNG_HERO_APPLY_SCREENS } from './unsung-hero-apply';
 import { WORKSPACE_SCREENS } from './workspace';
 import { WORKSPACE_LESSON_SCREENS } from './workspace-lesson';
 import { WORKSPACE_PART_SCREENS } from './workspace-parts';
@@ -17,6 +18,7 @@ import { WORKSPACE_PART_SCREENS } from './workspace-parts';
 /** Every screen in the catalogue, by area, in the order of `AREAS`. */
 export const SCREENS: Screen[] = [
   ...LANDING_SCREENS,
+  ...UNSUNG_HERO_APPLY_SCREENS,
   ...PROFILE_SCREENS,
   ...REPO_SCREENS,
   ...PACKAGE_SCREENS,

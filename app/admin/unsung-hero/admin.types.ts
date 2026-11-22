@@ -10,7 +10,13 @@ export type HeroMissCode =
   | 'LICENSE'
   | 'ADVISORY'
   | 'UNLINKED'
-  | 'NO_EMAIL';
+  | 'NO_EMAIL'
+  | 'LIGHT'
+  | 'NOT_FOUND'
+  | 'NO_REPO'
+  | 'FEATURED'
+  | 'OPTED_OUT'
+  | 'SKIPPED';
 
 export type HeroLiveOutcome = 'FOUND' | 'MISSING' | 'UNAVAILABLE';
 
@@ -36,6 +42,8 @@ export const HERO_REFUSALS = [
   'NOT_FOUND',
   'NOT_CANCELLABLE',
   'NOT_MARKABLE',
+  'OWNER_REMOVED',
+  'SKIPPED',
 ] as const;
 export type HeroRefusal = (typeof HERO_REFUSALS)[number];
 
@@ -159,6 +167,55 @@ export type HeroWeek = { week: string; startsAt: string; endsAt: string; closesA
 
 export type HeroOptOut = { maintainerGithubId: string; login: string; at: string };
 
+/** An application as the board lists it. `SCHEDULING`: the owner pressed Schedule and it has not finished. */
+export type HeroApplicationStatus = 'IN_REVIEW' | 'SCHEDULING' | 'SCHEDULED' | 'NOT_PICKED';
+
+export type HeroApplicationRow = HeroDownloads & {
+  id: string;
+  status: HeroApplicationStatus;
+  /** Who sent it, and whether they own the package's repository. */
+  applicant: { login: string; owned: boolean };
+  /** Null for a nomination we could not find: `typed` says what was asked. */
+  package: HeroPackage | null;
+  typed: string | null;
+  repo: { githubId: string; nameWithOwner: string } | null;
+  note: string | null;
+  /** The rules it misses, as of its facts. */
+  misses: HeroMiss[];
+  stars: number | null;
+  dependents: number | null;
+  owner: {
+    githubId: string | null;
+    login: string | null;
+    type: string | null;
+    followers: number | null;
+    hasEmail: boolean | null;
+  } | null;
+  sentAt: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
+  /** Its slot, once scheduled. */
+  slot: { id: string; week: string; startsAt: string; status: HeroStatus } | null;
+  liveCheck: HeroLiveCheck | null;
+};
+
+export type HeroApplications = {
+  /** All of them, oldest first. */
+  inReview: HeroApplicationRow[];
+  /** The open ones, then the newest closed. */
+  scheduled: HeroApplicationRow[];
+  /** The newest. */
+  notPicked: HeroApplicationRow[];
+};
+
+export type HeroApplicationCounts = { inReview: number; scheduled: number; notPicked: number };
+
+export type HeroApplicationActionResult = {
+  ok: boolean;
+  refusal: HeroRefusal | null;
+  application: HeroApplicationRow | null;
+};
+
 export type HeroBoard = {
   live: HeroSlot[];
   /** Scheduled and notified slots, soonest first. */
@@ -172,6 +229,8 @@ export type HeroBoard = {
   /** Ended, opted-out and cancelled slots, newest first. */
   past: HeroSlot[];
   optOuts: HeroOptOut[];
+  applications: HeroApplications;
+  applicationCounts: HeroApplicationCounts;
 };
 
 export type HeroActionResult = { ok: boolean; refusal: HeroRefusal | null; slot: HeroSlot | null };
@@ -187,4 +246,6 @@ export type HeroScheduleInput = {
   reason: string | null;
   text: string;
   headsUp: boolean;
+  /** Scheduled from an application: the application becomes Scheduled. */
+  applicationId?: string;
 };

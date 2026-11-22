@@ -1,9 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { answerBy, jsonResponse, NOT_FOUND_ANSWER, sentOf } from './__fixtures__/api';
-import { boardOf, CHECKED, liveCheckOf, NO_RECEIPT, NOT_TOLD, slotOf } from './__fixtures__/board';
+import {
+  APPLICATIONS,
+  boardOf,
+  boardWithApplications,
+  CHECKED,
+  liveCheckOf,
+  NO_RECEIPT,
+  NOT_TOLD,
+  slotOf,
+} from './__fixtures__/board';
 import type { HeroBoard } from './admin.types';
-import { REFUSAL_TEXT } from './admin-copy';
+import { APPLICATION_NOT_FOUND_TEXT, REFUSAL_TEXT } from './admin-copy';
 import type { AdminState } from './admin-state';
 
 const { auth, signedFetch } = vi.hoisted(() => ({ auth: vi.fn(), signedFetch: vi.fn() }));
@@ -221,6 +230,96 @@ describe('Cancel and Mark notified', () => {
   });
 });
 
+describe('Applications', () => {
+  const WITH = { board: boardWithApplications(), notice: null, check: null } satisfies AdminState;
+  const owner = APPLICATIONS.inReview[3];
+
+  it('a live check from an application names it, and the check is kept for its dialog alone', async () => {
+    const check = liveCheckOf({ package: { registry: 'NPM', name: 'tiny-clamp' } });
+    answers('UnsungHeroLiveCheck', 'unsungHeroLiveCheck', { refusal: null, check });
+    const state = await pressAdmin(
+      WITH,
+      form({ intent: 'live-check', repoGithubId: '310442211', packageName: 'tiny-clamp', applicationId: owner.id }),
+    );
+    expect(sentOf(signedFetch)[0].variables).toEqual({
+      repoGithubId: '310442211',
+      packageName: 'tiny-clamp',
+      applicationId: owner.id,
+    });
+    expect(state.check).toEqual({ repoGithubId: '310442211', applicationId: owner.id, check, refusal: null });
+  });
+
+  it('schedules from an application: the input names it', async () => {
+    const slot = slotOf({ status: 'SCHEDULED', repo: { ...slotOf().repo, nameWithOwner: 'octocat/tiny-clamp' } });
+    answers('UnsungHeroSchedule', 'unsungHeroSchedule', { ok: true, refusal: null, slot });
+    await pressAdmin(
+      WITH,
+      form({
+        intent: 'schedule',
+        repoGithubId: '310442211',
+        week: '2026-W46',
+        registry: 'NPM',
+        name: 'tiny-clamp',
+        line: 'Clamps every date picker',
+        text: 'Keeps a number in its range.',
+        headsUp: 'false',
+        applicationId: owner.id,
+      }),
+    );
+    expect(sentOf(signedFetch)[0].variables).toEqual({
+      input: expect.objectContaining({ repoGithubId: '310442211', headsUp: false, applicationId: owner.id }),
+    });
+  });
+
+  it('an application no longer in review says so in its own words', async () => {
+    answers('UnsungHeroSchedule', 'unsungHeroSchedule', { ok: false, refusal: 'NOT_FOUND', slot: null });
+    const state = await pressAdmin(
+      WITH,
+      form({
+        intent: 'schedule',
+        repoGithubId: '310442211',
+        week: '2026-W46',
+        registry: 'NPM',
+        name: 'tiny-clamp',
+        line: 'l',
+        text: 't',
+        applicationId: owner.id,
+      }),
+    );
+    expect(state.notice).toEqual({ intent: 'schedule', tone: 'refused', text: APPLICATION_NOT_FOUND_TEXT });
+  });
+
+  it('Not picked: by the application’s id, then the board again', async () => {
+    answers('UnsungHeroApplicationNotPicked', 'unsungHeroApplicationNotPicked', {
+      ok: true,
+      refusal: null,
+      application: { ...owner, status: 'NOT_PICKED' },
+    });
+    const state = await pressAdmin(WITH, form({ intent: 'not-picked', id: owner.id }));
+    expect(sentOf(signedFetch)[0]).toMatchObject({
+      operation: 'UnsungHeroApplicationNotPicked',
+      variables: { id: owner.id },
+      githubLogin: 'octocat',
+    });
+    expect(operations()).toEqual(['UnsungHeroApplicationNotPicked', 'UnsungHeroAdmin']);
+    expect(state.notice).toEqual({
+      intent: 'not-picked',
+      tone: 'done',
+      text: 'Not picked: octocat/tiny-clamp. They see it on their page and can apply again.',
+    });
+  });
+
+  it('Not picked refused: the application had moved on', async () => {
+    answers('UnsungHeroApplicationNotPicked', 'unsungHeroApplicationNotPicked', {
+      ok: false,
+      refusal: 'NOT_FOUND',
+      application: null,
+    });
+    const state = await pressAdmin(WITH, form({ intent: 'not-picked', id: owner.id }));
+    expect(state.notice).toEqual({ intent: 'not-picked', tone: 'refused', text: APPLICATION_NOT_FOUND_TEXT });
+  });
+});
+
 describe('a press that does not go through', () => {
   const cancel = form({ intent: 'cancel', id: NOT_TOLD.id });
 
@@ -274,6 +373,7 @@ describe('a press that does not go through', () => {
     [{ intent: 'publish', id: NOT_TOLD.id }],
     [{ intent: 'cancel', id: 'not an id!' }],
     [{ intent: 'skip' }],
+    [{ intent: 'not-picked', id: 'not an id!' }],
     [{ intent: 'schedule', repoGithubId: '1', week: '2026-W45' }],
     [{ intent: 'schedule', repoGithubId: '1', week: '2026-W45', name: 'a', line: 'l', text: 't' }],
     [{ intent: 'schedule', repoGithubId: '1', week: '2026-W45', registry: 'npm', name: 'a', line: 'l', text: 't' }],

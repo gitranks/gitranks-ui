@@ -143,6 +143,7 @@ const firstFreeOf = (options: WeekOption[]): string => options.find((option) => 
  */
 export function ScheduleDialog({
   candidate,
+  applicationId = null,
   lastCheck,
   notice,
   weeks,
@@ -152,6 +153,8 @@ export function ScheduleDialog({
   onClose,
 }: Readonly<{
   candidate: HeroCandidate;
+  /** Scheduling from an application: the live check is kept on it, and Schedule marks it Scheduled. */
+  applicationId?: string | null;
   /** This page's last live check of the candidate, if any: it alone greets the maintainer by name. */
   lastCheck: AdminCheck | null;
   notice: AdminNotice | null;
@@ -199,13 +202,15 @@ export function ScheduleDialog({
             <span className="font-normal text-muted-foreground">({registryLabel(candidate.package.registry)})</span>
           </DialogTitle>
           <DialogDescription>
-            A live check reads GitHub and the package now. Schedule needs one under 10 minutes old.
+            {applicationId ? 'From an application. ' : ''}A live check reads GitHub and the package now. Schedule needs
+            one under 10 minutes old.
           </DialogDescription>
         </DialogHeader>
 
         <form action={action} className="flex flex-wrap items-end gap-2">
           <input type="hidden" name="intent" value="live-check" />
           <input type="hidden" name="repoGithubId" value={candidate.repo.githubId} />
+          {applicationId && <input type="hidden" name="applicationId" value={applicationId} />}
           <div className="flex min-w-48 flex-1 flex-col gap-1.5">
             <Label htmlFor="hero-package">{registryLabel(candidate.package.registry)} package</Label>
             <Input
@@ -250,6 +255,7 @@ export function ScheduleDialog({
         <form action={action} className="flex flex-col gap-3">
           <input type="hidden" name="intent" value="schedule" />
           <input type="hidden" name="repoGithubId" value={candidate.repo.githubId} />
+          {applicationId && <input type="hidden" name="applicationId" value={applicationId} />}
           <input type="hidden" name="registry" value={check?.package.registry ?? candidate.package.registry} />
           <input type="hidden" name="name" value={check?.package.name ?? candidate.package.name} />
           <input type="hidden" name="headsUp" value={headsUp ? 'true' : 'false'} />

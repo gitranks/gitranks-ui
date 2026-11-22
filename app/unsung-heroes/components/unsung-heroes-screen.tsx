@@ -1,3 +1,6 @@
+import type { Route } from 'next';
+import Link from 'next/link';
+
 import {
   ARCHIVE_LEAD,
   ARCHIVE_PICK_NOTE,
@@ -10,6 +13,8 @@ import {
 import { Figure, HeroThisWeek, PastHeroRow } from './hero-parts';
 import { Header } from '@/components/header/header';
 import { JsonLd } from '@/components/json-ld/json-ld';
+import { Button } from '@/components/ui/button';
+import { UNSUNG_HERO_APPLY_PATH } from '@/lib/unsung-hero/unsung-hero';
 
 /** What the archive says while it cannot be read. */
 export const ARCHIVE_UNAVAILABLE_TEXT = 'Unsung heroes are not available right now. Try again in a few minutes.';
@@ -53,6 +58,17 @@ function HowWePick() {
         ))}
       </div>
       <p className="text-sm text-muted-foreground">{ARCHIVE_PICK_NOTE}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
+        <div className="flex flex-col gap-1">
+          <span className="font-medium">Think your package belongs here?</span>
+          <span className="text-sm text-muted-foreground">Tell us about it. It is free, and always will be.</span>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href={UNSUNG_HERO_APPLY_PATH as Route} prefetch={false}>
+            Apply for a slot
+          </Link>
+        </Button>
+      </div>
     </section>
   );
 }

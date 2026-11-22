@@ -43,22 +43,21 @@ describe("the home page's Learn section", () => {
   });
 });
 
-describe("the home page's one suggestion", () => {
-  it("is Contribute, then the visitors' Learn section, in the cached page, before anything is read", () => {
+describe("the home page's Learn suggestion", () => {
+  it("is the visitors' Learn section in the cached page, before anything is read, and no Contribute section", () => {
     const html = renderToStaticMarkup(<LandingPromos learnForVisitors={<LearnSectionView />} />);
-    expect(html).toContain('aria-labelledby="contribute"');
-    expect(html.indexOf('aria-labelledby="contribute"')).toBeLessThan(html.indexOf('data-learn-promo="visitor"'));
+    expect(html).toContain('data-learn-promo="visitor"');
+    expect(html).not.toContain('aria-labelledby="contribute"');
     expect(html).not.toContain('data-learn-promo="personal"');
   });
 
-  it("is Learn's alone, in Contribute's place, for a user it may suit", () => {
+  it("is Learn's own alone for a user it may suit", () => {
     const html = renderToStaticMarkup(<LandingPromos learnForVisitors={<LearnSectionView />} promo={landingPromo} />);
     expect(html).toContain('data-learn-promo="personal"');
-    expect(html).not.toContain('aria-labelledby="contribute"');
     expect(html).not.toContain('data-learn-promo="visitor"');
   });
 
-  it("shows the visitors' section to visitors alone, and not again once Learn is turned down", () => {
+  it("shows the visitors' section to visitors alone, and nothing once Learn is turned down", () => {
     const view = (signedIn: boolean, dismissed: boolean) =>
       renderToStaticMarkup(
         <LandingPromosView
@@ -70,8 +69,7 @@ describe("the home page's one suggestion", () => {
       );
     expect(view(false, false)).toContain('data-learn-promo="visitor"');
     for (const html of [view(true, false), view(false, true)]) {
-      expect(html).toContain('aria-labelledby="contribute"');
-      expect(html).not.toContain('data-learn-promo');
+      expect(html).toBe('');
     }
   });
 });

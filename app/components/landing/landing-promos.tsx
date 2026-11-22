@@ -3,7 +3,6 @@
 import { useSession } from 'next-auth/react';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 
-import { ContributeSection } from './contribute-section';
 import { LearnSectionView } from './learn-section';
 import { reportPromo } from '@/app/learn/components/use-promo-report';
 import { dismissLearnPromo } from '@/lib/learn/actions';
@@ -11,9 +10,9 @@ import type { ShownPromo } from '@/lib/learn/learn-promo';
 import { readLearnPromo } from '@/lib/learn/learn-promo-read';
 
 /**
- * The home page's one suggestion, as drawn: Learn's own section for a user it may suit (`promo`), in the Contribute
- * section's place; else Contribute's section, followed by Learn's for visitors (`learnForVisitors`) unless the viewer is
- * signed in (it is for visitors; a signed-in user it suits gets their own) or has just turned Learn down.
+ * The home page's Learn suggestion, as drawn: Learn's own section for a user it may suit (`promo`); else Learn's for
+ * visitors (`learnForVisitors`) unless the viewer is signed in (it is for visitors; a signed-in user it suits gets their
+ * own) or has just turned Learn down. Contribute's section is off the home page for now.
  */
 export const LandingPromosView: FC<{
   learnForVisitors: ReactNode;
@@ -23,18 +22,13 @@ export const LandingPromosView: FC<{
   onDismiss?: () => void;
 }> = ({ learnForVisitors, promo, signedIn, dismissed, onDismiss }) => {
   if (promo) return <LearnSectionView promo={promo} onDismiss={onDismiss} />;
-  return (
-    <>
-      <ContributeSection />
-      {signedIn || dismissed ? null : learnForVisitors}
-    </>
-  );
+  return signedIn || dismissed ? null : learnForVisitors;
 };
 
 /**
- * The home page's one suggestion: GitRanks Contribute's section, followed by `learnForVisitors` (Learn's section, the
- * same for everyone, rendered with the cached page). For a signed-in user Learn may suit, read in the browser after
- * the page, Learn's own suggestion takes the Contribute section's place. "Not for me" brings Contribute back.
+ * The home page's Learn suggestion: `learnForVisitors` (Learn's section, the same for everyone, rendered with the
+ * cached page), or, for a signed-in user Learn may suit, read in the browser after the page, Learn's own suggestion.
+ * "Not for me" hides it.
  * `promo`: the answer to draw with, instead of asking (the design catalogue).
  */
 export const LandingPromos: FC<{ learnForVisitors: ReactNode; promo?: ShownPromo }> = ({

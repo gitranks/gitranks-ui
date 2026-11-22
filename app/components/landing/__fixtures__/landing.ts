@@ -2,6 +2,7 @@ import type { LandingData } from '../landing-screen';
 import type { RankCardData } from '../rank-card.types';
 import { readmeContent } from '../readme-badges';
 import type { ReadmeShowcase } from '../readme-showcase';
+import { landingPackages } from './packages';
 import { NOW, orgBig, repoBig, userBig } from '@/badge/v3/fixtures';
 import { facts as pulseFacts } from '@/components/pulse/pulse.fixtures';
 import { countries, globalRankings } from '@/components/ranking-table/__fixtures__/global-rankings';
@@ -215,6 +216,7 @@ export const landingData: LandingData = {
   countryList: countries,
   repos,
   showcase,
+  packages: landingPackages,
 };
 
 /** The signed-in viewer's own card, as `/api/me/rank-card` returns it. */

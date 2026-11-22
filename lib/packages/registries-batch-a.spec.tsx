@@ -30,6 +30,12 @@ import { isImpossibleEntityPath } from '@/lib/routing/entity-routes';
 import { isInvalidRankingPath } from '@/lib/routing/ranking-routes';
 import { packagePath } from '@/utils/package-paths';
 
+// Every row of the table listed, as once these registries go live (the site lists npm and PyPI until then).
+vi.mock('@/lib/packages/registries', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/packages/registries')>();
+  actual.REGISTRY_IDS.splice(0, actual.REGISTRY_IDS.length, ...actual.ALL_REGISTRY_IDS);
+  return actual;
+});
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
 vi.mock('@/components/package-follow/follow-slot', () => ({ FollowSlot: () => null }));
 vi.mock('@/app/package/[registry]/[...name]/components/package-updates-button', () => ({
@@ -215,6 +221,41 @@ describe('a pasted page address or requirement, in the badge builder', () => {
       'maven/com.google.guava:guava',
     );
     expect(parsePackageSearch('pub:http: ^1.2.0')).toBe('pub/http');
+  });
+
+  it('reads both Gradle forms of a Maven coordinate, never joining the configuration to it', () => {
+    expect(parsePackageSearch('maven:implementation("com.google.guava:guava:33.0-jre")')).toBe(
+      'maven/com.google.guava:guava',
+    );
+    expect(parsePackageSearch("maven:implementation 'com.google.guava:guava:33.0-jre'")).toBe(
+      'maven/com.google.guava:guava',
+    );
+    expect(packageSearchesOf('implementation("org.slf4j:slf4j-api:2.0.9")')).toEqual(['maven/org.slf4j:slf4j-api']);
+    expect(packageSearchesOf("testImplementation('org.slf4j:slf4j-api:2.0.9')")).toEqual(['maven/org.slf4j:slf4j-api']);
+  });
+
+  it('takes a registry prefix with spaces around its colon', () => {
+    expect(parsePackageSearch('npm : react')).toBe('npm/react');
+    expect(parsePackageSearch('pypi : Django')).toBe('pypi/django');
+    expect(parsePackageSearch('crates :serde = "1.0"')).toBe('crates/serde');
+    expect(parsePackageSearch(' maven: org.slf4j:slf4j-api:2.0.9')).toBe('maven/org.slf4j:slf4j-api');
+  });
+
+  it("reads the module a pkg.go.dev page of a package inside it is in, where the host's rule is known", () => {
+    expect(parsePackageSearch('https://pkg.go.dev/golang.org/x/net/html')).toBe('go/golang.org/x/net');
+    expect(parsePackageSearch('https://pkg.go.dev/github.com/gin-gonic/gin/binding')).toBe(
+      'go/github.com/gin-gonic/gin',
+    );
+    expect(parsePackageSearch('pkg.go.dev/github.com/jackc/pgx/v5/pgxpool')).toBe('go/github.com/jackc/pgx/v5');
+    expect(parsePackageSearch('pkg.go.dev/gitlab.com/owner/repo/sub/pkg')).toBe('go/gitlab.com/owner/repo');
+    expect(parsePackageSearch('pkg.go.dev/bitbucket.org/owner/repo/v2/x')).toBe('go/bitbucket.org/owner/repo/v2');
+    expect(parsePackageSearch('pkg.go.dev/gopkg.in/yaml.v3')).toBe('go/gopkg.in/yaml.v3');
+    expect(parsePackageSearch('https://pkg.go.dev/github.com/gin-gonic/gin@v1.9.1/binding')).toBe(
+      'go/github.com/gin-gonic/gin',
+    );
+    // A host whose rule is not known: the whole path, as the page names it.
+    expect(parsePackageSearch('pkg.go.dev/go.opentelemetry.io/otel/trace')).toBe('go/go.opentelemetry.io/otel/trace');
+    expect(parsePackageSearch('pkg.go.dev/k8s.io/client-go/kubernetes')).toBe('go/k8s.io/client-go/kubernetes');
   });
 });
 

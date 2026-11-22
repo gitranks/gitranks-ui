@@ -89,8 +89,8 @@ const HOW_READ: Record<RegistryId, string> = {
   pypi: "A project's facts come from PyPI's JSON API, and its source repository from the links the project gives there. Its downloads come from PyPI's public download statistics, counted one calendar month at a time, from the first month GitRanks read on: there are no older numbers. PyPI takes Zope.Interface, zope.interface and zope-interface as one name, so GitRanks does too: its addresses use the lower-case form with dashes.",
   go: "A module's facts come from the Go module proxy and pkg.go.dev. Go publishes no download counts, so Go modules are ranked by the repositories that depend on them alone. A module path is kept as written, capitals included.",
   crates:
-    "A crate's facts and its downloads come from crates.io's public database dump, read every day, with downloads counted by the day. crates.io takes Serde-JSON and serde_json as one name, so GitRanks does too: its addresses use the lower-case form with `_`.",
-  pub: "A package's facts come from pub.dev's API, and its downloads are pub.dev's 30-day count, read once a month.",
+    "A crate's facts and its downloads come from crates.io's public database dump, read every day, with downloads counted by the day. crates.io takes Serde-JSON and serde_json as one name, so GitRanks does too: its addresses use the lower-case form with an underscore.",
+  pub: "A package's facts come from pub.dev's API. Its downloads are pub.dev's 30-day count, read in the first days of each month and scaled to the calendar month.",
   packagist:
     "A package's facts come from packagist.org, with its downloads counted a month at a time, past months included. Composer reads names without case, so GitRanks' addresses use the lower-case form.",
   maven:

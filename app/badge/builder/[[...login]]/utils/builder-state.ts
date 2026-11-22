@@ -199,7 +199,7 @@ function prefixedRegistryOf(input: string): { registry: RegistryId; rest: string
  * A pasted page address's name, from the path after the registry's prefix: as many segments as a name on the registry
  * takes (npm: two behind an `@scope`; Packagist and Maven Central: two), joined by the registry's own joiner, the
  * page's own segments after them left out (`django/5.0`, `slf4j-api/2.0.9`). A registry whose names take any number of
- * segments (Go) takes them up to a version (`@v1.2.3`).
+ * segments (Go) takes them up to a version (`@v1.2.3`), then its own rule for the module a package's page is in.
  */
 function pageNameOf(registry: RegistryId, rest: string): string {
   const segments = rest
@@ -210,7 +210,9 @@ function pageNameOf(registry: RegistryId, rest: string): string {
   if (path.max === null) {
     const versioned = segments.findIndex((segment) => segment.includes('@'));
     const kept = versioned < 0 ? segments : [...segments.slice(0, versioned), segments[versioned].split('@')[0]];
-    return kept.join(path.join);
+    const whole = kept.join(path.join);
+    // A page of a package inside a module (Go) names the module.
+    return registryOf(registry).nameOfPagePath?.(whole) ?? whole;
   }
   const count = path.scope !== undefined && !segments[0]?.startsWith(path.scope) ? path.min : path.max;
   return segments.slice(0, count).join(path.join);
@@ -255,7 +257,7 @@ export function packageSearchesOf(input: string): string[] {
     const { registry, rest, page } = prefixed;
     const key = page
       ? packageKeyOfSearch(registry, pageNameOf(registry, rest))
-      : requirementKeyOf(registry, text.replace(/^\s*[a-z]+:\s*/i, ''));
+      : requirementKeyOf(registry, text.replace(/^\s*[a-z]+\s*:\s*/i, ''));
     return key ? [key] : [];
   }
   const registries = [DEFAULT_REGISTRY, ...REGISTRY_IDS.filter((id) => id !== DEFAULT_REGISTRY)];

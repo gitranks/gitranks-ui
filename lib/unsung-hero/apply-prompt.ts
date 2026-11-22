@@ -1,5 +1,5 @@
 import type { ApplyRegistry } from './apply.types';
-import { registryHasDownloads, registryOfApi } from '@/lib/packages/registries';
+import { registryHasDownloads, registryRowOfApi } from '@/lib/packages/registries';
 
 /** One rule of the slot, as the apply page and the agent's prompt both state it. */
 export type ApplyRule = { title: string; text: string };
@@ -18,11 +18,12 @@ export const APPLY_RULES: readonly ApplyRule[] = [
 ];
 
 /**
- * Whether a registry, as the API names it, publishes no download counts, by the site's registry table: its packages are
- * read by the projects that depend on them. One the table does not list is not said to have none.
+ * Whether a registry, as the API names it, publishes no download counts, by the site's registry table (every row, the
+ * site showing its packages yet or not: the API names the registries heroes come from): its packages are read by the
+ * projects that depend on them. One the table has no row for is not said to have none.
  */
 const publishesNoDownloads = (id: string) => {
-  const registry = registryOfApi(id);
+  const registry = registryRowOfApi(id);
   return registry !== null && !registryHasDownloads(registry);
 };
 

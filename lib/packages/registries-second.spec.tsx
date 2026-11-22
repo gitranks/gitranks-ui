@@ -23,6 +23,12 @@ import { packagePath } from '@/utils/package-paths';
 // Maven Central is unlike npm in every way the table drives: no download counts (so no downloads ranking or badges),
 // two segments a name, joined by `:` in the name and by `/` in the address. These checks follow it through the site.
 
+// Every row of the table listed, as once these registries go live (the site lists npm and PyPI until then).
+vi.mock('@/lib/packages/registries', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/packages/registries')>();
+  actual.REGISTRY_IDS.splice(0, actual.REGISTRY_IDS.length, ...actual.ALL_REGISTRY_IDS);
+  return actual;
+});
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 

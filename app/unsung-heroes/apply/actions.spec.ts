@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { applicationOf, FOUND, REGISTRIES, viewOf } from './__fixtures__/apply';
 import { answerBy, jsonResponse, sentOf } from '@/app/admin/unsung-hero/__fixtures__/api';
-import { REGISTRY_IDS, REGISTRIES as REGISTRY_TABLE } from '@/lib/packages/registries';
+import { ALL_REGISTRY_IDS, REGISTRIES as REGISTRY_TABLE } from '@/lib/packages/registries';
 
 const { currentSessionToken, signedFetch, graphqlDirect } = vi.hoisted(() => ({
   currentSessionToken: vi.fn(),
@@ -75,7 +75,8 @@ describe('looking a nomination up', () => {
 
   it("passes every listed registry's page link through as typed, for the lookup to read", async () => {
     answerBy(signedFetch, { HeroApplyResolve: () => jsonResponse({ data: { heroApplyResolve: FOUND } }) });
-    const links = REGISTRY_IDS.map((id) => REGISTRY_TABLE[id].pageUrl(REGISTRY_TABLE[id].examples[0]));
+    // Every row of the table, listed on the site or not: the lookup reads each registry's address.
+    const links = ALL_REGISTRY_IDS.map((id) => REGISTRY_TABLE[id].pageUrl(REGISTRY_TABLE[id].examples[0]));
     expect(links).toEqual([
       'https://www.npmjs.com/package/react',
       'https://pypi.org/project/requests/',

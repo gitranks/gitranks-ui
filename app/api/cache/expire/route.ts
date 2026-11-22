@@ -3,7 +3,7 @@ import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { packageCacheTag } from '@/lib/packages/package-paths';
-import { isRegistryId, REGISTRY_IDS, type RegistryId, registryOf } from '@/lib/packages/registries';
+import { ALL_REGISTRY_IDS, isRegistryRow, type RegistryId, registryOf } from '@/lib/packages/registries';
 import { UNSUNG_HERO_CACHE_TAG } from '@/lib/unsung-hero/unsung-hero';
 
 /** The one caller allowed to expire cached data: the API, which names itself in its token. */
@@ -23,10 +23,11 @@ function registryTagOf(id: RegistryId) {
 }
 
 /**
- * A package's cache tag, as `packageCacheTag` writes it: `package:<registry>/<name>`, lower case, for every registry
- * the site lists (npm: a name of up to 214 characters, `@scope/name` included).
+ * A package's cache tag, as `packageCacheTag` writes it: `package:<registry>/<name>`, lower case, for every row of the
+ * registry table, the site showing it yet or not, so the API can expire a registry's pages before they are listed
+ * (npm: a name of up to 214 characters, `@scope/name` included).
  */
-const PACKAGE_TAG = new RegExp(`^package:(?:${REGISTRY_IDS.map(registryTagOf).join('|')})$`);
+const PACKAGE_TAG = new RegExp(`^package:(?:${ALL_REGISTRY_IDS.map(registryTagOf).join('|')})$`);
 
 /** Tags of one shared read each, named in full. */
 const PLAIN_TAGS: ReadonlySet<unknown> = new Set([UNSUNG_HERO_CACHE_TAG]);
@@ -66,7 +67,7 @@ function verifiedClaims(request: NextRequest): Record<string, unknown> | null {
  */
 function expiredTagOf(tag: string): string {
   const match = /^package:([^/]+)\/(.+)$/.exec(tag);
-  return match && isRegistryId(match[1]) ? packageCacheTag(match[1], match[2]) : tag;
+  return match && isRegistryRow(match[1]) ? packageCacheTag(match[1], match[2]) : tag;
 }
 
 const isTagList = (value: unknown): value is string[] =>

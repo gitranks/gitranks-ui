@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { APPLY_RULES, applyPromptOf, applyRulesOf, registryLabelOf, registryNamesOf } from './apply-prompt';
-import { REGISTRIES as REGISTRIES_TABLE, REGISTRY_IDS } from '@/lib/packages/registries';
+import { ALL_REGISTRY_IDS, REGISTRIES as REGISTRIES_TABLE } from '@/lib/packages/registries';
 
 const REGISTRIES = [
   { id: 'NPM', label: 'npm' },
@@ -38,7 +38,8 @@ describe('Heavily used, by the registries listed', () => {
   });
 
   it("reads which registries count no downloads from the site's registry table, not a list of its own", () => {
-    const listed = REGISTRY_IDS.map((id) => ({ id: REGISTRIES_TABLE[id].api, label: REGISTRIES_TABLE[id].label }));
+    // The API names the registries heroes come from: every row of the table, the site showing it yet or not.
+    const listed = ALL_REGISTRY_IDS.map((id) => ({ id: REGISTRIES_TABLE[id].api, label: REGISTRIES_TABLE[id].label }));
     expect(first(listed)).toContain('For Go and Maven Central, which publish no download counts');
     // A registry the table does not list is not said to have none.
     expect(first([{ id: 'NUGET', label: 'NuGet' }])).toBe('Among the most downloaded packages in its registry.');

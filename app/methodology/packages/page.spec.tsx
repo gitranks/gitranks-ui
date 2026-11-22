@@ -11,7 +11,7 @@ describe('how package rankings work', () => {
     expect(metadata.alternates?.canonical).toBe('/methodology/packages');
   });
 
-  it('explains dependents, what does not count, the three rankings and the reads, for every registry', () => {
+  it('explains dependents, what does not count, the three rankings and the reads, for npm and PyPI', () => {
     const html = renderToStaticMarkup(<PackageMethodologyPage />);
 
     for (const heading of [
@@ -33,30 +33,13 @@ describe('how package rankings work', () => {
       "Its downloads come from PyPI's public download statistics, counted one calendar month at a time",
     );
     expect(text).toContain(
-      'lists the package in a dependency file of its own, as GitHub reports them: package.json for npm, requirements.txt or pyproject.toml for PyPI, go.mod for Go, Cargo.toml for crates.io, pubspec.yaml for pub.dev, composer.json for Packagist and pom.xml or build.gradle for Maven Central.',
+      'lists the package in a dependency file of its own, as GitHub reports them: package.json for npm and requirements.txt or pyproject.toml for PyPI.',
     );
+    // A registry the site does not show yet has no paragraph and no link.
+    expect(text).not.toContain('Maven Central');
+    expect(html).not.toContain('href="/packages/go/');
     expect(text).toContain('Zope.Interface, zope.interface and zope-interface as one name');
-    expect(text).toContain(
-      'npm and crates.io: vs last week, against the 7 days before. PyPI, pub.dev and Packagist: vs the month before.',
-    );
-    expect(text).toContain('Go and Maven Central publish no download counts, so they have no downloads ranking.');
-    // One paragraph a registry, each with its rankings: by dependents' stars where there are no downloads.
-    expect(text).toContain(
-      "A module's facts come from the Go module proxy and pkg.go.dev. Go publishes no download counts",
-    );
-    expect(text).toContain("crates.io's public database dump, read every day, with downloads counted by the day");
-    expect(text).toContain("pub.dev's API, and its downloads are pub.dev's 30-day count, read once a month");
-    expect(text).toContain('packagist.org, with its downloads counted a month at a time, past months included');
-    expect(text).toContain("An artifact's facts come from deps.dev");
-    for (const [registry, order] of [
-      ['go', 'dependents-stars'],
-      ['crates', 'downloads'],
-      ['pub', 'downloads'],
-      ['packagist', 'downloads'],
-      ['maven', 'dependents-stars'],
-    ]) {
-      expect(html).toContain(`href="/packages/${registry}/${order}/1"`);
-    }
+    expect(text).toContain('npm: vs last week, against the 7 days before. PyPI: vs the month before.');
     expect(text).toContain('This month: against the monthly read before');
   });
 });

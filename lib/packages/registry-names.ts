@@ -50,6 +50,25 @@ export function isGoModulePath(path: string): boolean {
   return elements.length === 1 || !MAJOR_LIKE.test(last) || (MAJOR.test(last) && last !== 'v1');
 }
 
+/** Hosts whose module paths are `host/owner/repo`, with a `/vN` major version after them. */
+const OWNER_REPO_HOSTS = new Set(['github.com', 'gitlab.com', 'bitbucket.org']);
+
+/**
+ * The module a package's path on pkg.go.dev is in, where the host's rule for module paths is known: on GitHub, GitLab
+ * and Bitbucket, `host/owner/repo` and a `/vN` major version after it (`github.com/gin-gonic/gin/binding` is in
+ * `github.com/gin-gonic/gin`); `golang.org/x/<name>` (`golang.org/x/net/html` is in `golang.org/x/net`); on
+ * `gopkg.in`, the host and the next segment (`gopkg.in/yaml.v3`). Any other path is taken whole.
+ */
+export function goModuleOfPath(path: string): string {
+  const segments = path.split('/');
+  const [host] = segments;
+  let count = segments.length;
+  if (OWNER_REPO_HOSTS.has(host)) count = MAJOR.test(segments[3] ?? '') && segments[3] !== 'v1' ? 4 : 3;
+  else if (host === 'golang.org' && segments[1] === 'x') count = 3;
+  else if (host === 'gopkg.in') count = 2;
+  return segments.slice(0, count).join('/');
+}
+
 /** A Go requirement as `go.mod` writes it (`github.com/gin-gonic/gin v1.9.1`): the module path before its version. */
 export const goRequirementName = (requirement: string) => requirement.trim().split(/\s+/)[0] ?? '';
 
@@ -110,13 +129,15 @@ export function isMavenName(name: string): boolean {
 }
 
 /**
- * A Maven coordinate as written in a build file (`org.slf4j:slf4j-api:2.0.9`, `implementation 'com.google.guava:
- * guava:33.0-jre'`): its `groupId:artifactId`, the version and anything after it left out.
+ * A Maven coordinate as written in a build file (`org.slf4j:slf4j-api:2.0.9`, Gradle's `implementation 'com.google.
+ * guava:guava:33.0-jre'` and `implementation("com.google.guava:guava:33.0-jre")`): its `groupId:artifactId`, the
+ * version and anything after it left out. Quotes and parentheses part words, so the configuration's name never joins
+ * the coordinate.
  */
 export const mavenRequirementName = (requirement: string) =>
   (
     requirement
-      .replace(/["'()]/g, '')
+      .replace(/["'()]/g, ' ')
       .trim()
       .split(/\s+/)
       .at(-1) ?? ''

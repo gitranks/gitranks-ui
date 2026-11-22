@@ -11,6 +11,7 @@ import {
   foldCrateName,
   foldPackagistName,
   GO_NAME_MAX_LENGTH,
+  goModuleOfPath,
   goRequirementName,
   isCrateName,
   isGoModulePath,
@@ -67,6 +68,11 @@ export type RegistryTraits = {
   nameInAddress?: string;
   /** The name in a requirement a visitor may paste (PyPI's `django>=5.0`); without one, the text is the name. */
   requirementName?: (requirement: string) => string;
+  /**
+   * The name a pasted page address's path names, where a page can be of a part of a package (Go: a package inside a
+   * module); without one, the path is the name.
+   */
+  nameOfPagePath?: (path: string) => string;
   /** A name's form in an address's pattern, where it is more than one word: "{groupId}/{artifactId}". */
   addressPattern?: string;
   /** Where the registry's facts are read from, credited on a package's page, when that is not the registry itself. */
@@ -128,7 +134,8 @@ export const REGISTRIES = {
     isName: isGoModulePath,
     canonicalName: (name) => name,
     requirementName: goRequirementName,
-    addressPattern: '{module path}',
+    nameOfPagePath: goModuleOfPath,
+    addressPattern: '{modulePath}',
     nameMaxLength: GO_NAME_MAX_LENGTH,
     path: { min: 1, max: null, join: '/' },
     downloads: null,
@@ -207,17 +214,36 @@ export const REGISTRIES = {
   },
 } as const satisfies Record<string, RegistryTraits>;
 
+/** A row of the table, the site showing its registry or not. */
 export type RegistryId = keyof typeof REGISTRIES;
 
-/** Every registry, in the order the site lists them. */
-export const REGISTRY_IDS = Object.keys(REGISTRIES) as RegistryId[];
+/** Every row of the table, in its order, shown or not: what the API may already send (a cache tag) before it is. */
+export const ALL_REGISTRY_IDS = Object.keys(REGISTRIES) as RegistryId[];
+
+/**
+ * The registries the site shows. A registry goes live by joining this list; until then its package and ranking
+ * addresses are not found, and no switch, sitemap, list or search names it.
+ */
+export const LISTED_REGISTRIES = ['npm', 'pypi'] as const satisfies readonly RegistryId[];
+
+/**
+ * Every registry the site shows, in the table's order. Everything a visitor reaches reads this list: the routes, the
+ * registry switch, the copy that names the registries, the sitemaps, llms.txt and the badge builder's search.
+ */
+export const REGISTRY_IDS: RegistryId[] = ALL_REGISTRY_IDS.filter((id) =>
+  (LISTED_REGISTRIES as readonly RegistryId[]).includes(id),
+);
+
+/** Whether a value names a row of the table (exact, letter case included), the site showing it or not. */
+export const isRegistryRow = (value: unknown): value is RegistryId =>
+  typeof value === 'string' && Object.hasOwn(REGISTRIES, value);
 
 /** The registry `/packages` opens on, and the one a package named without a registry is on. */
 export const DEFAULT_REGISTRY: RegistryId = 'npm';
 
-/** Whether a URL's segment names a registry (exact, letter case included). */
+/** Whether a URL's segment names a registry the site shows (exact, letter case included). */
 export const isRegistryId = (value: unknown): value is RegistryId =>
-  typeof value === 'string' && Object.hasOwn(REGISTRIES, value);
+  isRegistryRow(value) && REGISTRY_IDS.includes(value);
 
 /** A registry's traits, typed as any registry's. */
 export const registryOf = (id: RegistryId): RegistryTraits => REGISTRIES[id];
@@ -225,6 +251,11 @@ export const registryOf = (id: RegistryId): RegistryTraits => REGISTRIES[id];
 /** The registry the API names (`NPM`), or `null` for one the site does not list. */
 export function registryOfApi(api: string | null | undefined): RegistryId | null {
   return REGISTRY_IDS.find((id) => REGISTRIES[id].api === api) ?? null;
+}
+
+/** The table's row of a registry as the API names it (`GO`), the site showing it or not; `null` for none. */
+export function registryRowOfApi(api: string | null | undefined): RegistryId | null {
+  return ALL_REGISTRY_IDS.find((id) => REGISTRIES[id].api === api) ?? null;
 }
 
 /** A registry as the API names it, one the site lists: `NPM`. */

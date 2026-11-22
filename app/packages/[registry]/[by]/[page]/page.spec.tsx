@@ -150,13 +150,6 @@ describe('the package ranking layout', () => {
       { registry: 'pypi', by: 'downloads', page: '1' },
       { registry: 'pypi', by: 'dependents-stars', page: '1' },
       { registry: 'pypi', by: 'dependents', page: '1' },
-      { registry: 'go', by: 'dependents-stars', page: '1' },
-      { registry: 'go', by: 'dependents', page: '1' },
-      ...['crates', 'pub', 'packagist'].flatMap((registry) =>
-        ['downloads', 'dependents-stars', 'dependents'].map((by) => ({ registry, by, page: '1' })),
-      ),
-      { registry: 'maven', by: 'dependents-stars', page: '1' },
-      { registry: 'maven', by: 'dependents', page: '1' },
     ]);
   });
 

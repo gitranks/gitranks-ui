@@ -49,6 +49,9 @@ describe('llms.txt', () => {
       - [Go package rankings](https://example.test/packages/go/dependents-stars/1): Go packages ranked by the stars of the repositories that use them, and by how many do. Beta. Go publishes no download counts.
       - Package page: https://example.test/package/go/{modulePath} — who uses a Go package: every repository with 100+ stars that depends on it directly, with ranks.
       - Package facts in markdown: https://example.test/package/go/{modulePath}/facts.md — the same as the package page, for agents: dependents and ranks, each with its link.
+      - [crates.io package rankings](https://example.test/packages/crates/downloads/1): crates.io packages ranked by weekly downloads, by the stars of the repositories that use them, and by how many do. Beta.
+      - Package page: https://example.test/package/crates/{name} ({name} in lower case, with \`_\` for each \`-\`) — who uses a crates.io package: every repository with 100+ stars that depends on it directly, with downloads and ranks.
+      - Package facts in markdown: https://example.test/package/crates/{name}/facts.md — the same as the package page, for agents: dependents, downloads and ranks, each with its link.
       - Repository "Used by": https://example.test/repo/{owner}/{name}/used-by — the same for every package a repository publishes.
       - [How package rankings work](https://example.test/methodology/packages)
       - [Unsung heroes](https://example.test/unsung-heroes): one open-source project a week that a lot of software runs on, and few people star

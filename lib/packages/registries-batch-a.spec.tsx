@@ -213,6 +213,11 @@ describe('a pasted page address or requirement, in the badge builder', () => {
   it('reads the requirements each registry writes, without their version', () => {
     expect(packageSearchesOf('github.com/gin-gonic/gin v1.9.1')).toEqual(['go/github.com/gin-gonic/gin']);
     expect(packageSearchesOf('serde = "1.0"')).toEqual(expect.arrayContaining(['crates/serde']));
+    expect(packageSearchesOf('serde = { version = "1", features = ["derive"] }')).toEqual(
+      expect.arrayContaining(['crates/serde']),
+    );
+    // A PyPI pin is no Cargo requirement: `==` is not Cargo's `=`.
+    expect(packageSearchesOf('django==5.0')).not.toContain('crates/django');
     expect(parsePackageSearch('crates:tokio = { version = "1" }')).toBe('crates/tokio');
     expect(packageSearchesOf('laravel/framework:^11.0')).toEqual(['packagist/laravel/framework']);
     expect(packageSearchesOf('"symfony/console": "^7.0"')).toEqual(['packagist/symfony/console']);

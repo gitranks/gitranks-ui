@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { dependentRows, notReadPackage, quietPackage, rankedPackage } from './__fixtures__/package';
-import { buildPackageSEO, PACKAGE_UNAVAILABLE_TEXT } from './seo';
+import { buildPackageSEO, PACKAGE_UNAVAILABLE_TEXT, packageTitle } from './seo';
 
 vi.hoisted(() => {
   process.env.NEXT_PUBLIC_URI = 'https://gitranks.com';
@@ -202,6 +202,13 @@ describe('buildPackageSEO', () => {
     expect(metadata.twitter).toMatchObject({ card: 'summary_large_image' });
     const crumbs = (jsonLd[2] as { itemListElement: { name: string }[] }).itemListElement.map(({ name }) => name);
     expect(crumbs).toEqual(['Home', 'Package rankings', 'react-resize-detector']);
+  });
+
+  it('leaves downloads out of the title on a registry that publishes no download counts', () => {
+    expect(packageTitle('github.com/stretchr/testify', 'go')).toBe(
+      'github.com/stretchr/testify - Go package dependents and ranks',
+    );
+    expect(packageTitle('serde', 'crates')).toBe('serde - crates.io package dependents, downloads and ranks');
   });
 
   it('keeps a package no repository with 100+ stars uses out of search engines, its scope in the canonical', () => {

@@ -14,8 +14,8 @@ describe('package-page sitemap', () => {
     vi.mocked(fetchPackagesForSitemap).mockReset().mockResolvedValue([]);
   });
 
-  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29', async () => {
-    expect(await generateSitemaps()).toHaveLength(30);
+  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29, crates.io 30–39', async () => {
+    expect(await generateSitemaps()).toHaveLength(40);
   });
 
   it("lists each package's page at its canonical address, a scoped name as @scope/name", async () => {
@@ -67,8 +67,15 @@ describe('package-page sitemap', () => {
     expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Go, 3);
   });
 
-  it('reads no part outside 0–29', async () => {
-    expect(await part('30')).toEqual([]);
+  it("lists a crate's page under its registry, from the parts after Go's", async () => {
+    vi.mocked(fetchPackagesForSitemap).mockResolvedValue(['serde_json']);
+
+    expect((await part('34')).map(({ url }) => url)).toEqual(['https://example.test/package/crates/serde_json']);
+    expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Crates, 4);
+  });
+
+  it('reads no part outside 0–39', async () => {
+    expect(await part('40')).toEqual([]);
     expect(await part('x')).toEqual([]);
     expect(fetchPackagesForSitemap).not.toHaveBeenCalled();
   });

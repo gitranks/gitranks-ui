@@ -47,6 +47,7 @@ describe('a package page', () => {
       { registry: 'npm', name: ['react'] },
       { registry: 'pypi', name: ['requests'] },
       { registry: 'go', name: ['github.com', 'gin-gonic', 'gin'] },
+      { registry: 'crates', name: ['serde'] },
     ]);
   });
 

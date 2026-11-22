@@ -110,6 +110,7 @@ describe('a Find search', () => {
       { kind: 'org', name: 'react' },
       { kind: 'package', name: 'npm/react' },
       { kind: 'package', name: 'pypi/react' },
+      { kind: 'package', name: 'crates/react' },
     ]);
     expect(searchLookups('@types/node', null)).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
     expect(searchLookups('npm:lodash', null)).toEqual([{ kind: 'package', name: 'npm/lodash' }]);
@@ -124,6 +125,7 @@ describe('a Find search', () => {
     expect(searchLookups('Django', 'package')).toEqual([
       { kind: 'package', name: 'npm/Django' },
       { kind: 'package', name: 'pypi/django' },
+      { kind: 'package', name: 'crates/django' },
     ]);
     expect(searchLookups('zope.interface', 'package')).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },
@@ -142,6 +144,7 @@ describe('a Find search', () => {
     expect(searchLookups('typing_extensions', null)).toEqual([
       { kind: 'package', name: 'npm/typing_extensions' },
       { kind: 'package', name: 'pypi/typing-extensions' },
+      { kind: 'package', name: 'crates/typing_extensions' },
     ]);
     expect(searchLookups('zope.interface', null)).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },

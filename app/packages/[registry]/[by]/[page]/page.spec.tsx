@@ -152,6 +152,9 @@ describe('the package ranking layout', () => {
       { registry: 'pypi', by: 'dependents', page: '1' },
       { registry: 'go', by: 'dependents-stars', page: '1' },
       { registry: 'go', by: 'dependents', page: '1' },
+      { registry: 'crates', by: 'downloads', page: '1' },
+      { registry: 'crates', by: 'dependents-stars', page: '1' },
+      { registry: 'crates', by: 'dependents', page: '1' },
     ]);
   });
 

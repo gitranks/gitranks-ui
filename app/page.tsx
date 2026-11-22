@@ -4,6 +4,7 @@ import {
   fetchFeaturedOrg,
   fetchGlobalTiers,
   fetchLandingInsights,
+  fetchLandingPackages,
   fetchLeaderboards,
   fetchLearnForVisitors,
   fetchTopOrgs,
@@ -28,8 +29,7 @@ export const metadata: Metadata = pageMetadata({
 // Every read below is a shared, cached function (see landing-data.ts and the helpers' own cache
 // lifetimes), so the page is prerendered and a view sends no request to the API. Only the signed-in
 // visitor's own rank card is fetched in the browser, from a route cached per user, their own
-// badges, from the public badge data the builder reads, and, where Contribute is open to them,
-// their own top picks.
+// badges, from the public badge data the builder reads.
 export default async function Home() {
   const [
     insights,
@@ -44,6 +44,7 @@ export default async function Home() {
     showcase,
     learn,
     hero,
+    packages,
   ] = await Promise.all([
     fetchLandingInsights(),
     fetchLeaderboards(),
@@ -58,6 +59,8 @@ export default async function Home() {
     fetchLearnForVisitors(),
     // This week's Unsung hero, in the page's HTML; a failed read leaves the column's other cards.
     fetchUnsungHero().catch(() => null),
+    // The top of the package rankings; a ranking that cannot be read is left out, with none the block is.
+    fetchLandingPackages().catch(() => null),
   ]);
 
   return (
@@ -73,6 +76,7 @@ export default async function Home() {
       repos={repos}
       showcase={showcase}
       hero={hero}
+      packages={packages}
       learn={{ forVisitors: learn }}
     />
   );

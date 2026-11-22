@@ -18,7 +18,7 @@ const SOURCES = [
   'app/components/landing/your-rank-card.tsx',
   'app/components/landing/example-cards.tsx',
   'app/components/landing/rank-facts.tsx',
-  'app/components/landing/contribute-section.tsx',
+  'app/components/landing/packages-section.tsx',
   'app/components/landing/landing-promos.tsx',
   'app/components/landing/learn-section.tsx',
   'app/components/landing/readme-section.tsx',
@@ -35,7 +35,7 @@ export const LANDING_SCREENS: Screen[] = [
     states: [
       {
         id: 'signed-in',
-        title: 'Signed in, with Contribute',
+        title: 'Signed in, with the package rankings',
         path: '/',
         height: 6900,
         render: () => <LandingScreen {...landingData} />,
@@ -50,7 +50,7 @@ export const LANDING_SCREENS: Screen[] = [
       },
       {
         id: 'likely-learner',
-        title: 'Signed in, Learn suggested in place of Contribute',
+        title: 'Signed in, Learn suggested after the package rankings',
         path: '/',
         height: 6800,
         render: () => <LandingScreen {...landingData} learn={{ promo: landingPromo }} />,

@@ -27,6 +27,7 @@ import {
 import { formatCompact, tierAt } from './landing-ui';
 import type { Leaderboard } from './leaderboard-tabs';
 import { LearnSectionView } from './learn-section';
+import { type LandingPackages, PackagesSection } from './packages-section';
 import type { ReadmeShowcase } from './readme-showcase';
 import { ReposSection } from './repos-section';
 import { Header } from '@/components/header/header';
@@ -50,6 +51,8 @@ export type LandingData = {
   showcase: ReadmeShowcase;
   /** This week's Unsung hero; null in a week with none, or when it could not be read. */
   hero?: UnsungHero | null;
+  /** The top of the package rankings; null when none could be read (the block is left out). */
+  packages?: LandingPackages | null;
 };
 
 /**
@@ -72,6 +75,7 @@ export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
   repos,
   showcase,
   hero = null,
+  packages = null,
   learn,
 }) => {
   const flags = new Map(countryList.map((country) => [country.name, country.flag]));
@@ -142,8 +146,9 @@ export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
       <main>
         <Hero developersRanked={developersRanked} examples={examples} hero={hero} stats={stats} />
         <Container>
-          {/* One suggestion: Contribute's section, then Learn's once Learn is open to everyone (static, with the
-              page); for a signed-in user Learn may suit, Learn's own in their place, read in the browser. */}
+          {/* The package rankings, with the page; then Learn's section once Learn is open to everyone (static, with the
+              page), or, for a signed-in user Learn may suit, Learn's own suggestion, read in the browser. */}
+          {packages && <PackagesSection {...packages} />}
           <LandingPromos learnForVisitors={learn?.forVisitors ? <LearnSectionView /> : null} promo={learn?.promo} />
           <LeaderboardSection boards={boards} />
           <InsightsSection insights={insights} />

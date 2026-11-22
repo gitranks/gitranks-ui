@@ -1,8 +1,12 @@
 import { cacheLife } from 'next/cache';
 
+import { LANDING_PACKAGE_ROWS, type LandingPackages } from './packages-section';
+import { formatPackageDate, PACKAGE_RANKINGS, packageRankingOrdersOf } from '@/app/packages/package-rankings';
 import { fetchInsightsServer } from '@/graphql/helpers/fetch-insights-server';
+import { fetchPackageRankingFacts, fetchPackageRankings } from '@/graphql/helpers/fetch-package-rankings';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { LearnOpenToEveryoneDocument } from '@/lib/learn/learn.documents';
+import { apiRegistryOf, DEFAULT_REGISTRY } from '@/lib/packages/registries';
 import {
   BadgeTiersDocument,
   GlobalRankingsDocument,
@@ -125,4 +129,32 @@ export const fetchLearnForVisitors = async (): Promise<boolean> => {
     cacheLife('minutes');
     return false;
   }
+};
+
+/**
+ * The top of each package ranking of the default registry, for the home page's package block, with how many packages
+ * are ranked and the downloads' last day. Each read is the ranking pages' own cached one, so the block costs no request
+ * of its own. A ranking that cannot be read now is left out; with none, null (the block is left out).
+ */
+export const fetchLandingPackages = async (): Promise<LandingPackages | null> => {
+  const registry = apiRegistryOf(DEFAULT_REGISTRY);
+  const orders = packageRankingOrdersOf(DEFAULT_REGISTRY);
+
+  const [facts, ...pages] = await Promise.all([
+    fetchPackageRankingFacts(registry),
+    ...orders.map((order) => fetchPackageRankings({ registry, by: PACKAGE_RANKINGS[order].type, offset: 0 })),
+  ]);
+
+  const boards = orders.flatMap((order, index) => {
+    const rows = pages[index];
+    return rows?.length ? [{ order, rows: rows.slice(0, LANDING_PACKAGE_ROWS) }] : [];
+  });
+
+  if (!boards.length) return null;
+
+  return {
+    boards,
+    ranked: facts?.ranked ?? null,
+    downloadsTo: formatPackageDate(facts?.downloadsThrough),
+  };
 };

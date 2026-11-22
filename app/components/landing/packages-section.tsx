@@ -70,7 +70,7 @@ const POINTS = [
 /** What a tab's numbers count, under its rows. */
 const basisOf = (order: PackageRankingOrder, downloadsTo: string | null) =>
   order === 'downloads'
-    ? `Downloads ${downloadsWindow(downloadsTo, REGISTRIES[DEFAULT_REGISTRY].downloads)}`
+    ? `Downloads ${downloadsWindow(downloadsTo, REGISTRIES[DEFAULT_REGISTRY].downloads ?? undefined)}`
     : order === 'dependents'
       ? `Repositories with ${DEPENDENT_MIN_STARS}+ stars that use it directly`
       : `Stars of the repositories with ${DEPENDENT_MIN_STARS}+ stars that use it, added up`;

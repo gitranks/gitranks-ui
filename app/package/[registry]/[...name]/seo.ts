@@ -11,6 +11,7 @@ import {
   downloadsCountOf,
   REGISTRIES,
   type RegistryId,
+  registryHasDownloads,
   spelledNameOf,
 } from '@/lib/packages/registries';
 import { clipText } from '@/lib/seo/clip-text';
@@ -40,7 +41,7 @@ export const packageTitle = (name: string, registry: RegistryId = DEFAULT_REGIST
 /** "#12 by downloads, #40 by dependents' stars": the ranks it has, in the rankings' order. */
 function ranksText(registry: RegistryId, ranks: PackagePage['ranks']): string | undefined {
   const parts = [
-    ranks?.downloads && `#${formatCount(ranks.downloads.rank)} by downloads`,
+    ranks?.downloads && registryHasDownloads(registry) && `#${formatCount(ranks.downloads.rank)} by downloads`,
     ranks?.dependentsStars && `#${formatCount(ranks.dependentsStars.rank)} by dependents' stars`,
     ranks?.dependents && `#${formatCount(ranks.dependents.rank)} by dependents`,
   ].filter(Boolean);

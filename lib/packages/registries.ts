@@ -5,6 +5,25 @@ import {
   PYPI_NAME_MAX_LENGTH,
   pypiRequirementName,
 } from '@/lib/packages/pypi-project-name';
+import {
+  CRATE_NAME_MAX_LENGTH,
+  crateRequirementName,
+  foldCrateName,
+  foldPackagistName,
+  GO_NAME_MAX_LENGTH,
+  goRequirementName,
+  isCrateName,
+  isGoModulePath,
+  isMavenName,
+  isPackagistName,
+  isPubName,
+  MAVEN_NAME_MAX_LENGTH,
+  mavenRequirementName,
+  PACKAGIST_NAME_MAX_LENGTH,
+  PUB_NAME_MAX_LENGTH,
+  packagistRequirementName,
+  pubRequirementName,
+} from '@/lib/packages/registry-names';
 import type { PackageRegistry } from '@/types/generated/graphql';
 
 /**
@@ -27,6 +46,8 @@ export type RegistryPath =
 export type RegistryTraits = {
   /** The registry as written in text: "npm package", "Open on npm". */
   label: string;
+  /** The site a package's page is on, where it is not called by the label: "Open on pkg.go.dev". */
+  siteName?: string;
   /** The article before the label, as it is read aloud: "an npm package". */
   article: 'a' | 'an';
   /** The registry as the API names it. */
@@ -46,6 +67,10 @@ export type RegistryTraits = {
   nameInAddress?: string;
   /** The name in a requirement a visitor may paste (PyPI's `django>=5.0`); without one, the text is the name. */
   requirementName?: (requirement: string) => string;
+  /** A name's form in an address's pattern, where it is more than one word: "{groupId}/{artifactId}". */
+  addressPattern?: string;
+  /** Where the registry's facts are read from, credited on a package's page, when that is not the registry itself. */
+  factsCredit?: { label: string; url: string };
   /** The longest name the registry takes. */
   nameMaxLength: number;
   path: RegistryPath;
@@ -92,6 +117,93 @@ export const REGISTRIES = {
     manifest: 'requirements.txt or pyproject.toml',
     examples: ['requests', 'numpy'],
     nameHint: 'requests or numpy',
+  },
+  go: {
+    label: 'Go',
+    siteName: 'pkg.go.dev',
+    article: 'a',
+    api: 'GO',
+    pageUrl: (name) => `https://pkg.go.dev/${name}`,
+    pageUrlPrefix: /^(?:https?:\/\/)?(?:www\.)?pkg\.go\.dev\//i,
+    isName: isGoModulePath,
+    canonicalName: (name) => name,
+    requirementName: goRequirementName,
+    addressPattern: '{module path}',
+    nameMaxLength: GO_NAME_MAX_LENGTH,
+    path: { min: 1, max: null, join: '/' },
+    downloads: null,
+    manifest: 'go.mod',
+    examples: ['github.com/gin-gonic/gin', 'golang.org/x/net'],
+    nameHint: 'github.com/owner/module',
+  },
+  crates: {
+    label: 'crates.io',
+    article: 'a',
+    api: 'CRATES',
+    pageUrl: (name) => `https://crates.io/crates/${name}`,
+    pageUrlPrefix: /^(?:https?:\/\/)?(?:www\.)?crates\.io\/crates\//i,
+    isName: isCrateName,
+    canonicalName: foldCrateName,
+    nameInAddress: 'in lower case, with `_` for each `-`',
+    requirementName: crateRequirementName,
+    nameMaxLength: CRATE_NAME_MAX_LENGTH,
+    path: { min: 1, max: 1, join: '/' },
+    downloads: 'week',
+    manifest: 'Cargo.toml',
+    examples: ['serde', 'tokio'],
+    nameHint: 'serde or tokio',
+  },
+  pub: {
+    label: 'pub.dev',
+    article: 'a',
+    api: 'PUB',
+    pageUrl: (name) => `https://pub.dev/packages/${name}`,
+    pageUrlPrefix: /^(?:https?:\/\/)?(?:www\.)?pub\.dev\/packages\//i,
+    isName: isPubName,
+    canonicalName: (name) => name,
+    requirementName: pubRequirementName,
+    nameMaxLength: PUB_NAME_MAX_LENGTH,
+    path: { min: 1, max: 1, join: '/' },
+    downloads: 'month',
+    manifest: 'pubspec.yaml',
+    examples: ['http', 'provider'],
+    nameHint: 'http or provider',
+  },
+  packagist: {
+    label: 'Packagist',
+    article: 'a',
+    api: 'PACKAGIST',
+    pageUrl: (name) => `https://packagist.org/packages/${name}`,
+    pageUrlPrefix: /^(?:https?:\/\/)?(?:www\.)?packagist\.org\/packages\//i,
+    isName: isPackagistName,
+    canonicalName: foldPackagistName,
+    nameInAddress: 'in lower case',
+    requirementName: packagistRequirementName,
+    addressPattern: '{vendor}/{package}',
+    nameMaxLength: PACKAGIST_NAME_MAX_LENGTH,
+    path: { min: 2, max: 2, join: '/' },
+    downloads: 'month',
+    manifest: 'composer.json',
+    examples: ['laravel/framework', 'symfony/console'],
+    nameHint: 'vendor/package',
+  },
+  maven: {
+    label: 'Maven Central',
+    article: 'a',
+    api: 'MAVEN',
+    pageUrl: (name) => `https://central.sonatype.com/artifact/${name.replace(':', '/')}`,
+    pageUrlPrefix: /^(?:https?:\/\/)?(?:www\.)?(?:central\.sonatype\.com|mvnrepository\.com)\/artifact\//i,
+    isName: isMavenName,
+    canonicalName: (name) => name,
+    requirementName: mavenRequirementName,
+    addressPattern: '{groupId}/{artifactId}',
+    factsCredit: { label: 'deps.dev', url: 'https://deps.dev/' },
+    nameMaxLength: MAVEN_NAME_MAX_LENGTH,
+    path: { min: 2, max: 2, join: ':' },
+    downloads: null,
+    manifest: 'pom.xml or build.gradle',
+    examples: ['org.slf4j:slf4j-api', 'com.google.guava:guava'],
+    nameHint: 'groupId:artifactId',
   },
 } as const satisfies Record<string, RegistryTraits>;
 
@@ -172,8 +284,12 @@ export function registryLabelList(conjunction: 'and' | 'or' = 'and'): string {
   return labels.length > 1 ? `${labels.slice(0, -1).join(', ')} ${conjunction} ${labels.at(-1)}` : labels.join('');
 }
 
-/** "npm package", "npm or PyPI package"; with `article`, "an npm package": a package on any registry the site lists. */
+/**
+ * "npm package", "npm or PyPI package"; with `article`, "an npm package": a package on any registry the site lists.
+ * With more than two listed, the list would outgrow the sentence: "package", "a package".
+ */
 export function anyRegistryPackageText(article = false): string {
+  if (REGISTRY_IDS.length > 2) return article ? 'a package' : 'package';
   const text = `${registryLabelList('or')} package`;
   return article ? `${REGISTRIES[REGISTRY_IDS[0]].article} ${text}` : text;
 }

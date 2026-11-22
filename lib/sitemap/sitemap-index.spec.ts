@@ -144,6 +144,46 @@ describe('sitemap index', () => {
           <lastmod>2026-11-01T00:00:00.000Z</lastmod>
         </sitemap>
         <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/20.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/21.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/30.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/31.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/40.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/41.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/50.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/51.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/60.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
+          <loc>https://example.test/sitemaps/packages/sitemap/61.xml</loc>
+          <lastmod>2026-11-01T00:00:00.000Z</lastmod>
+        </sitemap>
+        <sitemap>
           <loc>https://example.test/sitemaps/repo-used-by/sitemap/0.xml</loc>
           <lastmod>2026-11-01T00:00:00.000Z</lastmod>
         </sitemap>
@@ -164,17 +204,25 @@ describe('sitemap index', () => {
     const response = await sitemapIndexResponse();
     const locs = [...(await response.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, loc]) => new URL(loc).pathname);
 
-    expect(locs.slice(-7)).toEqual([
+    expect(locs.slice(-12)).toEqual([
       '/sitemaps/repos/sitemap/0.xml',
       '/sitemaps/packages/rankings/sitemap.xml',
+      // Each registry's first part, in the table's order.
       '/sitemaps/packages/sitemap/0.xml',
       '/sitemaps/packages/sitemap/10.xml',
+      '/sitemaps/packages/sitemap/20.xml',
+      '/sitemaps/packages/sitemap/30.xml',
+      '/sitemaps/packages/sitemap/40.xml',
+      '/sitemaps/packages/sitemap/50.xml',
+      '/sitemaps/packages/sitemap/60.xml',
       '/sitemaps/repo-used-by/sitemap/0.xml',
       '/sitemaps/repo-used-by/sitemap/1.xml',
       '/sitemaps/repo-contributors/sitemap/0.xml',
     ]);
     expect(fetchPackageSitemapParts).toHaveBeenCalledWith(PackageRegistry.Npm);
-    expect(fetchPackageSitemapParts).toHaveBeenCalledWith(PackageRegistry.Pypi);
+    for (const registry of Object.values(PackageRegistry)) {
+      expect(fetchPackageSitemapParts).toHaveBeenCalledWith(registry);
+    }
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600, s-maxage=3600');
   });
 });

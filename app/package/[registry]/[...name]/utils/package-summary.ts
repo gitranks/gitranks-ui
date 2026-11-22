@@ -46,7 +46,7 @@ function downloadsSentence(registry: RegistryId, pkg: SummaryPackage): string {
   const name = spelledNameOf(pkg);
   const { downloads } = pkg;
   const counted = downloadsCountOf(unit, downloads);
-  if (!downloads || !counted) {
+  if (!downloads || !counted || !unit) {
     return `${name} is ${article} ${label} package.`;
   }
   const year = yearOfDownloads(unit, downloads);

@@ -27,8 +27,17 @@ import {
 import { PackageRegistry } from '@/types/generated/graphql';
 
 describe('the registry table', () => {
-  it('lists npm, the default, then PyPI, as the API names them', () => {
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi']);
+  it('lists npm, the default, then PyPI and the rest, as the API names them', () => {
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
+    expect(REGISTRY_IDS.map((id) => REGISTRIES[id].api)).toEqual([
+      'NPM',
+      'PYPI',
+      'GO',
+      'CRATES',
+      'PUB',
+      'PACKAGIST',
+      'MAVEN',
+    ]);
     expect(DEFAULT_REGISTRY).toBe('npm');
     expect(apiRegistryOf('npm')).toBe(PackageRegistry.Npm);
     expect(apiRegistryOf('pypi')).toBe(PackageRegistry.Pypi);
@@ -84,7 +93,7 @@ describe('the registry table', () => {
   it('takes a registry only as spelled, never one inherited from an object', () => {
     expect(isRegistryId('npm')).toBe(true);
     expect(isRegistryId('pypi')).toBe(true);
-    for (const value of ['NPM', 'PyPI', 'cargo', 'constructor', 'toString', '', null, 1]) {
+    for (const value of ['NPM', 'PyPI', 'cargo', 'nuget', 'Go', 'constructor', 'toString', '', null, 1]) {
       expect(isRegistryId(value), String(value)).toBe(false);
     }
   });
@@ -169,6 +178,7 @@ describe('package keys', () => {
     for (const key of [
       'react',
       'cargo/react',
+      'nuget/react',
       'npm/',
       'npm/.env',
       'npm/nebula/ui',
@@ -192,13 +202,16 @@ describe('copy from the table', () => {
     expect(registryManifestList(['npm'])).toBe('package.json');
   });
 
-  it('names both registries where the copy lists every one', () => {
-    expect(registryLabelList()).toBe('npm and PyPI');
-    expect(registryLabelList('or')).toBe('npm or PyPI');
-    expect(anyRegistryPackageText()).toBe('npm or PyPI package');
-    expect(anyRegistryPackageText(true)).toBe('an npm or PyPI package');
-    expect(registryManifestList()).toBe('package.json, requirements.txt or pyproject.toml');
+  it('names every registry where the copy lists every one, and says "package" where a list would not fit', () => {
+    expect(registryLabelList()).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist and Maven Central');
+    expect(registryLabelList('or')).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist or Maven Central');
+    expect(anyRegistryPackageText()).toBe('package');
+    expect(anyRegistryPackageText(true)).toBe('a package');
+    expect(registryManifestList()).toBe(
+      'package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml, pubspec.yaml, composer.json, pom.xml or build.gradle',
+    );
     expect(registryManifestList(['pypi'])).toBe('requirements.txt or pyproject.toml');
+    expect(registryManifestList(['npm', 'crates'])).toBe('package.json or Cargo.toml');
   });
 
   it("says PyPI's downloads as last month's", () => {

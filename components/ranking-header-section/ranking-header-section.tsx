@@ -43,9 +43,9 @@ export const RankingHeaderSection: FC<RankingHeaderSectionProps> = ({
         <h1 className="text-2xl font-semibold">{title}</h1>
       )}
 
-      <div className="flex gap-4">
+      <div className={switches.length ? 'flex min-w-0 flex-wrap gap-4' : 'flex gap-4'}>
         {switches.map((switcher) => (
-          <RankingTypeSwitcher key={switcher.label} options={switcher.options} label={switcher.label} />
+          <RankingTypeSwitcher key={switcher.label} options={switcher.options} label={switcher.label} wrap />
         ))}
         <RankingTypeSwitcher options={options} label={optionsLabel} />
       </div>

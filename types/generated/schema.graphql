@@ -4183,7 +4183,12 @@ enum PackageRankingType {
 }
 
 enum PackageRegistry {
+  CRATES
+  GO
+  MAVEN
   NPM
+  PACKAGIST
+  PUB
   PYPI
 }
 

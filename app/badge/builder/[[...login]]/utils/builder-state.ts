@@ -195,22 +195,43 @@ function prefixedRegistryOf(input: string): { registry: RegistryId; rest: string
   return null;
 }
 
-/** A pasted page address's name: its first segment, on a registry whose names take one (`django/5.0` is `django`). */
+/**
+ * A pasted page address's name, from the path after the registry's prefix: as many segments as a name on the registry
+ * takes (npm: two behind an `@scope`; Packagist and Maven Central: two), joined by the registry's own joiner, the
+ * page's own segments after them left out (`django/5.0`, `slf4j-api/2.0.9`). A registry whose names take any number of
+ * segments (Go) takes them up to a version (`@v1.2.3`).
+ */
 function pageNameOf(registry: RegistryId, rest: string): string {
+  const segments = rest
+    .replace(/[?#].*$/, '')
+    .split('/')
+    .filter(Boolean);
   const { path } = registryOf(registry);
-  return path.max === 1 && path.join === '/' ? rest.split('/')[0] : rest;
+  if (path.max === null) {
+    const versioned = segments.findIndex((segment) => segment.includes('@'));
+    const kept = versioned < 0 ? segments : [...segments.slice(0, versioned), segments[versioned].split('@')[0]];
+    return kept.join(path.join);
+  }
+  const count = path.scope !== undefined && !segments[0]?.startsWith(path.scope) ? path.min : path.max;
+  return segments.slice(0, count).join(path.join);
 }
 
-/**
- * A searched name on a registry as the builder names it, `<registry>/<name>`; `null` when the registry takes none. A
- * version after the name goes: npm's `react@19`, and a requirement's specifier on PyPI (`django==5.0`).
- */
+/** A searched name on a registry as the builder names it, `<registry>/<name>`; `null` when the registry takes none. */
 function packageKeyOfSearch(registry: RegistryId, rest: string): string | null {
   const bare = rest.replace(/[?#].*$/, '').replace(/\/+$/, '');
   // A version after the name, not a scope's own `@`.
-  const unversioned = bare.replace(/(?<=.)@[^/]*$/, '');
-  const name = registryOf(registry).requirementName?.(unversioned) ?? unversioned;
+  const name = bare.replace(/(?<=.)@[^/]*$/, '');
   return isPackageName(registry, name) ? packageKeyOf({ registry, name: canonicalNameOf(registry, name) }) : null;
+}
+
+/**
+ * A searched name on a registry, read as a requirement the registry's files write when it has a way to (a version
+ * after the name: PyPI's `django==5.0`, Go's `github.com/gin-gonic/gin v1.9.1`, Cargo's `serde = "1.0"`, Composer's
+ * `vendor/pkg:^2.0`, Maven's `g:a:1.2.3`), spaces then dropped.
+ */
+function requirementKeyOf(registry: RegistryId, text: string): string | null {
+  const name = registryOf(registry).requirementName?.(text) ?? text;
+  return packageKeyOfSearch(registry, name.replace(/\s+/g, ''));
 }
 
 /**
@@ -228,15 +249,17 @@ export function parsePackageSearch(input: string): string | null {
  * name on each listed registry that takes it, the default registry first (`requests` on npm, then on PyPI).
  */
 export function packageSearchesOf(input: string): string[] {
-  const trimmed = input.replace(/\s+/g, '');
-  const prefixed = prefixedRegistryOf(trimmed);
+  const text = input.trim();
+  const prefixed = prefixedRegistryOf(text.replace(/\s+/g, ''));
   if (prefixed) {
     const { registry, rest, page } = prefixed;
-    const key = packageKeyOfSearch(registry, page ? pageNameOf(registry, rest) : rest);
+    const key = page
+      ? packageKeyOfSearch(registry, pageNameOf(registry, rest))
+      : requirementKeyOf(registry, text.replace(/^\s*[a-z]+:\s*/i, ''));
     return key ? [key] : [];
   }
   const registries = [DEFAULT_REGISTRY, ...REGISTRY_IDS.filter((id) => id !== DEFAULT_REGISTRY)];
-  return registries.flatMap((registry) => packageKeyOfSearch(registry, trimmed) ?? []);
+  return registries.flatMap((registry) => requirementKeyOf(registry, text) ?? []);
 }
 
 /** What a search asks for: a kind and the name it is asked under. */

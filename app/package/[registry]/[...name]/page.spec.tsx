@@ -46,6 +46,11 @@ describe('a package page', () => {
     expect(await generateStaticParams()).toEqual([
       { registry: 'npm', name: ['react'] },
       { registry: 'pypi', name: ['requests'] },
+      { registry: 'go', name: ['github.com', 'gin-gonic', 'gin'] },
+      { registry: 'crates', name: ['serde'] },
+      { registry: 'pub', name: ['http'] },
+      { registry: 'packagist', name: ['laravel', 'framework'] },
+      { registry: 'maven', name: ['org.slf4j', 'slf4j-api'] },
     ]);
   });
 

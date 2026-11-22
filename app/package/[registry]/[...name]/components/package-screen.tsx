@@ -1,4 +1,4 @@
-import { CalendarDays, GitBranch, PackageSearch, Scale, Tag, Timer, Users } from 'lucide-react';
+import { CalendarDays, Database, GitBranch, PackageSearch, Scale, Tag, Timer, Users } from 'lucide-react';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
 
@@ -84,7 +84,7 @@ const OpenOnRegistry: FC<{ registry: RegistryId; name: string }> = ({ registry, 
   return (
     <ExternalIconButton
       href={REGISTRIES[registry].pageUrl(name)}
-      label={`Open on ${REGISTRIES[registry].label}`}
+      label={`Open on ${registryOf(registry).siteName ?? REGISTRIES[registry].label}`}
       icon={<Mark aria-hidden />}
     />
   );
@@ -133,13 +133,16 @@ const Fact: FC<{ Icon: typeof Tag; children?: ReactNode }> = ({ Icon, children }
  * The package's facts: its repository, latest version, first release, maintainers and license. One a line under the
  * buttons; on a phone a wrapped line above them (the column puts the buttons last there).
  */
-const Facts: FC<{ pkg: PackagePage }> = ({ pkg }) => {
+const Facts: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, pkg }) => {
+  const credit = registryOf(registry).factsCredit;
   const firstPublished = shortDate(pkg.firstPublishedAt);
   const releases = pkg.releaseCount
     ? `${formatCount(pkg.releaseCount)} ${pkg.releaseCount === 1 ? 'release' : 'releases'}`
     : null;
   const repository = pkg.repo?.nameWithOwner ?? pkg.repositoryName;
-  if (!(repository || pkg.latestVersion || releases || firstPublished || maintainersText(pkg) || pkg.license)) {
+  if (
+    !(repository || pkg.latestVersion || releases || firstPublished || maintainersText(pkg) || pkg.license || credit)
+  ) {
     return null;
   }
 
@@ -167,6 +170,16 @@ const Facts: FC<{ pkg: PackagePage }> = ({ pkg }) => {
       <Fact Icon={CalendarDays}>{firstPublished && `First published ${firstPublished}`}</Fact>
       <Fact Icon={Users}>{maintainersText(pkg)}</Fact>
       <Fact Icon={Scale}>{pkg.license && `${pkg.license} license`}</Fact>
+      <Fact Icon={Database}>
+        {credit && (
+          <span className="text-muted-foreground">
+            Facts from{' '}
+            <a href={credit.url} target="_blank" rel="noopener noreferrer" className="text-link underline">
+              {credit.label}
+            </a>
+          </span>
+        )}
+      </Fact>
     </ul>
   );
 };
@@ -325,7 +338,8 @@ const Downloads: FC<{
 
 /** "Downloads from npm through Nov 16, 2026 · Dependents read Nov 16, 2026, next read Dec 1, 2026". */
 function dataLineOf(registry: RegistryId, pkg: PackagePage): string {
-  const through = pkg.downloads && shortDate(pkg.downloads.through);
+  // A registry with no download counts has no downloads to date.
+  const through = registryOf(registry).downloads && pkg.downloads && shortDate(pkg.downloads.through);
   const read = shortDate(pkg.dependentsReadAt);
   const next = shortDate(pkg.nextDependentsReadAt);
   return [
@@ -413,8 +427,10 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
     );
   }
 
-  const ranked = hasRanks(pkg.ranks);
+  const ranked = hasRanks(pkg.ranks, registry);
   const unit = registryOf(registry).downloads;
+  // The downloads card, only on a registry that counts downloads.
+  const downloads = unit ? pkg.downloads : null;
 
   return (
     <Frame
@@ -429,15 +445,15 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
               <OpenOnRegistry registry={registry} name={pkg.name} />
             </ActionRow>
           </ActionsContainer>
-          <Facts pkg={pkg} />
+          <Facts registry={registry} pkg={pkg} />
         </>
       }
     >
       {!!jsonLd?.length && <JsonLd payloads={jsonLd} />}
-      {(ranked || pkg.downloads) && (
+      {(ranked || downloads) && (
         <ProfileCardsGrid className="grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))]">
           {ranked && <PackageRanksCard registry={registry} ranks={pkg.ranks} />}
-          {pkg.downloads && <PackageDownloadsCard registry={registry} downloads={pkg.downloads} repo={pkg.repo} />}
+          {downloads && <PackageDownloadsCard registry={registry} downloads={downloads} repo={pkg.repo} />}
         </ProfileCardsGrid>
       )}
       <UsedBy registry={registry} pkg={pkg} />

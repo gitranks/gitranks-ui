@@ -7,7 +7,7 @@ import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { Pill } from '@/components/pill/pill';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
 import type { PackagePage, PackageRank } from '@/graphql/package-page';
-import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
+import { DEFAULT_REGISTRY, REGISTRIES, type RegistryId, registryHasDownloads } from '@/lib/packages/registries';
 import { packageRankingPath } from '@/utils/package-paths';
 
 type PackageRanksCardProps = Pick<PackagePage, 'ranks'> & {
@@ -52,8 +52,13 @@ const RankTile: FC<{ registry: RegistryId; rank: PackageRank; by: string; label:
   </NextLink>
 );
 
-/** Whether any ranking ranks it: the card is left out until one does. */
-export const hasRanks = (ranks: PackagePage['ranks']) => !!ranks && rankTilesOf('').some(({ key }) => !!ranks[key]);
+/** The tiles a registry has: no downloads ranking where it publishes no download counts, whatever the ranks hold. */
+const tilesOf = (registry: RegistryId) =>
+  rankTilesOf(REGISTRIES[registry].label).filter(({ key }) => key !== 'downloads' || registryHasDownloads(registry));
+
+/** Whether any of the registry's rankings ranks it: the card is left out until one does. */
+export const hasRanks = (ranks: PackagePage['ranks'], registry: RegistryId = DEFAULT_REGISTRY) =>
+  !!ranks && tilesOf(registry).some(({ key }) => !!ranks[key]);
 
 /**
  * "Ranks on npm": a tile per ranking that ranks it, each linking to the ranking's page it is on, and the way to every
@@ -61,7 +66,7 @@ export const hasRanks = (ranks: PackagePage['ranks']) => !!ranks && rankTilesOf(
  */
 export const PackageRanksCard: FC<PackageRanksCardProps> = ({ registry, ranks }) => {
   const { label } = REGISTRIES[registry];
-  const tiles = rankTilesOf(label).flatMap((tile) => {
+  const tiles = tilesOf(registry).flatMap((tile) => {
     const rank = ranks?.[tile.key];
     return rank ? [{ ...tile, rank }] : [];
   });

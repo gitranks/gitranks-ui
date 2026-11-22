@@ -90,7 +90,9 @@ describe('a Find search', () => {
     expect(parsePackageSearch('https://www.npmjs.com/package/@types/node')).toBe('npm/@types/node');
     expect(parsePackageSearch('npm:react@19.0.0')).toBe('npm/react');
     expect(parsePackageSearch('@types/node@22')).toBe('npm/@types/node');
-    expect(parsePackageSearch('acme/fastqueue')).toBeNull();
+    // `vendor/package` is a Packagist name.
+    expect(parsePackageSearch('acme/fastqueue')).toBe('packagist/acme/fastqueue');
+    expect(parsePackageSearch('acme/fast/queue')).toBeNull();
     expect(parsePackageSearch('.hidden')).toBeNull();
   });
 
@@ -110,13 +112,19 @@ describe('a Find search', () => {
       { kind: 'org', name: 'react' },
       { kind: 'package', name: 'npm/react' },
       { kind: 'package', name: 'pypi/react' },
+      { kind: 'package', name: 'crates/react' },
+      { kind: 'package', name: 'pub/react' },
     ]);
     expect(searchLookups('@types/node', null)).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
     expect(searchLookups('npm:lodash', null)).toEqual([{ kind: 'package', name: 'npm/lodash' }]);
-    expect(searchLookups('acme/fastqueue', null)).toEqual([{ kind: 'repo', name: 'acme/fastqueue' }]);
+    expect(searchLookups('acme/fastqueue', null)).toEqual([
+      { kind: 'repo', name: 'acme/fastqueue' },
+      { kind: 'package', name: 'packagist/acme/fastqueue' },
+    ]);
     expect(searchLookups('react', 'user')).toEqual([{ kind: 'user', name: 'react' }]);
     expect(searchLookups('@types/node', 'package')).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
-    expect(searchLookups('acme/fastqueue', 'package')).toEqual([]);
+    expect(searchLookups('acme/fastqueue', 'package')).toEqual([{ kind: 'package', name: 'packagist/acme/fastqueue' }]);
+    expect(searchLookups('acme/fastqueue', 'repo')).toEqual([{ kind: 'repo', name: 'acme/fastqueue' }]);
     expect(searchLookups('vercel', 'org')).toEqual([{ kind: 'org', name: 'vercel' }]);
   });
 
@@ -124,52 +132,62 @@ describe('a Find search', () => {
     expect(searchLookups('Django', 'package')).toEqual([
       { kind: 'package', name: 'npm/Django' },
       { kind: 'package', name: 'pypi/django' },
+      { kind: 'package', name: 'crates/django' },
     ]);
     expect(searchLookups('zope.interface', 'package')).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },
       { kind: 'package', name: 'pypi/zope-interface' },
+      // A host alone is a Go module path.
+      { kind: 'package', name: 'go/zope.interface' },
     ]);
     expect(searchLookups('https://pypi.org/project/requests/', null)).toEqual([
       { kind: 'package', name: 'pypi/requests' },
     ]);
     expect(searchLookups('pypi:requests', null)).toEqual([{ kind: 'package', name: 'pypi/requests' }]);
-    expect(searchLookups('_private', 'package')).toEqual([]);
+    expect(searchLookups('.private', 'package')).toEqual([]);
   });
 
   it('looks a PyPI name up in the All scope even when no GitHub login can be it', () => {
     expect(searchLookups('typing_extensions', null)).toEqual([
       { kind: 'package', name: 'npm/typing_extensions' },
       { kind: 'package', name: 'pypi/typing-extensions' },
+      { kind: 'package', name: 'crates/typing_extensions' },
+      { kind: 'package', name: 'pub/typing_extensions' },
     ]);
     expect(searchLookups('zope.interface', null)).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },
       { kind: 'package', name: 'pypi/zope-interface' },
+      // A host alone is a Go module path.
+      { kind: 'package', name: 'go/zope.interface' },
     ]);
     expect(searchLookups('ruamel.yaml', null)).toEqual([
       { kind: 'package', name: 'npm/ruamel.yaml' },
       { kind: 'package', name: 'pypi/ruamel-yaml' },
+      { kind: 'package', name: 'go/ruamel.yaml' },
     ]);
     // Still nothing for what names no package and no account.
     expect(searchLookups('.hidden', null)).toEqual([]);
   });
 
   it('reads a pasted requirement on PyPI: its version specifier, extras and marker go', () => {
-    expect(packageSearchesOf('django==5.0')).toEqual(['pypi/django']);
+    // A Cargo requirement reads the same up to its `=`.
+    expect(packageSearchesOf('django==5.0')).toEqual(['pypi/django', 'crates/django']);
     expect(packageSearchesOf('requests>=2')).toEqual(['pypi/requests']);
     expect(packageSearchesOf('requests[socks]~=2.31')).toEqual(['pypi/requests']);
     expect(packageSearchesOf('numpy!=1.0;python_version>"3.8"')).toEqual(['pypi/numpy']);
     expect(parsePackageSearch('pypi:numpy==1.26')).toBe('pypi/numpy');
     expect(parsePackageSearch('pypi:Zope.Interface<6')).toBe('pypi/zope-interface');
-    expect(searchLookups('django==5.0', null)).toEqual([{ kind: 'package', name: 'pypi/django' }]);
+    expect(searchLookups('django==5.0', null)).toEqual([
+      { kind: 'package', name: 'pypi/django' },
+      { kind: 'package', name: 'crates/django' },
+    ]);
     // npm takes none of it: `=` and `>` are not in its names.
     expect(parsePackageSearch('npm:react==19')).toBeNull();
   });
 
   it("asks for a package by its kind's words, and sends a miss to its page", () => {
-    expect(findHeading('package', null)).toBe('Which npm or PyPI package is the badge for?');
-    expect(findHeading('package', findBadge('package', 'used-by'))).toBe(
-      'Find your npm or PyPI package for the “used by” badge',
-    );
+    expect(findHeading('package', null)).toBe('Which package is the badge for?');
+    expect(findHeading('package', findBadge('package', 'used-by'))).toBe('Find your package for the “used by” badge');
     expect(missingHref('npm/@nebula/ui', 'package')).toBe('/package/npm/@nebula/ui');
     expect(missingHref('acme/fastqueue', null)).toBe('/repo/acme/fastqueue');
   });

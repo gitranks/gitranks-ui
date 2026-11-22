@@ -11,14 +11,16 @@ type RankingTypeSwitcherProps = {
   options: readonly RankingOption[];
   /** The words before the options. */
   label?: string;
+  /** Lets the options run onto more lines on a narrow screen: for a switch with many of them (the registries). */
+  wrap?: boolean;
 };
 
 /** The orders a ranking can be shown in, as one group of links with the shown one marked. */
-export const RankingTypeSwitcher: FC<RankingTypeSwitcherProps> = ({ options, label = 'Rank By:' }) => {
+export const RankingTypeSwitcher: FC<RankingTypeSwitcherProps> = ({ options, label = 'Rank By:', wrap = false }) => {
   return (
     <div className="text-sm flex flex-col gap-1">
       {label}
-      <ButtonGroup>
+      <ButtonGroup className={wrap ? 'h-auto max-w-full flex-wrap justify-start' : undefined}>
         {options.map(({ href, label: optionLabel, active }) => (
           <LinkGroupItem key={href} href={href} active={active}>
             {optionLabel}

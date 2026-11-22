@@ -5,6 +5,7 @@ import type { RepoPackage, RepoPackages, RepoUsedByItem } from '@/graphql/repo-p
 import {
   DOWNLOADS_UNIT_TEXT,
   type DownloadsUnit,
+  downloadsUnitOf,
   REGISTRIES,
   registryManifestList,
   spelledNameOf,
@@ -55,8 +56,11 @@ function packagesWord(packages: Pick<RepoPackages, 'items'>, one = false): strin
 /** The units a repository's downloads are added up in, in the order they are said: npm's week, then PyPI's month. */
 const UNITS: readonly DownloadsUnit[] = ['week', 'month'];
 
-/** The unit a repository's package is counted in; `null` on a registry that publishes no download counts. */
-const unitOf = (pkg: Pick<RepoPackage, 'registry'>) => REGISTRIES[registryOfRepoPackage(pkg)].downloads;
+/**
+ * The unit a repository's package is counted in; `null` on a registry that publishes no download counts or whose first
+ * count is not read yet.
+ */
+const unitOf = (pkg: Pick<RepoPackage, 'registry'>) => downloadsUnitOf(registryOfRepoPackage(pkg));
 
 /**
  * A repository's package's downloads in its registry's unit, with how it is said after the count: last week's ("a

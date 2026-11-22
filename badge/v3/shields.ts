@@ -29,7 +29,7 @@ import { type RaceState, repoRace, userClimbRace, userStarsRace } from './race';
 import type { By, Segment, ShieldContent } from './types';
 import { UNSUNG_HERO_BADGE, unsungHeroMonth } from './unsung-hero-badge';
 import { REPO_TIER_NAMES, TIER_NAMES } from '@/app/app.consts';
-import { DOWNLOADS_UNIT_TEXT, downloadsCountOf, REGISTRIES } from '@/lib/packages/registries';
+import { DOWNLOADS_UNIT_TEXT, downloadsCountOf, downloadsUnitOf, REGISTRIES } from '@/lib/packages/registries';
 import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
 
 /** The neutral value of a badge with nothing to show right now. */
@@ -349,7 +349,8 @@ function growthRun(change: number) {
 
 function packageShield(pkg: PackageFacts, badge: BadgeDefinition, params: BadgeParams): ShieldContent | null {
   const used = pkg.dependentsCount > 0;
-  const { label: registry, downloads: unit } = REGISTRIES[pkg.registry];
+  const registry = REGISTRIES[pkg.registry].label;
+  const unit = downloadsUnitOf(pkg.registry);
   const downloadsLabel = `${registry} downloads`;
   const repos = (count: number) => (count === 1 ? 'repo' : 'repos');
   switch (badge.id) {

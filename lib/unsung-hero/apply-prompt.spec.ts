@@ -45,6 +45,8 @@ describe('Heavily used, by the registries listed', () => {
     expect(first([{ id: 'NUGET', label: 'NuGet' }])).toBe('Among the most downloaded packages in its registry.');
     // One the table counts downloads for, however the API names it, is not either.
     expect(first([{ id: 'CRATES', label: 'crates.io' }])).toBe('Among the most downloaded packages in its registry.');
+    // Nor is pub.dev while its first count is not read: it publishes counts.
+    expect(first([{ id: 'PUB', label: 'pub.dev' }])).toBe('Among the most downloaded packages in its registry.');
   });
 
   it('says nothing of them when none is listed', () => {

@@ -31,6 +31,7 @@ import type { PackagePage } from '@/graphql/package-page';
 import {
   DOWNLOADS_UNIT_TEXT,
   type DownloadsUnit,
+  downloadsUnitOf,
   REGISTRIES,
   type RegistryId,
   registryOf,
@@ -339,7 +340,7 @@ const Downloads: FC<{
 /** "Downloads from npm through Nov 16, 2026 · Dependents read Nov 16, 2026, next read Dec 1, 2026". */
 function dataLineOf(registry: RegistryId, pkg: PackagePage): string {
   // A registry with no download counts has no downloads to date.
-  const through = registryOf(registry).downloads && pkg.downloads && shortDate(pkg.downloads.through);
+  const through = downloadsUnitOf(registry) && pkg.downloads && shortDate(pkg.downloads.through);
   const read = shortDate(pkg.dependentsReadAt);
   const next = shortDate(pkg.nextDependentsReadAt);
   return [
@@ -428,7 +429,7 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
   }
 
   const ranked = hasRanks(pkg.ranks, registry);
-  const unit = registryOf(registry).downloads;
+  const unit = downloadsUnitOf(registry);
   // The downloads card, only on a registry that counts downloads.
   const downloads = unit ? pkg.downloads : null;
 

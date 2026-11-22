@@ -226,6 +226,11 @@ describe('a pasted page address or requirement, in the badge builder', () => {
       'maven/com.google.guava:guava',
     );
     expect(parsePackageSearch('pub:http: ^1.2.0')).toBe('pub/http');
+    expect(packageSearchesOf('http: ^1.2.0')).toContain('pub/http');
+    expect(packageSearchesOf('http: any')).toContain('pub/http');
+    // A `:` with a word or `//` straight after it is no pubspec's: an address or another registry's prefix.
+    expect(packageSearchesOf('https://example.com/http')).not.toContain('pub/https');
+    expect(packageSearchesOf('maven:com.google.guava:guava')).not.toContain('pub/maven');
   });
 
   it('reads both Gradle forms of a Maven coordinate, never joining the configuration to it', () => {

@@ -8,7 +8,10 @@ import {
   apiRegistryOf,
   canonicalNameOf,
   DEFAULT_REGISTRY,
+  DOWNLOADS_PENDING,
   downloadsCountOf,
+  downloadsUnitOf,
+  isDownloadsPending,
   isListedApiRegistry,
   isNameSegmentCount,
   isPackageName,
@@ -32,8 +35,8 @@ import {
 import { PackageRegistry } from '@/types/generated/graphql';
 
 describe('the registry table', () => {
-  it('lists npm, the default, then PyPI, Go and crates.io, as the API names them', () => {
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates']);
+  it('lists npm, the default, then PyPI, Go, crates.io and pub.dev, as the API names them', () => {
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub']);
     expect(DEFAULT_REGISTRY).toBe('npm');
     expect(apiRegistryOf('npm')).toBe(PackageRegistry.Npm);
     expect(apiRegistryOf('pypi')).toBe(PackageRegistry.Pypi);
@@ -41,6 +44,7 @@ describe('the registry table', () => {
     expect(registryOfApi('PYPI')).toBe('pypi');
     expect(registryOfApi('GO')).toBe('go');
     expect(registryOfApi('CRATES')).toBe('crates');
+    expect(registryOfApi('PUB')).toBe('pub');
     expect(registryOfApi('npm')).toBeNull();
     expect(registryOfApi('CARGO')).toBeNull();
     expect(registryOfApi(null)).toBeNull();
@@ -50,10 +54,10 @@ describe('the registry table', () => {
     expect(ALL_REGISTRY_IDS.map((id) => REGISTRIES[id].api).sort()).toEqual(Object.values(PackageRegistry).sort());
   });
 
-  it('shows the registries its list names, in the order of the table: npm, PyPI, Go and crates.io for now', () => {
-    expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi', 'go', 'crates']);
+  it('shows the registries its list names, in the order of the table: npm, PyPI, Go, crates.io and pub.dev for now', () => {
+    expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi', 'go', 'crates', 'pub']);
     expect(ALL_REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates']);
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub']);
     // A row not listed yet: the table knows it, nothing a visitor reaches does.
     expect(isRegistryRow('maven')).toBe(true);
     expect(isRegistryId('maven')).toBe(false);
@@ -84,6 +88,33 @@ describe('the registry table', () => {
     expect(pypi.downloads).toBe('month');
     expect(registryHasDownloads('pypi')).toBe(true);
     expect(pypi.examples[0]).toBe('requests');
+  });
+
+  it("keeps pub.dev's traits: its page, its one-segment lower-case names, its pubspec.yaml, its monthly downloads", () => {
+    const pub = REGISTRIES.pub;
+    expect(pub.label).toBe('pub.dev');
+    expect(pub.article).toBe('a');
+    expect(pub.pageUrl('http')).toBe('https://pub.dev/packages/http');
+    expect(pub.pageUrlPrefix.test('https://pub.dev/packages/provider')).toBe(true);
+    expect(pub.path).toEqual({ min: 1, max: 1, join: '/' });
+    expect(pub.manifest).toBe('pubspec.yaml');
+    expect(pub.downloads).toBe('month');
+    expect(canonicalNameOf('pub', 'shared_preferences')).toBe('shared_preferences');
+  });
+
+  it("treats pub.dev as a registry without download counts until its first month's count is read", () => {
+    expect(Object.keys(DOWNLOADS_PENDING)).toEqual(['pub']);
+    expect(DOWNLOADS_PENDING.pub).toBe('early December 2026');
+    expect(isDownloadsPending('pub')).toBe(true);
+    expect(isDownloadsPending('pypi')).toBe(false);
+    expect(downloadsUnitOf('pub')).toBeNull();
+    expect(registryHasDownloads('pub')).toBe(false);
+    expect(registryDownloadsText('pub')).toBe('pub.dev downloads');
+    // Every other registry keeps its row's unit, Go its none.
+    expect(downloadsUnitOf('npm')).toBe('week');
+    expect(downloadsUnitOf('pypi')).toBe('month');
+    expect(downloadsUnitOf('go')).toBeNull();
+    expect(downloadsUnitOf('crates')).toBe('week');
   });
 
   it('takes a pasted pypi.org project address, and no other site', () => {
@@ -213,11 +244,13 @@ describe('copy from the table', () => {
   });
 
   it('names every registry where the copy lists every one, and a package alone past two', () => {
-    expect(registryLabelList()).toBe('npm, PyPI, Go and crates.io');
-    expect(registryLabelList('or')).toBe('npm, PyPI, Go or crates.io');
+    expect(registryLabelList()).toBe('npm, PyPI, Go, crates.io and pub.dev');
+    expect(registryLabelList('or')).toBe('npm, PyPI, Go, crates.io or pub.dev');
     expect(anyRegistryPackageText()).toBe('package');
     expect(anyRegistryPackageText(true)).toBe('a package');
-    expect(registryManifestList()).toBe('package.json, requirements.txt, pyproject.toml, go.mod or Cargo.toml');
+    expect(registryManifestList()).toBe(
+      'package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml or pubspec.yaml',
+    );
     expect(registryManifestList(['pypi'])).toBe('requirements.txt or pyproject.toml');
   });
 

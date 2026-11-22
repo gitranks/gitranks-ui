@@ -1,5 +1,5 @@
 import type { ApplyRegistry } from './apply.types';
-import { registryHasDownloads, registryRowOfApi } from '@/lib/packages/registries';
+import { REGISTRIES, registryRowOfApi } from '@/lib/packages/registries';
 
 /** One rule of the slot, as the apply page and the agent's prompt both state it. */
 export type ApplyRule = { title: string; text: string };
@@ -20,11 +20,12 @@ export const APPLY_RULES: readonly ApplyRule[] = [
 /**
  * Whether a registry, as the API names it, publishes no download counts, by the site's registry table (every row, the
  * site showing its packages yet or not: the API names the registries heroes come from): its packages are read by the
- * projects that depend on them. One the table has no row for is not said to have none.
+ * projects that depend on them. One the table has no row for is not said to have none, and neither is one whose first
+ * count is not read yet (pub.dev): it publishes counts, so its row's own trait is read here.
  */
 const publishesNoDownloads = (id: string) => {
   const registry = registryRowOfApi(id);
-  return registry !== null && !registryHasDownloads(registry);
+  return registry !== null && REGISTRIES[registry].downloads === null;
 };
 
 /**

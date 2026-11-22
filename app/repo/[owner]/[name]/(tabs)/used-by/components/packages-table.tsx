@@ -9,7 +9,7 @@ import { registryOfRepoPackage, spansRegistries } from '@/app/repo/[owner]/[name
 import { repoPackageDownloadsOf } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { RepoPackages } from '@/graphql/repo-packages';
-import { DOWNLOADS_UNIT_TEXT, REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
+import { DOWNLOADS_UNIT_TEXT, downloadsUnitOf, REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 const formatCount = (value: number) => value.toLocaleString('en-US');
@@ -41,7 +41,7 @@ export const PackagesTable: FC<{ packages: Pick<RepoPackages, 'total' | 'items'>
   const more = packages.total - packages.items.length;
   // Packages on more than one registry name each one's.
   const registryChip = spansRegistries(packages.items);
-  const units = new Set(packages.items.flatMap((pkg) => REGISTRIES[registryOfRepoPackage(pkg)].downloads ?? []));
+  const units = new Set(packages.items.flatMap((pkg) => downloadsUnitOf(registryOfRepoPackage(pkg)) ?? []));
   const [unit] = units;
   const head = units.size === 1 ? `Downloads ${DOWNLOADS_UNIT_TEXT[unit].per}` : 'Downloads';
 

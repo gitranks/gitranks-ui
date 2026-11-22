@@ -9,6 +9,7 @@ import {
   DEFAULT_REGISTRY,
   DOWNLOADS_UNIT_TEXT,
   downloadsCountOf,
+  downloadsUnitOf,
   REGISTRIES,
   type RegistryId,
   registryHasDownloads,
@@ -35,7 +36,7 @@ const NOT_INDEXED: Metadata['robots'] = { index: false };
 
 const plural = (count: number, one: string, many: string) => `${formatCount(count)} ${count === 1 ? one : many}`;
 
-/** A registry with no download counts (Go, Maven Central) leaves downloads out. */
+/** A registry with no download counts (Go, Maven Central, pub.dev before its first) leaves downloads out. */
 export const packageTitle = (name: string, registry: RegistryId = DEFAULT_REGISTRY) =>
   `${name} - ${REGISTRIES[registry].label} package ${registryHasDownloads(registry) ? 'dependents, downloads and ranks' : 'dependents and ranks'}`;
 
@@ -51,7 +52,7 @@ function ranksText(registry: RegistryId, ranks: PackagePage['ranks']): string | 
 
 function buildDescription(registry: RegistryId, pkg: PackagePage): string {
   const { dependentsCount: count, dependentsStars: stars } = pkg;
-  const unit = REGISTRIES[registry].downloads;
+  const unit = downloadsUnitOf(registry);
   const downloads = downloadsCountOf(unit, pkg.downloads);
   return clipText(
     [
@@ -89,7 +90,7 @@ function buildBreadcrumbs(registry: RegistryId, name: string, url: string) {
 function buildApplication(registry: RegistryId, pkg: PackagePage, url: string) {
   const source = pkg.repo?.nameWithOwner ?? pkg.repositoryName;
   // Its downloads of the last period its registry counts: last week's, or last month's.
-  const downloads = downloadsCountOf(REGISTRIES[registry].downloads, pkg.downloads);
+  const downloads = downloadsCountOf(downloadsUnitOf(registry), pkg.downloads);
   return {
     '@type': 'SoftwareApplication',
     name: spelledNameOf(pkg),

@@ -224,7 +224,7 @@ export const ALL_REGISTRY_IDS = Object.keys(REGISTRIES) as RegistryId[];
  * The registries the site shows. A registry goes live by joining this list; until then its package and ranking
  * addresses are not found, and no switch, sitemap, list or search names it.
  */
-export const LISTED_REGISTRIES = ['npm', 'pypi', 'go', 'crates'] as const satisfies readonly RegistryId[];
+export const LISTED_REGISTRIES = ['npm', 'pypi', 'go', 'crates', 'pub'] as const satisfies readonly RegistryId[];
 
 /**
  * Every registry the site shows, in the table's order. Everything a visitor reaches reads this list: the routes, the
@@ -272,8 +272,28 @@ export const registryOfListedApi = (api: ListedApiRegistry): RegistryId =>
 /** The registry as the API names it, typed as the API's enum (the same string). */
 export const apiRegistryOf = (id: RegistryId) => REGISTRIES[id].api as PackageRegistry;
 
+/**
+ * The registries that count downloads but whose first count is not read yet, with when it comes: "early December 2026".
+ * While a registry is here the site treats it as one without download counts: no downloads ranking, and nothing about
+ * downloads in titles, tiles, badges or copy. pub.dev leaves it once its first month (November 2026, read December 1–3)
+ * is applied.
+ */
+export const DOWNLOADS_PENDING = { pub: 'early December 2026' } as const satisfies Partial<Record<RegistryId, string>>;
+
+/** Whether a registry counts downloads but its first count is not read yet (`DOWNLOADS_PENDING`). */
+export const isDownloadsPending = (id: RegistryId): id is keyof typeof DOWNLOADS_PENDING =>
+  Object.hasOwn(DOWNLOADS_PENDING, id);
+
+/**
+ * How often the site shows a registry's downloads counted: its row's unit, or `null` for a registry that publishes no
+ * download counts or whose first count is not read yet. What everything a visitor reaches reads, never the row's
+ * `downloads`.
+ */
+export const downloadsUnitOf = (id: RegistryId): DownloadsUnit | null =>
+  isDownloadsPending(id) ? null : registryOf(id).downloads;
+
 /** Whether a registry has download counts, and so a downloads ranking and downloads badges. */
-export const registryHasDownloads = (id: RegistryId) => registryOf(id).downloads !== null;
+export const registryHasDownloads = (id: RegistryId) => downloadsUnitOf(id) !== null;
 
 /** Whether a name on the registry may take this many URL segments (`min` to `max`). */
 function isSegmentCountInRange(id: RegistryId, count: number): boolean {
@@ -393,7 +413,8 @@ export function downloadsCountOf(
 
 /** "npm downloads a week", "PyPI downloads last month": a registry's downloads in its own unit; "… downloads" where it has none. */
 export function registryDownloadsText(id: RegistryId) {
-  const { label, downloads } = registryOf(id);
+  const { label } = registryOf(id);
+  const downloads = downloadsUnitOf(id);
   return downloads ? `${label} downloads ${DOWNLOADS_UNIT_TEXT[downloads].per}` : `${label} downloads`;
 }
 

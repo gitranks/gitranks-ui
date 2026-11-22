@@ -19,6 +19,7 @@ import { FOLLOW_CARD_TITLE } from '@/lib/follow/follow-copy';
 import {
   DEFAULT_REGISTRY,
   DOWNLOADS_UNIT_TEXT,
+  downloadsUnitOf,
   REGISTRIES,
   REGISTRY_IDS,
   registryLabelList,
@@ -49,7 +50,7 @@ const tabOf = (order: PackageRankingOrder) => PACKAGE_RANKINGS[order].label;
 
 /** "weekly downloads" while every listed registry counts them by the week; "downloads" once their units differ. */
 const DOWNLOADS_RANKED_BY = (() => {
-  const units = new Set(REGISTRY_IDS.flatMap((id) => REGISTRIES[id].downloads ?? []));
+  const units = new Set(REGISTRY_IDS.flatMap((id) => downloadsUnitOf(id) ?? []));
   return units.size === 1 ? `${DOWNLOADS_UNIT_TEXT[[...units][0]].adjective} downloads` : 'downloads';
 })();
 
@@ -70,7 +71,7 @@ const POINTS = [
 /** What a tab's numbers count, under its rows. */
 const basisOf = (order: PackageRankingOrder, downloadsTo: string | null) =>
   order === 'downloads'
-    ? `Downloads ${downloadsWindow(downloadsTo, REGISTRIES[DEFAULT_REGISTRY].downloads ?? undefined)}`
+    ? `Downloads ${downloadsWindow(downloadsTo, downloadsUnitOf(DEFAULT_REGISTRY) ?? undefined)}`
     : order === 'dependents'
       ? `Repositories with ${DEPENDENT_MIN_STARS}+ stars that use it directly`
       : `Stars of the repositories with ${DEPENDENT_MIN_STARS}+ stars that use it, added up`;

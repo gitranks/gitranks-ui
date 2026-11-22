@@ -14,8 +14,8 @@ describe('package-page sitemap', () => {
     vi.mocked(fetchPackagesForSitemap).mockReset().mockResolvedValue([]);
   });
 
-  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29, crates.io 30–39', async () => {
-    expect(await generateSitemaps()).toHaveLength(40);
+  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29, crates.io 30–39, pub.dev 40–49', async () => {
+    expect(await generateSitemaps()).toHaveLength(50);
   });
 
   it("lists each package's page at its canonical address, a scoped name as @scope/name", async () => {
@@ -74,8 +74,15 @@ describe('package-page sitemap', () => {
     expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Crates, 4);
   });
 
-  it('reads no part outside 0–39', async () => {
-    expect(await part('40')).toEqual([]);
+  it("lists a pub.dev package's page under its registry, from the parts after crates.io's", async () => {
+    vi.mocked(fetchPackagesForSitemap).mockResolvedValue(['shared_preferences']);
+
+    expect((await part('45')).map(({ url }) => url)).toEqual(['https://example.test/package/pub/shared_preferences']);
+    expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Pub, 5);
+  });
+
+  it('reads no part outside 0–49', async () => {
+    expect(await part('50')).toEqual([]);
     expect(await part('x')).toEqual([]);
     expect(fetchPackagesForSitemap).not.toHaveBeenCalled();
   });

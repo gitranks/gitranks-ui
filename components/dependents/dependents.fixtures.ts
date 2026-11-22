@@ -21,6 +21,7 @@ export const threePackages: RepoPackages = {
   dependents: 231,
   dependentsArchived: 1,
   downloadsLastWeek: 527_322,
+  downloadsLastMonth: 0,
   ...READ,
 };
 
@@ -31,6 +32,7 @@ export const onePackage: RepoPackages = {
   dependents: 214,
   dependentsArchived: 1,
   downloadsLastWeek: 412_880,
+  downloadsLastMonth: 0,
   ...READ,
   downloadsReadAt: READ.dependentsReadAt,
 };
@@ -48,6 +50,7 @@ export const fivePackages: RepoPackages = {
   dependents: 252,
   dependentsArchived: 1,
   downloadsLastWeek: 583_668,
+  downloadsLastMonth: 0,
   ...READ,
   downloadsReadAt: READ.dependentsReadAt,
 };
@@ -59,6 +62,7 @@ export const noDependents: RepoPackages = {
   dependents: 0,
   dependentsArchived: 0,
   downloadsLastWeek: 2_118,
+  downloadsLastMonth: 0,
   ...READ,
   dependentsReadAt: null,
   downloadsReadAt: null,

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { repoImagesOf } from './seo';
 import { topContributorOf } from './utils/contributors-summary';
 import { repoTabPath } from './utils/repo-tabs';
-import { downloadsPer, formatCount } from './utils/used-by-summary';
+import { downloadsFiguresOf, formatCount } from './utils/used-by-summary';
 import { badgeImagePath } from '@/badge/v3/links';
 import type { PulseFactsData } from '@/components/pulse/pulse.utils';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
@@ -54,10 +54,13 @@ function packageNames(packages: RepoPackages): string {
   return names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
-/** "527,312 downloads a week on npm."; nothing on a registry that publishes no download counts. */
+/**
+ * "527,312 downloads a week on npm.", with PyPI's "and 1,200,000 downloads last month on PyPI." each in its own unit;
+ * nothing on a registry that publishes no download counts.
+ */
 function downloadsLine(packages: RepoPackages): string | undefined {
-  const per = downloadsPer(packages);
-  return per ? `${formatCount(packages.downloadsLastWeek)} downloads ${per}.` : undefined;
+  const figures = downloadsFiguresOf(packages).map(({ count, per }) => `${formatCount(count)} downloads ${per}`);
+  return figures.length ? `${figures.join(' and ')}.` : undefined;
 }
 
 /**

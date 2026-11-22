@@ -27,7 +27,7 @@ import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { Button } from '@/components/ui/button';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages, RepoUsedBy } from '@/graphql/repo-packages';
-import { REGISTRIES, REGISTRY_IDS, spelledNameOf } from '@/lib/packages/registries';
+import { DOWNLOADS_UNIT_TEXT, REGISTRIES, REGISTRY_IDS, spelledNameOf } from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 
 type UsedByScreenProps = {
@@ -40,17 +40,30 @@ type UsedByScreenProps = {
   jsonLd?: object[];
 };
 
-/** The registries whose downloads the tab shows: those counted by the week, the one count it reads. */
-const WEEKLY_REGISTRIES = listText(
-  REGISTRY_IDS.filter((id) => REGISTRIES[id].downloads === 'week').map((id) => REGISTRIES[id].label),
-);
+/**
+ * "from npm, weekly", "from npm, weekly, and from PyPI, monthly": where the downloads the tab shows come from and how
+ * often each is counted, for the registries of the repository's packages that count them (those counted by the week
+ * while its packages are not known).
+ */
+function downloadsFromText(packages: RepoPackages | null): string {
+  const listed = packages ? [...new Set(packages.items.map(registryOfRepoPackage))] : [];
+  const counted = listed.filter((id) => REGISTRIES[id].downloads);
+  const ids = counted.length ? counted : REGISTRY_IDS.filter((id) => REGISTRIES[id].downloads === 'week');
+  return (['week', 'month'] as const)
+    .flatMap((unit) => {
+      const labels = ids.filter((id) => REGISTRIES[id].downloads === unit).map((id) => REGISTRIES[id].label);
+      return labels.length ? [`from ${listText(labels)}, ${DOWNLOADS_UNIT_TEXT[unit].adjective}`] : [];
+    })
+    .join(', and ');
+}
 
-const INTRO = `Repositories with 100+ stars that depend directly on a package this repository publishes. Forks, lockfiles and example folders don't count. Read monthly; downloads from ${WEEKLY_REGISTRIES}, weekly.`;
+const introOf = (packages: RepoPackages | null) =>
+  `Repositories with 100+ stars that depend directly on a package this repository publishes. Forks, lockfiles and example folders don't count. Read monthly; downloads ${downloadsFromText(packages)}.`;
 
-const Heading: FC = () => (
+const Heading: FC<{ packages: RepoPackages | null }> = ({ packages }) => (
   <div className="flex flex-col gap-1">
     <h2 className="text-lg font-semibold">Used by</h2>
-    <p className="text-sm text-muted-foreground">{INTRO}</p>
+    <p className="text-sm text-muted-foreground">{introOf(packages)}</p>
   </div>
 );
 
@@ -111,7 +124,7 @@ export const UsedByScreen: FC<UsedByScreenProps> = ({ nameWithOwner, packages, f
   if (packages === 'unavailable' || firstPage === 'unavailable' || (packages.dependents > 0 && !firstPage)) {
     return (
       <>
-        <Heading />
+        <Heading packages={packages === 'unavailable' ? null : packages} />
         <ProfileCard>
           <p className="text-sm text-muted-foreground">{PACKAGES_UNAVAILABLE_TEXT}</p>
         </ProfileCard>
@@ -125,7 +138,7 @@ export const UsedByScreen: FC<UsedByScreenProps> = ({ nameWithOwner, packages, f
   return (
     <>
       {!!jsonLd?.length && <JsonLd payloads={jsonLd} />}
-      <Heading />
+      <Heading packages={packages} />
       <ProfileSummary parts={buildUsedBySummary(nameWithOwner, packages, rows)} />
       {(packages.dependents > 0 || packages.total > 1) && <PackagesBlock packages={packages} />}
       {packages.dependents === 0 || !firstPage ? (

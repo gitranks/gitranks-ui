@@ -25,6 +25,11 @@ export type RepoPackage = {
   dependents: number;
   /** `null` on a registry counted a month at a time, which has no week. */
   downloadsLastWeek: number | null;
+  /**
+   * The month just ended, on a registry counted a month at a time (PyPI); `null` on one counted by the week, and before
+   * its first month is read.
+   */
+  downloadsLastMonth?: number | null;
 };
 
 /** What a repository publishes, summed over its packages. */
@@ -38,6 +43,8 @@ export type RepoPackages = {
   dependentsArchived: number;
   /** Last week's downloads of the packages on registries counted by the week, added up. */
   downloadsLastWeek: number;
+  /** Last month's downloads of the packages on registries counted a month at a time, added up. */
+  downloadsLastMonth: number;
   dependentsReadAt?: string | null;
   nextDependentsReadAt?: string | null;
   downloadsReadAt?: string | null;
@@ -58,10 +65,12 @@ export const RepoPackagesDocument = doc<RepoPackagesQuery, RepoPackagesQueryVari
           displayName
           dependents
           downloadsLastWeek
+          downloadsLastMonth
         }
         dependents
         dependentsArchived
         downloadsLastWeek
+        downloadsLastMonth
         dependentsReadAt
         nextDependentsReadAt
         downloadsReadAt

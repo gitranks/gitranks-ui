@@ -11,9 +11,17 @@ import {
   yearOfDownloads,
 } from '@/app/package/[registry]/[...name]/utils/package-downloads';
 import { buildPackageSummary } from '@/app/package/[registry]/[...name]/utils/package-summary';
+import { UsedByCard } from '@/app/repo/[owner]/[name]/(tabs)/overview/components/used-by-card';
+import { PackageCard } from '@/app/repo/[owner]/[name]/(tabs)/used-by/components/package-card';
 import { PackagesTable } from '@/app/repo/[owner]/[name]/(tabs)/used-by/components/packages-table';
-import { buildUsedByQuestions, usedByCardLine } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
-import { fivePackages, onePackage } from '@/components/dependents/dependents.fixtures';
+import { UsedByScreen } from '@/app/repo/[owner]/[name]/(tabs)/used-by/components/used-by-screen';
+import { buildUsedBySEO } from '@/app/repo/[owner]/[name]/tab-seo';
+import {
+  buildUsedByQuestions,
+  buildUsedBySummary,
+  usedByCardLine,
+} from '@/app/repo/[owner]/[name]/utils/used-by-summary';
+import { firstPage, fivePackages, onePackage } from '@/components/dependents/dependents.fixtures';
 import type { PackagePage } from '@/graphql/package-page';
 import type { RepoPackage } from '@/graphql/repo-packages';
 import { packageMarkdownOf } from '@/lib/packages/package-markdown';
@@ -140,34 +148,100 @@ describe("a PyPI project's downloads, a month at a time", () => {
 });
 
 describe("a repository's PyPI packages on its Used by tab", () => {
-  // A repository's packages carry last week's downloads alone: PyPI's are null.
-  const zope: RepoPackage = { registry: 'PYPI', name: 'zope-interface', dependents: 40, downloadsLastWeek: null };
+  // A PyPI package carries last month's downloads, and no week.
+  const zope: RepoPackage = {
+    registry: 'PYPI',
+    name: 'zope-interface',
+    dependents: 40,
+    downloadsLastWeek: null,
+    downloadsLastMonth: 1_200_000,
+  };
+  const repo = { nameWithOwner: 'zopefoundation/zope.interface' } as Parameters<typeof buildUsedBySEO>[0];
+  const onlyPypi = { ...onePackage, items: [zope], downloadsLastWeek: 0, downloadsLastMonth: 1_200_000 };
+  const mixed = { ...fivePackages, items: [zope, ...fivePackages.items.slice(1)], downloadsLastMonth: 1_200_000 };
 
-  it('says nothing of downloads for a repository whose packages are all on PyPI', () => {
-    const one = { ...onePackage, items: [zope], downloadsLastWeek: 0 };
-    expect(usedByCardLine(one)).toMatchObject({
+  it("says last month's downloads, on PyPI, for a repository whose packages are all there", () => {
+    expect(usedByCardLine(onlyPypi)).toEqual({
+      dependents: '214',
+      what: 'repositories with 100+ stars depend on its PyPI package zope-interface, ',
       downloads: null,
-      what: 'repositories with 100+ stars depend on its PyPI package zope-interface.',
+      downloadsLastMonth: '1.2M',
     });
-    expect(buildUsedByQuestions('zopefoundation/zope.interface', one, []).at(-1)?.answer).toMatch(
+    expect(summaryText(buildUsedBySummary('zopefoundation/zope.interface', onlyPypi, []))).toContain(
+      ' It was downloaded 1,200,000 times last month on PyPI.',
+    );
+    expect(buildUsedBySEO(repo, onlyPypi, []).metadata.description).toContain(
+      '1,200,000 downloads last month on PyPI.',
+    );
+    expect(buildUsedByQuestions('zopefoundation/zope.interface', onlyPypi, []).at(-1)?.answer).toMatch(
       /^From each repository's own requirements\.txt or pyproject\.toml files/,
+    );
+
+    const page = text(
+      renderToStaticMarkup(
+        <UsedByScreen nameWithOwner="zopefoundation/zope.interface" packages={onlyPypi} firstPage={firstPage} />,
+      ),
+    );
+    expect(page).toContain('Read monthly; downloads from PyPI, monthly.');
+    expect(page).toContain('1,200,000 downloads last month');
+    expect(page).not.toMatch(/week/);
+
+    const card = text(
+      renderToStaticMarkup(<UsedByCard nameWithOwner="zopefoundation/zope.interface" packages={onlyPypi} rows={[]} />),
+    );
+    expect(card).toContain(
+      '214 repositories with 100+ stars depend on its PyPI package zope-interface, 1.2M downloads last month.',
     );
   });
 
-  it("adds up the npm packages' weeks beside PyPI's, and marks PyPI's row with a dash", () => {
-    const mixed = { ...fivePackages, items: [zope, ...fivePackages.items.slice(1)] };
-    expect(usedByCardLine(mixed).downloads).toBe('584k');
-    expect(buildUsedByQuestions('nebula/ui', mixed, [])[1].answer).toBe(
-      'zope-interface: 40 repositories with 100+ stars.',
-    );
-    const table = text(renderToStaticMarkup(<PackagesTable packages={mixed} />));
-    expect(table).toContain('Downloads a week');
-    expect(table).toContain('zope-interface PyPI 40 —');
-    expect(table).toContain('@nebula/icons npm 61 96,140');
+  it('says nothing of downloads before its first month is read', () => {
+    const unread = { ...onlyPypi, items: [{ ...zope, downloadsLastMonth: null }], downloadsLastMonth: 0 };
+    expect(usedByCardLine(unread)).toEqual({
+      dependents: '214',
+      what: 'repositories with 100+ stars depend on its PyPI package zope-interface.',
+      downloads: null,
+    });
+    expect(summaryText(buildUsedBySummary('a/b', unread, []))).not.toContain('downloaded');
+    expect(text(renderToStaticMarkup(<PackageCard pkg={unread.items[0]} wide />))).not.toContain('downloads');
+  });
 
-    const onlyPypi = text(
+  it("says npm's week and PyPI's month as two figures, never one added to the other", () => {
+    expect(usedByCardLine(mixed)).toMatchObject({ downloads: '584k', downloadsLastMonth: '1.2M' });
+    expect(summaryText(buildUsedBySummary('nebula/ui', mixed, []))).toContain(
+      ' Together they are downloaded 583,668 times a week on npm, and 1,200,000 times last month on PyPI.',
+    );
+    expect(buildUsedBySEO(repo, mixed, []).metadata.description).toContain(
+      '583,668 downloads a week on npm and 1,200,000 downloads',
+    );
+    expect(buildUsedByQuestions('nebula/ui', mixed, [])[1].answer).toBe(
+      'zope-interface: 40 repositories with 100+ stars and 1,200,000 downloads last month.',
+    );
+    const card = text(renderToStaticMarkup(<UsedByCard nameWithOwner="nebula/ui" packages={mixed} rows={[]} />));
+    expect(card).toContain('depend on its 5 packages, 584k downloads a week and 1.2M downloads last month.');
+
+    // Each row in its own unit; a row with no count yet has a dash.
+    const table = text(
+      renderToStaticMarkup(
+        <PackagesTable
+          packages={{ ...mixed, items: [...mixed.items, { ...zope, name: 'zope-event', downloadsLastMonth: null }] }}
+        />,
+      ),
+    );
+    expect(table).toContain('Used by (100+★ repos) Downloads zope-interface PyPI 40 1,200,000 last month');
+    expect(table).toContain('@nebula/icons npm 61 96,140 a week');
+    expect(table).toContain('zope-event PyPI 40 —');
+
+    const intro = text(
+      renderToStaticMarkup(<UsedByScreen nameWithOwner="nebula/ui" packages={mixed} firstPage={firstPage} />),
+    );
+    expect(intro).toContain('Read monthly; downloads from npm, weekly, and from PyPI, monthly.');
+  });
+
+  it('heads the column with the one unit when every row has it', () => {
+    const table = text(
       renderToStaticMarkup(<PackagesTable packages={{ total: 4, items: [zope, zope, zope, zope] }} />),
     );
-    expect(onlyPypi).not.toContain('Downloads a week');
+    expect(table).toContain('Downloads last month zope-interface 40 1,200,000');
+    expect(table).not.toContain('week');
   });
 });

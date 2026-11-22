@@ -149,7 +149,14 @@ describe('a third registry in the table', () => {
       dependents: 0,
       downloadsLastWeek: 0,
     };
-    const packages = { total: 1, items: [pkg], dependents: 0, dependentsArchived: 0, downloadsLastWeek: 0 };
+    const packages = {
+      total: 1,
+      items: [pkg],
+      dependents: 0,
+      dependentsArchived: 0,
+      downloadsLastWeek: 0,
+      downloadsLastMonth: 0,
+    };
     expect(renderToStaticMarkup(<PackageCard pkg={pkg} wide />)).not.toContain('downloads');
     expect(noDependentsNote(packages)).toBe('We read every repository with 100+ stars once a month.');
     expect(usedByCardLine(packages)).toMatchObject({ downloads: null });

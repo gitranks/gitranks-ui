@@ -1,14 +1,4 @@
-import {
-  Building2,
-  CalendarDays,
-  Code,
-  ExternalLink,
-  Star,
-  Timer,
-  TrendingDown,
-  TrendingUp,
-  UserRound,
-} from 'lucide-react';
+import { Building2, CalendarDays, Code, Star, Timer, TrendingDown, TrendingUp, UserRound } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
@@ -18,6 +8,7 @@ import { isRepoRanked } from '../seo';
 import { PullButton } from './pull-button';
 import { ProfileListItem } from '@/app/profile/[login]/components/profile-list-item';
 import {
+  ActionRow,
   ActionsContainer,
   AvatarAndNameContainer,
   AvatarContainer,
@@ -26,9 +17,9 @@ import {
   PageContainer,
 } from '@/app/profile/[login]/components/profile-page-backbone';
 import { ArchivedChip } from '@/components/dependents/archived-chip';
+import { ExternalIconButton } from '@/components/external-icon-button/external-icon-button';
 import { RepoTierChip } from '@/components/repo-tier-chip/repo-tier-chip';
 import { hasStarsNotCounted, StarCount, StarsNotCountedTag } from '@/components/star-count/star-count';
-import { Button } from '@/components/ui/button';
 import type { PageRepoQuery } from '@/types/generated/graphql';
 import { avatarPath, repoOwnerAvatarAlt } from '@/utils/avatar-path';
 import { getRepoOwnerPath } from '@/utils/repo-paths';
@@ -98,19 +89,19 @@ export const RepoLayout: FC<RepoLayoutProps> = ({ repo, languageUrl, badgeRow, c
         </AvatarAndNameContainer>
         {!!description && <p className="text-sm [overflow-wrap:anywhere]">{description}</p>}
         <ActionsContainer>
-          <PullButton
-            owner={owner}
-            name={name}
-            pull={repo.pull && { status: repo.pull.status, requestedAt: repo.pull.requestedAt }}
-            dailyUpdates={repo.dailyUpdates}
-          />
-          <Button size="sm" variant="outline" className="flex-grow" asChild>
-            <Link href={`https://github.com/${nameWithOwner}`} target="_blank" rel="noopener noreferrer">
-              <FaGithub aria-hidden />
-              Open GitHub
-              <ExternalLink className="size-4 text-muted-foreground" aria-hidden />
-            </Link>
-          </Button>
+          <ActionRow>
+            <PullButton
+              owner={owner}
+              name={name}
+              pull={repo.pull && { status: repo.pull.status, requestedAt: repo.pull.requestedAt }}
+              dailyUpdates={repo.dailyUpdates}
+            />
+            <ExternalIconButton
+              href={`https://github.com/${nameWithOwner}`}
+              label="Open on GitHub"
+              icon={<FaGithub aria-hidden />}
+            />
+          </ActionRow>
         </ActionsContainer>
         <DetailsContainer>
           <div className="flex flex-col gap-1.5">

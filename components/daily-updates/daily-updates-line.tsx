@@ -28,11 +28,16 @@ type DailyUpdatesLineProps = {
   nextUpdateAt?: string | null;
 };
 
-/** The small line under a button: why the page updates every day, then "Next update in 5 h." by the browser's clock. */
-export const DailyUpdatesLine: FC<DailyUpdatesLineProps> = ({ lead, nextUpdateAt }) => {
+/** Why the page updates every day, then "Next update in 5 h." by the browser's clock; empty when there is neither. */
+export function useDailyUpdatesText(lead: string, nextUpdateAt?: string | null): string {
   const now = useMinuteClock();
   const next = now === null ? null : nextUpdateText(nextUpdateAt, now);
-  const text = [lead, next].filter(Boolean).join(' ');
+  return [lead, next].filter(Boolean).join(' ');
+}
+
+/** The small line under a button: why the page updates every day, then "Next update in 5 h." by the browser's clock. */
+export const DailyUpdatesLine: FC<DailyUpdatesLineProps> = ({ lead, nextUpdateAt }) => {
+  const text = useDailyUpdatesText(lead, nextUpdateAt);
 
   return text ? <div className="text-xs text-muted-foreground">{text}</div> : null;
 };

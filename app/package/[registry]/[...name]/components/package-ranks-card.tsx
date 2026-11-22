@@ -2,7 +2,7 @@ import NextLink from 'next/link';
 import type { FC } from 'react';
 
 import { packageRankingFirstOrder, packageRankingPageOf } from '@/app/packages/package-rankings';
-import { Eyebrow, MoreLink, ProfileCard } from '@/app/profile/[login]/components/profile-card';
+import { MoreLink, ProfileCard } from '@/app/profile/[login]/components/profile-card';
 import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { Pill } from '@/components/pill/pill';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
@@ -10,23 +10,23 @@ import type { PackagePage, PackageRank } from '@/graphql/package-page';
 import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { packageRankingPath } from '@/utils/package-paths';
 
-type PackageRanksCardProps = Pick<PackagePage, 'dependentsCount' | 'dependentsStars' | 'ranks'> & {
+type PackageRanksCardProps = Pick<PackagePage, 'ranks'> & {
   registry: RegistryId;
 };
 
 /** The three rankings, in the menu's order: their order in the URL, and how a tile names them. */
 const rankTilesOf = (label: string) => [
-  { key: 'downloads', by: 'downloads', label: 'By downloads', title: `Rank by ${label} downloads` } as const,
+  { key: 'downloads', by: 'downloads', label: 'Downloads', title: `Rank by ${label} downloads` } as const,
   {
     key: 'dependentsStars',
     by: 'dependents-stars',
-    label: 'By dependents’ stars',
+    label: 'Dependents’ stars',
     title: 'Rank by the stars of its dependents',
   } as const,
   {
     key: 'dependents',
     by: 'dependents',
-    label: 'By dependents',
+    label: 'Dependents',
     title: 'Rank by repositories with 100+ stars using it',
   } as const,
 ];
@@ -52,11 +52,14 @@ const RankTile: FC<{ registry: RegistryId; rank: PackageRank; by: string; label:
   </NextLink>
 );
 
+/** Whether any ranking ranks it: the card is left out until one does. */
+export const hasRanks = (ranks: PackagePage['ranks']) => !!ranks && rankTilesOf('').some(({ key }) => !!ranks[key]);
+
 /**
- * "npm package ranks": how many repositories with 100+ stars use it and their stars, then a tile per ranking that ranks
- * it, each linking to the ranking's page it is on. Unranked: the sentence without tiles.
+ * "Ranks on npm": a tile per ranking that ranks it, each linking to the ranking's page it is on, and the way to every
+ * ranking. How many use it and their stars are Used by's title.
  */
-export const PackageRanksCard: FC<PackageRanksCardProps> = ({ registry, dependentsCount, dependentsStars, ranks }) => {
+export const PackageRanksCard: FC<PackageRanksCardProps> = ({ registry, ranks }) => {
   const { label } = REGISTRIES[registry];
   const tiles = rankTilesOf(label).flatMap((tile) => {
     const rank = ranks?.[tile.key];
@@ -65,43 +68,27 @@ export const PackageRanksCard: FC<PackageRanksCardProps> = ({ registry, dependen
 
   return (
     <ProfileCard className="gap-3">
-      <div className="flex items-center gap-2">
-        <Eyebrow as="h2">{`${label} package ranks`}</Eyebrow>
-        <Pill tone="violet" size="small">
-          Beta
-        </Pill>
-      </div>
-      <div className="flex flex-col gap-1">
-        <p className="text-lg font-semibold">
-          <span className="font-mono tabular-nums">{formatCount(dependentsCount)}</span>{' '}
-          {dependentsCount === 1 ? 'repo' : 'repos'} with 100+ stars {dependentsCount === 1 ? 'uses' : 'use'} it
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {dependentsCount > 1 && (
-            <>
-              <span className="font-mono tabular-nums">{formatCount(dependentsStars)}</span> stars between them.{' '}
-            </>
-          )}
-          Direct dependents only.
-        </p>
-      </div>
-      {tiles.length > 0 && (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,110px),1fr))] gap-2">
-          {tiles.map((tile) => (
-            <RankTile
-              key={tile.key}
-              registry={registry}
-              rank={tile.rank}
-              by={tile.by}
-              label={tile.label}
-              title={tile.title}
-            />
-          ))}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold">{`Ranks on ${label}`}</h2>
+          <Pill tone="violet" size="small">
+            Beta
+          </Pill>
         </div>
-      )}
-      <MoreLink href={packageRankingPath(packageRankingFirstOrder(registry), 1, registry)} className="mt-auto">
-        Explore ranks
-      </MoreLink>
+        <MoreLink href={packageRankingPath(packageRankingFirstOrder(registry), 1, registry)}>All ranks</MoreLink>
+      </div>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,96px),1fr))] gap-2">
+        {tiles.map((tile) => (
+          <RankTile
+            key={tile.key}
+            registry={registry}
+            rank={tile.rank}
+            by={tile.by}
+            label={tile.label}
+            title={tile.title}
+          />
+        ))}
+      </div>
     </ProfileCard>
   );
 };

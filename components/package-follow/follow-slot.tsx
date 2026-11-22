@@ -2,9 +2,10 @@
 
 import { Bell, BellRing } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { FollowDialog } from './follow-dialog';
+import { ButtonHint } from '@/components/button-hint/button-hint';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { FollowPackage, FollowRow } from '@/lib/follow/follow.types';
@@ -21,11 +22,17 @@ export type FollowSlotProps = {
   placement: 'package-page' | 'used-by' | 'used-by-empty';
 };
 
+/** The event a slot sends when its dialog changes what the viewer follows, for the page's other slots. */
+const FOLLOWS_CHANGE = 'gitranks:follows-change';
+type FollowsChange = { names: string; follows: FollowRow[] };
+
 /**
- * Following packages: on a package's page, in its left column above Refresh (`package-page`); at the end of a
- * repository's Used by tab (`used-by`); and beside "Package page" in that tab's empty state (`used-by-empty`). For a
- * signed-in viewer it asks once per page load whether they follow the packages already ("Following"); a visitor has nothing to
- * ask. The button opens the dialog; so does a return from the Email row's sign-in (`?follow=email:<label>`), once signed in.
+ * Following packages: on a package's page, in its left column above Refresh, what it brings in its tooltip
+ * (`package-page`); at the end of a repository's Used by tab (`used-by`); and beside "Package page" in that tab's empty
+ * state, or in a package's empty Used by (`used-by-empty`). For a signed-in viewer it asks once per page load whether
+ * they follow the packages already ("Following"); a visitor has nothing to ask. The button opens the dialog; so does a
+ * return from the Email row's sign-in (`?follow=email:<label>`), once signed in. A page with two slots for the same
+ * packages keeps them in step: a change in one dialog reaches the other.
  */
 export function FollowSlot({ packages, label, placement }: Readonly<FollowSlotProps>) {
   const { data: session, status } = useSession();
@@ -36,17 +43,38 @@ export function FollowSlot({ packages, label, placement }: Readonly<FollowSlotPr
   const [dialogOpen, setDialogOpen] = useState(false);
   // Back from the Email row's sign-in, waiting for the follows before the dialog opens.
   const [returning, setReturning] = useState(false);
-  const names = packages.map(({ name }) => name).join('\n');
+  const names = packages.map(({ registry, name }) => `${registry}:${name}`).join('\n');
+  // Set once a dialog changed the follows: a read answered after that is older, and is dropped.
+  const changed = useRef(false);
+
+  // Another slot for the same packages changed them: this one says the same.
+  useEffect(() => {
+    const onChange = (event: Event) => {
+      const { detail } = event as CustomEvent<FollowsChange>;
+      if (detail.names !== names) return;
+      changed.current = true;
+      setFollows(detail.follows);
+    };
+    window.addEventListener(FOLLOWS_CHANGE, onChange);
+    return () => window.removeEventListener(FOLLOWS_CHANGE, onChange);
+  }, [names]);
+
+  const changeFollows = (next: FollowRow[]) => {
+    changed.current = true;
+    setFollows(next);
+    window.dispatchEvent(new CustomEvent<FollowsChange>(FOLLOWS_CHANGE, { detail: { names, follows: next } }));
+  };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `names` stands for `packages`, a new array each render.
   useEffect(() => {
     setFollows([]);
     setFollowsRead(false);
+    changed.current = false;
     if (!login) return;
     let live = true;
     fetchFollowState(packages).then((answer) => {
       if (!live) return;
-      if (answer.ok) setFollows(answer.data);
+      if (answer.ok && !changed.current) setFollows(answer.data);
       setFollowsRead(true);
     });
     return () => {
@@ -73,8 +101,8 @@ export function FollowSlot({ packages, label, placement }: Readonly<FollowSlotPr
 
   const following = !!login && followsAll(packages, follows);
   const Icon = following ? BellRing : Bell;
-  const button = (variant: 'default' | 'outline', text: string) => (
-    <Button type="button" variant={variant} onClick={() => setDialogOpen(true)}>
+  const button = (variant: 'default' | 'outline', text: string, className?: string) => (
+    <Button type="button" variant={variant} className={className} onClick={() => setDialogOpen(true)}>
       <Icon aria-hidden />
       {text}
     </Button>
@@ -88,15 +116,16 @@ export function FollowSlot({ packages, label, placement }: Readonly<FollowSlotPr
       label={label}
       login={login}
       follows={follows}
-      onFollowsChange={setFollows}
+      onFollowsChange={changeFollows}
     />
   );
 
   if (placement === 'package-page') {
     return (
-      <div className="flex flex-col gap-2">
-        {button(following ? 'outline' : 'default', following ? 'Following' : 'Follow')}
-        <p className="text-xs text-muted-foreground">{FOLLOW_SLOT_LEAD}</p>
+      <div className="flex min-w-0 flex-col">
+        <ButtonHint hint={FOLLOW_SLOT_LEAD}>
+          {button(following ? 'outline' : 'default', following ? 'Following' : 'Follow', 'w-full')}
+        </ButtonHint>
         {dialog}
       </div>
     );

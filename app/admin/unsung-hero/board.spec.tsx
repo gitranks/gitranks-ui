@@ -51,7 +51,7 @@ describe('the slot states', () => {
     expect(cancelStateOf(slotOf({ status: 'OPTED_OUT' }))).toEqual({ kind: 'none' });
   });
 
-  it('Cancel: a real slot with no heads-up until its week ends, live included (nobody was told)', () => {
+  it('Cancel: a slot with no heads-up until its week ends, live included (nobody was told)', () => {
     for (const status of ['SCHEDULED', 'LIVE'] as const) {
       expect(cancelStateOf(slotOf({ status, noHeadsUp: true, headsUp: null }))).toEqual({ kind: 'cancellable' });
     }

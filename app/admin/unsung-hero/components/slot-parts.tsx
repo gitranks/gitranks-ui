@@ -15,7 +15,7 @@ import { Pill } from '@/components/pill/pill';
 import { cn } from '@/lib/utils';
 import { getRepoPath } from '@/utils/repo-paths';
 
-/** A slot's repository, linked to its page here, with its package and a Preview mark. */
+/** A slot's repository, linked to its page here, with its package. */
 export function SlotName({ slot }: Readonly<{ slot: HeroSlot }>) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">

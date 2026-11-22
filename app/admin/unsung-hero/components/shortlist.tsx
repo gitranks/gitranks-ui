@@ -7,7 +7,7 @@ import { Pill } from '@/components/pill/pill';
 import { Button } from '@/components/ui/button';
 import { getRepoPath } from '@/utils/repo-paths';
 
-/** A rule the candidate misses: amber, red when it blocks a real slot (no public email, no link from GitHub). */
+/** A rule the candidate misses: amber, red when it blocks a slot (no public email, no link from GitHub). */
 export function MissLabels({ misses }: Readonly<{ misses: HeroMiss[] }>) {
   if (!misses.length) return null;
   return (
@@ -56,8 +56,8 @@ export function ShortlistTable({
         <p className="text-sm text-muted-foreground">
           Shortlist rules: personal account, owner under 500 followers, repository under 1,000 stars, a push in the last
           12 months, no open security advisory, OSI license. Labels show which rule a candidate misses; you can still
-          schedule it. A real slot also needs GitHub’s own link from the package and, unless you skip the heads-up, a
-          public email (red labels).
+          schedule it. A slot also needs GitHub’s own link from the package and, unless you skip the heads-up, a public
+          email (red labels).
         </p>
         <p className="text-xs text-muted-foreground">
           {builtAt ? `Built ${stamp(builtAt)}. Rebuilt every Tuesday.` : 'Not built yet. It is rebuilt every Tuesday.'}

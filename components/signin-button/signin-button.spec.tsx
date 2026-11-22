@@ -5,12 +5,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { forgetHeroApplication, rememberHeroApplication } from '@/lib/unsung-hero/hero-application-cookie';
 
-const { signOut } = vi.hoisted(() => ({ signOut: vi.fn() }));
+const { signOut, session } = vi.hoisted(() => ({
+  signOut: vi.fn(),
+  session: { error: undefined as string | undefined },
+}));
 vi.mock('next-auth/react', () => ({
   signIn: vi.fn(),
   signOut,
   useSession: () => ({
-    data: { user: { githubLogin: 'octocat', name: 'Octo Cat', image: 'https://example.test/a.png?v=4' } },
+    data: {
+      user: { githubLogin: 'octocat', name: 'Octo Cat', image: 'https://example.test/a.png?v=4' },
+      error: session.error,
+    },
     status: 'authenticated',
   }),
 }));
@@ -30,6 +36,7 @@ beforeEach(() => {
   document.body.append(container);
   root = createRoot(container);
   signOut.mockReset();
+  session.error = undefined;
 });
 
 afterEach(() => {
@@ -79,5 +86,15 @@ describe('the avatar menu', () => {
     await act(async () => root.render(<SigninButton />));
     await openMenu();
     expect(items()).toContain('Apply for Unsung hero');
+  });
+
+  it('“Maybe later” on an expired token signs out and forgets the note too', async () => {
+    session.error = 'RefreshTokenError';
+    rememberHeroApplication('octocat');
+    await act(async () => root.render(<SigninButton />));
+    const later = [...document.querySelectorAll('button')].find((each) => each.textContent === 'Maybe later');
+    await act(async () => later?.click());
+    expect(signOut).toHaveBeenCalled();
+    expect(document.cookie).not.toContain('hero_application=octocat');
   });
 });

@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { applicationOf, FAST_DIFF, FOUND, viewOf } from './__fixtures__/apply';
+import { applicationOf, FAST_DIFF, FOUND, NOT_FOUND, viewOf } from './__fixtures__/apply';
 import {
   forgetHeroApplication,
   hasHeroApplication,
@@ -120,6 +120,68 @@ describe('nominating another package', () => {
   });
 });
 
+describe('lookup answers', () => {
+  const nominate = async (value: string) => {
+    await click(button('Nominate another package →'));
+    await typeInto(container.querySelector('input') as HTMLInputElement, value);
+  };
+  const status = () => document.querySelector('[role="status"][aria-live="polite"]');
+  const hasSend = () =>
+    [...document.querySelectorAll('button')].some((each) => each.textContent === 'Send application');
+
+  it('a lookup that did not answer: says why, and offers no Send', async () => {
+    resolveApplyPackage.mockResolvedValue({ status: 'UNAVAILABLE', packages: [] });
+    await draw();
+    await nominate('brand-new-pkg');
+    await act(async () => vi.advanceTimersByTime(400));
+    await settle();
+    expect(status()?.textContent).toBe('We can’t look it up right now. It may be new to us. Try again later.');
+    expect(hasSend()).toBe(false);
+    expect(words()).not.toContain('Check it with your agent');
+  });
+
+  it('not found: can still be sent as typed', async () => {
+    resolveApplyPackage.mockResolvedValue(NOT_FOUND);
+    await draw();
+    await nominate('left-padder');
+    await act(async () => vi.advanceTimersByTime(400));
+    await settle();
+    expect(hasSend()).toBe(true);
+  });
+
+  it('one live region stays in place while what it says changes', async () => {
+    resolveApplyPackage.mockResolvedValue(FOUND);
+    await draw();
+    await nominate('fast-diff');
+    const region = status();
+    expect(region?.textContent).toBe('Looking it up…');
+    await act(async () => vi.advanceTimersByTime(400));
+    await settle();
+    expect(status()).toBe(region);
+    expect(region?.textContent).toContain('fast-diff');
+  });
+
+  it('answers out of order: an older text’s answer never replaces the newer one', async () => {
+    let answerOld: (value: unknown) => void = () => {};
+    resolveApplyPackage
+      .mockImplementationOnce(() => new Promise((resolve) => (answerOld = resolve)))
+      .mockResolvedValueOnce(FOUND);
+    await draw();
+    await nominate('left-padder');
+    await act(async () => vi.advanceTimersByTime(400));
+    const input = container.querySelector('input') as HTMLInputElement;
+    await typeInto(input, 'fast-diff');
+    await act(async () => vi.advanceTimersByTime(400));
+    await settle();
+    expect(words()).toContain('2. Tell us about fast-diff');
+    // The first text's answer comes last, and is dropped.
+    await act(async () => answerOld(NOT_FOUND));
+    expect(words()).not.toContain('We could not find it');
+    expect(words()).toContain('2. Tell us about fast-diff');
+    expect(resolveApplyPackage.mock.calls).toEqual([['left-padder'], ['fast-diff']]);
+  });
+});
+
 describe('choosing a package of their own', () => {
   it('sends its registry and name; a refusal says why and keeps the form', async () => {
     sendApplication.mockResolvedValue({ ok: false, refusal: 'PACKAGE_TAKEN', application: null });
@@ -159,7 +221,7 @@ describe('an application in review', () => {
     await click(button('Cancel application'));
     await click(button('Remove application'));
     await settle();
-    expect(words()).toContain('It can no longer be cancelled');
+    expect(words()).toContain('It can’t be cancelled any more. Reload the page to see where it stands.');
     expect(hasHeroApplication(document.cookie, 'octocat')).toBe(true);
   });
 });

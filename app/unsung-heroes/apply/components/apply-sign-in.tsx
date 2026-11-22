@@ -16,8 +16,8 @@ export function ApplySignIn() {
     <ApplyCard>
       <h2 className="text-lg font-semibold">Sign in to apply</h2>
       <p className="text-sm text-muted-foreground">
-        Sign in with GitHub to see the packages from repositories you own, or to nominate another one. We only read
-        public data.
+        Sign in with GitHub to see the packages from repositories you own, or to nominate another one. We read your
+        GitHub profile and email, and use the email only to tell you when we schedule it.
       </p>
       <div>
         <Button

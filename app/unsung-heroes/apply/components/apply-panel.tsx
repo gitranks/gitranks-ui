@@ -15,8 +15,9 @@ import { forgetHeroApplication, rememberHeroApplication } from '@/lib/unsung-her
 export function ApplyPanel({
   login,
   view,
+  emailed = false,
   start,
-}: Readonly<{ login: string; view: HeroApplyView; start?: ApplyFormStart }>) {
+}: Readonly<{ login: string; view: HeroApplyView; emailed?: boolean; start?: ApplyFormStart }>) {
   const [application, setApplication] = useState<HeroApplication | null>(view.application);
   const [applyingAgain, setApplyingAgain] = useState(false);
   const open = isOpenApplication(application);
@@ -31,6 +32,7 @@ export function ApplyPanel({
       <ApplicationCard
         application={application}
         registries={view.registries}
+        emailed={emailed}
         onCancelled={() => setApplication(null)}
         onApplyAgain={() => setApplyingAgain(true)}
       />

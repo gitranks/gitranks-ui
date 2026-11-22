@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown, ChevronRight, Search } from 'lucide-react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 import { resolveApplyPackage, sendApplication } from '../actions';
 import { ApplyCard, PackageLine, RegistryPill } from './apply-parts';
@@ -22,6 +22,7 @@ import type {
 import {
   APPLY_NOTE_MAX,
   APPLY_TYPED_MAX,
+  LOOKUP_UNAVAILABLE_TEXT,
   packageKey,
   packageNameOf,
   RESOLVE_DEBOUNCE_MS,
@@ -68,27 +69,34 @@ function Resolution({
   onPick: (key: string) => void;
 }>) {
   const listId = useId();
-  if (!typed) return null;
-  if (!resolved) {
-    return (
-      <p role="status" className="text-sm text-muted-foreground">
-        Looking it up…
+  const found = resolved?.status === 'FOUND' ? resolved.packages[0] : undefined;
+  const ambiguous = resolved?.status === 'AMBIGUOUS';
+  let said: ReactNode = null;
+  if (typed && !resolved) said = <p className="text-sm text-muted-foreground">Looking it up…</p>;
+  else if (typed && found) {
+    said = (
+      <div className="flex rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+        <PackageLine pkg={found} registries={registries} found />
+      </div>
+    );
+  } else if (typed && ambiguous)
+    said = <p className="text-sm">That name is in more than one registry. Which one do you mean?</p>;
+  else if (typed && resolved?.status === 'UNAVAILABLE') {
+    said = <p className="text-sm text-muted-foreground">{LOOKUP_UNAVAILABLE_TEXT}</p>;
+  } else if (typed && resolved) {
+    said = (
+      <p className="text-sm text-muted-foreground">
+        We could not find it. You can still send it as typed: say in the note where it lives.
       </p>
     );
   }
-  if (resolved.status === 'FOUND' && resolved.packages[0]) {
-    return (
-      <div role="status" className="flex rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-        <PackageLine pkg={resolved.packages[0]} registries={registries} found />
+  return (
+    <>
+      {/* Always there, so a screen reader hears each new answer; only what it says changes. */}
+      <div role="status" aria-live="polite" className="empty:hidden">
+        {said}
       </div>
-    );
-  }
-  if (resolved.status === 'AMBIGUOUS') {
-    return (
-      <div className="flex flex-col gap-2">
-        <p role="status" className="text-sm">
-          That name is in more than one registry. Which one do you mean?
-        </p>
+      {typed && resolved && ambiguous && (
         <RadioGroup
           value={picked ?? ''}
           onValueChange={onPick}
@@ -109,15 +117,8 @@ function Resolution({
             );
           })}
         </RadioGroup>
-      </div>
-    );
-  }
-  return (
-    <p role="status" className="text-sm text-muted-foreground">
-      {resolved.status === 'UNAVAILABLE'
-        ? 'The lookup did not answer just now. You can still send it as typed.'
-        : 'We could not find it. You can still send it as typed: say in the note where it lives.'}
-    </p>
+      )}
+    </>
   );
 }
 
@@ -226,7 +227,8 @@ export function ApplyForm({
     } else if (answer.status === 'AMBIGUOUS') {
       const pkg = answer.packages.find((each) => packageKey(each) === picked);
       if (pkg) subject = subjectOfPackage(pkg, { registry: pkg.registry, name: pkg.name });
-    } else {
+    } else if (answer.status === 'NOT_FOUND') {
+      // Not found can still be sent as typed. A lookup that did not answer cannot: the send would be refused.
       subject = { pkg: null, name: typedNow, prompt: { registry: null, name: typedNow }, send: { typed: typedNow } };
     }
   }

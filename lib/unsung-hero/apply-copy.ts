@@ -23,8 +23,10 @@ export const FREE_TITLE = 'It is free. Always.';
 export const FREE_TEXT =
   'We never ask for money, stars or anything else in exchange, and nobody can pay for a slot. If anyone asks you to pay for an Unsung hero slot, it is not us.';
 
-export const ONE_A_WEEK =
-  'One hero a week, so most good packages wait their turn. We tell the maintainer before the week starts, and one click opts them out.';
+export const ONE_A_WEEK = 'One hero a week, so most good packages wait their turn. The maintainer can always say no.';
+
+/** A nomination the lookup could not read: it may be a package we have not read yet. */
+export const LOOKUP_UNAVAILABLE_TEXT = 'We can’t look it up right now. It may be new to us. Try again later.';
 
 /** The page could not be read. */
 export const APPLY_UNAVAILABLE_TEXT = 'Applications are not available right now. Try again in a few minutes.';
@@ -84,19 +86,22 @@ export function statusPillOf(application: HeroApplication): {
   }
 }
 
-/** The status card's title and text. */
-export function statusCopyOf(application: HeroApplication): { title: string; text: string } {
+/**
+ * The status card's title and text. `emailed`: the session's email is one GitHub verified, the only kind we write to
+ * when we schedule it; without one, the page alone says so.
+ */
+export function statusCopyOf(application: HeroApplication, emailed = false): { title: string; text: string } {
   const name = applicationNameOf(application);
   const week = application.week ? heroWeekLabel(application.week) : 'its week';
   const monday = application.week ? WEEKDAY_DATE.format(new Date(application.week.startsAt)) : 'Monday';
   const copy: Record<ApplicationStatus, { title: string; text: string }> = {
     IN_REVIEW: {
       title: 'We have your application',
-      text: 'We check every application and read your note. We pick one hero a week, so it may take a while, and we may not pick it. When we schedule it, this page says so and we email you.',
+      text: `We check every application and read your note. We pick one hero a week, so it may take a while, and we may not pick it. ${emailed ? 'When we schedule it, this page says so and we email you.' : 'When we schedule it, this page says so.'}`,
     },
     SCHEDULED: {
       title: `${name} is the Unsung hero for ${week}`,
-      text: `From ${monday}, the home page features it for a week. We emailed you, and we write to the maintainer before the week starts. Nothing for you to do.`,
+      text: `From ${monday}, the home page features it for a week. Nothing for you to do.`,
     },
     LIVE: {
       title: `${name} is the Unsung hero this week`,
@@ -115,8 +120,7 @@ export function statusCopyOf(application: HeroApplication): { title: string; tex
 }
 
 /** Under a scheduled or live application: what can still change it. */
-export const SCHEDULED_NOTE =
-  'Scheduled applications cannot be cancelled here. The maintainer can still opt out from our email.';
+export const SCHEDULED_NOTE = 'Scheduled applications can’t be cancelled here.';
 
 /** The confirm step before Cancel: it removes the application whole. */
 export const cancelCopyOf = (name: string) => ({
@@ -133,8 +137,8 @@ export const REFUSAL_TEXT: Record<ApplyRefusal, string> = {
   PACKAGE_TAKEN: 'Someone has already applied for this package. We will look at it.',
   TOO_MANY: 'That is enough applications for today. Try again tomorrow.',
   BAD_INPUT: 'We could not tell which package you mean. Choose it again, or pick one of the matches.',
-  NOT_CANCELLABLE: 'It can no longer be cancelled: we have started on it. Reload the page to see where it stands.',
-  UNAVAILABLE: 'We could not send it just now. Try again in a minute.',
+  NOT_CANCELLABLE: 'It can’t be cancelled any more. Reload the page to see where it stands.',
+  UNAVAILABLE: LOOKUP_UNAVAILABLE_TEXT,
 };
 
 export const refusalTextOf = (refusal: string | null): string =>

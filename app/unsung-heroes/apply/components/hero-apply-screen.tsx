@@ -16,7 +16,7 @@ import {
   ONE_A_WEEK,
   PROFILE_SETTING_UP_TEXT,
 } from '@/lib/unsung-hero/apply-copy';
-import { APPLY_RULES, registryNamesOf } from '@/lib/unsung-hero/apply-prompt';
+import { applyRulesOf, registryNamesOf } from '@/lib/unsung-hero/apply-prompt';
 
 /** "What we look for": the rules, the registries we feature, one hero a week. */
 function Rules({ registries }: Readonly<{ registries: readonly ApplyRegistry[] }>) {
@@ -32,7 +32,7 @@ function Rules({ registries }: Readonly<{ registries: readonly ApplyRegistry[] }
         </p>
       </div>
       <ol className="m-0 grid list-none gap-3 p-0">
-        {APPLY_RULES.map(({ title, text }, index) => (
+        {applyRulesOf(registries).map(({ title, text }, index) => (
           <li key={title} className="flex gap-3 rounded-xl border bg-card p-4 shadow-sm dark:shadow-none">
             <span className="font-mono text-sm text-muted-foreground tabular-nums">{index + 1}</span>
             <div className="flex flex-col gap-1">
@@ -51,8 +51,9 @@ function Rules({ registries }: Readonly<{ registries: readonly ApplyRegistry[] }
 function Column({
   view,
   signedIn,
+  emailed,
   start,
-}: Readonly<{ view: HeroApplyView | null; signedIn: boolean; start?: ApplyFormStart }>) {
+}: Readonly<{ view: HeroApplyView | null; signedIn: boolean; emailed: boolean; start?: ApplyFormStart }>) {
   if (!signedIn) return <ApplySignIn />;
   if (!view) {
     return (
@@ -72,7 +73,7 @@ function Column({
       </ApplyCard>
     );
   }
-  return <ApplyPanel key={view.viewer.login} login={view.viewer.login} view={view} start={start} />;
+  return <ApplyPanel key={view.viewer.login} login={view.viewer.login} view={view} emailed={emailed} start={start} />;
 }
 
 /**
@@ -83,8 +84,15 @@ function Column({
 export function HeroApplyScreen({
   view,
   signedIn,
+  emailed = false,
   start,
-}: Readonly<{ view: HeroApplyView | null; signedIn: boolean; start?: ApplyFormStart }>) {
+}: Readonly<{
+  view: HeroApplyView | null;
+  signedIn: boolean;
+  /** The session's email is one GitHub verified: the only kind we write to when we schedule an application. */
+  emailed?: boolean;
+  start?: ApplyFormStart;
+}>) {
   return (
     <>
       <Header />
@@ -102,7 +110,7 @@ export function HeroApplyScreen({
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <Rules registries={view?.registries ?? []} />
           <div className="flex flex-col gap-4">
-            <Column view={view} signedIn={signedIn} start={start} />
+            <Column view={view} signedIn={signedIn} emailed={emailed} start={start} />
             <ApplyContact />
           </div>
         </div>

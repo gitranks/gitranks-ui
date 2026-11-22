@@ -95,16 +95,19 @@ function CancelButton({ name, onCancelled }: Readonly<{ name: string; onCancelle
 export function ApplicationCard({
   application,
   registries,
+  emailed = false,
   onCancelled,
   onApplyAgain,
 }: Readonly<{
   application: HeroApplication;
   registries: readonly ApplyRegistry[];
+  /** We email the viewer when we schedule it: their session's email is one GitHub verified. */
+  emailed?: boolean;
   onCancelled?: () => void;
   onApplyAgain?: () => void;
 }>) {
   const pill = statusPillOf(application);
-  const { title, text } = statusCopyOf(application);
+  const { title, text } = statusCopyOf(application, emailed);
   const name = applicationNameOf(application);
   const dated = application.status === 'SCHEDULED' || application.status === 'LIVE';
   const Icon = dated || application.status === 'FEATURED' ? CalendarCheck : Hourglass;

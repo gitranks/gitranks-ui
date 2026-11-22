@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AMBIGUOUS, applicationOf, MY_PACKAGES, NOT_FOUND, VISITOR_VIEW, viewOf, WEEK_46 } from './__fixtures__/apply';
 import type { ApplyFormStart } from './components/apply-form';
 import type { HeroApplyView } from '@/lib/unsung-hero/apply.types';
-import { APPLY_RULES } from '@/lib/unsung-hero/apply-prompt';
+import { applyRulesOf } from '@/lib/unsung-hero/apply-prompt';
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
@@ -40,8 +40,18 @@ describe('/unsung-heroes/apply for a visitor', () => {
     expect(words).toContain(
       'What we look for Packages from npm, PyPI, crates.io, Packagist, pub.dev, Maven Central and Go. We check every application ourselves; a person makes the call.',
     );
-    for (const { title, text: rule } of APPLY_RULES) expect(words).toContain(`${title} ${rule}`);
-    expect(words).toContain('One hero a week, so most good packages wait their turn.');
+    for (const { title, text: rule } of applyRulesOf(VISITOR_VIEW.registries)) {
+      expect(words).toContain(`${title} ${rule}`);
+    }
+    expect(words).toContain(
+      'Heavily used Among the most downloaded packages in its registry. For Maven Central and Go, which publish no download counts',
+    );
+    expect(words).toContain(
+      'One hero a week, so most good packages wait their turn. The maintainer can always say no.',
+    );
+    expect(words).toContain(
+      'We read your GitHub profile and email, and use the email only to tell you when we schedule it.',
+    );
     expect(words).toContain('Sign in to apply');
     expect(words).toContain('Questions or ideas? Write to hello@gitranks.com .');
   });
@@ -49,6 +59,7 @@ describe('/unsung-heroes/apply for a visitor', () => {
   it('with the API down: the rules without the registries, and still the sign-in', () => {
     const down = render(null, { signedIn: false });
     expect(down).toContain('What we look for We check every application ourselves');
+    expect(down).toContain('Heavily used Among the most downloaded packages in its registry. 2');
     expect(down).toContain('Sign in to apply');
   });
 });
@@ -102,6 +113,9 @@ describe('signed in', () => {
     const words = render(viewOf({ application: applicationOf() }));
     expect(words).toContain('Your application In review');
     expect(words).toContain('We have your application');
+    // No verified email in the session: nothing promises one.
+    expect(words).toContain('When we schedule it, this page says so. Package');
+    expect(words).not.toContain('email you');
     expect(words).toContain(
       'Package tiny-clamp npm Sent Oct 27, 2026 Your note Most date pickers use it for clamping.',
     );
@@ -113,10 +127,36 @@ describe('signed in', () => {
     const words = render(viewOf({ application: applicationOf({ status: 'SCHEDULED', week: WEEK_46 }) }));
     expect(words).toContain('Scheduled · Nov 9 – 15');
     expect(words).toContain('tiny-clamp is the Unsung hero for Nov 9 – 15');
-    expect(words).toContain('From Monday, November 9, the home page features it for a week.');
+    expect(words).toContain('From Monday, November 9, the home page features it for a week. Nothing for you to do.');
     expect(words).toContain('See past heroes');
-    expect(words).toContain('Scheduled applications cannot be cancelled here.');
+    expect(words).toContain('Scheduled applications can’t be cancelled here.');
+    expect(words).not.toContain('opt out');
     expect(words).not.toContain('Cancel application');
+  });
+
+  it('in review with a verified email: we say we will email them', () => {
+    const html = renderToStaticMarkup(
+      <HeroApplyScreen view={viewOf({ application: applicationOf() })} signedIn emailed />,
+    );
+    expect(text(html)).toContain('When we schedule it, this page says so and we email you.');
+  });
+
+  it('live: this week, past heroes, nothing to cancel', () => {
+    const words = render(viewOf({ application: applicationOf({ status: 'LIVE', week: WEEK_46 }) }));
+    expect(words).toContain('Live · Nov 9 – 15');
+    expect(words).toContain('tiny-clamp is the Unsung hero this week It is on the home page until Sunday.');
+    expect(words).toContain('See past heroes');
+    expect(words).toContain('Scheduled applications can’t be cancelled here.');
+    expect(words).not.toContain('Cancel application');
+    expect(words).not.toContain('Send a new application');
+  });
+
+  it('featured: the week it had, past heroes, and a new application', () => {
+    const words = render(viewOf({ application: applicationOf({ status: 'FEATURED', week: WEEK_46 }) }));
+    expect(words).toContain('Featured · Nov 9 – 15');
+    expect(words).toContain('tiny-clamp was the Unsung hero for Nov 9 – 15');
+    expect(words).toContain('Send a new application See past heroes');
+    expect(words).not.toContain('can’t be cancelled');
   });
 
   it('not picked: says so, and offers a new application', () => {

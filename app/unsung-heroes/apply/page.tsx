@@ -19,5 +19,5 @@ export const metadata: Metadata = pageMetadata({
 export default async function HeroApplyPage() {
   const caller = await applyCaller();
   const view = await readHeroApply(caller);
-  return <HeroApplyScreen view={view} signedIn={!!caller.githubLogin} />;
+  return <HeroApplyScreen view={view} signedIn={!!caller.githubLogin} emailed={caller.accountEmailVerified} />;
 }

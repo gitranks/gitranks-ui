@@ -41,9 +41,12 @@ function askHero(now = Date.now()): Promise<UnsungHero | null> {
   return asked;
 }
 
-/** This week's hero once the browser has it; `null` before, in a week with none, and on any failure. */
+/**
+ * This week's hero once the browser has it; `null` before, in a week with none, and on any failure. Nothing reads the
+ * clock while the page renders: a page built ahead of time may not, so a kept answer is taken in the effect.
+ */
 export function useUnsungHero(): UnsungHero | null {
-  const [hero, setHero] = useState<UnsungHero | null>(() => (Date.now() < keptUntil ? (known ?? null) : null));
+  const [hero, setHero] = useState<UnsungHero | null>(null);
 
   useEffect(() => {
     let live = true;

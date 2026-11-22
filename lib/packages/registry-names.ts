@@ -84,8 +84,11 @@ export const isCrateName = (name: string) => name.length <= CRATE_NAME_MAX_LENGT
  */
 export const foldCrateName = (name: string) => name.toLowerCase().replaceAll('-', '_');
 
-/** A Cargo requirement as `Cargo.toml` writes it (`serde = "1.0"`, `serde = { version = "1" }`): the name before `=`. */
-export const crateRequirementName = (requirement: string) => requirement.replace(/=.*$/, '').trim();
+/**
+ * A Cargo requirement as `Cargo.toml` writes it (`serde = "1.0"`, `serde = { version = "1" }`): the name before its one
+ * `=`. A comparison operator (`==`, `>=`, `~=`: a PyPI pin such as `django==5.0`) is not Cargo's, so it is left whole.
+ */
+export const crateRequirementName = (requirement: string) => requirement.replace(/(?<![=!<>~])=(?!=).*$/, '').trim();
 
 /** A pub package name: lower-case letters, digits and `_`, not starting with a digit (a Dart identifier). */
 const PUB_NAME = /^[a-z_][a-z0-9_]*$/;

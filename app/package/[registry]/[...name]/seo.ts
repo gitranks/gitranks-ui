@@ -35,8 +35,9 @@ const NOT_INDEXED: Metadata['robots'] = { index: false };
 
 const plural = (count: number, one: string, many: string) => `${formatCount(count)} ${count === 1 ? one : many}`;
 
+/** A registry with no download counts (Go, Maven Central) leaves downloads out. */
 export const packageTitle = (name: string, registry: RegistryId = DEFAULT_REGISTRY) =>
-  `${name} - ${REGISTRIES[registry].label} package dependents, downloads and ranks`;
+  `${name} - ${REGISTRIES[registry].label} package ${registryHasDownloads(registry) ? 'dependents, downloads and ranks' : 'dependents and ranks'}`;
 
 /** "#12 by downloads, #40 by dependents' stars": the ranks it has, in the rankings' order. */
 function ranksText(registry: RegistryId, ranks: PackagePage['ranks']): string | undefined {

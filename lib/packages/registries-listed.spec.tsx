@@ -40,7 +40,7 @@ describe('a registry in the table that the site does not list yet: Maven Central
 
   it('is not listed', () => {
     expect(REGISTRY_IDS).not.toContain('maven');
-    expect(registryLabelList()).toBe('npm, PyPI and Go');
+    expect(registryLabelList()).toBe('npm, PyPI, Go and crates.io');
   });
 
   it("answers its package and ranking addresses as not found, and its badges' as no package", () => {
@@ -60,11 +60,12 @@ describe('a registry in the table that the site does not list yet: Maven Central
     );
     expect(frame).toContain('href="/packages/pypi/dependents/1"');
     expect(frame).toContain('href="/packages/go/dependents/1"');
+    expect(frame).toContain('href="/packages/crates/dependents/1"');
     expect(frame).not.toContain('/packages/maven/');
 
     return generateSitemaps().then((parts) => {
-      expect(parts).toHaveLength(30);
-      expect(packageSitemapPartOf(30)).toBeNull();
+      expect(parts).toHaveLength(40);
+      expect(packageSitemapPartOf(40)).toBeNull();
       const llms = llmsTxtOf({ contribute: false });
       expect(llms).not.toContain('/package/maven/');
       expect(llms).not.toContain('Maven Central');

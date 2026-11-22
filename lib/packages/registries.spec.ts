@@ -32,14 +32,15 @@ import {
 import { PackageRegistry } from '@/types/generated/graphql';
 
 describe('the registry table', () => {
-  it('lists npm, the default, then PyPI and Go, as the API names them', () => {
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go']);
+  it('lists npm, the default, then PyPI, Go and crates.io, as the API names them', () => {
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates']);
     expect(DEFAULT_REGISTRY).toBe('npm');
     expect(apiRegistryOf('npm')).toBe(PackageRegistry.Npm);
     expect(apiRegistryOf('pypi')).toBe(PackageRegistry.Pypi);
     expect(registryOfApi('NPM')).toBe('npm');
     expect(registryOfApi('PYPI')).toBe('pypi');
     expect(registryOfApi('GO')).toBe('go');
+    expect(registryOfApi('CRATES')).toBe('crates');
     expect(registryOfApi('npm')).toBeNull();
     expect(registryOfApi('CARGO')).toBeNull();
     expect(registryOfApi(null)).toBeNull();
@@ -49,10 +50,10 @@ describe('the registry table', () => {
     expect(ALL_REGISTRY_IDS.map((id) => REGISTRIES[id].api).sort()).toEqual(Object.values(PackageRegistry).sort());
   });
 
-  it('shows the registries its list names, in the order of the table: npm, PyPI and Go for now', () => {
-    expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi', 'go']);
+  it('shows the registries its list names, in the order of the table: npm, PyPI, Go and crates.io for now', () => {
+    expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi', 'go', 'crates']);
     expect(ALL_REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go']);
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates']);
     // A row not listed yet: the table knows it, nothing a visitor reaches does.
     expect(isRegistryRow('maven')).toBe(true);
     expect(isRegistryId('maven')).toBe(false);
@@ -212,11 +213,11 @@ describe('copy from the table', () => {
   });
 
   it('names every registry where the copy lists every one, and a package alone past two', () => {
-    expect(registryLabelList()).toBe('npm, PyPI and Go');
-    expect(registryLabelList('or')).toBe('npm, PyPI or Go');
+    expect(registryLabelList()).toBe('npm, PyPI, Go and crates.io');
+    expect(registryLabelList('or')).toBe('npm, PyPI, Go or crates.io');
     expect(anyRegistryPackageText()).toBe('package');
     expect(anyRegistryPackageText(true)).toBe('a package');
-    expect(registryManifestList()).toBe('package.json, requirements.txt, pyproject.toml or go.mod');
+    expect(registryManifestList()).toBe('package.json, requirements.txt, pyproject.toml, go.mod or Cargo.toml');
     expect(registryManifestList(['pypi'])).toBe('requirements.txt or pyproject.toml');
   });
 

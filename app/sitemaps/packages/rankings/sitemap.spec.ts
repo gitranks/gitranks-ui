@@ -32,6 +32,9 @@ describe('package rankings sitemap', () => {
       '/packages/pypi/dependents/1',
       '/packages/go/dependents-stars/1',
       '/packages/go/dependents/1',
+      '/packages/crates/downloads/1',
+      '/packages/crates/dependents-stars/1',
+      '/packages/crates/dependents/1',
     ]);
   });
 
@@ -120,6 +123,36 @@ describe('package rankings sitemap', () => {
           "priority": 0.9,
           "url": "https://example.test/packages/go/dependents/2",
         },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/crates/downloads/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/crates/dependents-stars/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/crates/dependents/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/crates/downloads/2",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/crates/dependents-stars/2",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/crates/dependents/2",
+        },
       ]
     `);
   });
@@ -129,10 +162,11 @@ describe('package rankings sitemap', () => {
 
     const all = await paths();
 
-    expect(all).toHaveLength(400);
+    expect(all).toHaveLength(550);
     expect(all.at(149)).toBe('/packages/npm/dependents/50');
     expect(all.at(299)).toBe('/packages/pypi/dependents/50');
-    expect(all.at(-1)).toBe('/packages/go/dependents/50');
+    expect(all.at(399)).toBe('/packages/go/dependents/50');
+    expect(all.at(-1)).toBe('/packages/crates/dependents/50');
   });
 
   it('lists no page before the first ranks, or when they cannot be read', async () => {

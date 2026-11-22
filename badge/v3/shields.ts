@@ -3,6 +3,7 @@ import {
   isUserRankedIn,
   packageGrowthOf,
   packagePerStarOf,
+  packageYearOf,
   rankPropOf,
   repoLanguageOf,
   userLanguageOf,
@@ -28,7 +29,7 @@ import { type RaceState, repoRace, userClimbRace, userStarsRace } from './race';
 import type { By, Segment, ShieldContent } from './types';
 import { UNSUNG_HERO_BADGE, unsungHeroMonth } from './unsung-hero-badge';
 import { REPO_TIER_NAMES, TIER_NAMES } from '@/app/app.consts';
-import { REGISTRIES } from '@/lib/packages/registries';
+import { DOWNLOADS_UNIT_TEXT, downloadsCountOf, REGISTRIES } from '@/lib/packages/registries';
 import { getRankingTierData } from '@/utils/calculate-tiers/calculate-tiers';
 
 /** The neutral value of a badge with nothing to show right now. */
@@ -369,16 +370,20 @@ function packageShield(pkg: PackageFacts, badge: BadgeDefinition, params: BadgeP
           quiet(`across ${formatCount(pkg.dependentsCount)} ${repos(pkg.dependentsCount)}`),
         ),
       );
-    case 'downloads':
-      if (!pkg.downloads || !unit) return content(params, downloadsLabel, DASH);
-      return content(params, downloadsLabel, segment(mono(formatCompact(pkg.downloads.lastWeek)), quiet(`a ${unit}`)));
-    case 'downloads-year':
-      if (!pkg.downloads) return content(params, downloadsLabel, DASH);
+    case 'downloads': {
+      const counted = downloadsCountOf(unit, pkg.downloads);
+      if (!counted || !unit) return content(params, downloadsLabel, DASH);
       return content(
         params,
         downloadsLabel,
-        segment(mono(formatCompact(pkg.downloads.last52Weeks)), quiet('last 12 months')),
+        segment(mono(formatCompact(counted.last)), quiet(DOWNLOADS_UNIT_TEXT[unit].per)),
       );
+    }
+    case 'downloads-year': {
+      const year = packageYearOf(pkg);
+      if (year === null) return content(params, downloadsLabel, DASH);
+      return content(params, downloadsLabel, segment(mono(formatCompact(year)), quiet('last 12 months')));
+    }
     case 'downloads-growth': {
       const change = packageGrowthOf(pkg);
       if (change === null) return null;

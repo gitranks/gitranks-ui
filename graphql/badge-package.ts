@@ -21,14 +21,18 @@ export type BadgePackageDependent = {
   archived: boolean;
 };
 
+/** As a package page's downloads: `lastWeek` and `previousWeek` are `null` on a registry counted a month at a time. */
 export type BadgePackageDownloads = {
   through: string;
-  lastWeek: number;
-  previousWeek: number;
+  lastWeek: number | null;
+  previousWeek: number | null;
+  last30Days: number;
+  previous30Days: number;
   last52Weeks: number;
   previous52Weeks?: number | null;
   perStar?: number | null;
   weeks?: { start: string; downloads: number }[] | null;
+  months?: { start: string; downloads: number }[] | null;
 };
 
 export type BadgePackage = {
@@ -62,10 +66,16 @@ export const BadgePackageDocument = doc<BadgePackageQuery, BadgePackageQueryVari
         through
         lastWeek
         previousWeek
+        last30Days
+        previous30Days
         last52Weeks
         previous52Weeks
         perStar
         weeks {
+          start
+          downloads
+        }
+        months {
           start
           downloads
         }

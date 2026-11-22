@@ -5,7 +5,14 @@ import { formatCount } from '@/app/repo/[owner]/[name]/utils/used-by-summary';
 import { SOCIAL_CARD_SIZE, socialCardPath } from '@/badge/v3/links';
 import type { PackageDependent, PackagePage } from '@/graphql/package-page';
 import { packageMarkdownPath } from '@/lib/packages/package-markdown';
-import { DEFAULT_REGISTRY, REGISTRIES, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
+import {
+  DEFAULT_REGISTRY,
+  DOWNLOADS_UNIT_TEXT,
+  downloadsCountOf,
+  REGISTRIES,
+  type RegistryId,
+  spelledNameOf,
+} from '@/lib/packages/registries';
 import { clipText } from '@/lib/seo/clip-text';
 import { buildRankingItemList } from '@/lib/seo/json-ld';
 import { type PreviewImage, pageMetadata } from '@/lib/seo/page-metadata';
@@ -41,13 +48,15 @@ function ranksText(registry: RegistryId, ranks: PackagePage['ranks']): string | 
 }
 
 function buildDescription(registry: RegistryId, pkg: PackagePage): string {
-  const { dependentsCount: count, dependentsStars: stars, downloads } = pkg;
+  const { dependentsCount: count, dependentsStars: stars } = pkg;
+  const unit = REGISTRIES[registry].downloads;
+  const downloads = downloadsCountOf(unit, pkg.downloads);
   return clipText(
     [
       count > 0
         ? `Used by ${plural(count, 'repository', 'repositories')} with 100+ stars (${plural(stars, 'star', 'stars')} between them).`
         : 'No repository with 100+ stars uses it directly yet.',
-      downloads ? `${formatCount(downloads.lastWeek)} downloads last week.` : undefined,
+      downloads && unit ? `${formatCount(downloads.last)} downloads ${DOWNLOADS_UNIT_TEXT[unit].last}.` : undefined,
       ranksText(registry, pkg.ranks),
       pkg.description || undefined,
     ]
@@ -77,6 +86,8 @@ function buildBreadcrumbs(registry: RegistryId, name: string, url: string) {
 /** The package as a schema.org `SoftwareApplication`. */
 function buildApplication(registry: RegistryId, pkg: PackagePage, url: string) {
   const source = pkg.repo?.nameWithOwner ?? pkg.repositoryName;
+  // Its downloads of the last period its registry counts: last week's, or last month's.
+  const downloads = downloadsCountOf(REGISTRIES[registry].downloads, pkg.downloads);
   return {
     '@type': 'SoftwareApplication',
     name: spelledNameOf(pkg),
@@ -87,11 +98,11 @@ function buildApplication(registry: RegistryId, pkg: PackagePage, url: string) {
     license: pkg.license || undefined,
     codeRepository: source ? `https://github.com/${source}` : undefined,
     sameAs: [REGISTRIES[registry].pageUrl(pkg.name)],
-    interactionStatistic: pkg.downloads
+    interactionStatistic: downloads
       ? {
           '@type': 'InteractionCounter',
           interactionType: 'https://schema.org/DownloadAction',
-          userInteractionCount: pkg.downloads.lastWeek,
+          userInteractionCount: downloads.last,
         }
       : undefined,
   };

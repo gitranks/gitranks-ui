@@ -42,7 +42,9 @@ describe('PackageRankingFrame', () => {
       'Rank is based on the stars of every repository with 100+ stars that uses the package directly, added up.',
     );
     expect(html).toMatch(/<form aria-label="Go to a package"/);
-    expect(text).toContain('Package rankings are new. For now we rank npm packages only');
+    expect(text).toContain('Package rankings are new. For now we rank npm and PyPI packages only');
+    expect(text).toContain('that list the package in their own package.json.');
+    expect(text).toContain('Registry:npmPyPI');
     expect(html).toContain('href="/methodology/packages"');
     expect(html).toContain('<p>page</p>');
   });
@@ -67,6 +69,46 @@ describe('the downloads ranking header', () => {
       ),
     );
     expect(undated).toContain('Rank is based on npm downloads over 7 days.');
+  });
+
+  it("names PyPI's month, the one its downloads are counted over", () => {
+    const frame = (downloadsThrough?: string) =>
+      visibleText(
+        renderToStaticMarkup(
+          <PackageRankingFrame registry="pypi" order="downloads" downloadsThrough={downloadsThrough}>
+            {null}
+          </PackageRankingFrame>,
+        ),
+      );
+    expect(frame('2026-10-31T00:00:00.000Z')).toContain('Rank is based on PyPI downloads in October 2026.');
+    expect(frame()).toContain('Rank is based on PyPI downloads in the last whole month.');
+    expect(frame()).toContain('in their own requirements.txt or pyproject.toml.');
+  });
+});
+
+describe('the PyPI downloads ranking', () => {
+  it('says monthly downloads and the month before, where npm says weekly and last week', () => {
+    const html = renderToStaticMarkup(
+      <PackageRankingScreen
+        registry="pypi"
+        registryLabel="PyPI"
+        order="downloads"
+        page={1}
+        rows={downloadsRanking}
+        facts={{ ...packageRankingFacts, downloadsThrough: '2026-10-31T00:00:00.000Z' }}
+      />,
+    );
+    const text = visibleText(html);
+
+    expect(text).toContain('Monthly downloads');
+    expect(text).toContain('vs the month before');
+    expect(text).not.toContain('Weekly downloads');
+    expect(text).not.toContain('vs last week');
+    expect(text).toContain('By monthly downloads, the top three are');
+    expect(text).toContain('Which PyPI package is first by monthly downloads?');
+    expect(text).toContain('moss-date, with 5,806,310 downloads in October 2026.');
+    expect(text).toContain('Rank is based on PyPI downloads in October 2026.');
+    expect(html).toContain('href="/package/pypi/moss-date"');
   });
 });
 

@@ -5,8 +5,8 @@ import {
   REFRESH_TOASTS,
   type RefreshMessage,
 } from '@/components/refresh-dialogs/refresh-messages';
-import { anyRegistryPackageText } from '@/lib/packages/registries';
-import type { PickKind } from '@/types/daily-updates.types';
+import { anyRegistryPackageText, packageOfKey, REGISTRIES } from '@/lib/packages/registries';
+import type { PickKind, PickRef } from '@/types/daily-updates.types';
 
 /**
  * Every word of daily updates for a signed-in visitor, in one place: repositories and packages share the 3. Who else
@@ -80,8 +80,12 @@ export const ON_DAILY_DIALOG = {
 export const PICK_LIST = {
   profile: 'Your profile',
   remove: 'Remove',
-  /** What each pick is, under its name. */
-  kinds: { repo: 'Repository', package: anyRegistryPackageText() } satisfies Readonly<Record<PickKind, string>>,
+  /** What a pick is, under its name: "Repository", "npm package" (its registry's, from its `<registry>/<name>`). */
+  kindOf: ({ kind, name }: PickRef): string => {
+    if (kind === 'repo') return 'Repository';
+    const pkg = packageOfKey(name);
+    return pkg ? `${REGISTRIES[pkg.registry].label} package` : anyRegistryPackageText();
+  },
   /** The muted last row, while one more can be added: "You can add 1 more repo or package." */
   left: (left: number) =>
     left === 1 ? 'You can add 1 more repo or package.' : `You can add ${left} more repos or packages.`,

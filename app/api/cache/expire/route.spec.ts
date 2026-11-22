@@ -76,6 +76,18 @@ describe('POST /api/cache/expire', () => {
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
   });
 
+  it("expires a PyPI project's tag in the spelling its pages carry, whatever spelling is sent", async () => {
+    const response = await signed({
+      tags: ['package:pypi/zope.interface', 'package:pypi/zope_interface', 'package:pypi/requests'],
+    });
+
+    expect(response.status).toBe(200);
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual([
+      'package:pypi/zope-interface',
+      'package:pypi/requests',
+    ]);
+  });
+
   it('takes the tag of any name the npm name rule takes, as packageCacheTag writes it', async () => {
     const names = [
       'JSONStream',
@@ -167,7 +179,7 @@ describe('POST /api/cache/expire', () => {
     ['a tag with a space', { tags: ['repo:octo/hello world'] }],
     ['a tag with a line break', { tags: ['profile:octocat\n'] }],
     ['one bad tag among good ones', { tags: [...TAGS, 'ranking:global'] }],
-    ['a package tag of another registry', { tags: ['package:pypi/requests'] }],
+    ['a package tag of another registry', { tags: ['package:cargo/serde'] }],
     ['a package tag without a registry', { tags: ['package:react'] }],
     ['a package tag with nothing after the registry', { tags: ['package:npm/'] }],
     ['a package tag in capitals', { tags: ['package:npm/React'] }],

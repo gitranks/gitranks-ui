@@ -5,7 +5,7 @@ import { BadgeParamsError, resolveParams } from './params';
 import { renderBadge } from './render';
 import type { EntityKind, ImageFormat } from './types';
 import { parseDecodedPackageParams } from '@/app/package/[registry]/[...name]/utils/package-params';
-import type { RegistryId } from '@/lib/packages/registries';
+import { canonicalNameOf, type RegistryId } from '@/lib/packages/registries';
 import { isGithubLogin } from '@/utils/profile-refresh';
 import { parseRepoParams } from '@/utils/repo-paths';
 
@@ -55,12 +55,14 @@ const notFound = () => text('Badge not found', 404, BADGE_CACHE_HEADERS.notFound
 
 /**
  * The entity a badge URL names, as the request spells it. A package's `canonical` says whether the path spelled its
- * name as its badges do (`@scope`, not `%40scope`).
+ * name as its badges do (`@scope`, not `%40scope`; PyPI's `zope-interface`, not `Zope.Interface`). `folded` says the
+ * path spelled the name otherwise than the site's addresses do, on a registry that takes such spellings as one name:
+ * `name` is then the addresses' spelling.
  */
 export type BadgeEntityRef =
   | { kind: 'user' | 'org'; login: string }
   | { kind: 'repo'; owner: string; name: string }
-  | { kind: 'package'; registry: RegistryId; name: string; canonical: boolean };
+  | { kind: 'package'; registry: RegistryId; name: string; canonical: boolean; folded?: boolean };
 
 /** The entity's stored name in a badge path's terms. */
 function badgePathOf(entity: EntityFacts): BadgeEntityPath {
@@ -166,11 +168,19 @@ export function parsePackageRef(
 ): Extract<BadgeEntityRef, { kind: 'package' }> | null {
   const pkg = parseDecodedPackageParams(registry, parts);
   if (!pkg) return null;
-  const plain = `${base}${badgeNamePath({ kind: 'package', registry: pkg.registry, name: pkg.name })}`;
+  const name = canonicalNameOf(pkg.registry, pkg.name);
+  const plain = `${base}${badgeNamePath({ kind: 'package', registry: pkg.registry, name })}`;
   // An image's path goes on to its file; the facts' path ends with the name.
-  const canonical =
+  const spelledPlain =
     spelled === undefined || (base === PACKAGE_FACTS_BASE ? spelled === plain : spelled.startsWith(`${plain}/`));
-  return { kind: 'package', registry: pkg.registry, name: pkg.name, canonical };
+  const folded = name !== pkg.name;
+  return {
+    kind: 'package',
+    registry: pkg.registry,
+    name,
+    canonical: spelledPlain && !folded,
+    ...(folded ? { folded } : {}),
+  };
 }
 
 /**
@@ -189,6 +199,15 @@ export async function getBadgeResponse(
   const badge = ref && parsed ? findBadge(ref.kind, parsed.id) : null;
   if (!ref || !parsed || !badge) {
     return notFound();
+  }
+  // Another spelling of a name the registry takes as one (PyPI's `Django`, `zope.interface`) goes to the spelling the
+  // site's addresses use before anything is read: every spelling then shares that one cached image, and a refresh of
+  // the package clears it.
+  if (ref.kind === 'package' && ref.folded) {
+    return permanentRedirect(
+      `${PACKAGE_IMAGE_BASE}${badgeNamePath({ kind: 'package', registry: ref.registry, name: ref.name })}/${file}`,
+      search,
+    );
   }
   let params: ReturnType<typeof resolveParams>;
   try {
@@ -218,14 +237,7 @@ export async function getBadgeResponse(
   // Case variants and old names share the stored spelling's cache entry.
   const stored = storedNameOf(entity);
   if (stored !== requestedName(ref) || (ref.kind === 'package' && !ref.canonical)) {
-    const query = search.toString();
-    return new Response(null, {
-      status: 308,
-      headers: {
-        Location: `${pathOf(ref.kind, entity)}/${file}${query ? `?${query}` : ''}`,
-        ...BADGE_CACHE_HEADERS.badge,
-      },
-    });
+    return permanentRedirect(`${pathOf(ref.kind, entity)}/${file}`, search);
   }
 
   try {
@@ -254,6 +266,15 @@ export async function getBadgeResponse(
     console.error('Error drawing a badge:', error);
     return unavailable();
   }
+}
+
+/** A 308 to `path` with the query as asked, kept as long as a badge. */
+function permanentRedirect(path: string, search: URLSearchParams) {
+  const query = search.toString();
+  return new Response(null, {
+    status: 308,
+    headers: { Location: `${path}${query ? `?${query}` : ''}`, ...BADGE_CACHE_HEADERS.badge },
+  });
 }
 
 function unavailable() {

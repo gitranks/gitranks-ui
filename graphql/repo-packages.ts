@@ -23,7 +23,13 @@ export type RepoPackage = {
   displayName?: string | null;
   /** Distinct repositories with 100+ stars that depend on it directly. */
   dependents: number;
-  downloadsLastWeek: number;
+  /** `null` on a registry counted a month at a time, which has no week. */
+  downloadsLastWeek: number | null;
+  /**
+   * The month just ended, on a registry counted a month at a time (PyPI); `null` on one counted by the week, and before
+   * its first month is read.
+   */
+  downloadsLastMonth?: number | null;
 };
 
 /** What a repository publishes, summed over its packages. */
@@ -35,7 +41,10 @@ export type RepoPackages = {
   /** Distinct repositories with 100+ stars that depend on at least one of them. */
   dependents: number;
   dependentsArchived: number;
+  /** Last week's downloads of the packages on registries counted by the week, added up. */
   downloadsLastWeek: number;
+  /** Last month's downloads of the packages on registries counted a month at a time, added up. */
+  downloadsLastMonth: number;
   dependentsReadAt?: string | null;
   nextDependentsReadAt?: string | null;
   downloadsReadAt?: string | null;
@@ -56,10 +65,12 @@ export const RepoPackagesDocument = doc<RepoPackagesQuery, RepoPackagesQueryVari
           displayName
           dependents
           downloadsLastWeek
+          downloadsLastMonth
         }
         dependents
         dependentsArchived
         downloadsLastWeek
+        downloadsLastMonth
         dependentsReadAt
         nextDependentsReadAt
         downloadsReadAt
@@ -95,6 +106,8 @@ export type RepoUsedByQueryVariables = {
   limit?: number;
   /** One of the repository's packages; any other name answers an empty page. */
   package?: string | null;
+  /** The registry `package` is on; npm when none is given. */
+  registry?: PackageRegistry | null;
   hideArchived?: boolean;
 };
 
@@ -106,10 +119,11 @@ export const RepoUsedByDocument = doc<RepoUsedByQuery, RepoUsedByQueryVariables>
     $offset: Int = 0
     $limit: Int = 25
     $package: String
+    $registry: PackageRegistry
     $hideArchived: Boolean = false
   ) {
     repo(owner: $owner, name: $name) {
-      usedBy(offset: $offset, limit: $limit, package: $package, hideArchived: $hideArchived) {
+      usedBy(offset: $offset, limit: $limit, package: $package, registry: $registry, hideArchived: $hideArchived) {
         total
         archived
         items {

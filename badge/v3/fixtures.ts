@@ -333,10 +333,13 @@ export const packageBig: PackageFacts = {
     through: '2026-10-18T00:00:00.000Z',
     lastWeek: 1_797_000,
     previousWeek: 1_760_000,
+    last30Days: 7_640_000,
+    previous30Days: 7_410_000,
     last52Weeks: sum(packageWeeks.slice(52)),
     previous52Weeks: sum(packageWeeks.slice(0, 52)),
     perStar: 1_380.2,
     weeks: packageWeeks,
+    months: [],
   },
 };
 
@@ -354,10 +357,46 @@ export const packageNew: PackageFacts = {
     through: '2026-10-18T00:00:00.000Z',
     lastWeek: 640,
     previousWeek: 600,
+    last30Days: 2_700,
+    previous30Days: 2_480,
     last52Weeks: 9_100,
     previous52Weeks: null,
     perStar: null,
     weeks: packageWeeks.slice(-20).map(({ start }, index) => ({ start, downloads: 300 + index * 20 })),
+    months: [],
+  },
+};
+
+/** The first day of each month from October 2025 to September 2026, as ISO dates. */
+const pypiMonths = Array.from({ length: 12 }, (_, index) => ({
+  start: new Date(Date.UTC(2025, 9 + index, 1)).toISOString(),
+  downloads: 40_000_000 + index * 1_000_000,
+}));
+
+/**
+ * A PyPI project, counted a month at a time: no week, last month's downloads and the one before, and its months since
+ * the first one read.
+ */
+export const packagePypi: PackageFacts = {
+  kind: 'package',
+  registry: 'pypi',
+  name: 'zope-interface',
+  repo: { nameWithOwner: 'zopefoundation/zope.interface', stars: 360 },
+  repositoryName: null,
+  dependentsCount: 214,
+  dependentsStars: 812_000,
+  dependents: [dependent('plone/Products.CMFPlone', 270)],
+  downloads: {
+    through: '2026-09-30T00:00:00.000Z',
+    lastWeek: null,
+    previousWeek: null,
+    last30Days: 51_000_000,
+    previous30Days: 50_000_000,
+    last52Weeks: sum(pypiMonths),
+    previous52Weeks: null,
+    perStar: null,
+    weeks: [],
+    months: pypiMonths,
   },
 };
 

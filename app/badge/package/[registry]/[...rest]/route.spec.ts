@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { packageBig, packageNew } from '@/badge/v3/fixtures';
+import { packageBig, packageNew, packagePypi } from '@/badge/v3/fixtures';
 import { BADGE_CACHE_HEADERS } from '@/badge/v3/route';
 
 const { loadBadgePackage, after } = vi.hoisted(() => ({
@@ -43,8 +43,16 @@ const cacheHeaders = (response: Response) => ({
 describe('/badge/package/npm/<name>/<badge>', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    loadBadgePackage.mockImplementation(async (_registry: string, name: string) =>
-      name === packageBig.name ? packageBig : name === packageNew.name ? packageNew : null,
+    loadBadgePackage.mockImplementation(async (registry: string, name: string) =>
+      registry === 'pypi'
+        ? name === packagePypi.name
+          ? packagePypi
+          : null
+        : name === packageBig.name
+          ? packageBig
+          : name === packageNew.name
+            ? packageNew
+            : null,
     );
   });
 
@@ -72,12 +80,40 @@ describe('/badge/package/npm/<name>/<badge>', () => {
     expect((await get('/badge/package/npm/react-resize-detector/used-by.svg?scheme=nope')).status).toBe(400);
   });
 
+  it("sends another spelling of a PyPI name to its folded name's badge, for good, before anything is read", async () => {
+    for (const [path, location] of [
+      ['/badge/package/pypi/Django/downloads.svg', '/badge/package/pypi/django/downloads.svg'],
+      ['/badge/package/pypi/zope.interface/used-by.svg', '/badge/package/pypi/zope-interface/used-by.svg'],
+      [
+        '/badge/package/pypi/Zope__Interface/used-by.png?scheme=dark',
+        '/badge/package/pypi/zope-interface/used-by.png?scheme=dark',
+      ],
+    ]) {
+      const response = await get(path);
+      expect(response.status, path).toBe(308);
+      expect(response.headers.get('Location'), path).toBe(location);
+      expect(cacheHeaders(response), path).toEqual(BADGE_CACHE_HEADERS.badge);
+    }
+    expect(loadBadgePackage).not.toHaveBeenCalled();
+    expect(after).not.toHaveBeenCalled();
+  });
+
+  it('draws the folded name of a PyPI project as any badge', async () => {
+    const response = await get('/badge/package/pypi/zope-interface/downloads.svg');
+    expect(response.status).toBe(200);
+    expect(loadBadgePackage).toHaveBeenCalledWith('pypi', 'zope-interface');
+    expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
+    expect((await get('/badge/package/pypi/zope-interface/rank.svg')).status).toBe(404);
+  });
+
   it('is not found for a path that names no package, as every badge', async () => {
     for (const path of [
       '/badge/package/npm/used-by.svg',
-      '/badge/package/pypi/react/used-by.svg',
+      '/badge/package/cargo/react/used-by.svg',
       '/badge/package/npm/a/b/c/used-by.svg',
       '/badge/package/npm/types/node/used-by.svg',
+      '/badge/package/pypi/zope/interface/used-by.svg',
+      '/badge/package/pypi/-x/used-by.svg',
       '/badge/package/npm/react-resize-detector/rank.svg',
     ]) {
       const response = await get(path);

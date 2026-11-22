@@ -15,7 +15,7 @@ const { fetchRepoPackages, fetchRepoUsedBy, isPackagesUnavailable, UNAVAILABLE }
 /** The request helper's error for an answer with GraphQL errors. */
 const apiError = (code: string) => new Error(JSON.stringify([{ message: 'x', path: ['repo'], extensions: { code } }]));
 
-const QUERY = { offset: 25, limit: 25, package: '@nebula/ui', hideArchived: true };
+const QUERY = { offset: 25, limit: 25, package: { registry: 'npm', name: '@nebula/ui' }, hideArchived: true } as const;
 
 describe('fetchRepoPackages and fetchRepoUsedBy', () => {
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe('fetchRepoPackages and fetchRepoUsedBy', () => {
   });
 
   it('leave out a package on a registry the site does not list, and out of the count', async () => {
-    const other = { ...threePackages.items[0], registry: 'PYPI', name: 'nebula-ui' };
+    const other = { ...threePackages.items[0], registry: 'CARGO', name: 'nebula-ui' };
     graphqlDirect.mockResolvedValue({
       repo: { packages: { ...threePackages, total: 4, items: [...threePackages.items, other] } },
     });
@@ -69,6 +69,27 @@ describe('fetchRepoPackages and fetchRepoUsedBy', () => {
       offset: 25,
       limit: 25,
       package: '@nebula/ui',
+      registry: 'NPM',
+      hideArchived: true,
+    });
+  });
+
+  it("ask for one package's dependents by its registry and name, and for all of them by neither", async () => {
+    graphqlDirect.mockResolvedValue({ repo: { usedBy: { total: 0, archived: 0, items: [] } } });
+
+    await fetchRepoUsedBy('nebula', 'ui', { ...QUERY, package: { registry: 'pypi', name: 'nebula-ui' } });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ package: 'nebula-ui', registry: 'PYPI' }),
+    );
+
+    await fetchRepoUsedBy('nebula', 'ui', { ...QUERY, package: null });
+    expect(graphqlDirect.mock.lastCall?.[1]).toEqual({
+      owner: 'nebula',
+      name: 'ui',
+      offset: 25,
+      limit: 25,
+      package: null,
       hideArchived: true,
     });
   });

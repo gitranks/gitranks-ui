@@ -27,9 +27,22 @@ export const UsedByCard: FC<UsedByCardProps> = ({ nameWithOwner, packages, rows 
           </ProfileCardHeader>
           <p className="text-sm text-muted-foreground">
             <span className="font-mono tabular-nums text-foreground">{line.dependents}</span> {line.what}
-            {line.downloads !== null && (
+            {line.downloads !== null && line.downloadsLastMonth === undefined && (
               <>
                 <span className="font-mono tabular-nums text-foreground">{line.downloads}</span> downloads a week.
+              </>
+            )}
+            {line.downloadsLastMonth !== undefined && (
+              // Each figure in its own unit: a week is never added to a month.
+              <>
+                {line.downloads !== null && (
+                  <>
+                    <span className="font-mono tabular-nums text-foreground">{line.downloads}</span> downloads a week
+                    and{' '}
+                  </>
+                )}
+                <span className="font-mono tabular-nums text-foreground">{line.downloadsLastMonth}</span> downloads last
+                month.
               </>
             )}
           </p>

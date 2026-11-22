@@ -6,6 +6,7 @@ import {
   PACKAGE_RANKINGS,
   type PackageRankingOrder,
   packageRankingBasis,
+  packageRankingOf,
   packageRankingOrdersOf,
 } from '../package-rankings';
 import { buildPackageRankingJsonLd, buildPackageRankingQuestions } from '../seo';
@@ -34,7 +35,7 @@ type PackageRankingProps = {
 };
 
 type PackageRankingFrameProps = Omit<PackageRankingProps, 'registryLabel'> & {
-  /** The last of the downloads ranking's 7 days, as the facts give it; no date when unknown. */
+  /** The last day of the downloads ranking's period, as the facts give it; no date when unknown. */
   downloadsThrough?: unknown;
   children: ReactNode;
 };
@@ -78,7 +79,7 @@ export const PackageRankingFrame: FC<PackageRankingFrameProps> = ({ registry, or
         subtitle={packageRankingBasis(order, formatPackageDate(downloadsThrough), registry)}
       />
       <GoToPackageField registry={registry} />
-      <PackageBetaNotice />
+      <PackageBetaNotice registry={registry} />
       {children}
     </Page>
   </>
@@ -126,7 +127,7 @@ export const PackageRankingScreen: FC<PackageRankingScreenProps> = ({
     );
   }
 
-  const ranking = PACKAGE_RANKINGS[order];
+  const ranking = packageRankingOf(order, registry);
   const pageProps = { registry, registryLabel, order, page };
   const readOn = formatPackageDate(facts?.dependentsReadAt);
   const ranksOn = formatPackageDate(facts?.ranksAt);
@@ -140,7 +141,7 @@ export const PackageRankingScreen: FC<PackageRankingScreenProps> = ({
         metric: ranking.metricInSentence,
         minStars: DEPENDENT_MIN_STARS,
         ranked: facts?.ranked,
-        // The downloads ranking's numbers are of its 7 days, not of the monthly read.
+        // The downloads ranking's numbers are of its own period, not of the monthly read.
         readOn: isDownloads ? null : readOn,
         downloadsTo: isDownloads ? downloadsTo : null,
         ranksOn,

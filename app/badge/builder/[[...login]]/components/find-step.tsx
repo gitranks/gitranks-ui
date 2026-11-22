@@ -10,12 +10,19 @@ import { anyPackageRefOf, entityLabel, searchLookups } from '../utils/builder-st
 import { FORMAT_NAMES } from '../utils/builder-view';
 import { EntityAvatar, kindLabelOf } from './entity-chip';
 import type { BadgeDefinition } from '@/badge/v3/catalogue';
-import type { EntityFacts } from '@/badge/v3/facts';
+import type { EntityFacts, PackageFacts } from '@/badge/v3/facts';
 import { formatCompact } from '@/badge/v3/format';
 import type { EntityKind } from '@/badge/v3/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { anyRegistryPackageText, DEFAULT_REGISTRY, REGISTRIES, registryLabelList } from '@/lib/packages/registries';
+import {
+  anyRegistryPackageText,
+  DEFAULT_REGISTRY,
+  DOWNLOADS_UNIT_TEXT,
+  downloadsCountOf,
+  REGISTRIES,
+  registryLabelList,
+} from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
@@ -102,6 +109,20 @@ const INVALID: Record<Scope, string> = {
   repo: 'Enter the repository as owner/name',
   package: `Enter ${A_PACKAGE}’s name`,
 };
+
+/** A found package's downloads in its registry's unit: " · 1.2M downloads a week"; nothing before they are read. */
+function PackageDownloads({ facts }: Readonly<{ facts: PackageFacts }>) {
+  const unit = REGISTRIES[facts.registry].downloads;
+  const counted = downloadsCountOf(unit, facts.downloads);
+  if (!counted || !unit) return null;
+  return (
+    <span className="text-muted-foreground">
+      {' '}
+      · {formatCompact(counted.last)}
+      {` downloads ${DOWNLOADS_UNIT_TEXT[unit].per}`}
+    </span>
+  );
+}
 
 /**
  * Step 1: one search box; a login finds developers and organizations, `owner/name` a repository, and a package's name a
@@ -251,12 +272,7 @@ export function FindStep({
                       {facts.kind === 'repo' && (
                         <span className="text-muted-foreground"> · {facts.stars.toLocaleString('en-US')} ★</span>
                       )}
-                      {facts.kind === 'package' && facts.downloads && (
-                        <span className="text-muted-foreground">
-                          {' '}
-                          · {formatCompact(facts.downloads.lastWeek)} downloads a week
-                        </span>
-                      )}
+                      {facts.kind === 'package' && <PackageDownloads facts={facts} />}
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{kindLabelOf(facts)}</span>
                   </button>

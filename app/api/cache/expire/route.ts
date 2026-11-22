@@ -2,7 +2,8 @@ import jwt from 'jsonwebtoken';
 import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { REGISTRY_IDS, type RegistryId, registryOf } from '@/lib/packages/registries';
+import { packageCacheTag } from '@/lib/packages/package-paths';
+import { isRegistryId, REGISTRY_IDS, type RegistryId, registryOf } from '@/lib/packages/registries';
 import { UNSUNG_HERO_CACHE_TAG } from '@/lib/unsung-hero/unsung-hero';
 
 /** The one caller allowed to expire cached data: the API, which names itself in its token. */
@@ -58,6 +59,16 @@ function verifiedClaims(request: NextRequest): Record<string, unknown> | null {
   }
 }
 
+/**
+ * The tag a package's cached pages carry for a tag as sent: the spelling the site's addresses use (PyPI's
+ * `package:pypi/zope-interface` for `package:pypi/zope.interface`), so another spelling still expires them. Any other
+ * tag as it is.
+ */
+function expiredTagOf(tag: string): string {
+  const match = /^package:([^/]+)\/(.+)$/.exec(tag);
+  return match && isRegistryId(match[1]) ? packageCacheTag(match[1], match[2]) : tag;
+}
+
 const isTagList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.length >= 1 && value.length <= MAX_TAGS && value.every(isTag);
 
@@ -83,7 +94,7 @@ export async function POST(request: NextRequest) {
   }
 
   // `expire: 0`: the next read gets the new data, never the stale copy served while a fresh one is made.
-  for (const tag of tags) {
+  for (const tag of new Set(tags.map(expiredTagOf))) {
     revalidateTag(tag, { expire: 0 });
   }
   return NextResponse.json({ expired: tags.length }, { headers: NO_STORE });

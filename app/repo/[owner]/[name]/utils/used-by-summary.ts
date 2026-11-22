@@ -2,7 +2,13 @@ import { registryOfRepoPackage, sharedRegistryOf } from './repo-package-registry
 import type { SummaryPart } from '@/app/profile/[login]/utils/profile-summary';
 import type { QuestionItem } from '@/components/questions-block/questions-block';
 import type { RepoPackage, RepoPackages, RepoUsedByItem } from '@/graphql/repo-packages';
-import { REGISTRIES, registryManifestList, spelledNameOf } from '@/lib/packages/registries';
+import {
+  DOWNLOADS_UNIT_TEXT,
+  type DownloadsUnit,
+  REGISTRIES,
+  registryManifestList,
+  spelledNameOf,
+} from '@/lib/packages/registries';
 import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
@@ -46,15 +52,52 @@ function packagesWord(packages: Pick<RepoPackages, 'items'>, one = false): strin
   return registry ? `${REGISTRIES[registry].label} ${word}` : word;
 }
 
+/** The units a repository's downloads are added up in, in the order they are said: npm's week, then PyPI's month. */
+const UNITS: readonly DownloadsUnit[] = ['week', 'month'];
+
+/** The unit a repository's package is counted in; `null` on a registry that publishes no download counts. */
+const unitOf = (pkg: Pick<RepoPackage, 'registry'>) => REGISTRIES[registryOfRepoPackage(pkg)].downloads;
+
 /**
- * "a week on npm" on one registry, "a week" across several (the counts are weekly); `null` on one registry that
- * publishes no download counts, where nothing is said about downloads.
+ * A repository's package's downloads in its registry's unit, with how it is said after the count: last week's ("a
+ * week") on npm, last month's ("last month") on PyPI. `null` on a registry with no download counts, and on PyPI before
+ * its first month is read.
  */
-export function downloadsPer(packages: Pick<RepoPackages, 'items'>): string | null {
-  const registry = sharedRegistryOf(packages.items);
-  if (!registry) return 'a week';
-  const { downloads: unit, label } = REGISTRIES[registry];
-  return unit ? `a ${unit} on ${label}` : null;
+export function repoPackageDownloadsOf(
+  pkg: Pick<RepoPackage, 'registry' | 'downloadsLastWeek' | 'downloadsLastMonth'>,
+): { count: number; unit: DownloadsUnit; per: string } | null {
+  const unit = unitOf(pkg);
+  const count = unit === 'week' ? pkg.downloadsLastWeek : unit === 'month' ? pkg.downloadsLastMonth : null;
+  return unit && typeof count === 'number' ? { count, unit, per: DOWNLOADS_UNIT_TEXT[unit].per } : null;
+}
+
+/** One of a repository's download totals: the packages of one unit added up, and how it is said after the count. */
+export type DownloadsFigure = { count: number; unit: DownloadsUnit; per: string };
+
+/**
+ * A repository's downloads, one figure a unit, never a week added to a month: its packages counted by the week (npm),
+ * then those counted a month at a time (PyPI), each "… on npm" when the unit's packages are on one registry. A month is
+ * said once one of its packages has a month read. None when no package is counted; a repository with no package listed
+ * says npm's week, as it did.
+ */
+export function downloadsFiguresOf(
+  packages: Pick<RepoPackages, 'items' | 'downloadsLastWeek' | 'downloadsLastMonth'>,
+): DownloadsFigure[] {
+  return UNITS.flatMap((unit) => {
+    const items = packages.items.filter((pkg) => unitOf(pkg) === unit);
+    const counted =
+      unit === 'week' ? packages.items.length === 0 || items.length > 0 : items.some(repoPackageDownloadsOf);
+    if (!counted) return [];
+    const registry = sharedRegistryOf(items);
+    const per = DOWNLOADS_UNIT_TEXT[unit].per;
+    return [
+      {
+        count: unit === 'week' ? packages.downloadsLastWeek : packages.downloadsLastMonth,
+        unit,
+        per: registry ? `${per} on ${REGISTRIES[registry].label}` : per,
+      },
+    ];
+  });
 }
 const repoLink = (nameWithOwner: string): SummaryPart => ({ text: nameWithOwner, href: getRepoPath(nameWithOwner) });
 
@@ -85,13 +128,20 @@ function publishes(nameWithOwner: string, packages: RepoPackages): SummaryPart[]
   return [`${nameWithOwner} publishes ${formatCount(total)} ${packagesWord(packages)}.`];
 }
 
+/**
+ * " It is downloaded 412,880 times a week on npm.", " It was downloaded 1,200,000 times last month on PyPI.", " Together
+ * they are downloaded … a week on npm, and … last month on PyPI.": each figure in its own unit.
+ */
 function downloadsSentence(packages: RepoPackages): string {
-  const per = downloadsPer(packages);
-  if (!per) return '';
-  const downloads = formatCount(packages.downloadsLastWeek);
-  return packages.total === 1
-    ? ` It is downloaded ${downloads} times ${per}.`
-    : ` Together ${packages.total <= 3 ? 'the packages are' : 'they are'} downloaded ${downloads} times ${per}.`;
+  const [first, ...more] = downloadsFiguresOf(packages);
+  if (!first) return '';
+  const past = first.unit === 'month';
+  const subject =
+    packages.total === 1
+      ? `It ${past ? 'was' : 'is'}`
+      : `Together ${packages.total <= 3 ? 'the packages' : 'they'} ${past ? 'were' : 'are'}`;
+  const rest = more.map(({ count, per }) => `, and ${formatCount(count)} times ${per}`).join('');
+  return ` ${subject} downloaded ${formatCount(first.count)} times ${first.per}${rest}.`;
 }
 
 /**
@@ -154,18 +204,27 @@ export function buildUsedBySummary(
 
 /**
  * The Overview card's line: "231 repositories with 100+ stars depend on its 3 npm packages, 527k downloads a week."
- * Without download counts the line ends after the packages, and `downloads` is `null`.
+ * `downloads` is the week's figure, `downloadsLastMonth` the month's, there only when one is said (PyPI); without
+ * download counts the line ends after the packages, and `downloads` is `null`.
  */
-export function usedByCardLine(packages: RepoPackages): { dependents: string; what: string; downloads: string | null } {
-  const hasDownloads = downloadsPer(packages) !== null;
+export function usedByCardLine(packages: RepoPackages): {
+  dependents: string;
+  what: string;
+  downloads: string | null;
+  downloadsLastMonth?: string;
+} {
+  const figures = downloadsFiguresOf(packages);
+  const week = figures.find(({ unit }) => unit === 'week');
+  const month = figures.find(({ unit }) => unit === 'month');
   return {
     dependents: formatCount(packages.dependents),
     what: `${packages.dependents === 1 ? 'repository' : 'repositories'} with 100+ stars ${packages.dependents === 1 ? 'depends' : 'depend'} on ${
       packages.total === 1
         ? `its ${packagesWord(packages, true)} ${spelledNameOf(packages.items[0])}`
         : `its ${formatCount(packages.total)} ${packagesWord(packages)}`
-    }${hasDownloads ? ', ' : '.'}`,
-    downloads: hasDownloads ? formatDownloadsShort(packages.downloadsLastWeek) : null,
+    }${figures.length ? ', ' : '.'}`,
+    downloads: week ? formatDownloadsShort(week.count) : null,
+    ...(month ? { downloadsLastMonth: formatDownloadsShort(month.count) } : {}),
   };
 }
 
@@ -185,8 +244,14 @@ export function noDependentsNote(packages: RepoPackages): string {
   ].join('');
 }
 
-/** "How is this counted?", on the Used by tab and wherever its numbers are explained. */
-export const USED_BY_COUNTED = `From each repository's own ${registryManifestList()} files, workspaces included. Lockfiles, forks and example, docs or test folders don't count. We read every repository with 100+ stars once a month.`;
+/**
+ * "How is this counted?", on the Used by tab and wherever its numbers are explained: the files of the registries the
+ * repository's packages are on (every listed registry's, for none).
+ */
+export function usedByCountedOf(packages: Pick<RepoPackages, 'items'>): string {
+  const registries = [...new Set(packages.items.map(registryOfRepoPackage))];
+  return `From each repository's own ${registryManifestList(registries.length ? registries : undefined)} files, workspaces included. Lockfiles, forks and example, docs or test folders don't count. We read every repository with 100+ stars once a month.`;
+}
 
 /**
  * The Used by tab's questions, each answered from the tab's own numbers: who uses it, which package is used most (with
@@ -213,12 +278,16 @@ export function buildUsedByQuestions(
 
   const [most] = packages.items;
   if (!one && most && most.dependents > 0) {
+    const dependentsText = `${plural(most.dependents, 'repository', 'repositories')} with 100+ stars`;
+    const downloads = repoPackageDownloadsOf(most);
     items.push({
       question: `Which ${nameWithOwner} package is used most?`,
-      answer: `${spelledNameOf(most)}: ${plural(most.dependents, 'repository', 'repositories')} with 100+ stars and ${formatCount(most.downloadsLastWeek)} downloads a week.`,
+      answer: downloads
+        ? `${spelledNameOf(most)}: ${dependentsText} and ${formatCount(downloads.count)} downloads ${downloads.per}.`
+        : `${spelledNameOf(most)}: ${dependentsText}.`,
     });
   }
 
-  items.push({ question: 'How is this counted?', answer: USED_BY_COUNTED });
+  items.push({ question: 'How is this counted?', answer: usedByCountedOf(packages) });
   return items;
 }

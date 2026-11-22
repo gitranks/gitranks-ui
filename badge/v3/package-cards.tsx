@@ -9,7 +9,7 @@ import { Mark } from './glyphs';
 import type { BadgeParams } from './params';
 import { type CardPalette, toneColor } from './schemes';
 import { MONO_FONT } from './shield';
-import { REGISTRIES, registryDownloadsText } from '@/lib/packages/registries';
+import { DOWNLOADS_UNIT_TEXT, downloadsCountOf, REGISTRIES, registryDownloadsText } from '@/lib/packages/registries';
 
 /** A package's cards and chart. A package no repository with 100+ stars uses yet says "new", never "0". */
 
@@ -85,12 +85,18 @@ function NewPackage({ palette }: Readonly<{ palette: CardPalette }>): ReactEleme
   );
 }
 
-/** The downloads card: a week's downloads, year over year, and the last 52 weeks as a line. */
+/**
+ * The downloads card: a week's downloads, year over year, and the last 52 weeks as a line; on a registry counted a
+ * month at a time, last month's downloads and the last 12 months as the line.
+ */
 export function packageDownloadsCard(pkg: PackageFacts, params: BadgeParams): Drawing | null {
   const downloads = pkg.downloads;
-  if (!downloads) return null;
+  const unit = REGISTRIES[pkg.registry].downloads;
+  const counted = downloadsCountOf(unit, downloads);
+  if (!downloads || !counted) return null;
   const growth = packageGrowthOf(pkg);
-  const series = downloads.weeks.slice(-52).map(({ downloads: count }) => count);
+  const points = unit === 'month' ? downloads.months.slice(-12) : downloads.weeks.slice(-52);
+  const series = points.map(({ downloads: count }) => count);
   const { line, area } = series.length > 1 ? sparkPaths(series, 366, 34) : { line: null, area: null };
   return {
     width: 400,
@@ -106,7 +112,7 @@ export function packageDownloadsCard(pkg: PackageFacts, params: BadgeParams): Dr
       >
         <Line color={palette.muted} style={{ marginTop: 8, alignItems: 'baseline' }}>
           <Num size={22} color={palette.text}>
-            {formatCompact(downloads.lastWeek)}
+            {formatCompact(counted.last)}
           </Num>
           <Words>{` ${registryDownloadsText(pkg.registry)}`}</Words>
           {growth !== null ? (
@@ -151,11 +157,18 @@ function PackageStat({
   );
 }
 
-/** The package card, a package's page's link preview: downloads a week, 100+★ repos, GitHub stars, per star. */
+/**
+ * The package card, a package's page's link preview: downloads a week (last month's, on a registry counted a month at
+ * a time), 100+★ repos, GitHub stars, per star.
+ */
 export function packageCard(pkg: PackageFacts, params: BadgeParams): Drawing {
   const perStar = packagePerStarOf(pkg);
+  const unit = REGISTRIES[pkg.registry].downloads;
+  const counted = downloadsCountOf(unit, pkg.downloads);
   const stats = [
-    ...(pkg.downloads ? [{ value: formatCompact(pkg.downloads.lastWeek), label: 'downloads a week' }] : []),
+    ...(counted && unit
+      ? [{ value: formatCompact(counted.last), label: `downloads ${DOWNLOADS_UNIT_TEXT[unit].per}` }]
+      : []),
     { value: pkg.dependentsCount > 0 ? formatCount(pkg.dependentsCount) : 'new', label: '100+★ repos' },
     ...(pkg.repo ? [{ value: formatFull(pkg.repo.stars), label: 'GitHub stars' }] : []),
   ];

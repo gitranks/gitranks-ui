@@ -14,8 +14,8 @@ describe('package-page sitemap', () => {
     vi.mocked(fetchPackagesForSitemap).mockReset().mockResolvedValue([]);
   });
 
-  it('has ten parts', async () => {
-    expect(await generateSitemaps()).toHaveLength(10);
+  it('has ten parts a registry: npm 0–9, PyPI 10–19', async () => {
+    expect(await generateSitemaps()).toHaveLength(20);
   });
 
   it("lists each package's page at its canonical address, a scoped name as @scope/name", async () => {
@@ -51,8 +51,15 @@ describe('package-page sitemap', () => {
     vi.useRealTimers();
   });
 
-  it('reads no part outside 0–9', async () => {
-    expect(await part('10')).toEqual([]);
+  it("lists a PyPI project's page under its registry, from the parts after npm's", async () => {
+    vi.mocked(fetchPackagesForSitemap).mockResolvedValue(['zope-interface']);
+
+    expect((await part('12')).map(({ url }) => url)).toEqual(['https://example.test/package/pypi/zope-interface']);
+    expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Pypi, 2);
+  });
+
+  it('reads no part outside 0–19', async () => {
+    expect(await part('20')).toEqual([]);
     expect(await part('x')).toEqual([]);
     expect(fetchPackagesForSitemap).not.toHaveBeenCalled();
   });

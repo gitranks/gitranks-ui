@@ -53,15 +53,15 @@ const summaryText = (parts: readonly (string | { text: string })[]) =>
   parts.map((part) => (typeof part === 'string' ? part : part.text)).join('');
 
 /**
- * One of a repository's packages on a registry that folds names, written by it otherwise than its address. npm stands
- * in for that registry, as the only one the site lists.
+ * One of a repository's packages on PyPI, which folds names, written by it otherwise than its address. A repository's
+ * packages carry last week's downloads alone, and PyPI has no week.
  */
 const zope: RepoPackage = {
-  registry: 'NPM',
+  registry: 'PYPI',
   name: 'zope-interface',
   displayName: 'zope.interface',
   dependents: 40,
-  downloadsLastWeek: 1_200,
+  downloadsLastWeek: null,
 };
 const withZope = (packages: RepoPackages): RepoPackages => ({ ...packages, items: [zope, ...packages.items.slice(1)] });
 
@@ -91,62 +91,68 @@ describe("a package's name as the registry writes it", () => {
 
   it('titles the page of a package on a registry that folds names with its display name, and keeps its name for links, follows, refreshes and badges', () => {
     const html = renderToStaticMarkup(
-      <PackageScreen registry="npm" name="zope-interface" pkg={spelledPackage} jsonLd={[{}]} />,
+      <PackageScreen registry="pypi" name="zope-interface" pkg={spelledPackage} jsonLd={[{}]} />,
     );
     const page = text(html);
 
     expect(html).toMatch(/<h1[^>]*>zope\.interface<\/h1>/);
-    expect(page).toContain('zope.interface is an npm package downloaded');
+    expect(page).toContain('zope.interface is a PyPI package downloaded');
     expect(page).toContain('About zope.interface');
+    expect(page).toContain('direct dependents, in their own requirements.txt or pyproject.toml');
     expect(page).not.toContain('zope-interface');
     expect(html).toContain('data-follow="package-page" data-label="zope.interface" data-keys="zope-interface"');
     expect(html).toContain('data-updates="zope-interface" data-spelled="zope.interface"');
     expect(html).toContain('data-badges="zope-interface"');
-    expect(hrefs(html)).toContain('https://www.npmjs.com/package/zope-interface');
+    expect(hrefs(html)).toContain('https://pypi.org/project/zope-interface/');
 
     const empty = renderToStaticMarkup(
       <PackageScreen
-        registry="npm"
+        registry="pypi"
         name="zope-interface"
         pkg={{ ...spelledPackage, dependentsCount: 0, dependents: { total: 0, archived: 0, items: [] } }}
       />,
     );
     expect(text(empty)).toContain('No repository with 100+ stars uses zope.interface directly yet');
-    expect(summaryText(buildPackageSummary('npm', spelledPackage))).toMatch(/^zope\.interface is an npm package/);
+    expect(summaryText(buildPackageSummary('pypi', spelledPackage))).toMatch(/^zope\.interface is a PyPI package/);
   });
 
   it("writes the display name in the page's title and structured data, and the name in its addresses", () => {
-    const { metadata, jsonLd } = buildPackageSEO(spelledPackage, 'zope-interface', dependentRows, 'npm');
+    const { metadata, jsonLd } = buildPackageSEO(spelledPackage, 'zope-interface', dependentRows, 'pypi');
     const json = JSON.stringify(jsonLd);
 
-    expect(metadata.title).toBe('zope.interface - npm package dependents, downloads and ranks');
-    expect(metadata.alternates?.canonical).toBe('/package/npm/zope-interface');
-    expect(metadata.alternates?.types).toEqual({ 'text/markdown': '/package/npm/zope-interface/facts.md' });
+    expect(metadata.title).toBe('zope.interface - PyPI package dependents, downloads and ranks');
+    expect(metadata.alternates?.canonical).toBe('/package/pypi/zope-interface');
+    expect(metadata.alternates?.types).toEqual({ 'text/markdown': '/package/pypi/zope-interface/facts.md' });
     expect(json).toContain('"name":"zope.interface","description"');
     expect(json).toContain('Repositories with 100+ stars that use zope.interface');
-    expect(json).toContain('https://www.npmjs.com/package/zope-interface');
-    expect(json).toContain('/package/npm/zope-interface"');
+    expect(json).toContain('https://pypi.org/project/zope-interface/');
+    expect(json).toContain('/package/pypi/zope-interface"');
 
-    const markdown = packageMarkdownOf(spelledPackage, 'npm');
-    expect(markdown).toMatch(/^# zope\.interface \(npm package\)\n/);
-    expect(markdown).toContain('/package/npm/zope-interface\n');
-    expect(markdown).toContain('- npm: https://www.npmjs.com/package/zope-interface\n');
+    const markdown = packageMarkdownOf(spelledPackage, 'pypi');
+    expect(markdown).toMatch(/^# zope\.interface \(PyPI package\)\n/);
+    expect(markdown).toContain('/package/pypi/zope-interface\n');
+    expect(markdown).toContain('- PyPI: https://pypi.org/project/zope-interface/\n');
   });
 
   it("shows a repository's package by its display name on the Used by tab, linked by its name", () => {
     const wide = renderToStaticMarkup(<PackageCard pkg={zope} wide />);
-    expect(text(wide)).toMatch(/^zope\.interface The npm package/);
-    expect(hrefs(wide)).toEqual(['/package/npm/zope-interface']);
+    expect(text(wide)).toMatch(/^zope\.interface The PyPI package/);
+    expect(hrefs(wide)).toEqual(['/package/pypi/zope-interface']);
     expect(text(renderToStaticMarkup(<PackageCard pkg={zope} />))).toMatch(/^zope\.interface 40/);
 
+    // Beside npm packages, each one names its registry.
     const table = renderToStaticMarkup(<PackagesTable packages={withZope(fivePackages)} />);
-    expect(text(table)).toContain('zope.interface 40');
-    expect(hrefs(table)).toContain('/package/npm/zope-interface');
+    expect(text(table)).toContain('zope.interface PyPI 40');
+    expect(hrefs(table)).toContain('/package/pypi/zope-interface');
 
     const packages = withZope(threePackages).items;
-    expect(filterOptionsOf(packages)[0]).toEqual({ value: 'npm/zope-interface', name: 'zope.interface' });
-    expect(followOf('zopefoundation/zope.interface', packages, 3, 'npm/zope-interface')).toEqual({
-      packages: [{ registry: 'npm', name: 'zope-interface' }],
+    expect(filterOptionsOf(packages)[0]).toEqual({
+      value: 'pypi/zope-interface',
+      name: 'zope.interface',
+      registryLabel: 'PyPI',
+    });
+    expect(followOf('zopefoundation/zope.interface', packages, 3, 'pypi/zope-interface')).toEqual({
+      packages: [{ registry: 'pypi', name: 'zope-interface' }],
       label: 'zope.interface',
     });
 
@@ -160,10 +166,10 @@ describe("a package's name as the registry writes it", () => {
 
   it("writes the display name in the Used by tab's sentences and description", () => {
     const one = withZope(onePackage);
-    expect(usedByCardLine(one).what).toContain('its npm package zope.interface');
+    expect(usedByCardLine(one).what).toContain('its PyPI package zope.interface');
     expect(noDependentsTitle(one)).toBe('No repository with 100+ stars uses zope.interface directly yet');
     expect(summaryText(buildUsedBySummary('zopefoundation/zope.interface', one, []))).toContain(
-      'publishes one npm package, zope.interface.',
+      'publishes one PyPI package, zope.interface.',
     );
     expect(buildUsedByQuestions('zopefoundation/zope.interface', one, [])[0].answer).toContain(
       'its package zope.interface directly',

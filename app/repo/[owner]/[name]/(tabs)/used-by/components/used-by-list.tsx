@@ -16,7 +16,7 @@ import { HideArchivedToggle } from '@/components/dependents/hide-archived-toggle
 import { ShowMore } from '@/components/dependents/show-more';
 import { FollowSlot, type FollowSlotProps } from '@/components/package-follow/follow-slot';
 import type { RepoPackage, RepoUsedBy, RepoUsedByItem } from '@/graphql/repo-packages';
-import { REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
+import { DEFAULT_REGISTRY, type PackageRef, REGISTRIES, spelledNameOf } from '@/lib/packages/registries';
 
 /** Where the browser reads more rows of a repository's dependents. */
 export const usedByRoutePath = (nameWithOwner: string) => {
@@ -24,11 +24,17 @@ export const usedByRoutePath = (nameWithOwner: string) => {
   return `/api/repo/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/used-by`;
 };
 
-/** The query of one read: its offset, the package it is cut to, archived rows left out. */
-export function usedByRouteQuery(offset: number, pkg: string | null, hideArchived: boolean): string {
+/**
+ * The query of one read: its offset, the package it is cut to (its name, and its registry unless it is the default
+ * one), archived rows left out.
+ */
+export function usedByRouteQuery(offset: number, pkg: PackageRef | null, hideArchived: boolean): string {
   const query = new URLSearchParams();
   if (offset > 0) query.set('offset', String(offset));
-  if (pkg !== null) query.set('package', pkg);
+  if (pkg !== null) {
+    query.set('package', pkg.name);
+    if (pkg.registry !== DEFAULT_REGISTRY) query.set('registry', pkg.registry);
+  }
   if (hideArchived) query.set('archived', '0');
   const search = query.toString();
   return search ? `?${search}` : '';
@@ -142,14 +148,15 @@ export const UsedByList: FC<UsedByListProps> = ({ nameWithOwner, packages, total
   // Only the latest read is shown: a slower earlier one is dropped.
   const latest = useRef(0);
 
-  // `pkg` is the package's `<registry>/<name>`; the rows are asked for by its name.
+  // `pkg` is the package's `<registry>/<name>`; the rows are asked for by its registry and name.
   const read = async (offset: number, pkg: string | null, hideArchived: boolean) => {
     const id = ++latest.current;
     setLoading(true);
     setError(null);
-    const name = pkg === null ? null : (packages.find((item) => repoPackageKeyOf(item) === pkg)?.name ?? null);
+    const cut = pkg === null ? undefined : packages.find((item) => repoPackageKeyOf(item) === pkg);
+    const ref = cut ? repoPackageRefOf(cut) : null;
     try {
-      const response = await fetch(`${usedByRoutePath(nameWithOwner)}${usedByRouteQuery(offset, name, hideArchived)}`);
+      const response = await fetch(`${usedByRoutePath(nameWithOwner)}${usedByRouteQuery(offset, ref, hideArchived)}`);
       const body = response.ok ? ((await response.json()) as { page?: RepoUsedBy | null }) : null;
       if (id !== latest.current) return;
       if (!body?.page) {

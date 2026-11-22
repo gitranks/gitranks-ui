@@ -74,7 +74,7 @@ describe('/api/daily-updates/badge-check', () => {
     ['a repository without a name', { kind: 'repo', name: 'acme' }],
     ['a repository with a path', { kind: 'repo', name: 'acme/fastqueue/extra' }],
     ['a package without its registry', { kind: 'package', name: 'react' }],
-    ['a package of another registry', { kind: 'package', name: 'pypi/react' }],
+    ['a package of another registry', { kind: 'package', name: 'cargo/react' }],
     ['a package name npm refuses', { kind: 'package', name: 'npm/.hidden' }],
     ['a body over the cap', { kind: 'user', name: 'octo-dev', padding: 'x'.repeat(600) }],
   ])('answers 400 and calls nothing for %s', async (_case, body) => {

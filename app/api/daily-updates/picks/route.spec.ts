@@ -200,7 +200,15 @@ describe('/api/daily-updates/picks for a package', () => {
 
   it('refuses a package of another registry or a name npm refuses', async () => {
     signIn();
-    for (const name of ['pypi/left-pad', 'npm/.env', 'npm/nebula/ui', 'npm/', 'left-pad', 'npm/@nebula/ui/x']) {
+    for (const name of [
+      'cargo/left-pad',
+      'pypi/left_pad.',
+      'npm/.env',
+      'npm/nebula/ui',
+      'npm/',
+      'left-pad',
+      'npm/@nebula/ui/x',
+    ]) {
       expect((await call(POST, 'POST', { kind: 'package', name })).status, name).toBe(400);
     }
     expect(signedFetch).not.toHaveBeenCalled();

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
 
 import { PACKAGE_UNAVAILABLE_TEXT } from '../seo';
-import { weeksRangeText } from '../utils/package-downloads';
+import { downloadsHistoryOf } from '../utils/package-downloads';
 import { PACKAGE_NOT_READ } from '../utils/package-refresh-messages';
 import { buildPackageSummary, formatCountLong } from '../utils/package-summary';
 import DownloadsChart from './downloads-chart';
@@ -28,7 +28,14 @@ import { FollowSlot } from '@/components/package-follow/follow-slot';
 import { Pill } from '@/components/pill/pill';
 import { RepoLink } from '@/components/repo-link/repo-link';
 import type { PackagePage } from '@/graphql/package-page';
-import { REGISTRIES, type RegistryId, registryOf, spelledNameOf } from '@/lib/packages/registries';
+import {
+  DOWNLOADS_UNIT_TEXT,
+  type DownloadsUnit,
+  REGISTRIES,
+  type RegistryId,
+  registryOf,
+  spelledNameOf,
+} from '@/lib/packages/registries';
 import { REGISTRY_ICONS } from '@/lib/packages/registry-icons';
 import { PACKAGE_METHODOLOGY_PATH } from '@/utils/package-paths';
 
@@ -276,27 +283,33 @@ const UsedBy: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, pkg 
   );
 };
 
-/** Its weekly downloads over the last 52 weeks, with their total. */
-const Downloads: FC<{ registry: RegistryId; downloads: NonNullable<PackagePage['downloads']> }> = ({
-  registry,
-  downloads,
-}) => {
-  const range = weeksRangeText(downloads);
-  const from = `Weekly downloads from ${REGISTRIES[registry].label}`;
+/**
+ * Its downloads over the last year in its registry's unit, with their total: weekly over the last 52 weeks, or monthly
+ * over the last 12 months (the months read so far, on a shorter history).
+ */
+const Downloads: FC<{
+  registry: RegistryId;
+  unit: DownloadsUnit;
+  downloads: NonNullable<PackagePage['downloads']>;
+}> = ({ registry, unit, downloads }) => {
+  const { points, total, totalLabel, range } = downloadsHistoryOf(unit, downloads);
+  const adjective = DOWNLOADS_UNIT_TEXT[unit].adjective;
+  const from = `${adjective[0].toUpperCase()}${adjective.slice(1)} downloads from ${REGISTRIES[registry].label}`;
   return (
     <ProfileCard className="gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 className="text-base font-semibold">Downloads by week</h2>
+        <h2 className="text-base font-semibold">{`Downloads by ${unit}`}</h2>
         <p className="text-sm">
-          <span className="font-mono font-semibold tabular-nums">{formatCountLong(downloads.last52Weeks)}</span>{' '}
-          <span className="text-muted-foreground">in the last 12 months</span>
+          <span className="font-mono font-semibold tabular-nums">{formatCountLong(total)}</span>{' '}
+          <span className="text-muted-foreground">{totalLabel}</span>
         </p>
       </div>
-      {(downloads.weeks?.length ?? 0) > 1 && (
+      {points.length > 1 && (
         <div className="h-[220px]">
           <DownloadsChart
-            points={(downloads.weeks ?? []).slice(-52)}
-            label={`${from}${range ? `, ${range}` : ''}: ${formatCountLong(downloads.last52Weeks)} in the last 12 months`}
+            points={points}
+            unit={unit}
+            label={`${from}${range ? `, ${range}` : ''}: ${formatCountLong(total)} ${totalLabel}`}
           />
         </div>
       )}
@@ -344,8 +357,8 @@ const About: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, pkg }
 
 /**
  * A package's page from its data: on the left its name, Follow, Refresh beside the registry's mark, and its facts; on
- * the right its ranks (once ranked) and downloads, who uses it, its downloads by week, its badge, and last the package
- * in sentences. A package nobody has read yet shows its name, Refresh and one empty state; while package data cannot
+ * the right its ranks (once ranked) and downloads, who uses it, its downloads by week (by month on a registry counted
+ * so), its badge, and last the package in sentences. A package nobody has read yet shows its name, Refresh and one empty state; while package data cannot
  * be read, one line says so.
  */
 export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jsonLd }) => {
@@ -401,6 +414,7 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
   }
 
   const ranked = hasRanks(pkg.ranks);
+  const unit = registryOf(registry).downloads;
 
   return (
     <Frame
@@ -427,7 +441,7 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
         </ProfileCardsGrid>
       )}
       <UsedBy registry={registry} pkg={pkg} />
-      {pkg.downloads && <Downloads registry={registry} downloads={pkg.downloads} />}
+      {pkg.downloads && unit && <Downloads registry={registry} unit={unit} downloads={pkg.downloads} />}
       <PackageBadgeSection registry={registry} name={pkg.name} />
       <About registry={registry} pkg={pkg} />
     </Frame>

@@ -1,11 +1,18 @@
 import { isNpmPackageName, NPM_NAME_MAX_LENGTH } from '@/lib/packages/npm-package-name';
+import {
+  foldPypiName,
+  isPypiProjectName,
+  PYPI_NAME_MAX_LENGTH,
+  pypiRequirementName,
+} from '@/lib/packages/pypi-project-name';
 import type { PackageRegistry } from '@/types/generated/graphql';
 
 /**
- * The period a registry's downloads are counted over, as the site says it: "downloads a week". Only weekly counts are
- * read for now (a package's `lastWeek`), so a week is the only unit.
+ * The period a registry's downloads are counted over: `week` for the 7 days to the last day counted (a package's
+ * `lastWeek` and `previousWeek`), `month` for a registry counted one calendar month at a time (its `last30Days` is the
+ * month just ended, `previous30Days` the month before, and its history points are months).
  */
-export type DownloadsUnit = 'week';
+export type DownloadsUnit = 'week' | 'month';
 
 /**
  * How a registry's package names map to URL segments and back: a name takes `min` to `max` segments (`max: null` for
@@ -30,6 +37,15 @@ export type RegistryTraits = {
   pageUrlPrefix: RegExp;
   /** Whether a name can name a package on the registry, by the registry's own rules. */
   isName: (name: string) => boolean;
+  /**
+   * The one spelling the site's addresses use for a name the registry takes as the same in other spellings (PyPI:
+   * `Zope.Interface` is `zope-interface`); the name as it is where every spelling is its own (npm).
+   */
+  canonicalName: (name: string) => string;
+  /** How a name is spelled in the site's addresses, where `canonicalName` changes it: "in lower case, …". */
+  nameInAddress?: string;
+  /** The name in a requirement a visitor may paste (PyPI's `django>=5.0`); without one, the text is the name. */
+  requirementName?: (requirement: string) => string;
   /** The longest name the registry takes. */
   nameMaxLength: number;
   path: RegistryPath;
@@ -52,12 +68,30 @@ export const REGISTRIES = {
     pageUrl: (name) => `https://www.npmjs.com/package/${name}`,
     pageUrlPrefix: /^(?:https?:\/\/)?(?:www\.)?npmjs\.(?:com|org)\/package\//i,
     isName: isNpmPackageName,
+    canonicalName: (name) => name,
     nameMaxLength: NPM_NAME_MAX_LENGTH,
     path: { min: 1, max: 2, join: '/', scope: '@' },
     downloads: 'week',
     manifest: 'package.json',
     examples: ['react', '@types/node'],
     nameHint: 'react or @scope/name',
+  },
+  pypi: {
+    label: 'PyPI',
+    article: 'a',
+    api: 'PYPI',
+    pageUrl: (name) => `https://pypi.org/project/${name}/`,
+    pageUrlPrefix: /^(?:https?:\/\/)?(?:www\.)?pypi\.org\/project\//i,
+    isName: isPypiProjectName,
+    canonicalName: foldPypiName,
+    nameInAddress: 'in lower case, with each run of `-`, `_` and `.` as one `-`',
+    requirementName: pypiRequirementName,
+    nameMaxLength: PYPI_NAME_MAX_LENGTH,
+    path: { min: 1, max: 1, join: '/' },
+    downloads: 'month',
+    manifest: 'requirements.txt or pyproject.toml',
+    examples: ['requests', 'numpy'],
+    nameHint: 'requests or numpy',
   },
 } as const satisfies Record<string, RegistryTraits>;
 
@@ -169,11 +203,61 @@ export function packageOfKey(key: string): PackageRef | null {
 export const packageDisplayNameOf = ({ registry, name }: PackageRef) =>
   registry === DEFAULT_REGISTRY ? name : `${registry}/${name}`;
 
-/** "npm downloads a week": a registry's downloads in its own unit; "… downloads" alone where it has none. */
-export function registryDownloadsText(id: RegistryId) {
-  const { label, downloads } = registryOf(id);
-  return downloads ? `${label} downloads a ${downloads}` : `${label} downloads`;
+/** How the site words a count of downloads in each unit. */
+export const DOWNLOADS_UNIT_TEXT = {
+  week: { per: 'a week', last: 'last week', before: 'the week before', adjective: 'weekly' },
+  month: { per: 'last month', last: 'last month', before: 'the month before', adjective: 'monthly' },
+} as const satisfies Record<
+  DownloadsUnit,
+  {
+    /** After a count: "527,312 downloads a week", "downloaded 2,118 times last month". */
+    per: string;
+    /** The last period counted: "1,030,000 downloads last week". */
+    last: string;
+    /** The period before it: "vs the week before". */
+    before: string;
+    /** "weekly downloads", "Read monthly; downloads from npm, weekly". */
+    adjective: string;
+  }
+>;
+
+/** The fields a package's downloads are read from, in either unit. */
+type DownloadsCounts = {
+  lastWeek?: number | null;
+  previousWeek?: number | null;
+  last30Days?: number | null;
+  previous30Days?: number | null;
+};
+
+/**
+ * A package's downloads in its registry's unit: the last period counted and the one before it (`null` without one).
+ * Last week's and the week before's for `week`; for `month`, the month just ended and the month before. `null` when
+ * the registry has no download counts, or the count of its unit is missing.
+ */
+export function downloadsCountOf(
+  unit: DownloadsUnit | null,
+  downloads: DownloadsCounts | null | undefined,
+): { last: number; previous: number | null } | null {
+  if (!unit || !downloads) return null;
+  const [last, previous] =
+    unit === 'week' ? [downloads.lastWeek, downloads.previousWeek] : [downloads.last30Days, downloads.previous30Days];
+  return typeof last === 'number' ? { last, previous: previous ?? null } : null;
 }
 
-/** "package.json", "package.json or pyproject.toml": the files the listed registries' packages are listed in. */
-export const registryManifestList = () => [...new Set(REGISTRY_IDS.map((id) => REGISTRIES[id].manifest))].join(' or ');
+/** "npm downloads a week", "PyPI downloads last month": a registry's downloads in its own unit; "… downloads" where it has none. */
+export function registryDownloadsText(id: RegistryId) {
+  const { label, downloads } = registryOf(id);
+  return downloads ? `${label} downloads ${DOWNLOADS_UNIT_TEXT[downloads].per}` : `${label} downloads`;
+}
+
+/**
+ * "package.json", "package.json, requirements.txt or pyproject.toml": the files the registries' packages are listed
+ * in, each once; every listed registry's unless `registries` names some.
+ */
+export function registryManifestList(registries: readonly RegistryId[] = REGISTRY_IDS): string {
+  const files = [...new Set(registries.flatMap((id) => registryOf(id).manifest.split(' or ')))];
+  return files.length > 1 ? `${files.slice(0, -1).join(', ')} or ${files.at(-1)}` : files.join('');
+}
+
+/** A package's name in the one spelling the site's addresses use: `zope-interface` for PyPI's `Zope.Interface`. */
+export const canonicalNameOf = (id: RegistryId, name: string) => registryOf(id).canonicalName(name);

@@ -2,7 +2,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 
 import { type RepoPackages, RepoPackagesDocument, type RepoUsedBy, RepoUsedByDocument } from '@/graphql/repo-packages';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { isListedApiRegistry } from '@/lib/packages/registries';
+import { apiRegistryOf, isListedApiRegistry, type PackageRef, type RegistryId } from '@/lib/packages/registries';
 import { getRepoCacheTag } from '@/utils/repo-paths';
 
 /** The API's error code for package data it could not read just now (never an answer that there is none). */
@@ -73,8 +73,8 @@ export const fetchRepoPackages = (owner: string, name: string): Promise<RepoPack
 export type UsedByQuery = {
   offset: number;
   limit: number;
-  /** Only the repositories that use this package; `null` for any of them. */
-  package: string | null;
+  /** Only the repositories that use this package, by its registry and name; `null` for any of them. */
+  package: PackageRef | null;
   hideArchived: boolean;
 };
 
@@ -84,13 +84,23 @@ const readUsedBy = async (
   offset: number,
   limit: number,
   pkg: string | null,
+  registry: RegistryId | null,
   hide: boolean,
 ) => {
   'use cache';
   cacheTag(getRepoCacheTag(owner, name));
 
   return readOrUnavailable(async () => {
-    const variables = { owner, name, offset, limit, package: pkg, hideArchived: hide };
+    // The package's registry goes with its name: the API looks a name up on npm when it is told none.
+    const variables = {
+      owner,
+      name,
+      offset,
+      limit,
+      package: pkg,
+      ...(registry ? { registry: apiRegistryOf(registry) } : {}),
+      hideArchived: hide,
+    };
     const { repo } = (await graphqlDirect(RepoUsedByDocument, variables)) ?? {};
     return repo?.usedBy ?? null;
   });
@@ -105,4 +115,12 @@ export const fetchRepoUsedBy = (
   name: string,
   query: UsedByQuery,
 ): Promise<RepoUsedBy | null | Unavailable> =>
-  readUsedBy(owner.toLowerCase(), name.toLowerCase(), query.offset, query.limit, query.package, query.hideArchived);
+  readUsedBy(
+    owner.toLowerCase(),
+    name.toLowerCase(),
+    query.offset,
+    query.limit,
+    query.package?.name ?? null,
+    query.package?.registry ?? null,
+    query.hideArchived,
+  );

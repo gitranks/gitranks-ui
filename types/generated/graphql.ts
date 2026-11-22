@@ -3565,7 +3565,8 @@ export enum PackageRankingType {
 }
 
 export enum PackageRegistry {
-  Npm = 'NPM'
+  Npm = 'NPM',
+  Pypi = 'PYPI'
 }
 
 export type ProfileForSitemap = {
@@ -4234,11 +4235,6 @@ export type RepoRankTiers = {
   tiers: Array<Tier>;
 };
 
-export enum RepoSitemapTab {
-  Contributors = 'CONTRIBUTORS',
-  UsedBy = 'USED_BY'
-}
-
 export type RepoSibling = {
   __typename?: 'RepoSibling';
   repo: Repo;
@@ -4247,6 +4243,11 @@ export type RepoSibling = {
   /** Active accounts (2+ landed changes in 12 months) the two repos share. */
   shared: Scalars['Int']['output'];
 };
+
+export enum RepoSitemapTab {
+  Contributors = 'CONTRIBUTORS',
+  UsedBy = 'USED_BY'
+}
 
 export type RepoStarPoint = {
   __typename?: 'RepoStarPoint';

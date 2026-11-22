@@ -41,9 +41,34 @@ describe('a package page', () => {
     vi.mocked(fetchPackage).mockReset().mockResolvedValue(rankedPackage);
   });
 
-  it('lists one package, so any other renders whole before its status', async () => {
+  it('lists one package a registry, so any other renders whole before its status', async () => {
     expect(instant).toBe(false);
-    expect(await generateStaticParams()).toEqual([{ registry: 'npm', name: ['react'] }]);
+    expect(await generateStaticParams()).toEqual([
+      { registry: 'npm', name: ['react'] },
+      { registry: 'pypi', name: ['requests'] },
+    ]);
+  });
+
+  it("sends another spelling of a PyPI name to the site's own, before anything is read", async () => {
+    for (const [spelled, folded] of [
+      ['Django', 'django'],
+      ['zope.interface', 'zope-interface'],
+      ['Zope__Interface', 'zope-interface'],
+    ]) {
+      await expect(render('pypi', spelled)).rejects.toThrow(`NEXT_REDIRECT /package/pypi/${folded}`);
+      expect(await generateMetadata(params('pypi', spelled))).toEqual({});
+    }
+    expect(fetchPackage).not.toHaveBeenCalled();
+    expect(cacheTag).not.toHaveBeenCalled();
+  });
+
+  it('draws a PyPI project at its folded name, tagged by it', async () => {
+    vi.mocked(fetchPackage).mockResolvedValue({ ...rankedPackage, registry: 'PYPI', name: 'zope-interface' });
+
+    expect(await render('pypi', 'zope-interface')).toMatchObject({ registry: 'pypi', name: 'zope-interface' });
+    expect(fetchPackage).toHaveBeenCalledWith('pypi', 'zope-interface');
+    expect(cacheTag).toHaveBeenCalledWith('package:pypi/zope-interface');
+    expect(permanentRedirect).not.toHaveBeenCalled();
   });
 
   it('draws a read package, kept for hours under its tag, with its JSON-LD', async () => {
@@ -56,7 +81,7 @@ describe('a package page', () => {
   });
 
   it('answers 404 for a name that names nothing, and for one the registry does not have', async () => {
-    await expect(render('pypi', 'react')).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(render('cargo', 'react')).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(render('npm', 'nebula', 'ui')).rejects.toThrow('NEXT_NOT_FOUND');
     expect(fetchPackage).not.toHaveBeenCalled();
 

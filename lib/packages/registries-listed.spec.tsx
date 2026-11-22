@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// A registry in the table but not on the site's list (Go, for now): nothing a visitor reaches names it, its addresses
+// A registry in the table but not on the site's list (Maven Central, for now): nothing a visitor reaches names it, its addresses
 // are not found, and the API can still expire its pages' cache before it goes live.
 
 const { revalidateTag } = vi.hoisted(() => ({ revalidateTag: vi.fn() }));
@@ -30,7 +30,7 @@ const { packageSitemapPartOf } = await import('@/lib/sitemap/sitemap.consts');
 
 const SECRET = 'spec-secret';
 
-describe('a registry in the table that the site does not list yet: Go', () => {
+describe('a registry in the table that the site does not list yet: Maven Central', () => {
   beforeEach(() => {
     revalidateTag.mockReset();
     vi.stubEnv('INTERNAL_JWT_SECRET', SECRET);
@@ -39,17 +39,17 @@ describe('a registry in the table that the site does not list yet: Go', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it('is not listed', () => {
-    expect(REGISTRY_IDS).not.toContain('go');
-    expect(registryLabelList()).toBe('npm and PyPI');
+    expect(REGISTRY_IDS).not.toContain('maven');
+    expect(registryLabelList()).toBe('npm, PyPI and Go');
   });
 
   it("answers its package and ranking addresses as not found, and its badges' as no package", () => {
-    expect(parsePackageParams('go', ['github.com', 'gin-gonic', 'gin'])).toBeNull();
-    expect(isImpossibleEntityPath('/package/go/github.com/gin-gonic/gin')).toBe(true);
-    expect(isImpossibleEntityPath('/package/go/github.com/gin-gonic/gin/facts.md')).toBe(true);
-    expect(isInvalidRankingPath('/packages/go/dependents-stars/1')).toBe(true);
-    expect(isInvalidRankingPath('/packages/go')).toBe(true);
-    expect(parsePackageRef('go', ['github.com', 'gin-gonic', 'gin'])).toBeNull();
+    expect(parsePackageParams('maven', ['com.google.guava:guava'])).toBeNull();
+    expect(isImpossibleEntityPath('/package/maven/com.google.guava:guava')).toBe(true);
+    expect(isImpossibleEntityPath('/package/maven/com.google.guava:guava/facts.md')).toBe(true);
+    expect(isInvalidRankingPath('/packages/maven/dependents-stars/1')).toBe(true);
+    expect(isInvalidRankingPath('/packages/maven')).toBe(true);
+    expect(parsePackageRef('maven', ['com.google.guava:guava'])).toBeNull();
   });
 
   it('is missing from the registry switch, the sitemaps and llms.txt', () => {
@@ -59,21 +59,22 @@ describe('a registry in the table that the site does not list yet: Go', () => {
       </PackageRankingFrame>,
     );
     expect(frame).toContain('href="/packages/pypi/dependents/1"');
-    expect(frame).not.toContain('/packages/go/');
+    expect(frame).toContain('href="/packages/go/dependents/1"');
+    expect(frame).not.toContain('/packages/maven/');
 
     return generateSitemaps().then((parts) => {
-      expect(parts).toHaveLength(20);
-      expect(packageSitemapPartOf(20)).toBeNull();
+      expect(parts).toHaveLength(30);
+      expect(packageSitemapPartOf(30)).toBeNull();
       const llms = llmsTxtOf({ contribute: false });
-      expect(llms).not.toContain('/package/go/');
-      expect(llms).not.toContain('Go package');
+      expect(llms).not.toContain('/package/maven/');
+      expect(llms).not.toContain('Maven Central');
     });
   });
 
   it("is not looked up by the badge builder's search, nor read from a pasted address", () => {
-    expect(parsePackageSearch('https://pkg.go.dev/github.com/gin-gonic/gin')).toBeNull();
-    expect(parsePackageSearch('go:github.com/gin-gonic/gin')).toBeNull();
-    expect(searchLookups('github.com/gin-gonic/gin', 'package')).toEqual([]);
+    expect(parsePackageSearch('https://central.sonatype.com/artifact/com.google.guava/guava')).toBeNull();
+    expect(parsePackageSearch('maven:com.google.guava:guava')).toBeNull();
+    expect(searchLookups('com.google.guava:guava', 'package')).toEqual([]);
   });
 
   it('still has its cache tags accepted by the expire route, so its pages can be cleared before it goes live', async () => {
@@ -82,14 +83,14 @@ describe('a registry in the table that the site does not list yet: Go', () => {
       new NextRequest('https://gitranks.com/api/cache/expire', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ tags: ['package:go/github.com/gin-gonic/gin', 'package:crates/serde-json'] }),
+        body: JSON.stringify({ tags: ['package:maven/com.google.guava:guava', 'package:crates/serde-json'] }),
       }),
     );
 
     expect(response.status).toBe(200);
     // crates.io's other spelling is expired as its folded tag, as the pages carry it.
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual([
-      'package:go/github.com/gin-gonic/gin',
+      'package:maven/com.google.guava:guava',
       'package:crates/serde_json',
     ]);
   });

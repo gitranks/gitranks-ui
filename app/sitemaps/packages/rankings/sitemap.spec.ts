@@ -15,7 +15,7 @@ describe('package rankings sitemap', () => {
     vi.mocked(fetchPackageRankingFacts).mockReset();
   });
 
-  it("lists each registry's three rankings to the pages its ranked packages fill", async () => {
+  it("lists each registry's rankings to the pages its ranked packages fill, Go's two with no downloads", async () => {
     vi.mocked(fetchPackageRankingFacts).mockImplementation(async (registry) =>
       facts(registry === PackageRegistry.Npm ? 150 : 40),
     );
@@ -30,6 +30,8 @@ describe('package rankings sitemap', () => {
       '/packages/pypi/downloads/1',
       '/packages/pypi/dependents-stars/1',
       '/packages/pypi/dependents/1',
+      '/packages/go/dependents-stars/1',
+      '/packages/go/dependents/1',
     ]);
   });
 
@@ -98,6 +100,26 @@ describe('package rankings sitemap', () => {
           "priority": 0.9,
           "url": "https://example.test/packages/pypi/dependents/2",
         },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/go/dependents-stars/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/go/dependents/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/go/dependents-stars/2",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/go/dependents/2",
+        },
       ]
     `);
   });
@@ -107,9 +129,10 @@ describe('package rankings sitemap', () => {
 
     const all = await paths();
 
-    expect(all).toHaveLength(300);
+    expect(all).toHaveLength(400);
     expect(all.at(149)).toBe('/packages/npm/dependents/50');
-    expect(all.at(-1)).toBe('/packages/pypi/dependents/50');
+    expect(all.at(299)).toBe('/packages/pypi/dependents/50');
+    expect(all.at(-1)).toBe('/packages/go/dependents/50');
   });
 
   it('lists no page before the first ranks, or when they cannot be read', async () => {

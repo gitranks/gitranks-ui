@@ -128,6 +128,8 @@ describe('a Find search', () => {
     expect(searchLookups('zope.interface', 'package')).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },
       { kind: 'package', name: 'pypi/zope-interface' },
+      // A dotted name can be a Go module too: `go.opencensus.io` and `gotest.tools` are one element.
+      { kind: 'package', name: 'go/zope.interface' },
     ]);
     expect(searchLookups('https://pypi.org/project/requests/', null)).toEqual([
       { kind: 'package', name: 'pypi/requests' },
@@ -144,10 +146,13 @@ describe('a Find search', () => {
     expect(searchLookups('zope.interface', null)).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },
       { kind: 'package', name: 'pypi/zope-interface' },
+      // A dotted name can be a Go module too: `go.opencensus.io` and `gotest.tools` are one element.
+      { kind: 'package', name: 'go/zope.interface' },
     ]);
     expect(searchLookups('ruamel.yaml', null)).toEqual([
       { kind: 'package', name: 'npm/ruamel.yaml' },
       { kind: 'package', name: 'pypi/ruamel-yaml' },
+      { kind: 'package', name: 'go/ruamel.yaml' },
     ]);
     // Still nothing for what names no package and no account.
     expect(searchLookups('.hidden', null)).toEqual([]);
@@ -166,10 +171,8 @@ describe('a Find search', () => {
   });
 
   it("asks for a package by its kind's words, and sends a miss to its page", () => {
-    expect(findHeading('package', null)).toBe('Which npm or PyPI package is the badge for?');
-    expect(findHeading('package', findBadge('package', 'used-by'))).toBe(
-      'Find your npm or PyPI package for the “used by” badge',
-    );
+    expect(findHeading('package', null)).toBe('Which package is the badge for?');
+    expect(findHeading('package', findBadge('package', 'used-by'))).toBe('Find your package for the “used by” badge');
     expect(missingHref('npm/@nebula/ui', 'package')).toBe('/package/npm/@nebula/ui');
     expect(missingHref('acme/fastqueue', null)).toBe('/repo/acme/fastqueue');
   });

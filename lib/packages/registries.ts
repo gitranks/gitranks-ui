@@ -224,7 +224,7 @@ export const ALL_REGISTRY_IDS = Object.keys(REGISTRIES) as RegistryId[];
  * The registries the site shows. A registry goes live by joining this list; until then its package and ranking
  * addresses are not found, and no switch, sitemap, list or search names it.
  */
-export const LISTED_REGISTRIES = ['npm', 'pypi'] as const satisfies readonly RegistryId[];
+export const LISTED_REGISTRIES = ['npm', 'pypi', 'go'] as const satisfies readonly RegistryId[];
 
 /**
  * Every registry the site shows, in the table's order. Everything a visitor reaches reads this list: the routes, the

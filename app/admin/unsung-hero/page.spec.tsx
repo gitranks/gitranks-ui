@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { answerBy, jsonResponse, NOT_FOUND_ANSWER, sentOf } from './__fixtures__/api';
-import { boardOf } from './__fixtures__/board';
+import { boardOf, slotOf } from './__fixtures__/board';
 
 const { auth, signedFetch } = vi.hoisted(() => ({ auth: vi.fn(), signedFetch: vi.fn() }));
 vi.mock('server-only', () => ({}));
@@ -130,6 +130,39 @@ describe('/admin/unsung-hero for the admin', () => {
     expect(html).not.toMatch(/href="[^"]*intent=/);
     const intents = [...html.matchAll(/name="intent" value="([^"]+)"/g)].map(([, intent]) => intent);
     expect(new Set(intents)).toEqual(new Set(['cancel']));
+  });
+
+  it('asks the API which slots have no heads-up, and what a check refuses without one', async () => {
+    await render();
+    const { query } = JSON.parse(String((signedFetch.mock.calls[0][1] as RequestInit).body)) as { query: string };
+    expect(query).toContain('noHeadsUp');
+    expect(query).toContain('refusalsWithoutHeadsUp');
+  });
+
+  it('says how scheduling closes with the heads-up and with none', async () => {
+    const { html } = (await render()) as { html: string };
+    expect(html).toContain('With the heads-up, scheduling for a week closes 97 hours before it starts');
+    expect(html).toContain('With no heads-up, a week can be scheduled until it starts');
+  });
+
+  it('marks a slot with no heads-up in the Weeks list; Cancel while live asks first', async () => {
+    const coming = slotOf({ id: '6721a0f0c0ffee0000000021', status: 'SCHEDULED', noHeadsUp: true, headsUp: null });
+    const quiet = slotOf({ id: '6721a0f0c0ffee0000000020', status: 'LIVE', noHeadsUp: true, headsUp: null });
+    answerBy(signedFetch, {
+      UnsungHeroAdmin: () =>
+        jsonResponse({ data: { unsungHeroAdmin: boardOf({ live: [quiet], upcoming: [coming] }) } }),
+    });
+    const { html } = (await render()) as { html: string };
+    expect(html).toContain('No heads-up: the maintainer gets no email before the week');
+    expect(html).toContain('No heads-up was sent');
+    expect(html).not.toContain('Locked:');
+    // The coming one is cancelled with one press; the live one's button opens the question and posts nothing.
+    expect(html).toContain(`name="id" value="${coming.id}"`);
+    expect(html).not.toContain(`name="id" value="${quiet.id}"`);
+    const cancels = html.match(/<button[^>]*>Cancel<\/button>/g) ?? [];
+    expect(cancels).toHaveLength(2);
+    for (const button of cancels) expect(button).not.toContain('disabled=""');
+    expect(cancels.filter((button) => button.includes('aria-haspopup="dialog"'))).toHaveLength(1);
   });
 
   it('puts Skip and Mark notified behind a confirm step: their buttons on the board post nothing', async () => {

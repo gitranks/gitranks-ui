@@ -56,7 +56,8 @@ export function ShortlistTable({
         <p className="text-sm text-muted-foreground">
           Shortlist rules: personal account, owner under 500 followers, repository under 1,000 stars, a push in the last
           12 months, no open security advisory, OSI license. Labels show which rule a candidate misses; you can still
-          schedule it. A real slot also needs a public email and GitHub’s own link from the package (red labels).
+          schedule it. A real slot also needs GitHub’s own link from the package and, unless you skip the heads-up, a
+          public email (red labels).
         </p>
         <p className="text-xs text-muted-foreground">
           {builtAt ? `Built ${stamp(builtAt)}. Rebuilt every Tuesday.` : 'Not built yet. It is rebuilt every Tuesday.'}

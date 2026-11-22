@@ -87,6 +87,8 @@ export type HeroSlot = {
   line: string;
   reason: string | null;
   text: string;
+  /** Scheduled with no heads-up: the maintainer gets no email before the week and no chance to opt out. */
+  noHeadsUp: boolean;
   facts: { weeklyDownloads: number; dependents: number | null; contributors: number | null };
   headsUp: HeroMail | null;
   recap: HeroMail | null;
@@ -128,6 +130,8 @@ export type HeroLiveCheck = {
   misses: HeroMiss[];
   /** What Schedule would refuse now, the week aside. */
   refusals: HeroRefusal[];
+  /** The same for a slot with no heads-up, which needs no public email. */
+  refusalsWithoutHeadsUp: HeroRefusal[];
 };
 
 export type HeroCandidate = {
@@ -155,7 +159,9 @@ export type HeroBoard = {
   live: HeroSlot[];
   /** Scheduled and notified slots, soonest first. */
   upcoming: HeroSlot[];
+  /** The week after this one: the first a slot with no heads-up may take. */
   nextWeek: HeroWeek;
+  /** The first week still open with the heads-up. */
   firstOpenWeek: HeroWeek;
   shortlist: HeroCandidate[];
   shortlistBuiltAt: string | null;
@@ -176,4 +182,5 @@ export type HeroScheduleInput = {
   line: string;
   reason: string | null;
   text: string;
+  headsUp: boolean;
 };

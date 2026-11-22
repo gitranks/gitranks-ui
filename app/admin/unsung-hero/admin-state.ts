@@ -23,6 +23,8 @@ export type AdminPress =
       line: string;
       reason: string | null;
       text: string;
+      /** Off only when the form says `headsUp=false`: anything else sends the heads-up. */
+      headsUp: boolean;
     }
   | { intent: 'cancel' | 'mark-notified'; id: string };
 
@@ -57,8 +59,9 @@ export function adminPressOf(form: FormData): AdminPress | null {
       const line = wordsOf(form.get('line'));
       const text = wordsOf(form.get('text'));
       if (!repoGithubId || !week || !name || line === null || text === null) return null;
-      const reason = wordsOf(form.get('reason'))?.trim() || null;
-      return { intent, repoGithubId, week, name, line, reason, text };
+      const headsUp = form.get('headsUp') !== 'false';
+      const reason = headsUp ? wordsOf(form.get('reason'))?.trim() || null : null;
+      return { intent, repoGithubId, week, name, line, reason, text, headsUp };
     }
     case 'cancel':
     case 'mark-notified': {

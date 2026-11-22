@@ -39,6 +39,7 @@ export function slotOf(overrides: Partial<HeroSlot> = {}): HeroSlot {
     line: 'Ships inside @example/dialog',
     reason: 'inside @example/dialog',
     text: 'Stops the page behind a dialog from scrolling. It ships inside @example/dialog, so it is probably in your app too.',
+    noHeadsUp: false,
     facts: { weeklyDownloads: 98_800_000, dependents: 4_120, contributors: 41 },
     headsUp: mailOf(),
     recap: null,
@@ -80,6 +81,7 @@ export function liveCheckOf(overrides: Partial<HeroLiveCheck> = {}): HeroLiveChe
     optedOut: false,
     misses: [{ code: 'FOLLOWERS', label: 'Owner: 747 followers (over 500)', blocks: false }],
     refusals: [],
+    refusalsWithoutHeadsUp: [],
     ...overrides,
   };
 }

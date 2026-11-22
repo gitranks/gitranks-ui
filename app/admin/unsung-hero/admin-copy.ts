@@ -5,7 +5,10 @@ import type { HeroCancelReason, HeroMail, HeroRefusal, HeroSlot, HeroStatus, Her
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 
-/** Scheduling for a week closes this long before it starts; the heads-up is queued from then. */
+/**
+ * Scheduling for a week with the heads-up closes this long before it starts; the heads-up is queued from then. With no
+ * heads-up it stays open until the week starts.
+ */
 export const HEADS_UP_LEAD_HOURS = 97;
 
 /** The longest words a slot takes, as the API checks them. */
@@ -76,12 +79,14 @@ export const REFUSAL_TEXT: Record<HeroRefusal, string> = {
   GITHUB_UNAVAILABLE: 'GitHub did not answer. Try again in a minute.',
   FORK: 'The repository is a fork.',
   ARCHIVED: 'The repository is archived.',
-  NO_EMAIL: 'The owner has no public email on GitHub. No public email, no feature.',
+  NO_EMAIL:
+    'The owner has no public email on GitHub, so the heads-up has nowhere to go. Schedule it with no heads-up, or pick another.',
   UNLINKED: 'GitHub does not link this package to the repository.',
   OPTED_OUT: 'This maintainer opted out. We do not ask again.',
   ALREADY_FEATURED: 'This repository already has a slot.',
   BAD_WEEK: 'That is not a week we can schedule.',
-  TOO_LATE: 'Scheduling for that week has closed: the maintainer would get less than 4 days to opt out.',
+  TOO_LATE:
+    'Scheduling for that week has closed: with the heads-up the maintainer would get less than 4 days to opt out, and with none the week has started.',
   WEEK_TAKEN: 'That week already has a hero.',
   NO_ACCOUNT_EMAIL: 'Your session holds no email address, and a preview’s emails go to you. Sign in again.',
   BAD_TEXT: `Write the card’s line and the archive’s text, within their lengths: line and reason ${LINE_MAX}, text ${TEXT_MAX} characters.`,
@@ -147,10 +152,17 @@ function mailLine(name: 'Heads-up' | 'Recap', mail: HeroMail): MailLine | null {
   return null;
 }
 
-/** Where a slot's heads-up stands. */
-export function headsUpLine(slot: Pick<HeroSlot, 'status' | 'startsAt' | 'headsUp'>): MailLine | null {
+/** Where a slot's heads-up stands; a slot with no heads-up says so. */
+export function headsUpLine(slot: Pick<HeroSlot, 'status' | 'startsAt' | 'headsUp' | 'noHeadsUp'>): MailLine | null {
   const line = slot.headsUp ? mailLine('Heads-up', slot.headsUp) : null;
   if (line) return line;
+  if (slot.noHeadsUp) {
+    const text =
+      slot.status === 'SCHEDULED'
+        ? 'No heads-up: the maintainer gets no email before the week'
+        : 'No heads-up was sent';
+    return { text, tone: 'neutral' };
+  }
   if (slot.status !== 'SCHEDULED') return null;
   const from = new Date(new Date(slot.startsAt).getTime() - HEADS_UP_LEAD_HOURS * HOUR_MS).toISOString();
   return { text: `Heads-up not sent yet: it goes out from ${stamp(from)}`, tone: 'neutral' };
@@ -162,15 +174,16 @@ export const recapLine = (slot: Pick<HeroSlot, 'recap'>): MailLine | null =>
 
 /**
  * Whether Cancel applies, as the API decides it: a preview slot in any state but an ended one; a real one only while
- * `scheduled` and its heads-up not queued, or held (it did not leave). Locked otherwise, with why; `none` for a slot
- * that has ended.
+ * `scheduled` and its heads-up not queued, or held (it did not leave); a real one with no heads-up until its week ends
+ * (nobody was told). Locked otherwise, with why; `none` for a slot that has ended.
  */
 export type CancelState = { kind: 'cancellable' } | { kind: 'locked'; why: string } | { kind: 'none' };
 
-export function cancelStateOf(slot: Pick<HeroSlot, 'status' | 'preview' | 'headsUp'>): CancelState {
+export function cancelStateOf(slot: Pick<HeroSlot, 'status' | 'preview' | 'headsUp' | 'noHeadsUp'>): CancelState {
   if (slot.status === 'CANCELLED' || slot.status === 'OPTED_OUT') return { kind: 'none' };
   if (slot.preview) return { kind: 'cancellable' };
   if (slot.status === 'DONE') return { kind: 'none' };
+  if (slot.noHeadsUp && (slot.status === 'SCHEDULED' || slot.status === 'LIVE')) return { kind: 'cancellable' };
   if (slot.status === 'SCHEDULED') {
     if (!slot.headsUp?.queuedAt || slot.headsUp.held) return { kind: 'cancellable' };
     return {
@@ -196,6 +209,13 @@ export const skipConfirm = (nameWithOwner: string) => ({
   title: `Skip ${nameWithOwner}?`,
   description: 'It will not be listed again, on this shortlist or any later one. This cannot be undone from this page.',
   confirm: 'Skip it',
+});
+
+/** The confirm step before cancelling a live hero: it leaves the home page at once. */
+export const cancelLiveConfirm = (nameWithOwner: string) => ({
+  title: `Cancel ${nameWithOwner} while it is live?`,
+  description: 'It leaves the home page at once and does not become a past hero. This cannot be undone.',
+  confirm: 'Cancel it',
 });
 
 /** The confirm step before Mark notified: the slot is then the maintainer's, and can no longer be cancelled. */

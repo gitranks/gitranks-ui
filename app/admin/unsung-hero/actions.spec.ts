@@ -129,6 +129,7 @@ describe('Schedule', () => {
           line: 'Ships inside @example/dialog',
           reason: null,
           text: 'Keeps a ref current.',
+          headsUp: true,
         },
       },
       source: 'client',
@@ -137,6 +138,35 @@ describe('Schedule', () => {
     });
     expect(state.notice?.text).toBe(
       'Scheduled mona/scroll-guard for Nov 2 – 8. The heads-up goes to the maintainer 4 days before.',
+    );
+  });
+
+  it('with the heads-up off: sends headsUp false and no reason, and says the maintainer gets no email', async () => {
+    const slot = slotOf({
+      status: 'SCHEDULED',
+      noHeadsUp: true,
+      headsUp: null,
+      week: '2026-W45',
+      startsAt: '2026-11-02T00:00:00.000Z',
+      endsAt: '2026-11-09T00:00:00.000Z',
+    });
+    answers('UnsungHeroSchedule', 'unsungHeroSchedule', { ok: true, refusal: null, slot });
+    const off = form({
+      intent: 'schedule',
+      repoGithubId: '149283910',
+      week: '2026-W45',
+      name: 'ref-hook',
+      line: 'Ships inside @example/dialog',
+      reason: 'left over from before',
+      text: 'Keeps a ref current.',
+      headsUp: 'false',
+    });
+    const state = await pressAdmin(BEFORE, off);
+    expect(sentOf(signedFetch)[0].variables).toEqual({
+      input: expect.objectContaining({ headsUp: false, reason: null }),
+    });
+    expect(state.notice?.text).toBe(
+      'Scheduled mona/scroll-guard for Nov 2 – 8 with no heads-up: the maintainer gets no email before the week.',
     );
   });
 

@@ -28,6 +28,7 @@ export function AdminPanel({ initial }: Readonly<{ initial: AdminState }>) {
       lastCheck={state.check?.repoGithubId === candidate.repo.githubId ? state.check : null}
       notice={state === openedWith ? null : state.notice}
       weeks={weekOptionsOf(state.board)}
+      weeksWithoutHeadsUp={weekOptionsOf(state.board, { headsUp: false })}
       preview={state.board.preview}
       action={action}
       pending={pending}

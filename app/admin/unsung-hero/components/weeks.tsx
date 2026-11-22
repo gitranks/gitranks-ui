@@ -56,7 +56,8 @@ export function WeekCards({ board }: Readonly<{ board: HeroBoard }>) {
             </div>
             <span className="text-sm text-muted-foreground">{weekShort(board.nextWeek)}</span>
             <p className="text-xs text-muted-foreground">
-              Schedule one by {day(board.nextWeek.closesAt)} so the maintainer gets 4 days to opt out.
+              Schedule one by {day(board.nextWeek.closesAt)} so the maintainer gets 4 days to opt out, or with no
+              heads-up until the week starts.
             </p>
           </>
         )}
@@ -77,8 +78,9 @@ export function WeeksTable({
       <div className="flex flex-col gap-1 p-4">
         <h2 className="text-base font-semibold">Weeks</h2>
         <p className="text-sm text-muted-foreground">
-          Scheduling for a week closes 97 hours before it starts; the heads-up goes out then. Once it may have reached
-          the maintainer, a slot is locked.
+          With the heads-up, scheduling for a week closes 97 hours before it starts, when the email goes out; once it
+          may have reached the maintainer, the slot is locked. With no heads-up, a week can be scheduled until it starts
+          and its slot cancelled until the week ends.
         </p>
       </div>
       {slots.length ? (

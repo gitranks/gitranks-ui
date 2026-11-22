@@ -32,8 +32,6 @@ export type DesignGlobals = {
   __designDailyUpdates?: DailyUpdatesViewer;
   /** What "Check my badge" answered, in the browser. */
   __designBadgeCheck?: BadgeCheckResult;
-  /** Package pages are open to this viewer, as the browser learns after load. */
-  __designPackagesOpen?: boolean;
 };
 
 /** One state of a screen, drawn from fixtures: a board on the canvas. */
@@ -48,8 +46,6 @@ export type ScreenState = {
   viewer?: { login?: string; dailyUpdates?: DailyUpdatesViewer };
   /** What "Check my badge" answered, when the state shows an answer. */
   badgeCheck?: BadgeCheckResult;
-  /** Drawn for a viewer package pages are open to: the parts the browser shows once it knows. */
-  packagesOpen?: boolean;
   /** The board's width; 390 is a phone. */
   width?: number;
   /** The board's height: the page's height at `width`, rounded up. */

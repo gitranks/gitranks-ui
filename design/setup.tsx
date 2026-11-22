@@ -149,24 +149,10 @@ vi.mock('@/badge/v3/avatars', async (importOriginal) => ({
   fetchAvatar: async () => null,
   fetchAvatars: async (urls: unknown[]) => urls.map(() => null),
 }));
-// Whether package pages are open to the viewer is asked in the browser: the package boards draw it open, every other
-// board as the server sends it (closed).
-vi.mock('@/lib/packages/packages-open', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/packages/packages-open')>()),
-  // As the real hook: with `enabled` false nothing is asked, so the answer stays closed.
-  usePackagesOpen: (enabled = true) => enabled && !!(globalThis as DesignGlobals).__designPackagesOpen,
-}));
-// This week's Unsung hero is asked in the browser once the feature is open to the viewer: the boards drawn open show
-// the fixture's hero.
-vi.mock('@/lib/unsung-hero/use-unsung-hero', async (importOriginal) => {
-  const { unsungHero } = await import('@/lib/unsung-hero/__fixtures__/hero');
-  return {
-    ...(await importOriginal<typeof import('@/lib/unsung-hero/use-unsung-hero')>()),
-    useUnsungHero: (enabled: boolean) => (enabled ? unsungHero : null),
-  };
-});
-vi.mock('@/app/badge/builder/[[...login]]/hooks/use-packages-shown', () => ({
-  usePackagesShown: () => !!(globalThis as DesignGlobals).__designPackagesOpen,
+// This week's Unsung hero is asked in the browser by a repository page, to count a view: never on a board.
+vi.mock('@/lib/unsung-hero/use-unsung-hero', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/unsung-hero/use-unsung-hero')>()),
+  useUnsungHero: () => null,
 }));
 // A package page's Badges card reads its facts on the server: the fixtures the badge images are drawn from.
 vi.mock('@/badge/v3/load', async (importOriginal) => {

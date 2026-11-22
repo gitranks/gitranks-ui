@@ -1,13 +1,11 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { requestMaySeePackages, sessionTokenOf, readFollowState } = vi.hoisted(() => ({
-  requestMaySeePackages: vi.fn(async (_req: unknown) => true),
+const { sessionTokenOf, readFollowState } = vi.hoisted(() => ({
   sessionTokenOf: vi.fn(),
   readFollowState: vi.fn(),
 }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/packages/packages-gate', () => ({ requestMaySeePackages }));
 vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 vi.mock('@/lib/follow/follow-api', () => ({ readFollowState }));
 
@@ -26,7 +24,6 @@ const packages = [{ registry: 'npm', name: 'x' }];
 describe('POST /api/follow/state', () => {
   beforeEach(() => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://gitranks.com');
-    requestMaySeePackages.mockReset().mockResolvedValue(true);
     sessionTokenOf.mockReset().mockResolvedValue(null);
     readFollowState.mockReset().mockResolvedValue({ ok: true, data: [] });
   });
@@ -43,9 +40,7 @@ describe('POST /api/follow/state', () => {
     expect(readFollowState).toHaveBeenCalledWith({ githubLogin: 'octocat', accountEmailVerified: false }, packages);
   });
 
-  it('refuses a body without packages, and anyone package pages are hidden from', async () => {
+  it('refuses a body without packages', async () => {
     expect((await call({})).status).toBe(400);
-    requestMaySeePackages.mockResolvedValue(false);
-    expect((await call({ packages })).status).toBe(404);
   });
 });

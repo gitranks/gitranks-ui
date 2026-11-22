@@ -35,7 +35,6 @@ import {
   REFRESH_MESSAGES,
   REFRESH_TOASTS,
   type RefreshDialogKind,
-  refreshCopyOf,
   STAR_REPO_URL,
   STAR_STEP_REFRESH,
   withLogin,
@@ -44,7 +43,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
 import { graphqlClient } from '@/lib/graphql/graphql-client';
-import { usePackagesOpen } from '@/lib/packages/packages-open';
 import { cn } from '@/lib/utils';
 import type { DailyRefreshResult, DailyRefreshStatus } from '@/types/daily-refresh.types';
 import type { DailyUpdatesStartResult } from '@/types/daily-updates.types';
@@ -79,18 +77,15 @@ type FetchUserButtonProps = {
  */
 type OpenDialog = { kind: RefreshDialogKind; until?: string; retry?: 'refresh' | 'start'; check?: boolean } | null;
 
-/**
- * The dialog's words: the star step says what "I starred it" will do, and the deal drops a check it does not offer.
- * `messages` are today's, or the ones that name packages too once packages are shown to the visitor.
- */
-const messageOf = (dialog: NonNullable<OpenDialog>, messages: typeof REFRESH_MESSAGES = REFRESH_MESSAGES) => {
+/** The dialog's words: the star step says what "I starred it" will do, and the deal drops a check it does not offer. */
+const messageOf = (dialog: NonNullable<OpenDialog>) => {
   if (dialog.kind === 'starStep' && dialog.retry === 'refresh') {
     return STAR_STEP_REFRESH;
   }
   if (dialog.kind === 'deal' && !dialog.check) {
-    return withoutBadgeCheck(messages.deal);
+    return withoutBadgeCheck(REFRESH_MESSAGES.deal);
   }
-  return messages[dialog.kind];
+  return REFRESH_MESSAGES[dialog.kind];
 };
 
 const REFRESH_INTERVAL = 1_000;
@@ -132,9 +127,6 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   const manual = open ? (viewer?.manual ?? null) : daily;
   const [checking, setChecking] = useState(false);
   const [dialog, setDialog] = useState<OpenDialog>(null);
-  // The deal names packages too once packages are shown to this visitor; today's words until then. Asked only once the
-  // deal is open: no other word here changes.
-  const messages = refreshCopyOf(usePackagesOpen(dialog?.kind === 'deal'));
   // "Check my badge" in the deal checks the profile on screen.
   const badgeCheck = useBadgeCheck('user', shownLogin);
   const followedUp = useRef(false);
@@ -589,7 +581,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
         <RefreshDialog
           open
           onOpenChange={(open) => !open && setDialog(null)}
-          message={withLogin(messageOf(dialog, messages), shownLogin)}
+          message={withLogin(messageOf(dialog), shownLogin)}
           time={dialog.until ? timeLeftUntil(dialog.until) : undefined}
           primary={cta(dialog.kind, dialogActions[dialog.kind].primary)}
           secondary={dialogActions[dialog.kind].secondary}

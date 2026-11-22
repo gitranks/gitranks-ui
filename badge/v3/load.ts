@@ -312,7 +312,7 @@ type BadgeRepoUnsungHeroQuery = { repo?: { unsungHero?: { week: string; startsAt
 /**
  * The repository's latest week as Unsung hero, for its badge. Written out here rather than in a `.gql` file: the field
  * is newer than the generated schema, and asked on its own so its failure loses only that badge. The API answers
- * `null` while Unsung hero is not open to everyone, and for a repository that never was a hero.
+ * `null` for a repository that never was a hero.
  */
 const BadgeRepoUnsungHeroDocument = parse(`
   query BadgeRepoUnsungHero($owner: String!, $name: String!) {

@@ -15,6 +15,7 @@ import { pageMetadata } from '@/lib/seo/page-metadata';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
 import { CountrySummaryOrder } from '@/types/generated/graphql';
 import { formatSummaryDate } from '@/utils/format-summary-date';
+import { PACKAGE_METHODOLOGY_PATH } from '@/utils/package-paths';
 
 export const metadata: Metadata = pageMetadata({
   title: { absolute: 'How GitRanks Ranks GitHub Developers' },
@@ -170,6 +171,10 @@ export default function MethodologyPage() {
           <p>
             <strong>Organization rankings</strong> rank GitHub organizations by the stars on the public repositories
             they own. <Link href="/orgs/1">Browse organization rankings</Link>.
+          </p>
+          <p>
+            <strong>Package rankings</strong> rank npm packages by weekly downloads and by the GitHub repositories that
+            use them. <Link href={PACKAGE_METHODOLOGY_PATH}>How package rankings work</Link>.
           </p>
         </Section>
 

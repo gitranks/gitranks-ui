@@ -21,7 +21,7 @@ export type ApiUnsungHero = {
   starsGained: number;
 };
 
-/** This week's hero; `null` in a week with none, and for a request the feature is closed to. */
+/** This week's hero; `null` in a week with none. */
 export const UnsungHeroCurrentDocument = doc<{ unsungHero: ApiUnsungHero | null }>(
   `query UnsungHeroCurrent {
     unsungHero {

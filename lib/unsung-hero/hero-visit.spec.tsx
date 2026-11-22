@@ -7,9 +7,6 @@ import { unsungHero } from './__fixtures__/hero';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const { gate } = vi.hoisted(() => ({ gate: { open: true } }));
-vi.mock('@/lib/packages/packages-open', () => ({ usePackagesOpen: () => gate.open }));
-
 const { HeroVisit } = await import('./hero-visit');
 const { resetUnsungHero } = await import('./use-unsung-hero');
 const { UNSUNG_HERO_CURRENT_PATH, UNSUNG_HERO_HIT_PATH } = await import('./unsung-hero');
@@ -35,7 +32,6 @@ describe('HeroVisit', () => {
     // Inside the fixture hero's week, so its answer is kept.
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-28T12:00:00.000Z') });
     resetUnsungHero();
-    gate.open = true;
     hero = unsungHero;
     fetchMock = vi.fn(async (url: string) =>
       url === UNSUNG_HERO_CURRENT_PATH
@@ -82,10 +78,36 @@ describe('HeroVisit', () => {
     expect(hits()).toEqual([]);
   });
 
-  it('asks nothing while the feature is closed to the viewer', async () => {
-    gate.open = false;
-    await render('octo-labs', 'scroll-guard');
+  const asked = () => fetchMock.mock.calls.filter(([url]) => url === UNSUNG_HERO_CURRENT_PATH).length;
+  const remount = async () => {
+    act(() => root.unmount());
+    root = createRoot(container);
+    await render('vercel', 'next.js');
+  };
 
-    expect(fetchMock).not.toHaveBeenCalled();
+  it('asks for the hero again on the next mount after a failed ask, and keeps no failure', async () => {
+    fetchMock.mockImplementationOnce(async () => new Response(null, { status: 503 }));
+    await render('vercel', 'next.js');
+    await remount();
+    expect(asked()).toBe(2);
+  });
+
+  it('asks again once the answer is ten minutes old, or once its week is over', async () => {
+    await render('vercel', 'next.js');
+    vi.setSystemTime(new Date('2026-10-28T12:09:00.000Z'));
+    await remount();
+    expect(asked()).toBe(1);
+
+    vi.setSystemTime(new Date('2026-10-28T12:11:00.000Z'));
+    await remount();
+    expect(asked()).toBe(2);
+
+    // The fixture's week ends on Monday, Nov 2: an answer is not kept past it, even if fresh.
+    vi.setSystemTime(new Date('2026-11-01T23:55:00.000Z'));
+    await remount();
+    expect(asked()).toBe(3);
+    vi.setSystemTime(new Date('2026-11-02T00:00:01.000Z'));
+    await remount();
+    expect(asked()).toBe(4);
   });
 });

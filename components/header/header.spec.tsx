@@ -3,15 +3,20 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), signOut: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/components/signin-button/signin-button', () => ({ default: () => <span data-sign-in-button /> }));
-const packagesOpen = vi.hoisted(() => ({ value: false }));
-vi.mock('@/lib/packages/packages-open', () => ({ usePackagesOpen: () => packagesOpen.value }));
 const nav = vi.hoisted(() => ({ pathname: '/' }));
 vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 
 const { Header } = await import('./header');
 const { MainMenu } = await import('./components/main-menu');
 
-const RANKINGS = ['/by/stars/1', '/languages/global/score/1', '/countries/stars/1', '/orgs/1', '/repos/1'];
+const RANKINGS = [
+  '/by/stars/1',
+  '/languages/global/score/1',
+  '/countries/stars/1',
+  '/orgs/1',
+  '/repos/1',
+  '/packages/npm/downloads/1',
+];
 
 describe('the main menu', () => {
   it('is the Rankings submenu and Badges, in the row from sm up and in a closed panel under a menu button below it', () => {
@@ -38,18 +43,8 @@ describe('the main menu', () => {
 });
 
 describe('the Package Rankings menu entry', () => {
-  it('is not in the menu for a viewer package pages are not open to, nor while that is being asked', () => {
-    packagesOpen.value = false;
+  it('comes after Repository Rankings, in the server HTML every visitor is served', () => {
     const html = renderToStaticMarkup(<MainMenu />);
-
-    expect(html).not.toContain('/packages/');
-    expect(html).not.toContain('Package Rankings');
-  });
-
-  it('comes after Repository Rankings for a viewer they are open to', () => {
-    packagesOpen.value = true;
-    const html = renderToStaticMarkup(<MainMenu />);
-    packagesOpen.value = false;
 
     expect(html).toMatch(
       /href="\/repos\/1".*Repository Rankings.*href="\/packages\/npm\/downloads\/1".*Package Rankings/s,

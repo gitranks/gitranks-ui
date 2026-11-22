@@ -15,7 +15,7 @@ import { packagePath } from '@/utils/package-paths';
 // Renders as one piece, like a repository's page; cached data keeps the render cheap. One package a registry is listed
 // in generateStaticParams, so any other renders on request as a whole page before the response starts: there is no
 // fallback shell, `notFound()` answers 404 and `permanentRedirect()` a real 308. The page is then kept in memory only
-// (`lib/cache/page-cache-handler.cjs`), never on disk. Who may see it is decided before it renders, never here.
+// (`lib/cache/page-cache-handler.cjs`), never on disk.
 export const instant = false;
 
 export async function generateStaticParams() {

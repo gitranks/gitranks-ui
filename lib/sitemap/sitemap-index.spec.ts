@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchPackageSitemapParts, fetchRepoTabSitemapParts } from './package-sitemap-data';
-import { packagesPublicNow } from './packages-public';
 import {
   buildSitemapIndexXml,
   listChildSitemapLocs,
@@ -14,7 +13,6 @@ import { PackageRegistry, RepoSitemapTab } from '@/types/generated/graphql';
 
 vi.mock('@/graphql/helpers/fetch-repo-sitemap-parts', () => ({ fetchRepoSitemapParts: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-org-sitemap-parts', () => ({ fetchOrgSitemapParts: vi.fn() }));
-vi.mock('./packages-public', () => ({ packagesPublicNow: vi.fn() }));
 vi.mock('./package-sitemap-data', () => ({ fetchPackageSitemapParts: vi.fn(), fetchRepoTabSitemapParts: vi.fn() }));
 
 const paths = (locs: string[]) => locs.map((loc) => new URL(loc).pathname);
@@ -24,7 +22,6 @@ describe('sitemap index', () => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://example.test');
     vi.mocked(fetchRepoSitemapParts).mockReset();
     vi.mocked(fetchOrgSitemapParts).mockReset().mockResolvedValue(0);
-    vi.mocked(packagesPublicNow).mockReset().mockResolvedValue(false);
     vi.mocked(fetchPackageSitemapParts).mockReset().mockResolvedValue(0);
     vi.mocked(fetchRepoTabSitemapParts).mockReset().mockResolvedValue(0);
   });
@@ -113,20 +110,9 @@ describe('sitemap index', () => {
     expect(paths(listPackageSitemapLocs(99, -1, 99)).filter((loc) => loc.includes('/sitemap/'))).toHaveLength(20);
   });
 
-  it('lists nothing about packages while package pages are not open to everyone, and reads no count', async () => {
-    vi.mocked(fetchRepoSitemapParts).mockResolvedValue(1);
-
-    const xml = await (await sitemapIndexResponse()).text();
-
-    expect(xml).not.toMatch(/package|used-by|contributors/);
-    expect(fetchPackageSitemapParts).not.toHaveBeenCalled();
-    expect(fetchRepoTabSitemapParts).not.toHaveBeenCalled();
-  });
-
-  it('pins the index XML once package pages are open to everyone', async () => {
+  it('pins the index XML', async () => {
     vi.useFakeTimers({ now: new Date('2026-11-18T12:00:00Z'), toFake: ['Date'] });
     vi.mocked(fetchRepoSitemapParts).mockResolvedValue(1);
-    vi.mocked(packagesPublicNow).mockResolvedValue(true);
     vi.mocked(fetchPackageSitemapParts).mockResolvedValue(2);
     vi.mocked(fetchRepoTabSitemapParts).mockResolvedValue(1);
 
@@ -162,9 +148,8 @@ describe('sitemap index', () => {
     `);
   });
 
-  it('lists the package sitemaps after the others once package pages are open to everyone', async () => {
+  it('lists the package sitemaps after the others', async () => {
     vi.mocked(fetchRepoSitemapParts).mockResolvedValue(1);
-    vi.mocked(packagesPublicNow).mockResolvedValue(true);
     vi.mocked(fetchPackageSitemapParts).mockResolvedValue(1);
     vi.mocked(fetchRepoTabSitemapParts).mockImplementation(async (tab) => (tab === RepoSitemapTab.UsedBy ? 2 : 1));
 

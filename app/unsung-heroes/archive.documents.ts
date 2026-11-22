@@ -39,7 +39,7 @@ const HERO_FIELDS = `startsAt endsAt live
   facts { weeklyDownloads contributors }
   starsAtStart starsNow starsGained`;
 
-/** This week's hero, the past ones newest first, and the totals; null for a request the feature is closed to. */
+/** This week's hero, the past ones newest first, and the totals. */
 export const UnsungHeroesDocument = doc<{ unsungHeroes: ApiArchive | null }>(
   `query UnsungHeroes {
     unsungHeroes {

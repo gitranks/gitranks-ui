@@ -4,7 +4,6 @@ import { fetchOrgSitemapParts } from '@/graphql/helpers/fetch-org-sitemap-parts'
 import { fetchRepoSitemapParts } from '@/graphql/helpers/fetch-repo-sitemap-parts';
 import { apiRegistryOf, DEFAULT_REGISTRY, REGISTRY_IDS, type RegistryId } from '@/lib/packages/registries';
 import { fetchPackageSitemapParts, fetchRepoTabSitemapParts } from '@/lib/sitemap/package-sitemap-data';
-import { packagesPublicNow } from '@/lib/sitemap/packages-public';
 import {
   packageSitemapIdOf,
   SITEMAP_ORG_PARTS_MAX,
@@ -85,14 +84,8 @@ export function listPackageSitemapLocs(
   ];
 }
 
-/**
- * The package sitemaps once package pages are open to everyone; none before, so the index is then exactly what it was
- * without them (whoever asks: a preview list of viewers lists nothing).
- */
+/** The package sitemaps: the rankings, each registry's package pages, and the repositories' Used by and Contributors. */
 async function packageSitemapLocs(): Promise<string[]> {
-  if (!(await packagesPublicNow())) {
-    return [];
-  }
   const [registryParts, usedByParts, contributorsParts] = await Promise.all([
     Promise.all(REGISTRY_IDS.map((registry) => fetchPackageSitemapParts(apiRegistryOf(registry)))),
     fetchRepoTabSitemapParts(RepoSitemapTab.UsedBy),

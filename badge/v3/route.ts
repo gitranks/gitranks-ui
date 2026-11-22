@@ -1,11 +1,9 @@
 import { findBadge } from './catalogue';
 import { type EntityFacts, PACKAGE_NOT_READ, type PackageNotRead, packageBadgeName } from './facts';
 import { type BadgeEntityPath, badgeNamePath } from './links';
-import { hiddenPackageImage } from './package-access';
 import { BadgeParamsError, resolveParams } from './params';
 import { renderBadge } from './render';
 import type { EntityKind, ImageFormat } from './types';
-import { UNSUNG_HERO_BADGE } from './unsung-hero-badge';
 import { parseDecodedPackageParams } from '@/app/package/[registry]/[...name]/utils/package-params';
 import type { RegistryId } from '@/lib/packages/registries';
 import { isGithubLogin } from '@/utils/profile-refresh';
@@ -54,21 +52,6 @@ const text = (body: string, status: number, cacheHeaders: Record<string, string>
   });
 
 const notFound = () => text('Badge not found', 404, BADGE_CACHE_HEADERS.notFound);
-
-/**
- * Whether the Unsung hero badge exists yet: only once Unsung hero is open to everyone (the package pages' gate), never
- * per visitor, as no repository has a week to show before. The gate is loaded on this badge's requests alone; closed
- * on any failure.
- */
-async function unsungHeroBadgeOpen(): Promise<boolean> {
-  try {
-    const { packagesPublic } = await import('@/lib/packages/packages-gate');
-    return await packagesPublic();
-  } catch (error) {
-    console.error('Error asking whether the Unsung hero badge exists:', error);
-    return false;
-  }
-}
 
 /**
  * The entity a badge URL names, as the request spells it. A package's `canonical` says whether the path spelled its
@@ -207,12 +190,6 @@ export async function getBadgeResponse(
   if (!ref || !parsed || !badge) {
     return notFound();
   }
-  // Until it exists, the Unsung hero badge is not found, and the answer is kept by nobody, so it does not outlive the
-  // opening.
-  if (badge.entity === 'repo' && badge.id === UNSUNG_HERO_BADGE && !(await unsungHeroBadgeOpen())) {
-    return hiddenPackageImage();
-  }
-
   let params: ReturnType<typeof resolveParams>;
   try {
     params = resolveParams(badge, search);

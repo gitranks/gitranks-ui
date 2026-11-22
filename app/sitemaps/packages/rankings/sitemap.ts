@@ -4,7 +4,6 @@ import { ITEMS_PER_PAGE } from '@/app/app.consts';
 import { packageRankingOrdersOf } from '@/app/packages/package-rankings';
 import { fetchPackageRankingFacts } from '@/graphql/helpers/fetch-package-rankings';
 import { apiRegistryOf, REGISTRY_IDS, type RegistryId } from '@/lib/packages/registries';
-import { notFoundUnlessPackagesPublic } from '@/lib/sitemap/packages-public';
 import { SITEMAP_PAGE_DEPTH } from '@/lib/sitemap/sitemap.consts';
 import { sitemapEntry, sitemapPagePriority } from '@/lib/sitemap/sitemap-url';
 import { packageRankingPath } from '@/utils/package-paths';
@@ -25,10 +24,8 @@ async function registryEntries(registry: RegistryId): Promise<MetadataRoute.Site
 
 /**
  * Each registry's package rankings (npm's three), each to the pages its ranked packages fill (at most
- * `SITEMAP_PAGE_DEPTH.packages`). 404 until package pages are open to everyone.
+ * `SITEMAP_PAGE_DEPTH.packages`).
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  await notFoundUnlessPackagesPublic();
-
   return (await Promise.all(REGISTRY_IDS.map(registryEntries))).flat();
 }

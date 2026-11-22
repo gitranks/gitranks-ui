@@ -2,11 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import sitemap, { generateSitemaps } from './sitemap';
 import { fetchPackagesForSitemap } from '@/lib/sitemap/package-sitemap-data';
-import { notFoundUnlessPackagesPublic } from '@/lib/sitemap/packages-public';
 import { PackageRegistry } from '@/types/generated/graphql';
 
 vi.mock('@/lib/sitemap/package-sitemap-data', () => ({ fetchPackagesForSitemap: vi.fn() }));
-vi.mock('@/lib/sitemap/packages-public', () => ({ notFoundUnlessPackagesPublic: vi.fn() }));
 
 const part = (id: string) => sitemap({ id: Promise.resolve(id) });
 
@@ -14,7 +12,6 @@ describe('package-page sitemap', () => {
   beforeEach(() => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://example.test');
     vi.mocked(fetchPackagesForSitemap).mockReset().mockResolvedValue([]);
-    vi.mocked(notFoundUnlessPackagesPublic).mockReset().mockResolvedValue(undefined);
   });
 
   it('has ten parts', async () => {
@@ -52,13 +49,6 @@ describe('package-page sitemap', () => {
       ]
     `);
     vi.useRealTimers();
-  });
-
-  it('answers 404 before reading anything while package pages are not open to everyone', async () => {
-    vi.mocked(notFoundUnlessPackagesPublic).mockRejectedValue(new Error('NEXT_HTTP_ERROR_FALLBACK;404'));
-
-    await expect(part('0')).rejects.toThrow('404');
-    expect(fetchPackagesForSitemap).not.toHaveBeenCalled();
   });
 
   it('reads no part outside 0–9', async () => {

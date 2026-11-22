@@ -21,18 +21,15 @@ import { NOW, packageBig, packageNew } from '@/badge/v3/fixtures';
 const ORIGIN = 'https://gitranks.com';
 
 describe('a package in the builder URL', () => {
-  it('counts only once packages are shown to the visitor; until then the builder is as it was', () => {
+  it('names the package and its badge', () => {
     const query = new URLSearchParams('package=npm/@nebula/ui&badge=used-by');
-    expect(parseBuilderQuery(query)).toMatchObject({ kind: null, name: null, badge: null });
-    expect(stepOf(parseBuilderQuery(query))).toBe('find');
-
-    const shown = parseBuilderQuery(query, { packages: true });
+    const shown = parseBuilderQuery(query);
     expect(shown).toMatchObject({ kind: 'package', name: 'npm/@nebula/ui', badge: { id: 'used-by' } });
     expect(stepOf(shown)).toBe('style');
   });
 
   it('leaves the other kinds first, as they were', () => {
-    expect(parseBuilderQuery(new URLSearchParams('user=a&package=npm/b'), { packages: true })).toMatchObject({
+    expect(parseBuilderQuery(new URLSearchParams('user=a&package=npm/b'))).toMatchObject({
       kind: 'user',
       name: 'a',
     });
@@ -54,7 +51,7 @@ describe('a package in the builder URL', () => {
 
   it('says it has no npm package by that name, by its own name', () => {
     expect(
-      builderView(parseBuilderQuery(new URLSearchParams('package=npm/left-pad'), { packages: true }), {
+      builderView(parseBuilderQuery(new URLSearchParams('package=npm/left-pad')), {
         wellFormed: true,
         factsState: { status: 'missing' },
         badgeAvailable: false,
@@ -74,28 +71,19 @@ describe('a Find search', () => {
     expect(parsePackageSearch('.hidden')).toBeNull();
   });
 
-  it('asks as before while packages are hidden', () => {
-    expect(searchLookups('vercel', null)).toEqual([
-      { kind: 'user', name: 'vercel' },
-      { kind: 'org', name: 'vercel' },
-    ]);
-    expect(searchLookups('acme/fastqueue', null)).toEqual([{ kind: 'repo', name: 'acme/fastqueue' }]);
-    expect(searchLookups('@types/node', null)).toEqual([{ kind: 'repo', name: 'types/node' }]);
-    expect(searchLookups('react', 'package')).toEqual([]);
-  });
-
-  it('finds a package too once they are shown, and only a package for a scoped name or an npm address', () => {
-    expect(searchLookups('react', null, true)).toEqual([
+  it('finds a developer, an organization and a package by a name, and only a package for a scoped name or an npm address', () => {
+    expect(searchLookups('react', null)).toEqual([
       { kind: 'user', name: 'react' },
       { kind: 'org', name: 'react' },
       { kind: 'package', name: 'npm/react' },
     ]);
-    expect(searchLookups('@types/node', null, true)).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
-    expect(searchLookups('npm:lodash', null, true)).toEqual([{ kind: 'package', name: 'npm/lodash' }]);
-    expect(searchLookups('acme/fastqueue', null, true)).toEqual([{ kind: 'repo', name: 'acme/fastqueue' }]);
-    expect(searchLookups('react', 'user', true)).toEqual([{ kind: 'user', name: 'react' }]);
-    expect(searchLookups('@types/node', 'package', true)).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
-    expect(searchLookups('acme/fastqueue', 'package', true)).toEqual([]);
+    expect(searchLookups('@types/node', null)).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
+    expect(searchLookups('npm:lodash', null)).toEqual([{ kind: 'package', name: 'npm/lodash' }]);
+    expect(searchLookups('acme/fastqueue', null)).toEqual([{ kind: 'repo', name: 'acme/fastqueue' }]);
+    expect(searchLookups('react', 'user')).toEqual([{ kind: 'user', name: 'react' }]);
+    expect(searchLookups('@types/node', 'package')).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
+    expect(searchLookups('acme/fastqueue', 'package')).toEqual([]);
+    expect(searchLookups('vercel', 'org')).toEqual([{ kind: 'org', name: 'vercel' }]);
   });
 
   it("asks for a package by its kind's words, and sends a miss to its page", () => {

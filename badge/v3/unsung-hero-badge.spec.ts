@@ -10,13 +10,11 @@ import { BADGE_CACHE_HEADERS, type BadgeLoaders, getBadgeResponse, parseEntityRe
 import { notYetShield, shieldContent } from './shields';
 import { UNSUNG_HERO_BADGE, unsungHeroMonth } from './unsung-hero-badge';
 
-const { packagesPublic, graphqlDirect, cacheLife, cacheTag } = vi.hoisted(() => ({
-  packagesPublic: vi.fn<() => Promise<boolean>>(),
+const { graphqlDirect, cacheLife, cacheTag } = vi.hoisted(() => ({
   graphqlDirect: vi.fn(),
   cacheLife: vi.fn(),
   cacheTag: vi.fn(),
 }));
-vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('next/cache', () => ({ cacheLife, cacheTag }));
 
@@ -55,7 +53,6 @@ const cacheHeaders = (response: Response) => ({
 });
 
 beforeEach(() => {
-  packagesPublic.mockReset().mockResolvedValue(true);
   graphqlDirect.mockReset();
   cacheLife.mockReset();
   cacheTag.mockReset();
@@ -124,34 +121,6 @@ describe('the Unsung hero badge image', () => {
 
     expect(answer.status).toBe(200);
     expect(cacheHeaders(answer)).toEqual({ ...BADGE_CACHE_HEADERS.provisional, 'Cloudflare-CDN-Cache-Control': null });
-  });
-
-  it.each([
-    ['closed', async () => false],
-    ['failing', async () => Promise.reject(new Error('down'))],
-  ])('is not found for anyone while the gate is %s, kept by nobody, and reads nothing', async (_, gate) => {
-    packagesPublic.mockImplementation(gate);
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    for (const repo of [hero, neverHero]) {
-      const { loaders, response } = image(repo, `${UNSUNG_HERO_BADGE}.svg`, 'scheme=night');
-      const answer = await response;
-
-      expect(answer.status).toBe(404);
-      expect(cacheHeaders(answer)).toEqual({
-        'Cache-Control': 'private, no-store',
-        'Cloudflare-CDN-Cache-Control': null,
-      });
-      expect(loaders.repo).not.toHaveBeenCalled();
-    }
-    consoleError.mockRestore();
-  });
-
-  it("never asks the gate for the repository's other badges", async () => {
-    packagesPublic.mockResolvedValue(false);
-    const { response } = image(hero, 'rank.svg');
-
-    expect((await response).status).toBe(200);
-    expect(packagesPublic).not.toHaveBeenCalled();
   });
 });
 

@@ -6,17 +6,14 @@ import type { FC } from 'react';
 import { ExampleCards, type ExampleRank } from './example-cards';
 import { UnsungHeroCard } from './unsung-hero-card';
 import { YourRankCard } from './your-rank-card';
-import { usePackagesOpen } from '@/lib/packages/packages-open';
-import { useUnsungHero } from '@/lib/unsung-hero/use-unsung-hero';
+import type { UnsungHero } from '@/lib/unsung-hero/unsung-hero';
 
 /**
- * The hero's right column: this week's Unsung hero when there is one, for everyone it is open to, signed in or out;
- * otherwise your own card when signed in, examples when not. The hero is asked in the browser, and only once the
- * feature is open to the viewer: the page is cached for everyone, so its HTML always holds the cards without it.
+ * The hero's right column: this week's Unsung hero when there is one, read with the page and in its HTML, signed in or
+ * out; otherwise your own card when signed in, examples when not.
  */
-export const HeroAside: FC<{ examples: ExampleRank[] }> = ({ examples }) => {
+export const HeroAside: FC<{ examples: ExampleRank[]; hero?: UnsungHero | null }> = ({ examples, hero = null }) => {
   const { data: session, status } = useSession();
-  const hero = useUnsungHero(usePackagesOpen());
   const login = session?.user?.githubLogin;
 
   if (hero) {

@@ -2,7 +2,7 @@ import { shortMonthName } from './month';
 
 /**
  * The Unsung hero badge: a repository's shield for its week as Unsung hero, "Unsung hero · Nov 2026". Only a
- * repository that was a hero has it, and its URL is not found for anyone until Unsung hero is open to everyone.
+ * repository that was a hero has it.
  */
 
 /** The badge's id in the repository catalogue. */

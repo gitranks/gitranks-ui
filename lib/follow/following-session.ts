@@ -47,8 +47,8 @@ export function followingPressOf(value: unknown): FollowingPress | null {
 }
 
 /**
- * The signed-in viewer's settings page, with `notice` from the last press; null when nobody is signed in or the
- * feature is closed to them (the page then shows what it did before).
+ * The signed-in viewer's settings page, with `notice` from the last press; null when nobody is signed in (the page
+ * then shows what it did before).
  */
 export async function sessionSettingsState(
   caller: FollowCaller,
@@ -73,7 +73,7 @@ const changeOf = (press: Exclude<FollowingPress, { action: 'stop-all' }>): Follo
 
 /**
  * One press on the signed-in settings page, then the page as it now is: `failed` when the change did not go through,
- * `undo-refused` when an Undo was answered still unfollowed. Null when nobody is signed in or the feature is closed.
+ * `undo-refused` when an Undo was answered still unfollowed. Null when nobody is signed in.
  */
 export async function pressSessionSettings(caller: FollowCaller, press: FollowingPress): Promise<SettingsState | null> {
   if (!caller.githubLogin) return null;

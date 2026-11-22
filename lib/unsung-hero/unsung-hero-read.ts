@@ -24,8 +24,7 @@ export const heroOf = (hero: ApiUnsungHero): UnsungHero => ({
 
 /**
  * This week's hero, one read shared by every visitor and kept on the server, tagged `unsung-hero`: `null` in a week
- * with none. Asked as the site itself: the caller decides first whether the visitor may see it. A failed read throws
- * and is not kept.
+ * with none. Asked as the site itself. A failed read throws and is not kept.
  */
 export async function fetchUnsungHero(): Promise<UnsungHero | null> {
   'use cache';

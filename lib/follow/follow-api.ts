@@ -112,8 +112,8 @@ const rowOf = (follow: ApiFollow): FollowRow => ({
   },
 });
 
-/** The API answered null: the feature is closed to this request. */
-const CLOSED = { ok: false, failure: 'not_found' } as const;
+/** The API answered null: nothing to read or change for this request. */
+const NO_ANSWER = { ok: false, failure: 'not_found' } as const;
 
 /** The channels the dialog may offer and, for one package, how many repositories use it now. */
 export async function readFollowChannels(
@@ -123,7 +123,7 @@ export async function readFollowChannels(
   const answer = await ask(FollowChannelsDocument, { package: pkg ? packageInputOf(pkg) : null }, caller);
   if (!answer.ok) return answer;
   const read = answer.data.packageFollowChannels;
-  if (!read) return CLOSED;
+  if (!read) return NO_ANSWER;
   return {
     ok: true,
     data: {
@@ -142,7 +142,7 @@ export async function readFollowState(
   const answer = await ask(FollowStateDocument, { packages: packages.map(packageInputOf) }, caller);
   if (!answer.ok) return answer;
   const follows = answer.data.packageFollow;
-  return follows ? { ok: true, data: follows.map(rowOf) } : CLOSED;
+  return follows ? { ok: true, data: follows.map(rowOf) } : NO_ANSWER;
 }
 
 /**
@@ -165,7 +165,7 @@ export async function startFollow(
   );
   if (!answer.ok) return answer;
   const started = answer.data.followPackages;
-  if (!started) return CLOSED;
+  if (!started) return NO_ANSWER;
   return {
     ok: true,
     data: {
@@ -194,7 +194,7 @@ export async function changeFollow(
   );
   if (!answer.ok) return answer;
   const changed = answer.data.followChange;
-  if (!changed) return CLOSED;
+  if (!changed) return NO_ANSWER;
   return { ok: true, data: changed.follow ? rowOf(changed.follow) : null };
 }
 
@@ -204,7 +204,7 @@ export async function changeFollow(
 export async function readFollowing(caller: FollowCaller): Promise<FollowAnswer<FollowSubscriber[]>> {
   const answer = await ask(FollowingDocument, {}, caller);
   if (!answer.ok) return answer;
-  return answer.data.following ? { ok: true, data: answer.data.following } : CLOSED;
+  return answer.data.following ? { ok: true, data: answer.data.following } : NO_ANSWER;
 }
 
 /** A change on the signed-in settings page: the follow, or for a resume the address, as it now is. */
@@ -215,7 +215,7 @@ export async function changeFollowing(
   const answer = await ask(FollowingChangeDocument, change, caller);
   if (!answer.ok) return answer;
   const changed = answer.data.followChange;
-  return changed ? { ok: true, data: changed } : CLOSED;
+  return changed ? { ok: true, data: changed } : NO_ANSWER;
 }
 
 /** Unfollows every package of the signed-in viewer's account, on every channel; answers how many. */
@@ -223,5 +223,5 @@ export async function stopAllFollowing(caller: FollowCaller): Promise<FollowAnsw
   const answer = await ask(FollowStopAllDocument, {}, caller);
   if (!answer.ok) return answer;
   const removed = answer.data.followStopAll;
-  return removed === null ? CLOSED : { ok: true, data: removed };
+  return removed === null ? NO_ANSWER : { ok: true, data: removed };
 }

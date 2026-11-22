@@ -10,14 +10,13 @@ import {
   followJson,
   followRefusalOf,
 } from '@/lib/follow/follow-route';
-import { requestMaySeePackages } from '@/lib/packages/packages-gate';
 
 /**
  * The signed-in viewer's follows of a slot's packages, asked once per page load: `{ follows }`. A visitor who is not
- * signed in has none, and the API is not asked. Only for a viewer who may see package pages.
+ * signed in has none, and the API is not asked.
  */
 export async function POST(req: NextRequest) {
-  const refusal = await followRefusalOf(req, { change: true, maySee: requestMaySeePackages });
+  const refusal = followRefusalOf(req, { change: true });
   if (refusal) return refusal;
 
   const body = (await followBodyOf(req)) as { packages?: unknown } | undefined;

@@ -23,6 +23,7 @@ import { StarTotalCount } from '@/components/star-count/star-count';
 import { TierIcon } from '@/components/tier-icon/tier-icon';
 import { Button } from '@/components/ui/button';
 import { SITE_SOCIAL_LINKS } from '@/lib/seo/site';
+import type { UnsungHero } from '@/lib/unsung-hero/unsung-hero';
 import type {
   CountrySummaryQuery,
   InsightsQuery,
@@ -67,11 +68,12 @@ export const InsightTicker: FC<{ insight?: Insight }> = ({ insight }) => {
 
 type StatItem = { value: string; label: string };
 
-export const Hero: FC<{ developersRanked?: number | null; examples: ExampleRank[]; stats: StatItem[] }> = ({
-  developersRanked,
-  examples,
-  stats,
-}) => (
+export const Hero: FC<{
+  developersRanked?: number | null;
+  examples: ExampleRank[];
+  hero?: UnsungHero | null;
+  stats: StatItem[];
+}> = ({ developersRanked, examples, hero = null, stats }) => (
   <section aria-labelledby="hero-title" className="border-b">
     <Container className="grid items-center gap-8 py-10 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:py-16 lg:gap-12 lg:py-20">
       <div className="flex min-w-0 flex-col gap-5">
@@ -88,7 +90,7 @@ export const Hero: FC<{ developersRanked?: number | null; examples: ExampleRank[
         <SearchProfile />
         <HeroSignIn />
       </div>
-      <HeroAside examples={examples} />
+      <HeroAside examples={examples} hero={hero} />
     </Container>
     {/* Full-width rule, so it matches the section's bottom border. */}
     <div className="border-t">

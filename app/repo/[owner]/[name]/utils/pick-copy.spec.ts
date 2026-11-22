@@ -11,14 +11,13 @@ import {
   pickedOutcomeOf,
   picksLeftText,
 } from './pick-messages';
-import { fillTime, REFRESH_MESSAGES, refreshCopyOf } from '@/components/refresh-dialogs/refresh-messages';
+import { fillTime, REFRESH_MESSAGES } from '@/components/refresh-dialogs/refresh-messages';
 
-/** The 13 lines that say "repos" today and "repos or packages" once packages are shown, by their place in the copy. */
+/** The 12 lines that say "repos" on the older repository page and "repos or packages" elsewhere, by their place. */
 const switched = (packages: boolean, kind: 'repo' | 'package' = 'repo') => {
   const copy = pickCopyOf(packages, kind);
   return {
     'PICK_LINES.off': copy.lines.off,
-    'REFRESH_MESSAGES.deal.closing[1]': refreshCopyOf(packages).deal.closing[1],
     'PICK_DIALOGS.allPicksUsed.title': copy.dialogs.allPicksUsed.title,
     'PICK_DIALOGS.allPicksUsed.paragraph': fillName(copy.dialogs.allPicksUsed.paragraph ?? '', 'left-pad'),
     'PICK_DIALOGS.dailyLimit.title': copy.dialogs.dailyLimit.title,
@@ -37,7 +36,6 @@ describe('the flag-switched daily-updates copy', () => {
   it("keeps today's words while packages are not shown", () => {
     expect(switched(false)).toEqual({
       'PICK_LINES.off': 'Update up to 3 repos daily.',
-      'REFRESH_MESSAGES.deal.closing[1]': 'You can also update up to 3 repos daily.',
       'PICK_DIALOGS.allPicksUsed.title': 'You update 3 repos daily',
       'PICK_DIALOGS.allPicksUsed.paragraph': 'Remove one to add this repo.',
       'PICK_DIALOGS.dailyLimit.title': 'No more repos today',
@@ -57,13 +55,11 @@ describe('the flag-switched daily-updates copy', () => {
     expect(today.onDailyTitle).toBe(ON_DAILY_DIALOG.title);
     expect(today.toasts).toBe(PICK_TOASTS);
     expect(today.list).toEqual({ ...PICK_LIST, left: picksLeftText });
-    expect(refreshCopyOf(false)).toBe(REFRESH_MESSAGES);
   });
 
   it('says repos or packages once packages are shown, by the page’s kind', () => {
     expect(switched(true, 'repo')).toEqual({
       'PICK_LINES.off': 'Update up to 3 repos or packages daily.',
-      'REFRESH_MESSAGES.deal.closing[1]': 'You can also update up to 3 repos or packages daily.',
       'PICK_DIALOGS.allPicksUsed.title': 'You update 3 repos and packages daily',
       'PICK_DIALOGS.allPicksUsed.paragraph': 'Repos and packages share these 3. Remove one to add left-pad.',
       'PICK_DIALOGS.dailyLimit.title': 'No more additions today',
@@ -87,7 +83,7 @@ describe('the flag-switched daily-updates copy', () => {
   it('leaves no placeholder but {name} and {time} for the caller', () => {
     const words = JSON.stringify(pickCopyOf(true, 'package'));
     expect(words).not.toContain('{entity}');
-    expect(refreshCopyOf(true).deal.closing[0]).toBe(REFRESH_MESSAGES.deal.closing[0]);
+    expect(REFRESH_MESSAGES.deal.closing[1]).toBe('You can also update up to 3 repos or packages daily.');
   });
 
   it('says a pick’s refresh in the page’s words', () => {

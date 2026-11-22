@@ -82,7 +82,7 @@ export type RepoFacts = {
   pulseSeries: PulseSeriesFacts | null;
   rankGoal: RankGoal | null;
   contributorsWall: ContributorsWalls;
-  /** Its latest week as Unsung hero; left out when it never was one, and while Unsung hero is not open to everyone. */
+  /** Its latest week as Unsung hero; left out when it never was one. */
   unsungHero?: RepoUnsungHeroFacts;
 };
 

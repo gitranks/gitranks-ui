@@ -14,7 +14,6 @@ import { fetchPackage, fetchPackageDependents, PACKAGE_UNAVAILABLE } from '@/gra
 import { accountEmailOf } from '@/lib/account-email';
 import { packageMarkdownOf, packageMarkdownPath } from '@/lib/packages/package-markdown';
 import { packageCacheTag } from '@/lib/packages/package-paths';
-import { packagesPublic, requestMaySeePackages } from '@/lib/packages/packages-gate';
 import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { SITE_URL } from '@/lib/seo/site';
 import { signedFetch } from '@/lib/signed-fetch';
@@ -22,12 +21,11 @@ import { signedFetch } from '@/lib/signed-fetch';
 // A package's reads and its refresh, for its page in the browser: `/api/packages/<registry>/<name>/dependents` and
 // `/api/packages/<registry>/<name>/refresh`, `<name>` in the segments the registry's names take (npm: `x` or
 // `@scope/x`; no static segment may follow a catch-all, so the action is the last segment); and its facts in markdown,
-// `/api/packages/<registry>/<name>/facts.md`, which the proxy answers `/package/<registry>/<name>/facts.md` with. Only for a visitor who may see package pages; anyone else gets the
-// not-found answer.
+// `/api/packages/<registry>/<name>/facts.md`, which the proxy answers `/package/<registry>/<name>/facts.md` with.
 
-/** While package pages are not open to everyone, an answer is never kept by a shared cache: it was decided per viewer. */
+/** A failure, a redirect, a refresh's status: never kept by a shared cache. */
 const PRIVATE = 'private, no-store';
-/** Once they are, a page of dependents as the repository's other reads: the browser five minutes, a shared cache an hour. */
+/** A page of dependents as the repository's other reads: the browser five minutes, a shared cache an hour. */
 const PUBLIC = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400';
 
 /** A refresh that landed this long ago or less may not be on the cached page yet: its status expires it. */
@@ -41,7 +39,7 @@ const notFound = () => answer({ message: 'Not found' }, 404);
 type Action = 'dependents' | 'refresh' | 'facts.md';
 const ACTIONS: ReadonlySet<string> = new Set<Action>(['dependents', 'refresh', 'facts.md']);
 
-/** Once package pages are open to everyone, the facts as the page: the browser five minutes, a shared cache an hour. */
+/** The facts as the page: the browser five minutes, a shared cache an hour. */
 const MARKDOWN_PUBLIC = 'public, max-age=300, s-maxage=3600';
 
 /** A markdown answer. Never indexed: the page itself is, and this is its copy for agents. */
@@ -63,9 +61,8 @@ const markdown = (body: string, status: number, cacheControl = PRIVATE) =>
 async function facts(req: NextRequest, { registry, name }: Target) {
   const { label } = REGISTRIES[registry];
   let read: Awaited<ReturnType<typeof fetchPackage>>;
-  let isPublic: boolean;
   try {
-    [isPublic, read] = await Promise.all([packagesPublic(), fetchPackage(registry, name)]);
+    read = await fetchPackage(registry, name);
   } catch {
     return markdown('The package could not be read. Try again in a few minutes.\n', 502);
   }
@@ -87,7 +84,7 @@ async function facts(req: NextRequest, { registry, name }: Target) {
   if (pkg.state === 'NOT_READ') {
     return markdown(`The ${label} package ${name} has not been read here yet.\n`, 404);
   }
-  return markdown(packageMarkdownOf(pkg, registry), 200, isPublic && !pkg.refreshRunning ? MARKDOWN_PUBLIC : PRIVATE);
+  return markdown(packageMarkdownOf(pkg, registry), 200, pkg.refreshRunning ? PRIVATE : MARKDOWN_PUBLIC);
 }
 
 /** A package the path names, by its registry and name. */
@@ -121,7 +118,6 @@ function dependentsQueryOf(search: URLSearchParams): { offset: number; hideArchi
 
 /** One page of the package's dependents, for "Show more" and "Hide archived": `{ page }`. */
 async function dependents(req: NextRequest, { registry, name }: Target) {
-  const isPublic = await packagesPublic();
   const query = dependentsQueryOf(req.nextUrl.searchParams);
   if (!query) {
     return answer({ message: 'Invalid query' }, 400);
@@ -131,7 +127,7 @@ async function dependents(req: NextRequest, { registry, name }: Target) {
     if (page === PACKAGE_UNAVAILABLE) {
       return answer({ message: 'Package data is not available right now' }, 503);
     }
-    return page ? answer({ page }, 200, isPublic ? PUBLIC : PRIVATE) : notFound();
+    return page ? answer({ page }, 200, PUBLIC) : notFound();
   } catch {
     return answer({ message: 'Failed to load the repositories' }, 502);
   }
@@ -168,9 +164,6 @@ async function refreshStatus({ registry, name }: Target) {
 }
 
 export async function GET(req: NextRequest, { params }: RouteContext<'/api/packages/[registry]/[...rest]'>) {
-  if (!(await requestMaySeePackages(req))) {
-    return notFound();
-  }
   const target = await targetOf(params);
   if (!target) {
     return notFound();
@@ -187,9 +180,6 @@ export async function GET(req: NextRequest, { params }: RouteContext<'/api/packa
 
 /** "Refresh now" on a package that updates every day, for the signed-in visitor. */
 export const POST = auth(async function POST(req: AuthRequest, { params }) {
-  if (!(await requestMaySeePackages(req))) {
-    return notFound();
-  }
   const target = await targetOf(params);
   if (!target || target.action !== 'refresh') {
     return notFound();

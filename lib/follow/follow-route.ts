@@ -9,7 +9,7 @@ import { accountEmailOf } from '@/lib/account-email';
 import { sessionTokenOf } from '@/lib/workspace/session-token';
 import { rejectWrongOrigin } from '@/utils/reject-wrong-origin';
 
-// What every follow route shares: the gate, who asks, the body, and the answer. Every answer is per viewer and is
+// What every follow route shares: the origin check, who asks, the body, and the answer. Every answer is per viewer and is
 // never kept by any cache.
 
 const NO_STORE = 'private, no-store';
@@ -57,17 +57,9 @@ export async function followCallerOf(req: { headers: Headers }): Promise<FollowC
   };
 }
 
-/**
- * The refusal a request gets before anything is asked, or null to go on: a change sent from another site, and the
- * not-found answer for a viewer package pages are hidden from. `maySee` is the packages gate, which only route handlers
- * import.
- */
-export async function followRefusalOf(
-  req: NextRequest,
-  { change, maySee }: { change: boolean; maySee: (req: NextRequest) => Promise<boolean> },
-) {
+/** The refusal a request gets before anything is asked, or null to go on: a change sent from another site. */
+export function followRefusalOf(req: NextRequest, { change }: { change: boolean }) {
   if (change && rejectWrongOrigin(req)) return followJson({ error: 'forbidden' }, 403);
-  if (!(await maySee(req))) return followFailure('not_found');
   return null;
 }
 

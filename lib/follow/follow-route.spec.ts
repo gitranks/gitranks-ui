@@ -1,9 +1,8 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { sessionTokenOf, maySee } = vi.hoisted(() => ({
+const { sessionTokenOf } = vi.hoisted(() => ({
   sessionTokenOf: vi.fn(),
-  maySee: vi.fn(async (_req: unknown) => true),
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
@@ -16,7 +15,6 @@ const request = (headers: Record<string, string> = {}, body?: string) =>
 describe('the follow routes’ shared steps', () => {
   beforeEach(() => {
     sessionTokenOf.mockReset().mockResolvedValue(null);
-    maySee.mockReset().mockResolvedValue(true);
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://gitranks.com');
   });
 
@@ -59,18 +57,9 @@ describe('the follow routes’ shared steps', () => {
     expect(await followCallerOf(request())).toEqual({ accountEmailVerified: false });
   });
 
-  it('refuse a change from another site, and anyone the packages are hidden from', async () => {
-    expect((await followRefusalOf(request({ origin: 'https://evil.example' }), { change: true, maySee }))?.status).toBe(
-      403,
-    );
-
-    maySee.mockResolvedValue(false);
-    const hidden = await followRefusalOf(request({ origin: 'https://gitranks.com' }), { change: true, maySee });
-    expect(hidden?.status).toBe(404);
-    expect(hidden?.headers.get('Cache-Control')).toBe('private, no-store');
-
-    maySee.mockResolvedValue(true);
-    expect(await followRefusalOf(request({ origin: 'https://gitranks.com' }), { change: true, maySee })).toBeNull();
+  it('refuse a change from another site', () => {
+    expect(followRefusalOf(request({ origin: 'https://evil.example' }), { change: true })?.status).toBe(403);
+    expect(followRefusalOf(request({ origin: 'https://gitranks.com' }), { change: true })).toBeNull();
   });
 
   it('read a JSON body up to its size limit', async () => {

@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next';
 import { packageStaticSitemapEntries } from '@/lib/sitemap/package-static';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+export default function sitemap(): MetadataRoute.Sitemap {
   return [
     sitemapEntry('/', { priority: 1 }),
     sitemapEntry('/countries/stars/1', { priority: 0.9 }),
@@ -16,6 +16,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapEntry('/methodology', { priority: 0.6 }),
     sitemapEntry('/terms', { priority: 0.2 }),
     sitemapEntry('/privacy', { priority: 0.2 }),
-    ...(await packageStaticSitemapEntries()),
+    ...packageStaticSitemapEntries(),
   ];
 }

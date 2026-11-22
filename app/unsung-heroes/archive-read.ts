@@ -14,8 +14,8 @@ import { UNSUNG_HERO_CACHE_TAG } from '@/lib/unsung-hero/unsung-hero';
 const ARCHIVE_LIFE = { stale: 300, revalidate: 3_600, expire: 86_400 };
 
 /**
- * The archive, one read shared by every visitor and kept on the server under the tag `unsung-hero`. Asked as the site:
- * who may see the page is decided before it renders, never here. While it cannot be read (or the API answers nothing)
+ * The archive, one read shared by every visitor and kept on the server under the tag `unsung-hero`. Asked as the site.
+ * While it cannot be read (or the API answers nothing)
  * it is `unavailable`, kept for minutes only.
  */
 export async function fetchUnsungHeroes(): Promise<Archive | typeof ARCHIVE_UNAVAILABLE> {

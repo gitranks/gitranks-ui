@@ -104,7 +104,7 @@ const SUBSCRIBER_FIELDS = `id channel addressHint paused follows { ${FOLLOW_FIEL
 
 /**
  * The signed-in viewer's settings page: every address of their account with its package follows, in the shape the
- * settings page shows (enum values as the API spells them). Null when the feature is closed to the viewer.
+ * settings page shows (enum values as the API spells them). Null for a visitor.
  */
 export const FollowingDocument = doc<{ following: SettingsSubscriber[] | null }>(
   `query Following { following { ${SUBSCRIBER_FIELDS} } }`,

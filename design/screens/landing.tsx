@@ -4,6 +4,7 @@ import { landingData } from '@/app/components/landing/__fixtures__/landing';
 import { LandingScreen } from '@/app/components/landing/landing-screen';
 import { orgBig, repoBig, userBig, userMid } from '@/badge/v3/fixtures';
 import { landingPromo } from '@/lib/learn/__fixtures__/promo';
+import { unsungHero } from '@/lib/unsung-hero/__fixtures__/hero';
 
 // The README mock draws today's #1s; the signed-in viewer's card and badges are theirs (`viewerRankCard`).
 for (const facts of [userBig, repoBig, orgBig]) withBadgeFacts(facts);
@@ -59,9 +60,8 @@ export const LANDING_SCREENS: Screen[] = [
         title: 'Unsung hero of the week, signed in or out',
         path: '/',
         signedOut: true,
-        packagesOpen: true,
         height: 6100,
-        render: () => <LandingScreen {...landingData} />,
+        render: () => <LandingScreen {...landingData} hero={unsungHero} />,
       },
       {
         id: 'signed-out-phone',

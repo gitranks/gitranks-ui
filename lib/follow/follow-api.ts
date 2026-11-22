@@ -112,7 +112,7 @@ const rowOf = (follow: ApiFollow): FollowRow => ({
   },
 });
 
-/** The API answered null: the feature is closed to this request. */
+/** The API answered null. */
 const CLOSED = { ok: false, failure: 'not_found' } as const;
 
 /** The channels the dialog may offer and, for one package, how many repositories use it now. */

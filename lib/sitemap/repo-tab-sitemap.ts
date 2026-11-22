@@ -3,7 +3,6 @@ import type { MetadataRoute } from 'next';
 
 import { repoTabPath } from '@/app/repo/[owner]/[name]/utils/repo-tabs';
 import { fetchRepoTabsForSitemap } from '@/lib/sitemap/package-sitemap-data';
-import { notFoundUnlessPackagesPublic } from '@/lib/sitemap/packages-public';
 import { SITEMAP_REPO_TAB_PARTS_MAX } from '@/lib/sitemap/sitemap.consts';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 import { RepoSitemapTab } from '@/types/generated/graphql';
@@ -16,12 +15,10 @@ export function repoTabSitemapParts() {
 }
 
 /**
- * One part of a repository tab's pages (`/repo/<owner>/<name>/used-by` or `/contributors`), up to 40,000 a part. 404
- * until package pages are open to everyone; a part whose names cannot be read is empty.
+ * One part of a repository tab's pages (`/repo/<owner>/<name>/used-by` or `/contributors`), up to 40,000 a part. A part
+ * whose names cannot be read is empty.
  */
 export async function repoTabSitemap(tab: RepoSitemapTab, id: Promise<string>): Promise<MetadataRoute.Sitemap> {
-  await notFoundUnlessPackagesPublic();
-
   const part = Number(await id);
   if (!Number.isInteger(part) || part < 0 || part >= SITEMAP_REPO_TAB_PARTS_MAX) {
     return [];

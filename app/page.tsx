@@ -16,6 +16,7 @@ import { fetchCountrySummaries } from '@/graphql/helpers/fetch-country-summaries
 import { fetchLanguageSummaries } from '@/graphql/helpers/fetch-language-summary';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { SITE_DESCRIPTION, SITE_TITLE } from '@/lib/seo/site';
+import { fetchUnsungHero } from '@/lib/unsung-hero/unsung-hero-read';
 import { LanguageSummaryOrder } from '@/types/generated/graphql';
 
 export const metadata: Metadata = pageMetadata({
@@ -30,20 +31,34 @@ export const metadata: Metadata = pageMetadata({
 // badges, from the public badge data the builder reads, and, where Contribute is open to them,
 // their own top picks.
 export default async function Home() {
-  const [insights, leaderboards, tiers, orgs, featured, countries, languages, countryList, repos, showcase, learn] =
-    await Promise.all([
-      fetchLandingInsights(),
-      fetchLeaderboards(),
-      fetchGlobalTiers(),
-      fetchTopOrgs(),
-      fetchFeaturedOrg(),
-      fetchCountrySummaries(),
-      fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, offset: 0, limit: 8 }),
-      fetchCountries(),
-      fetchTopRepos(),
-      fetchReadmeShowcase(),
-      fetchLearnForVisitors(),
-    ]);
+  const [
+    insights,
+    leaderboards,
+    tiers,
+    orgs,
+    featured,
+    countries,
+    languages,
+    countryList,
+    repos,
+    showcase,
+    learn,
+    hero,
+  ] = await Promise.all([
+    fetchLandingInsights(),
+    fetchLeaderboards(),
+    fetchGlobalTiers(),
+    fetchTopOrgs(),
+    fetchFeaturedOrg(),
+    fetchCountrySummaries(),
+    fetchLanguageSummaries({ order: LanguageSummaryOrder.Score, offset: 0, limit: 8 }),
+    fetchCountries(),
+    fetchTopRepos(),
+    fetchReadmeShowcase(),
+    fetchLearnForVisitors(),
+    // This week's Unsung hero, in the page's HTML; a failed read leaves the column's other cards.
+    fetchUnsungHero().catch(() => null),
+  ]);
 
   return (
     <LandingScreen
@@ -57,6 +72,7 @@ export default async function Home() {
       countryList={countryList}
       repos={repos}
       showcase={showcase}
+      hero={hero}
       learn={{ forVisitors: learn }}
     />
   );

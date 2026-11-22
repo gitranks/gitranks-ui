@@ -43,16 +43,6 @@ vi.mock('./lib/learn/lesson-gate', () => ({
 }));
 vi.mock('./lib/learn/public-progress/progress-gate', () => ({ progressGateOf: async () => 'page' }));
 
-const { packagesPublic, maySeePackages } = vi.hoisted(() => ({
-  packagesPublic: vi.fn(async () => false),
-  maySeePackages: vi.fn(async (_req?: unknown) => false),
-}));
-vi.mock('./lib/packages/packages-gate', () => ({
-  packagesPublic,
-  // As the gate itself: public lets everyone in without reading the session.
-  requestMaySeePackages: async (req: unknown) => (await packagesPublic()) || maySeePackages(req),
-}));
-
 const {
   default: proxy,
   config,
@@ -80,10 +70,6 @@ describe('proxy', () => {
     timelineGate.mockResolvedValue({ kind: 'page', partial: false, confirmed: true });
     lessonGate.mockReset();
     lessonGate.mockResolvedValue({ kind: 'page' });
-    packagesPublic.mockReset();
-    packagesPublic.mockResolvedValue(false);
-    maySeePackages.mockReset();
-    maySeePackages.mockResolvedValue(false);
     sessionRead.ok = true;
   });
 
@@ -91,7 +77,6 @@ describe('proxy', () => {
     const PACKAGE_PATHS = [
       '/package/npm/react',
       '/package/npm/@types/node',
-      // `/package/npm/%40types/node` is sent to the `@` spelling before the gate (proxy-packages-gate.spec.ts).
       '/packages',
       '/packages/npm',
       '/packages/npm/downloads/1',
@@ -104,56 +89,16 @@ describe('proxy', () => {
     ];
     const SIGNED_IN = 'authjs.session-token=t';
 
-    it.each(PACKAGE_PATHS)(
-      'answers %s with a 404 nobody caches to a visitor without a session, asking nothing about them',
-      async (path) => {
-        const response = await proxy(request(undefined, path), event);
-
-        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
-        expect(response?.headers.get('cache-control')).toBe('private, no-store');
-        expect(maySeePackages).not.toHaveBeenCalled();
-        expect(withSession).not.toHaveBeenCalled();
-      },
-    );
-
-    it.each(PACKAGE_PATHS)(
-      'answers %s with a 404 nobody caches to a signed-in visitor the API says no to',
-      async (path) => {
-        const response = await proxy(request(SIGNED_IN, path), event);
-
-        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
-        expect(response?.headers.get('cache-control')).toBe('private, no-store');
-        expect(response?.headers.get('set-cookie')).toBeNull();
-        expect(maySeePackages).toHaveBeenCalledOnce();
-        expect(withSession).not.toHaveBeenCalled();
-      },
-    );
-
-    it.each(PACKAGE_PATHS)(
-      'lets a signed-in visitor the API says yes to through to %s, as any signed-in page',
-      async (path) => {
-        maySeePackages.mockResolvedValue(true);
-        const response = await proxy(request(SIGNED_IN, path), event);
-
-        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
-        expect(response?.headers.get('cache-control')).toBe('private, no-cache');
-        expect(withSession).toHaveBeenCalledOnce();
-      },
-    );
-
-    it.each(PACKAGE_PATHS)('lets everyone through to %s once public', async (path) => {
-      packagesPublic.mockResolvedValue(true);
+    it.each(PACKAGE_PATHS)('lets everyone through to %s', async (path) => {
       const signedOut = await proxy(request(undefined, path), event);
       expect(signedOut?.headers.get('x-middleware-rewrite')).toBeNull();
 
       const signedIn = await proxy(request(SIGNED_IN, path), event);
       expect(signedIn?.headers.get('x-middleware-rewrite')).toBeNull();
       expect(signedIn?.headers.get('cache-control')).toBe('private, no-cache');
-      expect(maySeePackages).not.toHaveBeenCalled();
     });
 
-    it("keeps a package's page out of shared caches for a visitor without a session once public, as a repository's", async () => {
-      packagesPublic.mockResolvedValue(true);
+    it("keeps a package's page out of shared caches for a visitor without a session, as a repository's", async () => {
       const page = await proxy(request(undefined, '/package/npm/react'), event);
       expect(page?.headers.get('cache-control')).toBe(ENTITY_PAGE_CACHE_CONTROL);
       expect(page?.headers.get('set-cookie')).toBeNull();
@@ -162,13 +107,7 @@ describe('proxy', () => {
       expect(ranking?.headers.get('cache-control')).toBeNull();
     });
 
-    it("answers a package's facts in markdown from the packages API route, behind the same gate", async () => {
-      for (const path of ['/package/npm/react/facts.md', '/package/npm/@types/node/facts.md']) {
-        const closed = await proxy(request(undefined, path), event);
-        expect(closed?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
-      }
-
-      packagesPublic.mockResolvedValue(true);
+    it("answers a package's facts in markdown from the packages API route", async () => {
       const open = await proxy(request(undefined, '/package/npm/@types/node/facts.md'), event);
       expect(open?.headers.get('x-middleware-rewrite')).toBe(
         'https://gitranks.com/api/packages/npm/@types/node/facts.md',
@@ -179,82 +118,32 @@ describe('proxy', () => {
       expect(page?.headers.get('x-middleware-rewrite')).toBeNull();
     });
 
-    it('gates the spellings the router reads as a package page', async () => {
-      for (const path of ['/%70ackage/npm/react', '//packages//npm', '/Methodology/Packages']) {
-        const response = await proxy(request(undefined, path), event);
-        expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
-        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
-      }
-    });
-
     describe("a repository's own page", () => {
       const REPO_PAGES = ['/repo/facebook/react', '/repo/facebook/react/'];
       const OVERVIEW = 'https://gitranks.com/repo/facebook/react/overview';
 
       it.each(REPO_PAGES)(
-        "is today's page for a visitor without a session while packages are hidden: %s",
+        'is the tabbed Overview for everyone, with the headers a repository page has: %s',
         async (path) => {
-          maySeePackages.mockResolvedValue(true);
-          const response = await proxy(request(undefined, path), event);
+          const signedOut = await proxy(request(undefined, path), event);
+          expect(signedOut?.headers.get('x-middleware-rewrite')).toBe(OVERVIEW);
+          expect(signedOut?.headers.get('cache-control')).toBe(ENTITY_PAGE_CACHE_CONTROL);
+          expect(signedOut?.headers.get('set-cookie')).toBeNull();
 
-          expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
-          expect(response?.headers.get('cache-control')).toBe(ENTITY_PAGE_CACHE_CONTROL);
-          expect(response?.headers.get('set-cookie')).toBeNull();
-          expect(maySeePackages).not.toHaveBeenCalled();
+          const hinted = await proxy(request('has-session=1', path), event);
+          expect(hinted?.headers.get('x-middleware-rewrite')).toBe(OVERVIEW);
+          expect(hinted?.headers.get('cache-control')).toBe('private, no-store');
+          expect(hinted?.headers.get('set-cookie')).toContain('has-session=;');
+
+          const signedIn = await proxy(request(SIGNED_IN, path), event);
+          expect(signedIn?.headers.get('x-middleware-rewrite')).toBe(OVERVIEW);
+          expect(signedIn?.headers.get('cache-control')).toBe('private, no-cache');
+          expect(signedIn?.headers.get('set-cookie')).toContain('has-session=1');
           expect(withSession).not.toHaveBeenCalled();
         },
       );
 
-      it.each(REPO_PAGES)("is today's page for a signed-in visitor the API says no to: %s", async (path) => {
-        const response = await proxy(request(SIGNED_IN, path), event);
-
-        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
-        expect(response?.headers.get('cache-control')).toBe('private, no-cache');
-        expect(maySeePackages).toHaveBeenCalledOnce();
-        // Today's path: through Auth.js, which renews the session.
-        expect(withSession).toHaveBeenCalledOnce();
-      });
-
-      it("is today's page, the session hint cleared, for an expired session's hint while packages are hidden", async () => {
-        const response = await proxy(request('has-session=1', '/repo/facebook/react'), event);
-
-        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
-        expect(response?.headers.get('cache-control')).toBe('private, no-store');
-        expect(maySeePackages).not.toHaveBeenCalled();
-      });
-
-      it.each(REPO_PAGES)('is the tabbed Overview for a signed-in visitor the API says yes to: %s', async (path) => {
-        maySeePackages.mockResolvedValue(true);
-        const response = await proxy(request(SIGNED_IN, path), event);
-
-        expect(response?.headers.get('x-middleware-rewrite')).toBe(OVERVIEW);
-        expect(response?.headers.get('cache-control')).toBe('private, no-cache');
-        expect(response?.headers.get('set-cookie')).toContain('has-session=1');
-        expect(withSession).not.toHaveBeenCalled();
-      });
-
-      it('is the tabbed Overview for everyone once public, with the headers a repository page has', async () => {
-        packagesPublic.mockResolvedValue(true);
-
-        const signedOut = await proxy(request(undefined, '/repo/facebook/react'), event);
-        expect(signedOut?.headers.get('x-middleware-rewrite')).toBe(OVERVIEW);
-        expect(signedOut?.headers.get('cache-control')).toBe(ENTITY_PAGE_CACHE_CONTROL);
-        expect(signedOut?.headers.get('set-cookie')).toBeNull();
-
-        const hinted = await proxy(request('has-session=1', '/repo/facebook/react'), event);
-        expect(hinted?.headers.get('x-middleware-rewrite')).toBe(OVERVIEW);
-        expect(hinted?.headers.get('cache-control')).toBe('private, no-store');
-        expect(hinted?.headers.get('set-cookie')).toContain('has-session=;');
-
-        const signedIn = await proxy(request(SIGNED_IN, '/repo/facebook/react'), event);
-        expect(signedIn?.headers.get('x-middleware-rewrite')).toBe(OVERVIEW);
-        expect(signedIn?.headers.get('cache-control')).toBe('private, no-cache');
-        expect(maySeePackages).not.toHaveBeenCalled();
-        expect(withSession).not.toHaveBeenCalled();
-      });
-
       it("keeps an RSC or prefetch request's query on the rewrite", async () => {
-        maySeePackages.mockResolvedValue(true);
         const rsc = new NextRequest('https://gitranks.com/repo/facebook/react?_rsc=1x2y3', {
           headers: {
             cookie: SIGNED_IN,
@@ -268,20 +157,7 @@ describe('proxy', () => {
         expect(response?.headers.get('x-middleware-rewrite')).toBe(`${OVERVIEW}?_rsc=1x2y3`);
       });
 
-      it('sends a hidden visitor with an expired session through Auth.js, as today', async () => {
-        // The gate reads no valid session from the cookie: the visitor is not let in.
-        const response = await proxy(
-          request('authjs.session-token=expired; has-session=1', '/repo/facebook/react'),
-          event,
-        );
-
-        expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
-        expect(maySeePackages).toHaveBeenCalledOnce();
-        expect(withSession).toHaveBeenCalledOnce();
-      });
-
       it('rewrites only the repository page itself, never its tabs or an impossible name', async () => {
-        packagesPublic.mockResolvedValue(true);
         for (const path of [
           '/repo/facebook/react/used-by',
           '/repo/facebook/react/contributors',
@@ -320,25 +196,12 @@ describe('proxy', () => {
       '/package/npm/@types',
       '/package/npm/react/extra',
       `/package/npm/${'x'.repeat(215)}`,
-    ])('answers %s with a 404 before asking anything, even to a visitor who may see packages', async (path) => {
-      packagesPublic.mockResolvedValue(true);
-      maySeePackages.mockResolvedValue(true);
+    ])('answers %s with a 404', async (path) => {
       for (const cookie of [undefined, SIGNED_IN]) {
         const response = await proxy(request(cookie, path), event);
         expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
       }
-      expect(packagesPublic).not.toHaveBeenCalled();
-      expect(maySeePackages).not.toHaveBeenCalled();
       expect(withSession).not.toHaveBeenCalled();
-    });
-
-    it('asks nothing for the other pages', async () => {
-      for (const path of ['/contributors', '/by/stars/1', '/repos/1', '/profile/torvalds', '/methodology']) {
-        await proxy(request(SIGNED_IN, path), event);
-        await proxy(request(undefined, path), event);
-      }
-      expect(packagesPublic).not.toHaveBeenCalled();
-      expect(maySeePackages).not.toHaveBeenCalled();
     });
   });
 
@@ -1049,7 +912,8 @@ describe('proxy', () => {
   ])('lets the well-formed url %s through to the page', async (path) => {
     const response = await proxy(request(undefined, path), event);
 
-    expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+    // A repository's page is its Overview tab; nothing here is the 404.
+    expect(response?.headers.get('x-middleware-rewrite') ?? '').not.toContain('/_404');
   });
 
   it.each(['/', '/insights', '/orgs/1', '/repos/1', '/profile', '/repository/x'])(

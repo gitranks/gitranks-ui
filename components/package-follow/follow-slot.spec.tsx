@@ -10,13 +10,11 @@ import type { FollowSlotProps } from './follow-slot';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const { session, gate, signIn } = vi.hoisted(() => ({
+const { session, signIn } = vi.hoisted(() => ({
   session: { current: { data: null } as { data: unknown } },
-  gate: { open: true },
   signIn: vi.fn(async () => undefined),
 }));
 vi.mock('next-auth/react', () => ({ useSession: () => session.current, signIn }));
-vi.mock('@/lib/packages/packages-open', () => ({ usePackagesOpen: () => gate.open }));
 
 const { FollowSlot } = await import('./follow-slot');
 const { LINK_PAGES } = await import('@/lib/link-token/link-token');
@@ -70,7 +68,6 @@ describe('FollowSlot', () => {
   const row = (channel: string) => dialog()?.querySelector(`[data-channel="${channel}"]`) as HTMLElement | null;
 
   beforeEach(() => {
-    gate.open = true;
     session.current = { data: null };
     signIn.mockClear();
     window.history.replaceState(null, '', '/package/npm/react-resize-detector');
@@ -96,15 +93,6 @@ describe('FollowSlot', () => {
     container.remove();
     document.body.innerHTML = '';
     vi.unstubAllGlobals();
-  });
-
-  it('draws nothing, and asks nothing, for a viewer package pages are hidden from', async () => {
-    gate.open = false;
-    for (const placement of ['package-page', 'used-by', 'used-by-empty'] as const) {
-      await render({ placement });
-      expect(container.innerHTML).toBe('');
-    }
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('draws the button and its line on a package page, asking a visitor nothing', async () => {

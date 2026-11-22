@@ -31,6 +31,7 @@ import type { ReadmeShowcase } from './readme-showcase';
 import { ReposSection } from './repos-section';
 import { Header } from '@/components/header/header';
 import type { ShownPromo } from '@/lib/learn/learn-promo';
+import type { UnsungHero } from '@/lib/unsung-hero/unsung-hero';
 import type { CountryQuery, CountrySummaryQuery, LanguageSummaryQuery } from '@/types/generated/graphql';
 
 const EXAMPLE_COUNT = 3;
@@ -47,6 +48,8 @@ export type LandingData = {
   countryList: NonNullable<CountryQuery['country']>;
   repos: Awaited<ReturnType<typeof fetchTopRepos>>;
   showcase: ReadmeShowcase;
+  /** This week's Unsung hero; null in a week with none, or when it could not be read. */
+  hero?: UnsungHero | null;
 };
 
 /**
@@ -68,6 +71,7 @@ export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
   countryList,
   repos,
   showcase,
+  hero = null,
   learn,
 }) => {
   const flags = new Map(countryList.map((country) => [country.name, country.flag]));
@@ -136,7 +140,7 @@ export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
       <Header />
       <InsightTicker insight={insights[0]} />
       <main>
-        <Hero developersRanked={developersRanked} examples={examples} stats={stats} />
+        <Hero developersRanked={developersRanked} examples={examples} hero={hero} stats={stats} />
         <Container>
           {/* One suggestion: Contribute's section, then Learn's once Learn is open to everyone (static, with the
               page); for a signed-in user Learn may suit, Learn's own in their place, read in the browser. */}

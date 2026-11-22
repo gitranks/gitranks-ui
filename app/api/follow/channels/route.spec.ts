@@ -1,14 +1,12 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { requestMaySeePackages, sessionTokenOf, readFollowChannels, readLinkToken } = vi.hoisted(() => ({
-  requestMaySeePackages: vi.fn(async (_req: unknown) => true),
+const { sessionTokenOf, readFollowChannels, readLinkToken } = vi.hoisted(() => ({
   sessionTokenOf: vi.fn(),
   readFollowChannels: vi.fn(),
   readLinkToken: vi.fn(async (_kind: string): Promise<string | null> => null),
 }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/packages/packages-gate', () => ({ requestMaySeePackages }));
 vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 vi.mock('@/lib/follow/follow-api', () => ({ readFollowChannels }));
 vi.mock('@/lib/link-token/link-cookie', () => ({ readLinkToken }));
@@ -20,16 +18,9 @@ const channels = { channels: [], dependents: 16, notable: 4 };
 
 describe('GET /api/follow/channels', () => {
   beforeEach(() => {
-    requestMaySeePackages.mockReset().mockResolvedValue(true);
     sessionTokenOf.mockReset().mockResolvedValue(null);
     readLinkToken.mockReset().mockResolvedValue(null);
     readFollowChannels.mockReset().mockResolvedValue({ ok: true, data: channels });
-  });
-
-  it('answers the not-found answer to a viewer package pages are hidden from', async () => {
-    requestMaySeePackages.mockResolvedValue(false);
-    expect((await call()).status).toBe(404);
-    expect(readFollowChannels).not.toHaveBeenCalled();
   });
 
   it('asks for one package by its name, never kept by a cache', async () => {

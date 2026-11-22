@@ -4,14 +4,13 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { FaRegBuilding, FaRegUser } from 'react-icons/fa';
 import { FaCode } from 'react-icons/fa6';
-import { GoRepo } from 'react-icons/go';
+import { GoPackage, GoRepo } from 'react-icons/go';
 import { GrLocation } from 'react-icons/gr';
 
 import { ContributeMenuItem } from './contribute-menu-item';
 import { LearnMenuItem } from './learn-menu-item';
 import { ListItem } from './menu-list-item';
 import { mainMenuItemClass } from './menu-styles';
-import { PackageRankingsMenuItem } from './package-rankings-menu-item';
 import { PhoneMenu } from './phone-menu';
 import {
   NavigationMenuContent,
@@ -19,6 +18,7 @@ import {
   NavigationMenuLink,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
+import { packageRankingPath } from '@/utils/package-paths';
 
 export type MenuSection = 'rankings' | 'badges' | 'contribute' | 'learn';
 
@@ -62,7 +62,9 @@ export function MainMenu({ className, section }: Readonly<{ className?: string; 
             <ListItem href="/repos/1">
               <GoRepo /> Repository Rankings
             </ListItem>
-            <PackageRankingsMenuItem />
+            <ListItem href={packageRankingPath('downloads')}>
+              <GoPackage /> Package Rankings
+            </ListItem>
           </ul>
         </NavigationMenuContent>
       </NavigationMenuItem>

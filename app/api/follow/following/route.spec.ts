@@ -3,14 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { followOf, subscriberOf } from '@/lib/link-token/__fixtures__/follow-links';
 
-const { requestMaySeePackages, sessionTokenOf, pressSessionSettings, readLinkToken } = vi.hoisted(() => ({
-  requestMaySeePackages: vi.fn(async (_req: unknown) => true),
+const { sessionTokenOf, pressSessionSettings, readLinkToken } = vi.hoisted(() => ({
   sessionTokenOf: vi.fn(),
   pressSessionSettings: vi.fn(),
   readLinkToken: vi.fn(),
 }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/packages/packages-gate', () => ({ requestMaySeePackages }));
 vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 vi.mock('@/lib/link-token/link-cookie', () => ({ readLinkToken }));
 vi.mock('@/lib/follow/following-session', async (importOriginal) => ({
@@ -34,7 +32,6 @@ const LIST = { kind: 'list', subscribers: [subscriberOf()] };
 describe('POST /api/follow/following', () => {
   beforeEach(() => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://gitranks.com');
-    requestMaySeePackages.mockReset().mockResolvedValue(true);
     sessionTokenOf.mockReset().mockResolvedValue({ githubLogin: 'octocat' });
     pressSessionSettings.mockReset().mockResolvedValue(LIST);
     readLinkToken.mockReset();
@@ -51,14 +48,6 @@ describe('POST /api/follow/following', () => {
       { action: 'remove', followId: FOLLOW_ID },
     );
     expect(readLinkToken).not.toHaveBeenCalled();
-  });
-
-  it('answers the not-found answer to a viewer package pages are hidden from, changing nothing', async () => {
-    requestMaySeePackages.mockResolvedValue(false);
-    const response = await call({ action: 'stop-all' });
-    expect(response.status).toBe(404);
-    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(pressSessionSettings).not.toHaveBeenCalled();
   });
 
   it('refuses another site, a press of another shape, and a visitor', async () => {

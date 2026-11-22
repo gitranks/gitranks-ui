@@ -3,12 +3,11 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { parseUsedByQuery } from './used-by-query';
 import { DEPENDENTS_PAGE_SIZE } from '@/components/dependents/dependents.consts';
 import { fetchRepoPackages, fetchRepoUsedBy, UNAVAILABLE } from '@/graphql/helpers/fetch-repo-packages';
-import { packagesPublic, requestMaySeePackages } from '@/lib/packages/packages-gate';
 import { parseRepoParams } from '@/utils/repo-paths';
 
-/** While package pages are not open to everyone, an answer is never kept by a shared cache: it was decided per viewer. */
+/** A failure or a bad query: never kept by a shared cache. */
 const PRIVATE = 'private, no-store';
-/** Once they are, as the repository's other reads: the browser five minutes, a shared cache an hour. */
+/** As the repository's other reads: the browser five minutes, a shared cache an hour. */
 const PUBLIC = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400';
 
 const answer = (body: unknown, status: number, cacheControl: string) =>
@@ -16,14 +15,10 @@ const answer = (body: unknown, status: number, cacheControl: string) =>
 
 /**
  * One page of the repositories with 100+ stars that use a repository's packages, for "Show more", the package filter
- * and "Hide archived": `{ page }`. Only for a visitor who may see package pages; anyone else gets the not-found answer.
+ * and "Hide archived": `{ page }`.
  */
 export async function GET(req: NextRequest, { params }: RouteContext<'/api/repo/[owner]/[name]/used-by'>) {
-  const isPublic = await packagesPublic();
-  const cacheControl = isPublic ? PUBLIC : PRIVATE;
-  if (!isPublic && !(await requestMaySeePackages(req))) {
-    return answer({ message: 'Not found' }, 404, PRIVATE);
-  }
+  const cacheControl = PUBLIC;
 
   const { owner, name } = await params;
   const repo = parseRepoParams(owner, name);

@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 
 import { type HeroHit, UNSUNG_HERO_CURRENT_PATH, UNSUNG_HERO_HIT_PATH, type UnsungHero } from './unsung-hero';
 
-// This week's hero, asked in the browser: the home page and the repository pages are cached for everyone, so a hero
-// only some visitors may see yet is never in their HTML. Asked only by a caller the feature is open to, and kept for
-// the page's life up to `KEPT_MS` and never past the hero's week, so a tab left open moves on to the next one.
+// This week's hero, asked in the browser by a repository page to count a view of the hero's repository. Kept for the
+// page's life up to `KEPT_MS` and never past the hero's week, so a tab left open moves on to the next one.
 
 /** How long an answer is kept before a new mount asks again. */
 const KEPT_MS = 10 * 60_000;
@@ -42,20 +41,11 @@ function askHero(now = Date.now()): Promise<UnsungHero | null> {
   return asked;
 }
 
-/**
- * This week's hero once the browser has it; `null` before, in a week with none, on any failure, and while `enabled` is
- * false, when nothing is asked (the feature is not open to this viewer).
- */
-export function useUnsungHero(enabled: boolean): UnsungHero | null {
-  const [hero, setHero] = useState<UnsungHero | null>(() =>
-    enabled && Date.now() < keptUntil ? (known ?? null) : null,
-  );
+/** This week's hero once the browser has it; `null` before, in a week with none, and on any failure. */
+export function useUnsungHero(): UnsungHero | null {
+  const [hero, setHero] = useState<UnsungHero | null>(() => (Date.now() < keptUntil ? (known ?? null) : null));
 
   useEffect(() => {
-    if (!enabled) {
-      setHero(null);
-      return;
-    }
     let live = true;
     askHero().then((answer) => {
       if (live) setHero(answer);
@@ -63,9 +53,9 @@ export function useUnsungHero(enabled: boolean): UnsungHero | null {
     return () => {
       live = false;
     };
-  }, [enabled]);
+  }, []);
 
-  return enabled ? hero : null;
+  return hero;
 }
 
 const reported = new Set<string>();

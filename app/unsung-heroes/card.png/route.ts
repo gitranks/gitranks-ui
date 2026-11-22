@@ -14,8 +14,7 @@ async function archiveCardPng() {
 }
 
 /**
- * `/unsung-heroes/card.png`: the archive's link preview, this week's hero or the archive itself. Under the archive's
- * path, so it is hidden from whoever the page is hidden from. Reads no query: the `?week=` the page names it with only
+ * `/unsung-heroes/card.png`: the archive's link preview, this week's hero or the archive itself. Reads no query: the `?week=` the page names it with only
  * tells link previews apart.
  */
 export async function GET() {

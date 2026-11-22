@@ -1,13 +1,11 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { requestMaySeePackages, sessionTokenOf, changeFollow } = vi.hoisted(() => ({
-  requestMaySeePackages: vi.fn(async (_req: unknown) => true),
+const { sessionTokenOf, changeFollow } = vi.hoisted(() => ({
   sessionTokenOf: vi.fn(),
   changeFollow: vi.fn(),
 }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/packages/packages-gate', () => ({ requestMaySeePackages }));
 vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 vi.mock('@/lib/follow/follow-api', () => ({ changeFollow }));
 
@@ -25,7 +23,6 @@ const call = (body: unknown, origin = 'https://gitranks.com') =>
 describe('POST /api/follow/change', () => {
   beforeEach(() => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://gitranks.com');
-    requestMaySeePackages.mockReset().mockResolvedValue(true);
     sessionTokenOf.mockReset().mockResolvedValue({ githubLogin: 'octocat' });
     changeFollow.mockReset().mockResolvedValue({ ok: true, data: null });
   });
@@ -37,14 +34,6 @@ describe('POST /api/follow/change', () => {
       { githubLogin: 'octocat', accountEmailVerified: false },
       { followId: 'f1', remove: true },
     );
-  });
-
-  it('answers the not-found answer to a viewer package pages are hidden from, asking nothing', async () => {
-    requestMaySeePackages.mockResolvedValue(false);
-    const response = await call({ followId: 'f1', remove: true });
-    expect(response.status).toBe(404);
-    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(changeFollow).not.toHaveBeenCalled();
   });
 
   it('asks a visitor to sign in, and refuses another site and a body of another shape', async () => {

@@ -4,13 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { parseUsedByQuery } from './used-by-query';
 import { firstPage, threePackages } from '@/components/dependents/dependents.fixtures';
 
-const { packagesPublic, requestMaySeePackages, fetchRepoPackages, fetchRepoUsedBy } = vi.hoisted(() => ({
-  packagesPublic: vi.fn(async () => false),
-  requestMaySeePackages: vi.fn(async (_req: unknown) => false),
+const { fetchRepoPackages, fetchRepoUsedBy } = vi.hoisted(() => ({
   fetchRepoPackages: vi.fn(),
   fetchRepoUsedBy: vi.fn(),
 }));
-vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic, requestMaySeePackages }));
 vi.mock('@/graphql/helpers/fetch-repo-packages', () => ({
   UNAVAILABLE: 'unavailable',
   fetchRepoPackages,
@@ -29,28 +26,16 @@ const PUBLIC = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400
 
 describe('repo used-by route', () => {
   beforeEach(() => {
-    packagesPublic.mockReset().mockResolvedValue(false);
-    requestMaySeePackages.mockReset().mockResolvedValue(false);
     fetchRepoPackages.mockReset().mockResolvedValue(threePackages);
     fetchRepoUsedBy.mockReset().mockResolvedValue(firstPage);
   });
 
-  it('answers the not-found answer, kept by no cache, to a visitor who may not see package pages, reading nothing', async () => {
-    const response = await call('?offset=25');
-
-    expect(response.status).toBe(404);
-    expect(response.headers.get('Cache-Control')).toBe(PRIVATE);
-    expect(fetchRepoPackages).not.toHaveBeenCalled();
-    expect(fetchRepoUsedBy).not.toHaveBeenCalled();
-  });
-
-  it('answers a page to a visitor who may see them, kept by no shared cache while they are not public', async () => {
-    requestMaySeePackages.mockResolvedValue(true);
-
+  it('answers a page, cacheable by shared caches', async () => {
     const response = await call('?offset=25&package=%40nebula%2Fui&archived=0');
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Cache-Control')).toBe(PRIVATE);
+    expect(response.headers.get('Cache-Control')).toBe(PUBLIC);
+    expect(response.headers.get('Cloudflare-CDN-Cache-Control')).toBeNull();
     expect(await response.json()).toEqual({ page: firstPage });
     expect(fetchRepoUsedBy).toHaveBeenCalledExactlyOnceWith('nebula', 'ui', {
       offset: 25,
@@ -60,20 +45,7 @@ describe('repo used-by route', () => {
     });
   });
 
-  it('is cacheable by shared caches once package pages are public', async () => {
-    packagesPublic.mockResolvedValue(true);
-
-    const response = await call();
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get('Cache-Control')).toBe(PUBLIC);
-    expect(response.headers.get('Cloudflare-CDN-Cache-Control')).toBeNull();
-    expect(requestMaySeePackages).not.toHaveBeenCalled();
-  });
-
   it('answers an empty page for a package the repository does not list, without reading it', async () => {
-    requestMaySeePackages.mockResolvedValue(true);
-
     const response = await call('?package=react');
 
     expect(await response.json()).toEqual({ page: { total: 0, archived: 0, items: [] } });
@@ -81,14 +53,12 @@ describe('repo used-by route', () => {
   });
 
   it('is not found for a repository that publishes nothing', async () => {
-    requestMaySeePackages.mockResolvedValue(true);
     fetchRepoPackages.mockResolvedValue(null);
 
     expect((await call()).status).toBe(404);
   });
 
   it('says when package data cannot be read just now, kept by no cache', async () => {
-    requestMaySeePackages.mockResolvedValue(true);
     fetchRepoUsedBy.mockResolvedValue('unavailable');
 
     const response = await call();
@@ -100,7 +70,6 @@ describe('repo used-by route', () => {
   });
 
   it('answers a failed read with a 502', async () => {
-    requestMaySeePackages.mockResolvedValue(true);
     fetchRepoUsedBy.mockRejectedValue(new Error('boom'));
 
     expect((await call()).status).toBe(502);
@@ -109,8 +78,6 @@ describe('repo used-by route', () => {
   it.each(['?offset=3', '?offset=-25', '?offset=5025', '?offset=1e2', '?package=.env', '?archived=1', '?package='])(
     'refuses %s',
     async (search) => {
-      requestMaySeePackages.mockResolvedValue(true);
-
       const response = await call(search);
       expect(response.status).toBe(400);
       expect(fetchRepoUsedBy).not.toHaveBeenCalled();
@@ -118,8 +85,6 @@ describe('repo used-by route', () => {
   );
 
   it('refuses an impossible repository', async () => {
-    requestMaySeePackages.mockResolvedValue(true);
-
     expect((await call('', '-x', 'y')).status).toBe(400);
   });
 });

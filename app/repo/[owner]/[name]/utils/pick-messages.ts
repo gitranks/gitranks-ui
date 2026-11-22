@@ -185,9 +185,8 @@ const WITH_PACKAGES = {
 } satisfies PickCopy;
 
 /**
- * The words of daily updates for a page of `kind`: today's, which name repositories only, until packages are shown to
- * the visitor (`usePackagesOpen()`); then the words that name both. The one switch for them: once packages are shown
- * to everyone, today's words and this function go.
+ * The words of daily updates for a page of `kind`: the words that name repositories and packages, or, on the older
+ * repository page (`packages` false), the ones that name repositories only.
  */
 export function pickCopyOf(packages: boolean, kind: PickKind = 'repo'): PickCopy {
   if (!packages) {

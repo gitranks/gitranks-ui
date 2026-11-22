@@ -10,17 +10,7 @@ import {
   spelledPackage,
 } from '@/app/package/[registry]/[...name]/__fixtures__/package';
 
-const {
-  packagesPublic,
-  requestMaySeePackages,
-  fetchPackage,
-  fetchPackageDependents,
-  signedFetch,
-  revalidateTag,
-  current,
-} = vi.hoisted(() => ({
-  packagesPublic: vi.fn(async () => false),
-  requestMaySeePackages: vi.fn(async (_req: unknown) => false),
+const { fetchPackage, fetchPackageDependents, signedFetch, revalidateTag, current } = vi.hoisted(() => ({
   fetchPackage: vi.fn(),
   fetchPackageDependents: vi.fn(),
   signedFetch: vi.fn(),
@@ -36,7 +26,6 @@ vi.mock('@/lib/seo/site', async (load) => ({
   ...(await load<typeof import('@/lib/seo/site')>()),
   SITE_URL: 'https://gitranks.com',
 }));
-vi.mock('@/lib/packages/packages-gate', () => ({ packagesPublic, requestMaySeePackages }));
 vi.mock('@/graphql/helpers/fetch-package', () => ({
   PACKAGE_UNAVAILABLE: 'unavailable',
   fetchPackage,
@@ -72,8 +61,6 @@ const upstream = (status: number, body: unknown) =>
 
 describe('package routes', () => {
   beforeEach(() => {
-    packagesPublic.mockReset().mockResolvedValue(false);
-    requestMaySeePackages.mockReset().mockResolvedValue(false);
     fetchPackage.mockReset().mockResolvedValue(rankedPackage);
     fetchPackageDependents.mockReset().mockResolvedValue(PAGE);
     signedFetch.mockReset();
@@ -83,28 +70,13 @@ describe('package routes', () => {
     vi.useRealTimers();
   });
 
-  it('answers the not-found answer, kept by no cache, to a visitor who may not see package pages', async () => {
-    for (const [method, path] of [
-      ['GET', 'npm/react/dependents'],
-      ['GET', 'npm/react/refresh'],
-      ['GET', 'npm/react/facts.md'],
-      ['POST', 'npm/react/refresh'],
-    ] as const) {
-      const response = await call(method, path);
-      expect(response.status, `${method} ${path}`).toBe(404);
-      expect(response.headers.get('Cache-Control')).toBe(PRIVATE);
-    }
-    expect(fetchPackageDependents).not.toHaveBeenCalled();
-    expect(signedFetch).not.toHaveBeenCalled();
-  });
-
-  it('answers a page of dependents, kept by no shared cache while packages are not public', async () => {
-    requestMaySeePackages.mockResolvedValue(true);
-
+  it('answers a page of dependents, kept by a shared cache', async () => {
     const response = await call('GET', 'npm/@nebula/ui/dependents', '?offset=25&archived=0');
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Cache-Control')).toBe(PRIVATE);
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+    );
     expect(await response.json()).toEqual({ page: PAGE });
     expect(fetchPackageDependents).toHaveBeenCalledExactlyOnceWith('npm', '@nebula/ui', {
       offset: 25,
@@ -112,10 +84,7 @@ describe('package routes', () => {
     });
   });
 
-  it('lets a shared cache keep a page once packages are public, and says when package data is unavailable', async () => {
-    packagesPublic.mockResolvedValue(true);
-    requestMaySeePackages.mockResolvedValue(true);
-
+  it('says when package data is unavailable, kept by no cache', async () => {
     const response = await call('GET', 'npm/react/dependents');
     expect(response.headers.get('Cache-Control')).toBe(
       'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
@@ -131,8 +100,6 @@ describe('package routes', () => {
   });
 
   it('refuses a path or a query that names nothing', async () => {
-    requestMaySeePackages.mockResolvedValue(true);
-
     // Params arrive decoded: `%40` is taken as it is, never as a second spelling of `@`.
     for (const path of [
       'pypi/react/dependents',
@@ -151,7 +118,6 @@ describe('package routes', () => {
 
   it("reads the refresh's status as the site, one call per package a few seconds, and expires the page once per update", async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: Date.parse('2026-11-17T12:00:00Z') });
-    requestMaySeePackages.mockResolvedValue(true);
     const landed = new Date(Date.now() - 60_000).toISOString();
     upstream(200, { running: false, lastUpdatedAt: landed, dependentsChecked: false });
 
@@ -185,7 +151,6 @@ describe('package routes', () => {
   });
 
   it('asks for "Refresh now" signed as the visitor, with their email, and expires the page once one starts', async () => {
-    requestMaySeePackages.mockResolvedValue(true);
     expect((await call('POST', 'npm/react/refresh')).status).toBe(401);
 
     current.session = {
@@ -211,21 +176,18 @@ describe('package routes', () => {
   });
 
   describe('facts.md', () => {
-    it("answers a package's facts in markdown, never indexed, private until package pages are open to everyone", async () => {
-      requestMaySeePackages.mockResolvedValue(true);
+    it("answers a package's facts in markdown, never indexed, kept by a shared cache", async () => {
       const response = await call('GET', 'npm/react-resize-detector/facts.md');
 
       expect(response.status).toBe(200);
       expect(response.headers.get('Content-Type')).toBe('text/markdown; charset=utf-8');
       expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
-      expect(response.headers.get('Cache-Control')).toBe(PRIVATE);
+      expect(response.headers.get('Cache-Control')).toBe('public, max-age=300, s-maxage=3600');
       expect(await response.text()).toMatch(/^# react-resize-detector \(npm package\)\n/);
       expect(fetchPackage).toHaveBeenCalledWith('npm', 'react-resize-detector');
     });
 
-    it('may be kept by a shared cache once package pages are open to everyone, but not while a refresh runs', async () => {
-      packagesPublic.mockResolvedValue(true);
-      requestMaySeePackages.mockResolvedValue(true);
+    it('is not kept by a shared cache while a refresh runs', async () => {
       expect((await call('GET', 'npm/react-resize-detector/facts.md')).headers.get('Cache-Control')).toBe(
         'public, max-age=300, s-maxage=3600',
       );
@@ -235,7 +197,6 @@ describe('package routes', () => {
     });
 
     it('reads a scoped name', async () => {
-      requestMaySeePackages.mockResolvedValue(true);
       fetchPackage.mockResolvedValue(quietPackage);
 
       expect((await call('GET', 'npm/@nebula/ui/facts.md')).status).toBe(200);
@@ -243,7 +204,6 @@ describe('package routes', () => {
     });
 
     it('answers 404 for a name nobody has read or the registry does not have, and 503 without package data', async () => {
-      requestMaySeePackages.mockResolvedValue(true);
       fetchPackage
         .mockResolvedValueOnce(notReadPackage)
         .mockResolvedValueOnce(null)
@@ -257,7 +217,6 @@ describe('package routes', () => {
     });
 
     it('answers 502 in markdown when the read fails', async () => {
-      requestMaySeePackages.mockResolvedValue(true);
       fetchPackage.mockRejectedValue(new Error('down'));
       const response = await call('GET', 'npm/react/facts.md');
 
@@ -266,7 +225,6 @@ describe('package routes', () => {
     });
 
     it('keeps an npm name the API answers as written, capitals included, with no redirect', async () => {
-      requestMaySeePackages.mockResolvedValue(true);
       fetchPackage.mockResolvedValue({ ...rankedPackage, name: 'React-Resize-Detector' });
       const response = await call('GET', 'npm/React-Resize-Detector/facts.md');
 
@@ -276,7 +234,6 @@ describe('package routes', () => {
     });
 
     it('sends another spelling, on a registry that folds names, to the address the API answers, read or not', async () => {
-      requestMaySeePackages.mockResolvedValue(true);
       fetchPackage.mockResolvedValue(spelledPackage);
       const moved = await call('GET', 'npm/Zope_Interface/facts.md');
       expect(moved.status).toBe(308);
@@ -293,7 +250,6 @@ describe('package routes', () => {
     });
 
     it("sends the registry's own spelling to its address", async () => {
-      requestMaySeePackages.mockResolvedValue(true);
       const response = await call('GET', 'npm/React-Resize-Detector/facts.md');
 
       expect(response.status).toBe(308);

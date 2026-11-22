@@ -12,7 +12,6 @@ import { fetchFollowState } from '@/lib/follow/follow-client';
 import { FOLLOW_CARD_TEXT, FOLLOW_CARD_TITLE, FOLLOW_SLOT_LEAD } from '@/lib/follow/follow-copy';
 import { followReturnOf } from '@/lib/follow/follow-return';
 import { followsAll } from '@/lib/follow/follow-state';
-import { usePackagesOpen } from '@/lib/packages/packages-open';
 
 export type FollowSlotProps = {
   /** The packages one press follows: one, or every package of a repository. */
@@ -24,13 +23,11 @@ export type FollowSlotProps = {
 
 /**
  * Following packages: on a package's page, in its left column above Refresh (`package-page`); at the end of a
- * repository's Used by tab (`used-by`); and beside "Package page" in that tab's empty state (`used-by-empty`). Drawn
- * only for a viewer package pages are open to, asked in the browser as pages are cached for everyone. For a signed-in
- * viewer it asks once per page load whether they follow the packages already ("Following"); a visitor has nothing to
+ * repository's Used by tab (`used-by`); and beside "Package page" in that tab's empty state (`used-by-empty`). For a
+ * signed-in viewer it asks once per page load whether they follow the packages already ("Following"); a visitor has nothing to
  * ask. The button opens the dialog; so does a return from the Email row's sign-in (`?follow=email:<label>`), once signed in.
  */
 export function FollowSlot({ packages, label, placement }: Readonly<FollowSlotProps>) {
-  const open = usePackagesOpen();
   const { data: session, status } = useSession();
   const login = (session && !session.error ? session.user?.githubLogin : undefined) || undefined;
   const [follows, setFollows] = useState<FollowRow[]>([]);
@@ -45,7 +42,7 @@ export function FollowSlot({ packages, label, placement }: Readonly<FollowSlotPr
   useEffect(() => {
     setFollows([]);
     setFollowsRead(false);
-    if (!open || !login) return;
+    if (!login) return;
     let live = true;
     fetchFollowState(packages).then((answer) => {
       if (!live) return;
@@ -55,26 +52,24 @@ export function FollowSlot({ packages, label, placement }: Readonly<FollowSlotPr
     return () => {
       live = false;
     };
-  }, [open, login, names]);
+  }, [login, names]);
 
   // Back from the Email row's sign-in: the mark leaves the address, and the dialog opens again for a signed-in viewer
   // once their follows are in, so it starts from what they follow already. Waits for the session, so a viewer just
   // signed in is not taken for a visitor.
   useEffect(() => {
-    if (!open || status === 'loading') return;
+    if (status === 'loading') return;
     const { returned, cleaned } = followReturnOf(window.location.href, label);
     if (cleaned === null) return;
     window.history.replaceState(window.history.state, '', cleaned);
     if (returned && login) setReturning(true);
-  }, [open, status, login, label]);
+  }, [status, login, label]);
 
   useEffect(() => {
     if (!returning || !followsRead) return;
     setReturning(false);
     setDialogOpen(true);
   }, [returning, followsRead]);
-
-  if (!open) return null;
 
   const following = !!login && followsAll(packages, follows);
   const Icon = following ? BellRing : Bell;

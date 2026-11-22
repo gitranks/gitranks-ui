@@ -82,7 +82,6 @@ export const PACKAGE_SCREENS: Screen[] = [
         id: 'no-dependents',
         title: 'No repository with 100+ stars uses it yet',
         path: packagePath(quietPackage.name),
-        packagesOpen: true,
         height: 1300,
         render: () => page(quietPackage),
       },
@@ -91,7 +90,6 @@ export const PACKAGE_SCREENS: Screen[] = [
         title: 'Signed out, Refresh pressed: the deal',
         path: RANKED_PATH,
         signedOut: true,
-        packagesOpen: true,
         height: 1500,
         render: () => (
           <OpenRefreshDialog
@@ -105,7 +103,6 @@ export const PACKAGE_SCREENS: Screen[] = [
         title: 'Signed out, Connect on Email: why, and the GitHub sign-in',
         path: RANKED_PATH,
         signedOut: true,
-        packagesOpen: true,
         height: 1100,
         render: () => (
           <OpenFollowDialog
@@ -121,7 +118,6 @@ export const PACKAGE_SCREENS: Screen[] = [
         id: 'follow-signed-in',
         title: 'Signed in, Follow pressed: Email at the verified address',
         path: RANKED_PATH,
-        packagesOpen: true,
         height: 1100,
         render: () => (
           <OpenFollowDialog
@@ -137,7 +133,6 @@ export const PACKAGE_SCREENS: Screen[] = [
         id: 'follow-done',
         title: 'Signed in, after Follow',
         path: RANKED_PATH,
-        packagesOpen: true,
         height: 900,
         render: () => (
           <OpenFollowDialog
@@ -164,7 +159,6 @@ export const PACKAGE_SCREENS: Screen[] = [
         id: 'follow-no-verified-email',
         title: 'Signed in, no verified email on GitHub',
         path: RANKED_PATH,
-        packagesOpen: true,
         height: 1100,
         render: () => (
           <OpenFollowDialog
@@ -180,7 +174,6 @@ export const PACKAGE_SCREENS: Screen[] = [
         id: 'on-badge',
         title: 'On daily updates, kept on by a badge',
         path: RANKED_PATH,
-        packagesOpen: true,
         height: 1500,
         render: () => page({ ...rankedPackage, dailyUpdates: onBadge }),
       },
@@ -188,7 +181,6 @@ export const PACKAGE_SCREENS: Screen[] = [
         id: 'not-read',
         title: 'Not read yet',
         path: packagePath(notReadPackage.name),
-        packagesOpen: true,
         height: 800,
         render: () => page(notReadPackage),
       },
@@ -196,7 +188,6 @@ export const PACKAGE_SCREENS: Screen[] = [
         id: 'unavailable',
         title: 'Package data not available right now',
         path: RANKED_PATH,
-        packagesOpen: true,
         height: 800,
         render: () => page('unavailable'),
       },
@@ -204,7 +195,6 @@ export const PACKAGE_SCREENS: Screen[] = [
         id: 'ranked-phone',
         title: 'Read and ranked · phone',
         path: RANKED_PATH,
-        packagesOpen: true,
         width: 390,
         height: 2800,
         render: () => page(rankedPackage),

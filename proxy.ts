@@ -18,8 +18,7 @@ import {
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
 import { progressGateOf } from './lib/learn/public-progress/progress-gate';
 import { isLinkPagePath, LINK_PAGE_HEADERS } from './lib/link-token/link-token';
-import { isPackagePath, packageMarkdownRewriteOf } from './lib/packages/package-paths';
-import { packagesPublic, requestMaySeePackages } from './lib/packages/packages-gate';
+import { packageMarkdownRewriteOf } from './lib/packages/package-paths';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_COOKIE, SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
@@ -133,7 +132,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return NextResponse.redirect(new URL(builder, request.nextUrl), 308);
   }
 
-  // Before the packages gate below: it is the same page under its own spelling, whoever asks.
+  // The same page under its own spelling, whoever asks.
   const packagePage = packageScopeRedirectOf(request.nextUrl.pathname);
   if (packagePage) {
     return NextResponse.redirect(new URL(`${packagePage}${request.nextUrl.search}`, request.nextUrl), 308);
@@ -205,15 +204,6 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   }
 
   const { pathname } = request.nextUrl;
-  // Package pages are shown only to visitors the API lets see them, decided here so no page reads who is asking: until
-  // they are open to everyone, a visitor without a session gets a real 404 without a question to the API about them,
-  // and a signed-in one is asked about by login and email. The 404 is never kept by a shared cache (it would be served
-  // to someone who may see the page). Checked after the 404s above, so an impossible path costs no question.
-  if (isPackagePath(pathname) && !(await (hasSession(request) ? requestMaySeePackages(request) : packagesPublic()))) {
-    const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
-    response.headers.set('Cache-Control', 'private, no-store');
-    return response;
-  }
 
   // A package's facts in markdown, for an agent: answered by the packages API route, which sets its own headers.
   // Rewritten here, before Auth.js, which would make the rewrite an external one.
@@ -222,26 +212,22 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return NextResponse.rewrite(new URL(packageMarkdown, request.url));
   }
 
-  // A repository's own page, for a visitor who may see package pages, is its tabbed Overview: rewritten here, before
-  // Auth.js (its wrapper would make the rewrite an external one), so the response sets the headers the branches below
-  // would have. Anyone else goes on to today's page, untouched. Without a session nothing is asked about the visitor.
+  // A repository's own page is its tabbed Overview: rewritten here, before Auth.js (its wrapper would make the rewrite
+  // an external one), so the response sets the headers the branches below would have.
   const overview = repoOverviewRewriteOf(pathname);
   if (overview) {
-    const session = hasSession(request);
-    if (await (session ? requestMaySeePackages(request) : packagesPublic())) {
-      const response = NextResponse.rewrite(new URL(`${overview}${request.nextUrl.search}`, request.url));
-      if (session) {
-        // As any signed-in page; the session cookie is renewed by the next request that passes Auth.js.
-        response.headers.set('Cache-Control', 'private, no-cache');
-        response.headers.append('Set-Cookie', SESSION_HINT_SET);
-      } else if (request.cookies.has(SESSION_HINT_COOKIE)) {
-        response.headers.set('Cache-Control', 'private, no-store');
-        response.headers.append('Set-Cookie', SESSION_HINT_CLEAR);
-      } else {
-        response.headers.set('Cache-Control', ENTITY_PAGE_CACHE_CONTROL);
-      }
-      return response;
+    const response = NextResponse.rewrite(new URL(`${overview}${request.nextUrl.search}`, request.url));
+    if (hasSession(request)) {
+      // As any signed-in page; the session cookie is renewed by the next request that passes Auth.js.
+      response.headers.set('Cache-Control', 'private, no-cache');
+      response.headers.append('Set-Cookie', SESSION_HINT_SET);
+    } else if (request.cookies.has(SESSION_HINT_COOKIE)) {
+      response.headers.set('Cache-Control', 'private, no-store');
+      response.headers.append('Set-Cookie', SESSION_HINT_CLEAR);
+    } else {
+      response.headers.set('Cache-Control', ENTITY_PAGE_CACHE_CONTROL);
     }
+    return response;
   }
 
   // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared

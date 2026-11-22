@@ -1,13 +1,11 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { requestMaySeePackages, sessionTokenOf, signedFetch } = vi.hoisted(() => ({
-  requestMaySeePackages: vi.fn(async (_req: unknown) => true),
+const { sessionTokenOf, signedFetch } = vi.hoisted(() => ({
   sessionTokenOf: vi.fn(),
   signedFetch: vi.fn(async (..._args: unknown[]) => new Response(null, { status: 204 })),
 }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/packages/packages-gate', () => ({ requestMaySeePackages }));
 vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 vi.mock('@/lib/signed-fetch', () => ({ signedFetch }));
 
@@ -32,23 +30,12 @@ const sent = () => {
 describe('POST /api/unsung-hero/hit', () => {
   beforeEach(() => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://gitranks.com');
-    requestMaySeePackages.mockReset().mockResolvedValue(true);
     sessionTokenOf.mockReset().mockResolvedValue(null);
     signedFetch.mockReset().mockResolvedValue(new Response(null, { status: 204 }));
   });
 
-  it('answers the not-found answer to a visitor the feature is hidden from, passing nothing on', async () => {
-    requestMaySeePackages.mockResolvedValue(false);
-    const response = await call(visit);
-
-    expect(response.status).toBe(404);
-    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(signedFetch).not.toHaveBeenCalled();
-  });
-
-  it('refuses a hit sent from another site, before asking the gate', async () => {
+  it('refuses a hit sent from another site', async () => {
     expect((await call(visit, { origin: 'https://evil.example' })).status).toBe(403);
-    expect(requestMaySeePackages).not.toHaveBeenCalled();
     expect(signedFetch).not.toHaveBeenCalled();
   });
 

@@ -5,7 +5,6 @@ import { type RefObject, useEffect, useId, useRef, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 
 import { fetchEntityFacts } from '../hooks/use-entity-facts';
-import { usePackagesShown } from '../hooks/use-packages-shown';
 import { entityName } from '../utils/badge-options';
 import { anyPackageRefOf, entityLabel, searchLookups } from '../utils/builder-state';
 import { FORMAT_NAMES } from '../utils/builder-view';
@@ -20,8 +19,8 @@ import { anyRegistryPackageText, DEFAULT_REGISTRY, REGISTRIES, registryLabelList
 import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
 
-/** The words for a search of any kind once packages are shown: today's, with packages beside. */
-type Scope = EntityKind | 'any' | 'any-with-packages';
+/** The words for a search of one kind, or of any. */
+type Scope = EntityKind | 'any';
 
 /** "npm package", or each registry the site lists: "npm or PyPI package". */
 const PACKAGE = anyRegistryPackageText();
@@ -35,7 +34,6 @@ const [, SCOPED_EXAMPLE = EXAMPLES] = REGISTRIES[DEFAULT_REGISTRY].examples;
 
 const HEADINGS: Record<Scope, string> = {
   any: 'Who is the badge for?',
-  'any-with-packages': 'Who is the badge for?',
   user: 'Which developer is the badge for?',
   org: 'Which organization is the badge for?',
   repo: 'Which repository is the badge for?',
@@ -56,8 +54,7 @@ export function findHeading(kind: EntityKind | null, badge: BadgeDefinition | nu
 }
 
 const LABELS: Record<Scope, string> = {
-  any: 'A developer, an organization or a repository',
-  'any-with-packages': `A developer, an organization, a repository or ${A_PACKAGE}`,
+  any: `A developer, an organization, a repository or ${A_PACKAGE}`,
   user: 'GitHub login',
   org: 'Organization login',
   repo: 'Repository',
@@ -65,8 +62,7 @@ const LABELS: Record<Scope, string> = {
 };
 
 const HINTS: Record<Scope, string> = {
-  any: '“owner/name” finds a repository; a login finds a developer or an organization.',
-  'any-with-packages': `“owner/name” finds a repository; a login finds a developer or an organization; a package’s name finds it on ${ON_REGISTRIES}.`,
+  any: `“owner/name” finds a repository; a login finds a developer or an organization; a package’s name finds it on ${ON_REGISTRIES}.`,
   user: 'The developer’s GitHub login, for example torvalds.',
   org: 'The organization’s GitHub login, for example vercel.',
   repo: 'The repository as owner/name, for example react/react.',
@@ -74,8 +70,7 @@ const HINTS: Record<Scope, string> = {
 };
 
 const PLACEHOLDERS: Record<Scope, string> = {
-  any: 'torvalds, vercel or react/react',
-  'any-with-packages': `torvalds, vercel, react/react or ${SCOPED_EXAMPLE}`,
+  any: `torvalds, vercel, react/react or ${SCOPED_EXAMPLE}`,
   user: 'torvalds',
   org: 'vercel',
   repo: 'react/react',
@@ -92,8 +87,6 @@ type FindStepProps = {
   headingRef: RefObject<HTMLHeadingElement | null>;
   /** Narrows the search to one kind (`?repo=`, `?user=`, `?org=`, `?package=`). */
   kind: EntityKind | null;
-  /** Packages are shown to the visitor: a search finds them too. */
-  packages?: boolean;
   /** A badge picked before the entity (`?repo=&badge=…`), kept for the entity found here. */
   badge: BadgeDefinition | null;
   initialQuery: string;
@@ -103,8 +96,7 @@ type FindStepProps = {
 };
 
 const INVALID: Record<Scope, string> = {
-  any: 'Enter a GitHub login or owner/name',
-  'any-with-packages': `Enter a GitHub login, owner/name or ${A_PACKAGE}’s name`,
+  any: `Enter a GitHub login, owner/name or ${A_PACKAGE}’s name`,
   user: 'Enter a GitHub login',
   org: 'Enter an organization login',
   repo: 'Enter the repository as owner/name',
@@ -112,22 +104,19 @@ const INVALID: Record<Scope, string> = {
 };
 
 /**
- * Step 1: one search box; a login finds developers and organizations, `owner/name` a repository, and, once packages
- * are shown to the visitor, a package's name a package.
+ * Step 1: one search box; a login finds developers and organizations, `owner/name` a repository, and a package's name a
+ * package.
  */
 export function FindStep({
   headingRef,
   kind,
-  packages: packagesAsked = false,
   badge,
   initialQuery,
   notice,
   onPick,
   onAnyKind,
 }: Readonly<FindStepProps>) {
-  // Nothing is asked here: an answer the page already has is read at each render, so typing a search picks it up.
-  const packages = usePackagesShown(false) || packagesAsked;
-  const scope: Scope = kind ?? (packages ? 'any-with-packages' : 'any');
+  const scope: Scope = kind ?? 'any';
   const [query, setQuery] = useState(initialQuery);
   const [lookup, setLookup] = useState<Lookup>({ status: 'idle' });
   const inputRef = useRef<HTMLInputElement>(null);
@@ -147,7 +136,7 @@ export function FindStep({
   }, [lookup]);
 
   const search = async () => {
-    const lookups = searchLookups(query, kind, packages);
+    const lookups = searchLookups(query, kind);
     if (!lookups.length) {
       inputRef.current?.setCustomValidity(INVALID[scope]);
       inputRef.current?.reportValidity();

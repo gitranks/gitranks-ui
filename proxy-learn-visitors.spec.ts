@@ -11,10 +11,6 @@ vi.mock('./lib/contribute/ledger-gate', () => ({ contributeLedgerOpen: async () 
 vi.mock('./lib/contribute/pr-timeline-gate', () => ({
   prTimelineGateOf: async () => ({ kind: 'page', partial: false, confirmed: true }),
 }));
-vi.mock('./lib/packages/packages-gate', () => ({
-  packagesPublic: async () => false,
-  requestMaySeePackages: async () => false,
-}));
 vi.mock('./lib/learn/lesson-gate', () => ({
   LESSON_MISSING_PATH: '/learn/lessons/_missing',
   lessonGateOf: async () => ({ kind: 'page' }),

@@ -100,7 +100,7 @@ export const REFRESH_MESSAGES = {
     steps: ['Sign in with GitHub. We only see your name and email.', 'Star our repo.'],
     closing: [
       'Then we update your profile every day. It stays on for 7 days after your last visit.',
-      'You can also update up to 3 repos daily.',
+      'You can also update up to 3 repos or packages daily.',
     ],
     note: 'Don’t want to star? Add a GitRanks badge to your GitHub profile. While the badge is there, we update your profile every day. No sign-in, no 7-day limit. Already added it? Check my badge.',
     noteLinks: [{ text: 'GitRanks badge', href: '/badge/builder' }, { text: CHECK_BADGE_LINK }],
@@ -190,25 +190,6 @@ export const REFRESH_MESSAGES = {
 
 export type RefreshDialogKind = keyof typeof REFRESH_MESSAGES;
 
-/** The deal's line on what else can be updated daily, once packages are shown. */
-const DEAL_CLOSING_WITH_PACKAGES = 'You can also update up to 3 repos or packages daily.';
-
-/**
- * The profile's messages for a visitor: today's, until packages are shown to them (`usePackagesOpen()`); then the
- * deal says repos or packages. The one switch for it: once packages are shown to everyone, today's words and this
- * function go.
- */
-export function refreshCopyOf(packages: boolean): typeof REFRESH_MESSAGES {
-  if (!packages) {
-    return REFRESH_MESSAGES;
-  }
-  const { deal } = REFRESH_MESSAGES;
-  return {
-    ...REFRESH_MESSAGES,
-    deal: { ...deal, closing: [deal.closing[0], DEAL_CLOSING_WITH_PACKAGES] },
-  };
-}
-
 /**
  * Not signed in, presses Refresh on a package: the deal in the profile's frame, with the package's own sentence and its
  * badge note. `{name}` is the package; `{repository}` the repository that publishes it (the note is left out without
@@ -218,7 +199,7 @@ export const PACKAGE_DEAL: RefreshMessage = {
   ...REFRESH_MESSAGES.deal,
   closing: [
     'Then we refresh {name} now and every day for the next 7 days: downloads, releases, and the stars of the repositories that use it.',
-    DEAL_CLOSING_WITH_PACKAGES,
+    'You can also update up to 3 repos or packages daily.',
   ],
   note: 'Don’t want to star? Add a GitRanks badge to the README of {repository}. While the badge is there, we update this package every day. No sign-in, no 7-day limit.',
   noteLinks: [{ text: 'GitRanks badge', href: '/badge/builder' }],

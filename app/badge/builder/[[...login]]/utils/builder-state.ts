@@ -85,18 +85,11 @@ export function storedNameQuery(state: Pick<BuilderState, 'kind' | 'name'>, stor
   return state.kind && storedName !== state.name ? { [state.kind]: storedName } : null;
 }
 
-/** Whether the query names a package (`?package=…`), which counts only once packages are known to be shown. */
-export const namesPackage = (query: URLSearchParams | BuilderQuery) => read(query, 'package') !== null;
-
 /**
- * The builder's state from its query. Only the first entity key counts; style values are kept as written. A package's
- * key counts only with `packages` (packages are shown to the visitor); without it the builder is today's.
+ * The builder's state from its query. Only the first entity key counts; style values are kept as written.
  */
-export function parseBuilderQuery(
-  query: URLSearchParams | BuilderQuery,
-  { packages = false }: { packages?: boolean } = {},
-): BuilderState {
-  const kind = ENTITY_KEYS.find((key) => (packages || key !== 'package') && read(query, key) !== null) ?? null;
+export function parseBuilderQuery(query: URLSearchParams | BuilderQuery): BuilderState {
+  const kind = ENTITY_KEYS.find((key) => read(query, key) !== null) ?? null;
   const name = kind ? read(query, kind)?.trim() || null : null;
   const badgeId = read(query, 'badge');
   const badge = kind && badgeId ? findBadge(kind, badgeId) : null;
@@ -211,16 +204,16 @@ function githubKindsFor(target: SearchTarget, narrowed: EntityKind | null): Enti
 }
 
 /**
- * What a Find search asks for. `owner/name` is a repository, a login a developer or an organization. Once packages
- * are shown (`packages`), a name is a package too, and a scoped name (`@scope/name`), a registry page's address or
- * `<registry>:name` a package only. Narrowed to packages, the search names one package; without `packages`, nothing.
+ * What a Find search asks for. `owner/name` is a repository, a login a developer or an organization, and a name a
+ * package too; a scoped name (`@scope/name`), a registry page's address or `<registry>:name` is a package only.
+ * Narrowed to packages, the search names one package.
  */
-export function searchLookups(input: string, narrowed: EntityKind | null, packages = false): SearchLookup[] {
+export function searchLookups(input: string, narrowed: EntityKind | null): SearchLookup[] {
   if (narrowed === 'package') {
-    const pkg = packages ? parsePackageSearch(input) : null;
+    const pkg = parsePackageSearch(input);
     return pkg ? [{ kind: 'package', name: pkg }] : [];
   }
-  const pkg = packages && !narrowed ? parsePackageSearch(input) : null;
+  const pkg = narrowed ? null : parsePackageSearch(input);
   const trimmed = input.replace(/\s+/g, '');
   if (pkg && (trimmed.startsWith('@') || prefixedRegistryOf(trimmed) !== null)) {
     return [{ kind: 'package', name: pkg }];

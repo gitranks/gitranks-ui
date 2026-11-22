@@ -1,13 +1,11 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { requestMaySeePackages, sessionTokenOf, startFollow } = vi.hoisted(() => ({
-  requestMaySeePackages: vi.fn(async (_req: unknown) => true),
+const { sessionTokenOf, startFollow } = vi.hoisted(() => ({
   sessionTokenOf: vi.fn(),
   startFollow: vi.fn(),
 }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/packages/packages-gate', () => ({ requestMaySeePackages }));
 vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 vi.mock('@/lib/follow/follow-api', () => ({ startFollow }));
 
@@ -28,16 +26,8 @@ const call = (body: unknown, headers: Record<string, string> = { origin: 'https:
 describe('POST /api/follow/start', () => {
   beforeEach(() => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://gitranks.com');
-    requestMaySeePackages.mockReset().mockResolvedValue(true);
     sessionTokenOf.mockReset().mockResolvedValue(null);
     startFollow.mockReset().mockResolvedValue({ ok: true, data: { refusal: null, notHeld: [], results: [] } });
-  });
-
-  it('answers the not-found answer to a viewer package pages are hidden from, asking nothing', async () => {
-    requestMaySeePackages.mockResolvedValue(false);
-    const response = await call(press);
-    expect(response.status).toBe(404);
-    expect(startFollow).not.toHaveBeenCalled();
   });
 
   it('refuses a press sent from another site', async () => {

@@ -10,9 +10,8 @@ import {
   RepoTabsForSitemapDocument,
 } from '@/types/generated/graphql';
 
-// Read only once package pages are open to everyone. Cached as the repository sitemaps are: an answer for hours; no
-// answer (an error, or none while the pages are hidden from the site) is 0 parts or an empty part for minutes, so the
-// index and every part still answer.
+// Cached as the repository sitemaps are: an answer for hours; no answer (an error) is 0 parts or an empty part for
+// minutes, so the index and every part still answer.
 
 /** How many package-page sitemaps of a registry the index lists. */
 export const fetchPackageSitemapParts = async (registry: PackageRegistry) => {

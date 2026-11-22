@@ -70,7 +70,7 @@ describe('POST /api/unsung-hero/hit', () => {
     });
   });
 
-  it('names a signed-in viewer from the session, so the API can tell whether the feature is open to them', async () => {
+  it('names a signed-in viewer from the session', async () => {
     sessionTokenOf.mockResolvedValue({ githubLogin: 'octocat', email: 'octo@example.com' });
     await call({ kind: 'github', repo: visit.repo });
 

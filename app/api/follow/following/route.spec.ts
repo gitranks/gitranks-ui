@@ -58,7 +58,7 @@ describe('POST /api/follow/following', () => {
     expect(pressSessionSettings).not.toHaveBeenCalled();
   });
 
-  it('answers not found when the feature is closed to the viewer', async () => {
+  it('answers not found when the API answers nothing', async () => {
     pressSessionSettings.mockResolvedValue(null);
     expect((await call({ action: 'stop-all' })).status).toBe(404);
   });

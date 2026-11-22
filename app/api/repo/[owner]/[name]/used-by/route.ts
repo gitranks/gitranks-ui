@@ -18,8 +18,6 @@ const answer = (body: unknown, status: number, cacheControl: string) =>
  * and "Hide archived": `{ page }`.
  */
 export async function GET(req: NextRequest, { params }: RouteContext<'/api/repo/[owner]/[name]/used-by'>) {
-  const cacheControl = PUBLIC;
-
   const { owner, name } = await params;
   const repo = parseRepoParams(owner, name);
   const query = parseUsedByQuery(req.nextUrl.searchParams);
@@ -30,14 +28,14 @@ export async function GET(req: NextRequest, { params }: RouteContext<'/api/repo/
   try {
     const packages = await fetchRepoPackages(repo.owner, repo.name);
     if (packages === null) {
-      return answer({ message: 'Not found' }, 404, cacheControl);
+      return answer({ message: 'Not found' }, 404, PUBLIC);
     }
     if (packages === UNAVAILABLE) {
       return answer({ message: 'Package data is not available right now' }, 503, PRIVATE);
     }
     // Only a package the repository lists is read: any other name would be one more cached page of nothing.
     if (query.package !== null && !packages.items.some(({ name: listed }) => listed === query.package)) {
-      return answer({ page: { total: 0, archived: 0, items: [] } }, 200, cacheControl);
+      return answer({ page: { total: 0, archived: 0, items: [] } }, 200, PUBLIC);
     }
 
     const page = await fetchRepoUsedBy(repo.owner, repo.name, { ...query, limit: DEPENDENTS_PAGE_SIZE });
@@ -45,9 +43,9 @@ export async function GET(req: NextRequest, { params }: RouteContext<'/api/repo/
       return answer({ message: 'Package data is not available right now' }, 503, PRIVATE);
     }
     if (page === null) {
-      return answer({ message: 'Not found' }, 404, cacheControl);
+      return answer({ message: 'Not found' }, 404, PUBLIC);
     }
-    return answer({ page }, 200, cacheControl);
+    return answer({ page }, 200, PUBLIC);
   } catch {
     return answer({ message: 'Failed to load the repositories' }, 502, PRIVATE);
   }

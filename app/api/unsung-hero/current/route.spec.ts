@@ -7,6 +7,10 @@ const { graphqlDirect, cacheTag, cacheLife } = vi.hoisted(() => ({
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/cache', () => ({ cacheTag, cacheLife }));
+vi.mock('next/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/server')>()),
+  connection: async () => undefined,
+}));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
 const { GET } = await import('./route');

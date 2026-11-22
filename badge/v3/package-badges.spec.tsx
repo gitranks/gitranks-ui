@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { availabilityOf, availableBadges, badgesOf } from './catalogue';
 import type { EntityFacts, PackageFacts } from './facts';
 import { getEntityFactsResponse } from './facts-route';
-import { NOW, packageBig, packageNew, packageUnread } from './fixtures';
+import { NOW, packageBig, packageNew, packagePypi, packageUnread } from './fixtures';
 import { formatCount } from './format';
 import { badgeImagePath, socialCardPath } from './links';
 import { toPackageFacts } from './load';
@@ -123,6 +123,71 @@ describe('package shields', () => {
   });
 });
 
+describe("a PyPI project's badges, counted a month at a time", () => {
+  const params = (id: string) => resolveParams(badgesOf('package').find((badge) => badge.id === id)!, {});
+  const youngMonths = { ...packagePypi.downloads!, months: packagePypi.downloads!.months.slice(-5) };
+  const young: PackageFacts = { ...packagePypi, downloads: youngMonths };
+
+  it("say last month's downloads, and the last 12 months once the history holds them", () => {
+    expect(shieldText(packagePypi, 'downloads')).toBe('PyPI downloads · 51M last month');
+    expect(shieldText(packagePypi, 'downloads-year')).toBe('PyPI downloads · 546M last 12 months');
+    expect(availabilityOf(packagePypi, 'downloads-year', params('downloads-year'), NOW)).toBe('available');
+    expect(availabilityOf(young, 'downloads-year', params('downloads-year'), NOW)).toBe('neutral');
+    expect(shieldText(young, 'downloads-year')).toBe('PyPI downloads · –');
+  });
+
+  it('offer no week per star, and year over year only with 24 months', () => {
+    expect(availabilityOf(packagePypi, 'downloads-per-star', params('downloads-per-star'), NOW)).toBe('never');
+    expect(availabilityOf(packagePypi, 'downloads-growth', params('downloads-growth'), NOW)).toBe('never');
+    const months = Array.from({ length: 24 }, (_, i) => ({
+      start: new Date(Date.UTC(2024, 9 + i, 1)).toISOString(),
+      downloads: i < 12 ? 100 : 120,
+    }));
+    const twoYears = { ...packagePypi, downloads: { ...packagePypi.downloads!, months } };
+    expect(shieldText(twoYears, 'downloads-growth')).toBe('downloads · +20% year over year');
+  });
+
+  it("name last month's downloads on the cards and in the alt text", () => {
+    const tiles = badgeTiles(packagePypi, [{ id: 'downloads-card' }, { id: 'package-card' }], NOW);
+    expect(tiles[0].alt).toBe('zope-interface on GitRanks: 51M PyPI downloads last month');
+    expect(tiles[0].src.light).toBe('/badge/package/pypi/zope-interface/downloads-card.svg?theme=light');
+  });
+
+  it('maps the API answer with no week and its months', () => {
+    const facts = toPackageFacts({
+      package: {
+        registry: 'PYPI',
+        name: 'zope-interface',
+        state: 'READ',
+        repo: null,
+        repositoryName: null,
+        downloads: {
+          through: '2026-10-31T00:00:00.000Z',
+          lastWeek: null,
+          previousWeek: null,
+          last30Days: 4_400_000,
+          previous30Days: 4_300_000,
+          last52Weeks: 0,
+          previous52Weeks: null,
+          perStar: null,
+          weeks: [],
+          months: [{ start: '2026-10-01T00:00:00.000Z', downloads: 4_400_000 }],
+        },
+        dependentsCount: 0,
+        dependentsStars: 0,
+        dependents: null,
+      },
+    });
+    expect(facts?.registry).toBe('pypi');
+    expect(facts?.downloads).toMatchObject({
+      lastWeek: null,
+      last30Days: 4_400_000,
+      previous30Days: 4_300_000,
+      months: [{ start: '2026-10-01T00:00:00.000Z', downloads: 4_400_000 }],
+    });
+  });
+});
+
 const SCHEMES = [
   'scheme=auto&theme=light',
   'scheme=auto&theme=dark',
@@ -141,7 +206,7 @@ describe('package images', () => {
   it.each(badgesOf('package').map((badge) => [badge.id, badge] as const))(
     '%s draws in light and dark, in every fixed scheme and without the logo',
     async (_, badge) => {
-      for (const entity of [packageBig, packageNew]) {
+      for (const entity of [packageBig, packageNew, packagePypi]) {
         const queries = [
           ...SCHEMES,
           'logo=0',
@@ -208,10 +273,36 @@ describe('package badge paths', () => {
       name: '@types/node',
       canonical: false,
     });
-    expect(parsePackageRef('pypi', ['react'])).toBeNull();
+    expect(parsePackageRef('cargo', ['react'])).toBeNull();
+    expect(parsePackageRef('pypi', ['zope', 'interface'])).toBeNull();
     expect(parsePackageRef('npm', ['types', 'node'])).toBeNull();
     expect(parsePackageRef('npm', ['a', 'b', 'c'])).toBeNull();
     expect(parsePackageRef('npm', ['.hidden'])).toBeNull();
+  });
+
+  it('names a PyPI project by its folded name, and marks another spelling as one to send there', () => {
+    expect(parsePackageRef('pypi', ['zope-interface'], '/badge/package/pypi/zope-interface/used-by.svg')).toEqual({
+      kind: 'package',
+      registry: 'pypi',
+      name: 'zope-interface',
+      canonical: true,
+    });
+    for (const spelled of ['zope.interface', 'Zope_Interface', 'ZOPE-INTERFACE']) {
+      expect(parsePackageRef('pypi', [spelled], `/badge/package/pypi/${spelled}/used-by.svg`), spelled).toEqual({
+        kind: 'package',
+        registry: 'pypi',
+        name: 'zope-interface',
+        canonical: false,
+        folded: true,
+      });
+    }
+    // npm folds no names: capitals stay, and the API's own answer decides.
+    expect(parsePackageRef('npm', ['React-Tools'], '/badge/package/npm/React-Tools/used-by.svg')).toEqual({
+      kind: 'package',
+      registry: 'npm',
+      name: 'React-Tools',
+      canonical: true,
+    });
   });
 });
 
@@ -352,7 +443,12 @@ describe("a package's builder facts", () => {
 
   it('are not found for a name that cannot be one, another registry, or without a loader', async () => {
     expect((await getEntityFactsResponse('package', ['npm'], loadersOf(packageBig))).status).toBe(404);
-    expect((await getEntityFactsResponse('package', ['pypi', 'react'], loadersOf(packageBig))).status).toBe(404);
+    expect((await getEntityFactsResponse('package', ['cargo', 'react'], loadersOf(packageBig))).status).toBe(404);
+    // The builder asks for a PyPI project by its folded name only.
+    const facts = (...name: string[]) =>
+      getEntityFactsResponse('package', name, loadersOf(packagePypi), `/api/badge/v3/package/${name.join('/')}`);
+    expect((await facts('pypi', 'zope-interface')).status).toBe(200);
+    expect((await facts('pypi', 'zope.interface')).status).toBe(404);
     expect(
       (await getEntityFactsResponse('package', ['npm', 'react'], { ...loadersOf(packageBig), package: undefined }))
         .status,

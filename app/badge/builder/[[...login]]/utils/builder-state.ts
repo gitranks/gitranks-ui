@@ -92,7 +92,9 @@ export function storedNameQuery(state: Pick<BuilderState, 'kind' | 'name'>, stor
  */
 export function parseBuilderQuery(query: URLSearchParams | BuilderQuery): BuilderState {
   const kind = ENTITY_KEYS.find((key) => read(query, key) !== null) ?? null;
-  const name = kind ? read(query, kind)?.trim() || null : null;
+  const asked = kind ? read(query, kind)?.trim() || null : null;
+  // A package goes by the spelling its badges and facts use: PyPI's `pypi/Django` is `pypi/django`.
+  const name = kind === 'package' && asked ? canonicalPackageKeyOf(asked) : asked;
   const badgeId = read(query, 'badge');
   const badge = kind && badgeId ? findBadge(kind, badgeId) : null;
   const style: Style = {};
@@ -101,6 +103,12 @@ export function parseBuilderQuery(query: URLSearchParams | BuilderQuery): Builde
     if (value !== null && value !== '') style[key] = value;
   }
   return { kind, name, badge, embed: read(query, 'step') === 'embed', style };
+}
+
+/** A builder name `<registry>/<name>` in the spelling the site's addresses use; any other name as it is. */
+function canonicalPackageKeyOf(name: string): string {
+  const pkg = packageOfKey(name);
+  return pkg ? packageKeyOf({ registry: pkg.registry, name: canonicalNameOf(pkg.registry, pkg.name) }) : name;
 }
 
 /** The step the URL asks for, before the entity is looked up. */
@@ -193,11 +201,15 @@ function pageNameOf(registry: RegistryId, rest: string): string {
   return path.max === 1 && path.join === '/' ? rest.split('/')[0] : rest;
 }
 
-/** A searched name on a registry as the builder names it, `<registry>/<name>`; `null` when the registry takes none. */
+/**
+ * A searched name on a registry as the builder names it, `<registry>/<name>`; `null` when the registry takes none. A
+ * version after the name goes: npm's `react@19`, and a requirement's specifier on PyPI (`django==5.0`).
+ */
 function packageKeyOfSearch(registry: RegistryId, rest: string): string | null {
   const bare = rest.replace(/[?#].*$/, '').replace(/\/+$/, '');
   // A version after the name, not a scope's own `@`.
-  const name = bare.replace(/(?<=.)@[^/]*$/, '');
+  const unversioned = bare.replace(/(?<=.)@[^/]*$/, '');
+  const name = registryOf(registry).requirementName?.(unversioned) ?? unversioned;
   return isPackageName(registry, name) ? packageKeyOf({ registry, name: canonicalNameOf(registry, name) }) : null;
 }
 
@@ -239,8 +251,9 @@ function githubKindsFor(target: SearchTarget, narrowed: EntityKind | null): Enti
 
 /**
  * What a Find search asks for. `owner/name` is a repository, a login a developer or an organization, and a name a
- * package too; a scoped name (`@scope/name`), a registry page's address or `<registry>:name` is a package only.
- * Narrowed to packages, the search names one package.
+ * package too (on each registry that takes it), whether or not it can be a login; a scoped name (`@scope/name`), a
+ * registry page's address or `<registry>:name` is a package only. Narrowed to packages, the search names packages
+ * alone.
  */
 export function searchLookups(input: string, narrowed: EntityKind | null): SearchLookup[] {
   const packages = (narrowed === null || narrowed === 'package' ? packageSearchesOf(input) : []).map(
@@ -253,7 +266,8 @@ export function searchLookups(input: string, narrowed: EntityKind | null): Searc
   }
   const target = parseSearch(input);
   const github = target ? githubKindsFor(target, narrowed).map((kind) => ({ kind, name: target.name })) : [];
-  return target?.kind === 'login' ? [...github, ...packages] : github;
+  // A package name that no GitHub login can be (`zope.interface`, `typing_extensions`) is still looked for.
+  return [...github, ...packages];
 }
 
 const DEFAULT_STYLE: Style = {

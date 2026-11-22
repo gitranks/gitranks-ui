@@ -8,6 +8,7 @@ import {
   builderHref,
   entityLabel,
   isEntityName,
+  packageSearchesOf,
   parseBuilderQuery,
   parsePackageSearch,
   searchLookups,
@@ -49,6 +50,19 @@ describe('a package in the builder URL', () => {
       builderHref({ kind: 'package', name: 'npm/@types/node', badge: findBadge('package', 'downloads'), embed: true }),
     ).toBe('/badge/builder?package=npm/@types/node&badge=downloads&step=embed');
     expect(builderHref({ kind: 'package', name: 'npm/react' })).toBe('/badge/builder?package=npm/react');
+  });
+
+  it('reads a PyPI name in the builder URL in the spelling its badges and facts use', () => {
+    expect(parseBuilderQuery(new URLSearchParams('package=pypi/Django'))).toMatchObject({
+      kind: 'package',
+      name: 'pypi/django',
+    });
+    expect(parseBuilderQuery(new URLSearchParams('package=pypi/zope.interface&badge=used-by')).name).toBe(
+      'pypi/zope-interface',
+    );
+    // npm names, and anything that names no package, stay as they are.
+    expect(parseBuilderQuery(new URLSearchParams('package=npm/React-Tools')).name).toBe('npm/React-Tools');
+    expect(parseBuilderQuery(new URLSearchParams('package=left-pad')).name).toBe('left-pad');
   });
 
   it('says it has no npm package by that name, by its own name', () => {
@@ -120,6 +134,35 @@ describe('a Find search', () => {
     ]);
     expect(searchLookups('pypi:requests', null)).toEqual([{ kind: 'package', name: 'pypi/requests' }]);
     expect(searchLookups('_private', 'package')).toEqual([]);
+  });
+
+  it('looks a PyPI name up in the All scope even when no GitHub login can be it', () => {
+    expect(searchLookups('typing_extensions', null)).toEqual([
+      { kind: 'package', name: 'npm/typing_extensions' },
+      { kind: 'package', name: 'pypi/typing-extensions' },
+    ]);
+    expect(searchLookups('zope.interface', null)).toEqual([
+      { kind: 'package', name: 'npm/zope.interface' },
+      { kind: 'package', name: 'pypi/zope-interface' },
+    ]);
+    expect(searchLookups('ruamel.yaml', null)).toEqual([
+      { kind: 'package', name: 'npm/ruamel.yaml' },
+      { kind: 'package', name: 'pypi/ruamel-yaml' },
+    ]);
+    // Still nothing for what names no package and no account.
+    expect(searchLookups('.hidden', null)).toEqual([]);
+  });
+
+  it('reads a pasted requirement on PyPI: its version specifier, extras and marker go', () => {
+    expect(packageSearchesOf('django==5.0')).toEqual(['pypi/django']);
+    expect(packageSearchesOf('requests>=2')).toEqual(['pypi/requests']);
+    expect(packageSearchesOf('requests[socks]~=2.31')).toEqual(['pypi/requests']);
+    expect(packageSearchesOf('numpy!=1.0;python_version>"3.8"')).toEqual(['pypi/numpy']);
+    expect(parsePackageSearch('pypi:numpy==1.26')).toBe('pypi/numpy');
+    expect(parsePackageSearch('pypi:Zope.Interface<6')).toBe('pypi/zope-interface');
+    expect(searchLookups('django==5.0', null)).toEqual([{ kind: 'package', name: 'pypi/django' }]);
+    // npm takes none of it: `=` and `>` are not in its names.
+    expect(parsePackageSearch('npm:react==19')).toBeNull();
   });
 
   it("asks for a package by its kind's words, and sends a miss to its page", () => {

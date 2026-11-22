@@ -1,5 +1,10 @@
 import { isNpmPackageName, NPM_NAME_MAX_LENGTH } from '@/lib/packages/npm-package-name';
-import { foldPypiName, isPypiProjectName, PYPI_NAME_MAX_LENGTH } from '@/lib/packages/pypi-project-name';
+import {
+  foldPypiName,
+  isPypiProjectName,
+  PYPI_NAME_MAX_LENGTH,
+  pypiRequirementName,
+} from '@/lib/packages/pypi-project-name';
 import type { PackageRegistry } from '@/types/generated/graphql';
 
 /**
@@ -39,6 +44,8 @@ export type RegistryTraits = {
   canonicalName: (name: string) => string;
   /** How a name is spelled in the site's addresses, where `canonicalName` changes it: "in lower case, …". */
   nameInAddress?: string;
+  /** The name in a requirement a visitor may paste (PyPI's `django>=5.0`); without one, the text is the name. */
+  requirementName?: (requirement: string) => string;
   /** The longest name the registry takes. */
   nameMaxLength: number;
   path: RegistryPath;
@@ -78,6 +85,7 @@ export const REGISTRIES = {
     isName: isPypiProjectName,
     canonicalName: foldPypiName,
     nameInAddress: 'in lower case, with each run of `-`, `_` and `.` as one `-`',
+    requirementName: pypiRequirementName,
     nameMaxLength: PYPI_NAME_MAX_LENGTH,
     path: { min: 1, max: 1, join: '/' },
     downloads: 'month',

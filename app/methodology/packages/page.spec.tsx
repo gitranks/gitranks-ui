@@ -34,5 +34,7 @@ describe('how package rankings work', () => {
     );
     expect(text).toContain('Its dependents come from the dependency files GitHub reports for each repository.');
     expect(text).toContain('Zope.Interface, zope.interface and zope-interface as one name');
+    expect(text).toContain('npm: vs last week, against the 7 days before. PyPI: vs the month before.');
+    expect(text).toContain('This month: against the monthly read before');
   });
 });

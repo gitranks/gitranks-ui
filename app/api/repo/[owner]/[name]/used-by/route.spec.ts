@@ -60,6 +60,21 @@ describe('repo used-by route', () => {
     });
   });
 
+  it('reads a PyPI name in any spelling PyPI takes as the same, by the spelling the repository lists it in', async () => {
+    fetchRepoPackages.mockResolvedValue({
+      ...threePackages,
+      items: [...threePackages.items, { registry: 'PYPI', name: 'django', dependents: 2, downloadsLastWeek: null }],
+    });
+
+    for (const spelled of ['Django', 'DJANGO', 'django']) {
+      expect((await call(`?package=${spelled}&registry=pypi`)).status).toBe(200);
+    }
+    expect(fetchRepoUsedBy).toHaveBeenCalledTimes(3);
+    for (const [, , query] of fetchRepoUsedBy.mock.calls) {
+      expect(query.package).toEqual({ registry: 'pypi', name: 'django' });
+    }
+  });
+
   it('answers an empty page for a package the repository does not list, without reading it', async () => {
     const response = await call('?package=react');
 
@@ -128,7 +143,7 @@ describe('parseUsedByQuery', () => {
     });
     expect(parseUsedByQuery(new URLSearchParams('package=Zope.Interface&registry=pypi'))).toEqual({
       offset: 0,
-      package: { registry: 'pypi', name: 'Zope.Interface' },
+      package: { registry: 'pypi', name: 'zope-interface' },
       hideArchived: false,
     });
   });

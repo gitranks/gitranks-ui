@@ -16,3 +16,10 @@ export const isPypiProjectName = (name: string) => name.length <= PYPI_NAME_MAX_
  * `zope-interface`.
  */
 export const foldPypiName = (name: string) => name.toLowerCase().replace(/[-_.]+/g, '-');
+
+/**
+ * The project's name in a requirement as written in a requirements file or `pip install` (`django==5.0`,
+ * `requests[socks]>=2`, `numpy; python_version>"3.8"`): what comes before its extras, its version specifier or its
+ * environment marker.
+ */
+export const pypiRequirementName = (requirement: string) => requirement.replace(/[[=<>!~;].*$/, '');

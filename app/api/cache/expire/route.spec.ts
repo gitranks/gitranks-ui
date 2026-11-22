@@ -76,6 +76,18 @@ describe('POST /api/cache/expire', () => {
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
   });
 
+  it("expires a PyPI project's tag in the spelling its pages carry, whatever spelling is sent", async () => {
+    const response = await signed({
+      tags: ['package:pypi/zope.interface', 'package:pypi/zope_interface', 'package:pypi/requests'],
+    });
+
+    expect(response.status).toBe(200);
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual([
+      'package:pypi/zope-interface',
+      'package:pypi/requests',
+    ]);
+  });
+
   it('takes the tag of any name the npm name rule takes, as packageCacheTag writes it', async () => {
     const names = [
       'JSONStream',

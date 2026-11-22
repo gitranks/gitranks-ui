@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 
 import { MethodologySection as Section } from '../components/methodology-section';
-import { DEPENDENT_MIN_STARS, PACKAGE_RANKING_ORDER_LIST, PACKAGE_RANKINGS } from '@/app/packages/package-rankings';
+import {
+  DEPENDENT_MIN_STARS,
+  PACKAGE_RANKING_ORDER_LIST,
+  PACKAGE_RANKINGS,
+  packageRankingOf,
+} from '@/app/packages/package-rankings';
 import { Header } from '@/components/header/header';
 import { Link } from '@/components/link/link';
 import { Page } from '@/components/page/page';
@@ -20,7 +25,7 @@ const RANKINGS: Record<(typeof PACKAGE_RANKING_ORDER_LIST)[number], { ranksBy: s
   downloads: {
     ranksBy:
       'Downloads from the npm registry over 7 days, and from PyPI over the last whole calendar month; the ranking says which days it counts',
-    change: 'Against the 7 days before on npm, and the month before on PyPI',
+    change: 'Against the 7 days before',
   },
   'dependents-stars': {
     ranksBy: `The stars of every repository with ${DEPENDENT_MIN_STARS}+ stars that uses the package directly, added up`,
@@ -31,6 +36,16 @@ const RANKINGS: Record<(typeof PACKAGE_RANKING_ORDER_LIST)[number], { ranksBy: s
     change: 'The repositories that started using it since the monthly read before',
   },
 };
+
+/**
+ * A ranking's change column, by its label and what it compares: "This month: against the monthly read before". The
+ * downloads ranking's label is its registry's, so each registry has its own: "npm: vs last week, against the 7 days
+ * before. PyPI: vs the month before."
+ */
+function changeCellOf(order: (typeof PACKAGE_RANKING_ORDER_LIST)[number]): string {
+  if (order !== 'downloads') return `${PACKAGE_RANKINGS[order].change}: ${RANKINGS[order].change.toLowerCase()}`;
+  return `npm: ${PACKAGE_RANKINGS.downloads.change}, ${RANKINGS.downloads.change.toLowerCase()}. PyPI: ${packageRankingOf('downloads', 'pypi').change}.`;
+}
 
 export default function PackageMethodologyPage() {
   return (
@@ -92,9 +107,7 @@ export default function PackageMethodologyPage() {
                       <Link href={packageRankingPath(order)}>{PACKAGE_RANKINGS[order].label}</Link>
                     </th>
                     <td className="border-b p-2 align-top">{RANKINGS[order].ranksBy}</td>
-                    <td className="border-b p-2 align-top">
-                      {PACKAGE_RANKINGS[order].change}: {RANKINGS[order].change.toLowerCase()}
-                    </td>
+                    <td className="border-b p-2 align-top">{changeCellOf(order)}</td>
                   </tr>
                 ))}
               </tbody>

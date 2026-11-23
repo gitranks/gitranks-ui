@@ -28,9 +28,6 @@ import { cn } from '@/lib/utils';
 /** What the boxes call: signing in, and rating the course once it is finished. */
 export type CourseBoxCalls = { onSignIn: () => void; onRate?: (good: boolean) => Promise<boolean> };
 
-/** The learner's rating of the course, once given. */
-type Rated = { rated?: boolean | null };
-
 function Box({ lit, children }: { lit: boolean; children: ReactNode }) {
   return (
     <section
@@ -90,8 +87,7 @@ function FirstBox({
   lit,
   hints,
   onRate,
-  rated,
-}: { box: CourseFirstBox; lit: boolean; hints: boolean } & Pick<CourseBoxCalls, 'onRate'> & Rated) {
+}: { box: CourseFirstBox; lit: boolean; hints: boolean } & Pick<CourseBoxCalls, 'onRate'>) {
   switch (box.kind) {
     case 'start':
       return (
@@ -131,14 +127,44 @@ function FirstBox({
             <Check className="size-4" aria-hidden="true" />
             You finished this course
           </span>
+          {/* The learner's own count, as the line under the title says it: a paused lesson not learned is not in it. */}
           <Title>
-            {countWords(box.lessons)} of {countWords(box.lessons)} lessons learned
+            {countWords(box.learned)} of {lessonsWords(box.lessons)} learned
           </Title>
-          {onRate ? <RateCourse onRate={onRate} initial={rated ?? null} /> : null}
+          {box.pausedLeft > 0 ? (
+            <Text>
+              {box.pausedLeft === 1
+                ? 'The one lesson left is paused while we correct it.'
+                : `The ${countWords(box.pausedLeft)} lessons left are paused while we correct them.`}
+            </Text>
+          ) : null}
+          {onRate ? <RateCourse onRate={onRate} initial={box.rated} /> : null}
         </Box>
       );
-    case 'none':
-      return <Box lit={false}>{null}</Box>;
+    case 'known-left':
+      return (
+        <Box lit={lit}>
+          <Eyebrow>Nothing new left</Eyebrow>
+          <Title>{box.lesson.title}</Title>
+          <Text>
+            Every lesson you have not learned is marked as known. Learn this one by answering its question, so it comes
+            back in your review.
+          </Text>
+          <Action lit={lit} hints={hints} href={learnLessonPath(box.lesson.slug)}>
+            Learn it
+          </Action>
+        </Box>
+      );
+    case 'paused-left':
+      return (
+        <Box lit={false}>
+          <Eyebrow>Nothing new left</Eyebrow>
+          <Title>
+            {box.paused === 1 ? 'The lesson left is paused' : `The ${countWords(box.paused)} lessons left are paused`}
+          </Title>
+          <Text>We are correcting a mistake. They come back here once it is fixed, and your progress is kept.</Text>
+        </Box>
+      );
   }
 }
 
@@ -374,16 +400,15 @@ export function CourseBoxesRow({
   slug,
   hints,
   calls,
-  rated,
 }: {
   boxes: CourseBoxes;
   slug: string;
   hints: boolean;
   calls: CourseBoxCalls;
-} & Rated) {
+}) {
   return (
     <div className="grid gap-4 md:grid-cols-3" data-course-boxes="">
-      <FirstBox box={boxes.first} lit={boxes.highlight === 'first'} hints={hints} onRate={calls.onRate} rated={rated} />
+      <FirstBox box={boxes.first} lit={boxes.highlight === 'first'} hints={hints} onRate={calls.onRate} />
       <MiddleBox
         box={boxes.middle}
         lit={boxes.highlight === 'middle'}

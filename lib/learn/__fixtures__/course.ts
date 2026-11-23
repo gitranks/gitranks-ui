@@ -350,18 +350,33 @@ const DONE_PRACTISED =
   );
 const DONE_DUE = new Set(['1-5', '2-2', '7-10', '8-7', '9-4']);
 
-/** Every lesson learned: the course is finished. */
-export const doneMine = mineOf(
-  Object.fromEntries(
-    groups.flatMap((group, g) =>
-      group.lessons.map((_, i) => {
-        const at = `${g + 1}-${i + 1}`;
-        const own = DONE_MASTERED.includes(at) ? MA : DONE_PRACTISED.includes(at) ? P : L;
-        return [at, DONE_DUE.has(at) ? DUE(own) : own];
-      }),
-    ),
+const DONE_MARKS: Record<string, Own> = Object.fromEntries(
+  groups.flatMap((group, g) =>
+    group.lessons.map((_, i) => {
+      const at = `${g + 1}-${i + 1}`;
+      const own = DONE_MASTERED.includes(at) ? MA : DONE_PRACTISED.includes(at) ? P : L;
+      return [at, DONE_DUE.has(at) ? DUE(own) : own];
+    }),
   ),
-  { finishedAt: '2026-11-18T10:00:00.000Z' },
+);
+
+/** Every lesson learned: the course is finished, and rated good. */
+export const doneMine = mineOf(DONE_MARKS, { finishedAt: '2026-11-18T10:00:00.000Z', feedbackGood: true });
+
+/**
+ * Finished with one lesson never answered, now paused ("Find duplicates in one pass with a set", on
+ * `algorithmsCoursePaused`): every lesson that is not paused is learned.
+ */
+export const donePausedMine = mineOf(Object.fromEntries(Object.entries(DONE_MARKS).filter(([at]) => at !== '3-3')), {
+  finishedAt: '2026-11-18T10:00:00.000Z',
+});
+
+/** The check marked every lesson but the first as known, and the first is learned: no next lesson, not finished. */
+export const allKnownMine = mineOf(
+  Object.fromEntries(
+    groups.flatMap((group, g) => group.lessons.map((_, i) => [`${g + 1}-${i + 1}`, g === 0 && i === 0 ? L : K])),
+  ),
+  { check: { state: 'SAVED', left: 0 } },
 );
 
 /** A check left in the middle: four questions to go. */

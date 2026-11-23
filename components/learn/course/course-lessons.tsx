@@ -2,7 +2,7 @@
 
 import { Check, Search, X } from 'lucide-react';
 import Link from 'next/link';
-import { Fragment, type RefObject } from 'react';
+import { Fragment, type RefObject, useEffect, useState } from 'react';
 
 import { CountLine } from './course-header';
 import { CourseMark, SquareCard } from './course-marks';
@@ -15,11 +15,13 @@ import {
   groupHeadOf,
   groupSquaresCountOf,
   groupStandingOf,
+  isPausedSquare,
   LEVEL_WORDS,
   type LearnCourseLessonMine,
   type MarkedText,
   markedTextOf,
   passesFilter,
+  SQUARE_WORDS,
   squareLabelOf,
 } from '@/lib/learn/course';
 import type { LearnCourseGroup, LearnGroupLesson } from '@/lib/learn/lesson-page';
@@ -181,8 +183,12 @@ function LessonRow({
   learner: boolean;
   query: string;
 }) {
+  // A learner hears the square's state in words, then the row as it reads: its title and its pills.
   const lead = learner ? (
-    <CourseMark square={square} />
+    <>
+      <CourseMark square={square} />
+      <span className="sr-only">{square.kind === 'known' ? 'Marked as known' : SQUARE_WORDS[square.kind]}. </span>
+    </>
   ) : (
     <span className="w-4 shrink-0 text-right font-mono text-xs text-muted-foreground tabular-nums">{place}</span>
   );
@@ -190,8 +196,8 @@ function LessonRow({
   const level = (
     <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">{LEVEL_WORDS[lesson.level]}</span>
   );
-  if (square.kind === 'paused') {
-    // A paused lesson keeps its place: its name turns grey, it says so, and it is not a link.
+  if (isPausedSquare(square)) {
+    // A paused lesson keeps its place (and the learner's depth): its name turns grey, it says so, and it is not a link.
     return (
       <li className="flex break-inside-avoid items-center gap-3 rounded-lg px-2 text-sm" data-paused="">
         <span className="flex min-w-0 flex-1 items-center gap-3 py-2">
@@ -207,11 +213,7 @@ function LessonRow({
   }
   return (
     <li className="flex break-inside-avoid items-center gap-3 rounded-lg px-2 text-sm hover:bg-accent">
-      <Link
-        href={learnLessonPath(lesson.slug)}
-        className="flex min-w-0 flex-1 items-center gap-3 py-2"
-        aria-label={learner ? squareLabelOf(lesson.title, square) : undefined}
-      >
+      <Link href={learnLessonPath(lesson.slug)} className="flex min-w-0 flex-1 items-center gap-3 py-2">
         {lead}
         <span className={cn('min-w-0 flex-1', square.kind === 'next' && 'font-semibold')}>{title}</span>
         {square.kind === 'next' ? (
@@ -306,7 +308,8 @@ export function CourseList({
 
 /**
  * The Squares view: one row a group, one square a lesson, in order. A square the search or the filter leaves out
- * fades, so nothing moves. Pointing at a square, or reaching it with the keyboard, shows its card over the page.
+ * fades, so nothing moves, and it leaves the keyboard's order and what a screen reader reads: only the squares found
+ * are reached. Pointing at a square, or reaching it with the keyboard, shows its card over the page; Esc hides it.
  */
 export function CourseSquares({
   groups,
@@ -322,6 +325,25 @@ export function CourseSquares({
   /** A square whose card shows open, as a board draws it. */
   openCard?: string | null;
 }) {
+  // The square pointed at or reached, and whether Esc hid its card.
+  const [pointed, setPointed] = useState<string | null>(null);
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    if (!pointed || hidden) return;
+    // Before the page's own keys: Esc hides the card first, and clears the search only when no card is open.
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      event.preventDefault();
+      setHidden(true);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [pointed, hidden]);
+  const point = (slug: string | null) => {
+    setPointed(slug);
+    setHidden(false);
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <ul className="m-0 flex list-none flex-col divide-y rounded-xl border bg-card px-5 py-2">
@@ -331,24 +353,27 @@ export function CourseSquares({
             <span className="flex flex-wrap items-center gap-1.5">
               {group.lessons.map((lesson) => {
                 const square = squareOf(lesson);
+                const open = lesson.slug === openCard || (lesson.slug === pointed && !hidden);
                 const card = (
-                  <span
-                    className={cn(
-                      'absolute top-[30px] -left-2 z-[2]',
-                      lesson.slug === openCard ? 'block' : 'hidden group-hover:block group-focus-visible:block',
-                    )}
-                  >
+                  <span className={cn('absolute top-[30px] -left-2 z-[2]', open ? 'block' : 'hidden')}>
                     <SquareCard group={group.name} level={lesson.level} title={lesson.title} square={square} />
                   </span>
                 );
                 const faded = !visible(lesson);
                 const shared = {
                   'aria-label': squareLabelOf(lesson.title, square),
-                  className: cn('group relative inline-flex', faded && 'opacity-[.18]'),
+                  'aria-hidden': faded ? true : undefined,
+                  tabIndex: faded ? -1 : undefined,
+                  'data-faded': faded ? '' : undefined,
+                  className: cn('relative inline-flex', faded && 'opacity-[.18]'),
+                  onMouseEnter: () => point(lesson.slug),
+                  onMouseLeave: () => point(null),
+                  onFocus: () => point(lesson.slug),
+                  onBlur: () => point(null),
                 };
                 return (
                   <Fragment key={lesson.slug}>
-                    {square.kind === 'paused' ? (
+                    {isPausedSquare(square) ? (
                       // A paused lesson is not a link; its square still shows its card, to the keyboard too.
                       <button type="button" {...shared}>
                         <CourseMark square={square} size={22} />

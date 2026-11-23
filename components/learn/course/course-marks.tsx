@@ -29,10 +29,13 @@ export function CourseMark({ square, size = 16 }: { square: CourseSquare; size?:
       aria-hidden="true"
       data-square={square.kind}
       data-due={square.due ? '' : undefined}
+      data-paused={square.paused ? '' : undefined}
       className={cn(
         'inline-flex shrink-0 rounded-[4px]',
         size === 16 ? 'size-4' : 'size-[22px]',
         SQUARE_CLASS[square.kind],
+        // A paused lesson the learner had learned keeps its colour, faint and edged as a paused one.
+        square.paused && 'border-[1.5px] border-dashed border-muted-foreground opacity-70',
         square.due && DUE_RING,
       )}
     />
@@ -96,7 +99,11 @@ export function SquareCard({
       <span className="flex items-center gap-2 text-xs text-foreground">
         <CourseMark square={{ kind: square.kind, due: false }} />
         <span>
-          {square.kind === 'paused' ? 'Paused: we are correcting a mistake' : SQUARE_WORDS[square.kind]}
+          {square.kind === 'paused'
+            ? 'Paused: we are correcting a mistake'
+            : square.paused
+              ? `${SQUARE_WORDS[square.kind]}. Paused: we are correcting a mistake`
+              : SQUARE_WORDS[square.kind]}
           {square.due ? (
             <>
               {' · '}

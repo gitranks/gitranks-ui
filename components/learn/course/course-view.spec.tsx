@@ -8,9 +8,11 @@ import { COURSE_VIEW_KEY, CourseView, type CourseViewProps } from './course-view
 import {
   algorithmsCourse,
   algorithmsCoursePaused,
+  allKnownMine,
   checkSavedMine,
   checkUnfinishedMine,
   doneMine,
+  donePausedMine,
   freshMine,
   goCourse,
   groupDoneMine,
@@ -140,6 +142,39 @@ describe("a course's page, signed in", () => {
     expect(paused.querySelector('a')).toBeNull();
   });
 
+  it('a paused lesson learned before keeps its colour, and the group counts it', () => {
+    const page = draw({ course: algorithmsCoursePaused, mine: progressMine });
+    const paused = page.querySelector('li[data-paused]')!;
+    expect(paused.querySelector('[data-square="learned"][data-paused]')).not.toBeNull();
+    expect(paused.textContent).toContain('Learned.');
+    expect(page.querySelector('#group-hash-maps-and-sets')!.parentElement!.textContent).toContain('3 of 9 learned');
+  });
+
+  it('not started, for an experienced developer: the check takes the highlight and Enter', () => {
+    const page = draw({ mine: freshMine, checkFirst: true });
+    expect(litOf(page)).toContain('Take the 2-minute check');
+    expect(page.querySelector('[data-lit] [data-course-enter]')!.textContent).toContain('Take the check');
+  });
+
+  it('the course finished: the rating the learner gave shows pressed', () => {
+    const page = draw({ mine: doneMine });
+    expect(page.querySelector('[aria-pressed="true"]')!.textContent).toBe('Good');
+  });
+
+  it('finished with a paused lesson never answered: the box and the line under the title agree', () => {
+    const page = draw({ course: algorithmsCoursePaused, mine: donePausedMine });
+    expect(boxesOf(page)[0]).toContain('85 of 86 lessons learned');
+    expect(boxesOf(page)[0]).toContain('The one lesson left is paused while we correct it.');
+    expect(textOf(page, '[data-course-line]')).toMatch(/^85 of 86 learned/);
+  });
+
+  it('every lesson left marked as known: the first of them, to learn it by answering', () => {
+    const page = draw({ mine: allKnownMine });
+    expect(litOf(page)).toContain('Nothing new left');
+    expect(litOf(page)).toContain(lessonAt('1-2').title);
+    expect(page.querySelector('[data-lit] a')!.getAttribute('href')).toBe(`/learn/lessons/${lessonAt('1-2').slug}`);
+  });
+
   it('a language course says its one language', () => {
     const page = draw({ course: goCourse, mine: null });
     expect(page.textContent).toContain('Language course');
@@ -160,11 +195,17 @@ describe("a course's search and the Squares view", () => {
     expect(chips).toEqual(['All13', 'To learn13']);
   });
 
-  it('in the Squares view: every square stays, the ones not found fade', () => {
+  it('in the Squares view: every square stays, the ones not found fade and leave the keys and the screen reader', () => {
     const page = draw({ mine: progressMine, drawn: { view: 'squares', query: 'search' } });
     const squares = page.querySelectorAll('.max-sm\\:hidden ul [data-square].size-\\[22px\\]');
     expect(squares).toHaveLength(86);
-    expect(page.querySelectorAll('.max-sm\\:hidden ul .opacity-\\[\\.18\\]')).toHaveLength(86 - 13);
+    const faded = page.querySelectorAll('.max-sm\\:hidden ul [data-faded]');
+    expect(faded).toHaveLength(86 - 13);
+    for (const square of faded) {
+      expect(square.getAttribute('tabindex')).toBe('-1');
+      expect(square.getAttribute('aria-hidden')).toBe('true');
+    }
+    expect(page.querySelector('[data-course-status]')!.textContent).toBe('13 lessons shown.');
     // A phone keeps the list.
     expect(page.querySelector('.sm\\:hidden section')).not.toBeNull();
   });
@@ -179,8 +220,46 @@ describe("a course's search and the Squares view", () => {
     expect(card.parentElement!.className).toContain('block');
   });
 
+  it('a filter with nothing in it: the same words and the way back, in the list and in the Squares view', () => {
+    for (const view of ['list', 'squares'] as const) {
+      const page = draw({ mine: freshMine, drawn: { view, filter: 'due' } });
+      const nothing = page.querySelector('[data-course-nothing]')!;
+      // Outside the phone-only part: it shows on every width.
+      expect(nothing.closest('.sm\\:hidden')).toBeNull();
+      expect(nothing.textContent).toBe('No lesson here for this filter. Show all lessons');
+      expect(page.querySelector('[data-course-status]')!.textContent).toBe('No lesson found.');
+    }
+  });
+
+  it('"To learn" keeps lessons not learned and not marked as known', () => {
+    const page = draw({ mine: knownLaterMine, drawn: { filter: 'to-learn' } });
+    expect(page.querySelectorAll('ol [data-square="known"]')).toHaveLength(0);
+    expect(page.querySelectorAll('ol [data-square="learned"]')).toHaveLength(0);
+    expect(page.querySelectorAll('ol [data-square="next"]')).toHaveLength(1);
+  });
+
+  it('a paused square in the Squares view is a button with its card, not a link', () => {
+    const paused = lessonAt('3-3');
+    const page = draw({
+      course: algorithmsCoursePaused,
+      mine: freshMine,
+      drawn: { view: 'squares', openCard: paused.slug },
+    });
+    const square = page.querySelector(`button[aria-label^="${paused.title}"]`)!;
+    expect(square.getAttribute('aria-label')).toBe(`${paused.title} · Paused`);
+    expect(square.querySelector('[data-square-card]')!.textContent).toContain('Paused: we are correcting a mistake');
+    expect(page.querySelector(`a[href="/learn/lessons/${paused.slug}"]`)).toBeNull();
+  });
+
+  it('a learner hears the row: its state, then its title and pills', () => {
+    const page = draw({ mine: progressMine });
+    const next = page.querySelector(`ol a[href="/learn/lessons/${lessonAt('3-4').slug}"]`)!;
+    expect(next.getAttribute('aria-label')).toBeNull();
+    expect(next.textContent).toBe(`Not started. ${lessonAt('3-4').title}Next`);
+  });
+
   it('never writes a long dash', () => {
-    for (const mine of [null, freshMine, progressMine, doneMine, checkSavedMine]) {
+    for (const mine of [null, freshMine, progressMine, doneMine, checkSavedMine, allKnownMine]) {
       expect(draw({ mine }).textContent).not.toContain(LONG_DASH);
     }
   });
@@ -233,6 +312,64 @@ describe("a course's page in the browser", () => {
     input.blur();
     press('Enter');
     expect(onSignIn).toHaveBeenCalledTimes(1);
+  });
+
+  it('R opens the review; a key typed in the language menu never does', () => {
+    act(() =>
+      root.render(<CourseView course={algorithmsCourse} mine={progressMine} others={otherCourses} calls={calls} />),
+    );
+    const review = host.querySelector<HTMLElement>('[data-course-key="R"]')!;
+    let opened = 0;
+    review.addEventListener('click', (event) => {
+      event.preventDefault();
+      opened += 1;
+    });
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    const item = document.createElement('div');
+    item.setAttribute('role', 'menuitemradio');
+    menu.append(item);
+    document.body.append(menu);
+    press('r', item);
+    press('/', item);
+    expect(opened).toBe(0);
+    expect(document.activeElement).not.toBe(host.querySelector('input'));
+    press('r');
+    expect(opened).toBe(1);
+    menu.remove();
+  });
+
+  it('a filter chip filters the list; Esc hides a square card before it clears the search', () => {
+    act(() =>
+      root.render(
+        <CourseView
+          course={algorithmsCourse}
+          mine={progressMine}
+          others={otherCourses}
+          calls={calls}
+          drawn={{ view: 'squares', query: 'search' }}
+        />,
+      ),
+    );
+    const square = host.querySelector<HTMLElement>('.max-sm\\:hidden ul a:not([data-faded])')!;
+    act(() => square.focus());
+    const card = () => square.querySelector('[data-square-card]')!.parentElement!.className;
+    expect(card()).toContain('block');
+    press('Escape', square);
+    expect(card()).toContain('hidden');
+    expect(host.querySelector('input')!.value).toBe('search');
+    press('Escape', square);
+    expect(host.querySelector('input')!.value).toBe('');
+
+    const chip = (name: string) =>
+      [...host.querySelectorAll<HTMLButtonElement>('fieldset button')].find((button) =>
+        button.textContent?.startsWith(name),
+      )!;
+    act(() => chip('List').click());
+    act(() => chip('Due now').click());
+    expect(host.querySelectorAll('ol > li')).toHaveLength(4);
+    act(() => chip('To learn').click());
+    expect(host.querySelectorAll('ol > li')).toHaveLength(76);
   });
 
   it('keeps the view a learner picks for the next course', () => {

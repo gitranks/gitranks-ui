@@ -4,12 +4,21 @@ import { type RefObject, useEffect, useRef } from 'react';
 
 import { coursePageKeyOf } from '@/lib/learn/course';
 
-/** Where a key was pressed: in a field, on a button or a link, or on the page itself. */
+/**
+ * Where a key takes text or choices of its own: a text field, and a menu, a list box or a dialog, whose letters jump
+ * to an item (R for Rust in the language menu). The page's keys never act there.
+ */
+const OWN_KEYS =
+  'input, textarea, select, [role="menu"], [role="menubar"], [role="listbox"], [role="combobox"], [role="dialog"], [role="alertdialog"]';
+
+/** Where a key was pressed: where it is typed, on a button or a link, or on the page itself. */
 function whereOf(target: EventTarget | null): 'field' | 'control' | 'page' {
   const element = target as HTMLElement | null;
   if (!element || typeof element.closest !== 'function') return 'page';
-  if (element.isContentEditable || element.closest('input, textarea, select')) return 'field';
-  return element.closest('button, a, summary, [role="menuitem"], [role="menuitemradio"]') ? 'control' : 'page';
+  if (element.isContentEditable || element.closest(OWN_KEYS)) return 'field';
+  return element.closest('button, a, summary, [role="menuitem"], [role="menuitemradio"], [role="option"]')
+    ? 'control'
+    : 'page';
 }
 
 /**

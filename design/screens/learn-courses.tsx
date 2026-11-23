@@ -8,6 +8,7 @@ import { CoursesView, type CoursesViewProps } from '@/components/learn/courses/c
 import {
   algorithmsCourse,
   algorithmsCoursePaused,
+  allKnownMine,
   checkSavedMine,
   checkUnfinishedMine,
   courseCards,
@@ -15,6 +16,7 @@ import {
   coursesMineAllLearned,
   coursesMineChecked,
   doneMine,
+  donePausedMine,
   freshMine,
   goCourse,
   groupDoneMine,
@@ -129,7 +131,7 @@ export const LEARN_COURSE_SCREEN: Screen = {
       id: 'states',
       title: 'Every state, one under the other',
       path: COURSE_PATH,
-      height: 15400,
+      height: 18200,
       render: () => (
         <Board
           title="A course, in every state"
@@ -180,6 +182,21 @@ export const LEARN_COURSE_SCREEN: Screen = {
           </Frame>
           <Frame title="14 · A language course: one language, no picker" height={760}>
             <Course course={goCourse} bar={visitor} />
+          </Frame>
+          <Frame
+            title="15 · Finished with a paused lesson never answered: the box counts what the line counts"
+            height={760}
+          >
+            <Course course={algorithmsCoursePaused} mine={donePausedMine} bar={learnerBar(5)} />
+          </Frame>
+          <Frame
+            title="16 · Every lesson left marked as known: the first of them, to learn it by answering"
+            height={660}
+          >
+            <Course mine={allKnownMine} />
+          </Frame>
+          <Frame title="17 · The Squares view with nothing due: the same words and the way back" height={1210}>
+            <Course mine={freshMine} drawn={{ view: 'squares', filter: 'due' }} />
           </Frame>
         </Board>
       ),

@@ -17,6 +17,7 @@ import {
   type LearnCourse,
   type LearnCourseCard,
   type LearnCourseMine,
+  lessonsWords,
   mineBySlugOf,
   passesFilter,
   searchQueryOf,
@@ -65,8 +66,6 @@ export type CourseViewProps = {
   /** The other courses, named in the footer. */
   others: readonly LearnCourseCard[];
   calls: CourseBoxCalls;
-  /** The learner's rating of a finished course, when they gave one. */
-  rated?: boolean | null;
   /** The check takes the highlight and Enter: a course not started, for an experienced developer. */
   checkFirst?: boolean;
   /** For the catalogue: a state drawn as it stands. */
@@ -84,7 +83,6 @@ export function CourseView({
   mine,
   others,
   calls,
-  rated,
   checkFirst = false,
   drawn = {},
   hints: hintsGiven,
@@ -115,9 +113,13 @@ export function CourseView({
   const foundSlugs = useMemo(() => new Set(foundLessons.map((lesson) => lesson.slug)), [foundLessons]);
   const visible = (lesson: LearnGroupLesson) => foundSlugs.has(lesson.slug) && passesFilter(squareOf(lesson), filter);
   const boxes = courseBoxesOf(course, mine, { checkFirst });
-  const nothing = !foundLessons.some((lesson) => passesFilter(squareOf(lesson), filter));
+  const shownCount = foundLessons.filter((lesson) => passesFilter(squareOf(lesson), filter)).length;
+  const nothing = shownCount === 0;
+  // What the search and the filter leave, said to a screen reader as it changes; nothing while the whole course shows.
+  const status = q || filter !== 'all' ? (nothing ? 'No lesson found.' : `${lessonsWords(shownCount)} shown.`) : '';
 
-  const list = nothing ? (
+  // With nothing to show, the same words and the way back on every width, in the list and in the Squares view.
+  const nothingBox = nothing ? (
     <p className="m-0 rounded-xl border bg-card p-5 text-sm text-muted-foreground" data-course-nothing="">
       {q ? <>No lesson of this course matches “{q}”. </> : <>No lesson here for this filter. </>}
       <button
@@ -131,14 +133,15 @@ export function CourseView({
         Show all lessons
       </button>
     </p>
-  ) : (
+  ) : null;
+  const list = nothing ? null : (
     <CourseList found={found} squareOf={squareOf} mine={own} learner={learner} query={q} filter={filter} />
   );
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-course={course.slug}>
       <CourseHeader course={course} mine={mine} language={language} onLanguage={pickLanguage} />
-      <CourseBoxesRow boxes={boxes} slug={course.slug} hints={hints} calls={calls} rated={rated} />
+      <CourseBoxesRow boxes={boxes} slug={course.slug} hints={hints} calls={calls} />
       <div className="flex flex-col gap-3">
         <CourseToolbar
           learner={learner}
@@ -156,11 +159,15 @@ export function CourseView({
           inputRef={inputRef}
         />
         {learner ? <CourseLegend /> : null}
+        <p className="sr-only" role="status" data-course-status="">
+          {status}
+        </p>
       </div>
+      {nothingBox}
       {view === 'squares' ? (
         <>
           {/* A phone has the list only. */}
-          <div className="sm:hidden">{list}</div>
+          {list ? <div className="sm:hidden">{list}</div> : null}
           <div className="max-sm:hidden">
             <CourseSquares
               groups={course.groups}

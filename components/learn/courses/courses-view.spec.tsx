@@ -88,9 +88,7 @@ describe('all courses, a learner', () => {
     expect(statsOf(page, 'algorithms')).toMatch(/^All 86 learned/);
     expect(statsOf(page, 'go')).toMatch(/^12 of 104 learned · 40 marked as known/);
     const bar = cardOf(page, 'go').querySelector('[role="img"]')!;
-    expect(bar.getAttribute('aria-label')).toBe(
-      '12 of 104 lessons learned: 4 practised, 0 mastered, 40 marked as known',
-    );
+    expect(bar.getAttribute('aria-label')).toBe('12 of 104 lessons learned: 4 practised, 40 marked as known');
     expect(bar.children).toHaveLength(3);
   });
 });
@@ -109,6 +107,20 @@ describe('the search of all courses', () => {
     expect(lessons.querySelectorAll('[data-square="learned"]')).toHaveLength(1);
     expect(lessons.textContent).toContain('Go · Modules');
     expect(page.querySelector('[aria-label="Clear the search"]')).not.toBeNull();
+  });
+
+  it('says what was found to a screen reader, and nothing while every course shows', () => {
+    expect(draw().querySelector('[role="status"]')!.textContent).toBe('');
+    expect(draw({ query: 'go' }).querySelector('[role="status"]')!.textContent).toBe('1 course, 5 lessons found.');
+    expect(draw({ query: 'haskell' }).querySelector('[role="status"]')!.textContent).toBe('Nothing found.');
+  });
+
+  it("keeps a learner's square in its place before the depths come, so nothing moves", () => {
+    const page = draw({ mine: coursesMine, depths: null, query: 'go' });
+    const lessons = page.querySelector('section[aria-labelledby="found-lessons"]')!;
+    expect(lessons.querySelectorAll('[data-square-slot]')).toHaveLength(5);
+    expect(lessons.querySelector('[data-square]')).toBeNull();
+    expect(draw({ query: 'go' }).querySelector('[data-square-slot]')).toBeNull();
   });
 
   it('"hash", not signed in: lessons only, without squares', () => {
@@ -191,8 +203,12 @@ describe('all courses in the browser', () => {
       root.render(<CoursesView courses={courseCards} lessons={lessonList} mine={null} depths={null} query="sort" />),
     );
     const more = host.querySelector<HTMLButtonElement>('section[aria-labelledby="found-lessons"] button')!;
+    act(() => more.focus());
     act(() => more.click());
     expect(host.querySelector('section[aria-labelledby="found-lessons"] button')).toBeNull();
-    expect(host.querySelectorAll('section[aria-labelledby="found-lessons"] li').length).toBeGreaterThan(6);
+    const links = host.querySelectorAll('section[aria-labelledby="found-lessons"] li a');
+    expect(links.length).toBeGreaterThan(6);
+    // The keyboard goes on from the first lesson the button showed.
+    expect(document.activeElement).toBe(links[6]);
   });
 });

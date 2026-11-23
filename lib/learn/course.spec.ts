@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   algorithmsCourse,
   algorithmsCoursePaused,
+  allKnownMine,
   checkSavedMine,
   checkUnfinishedMine,
   courseCards,
@@ -10,6 +11,7 @@ import {
   coursesMineAllLearned,
   coursesMineChecked,
   doneMine,
+  donePausedMine,
   freshMine,
   goCourse,
   groupDoneMine,
@@ -31,11 +33,13 @@ import {
   courseSquareOf,
   coursesSearchOf,
   filterCountsOf,
+  foldedOf,
   foundWordsOf,
   goodShareOf,
   groupHeadOf,
   groupSquaresCountOf,
   groupStandingOf,
+  isPausedSquare,
   learnersOf,
   learnersWords,
   markedTextOf,
@@ -91,17 +95,20 @@ describe("a lesson's square", () => {
     expect(squareAt('1-1', saved, checkSavedMine.next?.slug ?? null)).toEqual({ kind: 'known', due: false });
   });
 
-  it('is paused first, whatever the learner did', () => {
+  it('is paused, never next nor due; a lesson learned before keeps its depth', () => {
     const paused = algorithmsCoursePaused.groups[2].lessons.find((lesson) => lesson.paused)!;
-    expect(courseSquareOf(paused, { slug: paused.slug, depth: 'LEARNED', known: false, due: true }, null)).toEqual({
-      kind: 'paused',
-      due: false,
-    });
+    const learned = courseSquareOf(paused, { slug: paused.slug, depth: 'LEARNED', known: false, due: true }, null);
+    expect(learned).toEqual({ kind: 'learned', due: false, paused: true });
+    expect(isPausedSquare(learned)).toBe(true);
+    expect(squareLabelOf('Sets', learned)).toBe('Sets · Learned · paused');
+    expect(squareHintOf(learned)).toBeNull();
+    expect(courseSquareOf(paused, undefined, paused.slug)).toEqual({ kind: 'paused', due: false });
   });
 
   it('labels and hints in plain words', () => {
     expect(squareLabelOf('Big-O', { kind: 'learned', due: true })).toBe('Big-O · Learned · due now');
     expect(squareLabelOf('Big-O', { kind: 'known', due: false })).toBe('Big-O · marked as known');
+    expect(squareLabelOf('Big-O', { kind: 'next', due: false })).toBe('Big-O · next, not started');
     expect(squareHintOf({ kind: 'next', due: false })).toBe('Click to start the lesson');
     expect(squareHintOf({ kind: 'known', due: false })).toBe('Click to learn the lesson');
     expect(squareHintOf({ kind: 'mastered', due: false })).toBe('Click to open the lesson');
@@ -119,6 +126,18 @@ describe("a group's count and the line under the title", () => {
     );
     expect(groupStandingOf(hashMaps, mineBySlugOf(groupDoneMine)).done).toBe(true);
     expect(text([groupSquaresCountOf(groupStandingOf(bigO, mineBySlugOf(progressMine)))])).toBe('4 of 8');
+  });
+
+  it('counts a paused lesson learned before, and says Done once every lesson not paused is learned', () => {
+    const hashMaps = algorithmsCoursePaused.groups[2];
+    // 3-1, 3-2 and 3-3 learned; 3-3 is the paused one, and its square keeps its colour.
+    expect(text(groupHeadOf(groupStandingOf(hashMaps, mineBySlugOf(progressMine))))).toBe('3 of 9 learned');
+    const allButPaused = new Map(
+      hashMaps.lessons
+        .filter((lesson) => !lesson.paused)
+        .map((lesson) => [lesson.slug, { slug: lesson.slug, depth: 'LEARNED' as const, known: false, due: false }]),
+    );
+    expect(groupStandingOf(hashMaps, allButPaused)).toMatchObject({ learned: 8, count: 9, done: true });
   });
 
   it("writes the learner's figures, each only when above zero, and the door to the check", () => {
@@ -173,11 +192,51 @@ describe('the three boxes', () => {
     });
   });
 
-  it('the course finished: the rating, the review, and where to go next', () => {
+  it('the course finished: the rating as given, the review, and where to go next', () => {
     const boxes = courseBoxesOf(algorithmsCourse, doneMine);
-    expect(boxes.first).toEqual({ kind: 'finished', lessons: 86 });
+    expect(boxes.first).toEqual({ kind: 'finished', learned: 86, lessons: 86, pausedLeft: 0, rated: true });
     expect(boxes.middle).toEqual({ kind: 'due', due: 5 });
     expect(boxes.last).toEqual({ kind: 'further', next: algorithmsCourse.next });
+  });
+
+  it('finished with a paused lesson never answered: the box counts what the line under the title counts', () => {
+    const boxes = courseBoxesOf(algorithmsCoursePaused, donePausedMine);
+    expect(boxes.first).toEqual({ kind: 'finished', learned: 85, lessons: 86, pausedLeft: 1, rated: null });
+    expect(text(courseProgressLineOf(donePausedMine, algorithmsCoursePaused)!.parts)).toMatch(/^85 of 86 learned/);
+    // Finished: nothing is offered to mark as known.
+    expect(courseProgressLineOf(donePausedMine, algorithmsCoursePaused)!.check).toBeNull();
+  });
+
+  it('every lesson left marked as known: the first of them, to learn it by answering, highlighted', () => {
+    const boxes = courseBoxesOf(algorithmsCourse, allKnownMine);
+    expect(boxes.first).toMatchObject({ kind: 'known-left', lesson: { slug: lessonAt('1-2').slug }, known: 85 });
+    expect(boxes.highlight).toBe('first');
+  });
+
+  it('every lesson left paused: it says so, and takes no highlight', () => {
+    const paused = {
+      ...algorithmsCourse,
+      groups: algorithmsCourse.groups.map((group) => ({
+        ...group,
+        lessons: group.lessons.map((lesson) => ({ ...lesson, paused: true })),
+      })),
+    };
+    const mine = { ...freshMine, next: null };
+    expect(courseBoxesOf(paused, mine).first).toEqual({ kind: 'paused-left', paused: 86 });
+    expect(courseBoxesOf(paused, mine).highlight).toBe('middle');
+    expect(courseBoxesOf(paused, null).first).toEqual({ kind: 'paused-left', paused: 86 });
+  });
+
+  it('the first lesson a learner can take is the first, when the course starts with a paused one', () => {
+    const [big, ...rest] = algorithmsCourse.groups;
+    const course = {
+      ...algorithmsCourse,
+      groups: [{ ...big, lessons: [{ ...big.lessons[0], paused: true }, ...big.lessons.slice(1)] }, ...rest],
+    };
+    const next = lessonAt('1-2');
+    const boxes = courseBoxesOf(course, { ...freshMine, next: { slug: next.slug, title: next.title } });
+    expect(boxes.first).toMatchObject({ why: 'the first lesson of this course.' });
+    expect(courseBoxesOf(course, null).first).toMatchObject({ kind: 'start', lesson: { slug: next.slug } });
   });
 
   it('the check left in the middle takes the highlight; once saved, the marked lessons show', () => {
@@ -221,6 +280,23 @@ describe("a course's filters and search", () => {
       after: 'ing',
     });
     expect(markedTextOf('Trees', 'search')).toEqual({ text: 'Trees' });
+  });
+
+  it('never finds a paused lesson by its title; a group found by its name keeps it in its place', () => {
+    expect(courseSearchOf(algorithmsCoursePaused.groups, 'duplicates')).toEqual([]);
+    expect(courseSearchOf(algorithmsCourse.groups, 'duplicates')).toHaveLength(1);
+    const byName = courseSearchOf(algorithmsCoursePaused.groups, 'hash maps');
+    expect(byName[0].lessons.some((lesson) => lesson.paused)).toBe(true);
+  });
+
+  it('folds accents and Unicode forms on both sides, and marks the letters as written', () => {
+    expect(wordStartMatchOf('Résumé of a list', 'resume')).toEqual({ start: 0, end: 6 });
+    const decomposed = 'Résumé of a list'.normalize('NFD');
+    expect(decomposed).toHaveLength(18);
+    expect(wordStartMatchOf(decomposed, 'résumé')).toEqual({ start: 0, end: 8 });
+    expect(markedTextOf('A café menu', 'cafe')).toEqual({ before: 'A ', mark: 'café', after: ' menu' });
+    expect(markedTextOf('Naïve string search', 'NAI')).toEqual({ before: '', mark: 'Naï', after: 've string search' });
+    expect(foldedOf('Ça va').folded).toBe('Ca va');
   });
 
   it('finds lesson titles and group names; a group found by its name shows whole', () => {
@@ -295,8 +371,13 @@ describe('all courses', () => {
     expect(courseBarOf(algorithms, 86).map((part) => part.kind)).toEqual(['mastered', 'practised', 'learned']);
     expect(courseBarOf(coursesMineChecked, 104).map((part) => part.kind)).toEqual(['practised', 'learned', 'known']);
     expect(courseBarLabelOf(algorithms, 86)).toBe('10 of 86 lessons learned: 4 practised, 1 mastered');
+    // No zero, even for a screen reader: each part only when there is one.
     expect(courseBarLabelOf(coursesMineChecked, 104)).toBe(
-      '12 of 104 lessons learned: 4 practised, 0 mastered, 40 marked as known',
+      '12 of 104 lessons learned: 4 practised, 40 marked as known',
+    );
+    expect(courseBarLabelOf({ learned: 3, practised: 0, mastered: 0, known: 0 }, 104)).toBe('3 of 104 lessons learned');
+    expect(courseBarLabelOf({ learned: 0, practised: 0, mastered: 0, known: 40 }, 104)).toBe(
+      '40 of 104 lessons marked as known',
     );
   });
 

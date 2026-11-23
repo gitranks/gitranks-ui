@@ -2,7 +2,7 @@
 
 import { Search, X } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { CourseCard } from './course-card';
 import { CountLine } from '@/components/learn/course/course-header';
@@ -72,10 +72,13 @@ function BarLegend() {
 function FoundLesson({
   lesson,
   query,
+  learner,
   depth,
 }: {
   lesson: LearnLessonListItem;
   query: string;
+  learner: boolean;
+  /** The learner's depth on it; null until it is known. */
   depth: LearnDepth | null;
 }) {
   const kind = depth ? SQUARE_OF_DEPTH[depth] : null;
@@ -90,6 +93,9 @@ function FoundLesson({
             <CourseMark square={{ kind, due: false }} />
             <span className="sr-only">{SQUARE_WORDS[kind]}. </span>
           </>
+        ) : learner ? (
+          // A learner's square has its place before the depth is known, so the title never moves.
+          <span className="size-4 shrink-0" aria-hidden="true" data-square-slot="" />
         ) : null}
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="text-sm font-medium">
@@ -143,6 +149,20 @@ export function CoursesView({
   const shownLessons = allLessons ? search.lessons : search.lessons.slice(0, LESSONS_SHOWN_FIRST);
   const rest = search.lessons.length - shownLessons.length;
   const nothing = search.query !== '' && found === null;
+  // What the search found, said to a screen reader as it changes; nothing while every course shows.
+  const status = !search.query
+    ? ''
+    : found
+      ? `${found.map((part) => `${part.count ?? ''}${part.words}`).join(', ')} found.`
+      : 'Nothing found.';
+  // "Show N more lessons" leaves; the keyboard goes on from the first lesson it showed.
+  const lessonsRef = useRef<HTMLUListElement>(null);
+  const opened = useRef(false);
+  useEffect(() => {
+    if (!allLessons || !opened.current) return;
+    opened.current = false;
+    lessonsRef.current?.querySelectorAll('a')[LESSONS_SHOWN_FIRST]?.focus();
+  }, [allLessons]);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-9 px-4 pt-7 pb-14">
@@ -190,6 +210,9 @@ export function CoursesView({
           ) : null}
         </div>
         {learner ? <BarLegend /> : null}
+        <p className="sr-only" role="status" data-courses-status="">
+          {status}
+        </p>
       </div>
 
       {nothing ? (
@@ -231,18 +254,27 @@ export function CoursesView({
                 </h2>
                 <span className="text-sm text-muted-foreground">By name, in every course.</span>
               </div>
-              <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
+              <ul ref={lessonsRef} className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
                 {shownLessons.map((lesson) => (
                   <FoundLesson
                     key={lesson.slug}
                     lesson={lesson}
                     query={search.query}
+                    learner={learner}
                     depth={learner && depths ? (depths[lesson.slug] ?? 'NONE') : null}
                   />
                 ))}
               </ul>
               {rest > 0 ? (
-                <Button type="button" variant="outline" className="self-start" onClick={() => setAllLessons(true)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="self-start"
+                  onClick={() => {
+                    opened.current = true;
+                    setAllLessons(true);
+                  }}
+                >
                   Show {countWords(rest)} more {rest === 1 ? 'lesson' : 'lessons'}
                 </Button>
               ) : null}

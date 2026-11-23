@@ -18,8 +18,16 @@ vi.mock('@/lib/learn/check.actions', () => ({ answerLearnCheckAction, stopLearnC
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 
 const { CheckLive, readCheckSide, readKnownSide } = await import('./check-live');
-const { checkEnded, checkResultAll, checkResultNone, checkResultOf, checkResultStopped, checkRunOf, knownSinceMine } =
-  await import('@/lib/learn/__fixtures__/check');
+const {
+  checkEnded,
+  checkResult,
+  checkResultAll,
+  checkResultNone,
+  checkResultOf,
+  checkResultStopped,
+  checkRunOf,
+  knownSinceMine,
+} = await import('@/lib/learn/__fixtures__/check');
 const { algorithmsCourse, algorithmsCoursePaused, lessonAt, progressMine } = await import(
   '@/lib/learn/__fixtures__/course'
 );
@@ -29,13 +37,24 @@ const { algorithmsCourse, algorithmsCoursePaused, lessonAt, progressMine } = awa
 let root: Root;
 let host: HTMLDivElement;
 const fetchMock = vi.fn();
-/** What the routes answer, one body after another (the last one stays). */
+/** The check's route: one body after another, then the last one again. */
+let runs: unknown[] = [];
+let lastRun: unknown = null;
+/** The course's personal side ("What you know", and the marks a result does not show): none marked by default. */
+let mine: unknown = null;
+const MINE_PATH = '/api/me/learn/courses/';
+/** What the routes answer: a body with `course` is the course's personal side; the others, the check's, in turn. */
 const answer = (...bodies: unknown[]) => {
   for (const body of bodies) {
-    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(body), { status: 200 }));
+    if (body && typeof body === 'object' && 'course' in body) mine = body;
+    else {
+      runs.push(body);
+      lastRun = body;
+    }
   }
-  fetchMock.mockResolvedValue(new Response(JSON.stringify(bodies[bodies.length - 1]), { status: 200 }));
 };
+/** How many times the check's route was read. */
+const checkReads = () => fetchMock.mock.calls.filter(([url]) => !String(url).startsWith(MINE_PATH)).length;
 
 beforeEach(() => {
   window.matchMedia = ((query: string) => ({
@@ -46,6 +65,13 @@ beforeEach(() => {
   })) as unknown as typeof window.matchMedia;
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockReset();
+  runs = [];
+  lastRun = null;
+  mine = { course: { ...progressMine, lessons: [] } };
+  fetchMock.mockImplementation(async (url: string) => {
+    const body = url.startsWith(MINE_PATH) ? mine : runs.length ? runs.shift() : lastRun;
+    return new Response(JSON.stringify(body), { status: 200 });
+  });
   for (const mock of [push, signIn, answerLearnCheckAction, stopLearnCheckAction, saveLearnKnownAction]) {
     mock.mockReset();
   }
@@ -197,7 +223,7 @@ describe('the check, for a person with a session', () => {
     await click(groupBox('big-o'));
     expect(cardTitle()).toBe('31 of 86 lessons marked as known');
     await act(async () => refuse({ ok: false, error: 'CONFLICT' }));
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(checkReads()).toBe(1);
     expect(cardTitle()).toBe('31 of 86 lessons marked as known');
   });
 
@@ -256,7 +282,7 @@ describe('the check, for a person with a session', () => {
     answerLearnCheckAction.mockResolvedValueOnce({ ok: false, error: 'CONFLICT' });
     answer({ check: checkRunOf(1), missing: false });
     await click(main());
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(checkReads()).toBe(2);
     expect(host.textContent).toContain('Question 2 of 9');
   });
 
@@ -306,7 +332,7 @@ describe('the check, for a person with a session', () => {
     await draw();
     expect(title()).toBe('Your result did not load');
     expect(stopLearnCheckAction).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(checkReads()).toBe(1);
   });
 });
 
@@ -362,6 +388,50 @@ describe('the check’s result', () => {
     expect(saveLearnKnownAction).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a paused lesson marked as known after saving the result, with the marks it does not show', async () => {
+    const lessons = knownSinceMine.lessons.map((mark) =>
+      mark.slug === 'find-duplicates-with-a-set' ? { ...mark, depth: 'NONE' as const, known: true } : mark,
+    );
+    // The result leaves the paused lesson out.
+    const result = checkResult.map((group) => ({
+      ...group,
+      lessons: group.lessons.filter((lesson) => lesson.slug !== 'find-duplicates-with-a-set'),
+    }));
+    for (const how of ['read', 'stop'] as const) {
+      act(() => root.unmount());
+      root = createRoot(host);
+      saveLearnKnownAction.mockReset();
+      runs = [];
+      answer(
+        how === 'read' ? { check: checkEnded(result), missing: false } : { check: checkRunOf(3), missing: false },
+        { course: { ...progressMine, lessons } },
+      );
+      stopLearnCheckAction.mockResolvedValueOnce({ ok: true, data: checkEnded(result) });
+      await draw('check', algorithmsCoursePaused);
+      if (how === 'stop') await click($('[data-check-stop]')!);
+      expect(state(), how).toBe('result');
+      expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/courses/algorithms', { cache: 'no-store' });
+      // The first save fails, so the page takes the second press.
+      saveLearnKnownAction.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
+      await click($('[data-known-primary]')!);
+      expect(saveLearnKnownAction.mock.calls[0][0].known, how).toContain('find-duplicates-with-a-set');
+      // Marking nothing keeps it too: only what the person could see changes.
+      saveLearnKnownAction.mockResolvedValueOnce({ ok: true, data: { start: null, known: 1 } });
+      await click($('[data-known-secondary]')!);
+      expect(saveLearnKnownAction.mock.calls[1][0].known, how).toEqual(['find-duplicates-with-a-set']);
+    }
+  });
+
+  it("draws no result it could not save safely: without the person's marks it says it did not load", async () => {
+    answer({ check: checkEnded(), missing: false }, { course: null });
+    await draw();
+    expect(state()).toBe('failed');
+    expect(title()).toBe('Your check did not load');
+    answer({ course: { ...progressMine, lessons: [] } });
+    await click(buttonOf('Try again')!);
+    expect(state()).toBe('result');
+  });
+
   it('a run stopped before any answer: the strip says so with no zero, and nothing is marked', async () => {
     answer({ check: checkEnded(checkResultOf([])), missing: false });
     await draw();
@@ -412,7 +482,7 @@ describe('the check’s result', () => {
     expect(push).not.toHaveBeenCalled();
     saveLearnKnownAction.mockResolvedValueOnce({ ok: false, error: 'CONFLICT' });
     await click($('[data-known-primary]')!);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(checkReads()).toBe(2);
   });
 
   it('with nothing right: nothing marked, and the first lesson', async () => {

@@ -66,15 +66,32 @@ describe('the sheet of what the person knows', () => {
     };
     const marked = mine.lessons.filter((mark) => mark.known).map((mark) => mark.slug);
     const groups = knownGroupsOfCourse(algorithmsCoursePaused, mine);
-    const kept = keptKnownOf(algorithmsCoursePaused, mine);
+    const kept = keptKnownOf(algorithmsCoursePaused, mine, groups);
     expect(kept).toEqual(['find-duplicates-with-a-set']);
     const saved = [...knownSlugsOf(groups, tickedFirstOf(groups)), ...kept];
     expect(new Set(saved).size).toBe(saved.length);
     expect([...saved].sort()).toEqual([...marked].sort());
     // A paused lesson not marked, or learned, keeps nothing; a course with none paused keeps nothing.
-    expect(keptKnownOf(algorithmsCoursePaused, { lessons: [] })).toEqual([]);
-    expect(keptKnownOf(algorithmsCoursePaused, knownSinceMine)).toEqual([]);
-    expect(keptKnownOf(algorithmsCourse, mine)).toEqual([]);
+    const paused = knownGroupsOfCourse(algorithmsCoursePaused, knownSinceMine);
+    expect(keptKnownOf(algorithmsCoursePaused, { lessons: [] }, groups)).toEqual([]);
+    expect(keptKnownOf(algorithmsCoursePaused, knownSinceMine, paused)).toEqual([]);
+    expect(keptKnownOf(algorithmsCourse, mine, knownGroupsOfCourse(algorithmsCourse, mine))).toEqual([]);
+  });
+
+  it("keeps the marks of lessons a check's result does not show, and of none it shows", () => {
+    const mine = {
+      lessons: knownSinceMine.lessons.map((mark) =>
+        mark.slug === 'find-duplicates-with-a-set' ? { ...mark, depth: 'NONE' as const, known: true } : mark,
+      ),
+    };
+    // The result leaves the paused lesson out.
+    const shown = knownGroupsOfResult(checkResult).map((group) => ({
+      ...group,
+      lessons: group.lessons.filter((lesson) => lesson.slug !== 'find-duplicates-with-a-set'),
+    }));
+    expect(keptKnownOf(algorithmsCoursePaused, mine, shown)).toEqual(['find-duplicates-with-a-set']);
+    // Every lesson on the result: the result's ticks decide, nothing is kept.
+    expect(keptKnownOf(algorithmsCourse, mine, knownGroupsOfResult(checkResult))).toEqual([]);
   });
 
   it('boxes a group on, partly on, off, or none to mark', () => {

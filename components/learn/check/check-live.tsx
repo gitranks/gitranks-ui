@@ -111,36 +111,36 @@ export function CheckLive({ course, mode }: { course: LearnCourse; mode: CheckMo
   const { slug } = course;
   const link = useMemo(() => ({ slug: course.slug, title: course.name }), [course.slug, course.name]);
 
+  /**
+   * The check's result as a sheet, with the person's marks on the lessons it does not show (paused ones), which its
+   * save sends as they are. Without those marks nothing is drawn: a save would remove them.
+   */
+  const resultSheetOf = useCallback(
+    async (check: string, groups: LearnCheckGroup[], sitting: number): Promise<Personal> => {
+      const mine = await readKnownSide(slug);
+      if (!mine) return { kind: 'failed' };
+      const sheet = knownGroupsOfResult(groups);
+      setResult(groups);
+      return { kind: 'sheet', groups: sheet, kept: keptKnownOf(course, mine, sheet), check, sitting };
+    },
+    [slug, course],
+  );
+
   const read = useCallback(async (): Promise<Personal> => {
     sittings.current += 1;
     const sitting = sittings.current;
     if (mode === 'known') {
       const mine = await readKnownSide(slug);
-      return mine
-        ? {
-            kind: 'sheet',
-            groups: knownGroupsOfCourse(course, mine),
-            kept: keptKnownOf(course, mine),
-            check: null,
-            sitting,
-          }
-        : { kind: 'failed' };
+      if (!mine) return { kind: 'failed' };
+      const groups = knownGroupsOfCourse(course, mine);
+      return { kind: 'sheet', groups, kept: keptKnownOf(course, mine, groups), check: null, sitting };
     }
     const side = await readCheckSide(slug);
     if (!side) return { kind: 'failed' };
     if (side.missing || !side.check) return { kind: 'missing' };
-    if (side.check.result) {
-      setResult(side.check.result);
-      return {
-        kind: 'sheet',
-        groups: knownGroupsOfResult(side.check.result),
-        kept: [],
-        check: side.check.id,
-        sitting,
-      };
-    }
+    if (side.check.result) return resultSheetOf(side.check.id, side.check.result, sitting);
     return { kind: 'run', check: side.check, sitting };
-  }, [mode, slug, course]);
+  }, [mode, slug, course, resultSheetOf]);
 
   const load = useCallback(async () => {
     setPersonal({ kind: 'pending' });
@@ -166,19 +166,15 @@ export function CheckLive({ course, mode }: { course: LearnCourse; mode: CheckMo
   /** The course stopped offering its check during the run: the page says so, and leads back to the course. */
   const withdrawn = useCallback(() => setPersonal({ kind: 'missing' }), []);
 
-  /** The run ended: its result, as "Stop and see the result" answers it. */
-  const showResult = useCallback((check: { id: string; result: LearnCheckGroup[] | null }) => {
-    if (!check.result) return;
-    sittings.current += 1;
-    setResult(check.result);
-    setPersonal({
-      kind: 'sheet',
-      groups: knownGroupsOfResult(check.result),
-      kept: [],
-      check: check.id,
-      sitting: sittings.current,
-    });
-  }, []);
+  /** The run ended: its result, as "Stop and see the result" answers it, with the person's marks it does not show. */
+  const showResult = useCallback(
+    async (check: { id: string; result: LearnCheckGroup[] | null }) => {
+      if (!check.result) return;
+      sittings.current += 1;
+      setPersonal(await resultSheetOf(check.id, check.result, sittings.current));
+    },
+    [resultSheetOf],
+  );
 
   if (personal.kind === 'run') {
     return (

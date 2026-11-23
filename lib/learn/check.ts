@@ -83,16 +83,22 @@ export function knownGroupsOfCourse(
 }
 
 /**
- * The marks the sheet of "What you know" does not show: the paused lessons marked as known now. A save marks only what
- * it sends, so they are sent as they are, and a save that changes nothing changes nothing.
+ * The marks a sheet does not show: the course's lessons marked as known now (not learned) that are not on the sheet,
+ * such as paused ones. A save marks the lessons it sends and unmarks every other lesson of the course, so these are
+ * sent as they are: a save never removes a mark the person could not see, and one that changes nothing changes nothing.
  */
-export function keptKnownOf(course: Pick<LearnCourse, 'groups'>, mine: Pick<LearnCourseMine, 'lessons'>): string[] {
+export function keptKnownOf(
+  course: Pick<LearnCourse, 'groups'>,
+  mine: Pick<LearnCourseMine, 'lessons'>,
+  shown: readonly KnownGroup[],
+): string[] {
   const marks = new Map(mine.lessons.map((lesson) => [lesson.slug, lesson]));
+  const onSheet = new Set(shown.flatMap((group) => group.lessons.map((lesson) => lesson.slug)));
   return course.groups.flatMap((group) =>
     group.lessons
       .filter((lesson) => {
         const mark = marks.get(lesson.slug);
-        return lesson.paused && !!mark?.known && mark.depth === 'NONE';
+        return !onSheet.has(lesson.slug) && !!mark?.known && mark.depth === 'NONE';
       })
       .map((lesson) => lesson.slug),
   );

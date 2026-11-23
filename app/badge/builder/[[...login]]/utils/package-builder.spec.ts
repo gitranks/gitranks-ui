@@ -114,6 +114,7 @@ describe('a Find search', () => {
       { kind: 'package', name: 'pypi/react' },
       { kind: 'package', name: 'crates/react' },
       { kind: 'package', name: 'pub/react' },
+      { kind: 'package', name: 'nuget/react' },
     ]);
     expect(searchLookups('@types/node', null)).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
     expect(searchLookups('npm:lodash', null)).toEqual([{ kind: 'package', name: 'npm/lodash' }]);
@@ -133,19 +134,26 @@ describe('a Find search', () => {
       { kind: 'package', name: 'npm/Django' },
       { kind: 'package', name: 'pypi/django' },
       { kind: 'package', name: 'crates/django' },
+      // NuGet compares ids in any case, and the site's addresses write them in lower case.
+      { kind: 'package', name: 'nuget/django' },
     ]);
     expect(searchLookups('zope.interface', 'package')).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },
       { kind: 'package', name: 'pypi/zope-interface' },
       // A dotted name can be a Go module too: `go.opencensus.io` and `gotest.tools` are one element.
       { kind: 'package', name: 'go/zope.interface' },
+      // And a NuGet id: `Newtonsoft.Json`.
+      { kind: 'package', name: 'nuget/zope.interface' },
     ]);
     expect(searchLookups('https://pypi.org/project/requests/', null)).toEqual([
       { kind: 'package', name: 'pypi/requests' },
     ]);
     expect(searchLookups('pypi:requests', null)).toEqual([{ kind: 'package', name: 'pypi/requests' }]);
-    // pub.dev alone takes a name that starts with `_`: a Dart identifier may.
-    expect(searchLookups('_private', 'package')).toEqual([{ kind: 'package', name: 'pub/_private' }]);
+    // pub.dev and NuGet alone take a name that starts with `_`: a Dart identifier may, and a NuGet id's runs are `\w`.
+    expect(searchLookups('_private', 'package')).toEqual([
+      { kind: 'package', name: 'pub/_private' },
+      { kind: 'package', name: 'nuget/_private' },
+    ]);
   });
 
   it('looks a PyPI name up in the All scope even when no GitHub login can be it', () => {
@@ -154,17 +162,21 @@ describe('a Find search', () => {
       { kind: 'package', name: 'pypi/typing-extensions' },
       { kind: 'package', name: 'crates/typing_extensions' },
       { kind: 'package', name: 'pub/typing_extensions' },
+      { kind: 'package', name: 'nuget/typing_extensions' },
     ]);
     expect(searchLookups('zope.interface', null)).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },
       { kind: 'package', name: 'pypi/zope-interface' },
       // A dotted name can be a Go module too: `go.opencensus.io` and `gotest.tools` are one element.
       { kind: 'package', name: 'go/zope.interface' },
+      // And a NuGet id: `Newtonsoft.Json`.
+      { kind: 'package', name: 'nuget/zope.interface' },
     ]);
     expect(searchLookups('ruamel.yaml', null)).toEqual([
       { kind: 'package', name: 'npm/ruamel.yaml' },
       { kind: 'package', name: 'pypi/ruamel-yaml' },
       { kind: 'package', name: 'go/ruamel.yaml' },
+      { kind: 'package', name: 'nuget/ruamel.yaml' },
     ]);
     // Still nothing for what names no package and no account.
     expect(searchLookups('.hidden', null)).toEqual([]);

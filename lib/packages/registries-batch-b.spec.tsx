@@ -25,7 +25,7 @@ import { isInvalidRankingPath } from '@/lib/routing/ranking-routes';
 import { llmsTxtOf } from '@/lib/seo/llms-txt';
 import { packagePath } from '@/utils/package-paths';
 
-// Every row of the table listed, as once these registries go live (the site lists neither until then).
+// Every row of the table listed, as once RubyGems goes live too (the site lists NuGet, not RubyGems yet).
 vi.mock('@/lib/packages/registries', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/packages/registries')>();
   actual.REGISTRY_IDS.splice(0, actual.REGISTRY_IDS.length, ...actual.ALL_REGISTRY_IDS);

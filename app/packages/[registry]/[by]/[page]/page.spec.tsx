@@ -164,6 +164,9 @@ describe('the package ranking layout', () => {
       // Maven Central publishes no download counts: no downloads ranking.
       { registry: 'maven', by: 'dependents-stars', page: '1' },
       { registry: 'maven', by: 'dependents', page: '1' },
+      // NuGet's first download count is not read yet: no downloads ranking.
+      { registry: 'nuget', by: 'dependents-stars', page: '1' },
+      { registry: 'nuget', by: 'dependents', page: '1' },
     ]);
   });
 

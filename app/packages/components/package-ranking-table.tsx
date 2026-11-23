@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { LinkWithStopPropagation } from '@/components/user-card/components/link-with-stop-propagation';
 import { ProfileAvatar } from '@/components/user-card/components/profile-avatar';
 import type { PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
-import { DEFAULT_REGISTRY, type RegistryId } from '@/lib/packages/registries';
+import { DEFAULT_REGISTRY, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
 import { REGISTRY_ICONS } from '@/lib/packages/registry-icons';
 import { packagePath } from '@/utils/package-paths';
 import { getRepoPath } from '@/utils/repo-paths';
@@ -74,7 +74,7 @@ export const PackageRankingTable: FC<PackageRankingTableProps> = ({ ranking, dat
                     <RegistryMark registry={registry} />
                   )}
                   <span translate="no" className="min-w-0 [overflow-wrap:anywhere]">
-                    {row.name}
+                    {spelledNameOf(row)}
                   </span>
                 </LinkWithStopPropagation>
                 {!!row.description && (

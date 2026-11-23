@@ -1,4 +1,4 @@
-import { DEFAULT_REGISTRY, type RegistryId } from '@/lib/packages/registries';
+import { DEFAULT_REGISTRY, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
 import { buildRankingItemList } from '@/lib/seo/json-ld';
 import type {
   CountryRankingsQuery,
@@ -99,6 +99,6 @@ export function buildPackageRankingItemList(
   return buildRankingItemList(
     name,
     path,
-    rows.map((row) => ({ position: row.rank, name: row.name, path: packagePath(row.name, registry) })),
+    rows.map((row) => ({ position: row.rank, name: spelledNameOf(row), path: packagePath(row.name, registry) })),
   );
 }

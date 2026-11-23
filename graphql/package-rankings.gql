@@ -5,6 +5,7 @@ query PackageRankings($registry: PackageRegistry!, $by: PackageRankingType!, $of
     value
     change
     name
+    displayName
     description
     repositoryName
     ownerAvatarUrl

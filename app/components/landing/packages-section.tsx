@@ -23,6 +23,7 @@ import {
   REGISTRIES,
   REGISTRY_IDS,
   registryLabelList,
+  spelledNameOf,
 } from '@/lib/packages/registries';
 import { REGISTRY_ICONS } from '@/lib/packages/registry-icons';
 import { cn } from '@/lib/utils';
@@ -102,7 +103,7 @@ const PackageRow: FC<{ row: PackageRankRows[number] }> = ({ row }) => (
       <PackageMark url={row.ownerAvatarUrl} />
       <span className="flex min-w-0 flex-col">
         <span className="truncate font-medium" translate="no">
-          {row.name}
+          {spelledNameOf(row)}
         </span>
         {row.description && <span className="truncate text-xs text-muted-foreground">{row.description}</span>}
       </span>

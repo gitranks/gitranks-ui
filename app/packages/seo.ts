@@ -12,7 +12,7 @@ import {
 import type { QuestionItem } from '@/components/questions-block/questions-block';
 import { buildPackageRankingItemList } from '@/components/ranking-table/ranking-item-list';
 import type { PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
-import { downloadsUnitOf, REGISTRIES, type RegistryId } from '@/lib/packages/registries';
+import { downloadsUnitOf, REGISTRIES, type RegistryId, spelledNameOf } from '@/lib/packages/registries';
 import { clipText } from '@/lib/seo/clip-text';
 import { pageClause, pageMetadata, pageSuffix } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
@@ -49,7 +49,7 @@ export function buildPackageRankingMetadata(
 ): Metadata {
   const { registry, registryLabel, order, page, rows, ranked } = input;
   const ranking = packageRankingOf(order, registry);
-  const top = (rows ?? []).slice(0, 3).map(({ name }) => name);
+  const top = (rows ?? []).slice(0, 3).map(spelledNameOf);
   const description = [
     `${registryLabel} packages ranked by ${ranking.rankedBy}${pageClause(page)}.`,
     top.length ? `${top.length === 1 ? 'The top package' : `The top ${top.length}`}: ${joinNames(top)}.` : '',
@@ -126,12 +126,12 @@ export function buildPackageRankingQuestions(
   ];
 
   if (first) {
-    const after = next.slice(0, 2).map(({ name }) => name);
+    const after = next.slice(0, 2).map(spelledNameOf);
     const window =
       order === 'downloads' ? ` ${downloadsWindow(downloadsTo, downloadsUnitOf(registry) ?? undefined)}` : '';
     items.push({
       question: `Which ${registryLabel} package is first by ${ranking.metricInSentence}?`,
-      answer: `${first.name}, with ${count(first.value, ranking.unit)}${window}.${after.length ? ` Then ${joinNames(after)}.` : ''}`,
+      answer: `${spelledNameOf(first)}, with ${count(first.value, ranking.unit)}${window}.${after.length ? ` Then ${joinNames(after)}.` : ''}`,
     });
   }
 

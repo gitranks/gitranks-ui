@@ -5,6 +5,7 @@ import { LEARN_COURSE_SCREEN, LEARN_COURSES_SCREEN } from './learn-courses';
 import { LEARN_GONE_SCREEN } from './learn-gone';
 import { LEARN_LESSON_SCREEN } from './learn-lesson';
 import { LEARN_PLAYER_SCREEN } from './learn-player';
+import { MY_PROGRESS_SOURCES, MyProgressStates } from './learn-progress';
 import { LEARN_QUESTION_SCREEN } from './learn-question';
 import { LEARN_SHARE_SCREEN } from './learn-share';
 import { LearnBar } from '@/components/learn/bar/learn-bar';
@@ -103,7 +104,7 @@ const PAGE_HEIGHT = 980;
 export const LEARN_FRAME_SCREENS: Screen[] = [
   {
     id: 'learn-bars',
-    title: 'Learn’s bar, and Set up Learn',
+    title: 'Learn’s bar, Set up Learn, and My progress',
     area: 'learn',
     route: '/learn/courses',
     sources: [
@@ -116,13 +117,14 @@ export const LEARN_FRAME_SCREENS: Screen[] = [
       'components/learn/setup/setup-live.tsx',
       'lib/learn/setup.ts',
       'app/(learn)/learn/setup/page.tsx',
+      ...MY_PROGRESS_SOURCES,
     ],
     states: [
       {
         id: 'bars',
-        title: 'The bar, the “Set up Learn” tab, and Set up Learn, in every state',
+        title: 'The bar, the “Set up Learn” tab, Set up Learn, and My progress, in every state',
         path: '/learn',
-        height: 10640,
+        height: 19090,
         render: () => (
           <main className="mx-auto flex w-full flex-col gap-11 px-4 pt-8 pb-16" style={{ maxWidth: 1340 }}>
             <Part title="Learn’s bar (page 7)">
@@ -188,6 +190,9 @@ export const LEARN_FRAME_SCREENS: Screen[] = [
                   hints={false}
                 />
               </div>
+            </Part>
+            <Part title="My progress, in every state (page 18)">
+              <MyProgressStates />
             </Part>
           </main>
         ),

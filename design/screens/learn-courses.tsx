@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
+import { MY_PROGRESS_SOURCES, MyProgressPhone } from './learn-progress';
 import { Header } from '@/components/header/header';
 import { LearnBar } from '@/components/learn/bar/learn-bar';
 import { CourseGoneView } from '@/components/learn/course/course-gone';
@@ -239,7 +240,7 @@ export const LEARN_COURSES_SCREEN: Screen = {
   title: 'All courses',
   area: 'learn',
   route: '/learn/courses',
-  sources: COURSES_SOURCES,
+  sources: [...COURSES_SOURCES, ...MY_PROGRESS_SOURCES],
   states: [
     {
       id: 'states',
@@ -280,10 +281,10 @@ export const LEARN_COURSES_SCREEN: Screen = {
     },
     {
       id: 'phone',
-      title: 'All courses and a course, on a phone',
+      title: 'All courses, a course, and My progress, on a phone',
       path: '/learn/courses',
       width: 390,
-      height: 7000,
+      height: 10790,
       render: () => (
         <div className="flex flex-col gap-8 px-2 pt-4 pb-10">
           <Frame title="All courses, a learner: one column" height={3000}>
@@ -292,6 +293,7 @@ export const LEARN_COURSES_SCREEN: Screen = {
           <Frame title="A course, in progress: the List view only, the boxes one above the other" height={3800}>
             <Course mine={progressMine} bar={learnerBar(4)} drawn={{ view: 'squares' }} hints={false} />
           </Frame>
+          <MyProgressPhone />
         </div>
       ),
     },

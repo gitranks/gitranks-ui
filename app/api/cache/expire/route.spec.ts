@@ -119,6 +119,14 @@ describe('POST /api/cache/expire', () => {
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(['unsung-hero', 'repo:octo-labs/scroll-guard']);
   });
 
+  it("takes Learn's tags: the list of courses, a course and a lesson, beside the others", async () => {
+    const tags = ['learn:courses', 'learn:course:algorithms', `learn:lesson:${'a'.repeat(100)}`, 'profile:octocat'];
+    const response = await signed({ tags });
+
+    expect(response.status).toBe(200);
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
+  });
+
   it.each([
     ['no token', undefined],
     ['a token that is not a bearer', `Basic ${tokenOf({ source: 'gitranks' })}`],
@@ -193,6 +201,14 @@ describe('POST /api/cache/expire', () => {
     ["Unsung hero's tag in capitals", { tags: ['Unsung-Hero'] }],
     ["Unsung hero's tag with a suffix", { tags: ['unsung-hero:2026-W47'] }],
     ['the plural of the hero tag', { tags: ['unsung-heroes'] }],
+    ['another kind of Learn tag', { tags: ['learn:lessons'] }],
+    ['a Learn tag with no slug', { tags: ['learn:course:'] }],
+    ['a Learn tag in capitals', { tags: ['learn:lesson:Hash-Sets'] }],
+    ['a Learn tag with a doubled hyphen', { tags: ['learn:lesson:hash--sets'] }],
+    ['a Learn tag ending in a hyphen', { tags: ['learn:course:sets-'] }],
+    ['a Learn tag over 100 characters', { tags: [`learn:lesson:${'a'.repeat(101)}`] }],
+    ['a Learn tag with a line break', { tags: ['learn:lesson:sets\n'] }],
+    ['a Learn tag with a slash', { tags: ['learn:course:a/b'] }],
   ])('answers 400 for %s and expires nothing', async (_name, body) => {
     const response = await signed(body);
 

@@ -12,6 +12,11 @@ describe('the workspace import rule', () => {
     expect(zoneOf('app/(workspace)/learn/page.tsx')).toBe('app/learn');
     expect(zoneOf('app/(onboarding)/contribute/start/page.tsx')).toBe('app/contribute');
     expect(zoneOf('app/(onboarding)/learn/start/page.tsx')).toBe('app/learn');
+    expect(zoneOf('app/(learn)/layout.tsx')).toBe('app/learn');
+    expect(zoneOf('app/(learn)/learn/courses/page.tsx')).toBe('app/learn');
+    expect(zoneOf('app/(player)/learn/review/page.tsx')).toBe('app/learn');
+    expect(zoneOf('app/(public)/learn/about/page.tsx')).toBe('app/learn');
+    expect(zoneOf('app/(public)/contribute/faq/page.tsx')).toBeNull();
     expect(zoneOf('components/ui/button.tsx')).toBeNull();
     expect(zoneOf('lib/utils.ts')).toBeNull();
     expect(zoneOf('app/(pr-timeline)/contribute/pr/[owner]/route.ts')).toBeNull();

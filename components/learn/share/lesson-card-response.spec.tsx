@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-const { drawLessonCard, LESSON_CARD_HEADERS, lessonCardResponse } = await import('./lesson-card');
-const { longTitleLesson } = await import('./__fixtures__/lesson-share');
-const { regexLesson, setLesson } = await import('./__fixtures__/lesson-page');
-const { lessonCardVersionOf } = await import('./lesson-share-card');
+const { drawLessonCard, LESSON_CARD_HEADERS, lessonCardResponse } = await import('./lesson-card-response');
+const { longTitleLesson } = await import('@/lib/learn/__fixtures__/lesson-share');
+const { regexLesson, setLesson } = await import('@/lib/learn/__fixtures__/lesson-page');
+const { lessonCardVersionOf } = await import('@/lib/learn/lesson-share-card');
 
 /** A PNG's width and height, from its header. */
 const sizeOf = (png: Uint8Array) => {

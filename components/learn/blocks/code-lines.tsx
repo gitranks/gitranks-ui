@@ -6,9 +6,13 @@ import { cn } from '@/lib/utils';
 /** A token's colours: the light theme's, and the dark theme's under `.dark`. A missing one takes the page's text. */
 const TOKEN = 'text-(--shiki-light) dark:text-(--shiki-dark)';
 
-/** One line of highlighted code, its tokens in order. An empty line keeps its height. */
-export function CodeLine({ tokens }: { tokens: readonly CodeToken[] }) {
+/**
+ * One line of highlighted code, its tokens in order. An empty line keeps its height. `plain` drops the colours, so a
+ * line marked right or wrong reads in its mark's colour.
+ */
+export function CodeLine({ tokens, plain = false }: { tokens: readonly CodeToken[]; plain?: boolean }) {
   if (!tokens.length) return <> </>;
+  if (plain) return <>{tokens.map((token) => token.text).join('')}</>;
   return (
     <>
       {tokens.map((token, index) =>

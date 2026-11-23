@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isRunOver, nextOf, type PlayerRun, recordedOf, runWordsOf, squaresOf } from './player';
+import { isRunOver, nextOf, type PlayerRun, recordedOf, runStartOf, runWordsOf, squaresOf } from './player';
 
 const start: PlayerRun = { at: 0, count: 3, results: [] };
 
@@ -46,5 +46,26 @@ describe('the player’s run', () => {
       tail: ' of 6 repeated',
     });
     expect(runWordsOf('Question', { at: 3, count: 9, results: Array(3).fill('answered') }).number).toBe(4);
+  });
+});
+
+describe('where a run starts', () => {
+  it('starts at the first question, or where a saved run can go on from', () => {
+    expect(runStartOf(3)).toEqual({ at: 0, count: 3, results: [] });
+    expect(runStartOf(3, { at: 1, results: ['right'] })).toEqual({ at: 1, count: 3, results: ['right'] });
+    // Answered, not yet gone on from.
+    expect(runStartOf(3, { at: 0, results: ['right'] }).at).toBe(0);
+  });
+
+  it('never starts where it would be stuck', () => {
+    const ahead = runStartOf(4, { at: 3, results: ['right'] });
+    expect(ahead.at).toBe(1);
+    expect(nextOf(recordedOf(ahead, 'wrong')).at).toBe(2);
+    expect(runStartOf(4, { at: -2, results: ['right', 'right'] }).at).toBe(1);
+    expect(runStartOf(2, { at: 5, results: ['right', 'wrong', 'right'] })).toEqual({
+      at: 2,
+      count: 2,
+      results: ['right', 'wrong'],
+    });
   });
 });

@@ -95,7 +95,9 @@ export function blockOfVisual(value: unknown): LessonBlock | null {
       if (!Array.isArray(rows) || !rows.length) return null;
       if (!rows.every((row) => Array.isArray(row) && row.every((cell) => typeof cell === 'string'))) return null;
       const ring =
-        Number.isInteger(visual.ring) && (visual.ring as number) < rows.length ? (visual.ring as number) : null;
+        Number.isInteger(visual.ring) && (visual.ring as number) >= 0 && (visual.ring as number) < rows.length
+          ? (visual.ring as number)
+          : null;
       return {
         ...EMPTY,
         type: 'TABLE',

@@ -2,7 +2,15 @@
 
 import { useCallback, useState } from 'react';
 
-import { isRunOver, nextOf, type PlayerResult, type PlayerRun, recordedOf, squaresOf } from '@/lib/learn/player';
+import {
+  isRunOver,
+  nextOf,
+  type PlayerResult,
+  type PlayerRun,
+  recordedOf,
+  runStartOf,
+  squaresOf,
+} from '@/lib/learn/player';
 
 /**
  * The player's run of questions: which one is asked, how each answered one went, and going on. A lesson is a run of
@@ -10,11 +18,7 @@ import { isRunOver, nextOf, type PlayerResult, type PlayerRun, recordedOf, squar
  * question starts a fresh answer.
  */
 export function usePlayer(count: number, start?: { at: number; results: readonly PlayerResult[] }) {
-  const [run, setRun] = useState<PlayerRun>(() => ({
-    at: start?.at ?? 0,
-    count,
-    results: start?.results ?? [],
-  }));
+  const [run, setRun] = useState<PlayerRun>(() => runStartOf(count, start));
   const record = useCallback((result: PlayerResult) => setRun((current) => recordedOf(current, result)), []);
   const next = useCallback(() => setRun((current) => nextOf(current)), []);
   return {

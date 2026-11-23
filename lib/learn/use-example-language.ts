@@ -1,15 +1,21 @@
 'use client';
 
-import { useCallback, useState, useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 /**
  * The language a topic course's examples show in: the learner's main language when the course has it, else
  * the last one picked on a lesson (kept in this browser), else Python, else the course's first. The server renders
- * the course's first language; the page changes the code in place when the person's differs.
+ * the rule without the browser's pick; the page changes the code in place when the person's differs.
  */
 export const EXAMPLE_LANGUAGE_KEY = 'gitranks:learn:language:v1';
 
 const listeners = new Set<() => void>();
+
+/** The language picked on this page: every example of the page shows it, until the page changes. */
+let pagePick: { path: string; language: string } | null = null;
+
+const readPagePick = (): string | null =>
+  pagePick && pagePick.path === window.location.pathname ? pagePick.language : null;
 
 function readPicked(): string | null {
   try {
@@ -54,29 +60,20 @@ export function pickExampleLanguage(language: string): void {
 }
 
 /**
- * The language to show among the course's, and the way to pick another. The server and the first paint show the
- * course's first language, so the page matches what was served until the browser knows better. A tab picked on
- * the page wins on that page, even over the main language, and is kept for the next pages.
+ * The language to show among the course's, and the way to pick another. The server and the first paint apply the rule
+ * without the browser's pick (the main language, else Python, else the first), so the page matches what was served;
+ * the pick kept in this browser applies once it is read. A tab picked on the page wins on that page, in every example
+ * of it and even over the main language, and is kept for the next pages.
  */
 export function useExampleLanguage(
   languages: readonly string[],
   main?: string | null,
 ): [string | null, (language: string) => void] {
   const picked = useSyncExternalStore(subscribe, readPicked, () => null);
-  const hydrated = useSyncExternalStore(
-    subscribe,
-    () => true,
-    () => false,
-  );
-  const [here, setHere] = useState<string | null>(null);
-  const language =
-    here && languages.includes(here)
-      ? here
-      : hydrated
-        ? exampleLanguageOf(languages, { main, picked })
-        : (languages[0] ?? null);
+  const here = useSyncExternalStore(subscribe, readPagePick, () => null);
+  const language = here && languages.includes(here) ? here : exampleLanguageOf(languages, { main, picked });
   const pick = useCallback((next: string) => {
-    setHere(next);
+    pagePick = { path: window.location.pathname, language: next };
     pickExampleLanguage(next);
   }, []);
   return [language, pick];

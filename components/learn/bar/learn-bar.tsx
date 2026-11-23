@@ -32,7 +32,14 @@ export function LearnBar({ state, place }: { state: LearnBarState; place: LearnB
     if (!shown) return;
     const tab = bar.current?.querySelector<HTMLElement>(`ul [data-learn-tab="${shown}"]`);
     const list = tab?.closest('ul');
-    if (tab && list) revealSideways(list, tab);
+    if (!tab || !list) return;
+    revealSideways(list, tab);
+    // The right side fills in once the person's bar is read and narrows the list: the tab is shown again then, and
+    // whenever else the list's box changes (a phone turned).
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => revealSideways(list, tab));
+    observer.observe(list);
+    return () => observer.disconnect();
   }, [shown]);
 
   return (

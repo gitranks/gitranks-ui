@@ -4,7 +4,16 @@ import { type LearnAnswer, PICKER } from './use-learn-answer';
 import { CodeBox, CodeLine } from '@/components/learn/blocks/code-lines';
 import { type HighlightedCode, plainCodeOf } from '@/lib/learn/code-tokens';
 import type { LearnAnswerState } from '@/lib/learn/learn-answer';
-import { codeOf, isChoice, type LearnQuestion, languageNameOf, optionsOf, rightOf } from '@/lib/learn/learn-question';
+import {
+  codeOf,
+  isChoice,
+  type LearnCode,
+  type LearnQuestion,
+  languageNameOf,
+  linesOf,
+  optionsOf,
+  rightOf,
+} from '@/lib/learn/learn-question';
 import { cn } from '@/lib/utils';
 
 const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase';
@@ -31,7 +40,7 @@ export function QuestionPart({
 }) {
   const code = codeOf(question, answer.language);
   if (!code) return null;
-  const lines = highlighted.find((entry) => entry.language === code.language) ?? plainCodeOf(code);
+  const lines = linesFor(code, highlighted);
   if (question.type === 'PICK_LINE') {
     return (
       <figure className={cn('m-0 flex flex-col gap-2', className)} data-question-code="line">
@@ -65,6 +74,15 @@ export function QuestionPart({
       <CodeBox code={lines} />
     </figure>
   );
+}
+
+/**
+ * The code's lines as drawn: the server's colours when it has them for this language and they count the same lines as
+ * the code (the number keys and the right line count those), else the plain code.
+ */
+function linesFor(code: LearnCode, highlighted: readonly HighlightedCode[]): HighlightedCode {
+  const found = highlighted.find((entry) => entry.language === code.language);
+  return found && found.lines.length === linesOf(code.code).length ? found : plainCodeOf(code);
 }
 
 /** What the code prints, once the answer is done and the key is known: the right option's text. */
@@ -133,7 +151,7 @@ function LinePick({
           >
             <span className="pt-0.5 text-center text-xs text-muted-foreground">{line}</span>
             <span className={cn('whitespace-pre', mark === 'wrong' && 'line-through')}>
-              <CodeLine tokens={tokens} />
+              <CodeLine tokens={tokens} plain={mark === 'right' || mark === 'wrong'} />
             </span>
           </button>
         );

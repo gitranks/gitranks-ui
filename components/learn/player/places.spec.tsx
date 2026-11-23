@@ -6,9 +6,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { checkPlace, lessonPlace, reviewPlace } from './places';
 import { QuestionPart } from '@/components/learn/question/question-part';
 import type { LearnAnswer } from '@/components/learn/question/use-learn-answer';
-import { pickLineQuestion } from '@/lib/learn/__fixtures__/learn-question';
+import { answerAfter, pickLineQuestion } from '@/lib/learn/__fixtures__/learn-question';
 import { nestedLoopCodes } from '@/lib/learn/__fixtures__/player';
-import { answerStartOf } from '@/lib/learn/learn-answer';
+import { answerStartOf, type LearnAnswerAction } from '@/lib/learn/learn-answer';
+import { verdictOf } from '@/lib/learn/learn-question';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -63,6 +64,26 @@ describe('a line to pick, highlighted', () => {
     const keyword = lines[0].querySelector<HTMLElement>('span[style]');
     expect(keyword?.textContent).toBe('def');
     expect(keyword?.style.getPropertyValue('--shiki-light')).toBe('#d73a49');
+  });
+
+  it('draws a line marked right or wrong in its mark’s colour, not the code’s', () => {
+    const graded: LearnAnswerAction = { type: 'graded', verdict: verdictOf(pickLineQuestion, 2, 'python')! };
+    const state = answerAfter(pickLineQuestion, [{ type: 'pick', at: 1 }, graded]);
+    act(() =>
+      root.render(
+        <QuestionPart question={pickLineQuestion} answer={{ ...answer, state }} highlighted={nestedLoopCodes} />,
+      ),
+    );
+    expect(host.querySelector('[data-line="2"]')?.getAttribute('data-line-mark')).toBe('wrong');
+    expect(host.querySelector('[data-line="2"] span[style]')).toBeNull();
+    expect(host.querySelector('[data-line="1"] span[style]')).not.toBeNull();
+  });
+
+  it('draws the plain code when the colours do not count the same lines', () => {
+    const short = [{ ...nestedLoopCodes[0], lines: nestedLoopCodes[0].lines.slice(0, 4) }];
+    act(() => root.render(<QuestionPart question={pickLineQuestion} answer={answer} highlighted={short} />));
+    expect(host.querySelectorAll('[data-line]')).toHaveLength(6);
+    expect(host.querySelector('[data-line] span[style]')).toBeNull();
   });
 
   it('draws the plain code when no colours came for the language', () => {

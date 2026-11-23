@@ -30,6 +30,7 @@ describe('blockOfVisual', () => {
     };
     expect(blockOfVisual(table)).toMatchObject({ type: 'TABLE', caption: 'Growth', rows: table.rows, ring: 1 });
     expect(blockOfVisual({ ...table, ring: 5 })?.ring).toBeNull();
+    expect(blockOfVisual({ ...table, ring: -1 })?.ring).toBeNull();
   });
 
   it('draws a diagram with today’s tones and layout', () => {

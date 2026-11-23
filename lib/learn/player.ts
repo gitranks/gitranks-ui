@@ -12,6 +12,17 @@ export type PlayerSquare = PlayerResult | 'current' | 'waiting';
 /** Where a run of questions stands: the one asked now (from 0), how many there are, and how each answered one went. */
 export type PlayerRun = { at: number; count: number; results: readonly PlayerResult[] };
 
+/**
+ * Where a run starts: at its first question, or where a saved one stood. The results are cut to the run's length, and
+ * the current question is the one after the last answered (or the last answered one, not yet gone on from), so the
+ * run can always go on.
+ */
+export function runStartOf(count: number, start?: { at: number; results: readonly PlayerResult[] }): PlayerRun {
+  const results = (start?.results ?? []).slice(0, Math.max(0, count));
+  const at = Number.isInteger(start?.at) ? (start?.at as number) : results.length;
+  return { at: Math.min(Math.max(at, Math.max(0, results.length - 1)), results.length), count, results };
+}
+
 /** One square per question: each answered one by how it went, the current one, then those still to come. */
 export function squaresOf({ at, count, results }: PlayerRun): PlayerSquare[] {
   return Array.from({ length: count }, (_, index) => {

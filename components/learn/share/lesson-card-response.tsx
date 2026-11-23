@@ -1,10 +1,10 @@
 import 'server-only';
 
-import type { LearnLesson } from './lesson-page';
-import { type LessonShareState, lessonNotServedResponse, lessonUnavailableResponse } from './lesson-share';
-import { type LessonCardKind, lessonCardVersionOf } from './lesson-share-card';
-import { learnFactCardPath, learnLessonCardPath } from './paths';
-import { FactCard, LessonCard } from '@/components/learn/share/lesson-cards';
+import { FactCard, LessonCard } from './lesson-cards';
+import type { LearnLesson } from '@/lib/learn/lesson-page';
+import { type LessonShareState, lessonNotServedResponse, lessonUnavailableResponse } from '@/lib/learn/lesson-share';
+import { type LessonCardKind, lessonCardVersionOf } from '@/lib/learn/lesson-share-card';
+import { learnFactCardPath, learnLessonCardPath } from '@/lib/learn/paths';
 import { drawSocialCard } from '@/lib/social-card/social-card';
 
 export type { LessonCardKind };

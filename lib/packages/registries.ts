@@ -272,6 +272,7 @@ export const LISTED_REGISTRIES = [
   'pub',
   'packagist',
   'maven',
+  'nuget',
 ] as const satisfies readonly RegistryId[];
 
 /**

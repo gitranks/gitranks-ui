@@ -16,7 +16,7 @@ describe("the home page's package block", () => {
     expect(html).toContain('The npm packages open source runs on');
     expect(html).toContain('41,870 npm packages, ranked by downloads');
     expect(html).toContain(
-      'npm, PyPI, Go, crates.io, pub.dev, Packagist and Maven Central for now. More registries are on the way.',
+      'npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central and NuGet for now. More registries are on the way.',
     );
     // The rows are npm's, by the week; the pitch names no unit while the registries count in different ones.
     expect(html).toContain('By downloads, by the stars of the repositories that use a package');

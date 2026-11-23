@@ -23,7 +23,7 @@ import { packagePath } from '@/utils/package-paths';
 // Maven Central is unlike npm in every way the table drives: no download counts (so no downloads ranking or badges),
 // two segments a name, joined by `:` in the name and by `/` in the address. These checks follow it through the site.
 
-// Every row of the table listed, as once NuGet and RubyGems go live too (the site does not list them yet).
+// Every row of the table listed, as once RubyGems goes live too (the site does not list it yet).
 vi.mock('@/lib/packages/registries', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/packages/registries')>();
   actual.REGISTRY_IDS.splice(0, actual.REGISTRY_IDS.length, ...actual.ALL_REGISTRY_IDS);

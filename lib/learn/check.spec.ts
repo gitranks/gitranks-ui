@@ -5,6 +5,7 @@ import { algorithmsCourse, algorithmsCoursePaused, lessonAt } from './__fixtures
 import {
   checkAnswerInputOf,
   checkIntroOf,
+  checkResultWordsOf,
   checkTitleOf,
   checkVisitorTextOf,
   groupBoxOf,
@@ -12,6 +13,7 @@ import {
   handWordsOf,
   KNOWN_MAX,
   type KnownGroup,
+  keptKnownOf,
   knownCountsOf,
   knownGroupsOfCourse,
   knownGroupsOfResult,
@@ -19,6 +21,7 @@ import {
   knownSlugsOf,
   knownTitleOf,
   outcomePillOf,
+  sheetActionsOf,
   startOf,
   startWordsOf,
   tickedFirstOf,
@@ -52,6 +55,26 @@ describe('the sheet of what the person knows', () => {
     const paused = knownGroupsOfCourse(algorithmsCoursePaused, { lessons: [] });
     expect(paused[2].lessons.map((l) => l.slug)).not.toContain('find-duplicates-with-a-set');
     expect(knownCountsOf(paused, new Set()).total).toBe(85);
+  });
+
+  it('keeps the marks of paused lessons, which the sheet does not show: a save with no change changes nothing', () => {
+    // The paused lesson marked as known before it was paused.
+    const mine = {
+      lessons: knownSinceMine.lessons.map((mark) =>
+        mark.slug === 'find-duplicates-with-a-set' ? { ...mark, depth: 'NONE' as const, known: true } : mark,
+      ),
+    };
+    const marked = mine.lessons.filter((mark) => mark.known).map((mark) => mark.slug);
+    const groups = knownGroupsOfCourse(algorithmsCoursePaused, mine);
+    const kept = keptKnownOf(algorithmsCoursePaused, mine);
+    expect(kept).toEqual(['find-duplicates-with-a-set']);
+    const saved = [...knownSlugsOf(groups, tickedFirstOf(groups)), ...kept];
+    expect(new Set(saved).size).toBe(saved.length);
+    expect([...saved].sort()).toEqual([...marked].sort());
+    // A paused lesson not marked, or learned, keeps nothing; a course with none paused keeps nothing.
+    expect(keptKnownOf(algorithmsCoursePaused, { lessons: [] })).toEqual([]);
+    expect(keptKnownOf(algorithmsCoursePaused, knownSinceMine)).toEqual([]);
+    expect(keptKnownOf(algorithmsCourse, mine)).toEqual([]);
   });
 
   it('boxes a group on, partly on, off, or none to mark', () => {
@@ -101,6 +124,66 @@ describe('the sheet of what the person knows', () => {
 });
 
 const TREES = lessonAt('6-1').slug;
+
+describe("the result's strip", () => {
+  it('counts the questions answered, and a run stopped before any answer with no zero', () => {
+    expect(checkResultWordsOf(checkResult.map((group) => group.outcome))).toEqual({
+      lead: '',
+      number: 9,
+      tail: ' of 9 answered',
+    });
+    expect(checkResultWordsOf(['RIGHT', 'NOT_ANSWERED', 'NOT_ANSWERED'])).toEqual({
+      lead: '',
+      number: 1,
+      tail: ' of 3 answered',
+    });
+    const none = checkResultWordsOf(Array(9).fill('NOT_ANSWERED'));
+    expect(none).toEqual({ lead: 'Stopped before the first of ', number: 9, tail: ' questions' });
+    expect(checkResultWordsOf(['NOT_ANSWERED'])).toEqual({
+      lead: 'Stopped before its one question',
+      number: null,
+      tail: '',
+    });
+  });
+});
+
+describe("the sheet's buttons", () => {
+  const labels = (actions: ReturnType<typeof sheetActionsOf>) => [
+    actions.primary.label,
+    actions.secondary?.label ?? null,
+  ];
+
+  it('saves "What you know" with one button', () => {
+    expect(labels(sheetActionsOf('known', result, new Set()))).toEqual(['Save', null]);
+  });
+
+  it('starts at the first lesson with nothing known, and picks another course with everything known', () => {
+    expect(labels(sheetActionsOf('check', result, new Set()))).toEqual(['Start at the first lesson', null]);
+    const all = knownGroupsOfResult(checkResultAll);
+    expect(sheetActionsOf('check', all, tickedFirstOf(all)).primary).toEqual({
+      label: 'Save and pick another course',
+      does: 'save-and-pick',
+    });
+  });
+
+  it('saves and starts there, or marks nothing and starts at lesson 1', () => {
+    expect(labels(sheetActionsOf('check', result, tickedFirstOf(result)))).toEqual([
+      'Save and start there',
+      'Mark nothing and start at lesson 1',
+    ]);
+    expect(sheetActionsOf('check', result, tickedFirstOf(result)).secondary?.does).toBe('mark-nothing');
+  });
+
+  it('names the first lesson not learned when marking nothing does not start at lesson 1', () => {
+    const groups = [group([lesson('a', true), lesson('b', true), lesson('c'), lesson('d')])];
+    expect(labels(sheetActionsOf('check', groups, new Set(['d'])))).toEqual([
+      'Save and start there',
+      'Mark nothing and start at c',
+    ]);
+    // Learned lessons and nothing marked: no way to mark nothing, the start is already the first not learned.
+    expect(labels(sheetActionsOf('check', groups, new Set()))).toEqual(['Save and start there', null]);
+  });
+});
 
 describe('the result’s words', () => {
   it('titles the result from the answers alone, whatever is ticked', () => {

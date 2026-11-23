@@ -18,10 +18,11 @@ vi.mock('@/lib/learn/check.actions', () => ({ answerLearnCheckAction, stopLearnC
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 
 const { CheckLive, readCheckSide, readKnownSide } = await import('./check-live');
-const { checkEnded, checkResultAll, checkResultNone, checkRunOf, knownSinceMine } = await import(
-  '@/lib/learn/__fixtures__/check'
+const { checkEnded, checkResultAll, checkResultNone, checkResultOf, checkResultStopped, checkRunOf, knownSinceMine } =
+  await import('@/lib/learn/__fixtures__/check');
+const { algorithmsCourse, algorithmsCoursePaused, lessonAt, progressMine } = await import(
+  '@/lib/learn/__fixtures__/course'
 );
-const { algorithmsCourse, lessonAt, progressMine } = await import('@/lib/learn/__fixtures__/course');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -61,9 +62,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const draw = (mode: 'check' | 'known' = 'check') =>
+const draw = (mode: 'check' | 'known' = 'check', course = algorithmsCourse) =>
   act(async () => {
-    root.render(<CheckLive course={algorithmsCourse} mode={mode} />);
+    root.render(<CheckLive course={course} mode={mode} />);
   });
 const $ = (selector: string) => host.querySelector<HTMLElement>(selector);
 const state = () => $('[data-check-state]')?.dataset.checkState ?? null;
@@ -113,7 +114,8 @@ describe('the check, for a person with a session', () => {
     fetchMock.mockReturnValue(new Promise(() => {}));
     await draw();
     expect(state()).toBe('pending');
-    expect($('[aria-busy="true"] [role="status"]')!.textContent).toBe('Loading your check…');
+    expect($('[aria-busy]')).toBeNull();
+    expect($('[data-check-state="pending"] [role="status"]')!.textContent).toBe('Loading your check…');
     expect(buttonOf('Sign in with GitHub')).toBeUndefined();
     expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/check/algorithms', { cache: 'no-store' });
   });
@@ -133,6 +135,70 @@ describe('the check, for a person with a session', () => {
     await draw();
     expect(state()).toBe('missing');
     expect($('[data-check-state="missing"] a')!.getAttribute('href')).toBe('/learn/courses/algorithms');
+  });
+
+  it('says a course offers no check without asking, to a visitor too, and "What you know" still opens', async () => {
+    const closed = { ...algorithmsCourse, checkOffered: false };
+    for (const present of [true, false]) {
+      hint.present = present;
+      act(() => root.unmount());
+      root = createRoot(host);
+      await draw('check', closed);
+      expect(state()).toBe('missing');
+      expect(fetchMock).not.toHaveBeenCalled();
+    }
+    hint.present = true;
+    answer({ course: { ...progressMine, lessons: knownSinceMine.lessons } });
+    act(() => root.unmount());
+    root = createRoot(host);
+    await draw('known', closed);
+    expect(state()).toBe('known');
+  });
+
+  it('says plainly when the check is withdrawn during the run, and leads to the course, not to try again', async () => {
+    for (const how of ['answer', 'stop'] as const) {
+      act(() => root.unmount());
+      root = createRoot(host);
+      answer({ check: checkRunOf(3), missing: false });
+      await draw();
+      if (how === 'answer') {
+        answerLearnCheckAction.mockResolvedValueOnce({ ok: false, error: 'NOT_FOUND' });
+        await click(option(0));
+        await click(main());
+      } else {
+        stopLearnCheckAction.mockResolvedValueOnce({ ok: false, error: 'NOT_FOUND' });
+        await click($('[data-check-stop]')!);
+      }
+      expect(state(), how).toBe('missing');
+      expect(title()).toBe('This course has no check just now');
+      expect($('[data-check-state="missing"] a')!.getAttribute('href')).toBe('/learn/courses/algorithms');
+      expect(buttonOf('Try again')).toBeUndefined();
+    }
+  });
+
+  it('takes no answer once "Stop and see the result" is pressed, and a late refusal keeps the ticks', async () => {
+    answer({ check: checkRunOf(3), missing: false });
+    await draw();
+    // An answer on its way when the person stops.
+    let refuse: (value: unknown) => void = () => {};
+    answerLearnCheckAction.mockReturnValueOnce(new Promise((resolve) => (refuse = resolve)));
+    await click(option(0));
+    await click(main());
+    let end: (value: unknown) => void = () => {};
+    stopLearnCheckAction.mockReturnValueOnce(new Promise((resolve) => (end = resolve)));
+    await click($('[data-check-stop]')!);
+    // While it stops: no keys, no presses.
+    await key(document.body, '2');
+    await key(document.body, 'Enter');
+    await click(main());
+    expect(answerLearnCheckAction).toHaveBeenCalledTimes(1);
+    await act(async () => end({ ok: true, data: checkEnded() }));
+    expect(state()).toBe('result');
+    await click(groupBox('big-o'));
+    expect(cardTitle()).toBe('31 of 86 lessons marked as known');
+    await act(async () => refuse({ ok: false, error: 'CONFLICT' }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(cardTitle()).toBe('31 of 86 lessons marked as known');
   });
 
   it('takes only a whole run from the route', async () => {
@@ -296,6 +362,38 @@ describe('the check’s result', () => {
     expect(saveLearnKnownAction).toHaveBeenCalledTimes(1);
   });
 
+  it('a run stopped before any answer: the strip says so with no zero, and nothing is marked', async () => {
+    answer({ check: checkEnded(checkResultOf([])), missing: false });
+    await draw();
+    expect(state()).toBe('result');
+    expect($('[data-player-run]')!.textContent).toBe('Stopped before the first of 9 questions');
+    expect(cardTitle()).toBe('Nothing is marked as known');
+    expect($('[data-known-group="big-o"]')!.textContent).toContain('Not answered');
+    expect(host.textContent).not.toMatch(/\b0\b/);
+  });
+
+  it('a run stopped after three answers: how many were answered, the rest not answered', async () => {
+    answer({ check: checkEnded(checkResultStopped), missing: false });
+    await draw();
+    expect($('[data-player-run]')!.textContent).toBe('3 of 9 answered');
+    expect($('[data-known-group="stacks-and-queues"]')!.textContent).toContain('Not answered');
+    expect(cardTitle()).toBe('8 of 86 lessons marked as known');
+  });
+
+  it('names the first lesson not learned when marking nothing does not start at lesson 1', async () => {
+    const result = checkResultOf(['WRONG', 'RIGHT']).map((group, at) =>
+      at === 0 ? { ...group, lessons: group.lessons.map((lesson) => ({ ...lesson, learned: true })) } : group,
+    );
+    answer({ check: checkEnded(result), missing: false });
+    await draw();
+    const first = lessonAt('2-1');
+    expect($('[data-known-secondary]')!.textContent).toBe(`Mark nothing and start at ${first.title}`);
+    saveLearnKnownAction.mockResolvedValue({ ok: true, data: { start: null, known: 0 } });
+    await click($('[data-known-secondary]')!);
+    expect(saveLearnKnownAction).toHaveBeenCalledWith({ course: 'algorithms', known: [], check: 'run-1' });
+    expect(push).toHaveBeenCalledWith(`/learn/lessons/${first.slug}`);
+  });
+
   it('"Mark nothing and start at lesson 1" saves no marks and goes to the first lesson', async () => {
     answer({ check: checkEnded(), missing: false });
     await draw();
@@ -368,5 +466,43 @@ describe('"What you know"', () => {
     answer({ course: null });
     await draw('known');
     expect(title()).toBe('What you know did not load');
+  });
+
+  it('keeps the marks of paused lessons it does not show: a save with no change changes nothing', async () => {
+    const lessons = knownSinceMine.lessons.map((mark) =>
+      mark.slug === 'find-duplicates-with-a-set' ? { ...mark, depth: 'NONE' as const, known: true } : mark,
+    );
+    answer({ course: { ...progressMine, lessons } });
+    await draw('known', algorithmsCoursePaused);
+    expect(host.textContent).not.toContain('Find duplicates in one pass with a set');
+    saveLearnKnownAction.mockResolvedValue({ ok: true, data: { start: null, known: 27 } });
+    await key(document.body, 'Enter');
+    const { known } = saveLearnKnownAction.mock.calls[0][0];
+    expect(known).toContain('find-duplicates-with-a-set');
+    expect([...known].sort()).toEqual(
+      lessons
+        .filter((mark) => mark.known)
+        .map((mark) => mark.slug)
+        .sort(),
+    );
+  });
+
+  it('says a save that failed, keeps the marks, and saves them on the next press', async () => {
+    answer({ course: { ...progressMine, lessons: knownSinceMine.lessons } });
+    await draw('known');
+    await click(groupBox('big-o'));
+    expect(cardTitle()).toBe('18 of 86 lessons marked as known');
+    saveLearnKnownAction.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
+    await click($('[data-known-primary]')!);
+    expect($('[data-known-failed]')!.getAttribute('role')).toBe('alert');
+    expect($('[data-known-failed]')!.textContent).toContain('Not saved.');
+    expect($('[data-known-primary]')!.textContent).toBe('Save');
+    expect(cardTitle()).toBe('18 of 86 lessons marked as known');
+    expect(push).not.toHaveBeenCalled();
+    saveLearnKnownAction.mockResolvedValueOnce({ ok: true, data: { start: null, known: 18 } });
+    await click($('[data-known-primary]')!);
+    expect(saveLearnKnownAction.mock.calls[1][0].known).toHaveLength(18);
+    expect($('[data-known-failed]')).toBeNull();
+    expect(push).toHaveBeenCalledWith('/learn/courses/algorithms');
   });
 });

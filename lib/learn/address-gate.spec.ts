@@ -21,10 +21,12 @@ describe('learnAddressGateFrom', () => {
     expect(learnAddressGateFrom('lesson', { state: 'MOVED', movedTo: 'sets-2' })).toEqual({
       kind: 'moved',
       path: '/learn/lessons/sets-2',
+      slug: 'sets-2',
     });
     expect(learnAddressGateFrom('course', { state: 'MOVED', movedTo: 'algos' })).toEqual({
       kind: 'moved',
       path: '/learn/courses/algos',
+      slug: 'algos',
     });
     for (const movedTo of [null, '', '../x', 'Sets', 'https://example.com']) {
       expect(learnAddressGateFrom('lesson', { state: 'MOVED', movedTo }), String(movedTo)).toEqual({ kind: 'missing' });

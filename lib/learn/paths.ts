@@ -66,10 +66,11 @@ export const learnLessonGonePath = (slug: string) => `/learn/lessons/_gone/${enc
 export const learnLessonMinePath = (slug: string) => `/api/me/learn/lessons/${encodeURIComponent(slug)}`;
 export const learnCourseMinePath = (slug: string) => `/api/me/learn/courses/${encodeURIComponent(slug)}`;
 export const LEARN_COURSES_MINE_PATH = '/api/me/learn/courses';
-/** Where the browser reads the signed-in person's review: of one course, or of every course. */
 /** "What you know": a course's sheet of lessons marked as known, changed without taking the check again. */
 export const learnKnownPath = (course: string) => `${checkPath(course)}?known` as Route;
+/** Where the browser reads the signed-in person's run of a course's check, or its result once it ended. */
 export const learnCheckMinePath = (course: string) => `/api/me/learn/check/${encodeURIComponent(course)}`;
+/** Where the browser reads the signed-in person's review: of one course, or of every course. */
 export const learnReviewMinePath = (course: string | null) =>
   course ? `/api/me/learn/review?course=${encodeURIComponent(course)}` : '/api/me/learn/review';
 /** The query that asks the depth of each lesson in some of the person's courses, by their slugs, comma-separated. */
@@ -167,6 +168,16 @@ const COURSE_PAGE = /^\/learn\/courses\/([^/]+)\/?$/;
  * reached directly they get the real 404.
  */
 const NOT_A_COURSE = new Set(['card.png']);
+
+const CHECK_PAGE = /^\/learn\/check\/([^/]+)\/?$/;
+
+/**
+ * The course asked for by a course's check, `/learn/check/<segment>` (a trailing slash allowed), for the proxy's gate:
+ * the segment as written, which the gate answers as missing when it is not a slug's shape; null for any other path.
+ */
+export function checkRouteOf(pathname: string): string | null {
+  return CHECK_PAGE.exec(pathname)?.[1] ?? null;
+}
 
 /**
  * The course asked for by a course's page, `/learn/courses/<segment>` (a trailing slash allowed), for the proxy's

@@ -33,6 +33,7 @@ import {
   checkResult,
   checkResultAll,
   checkResultNone,
+  checkResultOf,
   checkRunOf,
   knownSinceMine,
 } from '@/lib/learn/__fixtures__/check';
@@ -66,6 +67,7 @@ import {
   knownGroupsOfCourse,
   knownGroupsOfResult,
   type LearnCheckGroup,
+  sheetActionsOf,
   startOf,
   tickedFirstOf,
 } from '@/lib/learn/check';
@@ -209,18 +211,9 @@ const HAND_TICKED = algorithmsCourse.groups.flatMap((group) => group.lessons.map
 function SheetCard({ mode, groups, ticked }: { mode: CheckMode; groups: KnownGroup[]; ticked: ReadonlySet<string> }) {
   const counts = knownCountsOf(groups, ticked);
   const start = startOf(groups, ticked);
-  const act = noop;
-  const [primary, secondary] =
-    mode === 'known'
-      ? [{ label: 'Save', act }, null]
-      : !start
-        ? [{ label: 'Save and pick another course', act }, null]
-        : !counts.known && !counts.learned
-          ? [{ label: 'Start at the first lesson', act }, null]
-          : [
-              { label: 'Save and start there', act },
-              counts.known ? { label: 'Mark nothing and start at lesson 1', act } : null,
-            ];
+  const actions = sheetActionsOf(mode, groups, ticked);
+  const primary = { label: actions.primary.label, act: noop };
+  const secondary = actions.secondary ? { label: actions.secondary.label, act: noop } : null;
   return (
     <KnownCard
       mode={mode}
@@ -484,9 +477,10 @@ export const LEARN_PLAYER_SCREEN: Screen = {
     },
     {
       id: 'check-card',
-      title: 'The check: a question, “I don’t know”, the result, nothing known, all known, by hand, What you know',
+      title:
+        'The check: a question, “I don’t know”, the result, nothing known, stopped, all known, by hand, What you know',
       path: '/learn/check/algorithms',
-      height: 9300,
+      height: 10340,
       render: () => (
         <div className="flex flex-col gap-8 p-6">
           <Frame title="Question 4 of 9: the group above the card, no right or wrong, and the way to stop" height={900}>
@@ -520,6 +514,12 @@ export const LEARN_PLAYER_SCREEN: Screen = {
           </Frame>
           <Frame title="Nothing right: nothing is marked, and the person can still tick what they know" height={1000}>
             <Sheet result={checkResultNone} />
+          </Frame>
+          <Frame
+            title="Stopped before the first answer: the strip says so with no count, nothing is marked"
+            height={1000}
+          >
+            <Sheet result={checkResultOf([])} />
           </Frame>
           <Frame title="Every answer right: all lessons marked, no lesson left to start at" height={1000}>
             <Sheet result={checkResultAll} />

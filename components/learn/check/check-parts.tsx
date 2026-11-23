@@ -4,6 +4,7 @@ import { Check, ChevronDown, Minus } from 'lucide-react';
 import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { type KeyboardEvent, type ReactNode, type Ref, useId } from 'react';
 
+import { LiveStatus } from '@/components/learn/player/live-status';
 import { checkPlace } from '@/components/learn/player/places';
 import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/learn/player/player-strip';
 import { AnswerPart } from '@/components/learn/question/answer-part';
@@ -12,6 +13,7 @@ import type { LearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { Button } from '@/components/ui/button';
 import {
   type CheckQuestionShown,
+  checkResultWordsOf,
   type GroupBox,
   groupBoxOf,
   groupWordsOf,
@@ -46,10 +48,7 @@ export const checkCrumbsOf = (course: LearnLessonLink, mode: CheckMode): PlayerC
 /** The result's strip end: a square for each group, answered or not, and how many were answered. */
 export function checkResultEndOf(result: readonly LearnCheckGroup[]) {
   const squares: PlayerSquare[] = result.map((group) => (group.outcome === 'NOT_ANSWERED' ? 'waiting' : 'answered'));
-  const answered = squares.filter((square) => square === 'answered').length;
-  return (
-    <PlayerRunEnd squares={squares} words={{ lead: '', number: answered, tail: ` of ${squares.length} answered` }} />
-  );
+  return <PlayerRunEnd squares={squares} words={checkResultWordsOf(result.map((group) => group.outcome))} />;
 }
 
 /** The check's frame: the strip, then a column for a question or a message, or two for the sheet and its card. */
@@ -104,10 +103,8 @@ export function CheckMessage({
 /** While the run is on its way: the card's place, of its size, so nothing moves when it comes. */
 export function CheckPending() {
   return (
-    <div className="flex flex-col gap-4" aria-busy="true" data-check-state="pending">
-      <span className="sr-only" role="status">
-        Loading your check…
-      </span>
+    <div className="flex flex-col gap-4" data-check-state="pending">
+      <LiveStatus className="sr-only" text="Loading your check…" />
       <div className="min-h-7" />
       <div className="h-80 animate-pulse rounded-xl border-2 bg-muted/40 motion-reduce:animate-none" />
     </div>

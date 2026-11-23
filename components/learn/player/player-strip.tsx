@@ -71,14 +71,17 @@ export function PlayerRunEnd({
   words,
 }: {
   squares?: readonly PlayerSquare[];
-  words: { lead: string; number: number; tail: string };
+  /** The words after the squares, the number set apart; none when the words need no number. */
+  words: { lead: string; number: number | null; tail: string };
 }) {
   return (
     <span className="flex items-center gap-3 text-sm text-muted-foreground" data-player-run="">
       {squares?.length ? <PlayerSquares squares={squares} /> : null}
       <span>
         {words.lead}
-        <span className="font-mono font-semibold text-foreground tabular-nums">{words.number}</span>
+        {words.number === null ? null : (
+          <span className="font-mono font-semibold text-foreground tabular-nums">{words.number}</span>
+        )}
         {words.tail}
       </span>
     </span>

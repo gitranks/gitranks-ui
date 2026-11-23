@@ -32,7 +32,7 @@ export type LearnAddressGate =
   | { kind: 'missing' }
   | { kind: 'paused' }
   | { kind: 'removed' }
-  | { kind: 'moved'; path: Route };
+  | { kind: 'moved'; path: Route; slug: string };
 
 /** How long the proxy waits for the answer before leaving it to the page: nothing is sent while it waits. */
 export const LEARN_ADDRESS_TIMEOUT_MS = 2000;
@@ -56,7 +56,7 @@ export function learnAddressGateFrom(
       return { kind: 'removed' };
     case 'MOVED':
       return address.movedTo && isContentSlug(address.movedTo)
-        ? { kind: 'moved', path: pathOf[kind](address.movedTo) }
+        ? { kind: 'moved', path: pathOf[kind](address.movedTo), slug: address.movedTo }
         : { kind: 'missing' };
     default:
       return { kind: 'missing' };

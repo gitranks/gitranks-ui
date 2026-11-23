@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   checkPath,
+  checkRouteOf,
   coursePath,
   courseRouteOf,
   fromLearn,
@@ -165,6 +166,15 @@ describe("a course's addresses", () => {
       '/learn/courses/algorithms/card.png',
     ]) {
       expect(courseRouteOf(path), path).toBeNull();
+    }
+  });
+
+  it("reads the course a course's check asks for, and nothing else", () => {
+    expect(checkRouteOf('/learn/check/algorithms')).toBe('algorithms');
+    expect(checkRouteOf('/learn/check/algorithms/')).toBe('algorithms');
+    expect(checkRouteOf('/learn/check/Algorithms')).toBe('Algorithms');
+    for (const path of ['/learn/check', '/learn/check/', '/learn/check/a/b', '/learn/courses/algorithms']) {
+      expect(checkRouteOf(path), path).toBeNull();
     }
   });
 });

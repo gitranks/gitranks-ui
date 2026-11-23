@@ -82,6 +82,22 @@ export function knownGroupsOfCourse(
     .filter((group) => group.lessons.length > 0);
 }
 
+/**
+ * The marks the sheet of "What you know" does not show: the paused lessons marked as known now. A save marks only what
+ * it sends, so they are sent as they are, and a save that changes nothing changes nothing.
+ */
+export function keptKnownOf(course: Pick<LearnCourse, 'groups'>, mine: Pick<LearnCourseMine, 'lessons'>): string[] {
+  const marks = new Map(mine.lessons.map((lesson) => [lesson.slug, lesson]));
+  return course.groups.flatMap((group) =>
+    group.lessons
+      .filter((lesson) => {
+        const mark = marks.get(lesson.slug);
+        return lesson.paused && !!mark?.known && mark.depth === 'NONE';
+      })
+      .map((lesson) => lesson.slug),
+  );
+}
+
 /** What the sheet opens with ticked: the proposed lessons, never a learned one. */
 export const tickedFirstOf = (groups: readonly KnownGroup[]): ReadonlySet<string> =>
   new Set(
@@ -161,6 +177,51 @@ export function startOf(groups: readonly KnownGroup[], ticked: ReadonlySet<strin
     }
   }
   return null;
+}
+
+/**
+ * The words of the result's strip, after its squares: how many questions were answered of all. A run stopped before
+ * any answer says so without a count of nothing.
+ */
+export function checkResultWordsOf(outcomes: readonly LearnCheckOutcome[]): {
+  lead: string;
+  number: number | null;
+  tail: string;
+} {
+  const total = outcomes.length;
+  const answered = outcomes.filter((outcome) => outcome !== 'NOT_ANSWERED').length;
+  if (answered) return { lead: '', number: answered, tail: ` of ${total} answered` };
+  if (total === 1) return { lead: 'Stopped before its one question', number: null, tail: '' };
+  return { lead: 'Stopped before the first of ', number: total, tail: ' questions' };
+}
+
+/** What a button of the sheet's card does: saves and goes on, or saves nothing and starts. */
+export type SheetDoes = 'save' | 'save-and-pick' | 'start-first' | 'save-and-start' | 'mark-nothing';
+
+/**
+ * The card's buttons, for the page and the catalogue alike. "What you know" saves. The result: all known, save and
+ * pick another course; nothing known or learned, start at the first lesson; otherwise save and start there, and with
+ * lessons marked, the way to mark nothing and start at the first lesson not learned, named when it is not lesson 1.
+ */
+export function sheetActionsOf(
+  mode: 'check' | 'known',
+  groups: readonly KnownGroup[],
+  ticked: ReadonlySet<string>,
+): { primary: { label: string; does: SheetDoes }; secondary: { label: string; does: SheetDoes } | null } {
+  if (mode === 'known') return { primary: { label: 'Save', does: 'save' }, secondary: null };
+  const counts = knownCountsOf(groups, ticked);
+  if (!startOf(groups, ticked)) {
+    return { primary: { label: 'Save and pick another course', does: 'save-and-pick' }, secondary: null };
+  }
+  if (!counts.known && !counts.learned) {
+    return { primary: { label: 'Start at the first lesson', does: 'start-first' }, secondary: null };
+  }
+  const primary = { label: 'Save and start there', does: 'save-and-start' as const };
+  if (!counts.known) return { primary, secondary: null };
+  const first = startOf(groups, new Set());
+  const lessonOne = groups[0]?.lessons[0]?.slug;
+  const where = !first || first.slug === lessonOne ? 'lesson 1' : first.title;
+  return { primary, secondary: { label: `Mark nothing and start at ${where}`, does: 'mark-nothing' } };
 }
 
 /** The result's title, from the answers alone: how many groups the person knows of all. */

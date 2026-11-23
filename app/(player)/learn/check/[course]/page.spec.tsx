@@ -45,11 +45,14 @@ describe("a course's check page", () => {
     );
   });
 
-  it('is not there for a course that is not, or a check not offered', async () => {
+  it('is not there for a course that is not', async () => {
     loadLearnCourse.mockResolvedValue(null);
     await expect(CheckPage(props('nope'))).rejects.toThrow('NEXT_NOT_FOUND');
     expect((await generateMetadata(props('nope'))).robots).toEqual({ index: false, follow: false });
+  });
+
+  it('draws the check of a course that offers none, which says so itself', async () => {
     loadLearnCourse.mockResolvedValue({ ...algorithmsCourse, checkOffered: false });
-    await expect(CheckPage(props('algorithms'))).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(await liveOf('algorithms')).toMatchObject({ mode: 'check' });
   });
 });

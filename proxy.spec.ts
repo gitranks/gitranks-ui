@@ -45,7 +45,10 @@ vi.mock('./lib/learn/public-progress/progress-gate', () => ({ progressGateOf: as
 const { courseGate } = vi.hoisted(() => ({
   courseGate: vi.fn(async (_slug: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
-vi.mock('./lib/learn/course-gate', () => ({ courseGateOf: courseGate }));
+const { checkGate } = vi.hoisted(() => ({
+  checkGate: vi.fn(async (_slug: unknown): Promise<unknown> => ({ kind: 'page' })),
+}));
+vi.mock('./lib/learn/course-gate', () => ({ courseGateOf: courseGate, checkGateOf: checkGate }));
 
 const {
   default: proxy,
@@ -76,6 +79,8 @@ describe('proxy', () => {
     lessonGate.mockResolvedValue({ kind: 'page' });
     courseGate.mockReset();
     courseGate.mockResolvedValue({ kind: 'page' });
+    checkGate.mockReset();
+    checkGate.mockResolvedValue({ kind: 'page' });
     sessionRead.ok = true;
   });
 
@@ -1009,6 +1014,29 @@ describe('proxy', () => {
         expect(response?.headers.get('cache-control')).toBe('private, no-store');
         expect(response?.headers.get('retry-after')).toBe(status === 503 ? '3600' : null);
       }
+    });
+
+    it("asks a check's course before its page, and answers a missing one with the real 404, before Auth.js", async () => {
+      checkGate.mockResolvedValue({ kind: 'missing' });
+      for (const cookie of [undefined, 'authjs.session-token=t']) {
+        const response = await proxy(request(cookie, '/learn/check/nope'), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/learn/courses/_missing');
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+      }
+      await proxy(request(undefined, '/learn/check/algorithms/'), event);
+      await proxy(new NextRequest('https://gitranks.com/learn/check/algorithms', { method: 'POST' }), event);
+      await proxy(request(undefined, '/learn/check'), event);
+      expect(checkGate.mock.calls).toEqual([['nope'], ['nope'], ['algorithms']]);
+      expect(courseGate).not.toHaveBeenCalled();
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it('sends a moved course\'s check to the new course\'s check for good, "What you know" kept', async () => {
+      checkGate.mockResolvedValue({ kind: 'redirect', path: '/learn/check/algorithms-and-data' });
+      const response = await proxy(request('authjs.session-token=t', '/learn/check/algorithms?known'), event);
+      expect(response?.status).toBe(308);
+      expect(response?.headers.get('location')).toBe('https://gitranks.com/learn/check/algorithms-and-data?known');
+      expect(response?.headers.get('cache-control')).toBe('private, no-store');
     });
 
     it('sends a moved course to its new address for good, with the query', async () => {

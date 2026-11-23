@@ -127,6 +127,7 @@ describe('the setup lines', () => {
       'bearer_token_env_var = "GITRANKS_MCP_TOKEN"',
     );
     expect(JSON.parse(MCP_SETUPS.find(({ client }) => client === 'cursor')?.lines ?? '{}')).toEqual({
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor reads `${env:VAR}` itself; the line holds it as written.
       mcpServers: { gitranks: { url: MCP_URL, headers: { Authorization: 'Bearer ${env:GITRANKS_MCP_TOKEN}' } } },
     });
     expect(JSON.parse(MCP_SETUPS.find(({ client }) => client === 'gemini-cli')?.lines ?? '{}')).toEqual({

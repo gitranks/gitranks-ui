@@ -1,5 +1,5 @@
 import { answerStartOf, type LearnAnswerState } from './learn-answer';
-import { type LearnCode, type LearnPicked, type LearnQuestion, verdictOf } from './learn-question';
+import { codeOf, type LearnCode, type LearnPicked, type LearnQuestion, verdictOf } from './learn-question';
 
 /**
  * A lesson's page: the lesson as the API gives it, the person's side of it, its place in its group, and the rules the
@@ -56,6 +56,8 @@ export type LearnLessonMine = {
   dueAt: string | null;
   /** The right answer they gave, as it was sent. */
   picked: unknown;
+  /** The language of the code it was given in, when the question's code has one: it is graded in that language. */
+  language: string | null;
   tries: number | null;
   /** "Good", "Not good", or not rated. */
   feedbackGood: boolean | null;
@@ -153,14 +155,21 @@ export function mainLabelOf({
 
 const DAY = 24 * 60 * 60 * 1000;
 
+const DAY_PARTS = { year: 'numeric', month: 'numeric', day: 'numeric' } as const;
+
+/** The calendar of a time zone; UTC's when the zone is one the runtime does not know (a stale or mistyped name). */
+function calendarOf(timeZone?: string): Intl.DateTimeFormat {
+  try {
+    return new Intl.DateTimeFormat('en-US', { ...DAY_PARTS, timeZone });
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    return new Intl.DateTimeFormat('en-US', { ...DAY_PARTS, timeZone: 'UTC' });
+  }
+}
+
 /** A date's day as it is in a time zone, counted in whole days since 1970: for calendar differences. */
 function dayNumberOf(date: Date, timeZone?: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  }).formatToParts(date);
+  const parts = calendarOf(timeZone).formatToParts(date);
   const part = (type: string) => Number(parts.find((entry) => entry.type === type)?.value);
   return Math.round(Date.UTC(part('year'), part('month') - 1, part('day')) / DAY);
 }
@@ -180,8 +189,8 @@ export type DepthLine = { dots: number; lead: string; tail: string | null };
 
 /**
  * The depth line: "Learned. Review in 3 days.", "Learned. Group finished." right after the answer that finished the
- * group, "Practised. Review in 10 days.", "Mastered. Nothing more to do. This is the top level." Null before a lesson
- * is learned.
+ * group (on whichever of its lessons that answer was), "Practised. Review in 10 days.", "Mastered. Nothing more to do.
+ * This is the top level." Null before a lesson is learned.
  */
 export function depthLineOf({
   depth,
@@ -246,10 +255,13 @@ export function insightRowsOf(lesson: Pick<LearnLesson, 'say' | 'fact' | 'deeper
 export type BodyPart = { kind: 'text'; markdown: string } | { kind: 'example' | 'visual'; name: string };
 
 const PLACE_LINE = /^\[\[\s*(example|visual)\s*:\s*([\w-]+)\s*\]\]$/;
+/** A line that opens or closes fenced code: three or more backticks or tildes, indented three spaces at most. */
+const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 
 /**
  * The body cut where it places an example or a visual. A name the lesson does not have places nothing, and a name
- * placed twice shows once. With no example placed, the main example (else the first) follows the text.
+ * placed twice shows once. A placement line inside fenced code is code, left as it is. With no example placed, the
+ * main example (else the first) follows the text.
  */
 export function bodyPartsOf(
   body: string,
@@ -263,7 +275,23 @@ export function bodyPartsOf(
     if (markdown) parts.push({ kind: 'text', markdown });
     text = [];
   };
+  // The fence the line is in, as it opened: the closing fence has its character, at least as many times.
+  let fence: string | null = null;
   for (const line of body.replace(/\r\n?/g, '\n').split('\n')) {
+    const fenceLine = FENCE_LINE.exec(line);
+    if (fence !== null) {
+      if (fenceLine && fenceLine[1][0] === fence[0] && fenceLine[1].length >= fence.length && !fenceLine[2].trim()) {
+        fence = null;
+      }
+      text.push(line);
+      continue;
+    }
+    // A backtick fence's words after it hold no backtick: such a line is text, not a fence.
+    if (fenceLine && !(fenceLine[1][0] === '`' && fenceLine[2].includes('`'))) {
+      fence = fenceLine[1];
+      text.push(line);
+      continue;
+    }
     const match = PLACE_LINE.exec(line.trim());
     if (!match) {
       text.push(line);
@@ -292,17 +320,18 @@ export function visualsOf(visuals: unknown): Record<string, unknown> {
 }
 
 /**
- * A lesson opened again after it was learned: the answer done, with the right pick the person gave. Null when there
- * is no stored pick, or it is not right for the question as it is now (the question changed): then it is asked again.
+ * A lesson opened again after it was learned: the answer done, with the right pick the person gave, graded in the
+ * language it was given in (`storedLanguageOf`). Null when there is no stored pick, or it is not right for the question
+ * as it is now (the question changed): then it is asked again.
  */
 export function storedAnswerOf(
   question: LearnQuestion,
-  mine: Pick<LearnLessonMine, 'depth' | 'picked' | 'tries'> | null,
+  mine: Pick<LearnLessonMine, 'depth' | 'picked' | 'tries' | 'language'> | null,
   language: string | null,
 ): LearnAnswerState | null {
   if (!mine || mine.depth === 'NONE' || mine.picked === null || mine.picked === undefined) return null;
   const picked = mine.picked as LearnPicked;
-  const verdict = verdictOf(question, picked, language);
+  const verdict = verdictOf(question, picked, storedLanguageOf(question, mine, language));
   if (!verdict?.right) return null;
   return {
     ...answerStartOf(question),
@@ -311,6 +340,20 @@ export function storedAnswerOf(
     tries: mine.tries ?? 1,
     shown: { right: true, why: verdict.why },
   };
+}
+
+/**
+ * The language a stored answer is graded and drawn in: the one it was given in, when the question still has it; else
+ * the page's language as the question has it.
+ */
+export function storedLanguageOf(
+  question: LearnQuestion,
+  mine: Pick<LearnLessonMine, 'language'> | null,
+  language: string | null,
+): string | null {
+  const given = mine?.language;
+  if (given && question.codes.some((code) => code.language === given)) return given;
+  return codeOf(question, language)?.language ?? language;
 }
 
 /** Whether an answer is done and right. */

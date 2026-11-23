@@ -4,10 +4,21 @@ import { LessonView, type LessonViewProps } from '@/components/learn/lesson/less
 import { HeaderLine } from '@/components/workspace/header-line';
 import {
   LESSON_NOW,
+  loopAnswerWrong,
+  loopDepths,
+  loopExampleCodes,
+  loopGroup,
+  loopLesson,
+  loopQuestionCodes,
   mineLearned,
   mineLearnedRated,
   mineMastered,
   mineNew,
+  outputAnswerRight,
+  outputExampleCodes,
+  outputGroup,
+  outputLesson,
+  outputQuestionCodes,
   regexDepths,
   regexExampleCodes,
   regexGroup,
@@ -26,6 +37,7 @@ import {
 import { learnLessonMarkdownPath, lessonMistakeHref } from '@/lib/learn/paths';
 
 const noop = () => {};
+const saved = async () => true;
 
 /** A lesson's page as its route draws it: the site's header and its line, then the page. */
 function Page(props: Partial<LessonViewProps>) {
@@ -41,7 +53,7 @@ function Page(props: Partial<LessonViewProps>) {
         viewer={null}
         mainLanguage="python"
         links={{ markdown: learnLessonMarkdownPath(lesson.slug), report: lessonMistakeHref(lesson.title) }}
-        calls={{ onNext: noop, onSignIn: noop, onRate: noop, onComment: noop }}
+        calls={{ onNext: noop, onSignIn: noop, onRate: saved, onComment: saved }}
         hints
         now={LESSON_NOW}
         timeZone="UTC"
@@ -63,6 +75,7 @@ const SOURCES = [
   'components/learn/lesson/lesson-strip-end.tsx',
   'components/learn/lesson/insights-panel.tsx',
   'components/learn/lesson/lesson-feedback.tsx',
+  'components/learn/question/question-part.tsx',
   'lib/learn/lesson-page.ts',
 ];
 
@@ -184,8 +197,40 @@ export const LEARN_LESSON_SCREEN: Screen = {
       ),
     },
     {
+      id: 'line',
+      title: 'A line to click: a wrong line crossed out, with why, and picked again',
+      path: `/learn/lessons/${loopLesson.slug}`,
+      height: 1000,
+      render: () => (
+        <Page
+          lesson={loopLesson}
+          examples={[{ name: 'main', codes: loopExampleCodes }]}
+          questionCodes={loopQuestionCodes}
+          group={loopGroup}
+          viewer={{ mine: mineNew, depths: loopDepths }}
+          drawn={{ answer: loopAnswerWrong }}
+        />
+      ),
+    },
+    {
+      id: 'output',
+      title: 'Code to read: right, and what it prints shows',
+      path: `/learn/lessons/${outputLesson.slug}`,
+      height: 1200,
+      render: () => (
+        <Page
+          lesson={outputLesson}
+          examples={[{ name: 'main', codes: outputExampleCodes }]}
+          questionCodes={outputQuestionCodes}
+          group={outputGroup}
+          viewer={{ mine: mineLearned, depths: {} }}
+          drawn={{ answer: outputAnswerRight }}
+        />
+      ),
+    },
+    {
       id: 'feedback',
-      title: 'After a rating: saved at once, and a comment is optional',
+      title: 'After a rating is saved: a comment is optional',
       path: PATH,
       height: 1100,
       render: () => <Page viewer={member(mineLearnedRated)} drawn={{ answer: setAnswerRight, comment: true }} />,

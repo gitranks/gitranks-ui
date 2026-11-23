@@ -8,7 +8,9 @@ import { LessonStripEnd } from './lesson-strip-end';
 import { lessonPlace } from '@/components/learn/player/places';
 import { type PlayerCrumb, PlayerStrip } from '@/components/learn/player/player-strip';
 import { AnswerPart } from '@/components/learn/question/answer-part';
+import { QuestionPart } from '@/components/learn/question/question-part';
 import { useLearnAnswer } from '@/components/learn/question/use-learn-answer';
+import { useHydrated } from '@/components/pulse/use-hydrated';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
 import type { LearnAnswerState } from '@/lib/learn/learn-answer';
 import type { LearnPicked } from '@/lib/learn/learn-question';
@@ -27,6 +29,7 @@ import {
   lessonPlaceOf,
   mainLabelOf,
   storedAnswerOf,
+  storedLanguageOf,
 } from '@/lib/learn/lesson-page';
 import { coursePath, LEARN_HOME_PATH, learnFactPath } from '@/lib/learn/paths';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
@@ -43,8 +46,10 @@ export type LessonCalls = {
   onNext: () => void;
   /** The main button after a right answer, for a visitor. */
   onSignIn: () => void;
-  onRate: (good: boolean) => void;
-  onComment: (comment: string, good: boolean) => void;
+  /** Saves the rating: true once it is saved. */
+  onRate: (good: boolean) => Promise<boolean>;
+  /** Sends the comment: true once it is sent. */
+  onComment: (comment: string, good: boolean) => Promise<boolean>;
 };
 
 /** A state the catalogue draws: the answer, the rows shown without answering, the row open, the comment box. */
@@ -84,6 +89,7 @@ export function LessonPlayer({
   more,
   calls,
   drawn = {},
+  openFact = false,
   hints: hintsGiven,
   now,
   timeZone,
@@ -97,8 +103,13 @@ export function LessonPlayer({
   more: ReactNode;
   calls: LessonCalls;
   drawn?: LessonDrawn;
+  /** Opened from a shared fact: the insights start shown, with "Did you know?" open. */
+  openFact?: boolean;
   hints?: boolean;
-  /** The clock and time zone the review's day is counted in; the browser's otherwise. */
+  /**
+   * The clock and time zone the review's day is counted in. With both given, the server draws the review's words; with
+   * either missing, the browser's are used, and the words show once the page runs, so both draw the same first HTML.
+   */
   now?: Date;
   timeZone?: string;
 }) {
@@ -109,11 +120,13 @@ export function LessonPlayer({
   const exampleLanguages = (
     lesson.examples.find((example) => example.name === 'main') ?? lesson.examples[0]
   )?.codes.map((code) => code.language);
-  const [language] = useExampleLanguage(exampleLanguages ?? [], mainLanguage);
-  const stored = member ? storedAnswerOf(lesson.question, mine, language) : null;
+  const [tab] = useExampleLanguage(exampleLanguages ?? [], mainLanguage);
+  const stored = member ? storedAnswerOf(lesson.question, mine, tab) : null;
   const start = drawn.answer ?? stored ?? undefined;
   // Opened again after it was learned: fixed when the page is drawn, not by an answer given on it.
   const [opened] = useState(() => !!stored && !drawn.answer);
+  // An answer given before shows in the language it was given in; a new one in the tab the person reads.
+  const language = opened ? storedLanguageOf(lesson.question, mine, tab) : tab;
 
   const firstPlace = lessonPlaceOf(group, lesson.slug, null);
   const last = isLastOfGroup(firstPlace);
@@ -131,18 +144,23 @@ export function LessonPlayer({
   const place = lessonPlaceOf(group, lesson.slug, viewer ? { depths: viewer.depths, current: depth } : null);
 
   const rows = insightRowsOf(lesson);
-  const [shown, setShown] = useState(drawn.shown ?? false);
-  const [open, setOpen] = useState<InsightId | null | undefined>(drawn.open);
+  const factFirst = openFact && rows.some((row) => row.id === 'fact');
+  const [shown, setShown] = useState(drawn.shown ?? factFirst);
+  const [open, setOpen] = useState<InsightId | null | undefined>(drawn.open ?? (factFirst ? 'fact' : undefined));
   const unlocked = right || shown;
   const openRow = open === undefined ? (rows[0]?.id ?? null) : open;
 
+  // The review's day: in the page's clock and zone when it gives both, else in the browser's once the page runs.
+  const hydrated = useHydrated();
+  const clock = now && timeZone ? { now, timeZone } : hydrated ? { now: now ?? new Date(), timeZone } : null;
   const line = member
     ? depthLineOf({
         depth,
-        dueAt: mine?.dueAt ?? null,
-        now: now ?? new Date(),
-        timeZone,
-        groupFinished: right && !opened && last && isGroupFinished(place),
+        dueAt: clock ? (mine?.dueAt ?? null) : null,
+        now: clock?.now ?? new Date(0),
+        timeZone: clock?.timeZone,
+        // Right after the answer that finished the group, on whichever of its lessons.
+        groupFinished: right && !opened && isGroupFinished(place),
       })
     : null;
 
@@ -181,6 +199,7 @@ export function LessonPlayer({
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_27rem] lg:grid-rows-[auto_1fr] lg:gap-10">
           <div className="min-w-0 lg:col-start-1 lg:row-start-1">{article}</div>
           <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+            <QuestionPart question={lesson.question} answer={answer} highlighted={questionCodes} />
             <AnswerPart
               question={lesson.question}
               answer={answer}

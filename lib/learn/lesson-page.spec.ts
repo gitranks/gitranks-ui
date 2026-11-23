@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   LESSON_NOW,
+  loopQuestion,
   mineLearned,
+  mineLoopInJavaScript,
   mineNew,
   setDepths,
   setDepthsLast,
@@ -24,6 +26,7 @@ import {
   reviewWordsOf,
   sentenceCountOf,
   storedAnswerOf,
+  storedLanguageOf,
 } from './lesson-page';
 import { learnFactPath, learnLessonMarkdownPath, lessonMistakeHref } from './paths';
 
@@ -105,6 +108,13 @@ describe('the depth line', () => {
     );
     expect(reviewWordsOf(null, LESSON_NOW)).toBeNull();
     expect(reviewWordsOf('not a date', LESSON_NOW)).toBeNull();
+  });
+
+  it('counts in UTC when the time zone is one it does not know', () => {
+    expect(reviewWordsOf('2026-10-31T00:00:00.000Z', LESSON_NOW, 'Mars/Olympus_Mons')).toBe('Review in 3 days.');
+    expect(
+      depthLineOf({ depth: 'PRACTISED', dueAt: '2026-10-29T00:00:00.000Z', now: LESSON_NOW, timeZone: '' })?.tail,
+    ).toBe('Review tomorrow.');
   });
 
   it('words each depth as the boards do', () => {
@@ -189,6 +199,26 @@ describe('where the examples and visuals sit', () => {
       { kind: 'text', markdown: 'See [[example: main]] here.' },
     ]);
   });
+
+  it('leaves a placement line inside fenced code as code', () => {
+    const body = ['Write it like this:', '', '```', '[[example: main]]', '```', '', 'Then.', '', '[[visual: growth]]'];
+    expect(bodyPartsOf(body.join('\n'), names)).toEqual([
+      { kind: 'text', markdown: 'Write it like this:\n\n```\n[[example: main]]\n```\n\nThen.' },
+      { kind: 'visual', name: 'growth' },
+      { kind: 'example', name: 'main' },
+    ]);
+    // A tilde fence closes only on tildes, at least as many; a backtick line inside it is code too.
+    const tildes = ['~~~~ text', '```', '[[example: r2]]', '~~~', '~~~~', '[[example: r2]]'];
+    expect(bodyPartsOf(tildes.join('\n'), names)).toEqual([
+      { kind: 'text', markdown: '~~~~ text\n```\n[[example: r2]]\n~~~\n~~~~' },
+      { kind: 'example', name: 'r2' },
+    ]);
+    // Inline code with three backticks on a line of its own words opens no fence.
+    expect(bodyPartsOf('```a``` b\n[[example: r2]]', names)).toEqual([
+      { kind: 'text', markdown: '```a``` b' },
+      { kind: 'example', name: 'r2' },
+    ]);
+  });
 });
 
 describe('a lesson opened again', () => {
@@ -206,6 +236,22 @@ describe('a lesson opened again', () => {
     expect(storedAnswerOf(setQuestion, mineNew, null)).toBeNull();
     expect(storedAnswerOf(setQuestion, { ...mineLearned, picked: 0 }, null)).toBeNull();
     expect(storedAnswerOf(setQuestion, { ...mineLearned, picked: 'myth' }, null)).toBeNull();
+  });
+
+  it('grades a stored pick in the language it was given in, not the page’s', () => {
+    // Line 4 is the inner loop in JavaScript, not in Python.
+    expect(storedAnswerOf(loopQuestion, mineLoopInJavaScript, 'python')).toMatchObject({
+      phase: 'done',
+      picked: 4,
+      tries: 2,
+    });
+    expect(storedLanguageOf(loopQuestion, mineLoopInJavaScript, 'python')).toBe('javascript');
+    // Not kept: the page's language as the question has it.
+    expect(storedAnswerOf(loopQuestion, { ...mineLoopInJavaScript, language: null }, 'python')).toBeNull();
+    expect(storedAnswerOf(loopQuestion, { ...mineLoopInJavaScript, language: null }, 'javascript')).not.toBeNull();
+    expect(storedLanguageOf(loopQuestion, { language: null }, 'go')).toBe('python');
+    // A language the question no longer has: the page's.
+    expect(storedLanguageOf(loopQuestion, { language: 'ruby' }, 'javascript')).toBe('javascript');
   });
 });
 

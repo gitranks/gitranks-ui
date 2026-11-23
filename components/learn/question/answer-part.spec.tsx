@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -308,5 +308,32 @@ describe('a card that goes away while sending', () => {
     act(() => root.render(<div />));
     await act(async () => reply({ right: true }));
     expect(onDone).not.toHaveBeenCalled();
+  });
+});
+
+describe('the line under the card', () => {
+  function Under(props: { below?: ReactNode; keyLineEnd?: ReactNode }) {
+    const answer = useLearnAnswer({ question: pickOneQuestion, language: 'python', verdict: true, onDone: () => {} });
+    return <AnswerPart question={pickOneQuestion} answer={answer} place={LESSON} hints {...props} />;
+  }
+  const keyLine = () => host.querySelector('[data-key-line]');
+
+  it('draws the line of keys where the place gives no line of its own', () => {
+    act(() => root.render(<Under />));
+    expect(keyLine()?.textContent).toContain('pick');
+  });
+
+  it('draws the line of keys with the place’s end beside it', () => {
+    act(() => root.render(<Under keyLineEnd={<span data-end="">Stop and see the result</span>} />));
+    expect(keyLine()).not.toBeNull();
+    expect(keyLine()?.parentElement?.querySelector('[data-end]')?.textContent).toBe('Stop and see the result');
+  });
+
+  it('draws the place’s own line in place of the keys, even an empty one', () => {
+    act(() => root.render(<Under below={<p data-below="">Learned.</p>} />));
+    expect(keyLine()).toBeNull();
+    expect(host.querySelector('[data-below]')?.textContent).toBe('Learned.');
+    act(() => root.render(<Under below={null} />));
+    expect(keyLine()).toBeNull();
   });
 });

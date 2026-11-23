@@ -2,8 +2,8 @@ import { type HighlightedCode, plainCodeOf } from '../code-tokens';
 import type { LearnAnswerState } from '../learn-answer';
 import { type LearnCode, type LearnQuestion, verdictOf } from '../learn-question';
 import type { LearnDepth, LearnGroupLesson, LearnLesson, LearnLessonMine } from '../lesson-page';
-import { answerAfter } from './learn-question';
-import { hasDuplicateCodes } from './player';
+import { answerAfter, mythQuestion, outputQuestion, pickLineQuestion } from './learn-question';
+import { hasDuplicateCodes, nestedLoopCodes } from './player';
 
 /*
  * A lesson's page, as page 1's boards draw it: "Find duplicates in one pass with a set" in a short and a full-size
@@ -214,6 +214,7 @@ export const mineNew: LearnLessonMine = {
   learnedAt: null,
   dueAt: null,
   picked: null,
+  language: null,
   tries: null,
   feedbackGood: null,
 };
@@ -225,6 +226,7 @@ export const mineLearned: LearnLessonMine = {
   learnedAt: '2026-10-28T11:58:00.000Z',
   dueAt: '2026-10-31T00:00:00.000Z',
   picked: 1,
+  language: null,
   tries: 1,
   feedbackGood: null,
 };
@@ -328,6 +330,130 @@ export const mineMastered: LearnLessonMine = {
   learnedAt: '2026-10-09T10:00:00.000Z',
   dueAt: null,
   picked: 2,
+  language: null,
   tries: 1,
   feedbackGood: true,
 };
+
+const countPairs = {
+  python:
+    'def count_pairs(nums):\n    count = 0\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            count += 1\n    return count\n',
+  javascript:
+    'function countPairs(nums) {\n  let count = 0;\n  for (let i = 0; i < nums.length; i++) {\n    for (let j = i + 1; j < nums.length; j++) {\n      count++;\n    }\n  }\n  return count;\n}\n',
+};
+
+const hasDuplicateJs =
+  'function hasDuplicate(nums) {\n  const n = nums.length;\n  for (let i = 0; i < n; i++) {\n    for (let j = i + 1; j < n; j++) {\n      if (nums[i] === nums[j]) return true;\n    }\n  }\n  return false;\n}\n';
+
+/** A lesson's `pick-line`, in Python and JavaScript: the inner loop is line 3 in one and line 4 in the other. */
+export const loopQuestion: LearnQuestion = {
+  ...pickLineQuestion,
+  codes: [...pickLineQuestion.codes, { language: 'javascript', code: hasDuplicateJs }],
+  content: { ...(pickLineQuestion.content as Record<string, unknown>), rightLine: { python: 3, javascript: 4 } },
+};
+
+/** The pick-line question's code, Python highlighted and JavaScript plain. */
+export const loopQuestionCodes: HighlightedCode[] = [
+  nestedLoopCodes[0],
+  plainCodeOf({ language: 'javascript', code: hasDuplicateJs }),
+];
+
+/** Its example, in the two languages. */
+export const loopExampleCodes: HighlightedCode[] = [
+  plainCodeOf({ language: 'python', code: countPairs.python }),
+  plainCodeOf({ language: 'javascript', code: countPairs.javascript }),
+];
+
+/** A lesson whose question is a line to click. */
+export const loopLesson: LearnLesson = {
+  ...setLesson,
+  slug: 'big-o-of-two-loops',
+  title: 'Big-O of two loops',
+  body: 'One loop over a list does one step per item: **linear time**. A loop inside a loop does one step for **every pair** of items. For 1,000 items that is about 500,000 steps.\n\nSo when you look for what makes code slow, look for a loop that starts again for each item of another loop.',
+  course: { slug: 'algorithms', title: 'Algorithms and data structures' },
+  group: { slug: 'big-o', title: 'Big-O' },
+  examples: [
+    {
+      name: 'main',
+      codes: [
+        { language: 'python', code: countPairs.python },
+        { language: 'javascript', code: countPairs.javascript },
+      ],
+    },
+  ],
+  question: loopQuestion,
+  say: 'A loop inside a loop over the same list does one step for every pair of items, so it takes quadratic time. Doubling the list makes it four times slower.',
+  fact: null,
+  deeper:
+    'Show me three functions with two loops each, one of them linear in fact, and ask me which is which before you tell me.',
+  buildsOn: [],
+  previous: { slug: 'one-loop-is-linear', title: 'One loop is linear time' },
+  next: { slug: 'halving-is-log-n', title: 'Halving a list is log n' },
+};
+
+/** "Big-O": six lessons, this one the third. */
+export const loopGroup: LearnGroupLesson[] = [
+  lesson('what-big-o-counts', 'What Big-O counts'),
+  lesson('one-loop-is-linear', 'One loop is linear time'),
+  lesson('big-o-of-two-loops', 'Big-O of two loops'),
+  lesson('halving-is-log-n', 'Halving a list is log n', 'MEDIUM'),
+  lesson('drop-the-constants', 'Drop the constants', 'MEDIUM'),
+  lesson('best-worst-and-average', 'Best, worst and average', 'HARD'),
+];
+
+export const loopDepths = depthsOf(loopGroup, ['LEARNED', 'LEARNED']);
+
+/** Learned in JavaScript, line 4: the right line there, not in Python. */
+export const mineLoopInJavaScript: LearnLessonMine = {
+  ...mineLearned,
+  picked: 4,
+  language: 'javascript',
+  tries: 2,
+};
+
+/** Line 2 picked, crossed out and said why: the person picks again. */
+export const loopAnswerWrong: LearnAnswerState = answerAfter(loopQuestion, [
+  { type: 'pick', at: 1 },
+  { type: 'graded', verdict: verdictOf(loopQuestion, 2, 'python')! },
+]);
+
+const stackExample =
+  'stack = []\nstack.append("a")\nstack.append("b")\nprint(stack.pop())  # b, the last one in\nprint(stack)        # ["a"]\n';
+
+/** A lesson whose question is code to read: what it prints shows once it is answered. */
+export const outputLesson: LearnLesson = {
+  ...setLesson,
+  slug: 'push-and-pop-a-stack',
+  title: 'Push and pop a stack',
+  body: 'A stack is a pile: you **push** an item on top and **pop** the top one off. So the last item in is the first one out.\n\nIn Python a list is a stack: `append` pushes and `pop` with no index pops.',
+  group: { slug: 'stacks-and-queues', title: 'Stacks and queues' },
+  examples: [{ name: 'main', codes: [{ language: 'python', code: stackExample }] }],
+  question: outputQuestion,
+  say: 'A stack gives back the last item put in first. Push and pop both work on the top, so each takes constant time.',
+  fact: null,
+  deeper: null,
+  buildsOn: [],
+  previous: { slug: 'a-set-of-sets', title: 'A set of sets' },
+  next: { slug: 'a-queue-gives-back-the-first', title: 'A queue gives back the first item in' },
+};
+
+export const outputExampleCodes: HighlightedCode[] = [plainCodeOf({ language: 'python', code: stackExample })];
+export const outputQuestionCodes: HighlightedCode[] = outputQuestion.codes.map(plainCodeOf);
+
+/** "Stacks and queues": five lessons, this one the first. */
+export const outputGroup: LearnGroupLesson[] = [
+  lesson('push-and-pop-a-stack', 'Push and pop a stack'),
+  lesson('a-queue-gives-back-the-first', 'A queue gives back the first item in'),
+  lesson('undo-with-a-stack', 'Undo with a stack'),
+  lesson('match-brackets-with-a-stack', 'Match brackets with a stack', 'MEDIUM'),
+  lesson('a-queue-from-two-stacks', 'A queue from two stacks', 'HARD'),
+];
+
+/** The right output picked: "3". */
+export const outputAnswerRight: LearnAnswerState = answerAfter(outputQuestion, [
+  { type: 'pick', at: 1 },
+  { type: 'graded', verdict: verdictOf(outputQuestion, 1, 'python')! },
+]);
+
+/** A myth-or-fact lesson: answered wrong, it is done, but nothing is learned. */
+export const mythLesson: LearnLesson = { ...setLesson, question: mythQuestion };

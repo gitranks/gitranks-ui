@@ -22,9 +22,12 @@ export type LessonViewProps = {
   mainLanguage?: string | null;
   links: LessonFooterLinks;
   calls: LessonCalls;
-  /** For the catalogue: a state drawn as it stands, the key hints, the clock. */
+  /** Opened from a shared fact (its address ends in `?fact`): "Did you know?" starts open. */
+  openFact?: boolean;
+  /** For the catalogue: a state drawn as it stands, the key hints. */
   drawn?: LessonDrawn;
   hints?: boolean;
+  /** The clock and the person's time zone: with both, the server draws the review's words; else the browser does. */
   now?: Date;
   timeZone?: string;
 };
@@ -32,12 +35,14 @@ export type LessonViewProps = {
 /**
  * A lesson's page under the site's header: the player's strip; the lesson, its question and what it gives after the
  * answer; previous and next; the line about who wrote it. Two columns, the question beside the text and in sight as
- * the text scrolls; one on a phone, the question after the text.
+ * the text scrolls; one on a phone, the question after the text. The player is keyed by the lesson and its question:
+ * another lesson, or a changed question, starts a new answer.
  */
 export function LessonView({ lesson, examples, group, links, mainLanguage, ...player }: LessonViewProps) {
   const place = lessonPlaceOf(group, lesson.slug, null);
   return (
     <LessonPlayer
+      key={`${lesson.slug}:${lesson.question.id}`}
       lesson={lesson}
       group={group}
       mainLanguage={mainLanguage}

@@ -11,7 +11,12 @@ const COMPONENTS: Components = {
   strong: ({ children }) => <b className="font-semibold">{children}</b>,
   em: ({ children }) => <i>{children}</i>,
   ul: ({ children }) => <ul className="m-0 flex list-disc flex-col gap-1 pl-5">{children}</ul>,
-  ol: ({ children }) => <ol className="m-0 flex list-decimal flex-col gap-1 pl-5">{children}</ol>,
+  // A list that goes on after a placed example starts at its own number.
+  ol: ({ children, start }) => (
+    <ol start={start} className="m-0 flex list-decimal flex-col gap-1 pl-5">
+      {children}
+    </ol>
+  ),
   a: ({ children }) => <>{children}</>,
   img: () => null,
   h1: ({ children }) => <p className="m-0 font-semibold">{children}</p>,

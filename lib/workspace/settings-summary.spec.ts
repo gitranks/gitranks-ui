@@ -131,7 +131,7 @@ describe('what you work on, in short', () => {
 describe('the AI agent row', () => {
   it('names the agent connected last and the day, then how many others', () => {
     const one = { ...views.active, ownAgent: { paths: { hosted: false, mcp: true }, tokens: [mcpToken()] } };
-    expect(agentSummaryOf(one)).toEqual({ connected: true, value: 'Claude Code on macOS · connected on 28 Oct' });
+    expect(agentSummaryOf(one)).toEqual({ state: 'connected', value: 'Claude Code on macOS · connected on 28 Oct' });
     const older = mcpToken({ id: 'T_0', name: 'Codex', createdAt: '2026-10-03T09:00:00.000Z' });
     const two = { ...views.active, ownAgent: { paths: { hosted: false, mcp: true }, tokens: [older, mcpToken()] } };
     expect(agentSummaryOf(two).value).toBe('Claude Code on macOS and 1 other agent · connected on 28 Oct');
@@ -139,7 +139,7 @@ describe('the AI agent row', () => {
 
   it('names the hosted agent with a key and no token, and says when none is connected', () => {
     expect(agentSummaryOf({ ...views.active, ownAgent: { paths: { hosted: true, mcp: false }, tokens: [] } })).toEqual({
-      connected: true,
+      state: 'connected',
       value: 'The hosted agent, with your Claude key',
     });
     const none = {
@@ -148,9 +148,19 @@ describe('the AI agent row', () => {
       ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] },
     };
     expect(agentSummaryOf(none)).toEqual({
-      connected: false,
+      state: 'none',
       value: 'No agent connected yet. An agent is what fixes an issue for you.',
     });
+  });
+
+  it('says the agent did not load when it was not read, never that none is connected', () => {
+    const unread = { ...views.active, contributor: contributor({ credentials: [] }), ownAgent: undefined };
+    expect(agentSummaryOf(unread)).toEqual({
+      state: 'failed',
+      value: "Your agent didn't load. Reload the page to try again.",
+    });
+    // A Claude key is known without it.
+    expect(agentSummaryOf({ ...views.active, ownAgent: undefined }).state).toBe('connected');
   });
 });
 

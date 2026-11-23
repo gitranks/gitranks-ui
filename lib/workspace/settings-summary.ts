@@ -91,7 +91,10 @@ export function grantSummaryOf(grant: ContributeGrant | undefined, available: bo
 }
 
 /** What the AI agent row says: the agent connected last and when, the hosted one, or none yet (`connected` false). */
-export type AgentSummary = { connected: boolean; value: string };
+/** The AI agent row: an agent connected, none yet, or the person's agent not read (the API did not answer it). */
+export type AgentSummary = { state: 'connected' | 'none' | 'failed'; value: string };
+
+export const AGENT_READ_FAILED = "Your agent didn't load. Reload the page to try again.";
 
 /** `3 Nov`, in UTC. */
 const connectedDayOf = (iso: string) => {
@@ -105,11 +108,13 @@ export function agentSummaryOf(view: ContributeView): AgentSummary {
   if (newest) {
     const others = tokens.length > 1 ? ` and ${plural(tokens.length - 1, 'other agent')}` : '';
     const day = connectedDayOf(newest.createdAt);
-    return { connected: true, value: `${newest.name}${others}${day ? ` · connected on ${day}` : ''}` };
+    return { state: 'connected', value: `${newest.name}${others}${day ? ` · connected on ${day}` : ''}` };
   }
   if (view.contributor?.credentials.some((credential) => credential.provider === 'ANTHROPIC')) {
-    return { connected: true, value: 'The hosted agent, with your Claude key' };
+    return { state: 'connected', value: 'The hosted agent, with your Claude key' };
   }
-  if (view.ownAgent?.paths.mcp) return { connected: true, value: 'Your own agent · connected' };
-  return { connected: false, value: 'No agent connected yet. An agent is what fixes an issue for you.' };
+  // Not read: never "No agent connected yet", which may be wrong.
+  if (!view.ownAgent) return { state: 'failed', value: AGENT_READ_FAILED };
+  if (view.ownAgent.paths.mcp) return { state: 'connected', value: 'Your own agent · connected' };
+  return { state: 'none', value: 'No agent connected yet. An agent is what fixes an issue for you.' };
 }

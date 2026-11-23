@@ -147,7 +147,7 @@ export const SETTINGS_SCREEN: Screen = {
   route: '/my/settings',
   sources: [
     'app/(workspace)/my/settings/components/settings-view.tsx',
-    'app/(workspace)/components/bar-switch.tsx',
+    'components/workspace/workspace-tabs-nav.tsx',
     'components/learn/settings/learn-preferences-group.tsx',
     'components/learn/settings/learn-email-rows.tsx',
     'components/workspace/settings/email-rows.tsx',

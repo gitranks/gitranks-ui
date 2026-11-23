@@ -123,5 +123,6 @@ Contribute and Learn share one signed-in workspace (`components/workspace/`).
 - Long lists: upcoming lists use `ShowMore` (10, then 10 more in place); history lists use `Pagination` (20 a page, the
   page in the address); previews show a fixed few rows and one link. Every list says its total.
 - The limit on open pull requests has one sentence, `LimitNotice`; no page writes its own.
-- Who a block is for is said in words: "Contribute only", "For contributing", "For learning".
+- Who a block is for is said in words: "Contribute only" on a block only Contribute uses (the hosted agent); on
+  Settings, the group's title names its product: "Contribute preferences", "Learn preferences".
 - "Pull request" in headings and sentences; "PR #123" only in chips and dense meta lines.

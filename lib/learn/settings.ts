@@ -173,6 +173,25 @@ export function zonePickInputOf(zone: string, deviceZone: string | null): LearnE
   return zone === deviceZone ? { timeZoneBy: 'DEVICE' } : { timeZone: zone, timeZoneBy: 'PERSON' };
 }
 
+/**
+ * Whether a pick changes nothing, so nothing is saved: the zone the person already chose, or the device's when the
+ * setting follows the device and the device's zone is the one kept (`savedZone`, the zone the Email rows read). The
+ * device's zone while another is kept (none yet, or an earlier device's) is saved, to send it.
+ */
+export function pickChangesNothing(
+  settings: Pick<LearnEmailSettings, 'timeZone' | 'timeZoneBy'>,
+  savedZone: string | null | undefined,
+  zone: string,
+  deviceZone: string | null,
+): boolean {
+  const input = zonePickInputOf(zone, deviceZone);
+  if (input.timeZoneBy === 'PERSON') return settings.timeZoneBy === 'PERSON' && settings.timeZone === zone;
+  return settings.timeZoneBy === 'DEVICE' && settings.timeZone === deviceZone && savedZone === deviceZone;
+}
+
+/** Under "Time zone" when the device's zone, picked, did not save: the emails keep the zone they had. */
+export const DEVICE_ZONE_NOT_SAVED = "We couldn't save your device's time zone, so daily emails keep the one above.";
+
 /** The settings once a pick is saved, as the row shows them while the save runs. */
 export function settingsAfterPick(
   settings: LearnEmailSettings,

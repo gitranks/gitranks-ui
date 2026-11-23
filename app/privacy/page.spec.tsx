@@ -23,7 +23,7 @@ describe('the Privacy policy', () => {
   it('has a GitRanks Learn section, linked from the contents and dated', () => {
     expect(html).toContain('id="learn"');
     expect(html).toContain('href="#learn"');
-    expect(plain).toContain('22 November 2026');
+    expect(plain).toContain('23 November 2026');
   });
 
   it('says what Learn makes public, under whose name, and what deleting removes', () => {
@@ -64,6 +64,12 @@ describe('the Privacy policy', () => {
     expect(renderToStaticMarkup(await ShownTermsRulesLink())).toContain('href="/terms"');
     contributeShown.mockResolvedValueOnce(true);
     expect(renderToStaticMarkup(await ShownTermsRulesLink())).toContain('href="/terms#contribute-rules"');
+  });
+
+  it('names the cookie that keeps the bar seen last, what it holds and how long it lasts', () => {
+    expect(plain).toContain(
+      "Preferences : one cookie, gr_last_bar, that keeps which bar you saw last, Learn's or Contribute's, so Settings opens with the same one. It lasts a year and is renewed on each page that shows either bar.",
+    );
   });
 
   it('keeps the anchors other pages link to', () => {

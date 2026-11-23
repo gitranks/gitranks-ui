@@ -147,6 +147,15 @@ describe('the Settings page (page 23)', () => {
     expect(none.html).toMatch(/href="\/my\/agent\/connect"/);
   });
 
+  it('says the agent did not load when its read failed, with Edit to the Agent tab, never that none is connected', () => {
+    const { html, plain } = render({ view: { ...views.noKey, ownAgent: undefined } });
+    expect(html).toContain('data-agent="failed"');
+    expect(plain).toContain("AI agent Your agent didn't load. Reload the page to try again. Edit");
+    expect(plain).not.toContain('No agent connected yet');
+    expect(html).toMatch(/data-row="agent"[^>]*><a[^>]*href="\/my\/agent"/);
+    expect(html).not.toMatch(/href="\/my\/agent\/connect"/);
+  });
+
   it('names the Claude key in Delete only with one, and the lessons only with Learn open', () => {
     expect(render({ learnOpen: false }).plain).toContain(
       'Removes your Claude key, your agent tokens, the GitHub access, your settings, and your attempt history.',

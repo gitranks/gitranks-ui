@@ -300,6 +300,32 @@ describe("Learn's bar", () => {
     expect(startLearnSetupGuessAction).toHaveBeenCalledTimes(1);
   });
 
+  it('tells the page once when our guess is in, and never for a setup that was in already', async () => {
+    vi.useFakeTimers();
+    const settled = vi.fn();
+    window.addEventListener('gitranks:learn-setup-settled', settled);
+    const states = ['WORKING', 'WORKING', 'GUESSED'];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => barOf(states.shift() ?? 'GUESSED')),
+    );
+    path.current = '/my/settings';
+    await act(async () => root.render(<LearnBarLive from="learn" />));
+    await act(async () => vi.advanceTimersByTime(2000));
+    expect(settled).not.toHaveBeenCalled();
+    await act(async () => vi.advanceTimersByTime(2000));
+    expect(settled).toHaveBeenCalledTimes(1);
+    await act(async () => vi.advanceTimersByTime(10_000));
+    expect(settled).toHaveBeenCalledTimes(1);
+
+    // A bar read with the guess already in says nothing.
+    path.current = '/learn';
+    await act(async () => root.render(<LearnBarLive from="learn" />));
+    await act(async () => vi.advanceTimersByTime(10_000));
+    expect(settled).toHaveBeenCalledTimes(1);
+    window.removeEventListener('gitranks:learn-setup-settled', settled);
+  });
+
   it('leaves our guess to Set up Learn on its own page, and only marks its tab there', async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn(async () => barOf('NONE'));

@@ -4,7 +4,13 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { LearnBar } from './learn-bar';
-import { type LearnBarRead, type LearnBarState, learnBarPlaceOf, learnBarStateOf } from '@/lib/learn/learn-bar';
+import {
+  LEARN_SETUP_SETTLED_EVENT,
+  type LearnBarRead,
+  type LearnBarState,
+  learnBarPlaceOf,
+  learnBarStateOf,
+} from '@/lib/learn/learn-bar';
 import { startLearnSetupGuessAction } from '@/lib/learn/setup.actions';
 import { hasSessionHint } from '@/lib/session-hint';
 import { rememberBar } from '@/lib/workspace/settings-bar';
@@ -33,7 +39,7 @@ export async function readLearnBar(): Promise<LearnBarRead | null> {
  * since a review or a setup changes it. A browser with no session asks nothing. With no setup yet, our guess of it
  * starts here (Set up Learn starts it itself; the lesson, review and check pages, which have no bar, start it from
  * their own side: `useLearnSetupGuess`), and the bar is read again every two seconds while
- * it runs: "Set up Learn" shows a spinner until the guess is in. `from` is the page's `?from=`, for a page both products
+ * it runs: "Set up Learn" shows a spinner until the guess is in, and the page hears when it is. `from` is the page's `?from=`, for a page both products
  * share. It records itself as the bar seen last.
  */
 export function LearnBarLive({ from = null }: { from?: string | null }) {
@@ -74,6 +80,10 @@ export function LearnBarLive({ from = null }: { from?: string | null }) {
         !!fetched && polls < GUESS_POLLS && (bar?.setup === 'WORKING' || (polls === 0 && bar?.setup === 'NONE'));
       setState(learnBarStateOf(bar, running));
       if (running) timer = setTimeout(() => void read(polls + 1), GUESS_POLL_MS);
+      // In after reads while it ran: the page's own view of the setup is read again (`LEARN_SETUP_SETTLED_EVENT`).
+      else if (polls > 0 && (bar?.setup === 'GUESSED' || bar?.setup === 'SAVED')) {
+        window.dispatchEvent(new Event(LEARN_SETUP_SETTLED_EVENT));
+      }
     };
     void read(0);
     return () => {

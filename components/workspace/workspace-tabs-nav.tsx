@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef, useSyncExternalStore } from 'react';
 
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
@@ -10,37 +10,74 @@ import { ChangesProvider } from '@/components/workspace/changes-provider';
 import { HeaderLine } from '@/components/workspace/header-line';
 import { scrollToHash } from '@/components/workspace/scroll-to-hash';
 import { runsOf, runsTabMarkOf } from '@/lib/workspace/agent-runs';
+import type { Audience } from '@/lib/workspace/audience';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeActivity } from '@/lib/workspace/contribute.types';
 import type { WorkspaceTab } from '@/lib/workspace/gate';
-import { rememberBar } from '@/lib/workspace/settings-bar';
+import {
+  isSharedSettingsPath,
+  lastBarInCookies,
+  type ProductBar,
+  rememberBar,
+  settingsBarOf,
+} from '@/lib/workspace/settings-bar';
 import { activeTabOf, WORKSPACE_TABS, workspaceTabsShown } from '@/lib/workspace/workspace-tabs';
 
 /** Every tab link's mark: moving between tabs is never counted as a step into Contribute. */
 const TAB_MARK = contributeSource('workspace_tab');
 
+/** Learn's bar for Settings, where Learn is open to the person, with what picks it (`settingsBarOf`). */
+export type LearnBarChoice = {
+  /** Learn's bar. */
+  bar: ReactNode;
+  audience: Audience;
+  /** The server's read of the bar seen last, drawn until the page is up. */
+  lastBar: ProductBar | null;
+};
+
+const noSubscribe = () => () => {};
+
 /**
  * The workspace's tabs under the header, as a profile's are, or the header's line when they do not show; with them,
- * the one poll (`ChangesProvider`) and the bar for the current tab's work. It reads the path and the query, so it
- * renders inside a Suspense boundary.
+ * the one poll (`ChangesProvider`) and the bar for the current tab's work. On Settings, Learn's bar takes the tabs'
+ * place where Learn opened the page (`settingsBarOf`: the link's `?from=learn`, else the bar seen last, read from the
+ * browser's cookie on each move, else the product the person uses); the poll and the work's bar stay under it. It
+ * reads the path and the query, so it renders inside a Suspense boundary.
  */
 export function WorkspaceTabsNav({
   tabs,
   activity = null,
   version = null,
   needsYou = null,
+  learn,
 }: {
   tabs: readonly WorkspaceTab[];
   activity?: ContributeActivity | null;
   version?: string | null;
   needsYou?: number | null;
+  /** Given only where Learn is open to the person. */
+  learn?: LearnBarChoice;
 }) {
   const pathname = usePathname();
   const search = useSearchParams();
-  if (!workspaceTabsShown(pathname, search.get('as'), tabs)) return <HeaderLine />;
+  const seenLast = useSyncExternalStore(
+    noSubscribe,
+    () => lastBarInCookies(document.cookie),
+    () => learn?.lastBar ?? null,
+  );
+  const showLearn =
+    !!learn &&
+    isSharedSettingsPath(pathname) &&
+    settingsBarOf({ from: search.get('from'), lastBar: seenLast, audience: learn.audience, learnOpen: true }) ===
+      'learn';
+  // Learn's bar arrives after the screen, as the tabs do: a link's jump to a section is made again under it.
+  useEffect(() => {
+    if (showLearn) scrollToHash();
+  }, [showLearn]);
+  if (!workspaceTabsShown(pathname, search.get('as'), tabs)) return showLearn ? learn.bar : <HeaderLine />;
   return (
     <ChangesProvider version={version} activity={activity} needsYou={needsYou}>
-      <WorkspaceTabsBar tabs={tabs} active={activeTabOf(pathname, search)} />
+      {showLearn ? learn.bar : <WorkspaceTabsBar tabs={tabs} active={activeTabOf(pathname, search)} />}
       <ActivityBar />
     </ChangesProvider>
   );

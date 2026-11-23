@@ -165,11 +165,11 @@ export function AgentGithubGroup({ view }: { view: ContributeView }) {
       <SettingsList>
         <SettingsRow
           icon={Bot}
-          href={agent.connected ? WORKSPACE_PATHS.agent : WORKSPACE_PATHS.agentConnect}
-          cta={agent.connected ? 'Edit' : 'Connect'}
+          href={agent.state === 'none' ? WORKSPACE_PATHS.agentConnect : WORKSPACE_PATHS.agent}
+          cta={agent.state === 'none' ? 'Connect' : 'Edit'}
           title="AI agent"
           value={agent.value}
-          data={{ 'data-row': 'agent', 'data-agent': agent.connected ? 'connected' : 'none' }}
+          data={{ 'data-row': 'agent', 'data-agent': agent.state }}
         />
         <SettingsRow
           icon={Lock}

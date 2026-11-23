@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   isSharedSettingsPath,
   LAST_BAR_COOKIE,
+  lastBarCookieOf,
   lastBarInCookies,
   lastBarOf,
   rememberBar,
@@ -54,5 +55,26 @@ describe('the bar Settings shows', () => {
     expect(lastBarOf('admin')).toBeNull();
     expect(lastBarOf(undefined)).toBeNull();
     expect(lastBarInCookies(`${LAST_BAR_COOKIE}=admin`)).toBeNull();
+  });
+
+  it('writes the cookie again on every page with a bar, for a year, Secure over HTTPS', () => {
+    const writes: string[] = [];
+    const cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie')!;
+    const spy = vi.spyOn(document, 'cookie', 'set').mockImplementation((value: string) => {
+      writes.push(value);
+      cookie.set!.call(document, value);
+    });
+    rememberBar('learn');
+    rememberBar('learn');
+    expect(writes).toEqual([
+      'gr_last_bar=learn; Path=/; Max-Age=31536000; SameSite=Lax',
+      'gr_last_bar=learn; Path=/; Max-Age=31536000; SameSite=Lax',
+    ]);
+    spy.mockRestore();
+    vi.stubGlobal('location', { protocol: 'https:' });
+    expect(lastBarCookieOf('contribute')).toBe(
+      'gr_last_bar=contribute; Path=/; Max-Age=31536000; SameSite=Lax; Secure',
+    );
+    vi.unstubAllGlobals();
   });
 });

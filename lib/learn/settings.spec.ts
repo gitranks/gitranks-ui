@@ -8,6 +8,7 @@ import {
   learnEmailSettingsInputOf,
   learnEmailSettingsOf,
   learnSettingsErrorOf,
+  pickChangesNothing,
   settingsAfterPick,
   setupRowOf,
   setupSummaryOf,
@@ -188,5 +189,18 @@ describe('the row "Languages and level"', () => {
       cta: 'Set up Learn',
       guess: false,
     });
+  });
+});
+
+describe('a pick that changes nothing', () => {
+  it("is the person's own zone again, or the device's when it is the one kept", () => {
+    expect(pickChangesNothing(learnEmail.chosen, 'Europe/Berlin', 'Europe/Berlin', 'Europe/Lisbon')).toBe(true);
+    expect(pickChangesNothing(learnEmail.device, 'Europe/Lisbon', 'Europe/Lisbon', 'Europe/Lisbon')).toBe(true);
+    // Another city; the device's while the person chose one; the device's while none, or an earlier device's, is kept.
+    expect(pickChangesNothing(learnEmail.chosen, 'Europe/Berlin', 'Asia/Tokyo', 'Europe/Lisbon')).toBe(false);
+    expect(pickChangesNothing(learnEmail.chosen, 'Europe/Berlin', 'Europe/Lisbon', 'Europe/Lisbon')).toBe(false);
+    expect(pickChangesNothing(learnEmail.unknown, null, 'Europe/Lisbon', 'Europe/Lisbon')).toBe(false);
+    expect(pickChangesNothing(learnEmail.device, 'Europe/Lisbon', 'Asia/Tokyo', 'Asia/Tokyo')).toBe(false);
+    expect(pickChangesNothing(learnEmail.device, 'Europe/Berlin', 'Europe/Lisbon', 'Europe/Lisbon')).toBe(false);
   });
 });

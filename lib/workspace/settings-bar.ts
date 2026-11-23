@@ -29,12 +29,18 @@ export function lastBarInCookies(cookies: string): ProductBar | null {
   return null;
 }
 
-/** Records the bar this page shows, in the browser. */
+/** `; Secure` over HTTPS, as the site's other cookies set in the browser; none in local development. */
+const secure = () => (globalThis.location?.protocol === 'https:' ? '; Secure' : '');
+
+/** The cookie as `rememberBar` writes it: written again on every page with a bar, so its year starts again there. */
+export const lastBarCookieOf = (bar: ProductBar): string =>
+  `${LAST_BAR_COOKIE}=${bar}; Path=/; Max-Age=${LAST_BAR_MAX_AGE}; SameSite=Lax${secure()}`;
+
+/** Records the bar this page shows, in the browser, and renews the cookie's year. */
 export function rememberBar(bar: ProductBar): void {
   try {
-    if (lastBarInCookies(document.cookie) === bar) return;
     // biome-ignore lint/suspicious/noDocumentCookie: one plain preference, read by the server on the next request too.
-    document.cookie = `${LAST_BAR_COOKIE}=${bar}; Path=/; Max-Age=${LAST_BAR_MAX_AGE}; SameSite=Lax`;
+    document.cookie = lastBarCookieOf(bar);
   } catch {
     // Cookies blocked: Settings falls back to the product the person uses.
   }

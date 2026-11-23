@@ -198,6 +198,72 @@ describe("Learn's rows in the browser", () => {
     expect(window.localStorage.getItem('gitranks:time-zone-sent')).toBe('Europe/Lisbon');
   });
 
+  it("sends the device's zone when the setting follows the device but another zone is kept", async () => {
+    // No zone known yet: the row says New York's, though it follows the device.
+    saveLearnEmailSettingsAction.mockResolvedValueOnce({ ok: true, data: learnEmail.unknown });
+    setContributeEmailSettings.mockResolvedValueOnce({ ok: true, data: { ...email.on, timeZone: 'Europe/Lisbon' } });
+    act(() =>
+      root.render(
+        <ul>
+          <TimeZoneRow settings={learnEmail.unknown} savedZone={null} />
+        </ul>,
+      ),
+    );
+    expect(row().textContent).toContain('We could not tell your time zone');
+    await openList();
+    await choose('Europe/Lisbon');
+    expect(saveLearnEmailSettingsAction).toHaveBeenCalledWith({ timeZoneBy: 'DEVICE' });
+    expect(setContributeEmailSettings).toHaveBeenCalledWith({ timeZone: 'Europe/Lisbon' });
+    expect(row().textContent).toContain('Lisbon time. Taken from your device.');
+    // Kept now: the same pick again saves nothing.
+    saveLearnEmailSettingsAction.mockClear();
+    await openList();
+    await choose('Europe/Lisbon');
+    expect(saveLearnEmailSettingsAction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['answers no', () => setContributeEmailSettings.mockResolvedValueOnce({ ok: false, error: 'FAILED' })],
+    ['fails', () => setContributeEmailSettings.mockRejectedValueOnce(new Error('down'))],
+  ])(
+    "says so when the device's zone %s, never records it as sent, and sends it again on Try again",
+    async (_how, fail) => {
+      window.localStorage.setItem('gitranks:time-zone-sent', 'Europe/Lisbon');
+      saveLearnEmailSettingsAction.mockResolvedValueOnce({
+        ok: true,
+        data: { ...learnEmail.chosen, timeZoneBy: 'DEVICE' },
+      });
+      fail();
+      act(() =>
+        root.render(
+          <ul>
+            <TimeZoneRow settings={learnEmail.chosen} savedZone="Europe/Berlin" />
+          </ul>,
+        ),
+      );
+      await openList();
+      await choose('Europe/Lisbon');
+      // The zone kept is still Berlin's, and the line does not say it came from the device.
+      expect(row().textContent).toContain('Daily emails come in the morning, Berlin time.');
+      expect(row().textContent).not.toContain('Taken from your device');
+      expect(row().textContent).not.toContain('You chose it');
+      expect(alert()?.textContent).toBe(
+        "We couldn't save your device's time zone, so daily emails keep the one above.",
+      );
+      expect(window.localStorage.getItem('gitranks:time-zone-sent')).toBeNull();
+
+      setContributeEmailSettings.mockResolvedValueOnce({ ok: true, data: { ...email.on, timeZone: 'Europe/Lisbon' } });
+      const retry = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Try again');
+      expect(retry).toBeDefined();
+      await act(async () => retry!.click());
+      expect(setContributeEmailSettings).toHaveBeenLastCalledWith({ timeZone: 'Europe/Lisbon' });
+      expect(saveLearnEmailSettingsAction).toHaveBeenCalledTimes(1);
+      expect(row().textContent).toContain('Lisbon time. Taken from your device.');
+      expect(container.querySelector('[data-time-zone-unsaved]')).toBeNull();
+      expect(window.localStorage.getItem('gitranks:time-zone-sent')).toBe('Europe/Lisbon');
+    },
+  );
+
   it('moves the zone back with why when the save fails, and saves nothing for the zone already in use', async () => {
     saveLearnEmailSettingsAction.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
     act(() =>

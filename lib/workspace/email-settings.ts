@@ -116,6 +116,15 @@ export function rememberSentTimeZone(zone: string): void {
   }
 }
 
+/** Forgets the zone sent, so the next visit sends the device's again: after a save of it that failed. */
+export function forgetSentTimeZone(): void {
+  try {
+    window.localStorage.removeItem(SENT_ZONE_KEY);
+  } catch {
+    // Storage blocked: nothing was kept.
+  }
+}
+
 /** A save as the API takes it: only the fields given, and only well-formed ones. */
 export function emailSettingsInputOf(input: ContributeEmailSettingsInput): ContributeEmailSettingsInput {
   const needsYou = input?.needsYou;

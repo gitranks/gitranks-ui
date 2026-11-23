@@ -46,6 +46,8 @@ export type LearnAnswerOptions = {
   onDone: () => void;
   /** Whether the keys answer this question: one question on a page at a time listens. */
   keys?: boolean;
+  /** Where the answer starts, when not from nothing: a lesson opened again shows the right answer given before. */
+  start?: LearnAnswerState;
 };
 
 /** One question's answer, and what the card and the code call to move it. */
@@ -83,7 +85,7 @@ export function useLearnAnswer(options: LearnAnswerOptions): LearnAnswer {
   const [state, dispatch] = useReducer(
     useMemo(() => answerReducerOf(question), [question]),
     question,
-    answerStartOf,
+    (asked: LearnQuestion) => options.start ?? answerStartOf(asked),
   );
   const language = codeOf(question, options.language)?.language ?? options.language;
   const live = useRef({ state, options, language });

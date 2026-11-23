@@ -271,6 +271,7 @@ export const LISTED_REGISTRIES = [
   'crates',
   'pub',
   'packagist',
+  'maven',
 ] as const satisfies readonly RegistryId[];
 
 /**

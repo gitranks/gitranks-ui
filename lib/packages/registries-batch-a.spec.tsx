@@ -30,7 +30,7 @@ import { isImpossibleEntityPath } from '@/lib/routing/entity-routes';
 import { isInvalidRankingPath } from '@/lib/routing/ranking-routes';
 import { packagePath } from '@/utils/package-paths';
 
-// Every row of the table listed, as once these registries go live (the site lists npm, PyPI and Go until then).
+// Every row of the table listed, as once NuGet and RubyGems go live too (the site does not list them yet).
 vi.mock('@/lib/packages/registries', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/packages/registries')>();
   actual.REGISTRY_IDS.splice(0, actual.REGISTRY_IDS.length, ...actual.ALL_REGISTRY_IDS);

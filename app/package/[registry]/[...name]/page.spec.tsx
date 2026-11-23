@@ -50,6 +50,7 @@ describe('a package page', () => {
       { registry: 'crates', name: ['serde'] },
       { registry: 'pub', name: ['http'] },
       { registry: 'packagist', name: ['laravel', 'framework'] },
+      { registry: 'maven', name: ['org.slf4j', 'slf4j-api'] },
     ]);
   });
 

@@ -923,6 +923,51 @@ describe('proxy', () => {
       }
     });
 
+    it("answers a lesson's .md from its route handler, for anyone, before Auth.js and before the lesson's gate", async () => {
+      learnAccess.mockClear();
+      lessonGate.mockClear();
+      for (const cookie of [undefined, 'authjs.session-token=t']) {
+        const response = await proxy(request(cookie, '/learn/lessons/route-cache-miss-8f3k.md'), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/api/learn/lessons/route-cache-miss-8f3k/lesson.md',
+        );
+        expect(response?.headers.get('set-cookie')).toBeNull();
+      }
+      expect(withSession).not.toHaveBeenCalled();
+      expect(learnAccess).not.toHaveBeenCalled();
+      expect(lessonGate).not.toHaveBeenCalled();
+    });
+
+    it("lets anyone reach a lesson's pictures, Learn closed to them or not, without the lesson's gate", async () => {
+      lessonGate.mockClear();
+      learnAccess.mockResolvedValue('closed');
+      try {
+        for (const cookie of [undefined, 'authjs.session-token=t']) {
+          for (const picture of ['card.png', 'fact.png']) {
+            const path = `/learn/lessons/route-cache-miss-8f3k/${picture}`;
+            const response = await proxy(request(cookie, path), event);
+            expect(response?.headers.get('x-middleware-rewrite') ?? null, path).toBeNull();
+          }
+        }
+        expect(lessonGate).not.toHaveBeenCalled();
+      } finally {
+        learnAccess.mockResolvedValue('open');
+      }
+    });
+
+    it('rewrites no other .md address, nor one whose slug is not shaped as ours', async () => {
+      for (const path of [
+        '/learn/lessons/Route-Cache.md',
+        '/learn/lessons/_gone.md',
+        '/learn/lessons/a/b.md',
+        '/learn/lessons/route-cache-miss-8f3k.md/x',
+        '/learn/courses/algorithms.md',
+      ]) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite') ?? '', path).not.toContain('/api/learn/');
+      }
+    });
+
     it('leaves paths that only start alike alone', async () => {
       for (const path of ['/learning', '/learners/1']) {
         const response = await proxy(request(undefined, path), event);

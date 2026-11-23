@@ -2,9 +2,13 @@ import type { Metadata } from 'next';
 
 import type { LearnAddress } from '../address-gate';
 import type { LearnLesson } from '../lesson-page';
-import { learnLessonPath } from '../paths';
+import { learnFactCardUrlOf, learnLessonCardUrlOf, learnShareTitleOf } from '../lesson-share-card';
+import { coursePath, LEARN_HOME_PATH, learnFactPath, learnLessonMarkdownPath, learnLessonPath } from '../paths';
+import { SOCIAL_CARD_SIZE } from '@/badge/v3/links';
 import { clipText } from '@/lib/seo/clip-text';
+import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
 import { pageMetadata } from '@/lib/seo/page-metadata';
+import { absoluteUrl } from '@/lib/seo/site';
 
 /** The longest description search engines show in full. */
 const DESCRIPTION_MAX = 158;
@@ -35,15 +39,97 @@ export function lessonPlainTextOf(body: string): string {
 export const lessonDescriptionOf = (lesson: Pick<LearnLesson, 'body'>): string =>
   clipText(lessonPlainTextOf(lesson.body), DESCRIPTION_MAX);
 
-/** A lesson of ours: its title, its own words as the description, its address as the canonical, an article preview. */
-export function learnLessonMetadata(lesson: Pick<LearnLesson, 'slug' | 'title' | 'body' | 'publishedAt'>): Metadata {
-  return pageMetadata({
+/** What a lesson's metadata reads. */
+type MetadataLesson = Pick<
+  LearnLesson,
+  'slug' | 'title' | 'body' | 'publishedAt' | 'changedAt' | 'fact' | 'course' | 'group'
+>;
+
+/**
+ * A lesson of ours: its title, its own words as the description, its address as the canonical, its Markdown copy as
+ * an alternate, and an article preview with its picture, as page 21 draws it. Opened from a shared fact (`fact`,
+ * the address with `?fact`), the preview is the fact's own: its title, a line naming the lesson, its picture, and the
+ * fact's address as its URL, since some sites read the preview from that URL; the canonical stays the lesson's.
+ */
+export function learnLessonMetadata(lesson: MetadataLesson, { fact = false }: { fact?: boolean } = {}): Metadata {
+  const description = lessonDescriptionOf(lesson);
+  const metadata = pageMetadata({
     title: lesson.title,
-    description: lessonDescriptionOf(lesson),
+    description,
     path: learnLessonPath(lesson.slug),
     openGraphType: 'article',
     publishedTime: lesson.publishedAt,
   });
+  const shared = fact && lesson.fact?.text.trim() ? lesson.fact : null;
+  const preview = shared
+    ? {
+        title: learnShareTitleOf(shared.title),
+        description: `A fact from the lesson “${lesson.title}”.`,
+        page: learnFactPath(lesson.slug),
+        picture: learnFactCardUrlOf(lesson),
+        alt: shared.title,
+      }
+    : {
+        title: learnShareTitleOf(lesson.title),
+        description,
+        page: learnLessonPath(lesson.slug),
+        picture: learnLessonCardUrlOf(lesson),
+        alt: lesson.title,
+      };
+  const images = [{ url: absoluteUrl(preview.picture), ...SOCIAL_CARD_SIZE, alt: preview.alt }];
+  return {
+    ...metadata,
+    alternates: { ...metadata.alternates, types: { 'text/markdown': learnLessonMarkdownPath(lesson.slug) } },
+    openGraph: {
+      ...metadata.openGraph,
+      url: preview.page,
+      title: preview.title,
+      description: preview.description,
+      images,
+    },
+    twitter: {
+      ...metadata.twitter,
+      card: 'summary_large_image',
+      title: preview.title,
+      description: preview.description,
+      images,
+    },
+  };
+}
+
+/** A lesson's structured data: a `LearningResource` in its course, and its breadcrumbs (Learn, the course, the lesson). */
+export function learnLessonJsonLd(lesson: MetadataLesson): object[] {
+  const url = absoluteUrl(learnLessonPath(lesson.slug));
+  const course = absoluteUrl(coursePath(lesson.course.slug));
+  const crumbs = [
+    { name: 'Learn', item: absoluteUrl(LEARN_HOME_PATH) },
+    { name: lesson.course.title, item: course },
+    { name: lesson.title, item: url },
+  ];
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'LearningResource',
+      '@id': `${url}#lesson`,
+      url,
+      name: lesson.title,
+      description: lessonDescriptionOf(lesson),
+      inLanguage: 'en',
+      learningResourceType: 'Lesson',
+      isAccessibleForFree: true,
+      datePublished: lesson.publishedAt,
+      dateModified: lesson.changedAt,
+      image: absoluteUrl(learnLessonCardUrlOf(lesson)),
+      isPartOf: { '@type': 'Course', name: lesson.course.title, url: course },
+      about: lesson.group.title,
+      publisher: { '@id': ORGANIZATION_ID },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: crumbs.map((crumb, index) => ({ '@type': 'ListItem', position: index + 1, ...crumb })),
+    },
+  ];
 }
 
 /** The title of a paused or a removed lesson's page. */

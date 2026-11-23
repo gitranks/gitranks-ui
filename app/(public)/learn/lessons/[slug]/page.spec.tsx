@@ -53,7 +53,14 @@ describe("a lesson's address", () => {
     const metadata = await generateMetadata(props(setLesson.slug));
     expect(metadata.title).toBe(setLesson.title);
     expect(metadata.alternates?.canonical).toBe(`/learn/lessons/${setLesson.slug}`);
+    expect(metadata.openGraph?.images).toEqual([expect.objectContaining({ alt: setLesson.title })]);
     expect(loadLessonPage).not.toHaveBeenCalled();
+
+    // A shared fact's link shows the fact's own preview; the page stays the lesson's.
+    loadLearnLessonPage.mockResolvedValueOnce(ours);
+    const fact = await generateMetadata(props(setLesson.slug, { fact: '' }));
+    expect(fact.openGraph?.title).toBe(`${setLesson.fact?.title} · GitRanks Learn`);
+    expect(fact.title).toBe(setLesson.title);
 
     loadLearnLessonPage.mockResolvedValueOnce(null);
     loadLessonPage.mockResolvedValueOnce(null);

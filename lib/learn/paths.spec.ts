@@ -10,7 +10,11 @@ import {
   LEARN_SETTINGS_PATH,
   learnCourseMinePath,
   learnCourseTag,
+  learnFactCardPath,
+  learnLessonCardPath,
   learnLessonGonePath,
+  learnLessonMarkdownPath,
+  learnLessonMarkdownRouteOf,
   learnLessonMinePath,
   learnLessonPath,
   learnLessonTag,
@@ -72,5 +76,29 @@ describe("Learn's cache tags", () => {
     'Learn:courses',
   ])('refuses %j', (tag) => {
     expect(isLearnTag(tag)).toBe(false);
+  });
+});
+
+describe("a lesson's Markdown copy and pictures", () => {
+  it("lives at the page's address with .md, and its pictures under the page's address", () => {
+    expect(learnLessonMarkdownPath('hash-sets')).toBe('/learn/lessons/hash-sets.md');
+    expect(learnLessonCardPath('hash-sets')).toBe('/learn/lessons/hash-sets/card.png');
+    expect(learnFactCardPath('hash-sets')).toBe('/learn/lessons/hash-sets/fact.png');
+  });
+
+  it("is answered from its route, for a slug of a lesson's shape only", () => {
+    expect(learnLessonMarkdownRouteOf('/learn/lessons/hash-sets.md')).toBe('/api/learn/lessons/hash-sets/lesson.md');
+    for (const path of [
+      '/learn/lessons/hash-sets',
+      '/learn/lessons/_gone.md',
+      '/learn/lessons/Hash-Sets.md',
+      '/learn/lessons/a/b.md',
+      '/learn/lessons/.md',
+      '/learn/lessons/hash-sets.md/x',
+      '/learn/courses/algorithms.md',
+      `/learn/lessons/${'x'.repeat(101)}.md`,
+    ]) {
+      expect(learnLessonMarkdownRouteOf(path), path).toBeNull();
+    }
   });
 });

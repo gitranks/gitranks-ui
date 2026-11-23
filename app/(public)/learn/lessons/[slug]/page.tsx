@@ -16,10 +16,14 @@ import { learnLessonMetadata } from '@/lib/learn/seo/lesson';
  */
 export const instant = false;
 
-export async function generateMetadata({ params }: PageProps<'/learn/lessons/[slug]'>): Promise<Metadata> {
-  const { slug } = await params;
+export async function generateMetadata({
+  params,
+  searchParams,
+}: PageProps<'/learn/lessons/[slug]'>): Promise<Metadata> {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
   const ours = await loadLearnLessonPage(slug);
-  if (ours) return learnLessonMetadata(ours.lesson);
+  // A shared fact's link (`?fact`) shows the fact's own preview.
+  if (ours) return learnLessonMetadata(ours.lesson, { fact: query.fact !== undefined });
   const [answer, frontDoorOpen] = await Promise.all([loadLessonPage(slug), learnOpenToEveryone()]);
   return lessonPageMetadata(answer, { frontDoorOpen });
 }

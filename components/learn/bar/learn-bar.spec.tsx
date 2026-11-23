@@ -180,6 +180,30 @@ describe("Learn's bar", () => {
     expect(items()).toEqual([['/learn/review', 'Review 1 lesson due']]);
   });
 
+  it('records itself as the bar seen last, for a visitor too', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ bar: null })),
+    );
+    // biome-ignore lint/suspicious/noDocumentCookie: the spec starts from Contribute's bar.
+    document.cookie = 'gr_last_bar=contribute; Path=/';
+    path.current = '/learn/courses';
+    await act(async () => root.render(<LearnBarLive />));
+    expect(document.cookie).toContain('gr_last_bar=learn');
+  });
+
+  it('marks Settings on Settings opened from Learn', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({ bar: { setup: 'SAVED', due: 0, pullRequests: false, pullRequestsNeedYou: 0 } }),
+      ),
+    );
+    path.current = '/my/settings';
+    await act(async () => root.render(<LearnBarLive from="learn" />));
+    expect(current()).toEqual(['Settings']);
+  });
+
   it("keeps a visitor's bar when the read fails", async () => {
     vi.stubGlobal(
       'fetch',

@@ -7,6 +7,7 @@ import { LearnBar } from './learn-bar';
 import { type LearnBarRead, type LearnBarState, learnBarPlaceOf, learnBarStateOf } from '@/lib/learn/learn-bar';
 import { startLearnSetupGuessAction } from '@/lib/learn/setup.actions';
 import { hasSessionHint } from '@/lib/session-hint';
+import { rememberBar } from '@/lib/workspace/settings-bar';
 
 /** Where the browser reads Learn's bar for the signed-in person. */
 export const LEARN_BAR_PATH = '/api/me/learn/bar';
@@ -32,11 +33,14 @@ export async function readLearnBar(): Promise<LearnBarRead | null> {
  * since a review or a setup changes it. A browser with no session asks nothing. With no setup yet, our guess of it
  * starts here (Set up Learn starts it itself; the lesson, review and check pages, which have no bar, start it from
  * their own side: `useLearnSetupGuess`), and the bar is read again every two seconds while
- * it runs: "Set up Learn" shows a spinner until the guess is in. `from` is the page's `?from=`, for a page both products share.
+ * it runs: "Set up Learn" shows a spinner until the guess is in. `from` is the page's `?from=`, for a page both products
+ * share. It records itself as the bar seen last.
  */
 export function LearnBarLive({ from = null }: { from?: string | null }) {
   const pathname = usePathname();
   const [state, setState] = useState<LearnBarState>({ kind: 'visitor' });
+  // The bar seen last, for Settings to show again (`settings-bar.ts`): kept for everyone, visitors too.
+  useEffect(() => rememberBar('learn'), []);
   // biome-ignore lint/correctness/useExhaustiveDependencies: each move to another page reads the bar again.
   useEffect(() => {
     if (!hasSessionHint(document.cookie)) return;

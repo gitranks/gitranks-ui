@@ -128,6 +128,9 @@ export function fromLearn(path: string): Route {
 
 /** Settings, reached from Learn. */
 export const LEARN_SETTINGS_PATH = fromLearn('/my/settings');
+/** Learn's group in Settings: its anchor, and the address that lands on it from Learn. */
+export const LEARN_PREFERENCES_ID = 'learn-preferences';
+export const LEARN_PREFERENCES_PATH = fromLearn(`/my/settings#${LEARN_PREFERENCES_ID}`);
 /** The person's pull requests, reached from Learn. */
 export const LEARN_PULL_REQUESTS_PATH = fromLearn('/my/pull-requests');
 

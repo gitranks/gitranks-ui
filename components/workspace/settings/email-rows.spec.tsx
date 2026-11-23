@@ -20,6 +20,9 @@ vi.mock('@/lib/workspace/actions', () => ({ setContributeEmailSettings }));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
+vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
+vi.mock('@/lib/learn/settings.data', () => ({ loadLearnEmailSettings: vi.fn(), loadLearnSetupForSettings: vi.fn() }));
+vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(),
@@ -29,16 +32,19 @@ vi.mock('@/lib/learn/learn.data', () => ({
 const { EmailRows } = await import('./email-rows');
 const { SettingsScreen } = await import('@/app/(workspace)/my/settings/components/settings-view');
 const { email: fixture, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { EMAIL_AUTOPILOT_NOTE, EMAIL_NO_ADDRESS, EMAIL_READ_FAILED } = await import('@/lib/workspace/email-settings');
+const { EMAIL_AUTOPILOT_NOTE, EMAIL_NO_ADDRESS, EMAIL_READ_FAILED, NEEDS_YOU_COVERS } = await import(
+  '@/lib/workspace/email-settings'
+);
 
 import type { ComponentProps } from 'react';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const TO = fixture.on.to;
-const IMMEDIATELY_LINE = 'One email when something waits for you.';
-const OFF_LINE = 'No email when something needs you. It still shows under Pull requests.';
-const dailyLine = (zone: string) => `One summary at 8:00 in the morning, ${zone} time, while something waits.`;
+const IMMEDIATELY_LINE = NEEDS_YOU_COVERS;
+const OFF_LINE = `${NEEDS_YOU_COVERS} No email for these: they still show under Pull requests.`;
+const dailyLine = (city: string) =>
+  `${NEEDS_YOU_COVERS} One summary a day at 8:00 in the morning, ${city} time, while something waits.`;
 
 const text = (html: string) =>
   html
@@ -55,7 +61,7 @@ describe("Settings' Email rows, as the server draws them", () => {
     const group = html.slice(html.indexOf('id="email"'));
     const plain = text(group);
 
-    expect(plain).toContain(`When something needs you ${IMMEDIATELY_LINE}`);
+    expect(plain).toContain(`When a pull request needs you ${IMMEDIATELY_LINE}`);
     expect(group).toMatch(/type="radio"[^>]*checked=""[^>]*value="AFTER_30_MINUTES"/);
     expect(group.match(/<input[^>]*type="radio"[^>]*checked=""/g)).toHaveLength(1);
     expect(plain).toContain('Immediately Once a day Off');
@@ -69,11 +75,11 @@ describe("Settings' Email rows, as the server draws them", () => {
   });
 
   it.each([
-    ['Once a day, with the stored zone', fixture.daily, dailyLine('Europe/Warsaw'), 'On'],
+    ['Once a day, with the stored zone', fixture.daily, dailyLine('Warsaw'), 'On'],
     ['Off and off', fixture.off, OFF_LINE, 'Off'],
   ] as const)('says what %s sends', (_, email, line, ended) => {
     const plain = text(settings({ email }));
-    expect(plain).toContain(`When something needs you ${line}`);
+    expect(plain).toContain(`When a pull request needs you ${line}`);
     expect(plain).toContain(
       `When a pull request is merged or closed ${ended === 'On' ? 'One email each time.' : 'No email when a pull request is merged or closed.'} ${ended}`,
     );
@@ -99,6 +105,31 @@ describe("Settings' Email rows, as the server draws them", () => {
     );
     expect(text(html)).not.toContain('Email goes to');
     expect(html).not.toContain('data-email-hint');
+  });
+
+  it("holds Learn's rows before and after these, and alone where the API hides these", () => {
+    const lead = <li data-email-row="lead" />;
+    const tail = <li data-email-row="tail" />;
+    const rows = (html: string) => [...html.matchAll(/data-email-row="([a-z-]+)"/g)].map((match) => match[1]);
+    expect(rows(renderToStaticMarkup(<EmailRows settings={fixture.on} lead={lead} tail={tail} />))).toEqual([
+      'lead',
+      'needs-you',
+      'ended',
+      'tail',
+    ]);
+    const alone = renderToStaticMarkup(<EmailRows settings={null} lead={lead} tail={tail} />);
+    expect(rows(alone)).toEqual(['lead', 'tail']);
+    expect(alone).not.toContain('data-email="failed"');
+    const failed = renderToStaticMarkup(<EmailRows settings={undefined} tail={tail} />);
+    expect(rows(failed)).toEqual(['tail']);
+    expect(text(failed)).toContain(`${EMAIL_READ_FAILED} Try again`);
+  });
+
+  it('leaves the zone out of the summary line where a Time zone row says it', () => {
+    const html = renderToStaticMarkup(<EmailRows settings={fixture.daily} zoneRow />);
+    expect(text(html)).toContain(
+      `${NEEDS_YOU_COVERS} One summary a day at 8:00 in the morning, while something waits.`,
+    );
   });
 
   it('is left out when the API hides it, and says it did not load when the read failed', () => {
@@ -175,7 +206,7 @@ describe('the Email rows in the browser', () => {
     await act(async () => radio('ONCE_A_DAY').click());
     // Moved before the save is sent; the line names the browser's zone while none is stored.
     expect(radio('ONCE_A_DAY').checked).toBe(true);
-    expect(needsYouLine()).toContain(dailyLine('America/New_York'));
+    expect(needsYouLine()).toContain(dailyLine('New York'));
     expect(setContributeEmailSettings).not.toHaveBeenCalled();
 
     await act(async () => vi.advanceTimersByTime(400));
@@ -280,6 +311,13 @@ describe('the Email rows in the browser', () => {
     await pick('OFF');
     expect(setContributeEmailSettings).toHaveBeenLastCalledWith({ needsYou: 'OFF' });
     expect(needsYouLine()).toContain(OFF_LINE);
+  });
+
+  it('follows a zone saved elsewhere on the page once the page is read again', async () => {
+    mount({ settings: fixture.daily });
+    expect(needsYouLine()).toContain(dailyLine('Warsaw'));
+    mount({ settings: { ...fixture.daily, timeZone: 'Europe/Berlin' } });
+    expect(needsYouLine()).toContain(dailyLine('Berlin'));
   });
 
   it('moves back and says why when the save fails, without a refresh', async () => {

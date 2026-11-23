@@ -26,9 +26,23 @@ const reads = vi.hoisted(() => ({
   loadContributeEmailSettings: vi.fn(async () => null),
   loadScheduleCounts: vi.fn(async () => undefined),
   loadProfileLanguages: vi.fn(async () => []),
+  viewerLogin: vi.fn(async () => 'octocat'),
 }));
 vi.mock('@/lib/workspace/contribute.data', () => reads);
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
+const gate = vi.hoisted(() => ({ loadLearnOpen: vi.fn(async () => false) }));
+vi.mock('@/lib/workspace/gate.data', () => gate);
+const jar = vi.hoisted(() => ({ value: undefined as string | undefined }));
+vi.mock('next/headers', () => ({
+  cookies: async () => ({
+    get: (name: string) => (name === 'gr_last_bar' && jar.value ? { value: jar.value } : undefined),
+  }),
+}));
+const learnReads = vi.hoisted(() => ({
+  loadLearnEmailSettings: vi.fn(async () => null),
+  loadLearnSetupForSettings: vi.fn(async () => null),
+}));
+vi.mock('@/lib/learn/settings.data', () => learnReads);
+vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(),
@@ -42,7 +56,8 @@ const { SettingsAnchors } = await import('@/components/workspace/settings/settin
 const { contributor, email, limits, settingsViews, views } = await import(
   '@/lib/contribute/__fixtures__/contribute-views'
 );
-const { filledProfile } = await import('@/lib/learn/__fixtures__/profile');
+const { learnEmail } = await import('@/lib/learn/__fixtures__/settings');
+const { setupGuessed, setupSaved, setupWorking } = await import('@/lib/learn/__fixtures__/setup');
 
 const text = (html: string) =>
   html
@@ -57,7 +72,8 @@ const render = (props: Partial<ComponentProps<typeof SettingsScreen>> = {}) => {
       view={settingsViews.both}
       learnOpen
       email={email.on}
-      profile={filledProfile}
+      learnSetup={setupSaved}
+      learnEmail={learnEmail.device}
       openPrs={3}
       {...props}
     />,
@@ -65,67 +81,70 @@ const render = (props: Partial<ComponentProps<typeof SettingsScreen>> = {}) => {
   return { html, plain: text(html) };
 };
 
-describe('the Settings tab (W1 §10)', () => {
-  it('uses both: the pull requests, the email, For contributing then For learning, and Delete last', () => {
+/** The page's groups by their anchors, in the order they come, Delete left out. */
+const groupsOf = (html: string) =>
+  [...html.matchAll(/<section id="([a-z-]+)"/g)].map((match) => match[1]).filter((id) => id !== 'danger');
+
+/** Email's rows by their marks, in the order they come. */
+const emailRowsOf = (html: string) => [...html.matchAll(/data-email-row="([a-z-]+)"/g)].map((match) => match[1]);
+
+describe('the Settings page (page 23)', () => {
+  it('from Contribute: Contribute preferences, Agent and GitHub, Limits, Email, Learn preferences, Delete last', () => {
     const { html, plain } = render();
-    expect(plain).toContain(
-      'Settings How your pull requests go out and how we reach you, then what you work on and what you want to learn.',
-    );
-    const order = ['id="pull-requests"', 'id="email"', 'id="for-contributing"', 'id="for-learning"', 'id="danger"'].map(
-      (id) => html.indexOf(id),
-    );
-    expect(order.every((at) => at > -1)).toBe(true);
-    expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(groupsOf(html)).toEqual([
+      'contribute-preferences',
+      'agent-github',
+      'pr-limits',
+      'email',
+      'learn-preferences',
+    ]);
+    expect(html.indexOf('id="learn-preferences"')).toBeLessThan(html.indexOf('id="danger"'));
+    expect(emailRowsOf(html)).toEqual(['needs-you', 'ended', 'lessons-to-repeat', 'time-zone']);
     expect(plain).toContain('GitHub access public_repo, as @octocat Edit');
     expect(plain).toContain('Open pull requests at a time Up to 3 · 3 open now Edit');
     expect(plain).toContain('Repos can ask for less: their rules lower these limits for their pull requests.');
-    expect(plain).toContain('For contributing For developers who want merged pull requests.');
-    expect(plain).toContain('Autopilot and the hosted agent with its key and budget are on the Agent tab .');
-    expect(html).not.toContain('data-list-note="paused-by-you"');
-    expect(plain).toContain(
-      'For learning For people who want to learn from real fixes. Goal and level TypeScript · some experience · focus: how the language works, patterns the project uses Edit',
-    );
-    expect(html).toContain('href="/my/settings/goal"');
-    // The interim line that sent everything to the Agent tab is gone.
-    expect(html).not.toContain('data-moved-to-agent');
+    expect(plain).toContain('Languages and level Rust first · also Python and Go · Some experience Edit');
+    expect(html).toMatch(/href="\/learn\/setup"/);
+    // The old goal row and the line that sent everything to the Agent tab are gone.
+    expect(html).not.toContain('href="/my/settings/goal"');
+    expect(html).not.toContain('data-agent-line');
+    expect(plain).not.toContain('For learning');
   });
 
-  it('offers no Resume where an agent\'s old "resume it at …" link lands', () => {
-    const paused = {
-      ...settingsViews.both,
-      contributor: { ...settingsViews.both.contributor!, status: 'PAUSED' as const },
-    };
-    const { html, plain } = render({ view: paused });
-    expect(plain).not.toContain('Resume');
-    expect(html).toContain('data-agent-line');
+  it("from Learn: Learn preferences, Email with Learn's switch first, Agent and GitHub, Limits, Contribute preferences", () => {
+    const { html } = render({ bar: 'learn' });
+    expect(groupsOf(html)).toEqual([
+      'learn-preferences',
+      'email',
+      'agent-github',
+      'pr-limits',
+      'contribute-preferences',
+    ]);
+    expect(emailRowsOf(html)).toEqual(['lessons-to-repeat', 'needs-you', 'ended', 'time-zone']);
   });
 
-  it('closes For learning to a line for a contributor, and leaves it out where Learn is not open', () => {
-    const contributorOnly = render({ view: settingsViews.contributor, profile: null });
-    expect(contributorOnly.plain).toContain(
-      'For learning · not set up. Learn teaches you a real fix before the pull request opens. How Learn works',
-    );
-    expect(contributorOnly.html).toMatch(/href="\/learn\/about"[^>]*>How Learn works/);
-    expect(contributorOnly.plain).toContain('then what you work on.');
-
-    const closed = render({ view: settingsViews.both, learnOpen: false, profile: null });
-    expect(closed.plain).not.toContain('For learning');
-    expect(closed.plain).toContain('then what you work on.');
-  });
-
-  it('puts For learning first for a learner, For contributing closed under it, and no Claude key in Delete', () => {
-    const { html, plain } = render({ view: settingsViews.learner });
-    expect(plain).toContain('then what you want to learn.');
-    expect(html.indexOf('id="for-learning"')).toBeLessThan(html.indexOf('id="for-contributing"'));
-    expect(plain).toContain(
-      'For contributing · not set up. Contribute sends pull requests without a lesson. How Contribute works',
-    );
-    expect(html).toMatch(/href="\/contribute\/about"[^>]*>How Contribute works/);
-    expect(plain).toContain(
+  it('shows a learner Learn first and no Contribute preferences, and leaves Learn out where it is not open', () => {
+    const learner = render({ view: settingsViews.learner, bar: 'learn' });
+    expect(groupsOf(learner.html)).toEqual(['learn-preferences', 'email', 'agent-github', 'pr-limits']);
+    expect(learner.plain).toContain(
       'Removes your agent tokens, the GitHub access, your settings, and your attempts and lessons.',
     );
-    // A learner's own agent is bound by the same limits.
-    expect(plain).toContain('Attempts at a time 1 issue in work at once Edit');
+    expect(learner.plain).toContain('Attempts at a time 1 issue in work at once Edit');
+
+    const closed = render({ learnOpen: false, bar: 'learn', learnSetup: null, learnEmail: null });
+    expect(groupsOf(closed.html)).toEqual(['contribute-preferences', 'agent-github', 'pr-limits', 'email']);
+    expect(emailRowsOf(closed.html)).toEqual(['needs-you', 'ended']);
+    expect(closed.plain).not.toContain('Lessons to repeat');
+  });
+
+  it('names the agent connected last and when, the hosted one, or none with the connect steps', () => {
+    const own = render().html;
+    const row = own.slice(own.indexOf('data-row="agent"'), own.indexOf('</li>', own.indexOf('data-row="agent"')));
+    expect(text(row)).toContain('AI agent');
+    expect(row).toMatch(/href="\/my\/agent"/);
+    const none = render({ view: { ...views.noKey, ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] } } });
+    expect(none.plain).toContain('AI agent No agent connected yet. An agent is what fixes an issue for you. Connect');
+    expect(none.html).toMatch(/href="\/my\/agent\/connect"/);
   });
 
   it('names the Claude key in Delete only with one, and the lessons only with Learn open', () => {
@@ -138,8 +157,8 @@ describe('the Settings tab (W1 §10)', () => {
     const view = { ...views.noKey, sides: { contribute: true, learn: false } };
     const { html, plain } = render({ view });
     expect(plain).toContain('These start when your agent connects');
-    expect(html).toMatch(/href="\/my\/agent\/connect"[^>]*>Connect your agent/);
     expect(html).not.toContain('data-row="open"');
+    expect(html).not.toContain('data-row="dco"');
   });
 
   it('says a limit set for the account, with no Edit, and a cap below the setting in words', () => {
@@ -153,10 +172,41 @@ describe('the Settings tab (W1 §10)', () => {
     );
   });
 
-  it("says what you work on didn't load, and the goal that didn't", () => {
-    const { plain } = render({ set: undefined, setFailed: true, profileFailed: true });
+  it("says what you work on didn't load, and Learn's setup and emails that didn't", () => {
+    const { html, plain } = render({
+      set: undefined,
+      setFailed: true,
+      learnSetup: null,
+      learnSetupFailed: true,
+      learnEmail: null,
+      learnEmailFailed: true,
+    });
     expect(plain).toContain("What you work on Your lists didn't load.");
-    expect(plain).toContain("Goal and level Your goal didn't load.");
+    expect(plain).toContain("Languages and level Your languages and level didn't load.");
+    expect(emailRowsOf(html)).toEqual(['needs-you', 'ended', 'learn-failed']);
+  });
+
+  it('marks our guess and sends it to Set up Learn to check, and says while the profile is read', () => {
+    expect(render({ learnSetup: setupGuessed }).plain).toContain(
+      'Languages and level Our guess Go first · also Python · Experienced developer. Learn uses this guess until you save it. Check and save',
+    );
+    expect(render({ learnSetup: setupWorking }).plain).toContain(
+      'We are reading your public GitHub profile. It takes a few seconds. Set up Learn',
+    );
+  });
+
+  it("says the time zone from the device, the one chosen, and New York's when none is known", () => {
+    expect(render({ email: { ...email.on, timeZone: 'Europe/Lisbon' } }).plain).toContain(
+      'Time zone Daily emails come in the morning, Lisbon time. Taken from your device. Lisbon (UTC+0)',
+    );
+    expect(render({ learnEmail: learnEmail.chosen }).plain).toContain(
+      'Daily emails come in the morning, Berlin time. You chose it, so it no longer follows your device. Berlin (UTC+1)',
+    );
+    expect(render({ email: email.off, learnEmail: learnEmail.unknown }).plain).toContain(
+      'We could not tell your time zone, so daily emails come in the morning, New York time. Change it if you are elsewhere.',
+    );
+    // The Time zone row says the zone: the daily summary's line does not repeat it.
+    expect(render({ email: email.daily }).plain).toContain('One summary a day at 8:00 in the morning, while something');
   });
 });
 
@@ -225,6 +275,23 @@ describe('the old anchors', () => {
     expect(router.replace).toHaveBeenCalledWith(to);
   });
 
+  it.each([
+    ['#for-learning', 'learn-preferences'],
+    ['#for-contributing', 'contribute-preferences'],
+    ['#pull-requests', 'pr-limits'],
+    ['#email', 'email'],
+  ])('scroll %s to the group it is now, %s', async (hash, id) => {
+    const group = document.createElement('section');
+    group.id = id;
+    group.scrollIntoView = vi.fn();
+    document.body.append(group);
+    window.history.replaceState(null, '', `/my/settings${hash}`);
+    await act(async () => root.render(<SettingsAnchors />));
+    expect(group.scrollIntoView).toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+    group.remove();
+  });
+
   it('on the model page, send only #prs on', async () => {
     window.history.replaceState(null, '', '/my/agent/model#prs');
     await act(async () => root.render(<SettingsAnchors only={['prs']} />));
@@ -246,6 +313,38 @@ describe('the reads of Settings and the key page', () => {
     const html = renderToStaticMarkup(await SettingsView(params()));
     expect(text(html)).toContain('These start when your agent connects');
     expect(html).toContain('id="danger"');
+  });
+
+  it("puts Learn's groups first from Learn's link, else from the bar seen last, else for someone who only learns", async () => {
+    gate.loadLearnOpen.mockResolvedValue(true);
+    learnReads.loadLearnEmailSettings.mockResolvedValue(learnEmail.device as never);
+    learnReads.loadLearnSetupForSettings.mockResolvedValue(setupSaved as never);
+    reads.loadContribute.mockResolvedValue(settingsViews.both);
+    const first = async (query: Record<string, string> = {}) =>
+      groupsOf(renderToStaticMarkup(await SettingsView(params(query))))[0];
+    try {
+      expect(await first()).toBe('contribute-preferences');
+      expect(await first({ from: 'learn' })).toBe('learn-preferences');
+      jar.value = 'learn';
+      expect(await first()).toBe('learn-preferences');
+      jar.value = 'contribute';
+      expect(await first()).toBe('contribute-preferences');
+      jar.value = undefined;
+      reads.loadContribute.mockResolvedValue(settingsViews.learner);
+      expect(await first()).toBe('learn-preferences');
+      expect(learnReads.loadLearnEmailSettings).toHaveBeenCalledWith('octocat');
+    } finally {
+      jar.value = undefined;
+      gate.loadLearnOpen.mockResolvedValue(false);
+    }
+  });
+
+  it('asks nothing of Learn where it is not open', async () => {
+    learnReads.loadLearnEmailSettings.mockClear();
+    reads.loadContribute.mockResolvedValue(settingsViews.both);
+    const html = renderToStaticMarkup(await SettingsView(params({ from: 'learn' })));
+    expect(learnReads.loadLearnEmailSettings).not.toHaveBeenCalled();
+    expect(groupsOf(html)[0]).toBe('contribute-preferences');
   });
 
   it.each([

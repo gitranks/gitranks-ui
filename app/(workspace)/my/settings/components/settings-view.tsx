@@ -1,9 +1,11 @@
-import { FileDiff, GitPullRequest, GraduationCap, Layers, Lock, PenLine, SlidersHorizontal } from 'lucide-react';
+import { Bot, FileDiff, GitPullRequest, Layers, Lock, PenLine, SlidersHorizontal } from 'lucide-react';
 import type { Route } from 'next';
-import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import type { ReactNode } from 'react';
 
-import { ClosedGroupLine } from '@/components/workspace/closed-group-line';
+import { LearnEmailFailedRow, LessonsToRepeatRow, TimeZoneRow } from '@/components/learn/settings/learn-email-rows';
+import { LearnPreferencesGroup } from '@/components/learn/settings/learn-preferences-group';
 import { PageTitle } from '@/components/workspace/primitives';
 import { ReposAskLessNote } from '@/components/workspace/pull-request/repo-rules';
 import { DeleteDataSection } from '@/components/workspace/settings/delete-data-section';
@@ -12,18 +14,18 @@ import { SettingsAnchors } from '@/components/workspace/settings/settings-anchor
 import { SettingsGroup, SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
 import { modeTitleOf } from '@/lib/contribute/set-format';
 import { preferencesSummaryOf } from '@/lib/contribute/work-summary';
-import { loadLearnProfile } from '@/lib/learn/learn.data';
-import type { LearnProfile } from '@/lib/learn/learn.types';
-import { LEARN_ABOUT_PATH } from '@/lib/learn/learn-path';
-import { learnProfileSummaryOf } from '@/lib/learn/profile-form';
+import type { LearnEmailSettings } from '@/lib/learn/settings';
+import { loadLearnEmailSettings, loadLearnSetupForSettings } from '@/lib/learn/settings.data';
+import type { LearnSetupRead } from '@/lib/learn/setup';
 import { openPrsOverrideOf } from '@/lib/workspace/access-limits';
-import { type Audience, audienceOf } from '@/lib/workspace/audience';
+import { audienceOf } from '@/lib/workspace/audience';
 import {
   loadContribute,
   loadContributeEmailSettings,
   loadContributeSet,
   loadContributeSetup,
   loadScheduleCounts,
+  viewerLogin,
 } from '@/lib/workspace/contribute.data';
 import type {
   ContributeEmailSettings,
@@ -36,9 +38,11 @@ import { emailHintOf } from '@/lib/workspace/email-settings';
 import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
 import { autopilotOnOf } from '@/lib/workspace/hosted-level';
-import { ABOUT_PATH, SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
+import { LAST_BAR_COOKIE, lastBarOf, type ProductBar, settingsBarOf } from '@/lib/workspace/settings-bar';
 import {
+  agentSummaryOf,
   attemptsSummaryOf,
   dcoSummaryOf,
   grantSummaryOf,
@@ -55,7 +59,7 @@ export async function loadSettingsView(): Promise<ContributeView> {
 
 /**
  * Reads the user for the summary, which opens to every account in the workspace, one that has not connected an agent
- * yet included (a learner who saved a goal comes back here): its rows say what starts when the agent connects.
+ * yet included (a learner comes here from Learn's bar): its rows say what starts when the agent connects.
  */
 async function loadSummaryView(): Promise<ContributeView> {
   const view = await loadContribute();
@@ -63,45 +67,59 @@ async function loadSummaryView(): Promise<ContributeView> {
   return view;
 }
 
+/** Learn's two reads for its rows, each the person's own; none where Learn is not open to them. */
+async function loadLearnRows(learnOpen: boolean) {
+  const githubLogin = learnOpen ? await viewerLogin() : null;
+  if (!githubLogin) return { setup: null, email: null };
+  const [setup, email] = await Promise.all([
+    loadLearnSetupForSettings(githubLogin),
+    loadLearnEmailSettings(githubLogin),
+  ]);
+  return { setup, email };
+}
+
 export async function SettingsView({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params, set, email, learnOpen, counts] = await Promise.all([
+  const [view, params, set, email, learnOpen, counts, jar] = await Promise.all([
     loadSummaryView(),
     searchParams,
     loadContributeSet(),
     loadContributeEmailSettings(),
     loadLearnOpen(),
     loadScheduleCounts(),
+    cookies(),
   ]);
   // GitHub's consent comes back here when it was not saved: its answer is on GitHub's own page.
   const grant = grantRefusalOf(params.grant);
   if (grant) redirect(`${SETTINGS_PATHS.github}?grant=${grant}` as Route);
-  // The goal is read only where Learn is open; a read that fails says so on its row.
-  const profile = learnOpen ? await loadLearnProfile().catch(() => undefined) : null;
+  const learn = await loadLearnRows(learnOpen);
+  const bar = settingsBarOf({
+    from: params.from,
+    lastBar: lastBarOf(jar.get(LAST_BAR_COOKIE)?.value),
+    audience: audienceOf(view.sides, learnOpen),
+    learnOpen,
+  });
   return (
     <SettingsScreen
       view={view}
+      bar={bar}
       learnOpen={learnOpen}
       set={set}
       setFailed={set === undefined}
       email={email ?? null}
       emailFailed={email === undefined}
       emailHint={emailHintOf(params.email)}
-      profile={profile ?? null}
-      profileFailed={profile === undefined}
+      learnSetup={learn.setup ?? null}
+      learnSetupFailed={learn.setup === undefined}
+      learnEmail={learn.email ?? null}
+      learnEmailFailed={learn.email === undefined}
       openPrs={counts?.prBound}
     />
   );
 }
-
-const TITLE_LINE: Record<Audience, string> = {
-  both: 'How your pull requests go out and how we reach you, then what you work on and what you want to learn.',
-  contributor: 'How your pull requests go out and how we reach you, then what you work on.',
-  learner: 'How your pull requests go out and how we reach you, then what you want to learn.',
-};
 
 /** What the user works on, in a line: the mode with a list, then the filters. */
 function workValueOf(set: ContributeSet | null | undefined, view: ContributeView, setFailed: boolean): string {
@@ -110,24 +128,83 @@ function workValueOf(set: ContributeSet | null | undefined, view: ContributeView
   return set && set.mode !== 'ALL' ? `${modeTitleOf(set.mode)} · ${filters}` : filters;
 }
 
-/**
- * The limits on pull requests and attempts, which bind both agents: read from the stored settings always, even for an
- * account with its own agent alone (the hosted agent's settings hide behind a key on the Agent tab; these do not).
- */
-function PullRequestsGroup({ view, openPrs }: { view: ContributeView; openPrs?: number }) {
-  const settings = view.contributor?.settings ?? null;
-  const limits = view.contributor?.limits;
-  const override = openPrsOverrideOf(limits);
+function ContributePreferencesGroup({
+  view,
+  set,
+  setFailed,
+}: {
+  view: ContributeView;
+  set: ContributeSet | null | undefined;
+  setFailed: boolean;
+}) {
   return (
-    <SettingsGroup id="pull-requests" title="Pull requests">
+    <SettingsGroup id="contribute-preferences" title="Contribute preferences">
       <SettingsList>
+        <SettingsRow
+          icon={SlidersHorizontal}
+          href={SETTINGS_PATHS.work}
+          cta="Edit"
+          title="What you work on"
+          value={workValueOf(set, view, setFailed)}
+          data={{ 'data-row': 'work' }}
+        />
+      </SettingsList>
+    </SettingsGroup>
+  );
+}
+
+/**
+ * The agent that does the work, GitHub's access and the sign-off: both agents', read from the stored settings always.
+ * With no agent yet, the agent's row opens the connect steps.
+ */
+export function AgentGithubGroup({ view }: { view: ContributeView }) {
+  const settings = view.contributor?.settings ?? null;
+  const agent = agentSummaryOf(view);
+  return (
+    <SettingsGroup id="agent-github" title="Agent and GitHub">
+      <SettingsList>
+        <SettingsRow
+          icon={Bot}
+          href={agent.connected ? WORKSPACE_PATHS.agent : WORKSPACE_PATHS.agentConnect}
+          cta={agent.connected ? 'Edit' : 'Connect'}
+          title="AI agent"
+          value={agent.value}
+          data={{ 'data-row': 'agent', 'data-agent': agent.connected ? 'connected' : 'none' }}
+        />
         <SettingsRow
           icon={Lock}
           href={SETTINGS_PATHS.github}
           cta="Edit"
           title="GitHub access"
           value={grantSummaryOf(view.grant, view.grantAvailable)}
+          data={{ 'data-row': 'github' }}
         />
+        {settings ? (
+          <SettingsRow
+            icon={PenLine}
+            href={`${SETTINGS_PATHS.pullRequests}#dco` as Route}
+            cta="Edit"
+            title="DCO sign-off"
+            value={dcoSummaryOf(settings)}
+            data={{ 'data-row': 'dco' }}
+          />
+        ) : null}
+      </SettingsList>
+    </SettingsGroup>
+  );
+}
+
+/**
+ * The limits on pull requests and attempts, which bind both agents: read from the stored settings always, even for an
+ * account with its own agent alone (the hosted agent's settings hide behind a key on the Agent tab; these do not).
+ */
+function LimitsGroup({ view, openPrs }: { view: ContributeView; openPrs?: number }) {
+  const settings = view.contributor?.settings ?? null;
+  const limits = view.contributor?.limits;
+  const override = openPrsOverrideOf(limits);
+  return (
+    <SettingsGroup id="pr-limits" title="Limits">
+      <SettingsList>
         {settings ? (
           <>
             <SettingsRow
@@ -155,28 +232,11 @@ function PullRequestsGroup({ view, openPrs }: { view: ContributeView; openPrs?: 
               value={prSizeSummaryOf(settings)}
               data={{ 'data-row': 'size' }}
             />
-            <SettingsRow
-              icon={PenLine}
-              href={`${SETTINGS_PATHS.pullRequests}#dco` as Route}
-              cta="Edit"
-              title="DCO sign-off"
-              value={dcoSummaryOf(settings)}
-              data={{ 'data-row': 'dco' }}
-            />
           </>
         ) : (
-          <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 text-sm" data-row="not-yet">
-            <span className="text-muted-foreground">
-              These start when your agent connects: the size of a pull request, how many are open at a time, and the
-              sign-off.
-            </span>
-            <Link
-              href={WORKSPACE_PATHS.agentConnect}
-              prefetch={false}
-              className="font-semibold text-link hover:underline"
-            >
-              Connect your agent →
-            </Link>
+          <li className="px-4 py-3.5 text-sm text-muted-foreground" data-row="not-yet">
+            These start when your agent connects: how many pull requests are open at a time, how many issues are in work
+            at once, the size of a pull request, and the sign-off.
           </li>
         )}
       </SettingsList>
@@ -188,148 +248,111 @@ function PullRequestsGroup({ view, openPrs }: { view: ContributeView; openPrs?: 
   );
 }
 
-function ContributingGroup({
-  view,
-  set,
-  setFailed,
-}: {
-  view: ContributeView;
-  set: ContributeSet | null | undefined;
-  setFailed: boolean;
-}) {
-  return (
-    <SettingsGroup
-      id="for-contributing"
-      size="section"
-      title="For contributing"
-      text="For developers who want merged pull requests."
-    >
-      <SettingsList>
-        <SettingsRow
-          icon={SlidersHorizontal}
-          href={SETTINGS_PATHS.work}
-          cta="Edit"
-          title="What you work on"
-          value={workValueOf(set, view, setFailed)}
-          data={{ 'data-row': 'work' }}
-        />
-      </SettingsList>
-    </SettingsGroup>
-  );
-}
-
-function LearningGroup({ profile, failed }: { profile: LearnProfile | null; failed: boolean }) {
-  return (
-    <SettingsGroup
-      id="for-learning"
-      size="section"
-      title="For learning"
-      text="For people who want to learn from real fixes."
-    >
-      <SettingsList>
-        <SettingsRow
-          icon={GraduationCap}
-          href={SETTINGS_PATHS.goal}
-          cta="Edit"
-          title="Goal and level"
-          value={
-            failed
-              ? "Your goal didn't load. Reload the page to try again."
-              : (learnProfileSummaryOf(profile) ?? 'Not set yet: pick what you want to learn.')
-          }
-          data={{ 'data-row': 'goal' }}
-        />
-      </SettingsList>
-    </SettingsGroup>
-  );
-}
-
 /**
- * Settings (W1 §10): tell GitRanks about you, once. The pull request limits and GitHub's access (both agents'), the
- * email, then each side's group, the one the person uses first, the other closed to a line; Delete last. With Learn not
- * open to the account, no Learn group at all. Each row opens the page it is changed on; the Email rows change on the
- * page itself. Old links to a section of the one-page Settings go on to where it is now (`SettingsAnchors`).
+ * Settings (page 23): one page for both products, opened from either bar, with the product's own preferences first.
+ * From Learn: Learn preferences, Email, Agent and GitHub, Limits, then Contribute preferences; from Contribute:
+ * Contribute preferences, Agent and GitHub, Limits, Email, then Learn preferences. Delete all data last. A product's
+ * group shows only to someone who uses it (Learn's, wherever Learn is open; Contribute's, to all but someone who only
+ * learns). In Email, Learn's "Lessons to repeat" comes first from Learn and after Contribute's rows from Contribute; the
+ * time zone is last. Each row opens the page it is changed on; the Email rows change on the page itself. Old links to
+ * a section go on to where it is now (`SettingsAnchors`).
  */
 export function SettingsScreen({
   view,
+  bar = 'contribute',
   learnOpen = false,
   set,
   setFailed = false,
   email = null,
   emailFailed = false,
   emailHint = null,
-  profile = null,
-  profileFailed = false,
+  learnSetup = null,
+  learnSetupFailed = false,
+  learnEmail = null,
+  learnEmailFailed = false,
   openPrs,
 }: {
   view: ContributeView;
+  /** The bar the page shows, whose product's groups come first. */
+  bar?: ProductBar;
   learnOpen?: boolean;
   /** What the user works on; null when the API hides it, `undefined` when it did not load. */
   set?: ContributeSet | null;
   /** What the user works on did not load. */
   setFailed?: boolean;
-  /** The Email rows; null when the API hides them (the group is left out). */
+  /** The Email rows; null when the API hides them. */
   email?: ContributeEmailSettings | null;
   /** The Email rows did not load: the group says so. */
   emailFailed?: boolean;
   /** The choice an email's "instead" link offers (`?email=`): the group asks before switching. */
   emailHint?: ContributeNeedsYouEmail | null;
-  /** Learn's goal and level: null when none is saved. */
-  profile?: LearnProfile | null;
-  /** The goal did not load. */
-  profileFailed?: boolean;
+  /** Learn's setup: null when there is none. */
+  learnSetup?: LearnSetupRead | null;
+  /** Learn's setup did not load: its row says so. */
+  learnSetupFailed?: boolean;
+  /** Learn's email settings: null where Learn is not open. */
+  learnEmail?: LearnEmailSettings | null;
+  /** Learn's email settings did not load: a line in Email says so. */
+  learnEmailFailed?: boolean;
   /** The pull requests that count against the limit now. */
   openPrs?: number;
 }) {
   const audience = audienceOf(view.sides, learnOpen);
-  const contributing = <ContributingGroup view={view} set={set} setFailed={setFailed} />;
-  const learning = <LearningGroup profile={profile} failed={profileFailed} />;
-  const closedContributing = (
-    <ClosedGroupLine
-      id="for-contributing"
-      title="For contributing"
-      text="· not set up. Contribute sends pull requests without a lesson."
-      link={{ href: ABOUT_PATH, label: 'How Contribute works' }}
-    />
-  );
-  const closedLearning = (
-    <ClosedGroupLine
-      id="for-learning"
-      title="For learning"
-      text="· not set up. Learn teaches you a real fix before the pull request opens."
-      link={{ href: LEARN_ABOUT_PATH, label: 'How Learn works' }}
-    />
+  const fromLearn = learnOpen && bar === 'learn';
+  const contribute =
+    audience === 'learner' ? null : <ContributePreferencesGroup view={view} set={set} setFailed={setFailed} />;
+  const learn = learnOpen ? <LearnPreferencesGroup setup={learnSetupFailed ? undefined : learnSetup} /> : null;
+
+  // Learn's rows of Email: the switch where its product's rows go, the time zone last.
+  let lessons: ReactNode = null;
+  let zone: ReactNode = null;
+  if (learnOpen && learnEmail) {
+    lessons = <LessonsToRepeatRow on={learnEmail.lessonsToRepeat} noAddress={!!email && !email.to} />;
+    zone = <TimeZoneRow settings={learnEmail} savedZone={email ? email.timeZone : undefined} />;
+  } else if (learnOpen && learnEmailFailed) {
+    zone = <LearnEmailFailedRow />;
+  }
+  const emailGroup =
+    email || emailFailed || lessons || zone ? (
+      <EmailRows
+        settings={emailFailed ? undefined : email}
+        autopilotOn={autopilotOnOf(view.contributor)}
+        hint={emailHint}
+        lead={fromLearn ? lessons : null}
+        tail={
+          <>
+            {fromLearn ? null : lessons}
+            {zone}
+          </>
+        }
+        zoneRow={!!learnEmail}
+      />
+    ) : null;
+  const shared = (
+    <>
+      <AgentGithubGroup view={view} />
+      <LimitsGroup view={view} openPrs={openPrs} />
+    </>
   );
 
   return (
     <>
-      <PageTitle title="Settings" text={TITLE_LINE[audience]} />
-      <PullRequestsGroup view={view} openPrs={openPrs} />
-      {/* Old links (the agents' "resume it at …", autopilot's emails) still land here: where the rest went. */}
-      <p className="-mt-3 px-1 text-sm text-muted-foreground" data-agent-line="">
-        Autopilot and the hosted agent with its key and budget are on the{' '}
-        <Link href={WORKSPACE_PATHS.agent} prefetch={false} className="font-semibold text-link hover:underline">
-          Agent tab
-        </Link>
-        .
-      </p>
-      {email || emailFailed ? (
-        <EmailRows settings={email ?? undefined} autopilotOn={autopilotOnOf(view.contributor)} hint={emailHint} />
-      ) : null}
-      <div className="flex flex-col gap-8 border-t pt-8">
-        {audience === 'learner' ? (
-          <>
-            {learning}
-            {closedContributing}
-          </>
-        ) : (
-          <>
-            {contributing}
-            {/* Learn's group only where Learn is open: closed for a contributor who has not started it. */}
-            {learnOpen ? (audience === 'both' ? learning : closedLearning) : null}
-          </>
-        )}
-      </div>
+      <PageTitle title="Settings" />
+      {fromLearn ? (
+        <>
+          {learn}
+          {emailGroup}
+          {shared}
+          {contribute}
+        </>
+      ) : (
+        <>
+          {contribute}
+          {shared}
+          {emailGroup}
+          {learn}
+        </>
+      )}
       <DeleteDataSection hasKey={!!claudeKeyOf(view)} learnOpen={learnOpen} />
       <SettingsAnchors />
     </>

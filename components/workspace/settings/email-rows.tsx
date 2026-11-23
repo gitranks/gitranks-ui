@@ -2,7 +2,7 @@
 
 import { Bell, SquareCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useId, useRef, useState, useSyncExternalStore, useTransition } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState, useSyncExternalStore, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { SegmentedRadios, useSettledPick } from '@/components/workspace/settings/radio-pills';
@@ -40,26 +40,49 @@ const dropHintFromAddress = () => window.history.replaceState(null, '', withoutE
 type Patch = { needsYou?: ContributeNeedsYouEmail; ended?: boolean };
 
 /**
- * Settings' Email group (`#email`): when something needs the user (Immediately, Once a day, Off) and when a pull
- * request is merged or closed, for Contribute and Learn alike. A change saves at once with the browser's time zone: the
- * control moves, and moves back with why when the save fails; a change while one saves is ignored. With no address
- * both controls are disabled under why. Opened from an email's "instead" link (`hint`), it asks before switching.
- * `settings` undefined: the read failed, and the group says so.
+ * Settings' Email group (`#email`): when a pull request needs the user (Immediately, Once a day, Off) and when one is
+ * merged or closed, for Contribute and Learn alike, with Learn's own rows where Learn is open (`lead` before these,
+ * `tail` after: the product the page was opened from comes first, the Time zone row last). A change saves at once with
+ * the browser's time zone: the control moves, and moves back with why when the save fails; a change while one saves is
+ * ignored. With no address both controls are disabled under why. Opened from an email's "instead" link (`hint`), it
+ * asks before switching. `settings` undefined: the read failed, and the group says so under the other rows; null:
+ * the API hides these rows, and the group holds the others alone.
  */
 export function EmailRows({
   settings,
   autopilotOn = false,
   hint = null,
+  lead = null,
+  tail = null,
+  zoneRow = false,
 }: {
-  settings: ContributeEmailSettings | undefined;
+  settings: ContributeEmailSettings | null | undefined;
   /** Autopilot's notices still come: said while it is on. */
   autopilotOn?: boolean;
   /** The choice an email's link offers. */
   hint?: ContributeNeedsYouEmail | null;
+  /** Rows before these, in the same list. */
+  lead?: ReactNode;
+  /** Rows after these, in the same list. */
+  tail?: ReactNode;
+  /** A "Time zone" row says the zone: the summary's line leaves it out. */
+  zoneRow?: boolean;
 }) {
   return (
     <SettingsGroup id="email" title="Email">
-      {settings ? <Rows settings={settings} autopilotOn={autopilotOn} hint={hint} /> : <ReadFailed />}
+      {settings ? (
+        <Rows settings={settings} autopilotOn={autopilotOn} hint={hint} lead={lead} tail={tail} zoneRow={zoneRow} />
+      ) : (
+        <>
+          {lead || tail ? (
+            <SettingsList>
+              {lead}
+              {tail}
+            </SettingsList>
+          ) : null}
+          {settings === undefined ? <ReadFailed /> : null}
+        </>
+      )}
     </SettingsGroup>
   );
 }
@@ -91,10 +114,16 @@ function Rows({
   settings,
   autopilotOn,
   hint,
+  lead,
+  tail,
+  zoneRow,
 }: {
   settings: ContributeEmailSettings;
   autopilotOn: boolean;
   hint: ContributeNeedsYouEmail | null;
+  lead: ReactNode;
+  tail: ReactNode;
+  zoneRow: boolean;
 }) {
   const router = useRouter();
   const id = useId();
@@ -108,6 +137,11 @@ function Rows({
   const saving = useRef(false);
   // The summary's time zone: the one stored, else the one this browser would send (known only once in the browser).
   const browserZone = useSyncExternalStore(noSubscribe, browserTimeZone, () => null);
+  // A zone saved from the Time zone row comes back in a new read of the page: the summary's line follows it.
+  useEffect(() => {
+    saved.current = { ...saved.current, timeZone: settings.timeZone };
+    setShown((now) => ({ ...now, timeZone: settings.timeZone }));
+  }, [settings.timeZone]);
 
   const save = (given: Patch, onSaved?: () => void) => {
     if (saving.current) return;
@@ -175,12 +209,13 @@ function Rows({
         </div>
       ) : null}
       <SettingsList>
+        {lead}
         <SettingsRow
           icon={Bell}
           title={NEEDS_YOU_TITLE}
           value={
             <span id={`${id}-needs-you`} className="block text-pretty">
-              {needsYouLineOf(shown.needsYou, shown.timeZone ?? browserZone ?? 'UTC')}
+              {needsYouLineOf(shown.needsYou, zoneRow ? null : (shown.timeZone ?? browserZone ?? 'UTC'))}
             </span>
           }
           data={{ 'data-email-row': 'needs-you', 'data-email-needs-you': shown.needsYou }}
@@ -221,9 +256,11 @@ function Rows({
               onChange={(event) => save({ ended: event.target.checked })}
               className="size-4.5 accent-primary disabled:opacity-60 aria-disabled:opacity-60"
             />
-            {shown.ended ? 'On' : 'Off'}
+            {/* "On" and "Off" take the same width, so nothing moves when it changes. */}
+            <span className="inline-block w-6">{shown.ended ? 'On' : 'Off'}</span>
           </label>
         </SettingsRow>
+        {tail}
       </SettingsList>
       {error ? (
         <p role="alert" className="px-1 text-sm text-destructive">

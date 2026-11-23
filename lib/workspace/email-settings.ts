@@ -1,8 +1,8 @@
 import type { ContributeEmailSettingsInput, ContributeNeedsYouEmail } from '@/lib/workspace/contribute.types';
 
 /**
- * The three choices of "When something needs you", in the control's order, with their names. "Immediately" keeps its
- * short wait (an item that clears on its own sends nothing), which the words leave out.
+ * The three choices of "When a pull request needs you", in the control's order, with their names. "Immediately" keeps
+ * its short wait (an item that clears on its own sends nothing), which the words leave out.
  */
 export const NEEDS_YOU_LABELS: Record<ContributeNeedsYouEmail, string> = {
   AFTER_30_MINUTES: 'Immediately',
@@ -10,14 +10,29 @@ export const NEEDS_YOU_LABELS: Record<ContributeNeedsYouEmail, string> = {
   OFF: 'Off',
 };
 
-export const NEEDS_YOU_TITLE = 'When something needs you';
+export const NEEDS_YOU_TITLE = 'When a pull request needs you';
 export const ENDED_TITLE = 'When a pull request is merged or closed';
 
-/** The line under "When something needs you": what the choice sends. `zone` is the time zone the summary keeps. */
-export function needsYouLineOf(choice: ContributeNeedsYouEmail, zone: string): string {
-  if (choice === 'ONCE_A_DAY') return `One summary at 8:00 in the morning, ${zone} time, while something waits.`;
-  if (choice === 'OFF') return 'No email when something needs you. It still shows under Pull requests.';
-  return 'One email when something waits for you.';
+/** What "When a pull request needs you" covers, whatever the choice. */
+export const NEEDS_YOU_COVERS = 'A fix to approve, a change or a comment from a maintainer, or a step only you can do.';
+
+/** A zone's city, as people say it: `America/New_York` is "New York". */
+export function zoneCityOf(zone: string): string {
+  const city = zone.split('/').at(-1) || zone;
+  return city.replace(/_/g, ' ');
+}
+
+/**
+ * The line under "When a pull request needs you": what it covers, then what the choice sends. `zone` is the time zone
+ * the daily summary keeps, said here only where no "Time zone" row says it (null then).
+ */
+export function needsYouLineOf(choice: ContributeNeedsYouEmail, zone: string | null): string {
+  if (choice === 'ONCE_A_DAY') {
+    const when = zone ? `8:00 in the morning, ${zoneCityOf(zone)} time` : '8:00 in the morning';
+    return `${NEEDS_YOU_COVERS} One summary a day at ${when}, while something waits.`;
+  }
+  if (choice === 'OFF') return `${NEEDS_YOU_COVERS} No email for these: they still show under Pull requests.`;
+  return NEEDS_YOU_COVERS;
 }
 
 export const endedLineOf = (on: boolean): string =>

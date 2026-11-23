@@ -68,6 +68,15 @@ describe('the tab bar in the browser', () => {
       root.render(<WorkspaceTabsBar tabs={['contribute', 'pull-requests', 'agent', 'settings']} active="settings" />),
     );
 
+  it("records Contribute's bar as the one seen last, but on the old Learn tab", () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: the spec starts with no bar recorded.
+    document.cookie = 'gr_last_bar=learn; Path=/';
+    act(() => root.render(<WorkspaceTabsBar tabs={['contribute', 'learn', 'settings']} active="learn" />));
+    expect(document.cookie).toContain('gr_last_bar=learn');
+    mount();
+    expect(document.cookie).toContain('gr_last_bar=contribute');
+  });
+
   it('shows the current tab by scrolling the tab list sideways, never the page', () => {
     const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => {});

@@ -39,6 +39,8 @@ const data = vi.hoisted(() => ({
   loadLearnIssues: vi.fn(async () => undefined),
   loadPracticeLessons: vi.fn(async () => undefined),
 }));
+vi.mock('@/lib/learn/settings.data', () => ({}));
+vi.mock('@/lib/learn/settings.actions', () => ({}));
 vi.mock('@/lib/learn/learn.data', () => data);
 vi.mock('@/lib/learn/progress/progress.data', () => ({ loadLearnProgress: vi.fn(async () => undefined) }));
 const recent = vi.hoisted(() => ({ readRecentLessons: vi.fn(async () => [] as PublicLesson[]) }));

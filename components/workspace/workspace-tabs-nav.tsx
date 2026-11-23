@@ -13,6 +13,7 @@ import { runsOf, runsTabMarkOf } from '@/lib/workspace/agent-runs';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeActivity } from '@/lib/workspace/contribute.types';
 import type { WorkspaceTab } from '@/lib/workspace/gate';
+import { rememberBar } from '@/lib/workspace/settings-bar';
 import { activeTabOf, WORKSPACE_TABS, workspaceTabsShown } from '@/lib/workspace/workspace-tabs';
 
 /** Every tab link's mark: moving between tabs is never counted as a step into Contribute. */
@@ -57,6 +58,10 @@ export function WorkspaceTabsBar({ tabs, active }: { tabs: readonly WorkspaceTab
   // its height; browsers without scroll anchoring (Safari) leave the view where it was, so the link's jump is made
   // again. Before the screen is there, the id names nothing and the screen's own jump follows.
   useEffect(scrollToHash, []);
+  // The bar seen last, for Settings to show again (`settings-bar.ts`): Contribute's, but on the old Learn tab.
+  useEffect(() => {
+    if (active !== 'learn') rememberBar('contribute');
+  }, [active]);
   useEffect(() => {
     if (!active) return;
     const tab = bar.current?.querySelector<HTMLElement>('[aria-current="page"]');

@@ -36,6 +36,10 @@ import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
 
 /** A signed-in person's side: the lesson's, and the depth of each lesson of the group (by slug). */
+/** The key of a lesson's player: another lesson, or a changed question, starts a new answer. */
+export const lessonPlayerKeyOf = (lesson: Pick<LearnLesson, 'slug' | 'question'>) =>
+  `${lesson.slug}:${lesson.question.id}`;
+
 export type LessonViewer = { mine: LearnLessonMine; depths: Readonly<Record<string, LearnDepth>> };
 
 /** What the page does: grade (the engine tells it each graded pick), go on, sign in, rate, comment. */
@@ -90,6 +94,7 @@ export function LessonPlayer({
   calls,
   drawn = {},
   openFact = false,
+  pending = false,
   hints: hintsGiven,
   now,
   timeZone,
@@ -105,6 +110,8 @@ export function LessonPlayer({
   drawn?: LessonDrawn;
   /** Opened from a shared fact: the insights start shown, with "Did you know?" open. */
   openFact?: boolean;
+  /** The person's side is still being read: nothing yet asks a visitor to sign in. */
+  pending?: boolean;
   hints?: boolean;
   /**
    * The clock and time zone the review's day is counted in. With both given, the server draws the review's words; with
@@ -230,7 +237,7 @@ export function LessonPlayer({
                 ) : null
               }
             />
-            {!member && !right ? (
+            {!member && !right && !pending ? (
               <p className="m-0 text-xs text-muted-foreground" data-visitor-note="">
                 Sign in with GitHub to save your progress.
               </p>

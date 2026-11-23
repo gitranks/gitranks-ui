@@ -855,6 +855,25 @@ describe('proxy', () => {
       expect(response?.headers.get('cache-control')).toBe('private, no-store');
     });
 
+    it('answers a paused lesson of ours with its page and a 503, a removed one with a 410, kept by no shared cache', async () => {
+      for (const status of [503, 410] as const) {
+        lessonGate.mockResolvedValueOnce({ kind: 'gone', status, path: '/learn/lessons/_gone/sets' });
+        const response = await proxy(request(undefined, '/learn/lessons/sets'), event);
+        expect(response?.status).toBe(status);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/learn/lessons/_gone/sets');
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+      }
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it('sends a moved lesson of ours to its new address for good, with the query', async () => {
+      lessonGate.mockResolvedValue({ kind: 'redirect', path: '/learn/lessons/sets-in-one-pass', permanent: true });
+      const response = await proxy(request(undefined, '/learn/lessons/sets?fact'), event);
+      expect(response?.status).toBe(308);
+      expect(response?.headers.get('location')).toBe('https://gitranks.com/learn/lessons/sets-in-one-pass?fact');
+      expect(response?.headers.get('cache-control')).toBe('private, no-store');
+    });
+
     it('answers a HEAD request for a missing lesson as a GET', async () => {
       lessonGate.mockResolvedValue({ kind: 'missing' });
       const head = new NextRequest('https://gitranks.com/learn/lessons/gone-1a2b', { method: 'HEAD' });

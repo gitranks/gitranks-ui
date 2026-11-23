@@ -53,8 +53,11 @@ export function LessonNeighbours({
   );
 }
 
-/** The addresses the footer links to: the lesson's Markdown copy, and where a mistake is reported. */
-export type LessonFooterLinks = { markdown: string; report: string };
+/**
+ * The addresses the footer links to: the lesson's Markdown copy (only once the page serves one), and where a mistake
+ * is reported.
+ */
+export type LessonFooterLinks = { markdown?: string; report: string };
 
 /** The line under the lesson: who wrote it, when it was last checked, its Markdown copy, and a way to report a mistake. */
 export function LessonFooter({ changedAt, links }: { changedAt: string; links: LessonFooterLinks }) {
@@ -62,10 +65,14 @@ export function LessonFooter({ changedAt, links }: { changedAt: string; links: L
   return (
     <p className="m-0 text-xs text-muted-foreground" data-lesson-footer="">
       Written and checked by GitRanks{checked ? ` · last checked ${checked}` : ''} ·{' '}
-      <a href={links.markdown} className="hover:underline">
-        Markdown version
-      </a>{' '}
-      ·{' '}
+      {links.markdown ? (
+        <>
+          <a href={links.markdown} className="hover:underline">
+            Markdown version
+          </a>{' '}
+          ·{' '}
+        </>
+      ) : null}
       <a href={links.report} className="hover:underline">
         Report a mistake
       </a>

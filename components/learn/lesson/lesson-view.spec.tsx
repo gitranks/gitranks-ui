@@ -535,4 +535,13 @@ describe('the lesson’s text', () => {
     const links = [...$('[data-lesson-footer]')!.querySelectorAll('a')].map((link) => link.getAttribute('href'));
     expect(links).toEqual(['/learn/lessons/find-duplicates-with-a-set.md', 'mailto:hello@gitranks.com']);
   });
+
+  it('leaves the Markdown link out of the footer while the page has no Markdown copy', () => {
+    draw({ links: { report: 'mailto:hello@gitranks.com' } });
+    expect($('[data-lesson-footer]')!.textContent).toBe(
+      'Written and checked by GitRanks · last checked 21 Oct 2026 · Report a mistake',
+    );
+    const links = [...$('[data-lesson-footer]')!.querySelectorAll('a')].map((link) => link.getAttribute('href'));
+    expect(links).toEqual(['mailto:hello@gitranks.com']);
+  });
 });

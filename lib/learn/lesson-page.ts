@@ -1,3 +1,4 @@
+import type { HighlightedCode } from './code-tokens';
 import { answerStartOf, type LearnAnswerState } from './learn-answer';
 import { codeOf, type LearnCode, type LearnPicked, type LearnQuestion, verdictOf } from './learn-question';
 
@@ -56,12 +57,18 @@ export type LearnLessonMine = {
   dueAt: string | null;
   /** The right answer they gave, as it was sent. */
   picked: unknown;
-  /** The language of the code it was given in, when the question's code has one: it is graded in that language. */
+  /**
+   * The language of the code it was given in, when the page knows it (the answer given on it): it is graded in that
+   * language. Null otherwise: the page's language then.
+   */
   language: string | null;
   tries: number | null;
   /** "Good", "Not good", or not rated. */
   feedbackGood: boolean | null;
 };
+
+/** One example's codes as the server highlighted them, one entry a language. */
+export type HighlightedExample = { name: string; codes: readonly HighlightedCode[] };
 
 /** A lesson of a course's group, as the course lists it. */
 export type LearnGroupLesson = { slug: string; title: string; level: LearnLessonLevel; paused: boolean };

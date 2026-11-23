@@ -1,7 +1,9 @@
 import type { Route } from 'next';
 
+import { learnAddressGateOf } from './address-gate';
 import { LessonPageGateDocument, LessonResultGateDocument } from './learn.documents';
 import { type LessonRoute, lessonResultPath } from './learn-path';
+import { isContentSlug, learnLessonGonePath } from './paths';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { contributeErrorOf } from '@/lib/workspace/errors';
 
@@ -19,13 +21,19 @@ export const LESSON_MISSING_PATH = '/learn/lessons/_missing' as Route;
 export const LESSON_GATE_TIMEOUT_MS = 2000;
 
 /**
- * What the proxy does with a lesson's page: `missing` for a 404 (no such lesson, a hidden one, or no public pass of
- * that login), a redirect to the result's current address (a renamed login), else `page`, which reads it as before
- * (a removed or held lesson's stub, or the lesson). A failed or slow ask is `page` too: the page then answers as it
- * did. The API's "not there" and "not a valid ask" are missing, as the pages read them; a field the API does not
- * know yet (a deploy in between) is left to the page.
+ * What the proxy does with a lesson's page. A lesson of ours is asked first: paused or removed, its page at `path`
+ * with a 503 or a 410 (`gone`); moved, a permanent redirect to its new address. Otherwise, as for a lesson of a fix:
+ * `missing` for a 404 (no such lesson, a hidden one, or no public pass of that login), a redirect to the result's
+ * current address (a renamed login), else `page`, which reads it as before (a removed or held lesson's stub, or the
+ * lesson). A failed or slow ask is `page` too: the page then answers as it did. The API's "not there" and "not a
+ * valid ask" are missing, as the pages read them; a field the API does not know yet (a deploy in between) is left to
+ * the page.
  */
-export type LessonGate = { kind: 'page' } | { kind: 'missing' } | { kind: 'redirect'; path: Route };
+export type LessonGate =
+  | { kind: 'page' }
+  | { kind: 'missing' }
+  | { kind: 'redirect'; path: Route; permanent?: boolean }
+  | { kind: 'gone'; status: 410 | 503; path: Route };
 
 const PAGE: LessonGate = { kind: 'page' };
 const MISSING: LessonGate = { kind: 'missing' };
@@ -52,7 +60,31 @@ async function askGate({ slug, login }: LessonRoute): Promise<LessonGate> {
   }
 }
 
+/**
+ * A lesson's page: as a lesson of ours first, then as a lesson of a fix. Both are asked at once, each within
+ * `timeoutMs`; the fix's answer counts when the address is not one of ours, or when ours could not be asked (the fix's
+ * own ask then says whether the API answers at all). A result page is a fix's only.
+ */
 export async function lessonGateOf(route: LessonRoute, timeoutMs = LESSON_GATE_TIMEOUT_MS): Promise<LessonGate> {
+  if (route.login !== undefined || !isContentSlug(route.slug)) return fixLessonGateOf(route, timeoutMs);
+  const fix = fixLessonGateOf(route, timeoutMs);
+  const ours = await learnAddressGateOf('lesson', route.slug, timeoutMs);
+  switch (ours.kind) {
+    case 'missing':
+    case 'unknown':
+      return fix;
+    case 'page':
+      return PAGE;
+    case 'moved':
+      return { kind: 'redirect', path: ours.path, permanent: true };
+    case 'paused':
+      return { kind: 'gone', status: 503, path: learnLessonGonePath(route.slug) };
+    case 'removed':
+      return { kind: 'gone', status: 410, path: learnLessonGonePath(route.slug) };
+  }
+}
+
+async function fixLessonGateOf(route: LessonRoute, timeoutMs: number): Promise<LessonGate> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<LessonGate>((resolve) => {
     timer = setTimeout(() => resolve(PAGE), timeoutMs);

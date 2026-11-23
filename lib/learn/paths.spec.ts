@@ -4,10 +4,14 @@ import {
   checkPath,
   coursePath,
   fromLearn,
+  isContentSlug,
   isLearnTag,
   LEARN_PULL_REQUESTS_PATH,
   LEARN_SETTINGS_PATH,
+  learnCourseMinePath,
   learnCourseTag,
+  learnLessonGonePath,
+  learnLessonMinePath,
   learnLessonPath,
   learnLessonTag,
   markdownPathOf,
@@ -19,6 +23,19 @@ describe("Learn's addresses", () => {
     expect(checkPath('algorithms')).toBe('/learn/check/algorithms');
     expect(learnLessonPath('hash-sets')).toBe('/learn/lessons/hash-sets');
     expect(coursePath('a b')).toBe('/learn/courses/a%20b');
+  });
+
+  it("gives a paused or removed lesson's page, and the person's side of a lesson and of a course, encoded", () => {
+    expect(learnLessonGonePath('hash-sets')).toBe('/learn/lessons/_gone/hash-sets');
+    expect(learnLessonMinePath('hash-sets')).toBe('/api/me/learn/lessons/hash-sets');
+    expect(learnCourseMinePath('a b')).toBe('/api/me/learn/courses/a%20b');
+  });
+
+  it("knows a slug's shape: lowercase words and digits joined by dashes, not too long", () => {
+    for (const slug of ['sets', 'hash-sets-2', 'a1']) expect(isContentSlug(slug), slug).toBe(true);
+    for (const slug of ['', '_gone', '_missing', 'Sets', 'a b', '-x', 'x-', 'a--b', 'a/b', 'x'.repeat(200)]) {
+      expect(isContentSlug(slug), slug).toBe(false);
+    }
   });
 
   it("gives a page's Markdown copy at its own address", () => {

@@ -1,12 +1,19 @@
 import { type HighlightedExample, LessonArticle } from './lesson-article';
 import { LessonFooter, type LessonFooterLinks, LessonNeighbours } from './lesson-more';
-import { type LessonCalls, type LessonDrawn, LessonPlayer, type LessonViewer } from './lesson-player';
+import {
+  type LessonCalls,
+  type LessonDrawn,
+  LessonPlayer,
+  type LessonViewer,
+  lessonPlayerKeyOf,
+} from './lesson-player';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
 import { type LearnGroupLesson, type LearnLesson, lessonPlaceOf } from '@/lib/learn/lesson-page';
 
 export type { HighlightedExample } from './lesson-article';
 export type { LessonFooterLinks } from './lesson-more';
 export type { LessonCalls, LessonDrawn, LessonViewer } from './lesson-player';
+export { lessonPlayerKeyOf } from './lesson-player';
 
 /** Everything a lesson's page draws from: plain data and the page's calls. */
 export type LessonViewProps = {
@@ -32,27 +39,40 @@ export type LessonViewProps = {
   timeZone?: string;
 };
 
+/** The parts of a lesson's page that render on the server: the lesson, then previous and next and the footer. */
+export function lessonPartsOf({
+  lesson,
+  examples,
+  group,
+  links,
+  mainLanguage,
+}: Pick<LessonViewProps, 'lesson' | 'examples' | 'group' | 'links' | 'mainLanguage'>) {
+  const place = lessonPlaceOf(group, lesson.slug, null);
+  return {
+    article: <LessonArticle lesson={lesson} examples={examples} mainLanguage={mainLanguage} />,
+    more: (
+      <>
+        <LessonNeighbours lesson={lesson} place={place} />
+        <LessonFooter changedAt={lesson.changedAt} links={links} />
+      </>
+    ),
+  };
+}
+
 /**
  * A lesson's page under the site's header: the player's strip; the lesson, its question and what it gives after the
  * answer; previous and next; the line about who wrote it. Two columns, the question beside the text and in sight as
- * the text scrolls; one on a phone, the question after the text. The player is keyed by the lesson and its question:
- * another lesson, or a changed question, starts a new answer.
+ * the text scrolls; one on a phone, the question after the text. The player is keyed by the lesson and its question
+ * (`lessonPlayerKeyOf`).
  */
 export function LessonView({ lesson, examples, group, links, mainLanguage, ...player }: LessonViewProps) {
-  const place = lessonPlaceOf(group, lesson.slug, null);
   return (
     <LessonPlayer
-      key={`${lesson.slug}:${lesson.question.id}`}
+      key={lessonPlayerKeyOf(lesson)}
       lesson={lesson}
       group={group}
       mainLanguage={mainLanguage}
-      article={<LessonArticle lesson={lesson} examples={examples} mainLanguage={mainLanguage} />}
-      more={
-        <>
-          <LessonNeighbours lesson={lesson} place={place} />
-          <LessonFooter changedAt={lesson.changedAt} links={links} />
-        </>
-      }
+      {...lessonPartsOf({ lesson, examples, group, links, mainLanguage })}
       {...player}
     />
   );

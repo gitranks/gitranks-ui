@@ -1,11 +1,9 @@
 import { LessonMarkdown } from './lesson-markdown';
 import { ExampleBlock } from '@/components/learn/blocks/example-block';
 import { VisualBlock } from '@/components/learn/blocks/visual-block';
-import type { HighlightedCode } from '@/lib/learn/code-tokens';
-import { bodyPartsOf, type LearnLesson, visualsOf } from '@/lib/learn/lesson-page';
+import { bodyPartsOf, type HighlightedExample, type LearnLesson, visualsOf } from '@/lib/learn/lesson-page';
 
-/** An example as the server highlighted it: its name and its code in each language of the course. */
-export type HighlightedExample = { name: string; codes: readonly HighlightedCode[] };
+export type { HighlightedExample } from '@/lib/learn/lesson-page';
 
 /**
  * The lesson itself: its one title, then its text with each example and visual where the text places it (the main

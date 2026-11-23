@@ -1,24 +1,33 @@
 import type { Metadata } from 'next';
 
 import { LessonPageView } from '@/app/learn/components/lesson-page';
+import { LessonScreen } from '@/components/learn/lesson/lesson-screen';
 import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
+import { loadLearnLessonPage } from '@/lib/learn/lesson-page.data';
 import { loadLessonPage } from '@/lib/learn/lesson-public.data';
 import { lessonPageMetadata } from '@/lib/learn/lesson-seo';
+import { learnLessonMetadata } from '@/lib/learn/seo/lesson';
 
 /**
- * The lesson is the same for everyone, and not cached here. The page streams, so its own notFound() reaches the browser
- * with a 200: an unknown or hidden lesson gets its real 404 from the proxy, which asks first (`lib/learn/lesson-gate.ts`).
+ * A lesson's address is read as a lesson of a course first, the same for everyone and cached for hours, its person's
+ * side read later in the browser; else as the lesson of a fix, which is not cached here. The page streams, so its own
+ * notFound() reaches the browser with a 200: an unknown, hidden, paused, removed or moved lesson gets its real status
+ * from the proxy, which asks first (`lib/learn/lesson-gate.ts`).
  */
 export const instant = false;
 
 export async function generateMetadata({ params }: PageProps<'/learn/lessons/[slug]'>): Promise<Metadata> {
   const { slug } = await params;
+  const ours = await loadLearnLessonPage(slug);
+  if (ours) return learnLessonMetadata(ours.lesson);
   const [answer, frontDoorOpen] = await Promise.all([loadLessonPage(slug), learnOpenToEveryone()]);
   return lessonPageMetadata(answer, { frontDoorOpen });
 }
 
-/** A shared lesson: open to every visitor, who reads it; a signed-in user Learn is open to takes it. */
-export default async function LessonPage({ params }: PageProps<'/learn/lessons/[slug]'>) {
-  const { slug } = await params;
+/** A lesson of a course, open to everyone; else a shared lesson of a fix, as before. */
+export default async function LessonPage({ params, searchParams }: PageProps<'/learn/lessons/[slug]'>) {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
+  const ours = await loadLearnLessonPage(slug);
+  if (ours) return <LessonScreen page={ours} openFact={query.fact !== undefined} />;
   return <LessonPageView slug={slug} />;
 }

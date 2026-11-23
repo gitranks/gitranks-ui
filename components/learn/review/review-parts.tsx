@@ -3,6 +3,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode, Ref } from 'react';
 
+import { LiveStatus } from '@/components/learn/player/live-status';
 import { reviewPlace } from '@/components/learn/player/places';
 import { type PlayerCrumb, PlayerStrip } from '@/components/learn/player/player-strip';
 import { AnswerPart } from '@/components/learn/question/answer-part';
@@ -13,7 +14,7 @@ import type { LearnLessonLink } from '@/lib/learn/lesson-page';
 import { coursePath, LEARN_HOME_PATH, learnLessonPath } from '@/lib/learn/paths';
 import {
   type LearnReviewAnswered,
-  nextReviewWordsOf,
+  nothingDueOf,
   type ReviewDone,
   type ReviewItemShown,
   type ReviewNext,
@@ -83,14 +84,29 @@ export function ReviewMessage({
   );
 }
 
-/** A visitor's page (an ended session): what the review is for, and the way to sign in. */
-export function ReviewVisitor({ titleRef, onSignIn }: { titleRef?: Ref<HTMLHeadingElement>; onSignIn: () => void }) {
+/**
+ * A visitor's page: what the review is for, and the way to sign in. `ended`: a session that ended while the page was
+ * up, so the answers given are kept and signing in comes back here.
+ */
+export function ReviewVisitor({
+  titleRef,
+  onSignIn,
+  ended = false,
+}: {
+  titleRef?: Ref<HTMLHeadingElement>;
+  onSignIn: () => void;
+  ended?: boolean;
+}) {
   return (
     <ReviewMessage
-      state="visitor"
+      state={ended ? 'ended' : 'visitor'}
       titleRef={titleRef}
-      title="The review needs an account"
-      text="It brings back the lessons you learned, a few days later, so you keep them. Without an account there is nothing to bring back."
+      title={ended ? 'Sign in again to go on' : 'The review needs an account'}
+      text={
+        ended
+          ? 'Your session ended. The answers you gave are saved. Sign in, and you come back to your review.'
+          : 'It brings back the lessons you learned, a few days later, so you keep them. Without an account there is nothing to bring back.'
+      }
     >
       <Button type="button" size="lg" className="min-h-11 font-semibold" onClick={onSignIn}>
         Sign in with GitHub
@@ -132,13 +148,9 @@ export function ReviewEmpty({
   titleRef?: Ref<HTMLHeadingElement>;
 }) {
   const action = nextActionOf(next);
+  const words = nothingDueOf(nextReviewAt, nextReviewLessons, now);
   return (
-    <ReviewMessage
-      state="empty"
-      titleRef={titleRef}
-      title="Nothing is due today"
-      text={nextReviewWordsOf(nextReviewAt, nextReviewLessons, now)}
-    >
+    <ReviewMessage state="empty" titleRef={titleRef} title={words.title} text={words.text}>
       <PrimaryLink href={action.href} hints={hints}>
         {action.label}
       </PrimaryLink>
@@ -149,10 +161,8 @@ export function ReviewEmpty({
 /** While the person's review is on its way: the card's place, of its size, so nothing moves when it comes. */
 export function ReviewPending() {
   return (
-    <div className="flex flex-col gap-4" aria-busy="true" data-review-state="pending">
-      <span className="sr-only" role="status">
-        Loading your review…
-      </span>
+    <div className="flex flex-col gap-4" data-review-state="pending">
+      <LiveStatus className="sr-only" text="Loading your review…" />
       <div className="min-h-7" />
       <div className="h-80 animate-pulse rounded-xl border-2 bg-muted/40 motion-reduce:animate-none" />
     </div>
@@ -193,15 +203,25 @@ function DepthDots({ depth }: { depth: 1 | 2 | 3 }) {
   );
 }
 
-/** Under an answered card: what changed for the lesson, in the same place for every outcome. */
-export function ReviewChangeLine({ reply, forgot }: { reply: LearnReviewAnswered; forgot: boolean }) {
-  const line = reviewChangeLineOf(reply.change, forgot);
+/**
+ * Under the card: what changed for the lesson once answered, in the same place for every outcome. It is on the page,
+ * empty and out of the flow, from the card's first draw, so a screen reader reads the words when they come.
+ */
+export function ReviewChangeLine({ reply, forgot }: { reply: LearnReviewAnswered | null; forgot: boolean }) {
+  const line = reply ? reviewChangeLineOf(reply.change, forgot) : null;
   return (
-    <p className="m-0 flex min-h-9 items-center gap-2.5 text-sm" role="status" data-review-change={reply.change}>
-      {line.depth ? <DepthDots depth={line.depth} /> : null}
-      <span>
-        <b className="font-semibold">{line.lead}</b> <span className="text-muted-foreground">{line.text}</span>
-      </span>
+    <p
+      className="m-0 flex min-h-9 items-center gap-2.5 text-sm empty:absolute empty:min-h-0"
+      role="status"
+      data-review-change-line=""
+      data-review-change={reply?.change}
+    >
+      {line?.depth ? <DepthDots depth={line.depth} /> : null}
+      {line ? (
+        <span>
+          <b className="font-semibold">{line.lead}</b> <span className="text-muted-foreground">{line.text}</span>
+        </span>
+      ) : null}
     </p>
   );
 }
@@ -258,8 +278,10 @@ export function ReviewCard({
         place={reviewPlace(last)}
         highlighted={item.highlighted}
         hints={hints}
-        below={reply ? <ReviewChangeLine reply={reply} forgot={forgot} /> : undefined}
+        // Once answered, the line of what changed takes the place of the keys' line.
+        below={reply ? null : undefined}
       />
+      <ReviewChangeLine reply={reply} forgot={forgot} />
     </>
   );
 }

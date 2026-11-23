@@ -2,9 +2,15 @@ import 'server-only';
 
 import { plainCodeOf } from './code-tokens';
 import { highlightCodes } from './highlight';
+import { isLanguageKey } from './lesson-answer-input';
 import { isContentSlug } from './paths';
 import type { ReviewNext, ReviewSide } from './review';
-import { LearnCourseNextDocument, LearnHomeNextDocument, LearnReviewDocument } from './review.documents';
+import {
+  LearnCourseNextDocument,
+  LearnHomeNextDocument,
+  LearnReviewDocument,
+  LearnSetupMainLanguageDocument,
+} from './review.documents';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /*
@@ -31,18 +37,34 @@ async function nextOf(githubLogin: string, course: string | null): Promise<Revie
   }
 }
 
+/** The main language of the person's setup: the first the review asks code in. None when there is none, or on failure. */
+async function mainLanguageOf(githubLogin: string): Promise<string | null> {
+  try {
+    const { learnSetupOfMine } = await graphqlDirect(
+      LearnSetupMainLanguageDocument,
+      {},
+      { source: 'ssr', githubLogin },
+    );
+    const main = learnSetupOfMine?.mainLanguage;
+    return isLanguageKey(main) ? main : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Today's review of one course or of every course: null when Learn is not open to the person, and on any failure.
  * A course of another shape is read as every course.
  */
 export async function loadLearnReviewSide(githubLogin: string, course: string | null): Promise<ReviewSide | null> {
   const scope = course && isContentSlug(course) ? course : null;
-  const [review, next] = await Promise.all([
+  const [review, next, mainLanguage] = await Promise.all([
     graphqlDirect(LearnReviewDocument, { course: scope }, { source: 'ssr', githubLogin }).then(
       ({ learnReview }) => learnReview,
       () => null,
     ),
     nextOf(githubLogin, scope),
+    mainLanguageOf(githubLogin),
   ]);
   if (!review) return null;
   const items = await Promise.all(
@@ -57,5 +79,6 @@ export async function loadLearnReviewSide(githubLogin: string, course: string | 
     nextReviewAt: review.nextReviewAt,
     nextReviewLessons: review.nextReviewLessons,
     next,
+    mainLanguage,
   };
 }

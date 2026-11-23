@@ -36,7 +36,7 @@ describe("the person's review route", () => {
       current.session = null;
       session();
       const res = await get('?course=algorithms');
-      expect(await res.json()).toEqual({ review: null });
+      expect(await res.json()).toEqual({ review: null, signedOut: true });
       expect(res.headers.get('cache-control')).toBe('private, no-store');
     }
     expect(loadLearnReviewSide).not.toHaveBeenCalled();
@@ -46,7 +46,7 @@ describe("the person's review route", () => {
     signIn();
     loadLearnReviewSide.mockResolvedValue(reviewSide);
     const res = await get();
-    expect(await res.json()).toEqual({ review: reviewSide });
+    expect(await res.json()).toEqual({ review: reviewSide, signedOut: false });
     expect(res.headers.get('cache-control')).toBe('private, no-store');
     expect(loadLearnReviewSide).toHaveBeenLastCalledWith('octocat', null);
     await get('?course=algorithms');
@@ -56,6 +56,6 @@ describe("the person's review route", () => {
   it('answers none when Learn is not open to the person, or the read failed', async () => {
     signIn();
     loadLearnReviewSide.mockResolvedValue(null);
-    expect(await (await get()).json()).toEqual({ review: null });
+    expect(await (await get()).json()).toEqual({ review: null, signedOut: false });
   });
 });

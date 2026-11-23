@@ -45,6 +45,8 @@ export type ReviewSide = {
   nextReviewAt: string | null;
   nextReviewLessons: number;
   next: ReviewNext | null;
+  /** The main language of the person's setup: code shows in it when the question has it (the examples' rule). */
+  mainLanguage: string | null;
 };
 
 /** One lesson answered in this sitting, for the end's list. */
@@ -118,18 +120,29 @@ export const reviewMoreWordsOf = (more: number) =>
 const dayOf = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 const DAY_MS = 86_400_000;
 
+/** The time of day of a date, in the reader's own clock and words ("2:00 PM", "14:00"). */
+const timeOf = (date: Date) => date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
 /**
- * With nothing due: when the next review is, in the reader's own days, and how many lessons it has. With none coming
- * (nothing learned yet), what brings one.
+ * With nothing due: the title and when the next review is, both in the reader's own clock, so the title never says
+ * "today" above a review that opens later today. A due time is the start of the person's day where they set it, which
+ * can fall in the middle of the reader's day. With none coming (nothing learned yet), what brings one.
  */
-export function nextReviewWordsOf(at: string | null, count: number, now: Date): string {
+export function nothingDueOf(at: string | null, count: number, now: Date): { title: string; text: string } {
   const when = at ? new Date(at) : null;
   if (!when || Number.isNaN(when.getTime()) || count < 1) {
-    return 'A lesson you learn comes back here three days later, so it stays.';
+    return {
+      title: 'Nothing is due today',
+      text: 'A lesson you learn comes back here three days later, so it stays.',
+    };
   }
   const days = Math.round((dayOf(when) - dayOf(now)) / DAY_MS);
-  const said = days <= 0 ? 'later today' : days === 1 ? 'tomorrow' : `in ${days} days`;
-  return `Your next review is ${said}, with ${lessons(count)}.`;
+  if (days <= 0) {
+    const opens = when.getTime() > now.getTime() ? `opens at ${timeOf(when)}` : 'opens in a moment';
+    return { title: 'Nothing is due yet', text: `Your next review ${opens}, with ${lessons(count)}.` };
+  }
+  const said = days === 1 ? 'tomorrow' : `in ${days} days`;
+  return { title: 'Nothing is due today', text: `Your next review is ${said}, with ${lessons(count)}.` };
 }
 
 /** A review's answer as the page sends it: a pick, or "I don't remember". */

@@ -130,10 +130,15 @@ describe("a course's page, signed in", () => {
   it('after the check: the marked lessons in grey, counted apart and never called learned', () => {
     const page = draw({ mine: checkSavedMine });
     expect(textOf(page, '[data-course-line]')).toBe('37 marked as known');
-    expect(page.querySelector('[data-course-line] a')!.getAttribute('href')).toBe('/learn/check/algorithms');
+    // Marks to change open "What you know", never a new run of the check.
+    expect(page.querySelector('[data-course-line] a')!.getAttribute('href')).toBe('/learn/check/algorithms?known');
     expect(page.querySelectorAll('ol [data-square="known"]')).toHaveLength(37);
     const later = draw({ mine: knownLaterMine });
     expect(textOf(later, '[data-course-line]')).toBe('2 of 86 learned · 36 marked as known');
+    // With nothing marked, the line offers the check itself.
+    const fresh = draw({ mine: progressMine });
+    expect(textOf(fresh, '[data-course-line] a')).toBe('Mark lessons you already know');
+    expect(fresh.querySelector('[data-course-line] a')!.getAttribute('href')).toBe('/learn/check/algorithms');
   });
 
   it('a paused lesson keeps its place, says so, and is not a link', () => {

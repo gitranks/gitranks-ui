@@ -43,6 +43,10 @@ const CHECK_PICK: Record<LearnQuestionType, string> = {
   MYTH_OR_FACT: 'Pick myth or fact.',
 };
 
+/** What the check says once "I don't know" is picked: a fine answer, never one held against the person. */
+export const CHECK_DONT_KNOW_NOTE =
+  'That is a fine answer. We start you in this group, and nothing counts against you.';
+
 /** The check: no verdict until the result; "I don't know" is picked like an option, and the main button goes on. */
 export function checkPlace(last: boolean): AnswerPartPlace {
   return {
@@ -50,7 +54,9 @@ export function checkPlace(last: boolean): AnswerPartPlace {
     extra: 'I don’t know',
     withCode: true,
     labels: { check: last ? 'See the result' : 'Next question', done: last ? 'See the result' : 'Next question' },
-    note: (type: LearnQuestionType, _picked: LearnPicked | null) =>
-      `${CHECK_PICK[type]} We do not say right or wrong here: you see it all on the result.`,
+    note: (type: LearnQuestionType, _picked: LearnPicked | null, extra: boolean) =>
+      extra
+        ? CHECK_DONT_KNOW_NOTE
+        : `${CHECK_PICK[type]} We do not say right or wrong here: you see it all on the result.`,
   };
 }

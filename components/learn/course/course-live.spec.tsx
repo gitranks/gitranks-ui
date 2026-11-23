@@ -82,12 +82,11 @@ describe("a course's page in the browser, for a person with a session", () => {
     expect(host.querySelector('[data-course-boxes] [data-lit]')).toBeNull();
   });
 
-  it("reads the person's side once, never kept, without the check's question, and fills the page in place", async () => {
+  it("reads the person's side once, never kept, asking whether the check leads, and fills the page in place", async () => {
     answer({ course: progressMine, checkFirst: false });
     await draw();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    // The check's page ships later: until then the page never asks whether the check leads.
-    expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/courses/algorithms', { cache: 'no-store' });
+    expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/courses/algorithms?check=1', { cache: 'no-store' });
     expect(host.querySelectorAll('[data-square]').length).toBeGreaterThan(0);
     expect(signInButton()).toBeUndefined();
   });
@@ -124,10 +123,12 @@ describe("a course's page in the browser, for a person with a session", () => {
 describe("reading a course's side", () => {
   beforeEach(() => vi.stubGlobal('fetch', fetchMock));
 
-  it('asks whether the check leads only when told to', async () => {
+  it('asks whether the check leads unless told not to', async () => {
     answer({ course: progressMine, checkFirst: true });
-    await readCourseSide('algorithms', true);
+    await readCourseSide('algorithms');
     expect(fetchMock).toHaveBeenLastCalledWith('/api/me/learn/courses/algorithms?check=1', { cache: 'no-store' });
+    await readCourseSide('algorithms', false);
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/me/learn/courses/algorithms', { cache: 'no-store' });
   });
 
   it('takes only a whole side of this course', async () => {

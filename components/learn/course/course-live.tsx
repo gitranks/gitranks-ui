@@ -13,8 +13,8 @@ import { hasSessionHint } from '@/lib/session-hint';
 /** The signed-in person's side of a course, and whether the check leads the page. */
 export type CourseSide = { mine: LearnCourseMine; checkFirst: boolean };
 
-// The check's page ships in step 12, which turns this on: until then the check leads no course.
-const CHECK_PAGE_LIVE = false;
+// The check's page is live: a course not started may lead with it.
+const CHECK_PAGE_LIVE = true;
 
 /**
  * The person's side of a course from its route; null when there is none, and on any failure. `askCheck` asks whether

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   checkPath,
+  checkRouteOf,
   coursePath,
   courseRouteOf,
   fromLearn,
@@ -11,12 +12,14 @@ import {
   LEARN_COURSES_MINE_PATH,
   LEARN_PULL_REQUESTS_PATH,
   LEARN_SETTINGS_PATH,
+  learnCheckMinePath,
   learnCourseCardPath,
   learnCourseGonePath,
   learnCourseMarkdownRouteOf,
   learnCourseMinePath,
   learnCourseTag,
   learnFactCardPath,
+  learnKnownPath,
   learnLessonCardPath,
   learnLessonGonePath,
   learnLessonMarkdownPath,
@@ -35,6 +38,11 @@ describe("Learn's addresses", () => {
     expect(checkPath('algorithms')).toBe('/learn/check/algorithms');
     expect(learnLessonPath('hash-sets')).toBe('/learn/lessons/hash-sets');
     expect(coursePath('a b')).toBe('/learn/courses/a%20b');
+  });
+
+  it('gives "What you know" and the person’s run of a check, encoded', () => {
+    expect(learnKnownPath('algorithms')).toBe('/learn/check/algorithms?known');
+    expect(learnCheckMinePath('a b')).toBe('/api/me/learn/check/a%20b');
   });
 
   it("gives the review of every course or of one, and the person's set behind it, encoded", () => {
@@ -158,6 +166,15 @@ describe("a course's addresses", () => {
       '/learn/courses/algorithms/card.png',
     ]) {
       expect(courseRouteOf(path), path).toBeNull();
+    }
+  });
+
+  it("reads the course a course's check asks for, and nothing else", () => {
+    expect(checkRouteOf('/learn/check/algorithms')).toBe('algorithms');
+    expect(checkRouteOf('/learn/check/algorithms/')).toBe('algorithms');
+    expect(checkRouteOf('/learn/check/Algorithms')).toBe('Algorithms');
+    for (const path of ['/learn/check', '/learn/check/', '/learn/check/a/b', '/learn/courses/algorithms']) {
+      expect(checkRouteOf(path), path).toBeNull();
     }
   });
 });

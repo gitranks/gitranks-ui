@@ -1,7 +1,7 @@
 import type { Route } from 'next';
 
-import { LEARN_ADDRESS_TIMEOUT_MS, learnAddressGateOf } from './address-gate';
-import { learnCourseGonePath } from './paths';
+import { LEARN_ADDRESS_TIMEOUT_MS, type LearnAddressGate, learnAddressGateOf } from './address-gate';
+import { checkPath, learnCourseGonePath } from './paths';
 
 /*
  * A course's page streams: the response starts with a 200 before the page reads the course, so the page's notFound()
@@ -22,7 +22,20 @@ export type CourseGate =
 
 /** A course's page, asked within `timeoutMs`. */
 export async function courseGateOf(slug: string, timeoutMs = LEARN_ADDRESS_TIMEOUT_MS): Promise<CourseGate> {
+  return courseGateFrom(slug, await learnAddressGateOf('course', slug, timeoutMs));
+}
+
+/**
+ * A course's check (`/learn/check/<slug>`, and "What you know" at the same address), asked within `timeoutMs`: it
+ * streams as the course's page does, so its course is asked first. The course's gate, but a moved course goes on to
+ * the new course's check. A course that is there and offers no check is the page's to say.
+ */
+export async function checkGateOf(slug: string, timeoutMs = LEARN_ADDRESS_TIMEOUT_MS): Promise<CourseGate> {
   const gate = await learnAddressGateOf('course', slug, timeoutMs);
+  return gate.kind === 'moved' ? { kind: 'redirect', path: checkPath(gate.slug) } : courseGateFrom(slug, gate);
+}
+
+function courseGateFrom(slug: string, gate: LearnAddressGate): CourseGate {
   switch (gate.kind) {
     case 'missing':
       return { kind: 'missing' };

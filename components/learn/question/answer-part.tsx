@@ -38,8 +38,8 @@ export type AnswerPartPlace = {
   labels: { check: string; done: string };
   /** The extra choice answers in one press, as the review's "I don't remember" does; otherwise it is picked, then sent. */
   extraAnswers?: boolean;
-  /** What the status slot says before an answer, in place of the kind's own words. */
-  note?: (type: LearnQuestionType, picked: LearnPicked | null) => string;
+  /** What the status slot says before an answer, in place of the kind's own words; `extra`, the extra choice picked. */
+  note?: (type: LearnQuestionType, picked: LearnPicked | null, extra: boolean) => string;
   /** Draw the question's code in the card: a place with no lesson beside it (the review, the check). */
   withCode?: boolean;
 };
@@ -571,7 +571,11 @@ export function statusOf(
     const why = shown.why ?? (shown.missed ? MISSED_NOTE : type === 'PUT_IN_ORDER' ? OUT_OF_ORDER_NOTE : null);
     return { tone: 'wrong', lead: 'Not quite.', text: [why, againNoteOf(type)].filter(Boolean).join(' ') };
   }
-  return { tone: 'neutral', lead: null, text: place.note?.(type, state.picked) ?? openNoteOf(type, state.picked) };
+  return {
+    tone: 'neutral',
+    lead: null,
+    text: place.note?.(type, state.picked, state.extra) ?? openNoteOf(type, state.picked),
+  };
 }
 
 /** The keys of a number of things, 1 to 9 at most: each one up to four, else the first, an ellipsis, and the last. */

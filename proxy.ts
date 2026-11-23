@@ -6,7 +6,7 @@ import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
 import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
-import { courseGateOf } from './lib/learn/course-gate';
+import { checkGateOf, courseGateOf } from './lib/learn/course-gate';
 import { learnOpenToEveryone } from './lib/learn/learn-everyone';
 import {
   isLearnHomePath,
@@ -18,6 +18,7 @@ import {
 } from './lib/learn/learn-path';
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
 import {
+  checkRouteOf,
   courseRouteOf,
   LEARN_COURSE_MISSING_PATH,
   learnCourseMarkdownRouteOf,
@@ -201,10 +202,13 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
 
   // A course's page streams too, so its address is asked for here first, as a lesson's is: missing, the course's 404
   // page answers; paused or removed, its own page with a 503 or a 410; moved, a permanent redirect to its new address
-  // (the search kept). None is kept by a shared cache: a course comes back, and a new one may take a free address.
-  const course = request.method === 'GET' || request.method === 'HEAD' ? courseRouteOf(request.nextUrl.pathname) : null;
-  if (course) {
-    const gate = await courseGateOf(course);
+  // (the search kept). A course's check streams as well and is asked the same way; moved, it goes to the new course's
+  // check. None is kept by a shared cache: a course comes back, and a new one may take a free address.
+  const asked = request.method === 'GET' || request.method === 'HEAD';
+  const course = asked ? courseRouteOf(request.nextUrl.pathname) : null;
+  const checked = asked && !course ? checkRouteOf(request.nextUrl.pathname) : null;
+  if (course || checked) {
+    const gate = course ? await courseGateOf(course) : await checkGateOf(checked as string);
     if (gate.kind !== 'page') {
       const response =
         gate.kind === 'missing'

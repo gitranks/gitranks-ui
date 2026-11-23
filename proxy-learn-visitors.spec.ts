@@ -15,7 +15,10 @@ vi.mock('./lib/learn/lesson-gate', () => ({
   LESSON_MISSING_PATH: '/learn/lessons/_missing',
   lessonGateOf: async () => ({ kind: 'page' }),
 }));
-vi.mock('./lib/learn/course-gate', () => ({ courseGateOf: async () => ({ kind: 'page' }) }));
+vi.mock('./lib/learn/course-gate', () => ({
+  courseGateOf: async () => ({ kind: 'page' }),
+  checkGateOf: async () => ({ kind: 'page' }),
+}));
 const progressGate = vi.hoisted(() => ({ value: 'page' as 'page' | 'missing', asked: [] as string[] }));
 vi.mock('./lib/learn/public-progress/progress-gate', () => ({
   progressGateOf: async (login: string) => {

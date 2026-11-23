@@ -7,7 +7,7 @@ const { learnAddressGateOf } = vi.hoisted(() => ({
 }));
 vi.mock('./address-gate', () => ({ LEARN_ADDRESS_TIMEOUT_MS: 2000, learnAddressGateOf }));
 
-const { courseGateOf } = await import('./course-gate');
+const { checkGateOf, courseGateOf } = await import('./course-gate');
 
 beforeEach(() => learnAddressGateOf.mockReset());
 
@@ -19,7 +19,7 @@ describe("a course's gate", () => {
       [{ kind: 'paused' }, { kind: 'gone', status: 503, path: '/learn/courses/_gone/algorithms' }],
       [{ kind: 'removed' }, { kind: 'gone', status: 410, path: '/learn/courses/_gone/algorithms' }],
       [
-        { kind: 'moved', path: '/learn/courses/algorithms-and-data' as never },
+        { kind: 'moved', path: '/learn/courses/algorithms-and-data' as never, slug: 'algorithms-and-data' },
         { kind: 'redirect', path: '/learn/courses/algorithms-and-data' },
       ],
     ];
@@ -33,5 +33,26 @@ describe("a course's gate", () => {
   it('lets the page answer when the ask failed or was slow', async () => {
     learnAddressGateOf.mockResolvedValueOnce({ kind: 'unknown' });
     expect(await courseGateOf('algorithms')).toEqual({ kind: 'page' });
+  });
+});
+
+describe("a course's check's gate", () => {
+  it("asks the course, answers as the course's page does, and sends a moved course to the new one's check", async () => {
+    const cases: [LearnAddressGate, unknown][] = [
+      [{ kind: 'page' }, { kind: 'page' }],
+      [{ kind: 'unknown' }, { kind: 'page' }],
+      [{ kind: 'missing' }, { kind: 'missing' }],
+      [{ kind: 'paused' }, { kind: 'gone', status: 503, path: '/learn/courses/_gone/algorithms' }],
+      [{ kind: 'removed' }, { kind: 'gone', status: 410, path: '/learn/courses/_gone/algorithms' }],
+      [
+        { kind: 'moved', path: '/learn/courses/algorithms-and-data' as never, slug: 'algorithms-and-data' },
+        { kind: 'redirect', path: '/learn/check/algorithms-and-data' },
+      ],
+    ];
+    for (const [address, gate] of cases) {
+      learnAddressGateOf.mockResolvedValueOnce(address);
+      expect(await checkGateOf('algorithms'), address.kind).toEqual(gate);
+    }
+    expect(learnAddressGateOf).toHaveBeenCalledWith('course', 'algorithms', 2000);
   });
 });

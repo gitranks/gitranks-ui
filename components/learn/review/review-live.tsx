@@ -15,6 +15,7 @@ import {
   ReviewVisitor,
 } from './review-parts';
 import { PlayerRunEnd } from '@/components/learn/player/player-strip';
+import { useEnter, useFocusOnShow } from '@/components/learn/player/use-page-keys';
 import { usePlayer } from '@/components/learn/player/use-player';
 import { useLearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
@@ -56,32 +57,6 @@ type Personal =
   | { kind: 'ended' }
   | { kind: 'failed' }
   | { kind: 'ready'; side: ReviewSide; sitting: number; kept: Answered[] };
-
-/** Enter, where nothing else on the page takes it, does what `act` does. */
-function useEnter(act: (() => void) | null) {
-  useEffect(() => {
-    if (!act) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Enter' || event.defaultPrevented || event.repeat || event.isComposing) return;
-      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-      const target = event.target as HTMLElement | null;
-      if (target?.closest?.('a, button, input, textarea, select, summary, [contenteditable="true"]')) return;
-      event.preventDefault();
-      act();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [act]);
-}
-
-/** Moves the focus to the title of a screen that replaced another, so a screen reader reads where it is now. */
-function useFocusOnShow<T extends HTMLElement>(show: boolean) {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    if (show) ref.current?.focus();
-  }, [show]);
-  return ref;
-}
 
 /**
  * The daily review in the browser (page 16). The page is the person's own: once it is up, a person with a session

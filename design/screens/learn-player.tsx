@@ -3,7 +3,18 @@ import type { ReactNode } from 'react';
 import type { Screen } from '../registry';
 import { ExampleBlock } from '@/components/learn/blocks/example-block';
 import { VisualBlock } from '@/components/learn/blocks/visual-block';
-import { checkPlace, lessonPlace } from '@/components/learn/player/places';
+import {
+  CheckFrame,
+  CheckMessage,
+  type CheckMode,
+  CheckPending,
+  CheckQuestionCard,
+  checkResultEndOf,
+  KnownCard,
+  KnownList,
+  KnownSheet,
+} from '@/components/learn/check/check-parts';
+import { lessonPlace } from '@/components/learn/player/places';
 import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/learn/player/player-strip';
 import { AnswerPart } from '@/components/learn/question/answer-part';
 import { QuestionPart } from '@/components/learn/question/question-part';
@@ -17,6 +28,16 @@ import {
   ReviewPending,
   ReviewVisitor,
 } from '@/components/learn/review/review-parts';
+import { Button } from '@/components/ui/button';
+import {
+  checkResult,
+  checkResultAll,
+  checkResultNone,
+  checkResultOf,
+  checkRunOf,
+  knownSinceMine,
+} from '@/lib/learn/__fixtures__/check';
+import { algorithmsCourse } from '@/lib/learn/__fixtures__/course';
 import { answerAfter, checkQuestion, pickLineQuestion } from '@/lib/learn/__fixtures__/learn-question';
 import {
   compareVisual,
@@ -36,6 +57,20 @@ import {
   reviewReply,
   reviewSideEmpty,
 } from '@/lib/learn/__fixtures__/review';
+import {
+  checkIntroOf,
+  checkTitleOf,
+  checkVisitorTextOf,
+  handWordsOf,
+  type KnownGroup,
+  knownCountsOf,
+  knownGroupsOfCourse,
+  knownGroupsOfResult,
+  type LearnCheckGroup,
+  sheetActionsOf,
+  startOf,
+  tickedFirstOf,
+} from '@/lib/learn/check';
 import { canSendOf, type LearnAnswerAction } from '@/lib/learn/learn-answer';
 import type { LearnQuestion } from '@/lib/learn/learn-question';
 import type { LearnLessonLink } from '@/lib/learn/lesson-page';
@@ -74,18 +109,6 @@ function Labelled({ label, children }: { label: string; children: ReactNode }) {
       <span className="px-4 text-sm font-semibold">{label}</span>
       <div className="border-t">{children}</div>
     </section>
-  );
-}
-
-/** The review's and the check's column under the strip, as their boards draw it. */
-function Column({ from, children }: { from: string; children: ReactNode }) {
-  return (
-    <main className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16">
-      <div className="mx-auto flex w-full flex-col gap-4" style={{ maxWidth: '38rem' }}>
-        <div className="flex min-h-7 items-center text-sm text-muted-foreground">A lesson from {from}</div>
-        {children}
-      </div>
-    </main>
   );
 }
 
@@ -163,6 +186,109 @@ const ANSWERED: {
   },
 ];
 
+const CHECK_COURSE = { slug: algorithmsCourse.slug, title: algorithmsCourse.name };
+
+/** The check's question 4: "Stacks and queues". */
+const checkAsked = { ...checkRunOf(3).questions[3], question: checkQuestion };
+
+/** The check's page under its strip, at a point of its run. */
+function Check({ run, children }: { run: PlayerRun; children: ReactNode }) {
+  return (
+    <CheckFrame
+      course={CHECK_COURSE}
+      mode="check"
+      end={<PlayerRunEnd squares={squaresOf(run)} words={runWordsOf('Question', run)} />}
+    >
+      {children}
+    </CheckFrame>
+  );
+}
+
+/** Every lesson but the last of the course, ticked by hand on the board's result. */
+const HAND_TICKED = algorithmsCourse.groups.flatMap((group) => group.lessons.map((lesson) => lesson.slug)).slice(0, -1);
+
+/** The sheet's card for a state, with the buttons the live page gives it. */
+function SheetCard({ mode, groups, ticked }: { mode: CheckMode; groups: KnownGroup[]; ticked: ReadonlySet<string> }) {
+  const counts = knownCountsOf(groups, ticked);
+  const start = startOf(groups, ticked);
+  const actions = sheetActionsOf(mode, groups, ticked);
+  const primary = { label: actions.primary.label, act: noop };
+  const secondary = actions.secondary ? { label: actions.secondary.label, act: noop } : null;
+  return (
+    <KnownCard
+      mode={mode}
+      counts={counts}
+      start={start}
+      hand={mode === 'check' ? handWordsOf(groups, ticked) : null}
+      primary={primary}
+      secondary={secondary}
+      hints
+    />
+  );
+}
+
+/** The check's result for a state: our guess, then what the person ticked or unticked, a group opened. */
+function Sheet({
+  result,
+  tick = [],
+  untick = [],
+  open,
+}: {
+  result: LearnCheckGroup[];
+  tick?: readonly string[];
+  untick?: readonly string[];
+  open?: string;
+}) {
+  const groups = knownGroupsOfResult(result);
+  const ticked = new Set([...tickedFirstOf(groups), ...tick].filter((slug) => !untick.includes(slug)));
+  return (
+    <CheckFrame course={CHECK_COURSE} mode="check" wide end={checkResultEndOf(result)}>
+      <KnownSheet
+        state="result"
+        title={checkTitleOf(groups)}
+        intro={checkIntroOf(groups)}
+        list={
+          <KnownList
+            groups={groups}
+            ticked={ticked}
+            opened={new Set(open ? [open] : tick.length ? [groups[groups.length - 1].slug] : [])}
+            onGroup={noop}
+            onLesson={noop}
+            onOpen={noop}
+          />
+        }
+        card={<SheetCard mode="check" groups={groups} ticked={ticked} />}
+      />
+    </CheckFrame>
+  );
+}
+
+/** "What you know": the saved marks, three lessons of a group learned since. */
+function Known() {
+  const groups = knownGroupsOfCourse(algorithmsCourse, knownSinceMine);
+  const ticked = tickedFirstOf(groups);
+  return (
+    <CheckFrame course={CHECK_COURSE} mode="known" wide>
+      <KnownSheet
+        state="known"
+        title="What you already know in this course"
+        intro="Tick the lessons you know without answering them, or untick the ones you want to learn after all. A lesson you learned by answering stays learned."
+        list={
+          <KnownList
+            groups={groups}
+            ticked={ticked}
+            opened={new Set(['hash-maps-and-sets'])}
+            onGroup={noop}
+            onLesson={noop}
+            onOpen={noop}
+          />
+        }
+        card={<SheetCard mode="known" groups={groups} ticked={ticked} />}
+      />
+    </CheckFrame>
+  );
+}
+
 /** The player's parts the pages share: the strip of each place, the card with highlighted code, and the blocks. */
 export const LEARN_PLAYER_SCREEN: Screen = {
   id: 'learn-player',
@@ -174,6 +300,8 @@ export const LEARN_PLAYER_SCREEN: Screen = {
     'components/learn/player/places.ts',
     'components/learn/player/use-player.ts',
     'components/learn/review/review-parts.tsx',
+    'components/learn/check/check-parts.tsx',
+    'lib/learn/check.ts',
     'lib/learn/review.ts',
     'components/learn/blocks/example-block.tsx',
     'components/learn/blocks/code-lines.tsx',
@@ -349,25 +477,100 @@ export const LEARN_PLAYER_SCREEN: Screen = {
     },
     {
       id: 'check-card',
-      title: 'The check’s card under its strip',
+      title:
+        'The check: a question, “I don’t know”, the result, nothing known, stopped, all known, by hand, What you know',
       path: '/learn/check/algorithms',
-      height: 900,
+      height: 10340,
       render: () => (
-        <>
-          <PlayerStrip
-            crumbs={[LEARN, COURSE, { label: 'Check' }]}
-            end={<PlayerRunEnd squares={squaresOf(checkRun)} words={runWordsOf('Question', checkRun)} />}
-          />
-          <Column from="Stacks">
-            <AnswerPart
-              question={checkQuestion}
-              answer={answerOf(checkQuestion, [])}
-              place={checkPlace(false)}
-              hints
-              keyLineEnd={<span className="text-sm text-muted-foreground">Stop and see the result</span>}
+        <div className="flex flex-col gap-8 p-6">
+          <Frame title="Question 4 of 9: the group above the card, no right or wrong, and the way to stop" height={900}>
+            <Check run={checkRun}>
+              <CheckQuestionCard
+                asked={checkAsked}
+                answer={answerOf(checkQuestion, [])}
+                last={false}
+                hints
+                onStop={noop}
+              />
+            </Check>
+          </Frame>
+          <Frame title="“I don’t know” picked: a fine answer, and the button goes on" height={900}>
+            <Check run={checkRun}>
+              <CheckQuestionCard
+                asked={checkAsked}
+                answer={answerOf(checkQuestion, [{ type: 'extra' }])}
+                last={false}
+                hints
+                onStop={noop}
+              />
+            </Check>
+          </Frame>
+          <Frame title="The result: our guess, a group opened and two lessons unticked by hand" height={1240}>
+            <Sheet
+              result={checkResult}
+              untick={['what-happens-when-two-keys-collide', 'when-a-hash-map-is-the-wrong-choice']}
+              open="hash-maps-and-sets"
             />
-          </Column>
-        </>
+          </Frame>
+          <Frame title="Nothing right: nothing is marked, and the person can still tick what they know" height={1000}>
+            <Sheet result={checkResultNone} />
+          </Frame>
+          <Frame
+            title="Stopped before the first answer: the strip says so with no count, nothing is marked"
+            height={1000}
+          >
+            <Sheet result={checkResultOf([])} />
+          </Frame>
+          <Frame title="Every answer right: all lessons marked, no lesson left to start at" height={1000}>
+            <Sheet result={checkResultAll} />
+          </Frame>
+          <Frame title="Ticked by hand: the card says how many, and where the person starts" height={1100}>
+            <Sheet result={checkResult} tick={HAND_TICKED} />
+          </Frame>
+          <Frame title="What you know, opened from the course: learned lessons shown and kept" height={1240}>
+            <Known />
+          </Frame>
+          <Frame title="Signed out (an ended session): what the check does, and the way in" height={320}>
+            <CheckFrame course={CHECK_COURSE} mode="check">
+              <CheckMessage
+                state="visitor"
+                title="The check needs an account"
+                text={checkVisitorTextOf(algorithmsCourse)}
+              >
+                <Button type="button" size="lg" className="min-h-11 font-semibold">
+                  Sign in with GitHub
+                </Button>
+              </CheckMessage>
+            </CheckFrame>
+          </Frame>
+          <Frame title="While the run is on its way: the card’s place, of its size" height={480}>
+            <CheckFrame course={CHECK_COURSE} mode="check">
+              <CheckPending />
+            </CheckFrame>
+          </Frame>
+          <Frame title="The run did not come, and a course whose check is closed just now" height={560}>
+            <CheckFrame course={CHECK_COURSE} mode="check">
+              <CheckMessage
+                state="failed"
+                title="Your check did not load"
+                text="Your progress is safe; we could not read it just now. Try again in a minute."
+              >
+                <Button type="button" size="lg" className="min-h-11 font-semibold">
+                  Try again
+                </Button>
+              </CheckMessage>
+              <CheckMessage
+                state="missing"
+                title="This course has no check just now"
+                text="The check comes back once every group of the course is open again. Its lessons are still open to you."
+              >
+                <Button type="button" size="lg" className="min-h-11 font-semibold">
+                  Back to the course
+                </Button>
+              </CheckMessage>
+            </CheckFrame>
+          </Frame>
+        </div>
       ),
     },
     {

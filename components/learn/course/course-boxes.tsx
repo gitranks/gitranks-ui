@@ -17,7 +17,7 @@ import {
   reviewMinutesWords,
   toRepeatWords,
 } from '@/lib/learn/course';
-import { checkPath, coursePath, LEARN_REVIEW_PATH, learnLessonPath } from '@/lib/learn/paths';
+import { checkPath, coursePath, LEARN_REVIEW_PATH, learnKnownPath, learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
 
 /*
@@ -285,7 +285,7 @@ function MiddleBox({
           <Text>
             You said you know them without answering. They stay out of your review, and you can change this at any time.
           </Text>
-          <Action lit={lit} hints={hints} href={check}>
+          <Action lit={lit} hints={hints} href={learnKnownPath(slug)}>
             Change what you know
           </Action>
         </Box>

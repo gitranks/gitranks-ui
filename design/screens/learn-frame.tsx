@@ -44,7 +44,13 @@ function Part({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /** The bar above Set up Learn: its tab the current place, or a learner's bar once the setup was saved before. */
-const SETUP_BAR: LearnBarState = { kind: 'setup', setup: 'ready', due: 0, pullRequests: false, pullRequestsNeedYou: 0 };
+const SETUP_BAR: LearnBarState = {
+  kind: 'setup',
+  setup: 'guessed',
+  due: 0,
+  pullRequests: false,
+  pullRequestsNeedYou: 0,
+};
 const SAVED_BAR: LearnBarState = { kind: 'learner', due: 0, pullRequests: false, pullRequestsNeedYou: 0 };
 
 /** One state of Set up Learn: its name, then the bar and the page, cut at `height`. */
@@ -116,7 +122,7 @@ export const LEARN_FRAME_SCREENS: Screen[] = [
         id: 'bars',
         title: 'The bar, the “Set up Learn” tab, and Set up Learn, in every state',
         path: '/learn',
-        height: 10560,
+        height: 10640,
         render: () => (
           <main className="mx-auto flex w-full flex-col gap-11 px-4 pt-8 pb-16" style={{ maxWidth: 1340 }}>
             <Part title="Learn’s bar (page 7)">

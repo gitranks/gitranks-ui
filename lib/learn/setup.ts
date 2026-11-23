@@ -153,15 +153,23 @@ export function setupFormAfter(form: SetupForm, read: LearnSetupRead, examplePic
   const values = { ...form.values };
   const filled: SetupField[] = [];
   let mainFrom = form.mainFrom;
+  // A language the person ticked under the others stays there: it never becomes the main language they did not choose.
+  const ticked = (language: SetupLanguage) =>
+    form.touched.includes('otherLanguages') && form.values.otherLanguages.includes(language);
   if (open('mainLanguage')) {
     if (shown.mainLanguage) {
-      values.mainLanguage = shown.mainLanguage;
-      filled.push('mainLanguage');
+      if (!ticked(shown.mainLanguage)) {
+        values.mainLanguage = shown.mainLanguage;
+        filled.push('mainLanguage');
+      }
       mainFrom = null;
     } else if (read.state === 'GUESSED') {
       const picked = isSetupLanguage(examplePick) ? examplePick : null;
-      values.mainLanguage = picked ?? FOR_NOW_LANGUAGE;
-      mainFrom = picked ? 'example' : 'for-now';
+      const main = picked ?? FOR_NOW_LANGUAGE;
+      if (!ticked(main)) {
+        values.mainLanguage = main;
+        mainFrom = picked ? 'example' : 'for-now';
+      }
     }
   }
   if (open('otherLanguages')) {
@@ -172,7 +180,8 @@ export function setupFormAfter(form: SetupForm, read: LearnSetupRead, examplePic
     values.level = shown.level;
     filled.push('level');
   }
-  // The main language, chosen by the person or found, is never one of the others.
+  // The main language, chosen by the person or found, is never one of the others. It only ever drops a language our
+  // guess added: a language the person ticked never becomes the main language above.
   values.otherLanguages = values.otherLanguages.filter((language) => language !== values.mainLanguage);
   const guess = read.state === 'GUESSED';
   return {
@@ -256,6 +265,10 @@ export function setupIntroOf(form: SetupForm): string {
       if (form.mainFrom === 'example' && form.values.mainLanguage) {
         const name = languageNameOf(form.values.mainLanguage);
         return `We found nothing about you to start from. You switched an example to ${name}, so ${name} is your main language now. Fill in the rest, then save.`;
+      }
+      // A language the person ticked was kept off the main language: nothing is filled in for now.
+      if (form.mainFrom !== 'for-now') {
+        return 'We found nothing about you to start from. Choose what fits you, then save.';
       }
       return 'We found nothing about you to start from, so examples open in Python for now. Choose what fits you, then save.';
     }

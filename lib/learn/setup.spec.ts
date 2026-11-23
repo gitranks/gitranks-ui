@@ -132,6 +132,42 @@ describe("Set up Learn: the page's states, as page 5's board draws them", () => 
     expect(pills(setupFormAfter(chosen, setupGuessed, null))).toEqual(['picked', null, 'guess']);
   });
 
+  it('never moves a language the person ticked under the others into the main language our guess fills', () => {
+    const waiting = setupFormAfter(pendingSetupForm(), setupWorking, null);
+    // While the guess runs, they tick Go; the guess comes back with Go as the main language.
+    const tickedGo = setupFormPick(waiting, { field: 'otherLanguages', language: 'go' });
+    const arrived = setupFormAfter(tickedGo, setupGuessed, null);
+    expect(arrived.values).toEqual({ mainLanguage: null, otherLanguages: ['go'], level: 3 });
+    expect(pills(arrived)).toEqual([null, 'picked', 'guess']);
+    expect(missingOf(arrived.values)).toEqual(['mainLanguage']);
+    // A main language they did not tick is still filled, and their ticks stay as they are.
+    const tickedRust = setupFormPick(waiting, { field: 'otherLanguages', language: 'rust' });
+    expect(setupFormAfter(tickedRust, setupGuessed, null).values).toEqual({
+      mainLanguage: 'go',
+      otherLanguages: ['rust'],
+      level: 3,
+    });
+  });
+
+  it('never moves a ticked language into the main language when our guess found nothing', () => {
+    const waiting = setupFormAfter(pendingSetupForm(), setupWorking, null);
+    const tickedPython = setupFormPick(waiting, { field: 'otherLanguages', language: 'python' });
+    const forNow = setupFormAfter(tickedPython, setupNothing, null);
+    expect(forNow.values).toEqual({ mainLanguage: null, otherLanguages: ['python'], level: 2 });
+    expect(forNow.mainFrom).toBeNull();
+    expect(pills(forNow)).toEqual([null, 'picked', 'guess']);
+    expect(setupIntroOf({ ...forNow, arrived: false })).toBe(
+      'We found nothing about you to start from. Choose what fits you, then save.',
+    );
+    // The language they switched an example to, ticked as well: it stays among the others.
+    const tickedRust = setupFormPick(waiting, { field: 'otherLanguages', language: 'rust' });
+    expect(setupFormAfter(tickedRust, setupNothing, 'rust').values).toEqual({
+      mainLanguage: null,
+      otherLanguages: ['rust'],
+      level: 2,
+    });
+  });
+
   it('5 · nothing found: Python for now, the level ours', () => {
     const form = formOf(4);
     expect(form.values).toEqual({ mainLanguage: 'python', otherLanguages: [], level: 2 });

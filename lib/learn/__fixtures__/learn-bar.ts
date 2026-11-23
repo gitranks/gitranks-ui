@@ -11,10 +11,10 @@ const learner = (patch: Partial<Extract<LearnBarState, { kind: 'learner' }>> = {
   ...patch,
 });
 
-/** A signed-in person who has not saved their setup: our guess ready unless the patch says it still runs. */
+/** A signed-in person who has not saved their setup: our guess in unless the patch says otherwise. */
 const notSetUp = (patch: Partial<Extract<LearnBarState, { kind: 'setup' }>> = {}): LearnBarState => ({
   kind: 'setup',
-  setup: 'ready',
+  setup: 'guessed',
   due: 0,
   pullRequests: false,
   pullRequestsNeedYou: 0,
@@ -69,4 +69,9 @@ export const learnSetupTabRows: LearnBarFixture[] = [
   },
   { title: '5 · After they save', state: learner({ due: 6 }), place: 'home' },
   { title: '6 · Not signed in', state: { kind: 'visitor' }, place: 'home' },
+  {
+    title: '7 · No guess to check (it could not start, or was dropped): a plain outline',
+    state: notSetUp({ setup: 'open' }),
+    place: 'courses',
+  },
 ];

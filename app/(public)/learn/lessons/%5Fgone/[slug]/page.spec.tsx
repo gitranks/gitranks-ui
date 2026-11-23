@@ -10,6 +10,7 @@ const { loadLearnAddress, notFound } = vi.hoisted(() => ({
 vi.mock('server-only', () => ({}));
 vi.mock('next/navigation', () => ({ notFound }));
 vi.mock('@/lib/learn/lesson-page.data', () => ({ loadLearnAddress }));
+vi.mock('@/lib/learn/setup.actions', () => ({ startLearnSetupGuessAction: vi.fn() }));
 
 const { default: LessonGonePage, generateMetadata } = await import('./page');
 const { LessonGoneView } = await import('@/components/learn/lesson/lesson-gone');

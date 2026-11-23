@@ -129,6 +129,25 @@ describe('Set up Learn in the browser', () => {
     await click(buttonOf('Try again')!);
     expect(state()).toBe('guess');
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    // The button is gone: the form's title holds the focus, never the page's body.
+    expect(title()).toBe('Set up Learn');
+    expect(document.activeElement).toBe($('h1'));
+  });
+
+  it('keeps the focus on the form’s title after Try again while the setup is still on its way', async () => {
+    answers({ status: 500 });
+    await draw();
+    fetchMock.mockImplementation(() => new Promise<Response>(() => {}));
+    await click(buttonOf('Try again')!);
+    expect(state()).toBe('pending');
+    expect(document.activeElement).toBe($('h1'));
+    expect(document.activeElement).not.toBe(document.body);
+  });
+
+  it('never moves the focus to the title on a first read', async () => {
+    answers({ setup: setupGuessed });
+    await draw();
+    expect(document.activeElement).toBe(document.body);
   });
 
   it('asks to sign in again when the session ended', async () => {
@@ -149,6 +168,9 @@ describe('Set up Learn in the browser', () => {
     // The main language is not offered among the others.
     expect(input('otherLanguages', 'go')).toBeNull();
     expect(saveButton().textContent).toBe('Save and take the 2-minute check');
+    // It points to no section Settings does not have yet.
+    expect(host.textContent).toContain('You can change this later.');
+    expect(host.textContent).not.toContain('Learn preferences');
     expect(startLearnSetupGuessAction).not.toHaveBeenCalled();
     await click(saveButton());
     expect(saveLearnSetupAction).toHaveBeenCalledWith({ mainLanguage: 'go', otherLanguages: ['python'], level: 3 });

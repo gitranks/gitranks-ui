@@ -176,6 +176,7 @@ export function SetupView({
   onSignIn,
   mainRef,
   levelRef,
+  titleRef,
 }: {
   form: SetupForm;
   destination: SetupDestination;
@@ -187,6 +188,8 @@ export function SetupView({
   onSignIn?: () => void;
   mainRef?: Ref<HTMLInputElement>;
   levelRef?: Ref<HTMLInputElement>;
+  /** The title, which takes the focus when the page comes back after "Try again". */
+  titleRef?: Ref<HTMLHeadingElement>;
 }) {
   const pending = form.source === 'pending';
   const { mainLanguage, otherLanguages, level } = form.values;
@@ -201,7 +204,9 @@ export function SetupView({
   return (
     <SetupFrame state={form.arrived ? 'arrived' : form.source}>
       <header className="flex flex-col gap-1.5">
-        <h1 className="m-0 text-2xl font-bold tracking-tight sm:text-3xl">Set up Learn</h1>
+        <h1 ref={titleRef} tabIndex={-1} className="m-0 text-2xl font-bold tracking-tight outline-none sm:text-3xl">
+          Set up Learn
+        </h1>
         <p aria-live="polite" className="m-0 max-w-[75ch] text-sm text-muted-foreground" data-setup-intro="">
           {setupIntroOf(form)}
         </p>
@@ -305,9 +310,7 @@ export function SetupView({
               {hints ? <Kbd onPrimary>⏎</Kbd> : null}
             </Button>
             {form.source === 'saved' ? null : (
-              <span className="text-sm text-muted-foreground">
-                You can change this later in Settings, under Learn preferences.
-              </span>
+              <span className="text-sm text-muted-foreground">You can change this later.</span>
             )}
           </div>
           <div role="status" className="min-h-5" id="learn-setup-notice">

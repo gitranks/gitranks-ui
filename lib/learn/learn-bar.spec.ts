@@ -9,9 +9,10 @@ describe("Learn's bar", () => {
     expect(learnBarStateOf(null)).toEqual({ kind: 'visitor' });
     expect(learnBarStateOf(undefined)).toEqual({ kind: 'visitor' });
     const waiting = { due: 6, pullRequests: true, pullRequestsNeedYou: 1 };
-    for (const setup of ['NONE', 'WORKING', 'GUESSED'] as const) {
-      expect(learnBarStateOf({ ...read, setup })).toEqual({ kind: 'setup', setup: 'ready', ...waiting });
-    }
+    expect(learnBarStateOf({ ...read, setup: 'GUESSED' })).toEqual({ kind: 'setup', setup: 'guessed', ...waiting });
+    expect(learnBarStateOf({ ...read, setup: 'WORKING' })).toEqual({ kind: 'setup', setup: 'working', ...waiting });
+    // No guess to check: it could not start, or it was dropped.
+    expect(learnBarStateOf({ ...read, setup: 'NONE' })).toEqual({ kind: 'setup', setup: 'open', ...waiting });
     expect(learnBarStateOf(read)).toEqual({ kind: 'learner', ...waiting });
     expect(learnBarStateOf({ ...read, due: -1, pullRequestsNeedYou: -2 })).toMatchObject({
       due: 0,
@@ -22,14 +23,18 @@ describe("Learn's bar", () => {
   it('shows the spinner while our guess runs from the page, and only before it is in', () => {
     expect(learnBarStateOf({ ...read, setup: 'NONE' }, true)).toMatchObject({ kind: 'setup', setup: 'working' });
     expect(learnBarStateOf({ ...read, setup: 'WORKING' }, true)).toMatchObject({ kind: 'setup', setup: 'working' });
-    expect(learnBarStateOf({ ...read, setup: 'GUESSED' }, true)).toMatchObject({ kind: 'setup', setup: 'ready' });
+    expect(learnBarStateOf({ ...read, setup: 'GUESSED' }, true)).toMatchObject({ kind: 'setup', setup: 'guessed' });
     expect(learnBarStateOf(read, true)).toMatchObject({ kind: 'learner' });
   });
 
-  it('shows Home and Courses to everyone, Progress and Settings to a learner, and no Issues tab in wave 1', () => {
+  it('shows Home and Courses to everyone, Progress and Settings to anyone signed in, and no Issues tab in wave 1', () => {
+    const all = ['home', 'courses', 'progress', 'settings'];
     expect(learnBarTabsOf({ kind: 'visitor' })).toEqual(['home', 'courses']);
-    expect(learnBarTabsOf(learnBarStateOf({ ...read, setup: 'GUESSED' }))).toEqual(['home', 'courses']);
-    expect(learnBarTabsOf(learnBarStateOf(read))).toEqual(['home', 'courses', 'progress', 'settings']);
+    // Setting up is not required: a person who keeps our guess has their progress and settings all the same.
+    for (const setup of ['NONE', 'WORKING', 'GUESSED'] as const) {
+      expect(learnBarTabsOf(learnBarStateOf({ ...read, setup }))).toEqual(all);
+    }
+    expect(learnBarTabsOf(learnBarStateOf(read))).toEqual(all);
   });
 
   it.each([

@@ -59,6 +59,7 @@ describe("Learn's bar", () => {
 
   const SETUP_READY = 'Set up Learn, our guess is ready to check';
   const SETUP_WORKING = 'Set up Learn, reading your GitHub profile';
+  const SETUP_OPEN = 'Set up Learn, nothing to check yet';
   const setupLook = () => container.querySelector('[data-learn-setup-tab]')?.getAttribute('data-learn-setup-tab');
 
   const tabs = () => [...container.querySelectorAll('ul a')].map((a) => a.textContent);
@@ -69,7 +70,7 @@ describe("Learn's bar", () => {
   /** What each row of page 7's board shows: the tabs, the current place, and the right side. */
   const expected = [
     { tabs: 2, current: ['Home'], items: [] },
-    { tabs: 2, current: ['Home'], items: [['/learn/setup', SETUP_READY]] },
+    { tabs: 4, current: ['Home'], items: [['/learn/setup', SETUP_READY]] },
     { tabs: 4, current: ['Home'], items: [] },
     { tabs: 4, current: ['Home'], items: [['/learn/review', 'Review 6 lessons due']] },
     {
@@ -114,7 +115,7 @@ describe("Learn's bar", () => {
       await act(async () => root.render(<LearnBar state={row.state} place={row.place} />));
       expect(container.querySelector('[data-learn-bar]')?.getAttribute('data-learn-bar')).toBe(row.state.kind);
       expect(current()).toEqual(['Home']);
-      expect(tabs()).toHaveLength(row.state.kind === 'learner' ? 4 : 2);
+      expect(tabs()).toHaveLength(row.state.kind === 'visitor' ? 2 : 4);
     }
   });
 
@@ -193,10 +194,10 @@ describe("Learn's bar", () => {
   /** What each row of page 5's board of the tab shows: its look, the right side, and the current place. */
   const setupExpected = [
     { look: 'working', items: [['/learn/setup', SETUP_WORKING]], current: ['Courses'] },
-    { look: 'ready', items: [['/learn/setup', SETUP_READY]], current: ['Courses'] },
+    { look: 'guessed', items: [['/learn/setup', SETUP_READY]], current: ['Courses'] },
     { look: 'current', items: [['/learn/setup', 'Set up Learn']], current: ['Set up Learn'] },
     {
-      look: 'ready',
+      look: 'guessed',
       items: [
         ['/learn/setup', SETUP_READY],
         ['/my/pull-requests?from=learn', 'Pull requests 1 need you'],
@@ -206,6 +207,7 @@ describe("Learn's bar", () => {
     },
     { look: undefined, items: [['/learn/review', 'Review 6 lessons due']], current: ['Home'] },
     { look: undefined, items: [], current: ['Home'] },
+    { look: 'open', items: [['/learn/setup', SETUP_OPEN]], current: ['Courses'] },
   ];
 
   it.each(learnSetupTabRows.map((row, index) => [row.title, row, setupExpected[index]] as const))(
@@ -228,6 +230,11 @@ describe("Learn's bar", () => {
     const classes = container.querySelector('[data-learn-setup-tab]')?.className.split(' ') ?? [];
     expect(classes).toContain('motion-safe:animate-learn-setup-pulse');
     expect(classes.filter((name) => name.startsWith('animate-'))).toEqual([]);
+    // No guess to check: no dot, no pulse.
+    const open = learnSetupTabRows[6];
+    await act(async () => root.render(<LearnBar state={open.state} place={open.place} />));
+    expect(container.querySelector('[data-learn-setup-tab]')?.className).not.toContain('animate');
+    expect(container.querySelector('[data-learn-setup-tab] [aria-hidden]')).toBeNull();
   });
 
   it('asks nothing without a session', async () => {
@@ -261,7 +268,7 @@ describe("Learn's bar", () => {
 
     await act(async () => vi.advanceTimersByTime(2000));
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(setupLook()).toBe('ready');
+    expect(setupLook()).toBe('guessed');
 
     // In: nothing more is asked, and the guess is never started twice.
     await act(async () => vi.advanceTimersByTime(10_000));
@@ -282,14 +289,15 @@ describe("Learn's bar", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('leaves the tab ready to open when our guess cannot start, and asks no more', async () => {
+  it('says there is nothing to check when our guess cannot start, and asks no more', async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn(async () => barOf('NONE'));
     vi.stubGlobal('fetch', fetchMock);
     startLearnSetupGuessAction.mockResolvedValue({ ok: false, error: 'FAILED' });
     path.current = '/learn/courses';
     await act(async () => root.render(<LearnBarLive />));
-    expect(setupLook()).toBe('ready');
+    expect(setupLook()).toBe('open');
+    expect(items()).toEqual([['/learn/setup', SETUP_OPEN]]);
     await act(async () => vi.advanceTimersByTime(10_000));
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -307,7 +315,8 @@ describe("Learn's bar", () => {
     await act(async () => vi.advanceTimersByTime(2000));
     await act(async () => vi.advanceTimersByTime(2000));
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(setupLook()).toBe('ready');
+    // Still guessing, as the last answer said: never "ready to check" without a guess.
+    expect(setupLook()).toBe('working');
     expect(items()).toContainEqual(['/learn/review', 'Review 2 lessons due']);
     await act(async () => vi.advanceTimersByTime(10_000));
     expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -322,6 +331,7 @@ describe("Learn's bar", () => {
     await act(async () => root.render(<LearnBarLive />));
     for (let tick = 0; tick < 20; tick += 1) await act(async () => vi.advanceTimersByTime(2000));
     expect(fetchMock).toHaveBeenCalledTimes(16);
-    expect(setupLook()).toBe('ready');
+    expect(setupLook()).toBe('working');
+    expect(items()).toEqual([['/learn/setup', SETUP_WORKING]]);
   });
 });

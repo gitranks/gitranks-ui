@@ -7,13 +7,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const { hint } = vi.hoisted(() => ({ hint: { present: false } }));
 // The session's hint cookie, as the browser holds it.
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
+const { startLearnSetupGuessAction } = vi.hoisted(() => ({
+  startLearnSetupGuessAction: vi.fn(async () => ({ ok: true as const, data: 'WORKING' as const })),
+}));
+// Our guess of the person's setup, which every Learn page a signed-in person opens starts.
+vi.mock('@/lib/learn/setup.actions', () => ({ startLearnSetupGuessAction }));
 
 import { LessonGoneView } from './lesson-gone';
 import { LessonGoneLearner } from './lesson-gone-learner';
 import { goneLearnerMine, pausedAddress } from '@/lib/learn/__fixtures__/lesson-gone';
 import { lessonGoneTextOf } from '@/lib/learn/lesson-gone';
+import { forgetLearnSetupGuessStart } from '@/lib/learn/use-setup-guess';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+beforeEach(() => {
+  startLearnSetupGuessAction.mockClear();
+  forgetLearnSetupGuessStart();
+});
 
 describe("a paused or removed lesson's page", () => {
   it('says what the address was, its state, one sentence, and leads to the course', () => {
@@ -70,6 +81,7 @@ describe("the learner's line", () => {
   it('asks for nothing without a session, and shows no box', async () => {
     await draw('PAUSED');
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(startLearnSetupGuessAction).not.toHaveBeenCalled();
     expect(host.innerHTML).toBe('');
   });
 
@@ -78,6 +90,8 @@ describe("the learner's line", () => {
     fetchMock.mockImplementation(async () => new Response(JSON.stringify({ mine: goneLearnerMine })));
     await draw('PAUSED');
     expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/lessons/sets', { cache: 'no-store' });
+    // Our guess of the setup starts here too, once.
+    expect(startLearnSetupGuessAction).toHaveBeenCalledTimes(1);
     const box = host.querySelector('[data-lesson-gone-learner]')!;
     expect(box.textContent).toMatch(/^You learned it on 1[45] Nov\. That stays\./);
     expect(box.querySelector('[aria-hidden]')).not.toBeNull();

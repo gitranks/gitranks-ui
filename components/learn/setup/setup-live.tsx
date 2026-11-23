@@ -69,6 +69,8 @@ export function SetupLive({ starts }: { starts: SetupStarts }) {
   const mainRef = useRef<HTMLInputElement>(null);
   const levelRef = useRef<HTMLInputElement>(null);
   const titleRef = useFocusOnShow<HTMLHeadingElement>(page !== 'form');
+  // After "Try again" the button is gone: the form's title takes the focus, so the person's place is not lost.
+  const formTitleRef = useFocusOnShow<HTMLHeadingElement>(page === 'form' && attempt > 0);
   // Once saved, a read still on its way changes nothing.
   const saved = useRef(false);
 
@@ -192,6 +194,7 @@ export function SetupLive({ starts }: { starts: SetupStarts }) {
       onSignIn={signInHere}
       mainRef={mainRef}
       levelRef={levelRef}
+      titleRef={formTitleRef}
     />
   );
 }

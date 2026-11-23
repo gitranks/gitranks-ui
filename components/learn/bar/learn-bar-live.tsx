@@ -29,8 +29,9 @@ export async function readLearnBar(): Promise<LearnBarRead | null> {
 /**
  * Learn's bar on Learn's pages. The page is the same for everyone, so the bar starts as a visitor's and the person's
  * own (their tabs, what is due) is read in the browser once the page is up, and again on each move to another page,
- * since a review or a setup changes it. A browser with no session asks nothing. On the person's first Learn page our
- * guess of their setup starts here (Set up Learn starts it itself), and the bar is read again every two seconds while
+ * since a review or a setup changes it. A browser with no session asks nothing. With no setup yet, our guess of it
+ * starts here (Set up Learn starts it itself; the lesson, review and check pages, which have no bar, start it from
+ * their own side: `useLearnSetupGuess`), and the bar is read again every two seconds while
  * it runs: "Set up Learn" shows a spinner until the guess is in. `from` is the page's `?from=`, for a page both products share.
  */
 export function LearnBarLive({ from = null }: { from?: string | null }) {
@@ -64,7 +65,7 @@ export function LearnBarLive({ from = null }: { from?: string | null }) {
           return;
         }
       }
-      // A guess dropped (none again) or a read that failed ends the asking: the tab is ready to open.
+      // A guess dropped (none again) or a read that failed ends the asking: the tab shows what the last answer said.
       const running =
         !!fetched && polls < GUESS_POLLS && (bar?.setup === 'WORKING' || (polls === 0 && bar?.setup === 'NONE'));
       setState(learnBarStateOf(bar, running));

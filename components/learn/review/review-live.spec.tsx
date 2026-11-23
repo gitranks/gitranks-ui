@@ -14,13 +14,24 @@ vi.mock('next-auth/react', () => ({ signIn }));
 vi.mock('@/lib/learn/review.actions', () => ({ answerLearnReviewAction }));
 // The session's hint cookie, as the browser holds it.
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
+const { startLearnSetupGuessAction } = vi.hoisted(() => ({
+  startLearnSetupGuessAction: vi.fn(async () => ({ ok: true as const, data: 'WORKING' as const })),
+}));
+// Our guess of the person's setup, which every Learn page a signed-in person opens starts.
+vi.mock('@/lib/learn/setup.actions', () => ({ startLearnSetupGuessAction }));
 
 const { ReviewLive, readReviewSide } = await import('./review-live');
+const { forgetLearnSetupGuessStart } = await import('@/lib/learn/use-setup-guess');
 const { algorithms, reviewItem, reviewNext, reviewReply, reviewSide, reviewSideEmpty, reviewSideMore } = await import(
   '@/lib/learn/__fixtures__/review'
 );
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+beforeEach(() => {
+  startLearnSetupGuessAction.mockClear();
+  forgetLearnSetupGuessStart();
+});
 
 let root: Root;
 let host: HTMLDivElement;
@@ -396,5 +407,24 @@ describe('the review, for a person with a session', () => {
     expect(host.textContent).toContain('Lesson 1 of 6');
     // The new sitting's first card takes the focus: the button pressed is gone.
     expect(lessonFocused()).toBe('Lesson 1 of 6');
+  });
+});
+
+describe('our guess of the setup, from the review', () => {
+  it('is never started for a visitor', async () => {
+    await draw();
+    expect(state()).toBe('visitor');
+    expect(startLearnSetupGuessAction).not.toHaveBeenCalled();
+  });
+
+  it('is started once for a person with a session, and the review never waits for it', async () => {
+    hint.present = true;
+    answer(reviewSide);
+    startLearnSetupGuessAction.mockImplementation(() => new Promise(() => {}));
+    await draw();
+    await draw();
+    expect(startLearnSetupGuessAction).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(state()).not.toBe('pending');
   });
 });

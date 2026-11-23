@@ -26,6 +26,7 @@ import type { LearnReviewAnswered, ReviewDone, ReviewItemShown, ReviewSide } fro
 import { answerLearnReviewAction } from '@/lib/learn/review.actions';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
+import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /**
@@ -64,6 +65,7 @@ type Personal =
  * that does not come says so, with a way to try again. The sitting asks each lesson once, then ends with what changed.
  */
 export function ReviewLive({ course }: { course: LearnLessonLink | null }) {
+  useLearnSetupGuess();
   const [personal, setPersonal] = useState<Personal>({ kind: 'pending' });
   const scope = course?.slug ?? null;
   const sittings = useRef(0);

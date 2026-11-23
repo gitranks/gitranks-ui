@@ -12,6 +12,7 @@ import {
   LEARN_BAR_LINKS,
   LEARN_BAR_TABS,
   type LearnBarPlace,
+  type LearnBarSetup,
   type LearnBarState,
   learnBarTabsOf,
 } from '@/lib/learn/learn-bar';
@@ -101,10 +102,10 @@ const PHONE_TARGET = "after:absolute after:inset-x-0 after:-inset-y-[9px] after:
 
 /**
  * "Set up Learn", as page 5's board draws it: quiet with a spinner while our guess runs; highlighted with a dot once
- * it is ready, with one pulse when it becomes so (on each visit, never a constant blink, and none for people who turned
- * motion off); solid while it is the current place.
+ * it is in, with one pulse when it becomes so (on each visit, never a constant blink, and none for people who turned
+ * motion off); a plain outline when there is no guess to check; solid while it is the current place.
  */
-function SetupTab({ state, current }: { state: 'working' | 'ready'; current: boolean }) {
+function SetupTab({ state, current }: { state: LearnBarSetup; current: boolean }) {
   const look = current ? 'current' : state;
   return (
     <Link
@@ -118,7 +119,8 @@ function SetupTab({ state, current }: { state: 'working' | 'ready'; current: boo
         PHONE_TARGET,
         look === 'current' && 'border-foreground bg-foreground text-background',
         look === 'working' && 'text-muted-foreground',
-        look === 'ready' &&
+        look === 'open' && 'text-foreground',
+        look === 'guessed' &&
           'border-primary bg-brand-soft text-brand-soft-foreground shadow-[0_0_0_4px_color-mix(in_oklch,var(--primary)_22%,transparent)] motion-safe:animate-learn-setup-pulse',
       )}
     >
@@ -135,10 +137,11 @@ function SetupTab({ state, current }: { state: 'working' | 'ready'; current: boo
           <path d="M21 12a9 9 0 1 1-6.2-8.56" />
         </svg>
       ) : null}
-      {look === 'ready' ? <span aria-hidden="true" className="size-[7px] shrink-0 rounded-full bg-primary" /> : null}
+      {look === 'guessed' ? <span aria-hidden="true" className="size-[7px] shrink-0 rounded-full bg-primary" /> : null}
       Set up Learn
       {look === 'working' ? <span className="sr-only">, reading your GitHub profile</span> : null}
-      {look === 'ready' ? <span className="sr-only">, our guess is ready to check</span> : null}
+      {look === 'guessed' ? <span className="sr-only">, our guess is ready to check</span> : null}
+      {look === 'open' ? <span className="sr-only">, nothing to check yet</span> : null}
     </Link>
   );
 }

@@ -7,7 +7,7 @@ import { type CodeToken, type HighlightedCode, plainCodeOf } from './code-tokens
 import type { LearnCode } from './learn-question';
 
 /**
- * Code highlighted on the server, in every language of a course (L12), so the page sends colours, not a highlighter.
+ * Code highlighted on the server, in every language of a course, so the page sends colours, not a highlighter.
  * One highlighter for the process, with the course languages and the two themes only. A language it does not know is
  * sent plain.
  */

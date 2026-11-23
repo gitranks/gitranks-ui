@@ -18,7 +18,7 @@
 // Specs and fixtures are not checked. The imports that still cross are listed in `ALLOWED` below, by the importing
 // file and the imported module; the list only shrinks: an entry that no longer crosses fails the check too.
 import { readdirSync, readFileSync } from 'node:fs';
-import { dirname, join, normalize, relative } from 'node:path';
+import { join, posix, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** The crossings left today, as `<file> -> <module>` (the module's path without its extension): none now. */
@@ -85,11 +85,14 @@ export function crosses(from, to) {
 
 const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(\s*|^\s*import\s+)(['"])([^'"\n]+)\1/gm;
 
-/** The repo path a specifier names, without its extension; null for a package. */
+/**
+ * The repo path a specifier names, without its extension; null for a package. Always with `/`, on every platform:
+ * the folders' names are matched by their `/` prefixes.
+ */
 export function moduleOf(file, specifier) {
-  if (specifier.startsWith('@/')) return normalize(specifier.slice(2)).replace(/\.(?:tsx?|mjs|js)$/, '');
+  if (specifier.startsWith('@/')) return posix.normalize(specifier.slice(2)).replace(/\.(?:tsx?|mjs|js)$/, '');
   if (!specifier.startsWith('.')) return null;
-  return normalize(join(dirname(file), specifier)).replace(/\.(?:tsx?|mjs|js)$/, '');
+  return posix.normalize(posix.join(posix.dirname(file), specifier)).replace(/\.(?:tsx?|mjs|js)$/, '');
 }
 
 /** Every import of `source` (a file at `file`) the rule forbids, as `<file> -> <module>`. */

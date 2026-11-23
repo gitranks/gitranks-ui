@@ -11,7 +11,9 @@
 // | lib/auth/ (site-wide: any folder may    | itself, lib/workspace/                                                  |
 // |   import it)                            |                                                                         |
 // | Contribute's pages (app/contribute/)    | anything but lib/learn/, components/learn/ and Learn's pages            |
-// | Learn's pages (app/learn/)              | anything but lib/contribute/, components/contribute/ and Contribute's   |
+// | Learn's pages (app/learn/, the groups   | anything but lib/contribute/, components/contribute/ and Contribute's   |
+// |   (learn) and (player), and Learn's     |                                                                         |
+// |   pages in (public))                    |                                                                         |
 //
 // Specs and fixtures are not checked. The imports that still cross are listed in `ALLOWED` below, by the importing
 // file and the imported module; the list only shrinks: an entry that no longer crosses fails the check too.
@@ -33,7 +35,8 @@ export function zoneOf(path) {
   if (path.startsWith('components/contribute/')) return 'components/contribute';
   if (path.startsWith('components/learn/')) return 'components/learn';
   if (/^app\/(?:\((?:workspace|onboarding)\)\/)?contribute\//.test(path)) return 'app/contribute';
-  if (/^app\/(?:\((?:workspace|onboarding)\)\/)?learn\//.test(path)) return 'app/learn';
+  if (/^app\/(?:\((?:workspace|onboarding|public)\)\/)?learn\//.test(path)) return 'app/learn';
+  if (/^app\/\((?:learn|player)\)\//.test(path)) return 'app/learn';
   return null;
 }
 

@@ -105,6 +105,30 @@ describe('llms.txt', () => {
     expect(llmsTxtOf({ contribute: true })).not.toMatch(/learn/i);
   });
 
+  it("lists Learn's landing, all courses and each course with its Markdown copy while Learn is open", () => {
+    const open = llmsTxtOf({
+      contribute: false,
+      learn: [],
+      learnCourses: [
+        { slug: 'algorithms', name: 'Algorithms\nand data structures', covers: 'Sets, maps and  sorting.' },
+        { slug: 'go', name: 'Go', covers: '' },
+      ],
+    });
+    expect(open).toContain(
+      '- [GitRanks Learn](https://example.test/learn): short programming lessons, each one idea with an example and one question, then real open-source issues to use them on ([Markdown](https://example.test/learn.md))\n',
+    );
+    expect(open).toContain(
+      '- [All courses](https://example.test/learn/courses) ([Markdown](https://example.test/learn/courses.md))\n',
+    );
+    expect(open).toContain(
+      '- [Algorithms and data structures](https://example.test/learn/courses/algorithms.md): Sets, maps and sorting.\n',
+    );
+    expect(open).toContain('- [Go](https://example.test/learn/courses/go.md): a course of GitRanks Learn\n');
+    expect(llmsTxtOf({ contribute: false, learnCourses: [{ slug: 'go', name: 'Go', covers: '' }] })).not.toMatch(
+      /learn/i,
+    );
+  });
+
   it('lists pull request timelines: what one is, its addresses and its sitemap', () => {
     const text = llmsTxtOf({ contribute: true });
     expect(text).toContain('## Pull request timelines');

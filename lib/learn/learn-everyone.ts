@@ -10,7 +10,8 @@ const RETRY_MS = 10_000;
 /** The longest a request waits for the first answer; no answer by then is closed. */
 export const LEARN_EVERYONE_TIMEOUT_MS = 1_000;
 
-let everyone: { value: boolean; at: number } | null = null;
+/** The kept answer; `known` once the API has answered at least once, so `value` is a real answer, not a guess. */
+let everyone: { value: boolean; at: number; known: boolean } | null = null;
 let asking: Promise<boolean> | null = null;
 
 /** The API's answer, or a failure once the timeout has passed without one. */
@@ -45,11 +46,22 @@ async function ask(now: number): Promise<boolean> {
     const { learnOpenToEveryone: value } = await withinTimeout(
       graphqlDirect(LearnOpenToEveryoneDocument, undefined, { source: 'ssr' }),
     );
-    everyone = { value: value === true, at: now };
+    everyone = { value: value === true, at: now, known: true };
   } catch {
-    everyone = { value: everyone?.value ?? false, at: now - ANSWER_TTL_MS + RETRY_MS };
+    everyone = { value: everyone?.value ?? false, at: now - ANSWER_TTL_MS + RETRY_MS, known: everyone?.known ?? false };
   }
   return everyone.value;
+}
+
+/**
+ * `learnOpenToEveryone`, failing while the API has never answered (its first ask failed or was late) instead of
+ * guessing closed: for an answer that is kept, so a guess is never kept as if it were the API's. Once it has answered,
+ * the last real answer, as `learnOpenToEveryone` gives it.
+ */
+export async function learnOpenToEveryoneKnown(now = Date.now()): Promise<boolean> {
+  const value = await learnOpenToEveryone(now);
+  if (!everyone?.known) throw new Error('Learn has not said yet whether it is open');
+  return value;
 }
 
 /** Forgets the kept answer (tests). */

@@ -241,7 +241,7 @@ describe('a practice lesson', () => {
     expect(text(html)).toContain('A practice lesson: see how a lesson works');
     expect(text(html)).toContain('Yours will be written for the issue you pick, by your agent, for your goal.');
     expect(html).toMatch(/<a [^>]*data-contribute-source="learn_practice_skip"[^>]*>Skip it: pick your issue →/);
-    expect(html).toMatch(/<a [^>]*href="\/learn#issues"[^>]*>Skip it/);
+    expect(html).toMatch(/<a [^>]*href="\/learn\/earlier#issues"[^>]*>Skip it/);
     expect(text(html)).toContain('Skip it: pick your issue →');
     expect(text(html)).toContain('Start the lesson');
   });
@@ -278,9 +278,9 @@ describe('a practice lesson', () => {
     // Learn's row: Start a lesson to the Start page, the first one primary.
     expect(html).toMatch(/data-variant="default"[^>]*href="\/my\/start\/driftwood-js\/driftwood\/934\?lesson=1"/);
     expect(text(html).match(/Start a lesson/g)).toHaveLength(2);
-    expect(html).toContain('href="/learn#issues"');
+    expect(html).toContain('href="/learn/earlier#issues"');
     expect(text(html)).toContain('All issues for your goal →');
-    expect(html).toContain('href="/learn#practice"');
+    expect(html).toContain('href="/learn/earlier#practice"');
     expect(text(html)).toContain('Or another practice lesson');
     expect(text(html)).not.toContain('Find me an issue to learn from');
   });
@@ -311,11 +311,12 @@ describe('a practice lesson', () => {
     const noGoal = passed(practiceNext.noGoal);
     expect(noGoal).toContain('data-next-step="goal"');
     expect(text(noGoal)).toContain('Tell us what you want to learn');
-    expect(noGoal).toMatch(/href="\/learn"/);
+    // The goal step of fixing an issue with your agent: Learn home asks for no goal.
+    expect(noGoal).toMatch(/href="\/learn\/start"[^>]*>Tell us what you want to learn/);
     const unread = passed(null);
     expect(unread).toContain('data-next-step="own"');
     expect(unread).not.toContain('data-side="learn"');
-    expect(unread).toContain('href="/learn#issues"');
+    expect(unread).toContain('href="/learn/earlier#issues"');
   });
 });
 

@@ -9,9 +9,11 @@ import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
 import { checkGateOf, courseGateOf } from './lib/learn/course-gate';
 import { learnOpenToEveryone } from './lib/learn/learn-everyone';
 import {
+  isLearnAboutPath,
   isLearnHomePath,
   isLearnOpenPath,
   isLearnPath,
+  LEARN_PATH,
   lessonResultJsonRouteOf,
   lessonRouteOf,
   publicProgressRouteOf,
@@ -22,6 +24,7 @@ import {
   courseRouteOf,
   LEARN_COURSE_MISSING_PATH,
   learnCourseMarkdownRouteOf,
+  learnLandingMarkdownRouteOf,
   learnLessonMarkdownRouteOf,
 } from './lib/learn/paths';
 import { progressGateOf } from './lib/learn/public-progress/progress-gate';
@@ -174,6 +177,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   if (courseMarkdown) {
     return NextResponse.rewrite(new URL(courseMarkdown, request.url));
   }
+  // The landing's Markdown copy, `/learn.md`: its route handler answers not found until Learn is open to everyone.
+  const landingMarkdown = learnLandingMarkdownRouteOf(request.nextUrl.pathname);
+  if (landingMarkdown) {
+    return NextResponse.rewrite(new URL(landingMarkdown, request.url));
+  }
 
   // A lesson's page and its result pages stream, so their own notFound() comes too late for a 404 status: the lesson
   // is asked for here first. Missing, the lesson's 404 page answers; a paused or removed lesson of ours answers its own
@@ -292,8 +300,9 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // visitors without a session too.
   // Learn is behind its own list of people, which the API answers: a closed Learn page answers a visitor without a
   // session, and a signed-in viewer Learn is not open to, with the 404 here; a signed-in one it is open to goes on. A
-  // shared lesson, its result pages and the page for maintainers are open to everyone; the front door and the three
-  // steps of Learn's flow too once the API says Learn is open to everyone (the home page's Learn section links there and
+  // shared lesson, its result pages and the page for maintainers are open to everyone; the front door, How Learn works
+  // (which sends a visitor on to the front door) and the three steps of Learn's flow too once the API says Learn is
+  // open to everyone (the home page's Learn section links there and
   // follows the same answer, asked once a minute per server, only for a visitor's `/learn` and its flow). A
   // contribution's or a lesson's old address redirects before this, to the pull request's page under `/my`, which asks
   // a visitor to sign in.
@@ -309,9 +318,16 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
         ? await requestLearnAccess(request)
         : 'open';
     const visitorLetThrough = async () =>
-      (isLearnHomePath(pathname) || isLearnFlowPath(pathname)) && (await learnOpenToEveryone());
+      (isLearnHomePath(pathname) || isLearnAboutPath(pathname) || isLearnFlowPath(pathname)) &&
+      (await learnOpenToEveryone());
     if (access === 'closed' || (access === 'signed-out' && !(await visitorLetThrough()))) {
       const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
+    // How Learn works is a learner's: a visitor let through is sent on to the landing, one address for one page.
+    if (access === 'signed-out' && isLearnAboutPath(pathname)) {
+      const response = NextResponse.redirect(new URL(LEARN_PATH, request.url), 307);
       response.headers.set('Cache-Control', 'private, no-store');
       return response;
     }

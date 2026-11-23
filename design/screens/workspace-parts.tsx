@@ -164,7 +164,7 @@ export const WORKSPACE_PART_SCREENS: Screen[] = [
       {
         id: 'learn',
         title: 'Learn: Start a lesson, never a menu',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 360,
         render: () =>
           frame(
@@ -247,7 +247,7 @@ export const WORKSPACE_PART_SCREENS: Screen[] = [
       {
         id: 'learn',
         title: 'Learn: the own agent writing a lesson',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 320,
         render: () =>
           frame(

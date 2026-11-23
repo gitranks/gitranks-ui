@@ -28,7 +28,7 @@ import { Box } from '@/components/workspace/status-box';
 import { loadLearnOpen, loadLearnSetup, loadPracticeLessons } from '@/lib/learn/learn.data';
 import type { LearnAttemptLesson, PracticeLessons } from '@/lib/learn/learn.types';
 import { endedReasonOf, WAIT_PRACTICE } from '@/lib/learn/learn-home';
-import { LEARN_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
+import { LEARN_EARLIER_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
 import { isOwnAgent } from '@/lib/workspace/attempt-format';
 import type { CommentActionsInit } from '@/lib/workspace/comment-actions';
 import type { ContributeAttemptDetail, ContributeView } from '@/lib/workspace/contribute.types';
@@ -207,9 +207,9 @@ function prTitleOf(pr: number | null, state: string): string {
   return `${name} is open, and your lesson is public`;
 }
 
-/** Where the learner goes next once the pull request is open: the next lesson, on Learn. */
+/** Where the learner goes next once the pull request is open: the next issue to learn from, on today's Learn. */
 const NextLesson = () => (
-  <Link href={LEARN_PATH} prefetch={false} className="self-start text-sm font-semibold text-link">
+  <Link href={LEARN_EARLIER_PATH} prefetch={false} className="self-start text-sm font-semibold text-link">
     Start the next lesson →
   </Link>
 );

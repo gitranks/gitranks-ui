@@ -2,14 +2,13 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { LEARN_FLOW_SCREENS } from './getting-in';
+import { HomeBoards, LandingBoards, PhoneBoards } from './learn-home';
 import { LearnTabScreen } from '@/app/(workspace)/learn/components/learn-tab';
-import { LEARN_VISITOR_START, LearnLanding } from '@/app/learn/components/learn-landing';
 import { LearnMaintainers } from '@/app/learn/components/learn-maintainers';
 import { PrContext, PrLesson } from '@/app/learn/components/learn-pr-lesson';
 import { LessonPageScreen } from '@/app/learn/components/lesson-page';
 import { LessonResultScreen, type ResultViewer } from '@/app/learn/components/lesson-result';
 import { LessonStubScreen } from '@/app/learn/components/lesson-stub';
-import { RecentLessons } from '@/app/learn/components/recent-lessons';
 import { Header } from '@/components/header/header';
 import { ProgressScreen } from '@/components/learn/progress/progress-screen';
 import {
@@ -29,7 +28,6 @@ import {
   practiceNext,
 } from '@/lib/learn/__fixtures__/home';
 import { emptyProfile, filledProfile } from '@/lib/learn/__fixtures__/profile';
-import { recentLessons } from '@/lib/learn/__fixtures__/recent-lessons';
 import { lessonPage, result, sharedRuns } from '@/lib/learn/__fixtures__/shared';
 import type {
   LearnIssues,
@@ -195,9 +193,9 @@ export const LEARN_SCREENS: Screen[] = [
     id: 'learn-tab',
     title: 'Learn tab',
     area: 'learn',
-    route: '/learn',
+    route: '/learn/earlier',
     sources: [
-      'app/(workspace)/learn/page.tsx',
+      'app/(workspace)/learn/earlier/page.tsx',
       'app/(workspace)/learn/components/learn-tab.tsx',
       'app/(workspace)/learn/components/learn-tab-view.tsx',
       'app/(workspace)/learn/components/issue-list.tsx',
@@ -213,35 +211,35 @@ export const LEARN_SCREENS: Screen[] = [
       {
         id: 'first',
         title: 'No goal yet: what do you want to learn, and how every lesson is made',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1240,
         render: () => learnTab(myLearnAttempts.none, { profile: emptyProfile }),
       },
       {
         id: 'ready',
         title: 'Goal set: Learn something new, practice lessons optional',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1820,
         render: () => learnTab(myLearnAttempts.none),
       },
       {
         id: 'numbers',
         title: 'After a first Learn pull request: four numbers in the path’s place',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1820,
         render: () => learnTab(myLearnAttempts.none, { counts: progressCounts }),
       },
       {
         id: 'working',
         title: 'Your agent is working: Right now, practice while you wait',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1300,
         render: () => learnTab(myLearnAttempts.working),
       },
       {
         id: 'lesson-ready',
         title: 'Your first lesson is ready: step 3 is the link',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1100,
         render: () =>
           learnTab({
@@ -252,35 +250,35 @@ export const LEARN_SCREENS: Screen[] = [
       {
         id: 'blocked',
         title: 'The lesson’s questions need fixing: open it',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1100,
         render: () => learnTab(myLearnAttempts.blocked),
       },
       {
         id: 'approve',
         title: 'You passed: submit your pull request',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1100,
         render: () => learnTab(myLearnAttempts.approve),
       },
       {
         id: 'no-room',
         title: 'At the open pull request limit: the issues stay, without Start',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1900,
         render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.noRoom }),
       },
       {
         id: 'none-today',
         title: 'No open issues fit the goal today',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1220,
         render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.noneToday }),
       },
       {
         id: 'goal-unsupported',
         title: 'A goal Learn can’t find issues for yet: change it',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 760,
         render: () =>
           learnTab(myLearnAttempts.none, {
@@ -292,35 +290,35 @@ export const LEARN_SCREENS: Screen[] = [
       {
         id: 'cap',
         title: 'The day’s new issues are all shown',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1220,
         render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.cap }),
       },
       {
         id: 'unread',
         title: 'The issues could not be loaded',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1200,
         render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.unread }),
       },
       {
         id: 'held',
         title: 'The account is held: no issues, practice stays',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 1100,
         render: () => learnTab(myLearnAttempts.none, { held: true }),
       },
       {
         id: 'setting-up',
         title: 'A new account: its GitRanks account is still being set up',
-        path: '/learn',
+        path: '/learn/earlier',
         height: 560,
         render: () => learnTab(myLearnAttempts.none, { profile: null, settingUp: true }),
       },
       {
         id: 'phone',
         title: 'After a first Learn pull request, on a phone: numbers two by two',
-        path: '/learn',
+        path: '/learn/earlier',
         width: 390,
         height: 3300,
         render: () => learnTab(myLearnAttempts.none, { counts: progressCounts }),
@@ -329,56 +327,44 @@ export const LEARN_SCREENS: Screen[] = [
   },
   {
     id: 'learn-landing',
-    title: 'Learn’s front door',
+    title: 'Learn home, the landing and How Learn works',
     area: 'learn',
     route: '/learn',
     sources: [
-      'app/(workspace)/learn/page.tsx',
+      'app/(learn)/learn/page.tsx',
       'app/(public)/learn/about/page.tsx',
-      'app/learn/components/learn-landing.tsx',
-      'app/learn/components/recent-lessons.tsx',
-      'app/learn/components/example-question.tsx',
-      'components/workspace/getting-in/resume-link.tsx',
-      'components/learn/diagram.tsx',
-      'lib/learn/example-lesson.ts',
+      'app/learn/components/learn-front.tsx',
+      'components/learn/home/learn-home-view.tsx',
+      'components/learn/landing/learn-landing-view.tsx',
+      'components/learn/landing/try-lesson.tsx',
+      'lib/learn/home.ts',
+      'lib/learn/landing.ts',
       'components/workspace/getting-in/landing-parts.ts',
     ],
     states: [
       {
         id: 'signed-out',
-        title: 'The front door, signed out: an example lesson, the handoff, what a lesson covers, recent lessons',
+        title: 'The landing: the whole page, the lesson at the top in its states, launch day, no course yet',
         path: '/learn',
         signedOut: true,
-        height: 2480,
-        render: () =>
-          bare(
-            <LearnLanding start={LEARN_VISITOR_START} recentLessons={<RecentLessons lessons={recentLessons} />} />,
-            <HeaderLine />,
-          ),
+        height: 11500,
+        render: () => <LandingBoards />,
       },
       {
         id: 'phone',
-        title: 'The front door on a phone',
+        title: 'The landing and Learn home on a phone',
         path: '/learn',
         signedOut: true,
         width: 390,
-        height: 4500,
-        render: () =>
-          bare(
-            <LearnLanding start={LEARN_VISITOR_START} recentLessons={<RecentLessons lessons={recentLessons} />} />,
-            <HeaderLine />,
-          ),
+        height: 8250,
+        render: () => <PhoneBoards />,
       },
       {
         id: 'about',
-        title: 'How Learn works, for a member: the same page, Open Learn',
+        title: 'How Learn works for a learner, and Learn home in each of its states',
         path: '/learn/about',
-        height: 2480,
-        render: () =>
-          bare(
-            <LearnLanding start={{ member: true }} recentLessons={<RecentLessons lessons={recentLessons} />} />,
-            <HeaderLine />,
-          ),
+        height: 8400,
+        render: () => <HomeBoards />,
       },
     ],
   },

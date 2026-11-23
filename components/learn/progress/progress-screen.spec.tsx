@@ -82,7 +82,7 @@ describe('Your progress', () => {
     ] as Partial<ProgressScreenProps>[]) {
       const html = screen(props);
       expect(text(html)).toMatch(/Pick your next lesson$/);
-      expect(html).toMatch(/data-next-lesson=""[^>]*href="\/learn"/);
+      expect(html).toMatch(/data-next-lesson=""[^>]*href="\/learn\/earlier"/);
     }
   });
 
@@ -245,7 +245,7 @@ describe('the states with nothing to list', () => {
     expect(plain).toContain(
       'No lessons yet Each lesson is written by your agent for an issue you pick, about that exact fix. Start a lesson',
     );
-    expect(html).toMatch(/data-variant="default"[^>]*href="\/learn"[^>]*>Start a lesson/);
+    expect(html).toMatch(/data-variant="default"[^>]*href="\/learn\/earlier"[^>]*>Start a lesson/);
     // Its one next step: no second link to the same place.
     expect(html).not.toContain('data-next-lesson');
   });

@@ -1,11 +1,13 @@
 import { isValidElement, type ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadLearnCourses, loadLearnLessons } = vi.hoisted(() => ({
+const { loadLearnCourses, loadLearnLessons, everyone } = vi.hoisted(() => ({
   loadLearnCourses: vi.fn(),
   loadLearnLessons: vi.fn(),
+  everyone: vi.fn(async () => true),
 }));
 vi.mock('server-only', () => ({}));
+vi.mock('@/lib/learn/learn-everyone-cached', () => ({ learnOpenToEveryoneCached: everyone }));
 vi.mock('@/lib/learn/course.data', () => ({ loadLearnCourses, loadLearnLessons }));
 vi.mock('@/components/learn/courses/courses-live', () => ({ CoursesLive: () => null }));
 
@@ -56,5 +58,18 @@ describe('all courses', () => {
       expect(searched.alternates?.canonical).toBe('/learn/courses');
     }
     expect((await generateMetadata(props({ q: '   ' }))).robots).toBeUndefined();
+  });
+
+  it('is never indexed while the switch that opens Learn to everyone is closed, with a search or without', async () => {
+    everyone.mockResolvedValue(false);
+    try {
+      for (const q of [undefined, 'go']) {
+        const metadata = await generateMetadata(props(q ? { q } : {}));
+        expect(metadata.robots, q).toEqual({ index: false, follow: false });
+        expect(metadata.alternates?.canonical).toBe('/learn/courses');
+      }
+    } finally {
+      everyone.mockResolvedValue(true);
+    }
   });
 });

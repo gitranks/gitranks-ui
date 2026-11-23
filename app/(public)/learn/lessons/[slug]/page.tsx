@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { LessonPageView } from '@/app/learn/components/lesson-page';
 import { LessonScreen } from '@/components/learn/lesson/lesson-screen';
 import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
+import { learnOpenToEveryoneCached } from '@/lib/learn/learn-everyone-cached';
 import { loadLearnLessonPage } from '@/lib/learn/lesson-page.data';
 import { loadLessonPage } from '@/lib/learn/lesson-public.data';
 import { lessonPageMetadata } from '@/lib/learn/lesson-seo';
@@ -23,7 +24,12 @@ export async function generateMetadata({
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const ours = await loadLearnLessonPage(slug);
   // A shared fact's link (`?fact`) shows the fact's own preview.
-  if (ours) return learnLessonMetadata(ours.lesson, { fact: query.fact !== undefined });
+  if (ours) {
+    return learnLessonMetadata(ours.lesson, {
+      fact: query.fact !== undefined,
+      open: await learnOpenToEveryoneCached(),
+    });
+  }
   const [answer, frontDoorOpen] = await Promise.all([loadLessonPage(slug), learnOpenToEveryone()]);
   return lessonPageMetadata(answer, { frontDoorOpen });
 }

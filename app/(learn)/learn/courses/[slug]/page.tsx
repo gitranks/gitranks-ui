@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { CourseLive } from '@/components/learn/course/course-live';
 import { loadLearnCourse, loadLearnCourses } from '@/lib/learn/course.data';
+import { learnOpenToEveryoneCached } from '@/lib/learn/learn-everyone-cached';
 import { LEARN_MISSING_METADATA, learnCourseJsonLd, learnCourseMetadata } from '@/lib/learn/seo/course';
 
 /**
@@ -16,8 +17,8 @@ export const instant = false;
 
 export async function generateMetadata({ params }: PageProps<'/learn/courses/[slug]'>): Promise<Metadata> {
   const { slug } = await params;
-  const course = await loadLearnCourse(slug);
-  return course ? learnCourseMetadata(course) : LEARN_MISSING_METADATA;
+  const [course, open] = await Promise.all([loadLearnCourse(slug), learnOpenToEveryoneCached()]);
+  return course ? learnCourseMetadata(course, { open }) : LEARN_MISSING_METADATA;
 }
 
 export default async function CoursePage({ params }: PageProps<'/learn/courses/[slug]'>) {

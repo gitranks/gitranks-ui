@@ -51,7 +51,10 @@ type MetadataLesson = Pick<
  * the address with `?fact`), the preview is the fact's own: its title, a line naming the lesson, its picture, and the
  * fact's address as its URL, since some sites read the preview from that URL; the canonical stays the lesson's.
  */
-export function learnLessonMetadata(lesson: MetadataLesson, { fact = false }: { fact?: boolean } = {}): Metadata {
+export function learnLessonMetadata(
+  lesson: MetadataLesson,
+  { fact = false, open = true }: { fact?: boolean; open?: boolean } = {},
+): Metadata {
   const description = lessonDescriptionOf(lesson);
   const metadata = pageMetadata({
     title: lesson.title,
@@ -77,8 +80,11 @@ export function learnLessonMetadata(lesson: MetadataLesson, { fact = false }: { 
         alt: lesson.title,
       };
   const images = [{ url: absoluteUrl(preview.picture), ...SOCIAL_CARD_SIZE, alt: preview.alt }];
+  // Not kept by search engines while the switch that opens Learn to everyone is closed.
+  const robots = open ? {} : { robots: NO_INDEX };
   return {
     ...metadata,
+    ...robots,
     alternates: { ...metadata.alternates, types: { 'text/markdown': learnLessonMarkdownPath(lesson.slug) } },
     openGraph: {
       ...metadata.openGraph,

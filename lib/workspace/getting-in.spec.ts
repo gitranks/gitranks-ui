@@ -156,10 +156,10 @@ describe('learnFlowPlaceOf: who belongs on which step of Learn', () => {
   });
 
   it('entered: the Learn tab, or the issue’s Start page in lesson mode; a goal only the address has is saved first', () => {
-    expect(learn('goal', open(true))).toEqual({ kind: 'redirect', to: '/learn' });
-    expect(learn('goal', open(true), { goalInAddress: true })).toEqual({ kind: 'redirect', to: '/learn' });
-    expect(learn('issues', open(true), { goalSaved: true })).toEqual({ kind: 'redirect', to: '/learn' });
-    expect(learn('issues', open(true), { goalInAddress: true })).toEqual({ kind: 'apply-then', to: '/learn' });
+    expect(learn('goal', open(true))).toEqual({ kind: 'redirect', to: '/learn/earlier' });
+    expect(learn('goal', open(true), { goalInAddress: true })).toEqual({ kind: 'redirect', to: '/learn/earlier' });
+    expect(learn('issues', open(true), { goalSaved: true })).toEqual({ kind: 'redirect', to: '/learn/earlier' });
+    expect(learn('issues', open(true), { goalInAddress: true })).toEqual({ kind: 'apply-then', to: '/learn/earlier' });
     expect(learn('issue', open(true), { goalSaved: true, goalInAddress: true })).toEqual({
       kind: 'redirect',
       to: '/my/start/acme/widgets/42?lesson=1',

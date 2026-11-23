@@ -40,6 +40,15 @@ export const markdownPathOf = (path: string) => `${path}.md`;
 export const courseMarkdownPath = (slug: string) => markdownPathOf(coursePath(slug));
 export const LEARN_COURSES_MARKDOWN_PATH = `${LEARN_COURSES_PATH}.md`;
 
+/** The Markdown copy of Learn's landing. */
+export const LEARN_LANDING_MARKDOWN_PATH = markdownPathOf(LEARN_HOME_PATH);
+/** Where the proxy answers `/learn.md` from: a page and a route handler cannot share the segment. */
+export const LEARN_LANDING_MARKDOWN_ROUTE = '/api/learn/home.md';
+
+/** Where the proxy answers the landing's Markdown copy from, for `/learn.md`; null for any other path. */
+export const learnLandingMarkdownRouteOf = (pathname: string): string | null =>
+  pathname === LEARN_LANDING_MARKDOWN_PATH ? LEARN_LANDING_MARKDOWN_ROUTE : null;
+
 /** A lesson's Markdown copy. */
 export const learnLessonMarkdownPath = (slug: string) => markdownPathOf(learnLessonPath(slug)) as Route;
 

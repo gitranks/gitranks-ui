@@ -8,7 +8,10 @@ import type { ContributeSetListMode } from './contribute.types';
  */
 export const WORKSPACE_PATHS = {
   contribute: '/contribute' as Route,
-  learn: '/learn' as Route,
+  /** Learn as it worked before its courses: an issue fixed by your agent, and a lesson on the fix. */
+  learn: '/learn/earlier' as Route,
+  /** Learn home, which the workspace's Learn tab opens. */
+  learnHome: '/learn' as Route,
   /** The user's pull requests, both sides. */
   pullRequests: '/my/pull-requests' as Route,
   /** The agents that work for the user: their own, and the hosted one on their Claude key. */

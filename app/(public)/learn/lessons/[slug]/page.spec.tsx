@@ -10,6 +10,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('@/lib/learn/lesson-page.data', () => ({ loadLearnLessonPage }));
 vi.mock('@/lib/learn/lesson-public.data', () => ({ loadLessonPage }));
 vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone }));
+vi.mock('@/lib/learn/learn-everyone-cached', () => ({ learnOpenToEveryoneCached: learnOpenToEveryone }));
 vi.mock('@/app/learn/components/lesson-page', () => ({ LessonPageView: () => null }));
 vi.mock('@/components/learn/lesson/lesson-screen', () => ({ LessonScreen: () => null }));
 
@@ -39,6 +40,13 @@ describe("a lesson's address", () => {
     const plain = await LessonPage(props(setLesson.slug));
     expect((plain as { props: { openFact: boolean } }).props.openFact).toBe(false);
     expect(loadLessonPage).not.toHaveBeenCalled();
+    loadLearnLessonPage.mockResolvedValueOnce(ours);
+    expect((await generateMetadata(props(setLesson.slug))).robots).toBeUndefined();
+
+    // Not indexed while the switch that opens Learn to everyone is closed.
+    learnOpenToEveryone.mockResolvedValueOnce(false);
+    loadLearnLessonPage.mockResolvedValueOnce(ours);
+    expect((await generateMetadata(props(setLesson.slug))).robots).toEqual({ index: false, follow: false });
   });
 
   it("draws a fix's lesson as before when the slug is not one of ours", async () => {

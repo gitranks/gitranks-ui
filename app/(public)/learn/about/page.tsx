@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { LearnAboutView } from '@/app/learn/components/learn-landing';
+import { LearnAboutView } from '@/app/learn/components/learn-front';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { LEARN_ABOUT_METADATA } from '@/lib/learn/lesson-seo';
 
-/** One front door for search engines: this copy points at `/learn` and is not indexed. */
+/** One landing for search engines: this copy points at `/learn` and is not indexed. */
 export const metadata: Metadata = LEARN_ABOUT_METADATA;
 
-/** How Learn works, for a signed-in user: the front door visitors read at `/learn`. */
+/** How Learn works (page 31): the landing as a learner reads it. */
 export default function LearnAboutPage() {
   return (
     <Suspense

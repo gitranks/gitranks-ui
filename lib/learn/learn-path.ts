@@ -2,11 +2,16 @@ import type { Route } from 'next';
 
 import { GITHUB_LOGIN as LOGIN, LESSON_SLUG as SLUG } from '@/lib/workspace/paths';
 
-/** Learn home for a signed-in learner; the front door for a visitor. */
+/** Learn home for a signed-in learner; the landing for everyone else. */
 export const LEARN_PATH = '/learn' as Route;
-/** Learn home's practice lessons: a state without the section shows its top (the issues: `LEARN_ISSUES_PATH`). */
-export const LEARN_PRACTICE_PATH = '/learn#practice' as Route;
-/** The front door for a signed-in learner: how Learn works. */
+/**
+ * The way Learn worked before its courses: your agent fixes an issue and you take a lesson on the fix. Not indexed and
+ * not in Learn's bar; Learn home's foot links it.
+ */
+export const LEARN_EARLIER_PATH = '/learn/earlier' as Route;
+/** The earlier page's practice lessons: a state without the section shows its top. */
+export const LEARN_PRACTICE_PATH = `${LEARN_EARLIER_PATH}#practice` as Route;
+/** How Learn works: the landing, for a learner. */
 export const LEARN_ABOUT_PATH = '/learn/about' as Route;
 /** What a Learn pull request is, for maintainers. Open to everyone. */
 export const LEARN_MAINTAINERS_PATH = '/learn/maintainers' as Route;
@@ -47,6 +52,9 @@ export const isLearnOpenPath = (pathname: string): boolean =>
 
 /** Learn's front door, `/learn`, in any spelling the router reads as it. */
 export const isLearnHomePath = (pathname: string): boolean => decodedMatches(pathname, /^\/+learn\/?$/i);
+
+/** How Learn works, `/learn/about`, in any spelling the router reads as it. */
+export const isLearnAboutPath = (pathname: string): boolean => decodedMatches(pathname, /^\/+learn\/+about\/?$/i);
 
 const SLUG_RE = new RegExp(`^${SLUG}$`);
 const LOGIN_RE = new RegExp(`^${LOGIN}$`);

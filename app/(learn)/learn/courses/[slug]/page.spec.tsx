@@ -9,7 +9,9 @@ const { loadLearnCourse, loadLearnCourses, notFound } = vi.hoisted(() => ({
     throw new Error('NEXT_NOT_FOUND');
   }),
 }));
+const everyone = vi.hoisted(() => vi.fn(async () => true));
 vi.mock('server-only', () => ({}));
+vi.mock('@/lib/learn/learn-everyone-cached', () => ({ learnOpenToEveryoneCached: everyone }));
 vi.mock('next/navigation', () => ({ notFound }));
 vi.mock('@/lib/learn/course.data', () => ({ loadLearnCourse, loadLearnCourses }));
 vi.mock('@/components/learn/course/course-live', () => ({ CourseLive: () => null }));
@@ -53,7 +55,13 @@ describe("a course's page", () => {
 
   it('names the course in its metadata, and a missing one as a page not found, never indexed', async () => {
     loadLearnCourse.mockResolvedValueOnce(algorithmsCourse);
-    expect((await generateMetadata(props('algorithms'))).alternates?.canonical).toBe('/learn/courses/algorithms');
+    const open = await generateMetadata(props('algorithms'));
+    expect(open.alternates?.canonical).toBe('/learn/courses/algorithms');
+    expect(open.robots).toBeUndefined();
+    // Not indexed while the switch that opens Learn to everyone is closed.
+    everyone.mockResolvedValueOnce(false);
+    loadLearnCourse.mockResolvedValueOnce(algorithmsCourse);
+    expect((await generateMetadata(props('algorithms'))).robots).toEqual({ index: false, follow: false });
     loadLearnCourse.mockResolvedValueOnce(null);
     expect(await generateMetadata(props('nope'))).toEqual({
       title: 'Page not found',

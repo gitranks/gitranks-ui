@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/workspace/pagination';
 import { HEADING, PageTitle } from '@/components/workspace/primitives';
 import { ViewTabs } from '@/components/workspace/view-tabs';
-import { LEARN_PATH } from '@/lib/learn/learn-path';
+import { LEARN_EARLIER_PATH, LEARN_PATH } from '@/lib/learn/learn-path';
 import {
   LEARN_PROGRESS_PAGE,
   PROGRESS_TABS,
@@ -85,7 +85,7 @@ function NextLesson() {
   return (
     <div className="border-t pt-4">
       <Link
-        href={LEARN_PATH}
+        href={LEARN_EARLIER_PATH}
         prefetch={false}
         data-next-lesson=""
         className="inline-flex items-center gap-1 text-sm font-semibold text-link hover:underline max-sm:min-h-11"
@@ -112,7 +112,7 @@ function NoLessons() {
         Each lesson is written by your agent for an issue you pick, about that exact fix.
       </p>
       <Button asChild className="min-h-11 px-5 font-semibold max-sm:w-full">
-        <Link href={LEARN_PATH} prefetch={false}>
+        <Link href={LEARN_EARLIER_PATH} prefetch={false}>
           Start a lesson
           <ArrowRight aria-hidden="true" />
         </Link>

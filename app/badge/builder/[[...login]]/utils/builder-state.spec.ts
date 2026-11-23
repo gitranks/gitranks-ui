@@ -208,7 +208,7 @@ describe('cleanStyle defaults', () => {
   });
 
   it('cuts the label as the image does', () => {
-    const long = 'a'.repeat(39) + 'bcdef';
+    const long = `${'a'.repeat(39)}bcdef`;
     expect(cleanStyle(badge('repo', 'rank'), { label: `  ${long}  ` }).label).toBe(`${'a'.repeat(39)}b`);
     expect(styleQuery(badge('repo', 'rank'), { label: long }).get('label')).toHaveLength(40);
   });

@@ -58,7 +58,7 @@ export const LEARN_SHARE_SCREEN: Screen = {
     'components/learn/share/lesson-cards.tsx',
     'lib/social-card/card-parts.tsx',
     'lib/learn/lesson-share-card.ts',
-    'lib/learn/lesson-card.tsx',
+    'components/learn/share/lesson-card-response.tsx',
     'lib/learn/seo/lesson.ts',
   ],
   states: [

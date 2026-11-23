@@ -1,0 +1,177 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+
+import { type LessonCalls, LessonPlayer, type LessonViewer, lessonPlayerKeyOf } from './lesson-player';
+import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
+import type { HighlightedCode } from '@/lib/learn/code-tokens';
+import {
+  isLastOfGroup,
+  type LearnDepth,
+  type LearnGroupLesson,
+  type LearnLesson,
+  type LearnLessonMine,
+  lessonPlaceOf,
+} from '@/lib/learn/lesson-page';
+import { answerLearnLessonAction, sendLearnFeedbackAction } from '@/lib/learn/lesson-page.actions';
+import type { LearnCourseLessonMine } from '@/lib/learn/lesson-page.documents';
+import { coursePath, learnCourseMinePath, learnLessonMinePath, learnLessonPath } from '@/lib/learn/paths';
+import { hasSessionHint } from '@/lib/session-hint';
+
+/** A JSON answer of one of the person's routes; null on any failure. */
+async function readJson<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(path, { cache: 'no-store' });
+    return res.ok ? ((await res.json()) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The signed-in person's side of a lesson and the depth of each lesson of its course; null when there is none. */
+export async function readLessonViewer(lesson: {
+  slug: string;
+  course: { slug: string };
+}): Promise<LessonViewer | null> {
+  const [lessonAnswer, courseAnswer] = await Promise.all([
+    readJson<{ mine?: LearnLessonMine | null }>(learnLessonMinePath(lesson.slug)),
+    readJson<{ course?: { lessons?: LearnCourseLessonMine[] } | null }>(learnCourseMinePath(lesson.course.slug)),
+  ]);
+  const mine = lessonAnswer?.mine;
+  if (!mine) return null;
+  const depths: Record<string, LearnDepth> = {};
+  for (const row of courseAnswer?.course?.lessons ?? []) depths[row.slug] = row.depth;
+  return { mine: { ...mine, language: mine.language ?? null }, depths };
+}
+
+/**
+ * Where the person stands: not known yet (the first render, and a session's read under way), a visitor (no session),
+ * a person with a session whose side did not come (a failed read, or Learn not open to them), or a member with
+ * their side.
+ */
+type Personal =
+  | { kind: 'pending' }
+  | { kind: 'visitor' }
+  | { kind: 'session' }
+  | { kind: 'member'; viewer: LessonViewer };
+
+/** Said under the card when the API answers that Learn is not open to the person, in the words the site uses. */
+export const LEARN_NOT_OPEN_NOTE = 'GitRanks Learn is not open to your account yet, so your answer is not saved.';
+
+/**
+ * A lesson's page as it lives in the browser. The page is the same for everyone and comes drawn (`article`, `more`);
+ * once it is up, a person with a session reads their side of the lesson and of its course, and a visitor asks for
+ * nothing. Only a visitor is asked to sign in: a person with a session goes on as a member does, and their right
+ * answer is saved, whether their side has come or not. When their side first arrives, the player is drawn again so
+ * a lesson learned before opens as answered, but only while the person has not touched it: an answer started is
+ * never drawn over, and the focus stays where it is.
+ */
+export function LessonLive({
+  lesson,
+  group,
+  questionCodes,
+  mainLanguage,
+  article,
+  more,
+  openFact = false,
+}: {
+  lesson: LearnLesson;
+  group: readonly LearnGroupLesson[];
+  questionCodes?: readonly HighlightedCode[];
+  mainLanguage?: string | null;
+  article: ReactNode;
+  more: ReactNode;
+  openFact?: boolean;
+}) {
+  const router = useRouter();
+  const [personal, setPersonal] = useState<Personal>({ kind: 'pending' });
+  // The person's side as their last saved answer left it: fresher than any read.
+  const [saved, setSaved] = useState<LearnLessonMine | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  // Whether the person has clicked, typed or moved the focus in the player; a ref, read when their side arrives.
+  const touched = useRef(false);
+  const [redrawn, setRedrawn] = useState(false);
+  const { slug } = lesson;
+  const course = lesson.course.slug;
+
+  useEffect(() => {
+    if (!hasSessionHint(document.cookie)) {
+      setPersonal({ kind: 'visitor' });
+      return;
+    }
+    let live = true;
+    readLessonViewer({ slug, course: { slug: course } }).then((viewer) => {
+      if (!live) return;
+      setPersonal(viewer ? { kind: 'member', viewer } : { kind: 'session' });
+      if (viewer && !touched.current) setRedrawn(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, [slug, course]);
+
+  // A member's side, with their last saved answer over it; before their side comes, the saved answer alone.
+  const viewer: LessonViewer | null =
+    personal.kind === 'member'
+      ? saved
+        ? { ...personal.viewer, mine: saved }
+        : personal.viewer
+      : saved
+        ? { mine: saved, depths: {} }
+        : null;
+  const touch = () => {
+    touched.current = true;
+  };
+
+  const last = isLastOfGroup(lessonPlaceOf(group, lesson.slug, null));
+  const calls: LessonCalls = {
+    onGraded: ({ picked, right, tries, language }) => {
+      // A visitor's answer is not saved; anyone with a session is saved as the session's user, side or not.
+      if (!right || personal.kind === 'visitor') return;
+      answerLearnLessonAction({ slug: lesson.slug, question: lesson.question.id, picked, tries, language }).then(
+        (result) => {
+          if (!result.ok) return;
+          if (result.data) setSaved({ ...result.data.mine, language: result.data.mine.language ?? language });
+          else setNote(LEARN_NOT_OPEN_NOTE);
+        },
+        () => {},
+      );
+    },
+    onNext: () => {
+      router.push(last || !lesson.next ? coursePath(lesson.course.slug) : learnLessonPath(lesson.next.slug));
+    },
+    onSignIn: () => {
+      signIn(IDENTITY_PROVIDER, { redirectTo: learnLessonPath(lesson.slug) }).catch(() => {});
+    },
+    onRate: async (good) => {
+      const result = await sendLearnFeedbackAction({ lesson: lesson.slug, good });
+      return result.ok && result.data;
+    },
+    onComment: async (comment, good) => {
+      const result = await sendLearnFeedbackAction({ lesson: lesson.slug, good, comment });
+      return result.ok && result.data;
+    },
+  };
+
+  return (
+    <div className="contents" onPointerDownCapture={touch} onKeyDownCapture={touch} onFocusCapture={touch}>
+      <LessonPlayer
+        // Drawn again once, when the person's side first arrives before they touched it.
+        key={`${lessonPlayerKeyOf(lesson)}:${redrawn ? 'mine' : 'public'}`}
+        lesson={lesson}
+        group={group}
+        viewer={viewer}
+        questionCodes={questionCodes}
+        mainLanguage={mainLanguage}
+        article={article}
+        more={more}
+        calls={calls}
+        openFact={openFact}
+        signedIn={personal.kind !== 'visitor'}
+        note={viewer ? null : note}
+      />
+    </div>
+  );
+}

@@ -35,6 +35,10 @@ import { coursePath, LEARN_HOME_PATH, learnFactPath } from '@/lib/learn/paths';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
 
+/** The key of a lesson's player: another lesson, or a changed question, starts a new answer. */
+export const lessonPlayerKeyOf = (lesson: Pick<LearnLesson, 'slug' | 'question'>) =>
+  `${lesson.slug}:${lesson.question.id}`;
+
 /** A signed-in person's side: the lesson's, and the depth of each lesson of the group (by slug). */
 export type LessonViewer = { mine: LearnLessonMine; depths: Readonly<Record<string, LearnDepth>> };
 
@@ -42,7 +46,7 @@ export type LessonViewer = { mine: LearnLessonMine; depths: Readonly<Record<stri
 export type LessonCalls = {
   /** Each pick the page graded: the page saves a right one for a member. */
   onGraded?: (graded: { picked: LearnPicked; right: boolean; tries: number; language: string | null }) => void;
-  /** The main button after a right answer, for a member: the next lesson, or the end of the group. */
+  /** The main button after a right answer, for a member or a signed-in person: the next lesson, or the end of the group. */
   onNext: () => void;
   /** The main button after a right answer, for a visitor. */
   onSignIn: () => void;
@@ -90,6 +94,8 @@ export function LessonPlayer({
   calls,
   drawn = {},
   openFact = false,
+  signedIn = false,
+  note,
   hints: hintsGiven,
   now,
   timeZone,
@@ -105,6 +111,13 @@ export function LessonPlayer({
   drawn?: LessonDrawn;
   /** Opened from a shared fact: the insights start shown, with "Did you know?" open. */
   openFact?: boolean;
+  /**
+   * A person with a session whose side has not come (still being read, or not read): never asked to sign in. Their
+   * main button goes on, as a member's; the page saves their answer.
+   */
+  signedIn?: boolean;
+  /** A line under the card after a right answer, when there is no depth line to show (the page's word on the save). */
+  note?: ReactNode;
   hints?: boolean;
   /**
    * The clock and time zone the review's day is counted in. With both given, the server draws the review's words; with
@@ -116,6 +129,8 @@ export function LessonPlayer({
   const live = useKeyHints();
   const hints = hintsGiven ?? live;
   const member = viewer !== null;
+  // Asked to sign in only without a session; a person with one goes on as a member does.
+  const goesOn = member || signedIn;
   const mine = viewer?.mine ?? null;
   const exampleLanguages = (
     lesson.examples.find((example) => example.name === 'main') ?? lesson.examples[0]
@@ -136,7 +151,7 @@ export function LessonPlayer({
     verdict: true,
     start,
     onGraded: calls.onGraded,
-    onDone: member ? calls.onNext : calls.onSignIn,
+    onDone: goesOn ? calls.onNext : calls.onSignIn,
   });
   const right = isRightAnswer(answer.state);
   // A right answer makes the lesson Learned at once; the saved depth, when it comes, is never lower.
@@ -175,7 +190,13 @@ export function LessonPlayer({
         </span>
       </div>
     );
-  } else if (right && !member) {
+  } else if (right && note) {
+    below = (
+      <div className="flex min-h-8 items-center text-sm text-muted-foreground" data-answer-note="">
+        {note}
+      </div>
+    );
+  } else if (right && !goesOn) {
     below = (
       <div className="flex min-h-8 items-center text-sm text-muted-foreground" data-visitor-line="">
         Your answer is not saved without an account.
@@ -203,7 +224,7 @@ export function LessonPlayer({
             <AnswerPart
               question={lesson.question}
               answer={answer}
-              place={lessonPlace(mainLabelOf({ member, last, next: lesson.next }))}
+              place={lessonPlace(mainLabelOf({ member: goesOn, last, next: lesson.next }))}
               hints={hints}
               highlighted={questionCodes}
               pill={opened ? 'You answered this' : undefined}
@@ -230,7 +251,7 @@ export function LessonPlayer({
                 ) : null
               }
             />
-            {!member && !right ? (
+            {!goesOn && !right ? (
               <p className="m-0 text-xs text-muted-foreground" data-visitor-note="">
                 Sign in with GitHub to save your progress.
               </p>

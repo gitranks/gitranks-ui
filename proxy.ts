@@ -42,6 +42,9 @@ import {
 import { isPrTimelinePath, prTimelineMarkdownPath, prTimelineRouteOf } from './lib/workspace/pr-timeline-path';
 import { contributeOpen, requestContributeAccess, requestWorkspaceAccess } from './lib/workspace/preview-gate';
 
+/** When search engines may ask again for a paused lesson: an hour, in seconds. */
+const PAUSED_RETRY_AFTER_SECONDS = '3600';
+
 const { auth } = NextAuth(authConfig);
 
 // Auth.js as middleware; the callback adds nothing, so a signed-in visitor's session is refreshed as before.
@@ -152,9 +155,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return NextResponse.rewrite(new URL(resultJson, request.url));
   }
 
-  // A shared lesson's page and its result pages stream, so their own notFound() comes too late for a 404 status: the
-  // lesson is asked for here first. Missing, the lesson's 404 page answers; a renamed login goes to its current result
-  // page. Neither is kept by a shared cache: the lesson goes public, and the login may change again.
+  // A lesson's page and its result pages stream, so their own notFound() comes too late for a 404 status: the lesson
+  // is asked for here first. Missing, the lesson's 404 page answers; a paused or removed lesson of ours answers its own
+  // page with a 503 or a 410 (the status a rewrite carries); a moved one redirects for good to its new address, and a
+  // renamed login goes to its current result page. None is kept by a shared cache: a lesson comes back, goes public,
+  // and a login may change again.
   const lesson = request.method === 'GET' || request.method === 'HEAD' ? lessonRouteOf(request.nextUrl.pathname) : null;
   if (lesson) {
     const gate = await lessonGateOf(lesson);
@@ -162,8 +167,15 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
       const response =
         gate.kind === 'missing'
           ? NextResponse.rewrite(new URL(LESSON_MISSING_PATH, request.url))
-          : NextResponse.redirect(new URL(`${gate.path}${request.nextUrl.search}`, request.url));
+          : gate.kind === 'gone'
+            ? NextResponse.rewrite(new URL(gate.path, request.url), { status: gate.status })
+            : NextResponse.redirect(
+                new URL(`${gate.path}${request.nextUrl.search}`, request.url),
+                gate.permanent ? 308 : 307,
+              );
       response.headers.set('Cache-Control', 'private, no-store');
+      // A paused lesson is coming back: search engines are told when to ask again, so it keeps its place.
+      if (gate.kind === 'gone' && gate.status === 503) response.headers.set('Retry-After', PAUSED_RETRY_AFTER_SECONDS);
       return response;
     }
   }

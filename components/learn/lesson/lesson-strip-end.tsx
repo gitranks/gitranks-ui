@@ -2,7 +2,7 @@ import type { LessonPlace, LessonSquare } from '@/lib/learn/lesson-page';
 import { cn } from '@/lib/utils';
 
 /** A square's look by depth: the primary colour mixed in at 28%, 62% and 100%; muted for not yet; dashed for paused. */
-const SQUARE: Record<LessonSquare, string> = {
+export const DEPTH_SQUARE_CLASS: Record<LessonSquare, string> = {
   none: 'bg-muted',
   current: 'bg-card shadow-[inset_0_0_0_2px_var(--primary)]',
   learned: 'bg-[color-mix(in_oklch,var(--primary)_28%,var(--muted))]',
@@ -17,7 +17,11 @@ export function DepthSquares({ squares }: { squares: readonly LessonSquare[] }) 
     <span className="flex items-center gap-1" aria-hidden="true" data-depth-squares="">
       {squares.map((square, index) => (
         // Squares never move: the index is the lesson.
-        <span key={index} className={cn('inline-block size-4 rounded-[4px]', SQUARE[square])} data-square={square} />
+        <span
+          key={index}
+          className={cn('inline-block size-4 rounded-[4px]', DEPTH_SQUARE_CLASS[square])}
+          data-square={square}
+        />
       ))}
     </span>
   );

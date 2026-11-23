@@ -7,14 +7,14 @@ import { forgetHeroApplication, rememberHeroApplication } from '@/lib/unsung-her
 
 const { signOut, session } = vi.hoisted(() => ({
   signOut: vi.fn(),
-  session: { error: undefined as string | undefined },
+  session: { error: undefined as string | undefined, login: 'octocat' },
 }));
 vi.mock('next-auth/react', () => ({
   signIn: vi.fn(),
   signOut,
   useSession: () => ({
     data: {
-      user: { githubLogin: 'octocat', name: 'Octo Cat', image: 'https://example.test/a.png?v=4' },
+      user: { githubLogin: session.login, name: 'Octo Cat', image: 'https://example.test/a.png?v=4' },
       error: session.error,
     },
     status: 'authenticated',
@@ -24,7 +24,7 @@ vi.mock('next/image', () => ({
   default: (props: React.ComponentProps<'img'>) => <img {...props} alt={props.alt} />,
 }));
 
-const { default: SigninButton, heroMenuItemText } = await import('./signin-button');
+const { default: SigninButton, showsAdminLinks } = await import('./signin-button');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -37,6 +37,7 @@ beforeEach(() => {
   root = createRoot(container);
   signOut.mockReset();
   session.error = undefined;
+  session.login = 'octocat';
 });
 
 afterEach(() => {
@@ -56,36 +57,39 @@ const openMenu = async () => {
 const items = () => [...document.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent);
 
 describe('the avatar menu', () => {
-  it('words the Unsung hero item by whether an application is open', () => {
-    expect(heroMenuItemText(false)).toBe('Apply for Unsung hero');
-    expect(heroMenuItemText(true)).toBe('Your Unsung hero application');
+  it('shows the admin links only to the admin login, in any case', () => {
+    expect(showsAdminLinks('maslianok')).toBe(true);
+    expect(showsAdminLinks('Maslianok')).toBe(true);
+    expect(showsAdminLinks('octocat')).toBe(false);
+    expect(showsAdminLinks(undefined)).toBe(false);
   });
 
-  it('lists Apply for Unsung hero between Profile and Sign Out', async () => {
+  it('lists only Profile and Sign Out for everyone else', async () => {
     await act(async () => root.render(<SigninButton />));
     await openMenu();
-    expect(items()).toEqual(['Profile', 'Apply for Unsung hero', 'Sign Out']);
-    expect(document.querySelector('a[href="/unsung-heroes/apply"]')).not.toBeNull();
+    expect(items()).toEqual(['Profile', 'Sign Out']);
+    expect(document.querySelector('a[href="/unsung-heroes/apply"]')).toBeNull();
+    expect(document.querySelector('a[href="/admin/unsung-hero"]')).toBeNull();
   });
 
-  it('says "Your Unsung hero application" for the login the browser notes, and Sign Out forgets it', async () => {
+  it('adds Unsung hero admin for the admin', async () => {
+    session.login = 'maslianok';
+    await act(async () => root.render(<SigninButton />));
+    await openMenu();
+    expect(items()).toEqual(['Profile', 'Unsung hero admin', 'Sign Out']);
+    expect(document.querySelector('a[href="/admin/unsung-hero"]')).not.toBeNull();
+  });
+
+  it('Sign Out forgets the browser’s note of an open application', async () => {
     rememberHeroApplication('octocat');
     await act(async () => root.render(<SigninButton />));
     await openMenu();
-    expect(items()).toContain('Your Unsung hero application');
     const signOutItem = [...document.querySelectorAll('[role="menuitem"]')].find(
       (item) => item.textContent === 'Sign Out',
     ) as HTMLElement;
     await act(async () => signOutItem.click());
     expect(signOut).toHaveBeenCalled();
     expect(document.cookie).not.toContain('hero_application=octocat');
-  });
-
-  it('another login’s note does not count', async () => {
-    rememberHeroApplication('hubot');
-    await act(async () => root.render(<SigninButton />));
-    await openMenu();
-    expect(items()).toContain('Apply for Unsung hero');
   });
 
   it('“Maybe later” on an expired token signs out and forgets the note too', async () => {

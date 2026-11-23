@@ -14,8 +14,8 @@ describe('package-page sitemap', () => {
     vi.mocked(fetchPackagesForSitemap).mockReset().mockResolvedValue([]);
   });
 
-  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29, crates.io 30–39, pub.dev 40–49, Packagist 50–59, Maven Central 60–69, NuGet 70–79', async () => {
-    expect(await generateSitemaps()).toHaveLength(80);
+  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29, crates.io 30–39, pub.dev 40–49, Packagist 50–59, Maven Central 60–69, NuGet 70–79, RubyGems 80–89', async () => {
+    expect(await generateSitemaps()).toHaveLength(90);
   });
 
   it("lists each package's page at its canonical address, a scoped name as @scope/name", async () => {
@@ -110,8 +110,18 @@ describe('package-page sitemap', () => {
     expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Nuget, 3);
   });
 
-  it('reads no part outside 0–79', async () => {
-    expect(await part('80')).toEqual([]);
+  it("lists a gem's page under its registry, its name as written, from the parts after NuGet's", async () => {
+    vi.mocked(fetchPackagesForSitemap).mockResolvedValue(['rails', 'ZenTest']);
+
+    expect((await part('82')).map(({ url }) => url)).toEqual([
+      'https://example.test/package/rubygems/rails',
+      'https://example.test/package/rubygems/ZenTest',
+    ]);
+    expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Rubygems, 2);
+  });
+
+  it('reads no part outside 0–89', async () => {
+    expect(await part('90')).toEqual([]);
     expect(await part('x')).toEqual([]);
     expect(fetchPackagesForSitemap).not.toHaveBeenCalled();
   });

@@ -35,8 +35,8 @@ import {
 import { PackageRegistry } from '@/types/generated/graphql';
 
 describe('the registry table', () => {
-  it('lists npm, the default, then PyPI, Go, crates.io, pub.dev, Packagist, Maven Central and NuGet, as the API names them', () => {
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget']);
+  it('lists npm, the default, then PyPI, Go, crates.io, pub.dev, Packagist, Maven Central, NuGet and RubyGems, as the API names them', () => {
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget', 'rubygems']);
     expect(DEFAULT_REGISTRY).toBe('npm');
     expect(apiRegistryOf('npm')).toBe(PackageRegistry.Npm);
     expect(apiRegistryOf('pypi')).toBe(PackageRegistry.Pypi);
@@ -57,16 +57,26 @@ describe('the registry table', () => {
     expect(ALL_REGISTRY_IDS.map((id) => REGISTRIES[id].api).sort()).toEqual(Object.values(PackageRegistry).sort());
   });
 
-  it('shows the registries its list names, in the order of the table: npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central and NuGet for now', () => {
-    expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget']);
+  it('shows the registries its list names, in the order of the table: npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central, NuGet and RubyGems: every row', () => {
+    expect(LISTED_REGISTRIES).toEqual([
+      'npm',
+      'pypi',
+      'go',
+      'crates',
+      'pub',
+      'packagist',
+      'maven',
+      'nuget',
+      'rubygems',
+    ]);
     expect(ALL_REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget', 'rubygems']);
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget']);
-    // A row not listed yet: the table knows it, nothing a visitor reaches does.
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget', 'rubygems']);
+    // Every row is listed now: RubyGems, the last to join, is a row and a registry the site shows.
     expect(isRegistryRow('rubygems')).toBe(true);
-    expect(isRegistryId('rubygems')).toBe(false);
+    expect(isRegistryId('rubygems')).toBe(true);
     expect(registryRowOfApi('RUBYGEMS')).toBe('rubygems');
-    expect(registryOfApi('RUBYGEMS')).toBeNull();
-    expect(isListedApiRegistry('RUBYGEMS')).toBe(false);
+    expect(registryOfApi('RUBYGEMS')).toBe('rubygems');
+    expect(isListedApiRegistry('RUBYGEMS')).toBe(true);
     expect(isRegistryRow('cargo')).toBe(false);
   });
 
@@ -229,10 +239,10 @@ describe('package keys', () => {
     expect(packageOfKey('npm/react')).toEqual({ registry: 'npm', name: 'react' });
     expect(packageOfKey('pypi/zope-interface')).toEqual({ registry: 'pypi', name: 'zope-interface' });
     expect(packageOfKey('nuget/serilog')).toEqual({ registry: 'nuget', name: 'serilog' });
+    expect(packageOfKey('rubygems/ZenTest')).toEqual({ registry: 'rubygems', name: 'ZenTest' });
     for (const key of [
       'react',
       'cargo/react',
-      'rubygems/rails',
       'npm/',
       'npm/.env',
       'npm/nebula/ui',
@@ -257,12 +267,14 @@ describe('copy from the table', () => {
   });
 
   it('names every registry where the copy lists every one, and a package alone past two', () => {
-    expect(registryLabelList()).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central and NuGet');
-    expect(registryLabelList('or')).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central or NuGet');
+    expect(registryLabelList()).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central, NuGet and RubyGems');
+    expect(registryLabelList('or')).toBe(
+      'npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central, NuGet or RubyGems',
+    );
     expect(anyRegistryPackageText()).toBe('package');
     expect(anyRegistryPackageText(true)).toBe('a package');
     expect(registryManifestList()).toBe(
-      'package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml, pubspec.yaml, composer.json, pom.xml, build.gradle, .csproj or packages.config',
+      'package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml, pubspec.yaml, composer.json, pom.xml, build.gradle, .csproj, packages.config, Gemfile or .gemspec',
     );
     expect(registryManifestList(['pypi'])).toBe('requirements.txt or pyproject.toml');
   });

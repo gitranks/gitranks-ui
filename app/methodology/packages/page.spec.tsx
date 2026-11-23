@@ -11,7 +11,7 @@ describe('how package rankings work', () => {
     expect(metadata.alternates?.canonical).toBe('/methodology/packages');
   });
 
-  it('explains dependents, what does not count, the three rankings and the reads, for npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central and NuGet', () => {
+  it('explains dependents, what does not count, the three rankings and the reads, for npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central, NuGet and RubyGems', () => {
     const html = renderToStaticMarkup(<PackageMethodologyPage />);
 
     for (const heading of [
@@ -39,17 +39,19 @@ describe('how package rankings work', () => {
     // NuGet's first download count is not read yet either.
     expect(html).toContain('href="/packages/nuget/dependents-stars/1"');
     expect(html).not.toContain('href="/packages/nuget/downloads/1"');
+    // And RubyGems'.
+    expect(html).toContain('href="/packages/rubygems/dependents-stars/1"');
+    expect(html).not.toContain('href="/packages/rubygems/downloads/1"');
     const text = html.replace(/<[^>]+>/g, '').replaceAll('&#x27;', "'");
     expect(text).toContain("A project's facts come from PyPI's JSON API");
     expect(text).toContain(
       "Its downloads come from PyPI's public download statistics, counted one calendar month at a time",
     );
     expect(text).toContain(
-      'lists the package in a dependency file of its own, as GitHub reports them: package.json for npm, requirements.txt or pyproject.toml for PyPI, go.mod for Go, Cargo.toml for crates.io, pubspec.yaml for pub.dev, composer.json for Packagist, pom.xml or build.gradle for Maven Central and .csproj or packages.config for NuGet.',
+      'lists the package in a dependency file of its own, as GitHub reports them: package.json for npm, requirements.txt or pyproject.toml for PyPI, go.mod for Go, Cargo.toml for crates.io, pubspec.yaml for pub.dev, composer.json for Packagist, pom.xml or build.gradle for Maven Central, .csproj or packages.config for NuGet and Gemfile or .gemspec for RubyGems.',
     );
-    // A registry the site does not show yet has no paragraph and no link.
-    expect(text).not.toContain('RubyGems');
-    expect(html).not.toContain('href="/packages/rubygems/');
+    expect(text).toContain("A gem's facts come from rubygems.org's API.");
+    expect(text).toContain("A gem's name is kept as written, capitals included.");
     expect(text).toContain('Go and Maven Central publish no download counts, so they have no downloads ranking.');
     expect(text).toContain("An artifact's facts come from deps.dev, which reads Maven Central.");
     expect(text).toContain(
@@ -62,9 +64,13 @@ describe('how package rankings work', () => {
     expect(text).toContain(
       "NuGet's first monthly download count comes in early January 2027; until then it has no downloads ranking.",
     );
+    expect(text).toContain(
+      "RubyGems' first monthly download count comes in early January 2027; until then it has no downloads ranking.",
+    );
     expect(text).toContain("NuGet reads ids without case, so GitRanks' addresses use the lower-case form.");
     expect(text).not.toContain('pub.dev publishes no download counts');
     expect(text).not.toContain('NuGet publishes no download counts');
+    expect(text).not.toContain('RubyGems publishes no download counts');
     expect(text).not.toContain('Go and pub.dev');
     expect(text).toContain('over the last whole calendar month on PyPI and Packagist;');
     expect(text).toContain('Zope.Interface, zope.interface and zope-interface as one name');

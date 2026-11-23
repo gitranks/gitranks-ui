@@ -93,7 +93,9 @@ describe('a Find search', () => {
     // `vendor/package` is a Packagist name.
     expect(parsePackageSearch('acme/fastqueue')).toBe('packagist/acme/fastqueue');
     expect(parsePackageSearch('acme/fast/queue')).toBeNull();
-    expect(parsePackageSearch('.hidden')).toBeNull();
+    // rubygems.org takes any name of its characters with a letter in it: `.hidden` is a gem name.
+    expect(parsePackageSearch('.hidden')).toBe('rubygems/.hidden');
+    expect(parsePackageSearch('...')).toBeNull();
   });
 
   it("reads a pasted pypi.org address and `pypi:`, in the spelling the site's addresses use", () => {
@@ -115,6 +117,7 @@ describe('a Find search', () => {
       { kind: 'package', name: 'crates/react' },
       { kind: 'package', name: 'pub/react' },
       { kind: 'package', name: 'nuget/react' },
+      { kind: 'package', name: 'rubygems/react' },
     ]);
     expect(searchLookups('@types/node', null)).toEqual([{ kind: 'package', name: 'npm/@types/node' }]);
     expect(searchLookups('npm:lodash', null)).toEqual([{ kind: 'package', name: 'npm/lodash' }]);
@@ -136,6 +139,8 @@ describe('a Find search', () => {
       { kind: 'package', name: 'crates/django' },
       // NuGet compares ids in any case, and the site's addresses write them in lower case.
       { kind: 'package', name: 'nuget/django' },
+      // RubyGems keeps a gem name's case: rubygems.org's lookups are case-sensitive.
+      { kind: 'package', name: 'rubygems/Django' },
     ]);
     expect(searchLookups('zope.interface', 'package')).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },
@@ -144,15 +149,17 @@ describe('a Find search', () => {
       { kind: 'package', name: 'go/zope.interface' },
       // And a NuGet id: `Newtonsoft.Json`.
       { kind: 'package', name: 'nuget/zope.interface' },
+      { kind: 'package', name: 'rubygems/zope.interface' },
     ]);
     expect(searchLookups('https://pypi.org/project/requests/', null)).toEqual([
       { kind: 'package', name: 'pypi/requests' },
     ]);
     expect(searchLookups('pypi:requests', null)).toEqual([{ kind: 'package', name: 'pypi/requests' }]);
-    // pub.dev and NuGet alone take a name that starts with `_`: a Dart identifier may, and a NuGet id's runs are `\w`.
+    // pub.dev, NuGet and RubyGems alone take a name that starts with `_`: a Dart identifier may, a NuGet id's runs are `\w`, and a gem name is any run of its characters with a letter.
     expect(searchLookups('_private', 'package')).toEqual([
       { kind: 'package', name: 'pub/_private' },
       { kind: 'package', name: 'nuget/_private' },
+      { kind: 'package', name: 'rubygems/_private' },
     ]);
   });
 
@@ -163,6 +170,7 @@ describe('a Find search', () => {
       { kind: 'package', name: 'crates/typing_extensions' },
       { kind: 'package', name: 'pub/typing_extensions' },
       { kind: 'package', name: 'nuget/typing_extensions' },
+      { kind: 'package', name: 'rubygems/typing_extensions' },
     ]);
     expect(searchLookups('zope.interface', null)).toEqual([
       { kind: 'package', name: 'npm/zope.interface' },
@@ -171,15 +179,17 @@ describe('a Find search', () => {
       { kind: 'package', name: 'go/zope.interface' },
       // And a NuGet id: `Newtonsoft.Json`.
       { kind: 'package', name: 'nuget/zope.interface' },
+      { kind: 'package', name: 'rubygems/zope.interface' },
     ]);
     expect(searchLookups('ruamel.yaml', null)).toEqual([
       { kind: 'package', name: 'npm/ruamel.yaml' },
       { kind: 'package', name: 'pypi/ruamel-yaml' },
       { kind: 'package', name: 'go/ruamel.yaml' },
       { kind: 'package', name: 'nuget/ruamel.yaml' },
+      { kind: 'package', name: 'rubygems/ruamel.yaml' },
     ]);
     // Still nothing for what names no package and no account.
-    expect(searchLookups('.hidden', null)).toEqual([]);
+    expect(searchLookups('...', null)).toEqual([]);
   });
 
   it('reads a pasted requirement on PyPI: its version specifier, extras and marker go', () => {

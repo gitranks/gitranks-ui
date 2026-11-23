@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { reviewDone } from './__fixtures__/review';
 import {
-  nextReviewWordsOf,
+  nothingDueOf,
   reviewAnswerInputOf,
   reviewChangeLineOf,
   reviewEndSummaryOf,
@@ -62,13 +62,32 @@ describe("the review's end", () => {
 });
 
 describe('with nothing due', () => {
-  const now = new Date(2026, 10, 23, 15);
+  const now = new Date(2026, 10, 23, 9);
   const at = (days: number, hour = 6) => new Date(2026, 10, 23 + days, hour).toISOString();
+  const time = (hour: number) =>
+    new Date(2026, 10, 23, hour).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
   it('says when the next review is in the reader’s own days, with its lessons', () => {
-    expect(nextReviewWordsOf(at(0, 20), 1, now)).toBe('Your next review is later today, with 1 lesson.');
-    expect(nextReviewWordsOf(at(1), 4, now)).toBe('Your next review is tomorrow, with 4 lessons.');
-    expect(nextReviewWordsOf(at(2), 3, now)).toBe('Your next review is in 2 days, with 3 lessons.');
+    expect(nothingDueOf(at(1), 4, now)).toEqual({
+      title: 'Nothing is due today',
+      text: 'Your next review is tomorrow, with 4 lessons.',
+    });
+    expect(nothingDueOf(at(2), 3, now).text).toBe('Your next review is in 2 days, with 3 lessons.');
+  });
+
+  it('never says "today" above a review that opens later the same day, read from the same clock', () => {
+    // A due time at the start of a day in another zone: 14:00 here.
+    const words = nothingDueOf(at(0, 14), 1, now);
+    expect(words).toEqual({
+      title: 'Nothing is due yet',
+      text: `Your next review opens at ${time(14)}, with 1 lesson.`,
+    });
+    expect(`${words.title} ${words.text}`).not.toMatch(/today/);
+    // A due time that passed while the page was read.
+    expect(nothingDueOf(at(0, 8), 2, now)).toEqual({
+      title: 'Nothing is due yet',
+      text: 'Your next review opens in a moment, with 2 lessons.',
+    });
   });
 
   it('says what brings a review when none is coming, and never a zero', () => {
@@ -77,9 +96,11 @@ describe('with nothing due', () => {
       [at(2), 0],
       ['not a date', 3],
     ] as const) {
-      const words = nextReviewWordsOf(when, count, now);
-      expect(words).toBe('A lesson you learn comes back here three days later, so it stays.');
-      expect(words).not.toMatch(/\b0\b/);
+      const words = nothingDueOf(when, count, now);
+      expect(words).toEqual({
+        title: 'Nothing is due today',
+        text: 'A lesson you learn comes back here three days later, so it stays.',
+      });
     }
   });
 });

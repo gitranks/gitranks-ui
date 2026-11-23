@@ -42,6 +42,7 @@ export const reviewSide: ReviewSide = {
   nextReviewAt: null,
   nextReviewLessons: 0,
   next: reviewNext,
+  mainLanguage: null,
 };
 
 /** Ten lessons, with fourteen more due. */
@@ -58,6 +59,7 @@ export const reviewSideEmpty = (now: Date): ReviewSide => ({
   nextReviewAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2, 6).toISOString(),
   nextReviewLessons: 3,
   next: reviewNext,
+  mainLanguage: null,
 });
 
 /** The call's reply to an answer: the key, the lesson it was, and what changed. */

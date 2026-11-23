@@ -11,7 +11,8 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('./highlight', () => ({ highlightCodes }));
 
 const { loadLearnReviewSide } = await import('./review.data');
-const { LearnCourseNextDocument, LearnHomeNextDocument, LearnReviewDocument } = await import('./review.documents');
+const { LearnCourseNextDocument, LearnHomeNextDocument, LearnReviewDocument, LearnSetupMainLanguageDocument } =
+  await import('./review.documents');
 const { reviewItem } = await import('./__fixtures__/review');
 
 const { highlighted: _, ...item } = reviewItem('r1');
@@ -24,6 +25,7 @@ function answer({
   learnReview = review as unknown,
   learnHome = { next, nextCourse: null } as unknown,
   learnCourseMine = { slug: 'algorithms', next } as unknown,
+  learnSetupOfMine = { mainLanguage: 'go' } as unknown,
 } = {}) {
   graphqlDirect.mockImplementation(async (document: unknown) => {
     if (document === LearnReviewDocument) {
@@ -35,6 +37,10 @@ function answer({
       return { learnHome };
     }
     if (document === LearnCourseNextDocument) return { learnCourseMine };
+    if (document === LearnSetupMainLanguageDocument) {
+      if (learnSetupOfMine instanceof Error) throw learnSetupOfMine;
+      return { learnSetupOfMine };
+    }
     throw new Error('unexpected read');
   });
 }
@@ -64,7 +70,22 @@ describe("the person's review", () => {
       nextReviewAt: null,
       nextReviewLessons: 0,
       next: { kind: 'lesson', link: next },
+      mainLanguage: 'go',
     });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      LearnSetupMainLanguageDocument,
+      {},
+      { source: 'ssr', githubLogin: 'octocat' },
+    );
+  });
+
+  it('carries no main language without a setup, with one of another shape, or when its read fails', async () => {
+    for (const learnSetupOfMine of [null, { mainLanguage: null }, { mainLanguage: 'Go Lang!' }, new Error('down')]) {
+      answer({ learnSetupOfMine });
+      const side = await loadLearnReviewSide('octocat', null);
+      expect(side!.mainLanguage).toBeNull();
+      expect(side!.items).toHaveLength(1);
+    }
   });
 
   it('names the next course when no lesson is next, and nothing when there is neither', async () => {

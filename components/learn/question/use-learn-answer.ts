@@ -67,8 +67,18 @@ export type LearnAnswer = {
 const NOT_OURS =
   'input:not([type=radio]):not([type=checkbox]), textarea, select, [role=menu], [role=menubar], [role=listbox], [role=combobox], [role=dialog], [role=alertdialog]';
 
-/** The question's own pickers (a line, a row, Myth or Fact): Enter on one of them is the main button, not its press. */
+/**
+ * The question's own pickers (a line, a row, Myth or Fact, the extra choice). Enter on one that only picks is the main
+ * button; Enter on one whose press answers is that press.
+ */
 export const PICKER = 'data-learn-picker';
+
+/** Whether a picker's own press answers: the one-press extra choice, and Myth or Fact where a verdict shows. */
+function answersOnPress(picker: Element, options: LearnAnswerOptions): boolean {
+  if (picker.matches('[data-option="extra"]')) return !!options.extraAnswers;
+  if (picker.matches('[data-myth]')) return options.verdict;
+  return false;
+}
 
 /** Whether a key belongs to something else on the page: a field, an editor, a menu or a dialog. */
 function isNotOurs(target: HTMLElement | null): boolean {
@@ -185,8 +195,12 @@ export function useLearnAnswer(options: LearnAnswerOptions): LearnAnswer {
       // A held key acts once: holding Enter must not check and then go on before the verdict is read. Only the arrows
       // repeat, to move a row step by step.
       if (event.repeat && action.kind !== 'step') return;
-      // Enter on a focused button or link is that button's own press, unless it is one of the question's pickers.
-      if (action.kind === 'main' && target?.closest?.('button, a, summary') && !target.closest(`[${PICKER}]`)) return;
+      // Enter on a focused button or link is that button's own press, unless it is a picker that only picks. While the
+      // question is open, a picker whose press answers ("I don't remember", Myth or Fact) answers with itself.
+      if (action.kind === 'main' && target?.closest?.('button, a, summary')) {
+        const picker = target.closest(`[${PICKER}]`);
+        if (!picker || (state.phase === 'open' && answersOnPress(picker, options))) return;
+      }
       if (action.kind !== 'main' && state.phase !== 'open') return;
       // The arrows scroll the page while no row is picked to move.
       if (action.kind === 'step' && state.selected === null) return;

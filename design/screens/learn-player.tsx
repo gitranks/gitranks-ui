@@ -360,9 +360,10 @@ export const LEARN_PLAYER_SCREEN: Screen = {
     },
     {
       id: 'review-card',
-      title: 'The review before an answer, and its end: all repeated, more due, nothing due, signed out, loading',
+      title:
+        'The review before an answer, not sent, its end, nothing due (yet), signed out, a session that ended, loading',
       path: '/learn/review',
-      height: 4500,
+      height: 6580,
       render: () => (
         <div className="flex flex-col gap-8 p-6">
           <Frame title="A lesson, one picked: its course above the card, not its name" height={980}>
@@ -370,6 +371,18 @@ export const LEARN_PLAYER_SCREEN: Screen = {
               <ReviewCard
                 item={reviewItem('r3')}
                 answer={answerOf(reviewQuestion, [{ type: 'pick', at: 1 }])}
+                last={false}
+                reply={null}
+                forgot={false}
+                hints
+              />
+            </Review>
+          </Frame>
+          <Frame title="An answer that did not reach us: the pick stays, and the card says to try again" height={980}>
+            <Review course={null} run={reviewRun}>
+              <ReviewCard
+                item={reviewItem('r3')}
+                answer={answerOf(reviewQuestion, [{ type: 'pick', at: 1 }, { type: 'sending' }, { type: 'failed' }])}
                 last={false}
                 reply={null}
                 forgot={false}
@@ -392,9 +405,35 @@ export const LEARN_PLAYER_SCREEN: Screen = {
               <ReviewEmpty {...reviewSideEmpty(NOW)} now={NOW} hints />
             </Review>
           </Frame>
-          <Frame title="Signed out (an ended session): what the review is for, and the way in" height={300}>
+          <Frame
+            title="Nothing due yet: the next review opens later today, said in the reader's own clock"
+            height={300}
+          >
+            <Review course={null}>
+              <ReviewEmpty
+                {...reviewSideEmpty(NOW)}
+                nextReviewAt={new Date(NOW.getTime() + 5 * 3_600_000).toISOString()}
+                now={NOW}
+                hints
+              />
+            </Review>
+          </Frame>
+          <Frame title="Nothing learned yet: no date, what brings a review, and the way home" height={300}>
+            <Review course={null}>
+              <ReviewEmpty nextReviewAt={null} nextReviewLessons={0} next={null} now={NOW} hints />
+            </Review>
+          </Frame>
+          <Frame title="Signed out: what the review is for, and the way in" height={300}>
             <Review course={null}>
               <ReviewVisitor onSignIn={noop} />
+            </Review>
+          </Frame>
+          <Frame
+            title="The session ended during a sitting: the answers are saved, sign in and come back here"
+            height={300}
+          >
+            <Review course={null}>
+              <ReviewVisitor ended onSignIn={noop} />
             </Review>
           </Frame>
           <Frame title="While the set is on its way: the card’s place, of its size" height={480}>

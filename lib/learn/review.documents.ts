@@ -37,6 +37,11 @@ export const AnswerLearnReviewDocument = doc<
   }`,
 );
 
+/** The main language of the person's setup, or of our guess of it: the review asks code in it first. */
+export const LearnSetupMainLanguageDocument = doc<{ learnSetupOfMine: { mainLanguage: string | null } | null }>(
+  'query LearnSetupMainLanguage { learnSetupOfMine { mainLanguage } }',
+);
+
 /** Where Learn home sends the person next: a lesson, or with none left a course to start. */
 export const LearnHomeNextDocument = doc<{
   learnHome: { next: LearnLessonLink | null; nextCourse: LearnLessonLink | null } | null;

@@ -3,6 +3,7 @@ import { LEARN_GONE_SCREEN } from './learn-gone';
 import { LEARN_LESSON_SCREEN } from './learn-lesson';
 import { LEARN_PLAYER_SCREEN } from './learn-player';
 import { LEARN_QUESTION_SCREEN } from './learn-question';
+import { LEARN_SHARE_SCREEN } from './learn-share';
 import { LearnBar } from '@/components/learn/bar/learn-bar';
 import { type LearnBarFixture, learnBarPhoneRows, learnBarRows } from '@/lib/learn/__fixtures__/learn-bar';
 
@@ -59,4 +60,5 @@ export const LEARN_FRAME_SCREENS: Screen[] = [
   LEARN_PLAYER_SCREEN,
   LEARN_LESSON_SCREEN,
   LEARN_GONE_SCREEN,
+  LEARN_SHARE_SCREEN,
 ];

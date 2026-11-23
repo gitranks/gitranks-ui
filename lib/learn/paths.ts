@@ -37,6 +37,16 @@ export const learnLessonMarkdownPath = (slug: string) => markdownPathOf(learnLes
 export const learnFactPath = (slug: string) => `${learnLessonPath(slug)}?fact` as Route;
 
 /**
+ * Where a lesson's Markdown copy is answered from: the proxy rewrites `/learn/lessons/<slug>.md` here, since a page and a
+ * route handler cannot share the `[slug]` segment.
+ */
+export const learnLessonMarkdownRoute = (slug: string) => `/api/learn/lessons/${encodeURIComponent(slug)}/lesson.md`;
+
+/** The picture a posted link to a lesson shows, and the one its fun fact's link shows (`?fact`). */
+export const learnLessonCardPath = (slug: string) => `${learnLessonPath(slug)}/card.png`;
+export const learnFactCardPath = (slug: string) => `${learnLessonPath(slug)}/fact.png`;
+
+/**
  * Where the proxy shows a paused or removed lesson's page, with its status: an address no lesson has, since `_gone` is
  * not a slug's shape.
  */
@@ -81,6 +91,17 @@ const SLUG_MAX_LENGTH = 100;
 
 /** Whether a slug is one a course or a lesson of ours can have: asked of the API only then. */
 export const isContentSlug = (slug: string): boolean => slug.length <= SLUG_MAX_LENGTH && CONTENT_SLUG.test(slug);
+
+const LESSON_MARKDOWN = /^\/learn\/lessons\/([^/]+)\.md$/;
+
+/**
+ * Where the proxy answers a lesson's Markdown copy from, for `/learn/lessons/<slug>.md` with a slug of a lesson's shape
+ * as `learnLessonMarkdownPath` writes it; null for any other path.
+ */
+export function learnLessonMarkdownRouteOf(pathname: string): string | null {
+  const slug = LESSON_MARKDOWN.exec(pathname)?.[1];
+  return slug !== undefined && isContentSlug(slug) ? learnLessonMarkdownRoute(slug) : null;
+}
 
 /** A Learn cache tag as the API sends it to expire: `learn:courses`, a course's or a lesson's. */
 export function isLearnTag(tag: string): boolean {

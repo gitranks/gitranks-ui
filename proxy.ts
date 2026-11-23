@@ -16,6 +16,7 @@ import {
   publicProgressRouteOf,
 } from './lib/learn/learn-path';
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
+import { learnLessonMarkdownRouteOf } from './lib/learn/paths';
 import { progressGateOf } from './lib/learn/public-progress/progress-gate';
 import { isLinkPagePath, LINK_PAGE_HEADERS } from './lib/link-token/link-token';
 import { packageMarkdownRewriteOf } from './lib/packages/package-paths';
@@ -153,6 +154,13 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   const resultJson = lessonResultJsonRouteOf(request.nextUrl.pathname);
   if (resultJson) {
     return NextResponse.rewrite(new URL(resultJson, request.url));
+  }
+
+  // A lesson's Markdown copy, for agents, at the page's address with `.md`: answered by its route handler, which follows
+  // the page's own gate (paused 503, removed 410, moved to its new copy). Rewritten before Auth.js, like the JSON above.
+  const lessonMarkdown = learnLessonMarkdownRouteOf(request.nextUrl.pathname);
+  if (lessonMarkdown) {
+    return NextResponse.rewrite(new URL(lessonMarkdown, request.url));
   }
 
   // A lesson's page and its result pages stream, so their own notFound() comes too late for a 404 status: the lesson

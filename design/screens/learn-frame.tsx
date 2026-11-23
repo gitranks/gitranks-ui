@@ -1,4 +1,5 @@
 import type { Screen } from '../registry';
+import { LEARN_COURSE_SCREEN, LEARN_COURSES_SCREEN } from './learn-courses';
 import { LEARN_GONE_SCREEN } from './learn-gone';
 import { LEARN_LESSON_SCREEN } from './learn-lesson';
 import { LEARN_PLAYER_SCREEN } from './learn-player';
@@ -61,4 +62,6 @@ export const LEARN_FRAME_SCREENS: Screen[] = [
   LEARN_LESSON_SCREEN,
   LEARN_GONE_SCREEN,
   LEARN_SHARE_SCREEN,
+  LEARN_COURSES_SCREEN,
+  LEARN_COURSE_SCREEN,
 ];

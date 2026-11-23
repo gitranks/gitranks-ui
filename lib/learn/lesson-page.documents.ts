@@ -15,9 +15,9 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 const LINK = 'slug title';
 const CODES = 'codes { language code }';
 
-/** The person's side of a lesson as the API answers it: the page adds the language it knows. */
-export type LearnLessonMineRead = Omit<LearnLessonMine, 'language'>;
-const MINE = 'depth known learnedAt dueAt picked tries feedbackGood';
+/** The person's side of a lesson as the API answers it, with the language of the last answer kept. */
+export type LearnLessonMineRead = LearnLessonMine;
+const MINE = 'depth known learnedAt dueAt picked language tries feedbackGood';
 
 /** A lesson, whole, key included: the same for everyone. Null when it is not live, or not one of ours. */
 export const LearnLessonDocument = doc<{ learnLesson: LearnLesson | null }, { slug: string }>(

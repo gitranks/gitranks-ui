@@ -33,6 +33,7 @@ const read = {
   learnedAt: '2026-11-14T09:30:00.000Z',
   dueAt: null,
   picked: 1,
+  language: 'python',
   tries: 1,
   feedbackGood: null,
 };
@@ -50,11 +51,11 @@ describe("a lesson's personal side", () => {
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
-  it("answers the signed-in person's side, as that person, with no language known", async () => {
+  it("answers the signed-in person's side, as that person, with the language of the last answer", async () => {
     current.session = { user: { githubLogin: 'octocat' }, expires: '2099-01-01T00:00:00.000Z' } as Session;
     graphqlDirect.mockResolvedValueOnce({ learnLessonMine: read });
     const res = await get('sets');
-    expect(await res.json()).toEqual({ mine: { ...read, language: null } });
+    expect(await res.json()).toEqual({ mine: read });
     expect(res.headers.get('cache-control')).toBe('private, no-store');
     expect(graphqlDirect).toHaveBeenCalledWith(
       LearnLessonMineDocument,

@@ -106,14 +106,14 @@ export async function loadLearnAddress(kind: LearnAddressKind, slug: string): Pr
 }
 
 /**
- * The signed-in person's side of a lesson: null when Learn is not open to them, and on any failure. Never kept. The
- * API keeps no language for the answer, so none is known here.
+ * The signed-in person's side of a lesson, with the language its last answer was given in: null when Learn is not open
+ * to them, and on any failure. Never kept.
  */
 export async function loadLearnLessonMine(slug: string, githubLogin: string): Promise<LearnLessonMine | null> {
   if (!isContentSlug(slug)) return null;
   try {
     const { learnLessonMine } = await graphqlDirect(LearnLessonMineDocument, { slug }, { source: 'ssr', githubLogin });
-    return learnLessonMine ? { ...learnLessonMine, language: null } : null;
+    return learnLessonMine ?? null;
   } catch {
     return null;
   }

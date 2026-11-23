@@ -99,18 +99,20 @@ describe("a lesson's public layer", () => {
 });
 
 describe("a lesson's personal layer", () => {
-  it('reads it as the person, never kept, with no language known', async () => {
+  it('reads it as the person, with the language of the last answer, never kept', async () => {
     const read = {
       depth: 'LEARNED',
       known: false,
       learnedAt: null,
       dueAt: null,
       picked: 1,
+      language: 'go',
       tries: 1,
       feedbackGood: null,
     };
     graphqlDirect.mockResolvedValueOnce({ learnLessonMine: read });
-    expect(await loadLearnLessonMine('sets', 'octocat')).toEqual({ ...read, language: null });
+    expect(await loadLearnLessonMine('sets', 'octocat')).toEqual(read);
+    expect(graphqlDirect.mock.calls[0][0].loc?.source.body).toContain(' language ');
     expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr', githubLogin: 'octocat' });
     expect(cacheLife).not.toHaveBeenCalled();
     expect(cacheTag).not.toHaveBeenCalled();

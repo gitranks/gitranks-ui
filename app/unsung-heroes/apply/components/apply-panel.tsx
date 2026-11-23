@@ -9,8 +9,8 @@ import { forgetHeroApplication, rememberHeroApplication } from '@/lib/unsung-her
 
 /**
  * The signed-in right column: the viewer's application while there is one to show, else the form. A closed one (not
- * picked, featured) gives way to the form on "Send a new application". The browser's note for the avatar menu follows
- * what this shows: set while an application is open, cleared when none is.
+ * picked, featured) gives way to the form on "Send a new application". The browser's note of an open application
+ * follows what this shows: set while an application is open, cleared when none is.
  */
 export function ApplyPanel({
   login,

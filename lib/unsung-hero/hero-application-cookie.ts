@@ -1,7 +1,6 @@
 /**
  * The browser's note that this account has an open Unsung hero application: `hero_application=<login>`, for 7 days.
- * The apply page writes it from its own answer, and on a send or a cancel; the avatar menu reads it to say "Your Unsung
- * hero application", only for the login it names, and Sign Out clears it. Nothing is asked of the server for it, so
+ * The apply page writes it from its own answer, and on a send or a cancel; Sign Out clears it. Nothing is asked of the server for it, so
  * cached pages stay as they are; a decision made elsewhere shows on the next visit to the apply page, or after 7 days.
  */
 export const HERO_APPLICATION_COOKIE = 'hero_application';

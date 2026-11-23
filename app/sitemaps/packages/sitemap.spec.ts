@@ -14,8 +14,8 @@ describe('package-page sitemap', () => {
     vi.mocked(fetchPackagesForSitemap).mockReset().mockResolvedValue([]);
   });
 
-  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29, crates.io 30–39, pub.dev 40–49, Packagist 50–59', async () => {
-    expect(await generateSitemaps()).toHaveLength(60);
+  it('has ten parts a registry: npm 0–9, PyPI 10–19, Go 20–29, crates.io 30–39, pub.dev 40–49, Packagist 50–59, Maven Central 60–69', async () => {
+    expect(await generateSitemaps()).toHaveLength(70);
   });
 
   it("lists each package's page at its canonical address, a scoped name as @scope/name", async () => {
@@ -90,8 +90,18 @@ describe('package-page sitemap', () => {
     expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Packagist, 6);
   });
 
-  it('reads no part outside 0–59', async () => {
-    expect(await part('60')).toEqual([]);
+  it("lists a Maven Central artifact's page under its registry, its groupId and artifactId as two segments, case kept, from the parts after Packagist's", async () => {
+    vi.mocked(fetchPackagesForSitemap).mockResolvedValue(['org.slf4j:slf4j-api', 'io.Netty:netty-All']);
+
+    expect((await part('67')).map(({ url }) => url)).toEqual([
+      'https://example.test/package/maven/org.slf4j/slf4j-api',
+      'https://example.test/package/maven/io.Netty/netty-All',
+    ]);
+    expect(fetchPackagesForSitemap).toHaveBeenCalledWith(PackageRegistry.Maven, 7);
+  });
+
+  it('reads no part outside 0–69', async () => {
+    expect(await part('70')).toEqual([]);
     expect(await part('x')).toEqual([]);
     expect(fetchPackagesForSitemap).not.toHaveBeenCalled();
   });

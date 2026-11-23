@@ -11,7 +11,7 @@ describe('how package rankings work', () => {
     expect(metadata.alternates?.canonical).toBe('/methodology/packages');
   });
 
-  it('explains dependents, what does not count, the three rankings and the reads, for npm, PyPI, Go, crates.io, pub.dev and Packagist', () => {
+  it('explains dependents, what does not count, the three rankings and the reads, for npm, PyPI, Go, crates.io, pub.dev, Packagist and Maven Central', () => {
     const html = renderToStaticMarkup(<PackageMethodologyPage />);
 
     for (const heading of [
@@ -34,18 +34,24 @@ describe('how package rankings work', () => {
     expect(html).toContain('href="/packages/pub/dependents-stars/1"');
     expect(html).not.toContain('href="/packages/pub/downloads/1"');
     expect(html).toContain('href="/packages/packagist/downloads/1"');
+    expect(html).toContain('href="/packages/maven/dependents-stars/1"');
+    expect(html).not.toContain('href="/packages/maven/downloads/1"');
     const text = html.replace(/<[^>]+>/g, '').replaceAll('&#x27;', "'");
     expect(text).toContain("A project's facts come from PyPI's JSON API");
     expect(text).toContain(
       "Its downloads come from PyPI's public download statistics, counted one calendar month at a time",
     );
     expect(text).toContain(
-      'lists the package in a dependency file of its own, as GitHub reports them: package.json for npm, requirements.txt or pyproject.toml for PyPI, go.mod for Go, Cargo.toml for crates.io, pubspec.yaml for pub.dev and composer.json for Packagist.',
+      'lists the package in a dependency file of its own, as GitHub reports them: package.json for npm, requirements.txt or pyproject.toml for PyPI, go.mod for Go, Cargo.toml for crates.io, pubspec.yaml for pub.dev, composer.json for Packagist and pom.xml or build.gradle for Maven Central.',
     );
     // A registry the site does not show yet has no paragraph and no link.
-    expect(text).not.toContain('Maven Central');
-    expect(html).not.toContain('href="/packages/maven/');
-    expect(text).toContain('Go publishes no download counts, so it has no downloads ranking.');
+    expect(text).not.toContain('NuGet');
+    expect(html).not.toContain('href="/packages/nuget/');
+    expect(text).toContain('Go and Maven Central publish no download counts, so they have no downloads ranking.');
+    expect(text).toContain("An artifact's facts come from deps.dev, which reads Maven Central.");
+    expect(text).toContain(
+      'An artifact is named groupId:artifactId, and its address on GitRanks is groupId/artifactId.',
+    );
     // pub.dev counts downloads: it is not said to publish none, and its month is not ranked before its first is read.
     expect(text).toContain(
       "pub.dev's first monthly download count comes in early December 2026; until then it has no downloads ranking.",

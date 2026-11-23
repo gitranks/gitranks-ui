@@ -7,6 +7,7 @@ import {
   DEFAULT_REGISTRY,
   isPackageName,
   isRegistryId,
+  isRegistryRow,
   type PackageRef,
   packageKeyOf,
   packageOfKey,
@@ -260,6 +261,10 @@ export function packageSearchesOf(input: string): string[] {
       : requirementKeyOf(registry, text.replace(/^\s*[a-z]+\s*:\s*/i, ''));
     return key ? [key] : [];
   }
+  // `<registry>:` of a row the site does not list yet (`nuget:Serilog`) names that registry's package, never another
+  // registry's name it would read as (Maven Central's `groupId:artifactId`).
+  const named = /^([a-z]+)\s*:/i.exec(text)?.[1].toLowerCase();
+  if (named !== undefined && isRegistryRow(named)) return [];
   const registries = [DEFAULT_REGISTRY, ...REGISTRY_IDS.filter((id) => id !== DEFAULT_REGISTRY)];
   return registries.flatMap((registry) => requirementKeyOf(registry, text) ?? []);
 }

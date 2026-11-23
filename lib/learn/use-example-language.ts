@@ -17,7 +17,8 @@ let pagePick: { path: string; language: string } | null = null;
 const readPagePick = (): string | null =>
   pagePick && pagePick.path === window.location.pathname ? pagePick.language : null;
 
-function readPicked(): string | null {
+/** The language last picked on an example in this browser; none when nothing was, or the browser keeps nothing. */
+export function readPicked(): string | null {
   try {
     const value = window.localStorage.getItem(EXAMPLE_LANGUAGE_KEY);
     return value && /^[a-z+#-]{1,20}$/.test(value) ? value : null;

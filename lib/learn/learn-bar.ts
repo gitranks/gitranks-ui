@@ -4,7 +4,6 @@ import {
   FROM_LEARN,
   LEARN_COURSES_PATH,
   LEARN_HOME_PATH,
-  LEARN_ISSUES_PATH,
   LEARN_PROGRESS_PATH,
   LEARN_PULL_REQUESTS_PATH,
   LEARN_REVIEW_PATH,
@@ -20,39 +19,47 @@ export type LearnBarRead = {
   pullRequestsNeedYou: number;
 };
 
+/** What waits for the person, on the bar's right: lessons due, and their pull requests with how many need them. */
+export type LearnBarWaiting = { due: number; pullRequests: boolean; pullRequestsNeedYou: number };
+
 /**
- * Who looks at Learn's bar, as the board of page 7 draws it:
- * - `visitor`: not signed in (or not known yet): three tabs, nothing on the right;
- * - `setup`: signed in, Learn not set up: the three tabs and "Set up Learn";
- * - `learner`: five tabs; "Pull requests" once one was sent through GitRanks, with how many need them; "Review" with
- *   how many lessons are due.
+ * Who looks at Learn's bar, as the boards of pages 5 and 7 draw it:
+ * - `visitor`: not signed in (or not known yet): Home and Courses, nothing on the right;
+ * - `setup`: signed in, Learn not set up: the same tabs and "Set up Learn", with a spinner while our guess runs
+ *   (`working`) and highlighted once it is ready; then what waits for them, as a learner's;
+ * - `learner`: Home, Courses, Progress and Settings; "Pull requests" once one was sent through GitRanks, with how many
+ *   need them; "Review" with how many lessons are due.
+ * Issues is not a tab yet: it comes with real issues to fix.
  */
 export type LearnBarState =
   | { kind: 'visitor' }
-  | { kind: 'setup' }
-  | { kind: 'learner'; due: number; pullRequests: boolean; pullRequestsNeedYou: number };
+  | ({ kind: 'setup'; setup: 'working' | 'ready' } & LearnBarWaiting)
+  | ({ kind: 'learner' } & LearnBarWaiting);
 
-/** The bar's state for the API's answer; a visitor's bar for none. */
-export function learnBarStateOf(read: LearnBarRead | null | undefined): LearnBarState {
+/**
+ * The bar's state for the API's answer; a visitor's bar for none. `guessing`: our guess is running from this page, so
+ * a setup with none yet shows the spinner too; once the page stops waiting for it, the tab is ready to open.
+ */
+export function learnBarStateOf(read: LearnBarRead | null | undefined, guessing = false): LearnBarState {
   if (!read) return { kind: 'visitor' };
-  if (read.setup !== 'SAVED') return { kind: 'setup' };
-  return {
-    kind: 'learner',
+  const waiting = {
     due: Math.max(0, read.due),
     pullRequests: read.pullRequests,
     pullRequestsNeedYou: Math.max(0, read.pullRequestsNeedYou),
   };
+  if (read.setup === 'SAVED') return { kind: 'learner', ...waiting };
+  const working = guessing && (read.setup === 'NONE' || read.setup === 'WORKING');
+  return { kind: 'setup', setup: working ? 'working' : 'ready', ...waiting };
 }
 
 /** The bar's tabs, in order. */
-export type LearnBarTab = 'home' | 'courses' | 'issues' | 'progress' | 'settings';
+export type LearnBarTab = 'home' | 'courses' | 'progress' | 'settings';
 /** What on the bar is the current place: a tab, or one of the items on the right. */
 export type LearnBarPlace = LearnBarTab | 'pull-requests' | 'setup' | 'review';
 
 export const LEARN_BAR_TABS: Record<LearnBarTab, { label: string; href: Route }> = {
   home: { label: 'Home', href: LEARN_HOME_PATH },
   courses: { label: 'Courses', href: LEARN_COURSES_PATH },
-  issues: { label: 'Issues', href: LEARN_ISSUES_PATH },
   progress: { label: 'Progress', href: LEARN_PROGRESS_PATH },
   settings: { label: 'Settings', href: LEARN_SETTINGS_PATH },
 };
@@ -63,9 +70,9 @@ export const LEARN_BAR_LINKS = {
   pullRequests: LEARN_PULL_REQUESTS_PATH,
 } as const;
 
-/** The tabs a state shows: three for everyone, Progress and Settings for a learner. */
+/** The tabs a state shows: Home and Courses for everyone, Progress and Settings for a learner. */
 export const learnBarTabsOf = (state: LearnBarState): LearnBarTab[] =>
-  state.kind === 'learner' ? ['home', 'courses', 'issues', 'progress', 'settings'] : ['home', 'courses', 'issues'];
+  state.kind === 'learner' ? ['home', 'courses', 'progress', 'settings'] : ['home', 'courses'];
 
 /** Matches the path, ending in a slash or not, against the address or anything under it. */
 const under = (pathname: string, path: string) => pathname === path || pathname.startsWith(`${path}/`);
@@ -79,7 +86,6 @@ const at = (pathname: string, path: string) => pathname === path || pathname ===
 export function learnBarPlaceOf(pathname: string, from: string | null = null): LearnBarPlace | null {
   if (at(pathname, LEARN_HOME_PATH)) return 'home';
   if (under(pathname, LEARN_COURSES_PATH)) return 'courses';
-  if (under(pathname, LEARN_ISSUES_PATH)) return 'issues';
   if (at(pathname, LEARN_PROGRESS_PATH)) return 'progress';
   if (at(pathname, LEARN_SETUP_PATH)) return 'setup';
   if (under(pathname, LEARN_REVIEW_PATH)) return 'review';

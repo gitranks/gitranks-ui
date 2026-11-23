@@ -9,21 +9,28 @@ import {
   CRATE_NAME_MAX_LENGTH,
   crateRequirementName,
   foldCrateName,
+  foldNugetName,
   foldPackagistName,
+  GEM_NAME_MAX_LENGTH,
   GO_NAME_MAX_LENGTH,
   goModuleOfPath,
   goRequirementName,
   isCrateName,
+  isGemName,
   isGoModulePath,
   isMavenName,
+  isNugetName,
   isPackagistName,
   isPubName,
   MAVEN_NAME_MAX_LENGTH,
   mavenRequirementName,
+  NUGET_NAME_MAX_LENGTH,
+  nugetRequirementName,
   PACKAGIST_NAME_MAX_LENGTH,
   PUB_NAME_MAX_LENGTH,
   packagistRequirementName,
   pubRequirementName,
+  rubygemsRequirementName,
 } from '@/lib/packages/registry-names';
 import type { PackageRegistry } from '@/types/generated/graphql';
 
@@ -212,6 +219,39 @@ export const REGISTRIES = {
     examples: ['org.slf4j:slf4j-api', 'com.google.guava:guava'],
     nameHint: 'groupId:artifactId',
   },
+  nuget: {
+    label: 'NuGet',
+    article: 'a',
+    api: 'NUGET',
+    pageUrl: (name) => `https://www.nuget.org/packages/${name}`,
+    pageUrlPrefix: /^(?:https?:\/\/)?(?:www\.)?nuget\.org\/packages\//i,
+    isName: isNugetName,
+    canonicalName: foldNugetName,
+    nameInAddress: 'in lower case',
+    requirementName: nugetRequirementName,
+    nameMaxLength: NUGET_NAME_MAX_LENGTH,
+    path: { min: 1, max: 1, join: '/' },
+    downloads: 'month',
+    manifest: '.csproj or packages.config',
+    examples: ['newtonsoft.json', 'serilog'],
+    nameHint: 'Newtonsoft.Json or Serilog',
+  },
+  rubygems: {
+    label: 'RubyGems',
+    article: 'a',
+    api: 'RUBYGEMS',
+    pageUrl: (name) => `https://rubygems.org/gems/${name}`,
+    pageUrlPrefix: /^(?:https?:\/\/)?(?:www\.)?rubygems\.org\/gems\//i,
+    isName: isGemName,
+    canonicalName: (name) => name,
+    requirementName: rubygemsRequirementName,
+    nameMaxLength: GEM_NAME_MAX_LENGTH,
+    path: { min: 1, max: 1, join: '/' },
+    downloads: 'month',
+    manifest: 'Gemfile or .gemspec',
+    examples: ['rails', 'rack'],
+    nameHint: 'rails or rack',
+  },
 } as const satisfies Record<string, RegistryTraits>;
 
 /** A row of the table, the site showing its registry or not. */
@@ -283,9 +323,15 @@ export const apiRegistryOf = (id: RegistryId) => REGISTRIES[id].api as PackageRe
  * The registries that count downloads but whose first count is not read yet, with when it comes: "early December 2026".
  * While a registry is here the site treats it as one without download counts: no downloads ranking, and nothing about
  * downloads in titles, tiles, badges or copy. pub.dev leaves it once its first month (November 2026, read December 1–3)
- * is applied.
+ * is applied. NuGet and RubyGems publish a running count of all downloads, read in the first days of each month: their
+ * first month (December 2026) is the difference between December's read and January's, so they leave it once that
+ * month is applied.
  */
-export const DOWNLOADS_PENDING = { pub: 'early December 2026' } as const satisfies Partial<Record<RegistryId, string>>;
+export const DOWNLOADS_PENDING = {
+  pub: 'early December 2026',
+  nuget: 'early January 2027',
+  rubygems: 'early January 2027',
+} as const satisfies Partial<Record<RegistryId, string>>;
 
 /** Whether a registry counts downloads but its first count is not read yet (`DOWNLOADS_PENDING`). */
 export const isDownloadsPending = (id: RegistryId): id is keyof typeof DOWNLOADS_PENDING =>

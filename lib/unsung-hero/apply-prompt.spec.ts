@@ -42,11 +42,17 @@ describe('Heavily used, by the registries listed', () => {
     const listed = ALL_REGISTRY_IDS.map((id) => ({ id: REGISTRIES_TABLE[id].api, label: REGISTRIES_TABLE[id].label }));
     expect(first(listed)).toContain('For Go and Maven Central, which publish no download counts');
     // A registry the table does not list is not said to have none.
-    expect(first([{ id: 'NUGET', label: 'NuGet' }])).toBe('Among the most downloaded packages in its registry.');
+    expect(first([{ id: 'SWIFT', label: 'Swift' }])).toBe('Among the most downloaded packages in its registry.');
     // One the table counts downloads for, however the API names it, is not either.
     expect(first([{ id: 'CRATES', label: 'crates.io' }])).toBe('Among the most downloaded packages in its registry.');
-    // Nor is pub.dev while its first count is not read: it publishes counts.
-    expect(first([{ id: 'PUB', label: 'pub.dev' }])).toBe('Among the most downloaded packages in its registry.');
+    // Nor is pub.dev while its first count is not read, nor NuGet or RubyGems: they publish counts.
+    for (const [id, label] of [
+      ['PUB', 'pub.dev'],
+      ['NUGET', 'NuGet'],
+      ['RUBYGEMS', 'RubyGems'],
+    ]) {
+      expect(first([{ id, label }]), id).toBe('Among the most downloaded packages in its registry.');
+    }
   });
 
   it('says nothing of them when none is listed', () => {
@@ -62,9 +68,12 @@ describe('registry names', () => {
     expect(registryNamesOf([])).toBe('');
   });
 
-  it('writes a registry as the list does, and the API’s name for one it does not hold', () => {
+  it('writes a registry as the list does, else as the table does, and the API’s name for one neither holds', () => {
     expect(registryLabelOf(REGISTRIES, 'PYPI')).toBe('PyPI');
-    expect(registryLabelOf(REGISTRIES, 'NUGET')).toBe('NUGET');
+    // NuGet and RubyGems heroes are not read yet ("Registry not eligible yet"): the API's list leaves them out.
+    expect(registryLabelOf(REGISTRIES, 'NUGET')).toBe('NuGet');
+    expect(registryLabelOf(REGISTRIES, 'RUBYGEMS')).toBe('RubyGems');
+    expect(registryLabelOf(REGISTRIES, 'SWIFT')).toBe('SWIFT');
     expect(registryLabelOf(REGISTRIES, null)).toBeNull();
   });
 });

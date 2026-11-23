@@ -1,6 +1,7 @@
 // The name rules of the registries whose names need more than a pattern: Go's module paths, crates.io's, pub.dev's,
-// Packagist's and Maven Central's. Each is the registry's own rule, as a visitor's spelling is checked before any
-// read; the folds are the registries' own, so every spelling a registry takes as one name has one address here.
+// Packagist's, Maven Central's, NuGet's and RubyGems'. Each is the registry's own rule, as a visitor's spelling is
+// checked before any read; the folds are the registries' own, so every spelling a registry takes as one name has one
+// address here.
 
 /** The longest name the site takes for each of these registries. */
 export const GO_NAME_MAX_LENGTH = 500;
@@ -8,6 +9,8 @@ export const CRATE_NAME_MAX_LENGTH = 64;
 export const PUB_NAME_MAX_LENGTH = 64;
 export const PACKAGIST_NAME_MAX_LENGTH = 255;
 export const MAVEN_NAME_MAX_LENGTH = 500;
+export const NUGET_NAME_MAX_LENGTH = 128;
+export const GEM_NAME_MAX_LENGTH = 255;
 
 /** A Go module path's element: letters, digits, `.`, `_`, `~` and `-`. */
 const GO_ELEMENT = /^[A-Za-z0-9._~-]+$/;
@@ -151,3 +154,66 @@ export const mavenRequirementName = (requirement: string) =>
     .split(':')
     .slice(0, 2)
     .join(':');
+
+/** A NuGet id: letters, digits and `_`, with single `.` or `-` between runs of them (NuGet's own rule), ASCII only. */
+const NUGET_ID = /^[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*$/;
+
+/** Whether a name is a NuGet package id in any case nuget.org takes (`Newtonsoft.Json`), 128 characters at most. */
+export const isNugetName = (name: string) => name.length <= NUGET_NAME_MAX_LENGTH && NUGET_ID.test(name);
+
+/** A NuGet id the way nuget.org compares ids, and the way the site's addresses write it: lower case. */
+export const foldNugetName = (name: string) => name.toLowerCase();
+
+/**
+ * The id in a package item of a project file or `Directory.Packages.props`, or a `packages.config` entry:
+ * `<PackageReference Include="Serilog" />`, `<PackageVersion Update="Serilog" />`, `<package id="Serilog" />`. Only
+ * these elements, so another item (`<Compile Include="Program.cs" />`) or a line such as `id = "org.jetbrains.kotlin.jvm"`
+ * is not read as an id.
+ */
+const NUGET_ITEM =
+  /^<\s*(?:PackageReference|PackageVersion|package)\b[^>]*?\b(?:Include|Update|id)\s*=\s*["']([^"']+)["']/i;
+/**
+ * The id after a command or directive that adds a package, as nuget.org's install tabs write them: `dotnet add
+ * package`, `NuGet\Install-Package` (or `Install-Package`), `nuget install`, `paket add`, `#r "nuget: X, 1.0"`,
+ * `#:package X@1.0`.
+ */
+const NUGET_COMMAND =
+  /^(?:dotnet\s+add\s+(?:\S+\s+)?package|(?:NuGet\\)?Install-Package|nuget\s+install|paket\s+add|#r\s+"nuget:|#:package)\s*([^\s"',@]+)/i;
+
+/**
+ * A NuGet requirement as a project file, `packages.config` or a command writes it (`<PackageReference
+ * Include="Newtonsoft.Json" Version="13.0.3" />`, `<package id="Serilog" version="3.1.1" />`, `dotnet add package
+ * Serilog --version 3.1.1`): the id. Any other text is left whole, so another registry's spelling (`django==5.0`,
+ * `vendor/pkg`) is never cut down to a NuGet id.
+ */
+export const nugetRequirementName = (requirement: string) => {
+  const text = requirement.trim();
+  return (NUGET_ITEM.exec(text) ?? NUGET_COMMAND.exec(text))?.[1] ?? text;
+};
+
+/** A gem name's characters (letters, digits, `.`, `_`, `-`), at least one letter among them, ASCII only. */
+const GEM_NAME = /^[A-Za-z0-9._-]*[A-Za-z][A-Za-z0-9._-]*$/;
+
+/**
+ * Whether a name is a RubyGems gem name, as written (case kept: rubygems.org's lookups are case-sensitive, `ZenTest`):
+ * rubygems.org's characters with at least one letter, or `-`, a gem it kept from before it asked for one; 255
+ * characters at most.
+ */
+export const isGemName = (name: string) => name.length <= GEM_NAME_MAX_LENGTH && (GEM_NAME.test(name) || name === '-');
+
+/** A Gemfile's `gem` line's name, or a gemspec dependency's: `gem 'rails', '~> 7.1'`, `s.add_dependency("rack")`. */
+const GEM_DECLARATION = /^(?:gem|[\w.]*add_(?:runtime_|development_)?dependency)\s*\(?\s*["']([^"']+)["']/;
+/** The name after a command that adds a gem: `gem install`, `bundle add`. */
+const GEM_COMMAND = /^(?:gem\s+install|bundle\s+add)\s+([^\s"']+)/;
+/** A `Gemfile.lock` line's name: `rails (7.1.0)`. */
+const GEM_LOCK_LINE = /^([A-Za-z0-9._-]+)\s+\([^)]*\)$/;
+
+/**
+ * A RubyGems requirement as a Gemfile, a gemspec or a command writes it (`gem 'rails', '~> 7.1'`,
+ * `spec.add_dependency "rack", ">= 2"`, `gem install rails -v 7.1.0`, a lockfile's `rails (7.1.0)`): the gem's name. Any other text is left whole,
+ * so another registry's spelling (`serde = "1.0"`, `http: ^1.2.0`) is never cut down to a gem name.
+ */
+export const rubygemsRequirementName = (requirement: string) => {
+  const text = requirement.trim();
+  return (GEM_DECLARATION.exec(text) ?? GEM_COMMAND.exec(text) ?? GEM_LOCK_LINE.exec(text))?.[1] ?? text;
+};

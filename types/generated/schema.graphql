@@ -4187,9 +4187,11 @@ enum PackageRegistry {
   GO
   MAVEN
   NPM
+  NUGET
   PACKAGIST
   PUB
   PYPI
+  RUBYGEMS
 }
 
 type ProfileForSitemap {

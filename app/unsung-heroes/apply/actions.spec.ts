@@ -85,6 +85,8 @@ describe('looking a nomination up', () => {
       'https://pub.dev/packages/http',
       'https://packagist.org/packages/laravel/framework',
       'https://central.sonatype.com/artifact/org.slf4j/slf4j-api',
+      'https://www.nuget.org/packages/newtonsoft.json',
+      'https://rubygems.org/gems/rails',
     ]);
     for (const link of links) await resolveApplyPackage(` ${link} `);
     expect(sentOf(signedFetch).map(({ variables }) => (variables as { input: string }).input)).toEqual(links);

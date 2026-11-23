@@ -3569,9 +3569,11 @@ export enum PackageRegistry {
   Go = 'GO',
   Maven = 'MAVEN',
   Npm = 'NPM',
+  Nuget = 'NUGET',
   Packagist = 'PACKAGIST',
   Pub = 'PUB',
-  Pypi = 'PYPI'
+  Pypi = 'PYPI',
+  Rubygems = 'RUBYGEMS'
 }
 
 export type ProfileForSitemap = {

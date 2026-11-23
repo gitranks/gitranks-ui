@@ -13,9 +13,8 @@ vi.mock('next/cache', () => ({ cacheLife, cacheTag }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('./highlight', () => ({ highlightCodes }));
 
-const { loadLearnAddress, loadLearnCourseMine, loadLearnLessonMine, loadLearnLessonPage } = await import(
-  './lesson-page.data'
-);
+const { loadLearnAddress, loadLearnCourseGroups, loadLearnCourseMine, loadLearnLessonMine, loadLearnLessonPage } =
+  await import('./lesson-page.data');
 const { LearnCourseGroupsDocument, LearnLessonDocument } = await import('./lesson-page.documents');
 const { setGroup, setLesson } = await import('./__fixtures__/lesson-page');
 
@@ -81,6 +80,19 @@ describe("a lesson's public layer", () => {
     graphqlDirect.mockClear();
     expect(await loadLearnLessonPage('_missing')).toBeNull();
     expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it("keeps a course's groups for hours, and a course with none for minutes", async () => {
+    graphqlDirect.mockResolvedValueOnce({ learnCourse: { slug: 'algorithms', groups } });
+    expect(await loadLearnCourseGroups('algorithms')).toEqual(groups);
+    expect(cacheLife.mock.calls).toEqual([['hours']]);
+    expect(cacheTag).toHaveBeenCalledWith('learn:course:algorithms');
+    for (const learnCourse of [null, { slug: 'algorithms', groups: [] }]) {
+      cacheLife.mockReset();
+      graphqlDirect.mockResolvedValueOnce({ learnCourse });
+      expect(await loadLearnCourseGroups('algorithms'), JSON.stringify(learnCourse)).toBeNull();
+      expect(cacheLife.mock.calls).toEqual([['minutes']]);
+    }
   });
 
   it('throws any other failure, so nothing is kept', async () => {

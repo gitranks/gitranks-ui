@@ -62,8 +62,9 @@ async function askGate({ slug, login }: LessonRoute): Promise<LessonGate> {
 
 /**
  * A lesson's page: as a lesson of ours first, then as a lesson of a fix. Both are asked at once, each within
- * `timeoutMs`; the fix's answer counts when the address is not one of ours, or when ours could not be asked (the fix's
- * own ask then says whether the API answers at all). A result page is a fix's only.
+ * `timeoutMs`; the fix's answer counts when our ask answered that the address is not one of ours. When ours could not
+ * be asked (failed, empty or slow), a fix's redirect still counts but its "missing" goes on to the page, which reads
+ * the lesson itself. A result page is a fix's only.
  */
 export async function lessonGateOf(route: LessonRoute, timeoutMs = LESSON_GATE_TIMEOUT_MS): Promise<LessonGate> {
   if (route.login !== undefined || !isContentSlug(route.slug)) return fixLessonGateOf(route, timeoutMs);
@@ -71,8 +72,13 @@ export async function lessonGateOf(route: LessonRoute, timeoutMs = LESSON_GATE_T
   const ours = await learnAddressGateOf('lesson', route.slug, timeoutMs);
   switch (ours.kind) {
     case 'missing':
-    case 'unknown':
       return fix;
+    case 'unknown': {
+      // Ours could not be asked: a lesson of ours is never "missing" to the fix's ask, so its 404 would hide a live
+      // lesson. The page answers instead (it reads both, and says not found for neither).
+      const answer = await fix;
+      return answer.kind === 'missing' ? PAGE : answer;
+    }
     case 'page':
       return PAGE;
     case 'moved':

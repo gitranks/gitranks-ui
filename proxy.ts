@@ -42,6 +42,9 @@ import {
 import { isPrTimelinePath, prTimelineMarkdownPath, prTimelineRouteOf } from './lib/workspace/pr-timeline-path';
 import { contributeOpen, requestContributeAccess, requestWorkspaceAccess } from './lib/workspace/preview-gate';
 
+/** When search engines may ask again for a paused lesson: an hour, in seconds. */
+const PAUSED_RETRY_AFTER_SECONDS = '3600';
+
 const { auth } = NextAuth(authConfig);
 
 // Auth.js as middleware; the callback adds nothing, so a signed-in visitor's session is refreshed as before.
@@ -171,6 +174,8 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
                 gate.permanent ? 308 : 307,
               );
       response.headers.set('Cache-Control', 'private, no-store');
+      // A paused lesson is coming back: search engines are told when to ask again, so it keeps its place.
+      if (gate.kind === 'gone' && gate.status === 503) response.headers.set('Retry-After', PAUSED_RETRY_AFTER_SECONDS);
       return response;
     }
   }

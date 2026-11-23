@@ -862,6 +862,8 @@ describe('proxy', () => {
         expect(response?.status).toBe(status);
         expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/learn/lessons/_gone/sets');
         expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        // A paused lesson says when to ask again; a removed one does not.
+        expect(response?.headers.get('retry-after')).toBe(status === 503 ? '3600' : null);
       }
       expect(withSession).not.toHaveBeenCalled();
     });

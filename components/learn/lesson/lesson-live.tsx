@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { type LessonCalls, LessonPlayer, type LessonViewer, lessonPlayerKeyOf } from './lesson-player';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
@@ -46,14 +46,27 @@ export async function readLessonViewer(lesson: {
   return { mine: { ...mine, language: mine.language ?? null }, depths };
 }
 
-/** Where the person stands: not known yet, a visitor (or a person Learn is not open to), or a member with their side. */
-type Personal = { kind: 'pending' } | { kind: 'visitor' } | { kind: 'member'; viewer: LessonViewer };
+/**
+ * Where the person stands: not known yet (the first render, and a session's read under way), a visitor (no session),
+ * a person with a session whose side did not come (a failed read, or Learn not open to them), or a member with
+ * their side.
+ */
+type Personal =
+  | { kind: 'pending' }
+  | { kind: 'visitor' }
+  | { kind: 'session' }
+  | { kind: 'member'; viewer: LessonViewer };
+
+/** Said under the card when the API answers that Learn is not open to the person, in the words the site uses. */
+export const LEARN_NOT_OPEN_NOTE = 'GitRanks Learn is not open to your account yet, so your answer is not saved.';
 
 /**
  * A lesson's page as it lives in the browser. The page is the same for everyone and comes drawn (`article`, `more`);
  * once it is up, a person with a session reads their side of the lesson and of its course, and a visitor asks for
- * nothing. The player is drawn again once, when the person's side first arrives, so a lesson learned before opens as
- * answered. A right answer is saved for a member; the rating and its comment too.
+ * nothing. Only a visitor is asked to sign in: a person with a session goes on as a member does, and their right
+ * answer is saved, whether their side has come or not. When their side first arrives, the player is drawn again so
+ * a lesson learned before opens as answered, but only while the person has not touched it: an answer started is
+ * never drawn over, and the focus stays where it is.
  */
 export function LessonLive({
   lesson,
@@ -74,6 +87,12 @@ export function LessonLive({
 }) {
   const router = useRouter();
   const [personal, setPersonal] = useState<Personal>({ kind: 'pending' });
+  // The person's side as their last saved answer left it: fresher than any read.
+  const [saved, setSaved] = useState<LearnLessonMine | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  // Whether the person has clicked, typed or moved the focus in the player; a ref, read when their side arrives.
+  const touched = useRef(false);
+  const [redrawn, setRedrawn] = useState(false);
   const { slug } = lesson;
   const course = lesson.course.slug;
 
@@ -84,24 +103,38 @@ export function LessonLive({
     }
     let live = true;
     readLessonViewer({ slug, course: { slug: course } }).then((viewer) => {
-      if (live) setPersonal(viewer ? { kind: 'member', viewer } : { kind: 'visitor' });
+      if (!live) return;
+      setPersonal(viewer ? { kind: 'member', viewer } : { kind: 'session' });
+      if (viewer && !touched.current) setRedrawn(true);
     });
     return () => {
       live = false;
     };
   }, [slug, course]);
 
-  const viewer = personal.kind === 'member' ? personal.viewer : null;
-  const setMine = (mine: LearnLessonMine) =>
-    setPersonal((now) => (now.kind === 'member' ? { kind: 'member', viewer: { ...now.viewer, mine } } : now));
+  // A member's side, with their last saved answer over it; before their side comes, the saved answer alone.
+  const viewer: LessonViewer | null =
+    personal.kind === 'member'
+      ? saved
+        ? { ...personal.viewer, mine: saved }
+        : personal.viewer
+      : saved
+        ? { mine: saved, depths: {} }
+        : null;
+  const touch = () => {
+    touched.current = true;
+  };
 
   const last = isLastOfGroup(lessonPlaceOf(group, lesson.slug, null));
   const calls: LessonCalls = {
     onGraded: ({ picked, right, tries, language }) => {
-      if (!right || !viewer) return;
+      // A visitor's answer is not saved; anyone with a session is saved as the session's user, side or not.
+      if (!right || personal.kind === 'visitor') return;
       answerLearnLessonAction({ slug: lesson.slug, question: lesson.question.id, picked, tries, language }).then(
         (result) => {
-          if (result.ok && result.data) setMine({ ...result.data.mine, language });
+          if (!result.ok) return;
+          if (result.data) setSaved({ ...result.data.mine, language: result.data.mine.language ?? language });
+          else setNote(LEARN_NOT_OPEN_NOTE);
         },
         () => {},
       );
@@ -123,19 +156,22 @@ export function LessonLive({
   };
 
   return (
-    <LessonPlayer
-      // Drawn again once, when the person's side first arrives: an answer given before starts the answer.
-      key={`${lessonPlayerKeyOf(lesson)}:${personal.kind === 'member' ? 'mine' : 'public'}`}
-      lesson={lesson}
-      group={group}
-      viewer={viewer}
-      questionCodes={questionCodes}
-      mainLanguage={mainLanguage}
-      article={article}
-      more={more}
-      calls={calls}
-      openFact={openFact}
-      pending={personal.kind === 'pending'}
-    />
+    <div className="contents" onPointerDownCapture={touch} onKeyDownCapture={touch} onFocusCapture={touch}>
+      <LessonPlayer
+        // Drawn again once, when the person's side first arrives before they touched it.
+        key={`${lessonPlayerKeyOf(lesson)}:${redrawn ? 'mine' : 'public'}`}
+        lesson={lesson}
+        group={group}
+        viewer={viewer}
+        questionCodes={questionCodes}
+        mainLanguage={mainLanguage}
+        article={article}
+        more={more}
+        calls={calls}
+        openFact={openFact}
+        signedIn={personal.kind !== 'visitor'}
+        note={viewer ? null : note}
+      />
+    </div>
   );
 }

@@ -165,14 +165,33 @@ describe('lessonGateOf, a lesson of ours', () => {
     });
   });
 
-  it("gives the fix's answer when ours could not be asked", async () => {
-    for (const failure of [
+  it("leaves a fix's missing to the page when ours could not be asked, so a live lesson of ours is never a 404", async () => {
+    const failures = [
       () => addressAsk.mockRejectedValueOnce(new Error('down')),
       () => addressAsk.mockResolvedValueOnce({ learnAddress: null }),
-    ]) {
+    ];
+    for (const failure of failures) {
       failure();
       fixAsk.mockResolvedValueOnce({ lessonPage: null });
-      expect(await lessonGateOf({ slug: SLUG })).toEqual({ kind: 'missing' });
+      expect(await lessonGateOf({ slug: 'find-duplicates-with-a-set' })).toEqual({ kind: 'page' });
+    }
+  });
+
+  it("keeps a missing fix lesson's 404 whenever ours answered", async () => {
+    fixAsk.mockResolvedValueOnce({ lessonPage: null });
+    expect(await lessonGateOf({ slug: SLUG })).toEqual({ kind: 'missing' });
+  });
+
+  it('leaves a slow ask of ours to the page, though the fix said missing', async () => {
+    vi.useFakeTimers();
+    try {
+      addressAsk.mockReturnValueOnce(new Promise(() => {}));
+      fixAsk.mockResolvedValueOnce({ lessonPage: null });
+      const gate = lessonGateOf({ slug: 'find-duplicates-with-a-set' }, 2000);
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(await gate).toEqual({ kind: 'page' });
+    } finally {
+      vi.useRealTimers();
     }
   });
 

@@ -44,14 +44,23 @@ const isMissingAnswer = (failure: unknown) => {
   return error === 'NOT_FOUND' || error === 'INVALID' || error === 'NOT_AVAILABLE_YET';
 };
 
-/** A course's groups, in order; cached under the course's tag. A failed read throws, and nothing is kept. */
+/**
+ * A course's groups, in order; cached under the course's tag: for hours when it has some, for minutes when it has none
+ * (a course not live yet, or a deploy in between), so the squares come back soon. A failed read throws, and nothing is
+ * kept.
+ */
 export async function loadLearnCourseGroups(course: string): Promise<LearnCourseGroup[] | null> {
   'use cache';
   cacheTag(learnCourseTag(course));
-  cacheLife('hours');
-  if (!isContentSlug(course)) return null;
+  if (!isContentSlug(course)) {
+    cacheLife('hours');
+    return null;
+  }
   const { learnCourse } = await graphqlDirect(LearnCourseGroupsDocument, { slug: course }, { source: 'ssr' });
-  return learnCourse?.groups ?? null;
+  const groups = learnCourse?.groups ?? [];
+  if (groups.length) cacheLife('hours');
+  else cacheLife('minutes');
+  return groups.length ? groups : null;
 }
 
 /**

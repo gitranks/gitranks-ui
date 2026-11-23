@@ -44,7 +44,7 @@ export const LearnCourseGroupsDocument = doc<
 );
 
 /** What a lesson's or a course's address answers. */
-export const LearnAddressDocument = doc<{ learnAddress: LearnAddress }, { kind: string; slug: string }>(
+export const LearnAddressDocument = doc<{ learnAddress: LearnAddress | null }, { kind: string; slug: string }>(
   `query LearnAddress($kind: String!, $slug: String!) { learnAddress(kind: $kind, slug: $slug) { state movedTo title course { ${LINK} } } }`,
 );
 

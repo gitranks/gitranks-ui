@@ -16,7 +16,7 @@ vi.mock('@/lib/learn/lesson-page.actions', () => ({ answerLearnLessonAction, sen
 // The session's hint cookie, as the browser holds it.
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 
-const { LessonLive } = await import('./lesson-live');
+const { LEARN_NOT_OPEN_NOTE, LessonLive } = await import('./lesson-live');
 const {
   mineLearned,
   mineLearnedRated,
@@ -89,6 +89,12 @@ const main = () => $('[data-answer-main]')!;
 const option = (index: number) => $(`[data-option="${index}"] input`)!;
 const click = (element: HTMLElement) =>
   act(async () => {
+    element.click();
+  });
+/** A click as a person makes it: the pointer goes down first. */
+const tap = (element: HTMLElement) =>
+  act(async () => {
+    element.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
     element.click();
   });
 
@@ -180,10 +186,83 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     expect($('[data-rate="good"]')!.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('treats a person whose side cannot be read as a visitor', async () => {
+  it('never asks a person whose side cannot be read to sign in, and still saves their answer', async () => {
     signedIn();
     fetchMock.mockResolvedValue(new Response('{}', { status: 500 }));
+    answerLearnLessonAction.mockResolvedValue({ ok: true, data: { right: true, mine: mineLearned, next: null } });
     await draw();
-    expect($('[data-visitor-note]')!.textContent).toBe('Sign in with GitHub to save your progress.');
+    expect($('[data-visitor-note]')).toBeNull();
+    await tap(option(1));
+    await click(main());
+    expect(answerLearnLessonAction).toHaveBeenCalledOnce();
+    expect(main().textContent).toBe(`Next: ${setLesson.next!.title}`);
+    expect($('[data-visitor-line]')).toBeNull();
+    expect($('[data-depth-line]')!.textContent).toContain('Learned.');
+    await click(main());
+    expect(push).toHaveBeenCalledWith(`/learn/lessons/${setLesson.next!.slug}`);
+    expect(signIn).not.toHaveBeenCalled();
+  });
+
+  it('says so in one line when Learn is not open to the person', async () => {
+    signedIn();
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ mine: null, course: null })));
+    answerLearnLessonAction.mockResolvedValue({ ok: true, data: null });
+    await draw();
+    await tap(option(1));
+    await click(main());
+    expect($('[data-answer-note]')!.textContent).toBe(LEARN_NOT_OPEN_NOTE);
+    expect($('[data-visitor-line]')).toBeNull();
+    expect(main().textContent).toBe(`Next: ${setLesson.next!.title}`);
+  });
+
+  it("saves an answer given while the person's side is read, and does not draw over it when the side arrives", async () => {
+    signedIn();
+    const answers: ((response: Response) => void)[] = [];
+    fetchMock.mockImplementation(() => new Promise<Response>((resolve) => answers.push(resolve)));
+    answerLearnLessonAction.mockResolvedValue({ ok: true, data: { right: true, mine: mineLearned, next: null } });
+    await draw();
+    await tap(option(0));
+    await click(main());
+    await tap(option(1));
+    await click(main());
+    expect(answerLearnLessonAction).toHaveBeenCalledWith(
+      expect.objectContaining({ slug: setLesson.slug, picked: 1, tries: 2 }),
+    );
+    expect(main().textContent).toBe(`Next: ${setLesson.next!.title}`);
+    const answered = $('[data-answer-part]')!;
+    answered.querySelector<HTMLElement>('[data-answer-main]')!.focus();
+    await act(async () => {
+      answers[0](new Response(JSON.stringify({ mine: mineNew })));
+      answers[1](
+        new Response(
+          JSON.stringify({
+            course: {
+              slug: 'algorithms',
+              lessons: Object.entries(setDepths).map(([slug, depth]) => ({ slug, depth })),
+            },
+          }),
+        ),
+      );
+    });
+    // The same answer, in place: not drawn again, the focus where it was, the saved depth over the read.
+    expect($('[data-answer-part]')).toBe(answered);
+    expect(document.activeElement).toBe(main());
+    expect($('[data-option="0"]')!.getAttribute('data-option-mark')).toBe('wrong');
+    expect($('[data-lesson-run]')!.textContent).toBe('3 of 9 learned');
+    expect(signIn).not.toHaveBeenCalled();
+  });
+
+  it("draws the player again when the person's side arrives before they touched it", async () => {
+    signedIn();
+    const answers: ((response: Response) => void)[] = [];
+    fetchMock.mockImplementation(() => new Promise<Response>((resolve) => answers.push(resolve)));
+    await draw();
+    const before = $('[data-answer-part]');
+    await act(async () => {
+      answers[0](new Response(JSON.stringify({ mine: mineLearnedRated })));
+      answers[1](new Response(JSON.stringify({ course: null })));
+    });
+    expect($('[data-answer-part]')).not.toBe(before);
+    expect($('[data-answer-part]')!.getAttribute('data-answer-phase')).toBe('done');
   });
 });

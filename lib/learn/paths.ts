@@ -59,9 +59,37 @@ export const learnFactCardPath = (slug: string) => `${learnLessonPath(slug)}/fac
  */
 export const learnLessonGonePath = (slug: string) => `/learn/lessons/_gone/${encodeURIComponent(slug)}` as Route;
 
-/** Where the browser reads the signed-in person's side of a lesson, and of a course. */
+/** Where the browser reads the signed-in person's side of a lesson, of a course, and of all courses. */
 export const learnLessonMinePath = (slug: string) => `/api/me/learn/lessons/${encodeURIComponent(slug)}`;
 export const learnCourseMinePath = (slug: string) => `/api/me/learn/courses/${encodeURIComponent(slug)}`;
+export const LEARN_COURSES_MINE_PATH = '/api/me/learn/courses';
+/** The query that asks the depth of each lesson in some of the person's courses, by their slugs, comma-separated. */
+export const COURSE_DEPTHS_QUERY = 'depths';
+/** Where the browser reads the depth of each lesson in the given courses of the person. */
+export const learnCourseDepthsPath = (courses: readonly string[]) =>
+  `${LEARN_COURSES_MINE_PATH}?${COURSE_DEPTHS_QUERY}=${courses.map(encodeURIComponent).join(',')}`;
+/** The query a course's page adds to ask whether the check leads it; the route reads the level only then. */
+export const CHECK_FIRST_QUERY = 'check';
+/** The person's side of a course as the course's page asks it: with whether the check leads the page. */
+export const learnCourseSidePath = (slug: string) => `${learnCourseMinePath(slug)}?${CHECK_FIRST_QUERY}=1`;
+
+/**
+ * Where the proxy shows a paused or removed course's page, with its status, and a missing course's 404: addresses no
+ * course has, since `_gone` and `_missing` are not a slug's shape.
+ */
+export const learnCourseGonePath = (slug: string) => `/learn/courses/_gone/${encodeURIComponent(slug)}` as Route;
+export const LEARN_COURSE_MISSING_PATH = '/learn/courses/_missing' as Route;
+
+/** The picture a posted link to a course shows, and the one of all courses. */
+export const learnCourseCardPath = (slug: string) => `${coursePath(slug)}/card.png`;
+export const LEARN_COURSES_CARD_PATH = `${LEARN_COURSES_PATH}/card.png`;
+
+/**
+ * Where a course's Markdown copy and that of all courses are answered from: the proxy rewrites
+ * `/learn/courses/<slug>.md` and `/learn/courses.md` here, since a page and a route handler cannot share a segment.
+ */
+export const learnCourseMarkdownRoute = (slug: string) => `/api/learn/courses/${encodeURIComponent(slug)}/course.md`;
+export const LEARN_COURSES_MARKDOWN_ROUTE = '/api/learn/courses/all.md';
 
 /** "Report a mistake" on a lesson: an email to us, its subject naming the lesson. */
 export const lessonMistakeHref = (title: string) =>
@@ -108,6 +136,37 @@ const LESSON_MARKDOWN = /^\/learn\/lessons\/([^/]+)\.md$/;
 export function learnLessonMarkdownRouteOf(pathname: string): string | null {
   const slug = LESSON_MARKDOWN.exec(pathname)?.[1];
   return slug !== undefined && isContentSlug(slug) ? learnLessonMarkdownRoute(slug) : null;
+}
+
+const COURSE_MARKDOWN = /^\/learn\/courses\/([^/]+)\.md$/;
+
+/**
+ * Where the proxy answers a course's Markdown copy, or that of all courses, from: for `/learn/courses.md`, and for
+ * `/learn/courses/<slug>.md` with a slug of a course's shape as `courseMarkdownPath` writes it; null for any other path.
+ */
+export function learnCourseMarkdownRouteOf(pathname: string): string | null {
+  if (pathname === LEARN_COURSES_MARKDOWN_PATH) return LEARN_COURSES_MARKDOWN_ROUTE;
+  const slug = COURSE_MARKDOWN.exec(pathname)?.[1];
+  return slug !== undefined && isContentSlug(slug) ? learnCourseMarkdownRoute(slug) : null;
+}
+
+const COURSE_PAGE = /^\/learn\/courses\/([^/]+)\/?$/;
+
+/**
+ * The segment under `/learn/courses/` that is not a course's page: the picture of all courses, a route handler.
+ * `_gone` and `_missing` are asked like any other: not a slug's shape, they are missing without asking the API, so
+ * reached directly they get the real 404.
+ */
+const NOT_A_COURSE = new Set(['card.png']);
+
+/**
+ * The course asked for by a course's page, `/learn/courses/<segment>` (a trailing slash allowed), for the proxy's
+ * gate: the segment as written, which the gate answers as missing when it is not a slug's shape; null for any other
+ * path, and for the segments that are not a course.
+ */
+export function courseRouteOf(pathname: string): string | null {
+  const segment = COURSE_PAGE.exec(pathname)?.[1];
+  return segment !== undefined && !NOT_A_COURSE.has(segment) ? segment : null;
 }
 
 /** A Learn cache tag as the API sends it to expire: `learn:courses`, a course's or a lesson's. */

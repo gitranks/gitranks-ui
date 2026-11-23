@@ -61,7 +61,7 @@ describe("Learn's paths", () => {
     }
   });
 
-  it('opens a shared lesson, its result pages and the page for maintainers, nothing else', () => {
+  it('opens a shared lesson, its result pages, the page for maintainers and the courses, nothing else', () => {
     for (const path of [
       '/learn/maintainers',
       '/learn/maintainers/',
@@ -71,6 +71,17 @@ describe("Learn's paths", () => {
       // A person's public progress page (it answers 404 itself for a login with no public record).
       '/learn/progress/octocat',
       '/learn/progress/OctoCat/',
+      // All courses and each course, with their Markdown copies, pictures and the pages of a gone one.
+      '/learn/courses',
+      '/learn/courses/',
+      '/learn/courses.md',
+      '/learn/courses/card.png',
+      '/learn/courses/algorithms',
+      '/learn/courses/algorithms/',
+      '/learn/courses/algorithms.md',
+      '/learn/courses/algorithms/card.png',
+      '/learn/courses/_gone/algorithms',
+      '/learn/courses/_missing',
     ]) {
       expect(isLearnOpenPath(path), path).toBe(true);
     }
@@ -89,6 +100,9 @@ describe("Learn's paths", () => {
       '/learn/progress/',
       '/learn/progress/octocat/x',
       '/learn/progress/octocat%2F..%2Fprofile',
+      '/learn/coursesx',
+      '/learn/courses.json',
+      '/learn/courses//',
     ]) {
       expect(isLearnOpenPath(path), path).toBe(false);
     }

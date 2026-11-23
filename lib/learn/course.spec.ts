@@ -185,6 +185,29 @@ describe('the three boxes', () => {
     expect(courseBoxesOf({ ...algorithmsCourse, checkOffered: false }, null).middle).toEqual({ kind: 'grows' });
   });
 
+  it('for a session with no side: never signing in; nothing lit while it is on its way, else the first lesson', () => {
+    const pending = courseBoxesOf(algorithmsCourse, null, { person: 'pending' });
+    expect(pending.first).toMatchObject({ kind: 'start', lesson: { slug: lessonAt('1-1').slug } });
+    expect(pending.middle).toEqual({ kind: 'check' });
+    expect(pending.last).toEqual({ kind: 'grows' });
+    expect(pending.highlight).toBeNull();
+    const session = courseBoxesOf(algorithmsCourse, null, { person: 'session', checkFirst: true });
+    expect(session.highlight).toBe('first');
+    // No check offered: where to go after the course takes the last box, never signing in.
+    const noCheck = courseBoxesOf({ ...algorithmsCourse, checkOffered: false }, null, { person: 'session' });
+    expect(noCheck.middle).toEqual({ kind: 'grows' });
+    expect(noCheck.last).toEqual({ kind: 'further', next: algorithmsCourse.next });
+    // Every lesson paused: nothing to start, nothing lit.
+    const allPaused = {
+      ...algorithmsCourse,
+      groups: algorithmsCourse.groups.map((group) => ({
+        ...group,
+        lessons: group.lessons.map((lesson) => ({ ...lesson, paused: true })),
+      })),
+    };
+    expect(courseBoxesOf(allPaused, null, { person: 'session' }).highlight).toBeNull();
+  });
+
   it('for a new learner: the first lesson highlighted, the check offered; the check first when asked', () => {
     const boxes = courseBoxesOf(algorithmsCourse, freshMine);
     expect(boxes.first).toMatchObject({ kind: 'next', why: 'the first lesson of this course.', finishedGroup: null });

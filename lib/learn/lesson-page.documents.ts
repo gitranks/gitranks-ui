@@ -1,6 +1,7 @@
 import { parse } from 'graphql';
 
 import type { LearnAddress } from './address-gate';
+import type { LearnCourseMine } from './course';
 import type { LearnCourseGroup, LearnDepth, LearnLesson, LearnLessonLink, LearnLessonMine } from './lesson-page';
 import type DocumentNode from '@/types/typed-document-node';
 
@@ -56,11 +57,19 @@ export const LearnLessonMineDocument = doc<{ learnLessonMine: LearnLessonMineRea
 /** A lesson of the signed-in person's side of a course: its depth, for the squares. */
 export type LearnCourseLessonMine = { slug: string; depth: LearnDepth; known: boolean; due: boolean };
 
-/** The signed-in person's side of a course; null when Learn is not open to them. */
-export const LearnCourseMineDocument = doc<
-  { learnCourseMine: { slug: string; lessons: LearnCourseLessonMine[] } | null },
-  { slug: string }
->('query LearnCourseMine($slug: String!) { learnCourseMine(slug: $slug) { slug lessons { slug depth known due } } }');
+/**
+ * The signed-in person's side of a course, whole: their figures, each lesson's depth, their next lesson, their check
+ * and their rating. A lesson's page reads its lessons' depths; a course's page all of it. Null when Learn is not open
+ * to them.
+ */
+export const LearnCourseMineDocument = doc<{ learnCourseMine: LearnCourseMine | null }, { slug: string }>(
+  `query LearnCourseMine($slug: String!) {
+    learnCourseMine(slug: $slug) {
+      slug learned practised mastered known due lessons { slug depth known due } next { ${LINK} }
+      check { state left } finishedAt feedbackGood
+    }
+  }`,
+);
 
 /** What the API answers to a lesson's answer: its own verdict, the person's side as it is now, and what is next. */
 export type LearnLessonAnswered = { right: boolean; mine: LearnLessonMineRead; next: LearnLessonLink | null };

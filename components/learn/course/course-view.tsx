@@ -10,6 +10,7 @@ import { CourseLegend } from './course-marks';
 import { useCoursePageKeys } from './use-course-keys';
 import {
   type CourseFilter,
+  type CoursePerson,
   courseBoxesOf,
   courseSearchOf,
   courseSquareOf,
@@ -66,6 +67,8 @@ export type CourseViewProps = {
   /** The other courses, named in the footer. */
   others: readonly LearnCourseCard[];
   calls: CourseBoxCalls;
+  /** Who looks at the course while `mine` is null: a visitor (the default), or a session whose side is pending or did not come. */
+  person?: CoursePerson;
   /** The check takes the highlight and Enter: a course not started, for an experienced developer. */
   checkFirst?: boolean;
   /** For the catalogue: a state drawn as it stands. */
@@ -83,6 +86,7 @@ export function CourseView({
   mine,
   others,
   calls,
+  person = 'visitor',
   checkFirst = false,
   drawn = {},
   hints: hintsGiven,
@@ -112,7 +116,7 @@ export function CourseView({
   const counts = filterCountsOf(foundLessons, squareOf);
   const foundSlugs = useMemo(() => new Set(foundLessons.map((lesson) => lesson.slug)), [foundLessons]);
   const visible = (lesson: LearnGroupLesson) => foundSlugs.has(lesson.slug) && passesFilter(squareOf(lesson), filter);
-  const boxes = courseBoxesOf(course, mine, { checkFirst });
+  const boxes = courseBoxesOf(course, mine, { checkFirst, person });
   const shownCount = foundLessons.filter((lesson) => passesFilter(squareOf(lesson), filter)).length;
   const nothing = shownCount === 0;
   // What the search and the filter leave, said to a screen reader as it changes; nothing while the whole course shows.

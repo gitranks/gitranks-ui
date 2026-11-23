@@ -69,6 +69,10 @@ describe('Learn open to visitors', () => {
       '/learn/start/driftwood-js/driftwood/934/more',
       '/learn/start/issues/more',
       '/learn/x',
+      // The review and the check: signed in only.
+      '/learn/review',
+      '/learn/review?course=algorithms',
+      '/learn/check/algorithms',
     ]) {
       expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
     }

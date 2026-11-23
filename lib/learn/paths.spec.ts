@@ -24,6 +24,8 @@ import {
   learnLessonMinePath,
   learnLessonPath,
   learnLessonTag,
+  learnReviewMinePath,
+  learnReviewPath,
   markdownPathOf,
 } from './paths';
 
@@ -33,6 +35,14 @@ describe("Learn's addresses", () => {
     expect(checkPath('algorithms')).toBe('/learn/check/algorithms');
     expect(learnLessonPath('hash-sets')).toBe('/learn/lessons/hash-sets');
     expect(coursePath('a b')).toBe('/learn/courses/a%20b');
+  });
+
+  it("gives the review of every course or of one, and the person's set behind it, encoded", () => {
+    expect(learnReviewPath(null)).toBe('/learn/review');
+    expect(learnReviewPath('algorithms')).toBe('/learn/review?course=algorithms');
+    expect(learnReviewPath('a b')).toBe('/learn/review?course=a%20b');
+    expect(learnReviewMinePath(null)).toBe('/api/me/learn/review');
+    expect(learnReviewMinePath('a&b')).toBe('/api/me/learn/review?course=a%26b');
   });
 
   it("gives a paused or removed lesson's page, and the person's side of a lesson and of a course, encoded", () => {

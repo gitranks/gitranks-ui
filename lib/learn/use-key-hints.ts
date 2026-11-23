@@ -30,7 +30,9 @@ export function isRealKey(event: Pick<KeyboardEvent, 'isTrusted' | 'key' | 'targ
   if (!event.isTrusted || !event.key || event.key === 'Unidentified') return false;
   const target = event.target as HTMLElement | null;
   if (!target || typeof target.closest !== 'function') return true;
-  return !target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]');
+  return !target.closest(
+    'input, textarea, select, [contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"]',
+  );
 }
 
 function keyHintsNow(): boolean {

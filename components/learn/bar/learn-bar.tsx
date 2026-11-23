@@ -30,11 +30,12 @@ export function LearnBar({ state, place }: { state: LearnBarState; place: LearnB
     const tab = bar.current?.querySelector<HTMLElement>('ul [aria-current="page"]');
     const list = tab?.closest('ul');
     if (tab && list) revealSideways(list, tab);
-  }, [place]);
+    // Progress and Settings appear once the person's bar is read: the current one may only then be there to show.
+  }, [place, state.kind]);
 
   return (
     <div ref={bar} data-learn-bar={state.kind}>
-      <TabsBar end={<BarEnd state={state} place={place} />}>
+      <TabsBar end={barEndOf(state, place)}>
         {learnBarTabsOf(state).map((tab) => (
           <Tab key={tab} href={LEARN_BAR_TABS[tab].href} active={place === tab} data={{ 'data-learn-tab': tab }}>
             {LEARN_BAR_TABS[tab].label}
@@ -46,7 +47,7 @@ export function LearnBar({ state, place }: { state: LearnBarState; place: LearnB
 }
 
 /** The right side: nothing for a visitor, "Set up Learn" before setup, a learner's items when they have something. */
-function BarEnd({ state, place }: { state: LearnBarState; place: LearnBarPlace | null }) {
+function barEndOf(state: LearnBarState, place: LearnBarPlace | null): ReactNode {
   if (state.kind === 'visitor') return null;
   if (state.kind === 'setup') {
     return (
@@ -55,7 +56,7 @@ function BarEnd({ state, place }: { state: LearnBarState; place: LearnBarPlace |
         prefetch={false}
         aria-current={place === 'setup' ? 'page' : undefined}
         data-learn-bar-item="setup"
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary bg-brand-soft px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-brand-soft-foreground shadow-[0_0_0_4px_color-mix(in_oklch,var(--primary)_22%,transparent)]"
+        className="relative inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary after:absolute after:inset-x-0 after:-inset-y-[9px] after:content-[''] sm:after:hidden bg-brand-soft px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-brand-soft-foreground shadow-[0_0_0_4px_color-mix(in_oklch,var(--primary)_22%,transparent)]"
       >
         <span aria-hidden="true" className="size-[7px] shrink-0 rounded-full bg-primary" />
         Set up Learn
@@ -117,13 +118,16 @@ function BarItem({
       aria-current={current ? 'page' : undefined}
       data-learn-bar-item={item}
       className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium whitespace-nowrap text-foreground',
+        'relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium whitespace-nowrap text-foreground',
+        // A 44px tall target on a phone, the drawn item unchanged.
+        "after:absolute after:inset-x-0 after:-inset-y-[9px] after:content-[''] sm:after:hidden",
         current ? 'border-foreground' : 'border-dashed',
       )}
     >
       {children}
       {count > 0 ? (
         <>
+          {' '}
           <span className="rounded-full bg-brand-soft px-1.5 font-mono text-[11px] font-semibold tabular-nums text-brand-soft-foreground">
             {formatFull(count)}
           </span>

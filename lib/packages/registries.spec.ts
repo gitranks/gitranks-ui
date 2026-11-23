@@ -35,8 +35,8 @@ import {
 import { PackageRegistry } from '@/types/generated/graphql';
 
 describe('the registry table', () => {
-  it('lists npm, the default, then PyPI, Go, crates.io, pub.dev and Packagist, as the API names them', () => {
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist']);
+  it('lists npm, the default, then PyPI, Go, crates.io, pub.dev, Packagist and Maven Central, as the API names them', () => {
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
     expect(DEFAULT_REGISTRY).toBe('npm');
     expect(apiRegistryOf('npm')).toBe(PackageRegistry.Npm);
     expect(apiRegistryOf('pypi')).toBe(PackageRegistry.Pypi);
@@ -46,6 +46,7 @@ describe('the registry table', () => {
     expect(registryOfApi('CRATES')).toBe('crates');
     expect(registryOfApi('PUB')).toBe('pub');
     expect(registryOfApi('PACKAGIST')).toBe('packagist');
+    expect(registryOfApi('MAVEN')).toBe('maven');
     expect(registryOfApi('npm')).toBeNull();
     expect(registryOfApi('CARGO')).toBeNull();
     expect(registryOfApi(null)).toBeNull();
@@ -55,13 +56,12 @@ describe('the registry table', () => {
     expect(ALL_REGISTRY_IDS.map((id) => REGISTRIES[id].api).sort()).toEqual(Object.values(PackageRegistry).sort());
   });
 
-  it('shows the registries its list names, in the order of the table: npm, PyPI, Go, crates.io, pub.dev and Packagist for now', () => {
-    expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist']);
+  it('shows the registries its list names, in the order of the table: npm, PyPI, Go, crates.io, pub.dev, Packagist and Maven Central for now', () => {
+    expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
     expect(ALL_REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget', 'rubygems']);
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist']);
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
     // Rows not listed yet: the table knows them, nothing a visitor reaches does.
     for (const [id, api] of [
-      ['maven', 'MAVEN'],
       ['nuget', 'NUGET'],
       ['rubygems', 'RUBYGEMS'],
     ] as const) {
@@ -261,12 +261,12 @@ describe('copy from the table', () => {
   });
 
   it('names every registry where the copy lists every one, and a package alone past two', () => {
-    expect(registryLabelList()).toBe('npm, PyPI, Go, crates.io, pub.dev and Packagist');
-    expect(registryLabelList('or')).toBe('npm, PyPI, Go, crates.io, pub.dev or Packagist');
+    expect(registryLabelList()).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist and Maven Central');
+    expect(registryLabelList('or')).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist or Maven Central');
     expect(anyRegistryPackageText()).toBe('package');
     expect(anyRegistryPackageText(true)).toBe('a package');
     expect(registryManifestList()).toBe(
-      'package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml, pubspec.yaml or composer.json',
+      'package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml, pubspec.yaml, composer.json, pom.xml or build.gradle',
     );
     expect(registryManifestList(['pypi'])).toBe('requirements.txt or pyproject.toml');
   });

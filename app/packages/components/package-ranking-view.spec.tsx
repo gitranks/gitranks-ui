@@ -43,10 +43,10 @@ describe('PackageRankingFrame', () => {
     );
     expect(html).toMatch(/<form aria-label="Go to a package"/);
     expect(text).toContain(
-      'Package rankings are new. For now we rank npm, PyPI, Go, crates.io, pub.dev and Packagist packages only',
+      'Package rankings are new. For now we rank npm, PyPI, Go, crates.io, pub.dev, Packagist and Maven Central packages only',
     );
     expect(text).toContain('that list the package in their own package.json.');
-    expect(text).toContain('Registry:npmPyPIGocrates.iopub.devPackagist');
+    expect(text).toContain('Registry:npmPyPIGocrates.iopub.devPackagistMaven Central');
     expect(html).toContain('href="/methodology/packages"');
     expect(html).toContain('<p>page</p>');
   });

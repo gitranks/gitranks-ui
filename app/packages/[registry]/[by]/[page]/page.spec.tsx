@@ -161,6 +161,9 @@ describe('the package ranking layout', () => {
       { registry: 'packagist', by: 'downloads', page: '1' },
       { registry: 'packagist', by: 'dependents-stars', page: '1' },
       { registry: 'packagist', by: 'dependents', page: '1' },
+      // Maven Central publishes no download counts: no downloads ranking.
+      { registry: 'maven', by: 'dependents-stars', page: '1' },
+      { registry: 'maven', by: 'dependents', page: '1' },
     ]);
   });
 

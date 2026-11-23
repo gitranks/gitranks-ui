@@ -168,9 +168,11 @@ describe('Set up Learn in the browser', () => {
     // The main language is not offered among the others.
     expect(input('otherLanguages', 'go')).toBeNull();
     expect(saveButton().textContent).toBe('Save and take the 2-minute check');
-    // It points to no section Settings does not have yet.
-    expect(host.textContent).toContain('You can change this later.');
-    expect(host.textContent).not.toContain('Learn preferences');
+    // It points to Learn's group in Settings, opened with Learn's bar.
+    expect(host.textContent).toContain('You can change this later in Settings, under Learn preferences.');
+    expect(host.querySelector('[data-setup-later] a')?.getAttribute('href')).toBe(
+      '/my/settings?from=learn#learn-preferences',
+    );
     expect(startLearnSetupGuessAction).not.toHaveBeenCalled();
     await click(saveButton());
     expect(saveLearnSetupAction).toHaveBeenCalledWith({ mainLanguage: 'go', otherLanguages: ['python'], level: 3 });

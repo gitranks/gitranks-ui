@@ -27,6 +27,7 @@ const data = vi.hoisted(() => ({
 }));
 const { signIn } = vi.hoisted(() => ({ signIn: vi.fn() }));
 
+vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => nav.pathname,
@@ -46,6 +47,8 @@ vi.mock('@/lib/workspace/issue-actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => data);
 vi.mock('@/lib/contribute/contribute.data', () => data);
 vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
+vi.mock('@/lib/learn/settings.data', () => ({}));
+vi.mock('@/lib/learn/settings.actions', () => ({}));
 vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false), loadAttemptLesson: vi.fn() }));
 
 const { Landing } = await import('./landing');

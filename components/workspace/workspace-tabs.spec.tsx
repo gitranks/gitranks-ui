@@ -6,6 +6,11 @@ const data = vi.hoisted(() => ({
   loadContributeActivity: vi.fn(async () => null),
   loadContributeVersion: vi.fn(async () => '4.2'),
   loadNeedsYouCount: vi.fn(async (): Promise<number | null> => 3),
+  loadContribute: vi.fn(async () => ({ sides: { contribute: false, learn: true } })),
+}));
+const jar = vi.hoisted(() => ({ lastBar: undefined as string | undefined }));
+vi.mock('next/headers', () => ({
+  cookies: async () => ({ get: () => (jar.lastBar ? { value: jar.lastBar } : undefined) }),
 }));
 const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn() }));
 
@@ -94,6 +99,29 @@ describe("the gate's tabs", () => {
 
     gate.loadWorkspaceGate.mockResolvedValueOnce(open({ learnOpen: false }));
     expect(tabLinks(renderToStaticMarkup(await WorkspaceTabs()))).toHaveLength(4);
+  });
+
+  it("offers Learn's bar on Settings only where Learn is open, with the bar seen last and the product used", async () => {
+    nav.pathname = '/my/settings';
+    const learnBar = <nav data-bar="learn" />;
+    gate.loadWorkspaceGate.mockResolvedValueOnce(open());
+    // Someone who only learns, with no bar seen yet: Learn's.
+    let html = renderToStaticMarkup(await WorkspaceTabs({ learnBar }));
+    expect(html).toContain('data-bar="learn"');
+    expect(tabLinks(html)).toHaveLength(0);
+
+    jar.lastBar = 'contribute';
+    gate.loadWorkspaceGate.mockResolvedValueOnce(open());
+    html = renderToStaticMarkup(await WorkspaceTabs({ learnBar }));
+    expect(tabLinks(html)).toHaveLength(5);
+
+    jar.lastBar = 'learn';
+    data.loadContribute.mockClear();
+    gate.loadWorkspaceGate.mockResolvedValueOnce(open({ learnOpen: false }));
+    html = renderToStaticMarkup(await WorkspaceTabs({ learnBar }));
+    expect(html).not.toContain('data-bar="learn"');
+    expect(data.loadContribute).not.toHaveBeenCalled();
+    jar.lastBar = undefined;
   });
 
   it('shows no tabs, and reads nothing more, without them; nor when the gate could not be read', async () => {

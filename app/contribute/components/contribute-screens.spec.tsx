@@ -15,6 +15,8 @@ vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 vi.mock('@/lib/learn/actions', () => ({}));
+vi.mock('@/lib/learn/settings.data', () => ({}));
+vi.mock('@/lib/learn/settings.actions', () => ({}));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(),
@@ -270,10 +272,10 @@ describe('the Agent and Settings tabs', () => {
     expect(html).not.toContain('aria-label="Settings sections"');
   });
 
-  it('says on Settings where the hosted agent went, and anchors pause and autopilot on the Agent tab', () => {
+  it('names the agent on Settings and opens the Agent tab from it, and anchors pause and autopilot there', () => {
     const settings = renderToStaticMarkup(<SettingsScreen view={views.active} />);
-    expect(text(settings)).toContain('Autopilot and the hosted agent with its key and budget are on the Agent tab .');
-    expect(settings).toMatch(/data-agent-line=""[\s\S]*?href="\/my\/agent"/);
+    expect(text(settings)).toContain('AI agent The hosted agent, with your Claude key Edit');
+    expect(settings).toMatch(/data-row="agent"[^>]*><a[^>]*href="\/my\/agent"/);
     const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
     for (const id of ['hosted-level', 'autopilot', 'own-agent']) expect(agent).toContain(`id="${id}"`);
   });
@@ -534,7 +536,7 @@ describe('the heading scale', () => {
 
     const settings = renderToStaticMarkup(<SettingsScreen view={views.active} />);
     expect(settings).toContain(`<h1 class="${HEADING.page}">Settings</h1>`);
-    expect(settings).toContain(`class="${HEADING.section}">For contributing</h2>`);
+    expect(settings).toContain(`class="${HEADING.block}">Contribute preferences</h2>`);
     const agent = renderToStaticMarkup(<AgentScreen view={views.active} now={NOW} />);
     expect(agent).toContain(`<h1 class="${HEADING.page}">Agent</h1>`);
     expect(agent).toContain(`class="${HEADING.section}">Hosted agent</h2>`);

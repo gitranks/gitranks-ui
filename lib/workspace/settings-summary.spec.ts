@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { movedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './paths';
+import { movedAnchorOf, renamedAnchorOf, settingsPathOf, switchModeOf, switchPathOf } from './paths';
 import {
+  agentSummaryOf,
   attemptsSummaryOf,
   budgetSummaryOf,
   dcoSummaryOf,
@@ -10,7 +11,7 @@ import {
   prSizeSummaryOf,
 } from './settings-summary';
 import { resolve, smallReposSet, stackSet } from '@/lib/contribute/__fixtures__/contribute-sets';
-import { contributor, limits, settings } from '@/lib/contribute/__fixtures__/contribute-views';
+import { contributor, limits, mcpToken, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import { stackPendingOf } from '@/lib/contribute/set-format';
 import { keptListOf, listSummaryOf, preferencesSummaryOf, waitingLibrariesOf } from '@/lib/contribute/work-summary';
 
@@ -124,5 +125,51 @@ describe('what you work on, in short', () => {
     expect(keptListOf(stackSet())).toBe('Your stack (3 repos) stays saved: switch back any time.');
     expect(keptListOf(smallReposSet())).toBe('Your repos list (12 repos) stays saved: switch back any time.');
     expect(keptListOf(stackSet({ mode: 'ALL' }))).toBeNull();
+  });
+});
+
+describe('the AI agent row', () => {
+  it('names the agent connected last and the day, then how many others', () => {
+    const one = { ...views.active, ownAgent: { paths: { hosted: false, mcp: true }, tokens: [mcpToken()] } };
+    expect(agentSummaryOf(one)).toEqual({ state: 'connected', value: 'Claude Code on macOS · connected on 28 Oct' });
+    const older = mcpToken({ id: 'T_0', name: 'Codex', createdAt: '2026-10-03T09:00:00.000Z' });
+    const two = { ...views.active, ownAgent: { paths: { hosted: false, mcp: true }, tokens: [older, mcpToken()] } };
+    expect(agentSummaryOf(two).value).toBe('Claude Code on macOS and 1 other agent · connected on 28 Oct');
+  });
+
+  it('names the hosted agent with a key and no token, and says when none is connected', () => {
+    expect(agentSummaryOf({ ...views.active, ownAgent: { paths: { hosted: true, mcp: false }, tokens: [] } })).toEqual({
+      state: 'connected',
+      value: 'The hosted agent, with your Claude key',
+    });
+    const none = {
+      ...views.active,
+      contributor: contributor({ credentials: [] }),
+      ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] },
+    };
+    expect(agentSummaryOf(none)).toEqual({
+      state: 'none',
+      value: 'No agent connected yet. An agent is what fixes an issue for you.',
+    });
+  });
+
+  it('says the agent did not load when it was not read, never that none is connected', () => {
+    const unread = { ...views.active, contributor: contributor({ credentials: [] }), ownAgent: undefined };
+    expect(agentSummaryOf(unread)).toEqual({
+      state: 'failed',
+      value: "Your agent didn't load. Reload the page to try again.",
+    });
+    // A Claude key is known without it.
+    expect(agentSummaryOf({ ...views.active, ownAgent: undefined }).state).toBe('connected');
+  });
+});
+
+describe("Settings' renamed groups", () => {
+  it('lands an old anchor on the group it is now, and leaves the rest as they are', () => {
+    expect(renamedAnchorOf('for-learning')).toBe('learn-preferences');
+    expect(renamedAnchorOf('for-contributing')).toBe('contribute-preferences');
+    expect(renamedAnchorOf('pull-requests')).toBe('pr-limits');
+    expect(renamedAnchorOf('email')).toBe('email');
+    expect(renamedAnchorOf('toString')).toBe('toString');
   });
 });

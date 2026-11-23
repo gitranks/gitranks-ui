@@ -315,6 +315,17 @@ export const switchModeOf = (segment: string): ContributeSetListMode | null =>
 export const movedAnchorOf = (anchor: string): Route | null =>
   Object.hasOwn(ANCHORS, anchor) ? ANCHORS[anchor] : null;
 
+/** The summary's groups that took a new name with the regrouping (page 23), by their old anchor. */
+const RENAMED_ANCHORS: Record<string, string> = {
+  'for-learning': 'learn-preferences',
+  'for-contributing': 'contribute-preferences',
+  'pull-requests': 'pr-limits',
+};
+
+/** A section's anchor on the summary now: its new name for a renamed group, else itself. */
+export const renamedAnchorOf = (anchor: string): string =>
+  Object.hasOwn(RENAMED_ANCHORS, anchor) ? RENAMED_ANCHORS[anchor] : anchor;
+
 /** Where a Settings section is: its own page, or the summary at its anchor. */
 export const settingsPathOf = (anchor: string): Route =>
   movedAnchorOf(anchor) ?? (`${SETTINGS_PATHS.summary}#${anchor}` as Route);

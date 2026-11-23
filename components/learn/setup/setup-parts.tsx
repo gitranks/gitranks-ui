@@ -1,10 +1,12 @@
 import { Check } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactNode, Ref } from 'react';
 
 import { Kbd } from '@/components/learn/question/kbd';
 import { Button } from '@/components/ui/button';
 import type { LearnActionError } from '@/lib/learn/learn-action';
 import { languageNameOf } from '@/lib/learn/learn-question';
+import { LEARN_PREFERENCES_PATH } from '@/lib/learn/paths';
 import {
   levelHintOf,
   MAIN_LANGUAGE_HINT,
@@ -310,7 +312,17 @@ export function SetupView({
               {hints ? <Kbd onPrimary>⏎</Kbd> : null}
             </Button>
             {form.source === 'saved' ? null : (
-              <span className="text-sm text-muted-foreground">You can change this later.</span>
+              <span className="text-sm text-muted-foreground" data-setup-later="">
+                You can change this later in{' '}
+                <Link
+                  href={LEARN_PREFERENCES_PATH}
+                  prefetch={false}
+                  className="font-semibold text-link hover:underline"
+                >
+                  Settings
+                </Link>
+                , under Learn preferences.
+              </span>
             )}
           </div>
           <div role="status" className="min-h-5" id="learn-setup-notice">

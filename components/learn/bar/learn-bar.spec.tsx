@@ -180,6 +180,30 @@ describe("Learn's bar", () => {
     expect(items()).toEqual([['/learn/review', 'Review 1 lesson due']]);
   });
 
+  it('records itself as the bar seen last, for a visitor too', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ bar: null })),
+    );
+    // biome-ignore lint/suspicious/noDocumentCookie: the spec starts from Contribute's bar.
+    document.cookie = 'gr_last_bar=contribute; Path=/';
+    path.current = '/learn/courses';
+    await act(async () => root.render(<LearnBarLive />));
+    expect(document.cookie).toContain('gr_last_bar=learn');
+  });
+
+  it('marks Settings on Settings opened from Learn', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({ bar: { setup: 'SAVED', due: 0, pullRequests: false, pullRequestsNeedYou: 0 } }),
+      ),
+    );
+    path.current = '/my/settings';
+    await act(async () => root.render(<LearnBarLive from="learn" />));
+    expect(current()).toEqual(['Settings']);
+  });
+
   it("keeps a visitor's bar when the read fails", async () => {
     vi.stubGlobal(
       'fetch',
@@ -274,6 +298,32 @@ describe("Learn's bar", () => {
     await act(async () => vi.advanceTimersByTime(10_000));
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(startLearnSetupGuessAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells the page once when our guess is in, and never for a setup that was in already', async () => {
+    vi.useFakeTimers();
+    const settled = vi.fn();
+    window.addEventListener('gitranks:learn-setup-settled', settled);
+    const states = ['WORKING', 'WORKING', 'GUESSED'];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => barOf(states.shift() ?? 'GUESSED')),
+    );
+    path.current = '/my/settings';
+    await act(async () => root.render(<LearnBarLive from="learn" />));
+    await act(async () => vi.advanceTimersByTime(2000));
+    expect(settled).not.toHaveBeenCalled();
+    await act(async () => vi.advanceTimersByTime(2000));
+    expect(settled).toHaveBeenCalledTimes(1);
+    await act(async () => vi.advanceTimersByTime(10_000));
+    expect(settled).toHaveBeenCalledTimes(1);
+
+    // A bar read with the guess already in says nothing.
+    path.current = '/learn';
+    await act(async () => root.render(<LearnBarLive from="learn" />));
+    await act(async () => vi.advanceTimersByTime(10_000));
+    expect(settled).toHaveBeenCalledTimes(1);
+    window.removeEventListener('gitranks:learn-setup-settled', settled);
   });
 
   it('leaves our guess to Set up Learn on its own page, and only marks its tab there', async () => {

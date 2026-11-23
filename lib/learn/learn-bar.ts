@@ -11,6 +11,12 @@ import {
   LEARN_SETUP_PATH,
 } from './paths';
 
+/**
+ * Sent on the window when the bar, having read again while our guess ran, finds it in (or the person's own setup):
+ * a part of the page that shows the setup (Settings' "Languages and level") reads the page again.
+ */
+export const LEARN_SETUP_SETTLED_EVENT = 'gitranks:learn-setup-settled';
+
 /** What the API answers for Learn's bar: how far setup is, what is due, the person's pull requests. */
 export type LearnBarRead = {
   setup: 'NONE' | 'WORKING' | 'GUESSED' | 'SAVED';

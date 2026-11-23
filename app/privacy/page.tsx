@@ -23,9 +23,9 @@ const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
 
 /**
  * The Privacy policy's own date: it changed after `LAST_UPDATED` (GitRanks Learn and following a package, 2026-11-18;
- * the public progress page, 2026-11-20; Contribute's fair use, 2026-11-22).
+ * the public progress page, 2026-11-20; Contribute's fair use, 2026-11-22; the bar Settings opens with, 2026-11-23).
  */
-const PRIVACY_UPDATED = '2026-11-22';
+const PRIVACY_UPDATED = '2026-11-23';
 
 const sections: LegalSection[] = [
   {
@@ -545,6 +545,11 @@ const sections: LegalSection[] = [
           <B>Needed for the site</B>: the sign-in session, a cookie that tells the page you&apos;re signed in,
           short-lived security cookies during sign-in (including one, for 10 minutes, that carries a reaction to a
           lesson result through the GitHub sign-in), and Cloudflare&apos;s security cookies.
+        </li>
+        <li>
+          <B>Preferences</B>: one cookie, gr_last_bar, that keeps which bar you saw last, Learn&apos;s or
+          Contribute&apos;s, so Settings opens with the same one. It lasts a year and is renewed on each page that shows
+          either bar.
         </li>
         <li>
           <B>Analytics</B>: Google Analytics cookies, which tell repeat visits apart.

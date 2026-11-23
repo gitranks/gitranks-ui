@@ -4,10 +4,10 @@ vi.mock('server-only', () => ({}));
 vi.mock('@/lib/social-card/social-card', () => ({ drawSocialCard: vi.fn() }));
 
 import { algorithmsCourse, courseCards } from './__fixtures__/course';
-import { courseCardResponse, coursesCardResponse } from './course-card';
 import { courseMarkdownResponse, coursesMarkdownResponse } from './course-markdown-response';
 import { type CourseShareState, courseShareStateOf } from './course-share';
 import { courseCardVersionOf, coursesCardVersionOf } from './course-share-card';
+import { courseCardResponse, coursesCardResponse } from '@/components/learn/share/course-card-response';
 
 const LONG_DASH = String.fromCodePoint(0x2014);
 const live: CourseShareState = { kind: 'live', course: algorithmsCourse };

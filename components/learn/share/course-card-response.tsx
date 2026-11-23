@@ -1,11 +1,11 @@
 import 'server-only';
 
-import type { LearnCourse, LearnCourseCard } from './course';
-import { type CourseShareState, courseNotServedResponse, courseUnavailableResponse } from './course-share';
-import { courseCardVersionOf, coursesCardFiguresOf, coursesCardVersionOf } from './course-share-card';
-import { LESSON_CARD_HEADERS } from './lesson-card';
-import { LEARN_COURSES_CARD_PATH, learnCourseCardPath } from './paths';
-import { CourseShareCard, LearnShareCard } from '@/components/learn/share/course-cards';
+import { CourseShareCard, LearnShareCard } from './course-cards';
+import { LESSON_CARD_HEADERS } from './lesson-card-response';
+import type { LearnCourse, LearnCourseCard } from '@/lib/learn/course';
+import { type CourseShareState, courseNotServedResponse, courseUnavailableResponse } from '@/lib/learn/course-share';
+import { courseCardVersionOf, coursesCardFiguresOf, coursesCardVersionOf } from '@/lib/learn/course-share-card';
+import { LEARN_COURSES_CARD_PATH, learnCourseCardPath } from '@/lib/learn/paths';
 import { drawSocialCard } from '@/lib/social-card/social-card';
 
 /** A course's picture drawn as a PNG. */

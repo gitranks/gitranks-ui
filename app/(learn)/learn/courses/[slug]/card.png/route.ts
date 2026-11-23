@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 
-import { courseCardResponse } from '@/lib/learn/course-card';
+import { courseCardResponse } from '@/components/learn/share/course-card-response';
 import { loadCourseShareState } from '@/lib/learn/course-share.data';
 
 /** The picture a posted link to a course shows. */

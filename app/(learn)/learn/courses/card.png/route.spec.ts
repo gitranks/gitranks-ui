@@ -5,7 +5,7 @@ const { response, loadLearnCourses } = vi.hoisted(() => ({
   response: vi.fn(async (..._args: unknown[]) => new Response('png')),
   loadLearnCourses: vi.fn(async () => []),
 }));
-vi.mock('@/lib/learn/course-card', () => ({ coursesCardResponse: response }));
+vi.mock('@/components/learn/share/course-card-response', () => ({ coursesCardResponse: response }));
 vi.mock('@/lib/learn/course.data', () => ({ loadLearnCourses }));
 
 const { GET } = await import('./route');

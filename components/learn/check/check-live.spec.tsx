@@ -1,0 +1,372 @@
+// @vitest-environment jsdom
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { hint, push, signIn, answerLearnCheckAction, stopLearnCheckAction, saveLearnKnownAction } = vi.hoisted(() => ({
+  hint: { present: false },
+  push: vi.fn(),
+  signIn: vi.fn(async () => undefined),
+  answerLearnCheckAction: vi.fn(),
+  stopLearnCheckAction: vi.fn(),
+  saveLearnKnownAction: vi.fn(),
+}));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+vi.mock('next-auth/react', () => ({ signIn }));
+vi.mock('@/lib/learn/check.actions', () => ({ answerLearnCheckAction, stopLearnCheckAction, saveLearnKnownAction }));
+// The session's hint cookie, as the browser holds it.
+vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
+
+const { CheckLive, readCheckSide, readKnownSide } = await import('./check-live');
+const { checkEnded, checkResultAll, checkResultNone, checkRunOf, knownSinceMine } = await import(
+  '@/lib/learn/__fixtures__/check'
+);
+const { algorithmsCourse, lessonAt, progressMine } = await import('@/lib/learn/__fixtures__/course');
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+let root: Root;
+let host: HTMLDivElement;
+const fetchMock = vi.fn();
+/** What the routes answer, one body after another (the last one stays). */
+const answer = (...bodies: unknown[]) => {
+  for (const body of bodies) {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(body), { status: 200 }));
+  }
+  fetchMock.mockResolvedValue(new Response(JSON.stringify(bodies[bodies.length - 1]), { status: 200 }));
+};
+
+beforeEach(() => {
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  })) as unknown as typeof window.matchMedia;
+  vi.stubGlobal('fetch', fetchMock);
+  fetchMock.mockReset();
+  for (const mock of [push, signIn, answerLearnCheckAction, stopLearnCheckAction, saveLearnKnownAction]) {
+    mock.mockReset();
+  }
+  signIn.mockResolvedValue(undefined);
+  host = document.createElement('div');
+  document.body.append(host);
+  root = createRoot(host);
+});
+
+afterEach(() => {
+  act(() => root.unmount());
+  host.remove();
+  hint.present = false;
+  vi.unstubAllGlobals();
+});
+
+const draw = (mode: 'check' | 'known' = 'check') =>
+  act(async () => {
+    root.render(<CheckLive course={algorithmsCourse} mode={mode} />);
+  });
+const $ = (selector: string) => host.querySelector<HTMLElement>(selector);
+const state = () => $('[data-check-state]')?.dataset.checkState ?? null;
+const title = () => $('h1:not(.sr-only)')?.textContent ?? '';
+const main = () => $('[data-answer-main]')!;
+const option = (index: number) => $(`[data-option="${index}"] input`)!;
+const extra = () => $('[data-option="extra"] input')!;
+const buttonOf = (text: string) =>
+  [...host.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent?.trim() === text);
+const groupBox = (slug: string) => $(`[data-known-group="${slug}"] [role="checkbox"]`)!;
+const cardTitle = () => $('[data-known-title]')!.textContent;
+const click = (element: HTMLElement) =>
+  act(async () => {
+    element.click();
+  });
+const key = (target: EventTarget, name: string) =>
+  act(async () => {
+    target.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true }));
+  });
+
+describe('the check, for a visitor', () => {
+  it('asks for nothing, says what the check does, and signs in back to it', async () => {
+    await draw();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(state()).toBe('visitor');
+    expect(title()).toBe('The check needs an account');
+    expect(host.textContent).toContain('one question for each of the 9 groups in Algorithms and data structures');
+    expect(document.activeElement).toBe($('h1'));
+    await click(buttonOf('Sign in with GitHub')!);
+    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/check/algorithms' });
+  });
+
+  it('signs in back to "What you know" from there', async () => {
+    await draw('known');
+    expect(title()).toBe('What you know needs an account');
+    await click(buttonOf('Sign in with GitHub')!);
+    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/check/algorithms?known' });
+  });
+});
+
+describe('the check, for a person with a session', () => {
+  beforeEach(() => {
+    hint.present = true;
+  });
+
+  it('holds the card’s place while the run is on its way, and never asks to sign in', async () => {
+    fetchMock.mockReturnValue(new Promise(() => {}));
+    await draw();
+    expect(state()).toBe('pending');
+    expect($('[aria-busy="true"] [role="status"]')!.textContent).toBe('Loading your check…');
+    expect(buttonOf('Sign in with GitHub')).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/check/algorithms', { cache: 'no-store' });
+  });
+
+  it('says a run that did not come did not load, and reads it again', async () => {
+    answer({ check: null, missing: false });
+    await draw();
+    expect(state()).toBe('failed');
+    expect(title()).toBe('Your check did not load');
+    answer({ check: checkEnded(), missing: false });
+    await click(buttonOf('Try again')!);
+    expect(state()).toBe('result');
+  });
+
+  it('says when the course has no check just now, with the way back to it', async () => {
+    answer({ check: null, missing: true });
+    await draw();
+    expect(state()).toBe('missing');
+    expect($('[data-check-state="missing"] a')!.getAttribute('href')).toBe('/learn/courses/algorithms');
+  });
+
+  it('takes only a whole run from the route', async () => {
+    for (const body of [{}, { check: { id: 1 } }, { check: { id: 'r', questions: 'no' } }]) {
+      answer(body);
+      expect(await readCheckSide('algorithms')).toBeNull();
+    }
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 500 }));
+    expect(await readCheckSide('algorithms')).toBeNull();
+    fetchMock.mockRejectedValueOnce(new Error('offline'));
+    expect(await readCheckSide('algorithms')).toBeNull();
+    answer({ course: { ...progressMine, slug: 'go' } });
+    expect(await readKnownSide('algorithms')).toBeNull();
+  });
+
+  it('goes on from the first question not answered, with no right or wrong', async () => {
+    answer({ check: checkRunOf(2), missing: false });
+    await draw();
+    expect(host.textContent).toContain('Question 3 of 9');
+    expect(host.textContent).toContain('About Hash maps and sets');
+    answerLearnCheckAction.mockResolvedValue({ ok: true, data: true });
+    await click(option(1));
+    await click(main());
+    expect(answerLearnCheckAction).toHaveBeenCalledWith({
+      course: 'algorithms',
+      group: 'hash-maps-and-sets',
+      picked: 1,
+      dontKnow: false,
+      language: 'python',
+    });
+    expect(host.textContent).not.toMatch(/Right\.|Not quite\./);
+    expect(host.textContent).toContain('Question 4 of 9');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Question 4 of 9');
+  });
+
+  it('sends "I don’t know" with no pick, after saying it is a fine answer', async () => {
+    answer({ check: checkRunOf(0), missing: false });
+    await draw();
+    answerLearnCheckAction.mockResolvedValue({ ok: true, data: true });
+    await click(extra());
+    expect(host.textContent).toContain('That is a fine answer.');
+    await click(main());
+    expect(answerLearnCheckAction).toHaveBeenCalledWith(
+      expect.objectContaining({ group: 'big-o', picked: null, dontKnow: true }),
+    );
+  });
+
+  it('keeps the card when an answer is not sent, and reads the run again when it came twice', async () => {
+    answer({ check: checkRunOf(0), missing: false });
+    await draw();
+    answerLearnCheckAction.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
+    await click(option(0));
+    await click(main());
+    expect(host.textContent).toContain('Not sent.');
+    answerLearnCheckAction.mockResolvedValueOnce({ ok: false, error: 'CONFLICT' });
+    answer({ check: checkRunOf(1), missing: false });
+    await click(main());
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(host.textContent).toContain('Question 2 of 9');
+  });
+
+  it('reads the result once the last question is answered', async () => {
+    answer({ check: checkRunOf(8), missing: false }, { check: checkEnded(), missing: false });
+    await draw();
+    expect(main().textContent).toContain('See the result');
+    answerLearnCheckAction.mockResolvedValue({ ok: true, data: true });
+    await click(option(0));
+    await click(main());
+    expect(state()).toBe('result');
+    expect(title()).toBe('You already know 4 of the 9 groups');
+    expect(host.textContent).toContain('9 of 9 answered');
+  });
+
+  it('"Stop and see the result" ends the run and shows it; a stop that fails says so', async () => {
+    answer({ check: checkRunOf(3), missing: false });
+    await draw();
+    stopLearnCheckAction.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
+    await click($('[data-check-stop]')!);
+    expect($('[data-check-stop-failed]')!.getAttribute('role')).toBe('alert');
+    stopLearnCheckAction.mockResolvedValueOnce({ ok: true, data: checkEnded() });
+    await click($('[data-check-stop]')!);
+    expect(stopLearnCheckAction).toHaveBeenCalledWith('algorithms');
+    expect(state()).toBe('result');
+  });
+
+  it('reads the run again when it ended elsewhere', async () => {
+    answer({ check: checkRunOf(3), missing: false }, { check: checkEnded(), missing: false });
+    await draw();
+    stopLearnCheckAction.mockResolvedValueOnce({ ok: false, error: 'CONFLICT' });
+    await click($('[data-check-stop]')!);
+    expect(state()).toBe('result');
+  });
+
+  it('ends a run with nothing left to ask that has not ended, once', async () => {
+    answer({ check: checkRunOf(9), missing: false });
+    stopLearnCheckAction.mockResolvedValueOnce({ ok: true, data: checkEnded() });
+    await draw();
+    expect(stopLearnCheckAction).toHaveBeenCalledTimes(1);
+    expect(state()).toBe('result');
+  });
+
+  it('says so when such a run cannot be ended, and never asks again by itself', async () => {
+    answer({ check: checkRunOf(9), missing: false });
+    stopLearnCheckAction.mockResolvedValue({ ok: false, error: 'CONFLICT' });
+    await draw();
+    expect(title()).toBe('Your result did not load');
+    expect(stopLearnCheckAction).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the check’s result', () => {
+  beforeEach(() => {
+    hint.present = true;
+  });
+
+  it('proposes the right groups; ticking changes the card in place, and says what the person changed', async () => {
+    answer({ check: checkEnded(), missing: false });
+    await draw();
+    expect(document.activeElement).toBe($('h1'));
+    expect(cardTitle()).toBe('39 of 86 lessons marked as known');
+    expect($('[data-known-group="big-o"]')!.dataset.box).toBe('on');
+    expect($('[data-known-group="big-o"]')!.textContent).toContain('You answered right');
+    await click(groupBox('big-o'));
+    expect(cardTitle()).toBe('31 of 86 lessons marked as known');
+    expect($('[data-known-start]')!.textContent).toContain(lessonAt('1-1').title);
+    expect($('[data-known-start]')!.textContent).toContain('You unticked 8 lessons yourself.');
+    await click(groupBox('big-o'));
+    expect(cardTitle()).toBe('39 of 86 lessons marked as known');
+  });
+
+  it('opens a group to tick single lessons, and Esc closes it, back on its button', async () => {
+    answer({ check: checkEnded(), missing: false });
+    await draw();
+    const toggle = $('[aria-label="Show the lessons of Hash maps and sets"]')!;
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    await click(toggle);
+    const lessons = $('[aria-label="The lessons of Hash maps and sets"]')!;
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(toggle.getAttribute('aria-label')).toBe('Hide the lessons of Hash maps and sets');
+    await click(lessons.querySelector<HTMLElement>('[role="checkbox"]')!);
+    expect($('[data-known-group="hash-maps-and-sets"]')!.dataset.box).toBe('mixed');
+    expect($('[data-known-group="hash-maps-and-sets"] [data-group-words]')!.textContent).toBe('8 of 9 marked as known');
+    await key(lessons.querySelector('[role="checkbox"]')!, 'Escape');
+    expect($('[aria-label="The lessons of Hash maps and sets"]')).toBeNull();
+    expect(document.activeElement).toBe(toggle);
+  });
+
+  it('saves the ticked lessons with the run and goes where the person starts; Enter does the same', async () => {
+    answer({ check: checkEnded(), missing: false });
+    await draw();
+    const start = { slug: lessonAt('4-1').slug, title: lessonAt('4-1').title };
+    saveLearnKnownAction.mockResolvedValue({ ok: true, data: { start, known: 39 } });
+    await key(document.body, 'Enter');
+    const [{ course, known, check }] = saveLearnKnownAction.mock.calls[0];
+    expect({ course, check, known: known.length }).toEqual({ course: 'algorithms', check: 'run-1', known: 39 });
+    expect(push).toHaveBeenCalledWith(`/learn/lessons/${start.slug}`);
+    // On its way: the button waits, and Enter asks nothing twice.
+    expect($('[data-known-primary]')!.textContent).toBe('Saving…');
+    await key(document.body, 'Enter');
+    expect(saveLearnKnownAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('"Mark nothing and start at lesson 1" saves no marks and goes to the first lesson', async () => {
+    answer({ check: checkEnded(), missing: false });
+    await draw();
+    saveLearnKnownAction.mockResolvedValue({ ok: true, data: { start: null, known: 0 } });
+    await click($('[data-known-secondary]')!);
+    expect(saveLearnKnownAction).toHaveBeenCalledWith({ course: 'algorithms', known: [], check: 'run-1' });
+    expect(push).toHaveBeenCalledWith(`/learn/lessons/${lessonAt('1-1').slug}`);
+  });
+
+  it('says a save that failed, keeps the sheet, and reads again when the result was saved elsewhere', async () => {
+    answer({ check: checkEnded(), missing: false });
+    await draw();
+    saveLearnKnownAction.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
+    await click($('[data-known-primary]')!);
+    expect($('[data-known-failed]')!.getAttribute('role')).toBe('alert');
+    expect(push).not.toHaveBeenCalled();
+    saveLearnKnownAction.mockResolvedValueOnce({ ok: false, error: 'CONFLICT' });
+    await click($('[data-known-primary]')!);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('with nothing right: nothing marked, and the first lesson', async () => {
+    answer({ check: checkEnded(checkResultNone), missing: false });
+    await draw();
+    expect(title()).toBe('We found nothing you already know');
+    expect(cardTitle()).toBe('Nothing is marked as known');
+    expect($('[data-known-start]')!.textContent).toContain('the first lesson of the course.');
+    expect($('[data-known-primary]')!.textContent).toContain('Start at the first lesson');
+    expect($('[data-known-secondary]')).toBeNull();
+    expect(host.textContent).not.toMatch(/\b0 /);
+  });
+
+  it('with every answer right: no lesson left to start at, and another course', async () => {
+    answer({ check: checkEnded(checkResultAll), missing: false });
+    await draw();
+    expect(title()).toBe('You already know all 9 groups');
+    expect(cardTitle()).toBe('All 86 lessons marked as known');
+    expect($('[data-known-start]')!.textContent).toBe('There is no lesson left to start at.');
+    saveLearnKnownAction.mockResolvedValue({ ok: true, data: { start: null, known: 86 } });
+    await click($('[data-known-primary]')!);
+    expect(push).toHaveBeenCalledWith('/learn/courses');
+  });
+});
+
+describe('"What you know"', () => {
+  beforeEach(() => {
+    hint.present = true;
+  });
+
+  it('reads the person’s marks, shows learned lessons as learned, and saves with no run', async () => {
+    answer({ course: { ...progressMine, lessons: knownSinceMine.lessons } });
+    await draw('known');
+    expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/courses/algorithms', { cache: 'no-store' });
+    expect(state()).toBe('known');
+    expect(title()).toBe('What you already know in this course');
+    expect(host.textContent).toContain('What you know');
+    expect(cardTitle()).toBe('26 of 86 lessons marked as known');
+    expect($('[data-known-group="hash-maps-and-sets"] [data-group-words]')!.textContent).toBe(
+      '6 of 9 marked as known · 3 learned',
+    );
+    expect($('[data-known-start]')!.textContent).not.toContain('yourself');
+    saveLearnKnownAction.mockResolvedValue({ ok: true, data: { start: null, known: 26 } });
+    await click($('[data-known-primary]')!);
+    expect(saveLearnKnownAction.mock.calls[0][0]).toMatchObject({ course: 'algorithms', check: null });
+    expect(saveLearnKnownAction.mock.calls[0][0].known).toHaveLength(26);
+    expect(push).toHaveBeenCalledWith('/learn/courses/algorithms');
+  });
+
+  it('says marks that did not come did not load', async () => {
+    answer({ course: null });
+    await draw('known');
+    expect(title()).toBe('What you know did not load');
+  });
+});

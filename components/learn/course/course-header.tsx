@@ -19,7 +19,7 @@ import {
   learnersOf,
 } from '@/lib/learn/course';
 import { languageNameOf } from '@/lib/learn/learn-question';
-import { checkPath, LEARN_COURSES_PATH } from '@/lib/learn/paths';
+import { checkPath, LEARN_COURSES_PATH, learnKnownPath } from '@/lib/learn/paths';
 
 /** A number in the pages' mono face. */
 export function Figure({ count }: { count: number }) {
@@ -137,7 +137,10 @@ export function CourseHeader({
             {progress.check ? (
               <>
                 {progress.parts.length ? ' · ' : null}
-                <Link href={checkPath(course.slug)} className="font-medium text-link hover:underline">
+                <Link
+                  href={mine && mine.known > 0 ? learnKnownPath(course.slug) : checkPath(course.slug)}
+                  className="font-medium text-link hover:underline"
+                >
                   {progress.check}
                 </Link>
               </>

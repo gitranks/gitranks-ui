@@ -67,6 +67,9 @@ export const learnLessonMinePath = (slug: string) => `/api/me/learn/lessons/${en
 export const learnCourseMinePath = (slug: string) => `/api/me/learn/courses/${encodeURIComponent(slug)}`;
 export const LEARN_COURSES_MINE_PATH = '/api/me/learn/courses';
 /** Where the browser reads the signed-in person's review: of one course, or of every course. */
+/** "What you know": a course's sheet of lessons marked as known, changed without taking the check again. */
+export const learnKnownPath = (course: string) => `${checkPath(course)}?known` as Route;
+export const learnCheckMinePath = (course: string) => `/api/me/learn/check/${encodeURIComponent(course)}`;
 export const learnReviewMinePath = (course: string | null) =>
   course ? `/api/me/learn/review?course=${encodeURIComponent(course)}` : '/api/me/learn/review';
 /** The query that asks the depth of each lesson in some of the person's courses, by their slugs, comma-separated. */

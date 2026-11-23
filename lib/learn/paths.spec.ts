@@ -11,12 +11,14 @@ import {
   LEARN_COURSES_MINE_PATH,
   LEARN_PULL_REQUESTS_PATH,
   LEARN_SETTINGS_PATH,
+  learnCheckMinePath,
   learnCourseCardPath,
   learnCourseGonePath,
   learnCourseMarkdownRouteOf,
   learnCourseMinePath,
   learnCourseTag,
   learnFactCardPath,
+  learnKnownPath,
   learnLessonCardPath,
   learnLessonGonePath,
   learnLessonMarkdownPath,
@@ -35,6 +37,11 @@ describe("Learn's addresses", () => {
     expect(checkPath('algorithms')).toBe('/learn/check/algorithms');
     expect(learnLessonPath('hash-sets')).toBe('/learn/lessons/hash-sets');
     expect(coursePath('a b')).toBe('/learn/courses/a%20b');
+  });
+
+  it('gives "What you know" and the person’s run of a check, encoded', () => {
+    expect(learnKnownPath('algorithms')).toBe('/learn/check/algorithms?known');
+    expect(learnCheckMinePath('a b')).toBe('/api/me/learn/check/a%20b');
   });
 
   it("gives the review of every course or of one, and the person's set behind it, encoded", () => {

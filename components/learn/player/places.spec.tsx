@@ -15,14 +15,20 @@ import { verdictOf } from '@/lib/learn/learn-question';
 
 describe('the places that ask', () => {
   it('says in each place what a wrong pick does', () => {
-    expect(lessonPlace('Next').note?.('PICK_ONE', null)).toBe(
+    expect(lessonPlace('Next').note?.('PICK_ONE', null, false)).toBe(
       'Pick one, then check. A wrong pick only shows you why, and you pick again.',
     );
-    expect(reviewPlace(false).note?.('PICK_ONE', null)).toBe(
+    expect(reviewPlace(false).note?.('PICK_ONE', null, false)).toBe(
       'Pick one, then check. Your first pick is the one that counts.',
     );
-    expect(checkPlace(false).note?.('PICK_LINE', null)).toBe(
+    expect(checkPlace(false).note?.('PICK_LINE', null, false)).toBe(
       'Click a line in the code, or press its number. We do not say right or wrong here: you see it all on the result.',
+    );
+  });
+
+  it('tells the check’s “I don’t know” it is a fine answer', () => {
+    expect(checkPlace(false).note?.('PICK_ONE', null, true)).toBe(
+      'That is a fine answer. We start you in this group, and nothing counts against you.',
     );
   });
 

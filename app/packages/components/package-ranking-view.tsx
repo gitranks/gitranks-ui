@@ -145,7 +145,7 @@ export const PackageRankingScreen: FC<PackageRankingScreenProps> = ({
         readOn: isDownloads ? null : readOn,
         downloadsTo: isDownloads ? downloadsTo : null,
         ranksOn,
-        leaders: rows.slice(0, 3).map(({ name, value }) => ({ name, value })),
+        leaders: rows.slice(0, 3).map(({ name, displayName, value }) => ({ name, displayName, value })),
       })
     : [];
 

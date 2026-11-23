@@ -1,7 +1,7 @@
 import type { Route } from 'next';
 
 import { MIN_VALUE } from '@/app/app.consts';
-import type { RegistryId } from '@/lib/packages/registries';
+import { type RegistryId, spelledNameOf } from '@/lib/packages/registries';
 import { RankingTypeClient } from '@/types/ranking.types';
 import { countryInSentence } from '@/utils/country-in-sentence';
 import { formatSummaryDate } from '@/utils/format-summary-date';
@@ -150,8 +150,11 @@ export function buildLanguageRankingStats({
   return parts;
 }
 
-/** A package at the top of a package ranking, with its number in that ranking. */
-export type PackageRankingLeader = { name: string; value: number };
+/**
+ * A package at the top of a package ranking, with its number in that ranking: shown by its display name when it has
+ * one, linked by its name.
+ */
+export type PackageRankingLeader = { name: string; displayName?: string | null; value: number };
 
 type PackageRankingStatsInput = {
   /** The registry, as written in text: `npm`. */
@@ -204,8 +207,8 @@ export function buildPackageRankingStats({
     parts.push(
       `By ${metric}, ${lead}`,
       ...joinList(
-        top.map(({ name, value }) => [
-          { text: name, href: packagePath(name, registrySlug) },
+        top.map(({ name, displayName, value }) => [
+          { text: spelledNameOf({ name, displayName }), href: packagePath(name, registrySlug) },
           ` (${formatNumber(Math.round(value))})`,
         ]),
       ),

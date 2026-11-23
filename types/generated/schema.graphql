@@ -4160,6 +4160,7 @@ type OrganizationBasic {
 type PackageRankRow {
   change: Float
   description: String
+  displayName: String
   name: String!
   ownerAvatarUrl: String
   previousRank: Int

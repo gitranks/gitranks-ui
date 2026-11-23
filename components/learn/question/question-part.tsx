@@ -1,10 +1,13 @@
 'use client';
 
 import { type LearnAnswer, PICKER } from './use-learn-answer';
+import { CodeBox, CodeLine } from '@/components/learn/blocks/code-lines';
+import { type HighlightedCode, plainCodeOf } from '@/lib/learn/code-tokens';
 import type { LearnAnswerState } from '@/lib/learn/learn-answer';
 import {
   codeOf,
   isChoice,
+  type LearnCode,
   type LearnQuestion,
   languageNameOf,
   linesOf,
@@ -18,26 +21,31 @@ const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppe
 /**
  * The question's code, where the question needs it read: "Read this code" for `predict-output` (with what it prints
  * once the answer is known), "Click a line" for `pick-line` (each line a button), and the plain example for the other
- * kinds when the place has no lesson to show it in (`withExample`: the review, the check). Nothing otherwise.
+ * kinds when the place has no lesson to show it in (`withExample`: the review, the check). Nothing otherwise. The
+ * server's highlighted code is drawn when it has the language shown, else the plain code.
  */
 export function QuestionPart({
   question,
   answer,
   withExample = false,
+  highlighted = [],
   className,
 }: {
   question: LearnQuestion;
   answer: Pick<LearnAnswer, 'state' | 'language' | 'pick'>;
   withExample?: boolean;
+  /** The question's code as the server highlighted it, one entry a language. */
+  highlighted?: readonly HighlightedCode[];
   className?: string;
 }) {
   const code = codeOf(question, answer.language);
   if (!code) return null;
+  const lines = linesFor(code, highlighted);
   if (question.type === 'PICK_LINE') {
     return (
       <figure className={cn('m-0 flex flex-col gap-2', className)} data-question-code="line">
         <span className={EYEBROW}>Click a line</span>
-        <LinePick code={code.code} answer={answer} />
+        <LinePick code={lines} answer={answer} />
       </figure>
     );
   }
@@ -46,9 +54,7 @@ export function QuestionPart({
     return (
       <figure className={cn('m-0 flex flex-col gap-2', className)} data-question-code="output">
         <span className={EYEBROW}>Read this code</span>
-        <pre className="m-0 overflow-x-auto rounded-lg border bg-muted/50 p-4 font-mono text-sm leading-relaxed">
-          <code>{code.code}</code>
-        </pre>
+        <CodeBox code={lines} />
         {output !== null ? (
           <div
             className="flex items-center justify-between gap-3 rounded-lg bg-foreground px-4 py-2.5 font-mono text-sm text-background"
@@ -65,11 +71,18 @@ export function QuestionPart({
   return (
     <figure className={cn('m-0 flex flex-col gap-2', className)} data-question-code="example">
       <span className={EYEBROW}>Example · {languageNameOf(code.language)}</span>
-      <pre className="m-0 overflow-x-auto rounded-lg border bg-muted/50 p-4 font-mono text-sm leading-relaxed">
-        <code>{code.code}</code>
-      </pre>
+      <CodeBox code={lines} />
     </figure>
   );
+}
+
+/**
+ * The code's lines as drawn: the server's colours when it has them for this language and they count the same lines as
+ * the code (the number keys and the right line count those), else the plain code.
+ */
+function linesFor(code: LearnCode, highlighted: readonly HighlightedCode[]): HighlightedCode {
+  const found = highlighted.find((entry) => entry.language === code.language);
+  return found && found.lines.length === linesOf(code.code).length ? found : plainCodeOf(code);
 }
 
 /** What the code prints, once the answer is done and the key is known: the right option's text. */
@@ -101,7 +114,13 @@ export function lineMarkOf(state: LearnAnswerState, line: number, rightLine: num
 }
 
 /** The code as numbered lines, each a button that picks it. A crossed-out line cannot be picked again. */
-function LinePick({ code, answer }: { code: string; answer: Pick<LearnAnswer, 'state' | 'language' | 'pick'> }) {
+function LinePick({
+  code,
+  answer,
+}: {
+  code: HighlightedCode;
+  answer: Pick<LearnAnswer, 'state' | 'language' | 'pick'>;
+}) {
   const { state } = answer;
   const right = state.phase === 'done' && state.key ? rightOf(state.key, answer.language) : null;
   const rightLine = right?.kind === 'line' ? right.line : null;
@@ -111,7 +130,7 @@ function LinePick({ code, answer }: { code: string; answer: Pick<LearnAnswer, 's
       className="m-0 min-w-0 overflow-x-auto rounded-lg border bg-muted/50 px-0 py-2"
       aria-label="The code: pick a line"
     >
-      {linesOf(code).map((text, index) => {
+      {code.lines.map((tokens, index) => {
         const line = index + 1;
         const mark = lineMarkOf(state, line, rightLine);
         return (
@@ -131,7 +150,9 @@ function LinePick({ code, answer }: { code: string; answer: Pick<LearnAnswer, 's
             )}
           >
             <span className="pt-0.5 text-center text-xs text-muted-foreground">{line}</span>
-            <span className={cn('whitespace-pre', mark === 'wrong' && 'line-through')}>{text || ' '}</span>
+            <span className={cn('whitespace-pre', mark === 'wrong' && 'line-through')}>
+              <CodeLine tokens={tokens} plain={mark === 'right' || mark === 'wrong'} />
+            </span>
           </button>
         );
       })}

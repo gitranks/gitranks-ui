@@ -25,18 +25,27 @@ import { cn } from '@/lib/utils';
  */
 export function LearnBar({ state, place }: { state: LearnBarState; place: LearnBarPlace | null }) {
   const bar = useRef<HTMLDivElement>(null);
+  const tabs = learnBarTabsOf(state);
+  // Progress and Settings appear once the person's bar is read: the current tab may only then be there to show.
+  const shown = tabs.find((tab) => tab === place) ?? null;
   useEffect(() => {
-    if (!place) return;
-    const tab = bar.current?.querySelector<HTMLElement>('ul [aria-current="page"]');
+    if (!shown) return;
+    const tab = bar.current?.querySelector<HTMLElement>(`ul [data-learn-tab="${shown}"]`);
     const list = tab?.closest('ul');
-    if (tab && list) revealSideways(list, tab);
-    // Progress and Settings appear once the person's bar is read: the current one may only then be there to show.
-  }, [place, state.kind]);
+    if (!tab || !list) return;
+    revealSideways(list, tab);
+    // The right side fills in once the person's bar is read and narrows the list: the tab is shown again then, and
+    // whenever else the list's box changes (a phone turned).
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => revealSideways(list, tab));
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [shown]);
 
   return (
     <div ref={bar} data-learn-bar={state.kind}>
       <TabsBar end={barEndOf(state, place)}>
-        {learnBarTabsOf(state).map((tab) => (
+        {tabs.map((tab) => (
           <Tab key={tab} href={LEARN_BAR_TABS[tab].href} active={place === tab} data={{ 'data-learn-tab': tab }}>
             {LEARN_BAR_TABS[tab].label}
           </Tab>

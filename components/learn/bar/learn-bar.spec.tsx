@@ -107,6 +107,31 @@ describe("Learn's bar", () => {
     }
   });
 
+  it('scrolls the current tab back into sight when the right side fills in and narrows the list', async () => {
+    const watched: { box: Element; again: () => void }[] = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(private readonly again: () => void) {}
+        observe(box: Element) {
+          watched.push({ box, again: this.again });
+        }
+        disconnect() {}
+      },
+    );
+    await act(async () => root.render(<LearnBar state={{ kind: 'visitor' }} place="issues" />));
+    const list = container.querySelector('ul')!;
+    const tab = container.querySelector<HTMLElement>('[data-learn-tab="issues"]')!;
+    // The list shows 0–200; the tab, once the right side is in, sits at 260–320.
+    list.getBoundingClientRect = () => ({ left: 0, right: 200 }) as DOMRect;
+    tab.getBoundingClientRect = () => ({ left: 260, right: 320 }) as DOMRect;
+    const state = { kind: 'learner' as const, due: 6, pullRequests: true, pullRequestsNeedYou: 0 };
+    await act(async () => root.render(<LearnBar state={state} place="issues" />));
+    expect(watched.map(({ box }) => box)).toEqual([list]);
+    watched[0].again();
+    expect(list.scrollLeft).toBe(120);
+  });
+
   it('says one lesson due in the singular', async () => {
     const state = { kind: 'learner' as const, due: 1, pullRequests: false, pullRequestsNeedYou: 0 };
     await act(async () => root.render(<LearnBar state={state} place={null} />));

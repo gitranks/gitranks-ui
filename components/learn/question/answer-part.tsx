@@ -8,6 +8,7 @@ import { QuestionPart } from './question-part';
 import { type LearnAnswer, PICKER } from './use-learn-answer';
 import { RichText } from '@/components/learn/rich-text';
 import { Button } from '@/components/ui/button';
+import type { HighlightedCode } from '@/lib/learn/code-tokens';
 import { type LearnAnswerState, pickCountOf } from '@/lib/learn/learn-answer';
 import {
   againNoteOf,
@@ -54,6 +55,7 @@ export function AnswerPart({
   place,
   hints: hintsGiven,
   keyLineEnd,
+  highlighted,
 }: {
   question: LearnQuestion;
   answer: LearnAnswer;
@@ -62,6 +64,8 @@ export function AnswerPart({
   hints?: boolean;
   /** What sits at the end of the line of keys (the check's "Stop and see the result"). */
   keyLineEnd?: ReactNode;
+  /** The question's code as the server highlighted it, for the card that shows the code (`withCode`). */
+  highlighted?: readonly HighlightedCode[];
 }) {
   const live = useKeyHints();
   const hints = hintsGiven ?? live;
@@ -93,7 +97,9 @@ export function AnswerPart({
             {myth ? 'Myth or fact?' : <RichText text={question.prompt} />}
           </h2>
         </div>
-        {place.withCode ? <QuestionPart question={question} answer={answer} withExample /> : null}
+        {place.withCode ? (
+          <QuestionPart question={question} answer={answer} withExample highlighted={highlighted} />
+        ) : null}
         <AnswerBody question={question} answer={answer} place={place} hints={hints} titleId={titleId} />
         <Status question={question} state={state} place={place} />
         <Button

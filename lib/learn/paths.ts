@@ -1,5 +1,7 @@
 import type { Route } from 'next';
 
+import { CONTACT_EMAIL } from '@/lib/legal';
+
 /**
  * Every address of Learn's pages, built here and nowhere else. Today's pages keep theirs in `learn-path.ts` until they
  * are replaced.
@@ -27,6 +29,16 @@ export const learnLessonPath = (slug: string) => `/learn/lessons/${encodeURIComp
 
 /** A page's Markdown copy: the page's own address with `.md`. */
 export const markdownPathOf = (path: string) => `${path}.md`;
+
+/** A lesson's Markdown copy. */
+export const learnLessonMarkdownPath = (slug: string) => markdownPathOf(learnLessonPath(slug)) as Route;
+
+/** A lesson's fun fact: the lesson's page with "Did you know?" open, the address its Share button copies. */
+export const learnFactPath = (slug: string) => `${learnLessonPath(slug)}?fact` as Route;
+
+/** "Report a mistake" on a lesson: an email to us, its subject naming the lesson. */
+export const lessonMistakeHref = (title: string) =>
+  `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`A mistake in the lesson "${title}"`)}`;
 
 /**
  * The query a link from Learn adds to a page both products share (Settings, the pull requests, the Agent page), so the

@@ -55,6 +55,8 @@ export function AnswerPart({
   place,
   hints: hintsGiven,
   keyLineEnd,
+  below,
+  pill,
   highlighted,
 }: {
   question: LearnQuestion;
@@ -64,6 +66,10 @@ export function AnswerPart({
   hints?: boolean;
   /** What sits at the end of the line of keys (the check's "Stop and see the result"). */
   keyLineEnd?: ReactNode;
+  /** What sits in place of the line of keys, when the place has something to say there (a lesson once answered). */
+  below?: ReactNode;
+  /** The pill's words in place of the kind's ("You answered this" on a lesson opened again). */
+  pill?: string;
   /** The question's code as the server highlighted it, for the card that shows the code (`withCode`). */
   highlighted?: readonly HighlightedCode[];
 }) {
@@ -90,7 +96,7 @@ export function AnswerPart({
           <span className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Question</span>
             <span className="rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground">
-              {QUESTION_TYPE_LABELS[question.type]}
+              {pill ?? QUESTION_TYPE_LABELS[question.type]}
             </span>
           </span>
           <h2 id={titleId} className="m-0 text-base font-semibold text-balance">
@@ -116,7 +122,9 @@ export function AnswerPart({
           {hints ? <Kbd onPrimary>⏎</Kbd> : null}
         </Button>
       </section>
-      {keyLineEnd ? (
+      {below !== undefined ? (
+        below
+      ) : keyLineEnd ? (
         <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-2">
           {keyLine}
           {keyLineEnd}

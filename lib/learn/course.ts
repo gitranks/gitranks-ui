@@ -441,6 +441,20 @@ export function courseBoxesOf(
   return { first: firstBox, middle, last, highlight };
 }
 
+/** The level of an experienced developer: the highest of the three a learner sets up. */
+export const EXPERIENCED_LEVEL = 3;
+
+/** A course not started: nothing learned, nothing marked as known, and no check begun. */
+export const courseNotStartedOf = (mine: Pick<LearnCourseMine, 'learned' | 'known' | 'check'>) =>
+  mine.learned <= 0 && mine.known <= 0 && mine.check.state === 'NONE';
+
+/**
+ * Whether the check leads a course's page (`courseBoxesOf`'s `checkFirst`): a course not started, for a learner whose
+ * level, set up or guessed, is an experienced developer's. Everyone else starts at the first lesson.
+ */
+export const checkFirstOf = (mine: Pick<LearnCourseMine, 'learned' | 'known' | 'check'>, level: number | null) =>
+  courseNotStartedOf(mine) && level === EXPERIENCED_LEVEL;
+
 /** "4 lessons to repeat". */
 export const toRepeatWords = (due: number) => `${countWords(due)} ${due === 1 ? 'lesson' : 'lessons'} to repeat`;
 

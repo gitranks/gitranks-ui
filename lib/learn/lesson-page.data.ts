@@ -4,6 +4,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 
 import type { LearnAddress, LearnAddressKind } from './address-gate';
 import type { HighlightedCode } from './code-tokens';
+import type { LearnCourseMine } from './course';
 import { highlightCodes } from './highlight';
 import type {
   HighlightedExample,
@@ -15,7 +16,6 @@ import type {
 import {
   LearnAddressDocument,
   LearnCourseGroupsDocument,
-  type LearnCourseLessonMine,
   LearnCourseMineDocument,
   LearnLessonDocument,
   LearnLessonMineDocument,
@@ -128,11 +128,11 @@ export async function loadLearnLessonMine(slug: string, githubLogin: string): Pr
   }
 }
 
-/** The signed-in person's side of a course, each lesson's depth: null when Learn is not open to them, and on failure. */
-export async function loadLearnCourseMine(
-  slug: string,
-  githubLogin: string,
-): Promise<{ slug: string; lessons: LearnCourseLessonMine[] } | null> {
+/**
+ * The signed-in person's side of a course, whole (each lesson's depth among it): null when Learn is not open to them,
+ * and on failure. Never kept.
+ */
+export async function loadLearnCourseMine(slug: string, githubLogin: string): Promise<LearnCourseMine | null> {
   if (!isContentSlug(slug)) return null;
   try {
     const { learnCourseMine } = await graphqlDirect(LearnCourseMineDocument, { slug }, { source: 'ssr', githubLogin });

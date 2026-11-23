@@ -42,6 +42,10 @@ vi.mock('./lib/learn/lesson-gate', () => ({
   lessonGateOf: lessonGate,
 }));
 vi.mock('./lib/learn/public-progress/progress-gate', () => ({ progressGateOf: async () => 'page' }));
+const { courseGate } = vi.hoisted(() => ({
+  courseGate: vi.fn(async (_slug: unknown): Promise<unknown> => ({ kind: 'page' })),
+}));
+vi.mock('./lib/learn/course-gate', () => ({ courseGateOf: courseGate }));
 
 const {
   default: proxy,
@@ -70,6 +74,8 @@ describe('proxy', () => {
     timelineGate.mockResolvedValue({ kind: 'page', partial: false, confirmed: true });
     lessonGate.mockReset();
     lessonGate.mockResolvedValue({ kind: 'page' });
+    courseGate.mockReset();
+    courseGate.mockResolvedValue({ kind: 'page' });
     sessionRead.ok = true;
   });
 
@@ -923,6 +929,96 @@ describe('proxy', () => {
       }
     });
 
+    it('lets everyone reach all courses, a course, their copies and pictures, Learn closed to them or not', async () => {
+      learnAccess.mockResolvedValue('closed');
+      try {
+        for (const cookie of [undefined, 'authjs.session-token=t']) {
+          for (const path of [
+            '/learn/courses',
+            '/learn/courses/',
+            '/learn/courses/algorithms',
+            '/learn/courses/algorithms/',
+            '/learn/courses/card.png',
+            '/learn/courses/algorithms/card.png',
+          ]) {
+            const response = await proxy(request(cookie, path), event);
+            expect(response?.headers.get('x-middleware-rewrite') ?? null, path).toBeNull();
+          }
+        }
+      } finally {
+        learnAccess.mockResolvedValue('open');
+      }
+    });
+
+    it("asks a course's address before its page, and nothing for the list, its pictures or a form post", async () => {
+      await proxy(request(undefined, '/learn/courses/algorithms/'), event);
+      await proxy(request('authjs.session-token=t', '/learn/courses/Algorithms'), event);
+      for (const path of ['/learn/courses', '/learn/courses/card.png', '/learn/courses/algorithms/card.png']) {
+        await proxy(request(undefined, path), event);
+      }
+      for (const path of ['/learn/courses/_gone/algorithms', '/learn/courses/_missing']) {
+        await proxy(request(undefined, path), event);
+      }
+      await proxy(new NextRequest('https://gitranks.com/learn/courses/algorithms', { method: 'POST' }), event);
+      expect(courseGate.mock.calls).toEqual([['algorithms'], ['Algorithms']]);
+    });
+
+    it("answers a missing course with the course's 404 nobody caches, signed in or not, before Auth.js", async () => {
+      courseGate.mockResolvedValue({ kind: 'missing' });
+      for (const cookie of [undefined, 'authjs.session-token=t']) {
+        const response = await proxy(request(cookie, '/learn/courses/gone-course'), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/learn/courses/_missing');
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        expect(response?.headers.get('set-cookie')).toBeNull();
+      }
+      const head = await proxy(
+        new NextRequest('https://gitranks.com/learn/courses/gone-course', { method: 'HEAD' }),
+        event,
+      );
+      expect(head?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/learn/courses/_missing');
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it('answers a paused course with its page and a 503, a removed one with a 410, kept by no shared cache', async () => {
+      for (const status of [503, 410] as const) {
+        courseGate.mockResolvedValueOnce({ kind: 'gone', status, path: '/learn/courses/_gone/algorithms' });
+        const response = await proxy(request(undefined, '/learn/courses/algorithms'), event);
+        expect(response?.status).toBe(status);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/learn/courses/_gone/algorithms',
+        );
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        expect(response?.headers.get('retry-after')).toBe(status === 503 ? '3600' : null);
+      }
+    });
+
+    it('sends a moved course to its new address for good, with the query', async () => {
+      courseGate.mockResolvedValue({ kind: 'redirect', path: '/learn/courses/algorithms-and-data' });
+      const response = await proxy(request(undefined, '/learn/courses/algorithms?from=learn'), event);
+      expect(response?.status).toBe(308);
+      expect(response?.headers.get('location')).toBe(
+        'https://gitranks.com/learn/courses/algorithms-and-data?from=learn',
+      );
+      expect(response?.headers.get('cache-control')).toBe('private, no-store');
+    });
+
+    it("answers a course's .md and that of all courses from their route handlers, before Auth.js and the gate", async () => {
+      learnAccess.mockClear();
+      for (const cookie of [undefined, 'authjs.session-token=t']) {
+        const course = await proxy(request(cookie, '/learn/courses/algorithms.md'), event);
+        expect(course?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/api/learn/courses/algorithms/course.md',
+        );
+        const all = await proxy(request(cookie, '/learn/courses.md'), event);
+        expect(all?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/api/learn/courses/all.md');
+      }
+      expect(withSession).not.toHaveBeenCalled();
+      expect(learnAccess).not.toHaveBeenCalled();
+      expect(courseGate).not.toHaveBeenCalled();
+      const odd = await proxy(request(undefined, '/learn/courses/Algorithms.md'), event);
+      expect(odd?.headers.get('x-middleware-rewrite') ?? '').not.toContain('/api/learn/');
+    });
+
     it("answers a lesson's .md from its route handler, for anyone, before Auth.js and before the lesson's gate", async () => {
       learnAccess.mockClear();
       lessonGate.mockClear();
@@ -961,7 +1057,10 @@ describe('proxy', () => {
         '/learn/lessons/_gone.md',
         '/learn/lessons/a/b.md',
         '/learn/lessons/route-cache-miss-8f3k.md/x',
-        '/learn/courses/algorithms.md',
+        '/learn/courses/Algorithms.md',
+        '/learn/courses/_gone.md',
+        '/learn/courses/a/b.md',
+        '/learn/courses.md/x',
       ]) {
         const response = await proxy(request(undefined, path), event);
         expect(response?.headers.get('x-middleware-rewrite') ?? '', path).not.toContain('/api/learn/');

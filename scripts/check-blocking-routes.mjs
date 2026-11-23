@@ -24,8 +24,8 @@ export const BLOCKING_ROUTES = [
   '/contribute/pr/[owner]/[repo]/[number]',
 ];
 
-/** Static pages that must be prerendered with a 404 status: the proxy rewrites missing lessons and results there. */
-export const STATIC_404_PAGES = ['/learn/lessons/_missing'];
+/** Static pages that must be prerendered with a 404 status: the proxy rewrites missing lessons, results and courses there. */
+export const STATIC_404_PAGES = ['/learn/lessons/_missing', '/learn/courses/_missing'];
 
 /** The problems with a prerender manifest's entries for `BLOCKING_ROUTES`; empty when every one has no shell. */
 export function blockingRouteProblems(manifest) {

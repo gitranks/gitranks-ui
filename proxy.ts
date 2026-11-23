@@ -6,6 +6,7 @@ import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
 import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
+import { courseGateOf } from './lib/learn/course-gate';
 import { learnOpenToEveryone } from './lib/learn/learn-everyone';
 import {
   isLearnHomePath,
@@ -16,7 +17,12 @@ import {
   publicProgressRouteOf,
 } from './lib/learn/learn-path';
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
-import { learnLessonMarkdownRouteOf } from './lib/learn/paths';
+import {
+  courseRouteOf,
+  LEARN_COURSE_MISSING_PATH,
+  learnCourseMarkdownRouteOf,
+  learnLessonMarkdownRouteOf,
+} from './lib/learn/paths';
 import { progressGateOf } from './lib/learn/public-progress/progress-gate';
 import { isLinkPagePath, LINK_PAGE_HEADERS } from './lib/link-token/link-token';
 import { packageMarkdownRewriteOf } from './lib/packages/package-paths';
@@ -162,6 +168,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   if (lessonMarkdown) {
     return NextResponse.rewrite(new URL(lessonMarkdown, request.url));
   }
+  // A course's Markdown copy and that of all courses, the same way: the course's follows the page's own gate.
+  const courseMarkdown = learnCourseMarkdownRouteOf(request.nextUrl.pathname);
+  if (courseMarkdown) {
+    return NextResponse.rewrite(new URL(courseMarkdown, request.url));
+  }
 
   // A lesson's page and its result pages stream, so their own notFound() comes too late for a 404 status: the lesson
   // is asked for here first. Missing, the lesson's 404 page answers; a paused or removed lesson of ours answers its own
@@ -183,6 +194,25 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
               );
       response.headers.set('Cache-Control', 'private, no-store');
       // A paused lesson is coming back: search engines are told when to ask again, so it keeps its place.
+      if (gate.kind === 'gone' && gate.status === 503) response.headers.set('Retry-After', PAUSED_RETRY_AFTER_SECONDS);
+      return response;
+    }
+  }
+
+  // A course's page streams too, so its address is asked for here first, as a lesson's is: missing, the course's 404
+  // page answers; paused or removed, its own page with a 503 or a 410; moved, a permanent redirect to its new address
+  // (the search kept). None is kept by a shared cache: a course comes back, and a new one may take a free address.
+  const course = request.method === 'GET' || request.method === 'HEAD' ? courseRouteOf(request.nextUrl.pathname) : null;
+  if (course) {
+    const gate = await courseGateOf(course);
+    if (gate.kind !== 'page') {
+      const response =
+        gate.kind === 'missing'
+          ? NextResponse.rewrite(new URL(LEARN_COURSE_MISSING_PATH, request.url))
+          : gate.kind === 'gone'
+            ? NextResponse.rewrite(new URL(gate.path, request.url), { status: gate.status })
+            : NextResponse.redirect(new URL(`${gate.path}${request.nextUrl.search}`, request.url), 308);
+      response.headers.set('Cache-Control', 'private, no-store');
       if (gate.kind === 'gone' && gate.status === 503) response.headers.set('Retry-After', PAUSED_RETRY_AFTER_SECONDS);
       return response;
     }

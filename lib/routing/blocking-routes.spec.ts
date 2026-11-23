@@ -123,15 +123,22 @@ describe('the post-build check', () => {
     expect(static404Problems(() => ({ status: 404 }))).toEqual([]);
     expect(static404Problems(() => ({ status: 200 }))).toEqual([
       '/learn/lessons/_missing: prerendered with status 200, not 404',
+      '/learn/courses/_missing: prerendered with status 200, not 404',
     ]);
     expect(static404Problems(() => ({}))).toEqual([
       '/learn/lessons/_missing: prerendered with status undefined, not 404',
+      '/learn/courses/_missing: prerendered with status undefined, not 404',
     ]);
-    expect(static404Problems(() => null)).toEqual(['/learn/lessons/_missing: not prerendered']);
+    expect(static404Problems(() => null)).toEqual([
+      '/learn/lessons/_missing: not prerendered',
+      '/learn/courses/_missing: not prerendered',
+    ]);
   });
 
-  it("lists the proxy's lesson 404 page", async () => {
+  it("lists the proxy's lesson and course 404 pages", async () => {
     const { LESSON_MISSING_PATH } = await import('@/lib/learn/lesson-gate');
+    const { LEARN_COURSE_MISSING_PATH } = await import('@/lib/learn/paths');
     expect(STATIC_404_PAGES).toContain(LESSON_MISSING_PATH);
+    expect(STATIC_404_PAGES).toContain(LEARN_COURSE_MISSING_PATH);
   });
 });

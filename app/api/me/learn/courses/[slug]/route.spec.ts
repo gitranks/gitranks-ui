@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import type { Session } from 'next-auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { freshMine, progressMine } from '@/lib/learn/__fixtures__/course';
+
 const { graphqlDirect, current } = vi.hoisted(() => ({
   graphqlDirect: vi.fn(),
   current: { session: null as Session | null },
@@ -24,15 +26,12 @@ const { GET } = (await import('./route')) as unknown as {
   GET: (req: NextRequest, context: Context) => Promise<Response>;
 };
 const { LearnCourseMineDocument } = await import('@/lib/learn/lesson-page.documents');
+const { LearnSetupLevelDocument } = await import('@/lib/learn/course.documents');
 
 const get = (slug: string) =>
   GET(new NextRequest(`https://gitranks.com/api/me/learn/courses/${slug}`), { params: Promise.resolve({ slug }) });
-const course = {
-  slug: 'algorithms',
-  lessons: [
-    { slug: 'sets', depth: 'LEARNED', known: false, due: true },
-    { slug: 'maps', depth: 'NONE', known: false, due: false },
-  ],
+const signIn = () => {
+  current.session = { user: { githubLogin: 'octocat' }, expires: '2099-01-01T00:00:00.000Z' } as Session;
 };
 
 describe("a course's personal side", () => {
@@ -43,21 +42,41 @@ describe("a course's personal side", () => {
 
   it('answers nothing signed out, without asking the API, and is never kept', async () => {
     const res = await get('algorithms');
-    expect(await res.json()).toEqual({ course: null });
+    expect(await res.json()).toEqual({ course: null, checkFirst: false });
     expect(res.headers.get('cache-control')).toBe('private, no-store');
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
-  it("answers each lesson's depth for the signed-in person, and nothing on a failure", async () => {
-    current.session = { user: { githubLogin: 'octocat' }, expires: '2099-01-01T00:00:00.000Z' } as Session;
-    graphqlDirect.mockResolvedValueOnce({ learnCourseMine: course });
-    expect(await (await get('algorithms')).json()).toEqual({ course });
+  it("answers the signed-in person's side whole, and nothing on a failure", async () => {
+    signIn();
+    graphqlDirect.mockResolvedValueOnce({ learnCourseMine: progressMine });
+    expect(await (await get('algorithms')).json()).toEqual({ course: progressMine, checkFirst: false });
+    // A course already started never asks for the level.
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
     expect(graphqlDirect).toHaveBeenCalledWith(
       LearnCourseMineDocument,
       { slug: 'algorithms' },
       { source: 'ssr', githubLogin: 'octocat' },
     );
     graphqlDirect.mockRejectedValueOnce(new Error('down'));
-    expect(await (await get('algorithms')).json()).toEqual({ course: null });
+    expect(await (await get('algorithms')).json()).toEqual({ course: null, checkFirst: false });
+  });
+
+  it('puts the check first on a course not started, for an experienced developer only', async () => {
+    signIn();
+    for (const [level, checkFirst] of [
+      [3, true],
+      [2, false],
+      [null, false],
+    ] as const) {
+      graphqlDirect.mockResolvedValueOnce({ learnCourseMine: freshMine });
+      graphqlDirect.mockResolvedValueOnce({ learnSetupOfMine: level === null ? null : { level } });
+      expect(await (await get('algorithms')).json()).toEqual({ course: freshMine, checkFirst });
+    }
+    expect(graphqlDirect).toHaveBeenCalledWith(LearnSetupLevelDocument, {}, { source: 'ssr', githubLogin: 'octocat' });
+    // A level that cannot be read leaves the first lesson first.
+    graphqlDirect.mockResolvedValueOnce({ learnCourseMine: freshMine });
+    graphqlDirect.mockRejectedValueOnce(new Error('down'));
+    expect(await (await get('algorithms')).json()).toEqual({ course: freshMine, checkFirst: false });
   });
 });

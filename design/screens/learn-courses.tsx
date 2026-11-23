@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { Screen } from '../registry';
 import { Header } from '@/components/header/header';
 import { LearnBar } from '@/components/learn/bar/learn-bar';
+import { CourseGoneView } from '@/components/learn/course/course-gone';
 import { CourseView, type CourseViewProps } from '@/components/learn/course/course-view';
 import { CoursesView, type CoursesViewProps } from '@/components/learn/courses/courses-view';
 import {
@@ -27,6 +28,7 @@ import {
   otherCourses,
   progressMine,
 } from '@/lib/learn/__fixtures__/course';
+import { courseGoneTextOf, LEARN_MISSING_TEXT } from '@/lib/learn/course-gone';
 import type { LearnBarState } from '@/lib/learn/learn-bar';
 
 /*
@@ -109,7 +111,10 @@ const COURSE_SOURCES = [
   'components/learn/course/course-lessons.tsx',
   'components/learn/course/course-marks.tsx',
   'components/learn/course/use-course-keys.ts',
+  'components/learn/course/course-gone.tsx',
   'lib/learn/course.ts',
+  'lib/learn/course-gone.ts',
+  'lib/learn/course-gate.ts',
 ];
 
 const COURSES_SOURCES = [
@@ -131,7 +136,7 @@ export const LEARN_COURSE_SCREEN: Screen = {
       id: 'states',
       title: 'Every state, one under the other',
       path: COURSE_PATH,
-      height: 18200,
+      height: 19400,
       render: () => (
         <Board
           title="A course, in every state"
@@ -200,6 +205,21 @@ export const LEARN_COURSE_SCREEN: Screen = {
           </Frame>
           <Frame title="17 · The Squares view with nothing due: the same words and the way back" height={1210}>
             <Course mine={freshMine} drawn={{ view: 'squares', filter: 'due' }} />
+          </Frame>
+          <Frame title="18 · A paused course (503): the same for everyone, the way to all courses" height={400}>
+            <Site bar={visitor}>
+              <CourseGoneView text={courseGoneTextOf('PAUSED', { title: algorithmsCourse.name })} state="paused" />
+            </Site>
+          </Frame>
+          <Frame title="19 · A removed course (410)" height={400}>
+            <Site bar={visitor}>
+              <CourseGoneView text={courseGoneTextOf('REMOVED', { title: algorithmsCourse.name })} state="removed" />
+            </Site>
+          </Frame>
+          <Frame title="20 · A course that is not there, or a draft (404): naming nothing" height={400}>
+            <Site bar={visitor}>
+              <CourseGoneView text={LEARN_MISSING_TEXT} state="missing" />
+            </Site>
           </Frame>
         </Board>
       ),

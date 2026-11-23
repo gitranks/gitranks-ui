@@ -15,6 +15,7 @@ vi.mock('./lib/learn/lesson-gate', () => ({
   LESSON_MISSING_PATH: '/learn/lessons/_missing',
   lessonGateOf: async () => ({ kind: 'page' }),
 }));
+vi.mock('./lib/learn/course-gate', () => ({ courseGateOf: async () => ({ kind: 'page' }) }));
 const progressGate = vi.hoisted(() => ({ value: 'page' as 'page' | 'missing', asked: [] as string[] }));
 vi.mock('./lib/learn/public-progress/progress-gate', () => ({
   progressGateOf: async (login: string) => {
@@ -127,6 +128,23 @@ describe('Learn open to visitors', () => {
       const response = await visit('/learn/progress/octocat');
       expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
       expect(progressGate.asked).toEqual(['octocat']);
+    } finally {
+      everyone.open = true;
+    }
+  });
+
+  it('lets everyone through to all courses and a course, and their Markdown copies, while Learn is not open to everyone too', async () => {
+    everyone.open = false;
+    try {
+      for (const path of ['/learn/courses', '/learn/courses/algorithms']) {
+        expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBeNull();
+      }
+      expect((await visit('/learn/courses.md'))?.headers.get('x-middleware-rewrite')).toBe(
+        'https://gitranks.com/api/learn/courses/all.md',
+      );
+      expect((await visit('/learn/courses/algorithms.md'))?.headers.get('x-middleware-rewrite')).toBe(
+        'https://gitranks.com/api/learn/courses/algorithms/course.md',
+      );
     } finally {
       everyone.open = true;
     }

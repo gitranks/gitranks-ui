@@ -3,11 +3,17 @@ import { describe, expect, it } from 'vitest';
 import {
   checkPath,
   coursePath,
+  courseRouteOf,
   fromLearn,
   isContentSlug,
   isLearnTag,
+  LEARN_COURSES_CARD_PATH,
+  LEARN_COURSES_MINE_PATH,
   LEARN_PULL_REQUESTS_PATH,
   LEARN_SETTINGS_PATH,
+  learnCourseCardPath,
+  learnCourseGonePath,
+  learnCourseMarkdownRouteOf,
   learnCourseMinePath,
   learnCourseTag,
   learnFactCardPath,
@@ -99,6 +105,48 @@ describe("a lesson's Markdown copy and pictures", () => {
       `/learn/lessons/${'x'.repeat(101)}.md`,
     ]) {
       expect(learnLessonMarkdownRouteOf(path), path).toBeNull();
+    }
+  });
+});
+
+describe("a course's addresses", () => {
+  it("builds a course's picture, its gone page and the person's side of all courses", () => {
+    expect(learnCourseCardPath('algorithms')).toBe('/learn/courses/algorithms/card.png');
+    expect(LEARN_COURSES_CARD_PATH).toBe('/learn/courses/card.png');
+    expect(learnCourseGonePath('algorithms')).toBe('/learn/courses/_gone/algorithms');
+    expect(LEARN_COURSES_MINE_PATH).toBe('/api/me/learn/courses');
+  });
+
+  it("answers a course's Markdown copy and that of all courses from their route handlers, nothing else", () => {
+    expect(learnCourseMarkdownRouteOf('/learn/courses.md')).toBe('/api/learn/courses/all.md');
+    expect(learnCourseMarkdownRouteOf('/learn/courses/algorithms.md')).toBe('/api/learn/courses/algorithms/course.md');
+    for (const path of [
+      '/learn/courses/Algorithms.md',
+      '/learn/courses/_gone.md',
+      '/learn/courses/a/b.md',
+      '/learn/courses.md/',
+      '/learn/courses/algorithms',
+      '/learn/lessons/algorithms.md',
+    ]) {
+      expect(learnCourseMarkdownRouteOf(path), path).toBeNull();
+    }
+  });
+
+  it("reads the course a course's page asks for, and leaves the pages that are not a course", () => {
+    expect(courseRouteOf('/learn/courses/algorithms')).toBe('algorithms');
+    expect(courseRouteOf('/learn/courses/algorithms/')).toBe('algorithms');
+    // The gate answers a segment of another shape as missing.
+    expect(courseRouteOf('/learn/courses/Algorithms')).toBe('Algorithms');
+    for (const path of [
+      '/learn/courses',
+      '/learn/courses/',
+      '/learn/courses/_gone',
+      '/learn/courses/_missing',
+      '/learn/courses/card.png',
+      '/learn/courses/_gone/algorithms',
+      '/learn/courses/algorithms/card.png',
+    ]) {
+      expect(courseRouteOf(path), path).toBeNull();
     }
   });
 });

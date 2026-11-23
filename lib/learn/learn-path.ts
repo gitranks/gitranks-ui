@@ -34,11 +34,14 @@ export function isLearnPath(pathname: string): boolean {
 
 /**
  * The Learn pages open to every visitor: a shared lesson and its result pages (`/learn/lessons/<slug>…`, which pull
- * requests link to), a person's public progress page (`/learn/progress/<login>`), and the page for maintainers.
+ * requests link to), a person's public progress page (`/learn/progress/<login>`), the page for maintainers, and all
+ * courses and each course (`/learn/courses`, `/learn/courses/<slug>…`) with their Markdown copies and pictures.
  * `/learn/lessons` itself is not: it goes on to Your progress.
  */
 export const isLearnOpenPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+learn\/+maintainers\/?$/i) ||
+  decodedMatches(pathname, /^\/+learn\/+courses(?:\.md)?\/?$/i) ||
+  decodedMatches(pathname, /^\/+learn\/+courses\/+[^/\\]+(?:[/\\].*)?$/i) ||
   decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i) ||
   decodedMatches(pathname, /^\/+learn\/+progress\/+[^/\\]+\/?$/i);
 

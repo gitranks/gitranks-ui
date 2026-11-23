@@ -371,6 +371,12 @@ export const donePausedMine = mineOf(Object.fromEntries(Object.entries(DONE_MARK
   finishedAt: '2026-11-18T10:00:00.000Z',
 });
 
+/**
+ * The same, but the last lesson was paused before the learner reached it, so the course was never stamped finished:
+ * every lesson that is not paused is learned, so it is finished all the same.
+ */
+export const donePausedUnstampedMine = { ...donePausedMine, finishedAt: null };
+
 /** The check marked every lesson but the first as known, and the first is learned: no next lesson, not finished. */
 export const allKnownMine = mineOf(
   Object.fromEntries(

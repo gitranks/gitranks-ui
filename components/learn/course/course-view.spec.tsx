@@ -13,6 +13,7 @@ import {
   checkUnfinishedMine,
   doneMine,
   donePausedMine,
+  donePausedUnstampedMine,
   freshMine,
   goCourse,
   groupDoneMine,
@@ -159,6 +160,38 @@ describe("a course's page, signed in", () => {
   it('the course finished: the rating the learner gave shows pressed', () => {
     const page = draw({ mine: doneMine });
     expect(page.querySelector('[aria-pressed="true"]')!.textContent).toBe('Good');
+  });
+
+  it('the course finished: Enter goes to the review while lessons are due; with none due, no box is lit', () => {
+    const page = draw({ mine: doneMine });
+    expect(litOf(page)).toContain('5 lessons to repeat');
+    expect(page.querySelector('[data-lit] [data-course-enter]')!.getAttribute('href')).toBe('/learn/review');
+    const nothingDue = draw({ mine: { ...doneMine, due: 0 } });
+    expect(nothingDue.querySelector('[data-lit]')).toBeNull();
+    expect(nothingDue.querySelector('[data-course-enter]')).toBeNull();
+  });
+
+  it('finished, never stamped (the last lesson paused before it was reached): no offer to mark lessons', () => {
+    const page = draw({ course: algorithmsCoursePaused, mine: donePausedUnstampedMine });
+    expect(boxesOf(page)[0]).toContain('You finished this course');
+    expect(textOf(page, '[data-course-line]')).toMatch(/^85 of 86 learned/);
+    expect(page.textContent).not.toContain('Mark lessons you already know');
+  });
+
+  it('a paused lesson marked as known keeps its grey square, as its group counts it', () => {
+    const page = draw({ course: algorithmsCoursePaused, mine: checkSavedMine });
+    const paused = page.querySelector('li[data-paused]')!;
+    expect(paused.querySelector('[data-square="known"][data-paused]')).not.toBeNull();
+    expect(page.querySelector('#group-hash-maps-and-sets')!.parentElement!.textContent).toContain('7 marked as known');
+    const group = page.querySelector('section[aria-labelledby="group-hash-maps-and-sets"]')!;
+    expect(group.querySelectorAll('ol [data-square="known"]')).toHaveLength(7);
+  });
+
+  it('a paused lesson never answered says Paused once to a screen reader', () => {
+    const page = draw({ course: algorithmsCoursePaused, mine: freshMine });
+    const paused = page.querySelector('li[data-paused]')!;
+    expect(paused.querySelector('.sr-only')).toBeNull();
+    expect(paused.textContent!.match(/Paused/g)).toHaveLength(1);
   });
 
   it('finished with a paused lesson never answered: the box and the line under the title agree', () => {
@@ -370,6 +403,72 @@ describe("a course's page in the browser", () => {
     expect(host.querySelectorAll('ol > li')).toHaveLength(4);
     act(() => chip('To learn').click());
     expect(host.querySelectorAll('ol > li')).toHaveLength(76);
+  });
+
+  it('Esc meant for a menu or the search field leaves a pointed square card alone', () => {
+    act(() =>
+      root.render(
+        <CourseView
+          course={algorithmsCourse}
+          mine={progressMine}
+          others={otherCourses}
+          calls={calls}
+          drawn={{ view: 'squares', query: 'search' }}
+        />,
+      ),
+    );
+    const square = host.querySelector<HTMLElement>('.max-sm\\:hidden ul a:not([data-faded])')!;
+    const card = () => square.querySelector('[data-square-card]')!.parentElement!.className;
+    act(() => {
+      square.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+    expect(card()).toContain('block');
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    document.body.append(menu);
+    const menuEsc = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    act(() => {
+      menu.dispatchEvent(menuEsc);
+    });
+    // The menu's own Esc is not taken: nothing prevented it, and the card stays.
+    expect(menuEsc.defaultPrevented).toBe(false);
+    expect(card()).toContain('block');
+    menu.remove();
+    // Esc in the search field clears the search, and only that.
+    const input = host.querySelector('input')!;
+    press('Escape', input);
+    expect(input.value).toBe('');
+    expect(card()).toContain('block');
+  });
+
+  it('"Show all lessons" and "Clear the search" leave the focus in the search field', () => {
+    act(() =>
+      root.render(
+        <CourseView
+          course={algorithmsCourse}
+          mine={freshMine}
+          others={otherCourses}
+          calls={calls}
+          drawn={{ view: 'squares', filter: 'due' }}
+        />,
+      ),
+    );
+    const showAll = [...host.querySelectorAll<HTMLButtonElement>('[data-course-nothing] button')][0]!;
+    act(() => showAll.focus());
+    act(() => showAll.click());
+    expect(host.querySelector('[data-course-nothing]')).toBeNull();
+    const input = host.querySelector('input')!;
+    expect(document.activeElement).toBe(input);
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+      setter.call(input, 'graph');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const clearButton = host.querySelector<HTMLButtonElement>('button[aria-label="Clear the search"]')!;
+    act(() => clearButton.focus());
+    act(() => clearButton.click());
+    expect(input.value).toBe('');
+    expect(document.activeElement).toBe(input);
   });
 
   it('keeps the view a learner picks for the next course', () => {

@@ -128,6 +128,8 @@ export function CourseView({
         onClick={() => {
           setQuery('');
           setFilter('all');
+          // The button goes with the nothing it explains: the search field takes the focus, where a new search starts.
+          inputRef.current?.focus();
         }}
       >
         Show all lessons

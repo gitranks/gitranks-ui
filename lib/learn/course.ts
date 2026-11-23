@@ -141,9 +141,9 @@ export const mineBySlugOf = (mine: Pick<LearnCourseMine, 'lessons'> | null) =>
   new Map((mine?.lessons ?? []).map((lesson) => [lesson.slug, lesson]));
 
 /**
- * A lesson's square: its depth, kept while the lesson is paused (progress on it is kept); a paused lesson not learned
- * says Paused; a lesson not learned is the next one, or marked as known, or not started. Due only once learned and
- * live.
+ * A lesson's square: its depth, or its mark as known, kept while the lesson is paused (progress on it is kept); a
+ * paused lesson with nothing on it says Paused; a lesson not learned is the next one, or marked as known, or not
+ * started. Due only once learned and live.
  */
 export function courseSquareOf(
   lesson: Pick<LearnGroupLesson, 'slug' | 'paused'>,
@@ -151,10 +151,10 @@ export function courseSquareOf(
   next: string | null,
 ): CourseSquare {
   const depth = mine?.depth ?? 'NONE';
-  if (lesson.paused)
-    return depth === 'NONE'
-      ? { kind: 'paused', due: false }
-      : { kind: SQUARE_OF_DEPTH[depth], due: false, paused: true };
+  if (lesson.paused) {
+    if (depth !== 'NONE') return { kind: SQUARE_OF_DEPTH[depth], due: false, paused: true };
+    return mine?.known ? { kind: 'known', due: false, paused: true } : { kind: 'paused', due: false };
+  }
   if (depth !== 'NONE') return { kind: SQUARE_OF_DEPTH[depth], due: !!mine?.due };
   if (lesson.slug === next) return { kind: 'next', due: false };
   return { kind: mine?.known ? 'known' : 'none', due: false };
@@ -171,7 +171,7 @@ export const SQUARE_WORDS: Record<CourseSquareKind, string> = {
   paused: 'Paused',
 };
 
-/** A square's label: "<title> · <state>[ · due now]"; the next lesson says so, a paused learned one too. */
+/** A square's label: "<title> · <state>[ · paused][ · due now]"; the next lesson says so. */
 export function squareLabelOf(title: string, square: CourseSquare): string {
   const state =
     square.kind === 'known'
@@ -244,13 +244,27 @@ export const groupSquaresCountOf = (standing: ReturnType<typeof groupStandingOf>
     : { count: null, words: lessonsWords(standing.count) };
 
 /**
+ * Whether a learner finished a course: the API stamped it, or every lesson that is not paused is learned (a lesson
+ * paused before they reached it never stamps it). The boxes and the line under the title both ask this.
+ */
+export function courseFinishedOf(
+  course: Pick<LearnCourse, 'groups'>,
+  mine: Pick<LearnCourseMine, 'finishedAt' | 'lessons'>,
+): boolean {
+  if (mine.finishedAt !== null) return true;
+  const own = mineBySlugOf(mine);
+  const live = course.groups.flatMap((group) => group.lessons).filter((lesson) => !lesson.paused);
+  return live.length > 0 && live.every((lesson) => (own.get(lesson.slug)?.depth ?? 'NONE') !== 'NONE');
+}
+
+/**
  * The line under a learner's course title: learned, practised, mastered, each only when there is one; then the door
- * to the check, as the number marked as known or the offer to mark some (while the course is not finished and a
- * lesson is left to learn). Null when nothing is learned or marked: the course's own count line stays.
+ * to the check, as the number marked as known or the offer to mark some (while the course is not finished). Null when
+ * nothing is learned or marked: the course's own count line stays.
  */
 export function courseProgressLineOf(
-  mine: Pick<LearnCourseMine, 'learned' | 'practised' | 'mastered' | 'known' | 'finishedAt'>,
-  course: Pick<LearnCourse, 'lessons' | 'checkOffered'>,
+  mine: Pick<LearnCourseMine, 'learned' | 'practised' | 'mastered' | 'known' | 'finishedAt' | 'lessons'>,
+  course: Pick<LearnCourse, 'groups' | 'lessons' | 'checkOffered'>,
 ): { parts: CountPart[]; check: string | null } | null {
   if (mine.learned <= 0 && mine.known <= 0) return null;
   const parts: CountPart[] = [];
@@ -260,7 +274,7 @@ export function courseProgressLineOf(
   const check =
     mine.known > 0
       ? `${countWords(mine.known)} marked as known`
-      : course.checkOffered && mine.finishedAt === null && mine.learned < course.lessons
+      : course.checkOffered && !courseFinishedOf(course, mine)
         ? 'Mark lessons you already know'
         : null;
   return { parts, check };
@@ -347,9 +361,8 @@ function nextWhyOf(course: Pick<LearnCourse, 'groups'>, mine: LearnCourseMine, s
 }
 
 /**
- * The first box of a learner with no next lesson. The course is finished when the API says so, or when every lesson
- * that is not paused is learned. Otherwise every lesson left is marked as known (the first of them is offered, to learn
- * it by answering), or paused.
+ * The first box of a learner with no next lesson: the course finished (`courseFinishedOf`), or else every lesson left
+ * is marked as known (the first of them is offered, to learn it by answering), or paused.
  */
 function nothingNextOf(course: Pick<LearnCourse, 'groups' | 'lessons'>, mine: LearnCourseMine): CourseFirstBox {
   const own = mineBySlugOf(mine);
@@ -360,9 +373,10 @@ function nothingNextOf(course: Pick<LearnCourse, 'groups' | 'lessons'>, mine: Le
     course,
     (lesson) => !lesson.paused && unlearned(lesson) && !!own.get(lesson.slug)?.known,
   );
-  if (mine.finishedAt === null && known) return { kind: 'known-left', ...known, known: mine.known };
-  if (mine.finishedAt === null && mine.learned <= 0) return { kind: 'paused-left', paused: pausedLeft };
-  return { kind: 'finished', learned: mine.learned, lessons: course.lessons, pausedLeft, rated: mine.feedbackGood };
+  if (courseFinishedOf(course, mine))
+    return { kind: 'finished', learned: mine.learned, lessons: course.lessons, pausedLeft, rated: mine.feedbackGood };
+  if (known) return { kind: 'known-left', ...known, known: mine.known };
+  return { kind: 'paused-left', paused: pausedLeft };
 }
 
 /**
@@ -370,7 +384,8 @@ function nothingNextOf(course: Pick<LearnCourse, 'groups' | 'lessons'>, mine: Le
  * in highlighted. A learner: the next lesson, or the course finished, or why nothing new is left; the middle box is
  * the review while lessons are due, else the check in its state, else what they marked; the last box says how a
  * lesson grows, or, the course finished, where to go next. `checkFirst`: the check takes the highlight and Enter (a
- * course not started, for an experienced developer). A box with nothing to press never takes the highlight.
+ * course not started, for an experienced developer). A box with nothing to press never takes the highlight: a finished
+ * course lights the review while lessons are due, and no box otherwise.
  */
 export function courseBoxesOf(
   course: Pick<LearnCourse, 'groups' | 'lessons' | 'checkOffered' | 'next'>,
@@ -411,10 +426,18 @@ export function courseBoxesOf(
   const last: CourseLastBox = firstBox.kind === 'finished' ? { kind: 'further', next: course.next } : { kind: 'grows' };
   const checkLeads =
     (middle.kind === 'check' && checkFirst) || middle.kind === 'check-unfinished' || middle.kind === 'check-ended';
-  // A finished course keeps its box lit, as the board draws it: it is where the learner rates the course.
-  const firstActs = firstBox.kind !== 'paused-left';
   const middleActs = middle.kind !== 'review-none';
-  const highlight = checkLeads ? 'middle' : firstActs ? 'first' : middleActs ? 'middle' : null;
+  const highlight = checkLeads
+    ? 'middle'
+    : firstBox.kind === 'finished'
+      ? middle.kind === 'due'
+        ? 'middle'
+        : null
+      : firstBox.kind !== 'paused-left'
+        ? 'first'
+        : middleActs
+          ? 'middle'
+          : null;
   return { first: firstBox, middle, last, highlight };
 }
 

@@ -2,7 +2,7 @@
 
 import { Check, Search, X } from 'lucide-react';
 import Link from 'next/link';
-import { Fragment, type RefObject, useEffect, useState } from 'react';
+import { Fragment, type KeyboardEvent, type RefObject, useState } from 'react';
 
 import { CountLine } from './course-header';
 import { CourseMark, SquareCard } from './course-marks';
@@ -132,7 +132,11 @@ export function CourseToolbar({
             <button
               type="button"
               aria-label="Clear the search"
-              onClick={() => onQuery('')}
+              onClick={() => {
+                onQuery('');
+                // The button goes with the search: the field keeps the focus, where a new search starts.
+                inputRef?.current?.focus();
+              }}
               className="absolute top-1/2 right-2 inline-flex -translate-y-1/2 text-muted-foreground"
             >
               <X className="size-4" aria-hidden="true" />
@@ -183,11 +187,14 @@ function LessonRow({
   learner: boolean;
   query: string;
 }) {
-  // A learner hears the square's state in words, then the row as it reads: its title and its pills.
+  // A learner hears the square's state in words, then the row as it reads: its title and its pills. A paused lesson
+  // with nothing on it says nothing first: its pill says Paused.
   const lead = learner ? (
     <>
       <CourseMark square={square} />
-      <span className="sr-only">{square.kind === 'known' ? 'Marked as known' : SQUARE_WORDS[square.kind]}. </span>
+      {square.kind === 'paused' ? null : (
+        <span className="sr-only">{square.kind === 'known' ? 'Marked as known' : SQUARE_WORDS[square.kind]}. </span>
+      )}
     </>
   ) : (
     <span className="w-4 shrink-0 text-right font-mono text-xs text-muted-foreground tabular-nums">{place}</span>
@@ -309,7 +316,8 @@ export function CourseList({
 /**
  * The Squares view: one row a group, one square a lesson, in order. A square the search or the filter leaves out
  * fades, so nothing moves, and it leaves the keyboard's order and what a screen reader reads: only the squares found
- * are reached. Pointing at a square, or reaching it with the keyboard, shows its card over the page; Esc hides it.
+ * are reached. Pointing at a square, or reaching it with the keyboard, shows its card over the page; Esc pressed
+ * among the squares hides it (never an Esc meant for a menu, a dialog or the search field).
  */
 export function CourseSquares({
   groups,
@@ -328,17 +336,12 @@ export function CourseSquares({
   // The square pointed at or reached, and whether Esc hid its card.
   const [pointed, setPointed] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    if (!pointed || hidden) return;
-    // Before the page's own keys: Esc hides the card first, and clears the search only when no card is open.
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
-      event.preventDefault();
-      setHidden(true);
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [pointed, hidden]);
+  // Before the page's own keys: Esc on a square hides its card first, and clears the search only when no card is open.
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key !== 'Escape' || event.defaultPrevented || !pointed || hidden) return;
+    event.preventDefault();
+    setHidden(true);
+  };
   const point = (slug: string | null) => {
     setPointed(slug);
     setHidden(false);
@@ -370,6 +373,7 @@ export function CourseSquares({
                   onMouseLeave: () => point(null),
                   onFocus: () => point(lesson.slug),
                   onBlur: () => point(null),
+                  onKeyDown,
                 };
                 return (
                   <Fragment key={lesson.slug}>

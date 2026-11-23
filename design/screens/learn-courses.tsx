@@ -149,7 +149,10 @@ export const LEARN_COURSE_SCREEN: Screen = {
           <Frame title="4 · A group just finished: it says Done, the next group starts" height={1100}>
             <Course mine={groupDoneMine} bar={learnerBar(4)} />
           </Frame>
-          <Frame title="5 · Every lesson learned: the rating, the review, where to go next" height={760}>
+          <Frame
+            title="5 · Every lesson learned: the rating, the review lit while lessons are due, where to go next"
+            height={760}
+          >
             <Course mine={doneMine} bar={learnerBar(5)} />
           </Frame>
           <Frame title="6 · Not started, for an experienced developer: the check takes the highlight" height={620}>

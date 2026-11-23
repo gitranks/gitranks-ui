@@ -211,4 +211,21 @@ describe('all courses in the browser', () => {
     // The keyboard goes on from the first lesson the button showed.
     expect(document.activeElement).toBe(links[6]);
   });
+
+  it('"Show all courses" and "Clear the search" leave the focus in the search field', () => {
+    for (const name of ['Show all courses', 'Clear the search']) {
+      act(() =>
+        root.render(<CoursesView courses={courseCards} lessons={lessonList} mine={null} depths={null} query="zzzz" />),
+      );
+      const button = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+        (each) => each.textContent?.startsWith(name) || each.getAttribute('aria-label') === name,
+      )!;
+      act(() => button.focus());
+      act(() => button.click());
+      expect(host.querySelectorAll('[data-course-card]')).toHaveLength(11);
+      expect(document.activeElement).toBe(host.querySelector('input'));
+      act(() => root.unmount());
+      root = createRoot(host);
+    }
+  });
 });

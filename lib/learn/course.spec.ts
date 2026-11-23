@@ -12,6 +12,7 @@ import {
   coursesMineChecked,
   doneMine,
   donePausedMine,
+  donePausedUnstampedMine,
   freshMine,
   goCourse,
   groupDoneMine,
@@ -26,6 +27,7 @@ import {
   courseBoxesOf,
   courseCardStandingOf,
   courseCountLineOf,
+  courseFinishedOf,
   coursePageKeyOf,
   courseProgressLineOf,
   courseSearchOf,
@@ -103,6 +105,23 @@ describe("a lesson's square", () => {
     expect(squareLabelOf('Sets', learned)).toBe('Sets · Learned · paused');
     expect(squareHintOf(learned)).toBeNull();
     expect(courseSquareOf(paused, undefined, paused.slug)).toEqual({ kind: 'paused', due: false });
+  });
+
+  it('keeps the mark of a paused lesson marked as known, as its group counts it', () => {
+    const hashMaps = algorithmsCoursePaused.groups[2];
+    const paused = hashMaps.lessons.find((lesson) => lesson.paused)!;
+    const known = courseSquareOf(paused, { slug: paused.slug, depth: 'NONE', known: true, due: false }, null);
+    expect(known).toEqual({ kind: 'known', due: false, paused: true });
+    expect(isPausedSquare(known)).toBe(true);
+    expect(squareLabelOf('Sets', known)).toBe('Sets · marked as known · paused');
+    expect(squareHintOf(known)).toBeNull();
+    // "Hash maps and sets" says 7 marked as known, and draws 7 grey squares.
+    const own = mineBySlugOf(checkSavedMine);
+    const squares = hashMaps.lessons.map((lesson) =>
+      courseSquareOf(lesson, own.get(lesson.slug), checkSavedMine.next!.slug),
+    );
+    expect(groupStandingOf(hashMaps, own).known).toBe(7);
+    expect(squares.filter((square) => square.kind === 'known')).toHaveLength(7);
   });
 
   it('labels and hints in plain words', () => {
@@ -205,6 +224,26 @@ describe('the three boxes', () => {
     expect(text(courseProgressLineOf(donePausedMine, algorithmsCoursePaused)!.parts)).toMatch(/^85 of 86 learned/);
     // Finished: nothing is offered to mark as known.
     expect(courseProgressLineOf(donePausedMine, algorithmsCoursePaused)!.check).toBeNull();
+  });
+
+  it('finished, never stamped (the last lesson paused before it was reached): the box and the line agree', () => {
+    expect(courseFinishedOf(algorithmsCoursePaused, donePausedUnstampedMine)).toBe(true);
+    const boxes = courseBoxesOf(algorithmsCoursePaused, donePausedUnstampedMine);
+    expect(boxes.first).toMatchObject({ kind: 'finished', learned: 85, lessons: 86, pausedLeft: 1 });
+    expect(boxes.last).toMatchObject({ kind: 'further' });
+    expect(courseProgressLineOf(donePausedUnstampedMine, algorithmsCoursePaused)!.check).toBeNull();
+    // On the course with nothing paused, the same lessons leave one to learn: not finished, the check is offered.
+    expect(courseFinishedOf(algorithmsCourse, donePausedUnstampedMine)).toBe(false);
+    expect(courseProgressLineOf(donePausedUnstampedMine, algorithmsCourse)!.check).toBe(
+      'Mark lessons you already know',
+    );
+  });
+
+  it('a finished course lights the review while lessons are due, and no box otherwise', () => {
+    expect(courseBoxesOf(algorithmsCourse, doneMine).highlight).toBe('middle');
+    const nothingDue = courseBoxesOf(algorithmsCourse, { ...doneMine, due: 0 });
+    expect(nothingDue.middle).toEqual({ kind: 'review-none' });
+    expect(nothingDue.highlight).toBeNull();
   });
 
   it('every lesson left marked as known: the first of them, to learn it by answering, highlighted', () => {

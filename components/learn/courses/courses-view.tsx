@@ -140,6 +140,11 @@ export function CoursesView({
   }, []);
   const clear = useCallback(() => type(''), [type]);
   useCoursePageKeys({ inputRef, onClear: clear });
+  // A button that clears goes away with the search: the field takes the focus, where a new search starts.
+  const showAll = () => {
+    clear();
+    inputRef.current?.focus();
+  };
 
   const search = useMemo(() => coursesSearchOf(courses, lessons, query), [courses, lessons, query]);
   // What was found shows beside the field only for a search: the full list counts nothing.
@@ -192,7 +197,7 @@ export function CoursesView({
               <button
                 type="button"
                 aria-label="Clear the search"
-                onClick={clear}
+                onClick={showAll}
                 className="absolute top-1/2 right-[9px] inline-flex -translate-y-1/2 text-muted-foreground"
               >
                 <X className="size-4" aria-hidden="true" />
@@ -221,7 +226,7 @@ export function CoursesView({
           data-courses-nothing=""
         >
           <p className="m-0 text-base font-medium">No course or lesson matches “{search.query}”.</p>
-          <Button type="button" variant="outline" onClick={clear}>
+          <Button type="button" variant="outline" onClick={showAll}>
             Show all courses
             {hints ? <Kbd>Esc</Kbd> : null}
           </Button>

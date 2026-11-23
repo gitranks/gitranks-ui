@@ -327,7 +327,7 @@ describe("a Learn pull request's Lesson view", () => {
     // Two of them, then all of them on Learn home.
     expect(html.match(/data-practice-lesson=/g)).toHaveLength(2);
     expect(text(html)).toContain('Made for octocat, who wanted to learn TypeScript (some experience)');
-    expect(html).toMatch(/href="\/learn#practice"[^>]*>All practice lessons →/);
+    expect(html).toMatch(/href="\/learn\/earlier#practice"[^>]*>All practice lessons →/);
     expect(html.indexOf('What happens next')).toBeLessThan(html.indexOf('data-meanwhile'));
     // No practice lesson for the goal: the section is left out.
     expect(screen(lessons.working)).not.toContain('data-meanwhile');
@@ -368,7 +368,7 @@ describe("a Learn pull request's Lesson view", () => {
     const html = renderToStaticMarkup(
       <LessonViewScreen view={views.active} attempt={detail({ mode: 'LEARN' })} lesson={lessons.ended} base={BASE} />,
     );
-    expect(html).toMatch(/data-variant="default"[^>]*href="\/learn#issues"/);
+    expect(html).toMatch(/data-variant="default"[^>]*href="\/learn\/earlier#issues"/);
   });
 
   it("says a pull request opened by hand is the person's own, the lesson private", () => {

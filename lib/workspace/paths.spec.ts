@@ -26,7 +26,8 @@ describe('the workspace addresses', () => {
   it('are under /my, but for the two front tabs and the Learn pages that keep theirs until their own are built', () => {
     expect(WORKSPACE_PATHS).toEqual({
       contribute: '/contribute',
-      learn: '/learn',
+      learn: '/learn/earlier',
+      learnHome: '/learn',
       pullRequests: '/my/pull-requests',
       agent: '/my/agent',
       agentConnect: '/my/agent/connect',
@@ -223,7 +224,7 @@ describe("the pull request's page, by repo and issue", () => {
   });
 
   it("picks another issue on the attempt's side", () => {
-    expect(PICK_ISSUE_PATHS).toEqual({ fix: '/contribute#issues', learn: '/learn#issues' });
+    expect(PICK_ISSUE_PATHS).toEqual({ fix: '/contribute#issues', learn: '/learn/earlier#issues' });
   });
 });
 

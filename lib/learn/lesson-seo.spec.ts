@@ -5,8 +5,14 @@ vi.hoisted(() => {
 });
 
 const { lessonPage, PUBLIC_HEAD, result } = await import('./__fixtures__/shared');
-const { LEARN_MAINTAINERS_METADATA, learnHomeMetadata, lessonJsonLd, lessonPageMetadata, lessonResultMetadata } =
-  await import('./lesson-seo');
+const {
+  LEARN_ABOUT_METADATA,
+  LEARN_EARLIER_METADATA,
+  LEARN_MAINTAINERS_METADATA,
+  lessonJsonLd,
+  lessonPageMetadata,
+  lessonResultMetadata,
+} = await import('./lesson-seo');
 
 const LESSON_URL = 'https://example.test/learn/lessons/route-cache-miss-8f3k';
 
@@ -63,10 +69,13 @@ describe('Learn pages for search engines', () => {
     expect(LEARN_MAINTAINERS_METADATA.robots).toBeUndefined();
   });
 
-  it('indexes the front door only once it is open to visitors', () => {
-    expect(learnHomeMetadata(false).robots).toEqual({ index: false, follow: false });
-    expect(learnHomeMetadata(true).robots).toBeUndefined();
-    expect(learnHomeMetadata(true).alternates).toEqual({ canonical: '/learn' });
+  it('never indexes How Learn works, whose canonical is the landing, nor the earlier page', () => {
+    expect(LEARN_ABOUT_METADATA.alternates).toEqual({ canonical: '/learn' });
+    expect(LEARN_ABOUT_METADATA.robots).toEqual({ index: false, follow: false });
+    expect(LEARN_EARLIER_METADATA).toEqual({
+      title: 'Fix a real issue with your agent',
+      robots: { index: false, follow: false },
+    });
   });
 
   it('invites the reader to sign in and take a lesson only once Learn is open to everyone', () => {

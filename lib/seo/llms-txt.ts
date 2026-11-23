@@ -1,6 +1,13 @@
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from './site';
+import type { LearnCourseCard } from '@/lib/learn/course';
 import type { PublicLesson } from '@/lib/learn/learn.types';
 import { LEARN_MAINTAINERS_PATH, LEARN_PATH, lessonPath } from '@/lib/learn/learn-path';
+import {
+  courseMarkdownPath,
+  LEARN_COURSES_MARKDOWN_PATH,
+  LEARN_COURSES_PATH,
+  LEARN_LANDING_MARKDOWN_PATH,
+} from '@/lib/learn/paths';
 import {
   DOWNLOADS_UNIT_TEXT,
   downloadsUnitOf,
@@ -38,15 +45,18 @@ function registryPackageLines(registry: RegistryId, url: (path: string) => strin
  * The site's llms.txt (llmstxt.org): an H1, a one-line summary, then link sections. Top-level pages alone, never a
  * per-profile URL. `contribute`: Contribute is launched, so its pages for agents and its pull request timelines are listed. The packages section
  * lists the package rankings, the address patterns of a package's page and a repository's Used by tab, and the Unsung
- * heroes archive. `learn`: Learn's front door is open to visitors, so Learn's pages and its
- * most recent public lessons (newest first, at most `LLMS_TXT_LESSONS`) are listed; null leaves Learn out.
+ * heroes archive. `learn`: Learn is open to everyone, so Learn's pages, its courses (`learnCourses`, each with its
+ * Markdown copy) and its most recent public lessons of a fix (newest first, at most `LLMS_TXT_LESSONS`) are listed;
+ * null leaves Learn out.
  */
 export function llmsTxtOf({
   contribute,
   learn = null,
+  learnCourses = [],
 }: {
   contribute: boolean;
   learn?: readonly PublicLesson[] | null;
+  learnCourses?: readonly Pick<LearnCourseCard, 'slug' | 'name' | 'covers'>[];
 }): string {
   const url = (path: string) => `${SITE_URL}${path}`;
   const lines = [`# ${SITE_NAME}`, '', `> ${SITE_DESCRIPTION}`, ''];
@@ -75,7 +85,12 @@ export function llmsTxtOf({
     lines.push(
       '## Learn',
       '',
-      `- [GitRanks Learn](${url(LEARN_PATH)}): your coding agent fixes a real open-source issue and writes a 10-minute lesson on its fix; its person passes a check on it before the pull request opens`,
+      `- [GitRanks Learn](${url(LEARN_PATH)}): short programming lessons, each one idea with an example and one question, then real open-source issues to use them on ([Markdown](${url(LEARN_LANDING_MARKDOWN_PATH)}))`,
+      `- [All courses](${url(LEARN_COURSES_PATH)}) ([Markdown](${url(LEARN_COURSES_MARKDOWN_PATH)}))`,
+      ...learnCourses.map(
+        (course) =>
+          `- [${oneLine(course.name)}](${url(courseMarkdownPath(course.slug))}): ${oneLine(course.covers) || 'a course of GitRanks Learn'}`,
+      ),
       `- [For maintainers](${url(LEARN_MAINTAINERS_PATH)}): what a Learn pull request is`,
       ...learn
         .slice(0, LLMS_TXT_LESSONS)

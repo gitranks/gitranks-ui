@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { CoursesLive } from '@/components/learn/courses/courses-live';
 import { loadLearnCourses, loadLearnLessons } from '@/lib/learn/course.data';
+import { learnOpenToEveryoneCached } from '@/lib/learn/learn-everyone-cached';
 import { learnCoursesJsonLd, learnCoursesMetadata } from '@/lib/learn/seo/course';
 
 /**
@@ -16,8 +17,8 @@ export const instant = false;
 const queryOf = (q: string | string[] | undefined) => (typeof q === 'string' ? q : '');
 
 export async function generateMetadata({ searchParams }: PageProps<'/learn/courses'>): Promise<Metadata> {
-  const [{ q }, courses] = await Promise.all([searchParams, loadLearnCourses()]);
-  return learnCoursesMetadata(courses, { searched: queryOf(q).trim() !== '' });
+  const [{ q }, courses, open] = await Promise.all([searchParams, loadLearnCourses(), learnOpenToEveryoneCached()]);
+  return learnCoursesMetadata(courses, { searched: queryOf(q).trim() !== '', open });
 }
 
 export default async function CoursesPage({ searchParams }: PageProps<'/learn/courses'>) {

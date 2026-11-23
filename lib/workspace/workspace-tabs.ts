@@ -7,7 +7,7 @@ import { isTablessPath, WORKSPACE_PATHS } from './paths';
 /** Each tab's label and page. */
 export const WORKSPACE_TABS: Record<WorkspaceTab, { label: string; href: Route }> = {
   contribute: { label: 'Contribute', href: WORKSPACE_PATHS.contribute },
-  learn: { label: 'Learn', href: WORKSPACE_PATHS.learn },
+  learn: { label: 'Learn', href: WORKSPACE_PATHS.learnHome },
   'pull-requests': { label: 'Pull requests', href: WORKSPACE_PATHS.pullRequests },
   agent: { label: 'Agent', href: WORKSPACE_PATHS.agent },
   settings: { label: 'Settings', href: WORKSPACE_PATHS.settings },
@@ -25,7 +25,7 @@ export function activeTabOf(pathname: string, search: Pick<URLSearchParams, 'get
   const path = pathname.replace(/\/+$/, '') || '/';
   if (path.startsWith('/my/start/')) return search.get('lesson') === '1' ? 'learn' : 'contribute';
   if (path === '/contribute') return 'contribute';
-  if (path === '/learn' || path.startsWith('/learn/start/') || path === '/my/progress') {
+  if (path === WORKSPACE_PATHS.learn || path.startsWith('/learn/start/') || path === '/my/progress') {
     return 'learn';
   }
   if (under(path, WORKSPACE_PATHS.pullRequests)) return 'pull-requests';

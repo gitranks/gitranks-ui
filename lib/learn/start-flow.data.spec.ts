@@ -63,7 +63,7 @@ describe("where a person belongs on Learn's flow", () => {
     reads.loadLearnProfile.mockResolvedValueOnce(null);
     expect((await loadLearnFlowPlace('issues', { goalInAddress: true })).place).toEqual({
       kind: 'apply-then',
-      to: '/learn',
+      to: '/learn/earlier',
     });
   });
 

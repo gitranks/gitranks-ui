@@ -136,7 +136,7 @@ describe('the Start page with a lesson', () => {
   it('marks Learn, says the lesson and its goal, gives the Learn prompt and the way out of the lesson', () => {
     const { html, plain } = screen('lesson');
     expect(plain).toContain('Back to the issues');
-    expect(html).toContain('href="/learn#issues"');
+    expect(html).toContain('href="/learn/earlier#issues"');
     expect(plain).toContain(
       'Learn Fix this issue and learn from it Your agent fixes this issue on your computer and also writes a lesson on the fix.',
     );

@@ -162,7 +162,7 @@ describe('the first attempt’s status line', () => {
     expect(next('CLAIM_LOST')).toEqual({ link: '/contribute#issues', more: null, back: false });
     // A Learn attempt picks another of Learn's issues.
     const learn = firstStatusOf(detail({ ...stopped('USER'), mode: 'LEARN' }), { now: NOW });
-    expect(learn.link?.href).toBe('/learn#issues');
+    expect(learn.link?.href).toBe('/learn/earlier#issues');
     // A run's stop keeps its own words: the pull request exists.
     const run = firstStatusOf(detail({ ...stopped('USER'), pullRequest: pullRequest() }), { now: NOW });
     expect(run.link?.label).not.toBe('Pick another issue →');

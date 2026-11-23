@@ -254,9 +254,9 @@ describe('what a read does', () => {
     ['/contribute', ['ATTEMPTS'], true],
     ['/contribute', ['FEED'], true],
     ['/contribute/', ['SETTINGS'], true],
-    ['/learn', ['ATTEMPTS'], true],
-    ['/learn', ['SETTINGS'], true],
-    ['/learn', ['FEED', 'SET'], false],
+    ['/learn/earlier', ['ATTEMPTS'], true],
+    ['/learn/earlier', ['SETTINGS'], true],
+    ['/learn/earlier', ['FEED', 'SET'], false],
     ['/my/pull-requests/acme/widgets/42/lesson', ['ATTEMPTS'], true],
     ['/my/settings/goal', ['SET', 'SETTINGS'], true],
     ['/my/pull-requests', ['ATTEMPTS'], true],
@@ -285,7 +285,7 @@ describe('what a read does', () => {
   });
 
   it('never reads a page again for an issue’s availability or the work alone: those parts ask themselves', () => {
-    for (const path of ['/contribute', '/learn', '/my/pull-requests', '/my/agent', '/my/settings']) {
+    for (const path of ['/contribute', '/learn/earlier', '/my/pull-requests', '/my/agent', '/my/settings']) {
       expect(refreshesFor(path, ['ISSUES', 'ACTIVITY'])).toBe(false);
     }
   });

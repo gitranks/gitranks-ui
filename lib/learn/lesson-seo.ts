@@ -84,30 +84,22 @@ export const LEARN_MAINTAINERS_METADATA: Metadata = pageMetadata({
   path: LEARN_MAINTAINERS_PATH,
 });
 
-/** Learn's front door: indexed once it is open to visitors (Learn open to everyone), not before. */
-export function learnHomeMetadata(open: boolean): Metadata {
-  const metadata = pageMetadata({
-    title: 'Learn from real open-source fixes',
-    description:
-      'Your coding agent fixes a real open-source issue. You get a 10-minute lesson on what was wrong and why the fix works. Pass the check, and the pull request opens in your name.',
-    path: LEARN_PATH,
-  });
-  return open ? metadata : { ...metadata, robots: NO_INDEX };
-}
-
 /**
- * `/learn/about`, the front door as a signed-in user reads it: its canonical address is `/learn`, and it is never
- * indexed, so search engines see one front door.
+ * `/learn/about`, How Learn works: the landing as a learner reads it. Its canonical address is `/learn`, and it is never
+ * indexed, so search engines see one landing.
  */
 export const LEARN_ABOUT_METADATA: Metadata = {
   ...pageMetadata({
     title: 'How Learn works',
     description:
-      'Your coding agent fixes a real open-source issue. You get a 10-minute lesson on what was wrong and why the fix works. Pass the check, and the pull request opens in your name.',
+      'Short lessons on algorithms, databases, design patterns, system design and seven languages, then a real open-source issue to use them on.',
     path: LEARN_PATH,
   }),
   robots: NO_INDEX,
 };
+
+/** Learn as it worked before its courses, at `/learn/earlier`: a person's own page, never indexed. */
+export const LEARN_EARLIER_METADATA: Metadata = { title: 'Fix a real issue with your agent', robots: NO_INDEX };
 
 /**
  * A shared lesson's structured data: the lesson as a `LearningResource` (the repository and language of the fix, the

@@ -1,8 +1,9 @@
 import type { LearnCourseCard } from './course';
 import { learnCourseMarkdownOf, learnCoursesMarkdownOf } from './course-markdown';
 import { type CourseShareState, courseNotServedResponse, courseUnavailableResponse } from './course-share';
+import { learnLandingMarkdownOf } from './landing';
 import { LESSON_MARKDOWN_HEADERS } from './lesson-markdown-response';
-import { courseMarkdownPath, coursePath, LEARN_COURSES_PATH } from './paths';
+import { courseMarkdownPath, coursePath, LEARN_COURSES_PATH, LEARN_HOME_PATH } from './paths';
 
 /** A course's copy as Markdown, by the course's state (`course-share.ts`); a moved one goes to its new copy. */
 export async function courseMarkdownResponse(slug: string, state: () => Promise<CourseShareState>): Promise<Response> {
@@ -28,5 +29,25 @@ export async function coursesMarkdownResponse(courses: () => Promise<LearnCourse
   }
   return new Response(learnCoursesMarkdownOf(read), {
     headers: { ...LESSON_MARKDOWN_HEADERS, Link: `<${LEARN_COURSES_PATH}>; rel="canonical"` },
+  });
+}
+
+/**
+ * The landing's copy as Markdown (`/learn.md`): not found while Learn is not open to everyone, never kept then; once
+ * open, the landing's words with every course, or without the courses when they cannot be read.
+ */
+export async function landingMarkdownResponse(
+  open: () => Promise<boolean>,
+  courses: () => Promise<LearnCourseCard[]>,
+): Promise<Response> {
+  if (!(await open().catch(() => false))) {
+    return new Response('Not found.\n', {
+      status: 404,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' },
+    });
+  }
+  const read = await courses().catch(() => []);
+  return new Response(learnLandingMarkdownOf(read), {
+    headers: { ...LESSON_MARKDOWN_HEADERS, Link: `<${LEARN_HOME_PATH}>; rel="canonical"` },
   });
 }

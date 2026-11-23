@@ -67,7 +67,8 @@ describe('Learn open to visitors', () => {
       '/learn/lessons',
       '/learn/attempts',
       '/learn/attempts/A_1/more',
-      '/learn/about',
+      // Learn as it worked before its courses: a person's own.
+      '/learn/earlier',
       '/learn/start/driftwood-js/driftwood',
       '/learn/start/driftwood-js/driftwood/934/more',
       '/learn/start/issues/more',
@@ -92,10 +93,29 @@ describe('Learn open to visitors', () => {
     }
   });
 
-  it("keeps the front door and Learn's flow from visitors while Learn is not open to everyone", async () => {
+  it('sends a visitor from How Learn works on to the landing, never kept by a shared cache', async () => {
+    for (const path of ['/learn/about', '/learn/about/', '/Learn/About']) {
+      const response = await visit(path);
+      expect(response?.status, path).toBe(307);
+      expect(response?.headers.get('location'), path).toBe('https://gitranks.com/learn');
+      expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+    }
+  });
+
+  it("answers the landing's Markdown copy from its route, which itself follows the switch", async () => {
+    for (const open of [true, false]) {
+      everyone.open = open;
+      expect((await visit('/learn.md'))?.headers.get('x-middleware-rewrite'), String(open)).toBe(
+        'https://gitranks.com/api/learn/home.md',
+      );
+    }
+    everyone.open = true;
+  });
+
+  it("keeps the landing, How Learn works and Learn's flow from visitors while Learn is not open to everyone", async () => {
     everyone.open = false;
     try {
-      for (const path of ['/learn', '/learn/', ...FLOW]) {
+      for (const path of ['/learn', '/learn/', '/learn/about', ...FLOW]) {
         expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
       }
     } finally {

@@ -158,7 +158,9 @@ describe('the tab bar', () => {
     ['/contribute/', '', 'contribute'],
     ['/my/start/acme/widgets/42', '', 'contribute'],
     ['/my/start/acme/widgets/42', 'lesson=1', 'learn'],
-    ['/learn', '', 'learn'],
+    ['/learn/earlier', '', 'learn'],
+    // Learn home has Learn's own bar: no workspace tab is marked there.
+    ['/learn', '', null],
     ['/my/progress/', '', 'learn'],
     ['/my/settings/goal', '', 'settings'],
     ['/my/settings/pull-requests', '', 'settings'],
@@ -181,7 +183,7 @@ describe('the tab bar', () => {
     ['/my/settings/work/switch/stack', '', 'settings'],
   ])('marks the tab of %s?%s: %s', (pathname, search, tab) => {
     expect(activeTabOf(pathname, new URLSearchParams(search))).toBe(tab);
-    expect(currentTab(tabsAt(pathname, search))).toEqual([tab]);
+    expect(currentTab(tabsAt(pathname, search))).toEqual(tab ? [tab] : []);
   });
 
   it('marks no tab on a page of no tab', () => {

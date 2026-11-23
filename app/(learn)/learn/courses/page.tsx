@@ -21,7 +21,12 @@ export async function generateMetadata({ searchParams }: PageProps<'/learn/cours
 }
 
 export default async function CoursesPage({ searchParams }: PageProps<'/learn/courses'>) {
-  const [{ q }, courses, lessons] = await Promise.all([searchParams, loadLearnCourses(), loadLearnLessons()]);
+  // The lessons only feed the search: when they cannot be read, the list still draws and the search finds courses.
+  const [{ q }, courses, lessons] = await Promise.all([
+    searchParams,
+    loadLearnCourses(),
+    loadLearnLessons().catch(() => []),
+  ]);
   return (
     <>
       <JsonLd payloads={learnCoursesJsonLd(courses)} />

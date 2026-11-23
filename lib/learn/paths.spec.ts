@@ -137,11 +137,12 @@ describe("a course's addresses", () => {
     expect(courseRouteOf('/learn/courses/algorithms/')).toBe('algorithms');
     // The gate answers a segment of another shape as missing.
     expect(courseRouteOf('/learn/courses/Algorithms')).toBe('Algorithms');
+    // Reached directly, the pages of a gone or a missing course are asked too, and answered missing: a real 404.
+    expect(courseRouteOf('/learn/courses/_gone')).toBe('_gone');
+    expect(courseRouteOf('/learn/courses/_missing')).toBe('_missing');
     for (const path of [
       '/learn/courses',
       '/learn/courses/',
-      '/learn/courses/_gone',
-      '/learn/courses/_missing',
       '/learn/courses/card.png',
       '/learn/courses/_gone/algorithms',
       '/learn/courses/algorithms/card.png',

@@ -85,29 +85,34 @@ export async function loadLearnLevel(githubLogin: string): Promise<number | null
   }
 }
 
-/** The signed-in person's side of all courses, as the list draws it. */
-export type LearnCoursesMine = {
-  courses: LearnCourseMineCard[];
-  /** Each lesson's depth in their courses, for the squares of the lessons found; null when one could not be read. */
-  depths: Record<string, LearnDepth> | null;
-};
-
 /**
- * The signed-in person's courses and the depth of each lesson in them: null when Learn is not open to them, and on
- * any failure. A lesson of a course they never opened is not started, so only their own courses are read; when one of
- * them fails, the depths are left out (the squares keep their places) and the courses still show. Never kept.
+ * The signed-in person's courses, for their figure and bar on each card: null when Learn is not open to them, and on
+ * any failure. One read, whatever the number of courses. Never kept.
  */
-export async function loadLearnCoursesMine(githubLogin: string): Promise<LearnCoursesMine | null> {
-  let courses: LearnCourseMineCard[] | null;
+export async function loadLearnCoursesMine(githubLogin: string): Promise<LearnCourseMineCard[] | null> {
   try {
-    ({ learnCoursesMine: courses } = await graphqlDirect(LearnCoursesMineDocument, {}, { source: 'ssr', githubLogin }));
+    const { learnCoursesMine } = await graphqlDirect(LearnCoursesMineDocument, {}, { source: 'ssr', githubLogin });
+    return learnCoursesMine ?? null;
   } catch {
     return null;
   }
-  if (!courses) return null;
-  const sides = await Promise.all(courses.map((card) => loadLearnCourseMine(card.course.slug, githubLogin)));
-  if (sides.some((side) => side === null)) return { courses, depths: null };
+}
+
+/** The most courses one ask of the depths reads: more than there are courses. */
+export const COURSE_DEPTHS_MAX = 50;
+
+/**
+ * The depth of each lesson in the given courses of the person, for the squares of the lessons a search finds: read
+ * only once a search shows a lesson of a course they started, one read a course. Null when any of them fails (the
+ * squares keep their places). Never kept.
+ */
+export async function loadLearnCourseDepths(
+  githubLogin: string,
+  courses: readonly string[],
+): Promise<Record<string, LearnDepth> | null> {
+  const sides = await Promise.all(courses.map((slug) => loadLearnCourseMine(slug, githubLogin)));
+  if (sides.some((side) => side === null)) return null;
   const depths: Record<string, LearnDepth> = {};
   for (const side of sides) for (const lesson of side?.lessons ?? []) depths[lesson.slug] = lesson.depth;
-  return { courses, depths };
+  return depths;
 }

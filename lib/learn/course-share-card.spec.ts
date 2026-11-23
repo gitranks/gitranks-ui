@@ -43,6 +43,8 @@ describe("a course's picture", () => {
   it('describes the course in its preview', () => {
     expect(courseShareDescriptionOf(algorithmsCourse)).toBe('86 short lessons, each with one question.');
     expect(courseShareDescriptionOf({ lessons: 1 })).toBe('One short lesson, with one question.');
+    // No zero: a course whose lessons are all gone for a moment.
+    expect(courseShareDescriptionOf({ lessons: 0 })).toBe('Short lessons, each with one question.');
   });
 });
 

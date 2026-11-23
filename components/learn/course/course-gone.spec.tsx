@@ -31,6 +31,8 @@ describe("a gone course's page, and a page that does not exist", () => {
       expect(links).toHaveLength(1);
       expect(links[0].getAttribute('href')).toBe('/learn/courses');
       expect(links[0].textContent).toBe('See all courses');
+      // The one way off the page is a full touch target on a phone.
+      expect(links[0].className).toContain('max-sm:min-h-11');
       expect(page.textContent).not.toContain(LONG_DASH);
     }
   });

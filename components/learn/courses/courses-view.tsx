@@ -35,8 +35,10 @@ export type CoursesViewProps = {
   lessons: readonly LearnLessonListItem[];
   /** The signed-in person's courses; null for a visitor. */
   mine: readonly LearnCourseMineCard[] | null;
-  /** The learner's depth on each lesson, for the squares of the lessons found; null when not known. */
+  /** The learner's depth on each lesson of the courses they started, for the squares of the lessons found; null until read. */
   depths: Readonly<Record<string, LearnDepth>> | null;
+  /** Called once the search shows a lesson of a course the learner started: its square needs the depths. */
+  onSquaresShown?: () => void;
   /** What the address's `?q=` carried. */
   query?: string;
   /** For the catalogue: the lessons opened in place, and the key hints. */
@@ -120,6 +122,7 @@ export function CoursesView({
   lessons,
   mine,
   depths,
+  onSquaresShown,
   query: start = '',
   drawn = {},
   hints: hintsGiven,
@@ -152,6 +155,13 @@ export function CoursesView({
   const mineOf = useMemo(() => new Map((mine ?? []).map((card) => [card.course.slug, card])), [mine]);
   const learner = mine !== null;
   const shownLessons = allLessons ? search.lessons : search.lessons.slice(0, LESSONS_SHOWN_FIRST);
+  // A lesson of a course not started is not started: only a started course's lessons wait for the depths.
+  const depthOf = (lesson: LearnLessonListItem): LearnDepth | null =>
+    !learner ? null : !mineOf.has(lesson.course.slug) ? 'NONE' : depths ? (depths[lesson.slug] ?? 'NONE') : null;
+  const squaresShown = learner && shownLessons.some((lesson) => mineOf.has(lesson.course.slug));
+  useEffect(() => {
+    if (squaresShown) onSquaresShown?.();
+  }, [squaresShown, onSquaresShown]);
   const rest = search.lessons.length - shownLessons.length;
   const nothing = search.query !== '' && found === null;
   // What the search found, said to a screen reader as it changes; nothing while every course shows.
@@ -266,7 +276,7 @@ export function CoursesView({
                     lesson={lesson}
                     query={search.query}
                     learner={learner}
-                    depth={learner && depths ? (depths[lesson.slug] ?? 'NONE') : null}
+                    depth={depthOf(lesson)}
                   />
                 ))}
               </ul>

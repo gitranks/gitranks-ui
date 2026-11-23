@@ -85,6 +85,8 @@ export const courseCardTitleSize = (name: string) => (name.length > 48 ? 46 : na
 
 /** A course's preview description: how many lessons, and what each is. */
 export const courseShareDescriptionOf = (course: Pick<LearnCourse, 'lessons'>) =>
-  course.lessons === 1
-    ? 'One short lesson, with one question.'
-    : `${countWords(course.lessons)} short lessons, each with one question.`;
+  course.lessons < 1
+    ? 'Short lessons, each with one question.'
+    : course.lessons === 1
+      ? 'One short lesson, with one question.'
+      : `${countWords(course.lessons)} short lessons, each with one question.`;

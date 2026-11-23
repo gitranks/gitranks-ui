@@ -956,11 +956,19 @@ describe('proxy', () => {
       for (const path of ['/learn/courses', '/learn/courses/card.png', '/learn/courses/algorithms/card.png']) {
         await proxy(request(undefined, path), event);
       }
-      for (const path of ['/learn/courses/_gone/algorithms', '/learn/courses/_missing']) {
-        await proxy(request(undefined, path), event);
-      }
+      // The page a gone course is sent to, with its two segments, is not a course's page.
+      await proxy(request(undefined, '/learn/courses/_gone/algorithms'), event);
       await proxy(new NextRequest('https://gitranks.com/learn/courses/algorithms', { method: 'POST' }), event);
       expect(courseGate.mock.calls).toEqual([['algorithms'], ['Algorithms']]);
+    });
+
+    it('answers the pages of a gone or a missing course, reached directly, with the real 404', async () => {
+      courseGate.mockResolvedValue({ kind: 'missing' });
+      for (const path of ['/learn/courses/_gone', '/learn/courses/_missing']) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/learn/courses/_missing');
+      }
+      expect(courseGate.mock.calls).toEqual([['_gone'], ['_missing']]);
     });
 
     it("answers a missing course with the course's 404 nobody caches, signed in or not, before Auth.js", async () => {

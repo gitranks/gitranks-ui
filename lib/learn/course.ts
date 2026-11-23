@@ -308,6 +308,12 @@ export type CourseMiddleBox =
 /** The last box: how a lesson grows, signing in, or where to go after the course. */
 export type CourseLastBox = { kind: 'grows' } | { kind: 'sign-in' } | { kind: 'further'; next: LearnCourseCard | null };
 
+/**
+ * Who is looking at a course with no side of theirs: a visitor (no session), a person with a session whose side is on
+ * its way (`pending`), or whose side did not come (`session`: a failed read, or Learn not open to them yet).
+ */
+export type CoursePerson = 'visitor' | 'pending' | 'session';
+
 /** The three boxes, and which one is highlighted (it takes Enter). */
 export type CourseBoxes = {
   first: CourseFirstBox;
@@ -381,7 +387,8 @@ function nothingNextOf(course: Pick<LearnCourse, 'groups' | 'lessons'>, mine: Le
 
 /**
  * The three boxes of a course's page (page 2). A visitor: the first lesson, the check behind signing in, and signing
- * in highlighted. A learner: the next lesson, or the course finished, or why nothing new is left; the middle box is
+ * in highlighted. A person with a session and no side: the same without signing in, nothing lit while the side is on
+ * its way. A learner: the next lesson, or the course finished, or why nothing new is left; the middle box is
  * the review while lessons are due, else the check in its state, else what they marked; the last box says how a
  * lesson grows, or, the course finished, where to go next. `checkFirst`: the check takes the highlight and Enter (a
  * course not started, for an experienced developer). A box with nothing to press never takes the highlight: a finished
@@ -390,15 +397,27 @@ function nothingNextOf(course: Pick<LearnCourse, 'groups' | 'lessons'>, mine: Le
 export function courseBoxesOf(
   course: Pick<LearnCourse, 'groups' | 'lessons' | 'checkOffered' | 'next'>,
   mine: LearnCourseMine | null,
-  { checkFirst = false }: { checkFirst?: boolean } = {},
+  { checkFirst = false, person = 'visitor' }: { checkFirst?: boolean; person?: CoursePerson } = {},
 ): CourseBoxes {
   const first = firstLessonOf(course);
-  if (!mine) {
+  const start: CourseFirstBox = first ? { kind: 'start', ...first } : { kind: 'paused-left', paused: course.lessons };
+  if (!mine && person === 'visitor') {
     return {
-      first: first ? { kind: 'start', ...first } : { kind: 'paused-left', paused: course.lessons },
+      first: start,
       middle: course.checkOffered ? { kind: 'check-sign-in' } : { kind: 'grows' },
       last: { kind: 'sign-in' },
       highlight: 'last',
+    };
+  }
+  if (!mine) {
+    // A session with no side yet, or none to come: never asked to sign in again. Nothing is lit while the side is on
+    // its way, so nothing flashes; with none to come, the first lesson takes Enter.
+    const middle: CourseMiddleBox = course.checkOffered ? { kind: 'check' } : { kind: 'grows' };
+    return {
+      first: start,
+      middle,
+      last: middle.kind === 'check' ? { kind: 'grows' } : { kind: 'further', next: course.next },
+      highlight: person === 'session' && start.kind === 'start' ? 'first' : null,
     };
   }
 

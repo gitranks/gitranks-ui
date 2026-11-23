@@ -17,7 +17,7 @@ export function CourseGoneView({ text, state }: { text: LessonGoneText; state: '
       <p className="m-0 text-xs font-semibold tracking-wider text-muted-foreground uppercase">{text.eyebrow}</p>
       <h1 className="m-0 text-3xl font-bold tracking-tight">{text.title}</h1>
       <p className="m-0 text-lg text-muted-foreground">{text.lead}</p>
-      <Button asChild variant="outline" className="h-9 px-4">
+      <Button asChild variant="outline" className="h-9 px-4 max-sm:min-h-11">
         <Link href={LEARN_COURSES_PATH}>See all courses</Link>
       </Button>
     </main>

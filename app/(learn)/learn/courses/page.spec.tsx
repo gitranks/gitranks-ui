@@ -32,6 +32,20 @@ describe('all courses', () => {
     expect(liveOf(await CoursesPage(props({ q: ['go', 'php'] }))).props).toMatchObject({ query: '' });
   });
 
+  it('still draws the list when the lessons cannot be read: the search finds courses only', async () => {
+    loadLearnLessons.mockRejectedValue(new Error('down'));
+    expect(liveOf(await CoursesPage(props({ q: 'go' }))).props).toEqual({
+      courses: courseCards,
+      lessons: [],
+      query: 'go',
+    });
+  });
+
+  it('fails with the courses read, for the boundary to catch', async () => {
+    loadLearnCourses.mockRejectedValue(new Error('down'));
+    await expect(CoursesPage(props())).rejects.toThrow('down');
+  });
+
   it('is indexed with no search, and only followed with one, naming the full list either way', async () => {
     const plain = await generateMetadata(props());
     expect(plain.robots).toBeUndefined();

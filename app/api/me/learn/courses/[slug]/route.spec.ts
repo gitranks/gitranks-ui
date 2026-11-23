@@ -28,8 +28,10 @@ const { GET } = (await import('./route')) as unknown as {
 const { LearnCourseMineDocument } = await import('@/lib/learn/lesson-page.documents');
 const { LearnSetupLevelDocument } = await import('@/lib/learn/course.documents');
 
-const get = (slug: string) =>
-  GET(new NextRequest(`https://gitranks.com/api/me/learn/courses/${slug}`), { params: Promise.resolve({ slug }) });
+const get = (slug: string, query = '') =>
+  GET(new NextRequest(`https://gitranks.com/api/me/learn/courses/${slug}${query}`), {
+    params: Promise.resolve({ slug }),
+  });
 const signIn = () => {
   current.session = { user: { githubLogin: 'octocat' }, expires: '2099-01-01T00:00:00.000Z' } as Session;
 };
@@ -62,7 +64,15 @@ describe("a course's personal side", () => {
     expect(await (await get('algorithms')).json()).toEqual({ course: null, checkFirst: false });
   });
 
-  it('puts the check first on a course not started, for an experienced developer only', async () => {
+  it("never reads the level for a lesson's page, which does not ask whether the check leads", async () => {
+    signIn();
+    graphqlDirect.mockResolvedValueOnce({ learnCourseMine: freshMine });
+    expect(await (await get('algorithms')).json()).toEqual({ course: freshMine, checkFirst: false });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    expect(graphqlDirect).not.toHaveBeenCalledWith(LearnSetupLevelDocument, expect.anything(), expect.anything());
+  });
+
+  it('puts the check first, when asked, on a course not started, for an experienced developer only', async () => {
     signIn();
     for (const [level, checkFirst] of [
       [3, true],
@@ -71,12 +81,12 @@ describe("a course's personal side", () => {
     ] as const) {
       graphqlDirect.mockResolvedValueOnce({ learnCourseMine: freshMine });
       graphqlDirect.mockResolvedValueOnce({ learnSetupOfMine: level === null ? null : { level } });
-      expect(await (await get('algorithms')).json()).toEqual({ course: freshMine, checkFirst });
+      expect(await (await get('algorithms', '?check=1')).json()).toEqual({ course: freshMine, checkFirst });
     }
     expect(graphqlDirect).toHaveBeenCalledWith(LearnSetupLevelDocument, {}, { source: 'ssr', githubLogin: 'octocat' });
     // A level that cannot be read leaves the first lesson first.
     graphqlDirect.mockResolvedValueOnce({ learnCourseMine: freshMine });
     graphqlDirect.mockRejectedValueOnce(new Error('down'));
-    expect(await (await get('algorithms')).json()).toEqual({ course: freshMine, checkFirst: false });
+    expect(await (await get('algorithms', '?check=1')).json()).toEqual({ course: freshMine, checkFirst: false });
   });
 });

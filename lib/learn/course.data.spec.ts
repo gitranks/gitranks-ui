@@ -9,9 +9,14 @@ vi.mock('server-only', () => ({}));
 vi.mock('next/cache', () => ({ cacheLife, cacheTag }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
-const { loadLearnCourse, loadLearnCourses, loadLearnCoursesMine, loadLearnLessons, loadLearnLevel } = await import(
-  './course.data'
-);
+const {
+  loadLearnCourse,
+  loadLearnCourseDepths,
+  loadLearnCourses,
+  loadLearnCoursesMine,
+  loadLearnLessons,
+  loadLearnLevel,
+} = await import('./course.data');
 const { LearnCourseDocument, LearnCoursesMineDocument, LearnSetupLevelDocument } = await import('./course.documents');
 const { LearnCourseMineDocument } = await import('./lesson-page.documents');
 const { algorithmsCourse, courseCards, coursesMine, lessonList, progressMine } = await import('./__fixtures__/course');
@@ -79,31 +84,29 @@ describe("the person's reads, never kept", () => {
     expect(cacheTag).not.toHaveBeenCalled();
   });
 
-  it("reads the person's courses and each lesson's depth in them, only their own courses", async () => {
+  it("reads the person's courses in one read, and none on a failure", async () => {
     const mine = coursesMine.slice(0, 1);
-    graphqlDirect.mockImplementation(async (document, variables) => {
-      if (document === LearnCoursesMineDocument) return { learnCoursesMine: mine };
-      if (document === LearnCourseMineDocument && variables.slug === 'algorithms') {
-        return { learnCourseMine: progressMine };
-      }
-      throw new Error('unexpected read');
-    });
-    const read = await loadLearnCoursesMine('octocat');
-    expect(read?.courses).toEqual(mine);
-    expect(read?.depths?.[progressMine.lessons[0].slug]).toBe(progressMine.lessons[0].depth);
-    expect(Object.keys(read?.depths ?? {})).toHaveLength(progressMine.lessons.length);
-  });
-
-  it('keeps the courses and leaves the depths out when a course of theirs fails; none when the list fails', async () => {
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === LearnCoursesMineDocument) return { learnCoursesMine: coursesMine.slice(0, 1) };
-      throw new Error('down');
-    });
-    expect(await loadLearnCoursesMine('octocat')).toEqual({ courses: coursesMine.slice(0, 1), depths: null });
-    graphqlDirect.mockReset();
+    graphqlDirect.mockResolvedValueOnce({ learnCoursesMine: mine });
+    expect(await loadLearnCoursesMine('octocat')).toEqual(mine);
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    expect(graphqlDirect).toHaveBeenCalledWith(LearnCoursesMineDocument, {}, { source: 'ssr', githubLogin: 'octocat' });
     graphqlDirect.mockRejectedValueOnce(new Error('down'));
     expect(await loadLearnCoursesMine('octocat')).toBeNull();
     graphqlDirect.mockResolvedValueOnce({ learnCoursesMine: null });
     expect(await loadLearnCoursesMine('octocat')).toBeNull();
+    expect(cacheTag).not.toHaveBeenCalled();
+  });
+
+  it('reads the depth of each lesson in the courses asked, one read a course; none when one fails', async () => {
+    graphqlDirect.mockImplementation(async (document, variables) => {
+      if (document === LearnCourseMineDocument && variables.slug === 'algorithms')
+        return { learnCourseMine: progressMine };
+      throw new Error('down');
+    });
+    const depths = await loadLearnCourseDepths('octocat', ['algorithms']);
+    expect(depths?.[progressMine.lessons[0].slug]).toBe(progressMine.lessons[0].depth);
+    expect(Object.keys(depths ?? {})).toHaveLength(progressMine.lessons.length);
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    expect(await loadLearnCourseDepths('octocat', ['algorithms', 'go'])).toBeNull();
   });
 });

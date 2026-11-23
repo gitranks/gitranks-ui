@@ -57,11 +57,14 @@ const buttonOf = (text: string) =>
   [...host.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent?.trim() === text);
 const lit = () => host.querySelector('[data-course-boxes] [data-lit]')?.textContent ?? '';
 
+const signInButton = () => buttonOf('Sign in with GitHub') ?? buttonOf('Sign in to take the check');
+
 describe("a course's page in the browser, for a visitor", () => {
-  it('asks for nothing, and signs in back to the course', async () => {
+  it('asks for nothing, and signs in back to the course, lit', async () => {
     await draw();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(host.querySelector('[data-square]')).toBeNull();
+    expect(lit()).toContain('Sign in with GitHub');
     await act(async () => buttonOf('Sign in with GitHub')!.click());
     expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/courses/algorithms' });
   });
@@ -72,16 +75,24 @@ describe("a course's page in the browser, for a person with a session", () => {
     hint.present = true;
   });
 
-  it("reads the person's side once, never kept, and fills the page in place", async () => {
+  it('lights nothing and never asks to sign in while their side is on its way', async () => {
+    fetchMock.mockReturnValue(new Promise(() => {}));
+    await draw();
+    expect(signInButton()).toBeUndefined();
+    expect(host.querySelector('[data-course-boxes] [data-lit]')).toBeNull();
+  });
+
+  it("reads the person's side once, never kept, without the check's question, and fills the page in place", async () => {
     answer({ course: progressMine, checkFirst: false });
     await draw();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    // The check's page ships later: until then the page never asks whether the check leads.
     expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/courses/algorithms', { cache: 'no-store' });
     expect(host.querySelectorAll('[data-square]').length).toBeGreaterThan(0);
-    expect(buttonOf('Sign in with GitHub')).toBeUndefined();
+    expect(signInButton()).toBeUndefined();
   });
 
-  it('puts the check first when the route says so', async () => {
+  it('puts the check first when the side says so', async () => {
     answer({ course: freshMine, checkFirst: true });
     await draw();
     expect(lit()).toContain('Take the 2-minute check');
@@ -94,16 +105,30 @@ describe("a course's page in the browser, for a person with a session", () => {
     expect(sendLearnCourseFeedbackAction).toHaveBeenCalledWith({ course: 'algorithms', good: false });
   });
 
-  it('keeps the visitor page when the side cannot be read', async () => {
-    answer({}, 503);
+  it('never sends them to sign in again when no side comes, or its read fails: the first lesson takes Enter', async () => {
+    for (const fail of [() => answer({ course: null, checkFirst: false }), () => answer({}, 503)]) {
+      fail();
+      await draw();
+      expect(signInButton()).toBeUndefined();
+      expect(host.querySelector('ol [data-square]')).toBeNull();
+      expect(lit()).toContain('Start here');
+      act(() => root.unmount());
+      root = createRoot(host);
+    }
+    fetchMock.mockRejectedValue(new Error('offline'));
     await draw();
-    expect(host.querySelector('[data-square]')).toBeNull();
-    expect(lit()).toContain('Sign in');
+    expect(signInButton()).toBeUndefined();
   });
 });
 
 describe("reading a course's side", () => {
   beforeEach(() => vi.stubGlobal('fetch', fetchMock));
+
+  it('asks whether the check leads only when told to', async () => {
+    answer({ course: progressMine, checkFirst: true });
+    await readCourseSide('algorithms', true);
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/me/learn/courses/algorithms?check=1', { cache: 'no-store' });
+  });
 
   it('takes only a whole side of this course', async () => {
     answer({ course: progressMine, checkFirst: true });

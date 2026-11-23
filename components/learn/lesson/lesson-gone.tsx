@@ -47,7 +47,7 @@ export function LessonGoneView({
       <p className="m-0 text-lg text-muted-foreground">{text.lead}</p>
       {learner}
       {course && (
-        <Button asChild variant="outline" className="h-9 max-w-full px-4">
+        <Button asChild variant="outline" className="h-9 max-w-full px-4 max-sm:min-h-11">
           <Link href={coursePath(course.slug)}>
             <span className="truncate">Open the course</span>
           </Link>

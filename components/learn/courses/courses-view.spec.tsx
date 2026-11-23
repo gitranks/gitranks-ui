@@ -123,6 +123,13 @@ describe('the search of all courses', () => {
     expect(draw({ query: 'go' }).querySelector('[data-square-slot]')).toBeNull();
   });
 
+  it('draws a lesson of a course the learner never started as not started, without waiting for the depths', () => {
+    const page = draw({ mine: coursesMine, depths: null, query: 'index' });
+    const lessons = page.querySelector('section[aria-labelledby="found-lessons"]')!;
+    expect(lessons.querySelector('[data-square-slot]')).toBeNull();
+    expect(lessons.querySelectorAll('[data-square="none"]').length).toBeGreaterThan(0);
+  });
+
   it('"hash", not signed in: lessons only, without squares', () => {
     const page = draw({ query: 'hash' });
     expect(page.querySelectorAll('[data-course-card]')).toHaveLength(0);

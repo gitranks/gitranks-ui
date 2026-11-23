@@ -63,6 +63,15 @@ export const learnLessonGonePath = (slug: string) => `/learn/lessons/_gone/${enc
 export const learnLessonMinePath = (slug: string) => `/api/me/learn/lessons/${encodeURIComponent(slug)}`;
 export const learnCourseMinePath = (slug: string) => `/api/me/learn/courses/${encodeURIComponent(slug)}`;
 export const LEARN_COURSES_MINE_PATH = '/api/me/learn/courses';
+/** The query that asks the depth of each lesson in some of the person's courses, by their slugs, comma-separated. */
+export const COURSE_DEPTHS_QUERY = 'depths';
+/** Where the browser reads the depth of each lesson in the given courses of the person. */
+export const learnCourseDepthsPath = (courses: readonly string[]) =>
+  `${LEARN_COURSES_MINE_PATH}?${COURSE_DEPTHS_QUERY}=${courses.map(encodeURIComponent).join(',')}`;
+/** The query a course's page adds to ask whether the check leads it; the route reads the level only then. */
+export const CHECK_FIRST_QUERY = 'check';
+/** The person's side of a course as the course's page asks it: with whether the check leads the page. */
+export const learnCourseSidePath = (slug: string) => `${learnCourseMinePath(slug)}?${CHECK_FIRST_QUERY}=1`;
 
 /**
  * Where the proxy shows a paused or removed course's page, with its status, and a missing course's 404: addresses no
@@ -143,8 +152,12 @@ export function learnCourseMarkdownRouteOf(pathname: string): string | null {
 
 const COURSE_PAGE = /^\/learn\/courses\/([^/]+)\/?$/;
 
-/** The segments under `/learn/courses/` that are not a course: the pages of a gone or missing one, and the picture. */
-const NOT_A_COURSE = new Set(['_gone', '_missing', 'card.png']);
+/**
+ * The segment under `/learn/courses/` that is not a course's page: the picture of all courses, a route handler.
+ * `_gone` and `_missing` are asked like any other: not a slug's shape, they are missing without asking the API, so
+ * reached directly they get the real 404.
+ */
+const NOT_A_COURSE = new Set(['card.png']);
 
 /**
  * The course asked for by a course's page, `/learn/courses/<segment>` (a trailing slash allowed), for the proxy's

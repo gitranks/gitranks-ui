@@ -136,7 +136,7 @@ export const LEARN_COURSE_SCREEN: Screen = {
       id: 'states',
       title: 'Every state, one under the other',
       path: COURSE_PATH,
-      height: 19400,
+      height: 20200,
       render: () => (
         <Board
           title="A course, in every state"
@@ -206,17 +206,23 @@ export const LEARN_COURSE_SCREEN: Screen = {
           <Frame title="17 · The Squares view with nothing due: the same words and the way back" height={1210}>
             <Course mine={freshMine} drawn={{ view: 'squares', filter: 'due' }} />
           </Frame>
-          <Frame title="18 · A paused course (503): the same for everyone, the way to all courses" height={400}>
+          <Frame
+            title="18 · Signed in, no side came (a failed read, or Learn not open yet): no sign-in, the first lesson lit"
+            height={760}
+          >
+            <Course person="session" />
+          </Frame>
+          <Frame title="19 · A paused course (503): the same for everyone, the way to all courses" height={400}>
             <Site bar={visitor}>
               <CourseGoneView text={courseGoneTextOf('PAUSED', { title: algorithmsCourse.name })} state="paused" />
             </Site>
           </Frame>
-          <Frame title="19 · A removed course (410)" height={400}>
+          <Frame title="20 · A removed course (410)" height={400}>
             <Site bar={visitor}>
               <CourseGoneView text={courseGoneTextOf('REMOVED', { title: algorithmsCourse.name })} state="removed" />
             </Site>
           </Frame>
-          <Frame title="20 · A course that is not there, or a draft (404): naming nothing" height={400}>
+          <Frame title="21 · A course that is not there, or a draft (404): naming nothing" height={400}>
             <Site bar={visitor}>
               <CourseGoneView text={LEARN_MISSING_TEXT} state="missing" />
             </Site>

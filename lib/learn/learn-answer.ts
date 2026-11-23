@@ -157,22 +157,34 @@ function movedOf(state: LearnAnswerState, from: number, to: number): LearnAnswer
   if (from < 0 || from >= ids.length || to < 0 || to >= ids.length || from === to) return state;
   const [id] = ids.splice(from, 1);
   ids.splice(to, 0, id);
-  return fresh({ ...state, picked: ids, selected: state.selected === null ? null : to });
+  return fresh({ ...state, picked: ids, selected: selectedAfterMove(state.selected, from, to) });
+}
+
+/** The picked row follows itself: moved with its row, or shifted by one when another row moves across it. */
+export function selectedAfterMove(selected: number | null, from: number, to: number): number | null {
+  if (selected === null) return null;
+  if (selected === from) return to;
+  if (from < selected && selected <= to) return selected - 1;
+  if (to <= selected && selected < from) return selected + 1;
+  return selected;
 }
 
 /**
  * The page's own verdict. Right, or any answer to a myth (one press answers, and two choices leave nothing to try
- * again): done. Wrong: the wrong options or line are crossed out and unpicked, and the person picks again.
+ * again): done. Wrong: the wrong option or line is crossed out and unpicked, and the person picks again. A `pick-all`
+ * crosses out one wrong pick a try, as `pick-one` does: crossing out every wrong one would leave the right ones
+ * ticked, and ticking all would then give the key away.
  */
 function gradedOf(question: LearnQuestion, state: LearnAnswerState, verdict: LearnVerdict): LearnAnswerState {
   const tries = state.tries + 1;
   if (verdict.right || question.type === 'MYTH_OR_FACT') {
     return { ...state, phase: 'done', tries, shown: { right: verdict.right, why: verdict.why }, failed: false };
   }
-  const struck = [...new Set([...state.struck, ...verdict.wrong])].sort((a, b) => a - b);
+  const wrong = question.type === 'PICK_ALL' ? verdict.wrong.slice(0, 1) : verdict.wrong;
+  const struck = [...new Set([...state.struck, ...wrong])].sort((a, b) => a - b);
   let picked = state.picked;
   if (question.type === 'PICK_ALL' && Array.isArray(picked)) {
-    picked = (picked as number[]).filter((index) => !verdict.wrong.includes(index));
+    picked = (picked as number[]).filter((index) => !wrong.includes(index));
   } else if (question.type !== 'PUT_IN_ORDER') {
     picked = null;
   }
@@ -181,8 +193,9 @@ function gradedOf(question: LearnQuestion, state: LearnAnswerState, verdict: Lea
 }
 
 /**
- * The call's verdict, for a question that came without its key: one answer, right or wrong. The reason shown is why
- * the right answer is right, from the question with its key the call brought, if it brought one.
+ * The call's verdict, for a question that came without its key: one answer, right or wrong. The reasons come from the
+ * question with its key the call brought, if it brought one: right, why it is right; wrong, why the pick is wrong and
+ * then why the right one is right; the extra choice, why the right one is right.
  */
 function answeredOf(
   state: LearnAnswerState,
@@ -190,7 +203,9 @@ function answeredOf(
 ): LearnAnswerState {
   const keyed = key && isKeyed(key) ? key : state.key;
   const own = keyed && !state.extra ? verdictOf(keyed, state.picked, language) : null;
-  const why = (right ? own?.why : null) ?? (keyed ? rightWhyOf(keyed, language) : null);
+  const rightWhy = keyed ? rightWhyOf(keyed, language) : null;
+  const whys = right ? [own?.why ?? rightWhy] : [own?.why, rightWhy];
+  const why = [...new Set(whys.filter((text): text is string => !!text))].join(' ') || null;
   return {
     ...state,
     phase: 'done',

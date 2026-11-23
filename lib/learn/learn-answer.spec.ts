@@ -9,7 +9,7 @@ import {
   pickLineQuestion,
   pickOneQuestion,
 } from './__fixtures__/learn-question';
-import { answerStartOf, canSendOf, pickCountOf } from './learn-answer';
+import { answerStartOf, canSendOf, pickCountOf, selectedAfterMove } from './learn-answer';
 import { type LearnQuestion, verdictOf } from './learn-question';
 
 const graded = (question: LearnQuestion, picked: Parameters<typeof verdictOf>[1]) => ({
@@ -190,7 +190,7 @@ describe('the call’s verdict', () => {
     expect(done).toMatchObject({
       phase: 'done',
       key: keyed,
-      shown: { right: false, why: 'The last one in comes out first.' },
+      shown: { right: false, why: 'First in is last out. The last one in comes out first.' },
     });
   });
 
@@ -229,5 +229,49 @@ describe('pickCountOf', () => {
     expect(pickCountOf(pickLineQuestion, 'python')).toBe(6);
     expect(pickCountOf(orderQuestion, null)).toBe(3);
     expect(pickCountOf(mythQuestion, null)).toBe(0);
+  });
+});
+
+describe('the picked row follows itself', () => {
+  it('moves with its own row, and shifts when another row moves across it', () => {
+    expect(selectedAfterMove(1, 1, 3)).toBe(3);
+    expect(selectedAfterMove(0, 2, 3)).toBe(0);
+    expect(selectedAfterMove(2, 0, 3)).toBe(1);
+    expect(selectedAfterMove(1, 3, 0)).toBe(2);
+    expect(selectedAfterMove(null, 0, 2)).toBeNull();
+  });
+
+  it('keeps the picked row when another row is moved', () => {
+    const state = answerAfter(orderQuestion, [
+      { type: 'pick', at: 0 },
+      { type: 'move', from: 2, to: 1 },
+    ]);
+    expect(state.picked).toEqual(['r1', 'r3', 'r2']);
+    expect(state.selected).toBe(0);
+  });
+});
+
+describe('a wrong pick-all', () => {
+  it('crosses out one wrong pick a try, so ticking every option gives nothing away', () => {
+    const all = answerAfter(pickAllQuestion, [
+      { type: 'pick', at: 0 },
+      { type: 'pick', at: 1 },
+      { type: 'pick', at: 2 },
+      { type: 'pick', at: 3 },
+      graded(pickAllQuestion, [0, 1, 2, 3]),
+    ]);
+    expect(all.struck).toEqual([1]);
+    expect(all.picked).toEqual([0, 2, 3]);
+  });
+});
+
+describe('the extra choice with no key in the reply', () => {
+  it('has no reason to show', () => {
+    const done = answerAfter(checkQuestion, [
+      { type: 'extra' },
+      { type: 'sending' },
+      { type: 'answered', right: false, key: null, language: null },
+    ]);
+    expect(done.shown).toEqual({ right: false, why: null, extra: true });
   });
 });

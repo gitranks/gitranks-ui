@@ -306,3 +306,6 @@ export const MISSED_NOTE = 'Each one you picked is true, but not every true one 
 
 /** The reason a `put-in-order` shows when it is wrong: it never says which rows are out of place. */
 export const OUT_OF_ORDER_NOTE = 'Some rows are out of place.';
+
+/** What the status slot says for the place's extra choice when the call brought no reason. */
+export const EXTRA_NOTE = 'Noted. You will see this one again.';

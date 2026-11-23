@@ -1,6 +1,6 @@
 'use client';
 
-import type { LearnAnswer } from './use-learn-answer';
+import { type LearnAnswer, PICKER } from './use-learn-answer';
 import type { LearnAnswerState } from '@/lib/learn/learn-answer';
 import {
   codeOf,
@@ -37,7 +37,7 @@ export function QuestionPart({
     return (
       <figure className={cn('m-0 flex flex-col gap-2', className)} data-question-code="line">
         <span className={EYEBROW}>Click a line</span>
-        <LinePick question={question} code={code.code} answer={answer} />
+        <LinePick code={code.code} answer={answer} />
       </figure>
     );
   }
@@ -101,15 +101,7 @@ export function lineMarkOf(state: LearnAnswerState, line: number, rightLine: num
 }
 
 /** The code as numbered lines, each a button that picks it. A crossed-out line cannot be picked again. */
-function LinePick({
-  question,
-  code,
-  answer,
-}: {
-  question: LearnQuestion;
-  code: string;
-  answer: Pick<LearnAnswer, 'state' | 'language' | 'pick'>;
-}) {
+function LinePick({ code, answer }: { code: string; answer: Pick<LearnAnswer, 'state' | 'language' | 'pick'> }) {
   const { state } = answer;
   const right = state.phase === 'done' && state.key ? rightOf(state.key, answer.language) : null;
   const rightLine = right?.kind === 'line' ? right.line : null;
@@ -117,7 +109,7 @@ function LinePick({
   return (
     <fieldset
       className="m-0 min-w-0 overflow-x-auto rounded-lg border bg-muted/50 px-0 py-2"
-      aria-label={question.prompt}
+      aria-label="The code: pick a line"
     >
       {linesOf(code).map((text, index) => {
         const line = index + 1;
@@ -131,6 +123,7 @@ function LinePick({
             disabled={!open || mark === 'wrong'}
             onClick={() => answer.pick(index)}
             data-line={line}
+            {...{ [PICKER]: '' }}
             data-line-mark={mark}
             className={cn(
               'grid w-full grid-cols-[36px_1fr] items-start border-0 bg-transparent py-1 pr-3 pl-0 text-left font-mono text-sm leading-[1.6] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-default',

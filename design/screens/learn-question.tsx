@@ -47,7 +47,7 @@ const CHECK: AnswerPartPlace = {
   verdict: false,
   extra: 'I don’t know',
   labels: { check: 'Next question', done: 'Next question' },
-  note: 'Pick one. We do not say right or wrong here: you see it all on the result.',
+  note: () => 'Pick one. We do not say right or wrong here: you see it all on the result.',
   withCode: true,
 };
 

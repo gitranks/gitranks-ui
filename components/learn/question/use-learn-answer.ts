@@ -31,6 +31,8 @@ export type LearnAnswerOptions = {
   language: string | null;
   /** Whether the place has an extra choice ("I don't know", "I don't remember"). */
   extra?: boolean;
+  /** The extra choice answers in one press (the review's); otherwise it is picked, then sent. */
+  extraAnswers?: boolean;
   /** Whether the place shows a verdict: the lesson and the review do, the check does not. */
   verdict: boolean;
   /**
@@ -59,9 +61,18 @@ export type LearnAnswer = {
   main: () => void;
 };
 
-/** Fields an Enter or a letter belongs to: never answered from here. */
-const TYPED_IN =
-  'input:not([type=radio]):not([type=checkbox]), textarea, select, [contenteditable=""], [contenteditable="true"]';
+/** Fields an Enter or a letter belongs to, and menus and dialogs with keys of their own: never answered from here. */
+const NOT_OURS =
+  'input:not([type=radio]):not([type=checkbox]), textarea, select, [role=menu], [role=menubar], [role=listbox], [role=combobox], [role=dialog], [role=alertdialog]';
+
+/** The question's own pickers (a line, a row, Myth or Fact): Enter on one of them is the main button, not its press. */
+export const PICKER = 'data-learn-picker';
+
+/** Whether a key belongs to something else on the page: a field, an editor, a menu or a dialog. */
+function isNotOurs(target: HTMLElement | null): boolean {
+  if (!target || typeof target.closest !== 'function') return false;
+  return target.isContentEditable || !!target.closest(NOT_OURS);
+}
 
 /**
  * The engine of one question's answer. Key the component that calls it by the question's id: a new question starts a
@@ -77,6 +88,14 @@ export function useLearnAnswer(options: LearnAnswerOptions): LearnAnswer {
   const language = codeOf(question, options.language)?.language ?? options.language;
   const live = useRef({ state, options, language });
   live.current = { state, options, language };
+  // A reply that comes after the card is gone changes nothing, and goes nowhere.
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const send = useCallback(async (picked: LearnPicked | null, extra: boolean) => {
     const { options, language } = live.current;
@@ -86,6 +105,7 @@ export function useLearnAnswer(options: LearnAnswerOptions): LearnAnswer {
           .send({ picked: picked === null || extra ? null : wirePickOf(picked), extra, language })
           .catch(() => null)
       : { right: false };
+    if (!alive.current) return;
     if (!reply) return dispatch({ type: 'failed' });
     if (!options.verdict) return options.onDone();
     dispatch({ type: 'answered', right: reply.right, key: reply.question ?? null, language });
@@ -101,6 +121,9 @@ export function useLearnAnswer(options: LearnAnswerOptions): LearnAnswer {
         options.onGraded?.({ picked: wirePickOf(picked), right: verdict.right, tries: state.tries + 1, language });
         return;
       }
+      // A key that cannot grade this pick (no right line for the language shown) and nowhere to send it: the answer
+      // stays open rather than be called wrong by no one.
+      if (!options.send && !extra) return;
       void send(picked, extra);
     },
     [send],
@@ -124,15 +147,24 @@ export function useLearnAnswer(options: LearnAnswerOptions): LearnAnswer {
     [answer],
   );
 
+  /** The extra choice: picked like an option, or, where it answers in one press, sent at once. */
+  const extra = useCallback(() => {
+    const { state, options } = live.current;
+    if (state.phase !== 'open' || !options.extra) return;
+    if (!options.extraAnswers) return dispatch({ type: 'extra' });
+    if (!state.extra) dispatch({ type: 'extra' });
+    answer(null, true);
+  }, [answer]);
+
   const act = useCallback((action: LearnAnswerAction) => dispatch(action), []);
   const answerView = useMemo(
     () => ({
       pick: (at: number) => act({ type: 'pick', at }),
-      extra: () => act({ type: 'extra' }),
+      extra,
       move: (from: number, to: number) => act({ type: 'move', from, to }),
       step: (by: -1 | 1) => act({ type: 'step', by }),
     }),
-    [act],
+    [act, extra],
   );
 
   const keys = options.keys ?? true;
@@ -141,16 +173,21 @@ export function useLearnAnswer(options: LearnAnswerOptions): LearnAnswer {
     const onKey = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
       const target = event.target as HTMLElement | null;
-      if (target?.closest?.(TYPED_IN)) return;
+      if (isNotOurs(target)) return;
       const { state, options, language } = live.current;
       const action = keyActionOf(options.question.type, event.key, {
         count: pickCountOf(options.question, language),
         extra: !!options.extra,
       });
       if (!action) return;
-      // Enter on a focused button or link is that button's own press.
-      if (action.kind === 'main' && target?.closest?.('button, a, summary')) return;
+      // A held key acts once: holding Enter must not check and then go on before the verdict is read. Only the arrows
+      // repeat, to move a row step by step.
+      if (event.repeat && action.kind !== 'step') return;
+      // Enter on a focused button or link is that button's own press, unless it is one of the question's pickers.
+      if (action.kind === 'main' && target?.closest?.('button, a, summary') && !target.closest(`[${PICKER}]`)) return;
       if (action.kind !== 'main' && state.phase !== 'open') return;
+      // The arrows scroll the page while no row is picked to move.
+      if (action.kind === 'step' && state.selected === null) return;
       event.preventDefault();
       if (action.kind === 'main') main();
       else if (action.kind === 'myth') myth(action.answer);

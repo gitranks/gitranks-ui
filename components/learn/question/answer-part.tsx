@@ -5,13 +5,15 @@ import { type ReactNode, useId, useRef } from 'react';
 
 import { Kbd, KeyLine, type KeyLineItem } from './kbd';
 import { QuestionPart } from './question-part';
-import type { LearnAnswer } from './use-learn-answer';
+import { type LearnAnswer, PICKER } from './use-learn-answer';
 import { RichText } from '@/components/learn/rich-text';
 import { Button } from '@/components/ui/button';
 import { type LearnAnswerState, pickCountOf } from '@/lib/learn/learn-answer';
 import {
   againNoteOf,
+  EXTRA_NOTE,
   isChoice,
+  type LearnPicked,
   type LearnQuestion,
   type LearnQuestionType,
   MISSED_NOTE,
@@ -33,8 +35,10 @@ export type AnswerPartPlace = {
   verdict: boolean;
   /** The main button before the answer ("Check", "Next question") and once it is done ("Next: Hash maps"). */
   labels: { check: string; done: string };
+  /** The extra choice answers in one press, as the review's "I don't remember" does; otherwise it is picked, then sent. */
+  extraAnswers?: boolean;
   /** What the status slot says before an answer, in place of the kind's own words. */
-  note?: string;
+  note?: (type: LearnQuestionType, picked: LearnPicked | null) => string;
   /** Draw the question's code in the card: a place with no lesson beside it (the review, the check). */
   withCode?: boolean;
 };
@@ -95,8 +99,9 @@ export function AnswerPart({
         <Button
           type="button"
           size="lg"
-          className="w-full font-semibold"
-          disabled={!enabled}
+          // Not `disabled`: a disabled button drops the focus of whoever pressed it to the page.
+          aria-disabled={!enabled || undefined}
+          className="w-full font-semibold aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:hover:bg-primary"
           aria-busy={state.phase === 'sending' || undefined}
           onClick={answer.main}
           data-answer-main=""
@@ -132,10 +137,10 @@ function AnswerBody({
   titleId: string;
 }) {
   if (isChoice(question.type)) {
-    return <Options question={question} answer={answer} extra={place.extra} hints={hints} titleId={titleId} />;
+    return <Options question={question} answer={answer} place={place} hints={hints} titleId={titleId} />;
   }
   const extra = place.extra ? (
-    <ExtraRow answer={answer} label={place.extra} hints={hints} radio={false} name={titleId} />
+    <ExtraRow answer={answer} place={place} hints={hints} radio={false} name={titleId} />
   ) : null;
   if (question.type === 'PICK_LINE') {
     return (
@@ -232,13 +237,13 @@ const ROW =
 function Options({
   question,
   answer,
-  extra,
+  place,
   hints,
   titleId,
 }: {
   question: LearnQuestion;
   answer: LearnAnswer;
-  extra: string | undefined;
+  place: AnswerPartPlace;
   hints: boolean;
   titleId: string;
 }) {
@@ -278,28 +283,54 @@ function Options({
           </label>
         );
       })}
-      {extra ? <ExtraRow answer={answer} label={extra} hints={hints} radio={!multi} name={titleId} /> : null}
+      {place.extra ? <ExtraRow answer={answer} place={place} hints={hints} radio={!multi} name={titleId} /> : null}
     </fieldset>
   );
 }
 
-/** The place's extra choice, drawn as the last option: its words muted, the key 0. */
+/**
+ * The place's extra choice, drawn as the last option: its words muted, the key 0. Where it answers in one press (the
+ * review), it is a button with no box before it; otherwise it is picked like an option, then sent.
+ */
 function ExtraRow({
   answer,
-  label,
+  place,
   hints,
   radio,
   name,
 }: {
   answer: LearnAnswer;
-  label: string;
+  place: AnswerPartPlace;
   hints: boolean;
   radio: boolean;
   name: string;
 }) {
   const { state } = answer;
   const open = state.phase === 'open';
+  const label = place.extra ?? '';
   const mark: OptionMark = state.extra ? 'picked' : state.phase === 'done' ? 'rest' : 'plain';
+  if (place.extraAnswers) {
+    return (
+      <button
+        type="button"
+        aria-disabled={!open || undefined}
+        onClick={() => (open ? answer.extra() : undefined)}
+        className={cn(
+          ROW,
+          'w-full bg-transparent text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+          open && 'hover:bg-accent/40',
+          OPTION_MARK[mark],
+        )}
+        data-option="extra"
+        data-option-mark={mark}
+        {...{ [PICKER]: '' }}
+      >
+        <span aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+        <span className="min-w-0 flex-1 text-muted-foreground">{label}</span>
+        {hints ? <Kbd className={cn(!open && 'invisible')}>0</Kbd> : null}
+      </button>
+    );
+  }
   return (
     <label
       className={cn(ROW, open && 'cursor-pointer hover:bg-accent/40', OPTION_MARK[mark])}
@@ -397,6 +428,7 @@ function OrderList({ question, answer }: { question: LearnQuestion; answer: Lear
               aria-pressed={selected}
               disabled={!open}
               onClick={() => answer.pick(index)}
+              {...{ [PICKER]: '' }}
             >
               <RichText text={texts.get(id) ?? id} />
             </button>
@@ -460,6 +492,7 @@ function MythButtons({ question, answer, hints }: { question: LearnQuestion; ans
               aria-disabled={!open || undefined}
               onClick={() => (open ? answer.myth(choice) : undefined)}
               data-myth={choice}
+              {...{ [PICKER]: '' }}
               data-option-mark={mark}
               className={cn('h-12 text-[15px] font-semibold', OPTION_MARK[mark], !open && 'cursor-default')}
             >
@@ -474,7 +507,10 @@ function MythButtons({ question, answer, hints }: { question: LearnQuestion; ans
   );
 }
 
-/** The status slot: what to do, why a pick is wrong, why the answer is right. It keeps its size. */
+/**
+ * The status slot: what to do, why a pick is wrong, why the answer is right. It is at least the board's height, so the
+ * card does not move between the short texts; a reason longer than that (up to the format's 300 characters) grows it.
+ */
 function Status({
   question,
   state,
@@ -513,7 +549,7 @@ export function statusOf(
   if (state.phase === 'sending') return { tone: 'neutral', lead: null, text: 'Sending your answer…' };
   const shown = state.shown;
   if (state.phase === 'done' && shown) {
-    if (shown.extra) return { tone: 'neutral', lead: 'Here is the answer.', text: shown.why };
+    if (shown.extra) return { tone: 'neutral', lead: null, text: shown.why ?? EXTRA_NOTE };
     if (shown.right) return { tone: 'right', lead: 'Right.', text: shown.why };
     return { tone: 'wrong', lead: 'Not quite.', text: shown.why };
   }
@@ -521,12 +557,14 @@ export function statusOf(
     const why = shown.why ?? (shown.missed ? MISSED_NOTE : type === 'PUT_IN_ORDER' ? OUT_OF_ORDER_NOTE : null);
     return { tone: 'wrong', lead: 'Not quite.', text: [why, againNoteOf(type)].filter(Boolean).join(' ') };
   }
-  return { tone: 'neutral', lead: null, text: place.note ?? openNoteOf(type, state.picked) };
+  return { tone: 'neutral', lead: null, text: place.note?.(type, state.picked) ?? openNoteOf(type, state.picked) };
 }
 
-/** The keys of a number of things: each one up to four, else the first, an ellipsis, and the last. */
-const numberKeysOf = (count: number) =>
-  count <= 4 ? Array.from({ length: count }, (_, index) => String(index + 1)) : ['1', '…', String(count)];
+/** The keys of a number of things, 1 to 9 at most: each one up to four, else the first, an ellipsis, and the last. */
+const numberKeysOf = (all: number) => {
+  const count = Math.min(9, all);
+  return count <= 4 ? Array.from({ length: count }, (_, index) => String(index + 1)) : ['1', '…', String(count)];
+};
 
 /** The line of keys for a question in its state: what picks, the extra choice, and the main key. */
 export function keyLineOf(
@@ -543,7 +581,7 @@ export function keyLineOf(
     const count = optionsOf(question).length;
     items.push({ keys: numberKeysOf(count), does: question.type === 'PICK_ALL' ? 'pick or unpick' : 'pick' });
   } else if (question.type === 'PICK_LINE') {
-    items.push({ keys: numberKeysOf(Math.min(9, pickCountOf(question, language))), does: 'pick a line' });
+    items.push({ keys: numberKeysOf(pickCountOf(question, language)), does: 'pick a line' });
   } else if (question.type === 'PUT_IN_ORDER') {
     items.push({ keys: numberKeysOf(orderItemsOf(question).length), does: 'pick a row' });
     items.push({ keys: ['↑', '↓'], does: 'move it' });

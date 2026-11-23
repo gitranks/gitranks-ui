@@ -52,6 +52,7 @@ describe('a package page', () => {
       { registry: 'packagist', name: ['laravel', 'framework'] },
       { registry: 'maven', name: ['org.slf4j', 'slf4j-api'] },
       { registry: 'nuget', name: ['newtonsoft.json'] },
+      { registry: 'rubygems', name: ['rails'] },
     ]);
   });
 

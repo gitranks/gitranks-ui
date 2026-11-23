@@ -167,6 +167,9 @@ describe('the package ranking layout', () => {
       // NuGet's first download count is not read yet: no downloads ranking.
       { registry: 'nuget', by: 'dependents-stars', page: '1' },
       { registry: 'nuget', by: 'dependents', page: '1' },
+      // RubyGems' first download count is not read yet either.
+      { registry: 'rubygems', by: 'dependents-stars', page: '1' },
+      { registry: 'rubygems', by: 'dependents', page: '1' },
     ]);
   });
 

@@ -32,7 +32,7 @@ type Props = Parameters<typeof LearnLandingView>[0];
 function draw(props: Partial<Props> = {}) {
   const page = document.createElement('div');
   page.innerHTML = renderToStaticMarkup(
-    <LearnLandingView viewer="visitor" courses={courseCards} lessons={tryLessons} hints {...props} />,
+    <LearnLandingView viewer="visitor" markdown courses={courseCards} lessons={tryLessons} hints {...props} />,
   );
   return page;
 }
@@ -69,6 +69,30 @@ describe('the landing for a visitor', () => {
     expect(page.textContent).not.toContain(LONG_DASH);
   });
 
+  it('leaves out the Markdown copy while it does not answer', () => {
+    const closed = draw({ viewer: 'member', markdown: false });
+    const links = [...closed.querySelectorAll('footer a')].map((a) => a.getAttribute('href'));
+    expect(links).toEqual(['/llms.txt']);
+    expect(closed.innerHTML).not.toContain('/learn.md');
+  });
+
+  it('goes from its title to the lesson card, the card titled at the next level, before How it works', () => {
+    const levels = [...page.querySelectorAll('h1, h2, h3')].map((heading) => Number(heading.tagName[1]));
+    expect(levels.slice(0, 2)).toEqual([1, 2]);
+    expect(levels.indexOf(3)).toBeGreaterThan(levels.indexOf(2));
+    expect(words(page.querySelector('[data-try-lesson] h2'))).toBe(tryLessons[0].lesson.title);
+  });
+
+  it('gives its text links a 44px target on a phone', () => {
+    const links = [
+      ...page.querySelectorAll('footer a'),
+      ...page.querySelectorAll('[data-try-lesson] a'),
+      page.querySelector('a[href="/learn/maintainers"]'),
+      page.querySelector('section a[href="/learn/courses"]'),
+    ];
+    for (const link of links) expect(link?.className, link?.textContent ?? '').toContain('max-sm:min-h-11');
+  });
+
   it('shows a course without numbers on launch day by its lessons alone', () => {
     const launch = draw({ courses: launchCourses });
     expect(launch.textContent).not.toMatch(/learners|\b0 /);
@@ -95,6 +119,17 @@ describe('the landing for someone signed in', () => {
       ['Start learning', '/learn/setup'],
     ]);
     expect(page.textContent).toContain('Free. Setting up takes a minute.');
+    expect(page.querySelector('[data-landing-resume]')).toBeNull();
+  });
+
+  it('links someone part-way through fixing an issue back to the step they reached', () => {
+    const page = draw({ viewer: 'member', resume: '/learn/start/issues' });
+    const resume = page.querySelector('[data-landing-resume]');
+    expect([words(resume), resume?.getAttribute('href')]).toEqual([
+      'Continue fixing an issue with your agent →',
+      '/learn/start/issues',
+    ]);
+    expect(resume?.className).toContain('max-sm:min-h-11');
   });
 
   it('is How Learn works for a learner, both buttons back to Learn home, with no line under the top one', () => {

@@ -11,6 +11,9 @@ const m = vi.hoisted(() => ({
   loadWorkspaceGate: vi.fn(async (): Promise<unknown> => null),
   loadLearnCourses: vi.fn(async (): Promise<unknown[]> => []),
   loadTryLessons: vi.fn(async (): Promise<unknown[]> => []),
+  everyone: vi.fn(async () => false),
+  loadLearnProfile: vi.fn(async (): Promise<unknown> => null),
+  loadLearnTimeZone: vi.fn(async (): Promise<unknown> => null),
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/navigation', () => ({
@@ -27,7 +30,9 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin: m.viewerLogin }));
 vi.mock('@/lib/learn/learn-front-door', () => ({ learnFrontDoorOpenToVisitor: m.openToVisitor }));
-vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: m.loadLearnOpen }));
+vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: m.loadLearnOpen, loadLearnProfile: m.loadLearnProfile }));
+vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: m.everyone }));
+vi.mock('@/lib/learn/my-progress.data', () => ({ loadLearnTimeZone: m.loadLearnTimeZone }));
 vi.mock('@/lib/learn/home.data', () => ({ loadLearnHome: m.loadLearnHome }));
 vi.mock('@/lib/learn/setup.data', () => ({ loadLearnSetup: m.loadLearnSetup }));
 vi.mock('@/lib/workspace/gate.data', () => ({ loadWorkspaceGate: m.loadWorkspaceGate }));
@@ -43,18 +48,20 @@ const { courseCards } = await import('@/lib/learn/__fixtures__/course');
 
 type Shown = ReactElement<Record<string, unknown>>;
 
-/** The landing a view returns, drawn: its viewer, from the page's own mark. */
-async function landingOf(view: unknown): Promise<string | null> {
+/** The landing a view returns, drawn. */
+async function landingHtmlOf(view: unknown): Promise<string | null> {
   if (!isValidElement(view)) return null;
   const element = view as Shown;
   const loaded =
     typeof element.type === 'function' && element.props.viewer
       ? await (element.type as (props: object) => Promise<unknown>)(element.props)
       : null;
-  if (!loaded) return null;
-  const html = renderToStaticMarkup(loaded as ReactElement);
-  return html.match(/data-landing-viewer="([^"]+)"/)?.[1] ?? null;
+  return loaded ? renderToStaticMarkup(loaded as ReactElement) : null;
 }
+
+/** The landing a view returns: its viewer, from the page's own mark. */
+const landingOf = async (view: unknown) =>
+  (await landingHtmlOf(view))?.match(/data-landing-viewer="([^"]+)"/)?.[1] ?? null;
 
 const UNSET = { state: 'NONE', mainLanguage: null, otherLanguages: [], level: null };
 const SAVED = { state: 'SAVED', mainLanguage: 'Go', otherLanguages: ['Python'], level: 3 };
@@ -67,6 +74,9 @@ beforeEach(() => {
   m.loadLearnCourses.mockResolvedValue(courseCards);
   m.loadTryLessons.mockResolvedValue([]);
   m.loadWorkspaceGate.mockResolvedValue(null);
+  m.everyone.mockResolvedValue(false);
+  m.loadLearnProfile.mockResolvedValue(null);
+  m.loadLearnTimeZone.mockResolvedValue(null);
 });
 
 const signedIn = ({ home = homeDay as unknown, setup = SAVED as unknown, gate = null as unknown } = {}) => {
@@ -84,9 +94,12 @@ describe('/learn for a visitor', () => {
     expect(m.loadLearnHome).not.toHaveBeenCalled();
   });
 
-  it('is the landing for a visitor once it is open', async () => {
+  it('is the landing for a visitor once it is open, its Markdown copy linked', async () => {
     m.openToVisitor.mockResolvedValue(true);
-    expect(await landingOf(await LearnFrontView())).toBe('visitor');
+    m.everyone.mockResolvedValue(true);
+    const html = await landingHtmlOf(await LearnFrontView());
+    expect(html).toContain('data-landing-viewer="visitor"');
+    expect(html).toContain('href="/learn.md"');
     expect(m.loadTryLessons).toHaveBeenCalledWith(courseCards);
   });
 
@@ -113,12 +126,47 @@ describe('/learn for someone signed in', () => {
     expect(m.loadLearnSetup).toHaveBeenCalledWith('octocat');
   });
 
+  it('links no Markdown copy while Learn is not open to everyone, as /learn.md is not found then', async () => {
+    signedIn({ home: homeNewLearner, setup: UNSET });
+    const html = await landingHtmlOf(await LearnFrontView());
+    expect(html).toContain('data-landing-viewer="member"');
+    expect(html).not.toContain('/learn.md');
+  });
+
+  it('links someone part-way through fixing an issue back to Pick an issue', async () => {
+    const goal = { goalKind: 'TOPIC', goalValue: 'caching' };
+    signedIn({ home: homeNewLearner, setup: UNSET, gate: { kind: 'open', entered: false } });
+    m.loadLearnProfile.mockResolvedValue(goal);
+    const html = await landingHtmlOf(await LearnFrontView());
+    expect(html?.match(/<a [^>]*data-landing-resume[^>]*>/)?.[0]).toContain('href="/learn/start/issues"');
+
+    // No goal saved, a goal that cannot be read, or a gate that is not open: no link.
+    for (const [profile, gate] of [
+      [null, { kind: 'open', entered: false }],
+      [Promise.reject(new Error('down')), { kind: 'open', entered: false }],
+      [goal, null],
+    ] as const) {
+      signedIn({ home: homeNewLearner, setup: UNSET, gate });
+      m.loadLearnProfile.mockImplementation(async () => profile);
+      expect(await landingHtmlOf(await LearnFrontView())).not.toContain('data-landing-resume');
+    }
+  });
+
   it("is Learn home for a learner, drawn at the time of the request in Learn's default zone", async () => {
     signedIn();
     const view = (await LearnFrontView()) as Shown;
     expect(view.type).toBe(LearnHomeView);
     expect(view.props).toMatchObject({ home: homeDay, setup: SAVED, timeZone: null });
     expect(Number.isNaN(Date.parse(view.props.now as string))).toBe(false);
+  });
+
+  it("counts a learner's days in the zone they saved", async () => {
+    signedIn();
+    m.loadLearnTimeZone.mockResolvedValue({ timeZone: 'Europe/Berlin' });
+    expect(((await LearnFrontView()) as Shown).props.timeZone).toBe('Europe/Berlin');
+    expect(m.loadLearnTimeZone).toHaveBeenCalledWith('octocat');
+    m.loadLearnTimeZone.mockResolvedValue({ timeZone: null });
+    expect(((await LearnFrontView()) as Shown).props.timeZone).toBeNull();
   });
 
   it('is Learn home for someone who uses Learn today, not set up and with nothing learned', async () => {

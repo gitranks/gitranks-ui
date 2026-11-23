@@ -301,6 +301,10 @@ describe("a Learn pull request's Lesson view", () => {
     expect(html).toContain('Take it down');
     expect(html).not.toContain('Submit pull request');
     expect(html).toContain('Start the next lesson →');
+    // The next issue to learn from is on today's Learn, as the workspace's own "Start the next lesson" says.
+    expect(screen(lessons.prOpen, detail({ ...attempt, state: 'PR_OPEN' }))).toMatch(
+      /href="\/learn\/earlier"[^>]*>Start the next lesson →/,
+    );
 
     const removed = text(
       screen({ ...lessons.prOpen, visibility: 'REMOVED' }, detail({ ...attempt, state: 'PR_OPEN' })),

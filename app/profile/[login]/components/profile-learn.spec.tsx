@@ -24,7 +24,8 @@ describe("Learn suggested on the owner's own profile", () => {
     expect(html).toContain('Lesson: cache keys and Map equality');
     expect(html).toContain('href="https://github.com/driftwood-js/driftwood/issues/871"');
     expect(html).toContain('background-color:#3178c6');
-    expect(html).toContain('href="/learn"');
+    // "Set my goal" opens the goal step of fixing an issue with your agent.
+    expect(html).toContain('href="/learn/start"');
     expect(html).toContain('Not for me');
   });
 

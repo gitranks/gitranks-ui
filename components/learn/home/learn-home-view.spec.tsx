@@ -48,6 +48,25 @@ describe('Learn home, a normal day', () => {
     expect(enter(page).map((link) => words(link))).toEqual(['Review now⏎']);
   });
 
+  it('lets R open the review while it is lit, its hint left to Enter', () => {
+    const review = page.querySelector('[data-course-key="R"]');
+    expect(review?.getAttribute('href')).toBe('/learn/review');
+    expect(review?.hasAttribute('data-course-enter')).toBe(true);
+    expect(words(review)).toBe('Review now⏎');
+  });
+
+  it('gives its text links a 44px target on a phone', () => {
+    const links = [
+      ...page.querySelectorAll('[data-home-foot] a'),
+      ...page.querySelectorAll('[data-course-columns] a'),
+      page.querySelector('[data-add-course] a'),
+      page.querySelector('a[href="/learn/progress"]'),
+      page.querySelector('[data-home-section="other"] a[href="/learn/courses"]'),
+    ];
+    expect(links.length).toBeGreaterThan(5);
+    for (const link of links) expect(link?.className, link?.textContent ?? '').toContain('max-sm:min-h-11');
+  });
+
   it('lists your courses with the totals and a card to add one, then the other courses', () => {
     expect(words(page.querySelector('[data-home-totals]'))).toBe('13 lessons learned · 4 practised · 1 mastered');
     expect(page.querySelectorAll('[data-my-courses] > li')).toHaveLength(3);
@@ -85,6 +104,8 @@ describe("Learn home's other days", () => {
     expect(words(review)).toContain('Nothing to repeat today');
     expect(words(review)).toContain('Next: 3 lessons on Monday.');
     expect(enter(page).map((link) => words(link))).toEqual(['Start lesson⏎']);
+    // Nothing due: no review to open, so R has nothing to press.
+    expect(page.querySelector('[data-course-key="R"]')).toBeNull();
   });
 
   it('says the review is done for today', () => {

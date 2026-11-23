@@ -6,6 +6,7 @@ import { signIn } from 'next-auth/react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { CodeBox } from '@/components/learn/blocks/code-lines';
+import { PHONE_LINK } from '@/components/learn/phone-link';
 import { lessonPlace } from '@/components/learn/player/places';
 import { AnswerPart } from '@/components/learn/question/answer-part';
 import { QuestionPart } from '@/components/learn/question/question-part';
@@ -19,6 +20,7 @@ import { answerLearnLessonAction } from '@/lib/learn/lesson-page.actions';
 import { shortDayWords } from '@/lib/learn/my-progress';
 import { coursePath, LEARN_HOME_PATH, LEARN_SETUP_PATH, learnLessonMinePath, learnLessonPath } from '@/lib/learn/paths';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
+import { cn } from '@/lib/utils';
 
 /*
  * The lesson at the top of the landing (page 4): a real lesson, answered right there. A visitor's answer is graded here
@@ -96,14 +98,17 @@ function TryPlayer({
   return (
     <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
       <div className="flex min-w-0 flex-col gap-3">
-        <Link href={coursePath(lesson.course.slug)} className="text-sm text-muted-foreground hover:underline">
+        <Link
+          href={coursePath(lesson.course.slug)}
+          className={cn('self-start text-sm text-muted-foreground hover:underline', PHONE_LINK)}
+        >
           {lesson.course.title} · {lesson.group.title}
         </Link>
-        <h3 className="m-0 text-xl font-semibold text-balance">
-          <Link href={learnLessonPath(lesson.slug)} className="hover:underline">
+        <h2 className="m-0 text-xl font-semibold text-balance">
+          <Link href={learnLessonPath(lesson.slug)} className={cn('hover:underline', PHONE_LINK)}>
             {lesson.title}
           </Link>
-        </h3>
+        </h2>
         <p className="m-0 text-sm text-foreground/80">{item.text}</p>
         {item.code ? <CodeBox code={item.code} /> : null}
         {languages ? <p className="m-0 text-xs text-muted-foreground">{languages}</p> : null}

@@ -178,9 +178,13 @@ describe("the landing's metadata", () => {
     expect(metadata.robots).toBeUndefined();
   });
 
-  it('is never indexed while the switch that opens Learn to everyone is closed', () => {
-    expect(learnLandingMetadata(courseCards, false).robots).toEqual(NO_INDEX);
+  it('is never indexed, and names no Markdown copy, while the switch that opens Learn to everyone is closed', () => {
+    const closed = learnLandingMetadata(courseCards, false);
+    expect(closed.robots).toEqual(NO_INDEX);
+    expect(closed.alternates).toEqual({ canonical: '/learn' });
+    expect(JSON.stringify(closed)).not.toContain('/learn.md');
     expect(learnLandingMetadata([], false).alternates?.canonical).toBe('/learn');
+    expect(learnLandingMetadata(courseCards, true).alternates?.types).toEqual({ 'text/markdown': '/learn.md' });
   });
 
   it('is the courses, the lesson at the top and the questions as structured data', () => {

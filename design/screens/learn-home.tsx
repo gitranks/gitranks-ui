@@ -78,7 +78,7 @@ const Home = ({ home, bar = learner(home.due) }: { home: LearnHomeRead; bar?: Le
 
 const Landing = ({ bar = visitor, ...props }: Partial<LearnLandingViewProps> & { bar?: LearnBarState }) => (
   <Site bar={bar}>
-    <LearnLandingView viewer="visitor" courses={courseCards} lessons={tryLessons} hints {...props} />
+    <LearnLandingView viewer="visitor" markdown courses={courseCards} lessons={tryLessons} hints {...props} />
   </Site>
 );
 
@@ -105,6 +105,12 @@ export function LandingBoards() {
       <Frame title="Signed in, not set up · the answer is saved, then Set up Learn" height={880}>
         <Landing bar={setup} viewer="member" tryDrawn={{ answer: right, saved: true }} />
       </Frame>
+      <Frame
+        title="Signed in, part-way through fixing an issue with their agent · a link back to the step they reached"
+        height={880}
+      >
+        <Landing bar={setup} viewer="member" resume="/learn/start/issues" />
+      </Frame>
       <Frame title="Launch day · no numbers yet: a course row shows its lessons alone" height={1660}>
         <Landing courses={launchCourses} />
       </Frame>
@@ -119,10 +125,10 @@ export function LandingBoards() {
 export function PhoneBoards() {
   return (
     <main className="flex w-full flex-col gap-8 px-2 pt-6 pb-16">
-      <Frame title="Landing on a phone, not signed in" height={5250}>
+      <Frame title="Landing on a phone, not signed in" height={5500}>
         <Landing />
       </Frame>
-      <Frame title="Learn home on a phone, a normal day" height={2170}>
+      <Frame title="Learn home on a phone, a normal day" height={2500}>
         <Home home={homeDay} />
       </Frame>
     </main>

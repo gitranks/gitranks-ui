@@ -347,7 +347,7 @@ export const LEARN_SCREENS: Screen[] = [
         title: 'The landing: the whole page, the lesson at the top in its states, launch day, no course yet',
         path: '/learn',
         signedOut: true,
-        height: 10600,
+        height: 11500,
         render: () => <LandingBoards />,
       },
       {
@@ -356,7 +356,7 @@ export const LEARN_SCREENS: Screen[] = [
         path: '/learn',
         signedOut: true,
         width: 390,
-        height: 7650,
+        height: 8250,
         render: () => <PhoneBoards />,
       },
       {

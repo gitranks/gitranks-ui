@@ -11,10 +11,10 @@ import { HEADING } from '@/components/workspace/primitives';
 import { readPracticeNext } from '@/lib/learn/actions';
 import type { PracticeNext } from '@/lib/learn/learn.types';
 import { attemptTitleOf, goalValueOf } from '@/lib/learn/learn-home';
-import { LEARN_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
+import { LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 import { issueRowOfLearn } from '@/lib/workspace/issue-row';
-import { PICK_ISSUE_PATHS, pullRequestByAttemptPath } from '@/lib/workspace/paths';
+import { GETTING_IN_PATHS, PICK_ISSUE_PATHS, pullRequestByAttemptPath } from '@/lib/workspace/paths';
 
 /** A Learn row's Start a lesson leads to the Start page in lesson mode; no agent is offered. */
 const NO_AGENTS = { hosted: false, own: false };
@@ -100,7 +100,7 @@ export function PracticeNextCard({ next: given }: { next?: PracticeNext | null }
           Yours is written for an issue you pick, by your agent, for what you want to learn.
         </p>
         <Button asChild className={BUTTON}>
-          <Link href={LEARN_PATH} prefetch={false}>
+          <Link href={GETTING_IN_PATHS.learnGoal} prefetch={false}>
             Tell us what you want to learn
             <ArrowRight aria-hidden="true" />
           </Link>

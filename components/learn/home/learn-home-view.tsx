@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { useCoursePageKeys } from '@/components/learn/course/use-course-keys';
 import { CourseStats } from '@/components/learn/courses/course-card';
 import { MyCourseCard } from '@/components/learn/my-progress/my-progress-parts';
+import { PHONE_LINK } from '@/components/learn/phone-link';
 import { Kbd } from '@/components/learn/question/kbd';
 import { Button } from '@/components/ui/button';
 import type { CourseSection, LearnCourseCard } from '@/lib/learn/course';
@@ -75,7 +76,10 @@ const Title = ({ quiet = false, children }: { quiet?: boolean; children: ReactNo
 );
 const Text = ({ children }: { children: ReactNode }) => <p className="m-0 text-sm text-muted-foreground">{children}</p>;
 
-/** A box's one action: the main one (Enter) when its box is lit, else an outline one, with its own key when it has one. */
+/**
+ * A box's one action: the main one (Enter) when its box is lit, else an outline one. Its own key, when it has one, works
+ * either way; its hint shows only when the box is not lit, where Enter's is.
+ */
 function Action({
   lit,
   hints,
@@ -158,7 +162,7 @@ function ReviewBox({ box, lit, hints }: { box: HomeReviewBox; lit: boolean; hint
           <Eyebrow>Due now</Eyebrow>
           <Title>{dueTitleOf(box.due)}</Title>
           <Text>{dueLineOf(box)}</Text>
-          <Action lit={lit} hints={hints} href={LEARN_REVIEW_PATH} keyHint={lit ? undefined : 'R'}>
+          <Action lit={lit} hints={hints} href={LEARN_REVIEW_PATH} keyHint="R">
             Review now
           </Action>
         </Box>
@@ -204,7 +208,10 @@ function ReviewBox({ box, lit, hints }: { box: HomeReviewBox; lit: boolean; hint
 function CourseRow({ course }: { course: LearnCourseCard }) {
   return (
     <li className="flex min-w-0 flex-col gap-0.5">
-      <Link href={coursePath(course.slug)} className="truncate text-sm font-semibold hover:underline">
+      <Link
+        href={coursePath(course.slug)}
+        className="truncate text-sm font-semibold hover:underline max-sm:min-h-11 max-sm:leading-11"
+      >
         {course.name}
       </Link>
       <CourseStats course={course} mine={null} />
@@ -246,7 +253,7 @@ function OtherCourses({ home }: { home: LearnHomeRead }) {
         <h2 id="other-courses" className={H2}>
           Other courses
         </h2>
-        <Link href={LEARN_COURSES_PATH} className="text-sm font-semibold text-link hover:underline">
+        <Link href={LEARN_COURSES_PATH} className={cn('text-sm font-semibold text-link hover:underline', PHONE_LINK)}>
           All courses
         </Link>
       </div>
@@ -272,7 +279,7 @@ function YourCourses({ home, today }: { home: LearnHomeRead; today: string }) {
             </span>
           ) : null}
         </div>
-        <Link href={LEARN_PROGRESS_PATH} className="text-sm font-semibold text-link hover:underline">
+        <Link href={LEARN_PROGRESS_PATH} className={cn('text-sm font-semibold text-link hover:underline', PHONE_LINK)}>
           Your progress
         </Link>
       </div>
@@ -285,7 +292,10 @@ function YourCourses({ home, today }: { home: LearnHomeRead; today: string }) {
           <p className="m-0 text-sm text-muted-foreground">
             A topic or a language. You can follow as many as you like.
           </p>
-          <Link href={LEARN_COURSES_PATH} className="mt-auto text-sm font-semibold text-link hover:underline">
+          <Link
+            href={LEARN_COURSES_PATH}
+            className={cn('mt-auto self-start text-sm font-semibold text-link hover:underline', PHONE_LINK)}
+          >
             See all courses →
           </Link>
         </li>
@@ -312,7 +322,7 @@ function FirstCourse({
         {forWhom ? (
           <p className="m-0 text-sm text-muted-foreground">
             {forWhom} ·{' '}
-            <Link href={LEARN_SETUP_PATH} className="font-semibold text-link hover:underline">
+            <Link href={LEARN_SETUP_PATH} className={cn('font-semibold text-link hover:underline', PHONE_LINK)}>
               Change
             </Link>
           </p>
@@ -339,7 +349,7 @@ function FirstCourse({
         </ul>
       ) : (
         <p className="m-0 text-sm text-muted-foreground">
-          <Link href={LEARN_COURSES_PATH} className="font-semibold text-link hover:underline">
+          <Link href={LEARN_COURSES_PATH} className={cn('font-semibold text-link hover:underline', PHONE_LINK)}>
             See all courses
           </Link>{' '}
           and start the one you like.
@@ -351,9 +361,12 @@ function FirstCourse({
 
 /** The foot: how Learn works, the page for maintainers, and the way Learn worked before its courses. */
 export function LearnHomeFoot() {
-  const link = 'font-semibold text-link hover:underline';
+  const link = cn('font-semibold text-link hover:underline', PHONE_LINK);
   return (
-    <footer className="flex flex-wrap gap-x-2 gap-y-1 border-t pt-6 text-sm text-muted-foreground" data-home-foot="">
+    <footer
+      className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t pt-6 text-sm text-muted-foreground"
+      data-home-foot=""
+    >
       <Link href={LEARN_ABOUT_PATH} className={link}>
         How Learn works
       </Link>
@@ -421,7 +434,7 @@ export function LearnHomeError() {
           <Button asChild className="min-h-11 px-5 font-semibold">
             <a href="/learn">Try again</a>
           </Button>
-          <Link href={LEARN_COURSES_PATH} className="text-sm font-semibold text-link hover:underline">
+          <Link href={LEARN_COURSES_PATH} className={cn('text-sm font-semibold text-link hover:underline', PHONE_LINK)}>
             See all courses
           </Link>
         </div>

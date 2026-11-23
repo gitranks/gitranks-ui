@@ -17,8 +17,8 @@ import { absoluteUrl } from '@/lib/seo/site';
 export const LANDING_DESCRIPTION = clipText(LANDING_TEXT, 158);
 
 /**
- * `/learn`: the landing is the page search engines and agents get, with its Markdown copy as an alternate; indexed
- * only while Learn is open to everyone (`open`), as a learner's own home at the same address never is.
+ * `/learn`: the landing is the page search engines and agents get. Only while Learn is open to everyone (`open`) is it
+ * indexed and its Markdown copy named as an alternate: `/learn.md` is not found before then.
  */
 export function learnLandingMetadata(courses: readonly Pick<LearnCourseCard, 'lessons'>[], open: boolean): Metadata {
   const metadata = withPreview(
@@ -36,7 +36,8 @@ export function learnLandingMetadata(courses: readonly Pick<LearnCourseCard, 'le
     },
     LEARN_LANDING_MARKDOWN_PATH,
   );
-  return learnIndexedWhile(metadata, open);
+  if (open) return metadata;
+  return learnIndexedWhile({ ...metadata, alternates: { canonical: metadata.alternates?.canonical } }, false);
 }
 
 /**

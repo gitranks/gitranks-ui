@@ -311,7 +311,8 @@ describe('a practice lesson', () => {
     const noGoal = passed(practiceNext.noGoal);
     expect(noGoal).toContain('data-next-step="goal"');
     expect(text(noGoal)).toContain('Tell us what you want to learn');
-    expect(noGoal).toMatch(/href="\/learn"/);
+    // The goal step of fixing an issue with your agent: Learn home asks for no goal.
+    expect(noGoal).toMatch(/href="\/learn\/start"[^>]*>Tell us what you want to learn/);
     const unread = passed(null);
     expect(unread).toContain('data-next-step="own"');
     expect(unread).not.toContain('data-side="learn"');

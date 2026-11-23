@@ -4,6 +4,7 @@ import { type TryDrawn, TryLessonCard } from './try-lesson';
 import { SQUARE_CLASS } from '@/components/learn/course/course-marks';
 import { CourseColumns } from '@/components/learn/home/learn-home-view';
 import { LearnSignInButton } from '@/components/learn/learn-sign-in';
+import { PHONE_LINK } from '@/components/learn/phone-link';
 import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { buttonVariants } from '@/components/ui/button';
 import { H2, MUTED_SECTION, WIDTH } from '@/components/workspace/getting-in/landing-parts';
@@ -73,6 +74,13 @@ function FooterExample() {
 
 export type LearnLandingViewProps = {
   viewer: LandingViewer;
+  /** Whether the Markdown copy at `/learn.md` answers: only while Learn is open to everyone. */
+  markdown: boolean;
+  /**
+   * For someone part-way through fixing an issue with their agent (a goal saved, never entered): the step they reached,
+   * linked under the top button. Null for everyone else.
+   */
+  resume?: string | null;
   /** Every live course, for the columns; none leaves the section out. */
   courses: readonly LearnCourseCard[];
   /** The lessons the top offers; none leaves the card out. */
@@ -83,7 +91,15 @@ export type LearnLandingViewProps = {
 };
 
 /** The landing, top to bottom. */
-export function LearnLandingView({ viewer, courses, lessons, tryDrawn, hints }: LearnLandingViewProps) {
+export function LearnLandingView({
+  viewer,
+  markdown,
+  resume = null,
+  courses,
+  lessons,
+  tryDrawn,
+  hints,
+}: LearnLandingViewProps) {
   const sections = landingSectionsOf(courses);
   return (
     <main className="flex flex-col" data-landing-viewer={viewer}>
@@ -106,6 +122,16 @@ export function LearnLandingView({ viewer, courses, lessons, tryDrawn, hints }: 
             <StartButton viewer={viewer} />
           </div>
           {START_LINES[viewer] ? <p className="m-0 text-sm text-muted-foreground">{START_LINES[viewer]}</p> : null}
+          {resume ? (
+            <Link
+              href={resume as never}
+              prefetch={false}
+              className={cn('self-start text-sm font-semibold text-link hover:underline', PHONE_LINK)}
+              data-landing-resume=""
+            >
+              Continue fixing an issue with your agent →
+            </Link>
+          ) : null}
         </div>
         {lessons.length ? <TryLessonCard lessons={lessons} viewer={viewer} drawn={tryDrawn} hints={hints} /> : null}
       </section>
@@ -137,7 +163,10 @@ export function LearnLandingView({ viewer, courses, lessons, tryDrawn, hints }: 
             <h2 id="landing-courses" className={H2}>
               Courses
             </h2>
-            <Link href={LEARN_COURSES_PATH} className="text-sm font-semibold text-link hover:underline">
+            <Link
+              href={LEARN_COURSES_PATH}
+              className={cn('text-sm font-semibold text-link hover:underline', PHONE_LINK)}
+            >
               All courses
             </Link>
           </div>
@@ -170,7 +199,10 @@ export function LearnLandingView({ viewer, courses, lessons, tryDrawn, hints }: 
         <div className="flex min-w-0 flex-col gap-4">
           <h2 className={H2}>Honest with maintainers</h2>
           <p className="m-0 max-w-prose text-muted-foreground">{LANDING_MAINTAINERS_TEXT}</p>
-          <Link href={LEARN_MAINTAINERS_PATH} className="self-start font-semibold text-link hover:underline">
+          <Link
+            href={LEARN_MAINTAINERS_PATH}
+            className={cn('self-start font-semibold text-link hover:underline', PHONE_LINK)}
+          >
             For maintainers →
           </Link>
         </div>
@@ -187,16 +219,20 @@ export function LearnLandingView({ viewer, courses, lessons, tryDrawn, hints }: 
         </div>
       </section>
 
-      <footer className={cn(WIDTH, 'flex flex-wrap gap-x-2 gap-y-1 py-8 text-sm text-muted-foreground')}>
+      <footer className={cn(WIDTH, 'flex flex-wrap items-center gap-x-2 gap-y-1 py-8 text-sm text-muted-foreground')}>
         <span>Written and checked by GitRanks</span>
-        <span aria-hidden="true">·</span>
-        <a href={LEARN_LANDING_MARKDOWN_PATH} className="font-semibold text-link hover:underline">
-          Markdown version
-        </a>
+        {markdown ? (
+          <>
+            <span aria-hidden="true">·</span>
+            <a href={LEARN_LANDING_MARKDOWN_PATH} className={cn('font-semibold text-link hover:underline', PHONE_LINK)}>
+              Markdown version
+            </a>
+          </>
+        ) : null}
         <span aria-hidden="true">·</span>
         <span>
           For agents:{' '}
-          <a href="/llms.txt" className="font-semibold text-link hover:underline">
+          <a href="/llms.txt" className={cn('font-semibold text-link hover:underline', PHONE_LINK)}>
             llms.txt
           </a>
         </span>

@@ -1,4 +1,5 @@
 import type { Screen } from '../registry';
+import { LEARN_QUESTION_SCREEN } from './learn-question';
 import { LearnBar } from '@/components/learn/bar/learn-bar';
 import { type LearnBarFixture, learnBarPhoneRows, learnBarRows } from '@/lib/learn/__fixtures__/learn-bar';
 
@@ -51,4 +52,5 @@ export const LEARN_FRAME_SCREENS: Screen[] = [
       },
     ],
   },
+  LEARN_QUESTION_SCREEN,
 ];

@@ -744,11 +744,13 @@ describe('proxy', () => {
       '/learn/maintainers/x',
       '/learn/%E0%A4%A',
       '/learn/start/driftwood-js/driftwood/934',
-      // The review, the check and Set up Learn: signed in only.
+      // The review, the check, Set up Learn and My progress: signed in only.
       '/learn/review',
       '/learn/check/algorithms',
       '/learn/setup',
       '/learn/setup/',
+      '/learn/progress',
+      '/learn/progress/',
     ];
 
     it.each(CLOSED)('answers %s with a 404 nobody caches, to a visitor without a session', async (path) => {
@@ -769,6 +771,7 @@ describe('proxy', () => {
           '/learn/review',
           '/learn/check/algorithms',
           '/learn/setup',
+          '/learn/progress',
         ]) {
           const response = await proxy(request('authjs.session-token=t', path), event);
           expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
@@ -823,6 +826,7 @@ describe('proxy', () => {
         '/learn/review',
         '/learn/check/algorithms',
         '/learn/setup',
+        '/learn/progress',
       ]) {
         const response = await proxy(request('authjs.session-token=t', path), event);
         expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();

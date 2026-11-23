@@ -75,6 +75,12 @@ export const learnReviewMinePath = (course: string | null) =>
   course ? `/api/me/learn/review?course=${encodeURIComponent(course)}` : '/api/me/learn/review';
 /** Where the browser reads the signed-in person's setup. */
 export const LEARN_SETUP_MINE_PATH = '/api/me/learn/setup';
+/** Where the browser reads the signed-in person's progress, and a page of their History (the days before `before`). */
+export const LEARN_MY_PROGRESS_MINE_PATH = '/api/me/learn/progress';
+export const learnHistoryMinePath = (before: string | null) =>
+  before
+    ? `${LEARN_MY_PROGRESS_MINE_PATH}/history?before=${encodeURIComponent(before)}`
+    : `${LEARN_MY_PROGRESS_MINE_PATH}/history`;
 /** The query that asks the depth of each lesson in some of the person's courses, by their slugs, comma-separated. */
 export const COURSE_DEPTHS_QUERY = 'depths';
 /** Where the browser reads the depth of each lesson in the given courses of the person. */

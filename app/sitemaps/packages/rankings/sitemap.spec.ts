@@ -15,7 +15,7 @@ describe('package rankings sitemap', () => {
     vi.mocked(fetchPackageRankingFacts).mockReset();
   });
 
-  it("lists each registry's rankings to the pages its ranked packages fill, Go's, pub.dev's and Maven Central's two with no downloads", async () => {
+  it("lists each registry's rankings to the pages its ranked packages fill, Go's, pub.dev's, Maven Central's and NuGet's two with no downloads", async () => {
     vi.mocked(fetchPackageRankingFacts).mockImplementation(async (registry) =>
       facts(registry === PackageRegistry.Npm ? 150 : 40),
     );
@@ -43,6 +43,9 @@ describe('package rankings sitemap', () => {
       '/packages/packagist/dependents/1',
       '/packages/maven/dependents-stars/1',
       '/packages/maven/dependents/1',
+      // Nor is NuGet's.
+      '/packages/nuget/dependents-stars/1',
+      '/packages/nuget/dependents/1',
     ]);
   });
 
@@ -231,6 +234,26 @@ describe('package rankings sitemap', () => {
           "priority": 0.9,
           "url": "https://example.test/packages/maven/dependents/2",
         },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/nuget/dependents-stars/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/nuget/dependents/1",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/nuget/dependents-stars/2",
+        },
+        {
+          "changeFrequency": "monthly",
+          "priority": 0.9,
+          "url": "https://example.test/packages/nuget/dependents/2",
+        },
       ]
     `);
   });
@@ -240,14 +263,15 @@ describe('package rankings sitemap', () => {
 
     const all = await paths();
 
-    expect(all).toHaveLength(900);
+    expect(all).toHaveLength(1000);
     expect(all.at(149)).toBe('/packages/npm/dependents/50');
     expect(all.at(299)).toBe('/packages/pypi/dependents/50');
     expect(all.at(399)).toBe('/packages/go/dependents/50');
     expect(all.at(549)).toBe('/packages/crates/dependents/50');
     expect(all.at(649)).toBe('/packages/pub/dependents/50');
     expect(all.at(799)).toBe('/packages/packagist/dependents/50');
-    expect(all.at(-1)).toBe('/packages/maven/dependents/50');
+    expect(all.at(899)).toBe('/packages/maven/dependents/50');
+    expect(all.at(-1)).toBe('/packages/nuget/dependents/50');
   });
 
   it('lists no page before the first ranks, or when they cannot be read', async () => {

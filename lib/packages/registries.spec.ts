@@ -35,8 +35,8 @@ import {
 import { PackageRegistry } from '@/types/generated/graphql';
 
 describe('the registry table', () => {
-  it('lists npm, the default, then PyPI, Go, crates.io, pub.dev, Packagist and Maven Central, as the API names them', () => {
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
+  it('lists npm, the default, then PyPI, Go, crates.io, pub.dev, Packagist, Maven Central and NuGet, as the API names them', () => {
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget']);
     expect(DEFAULT_REGISTRY).toBe('npm');
     expect(apiRegistryOf('npm')).toBe(PackageRegistry.Npm);
     expect(apiRegistryOf('pypi')).toBe(PackageRegistry.Pypi);
@@ -47,6 +47,7 @@ describe('the registry table', () => {
     expect(registryOfApi('PUB')).toBe('pub');
     expect(registryOfApi('PACKAGIST')).toBe('packagist');
     expect(registryOfApi('MAVEN')).toBe('maven');
+    expect(registryOfApi('NUGET')).toBe('nuget');
     expect(registryOfApi('npm')).toBeNull();
     expect(registryOfApi('CARGO')).toBeNull();
     expect(registryOfApi(null)).toBeNull();
@@ -56,21 +57,16 @@ describe('the registry table', () => {
     expect(ALL_REGISTRY_IDS.map((id) => REGISTRIES[id].api).sort()).toEqual(Object.values(PackageRegistry).sort());
   });
 
-  it('shows the registries its list names, in the order of the table: npm, PyPI, Go, crates.io, pub.dev, Packagist and Maven Central for now', () => {
-    expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
+  it('shows the registries its list names, in the order of the table: npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central and NuGet for now', () => {
+    expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget']);
     expect(ALL_REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget', 'rubygems']);
-    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
-    // Rows not listed yet: the table knows them, nothing a visitor reaches does.
-    for (const [id, api] of [
-      ['nuget', 'NUGET'],
-      ['rubygems', 'RUBYGEMS'],
-    ] as const) {
-      expect(isRegistryRow(id), id).toBe(true);
-      expect(isRegistryId(id), id).toBe(false);
-      expect(registryRowOfApi(api), api).toBe(id);
-      expect(registryOfApi(api), api).toBeNull();
-      expect(isListedApiRegistry(api), api).toBe(false);
-    }
+    expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget']);
+    // A row not listed yet: the table knows it, nothing a visitor reaches does.
+    expect(isRegistryRow('rubygems')).toBe(true);
+    expect(isRegistryId('rubygems')).toBe(false);
+    expect(registryRowOfApi('RUBYGEMS')).toBe('rubygems');
+    expect(registryOfApi('RUBYGEMS')).toBeNull();
+    expect(isListedApiRegistry('RUBYGEMS')).toBe(false);
     expect(isRegistryRow('cargo')).toBe(false);
   });
 
@@ -232,10 +228,10 @@ describe('package keys', () => {
     expect(packageOfKey('npm/@types/node')).toEqual({ registry: 'npm', name: '@types/node' });
     expect(packageOfKey('npm/react')).toEqual({ registry: 'npm', name: 'react' });
     expect(packageOfKey('pypi/zope-interface')).toEqual({ registry: 'pypi', name: 'zope-interface' });
+    expect(packageOfKey('nuget/serilog')).toEqual({ registry: 'nuget', name: 'serilog' });
     for (const key of [
       'react',
       'cargo/react',
-      'nuget/serilog',
       'rubygems/rails',
       'npm/',
       'npm/.env',
@@ -261,12 +257,12 @@ describe('copy from the table', () => {
   });
 
   it('names every registry where the copy lists every one, and a package alone past two', () => {
-    expect(registryLabelList()).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist and Maven Central');
-    expect(registryLabelList('or')).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist or Maven Central');
+    expect(registryLabelList()).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central and NuGet');
+    expect(registryLabelList('or')).toBe('npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central or NuGet');
     expect(anyRegistryPackageText()).toBe('package');
     expect(anyRegistryPackageText(true)).toBe('a package');
     expect(registryManifestList()).toBe(
-      'package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml, pubspec.yaml, composer.json, pom.xml or build.gradle',
+      'package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml, pubspec.yaml, composer.json, pom.xml, build.gradle, .csproj or packages.config',
     );
     expect(registryManifestList(['pypi'])).toBe('requirements.txt or pyproject.toml');
   });

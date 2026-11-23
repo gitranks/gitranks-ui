@@ -181,7 +181,7 @@ export async function GET(req: NextRequest, { params }: RouteContext<'/api/packa
 /** "Refresh now" on a package that updates every day, for the signed-in visitor. */
 export const POST = auth(async function POST(req: AuthRequest, { params }) {
   const target = await targetOf(params);
-  if (!target || target.action !== 'refresh') {
+  if (target?.action !== 'refresh') {
     return notFound();
   }
   const githubLogin = req.auth?.user.githubLogin;

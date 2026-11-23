@@ -53,6 +53,9 @@ const UNCOUNTED = labelsOf(null);
 /** One registry or several: "Go publishes … it has", "Go and Maven Central publish … they have". */
 const UNCOUNTED_ONE = registriesOf(null).length === 1;
 
+/** "pub.dev's", "RubyGems'": a label's possessive. */
+const possessiveOf = (label: string) => (label.endsWith('s') ? `${label}'` : `${label}'s`);
+
 /**
  * "pub.dev's first monthly download count comes in early December 2026; until then it has no downloads ranking.": one
  * sentence for each listed registry that counts downloads but whose first count is not read yet.
@@ -60,7 +63,7 @@ const UNCOUNTED_ONE = registriesOf(null).length === 1;
 const PENDING = REGISTRY_IDS.filter(isDownloadsPending).map((id) => {
   const unit = registryOf(id).downloads;
   const counted = unit ? `${DOWNLOADS_UNIT_TEXT[unit].adjective} download count` : 'download count';
-  return ` ${REGISTRIES[id].label}'s first ${counted} comes in ${DOWNLOADS_PENDING[id]}; until then it has no downloads ranking.`;
+  return ` ${possessiveOf(REGISTRIES[id].label)} first ${counted} comes in ${DOWNLOADS_PENDING[id]}; until then it has no downloads ranking.`;
 });
 
 /** What each ranking ranks by, and what its change column compares. */
@@ -120,6 +123,10 @@ const HOW_READ: Record<RegistryId, string> = {
     "A package's facts come from packagist.org, with its downloads counted a month at a time, past months included. Composer reads names without case, so GitRanks' addresses use the lower-case form.",
   maven:
     "An artifact's facts come from deps.dev, which reads Maven Central. Maven Central publishes no download counts, so its artifacts are ranked by the repositories that depend on them alone. An artifact is named groupId:artifactId, and its address on GitRanks is groupId/artifactId.",
+  nuget:
+    "A package's facts come from NuGet's API. NuGet publishes a running count of all downloads, read in the first days of each month: a month's downloads are the difference between two reads, scaled to the calendar month. NuGet reads ids without case, so GitRanks' addresses use the lower-case form.",
+  rubygems:
+    "A gem's facts come from rubygems.org's API. RubyGems publishes a running count of all downloads, read in the first days of each month: a month's downloads are the difference between two reads, scaled to the calendar month. A gem's name is kept as written, capitals included.",
 };
 
 export default function PackageMethodologyPage() {

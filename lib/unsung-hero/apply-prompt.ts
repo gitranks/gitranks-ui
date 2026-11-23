@@ -47,9 +47,15 @@ export function registryNamesOf(registries: readonly ApplyRegistry[]): string {
   return labels.length > 1 ? `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}` : (labels[0] ?? '');
 }
 
-/** A registry as written, from the API's list; the API's own name for one the list does not hold. */
-export const registryLabelOf = (registries: readonly ApplyRegistry[], id: string | null | undefined): string | null =>
-  id ? (registries.find((registry) => registry.id === id)?.label ?? id) : null;
+/**
+ * A registry as written, from the API's list; for one the list does not hold (a registry heroes do not come from yet,
+ * NuGet), the table's label, and the API's own name for one the table has no row for either.
+ */
+export function registryLabelOf(registries: readonly ApplyRegistry[], id: string | null | undefined): string | null {
+  if (!id) return null;
+  const row = registryRowOfApi(id);
+  return registries.find((registry) => registry.id === id)?.label ?? (row ? REGISTRIES[row].label : id);
+}
 
 /**
  * What the prompt is about: a package we found (its registry, its name as the registry spells it, its repository), or

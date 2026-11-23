@@ -83,11 +83,11 @@ describe('a registry with no download counts and two-part names: Maven Central',
   });
 
   it('names every listed registry in the Beta notice, and the files of the page’s own', () => {
-    const listed = 'npm, PyPI, Go, crates.io, pub.dev, Packagist and Maven Central';
+    const listed = 'npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central, NuGet and RubyGems';
     expect(registryLabelList()).toBe(listed);
     expect(renderToStaticMarkup(<PackageBetaNotice />)).toContain(`<b>${listed} packages only</b>`);
     expect(renderToStaticMarkup(<PackageBetaNotice />)).toContain(
-      'in their own package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml, pubspec.yaml, composer.json, pom.xml or build.gradle.',
+      'in their own package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml, pubspec.yaml, composer.json, pom.xml, build.gradle, .csproj, packages.config, Gemfile or .gemspec.',
     );
     expect(renderToStaticMarkup(<PackageBetaNotice registry={maven} />)).toContain(
       'in their own pom.xml or build.gradle.',

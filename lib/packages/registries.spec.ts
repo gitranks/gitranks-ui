@@ -57,14 +57,20 @@ describe('the registry table', () => {
 
   it('shows the registries its list names, in the order of the table: npm, PyPI, Go, crates.io, pub.dev and Packagist for now', () => {
     expect(LISTED_REGISTRIES).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist']);
-    expect(ALL_REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven']);
+    expect(ALL_REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist', 'maven', 'nuget', 'rubygems']);
     expect(REGISTRY_IDS).toEqual(['npm', 'pypi', 'go', 'crates', 'pub', 'packagist']);
-    // A row not listed yet: the table knows it, nothing a visitor reaches does.
-    expect(isRegistryRow('maven')).toBe(true);
-    expect(isRegistryId('maven')).toBe(false);
-    expect(registryRowOfApi('MAVEN')).toBe('maven');
-    expect(registryOfApi('MAVEN')).toBeNull();
-    expect(isListedApiRegistry('MAVEN')).toBe(false);
+    // Rows not listed yet: the table knows them, nothing a visitor reaches does.
+    for (const [id, api] of [
+      ['maven', 'MAVEN'],
+      ['nuget', 'NUGET'],
+      ['rubygems', 'RUBYGEMS'],
+    ] as const) {
+      expect(isRegistryRow(id), id).toBe(true);
+      expect(isRegistryId(id), id).toBe(false);
+      expect(registryRowOfApi(api), api).toBe(id);
+      expect(registryOfApi(api), api).toBeNull();
+      expect(isListedApiRegistry(api), api).toBe(false);
+    }
     expect(isRegistryRow('cargo')).toBe(false);
   });
 
@@ -103,10 +109,18 @@ describe('the registry table', () => {
     expect(canonicalNameOf('pub', 'shared_preferences')).toBe('shared_preferences');
   });
 
-  it("treats pub.dev as a registry without download counts until its first month's count is read", () => {
-    expect(Object.keys(DOWNLOADS_PENDING)).toEqual(['pub']);
-    expect(DOWNLOADS_PENDING.pub).toBe('early December 2026');
-    expect(isDownloadsPending('pub')).toBe(true);
+  it("treats pub.dev, NuGet and RubyGems as registries without download counts until their first month's count is read", () => {
+    expect(DOWNLOADS_PENDING).toEqual({
+      pub: 'early December 2026',
+      nuget: 'early January 2027',
+      rubygems: 'early January 2027',
+    });
+    for (const id of ['pub', 'nuget', 'rubygems'] as const) {
+      expect(REGISTRIES[id].downloads, id).toBe('month');
+      expect(isDownloadsPending(id), id).toBe(true);
+      expect(downloadsUnitOf(id), id).toBeNull();
+      expect(registryHasDownloads(id), id).toBe(false);
+    }
     expect(isDownloadsPending('pypi')).toBe(false);
     expect(downloadsUnitOf('pub')).toBeNull();
     expect(registryHasDownloads('pub')).toBe(false);
@@ -221,6 +235,8 @@ describe('package keys', () => {
     for (const key of [
       'react',
       'cargo/react',
+      'nuget/serilog',
+      'rubygems/rails',
       'npm/',
       'npm/.env',
       'npm/nebula/ui',

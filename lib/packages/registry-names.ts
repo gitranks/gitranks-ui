@@ -164,10 +164,21 @@ export const isNugetName = (name: string) => name.length <= NUGET_NAME_MAX_LENGT
 /** A NuGet id the way nuget.org compares ids, and the way the site's addresses write it: lower case. */
 export const foldNugetName = (name: string) => name.toLowerCase();
 
-/** The id in an MSBuild item or a `packages.config` entry: `Include="Serilog"`, `id="Serilog"`. */
-const NUGET_ITEM = /\b(?:Include|id)\s*=\s*["']([^"']+)["']/i;
-/** The id after a command that adds a package: `dotnet add package`, `Install-Package`, `nuget install`. */
-const NUGET_COMMAND = /^(?:dotnet\s+add\s+(?:\S+\s+)?package|Install-Package|nuget\s+install)\s+([^\s"']+)/i;
+/**
+ * The id in a package item of a project file or `Directory.Packages.props`, or a `packages.config` entry:
+ * `<PackageReference Include="Serilog" />`, `<PackageVersion Update="Serilog" />`, `<package id="Serilog" />`. Only
+ * these elements, so another item (`<Compile Include="Program.cs" />`) or a line such as `id = "org.jetbrains.kotlin.jvm"`
+ * is not read as an id.
+ */
+const NUGET_ITEM =
+  /^<\s*(?:PackageReference|PackageVersion|package)\b[^>]*?\b(?:Include|Update|id)\s*=\s*["']([^"']+)["']/i;
+/**
+ * The id after a command or directive that adds a package, as nuget.org's install tabs write them: `dotnet add
+ * package`, `NuGet\Install-Package` (or `Install-Package`), `nuget install`, `paket add`, `#r "nuget: X, 1.0"`,
+ * `#:package X@1.0`.
+ */
+const NUGET_COMMAND =
+  /^(?:dotnet\s+add\s+(?:\S+\s+)?package|(?:NuGet\\)?Install-Package|nuget\s+install|paket\s+add|#r\s+"nuget:|#:package)\s*([^\s"',@]+)/i;
 
 /**
  * A NuGet requirement as a project file, `packages.config` or a command writes it (`<PackageReference
@@ -194,13 +205,15 @@ export const isGemName = (name: string) => name.length <= GEM_NAME_MAX_LENGTH &&
 const GEM_DECLARATION = /^(?:gem|[\w.]*add_(?:runtime_|development_)?dependency)\s*\(?\s*["']([^"']+)["']/;
 /** The name after a command that adds a gem: `gem install`, `bundle add`. */
 const GEM_COMMAND = /^(?:gem\s+install|bundle\s+add)\s+([^\s"']+)/;
+/** A `Gemfile.lock` line's name: `rails (7.1.0)`. */
+const GEM_LOCK_LINE = /^([A-Za-z0-9._-]+)\s+\([^)]*\)$/;
 
 /**
  * A RubyGems requirement as a Gemfile, a gemspec or a command writes it (`gem 'rails', '~> 7.1'`,
- * `spec.add_dependency "rack", ">= 2"`, `gem install rails -v 7.1.0`): the gem's name. Any other text is left whole,
+ * `spec.add_dependency "rack", ">= 2"`, `gem install rails -v 7.1.0`, a lockfile's `rails (7.1.0)`): the gem's name. Any other text is left whole,
  * so another registry's spelling (`serde = "1.0"`, `http: ^1.2.0`) is never cut down to a gem name.
  */
 export const rubygemsRequirementName = (requirement: string) => {
   const text = requirement.trim();
-  return (GEM_DECLARATION.exec(text) ?? GEM_COMMAND.exec(text))?.[1] ?? text;
+  return (GEM_DECLARATION.exec(text) ?? GEM_COMMAND.exec(text) ?? GEM_LOCK_LINE.exec(text))?.[1] ?? text;
 };

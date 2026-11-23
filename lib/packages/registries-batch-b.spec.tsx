@@ -138,6 +138,14 @@ describe('a pasted page address or requirement, in the badge builder', () => {
     expect(packageSearchesOf('dotnet add package Serilog --version 3.1.1')).toContain('nuget/serilog');
     expect(packageSearchesOf('dotnet add App.csproj package Serilog')).toContain('nuget/serilog');
     expect(packageSearchesOf('Install-Package Newtonsoft.Json -Version 13.0.3')).toContain('nuget/newtonsoft.json');
+    // nuget.org's own install tabs.
+    expect(packageSearchesOf('NuGet\\Install-Package Newtonsoft.Json -Version 13.0.3')).toContain(
+      'nuget/newtonsoft.json',
+    );
+    expect(packageSearchesOf('paket add Serilog --version 3.1.1')).toContain('nuget/serilog');
+    expect(packageSearchesOf('#r "nuget: Serilog, 3.1.1"')).toContain('nuget/serilog');
+    expect(packageSearchesOf('#:package Serilog@3.1.1')).toContain('nuget/serilog');
+    expect(packageSearchesOf('<PackageVersion Update="Serilog" Version="3.1.1" />')).toEqual(['nuget/serilog']);
     expect(parsePackageSearch('nuget:Newtonsoft.Json')).toBe('nuget/newtonsoft.json');
     expect(parsePackageSearch('nuget : <PackageReference Include="Serilog" />')).toBe('nuget/serilog');
     expect(packageSearchesOf("gem 'rails', '~> 7.1'")).toEqual(['rubygems/rails']);
@@ -146,6 +154,7 @@ describe('a pasted page address or requirement, in the badge builder', () => {
     expect(packageSearchesOf("s.add_development_dependency('rspec', '~> 3.0')")).toEqual(['rubygems/rspec']);
     expect(packageSearchesOf('gem install rails -v 7.1.0')).toContain('rubygems/rails');
     expect(packageSearchesOf('bundle add sidekiq')).toContain('rubygems/sidekiq');
+    expect(packageSearchesOf('rails (7.1.0)')).toContain('rubygems/rails');
     expect(parsePackageSearch('rubygems:ZenTest')).toBe('rubygems/ZenTest');
     expect(parsePackageSearch("rubygems: gem 'rails'")).toBe('rubygems/rails');
   });
@@ -160,6 +169,8 @@ describe('a pasted page address or requirement, in the badge builder', () => {
       'org.slf4j:slf4j-api:2.0.9',
       'github.com/gin-gonic/gin v1.9.1',
       "implementation 'com.google.guava:guava:33.0-jre'",
+      '<Compile Include="Program.cs" />',
+      'id = "org.jetbrains.kotlin.jvm"',
     ]) {
       const found = packageSearchesOf(input);
       expect(

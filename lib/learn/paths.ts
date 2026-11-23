@@ -27,6 +27,9 @@ export const coursesSearchPath = (query: string) =>
 export const coursePath = (slug: string) => `/learn/courses/${encodeURIComponent(slug)}` as Route;
 /** The check of one course. */
 export const checkPath = (course: string) => `/learn/check/${encodeURIComponent(course)}` as Route;
+/** The review of one course, opened from its page; of every course without one. */
+export const learnReviewPath = (course: string | null) =>
+  (course ? `${LEARN_REVIEW_PATH}?course=${encodeURIComponent(course)}` : LEARN_REVIEW_PATH) as Route;
 /** A lesson's page. */
 export const learnLessonPath = (slug: string) => `/learn/lessons/${encodeURIComponent(slug)}` as Route;
 
@@ -63,6 +66,9 @@ export const learnLessonGonePath = (slug: string) => `/learn/lessons/_gone/${enc
 export const learnLessonMinePath = (slug: string) => `/api/me/learn/lessons/${encodeURIComponent(slug)}`;
 export const learnCourseMinePath = (slug: string) => `/api/me/learn/courses/${encodeURIComponent(slug)}`;
 export const LEARN_COURSES_MINE_PATH = '/api/me/learn/courses';
+/** Where the browser reads the signed-in person's review: of one course, or of every course. */
+export const learnReviewMinePath = (course: string | null) =>
+  course ? `/api/me/learn/review?course=${encodeURIComponent(course)}` : '/api/me/learn/review';
 /** The query that asks the depth of each lesson in some of the person's courses, by their slugs, comma-separated. */
 export const COURSE_DEPTHS_QUERY = 'depths';
 /** Where the browser reads the depth of each lesson in the given courses of the person. */

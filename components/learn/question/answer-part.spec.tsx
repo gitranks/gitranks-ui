@@ -73,6 +73,15 @@ const press = (key: string, on: HTMLElement = document.body, init: KeyboardEvent
   return event;
 };
 const click = (element: HTMLElement) => act(() => element.click());
+/** Enter on a focused button as a browser does it: the page's keys first, then the button's own press if left to it. */
+const enterOn = async (button: HTMLElement) => {
+  button.focus();
+  const event = press('Enter', button);
+  await act(async () => {
+    if (!event.defaultPrevented) button.click();
+  });
+  return event;
+};
 
 describe('a lesson’s keyed question', () => {
   it('crosses out a wrong pick and says why, then gives the verdict on a right one', () => {
@@ -198,13 +207,37 @@ describe('a keyless question', () => {
 });
 
 describe('the keys and the focus', () => {
-  it('takes Enter on a focused line, row or Myth/Fact as the main key', () => {
+  it('takes Enter on a focused line or row as the main key', () => {
     draw({ question: pickLineQuestion });
     const line = host.querySelector<HTMLButtonElement>('[data-line="3"]')!;
     click(line);
     line.focus();
     press('Enter', line);
     expect(status().textContent).toMatch(/^Right\./);
+  });
+
+  it('answers with the focused Myth or Fact on Enter where a verdict shows, and goes on once answered', async () => {
+    const onDone = draw({ question: mythQuestion, place: { ...LESSON, labels: { check: 'Check', done: 'Next' } } });
+    const fact = host.querySelector<HTMLButtonElement>('[data-myth="fact"]')!;
+    const event = await enterOn(fact);
+    expect(event.defaultPrevented).toBe(false);
+    expect(host.querySelector('[data-answer-part]')?.getAttribute('data-answer-phase')).not.toBe('open');
+    expect(fact.getAttribute('aria-pressed')).toBe('true');
+    // Once answered, Enter on it is the main button again.
+    expect(press('Enter', fact).defaultPrevented).toBe(true);
+    expect(onDone).toHaveBeenCalledOnce();
+  });
+
+  it('takes Enter on a focused Myth or Fact as the main key where no verdict shows', async () => {
+    const send = vi.fn(async () => ({ right: false }));
+    const onDone = vi.fn();
+    draw({ question: mythQuestion, send, onDone, place: CHECK });
+    const myth = host.querySelector<HTMLButtonElement>('[data-myth="myth"]')!;
+    click(myth);
+    expect(send).not.toHaveBeenCalled();
+    expect((await enterOn(myth)).defaultPrevented).toBe(true);
+    expect(send).toHaveBeenCalledWith({ picked: 'myth', extra: false, language: 'python' });
+    expect(onDone).toHaveBeenCalledOnce();
   });
 
   it('leaves Enter on another button to that button', () => {
@@ -294,6 +327,26 @@ describe('the review’s one-press extra choice', () => {
     await act(async () => press('0'));
     expect(send).toHaveBeenCalledWith({ picked: null, extra: true, language: 'python' });
     expect(status().textContent).toBe('Noted. You will see this one again.');
+  });
+
+  it('answers it with Enter on the focused choice, with or without a pick made before', async () => {
+    const place: AnswerPartPlace = {
+      verdict: true,
+      extra: 'I don’t remember',
+      extraAnswers: true,
+      labels: { check: 'Check', done: 'Next' },
+    };
+    for (const before of [null, 0]) {
+      const send = vi.fn(async () => ({ right: false }));
+      act(() => root.unmount());
+      root = createRoot(host);
+      draw({ question: checkQuestion, send, place, extraAnswers: true });
+      if (before !== null) click(option(before));
+      const event = await enterOn(host.querySelector<HTMLButtonElement>('button[data-option="extra"]')!);
+      expect(event.defaultPrevented).toBe(false);
+      expect(send).toHaveBeenCalledOnce();
+      expect(send).toHaveBeenCalledWith({ picked: null, extra: true, language: 'python' });
+    }
   });
 });
 

@@ -23,6 +23,8 @@ const TRIES_MAX = 1000;
 /** The longest comment the page's box takes. */
 export const COMMENT_MAX = 2000;
 const LANGUAGE = /^[a-z][a-z0-9+#-]{0,19}$/;
+/** A language's key as the courses write it (`python`, `c++`). */
+export const isLanguageKey = (value: unknown): value is string => typeof value === 'string' && LANGUAGE.test(value);
 
 const isIndex = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 10_000;

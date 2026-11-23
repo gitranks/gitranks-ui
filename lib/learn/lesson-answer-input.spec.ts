@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { COMMENT_MAX, lessonAnswerInputOf, lessonFeedbackInputOf, pickedOf } from './lesson-answer-input';
+import {
+  COMMENT_MAX,
+  isLanguageKey,
+  lessonAnswerInputOf,
+  lessonFeedbackInputOf,
+  pickedOf,
+} from './lesson-answer-input';
 
 const answer = { slug: 'sets', question: 'q1', picked: 2, tries: 1, language: 'python' };
 
@@ -71,5 +77,12 @@ describe('lessonFeedbackInputOf', () => {
     ]) {
       expect(lessonFeedbackInputOf(bad), JSON.stringify(bad)).toBeNull();
     }
+  });
+});
+
+describe('isLanguageKey', () => {
+  it("takes a language's key and nothing else", () => {
+    for (const key of ['python', 'javascript', 'c-sharp', 'go']) expect(isLanguageKey(key), key).toBe(true);
+    for (const key of ['', 'Python 3!', 3, null, undefined, 'x'.repeat(100)]) expect(isLanguageKey(key)).toBe(false);
   });
 });

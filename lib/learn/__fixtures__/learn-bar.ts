@@ -11,10 +11,20 @@ const learner = (patch: Partial<Extract<LearnBarState, { kind: 'learner' }>> = {
   ...patch,
 });
 
+/** A signed-in person who has not saved their setup: our guess in unless the patch says otherwise. */
+const notSetUp = (patch: Partial<Extract<LearnBarState, { kind: 'setup' }>> = {}): LearnBarState => ({
+  kind: 'setup',
+  setup: 'guessed',
+  due: 0,
+  pullRequests: false,
+  pullRequestsNeedYou: 0,
+  ...patch,
+});
+
 /** The rows of page 7's board, in its order. */
 export const learnBarRows: LearnBarFixture[] = [
   { title: '1 · Not signed in', state: { kind: 'visitor' }, place: 'home' },
-  { title: '2 · Signed in, Learn not set up yet', state: { kind: 'setup' }, place: 'home' },
+  { title: '2 · Signed in, Learn not set up yet', state: notSetUp(), place: 'home' },
   { title: '3 · A learner, with nothing waiting', state: learner(), place: 'home' },
   { title: '4 · Lessons are due', state: learner({ due: 6 }), place: 'home' },
   {
@@ -44,5 +54,24 @@ export const learnBarPhoneRows: LearnBarFixture[] = [
     state: learner({ due: 6, pullRequests: true, pullRequestsNeedYou: 1 }),
     place: 'home',
   },
-  { title: 'Learn, not set up', state: { kind: 'setup' }, place: 'home' },
+  { title: 'Learn, not set up', state: notSetUp(), place: 'home' },
+];
+
+/** The rows of page 5's board of the "Set up Learn" tab, in its order. */
+export const learnSetupTabRows: LearnBarFixture[] = [
+  { title: '1 · We are working', state: notSetUp({ setup: 'working' }), place: 'courses' },
+  { title: '2 · Our guess is ready', state: notSetUp(), place: 'courses' },
+  { title: '3 · On its page', state: notSetUp(), place: 'setup' },
+  {
+    title: '4 · Next to the other things on the right',
+    state: notSetUp({ due: 6, pullRequests: true, pullRequestsNeedYou: 1 }),
+    place: 'home',
+  },
+  { title: '5 · After they save', state: learner({ due: 6 }), place: 'home' },
+  { title: '6 · Not signed in', state: { kind: 'visitor' }, place: 'home' },
+  {
+    title: '7 · No guess to check (it could not start, or was dropped): a plain outline',
+    state: notSetUp({ setup: 'open' }),
+    place: 'courses',
+  },
 ];

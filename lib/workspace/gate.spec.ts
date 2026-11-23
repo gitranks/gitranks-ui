@@ -96,6 +96,8 @@ describe("Learn's paths", () => {
       '/learn/maintainers/x',
       '/learn/maintainers%2F..%2Fprofile',
       '/learn/lessons/%E0%A4%A',
+      '/learn/setup',
+      '/learn/setup/',
       '/learn/progress',
       '/learn/progress/',
       '/learn/progress/octocat/x',

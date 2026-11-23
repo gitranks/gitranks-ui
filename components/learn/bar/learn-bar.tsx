@@ -12,16 +12,17 @@ import {
   LEARN_BAR_LINKS,
   LEARN_BAR_TABS,
   type LearnBarPlace,
+  type LearnBarSetup,
   type LearnBarState,
   learnBarTabsOf,
 } from '@/lib/learn/learn-bar';
 import { cn } from '@/lib/utils';
 
 /**
- * Learn's bar, as page 7's board draws it: the tabs on the left, the current one marked; on the right, quiet outlined
- * items for what waits for the person ("Pull requests", "Review" with how many) or "Set up Learn". A count shows only
- * when there is something to count. On a phone the tabs scroll sideways under the right side, which stays at the edge,
- * and the current tab is scrolled into sight.
+ * Learn's bar, as page 7's board draws it: the tabs on the left, the current one marked; on the right, "Set up Learn"
+ * until the person saves their setup, then quiet outlined items for what waits for them ("Pull requests", "Review"
+ * with how many). A count shows only when there is something to count. On a phone the tabs scroll sideways under the
+ * right side, which stays at the edge, and the current tab is scrolled into sight.
  */
 export function LearnBar({ state, place }: { state: LearnBarState; place: LearnBarPlace | null }) {
   const bar = useRef<HTMLDivElement>(null);
@@ -55,24 +56,16 @@ export function LearnBar({ state, place }: { state: LearnBarState; place: LearnB
   );
 }
 
-/** The right side: nothing for a visitor, "Set up Learn" before setup, a learner's items when they have something. */
+/**
+ * The right side: nothing for a visitor; before setup, "Set up Learn" first; then what waits for the person: their pull
+ * requests and the lessons due. Only the setup tab is highlighted; the rest are quiet notices.
+ */
 function barEndOf(state: LearnBarState, place: LearnBarPlace | null): ReactNode {
   if (state.kind === 'visitor') return null;
-  if (state.kind === 'setup') {
-    return (
-      <Link
-        href={LEARN_BAR_LINKS.setup}
-        prefetch={false}
-        aria-current={place === 'setup' ? 'page' : undefined}
-        data-learn-bar-item="setup"
-        className="relative inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary after:absolute after:inset-x-0 after:-inset-y-[9px] after:content-[''] sm:after:hidden bg-brand-soft px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-brand-soft-foreground shadow-[0_0_0_4px_color-mix(in_oklch,var(--primary)_22%,transparent)]"
-      >
-        <span aria-hidden="true" className="size-[7px] shrink-0 rounded-full bg-primary" />
-        Set up Learn
-      </Link>
-    );
-  }
   const items: ReactNode[] = [];
+  if (state.kind === 'setup') {
+    items.push(<SetupTab key="setup" state={state.setup} current={place === 'setup'} />);
+  }
   if (state.pullRequests) {
     items.push(
       <BarItem
@@ -104,6 +97,55 @@ function barEndOf(state: LearnBarState, place: LearnBarPlace | null): ReactNode 
   return items.length ? items : null;
 }
 
+/** A 44px tall target on a phone, the drawn item unchanged. */
+const PHONE_TARGET = "after:absolute after:inset-x-0 after:-inset-y-[9px] after:content-[''] sm:after:hidden";
+
+/**
+ * "Set up Learn", as page 5's board draws it: quiet with a spinner while our guess runs; highlighted with a dot once
+ * it is in, with one pulse when it becomes so (on each visit, never a constant blink, and none for people who turned
+ * motion off); a plain outline when there is no guess to check; solid while it is the current place.
+ */
+function SetupTab({ state, current }: { state: LearnBarSetup; current: boolean }) {
+  const look = current ? 'current' : state;
+  return (
+    <Link
+      href={LEARN_BAR_LINKS.setup}
+      prefetch={false}
+      aria-current={current ? 'page' : undefined}
+      data-learn-bar-item="setup"
+      data-learn-setup-tab={look}
+      className={cn(
+        'relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold whitespace-nowrap',
+        PHONE_TARGET,
+        look === 'current' && 'border-foreground bg-foreground text-background',
+        look === 'working' && 'text-muted-foreground',
+        look === 'open' && 'text-foreground',
+        look === 'guessed' &&
+          'border-primary bg-brand-soft text-brand-soft-foreground shadow-[0_0_0_4px_color-mix(in_oklch,var(--primary)_22%,transparent)] motion-safe:animate-learn-setup-pulse',
+      )}
+    >
+      {look === 'working' ? (
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          className="size-[13px] shrink-0 motion-safe:animate-spin"
+        >
+          <path d="M21 12a9 9 0 1 1-6.2-8.56" />
+        </svg>
+      ) : null}
+      {look === 'guessed' ? <span aria-hidden="true" className="size-[7px] shrink-0 rounded-full bg-primary" /> : null}
+      Set up Learn
+      {look === 'working' ? <span className="sr-only">, reading your GitHub profile</span> : null}
+      {look === 'guessed' ? <span className="sr-only">, our guess is ready to check</span> : null}
+      {look === 'open' ? <span className="sr-only">, nothing to check yet</span> : null}
+    </Link>
+  );
+}
+
 /** One quiet outlined item: a dashed edge, or a solid one while it is the current place; its count when above zero. */
 function BarItem({
   href,
@@ -128,8 +170,7 @@ function BarItem({
       data-learn-bar-item={item}
       className={cn(
         'relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium whitespace-nowrap text-foreground',
-        // A 44px tall target on a phone, the drawn item unchanged.
-        "after:absolute after:inset-x-0 after:-inset-y-[9px] after:content-[''] sm:after:hidden",
+        PHONE_TARGET,
         current ? 'border-foreground' : 'border-dashed',
       )}
     >

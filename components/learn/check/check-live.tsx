@@ -59,6 +59,7 @@ import {
 import { runWordsOf } from '@/lib/learn/player';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
+import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** The person's run from its route: the run, or none (with `missing` when the course offers no check). */
@@ -104,6 +105,7 @@ type Personal =
  * until they save it. A course that offers no check, or stops offering it during the run, says so.
  */
 export function CheckLive({ course, mode }: { course: LearnCourse; mode: CheckMode }) {
+  useLearnSetupGuess();
   const offered = mode === 'known' || course.checkOffered;
   const [personal, setPersonal] = useState<Personal>({ kind: offered ? 'pending' : 'missing' });
   const [result, setResult] = useState<readonly LearnCheckGroup[] | null>(null);

@@ -744,9 +744,11 @@ describe('proxy', () => {
       '/learn/maintainers/x',
       '/learn/%E0%A4%A',
       '/learn/start/driftwood-js/driftwood/934',
-      // The review and the check: signed in only.
+      // The review, the check and Set up Learn: signed in only.
       '/learn/review',
       '/learn/check/algorithms',
+      '/learn/setup',
+      '/learn/setup/',
     ];
 
     it.each(CLOSED)('answers %s with a 404 nobody caches, to a visitor without a session', async (path) => {
@@ -766,6 +768,7 @@ describe('proxy', () => {
           '/learn/start/driftwood-js/driftwood/934',
           '/learn/review',
           '/learn/check/algorithms',
+          '/learn/setup',
         ]) {
           const response = await proxy(request('authjs.session-token=t', path), event);
           expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
@@ -785,12 +788,14 @@ describe('proxy', () => {
       learnAccess.mockClear();
       learnAccess.mockResolvedValue('closed');
       try {
-        const post = new NextRequest('https://gitranks.com/learn/attempts/A_1', {
-          method: 'POST',
-          headers: { cookie: 'authjs.session-token=t' },
-        });
-        const response = await proxy(post, event);
-        expect(response?.headers.get('x-middleware-rewrite')).not.toBe('https://gitranks.com/_404');
+        for (const path of ['/learn/attempts/A_1', '/learn/setup']) {
+          const post = new NextRequest(`https://gitranks.com${path}`, {
+            method: 'POST',
+            headers: { cookie: 'authjs.session-token=t' },
+          });
+          const response = await proxy(post, event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).not.toBe('https://gitranks.com/_404');
+        }
         expect(learnAccess).not.toHaveBeenCalled();
       } finally {
         learnAccess.mockResolvedValue('open');
@@ -817,6 +822,7 @@ describe('proxy', () => {
         '/learn/start/driftwood-js/driftwood/934',
         '/learn/review',
         '/learn/check/algorithms',
+        '/learn/setup',
       ]) {
         const response = await proxy(request('authjs.session-token=t', path), event);
         expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();

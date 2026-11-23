@@ -6,6 +6,7 @@ import { LessonGoneLearnerBox } from './lesson-gone';
 import { type LessonGoneState, lessonGoneLearnerLineOf } from '@/lib/learn/lesson-gone';
 import type { LearnLessonMine } from '@/lib/learn/lesson-page';
 import { learnLessonMinePath } from '@/lib/learn/paths';
+import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** The person's side of a lesson from their route; null for a visitor, a person Learn is not open to, or a failure. */
@@ -25,6 +26,7 @@ export async function readLessonMine(slug: string): Promise<LearnLessonMine | nu
  * a session asks, and only one who learned the lesson sees a box.
  */
 export function LessonGoneLearner({ slug, state }: { slug: string; state: LessonGoneState }) {
+  useLearnSetupGuess();
   const [line, setLine] = useState<string | null>(null);
   useEffect(() => {
     if (!hasSessionHint(document.cookie)) return;

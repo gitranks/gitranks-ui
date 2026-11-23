@@ -262,6 +262,8 @@
   --animate-contribute-pop: contributePop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
   --animate-contribute-draw: contributeDraw 0.5s ease-out 0.45s forwards;
   --animate-contribute-burst: contributeBurst 0.9s ease-out 0.35s both;
+  /* Learn's "Set up Learn" tab: one pulse once our guess is ready; its use is under motion-safe. */
+  --animate-learn-setup-pulse: learnSetupPulse 1.2s ease-out 1;
 
   @keyframes contributeRing {
     0% {
@@ -281,6 +283,16 @@
     }
     50% {
       transform: translateY(-8px);
+    }
+  }
+
+  @keyframes learnSetupPulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 22%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 0 9px color-mix(in oklch, var(--primary) 0%, transparent);
     }
   }
 

@@ -16,8 +16,14 @@ vi.mock('next-auth/react', () => ({ signIn }));
 vi.mock('@/lib/learn/check.actions', () => ({ answerLearnCheckAction, stopLearnCheckAction, saveLearnKnownAction }));
 // The session's hint cookie, as the browser holds it.
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
+const { startLearnSetupGuessAction } = vi.hoisted(() => ({
+  startLearnSetupGuessAction: vi.fn(async () => ({ ok: true as const, data: 'WORKING' as const })),
+}));
+// Our guess of the person's setup, which every Learn page a signed-in person opens starts.
+vi.mock('@/lib/learn/setup.actions', () => ({ startLearnSetupGuessAction }));
 
 const { CheckLive, readCheckSide, readKnownSide } = await import('./check-live');
+const { forgetLearnSetupGuessStart } = await import('@/lib/learn/use-setup-guess');
 const {
   checkEnded,
   checkResult,
@@ -33,6 +39,11 @@ const { algorithmsCourse, algorithmsCoursePaused, lessonAt, progressMine } = awa
 );
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+beforeEach(() => {
+  startLearnSetupGuessAction.mockClear();
+  forgetLearnSetupGuessStart();
+});
 
 let root: Root;
 let host: HTMLDivElement;
@@ -574,5 +585,21 @@ describe('"What you know"', () => {
     expect(saveLearnKnownAction.mock.calls[1][0].known).toHaveLength(18);
     expect($('[data-known-failed]')).toBeNull();
     expect(push).toHaveBeenCalledWith('/learn/courses/algorithms');
+  });
+});
+
+describe('our guess of the setup, from the check', () => {
+  it('is never started for a visitor', async () => {
+    await draw();
+    expect(startLearnSetupGuessAction).not.toHaveBeenCalled();
+  });
+
+  it('is started once for a person with a session, and the check never waits for it', async () => {
+    hint.present = true;
+    startLearnSetupGuessAction.mockImplementation(() => new Promise(() => {}));
+    await draw();
+    await draw();
+    expect(startLearnSetupGuessAction).toHaveBeenCalledTimes(1);
+    expect(checkReads()).toBeGreaterThan(0);
   });
 });

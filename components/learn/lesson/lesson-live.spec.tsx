@@ -15,8 +15,14 @@ vi.mock('next-auth/react', () => ({ signIn }));
 vi.mock('@/lib/learn/lesson-page.actions', () => ({ answerLearnLessonAction, sendLearnFeedbackAction }));
 // The session's hint cookie, as the browser holds it.
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
+const { startLearnSetupGuessAction } = vi.hoisted(() => ({
+  startLearnSetupGuessAction: vi.fn(async () => ({ ok: true as const, data: 'WORKING' as const })),
+}));
+// Our guess of the person's setup, which every Learn page a signed-in person opens starts.
+vi.mock('@/lib/learn/setup.actions', () => ({ startLearnSetupGuessAction }));
 
 const { LEARN_NOT_OPEN_NOTE, LessonLive } = await import('./lesson-live');
+const { forgetLearnSetupGuessStart } = await import('@/lib/learn/use-setup-guess');
 const {
   mineLearned,
   mineLearnedRated,
@@ -30,6 +36,11 @@ const {
 } = await import('@/lib/learn/__fixtures__/lesson-page');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+beforeEach(() => {
+  startLearnSetupGuessAction.mockClear();
+  forgetLearnSetupGuessStart();
+});
 
 let root: Root;
 let host: HTMLDivElement;
@@ -264,5 +275,24 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     });
     expect($('[data-answer-part]')).not.toBe(before);
     expect($('[data-answer-part]')!.getAttribute('data-answer-phase')).toBe('done');
+  });
+});
+
+describe('our guess of the setup, from a lesson', () => {
+  it('is never started for a visitor', async () => {
+    await draw();
+    expect(startLearnSetupGuessAction).not.toHaveBeenCalled();
+  });
+
+  it('is started once for a person with a session, and the page never waits for it', async () => {
+    signedIn();
+    routes(mineNew);
+    // The start never answers: the person's side is read and the lesson is drawn all the same.
+    startLearnSetupGuessAction.mockImplementation(() => new Promise(() => {}));
+    await draw();
+    await draw();
+    expect(startLearnSetupGuessAction).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalled();
+    expect(host.textContent).toContain(setLesson.title);
   });
 });

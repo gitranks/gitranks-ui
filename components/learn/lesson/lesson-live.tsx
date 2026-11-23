@@ -18,6 +18,7 @@ import {
 import { answerLearnLessonAction, sendLearnFeedbackAction } from '@/lib/learn/lesson-page.actions';
 import type { LearnCourseLessonMine } from '@/lib/learn/lesson-page.documents';
 import { coursePath, learnCourseMinePath, learnLessonMinePath, learnLessonPath } from '@/lib/learn/paths';
+import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** A JSON answer of one of the person's routes; null on any failure. */
@@ -85,6 +86,7 @@ export function LessonLive({
   more: ReactNode;
   openFact?: boolean;
 }) {
+  useLearnSetupGuess();
   const router = useRouter();
   const [personal, setPersonal] = useState<Personal>({ kind: 'pending' });
   // The person's side as their last saved answer left it: fresher than any read.

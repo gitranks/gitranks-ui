@@ -20,6 +20,9 @@ export const LEARN_SETUP_PATH = '/learn/setup' as Route;
 /** The review of every course. */
 export const LEARN_REVIEW_PATH = '/learn/review' as Route;
 
+/** All courses with what was typed in their search, so a result can be sent to someone. */
+export const coursesSearchPath = (query: string) =>
+  (query ? `${LEARN_COURSES_PATH}?q=${encodeURIComponent(query)}` : LEARN_COURSES_PATH) as Route;
 /** One course's page. */
 export const coursePath = (slug: string) => `/learn/courses/${encodeURIComponent(slug)}` as Route;
 /** The check of one course. */
@@ -29,6 +32,10 @@ export const learnLessonPath = (slug: string) => `/learn/lessons/${encodeURIComp
 
 /** A page's Markdown copy: the page's own address with `.md`. */
 export const markdownPathOf = (path: string) => `${path}.md`;
+
+/** The Markdown copy of a course, and of all courses. */
+export const courseMarkdownPath = (slug: string) => markdownPathOf(coursePath(slug));
+export const LEARN_COURSES_MARKDOWN_PATH = `${LEARN_COURSES_PATH}.md`;
 
 /** A lesson's Markdown copy. */
 export const learnLessonMarkdownPath = (slug: string) => markdownPathOf(learnLessonPath(slug)) as Route;

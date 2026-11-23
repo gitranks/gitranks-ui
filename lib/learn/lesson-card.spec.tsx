@@ -5,6 +5,7 @@ vi.mock('server-only', () => ({}));
 const { drawLessonCard, LESSON_CARD_HEADERS, lessonCardResponse } = await import('./lesson-card');
 const { longTitleLesson } = await import('./__fixtures__/lesson-share');
 const { regexLesson, setLesson } = await import('./__fixtures__/lesson-page');
+const { lessonCardVersionOf } = await import('./lesson-share-card');
 
 /** A PNG's width and height, from its header. */
 const sizeOf = (png: Uint8Array) => {
@@ -12,7 +13,9 @@ const sizeOf = (png: Uint8Array) => {
   return { width: view.getUint32(16), height: view.getUint32(20) };
 };
 
-const VERSION = '?v=mvhvstc0';
+/** Each picture's current query: its own version. */
+const versionOf = (kind: 'lesson' | 'fact') => `?v=${lessonCardVersionOf(kind, setLesson)}`;
+const VERSION = versionOf('lesson');
 const live = async () => ({ kind: 'live' as const, lesson: setLesson });
 const drawn = async () => new Uint8Array([1, 2, 3]);
 
@@ -30,7 +33,6 @@ describe("a lesson's pictures", () => {
   }, 30_000);
 
   it("draws a live lesson's picture under its version, kept five minutes in a browser and ten in a shared cache", async () => {
-    expect(VERSION).toBe(`?v=${Date.parse(setLesson.changedAt).toString(36)}`);
     const response = await lessonCardResponse('lesson', setLesson.slug, VERSION, live, drawn);
     expect(response.status).toBe(200);
     expect(Object.fromEntries(response.headers)).toMatchObject({
@@ -46,7 +48,7 @@ describe("a lesson's pictures", () => {
         const response = await lessonCardResponse(kind, setLesson.slug, search, live, drawn);
         expect(response.status, search).toBe(308);
         expect(response.headers.get('location')).toBe(
-          `/learn/lessons/${setLesson.slug}/${kind === 'lesson' ? 'card' : 'fact'}.png${VERSION}`,
+          `/learn/lessons/${setLesson.slug}/${kind === 'lesson' ? 'card' : 'fact'}.png${versionOf(kind)}`,
         );
         expect(response.headers.get('cache-control')).toBe('private, no-store');
       }
@@ -76,7 +78,7 @@ describe("a lesson's pictures", () => {
 
   it('has no fact picture for a lesson with no fact', async () => {
     const plain = async () => ({ kind: 'live' as const, lesson: { ...setLesson, fact: null } });
-    expect((await lessonCardResponse('fact', setLesson.slug, VERSION, plain, drawn)).status).toBe(404);
+    expect((await lessonCardResponse('fact', setLesson.slug, versionOf('fact'), plain, drawn)).status).toBe(404);
   });
 
   it('answers 503 for a while when the lesson or the drawing fails, never a broken picture', async () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { setLesson } from '../__fixtures__/lesson-page';
+import { lessonCardVersionOf } from '../lesson-share-card';
 import {
   learnLessonGoneMetadata,
   learnLessonJsonLd,
@@ -33,8 +34,9 @@ const lesson = {
   ].join('\n'),
 };
 
-/** The version every picture's address carries: the time the lesson last changed. */
-const V = `?v=${Date.parse(lesson.changedAt).toString(36)}`;
+/** The query each picture's address carries: its own version. */
+const V = `?v=${lessonCardVersionOf('lesson', lesson)}`;
+const FACT_V = `?v=${lessonCardVersionOf('fact', lesson)}`;
 
 describe('lessonPlainTextOf', () => {
   it('keeps the words and drops the Markdown, the code and the placed parts', () => {
@@ -71,21 +73,23 @@ describe('the metadata of a lesson of ours', () => {
       alt: lesson.title,
     };
     const preview = { title: `${lesson.title} · GitRanks Learn`, description: lessonDescriptionOf(lesson) };
-    expect(metadata.openGraph).toMatchObject({ ...preview, images: [image] });
+    expect(metadata.openGraph).toMatchObject({ url: '/learn/lessons/sets', ...preview, images: [image] });
     expect(metadata.twitter).toMatchObject({ card: 'summary_large_image', ...preview, images: [image] });
   });
 
-  it("shows a shared fact's own picture and title, the page and its canonical staying the lesson's", () => {
+  it("shows a shared fact's own picture, title and address, the canonical staying the lesson's", () => {
     const metadata = learnLessonMetadata(lesson, { fact: true });
     const preview = {
       title: 'How one web request froze a server · GitRanks Learn',
       description: 'A fact from the lesson “Find duplicates in one pass with a set”.',
     };
     const images = [
-      { url: absoluteUrl(`/learn/lessons/sets/fact.png${V}`), width: 1200, height: 630, alt: lesson.fact?.title },
+      { url: absoluteUrl(`/learn/lessons/sets/fact.png${FACT_V}`), width: 1200, height: 630, alt: lesson.fact?.title },
     ];
     expect(metadata.openGraph).toMatchObject({ ...preview, images });
     expect(metadata.twitter).toMatchObject({ ...preview, images });
+    // Sites that read the preview from og:url read the fact's, and a click opens the fact.
+    expect(metadata.openGraph?.url).toBe('/learn/lessons/sets?fact');
     expect(metadata.title).toBe(lesson.title);
     expect(metadata.alternates?.canonical).toBe('/learn/lessons/sets');
   });

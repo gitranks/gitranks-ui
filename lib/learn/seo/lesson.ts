@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import type { LearnAddress } from '../address-gate';
 import type { LearnLesson } from '../lesson-page';
 import { learnFactCardUrlOf, learnLessonCardUrlOf, learnShareTitleOf } from '../lesson-share-card';
-import { coursePath, LEARN_HOME_PATH, learnLessonMarkdownPath, learnLessonPath } from '../paths';
+import { coursePath, LEARN_HOME_PATH, learnFactPath, learnLessonMarkdownPath, learnLessonPath } from '../paths';
 import { SOCIAL_CARD_SIZE } from '@/badge/v3/links';
 import { clipText } from '@/lib/seo/clip-text';
 import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
@@ -48,8 +48,8 @@ type MetadataLesson = Pick<
 /**
  * A lesson of ours: its title, its own words as the description, its address as the canonical, its Markdown copy as
  * an alternate, and an article preview with its picture, as page 21 draws it. Opened from a shared fact (`fact`,
- * the address with `?fact`), the preview is the fact's own: its title, a line naming the lesson, and its picture; the
- * page and its canonical stay the lesson's.
+ * the address with `?fact`), the preview is the fact's own: its title, a line naming the lesson, its picture, and the
+ * fact's address as its URL, since some sites read the preview from that URL; the canonical stays the lesson's.
  */
 export function learnLessonMetadata(lesson: MetadataLesson, { fact = false }: { fact?: boolean } = {}): Metadata {
   const description = lessonDescriptionOf(lesson);
@@ -65,15 +65,28 @@ export function learnLessonMetadata(lesson: MetadataLesson, { fact = false }: { 
     ? {
         title: learnShareTitleOf(shared.title),
         description: `A fact from the lesson “${lesson.title}”.`,
-        url: learnFactCardUrlOf(lesson),
+        page: learnFactPath(lesson.slug),
+        picture: learnFactCardUrlOf(lesson),
         alt: shared.title,
       }
-    : { title: learnShareTitleOf(lesson.title), description, url: learnLessonCardUrlOf(lesson), alt: lesson.title };
-  const images = [{ url: absoluteUrl(preview.url), ...SOCIAL_CARD_SIZE, alt: preview.alt }];
+    : {
+        title: learnShareTitleOf(lesson.title),
+        description,
+        page: learnLessonPath(lesson.slug),
+        picture: learnLessonCardUrlOf(lesson),
+        alt: lesson.title,
+      };
+  const images = [{ url: absoluteUrl(preview.picture), ...SOCIAL_CARD_SIZE, alt: preview.alt }];
   return {
     ...metadata,
     alternates: { ...metadata.alternates, types: { 'text/markdown': learnLessonMarkdownPath(lesson.slug) } },
-    openGraph: { ...metadata.openGraph, title: preview.title, description: preview.description, images },
+    openGraph: {
+      ...metadata.openGraph,
+      url: preview.page,
+      title: preview.title,
+      description: preview.description,
+      images,
+    },
     twitter: {
       ...metadata.twitter,
       card: 'summary_large_image',

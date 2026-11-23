@@ -98,13 +98,38 @@ describe('the answer of a lesson that is not served', () => {
 });
 
 describe("a lesson's pictures", () => {
-  it('live at one address each, versioned by the time the lesson last changed', () => {
-    const v = Date.parse(setLesson.changedAt).toString(36);
-    expect(lessonCardVersionOf(setLesson)).toBe(v);
-    expect(lessonCardVersionOf({ changedAt: 'not a date' })).toBe('0');
-    expect(learnLessonCardUrlOf(setLesson)).toBe(`/learn/lessons/find-duplicates-with-a-set/card.png?v=${v}`);
-    expect(learnFactCardUrlOf(setLesson)).toBe(`/learn/lessons/find-duplicates-with-a-set/fact.png?v=${v}`);
-    expect(lessonCardVersionOf({ changedAt: '2026-10-22T09:00:00.000Z' })).not.toBe(v);
+  it('live at one address each, under a short version of their own that stays the same while nothing changes', () => {
+    const lesson = lessonCardVersionOf('lesson', setLesson);
+    const fact = lessonCardVersionOf('fact', setLesson);
+    expect(lesson).toMatch(/^[0-9a-z]{1,7}$/);
+    expect(lessonCardVersionOf('lesson', { ...setLesson })).toBe(lesson);
+    expect(fact).not.toBe(lesson);
+    expect(learnLessonCardUrlOf(setLesson)).toBe(`/learn/lessons/find-duplicates-with-a-set/card.png?v=${lesson}`);
+    expect(learnFactCardUrlOf(setLesson)).toBe(`/learn/lessons/find-duplicates-with-a-set/fact.png?v=${fact}`);
+  });
+
+  it('move to a new address when anything a picture draws changes, or the lesson does', () => {
+    const lesson = lessonCardVersionOf('lesson', setLesson);
+    const renamed = (changes: Partial<typeof setLesson>) => lessonCardVersionOf('lesson', { ...setLesson, ...changes });
+    expect(renamed({ group: { ...setLesson.group, title: 'Sets and maps' } })).not.toBe(lesson);
+    expect(renamed({ course: { ...setLesson.course, title: 'Algorithms' } })).not.toBe(lesson);
+    expect(renamed({ title: 'Find a duplicate with a set' })).not.toBe(lesson);
+    expect(renamed({ changedAt: '2026-10-22T09:00:00.000Z' })).not.toBe(lesson);
+    // The lesson's picture does not show the fact.
+    expect(renamed({ fact: null })).toBe(lesson);
+
+    const fact = lessonCardVersionOf('fact', setLesson);
+    const factOf = (changes: Partial<NonNullable<typeof setLesson.fact>>) =>
+      lessonCardVersionOf('fact', {
+        ...setLesson,
+        fact: { ...(setLesson.fact as NonNullable<typeof setLesson.fact>), ...changes },
+      });
+    expect(factOf({ text: 'Another fact.' })).not.toBe(fact);
+    expect(factOf({ title: 'Another title' })).not.toBe(fact);
+    // The fact's picture does not show the group.
+    expect(lessonCardVersionOf('fact', { ...setLesson, group: { ...setLesson.group, title: 'Sets and maps' } })).toBe(
+      fact,
+    );
   });
 
   it("print the lesson's page address, without the scheme", () => {

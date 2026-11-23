@@ -2,13 +2,12 @@ import 'server-only';
 
 import type { LearnLesson } from './lesson-page';
 import { type LessonShareState, lessonNotServedResponse, lessonUnavailableResponse } from './lesson-share';
-import { lessonCardVersionOf } from './lesson-share-card';
+import { type LessonCardKind, lessonCardVersionOf } from './lesson-share-card';
 import { learnFactCardPath, learnLessonCardPath } from './paths';
 import { FactCard, LessonCard } from '@/components/learn/share/lesson-cards';
 import { drawSocialCard } from '@/lib/social-card/social-card';
 
-/** Which of a lesson's two pictures: its own, or its fun fact's. */
-export type LessonCardKind = 'lesson' | 'fact';
+export type { LessonCardKind };
 
 const pathOf: Record<LessonCardKind, (slug: string) => string> = {
   lesson: learnLessonCardPath,
@@ -53,7 +52,7 @@ export async function lessonCardResponse(
   if (found.kind !== 'live') return lessonNotServedResponse(found, pathOf[kind]);
   const { lesson } = found;
   if (kind === 'fact' && !lesson.fact?.text.trim()) return lessonNotServedResponse({ kind: 'missing' }, pathOf[kind]);
-  const version = lessonCardVersionOf(lesson);
+  const version = lessonCardVersionOf(kind, lesson);
   if (search !== `?v=${version}`) {
     return new Response(null, {
       status: 308,

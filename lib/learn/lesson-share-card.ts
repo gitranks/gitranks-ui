@@ -7,18 +7,40 @@ import { clipText } from '@/lib/seo/clip-text';
  * the metadata and the design catalogue use the same rules.
  */
 
-/** A picture's version: the time the lesson last changed, so a changed lesson is a new address a site draws again. */
-export const lessonCardVersionOf = (lesson: Pick<LearnLesson, 'changedAt'>): string => {
-  const at = Date.parse(lesson.changedAt);
-  return Number.isNaN(at) ? '0' : at.toString(36);
-};
+/** Which of a lesson's two pictures: its own, or its fun fact's. */
+export type LessonCardKind = 'lesson' | 'fact';
+
+/** What a picture's version reads: everything either picture draws, and when the lesson last changed. */
+type CardLesson = Pick<LearnLesson, 'slug' | 'changedAt' | 'title' | 'course' | 'group' | 'fact'>;
+
+/** A short, stable hash of a text (32-bit FNV-1a), in base 36. */
+function hashOf(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let at = 0; at < text.length; at++) {
+    hash ^= text.charCodeAt(at);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+/**
+ * A picture's version: a hash of what it draws and of the time the lesson last changed. A change to anything it shows,
+ * a course or a group renamed included, is a new address a site fetches again.
+ */
+export function lessonCardVersionOf(kind: LessonCardKind, lesson: CardLesson): string {
+  const drawn =
+    kind === 'fact'
+      ? [lesson.title, lesson.fact?.title ?? '', lesson.fact?.text ?? '']
+      : [lesson.title, lesson.course.title, lesson.group.title];
+  return hashOf([kind, lesson.changedAt, ...drawn].join('\n'));
+}
 
 /** The lesson's picture, under its one current address. */
-export const learnLessonCardUrlOf = (lesson: Pick<LearnLesson, 'slug' | 'changedAt'>) =>
-  `${learnLessonCardPath(lesson.slug)}?v=${lessonCardVersionOf(lesson)}`;
+export const learnLessonCardUrlOf = (lesson: CardLesson) =>
+  `${learnLessonCardPath(lesson.slug)}?v=${lessonCardVersionOf('lesson', lesson)}`;
 /** Its fun fact's picture, under its one current address. */
-export const learnFactCardUrlOf = (lesson: Pick<LearnLesson, 'slug' | 'changedAt'>) =>
-  `${learnFactCardPath(lesson.slug)}?v=${lessonCardVersionOf(lesson)}`;
+export const learnFactCardUrlOf = (lesson: CardLesson) =>
+  `${learnFactCardPath(lesson.slug)}?v=${lessonCardVersionOf('fact', lesson)}`;
 
 /** The address printed on a picture: the lesson's page, without the scheme. */
 export const lessonCardAddressOf = (slug: string) => `gitranks.com${learnLessonPath(slug)}`;

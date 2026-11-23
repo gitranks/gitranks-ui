@@ -1,0 +1,20 @@
+import { describe, expect, it, vi } from 'vitest';
+
+// Windows' path functions on every machine: they join and normalize with `\`, so the rule must not use them for the
+// modules it compares. `win32.posix` is still the `/` one.
+vi.mock('node:path', async () => {
+  const { win32 } = await vi.importActual<typeof import('node:path')>('node:path');
+  return { ...win32, default: win32 };
+});
+
+const { crossingsOf, moduleOf } = await import('./check-workspace-imports.mjs');
+
+describe('the workspace import rule, with Windows paths', () => {
+  it('names a module with `/` and finds the crossing', () => {
+    expect(moduleOf('lib/learn/x.tsx', '@/components/learn/share/cards')).toBe('components/learn/share/cards');
+    expect(moduleOf('lib/learn/x.tsx', '../../components/learn/share/cards.tsx')).toBe('components/learn/share/cards');
+    expect(crossingsOf('lib/learn/x.tsx', `import { Card } from '../../components/learn/share/cards';`)).toEqual([
+      'lib/learn/x.tsx -> components/learn/share/cards',
+    ]);
+  });
+});

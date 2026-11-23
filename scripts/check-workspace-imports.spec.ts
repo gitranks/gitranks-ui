@@ -78,6 +78,14 @@ const e = await import('@/lib/learn/learn-path');`;
     expect(moduleOf('lib/workspace/x.ts', './y.mjs')).toBe('lib/workspace/y');
   });
 
+  it('names a module with `/` on every platform, so a crossing is found on Windows too', () => {
+    expect(moduleOf('lib/learn/x.tsx', '@/components/learn/share/cards')).toBe('components/learn/share/cards');
+    expect(moduleOf('lib/learn/x.tsx', '../../components/learn/share/cards.tsx')).toBe('components/learn/share/cards');
+    expect(crossingsOf('lib/learn/x.tsx', `import { Card } from '@/components/learn/share/cards';`)).toEqual([
+      'lib/learn/x.tsx -> components/learn/share/cards',
+    ]);
+  });
+
   it('checks the code, not its specs or fixtures', () => {
     expect(isChecked('lib/workspace/paths.ts')).toBe(true);
     expect(isChecked('lib/workspace/paths.spec.ts')).toBe(false);

@@ -84,6 +84,31 @@ export const historyDayId = (day: string) => `day-${day}`;
 export const learnDayOfDate = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
+/** The zone Learn counts a person's days in when they saved none, or saved one that is not a real zone. */
+export const LEARN_DEFAULT_TIME_ZONE = 'America/New_York';
+
+/**
+ * Today's date as the API counts a person's days: in the zone they saved (`null`: none saved), else in Learn's default
+ * zone. "Today" and "Your first day" use it, so the page and the API agree on the day.
+ */
+export function learnTodayIn(now: Date, timeZone: string | null): string {
+  const partsIn = (zone: string) =>
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: zone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(now);
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = partsIn(timeZone || LEARN_DEFAULT_TIME_ZONE);
+  } catch {
+    parts = partsIn(LEARN_DEFAULT_TIME_ZONE);
+  }
+  const part = (type: string) => parts.find((each) => each.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
 const utcOf = (day: string) => {
   const [year, month, date] = day.split('-').map(Number);
   return new Date(Date.UTC(year, month - 1, date));

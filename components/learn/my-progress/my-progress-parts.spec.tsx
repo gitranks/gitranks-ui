@@ -255,3 +255,42 @@ describe('My progress: the pages with nothing to list', () => {
     }
   });
 });
+
+describe('My progress: headings, labels and phone targets', () => {
+  it('each view has its own heading, so the cards and days are not read as part of "Days"', () => {
+    for (const [view, heading] of [
+      ['courses', 'Courses'],
+      ['history', 'History'],
+    ] as const) {
+      const page = body(myProgress, view, null);
+      const h2s = [...page.querySelectorAll('h2')].map((h2) => h2.textContent);
+      expect(h2s).toEqual(['Lessons', 'Days', heading]);
+    }
+  });
+
+  it('the days are labelled without a count of weeks: a phone shows fewer of them', () => {
+    const label = body(myProgress).querySelector('[data-calendar]')!.getAttribute('aria-label');
+    expect(label).toBe('The days you learned or repeated something on');
+  });
+
+  it('the switch, the course buttons and History’s buttons are 44 pixels tall on a phone', () => {
+    const page = body(myProgress);
+    for (const link of page.querySelectorAll('nav a')) expect(link.className).toContain('max-sm:min-h-11');
+    const open = [...page.querySelectorAll('[data-my-course] a')].filter((a) =>
+      a.textContent?.startsWith('Open course'),
+    );
+    for (const link of open) expect(link.className).toContain('max-sm:min-h-11');
+    const list = draw(<HistoryList days={historyFirst.days} today={PROGRESS_TODAY} more="more" onMore={() => {}} />);
+    expect(list.querySelector('[data-history-more]')!.className).toContain('max-sm:min-h-11');
+    expect(draw(<HistoryFailed onReload={() => {}} />).querySelector('button')!.className).toContain('max-sm:min-h-11');
+  });
+
+  it('History with no day at all says where the days will show', () => {
+    const page = draw(<HistoryList days={[]} today={PROGRESS_TODAY} more="end" onMore={() => {}} />);
+    expect(page.querySelector('[data-history-none]')!.textContent).toBe(
+      'The days you learn or repeat a lesson show here.',
+    );
+    const some = draw(<HistoryList days={historyFirst.days} today={PROGRESS_TODAY} more="end" onMore={() => {}} />);
+    expect(some.querySelector('[data-history-none]')).toBeNull();
+  });
+});

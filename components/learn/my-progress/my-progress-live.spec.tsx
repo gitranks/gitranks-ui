@@ -9,9 +9,16 @@ vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 vi.mock('next-auth/react', () => ({ signIn }));
 
 const { MyProgressLive, readHistory, readMyProgress } = await import('./my-progress-live');
-const { historyEarlier, historyFirst, myProgress, myProgressEmpty } = await import(
+const { historyEarlier, historyFirst, myProgress, myProgressEmpty, myProgressFirstDay } = await import(
   '@/lib/learn/__fixtures__/my-progress'
 );
+const { learnDayOfDate } = await import('@/lib/learn/my-progress');
+
+/** The first day, on `day`. */
+const myProgressFirstDayOn = (day: string) => ({
+  ...myProgressFirstDay,
+  days: myProgressFirstDay.days.map((each) => ({ ...each, day })),
+});
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -73,6 +80,14 @@ describe('My progress in the browser', () => {
     expect(document.activeElement).toBe(host.querySelector('h1'));
     await click(host.querySelector('button')!);
     expect(signIn).toHaveBeenCalledWith(expect.any(String), { redirectTo: '/learn/progress?view=history' });
+  });
+
+  it('signing in again from History opened at a day comes back to that day', async () => {
+    await draw('history', '2026-11-20');
+    await click(host.querySelector('button')!);
+    expect(signIn).toHaveBeenCalledWith(expect.any(String), {
+      redirectTo: '/learn/progress?view=history&day=2026-11-20',
+    });
   });
 
   it('keeps the boxes’ places while the progress is on its way, with a title for screen readers', async () => {
@@ -183,5 +198,119 @@ describe('My progress in the browser', () => {
     await draw('history');
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(host.querySelectorAll('[data-history-day]')).toHaveLength(5);
+  });
+
+  it('counts today as the route says, the day the API counts in, and the browser’s date only without it', async () => {
+    hint.present = true;
+    // The route says Saturday (the saved zone), whatever the browser's date: Saturday is "Today".
+    fetchMock.mockResolvedValue(json({ progress: myProgressFirstDayOn('2026-11-21'), today: '2026-11-21' }));
+    await draw();
+    expect(host.querySelector('[data-days-line]')!.textContent).toBe('Your first day.');
+    expect(host.querySelector('[data-calendar] a')!.getAttribute('aria-label')).toMatch(/^Today, Saturday 21 Nov:/);
+    act(() => root.unmount());
+    root = createRoot(host);
+    // No today from the route: the browser's own date.
+    fetchMock.mockResolvedValue(json({ progress: myProgressFirstDayOn('2026-11-21'), today: 'not a day' }));
+    await draw();
+    const browserToday = learnDayOfDate(new Date());
+    expect(host.querySelector('[data-calendar] [data-day]:last-child')!.getAttribute('data-day')).toBe(
+      browserToday > '2026-11-21' ? browserToday : '2026-11-21',
+    );
+  });
+
+  it('History answering signed out, on its first page or on earlier days, asks to sign in again', async () => {
+    hint.present = true;
+    fetchMock.mockImplementation(async (path: string) =>
+      path.includes('/history')
+        ? json({ history: null, signedOut: true })
+        : json({ progress: myProgress, signedOut: false }),
+    );
+    await draw('history');
+    expect(stateOf()).toBe('ended');
+    expect(document.activeElement).toBe(host.querySelector('h1'));
+
+    act(() => root.unmount());
+    root = createRoot(host);
+    routes();
+    await draw('history');
+    fetchMock.mockImplementation(async (path: string) =>
+      path.includes('/history') ? json({ history: null, signedOut: true }) : json({ progress: myProgress }),
+    );
+    await click(host.querySelector('[data-history-more]')!);
+    expect(stateOf()).toBe('ended');
+    expect(document.activeElement).toBe(host.querySelector('h1'));
+  });
+
+  it('switching away while History’s first page loads, and back: it is read again, never left loading', async () => {
+    hint.present = true;
+    const held: ((value: Response) => void)[] = [];
+    fetchMock.mockImplementation((path: string) =>
+      path.includes('/history')
+        ? new Promise<Response>((resolve) => held.push(resolve))
+        : Promise.resolve(json({ progress: myProgress, signedOut: false })),
+    );
+    await draw('history');
+    expect(host.querySelector('[data-history="pending"]')).not.toBeNull();
+    await draw('courses');
+    await act(async () => held[0](json({ history: historyFirst, signedOut: false })));
+    await draw('history');
+    expect(historyCalls()).toHaveLength(2);
+    await act(async () => held[1](json({ history: historyFirst, signedOut: false })));
+    expect(host.querySelector('[data-history="pending"]')).toBeNull();
+    expect(host.querySelectorAll('[data-history-day]')).toHaveLength(5);
+  });
+
+  it('a late answer for earlier days never lands in a History opened at another day since', async () => {
+    hint.present = true;
+    const august = { days: [{ ...historyEarlier.days[0], day: '2026-08-05' }], more: true };
+    let release: (value: Response) => void = () => {};
+    fetchMock.mockImplementation((path: string) => {
+      if (!path.includes('/history')) return Promise.resolve(json({ progress: myProgress, signedOut: false }));
+      if (path.endsWith('before=2026-11-12')) {
+        return new Promise<Response>((resolve) => {
+          release = resolve;
+        });
+      }
+      if (path.endsWith('before=2026-08-06')) return Promise.resolve(json({ history: august, signedOut: false }));
+      return Promise.resolve(json({ history: historyFirst, signedOut: false }));
+    });
+    await draw('history');
+    await click(host.querySelector('[data-history-more]')!);
+    expect(host.querySelector('[data-history-more]')!.getAttribute('data-history-more')).toBe('loading');
+    // A square of "Days" opens 5 Aug while the earlier days are on their way.
+    await draw('history', '2026-08-05');
+    await act(async () => release(json({ history: historyEarlier, signedOut: false })));
+    expect([...host.querySelectorAll('[data-history-day]')].map((day) => day.getAttribute('data-history-day'))).toEqual(
+      ['2026-08-05'],
+    );
+    expect(host.querySelector('[data-history-more]')!.getAttribute('data-history-more')).toBe('more');
+    expect(document.activeElement?.closest('[data-history-day]')?.getAttribute('data-history-day')).toBe('2026-08-05');
+  });
+
+  it('the focus after History’s Try again, and after "Show the newest days", is on the first day drawn', async () => {
+    hint.present = true;
+    routes({ historyStatus: 502 });
+    await draw('history');
+    routes();
+    await click(host.querySelector('[data-history="failed"] button')!);
+    expect(document.activeElement?.closest('[data-history-day]')?.getAttribute('data-history-day')).toBe('2026-11-22');
+
+    act(() => root.unmount());
+    root = createRoot(host);
+    await draw('history', '2026-11-20');
+    // "Show the newest days" is a link to History with no day: the page draws it again without the day.
+    await draw('history', null);
+    expect(document.activeElement?.closest('[data-history-day]')?.getAttribute('data-history-day')).toBe('2026-11-22');
+  });
+
+  it('switching to History with the switch leaves the focus where it is', async () => {
+    hint.present = true;
+    routes();
+    await draw('history', '2026-11-20');
+    await draw('courses');
+    const link = host.querySelector<HTMLAnchorElement>('nav a[data-view="history"]')!;
+    link.focus();
+    await draw('history');
+    expect(document.activeElement).toBe(link);
   });
 });

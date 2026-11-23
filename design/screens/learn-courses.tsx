@@ -284,7 +284,7 @@ export const LEARN_COURSES_SCREEN: Screen = {
       title: 'All courses, a course, and My progress, on a phone',
       path: '/learn/courses',
       width: 390,
-      height: 10730,
+      height: 10790,
       render: () => (
         <div className="flex flex-col gap-8 px-2 pt-4 pb-10">
           <Frame title="All courses, a learner: one column" height={3000}>

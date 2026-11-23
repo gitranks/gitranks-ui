@@ -265,7 +265,7 @@ export function DaysBoxView({
           <div
             role="group"
             className="grid auto-cols-min grid-flow-col grid-rows-[repeat(7,13px)] gap-[3px] sm:grid-rows-[repeat(7,17px)]"
-            aria-label="The days of the last 26 weeks you learned or repeated something on"
+            aria-label="The days you learned or repeated something on"
             data-calendar=""
           >
             {calendar.weeks.flatMap((week, index) =>
@@ -322,7 +322,7 @@ export function ViewSwitch({ view }: { view: MyProgressView }) {
               scroll={false}
               aria-current={each.view === view ? 'page' : undefined}
               className={cn(
-                'block rounded-md px-3 py-1.5 text-center text-xs whitespace-nowrap sm:py-1',
+                'flex items-center justify-center rounded-md px-3 py-1.5 text-center text-xs whitespace-nowrap max-sm:min-h-11 sm:py-1',
                 each.view === view
                   ? 'bg-muted font-semibold text-foreground'
                   : 'font-medium text-muted-foreground hover:text-foreground',
@@ -342,6 +342,8 @@ export function ViewSwitch({ view }: { view: MyProgressView }) {
 export function ViewHead({ view, line }: { view: MyProgressView; line: ReactNode }) {
   return (
     <div className="flex min-h-8 flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      {/* The view's heading, for moving by headings: the course cards and History's days sit under it, not "Days". */}
+      <h2 className="sr-only">{MY_PROGRESS_VIEWS.find((each) => each.view === view)?.label}</h2>
       <p className="m-0 text-sm text-muted-foreground max-sm:order-2" data-view-line="">
         {line}
       </p>
@@ -440,7 +442,7 @@ export function MyCourseCard({ mine, today }: { mine: LearnCourseMineCard; today
         ) : (
           <span />
         )}
-        <Button asChild variant="outline" size="sm" className="shrink-0">
+        <Button asChild variant="outline" size="sm" className="shrink-0 max-sm:min-h-11">
           <Link href={coursePath(course.slug)}>
             Open course<span className="sr-only">: {course.name}</span>
           </Link>
@@ -562,6 +564,11 @@ export function HistoryList({
           Show the newest days
         </Link>
       ) : null}
+      {!days.length && more === 'end' ? (
+        <p className="m-0 text-sm text-muted-foreground" data-history-none="">
+          The days you learn or repeat a lesson show here.
+        </p>
+      ) : null}
       {days.map((day) => (
         <HistoryDay key={day.day} day={day} today={today} titleRef={dayRef?.day === day.day ? dayRef.ref : undefined} />
       ))}
@@ -571,6 +578,7 @@ export function HistoryList({
           <Button
             type="button"
             variant="outline"
+            className="max-sm:min-h-11"
             onClick={onMore}
             disabled={more === 'loading'}
             aria-busy={more === 'loading' || undefined}
@@ -602,7 +610,7 @@ export function HistoryFailed({ onReload }: { onReload: () => void }) {
       <p className="m-0 text-sm text-muted-foreground" role="status">
         Your days did not load. Nothing is lost; try again in a minute.
       </p>
-      <Button type="button" variant="outline" onClick={onReload}>
+      <Button type="button" variant="outline" className="max-sm:min-h-11" onClick={onReload}>
         Try again
       </Button>
     </div>

@@ -27,6 +27,7 @@ import {
   historyAfter,
   historyBeforeOf,
   isEmptyProgress,
+  isLearnDay,
   type LearnDay,
   type LearnHistory,
   type LearnMyProgress,
@@ -38,14 +39,21 @@ import {
 import { LEARN_MY_PROGRESS_MINE_PATH, learnHistoryMinePath } from '@/lib/learn/paths';
 import { hasSessionHint } from '@/lib/session-hint';
 
+/** The person's progress and today's date as the API counts days, when the route knows it. */
+export type MyProgressRead = { progress: LearnMyProgress; today: string | null };
+
 /** The person's progress from its route: `'signed-out'` when the session is gone; null on any failure. */
-export async function readMyProgress(): Promise<LearnMyProgress | 'signed-out' | null> {
+export async function readMyProgress(): Promise<MyProgressRead | 'signed-out' | null> {
   try {
     const res = await fetch(LEARN_MY_PROGRESS_MINE_PATH, { cache: 'no-store' });
     if (!res.ok) return null;
-    const { progress, signedOut } = (await res.json()) as { progress?: LearnMyProgress | null; signedOut?: boolean };
+    const { progress, today, signedOut } = (await res.json()) as {
+      progress?: LearnMyProgress | null;
+      today?: string | null;
+      signedOut?: boolean;
+    };
     if (signedOut === true) return 'signed-out';
-    return progress ?? null;
+    return progress ? { progress, today: isLearnDay(today) ? today : null } : null;
   } catch {
     return null;
   }
@@ -101,11 +109,12 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
       return;
     }
     let live = true;
-    readMyProgress().then((progress) => {
+    readMyProgress().then((read) => {
       if (!live) return;
-      if (progress === 'signed-out') setPage({ kind: 'ended' });
-      else if (!progress) setPage({ kind: 'failed' });
-      else setPage({ kind: 'ready', progress, today: learnDayOfDate(new Date()) });
+      if (read === 'signed-out') setPage({ kind: 'ended' });
+      else if (!read) setPage({ kind: 'failed' });
+      // Today as the API counts days (the person's saved zone); the browser's own date only when the route cannot say.
+      else setPage({ kind: 'ready', progress: read.progress, today: read.today ?? learnDayOfDate(new Date()) });
     });
     return () => {
       live = false;
@@ -115,23 +124,44 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
   const ready = page.kind === 'ready';
   const historyFrom = history?.from ?? null;
   const historyKind = history?.kind ?? null;
-  // History's first page, read when its view opens and again when a square opens another day.
+  // After History's "Try again" the button is gone: the first day drawn takes the focus.
+  const focusFirst = useRef(false);
+  // The view drawn before this one: "Show the newest days" is a move inside History, the switch is not.
+  const lastView = useRef(view);
+  // History's first page, read when its view opens and again when a square opens another day. Only a list that is
+  // there is kept: one whose read was dropped on the way (the view switched before it came) is read again.
   // biome-ignore lint/correctness/useExhaustiveDependencies: Try again reads the first page once more.
   useEffect(() => {
     if (!ready || view !== 'history') return;
-    if (historyKind !== null && historyKind !== 'failed' && historyFrom === day) return;
+    if (historyKind === 'ready' && historyFrom === day) return;
+    // Leaving a day for the newest days removes the link that had the focus: the first day drawn takes it.
+    const leftDay = lastView.current === 'history' && historyFrom !== null && day === null;
     let live = true;
     setHistory({ kind: 'pending', from: day });
     readHistory(historyBeforeOf(day)).then((read) => {
       if (!live) return;
-      if (read === 'signed-out') setPage({ kind: 'ended' });
-      else if (!read) setHistory({ kind: 'failed', from: day });
-      else setHistory({ kind: 'ready', from: day, days: read.days, more: read.more ? 'more' : 'end', focus: day });
+      if (read === 'signed-out') {
+        setPage({ kind: 'ended' });
+        return;
+      }
+      if (!read) {
+        setHistory({ kind: 'failed', from: day });
+        return;
+      }
+      const first = focusFirst.current || leftDay ? (read.days[0]?.day ?? null) : null;
+      focusFirst.current = false;
+      setHistory({ kind: 'ready', from: day, days: read.days, more: read.more ? 'more' : 'end', focus: day ?? first });
     });
     return () => {
       live = false;
+      // A read dropped on the way leaves no list waiting for it: the view reads again when it is shown.
+      setHistory((current) => (current?.kind === 'pending' && current.from === day ? null : current));
     };
   }, [ready, view, day, historyAttempt]);
+
+  useEffect(() => {
+    lastView.current = view;
+  }, [view]);
 
   // The day to show takes the focus once it is drawn: the day a square opened, or the first of the days added.
   const focusDay = history?.kind === 'ready' ? history.focus : null;
@@ -141,6 +171,7 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
 
   const showEarlier = useCallback(async () => {
     if (history?.kind !== 'ready' || history.more === 'loading' || history.more === 'end') return;
+    const { from } = history;
     const oldest = history.days.at(-1)?.day ?? null;
     setHistory({ ...history, more: 'loading', focus: null });
     const read = await readHistory(oldest);
@@ -149,7 +180,10 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
       return;
     }
     setHistory((current) => {
-      if (current?.kind !== 'ready') return current;
+      // The answer belongs to the list it was asked for: a list opened since (another day, or read again) keeps its own.
+      if (current?.kind !== 'ready' || current.from !== from || (current.days.at(-1)?.day ?? null) !== oldest) {
+        return current;
+      }
       if (!read) return { ...current, more: 'failed' };
       const days = historyAfter(current.days, read.days);
       const first = days[current.days.length]?.day ?? null;
@@ -158,8 +192,8 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
   }, [history]);
 
   const signInHere = useCallback(() => {
-    signIn(IDENTITY_PROVIDER, { redirectTo: myProgressPath({ view }) }).catch(() => {});
-  }, [view]);
+    signIn(IDENTITY_PROVIDER, { redirectTo: myProgressPath({ view, day }) }).catch(() => {});
+  }, [view, day]);
 
   return (
     <main className={MY_PROGRESS_MAIN_CLASS}>
@@ -191,7 +225,10 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
             view={view}
             history={history}
             onMore={() => void showEarlier()}
-            onHistoryReload={() => setHistoryAttempt((count) => count + 1)}
+            onHistoryReload={() => {
+              focusFirst.current = true;
+              setHistoryAttempt((count) => count + 1);
+            }}
             dayTitleRef={dayTitleRef}
           />
         </>

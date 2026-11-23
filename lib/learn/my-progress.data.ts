@@ -3,6 +3,7 @@ import 'server-only';
 import { isLearnDay, type LearnHistory, type LearnMyProgress } from './my-progress';
 import { LearnHistoryDocument, LearnMyProgressDocument } from './my-progress.documents';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { ContributeEmailSettingsDocument } from '@/lib/workspace/contribute.documents';
 
 /*
  * My progress, read for the signed-in person alone, in the browser through its routes, and never kept: every answer
@@ -26,6 +27,25 @@ export async function loadLearnMyProgress(githubLogin: string): Promise<LearnMyP
   try {
     const { learnMyProgress } = await graphqlDirect(LearnMyProgressDocument, {}, { source: 'ssr', githubLogin });
     return isMyProgress(learnMyProgress) ? learnMyProgress : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The time zone the person saved, which Learn counts their days in: `{ timeZone: null }` when they saved none. Null when
+ * it cannot be read (the read failed, or the API does not answer it for this person): the page cannot know the zone.
+ */
+export async function loadLearnTimeZone(githubLogin: string): Promise<{ timeZone: string | null } | null> {
+  try {
+    const { contributeEmailSettings } = await graphqlDirect(
+      ContributeEmailSettingsDocument,
+      {},
+      { source: 'ssr', githubLogin },
+    );
+    if (!contributeEmailSettings) return null;
+    const { timeZone } = contributeEmailSettings;
+    return { timeZone: typeof timeZone === 'string' && timeZone ? timeZone : null };
   } catch {
     return null;
   }

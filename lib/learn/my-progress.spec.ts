@@ -30,6 +30,7 @@ import {
   isLearnDay,
   type LearnDay,
   learnDayOfDate,
+  learnTodayIn,
   lessonsBoxOf,
   lessonsBoxWords,
   myProgressDayOf,
@@ -262,5 +263,21 @@ describe('My progress: History', () => {
       ...historyFirst.days.map((day) => day.day),
       ...historyEarlier.days.map((day) => day.day),
     ]);
+  });
+});
+
+describe('My progress: today, as the API counts days', () => {
+  // 03:30 UTC on Sunday 22 Nov: still Saturday in New York, already Sunday in Tokyo.
+  const now = new Date('2026-11-22T03:30:00.000Z');
+
+  it('is the date in the zone the person saved', () => {
+    expect(learnTodayIn(now, 'Asia/Tokyo')).toBe('2026-11-22');
+    expect(learnTodayIn(now, 'Europe/London')).toBe('2026-11-22');
+    expect(learnTodayIn(now, 'America/Los_Angeles')).toBe('2026-11-21');
+  });
+
+  it("is the date in Learn's default zone with no zone saved, or one that is not a real zone", () => {
+    expect(learnTodayIn(now, null)).toBe('2026-11-21');
+    expect(learnTodayIn(now, 'Mars/Olympus')).toBe('2026-11-21');
   });
 });

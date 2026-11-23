@@ -216,6 +216,10 @@ export function MyProgressStates() {
         <ProgressFrame title="16 · Your progress did not load" height={330}>
           <ProgressFailed onReload={noop} />
         </ProgressFrame>
+        <ProgressFrame title="17 · History before any day: lessons marked as known only" height={330}>
+          <ViewHead view="history" line={null} />
+          <HistoryList days={[]} today={PROGRESS_TODAY} more="end" onMore={noop} />
+        </ProgressFrame>
       </div>
     </>
   );
@@ -225,10 +229,10 @@ export function MyProgressStates() {
 export function MyProgressPhone() {
   return (
     <>
-      <ProgressFrame title="My progress, Courses: the boxes one above the other, 17 weeks of days" height={1680} header>
+      <ProgressFrame title="My progress, Courses: the boxes one above the other, 17 weeks of days" height={1720} header>
         <Body />
       </ProgressFrame>
-      <ProgressFrame title="My progress, History" height={1940} header>
+      <ProgressFrame title="My progress, History" height={1960} header>
         <Body view="history" shown={history()} />
       </ProgressFrame>
     </>

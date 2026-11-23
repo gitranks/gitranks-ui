@@ -273,6 +273,7 @@ export const LISTED_REGISTRIES = [
   'packagist',
   'maven',
   'nuget',
+  'rubygems',
 ] as const satisfies readonly RegistryId[];
 
 /**

@@ -64,6 +64,9 @@ describe('llms.txt', () => {
       - [NuGet package rankings](https://example.test/packages/nuget/dependents-stars/1): NuGet packages ranked by the stars of the repositories that use them, and by how many do. Beta.
       - Package page: https://example.test/package/nuget/{name} ({name} in lower case) — who uses a NuGet package: every repository with 100+ stars that depends on it directly, with ranks.
       - Package facts in markdown: https://example.test/package/nuget/{name}/facts.md — the same as the package page, for agents: dependents and ranks, each with its link.
+      - [RubyGems package rankings](https://example.test/packages/rubygems/dependents-stars/1): RubyGems packages ranked by the stars of the repositories that use them, and by how many do. Beta.
+      - Package page: https://example.test/package/rubygems/{name} — who uses a RubyGems package: every repository with 100+ stars that depends on it directly, with ranks.
+      - Package facts in markdown: https://example.test/package/rubygems/{name}/facts.md — the same as the package page, for agents: dependents and ranks, each with its link.
       - Repository "Used by": https://example.test/repo/{owner}/{name}/used-by — the same for every package a repository publishes.
       - [How package rankings work](https://example.test/methodology/packages)
       - [Unsung heroes](https://example.test/unsung-heroes): one open-source project a week that a lot of software runs on, and few people star

@@ -3,9 +3,9 @@ import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
 import { loadLearnOpen } from '@/lib/learn/learn.data';
 import { LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
-import { CONTRIBUTE_RULES_ID, ISSUE_RULES_DATE } from '@/lib/workspace/fair-use';
+import { CONTRIBUTE_RULES_ID, type IssueRules, RULES_BEFORE, RULES_UNREAD, termsDayOf } from '@/lib/workspace/fair-use';
 import { contributeShown } from '@/lib/workspace/preview-gate';
-import { issueRulesLive } from '@/lib/workspace/rules-live';
+import { issueRules } from '@/lib/workspace/rules-live';
 
 /*
  * The Terms of service. Short on purpose: what EU/UK consumer law requires for a free service, plus the clauses that
@@ -47,8 +47,8 @@ const ISSUE_RULES = (
       </li>
       <li>
         You can see a number of full issues a day. It comes from your GitRanks tier and the pull requests merged through
-        GitRanks, the site shows it, and it may change. Every issue you see in full counts, given back or not, and so
-        does every issue your agent takes or you start.
+        GitRanks, the site shows it, and it may change. An issue counts, given back or not, each time you see one in
+        full, your agent takes one, you start one, or the hosted agent picks one for you.
       </li>
       <li>
         We check two things once a day. First, a pull request you opened outside GitRanks that fixes an issue you took
@@ -65,11 +65,27 @@ const ISSUE_RULES = (
   </li>
 );
 
+/** Where the API did not answer which rules hold: the rules' anchor, and that this part could not be loaded. */
+const UNREAD_RULES = (
+  <li id={CONTRIBUTE_RULES_ID} className="scroll-mt-6">
+    <B>Issues from GitRanks.</B> {RULES_UNREAD}
+  </li>
+);
+
+/** The agent's sentence for the rules that hold. */
+const AGENT_RULES: Record<IssueRules['state'], string> = {
+  live: 'Your agent must follow the rules for issues from GitRanks too: GitRanks tells it so when it connects.',
+  before: 'Your agent must follow the rule for issues from your list too: GitRanks tells it so when it connects.',
+  unknown: 'Your agent must follow the rules for issues too: GitRanks tells it so when it connects.',
+  pending: 'Your agent must follow the rules for issues too: GitRanks tells it so when it connects.',
+};
+
 /**
  * Contribute's section (B5): the rule for issues first (the list's until the rules about full issues a day are live,
- * then the issues'), then whose key, whose pull requests, whose service, and the maintainers' say.
+ * then the issues', or that it could not be loaded), then whose key, whose pull requests, whose service, and the
+ * maintainers' say.
  */
-const contributeOf = (rulesLive: boolean): LegalSection => ({
+const contributeOf = (rules: IssueRules): LegalSection => ({
   id: 'contribute',
   title: 'GitRanks Contribute',
   body: (
@@ -81,7 +97,7 @@ const contributeOf = (rulesLive: boolean): LegalSection => ({
         it uses.
       </P>
       <List>
-        {rulesLive ? ISSUE_RULES : LIST_RULE}
+        {rules.state === 'live' ? ISSUE_RULES : rules.state === 'before' ? LIST_RULE : UNREAD_RULES}
         <li>
           <B>Your key, your usage.</B> When you connect a Claude API key, our agent runs on it in your Anthropic
           organization, and Anthropic bills that usage to that organization under its own terms. The organization that
@@ -96,12 +112,9 @@ const contributeOf = (rulesLive: boolean): LegalSection => ({
         <li>
           <B>Your own agent.</B> Your own agent connects by signing in with your GitHub account, which you allow on
           GitRanks, or with a personal GitRanks token. You are responsible for it, for its provider&apos;s terms, for
-          what it does on your computer and for what it sends us.{' '}
-          {rulesLive
-            ? 'Your agent must follow the rules for issues from GitRanks too: GitRanks tells it so when it connects.'
-            : 'Your agent must follow the rule for issues from your list too: GitRanks tells it so when it connects.'}{' '}
-          Keep your tokens private, and disconnect an agent or revoke a token in Contribute&apos;s settings if it may be
-          misused or may have leaked.
+          what it does on your computer and for what it sends us. {AGENT_RULES[rules.state]} Keep your tokens private,
+          and disconnect an agent or revoke a token in Contribute&apos;s settings if it may be misused or may have
+          leaked.
         </li>
         <li>
           <B>What you let us do.</B> You let us store and process what you and your agent send us (changes, test
@@ -140,7 +153,11 @@ const contributeOf = (rulesLive: boolean): LegalSection => ({
           as a maintainer or collaborator of its repository, your reaction may be shown on the result page with your
           username, avatar and role. See <A href={LEARN_MAINTAINERS_PATH}>what these lessons are for maintainers</A>.
         </li>
-        {rulesLive ? (
+        {rules.state === 'unknown' || rules.state === 'pending' ? (
+          <li>
+            <B>Fair use of Contribute.</B> {RULES_UNREAD}
+          </li>
+        ) : rules.state === 'live' ? (
           <li>
             <B>Fair use of Contribute.</B> You must not get around a repository&apos;s rules or our limits, open pull
             requests in bulk, remove or misstate the note that a pull request was made with AI, or copy, scrape or pass
@@ -219,13 +236,16 @@ const LEARN: LegalSection = {
 };
 
 /**
- * When the Terms last changed with Contribute's section in them: they show that date only once the section shows, and
- * `ISSUE_RULES_DATE` once the rules about full issues a day are live.
+ * When the Terms last changed with Contribute's section in them: they show that date only once the section shows, the
+ * date the API gives once the rules about full issues a day are live, and none while the API does not answer.
  */
 const CONTRIBUTE_TERMS_UPDATED = '2026-11-22';
 
+const contributeUpdatedOf = (rules: IssueRules): string | null =>
+  rules.state === 'before' ? CONTRIBUTE_TERMS_UPDATED : termsDayOf(rules);
+
 /** The sections; Contribute's only for whoever may see Contribute, and Learn's for whoever Learn is open to. */
-const sectionsOf = (contribute: boolean, learn: boolean, rulesLive: boolean): LegalSection[] => [
+const sectionsOf = (contribute: boolean, learn: boolean, rules: IssueRules): LegalSection[] => [
   {
     id: 'who',
     title: 'Who we are',
@@ -309,7 +329,7 @@ const sectionsOf = (contribute: boolean, learn: boolean, rulesLive: boolean): Le
       </P>
     ),
   },
-  ...(contribute ? [contributeOf(rulesLive)] : []),
+  ...(contribute ? [contributeOf(rules)] : []),
   ...(contribute && learn ? [LEARN] : []),
   {
     id: 'use',
@@ -430,22 +450,23 @@ const sectionsOf = (contribute: boolean, learn: boolean, rulesLive: boolean): Le
 
 /**
  * The Terms as drawn: with Contribute's section or without it, with Learn's (which needs Contribute's), and with the
- * rule for issues from your list or, once they are live, the rules about full issues a day (`rulesLive`).
+ * rules that hold (`rules`): the rule for issues from your list, the rules about full issues a day once they are live,
+ * or, while the API does not answer, that part could not be loaded and no date.
  */
 export function TermsScreen({
   contribute,
   learn = false,
-  rulesLive = false,
+  rules = RULES_BEFORE,
 }: {
   contribute: boolean;
   learn?: boolean;
-  rulesLive?: boolean;
+  rules?: IssueRules;
 }) {
   return (
     <LegalPage
       title="Terms of service"
-      sections={sectionsOf(contribute, learn, rulesLive)}
-      updated={contribute ? (rulesLive ? ISSUE_RULES_DATE : CONTRIBUTE_TERMS_UPDATED) : undefined}
+      sections={sectionsOf(contribute, learn, rules)}
+      updated={contribute ? contributeUpdatedOf(rules) : undefined}
     />
   );
 }
@@ -457,15 +478,15 @@ export function TermsScreen({
  */
 export async function LaunchedTerms() {
   // Learn's section is extra: a failed check leaves it out rather than fail the Terms. The rules' read never fails: an
-  // API that does not know it yet keeps the rule for issues from your list.
-  const [contribute, learn, rulesLive] = await Promise.all([
+  // API that does not know it yet keeps the rule for issues from your list, and one that does not answer says so.
+  const [contribute, learn, rules] = await Promise.all([
     contributeShown(),
     loadLearnOpen().catch(() => false),
-    issueRulesLive(),
+    issueRules(),
   ]);
   return (
     <>
-      <TermsScreen contribute={contribute} learn={learn} rulesLive={rulesLive} />
+      <TermsScreen contribute={contribute} learn={learn} rules={rules} />
       {contribute ? <ScrollToHash /> : null}
     </>
   );

@@ -32,10 +32,27 @@ export const isAccessClosed = (notice: Pick<ContributeFairUseNotice, 'rule' | 'p
 export const ASK_AGAIN = 'Ask us to look again';
 
 /**
- * The date of the Terms and the Privacy policy that describe full issues a day and today's fair-use rules: they show
- * it once the API says those rules are live. The rules banner is due for everyone who closed it before the same day.
+ * Which rules about issues the API says hold, for the Terms, the Privacy policy, the MCP docs, the agents' page and the
+ * questions. `live`: the rules about full issues a day, with the date of the Terms that describe them. `before`: the
+ * rules of today, also when the API does not know the read yet. `unknown`: the API did not answer and no answer is
+ * kept, so the pages say that part could not be loaded rather than show words that may be wrong. `pending`: the read
+ * is under way (a static fallback), so the pages show only what both rules share.
  */
-export const ISSUE_RULES_DATE = '2026-11-24';
+export type IssueRules =
+  | { state: 'live'; termsDate: string }
+  | { state: 'before' }
+  | { state: 'unknown' }
+  | { state: 'pending' };
+
+export const RULES_BEFORE: IssueRules = { state: 'before' };
+export const RULES_PENDING: IssueRules = { state: 'pending' };
+
+/** The day the Terms that describe the live rules took effect ('YYYY-MM-DD'), or null before they are live. */
+export const termsDayOf = (rules: IssueRules): string | null =>
+  rules.state === 'live' ? rules.termsDate.slice(0, 10) : null;
+
+/** What a page says where the rules could not be read. */
+export const RULES_UNREAD = 'This part could not be loaded just now. Reload the page to read it.';
 
 /** The notice id an address names, as the API gives them; null for anything else. */
 export function fairUseNoticeIdOf(value: string | null | undefined): string | null {

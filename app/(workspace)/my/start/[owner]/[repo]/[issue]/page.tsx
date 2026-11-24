@@ -8,8 +8,9 @@ import { loadLearnProfile } from '@/lib/learn/learn.data';
 import { learnGoalLabelOf } from '@/lib/learn/profile-form';
 import { notEnteredTargetOf } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
-import { loadRulesLive, loadStartPageWithMask } from '@/lib/workspace/masked-issue.data';
+import { loadStartPageWithMask } from '@/lib/workspace/masked-issue.data';
 import { startPath } from '@/lib/workspace/paths';
+import { issueRulesLive } from '@/lib/workspace/rules-live';
 import { learnStartIssueOf, startBackOf, startModeOf } from '@/lib/workspace/start/start-page';
 import { loadStartPageView } from '@/lib/workspace/start/start-page.data';
 
@@ -62,7 +63,7 @@ async function StartView({ params, searchParams }: Pick<Params, 'params' | 'sear
 
   const [goal, withMask] = await Promise.all([
     mode === 'lesson' ? loadLearnProfile().then(learnGoalLabelOf) : null,
-    loadRulesLive().then((live) => (live ? loadStartPageWithMask(ref, mode) : null)),
+    issueRulesLive().then((live) => (live ? loadStartPageWithMask(ref, mode) : null)),
   ]);
   const load = await loadStartPageView(ref, mode, goal, withMask?.answer);
   if (load.kind === 'not-found') {

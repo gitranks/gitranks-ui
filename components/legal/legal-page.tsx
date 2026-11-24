@@ -15,12 +15,15 @@ export function LegalPage({
   intro,
   sections,
   updated = LAST_UPDATED,
+  updatedLine,
 }: {
   title: string;
   intro?: ReactNode;
   sections: LegalSection[];
-  /** The page's own date, when it changed after `LAST_UPDATED`. */
-  updated?: string;
+  /** The page's own date, when it changed after `LAST_UPDATED`; null: no date line (a date that could not be read). */
+  updated?: string | null;
+  /** The date line in place of the one drawn from `updated`: a page whose date is read per request. */
+  updatedLine?: ReactNode;
 }) {
   return (
     <>
@@ -28,9 +31,7 @@ export function LegalPage({
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-6 pb-16 md:pt-12">
         <header className="flex flex-col gap-3">
           <h1 className="text-3xl font-semibold md:text-4xl">{title}</h1>
-          <p className="text-sm text-muted-foreground">
-            Last updated <time dateTime={updated}>{legalDate(updated)}</time>
-          </p>
+          {updatedLine ?? (updated ? <UpdatedLine updated={updated} /> : null)}
           {intro}
         </header>
 
@@ -66,6 +67,13 @@ export function LegalPage({
     </>
   );
 }
+
+/** "Last updated 24 November 2026": `updated` is a 'YYYY-MM-DD' day. */
+export const UpdatedLine = ({ updated }: { updated: string }) => (
+  <p className="text-sm text-muted-foreground">
+    Last updated <time dateTime={updated}>{legalDate(updated)}</time>
+  </p>
+);
 
 /** A paragraph of a legal page. */
 export const P = ({ children }: { children: ReactNode }) => <p>{children}</p>;

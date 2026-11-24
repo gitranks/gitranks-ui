@@ -11,7 +11,7 @@ const contribute = vi.hoisted(() => ({
 vi.mock('@/lib/workspace/contribute.data', () => contribute);
 vi.mock('@/lib/workspace/mcp-sign-in', () => ({ contributeMcpSignIn: vi.fn(async () => true) }));
 
-const { loadIssueNumbers, loadIssuePage, loadIssueStartReads, loadRulesLive, loadStartPageWithMask } = await import(
+const { loadIssueNumbers, loadIssuePage, loadIssueStartReads, loadStartPageWithMask } = await import(
   './masked-issue.data'
 );
 const { fullPage, issueNumbers } = await import('./__fixtures__/masked-issue');
@@ -77,17 +77,13 @@ describe('the numbers of a night', () => {
     answer({ IssueNumbers: { issueNumbers } });
     expect(await loadIssueNumbers()).toEqual(issueNumbers);
     expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('githubLogin');
-    expect(await loadRulesLive()).toBe(true);
   });
 
-  it("fall back to none, and today's words, when the API does not know them or does not answer", async () => {
+  it('fall back to none when the API does not know them or does not answer', async () => {
     answer({ IssueNumbers: todaysAnswerTo('issueNumbers') });
     expect(await loadIssueNumbers()).toBeNull();
-    expect(await loadRulesLive()).toBe(false);
     answer({ IssueNumbers: outage() });
-    expect(await loadRulesLive()).toBe(false);
-    answer({ IssueNumbers: { issueNumbers: { ...issueNumbers, rulesLive: false } } });
-    expect(await loadRulesLive()).toBe(false);
+    expect(await loadIssueNumbers()).toBeNull();
   });
 });
 

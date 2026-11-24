@@ -44,6 +44,7 @@ import {
 } from '@/lib/contribute/mcp-docs';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
+import { type IssueRules, RULES_BEFORE } from '@/lib/workspace/fair-use';
 import { MCP_INSTALL_LINKS, mcpInstallLinkOf } from '@/lib/workspace/mcp-install-links';
 import { USE_A_TOKEN_INSTEAD } from '@/lib/workspace/mcp-setup';
 import { AGENTS_DOC_PATH, FAQ_PATH, MAINTAINERS_PATH, START_AGENT_PATH } from '@/lib/workspace/paths';
@@ -316,15 +317,17 @@ const INSTALL_LINK_NAMES = andList(MCP_INSTALL_LINKS.map(({ label }) => label.re
  * The public docs of the MCP server: setup per client, the first prompt and what happens next, troubleshooting, the
  * tools, the sign-in and the token, the limits, what reaches us and where to get help. Agents sign in with GitHub, so each client's sign-in comes first and its token setup sits in a fold.
  * `plugin`: show the plugin installs (`MCP_PLUGIN_DOCS_SHOWN`, on since the plugin's repository went public).
- * `rulesLive`: the limits of full issues a day, once the API says they are live.
+ * `rules`: today's limits, those of full issues a day once the API says they are live, or the limits both share while
+ * the read is under way or the API does not answer.
  */
 export function McpDocsScreen({
   plugin = MCP_PLUGIN_DOCS_SHOWN,
-  rulesLive = false,
+  rules = RULES_BEFORE,
 }: {
   plugin?: boolean;
-  rulesLive?: boolean;
+  rules?: IssueRules;
 } = {}) {
+  const limitsNote = mcpDocLimitsNoteOf(rules);
   return (
     <main className="mx-auto w-full max-w-7xl px-4 flex flex-col gap-9 pt-10 pb-16">
       <PublicPageHead eyebrow="Contribute · MCP server" title="Connect your own agent to GitRanks">
@@ -583,14 +586,14 @@ export function McpDocsScreen({
           text="Per account, across all your agents and tokens. A call past a limit gets an error that says how long to wait."
         >
           <dl className="grid grid-cols-1 rounded-xl border text-sm sm:grid-cols-[200px_1fr]">
-            {mcpDocLimitsOf(rulesLive).map(({ what, limit }, index) => (
+            {mcpDocLimitsOf(rules).map(({ what, limit }, index) => (
               <div key={what} className="contents">
                 <dt className={cn('px-4 pt-3 text-muted-foreground sm:py-3', index > 0 && 'border-t')}>{what}</dt>
                 <dd className={cn('px-4 pb-3 sm:py-3', index > 0 && 'sm:border-t')}>{limit}</dd>
               </div>
             ))}
           </dl>
-          <p className="text-sm text-muted-foreground">{mcpDocLimitsNoteOf(rulesLive)}</p>
+          {limitsNote ? <p className="text-sm text-muted-foreground">{limitsNote}</p> : null}
         </DocSection>
 
         <DocSection

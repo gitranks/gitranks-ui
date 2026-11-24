@@ -13,10 +13,11 @@ import {
   MCP_URL,
   type McpDocClient,
   type McpDocPlugin,
+  mcpDocLimitsNoteOf,
   mcpDocLimitsOf,
   TOKEN_PLACEHOLDER,
 } from './mcp-docs';
-import { CONTRIBUTE_RULES_PATH } from '@/lib/workspace/fair-use';
+import { CONTRIBUTE_RULES_PATH, type IssueRules, RULES_BEFORE } from '@/lib/workspace/fair-use';
 import { MCP_INSTALL_LINKS, type McpInstallClient } from '@/lib/workspace/mcp-install-links';
 import { START_AGENT_PATH } from '@/lib/workspace/paths';
 
@@ -76,12 +77,12 @@ const HUMAN_STEP = [
  * `/contribute/agents.md`: GitRanks Contribute for an AI agent, in markdown. Built from the MCP docs' own data (the
  * clients, the tools, the limits) and the day's numbers and sample, so it can't drift from the docs page. `page` is
  * null when its read failed: the numbers and the sample are then left out. Agents sign in with GitHub: each client's
- * sign-in comes first, then the token setup for a client that can't. `rulesLive`: the limits of full issues a day, once
- * the API says they are live.
+ * sign-in comes first, then the token setup for a client that can't. `rules`: the limits of the rules that hold, as the
+ * MCP docs list them.
  */
 export function agentsDocOf(
   page: AgentPage | null,
-  { plugin = MCP_PLUGIN_DOCS_SHOWN, rulesLive = false }: { plugin?: boolean; rulesLive?: boolean } = {},
+  { plugin = MCP_PLUGIN_DOCS_SHOWN, rules = RULES_BEFORE }: { plugin?: boolean; rules?: IssueRules } = {},
 ): string {
   const lines: string[] = [
     '# GitRanks Contribute, for AI agents',
@@ -179,7 +180,9 @@ export function agentsDocOf(
     '## Limits',
     '',
   );
-  for (const { what, limit } of mcpDocLimitsOf(rulesLive)) lines.push(`- ${what}: ${limit}`);
+  for (const { what, limit } of mcpDocLimitsOf(rules)) lines.push(`- ${what}: ${limit}`);
+  // While the API does not answer, the shared limits say the rest could not be loaded.
+  if (rules.state === 'unknown') lines.push('', mcpDocLimitsNoteOf(rules) ?? '');
   lines.push(
     '',
     '## More',

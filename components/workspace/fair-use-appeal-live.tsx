@@ -1,17 +1,16 @@
 'use client';
 
-import { FairUseAppealForm } from './fair-use-appeal';
+import { FairUseAppealForm, type FairUseAppealSent } from './fair-use-appeal';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { appealFairUse } from '@/lib/workspace/fair-use.actions';
 import type { FairUseAppeal } from '@/lib/workspace/masked-issue.types';
 
 /**
- * Sends a request to look again at a closed access: the request as saved (or the one already open), or null when it was
- * not sent, which the form says. Pass it as the form's `onSend` wherever the form shows.
+ * Sends a request to look again at a closed access: the request as saved (or the one already open), or why it was not
+ * sent, with its code, which the form says. Pass it as the form's `onSend` wherever the form shows.
  */
-export async function sendFairUseAppeal(text: string): Promise<FairUseAppeal | null> {
-  const result = await appealFairUse(text).catch(() => null);
-  return result?.ok ? result.data : null;
+export async function sendFairUseAppeal(text: string): Promise<FairUseAppealSent> {
+  return appealFairUse(text).catch((): FairUseAppealSent => ({ ok: false, error: 'FAILED' }));
 }
 
 /**

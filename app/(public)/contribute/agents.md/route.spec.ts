@@ -26,17 +26,29 @@ beforeEach(() => {
 describe('/contribute/agents.md', () => {
   it('lists today’s limits while the API does not know whether the rules are live', async () => {
     m.graphqlDirect.mockRejectedValue(
-      new Error('[{"message":"Cannot query field \\"issueNumbers\\" on type \\"Query\\"."}]'),
+      new Error('[{"message":"Cannot query field \\"termsDate\\" on type \\"IssueNumbers\\"."}]'),
     );
-    const doc = await (await GET()).text();
+    const response = await GET();
+    const doc = await response.text();
     expect(doc).toContain('- New claims: 10 a day');
     expect(doc).not.toContain('Full issues a day');
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=300, s-maxage=300');
   });
 
   it('lists full issues a day once the API says the rules are live', async () => {
-    m.graphqlDirect.mockResolvedValue({ issueNumbers: { rulesLive: true } });
+    m.graphqlDirect.mockResolvedValue({ issueNumbers: { rulesLive: true, termsDate: '2026-11-26T00:00:00.000Z' } });
     const doc = await (await GET()).text();
     expect(doc).toContain('- Full issues a day: From your GitRanks tier, 10 to 70');
     expect(doc).not.toContain('New claims');
+  });
+
+  it('lists the shared limits, says the rest could not be loaded and is kept by no cache while the API does not answer', async () => {
+    m.graphqlDirect.mockRejectedValue(new Error('GraphQL error! 502: Bad Gateway'));
+    const response = await GET();
+    const doc = await response.text();
+    expect(doc).toContain('- Requests: 300 a minute');
+    expect(doc).toContain('The limits on issues could not be loaded just now.');
+    expect(doc).not.toMatch(/New claims|Full issues a day/);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
   });
 });

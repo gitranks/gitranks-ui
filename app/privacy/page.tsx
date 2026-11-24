@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 
-import { FairUseItem } from './fair-use-item';
+import { FairUseItem, PrivacyUpdated } from './fair-use-item';
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
 import { pageMetadata } from '@/lib/seo/page-metadata';
-import { ISSUE_RULES_DATE } from '@/lib/workspace/fair-use';
 
 export const metadata: Metadata = pageMetadata({
   title: 'Privacy policy',
@@ -21,14 +20,6 @@ export const metadata: Metadata = pageMetadata({
  */
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
-
-/**
- * The Privacy policy's own date: it changed after `LAST_UPDATED` (GitRanks Learn and following a package, 2026-11-18;
- * the public progress page, 2026-11-20; Contribute's fair use, 2026-11-22; the bar Settings opens with, 2026-11-23; the
- * record of issues taken and the cookie of "See the full issue", 2026-11-24). The fair use of full issues a day, which
- * shows once the API says it is live, is of the same day (`ISSUE_RULES_DATE`).
- */
-const PRIVACY_UPDATED = ISSUE_RULES_DATE;
 
 const sections: LegalSection[] = [
   {
@@ -221,13 +212,13 @@ const sections: LegalSection[] = [
           </li>
           <li>
             <B>Issues you take</B>: we keep a record of every request to take an issue, granted or refused: when you see
-            one in full on GitRanks, when your agent takes one and when you start one. It holds which issue, when, from
-            which page or agent, why a request was refused, how it ended (for example started, given back with the
-            reasons and note you gave, or expired), whether you or your agent said the issue was no longer open, and
-            when its pull request was opened, merged or closed. We use it to count the full issues you can see in a day,
-            for fair use (below) and to see how Contribute and Learn are used. We keep it for as long as GitRanks runs
-            Contribute; when you delete your Contribute data, it stays without your username and account id. Basis:
-            legitimate interests, in keeping Contribute fair and knowing how it is used.
+            one in full on GitRanks, when your agent takes one, when you start one, or when the hosted agent picks one
+            for you. It holds which issue, when, from which page or agent, why a request was refused, how it ended (for
+            example started, given back with the reasons and note you gave, or expired), whether you or your agent said
+            the issue was no longer open, and when its pull request was opened, merged or closed. We use it to count the
+            full issues you can see in a day, for fair use (below) and to see how Contribute and Learn are used. We keep
+            it for as long as GitRanks runs Contribute; when you delete your Contribute data, it stays without your
+            username and account id. Basis: legitimate interests, in keeping Contribute fair and knowing how it is used.
           </li>
           <FairUseItem />
           <li>
@@ -594,5 +585,7 @@ const sections: LegalSection[] = [
 ];
 
 export default function Privacy() {
-  return <LegalPage title="Privacy policy" sections={sections} updated={PRIVACY_UPDATED} />;
+  // The date is read per request (`PrivacyUpdated`): today's, or that of the Terms once the rules about full issues a
+  // day are live.
+  return <LegalPage title="Privacy policy" sections={sections} updatedLine={<PrivacyUpdated />} />;
 }

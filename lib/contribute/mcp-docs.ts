@@ -1,3 +1,4 @@
+import type { IssueRules } from '@/lib/workspace/fair-use';
 import { MCP_CONNECTOR_NAME } from '@/lib/workspace/mcp-install-links';
 import {
   AGENT_FIRST_PROMPT,
@@ -333,37 +334,56 @@ export const MCP_DOC_LIMITS: readonly { what: string; limit: string }[] = [
   { what: 'Personal tokens', limit: `${MCP_TOKENS_MAX} live at once; agents that sign in don't count` },
 ];
 
+type McpDocLimit = { what: string; limit: string };
+
 /**
- * The limits once the rules about full issues a day are live: issues shown a day are no longer counted, and the issues
- * an agent takes count toward the full issues a person can see in a day.
+ * The rows of today's limits that change once the rules about full issues a day are live, by name: the two daily
+ * counts become one, full issues a day (the issues an agent takes count toward it), and a claim's life is an issue
+ * held. Every other row is the same under both rules.
  */
-export const MCP_DOC_ISSUE_LIMITS: readonly { what: string; limit: string }[] = [
-  { what: 'Requests', limit: '300 a minute, every message counted' },
-  { what: 'Tool calls', limit: '60 a minute, 1,000 a day' },
-  { what: 'find_issues', limit: '20 a minute' },
-  {
+const ISSUE_ROWS: Readonly<Record<string, McpDocLimit | null>> = {
+  'Issues shown for the first time': null,
+  'New claims': {
     what: 'Full issues a day',
     limit:
       'From your GitRanks tier, 10 to 70, plus 5 for each pull request merged through GitRanks, up to 100. Every issue your agent takes counts, refused ones included, together with the issues you see in full on GitRanks and runs on your Claude key',
   },
-  { what: 'submit_patch calls', limit: '30 a day, refused ones included' },
-  { what: 'start_proof calls', limit: '20 an hour, renewals included; 3 accepted submissions a day per pull request' },
-  {
-    what: 'An issue stays held',
-    limit:
-      '24 hours from the last call that names it; it lapses after 48 hours without a passing patch; 7 days at most',
-  },
-  { what: 'Personal tokens', limit: `${MCP_TOKENS_MAX} live at once; agents that sign in don't count` },
-];
+  'A claim lasts': { what: 'An issue stays held', limit: '' },
+};
 
-/** The limits the docs list: today's, or those of full issues a day once they are live. */
-export const mcpDocLimitsOf = (rulesLive: boolean) => (rulesLive ? MCP_DOC_ISSUE_LIMITS : MCP_DOC_LIMITS);
+/** The limits once the rules about full issues a day are live: today's, with the rows that change swapped. */
+export const MCP_DOC_ISSUE_LIMITS: readonly McpDocLimit[] = MCP_DOC_LIMITS.flatMap((row) => {
+  const swap = ISSUE_ROWS[row.what];
+  if (swap === undefined) return [row];
+  if (swap === null) return [];
+  return [{ what: swap.what, limit: swap.limit || row.limit }];
+});
 
-/** The line under the limits: today's names the smaller limits of new accounts, which go with full issues a day. */
-export const mcpDocLimitsNoteOf = (rulesLive: boolean) =>
-  rulesLive
-    ? 'Under a fair-use warning you can see 5 full issues a day. Contribute is in beta, and these limits may change.'
-    : 'A new GitHub account, or one whose claims rarely turn into pull requests, gets smaller limits. Contribute is in beta, and these may change.';
+/** The limits both rules share: what the docs list while the rules that hold are not known. */
+export const MCP_DOC_SHARED_LIMITS: readonly McpDocLimit[] = MCP_DOC_LIMITS.filter(
+  ({ what }) => ISSUE_ROWS[what] === undefined,
+);
+
+/** The limits the docs list: today's, those of full issues a day once they are live, or the shared ones until known. */
+export const mcpDocLimitsOf = ({ state }: IssueRules): readonly McpDocLimit[] =>
+  state === 'live' ? MCP_DOC_ISSUE_LIMITS : state === 'before' ? MCP_DOC_LIMITS : MCP_DOC_SHARED_LIMITS;
+
+/**
+ * The line under the limits: today's names the smaller limits of new accounts, which go with full issues a day; while
+ * the API does not answer, that the limits on issues could not be loaded; none while the read is under way.
+ */
+export const mcpDocLimitsNoteOf = ({ state }: IssueRules): string | null => {
+  switch (state) {
+    case 'live':
+      return 'Under a fair-use warning you can see 5 full issues a day. Contribute is in beta, and these limits may change.';
+    case 'before':
+      return 'A new GitHub account, or one whose claims rarely turn into pull requests, gets smaller limits. Contribute is in beta, and these may change.';
+    case 'unknown':
+      return 'The limits on issues could not be loaded just now. Reload the page to see them.';
+    case 'pending':
+      return null;
+  }
+};
 
 /**
  * What happens once the agent is connected and asked the first prompt (`AGENT_FIRST_PROMPT`), in order. The docs link

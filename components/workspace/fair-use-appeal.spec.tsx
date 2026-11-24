@@ -18,6 +18,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   act(() => root.unmount());
   container.remove();
 });
@@ -32,6 +33,7 @@ const type = (value: string) =>
     textarea().dispatchEvent(new Event('input', { bubbles: true }));
   });
 const send = () => act(async () => submit()?.closest('form')?.requestSubmit());
+const FAILED = { ok: false as const, error: 'FAILED' as const };
 
 describe('asking to look again', () => {
   it('shows the closing words and a form with one text box of up to 2,000 characters', async () => {
@@ -52,12 +54,16 @@ describe('asking to look again', () => {
     expect(container.querySelector('[data-ban]')).not.toBeNull();
     expect(container.querySelector('form')).toBeNull();
     expect(container.querySelector('a[href="/terms#contribute-rules"]')).not.toBeNull();
-    await render(<FairUseAppealForm appeal={null} formNeedsSend onSend={async () => null} />);
+    await render(<FairUseAppealForm appeal={null} formNeedsSend onSend={async () => FAILED} />);
     expect(container.querySelector('form')).not.toBeNull();
   });
 
   it("sends the request and shows its date in the form's place", async () => {
-    const onSend = vi.fn(async () => ({ at: '2026-10-28T12:00:00.000Z', answeredAt: null }));
+    vi.useFakeTimers({ now: Date.parse('2026-10-28T12:00:30.000Z'), toFake: ['Date'] });
+    const onSend = vi.fn(async () => ({
+      ok: true as const,
+      data: { at: '2026-10-28T12:00:00.000Z', answeredAt: null },
+    }));
     await render(<FairUseAppealForm appeal={null} onSend={onSend} />);
     await type('  The pull request was opened before I took the issue.  ');
     expect(submit()?.disabled).toBe(false);
@@ -67,14 +73,48 @@ describe('asking to look again', () => {
     expect(container.querySelector('[data-appeal-sent]')?.textContent).toContain(
       'You asked us to look again on Oct 28.',
     );
+    expect(container.querySelector('[data-appeal-already]')).toBeNull();
   });
 
-  it('says so when it was not sent, and keeps the text', async () => {
-    await render(<FairUseAppealForm appeal={null} onSend={async () => null} />);
+  it('says a request saved before the send is the one already open, and how to add to it', async () => {
+    vi.useFakeTimers({ now: Date.parse('2026-10-28T12:00:00.000Z'), toFake: ['Date'] });
+    await render(
+      <FairUseAppealForm
+        appeal={null}
+        onSend={async () => ({ ok: true, data: { at: '2026-10-27T09:00:00.000Z', answeredAt: null } })}
+      />,
+    );
+    await type('Please look again.');
+    await send();
+    expect(container.querySelector('form')).toBeNull();
+    expect(container.querySelector('[data-appeal-already]')?.textContent).toBe(
+      'We already have your request of Oct 27. To add to it, write to hello@gitranks.com.',
+    );
+    expect(container.querySelector('[data-appeal-already] a')?.getAttribute('href')).toBe('mailto:hello@gitranks.com');
+  });
+
+  it.each([
+    ['fails', async () => FAILED],
+    ['throws', async () => Promise.reject(new Error('offline'))],
+  ])('says to try again when the send %s, and keeps the text', async (_, onSend) => {
+    await render(<FairUseAppealForm appeal={null} onSend={onSend} />);
     await type('Please look again.');
     await send();
     expect(container.querySelector('[role="alert"]')?.textContent).toBe(
       'Your request was not sent. Try again in a minute.',
+    );
+    expect(textarea().value).toBe('Please look again.');
+  });
+
+  it.each([
+    ['refuses it', { ok: false as const, error: 'INVALID' as const, message: 'Your access is not closed.' }],
+    ['does not take requests yet', { ok: false as const, error: 'NOT_AVAILABLE_YET' as const }],
+  ])('points to email when the API %s', async (_, answer) => {
+    await render(<FairUseAppealForm appeal={null} onSend={async () => answer} />);
+    await type('Please look again.');
+    await send();
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      'Your request could not be sent from here. Write to us at hello@gitranks.com.',
     );
     expect(textarea().value).toBe('Please look again.');
   });

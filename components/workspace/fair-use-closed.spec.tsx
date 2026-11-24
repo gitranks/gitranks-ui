@@ -115,23 +115,27 @@ describe('the request to look again, wired', () => {
     expect(plain()).toContain('You asked us to look again on');
   });
 
-  it('says it was not sent, with email beside it, while the API does not take requests yet', async () => {
+  it('points to email while the API does not take requests yet', async () => {
     actions.appealFairUse.mockResolvedValue({ ok: false, error: 'NOT_AVAILABLE_YET' });
     await render(<FairUseAppealLive />);
     await type('Please look again.');
     await submit();
     expect(container.querySelector('[data-appeal-form]')).not.toBeNull();
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Your request was not sent.');
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      'Your request could not be sent from here. Write to us at hello@gitranks.com.',
+    );
     expect(plain()).toContain('You can also write to us at hello@gitranks.com.');
   });
 
-  it('gives the form null for a failed or thrown send, and the request for a saved one', async () => {
-    actions.appealFairUse.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
-    expect(await sendFairUseAppeal('x')).toBeNull();
+  it("gives the form the refusal's code, a thrown send as failed, and the request for a saved one", async () => {
+    actions.appealFairUse.mockResolvedValueOnce({ ok: false, error: 'INVALID', message: 'Not closed.' });
+    expect(await sendFairUseAppeal('x')).toEqual({ ok: false, error: 'INVALID', message: 'Not closed.' });
+    actions.appealFairUse.mockResolvedValueOnce({ ok: false, error: 'NOT_AVAILABLE_YET' });
+    expect(await sendFairUseAppeal('x')).toEqual({ ok: false, error: 'NOT_AVAILABLE_YET' });
     actions.appealFairUse.mockRejectedValueOnce(new Error('down'));
-    expect(await sendFairUseAppeal('x')).toBeNull();
+    expect(await sendFairUseAppeal('x')).toEqual({ ok: false, error: 'FAILED' });
     const appeal = { at: '2026-11-24T10:00:00.000Z', answeredAt: null };
     actions.appealFairUse.mockResolvedValueOnce({ ok: true, data: appeal });
-    expect(await sendFairUseAppeal('x')).toEqual(appeal);
+    expect(await sendFairUseAppeal('x')).toEqual({ ok: true, data: appeal });
   });
 });

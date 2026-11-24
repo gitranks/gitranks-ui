@@ -1,3 +1,5 @@
+import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
+
 /** The pool's public numbers. */
 export type AgentPageStats = {
   readyIssues: number;
@@ -6,18 +8,22 @@ export type AgentPageStats = {
   checkedAt: string | null;
 };
 
-/** One issue of the day's sample: the same for everyone. */
+/**
+ * One issue of the day's sample: the same for everyone. A masked one names nothing: its project, number, link, title,
+ * labels and reasons are null, and what it shows is in `masked`.
+ */
 export type AgentPageIssue = {
-  repo: string;
-  number: number;
-  url: string;
+  repo: string | null;
+  number: number | null;
+  url: string | null;
   title: string | null;
-  labels: string[];
+  labels: string[] | null;
   language: string | null;
   kind: string | null;
   size: string | null;
-  why: string[];
+  why: string[] | null;
   testCommand: boolean;
+  masked?: MaskedIssue | null;
 };
 
 /** What the page for AI agents shows: the numbers and the day's sample. */

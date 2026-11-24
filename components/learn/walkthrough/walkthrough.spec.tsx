@@ -131,6 +131,21 @@ describe('the public walkthrough', () => {
     expect(text()).not.toMatch(/\bstory\b|\blesson:/i);
   });
 
+  it('opens each GitHub link of the facts in a new tab, marked', async () => {
+    await drawPublic();
+    const links = [...host.querySelectorAll<HTMLAnchorElement>('[data-walkthrough-head] a')];
+    expect(links.map((link) => link.textContent)).toEqual([
+      'Issue #42 ↗ (opens GitHub)',
+      'PR #57 ↗ (opens GitHub)',
+      'octocat ↗ (opens GitHub)',
+    ]);
+    for (const link of links) {
+      expect(link.getAttribute('href')).toMatch(/^https:\/\/github\.com\//);
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+    }
+  });
+
   it('leads a fix closed without a merge to "How it was made", and promises nothing it cannot show', async () => {
     await drawPublic({ made: 'LEARN', state: 'CLOSED' });
     expect(host.querySelector('[data-fix-page-link]')?.getAttribute('href')).toBe('/contribute/pr/acme/widgets/57');

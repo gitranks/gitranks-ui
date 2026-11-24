@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { usd } from '@/lib/workspace/format';
+import { isSpent, plural, usd } from '@/lib/workspace/format';
 import { type ContributeRunsTotals, percentLabel } from '@/lib/workspace/runs';
 
 /** A tile: `value` null when there is nothing to count or divide, and the line says so in words instead. */
@@ -74,14 +74,16 @@ export function RunsTiles({
           ? `${notStarted} didn't start`
           : 'All reached the agent',
   };
+  const average = totals.started ? Math.round((totals.costUsd / totals.started) * 100) / 100 : 0;
   const spent: TileCopy = {
     name: 'spent',
     label: 'Spent',
-    value: totals.costUsd > 0 ? usd(totals.costUsd) : null,
-    text:
-      totals.costUsd > 0 && totals.started
-        ? `${usd(Math.round((totals.costUsd / totals.started) * 100) / 100)} a started run`
-        : 'Nothing spent yet',
+    value: isSpent(totals.costUsd) ? usd(totals.costUsd) : null,
+    text: !isSpent(totals.costUsd)
+      ? 'Nothing spent yet'
+      : isSpent(average)
+        ? `${usd(average)} a started run`
+        : 'Under a cent a started run',
   };
   const prs: TileCopy = {
     name: 'prs',
@@ -112,14 +114,17 @@ export function RunsTiles({
     value: rateOf(totals.merged, decided),
     text: decided ? `of ${decided} decided` : 'None decided yet',
   };
-  const noGoCost = !preview && totals.noGoCostUsd > 0 ? ` · ${usd(totals.noGoCostUsd)}` : '';
+  const noGoCost = !preview && isSpent(totals.noGoCostUsd) ? ` · ${usd(totals.noGoCostUsd)}` : '';
   const noGoRate: TileCopy = {
     name: 'no-go-rate',
     label: 'No-go rate',
-    value: rateOf(totals.noGo, totals.started),
+    // No no-go yet: said in words, not as 0%.
+    value: totals.noGo ? rateOf(totals.noGo, totals.started) : null,
     text: !totals.started
       ? 'None started yet'
-      : `${totals.noGo ? `${totals.noGo} of ${totals.started}` : `None of ${totals.started}`} started${noGoCost}`,
+      : totals.noGo
+        ? `${totals.noGo} of ${totals.started} started${noGoCost}`
+        : `No no-go in ${plural(totals.started, 'started run')}`,
     // On the Runs page's phones the no-go card says the rate.
     className: preview ? undefined : 'max-lg:hidden',
   };

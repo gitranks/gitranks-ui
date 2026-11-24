@@ -5,7 +5,7 @@ import { ABOVE_LINK, OutcomePill, RunCard, RunRefs, RunTitle } from './runs-list
 import { RunsTiles } from './runs-tiles';
 import { HEADING } from '@/components/workspace/primitives';
 import { cn } from '@/lib/utils';
-import { dayLabel, usd } from '@/lib/workspace/format';
+import { dayLabel, isSpent, usd } from '@/lib/workspace/format';
 import { PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import {
   type ContributeRun,
@@ -36,7 +36,7 @@ function MetaLine({ run }: { run: ContributeRun }) {
 }
 
 /** Its cost; none shown when it spent nothing (a run of the user's own agent spends nothing through us). */
-const costOf = (run: ContributeRun) => (run.costUsd > 0 ? usd(run.costUsd) : null);
+const costOf = (run: ContributeRun) => (isSpent(run.costUsd) ? usd(run.costUsd) : null);
 
 function PreviewRow({ run, cost }: { run: ContributeRun; cost: boolean }) {
   const reason = runReasonOf(run);

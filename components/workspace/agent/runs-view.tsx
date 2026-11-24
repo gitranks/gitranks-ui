@@ -16,6 +16,7 @@ import { audienceOf } from '@/lib/workspace/audience';
 import { loadContribute, loadContributeActivity, loadContributeSetup } from '@/lib/workspace/contribute.data';
 import type { ContributeActivity, ContributeView } from '@/lib/workspace/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
+import { plural } from '@/lib/workspace/format';
 import { PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import {
   type ContributeRunsPage,
@@ -101,7 +102,7 @@ function NoGoBreakdown({
           {!learner && !query.outcome && !query.reason && totals.started ? (
             <span className="lg:hidden">{percentLabel(totals.noGo, totals.started)} of started runs · </span>
           ) : null}
-          {sum ? `${sum} no-go${sum === 1 ? '' : 's'} · pick one to filter` : `${totals.noGo} no-gos`}
+          {sum ? `${plural(sum, 'no-go')} · pick one to filter` : plural(totals.noGo, 'no-go')}
         </span>
       </div>
       {parts.length ? (

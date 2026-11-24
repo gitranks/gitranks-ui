@@ -7,7 +7,7 @@ import type {
   ContributeSpend,
   ContributeView,
 } from './contribute.types';
-import { dayLabel, EFFORTS, MODELS, maskedKey, ordinalDay, plural, usd } from './format';
+import { dayLabel, EFFORTS, isSpent, MODELS, maskedKey, ordinalDay, plural, usd } from './format';
 
 /** What we say of the Claude key's state, after its last 4. */
 export const KEY_STATES: Record<ContributeCredential['state'], string> = {
@@ -25,7 +25,7 @@ export const KEY_STATES: Record<ContributeCredential['state'], string> = {
 export const budgetSummaryOf = (settings: ContributeSettings, spend?: ContributeSpend | null) =>
   [
     spend
-      ? spend.cycleUsd > 0
+      ? isSpent(spend.cycleUsd)
         ? `${usd(spend.cycleUsd)} of ${usd(settings.cycleCapUsd)} used this cycle`
         : `Nothing spent of ${usd(settings.cycleCapUsd)} this cycle`
       : `${usd(settings.cycleCapUsd)} a cycle`,

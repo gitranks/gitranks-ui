@@ -27,6 +27,7 @@ vi.mock('@/lib/learn/settings.actions', () => ({}));
 vi.mock('@/lib/learn/learn.data', () => ({}));
 
 const { RunsTiles } = await import('./runs-tiles');
+const { costSplitOf } = await import('./runs-list');
 const { AgentFirst } = await import('./agent-first');
 const { OwnAgentConnectScreen } = await import('./connect-view');
 const { FormSettingsScreen, KeyScreen } = await import('@/app/(workspace)/my/agent/components/agent-pages');
@@ -86,7 +87,8 @@ describe('the run tiles say nothing in words, never as a zero or a dash', () => 
     const totals = { ...NO_TOTALS, runs: 4, started: 4, costUsd: 1.2, prs: 2, merged: 2, lessons: 1 };
     const preview = text(renderToStaticMarkup(<RunsTiles totals={totals} variant="preview" />));
     expect(preview).toContain('Pull requests 2 2 merged');
-    expect(preview).toContain('No-go rate 0% None of 4 started');
+    expect(preview).toContain('No-go rate No no-go in 4 started runs');
+    expect(preview).not.toContain('0%');
     const history = text(renderToStaticMarkup(<RunsTiles totals={totals} variant="history" />));
     expect(history).toContain('Pull requests 2 2 merged');
     expect(history).toContain('Merge rate 100% of 2 decided');
@@ -99,6 +101,33 @@ describe('the run tiles say nothing in words, never as a zero or a dash', () => 
     expect(percentLabel(1, 0)).toBe('');
     expect(daySumLabel({ day: '2026-10-31', runs: 3, costUsd: 0, prs: 0 }, usd)).toBe('3 runs');
     expect(daySumLabel({ day: '2026-10-31', runs: 1, costUsd: 0.5, prs: 1 }, usd)).toBe('1 run · $0.50 · 1 PR');
+  });
+
+  it('treats an amount that rounds to $0 as nothing spent', () => {
+    expect(daySumLabel({ day: '2026-10-31', runs: 2, costUsd: 0.004, prs: 0 }, usd)).toBe('2 runs');
+    const crumbs = { ...NO_TOTALS, runs: 4, started: 4, costUsd: 0.004 };
+    const nothing = text(renderToStaticMarkup(<RunsTiles totals={crumbs} variant="history" />));
+    expect(nothing).toContain('Spent Nothing spent yet');
+    expect(nothing).not.toContain('$0.00');
+    const cents = { ...NO_TOTALS, runs: 4, started: 4, costUsd: 0.01 };
+    const under = text(renderToStaticMarkup(<RunsTiles totals={cents} variant="history" />));
+    expect(under).toContain('Spent $0.01 Under a cent a started run');
+    const spend = { ...contributor().spend!, cycleUsd: 0.001 };
+    expect(budgetSummaryOf(settings, spend)).toMatch(/^Nothing spent of \$200 this cycle/);
+  });
+});
+
+describe("a run's cost split", () => {
+  const runOf = (goNoGoUsd: number, workUsd: number) =>
+    ({ costUsd: goNoGoUsd + workUsd, goNoGoUsd, workUsd }) as unknown as ContributeRun;
+
+  it('names only the parts that cost something', () => {
+    expect(costSplitOf(runOf(0.12, 0.4))).toBe('Go/no-go $0.12 · work $0.40');
+    // A no-go run: the go/no-go read alone, no "work $0".
+    expect(costSplitOf(runOf(0.12, 0))).toBe('Go/no-go $0.12');
+    expect(costSplitOf(runOf(0.12, 0.002))).toBe('Go/no-go $0.12');
+    expect(costSplitOf(runOf(0, 0))).toBe('No session, no cost');
+    expect(costSplitOf(runOf(0.001, 0.002))).toBe('No session, no cost');
   });
 });
 

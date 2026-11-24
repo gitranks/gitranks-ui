@@ -225,7 +225,8 @@ export function RightNowLanes({
 
 /**
  * The runs page's "Working now": the runs, live from the poll. With none it stays, one quiet line, so the history under
- * it does not move each time a run starts or ends.
+ * it does not move each time a run starts or ends. `activity` null: the read failed (until the poll answers), which the
+ * line says instead of claiming nothing runs.
  */
 export function WorkingNowSection({ activity }: { activity: ContributeActivity | null | undefined }) {
   const live = useLiveActivity(activity);
@@ -239,7 +240,7 @@ export function WorkingNowView({ activity }: { activity: ContributeActivity | nu
     <section
       aria-labelledby="overview-working"
       data-overview-section="working"
-      data-working={runs.length ? 'runs' : 'none'}
+      data-working={!activity ? 'unread' : runs.length ? 'runs' : 'none'}
       className="flex flex-col gap-3"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
@@ -254,7 +255,9 @@ export function WorkingNowView({ activity }: { activity: ContributeActivity | nu
         </div>
       ) : (
         <p className="rounded-xl border border-dashed px-4 py-3.5 text-sm text-muted-foreground">
-          No agent is working on an issue for you right now.
+          {activity
+            ? 'No agent is working on an issue for you right now.'
+            : "The runs at work can't be read right now. They show here once they can."}
         </p>
       )}
     </section>

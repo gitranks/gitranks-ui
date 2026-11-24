@@ -192,13 +192,14 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
           text="For app directory reviewers: sign in with the review account you were given. It connects the app to GitRanks Contribute's review account, nothing else."
         >
           <CardFooter className="flex flex-col items-stretch gap-4">
-            <AuthorizeReviewSignIn requestId={state.requestId} />
-            <p className="text-sm text-muted-foreground">
-              Not a reviewer?{' '}
-              <Link href={authorizeHrefOf(state.requestId)} prefetch={false} className={LINK}>
-                Sign in with GitHub instead
-              </Link>
-            </p>
+            <AuthorizeReviewSignIn requestId={state.requestId}>
+              <p className="text-sm text-muted-foreground">
+                Not a reviewer?{' '}
+                <Link href={authorizeHrefOf(state.requestId)} prefetch={false} className={LINK}>
+                  Sign in with GitHub instead
+                </Link>
+              </p>
+            </AuthorizeReviewSignIn>
           </CardFooter>
         </Frame>
       );

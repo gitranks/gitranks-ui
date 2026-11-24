@@ -19,7 +19,7 @@ import type {
   ContributeEffort,
   ContributeModel,
 } from './contribute.types';
-import { EFFORTS, MODELS } from './format';
+import { EFFORTS, isSpent, MODELS } from './format';
 import { WORKSPACE_PATHS } from './paths';
 
 /** The Runs page: every run the user's agents made, newest first, a page at a time, with totals over the filter. */
@@ -405,7 +405,10 @@ export function runDaysOf(runs: ContributeRun[]): RunDay[] {
  */
 export function daySumLabel(day: ContributeRunsDay | undefined, usd: ((amount: number) => string) | null): string {
   if (!day) return '';
-  const parts = [`${day.runs} run${day.runs === 1 ? '' : 's'}`, ...(usd && day.costUsd > 0 ? [usd(day.costUsd)] : [])];
+  const parts = [
+    `${day.runs} run${day.runs === 1 ? '' : 's'}`,
+    ...(usd && isSpent(day.costUsd) ? [usd(day.costUsd)] : []),
+  ];
   if (day.prs) parts.push(`${day.prs} PR${day.prs === 1 ? '' : 's'}`);
   return parts.join(' · ');
 }

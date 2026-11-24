@@ -137,6 +137,9 @@ export const AUTOPILOT_UNLOCK_AT = 5;
 export const usd = (amount: number) =>
   `$${Number.isInteger(amount) ? amount.toLocaleString('en-US') : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/** Whether an amount shows as more than $0 (`usd` rounds to cents): below a cent, nothing was spent to show. */
+export const isSpent = (amount: number | null | undefined) => Math.round((amount ?? 0) * 100) > 0;
+
 /** A number the user typed, `$` and spaces allowed; `undefined` when it is not one, `null` when empty. */
 export function parseAmount(text: string): number | null | undefined {
   const cleaned = text.replace(/[$\s,]/g, '');

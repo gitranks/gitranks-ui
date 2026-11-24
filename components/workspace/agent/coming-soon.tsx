@@ -1,7 +1,7 @@
 'use client';
 
 import { BellIcon, CheckIcon } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import type { IconType } from 'react-icons';
 import { RiCursorAiFill, RiGeminiLine, RiGrokAiFill, RiOpenaiFill } from 'react-icons/ri';
 import { SiGithubcopilot, SiGooglejules } from 'react-icons/si';
@@ -209,6 +209,7 @@ export function ComingSoon({
 }) {
   const visitor = viewer === 'visitor';
   const { noted, busy, flip } = useNotify(visitor ? [] : initial);
+  const listTitleId = useId();
 
   if (variant === 'compact') {
     return (
@@ -223,14 +224,18 @@ export function ComingSoon({
                 type="button"
                 className="inline-flex min-h-10 items-center font-semibold text-link hover:underline max-sm:min-h-11"
               >
-                {noted.size ? 'On the list →' : 'Notify me →'}
+                {noted.size ? 'On the waiting list →' : 'Notify me →'}
               </button>
             </PopoverTrigger>
             <PopoverContent
               align="start"
-              className="flex w-[min(36rem,calc(100vw-2rem))] flex-col gap-2.5"
+              aria-labelledby={listTitleId}
+              className="flex max-h-[min(28rem,calc(100dvh-8rem))] w-[min(36rem,calc(100vw-2rem))] flex-col gap-2.5 overflow-y-auto"
               data-coming-soon-list=""
             >
+              <h4 id={listTitleId} className="text-sm font-semibold">
+                The waiting list
+              </h4>
               <p className="text-sm text-muted-foreground">
                 Tell us which you&apos;d use; the most asked for comes first.
               </p>

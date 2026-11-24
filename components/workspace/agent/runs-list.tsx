@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { LearnPill } from '@/components/workspace/learn-pill';
 import { RefChips } from '@/components/workspace/ref-chips';
 import { cn } from '@/lib/utils';
-import { usd } from '@/lib/workspace/format';
+import { isSpent, usd } from '@/lib/workspace/format';
 import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
 import {
   type ContributeRun,
@@ -92,8 +92,16 @@ export function KindLine({ run }: { run: ContributeRun }) {
   );
 }
 
+/** "Go/no-go $0.12 · work $0.40": the parts that cost something; a no-go run's work part, spending nothing, left out. */
 export const costSplitOf = (run: ContributeRun) =>
-  run.costUsd ? `Go/no-go ${usd(run.goNoGoUsd)} · work ${usd(run.workUsd)}` : 'No session, no cost';
+  isSpent(run.costUsd)
+    ? [
+        isSpent(run.goNoGoUsd) ? `Go/no-go ${usd(run.goNoGoUsd)}` : '',
+        isSpent(run.workUsd) ? `work ${usd(run.workUsd)}` : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : 'No session, no cost';
 
 /** The title, the link to the run's pull request page spanning its row or card. */
 export function RunTitle({
@@ -183,7 +191,7 @@ function TableLine({ line, cost }: { line: RunLine; cost: boolean }) {
       </td>
       {cost ? (
         <td className="py-3 pr-5 pl-3 text-right align-top">
-          {run.costUsd > 0 ? (
+          {isSpent(run.costUsd) ? (
             <span className={cn('font-mono text-sm', ABOVE_LINK)} title={costSplitOf(run)}>
               {usd(run.costUsd)}
             </span>
@@ -226,12 +234,14 @@ export function RunCard({ line, cost = true }: { line: RunLine; cost?: boolean }
           <div className="mt-0.5 flex justify-between gap-2 border-t pt-2 text-xs text-muted-foreground">
             <span className="truncate">{runnerLabelOf(run)}</span>
             <span className="shrink-0 font-mono text-foreground">
-              {[durationLabel(run.startedAt, run.finishedAt), cost && run.costUsd > 0 ? usd(run.costUsd) : '']
+              {[durationLabel(run.startedAt, run.finishedAt), cost && isSpent(run.costUsd) ? usd(run.costUsd) : '']
                 .filter(Boolean)
                 .join(' · ')}
             </span>
           </div>
-          {cost && run.costUsd ? <div className="text-xs text-muted-foreground">{costSplitOf(run)}</div> : null}
+          {cost && isSpent(run.costUsd) ? (
+            <div className="text-xs text-muted-foreground">{costSplitOf(run)}</div>
+          ) : null}
         </>
       )}
     </li>

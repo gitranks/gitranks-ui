@@ -29,7 +29,7 @@ const data = vi.hoisted(() => ({
 vi.mock('@/lib/workspace/masked-issue.data', () => data);
 const learnParts = vi.hoisted(() => ({ loadIssuePageLearn: vi.fn() }));
 vi.mock('@/lib/workspace/issue-page-learn.data', () => learnParts);
-const learn = vi.hoisted(() => ({ loadLearnProfile: vi.fn() }));
+const learn = vi.hoisted(() => ({ loadLearnProfile: vi.fn(), loadLearnSetupOfMine: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => learn);
 
 const { default: MaskedIssuePage } = await import('./page');
@@ -39,6 +39,8 @@ const { fullPage, issueNumbers, issuePage, looksAtLimit, MASKED_NOW } = await im
 );
 
 const OPEN = { kind: 'open', entered: true, agents: { hosted: false, own: true } } as const;
+/** A setup of Learn the person saved, as the API answers it. */
+const SETUP_SAVED = { state: 'SAVED', mainLanguage: 'python', otherLanguages: [], level: 2, guessed: [] } as const;
 const START = {
   connection: { client: 'claude-code', lastCallAt: '2026-10-28T11:00:00.000Z' },
   agent: { onboarded: true, tokens: [], signIn: true },
@@ -81,6 +83,7 @@ beforeEach(() => {
   data.loadIssueNumbers.mockResolvedValue(issueNumbers);
   data.loadIssueStartReads.mockResolvedValue(START);
   learn.loadLearnProfile.mockResolvedValue(null);
+  learn.loadLearnSetupOfMine.mockResolvedValue(null);
   learnParts.loadIssuePageLearn.mockResolvedValue(null);
 });
 
@@ -158,6 +161,23 @@ describe('the page of one issue at /my/issues/[id]', () => {
     expect(await issuePageAt()).toContain('href="/contribute#issues"');
   });
 
+  it('counts a saved setup of Learn as using Learn, the older profile empty or gone, and a failed read as not', async () => {
+    learn.loadLearnProfile.mockResolvedValue(emptyProfile);
+    learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
+    expect(await issuePageAt()).toContain('href="/learn/issues"');
+    learn.loadLearnProfile.mockRejectedValue(new Error('gone'));
+    expect(await issuePageAt()).toContain('href="/learn/issues"');
+    // A guess a visit to Learn started is not a save.
+    learn.loadLearnSetupOfMine.mockResolvedValue({ ...SETUP_SAVED, state: 'GUESSED' });
+    expect(await issuePageAt()).toContain('href="/contribute#issues"');
+    learn.loadLearnSetupOfMine.mockRejectedValue(new Error('down'));
+    expect(await issuePageAt()).toContain('href="/contribute#issues"');
+    // Never read from Learn, where the side is known.
+    learn.loadLearnSetupOfMine.mockClear();
+    await issuePageAt({ from: 'learn' });
+    expect(learn.loadLearnSetupOfMine).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['GIVEN_BACK', issuePage({ state: 'GIVEN_BACK' })],
     ['EXPIRED', issuePage({ state: 'EXPIRED' })],
@@ -185,9 +205,15 @@ describe('the page of one issue at /my/issues/[id]', () => {
     await expect(issuePageAt()).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
-  it('names Learn in the start form, from Contribute, only to a person who uses it (a Learn profile)', async () => {
+  it('names Learn in the start form, from Contribute, only to a person who uses it (a saved setup or profile)', async () => {
     data.loadIssuePage.mockResolvedValue({ kind: 'page', page: fullPage() });
     expect(text(await issuePageAt())).not.toContain('You also use GitRanks Learn');
+    // The empty profile the API answers a person who has none says nothing.
+    learn.loadLearnProfile.mockResolvedValue(emptyProfile);
+    expect(text(await issuePageAt())).not.toContain('You also use GitRanks Learn');
+    learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
+    expect(text(await issuePageAt())).toContain('You also use GitRanks Learn');
+    learn.loadLearnSetupOfMine.mockResolvedValue(null);
     learn.loadLearnProfile.mockResolvedValue(filledProfile);
     expect(text(await issuePageAt())).toContain('You also use GitRanks Learn');
     learn.loadLearnProfile.mockRejectedValue(new Error('down'));

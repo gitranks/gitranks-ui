@@ -29,6 +29,7 @@ import {
   WHY_HIDDEN_REASONS,
 } from './masked-issue';
 import { emptyProfile, filledProfile } from '@/lib/learn/__fixtures__/profile';
+import type { LearnSetupRead } from '@/lib/learn/setup';
 
 describe('the page of one issue', () => {
   it('is at an address that names only the mask id', () => {
@@ -55,6 +56,16 @@ describe('the page of one issue', () => {
     expect(issuePageCarriedOf({ issue: ['a', 'b'] })).toBeNull();
     expect(issuePageCarriedOf({})).toBeNull();
   });
+});
+
+/** A setup as the API answers it, at `state`. */
+const setupRead = (patch: Partial<LearnSetupRead> = {}): LearnSetupRead => ({
+  state: 'SAVED',
+  mainLanguage: 'python',
+  otherLanguages: [],
+  level: 2,
+  guessed: [],
+  ...patch,
 });
 
 describe('the way to the page of one issue, and back from it', () => {
@@ -94,13 +105,27 @@ describe('the way to the page of one issue, and back from it', () => {
     expect(back('from=learn&at=lesson')).toBe('/learn/issues');
   });
 
-  it('knows a person uses Learn by a Learn profile they saved, not by the empty one the API answers', () => {
-    expect(usesLearnOf(filledProfile)).toBe(true);
-    expect(usesLearnOf({ ...emptyProfile, goalKind: 'LANGUAGE' })).toBe(true);
-    expect(usesLearnOf({ ...emptyProfile, updatedAt: '2026-10-27T18:00:00.000Z' })).toBe(true);
-    expect(usesLearnOf(emptyProfile)).toBe(false);
-    expect(usesLearnOf(null)).toBe(false);
-    expect(usesLearnOf(undefined)).toBe(false);
+  it('knows a person uses Learn by their setup of Learn saved, whatever the older profile says', () => {
+    const saved = setupRead({ state: 'SAVED' });
+    expect(usesLearnOf({ setup: saved, profile: emptyProfile })).toBe(true);
+    expect(usesLearnOf({ setup: saved, profile: null })).toBe(true);
+    // A guess a visit started, or one being made, is not a save; nor is no setup.
+    for (const state of ['NONE', 'WORKING', 'GUESSED'] as const) {
+      expect(usesLearnOf({ setup: setupRead({ state }), profile: emptyProfile }), state).toBe(false);
+    }
+  });
+
+  it('falls back to an older Learn profile they saved, not the empty one the API answers', () => {
+    const none = setupRead({ state: 'NONE' });
+    expect(usesLearnOf({ setup: none, profile: filledProfile })).toBe(true);
+    expect(usesLearnOf({ setup: null, profile: { ...emptyProfile, goalKind: 'LANGUAGE' } })).toBe(true);
+    expect(usesLearnOf({ setup: null, profile: { ...emptyProfile, updatedAt: '2026-10-27T18:00:00.000Z' } })).toBe(
+      true,
+    );
+    expect(usesLearnOf({ setup: none, profile: emptyProfile })).toBe(false);
+    // Nothing read, or reads that failed: no.
+    expect(usesLearnOf({ setup: null, profile: null })).toBe(false);
+    expect(usesLearnOf({})).toBe(false);
   });
 
   it("leads from Contribute to Contribute's issues, whoever the person is", () => {

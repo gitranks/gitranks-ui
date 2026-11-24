@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 
 import { IssuePageLive } from '@/components/workspace/masked-issue/issue-page-live';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
-import { loadLearnProfile } from '@/lib/learn/learn.data';
+import { loadLearnProfile, loadLearnSetupOfMine } from '@/lib/learn/learn.data';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { loadIssuePageLearn } from '@/lib/workspace/issue-page-learn.data';
 import {
@@ -49,17 +49,23 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
   const from = issuePageFromOf(search.from);
   const query = searchParamsOf(search);
 
-  // From Contribute, the start form names Learn too when the person uses it: a Learn profile of theirs. With no side
-  // in the address, the same read sends the way back to Learn's Issues for a person who saved a Learn profile.
-  const usesLearn = from === 'contribute' ? loadLearnProfile().catch(() => null) : null;
+  // From Contribute, the start form names Learn too when the person uses it (`usesLearnOf`: their setup of Learn saved,
+  // else the older profile). With no side in the address, the same reads send the way back to Learn's Issues for them.
+  // Each read that fails says no: Contribute's words and list.
+  const learnUse =
+    from === 'contribute'
+      ? Promise.all([loadLearnSetupOfMine().catch(() => null), loadLearnProfile().catch(() => null)]).then(
+          ([setup, profile]) => usesLearnOf({ setup, profile }),
+        )
+      : false;
   // From Learn, Learn's parts (the lesson and why, kept for learners, how the work started), in a read of their own:
   // without them the page draws what it draws today.
   const learnParts = from === 'learn' ? loadIssuePageLearn(id).catch(() => null) : null;
-  const [load, numbers, start, profile, learn] = await Promise.all([
+  const [load, numbers, start, usesLearn, learn] = await Promise.all([
     loadIssuePage(id),
     loadIssueNumbers(),
     loadIssueStartReads(),
-    usesLearn,
+    learnUse,
     learnParts,
   ]);
   if (load.kind === 'not-found') notFound();
@@ -68,13 +74,13 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
       id={id}
       page={load.page}
       from={from}
-      back={issuePageBackOf(search.from, query, usesLearnOf(profile))}
+      back={issuePageBackOf(search.from, query, usesLearn)}
       view={from === 'learn' ? learnIssuesViewOf(query).toString() : null}
       numbers={numbers}
       openedAt={new Date().toISOString()}
       hosted={gate.agents.hosted}
       start={start}
-      alsoLearn={profile !== null}
+      alsoLearn={usesLearn}
       returning={search[ISSUE_LOOK_PARAM] === '1'}
       learn={learn}
     />

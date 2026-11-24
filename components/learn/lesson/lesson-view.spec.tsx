@@ -352,6 +352,23 @@ describe('a lesson for a member', () => {
     expect($('[data-answer-part]')!.getAttribute('data-answer-phase')).toBe('open');
   });
 
+  it('draws a lesson with no example as its text alone: no example box, no label, nothing after the text', () => {
+    draw({ lesson: { ...setLesson, examples: [] }, examples: [] });
+    expect($('[data-block="example"]')).toBeNull();
+    expect(text()).not.toContain('Example');
+    const article = $('[data-lesson-article]')!;
+    expect(article.lastElementChild!.textContent).toContain('So you go through the list only once');
+    expect([...article.children].every((child) => child.textContent!.trim() !== '')).toBe(true);
+  });
+
+  it("never draws a lesson's question code as its example", () => {
+    draw({
+      lesson: { ...setLesson, examples: [{ ...setLesson.examples[0], name: 'q1' }] },
+      examples: [{ name: 'q1', codes: setExampleCodes }],
+    });
+    expect($('[data-lesson-article] [data-block="example"]')).toBeNull();
+  });
+
   it('starts a new answer for another lesson in the same place', () => {
     draw({ viewer: member(mineLearnedRated) });
     expect($('[data-answer-part]')!.getAttribute('data-answer-phase')).toBe('done');

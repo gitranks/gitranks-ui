@@ -24,6 +24,8 @@ const LANGUAGES = {
   java: () => import('shiki/langs/java.mjs'),
   php: () => import('shiki/langs/php.mjs'),
   ruby: () => import('shiki/langs/ruby.mjs'),
+  // A course about tools shows shell commands; `shell` is one of this grammar's names.
+  shell: () => import('shiki/langs/shellscript.mjs'),
 } as const;
 
 const isKnown = (language: string): language is keyof typeof LANGUAGES => Object.hasOwn(LANGUAGES, language);

@@ -162,7 +162,7 @@ export const ContributeOAuthRequestDocument = doc<
   { requestId: string }
 >(`query ContributeOAuthRequest($requestId: String!) {
   contributeOAuthRequest(requestId: $requestId) {
-    status clientName clientWhere { kind label } previewAllowed reusesConnection replaces { name } waiting { count repos }
+    status clientName clientWhere { kind label } previewAllowed reusesConnection replaces { name } waiting { count }
   }
   contributeSetup
   contributeOpen

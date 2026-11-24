@@ -16,6 +16,7 @@ import { audienceOf } from '@/lib/workspace/audience';
 import { loadContribute, loadContributeActivity, loadContributeSetup } from '@/lib/workspace/contribute.data';
 import type { ContributeActivity, ContributeView } from '@/lib/workspace/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
+import { plural } from '@/lib/workspace/format';
 import { PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import {
   type ContributeRunsPage,
@@ -98,10 +99,10 @@ function NoGoBreakdown({
           Why agents said no-go, or ran out
         </h2>
         <span className="text-xs text-muted-foreground">
-          {!learner && !query.outcome && !query.reason ? (
+          {!learner && !query.outcome && !query.reason && totals.started ? (
             <span className="lg:hidden">{percentLabel(totals.noGo, totals.started)} of started runs · </span>
           ) : null}
-          {sum ? `${sum} no-go${sum === 1 ? '' : 's'} · pick one to filter` : `${totals.noGo} no-gos`}
+          {sum ? `${plural(sum, 'no-go')} · pick one to filter` : plural(totals.noGo, 'no-go')}
         </span>
       </div>
       {parts.length ? (
@@ -162,7 +163,7 @@ function OutcomeChips({ page, query }: { page: ContributeRunsPage; query: RunsQu
               className="inline-flex min-h-9 items-center gap-1.5 rounded-full border bg-card px-3 text-sm whitespace-nowrap hover:bg-muted aria-[current]:border-foreground aria-[current]:bg-foreground aria-[current]:text-background"
             >
               {label}
-              <span className="font-mono text-xs opacity-70">{countOf(value)}</span>
+              {countOf(value) ? <span className="font-mono text-xs opacity-70">{countOf(value)}</span> : null}
             </Link>
           </li>
         ))}

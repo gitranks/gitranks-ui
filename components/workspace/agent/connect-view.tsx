@@ -42,6 +42,7 @@ export function OwnAgentConnectScreen({
       proof={proof}
       signIn={view.ownAgent?.signIn === true}
       openedAt={new Date().toISOString()}
+      withVsCode
     />
   );
 }
@@ -69,6 +70,7 @@ export function ConnectScreen({
   profileLanguages = [],
   ownAgentHref,
   eyebrow,
+  inWorkspace = false,
 }: {
   view: ContributeView;
   today: number;
@@ -77,6 +79,8 @@ export function ConnectScreen({
   ownAgentHref?: Route;
   /** The line over a first key's title (KeyConnect's own unless said). */
   eyebrow?: string;
+  /** The Agent tab's own key page: its back link, and no first-time words. */
+  inWorkspace?: boolean;
 }) {
   const { contributor } = view;
   const key = claudeKeyOf(view);
@@ -102,6 +106,7 @@ export function ConnectScreen({
       notices={keyNotices.length ? <ContributeNotices notices={keyNotices} /> : null}
       ownAgentHref={ownAgentHref}
       eyebrow={eyebrow}
+      inWorkspace={inWorkspace}
     />
   );
 }

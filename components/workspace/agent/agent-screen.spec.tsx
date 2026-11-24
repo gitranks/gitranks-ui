@@ -72,9 +72,7 @@ describe('the Agent tab, both agents set up', () => {
     expect(html.indexOf('id="hosted-level"')).toBeLessThan(html.indexOf('href="/my/agent/key"'));
     expect(plain).toContain('Claude API key …k3Qa · works Edit');
     expect(plain).toContain('Model and effort Claude Sonnet 5.5, medium effort Edit');
-    expect(plain).toContain(
-      'Budget and pacing $63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt Edit',
-    );
+    expect(plain).toContain('Budget and pacing $63.40 of $200 used this cycle · renews Nov 14 · up to $5 a run Edit');
     expect(html).toMatch(/<meter[^>]*aria-label="Spent this cycle"[^>]*max="200"[^>]*value="63.4"/);
     for (const page of ['/my/agent/key', '/my/agent/model', '/my/agent/budget']) {
       expect(html).toContain(`href="${page}"`);
@@ -104,11 +102,13 @@ describe('the Agent tab, both agents set up', () => {
     expect(plain).toContain('Issue and agent Outcome Cost');
     expect(html).toContain('href="https://github.com/can1357/oh-my-pi/issues/16734"');
     expect(html).toContain('href="https://github.com/tidewave/tide/pull/2207"');
-    // The Learn run carries the pill, and the own agent's run costs nothing through us.
+    // The Learn run carries the pill, and the own agent's run costs nothing through us: no cost, not a dash.
     const learnRow = html.slice(html.indexOf(`data-run="${OWN_LEARN.attemptId}"`));
-    expect(text(learnRow.slice(0, learnRow.indexOf('</tr>')))).toMatch(
-      /tidewave\/tide Issue #958 ↗ \(opens GitHub\) PR #2207 ↗ \(opens GitHub\) Learn Dark mode toggle flashes on first load Your own agent · Claude Code · first attempt · Oct 31, 16:20 .* —/,
+    const learnText = text(learnRow.slice(0, learnRow.indexOf('</tr>')));
+    expect(learnText).toMatch(
+      /tidewave\/tide Issue #958 ↗ \(opens GitHub\) PR #2207 ↗ \(opens GitHub\) Learn Dark mode toggle flashes on first load Your own agent · Claude Code · first attempt · Oct 31, 16:20/,
     );
+    expect(learnText).not.toMatch(/—|\$0(?![.\d])/);
     expect(plain).toContain('Hosted · Opus 5.5 · first attempt · Oct 31, 22:35');
     expect(plain).toContain('↳ follow-up');
     expect(html).toContain(`href="/my/pull-requests/by-attempt/${NO_GO.attemptId}"`);

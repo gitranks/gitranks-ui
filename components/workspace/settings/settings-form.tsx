@@ -262,18 +262,27 @@ export function pagePatchOf(
 const capLabel = (text: string, what: string) => {
   const value = parseAmount(text);
   if (value === undefined) return `${what} cap “${text.trim()}”`;
-  return value === null ? `no ${what} cap` : `$${value} ${what === 'attempt' ? 'an' : 'a'} ${what}`;
+  return value === null ? `no ${what} cap` : `$${value} a ${what}`;
 };
 
-/** What the fold of More limits says of them, as typed. */
+/** The sweep as the fold's line says it: "sweep 3 days", "sweep 1 day"; nothing while the field is empty. */
+const sweepLabel = (text: string) => {
+  const days = text.trim();
+  if (!days) return null;
+  return `sweep ${days === '1' ? '1 day' : `${days} days`}`;
+};
+
+/** What the fold of More limits says of them, as typed. The run cap is called a run, as its field is. */
 export const moreLimitsSummaryOf = (draft: Draft) =>
   [
     capLabel(draft.weekCapUsd, 'week'),
     capLabel(draft.dayCapUsd, 'day'),
-    capLabel(draft.attemptCapUsd, 'attempt'),
-    `sweep ${draft.sweepDays.trim() === '1' ? '1 day' : `${draft.sweepDays.trim() || '?'} days`}`,
+    capLabel(draft.attemptCapUsd, 'run'),
+    sweepLabel(draft.sweepDays),
     `renews on ${ordinalDay(draft.renewalDay)}`,
-  ].join(' · ');
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
 /**
  * One settings page's form: budget and pacing, or the model and effort (the Agent tab's), or the pull request limits

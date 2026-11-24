@@ -15,15 +15,14 @@ import { GETTING_IN_PATHS, searchParamsOf } from '@/lib/workspace/paths';
 
 export const metadata: Metadata = { title: OWN_AGENT_HEAD.title };
 
-/** Contribute's flow, step 2 with the person's own agent: the connect steps, then on to the first issue. */
+/**
+ * Contribute's flow, step 2 with the person's own agent: the connect steps, then on to the first issue. The title is
+ * part of what changes: a setting-up or no-profile panel has its own, and stands alone.
+ */
 export default function ContributeOwnAgentPage({ searchParams }: PageProps<'/contribute/start/agent/own'>) {
   return (
     <FlowFrame side="contribute" step={2}>
-      <div className="flex flex-col gap-2">
-        <FlowBack href={GETTING_IN_PATHS.contributeAgent}>{BACK_TO_CHOICE}</FlowBack>
-        <span className="text-xs font-semibold text-primary">{OWN_AGENT_HEAD.eyebrow}</span>
-        <h1 className={HEADING.page}>{OWN_AGENT_HEAD.title}</h1>
-      </div>
+      <FlowBack href={GETTING_IN_PATHS.contributeAgent}>{BACK_TO_CHOICE}</FlowBack>
       <Suspense fallback={<ContributePageSkeleton />}>
         <ContributeOwnAgent searchParams={searchParams} />
       </Suspense>
@@ -36,17 +35,31 @@ async function ContributeOwnAgent({ searchParams }: Pick<PageProps<'/contribute/
   const query = searchParamsOf(await searchParams).toString();
   const { place } = await loadContributeFlowPlace('agent-own', query);
   const panel = flowPanelOf(place, CONTRIBUTE_FLOW_PANELS);
+  const head = (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs font-semibold text-primary">{OWN_AGENT_HEAD.eyebrow}</span>
+      <h1 className={HEADING.page}>{OWN_AGENT_HEAD.title}</h1>
+    </div>
+  );
   let step = panel;
   if (!step && place.kind === 'sign-in') {
-    step = <FlowSignIn {...CONNECT_SIGN_IN} source="contribute_flow_sign_in" />;
+    step = (
+      <>
+        {head}
+        <FlowSignIn {...CONNECT_SIGN_IN} source="contribute_flow_sign_in" />
+      </>
+    );
   } else if (!step) {
     const view = await loadContribute();
     step = (
-      <OwnAgentStep
-        tokens={view?.ownAgent?.tokens}
-        signIn={view?.ownAgent?.signIn === true}
-        openedAt={new Date().toISOString()}
-      />
+      <>
+        {head}
+        <OwnAgentStep
+          tokens={view?.ownAgent?.tokens}
+          signIn={view?.ownAgent?.signIn === true}
+          openedAt={new Date().toISOString()}
+        />
+      </>
     );
   }
   return (

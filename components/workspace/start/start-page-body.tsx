@@ -214,6 +214,7 @@ function LiveStartPage({
           openedAt={initial.openedAt}
           onConnected={onConnected}
           connectSource={events.source}
+          withVsCode
         />
       }
       fix={fix}

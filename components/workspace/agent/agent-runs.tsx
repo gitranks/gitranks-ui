@@ -223,27 +223,43 @@ export function RightNowLanes({
   );
 }
 
-/** The runs page's "Working now": the runs, live from the poll; nothing with none. */
+/**
+ * The runs page's "Working now": the runs, live from the poll. With none it stays, one quiet line, so the history under
+ * it does not move each time a run starts or ends. `activity` null: the read failed (until the poll answers), which the
+ * line says instead of claiming nothing runs.
+ */
 export function WorkingNowSection({ activity }: { activity: ContributeActivity | null | undefined }) {
   const live = useLiveActivity(activity);
-  if (!live?.runs.length) return null;
-  return <WorkingNowView activity={live} />;
+  return <WorkingNowView activity={live ?? null} />;
 }
 
-export function WorkingNowView({ activity }: { activity: ContributeActivity }) {
-  const { runs } = activity;
+export function WorkingNowView({ activity }: { activity: ContributeActivity | null }) {
+  const runs = activity?.runs ?? [];
   const working = runs.filter(({ active }) => active).length;
   return (
-    <section aria-labelledby="overview-working" data-overview-section="working" className="flex flex-col gap-3">
+    <section
+      aria-labelledby="overview-working"
+      data-overview-section="working"
+      data-working={!activity ? 'unread' : runs.length ? 'runs' : 'none'}
+      className="flex flex-col gap-3"
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <h2 id="overview-working" className="text-xl font-semibold tracking-tight">
           Working now
         </h2>
-        <span className="text-sm text-muted-foreground">{indicatorLabelOf(runs)}</span>
+        {runs.length ? <span className="text-sm text-muted-foreground">{indicatorLabelOf(runs)}</span> : null}
       </div>
-      <div className={cn('overflow-hidden rounded-xl border bg-card', working && 'border-primary/30')}>
-        <RunList runs={runs} readAt={activity.readAt} />
-      </div>
+      {activity && runs.length ? (
+        <div className={cn('overflow-hidden rounded-xl border bg-card', working && 'border-primary/30')}>
+          <RunList runs={runs} readAt={activity.readAt} />
+        </div>
+      ) : (
+        <p className="rounded-xl border border-dashed px-4 py-3.5 text-sm text-muted-foreground">
+          {activity
+            ? 'No agent is working on an issue for you right now.'
+            : "The runs at work can't be read right now. They show here once they can."}
+        </p>
+      )}
     </section>
   );
 }

@@ -389,7 +389,7 @@ export type ContributeOwnAgent = {
 };
 
 /** One sign-in of an agent to the MCP server, as the consent page shows it. */
-export type ContributeOAuthWaiting = { count: number; repos: string[] };
+export type ContributeOAuthWaiting = { count: number };
 export type ContributeOAuthRequest = {
   status: 'PENDING' | 'EXPIRED' | 'APPROVED';
   clientName: string | null;

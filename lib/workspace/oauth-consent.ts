@@ -117,18 +117,14 @@ export function clientWhereTextOf(where: ContributeOAuthClientWhere | null | und
   }
 }
 
-/** "a, b and c". */
-const listOf = (items: string[]): string =>
-  items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
-
-/** "7 issues are waiting for you, in a, b and c."; null when none is. Names repositories, never an issue. */
-export function waitingLineOf(waiting: ContributeOAuthWaiting | null | undefined): string | null {
+/**
+ * "7 issues are waiting for you."; null when none is. It names no project: issue details stay hidden until the person
+ * asks to see an issue.
+ */
+export function waitingLineOf(waiting: Pick<ContributeOAuthWaiting, 'count'> | null | undefined): string | null {
   const count = waiting?.count ?? 0;
   if (count < 1) return null;
-  const repos = (waiting?.repos ?? []).filter(Boolean).slice(0, 3);
-  const head =
-    count === 1 ? '1 issue is waiting for you' : `${count.toLocaleString('en-US')} issues are waiting for you`;
-  return repos.length ? `${head}, in ${listOf(repos)}.` : `${head}.`;
+  return count === 1 ? '1 issue is waiting for you.' : `${count.toLocaleString('en-US')} issues are waiting for you.`;
 }
 
 /** What the connected agent can do, as the consent page lists it. */

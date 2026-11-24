@@ -143,11 +143,6 @@ export function HostedLevelPicker({
                         {choice.pill}
                       </Pill>
                     ) : null}
-                    {saving === card ? (
-                      <span role="status" className="text-xs font-normal text-muted-foreground">
-                        Saving…
-                      </span>
-                    ) : null}
                   </span>
                   <span className="text-muted-foreground">{text}</span>
                 </span>
@@ -175,16 +170,19 @@ export function HostedLevelPicker({
                     {nextIssue}
                   </span>
                 ) : null}
-                {error?.level === card ? (
-                  <span role="alert" className="text-destructive">
-                    {error.text}
-                  </span>
-                ) : null}
               </div>
             </div>
           );
         })}
       </RadioGroup>
+      {/* Saving and a refused save say so on one line kept under the levels, so nothing moves when they show. */}
+      <p
+        aria-live="polite"
+        data-level-status={saving ? 'saving' : error ? 'error' : 'idle'}
+        className={cn('min-h-5 text-sm', error && !saving ? 'text-destructive' : 'text-muted-foreground')}
+      >
+        {saving ? 'Saving…' : (error?.text ?? '')}
+      </p>
       <AutopilotConfirm
         autopilot={autopilot}
         login={login}

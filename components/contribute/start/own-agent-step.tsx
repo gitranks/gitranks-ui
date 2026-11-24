@@ -28,6 +28,7 @@ export function OwnAgentStep({
       signIn={signIn}
       keyLink={false}
       openedAt={openedAt}
+      withVsCode
       onConnected={() => goTo(GETTING_IN_PATHS.contributeIssue, { replace: true })}
     />
   );

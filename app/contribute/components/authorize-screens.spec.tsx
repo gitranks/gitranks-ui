@@ -30,7 +30,7 @@ const REQUEST: ContributeOAuthRequest = {
   previewAllowed: true,
   reusesConnection: false,
   replaces: null,
-  waiting: { count: 7, repos: ['acme/widgets', 'acme/gadgets', 'acme/tools'] },
+  waiting: { count: 7 },
 };
 
 const pending = (request: Partial<ContributeOAuthRequest> = {}) => {
@@ -56,7 +56,8 @@ describe('the consent page of an agent sign-in', () => {
     expect(plain).toContain('see the issues you took and your pull requests.');
     expect(plain).toContain("It won't be able to open a pull request, push, or post on GitHub");
     expect(plain).toContain('You can disconnect it any time on the Agent tab');
-    expect(plain).toContain('7 issues are waiting for you, in acme/widgets, acme/gadgets and acme/tools.');
+    expect(plain).toContain('7 issues are waiting for you.');
+    expect(plain).not.toContain('acme/');
     expect(html).toContain('data-authorize="allow"');
     expect(html).toContain(`href="${CANCEL}"`);
     expect(html).not.toContain('data-authorize="replaces"');
@@ -67,7 +68,7 @@ describe('the consent page of an agent sign-in', () => {
     const { html, plain } = pending({
       clientWhere: { kind: 'WEB', label: 'agent.example' },
       replaces: { name: 'Cursor' },
-      waiting: { count: 0, repos: [] },
+      waiting: { count: 0 },
     });
     expect(plain).toContain('goes back to agent.example');
     expect(plain).toContain('Only continue if you started this from agent.example.');
@@ -122,14 +123,29 @@ describe('the consent page of an agent sign-in', () => {
     expect(html).not.toContain('data-authorize="allow"');
   });
 
-  it('says GitRanks could not read the account yet once launched, never the preview', () => {
+  it('says Contribute is not open to an account GitRanks has not read, never the preview nor "just now"', () => {
     const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'no-profile', requestId: ID }} />);
     const plain = text(html);
-    expect(plain).toContain("We couldn't set up your GitRanks account yet");
-    expect(plain).toContain('Try again later');
+    expect(plain).toContain('Not open to your GitHub account');
+    expect(plain).toContain('GitRanks has not read your GitHub account, so Contribute is not open to it');
+    expect(plain).toContain('If your account is new, try again in an hour');
+    expect(plain).not.toContain("couldn't read");
+    expect(plain).not.toContain('just now');
     expect(plain).not.toMatch(/preview/i);
     expect(html).toContain(`href="${CANCEL}"`);
     expect(html).not.toContain('data-authorize="allow"');
+  });
+
+  it('asks to connect "your agent" when the app gave no name, never "An app" as a title', () => {
+    const html = renderToStaticMarkup(
+      <AuthorizeScreen
+        state={{ kind: 'pending', requestId: ID, login: 'octocat', request: { ...REQUEST, clientName: '  ' } }}
+      />,
+    );
+    const plain = text(html);
+    expect(plain).toContain('Connect your agent to GitRanks Contribute');
+    expect(plain).not.toContain('Connect An app');
+    expect(plain).toContain('An app (goes back to');
   });
 
   it('says an expired sign-in has expired, with no button', () => {

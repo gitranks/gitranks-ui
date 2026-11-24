@@ -63,6 +63,9 @@ describe("Learn's bar", () => {
     ['/my/pull-requests/octo/hello/12', 'learn', 'pull-requests'],
     ['/my/agent', 'learn', null],
     ['/contribute', 'learn', null],
+    ['/learn/fixes/harbor-kit/relay/58', null, 'issues'],
+    ['/contribute/pr/harbor-kit/relay/58', null, 'issues'],
+    ['/learn/fixes/harbor-kit/relay/58/walkthrough', null, null],
   ])('marks %s (from %s) as %s', (pathname, from, place) => {
     expect(learnBarPlaceOf(pathname, from)).toBe(place);
   });

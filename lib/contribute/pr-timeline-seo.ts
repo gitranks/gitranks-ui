@@ -1,8 +1,15 @@
-import type { PrTimeline } from './pr-timeline.types';
-import { dayHeadingOf, factsOf, fullDateOf, milestoneWordsOf, stateWordOf, timeOf } from './pr-timeline-words';
 import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
 import { absoluteUrl } from '@/lib/seo/site';
+import type { PrTimeline } from '@/lib/workspace/pr-timeline.types';
 import { prTimelineMarkdownPath, prTimelinePath } from '@/lib/workspace/pr-timeline-path';
+import {
+  dayHeadingOf,
+  factsOf,
+  fullDateOf,
+  milestoneWordsOf,
+  stateWordOf,
+  timeOf,
+} from '@/lib/workspace/pr-timeline-words';
 
 const prOf = (timeline: PrTimeline) => ({ nameWithOwner: timeline.nameWithOwner, number: timeline.number });
 
@@ -73,12 +80,20 @@ export function prTimelineJsonLdOf(timeline: PrTimeline): unknown[] {
 /** Markdown's own characters in the agent's or a title's text, escaped. */
 const plain = (text: string) => text.replace(/([\\`*_[\]<>#|])/g, '\\$1');
 
-/** The page as Markdown, for agents: the title, the facts, every milestone with its ISO time, and the links. */
-export function prTimelineMarkdownOf(timeline: PrTimeline): string {
+/**
+ * The page as Markdown, for agents: the title, the facts, every milestone with its ISO time, and the links. A Learn
+ * fix's copy names Learn and carries its own part (`learn`, Markdown lines from the page that knows it) before the
+ * links, so one copy covers both views of the fix.
+ */
+export function prTimelineMarkdownOf(
+  timeline: PrTimeline,
+  { learn = null }: { learn?: readonly string[] | null } = {},
+): string {
+  const product = learn ? 'GitRanks Learn' : 'GitRanks Contribute';
   const lines = [
     `# ${plain(timeline.title ?? `Pull request #${timeline.number}`)}`,
     '',
-    `How [${timeline.nameWithOwner}#${timeline.number}](${timeline.url}) was made with GitRanks Contribute. ` +
+    `How [${timeline.nameWithOwner}#${timeline.number}](${timeline.url}) was made with ${product}. ` +
       `${stateWordOf(timeline.state)}. Fixes [issue #${timeline.issue.number}](${timeline.issue.url}).`,
     '',
     '## Facts',
@@ -105,6 +120,7 @@ export function prTimelineMarkdownOf(timeline: PrTimeline): string {
     if (words.text) lines.push(`  ${plain(words.text)}`);
     if (words.pills.length) lines.push(`  ${words.pills.join(', ')}`);
   }
+  if (learn?.length) lines.push('', ...learn);
   lines.push(
     '',
     '## Links',

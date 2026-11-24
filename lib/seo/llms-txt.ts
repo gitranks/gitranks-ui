@@ -72,11 +72,12 @@ export function llmsTxtOf({
     lines.push(
       '## Pull request timelines',
       '',
-      "Every pull request opened with GitRanks Contribute can have a public page of how it was made: when the issue was picked, what the agent checked and changed, our checks, the maintainers' reviews, and the merge or close, with times in UTC. No conversation with the agent, no costs.",
+      "Every pull request opened with GitRanks Contribute or GitRanks Learn can have a public page of how it was made: the fix, our checks, the approval, the maintainers' review rounds, and the merge or close. No conversation with the agent, no costs. A Learn fix has a second view, Learn from it: its walkthrough and the lesson it used.",
       '',
-      `- Page: ${url('/contribute/pr/<owner>/<repo>/<number>')}`,
-      `- Markdown: ${url('/contribute/pr/<owner>/<repo>/<number>/timeline.md')}`,
-      `- [Sitemap](${url('/sitemaps/contribute-prs/sitemap.xml')}): every public timeline`,
+      `- How it was made: ${url('/contribute/pr/<owner>/<repo>/<number>')}`,
+      `- Learn from it: ${url('/learn/fixes/<owner>/<repo>/<number>')}`,
+      `- Markdown, both views: ${url('/contribute/pr/<owner>/<repo>/<number>/timeline.md')}`,
+      `- [Sitemap](${url('/sitemaps/contribute-prs/sitemap.xml')}): every public pull request page`,
       '',
     );
   }

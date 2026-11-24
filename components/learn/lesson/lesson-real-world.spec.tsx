@@ -96,15 +96,15 @@ describe("the person's own fix under a lesson", () => {
 
   it("lists other people's fixes beside it while there are some", async () => {
     await draw(<LessonRealWorld slug="find-duplicates-with-a-set" fixes={learnFixes} mine={lessonRealWithFix} />);
-    expect($('[data-real-column="others"]')!.querySelectorAll('[data-fix-row]')).toHaveLength(2);
+    expect($('[data-real-column="others"]')!.querySelectorAll('[data-fix-card]')).toHaveLength(2);
   });
 });
 
 describe('merged fixes under a lesson', () => {
   it('leaves out the line naming the lesson, which would link to the page itself', async () => {
     await draw(<LessonRealWorld slug="find-duplicates-with-a-set" fixes={learnFixes} mine={null} />);
-    expect($('[data-fix-row]')).not.toBeNull();
-    expect($('[data-fix-row] [data-lesson]')).toBeNull();
+    expect($('[data-fix-card]')).not.toBeNull();
+    expect(host.textContent).not.toContain('Used:');
     expect(host.querySelector('a[href="/learn/lessons/find-duplicates-with-a-set"]')).toBeNull();
   });
 

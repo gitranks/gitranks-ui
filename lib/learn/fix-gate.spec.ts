@@ -10,6 +10,8 @@ const {
   fixByAttemptRouteGateOf,
   fixGateOf,
   fixRouteGateOf,
+  fixViewGateOf,
+  fixViewRouteGateOf,
   forgetFixGates,
 } = await import('./fix-gate');
 
@@ -142,6 +144,64 @@ describe('fixByAttemptRouteGateOf', () => {
     expect(await fixByAttemptRouteGateOf('A_1')).toEqual({ kind: 'redirect', path: '/learn/maintainers' });
     graphqlDirect.mockReturnValue(new Promise(() => {}));
     expect(await fixByAttemptRouteGateOf('A_1', 5)).toEqual({ kind: 'redirect', path: '/learn/maintainers' });
+    expect(graphqlDirect).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('fixViewGateOf', () => {
+  const fix = { repo: 'acme/widgets', number: 57, made: 'LEARN', state: 'MERGED' };
+
+  it('goes on to "Learn from it" for a Learn fix at its own spelling, and leaves no answer to the page', () => {
+    expect(fixViewGateOf(pr, { address: live, fix })).toEqual({ kind: 'page' });
+    expect(fixViewGateOf(pr, { address: live, fix: { ...fix, state: 'OPEN' } })).toEqual({ kind: 'page' });
+    expect(fixViewGateOf(pr, null)).toEqual({ kind: 'page' });
+  });
+
+  it('sends a pull request with no such view to "How it was made"', () => {
+    for (const other of [
+      { ...fix, made: 'CONTRIBUTE' },
+      { ...fix, state: 'CLOSED' },
+    ]) {
+      expect(fixViewGateOf(pr, { address: { ...live, state: 'MISSING' }, fix: other })).toEqual({
+        kind: 'redirect',
+        path: '/contribute/pr/acme/widgets/57',
+      });
+    }
+  });
+
+  it('answers nothing there, a removed fix, and another spelling', () => {
+    expect(fixViewGateOf(pr, { address: { ...live, state: 'MISSING' }, fix: null })).toEqual({ kind: 'missing' });
+    expect(fixViewGateOf(pr, { address: { ...live, state: 'REMOVED' }, fix })).toEqual({
+      kind: 'removed',
+      path: '/learn/fixes/_removed/acme/widgets/57',
+    });
+    expect(fixViewGateOf({ nameWithOwner: 'ACME/widgets', number: 57 }, { address: live, fix })).toEqual({
+      kind: 'redirect',
+      path: '/learn/fixes/acme/widgets/57',
+    });
+  });
+});
+
+describe('fixViewRouteGateOf', () => {
+  it('asks the address and the fix in one read, signed out, and keeps a live page a minute', async () => {
+    graphqlDirect.mockResolvedValue({
+      learnFixAddress: live,
+      learnFix: { repo: 'acme/widgets', number: 57, made: 'LEARN', state: 'MERGED' },
+    });
+    expect(await fixViewRouteGateOf(pr, 2000, 0)).toEqual({ kind: 'page' });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      expect.anything(),
+      { ref: { owner: 'acme', repo: 'widgets', number: 57 } },
+      expect.objectContaining({ source: 'ssr' }),
+    );
+    expect(await fixViewRouteGateOf(pr, 2000, FIX_GATE_MEMO_MS - 1)).toEqual({ kind: 'page' });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a failed ask (an API that does not know the read) to the page, never kept', async () => {
+    graphqlDirect.mockRejectedValue(new Error('Cannot query field "learnFix"'));
+    expect(await fixViewRouteGateOf(pr, 2000, 0)).toEqual({ kind: 'page' });
+    expect(await fixViewRouteGateOf(pr, 2000, 1)).toEqual({ kind: 'page' });
     expect(graphqlDirect).toHaveBeenCalledTimes(2);
   });
 });

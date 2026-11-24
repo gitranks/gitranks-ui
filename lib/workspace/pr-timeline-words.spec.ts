@@ -61,7 +61,7 @@ describe('milestoneWordsOf', () => {
   });
 
   it('words a kind it does not know as a plain row: the title and the actor, no text or numbers', () => {
-    const row = unknownKindTimeline.milestones.find((each) => (each.kind as string) === 'WALKTHROUGH');
+    const row = unknownKindTimeline.milestones.find((each) => (each.kind as string) === 'TRANSLATED');
     expect(row).toBeDefined();
     expect(milestoneWordsOf(row as PrTimelineMilestone, unknownKindTimeline)).toEqual({
       title: PLAIN_ROW_TITLE,

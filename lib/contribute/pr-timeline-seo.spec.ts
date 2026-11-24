@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { autopilotTimeline, mergedTimeline, unknownKindTimeline } from './__fixtures__/pr-timeline';
 import {
   prTimelineDescriptionOf,
   prTimelineJsonLdOf,
   prTimelineMarkdownOf,
   prTimelineTitleOf,
 } from './pr-timeline-seo';
+import { autopilotTimeline, mergedTimeline, unknownKindTimeline } from '@/lib/workspace/__fixtures__/pr-timeline';
 
 describe('the PR timeline for search engines and agents', () => {
   it('titles and describes the page from its facts', () => {

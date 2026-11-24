@@ -1,9 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { mergedTimeline } from '@/lib/contribute/__fixtures__/pr-timeline';
+import { contributeFix, learnFix, learnFixClosed } from '@/lib/learn/__fixtures__/fix-page';
+import { mergedTimeline } from '@/lib/workspace/__fixtures__/pr-timeline';
 
-const { read } = vi.hoisted(() => ({ read: vi.fn(async (_pr: unknown): Promise<unknown> => null) }));
-vi.mock('@/lib/contribute/pr-timeline.data', () => ({ publicPrTimeline: read }));
+const { read, fix } = vi.hoisted(() => ({
+  read: vi.fn(async (_pr: unknown): Promise<unknown> => null),
+  fix: vi.fn(async (_pr: unknown): Promise<unknown> => null),
+}));
+vi.mock('@/lib/workspace/pr-timeline.data', () => ({ publicPrTimeline: read }));
+vi.mock('@/lib/learn/fix-page.data', () => ({ loadFixPage: fix }));
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_URI = 'https://gitranks.com';
+});
 
 const { GET } = await import('./route');
 
@@ -31,5 +39,31 @@ describe('the Markdown twin', () => {
     expect(missing.status).toBe(404);
     expect(missing.headers.get('cache-control')).toBe('private, no-store');
     expect((await call('acme', 'widgets', '01')).status).toBe(404);
+  });
+
+  it('is one copy for both views of a Learn fix: its Learn part, and "Learn from it" as the canonical', async () => {
+    read.mockResolvedValue(mergedTimeline);
+    fix.mockResolvedValueOnce(learnFix);
+    const learn = await call('driftwood-js', 'driftwood', '1419');
+    const text = await learn.text();
+    expect(text).toContain('was made with GitRanks Learn.');
+    expect(text).toContain('## Learn from it');
+    expect(text).toContain('[Learn from it](https://gitranks.com/learn/fixes/driftwood-js/driftwood/1419)');
+    expect(text).toContain('4 questions about the change, passed by 12 people. mira-dev answered them');
+    expect(text).toContain('[The lesson: Normalize a key before you look it up]');
+    expect(text.indexOf('## Learn from it')).toBeLessThan(text.indexOf('## Links'));
+    expect(learn.headers.get('link')).toBe('</learn/fixes/driftwood-js/driftwood/1419>; rel="canonical"');
+    // Closed without a merge: the Learn part with no "Learn from it", this page the canonical.
+    fix.mockResolvedValueOnce(learnFixClosed);
+    const closed = await call('driftwood-js', 'driftwood', '1419');
+    expect(await closed.text()).not.toContain('[Learn from it]');
+    expect(closed.headers.get('link')).toBe('</contribute/pr/driftwood-js/driftwood/1419>; rel="canonical"');
+    // Made with Contribute, or no fix read: the copy as before.
+    for (const other of [contributeFix, null]) {
+      fix.mockResolvedValueOnce(other);
+      const page = await (await call('driftwood-js', 'driftwood', '1419')).text();
+      expect(page).toContain('was made with GitRanks Contribute.');
+      expect(page).not.toContain('## Learn from it');
+    }
   });
 });

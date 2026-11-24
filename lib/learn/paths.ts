@@ -219,6 +219,10 @@ export function learnFixMinePath({ nameWithOwner, number }: PrRef, { answersOf }
   return `/api/me/learn/fixes/${repoSegments({ owner, name })}/${number}${query}`;
 }
 
+/** Where the browser reads the signed-in person's marks on a fix's page, with their similar issues. */
+export const learnFixMarksPath = (pr: PrRef) => `${learnFixMinePath(pr)}/marks`;
+
+const FIX_VIEW = /^\/learn\/fixes\/([^/]+)\/([^/]+)\/([^/]+)\/?$/;
 const FIX_PAGE = /^\/learn\/fixes\/([^/]+)\/([^/]+)\/([^/]+)\/walkthrough(?:\/by\/([^/]+))?\/?$/;
 const FIX_LOGIN = new RegExp(`^${GITHUB_LOGIN}$`);
 const BY_ATTEMPT_PAGE = /^\/learn\/fixes\/by-attempt\/([^/]+)\/answers\/?$/;
@@ -247,6 +251,26 @@ export function learnFixRouteOf(pathname: string): LearnFixRoute | 'invalid' | n
   if (!pr || String(pr.number) !== number) return 'invalid';
   if (login !== undefined && !FIX_LOGIN.test(decoded[2])) return 'invalid';
   return { pr, login: login === undefined ? null : decoded[2] };
+}
+
+/**
+ * The fix a fix page's address names, `/learn/fixes/<owner>/<repo>/<number>`, a trailing slash allowed, for the
+ * proxy's gate: `invalid` for an address of that shape that cannot name a pull request (the proxy answers the 404
+ * itself), null for any other path. The removed fixes' page and the footer's address by attempt are never one.
+ */
+export function learnFixViewOf(pathname: string): PrRef | 'invalid' | null {
+  const match = FIX_VIEW.exec(pathname);
+  if (!match || REMOVED_PAGE.test(pathname)) return null;
+  const [, owner, repo, number] = match;
+  if (owner === 'by-attempt') return 'invalid';
+  let decoded: string[];
+  try {
+    decoded = [owner, repo].map(decodeURIComponent);
+  } catch {
+    return 'invalid';
+  }
+  const pr = parsePrLink(`${decoded[0]}/${decoded[1]}#${number}`);
+  return pr && String(pr.number) === number ? pr : 'invalid';
 }
 
 /**

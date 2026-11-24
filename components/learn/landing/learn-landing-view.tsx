@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { type TryDrawn, TryLessonCard } from './try-lesson';
 import { SQUARE_CLASS } from '@/components/learn/course/course-marks';
 import { CourseColumns } from '@/components/learn/home/learn-home-view';
-import { FixRow } from '@/components/learn/issues/issues-parts';
+import { FixCard } from '@/components/learn/issues/issues-parts';
 import { LearnSignInButton } from '@/components/learn/learn-sign-in';
 import { PHONE_LINK } from '@/components/learn/phone-link';
 import { QuestionsBlock } from '@/components/questions-block/questions-block';
@@ -81,10 +81,10 @@ function MergedFixes({ fixes }: { fixes: LearnFixes | null }) {
             All fixes
           </Link>
         </div>
-        <ul className="m-0 list-none divide-y overflow-hidden rounded-xl border bg-card p-0">
+        <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-3">
           {shown.rows.map((fix) => (
-            <li key={`${fix.repo}#${fix.number}`}>
-              <FixRow fix={fix} />
+            <li key={`${fix.repo}#${fix.number}`} className="flex">
+              <FixCard fix={fix} />
             </li>
           ))}
         </ul>

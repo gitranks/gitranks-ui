@@ -278,10 +278,10 @@ describe('Issues', () => {
     ]);
     const first = $('[data-fix-row]')?.textContent ?? '';
     expect($('[data-fix-row] [data-fix-title]')?.textContent).toBe('Webhook deliveries were processed twice');
-    // The fix's own page is not there yet: its title is plain text, and nothing links to it.
-    expect($('[data-fix-row] [data-fix-title]')?.closest('a')).toBeNull();
-    expect(hrefs('[data-fix-row] a').some((href) => href?.startsWith('/learn/fixes'))).toBe(false);
-    expect(text()).not.toContain('Open the fix');
+    // The title opens the fix's own page, "Learn from it".
+    expect($('[data-fix-row] [data-fix-title]')?.closest('a')?.getAttribute('href')).toBe(
+      '/learn/fixes/harbor-kit/relay/418',
+    );
     expect(first).toContain('fixed by octocat');
     expect(first).toContain('Used Find duplicates in one pass with a set.');
     expect(first).toContain('merged 18 Nov');

@@ -90,6 +90,9 @@ export const LEARN_BAR_LINKS = {
 export const learnBarTabsOf = (state: LearnBarState): LearnBarTab[] =>
   state.kind === 'visitor' ? ['home', 'courses', 'issues'] : ['home', 'courses', 'issues', 'progress', 'settings'];
 
+/** A fix's public page in either view: `/learn/fixes/<owner>/<repo>/<number>` and `/contribute/pr/<owner>/<repo>/<number>`. */
+const FIX_VIEW = /^\/(?:learn\/fixes|contribute\/pr)\/[^/]+\/[^/]+\/\d+\/?$/;
+
 /** A lesson's or a course's view of Issues, `/learn/lessons/<slug>/real-world` or `/learn/courses/<slug>/real-world`. */
 const REAL_WORLD = /^\/learn\/(?:lessons|courses)\/[^/]+\/real-world\/?$/;
 
@@ -101,11 +104,11 @@ const at = (pathname: string, path: string) => pathname === path || pathname ===
  * The current place for a path, as the board's table "Which tab is current" lists it. `from` is the page's `?from=`:
  * a page both products share (Settings, the pull requests) is Learn's place only when Learn opened it. A person's
  * public progress page (`/learn/progress/<login>`) is no tab: Progress is the person's own. A lesson's and a course's
- * view of Issues are Issues.
+ * view of Issues are Issues, and so is a fix's public page, in either view.
  */
 export function learnBarPlaceOf(pathname: string, from: string | null = null): LearnBarPlace | null {
   if (at(pathname, LEARN_HOME_PATH)) return 'home';
-  if (at(pathname, LEARN_ISSUES_PATH) || REAL_WORLD.test(pathname)) return 'issues';
+  if (at(pathname, LEARN_ISSUES_PATH) || REAL_WORLD.test(pathname) || FIX_VIEW.test(pathname)) return 'issues';
   if (under(pathname, LEARN_COURSES_PATH)) return 'courses';
   if (at(pathname, LEARN_PROGRESS_PATH)) return 'progress';
   if (at(pathname, LEARN_SETUP_PATH)) return 'setup';

@@ -10,7 +10,7 @@ export const LEARN_ISSUES_PAGE_BUILT: boolean = true;
 export const LEARN_PROJECT_COURSE_PAGE_BUILT: boolean = false;
 
 /** A fix's "Learn from it" view: `/learn/fixes/<owner>/<repo>/<number>`. True once the page exists. */
-export const LEARN_FIXES_PAGE_BUILT: boolean = false;
+export const LEARN_FIXES_PAGE_BUILT: boolean = true;
 
 /**
  * Approve and send: `/my/pull-requests/<owner>/<repo>/<issue>/approve`. Until it exists, "Finish the walkthrough" leads

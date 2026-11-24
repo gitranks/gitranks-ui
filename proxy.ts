@@ -7,7 +7,7 @@ import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
 import { checkGateOf, courseGateOf } from './lib/learn/course-gate';
-import { fixByAttemptRouteGateOf, fixRouteGateOf } from './lib/learn/fix-gate';
+import { fixByAttemptRouteGateOf, fixRouteGateOf, fixViewRouteGateOf } from './lib/learn/fix-gate';
 import {
   isLearnAboutPath,
   LEARN_PATH,
@@ -24,6 +24,7 @@ import {
   learnCourseMarkdownRouteOf,
   learnFixByAttemptOf,
   learnFixRouteOf,
+  learnFixViewOf,
   learnIssuesMarkdownRouteOf,
   learnLandingMarkdownRouteOf,
   learnLessonMarkdownRouteOf,
@@ -255,21 +256,31 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   const fixPath = request.nextUrl.pathname;
   const fix = asked ? learnFixRouteOf(fixPath) : null;
   const fixAttempt = asked && !fix ? learnFixByAttemptOf(fixPath) : null;
-  if (fix === 'invalid' || fixAttempt === 'invalid' || (asked && isLearnFixRemovedPath(fixPath))) {
+  // The fix's own page, "Learn from it": a pull request with no such view is sent to "How it was made".
+  const fixView = asked && !fix && !fixAttempt ? learnFixViewOf(fixPath) : null;
+  if (
+    fix === 'invalid' ||
+    fixAttempt === 'invalid' ||
+    fixView === 'invalid' ||
+    (asked && isLearnFixRemovedPath(fixPath))
+  ) {
     return noStore(NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url)));
   }
   const fixGate = fix
     ? await fixRouteGateOf(fix)
     : fixAttempt
       ? await fixByAttemptRouteGateOf(fixAttempt.attemptId)
-      : null;
+      : fixView
+        ? await fixViewRouteGateOf(fixView)
+        : null;
   if (fixGate && fixGate.kind !== 'page') {
+    const search = fix || fixView ? request.nextUrl.search : '';
     return noStore(
       fixGate.kind === 'missing'
         ? NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url))
         : fixGate.kind === 'removed'
           ? NextResponse.rewrite(new URL(fixGate.path, request.url), { status: 410 })
-          : NextResponse.redirect(new URL(`${fixGate.path}${fix ? request.nextUrl.search : ''}`, request.url), 307),
+          : NextResponse.redirect(new URL(`${fixGate.path}${search}`, request.url), 307),
     );
   }
 

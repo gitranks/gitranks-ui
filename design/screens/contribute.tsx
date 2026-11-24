@@ -12,10 +12,10 @@ import { MaintainerReposPanel, MaintainersScreen, PrStrip } from '@/app/contribu
 import { McpDocsScreen } from '@/app/contribute/components/mcp-docs';
 import { HelpedSent, ReportSent } from '@/app/contribute/components/pr-feedback-forms';
 import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
-import { PrTimelineScreen } from '@/app/contribute/components/pr-timeline-view';
 import { MorePages } from '@/app/contribute/components/public-pages';
 import { TermsScreen } from '@/app/terms/terms';
 import { Header } from '@/components/header/header';
+import { CONTRIBUTE_MADE_LINKS, MadePage } from '@/components/workspace/fix-page/made-page';
 import { HeaderLine } from '@/components/workspace/header-line';
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
@@ -39,17 +39,16 @@ import {
   prReportSent,
   prViewer,
 } from '@/lib/contribute/__fixtures__/maintainers';
+import { issueRules, maintainerConfig, maintainerRules } from '@/lib/contribute/__fixtures__/repo-rules';
+import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
+import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
 import {
   autopilotTimeline,
   closedTimeline,
   mergedTimeline,
   ownAgentTimeline,
   stoppedTimeline,
-} from '@/lib/contribute/__fixtures__/pr-timeline';
-import { issueRules, maintainerConfig, maintainerRules } from '@/lib/contribute/__fixtures__/repo-rules';
-import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
-import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
-import type { PrTimeline } from '@/lib/contribute/pr-timeline.types';
+} from '@/lib/workspace/__fixtures__/pr-timeline';
 import type {
   ContributeActivity,
   ContributeFairUseNotice,
@@ -59,6 +58,7 @@ import type {
 } from '@/lib/workspace/contribute.types';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 import { type PrFeedbackFlow, prUrlOf } from '@/lib/workspace/pr-feedback';
+import type { PrTimeline } from '@/lib/workspace/pr-timeline.types';
 
 /** A key and a live token the agent has called with: both lanes of Right now. */
 const both: ContributeView = {
@@ -222,7 +222,12 @@ const ledgerPage = (view: typeof ledger) => (
 const prTimelinePage = (timeline: PrTimeline) => (
   <>
     <Header section="contribute" />
-    <PrTimelineScreen timeline={timeline} />
+    <MadePage
+      timeline={timeline}
+      made="CONTRIBUTE"
+      helped={timeline.helped ? { helpedBy: ['mara-k', 'lindqvist'], helpedNamed: 2 } : null}
+      {...CONTRIBUTE_MADE_LINKS}
+    />
   </>
 );
 const PR_TIMELINE_PATH = '/contribute/pr/driftwood-js/driftwood/1419';
@@ -659,8 +664,9 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     route: '/contribute/pr/[owner]/[repo]/[number]',
     sources: [
       'app/(pr-timeline)/contribute/pr/[owner]/[repo]/[number]/page.tsx',
-      'app/contribute/components/pr-timeline-view.tsx',
-      'lib/contribute/pr-timeline-words.ts',
+      'components/workspace/fix-page/made-page.tsx',
+      'components/workspace/fix-page/how-it-was-made.tsx',
+      'lib/workspace/pr-timeline-made.ts',
     ],
     states: [
       {

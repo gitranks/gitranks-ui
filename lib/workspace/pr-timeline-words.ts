@@ -106,6 +106,8 @@ export function milestoneWordsOf(row: PrTimelineMilestone, timeline: PrTimeline)
         text: notes.length ? notes.join(' ') : null,
       };
     }
+    case 'WALKTHROUGH':
+      return { ...base, title: `${who} passed the walkthrough of the change` };
     case 'APPROVED':
       return {
         ...base,

@@ -41,9 +41,7 @@ import {
 import type { PullRequestRefInput } from '@/lib/workspace/pull-request.documents';
 import { PROOF_ANCHOR, type PullRequestLinks } from '@/lib/workspace/pull-request-page';
 import type { PullRequestBox as Box, PullRequestPage } from '@/lib/workspace/pull-request-page.types';
-
-/** How often the page asks for its read again while a stage is working. */
-const REFRESH_MS = 6_000;
+import { useFastChanges } from '@/lib/workspace/use-changes';
 
 /** The boxes in which the agent or GitRanks works: the page moves on by itself then. */
 const WORKING: readonly Box[] = ['FIXING', 'WRITING_WALKTHROUGH', 'REWRITING_WALKTHROUGH', 'OPENING', 'ROUND_WORKING'];
@@ -124,11 +122,8 @@ export function PullRequestPageView({
     if (openRound !== null) document.querySelector(`[data-round="${openRound}"]`)?.scrollIntoView({ block: 'start' });
   }, [openRound]);
 
-  useEffect(() => {
-    if (!working) return;
-    const timer = setInterval(() => router.refresh(), REFRESH_MS);
-    return () => clearInterval(timer);
-  }, [working, router]);
+  // While a stage is working, the workspace's one poll goes fast; it reads this page again when the attempt moves.
+  useFastChanges(working);
 
   /** A call: its error under the box, or what it answered. */
   const act = <T,>(

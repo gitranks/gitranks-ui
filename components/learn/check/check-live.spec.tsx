@@ -108,6 +108,8 @@ const state = () => $('[data-check-state]')?.dataset.checkState ?? null;
 const title = () => $('h1:not(.sr-only)')?.textContent ?? '';
 const main = () => $('[data-answer-main]')!;
 const option = (index: number) => $(`[data-option="${index}"] input`)!;
+/** An option's input, to read whether it is picked or can be picked. */
+const input = (index: number) => option(index) as HTMLInputElement;
 const extra = () => $('[data-option="extra"] input')!;
 const buttonOf = (text: string) =>
   [...host.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent?.trim() === text);
@@ -269,6 +271,38 @@ describe('the check, for a person with a session', () => {
     expect(host.textContent).not.toMatch(/Right\.|Not quite\./);
     expect(host.textContent).toContain('Question 4 of 9');
     expect(document.activeElement?.getAttribute('aria-label')).toBe('Question 4 of 9');
+  });
+
+  it('answers questions in a row: each one opens fresh, by mouse and by keyboard, though every id is the same', async () => {
+    answer({ check: checkRunOf(0), missing: false });
+    await draw();
+    answerLearnCheckAction.mockResolvedValue({ ok: true, data: true });
+    // The first question, by mouse.
+    await click(option(1));
+    await click(main());
+    expect(host.textContent).toContain('Question 2 of 9');
+    // The second one is open: nothing picked, every option can be picked, and a pick is sent with its own group.
+    expect(input(0).checked).toBe(false);
+    expect(input(1).checked).toBe(false);
+    expect(input(0).disabled).toBe(false);
+    expect(input(1).disabled).toBe(false);
+    await click(option(0));
+    expect(input(0).checked).toBe(true);
+    await click(main());
+    expect(answerLearnCheckAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({ group: 'arrays-and-strings', picked: 0 }),
+    );
+    expect(host.textContent).toContain('Question 3 of 9');
+    // The third one, by keyboard.
+    expect(input(1).disabled).toBe(false);
+    await key(document.body, '2');
+    expect(input(1).checked).toBe(true);
+    await key(document.body, 'Enter');
+    expect(answerLearnCheckAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({ group: 'hash-maps-and-sets', picked: 1 }),
+    );
+    expect(answerLearnCheckAction).toHaveBeenCalledTimes(3);
+    expect(host.textContent).toContain('Question 4 of 9');
   });
 
   it('sends "I don’t know" with no pick, after saying it is a fine answer', async () => {

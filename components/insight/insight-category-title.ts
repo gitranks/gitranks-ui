@@ -15,4 +15,6 @@ export const InsightCategoryTitle: Record<InsightCategory, string> = {
   [InsightCategory.MonthInNumbers]: 'Month in Numbers',
   [InsightCategory.RepoAnniversary]: 'Repository Anniversary',
   [InsightCategory.CountryCrowns]: 'Country Crowns',
+  [InsightCategory.PackageAdoption]: 'Package Adoption',
+  [InsightCategory.PackageRising]: 'Rising Package',
 };

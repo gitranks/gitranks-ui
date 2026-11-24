@@ -395,7 +395,9 @@ function CheckRun({
         aria-label={`Question ${at + 1} of ${count}`}
       >
         <CheckQuestion
-          key={asked.question.id}
+          // A question's id is only its lesson's own (every check question is `c1`): the group names the question, so
+          // each one starts with a fresh answer.
+          key={asked.group.slug}
           course={course.slug}
           asked={asked}
           last={at === count - 1}

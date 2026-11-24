@@ -15,8 +15,10 @@ import {
 import type { OrgFacts } from '@/badge/v3/facts';
 import { BadgesCard } from '@/components/badges-card/badges-card';
 import { JsonLd } from '@/components/json-ld/json-ld';
+import { LearnEntityCard } from '@/components/learn/entity/learn-entity-card';
 import { RankCardItem, RankCardPosition, RankCardTotalValue } from '@/components/rank-card/rank-card-item';
 import { RankDelta } from '@/components/rank-delta/rank-delta';
+import type { LearnEntityCard as LearnEntityCardData } from '@/lib/learn/entity-card';
 import type { PageOrgQuery } from '@/types/generated/graphql';
 import { UserRankProp } from '@/types/ranking.types';
 
@@ -26,12 +28,17 @@ type OrgScreenProps = {
   org: NonNullable<PageOrgQuery['organization']>;
   /** The organization's badge data, for its Badges card. */
   badgeFacts: OrgFacts | null;
+  /** What Learn has about the organization's projects; `null` when it has nothing, or the card could not be read. */
+  learnCard: LearnEntityCardData | null;
   /** The time the page is drawn at, which decides the badges it offers. */
   now: Date;
 };
 
-/** The organization page from its data: its stars rank, top repositories, analytics and badges. */
-export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts, now }) => {
+/**
+ * The organization page from its data: its stars rank, top repositories, analytics, the Learn card when Learn has
+ * something about its projects, and badges.
+ */
+export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts, learnCard, now }) => {
   const rank = org.rankOrg ?? {};
   const hasData = (org.s ?? 0) >= MIN_VALUE;
 
@@ -84,6 +91,10 @@ export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts, now }) =
         <OrgTopRepos repos={org.topRepos} />
       </ProfileCardsGrid>
       {org.hasActivity && org.pulse && <OrgPulseSections login={login} avatarUrl={org.avatarUrl} pulse={org.pulse} />}
+      <LearnEntityCard
+        card={learnCard}
+        entity={{ kind: 'org', login: org.login || login, name: org.name || org.login || login }}
+      />
       <BadgesCard entity={badgeFacts} now={now} />
     </LayoutLeftColumn>
   );

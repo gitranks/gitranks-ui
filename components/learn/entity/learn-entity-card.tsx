@@ -23,12 +23,12 @@ function Row({ row }: { row: EntityRow }) {
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-sm font-semibold text-foreground">
             {row.title.map((part, index) =>
-              typeof part === 'number' ? (
+              typeof part === 'string' ? (
+                part
+              ) : (
                 <span key={index} className="font-mono tabular-nums">
                   {entityNumberOf(part)}
                 </span>
-              ) : (
-                part
               ),
             )}
           </span>

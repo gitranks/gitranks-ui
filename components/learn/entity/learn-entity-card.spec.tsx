@@ -53,6 +53,9 @@ describe('LearnEntityCard', () => {
     expect(draw(entityCards.repoNoCourse, repoEntity).rows).toEqual(['fixes', 'issues']);
     expect(draw(entityCards.repoOneFix, repoEntity).text).toContain('1 fix to learn from');
     expect(draw(entityCards.repoNewCourse, repoEntity).text).toContain('1 open issue to fix');
+    const capped = draw({ ...entityCards.repoEverything, openIssues: 1001 }, repoEntity);
+    expect(capped.root.querySelector('[data-entity-row="issues"] .font-mono')?.textContent).toBe('1,000+');
+    expect(capped.text).toContain('1,000+ open issues to fix');
   });
 
   it('draws no card with nothing behind it, nor for open issues alone', () => {

@@ -9,6 +9,7 @@ import { buildOrgSEO } from './seo';
 import { readBadgeFacts } from '@/badge/v3/card-facts';
 import { loadBadgeOrgCard } from '@/badge/v3/load';
 import { fetchOrg } from '@/graphql/helpers/fetch-org';
+import { loadLearnEntityCard } from '@/lib/learn/entity-card.data';
 
 export async function generateMetadata({ params }: PageProps<'/org/[login]'>): Promise<Metadata> {
   const { login } = await params;
@@ -25,11 +26,16 @@ export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {
   const { login } = await params;
   cacheTag(`org:${login}`);
 
-  // The card's read starts with the page's own, not after it.
-  const [org, badges] = await Promise.all([fetchOrg(login), readBadgeFacts(loadBadgeOrgCard(login))]);
+  // The cards' reads start with the page's own, not after it.
+  const [org, badges, learn] = await Promise.all([
+    fetchOrg(login),
+    readBadgeFacts(loadBadgeOrgCard(login)),
+    loadLearnEntityCard({ org: login }),
+  ]);
 
-  // A page that rendered without its Badges card is kept briefly, so the card comes back soon.
-  if (!badges.brief) {
+  // A page that rendered without its Badges card, or without a Learn card it could not read in time, is kept briefly,
+  // so the card comes back soon.
+  if (!badges.brief && learn.ok) {
     cacheLife('hours');
   } else {
     cacheLife('minutes');
@@ -39,5 +45,5 @@ export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {
     notFound();
   }
 
-  return <OrgScreen login={login} org={org} badgeFacts={badges.facts} now={new Date()} />;
+  return <OrgScreen login={login} org={org} badgeFacts={badges.facts} learnCard={learn.card} now={new Date()} />;
 }

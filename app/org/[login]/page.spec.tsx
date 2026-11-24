@@ -5,11 +5,14 @@ import { nebulaOrg } from './__fixtures__/org';
 import OrgPage from './page';
 import { loadBadgeOrgCard } from '@/badge/v3/load';
 import { fetchOrg } from '@/graphql/helpers/fetch-org';
+import { entityCards } from '@/lib/learn/__fixtures__/entity-card';
+import { loadLearnEntityCard } from '@/lib/learn/entity-card.data';
 
 vi.mock('next/cache', () => ({ cacheLife: vi.fn(), cacheTag: vi.fn() }));
 vi.mock('next/navigation', () => ({ notFound: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-org', () => ({ fetchOrg: vi.fn() }));
 vi.mock('@/badge/v3/load', () => ({ loadBadgeOrgCard: vi.fn() }));
+vi.mock('@/lib/learn/entity-card.data', () => ({ loadLearnEntityCard: vi.fn() }));
 
 const ORG = nebulaOrg;
 
@@ -19,6 +22,7 @@ describe('organization page', () => {
   beforeEach(() => {
     vi.mocked(cacheLife).mockReset();
     vi.mocked(fetchOrg).mockResolvedValue(ORG);
+    vi.mocked(loadLearnEntityCard).mockReset().mockResolvedValue({ card: null, ok: true });
   });
 
   it('is kept for hours when the badge data reads', async () => {
@@ -46,7 +50,26 @@ describe('organization page', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(loadBadgeOrgCard).toHaveBeenCalledWith('nebula');
+    expect(loadLearnEntityCard).toHaveBeenCalledWith({ org: 'nebula' });
     orgRead(ORG);
     await page;
+  });
+
+  it('hands the Learn card to the screen, and is kept for hours', async () => {
+    vi.mocked(loadBadgeOrgCard).mockResolvedValue(null);
+    vi.mocked(loadLearnEntityCard).mockResolvedValue({ card: entityCards.orgEverything, ok: true });
+    const page = await render();
+
+    expect(page.props.learnCard).toEqual(entityCards.orgEverything);
+    expect(vi.mocked(cacheLife).mock.calls).toEqual([['hours']]);
+  });
+
+  it('is kept for minutes, without the Learn card, when the card could not be read in time', async () => {
+    vi.mocked(loadBadgeOrgCard).mockResolvedValue(null);
+    vi.mocked(loadLearnEntityCard).mockResolvedValue({ card: null, ok: false });
+    const page = await render();
+
+    expect(page.props.learnCard).toBeNull();
+    expect(vi.mocked(cacheLife).mock.calls).toEqual([['minutes']]);
   });
 });

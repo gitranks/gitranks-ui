@@ -5,6 +5,7 @@ import { bigRepo, repoLanguages, repoRankTiers } from '../../../__fixtures__/rep
 import { RepoOverviewSections } from '../../../components/repo-overview-sections';
 import { RepoOverviewScreen } from './repo-overview-screen';
 import { firstPage, onePackage, threePackages } from '@/components/dependents/dependents.fixtures';
+import { entityCards } from '@/lib/learn/__fixtures__/entity-card';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/repo/nebula/ui', useRouter: () => ({ push: vi.fn() }) }));
 
@@ -35,6 +36,7 @@ const screen = (props: Partial<Parameters<typeof RepoOverviewScreen>[0]> = {}) =
       tiers={repoRankTiers}
       packages={threePackages}
       dependents={{ ...firstPage, items: firstPage.items.slice(0, 5) }}
+      learnCard={null}
       {...props}
     />,
   );
@@ -70,6 +72,21 @@ describe('RepoOverviewScreen', () => {
     ]) {
       expect(screen(props)).not.toContain('Used by');
     }
+  });
+
+  it('draws the Learn card last, under Used by, with links for this repository', () => {
+    const html = screen({ learnCard: entityCards.repoEverything });
+    expect(html.indexOf('<h2>Used by</h2>')).toBeLessThan(html.indexOf('<h2>Learn from this project</h2>'));
+    expect(html).toContain('href="/learn/repos/nebula/ui"');
+    expect(html).toContain('href="/learn/issues?repo=nebula/ui&amp;fixed=1"');
+    expect(screen({ learnCard: entityCards.repoEverything, packages: null, dependents: null })).toContain(
+      'Learn from this project',
+    );
+  });
+
+  it('draws no Learn card, and nothing in its place, when Learn has nothing to show', () => {
+    expect(screen()).toBe(screen({ learnCard: entityCards.repoIssuesOnly }));
+    expect(screen()).not.toContain('Learn from');
   });
 
   it('keeps the JSON-LD of the repository page', () => {

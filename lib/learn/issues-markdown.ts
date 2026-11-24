@@ -15,7 +15,7 @@ import {
 } from './issues';
 import { LESSON_MARKDOWN_HEADERS } from './lesson-markdown-response';
 import { absoluteUrl } from '@/lib/seo/site';
-import { ISSUE_KINDS, issueKindOf, issuePagePath, SIZE_WORDS } from '@/lib/workspace/masked-issue';
+import { ISSUE_KINDS, issueKindOf, issuePageHrefOf, SIZE_WORDS } from '@/lib/workspace/masked-issue';
 
 /*
  * The Markdown copy of Issues and of a lesson's and a course's view of it, for agents: the five open issues every
@@ -45,7 +45,7 @@ function rowLineOf(row: IssuesRow): string {
   const parts = [
     `- **${row.issue.title}**${facts.length ? ` (${facts.join(', ')})` : ''}.`,
     lesson ? `Teaches [${lesson.title}](${absoluteUrl(lesson.href)}).` : null,
-    `See it in full: ${absoluteUrl(issuePagePath(row.issue.id))}`,
+    `See it in full: ${absoluteUrl(issuePageHrefOf(row.issue.id, 'learn'))}`,
   ];
   return parts.filter(Boolean).join(' ');
 }

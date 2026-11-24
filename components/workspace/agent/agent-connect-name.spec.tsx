@@ -82,3 +82,44 @@ describe('"I added it"', () => {
     expect(onConnected).not.toHaveBeenCalled();
   });
 });
+
+describe('VS Code among the agents to pick', () => {
+  const picks = () => [...container.querySelectorAll('fieldset button')].map((button) => button.textContent);
+  const docsLink = () => container.querySelector('a[href="/contribute/mcp"]')?.textContent;
+
+  it('is offered only where the page asks for it, and the docs link then names other agents', async () => {
+    await act(async () => root.render(<AgentConnect embedded onboarded tokens={[]} signIn />));
+    expect(picks()).toEqual(['Claude Code', 'Codex CLI', 'Cursor', 'Gemini CLI', 'Antigravity']);
+    expect(docsLink()).toBe('VS Code or another agent? The MCP docs →');
+    await act(async () => root.render(<AgentConnect embedded onboarded tokens={[]} signIn withVsCode />));
+    expect(picks()).toEqual(['Claude Code', 'Codex CLI', 'Cursor', 'Gemini CLI', 'Antigravity', 'VS Code']);
+    expect(docsLink()).toBe('Another agent? The MCP docs →');
+  });
+
+  it("shows VS Code's own setup once picked, and names the agent that connects", async () => {
+    const onConnected = vi.fn();
+    actions.readAgentConnected.mockResolvedValue({ ok: true, data: true });
+    await act(async () =>
+      root.render(<AgentConnect embedded onboarded tokens={[]} signIn withVsCode onConnected={onConnected} />),
+    );
+    const vsCode = [...container.querySelectorAll('button')].find((button) => button.textContent === 'VS Code');
+    await act(async () => vsCode?.click());
+    expect(container.textContent).toContain('MCP: Open User Configuration');
+    expect(container.textContent).toContain('"servers"');
+    const added = [...container.querySelectorAll('button')].find((button) => button.textContent === 'I added it');
+    await act(async () => added?.click());
+    await vi.waitFor(() => expect(onConnected).toHaveBeenCalledWith('vscode'));
+  });
+
+  it('with a token, says VS Code calls once a message is sent in Agent mode, not as it starts', async () => {
+    actions.readAgentConnected.mockResolvedValue({ ok: true, data: false });
+    await act(async () => root.render(<AgentConnect embedded onboarded tokens={[]} signIn={false} withVsCode />));
+    const vsCode = [...container.querySelectorAll('button')].find((button) => button.textContent === 'VS Code');
+    await act(async () => vsCode?.click());
+    await act(async () => createButton()?.click());
+    const added = [...container.querySelectorAll('button')].find((button) => button.textContent === "I've added it");
+    await act(async () => added?.click());
+    await vi.waitFor(() => expect(container.textContent).toContain('Open VS Code and send a message in Agent mode'));
+    expect(container.textContent).not.toContain('it calls GitRanks as it starts');
+  });
+});

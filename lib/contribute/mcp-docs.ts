@@ -59,7 +59,7 @@ function connectClientOf(client: McpClient): McpDocClient {
   };
 }
 
-/** VS Code: the docs alone, the connect flow does not offer it yet (`own-agent-setups`). */
+/** VS Code: in the docs, and in the connect step on the page of one issue from Learn only (`own-agent-setups`). */
 const VS_CODE: McpDocClient = {
   id: 'vs-code',
   name: 'VS Code',

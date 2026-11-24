@@ -24,7 +24,7 @@ import type {
   ContributeProofSession,
 } from '@/lib/workspace/contribute.types';
 import { relativeLabel } from '@/lib/workspace/format';
-import { MCP_CLIENT_NAMES } from '@/lib/workspace/mcp-setup';
+import { MCP_CLIENT_NAMES, MCP_CLIENTS } from '@/lib/workspace/mcp-setup';
 import type { UserMove } from '@/lib/workspace/next-step';
 import { clipped } from '@/lib/workspace/pr-moves';
 import type { ProofStage } from '@/lib/workspace/proof';
@@ -52,7 +52,7 @@ type ProofMove = Extract<UserMove, { kind: 'proof' }>;
 
 /** "Claude Code, Codex CLI, Cursor, Gemini CLI or Antigravity": the clients the setup knows; any MCP client works. */
 const CLIENTS = (() => {
-  const names = Object.values(MCP_CLIENT_NAMES);
+  const names = MCP_CLIENTS.map((client) => MCP_CLIENT_NAMES[client]);
   return `${names.slice(0, -1).join(', ')} or ${names.at(-1)}`;
 })();
 

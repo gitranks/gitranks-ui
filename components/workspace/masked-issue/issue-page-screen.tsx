@@ -19,6 +19,7 @@ import { IssueStartForm, type IssueStartFormProps } from '@/components/workspace
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
 import { MaskedListFoot, WhyHiddenDialog } from '@/components/workspace/masked-issue/why-hidden';
 import { RefChips } from '@/components/workspace/ref-chips';
+import { type IssueStarted, startedLineOf } from '@/lib/workspace/issue-page-learn';
 import {
   beforePressLineOf,
   heldLineOf,
@@ -40,14 +41,14 @@ import type { StartRefusalAction } from '@/lib/workspace/start-refusals';
 const TICK_MS = 10_000;
 
 /**
- * The hold's clock, from `start`: it moves while an issue is held and its minutes are not over (`held && !over`),
- * and stops at the end, so an ended hold keeps no timer.
+ * The page's clock, from `start`: it moves while an issue is held and its minutes are not over (`held && !over`), and
+ * while the started line says how long ago the work started (`started`). Otherwise it keeps no timer.
  */
-function useHoldClock(start: Date, until: string | null): Date {
+function useHoldClock(start: Date, until: string | null, started = false): Date {
   const [now, setNow] = useState(start);
   const held = until !== null;
   const over = held && minutesLeftOf(until, now) === 0;
-  const running = held && !over;
+  const running = (held && !over) || started;
   useEffect(() => {
     if (!running) return;
     setNow(new Date());
@@ -77,13 +78,17 @@ export type IssuePageScreenProps = {
   timeZone?: string;
   /** The lesson the issue uses or teaches, when there is one. */
   lesson?: MaskedIssueLesson | null;
+  /** From Learn, an issue kept for people who are learning: the start form has no choice of how. */
+  learnOnly?: boolean;
+  /** With the started state, from Learn: how the work started, said in one line. */
+  started?: IssueStarted | null;
   colors?: Readonly<Record<string, string>>;
   /** The press is on its way: the button waits in its place. */
   pressing?: boolean;
   /** "See the full issue", and "See the full issue again". */
   onSee?: () => void;
   /** "Start fixing it": the agents and what its buttons do. */
-  start: Omit<IssueStartFormProps, 'from' | 'issueUrl'>;
+  start: Omit<IssueStartFormProps, 'from' | 'issueUrl' | 'learnOnly'>;
   /** "Give it back". */
   onGiveBack?: () => void;
   givingBack?: boolean;
@@ -272,7 +277,11 @@ function endOf(
         <End
           state={state}
           title="You started this issue"
-          text="Your agent is on it. Its page shows each step as it goes."
+          text={
+            props.started
+              ? `${startedLineOf(props.started, props.now)} Its page shows each step as it goes.`
+              : 'Your agent is on it. Its page shows each step as it goes.'
+          }
         >
           {props.page.startPath ? (
             <Button asChild className={PRIMARY}>
@@ -303,7 +312,7 @@ const pressPrimary = () => document.querySelector<HTMLElement>('[data-primary-ac
 export function IssuePageScreen(props: IssuePageScreenProps) {
   const { page, from, back, numbers, visitor = false, timeZone, lesson = null, colors, pressing = false } = props;
   const until = page.state === 'FULL' ? page.until : null;
-  const now = useHoldClock(props.now, until);
+  const now = useHoldClock(props.now, until, page.state === 'STARTED' && Boolean(props.started));
   const over = until !== null && minutesLeftOf(until, now) === 0;
   const state: IssuePageState = over ? 'EXPIRED' : page.state;
   const masked = page.masked;
@@ -376,7 +385,7 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
           <span className="text-muted-foreground">Nobody else sees this issue while you hold it.</span>
         </div>
         <FullCard masked={masked} full={page.full} lesson={lesson} colors={colors} />
-        <IssueStartForm from={from} issueUrl={page.full.url} {...props.start} />
+        <IssueStartForm from={from} issueUrl={page.full.url} learnOnly={props.learnOnly} {...props.start} />
         <NotForMe onGiveBack={props.onGiveBack} sending={props.givingBack} />
       </>
     );
@@ -386,7 +395,7 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
     // A page with nothing to show of its issue: it is no longer open to the viewer.
     body = endOf('NOT_AVAILABLE', props);
   } else {
-    body = endOf(state, props);
+    body = endOf(state, { ...props, now });
   }
 
   return (

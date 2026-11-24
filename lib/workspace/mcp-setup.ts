@@ -16,10 +16,14 @@ export const MCP_URL = 'https://mcp.gitranks.com/mcp';
  */
 export const MCP_TOKEN_ENV = 'GITRANKS_MCP_TOKEN';
 
-export type McpClient = 'claude-code' | 'codex' | 'cursor' | 'gemini-cli' | 'antigravity';
+/** A client we have setup for. VS Code is offered only where a picker asks for it (`MCP_CLIENTS_WITH_VS_CODE`). */
+export type McpClient = 'claude-code' | 'codex' | 'cursor' | 'gemini-cli' | 'antigravity' | 'vscode';
 
 /** The clients we have setup for, in the order the pickers list them. */
 export const MCP_CLIENTS: readonly McpClient[] = ['claude-code', 'codex', 'cursor', 'gemini-cli', 'antigravity'];
+
+/** The same, with VS Code last: the connect step on the page of one issue, from Learn. */
+export const MCP_CLIENTS_WITH_VS_CODE: readonly McpClient[] = [...MCP_CLIENTS, 'vscode'];
 
 export const MCP_CLIENT_NAMES: Record<McpClient, string> = {
   'claude-code': 'Claude Code',
@@ -27,6 +31,7 @@ export const MCP_CLIENT_NAMES: Record<McpClient, string> = {
   cursor: 'Cursor',
   'gemini-cli': 'Gemini CLI',
   antigravity: 'Antigravity',
+  vscode: 'VS Code',
 };
 
 /**
@@ -155,14 +160,50 @@ export function mcpSetupLinesOf(client: McpClient, os: McpOs, token?: string): s
         null,
         2,
       );
+    case 'vscode':
+      return VS_CODE_TOKEN_LINES;
   }
 }
+
+/**
+ * VS Code's Copilot reads the portable MCP file (`mcpServers`): `~/.copilot/mcp-config.json`, or `.mcp.json` at a
+ * workspace root. It takes no `${input:…}` prompt (a password input is not forwarded to it, and VS Code marks such a
+ * `.vscode/mcp.json` server "Unsupported"), so the header reads the token from the environment like the other
+ * clients; VS Code reads the environment when it starts. Checked live in VS Code on 2026-11-07.
+ */
+export const VS_CODE_TOKEN_LINES = JSON.stringify(
+  {
+    mcpServers: {
+      gitranks: {
+        type: 'http',
+        url: MCP_URL,
+        headers: { Authorization: `Bearer \${${MCP_TOKEN_ENV}}` },
+        tools: ['*'],
+      },
+    },
+  },
+  null,
+  2,
+);
+export const VS_CODE_TOKEN_FILE = '~/.copilot/mcp-config.json';
+export const VS_CODE_TOKEN_WHERE =
+  "Add this to Copilot's MCP file (%USERPROFILE%\\.copilot\\mcp-config.json on Windows; $COPILOT_HOME/mcp-config.json if you set COPILOT_HOME), or to .mcp.json at your project's root. VS Code reads the token from your environment when it starts, so quit it fully and open it again after you save the token. Then use Agent mode in chat.";
+
+/** VS Code's own MCP file, with no header: it asks to sign in when it starts the server. */
+export const VS_CODE_SIGN_IN = {
+  where:
+    'Add this with MCP: Open User Configuration (or to .vscode/mcp.json in your project). VS Code asks you to sign in when it starts the server: your browser opens GitRanks, where you allow it. Then use Agent mode in chat.',
+  label: 'mcp.json',
+  file: true,
+  lines: JSON.stringify({ servers: { gitranks: { type: 'http', url: MCP_URL } } }, null, 2),
+};
 
 const CONFIG_FILES: Record<Exclude<McpClient, 'claude-code'>, string[]> = {
   codex: ['.codex', 'config.toml'],
   cursor: ['.cursor', 'mcp.json'],
   'gemini-cli': ['.gemini', 'settings.json'],
   antigravity: ['.gemini', 'config', 'mcp_config.json'],
+  vscode: ['.copilot', 'mcp-config.json'],
 };
 
 /** A config file under the user's home, in the OS's spelling. */
@@ -255,9 +296,12 @@ export function mcpClientSetupOf(
         ? 'Add this to the Cursor MCP file, then restart Cursor.'
         : 'Add this to the Cursor MCP file, then start Cursor again from a terminal, so it sees the variable.',
     'gemini-cli': 'Add this to the Gemini CLI settings file.',
+    vscode: VS_CODE_TOKEN_WHERE,
   }[client];
   const restart =
-    replacing && client !== 'cursor' ? ` If ${name} is running, restart it, so it reads the new token.` : '';
+    replacing && client !== 'cursor' && client !== 'vscode'
+      ? ` If ${name} is running, restart it, so it reads the new token.`
+      : '';
   return { client, name, label: homePathOf(os, CONFIG_FILES[client]), file: true, where: where + restart, lines };
 }
 
@@ -275,6 +319,7 @@ const SETTINGS_WHERE: Record<McpClient, string> = {
   cursor: '~/.cursor/mcp.json (start Cursor from a shell that has the variable)',
   'gemini-cli': '~/.gemini/settings.json',
   antigravity: `~/.gemini/config/mcp_config.json, with your token in place of ${MCP_TOKEN_PLACEHOLDER}: Antigravity can't read environment variables there yet`,
+  vscode: `${VS_CODE_TOKEN_FILE} (quit VS Code fully and open it again, so it reads the variable)`,
 };
 
 /**
@@ -381,6 +426,15 @@ export function mcpSignInSetupOf(client: McpClient, os: McpOs): McpSignInSetup {
         check:
           "In the agent's window, open Customizations and scroll down to MCP servers: gitranks should show as connected. If it shows Sign in, click it and allow it in your browser.",
         added: `Now sign in. ${ANTIGRAVITY_SIGN_IN}.`,
+      };
+    case 'vscode':
+      return {
+        client,
+        name,
+        ...VS_CODE_SIGN_IN,
+        check:
+          'In VS Code, run MCP: List Servers from the Command Palette: gitranks should show as running. If it asks you to sign in, allow it in your browser.',
+        added: 'It asks you to sign in when it starts the server.',
       };
   }
 }

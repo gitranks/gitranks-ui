@@ -21,6 +21,11 @@ export type IssueStartFormProps = {
   from: 'learn' | 'contribute';
   /** The issue's page on GitHub, which the prompt names. */
   issueUrl: string;
+  /**
+   * From Learn, an issue kept for people who are learning: no "How" step, the walkthrough is always on, and one line
+   * says so. From Contribute it changes nothing.
+   */
+  learnOnly?: boolean;
   /** The agents connected now. */
   agents: { own: boolean; hosted: boolean };
   /** The own agent's name, "Claude Code"; null: "your agent". */
@@ -165,6 +170,7 @@ function PromptBox({
 export function IssueStartForm({
   from,
   issueUrl,
+  learnOnly = false,
   agents,
   ownName = null,
   alsoLearn = false,
@@ -178,7 +184,10 @@ export function IssueStartForm({
   hostedSending = false,
 }: IssueStartFormProps) {
   const learn = from === 'learn';
-  const [way, setWay] = useState<StartWay>(initialWay ?? (learn ? 'teach' : 'fix'));
+  // Kept for learners, from Learn: the walkthrough is always on, with nothing to choose.
+  const teachOnly = learn && learnOnly;
+  const [chosenWay, setWay] = useState<StartWay>(initialWay ?? (learn ? 'teach' : 'fix'));
+  const way: StartWay = teachOnly ? 'teach' : chosenWay;
   const hosted = agents.hosted && !learn;
   const own = agents.own;
   const [agent, setAgent] = useState<StartAgent>(initialAgent ?? (own ? 'own' : 'hosted'));
@@ -223,7 +232,7 @@ export function IssueStartForm({
     </Link>
   );
 
-  if (learn) {
+  if (learn && !teachOnly) {
     steps.push(
       <Step key="how" n={next()} title="How">
         <Tiles
@@ -334,6 +343,12 @@ export function IssueStartForm({
       <h2 id="start-fixing-title" className="m-0 text-lg font-semibold">
         Start fixing it
       </h2>
+      {teachOnly ? (
+        <p className="m-0 max-w-[70ch] text-sm text-muted-foreground" data-learn-only="">
+          Your agent fixes it and writes the walkthrough. You answer a few questions, then send the pull request. This
+          issue is kept for people who are learning, so it always comes with its walkthrough.
+        </p>
+      ) : null}
       <ol className="m-0 flex list-none flex-col gap-5 p-0">{steps}</ol>
       {!learn && alsoLearn && chosen === 'own' && !waitingPrs ? (
         <p className="m-0 border-t pt-3 text-sm text-muted-foreground" data-walkthrough-line="">

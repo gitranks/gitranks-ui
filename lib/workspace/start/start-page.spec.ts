@@ -152,6 +152,10 @@ describe('step 1: connected means the agent has called', () => {
     expect(mcpClientOfName('Cursor')).toBe('cursor');
     expect(mcpClientOfName('Claude Desktop')).toBeNull();
     expect(mcpClientOfName('')).toBeNull();
+    // VS Code only where the picker offers it.
+    expect(mcpClientOfName('VS Code on macOS')).toBeNull();
+    expect(mcpClientOfName('VS Code on macOS', true)).toBe('vscode');
+    expect(mcpClientOfName('Codex on Linux', true)).toBe('codex');
     expect(agentNameOf('codex')).toBe('Codex CLI');
     expect(agentNameOf(null)).toBe('your agent');
   });

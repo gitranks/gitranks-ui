@@ -28,6 +28,8 @@ const APP = join(dirname(fileURLToPath(import.meta.url)), '../../app');
  */
 const ROUTES = [
   { segment: 'profile/[login]', module: () => import('@/app/profile/[login]/layout'), params: ['login'] },
+  // A person's Skills tab: the profile's layout lists the login.
+  { segment: 'profile/[login]/skills', module: () => import('@/app/profile/[login]/layout'), params: ['login'] },
   { segment: 'org/[login]', module: () => import('@/app/org/[login]/layout'), params: ['login'] },
   { segment: 'insights/[id]', module: () => import('@/app/insights/[id]/page'), params: ['id'] },
   {

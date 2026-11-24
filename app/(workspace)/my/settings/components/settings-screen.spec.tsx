@@ -48,6 +48,9 @@ vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnSetup: vi.fn(),
   loadLearnOpen: vi.fn(),
 }));
+const skillsReads = vi.hoisted(() => ({ loadSkillsMine: vi.fn(async (): Promise<unknown> => null) }));
+vi.mock('@/lib/skills/skills.data', () => skillsReads);
+vi.mock('@/app/profile/[login]/components/skills-hidden.actions', () => ({ setSkillsHiddenAction: vi.fn() }));
 
 const { SettingsScreen, SettingsView } = await import('./settings-view');
 const { KeyScreen, KeyView } = await import('@/app/(workspace)/my/agent/components/agent-pages');
@@ -343,6 +346,18 @@ describe('the reads of Settings and the key page', () => {
       jar.value = undefined;
       gate.loadLearnOpen.mockResolvedValue(false);
     }
+  });
+
+  it("puts Privacy, with who can see the person's Skills page, after every other group and before Delete", async () => {
+    const { skillsMine } = await import('@/lib/skills/__fixtures__/skills');
+    reads.loadContribute.mockResolvedValue(settingsViews.both);
+    skillsReads.loadSkillsMine.mockResolvedValueOnce(skillsMine.publicLearner);
+    const html = renderToStaticMarkup(await SettingsView(params()));
+    expect(groupsOf(html).at(-1)).toBe('privacy');
+    expect(html.indexOf('id="privacy"')).toBeLessThan(html.indexOf('id="danger"'));
+    expect(text(html)).toContain('Your Skills page Everyone can see it.');
+    expect(html).toContain('href="/profile/octocat/skills"');
+    expect(skillsReads.loadSkillsMine).toHaveBeenCalledWith('octocat');
   });
 
   it('asks nothing of Learn where it is not open', async () => {

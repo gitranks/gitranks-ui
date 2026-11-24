@@ -19,6 +19,7 @@ export function SkillsPageView({
   other = null,
   learnOpen = true,
   onMore,
+  loadingMore = false,
 }: {
   page: SkillsPage;
   /** The time the page is drawn at, for its dates. */
@@ -29,6 +30,8 @@ export function SkillsPageView({
   other?: ProductBox | null;
   learnOpen?: boolean;
   onMore?: () => void;
+  /** "Show 20 more" is on its way: the button waits. */
+  loadingMore?: boolean;
 }) {
   const shownOther = other && (learnOpen || other.product !== 'LEARN') ? other : null;
   return (
@@ -42,6 +45,7 @@ export function SkillsPageView({
         learnOpen={learnOpen}
         now={now}
         onMore={onMore}
+        loading={loadingMore}
       />
       {learnOpen ? <SkillsCoursesSection courses={page.courses} now={now} /> : null}
       {shownOther ? <SkillsProductBox box={shownOther} /> : null}

@@ -22,6 +22,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loa
 vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
 vi.mock('@/lib/learn/settings.data', () => ({ loadLearnEmailSettings: vi.fn(), loadLearnSetupForSettings: vi.fn() }));
+vi.mock('@/lib/skills/skills.data', () => ({}));
 vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnProfile: vi.fn(),

@@ -25,3 +25,19 @@ const SKILLS_TAG = /^skills:[a-z0-9-]{1,39}$/;
 
 /** Whether a tag is a Skills page's, as the API sends it to expire. */
 export const isSkillsTag = (tag: string): boolean => SKILLS_TAG.test(tag);
+
+/** A person's numbers alone, read in the browser for the tab and the profile's block. */
+export const skillsBriefApiPath = (login: string) => `/api/skills/${encodeURIComponent(login)}`;
+
+/** The next fixes of a person's page, after the cursor the last ones gave. */
+export const skillsFixesApiPath = (login: string, after: string) =>
+  `${skillsBriefApiPath(login)}/fixes?after=${encodeURIComponent(after)}`;
+
+/** The owner's own view of their page, read in the browser once the page is up. */
+export const SKILLS_MINE_PATH = '/api/me/skills';
+
+/** What the owner's tab needs: its "New" mark. */
+export const SKILLS_TAB_MINE_PATH = `${SKILLS_MINE_PATH}/tab`;
+
+/** The owner opened their tab: its "New" mark goes. */
+export const SKILLS_SEEN_MINE_PATH = `${SKILLS_MINE_PATH}/seen`;

@@ -10,6 +10,8 @@ import { fileURLToPath } from 'node:url';
 
 export const BLOCKING_ROUTES = [
   '/profile/[login]',
+  // A person's Skills tab: its "no Skills page" end answers 404.
+  '/profile/[login]/skills',
   '/org/[login]',
   '/insights/[id]',
   '/repos/language/[language]/[page]',

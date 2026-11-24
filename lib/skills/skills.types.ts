@@ -114,6 +114,9 @@ export type SkillsPage = {
 /** The numbers alone, for the block and the tab. */
 export type SkillsBrief = { login: string; numbers: SkillsNumbers };
 
+/** A page of the logins whose Skills page search engines may index, for the sitemap. */
+export type SkillsLogins = { logins: string[]; next: string | null };
+
 /** The night's numbers of the list of issues, with the two the Skills page adds: each null until counted. */
 export type SkillsIssueNumbers = IssueNumbers & { repos: number | null; aiReadsPerDay: number | null };
 
@@ -129,3 +132,18 @@ export type SkillsMine = {
   tabNew: boolean;
   numbers: SkillsIssueNumbers | null;
 };
+
+/** The browser's read of a person's numbers: null without a public page; `learnOpen` while Learn is open to everyone. */
+export type SkillsBriefAnswer = { brief: SkillsBrief | null; learnOpen: boolean };
+
+/** The browser's read of the next fixes: null when they cannot be read. */
+export type SkillsFixesAnswer = { fixes: SkillsFixes | null };
+
+/** The owner's view as the browser reads it: null signed out (`signedOut`) or when it cannot be read. */
+export type SkillsMineAnswer = { mine: SkillsMine | null; signedOut: boolean };
+
+/** The owner's tab: whether it carries "New". */
+export type SkillsTabAnswer = { tabNew: boolean };
+
+/** What "Hide this page" or "Show it to everyone" did: the owner's view after it, or why it did not happen. */
+export type SkillsHiddenResult = { ok: true; mine: SkillsMine | null } | { ok: false; error: 'SIGNED_OUT' | 'FAILED' };

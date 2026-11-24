@@ -48,3 +48,14 @@ describe('the profile a missing Skills page leads to', () => {
     expect(skillsProfilePath('a b')).toBe('/profile/a%20b');
   });
 });
+
+describe("a Skills page's reads in the browser", () => {
+  it('reads the numbers and the next fixes of a login, and the owner’s own view under the session’s routes', async () => {
+    const paths = await import('./paths');
+    expect(paths.skillsBriefApiPath('octocat')).toBe('/api/skills/octocat');
+    expect(paths.skillsFixesApiPath('octocat', 'c+1/=')).toBe('/api/skills/octocat/fixes?after=c%2B1%2F%3D');
+    expect(paths.SKILLS_MINE_PATH).toBe('/api/me/skills');
+    expect(paths.SKILLS_TAB_MINE_PATH).toBe('/api/me/skills/tab');
+    expect(paths.SKILLS_SEEN_MINE_PATH).toBe('/api/me/skills/seen');
+  });
+});

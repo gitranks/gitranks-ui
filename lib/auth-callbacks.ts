@@ -38,7 +38,7 @@ export const createAuthCallbacks = ({
     }
 
     token.error = undefined;
-    dropExpiredMaintainerToken(token);
+    dropExpiredMaintainerToken(token, Date.now());
 
     if (account && profile) {
       // At every sign-in, whether GitHub marks the session's email verified now (the scope both sign-ins ask for). Kept

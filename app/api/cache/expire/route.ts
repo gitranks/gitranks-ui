@@ -5,6 +5,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { isLearnTag, learnFixTagOf } from '@/lib/learn/paths';
 import { packageCacheTag } from '@/lib/packages/package-paths';
 import { ALL_REGISTRY_IDS, isRegistryRow, type RegistryId, registryOf } from '@/lib/packages/registries';
+import { isSkillsTag } from '@/lib/skills/paths';
 import { UNSUNG_HERO_CACHE_TAG } from '@/lib/unsung-hero/unsung-hero';
 
 /** The one caller allowed to expire cached data: the API, which names itself in its token. */
@@ -34,7 +35,8 @@ const PACKAGE_TAG = new RegExp(`^package:(?:${ALL_REGISTRY_IDS.map(registryTagOf
 const PLAIN_TAGS: ReadonlySet<unknown> = new Set([UNSUNG_HERO_CACHE_TAG]);
 
 const isTag = (tag: unknown) =>
-  typeof tag === 'string' && (TAG.test(tag) || PACKAGE_TAG.test(tag) || isLearnTag(tag) || PLAIN_TAGS.has(tag));
+  typeof tag === 'string' &&
+  (TAG.test(tag) || PACKAGE_TAG.test(tag) || isLearnTag(tag) || isSkillsTag(tag) || PLAIN_TAGS.has(tag));
 
 const MAX_TAGS = 100;
 
@@ -77,10 +79,11 @@ const isTagList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.length >= 1 && value.length <= MAX_TAGS && value.every(isTag);
 
 /**
- * Expires the cached data of repositories, profiles, packages, and Learn's courses, lessons and fixes whose data
- * changed, and of the Unsung heroes: `{ tags }`, 1 to `MAX_TAGS` tags of a repository, a profile, a package, a Learn
- * page (`learn:courses`, `learn:course:<slug>`, `learn:lesson:<slug>`, `learn:fixes`,
- * `learn:fix:<owner>/<repo>#<number>`), or `unsung-hero`. Only a call signed with
+ * Expires the cached data of repositories, profiles, packages, Learn's courses, lessons, fixes and project cards, and
+ * Skills pages whose data changed, and of the Unsung heroes: `{ tags }`, 1 to `MAX_TAGS` tags of a repository, a
+ * profile, a package, a Learn page (`learn:courses`, `learn:course:<slug>`, `learn:lesson:<slug>`, `learn:fixes`,
+ * `learn:fix:<owner>/<repo>#<number>`, `learn:entity:repo:<owner>/<name>`, `learn:entity:org:<login>`), a Skills page
+ * (`skills:<login>`), or `unsung-hero`. Only a call signed with
  * the internal secret and naming the API as its source is served; a visitor's own refresh goes through
  * `/api/revalidate` instead.
  */
@@ -96,7 +99,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const tags: unknown = body?.tags;
   if (!isTagList(tags)) {
-    return refuse(400, `Expected 1 to ${MAX_TAGS} repository, profile, package, Learn or Unsung hero tags`);
+    return refuse(400, `Expected 1 to ${MAX_TAGS} repository, profile, package, Learn, Skills or Unsung hero tags`);
   }
 
   // `expire: 0`: the next read gets the new data, never the stale copy served while a fresh one is made.

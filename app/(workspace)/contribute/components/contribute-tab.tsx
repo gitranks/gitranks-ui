@@ -46,7 +46,7 @@ export type ContributeTabData = {
   /** For masked rows: whether the new rules are live, the day's full issues, the numbers of a night. */
   masked?: MaskedListReads;
   query: IssuesQuery;
-  now?: Date;
+  now: Date;
 };
 
 /**

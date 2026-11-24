@@ -13,7 +13,7 @@ const stampKey = (login: string) => `daily-updates-visit:${login.toLowerCase()}`
 export const visitDayOf = (now: number) => new Date(now).toISOString().slice(0, 10);
 
 /** Whether this browser counted the login's visit today already. */
-export function visitedToday(login: string, now = Date.now(), storage: StorageOf = localStorageOf): boolean {
+export function visitedToday(login: string, now: number, storage: StorageOf = localStorageOf): boolean {
   try {
     return storage().getItem(stampKey(login)) === visitDayOf(now);
   } catch {
@@ -22,7 +22,7 @@ export function visitedToday(login: string, now = Date.now(), storage: StorageOf
 }
 
 /** Keeps today as the day the login's visit was counted. */
-export function stampVisit(login: string, now = Date.now(), storage: StorageOf = localStorageOf) {
+export function stampVisit(login: string, now: number, storage: StorageOf = localStorageOf) {
   try {
     storage().setItem(stampKey(login), visitDayOf(now));
   } catch {

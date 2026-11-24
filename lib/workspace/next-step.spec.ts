@@ -43,7 +43,7 @@ describe('defaultNoteOf', () => {
 
 describe('nextStepOf', () => {
   it('recommends the run on what it can act on, its note filled in, with nothing left to the user', () => {
-    const step = nextStepOf(nextForRun);
+    const step = nextStepOf(nextForRun, false, NOW);
     expect(step.run).toMatchObject({
       round: 2,
       open: true,
@@ -57,7 +57,7 @@ describe('nextStepOf', () => {
   });
 
   it("gives a bot's block and a run's finding one card, what the run found, and \"I've done it\" for both", () => {
-    const step = nextStepOf(nextForYou);
+    const step = nextStepOf(nextForYou, false, NOW);
     expect(step.run.recommended).toBe(false);
     expect(step.user).toEqual([
       {
@@ -82,7 +82,7 @@ describe('nextStepOf', () => {
 
   it('gives a run that stopped its own card, to try the next', () => {
     const stopped = signal('RUN_ENDED', { detail: 'Ran out of budget', round: 1, outcome: 'STOPPED' });
-    const step = nextStepOf({ ...nextForYou, needsYou: { since: '', signals: [stopped] } });
+    const step = nextStepOf({ ...nextForYou, needsYou: { since: '', signals: [stopped] } }, false, NOW);
     expect(step.user).toEqual([
       expect.objectContaining({ kind: 'stopped', kinds: ['RUN_ENDED'], run: expect.objectContaining({ round: 1 }) }),
     ]);
@@ -90,7 +90,7 @@ describe('nextStepOf', () => {
 
   it('gives a run whose commits failed to push the same card, its note to make the change again', () => {
     const failed = signal('RUN_ENDED', { detail: 'the branch moved', round: 1, outcome: 'PUSH_FAILED' });
-    const step = nextStepOf({ ...nextForYou, needsYou: { since: '', signals: [failed] } });
+    const step = nextStepOf({ ...nextForYou, needsYou: { since: '', signals: [failed] } }, false, NOW);
     expect(step.user).toEqual([
       expect.objectContaining({ kind: 'stopped', run: expect.objectContaining({ round: 1, outcome: 'push_failed' }) }),
     ]);
@@ -100,7 +100,7 @@ describe('nextStepOf', () => {
   });
 
   it('gives an agreement signed by a comment its card, and leaves its line out of the rules card', () => {
-    const step = nextStepOf(nextForAgreement);
+    const step = nextStepOf(nextForAgreement, false, NOW);
     expect(step.user).toEqual([
       {
         kind: 'agreement',
@@ -115,56 +115,56 @@ describe('nextStepOf', () => {
   });
 
   it('gives a missing sign-off the DCO card: to push on a pull request of ours, by hand on one opened by hand', () => {
-    expect(nextStepOf(nextForDco).dco).toEqual({ missing: true, fix: null, canPush: true });
-    expect(nextStepOf({ ...nextForDco, openedBy: 'HAND' }).dco?.canPush).toBe(false);
+    expect(nextStepOf(nextForDco, false, NOW).dco).toEqual({ missing: true, fix: null, canPush: true });
+    expect(nextStepOf({ ...nextForDco, openedBy: 'HAND' }, false, NOW).dco?.canPush).toBe(false);
     const sending = {
       kind: 'SIGN_OFF' as const,
       state: 'SENDING' as const,
       note: null,
       at: '2026-10-28T11:00:00.000Z',
     };
-    expect(nextStepOf({ ...nextForDco, needsYou: null, prFix: sending }).dco).toEqual({
+    expect(nextStepOf({ ...nextForDco, needsYou: null, prFix: sending }, false, NOW).dco).toEqual({
       missing: false,
       fix: sending,
       canPush: true,
     });
     // The sign-off's fix is the DCO card's, never the rules card's.
-    expect(nextStepOf({ ...nextForDco, prFix: sending }).rules).toBeNull();
+    expect(nextStepOf({ ...nextForDco, prFix: sending }, false, NOW).rules).toBeNull();
   });
 
   it("gives the rules card the repo's rules, and a title with no fix read a card of its own", () => {
     const issue = { kind: 'TITLE' as const, check: null, message: 'Use type(scope): summary', suggestion: 'fix: x' };
-    expect(nextStepOf({ ...nextForDco, needsYou: null, prIssues: [issue] }).rules).toEqual({
+    expect(nextStepOf({ ...nextForDco, needsYou: null, prIssues: [issue] }, false, NOW).rules).toEqual({
       issues: [issue],
       fix: null,
     });
     const title = signal('TITLE', { detail: 'Fix the thing' });
-    expect(nextStepOf({ ...nextForDco, needsYou: { since: '', signals: [title] } }).user).toEqual([
+    expect(nextStepOf({ ...nextForDco, needsYou: { since: '', signals: [title] } }, false, NOW).user).toEqual([
       { kind: 'title', kinds: ['TITLE'], title: 'Fix the thing' },
     ]);
   });
 
   it('gives a silent pull request and a repo out of Contribute a card each, and no run for them', () => {
-    const silent = nextStepOf(nextForSilent);
+    const silent = nextStepOf(nextForSilent, false, NOW);
     expect(silent.user).toEqual([
       { kind: 'silent', kinds: ['SILENT'], closesOn: '2026-11-12', at: '2026-10-28T06:00:00.000Z' },
     ]);
     expect(silent.run).toMatchObject({ recommended: false, signals: [], kinds: [], note: '' });
     expect(movesOf(nextForSilent).moves.map(({ card }) => card)).toEqual(['silent']);
 
-    const out = nextStepOf(nextForRepoOut);
+    const out = nextStepOf(nextForRepoOut, false, NOW);
     expect(out.user).toEqual([
       { kind: 'repo-out', kinds: ['REPO_OUT'], reason: 'hostile_close', at: '2026-10-28T07:00:00.000Z' },
     ]);
     expect(out.run).toMatchObject({ recommended: false, signals: [] });
     const unknown = signal('REPO_OUT', { detail: 'something_new' });
-    expect(nextStepOf({ ...nextForRepoOut, needsYou: { since: '', signals: [unknown] } }).user).toEqual([
+    expect(nextStepOf({ ...nextForRepoOut, needsYou: { since: '', signals: [unknown] } }, false, NOW).user).toEqual([
       expect.objectContaining({ kind: 'repo-out', reason: null }),
     ]);
   });
 
   it('gives a comment in the conversation and the checks only the user can clear a card each, and no run for them', () => {
-    const talk = nextStepOf(nextForConversation);
+    const talk = nextStepOf(nextForConversation, false, NOW);
     expect(talk.user).toEqual([{ kind: 'conversation', kinds: ['CONVERSATION'], at: '2026-10-28T09:30:00.000Z' }]);
     // A run may still start with the user's own note; none is recommended, nothing is ticked or filled in for it.
     expect(talk.run).toMatchObject({ open: true, recommended: false, signals: [], kinds: [], note: '' });
@@ -172,7 +172,7 @@ describe('nextStepOf', () => {
       'conversation:conversation',
     ]);
 
-    const yours = nextStepOf(nextForCheckYours);
+    const yours = nextStepOf(nextForCheckYours, false, NOW);
     expect(yours.user).toEqual([
       {
         kind: 'check-yours',
@@ -192,9 +192,9 @@ describe('nextStepOf', () => {
       ...nextForConversation,
       needsYou: { since: '', signals: [signal('CONVERSATION'), signal('CHECK_YOURS', { detail: null })] },
     };
-    expect(nextStepOf(together).run).toMatchObject({ recommended: false, signals: [] });
+    expect(nextStepOf(together, false, NOW).run).toMatchObject({ recommended: false, signals: [] });
     expect(movesOf(together).moves.map(({ card }) => card)).toEqual(['conversation', 'check-yours']);
-    expect(nextStepOf(together).user[1]).toMatchObject({ kind: 'check-yours', detail: null, round: null });
+    expect(nextStepOf(together, false, NOW).user[1]).toMatchObject({ kind: 'check-yours', detail: null, round: null });
   });
 
   it('still recommends the run for what it can act on beside them, and leaves both out of it', () => {
@@ -209,7 +209,7 @@ describe('nextStepOf', () => {
         ],
       },
     };
-    const step = nextStepOf(beside);
+    const step = nextStepOf(beside, false, NOW);
     expect(step.run).toMatchObject({
       open: true,
       recommended: true,
@@ -224,7 +224,7 @@ describe('nextStepOf', () => {
       ...nextForChecks,
       needsYou: { since: '', signals: [signal('COMMENT'), signal('CONVERSATION')] },
     };
-    expect(nextStepOf(comments).run).toMatchObject({
+    expect(nextStepOf(comments, false, NOW).run).toMatchObject({
       recommended: true,
       kinds: ['COMMENT'],
       note: 'Answer the new comment on the pull request.',
@@ -237,13 +237,17 @@ describe('nextStepOf', () => {
 
   it('offers no run in a repo that said no to AI-made PRs, whatever else waits; one out of the pool only keeps it', () => {
     const beside = (detail: string) =>
-      nextStepOf({
-        ...nextForRun,
-        needsYou: {
-          since: '',
-          signals: [...(nextForRun.needsYou?.signals ?? []), signal('REPO_OUT', { detail })],
+      nextStepOf(
+        {
+          ...nextForRun,
+          needsYou: {
+            since: '',
+            signals: [...(nextForRun.needsYou?.signals ?? []), signal('REPO_OUT', { detail })],
+          },
         },
-      });
+        false,
+        NOW,
+      );
     for (const detail of ['hostile_close', 'closed_no_ai']) {
       const step = beside(detail);
       expect(step.run).toMatchObject({ open: false, recommended: false });
@@ -257,7 +261,7 @@ describe('nextStepOf', () => {
   });
 
   it('sees nothing waiting on a quiet pull request', () => {
-    const quiet = nextStepOf({ ...nextForDco, needsYou: null });
+    const quiet = nextStepOf({ ...nextForDco, needsYou: null }, false, NOW);
     expect([quiet.user, quiet.rules, quiet.dco, quiet.run.signals]).toEqual([[], null, null, []]);
     expect(movesOf({ ...nextForDco, needsYou: null }).moves).toEqual([]);
   });

@@ -29,7 +29,7 @@ export const ORG_SCREENS: Screen[] = [
           <>
             {/* The organization layout: the header, titled with the login. */}
             <Header title={nebulaOrg.login ?? undefined} />
-            <OrgScreen login={nebulaOrg.login ?? ''} org={nebulaOrg} badgeFacts={badges} />
+            <OrgScreen login={nebulaOrg.login ?? ''} org={nebulaOrg} badgeFacts={badges} now={new Date()} />
           </>
         ),
       },

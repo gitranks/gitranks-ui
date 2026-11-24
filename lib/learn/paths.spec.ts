@@ -19,6 +19,7 @@ import {
   learnCourseMarkdownRouteOf,
   learnCourseMinePath,
   learnCourseTag,
+  learnEntityTag,
   learnFactCardPath,
   learnFixTag,
   learnFixTagOf,
@@ -30,6 +31,10 @@ import {
   learnLessonMinePath,
   learnLessonPath,
   learnLessonTag,
+  learnProjectCourseCardPath,
+  learnProjectCourseMarkdownPath,
+  learnProjectCoursePath,
+  learnProjectIssuesPath,
   learnReviewMinePath,
   learnReviewPath,
   markdownPathOf,
@@ -211,5 +216,90 @@ describe("a course's addresses", () => {
     for (const path of ['/learn/check', '/learn/check/', '/learn/check/a/b', '/learn/courses/algorithms']) {
       expect(checkRouteOf(path), path).toBeNull();
     }
+  });
+});
+
+describe("a project course's addresses", () => {
+  const repo = { repo: 'django/django' };
+  const org = { org: 'kubernetes' };
+
+  it("finds a repository's course by its owner and name, and an organisation's by its login", () => {
+    expect(learnProjectCoursePath(repo)).toBe('/learn/repos/django/django');
+    expect(learnProjectCoursePath({ repo: 'Octo-Labs/scroll.guard' })).toBe('/learn/repos/Octo-Labs/scroll.guard');
+    expect(learnProjectCoursePath(org)).toBe('/learn/orgs/kubernetes');
+    expect(learnProjectCoursePath({ org: 'Nebula' })).toBe('/learn/orgs/Nebula');
+  });
+
+  it.each([
+    ['an owner alone', { repo: 'owner' }],
+    ['an empty repository', { repo: '' }],
+    ['an empty owner', { repo: '/name' }],
+    ['an empty name', { repo: 'owner/' }],
+    ['two slashes', { repo: 'a/b/c' }],
+    ['an empty login', { org: '' }],
+  ])('refuses %s, in every address and tag', (_, project) => {
+    expect(() => learnProjectCoursePath(project)).toThrow();
+    expect(() => learnProjectCourseMarkdownPath(project)).toThrow();
+    expect(() => learnProjectCourseCardPath(project)).toThrow();
+    expect(() => learnProjectIssuesPath(project)).toThrow();
+    expect(() => learnEntityTag(project)).toThrow();
+  });
+
+  it('encodes each segment, and keeps the slash between owner and name', () => {
+    expect(learnProjectCoursePath({ repo: 'a b/c?d' })).toBe('/learn/repos/a%20b/c%3Fd');
+    expect(learnProjectCoursePath({ org: 'a/b' })).toBe('/learn/orgs/a%2Fb');
+  });
+
+  it("gives the course's Markdown copy and picture at its page's address", () => {
+    expect(learnProjectCourseMarkdownPath(repo)).toBe('/learn/repos/django/django.md');
+    expect(learnProjectCourseMarkdownPath(org)).toBe('/learn/orgs/kubernetes.md');
+    expect(learnProjectCourseCardPath(repo)).toBe('/learn/repos/django/django/card.png');
+    expect(learnProjectCourseCardPath(org)).toBe('/learn/orgs/kubernetes/card.png');
+  });
+
+  it('narrows the Issues page to the project, and to its merged fixes with fixed=1', () => {
+    expect(learnProjectIssuesPath(repo)).toBe('/learn/issues?repo=django/django');
+    expect(learnProjectIssuesPath(repo, { fixed: true })).toBe('/learn/issues?repo=django/django&fixed=1');
+    expect(learnProjectIssuesPath(org)).toBe('/learn/issues?org=kubernetes');
+    expect(learnProjectIssuesPath(org, { fixed: false })).toBe('/learn/issues?org=kubernetes');
+    expect(learnProjectIssuesPath(org, { fixed: true })).toBe('/learn/issues?org=kubernetes&fixed=1');
+    expect(learnProjectIssuesPath({ repo: 'a&b/c=d' })).toBe('/learn/issues?repo=a%26b/c%3Dd');
+  });
+});
+
+describe("a project's Learn card tags", () => {
+  it('writes the tag of a repository and of an organisation in lower case, as the expire route takes them', () => {
+    expect(learnEntityTag({ repo: 'Django/Django' })).toBe('learn:entity:repo:django/django');
+    expect(learnEntityTag({ org: 'Kubernetes' })).toBe('learn:entity:org:kubernetes');
+    expect(isLearnTag(learnEntityTag({ repo: 'Octo-Labs/Scroll.Guard_2' }))).toBe(true);
+    expect(isLearnTag(learnEntityTag({ org: '-Jerry-' }))).toBe(true);
+    expect(isLearnTag(learnEntityTag({ repo: `${'a'.repeat(39)}/${'b'.repeat(100)}` }))).toBe(true);
+    expect(isLearnTag('learn:entity:repo:octo/.github')).toBe(true);
+  });
+
+  it.each([
+    'learn:entity',
+    'learn:entity:',
+    'learn:entity:repo:',
+    'learn:entity:repo:django',
+    'learn:entity:repo:django/',
+    'learn:entity:repo:/django',
+    'learn:entity:repo:Django/django',
+    'learn:entity:repo:a/b/c',
+    'learn:entity:repo:octo/.',
+    'learn:entity:repo:octo/..',
+    'learn:entity:repo:octo.labs/x',
+    `learn:entity:repo:${'a'.repeat(40)}/b`,
+    `learn:entity:repo:a/${'b'.repeat(101)}`,
+    'learn:entity:repo:octo/x\n',
+    'learn:entity:org:',
+    'learn:entity:org:Nebula',
+    'learn:entity:org:a/b',
+    'learn:entity:org:a_b',
+    `learn:entity:org:${'a'.repeat(40)}`,
+    'learn:entity:user:octocat',
+    'Learn:entity:org:nebula',
+  ])('refuses %j', (tag) => {
+    expect(isLearnTag(tag)).toBe(false);
   });
 });

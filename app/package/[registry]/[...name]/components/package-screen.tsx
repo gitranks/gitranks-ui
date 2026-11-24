@@ -49,6 +49,8 @@ type PackageScreenProps = {
   pkg: PackagePage | 'unavailable';
   /** The page's JSON-LD. */
   jsonLd?: object[];
+  /** The time the page is drawn at, which decides the badges it offers. */
+  now: Date;
 };
 
 /** Maintainers shown by name; the rest are counted. */
@@ -376,7 +378,7 @@ const About: FC<{ registry: RegistryId; pkg: PackagePage }> = ({ registry, pkg }
  * so), its badge, and last the package in sentences. A package nobody has read yet shows its name, Refresh and one empty state; while package data cannot
  * be read, one line says so.
  */
-export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jsonLd }) => {
+export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jsonLd, now }) => {
   if (pkg === 'unavailable') {
     return (
       <Frame
@@ -459,7 +461,7 @@ export const PackageScreen: FC<PackageScreenProps> = ({ registry, name, pkg, jso
       )}
       <UsedBy registry={registry} pkg={pkg} />
       {pkg.downloads && unit && <Downloads registry={registry} unit={unit} downloads={pkg.downloads} />}
-      <PackageBadgeSection registry={registry} name={pkg.name} />
+      <PackageBadgeSection registry={registry} name={pkg.name} now={now} />
       <About registry={registry} pkg={pkg} />
     </Frame>
   );

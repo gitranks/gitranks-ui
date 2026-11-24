@@ -57,7 +57,7 @@ const CHECK_PILLS = { FAILURE: 'red', ERROR: 'red' } as const;
 type Part = { key: string; node: ReactNode };
 
 /** The parts of a pull request's line after its link, each after a dot. */
-function prPartsOf(pullRequest: ContributeAttemptPullRequest, now?: Date): Part[] {
+function prPartsOf(pullRequest: ContributeAttemptPullRequest, now: Date): Part[] {
   const { state, reviewDecision, checks, syncedAt } = pullRequest;
   if (state === 'MERGED') {
     return pullRequest.mergedAt
@@ -101,7 +101,7 @@ function prPartsOf(pullRequest: ContributeAttemptPullRequest, now?: Date): Part[
  * The pull request in one line: its state, then while it is open its review, its checks and when it was last read from
  * GitHub; once it ended, when it was merged or closed. Its number and link are the header's `PR #N ↗` chip.
  */
-export function PullRequestStatus({ pullRequest, now }: { pullRequest: ContributeAttemptPullRequest; now?: Date }) {
+export function PullRequestStatus({ pullRequest, now }: { pullRequest: ContributeAttemptPullRequest; now: Date }) {
   const state = toneLabelOf(PR_STATES, pullRequest.state);
   return (
     <div data-pr-state={pullRequest.state} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
@@ -266,7 +266,7 @@ export function PullRequestHeader({
   lesson?: LearnAttemptLesson | null;
   /** The page's address, for the two views' links. */
   base?: Route;
-  now?: Date;
+  now: Date;
 }) {
   const repo = repoOf(attempt);
   const named = first ?? (attempt.kind === 'FIRST' ? attempt : undefined);

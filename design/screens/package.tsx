@@ -52,7 +52,7 @@ withBadgeFacts(packageBig);
 withBadgeFacts(badgeFactsOf(quietPackage));
 
 const page = (pkg: PackagePage | 'unavailable', name = rankedPackage.name) => (
-  <PackageScreen registry="npm" name={pkg === 'unavailable' ? name : pkg.name} pkg={pkg} />
+  <PackageScreen registry="npm" name={pkg === 'unavailable' ? name : pkg.name} pkg={pkg} now={new Date()} />
 );
 
 const RANKED_PATH = packagePath(rankedPackage.name);

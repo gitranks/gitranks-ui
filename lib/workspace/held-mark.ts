@@ -27,7 +27,7 @@ const said = () => {
 };
 
 /** The mark while it is live; null when there is none, it is not one, or its time is past. */
-export function readHeldMark(now: number = Date.now()): HeldMark | null {
+export function readHeldMark(now: number): HeldMark | null {
   let raw: string | null = null;
   try {
     raw = storage()?.getItem(KEY) ?? null;
@@ -65,7 +65,7 @@ export function writeHeldMark(mark: HeldMark): void {
 
 /** The issue is no longer held (given back, started): the mark goes, when it is this issue's. */
 export function clearHeldMark(id: string): void {
-  const now = readHeldMark();
+  const now = readHeldMark(Date.now());
   if (!now || now.id !== id) return;
   try {
     storage()?.removeItem(KEY);
@@ -81,7 +81,7 @@ export function useHeldMark(): HeldMark | null {
   useEffect(() => {
     const read = () =>
       setMark((was) => {
-        const next = readHeldMark();
+        const next = readHeldMark(Date.now());
         return was?.id === next?.id && was?.until === next?.until ? was : next;
       });
     read();
@@ -95,7 +95,10 @@ export function useHeldMark(): HeldMark | null {
   // The hold ends by itself at its time.
   useEffect(() => {
     if (!mark) return;
-    const timer = setTimeout(() => setMark(readHeldMark()), Math.max(0, Date.parse(mark.until) - Date.now()) + 50);
+    const timer = setTimeout(
+      () => setMark(readHeldMark(Date.now())),
+      Math.max(0, Date.parse(mark.until) - Date.now()) + 50,
+    );
     return () => clearTimeout(timer);
   }, [mark]);
   return mark;

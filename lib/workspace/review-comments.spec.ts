@@ -35,6 +35,7 @@ import {
   noReplyDraft,
   replyDraft,
 } from '@/lib/contribute/__fixtures__/contribute-attempts';
+import { NOW } from '@/lib/contribute/__fixtures__/contribute-views';
 
 const NONE: ReadonlySet<string> = new Set();
 const ctx = (runState: ContributeAttemptState = 'DONE') => ({
@@ -466,17 +467,19 @@ describe('the section’s header', () => {
       ],
       'review',
     );
-    expect(summaryOf(review, 'review', { state: 'REVIEW', hasPatch: true, flow: true }).fact).toBe(
+    expect(summaryOf(review, 'review', { state: 'REVIEW', hasPatch: true, flow: true }, { now: NOW }).fact).toBe(
       '1 fixed · 1 not changed · 1 for you',
     );
     const older = rows([replyDraft(), replyDraft({ draftId: 'D_2' })]);
-    expect(summaryOf(older, 'perReply', { state: 'REVIEW', hasPatch: true, flow: false }).fact).toBe('2 drafted');
+    expect(summaryOf(older, 'perReply', { state: 'REVIEW', hasPatch: true, flow: false }, { now: NOW }).fact).toBe(
+      '2 drafted',
+    );
     const after = rows([
       flowDraft({ state: 'POSTED', resolveState: 'RESOLVED' }),
       flowDraft({ draftId: 'D_2', state: 'POSTED' }),
       flowDraft({ draftId: 'D_3', state: 'DISMISSED', dismissedReason: 'THREAD_RESOLVED' }),
     ]);
-    expect(summaryOf(after, 'perReply', { state: 'DONE', hasPatch: true, flow: true }).fact).toBe(
+    expect(summaryOf(after, 'perReply', { state: 'DONE', hasPatch: true, flow: true }, { now: NOW }).fact).toBe(
       '2 replied · 2 resolved',
     );
     const resolved = rows(
@@ -484,38 +487,47 @@ describe('the section’s header', () => {
         flowDraft({ draftId: `D_${index}`, state: 'DISMISSED', dismissedReason: 'THREAD_RESOLVED' }),
       ),
     );
-    expect(summaryOf(resolved, 'perReply', { state: 'DONE', hasPatch: true, flow: true }).fact).toBe(
+    expect(summaryOf(resolved, 'perReply', { state: 'DONE', hasPatch: true, flow: true }, { now: NOW }).fact).toBe(
       '7 fixed · all resolved',
     );
     // Threads that need no reply are tallied as such, and never as drafted or replied.
     const withNone = rows([...review.map(({ draft }) => draft!), noReplyDraft()], 'review');
-    expect(summaryOf(withNone, 'review', { state: 'REVIEW', hasPatch: true, flow: true })).toEqual({
+    expect(summaryOf(withNone, 'review', { state: 'REVIEW', hasPatch: true, flow: true }, { now: NOW })).toEqual({
       count: { label: '4', tone: 'neutral' },
       fact: '1 fixed · 1 not changed · 1 for you · 1 needs no reply',
     });
     const onlyNone = rows([noReplyDraft(), noReplyDraft({ draftId: 'D_NR2' })]);
-    expect(summaryOf(onlyNone, 'perReply', { state: 'DONE', hasPatch: false, flow: true }).fact).toBe(
+    expect(summaryOf(onlyNone, 'perReply', { state: 'DONE', hasPatch: false, flow: true }, { now: NOW }).fact).toBe(
       '2 need no reply',
     );
     const olderWithNone = rows([replyDraft(), noReplyDraft({ outcome: undefined })]);
-    expect(summaryOf(olderWithNone, 'perReply', { state: 'REVIEW', hasPatch: true, flow: false }).fact).toBe(
-      '1 drafted',
-    );
+    expect(
+      summaryOf(olderWithNone, 'perReply', { state: 'REVIEW', hasPatch: true, flow: false }, { now: NOW }).fact,
+    ).toBe('1 drafted');
     // "All resolved" is said of the replies: a thread that needs no reply has nothing to resolve.
     const resolvedWithNone = rows([
       flowDraft({ draftId: 'D_1', state: 'DISMISSED', dismissedReason: 'THREAD_RESOLVED' }),
       flowDraft({ draftId: 'D_2', state: 'DISMISSED', dismissedReason: 'THREAD_RESOLVED' }),
       noReplyDraft(),
     ]);
-    expect(summaryOf(resolvedWithNone, 'perReply', { state: 'DONE', hasPatch: true, flow: true }).fact).toBe(
-      '2 fixed · 1 needs no reply · all resolved',
-    );
-    // With no reply at all there is nothing to call resolved.
-    expect(summaryOf(onlyNone, 'perReply', { state: 'DONE', hasPatch: true, flow: true }).fact).toBe('2 need no reply');
-    const nothing = rows([failed('transient'), failed('transient', { draftId: 'D_2' })]);
-    expect(summaryOf(nothing, 'perReply', { state: 'DONE', hasPatch: true, flow: true }).fact).toBe('2 fixed');
     expect(
-      summaryOf(rows([flowDraft()], 'readOnly'), 'readOnly', { state: 'DISCARDED', hasPatch: true, flow: true }).fact,
+      summaryOf(resolvedWithNone, 'perReply', { state: 'DONE', hasPatch: true, flow: true }, { now: NOW }).fact,
+    ).toBe('2 fixed · 1 needs no reply · all resolved');
+    // With no reply at all there is nothing to call resolved.
+    expect(summaryOf(onlyNone, 'perReply', { state: 'DONE', hasPatch: true, flow: true }, { now: NOW }).fact).toBe(
+      '2 need no reply',
+    );
+    const nothing = rows([failed('transient'), failed('transient', { draftId: 'D_2' })]);
+    expect(summaryOf(nothing, 'perReply', { state: 'DONE', hasPatch: true, flow: true }, { now: NOW }).fact).toBe(
+      '2 fixed',
+    );
+    expect(
+      summaryOf(
+        rows([flowDraft()], 'readOnly'),
+        'readOnly',
+        { state: 'DISCARDED', hasPatch: true, flow: true },
+        { now: NOW },
+      ).fact,
     ).toBe('Nothing posted');
   });
 });

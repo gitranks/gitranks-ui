@@ -56,7 +56,7 @@ export function nextIssueLineOf(
     settings: Pick<ContributeSettings, 'attemptsAtATime' | 'openPrsAtATime'> | null | undefined;
     limits: ContributeLimits | null | undefined;
   },
-  now = new Date(),
+  now: Date,
 ): string | null {
   if (level === 'MANUAL' || paused) return null;
   if (!spend) return null;

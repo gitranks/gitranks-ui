@@ -31,6 +31,14 @@ export async function AgentView() {
   if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'settings')) redirect(WORKSPACE_PATHS.contribute);
   return (
-    <AgentScreen view={view} learnOpen={learnOpen} runs={runs} activity={activity} noted={noted} counts={counts} />
+    <AgentScreen
+      view={view}
+      learnOpen={learnOpen}
+      runs={runs}
+      activity={activity}
+      noted={noted}
+      counts={counts}
+      now={new Date()}
+    />
   );
 }

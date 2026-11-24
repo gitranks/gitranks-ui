@@ -206,7 +206,7 @@ export function RunsScreen({
   number?: number;
   learner?: boolean;
   activity?: ContributeActivity | null;
-  now?: Date;
+  now: Date;
 }) {
   let history: ReactNode;
   if (!page) {

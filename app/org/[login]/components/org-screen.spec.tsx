@@ -6,7 +6,9 @@ import { OrgScreen } from './org-screen';
 import { MIN_VALUE } from '@/app/app.consts';
 
 const render = (s: number | null) =>
-  renderToStaticMarkup(<OrgScreen login="nebula" org={{ ...nebulaOrg, s }} badgeFacts={null} />);
+  renderToStaticMarkup(
+    <OrgScreen now={new Date('2026-11-24T00:00:00Z')} login="nebula" org={{ ...nebulaOrg, s }} badgeFacts={null} />,
+  );
 
 describe('OrgScreen stars rank', () => {
   it.each([

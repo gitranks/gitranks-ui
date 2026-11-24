@@ -28,7 +28,7 @@ export const SIGNALS: Record<ContributePrSignalKind, string> = {
 export const PR_SIGNAL_KINDS = Object.keys(SIGNALS) as ContributePrSignalKind[];
 
 /** `A check started failing: lint, test · 2 hours ago`. */
-export function signalText(signal: ContributePrSignal, now?: Date): string {
+export function signalText(signal: ContributePrSignal, now: Date): string {
   // A DCO signed like a CLA (its check names it): the agreement by its own name.
   const dco = signal.kind === 'CLA' && /\bdco\b/i.test(signal.detail ?? '');
   const what = dco

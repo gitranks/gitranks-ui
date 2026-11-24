@@ -70,7 +70,7 @@ export default async function PackagePageRoute({ params }: PageProps<'/package/[
     notFound();
   }
   if (pkg === PACKAGE_UNAVAILABLE) {
-    return <PackageScreen registry={registry} name={name} pkg={pkg} />;
+    return <PackageScreen registry={registry} name={name} pkg={pkg} now={new Date()} />;
   }
   // The registry's own spelling, when the API names it otherwise.
   if (pkg.name !== name) {
@@ -84,6 +84,7 @@ export default async function PackagePageRoute({ params }: PageProps<'/package/[
       name={name}
       pkg={pkg}
       jsonLd={buildPackageSEO(pkg, name, rows, registry).jsonLd}
+      now={new Date()}
     />
   );
 }

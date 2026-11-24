@@ -217,7 +217,7 @@ export type StartPageScreenProps = {
   back: { href: Route; label: string };
   /** `flow`: no back link row of its own. */
   frame: 'tabs' | 'flow';
-  now?: Date;
+  now: Date;
 };
 
 /**
@@ -242,7 +242,7 @@ export function StartPageScreen({
   locked = false,
   back,
   frame,
-  now = new Date(),
+  now,
 }: StartPageScreenProps) {
   const id = useId();
   const words = WORDS[mode];

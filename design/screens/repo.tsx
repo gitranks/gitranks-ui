@@ -49,6 +49,7 @@ const bigFrame = (packages: RepoPackages | Unavailable | null, tab: ReactElement
     packages={packages}
     contributors={bigRepoPulse.last12.activeContributors}
     badgeFacts={badges}
+    now={new Date()}
   >
     {tab}
   </RepoFrame>
@@ -56,7 +57,7 @@ const bigFrame = (packages: RepoPackages | Unavailable | null, tab: ReactElement
 
 /** The tabbed page of the young repository: no package, no analytics. */
 const youngFrame = (tab: ReactElement, repo = youngRepo) => (
-  <RepoFrame repo={repo} packages={null} contributors={null} badgeFacts={youngBadges}>
+  <RepoFrame repo={repo} packages={null} contributors={null} badgeFacts={youngBadges} now={new Date()}>
     {tab}
   </RepoFrame>
 );

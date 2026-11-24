@@ -27,12 +27,12 @@ type RepoFrameProps = {
   contributors: number | null;
   /** The repository's badge data, for the Badge row. */
   badgeFacts: RepoFacts | null;
-  now?: Date;
+  now: Date;
   children: ReactNode;
 };
 
 /** One promoted badge and a link to all of them, at the end of the left column. Nothing without a badge to show. */
-export const RepoBadgeRow: FC<{ facts: RepoFacts | null; now?: Date }> = ({ facts, now = new Date() }) => {
+export const RepoBadgeRow: FC<{ facts: RepoFacts | null; now: Date }> = ({ facts, now }) => {
   if (!facts) {
     return null;
   }

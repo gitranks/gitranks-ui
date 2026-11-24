@@ -33,8 +33,8 @@ export async function loadLearnFlowPlace(
 ): Promise<{ place: FlowPlace; gate: WorkspaceGate; profile: LearnProfile | null }> {
   const gate = await loadWorkspaceGate();
   const [launched, openToEveryone, learnOpen, profile] = await Promise.all([
-    gate.kind === 'hidden' ? contributeOpen() : true,
-    gate.kind === 'signed-out' ? learnOpenToEveryone() : false,
+    gate.kind === 'hidden' ? contributeOpen(Date.now()) : true,
+    gate.kind === 'signed-out' ? learnOpenToEveryone(Date.now()) : false,
     // The gate carries it for an open account; one being set up or with no profile is asked here (read once per request).
     gate.kind === 'open' ? gate.learnOpen : gate.kind === 'signed-out' ? false : loadLearnOpen(),
     gate.kind === 'open' && gate.learnOpen ? loadLearnProfile() : null,

@@ -21,7 +21,7 @@ import { MCP_DOCS_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 export const OWN_AGENT_SAFETY = 'Your agent reads issue text written by strangers. Keep its permission prompts on.';
 
 /** A connection's line: its last call, then the token's last 4 or when the agent signed in. */
-export function connectionLineOf(token: ContributeMcpToken, now?: Date): string {
+export function connectionLineOf(token: ContributeMcpToken, now: Date): string {
   const call = token.lastUsedAt ? `Last call ${relativeLabel(token.lastUsedAt, now)}` : 'No call yet';
   return isSignedInAgent(token)
     ? `${call} · signed in ${dayLabel(token.createdAt)}`
@@ -85,7 +85,7 @@ function ConnectionCard({ token, now }: { token: ContributeMcpToken; now?: Date 
               : 'Revoked. An agent using it can no longer reach us.'}
           </span>
         ) : (
-          <span className="text-sm text-muted-foreground">{connectionLineOf(token, now)}</span>
+          <span className="text-sm text-muted-foreground">{connectionLineOf(token, now ?? new Date())}</span>
         )}
       </span>
       {revoked ? null : (

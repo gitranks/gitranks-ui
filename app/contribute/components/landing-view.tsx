@@ -40,7 +40,7 @@ const panel = (children: ReactNode) => <main className="mx-auto w-full max-w-7xl
  */
 export async function noViewPanelOf(): Promise<ReactNode | null> {
   if (await loadContributeSetup()) return panel(<ContributeSettingUp />);
-  if (!(await contributeOpen())) notFound();
+  if (!(await contributeOpen(Date.now()))) notFound();
   if (await viewerLogin()) return panel(<ContributeNoProfile />);
   return null;
 }

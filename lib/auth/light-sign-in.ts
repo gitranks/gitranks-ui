@@ -147,7 +147,7 @@ export function withMaintainerToken(
   token: JWT,
   accessToken: string | undefined,
   expiresAtSec: number | undefined,
-  now = Date.now(),
+  now: number,
 ): JWT {
   if (typeof accessToken !== 'string' || !accessToken) return token;
   const ttlEnd = now + MAINTAINER_TOKEN_TTL_MS;
@@ -156,7 +156,7 @@ export function withMaintainerToken(
 }
 
 /** Drops the maintainers page's token from `token` once it has run out. */
-export function dropExpiredMaintainerToken(token: JWT, now = Date.now()): void {
+export function dropExpiredMaintainerToken(token: JWT, now: number): void {
   if (token.maintainerToken === undefined && token.maintainerTokenExpiresAt === undefined) return;
   if (maintainerTokenOf(token, now)) return;
   delete token.maintainerToken;
@@ -182,11 +182,11 @@ export async function lightSignInSession(
     !!current.githubLogin &&
     current.githubLogin.toLowerCase() === identity.githubLogin?.toLowerCase();
   const kept = current && sameAccount ? current : identity;
-  return withMaintainerToken(kept, account.access_token, account.expires_at);
+  return withMaintainerToken(kept, account.access_token, account.expires_at, Date.now());
 }
 
 /** The maintainers page's GitHub token in a session; null without one, or once it has run out. */
-export function maintainerTokenOf(token: JWT | null | undefined, now = Date.now()): string | null {
+export function maintainerTokenOf(token: JWT | null | undefined, now: number): string | null {
   const value = token?.maintainerToken;
   const expiresAt = token?.maintainerTokenExpiresAt;
   if (typeof value !== 'string' || !value || typeof expiresAt !== 'number') return null;
@@ -195,5 +195,5 @@ export function maintainerTokenOf(token: JWT | null | undefined, now = Date.now(
 
 /** The current request's maintainers page token, for the page and its actions; never sent to the browser. */
 export async function currentMaintainerToken(): Promise<string | null> {
-  return maintainerTokenOf(await currentSessionToken());
+  return maintainerTokenOf(await currentSessionToken(), Date.now());
 }

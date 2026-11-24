@@ -60,7 +60,7 @@ export function SettingsWorkGroup({
             icon={set.mode === 'STACK' ? Layers : LayoutGrid}
             href={SETTINGS_PATHS.work}
             title={set.mode === 'STACK' ? 'Your stack' : 'Your repos'}
-            value={listSummaryOf(set)}
+            value={listSummaryOf(set, new Date())}
             data={{ 'data-list-row': set.mode }}
           />
         )}

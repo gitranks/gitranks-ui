@@ -107,7 +107,7 @@ export function FallbackChoice({
         {shown === 'SET_ONLY'
           ? `Your agent works only on these ${things}, and waits when they have nothing ready.`
           : `Issues from these ${things} always come first. When they have nothing ready, your agent works on other issues for you.`}
-        {mode === 'STACK' && stackPendingOf(set)
+        {mode === 'STACK' && stackPendingOf(set, new Date())
           ? ' Until a library of your stack is read, your agent works on all issues either way.'
           : ''}
       </p>

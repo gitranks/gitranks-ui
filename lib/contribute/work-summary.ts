@@ -13,8 +13,8 @@ const fallbackOf = (set: ContributeSet, mode: ContributeSetListMode) =>
  * A stack with sources and no library to work on: while they are worked out, the agent works on all issues; once none
  * was found, it follows "when nothing is ready". Null once a library is read, or with no sources.
  */
-export function waitingLibrariesOf(set: ContributeSet): string | null {
-  if (stackPendingOf(set)) {
+export function waitingLibrariesOf(set: ContributeSet, now: Date): string | null {
+  if (stackPendingOf(set, now)) {
     const reading = readingLibrariesOf(set);
     return reading
       ? `We found ${plural(reading, 'library', 'libraries')} and are reading them for the first time. Until one is read, your agent works on all issues.`
@@ -27,10 +27,10 @@ export function waitingLibrariesOf(set: ContributeSet): string | null {
 }
 
 /** The current list's row: its size, what is still read, and what happens when it has nothing ready. */
-export function listSummaryOf(set: ContributeSet): string {
+export function listSummaryOf(set: ContributeSet, now: Date): string {
   if (set.mode === 'ALL') return modeSummaryOf(set, 'ALL');
   const only = fallbackOf(set, set.mode) === 'SET_ONLY';
-  if (set.mode === 'STACK' && stackPendingOf(set)) {
+  if (set.mode === 'STACK' && stackPendingOf(set, now)) {
     const reading = readingLibrariesOf(set);
     return reading
       ? `Reading ${plural(reading, 'library', 'libraries')} for the first time · all issues until then`

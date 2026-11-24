@@ -211,7 +211,14 @@ describe("NuGet and RubyGems before their first month's download count is read",
   it('draw a package page that says nothing of downloads, linking to the package on its registry', () => {
     expect(packageTitle('Newtonsoft.Json', 'nuget')).toBe('Newtonsoft.Json - NuGet package dependents and ranks');
     expect(buildPackageSEO(nugetPackage, nugetPackage.name, [], 'nuget').metadata.description).not.toMatch(/download/i);
-    const html = renderToStaticMarkup(<PackageScreen registry="nuget" name={nugetPackage.name} pkg={nugetPackage} />);
+    const html = renderToStaticMarkup(
+      <PackageScreen
+        now={new Date('2026-11-24T00:00:00Z')}
+        registry="nuget"
+        name={nugetPackage.name}
+        pkg={nugetPackage}
+      />,
+    );
     const page = text(html);
 
     expect(page).not.toMatch(/download/i);
@@ -223,7 +230,9 @@ describe("NuGet and RubyGems before their first month's download count is read",
     expect(markdown).not.toMatch(/download/i);
 
     const gem: PackagePage = { ...nugetPackage, registry: 'RUBYGEMS', name: 'rails', displayName: null };
-    const gemHtml = renderToStaticMarkup(<PackageScreen registry="rubygems" name="rails" pkg={gem} />);
+    const gemHtml = renderToStaticMarkup(
+      <PackageScreen now={new Date('2026-11-24T00:00:00Z')} registry="rubygems" name="rails" pkg={gem} />,
+    );
     expect(text(gemHtml)).not.toMatch(/download/i);
     expect(gemHtml).toContain('href="https://rubygems.org/gems/rails"');
   });

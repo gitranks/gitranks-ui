@@ -127,14 +127,14 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
 
   // The note a refresh left before the reload stays until the visitor closes it.
   useEffect(() => {
-    showKeptPullNote(owner, name, (note, options) => toast.success(note, options));
+    showKeptPullNote(owner, name, (note, options) => toast.success(note, options), Date.now());
   }, [owner, name]);
 
   // The cached page is expired by now, so a reload shows the new numbers; a note waits for the page after it.
   const reloadWithNote = useCallback(
     (note: string | null) => {
       setReloading(true);
-      reloadWithPullNote(owner, name, note, () => window.location.reload());
+      reloadWithPullNote(owner, name, note, () => window.location.reload(), Date.now());
     },
     [owner, name],
   );
@@ -206,7 +206,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
       case 'reload':
         // The status read expired the cached page, so a reload shows the new history; no check runs after it.
         // Somebody else's fetch ending reloads without the note.
-        reloadWithNote(startedHere.current ? refreshNoteOf() : null);
+        reloadWithNote(startedHere.current ? refreshNoteOf(undefined, Date.now()) : null);
         return;
     }
 
@@ -308,7 +308,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
       pullIdRef.current = result.status === 'started' ? result.pullId : null;
       startedHere.current = result.status === 'started';
       setAllowance((prev) => allowanceAfter(result, mode, prev));
-      settle(pullOutcomeOf(result, mode));
+      settle(pullOutcomeOf(result, mode, Date.now()));
       loadStatus()
         .then((data) => data && setAllowance(data.allowance))
         .catch(() => {});
@@ -330,7 +330,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
 
   // The page this sign-in comes back to runs today's refresh by itself.
   const signInFromButton = () => {
-    keepDealSignIn(dealPageOf('repo', nameWithOwner));
+    keepDealSignIn(dealPageOf('repo', nameWithOwner), Date.now());
     return signIn(IDENTITY_PROVIDER);
   };
 
@@ -347,7 +347,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
     const page = dealPageOf('repo', nameWithOwner);
     if (status === 'unauthenticated') {
       followedUp.current = true;
-      takeDealSignIn(page);
+      takeDealSignIn(page, Date.now());
       return;
     }
     if (login && read !== 'done') {
@@ -355,7 +355,7 @@ export const PullButton: FC<PullButtonProps> = ({ owner, name, pull, dailyUpdate
     }
 
     followedUp.current = true;
-    if (!takeDealSignIn(page) || onDaily) {
+    if (!takeDealSignIn(page, Date.now()) || onDaily) {
       return;
     }
     if (mode === 'daily' || mode === 'token') {

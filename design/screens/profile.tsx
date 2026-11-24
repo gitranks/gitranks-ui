@@ -52,7 +52,7 @@ const ownerViewer = (overrides: Partial<DailyUpdatesViewer>) => ({
 
 const overview = (user: ProfileUser, badgeFacts: UserFacts, extras = strongExtras) => (
   <ProfileFrame login={user.login}>
-    <OverviewPage user={user} extras={extras} badgeFacts={badgeFacts} isGlobalContext />
+    <OverviewPage user={user} extras={extras} badgeFacts={badgeFacts} isGlobalContext now={new Date()} />
   </ProfileFrame>
 );
 

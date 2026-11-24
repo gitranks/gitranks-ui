@@ -34,26 +34,26 @@ describe('pull note', () => {
   it('carries the note across a reload, and shows it once', () => {
     const tab = tabStorage();
 
-    savePullNote('Octo-Org', 'Hello', 'Updated.', tab.of);
+    savePullNote('Octo-Org', 'Hello', 'Updated.', NOW, tab.of);
 
-    expect(takePullNote('Octo-Org', 'Hello', tab.of)).toBe('Updated.');
-    expect(takePullNote('Octo-Org', 'Hello', tab.of)).toBeNull();
+    expect(takePullNote('Octo-Org', 'Hello', NOW, tab.of)).toBe('Updated.');
+    expect(takePullNote('Octo-Org', 'Hello', NOW, tab.of)).toBeNull();
     expect(tab.items.size).toBe(0);
   });
 
   it('keeps one note per repository, whatever the case of its name', () => {
     const tab = tabStorage();
 
-    savePullNote('octo', 'one', 'First.', tab.of);
-    savePullNote('octo', 'two', 'Second.', tab.of);
+    savePullNote('octo', 'one', 'First.', NOW, tab.of);
+    savePullNote('octo', 'two', 'Second.', NOW, tab.of);
 
-    expect(takePullNote('Octo', 'One', tab.of)).toBe('First.');
-    expect(takePullNote('octo', 'one', tab.of)).toBeNull();
-    expect(takePullNote('octo', 'two', tab.of)).toBe('Second.');
+    expect(takePullNote('Octo', 'One', NOW, tab.of)).toBe('First.');
+    expect(takePullNote('octo', 'one', NOW, tab.of)).toBeNull();
+    expect(takePullNote('octo', 'two', NOW, tab.of)).toBe('Second.');
   });
 
   it('shows nothing when no note was left', () => {
-    expect(takePullNote('octo', 'hello', tabStorage().of)).toBeNull();
+    expect(takePullNote('octo', 'hello', NOW, tabStorage().of)).toBeNull();
   });
 
   it('shows nothing when storage cannot be reached', () => {
@@ -61,38 +61,38 @@ describe('pull note', () => {
       throw new DOMException('denied', 'SecurityError');
     };
 
-    expect(() => savePullNote('octo', 'hello', 'Updated.', missing)).not.toThrow();
-    expect(takePullNote('octo', 'hello', missing)).toBeNull();
+    expect(() => savePullNote('octo', 'hello', 'Updated.', NOW, missing)).not.toThrow();
+    expect(takePullNote('octo', 'hello', NOW, missing)).toBeNull();
   });
 
   it('shows nothing when storage refuses to keep the note', () => {
     const tab = refusing('setItem');
 
-    expect(() => savePullNote('octo', 'hello', 'Updated.', tab.of)).not.toThrow();
-    expect(takePullNote('octo', 'hello', tab.of)).toBeNull();
+    expect(() => savePullNote('octo', 'hello', 'Updated.', NOW, tab.of)).not.toThrow();
+    expect(takePullNote('octo', 'hello', NOW, tab.of)).toBeNull();
   });
 
   it.each([['getItem' as const], ['removeItem' as const]])('shows nothing when storage refuses %s', (method) => {
     const tab = refusing(method);
-    savePullNote('octo', 'hello', 'Updated.', tab.of);
+    savePullNote('octo', 'hello', 'Updated.', NOW, tab.of);
 
     expect(tab.items.size).toBe(1);
-    expect(takePullNote('octo', 'hello', tab.of)).toBeNull();
+    expect(takePullNote('octo', 'hello', NOW, tab.of)).toBeNull();
   });
 
   it('drops a note the reload never read, so a later visit in the tab shows nothing', () => {
     const tab = tabStorage();
-    savePullNote('octo', 'hello', 'Updated.', tab.of, NOW);
+    savePullNote('octo', 'hello', 'Updated.', NOW, tab.of);
 
-    expect(takePullNote('octo', 'hello', tab.of, NOW + PULL_NOTE_TTL + 1)).toBeNull();
+    expect(takePullNote('octo', 'hello', NOW + PULL_NOTE_TTL + 1, tab.of)).toBeNull();
     expect(tab.items.size).toBe(0);
   });
 
   it('shows a note read within the wait', () => {
     const tab = tabStorage();
-    savePullNote('octo', 'hello', 'Updated.', tab.of, NOW);
+    savePullNote('octo', 'hello', 'Updated.', NOW, tab.of);
 
-    expect(takePullNote('octo', 'hello', tab.of, NOW + PULL_NOTE_TTL)).toBe('Updated.');
+    expect(takePullNote('octo', 'hello', NOW + PULL_NOTE_TTL, tab.of)).toBe('Updated.');
   });
 
   it.each([
@@ -104,7 +104,7 @@ describe('pull note', () => {
     const tab = tabStorage();
     tab.items.set('repo-pull-note:octo/hello', raw);
 
-    expect(takePullNote('octo', 'hello', tab.of, NOW)).toBeNull();
+    expect(takePullNote('octo', 'hello', NOW, tab.of)).toBeNull();
     expect(tab.items.size).toBe(0);
   });
 });
@@ -113,10 +113,10 @@ describe('showKeptPullNote', () => {
   it('shows the kept note once, with no timeout and a close button', () => {
     const tab = tabStorage();
     const show = vi.fn();
-    savePullNote('Octo-Org', 'Hello', 'Updated.', tab.of, NOW);
+    savePullNote('Octo-Org', 'Hello', 'Updated.', NOW, tab.of);
 
-    showKeptPullNote('Octo-Org', 'Hello', show, tab.of, NOW + 1_000);
-    showKeptPullNote('Octo-Org', 'Hello', show, tab.of, NOW + 2_000);
+    showKeptPullNote('Octo-Org', 'Hello', show, NOW + 1_000, tab.of);
+    showKeptPullNote('Octo-Org', 'Hello', show, NOW + 2_000, tab.of);
 
     expect(show).toHaveBeenCalledTimes(1);
     expect(show).toHaveBeenCalledWith('Updated.', {
@@ -129,7 +129,7 @@ describe('showKeptPullNote', () => {
   it('shows nothing without a kept note', () => {
     const show = vi.fn();
 
-    showKeptPullNote('octo', 'hello', show, tabStorage().of, NOW);
+    showKeptPullNote('octo', 'hello', show, NOW, tabStorage().of);
 
     expect(show).not.toHaveBeenCalled();
   });
@@ -139,10 +139,10 @@ describe('reloadWithPullNote', () => {
   it('keeps the note before the reload, so the page after it can show it', () => {
     const tab = tabStorage();
     const reload = vi.fn(() => {
-      expect(takePullNote('octo', 'hello', tab.of, NOW)).toBe('Updated.');
+      expect(takePullNote('octo', 'hello', NOW, tab.of)).toBe('Updated.');
     });
 
-    reloadWithPullNote('octo', 'hello', 'Updated.', reload, tab.of, NOW);
+    reloadWithPullNote('octo', 'hello', 'Updated.', reload, NOW, tab.of);
 
     expect(reload).toHaveBeenCalledTimes(1);
   });
@@ -151,7 +151,7 @@ describe('reloadWithPullNote', () => {
     const tab = tabStorage();
     const reload = vi.fn();
 
-    reloadWithPullNote('octo', 'hello', null, reload, tab.of, NOW);
+    reloadWithPullNote('octo', 'hello', null, reload, NOW, tab.of);
 
     expect(reload).toHaveBeenCalledTimes(1);
     expect(tab.items.size).toBe(0);
@@ -160,7 +160,7 @@ describe('reloadWithPullNote', () => {
   it('still reloads when storage refuses the note', () => {
     const reload = vi.fn();
 
-    reloadWithPullNote('octo', 'hello', 'Updated.', reload, refusing('setItem').of, NOW);
+    reloadWithPullNote('octo', 'hello', 'Updated.', reload, NOW, refusing('setItem').of);
 
     expect(reload).toHaveBeenCalledTimes(1);
   });

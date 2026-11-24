@@ -17,7 +17,7 @@ import { SETTINGS_PATHS, settingsPathOf } from '@/lib/workspace/paths';
 /** The line above the other issues: the user's list had nothing (more) ready, so these follow it. */
 export function OtherIssuesDivider({ set, none }: { set: ContributeSet; none: boolean }) {
   const own = set.mode === 'STACK' ? "your stack's issues" : "your list's issues";
-  const workingOut = set.mode === 'STACK' && stackPendingOf(set);
+  const workingOut = set.mode === 'STACK' && stackPendingOf(set, new Date());
   return (
     <div className="flex flex-col gap-1 pt-3" data-divider="other">
       <div className="flex items-center gap-3">
@@ -79,7 +79,7 @@ export function SetOnlyEmpty({
     : 0;
   const things = mode === 'STACK' ? plural(size, 'library', 'libraries') : plural(size, 'repo');
   // The stack is still worked out, or its libraries read for the first time: the agent works on all issues meanwhile.
-  const workingOut = mode === 'STACK' && stackPendingOf(set);
+  const workingOut = mode === 'STACK' && stackPendingOf(set, new Date());
   const readingLibraries = workingOut ? readingLibrariesOf(set) : 0;
 
   const meanwhile = () =>

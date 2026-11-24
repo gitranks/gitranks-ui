@@ -50,7 +50,12 @@ describe('the Auth.js callbacks', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("never give the browser the maintainers page's token", async () => {
-    const token = withMaintainerToken({ ...fresh(), githubLogin: 'octocat', authMode: 'identity' }, TOKEN, undefined);
+    const token = withMaintainerToken(
+      { ...fresh(), githubLogin: 'octocat', authMode: 'identity' },
+      TOKEN,
+      undefined,
+      Date.now(),
+    );
 
     const session = await callbacks.session({ session: { user: {}, expires: '2099-01-01T00:00:00.000Z' }, token });
 
@@ -103,6 +108,8 @@ describe('the Auth.js callbacks', () => {
       },
       TOKEN,
       undefined,
+      // The callback reads the clock as it runs: the token is added at the same time.
+      Date.now(),
     );
 
     const token = await callbacks.jwt({ token: expired });

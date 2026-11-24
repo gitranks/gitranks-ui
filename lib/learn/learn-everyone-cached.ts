@@ -8,7 +8,7 @@ import { learnOpenToEveryoneKnown } from './learn-everyone';
 async function knownCached(): Promise<boolean> {
   'use cache';
   cacheLife('minutes');
-  return learnOpenToEveryoneKnown();
+  return learnOpenToEveryoneKnown(Date.now());
 }
 
 /**

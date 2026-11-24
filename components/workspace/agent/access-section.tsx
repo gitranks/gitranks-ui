@@ -82,7 +82,7 @@ function KeyRow({ credential, now }: { credential: ContributeCredential | undefi
       {' · '}
       {KEY_STATES[credential.state]}
       {credential.blockedUntil && credential.state !== 'INVALID' ? ` until ${dayLabel(credential.blockedUntil)}` : ''}
-      {` · checked ${relativeLabel(credential.checkedAt, now)}`}
+      {` · checked ${relativeLabel(credential.checkedAt, now ?? new Date())}`}
       {credential.state === 'VALID' && !credential.ready ? ' · the agent is set up at the first attempt' : ''}
     </span>
   );

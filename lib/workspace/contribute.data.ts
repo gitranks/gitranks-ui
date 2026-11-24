@@ -199,7 +199,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
       graphqlDirect(ContributeOnboardingDocument, undefined, options),
       graphqlDirect(ContributeLimitsDocument, undefined, options),
       graphqlDirect(ContributeMcpConnectionsDocument, undefined, options),
-      contributeMcpSignIn(),
+      contributeMcpSignIn(Date.now()),
       graphqlDirect(ContributeSidesDocument, undefined, options),
     ]);
 

@@ -5,6 +5,7 @@ import { Header } from '@/components/header/header';
 import { AgentConnectView, type AgentConnectViewProps } from '@/components/workspace/agent/agent-connect';
 import { StartPageScreen, type StartPageScreenProps } from '@/components/workspace/start/start-page-screen';
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
+import { NOW } from '@/lib/contribute/__fixtures__/contribute-views';
 import {
   fixAttemptOf,
   START_GOAL,
@@ -66,6 +67,7 @@ const page = (mode: StartMode, props: Partial<StartPageScreenProps> = {}) =>
       onCheckAgain={noop}
       back={startBackOf(mode)}
       frame="tabs"
+      now={NOW}
       {...props}
     />,
   );

@@ -763,7 +763,7 @@ function inProgressOf(entry: NeedsYouEntry, now: Date): Said | null {
  * What a row says, by its kind and facts. A kind this page does not know yet still says something, and its button
  * leads to the pull request's page.
  */
-export function needsYouWordsOf(entry: NeedsYouEntry, now = new Date()): NeedsYouWords {
+export function needsYouWordsOf(entry: NeedsYouEntry, now: Date): NeedsYouWords {
   const said: Said = (entry.working ? inProgressOf(entry, now) : countedOf(entry, now)) ?? {
     tone: 'amber',
     pill: entry.working ? 'Under way' : 'Something changed',

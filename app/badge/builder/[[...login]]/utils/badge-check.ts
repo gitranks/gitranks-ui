@@ -92,7 +92,7 @@ export function badgeCheckViewOf(
   kind: BadgeCheckKind,
   name: string,
   result: BadgeCheckResult | null,
-  now = Date.now(),
+  now: number,
   repository?: string | null,
 ): BadgeCheckView {
   const readme = readmeOf(kind, name, repository);

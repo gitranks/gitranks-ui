@@ -152,7 +152,7 @@ export function ReviewComments(props: ReviewCommentsProps) {
   if (!rows.length) return null;
 
   const addressed = session?.threads ? session.threads.chosen.length : undefined;
-  const summary = summaryOf(rows, mode, run, { addressed, readAt: props.readAt, now: props.now });
+  const summary = summaryOf(rows, mode, run, { addressed, readAt: props.readAt, now: props.now ?? new Date() });
   const error = session?.error;
   const openCount = groups.filter(({ collapsed }) => !collapsed).length;
   const ctx = {

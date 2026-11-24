@@ -36,7 +36,7 @@ import { learnResumeOf } from '@/lib/workspace/getting-in';
  * linked only while it answers (Learn open to everyone); `resume` is the step of today's flow someone stopped at.
  */
 async function LoadedLanding({ viewer, resume = null }: { viewer: LandingViewer; resume?: string | null }) {
-  const [courses, markdown] = await Promise.all([loadLearnCourses().catch(() => []), learnOpenToEveryone()]);
+  const [courses, markdown] = await Promise.all([loadLearnCourses().catch(() => []), learnOpenToEveryone(Date.now())]);
   const lessons = await loadTryLessons(courses);
   return (
     <>

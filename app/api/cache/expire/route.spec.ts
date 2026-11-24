@@ -138,6 +138,26 @@ describe('POST /api/cache/expire', () => {
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
   });
 
+  it("takes a Skills page's tag and a project's Learn card tags, beside the others, as they are sent", async () => {
+    const tags = [
+      'skills:octocat',
+      `skills:${'a'.repeat(39)}`,
+      'skills:-jerry-',
+      'learn:entity:repo:django/django',
+      'learn:entity:repo:octo-labs/scroll.guard_2',
+      `learn:entity:repo:${'a'.repeat(39)}/${'b'.repeat(100)}`,
+      'learn:entity:repo:octo/.github',
+      'learn:entity:org:kubernetes',
+      'learn:entity:org:synchro--',
+      'profile:octocat',
+    ];
+    const response = await signed({ tags });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ expired: tags.length });
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
+  });
+
   it("expires a fix's tag in the lower case its pages carry, whatever case is sent, once", async () => {
     const response = await signed({
       tags: ['learn:fix:Octo-Labs/Scroll_Guard#7', 'learn:fix:octo-labs/scroll_guard#7'],
@@ -243,6 +263,31 @@ describe('POST /api/cache/expire', () => {
     ['a fix tag with an owner starting with a hyphen', { tags: ['learn:fix:-octo/repo#7'] }],
     ['a fix tag in capitals before the pull request', { tags: ['Learn:Fix:octo/repo#7'] }],
     ['a walkthrough tag', { tags: ['learn:walkthrough:octo/repo#7'] }],
+    ['a Skills tag with no login', { tags: ['skills:'] }],
+    ['a Skills tag in capitals', { tags: ['skills:OctoCat'] }],
+    ['a Skills tag over 39 characters', { tags: [`skills:${'a'.repeat(40)}`] }],
+    ['a Skills tag with a dot', { tags: ['skills:octo.cat'] }],
+    ['a Skills tag with a slash', { tags: ['skills:octo/cat'] }],
+    ['a Skills tag with a line break', { tags: ['skills:octocat\n'] }],
+    ['the plural of the Skills tag', { tags: ['skills'] }],
+    ['a Skills tag of another kind', { tags: ['skills:page:octocat'] }],
+    ['a Learn card tag of another kind', { tags: ['learn:entity:user:octocat'] }],
+    ['a Learn card tag with nothing after the kind', { tags: ['learn:entity:repo:'] }],
+    ['a repository card tag with no name', { tags: ['learn:entity:repo:django'] }],
+    ['a repository card tag with an empty name', { tags: ['learn:entity:repo:django/'] }],
+    ['a repository card tag in capitals', { tags: ['learn:entity:repo:Django/django'] }],
+    ['a repository card tag with three parts', { tags: ['learn:entity:repo:a/b/c'] }],
+    ['a repository card tag named .', { tags: ['learn:entity:repo:octo/.'] }],
+    ['a repository card tag named ..', { tags: ['learn:entity:repo:octo/..'] }],
+    ['a repository card tag with an owner over 39', { tags: [`learn:entity:repo:${'a'.repeat(40)}/b`] }],
+    ['a repository card tag with a name over 100', { tags: [`learn:entity:repo:a/${'b'.repeat(101)}`] }],
+    ['a repository card tag with a dot in the owner', { tags: ['learn:entity:repo:octo.labs/b'] }],
+    ['a repository card tag with a space', { tags: ['learn:entity:repo:octo/hello world'] }],
+    ['an org card tag in capitals', { tags: ['learn:entity:org:Kubernetes'] }],
+    ['an org card tag with a slash', { tags: ['learn:entity:org:octo/x'] }],
+    ['an org card tag over 39 characters', { tags: [`learn:entity:org:${'a'.repeat(40)}`] }],
+    ['an org card tag with a line break', { tags: ['learn:entity:org:octo\n'] }],
+    ['one bad Skills tag among good ones', { tags: ['skills:octocat', 'learn:entity:org:octo', 'skills:Octo'] }],
   ])('answers 400 for %s and expires nothing', async (_name, body) => {
     const response = await signed(body);
 

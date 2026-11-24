@@ -23,7 +23,7 @@ async function readHero(): Promise<{ hero: UnsungHero | null; ok: boolean }> {
   }
 }
 
-function askHero(now = Date.now()): Promise<UnsungHero | null> {
+function askHero(now: number): Promise<UnsungHero | null> {
   if (asked && now >= keptUntil && known !== undefined) {
     asked = null;
     known = undefined;
@@ -50,7 +50,7 @@ export function useUnsungHero(): UnsungHero | null {
 
   useEffect(() => {
     let live = true;
-    askHero().then((answer) => {
+    askHero(Date.now()).then((answer) => {
       if (live) setHero(answer);
     });
     return () => {

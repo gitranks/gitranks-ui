@@ -39,5 +39,5 @@ export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {
     notFound();
   }
 
-  return <OrgScreen login={login} org={org} badgeFacts={badges.facts} />;
+  return <OrgScreen login={login} org={org} badgeFacts={badges.facts} now={new Date()} />;
 }

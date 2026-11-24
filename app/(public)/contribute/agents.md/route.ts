@@ -16,7 +16,7 @@ export async function GET(): Promise<Response> {
   if (!(await contributeShown())) {
     return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'private, no-store' } });
   }
-  const [page, open, rules] = await Promise.all([loadAgentPage(), contributeOpen(), issueRules()]);
+  const [page, open, rules] = await Promise.all([loadAgentPage(), contributeOpen(Date.now()), issueRules()]);
   return new Response(agentsDocOf(page, { rules }), {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',

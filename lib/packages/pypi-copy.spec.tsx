@@ -110,7 +110,9 @@ describe("a PyPI project's downloads, a month at a time", () => {
   });
 
   it('says its months on the page: the history, the summary and the empty state', () => {
-    const html = renderToStaticMarkup(<PackageScreen registry="pypi" name="zope-interface" pkg={pypi} />);
+    const html = renderToStaticMarkup(
+      <PackageScreen now={new Date('2026-11-24T00:00:00Z')} registry="pypi" name="zope-interface" pkg={pypi} />,
+    );
     const page = text(html);
 
     expect(page).toContain('Downloads by month 28.7 million since April 2026');
@@ -126,7 +128,11 @@ describe("a PyPI project's downloads, a month at a time", () => {
     );
 
     const unused = { ...pypi, dependentsCount: 0, dependents: { total: 0, archived: 0, items: [] } } as PackagePage;
-    const none = text(renderToStaticMarkup(<PackageScreen registry="pypi" name="zope-interface" pkg={unused} />));
+    const none = text(
+      renderToStaticMarkup(
+        <PackageScreen now={new Date('2026-11-24T00:00:00Z')} registry="pypi" name="zope-interface" pkg={unused} />,
+      ),
+    );
     expect(none).toContain('No repository with 100+ stars uses zope.interface directly yet');
     expect(none).toContain('zope.interface is a PyPI package downloaded 4,400,000 times last month.');
     expect(none).not.toMatch(/week/i);

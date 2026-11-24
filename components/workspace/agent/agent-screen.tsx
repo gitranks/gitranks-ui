@@ -31,7 +31,7 @@ export type AgentData = {
   noted?: readonly ContributeComingSoonProvider[];
   /** The pull requests open or on their way, for when the hosted agent starts its next issue; undefined unread. */
   counts?: ContributeScheduleCounts;
-  now?: Date;
+  now: Date;
 };
 
 /**

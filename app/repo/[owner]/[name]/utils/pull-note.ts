@@ -17,8 +17,8 @@ export function savePullNote(
   owner: string,
   name: string,
   note: string,
+  now: number,
   storage: StorageOf = sessionStorageOf,
-  now = Date.now(),
 ) {
   try {
     storage().setItem(noteKey(owner, name), JSON.stringify({ note, savedAt: now }));
@@ -41,8 +41,8 @@ const freshNoteOf = (raw: string, now: number) => {
 export function takePullNote(
   owner: string,
   name: string,
+  now: number,
   storage: StorageOf = sessionStorageOf,
-  now = Date.now(),
 ): string | null {
   try {
     const store = storage();
@@ -73,10 +73,10 @@ export function showKeptPullNote(
   owner: string,
   name: string,
   show: (note: string, options: PullNoteToast) => void,
+  now: number,
   storage: StorageOf = sessionStorageOf,
-  now = Date.now(),
 ) {
-  const note = takePullNote(owner, name, storage, now);
+  const note = takePullNote(owner, name, now, storage);
   if (note) {
     show(note, pullNoteToastOf(owner, name));
   }
@@ -88,11 +88,11 @@ export function reloadWithPullNote(
   name: string,
   note: string | null,
   reload: () => void,
+  now: number,
   storage: StorageOf = sessionStorageOf,
-  now = Date.now(),
 ) {
   if (note) {
-    savePullNote(owner, name, note, storage, now);
+    savePullNote(owner, name, note, now, storage);
   }
   reload();
 }

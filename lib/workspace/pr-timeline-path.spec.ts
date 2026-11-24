@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { prTimelineFallbackPath, prTimelinePath, prTimelineRouteOf } from './pr-timeline-path';
+import {
+  prTimelineCardPath,
+  prTimelineFallbackPath,
+  prTimelineMarkdownPath,
+  prTimelinePath,
+  prTimelineRouteOf,
+} from './pr-timeline-path';
 
 describe('prTimelineRouteOf', () => {
   it('reads the short address, the page and its twin', () => {
@@ -37,5 +43,13 @@ describe('prTimelineRouteOf', () => {
   it('builds the canonical address and the fallback', () => {
     expect(prTimelinePath({ nameWithOwner: 'acme/widgets', number: 42 })).toBe('/contribute/pr/acme/widgets/42');
     expect(prTimelineFallbackPath('abc')).toBe('/contribute/maintainers?from=abc');
+  });
+});
+
+describe("a fix's picture", () => {
+  it("lives under the page's address, beside its Markdown twin", () => {
+    const pr = { nameWithOwner: 'acme/widgets.js', number: 42 };
+    expect(prTimelineCardPath(pr)).toBe('/contribute/pr/acme/widgets.js/42/card.png');
+    expect(prTimelineMarkdownPath(pr)).toBe('/contribute/pr/acme/widgets.js/42/timeline.md');
   });
 });

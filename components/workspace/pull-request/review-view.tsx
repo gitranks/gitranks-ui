@@ -413,7 +413,7 @@ export function ContributionShell({
   base?: Route;
   /** On an earlier attempt's page: the latest's address. */
   earlier?: { latest: Route } | null;
-  now?: Date;
+  now: Date;
   /** The maintainers' say on its PR: a stop, and "this PR helped" notes. */
   prNotes?: ContributePrNotes;
   /** Its pull request's replies waiting for the user: a refusal names the org's block. */
@@ -490,7 +490,7 @@ export function ReviewScreen({
   current,
   next = false,
   move,
-  now = new Date(),
+  now,
   resolveHumans,
   prNotes,
   replies,
@@ -506,7 +506,7 @@ export function ReviewScreen({
   current?: ContributeAttemptDetail;
   next?: boolean;
   move?: string | null;
-  now?: Date;
+  now: Date;
   resolveHumans?: boolean;
   /** The maintainers' say on its PR. */
   prNotes?: ContributePrNotes;

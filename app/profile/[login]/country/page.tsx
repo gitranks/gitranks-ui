@@ -39,5 +39,5 @@ export default async function ProfileOverviewPage({ params }: PageProps<'/profil
     cacheLife('minutes');
   }
 
-  return <OverviewPage user={user} extras={extras} badgeFacts={badges.facts} />;
+  return <OverviewPage user={user} extras={extras} badgeFacts={badges.facts} now={new Date()} />;
 }

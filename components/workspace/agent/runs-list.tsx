@@ -248,7 +248,7 @@ export function RunsList({
   runs: ContributeRun[];
   days: ContributeRunsDay[];
   cost?: boolean;
-  now?: Date;
+  now: Date;
 }) {
   const sums = new Map(days.map((day) => [day.day, day]));
   const grouped = runDaysOf(runs);

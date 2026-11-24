@@ -20,7 +20,7 @@ const text = (html: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const header = (props: Parameters<typeof PullRequestHeader>[0]) =>
+const header = (props: Omit<Parameters<typeof PullRequestHeader>[0], 'now'>) =>
   renderToStaticMarkup(<PullRequestHeader now={NOW} {...props} />);
 
 describe("the pull request's header", () => {

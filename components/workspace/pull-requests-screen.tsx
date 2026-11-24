@@ -47,7 +47,7 @@ export type PullRequestsData = {
   filter: PullRequestsFilter;
   /** The work in progress the poll reads, for the live phase of an agent at work. */
   activity?: ContributeActivity | null;
-  now?: Date;
+  now: Date;
 };
 
 /** The title and the limit's line: "3 of 8 open at a time · Change in Settings". */
@@ -139,7 +139,7 @@ function NeedsYouBlock({
 }: {
   answer: ContributeNeedsYouAnswer;
   learnPill: boolean;
-  now?: Date;
+  now: Date;
 }) {
   const entries = answer.items.map(needsYouEntryOf);
   if (!entries.length && answer.complete) return null;
@@ -190,7 +190,7 @@ function InProgressBlock({
   answer: ContributeNeedsYouAnswer;
   learnPill: boolean;
   activity?: ContributeActivity | null;
-  now?: Date;
+  now: Date;
 }) {
   const entries = answer.inProgress.map(needsYouEntryOf);
   if (!entries.length) return null;
@@ -352,7 +352,7 @@ function PullRequestsTable({
   page: ContributePullRequestsPage;
   learner: boolean;
   learnPills: boolean;
-  now?: Date;
+  now: Date;
 }) {
   return (
     <section aria-labelledby="all-pull-requests" className="overflow-hidden rounded-xl border bg-card">

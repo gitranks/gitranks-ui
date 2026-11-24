@@ -154,7 +154,7 @@ export const dayLabel = (iso: string | null | undefined) => {
 };
 
 /** `in about 2 hours`, `3 days ago`. */
-export const relativeLabel = (iso: string | null | undefined, now = new Date()) => {
+export const relativeLabel = (iso: string | null | undefined, now: Date) => {
   if (!iso) return '';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
@@ -162,7 +162,7 @@ export const relativeLabel = (iso: string | null | undefined, now = new Date()) 
 };
 
 /** `22 hours`: the time from now to `iso`, without "in" or "ago"; '' for a time not given or gone. */
-export const timeLeftLabel = (iso: string | null | undefined, now = new Date()) => {
+export const timeLeftLabel = (iso: string | null | undefined, now: Date) => {
   if (!iso) return '';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime()) || date.getTime() <= now.getTime()) return '';

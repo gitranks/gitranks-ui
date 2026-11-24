@@ -39,7 +39,13 @@ const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map(([, hr
 describe('PackageScreen', () => {
   it('draws a ranked package: the left column, the two cards, who uses it, its downloads and, last, About', () => {
     const html = renderToStaticMarkup(
-      <PackageScreen registry="npm" name={rankedPackage.name} pkg={rankedPackage} jsonLd={[{}]} />,
+      <PackageScreen
+        now={new Date('2026-11-24T00:00:00Z')}
+        registry="npm"
+        name={rankedPackage.name}
+        pkg={rankedPackage}
+        jsonLd={[{}]}
+      />,
     );
     const page = text(html);
 
@@ -86,7 +92,14 @@ describe('PackageScreen', () => {
   });
 
   it('draws an unranked package nobody with 100+ stars uses, a scoped name and a repository without a page', () => {
-    const html = renderToStaticMarkup(<PackageScreen registry="npm" name={quietPackage.name} pkg={quietPackage} />);
+    const html = renderToStaticMarkup(
+      <PackageScreen
+        now={new Date('2026-11-24T00:00:00Z')}
+        registry="npm"
+        name={quietPackage.name}
+        pkg={quietPackage}
+      />,
+    );
     const page = text(html);
 
     expect(page).toContain('@nebula/ ui');
@@ -104,7 +117,12 @@ describe('PackageScreen', () => {
 
   it('draws a package nobody has read yet: its name, Refresh and one empty state, without Follow', () => {
     const html = renderToStaticMarkup(
-      <PackageScreen registry="npm" name={notReadPackage.name} pkg={{ ...notReadPackage, refreshRunning: true }} />,
+      <PackageScreen
+        now={new Date('2026-11-24T00:00:00Z')}
+        registry="npm"
+        name={notReadPackage.name}
+        pkg={{ ...notReadPackage, refreshRunning: true }}
+      />,
     );
     const page = text(html);
 
@@ -119,6 +137,7 @@ describe('PackageScreen', () => {
   it('keeps the count when the page holds none of the rows, and leaves out facts it has none of', () => {
     const html = renderToStaticMarkup(
       <PackageScreen
+        now={new Date('2026-11-24T00:00:00Z')}
         registry="npm"
         name={rankedPackage.name}
         pkg={{
@@ -144,7 +163,9 @@ describe('PackageScreen', () => {
   });
 
   it('says only that package data is unavailable, with no button', () => {
-    const html = renderToStaticMarkup(<PackageScreen registry="npm" name="@nebula/ui" pkg="unavailable" />);
+    const html = renderToStaticMarkup(
+      <PackageScreen now={new Date('2026-11-24T00:00:00Z')} registry="npm" name="@nebula/ui" pkg="unavailable" />,
+    );
 
     expect(text(html)).toContain('Package data is not available right now. Try again in a few minutes.');
     expect(html).not.toContain('data-updates');
@@ -154,6 +175,7 @@ describe('PackageScreen', () => {
   it('hands the button its daily updates', () => {
     const html = renderToStaticMarkup(
       <PackageScreen
+        now={new Date('2026-11-24T00:00:00Z')}
         registry="npm"
         name={rankedPackage.name}
         pkg={{ ...rankedPackage, dailyUpdates: onBadge, deprecated: 'Use x' }}

@@ -99,7 +99,7 @@ async function packageSitemapLocs(): Promise<string[]> {
  * `lastmod` must reflect real content change. Stamping request time on every fetch
  * makes crawlers distrust the signal, so anchor it to the month like the child sitemaps.
  */
-export function buildSitemapIndexXml(locs: string[], lastModified = startOfMonth(new Date())): string {
+export function buildSitemapIndexXml(locs: string[], lastModified: Date): string {
   const lastmod = lastModified.toISOString();
   const entries = locs
     .map(
@@ -121,7 +121,7 @@ export async function sitemapIndexResponse(): Promise<Response> {
   // The locs resolve the base URL and throw on misconfig.
   const [repoParts, orgParts] = await Promise.all([fetchRepoSitemapParts(), fetchOrgSitemapParts()]);
   const locs = [...listChildSitemapLocs(repoParts, orgParts), ...(await packageSitemapLocs())];
-  return new Response(buildSitemapIndexXml(locs), {
+  return new Response(buildSitemapIndexXml(locs, startOfMonth(new Date())), {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
       'Cache-Control': 'public, max-age=3600, s-maxage=3600',

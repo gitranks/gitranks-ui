@@ -10,5 +10,5 @@ import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
  */
 export async function GET() {
   await connection();
-  return landingMarkdownResponse(() => learnOpenToEveryone(), loadLearnCourses);
+  return landingMarkdownResponse(() => learnOpenToEveryone(Date.now()), loadLearnCourses);
 }

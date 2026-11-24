@@ -17,5 +17,5 @@ const SESSION_COOKIE = /^(__Secure-)?authjs\.session-token(\.\d+)?$/;
 export async function learnFrontDoorOpenToVisitor(): Promise<boolean> {
   const jar = await cookies();
   if (!jar.getAll().some(({ name }) => SESSION_COOKIE.test(name))) return true;
-  return learnOpenToEveryone();
+  return learnOpenToEveryone(Date.now());
 }

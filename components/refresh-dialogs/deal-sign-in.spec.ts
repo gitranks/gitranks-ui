@@ -26,36 +26,36 @@ describe('the deal sign-in mark', () => {
 
   it('is taken once, on the page it was kept for', () => {
     const storage = memoryStorage();
-    keepDealSignIn('profile:octo-dev', storage.of, NOW);
+    keepDealSignIn('profile:octo-dev', NOW, storage.of);
 
-    expect(takeDealSignIn('profile:octo-dev', storage.of, NOW + 60_000)).toBe(true);
-    expect(takeDealSignIn('profile:octo-dev', storage.of, NOW + 60_000)).toBe(false);
+    expect(takeDealSignIn('profile:octo-dev', NOW + 60_000, storage.of)).toBe(true);
+    expect(takeDealSignIn('profile:octo-dev', NOW + 60_000, storage.of)).toBe(false);
   });
 
   it('stays for its own page when another page reads it', () => {
     const storage = memoryStorage();
-    keepDealSignIn('repo:acme/fastqueue', storage.of, NOW);
+    keepDealSignIn('repo:acme/fastqueue', NOW, storage.of);
 
-    expect(takeDealSignIn('profile:octo-dev', storage.of, NOW)).toBe(false);
-    expect(takeDealSignIn('repo:acme/fastqueue', storage.of, NOW)).toBe(true);
+    expect(takeDealSignIn('profile:octo-dev', NOW, storage.of)).toBe(false);
+    expect(takeDealSignIn('repo:acme/fastqueue', NOW, storage.of)).toBe(true);
   });
 
   it('drops an old or broken mark, whichever page reads it', () => {
     const storage = memoryStorage();
-    keepDealSignIn('repo:acme/fastqueue', storage.of, NOW);
-    expect(takeDealSignIn('profile:octo-dev', storage.of, NOW + DEAL_SIGN_IN_TTL + 1)).toBe(false);
+    keepDealSignIn('repo:acme/fastqueue', NOW, storage.of);
+    expect(takeDealSignIn('profile:octo-dev', NOW + DEAL_SIGN_IN_TTL + 1, storage.of)).toBe(false);
     expect(storage.items.size).toBe(0);
 
     storage.items.set('daily-updates-deal', '{not json');
-    expect(takeDealSignIn('profile:octo-dev', storage.of, NOW)).toBe(false);
+    expect(takeDealSignIn('profile:octo-dev', NOW, storage.of)).toBe(false);
     expect(storage.items.size).toBe(0);
 
     storage.items.set('daily-updates-deal', JSON.stringify({ page: 'profile:octo-dev', at: NOW + 60_000 }));
-    expect(takeDealSignIn('profile:octo-dev', storage.of, NOW)).toBe(false);
+    expect(takeDealSignIn('profile:octo-dev', NOW, storage.of)).toBe(false);
   });
 
   it('keeps and takes nothing, with no error, when storage refuses', () => {
-    expect(() => keepDealSignIn('profile:octo-dev', refusing, NOW)).not.toThrow();
-    expect(takeDealSignIn('profile:octo-dev', refusing, NOW)).toBe(false);
+    expect(() => keepDealSignIn('profile:octo-dev', NOW, refusing)).not.toThrow();
+    expect(takeDealSignIn('profile:octo-dev', NOW, refusing)).toBe(false);
   });
 });

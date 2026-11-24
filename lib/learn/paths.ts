@@ -119,6 +119,56 @@ export const LEARN_COURSES_CARD_PATH = `${LEARN_COURSES_PATH}/card.png`;
 export const learnCourseMarkdownRoute = (slug: string) => `/api/learn/courses/${encodeURIComponent(slug)}/course.md`;
 export const LEARN_COURSES_MARKDOWN_ROUTE = '/api/learn/courses/all.md';
 
+/**
+ * The project a project course is about, as the API names it: a repository's `owner/name`, or an organisation's
+ * login. Exactly one of the two.
+ */
+export type LearnProject = { repo: string; org?: never } | { org: string; repo?: never };
+
+type ProjectParts = { kind: 'repo'; owner: string; name: string } | { kind: 'org'; login: string };
+
+/** A project's parts; throws for a repository that is not one `owner/name`, or an empty login. */
+function partsOf(project: LearnProject): ProjectParts {
+  if (project.repo !== undefined) {
+    const [owner, name, ...rest] = project.repo.split('/');
+    if (!owner || !name || rest.length)
+      throw new Error(`A project course's repository is not owner/name: "${project.repo}"`);
+    return { kind: 'repo', owner, name };
+  }
+  if (!project.org) throw new Error("A project course's organisation has no login");
+  return { kind: 'org', login: project.org };
+}
+
+/** A repository's `owner/name` as two address segments, each encoded. */
+const repoSegments = ({ owner, name }: { owner: string; name: string }) =>
+  `${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
+
+/**
+ * A project course's page: `/learn/repos/<owner>/<name>` for a repository, `/learn/orgs/<login>` for an organisation.
+ * Throws for a repository that is not one `owner/name`, or an empty login, as the paths below do.
+ */
+export function learnProjectCoursePath(project: LearnProject): Route {
+  const parts = partsOf(project);
+  return (
+    parts.kind === 'repo' ? `/learn/repos/${repoSegments(parts)}` : `/learn/orgs/${encodeURIComponent(parts.login)}`
+  ) as Route;
+}
+/** A project course's Markdown copy, at its page's address with `.md`. */
+export const learnProjectCourseMarkdownPath = (project: LearnProject) =>
+  markdownPathOf(learnProjectCoursePath(project));
+/** The picture a posted link to a project course shows. */
+export const learnProjectCourseCardPath = (project: LearnProject) => `${learnProjectCoursePath(project)}/card.png`;
+
+/**
+ * The Issues page narrowed to one project, `?repo=<owner>/<name>` or `?org=<login>`; with `fixed`, its merged fixes
+ * (`fixed=1`).
+ */
+export function learnProjectIssuesPath(project: LearnProject, { fixed = false }: { fixed?: boolean } = {}): Route {
+  const parts = partsOf(project);
+  const narrowing = parts.kind === 'repo' ? `repo=${repoSegments(parts)}` : `org=${encodeURIComponent(parts.login)}`;
+  return `${LEARN_ISSUES_PATH}?${narrowing}${fixed ? '&fixed=1' : ''}` as Route;
+}
+
 /** "Report a mistake" on a lesson: an email to us, its subject naming the lesson. */
 export const lessonMistakeHref = (title: string) =>
   `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`A mistake in the lesson "${title}"`)}`;
@@ -157,6 +207,24 @@ export const LEARN_FIXES_TAG = 'learn:fixes';
  * of the fix carries it, its two views, its walkthrough and its answers page.
  */
 export const learnFixTag = ({ nameWithOwner, number }: PrRef) => `learn:fix:${nameWithOwner.toLowerCase()}#${number}`;
+
+/**
+ * The cache tag of a project's Learn card, on its repository's or its organisation's page:
+ * `learn:entity:repo:<owner>/<name>` or `learn:entity:org:<login>`, in lower case (GitHub's names are not
+ * case-sensitive, and an address keeps the case the visitor typed).
+ */
+export function learnEntityTag(project: LearnProject): string {
+  const parts = partsOf(project);
+  return parts.kind === 'repo'
+    ? `learn:entity:repo:${parts.owner.toLowerCase()}/${parts.name.toLowerCase()}`
+    : `learn:entity:org:${parts.login.toLowerCase()}`;
+}
+
+/**
+ * A Learn card's tag as the API sends it: lower case, a login of GitHub's characters (up to 39, older logins with
+ * hyphens anywhere), and a repository's name of up to 100 of its characters, never `.` or `..`.
+ */
+const ENTITY_TAG = /^learn:entity:(?:repo:[a-z0-9-]{1,39}\/(?!\.\.?$)[a-z0-9._-]{1,100}|org:[a-z0-9-]{1,39})$/;
 
 /** A course's or a lesson's slug as the content writes it: lower-case words joined by single hyphens. */
 const CONTENT_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -228,12 +296,12 @@ export function learnFixTagOf(tag: string): string | null {
 }
 
 /**
- * A Learn cache tag as the API sends it to expire: `learn:courses`, a course's, a lesson's, `learn:fixes`, or a
- * fix's (see `learnFixTagOf`).
+ * A Learn cache tag as the API sends it to expire: `learn:courses`, a course's, a lesson's, `learn:fixes`, a fix's
+ * (see `learnFixTagOf`), or a project's Learn card's (see `learnEntityTag`).
  */
 export function isLearnTag(tag: string): boolean {
   if (tag === LEARN_COURSES_TAG || tag === LEARN_FIXES_TAG) return true;
-  if (learnFixTagOf(tag) !== null) return true;
+  if (learnFixTagOf(tag) !== null || ENTITY_TAG.test(tag)) return true;
   const slug = /^learn:(?:course|lesson):(.*)$/s.exec(tag)?.[1];
   return slug !== undefined && isContentSlug(slug);
 }

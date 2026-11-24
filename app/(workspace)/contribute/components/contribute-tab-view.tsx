@@ -38,6 +38,7 @@ export async function ContributeTab({
       counts={counts}
       fairUse={fairUse}
       masked={masked}
+      now={new Date()}
       query={query}
     />
   );

@@ -38,7 +38,14 @@ const tabs = (html: string) =>
 
 const frame = (props: Partial<Parameters<typeof RepoFrame>[0]> = {}) =>
   render(
-    <RepoFrame repo={bigRepo} packages={threePackages} contributors={12} badgeFacts={repoBig} {...props}>
+    <RepoFrame
+      now={new Date(NOW)}
+      repo={bigRepo}
+      packages={threePackages}
+      contributors={12}
+      badgeFacts={repoBig}
+      {...props}
+    >
       <p>tab</p>
     </RepoFrame>,
   );
@@ -89,7 +96,7 @@ describe('RepoFrame', () => {
 
 describe('RepoBadgeRow', () => {
   it('draws one promoted badge, linking to its code, and All badges', () => {
-    const html = render(<RepoBadgeRow facts={repoBig} />);
+    const html = render(<RepoBadgeRow now={new Date(NOW)} facts={repoBig} />);
 
     expect(html.match(/<a /g)).toHaveLength(2);
     expect(html.match(/<img /g)).toHaveLength(2);
@@ -97,7 +104,7 @@ describe('RepoBadgeRow', () => {
   });
 
   it('draws nothing without badge data', () => {
-    expect(render(<RepoBadgeRow facts={null} />)).toBe('');
+    expect(render(<RepoBadgeRow now={new Date(NOW)} facts={null} />)).toBe('');
   });
 });
 

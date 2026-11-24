@@ -6,7 +6,7 @@ import { LearnHomeView } from '@/components/learn/home/learn-home-view';
 import { LearnLandingView } from '@/components/learn/landing/learn-landing-view';
 import { LessonRealWorld } from '@/components/learn/lesson/lesson-real-world';
 import { LessonView, type LessonViewProps } from '@/components/learn/lesson/lesson-view';
-import { algorithmsCourse, courseCards, otherCourses, progressMine } from '@/lib/learn/__fixtures__/course';
+import { algorithmsCourse, courseCards, doneMine, otherCourses, progressMine } from '@/lib/learn/__fixtures__/course';
 import { learnFixes } from '@/lib/learn/__fixtures__/issues';
 import { HOME_NOW, homeDay, homeSetup, tryLessons } from '@/lib/learn/__fixtures__/learn-home-page';
 import {
@@ -19,8 +19,13 @@ import {
   setLesson,
 } from '@/lib/learn/__fixtures__/lesson-page';
 import {
+  homeFixMerged,
+  homeFixOpen,
+  homeFixWorking,
   homeRealFix,
+  homeRealFixAt,
   homeRealIssues,
+  homeRealNone,
   landingFixes,
   lessonRealIssues,
   lessonRealWithFix,
@@ -129,6 +134,61 @@ export const LEARN_REAL_ISSUES_SCREENS: Screen[] = [
         height: 1600,
         render: () => (
           <LearnHomeView home={homeDay} setup={homeSetup} now={HOME_NOW} timeZone={null} hints real={homeRealIssues} />
+        ),
+      },
+      {
+        id: 'home-fix-states',
+        title: "Learn home's third box following a fix: agent working, pull request open, merged",
+        path: '/learn',
+        height: 1200,
+        render: () => (
+          <>
+            {(
+              [
+                [homeFixWorking, 'working'],
+                [homeFixOpen, 'open'],
+                [homeFixMerged, 'merged'],
+              ] as const
+            ).map(([row, state]) => (
+              <LearnHomeView
+                key={state}
+                home={homeDay}
+                setup={homeSetup}
+                now={HOME_NOW}
+                timeZone={null}
+                hints
+                skillsHref="/profile/octocat/skills"
+                real={{ ...homeRealFixAt(row, state), issues: [] }}
+              />
+            ))}
+          </>
+        ),
+      },
+      {
+        id: 'home-none',
+        title: 'Learn home: no fix and no open issue, the quiet box with the email',
+        path: '/learn',
+        height: 900,
+        render: () => (
+          <LearnHomeView home={homeDay} setup={homeSetup} now={HOME_NOW} timeZone={null} hints real={homeRealNone} />
+        ),
+      },
+      {
+        id: 'course-finished',
+        title: 'A finished course: where to go next names its open issues',
+        path: '/learn/courses/algorithms',
+        height: 900,
+        render: () => (
+          <CourseView
+            course={courseWithFixes}
+            mine={doneMine}
+            person="session"
+            others={otherCourses}
+            calls={{ onSignIn: noop, onRate: saved }}
+            openIssues={3}
+            learnOpen
+            hints
+          />
         ),
       },
       {

@@ -31,7 +31,7 @@ export const RealIssuesListDocument = doc<{ learnQueue: unknown }, { lesson: str
 
 /** Learn home's open issues: the count that fits the person, and the five of their list. */
 export const HomeIssuesDocument = doc<{ learnHome: unknown }>(
-  `query HomeIssues { learnHome { thirdBox { openIssues } issues { rows { ${ISSUES_ROW_FIELDS} } } } }`,
+  `query HomeIssues { learnHome { thirdBox { openIssues } issues { rows { ${ISSUES_ROW_FIELDS} } emailOn emailTo } } }`,
 );
 
 /** Learn home's fixes: the one that needs the person, and their fixes not ended. */

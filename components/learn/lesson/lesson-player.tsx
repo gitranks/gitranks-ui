@@ -100,6 +100,9 @@ function FixRealIssue({ href, hints }: { href: string; hints: boolean }) {
       if (event.altKey || event.ctrlKey || event.metaKey) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest?.(TYPES_SHIFT_ENTER) || target?.isContentEditable) return;
+      // Another link or button with the focus keeps the key; the answer's own button (Next) does not.
+      const pressable = target?.closest?.('a, button, [role="button"]');
+      if (pressable && pressable !== link.current && !pressable.matches('[data-answer-main]')) return;
       event.preventDefault();
       link.current?.click();
     };

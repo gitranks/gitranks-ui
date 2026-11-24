@@ -78,11 +78,11 @@ export function CourseLive({
     let live = true;
     setPersonal({ kind: 'pending' });
     setOpenIssues(null);
-    readCourseOpenIssues(slug).then((count) => {
-      if (live) setOpenIssues(count);
-    });
-    readCourseSide(slug).then((side) => {
-      if (live) setPersonal(side ? { kind: 'learner', side } : { kind: 'session' });
+    // The side and its open issues land together, so the third box is drawn once, never changed after.
+    Promise.all([readCourseSide(slug), readCourseOpenIssues(slug)]).then(([side, count]) => {
+      if (!live) return;
+      setOpenIssues(count);
+      setPersonal(side ? { kind: 'learner', side } : { kind: 'session' });
     });
     return () => {
       live = false;

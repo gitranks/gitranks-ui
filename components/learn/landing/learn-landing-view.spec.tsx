@@ -16,6 +16,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: m.signIn, useSession: () => ({ data: null }) }));
 vi.mock('@/lib/learn/lesson-page.actions', () => ({ answerLearnLessonAction: m.answer }));
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction: vi.fn(), readMoreLearnFixes: vi.fn() }));
 vi.mock('@/lib/workspace/masked-issue.actions', () => ({
   lookAtIssue: vi.fn(),
   signInToSeeIssue: vi.fn(),

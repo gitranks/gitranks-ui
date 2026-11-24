@@ -2,14 +2,14 @@
 
 import type { Route } from 'next';
 import Link from 'next/link';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, Suspense, use, useRef, useState } from 'react';
 
 import { FixRow } from '@/components/learn/issues/issues-parts';
 import { PHONE_LINK } from '@/components/learn/phone-link';
 import { Button } from '@/components/ui/button';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
 import { RefChips } from '@/components/workspace/ref-chips';
-import { bareRowOf, type IssuesRow, type LearnFixes, type LearnFixRow } from '@/lib/learn/issues';
+import { type IssuesRow, type LearnFixes, type LearnFixRow, rowsAfterSkip } from '@/lib/learn/issues';
 import {
   allFixesWordsOf,
   LESSON_FIXES_SHOWN,
@@ -54,7 +54,7 @@ function FixesList({ rows }: { rows: readonly LearnFixRow[] }) {
     <ul className={LIST}>
       {rows.slice(0, LESSON_FIXES_SHOWN).map((fix) => (
         <li key={`${fix.repo}#${fix.number}`}>
-          <FixRow fix={fix} />
+          <FixRow fix={fix} lessonLine={false} />
         </li>
       ))}
     </ul>
@@ -93,17 +93,20 @@ function YourFix({ fix }: { fix: LearnMyFix }) {
   );
 }
 
-/** The person's issues for the lesson, masked, three at most: a skip's next one takes its place, a gone one leaves. */
+/**
+ * The person's issues for the lesson, masked, three at most. A skip's place takes the next row of their list for the
+ * lesson that is not on the screen and not skipped; with none, the skipped row leaves. The skip's own next issue is
+ * never taken: it comes from the whole list and may be for another lesson.
+ */
 function IssueRows({ rows: given, reads }: { rows: readonly IssuesRow[]; reads: LessonRealMine['reads'] }) {
   const [rows, setRows] = useState(() => given.slice(0, LESSON_ISSUES_SHOWN));
+  const skipped = useRef(new Set<string>());
   if (!rows.length) return <Empty>{REAL_WORLD_WORDS.issuesNone}</Empty>;
   const leave = (id: string) => setRows((was) => was.filter((row) => row.issue.id !== id));
-  const replace = (id: string, next: IssuesRow) =>
-    setRows((was) =>
-      was.some((row) => row.issue.id === next.issue.id)
-        ? was.filter((row) => row.issue.id !== id)
-        : was.map((row) => (row.issue.id === id ? next : row)),
-    );
+  const replace = (id: string) => {
+    skipped.current.add(id);
+    setRows((was) => rowsAfterSkip(was, id, given, { leftOut: skipped.current }));
+  };
   return (
     <>
       <MaskedList from="learn" pageFrom="learn" reads={reads ?? NO_MASKED_READS} foot={false}>
@@ -113,7 +116,7 @@ function IssueRows({ rows: given, reads }: { rows: readonly IssuesRow[]; reads: 
               <MaskedListRow
                 issue={row.issue}
                 full={row.full}
-                onReplace={(next) => replace(row.issue.id, bareRowOf(next))}
+                onReplace={() => replace(row.issue.id)}
                 onLeave={() => leave(row.issue.id)}
               />
             </li>
@@ -149,7 +152,8 @@ export function LessonRealWorld({ slug, fixes: shared, mine }: LessonRealWorldPr
         <YourFix fix={fix} />
       </Column>,
     );
-    if (others) {
+    // The person's own fix the only one: no column of other people's, which would say none used the idea.
+    if (others?.length) {
       columns.push(
         <Column key="others" title={REAL_WORLD_WORDS.otherFixes} kind="others">
           <FixesList rows={others} />
@@ -190,5 +194,28 @@ export function LessonRealWorld({ slug, fixes: shared, mine }: LessonRealWorldPr
         </Link>
       </p>
     </section>
+  );
+}
+
+/** The lesson's merged fixes as everyone reads them: drawn, on their way from the server, or none. */
+export type SharedFixes = LearnFixes | Promise<LearnFixes | null> | null;
+
+function Shared({ fixes, ...props }: Omit<LessonRealWorldProps, 'fixes'> & { fixes: Promise<LearnFixes | null> }) {
+  return <LessonRealWorld fixes={use(fixes)} {...props} />;
+}
+
+/**
+ * "In the real world" with the merged fixes still on their way: the rest of it (the person's own parts) is drawn
+ * meanwhile, and the fixes join it when they come, so a slow read never holds the lesson.
+ */
+export function LessonRealWorldStreamed({
+  fixes,
+  ...props
+}: Omit<LessonRealWorldProps, 'fixes'> & { fixes: SharedFixes }) {
+  if (!(fixes instanceof Promise)) return <LessonRealWorld fixes={fixes} {...props} />;
+  return (
+    <Suspense fallback={<LessonRealWorld fixes={null} {...props} />}>
+      <Shared fixes={fixes} {...props} />
+    </Suspense>
   );
 }

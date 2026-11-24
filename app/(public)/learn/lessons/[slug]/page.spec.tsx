@@ -40,7 +40,9 @@ describe("a lesson's address", () => {
     loadLearnLessonPage.mockResolvedValue(ours);
     const page = await LessonPage(props(setLesson.slug, { fact: '' }));
     expect(isValidElement(page) && page.type).toBe(LessonScreen);
-    expect((page as { props: object }).props).toEqual({ page: ours, openFact: true, fixes: null });
+    // The merged fixes are on their way, never awaited before the lesson is drawn: they stream in their own boundary.
+    expect((page as { props: object }).props).toEqual({ page: ours, openFact: true, fixes: expect.any(Promise) });
+    expect(await (page as { props: { fixes: Promise<unknown> } }).props.fixes).toBeNull();
     const plain = await LessonPage(props(setLesson.slug));
     expect((plain as { props: { openFact: boolean } }).props.openFact).toBe(false);
     expect(loadLessonPage).not.toHaveBeenCalled();

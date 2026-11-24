@@ -1,7 +1,8 @@
 import type { LearnFixes } from '../issues';
-import type { HomeReal, LearnMyFix, LessonRealMine } from '../real-issues';
+import type { HomeFixState, HomeReal, LearnMyFix, LessonRealMine } from '../real-issues';
 import { issueRows, learnFixes } from './issues';
 import { prLesson, prRow, prRowsLearn } from '@/lib/workspace/__fixtures__/pull-request';
+import type { PullRequestListRow } from '@/lib/workspace/pull-request-page.types';
 
 /** Real issues where Learn's pages meet them, as the API answers them, for the specs and the catalogue. */
 
@@ -72,7 +73,7 @@ export const homeFixNeedsYou = prRow('ROUND_READY', {
 
 /** Learn home with a fix that needs the person: the box is the fix, the open issues a quiet line under it. */
 export const homeRealFix: HomeReal = {
-  box: { kind: 'fix', row: homeFixNeedsYou, openIssues: 5 },
+  box: { kind: 'fix', row: homeFixNeedsYou, state: 'needs-you', openIssues: 5 },
   fixes: [homeFixNeedsYou, prRowsLearn[1]],
   issues: issueRows,
 };
@@ -82,4 +83,28 @@ export const homeRealIssues: HomeReal = {
   box: { kind: 'issues', count: 5 },
   fixes: [],
   issues: issueRows,
+};
+
+/** The person's fix as each state of the third box follows it: their agent working, its pull request open, merged. */
+export const homeFixWorking = prRow('FIXING', { attemptId: 'att_home_fixing', lesson: prLesson });
+export const homeFixOpen = prRowsLearn[1];
+export const homeFixMerged = prRow('MERGED', {
+  attemptId: 'att_home_merged',
+  number: 440,
+  url: 'https://github.com/harbor-kit/relay/pull/440',
+  lesson: { ...prLesson, slug: 'find-duplicates', title: 'Find duplicates in one pass with a set' },
+});
+
+/** Learn home following a fix that does not need the person: the box says where it stands, the light stays put. */
+export const homeRealFixAt = (row: PullRequestListRow, state: HomeFixState): HomeReal => ({
+  box: { kind: 'fix', row, state, openIssues: 5 },
+  fixes: row.group === 'ENDED' ? [] : [row],
+  issues: issueRows,
+});
+
+/** Learn home with no fix and no open issue that fits the person: the quiet box, its email off. */
+export const homeRealNone: HomeReal = {
+  box: { kind: 'none', emailOn: false, emailTo: 'octocat@example.com' },
+  fixes: [],
+  issues: [],
 };

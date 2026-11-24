@@ -2,12 +2,12 @@
 
 import type { Route } from 'next';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { PHONE_LINK } from '@/components/learn/phone-link';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
 import { PullRequestListRowView } from '@/components/workspace/pr-parts/pr-list';
-import { bareRowOf, type IssuesRow, rowLessonOf } from '@/lib/learn/issues';
+import { type IssuesRow, rowLessonOf, rowsAfterSkip } from '@/lib/learn/issues';
 import { learnLessonPath } from '@/lib/learn/paths';
 import { HOME_REAL_WORDS, myFixPathOf } from '@/lib/learn/real-issues';
 import { cn } from '@/lib/utils';
@@ -16,8 +16,8 @@ import type { LearnIssueLesson, PullRequestListRow } from '@/lib/workspace/pull-
 
 /*
  * Learn home's "Real issues": one row for each fix of the person's that has not ended, as their list of pull requests
- * draws it, then the five issues of their list, masked, with their lesson lines. A skip's next issue takes the skipped
- * row's place and a gone one leaves, in place. Left out with nothing in it: the third box already says so.
+ * draws it, then the five issues of their list, masked, with their lesson lines. A skipped or gone row leaves, in
+ * place. Left out with nothing in it: the third box already says so.
  */
 
 const lessonHrefOf = (lesson: LearnIssueLesson): Route => learnLessonPath(lesson.slug);
@@ -35,14 +35,15 @@ export function HomeRealIssues({
   now: Date;
 }) {
   const [issues, setIssues] = useState(given);
+  const skipped = useRef(new Set<string>());
   if (!fixes.length && !issues.length) return null;
   const leave = (id: string) => setIssues((was) => was.filter((row) => row.issue.id !== id));
-  const replace = (id: string, next: IssuesRow) =>
-    setIssues((was) =>
-      was.some((row) => row.issue.id === next.issue.id)
-        ? was.filter((row) => row.issue.id !== id)
-        : was.map((row) => (row.issue.id === id ? next : row)),
-    );
+  // A skip's place takes a row of the person's list not on the screen, with its lesson line; with none, the skipped
+  // row leaves. The skip's own next issue comes without its lesson, so it is not taken.
+  const replace = (id: string) => {
+    skipped.current.add(id);
+    setIssues((was) => rowsAfterSkip(was, id, given, { leftOut: skipped.current }));
+  };
   return (
     <section className="flex flex-col gap-4" aria-labelledby="real-issues" data-home-section="real-issues">
       <div className="flex items-baseline justify-between gap-4">
@@ -70,7 +71,7 @@ export function HomeRealIssues({
                 issue={row.issue}
                 full={row.full}
                 lesson={rowLessonOf(row)}
-                onReplace={(next) => replace(row.issue.id, bareRowOf(next))}
+                onReplace={() => replace(row.issue.id)}
                 onLeave={() => leave(row.issue.id)}
               />
             </li>

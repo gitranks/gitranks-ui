@@ -6,6 +6,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/learn',
 }));
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction: vi.fn(), readMoreLearnFixes: vi.fn() }));
 vi.mock('@/lib/workspace/masked-issue.actions', () => ({
   lookAtIssue: vi.fn(),
   signInToSeeIssue: vi.fn(),
@@ -25,7 +26,15 @@ import {
   homeNothingDue,
   homeSetup,
 } from '@/lib/learn/__fixtures__/learn-home-page';
-import { homeRealFix, homeRealIssues } from '@/lib/learn/__fixtures__/real-issues';
+import {
+  homeFixMerged,
+  homeFixOpen,
+  homeFixWorking,
+  homeRealFix,
+  homeRealFixAt,
+  homeRealIssues,
+  homeRealNone,
+} from '@/lib/learn/__fixtures__/real-issues';
 import type { LearnHomeRead } from '@/lib/learn/home';
 import { NO_HOME_REAL } from '@/lib/learn/real-issues';
 
@@ -208,8 +217,10 @@ describe("Learn home's real issues", () => {
     const page = draw(homeDay, { real: homeRealFix });
     const box = third(page)!;
     expect(box.getAttribute('data-third-box')).toBe('fix');
+    expect(box.getAttribute('data-third-fix')).toBe('needs-you');
     expect(words(box)).toContain('Your fix needs you');
-    expect(words(box)).toContain(homeRealFix.fixes[0].title);
+    expect(words(box)).toContain('Round 2 is ready: your agent made the change');
+    expect(words(box)).toContain('Your agent made the change. Read it, then approve it.');
     expect(words(box.querySelector('[data-third-box-issues]'))).toBe('5 open issues fit you.');
     // One call to act: the fix's own page; the open issues are a line, never a second button.
     expect(box.querySelectorAll('a')).toHaveLength(1);
@@ -230,13 +241,53 @@ describe("Learn home's real issues", () => {
     expect(box.querySelector('a')!.getAttribute('href')).toBe('/learn/issues');
     expect(box.hasAttribute('data-lit')).toBe(false);
     expect(boxes(page)[1].hasAttribute('data-lit')).toBe(true);
-    // With nothing else lit, the open issues take the light.
+    // The open issues never take the light, even with nothing else lit.
     const quiet = draw(homeAllDone, { real: homeRealIssues });
-    expect(third(quiet)!.hasAttribute('data-lit')).toBe(true);
-    expect(lit(quiet)).toHaveLength(1);
+    expect(third(quiet)!.hasAttribute('data-lit')).toBe(false);
+    expect(lit(quiet)).toHaveLength(0);
   });
 
-  it('shows no third box at no open issue and no fix that needs the person', () => {
+  it("follows the person's fix that does not need them, the light where the day puts it", () => {
+    const cases = [
+      [homeFixWorking, 'working', 'Your agent is working on it', 'Open your contribution'],
+      [homeFixOpen, 'open', 'Pull request open', 'Open your contribution'],
+      [homeFixMerged, 'merged', 'Your fix was merged', 'See your Skills page'],
+    ] as const;
+    for (const [row, state, title, button] of cases) {
+      const page = draw(homeDay, { real: homeRealFixAt(row, state), skillsHref: '/profile/octocat/skills' });
+      const box = third(page)!;
+      expect(box.getAttribute('data-third-fix'), state).toBe(state);
+      expect(words(box.querySelector('h2')), state).toBe(title);
+      expect(words(box.querySelector('a')), state).toBe(button);
+      expect(box.hasAttribute('data-lit'), state).toBe(false);
+      expect(box.querySelector('[data-third-box-issues]'), state).toBeNull();
+      expect(boxes(page)[1].hasAttribute('data-lit'), state).toBe(true);
+    }
+    const merged = third(
+      draw(homeDay, { real: homeRealFixAt(homeFixMerged, 'merged'), skillsHref: '/profile/octocat/skills' }),
+    )!;
+    expect(merged.querySelector('a')!.getAttribute('href')).toBe('/profile/octocat/skills');
+    expect(words(merged)).toContain('is now Mastered.');
+    // Without the Skills page's address: no button.
+    expect(third(draw(homeDay, { real: homeRealFixAt(homeFixMerged, 'merged') }))!.querySelector('a')).toBeNull();
+  });
+
+  it('is quiet with no fix and no open issue: never a zero, with the email for a new one', () => {
+    const page = draw(homeDay, { real: homeRealNone });
+    const box = third(page)!;
+    expect(box.getAttribute('data-third-box')).toBe('none');
+    expect(box.hasAttribute('data-quiet')).toBe(true);
+    expect(box.hasAttribute('data-lit')).toBe(false);
+    expect(words(box)).toContain('Fix a real issue');
+    expect(words(box.querySelector('h2'))).toBe('No open issue for you right now');
+    expect(box.querySelector('h2')!.className).toContain('text-muted-foreground');
+    expect(words(box)).toContain('We check new issues every day.');
+    expect(words(box.querySelector('[data-issues-email="off"] button'))).toBe('Email me when one appears');
+    expect(words(box)).not.toMatch(/\b0\b/);
+    expect(boxes(page)).toHaveLength(3);
+  });
+
+  it('shows no third box when the API answers neither part of it', () => {
     expect(third(draw(homeDay, { real: { ...homeRealIssues, box: null } }))).toBeNull();
   });
 

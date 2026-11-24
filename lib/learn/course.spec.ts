@@ -311,9 +311,15 @@ describe('the three boxes', () => {
     expect(courseBoxesOf(algorithmsCourse, knownLaterMine).middle).toEqual({ kind: 'review-none' });
   });
 
-  it("makes the last box a learner's open issues for the course while there are some, and as before with none", () => {
+  it("makes the last box a learner's open issues for a course not finished, and as before with none", () => {
     expect(courseBoxesOf(algorithmsCourse, progressMine, { openIssues: 2 }).last).toEqual({ kind: 'issues', count: 2 });
-    expect(courseBoxesOf(algorithmsCourse, doneMine, { openIssues: 3 }).last).toEqual({ kind: 'issues', count: 3 });
+    // A finished course keeps where to go next, which names the open issues among the ways on.
+    expect(courseBoxesOf(algorithmsCourse, doneMine, { openIssues: 3 }).last).toEqual({
+      kind: 'further',
+      next: algorithmsCourse.next,
+      issues: 3,
+    });
+    expect(courseBoxesOf(algorithmsCourse, doneMine).last).toEqual({ kind: 'further', next: algorithmsCourse.next });
     for (const openIssues of [0, null, undefined, -1]) {
       expect(courseBoxesOf(algorithmsCourse, progressMine, { openIssues }), String(openIssues)).toEqual(
         courseBoxesOf(algorithmsCourse, progressMine),

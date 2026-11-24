@@ -194,7 +194,12 @@ describe('/learn for someone signed in', () => {
     m.loadMaskedListReads.mockResolvedValue(reads);
     const view = (await LearnFrontView()) as Shown;
     expect(m.loadHomeReal).toHaveBeenCalledWith('octocat');
-    expect(view.props).toMatchObject({ home: homeDay, real: homeRealFix, reads });
+    expect(view.props).toMatchObject({
+      home: homeDay,
+      real: homeRealFix,
+      reads,
+      skillsHref: '/profile/octocat/skills',
+    });
   });
 
   it('draws the home as before when the real issues are not answered, reading nothing for their rows', async () => {

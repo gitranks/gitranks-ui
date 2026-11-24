@@ -380,6 +380,21 @@ describe('"In the real world" under a lesson', () => {
     });
     expect(opened).toHaveBeenCalledOnce();
     field.remove();
+    // Another link with the focus keeps the key; Next, the answer's own button, does not.
+    const other = $('[data-real-issues-link]')!;
+    await act(async () => {
+      other.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }),
+      );
+    });
+    expect(opened).toHaveBeenCalledOnce();
+    await act(async () => {
+      main().dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }),
+      );
+    });
+    expect(opened).toHaveBeenCalledTimes(2);
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("puts the person's own fix first, with its address, and never offers another issue", async () => {

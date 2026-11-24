@@ -5,10 +5,9 @@ import { signIn } from 'next-auth/react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { type LessonCalls, LessonPlayer, type LessonViewer, lessonPlayerKeyOf } from './lesson-player';
-import { LessonRealWorld } from './lesson-real-world';
+import { LessonRealWorldStreamed, type SharedFixes } from './lesson-real-world';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
-import type { LearnFixes } from '@/lib/learn/issues';
 import {
   isLastOfGroup,
   type LearnDepth,
@@ -109,8 +108,8 @@ export function LessonLive({
   article: ReactNode;
   more: ReactNode;
   openFact?: boolean;
-  /** The lesson's merged fixes as everyone reads them: given only while Learn is open to everyone. */
-  fixes?: LearnFixes | null;
+  /** The lesson's merged fixes as everyone reads them, or on their way: given only while Learn is open to everyone. */
+  fixes?: SharedFixes;
 }) {
   useLearnSetupGuess();
   const router = useRouter();
@@ -207,7 +206,7 @@ export function LessonLive({
         signedIn={personal.kind !== 'visitor'}
         note={viewer ? null : note}
         real={realMine?.real ?? null}
-        realWorld={<LessonRealWorld slug={lesson.slug} fixes={fixes} mine={realMine} />}
+        realWorld={<LessonRealWorldStreamed slug={lesson.slug} fixes={fixes} mine={realMine} />}
       />
     </div>
   );

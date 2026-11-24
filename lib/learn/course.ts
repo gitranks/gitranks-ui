@@ -315,7 +315,12 @@ export type CourseMiddleBox =
 export type CourseLastBox =
   | { kind: 'grows' }
   | { kind: 'sign-in' }
-  | { kind: 'further'; next: LearnCourseCard | null }
+  | {
+      kind: 'further';
+      next: LearnCourseCard | null;
+      /** The open issues of the learner's list for lessons of the course: "Fix a real issue" among the ways on. */
+      issues?: number;
+    }
   | { kind: 'issues'; count: number };
 
 /**
@@ -462,11 +467,13 @@ export function courseBoxesOf(
   else middle = { kind: 'review-none' };
 
   const issues = typeof openIssues === 'number' && openIssues > 0 ? Math.floor(openIssues) : 0;
-  const last: CourseLastBox = issues
-    ? { kind: 'issues', count: issues }
-    : firstBox.kind === 'finished'
-      ? { kind: 'further', next: course.next }
-      : { kind: 'grows' };
+  // The open issues take the place of how a lesson grows; a finished course keeps where to go next, which names them.
+  const last: CourseLastBox =
+    firstBox.kind === 'finished'
+      ? { kind: 'further', next: course.next, ...(issues ? { issues } : {}) }
+      : issues
+        ? { kind: 'issues', count: issues }
+        : { kind: 'grows' };
   const checkLeads =
     (middle.kind === 'check' && checkFirst) || middle.kind === 'check-unfinished' || middle.kind === 'check-ended';
   const middleActs = middle.kind !== 'review-none';

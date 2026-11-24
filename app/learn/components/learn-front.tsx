@@ -21,6 +21,7 @@ import { loadHomeReal, loadMergedFixes } from '@/lib/learn/real-issues.data';
 import { learnLandingJsonLd } from '@/lib/learn/seo/landing';
 import type { LearnSetupRead } from '@/lib/learn/setup';
 import { loadLearnSetup as loadLearnSetupOf } from '@/lib/learn/setup.data';
+import { skillsPath } from '@/lib/skills/paths';
 import { viewerLogin } from '@/lib/workspace/contribute.data';
 import type { WorkspaceGate } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
@@ -113,6 +114,7 @@ export async function LearnFrontView() {
       timeZone={timeZone}
       real={real}
       reads={reads}
+      skillsHref={skillsPath(login)}
     />
   );
 }

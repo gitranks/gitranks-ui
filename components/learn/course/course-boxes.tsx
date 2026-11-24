@@ -399,6 +399,14 @@ function LastBox({
                 <span className="text-xs text-muted-foreground">{lessonsWords(box.next.lessons)}</span>
               </li>
             ) : null}
+            {box.issues ? (
+              <li className="flex flex-col" data-further-issues="">
+                <Link href={learnCourseRealWorldPath(slug)} className="font-semibold text-link hover:underline">
+                  Fix a real issue
+                </Link>
+                <span className="text-xs text-muted-foreground">{courseIssuesBoxWordsOf(box.issues).title}.</span>
+              </li>
+            ) : null}
             <li className="flex flex-col">
               <a
                 href="https://roleford.com"

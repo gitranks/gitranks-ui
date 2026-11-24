@@ -61,13 +61,14 @@ const START_LINES: Record<LandingViewer, string | null> = {
 
 /**
  * "Real issues fixed with Learn": the three newest merged fixes, each in the name of who fixed it, with how many there
- * are from five. Left out with fewer than three. A fix's title is plain text until its own page is there.
+ * are from five. Left out with fewer than three. A fix's title is plain text until its own page is there. Plain, not
+ * muted: the section after it is muted.
  */
 function MergedFixes({ fixes }: { fixes: LearnFixes | null }) {
   const shown = landingFixesOf(fixes);
   if (!shown) return null;
   return (
-    <section className={MUTED_SECTION} aria-labelledby="fixed-with-learn" data-landing-fixes="">
+    <section aria-labelledby="fixed-with-learn" data-landing-fixes="">
       <div className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
           <div className="flex min-w-0 flex-col gap-2">

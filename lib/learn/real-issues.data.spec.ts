@@ -118,11 +118,14 @@ describe("Learn home's real issues", () => {
         : { learnHome: { thirdBox: { needsYou: true, fix: homeFixNeedsYou }, fixes: [homeFixNeedsYou] } },
     );
     expect(await loadHomeReal('octocat')).toEqual({
-      box: { kind: 'fix', row: homeFixNeedsYou, openIssues: 4 },
+      box: { kind: 'fix', row: homeFixNeedsYou, state: 'needs-you', openIssues: 4 },
       fixes: [homeFixNeedsYou],
       issues: issueRows,
     });
     expect(m.graphqlDirect.mock.calls.map(operationOf).sort()).toEqual(['HomeFixes', 'HomeIssues']);
+    // The list's email rides on the issues' read, for the quiet box.
+    const issues = m.graphqlDirect.mock.calls.find((call) => operationOf(call) === 'HomeIssues')!;
+    expect(print(issues[0])).toContain('emailOn');
   });
 
   it('is nothing when the API knows neither, and the issues alone when the fixes fail', async () => {

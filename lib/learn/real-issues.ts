@@ -66,10 +66,20 @@ export type LessonRealMine = {
 
 export const NO_LESSON_REAL: LessonRealMine = { real: null, rows: null, reads: null, fixes: null };
 
-/** Learn home's third box: a fix of the person's that needs them (with the open issues under it), or the open issues. */
+/**
+ * Where the person's fix in the third box stands: it needs them, their agent is working, its pull request is open, or
+ * it was merged. Read from the row's group and mark alone.
+ */
+export type HomeFixState = 'needs-you' | 'working' | 'open' | 'merged';
+
+/**
+ * Learn home's third box: a fix of the person's, followed to its end (with the open issues a quiet line under it while
+ * it needs them); else the open issues that fit them; else none open, with the email for a new one.
+ */
 export type HomeThirdBox =
-  | { kind: 'fix'; row: PullRequestListRow; openIssues: number | null }
-  | { kind: 'issues'; count: number };
+  | { kind: 'fix'; row: PullRequestListRow; state: HomeFixState; openIssues: number | null }
+  | { kind: 'issues'; count: number }
+  | { kind: 'none'; emailOn: boolean; emailTo: string | null };
 
 /** What Learn home adds: the third box, the person's fixes not ended, and the five issues of their list. */
 export type HomeReal = { box: HomeThirdBox | null; fixes: PullRequestListRow[]; issues: IssuesRow[] };
@@ -184,27 +194,46 @@ export function pullRequestRowOf(value: unknown): PullRequestListRow | null {
   };
 }
 
+/** Where a fix stands for the third box; null for one that ended without a merge. */
+export function homeFixStateOf(row: Pick<PullRequestListRow, 'group' | 'mark'>): HomeFixState | null {
+  if (row.group === 'NEEDS_YOU') return 'needs-you';
+  if (row.group === 'IN_PROGRESS') return row.mark === 'MAINTAINERS' ? 'open' : 'working';
+  return row.mark === 'MERGED' ? 'merged' : null;
+}
+
 /**
- * Learn home's parts from its two reads: the issues' (`thirdBox.openIssues`, `issues`) and the fixes' (`thirdBox`'s
- * fix, `fixes`). Either may be missing (null), and the home draws what the other gives. The box is the fix that needs
- * the person, else the count of open issues that fit them, else none; a fix row that has ended is left out.
+ * Learn home's parts from its two reads: the issues' (`thirdBox.openIssues`, `issues` with its email) and the fixes'
+ * (`thirdBox`'s fix, `fixes`). Either may be missing (null), and the home draws what the other gives. The box follows
+ * a fix of the person's: the one that needs them, else the first of their fixes the API sends (in progress, or merged
+ * when it sends one); else the count of open issues that fit them; else, when the issues' read answered, none open.
+ * Neither answered: no box, and the home is as it was. A fix row that has ended is left out of the rows.
  */
 export function homeRealOf(issuesRead: unknown, fixesRead: unknown): HomeReal {
   const issuesHome = recordOf(issuesRead);
   const fixesHome = recordOf(fixesRead);
-  const openIssues = countOf(recordOf(issuesHome?.thirdBox)?.openIssues);
+  const issuesBox = recordOf(issuesHome?.thirdBox);
+  const openIssues = countOf(issuesBox?.openIssues);
   const fixBox = recordOf(fixesHome?.thirdBox);
-  const fix = fixBox?.needsYou === true ? pullRequestRowOf(fixBox.fix) : null;
-  const fixes = (Array.isArray(fixesHome?.fixes) ? fixesHome.fixes : [])
+  const allFixes = (Array.isArray(fixesHome?.fixes) ? fixesHome.fixes : [])
     .map(pullRequestRowOf)
-    .filter((row): row is PullRequestListRow => row !== null && row.group !== 'ENDED');
-  const issues = realRowsOf(issuesHome?.issues) ?? [];
-  const box: HomeThirdBox | null = fix
-    ? { kind: 'fix', row: fix, openIssues }
-    : openIssues
-      ? { kind: 'issues', count: openIssues }
-      : null;
-  return { box, fixes, issues };
+    .filter((row): row is PullRequestListRow => row !== null);
+  const needsYou = fixBox?.needsYou === true ? pullRequestRowOf(fixBox.fix) : null;
+  const followed =
+    needsYou ??
+    allFixes.find((row) => row.group === 'NEEDS_YOU') ??
+    allFixes.find((row) => row.group === 'IN_PROGRESS') ??
+    allFixes.find((row) => homeFixStateOf(row) === 'merged') ??
+    null;
+  const state = followed ? homeFixStateOf(followed) : null;
+  const list = recordOf(issuesHome?.issues);
+  const issues = realRowsOf(list) ?? [];
+  let box: HomeThirdBox | null = null;
+  if (followed && state) box = { kind: 'fix', row: followed, state, openIssues };
+  else if (openIssues) box = { kind: 'issues', count: openIssues };
+  else if (issuesBox && list) {
+    box = { kind: 'none', emailOn: list.emailOn === true, emailTo: textOf(list.emailTo) };
+  }
+  return { box, fixes: allFixes.filter((row) => row.group !== 'ENDED'), issues };
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -249,10 +278,64 @@ export function issuesBoxWordsOf(count: number): { title: string; text: string; 
   };
 }
 
-/** The third box with a fix that needs the person: its line and its button, in the words of its own page. */
-export function fixBoxWordsOf(row: PullRequestListRow): { title: string; button: string } {
-  const words = needsYouRowWordsOf(row);
-  return { title: words?.line ?? 'Your fix needs you', button: words?.button ?? 'Open your fix' };
+/** The third box's words for the person's fix, as the board draws each state. */
+export type FixBoxWords = {
+  eyebrow: string;
+  title: string;
+  text: string;
+  /** The box's one button: the fix's own page, or the person's Skills page. */
+  button: { label: string; to: 'fix' | 'skills' };
+};
+
+const NEEDS_YOU_TEXT: Partial<Record<PullRequestBox, string>> = {
+  WALKTHROUGH: 'Answer the questions about your fix. Then you can open the pull request.',
+  APPROVE: 'You passed the fix walkthrough. Read the change, then approve it.',
+  ONLY_YOU: 'There is a step only you can take. Its page says what to do.',
+  ROUND_WAITING: 'Read what was asked and decide what your agent does next.',
+  ROUND_READY: 'Your agent made the change. Read it, then approve it.',
+};
+
+const WORKING_TEXT: Partial<Record<PullRequestBox, string>> = {
+  ROUND_WORKING: 'Nothing to do yet. We tell you when the change is ready.',
+  OPENING: 'Nothing to do yet. Your agent is opening the pull request.',
+};
+
+export function fixBoxWordsOf(row: PullRequestListRow, state: HomeFixState): FixBoxWords {
+  const open = { label: 'Open your contribution', to: 'fix' as const };
+  switch (state) {
+    case 'needs-you': {
+      const words = needsYouRowWordsOf(row);
+      return {
+        eyebrow: 'Your fix needs you',
+        title: words?.line ?? 'Your fix needs you',
+        text: NEEDS_YOU_TEXT[row.box] ?? 'Open your fix to see what to do next.',
+        button: { label: words?.button ?? 'Open your fix', to: 'fix' },
+      };
+    }
+    case 'working':
+      return {
+        eyebrow: 'Your fix',
+        title: 'Your agent is working on it',
+        text: WORKING_TEXT[row.box] ?? 'Nothing to do yet. We tell you when the fix walkthrough is ready.',
+        button: open,
+      };
+    case 'open':
+      return {
+        eyebrow: 'Your fix',
+        title: 'Pull request open',
+        text: row.lesson
+          ? 'Waiting for a maintainer. The lesson becomes Mastered when it is merged.'
+          : 'Waiting for a maintainer.',
+        button: open,
+      };
+    case 'merged':
+      return {
+        eyebrow: 'Your fix',
+        title: 'Your fix was merged',
+        text: row.lesson ? `“${row.lesson.title}” is now Mastered.` : 'The project has your fix now.',
+        button: { label: 'See your Skills page', to: 'skills' },
+      };
+  }
 }
 
 /** The quiet line under a fix that needs the person: the open issues that fit them; null for none. */
@@ -260,6 +343,13 @@ export function fixBoxIssuesLineOf(count: number | null): string | null {
   const words = openIssuesWordsOf(count);
   return words ? `${words} ${count === 1 ? 'fits' : 'fit'} you.` : null;
 }
+
+/** The third box with no fix and no open issue that fits the person: quiet, with the email for a new one. */
+export const NO_ISSUES_BOX_WORDS = {
+  eyebrow: 'Fix a real issue',
+  title: 'No open issue for you right now',
+  text: 'We check new issues every day.',
+} as const;
 
 /** A course's third box: the open issues of the person's list for lessons of the course. */
 export function courseIssuesBoxWordsOf(count: number): { title: string; text: string; button: string } {

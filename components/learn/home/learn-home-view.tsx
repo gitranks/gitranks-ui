@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { useCoursePageKeys } from '@/components/learn/course/use-course-keys';
 import { CourseStats } from '@/components/learn/courses/course-card';
+import { HomeIssuesEmail } from '@/components/learn/home/home-issues-email';
 import { HomeRealIssues } from '@/components/learn/home/home-real-issues';
 import { MyCourseCard } from '@/components/learn/my-progress/my-progress-parts';
 import { PHONE_LINK } from '@/components/learn/phone-link';
@@ -41,10 +42,12 @@ import {
 import {
   fixBoxIssuesLineOf,
   fixBoxWordsOf,
+  type HomeFixState,
   type HomeReal,
   type HomeThirdBox,
   issuesBoxWordsOf,
   myFixPathOf,
+  NO_ISSUES_BOX_WORDS,
 } from '@/lib/learn/real-issues';
 import type { LearnSetupRead } from '@/lib/learn/setup';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
@@ -52,10 +55,10 @@ import { cn } from '@/lib/utils';
 import type { MaskedListReads } from '@/lib/workspace/masked-issue';
 
 /*
- * Learn home (page 3): three boxes (the next lesson, the review, and real issues: a fix that needs the person, else the
- * open issues that fit them, else an empty place), the "Real issues" rows, the courses the person started, the courses
- * they have not, and the foot. A new learner picks a first course in the boxes' place. The lit box takes Enter, the
- * review R; a fix that needs the person takes the light from the others.
+ * Learn home (page 3): three boxes (the next lesson, the review, and real issues: the person's fix followed to its
+ * end, else the open issues that fit them, else a quiet box with the email for a new one), the "Real issues" rows, the
+ * courses the person started, the courses they have not, and the foot. A new learner picks a first course in the
+ * boxes' place. The lit box takes Enter, the review R; a fix that needs the person takes the light from the others.
  */
 
 /** Learn home has no search: the page's keys are Enter and R alone. */
@@ -70,12 +73,14 @@ function Box({
   lit = false,
   quiet = false,
   kind,
+  state,
   children,
 }: {
   lit?: boolean;
   quiet?: boolean;
-  /** The third box's kind: a fix that needs the person, or the open issues. */
+  /** The third box's kind (a fix of the person's, the open issues, or none open), and where its fix stands. */
   kind?: HomeThirdBox['kind'];
+  state?: HomeFixState;
   children: ReactNode;
 }) {
   return (
@@ -88,6 +93,7 @@ function Box({
       data-lit={lit ? '' : undefined}
       data-quiet={quiet ? '' : undefined}
       data-third-box={kind}
+      data-third-fix={state}
     >
       {children}
     </section>
@@ -229,28 +235,57 @@ function ReviewBox({ box, lit, hints }: { box: HomeReviewBox; lit: boolean; hint
 }
 
 /**
- * The third box: a fix that needs the person is its one message and its one button, the open issues a quiet line under
- * it; else the open issues that fit them; nothing with neither.
+ * The third box, always there once its reads answer: the person's fix followed to its end (only one that needs them is
+ * lit, with the open issues a quiet line under it); else the open issues that fit them; else quiet, with the email
+ * for a new one. Its button names a page that exists: the fix's own page, Issues, or the person's Skills page.
  */
-function ThirdBox({ box, lit, hints }: { box: HomeThirdBox; lit: boolean; hints: boolean }) {
+function ThirdBox({
+  box,
+  lit,
+  hints,
+  skillsHref,
+}: {
+  box: HomeThirdBox;
+  lit: boolean;
+  hints: boolean;
+  skillsHref: string | null;
+}) {
   if (box.kind === 'fix') {
-    const words = fixBoxWordsOf(box.row);
-    const issues = fixBoxIssuesLineOf(box.openIssues);
+    const words = fixBoxWordsOf(box.row, box.state);
+    const needsYou = box.state === 'needs-you';
+    const issues = needsYou ? fixBoxIssuesLineOf(box.openIssues) : null;
+    const href = words.button.to === 'fix' ? myFixPathOf(box.row) : skillsHref;
     return (
-      <Box lit={lit} kind="fix">
-        <span className="self-start rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
-          Your fix needs you
-        </span>
+      <Box lit={lit} kind="fix" state={box.state}>
+        {needsYou ? (
+          <span className="self-start rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
+            {words.eyebrow}
+          </span>
+        ) : (
+          <Eyebrow>{words.eyebrow}</Eyebrow>
+        )}
         <Title>{words.title}</Title>
-        <Text>{box.row.title}</Text>
+        <Text>{words.text}</Text>
         {issues ? (
           <p className="m-0 text-xs text-muted-foreground" data-third-box-issues="">
             {issues}
           </p>
         ) : null}
-        <Action lit={lit} hints={hints} href={myFixPathOf(box.row)}>
-          {words.button}
-        </Action>
+        {href ? (
+          <Action lit={lit} hints={hints} href={href}>
+            {words.button.label}
+          </Action>
+        ) : null}
+      </Box>
+    );
+  }
+  if (box.kind === 'none') {
+    return (
+      <Box quiet kind="none">
+        <Eyebrow>{NO_ISSUES_BOX_WORDS.eyebrow}</Eyebrow>
+        <Title quiet>{NO_ISSUES_BOX_WORDS.title}</Title>
+        <Text>{NO_ISSUES_BOX_WORDS.text}</Text>
+        <HomeIssuesEmail on={box.emailOn} to={box.emailTo} />
       </Box>
     );
   }
@@ -457,6 +492,8 @@ export type LearnHomeViewProps = {
   real?: HomeReal | null;
   /** What the masked rows need: the day's full issues, the numbers of a night. */
   reads?: MaskedListReads | null;
+  /** The person's Skills page, which the box of a merged fix leads to; none, and that box has no button. */
+  skillsHref?: string | null;
 };
 
 /** Learn home, as the person's answer says. */
@@ -468,6 +505,7 @@ export function LearnHomeView({
   hints: hintsGiven,
   real = null,
   reads = null,
+  skillsHref = null,
 }: LearnHomeViewProps) {
   const live = useKeyHints();
   const hints = hintsGiven ?? live;
@@ -476,10 +514,10 @@ export function LearnHomeView({
   const today = learnTodayIn(at, timeZone);
   const fresh = isNewLearner(home);
   const boxes = homeBoxesOf(home, at, timeZone);
-  // A fix that needs the person comes before everything else of the day; the open issues take the light only when no
-  // other box has it.
+  // A fix that needs the person comes before everything else of the day; else the light stays where the day puts it
+  // (the reviews due, else the next lesson). The open issues never take it.
   const third = real?.box ?? null;
-  const highlight = third && (third.kind === 'fix' || !boxes.highlight) ? 'third' : boxes.highlight;
+  const highlight = third?.kind === 'fix' && third.state === 'needs-you' ? 'third' : boxes.highlight;
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pt-7 pb-16" data-learn-home="">
       {fresh ? (
@@ -490,11 +528,19 @@ export function LearnHomeView({
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-home-boxes="">
             <LessonBox box={boxes.lesson} lit={highlight === 'lesson'} hints={hints} />
             <ReviewBox box={boxes.review} lit={highlight === 'review'} hints={hints} />
-            {third ? <ThirdBox box={third} lit={highlight === 'third'} hints={hints} /> : null}
+            {third ? <ThirdBox box={third} lit={highlight === 'third'} hints={hints} skillsHref={skillsHref} /> : null}
           </div>
         </>
       )}
-      {real ? <HomeRealIssues fixes={real.fixes} issues={real.issues} reads={reads} now={at} /> : null}
+      {real ? (
+        <HomeRealIssues
+          key={real.issues.map((row) => row.issue.id).join()}
+          fixes={real.fixes}
+          issues={real.issues}
+          reads={reads}
+          now={at}
+        />
+      ) : null}
       <YourCourses home={home} today={today} />
       <OtherCourses home={home} />
       <LearnHomeFoot />

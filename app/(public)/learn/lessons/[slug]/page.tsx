@@ -37,16 +37,17 @@ export async function generateMetadata({
 
 /**
  * A lesson of a course, open to everyone; else a shared lesson of a fix, as before. Its merged fixes ("In the real
- * world") are drawn for everyone only while Learn is open to everyone; else a person Learn is open to reads them later.
+ * world") are drawn for everyone only while Learn is open to everyone, streamed in after the lesson; else a person
+ * Learn is open to reads them later.
  */
 export default async function LessonPage({ params, searchParams }: PageProps<'/learn/lessons/[slug]'>) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
+  // Started beside the lesson's read and never awaited here: "In the real world" streams in its own boundary, so a slow
+  // read of the fixes never holds the lesson. It answers null on any failure.
+  const fixes = learnOpenToEveryoneCached()
+    .catch(() => false)
+    .then((open) => (open ? loadMergedFixes({ lesson: slug }) : null));
   const ours = await loadLearnLessonPage(slug);
-  if (ours) {
-    const fixes = (await learnOpenToEveryoneCached().catch(() => false))
-      ? await loadMergedFixes({ lesson: slug })
-      : null;
-    return <LessonScreen page={ours} openFact={query.fact !== undefined} fixes={fixes} />;
-  }
+  if (ours) return <LessonScreen page={ours} openFact={query.fact !== undefined} fixes={fixes} />;
   return <LessonPageView slug={slug} />;
 }

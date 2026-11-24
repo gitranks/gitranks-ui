@@ -133,6 +133,34 @@ describe("a course's page in the browser, for a person with a session", () => {
     expect(box.querySelector('a[href="/learn/courses/algorithms/real-world"]')).not.toBeNull();
   });
 
+  it("draws the person's boxes once, after the open issues are read too, never changing them after", async () => {
+    let answerIssues!: (response: Response) => void;
+    fetchMock.mockImplementation((url: string) =>
+      url.endsWith('/real-world')
+        ? new Promise<Response>((resolve) => {
+            answerIssues = resolve;
+          })
+        : Promise.resolve(new Response(JSON.stringify({ course: progressMine, checkFirst: false }))),
+    );
+    await draw();
+    // The side came; the open issues did not yet: nothing of the person's is drawn.
+    expect(host.querySelectorAll('ol [data-square]').length).toBe(0);
+    await act(async () => answerIssues(new Response(JSON.stringify({ openIssues: 2 }))));
+    expect(host.querySelectorAll('[data-square]').length).toBeGreaterThan(0);
+    expect(host.querySelector('[data-course-boxes]')!.textContent).toContain('2 open issues for this course');
+  });
+
+  it('keeps where to go next on a finished course, naming the open issues there', async () => {
+    answer({ course: doneMine, checkFirst: false }, 200, { body: { openIssues: 3 } });
+    await draw();
+    const boxes = host.querySelector('[data-course-boxes]')!;
+    expect(boxes.textContent).toContain('Go further');
+    const issues = boxes.querySelector('[data-further-issues]')!;
+    expect(issues.textContent).toContain('Fix a real issue');
+    expect(issues.textContent).toContain('3 open issues for this course.');
+    expect(issues.querySelector('a')!.getAttribute('href')).toBe('/learn/courses/algorithms/real-world');
+  });
+
   it('keeps the boxes as they were when the open issues are none, fail, or are not known to the API', async () => {
     const boxesWith = async (real: { body: unknown; status?: number }) => {
       answer({ course: progressMine, checkFirst: false }, 200, real);

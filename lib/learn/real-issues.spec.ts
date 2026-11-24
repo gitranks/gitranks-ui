@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import { issueRows, learnFixes } from './__fixtures__/issues';
-import { homeFixNeedsYou, landingFixes, myFixMerged, myFixOpen, myFixStarted } from './__fixtures__/real-issues';
+import {
+  homeFixMerged,
+  homeFixNeedsYou,
+  homeFixOpen,
+  homeFixWorking,
+  landingFixes,
+  myFixMerged,
+  myFixOpen,
+  myFixStarted,
+} from './__fixtures__/real-issues';
 import {
   ALL_FIXES_PATH,
   allFixesWordsOf,
@@ -13,6 +22,7 @@ import {
   fixBoxWordsOf,
   fixesOf,
   fixOnItsWay,
+  homeFixStateOf,
   homeRealOf,
   issuesBoxWordsOf,
   landingFixesLineOf,
@@ -24,6 +34,7 @@ import {
   myFixPathOf,
   myFixWordsOf,
   NO_HOME_REAL,
+  NO_ISSUES_BOX_WORDS,
   openIssuesWordsOf,
   pullRequestRowOf,
   realRowsOf,
@@ -88,29 +99,59 @@ describe('real issues as the API answers them', () => {
 });
 
 describe("Learn home's real issues", () => {
-  const issuesRead = (openIssues: unknown, rows: unknown[] = issueRows) => ({
+  const issuesRead = (openIssues: unknown, rows: unknown[] = issueRows, email: object = {}) => ({
     thirdBox: { openIssues },
-    issues: { rows },
+    issues: { rows, emailOn: false, emailTo: 'octocat@example.com', ...email },
   });
-  const fixesRead = (needsYou: boolean, fixes = [homeFixNeedsYou]) => ({
+  const fixesRead = (needsYou: boolean, fixes: unknown[] = [homeFixNeedsYou]) => ({
     thirdBox: { needsYou, fix: needsYou ? homeFixNeedsYou : null },
     fixes,
   });
 
   it('makes a fix that needs the person the box, with the open issues a line under it', () => {
     const real = homeRealOf(issuesRead(5), fixesRead(true));
-    expect(real.box).toEqual({ kind: 'fix', row: homeFixNeedsYou, openIssues: 5 });
+    expect(real.box).toEqual({ kind: 'fix', row: homeFixNeedsYou, state: 'needs-you', openIssues: 5 });
     expect(real.fixes).toEqual([homeFixNeedsYou]);
     expect(real.issues).toEqual(issueRows);
   });
 
-  it('else makes the open issues the box, and nothing at none', () => {
-    expect(homeRealOf(issuesRead(5), fixesRead(false)).box).toEqual({ kind: 'issues', count: 5 });
-    expect(homeRealOf(issuesRead(0), fixesRead(false)).box).toBeNull();
-    expect(homeRealOf(issuesRead(null), null).box).toBeNull();
+  it('follows a fix of theirs to its end: working, its pull request open, merged when the API sends it', () => {
+    for (const [row, state] of [
+      [homeFixWorking, 'working'],
+      [homeFixOpen, 'open'],
+      [homeFixMerged, 'merged'],
+    ] as const) {
+      expect(homeRealOf(issuesRead(5), fixesRead(false, [row])).box, state).toEqual({
+        kind: 'fix',
+        row,
+        state,
+        openIssues: 5,
+      });
+    }
+    // A fix that needs them comes first, whatever the order; one that ended unmerged is no fix to follow.
+    expect(homeRealOf(null, fixesRead(false, [homeFixOpen, homeFixNeedsYou])).box).toMatchObject({
+      state: 'needs-you',
+    });
+    const closed = prRow('CLOSED', { attemptId: 'att_closed' });
+    expect(homeRealOf(issuesRead(2), fixesRead(false, [closed])).box).toEqual({ kind: 'issues', count: 2 });
+    expect(homeFixStateOf(closed)).toBeNull();
   });
 
-  it('leaves out fixes that have ended', () => {
+  it('else makes the open issues the box, and the quiet box with the email at none', () => {
+    expect(homeRealOf(issuesRead(5), fixesRead(false, [])).box).toEqual({ kind: 'issues', count: 5 });
+    expect(homeRealOf(issuesRead(0, []), fixesRead(false, [])).box).toEqual({
+      kind: 'none',
+      emailOn: false,
+      emailTo: 'octocat@example.com',
+    });
+    expect(homeRealOf(issuesRead(null, [], { emailOn: true, emailTo: null }), null).box).toEqual({
+      kind: 'none',
+      emailOn: true,
+      emailTo: null,
+    });
+  });
+
+  it('leaves out fixes that have ended from the rows', () => {
     const ended = prRow('MERGED', { attemptId: 'att_done' });
     expect(homeRealOf(null, fixesRead(false, [homeFixNeedsYou, ended])).fixes).toEqual([homeFixNeedsYou]);
   });
@@ -118,13 +159,15 @@ describe("Learn home's real issues", () => {
   it('is nothing when neither read answers, or what the other gives when one fails', () => {
     expect(homeRealOf(null, null)).toEqual(NO_HOME_REAL);
     expect(homeRealOf(undefined, 'x')).toEqual(NO_HOME_REAL);
+    // An issues' read without its box or its list: no box, never a zero.
+    expect(homeRealOf({ issues: { rows: [] } }, null).box).toBeNull();
     expect(homeRealOf(issuesRead(3), null)).toEqual({
       box: { kind: 'issues', count: 3 },
       fixes: [],
       issues: issueRows,
     });
     expect(homeRealOf(null, fixesRead(true))).toEqual({
-      box: { kind: 'fix', row: homeFixNeedsYou, openIssues: null },
+      box: { kind: 'fix', row: homeFixNeedsYou, state: 'needs-you', openIssues: null },
       fixes: [homeFixNeedsYou],
       issues: [],
     });
@@ -157,10 +200,32 @@ describe('words', () => {
     expect(fixBoxIssuesLineOf(null)).toBeNull();
   });
 
-  it("says a fix that needs the person in its own page's words", () => {
-    const words = fixBoxWordsOf(homeFixNeedsYou);
-    expect(words.title.length).toBeGreaterThan(0);
-    expect(words.button.length).toBeGreaterThan(0);
+  it("says where the person's fix stands, as the board does", () => {
+    expect(fixBoxWordsOf(homeFixNeedsYou, 'needs-you')).toEqual({
+      eyebrow: 'Your fix needs you',
+      title: 'Round 2 is ready: your agent made the change',
+      text: 'Your agent made the change. Read it, then approve it.',
+      button: { label: 'Read and approve', to: 'fix' },
+    });
+    expect(fixBoxWordsOf(homeFixWorking, 'working')).toMatchObject({
+      title: 'Your agent is working on it',
+      text: 'Nothing to do yet. We tell you when the fix walkthrough is ready.',
+      button: { label: 'Open your contribution', to: 'fix' },
+    });
+    expect(fixBoxWordsOf(homeFixOpen, 'open')).toMatchObject({
+      title: 'Pull request open',
+      text: 'Waiting for a maintainer. The lesson becomes Mastered when it is merged.',
+      button: { label: 'Open your contribution', to: 'fix' },
+    });
+    expect(fixBoxWordsOf({ ...homeFixOpen, lesson: null }, 'open').text).toBe('Waiting for a maintainer.');
+    expect(fixBoxWordsOf(homeFixMerged, 'merged')).toEqual({
+      eyebrow: 'Your fix',
+      title: 'Your fix was merged',
+      text: '\u201cFind duplicates in one pass with a set\u201d is now Mastered.',
+      button: { label: 'See your Skills page', to: 'skills' },
+    });
+    // No step count is read: the walkthrough's words name none.
+    expect(fixBoxWordsOf(prRow('WALKTHROUGH'), 'needs-you').text).not.toMatch(/\d/);
   });
 
   it("names a course's merged fixes from five", () => {
@@ -198,6 +263,9 @@ describe('words', () => {
   it('has no long dash', () => {
     const all = [
       issuesBoxWordsOf(2),
+      NO_ISSUES_BOX_WORDS,
+      fixBoxWordsOf(homeFixMerged, 'merged'),
+      fixBoxWordsOf(homeFixWorking, 'working'),
       courseIssuesBoxWordsOf(2),
       myFixWordsOf(myFixOpen),
       myFixWordsOf(myFixMerged),

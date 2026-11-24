@@ -15,8 +15,8 @@ export type SkillsOverviewMine = SkillsSides & {
   page: { login: string; numbers: SkillsNumbers } | null;
 };
 
-/** The owner's own block, for a page only they see: its numbers and its state (`PRIVATE` only from an older API). */
-export type SkillsOwnBlock = { numbers: SkillsNumbers; state: 'HIDDEN' | 'PRIVATE' };
+/** The owner's own block, for a page only they see: its numbers and its state. */
+export type SkillsOwnBlock = { numbers: SkillsNumbers; state: 'HIDDEN' };
 
 /**
  * What the owner's own profile overview reads of Skills (`GET /api/me/skills/profile?login=`): which products they
@@ -48,11 +48,11 @@ export function ownerBoxCaseOf(sides: SkillsSides | null): OwnerBoxCase {
 export type OverviewBlock = { numbers: SkillsNumbers; ownState: SkillsState | null };
 
 /**
- * The owner's own block: only for a page they alone see (`HIDDEN`, or `PRIVATE` from an older API, drawn the same)
- * that has numbers. On a page everyone sees, the owner reads the public block like everyone else.
+ * The owner's own block: only for a page they alone see (`HIDDEN`) that has numbers.
+ * On a page everyone sees, the owner reads the public block like everyone else.
  */
 export function ownBlockOf(mine: SkillsOverviewMine | null): SkillsOwnBlock | null {
-  if (!mine?.page || (mine.state !== 'HIDDEN' && mine.state !== 'PRIVATE')) return null;
+  if (!mine?.page || mine.state !== 'HIDDEN') return null;
   return { numbers: mine.page.numbers, state: mine.state };
 }
 

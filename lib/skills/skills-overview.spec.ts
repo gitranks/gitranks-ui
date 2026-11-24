@@ -15,9 +15,8 @@ const mine = (patch: Partial<SkillsOverviewMine>): SkillsOverviewMine => ({
 const brief = { brief: { login: 'octocat', numbers: contributorNumbers } };
 
 describe("the owner's own block on their overview", () => {
-  it('is theirs only for a page they alone see: hidden, or private from an older API', () => {
+  it('is theirs only for a page they alone see: hidden', () => {
     expect(ownBlockOf(mine({ state: 'HIDDEN' }))).toEqual({ numbers: learnerNumbers, state: 'HIDDEN' });
-    expect(ownBlockOf(mine({ state: 'PRIVATE' }))).toEqual({ numbers: learnerNumbers, state: 'PRIVATE' });
   });
 
   it('is none on a page everyone sees, a page with nothing on it, and before the view is read', () => {

@@ -76,12 +76,6 @@ describe('Settings\' "Your Skills page"', () => {
     expect(container.querySelector('button')).toBeNull();
   });
 
-  it('words an older API’s private page as a hidden one, with no switch to press', async () => {
-    await draw({ ...skillsMine.hiddenLearner, state: 'PRIVATE' });
-    expect(row()?.textContent).toContain('Only you can see it.');
-    expect(container.querySelector('button')).toBeNull();
-  });
-
   it('says who can see it could not be read when the view is missing', async () => {
     await draw(undefined);
     expect(row()?.getAttribute('data-skills-privacy')).toBe('unread');

@@ -21,6 +21,8 @@ const SOURCES = [
   'app/components/landing/packages-section.tsx',
   'app/components/landing/landing-promos.tsx',
   'app/components/landing/learn-section.tsx',
+  'app/components/landing/products-block-live.tsx',
+  'app/components/landing/products-block.tsx',
   'app/components/landing/readme-section.tsx',
   'app/components/landing/repos-section.tsx',
 ];
@@ -42,7 +44,7 @@ export const LANDING_SCREENS: Screen[] = [
       },
       {
         id: 'signed-out-learn',
-        title: 'Signed out, with Learn once it is open to visitors',
+        title: 'Signed out, once Learn is open to everyone: the block for Contribute and Learn under the hero',
         path: '/',
         signedOut: true,
         height: 7500,

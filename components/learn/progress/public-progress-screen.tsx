@@ -90,7 +90,7 @@ export function PublicProgressScreen({ login, page, progress, own }: PublicProgr
         <p data-own-line="" className="rounded-xl bg-brand-soft px-4 py-3 text-sm text-brand-soft-foreground">
           This is your public page.{' '}
           <Link href={LEARN_PROGRESS_PATH} prefetch={false} className="font-semibold hover:underline">
-            Your progress, with everything, is here →
+            Your progress is here →
           </Link>
         </p>
       ) : null}

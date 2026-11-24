@@ -234,6 +234,17 @@ describe('Approve in Contribute', () => {
     expect(text()).toContain('2 files31 lines added4 removed');
   });
 
+  it('leaves out a count of nothing, never "0 lines added"', async () => {
+    await screen({
+      approval: {
+        ...prApprovals.contribute,
+        change: { ...prApprovals.contribute.change, files: 1, added: 0, removed: 4 },
+      },
+    });
+    expect(text()).toContain('1 file4 lines removed');
+    expect(text()).not.toContain('0 lines');
+  });
+
   it('says a single line in the singular', async () => {
     await screen({ approval: { ...prApprovals.contribute, change: { ...prApprovals.contribute.change, added: 1 } } });
     expect(text()).toContain('1 line added');

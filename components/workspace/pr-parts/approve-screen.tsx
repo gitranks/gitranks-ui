@@ -120,11 +120,13 @@ export function ApproveScreen({
 
   const learn = made === 'LEARN';
   const needsPrefix = !!approval.titlePrefix && !titleHasPrefix(title, approval.titlePrefix);
+  // A count of nothing is left out: "1 file · 4 lines removed", never "0 lines added".
+  const { files, added, removed } = approval.change;
   const stats = [
-    `${approval.change.files} file${approval.change.files === 1 ? '' : 's'}`,
-    `${approval.change.added} line${approval.change.added === 1 ? '' : 's'} added`,
-    `${approval.change.removed} removed`,
-  ];
+    files ? `${files} file${files === 1 ? '' : 's'}` : '',
+    added ? `${added} line${added === 1 ? '' : 's'} added` : '',
+    removed ? (added ? `${removed} removed` : `${removed} line${removed === 1 ? '' : 's'} removed`) : '',
+  ].filter(Boolean);
 
   return (
     <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_27rem]" data-approve="">

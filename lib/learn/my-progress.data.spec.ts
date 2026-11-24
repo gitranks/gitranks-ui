@@ -4,7 +4,7 @@ const { graphqlDirect } = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
-const { loadLearnMyProgress, myProgressFaultOf } = await import('./my-progress.data');
+const { loadLearnMyProgress, myProgressFaultOf, readFaultOf } = await import('./my-progress.data');
 const { myProgress } = await import('./__fixtures__/my-progress');
 
 const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -26,19 +26,51 @@ describe('My progress read', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("logs a failed read with the API's paths and messages, and nothing of the person", async () => {
+  it("logs a failed read by the API's paths and codes, never a server message", async () => {
     const errors = [
       {
         message: 'Cannot return null for non-nullable field LearnDay.lessons.',
         path: ['learnMyProgress', 'days', 0, 'lessons'],
+        extensions: { code: 'INTERNAL_SERVER_ERROR' },
       },
+      { message: 'Cast to string failed for value "octocat"', path: ['learnMyProgress'] },
     ];
     graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify(errors)));
     expect(await loadLearnMyProgress('octocat')).toBeNull();
     expect(logged()).toEqual([
-      'My progress read failed: learnMyProgress.days.0.lessons: Cannot return null for non-nullable field LearnDay.lessons.',
+      'My progress read failed: learnMyProgress.days.0.lessons [INTERNAL_SERVER_ERROR]; learnMyProgress [NO_CODE]',
     ]);
     expect(logged().join()).not.toContain('octocat');
+  });
+
+  it('keeps the message of a query the API refused, cut short', async () => {
+    const message = `Cannot query field "nope" on type "LearnMyProgress". ${'x'.repeat(200)}`;
+    graphqlDirect.mockRejectedValueOnce(
+      new Error(JSON.stringify([{ message, extensions: { code: 'GRAPHQL_VALIDATION_FAILED' } }])),
+    );
+    await loadLearnMyProgress('octocat');
+    expect(logged()).toEqual([
+      `My progress read failed: (no path) [GRAPHQL_VALIDATION_FAILED]: ${message.slice(0, 120)}`,
+    ]);
+  });
+
+  it('names three errors of a long list, then how many more, in one short line', async () => {
+    const errors = Array.from({ length: 182 }, (_, day) => ({
+      message: 'Cannot return null for non-nullable field LearnDay.lessons.',
+      path: ['learnMyProgress', 'days', day, 'lessons'],
+      extensions: { code: 'INTERNAL_SERVER_ERROR' },
+    }));
+    graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify(errors)));
+    await loadLearnMyProgress('octocat');
+    const [line] = logged();
+    expect(line).toBe(
+      'My progress read failed: learnMyProgress.days.0.lessons [INTERNAL_SERVER_ERROR]; ' +
+        'learnMyProgress.days.1.lessons [INTERNAL_SERVER_ERROR]; ' +
+        'learnMyProgress.days.2.lessons [INTERNAL_SERVER_ERROR] (+179 more)',
+    );
+    expect(
+      readFaultOf(new Error(JSON.stringify(errors.map((each) => ({ ...each, path: ['p'.repeat(400)] }))))),
+    ).toHaveLength(300);
   });
 
   it('logs a failure that is not the API’s errors by its message', async () => {

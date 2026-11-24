@@ -27,20 +27,40 @@ export function myProgressFaultOf(value: LearnMyProgress | null | undefined): st
   return null;
 }
 
-/** A failed read's errors as `path: message`, the API's own words; else the error's message. Nothing of the person. */
+/** The most errors a log line names, and its length. */
+const FAULT_ERRORS = 3;
+const FAULT_LENGTH = 300;
+/** The codes whose message is the API's fixed words about the query, never a value it was given. */
+const MESSAGE_CODES: ReadonlySet<string> = new Set(['GRAPHQL_PARSE_FAILED', 'GRAPHQL_VALIDATION_FAILED']);
+const MESSAGE_LENGTH = 120;
+
+type ApiError = { message?: unknown; path?: unknown; extensions?: { code?: unknown } };
+
+/** One error as `path [CODE]`, with its message cut short only for a code whose message carries no value. */
+function errorFaultOf(error: ApiError): string {
+  const path = Array.isArray(error.path) ? error.path.join('.') : '(no path)';
+  const code = typeof error.extensions?.code === 'string' ? error.extensions.code : 'NO_CODE';
+  const words = MESSAGE_CODES.has(code) ? `: ${String(error.message).slice(0, MESSAGE_LENGTH)}` : '';
+  return `${path} [${code}]${words}`;
+}
+
+/**
+ * A failed read in one short line: the API's errors by path and code (the first three, then how many more), else the
+ * request's own message. No server message that could quote a value, so nothing of the person.
+ */
 export function readFaultOf(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
+  let line = message;
   try {
-    const errors = JSON.parse(message) as { message?: unknown; path?: unknown }[];
+    const errors = JSON.parse(message) as ApiError[];
     if (Array.isArray(errors) && errors.length) {
-      return errors
-        .map((each) => `${Array.isArray(each.path) ? each.path.join('.') : '(no path)'}: ${String(each.message)}`)
-        .join('; ');
+      const named = errors.slice(0, FAULT_ERRORS).map(errorFaultOf).join('; ');
+      line = errors.length > FAULT_ERRORS ? `${named} (+${errors.length - FAULT_ERRORS} more)` : named;
     }
   } catch {
-    // Not the API's errors: the message as it is.
+    // Not the API's errors: the request's message as it is.
   }
-  return message.slice(0, 300);
+  return line.slice(0, FAULT_LENGTH);
 }
 
 /**

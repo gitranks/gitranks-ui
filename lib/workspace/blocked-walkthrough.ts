@@ -18,9 +18,12 @@ export const BLOCKED_WALKTHROUGH_WORDS = {
     'No send-backs are left for this fix, so its questions can’t be written again. You can discard it below.',
   /** The pull request's page, when the fix can't go back to the person's own agent. */
   noSendBackText: 'It can’t go back to your agent from here. You can discard it below.',
-  /** A row, and Learn home's box: they can't tell whether a send-back is left, so the fix's page says. */
-  rowButton: 'See what to do',
-  homeText: 'Open your fix to see what you can do.',
+  /**
+   * A row, and Learn home's box: the owner's words for this item, the same button as before. They lead to the fix's
+   * page, which says what is true when no send-back is left.
+   */
+  rowButton: 'Send it back to your agent',
+  homeText: 'Send it back to your agent, and it writes the questions again.',
 } as const;
 
 /** Whether a stopped walkthrough can go back to the person's agent: yes, no send-back left, or not from here. */

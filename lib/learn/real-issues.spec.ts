@@ -317,13 +317,13 @@ describe('words', () => {
     expect(fixBoxWordsOf(blocked, 'needs-you')).toEqual({
       eyebrow: 'Your fix needs you',
       title: 'The fix walkthrough needs another pass',
-      text: 'A question is unclear. Open your fix to see what you can do.',
-      button: { label: 'See what to do', to: 'fix' },
+      text: 'A question is unclear. Send it back to your agent, and it writes the questions again.',
+      button: { label: 'Send it back to your agent', to: 'fix' },
     });
     const noReason = { ...blocked, walkthroughBlocked: { reason: null } };
     expect(fixBoxWordsOf(noReason, 'working')).toMatchObject({
       title: 'The fix walkthrough needs another pass',
-      text: 'Open your fix to see what you can do.',
+      text: 'Send it back to your agent, and it writes the questions again.',
     });
     for (const state of ['needs-you', 'working'] as const) {
       expect(JSON.stringify(fixBoxWordsOf(noReason, state))).not.toContain('walkthrough is ready');

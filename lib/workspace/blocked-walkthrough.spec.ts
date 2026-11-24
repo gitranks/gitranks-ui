@@ -59,12 +59,12 @@ describe('a walkthrough that waits for another pass', () => {
     // The row can't tell whether a send-back is left: the fix's page says what the person can do.
     expect(needsYouRowWordsOf(row)).toEqual({
       line: 'The fix walkthrough needs another pass',
-      button: 'See what to do',
+      button: 'Send it back to your agent',
     });
     expect(rowWordsOf(row, PR_NOW)).toMatchObject({
       line: 'The fix walkthrough needs another pass',
       reason: 'A question is unclear.',
-      button: 'See what to do',
+      button: 'Send it back to your agent',
     });
     expect(rowWordsOf(prRow('WALKTHROUGH', { walkthroughBlocked: { reason: null } }), PR_NOW).reason).toBeNull();
     // Not marked: as the list says.

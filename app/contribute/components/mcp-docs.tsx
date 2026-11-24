@@ -274,6 +274,11 @@ function ExampleBrief() {
           Show the answer
         </summary>
         <div className="mt-2 flex flex-col gap-3">
+          {/* The answer keeps the tool's own words ("claim"): the page's "take" stops at this fold (issue-rules-words.spec). */}
+          <p className="text-muted-foreground" data-example-verbatim>
+            This is the answer of the tool <code>claim_issue</code> exactly as your agent gets it, so it keeps the
+            tool&apos;s own words.
+          </p>
           <CodeBlock label="claim_issue's answer (JSON)" copyLabel="Copy the example answer">
             {EXAMPLE_ANSWER}
           </CodeBlock>

@@ -99,8 +99,6 @@ export type StartPageView = {
   /** The agent has called already: step 1 is done. Null until it has. */
   connection: LearnStartConnection | null;
   agent: StartPageAgent;
-  /** Lesson mode: the saved goal its lesson is written for ("TypeScript, Some"); null with none saved. */
-  goal: string | null;
   /** Lesson mode: a connection used lately still has the tool list from before Learn opened for the account. */
   restartHint: boolean;
   /** When the server rendered the page. */

@@ -111,11 +111,6 @@ function FooterExample() {
 
 export type LearnLandingViewProps = {
   viewer: LandingViewer;
-  /**
-   * For someone part-way through fixing an issue with their agent (a goal saved, never entered): the step they reached,
-   * linked under the top button. Null for everyone else.
-   */
-  resume?: string | null;
   /** Every live course, for the columns; none leaves the section out. */
   courses: readonly LearnCourseCard[];
   /** The lessons the top offers; none leaves the card out. */
@@ -128,15 +123,7 @@ export type LearnLandingViewProps = {
 };
 
 /** The landing, top to bottom. */
-export function LearnLandingView({
-  viewer,
-  resume = null,
-  courses,
-  lessons,
-  fixes = null,
-  tryDrawn,
-  hints,
-}: LearnLandingViewProps) {
+export function LearnLandingView({ viewer, courses, lessons, fixes = null, tryDrawn, hints }: LearnLandingViewProps) {
   const sections = landingSectionsOf(courses);
   return (
     <main className="flex flex-col" data-landing-viewer={viewer}>
@@ -159,16 +146,6 @@ export function LearnLandingView({
             <StartButton viewer={viewer} />
           </div>
           {START_LINES[viewer] ? <p className="m-0 text-sm text-muted-foreground">{START_LINES[viewer]}</p> : null}
-          {resume ? (
-            <Link
-              href={resume as never}
-              prefetch={false}
-              className={cn('self-start text-sm font-semibold text-link hover:underline', PHONE_LINK)}
-              data-landing-resume=""
-            >
-              Continue fixing an issue with your agent →
-            </Link>
-          ) : null}
         </div>
         {lessons.length ? <TryLessonCard lessons={lessons} viewer={viewer} drawn={tryDrawn} hints={hints} /> : null}
       </section>

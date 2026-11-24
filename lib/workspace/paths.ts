@@ -34,14 +34,12 @@ export const WORKSPACE_PATHS = {
 
 /**
  * The rows other pages link to by what they are, wherever their page is now: the limit on open pull requests, attempts
- * at a time, the filters of what the user works on, Learn's languages and level (Set up Learn), the Claude key, the
- * budget.
+ * at a time, the filters of what the user works on, the Claude key, the budget.
  */
 export const WORKSPACE_ANCHORS = {
   limitRow: `${WORKSPACE_PATHS.settingsPullRequests}#open` as Route,
   attemptsRow: `${WORKSPACE_PATHS.settingsPullRequests}#attempts` as Route,
   work: `${WORKSPACE_PATHS.settingsWork}#work` as Route,
-  forLearning: '/learn/setup' as Route,
   agentKey: WORKSPACE_PATHS.agentKey,
   agentBudget: WORKSPACE_PATHS.agentBudget,
 } as const;

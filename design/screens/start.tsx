@@ -8,7 +8,6 @@ import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { NOW } from '@/lib/contribute/__fixtures__/contribute-views';
 import {
   fixAttemptOf,
-  START_GOAL,
   START_PATH,
   START_REF,
   startConnection,
@@ -60,7 +59,6 @@ const page = (mode: StartMode, props: Partial<StartPageScreenProps> = {}) =>
       issueRef={START_REF}
       mode={mode}
       issue={startViews.open}
-      goal={mode === 'lesson' ? START_GOAL : null}
       connection={startConnection}
       connect={connectSteps()}
       fix={null}
@@ -129,13 +127,6 @@ export const START_SCREENS: Screen[] = [
         path: START_PATH,
         height: 720,
         render: () => page('fix', { issue: startViews.unavailable }),
-      },
-      {
-        id: 'lesson-no-goal',
-        title: 'With a lesson, no goal saved: written for a general reader, Set your goal',
-        path: LESSON_PATH,
-        height: 1180,
-        render: () => page('lesson', { goal: null }),
       },
       {
         id: 'lesson-restart',

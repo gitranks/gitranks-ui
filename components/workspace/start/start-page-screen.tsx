@@ -14,7 +14,7 @@ import { StartRefusal } from '@/components/workspace/start/start-refusal';
 import { cn } from '@/lib/utils';
 import type { ContributeIssueSize } from '@/lib/workspace/contribute.types';
 import { SIZES } from '@/lib/workspace/format';
-import { settingsPathOf, startPath, WORKSPACE_ANCHORS } from '@/lib/workspace/paths';
+import { settingsPathOf, startPath } from '@/lib/workspace/paths';
 import { startPromptOf } from '@/lib/workspace/start/prompt';
 import {
   agentNameOf,
@@ -80,8 +80,8 @@ export const RESTART_HINT =
 const sizeNameOf = (size: string | null | undefined): string | null =>
   size && Object.hasOwn(SIZES, size) ? SIZES[size as ContributeIssueSize] : null;
 
-/** What the issue card shows in place of a read, or over it: W3's goal line, and a repo and title it knows. */
-export type StartPageCard = { repo?: string; title?: string; goalLine?: ReactNode };
+/** What the issue card shows in place of a read, or over it: a repo and title it knows. */
+export type StartPageCard = { repo?: string; title?: string };
 
 /** The issue: the repo and its Issue chip, language and size, the title, and why it was picked or what for. */
 function IssueCard({
@@ -89,13 +89,11 @@ function IssueCard({
   mode,
   issue,
   card: given,
-  goal,
 }: {
   issueRef: { repo: string; issue: number };
   mode: StartMode;
   issue: StartPageIssueView | null;
   card?: StartPageCard;
-  goal: string | null;
 }) {
   const row = issue?.start.issue ?? null;
   const repo = given?.repo ?? row?.repo ?? (issue ? issueRef.repo : null);
@@ -103,25 +101,6 @@ function IssueCard({
   const size = sizeNameOf(row?.size);
   const why = row?.why?.trim();
   const url = issue ? startIssueUrlOf(issue) : githubIssueUrlOf(issueRef.repo, issueRef.issue);
-  const goalLine =
-    given?.goalLine ??
-    (mode === 'lesson' ? (
-      goal ? (
-        <>
-          Your lesson will be written for: {goal} ·{' '}
-          <Link href={WORKSPACE_ANCHORS.forLearning} prefetch={false} className={link}>
-            Change
-          </Link>
-        </>
-      ) : (
-        <>
-          Your lesson will be written for a general reader.{' '}
-          <Link href={WORKSPACE_ANCHORS.forLearning} prefetch={false} className={link}>
-            Set your goal
-          </Link>
-        </>
-      )
-    ) : null);
   return (
     <div className="flex flex-col gap-1.5 rounded-xl border bg-card p-4" data-start-issue={row ? 'read' : 'unread'}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -151,7 +130,6 @@ function IssueCard({
           {why}
         </span>
       ) : null}
-      {goalLine ? <span className="text-sm text-muted-foreground">{goalLine}</span> : null}
     </div>
   );
 }
@@ -201,8 +179,6 @@ export type StartPageScreenProps = {
   /** The issue's answer; null: nothing was read (a visitor), and the card draws from `card`. */
   issue: StartPageIssueView | null;
   card?: StartPageCard;
-  /** Lesson mode: the saved goal ("TypeScript, Some"); null with none. */
-  goal: string | null;
   /** Step 1 done: the agent has called. Null until it has. */
   connection: LearnStartConnection | null;
   /** Step 1's connect steps, while no agent has called. */
@@ -235,7 +211,6 @@ export function StartPageScreen({
   mode,
   issue,
   card: given,
-  goal,
   connection,
   connect,
   fix,
@@ -448,7 +423,7 @@ export function StartPageScreen({
         <p className="max-w-prose text-foreground/80">{words.intro}</p>
       </div>
 
-      <IssueCard issueRef={issueRef} mode={mode} issue={issue} card={given} goal={goal} />
+      <IssueCard issueRef={issueRef} mode={mode} issue={issue} card={given} />
 
       {refusal ? <StartRefusal copy={refusal} code={issue?.start.refusal ?? ''} /> : null}
 

@@ -100,21 +100,11 @@ export function issuePageCarriedOf(query: Record<string, string | string[] | und
   return issuePageHrefOf(id, from, query.look === '1', typeof view === 'string' ? view : null);
 }
 
-/** What tells whether a person uses Learn: their setup of Learn, and the older Learn profile while it is still served. */
-export type LearnUse = {
-  /** The setup (`/learn/setup`) as the API answers it; null when it was not read. */
-  setup?: { state: string } | null;
-  /** The older Learn profile; null when it was not read. */
-  profile?: { goalKind: string | null; updatedAt: string | null } | null;
-};
-
 /**
- * Whether a person uses Learn: they saved their setup of Learn (`SAVED`; a guess started by a visit is not a save),
- * else, while the older profile is still served, they saved one (a goal, or a time it was saved). The API answers an
- * empty profile, with neither, for anyone signed in who has none. Nothing read says no.
+ * Whether a person uses Learn: they saved their setup of Learn (`/learn/setup`, `SAVED`; a guess started by a visit is
+ * not a save). A setup that was not read says no.
  */
-export const usesLearnOf = ({ setup, profile }: LearnUse): boolean =>
-  setup?.state === 'SAVED' || (!!profile && (profile.updatedAt != null || profile.goalKind != null));
+export const usesLearnOf = (setup: { state: string } | null | undefined): boolean => setup?.state === 'SAVED';
 
 /** The kinds of issue, the icon each one has in the row, and its name. */
 export const ISSUE_KINDS = {

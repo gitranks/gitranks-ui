@@ -21,11 +21,12 @@ import type { LearnCourseLessonMine } from '@/lib/learn/lesson-page.documents';
 import {
   coursePath,
   learnCourseMinePath,
-  learnLessonMinePath,
   learnLessonPath,
   learnLessonRealMinePath,
+  learnLessonSidePath,
 } from '@/lib/learn/paths';
 import { fixesOf, type LessonRealMine, lessonRealOf, realRowsOf } from '@/lib/learn/real-issues';
+import { MainLanguageContext } from '@/lib/learn/use-example-language';
 import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
 
@@ -39,20 +40,25 @@ async function readJson<T>(path: string): Promise<T | null> {
   }
 }
 
-/** The signed-in person's side of a lesson and the depth of each lesson of its course; null when there is none. */
+/**
+ * The signed-in person's side of a lesson and the depth of each lesson of its course; null when there is none. With
+ * it, their setup's main language, which comes with the lesson's side (null when it has none, or it was not read).
+ */
 export async function readLessonViewer(lesson: {
   slug: string;
   course: { slug: string };
-}): Promise<LessonViewer | null> {
+}): Promise<{ viewer: LessonViewer | null; mainLanguage: string | null }> {
   const [lessonAnswer, courseAnswer] = await Promise.all([
-    readJson<{ mine?: LearnLessonMine | null }>(learnLessonMinePath(lesson.slug)),
+    readJson<{ mine?: LearnLessonMine | null; mainLanguage?: unknown }>(learnLessonSidePath(lesson.slug)),
     readJson<{ course?: { lessons?: LearnCourseLessonMine[] } | null }>(learnCourseMinePath(lesson.course.slug)),
   ]);
+  const main = lessonAnswer?.mainLanguage;
+  const mainLanguage = typeof main === 'string' && main ? main : null;
   const mine = lessonAnswer?.mine;
-  if (!mine) return null;
+  if (!mine) return { viewer: null, mainLanguage };
   const depths: Record<string, LearnDepth> = {};
   for (const row of courseAnswer?.course?.lessons ?? []) depths[row.slug] = row.depth;
-  return { mine: { ...mine, language: mine.language ?? null }, depths };
+  return { viewer: { mine: { ...mine, language: mine.language ?? null }, depths }, mainLanguage };
 }
 
 /**
@@ -122,6 +128,9 @@ export function LessonLive({
   const [redrawn, setRedrawn] = useState(false);
   // What "In the real world" adds for a person with a session; it fills its places when it comes.
   const [realMine, setRealMine] = useState<LessonRealMine | null>(null);
+  // The main language of the person's setup, once their side brings it: the examples and the question switch to it.
+  const [mainOfSide, setMainOfSide] = useState<string | null>(null);
+  const main = mainLanguage || mainOfSide;
   const { slug } = lesson;
   const course = lesson.course.slug;
 
@@ -132,8 +141,10 @@ export function LessonLive({
     }
     let live = true;
     setRealMine(null);
-    readLessonViewer({ slug, course: { slug: course } }).then((viewer) => {
+    readLessonViewer({ slug, course: { slug: course } }).then(({ viewer, mainLanguage: read }) => {
       if (!live) return;
+      // Only while the person has not touched the player: an answer started is graded and marked in the code it shows.
+      if (!touched.current) setMainOfSide(read);
       setPersonal(viewer ? { kind: 'member', viewer } : { kind: 'session' });
       if (viewer && !touched.current) setRedrawn(true);
     });
@@ -190,24 +201,26 @@ export function LessonLive({
   };
 
   return (
-    <div className="contents" onPointerDownCapture={touch} onKeyDownCapture={touch} onFocusCapture={touch}>
-      <LessonPlayer
-        // Drawn again once, when the person's side first arrives before they touched it.
-        key={`${lessonPlayerKeyOf(lesson)}:${redrawn ? 'mine' : 'public'}`}
-        lesson={lesson}
-        group={group}
-        viewer={viewer}
-        questionCodes={questionCodes}
-        mainLanguage={mainLanguage}
-        article={article}
-        more={more}
-        calls={calls}
-        openFact={openFact}
-        signedIn={personal.kind !== 'visitor'}
-        note={viewer ? null : note}
-        real={realMine?.real ?? null}
-        realWorld={<LessonRealWorldStreamed slug={lesson.slug} fixes={fixes} mine={realMine} />}
-      />
-    </div>
+    <MainLanguageContext value={main}>
+      <div className="contents" onPointerDownCapture={touch} onKeyDownCapture={touch} onFocusCapture={touch}>
+        <LessonPlayer
+          // Drawn again once, when the person's side first arrives before they touched it.
+          key={`${lessonPlayerKeyOf(lesson)}:${redrawn ? 'mine' : 'public'}`}
+          lesson={lesson}
+          group={group}
+          viewer={viewer}
+          questionCodes={questionCodes}
+          mainLanguage={main}
+          article={article}
+          more={more}
+          calls={calls}
+          openFact={openFact}
+          signedIn={personal.kind !== 'visitor'}
+          note={viewer ? null : note}
+          real={realMine?.real ?? null}
+          realWorld={<LessonRealWorldStreamed slug={lesson.slug} fixes={fixes} mine={realMine} />}
+        />
+      </div>
+    </MainLanguageContext>
   );
 }

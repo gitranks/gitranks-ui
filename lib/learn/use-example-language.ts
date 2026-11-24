@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useSyncExternalStore } from 'react';
+import { createContext, useCallback, useContext, useSyncExternalStore } from 'react';
 
 /**
  * The language a topic course's examples show in: the learner's main language when the course has it, else
@@ -10,6 +10,13 @@ import { useCallback, useSyncExternalStore } from 'react';
 export const EXAMPLE_LANGUAGE_KEY = 'gitranks:learn:language:v1';
 
 const listeners = new Set<() => void>();
+
+/**
+ * The learner's main language as the page learns it in the browser, for the examples drawn on the server: a lesson's
+ * page is the same for everyone, and the person's side, which carries it, comes once the page is up. An example given
+ * no main language of its own reads this one.
+ */
+export const MainLanguageContext = createContext<string | null>(null);
 
 /** The language picked on this page: every example of the page shows it, until the page changes. */
 let pagePick: { path: string; language: string } | null = null;
@@ -64,15 +71,18 @@ export function pickExampleLanguage(language: string): void {
  * The language to show among the course's, and the way to pick another. The server and the first paint apply the rule
  * without the browser's pick (the main language, else Python, else the first), so the page matches what was served;
  * the pick kept in this browser applies once it is read. A tab picked on the page wins on that page, in every example
- * of it and even over the main language, and is kept for the next pages.
+ * of it and even over the main language, and is kept for the next pages. Without a main language given, the page's
+ * (`MainLanguageContext`) applies.
  */
 export function useExampleLanguage(
   languages: readonly string[],
   main?: string | null,
 ): [string | null, (language: string) => void] {
+  const fromPage = useContext(MainLanguageContext);
   const picked = useSyncExternalStore(subscribe, readPicked, () => null);
   const here = useSyncExternalStore(subscribe, readPagePick, () => null);
-  const language = here && languages.includes(here) ? here : exampleLanguageOf(languages, { main, picked });
+  const language =
+    here && languages.includes(here) ? here : exampleLanguageOf(languages, { main: main || fromPage, picked });
   const pick = useCallback((next: string) => {
     pagePick = { path: window.location.pathname, language: next };
     pickExampleLanguage(next);

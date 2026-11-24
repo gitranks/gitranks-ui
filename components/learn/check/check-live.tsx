@@ -56,22 +56,29 @@ import {
   learnKnownPath,
   learnLessonPath,
 } from '@/lib/learn/paths';
-import { useExampleLanguage } from '@/lib/learn/use-example-language';
+import { MainLanguageContext, useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
 import { runWordsOf } from '@/lib/workspace/player';
 
 /** The person's run from its route: the run, or none (with `missing` when the course offers no check). */
-export async function readCheckSide(course: string): Promise<{ check: CheckSide | null; missing: boolean } | null> {
+export async function readCheckSide(
+  course: string,
+): Promise<{ check: CheckSide | null; missing: boolean; mainLanguage: string | null } | null> {
   try {
     const res = await fetch(learnCheckMinePath(course), { cache: 'no-store' });
     if (!res.ok) return null;
-    const { check, missing } = (await res.json()) as { check?: CheckSide | null; missing?: unknown };
-    if (missing === true) return { check: null, missing: true };
+    const { check, missing, mainLanguage } = (await res.json()) as {
+      check?: CheckSide | null;
+      missing?: unknown;
+      mainLanguage?: unknown;
+    };
+    const main = typeof mainLanguage === 'string' && mainLanguage ? mainLanguage : null;
+    if (missing === true) return { check: null, missing: true, mainLanguage: main };
     // Only a whole run is drawn.
     if (!check || typeof check.id !== 'string' || !Array.isArray(check.questions)) return null;
-    return { check, missing: false };
+    return { check, missing: false, mainLanguage: main };
   } catch {
     return null;
   }
@@ -95,7 +102,7 @@ type Personal =
   | { kind: 'visitor' }
   | { kind: 'failed' }
   | { kind: 'missing' }
-  | { kind: 'run'; check: CheckSide; sitting: number }
+  | { kind: 'run'; check: CheckSide; sitting: number; mainLanguage: string | null }
   | { kind: 'sheet'; groups: KnownGroup[]; kept: string[]; check: string | null; sitting: number };
 
 /**
@@ -141,7 +148,7 @@ export function CheckLive({ course, mode }: { course: LearnCourse; mode: CheckMo
     if (!side) return { kind: 'failed' };
     if (side.missing || !side.check) return { kind: 'missing' };
     if (side.check.result) return resultSheetOf(side.check.id, side.check.result, sitting);
-    return { kind: 'run', check: side.check, sitting };
+    return { kind: 'run', check: side.check, sitting, mainLanguage: side.mainLanguage };
   }, [mode, slug, course, resultSheetOf]);
 
   const load = useCallback(async () => {
@@ -180,14 +187,17 @@ export function CheckLive({ course, mode }: { course: LearnCourse; mode: CheckMo
 
   if (personal.kind === 'run') {
     return (
-      <CheckRun
-        key={personal.sitting}
-        course={link}
-        check={personal.check}
-        onResult={showResult}
-        onReload={load}
-        onWithdrawn={withdrawn}
-      />
+      // Each question's code opens in the person's main language, when the course has it.
+      <MainLanguageContext value={personal.mainLanguage}>
+        <CheckRun
+          key={personal.sitting}
+          course={link}
+          check={personal.check}
+          onResult={showResult}
+          onReload={load}
+          onWithdrawn={withdrawn}
+        />
+      </MainLanguageContext>
     );
   }
   if (personal.kind === 'sheet') {

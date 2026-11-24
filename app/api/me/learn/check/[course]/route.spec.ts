@@ -2,8 +2,9 @@ import { NextRequest } from 'next/server';
 import type { Session } from 'next-auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadLearnCheckSide, current } = vi.hoisted(() => ({
+const { loadLearnCheckSide, loadLearnMainLanguage, current } = vi.hoisted(() => ({
   loadLearnCheckSide: vi.fn(),
+  loadLearnMainLanguage: vi.fn(async () => null as string | null),
   current: { session: null as Session | null },
 }));
 
@@ -16,11 +17,12 @@ vi.mock('@/auth', () => ({
   },
 }));
 vi.mock('@/lib/learn/check.data', () => ({ loadLearnCheckSide }));
+vi.mock('@/lib/learn/setup.data', () => ({ loadLearnMainLanguage }));
 
 const { GET } = (await import('./route')) as unknown as {
   GET: (req: NextRequest, ctx: { params: Promise<{ course: string }> }) => Promise<Response>;
 };
-const { checkRunOf } = await import('@/lib/learn/__fixtures__/check');
+const { checkEnded, checkRunOf } = await import('@/lib/learn/__fixtures__/check');
 
 const get = (course = 'algorithms') =>
   GET(new NextRequest(`https://gitranks.com/api/me/learn/check/${course}`), { params: Promise.resolve({ course }) });
@@ -31,6 +33,8 @@ const signIn = (error?: string) => {
 describe("the person's check route", () => {
   beforeEach(() => {
     loadLearnCheckSide.mockReset();
+    loadLearnMainLanguage.mockReset();
+    loadLearnMainLanguage.mockResolvedValue(null);
     current.session = null;
   });
 
@@ -39,18 +43,21 @@ describe("the person's check route", () => {
       current.session = null;
       session();
       const res = await get();
-      expect(await res.json()).toEqual({ check: null, missing: false });
+      expect(await res.json()).toEqual({ check: null, missing: false, mainLanguage: null });
       expect(res.headers.get('cache-control')).toBe('private, no-store');
     }
     expect(loadLearnCheckSide).not.toHaveBeenCalled();
+    expect(loadLearnMainLanguage).not.toHaveBeenCalled();
   });
 
-  it("answers the signed-in person's run, never kept", async () => {
+  it("answers the signed-in person's run with their main language, never kept", async () => {
     signIn();
     const side = { check: checkRunOf(3), missing: false };
     loadLearnCheckSide.mockResolvedValue(side);
+    loadLearnMainLanguage.mockResolvedValue('javascript');
     const res = await get();
-    expect(await res.json()).toEqual(side);
+    expect(await res.json()).toEqual({ ...side, mainLanguage: 'javascript' });
+    expect(loadLearnMainLanguage).toHaveBeenCalledWith('octocat');
     expect(res.headers.get('cache-control')).toBe('private, no-store');
     expect(loadLearnCheckSide).toHaveBeenCalledWith('octocat', 'algorithms');
   });
@@ -58,6 +65,18 @@ describe("the person's check route", () => {
   it('says a course has no check', async () => {
     signIn();
     loadLearnCheckSide.mockResolvedValue({ check: null, missing: true });
-    expect(await (await get('nope')).json()).toEqual({ check: null, missing: true });
+    expect(await (await get('nope')).json()).toEqual({ check: null, missing: true, mainLanguage: null });
+    expect(loadLearnMainLanguage).not.toHaveBeenCalled();
+  });
+
+  it('reads the main language for a run still going only: never for an ended run or none', async () => {
+    signIn();
+    loadLearnMainLanguage.mockResolvedValue('javascript');
+    const ended = { check: checkEnded(), missing: false };
+    loadLearnCheckSide.mockResolvedValue(ended);
+    expect(await (await get()).json()).toEqual({ ...ended, mainLanguage: null });
+    loadLearnCheckSide.mockResolvedValue({ check: null, missing: false });
+    expect(await (await get()).json()).toEqual({ check: null, missing: false, mainLanguage: null });
+    expect(loadLearnMainLanguage).not.toHaveBeenCalled();
   });
 });

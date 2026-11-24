@@ -12,6 +12,7 @@ import {
 } from '@/components/learn/walkthrough/walkthrough-parts';
 import { PublicWalkthroughPlayer } from '@/components/learn/walkthrough/walkthrough-player';
 import { LEARN_ISSUES_PAGE_BUILT } from '@/lib/learn/built-pages';
+import { loadFixPage } from '@/lib/learn/fix-page.data';
 import { LEARN_ISSUES_PATH, learnLessonRealWorldPath } from '@/lib/learn/paths';
 import { learnWalkthroughJsonLd, learnWalkthroughMetadata } from '@/lib/learn/seo/walkthrough';
 import { fixRefOf, playerQuestionOf, type Walkthrough } from '@/lib/learn/walkthrough';
@@ -45,6 +46,8 @@ export default async function WalkthroughPage({ params }: { params: Params }) {
   const { pr, walkthrough } = await readOf(params);
   if (!pr) notFound();
   if (!walkthrough) return <WalkthroughNotHere pr={pr} />;
+  // How the fix stands, for the button to its own page: none on a failed read, so no button promises the wrong page.
+  const fix = await loadFixPage({ nameWithOwner: walkthrough.repo, number: walkthrough.number }).catch(() => null);
   const count = walkthrough.parts.length;
   return (
     <>
@@ -64,7 +67,7 @@ export default async function WalkthroughPage({ params }: { params: Params }) {
           />
         ))}
         questions={walkthrough.parts.map((part) => playerQuestionOf(part.question, true))}
-        about={<AboutThisFix walkthrough={walkthrough} />}
+        about={<AboutThisFix walkthrough={walkthrough} fix={fix} />}
         next={issuesLikeThisOf(walkthrough)}
       />
     </>

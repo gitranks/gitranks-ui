@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 
-/** Who a rail's dot marks: the agent, anyone else, or the end (filled); none on a day's heading. */
-export type RailDot = 'agent' | 'other' | 'end' | null;
+/** Who a rail's dot marks: the agent, anyone else, the end (filled), or a stop (filled, grey); none on a heading. */
+export type RailDot = 'agent' | 'other' | 'end' | 'stopped' | null;
 
 /** A timeline's row: the time, the rail, the row's words. Each row is a `group/row`, so the rail knows the first and last. */
 export const RAIL_ROW = 'group/row grid grid-cols-[3rem_1rem_minmax(0,1fr)] gap-x-3';
@@ -15,8 +15,9 @@ export function Rail({ dot }: { dot: RailDot }) {
           data-who={dot}
           className={cn(
             'relative mt-1 size-3 rounded-full border-2 bg-background',
-            dot === 'other' ? 'border-muted-foreground' : 'border-primary',
+            dot === 'other' || dot === 'stopped' ? 'border-muted-foreground' : 'border-primary',
             dot === 'end' && 'bg-primary',
+            dot === 'stopped' && 'bg-muted-foreground',
           )}
         />
       ) : null}

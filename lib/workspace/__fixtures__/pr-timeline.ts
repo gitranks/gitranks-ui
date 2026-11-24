@@ -172,12 +172,24 @@ export const unknownKindTimeline: PrTimeline = {
   milestones: [
     ...mergedTimeline.milestones.slice(0, -1),
     row({
-      kind: 'WALKTHROUGH' as PrTimelineMilestone['kind'],
+      kind: 'TRANSLATED' as PrTimelineMilestone['kind'],
       at: '2026-10-26T14:40:00.000Z',
       by: 'AGENT',
-      text: 'Wrote a walkthrough of the fix.',
+      text: 'Wrote the description in another language.',
       minutes: 4,
     }),
     ...mergedTimeline.milestones.slice(-1),
+  ],
+};
+
+/** A pull request made with Learn, merged: the fixer passed the walkthrough between the checks and the approval. */
+export const learnTimeline: PrTimeline = {
+  ...mergedTimeline,
+  milestones: [
+    ...MADE.slice(0, 4),
+    row({ kind: 'WALKTHROUGH', at: '2026-10-24T11:10:00.000Z', by: 'CONTRIBUTOR', login: 'mira-dev' }),
+    ...MADE.slice(4),
+    ...REVIEW,
+    row({ kind: 'MERGED', at: '2026-10-26T14:45:00.000Z', by: 'MAINTAINER' }),
   ],
 };

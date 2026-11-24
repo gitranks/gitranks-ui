@@ -8,6 +8,7 @@ export type PrTimelineKind =
   | 'CHECKED'
   | 'WORKED'
   | 'CHECKS'
+  | 'WALKTHROUGH'
   | 'APPROVED'
   | 'OPENED'
   | 'REVIEWED'
@@ -70,3 +71,9 @@ export type PrTimeline = {
 export type PrTimelineAnswer = { timeline: PrTimeline | null; movedTo: string | null; movedNumber: number | null };
 
 export type PublicPrTimeline = { nameWithOwner: string; number: number; modifiedAt: string };
+
+/**
+ * Who said a pull request helped, by name: up to five logins, newest first (`helpedBy`), and how many said it by
+ * name in all (`helpedNamed`), for "+N more".
+ */
+export type PrTimelineHelped = { helpedBy: string[]; helpedNamed: number };

@@ -60,8 +60,9 @@ describe('Real issues fixed with Learn, on the landing', () => {
     expect(words(fixes)).toContain('12 merged so far, each in the name of the person who learned from it.');
     expect(fixes.querySelectorAll('li')).toHaveLength(3);
     expect(fixes.querySelector('a[href="/learn/issues?fixed=1"]')).not.toBeNull();
-    // A fix's title is plain text: its own page is not there yet.
-    expect(fixes.querySelector('a[href^="/learn/fixes"]')).toBeNull();
+    // Each fix is a card that opens its own page, "Learn from it", with the lesson it used.
+    expect(fixes.querySelectorAll('a[href^="/learn/fixes/"]')).toHaveLength(3);
+    expect(words(fixes)).toContain('Used: Find duplicates in one pass with a set');
     expect(fixes.innerHTML).not.toContain(LONG_DASH);
   });
 

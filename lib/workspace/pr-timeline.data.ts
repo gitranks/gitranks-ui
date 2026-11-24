@@ -2,9 +2,15 @@ import 'server-only';
 
 import { cacheLife, cacheTag } from 'next/cache';
 
-import { PrTimelineByAttemptDocument, PrTimelineDocument, PublicPrTimelinesDocument } from './pr-timeline.documents';
-import type { PrTimeline, PublicPrTimeline } from './pr-timeline.types';
+import {
+  PrTimelineByAttemptDocument,
+  PrTimelineDocument,
+  PrTimelineHelpedDocument,
+  PublicPrTimelinesDocument,
+} from './pr-timeline.documents';
+import type { PrTimeline, PrTimelineHelped, PublicPrTimeline } from './pr-timeline.types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { GITHUB_LOGIN } from '@/lib/workspace/paths';
 import type { PrRef } from '@/lib/workspace/pr-feedback';
 import { prTimelineAttemptTagOf, prTimelinePath, prTimelineTagOf } from '@/lib/workspace/pr-timeline-path';
 
@@ -36,6 +42,33 @@ export async function publicPrTimeline(pr: PrRef): Promise<PrTimeline | null> {
       : { stale: 60, revalidate: 120, expire: 300 },
   );
   return timeline;
+}
+
+/** Logins only, as GitHub writes them: anything else in the answer is left out. */
+const LOGIN = new RegExp(`^${GITHUB_LOGIN}$`);
+
+/**
+ * Who said the pull request helped, by name, as the page shows them: kept with the page's own read under its tag, a
+ * minute fresh. Null when none is named, when the API does not know these fields yet, and on any failure, so the
+ * page shows the count alone: nothing that fails here leaves the cache as an error.
+ */
+export async function publicPrTimelineHelped(pr: PrRef): Promise<PrTimelineHelped | null> {
+  'use cache';
+  cacheTag(prTimelineTagOf(pr));
+  cacheLife({ stale: 60, revalidate: 60, expire: 120 });
+  const [owner, repo] = pr.nameWithOwner.split('/');
+  if (owner === NO_PR.owner) return null;
+  try {
+    const answer = await graphqlDirect(PrTimelineHelpedDocument, { owner, repo, number: pr.number }, { source: 'ssr' });
+    const read = answer?.contributePrTimeline?.timeline;
+    if (!read || !Array.isArray(read.helpedBy)) return null;
+    const helpedBy = read.helpedBy.filter((login) => typeof login === 'string' && LOGIN.test(login)).slice(0, 5);
+    if (!helpedBy.length) return null;
+    const named = typeof read.helpedNamed === 'number' ? Math.max(read.helpedNamed, helpedBy.length) : helpedBy.length;
+    return { helpedBy, helpedNamed: named };
+  } catch {
+    return null;
+  }
 }
 
 /**

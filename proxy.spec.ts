@@ -42,11 +42,16 @@ const { checkGate } = vi.hoisted(() => ({
   checkGate: vi.fn(async (_slug: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
 vi.mock('./lib/learn/course-gate', () => ({ courseGateOf: courseGate, checkGateOf: checkGate }));
-const { fixGate, attemptGate } = vi.hoisted(() => ({
+const { fixGate, attemptGate, viewGate } = vi.hoisted(() => ({
   fixGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
   attemptGate: vi.fn(async (_attemptId: string): Promise<unknown> => ({ kind: 'missing' })),
+  viewGate: vi.fn(async (_pr: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
-vi.mock('./lib/learn/fix-gate', () => ({ fixRouteGateOf: fixGate, fixByAttemptRouteGateOf: attemptGate }));
+vi.mock('./lib/learn/fix-gate', () => ({
+  fixRouteGateOf: fixGate,
+  fixByAttemptRouteGateOf: attemptGate,
+  fixViewRouteGateOf: viewGate,
+}));
 
 const {
   default: proxy,
@@ -81,6 +86,8 @@ describe('proxy', () => {
     fixGate.mockResolvedValue({ kind: 'page' });
     attemptGate.mockReset();
     attemptGate.mockResolvedValue({ kind: 'missing' });
+    viewGate.mockReset();
+    viewGate.mockResolvedValue({ kind: 'page' });
     checkGate.mockReset();
     checkGate.mockResolvedValue({ kind: 'page' });
     sessionRead.ok = true;
@@ -1089,9 +1096,11 @@ describe('proxy', () => {
           new NextRequest('https://gitranks.com/learn/fixes/by-attempt/A_1/answers', { method: 'POST' }),
           event,
         );
-        await proxy(request(undefined, '/learn/fixes/acme/widgets/57'), event);
+        await proxy(new NextRequest('https://gitranks.com/learn/fixes/acme/widgets/57', { method: 'POST' }), event);
+        await proxy(request(undefined, '/learn/fixes/acme/widgets/57/other'), event);
         expect(fixGate).not.toHaveBeenCalled();
         expect(attemptGate).not.toHaveBeenCalled();
+        expect(viewGate).not.toHaveBeenCalled();
       });
 
       it('answers the real 404 nobody caches, asking nothing, for an address of that shape naming no pull request or login', async () => {
@@ -1116,6 +1125,50 @@ describe('proxy', () => {
           expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
         }
         expect(fixGate).not.toHaveBeenCalled();
+      });
+
+      it("lets everyone reach a fix's own page, Learn from it, asking where the address leads first", async () => {
+        for (const path of ['/learn/fixes/acme/widgets/57', '/learn/fixes/acme/widgets/57/']) {
+          const response = await proxy(request(undefined, path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();
+        }
+        expect(viewGate.mock.calls).toEqual([
+          [{ nameWithOwner: 'acme/widgets', number: 57 }],
+          [{ nameWithOwner: 'acme/widgets', number: 57 }],
+        ]);
+        expect(fixGate).not.toHaveBeenCalled();
+      });
+
+      it('answers a fix page with no such view, nothing there, a removed fix and another spelling before it streams', async () => {
+        const FIX = '/learn/fixes/acme/widgets/57';
+        viewGate.mockResolvedValueOnce({ kind: 'redirect', path: '/contribute/pr/acme/widgets/57' });
+        const made = await proxy(request(undefined, `${FIX}?from=issues`), event);
+        expect(made?.status).toBe(307);
+        expect(made?.headers.get('location')).toBe('https://gitranks.com/contribute/pr/acme/widgets/57?from=issues');
+        expect(made?.headers.get('cache-control')).toBe('private, no-store');
+        viewGate.mockResolvedValueOnce({ kind: 'missing' });
+        const missing = await proxy(request('authjs.session-token=t', FIX), event);
+        expect(missing?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+        expect(missing?.headers.get('cache-control')).toBe('private, no-store');
+        viewGate.mockResolvedValueOnce({ kind: 'removed', path: '/learn/fixes/_removed/acme/widgets/57' });
+        const removed = await proxy(request(undefined, FIX), event);
+        expect(removed?.status).toBe(410);
+        expect(removed?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/learn/fixes/_removed/acme/widgets/57',
+        );
+        expect(withSession).not.toHaveBeenCalled();
+      });
+
+      it('answers the real 404, asking nothing, for a fix page naming no pull request', async () => {
+        for (const path of [
+          '/learn/fixes/acme/widgets/057',
+          '/learn/fixes/acme/widgets/x1',
+          '/learn/fixes/by-attempt/a/1',
+        ]) {
+          const response = await proxy(request(undefined, path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+        }
+        expect(viewGate).not.toHaveBeenCalled();
       });
 
       it('sends the address by attempt where the API says (a 307 without the query), or to the real 404', async () => {

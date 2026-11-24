@@ -8,6 +8,7 @@ import { type KeyboardEvent, type ReactNode, useEffect, useRef } from 'react';
 import { EmailNeedsAddress } from '@/components/learn/email-needs-address';
 import { Button } from '@/components/ui/button';
 import { RefChips } from '@/components/workspace/ref-chips';
+import { LEARN_FIXES_PAGE_BUILT } from '@/lib/learn/built-pages';
 import {
   EMAIL_ME_LABEL,
   emailOnLineOf,
@@ -22,7 +23,7 @@ import {
   switchCountLabelOf,
 } from '@/lib/learn/issues';
 import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
-import { learnLessonPath } from '@/lib/learn/paths';
+import { learnFixPath, learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
 
 /*
@@ -289,9 +290,20 @@ export function FixRow({
           <RefChips repo={fix.repo} issue={fix.issueNumber} pr={{ number: fix.number, url: fix.url }} />
           <span>fixed by {fix.fixer}</span>
         </div>
-        <span className="font-semibold text-pretty text-foreground" data-fix-title="">
-          {fix.title}
-        </span>
+        {LEARN_FIXES_PAGE_BUILT ? (
+          <Link
+            href={learnFixPath({ nameWithOwner: fix.repo, number: fix.number })}
+            prefetch={false}
+            className="self-start font-semibold text-pretty text-foreground hover:underline"
+            data-fix-title=""
+          >
+            {fix.title}
+          </Link>
+        ) : (
+          <span className="font-semibold text-pretty text-foreground" data-fix-title="">
+            {fix.title}
+          </span>
+        )}
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           {fix.lesson && lessonLine ? (
             <span data-lesson="">
@@ -310,6 +322,48 @@ export function FixRow({
         </span>
       </div>
     </article>
+  );
+}
+
+/**
+ * A merged fix as a card that opens its page, "Learn from it": the title, the lesson it used, the repository and the
+ * issue, who fixed it and when it merged. `compact` under a lesson (no lesson line, which would name the page itself).
+ * Before the page exists, the card is plain.
+ */
+export function FixCard({ fix, compact = false }: { fix: LearnFixRow; compact?: boolean }) {
+  const merged = mergedOnOf(fix.mergedAt);
+  const body = (
+    <>
+      <span className="font-semibold text-balance text-foreground">{fix.title}</span>
+      {fix.lesson && !compact ? <span className="text-sm text-muted-foreground">Used: {fix.lesson.title}</span> : null}
+      <span className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+        <span className="min-w-0 truncate font-mono">
+          {fix.repo} #{fix.issueNumber}
+        </span>
+        <span>fixed by {fix.fixer}</span>
+        {merged ? (
+          <span className="rounded-full bg-positive/10 px-2 py-0.5 font-medium text-positive">{merged}</span>
+        ) : null}
+      </span>
+    </>
+  );
+  const box = cn('flex min-w-0 flex-1 flex-col rounded-xl border bg-card', compact ? 'gap-1.5 p-3' : 'gap-2 p-4');
+  if (!LEARN_FIXES_PAGE_BUILT) {
+    return (
+      <div className={box} data-fix-card={`${fix.repo}#${fix.number}`}>
+        {body}
+      </div>
+    );
+  }
+  return (
+    <Link
+      href={learnFixPath({ nameWithOwner: fix.repo, number: fix.number })}
+      prefetch={false}
+      className={cn(box, 'transition-colors hover:border-foreground/30')}
+      data-fix-card={`${fix.repo}#${fix.number}`}
+    >
+      {body}
+    </Link>
   );
 }
 

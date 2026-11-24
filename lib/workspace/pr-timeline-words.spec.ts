@@ -61,7 +61,7 @@ describe('milestoneWordsOf', () => {
   });
 
   it('words a kind it does not know as a plain row: the title and the actor, no text or numbers', () => {
-    const row = unknownKindTimeline.milestones.find((each) => (each.kind as string) === 'WALKTHROUGH');
+    const row = unknownKindTimeline.milestones.find((each) => (each.kind as string) === 'TRANSLATED');
     expect(row).toBeDefined();
     expect(milestoneWordsOf(row as PrTimelineMilestone, unknownKindTimeline)).toEqual({
       title: PLAIN_ROW_TITLE,
@@ -95,6 +95,13 @@ describe('factsOf', () => {
     expect(factsOf(ownAgentTimeline)[2]).toEqual({ label: 'Our checks', value: 'Passed', note: 'after 3 tries' });
     expect(factsOf(openTimeline)[4]).toEqual({ label: 'Open', value: 'Since Oct 24', note: null });
     expect(factsOf(closedTimeline)[4]).toMatchObject({ label: 'Opened to closed', value: '6 days' });
+  });
+
+  it('leaves out a fact with nothing to say, never a long dash', () => {
+    const quiet = { ...openTimeline, milestones: openTimeline.milestones.filter((row) => row.kind === 'OPENED') };
+    const facts = factsOf(quiet);
+    expect(facts.map(({ label }) => label)).toEqual(['Agent', 'Review rounds', 'Open']);
+    expect(JSON.stringify(facts)).not.toContain('—');
   });
 });
 

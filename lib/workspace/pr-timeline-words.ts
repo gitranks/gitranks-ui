@@ -106,6 +106,8 @@ export function milestoneWordsOf(row: PrTimelineMilestone, timeline: PrTimeline)
         text: notes.length ? notes.join(' ') : null,
       };
     }
+    case 'WALKTHROUGH':
+      return { ...base, title: `${who} passed the walkthrough of the change` };
     case 'APPROVED':
       return {
         ...base,
@@ -171,7 +173,7 @@ export function milestoneWordsOf(row: PrTimelineMilestone, timeline: PrTimeline)
   }
 }
 
-/** The five facts under the head. */
+/** The facts under the head, at most five: one with nothing to say (no agent work, no checks) is left out. */
 export type PrTimelineFact = { label: string; value: string; note: string | null };
 
 export function factsOf(timeline: PrTimeline): PrTimelineFact[] {
@@ -183,20 +185,20 @@ export function factsOf(timeline: PrTimeline): PrTimelineFact[] {
   const checks = [...rows].reverse().find((row) => row.kind === 'CHECKS');
   const rounds = rows.filter((row) => row.kind === 'FOLLOW_UP').length;
   const reviews = rows.filter((row) => row.kind === 'REVIEWED').length;
-  return [
+  const facts: { label: string; value: string | null; note: string | null }[] = [
     {
       label: 'Agent',
-      value: timeline.agentPhrase,
+      value: timeline.agentPhrase || null,
       note: timeline.ownAgent ? 'the contributor’s own agent' : 'run by GitRanks',
     },
     {
       label: 'Agent work',
-      value: minutes ? durationOf(minutes) : '—',
+      value: minutes ? durationOf(minutes) : null,
       note: runs.length ? plural(runs.length, 'run') : null,
     },
     {
       label: 'Our checks',
-      value: checks ? (checks.passed ? 'Passed' : 'Some failed') : '—',
+      value: checks ? (checks.passed ? 'Passed' : 'Some failed') : null,
       note:
         checks?.tries === null || checks?.tries === undefined
           ? null
@@ -207,6 +209,7 @@ export function factsOf(timeline: PrTimeline): PrTimelineFact[] {
     { label: 'Review rounds', value: String(rounds), note: reviews ? plural(reviews, 'maintainer review') : null },
     endFactOf(timeline),
   ];
+  return facts.filter((fact): fact is PrTimelineFact => fact.value !== null);
 }
 
 function endFactOf(timeline: PrTimeline): PrTimelineFact {

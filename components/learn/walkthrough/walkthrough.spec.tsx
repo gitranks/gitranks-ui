@@ -4,8 +4,9 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { hint, push, refresh, finishWalkthroughAction, shareAnswersAction, run } = vi.hoisted(() => ({
+const { hint, built, push, refresh, finishWalkthroughAction, shareAnswersAction, run } = vi.hoisted(() => ({
   hint: { present: false },
+  built: { fixes: true },
   push: vi.fn(),
   refresh: vi.fn(),
   finishWalkthroughAction: vi.fn(),
@@ -24,7 +25,9 @@ vi.mock('@/lib/learn/actions', () => run);
 vi.mock('@/lib/learn/built-pages', () => ({
   LEARN_ISSUES_PAGE_BUILT: true,
   LEARN_PROJECT_COURSE_PAGE_BUILT: false,
-  LEARN_FIXES_PAGE_BUILT: false,
+  get LEARN_FIXES_PAGE_BUILT() {
+    return built.fixes;
+  },
   LEARN_APPROVE_PAGE_BUILT: false,
   LEARN_ANSWERS_SHARE_SWITCH_ON: true,
 }));
@@ -83,7 +86,9 @@ const articles = fx.walkthrough.parts.map((part, index) => (
   <WalkthroughPartArticle key={part.id} heading={part.heading} blocks={part.blocks} index={index} count={4} />
 ));
 
-const drawPublic = () =>
+type Stand = { made: 'LEARN' | 'CONTRIBUTE'; state: 'OPEN' | 'MERGED' | 'CLOSED' } | null;
+
+const drawPublic = (fix: Stand = { made: 'LEARN', state: 'MERGED' }) =>
   act(async () => {
     root.render(
       <PublicWalkthroughPlayer
@@ -93,7 +98,7 @@ const drawPublic = () =>
         head={<WalkthroughHead facts={factsOf(fx.walkthrough)} />}
         articles={articles}
         questions={fx.walkthroughQuestions}
-        about={<AboutThisFix walkthrough={fx.walkthrough} />}
+        about={<AboutThisFix walkthrough={fx.walkthrough} fix={fix} />}
         next={'/learn/lessons/validate-input/real-world' as Route}
       />,
     );
@@ -119,9 +124,34 @@ describe('the public walkthrough', () => {
     expect(text()).toContain('fixed by octocat');
     expect(text()).toContain('Question 1 of 4');
     expect(text()).toContain('The lesson it used: Check input at the edge');
-    // The fix's own page is not built yet: no button to it.
-    expect(text()).not.toContain('The change and similar issues');
+    // The fix's own page, "Learn from it".
+    expect(host.querySelector('a[href="/learn/fixes/acme/widgets/57"]')?.textContent).toBe(
+      'The change and similar issues',
+    );
     expect(text()).not.toMatch(/\bstory\b|\blesson:/i);
+  });
+
+  it('leads a fix closed without a merge to "How it was made", and promises nothing it cannot show', async () => {
+    await drawPublic({ made: 'LEARN', state: 'CLOSED' });
+    expect(host.querySelector('[data-fix-page-link]')?.getAttribute('href')).toBe('/contribute/pr/acme/widgets/57');
+    expect(host.querySelector('[data-fix-page-link]')?.textContent).toBe('How the fix was made');
+    expect(text()).not.toContain('similar issues');
+  });
+
+  it("has no button to the fix's own page while it is not known how the fix stands", async () => {
+    await drawPublic(null);
+    expect(host.querySelector('[data-fix-page-link]')).toBeNull();
+    expect(text()).toContain('The lesson it used: Check input at the edge');
+  });
+
+  it("has no button to the fix's own page while that page is not built", async () => {
+    built.fixes = false;
+    try {
+      await drawPublic();
+      expect(text()).not.toContain('The change and similar issues');
+    } finally {
+      built.fixes = true;
+    }
   });
 
   it('shows why a pick is wrong and lets the person pick again, never counting it', async () => {

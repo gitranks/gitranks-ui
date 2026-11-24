@@ -1,10 +1,19 @@
 import type { Route } from 'next';
 
+import { LearnFixViewGateDocument } from './fix-page.documents';
 import { LEARN_MAINTAINERS_PATH } from './learn-path';
-import { type LearnFixRoute, learnFixAnswersPath, learnFixRemovedPath, learnFixWalkthroughPath } from './paths';
+import {
+  type LearnFixRoute,
+  learnFixAnswersPath,
+  learnFixPath,
+  learnFixRemovedPath,
+  learnFixWalkthroughPath,
+} from './paths';
 import { type FixAddress, fixAddressOf, fixRefInputOf } from './walkthrough';
 import { LearnFixAddressByAttemptDocument, LearnFixAddressDocument } from './walkthrough.documents';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import type { PrRef } from '@/lib/workspace/pr-feedback';
+import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 /*
  * A fix's walkthrough and a person's answers stream: the response starts with a 200 before the page reads them, so
@@ -12,6 +21,12 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
  * first (page 33): nothing there is a real 404, a fix whose page was removed its own page with a 410, and an address
  * in another spelling than the API's (a renamed repository, a login's letter case) a redirect to the current one.
  * The footer's address by attempt is answered here too, since only the proxy can answer the site's own 404 page.
+ */
+
+/*
+ * The fix's own page, "Learn from it", is answered here as well: it exists only for a pull request made with Learn
+ * that is not closed without a merge, while its public page is shown. Any other pull request is sent to "How it was
+ * made", its one view; a fix whose public page its fixer hid has neither, so it is the 404.
  */
 
 /** How long the proxy waits for the answer before leaving it to the page: nothing is sent while it waits. */
@@ -163,5 +178,76 @@ export async function fixByAttemptRouteGateOf(
   );
   const gate = fixByAttemptGateOf(address);
   if (address?.state === 'LIVE') remember(key, gate, now);
+  return gate;
+}
+
+/**
+ * What the proxy's one question about a fix page's address answers: where it leads, how the pull request stands, and
+ * whether its public page is shown (false when its fixer hid it, or there is none).
+ */
+export type FixViewAnswer = {
+  address: FixAddress | null;
+  fix: { repo: string; number: number; made: string; state: string } | null;
+  shown: boolean;
+};
+
+/**
+ * What the proxy does with a fix page's address. A pull request made without Learn, or closed without a merge, has
+ * one view, "How it was made": a redirect there. Nothing there, or no public page (none, or one its fixer hid), is the
+ * 404; a fix whose page was removed its own page with a 410; another spelling a redirect to the API's. No answer
+ * leaves it to the page.
+ */
+export function fixViewGateOf(pr: PrRef, answer: FixViewAnswer | null): FixGate {
+  if (!answer) return PAGE;
+  const { address, fix } = answer;
+  if (fix && typeof fix.repo === 'string' && Number.isInteger(fix.number)) {
+    if (fix.made !== 'LEARN' || fix.state === 'CLOSED') {
+      return { kind: 'redirect', path: prTimelinePath({ nameWithOwner: fix.repo, number: fix.number }) };
+    }
+  }
+  if (address?.state === 'REMOVED') return { kind: 'removed', path: learnFixRemovedPath(pr) };
+  if (!fix) return address ? { kind: 'missing' } : PAGE;
+  const current = learnFixPath({ nameWithOwner: fix.repo, number: fix.number });
+  if (current !== learnFixPath(pr)) return { kind: 'redirect', path: current };
+  // "Learn from it" draws the pull request's public page: one that is hidden has nothing to draw.
+  return answer.shown ? PAGE : { kind: 'missing' };
+}
+
+/** Asks where a fix page's address leads, within `timeoutMs`, as `fixViewGateOf` says; a live page is kept a minute. */
+export async function fixViewRouteGateOf(pr: PrRef, timeoutMs = FIX_GATE_TIMEOUT_MS, at?: number): Promise<FixGate> {
+  // Only the proxy and a route handler ask, at request time: never a page rendered ahead of one.
+  const now = at ?? Date.now();
+  const key = `view:${pr.nameWithOwner}#${pr.number}`;
+  const kept = remembered(key, now);
+  if (kept) return kept;
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve(null);
+    }, timeoutMs);
+  });
+  const ref = fixRefInputOf(pr);
+  const read = graphqlDirect(
+    LearnFixViewGateDocument,
+    { ref, owner: ref.owner, repo: ref.repo, number: ref.number },
+    { source: 'ssr', signal: controller.signal },
+  ).then(
+    ({ learnFixAddress, learnFix, contributePrTimeline }): FixViewAnswer => ({
+      address: fixAddressOf(learnFixAddress),
+      fix: learnFix ?? null,
+      shown: !!contributePrTimeline?.timeline,
+    }),
+    () => null,
+  );
+  let answer: FixViewAnswer | null;
+  try {
+    answer = await Promise.race([read, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+  const gate = fixViewGateOf(pr, answer);
+  if (answer?.fix && gate.kind !== 'missing' && gate.kind !== 'removed') remember(key, gate, now);
   return gate;
 }

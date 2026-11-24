@@ -1,6 +1,6 @@
 import { parse } from 'graphql';
 
-import type { PrTimelineAnswer, PublicPrTimeline } from './pr-timeline.types';
+import type { PrTimelineAnswer, PrTimelineHelped, PublicPrTimeline } from './pr-timeline.types';
 import type DocumentNode from '@/types/typed-document-node';
 
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
@@ -38,3 +38,16 @@ export const PrTimelineByAttemptDocument = doc<
 export const PublicPrTimelinesDocument = doc<{ publicPrTimelines: PublicPrTimeline[] }>(
   'query PublicPrTimelines { publicPrTimelines { nameWithOwner number modifiedAt } }',
 );
+
+/**
+ * The people who said a pull request helped, by name: its own read beside the page's, so the page's read keeps its
+ * shape and an API that does not know these fields fails this read alone.
+ */
+export const PrTimelineHelpedDocument = doc<
+  { contributePrTimeline: { timeline: PrTimelineHelped | null } | null },
+  { owner: string; repo: string; number: number }
+>(`query PrTimelineHelped($owner: String!, $repo: String!, $number: Int!) {
+  contributePrTimeline(owner: $owner, repo: $repo, number: $number) {
+    timeline { helpedBy helpedNamed }
+  }
+}`);

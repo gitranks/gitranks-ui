@@ -1,12 +1,18 @@
-import { publicPrTimeline } from '@/lib/contribute/pr-timeline.data';
 import { prTimelineMarkdownOf } from '@/lib/contribute/pr-timeline-seo';
+import { fixMarkdownOf, isLearnCanonical } from '@/lib/learn/fix-page';
+import { loadFixPage } from '@/lib/learn/fix-page.data';
+import { learnFixPath } from '@/lib/learn/paths';
+import { absoluteUrl } from '@/lib/seo/site';
 import { parsePrLink } from '@/lib/workspace/pr-feedback';
+import { publicPrTimeline } from '@/lib/workspace/pr-timeline.data';
 import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 /**
  * A pull request timeline as Markdown, for agents: only at this address (the page's own answers HTML to everyone). The
  * proxy has asked the API first, as for the page; a shown one is the same for everyone and kept by shared caches, a
- * page without its reviews for a minute only.
+ * page without its reviews for a minute only. One copy covers both views of a Learn fix: it names Learn, its Learn
+ * part is added, and its canonical is the pages': "Learn from it" for a merged one. A read that fails throws: the
+ * error is answered and no cache keeps a copy that names the wrong product.
  */
 export async function GET(
   _request: Request,
@@ -21,11 +27,16 @@ export async function GET(
       headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' },
     });
   }
-  return new Response(prTimelineMarkdownOf(timeline), {
+  const at = { nameWithOwner: timeline.nameWithOwner, number: timeline.number };
+  const fix = await loadFixPage(at);
+  const learn = fixMarkdownOf(at, fix, absoluteUrl);
+  const canonical = isLearnCanonical(fix) ? learnFixPath(at) : prTimelinePath(timeline);
+  const made = fix?.made === 'LEARN' ? 'LEARN' : 'CONTRIBUTE';
+  return new Response(prTimelineMarkdownOf(timeline, { learn: learn.length ? learn : null, made }), {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
       'Cache-Control': timeline.partial ? 'public, max-age=60, s-maxage=60' : 'public, max-age=60, s-maxage=120',
-      Link: `<${prTimelinePath(timeline)}>; rel="canonical"`,
+      Link: `<${canonical}>; rel="canonical"`,
     },
   });
 }

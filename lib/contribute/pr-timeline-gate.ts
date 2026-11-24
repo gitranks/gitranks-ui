@@ -1,8 +1,8 @@
 import type { Route } from 'next';
 
-import { PrTimelineByAttemptDocument, PrTimelineDocument } from './pr-timeline.documents';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type { PrRef } from '@/lib/workspace/pr-feedback';
+import { PrTimelineByAttemptDocument, PrTimelineDocument } from '@/lib/workspace/pr-timeline.documents';
 import { prTimelineFallbackPath, prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 /*

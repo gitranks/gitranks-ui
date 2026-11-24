@@ -315,15 +315,15 @@ describe('"In the real world" under a lesson', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("shows a visitor the lesson's merged fixes, as plain text", async () => {
+  it("shows a visitor the lesson's merged fixes, each a card that opens its page", async () => {
     await draw({ fixes: learnFixes });
     expect(section()!.textContent).toContain(learnFixes.rows[0].title);
     expect($('[data-real-all-fixes]')!.getAttribute('href')).toBe(
       `/learn/lessons/${setLesson.slug}/real-world?fixed=1`,
     );
     expect($('[data-real-issues-link]')!.getAttribute('href')).toBe(`/learn/lessons/${setLesson.slug}/real-world`);
-    // No fix page yet: a fix's title links nowhere on Learn.
-    expect(section()!.querySelector('a[href^="/learn/fixes"]')).toBeNull();
+    // Each fix opens its own page, "Learn from it".
+    expect(section()!.querySelector('a[href="/learn/fixes/harbor-kit/relay/418"]')).not.toBeNull();
   });
 
   it('is the page as before when the API answers none of it, or fails', async () => {

@@ -22,9 +22,11 @@ import {
   learnCourseTag,
   learnEntityTag,
   learnFactCardPath,
+  learnFixMarksPath,
   learnFixPath,
   learnFixTag,
   learnFixTagOf,
+  learnFixViewOf,
   learnIssuesMarkdownRouteOf,
   learnKnownPath,
   learnLessonCardPath,
@@ -341,5 +343,34 @@ describe("a project's Learn card tags", () => {
 describe('a Learn fix’s page', () => {
   it('lives under /learn/fixes, by the pull request', () => {
     expect(learnFixPath({ nameWithOwner: 'harbor-kit/relay', number: 58 })).toBe('/learn/fixes/harbor-kit/relay/58');
+    expect(learnFixMarksPath({ nameWithOwner: 'harbor-kit/relay', number: 58 })).toBe(
+      '/api/me/learn/fixes/harbor-kit/relay/58/marks',
+    );
+  });
+
+  it("reads the fix a page's address names for the proxy, and nothing for any other address", () => {
+    expect(learnFixViewOf('/learn/fixes/harbor-kit/relay/58')).toEqual({
+      nameWithOwner: 'harbor-kit/relay',
+      number: 58,
+    });
+    expect(learnFixViewOf('/learn/fixes/harbor-kit/relay/58/')).toEqual({
+      nameWithOwner: 'harbor-kit/relay',
+      number: 58,
+    });
+    for (const path of [
+      '/learn/fixes/harbor-kit/relay/058',
+      '/learn/fixes/harbor-kit/relay/x1',
+      '/learn/fixes/by-attempt/a/1',
+    ]) {
+      expect(learnFixViewOf(path), path).toBe('invalid');
+    }
+    for (const path of [
+      '/learn/fixes/harbor-kit/relay/58/walkthrough',
+      '/learn/fixes/_removed/harbor-kit/relay/58',
+      '/learn/fixes/harbor-kit/relay',
+      '/contribute/pr/harbor-kit/relay/58',
+    ]) {
+      expect(learnFixViewOf(path), path).toBeNull();
+    }
   });
 });

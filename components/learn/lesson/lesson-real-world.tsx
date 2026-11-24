@@ -4,7 +4,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { type ReactNode, Suspense, use, useRef, useState } from 'react';
 
-import { FixRow } from '@/components/learn/issues/issues-parts';
+import { FixCard } from '@/components/learn/issues/issues-parts';
 import { PHONE_LINK } from '@/components/learn/phone-link';
 import { Button } from '@/components/ui/button';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
@@ -51,10 +51,10 @@ const Empty = ({ children }: { children: ReactNode }) => (
 function FixesList({ rows }: { rows: readonly LearnFixRow[] }) {
   if (!rows.length) return <Empty>{REAL_WORLD_WORDS.fixesNone}</Empty>;
   return (
-    <ul className={LIST}>
+    <ul className="m-0 flex list-none flex-col gap-2 p-0">
       {rows.slice(0, LESSON_FIXES_SHOWN).map((fix) => (
-        <li key={`${fix.repo}#${fix.number}`}>
-          <FixRow fix={fix} lessonLine={false} />
+        <li key={`${fix.repo}#${fix.number}`} className="flex">
+          <FixCard fix={fix} compact />
         </li>
       ))}
     </ul>

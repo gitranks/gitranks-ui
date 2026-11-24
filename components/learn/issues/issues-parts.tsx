@@ -78,7 +78,7 @@ const pressOnSpace = (event: KeyboardEvent<HTMLAnchorElement>) => {
   event.currentTarget.click();
 };
 
-/** "For you 212": one switch, pressed or not, with the count the list holds once it is pressed. */
+/** "Lessons I learned 14": one switch; only a switch that is off shows a count, the list it holds once pressed. */
 function Switch({ item }: { item: IssuesSwitch }) {
   return (
     <Link

@@ -217,6 +217,8 @@ describe('switches and counts', () => {
     expect([forYou.count, learned.count]).toEqual([null, null]);
     const [forYouOff, learnedOff] = issuesSwitchesOf({ ...ISSUES_VIEW, forYou: false }, list);
     expect([forYouOff.count, learnedOff.count]).toEqual(['1,000+', '1,000+']);
+    const [forYouMixed, learnedMixed] = issuesSwitchesOf({ ...views.learned, forYou: false }, list);
+    expect([forYouMixed.count, learnedMixed.count]).toEqual(['1,000+', null]);
   });
 
   it('says what pressing a switch shows', () => {

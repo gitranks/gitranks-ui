@@ -10,6 +10,7 @@ import {
   hintTextOf,
   issueKindOf,
   issueLanguageColorOf,
+  issuePageCarriedOf,
   issuePagePath,
   limitEndOf,
   limitNoteOf,
@@ -28,6 +29,16 @@ describe('the page of one issue', () => {
   it('is at an address that names only the mask id', () => {
     expect(issuePagePath('q7k2m9xa')).toBe('/my/issues/q7k2m9xa');
     expect(issuePagePath('a/b c')).toBe('/my/issues/a%2Fb%20c');
+  });
+
+  it("is where Contribute's home sends a new account back once it is set up, with the press it made", () => {
+    expect(issuePageCarriedOf({ issue: 'q7k2m9xa', from: 'learn', look: '1' })).toBe(
+      '/my/issues/q7k2m9xa?from=learn&look=1',
+    );
+    expect(issuePageCarriedOf({ issue: 'q7k2m9xa' })).toBe('/my/issues/q7k2m9xa?from=contribute');
+    expect(issuePageCarriedOf({ issue: '../x' })).toBeNull();
+    expect(issuePageCarriedOf({ issue: ['a', 'b'] })).toBeNull();
+    expect(issuePageCarriedOf({})).toBeNull();
   });
 });
 

@@ -28,7 +28,7 @@ vi.mock('@/lib/contribute/agent-page', () => ({ loadAgentPage: vi.fn(async () =>
 
 const { ContributeAboutView, signedInStartOf } = await import('./landing-view');
 const { metadata: aboutMetadata } = await import('@/app/(public)/contribute/about/page');
-const { metadata: homeMetadata } = await import('@/app/(workspace)/contribute/page');
+const { default: ContributeHomePage, metadata: homeMetadata } = await import('@/app/(workspace)/contribute/page');
 const { AuthorizeNextStep } = await import('./authorize-next-step');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 
@@ -109,6 +109,16 @@ describe('the landing at /contribute', () => {
   it('stays out of search engines, set by the page itself', () => {
     expect(homeMetadata.robots).toEqual({ index: false, follow: false });
     expect(homeMetadata.alternates?.types).toEqual({ 'text/markdown': '/contribute/agents.md' });
+  });
+
+  it('sends a new account, once set up, back to the page of the issue it came from, with its press', async () => {
+    data.loadContribute.mockResolvedValue(views.newcomer);
+    const page = ContributeHomePage({
+      searchParams: Promise.resolve({ issue: 'q7k2m9xa', from: 'learn', look: '1' }),
+    } as never) as ReactElement<{ children: ReactElement }>;
+    const home = page.props.children as ReactElement<Record<string, unknown>>;
+    const render = home.type as (props: Record<string, unknown>) => Promise<ReactElement>;
+    await expect(render(home.props)).rejects.toThrow('NEXT_REDIRECT /my/issues/q7k2m9xa?from=learn&look=1');
   });
 });
 

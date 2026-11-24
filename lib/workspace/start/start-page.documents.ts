@@ -9,6 +9,12 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 
 const ATTEMPT = 'id mode state';
 
+/** The Start page's answer for an issue, as `StartPageIssue` asks it. */
+export const START_PAGE_ISSUE_FIELDS = `repo number
+    issue { issueId url repo number title language size why }
+    refusal limit
+    attempt { ${ATTEMPT} }`;
+
 /** Whether the viewer can start the issue now in the page's mode, and the issue as the lists show it. Claims nothing. */
 export const StartPageIssueDocument = doc<
   { startPageIssue: StartPageIssue },
@@ -16,10 +22,7 @@ export const StartPageIssueDocument = doc<
 >(
   `query StartPageIssue($repo: String!, $number: Int!, $mode: ContributeAttemptMode) {
   startPageIssue(repo: $repo, number: $number, mode: $mode) {
-    repo number
-    issue { issueId url repo number title language size why }
-    refusal limit
-    attempt { ${ATTEMPT} }
+    ${START_PAGE_ISSUE_FIELDS}
   }
 }`,
 );

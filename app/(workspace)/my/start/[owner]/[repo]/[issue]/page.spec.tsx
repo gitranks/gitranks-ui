@@ -30,6 +30,8 @@ const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn() }));
 vi.mock('@/lib/workspace/gate.data', () => gate);
 const start = vi.hoisted(() => ({ loadStartPageView: vi.fn() }));
 vi.mock('@/lib/workspace/start/start-page.data', () => start);
+const masks = vi.hoisted(() => ({ loadRulesLive: vi.fn(), loadStartPageWithMask: vi.fn() }));
+vi.mock('@/lib/workspace/masked-issue.data', () => masks);
 // The poll outside the tabs: a mark, so the page says where it mounts it.
 vi.mock('@/components/workspace/workspace-live', () => ({
   WorkspaceLive: ({ children }: { children: ReactElement }) => <div data-workspace-live="">{children}</div>,
@@ -69,6 +71,8 @@ beforeEach(() => {
   gate.loadWorkspaceGate.mockResolvedValue(OPEN);
   learn.loadLearnOpen.mockResolvedValue(true);
   learn.loadLearnProfile.mockResolvedValue(filledProfile);
+  masks.loadRulesLive.mockResolvedValue(false);
+  masks.loadStartPageWithMask.mockResolvedValue(null);
   start.loadStartPageView.mockImplementation(async (_ref, _mode, goal) => ({
     kind: 'view',
     view: startPageViewOf({ goal }),
@@ -80,7 +84,7 @@ describe('the Start page at /my/start', () => {
 
   it('is Fix it by default, without reading the goal', async () => {
     const html = await startPage();
-    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null);
+    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null, undefined);
     expect(learn.loadLearnProfile).not.toHaveBeenCalled();
     expect(html).toContain('data-start-mode="fix"');
     expect(text(html)).toContain('Fix this issue');
@@ -89,7 +93,7 @@ describe('the Start page at /my/start', () => {
 
   it('is lesson mode for ?lesson=1, with the saved goal, back to the tab it came from', async () => {
     const html = await startPage({ lesson: '1' });
-    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'lesson', 'TypeScript, Some');
+    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'lesson', 'TypeScript, Some', undefined);
     expect(html).toContain('data-start-mode="lesson"');
     expect(html).toContain('href="/learn/earlier#issues"');
     expect(await startPage({ lesson: '1', from: 'contribute' })).toContain('href="/contribute#issues"');
@@ -121,5 +125,46 @@ describe('the Start page at /my/start', () => {
     await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /my/start/driftwood-js/driftwood/934');
     start.loadStartPageView.mockResolvedValueOnce({ kind: 'claimed', href: '/my/pull-requests/by-attempt/A_9' });
     await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /my/pull-requests/by-attempt/A_9');
+  });
+
+  describe('the old address of an issue whose details are hidden', () => {
+    const ANSWER = { ok: true, data: startPageViewOf().issue.start };
+
+    it("is today's page until the switch, and asks nothing about the mask", async () => {
+      const html = await startPage();
+      expect(html).toContain('data-start-mode="fix"');
+      expect(masks.loadStartPageWithMask).not.toHaveBeenCalled();
+      expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null, undefined);
+    });
+
+    it('is not found from the switch for an issue the viewer neither named nor holds', async () => {
+      masks.loadRulesLive.mockResolvedValue(true);
+      masks.loadStartPageWithMask.mockResolvedValue({ answer: ANSWER, maskId: 'q7k2m9xa' });
+      await expect(startPage()).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(masks.loadStartPageWithMask).toHaveBeenCalledWith(REF, 'fix');
+    });
+
+    it('reads the issue once: the answer with the mask goes on to the page, which asks it no more', async () => {
+      masks.loadRulesLive.mockResolvedValue(true);
+      masks.loadStartPageWithMask.mockResolvedValue({ answer: ANSWER, maskId: null });
+      expect(await startPage()).toContain('data-start-mode="fix"');
+      expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null, ANSWER);
+    });
+
+    it('keeps working from the switch for an issue the viewer named or holds, and one they work on', async () => {
+      masks.loadRulesLive.mockResolvedValue(true);
+      masks.loadStartPageWithMask.mockResolvedValue({ answer: ANSWER, maskId: null });
+      expect(await startPage()).toContain('data-start-mode="fix"');
+      masks.loadStartPageWithMask.mockResolvedValue({ answer: ANSWER, maskId: 'q7k2m9xa' });
+      start.loadStartPageView.mockResolvedValueOnce({ kind: 'claimed', href: '/my/pull-requests/by-attempt/A_9' });
+      await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /my/pull-requests/by-attempt/A_9');
+    });
+
+    it("is today's page, read as today, when the API does not know the mask yet", async () => {
+      masks.loadRulesLive.mockResolvedValue(true);
+      masks.loadStartPageWithMask.mockResolvedValue(null);
+      expect(await startPage()).toContain('data-start-mode="fix"');
+      expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null, undefined);
+    });
   });
 });

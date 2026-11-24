@@ -601,6 +601,17 @@ describe('proxy', () => {
       }
     });
 
+    it("carries an issue's page, and the press made before the sign-in, through a new account's setting-up", async () => {
+      settingUp.mockResolvedValue(true);
+      const response = await proxy(
+        request('authjs.session-token=t', '/my/issues/q7k2m9xa?from=learn&look=1&other=x'),
+        event,
+      );
+      expect(response?.headers.get('location')).toBe(
+        'https://gitranks.com/contribute?issue=q7k2m9xa&from=learn&look=1',
+      );
+    });
+
     it('lets in a signed-in user the API lets in, as any signed-in page', async () => {
       maySeeContribute.mockResolvedValue(true);
       const response = await proxy(request('authjs.session-token=t', '/my/agent'), event);

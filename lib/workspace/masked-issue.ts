@@ -22,6 +22,43 @@ export const HINTS_SHOWN = 2;
 /** The page of one issue, by its mask id: the address names no project. */
 export const issuePagePath = (id: string): Route => `/my/issues/${encodeURIComponent(id)}` as Route;
 
+/** A mask id as the API writes it: short, letters, digits, `_` and `-`. Anything else names no issue. */
+const MASK_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+/** The mask id in an address or an argument; null for anything else. */
+export const maskIdOf = (value: unknown): string | null =>
+  typeof value === 'string' && MASK_ID.test(value) ? value : null;
+
+/** The list a person came from, which the page's words, form and back link follow. */
+export type IssuePageFrom = 'learn' | 'contribute';
+
+/** `?from=learn` from Learn's lists, when Learn is open to the person; Contribute's otherwise. */
+export const issuePageFromOf = (value: unknown, learnOpen: boolean): IssuePageFrom =>
+  value === 'learn' && learnOpen ? 'learn' : 'contribute';
+
+/** The list as the API names it, for a look and its count. */
+export const issueSurfaceOf = (from: IssuePageFrom): 'LEARN' | 'CONTRIBUTE' =>
+  from === 'learn' ? 'LEARN' : 'CONTRIBUTE';
+
+/** The parameter a sign-in's return carries: the person pressed "See the full issue" before signing in. */
+export const ISSUE_LOOK_PARAM = 'look';
+
+/** The page of one issue with where the person came from, and (back from the sign-in) the press they made. */
+export function issuePageHrefOf(id: string, from: IssuePageFrom, pressed = false): Route {
+  const query = new URLSearchParams({ from });
+  if (pressed) query.set(ISSUE_LOOK_PARAM, '1');
+  return `${issuePagePath(id)}?${query}` as Route;
+}
+
+/**
+ * The page of one issue a new account was on when it was sent to Contribute's home to be set up (`?issue=` with
+ * `from` and `look`, as `settingUpHomeOf` carries them): where the home sends it back once ready. Null for none.
+ */
+export function issuePageCarriedOf(query: Record<string, string | string[] | undefined>): Route | null {
+  const id = maskIdOf(query.issue);
+  return id ? issuePageHrefOf(id, query.from === 'learn' ? 'learn' : 'contribute', query.look === '1') : null;
+}
+
 /** The kinds of issue, the icon each one has in the row, and its name. */
 export const ISSUE_KINDS = {
   bug: 'Bug',

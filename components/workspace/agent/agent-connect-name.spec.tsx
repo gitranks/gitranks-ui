@@ -68,3 +68,17 @@ describe('the connect page, naming a token', () => {
     expect(actions.createMcpToken).toHaveBeenCalledWith(expect.stringMatching(/^Codex CLI on /));
   });
 });
+
+describe('"I added it"', () => {
+  it('tells the page around the steps, before the agent first calls', async () => {
+    const onAdded = vi.fn();
+    const onConnected = vi.fn();
+    await act(async () =>
+      root.render(<AgentConnect embedded onboarded tokens={[]} signIn onAdded={onAdded} onConnected={onConnected} />),
+    );
+    const added = [...container.querySelectorAll('button')].find((button) => button.textContent === 'I added it');
+    await act(async () => added?.click());
+    expect(onAdded).toHaveBeenCalledOnce();
+    expect(onConnected).not.toHaveBeenCalled();
+  });
+});

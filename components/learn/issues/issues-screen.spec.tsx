@@ -98,13 +98,13 @@ describe('Issues', () => {
     expect($('[data-issues-visitor-note]')).toBeNull();
   });
 
-  it('draws a person\'s five with both switches, their counts, and what "For you" means', async () => {
+  it('draws a person\'s five with both switches, the count of the one off, and what "For you" means', async () => {
     await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'personal', list: personalList() }} />);
     const switches = $$('[data-issues-switch]');
     expect(
       switches.map((node) => [node.textContent, node.getAttribute('aria-checked'), node.getAttribute('href')]),
     ).toEqual([
-      ['For you212, 212 issues once pressed', 'true', '/learn/issues?for-you=0'],
+      ['For you', 'true', '/learn/issues?for-you=0'],
       ['Lessons I learned14, 14 issues once pressed', 'false', '/learn/issues?learned=1'],
     ]);
     expect($('[data-for-you-line]')?.textContent).toBe(
@@ -117,6 +117,16 @@ describe('Issues', () => {
     expect($('[data-learn-masked-line]')?.textContent).toContain('Five open issues at a time');
     expect($('[data-issues-chip]')).toBeNull();
     expect($('[data-issues-clear]')).toBeNull();
+  });
+
+  it('puts no count on a pressed switch: the count the API gives is the list with it turned off', async () => {
+    const list = { ...personalList(), rows: [], forYouCount: 1001, learnedCount: 1001 };
+    await render(<IssuesScreen view={views.learned} layer={{ kind: 'personal', list }} />);
+    const switches = $$('[data-issues-switch]');
+    expect(switches.map((node) => [node.textContent, node.getAttribute('aria-checked')])).toEqual([
+      ['For you', 'true'],
+      ['Lessons I learned', 'true'],
+    ]);
   });
 
   it("shows no count while a new view is read: the counts on the screen are the last view's", async () => {

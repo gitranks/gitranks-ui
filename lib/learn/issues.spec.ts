@@ -191,13 +191,13 @@ describe('switches and counts', () => {
     for (const none of [0, -1, null, undefined, Number.NaN]) expect(issuesCountTextOf(none)).toBeNull();
   });
 
-  it('draws both switches with the count of each flipped, and the view once pressed', () => {
+  it('draws both switches, a count only on one that is off, and the view once pressed', () => {
     const [forYou, learned] = issuesSwitchesOf(ISSUES_VIEW, personalList());
     expect(forYou).toEqual({
       key: 'for-you',
       label: 'For you',
       on: true,
-      count: '212',
+      count: null,
       href: '/learn/issues?for-you=0',
     });
     expect(learned).toEqual({
@@ -209,6 +209,14 @@ describe('switches and counts', () => {
     });
     const [, off] = issuesSwitchesOf(views.course, { forYouCount: null, learnedCount: null }, 'course');
     expect(off).toMatchObject({ on: true, count: null, href: '/learn/courses/algorithms/real-world' });
+  });
+
+  it('never puts the count of the list without a pressed switch on that switch', () => {
+    const list = { forYouCount: 1001, learnedCount: 1001 };
+    const [forYou, learned] = issuesSwitchesOf(views.learned, list);
+    expect([forYou.count, learned.count]).toEqual([null, null]);
+    const [forYouOff, learnedOff] = issuesSwitchesOf({ ...ISSUES_VIEW, forYou: false }, list);
+    expect([forYouOff.count, learnedOff.count]).toEqual(['1,000+', '1,000+']);
   });
 
   it('says what pressing a switch shows', () => {

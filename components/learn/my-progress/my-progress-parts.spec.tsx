@@ -296,9 +296,7 @@ describe('My progress: headings, labels and phone targets', () => {
 
   it('History with no day at all says where the days will show', () => {
     const page = draw(<HistoryList days={[]} today={PROGRESS_TODAY} more="end" onMore={() => {}} />);
-    expect(page.querySelector('[data-history-none]')!.textContent).toBe(
-      'The days you are active show here.',
-    );
+    expect(page.querySelector('[data-history-none]')!.textContent).toBe('The days you are active show here.');
     const some = draw(<HistoryList days={historyFirst.days} today={PROGRESS_TODAY} more="end" onMore={() => {}} />);
     expect(some.querySelector('[data-history-none]')).toBeNull();
   });

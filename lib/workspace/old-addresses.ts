@@ -75,9 +75,10 @@ export const LESSON_VIEW_REDIRECTS = [
 
 /**
  * Learn's pages that went away, and where each leads now (permanent: they are gone for good). The Learn tab before
- * courses and its flow's pick of an issue are Issues now; the earlier Your progress is Progress; the flow's first step and the goal and level page are Set up
- * Learn; the page for maintainers is the part about Learn of Contribute's page for maintainers, with the query kept (the
- * `from` its footer links carry; the browser puts the query before the part's anchor). An issue's own start address
+ * courses and its flow's pick of an issue are Issues now; the earlier Your progress is Progress; the flow's first step
+ * and the goal and level page are Set up Learn; the page for maintainers is the part about Learn of Contribute's page
+ * for maintainers, with the query kept (the `from` its footer links carry; the browser puts the query before the
+ * part's anchor). An issue's own start address
  * under the flow depends on the person, so a route answers it (`app/learn/start/[owner]/[repo]/[issue]/route.ts`).
  */
 export const OLD_LEARN_REDIRECTS = [

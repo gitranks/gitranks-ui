@@ -112,7 +112,7 @@ const nextConfig: NextConfig = {
       ...LESSON_VIEW_REDIRECTS,
       // A person's old public Learn record: their Skills page.
       ...OLD_SKILLS_REDIRECTS,
-      // Learn's pages that went away: Issues, Set up Learn, and the part about Learn of the page for maintainers.
+      // Learn's pages that went away: Issues, Set up Learn, Progress, and the part about Learn of the page for maintainers.
       ...OLD_LEARN_REDIRECTS,
     ];
   },

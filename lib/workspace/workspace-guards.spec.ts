@@ -70,6 +70,7 @@ describe('the workspace has one poll', () => {
   const ALLOWED: Record<string, string> = {
     'components/workspace/activity.tsx': 'a clock for the bar',
     'components/workspace/pull-request/follow-up-buttons.tsx': 'a clock for a countdown',
+    'components/workspace/masked-issue/issue-page-screen.tsx': "a clock for the hold's minutes",
     'components/workspace/setting-up-refresh.tsx': 'the setting-up reload, bounded',
     'components/workspace/matching.tsx': 'the matching moment, bounded',
     'components/workspace/agent/agent-connect.tsx': "the wait for the agent's first call, bounded",

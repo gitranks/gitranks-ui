@@ -3,6 +3,7 @@ import type { Route } from 'next';
 import type { ContributeIssue, ContributeIssueRepoRules, ContributeIssueSize } from './contribute.types';
 import { type ContributeActionResult, contributeErrorMessage } from './errors';
 import { GOOD_FIRST_LABEL, LANGUAGES, SIZES } from './format';
+import type { MaskedIssue } from './masked-issue.types';
 import { startPath } from './paths';
 import type { StartIssueRow } from './start/start-page.types';
 
@@ -31,6 +32,8 @@ export type IssueRowIssue = {
   /** Contribute's rows: kept for first-time contributors, and its repo's rules (null: not known). */
   forNewcomers?: boolean;
   repoRules?: ContributeIssueRepoRules | null;
+  /** The issue masked, when the list sends it so: the row then shows this alone. */
+  masked?: MaskedIssue | null;
 };
 
 const SIZE_KEYS = new Set<string>(Object.keys(SIZES));

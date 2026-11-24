@@ -5,6 +5,7 @@ import { CONTRIBUTE_SCREENS } from './contribute';
 import { LANDING_SCREENS } from './landing';
 import { LEARN_SCREENS } from './learn';
 import { LEARN_FRAME_SCREENS } from './learn-frame';
+import { MASKED_ISSUE_SCREENS } from './masked-issues';
 import { ORG_SCREENS } from './org';
 import { PACKAGE_SCREENS } from './package';
 import { PROFILE_SCREENS } from './profile';
@@ -31,6 +32,7 @@ export const SCREENS: Screen[] = [
   ...WORKSPACE_LESSON_SCREENS,
   ...START_SCREENS,
   ...WORKSPACE_PART_SCREENS,
+  ...MASKED_ISSUE_SCREENS,
   ...LEARN_SCREENS,
   ...LEARN_FRAME_SCREENS,
   ...ADMIN_SCREENS,

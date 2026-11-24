@@ -15,6 +15,7 @@ import {
 } from '@/components/workspace/issue-live-status';
 import { IssueRowMenu } from '@/components/workspace/issue-row-menu';
 import { LimitNotice } from '@/components/workspace/limit-notice';
+import { MaskedIssueRow, type MaskedIssueRowProps } from '@/components/workspace/masked-issue/masked-issue-row';
 import { IssueRepoRules } from '@/components/workspace/pull-request/issue-repo-rules';
 import { RefChips } from '@/components/workspace/ref-chips';
 import { StartControl, useHostedStart } from '@/components/workspace/start-control';
@@ -110,7 +111,19 @@ export type IssueRowProps = {
   onRefused?: (refusal: IssueStartRefusalCopy) => void;
   /** The mark on Start, where the page counts its Starts. */
   startSource?: ContributeSource;
+  /** A masked issue's row (`issue.masked`): its state and what its buttons do. */
+  maskedRow?: Omit<MaskedIssueRowProps, 'issue'>;
 };
+
+/**
+ * One issue in a list: its masked form when the list sends `masked` (no project, number or link until "See the full
+ * issue"), else the named row with today's fields.
+ */
+export function IssueRow({ maskedRow, ...props }: IssueRowProps) {
+  const { masked } = props.issue;
+  if (masked) return <MaskedIssueRow issue={masked} {...maskedRow} />;
+  return <NamedIssueRow {...props} />;
+}
 
 /**
  * One issue picked for the person, the same row on both front tabs: the repo and its Issue chip (GitHub), language and
@@ -119,7 +132,7 @@ export type IssueRowProps = {
  * Contribute rows, the "⋯" menu. A hosted Start that is refused says why under the title; one that the issue is gone
  * for folds the row away as a taken row does.
  */
-export function IssueRow({
+function NamedIssueRow({
   issue,
   side,
   agents,
@@ -133,7 +146,7 @@ export function IssueRow({
   initialRefusal = null,
   onRefused,
   startSource,
-}: IssueRowProps) {
+}: Omit<IssueRowProps, 'maskedRow'>) {
   const ref = { repo: issue.repo, issue: issue.number };
   const hosted = useHostedStart(issue.issueId, ref, { facts, initialRefusal, onRefused });
   const [skipped, setSkipped] = useState(false);

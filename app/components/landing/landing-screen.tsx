@@ -26,8 +26,8 @@ import {
 } from './landing-sections';
 import { formatCompact, tierAt } from './landing-ui';
 import type { Leaderboard } from './leaderboard-tabs';
-import { LearnSectionView } from './learn-section';
 import { type LandingPackages, PackagesSection } from './packages-section';
+import { ProductsBlockLive } from './products-block-live';
 import type { ReadmeShowcase } from './readme-showcase';
 import { ReposSection } from './repos-section';
 import { Header } from '@/components/header/header';
@@ -56,9 +56,10 @@ export type LandingData = {
 };
 
 /**
- * GitRanks Learn on the landing: `forVisitors` draws the visitors' section (the page passes whether the API says Learn
- * is open to everyone; the design catalogue draws it anyway); `promo` draws the suggestion for a signed-in user Learn
- * may suit, without asking for it (the design catalogue alone).
+ * GitRanks Learn on the landing: `forVisitors` draws the block for Contribute and Learn under the hero, in the place of
+ * Learn's suggestion (the page passes whether the API says Learn is open to everyone; the design catalogue draws it
+ * anyway); `promo` draws the suggestion for a signed-in user Learn may suit, without asking for it (the design catalogue
+ * alone), while the block is not drawn.
  */
 export type LandingLearn = { forVisitors?: boolean; promo?: ShownPromo };
 
@@ -145,11 +146,14 @@ export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
       <InsightTicker insight={insights[0]} />
       <main>
         <Hero developersRanked={developersRanked} examples={examples} hero={hero} stats={stats} />
+        {/* Once Learn is open to everyone: the block for Contribute and Learn, its promotions with the page and a signed-in
+            person's own cards read in the browser. Until then nothing of it is drawn or asked for. */}
+        {learn?.forVisitors && <ProductsBlockLive />}
         <Container>
-          {/* The package rankings, with the page; then Learn's section once Learn is open to everyone (static, with the
-              page), or, for a signed-in user Learn may suit, Learn's own suggestion, read in the browser. */}
+          {/* The package rankings, with the page; then, until Learn is open to everyone, Learn's suggestion for a
+              signed-in user it may suit, read in the browser. */}
           {packages && <PackagesSection {...packages} />}
-          <LandingPromos learnForVisitors={learn?.forVisitors ? <LearnSectionView /> : null} promo={learn?.promo} />
+          {!learn?.forVisitors && <LandingPromos learnForVisitors={null} promo={learn?.promo} />}
           <LeaderboardSection boards={boards} />
           <InsightsSection insights={insights} />
           <OrganizationsSection orgs={orgs} flags={flags} featured={featured} />

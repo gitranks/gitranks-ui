@@ -4,6 +4,7 @@ import {
   algorithmsCourse,
   algorithmsCoursePaused,
   allKnownMine,
+  checkOpenedMine,
   checkSavedMine,
   checkUnfinishedMine,
   courseCards,
@@ -312,6 +313,16 @@ describe('the three boxes', () => {
     expect(courseBoxesOf(algorithmsCourse, knownLaterMine).middle).toEqual({ kind: 'review-none' });
   });
 
+  it('offers a check only opened, with nothing answered, as one not begun', () => {
+    const opened = courseBoxesOf(algorithmsCourse, checkOpenedMine);
+    expect(opened.middle).toEqual({ kind: 'check' });
+    expect(opened.highlight).toBe('first');
+    expect(courseBoxesOf(algorithmsCourse, checkOpenedMine, { checkFirst: true }).highlight).toBe('middle');
+    expect(
+      courseBoxesOf(algorithmsCourse, { ...checkOpenedMine, check: { state: 'UNFINISHED', left: 8 } }).middle,
+    ).toEqual({ kind: 'check-unfinished', left: 8 });
+  });
+
   it("makes the last box a learner's open issues for a course not finished, and as before with none", () => {
     expect(courseBoxesOf(algorithmsCourse, progressMine, { openIssues: 2 }).last).toEqual({ kind: 'issues', count: 2 });
     // A finished course keeps where to go next, which names the open issues among the ways on.
@@ -485,6 +496,8 @@ describe('all courses', () => {
     });
     expect(courseCardStandingOf(coursesMineAllLearned, 86)).toMatchObject({ all: true, learned: { count: 86 } });
     expect(courseCardStandingOf(coursesMineChecked, 104)).toMatchObject({ known: 40 });
+    // Only marks: no "0 of 104 learned", the marks alone.
+    expect(courseCardStandingOf({ learned: 0, known: 40 }, 104)).toEqual({ learned: null, all: false, known: 40 });
     expect(courseBarOf(algorithms, 86).map((part) => part.kind)).toEqual(['mastered', 'practised', 'learned']);
     expect(courseBarOf(coursesMineChecked, 104).map((part) => part.kind)).toEqual(['practised', 'learned', 'known']);
     expect(courseBarLabelOf(algorithms, 86)).toBe('10 of 86 lessons learned: 4 practised, 1 mastered');

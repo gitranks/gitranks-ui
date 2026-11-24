@@ -80,20 +80,20 @@ export function CourseStats({
   if (standing) {
     lessons = (
       <>
-        {standing.all ? (
+        {standing.learned && standing.all ? (
           <span className="font-medium text-foreground">
             All <Figure count={standing.learned.count ?? course.lessons} />
             {standing.learned.words}
           </span>
-        ) : (
+        ) : standing.learned ? (
           <span className="text-foreground">
             <Figure count={standing.learned.count ?? 0} />
             {standing.learned.words}
           </span>
-        )}
+        ) : null}
         {standing.known !== null ? (
           <>
-            {' · '}
+            {standing.learned ? ' · ' : null}
             <Figure count={standing.known} /> marked as known
           </>
         ) : null}

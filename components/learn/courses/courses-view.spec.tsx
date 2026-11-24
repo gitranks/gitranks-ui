@@ -91,6 +91,12 @@ describe('all courses, a learner', () => {
     expect(bar.getAttribute('aria-label')).toBe('12 of 104 lessons learned: 4 practised, 40 marked as known');
     expect(bar.children).toHaveLength(3);
   });
+
+  it('only marks after the check, nothing learned: the marks alone, never "0 of 104 learned"', () => {
+    const page = draw({ mine: [{ ...coursesMineChecked, learned: 0, practised: 0, mastered: 0 }] });
+    expect(statsOf(page, 'go')).toMatch(/^40 marked as known/);
+    expect(statsOf(page, 'go')).not.toContain('0 of');
+  });
 });
 
 describe('the search of all courses', () => {

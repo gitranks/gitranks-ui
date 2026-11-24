@@ -9,6 +9,7 @@ import {
   algorithmsCourse,
   algorithmsCoursePaused,
   allKnownMine,
+  checkOpenedMine,
   checkSavedMine,
   checkUnfinishedMine,
   doneMine,
@@ -125,6 +126,13 @@ describe("a course's page, signed in", () => {
   it('a check left in the middle takes the highlight', () => {
     const page = draw({ mine: checkUnfinishedMine });
     expect(litOf(page)).toContain('4 questions left');
+  });
+
+  it('a check only opened, nothing answered: offered as not begun, never "the answers you gave are kept"', () => {
+    const page = draw({ mine: checkOpenedMine });
+    expect(boxesOf(page)[1]).toContain('Take the 2-minute check');
+    expect(page.textContent).not.toContain('Finish the check');
+    expect(page.textContent).not.toContain('The answers you gave are kept');
   });
 
   it('after the check: the marked lessons in grey, counted apart and never called learned', () => {

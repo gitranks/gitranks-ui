@@ -388,6 +388,9 @@ export const allKnownMine = mineOf(
 /** A check left in the middle: four questions to go. */
 export const checkUnfinishedMine = mineOf({}, { nextAt: '1-1', check: { state: 'UNFINISHED', left: 4 } });
 
+/** A check only opened: a run exists, but no question of its nine (one for each group) is answered. */
+export const checkOpenedMine = mineOf({}, { nextAt: '1-1', check: { state: 'UNFINISHED', left: 9 } });
+
 const SAVED_KNOWN = [
   ...['1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-8'],
   ...Array.from({ length: 12 }, (_, i) => `2-${i + 1}`),

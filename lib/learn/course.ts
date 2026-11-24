@@ -460,7 +460,7 @@ export function courseBoxesOf(
 
   let middle: CourseMiddleBox;
   if (mine.due > 0) middle = { kind: 'due', due: mine.due };
-  else if (mine.check.state === 'UNFINISHED' && course.checkOffered) {
+  else if (mine.check.state === 'UNFINISHED' && course.checkOffered && checkAnsweredOf(course, mine)) {
     middle = { kind: 'check-unfinished', left: mine.check.left };
   } else if (mine.check.state === 'ENDED' && course.checkOffered) middle = { kind: 'check-ended' };
   else if (mine.learned > 0) middle = { kind: 'review-none' };
@@ -495,6 +495,14 @@ export function courseBoxesOf(
 
 /** The level of an experienced developer: the highest of the three a learner sets up. */
 export const EXPERIENCED_LEVEL = 3;
+
+/**
+ * Whether the learner answered a question of their unfinished check. The check asks one question for each group, and
+ * its questions left count only the groups still in the course: as many left as the course has groups means none is
+ * answered yet, only opened, and the page offers the check as if no run existed.
+ */
+export const checkAnsweredOf = (course: Pick<LearnCourse, 'groups'>, mine: Pick<LearnCourseMine, 'check'>) =>
+  mine.check.state === 'UNFINISHED' && mine.check.left < course.groups.length;
 
 /** A course not started: nothing learned, nothing marked as known, and no check begun. */
 export const courseNotStartedOf = (mine: Pick<LearnCourseMine, 'learned' | 'known' | 'check'>) =>
@@ -757,17 +765,22 @@ export function foundWordsOf(search: CoursesSearch): CountPart[] | null {
   return parts.length ? parts : null;
 }
 
-/** A learner's figure on a course card: "10 of 86 learned", or "All 86 learned"; and how many are marked as known. */
+/**
+ * A learner's figure on a course card: "10 of 86 learned", or "All 86 learned", none with nothing learned (never "0 of
+ * 86 learned"); and how many are marked as known.
+ */
 export function courseCardStandingOf(
   mine: Pick<LearnCourseMineCard, 'learned' | 'known'>,
   lessons: number,
-): { learned: CountPart; all: boolean; known: number | null } | null {
+): { learned: CountPart | null; all: boolean; known: number | null } | null {
   if (mine.learned <= 0 && mine.known <= 0) return null;
   const all = lessons > 0 && mine.learned >= lessons;
   return {
     learned: all
       ? { count: lessons, words: ' learned' }
-      : { count: mine.learned, words: ` of ${countWords(lessons)} learned` },
+      : mine.learned > 0
+        ? { count: mine.learned, words: ` of ${countWords(lessons)} learned` }
+        : null,
     all,
     known: mine.known > 0 ? mine.known : null,
   };

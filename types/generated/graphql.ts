@@ -2940,6 +2940,8 @@ export enum InsightCategory {
   LanguageTrends = 'LANGUAGE_TRENDS',
   MonthInNumbers = 'MONTH_IN_NUMBERS',
   OrgScoreChange = 'ORG_SCORE_CHANGE',
+  PackageAdoption = 'PACKAGE_ADOPTION',
+  PackageRising = 'PACKAGE_RISING',
   ProfileScoreChange = 'PROFILE_SCORE_CHANGE',
   RepoAnniversary = 'REPO_ANNIVERSARY',
   RisingRepos = 'RISING_REPOS',

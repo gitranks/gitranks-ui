@@ -12,7 +12,10 @@ import {
 } from '@/lib/workspace/pull-request-page';
 import type { PullRequestPage } from '@/lib/workspace/pull-request-page.types';
 
-/** One card under the box: its name, one line, and its link, which keeps its place while it is not there yet. */
+/**
+ * One card under the box: its name, its words, and its link, which keeps its place while it is not there yet. The link
+ * sits at the card's foot, so two cards side by side end on one line whatever their words.
+ */
 function Card({
   name,
   text,
@@ -40,7 +43,7 @@ function Card({
         </span>
       ) : null}
       <span className="text-sm text-muted-foreground">{text}</span>
-      <span className="min-h-5 text-sm">
+      <span className="mt-auto min-h-5 pt-1 text-sm">
         {link ? (
           <PageLink className="font-semibold text-link hover:underline" href={link.href}>
             {link.label}
@@ -57,8 +60,8 @@ const linkOf = (words: CardWords, label: string, href: Route | null | undefined)
 /**
  * The two cards under the box: the change (the agent's short words, its counts, "Read the change") and, for a Learn
  * fix, the walkthrough (where it stands, how many people read it, whether the answers are shared, "See your answers").
- * Contribute's second card is the pull request's text, when the page gives its link. Both are there from the start,
- * drawn quiet while they are empty.
+ * Contribute's second card is the pull request's text, when the page gives its link; without it the change's card takes
+ * the whole row. Both are there from the start, drawn quiet while they are empty.
  */
 export function PullRequestCards({
   page,
@@ -71,8 +74,10 @@ export function PullRequestCards({
 }) {
   const change = changeCardOf(page);
   const walkthrough = page.made === 'LEARN' ? walkthroughCardOf(page, now) : null;
+  // One card alone takes the whole row, never half of it with an empty half beside it.
+  const pair = walkthrough !== null || !!links.pullRequestText;
   return (
-    <div className="grid gap-3 sm:grid-cols-2" data-pr-cards="">
+    <div className={cn('grid gap-3', pair && 'sm:grid-cols-2')} data-pr-cards={pair ? 'pair' : 'one'}>
       <Card
         card="change"
         name="The change"

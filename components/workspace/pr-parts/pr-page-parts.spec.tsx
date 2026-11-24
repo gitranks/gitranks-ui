@@ -330,7 +330,17 @@ describe('the two cards', () => {
   it("has the pull request's text in Contribute, in the walkthrough's place", async () => {
     await render(<PullRequestCards page={prContribute.asked} now={PR_NOW} links={prLinks} />);
     expect(container.querySelector('[data-card="walkthrough"]')).toBeNull();
+    expect(container.querySelector('[data-pr-cards]')?.getAttribute('data-pr-cards')).toBe('pair');
     expect(control('Read or edit it')?.getAttribute('href')).toBe(prLinks.pullRequestText);
+  });
+
+  it('gives the change the whole row when it is the only card', async () => {
+    await render(
+      <PullRequestCards page={prContribute.asked} now={PR_NOW} links={{ ...prLinks, pullRequestText: undefined }} />,
+    );
+    expect(container.querySelectorAll('[data-card]')).toHaveLength(1);
+    expect(container.querySelector('[data-pr-cards]')?.getAttribute('data-pr-cards')).toBe('one');
+    expect(container.querySelector('[data-pr-cards]')?.className).not.toContain('sm:grid-cols-2');
   });
 
   it('opens GitHub in a new tab, marked, once the pull request is open', async () => {
@@ -410,7 +420,7 @@ describe('the foot links', () => {
     await press(control('Discard this fix'));
     expect(onDiscard).not.toHaveBeenCalled();
     const dialog = document.querySelector<HTMLElement>('[role="alertdialog"]');
-    expect(dialog?.textContent).toContain('Discard this attempt?');
+    expect(dialog?.textContent).toContain('Discard this fix?');
     expect(dialog?.textContent).toContain('Nothing is submitted, and the issue goes back to the pool.');
     const confirm = [...(dialog?.querySelectorAll('button') ?? [])].find((each) => each.textContent === 'Discard');
     await press(confirm ?? null);

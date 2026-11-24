@@ -88,6 +88,32 @@ describe('a round that waits', () => {
     expect(round(1)?.textContent).toContain('Done');
   });
 
+  it('says a review with no comment counted as a review alone, never a count it does not have', async () => {
+    for (const comments of [0, null]) {
+      const asked = [prAsk({ comments })];
+      await rounds({ page: { ...prReview.asked, rounds: [prRound({ asked })] } });
+      const review = round(2)?.querySelector('[data-ask="changes_requested"]');
+      expect(review?.textContent).toContain('a review');
+      expect(review?.textContent).not.toContain('comment');
+    }
+  });
+
+  it("counts a bot's folded row at least once, in the singular at one", async () => {
+    for (const comments of [0, null, 1]) {
+      const asked = [prAsk({ kind: 'comment', bot: true, author: 'CodeRabbit', comments })];
+      await rounds({ page: { ...prReview.asked, rounds: [prRound({ asked })] } });
+      expect(round(2)?.textContent).toContain('CodeRabbitbot1 comment');
+      expect(round(2)?.textContent).not.toContain('1 comments');
+    }
+  });
+
+  it('says "Nothing to send." for a ready round with no commit and no reply', async () => {
+    const ready = prRound({ ...prRoundReady, commits: 0, replies: [] });
+    await rounds({ page: { ...prReview.asked, rounds: [ready] } });
+    expect(round(2)?.textContent).toContain('Nothing to send.');
+    expect(round(2)?.textContent?.toLowerCase()).not.toContain('no commits');
+  });
+
   it('starts a hosted round with a button in place of the prompt, never in Learn', async () => {
     const onStartRound = vi.fn();
     await rounds({ page: prContribute.asked, onStartRound });

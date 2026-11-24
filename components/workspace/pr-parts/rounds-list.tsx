@@ -99,7 +99,8 @@ function closedLineOf(round: PullRequestRound, now: Date): string {
 function placeOf(ask: PullRequestRoundAsk): string {
   switch (ask.kind) {
     case 'changes_requested':
-      return `a review with ${ask.comments ?? 1} comment${ask.comments === 1 ? '' : 's'}`;
+      // Without a count of its comments, the review alone: never "with 0 comments", nor a count we do not have.
+      return ask.comments ? `a review with ${ask.comments} comment${ask.comments === 1 ? '' : 's'}` : 'a review';
     case 'conversation':
       return 'in the conversation';
     case NOTE_ASK:
@@ -112,6 +113,12 @@ function placeOf(ask: PullRequestRoundAsk): string {
       return 'in a review thread';
   }
 }
+
+/** A bot's folded row: its comments, at least one (as the round's tally counts it), never "0 comments". */
+const botCommentsOf = (ask: PullRequestRoundAsk) => {
+  const comments = Math.max(ask.comments ?? 1, 1);
+  return `${comments} comment${comments === 1 ? '' : 's'}`;
+};
 
 /** The line's own words: the person's note and their agent's run are named so, whatever the line says. */
 const whoOf = (ask: PullRequestRoundAsk) =>
@@ -245,12 +252,7 @@ function AskedList({ asked, withChecks }: { asked: readonly PullRequestRoundAsk[
         }
         if (ask.bot) {
           return (
-            <Fold
-              key={key}
-              name={ask.author}
-              tag="bot"
-              line={`${ask.comments ?? 1} comment${ask.comments === 1 ? '' : 's'}`}
-            >
+            <Fold key={key} name={ask.author} tag="bot" line={botCommentsOf(ask)}>
               {ask.excerpt ? <p className="m-0 text-sm text-foreground">“{ask.excerpt}”</p> : null}
               <GitHubLink url={ask.url} what={`${ask.author}’s comments`} />
             </Fold>
@@ -429,7 +431,7 @@ function OpenRound({
           <div className="flex flex-col gap-1.5 rounded-lg border px-3.5 py-2.5">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <span className="text-sm text-foreground">
-                {round.state === 'SENT' ? sentLineOf(round, now) : sentence(sends || 'no commits')}
+                {round.state === 'SENT' ? sentLineOf(round, now) : sends ? sentence(sends) : 'Nothing to send.'}
               </span>
               {round.commits && links.change ? (
                 <PageLink className="text-sm font-semibold text-link hover:underline" href={links.change}>

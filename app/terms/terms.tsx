@@ -171,11 +171,11 @@ const LEARN: LegalSection = {
           <B>What goes public.</B> When GitRanks opens the pull request, the lesson becomes public under your GitHub
           username, with the issue, the pull request, the agent that wrote it and the goal and level it was written for.
           So does your result: how each step went, when you passed and how long it took, and the questions you were
-          asked with their right answers, never the options you got wrong. The pull request links to your result, anyone
-          can read both, and search engines may list them. Your public results also count on the Skills page of your
-          GitRanks profile (lessons, topics and merged pull requests), which you can hide. A lesson whose pull request
-          never opens stays private. You let us store, show and publish the lesson and your results this way. The{' '}
-          <A href="/privacy">Privacy policy</A> says what data GitRanks uses.
+          asked with their right answers, never the options you got wrong. The pull request links to its public page,
+          where your answers can be read; anyone can read both, and search engines may list them. Your public results
+          also count on the Skills page of your GitRanks profile (lessons, topics and merged pull requests), which you
+          can hide. A lesson whose pull request never opens stays private. You let us store, show and publish the lesson
+          and your results this way. The <A href="/privacy">Privacy policy</A> says what data GitRanks uses.
         </li>
         <li>
           <B>Taking it down.</B> You can take a public lesson down from its attempt page, or by writing to {mail}. Its

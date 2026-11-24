@@ -334,6 +334,8 @@ describe('the Terms', () => {
     expect(plain).toContain('the lesson becomes public under your GitHub username');
     expect(plain).toContain('the goal and level it was written for');
     expect(plain).toContain('search engines may list them');
+    expect(plain).toContain('The pull request links to its public page, where your answers can be read;');
+    expect(plain).not.toContain('links to your result');
     expect(plain).toContain(
       'Your public results also count on the Skills page of your GitRanks profile (lessons, topics and merged pull requests), which you can hide.',
     );

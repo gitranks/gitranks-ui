@@ -47,6 +47,14 @@ describe('the Privacy policy', () => {
       'a pull request Contribute or Learn opens for you has a public page about how it was made. A pull request sent before 24 November 2026 can be hidden from its page.',
     );
     expect(plain).not.toContain('lesson result pages');
+    expect(plain).toContain('the pull request links to its public page, where your answers can be read.');
+    expect(plain).toContain('any reactions left before 24 November 2026 by you or on your results');
+    expect(plain).toContain(
+      'when a Learn page is opened or a block about Learn is shown, clicked or closed, we count it with the page, the lesson, and whether you were signed in;',
+    );
+    expect(plain).toContain("short-lived security cookies during sign-in, and Cloudflare's security cookies");
+    expect(plain).not.toContain('links to your result');
+    expect(plain).not.toMatch(/for a reaction|carries a reaction|reactions others left/);
     expect(plain).toContain('counts of visits to pages that name your account');
     expect(plain).toContain("other people's results on them included");
     expect(plain).toContain('Learn data: until you delete it or remove your data');

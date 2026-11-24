@@ -20,6 +20,7 @@ const { PracticeSection } = await import('@/app/learn/components/practice-lesson
 const { learnIssues, PRACTICE, practiceLessons } = await import('@/lib/learn/__fixtures__/home');
 const { looksToday, maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
 const { LEARN_MASKED_LINE, VISITOR_LOOKS_LINE } = await import('@/lib/workspace/masked-issue');
+const maskedActions = vi.mocked(await import('@/lib/workspace/masked-issue.actions'));
 
 import type { LearnIssue, PracticeLesson } from '@/lib/learn/learn.types';
 
@@ -107,6 +108,44 @@ describe("Learn's list with masked issues", () => {
     expect(shown()).toHaveLength(3);
     expect(container.querySelector('[data-learn-masked-line]')).toBeNull();
     expect(container.querySelector('[data-masked-foot]')).toBeNull();
+  });
+
+  const maskIds = () =>
+    [...container.querySelectorAll('[data-masked-row]')].map((row) => row.getAttribute('data-masked-row'));
+  const skip = async () => {
+    await act(async () => button('Skip')?.click());
+    await act(async () => button('Too hard for me')?.click());
+  };
+
+  it("puts a skip's next issue in the row's place, and a later read never shows it twice", async () => {
+    const next = { ...maskedIssue(), id: 't5w0c4hy', title: 'Masked 9' };
+    maskedActions.skipMaskedIssue.mockResolvedValueOnce({ ok: true, data: next });
+    learn.readLearnIssues.mockResolvedValueOnce({
+      ok: true,
+      data: learnIssues({ items: [masked(9, 't5w0c4hy'), masked(2, 'r3n8p1vd'), issue(3), issue(4)], total: 30 }),
+    });
+    await render(
+      <LearnIssueList issues={learnIssues({ items: [masked(1, 'q7k2m9xa'), masked(2, 'r3n8p1vd')], total: 30 })} />,
+    );
+    await skip();
+    expect(maskIds()).toEqual(['t5w0c4hy', 'r3n8p1vd']);
+    await act(async () => button('Show 10 more')?.click());
+    expect(maskIds()).toEqual(['t5w0c4hy', 'r3n8p1vd']);
+    expect(shown()).toEqual(['I_3', 'I_4']);
+  });
+
+  it('drops the item of a row that leaves, with no empty place in the list, and keeps the foot', async () => {
+    maskedActions.lookAtIssue.mockResolvedValueOnce({ ok: true, data: { outcome: 'LEFT_POOL', page: null } });
+    await render(
+      <LearnIssueList issues={learnIssues({ items: [masked(1, 'q7k2m9xa'), issue(3)], total: 2 })} masked={LIVE} />,
+    );
+    await act(async () => button('See the full issue')?.click());
+    expect(maskIds()).toEqual([]);
+    expect([...container.querySelectorAll('li')].filter((item) => !item.textContent?.trim())).toEqual([]);
+    expect(container.querySelector('[data-masked-foot]')).not.toBeNull();
+    expect(container.querySelector('[data-list-status]')?.textContent).toBe(
+      'That issue is no longer open, so it left your list.',
+    );
   });
 
   it("gives a visitor's masked rows the sign-in and no Skip", async () => {

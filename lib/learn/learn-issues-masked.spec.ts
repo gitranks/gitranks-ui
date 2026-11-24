@@ -42,11 +42,44 @@ beforeEach(() => {
 });
 
 describe("Learn's list for the viewer's goal, with masked issues", () => {
-  it('reads each issue with its masked form, in an operation of its own', async () => {
-    const list = { ...learnIssues(), items: [{ ...learnIssues().items[0], masked: maskedIssue() }] };
+  it('reads each issue with its masked form, in an operation of its own, keyed by its mask id', async () => {
+    const named = learnIssues().items[1];
+    const list = { ...learnIssues(), items: [{ ...learnIssues().items[0], masked: maskedIssue() }, named] };
     answer({ LearnIssuesMasked: { learnIssues: list } });
-    expect(await loadLearnIssues(10)).toEqual(list);
+    expect(await loadLearnIssues(10)).toEqual({
+      ...list,
+      items: [
+        {
+          ...list.items[0],
+          issueId: 'mask:q7k2m9xa',
+          url: '',
+          repo: '',
+          number: 0,
+          title: maskedIssue().title,
+          why: null,
+        },
+        named,
+      ],
+    });
     expect(asked()).toEqual(['LearnIssuesMasked']);
+  });
+
+  it('keeps nothing that names a masked issue, whatever the API sent beside its masked form', async () => {
+    const leaky = {
+      issueId: 'I_kwDOsecret',
+      url: 'https://github.com/secret-org/secret-repo/issues/4242',
+      repo: 'secret-org/secret-repo',
+      number: 4242,
+      title: 'Secret title of the real issue',
+      language: 'Go',
+      size: 'S',
+      why: 'secret reason',
+      masked: maskedIssue(),
+    };
+    answer({ LearnIssuesMasked: { learnIssues: { ...learnIssues(), items: [leaky] } } });
+    const read = JSON.stringify(await loadLearnIssues(13));
+    for (const secret of ['secret', '4242', 'I_kwDO']) expect(read).not.toContain(secret);
+    expect(read).toContain('"issueId":"mask:q7k2m9xa"');
   });
 
   it("reads today's list from an API that does not know the masked form", async () => {
@@ -71,7 +104,13 @@ describe("a visitor's day list, with masked issues", () => {
       total: 9,
     };
     answer({ LearnPublicIssuesMasked: { learnPublicIssues: list } });
-    expect(await readLearnPublicIssues('Go')).toEqual({ ok: true, data: list });
+    expect(await readLearnPublicIssues('Go')).toEqual({
+      ok: true,
+      data: {
+        ...list,
+        items: [{ title: maskedIssue().title, repo: '', number: 0, url: '', why: null, masked: maskedIssue() }],
+      },
+    });
     expect(asked()).toEqual(['LearnPublicIssuesMasked']);
     expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr' });
   });

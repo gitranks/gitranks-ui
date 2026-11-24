@@ -7,6 +7,7 @@ import type { MaskedIssueLesson } from '@/components/workspace/masked-issue/fact
 import { MaskedIssueRow, type MaskedRowState } from '@/components/workspace/masked-issue/masked-issue-row';
 import { MaskedListFoot } from '@/components/workspace/masked-issue/why-hidden';
 import { cn } from '@/lib/utils';
+import { type HeldMark, useHeldMark } from '@/lib/workspace/held-mark';
 import {
   BAN_TEXT,
   type IssueLookFrom,
@@ -23,6 +24,7 @@ export const MASKED_LIST_NOTICES = {
   look: 'The issue did not open. Try again in a minute.',
   skip: 'The issue was not skipped. Try again in a minute.',
   gone: 'That issue is no longer open, so it left your list.',
+  limit: 'You have seen all the full issues you can see today. More at 00:00 UTC.',
 } as const;
 
 type MaskedListApi = {
@@ -40,6 +42,8 @@ type MaskedListApi = {
   say: (text: string) => void;
   /** The mask ids on the screen now, for a skip to leave out of the next one. */
   shown: Set<string>;
+  /** The issue the person holds open now, by the browser's mark; null when none. */
+  held: HeldMark | null;
 };
 
 const MaskedListContext = createContext<MaskedListApi | null>(null);
@@ -73,11 +77,22 @@ export function MaskedList({
   children,
   className,
 }: MaskedListProps) {
-  const [looks, setLooks] = useState(reads.rulesLive ? reads.looks : null);
-  const [limited, setLimited] = useState(!visitor && reads.rulesLive && !!reads.looks && reads.looks.left <= 0);
+  const looksRead = reads.rulesLive ? reads.looks : null;
+  const limitedRead = !visitor && !!looksRead && looksRead.left <= 0;
+  const [looks, setLooks] = useState(looksRead);
+  const [limited, setLimited] = useState(limitedRead);
   const [closed, setClosed] = useState(false);
   const [status, setStatus] = useState('');
   const shown = useRef(new Set<string>()).current;
+  const held = useHeldMark();
+  // The day read again (a refresh, a way back to the page): its numbers from here on. A closed access stays closed.
+  const readKey = `${visitor}:${JSON.stringify(looksRead)}`;
+  const [readBefore, setReadBefore] = useState(readKey);
+  if (readKey !== readBefore) {
+    setReadBefore(readKey);
+    setLooks(looksRead);
+    setLimited(closed || limitedRead);
+  }
 
   const api = useMemo<MaskedListApi>(
     () => ({
@@ -90,8 +105,10 @@ export function MaskedList({
       closed,
       onLimit: (next) => {
         setLimited(true);
-        // The day's limit answered is itself the rule at work: its numbers are said from here on.
+        // The day's limit answered is itself the rule at work: its numbers are said from here on. Without them the
+        // rows have no note to say, so the status line says it.
         if (next) setLooks(next);
+        else if (!looks) setStatus(MASKED_LIST_NOTICES.limit);
       },
       onClosed: () => {
         setLimited(true);
@@ -100,8 +117,9 @@ export function MaskedList({
       },
       say: setStatus,
       shown,
+      held: visitor ? null : held,
     }),
-    [from, pageFrom, visitor, colors, looks, limited, closed, shown],
+    [from, pageFrom, visitor, colors, looks, limited, closed, shown, held],
   );
 
   return (
@@ -118,29 +136,33 @@ export type MaskedListRowProps = {
   issue: MaskedIssue;
   lesson?: MaskedIssueLesson | null;
   /**
-   * The row leaves the list: after "Show the next one", or when the issue is no longer open. Without it the row
-   * removes itself.
+   * The row leaves the list: after "Show the next one", or when the issue is no longer open. The list drops its item;
+   * without it the row removes itself.
    */
   onLeave?: () => void;
-  /** A skip puts the next issue in the row's place, when there is one (Learn's list); else the row says it is skipped. */
-  replace?: boolean;
+  /**
+   * A skip answered the next issue: the list puts it in the row's place (Learn's lists, the profile). Without it, or
+   * with no next issue, the row says it is skipped.
+   */
+  onReplace?: (next: MaskedIssue) => void;
 };
 
 /**
  * One masked row in a `MaskedList`: "See the full issue" holds it and opens its page, or says why not in the row
- * (someone else holds it, the day's limit); a visitor's press is the GitHub sign-in, back to the issue's page. Skip
- * leaves the issue out for good.
+ * (someone else holds it, the day's limit); a visitor's press is the GitHub sign-in, back to the issue's page. While
+ * the person holds another issue open, the row says that seeing it gives that one back; the held issue's own row opens
+ * its page without a new press. Skip leaves the issue out for good.
  */
-export function MaskedListRow({ issue: first, lesson = null, onLeave, replace = false }: MaskedListRowProps) {
+export function MaskedListRow({ issue, lesson = null, onLeave, onReplace }: MaskedListRowProps) {
   const list = useContext(MaskedListContext);
   const router = useRouter();
-  const [issue, setIssue] = useState(first);
   const [state, setState] = useState<Exclude<MaskedRowState, 'limit' | 'full'>>('masked');
   const [gone, setGone] = useState(false);
   // A skip that did not go through brings the row back as it was: a new round of the same row.
   const [round, setRound] = useState(0);
   if (!list) throw new Error('MaskedListRow is used inside a MaskedList');
-  const { from, pageFrom, visitor, shown, say, onLimit, onClosed } = list;
+  const { from, pageFrom, visitor, shown, say, onLimit, onClosed, held } = list;
+  const holdsThis = held?.id === issue.id;
 
   useEffect(() => {
     shown.add(issue.id);
@@ -160,6 +182,11 @@ export function MaskedListRow({ issue: first, lesson = null, onLeave, replace = 
       form.set('id', issue.id);
       form.set('from', pageFrom);
       await signInToSeeIssue(form);
+      return;
+    }
+    // Held already: its page, with no new press.
+    if (holdsThis) {
+      router.push(issuePageHrefOf(issue.id, pageFrom));
       return;
     }
     setState('opening');
@@ -182,7 +209,7 @@ export function MaskedListRow({ issue: first, lesson = null, onLeave, replace = 
       say(MASKED_LIST_NOTICES.gone);
       leave();
     }
-  }, [visitor, issue.id, pageFrom, from, router, say, onLimit, onClosed, leave]);
+  }, [visitor, holdsThis, issue.id, pageFrom, from, router, say, onLimit, onClosed, leave]);
 
   const skip = useCallback(
     async (reason: IssueOutReason) => {
@@ -193,20 +220,18 @@ export function MaskedListRow({ issue: first, lesson = null, onLeave, replace = 
         setRound((was) => was + 1);
         return;
       }
-      if (replace && result.data) {
-        setIssue(result.data);
-        setState('masked');
-      }
+      if (onReplace && result.data) onReplace(result.data);
     },
-    [shown, issue.id, from, say, replace],
+    [shown, issue.id, from, say, onReplace],
   );
 
   if (gone) return null;
-  const rowState: MaskedRowState = state === 'masked' && list.limited ? 'limit' : state;
+  const rowState: MaskedRowState =
+    state !== 'masked' ? state : list.limited ? 'limit' : held && !holdsThis ? 'holding' : 'masked';
   return (
     <MaskedIssueRow
-      // A new issue in the row's place is a new row: its own Skip question, its own focus.
-      key={`${issue.id}:${round}`}
+      // A skip that did not go through is a new round of the row: its own Skip question, its own focus.
+      key={round}
       issue={issue}
       state={rowState}
       lesson={lesson}

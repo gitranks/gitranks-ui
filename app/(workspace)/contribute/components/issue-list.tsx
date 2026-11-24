@@ -236,6 +236,9 @@ function LiveRows({
   const atSize = size !== null && snapshot.rows.length >= size;
   const first = snapshot.rows.find(({ issue }) => !issue.masked)?.issue.issueId;
   const anyMasked = snapshot.rows.some(({ issue }) => issue.masked);
+  // The foot stays once the last masked row folded, so the line on why it left is still read.
+  const [hadMasked, setHadMasked] = useState(anyMasked);
+  if (anyMasked && !hadMasked) setHadMasked(true);
 
   const rowsOf = (issues: ContributeIssue[], other = false) =>
     issues.length ? (
@@ -301,7 +304,7 @@ function LiveRows({
   return (
     <IssueStartsProvider>
       <div ref={root} tabIndex={-1} className="flex flex-col gap-4 outline-none">
-        <MaskedList from="contribute" pageFrom="contribute" reads={masked} foot={anyMasked} className="gap-4">
+        <MaskedList from="contribute" pageFrom="contribute" reads={masked} foot={hadMasked} className="gap-4">
           <LiveAnnouncer rows={snapshot.rows} />
           {empty}
           {split && set ? (

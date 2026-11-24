@@ -217,15 +217,19 @@ describe('the Contribute tab and fair use', () => {
     expect(html).not.toContain('data-list-size');
   });
 
-  it("keeps the list size's line before the rules are live, or when the day cannot be read", () => {
-    for (const masked of [
-      { rulesLive: false, looks: looksToday(), numbers: null },
-      { rulesLive: true, looks: null, numbers: null },
-    ]) {
-      const { html } = render({ page: { ...issuePage, listSize: listSize() }, masked });
-      expect(html).toContain('data-list-size="30"');
-      expect(html).not.toContain('data-looks-long-line');
-    }
+  it("keeps the list size's line before the rules are live", () => {
+    const masked = { rulesLive: false, looks: looksToday(), numbers: null };
+    const { html } = render({ page: { ...issuePage, listSize: listSize() }, masked });
+    expect(html).toContain('data-list-size="30"');
+    expect(html).not.toContain('data-looks-long-line');
+  });
+
+  it("says neither line once the rules are live but the day cannot be read, never today's words", () => {
+    const masked = { rulesLive: true, looks: null, numbers: null };
+    const { html, plain } = render({ page: { ...issuePage, listSize: listSize() }, masked });
+    expect(html).not.toContain('data-list-size');
+    expect(html).not.toContain('data-looks-long-line');
+    expect(plain).not.toContain('You see your top');
   });
 
   it("says no line about the list's limits while the rules cannot be read, neither today's nor the new one", () => {

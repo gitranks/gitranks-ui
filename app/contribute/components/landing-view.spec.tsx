@@ -74,6 +74,10 @@ describe("the landing's example issue", () => {
       expect(html).toContain('Formatter drops a trailing comment in match arms');
       expect(html).toContain('data-masked-facts');
       expect(html).not.toContain('fern-lang');
+      // Its good signs, as a masked row shows them, and no reason line.
+      expect(html).toContain('data-hints');
+      expect(html).toContain('A maintainer agreed it should be fixed');
+      expect(html).not.toContain('Why:');
     }
   });
 

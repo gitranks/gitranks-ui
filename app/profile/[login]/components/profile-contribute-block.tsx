@@ -1,12 +1,16 @@
+'use client';
+
 import { ArrowRight, BookMarked, CircleCheck, type LucideIcon } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import type { FC, ReactNode } from 'react';
+import { type FC, type ReactNode, useState } from 'react';
 
 import { buttonVariants } from '@/components/ui/button';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
+import { useStableRows } from '@/components/workspace/use-stable-rows';
 import { cn } from '@/lib/utils';
 import { contributeSource } from '@/lib/workspace/click-tracking';
+import { maskKeyOf } from '@/lib/workspace/masked-answer';
 import type { IssuePageFrom } from '@/lib/workspace/masked-issue';
 import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 import { START_AGENT_PATH } from '@/lib/workspace/paths';
@@ -31,29 +35,53 @@ export const OWNER_BLOCK_SHOWN = 3;
 
 /** A row's key: its mask id when its details are hidden (an API that hides them may send no repository). */
 export const ownerIssueKeyOf = (issue: OwnerIssue): string =>
-  issue.masked?.id ? `mask:${issue.masked.id}` : `${issue.repo}#${issue.number}`;
+  issue.masked?.id ? maskKeyOf(issue.masked.id) : `${issue.repo}#${issue.number}`;
+
+/** The row a skip's next issue takes: its masked form alone. */
+const ownerIssueOfMasked = (masked: MaskedIssue): OwnerIssue => ({
+  repo: '',
+  number: 0,
+  url: '',
+  title: null,
+  language: null,
+  why: null,
+  masked,
+});
 
 /**
  * The owner's rows, in their frame: a masked issue is its masked row (counted as seen from the profile, its page in
- * `from`), and the foot under them says why its details are hidden.
+ * `from`), which a skip's next issue takes the place of and which leaves with its item; the foot under them says why
+ * its details are hidden, and stays once the last masked row left.
  */
 export const OwnerIssueRows: FC<{ issues: OwnerIssue[]; from: IssuePageFrom; whyIcon?: LucideIcon }> = ({
   issues,
   from,
   whyIcon,
-}) => (
-  <MaskedList from="profile" pageFrom={from} foot={issues.some((issue) => issue.masked)}>
-    <div className="flex flex-col divide-y rounded-lg border bg-card text-card-foreground">
-      {issues.map((issue) =>
-        issue.masked ? (
-          <MaskedListRow key={ownerIssueKeyOf(issue)} issue={issue.masked} replace />
-        ) : (
-          <OwnerIssueRow key={ownerIssueKeyOf(issue)} issue={issue} whyIcon={whyIcon} />
-        ),
-      )}
-    </div>
-  </MaskedList>
-);
+}) => {
+  const { rows, swap, drop } = useStableRows(issues, ownerIssueKeyOf);
+  const anyMasked = rows.some((issue) => issue.masked);
+  const [hadMasked, setHadMasked] = useState(anyMasked);
+  if (anyMasked && !hadMasked) setHadMasked(true);
+  return (
+    <MaskedList from="profile" pageFrom={from} foot={hadMasked}>
+      <div className="flex flex-col divide-y rounded-lg border bg-card text-card-foreground empty:hidden">
+        {rows.map((issue) => {
+          const key = ownerIssueKeyOf(issue);
+          return issue.masked ? (
+            <MaskedListRow
+              key={key}
+              issue={issue.masked}
+              onReplace={(next) => swap(key, ownerIssueOfMasked(next))}
+              onLeave={() => drop(key)}
+            />
+          ) : (
+            <OwnerIssueRow key={key} issue={issue} whyIcon={whyIcon} />
+          );
+        })}
+      </div>
+    </MaskedList>
+  );
+};
 
 const n = (value: number) => <span className="font-mono tabular-nums">{value.toLocaleString('en-US')}</span>;
 

@@ -108,6 +108,11 @@ describe("Contribute's list with masked issues", () => {
     vi.useRealTimers();
     expect(container.querySelector('[data-masked-row]')).toBeNull();
     expect(container.querySelectorAll('article[data-issue]')).toHaveLength(1);
+    // The last masked row folded: the foot stays, and still says why it left.
+    expect(container.querySelector('[data-masked-foot]')).not.toBeNull();
+    expect(container.querySelector('[data-list-status]')?.textContent).toBe(
+      'That issue is no longer open, so it left your list.',
+    );
   });
 });
 

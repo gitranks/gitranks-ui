@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import type { AuthRequest } from '@/app/api/profile/[login]/route';
 import { auth } from '@/auth';
 import { PROFILE_ISSUES_MAX } from '@/lib/contribute/profile-issues';
-import type { OwnProfileBlockAnswer } from '@/lib/contribute/profile-picks';
+import { type OwnProfileBlockAnswer, profilePickOf } from '@/lib/contribute/profile-picks';
 import { OwnProfilePicksDocument, OwnProfilePicksMaskedDocument } from '@/lib/contribute/profile-picks.data';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { readWithMasked } from '@/lib/workspace/masked-read';
@@ -28,7 +28,8 @@ export const GET = auth(async function GET(req: AuthRequest) {
         () => graphqlDirect(OwnProfilePicksMaskedDocument, { login: viewer }, options),
         () => graphqlDirect(OwnProfilePicksDocument, { login: viewer }, options),
       );
-      const issues = (ownProfilePicks?.items ?? []).slice(0, PROFILE_ISSUES_MAX);
+      // A masked pick leaves the route stripped of what names its issue.
+      const issues = (ownProfilePicks?.items ?? []).slice(0, PROFILE_ISSUES_MAX).map(profilePickOf);
       if (issues.length) {
         answer = ownProfilePicks?.contributor
           ? { kind: 'contributor', issues }

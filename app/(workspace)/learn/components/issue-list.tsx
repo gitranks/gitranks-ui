@@ -19,9 +19,11 @@ import {
   type LearnStartTarget,
   learnStartHrefOf,
 } from '@/lib/learn/learn-tab';
+import { learnIssueOfMasked } from '@/lib/learn/masked-rows';
 import { cn } from '@/lib/utils';
 import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
 import { type ConnectedAgents, issueRowOfLearn } from '@/lib/workspace/issue-row';
+import { maskKeyOf } from '@/lib/workspace/masked-answer';
 import { LEARN_MASKED_LINE, type MaskedListReads, NO_MASKED_READS } from '@/lib/workspace/masked-issue';
 
 /** A Learn row's Start a lesson leads to the Start page in lesson mode; no agent is offered. */
@@ -105,7 +107,7 @@ export function LearnIssueList({
 }
 
 /** A row's key: its mask id when its details are hidden (an API that hides them may send no node id). */
-const issueKey = ({ issueId, masked }: LearnIssue) => (masked?.id ? `mask:${masked.id}` : issueId);
+const issueKey = ({ issueId, masked }: LearnIssue) => (masked?.id ? maskKeyOf(masked.id) : issueId);
 
 /**
  * The rows, and "Show 10 more": the list is ordered again on each read, so it is read again with a larger `first`
@@ -122,7 +124,8 @@ function GrowingRows({
   visitor,
 }: Required<Pick<LearnIssueListProps, 'primary' | 'more' | 'masked' | 'visitor'>> &
   Pick<LearnIssueListProps, 'start' | 'source'> & { issues: LearnIssues }) {
-  const { rows, add } = useStableRows(issues.items, issueKey);
+  // A read item whose mask id is shown already (a skip's next issue) is not added twice.
+  const { rows, add, swap, drop } = useStableRows(issues.items, issueKey);
   const [asked, setAsked] = useState(Math.max(issues.items.length, LEARN_ISSUES_FIRST));
   const [ended, setEnded] = useState(false);
   const [capReached, setCapReached] = useState(false);
@@ -134,6 +137,9 @@ function GrowingRows({
   const capped = issues.capReached || capReached;
   const growing = more && !ended && !capped && asked < LEARN_ISSUES_MAX && rows.length < total;
   const anyMasked = rows.some((issue) => issue.masked);
+  // The foot stays once the last masked row left, so the line on why it left is still read.
+  const [hadMasked, setHadMasked] = useState(anyMasked);
+  if (anyMasked && !hadMasked) setHadMasked(true);
   // The first named row's Start is the primary button; a masked row has none.
   const firstNamed = rows.find((issue) => !issue.masked);
 
@@ -154,17 +160,22 @@ function GrowingRows({
   return (
     <IssueStartsProvider>
       {room ? <LearnRoomNote room={room} /> : null}
-      <MaskedList from="learn" pageFrom="learn" visitor={visitor} reads={masked} foot={anyMasked} className="gap-4">
+      <MaskedList from="learn" pageFrom="learn" visitor={visitor} reads={masked} foot={hadMasked} className="gap-4">
         <ul
-          className="divide-y overflow-hidden rounded-xl border bg-card"
+          className="divide-y overflow-hidden rounded-xl border bg-card empty:hidden"
           {...(source ? contributeSource(source) : {})}
         >
           {rows.map((issue) => {
             if (issue.masked) {
-              // Its details hidden: Skip puts the next issue in its place.
+              // Its details hidden: Skip puts the next issue in its place; a row that leaves takes its item along.
+              const key = issueKey(issue);
               return (
-                <li key={issueKey(issue)}>
-                  <MaskedListRow issue={issue.masked} replace />
+                <li key={key}>
+                  <MaskedListRow
+                    issue={issue.masked}
+                    onReplace={(next) => swap(key, learnIssueOfMasked(next))}
+                    onLeave={() => drop(key)}
+                  />
                 </li>
               );
             }

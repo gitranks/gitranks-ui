@@ -1,21 +1,36 @@
-import type { ContributeIssue, ContributeIssuePage } from '@/lib/workspace/contribute.types';
+import type {
+  ContributeIssue,
+  ContributeIssueAnswer,
+  ContributeIssuePage,
+  ContributeIssuePageAnswer,
+} from '@/lib/workspace/contribute.types';
+import { isMaskKey, maskKeyOf } from '@/lib/workspace/masked-answer';
 
 /**
- * The live feed keys its rows by the issue's node id. A masked row of an API that no longer sends the node id is keyed
- * by its mask id instead, set apart so the status poll never sends it as a node id.
+ * The issue as the feed holds it. A masked one is keyed by its mask id, set apart so the status poll never sends it as
+ * a node id, and keeps nothing that names its issue, whatever the API sent: no node ids, project, number, link, title,
+ * labels, reason or repo rules.
  */
-const MASK_KEY = 'mask:';
-
-/** The issue with a key the feed can hold: its node id, else its mask id, marked. */
-export function keyedIssueOf(issue: ContributeIssue): ContributeIssue {
-  if (issue.issueId || !issue.masked?.id) return issue;
-  return { ...issue, issueId: `${MASK_KEY}${issue.masked.id}` };
+export function keyedIssueOf(issue: ContributeIssueAnswer): ContributeIssue {
+  if (!issue.masked?.id) return issue as ContributeIssue;
+  return {
+    ...issue,
+    issueId: maskKeyOf(issue.masked.id),
+    repositoryId: '',
+    nameWithOwner: '',
+    number: 0,
+    url: '',
+    title: null,
+    labels: [],
+    why: '',
+    repoRules: null,
+  };
 }
 
-/** A page of the feed with every row keyed. */
-export function keyedPageOf<T extends ContributeIssuePage | null | undefined>(page: T): T {
-  return page ? ({ ...page, items: page.items.map(keyedIssueOf) } as T) : page;
+/** A page of the feed with every row keyed, and its masked rows stripped. */
+export function keyedPageOf(page: ContributeIssuePageAnswer | null | undefined): ContributeIssuePage | null {
+  return page ? { ...page, items: page.items.map(keyedIssueOf) } : null;
 }
 
 /** The keys the status poll can ask about: node ids only. */
-export const nodeIdsOf = (keys: readonly string[]): string[] => keys.filter((key) => !key.startsWith(MASK_KEY));
+export const nodeIdsOf = (keys: readonly string[]): string[] => keys.filter((key) => !isMaskKey(key));

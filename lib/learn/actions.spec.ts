@@ -93,7 +93,24 @@ describe("The Learn tab's reads from the browser", () => {
   it('reads the issues with their masked form, and as they were from an API without it', async () => {
     const masked = { items: [{ ...learnIssues().items[0], masked: maskedIssue() }], total: 1 };
     graphqlDirect.mockResolvedValue({ learnIssues: masked });
-    expect(await readLearnIssues(10)).toEqual({ ok: true, data: masked });
+    // A masked row leaves stripped of what names its issue, keyed by its mask id.
+    expect(await readLearnIssues(10)).toEqual({
+      ok: true,
+      data: {
+        ...masked,
+        items: [
+          {
+            ...masked.items[0],
+            issueId: 'mask:q7k2m9xa',
+            url: '',
+            repo: '',
+            number: 0,
+            title: maskedIssue().title,
+            why: null,
+          },
+        ],
+      },
+    });
     expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([LearnIssuesMaskedDocument]);
 
     // Today's answer of an API that does not know the field: the list as it was.

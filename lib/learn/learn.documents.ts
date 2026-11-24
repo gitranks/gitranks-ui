@@ -3,11 +3,13 @@ import { parse } from 'graphql';
 import type {
   LearnAttemptLesson,
   LearnIssues,
+  LearnIssuesAnswer,
   LearnProfile,
   LearnProfileInput,
   LearnPromo,
   LearnPromoPlacement,
   LearnPublicIssues,
+  LearnPublicIssuesAnswer,
   LearnRecord,
   LessonAnswerResult,
   LessonPage,
@@ -179,7 +181,7 @@ export const PracticeLessonsDocument = doc<{ practiceLessons: PracticeLessons },
 );
 
 /** The same issues with each one's masked form: an API without it answers `LearnIssuesDocument` instead. */
-export const LearnIssuesMaskedDocument = doc<{ learnIssues: LearnIssues }, { first: number }>(
+export const LearnIssuesMaskedDocument = doc<{ learnIssues: LearnIssuesAnswer }, { first: number }>(
   `query LearnIssuesMasked($first: Int) {
   learnIssues(first: $first) {
     goal { kind value level }
@@ -206,7 +208,7 @@ export const LearnPublicIssuesDocument = doc<{ learnPublicIssues: LearnPublicIss
 
 /** The same day list with each issue's masked form: an API without it answers `LearnPublicIssuesDocument` instead. */
 export const LearnPublicIssuesMaskedDocument = doc<
-  { learnPublicIssues: LearnPublicIssues | null },
+  { learnPublicIssues: LearnPublicIssuesAnswer | null },
   { language: string }
 >(
   `query LearnPublicIssuesMasked($language: String!) {

@@ -30,6 +30,7 @@ import type {
   ContributeHelpedLike,
   ContributeIssue,
   ContributeIssuePage,
+  ContributeIssuePageAnswer,
   ContributeIssueStatus,
   ContributeIssuesFilter,
   ContributeLimits,
@@ -325,7 +326,7 @@ export const ContributeIssuesWithRulesDocument = doc<
  * `ContributeIssuesWithRulesDocument` instead.
  */
 export const ContributeIssuesMaskedDocument = doc<
-  { contributeIssues: ContributeIssuePage | null },
+  { contributeIssues: ContributeIssuePageAnswer | null },
   { first?: number; after?: string; filter?: ContributeIssuesFilter }
 >(`query ContributeIssuesMasked($first: Int, $after: String, $filter: ContributeIssuesFilter) {
   contributeIssues(first: $first, after: $after, filter: $filter) {

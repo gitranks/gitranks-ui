@@ -10,18 +10,21 @@ import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 /** The pool's numbers the block names; null when the API could not read them. */
 export type ProfilePicksStats = { screenedRepos: number; issuesRead: number; readyIssues: number };
 
-/** One issue of the block, as the API answers it. */
+/**
+ * One issue of the block, as the API answers it. A masked one may leave the fields that name its issue null; the route
+ * strips them from it whatever the API sent (`profilePickOf`).
+ */
 export type ProfilePick = {
-  repo: string;
-  number: number;
-  url: string;
+  repo: string | null;
+  number: number | null;
+  url: string | null;
   title: string | null;
-  labels: string[];
+  labels: string[] | null;
   /** The pool's language family (`js-ts`); the row shows `repoLanguage`. */
   language: string | null;
   kind: string | null;
   size: string | null;
-  why: string[];
+  why: string[] | null;
   testCommand: boolean;
   /** contributed: a repository they contributed to; language: one of their languages; listed: their own list. */
   fit: 'contributed' | 'language' | 'listed' | string;
@@ -38,16 +41,28 @@ export type OwnProfileBlockAnswer =
 
 export const OWN_PROFILE_BLOCK_PATH = '/api/me/contribute/profile-block';
 
-/** A pick as the owner's block shows it: for the owner's own picks, why it is theirs first. */
+/**
+ * A pick as the route hands it to the browser: a masked one keeps nothing that names its issue, whatever the API sent
+ * (no project, number, link, title, labels or reasons).
+ */
+export function profilePickOf(pick: ProfilePick): ProfilePick {
+  if (!pick.masked?.id) return pick;
+  return { ...pick, repo: null, number: null, url: null, title: null, labels: null, why: null };
+}
+
+/** A pick as the owner's block shows it: a masked one as its masked row; for the owner's own picks, why it is theirs. */
 export function ownIssueOf(pick: ProfilePick): OwnerIssue {
+  if (pick.masked?.id) {
+    return { repo: '', number: 0, url: '', title: null, language: pick.repoLanguage, why: null, masked: pick.masked };
+  }
   return {
-    repo: pick.repo,
-    number: pick.number,
-    url: pick.url,
+    repo: pick.repo ?? '',
+    number: pick.number ?? 0,
+    url: pick.url ?? '',
     title: pick.title,
     language: pick.repoLanguage,
-    why: pick.fit === 'contributed' ? 'You contributed to this repository' : (pick.why[0] ?? null),
-    masked: pick.masked ?? null,
+    why: pick.fit === 'contributed' ? 'You contributed to this repository' : (pick.why?.[0] ?? null),
+    masked: null,
   };
 }
 

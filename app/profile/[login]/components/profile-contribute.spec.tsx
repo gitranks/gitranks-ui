@@ -9,10 +9,12 @@ vi.mock('@/lib/workspace/masked-issue.actions', () => ({
 
 const { useSession } = vi.hoisted(() => ({ useSession: vi.fn() }));
 vi.mock('next-auth/react', () => ({ useSession }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
 // Learn's "Not for me" is a server action: nothing here calls it.
 vi.mock('@/lib/learn/actions', () => ({ dismissLearnPromo: async () => ({ ok: true, data: true }) }));
 
 const { ProfileContribute, ProfileContributeView, ownProfileBlockUrl } = await import('./profile-contribute');
+const { maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
 
 const pick = (n: number, fit = 'language') => ({
   repo: `o/r${n}`,
@@ -64,6 +66,30 @@ describe("the owner's Contribute block, chosen in the browser", () => {
     );
     expect(html).toContain('All my issues');
     expect(html.match(/data-issue=/g)).toHaveLength(3);
+  });
+
+  it('draws a masked pick from the answer after the switch, its naming fields null, without failing', () => {
+    const masked = { ...pick(1), repo: null, number: null, url: null, title: null, labels: null, why: null };
+    const html = renderToStaticMarkup(
+      <ProfileContributeView
+        answer={{ kind: 'contributor', issues: [{ ...masked, masked: maskedIssue() }, pick(2, 'listed')] }}
+      />,
+    );
+    expect(html).toContain('data-masked-row="q7k2m9xa"');
+    expect(html).toContain('Fix 2');
+  });
+
+  it('puts nothing that names a masked pick in the page, whatever the answer carried beside its masked form', () => {
+    const leaky = {
+      ...pick(4242),
+      repo: 'secret-org/secret-repo',
+      title: 'Secret title of the real issue',
+      why: ['secret reason'],
+      masked: maskedIssue(),
+    };
+    const html = renderToStaticMarkup(<ProfileContributeView answer={{ kind: 'contributor', issues: [leaky] }} />);
+    expect(html).toContain('data-masked-row="q7k2m9xa"');
+    for (const secret of ['secret', '4242']) expect(html).not.toContain(secret);
   });
 
   it('shows nothing without an answer', () => {

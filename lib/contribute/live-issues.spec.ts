@@ -125,6 +125,19 @@ describe('a live list of issues', () => {
     expect(feedOf({ items: ISSUES, limit: 2, next: null }).getSnapshot().more).toBe(true);
   });
 
+  it('leaves masked rows out of the status poll before its cap, and asks nothing when only they are left', async () => {
+    const masked = Array.from({ length: 50 }, (_, at) => issue({ issueId: `mask:m${at}`, number: 0, rank: at + 1 }));
+    const named = [51, 52, 53].map((n) => issue({ issueId: `I_${n}`, number: n, rank: n }));
+    const readStatus = vi.fn(async (_ids: string[]): Promise<StatusRead> => ({ ok: true, data: [] }));
+    await feedOf({ items: [...masked, ...named], limit: 60, readStatus }).poll();
+    expect(readStatus).toHaveBeenCalledTimes(1);
+    expect(readStatus.mock.calls[0][0]).toEqual(['I_51', 'I_52', 'I_53']);
+
+    const onlyMasked = vi.fn(async (_ids: string[]): Promise<StatusRead> => ({ ok: true, data: [] }));
+    await feedOf({ items: masked, limit: 60, readStatus: onlyMasked }).poll();
+    expect(onlyMasked).not.toHaveBeenCalled();
+  });
+
   it('lets a row its Start found gone leave once, its status kept and asked about no more', async () => {
     const readStatus = vi.fn(async (_ids: string[]): Promise<StatusRead> => ({ ok: true, data: [] }));
     const feed = feedOf({ readStatus, limit: 4 });

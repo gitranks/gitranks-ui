@@ -40,6 +40,7 @@ import type {
 import { currentOf } from '@/lib/learn/learn-home';
 import { githubLoginOf, LEARN_MAINTAINERS_PATH, lessonResultPath, lessonSlugOf } from '@/lib/learn/learn-path';
 import { LEARN_ISSUES_MAX, PRACTICE_MAX } from '@/lib/learn/learn-tab';
+import { learnIssuesOf } from '@/lib/learn/masked-rows';
 import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
 import { markReaction, takeReactionMark } from '@/lib/learn/react-mark';
@@ -309,7 +310,8 @@ export async function readLearnIssues(first: number): Promise<ContributeActionRe
 /** The issues for the viewer's goal, with each one's masked form; an API without it answers them as they were. */
 const readIssuesFor = (first: number) =>
   runWithMasked(
-    () => run(LearnIssuesMaskedDocument, { first }, (data) => data.learnIssues),
+    // A masked row leaves the read stripped of what names its issue, keyed by its mask id.
+    () => run(LearnIssuesMaskedDocument, { first }, (data) => learnIssuesOf(data.learnIssues)),
     () => run(LearnIssuesDocument, { first }, (data) => data.learnIssues),
   );
 

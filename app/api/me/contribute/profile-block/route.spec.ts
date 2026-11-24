@@ -78,11 +78,42 @@ describe("the owner's profile block route", () => {
     expect(graphqlDirect).toHaveBeenCalledTimes(2);
   });
 
+  it('sends the browser nothing that names a masked pick, whatever the API sent beside its masked form', async () => {
+    signIn('octocat');
+    const leaky = {
+      repo: 'secret-org/secret-repo',
+      number: 4242,
+      url: 'https://github.com/secret-org/secret-repo/issues/4242',
+      title: 'Secret title of the real issue',
+      labels: ['secret-label'],
+      why: ['secret reason'],
+      fit: 'language',
+      masked: maskedIssue(),
+    };
+    graphqlDirect.mockResolvedValueOnce({ ownProfilePicks: { contributor: false, items: [leaky], stats: STATS } });
+    const sent = await (await get('octocat')).text();
+    for (const secret of ['secret', '4242']) expect(sent).not.toContain(secret);
+    expect(JSON.parse(sent).issues[0].masked).toEqual(maskedIssue());
+  });
+
   it("answers the masked picks, and today's from an API that does not know them", async () => {
     signIn('octocat');
     const masked = { ...pick(1), masked: maskedIssue() };
     graphqlDirect.mockResolvedValueOnce({ ownProfilePicks: { contributor: true, items: [masked], stats: null } });
-    expect(await (await get('octocat')).json()).toEqual({ kind: 'contributor', issues: [masked] });
+    expect(await (await get('octocat')).json()).toEqual({
+      kind: 'contributor',
+      issues: [
+        {
+          ...masked,
+          repo: null,
+          number: null,
+          url: null,
+          title: null,
+          labels: null,
+          why: null,
+        },
+      ],
+    });
 
     graphqlDirect.mockReset();
     graphqlDirect.mockImplementation(async (document) => {

@@ -135,6 +135,23 @@ describe("the suggestion's masked issues", () => {
     ]);
   });
 
+  it('keeps nothing that names a masked issue, by its rewritten title, whatever the API sent beside it', () => {
+    const masked = maskedIssue();
+    const leaky = {
+      title: 'Secret title of the real issue',
+      repo: 'secret-org/secret-repo',
+      number: 4242,
+      language: 'Go',
+      topic: 'maps',
+      masked,
+    };
+    const promo = promoOf([leaky]);
+    expect(promo?.issues).toEqual([
+      { title: masked.title, repo: '', number: 0, language: 'Go', topic: 'maps', masked },
+    ]);
+    for (const secret of ['secret', '4242']) expect(JSON.stringify(promo)).not.toContain(secret);
+  });
+
   it("keeps today's issue as it was when the API sends no masked form, or a named one", () => {
     expect(promoOf([issue(1)])?.issues).toEqual([issue(1)]);
     expect(promoOf([{ ...issue(2), masked: null }])?.issues).toEqual([issue(2)]);

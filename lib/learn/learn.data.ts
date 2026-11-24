@@ -12,6 +12,7 @@ import {
   PracticeLessonsDocument,
 } from './learn.documents';
 import type { LearnAttemptLesson, LearnIssues, LearnProfile, MyLearnAttempts, PracticeLessons } from './learn.types';
+import { learnIssuesOf } from './masked-rows';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { ContributeUnavailableError, viewerLogin } from '@/lib/workspace/contribute.data';
 import { contributeErrorOf } from '@/lib/workspace/errors';
@@ -96,11 +97,11 @@ export const loadLearnIssues = cache(
     viewerRead(async (githubLogin) => {
       const options = { source: 'ssr' as const, githubLogin };
       // Each issue's masked form first; an API without it answers the list as it was.
-      const { learnIssues } = await readWithMasked(
-        () => graphqlDirect(LearnIssuesMaskedDocument, { first }, options),
-        () => graphqlDirect(LearnIssuesDocument, { first }, options),
+      // A masked row leaves the read stripped of what names its issue, keyed by its mask id.
+      return readWithMasked(
+        async () => learnIssuesOf((await graphqlDirect(LearnIssuesMaskedDocument, { first }, options)).learnIssues),
+        async () => (await graphqlDirect(LearnIssuesDocument, { first }, options)).learnIssues,
       );
-      return learnIssues;
     }),
 );
 

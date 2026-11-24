@@ -1022,7 +1022,7 @@ describe('readIssuesPage with masked rows', () => {
     auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
   });
 
-  it('reads the page with each masked form, a row without a node id keyed by its mask id', async () => {
+  it('reads the page with each masked form, every masked row keyed by its mask id, node id or not', async () => {
     const named = { issueId: 'I_1', masked: null };
     const masked = { issueId: null, masked: { id: 'q7k2m9xa', title: 'Tags show twice' } };
     const withNode = { issueId: 'I_2', masked: { id: 'r3n8p1vd', title: 'A slow search' } };
@@ -1030,8 +1030,34 @@ describe('readIssuesPage with masked rows', () => {
       contributeIssues: { items: [named, masked, withNode], next: null, total: 3, computedAt: null },
     });
     const read = await actions.readIssuesPage({ after: 'c2', first: 3 });
-    expect(read.ok && read.data?.items.map(({ issueId }) => issueId)).toEqual(['I_1', 'mask:q7k2m9xa', 'I_2']);
+    expect(read.ok && read.data?.items.map(({ issueId }) => issueId)).toEqual([
+      'I_1',
+      'mask:q7k2m9xa',
+      'mask:r3n8p1vd',
+    ]);
     expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([ContributeIssuesMaskedDocument]);
+  });
+
+  it('hands the browser nothing that names a masked issue, whatever the API sent beside its masked form', async () => {
+    const leaky = {
+      issueId: 'I_kwDOsecret',
+      repositoryId: 'R_kgDOsecret',
+      nameWithOwner: 'secret-org/secret-repo',
+      number: 4242,
+      url: 'https://github.com/secret-org/secret-repo/issues/4242',
+      title: 'Secret title of the real issue',
+      labels: ['secret-label'],
+      why: 'secret reason',
+      repoRules: { summary: 'secret-org rules' },
+      masked: { id: 'q7k2m9xa', title: 'Tags show twice' },
+    };
+    graphqlDirect.mockResolvedValue({
+      contributeIssues: { items: [leaky], next: null, total: 1, computedAt: null },
+    });
+    const read = await actions.readIssuesPage({ after: 'c2', first: 1 });
+    const sent = JSON.stringify(read);
+    for (const secret of ['secret', '4242', 'I_kwDO', 'R_kgDO']) expect(sent).not.toContain(secret);
+    expect(read.ok && read.data?.items[0]).toMatchObject({ issueId: 'mask:q7k2m9xa', masked: leaky.masked });
   });
 
   it('falls back to the rules and on only when the API does not know the field, and fails once on an outage', async () => {

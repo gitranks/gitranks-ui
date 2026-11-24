@@ -1,6 +1,7 @@
 /** GitRanks Learn, as the API answers it: a lesson on a fix the user's own agent made, and the user's run through it. */
 
 import type { ContributeAttemptEvent, ContributeAttemptState } from '@/lib/workspace/contribute.types';
+import type { MaskedAnswer } from '@/lib/workspace/masked-answer';
 import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 import type { StartIssueRow } from '@/lib/workspace/start/start-page.types';
 
@@ -329,6 +330,12 @@ export type LearnPublicIssues = {
   total: number;
 };
 
+/** An issue of a visitor's day list as the API answers it: a masked one may leave the fields that name it null. */
+export type LearnPublicIssueAnswer = MaskedAnswer<LearnPublicIssue, 'url' | 'repo' | 'number' | 'title' | 'why'>;
+
+/** A visitor's day list as the API answers it, before its masked rows are stripped. */
+export type LearnPublicIssuesAnswer = Omit<LearnPublicIssues, 'items'> & { items: LearnPublicIssueAnswer[] };
+
 /** The limit that leaves the viewer no room for a new claim: `attempts_at_a_time` or `open_prs_at_a_time`. */
 export type LearnRoom = { limit: string; value: number };
 
@@ -399,4 +406,10 @@ export type MyLearnAttempts = { current: MyLearnAttempt | null; lastPullRequest:
  * What a passed practice lesson offers next: the viewer's own lesson in progress, or the first issues for their goal
  * (`issues.goal` null: no goal saved yet). Null parts were not read.
  */
+/** An issue for the viewer's goal as the API answers it: a masked one may leave the fields that name it null. */
+export type LearnIssueAnswer = MaskedAnswer<LearnIssue, 'issueId' | 'url' | 'repo' | 'number' | 'title' | 'why'>;
+
+/** The issues for the viewer's goal as the API answers them, before their masked rows are stripped. */
+export type LearnIssuesAnswer = Omit<LearnIssues, 'items'> & { items: LearnIssueAnswer[] };
+
 export type PracticeNext = { current: MyLearnAttempt | null; issues: LearnIssues | null };

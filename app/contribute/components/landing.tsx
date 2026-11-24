@@ -8,7 +8,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { ComingSoon } from '@/components/workspace/agent/coming-soon';
 import { H2, MUTED_SECTION, WIDTH } from '@/components/workspace/getting-in/landing-parts';
 import { ResumeLink } from '@/components/workspace/getting-in/resume-link';
-import { MaskedIssueFacts } from '@/components/workspace/masked-issue/facts';
+import { IssueHints, MaskedIssueFacts } from '@/components/workspace/masked-issue/facts';
 import { type AgentPageStats, agentPageStatsLineOf } from '@/lib/contribute/agent-page.types';
 import { LANDING_QUESTIONS } from '@/lib/contribute/faq';
 import type { LandingExample } from '@/lib/contribute/landing-example';
@@ -17,6 +17,7 @@ import { contributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeComingSoonProvider } from '@/lib/workspace/contribute.types';
 import type { LandingViewer } from '@/lib/workspace/contribute-state';
 import type { LandingStart } from '@/lib/workspace/getting-in';
+import type { IssueHint } from '@/lib/workspace/masked-issue.types';
 import {
   AGENTS_DOC_PATH,
   CONTRIBUTE_TERMS_PATH,
@@ -153,6 +154,11 @@ function ExampleCard({ children }: { children: ReactNode }) {
 
 /** The example issue as a list shows it once its details are hidden: its facts and its title, no project. */
 const MASKED_EXAMPLE = { language: 'Rust', size: 'S', kind: 'bug', projectTier: 4 } as const;
+/** Its good signs, as a masked row shows them in place of a reason. */
+const MASKED_EXAMPLE_HINTS: IssueHint[] = [
+  { kind: 'AGREED', count: null },
+  { kind: 'MERGES_OUTSIDE', count: null },
+];
 
 /**
  * The example's first card: the issue as a list shows it, masked once the rules are live, named before; while the rules
@@ -178,7 +184,7 @@ function ExampleIssue({ example }: { example: LandingExample }) {
         </div>
         <MaskedIssueFacts issue={MASKED_EXAMPLE} />
         <span className="font-semibold">Formatter drops a trailing comment in match arms</span>
-        <span className="text-xs text-muted-foreground">Why: you write Rust, and the project takes outside fixes</span>
+        <IssueHints hints={MASKED_EXAMPLE_HINTS} />
       </ExampleCard>
     );
   }

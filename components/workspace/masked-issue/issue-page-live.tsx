@@ -8,6 +8,7 @@ import { AgentConnect } from '@/components/workspace/agent/agent-connect';
 import { sendFairUseAppeal } from '@/components/workspace/fair-use-appeal-live';
 import { type IssuePageNotice, IssuePageScreen } from '@/components/workspace/masked-issue/issue-page-screen';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
+import { clearHeldMark, writeHeldMark } from '@/lib/workspace/held-mark';
 import { limitWordsOf } from '@/lib/workspace/limit-words';
 import { type IssuePageFrom, issuePageHrefOf } from '@/lib/workspace/masked-issue';
 import {
@@ -92,6 +93,14 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   const routerRef = useRef(router);
   routerRef.current = router;
 
+  // The browser's mark of the issue held open, for the lists: written when a look starts or is held longer (and for
+  // another issue the page says is held), cleared once this one is given back, started, ended or seen past.
+  useEffect(() => {
+    if (page.state === 'FULL' && page.until) writeHeldMark({ id, until: page.until });
+    else if (page.holding) writeHeldMark(page.holding);
+    if (page.state !== 'FULL' && page.state !== 'MASKED') clearHeldMark(id);
+  }, [id, page.state, page.until, page.holding]);
+
   /** The page after a press: in full, one of the ends, or the closed access. */
   const onLooked = useCallback((result: ContributeActionResult<IssueLooked>) => {
     if (!result.ok) {
@@ -141,6 +150,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
     if (!result?.ok || !result.data) return;
     const next = result.data;
     if (next.state === 'STARTED' && next.startPath) {
+      clearHeldMark(id);
       routerRef.current.replace(next.startPath as Route);
       return;
     }

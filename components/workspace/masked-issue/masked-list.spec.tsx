@@ -3,6 +3,8 @@ import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { MaskedListReads } from '@/lib/workspace/masked-issue';
+
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
 const actions = vi.hoisted(() => ({
@@ -44,7 +46,15 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   container.remove();
+  window.localStorage.clear();
+  vi.useRealTimers();
 });
+
+/** A loop's next round starts from a list never drawn before. */
+const remount = () => {
+  act(() => root.unmount());
+  root = createRoot(container);
+};
 
 const render = (node: ReactNode) => act(async () => root.render(node));
 const text = () => container.textContent ?? '';
@@ -108,7 +118,7 @@ describe('the foot under a list of masked issues', () => {
 });
 
 describe('"See the full issue" in a list', () => {
-  const list = (props: { onLeave?: () => void; reads?: typeof LIVE } = {}) =>
+  const list = (props: { onLeave?: () => void; reads?: MaskedListReads } = {}) =>
     render(
       <MaskedList from="contribute" pageFrom="contribute" reads={props.reads ?? LIVE}>
         <MaskedListRow issue={maskedIssue()} onLeave={props.onLeave} />
@@ -163,6 +173,26 @@ describe('"See the full issue" in a list', () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
+  it("says the day's limit in the status line when the answer has no numbers", async () => {
+    actions.lookAtIssue.mockResolvedValue(looked('LIMIT', null));
+    await list({ reads: BEFORE });
+    await press(button('See the full issue'));
+    expect(rowState()).toBe('limit');
+    expect(status()).toBe(MASKED_LIST_NOTICES.limit);
+  });
+
+  it('takes the day read again after a refresh, or on the way back to the page', async () => {
+    await list({ reads: { ...LIVE, looks: looksAtLimit } });
+    expect(rowState()).toBe('limit');
+    await list({ reads: LIVE });
+    expect(rowState()).toBe('masked');
+    expect(container.querySelector('[data-looks-line]')?.textContent).toBe(
+      'You can see 20 full issues a day. 17 left today.',
+    );
+    await list({ reads: { ...LIVE, looks: looksAtLimit } });
+    expect(rowState()).toBe('limit');
+  });
+
   it('starts dimmed when no full issue is left today', async () => {
     await list({ reads: { ...LIVE, looks: looksAtLimit } });
     expect(rowState()).toBe('limit');
@@ -178,6 +208,7 @@ describe('"See the full issue" in a list', () => {
       await press(button('See the full issue'));
       expect(onLeave, outcome).toHaveBeenCalledOnce();
       expect(status()).toBe(MASKED_LIST_NOTICES.gone);
+      remount();
     }
   });
 
@@ -207,6 +238,7 @@ describe('"See the full issue" in a list', () => {
       await press(button('See the full issue'));
       expect(rowState()).toBe('masked');
       expect(status()).toBe(MASKED_LIST_NOTICES.look);
+      remount();
     }
     expect(router.push).not.toHaveBeenCalled();
   });
@@ -242,25 +274,25 @@ describe('Skip in a list', () => {
     await press(button(reason));
   };
 
-  it("puts the next issue in the row's place, leaving out the rows still shown", async () => {
+  it('hands the next issue to the list for its place, leaving out the rows still shown', async () => {
     actions.skipMaskedIssue.mockResolvedValue({ ok: true, data: maskedIssues[2] });
+    const onReplace = vi.fn();
     await render(
       <MaskedList from="learn" pageFrom="learn">
-        <MaskedListRow issue={maskedIssues[0]} replace />
-        <MaskedListRow issue={maskedIssues[1]} replace />
+        <MaskedListRow issue={maskedIssues[0]} onReplace={onReplace} />
+        <MaskedListRow issue={maskedIssues[1]} onReplace={onReplace} />
       </MaskedList>,
     );
     await skip('Too hard for me');
     expect(actions.skipMaskedIssue).toHaveBeenCalledWith('q7k2m9xa', 'learn', 'TOO_HARD', ['r3n8p1vd']);
-    const ids = [...container.querySelectorAll('[data-masked-row]')].map((row) => row.getAttribute('data-masked-row'));
-    expect(ids).toEqual(['t5w0c4hy', 'r3n8p1vd']);
+    expect(onReplace).toHaveBeenCalledExactlyOnceWith(maskedIssues[2]);
   });
 
   it('says it is skipped when no issue takes its place, or the list keeps its own order', async () => {
     actions.skipMaskedIssue.mockResolvedValue({ ok: true, data: null });
     await render(
       <MaskedList from="learn" pageFrom="learn">
-        <MaskedListRow issue={maskedIssue()} replace />
+        <MaskedListRow issue={maskedIssue()} onReplace={vi.fn()} />
       </MaskedList>,
     );
     await skip('Not interesting to me');
@@ -289,5 +321,81 @@ describe('Skip in a list', () => {
     // The row is back as it was, never "Skipped" for a skip that was not made.
     expect(rowState()).toBe('masked');
     expect(text()).not.toContain('Skipped.');
+  });
+});
+
+describe('a list while the person holds an issue open', () => {
+  const KEY = 'gitranks:held-issue';
+  const holdUntil = (id: string, until: string) => window.localStorage.setItem(KEY, JSON.stringify({ id, until }));
+  const inMinutes = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
+  const states = () =>
+    [...container.querySelectorAll('[data-masked-row]')].map((row) => row.getAttribute('data-row-state'));
+  const twoRows = () =>
+    render(
+      <MaskedList from="contribute" pageFrom="contribute" reads={LIVE}>
+        <MaskedListRow issue={maskedIssues[0]} />
+        <MaskedListRow issue={maskedIssues[1]} />
+      </MaskedList>,
+    );
+
+  it('says on every other row that seeing it gives the held one back, and the press works as before', async () => {
+    holdUntil('r3n8p1vd', inMinutes(10));
+    actions.lookAtIssue.mockResolvedValue(looked('OK'));
+    await twoRows();
+    expect(states()).toEqual(['holding', 'masked']);
+    expect(text()).toContain('Seeing this one gives back the issue you hold now.');
+    await press(button('See the full issue'));
+    expect(actions.lookAtIssue).toHaveBeenCalledWith('q7k2m9xa', 'contribute');
+  });
+
+  it("opens the held issue's page from its row without a new press", async () => {
+    holdUntil('q7k2m9xa', inMinutes(10));
+    await twoRows();
+    expect(states()).toEqual(['masked', 'holding']);
+    const row = container.querySelector('[data-masked-row="q7k2m9xa"]');
+    const see = [...(row?.querySelectorAll<HTMLElement>('button') ?? [])].find(
+      (each) => each.textContent?.trim() === 'See the full issue',
+    );
+    await press(see ?? null);
+    expect(actions.lookAtIssue).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith('/my/issues/q7k2m9xa?from=contribute');
+  });
+
+  it('says nothing of a hold that ended, was cleared, or is not a mark', async () => {
+    for (const mark of [
+      () => holdUntil('r3n8p1vd', inMinutes(-1)),
+      () => window.localStorage.removeItem(KEY),
+      () => window.localStorage.setItem(KEY, JSON.stringify({ id: '../x', until: 'soon' })),
+    ]) {
+      mark();
+      await twoRows();
+      expect(states()).toEqual(['masked', 'masked']);
+      remount();
+    }
+  });
+
+  it('follows the mark as the page writes and clears it, and ends it at its time', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const { clearHeldMark, writeHeldMark } = await import('@/lib/workspace/held-mark');
+    await twoRows();
+    expect(states()).toEqual(['masked', 'masked']);
+    await act(async () => writeHeldMark({ id: 'r3n8p1vd', until: inMinutes(2) }));
+    expect(states()).toEqual(['holding', 'masked']);
+    await act(async () => clearHeldMark('r3n8p1vd'));
+    expect(states()).toEqual(['masked', 'masked']);
+    await act(async () => writeHeldMark({ id: 'r3n8p1vd', until: inMinutes(2) }));
+    expect(states()).toEqual(['holding', 'masked']);
+    await act(async () => vi.advanceTimersByTime(2 * 60_000 + 100));
+    expect(states()).toEqual(['masked', 'masked']);
+  });
+
+  it("never shows a visitor's list a hold", async () => {
+    holdUntil('r3n8p1vd', inMinutes(10));
+    await render(
+      <MaskedList from="learn" pageFrom="learn" visitor reads={BEFORE}>
+        <MaskedListRow issue={maskedIssues[0]} />
+      </MaskedList>,
+    );
+    expect(rowState()).toBe('masked');
   });
 });

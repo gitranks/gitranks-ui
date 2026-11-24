@@ -56,24 +56,21 @@ export function learnRecordUrl(login: string): string | null {
 const textOf = (value: unknown): string | null => (typeof value === 'string' && value.trim() ? value.trim() : null);
 
 /**
- * An issue as the API answers it, when it has what a row shows: a title, a repository and a number, or its masked
- * form (which names neither).
+ * An issue as the API answers it, when it has what a row shows: its masked form, or a title, a repository and a number.
+ * A masked one keeps nothing that names its issue, whatever the API sent, and its title is the rewritten one.
  */
-function issueOf(issue: Partial<LearnPromoIssue> | null | undefined): LearnPromoIssue | null {
-  const masked = issue?.masked?.id ? issue.masked : null;
-  const title = textOf(issue?.title);
-  const repo = textOf(issue?.repo);
-  const number = issue?.number;
-  const named = !!title && !!repo && typeof number === 'number' && Number.isInteger(number) && number > 0;
-  if (!named && !masked) return null;
-  return {
-    title: title ?? masked?.title ?? '',
-    repo: repo ?? '',
-    number: named ? (number as number) : 0,
-    language: textOf(issue?.language),
-    topic: textOf(issue?.topic),
-    ...(masked ? { masked } : {}),
-  };
+function issueOf(
+  issue: Partial<Record<keyof LearnPromoIssue, unknown>> & { masked?: LearnPromoIssue['masked'] } = {},
+): LearnPromoIssue | null {
+  const language = textOf(issue.language);
+  const topic = textOf(issue.topic);
+  const masked = issue.masked?.id ? issue.masked : null;
+  if (masked) return { title: masked.title, repo: '', number: 0, language, topic, masked };
+  const title = textOf(issue.title);
+  const repo = textOf(issue.repo);
+  const number = issue.number;
+  if (!title || !repo || typeof number !== 'number' || !Number.isInteger(number) || number <= 0) return null;
+  return { title, repo, number, language, topic };
 }
 
 /**
@@ -85,7 +82,9 @@ export function shownPromoOf(
 ): ShownPromo | null {
   const promo = data?.learnPromo;
   if (data?.learnOpen !== true || promo?.show !== true) return null;
-  const issues = (Array.isArray(promo.issues) ? promo.issues : []).flatMap((issue) => issueOf(issue) ?? []);
+  const issues = (Array.isArray(promo.issues) ? promo.issues : []).flatMap(
+    (issue) => issueOf(issue ?? undefined) ?? [],
+  );
   return {
     reason: textOf(promo.reason),
     language: textOf(promo.language),

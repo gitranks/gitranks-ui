@@ -2,8 +2,11 @@ import type { Route } from 'next';
 
 /** Every address of a person's Skills page, built here and nowhere else. */
 
+/** A person's profile, which a Skills page belongs to. */
+export const skillsProfilePath = (login: string) => `/profile/${encodeURIComponent(login)}` as Route;
+
 /** A person's Skills page. */
-export const skillsPath = (login: string) => `/profile/${encodeURIComponent(login)}/skills` as Route;
+export const skillsPath = (login: string) => `${skillsProfilePath(login)}/skills` as Route;
 
 /** The picture a posted link to a Skills page shows. */
 export const skillsCardPath = (login: string) => `${skillsPath(login)}/card.png`;

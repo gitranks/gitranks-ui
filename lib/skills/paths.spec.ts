@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSkillsTag, skillsCardPath, skillsMarkdownPath, skillsPath, skillsTag } from './paths';
+import { isSkillsTag, skillsCardPath, skillsMarkdownPath, skillsPath, skillsProfilePath, skillsTag } from './paths';
 
 describe("a Skills page's addresses", () => {
   it("lives under the person's profile, with its picture and its Markdown copy", () => {
@@ -39,5 +39,12 @@ describe("a Skills page's cache tag", () => {
     'skills:page:octocat',
   ])('refuses %j', (tag) => {
     expect(isSkillsTag(tag)).toBe(false);
+  });
+});
+
+describe('the profile a missing Skills page leads to', () => {
+  it('is the person’s profile, with the login encoded', () => {
+    expect(skillsProfilePath('octocat')).toBe('/profile/octocat');
+    expect(skillsProfilePath('a b')).toBe('/profile/a%20b');
   });
 });

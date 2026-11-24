@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { PR_NOW, prLists, prRow, prRowsContribute, prRowsEvery } from './__fixtures__/pull-request';
-import { costOf, groupsOf, LIST_PLACE, limitLineOf, rowWordsOf } from './pull-request-list';
+import { costOf, groupsOf, LIST_PLACE, limitLineOf, needsYouWordsOf, rowWordsOf } from './pull-request-list';
 import type { PullRequestBox } from './pull-request-page.types';
 
 describe('the groups', () => {
@@ -87,5 +87,19 @@ describe('the line about the limit', () => {
   it('says how many are open, and at the limit what that means', () => {
     expect(limitLineOf(prLists.contribute)).toBe('3 of 8 open at a time');
     expect(limitLineOf(prLists.atLimit)).toBe('8 of 8 open: no new fix can start until one is merged or closed.');
+  });
+});
+
+describe('needsYouWordsOf', () => {
+  it('words each box that needs the person, and nothing for the others', () => {
+    expect(needsYouWordsOf({ box: 'ROUND_WAITING', round: 2 })).toEqual({
+      line: 'Round 2: something to answer',
+      button: 'See what was asked',
+    });
+    expect(needsYouWordsOf({ box: 'APPROVE', round: null })?.line).toBe('Ready to open the pull request');
+    expect(needsYouWordsOf({ box: 'ROUND_READY', round: null })?.line).toBe(
+      'Round 1 is ready: your agent made the change',
+    );
+    expect(needsYouWordsOf({ box: 'OPEN', round: null })).toBeNull();
   });
 });

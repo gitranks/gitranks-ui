@@ -21,6 +21,7 @@ import {
   learnCourseTag,
   learnEntityTag,
   learnFactCardPath,
+  learnFixPath,
   learnFixTag,
   learnFixTagOf,
   learnKnownPath,
@@ -288,5 +289,11 @@ describe("a project's Learn card tags", () => {
     'Learn:entity:org:nebula',
   ])('refuses %j', (tag) => {
     expect(isLearnTag(tag)).toBe(false);
+  });
+});
+
+describe('a Learn fix’s page', () => {
+  it('lives under /learn/fixes, by the pull request', () => {
+    expect(learnFixPath({ nameWithOwner: 'harbor-kit/relay', number: 58 })).toBe('/learn/fixes/harbor-kit/relay/58');
   });
 });

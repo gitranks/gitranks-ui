@@ -72,6 +72,30 @@ const AGENT_AT_WORK: readonly PullRequestBox[] = [
 ];
 
 /**
+ * The line and the button of a pull request that needs the person, in the words of its own page: the list's rows and
+ * the home page's card word it here, so the two never differ. Null for a box that needs nothing from them.
+ */
+export function needsYouWordsOf(
+  row: Pick<PullRequestListRow, 'box' | 'round'>,
+): { line: string; button: string } | null {
+  const round = row.round ?? 1;
+  switch (row.box) {
+    case 'WALKTHROUGH':
+      return { line: 'The fix walkthrough is ready', button: 'Start the walkthrough' };
+    case 'APPROVE':
+      return { line: 'Ready to open the pull request', button: 'Read and approve' };
+    case 'ONLY_YOU':
+      return { line: 'Only you can do this', button: 'See what to do' };
+    case 'ROUND_WAITING':
+      return { line: `Round ${round}: something to answer`, button: 'See what was asked' };
+    case 'ROUND_READY':
+      return { line: `Round ${round} is ready: your agent made the change`, button: 'Read and approve' };
+    default:
+      return null;
+  }
+}
+
+/**
  * A row's words: one line on where the fix stands (the pull request page's words), when it got there, its facts (the
  * agent, the cost of a hosted run) and its one button, which says what opening it does.
  */
@@ -85,17 +109,9 @@ export function rowWordsOf(row: PullRequestListRow, now: Date): RowWords {
   const on = onDayOf(row.since, now);
   const words = (line: string, button: string, when: string | null = null) => ({ line, button, when });
   const shown = (() => {
+    const needsYou = needsYouWordsOf(row);
+    if (needsYou) return words(needsYou.line, needsYou.button);
     switch (row.box) {
-      case 'WALKTHROUGH':
-        return words('The fix walkthrough is ready', 'Start the walkthrough');
-      case 'APPROVE':
-        return words('Ready to open the pull request', 'Read and approve');
-      case 'ONLY_YOU':
-        return words('Only you can do this', 'See what to do');
-      case 'ROUND_WAITING':
-        return words(`Round ${round}: something to answer`, 'See what was asked');
-      case 'ROUND_READY':
-        return words(`Round ${round} is ready: your agent made the change`, 'Read and approve');
       case 'FIXING':
         return words(`${who} is fixing the issue`, 'Open', ago);
       case 'WRITING_WALKTHROUGH':

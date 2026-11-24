@@ -150,6 +150,10 @@ export function learnProjectIssuesPath(project: LearnProject, { fixed = false }:
   return `${LEARN_ISSUES_PATH}?${narrowing}${fixed ? '&fixed=1' : ''}` as Route;
 }
 
+/** A fix made with Learn, its "Learn from it" view: `/learn/fixes/<owner>/<repo>/<number>`. */
+export const learnFixPath = ({ nameWithOwner, number }: PrRef) =>
+  `/learn/fixes/${repoSegments(nameWithOwner)}/${number}` as Route;
+
 /** "Report a mistake" on a lesson: an email to us, its subject naming the lesson. */
 export const lessonMistakeHref = (title: string) =>
   `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`A mistake in the lesson "${title}"`)}`;

@@ -93,9 +93,7 @@ describe('the public progress page', () => {
   });
 
   it('gives the person themself the way to their own page, and everyone the way in', () => {
-    expect(text(screen({ own: true }))).toContain(
-      'This is your public page. Your progress is here →',
-    );
+    expect(text(screen({ own: true }))).toContain('This is your public page. Your progress is here →');
     expect(screen({ own: true })).toContain('href="/learn/progress"');
     expect(screen()).not.toContain('data-own-line');
     expect(text(screen())).toContain('Learn from a real fix yourself');

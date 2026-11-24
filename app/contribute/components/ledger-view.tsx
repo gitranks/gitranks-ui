@@ -41,9 +41,7 @@ export function LedgerScreen({ ledger }: { ledger: ContributeLedger }) {
       <PageTitle
         title="Contribute ledger"
         text="Every pull request GitRanks Contribute users opened in other people’s repositories, and how it ended, closed ones included. Each was reviewed and submitted by a person, under their own name."
-      >
-        <Pill tone="violet">Beta</Pill>
-      </PageTitle>
+      />
       <Totals totals={totals} />
       {totals.opened ? (
         <>

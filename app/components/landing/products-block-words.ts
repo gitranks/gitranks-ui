@@ -46,7 +46,7 @@ export type HomeProducts = {
 
 export type HomeProduct = 'CONTRIBUTE' | 'LEARN';
 
-/** A card's words: `mark` ("Beta", "New") only while the person does not use the product. */
+/** A card's words: `mark` (Learn's "New") only while the person does not use the product. */
 export type HomeCardWords = {
   product: HomeProduct;
   name: string;
@@ -82,7 +82,7 @@ export const HOME_PROMOS: Record<HomeProduct, HomeCardWords> = {
   CONTRIBUTE: {
     product: 'CONTRIBUTE',
     name: 'GitRanks Contribute',
-    mark: 'Beta',
+    mark: null,
     title: 'Fix issues in the open source you build on',
     line: 'Contribute finds issues that fit you. Your coding agent writes the fix, you review it, and the pull request opens in your name.',
     action: 'Start contributing',

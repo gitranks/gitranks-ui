@@ -42,7 +42,7 @@ const ProductCard: FC<{ card: HomeCardWords }> = ({ card }) => {
       <span className="flex items-center gap-2">
         <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">{card.name}</span>
         {card.mark ? (
-          <span className="rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
+          <span className="rounded-sm bg-brand-soft px-1.5 text-[11px] leading-4 font-semibold tracking-wide text-brand-soft-foreground uppercase">
             {card.mark}
           </span>
         ) : null}

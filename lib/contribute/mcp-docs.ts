@@ -342,8 +342,7 @@ export const MCP_DOC_LIMITS: readonly { what: string; limit: string }[] = [
 ];
 
 /** The line under the limits. */
-export const MCP_DOC_LIMITS_NOTE =
-  'Under a fair-use warning you can see 5 full issues a day. Contribute is in beta, and these limits may change.';
+export const MCP_DOC_LIMITS_NOTE = 'Under a fair-use warning you can see 5 full issues a day. These limits may change.';
 
 /**
  * What happens once the agent is connected and asked the first prompt (`AGENT_FIRST_PROMPT`), in order. The docs link

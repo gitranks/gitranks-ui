@@ -25,9 +25,9 @@ describe('the Privacy policy', () => {
     expect(html).toContain('href="#learn"');
   });
 
-  it('is dated 24 November 2026', () => {
-    expect(plain).toContain('Last updated 24 November 2026');
-    expect(html).toContain('dateTime="2026-11-24"');
+  it('is dated 25 November 2026', () => {
+    expect(plain).toContain('Last updated 25 November 2026');
+    expect(html).toContain('dateTime="2026-11-25"');
   });
 
   it('says what Learn makes public, under whose name, and what deleting removes', () => {
@@ -35,12 +35,18 @@ describe('the Privacy policy', () => {
     expect(plain).toContain('never the options you got wrong');
     expect(plain).toContain('Its form for machines also gives your GitHub account id');
     expect(plain).toContain(
-      'Your public results also show on your public progress page, with the Learn pull requests that were merged, and in the image a link to that page shows when it is posted.',
+      'Your public results also count on the Skills page of your GitRanks profile (lessons, the topics they cover, days active, and the Learn pull requests that were merged), and in the image a link to that page shows when it is posted.',
     );
-    expect(plain).toContain('anyone signed in with GitHub can say whether a lesson result helped');
+    expect(plain).toContain('search engines may list it once it shows 5 lessons or a merged fix');
+    expect(plain).not.toContain('Learn record');
     expect(plain).toContain(
-      'may be shown on the result page with their username, avatar and role; others are never shown',
+      'on the maintainers page, anyone signed in with GitHub can say that a pull request made with Contribute or Learn helped.',
     );
+    expect(plain).toContain('others are counted and never named');
+    expect(plain).toContain(
+      'a pull request Contribute or Learn opens for you has a public page about how it was made. A pull request sent before 24 November 2026 can be hidden from its page.',
+    );
+    expect(plain).not.toContain('lesson result pages');
     expect(plain).toContain('counts of visits to pages that name your account');
     expect(plain).toContain("other people's results on them included");
     expect(plain).toContain('Learn data: until you delete it or remove your data');

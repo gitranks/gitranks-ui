@@ -48,7 +48,8 @@ export function ownerBoxCaseOf(sides: SkillsSides | null): OwnerBoxCase {
 export type OverviewBlock = { numbers: SkillsNumbers; ownState: SkillsState | null };
 
 /**
- * The owner's own block: only for a page they alone see (`HIDDEN`) that has numbers. On a page everyone sees, the owner reads the public block like everyone else.
+ * The owner's own block: only for a page they alone see (`HIDDEN`) that has numbers.
+ * On a page everyone sees, the owner reads the public block like everyone else.
  */
 export function ownBlockOf(mine: SkillsOverviewMine | null): SkillsOwnBlock | null {
   if (!mine?.page || mine.state !== 'HIDDEN') return null;

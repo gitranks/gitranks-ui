@@ -67,6 +67,9 @@ const WORDS: Record<
   },
 };
 
+/** VS Code takes the prompt in its chat, not in a terminal. */
+const promptInVsCodeOf = (prompt: string) => prompt.replace('In a terminal, in any folder.', "In VS Code's chat, in Agent mode.");
+
 /** The sentence for an agent that may still hold the tool list from before Learn opened for the account. */
 export const RESTART_HINT =
   'Your agent may still have the tool list from before Learn opened for you. If it starts a plain fix, restart it, or reconnect GitRanks in it, then paste the prompt again.';
@@ -313,7 +316,9 @@ export function StartPageScreen({
               <h2 id={`${id}-s2`} className={HEADING.card}>
                 {first + 1} · Paste this in {agent}
               </h2>
-              <p className="text-sm text-muted-foreground">{words.prompt}</p>
+              <p className="text-sm text-muted-foreground">
+                {connection.client === 'vscode' ? promptInVsCodeOf(words.prompt) : words.prompt}
+              </p>
               {/* The page's one copy control is the button under it. */}
               <CodeBlock label="Ask your agent" wrap>
                 {startPromptOf(issueUrl, mode)}

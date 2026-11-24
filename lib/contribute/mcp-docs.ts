@@ -3,6 +3,7 @@ import {
   AGENT_FIRST_PROMPT,
   MCP_CLIENT_NAMES,
   MCP_CLIENTS,
+  MCP_CLIENTS_WITH_VS_CODE,
   MCP_OS_NAMES,
   MCP_OSES,
   MCP_TOKEN_ENV,
@@ -363,7 +364,10 @@ export type McpDocTrouble = { title: string; text: string };
  * one line for every other client.
  */
 export const MCP_DOC_CHECKS: readonly McpDocTrouble[] = [
-  ...MCP_CLIENTS.map((client) => ({ title: MCP_CLIENT_NAMES[client], text: mcpSignInSetupOf(client, 'mac').check })),
+  ...MCP_CLIENTS_WITH_VS_CODE.map((client) => ({
+    title: MCP_CLIENT_NAMES[client],
+    text: mcpSignInSetupOf(client, 'mac').check,
+  })),
   {
     title: 'Other clients',
     text: "In your client's MCP or connector settings, gitranks should show as connected. If it doesn't, sign in again from there.",

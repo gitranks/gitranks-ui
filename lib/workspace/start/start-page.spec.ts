@@ -154,6 +154,9 @@ describe('step 1: connected means the agent has called', () => {
     expect(mcpClientOfName('')).toBeNull();
     // VS Code on every page alike: an agent named on one is named on all.
     expect(mcpClientOfName('VS Code on macOS')).toBe('vscode');
+    // The names clients register with when they sign in.
+    expect(mcpClientOfName('Google Antigravity')).toBe('antigravity');
+    expect(mcpClientOfName('Visual Studio Code')).toBe('vscode');
     expect(
       learnStartConnectionOf([token({ name: 'VS Code on Windows', lastUsedAt: '2026-10-28T11:00:00.000Z' })]),
     ).toEqual({

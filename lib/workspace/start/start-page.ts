@@ -72,8 +72,13 @@ export const startIssueUrlOf = ({ start }: Pick<StartPageIssueView, 'start'>) =>
     ? start.issue.url
     : githubIssueUrlOf(start.repo, start.number);
 
-/** Names a sign-in may give besides the picker's: "Codex", "Gemini". */
-const CLIENT_ALIASES: Partial<Record<McpClient, string>> = { codex: 'codex', 'gemini-cli': 'gemini' };
+/** Names a sign-in may give besides the picker's: "Codex", "Gemini", the names clients register with. */
+const CLIENT_ALIASES: Partial<Record<McpClient, readonly string[]>> = {
+  codex: ['codex'],
+  'gemini-cli': ['gemini'],
+  antigravity: ['googleantigravity'],
+  vscode: ['visualstudiocode'],
+};
 const keyOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /**
@@ -85,8 +90,8 @@ export function mcpClientOfName(name: string | null | undefined): McpClient | nu
   if (!key) return null;
   return (
     MCP_CLIENTS_WITH_VS_CODE.find((client) => {
-      const alias = CLIENT_ALIASES[client];
-      return key.startsWith(keyOf(MCP_CLIENT_NAMES[client])) || (alias !== undefined && key.startsWith(alias));
+      const aliases = CLIENT_ALIASES[client] ?? [];
+      return key.startsWith(keyOf(MCP_CLIENT_NAMES[client])) || aliases.some((alias) => key.startsWith(alias));
     }) ?? null
   );
 }

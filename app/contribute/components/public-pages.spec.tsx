@@ -218,7 +218,7 @@ describe('the MCP docs', () => {
     // A linked address ends where its sentence goes on: the stripped tags leave a space before the stop.
     const said = text(html).replace(/ ([.:,])/g, '$1');
     expect(MCP_DOC_CHECKS.slice(0, -1).map((check) => check.text)).toEqual(
-      MCP_CLIENTS.map((c) => mcpSignInSetupOf(c, 'mac').check),
+      [...MCP_CLIENTS, 'vscode' as const].map((c) => mcpSignInSetupOf(c, 'mac').check),
     );
     expect(said).toContain("In your client's MCP or connector settings, gitranks should show as connected.");
     expect(said).toContain('Your first picks take a minute or two after you join.');

@@ -49,10 +49,11 @@ const { checkGate } = vi.hoisted(() => ({
   checkGate: vi.fn(async (_slug: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
 vi.mock('./lib/learn/course-gate', () => ({ courseGateOf: courseGate, checkGateOf: checkGate }));
-const { fixGate } = vi.hoisted(() => ({
+const { fixGate, attemptGate } = vi.hoisted(() => ({
   fixGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
+  attemptGate: vi.fn(async (_attemptId: string): Promise<unknown> => ({ kind: 'missing' })),
 }));
-vi.mock('./lib/learn/fix-gate', () => ({ fixRouteGateOf: fixGate }));
+vi.mock('./lib/learn/fix-gate', () => ({ fixRouteGateOf: fixGate, fixByAttemptRouteGateOf: attemptGate }));
 
 const {
   default: proxy,
@@ -85,6 +86,8 @@ describe('proxy', () => {
     courseGate.mockResolvedValue({ kind: 'page' });
     fixGate.mockReset();
     fixGate.mockResolvedValue({ kind: 'page' });
+    attemptGate.mockReset();
+    attemptGate.mockResolvedValue({ kind: 'missing' });
     checkGate.mockReset();
     checkGate.mockResolvedValue({ kind: 'page' });
     sessionRead.ok = true;
@@ -1151,12 +1154,54 @@ describe('proxy', () => {
         expect(response?.headers.get('cache-control')).toBe('private, no-store');
       });
 
-      it('asks nothing for the address by attempt, the removed page, a POST, or a path naming no pull request', async () => {
-        await proxy(request(undefined, '/learn/fixes/by-attempt/A_1/answers'), event);
-        await proxy(request(undefined, '/learn/fixes/_removed/acme/widgets/57'), event);
+      it('asks nothing for a POST or a path of another shape', async () => {
         await proxy(new NextRequest(`https://gitranks.com${WALKTHROUGH}`, { method: 'POST' }), event);
-        await proxy(request(undefined, '/learn/fixes/acme/widgets/0x1/walkthrough'), event);
+        await proxy(
+          new NextRequest('https://gitranks.com/learn/fixes/by-attempt/A_1/answers', { method: 'POST' }),
+          event,
+        );
+        await proxy(request(undefined, '/learn/fixes/acme/widgets/57'), event);
         expect(fixGate).not.toHaveBeenCalled();
+        expect(attemptGate).not.toHaveBeenCalled();
+      });
+
+      it('answers the real 404 nobody caches, asking nothing, for an address of that shape naming no pull request or login', async () => {
+        for (const path of [
+          '/learn/fixes/acme/widgets/057/walkthrough',
+          '/learn/fixes/acme/widgets/0x1/walkthrough',
+          `${WALKTHROUGH}/by/-bad-`,
+          '/learn/fixes/by-attempt/a.b/answers',
+        ]) {
+          const response = await proxy(request(undefined, path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+          expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+        }
+        expect(fixGate).not.toHaveBeenCalled();
+        expect(attemptGate).not.toHaveBeenCalled();
+      });
+
+      it("answers the removed fix's page opened directly with the real 404: only the gate shows it", async () => {
+        for (const path of ['/learn/fixes/_removed/acme/widgets/57', '/learn/fixes/_removed']) {
+          const response = await proxy(request(undefined, path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+          expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+        }
+        expect(fixGate).not.toHaveBeenCalled();
+      });
+
+      it('sends the address by attempt where the API says (a 307 without the query), or to the real 404', async () => {
+        attemptGate.mockResolvedValue({ kind: 'redirect', path: `${WALKTHROUGH}/by/octocat` });
+        const found = await proxy(request(undefined, '/learn/fixes/by-attempt/A_1/answers?utm_source=pr'), event);
+        expect(found?.status).toBe(307);
+        expect(found?.headers.get('location')).toBe(`https://gitranks.com${WALKTHROUGH}/by/octocat`);
+        expect(found?.headers.get('cache-control')).toBe('private, no-store');
+        expect(attemptGate).toHaveBeenCalledWith('A_1');
+        expect(fixGate).not.toHaveBeenCalled();
+
+        attemptGate.mockResolvedValue({ kind: 'missing' });
+        const missing = await proxy(request(undefined, '/learn/fixes/by-attempt/A_1/answers'), event);
+        expect(missing?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+        expect(missing?.headers.get('cache-control')).toBe('private, no-store');
       });
     });
 

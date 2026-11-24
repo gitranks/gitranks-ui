@@ -7,7 +7,7 @@ import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
 import { checkGateOf, courseGateOf } from './lib/learn/course-gate';
-import { fixRouteGateOf } from './lib/learn/fix-gate';
+import { fixByAttemptRouteGateOf, fixRouteGateOf } from './lib/learn/fix-gate';
 import { learnOpenToEveryone } from './lib/learn/learn-everyone';
 import {
   isLearnAboutPath,
@@ -24,8 +24,10 @@ import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
 import {
   checkRouteOf,
   courseRouteOf,
+  isLearnFixRemovedPath,
   LEARN_COURSE_MISSING_PATH,
   learnCourseMarkdownRouteOf,
+  learnFixByAttemptOf,
   learnFixRouteOf,
   learnIssuesMarkdownRouteOf,
   learnLandingMarkdownRouteOf,
@@ -76,6 +78,12 @@ const RANK_CARD_PATH = '/api/me/rank-card';
 
 /** Matches no route, so a rewrite here renders `app/not-found.tsx` with a 404 status. */
 const NOT_FOUND_PATH = '/_404';
+
+/** A gate's answer, kept by no shared cache. */
+function noStore(response: NextResponse): NextResponse {
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
+}
 
 /** The admin pages: answered per viewer, never stored. */
 const ADMIN_PATH = /^\/admin(?:\/|$)/;
@@ -248,21 +256,29 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   }
 
   // A fix's walkthrough and a person's answers stream too: where the address leads is asked here first. Nothing there
-  // gets the 404, a fix whose page was removed its own page with a 410, another spelling a redirect to the API's. None
-  // is kept by a shared cache: a pull request opens, and answers are shared again.
-  const fix = asked ? learnFixRouteOf(request.nextUrl.pathname) : null;
-  if (fix) {
-    const gate = await fixRouteGateOf(fix);
-    if (gate.kind !== 'page') {
-      const response =
-        gate.kind === 'missing'
-          ? NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url))
-          : gate.kind === 'removed'
-            ? NextResponse.rewrite(new URL(gate.path, request.url), { status: 410 })
-            : NextResponse.redirect(new URL(`${gate.path}${request.nextUrl.search}`, request.url), 307);
-      response.headers.set('Cache-Control', 'private, no-store');
-      return response;
-    }
+  // gets the 404, a fix whose page was removed its own page with a 410, another spelling a redirect to the API's; an
+  // address of their shape that names no pull request or login, the 404 at once. The footer's address by attempt is
+  // answered here as well (a 307 on, or the 404), and the removed fixes' page is shown only by the gate's own
+  // rewrite. None is kept by a shared cache: a pull request opens, and answers are shared again.
+  const fixPath = request.nextUrl.pathname;
+  const fix = asked ? learnFixRouteOf(fixPath) : null;
+  const fixAttempt = asked && !fix ? learnFixByAttemptOf(fixPath) : null;
+  if (fix === 'invalid' || fixAttempt === 'invalid' || (asked && isLearnFixRemovedPath(fixPath))) {
+    return noStore(NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url)));
+  }
+  const fixGate = fix
+    ? await fixRouteGateOf(fix)
+    : fixAttempt
+      ? await fixByAttemptRouteGateOf(fixAttempt.attemptId)
+      : null;
+  if (fixGate && fixGate.kind !== 'page') {
+    return noStore(
+      fixGate.kind === 'missing'
+        ? NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url))
+        : fixGate.kind === 'removed'
+          ? NextResponse.rewrite(new URL(fixGate.path, request.url), { status: 410 })
+          : NextResponse.redirect(new URL(`${fixGate.path}${fix ? request.nextUrl.search : ''}`, request.url), 307),
+    );
   }
 
   // A person's public progress page streams too: their record is asked for here first. None, or the login asked under

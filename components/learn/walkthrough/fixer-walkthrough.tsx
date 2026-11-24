@@ -60,6 +60,7 @@ export function FixerWalkthroughPlayer({
   articles,
   run: firstRun,
   finish,
+  pullRequest,
   hints: hintsGiven,
 }: {
   attemptId: string;
@@ -71,6 +72,8 @@ export function FixerWalkthroughPlayer({
   articles: readonly ReactNode[];
   run: LessonRun | null;
   finish: Route;
+  /** The pull request's page, where a blocked walkthrough is sent back: never Approve, whatever `finish` is. */
+  pullRequest: Route;
   hints?: boolean;
 }) {
   const router = useRouter();
@@ -93,6 +96,7 @@ export function FixerWalkthroughPlayer({
         if (!started.ok) return setError(contributeErrorMessage(started.error, started.message));
         current = started.data;
       }
+      // The API closes the warm-up for this page (step 19); this is the fallback for a run where it did not.
       if (current.warmup.length) {
         const skipped = await answerWarmup(current.id, skippedWarmupOf(current));
         if (!skipped.ok) return setError(contributeErrorMessage(skipped.error, skipped.message));
@@ -172,7 +176,7 @@ export function FixerWalkthroughPlayer({
           on your pull request’s page.
         </p>
         <Button asChild variant="outline" className="self-start max-sm:min-h-11">
-          <Link href={finish} prefetch={false}>
+          <Link href={pullRequest} prefetch={false}>
             Open your pull request
           </Link>
         </Button>
@@ -284,7 +288,8 @@ function FixerQuestion({
   const done = answer.state.phase === 'done';
   return (
     <>
-      {asked.hint.length && !done ? <Hint asked={asked} /> : null}
+      {/* The run's reason for the question it asked instead; once this card has a verdict, only the new reason shows. */}
+      {asked.hint.length && !answer.state.shown ? <Hint asked={asked} /> : null}
       <AnswerPart
         question={question}
         answer={answer}

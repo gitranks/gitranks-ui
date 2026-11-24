@@ -165,7 +165,8 @@ describe('the public walkthrough', () => {
   });
 });
 
-const drawFixer = (start: typeof fx.fixerRun | null) =>
+const PR_PAGE = '/my/pull-requests/acme/widgets/42' as Route;
+const drawFixer = (start: typeof fx.fixerRun | null, finish: Route = PR_PAGE) =>
   act(async () => {
     root.render(
       <FixerWalkthroughPlayer
@@ -175,7 +176,8 @@ const drawFixer = (start: typeof fx.fixerRun | null) =>
         stepIds={fx.fixerSteps.map((step) => step.id)}
         articles={articles}
         run={start}
-        finish={'/my/pull-requests/acme/widgets/42' as Route}
+        finish={finish}
+        pullRequest={PR_PAGE}
       />,
     );
   });
@@ -241,6 +243,21 @@ describe("the fixer's own walkthrough", () => {
     expect($('[data-walkthrough-hint]')?.textContent).toContain('Not quite.');
     expect($('[data-walkthrough-hint]')?.textContent).toContain('Try this one.');
     expect(text()).toContain('Which line refuses the empty name?');
+
+    // A wrong pick on that question too: its own reason alone, the run's earlier one gone.
+    run.answerLessonQuestion.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        correct: false,
+        why: [{ optionId: 'a', correct: false, why: 'Look at the throw.' }],
+        run: fx.fixerRunAskAgain,
+      },
+    });
+    await click(option(0));
+    await click(main());
+    expect($('[data-walkthrough-hint]')).toBeNull();
+    expect(text()).toContain('Look at the throw.');
+    expect(text()).not.toContain('Trim first.');
   });
 
   it('leads the last right answer to the pull request, "Finish the walkthrough"', async () => {
@@ -276,8 +293,11 @@ describe("the fixer's own walkthrough", () => {
     expect($('[data-attempt-status="LEARN_WALKTHROUGH_DONE"]')).not.toBeNull();
     act(() => root.unmount());
     root = createRoot(host);
-    await drawFixer({ ...fx.fixerRun, current: null, blocked: true });
+    // Once Approve exists, "Finish the walkthrough" leads there; a blocked walkthrough still goes to the pull request.
+    await drawFixer({ ...fx.fixerRun, current: null, blocked: true }, `${PR_PAGE}/approve` as Route);
     expect(text()).toContain('Send it back to your agent');
+    const link = [...host.querySelectorAll('a')].find((a) => a.textContent === 'Open your pull request');
+    expect(link?.getAttribute('href')).toBe(PR_PAGE);
   });
 });
 
@@ -307,7 +327,9 @@ describe("a person's answers", () => {
     hint.present = true;
     mineReply(fx.readerMine);
     await drawAnswers(fx.octocatAnswers);
-    expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/fixes/acme/widgets/57?answers=1', { cache: 'no-store' });
+    expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/fixes/acme/widgets/57?answers=octocat', {
+      cache: 'no-store',
+    });
     expect($('[data-try-first]')?.textContent).toContain('The answers are on this page');
   });
 

@@ -107,6 +107,7 @@ async function FixerWalkthroughView({ params }: { params: Promise<PageParams> })
         />
       ))}
       run={lesson.run}
+      pullRequest={base}
       finish={LEARN_APPROVE_PAGE_BUILT ? pullRequestApprovePath({ repo, issue: issueNumber }) : base}
     />
   );

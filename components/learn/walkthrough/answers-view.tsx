@@ -45,10 +45,10 @@ import type { PrRef } from '@/lib/workspace/pr-feedback';
 /** The signed-in person's side of a fix from their route; both null signed out and on any failure. */
 export async function readFixMine(
   pr: PrRef,
-  { answers = false }: { answers?: boolean } = {},
+  { answersOf }: { answersOf?: string } = {},
 ): Promise<{ mine: FixMine | null; answers: WalkthroughAnswers | null }> {
   try {
-    const res = await fetch(learnFixMinePath(pr, { answers }), { cache: 'no-store' });
+    const res = await fetch(learnFixMinePath(pr, { answersOf }), { cache: 'no-store' });
     if (!res.ok) return { mine: null, answers: null };
     const read = (await res.json()) as { mine?: FixMine | null; answers?: WalkthroughAnswers | null };
     return { mine: read.mine ?? null, answers: read.answers ?? null };
@@ -339,7 +339,8 @@ export function AnswersLive({
   useEffect(() => {
     if (!hasSessionHint(document.cookie)) return;
     let live = true;
-    readFixMine(pr, { answers: true }).then((read) => {
+    // The page's own login: the route reads the answers only when it is the signed-in person's.
+    readFixMine(pr, { answersOf: login }).then((read) => {
       if (!live) return;
       setMine(read.mine);
       if (read.mine?.fixer && read.answers && sameLogin(read.answers.login, login)) setOwn(read.answers);

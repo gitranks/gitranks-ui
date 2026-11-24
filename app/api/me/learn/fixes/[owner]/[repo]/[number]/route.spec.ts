@@ -49,7 +49,7 @@ describe("a fix's personal side", () => {
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
-  it("answers the person's side as that person, and with ?answers=1 the fixer's own answers", async () => {
+  it("answers the person's side as that person, and with ?answers=<their own login> their own answers", async () => {
     signIn();
     graphqlDirect.mockImplementation(async (document: unknown) =>
       document === LearnFixMineDocument
@@ -59,10 +59,26 @@ describe("a fix's personal side", () => {
     const plain = await (await get()).json();
     expect(plain).toEqual({ mine: { fixer: true, held: false, passedAt: null, similar: null }, answers: null });
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
-    const both = await (await get('57', '?answers=1')).json();
+    const both = await (await get('57', '?answers=OctoCat')).json();
     expect(both.answers).toMatchObject({ login: 'octocat', shared: false });
     expect(graphqlDirect).toHaveBeenCalledWith(LearnMyWalkthroughAnswersDocument, { ref }, as);
     expect(graphqlDirect).toHaveBeenCalledWith(LearnFixMineDocument, { ref }, as);
+  });
+
+  it("never asks for the answers on someone else's page", async () => {
+    signIn();
+    graphqlDirect.mockResolvedValue({
+      learnFixMine: { fixer: false, walkthroughHeld: false, passedAt: null, similar: [] },
+    });
+    for (const query of ['?answers=hubot', '?answers=1', '?answers=']) {
+      expect((await (await get('57', query)).json()).answers).toBeNull();
+    }
+    expect(graphqlDirect).not.toHaveBeenCalledWith(
+      LearnMyWalkthroughAnswersDocument,
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(graphqlDirect).toHaveBeenCalledTimes(3);
   });
 
   it('answers nothing on a failure, and for an address that names no pull request', async () => {

@@ -1,37 +1,25 @@
 import { NextResponse } from 'next/server';
 
-import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { learnFixAnswersPath } from '@/lib/learn/paths';
-import { fixAddressOf } from '@/lib/learn/walkthrough';
-import { LearnFixAddressByAttemptDocument } from '@/lib/learn/walkthrough.documents';
+import { fixByAttemptRouteGateOf } from '@/lib/learn/fix-gate';
 import { SITE_URL } from '@/lib/seo/site';
 import { ATTEMPT_ID } from '@/lib/workspace/paths';
 
-const NO_STORE = { 'Cache-Control': 'private, no-store' };
-
-/** Nothing there: a plain 404 nobody keeps. */
-const missing = () => new NextResponse('Not found', { status: 404, headers: NO_STORE });
-
 /**
  * The fixer's answers by the attempt that made the fix: the link a Learn pull request's footer gives, written before
- * the pull request had a number. Asks the API where the answers are and sends the browser there (a 307 on the site's
- * own address, nobody keeps it); the answers page itself says when they are kept private. An attempt with no pull
- * request yet, an id of another shape, an API that does not answer or does not know the read: a 404.
+ * the pull request had a number. The proxy answers this address first (`lib/learn/fix-gate.ts`), since only it can
+ * answer the site's own 404 page: a 307 to the answers page (which says when they are kept private), to the
+ * walkthrough of a removed fix (its 410 page), or to the page for maintainers when the API cannot be asked. This
+ * handler answers the same for a request the proxy let through; nothing there, or an id of another shape, is a 404.
+ * Nobody keeps either.
  */
 export async function GET(request: Request, { params }: RouteContext<'/learn/fixes/by-attempt/[attemptId]/answers'>) {
   const { attemptId } = await params;
-  if (!ATTEMPT_ID.test(attemptId)) return missing();
-  const address = await graphqlDirect(LearnFixAddressByAttemptDocument, { attempt: attemptId }, { source: 'ssr' }).then(
-    ({ learnFixAddress }) => fixAddressOf(learnFixAddress),
-    () => null,
-  );
-  if (!address || address.state === 'MISSING' || !address.owner || !address.repo || !address.number) return missing();
-  if (!address.login) return missing();
-  const target = learnFixAnswersPath(
-    { nameWithOwner: `${address.owner}/${address.repo}`, number: address.number },
-    address.login,
-  );
-  const response = NextResponse.redirect(new URL(target, SITE_URL || request.url), 307);
-  response.headers.set('Cache-Control', NO_STORE['Cache-Control']);
+  const gate = ATTEMPT_ID.test(attemptId) ? await fixByAttemptRouteGateOf(attemptId) : null;
+  if (gate?.kind !== 'redirect') {
+    return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'private, no-store' } });
+  }
+  // The site's own address: behind the proxy a route handler's request URL is the server's bind address.
+  const response = NextResponse.redirect(new URL(gate.path, SITE_URL || request.url), 307);
+  response.headers.set('Cache-Control', 'private, no-store');
   return response;
 }

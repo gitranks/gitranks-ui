@@ -4,9 +4,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 
 import { learnFixTag } from './paths';
 import {
-  type FixAddress,
   type FixMine,
-  fixAddressOf,
   fixMineOf,
   fixRefInputOf,
   type Walkthrough,
@@ -15,7 +13,6 @@ import {
   walkthroughOf,
 } from './walkthrough';
 import {
-  LearnFixAddressDocument,
   LearnFixMineDocument,
   LearnMyWalkthroughAnswersDocument,
   LearnWalkthroughAnswersDocument,
@@ -100,34 +97,6 @@ export async function loadWalkthrough(pr: PrRef): Promise<Walkthrough | null> {
 export async function loadWalkthroughAnswers(pr: PrRef, login: string): Promise<WalkthroughAnswers | null> {
   try {
     return await answersCached(...partsOf(pr), login);
-  } catch {
-    return null;
-  }
-}
-
-/** Where a fix's address leads, kept for minutes; null when the API does not know the read yet. */
-async function addressCached(owner: string, repo: string, number: number): Promise<FixAddress | null> {
-  'use cache';
-  const pr = { nameWithOwner: `${owner}/${repo}`, number };
-  cacheTag(learnFixTag(pr));
-  cacheLife('minutes');
-  try {
-    const { learnFixAddress } = await graphqlDirect(
-      LearnFixAddressDocument,
-      { ref: fixRefInputOf(pr), login: null },
-      { source: 'ssr' },
-    );
-    return fixAddressOf(learnFixAddress);
-  } catch (failure) {
-    if (!isNotHereYet(failure)) throw failure;
-    return null;
-  }
-}
-
-/** Where a fix's address leads, as the page of a removed fix reads it; null when it cannot be told, for any reason. */
-export async function loadFixAddress(pr: PrRef): Promise<FixAddress | null> {
-  try {
-    return await addressCached(...partsOf(pr));
   } catch {
     return null;
   }

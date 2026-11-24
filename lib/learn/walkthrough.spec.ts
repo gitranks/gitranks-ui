@@ -5,8 +5,10 @@ import { octocatAnswers, walkthrough, walkthroughParts } from './__fixtures__/wa
 import { answerStartOf } from './learn-answer';
 import { isLearnOpenPath } from './learn-path';
 import {
+  isLearnFixRemovedPath,
   learnFixAnswersByAttemptPath,
   learnFixAnswersPath,
+  learnFixByAttemptOf,
   learnFixMinePath,
   learnFixRemovedPath,
   learnFixRouteOf,
@@ -224,7 +226,7 @@ describe("a fix's addresses", () => {
     expect(learnFixAnswersByAttemptPath('A_1')).toBe('/learn/fixes/by-attempt/A_1/answers');
     expect(learnFixRemovedPath(PR)).toBe('/learn/fixes/_removed/acme/widgets/57');
     expect(learnFixMinePath(PR)).toBe('/api/me/learn/fixes/acme/widgets/57');
-    expect(learnFixMinePath(PR, { answers: true })).toBe('/api/me/learn/fixes/acme/widgets/57?answers=1');
+    expect(learnFixMinePath(PR, { answersOf: 'octocat' })).toBe('/api/me/learn/fixes/acme/widgets/57?answers=octocat');
   });
 
   it("reads the fix a walkthrough's or an answers page's address names, and nothing else", () => {
@@ -237,11 +239,33 @@ describe("a fix's addresses", () => {
       '/learn/fixes/acme/widgets/57',
       '/learn/fixes/by-attempt/A_1/answers',
       '/learn/fixes/_removed/acme/widgets/57',
-      '/learn/fixes/acme/widgets/57x/walkthrough',
       '/learn/fixes/acme/widgets/57/walkthrough/by',
     ]) {
       expect(learnFixRouteOf(path), path).toBeNull();
     }
+  });
+
+  it('calls an address of that shape naming no pull request or no login invalid, for the real 404', () => {
+    for (const path of [
+      '/learn/fixes/acme/widgets/057/walkthrough',
+      '/learn/fixes/acme/widgets/57x/walkthrough',
+      '/learn/fixes/acme/widgets/0/walkthrough',
+      '/learn/fixes/acme/wid%ZZgets/57/walkthrough',
+      '/learn/fixes/acme/widgets/57/walkthrough/by/-bad-',
+      '/learn/fixes/acme/widgets/57/walkthrough/by/a%20b',
+    ]) {
+      expect(learnFixRouteOf(path), path).toBe('invalid');
+    }
+  });
+
+  it("reads the footer's address by attempt, and knows a removed fix's address", () => {
+    expect(learnFixByAttemptOf('/learn/fixes/by-attempt/A_1/answers')).toEqual({ attemptId: 'A_1' });
+    expect(learnFixByAttemptOf('/learn/fixes/by-attempt/A_1/answers/')).toEqual({ attemptId: 'A_1' });
+    expect(learnFixByAttemptOf('/learn/fixes/by-attempt/a.b/answers')).toBe('invalid');
+    expect(learnFixByAttemptOf('/learn/fixes/acme/widgets/57/walkthrough')).toBeNull();
+    expect(isLearnFixRemovedPath('/learn/fixes/_removed/acme/widgets/57')).toBe(true);
+    expect(isLearnFixRemovedPath('/learn/fixes/_removed')).toBe(true);
+    expect(isLearnFixRemovedPath('/learn/fixes/_removedx/acme')).toBe(false);
   });
 
   it('opens every page of a fix to everyone', () => {

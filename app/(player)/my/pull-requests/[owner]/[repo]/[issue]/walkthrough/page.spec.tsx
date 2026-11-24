@@ -1,7 +1,8 @@
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { lessonPageOf, redirect } = vi.hoisted(() => ({
+const { lessonPageOf, redirect, approve } = vi.hoisted(() => ({
+  approve: { built: false },
   lessonPageOf: vi.fn(),
   redirect: vi.fn((to: string) => {
     throw new Error(`NEXT_REDIRECT ${to}`);
@@ -9,6 +10,12 @@ const { lessonPageOf, redirect } = vi.hoisted(() => ({
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/navigation', () => ({ redirect }));
+vi.mock('@/lib/learn/built-pages', async (original) => ({
+  ...(await original<typeof import('@/lib/learn/built-pages')>()),
+  get LEARN_APPROVE_PAGE_BUILT() {
+    return approve.built;
+  },
+}));
 vi.mock('@/components/workspace/pull-request/review-view', () => ({
   lessonPageOf,
   LessonUnavailable: () => null,
@@ -42,6 +49,7 @@ const read = (stage: string, patch?: Record<string, unknown>) =>
   lessonPageOf.mockResolvedValue({ view: {}, first, lesson: lessonAt(stage, patch), base: BASE });
 
 beforeEach(() => {
+  approve.built = false;
   lessonPageOf.mockReset();
   redirect.mockClear();
 });
@@ -69,6 +77,14 @@ describe("the fixer's walkthrough page", () => {
       'acme/widgets #42',
       'The walkthrough of this fix',
     ]);
+  });
+
+  it("leads the end to Approve once it exists, a blocked walkthrough still to the pull request's page", async () => {
+    approve.built = true;
+    read('BLOCKED');
+    const player = (await viewOf()) as ReactElement<{ finish: string; pullRequest: string }>;
+    expect(player.props.finish).toBe(`${BASE}/approve`);
+    expect(player.props.pullRequest).toBe(BASE);
   });
 
   it('says the agent is writing or rewriting the walkthrough', async () => {

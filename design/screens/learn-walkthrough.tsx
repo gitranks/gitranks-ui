@@ -97,6 +97,7 @@ const Fixer = ({ run }: { run: LessonRun }) => (
     articles={articlesOf(walkthrough)}
     run={run}
     finish={PR_PAGE}
+    pullRequest={PR_PAGE}
     hints
   />
 );

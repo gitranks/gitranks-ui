@@ -5,6 +5,7 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('@/lib/seo/site', () => ({ SITE_URL: 'https://gitranks.com' }));
 
 const { GET } = await import('./route');
+const { forgetFixGates } = await import('@/lib/learn/fix-gate');
 
 // As behind the proxy: the request URL is the server's bind address, never the site's.
 const call = (attemptId: string) =>
@@ -16,17 +17,19 @@ const address = { state: 'LIVE', owner: 'acme', repo: 'widgets', number: 57, log
 
 beforeEach(() => {
   graphqlDirect.mockReset();
+  forgetFixGates();
 });
+
+const expectRedirect = async (answer: Response, location: string) => {
+  expect(answer.status).toBe(307);
+  expect(answer.headers.get('location')).toBe(location);
+  expect(answer.headers.get('cache-control')).toBe('private, no-store');
+};
 
 describe("the fixer's answers by attempt", () => {
   it("sends the browser to the answers page on the site's own address, a 307 nobody keeps", async () => {
     graphqlDirect.mockResolvedValue({ learnFixAddress: address });
-    const answer = await call('A_1');
-    expect(answer.status).toBe(307);
-    expect(answer.headers.get('location')).toBe(
-      'https://gitranks.com/learn/fixes/acme/widgets/57/walkthrough/by/octocat',
-    );
-    expect(answer.headers.get('cache-control')).toBe('private, no-store');
+    await expectRedirect(await call('A_1'), 'https://gitranks.com/learn/fixes/acme/widgets/57/walkthrough/by/octocat');
     expect(graphqlDirect.mock.calls[0][1]).toEqual({ attempt: 'A_1' });
   });
 
@@ -35,15 +38,25 @@ describe("the fixer's answers by attempt", () => {
     expect((await call('A_1')).status).toBe(307);
   });
 
-  it('is a 404 nobody keeps for no pull request yet, an id of another shape, and an API that does not answer', async () => {
-    graphqlDirect.mockResolvedValueOnce({ learnFixAddress: { ...address, state: 'MISSING', number: null } });
-    graphqlDirect.mockRejectedValueOnce(new Error('down'));
-    graphqlDirect.mockResolvedValueOnce({ learnFixAddress: null });
-    for (const id of ['A_1', 'A_1', 'A_1', 'not/an id']) {
+  it("sends a removed fix to its walkthrough's address, where its 410 page is answered", async () => {
+    graphqlDirect.mockResolvedValue({ learnFixAddress: { ...address, state: 'REMOVED' } });
+    await expectRedirect(await call('A_1'), 'https://gitranks.com/learn/fixes/acme/widgets/57/walkthrough');
+  });
+
+  it('is a 404 nobody keeps for no pull request yet and an id of another shape', async () => {
+    graphqlDirect.mockResolvedValue({ learnFixAddress: { ...address, state: 'MISSING', number: null } });
+    for (const id of ['A_1', 'not/an id']) {
       const answer = await call(id);
       expect(answer.status, id).toBe(404);
       expect(answer.headers.get('cache-control'), id).toBe('private, no-store');
     }
-    expect(graphqlDirect).toHaveBeenCalledTimes(3);
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends the browser to the pages for maintainers when the API does not answer', async () => {
+    graphqlDirect.mockRejectedValueOnce(new Error('down'));
+    await expectRedirect(await call('A_1'), 'https://gitranks.com/learn/maintainers');
+    graphqlDirect.mockResolvedValueOnce({ learnFixAddress: null });
+    await expectRedirect(await call('A_1'), 'https://gitranks.com/learn/maintainers');
   });
 });

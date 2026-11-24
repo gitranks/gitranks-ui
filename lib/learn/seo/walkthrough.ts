@@ -1,12 +1,6 @@
 import type { Metadata } from 'next';
 
-import {
-  LEARN_HOME_PATH,
-  LEARN_ISSUES_PATH,
-  learnFixAnswersPath,
-  learnFixWalkthroughPath,
-  learnLessonPath,
-} from '../paths';
+import { LEARN_HOME_PATH, LEARN_ISSUES_PATH, learnFixWalkthroughPath, learnLessonPath } from '../paths';
 import type { Walkthrough } from '../walkthrough';
 import { clipText } from '@/lib/seo/clip-text';
 import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
@@ -99,7 +93,3 @@ export function learnWalkthroughJsonLd(walkthrough: Walkthrough): object[] {
     },
   ];
 }
-
-/** A person's answers page, as the walkthrough links it. */
-export const answersPathOf = (walkthrough: Pick<Walkthrough, 'repo' | 'number'>, login: string) =>
-  learnFixAnswersPath(prOf(walkthrough), login);

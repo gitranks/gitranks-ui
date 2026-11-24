@@ -30,6 +30,7 @@ import type {
   ContributeHelpedLike,
   ContributeIssue,
   ContributeIssuePage,
+  ContributeIssuePageAnswer,
   ContributeIssueStatus,
   ContributeIssuesFilter,
   ContributeLimits,
@@ -82,6 +83,7 @@ import type {
   ContributeSides,
   Contributor,
 } from './contribute.types';
+import { MASKED_PART } from './masked-issue.fields';
 import type { ContributeConventionsFields, ContributePrFixKind } from './pr-conventions';
 import type DocumentNode from '@/types/typed-document-node';
 
@@ -315,6 +317,20 @@ export const ContributeIssuesWithRulesDocument = doc<
 >(`query ContributeIssuesWithRules($first: Int, $after: String, $filter: ContributeIssuesFilter) {
   contributeIssues(first: $first, after: $after, filter: $filter) {
     items { ${ISSUE} tier forNewcomers ${ISSUE_RULES} }
+    next total computedAt dailyCap { limit reached } listSize { size base tier merged cut }
+  }
+}`);
+
+/**
+ * The feed with each issue's masked form beside its rules and the list's size: an API without it answers
+ * `ContributeIssuesWithRulesDocument` instead.
+ */
+export const ContributeIssuesMaskedDocument = doc<
+  { contributeIssues: ContributeIssuePageAnswer | null },
+  { first?: number; after?: string; filter?: ContributeIssuesFilter }
+>(`query ContributeIssuesMasked($first: Int, $after: String, $filter: ContributeIssuesFilter) {
+  contributeIssues(first: $first, after: $after, filter: $filter) {
+    items { ${ISSUE} tier forNewcomers ${ISSUE_RULES} ${MASKED_PART} }
     next total computedAt dailyCap { limit reached } listSize { size base tier merged cut }
   }
 }`);

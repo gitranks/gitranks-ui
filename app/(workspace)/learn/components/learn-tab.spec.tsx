@@ -1,6 +1,14 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/workspace/fair-use.actions', () => ({}));
+
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 const nav = vi.hoisted(() => ({ pathname: '/learn' }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
@@ -23,8 +31,17 @@ const workspace = vi.hoisted(() => ({
   viewerLogin: vi.fn(async () => 'octocat'),
   loadContribute: vi.fn(async (): Promise<unknown> => null),
   loadContributeActivity: vi.fn(async (): Promise<unknown> => null),
+  loadFairUseNotices: vi.fn(async (): Promise<unknown> => null),
 }));
 vi.mock('@/lib/workspace/contribute.data', () => workspace);
+const masked = vi.hoisted(() => ({
+  loadMaskedListReads: vi.fn(async () => ({ rulesLive: false, looks: null, numbers: null })),
+}));
+const rulesReader = vi.hoisted(() => ({
+  issueRules: vi.fn(async (): Promise<unknown> => ({ state: 'live', termsDate: '2026-11-30' })),
+}));
+vi.mock('@/lib/workspace/rules-live', () => rulesReader);
+vi.mock('@/lib/workspace/masked-issue.data', () => masked);
 const data = vi.hoisted(() => ({
   loadLearnOpen: vi.fn(async () => true),
   loadLearnProfile: vi.fn(),
@@ -46,6 +63,7 @@ const { emptyIssues, learnIssues, myAttempt, myLearnAttempts, practiceLessons } 
 const { emptyProfile, filledProfile } = await import('@/lib/learn/__fixtures__/profile');
 const { learnTabStateOf } = await import('@/lib/learn/learn-tab');
 const { runOf } = await import('@/lib/contribute/__fixtures__/agent-runs');
+const { fairUse, fairUseNotice, rulesBanner } = await import('@/lib/contribute/__fixtures__/fair-use');
 
 import type { LearnIssues, LearnProfile, MyLearnAttempts, PracticeLessons } from '@/lib/learn/learn.types';
 import type { LearnProgressCounts } from '@/lib/learn/progress/progress.types';
@@ -340,6 +358,42 @@ describe("The Learn tab's reads", () => {
     await signedIn(myLearnAttempts.none, emptyProfile);
     expect(data.loadLearnIssues).not.toHaveBeenCalled();
     expect(data.loadPracticeLessons).not.toHaveBeenCalled();
+  });
+
+  it("shows the Terms banner alone at the top, from Contribute's own answer, and none without it", async () => {
+    workspace.loadFairUseNotices.mockResolvedValue(
+      fairUse({ rulesBanner, notices: [fairUseNotice()], listCut: { text: 'Cut.', noticeId: 'n1' } }),
+    );
+    const html = await signedIn(myLearnAttempts.none);
+    expect(html).toContain('data-fair-use="rules"');
+    expect(html).toContain('href="/terms#contribute-rules"');
+    expect(html.indexOf('data-fair-use="rules"')).toBeLessThan(html.indexOf('<h1'));
+    // Contribute's own messages stay on Contribute.
+    expect(html).not.toContain('data-fair-use="notice"');
+    expect(html).not.toContain('Cut.');
+
+    for (const answer of [fairUse(), null]) {
+      workspace.loadFairUseNotices.mockResolvedValue(answer);
+      expect(await signedIn(myLearnAttempts.none)).not.toContain('data-fair-use');
+    }
+  });
+
+  it('shows no banner before the rules are live, nor while the rules reader cannot tell', async () => {
+    workspace.loadFairUseNotices.mockResolvedValue(fairUse({ rulesBanner }));
+    for (const rules of [{ state: 'before' }, { state: 'unknown' }]) {
+      rulesReader.issueRules.mockResolvedValueOnce(rules);
+      expect(await signedIn(myLearnAttempts.none)).not.toContain('data-fair-use');
+    }
+    rulesReader.issueRules.mockRejectedValueOnce(new Error('down'));
+    expect(await signedIn(myLearnAttempts.none)).not.toContain('data-fair-use');
+  });
+
+  it('reads what masked rows need beside the issues, and only where it lists them', async () => {
+    await signedIn(myLearnAttempts.none);
+    expect(masked.loadMaskedListReads).toHaveBeenCalledOnce();
+    masked.loadMaskedListReads.mockClear();
+    await signedIn(myLearnAttempts.working);
+    expect(masked.loadMaskedListReads).not.toHaveBeenCalled();
   });
 
   it('reads no issue when the attempts could not be read: a lesson may be in progress', async () => {

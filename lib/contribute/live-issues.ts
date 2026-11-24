@@ -5,6 +5,7 @@ import type {
   ContributeIssueStatus,
 } from '@/lib/workspace/contribute.types';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
+import { isMaskKey } from '@/lib/workspace/masked-answer';
 
 /** A page of the feed, as the Issues list reads it. */
 export const ISSUES_PAGE_SIZE = 10;
@@ -279,7 +280,10 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
       if (!active) return undefined;
       const ids = rows
         .slice(0, limit)
-        .filter(({ issue, status }) => status === 'AVAILABLE' && !settled.has(issue.issueId))
+        // A masked row keyed by its mask id has no node id to ask about: left out before the cap, so it takes no place.
+        .filter(
+          ({ issue, status }) => status === 'AVAILABLE' && !settled.has(issue.issueId) && !isMaskKey(issue.issueId),
+        )
         .map(({ issue }) => issue.issueId)
         .slice(0, ISSUE_STATUS_IDS_MAX);
       void fill();

@@ -32,7 +32,9 @@ vi.mock('@/lib/workspace/use-changes', () => changes);
 
 const { ISSUE_PAGE_NOTICES, IssuePageLive } = await import('./issue-page-live');
 const { issueStartRefusalOf } = await import('@/lib/workspace/start-refusals');
-const { fullPage, issueNumbers, issuePage, MASKED_NOW } = await import('@/lib/workspace/__fixtures__/masked-issue');
+const { fullPage, HELD_UNTIL, issueNumbers, issuePage, MASKED_NOW } = await import(
+  '@/lib/workspace/__fixtures__/masked-issue'
+);
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 globalThis.ResizeObserver ??= class {
@@ -69,6 +71,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   container.remove();
+  window.localStorage.clear();
   vi.useRealTimers();
 });
 
@@ -328,5 +331,71 @@ describe('"Give it back"', () => {
     await press('Give it back');
     expect(state()).toBe('FULL');
     expect(notice()).toBe(ISSUE_PAGE_NOTICES.giveBack);
+  });
+});
+
+describe("the browser's mark of the held issue, for the lists", () => {
+  const mark = () => {
+    const raw = window.localStorage.getItem('gitranks:held-issue');
+    return raw ? JSON.parse(raw) : null;
+  };
+  const LONGER = '2026-10-28T12:30:00.000Z';
+
+  it('is written when a look starts, and moved when it is held longer', async () => {
+    actions.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'OK', page: fullPage() } });
+    actions.extendIssueLook.mockResolvedValue({ ok: true, data: fullPage({ until: LONGER }) });
+    await live();
+    expect(mark()).toBeNull();
+    await press('See the full issue');
+    expect(mark()).toEqual({ id: 'q7k2m9xa', until: HELD_UNTIL });
+    await press('Copy the prompt');
+    expect(mark()).toEqual({ id: 'q7k2m9xa', until: LONGER });
+  });
+
+  it('is written for another issue the page says is held', async () => {
+    await live({ page: issuePage({ holding: { id: 'r3n8p1vd', until: HELD_UNTIL } }) });
+    expect(mark()).toEqual({ id: 'r3n8p1vd', until: HELD_UNTIL });
+  });
+
+  it('is cleared when the issue is given back', async () => {
+    actions.giveBackIssue.mockResolvedValue({ ok: true, data: issuePage({ state: 'GIVEN_BACK' }) });
+    await live({ page: fullPage() });
+    expect(mark()?.id).toBe('q7k2m9xa');
+    await press('Give it back');
+    expect(mark()).toBeNull();
+  });
+
+  it('is cleared when the work starts', async () => {
+    actions.startHeldIssue.mockResolvedValue({
+      ok: true,
+      data: { attempt: { id: 'A_1' }, started: true, refusal: null, value: null, holder: null, until: null },
+    });
+    actions.readIssuePage.mockResolvedValue({
+      ok: true,
+      data: issuePage({ state: 'STARTED', startPath: '/my/pull-requests/acme/notebook/1290' }),
+    });
+    await live({ ...hostedPage, page: fullPage() });
+    expect(mark()?.id).toBe('q7k2m9xa');
+    await press('Start with the hosted agent');
+    expect(mark()).toBeNull();
+  });
+
+  it("is cleared when the page shows the hold ended, and never touches another issue's mark", async () => {
+    window.localStorage.setItem('gitranks:held-issue', JSON.stringify({ id: 'r3n8p1vd', until: HELD_UNTIL }));
+    await live({ page: issuePage({ state: 'EXPIRED' }) });
+    expect(mark()?.id).toBe('r3n8p1vd');
+    window.localStorage.setItem('gitranks:held-issue', JSON.stringify({ id: 'q7k2m9xa', until: HELD_UNTIL }));
+    act(() => root.unmount());
+    root = createRoot(container);
+    await live({ page: issuePage({ state: 'EXPIRED' }) });
+    expect(mark()).toBeNull();
+  });
+
+  it('ends by itself at its time: a list reads no mark past it', async () => {
+    const { readHeldMark, writeHeldMark } = await import('@/lib/workspace/held-mark');
+    writeHeldMark({ id: 'q7k2m9xa', until: HELD_UNTIL });
+    expect(readHeldMark()?.id).toBe('q7k2m9xa');
+    expect(readHeldMark(Date.parse(HELD_UNTIL))).toBeNull();
+    expect(mark()).toBeNull();
   });
 });

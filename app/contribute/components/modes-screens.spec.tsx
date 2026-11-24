@@ -3,6 +3,12 @@ import type { ComponentProps } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/my/settings',

@@ -3,11 +3,13 @@ import { parse } from 'graphql';
 import type {
   LearnAttemptLesson,
   LearnIssues,
+  LearnIssuesAnswer,
   LearnProfile,
   LearnProfileInput,
   LearnPromo,
   LearnPromoPlacement,
   LearnPublicIssues,
+  LearnPublicIssuesAnswer,
   LearnRecord,
   LessonAnswerResult,
   LessonPage,
@@ -22,6 +24,7 @@ import type {
   PracticeLessons,
   PublicLesson,
 } from './learn.types';
+import { MASKED_PART } from '@/lib/workspace/masked-issue.fields';
 import type DocumentNode from '@/types/typed-document-node';
 
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
@@ -177,6 +180,18 @@ export const PracticeLessonsDocument = doc<{ practiceLessons: PracticeLessons },
 }`,
 );
 
+/** The same issues with each one's masked form: an API without it answers `LearnIssuesDocument` instead. */
+export const LearnIssuesMaskedDocument = doc<{ learnIssues: LearnIssuesAnswer }, { first: number }>(
+  `query LearnIssuesMasked($first: Int) {
+  learnIssues(first: $first) {
+    goal { kind value level }
+    items { ${LEARN_ISSUE} ${MASKED_PART} }
+    total empty capReached
+    room { limit value }
+  }
+}`,
+);
+
 /**
  * A language's day list for visitors, asked without a viewer: a short list, the same for every visitor that day.
  * Null while Learn is not open to everyone, or for a language Learn finds no issues for.
@@ -186,6 +201,20 @@ export const LearnPublicIssuesDocument = doc<{ learnPublicIssues: LearnPublicIss
   learnPublicIssues(language: $language) {
     language
     items { ${LEARN_PUBLIC_ISSUE} }
+    total
+  }
+}`,
+);
+
+/** The same day list with each issue's masked form: an API without it answers `LearnPublicIssuesDocument` instead. */
+export const LearnPublicIssuesMaskedDocument = doc<
+  { learnPublicIssues: LearnPublicIssuesAnswer | null },
+  { language: string }
+>(
+  `query LearnPublicIssuesMasked($language: String!) {
+  learnPublicIssues(language: $language) {
+    language
+    items { ${LEARN_PUBLIC_ISSUE} ${MASKED_PART} }
     total
   }
 }`,
@@ -314,6 +343,17 @@ export const LearnPromoDocument = doc<
 }`);
 
 /** "Not for me": the viewer's Learn suggestions stay hidden from then on. */
+/** The same suggestion with each issue's masked form: an API without it answers `LearnPromoDocument` instead. */
+export const LearnPromoMaskedDocument = doc<
+  { learnOpen: boolean; learnPromo: LearnPromo | null },
+  { placement: LearnPromoPlacement; login: string | null }
+>(`query LearnPromoMasked($placement: LearnPromoPlacement!, $login: String) {
+  learnOpen
+  learnPromo(placement: $placement, login: $login) {
+    show reason language issues { title repo number language topic ${MASKED_PART} }
+  }
+}`);
+
 export const DismissLearnPromoDocument = doc<{ dismissLearnPromo: boolean }>(
   'mutation DismissLearnPromo { dismissLearnPromo }',
 );

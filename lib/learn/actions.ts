@@ -9,6 +9,7 @@ import {
   AnswerWarmupDocument,
   DismissLearnPromoDocument,
   LearnIssuesDocument,
+  LearnIssuesMaskedDocument,
   LogCopyForAgentDocument,
   MarkStepShownDocument,
   MyLearnAttemptsDocument,
@@ -39,6 +40,7 @@ import type {
 import { currentOf } from '@/lib/learn/learn-home';
 import { githubLoginOf, LEARN_MAINTAINERS_PATH, lessonResultPath, lessonSlugOf } from '@/lib/learn/learn-path';
 import { LEARN_ISSUES_MAX, PRACTICE_MAX } from '@/lib/learn/learn-tab';
+import { learnIssuesOf } from '@/lib/learn/masked-rows';
 import { cleanProfileInput } from '@/lib/learn/profile-form';
 import { REPORT_REASONS } from '@/lib/learn/question';
 import { markReaction, takeReactionMark } from '@/lib/learn/react-mark';
@@ -49,6 +51,7 @@ import {
   type PrFeedbackErrorCode,
   prFeedbackErrorOf,
 } from '@/lib/workspace/errors';
+import { runWithMasked } from '@/lib/workspace/masked-read';
 import { REACT_PARAM } from '@/lib/workspace/paths';
 import { attemptIdOf } from '@/lib/workspace/pr-feedback';
 import type DocumentNode from '@/types/typed-document-node';
@@ -301,8 +304,16 @@ export async function readPracticeLessons(first: number): Promise<ContributeActi
 export async function readLearnIssues(first: number): Promise<ContributeActionResult<LearnIssues>> {
   const count = countOf(first, 1, LEARN_ISSUES_MAX);
   if (count === null) return invalid();
-  return run(LearnIssuesDocument, { first: count }, (data) => data.learnIssues);
+  return readIssuesFor(count);
 }
+
+/** The issues for the viewer's goal, with each one's masked form; an API without it answers them as they were. */
+const readIssuesFor = (first: number) =>
+  runWithMasked(
+    // A masked row leaves the read stripped of what names its issue, keyed by its mask id.
+    () => run(LearnIssuesMaskedDocument, { first }, (data) => learnIssuesOf(data.learnIssues)),
+    () => run(LearnIssuesDocument, { first }, (data) => data.learnIssues),
+  );
 
 /** How many issues a passed practice lesson shows. */
 const PASSED_ISSUES = 2;
@@ -316,6 +327,6 @@ export async function readPracticeNext(): Promise<ContributeActionResult<Practic
   if (!attempts.ok) return attempts;
   const current = currentOf(attempts.data);
   if (current) return { ok: true, data: { current, issues: null } };
-  const issues = await run(LearnIssuesDocument, { first: PASSED_ISSUES }, (data) => data.learnIssues);
+  const issues = await readIssuesFor(PASSED_ISSUES);
   return issues.ok ? { ok: true, data: { current: null, issues: issues.data } } : issues;
 }

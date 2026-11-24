@@ -25,6 +25,7 @@ const {
   ContributeAttemptLiveDocument,
   ContributeIssueStatusDocument,
   ContributeIssuesDocument,
+  ContributeIssuesMaskedDocument,
   ContributeIssuesWithRulesDocument,
   ContributeMcpConnectionsUsedDocument,
   ContributeOnboardingDocument,
@@ -975,6 +976,14 @@ describe('readIssueStatuses and readIssuesPage', () => {
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
+  it('never asks about a masked row keyed by its mask id', async () => {
+    graphqlDirect.mockResolvedValue({ contributeIssueStatus: [] });
+    expect(await actions.readIssueStatuses(['mask:q7k2m9xa'])).toEqual({ ok: true, data: [] });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+    await actions.readIssueStatuses(['mask:q7k2m9xa', 'I_1']);
+    expect(graphqlDirect).toHaveBeenCalledWith(ContributeIssueStatusDocument, { issueIds: ['I_1'] }, expect.anything());
+  });
+
   it('answers null when the API hides the statuses', async () => {
     graphqlDirect.mockResolvedValue({ contributeIssueStatus: null });
 
@@ -990,7 +999,7 @@ describe('readIssueStatuses and readIssuesPage', () => {
       filter: { languages: ['RUST', 'COBOL' as never], kinds: 'BUG' as never, maxSize: 'M' },
     });
     expect(graphqlDirect).toHaveBeenCalledWith(
-      ContributeIssuesWithRulesDocument,
+      ContributeIssuesMaskedDocument,
       { first: 10, after: 'c2', filter: { languages: ['RUST'], maxSize: 'M' } },
       { source: 'client', githubLogin: 'octocat' },
     );
@@ -1003,6 +1012,71 @@ describe('readIssueStatuses and readIssuesPage', () => {
     graphqlDirect.mockClear();
     expect(await actions.readIssuesPage({ after: '', first: 2 })).toMatchObject({ ok: false, error: 'INVALID' });
     expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+});
+
+describe('readIssuesPage with masked rows', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    auth.mockReset();
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+  });
+
+  it('reads the page with each masked form, every masked row keyed by its mask id, node id or not', async () => {
+    const named = { issueId: 'I_1', masked: null };
+    const masked = { issueId: null, masked: { id: 'q7k2m9xa', title: 'Tags show twice' } };
+    const withNode = { issueId: 'I_2', masked: { id: 'r3n8p1vd', title: 'A slow search' } };
+    graphqlDirect.mockResolvedValue({
+      contributeIssues: { items: [named, masked, withNode], next: null, total: 3, computedAt: null },
+    });
+    const read = await actions.readIssuesPage({ after: 'c2', first: 3 });
+    expect(read.ok && read.data?.items.map(({ issueId }) => issueId)).toEqual([
+      'I_1',
+      'mask:q7k2m9xa',
+      'mask:r3n8p1vd',
+    ]);
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([ContributeIssuesMaskedDocument]);
+  });
+
+  it('hands the browser nothing that names a masked issue, whatever the API sent beside its masked form', async () => {
+    const leaky = {
+      issueId: 'I_kwDOsecret',
+      repositoryId: 'R_kgDOsecret',
+      nameWithOwner: 'secret-org/secret-repo',
+      number: 4242,
+      url: 'https://github.com/secret-org/secret-repo/issues/4242',
+      title: 'Secret title of the real issue',
+      labels: ['secret-label'],
+      why: 'secret reason',
+      repoRules: { summary: 'secret-org rules' },
+      masked: { id: 'q7k2m9xa', title: 'Tags show twice' },
+    };
+    graphqlDirect.mockResolvedValue({
+      contributeIssues: { items: [leaky], next: null, total: 1, computedAt: null },
+    });
+    const read = await actions.readIssuesPage({ after: 'c2', first: 1 });
+    const sent = JSON.stringify(read);
+    for (const secret of ['secret', '4242', 'I_kwDO', 'R_kgDO']) expect(sent).not.toContain(secret);
+    expect(read.ok && read.data?.items[0]).toMatchObject({ issueId: 'mask:q7k2m9xa', masked: leaky.masked });
+  });
+
+  it('falls back to the rules and on only when the API does not know the field, and fails once on an outage', async () => {
+    const page = { items: [], next: null, total: 0, computedAt: null };
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeIssuesMaskedDocument)
+        throw new Error('[{"message":"Cannot query field \\"masked\\" on type \\"ContributeIssue\\"."}]');
+      return { contributeIssues: page };
+    });
+    expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toEqual({ ok: true, data: page });
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
+      ContributeIssuesMaskedDocument,
+      ContributeIssuesWithRulesDocument,
+    ]);
+
+    graphqlDirect.mockReset();
+    graphqlDirect.mockRejectedValue(new Error('GraphQL error! 502: Bad Gateway'));
+    expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toMatchObject({ ok: false, error: 'FAILED' });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1019,12 +1093,15 @@ describe("readIssuesPage on an API without the repos' rules", () => {
       JSON.stringify([{ message: 'Cannot query field "repoRules" on type "ContributeIssue".' }]),
     );
     graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeIssuesMaskedDocument)
+        throw new Error('[{"message":"Cannot query field \\"masked\\" on type \\"ContributeIssue\\"."}]');
       if (document === ContributeIssuesWithRulesDocument) throw unknown;
       return { contributeIssues: page };
     });
 
     expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toEqual({ ok: true, data: page });
     expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
+      ContributeIssuesMaskedDocument,
       ContributeIssuesWithRulesDocument,
       ContributeIssuesDocument,
     ]);

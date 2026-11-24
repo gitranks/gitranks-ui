@@ -1,7 +1,15 @@
 import { parse } from 'graphql';
 
 import type { IssueStart } from './issue-start';
-import type { IssueLooked, IssueNumbers, IssueOutReason, IssuePage } from './masked-issue.types';
+import { MASKED_ISSUE_FIELDS } from './masked-issue.fields';
+import type {
+  IssueLooked,
+  IssueLooksToday,
+  IssueNumbers,
+  IssueOutReason,
+  IssuePage,
+  MaskedIssue,
+} from './masked-issue.types';
 import { START_PAGE_ISSUE_FIELDS } from './start/start-page.documents';
 import type { StartPageIssue } from './start/start-page.types';
 import type DocumentNode from '@/types/typed-document-node';
@@ -14,20 +22,39 @@ import type DocumentNode from '@/types/typed-document-node';
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
   parse(source) as DocumentNode<TData, TVariables>;
 
-const MASKED = 'id title language size kind projectTier project hints { kind count }';
+const MASKED = MASKED_ISSUE_FIELDS;
+const LOOKS = 'limit left tier base merged warned';
 const PAGE = `state
   masked { ${MASKED} }
   full { id repo number url title labels stars agreementToSign }
   until
   holding { id until }
   reasons note startPath
-  looks { limit left tier base merged warned }`;
+  looks { ${LOOKS} }`;
 
 type Id = { id: string };
 
 /** The page of one issue for the viewer, by its mask id; null for an id no issue has. */
 export const IssuePageDocument = doc<{ issuePage: IssuePage | null }, Id>(
   `query IssuePage($id: ID!) { issuePage(id: $id) { ${PAGE} } }`,
+);
+
+/** The full issues the viewer may see today, and what the limit is made of; null signed out. */
+export const IssueLooksTodayDocument = doc<{ issueLooksToday: IssueLooksToday | null }>(
+  `query IssueLooksToday { issueLooksToday { ${LOOKS} } }`,
+);
+
+/**
+ * Skip on a masked row, with why: the issue leaves the person's list for good. Answers the issue that takes its place on
+ * that list, none of those still shown (`shown`), or null when the list has no more.
+ */
+export const SkipMaskedIssueDocument = doc<
+  { skipMaskedIssue: MaskedIssue | null },
+  { id: string; surface: 'LEARN' | 'CONTRIBUTE' | 'PROFILE'; reason: IssueOutReason | null; shown: string[] }
+>(
+  `mutation SkipMaskedIssue($id: ID!, $surface: IssueSurface!, $reason: IssueOutReason, $shown: [ID!]) {
+  skipMaskedIssue(id: $id, surface: $surface, reason: $reason, shown: $shown) { ${MASKED} }
+}`,
 );
 
 /** The numbers of a night, the same for everyone, and whether the rules about full issues a day are live. */
@@ -38,7 +65,7 @@ export const IssueNumbersDocument = doc<{ issueNumbers: IssueNumbers }>(
 /** "See the full issue": holds it for the viewer and answers the page, or why not. */
 export const LookAtIssueDocument = doc<
   { lookAtIssue: IssueLooked },
-  { id: string; surface: 'LEARN' | 'CONTRIBUTE'; channel: 'WEB' | 'SIGN_IN' }
+  { id: string; surface: 'LEARN' | 'CONTRIBUTE' | 'PROFILE'; channel: 'WEB' | 'SIGN_IN' }
 >(
   `mutation LookAtIssue($id: ID!, $surface: IssueSurface!, $channel: IssueLookChannel) {
   lookAtIssue(id: $id, surface: $surface, channel: $channel) { outcome page { ${PAGE} } }

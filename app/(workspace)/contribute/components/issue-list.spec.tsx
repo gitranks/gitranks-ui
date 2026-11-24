@@ -3,6 +3,9 @@ import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const actions = vi.hoisted(() => ({ lookAtIssue: vi.fn(), signInToSeeIssue: vi.fn(), skipMaskedIssue: vi.fn() }));
+vi.mock('@/lib/workspace/masked-issue.actions', () => actions);
+
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push: vi.fn(), replace: vi.fn() }) }));
 const contribute = vi.hoisted(() => ({ readIssuesPage: vi.fn(), readIssueStatuses: vi.fn() }));
@@ -13,6 +16,7 @@ vi.mock('@/lib/workspace/start/start-page.actions', () => ({ readStartPageAttemp
 
 const { ContributeIssueList } = await import('./issue-list');
 const { issue } = await import('@/lib/contribute/__fixtures__/contribute-overview');
+const { looksToday, maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -40,6 +44,77 @@ const picks = (from: number, count: number) =>
 const AGENTS = { hosted: true, own: false };
 const button = (label: string) =>
   [...container.querySelectorAll('button')].find((each) => each.textContent?.trim() === label) ?? null;
+
+describe("Contribute's list with masked issues", () => {
+  const masked = (id: string, title: string) => ({ ...maskedIssue(), id, title });
+  const PAGE = {
+    items: [
+      issue({ issueId: 'I_1', number: 1, rank: 1 }),
+      issue({
+        issueId: 'mask:q7k2m9xa',
+        nameWithOwner: 'hidden-org/hidden-repo',
+        number: 2,
+        rank: 2,
+        masked: masked('q7k2m9xa', 'Tags show twice'),
+      }),
+    ],
+    next: null,
+    total: 2,
+    computedAt: '2026-10-28T07:00:00.000Z',
+  };
+  const LIVE = { rulesLive: true, looks: looksToday(), numbers: { read: 10, kept: 2 } };
+
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+  });
+
+  it("shows a masked issue as its masked row beside today's named rows, with the foot under them", async () => {
+    await render(<ContributeIssueList page={PAGE} agents={AGENTS} masked={LIVE} />);
+    expect(container.querySelectorAll('article[data-issue]')).toHaveLength(1);
+    const row = container.querySelector('[data-masked-row="q7k2m9xa"]');
+    expect(row?.textContent).toContain('Tags show twice');
+    expect(row?.textContent).toContain('See the full issue');
+    // Nothing of the masked issue's project reaches the row.
+    expect(container.textContent).not.toContain('hidden-org/hidden-repo');
+    expect(container.querySelector('[data-masked-foot]')).not.toBeNull();
+    expect(container.querySelector('[data-looks-line]')?.textContent).toBe(
+      'You can see 20 full issues a day. 17 left today.',
+    );
+    // The live region names a masked issue by its rewritten title alone.
+    expect(container.querySelector('[role="status"].sr-only')?.textContent).not.toContain('hidden-org');
+  });
+
+  it('asks the status poll about named rows only', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    await render(<ContributeIssueList page={PAGE} agents={AGENTS} masked={LIVE} />);
+    await act(async () => vi.advanceTimersByTimeAsync(120_000));
+    for (const [ids] of contribute.readIssueStatuses.mock.calls) expect(ids).not.toContain('mask:q7k2m9xa');
+    vi.useRealTimers();
+  });
+
+  it("is today's list, with no foot, when no issue is masked (an API without the masked form)", async () => {
+    await render(<ContributeIssueList page={{ ...PAGE, items: [PAGE.items[0]] }} agents={AGENTS} masked={LIVE} />);
+    expect(container.querySelector('[data-masked-row]')).toBeNull();
+    expect(container.querySelector('[data-masked-foot]')).toBeNull();
+  });
+
+  it('takes a masked row out of the feed when its issue is gone', async () => {
+    actions.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'LEFT_POOL', page: null } });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    await render(<ContributeIssueList page={PAGE} agents={AGENTS} masked={LIVE} />);
+    await act(async () => button('See the full issue')?.click());
+    // It says why for a moment, then folds away as a taken row does.
+    await act(async () => vi.advanceTimersByTimeAsync(3_000));
+    vi.useRealTimers();
+    expect(container.querySelector('[data-masked-row]')).toBeNull();
+    expect(container.querySelectorAll('article[data-issue]')).toHaveLength(1);
+    // The last masked row folded: the foot stays, and still says why it left.
+    expect(container.querySelector('[data-masked-foot]')).not.toBeNull();
+    expect(container.querySelector('[data-list-status]')?.textContent).toBe(
+      'That issue is no longer open, so it left your list.',
+    );
+  });
+});
 
 describe("Contribute's issue list", () => {
   it('grows by 10 in place with "Show 10 more", read under the same filters', async () => {

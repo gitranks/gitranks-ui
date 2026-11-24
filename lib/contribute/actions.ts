@@ -1,6 +1,7 @@
 'use server';
 
 import { ISSUE_STATUS_IDS_MAX, ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
+import { keyedPageOf, nodeIdsOf } from '@/lib/contribute/masked-feed';
 import { ADD_INPUT_MAX, FEEDBACK_MAX } from '@/lib/contribute/set-format';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { accountEmailFor, run } from '@/lib/workspace/action-run';
@@ -9,6 +10,7 @@ import {
   AddToContributeSetDocument,
   ContributeIssueStatusDocument,
   ContributeIssuesDocument,
+  ContributeIssuesMaskedDocument,
   ContributeIssuesWithRulesDocument,
   IgnoreContributeRepoDocument,
   RemoveFromContributeSetDocument,
@@ -56,9 +58,11 @@ export async function savePreferences(
 export async function readIssueStatuses(
   issueIds: string[],
 ): Promise<ContributeActionResult<ContributeIssueStatus[] | null>> {
-  const ids = (Array.isArray(issueIds) ? issueIds : [])
-    .filter((id) => typeof id === 'string' && id)
-    .slice(0, ISSUE_STATUS_IDS_MAX);
+  // A masked row keyed by its mask id has no node id to ask about.
+  const ids = nodeIdsOf((Array.isArray(issueIds) ? issueIds : []).filter((id) => typeof id === 'string' && id)).slice(
+    0,
+    ISSUE_STATUS_IDS_MAX,
+  );
   if (!ids.length) return { ok: true, data: [] };
   return run(ContributeIssueStatusDocument, { issueIds: ids }, (data) => data.contributeIssueStatus);
 }
@@ -91,6 +95,9 @@ export async function readIssuesPage(
   const first = Math.min(Math.max(Math.trunc(Number(input.first)) || 1, 1), ISSUES_PAGE_SIZE);
   const filter = issuesFilterOf(input.filter);
   const variables = { first, after, ...(Object.keys(filter).length ? { filter } : {}) };
+  // Each issue's masked form first; an API without it answers the page with the repos' rules.
+  const masked = await run(ContributeIssuesMaskedDocument, variables, (data) => keyedPageOf(data.contributeIssues));
+  if (masked.ok || masked.error !== 'NOT_AVAILABLE_YET') return masked;
   const read = await run(ContributeIssuesWithRulesDocument, variables, (data) => data.contributeIssues);
   // An API without the repos' rules: the page as it was.
   if (read.ok || read.error !== 'NOT_AVAILABLE_YET') return read;

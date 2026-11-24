@@ -17,6 +17,7 @@ import { loadContribute, loadScheduleCounts } from '@/lib/workspace/contribute.d
 import { accessNoticesOf, claudeKeyOf, isSuspended } from '@/lib/workspace/contribute-state';
 import { loadContributeFlowPlace } from '@/lib/workspace/getting-in.data';
 import { limitReachedOf } from '@/lib/workspace/limit-words';
+import { loadMaskedListReads } from '@/lib/workspace/masked-issue.data';
 import { MCP_CLIENT_NAMES } from '@/lib/workspace/mcp-setup';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { learnStartConnectionOf } from '@/lib/workspace/start/start-page';
@@ -53,7 +54,11 @@ async function ContributeFirstIssue() {
 
   const view = await loadContribute();
   const held = isSuspended(view);
-  const [page, counts] = await Promise.all([held ? Promise.resolve(null) : loadIssues({}), loadScheduleCounts()]);
+  const [page, counts, masked] = await Promise.all([
+    held ? Promise.resolve(null) : loadIssues({}),
+    loadScheduleCounts(),
+    loadMaskedListReads(),
+  ]);
   const settings = view?.contributor?.settings;
   const limit = held ? null : limitReachedOf(counts, settings, view?.contributor?.limits);
   const client = learnStartConnectionOf(view?.ownAgent?.tokens)?.client;
@@ -78,6 +83,7 @@ async function ContributeFirstIssue() {
           facts={{ capUsd: settings?.attemptCapUsd ?? null, keyWaiting }}
           source="contribute_flow_issue"
           noneTitle={FIRST_ISSUE.none}
+          masked={masked}
         />
         <p className="text-sm text-muted-foreground">{FIRST_ISSUE.review}</p>
         <Link

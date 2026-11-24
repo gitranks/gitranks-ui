@@ -20,10 +20,7 @@ vi.mock('@/lib/learn/actions', () => ({}));
 vi.mock('@/lib/learn/settings.data', () => ({}));
 vi.mock('@/lib/skills/skills.data', () => ({}));
 vi.mock('@/lib/learn/settings.actions', () => ({}));
-vi.mock('@/lib/learn/learn.data', () => ({
-  loadLearnProfile: vi.fn(),
-  loadLearnSetup: vi.fn(),
-}));
+vi.mock('@/lib/learn/learn.data', () => ({}));
 
 const { ConnectScreen } = await import('@/components/workspace/agent/connect-view');
 const { renewalDayOptionsOf } = await import('@/components/workspace/agent/key-connect');

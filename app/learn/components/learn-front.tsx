@@ -11,8 +11,6 @@ import { type LearnHomeRead, learnPageOf } from '@/lib/learn/home';
 import { loadLearnHome } from '@/lib/learn/home.data';
 import type { LandingViewer } from '@/lib/learn/landing';
 import { loadTryLessons } from '@/lib/learn/landing.data';
-import { loadLearnProfile } from '@/lib/learn/learn.data';
-import { hasGoal } from '@/lib/learn/learn-home';
 import { loadLearnTimeZone } from '@/lib/learn/my-progress.data';
 import { LEARN_HOME_PATH } from '@/lib/learn/paths';
 import { loadHomeReal, loadMergedFixes } from '@/lib/learn/real-issues.data';
@@ -21,10 +19,8 @@ import type { LearnSetupRead } from '@/lib/learn/setup';
 import { loadLearnSetup as loadLearnSetupOf } from '@/lib/learn/setup.data';
 import { skillsPath } from '@/lib/skills/paths';
 import { viewerLogin } from '@/lib/workspace/contribute.data';
-import type { WorkspaceGate } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { loadMaskedListReads } from '@/lib/workspace/masked-issue.data';
-import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
 /*
  * `/learn` and `/learn/about`, read per request. A visitor reads the landing; a signed-in person Learn home, or the
@@ -33,38 +29,27 @@ import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
 /**
  * The landing with its courses, the lessons at the top and the newest merged fixes; a read that fails leaves its part
- * out. `resume` is the step of today's flow someone stopped at.
+ * out.
  */
-async function LoadedLanding({ viewer, resume = null }: { viewer: LandingViewer; resume?: string | null }) {
+async function LoadedLanding({ viewer }: { viewer: LandingViewer }) {
   const [courses, fixes] = await Promise.all([loadLearnCourses().catch(() => []), loadMergedFixes()]);
   const lessons = await loadTryLessons(courses);
   return (
     <>
       <JsonLd payloads={learnLandingJsonLd(courses, lessons[0]?.lesson ?? null)} />
-      <LearnLandingView viewer={viewer} resume={resume} courses={courses} lessons={lessons} fixes={fixes} />
+      <LearnLandingView viewer={viewer} courses={courses} lessons={lessons} fixes={fixes} />
     </>
   );
 }
 
 /**
- * Where someone part-way in (a goal saved, never entered) goes on: Issues, to pick one for their agent. Null for anyone
- * else, and when their goal cannot be read.
- */
-async function resumeOf(gate: WorkspaceGate | null): Promise<string | null> {
-  if (gate?.kind !== 'open' || gate.entered) return null;
-  const profile = await loadLearnProfile().catch(() => null);
-  return hasGoal(profile) ? PICK_ISSUE_PATHS.learn : null;
-}
-
-/**
- * What a signed-in person has: their home, their setup, the zone their days are counted in (null:
- * Learn's default, also when it cannot be read), the workspace's gate, and which page `/learn` is for them.
+ * What a signed-in person has: their home, their setup, the zone their days are counted in (null: Learn's default,
+ * also when it cannot be read), and which page `/learn` is for them (the workspace's gate tells who uses Learn today).
  */
 async function personOf(login: string): Promise<{
   home: LearnHomeRead | null;
   setup: LearnSetupRead | null;
   timeZone: string | null;
-  gate: WorkspaceGate | null;
   page: 'home' | 'landing';
 }> {
   const [home, setup, gate, zone] = await Promise.all([
@@ -74,7 +59,7 @@ async function personOf(login: string): Promise<{
     loadLearnTimeZone(login),
   ]);
   const entered = gate?.kind === 'open' && gate.entered;
-  return { home, setup, timeZone: zone?.timeZone ?? null, gate, page: learnPageOf({ setup, home, entered }) };
+  return { home, setup, timeZone: zone?.timeZone ?? null, page: learnPageOf({ setup, home, entered }) };
 }
 
 /** `/learn`: the landing for a visitor and for someone not set up; Learn home for everyone else. */
@@ -83,8 +68,8 @@ export async function LearnFrontView() {
   if (!login) return <LoadedLanding viewer="visitor" />;
   // The third box and the "Real issues" rows are read apart, beside the home: none of them (an API without them yet)
   // draws the home as before.
-  const [{ home, setup, timeZone, gate, page }, real] = await Promise.all([personOf(login), loadHomeReal(login)]);
-  if (page === 'landing') return <LoadedLanding viewer="member" resume={await resumeOf(gate)} />;
+  const [{ home, setup, timeZone, page }, real] = await Promise.all([personOf(login), loadHomeReal(login)]);
+  if (page === 'landing') return <LoadedLanding viewer="member" />;
   if (!home) return <LearnHomeError />;
   const reads = real.issues.length ? await loadMaskedListReads().catch(() => null) : null;
   return (

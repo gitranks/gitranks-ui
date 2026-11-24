@@ -28,7 +28,6 @@ import {
   WHY_HIDDEN_CLOSING,
   WHY_HIDDEN_REASONS,
 } from './masked-issue';
-import { emptyProfile, filledProfile } from '@/lib/learn/__fixtures__/profile';
 import type { LearnSetupRead } from '@/lib/learn/setup';
 
 describe('the page of one issue', () => {
@@ -105,27 +104,15 @@ describe('the way to the page of one issue, and back from it', () => {
     expect(back('from=learn&at=lesson')).toBe('/learn/issues');
   });
 
-  it('knows a person uses Learn by their setup of Learn saved, whatever the older profile says', () => {
-    const saved = setupRead({ state: 'SAVED' });
-    expect(usesLearnOf({ setup: saved, profile: emptyProfile })).toBe(true);
-    expect(usesLearnOf({ setup: saved, profile: null })).toBe(true);
+  it('knows a person uses Learn by their setup of Learn saved', () => {
+    expect(usesLearnOf(setupRead({ state: 'SAVED' }))).toBe(true);
     // A guess a visit started, or one being made, is not a save; nor is no setup.
     for (const state of ['NONE', 'WORKING', 'GUESSED'] as const) {
-      expect(usesLearnOf({ setup: setupRead({ state }), profile: emptyProfile }), state).toBe(false);
+      expect(usesLearnOf(setupRead({ state })), state).toBe(false);
     }
-  });
-
-  it('falls back to an older Learn profile they saved, not the empty one the API answers', () => {
-    const none = setupRead({ state: 'NONE' });
-    expect(usesLearnOf({ setup: none, profile: filledProfile })).toBe(true);
-    expect(usesLearnOf({ setup: null, profile: { ...emptyProfile, goalKind: 'LANGUAGE' } })).toBe(true);
-    expect(usesLearnOf({ setup: null, profile: { ...emptyProfile, updatedAt: '2026-10-27T18:00:00.000Z' } })).toBe(
-      true,
-    );
-    expect(usesLearnOf({ setup: none, profile: emptyProfile })).toBe(false);
-    // Nothing read, or reads that failed: no.
-    expect(usesLearnOf({ setup: null, profile: null })).toBe(false);
-    expect(usesLearnOf({})).toBe(false);
+    // A setup not read, or a read that failed: no.
+    expect(usesLearnOf(null)).toBe(false);
+    expect(usesLearnOf(undefined)).toBe(false);
   });
 
   it("leads from Contribute to Contribute's issues, whoever the person is", () => {

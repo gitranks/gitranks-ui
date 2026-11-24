@@ -69,7 +69,6 @@ describe('the workspace addresses', () => {
       limitRow: '/my/settings/pull-requests#open',
       attemptsRow: '/my/settings/pull-requests#attempts',
       work: '/my/settings/work#work',
-      forLearning: '/learn/setup',
       agentKey: '/my/agent/key',
       agentBudget: '/my/agent/budget',
     });

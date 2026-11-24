@@ -9,7 +9,6 @@ const m = vi.hoisted(() => ({
   loadWorkspaceGate: vi.fn(async (): Promise<unknown> => null),
   loadLearnCourses: vi.fn(async (): Promise<unknown[]> => []),
   loadTryLessons: vi.fn(async (): Promise<unknown[]> => []),
-  loadLearnProfile: vi.fn(async (): Promise<unknown> => null),
   loadLearnTimeZone: vi.fn(async (): Promise<unknown> => null),
   loadHomeReal: vi.fn(async (): Promise<unknown> => ({ box: null, fixes: [], issues: [] })),
   loadMergedFixes: vi.fn(async (): Promise<unknown> => null),
@@ -29,7 +28,6 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin: m.viewerLogin }));
-vi.mock('@/lib/learn/learn.data', () => ({ loadLearnProfile: m.loadLearnProfile }));
 vi.mock('@/lib/learn/my-progress.data', () => ({ loadLearnTimeZone: m.loadLearnTimeZone }));
 vi.mock('@/lib/learn/home.data', () => ({ loadLearnHome: m.loadLearnHome }));
 vi.mock('@/lib/learn/setup.data', () => ({ loadLearnSetup: m.loadLearnSetup }));
@@ -79,7 +77,6 @@ beforeEach(() => {
   m.loadLearnCourses.mockResolvedValue(courseCards);
   m.loadTryLessons.mockResolvedValue([]);
   m.loadWorkspaceGate.mockResolvedValue(null);
-  m.loadLearnProfile.mockResolvedValue(null);
   m.loadLearnTimeZone.mockResolvedValue(null);
   m.loadHomeReal.mockResolvedValue(NO_HOME_REAL);
   m.loadMergedFixes.mockResolvedValue(null);
@@ -132,25 +129,6 @@ describe('/learn for someone signed in', () => {
     const html = await landingHtmlOf(await LearnFrontView());
     expect(html).toContain('data-landing-viewer="member"');
     expect(html).toContain('href="/learn.md"');
-  });
-
-  it('links someone part-way through fixing an issue back to Pick an issue', async () => {
-    const goal = { goalKind: 'TOPIC', goalValue: 'caching' };
-    signedIn({ home: homeNewLearner, setup: UNSET, gate: { kind: 'open', entered: false } });
-    m.loadLearnProfile.mockResolvedValue(goal);
-    const html = await landingHtmlOf(await LearnFrontView());
-    expect(html?.match(/<a [^>]*data-landing-resume[^>]*>/)?.[0]).toContain('href="/learn/issues"');
-
-    // No goal saved, a goal that cannot be read, or a gate that is not open: no link.
-    for (const [profile, gate] of [
-      [null, { kind: 'open', entered: false }],
-      [Promise.reject(new Error('down')), { kind: 'open', entered: false }],
-      [goal, null],
-    ] as const) {
-      signedIn({ home: homeNewLearner, setup: UNSET, gate });
-      m.loadLearnProfile.mockImplementation(async () => profile);
-      expect(await landingHtmlOf(await LearnFrontView())).not.toContain('data-landing-resume');
-    }
   });
 
   it("is Learn home for a learner, drawn at the time of the request in Learn's default zone", async () => {

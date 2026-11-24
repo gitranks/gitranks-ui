@@ -1,20 +1,10 @@
 import { parse } from 'graphql';
 
-import type {
-  LearnAttemptLesson,
-  LearnProfile,
-  LearnRecord,
-  LessonAnswerResult,
-  LessonRun,
-  LessonWarmupAnswer,
-} from './learn.types';
+import type { LearnAttemptLesson, LearnRecord, LessonAnswerResult, LessonRun, LessonWarmupAnswer } from './learn.types';
 import type DocumentNode from '@/types/typed-document-node';
 
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
   parse(source) as DocumentNode<TData, TVariables>;
-
-/** Whether the viewer's GitRanks account is still being set up (a new account), so Learn cannot answer for it yet. */
-export const LearnSetupDocument = doc<{ learnSetup: boolean }>('query LearnSetup { learnSetup }');
 
 /** A question as a taker sees it: never its key. */
 const QUESTION = 'id stepId role type prompt options { id text }';
@@ -85,13 +75,6 @@ export const AnswerLessonQuestionDocument = doc<
 
 export const RemoveLessonDocument = doc<{ removeLesson: boolean }, { slug: string }>(
   'mutation RemoveLesson($slug: String!) { removeLesson(slug: $slug) }',
-);
-
-const PROFILE = 'goalKind goalValue levels { language level guessed hint } focus updatedAt';
-
-/** The viewer's goal, levels and focus; null when Learn is not open to them. */
-export const LearnProfileDocument = doc<{ learnProfile: LearnProfile | null }>(
-  `query LearnProfile { learnProfile { ${PROFILE} } }`,
 );
 
 /** A login's public Learn record, the same for every reader; null without a public pass. */

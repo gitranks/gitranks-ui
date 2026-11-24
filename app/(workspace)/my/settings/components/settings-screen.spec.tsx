@@ -45,10 +45,7 @@ const learnReads = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/learn/settings.data', () => learnReads);
 vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction: vi.fn() }));
-vi.mock('@/lib/learn/learn.data', () => ({
-  loadLearnProfile: vi.fn(),
-  loadLearnSetup: vi.fn(),
-}));
+vi.mock('@/lib/learn/learn.data', () => ({}));
 const skillsReads = vi.hoisted(() => ({ loadSkillsMine: vi.fn(async (): Promise<unknown> => null) }));
 vi.mock('@/lib/skills/skills.data', () => skillsReads);
 vi.mock('@/app/profile/[login]/components/skills-hidden.actions', () => ({ setSkillsHiddenAction: vi.fn() }));

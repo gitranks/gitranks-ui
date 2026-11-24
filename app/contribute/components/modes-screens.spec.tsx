@@ -34,10 +34,7 @@ vi.mock('@/lib/learn/actions', () => ({}));
 vi.mock('@/lib/learn/settings.data', () => ({}));
 vi.mock('@/lib/skills/skills.data', () => ({}));
 vi.mock('@/lib/learn/settings.actions', () => ({}));
-vi.mock('@/lib/learn/learn.data', () => ({
-  loadLearnProfile: vi.fn(),
-  loadLearnSetup: vi.fn(),
-}));
+vi.mock('@/lib/learn/learn.data', () => ({}));
 
 const { SettingsScreen } = await import('@/app/(workspace)/my/settings/components/settings-view');
 const { SwitchSettingsScreen, WorkSettingsScreen } = await import(

@@ -299,6 +299,8 @@ export function learnProjectCourseRouteOf(pathname: string): LearnProjectRoute |
   return org ? projectRouteFrom([org[1]]) : null;
 }
 
+// A repository whose own name ends in `.md` reads as the copy of the one without it: the address cannot tell them
+// apart without asking, and such a repository with a course is not worth a read on every copy.
 const PROJECT_REPO_MARKDOWN = /^\/learn\/repos\/([^/]+)\/([^/]+)\.md$/;
 const PROJECT_ORG_MARKDOWN = /^\/learn\/orgs\/([^/]+)\.md$/;
 

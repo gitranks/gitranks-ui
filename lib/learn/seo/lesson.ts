@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import type { LearnAddress } from '../address-gate';
 import type { LearnLesson } from '../lesson-page';
 import { learnFactCardUrlOf, learnLessonCardUrlOf, learnShareTitleOf } from '../lesson-share-card';
-import { coursePath, LEARN_HOME_PATH, learnFactPath, learnLessonMarkdownPath, learnLessonPath } from '../paths';
+import { courseHrefOf, LEARN_HOME_PATH, learnFactPath, learnLessonMarkdownPath, learnLessonPath } from '../paths';
 import { SOCIAL_CARD_SIZE } from '@/badge/v3/links';
 import { clipText } from '@/lib/seo/clip-text';
 import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
@@ -100,7 +100,7 @@ export function learnLessonMetadata(lesson: MetadataLesson, { fact = false }: { 
 /** A lesson's structured data: a `LearningResource` in its course, and its breadcrumbs (Learn, the course, the lesson). */
 export function learnLessonJsonLd(lesson: MetadataLesson): object[] {
   const url = absoluteUrl(learnLessonPath(lesson.slug));
-  const course = absoluteUrl(coursePath(lesson.course.slug));
+  const course = absoluteUrl(courseHrefOf(lesson.course));
   const crumbs = [
     { name: 'Learn', item: absoluteUrl(LEARN_HOME_PATH) },
     { name: lesson.course.title, item: course },

@@ -12,6 +12,7 @@ import type {
   LearnGroupLesson,
   LearnLesson,
   LearnLessonMine,
+  LearnLessonProject,
 } from './lesson-page';
 import {
   LearnAddressDocument,
@@ -44,8 +45,8 @@ const isMissingAnswer = (failure: unknown) => {
   return error === 'NOT_FOUND' || error === 'INVALID' || error === 'NOT_AVAILABLE_YET';
 };
 
-/** A course's groups in order, and a project course's name (null for any other course). */
-export type LearnCourseOutline = { groups: LearnCourseGroup[]; project: string | null };
+/** A course's groups in order, and a project course's project (null for any other course). */
+export type LearnCourseOutline = { groups: LearnCourseGroup[]; project: LearnLessonProject | null };
 
 /**
  * A course's groups, in order, with a project course's name; cached under the course's tag: for hours when it has
@@ -63,7 +64,13 @@ export async function loadLearnCourseOutline(course: string): Promise<LearnCours
   const groups = learnCourse?.groups ?? [];
   if (groups.length) cacheLife('hours');
   else cacheLife('minutes');
-  return groups.length ? { groups, project: learnCourse?.project?.name ?? null } : null;
+  const project = learnCourse?.project;
+  return groups.length
+    ? {
+        groups,
+        project: project?.name ? { name: project.name, repo: project.repo ?? null, org: project.org ?? null } : null,
+      }
+    : null;
 }
 
 /** A course's groups, in order (`loadLearnCourseOutline`); null with none. */
@@ -107,14 +114,17 @@ export async function loadLearnLessonPage(slug: string): Promise<LearnLessonPage
     highlightCodes(lesson.question.codes),
     loadLearnCourseOutline(lesson.course.slug).catch(() => null),
   ]);
-  // A quote names its project: the course's name for it, when the course could be read.
+  // A project course's lesson carries its project, when the course could be read: its links lead to the project's
+  // address, and a quote names the project.
+  const project = outline?.project ?? null;
   const examples = highlighted.map((example) =>
-    example.source ? { ...example, project: outline?.project ?? null } : example,
+    example.source ? { ...example, project: project?.name ?? null } : example,
   );
   const group = outline?.groups.find((entry) => entry.slug === lesson.group.slug)?.lessons ?? null;
   if (group) cacheLife('hours');
   else cacheLife('minutes');
-  return { lesson, examples, questionCodes, group: group ?? [] };
+  const read = project ? { ...lesson, course: { ...lesson.course, project } } : lesson;
+  return { lesson: read, examples, questionCodes, group: group ?? [] };
 }
 
 /**

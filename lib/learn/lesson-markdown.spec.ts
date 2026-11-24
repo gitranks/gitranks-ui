@@ -58,6 +58,7 @@ describe("a lesson's Markdown copy", () => {
     };
     const quoted: LearnLesson = {
       ...setLesson,
+      course: { ...setLesson.course, project: { name: 'Django', repo: 'django/django', org: null } },
       examples: [
         { name: 'main', codes: [{ language: 'python', code: 'def get_response(self, request):\n    pass' }], source },
       ],
@@ -67,10 +68,14 @@ describe("a lesson's Markdown copy", () => {
       [
         '[django/core/handlers/base.py, lines 138 to 139](https://github.com/django/django/blob/abc123/django/core/handlers/base.py#L138-L139):',
         `${FENCE}python\ndef get_response(self, request):\n    pass\n${FENCE}`,
-        'django/django’s own code, as it was on 12 Nov 2026. The link opens this exact version on GitHub, so it still matches the lesson after the project changes the file.',
+        'Django’s own code, as it was on 12 Nov 2026. The link opens this exact version on GitHub, so it still matches the lesson after the project changes the file.',
       ].join('\n\n'),
     );
     expect(text).not.toContain('Python:\n');
+    // Its course is linked at its project's address.
+    expect(text).toContain(`](${absoluteUrl('/learn/repos/django/django')}), in its group`);
+    // Without the project, a quote names its repository.
+    expect(learnLessonMarkdownOf({ ...quoted, course: setLesson.course })).toContain('django/django’s own code');
   });
 
   it('drops a visual, a picture on the page with no words here', () => {

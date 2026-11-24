@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { CourseLive } from '@/components/learn/course/course-live';
-import { loadLearnCourses, loadLearnProjectCourse, loadLearnProjectOpenIssues } from '@/lib/learn/course.data';
+import { loadLearnProjectCourse, loadLearnProjectOpenIssues } from '@/lib/learn/course.data';
 import { type LearnProjectRoute, projectOfRoute } from '@/lib/learn/paths';
 import { LEARN_MISSING_METADATA, learnCourseJsonLd, learnCourseMetadata } from '@/lib/learn/seo/course';
 
@@ -23,21 +23,20 @@ export async function projectCourseMetadata(route: LearnProjectRoute | null): Pr
   return course ? learnCourseMetadata(course) : LEARN_MISSING_METADATA;
 }
 
-/** The page: the course with its project's parts, the other courses at its foot, and its open issues. */
+/** The page: the course with its project's parts and its open issues (its foot names no other course). */
 export async function ProjectCoursePage({ route }: { route: LearnProjectRoute | null }) {
   if (!route) notFound();
   const project = projectOfRoute(route);
-  // The other courses and the open issues are parts of the page that may fail alone: they then show none.
-  const [course, courses, openIssues] = await Promise.all([
+  // The open issues are read apart and show none when they cannot be read.
+  const [course, openIssues] = await Promise.all([
     loadLearnProjectCourse(project),
-    loadLearnCourses().catch(() => []),
     loadLearnProjectOpenIssues(project),
   ]);
   if (!course) notFound();
   return (
     <>
       <JsonLd payloads={learnCourseJsonLd(course)} />
-      <CourseLive course={course} others={courses} projectIssues={openIssues} />
+      <CourseLive course={course} others={[]} projectIssues={openIssues} />
     </>
   );
 }

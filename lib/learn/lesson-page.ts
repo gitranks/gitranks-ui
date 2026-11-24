@@ -16,6 +16,15 @@ export type LearnLessonLevel = 'EASY' | 'MEDIUM' | 'HARD';
 /** A link to a lesson, a course or a group: its slug and its title. */
 export type LearnLessonLink = { slug: string; title: string };
 
+/** A project course's project, as a lesson of it names it: its name, and its repository or its organisation. */
+export type LearnLessonProject = { name: string; repo: string | null; org: string | null };
+
+/**
+ * A lesson's course: its slug and title, and its project when it is a project course (read with the course's groups,
+ * so links lead to the project's address and a quote names the project).
+ */
+export type LearnLessonCourse = LearnLessonLink & { project?: LearnLessonProject | null };
+
 /** "Did you know?": its own short title, the text, where it comes from and a link to it. */
 export type LearnFact = { title: string; text: string; source: string; url: string };
 
@@ -46,7 +55,7 @@ export type LearnLesson = {
   level: LearnLessonLevel;
   /** The lesson in Markdown. A line of its own `[[example: name]]` or `[[visual: name]]` places one there. */
   body: string;
-  course: LearnLessonLink;
+  course: LearnLessonCourse;
   group: LearnLessonLink;
   examples: LearnExample[];
   /** The visuals the body can place, by name. */

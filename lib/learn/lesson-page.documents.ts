@@ -2,7 +2,14 @@ import { parse } from 'graphql';
 
 import type { LearnAddress } from './address-gate';
 import type { LearnCourseMine } from './course';
-import type { LearnCourseGroup, LearnDepth, LearnLesson, LearnLessonLink, LearnLessonMine } from './lesson-page';
+import type {
+  LearnCourseGroup,
+  LearnDepth,
+  LearnLesson,
+  LearnLessonLink,
+  LearnLessonMine,
+  LearnLessonProject,
+} from './lesson-page';
 import type DocumentNode from '@/types/typed-document-node';
 
 /*
@@ -43,10 +50,10 @@ export const LearnLessonDocument = doc<{ learnLesson: LearnLesson | null }, { sl
  * a quote of its code names.
  */
 export const LearnCourseGroupsDocument = doc<
-  { learnCourse: { slug: string; groups: LearnCourseGroup[]; project?: { name: string } | null } | null },
+  { learnCourse: { slug: string; groups: LearnCourseGroup[]; project?: LearnLessonProject | null } | null },
   { slug: string }
 >(
-  'query LearnCourseGroups($slug: String!) { learnCourse(slug: $slug) { slug groups { slug name lessons { slug title level paused } } project { name } } }',
+  'query LearnCourseGroups($slug: String!) { learnCourse(slug: $slug) { slug groups { slug name lessons { slug title level paused } } project { name repo org } } }',
 );
 
 /** What a lesson's or a course's address answers. */

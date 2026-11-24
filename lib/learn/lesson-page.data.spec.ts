@@ -66,13 +66,20 @@ describe("a lesson's public layer", () => {
     };
     answer({
       lesson: quoted,
-      groupsRead: async () => ({ learnCourse: { slug: 'c', groups, project: { name: 'Django' } } }),
+      groupsRead: async () => ({
+        learnCourse: { slug: 'c', groups, project: { name: 'Django', repo: 'django/django', org: null } },
+      }),
     });
     const page = await loadLearnLessonPage(setLesson.slug);
     expect(page?.examples.at(-1)).toMatchObject({ name: 'quote', source, project: 'Django' });
     expect(page?.examples[0]).toMatchObject({ source: null });
     expect(page?.examples[0]).not.toHaveProperty('project');
     expect(page?.group).toEqual(setGroup);
+    // The lesson carries its course's project, so its links lead to the project's address.
+    expect(page?.lesson.course).toEqual({
+      ...setLesson.course,
+      project: { name: 'Django', repo: 'django/django', org: null },
+    });
 
     // Its course could not be read: the quote names its repository.
     answer({
@@ -81,7 +88,9 @@ describe("a lesson's public layer", () => {
         throw new Error('down');
       },
     });
-    expect((await loadLearnLessonPage(setLesson.slug))?.examples.at(-1)).toMatchObject({ project: null });
+    const unread = await loadLearnLessonPage(setLesson.slug);
+    expect(unread?.examples.at(-1)).toMatchObject({ project: null });
+    expect(unread?.lesson).toBe(quoted);
   });
 
   it('keeps a page whose group could not be read only for minutes, with no squares', async () => {

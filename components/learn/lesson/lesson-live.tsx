@@ -19,7 +19,7 @@ import {
 import { answerLearnLessonAction, sendLearnFeedbackAction } from '@/lib/learn/lesson-page.actions';
 import type { LearnCourseLessonMine } from '@/lib/learn/lesson-page.documents';
 import {
-  coursePath,
+  courseHrefOf,
   learnCourseMinePath,
   learnLessonPath,
   learnLessonRealMinePath,
@@ -185,7 +185,7 @@ export function LessonLive({
       );
     },
     onNext: () => {
-      router.push(last || !lesson.next ? coursePath(lesson.course.slug) : learnLessonPath(lesson.next.slug));
+      router.push(last || !lesson.next ? courseHrefOf(lesson.course) : learnLessonPath(lesson.next.slug));
     },
     onSignIn: () => {
       signIn(IDENTITY_PROVIDER, { redirectTo: learnLessonPath(lesson.slug) }).catch(() => {});

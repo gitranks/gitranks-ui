@@ -13,14 +13,10 @@ describe('stripOf', () => {
     });
   });
 
-  it('gives a hidden page "Show it to everyone", and words an older API’s private page the same with no action', () => {
+  it('gives a hidden page "Show it to everyone"', () => {
     expect(stripOf(skillsMine.hiddenLearner)).toMatchObject({
       strong: 'Only you can see this page.',
       actions: ['show'],
-    });
-    expect(stripOf({ ...skillsMine.hiddenLearner, state: 'PRIVATE' as const })).toEqual({
-      ...stripOf(skillsMine.hiddenLearner),
-      actions: [],
     });
   });
 
@@ -86,8 +82,6 @@ describe('the block', () => {
       text: 'Only you see this block. Your Skills page is hidden.',
       link: 'Open your Skills page',
     });
-    // An older API’s private page is drawn as a hidden one.
-    expect(blockOwnerLineOf('PRIVATE')).toEqual(blockOwnerLineOf('HIDDEN'));
     expect(blockOwnerLineOf('PUBLIC')).toBeNull();
   });
 

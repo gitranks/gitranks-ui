@@ -9,6 +9,8 @@ import {
   isTablessPath,
   isWorkspacePath,
   KEY_REPLACE_PATH,
+  learnIssuesPathOf,
+  learnIssuesViewOf,
   movedAnchorOf,
   PICK_ISSUE_PATHS,
   pullRequestByAttemptPath,
@@ -21,6 +23,8 @@ import {
   WORKSPACE_ANCHORS,
   WORKSPACE_PATHS,
 } from './paths';
+import { issuesHrefOf, issuesViewOf } from '@/lib/learn/issues';
+import { LEARN_ISSUES_PATH } from '@/lib/learn/paths';
 
 describe('the workspace addresses', () => {
   it('are under /my, but for the two front tabs and the Learn pages that keep theirs until their own are built', () => {
@@ -230,8 +234,28 @@ describe("the pull request's page, by repo and issue", () => {
     }
   });
 
-  it("picks another issue on the attempt's side", () => {
-    expect(PICK_ISSUE_PATHS).toEqual({ fix: '/contribute#issues', learn: '/learn/earlier#issues' });
+  it("picks another issue on the attempt's side: Contribute's issues, or Learn's own Issues page", () => {
+    expect(PICK_ISSUE_PATHS).toEqual({ fix: '/contribute#issues', learn: '/learn/issues' });
+    expect(PICK_ISSUE_PATHS.learn).toBe(LEARN_ISSUES_PATH);
+  });
+
+  it("keeps the filters of Learn's Issues page, each of its own shape, in Learn's order, and nothing else", () => {
+    const view = (search: string) => learnIssuesViewOf(new URLSearchParams(search)).toString();
+    expect(view('learned=1&for-you=0&fixed=1&language=go&lesson=a-queue&course=data-structures')).toBe(
+      'course=data-structures&lesson=a-queue&language=go&fixed=1&for-you=0&learned=1',
+    );
+    expect(view('from=learn&look=1&next=%2F%2Fevil.example&repo=a%2Fb')).toBe('');
+    expect(view('lesson=../x&course=Data%20Structures&language=c%2B%2B&fixed=yes&for-you=1&learned=0')).toBe('');
+    expect(view(`lesson=${'a'.repeat(101)}`)).toBe('');
+  });
+
+  it("writes Learn's Issues page under those filters as Learn writes the same view", () => {
+    for (const search of ['', 'lesson=a-queue', 'course=data-structures&language=python&for-you=0', 'learned=1']) {
+      expect(learnIssuesPathOf(new URLSearchParams(search)), search).toBe(
+        issuesHrefOf(issuesViewOf(Object.fromEntries(new URLSearchParams(search)))),
+      );
+    }
+    expect(learnIssuesPathOf(new URLSearchParams('from=learn&next=https://evil.example'))).toBe('/learn/issues');
   });
 });
 

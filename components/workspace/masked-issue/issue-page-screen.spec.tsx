@@ -51,7 +51,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const BACK = { href: '/learn/earlier' as const, label: 'Issues' };
+const BACK = { href: '/learn/issues' as const, label: 'Issues' };
 const render = (node: ReactNode) => act(async () => root.render(node));
 const screen = (page: IssuePage, props: Partial<IssuePageScreenProps> = {}) =>
   render(
@@ -231,7 +231,7 @@ describe('after giving back', () => {
     await screen(issuePage({ state: 'GIVEN_BACK', reasons: ['FIXED'] }));
     expect(h1()).toBe('You gave this issue back');
     expect(container.querySelector('[aria-pressed="true"]')?.textContent).toBe('It is already fixed');
-    expect(button('Back to Issues')?.getAttribute('href')).toBe('/learn/earlier');
+    expect(button('Back to Issues')?.getAttribute('href')).toBe('/learn/issues');
   });
 });
 

@@ -5,11 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => router, usePathname: () => '/learn/issues' }));
-vi.mock('@/lib/workspace/masked-issue.actions', () => ({
-  lookAtIssue: vi.fn(),
-  signInToSeeIssue: vi.fn(),
-  skipMaskedIssue: vi.fn(),
-}));
+const masked = vi.hoisted(() => ({ lookAtIssue: vi.fn(), signInToSeeIssue: vi.fn(), skipMaskedIssue: vi.fn() }));
+vi.mock('@/lib/workspace/masked-issue.actions', () => masked);
 const { readMoreLearnFixes, signIn } = vi.hoisted(() => ({ readMoreLearnFixes: vi.fn(), signIn: vi.fn() }));
 vi.mock('@/lib/learn/issues.actions', () => ({ readMoreLearnFixes, setLearnIssuesEmailAction: vi.fn() }));
 vi.mock('next-auth/react', () => ({ signIn }));
@@ -68,6 +65,16 @@ describe('Issues', () => {
     await act(async () => ($('[data-issues-visitor-note] button') as HTMLButtonElement).click());
     expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/issues' });
     expect(hrefs('[data-issues-foot] a')).toEqual(['/learn/issues.md', '/learn/about', '/learn/maintainers']);
+  });
+
+  it("opens an issue's page with the view's filters, so its way back opens this view again", async () => {
+    masked.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'OK', page: null } });
+    await render(<IssuesScreen view={views.course} layer={{ kind: 'personal', list: personalList() }} />);
+    const see = $$('button, a').find((each) => each.textContent?.trim() === 'See the full issue') as HTMLElement;
+    await act(async () => see.click());
+    expect(router.push).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/my\/issues\/[\w-]+\?from=learn&course=algorithms&learned=1$/),
+    );
   });
 
   it('links the Markdown copy for a person too', async () => {

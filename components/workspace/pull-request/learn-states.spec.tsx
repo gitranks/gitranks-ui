@@ -271,14 +271,14 @@ describe('the Learn states of the pull request page (W1 §8.6)', () => {
   it('15 · closed: the lesson stays public, Pick another issue', () => {
     const html = prView(open({ state: 'CLOSED', pullRequest: pullRequest({ state: 'CLOSED' }) }), lessons.prOpen);
     expect(text(html)).toContain('Your lesson stays public. You can take it down on the Lesson view.');
-    expect(html).toContain('href="/learn/earlier#issues"');
+    expect(html).toContain('href="/learn/issues"');
   });
 
   it('16 · the attempt ended: why, no lesson line, Pick another issue', () => {
     const html = lessonView(learn({ state: 'DISCARDED', endReason: 'USER' }), lessons.ended);
     expect(headerOf(html)).toMatchObject({ status: 'Ended', lesson: null, shown: 'lesson' });
     expect(text(html)).toContain('This attempt ended');
-    expect(html).toContain('href="/learn/earlier#issues"');
+    expect(html).toContain('href="/learn/issues"');
     expect(learnViewOf('ENDED', false)).toBe('lesson');
   });
 

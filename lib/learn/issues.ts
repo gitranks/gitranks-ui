@@ -175,6 +175,12 @@ export function issuesHrefOf(view: IssuesView, at: IssuesAt = 'issues'): Route {
   return (query ? `${path}?${query}` : path) as Route;
 }
 
+/**
+ * The query of a view on Issues' own address (its chips and switches, the lesson and the course among them): what a
+ * row's link carries to the page of one issue, so its way back opens this view again.
+ */
+export const issuesViewQueryOf = (view: IssuesView): string => queryOf(view, null);
+
 /** The address search engines are pointed to: the view's chips, with the switches as they are by default. */
 export const issuesCanonicalOf = (view: IssuesView, at: IssuesAt = 'issues'): Route =>
   issuesHrefOf({ ...view, forYou: true, learned: false }, at);

@@ -87,7 +87,7 @@ describe("a passed practice lesson's next step", () => {
     await act(async () => root.render(<PracticeNextCard />));
     expect(container.querySelector('[data-next-step="own"]')).not.toBeNull();
     expect(container.querySelector('[data-side="learn"]')).toBeNull();
-    expect(container.querySelector('a[href="/learn/earlier#issues"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/learn/issues"]')).not.toBeNull();
   });
 
   it('reads nothing when given what to show', async () => {

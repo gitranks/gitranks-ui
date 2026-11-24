@@ -10,7 +10,9 @@ import {
   hintTextOf,
   issueKindOf,
   issueLanguageColorOf,
+  issuePageBackOf,
   issuePageCarriedOf,
+  issuePageHrefOf,
   issuePagePath,
   keptShareOf,
   limitEndOf,
@@ -40,6 +42,54 @@ describe('the page of one issue', () => {
     expect(issuePageCarriedOf({ issue: '../x' })).toBeNull();
     expect(issuePageCarriedOf({ issue: ['a', 'b'] })).toBeNull();
     expect(issuePageCarriedOf({})).toBeNull();
+  });
+});
+
+describe('the way to the page of one issue, and back from it', () => {
+  it("carries where the person came from, and from Learn the Issues view's filters alone", () => {
+    expect(issuePageHrefOf('q7k2m9xa', 'contribute')).toBe('/my/issues/q7k2m9xa?from=contribute');
+    expect(issuePageHrefOf('q7k2m9xa', 'learn', false, 'lesson=a-queue&for-you=0')).toBe(
+      '/my/issues/q7k2m9xa?from=learn&lesson=a-queue&for-you=0',
+    );
+    expect(issuePageHrefOf('q7k2m9xa', 'learn', true, 'course=data-structures')).toBe(
+      '/my/issues/q7k2m9xa?from=learn&course=data-structures&look=1',
+    );
+    // Nothing but the view's own filters, of their own shape; and never from Contribute.
+    expect(issuePageHrefOf('q7k2m9xa', 'learn', false, 'next=https://evil.example&from=contribute&lesson=../x')).toBe(
+      '/my/issues/q7k2m9xa?from=learn',
+    );
+    expect(issuePageHrefOf('q7k2m9xa', 'contribute', false, 'lesson=a-queue')).toBe(
+      '/my/issues/q7k2m9xa?from=contribute',
+    );
+  });
+
+  const back = (search: string, usesLearn = false) => {
+    const query = new URLSearchParams(search);
+    return issuePageBackOf(query.get('from') ?? undefined, query, usesLearn).href;
+  };
+
+  it("leads from Learn to Learn's Issues page, with the filters the address carries", () => {
+    expect(back('from=learn')).toBe('/learn/issues');
+    expect(back('from=learn&lesson=a-queue&language=go&learned=1&look=1')).toBe(
+      '/learn/issues?lesson=a-queue&language=go&learned=1',
+    );
+    expect(back('from=learn&lesson=A%20Queue&back=%2F%2Fevil.example')).toBe('/learn/issues');
+  });
+
+  it("leads from Contribute to Contribute's issues, whoever the person is", () => {
+    expect(back('from=contribute')).toBe('/contribute#issues');
+    expect(back('from=contribute&lesson=a-queue', true)).toBe('/contribute#issues');
+  });
+
+  it("leads, when the address does not say, to Learn's Issues for a person who uses Learn, else to Contribute's", () => {
+    expect(back('', true)).toBe('/learn/issues');
+    expect(back('')).toBe('/contribute#issues');
+    expect(back('from=elsewhere', true)).toBe('/learn/issues');
+    expect(back('from=elsewhere')).toBe('/contribute#issues');
+    expect(issuePageBackOf(undefined, new URLSearchParams(), false)).toEqual({
+      href: '/contribute#issues',
+      label: 'Issues',
+    });
   });
 });
 

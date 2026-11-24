@@ -128,9 +128,44 @@ describe('the page of one issue at /my/issues/[id]', () => {
     expect(html).toContain('Not for me');
   });
 
-  it('follows the list the person came from', async () => {
-    expect(await issuePageAt({ from: 'learn' })).toContain('href="/learn/earlier#issues"');
+  it("leads back to the list the person came from: Learn's Issues page with its filters, or Contribute's", async () => {
+    const learnBack = await issuePageAt({ from: 'learn' });
+    expect(learnBack).toContain('href="/learn/issues"');
+    expect(learnBack).not.toContain('/learn/earlier');
+    const filtered = await issuePageAt({ from: 'learn', lesson: 'a-queue', 'for-you': '0', next: '//evil.example' });
+    expect(filtered).toContain('href="/learn/issues?lesson=a-queue&amp;for-you=0"');
+    expect(filtered).not.toContain('evil.example');
+    learn.loadLearnProfile.mockResolvedValue(filledProfile);
+    expect(await issuePageAt({ from: 'contribute' })).toContain('href="/contribute#issues"');
+    expect(await issuePageAt({ from: 'contribute' })).not.toContain('href="/learn/issues');
+  });
+
+  it("leads back, when the address names no side, to Learn's Issues for a person who uses Learn, else Contribute's", async () => {
     expect(await issuePageAt()).toContain('href="/contribute#issues"');
+    learn.loadLearnProfile.mockResolvedValue(filledProfile);
+    const learner = await issuePageAt();
+    expect(learner).toContain('href="/learn/issues"');
+    expect(learner).not.toContain('href="/contribute#issues"');
+    // A Learn read that fails knows no Learn: Contribute's.
+    learn.loadLearnProfile.mockRejectedValue(new Error('down'));
+    expect(await issuePageAt()).toContain('href="/contribute#issues"');
+  });
+
+  it.each([
+    ['GIVEN_BACK', issuePage({ state: 'GIVEN_BACK' })],
+    ['EXPIRED', issuePage({ state: 'EXPIRED' })],
+    ['REPLACED', issuePage({ state: 'REPLACED' })],
+    ['TAKEN', issuePage({ state: 'TAKEN' })],
+    ['LIMIT', issuePage({ state: 'LIMIT', looks: looksAtLimit })],
+    ['LEFT_POOL', issuePage({ state: 'LEFT_POOL' })],
+    ['NOT_AVAILABLE', issuePage({ state: 'NOT_AVAILABLE' })],
+    ['STARTED', issuePage({ state: 'STARTED', startPath: null })],
+  ] as const)('%s: "Back to Issues" leads to the list the person came from', async (_state, page) => {
+    data.loadIssuePage.mockResolvedValue({ kind: 'page', page });
+    const learnEnd = await issuePageAt({ from: 'learn', course: 'data-structures' });
+    expect(/href="([^"]*)"[^>]*>Back to Issues/.exec(learnEnd)?.[1]).toBe('/learn/issues?course=data-structures');
+    const contributeEnd = await issuePageAt({ from: 'contribute' });
+    expect(/href="([^"]*)"[^>]*>Back to Issues/.exec(contributeEnd)?.[1]).toBe('/contribute#issues');
   });
 
   it('is not found for an address that names no issue, and a viewer it is not open to', async () => {

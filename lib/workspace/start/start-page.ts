@@ -47,7 +47,7 @@ export const startModeOf = (lesson: unknown): StartMode => (lesson === '1' ? 'le
 
 /**
  * Where the back link, and every refusal's "back to the issues", lead: Issues for you in Fix mode; in lesson mode the
- * tab the person came from (`?from=contribute`), else Learn's issues.
+ * tab the person came from (`?from=contribute`), else Learn's Issues page.
  */
 export function startBackOf(mode: StartMode, from?: unknown): { href: Route; label: string } {
   if (mode === 'fix') return { href: PICK_ISSUE_PATHS.fix, label: 'Issues for you' };

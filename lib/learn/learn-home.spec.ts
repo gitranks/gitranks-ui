@@ -78,7 +78,7 @@ describe("Learn's addresses", () => {
     expect(learnStartPath('driftwood-js/driftwood', 934)).toBe('/learn/start/driftwood-js/driftwood/934');
     expect(learnStartPath('a b/c', 1)).toBe('/learn/start/a%20b/c/1');
     expect([PICK_ISSUE_PATHS.learn, LEARN_PRACTICE_PATH, LEARN_ABOUT_PATH]).toEqual([
-      '/learn/earlier#issues',
+      '/learn/issues',
       '/learn/earlier#practice',
       '/learn/about',
     ]);

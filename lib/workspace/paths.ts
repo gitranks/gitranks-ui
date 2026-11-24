@@ -391,13 +391,51 @@ export const pullRequestWalkthroughPath = (ref: Pick<IssueRef, 'repo' | 'issue'>
 export const pullRequestApprovePath = (ref: Pick<IssueRef, 'repo' | 'issue'>) =>
   `${pullRequestPath(ref)}/approve` as Route;
 
+/** Learn's Issues page, as Learn's own paths write it. */
+const LEARN_ISSUES = '/learn/issues' as Route;
+
 /**
- * Where the person picks an issue, by side: the Contribute tab's issues, or Learn's.
+ * Where the person picks an issue, by side: the Contribute tab's issues, or Learn's Issues page.
  */
 export const PICK_ISSUE_PATHS = {
   fix: '/contribute#issues' as Route,
-  learn: `${WORKSPACE_PATHS.learn}#issues` as Route,
+  learn: LEARN_ISSUES,
 } as const;
+
+/** A course's or a lesson's slug as Learn writes it: lower-case words joined by single hyphens, up to 100 characters. */
+const VIEW_SLUG = /^(?=.{1,100}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/**
+ * The filters of Learn's Issues page, in the order Learn writes them, each with the one shape it takes there: the
+ * chips (a course, a lesson, a language, "Fixed") and the two switches ("For you" off, "Lessons I learned" on).
+ */
+const ISSUES_VIEW_PARAMS: readonly (readonly [key: string, shape: RegExp])[] = [
+  ['course', VIEW_SLUG],
+  ['lesson', VIEW_SLUG],
+  ['language', /^[a-z]{1,20}$/],
+  ['fixed', /^1$/],
+  ['for-you', /^0$/],
+  ['learned', /^1$/],
+];
+
+/**
+ * The filters of Learn's Issues page a query holds, and nothing else: a link from that page carries them to the page
+ * of one issue, so its way back opens the same view. A key of no filter, or a value of the wrong shape, is left out.
+ */
+export function learnIssuesViewOf(query: URLSearchParams): URLSearchParams {
+  const view = new URLSearchParams();
+  for (const [key, shape] of ISSUES_VIEW_PARAMS) {
+    const value = query.get(key);
+    if (value !== null && shape.test(value)) view.set(key, value);
+  }
+  return view;
+}
+
+/** Learn's Issues page under the filters a query holds (`learnIssuesViewOf`); always that page, whatever the query. */
+export function learnIssuesPathOf(query: URLSearchParams): Route {
+  const view = learnIssuesViewOf(query).toString();
+  return (view ? `${LEARN_ISSUES}?${view}` : LEARN_ISSUES) as Route;
+}
 
 /** A lesson's page, `/learn/lessons/<slug>`, as Learn's own paths write it: the line on the page of one issue links it. */
 export const issueLessonPath = (slug: string): Route => `/learn/lessons/${encodeURIComponent(slug)}` as Route;

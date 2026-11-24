@@ -4,7 +4,7 @@
  */
 
 /** The Issues page: `/learn/issues`, and its addresses narrowed to a project or a lesson. True once the page exists. */
-export const LEARN_ISSUES_PAGE_BUILT: boolean = false;
+export const LEARN_ISSUES_PAGE_BUILT: boolean = true;
 
 /** A project course's page: `/learn/repos/<owner>/<name>` and `/learn/orgs/<login>`. True once the page exists. */
 export const LEARN_PROJECT_COURSE_PAGE_BUILT: boolean = false;

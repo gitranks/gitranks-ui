@@ -100,6 +100,12 @@ describe('what a round was asked', () => {
     expect(roundAskTitleOf({ n: 3, asked: [] })).toBe('Round 3 has something to answer');
   });
 
+  it('counts a bot at least once, never "0 from" it', () => {
+    const bot = prAsk({ kind: 'comment', id: 'z', bot: true, author: 'CodeRabbit', comments: 0 });
+    expect(askedSummaryOf([bot])).toBe('1 from CodeRabbit');
+    expect(roundAskTitleOf({ n: 2, asked: [bot] })).toBe('Round 2: 1 from CodeRabbit to answer');
+  });
+
   it("counts a word on the conversation as a comment, and names the person's note and a run that stopped", () => {
     const word = prAsk({ id: 'IC_9', kind: 'conversation', author: 'maint', comments: null });
     const note = prAsk({
@@ -191,6 +197,24 @@ describe('the two cards', () => {
       link: true,
       quiet: false,
     });
+  });
+
+  it('leaves out a side of the change with nothing in it, never "0 lines"', () => {
+    const card = (added: number, removed: number) =>
+      changeCardOf({
+        box: 'OPEN',
+        change: { ...prStages.walkthrough.change, files: 1, added, removed },
+      } as PullRequestPage).text;
+    expect(card(3, 0)).toBe('1 file changed: 3 lines added.');
+    expect(card(0, 1)).toBe('1 file changed: 1 line removed.');
+    expect(card(0, 0)).toBe('1 file changed.');
+  });
+
+  it('leaves no gap before the full stop when the day is not known', () => {
+    const walkthrough = { ...prStages.open.walkthrough, passedAt: 'not a date' };
+    expect(walkthroughCardOf({ ...prStages.open, walkthrough } as PullRequestPage, PR_NOW).text).toBe(
+      'Passed. 3 people read it. Your answers are shared.',
+    );
   });
 
   it('follows the walkthrough from written to shared', () => {

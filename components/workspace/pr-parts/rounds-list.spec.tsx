@@ -88,6 +88,14 @@ describe('a round that waits', () => {
     expect(round(1)?.textContent).toContain('Done');
   });
 
+  it('says a review with no comment counted as a review alone, never "with 0 comments"', async () => {
+    const asked = [prAsk({ comments: 0 })];
+    await rounds({ page: { ...prReview.asked, rounds: [prRound({ asked })] } });
+    const review = round(2)?.querySelector('[data-ask="changes_requested"]');
+    expect(review?.textContent).toContain('a review');
+    expect(review?.textContent).not.toContain('0 comments');
+  });
+
   it('starts a hosted round with a button in place of the prompt, never in Learn', async () => {
     const onStartRound = vi.fn();
     await rounds({ page: prContribute.asked, onStartRound });

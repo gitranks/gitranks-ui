@@ -3,9 +3,10 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
+import { type ReactNode, useEffect, useRef, useState, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AlsoWaiting } from '@/components/workspace/pr-parts/also-waiting';
@@ -80,7 +81,7 @@ export type PullRequestOps = {
 
 type Form = { kind: 'sendBack'; round: number | null } | { kind: 'rename' } | { kind: 'retry' } | null;
 
-/** Gives the focus back to the box's first action once a form in its place closes; its title when it has none. */
+/** Gives the focus back to the box's first action once a form's dialog closes; its title when it has none. */
 function focusBox() {
   requestAnimationFrame(() => {
     const action = document.querySelector<HTMLElement>('[data-box] [data-box-actions] :is(a, button):not([disabled])');
@@ -137,7 +138,9 @@ export function PullRequestPageView({
   const [form, setFormState] = useState<Form>(null);
   const setForm = (next: Form) => {
     setFormState(next);
-    if (!next) focusBox();
+    // A form opens without an earlier call's error; it says its own.
+    if (next) setError(null);
+    else focusBox();
   };
   // The public page's switch as the person last set it here, until the next read of the page.
   const [shown, setShown] = useState<{ from: PullRequestPage; shown: boolean } | null>(null);
@@ -266,6 +269,7 @@ export function PullRequestPageView({
           submit="Send it back"
           max={SEND_BACK_NOTE_MAX}
           pending={pending}
+          error={error}
           onCancel={() => setForm(null)}
           onSubmit={(note) =>
             act(
@@ -287,6 +291,7 @@ export function PullRequestPageView({
           max={FOLLOW_UP_NOTE_MAX}
           optional
           pending={pending}
+          error={error}
           onCancel={() => setForm(null)}
           onSubmit={(note) => {
             const retryId = ops.retryId;
@@ -308,6 +313,7 @@ export function PullRequestPageView({
           max={PR_TITLE_MAX}
           line
           pending={pending}
+          error={error}
           onCancel={() => setForm(null)}
           onSubmit={(title) =>
             act(
@@ -320,7 +326,7 @@ export function PullRequestPageView({
           }
         />
       ) : null}
-      {error ? (
+      {error && !form ? (
         <p role="alert" className="m-0 text-sm text-destructive" data-pr-error="">
           {error}
         </p>
@@ -432,7 +438,10 @@ function openOnGitHub(url: string | null) {
   if (url?.startsWith('https://github.com/')) window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-/** A short form in the box's place: a note to the agent, or the pull request's new title. */
+/**
+ * A short form in a dialog over the page: a note to the agent, or the pull request's new title. Opened over the page, so
+ * nothing under the box moves; its call's error shows in it. Closing it gives the focus back to the box.
+ */
 function NoteForm({
   title,
   lead,
@@ -442,6 +451,7 @@ function NoteForm({
   line = false,
   optional = false,
   pending,
+  error,
   onSubmit,
   onCancel,
 }: {
@@ -455,58 +465,83 @@ function NoteForm({
   /** The form goes without any words too (a note the agent may do without). */
   optional?: boolean;
   pending: boolean;
+  /** The last call's error, said in the form. */
+  error?: string | null;
   onSubmit: (text: string) => void;
   onCancel: () => void;
 }) {
   const [text, setText] = useState('');
-  const id = useId();
   const field = useRef<HTMLTextAreaElement & HTMLInputElement>(null);
-  useEffect(() => field.current?.focus(), []);
   return (
-    <form
-      className="flex flex-col gap-2.5 rounded-xl border bg-card p-5"
-      aria-labelledby={id}
-      data-note-form=""
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (optional || text.trim()) onSubmit(text.trim());
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !pending) onCancel();
       }}
     >
-      <h2 id={id} className="m-0 text-base font-semibold">
-        {title}
-      </h2>
-      <p className="m-0 text-sm text-muted-foreground">{lead}</p>
-      {line ? (
-        <Input
-          ref={field}
-          value={text}
-          maxLength={max}
-          aria-label={label}
-          onChange={(event) => setText(event.target.value)}
-        />
-      ) : (
-        <Textarea
-          ref={field}
-          value={text}
-          maxLength={max}
-          rows={4}
-          aria-label={label}
-          className="field-sizing-fixed rounded-lg text-sm"
-          onChange={(event) => setText(event.target.value)}
-        />
-      )}
-      <div className="flex flex-wrap gap-3">
-        <Button
-          type="submit"
-          className="h-10 px-5 font-semibold max-sm:min-h-11"
-          disabled={pending || (!optional && !text.trim())}
+      <DialogContent
+        className="sm:max-w-lg"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          field.current?.focus();
+        }}
+        // The page gives the focus back to the box itself.
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
+        <form
+          className="flex flex-col gap-2.5"
+          data-note-form=""
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (optional || text.trim()) onSubmit(text.trim());
+          }}
         >
-          {submit}
-        </Button>
-        <Button type="button" variant="outline" className="h-10 px-4 max-sm:min-h-11" onClick={onCancel}>
-          Keep it as it is
-        </Button>
-      </div>
-    </form>
+          <DialogTitle className="m-0 text-base font-semibold">{title}</DialogTitle>
+          <DialogDescription className="m-0 text-sm text-muted-foreground">{lead}</DialogDescription>
+          {line ? (
+            <Input
+              ref={field}
+              value={text}
+              maxLength={max}
+              aria-label={label}
+              onChange={(event) => setText(event.target.value)}
+            />
+          ) : (
+            <Textarea
+              ref={field}
+              value={text}
+              maxLength={max}
+              rows={4}
+              aria-label={label}
+              className="field-sizing-fixed rounded-lg text-sm"
+              onChange={(event) => setText(event.target.value)}
+            />
+          )}
+          {error ? (
+            <p role="alert" className="m-0 text-sm text-destructive" data-pr-error="">
+              {error}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-3">
+            <Button
+              type="submit"
+              className="h-10 px-5 font-semibold max-sm:min-h-11"
+              disabled={pending || (!optional && !text.trim())}
+            >
+              {submit}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 px-4 max-sm:min-h-11"
+              disabled={pending}
+              onClick={onCancel}
+            >
+              Keep it as it is
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

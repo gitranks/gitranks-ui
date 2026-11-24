@@ -99,7 +99,10 @@ function closedLineOf(round: PullRequestRound, now: Date): string {
 function placeOf(ask: PullRequestRoundAsk): string {
   switch (ask.kind) {
     case 'changes_requested':
-      return `a review with ${ask.comments ?? 1} comment${ask.comments === 1 ? '' : 's'}`;
+      // No comment counted on it: the review alone, never "with 0 comments".
+      return ask.comments === 0
+        ? 'a review'
+        : `a review with ${ask.comments ?? 1} comment${ask.comments === 1 || ask.comments == null ? '' : 's'}`;
     case 'conversation':
       return 'in the conversation';
     case NOTE_ASK:
@@ -429,7 +432,7 @@ function OpenRound({
           <div className="flex flex-col gap-1.5 rounded-lg border px-3.5 py-2.5">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <span className="text-sm text-foreground">
-                {round.state === 'SENT' ? sentLineOf(round, now) : sentence(sends || 'no commits')}
+                {round.state === 'SENT' ? sentLineOf(round, now) : sends ? sentence(sends) : 'Nothing to send.'}
               </span>
               {round.commits && links.change ? (
                 <PageLink className="text-sm font-semibold text-link hover:underline" href={links.change}>

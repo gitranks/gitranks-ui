@@ -567,7 +567,7 @@ export function HistoryList({
       ) : null}
       {!days.length && more === 'end' ? (
         <p className="m-0 text-sm text-muted-foreground" data-history-none="">
-          The days you learn or repeat a lesson show here.
+          The days you are active show here.
         </p>
       ) : null}
       {days.map((day) => (

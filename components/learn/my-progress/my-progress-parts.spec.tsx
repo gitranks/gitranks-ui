@@ -114,7 +114,7 @@ describe('My progress: the two boxes', () => {
     expect(textOf(page, '[data-lessons-headline]')).toBe('37lessons marked as known');
     expect(page.textContent).toContain('Answer a lesson and it counts as Learned.');
     expect(page.querySelectorAll('[data-calendar] a')).toHaveLength(0);
-    expect(textOf(page, '[data-days-line]')).toBe('The days you learn or repeat a lesson show here.');
+    expect(textOf(page, '[data-days-line]')).toBe('The days you are active show here.');
     const card = page.querySelector('[data-my-course="algorithms"]')!;
     expect(card.querySelector('[data-course-standing]')).toBeNull();
     expect(card.textContent).toContain('37 marked as known');
@@ -297,7 +297,7 @@ describe('My progress: headings, labels and phone targets', () => {
   it('History with no day at all says where the days will show', () => {
     const page = draw(<HistoryList days={[]} today={PROGRESS_TODAY} more="end" onMore={() => {}} />);
     expect(page.querySelector('[data-history-none]')!.textContent).toBe(
-      'The days you learn or repeat a lesson show here.',
+      'The days you are active show here.',
     );
     const some = draw(<HistoryList days={historyFirst.days} today={PROGRESS_TODAY} more="end" onMore={() => {}} />);
     expect(some.querySelector('[data-history-none]')).toBeNull();

@@ -220,8 +220,9 @@ describe('My progress: the box "Days"', () => {
       before: 'You were active on ',
       after: ' day.',
     });
+    expect(daysLineWords({ kind: 'days', count: 1, since: '20 Nov' })).toBe('You were active on 20 Nov.');
     expect(daysLineWords({ kind: 'first' })).toBe('Your first day.');
-    expect(daysLineWords({ kind: 'none' })).toBe('The days you learn or repeat a lesson show here.');
+    expect(daysLineWords({ kind: 'none' })).toBe('The days you are active show here.');
   });
 });
 

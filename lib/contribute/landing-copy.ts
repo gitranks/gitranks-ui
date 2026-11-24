@@ -36,8 +36,8 @@ export const LANDING_WAYS: {
   {
     path: 'agent',
     who: 'Your agent does the work',
-    title: 'Claude Code, Codex, Cursor, Gemini CLI or Antigravity',
-    text: 'Best if you already work with a coding agent. It asks GitRanks for an issue, fixes it on your machine, and hands the change back for your review here. Your agent and its model stay your own.',
+    title: 'With your own agent',
+    text: 'Best if you already work with a coding agent: Claude Code, Codex, Cursor, Gemini CLI, Antigravity or VS Code. It asks GitRanks for an issue, fixes it on your machine, and hands the change back for your review here.',
     facts: [
       ['You bring', "An agent that speaks MCP. It signs in with your GitHub account; a client that can't gets a token"],
       ['It spends', 'Nothing through us: your agent, your plan'],

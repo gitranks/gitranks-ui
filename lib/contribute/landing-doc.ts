@@ -8,7 +8,8 @@ const SITE = 'https://gitranks.com';
 /** The day's numbers line; null when they are not there or can't be drawn. */
 function statsLineOf(stats: AgentPageStats | null | undefined): string | null {
   try {
-    return stats ? agentPageStatsLineOf(stats) : null;
+    // No issue ready: no zero count, the line is left out, as on the page.
+    return stats?.readyIssues ? agentPageStatsLineOf(stats) : null;
   } catch {
     return null;
   }

@@ -36,7 +36,7 @@ import {
 const DEFAULTS = [
   {
     title: 'What you work on',
-    text: "Every kind of issue at first: bugs, docs, tests, features. Your profile's languages rank first. Narrow by language, kind, size or repo whenever you like.",
+    text: "Every kind of issue at first: bugs, docs, tests, features. Your profile's languages rank first. Narrow by language or repo whenever you like.",
   },
   {
     title: 'Spend limits',
@@ -134,7 +134,7 @@ export function Landing({
   start: LandingStart;
   preview?: boolean;
   noted?: readonly ContributeComingSoonProvider[];
-  /** The pool's public numbers, a line under the hero's button; left out when unread. */
+  /** The pool's public numbers, a line under the hero's button; left out when unread or when nothing is ready. */
   stats?: AgentPageStats | null;
 }) {
   return (
@@ -147,7 +147,7 @@ export function Landing({
             <StartButton start={start} />
           </div>
           <p className="text-sm text-muted-foreground">{LANDING_HERO.terms}</p>
-          {stats ? (
+          {stats?.readyIssues ? (
             <p className="text-sm text-muted-foreground" data-landing="stats">
               {agentPageStatsLineOf(stats)}.
             </p>

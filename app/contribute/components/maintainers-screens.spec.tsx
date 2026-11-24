@@ -399,7 +399,7 @@ describe('the report pages', () => {
     expect(html).toContain(
       'name="returnTo" value="/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0&amp;kind=helped"',
     );
-    expect(text(html)).toContain('Admin or maintain Report + stop work');
+    expect(text(html)).toContain('Admin or maintain You report, and can stop our work at once.');
   });
 
   it('signs in for a PR named by its link too, without a card yet', () => {

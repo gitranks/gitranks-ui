@@ -1,6 +1,7 @@
 'use client';
 
 import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
+import { toast } from 'sonner';
 
 import {
   sendPrHelped,
@@ -473,18 +474,17 @@ export function ReportSent({
   const heading = useFocusOnMount<HTMLHeadingElement>();
   const [actions, setActions] = useState(result.actions);
   const [undone, setUndone] = useState<ContributePrAction[]>([]);
-  const [error, setError] = useState<PrFeedbackErrorCode | null>(null);
   const [pending, startTransition] = useTransition();
   const applied = live(actions);
 
+  // A failed Undo says so in a toast, so nothing on the page moves; the line keeps its Undo for another try.
   const undo = (kind: ContributePrAction) =>
     startTransition(async () => {
-      setError(null);
       const answer = await undoPrAction({ feedbackId: result.feedbackId, repoId: card.repositoryId, kind });
       if (answer.ok) {
         setActions(answer.data.actions);
         setUndone((current) => [...current, kind]);
-      } else setError(answer.error);
+      } else toast.error(prFeedbackErrorMessage(answer.error, 'undo'));
     });
 
   const contributor = card.contributorLogin ?? 'its author';
@@ -525,11 +525,6 @@ export function ReportSent({
                 {undoneActionText(kind, card)}
               </p>
             ))}
-            {error ? (
-              <p role="alert" className="text-destructive">
-                {prFeedbackErrorMessage(error, 'undo')}
-              </p>
-            ) : null}
           </AlertDescription>
         </Alert>
       ) : null}

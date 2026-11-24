@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 import { notFound } from 'next/navigation';
 
-import { LayoutLeftColumn } from '../components/layout-left-column';
 import { SkillsHeading } from '../components/skills-owner';
 import { SkillsScreen } from '../components/skills-screen';
 import { JsonLd } from '@/components/json-ld/json-ld';
@@ -34,7 +33,8 @@ const failedRead = (login: string) => {
 /**
  * A person's Skills tab: what they proved with GitRanks, the same page for everyone, cached fifteen minutes under the
  * person's tag (which hiding the page expires at once). "Not found" only ever means no public page: the same for
- * everyone, with its owner's view read in the browser, never here. A failed read shows the error page instead.
+ * everyone, with its owner's view read in the browser, never here. A failed read shows the error page instead. The
+ * profile's left column is the layout's, around this page and its "not found" alike.
  */
 export default async function ProfileSkills({ params }: PageProps<'/profile/[login]/skills'>) {
   const { login } = await params;
@@ -49,10 +49,10 @@ export default async function ProfileSkills({ params }: PageProps<'/profile/[log
   }
 
   return (
-    <LayoutLeftColumn user={user}>
+    <>
       <JsonLd payloads={skillsJsonLdOf(skills.value, { name: user.name })} />
       <SkillsHeading />
       <SkillsScreen login={login} page={skills.value} now={new Date()} />
-    </LayoutLeftColumn>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { setSkillsHiddenAction } from './skills-hidden.actions';
@@ -23,9 +23,10 @@ export type OwnerView = { mine: SkillsMine | null; at: Date };
 /**
  * Whether the signed-in reader owns the profile at `login`, and their view of its Skills page once it arrives (`view`
  * stays null until then; its `mine` is null when it could not be read). `toggle` hides or shows the page in place.
+ * `sessionLoading` is true while the browser does not know yet who is reading.
  */
-export function useSkillsOwner(login: string) {
-  const { data: session } = useSession();
+function useOwnSkillsOwner(login: string) {
+  const { data: session, status } = useSession();
   const owner = !!login && session?.user.githubLogin?.toLowerCase() === loginFromPath(login).toLowerCase();
   const [view, setView] = useState<OwnerView | null>(null);
   const [pending, startTransition] = useTransition();
@@ -66,7 +67,27 @@ export function useSkillsOwner(login: string) {
     [],
   );
 
-  return { owner, view, pending, toggle };
+  return { owner, view, pending, toggle, sessionLoading: status === 'loading' };
+}
+
+type SkillsOwner = ReturnType<typeof useOwnSkillsOwner>;
+
+const SkillsOwnerContext = createContext<SkillsOwner | null>(null);
+
+/**
+ * Holds the owner's layer of a Skills address above its page and its "not found" alike: hiding or showing the page swaps
+ * one for the other, and the owner's view, with the answer of the change, goes on to the screen that takes its place.
+ */
+export function SkillsOwnerProvider({ login, children }: { login: string; children: ReactNode }) {
+  const owner = useOwnSkillsOwner(login);
+  return <SkillsOwnerContext.Provider value={owner}>{children}</SkillsOwnerContext.Provider>;
+}
+
+/** The owner's layer of the Skills address at `login`: the provider's when there is one, else this screen's own. */
+export function useSkillsOwner(login: string): SkillsOwner {
+  const shared = useContext(SkillsOwnerContext);
+  const own = useOwnSkillsOwner(shared ? '' : login);
+  return shared ?? own;
 }
 
 /** The tab's heading, above the strip. */

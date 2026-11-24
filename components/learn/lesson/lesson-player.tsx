@@ -137,6 +137,7 @@ export function LessonPlayer({
   mainLanguage,
   article,
   more,
+  footer = null,
   calls,
   drawn = {},
   openFact = false,
@@ -154,7 +155,10 @@ export function LessonPlayer({
   questionCodes?: readonly HighlightedCode[];
   mainLanguage?: string | null;
   article: ReactNode;
+  /** Previous and next. */
   more: ReactNode;
+  /** The line about who wrote the lesson, after everything else. */
+  footer?: ReactNode;
   calls: LessonCalls;
   drawn?: LessonDrawn;
   /** Opened from a shared fact: the insights start shown, with "Did you know?" open. */
@@ -175,7 +179,10 @@ export function LessonPlayer({
   timeZone?: string;
   /** The person's real issues for the lesson: their fix that uses it, and the first issue of their list for it. */
   real?: LessonReal | null;
-  /** "In the real world", drawn after the lesson and before previous and next. */
+  /**
+   * "In the real world", drawn after previous and next and before the footer: the last part of the page, so when the
+   * person's parts of it arrive, nothing they are reading moves.
+   */
   realWorld?: ReactNode;
 }) {
   const live = useKeyHints();
@@ -320,8 +327,9 @@ export function LessonPlayer({
             ) : null}
           </aside>
           <div className="flex min-w-0 flex-col gap-8 lg:col-start-1 lg:row-start-2 lg:gap-10">
-            {realWorld}
             {more}
+            {realWorld}
+            {footer}
           </div>
         </div>
       </main>

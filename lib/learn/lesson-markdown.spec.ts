@@ -221,6 +221,15 @@ describe("a lesson's Markdown copy", () => {
     expect(copy).toContain('1. Right. Because - this\n2. Wrong.');
   });
 
+  it('has no "In the real world" part: no fixes, no open issues, no link to them', () => {
+    for (const lesson of [setLesson, regexLesson, loopLesson, mythLesson, outputLesson]) {
+      const copy = learnLessonMarkdownOf(lesson);
+      expect(copy, lesson.slug).not.toContain('In the real world');
+      expect(copy, lesson.slug).not.toContain('/real-world');
+      expect(copy, lesson.slug).not.toMatch(/fixes that used it|open issues for this lesson/i);
+    }
+  });
+
   it('never holds a long dash', () => {
     for (const lesson of [setLesson, regexLesson, loopLesson, mythLesson, outputLesson]) {
       expect(learnLessonMarkdownOf(lesson), lesson.slug).not.toContain(LONG_DASH);

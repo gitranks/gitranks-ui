@@ -104,6 +104,7 @@ export function LessonLive({
   mainLanguage,
   article,
   more,
+  footer = null,
   openFact = false,
   fixes = null,
 }: {
@@ -113,6 +114,7 @@ export function LessonLive({
   mainLanguage?: string | null;
   article: ReactNode;
   more: ReactNode;
+  footer?: ReactNode;
   openFact?: boolean;
   /** The lesson's merged fixes as everyone reads them, or on their way; null when they cannot be read. */
   fixes?: SharedFixes;
@@ -213,6 +215,7 @@ export function LessonLive({
           mainLanguage={main}
           article={article}
           more={more}
+          footer={footer}
           calls={calls}
           openFact={openFact}
           signedIn={personal.kind !== 'visitor'}

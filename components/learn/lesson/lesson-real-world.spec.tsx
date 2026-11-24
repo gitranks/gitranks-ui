@@ -38,6 +38,8 @@ const draw = (node: ReactNode) =>
     root.render(node);
   });
 const $ = (selector: string) => host.querySelector<HTMLElement>(selector);
+const parts = () =>
+  [...host.querySelectorAll('[data-real-column]')].map((part) => part.getAttribute('data-real-column'));
 const shownIds = () =>
   [...host.querySelectorAll('[data-real-issue] [data-masked-row]')].map((row) => row.getAttribute('data-masked-row'));
 const within = (id: string, label: string) =>
@@ -76,27 +78,85 @@ describe('the issues of the person under a lesson', () => {
 });
 
 describe("the person's own fix under a lesson", () => {
-  it('leaves out the column of other people when theirs is the only fix', async () => {
-    const only = {
-      ...learnFixes,
-      rows: [{ ...learnFixes.rows[0], repo: 'harbor-kit/relay', issueNumber: 431 }],
-      total: 1,
-    };
+  it('comes under the merged fixes, which stay as they were drawn', async () => {
+    await draw(<LessonRealWorld slug="find-duplicates-with-a-set" fixes={learnFixes} mine={null} />);
+    const before = $('[data-real-column="fixes"]')!.textContent;
+    await draw(<LessonRealWorld slug="find-duplicates-with-a-set" fixes={learnFixes} mine={lessonRealWithFix} />);
+    expect(parts()).toEqual(['fixes', 'mine']);
+    expect($('[data-real-column="fixes"]')!.textContent).toBe(before);
+    expect($('[data-real-column="issues"]')).toBeNull();
+  });
+
+  it('is the section alone when no merged fix used the lesson', async () => {
     await draw(
       <LessonRealWorld
         slug="find-duplicates-with-a-set"
-        fixes={only}
-        mine={{ ...lessonRealWithFix, real: { fix: myFixMerged, fixAnIssue: null } }}
+        fixes={{ rows: [], total: 0, next: null }}
+        mine={{ ...lessonRealWithFix, fixes: null, real: { fix: myFixMerged, fixAnIssue: null } }}
       />,
     );
-    expect($('[data-real-column="mine"]')).not.toBeNull();
-    expect($('[data-real-column="others"]')).toBeNull();
-    expect(host.textContent).not.toContain('No fix has used this idea yet');
+    expect(parts()).toEqual(['mine']);
+  });
+});
+
+describe('the parts with nothing in them', () => {
+  const noFixes = { rows: [], total: 0, next: null };
+
+  it('draws no section at all with no merged fix and no open issue, for a visitor and for a signed-in person', async () => {
+    await draw(<LessonRealWorld slug="find-duplicates-with-a-set" fixes={noFixes} mine={null} />);
+    expect(host.innerHTML).toBe('');
+    await draw(
+      <LessonRealWorld
+        slug="find-duplicates-with-a-set"
+        fixes={noFixes}
+        mine={{ real: { fix: null, fixAnIssue: null }, rows: [], reads: null, fixes: noFixes }}
+      />,
+    );
+    expect(host.innerHTML).toBe('');
   });
 
-  it("lists other people's fixes beside it while there are some", async () => {
-    await draw(<LessonRealWorld slug="find-duplicates-with-a-set" fixes={learnFixes} mine={lessonRealWithFix} />);
-    expect($('[data-real-column="others"]')!.querySelectorAll('[data-fix-card]')).toHaveLength(2);
+  it('with fixes only, draws the fixes and no issues part, no link to open issues and no "none yet" line', async () => {
+    await draw(
+      <LessonRealWorld
+        slug="find-duplicates-with-a-set"
+        fixes={learnFixes}
+        mine={{ ...lessonRealIssues, real: { fix: null, fixAnIssue: null }, rows: [] }}
+      />,
+    );
+    expect(parts()).toEqual(['fixes']);
+    expect($('[data-real-issues-link]')).toBeNull();
+    expect(host.textContent).not.toContain('No open issue');
+  });
+
+  it('with open issues only, draws the issues and their link, and no fixes part, count or "none yet" line', async () => {
+    await draw(
+      <LessonRealWorld
+        slug="find-duplicates-with-a-set"
+        fixes={noFixes}
+        mine={{ ...lessonRealIssues, fixes: noFixes }}
+      />,
+    );
+    expect(parts()).toEqual(['issues']);
+    expect($('[data-real-issues-link]')!.getAttribute('href')).toBe(
+      '/learn/lessons/find-duplicates-with-a-set/real-world',
+    );
+    expect($('[data-real-all-fixes]')).toBeNull();
+    expect(host.textContent).not.toContain('No fix');
+  });
+
+  it("goes whole when the person's last issue leaves and nothing else is in it", async () => {
+    actions.skipMaskedIssue.mockResolvedValue({ ok: true, data: maskedIssue({ id: 'zz-other-lesson' }) });
+    const one = issueRows.slice(0, 1);
+    await draw(
+      <LessonRealWorld
+        slug="find-duplicates-with-a-set"
+        fixes={noFixes}
+        mine={{ ...lessonRealIssues, rows: one, fixes: noFixes }}
+      />,
+    );
+    expect(shownIds()).toEqual([one[0].issue.id]);
+    await skip(one[0].issue.id);
+    expect($('[data-lesson-real-world]')).toBeNull();
   });
 });
 

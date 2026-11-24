@@ -42,11 +42,7 @@ export function PreferencesForm({
   const topics = preferences?.topicIds.length ?? 0;
   return (
     <>
-      <PreferencesFields
-        value={draft}
-        onChange={onChange}
-        languagesNote={modes ? 'Applies in every mode.' : undefined}
-      />
+      <PreferencesFields value={draft} onChange={onChange} />
       <p className="text-sm text-muted-foreground">
         {topics ? `${plural(topics, 'topic')} from your profile` : 'Topics from your profile'}
         {modes ? '. Picking topics here is coming soon.' : '. Picking topics and repos here is coming soon.'}

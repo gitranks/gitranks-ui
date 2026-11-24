@@ -597,10 +597,10 @@ describe('the access level', () => {
   it('shows an open PRs limit set for the account in place of the setting, not to be edited', () => {
     const view = { ...views.active, contributor: { ...views.active.contributor, limits: limits.openPrsSet } };
     const agent = renderToStaticMarkup(<PullRequestsSettingsScreen view={view} />);
-    // The note sits under both boxes, so the two stay the same.
+    // The note sits over both boxes, so the two stay the same.
     expect(text(agent)).toContain('Open PRs at a time is set for your account by GitRanks.');
     expect(agent).toMatch(/readOnly=""[^>]*value="16"|value="16"[^>]*readOnly=""/);
-    expect(agent).toMatch(/aria-describedby="([^"]*openPrsAtATime-hint)"[^>]*>.*id="\1"/s);
+    expect(agent).toMatch(/id="([^"]*openPrsAtATime-hint)".*aria-describedby="\1"/s);
     expect(text(agent)).not.toContain('Up to');
   });
 

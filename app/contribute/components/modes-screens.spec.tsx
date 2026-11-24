@@ -269,7 +269,7 @@ describe('Settings, what to work on', () => {
     const known = text(renderToStaticMarkup(<RulesContent limits={{ sources: 40, repos: 40 }} />));
     expect(known).toContain('Lists hold up to 40 repos each, and we check every repo for new issues every 12 hours.');
     const apart = text(renderToStaticMarkup(<RulesContent limits={{ sources: 30, repos: 60 }} />));
-    expect(apart).toContain("Your stack's sources hold up to 30 repos and your repos list up to 60, and we check");
+    expect(apart).toContain("Your stack's sources hold up to 30 repos, and the repos you support up to 60, and we");
   });
 
   it('counts an empty ignore list in words, never as a zero', () => {

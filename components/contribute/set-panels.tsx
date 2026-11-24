@@ -41,7 +41,7 @@ function Rules({ title, rules }: { title: string; rules: string[] }) {
 export function listCapsLineOf(limits: Pick<ContributeSetLimits, 'sources' | 'repos'> | undefined): string | null {
   if (!limits) return null;
   if (limits.sources === limits.repos) return `Lists hold up to ${limits.repos} repos each`;
-  return `Your stack's sources hold up to ${limits.sources} repos and your repos list up to ${limits.repos}`;
+  return `Your stack's sources hold up to ${limits.sources} repos, and the repos you support up to ${limits.repos}`;
 }
 
 /** The rules a repo the user adds must pass, in plain words, with the lists' caps and how often they are checked. */
@@ -123,7 +123,7 @@ export function IgnoredList({ set, write }: { set: ContributeSet; write: SetWrit
             <span className="text-foreground">{set.ignore.length}</span> / {set.limits.ignore}
           </>
         ) : (
-          `Up to ${set.limits.ignore}`
+          `Up to ${set.limits.ignore} repos`
         )}
       </span>
       {set.ignore.length ? (

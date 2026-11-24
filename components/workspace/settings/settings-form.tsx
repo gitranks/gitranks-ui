@@ -530,6 +530,16 @@ export function SettingsForm({
             </span>
           </div>
           <div className="grid gap-3.5 border-t pt-4 sm:grid-cols-2">
+            {prsOverride === null ? null : (
+              // Over both boxes, so the two stay the same, and next to its box on a phone too.
+              <span
+                id={`${field('openPrsAtATime')}-hint`}
+                className="text-xs text-muted-foreground sm:col-span-2"
+                data-cap-hint=""
+              >
+                Open PRs at a time is set for your account by GitRanks.
+              </span>
+            )}
             <div id="open" className="scroll-mt-20">
               {prsOverride === null ? (
                 <Field label="Open PRs at a time" htmlFor={field('openPrsAtATime')}>
@@ -537,8 +547,7 @@ export function SettingsForm({
                 </Field>
               ) : (
                 // A limit set for the account holds over the setting: shown, not edited. The setting is kept and
-                // saved as it is, and holds again once that limit is lifted. Its note is under both boxes, so they
-                // stay the same.
+                // saved as it is, and holds again once that limit is lifted. Its note is over both boxes.
                 <Field label="Open PRs at a time" htmlFor={field('openPrsAtATime')}>
                   <Input
                     id={field('openPrsAtATime')}
@@ -555,15 +564,6 @@ export function SettingsForm({
                 {textInput('attemptsAtATime')}
               </Field>
             </div>
-            {prsOverride === null ? null : (
-              <span
-                id={`${field('openPrsAtATime')}-hint`}
-                className="text-xs text-muted-foreground sm:col-span-2"
-                data-cap-hint=""
-              >
-                Open PRs at a time is set for your account by GitRanks.
-              </span>
-            )}
           </div>
           <ReposAskLessNote text="Repos can ask for less: their rules lower these limits for their pull requests." />
           <div id="dco" className="flex scroll-mt-20 flex-col gap-2 border-t pt-4">

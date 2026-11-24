@@ -167,7 +167,12 @@ export const WORKSPACE_ISSUE_LEARN_SCREENS: Screen[] = [
         path: CONTRIBUTE_PATH,
         height: 420,
         render: () =>
-          drawKept({ page: issuePage({ state: 'NOT_AVAILABLE' }), kept: KEPT_FOR_NOW, learnHref: LEARN_HREF }),
+          drawKept({
+            page: issuePage({ state: 'NOT_AVAILABLE' }),
+            kept: KEPT_FOR_NOW,
+            learnHref: LEARN_HREF,
+            keptOnRefusal: true,
+          }),
       },
     ],
   },

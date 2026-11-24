@@ -309,6 +309,23 @@ describe('the page of one issue from Contribute: an issue kept for learners', ()
     expect(/href="([^"]*)"[^>]*>Open it in Learn/.exec(html)?.[1]).toBe('/my/issues/q7k2m9xa?from=learn');
   });
 
+  it("keeps the plain end of a not available page: the person's own skip or give-back, before any press", async () => {
+    keptRead.loadIssuePageKept.mockResolvedValue(ALWAYS);
+    learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
+    data.loadIssuePage.mockResolvedValue({ kind: 'page', page: issuePage({ state: 'NOT_AVAILABLE' }) });
+    const html = await issuePageAt({ from: 'contribute' });
+    expect(text(html)).toContain('This issue is not on your list');
+    expect(text(html)).not.toContain('kept for learners');
+    expect(html).not.toContain('Open it in Learn');
+  });
+
+  it('draws the press when the kept time has already passed', async () => {
+    keptRead.loadIssuePageKept.mockResolvedValue({ until: '2026-10-28T11:00:00.000Z' });
+    const html = text(await issuePageAt({ from: 'contribute' }));
+    expect(html).toContain('See the full issue');
+    expect(html).not.toContain('kept for learners');
+  });
+
   it("draws Learn's page as it is: the read is not made, and a kept answer is not shown", async () => {
     keptRead.loadIssuePageKept.mockResolvedValue(ALWAYS);
     const html = text(await issuePageAt({ from: 'learn' }));

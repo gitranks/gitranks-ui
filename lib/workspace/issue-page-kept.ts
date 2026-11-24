@@ -22,6 +22,17 @@ export function issueKeptOf(answer: unknown): IssueKeptForLearners | null {
   return typeof until === 'string' && Number.isFinite(Date.parse(until)) ? { until } : null;
 }
 
+/**
+ * Still kept at `now`: kept for good, or until a time still to come. Null once that time has passed, so the page offers
+ * the press (and its ends) again.
+ */
+export function keptNowOf(kept: IssueKeptForLearners | null, now: Date): IssueKeptForLearners | null {
+  if (!kept) return null;
+  if (kept.until === null) return kept;
+  const at = Date.parse(kept.until);
+  return Number.isFinite(at) && at > now.getTime() ? kept : null;
+}
+
 /** The line of an issue kept for learners, said in place of the press on Contribute. */
 export const KEPT_LINE = 'This issue is kept for learners.';
 /** The line of an issue Contribute lets the person take later. */

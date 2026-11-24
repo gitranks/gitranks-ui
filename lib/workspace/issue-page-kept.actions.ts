@@ -1,15 +1,15 @@
 'use server';
 
-import type { IssueKeptForLearners } from './issue-page-kept';
-import { loadIssuePageKept } from './issue-page-kept.data';
+import { type IssueKeptRead, readIssuePageKept } from './issue-page-kept.data';
 import { maskIdOf } from './masked-issue';
 
 /**
  * Whether the issue is kept for learners from the session's user, read again after a press Contribute refused: the page
- * then says so in place of its plain end. Null when it is not, or cannot be read.
+ * then says so in place of its plain end, or stops saying it. `{ kept: null }`: not kept. Null: it could not be read,
+ * so the page keeps what it showed.
  */
-export async function readIssueKept(id: string): Promise<IssueKeptForLearners | null> {
+export async function readIssueKept(id: string): Promise<IssueKeptRead | null> {
   const maskId = maskIdOf(id);
   if (!maskId) return null;
-  return loadIssuePageKept(maskId, 'client');
+  return readIssuePageKept(maskId, 'client');
 }

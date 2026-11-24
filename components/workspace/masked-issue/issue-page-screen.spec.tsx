@@ -359,9 +359,9 @@ describe('from Contribute, an issue kept for learners', () => {
     expect(keptLine()).toBe('This issue is kept for learners for now. It opens to Contribute at 14:30.');
     await kept(issuePage(), { kept: { until: '2026-10-29T09:05:00.000Z' } });
     expect(keptLine()).toBe('This issue is kept for learners for now. It opens to Contribute on 29 Oct at 09:05.');
-    // A time already past says no time.
+    // A time already past: not kept any more.
     await kept(issuePage(), { kept: { until: '2026-10-28T11:00:00.000Z' } });
-    expect(keptLine()).toBe('This issue is kept for learners for now.');
+    expect(keptLine()).toBeUndefined();
   });
 
   it('writes when it opens only in the browser when no zone is given, so the two renders agree', async () => {
@@ -411,7 +411,7 @@ describe('from Contribute, an issue kept for learners', () => {
   it.each(['NOT_AVAILABLE', 'EXPIRED', 'REPLACED'] as const)(
     '%s: says the line in place of the end, with no press again',
     async (end) => {
-      await kept(issuePage({ state: end }), { kept: FOR_NOW });
+      await kept(issuePage({ state: end }), { kept: FOR_NOW, keptOnRefusal: true });
       expect(state()).toBe(end);
       expect(h1()).toBe('This issue is kept for learners for now');
       expect(container.querySelector('[data-end] p')?.textContent).toBe('It opens to Contribute at 14:30.');
@@ -419,13 +419,49 @@ describe('from Contribute, an issue kept for learners', () => {
       expect(button('See the full issue again')).toBeNull();
       expect(button('Back to Issues')?.getAttribute('href')).toBe('/contribute#issues');
       expect(container.textContent).not.toContain('This issue is not on your list');
-      await kept(issuePage({ state: end }), { kept: ALWAYS, learnHref: LEARN_HREF });
+      await kept(issuePage({ state: end }), { kept: ALWAYS, learnHref: LEARN_HREF, keptOnRefusal: true });
       expect(h1()).toBe('This issue is kept for learners');
       expect(container.querySelector('[data-end] p')).toBeNull();
       expect(button('Open it in Learn')?.getAttribute('data-primary-action')).toBe('');
       expect(button('Back to Issues')?.getAttribute('data-primary-action')).toBeNull();
     },
   );
+
+  it("keeps the plain end of a not available page read before any press: the person's own skip or give-back", async () => {
+    await kept(issuePage({ state: 'NOT_AVAILABLE' }), { kept: ALWAYS, learnHref: LEARN_HREF });
+    expect(h1()).toBe('This issue is not on your list');
+    expect(container.querySelector('[data-kept], [data-open-in-learn]')).toBeNull();
+    // EXPIRED and REPLACED end the person's own look: kept stands in for them without a press.
+    await kept(issuePage({ state: 'EXPIRED' }), { kept: ALWAYS });
+    expect(h1()).toBe('This issue is kept for learners');
+  });
+
+  it('is not kept once its time has passed: the press and the plain ends come back', async () => {
+    const past = { until: '2026-10-28T11:00:00.000Z' };
+    await kept(issuePage(), { kept: past });
+    expect(container.querySelector('[data-kept]')).toBeNull();
+    expect(button('See the full issue')).not.toBeNull();
+    await kept(issuePage({ state: 'EXPIRED' }), { kept: past });
+    expect(h1()).toBe('The 15 minutes are over');
+    expect(button('See the full issue again')).not.toBeNull();
+    await kept(issuePage({ state: 'NOT_AVAILABLE' }), { kept: past, keptOnRefusal: true });
+    expect(h1()).toBe('This issue is not on your list');
+  });
+
+  it('moves its clock while a kept time is to come, and gives the press back once it passes', async () => {
+    await kept(issuePage(), { kept: { until: '2026-10-28T12:05:00.000Z' } });
+    expect(button('See the full issue')).toBeNull();
+    expect(vi.getTimerCount()).toBe(1);
+    await act(async () => vi.advanceTimersByTime(5 * 60 * 1000));
+    expect(container.querySelector('[data-kept]')).toBeNull();
+    expect(button('See the full issue')).not.toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('keeps no clock for an issue kept for good', async () => {
+    await kept(issuePage(), { kept: ALWAYS });
+    expect(vi.getTimerCount()).toBe(0);
+  });
 
   it.each(['TAKEN', 'LEFT_POOL', 'GIVEN_BACK'] as const)('%s: keeps its own end', async (end) => {
     await kept(issuePage({ state: end }), { kept: ALWAYS });
@@ -436,7 +472,7 @@ describe('from Contribute, an issue kept for learners', () => {
     await screen(issuePage(), { kept: ALWAYS, learnHref: LEARN_HREF });
     expect(container.querySelector('[data-kept]')).toBeNull();
     expect(button('See the full issue')).not.toBeNull();
-    await screen(issuePage({ state: 'NOT_AVAILABLE' }), { kept: ALWAYS });
+    await screen(issuePage({ state: 'NOT_AVAILABLE' }), { kept: ALWAYS, keptOnRefusal: true });
     expect(h1()).toBe('This issue is not on your list');
   });
 });

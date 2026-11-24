@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { issueKeptOf, KEPT_FOR_NOW_LINE, KEPT_LINE, keptLineOf, keptOpensLineOf } from './issue-page-kept';
+import { issueKeptOf, KEPT_FOR_NOW_LINE, KEPT_LINE, keptLineOf, keptNowOf, keptOpensLineOf } from './issue-page-kept';
 
 const NOW = new Date('2026-10-28T12:00:00.000Z');
 
@@ -20,6 +20,17 @@ describe('an issue kept for learners, as the page reads it', () => {
     expect(issueKeptOf({ keptForLearners: { until: 'soon' } })).toBeNull();
     expect(issueKeptOf({ keptForLearners: { until: 1_700_000_000 } })).toBeNull();
     expect(issueKeptOf({ keptForLearners: true })).toBeNull();
+  });
+});
+
+describe('still kept now', () => {
+  it('is kept for good, or until a time still to come; not once that time has passed', () => {
+    expect(keptNowOf({ until: null }, NOW)).toEqual({ until: null });
+    expect(keptNowOf({ until: '2026-10-28T12:00:01.000Z' }, NOW)).toEqual({ until: '2026-10-28T12:00:01.000Z' });
+    expect(keptNowOf({ until: '2026-10-28T12:00:00.000Z' }, NOW)).toBeNull();
+    expect(keptNowOf({ until: '2026-10-28T11:00:00.000Z' }, NOW)).toBeNull();
+    expect(keptNowOf({ until: 'soon' }, NOW)).toBeNull();
+    expect(keptNowOf(null, NOW)).toBeNull();
   });
 });
 

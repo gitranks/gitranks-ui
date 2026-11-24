@@ -6,11 +6,12 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 const contribute = vi.hoisted(() => ({ viewerLogin: vi.fn(async (): Promise<string | null> => 'octocat') }));
 vi.mock('@/lib/workspace/contribute.data', () => contribute);
 
-const { loadIssuePageKept } = await import('./issue-page-kept.data');
+const { ISSUE_PAGE_KEPT_TIMEOUT_MS, loadIssuePageKept } = await import('./issue-page-kept.data');
 const { readIssueKept } = await import('./issue-page-kept.actions');
 const { print } = await import('graphql');
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   graphqlDirect.mockReset();
   contribute.viewerLogin.mockResolvedValue('octocat');
 });
@@ -42,9 +43,25 @@ describe('whether the issue is kept for learners, on the page of one issue', () 
     expect(await loadIssuePageKept('q7k2m9xa')).toBeNull();
   });
 
+  it('gives up after 3 seconds: a slow answer is none, as a failed one is', async () => {
+    expect(ISSUE_PAGE_KEPT_TIMEOUT_MS).toBe(3_000);
+    const clock = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(clock.signal);
+    graphqlDirect.mockImplementation(
+      (_document: unknown, _variables: unknown, { signal }: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason))),
+    );
+    const read = loadIssuePageKept('q7k2m9xa');
+    await vi.waitFor(() => expect(graphqlDirect).toHaveBeenCalledOnce());
+    expect(timeout).toHaveBeenCalledExactlyOnceWith(3_000);
+    expect(graphqlDirect.mock.calls[0][2].signal).toBe(clock.signal);
+    clock.abort(new DOMException('The operation timed out.', 'TimeoutError'));
+    expect(await read).toBeNull();
+  });
+
   it('is read again after a refused press, as the session user, only for a mask id', async () => {
     graphqlDirect.mockResolvedValue({ issuePage: { keptForLearners: { until: null } } });
-    expect(await readIssueKept('q7k2m9xa')).toEqual({ until: null });
+    expect(await readIssueKept('q7k2m9xa')).toEqual({ kept: { until: null } });
     expect(graphqlDirect.mock.calls[0][2]).toEqual({
       source: 'client',
       githubLogin: 'octocat',
@@ -52,5 +69,16 @@ describe('whether the issue is kept for learners, on the page of one issue', () 
     });
     expect(await readIssueKept('../x')).toBeNull();
     expect(graphqlDirect).toHaveBeenCalledOnce();
+  });
+
+  it('tells "not kept" from "could not read" when read again: a failed read is none, so the page keeps what it showed', async () => {
+    graphqlDirect.mockResolvedValueOnce({ issuePage: { keptForLearners: null } });
+    expect(await readIssueKept('q7k2m9xa')).toEqual({ kept: null });
+    graphqlDirect.mockResolvedValueOnce({ issuePage: null });
+    expect(await readIssueKept('q7k2m9xa')).toEqual({ kept: null });
+    graphqlDirect.mockRejectedValueOnce(new Error('Cannot query field "keptForLearners" on type "IssuePage".'));
+    expect(await readIssueKept('q7k2m9xa')).toBeNull();
+    contribute.viewerLogin.mockResolvedValueOnce(null);
+    expect(await readIssueKept('q7k2m9xa')).toBeNull();
   });
 });

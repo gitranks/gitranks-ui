@@ -470,6 +470,18 @@ describe("the page of one issue, live: Learn's parts", () => {
 describe('the page of one issue, live: an issue kept for learners, from Contribute', () => {
   const CONTRIBUTE = { from: 'contribute', back: { href: '/contribute#issues', label: 'Issues' } } as const;
   const keptLine = () => container.querySelector('[data-kept-line]')?.textContent;
+  /** Kept until 14:30, two and a half hours after the fixtures' clock. */
+  const FOR_NOW = { until: '2026-10-28T14:30:00.000Z' };
+  /** A fresh page: the one before keeps its state through a render with new props. */
+  const remount = () => {
+    act(() => root.unmount());
+    root = createRoot(container);
+  };
+  const refusedNotAvailable = () =>
+    actions.lookAtIssue.mockResolvedValue({
+      ok: true,
+      data: { outcome: 'NOT_AVAILABLE', page: issuePage({ state: 'NOT_AVAILABLE' }) },
+    });
 
   it('offers no press when the read says it is kept, and the way to it in Learn to a person who uses Learn', async () => {
     await live({ ...CONTRIBUTE, kept: { until: null }, alsoLearn: true });
@@ -481,11 +493,8 @@ describe('the page of one issue, live: an issue kept for learners, from Contribu
   });
 
   it('says the kept line in place of the plain end when a press is refused and the read again says kept', async () => {
-    actions.lookAtIssue.mockResolvedValue({
-      ok: true,
-      data: { outcome: 'NOT_AVAILABLE', page: issuePage({ state: 'NOT_AVAILABLE' }) },
-    });
-    keptActions.readIssueKept.mockResolvedValueOnce({ until: null });
+    refusedNotAvailable();
+    keptActions.readIssueKept.mockResolvedValueOnce({ kept: { until: null } });
     await live({ ...CONTRIBUTE, alsoLearn: true });
     await press('See the full issue');
     expect(keptActions.readIssueKept).toHaveBeenCalledExactlyOnceWith('q7k2m9xa');
@@ -495,20 +504,52 @@ describe('the page of one issue, live: an issue kept for learners, from Contribu
     expect(container.textContent).not.toContain('This issue is not on your list');
   });
 
-  it('keeps the plain end when the read again says nothing', async () => {
-    actions.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'NOT_AVAILABLE', page: null } });
+  it('keeps the plain end when the read again says it is not kept', async () => {
+    refusedNotAvailable();
+    keptActions.readIssueKept.mockResolvedValueOnce({ kept: null });
     await live(CONTRIBUTE);
     await press('See the full issue');
     expect(keptActions.readIssueKept).toHaveBeenCalledOnce();
     expect(h1()).toBe('This issue is not on your list');
   });
 
-  it('keeps the plain end when the read again fails', async () => {
-    actions.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'NOT_AVAILABLE', page: null } });
+  it('keeps the plain end when the read again fails and nothing was kept before', async () => {
+    refusedNotAvailable();
     keptActions.readIssueKept.mockRejectedValueOnce(new Error('down'));
     await live(CONTRIBUTE);
     await press('See the full issue');
     expect(h1()).toBe('This issue is not on your list');
+    remount();
+    keptActions.readIssueKept.mockResolvedValueOnce(null);
+    await live(CONTRIBUTE);
+    await press('See the full issue');
+    expect(h1()).toBe('This issue is not on your list');
+  });
+
+  it('clears an earlier kept answer when the read again says not kept, and keeps it when that read fails', async () => {
+    // Kept until a time already past when the page opened: the press is offered, and refused.
+    const past = { until: '2026-10-28T11:00:00.000Z' };
+    refusedNotAvailable();
+    keptActions.readIssueKept.mockResolvedValueOnce({ kept: null });
+    await live({ ...CONTRIBUTE, kept: past });
+    await press('See the full issue');
+    expect(h1()).toBe('This issue is not on your list');
+    // A read that fails keeps what the page showed: the kept answer, still kept.
+    remount();
+    keptActions.readIssueKept.mockResolvedValueOnce(null);
+    actions.lookOnReturn.mockResolvedValueOnce({
+      ok: true,
+      data: { outcome: 'NOT_AVAILABLE', page: issuePage({ state: 'NOT_AVAILABLE' }) },
+    });
+    await live({ ...CONTRIBUTE, kept: { until: null }, page: issuePage({ state: 'EXPIRED' }), returning: true });
+    expect(h1()).toBe('This issue is kept for learners');
+  });
+
+  it("says the person's own skip or give-back as today: a not available page read before any press", async () => {
+    await live({ ...CONTRIBUTE, kept: FOR_NOW, alsoLearn: true, page: issuePage({ state: 'NOT_AVAILABLE' }) });
+    expect(h1()).toBe('This issue is not on your list');
+    expect(button('Open it in Learn')).toBeNull();
+    expect(container.querySelector('[data-kept]')).toBeNull();
   });
 
   it("asks nothing again on Learn's page, where the person can take it", async () => {
@@ -531,5 +572,61 @@ describe('the page of one issue, live: an issue kept for learners, from Contribu
     await live({ kept: { until: null }, alsoLearn: true });
     expect(container.querySelector('[data-kept]')).toBeNull();
     expect(button('See the full issue')).not.toBeNull();
+  });
+
+  it('makes no press back from the sign-in when the issue is kept, and uses the mark up', async () => {
+    actions.lookOnReturn.mockResolvedValue(null);
+    await live({ ...CONTRIBUTE, kept: FOR_NOW, returning: true });
+    expect(actions.lookOnReturn).toHaveBeenCalledExactlyOnceWith('q7k2m9xa', 'contribute', false);
+    expect(router.replace).toHaveBeenCalledWith('/my/issues/q7k2m9xa?from=contribute');
+    expect(state()).toBe('MASKED');
+    expect(keptLine()).toBe('This issue is kept for learners for now. It opens to Contribute at 14:30.');
+  });
+
+  it('makes the press back from the sign-in once a kept time has passed', async () => {
+    actions.lookOnReturn.mockResolvedValue({ ok: true, data: { outcome: 'OK', page: fullPage() } });
+    await live({ ...CONTRIBUTE, kept: { until: '2026-10-28T11:00:00.000Z' }, returning: true });
+    expect(actions.lookOnReturn).toHaveBeenCalledExactlyOnceWith('q7k2m9xa', 'contribute', true);
+    expect(state()).toBe('FULL');
+  });
+
+  it('does not wait for the agent while the issue is kept, held in full with an agent connected', async () => {
+    await live({ ...CONTRIBUTE, kept: { until: null }, page: fullPage() });
+    expect(keptLine()).toBe('This issue is kept for learners.');
+    expect(waiting()).toBe(false);
+    remount();
+    await live({ ...CONTRIBUTE, page: fullPage() });
+    expect(waiting()).toBe(true);
+  });
+
+  describe('once the kept time passes while the page is open', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
+      vi.setSystemTime(MASKED_NOW);
+    });
+
+    it('gives the press back on a masked page', async () => {
+      await live({ ...CONTRIBUTE, kept: FOR_NOW });
+      expect(button('See the full issue')).toBeNull();
+      await act(async () => vi.advanceTimersByTime(2 * 60 * 60 * 1000 + 29 * 60 * 1000));
+      expect(keptLine()).toBe('This issue is kept for learners for now. It opens to Contribute at 14:30.');
+      await act(async () => vi.advanceTimersByTime(60 * 1000));
+      expect(container.querySelector('[data-kept]')).toBeNull();
+      expect(button('See the full issue')).not.toBeNull();
+    });
+
+    it('gives the start form and the wait back on a page held in full, and the plain end after the hold', async () => {
+      // Kept until 12:05; the hold ends at 12:14.
+      await live({ ...CONTRIBUTE, kept: { until: '2026-10-28T12:05:00.000Z' }, page: fullPage() });
+      expect(keptLine()).toBe('This issue is kept for learners for now. It opens to Contribute at 12:05.');
+      expect(waiting()).toBe(false);
+      await act(async () => vi.advanceTimersByTime(5 * 60 * 1000));
+      expect(container.querySelector('[data-kept]')).toBeNull();
+      expect(waiting()).toBe(true);
+      await act(async () => vi.advanceTimersByTime(10 * 60 * 1000));
+      expect(state()).toBe('EXPIRED');
+      expect(h1()).toBe('The 15 minutes are over');
+      expect(button('See the full issue again')).not.toBeNull();
+    });
   });
 });

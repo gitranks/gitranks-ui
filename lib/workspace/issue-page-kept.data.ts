@@ -23,15 +23,18 @@ export const IssuePageKeptDocument = parse(
 }`,
 ) as DocumentNode<{ issuePage: unknown }, { id: string }>;
 
+/** A read that worked: `kept` is null when the issue is not kept for learners from the viewer (or no issue has the id). */
+export type IssueKeptRead = { kept: IssueKeptForLearners | null };
+
 /**
  * Whether the issue is kept for learners from the viewer, by its mask id: from the page's render (`ssr`), or again
- * after a press Contribute refused (`client`). Null when it is not, signed out, for an id no issue has, and whenever
- * the read fails, is slow or answers what the page cannot draw: the page then draws what it draws without it.
+ * after a press Contribute refused (`client`). Null when it could not be read: signed out, a failed or slow read (an
+ * API that does not answer the field yet among them), so a caller keeps what it showed.
  */
-export async function loadIssuePageKept(
+export async function readIssuePageKept(
   id: string,
-  source: Extract<RequestSource, 'ssr' | 'client'> = 'ssr',
-): Promise<IssueKeptForLearners | null> {
+  source: Extract<RequestSource, 'ssr' | 'client'>,
+): Promise<IssueKeptRead | null> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return null;
   try {
@@ -40,8 +43,16 @@ export async function loadIssuePageKept(
       { id },
       { source, githubLogin, signal: AbortSignal.timeout(ISSUE_PAGE_KEPT_TIMEOUT_MS) },
     );
-    return issueKeptOf(issuePage);
+    return { kept: issueKeptOf(issuePage) };
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether the issue is kept for learners, for the page's render. Null when it is not, and whenever it cannot be read
+ * or answers what the page cannot draw: the page then draws what it draws without it.
+ */
+export async function loadIssuePageKept(id: string): Promise<IssueKeptForLearners | null> {
+  return (await readIssuePageKept(id, 'ssr'))?.kept ?? null;
 }

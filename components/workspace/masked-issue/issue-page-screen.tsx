@@ -19,7 +19,7 @@ import { IssueStartForm, type IssueStartFormProps } from '@/components/workspace
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
 import { MaskedListFoot, WhyHiddenDialog } from '@/components/workspace/masked-issue/why-hidden';
 import { RefChips } from '@/components/workspace/ref-chips';
-import { type IssueKeptForLearners, keptLineOf, keptOpensLineOf } from '@/lib/workspace/issue-page-kept';
+import { type IssueKeptForLearners, keptLineOf, keptNowOf, keptOpensLineOf } from '@/lib/workspace/issue-page-kept';
 import { type IssueStarted, startedLineOf } from '@/lib/workspace/issue-page-learn';
 import {
   beforePressLineOf,
@@ -42,14 +42,16 @@ import type { StartRefusalAction } from '@/lib/workspace/start-refusals';
 const TICK_MS = 10_000;
 
 /**
- * The page's clock, from `start`: it moves while an issue is held and its minutes are not over (`held && !over`), and
- * while the started line says how long ago the work started (`started`). Otherwise it keeps no timer.
+ * The page's clock, from `start`: it moves while an issue is held and its minutes are not over (`held && !over`), while
+ * the started line says how long ago the work started (`started`), and while an issue is kept for learners until a time
+ * still to come (`keptUntil`), so the press comes back once it passes. Otherwise it keeps no timer.
  */
-function useHoldClock(start: Date, until: string | null, started = false): Date {
+function useHoldClock(start: Date, until: string | null, started = false, keptUntil: string | null = null): Date {
   const [now, setNow] = useState(start);
   const held = until !== null;
   const over = held && minutesLeftOf(until, now) === 0;
-  const running = (held && !over) || started;
+  const keptOn = keptUntil !== null && minutesLeftOf(keptUntil, now) > 0;
+  const running = (held && !over) || started || keptOn;
   useEffect(() => {
     if (!running) return;
     setNow(new Date());
@@ -90,6 +92,11 @@ export type IssuePageScreenProps = {
   kept?: IssueKeptForLearners | null;
   /** With `kept`, for a person who uses Learn: the same issue's page from Learn ("Open it in Learn"). */
   learnHref?: Route | null;
+  /**
+   * With `kept`: it was read again after a press Contribute refused as not available, so it stands in for that plain
+   * end. A not available page read before any press is the person's own skip or give-back: it keeps its plain end.
+   */
+  keptOnRefusal?: boolean;
   colors?: Readonly<Record<string, string>>;
   /** The press is on its way: the button waits in its place. */
   pressing?: boolean;
@@ -259,7 +266,10 @@ function keptEndOf(state: IssuePageState, words: KeptWords, props: IssuePageScre
   );
 }
 
-/** The ends that offer the press again or say the issue is not on the list: from Contribute, said as kept instead. */
+/**
+ * The ends that offer the press again or say the issue is not on the list: from Contribute, said as kept instead. Not
+ * on the list only after a refused press (`keptOnRefusal`).
+ */
 const KEPT_ENDS: ReadonlySet<IssuePageState> = new Set(['EXPIRED', 'REPLACED', 'NOT_AVAILABLE']);
 
 /** The end's words and its way on, for the ends that are one sentence. */
@@ -386,7 +396,9 @@ const pressPrimary = () => document.querySelector<HTMLElement>('[data-primary-ac
 export function IssuePageScreen(props: IssuePageScreenProps) {
   const { page, from, back, numbers, visitor = false, timeZone, lesson = null, colors, pressing = false } = props;
   const until = page.state === 'FULL' ? page.until : null;
-  const now = useHoldClock(props.now, until, page.state === 'STARTED' && Boolean(props.started));
+  // From Contribute, an issue kept for learners until a time to come: the clock moves so the press comes back then.
+  const keptUntil = from === 'contribute' ? (props.kept?.until ?? null) : null;
+  const now = useHoldClock(props.now, until, page.state === 'STARTED' && Boolean(props.started), keptUntil);
   const over = until !== null && minutesLeftOf(until, now) === 0;
   const state: IssuePageState = over ? 'EXPIRED' : page.state;
   const masked = page.masked;
@@ -397,7 +409,7 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
 
   // From Contribute, an issue kept for learners: the line in place of the press. When it opens to Contribute is written
   // in the browser's zone, so only once the page is there (or in the zone given).
-  const kept = from === 'contribute' ? (props.kept ?? null) : null;
+  const kept = from === 'contribute' ? keptNowOf(props.kept ?? null, now) : null;
   const keptWords: KeptWords | null = kept
     ? {
         line: keptLineOf(kept),
@@ -490,8 +502,9 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
     body = <GivenBack backHref={back.href} reasons={page.reasons} note={page.note} {...props.givenBack} />;
   } else if (state === 'MASKED' || state === 'FULL') {
     // A page with nothing to show of its issue: it is no longer open to the viewer.
-    body = keptWords ? keptEndOf('NOT_AVAILABLE', keptWords, props) : endOf('NOT_AVAILABLE', props);
-  } else if (keptWords && KEPT_ENDS.has(state)) {
+    body =
+      keptWords && props.keptOnRefusal ? keptEndOf('NOT_AVAILABLE', keptWords, props) : endOf('NOT_AVAILABLE', props);
+  } else if (keptWords && KEPT_ENDS.has(state) && (state !== 'NOT_AVAILABLE' || props.keptOnRefusal)) {
     body = keptEndOf(state, keptWords, props);
   } else {
     body = endOf(state, { ...props, now });

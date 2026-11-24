@@ -12,15 +12,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DiffViewer } from '@/components/workspace/diff-viewer';
+import { SendKey, useSendKey, useSendKeyName } from '@/components/workspace/pr-parts/send-key';
 import { RefChips } from '@/components/workspace/ref-chips';
 import { cn } from '@/lib/utils';
 import { PR_BODY_MAX, PR_TITLE_MAX, prBodyPreview } from '@/lib/workspace/attempt-format';
 import {
   type ApproveCardState,
   approveCardOf,
-  isSendKey,
   SEND_BACK_MAX,
-  sendKeyNameOf,
   titleHasPrefix,
   withPrefix,
 } from '@/lib/workspace/pull-request-approve';
@@ -37,7 +36,8 @@ export type ApproveScreenProps = {
   approval: PullRequestApproval;
   /** The change as a unified diff, read file by file; left out when the page has none. */
   patch?: string | null;
-  links?: { back?: Route | null; answers?: Route | null; lesson?: Route | null };
+  /** `walkthrough`: where "Finish the walkthrough first" leads, while it is not passed. */
+  links?: { back?: Route | null; answers?: Route | null; lesson?: Route | null; walkthrough?: Route | null };
   state?: ApproveCardState;
   onSend?: (send: ApproveSend) => void;
   /** "Send it back to your agent", with what to change. */
@@ -73,18 +73,6 @@ const NOTE_TONES = {
   error: 'bg-negative/10 text-foreground',
 } as const;
 
-/** The key that sends, inside the main button: Ctrl ⏎, or ⌘ ⏎ on a Mac. Not on a phone. */
-function SendKey({ name }: { name: string }) {
-  const key =
-    'inline-grid h-[22px] min-w-[22px] place-items-center rounded-[5px] border border-b-2 border-primary-foreground/40 px-[5px] font-mono text-[11px] leading-none';
-  return (
-    <span aria-hidden="true" className="hidden items-center gap-1 sm:inline-flex" data-send-key="">
-      <kbd className={key}>{name}</kbd>
-      <kbd className={key}>⏎</kbd>
-    </span>
-  );
-}
-
 /**
  * Approve and send, one screen for Learn and Contribute, in the player's frame. Left, what is sent: the title (with
  * the project's prefix, when it wants one, added by one button), the description to write or preview, what GitRanks
@@ -112,45 +100,34 @@ export function ApproveScreen({
   const [signOff, setSignOff] = useState(approval.signOffOn);
   const [pane, setPane] = useState(initialPane);
   const [sendBack, setSendBack] = useState<string | null>(initialSendBack);
-  const [keyName, setKeyName] = useState('Ctrl');
+  const keyName = useSendKeyName();
   const backField = useRef<HTMLTextAreaElement>(null);
   const backButton = useRef<HTMLButtonElement>(null);
   const openedBack = useRef(false);
 
-  useEffect(() => setKeyName(sendKeyNameOf(navigator.platform || navigator.userAgent)), []);
   useEffect(() => {
     if (sendBack !== null && openedBack.current) backField.current?.focus();
     if (sendBack === null && openedBack.current) backButton.current?.focus();
   }, [sendBack]);
 
   const card = approveCardOf(approval, { title, signOff }, state);
+  // While a send is under way, nothing else goes: neither the send again nor sending it back.
+  const sending = state === 'sending';
   const send = () => {
     if (card.ready) onSend?.({ title: title.trim(), description, signOff });
   };
   const back = () => {
-    if (sendBack?.trim()) onSendBack?.(sendBack.trim());
+    if (!sending && sendBack?.trim()) onSendBack?.(sendBack.trim());
   };
 
   // The one key that sends: Ctrl + Enter, wherever the focus is; Enter alone does nothing on this screen.
-  const keys = useRef({ send, back, backOpen: false });
-  keys.current = { send, back, backOpen: sendBack !== null };
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (!isSendKey(event) || event.defaultPrevented || event.repeat) return;
-      if (document.querySelector('[role="dialog"]')) return;
-      event.preventDefault();
-      if (keys.current.backOpen) keys.current.back();
-      else keys.current.send();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  useSendKey(() => (sendBack !== null ? back() : send()));
 
   const learn = made === 'LEARN';
   const needsPrefix = !!approval.titlePrefix && !titleHasPrefix(title, approval.titlePrefix);
   const stats = [
     `${approval.change.files} file${approval.change.files === 1 ? '' : 's'}`,
-    `${approval.change.added} lines added`,
+    `${approval.change.added} line${approval.change.added === 1 ? '' : 's'} added`,
     `${approval.change.removed} removed`,
   ];
 
@@ -366,7 +343,13 @@ export function ApproveScreen({
                 className={cn('m-0 min-h-21 rounded-lg p-3 text-sm', NOTE_TONES[card.note.tone])}
                 data-note={card.note.tone}
               >
-                {card.note.lead ? <b className="font-semibold">{card.note.lead}</b> : null}
+                {card.note.lead && card.note.link === 'walkthrough' && links.walkthrough ? (
+                  <Link className="font-semibold underline" href={links.walkthrough} prefetch={false}>
+                    {card.note.lead}
+                  </Link>
+                ) : card.note.lead ? (
+                  <b className="font-semibold">{card.note.lead}</b>
+                ) : null}
                 {card.note.lead ? ' ' : null}
                 {card.note.text}
               </p>
@@ -376,7 +359,7 @@ export function ApproveScreen({
             <Button
               type="button"
               className="h-10 w-full px-6 font-semibold max-sm:min-h-11"
-              disabled={!sendBack.trim()}
+              disabled={sending || !sendBack.trim()}
               onClick={back}
             >
               Send it back
@@ -399,6 +382,7 @@ export function ApproveScreen({
                   type="button"
                   variant="outline"
                   className="h-9 w-full max-sm:min-h-11"
+                  disabled={sending}
                   onClick={() => {
                     openedBack.current = true;
                     setSendBack('');

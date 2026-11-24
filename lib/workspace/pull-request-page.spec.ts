@@ -31,7 +31,7 @@ import {
 } from './pull-request-page';
 import type { PullRequestPage } from './pull-request-page.types';
 
-const box = (page: PullRequestPage, opts: { agent?: string | null; retryLabel?: string | null } = {}) =>
+const box = (page: PullRequestPage, opts: { agent?: string | null; stoppedAtLimit?: boolean } = {}) =>
   boxOf(page, { now: PR_NOW, ...opts });
 const ids = (page: PullRequestPage) => box(page).actions.map((action) => action.id);
 
@@ -224,19 +224,21 @@ describe('the box', () => {
     expect(box(prReview.working).title).toBe('Your agent is working on round 2');
   });
 
-  it('waits for the maintainers with nothing to do', () => {
+  it("waits for the maintainers: Learn's ways on, Contribute's nothing to do", () => {
     expect(box(prReview.sent)).toMatchObject({
       title: 'Round 2 is sent. Waiting for the maintainers',
       note: 'Nothing is needed from you.',
-      actions: [],
     });
+    expect(ids(prReview.sent)).toEqual(['lessonQuestions', 'lessonIssues', 'course']);
     expect(box(prReview.sent).text).toContain('went to the same pull request today');
+    expect(ids(prPage({ ...prReview.sent, lesson: null }))).toEqual([]);
+    expect(ids(prPage({ ...prReview.sent, made: 'CONTRIBUTE', lesson: null }))).toEqual([]);
   });
 
   it('puts one thing only the person can do in the box, with its own action', () => {
     expect(box(prOnlyYouPage('cla'))).toMatchObject({
       title: 'Sign the project’s agreement',
-      actions: [{ id: 'onlyYou', label: 'Sign it on GitHub', url: 'https://cla.example.org/harbor-kit/relay' }],
+      actions: [{ id: 'onlyYou', label: 'Sign it', url: 'https://cla.example.org/harbor-kit/relay' }],
     });
     expect(ids(prOnlyYouPage('dco'))).toEqual(['onlyYou', 'onlyYouAlt']);
     expect(box(prOnlyYouPage('replies_failed')).actions.map((action) => action.label)).toEqual([
@@ -262,9 +264,15 @@ describe('the box', () => {
       title: 'The agent stopped before a pull request',
       actions: [{ id: 'retry', label: 'Try again' }, { id: 'issues' }],
     });
-    expect(box(prEnds.stoppedEarly, { retryLabel: 'Retry with a budget of $4.00' }).actions[0].label).toBe(
-      'Retry with a budget of $4.00',
-    );
+    expect(box(prContribute.stoppedAtLimit, { stoppedAtLimit: true })).toMatchObject({
+      quiet: true,
+      title: 'Round 2 stopped at your limit',
+      actions: [
+        { id: 'retry', label: 'Try again' },
+        { id: 'github', label: 'Finish it by hand on GitHub', url: 'https://github.com/harbor-kit/relay/pull/58' },
+      ],
+    });
+    expect(box(prEnds.mergedSkipped).title).toBe('Merged after 2 rounds. Your code is in harbor-kit/relay');
     expect(box(prEnds.discarded)).toMatchObject({ quiet: true, title: 'You discarded this fix' });
   });
 

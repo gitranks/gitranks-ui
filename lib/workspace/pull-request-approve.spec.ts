@@ -48,7 +48,13 @@ describe('the card', () => {
       button: 'Send the pull request',
       ready: true,
     });
-    expect(approveCardOf(prApprovals.send, draft, 'sending')).toMatchObject({ button: 'Sending…', ready: false });
+    // A send under way comes first, whatever else the card would say.
+    for (const githubAllowed of [true, false]) {
+      expect(approveCardOf({ ...prApprovals.send, githubAllowed }, draft, 'sending')).toMatchObject({
+        button: 'Sending…',
+        ready: false,
+      });
+    }
   });
 
   it('waits while something is needed, and names it', () => {
@@ -79,6 +85,9 @@ describe('the key that sends', () => {
     expect(isSendKey(key({}))).toBe(false);
     expect(isSendKey(key({ ctrlKey: true, shiftKey: true }))).toBe(false);
     expect(isSendKey(key({ key: 'a', ctrlKey: true }))).toBe(false);
+    // The Enter that ends a word an input method composes never sends.
+    expect(isSendKey({ ...key({ ctrlKey: true }), isComposing: true })).toBe(false);
+    expect(isSendKey({ ...key({ ctrlKey: true }), keyCode: 229 })).toBe(false);
   });
 
   it('is named as the platform names it', () => {

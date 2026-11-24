@@ -38,14 +38,20 @@ export const neededLineOf = (needs: string[]) =>
 /** Where the card stands: one note and its button. `sending`: the press went through and waits for the answer. */
 export type ApproveCardState = 'ready' | 'sending' | 'failed';
 
-export type ApproveNote = { tone: 'plain' | 'warning' | 'error'; lead: string | null; text: string };
+/** `walkthrough`: the lead is a link to the walkthrough, when the page gives its address. */
+export type ApproveNote = {
+  tone: 'plain' | 'warning' | 'error';
+  lead: string | null;
+  text: string;
+  link?: 'walkthrough';
+};
 
 export const PUBLIC_PAGE_NOTE =
   'Nothing has reached GitHub yet. Once it is sent, it opens in your name, the project’s maintainers see it, and GitRanks shows on a public page how it was made.';
 
 /**
- * The card's note and button, in order of what blocks the send: the walkthrough not passed (Learn), something needed,
- * a send that failed, GitHub's permission, then the plain note about the public page.
+ * The card's note and button, in order of what blocks the send: a send under way, the walkthrough not passed (Learn),
+ * something needed, a send that failed, GitHub's permission, then the plain note about the public page.
  */
 export function approveCardOf(
   approval: Pick<PullRequestApproval, 'titlePrefix' | 'signOffNeeded' | 'githubAllowed' | 'walkthroughPassed'>,
@@ -53,9 +59,17 @@ export function approveCardOf(
   state: ApproveCardState,
 ): { note: ApproveNote; button: string; ready: boolean } {
   const needs = neededOf(approval, draft);
+  if (state === 'sending') {
+    return { note: { tone: 'plain', lead: null, text: PUBLIC_PAGE_NOTE }, button: 'Sending…', ready: false };
+  }
   if (approval.walkthroughPassed === false) {
     return {
-      note: { tone: 'warning', lead: null, text: 'Finish the walkthrough first: the pull request is sent after it.' },
+      note: {
+        tone: 'warning',
+        lead: 'Finish the walkthrough first:',
+        text: 'the pull request is sent after it.',
+        link: 'walkthrough',
+      },
       button: 'Send the pull request',
       ready: false,
     };
@@ -89,16 +103,23 @@ export function approveCardOf(
       ready: true,
     };
   }
-  return {
-    note: { tone: 'plain', lead: null, text: PUBLIC_PAGE_NOTE },
-    button: state === 'sending' ? 'Sending…' : 'Send the pull request',
-    ready: state !== 'sending',
-  };
+  return { note: { tone: 'plain', lead: null, text: PUBLIC_PAGE_NOTE }, button: 'Send the pull request', ready: true };
 }
 
-/** The one key that sends: Ctrl + Enter, or ⌘ + Enter on a Mac. Enter alone, or with Shift or Alt, does nothing. */
-export const isSendKey = (event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'>) =>
-  event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey;
+/**
+ * The one key that sends, on Approve and for a round: Ctrl + Enter, or ⌘ + Enter on a Mac. Enter alone, or with Shift
+ * or Alt, does nothing, and nor does the Enter that ends a word being composed (an input method's).
+ */
+export const isSendKey = (
+  event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'> &
+    Partial<Pick<KeyboardEvent, 'isComposing' | 'keyCode'>>,
+) =>
+  event.key === 'Enter' &&
+  (event.ctrlKey || event.metaKey) &&
+  !event.shiftKey &&
+  !event.altKey &&
+  !event.isComposing &&
+  event.keyCode !== 229;
 
 /** The key's name beside Enter: ⌘ on a Mac, Ctrl elsewhere. */
 export const sendKeyNameOf = (platform: string) => (/mac|iphone|ipad/i.test(platform) ? '⌘' : 'Ctrl');

@@ -98,7 +98,7 @@ export function StageStrip({ page }: { page: Pick<PullRequestPage, 'stages' | 's
           data-step-state={step.state}
         >
           <StepMark step={step} />
-          <span className={cn(!named(step) && 'max-sm:hidden')}>{step.label}</span>
+          <span className={cn(!named(step) && 'max-sm:sr-only')}>{step.label}</span>
           <span className="sr-only">{STATE_WORDS[step.state]}</span>
         </li>
       ))}

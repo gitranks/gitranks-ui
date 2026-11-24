@@ -1,5 +1,6 @@
 import type { Route } from 'next';
 
+import { githubUrlOf } from './attempt-format';
 import type {
   PullRequestBox,
   PullRequestCheckClass,
@@ -227,7 +228,10 @@ export function walkthroughCardOf(page: Pick<PullRequestPage, 'walkthrough' | 'b
   if (page.box === 'WRITING_WALKTHROUGH' || page.box === 'REWRITING_WALKTHROUGH') {
     return { text: 'Being written.', link: false, quiet: true };
   }
-  if (!card?.questions) return { text: 'Written after the fix.', link: false, quiet: true };
+  if (!card?.questions) {
+    const ended = page.box === 'DISCARDED' || page.box === 'STOPPED';
+    return { text: ended ? 'No walkthrough.' : 'Written after the fix.', link: false, quiet: true };
+  }
   if (card.passedAt) {
     const passed = onDayOf(card.passedAt, now);
     if (page.number === null) {
@@ -305,9 +309,9 @@ type OnlyYouWords = { title: string; action: string | null; alt?: string; extern
 const ONLY_YOU: Record<string, OnlyYouWords> = {
   cla: {
     title: 'Sign the project’s agreement',
-    action: 'Sign it on GitHub',
+    action: 'Sign it',
     external: true,
-    short: 'Sign it on GitHub',
+    short: 'Sign it',
   },
   dco: {
     title: 'Sign off your commits',
@@ -361,12 +365,25 @@ const ONLY_YOU: Record<string, OnlyYouWords> = {
   },
 };
 
+/**
+ * The address an item only the person can do leads to, when it is safe to open: GitHub's own pages, or for a CLA (signed
+ * on the service the project chose) any `https:` page. Null otherwise: the item then has no link.
+ */
+export function onlyYouUrlOf(item: Pick<PullRequestOnlyYou, 'kind' | 'url'>): string | null {
+  if (item.kind !== 'cla') return githubUrlOf(item.url);
+  try {
+    return item.url && new URL(item.url).protocol === 'https:' ? item.url : null;
+  } catch {
+    return null;
+  }
+}
+
 /** The words of an item only the person can do; a kind this UI does not know gets GitHub's page, when it has one. */
 export function onlyYouWordsOf(item: Pick<PullRequestOnlyYou, 'kind' | 'url'>): OnlyYouWords {
   return (
     ONLY_YOU[item.kind] ?? {
       title: 'Only you can do this',
-      action: item.url ? 'See it on GitHub' : null,
+      action: githubUrlOf(item.url) ? 'See it on GitHub' : null,
       external: true,
       short: 'See it on GitHub',
     }
@@ -377,6 +394,12 @@ export function onlyYouWordsOf(item: Pick<PullRequestOnlyYou, 'kind' | 'url'>): 
 export const OUTCOME_WORDS: Record<PullRequestOutcome, string> = {
   SILENT: 'The maintainers have not answered for a while. That happens often, and it needs nothing from you.',
   REPO_OUT: 'This project asked GitRanks to stop: we post nothing more here. You can go on by hand on GitHub.',
+};
+
+/** A link to the pull request on GitHub, only when the address is GitHub's own. */
+const githubLinkOf = (url: string | null, label: string) => {
+  const safe = githubUrlOf(url);
+  return safe ? { label, url: safe } : null;
 };
 
 /** Who works: the agent's name when the page knows it, the hosted agent, or "your agent". */
@@ -400,7 +423,7 @@ function waysOn(page: Pick<PullRequestPage, 'made' | 'lesson' | 'lessonToAsk'>):
   ];
 }
 
-/** The newest round, or the one the box is about. */
+/** The round the box is about, or the newest: the box's words and its button both read this one. */
 export function roundOf(page: Pick<PullRequestPage, 'round' | 'rounds'>): PullRequestRound | null {
   return (
     (page.round !== null ? page.rounds.find((each) => each.n === page.round) : null) ??
@@ -409,19 +432,28 @@ export function roundOf(page: Pick<PullRequestPage, 'round' | 'rounds'>): PullRe
   );
 }
 
+/** The number of the round the box is about: its words and its button's press both use it. */
+export const boxRoundOf = (page: Pick<PullRequestPage, 'round' | 'rounds'>) => roundOf(page)?.n ?? page.round ?? 1;
+
+/** The round's own button, "Start round N", is Contribute's hosted agent's; Learn's rounds are the person's agent's. */
+export const startsRounds = (page: Pick<PullRequestPage, 'made' | 'hosted'>) => page.hosted && page.made !== 'LEARN';
+
+/** Rounds that count toward "Merged after N rounds": a round marked as not needed was never answered. */
+export const answeredRoundsOf = (page: Pick<PullRequestPage, 'rounds'>) =>
+  page.rounds.filter((round) => round.state !== 'NOT_NEEDED').length;
+
 /**
- * The box's words for the page's state. `agent`: the agent's name when known ("Claude Code"); `retryLabel`: the
- * retry's words when the stop allows a boost ("Retry with a budget of $4.00"). The part leaves out an action the page
- * gives it no link or press for (a retry the stop does not allow).
+ * The box's words for the page's state. `agent`: the agent's name when known ("Claude Code"); `stoppedAtLimit`: a
+ * hosted round stopped at the person's limit. The part leaves out an action the page gives it no link or press for.
  */
 export function boxOf(
   page: PullRequestPage,
-  { agent, now, retryLabel }: { agent?: string | null; now: Date; retryLabel?: string | null },
+  { agent, now, stoppedAtLimit = false }: { agent?: string | null; now: Date; stoppedAtLimit?: boolean },
 ): BoxWords {
   const who = agentOf(page, agent);
   const learn = page.made === 'LEARN';
   const round = roundOf(page);
-  const n = round?.n ?? page.round ?? 1;
+  const n = boxRoundOf(page);
   const card = page.walkthrough;
   const base = { quiet: false, actions: [] as BoxAction[] };
   switch (page.box) {
@@ -476,7 +508,7 @@ export function boxOf(
       return {
         ...base,
         title: 'Opening your pull request',
-        text: 'This takes under a minute. You can stay or leave.',
+        text: 'You can stay or leave: this page moves on by itself.',
         // Only while autopilot is about to send it: the page gives the press then.
         actions: [{ id: 'veto', label: 'Don’t send it' }],
       };
@@ -499,22 +531,24 @@ export function boxOf(
         text: item.text,
         actions: [
           ...(words.action
-            ? [{ id: 'onlyYou' as const, label: words.action, url: words.external ? item.url : null }]
+            ? [{ id: 'onlyYou' as const, label: words.action, url: words.external ? onlyYouUrlOf(item) : null }]
             : []),
           ...(words.alt ? [{ id: 'onlyYouAlt' as const, label: words.alt, url: null }] : []),
         ],
       };
     }
-    case 'ROUND_WAITING':
+    case 'ROUND_WAITING': {
+      const starts = startsRounds(page);
       return {
         ...base,
         title: round ? roundAskTitleOf(round) : `Round ${n} has something to answer`,
-        text: page.hosted
+        text: starts
           ? 'Your agent reads them, changes the code and drafts the replies. Nothing is sent before you approve the round.'
           : `Paste this in ${agent?.trim() || 'your agent'}. Your agent changes the code and drafts the replies; nothing is sent before you approve the round.`,
-        prompt: page.hosted ? null : (round?.prompt ?? null),
-        actions: page.hosted ? [{ id: 'startRound', label: `Start round ${n}` }] : [],
+        prompt: starts ? null : (round?.prompt ?? null),
+        actions: starts ? [{ id: 'startRound', label: `Start round ${n}` }] : [],
       };
+    }
     case 'ROUND_WORKING':
       return {
         ...base,
@@ -544,7 +578,16 @@ export function boxOf(
     }
     case 'WITH_MAINTAINERS': {
       const sent = page.rounds.filter((each) => each.state === 'SENT').sort((a, b) => b.n - a.n)[0];
-      return sent
+      // Learn's ways on while the maintainers read: the lesson's, each shown when the page gives its address.
+      const ways: BoxAction[] =
+        learn && page.lesson
+          ? [
+              { id: 'lessonQuestions', label: 'Learn the lesson it used' },
+              { id: 'lessonIssues', label: 'Another issue on this lesson' },
+              { id: 'course', label: 'Back to your course' },
+            ]
+          : [];
+      const words: BoxWords = sent
         ? {
             ...base,
             title: `Round ${sent.n} is sent. Waiting for the maintainers`,
@@ -557,9 +600,11 @@ export function boxOf(
             text: 'We keep reading the pull request and bring you back when something needs you.',
             note: 'Nothing is needed from you.',
           };
+      return { ...words, actions: ways };
     }
     case 'MERGED': {
-      const after = page.rounds.length > 1 ? ` after ${page.rounds.length} rounds` : '';
+      const answered = answeredRoundsOf(page);
+      const after = answered > 1 ? ` after ${answered} rounds` : '';
       return {
         ...base,
         title: `Merged${after}. Your code is in ${page.repo}`,
@@ -578,17 +623,29 @@ export function boxOf(
           learn && card?.passedAt
             ? 'The pull request was closed without a merge. The walkthrough you finished stays in your progress.'
             : 'The pull request was closed without a merge.',
-        textLink: page.url ? { label: 'See it on GitHub', url: page.url } : null,
+        textLink: githubLinkOf(page.url, 'See it on GitHub'),
         actions: [{ id: 'issues', label: 'Back to Issues' }],
       };
     case 'STOPPED':
+      if (page.number !== null && stoppedAtLimit) {
+        return {
+          ...base,
+          quiet: true,
+          title: `Round ${n} stopped at your limit`,
+          text: 'Nothing from this round reached GitHub. Try it again, or finish it by hand on the pull request.',
+          actions: [
+            { id: 'retry', label: 'Try again' },
+            { id: 'github', label: 'Finish it by hand on GitHub', url: githubUrlOf(page.url) },
+          ],
+        };
+      }
       return page.number !== null
         ? {
             ...base,
             quiet: true,
             title: 'GitRanks work on this pull request stopped',
             text: 'Your agent will not start another round here, and we post nothing more. The pull request stays open: you can go on by hand on GitHub.',
-            textLink: page.url ? { label: 'Open it on GitHub', url: page.url } : null,
+            textLink: githubLinkOf(page.url, 'Open it on GitHub'),
             actions: [{ id: 'issues', label: 'Back to Issues' }],
           }
         : {
@@ -597,7 +654,7 @@ export function boxOf(
             title: `${page.hosted ? 'The hosted agent' : 'The agent'} stopped before a pull request`,
             text: 'Nothing reached GitHub, and it does not count against you.',
             actions: [
-              { id: 'retry', label: retryLabel || 'Try again' },
+              { id: 'retry', label: 'Try again' },
               { id: 'issues', label: 'Back to Issues' },
             ],
           };

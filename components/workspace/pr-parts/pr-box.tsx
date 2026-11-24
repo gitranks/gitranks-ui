@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/workspace/copy-button';
 import { EnterKey } from '@/components/workspace/masked-issue/facts';
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
+import { SendKey, useSendKey, useSendKeyName } from '@/components/workspace/pr-parts/send-key';
 import { cn } from '@/lib/utils';
 import {
   type BoxAction,
   type BoxActionId,
   boxOf,
+  boxRoundOf,
   OUTCOME_WORDS,
   openingStepOf,
   type PullRequestLinks,
@@ -37,11 +39,11 @@ export type PullRequestBoxProps = PullRequestBoxPresses & {
   links?: PullRequestLinks;
   /** The agent's name when known ("Claude Code"); "your agent" otherwise. */
   agent?: string | null;
-  /** The retry's words when the stop allows a boost ("Retry with a budget of $4.00"). */
-  retryLabel?: string | null;
+  /** A hosted round stopped at the person's limit: "Try again", or finish it by hand on GitHub. */
+  stoppedAtLimit?: boolean;
   /** A press went through and waits for the API: the buttons wait. */
   pending?: boolean;
-  /** Enter does the main action (the page's one Enter key). */
+  /** Enter does the main action (the page's one Enter key); a round's send takes Ctrl + Enter, as Approve does. */
   enterKey?: boolean;
 };
 
@@ -63,7 +65,7 @@ function shownOf(
   actions: BoxAction[],
   { page, links = {}, ...presses }: Pick<PullRequestBoxProps, 'page' | 'links'> & PullRequestBoxPresses,
 ): Shown[] {
-  const round = page.round ?? page.rounds[0]?.n ?? 1;
+  const round = boxRoundOf(page);
   const kind = page.onlyYou[0]?.kind ?? '';
   const pressOf: Partial<Record<BoxActionId, (() => void) | undefined>> = {
     startRound: presses.onStartRound && (() => presses.onStartRound?.(round)),
@@ -89,7 +91,18 @@ function shownOf(
 const MAIN = 'h-10 px-6 font-semibold max-sm:min-h-11';
 const OTHER = 'h-9 px-4 max-sm:min-h-11';
 
-function ActionButton({ shown, main, pending }: { shown: Shown; main: boolean; pending: boolean }) {
+function ActionButton({
+  shown,
+  main,
+  pending,
+  sendKey,
+}: {
+  shown: Shown;
+  main: boolean;
+  pending: boolean;
+  /** The main action sends a round: its key is Ctrl + Enter (named so), not Enter. */
+  sendKey: string | null;
+}) {
   const variant = main ? 'default' : 'outline';
   const className = main ? MAIN : OTHER;
   const data = main ? { 'data-main': '' } : {};
@@ -97,7 +110,7 @@ function ActionButton({ shown, main, pending }: { shown: Shown; main: boolean; p
     <>
       {shown.action.label}
       {shown.external ? <span aria-hidden="true">↗</span> : null}
-      {main ? <EnterKey /> : null}
+      {main ? sendKey ? <SendKey name={sendKey} /> : <EnterKey /> : null}
     </>
   );
   if (shown.external) {
@@ -105,7 +118,7 @@ function ActionButton({ shown, main, pending }: { shown: Shown; main: boolean; p
       <Button asChild variant={variant} className={className}>
         <a href={shown.external} target="_blank" rel="noopener noreferrer" {...data}>
           {label}
-          <span className="sr-only">(opens GitHub)</span>
+          <span className="sr-only">(opens in a new tab)</span>
         </a>
       </Button>
     );
@@ -173,17 +186,21 @@ export function PullRequestBox({
   now,
   links,
   agent,
-  retryLabel,
+  stoppedAtLimit = false,
   pending = false,
   enterKey = true,
   ...presses
 }: PullRequestBoxProps) {
-  const words = boxOf(page, { agent, now, retryLabel });
+  const words = boxOf(page, { agent, now, stoppedAtLimit });
   const shown = shownOf(words.actions, { page, links, ...presses });
   const actions = useRef<HTMLDivElement>(null);
+  const keyName = useSendKeyName();
   // The main action: the first one, never "Don't send it", which only stops what is under way.
   const mainOf = (each: Shown, index: number) => index === 0 && each.action.id !== 'veto';
-  const hasMain = enterKey && (shown.some(mainOf) || !!words.prompt);
+  // Sending a round goes to GitHub as a whole: Ctrl + Enter, as on Approve; Enter alone does nothing then.
+  const sendRound = shown.find((each, index) => mainOf(each, index) && each.action.id === 'sendRound');
+  const hasMain = enterKey && !sendRound && (shown.some(mainOf) || !!words.prompt);
+  useSendKey(enterKey && sendRound?.onPress && !pending ? sendRound.onPress : null);
   useEnterKey(
     hasMain
       ? () => {
@@ -197,7 +214,13 @@ export function PullRequestBox({
   if (words.prompt) row = <PromptToCopy prompt={words.prompt} />;
   else if (shown.length) {
     row = shown.map((each, index) => (
-      <ActionButton key={each.action.id} shown={each} main={mainOf(each, index)} pending={pending} />
+      <ActionButton
+        key={each.action.id}
+        shown={each}
+        main={mainOf(each, index)}
+        pending={pending}
+        sendKey={each === sendRound ? keyName : null}
+      />
     ));
   } else if (words.note) row = <span className="text-sm text-muted-foreground">{words.note}</span>;
 
@@ -225,7 +248,7 @@ export function PullRequestBox({
               rel="noopener noreferrer"
             >
               {words.textLink.label} <span aria-hidden="true">↗</span>
-              <span className="sr-only">(opens GitHub)</span>
+              <span className="sr-only">(opens in a new tab)</span>
             </a>
           </>
         ) : null}

@@ -11,11 +11,15 @@ import { FixLinkLine, PullRequestCards } from './pr-cards';
 import { StageStrip } from './stage-strip';
 import {
   PR_NOW,
+  prCla,
   prContribute,
   prEnds,
   prLinks,
   prOnlyYouPage,
+  prPage,
   prReview,
+  prRoundOne,
+  prRoundReady,
   prStages,
 } from '@/lib/workspace/__fixtures__/pull-request';
 import type { PullRequestPage } from '@/lib/workspace/pull-request-page.types';
@@ -40,22 +44,21 @@ afterEach(() => {
 
 const render = (node: ReactNode) => act(async () => root.render(node));
 const text = () => container.textContent ?? '';
+/** A control's words, without the key it takes, the arrow and the words for a new tab. */
+const wordsOf = (element: Element) =>
+  (element.textContent ?? '').replace(/Ctrl|⌘|⏎|↗|\(opens in a new tab\)/g, '').trim();
 const control = (label: string) =>
-  [...container.querySelectorAll<HTMLElement>('button, a')].find((each) =>
-    each.textContent?.replace('⏎', '').replace('(opens GitHub)', '').replace('↗', '').trim().startsWith(label),
-  ) ?? null;
+  [...container.querySelectorAll<HTMLElement>('button, a')].find((each) => wordsOf(each).startsWith(label)) ?? null;
 const labels = () =>
-  [...container.querySelectorAll<HTMLElement>('[data-box-actions] a, [data-box-actions] button')].map((each) =>
-    each.textContent?.replace('⏎', '').replace('(opens GitHub)', '').replace('↗', '').trim(),
-  );
+  [...container.querySelectorAll<HTMLElement>('[data-box-actions] a, [data-box-actions] button')].map(wordsOf);
 const press = (element: HTMLElement | null) =>
   act(async () => {
     if (!element) throw new Error('No control');
     element.click();
   });
-const enter = () =>
+const enter = (init: KeyboardEventInit = {}) =>
   act(async () => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, ...init }));
   });
 const box = (page: PullRequestPage, props: Partial<Parameters<typeof PullRequestBox>[0]> = {}) =>
   render(<PullRequestBox page={page} now={PR_NOW} links={prLinks} agent="Claude Code" {...props} />);
@@ -104,7 +107,7 @@ describe('the strip', () => {
     const states = [...container.querySelectorAll('li')].map((li) => li.getAttribute('data-step-state'));
     expect(states).toEqual(['done', 'done', 'current', 'todo', 'todo']);
     const named = [...container.querySelectorAll('li > span:nth-child(2)')].map(
-      (span) => !span.className.includes('max-sm:hidden'),
+      (span) => !span.className.includes('max-sm:sr-only'),
     );
     expect(named).toEqual([false, false, true, false, false]);
     await render(<StageStrip page={prContribute.asked} />);
@@ -149,6 +152,7 @@ describe('the box', () => {
     await box(prStages.opening);
     expect(container.querySelector('[data-opening] [role="img"]')?.getAttribute('aria-label')).toBe('Step 4 of 5');
     expect(text()).toContain('Step 4 of 5 · sending your change to GitHub');
+    expect(text()).not.toContain('minute');
     expect(labels()).toEqual([]);
     const onVeto = vi.fn();
     await box(prStages.opening, { onVeto });
@@ -174,21 +178,65 @@ describe('the box', () => {
     await press(control('Start round 2'));
     expect(onStartRound).toHaveBeenCalledWith(2);
 
-    const onSendRound = vi.fn();
     const onSendBack = vi.fn();
-    await box(prReview.ready, { onSendRound, onSendBack });
+    await box(prReview.ready, { onSendRound: vi.fn(), onSendBack });
     expect(labels()).toEqual(['Send round 2: 2 commits and 8 replies', 'Send it back to your agent']);
-    await enter();
-    expect(onSendRound).toHaveBeenCalledWith(2);
     await press(control('Send it back to your agent'));
     expect(onSendBack).toHaveBeenCalledOnce();
   });
 
+  it('sends a round on Ctrl + Enter, as Approve does: never on Enter alone, nor while a word is composed', async () => {
+    const onSendRound = vi.fn();
+    await box(prReview.ready, { onSendRound });
+    const send = control('Send round 2');
+    expect(send?.querySelector('[data-send-key]')?.textContent).toBe('Ctrl⏎');
+    expect(send?.textContent).not.toMatch(/^[^C]*⏎$/);
+    await enter();
+    expect(onSendRound).not.toHaveBeenCalled();
+    await enter({ ctrlKey: true, isComposing: true });
+    expect(onSendRound).not.toHaveBeenCalled();
+    await enter({ ctrlKey: true });
+    expect(onSendRound).toHaveBeenCalledWith(2);
+    await enter({ metaKey: true });
+    expect(onSendRound).toHaveBeenCalledTimes(2);
+    await box(prReview.ready, { onSendRound, pending: true });
+    await enter({ ctrlKey: true });
+    expect(onSendRound).toHaveBeenCalledTimes(2);
+  });
+
+  it('names and presses the same round: the one the box is about, else the newest', async () => {
+    const onSendRound = vi.fn();
+    await box(prPage({ ...prReview.ready, round: null, rounds: [prRoundOne, prRoundReady] }), { onSendRound });
+    await press(control('Send round 2'));
+    expect(onSendRound).toHaveBeenCalledWith(2);
+  });
+
+  it('never starts a round in Learn: the prompt is for the person’s own agent', async () => {
+    const onStartRound = vi.fn();
+    await box(prPage({ ...prReview.asked, hosted: true }), { onStartRound });
+    expect(control('Start round 2')).toBeNull();
+    expect(container.querySelector('[data-prompt]')).not.toBeNull();
+  });
+
+  it("offers Learn's ways on while the maintainers read, each only with its address", async () => {
+    await box(prReview.sent);
+    expect(labels()).toEqual(['Learn the lesson it used', 'Another issue on this lesson', 'Back to your course']);
+    expect(control('Back to your course')?.getAttribute('href')).toBe(prLinks.course);
+    await box(prReview.sent, { links: { ...prLinks, lessonQuestions: null, course: null } });
+    expect(labels()).toEqual(['Another issue on this lesson']);
+    await box(prPage({ ...prReview.sent, lesson: null, lessonToAsk: false }));
+    expect(labels()).toEqual([]);
+    expect(text()).toContain('Nothing is needed from you.');
+    await box(prPage({ ...prReview.sent, made: 'CONTRIBUTE', lesson: null }));
+    expect(labels()).toEqual([]);
+  });
+
   it('puts what only the person can do in the box: GitHub in a new tab, or a press', async () => {
     await box(prOnlyYouPage('cla'));
-    const sign = control('Sign it on GitHub');
+    const sign = control('Sign it');
     expect(sign?.getAttribute('href')).toBe('https://cla.example.org/harbor-kit/relay');
     expect(sign?.getAttribute('target')).toBe('_blank');
+    expect(sign?.textContent).toContain('(opens in a new tab)');
     const onOnlyYou = vi.fn();
     await box(prOnlyYouPage('dco'), { onOnlyYou });
     await press(control('Sign off and push'));
@@ -205,11 +253,43 @@ describe('the box', () => {
     expect(control('See it on GitHub')?.getAttribute('href')).toBe('https://github.com/harbor-kit/relay/pull/58');
     expect(labels()).toEqual(['Back to Issues']);
     const onRetry = vi.fn();
-    await box(prEnds.stoppedEarly, { onRetry, retryLabel: 'Retry with a budget of $4.00' });
-    await press(control('Retry with a budget of $4.00'));
+    await box(prEnds.stoppedEarly, { onRetry });
+    await press(control('Try again'));
     expect(onRetry).toHaveBeenCalledOnce();
     await box(prEnds.stoppedEarly);
     expect(labels()).toEqual(['Back to Issues']);
+  });
+
+  it('opens only safe addresses in a new tab: GitHub, or any https page for a CLA', async () => {
+    await box(
+      prPage({
+        ...prOnlyYouPage('conversation'),
+        onlyYou: [{ ...prCla, kind: 'conversation', url: 'https://evil.example/x' }],
+      }),
+    );
+    expect(control('Answer on GitHub')).toBeNull();
+    await box(prPage({ ...prOnlyYouPage('cla'), onlyYou: [{ ...prCla, url: 'javascript:alert(1)' }] }));
+    expect(control('Sign it')).toBeNull();
+    await box(prPage({ ...prEnds.closed, url: 'https://evil.example/pull/58' }));
+    expect(control('See it on GitHub')).toBeNull();
+  });
+
+  it('stops a hosted round at the limit: try again, or finish it by hand, with no amount', async () => {
+    const onRetry = vi.fn();
+    await box(prContribute.stoppedAtLimit, { onRetry, stoppedAtLimit: true });
+    expect(container.querySelector('h2')?.textContent).toBe('Round 2 stopped at your limit');
+    expect(labels()).toEqual(['Try again', 'Finish it by hand on GitHub']);
+    expect(control('Finish it by hand on GitHub')?.getAttribute('href')).toBe(
+      'https://github.com/harbor-kit/relay/pull/58',
+    );
+    expect(text()).not.toContain('$');
+    await press(control('Try again'));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it('counts only the rounds answered in "Merged after N rounds"', async () => {
+    await box(prEnds.mergedSkipped);
+    expect(container.querySelector('h2')?.textContent).toBe('Merged after 2 rounds. Your code is in harbor-kit/relay');
   });
 
   it('says what became of the pull request under the box', async () => {
@@ -241,6 +321,11 @@ describe('the two cards', () => {
     expect(control('See your answers')?.getAttribute('href')).toBe(prLinks.answers);
   });
 
+  it('says there is no walkthrough when the fix stopped before one', async () => {
+    await render(<PullRequestCards page={prEnds.stoppedEarly} now={PR_NOW} links={prLinks} />);
+    expect(container.querySelector('[data-card="walkthrough"]')?.textContent).toBe('The walkthroughNo walkthrough.');
+  });
+
   it("has the pull request's text in Contribute, in the walkthrough's place", async () => {
     await render(<PullRequestCards page={prContribute.asked} now={PR_NOW} links={prLinks} />);
     expect(container.querySelector('[data-card="walkthrough"]')).toBeNull();
@@ -255,15 +340,23 @@ describe('the two cards', () => {
 });
 
 describe('also waiting for you', () => {
-  it('lists the others under the box, each with its own button', async () => {
-    await render(<AlsoWaiting onlyYou={prReview.asked.onlyYou} />);
+  it('lists the others under a box about one of them, each with its own button', async () => {
+    const onlyYou = [prCla, ...prOnlyYouPage('dco').onlyYou];
+    await render(<AlsoWaiting box="ONLY_YOU" onlyYou={onlyYou} onOnlyYou={vi.fn()} />);
     expect(container.querySelector('h2')?.textContent).toBe('Also waiting for you');
     expect(container.querySelectorAll('li')).toHaveLength(1);
-    expect(control('Sign it on GitHub')?.getAttribute('target')).toBe('_blank');
+    expect(control('Sign off and push')).not.toBeNull();
   });
 
-  it('is left out when only one thing waits', async () => {
-    await render(<AlsoWaiting onlyYou={prOnlyYouPage('cla').onlyYou} />);
+  it('lists the only one waiting when the box is about a round', async () => {
+    await render(<AlsoWaiting box={prReview.asked.box} onlyYou={prReview.asked.onlyYou} />);
+    expect(prReview.asked.onlyYou).toHaveLength(1);
+    expect(container.querySelectorAll('li')).toHaveLength(1);
+    expect(control('Sign it')?.getAttribute('target')).toBe('_blank');
+  });
+
+  it('is left out when the box shows the only one waiting', async () => {
+    await render(<AlsoWaiting box="ONLY_YOU" onlyYou={prOnlyYouPage('cla').onlyYou} />);
     expect(container.querySelector('[data-also-waiting]')).toBeNull();
   });
 });

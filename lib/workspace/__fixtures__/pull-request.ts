@@ -282,7 +282,7 @@ export const prReview = {
     box: 'ROUND_WAITING',
     round: 2,
     rounds: [prRound(), prRoundOne],
-    onlyYou: [prCla, { kind: 'cla', text: 'Sign the project’s agreement (CLA).', url: prCla.url }],
+    onlyYou: [prCla],
   }),
   working: prPage({
     ...REVIEW_PAGE,
@@ -357,6 +357,11 @@ export const prOnlyYou: Record<string, PullRequestOnlyYou> = {
     text: 'GitHub asks again for permission to push to your fork. Nothing else changes, and the round is sent right after.',
     url: null,
   },
+  check_yours: {
+    kind: 'check_yours',
+    text: 'The check “license/cla” needs something from your GitHub account, not from the code.',
+    url: 'https://github.com/harbor-kit/relay/pull/58/checks',
+  },
   bot_blocked: {
     kind: 'bot_blocked',
     text: 'A bot blocks the merge until the pull request shows the fix working, usually with screenshots.',
@@ -386,6 +391,14 @@ export const prEnds = {
   stoppedEarly: prPage({ stage: 'FIX', box: 'STOPPED', change: null, walkthrough: null, lessonConfirmed: false }),
   discarded: prPage({ stage: 'APPROVE', box: 'DISCARDED', walkthrough: PASSED }),
   silent: prPage({ ...REVIEW_PAGE, box: 'WITH_MAINTAINERS', rounds: [prRoundSent, prRoundOne], outcome: 'SILENT' }),
+  /** Merged after two answered rounds and one marked as not needed: "after 2 rounds". */
+  mergedSkipped: prPage({
+    ...OPENED,
+    stage: 'MERGED',
+    box: 'MERGED',
+    walkthrough: PASSED,
+    rounds: [prRound({ n: 3, state: 'NOT_NEEDED', notNeeded: 'ASKS_NOTHING', prompt: null }), prRoundSent, prRoundOne],
+  }),
 };
 
 /** The same page in Contribute, with a hosted agent: four stages, a button in place of a prompt. */
@@ -401,7 +414,21 @@ export const prContribute = {
     box: 'ROUND_WAITING',
     round: 2,
     rounds: [prRound({ prompt: null }), prRoundOne],
-    onlyYou: [prCla, { kind: 'cla', text: 'Sign the project’s agreement (CLA).', url: prCla.url }],
+    onlyYou: [prCla],
+  }),
+  /** A hosted round that stopped at the person's limit: the pull request stays open on GitHub. */
+  stoppedAtLimit: prPage({
+    ...REVIEW_PAGE,
+    made: 'CONTRIBUTE',
+    hosted: true,
+    lesson: null,
+    lessonToAsk: false,
+    walkthrough: null,
+    stages: ['FIX', 'APPROVE', 'REVIEW', 'MERGED'],
+    box: 'STOPPED',
+    checks: null,
+    round: 2,
+    rounds: [prRound({ prompt: null }), prRoundOne],
   }),
   fixing: prPage({
     made: 'CONTRIBUTE',

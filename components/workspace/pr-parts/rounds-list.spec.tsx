@@ -5,7 +5,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ChecksLine } from './checks-line';
 import { RoundsList, type RoundsListProps } from './rounds-list';
-import { PR_NOW, prChecks, prContribute, prLinks, prReview } from '@/lib/workspace/__fixtures__/pull-request';
+import {
+  PR_NOW,
+  prChecks,
+  prContribute,
+  prLinks,
+  prPage,
+  prReview,
+  prRound,
+  prRoundReady,
+} from '@/lib/workspace/__fixtures__/pull-request';
+import type { PullRequestRound } from '@/lib/workspace/pull-request-page.types';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
 
@@ -76,12 +86,15 @@ describe('a round that waits', () => {
     expect(round(1)?.textContent).toContain('Done');
   });
 
-  it('starts a hosted round with a button in place of the prompt', async () => {
+  it('starts a hosted round with a button in place of the prompt, never in Learn', async () => {
     const onStartRound = vi.fn();
     await rounds({ page: prContribute.asked, onStartRound });
     expect(button('Copy the prompt')).toBeNull();
     await press(button('Start round 2'));
     expect(onStartRound).toHaveBeenCalledWith(2);
+    await rounds({ page: prPage({ ...prReview.asked, hosted: true }), onStartRound });
+    expect(button('Start round 2')).toBeNull();
+    expect(button('Copy the prompt')).not.toBeNull();
   });
 
   it('asks why it is not needed in the buttons’ place, and keeps the reason', async () => {
@@ -95,6 +108,47 @@ describe('a round that waits', () => {
     await press(button('Mark as not needed'));
     await press(button('The checks fail on the main branch too'));
     expect(onMarkNotNeeded).toHaveBeenCalledWith(2, 'FAILS_ON_BASE');
+    // The focus goes back to the round's row, and stays there once the round is drawn as not needed.
+    expect(document.activeElement).toBe(round(2));
+    const marked = prRound({ state: 'NOT_NEEDED', notNeeded: 'FAILS_ON_BASE', prompt: null });
+    await rounds({ page: prPage({ ...prReview.asked, rounds: [marked, ...prReview.asked.rounds.slice(1)] }) });
+    expect(round(2)?.getAttribute('data-round-state')).toBe('NOT_NEEDED');
+    expect(document.activeElement).toBe(round(2));
+  });
+
+  it('opens a round opened again, as the data says, and keeps a round the person closed closed', async () => {
+    await rounds({ page: prReview.notNeeded, onReopen: vi.fn() });
+    expect(round(3)?.querySelector('h3')).toBeNull();
+    const reopened = prPage({
+      ...prReview.notNeeded,
+      rounds: prReview.notNeeded.rounds.map(
+        (each): PullRequestRound => (each.n === 3 ? { ...each, state: 'WAITING', notNeeded: null } : each),
+      ),
+    });
+    await rounds({ page: reopened, onReopen: vi.fn() });
+    expect(round(3)?.querySelector('h3')?.textContent).toBe('Round 3');
+
+    await press(button('Close round 3'));
+    expect(round(3)?.textContent).toContain('Not answered yet.');
+    await rounds({ page: prPage({ ...reopened, checks: null }) });
+    expect(round(3)?.querySelector('h3')).toBeNull();
+  });
+
+  it('says where a closed open round stands, never "Sent ."', async () => {
+    const page = (state: PullRequestRound['state']) =>
+      prPage({ ...prReview.ready, rounds: [prRound({ ...prRoundReady, state, sentAt: null })] });
+    const closed = async (state: PullRequestRound['state']) => {
+      // A fresh list each time: a round the person closed stays closed in the same list.
+      await render(null);
+      await rounds({ page: page(state) });
+      await press(button('Close round 2'));
+      return round(2)?.textContent ?? '';
+    };
+    expect(await closed('WORKING')).toContain('Your agent is working on it.');
+    expect(await closed('READY')).toContain('Ready to send: 2 commits and 8 replies.');
+    await rounds({ page: page('SENT') });
+    expect(round(2)?.textContent).toContain('2 commits and 8 replies, sent.');
+    expect(round(2)?.textContent).not.toContain('sent .');
   });
 
   it('closes to one row and opens again', async () => {
@@ -137,12 +191,39 @@ describe('a round that is ready', () => {
     expect(onReplyLeftOut).toHaveBeenCalledWith(2, 'r_8', true);
 
     await press(button('Edit the reply to dev-okoro'));
-    const field = container.querySelector<HTMLTextAreaElement>('#reply-r_8');
+    const field = container.querySelector<HTMLTextAreaElement>('[data-reply="r_8"] textarea');
     expect(document.activeElement).toBe(field);
     await type(field, 'Reworded: the line names the limit.');
     await press(button('Save the reply'));
     expect(onReplyText).toHaveBeenCalledWith(2, 'r_8', 'Reworded: the line names the limit.');
-    expect(container.querySelector('#reply-r_8')).toBeNull();
+    expect(container.querySelector('[data-reply="r_8"] textarea')).toBeNull();
+    // The focus is back on the reply's own edit button, after saving and after cancelling.
+    expect(document.activeElement).toBe(button('Edit the reply to dev-okoro'));
+    await press(button('Edit the reply to dev-okoro'));
+    await press(button('Cancel'));
+    expect(document.activeElement).toBe(button('Edit the reply to dev-okoro'));
+  });
+
+  it('gives the focus back to the reply after leaving it out or putting it back', async () => {
+    const onReplyLeftOut = vi.fn();
+    const withReply = (leftOut: boolean) =>
+      prPage({
+        ...prReview.ready,
+        rounds: [
+          {
+            ...prRoundReady,
+            replies: prRoundReady.replies.map((reply) => (reply.id === 'r_8' ? { ...reply, leftOut } : reply)),
+          },
+          ...prReview.ready.rounds.slice(1),
+        ],
+      });
+    await rounds({ page: withReply(false), onReplyLeftOut });
+    await press(button('Do not send the reply to dev-okoro'));
+    await rounds({ page: withReply(true), onReplyLeftOut });
+    expect(document.activeElement).toBe(button('Put back the reply to dev-okoro'));
+    await press(button('Put back the reply to dev-okoro'));
+    await rounds({ page: withReply(false), onReplyLeftOut });
+    expect(document.activeElement).toBe(button('Do not send the reply to dev-okoro'));
   });
 
   it('cannot edit the replies of a round that was sent', async () => {

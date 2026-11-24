@@ -2,6 +2,7 @@ import type { Screen } from '../registry';
 import { ADMIN_SCREENS } from './admin';
 import { BADGES_SCREENS } from './badges';
 import { CONTRIBUTE_SCREENS } from './contribute';
+import { HELD_BACK_SCREENS } from './held-back';
 import { LANDING_SCREENS } from './landing';
 import { LEARN_SCREENS } from './learn';
 import { LEARN_FRAME_SCREENS } from './learn-frame';
@@ -15,7 +16,6 @@ import { UNSUNG_HERO_APPLY_SCREENS } from './unsung-hero-apply';
 import { WORKSPACE_SCREENS } from './workspace';
 import { WORKSPACE_LESSON_SCREENS } from './workspace-lesson';
 import { WORKSPACE_PART_SCREENS } from './workspace-parts';
-import { WORKSPACE_PR_PART_SCREENS } from './workspace-pr-parts';
 
 /** Every screen in the catalogue, by area, in the order of `AREAS`. */
 export const SCREENS: Screen[] = [
@@ -32,7 +32,7 @@ export const SCREENS: Screen[] = [
   ...WORKSPACE_LESSON_SCREENS,
   ...START_SCREENS,
   ...WORKSPACE_PART_SCREENS,
-  ...WORKSPACE_PR_PART_SCREENS,
+  ...HELD_BACK_SCREENS,
   ...LEARN_SCREENS,
   ...LEARN_FRAME_SCREENS,
   ...ADMIN_SCREENS,

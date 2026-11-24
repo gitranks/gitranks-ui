@@ -61,6 +61,11 @@ real screen component with fixtures (the same ones the specs use: `__fixtures__`
 `badge/v3/fixtures.ts`) at a width (1280, or 390 for a phone) and a board height. `design/screens/index.ts` gathers
 the areas; `design/registry.ts` has the types.
 
+A screen built ahead of the page that will use it can be held back from the export with `exported: false`, while the
+export is near its file limit: it is listed in `design/screens/held-back.ts`, `design/held-back.spec.tsx` draws each of
+its states in memory (writing no file), and the export stops when a screen carries the flag without being listed. The
+flag comes off once the page uses the screen and its old boards leave.
+
 A screen that isn't in the catalogue yet gets an entry before anyone designs on it. A state is cheap: a fixture and a
 render call. A page that reads its data inside a server component first gets a presentational `…Screen` (or `…Frame`
 for a layout) that takes the data as props, so the catalogue renders the same component the page does.

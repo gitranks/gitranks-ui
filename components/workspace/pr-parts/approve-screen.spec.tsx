@@ -183,11 +183,59 @@ describe("the card's other states", () => {
   });
 });
 
+describe('while it is sent', () => {
+  it('waits: the button says so, and neither key nor button sends again or sends it back', async () => {
+    for (const githubAllowed of [true, false]) {
+      const onSend = vi.fn();
+      const onSendBack = vi.fn();
+      await screen({ approval: { ...prApprovals.send, githubAllowed }, state: 'sending', onSend, onSendBack });
+      const sending = button('Sending…') as HTMLButtonElement | null;
+      expect(sending?.disabled).toBe(true);
+      await key({ ctrlKey: true });
+      expect(onSend).not.toHaveBeenCalled();
+      expect((button('Send it back to your agent') as HTMLButtonElement).disabled).toBe(true);
+    }
+  });
+
+  it('ignores the send key while a word is being composed', async () => {
+    const onSend = vi.fn();
+    await screen({ onSend });
+    await key({ ctrlKey: true, isComposing: true });
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('keeps the field to send it back from sending while a send is under way', async () => {
+    const onSendBack = vi.fn();
+    await screen({ onSendBack, state: 'sending', initialSendBack: 'Keep the default.' });
+    expect((button('Send it back') as HTMLButtonElement).disabled).toBe(true);
+    await key({ ctrlKey: true });
+    expect(onSendBack).not.toHaveBeenCalled();
+  });
+});
+
+describe('before the walkthrough is finished', () => {
+  it('leads to the walkthrough from the note', async () => {
+    await screen({
+      approval: { ...prApprovals.send, walkthroughPassed: false },
+      links: { walkthrough: prLinks.walkthrough },
+    });
+    const link = container.querySelector('[data-note] a');
+    expect(link?.textContent).toBe('Finish the walkthrough first:');
+    expect(link?.getAttribute('href')).toBe(prLinks.walkthrough);
+    expect(note()?.textContent).toBe('Finish the walkthrough first: the pull request is sent after it.');
+  });
+});
+
 describe('Approve in Contribute', () => {
   it('has no line about answers and no lesson after', async () => {
     await screen({ made: 'CONTRIBUTE', approval: prApprovals.contribute });
     expect(text()).not.toContain('walkthrough');
     expect(container.querySelector('[data-lesson-later]')).toBeNull();
     expect(text()).toContain('2 files31 lines added4 removed');
+  });
+
+  it('says a single line in the singular', async () => {
+    await screen({ approval: { ...prApprovals.contribute, change: { ...prApprovals.contribute.change, added: 1 } } });
+    expect(text()).toContain('1 line added');
   });
 });

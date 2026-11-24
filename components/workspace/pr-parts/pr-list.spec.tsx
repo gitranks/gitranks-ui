@@ -38,6 +38,7 @@ const view = (props: Partial<PullRequestListViewProps> = {}) =>
       now={PR_NOW}
       side="contribute"
       issuesHref={'/contribute' as Route}
+      hrefOf={(row) => `/my/pull-requests/${row.repo}/${row.issueNumber}` as Route}
       lessonHrefOf={(lesson) => `/learn/lessons/${lesson.slug}` as Route}
       {...props}
     />,

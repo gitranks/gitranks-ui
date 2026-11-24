@@ -25,6 +25,7 @@ import {
   prReview,
   prStages,
 } from '@/lib/workspace/__fixtures__/pull-request';
+import { pullRequestPath } from '@/lib/workspace/paths';
 import type { PullRequestPage } from '@/lib/workspace/pull-request-page.types';
 
 /**
@@ -61,15 +62,32 @@ const PRESSES = {
   onOnlyYou: noop,
 };
 
+/** How a state draws the box: autopilot about to send it ("Don't send it"), a hosted round stopped at the limit. */
+type UnderOptions = { veto?: boolean; stoppedAtLimit?: boolean };
+
 /** The part of the page under the issue: the strip, the box, what else waits, the two cards, the rounds. */
-function Under({ page, agent = 'Claude Code' }: { page: PullRequestPage; agent?: string }) {
+function Under({
+  page,
+  agent = 'Claude Code',
+  veto = false,
+  stoppedAtLimit = false,
+}: { page: PullRequestPage; agent?: string } & UnderOptions) {
   const open = page.number !== null && (page.box === 'OPEN' || page.box === 'MERGED');
   return (
     <>
       <StageStrip page={page} />
-      <PullRequestBox page={page} now={PR_NOW} links={prLinks} agent={agent} enterKey={false} {...PRESSES} />
+      <PullRequestBox
+        page={page}
+        now={PR_NOW}
+        links={prLinks}
+        agent={agent}
+        enterKey={false}
+        stoppedAtLimit={stoppedAtLimit}
+        onVeto={veto ? noop : undefined}
+        {...PRESSES}
+      />
       <PullRequestOutcomeLine outcome={page.outcome} />
-      <AlsoWaiting onlyYou={page.onlyYou} onOnlyYou={noop} />
+      <AlsoWaiting box={page.box} onlyYou={page.onlyYou} onOnlyYou={noop} />
       <PullRequestCards page={page} now={PR_NOW} links={prLinks} />
       {open && page.made === 'LEARN' ? <FixLinkLine url={prLinks.fix} /> : null}
       <RoundsList
@@ -103,11 +121,11 @@ const pageOf = (page: PullRequestPage, agent?: string) =>
     </>,
   );
 
-const stack = (cases: [string, PullRequestPage][]) =>
+const stack = (cases: [string, PullRequestPage, UnderOptions?][]) =>
   frame(
-    cases.map(([title, page]) => (
+    cases.map(([title, page, options]) => (
       <Case key={title} title={title}>
-        <Under page={page} />
+        <Under page={page} {...options} />
       </Case>
     )),
   );
@@ -121,7 +139,12 @@ const approve = (props: Partial<ApproveScreenProps> = {}) => (
       issueTitle="The retry list grows without limit when a webhook keeps failing"
       approval={prApprovals.send}
       patch={prPatch}
-      links={{ back: prLinks.approve, answers: prLinks.answers, lesson: prLinks.lesson }}
+      links={{
+        back: prLinks.approve,
+        answers: prLinks.answers,
+        lesson: prLinks.lesson,
+        walkthrough: prLinks.walkthrough,
+      }}
       onSend={noop}
       onSendBack={noop}
       initialPane="preview"
@@ -137,6 +160,7 @@ const list = (props: Partial<Parameters<typeof PullRequestListView>[0]> = {}) =>
       now={PR_NOW}
       side="contribute"
       issuesHref={'/contribute' as Route}
+      hrefOf={(row) => pullRequestPath({ repo: row.repo, issue: row.issueNumber })}
       lessonHrefOf={(lesson) => `/learn/lessons/${lesson.slug}` as Route}
       onMore={noop}
       {...props}
@@ -183,6 +207,7 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
             ['4 · The walkthrough is sent back and rewritten', prStages.rewriting],
             ['5 · The walkthrough is finished: write and send the pull request', prStages.approve],
             ['6 · The pull request is being opened: a bar in five parts', prStages.opening],
+            ['6 · Autopilot is about to send it: you can still stop it', prStages.opening, { veto: true }],
             ['7 · The pull request is open', prStages.open],
             ['8 · Merged', prStages.merged],
             ['9 · A fix with no lesson, the walkthrough is ready', prStages.noLesson],
@@ -191,18 +216,19 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
       },
       {
         id: 'review',
-        title: 'Review in Learn: a round is asked, ready, sent, and a comment that asks nothing',
+        title: 'Review in Learn: a round is asked, worked on, ready, sent, and a comment that asks nothing',
         path: PAGE_PATH,
-        height: 5600,
+        height: 6600,
         render: () =>
           frame(
             <>
               <Case title="1 · A round to answer: the prompt for your agent">{pageOf(prReview.asked)}</Case>
-              <Case title="2 · Your agent finished: read the round and send it as a whole">
+              <Case title="2 · Your agent is working on the round">{pageOf(prReview.working)}</Case>
+              <Case title="3 · Your agent finished: read the round and send it as a whole">
                 {pageOf(prReview.ready)}
               </Case>
-              <Case title="3 · Sent: the round closes to one row">{pageOf(prReview.sent)}</Case>
-              <Case title="4 · A comment that asks for nothing: no round opens">{pageOf(prReview.asksNothing)}</Case>
+              <Case title="4 · Sent: the round closes to one row, with Learn’s ways on">{pageOf(prReview.sent)}</Case>
+              <Case title="5 · A comment that asks for nothing: no round opens">{pageOf(prReview.asksNothing)}</Case>
             </>,
           ),
       },
@@ -214,17 +240,19 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
         render: () =>
           frame(
             <>
-              {['cla', 'dco', 'conversation', 'title', 'github', 'bot_blocked', 'replies_failed'].map((kind) => (
-                <Case key={kind} title={`Only you: ${kind}`}>
-                  <PullRequestBox
-                    page={prOnlyYouPage(kind)}
-                    now={PR_NOW}
-                    links={prLinks}
-                    enterKey={false}
-                    {...PRESSES}
-                  />
-                </Case>
-              ))}
+              {['cla', 'dco', 'conversation', 'title', 'github', 'check_yours', 'bot_blocked', 'replies_failed'].map(
+                (kind) => (
+                  <Case key={kind} title={`Only you: ${kind}`}>
+                    <PullRequestBox
+                      page={prOnlyYouPage(kind)}
+                      now={PR_NOW}
+                      links={prLinks}
+                      enterKey={false}
+                      {...PRESSES}
+                    />
+                  </Case>
+                ),
+              )}
               <Case title="A round marked as not needed asks why, in the buttons’ place">
                 <RoundsList
                   page={prReview.asked}
@@ -252,9 +280,10 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
       },
       {
         id: 'ends',
-        title: 'How it ends: merged, closed, stopped, stopped before a change, discarded, no answer for a while',
+        title:
+          'How it ends: merged, closed, stopped, stopped before a change, discarded, no answer, stopped at your limit',
         path: PAGE_PATH,
-        height: 2400,
+        height: 2800,
         render: () =>
           stack([
             ['1 · Merged after two rounds', prEnds.merged],
@@ -263,6 +292,7 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
             ['4 · The agent stopped before any change', prEnds.stoppedEarly],
             ['5 · You discarded the fix', prEnds.discarded],
             ['6 · No answer for a while', prEnds.silent],
+            ['7 · A hosted round stopped at your limit', prContribute.stoppedAtLimit, { stoppedAtLimit: true }],
           ]),
       },
       {

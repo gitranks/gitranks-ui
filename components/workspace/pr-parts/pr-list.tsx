@@ -3,14 +3,14 @@
 import { Check } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { EnterKey } from '@/components/workspace/masked-issue/facts';
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
 import { RefChips } from '@/components/workspace/ref-chips';
 import { cn } from '@/lib/utils';
-import { pullRequestPath, WORKSPACE_ANCHORS } from '@/lib/workspace/paths';
+import { WORKSPACE_ANCHORS } from '@/lib/workspace/paths';
 import { EMPTY_LIST, ENDED_PAGE, groupsOf, limitLineOf, rowWordsOf } from '@/lib/workspace/pull-request-list';
 import type {
   LearnIssueLesson,
@@ -51,6 +51,8 @@ function Mark({ mark, removed }: { mark: PullRequestListMark | null; removed: bo
 export type PullRequestListRowProps = {
   row: PullRequestListRow;
   now: Date;
+  /** The fix's page: the page picks it, an earlier attempt at the same issue having its own address. */
+  href: Route;
   /** The first row of the page: its button is the filled one, with the Enter key. */
   primary?: boolean;
   /** The lesson's page; the lesson is plain text without it. */
@@ -62,9 +64,8 @@ export type PullRequestListRowProps = {
  * mark, then the facts worth having (the agent, the cost of a hosted run, the lesson) and one button that says what
  * opening it does. A fix whose public page was removed keeps its row, its title no longer a link.
  */
-export function PullRequestListRowView({ row, now, primary = false, lessonHrefOf }: PullRequestListRowProps) {
+export function PullRequestListRowView({ row, now, href, primary = false, lessonHrefOf }: PullRequestListRowProps) {
   const words = rowWordsOf(row, now);
-  const href = pullRequestPath({ repo: row.repo, issue: row.issueNumber });
   const button = useRef<HTMLAnchorElement>(null);
   useEnterKey(primary && !row.pageRemoved ? () => button.current?.click() : null);
   const removed = row.pageRemoved;
@@ -155,6 +156,8 @@ export type PullRequestListViewProps = {
   side: 'learn' | 'contribute';
   /** The issues of that side, for the empty page. */
   issuesHref: Route;
+  /** Each fix's page. */
+  hrefOf: (row: PullRequestListRow) => Route;
   lessonHrefOf?: (lesson: LearnIssueLesson) => Route;
   /** "Show 20 more" of "Ended"; the page reads the next 20 from `list.more` and adds them in place. */
   onMore?: (after: string) => void;
@@ -173,6 +176,7 @@ export function PullRequestListView({
   now,
   side,
   issuesHref,
+  hrefOf,
   lessonHrefOf,
   onMore,
   loadingMore = false,
@@ -180,6 +184,7 @@ export function PullRequestListView({
   const groups = groupsOf(list.rows);
   const first = groups[0]?.rows[0]?.attemptId ?? null;
   const empty = EMPTY_LIST[side];
+  const id = useId();
   return (
     <div className="flex flex-col gap-7" data-pr-list="">
       <h1 className="sr-only">Your pull requests</h1>
@@ -202,11 +207,11 @@ export function PullRequestListView({
             <section
               key={group.group}
               className="flex flex-col gap-2.5"
-              aria-labelledby={`group-${group.group}`}
+              aria-labelledby={`${id}-${group.group}`}
               data-group={group.group}
             >
               <h2
-                id={`group-${group.group}`}
+                id={`${id}-${group.group}`}
                 className="m-0 flex items-baseline gap-2 text-lg font-semibold tracking-tight"
               >
                 {group.title}
@@ -222,6 +227,7 @@ export function PullRequestListView({
                     <PullRequestListRowView
                       row={row}
                       now={now}
+                      href={hrefOf(row)}
                       primary={row.attemptId === first}
                       lessonHrefOf={lessonHrefOf}
                     />

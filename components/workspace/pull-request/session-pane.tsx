@@ -272,7 +272,7 @@ export function SessionPane({
   move,
   resumed = false,
   seed,
-  now = new Date(),
+  now: at,
   resolveHumans,
   base,
   lessonView = false,
@@ -297,6 +297,7 @@ export function SessionPane({
   /** Whether a follow-up's replies resolve people's threads too; `undefined` while the API does not answer it. */
   resolveHumans?: boolean;
 }) {
+  const now = at ?? new Date();
   const showNext = next && !!first;
   const followUp = attempt.kind === 'FOLLOW_UP';
   const pane: Pane = showNext ? 'next' : followUp ? `run:${attempt.attemptId}` : 'first';

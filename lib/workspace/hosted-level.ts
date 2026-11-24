@@ -56,8 +56,9 @@ export function nextIssueLineOf(
     settings: Pick<ContributeSettings, 'attemptsAtATime' | 'openPrsAtATime'> | null | undefined;
     limits: ContributeLimits | null | undefined;
   },
-  now = new Date(),
+  asOf?: Date,
 ): string | null {
+  const now = asOf ?? new Date();
   if (level === 'MANUAL' || paused) return null;
   if (!spend) return null;
   if (limitReachedOf(counts, settings, limits)) return 'Next issue: when a pull request is merged or closed';

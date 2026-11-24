@@ -490,7 +490,7 @@ export function ReviewScreen({
   current,
   next = false,
   move,
-  now = new Date(),
+  now: at,
   resolveHumans,
   prNotes,
   replies,
@@ -521,6 +521,7 @@ export function ReviewScreen({
   /** A Learn attempt's lesson: the header's lesson line and its two views. */
   lesson?: LearnAttemptLesson | null;
 }) {
+  const now = at ?? new Date();
   if (!attempt) return <Unavailable />;
 
   const followUp = attempt.kind === 'FOLLOW_UP';

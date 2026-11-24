@@ -27,7 +27,8 @@ const said = () => {
 };
 
 /** The mark while it is live; null when there is none, it is not one, or its time is past. */
-export function readHeldMark(now: number = Date.now()): HeldMark | null {
+export function readHeldMark(at?: number): HeldMark | null {
+  const now = at ?? Date.now();
   let raw: string | null = null;
   try {
     raw = storage()?.getItem(KEY) ?? null;

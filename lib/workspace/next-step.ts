@@ -156,7 +156,8 @@ function findingOf(first: ContributeAttemptDetail, signal: ContributePrSignal): 
  * The contribution's next step, from its first attempt (its open pull request and what waits on it). `agentConnected`:
  * the user's own agent has called GitRanks (a proof's card asks them to connect it first otherwise).
  */
-export function nextStepOf(first: ContributeAttemptDetail, agentConnected = false, now = new Date()): NextStep {
+export function nextStepOf(first: ContributeAttemptDetail, agentConnected = false, at?: Date): NextStep {
+  const now = at ?? new Date();
   const signals = first.needsYou?.signals ?? [];
   const find = (kind: ContributePrSignalKind) => signals.find((signal) => signal.kind === kind);
   const runSignals = signals.filter(({ kind }) => !USERS_SIGNALS.has(kind));

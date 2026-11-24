@@ -63,7 +63,8 @@ function packageMarkdown(pkg: PackageFacts, first: PromotedBadge): string | null
  * The badges a page promotes for its entity's size, live, each opening its code in the builder. Nothing shows when
  * none of them is available. A package's page shows the first one's Markdown under them.
  */
-export const BadgesCard: FC<BadgesCardProps> = ({ entity, now = new Date() }) => {
+export const BadgesCard: FC<BadgesCardProps> = ({ entity, now: at }) => {
+  const now = at ?? new Date();
   if (!entity) {
     return null;
   }

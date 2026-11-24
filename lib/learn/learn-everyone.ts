@@ -33,7 +33,8 @@ function withinTimeout<T>(ask: Promise<T>): Promise<T> {
  * failed or late ask keeps the last answer (closed when there is none, as an API without the field yet) and tries
  * again 10 seconds later.
  */
-export function learnOpenToEveryone(now = Date.now()): Promise<boolean> {
+export function learnOpenToEveryone(at?: number): Promise<boolean> {
+  const now = at ?? Date.now();
   if (everyone && now - everyone.at < ANSWER_TTL_MS) return Promise.resolve(everyone.value);
   asking ??= ask(now).finally(() => {
     asking = null;
@@ -58,7 +59,8 @@ async function ask(now: number): Promise<boolean> {
  * guessing closed: for an answer that is kept, so a guess is never kept as if it were the API's. Once it has answered,
  * the last real answer, as `learnOpenToEveryone` gives it.
  */
-export async function learnOpenToEveryoneKnown(now = Date.now()): Promise<boolean> {
+export async function learnOpenToEveryoneKnown(at?: number): Promise<boolean> {
+  const now = at ?? Date.now();
   const value = await learnOpenToEveryone(now);
   if (!everyone?.known) throw new Error('Learn has not said yet whether it is open');
   return value;

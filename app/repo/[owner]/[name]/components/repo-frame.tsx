@@ -32,7 +32,8 @@ type RepoFrameProps = {
 };
 
 /** One promoted badge and a link to all of them, at the end of the left column. Nothing without a badge to show. */
-export const RepoBadgeRow: FC<{ facts: RepoFacts | null; now?: Date }> = ({ facts, now = new Date() }) => {
+export const RepoBadgeRow: FC<{ facts: RepoFacts | null; now?: Date }> = ({ facts, now: at }) => {
+  const now = at ?? new Date();
   if (!facts) {
     return null;
   }

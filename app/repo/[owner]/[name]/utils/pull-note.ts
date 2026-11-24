@@ -18,8 +18,9 @@ export function savePullNote(
   name: string,
   note: string,
   storage: StorageOf = sessionStorageOf,
-  now = Date.now(),
+  at?: number,
 ) {
+  const now = at ?? Date.now();
   try {
     storage().setItem(noteKey(owner, name), JSON.stringify({ note, savedAt: now }));
   } catch {
@@ -42,8 +43,9 @@ export function takePullNote(
   owner: string,
   name: string,
   storage: StorageOf = sessionStorageOf,
-  now = Date.now(),
+  at?: number,
 ): string | null {
+  const now = at ?? Date.now();
   try {
     const store = storage();
     const key = noteKey(owner, name);
@@ -74,8 +76,9 @@ export function showKeptPullNote(
   name: string,
   show: (note: string, options: PullNoteToast) => void,
   storage: StorageOf = sessionStorageOf,
-  now = Date.now(),
+  at?: number,
 ) {
+  const now = at ?? Date.now();
   const note = takePullNote(owner, name, storage, now);
   if (note) {
     show(note, pullNoteToastOf(owner, name));
@@ -89,8 +92,9 @@ export function reloadWithPullNote(
   note: string | null,
   reload: () => void,
   storage: StorageOf = sessionStorageOf,
-  now = Date.now(),
+  at?: number,
 ) {
+  const now = at ?? Date.now();
   if (note) {
     savePullNote(owner, name, note, storage, now);
   }

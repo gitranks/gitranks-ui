@@ -92,9 +92,10 @@ export function badgeCheckViewOf(
   kind: BadgeCheckKind,
   name: string,
   result: BadgeCheckResult | null,
-  now = Date.now(),
+  at?: number,
   repository?: string | null,
 ): BadgeCheckView {
+  const now = at ?? Date.now();
   const readme = readmeOf(kind, name, repository);
   const fill = (text: string) => text.replaceAll('{readme}', readme);
 

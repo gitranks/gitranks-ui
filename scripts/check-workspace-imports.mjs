@@ -19,6 +19,16 @@
 // | Shared pages (both products open them:  | anything but either product's own: lib/learn/, components/learn/,       |
 // |   (workspace)/my/ and (player)/my/,     |   lib/contribute/, components/contribute/ and either product's pages    |
 // |   Approve included)                     |                                                                         |
+// | lib/skills/ (Skills, shared by both     | itself, Learn's read-only parts (lib/learn/ but its server actions),    |
+// |   products)                             |   lib/workspace/                                                        |
+// | components/skills/                      | itself, lib/skills/, Learn's read-only parts (lib/learn/ and            |
+// |                                         |   components/learn/ but Learn's server actions), components/workspace/, |
+// |                                         |   lib/workspace/                                                        |
+// | The Skills page (app/profile/[login]/   | anything but Contribute's own (lib/contribute/, components/contribute/, |
+// |   skills/)                              |   its pages), Learn's pages and Learn's server actions                  |
+//
+// Learn's own parts include components/learn/entity/, the Learn card on a project's page. Learn's server actions are
+// its modules named `actions` or `<name>.actions`: what changes a learner's data, never read by Skills.
 //
 // Specs and fixtures are not checked. The imports that still cross are listed in `ALLOWED` below, by the importing
 // file and the imported module; the list only shrinks: an entry that no longer crosses fails the check too.
@@ -57,6 +67,9 @@ export const ALLOWED = [
 
 /** The folder rule's name for a path, or null for a site-wide module every folder may import. */
 export function zoneOf(path) {
+  if (path.startsWith('lib/skills/')) return 'lib/skills';
+  if (path.startsWith('components/skills/')) return 'components/skills';
+  if (path.startsWith('app/profile/[login]/skills/')) return 'app/skills';
   if (path.startsWith('lib/workspace/')) return 'lib/workspace';
   if (path.startsWith('lib/auth/')) return 'lib/auth';
   if (path.startsWith('lib/contribute/')) return 'lib/contribute';
@@ -79,6 +92,16 @@ export function zoneOf(path) {
 
 const MAY_IMPORT = {
   'lib/workspace': ['lib/workspace'],
+  'lib/skills': ['lib/skills', 'lib/learn', 'lib/workspace'],
+  'components/skills': [
+    'components/skills',
+    'lib/skills',
+    'components/learn',
+    'lib/learn',
+    'components/workspace',
+    'components/workspace/pull-request',
+    'lib/workspace',
+  ],
   'lib/contribute': ['lib/contribute', 'lib/workspace'],
   'lib/learn': ['lib/learn', 'lib/workspace'],
   'lib/auth': ['lib/auth', 'lib/workspace'],
@@ -109,7 +132,15 @@ const MAY_NOT_IMPORT = {
   'app/contribute': ['lib/learn', 'components/learn', 'app/learn'],
   'app/learn': ['lib/contribute', 'components/contribute', 'app/contribute'],
   'app/shared': ['lib/learn', 'components/learn', 'app/learn', 'lib/contribute', 'components/contribute', 'app/contribute'],
+  'app/skills': ['lib/contribute', 'components/contribute', 'app/contribute', 'app/learn'],
 };
+
+/** The folders of Skills, which read Learn but never change a learner's data. */
+const SKILLS_ZONES = new Set(['lib/skills', 'components/skills', 'app/skills']);
+
+/** Whether a module is one of Learn's server actions: `actions` or `<name>.actions` in Learn's folders. */
+const isLearnAction = (module) =>
+  (zoneOf(module) === 'lib/learn' || zoneOf(module) === 'components/learn') && /(?:^|[/.])actions$/.test(module);
 
 /** Whether a file at `from` may not import the module at `to` (both repo paths). */
 export function crosses(from, to) {
@@ -117,6 +148,7 @@ export function crosses(from, to) {
   const b = zoneOf(to);
   // Site-wide modules: every folder may import them. `lib/auth/` is one, with its own imports checked.
   if (!a || !b || b === 'lib/auth') return false;
+  if (SKILLS_ZONES.has(a) && isLearnAction(to)) return true;
   if (MAY_IMPORT[a]) return !MAY_IMPORT[a].includes(b);
   return (MAY_NOT_IMPORT[a] ?? []).includes(b);
 }

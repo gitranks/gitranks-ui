@@ -242,8 +242,9 @@ export function StartPageScreen({
   locked = false,
   back,
   frame,
-  now = new Date(),
+  now: at,
 }: StartPageScreenProps) {
+  const now = at ?? new Date();
   const id = useId();
   const words = WORDS[mode];
   const refusal = issue ? startRefusalOf(issue, back) : null;

@@ -14,7 +14,8 @@ let asking: Promise<boolean> | null = null;
  * `contributeOpen`. A failed ask keeps the last answer (off when there is none, as an API without the field yet) and
  * tries again 10 seconds later.
  */
-export function contributeMcpSignIn(now = Date.now()): Promise<boolean> {
+export function contributeMcpSignIn(at?: number): Promise<boolean> {
+  const now = at ?? Date.now();
   if (signIn && now - signIn.at < SIGN_IN_TTL_MS) return Promise.resolve(signIn.value);
   asking ??= askSignIn(now).finally(() => {
     asking = null;

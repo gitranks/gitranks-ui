@@ -1,10 +1,10 @@
 'use client';
 
-import { Check, ChevronDown, ChevronUp, Lock, Share } from 'lucide-react';
-import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { type ReactNode, useEffect, useId, useRef } from 'react';
 
 import { Kbd } from '@/components/learn/question/kbd';
-import { Button } from '@/components/ui/button';
+import { ShareButton } from '@/components/share/share-button';
 import { RichText } from '@/components/workspace/blocks/rich-text';
 import { CopyButton } from '@/components/workspace/copy-button';
 import type { InsightId, InsightRow, LearnLesson } from '@/lib/learn/lesson-page';
@@ -16,42 +16,6 @@ const SMALL = 'h-8 gap-1.5 sm:min-h-8';
 /** Fields, menus and dialogs keep their own keys: a number typed there never opens a row. */
 const NOT_OURS = 'input, textarea, select, [contenteditable], [role=menu], [role=listbox], [role=dialog]';
 
-/**
- * Share for "Did you know?": copies the fact's link and says so in the same button, which keeps its width. On a touch
- * screen with the phone's own share sheet, that opens instead.
- */
-function ShareFact({ path, title }: { path: string; title: string }) {
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const share = async () => {
-    const url = new URL(path, window.location.origin).toString();
-    if (typeof navigator.share === 'function' && window.matchMedia?.('(pointer: coarse)').matches) {
-      await navigator.share({ title, url }).catch(() => {});
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  };
-  return (
-    <>
-      <Button type="button" variant="outline" onClick={share} className={cn(SMALL, 'w-[136px] max-sm:min-h-11')}>
-        {copied ? <Check aria-hidden="true" /> : <Share aria-hidden="true" />}
-        {copied ? 'Link copied' : 'Share'}
-      </Button>
-      <span role="status" aria-live="polite" className="sr-only">
-        {copied ? 'Link copied' : ''}
-      </span>
-    </>
-  );
-}
-
 /** What an open row shows, by insight. */
 function RowBody({ id, lesson, factPath }: { id: InsightId; lesson: InsightLesson; factPath: string }) {
   if (id === 'fact' && lesson.fact) {
@@ -61,7 +25,7 @@ function RowBody({ id, lesson, factPath }: { id: InsightId; lesson: InsightLesso
           <RichText text={lesson.fact.text} />
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <ShareFact path={factPath} title={lesson.fact.title} />
+          <ShareButton href={factPath} title={lesson.fact.title} className={cn(SMALL, 'w-[136px] max-sm:min-h-11')} />
           <span className="text-xs text-muted-foreground">
             Source:{' '}
             <a href={lesson.fact.url} target="_blank" rel="noopener noreferrer" className="hover:underline">

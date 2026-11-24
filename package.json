@@ -5,9 +5,9 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack && node scripts/check-blocking-routes.mjs && node scripts/check-workspace-imports.mjs",
+    "build": "node scripts/check-prerender-reads.mjs && next build --turbopack && node scripts/check-blocking-routes.mjs && node scripts/check-workspace-imports.mjs",
     "start": "next start",
-    "lint": "biome check && node scripts/check-workspace-imports.mjs",
+    "lint": "biome check && node scripts/check-workspace-imports.mjs && node scripts/check-prerender-reads.mjs",
     "test": "vitest run",
     "format": "biome format --write",
     "design:export": "vitest run -c design/vitest.config.mts && node scripts/design-css.mjs",

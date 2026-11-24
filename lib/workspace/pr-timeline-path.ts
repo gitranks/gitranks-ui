@@ -45,6 +45,9 @@ export const prTimelinePath = ({ nameWithOwner, number }: PrRef): Route =>
 /** The page's Markdown twin. */
 export const prTimelineMarkdownPath = (pr: PrRef): Route => `${prTimelinePath(pr)}/timeline.md` as Route;
 
+/** The picture a posted link to the page shows, the fix's card. */
+export const prTimelineCardPath = (pr: PrRef) => `${prTimelinePath(pr)}/card.png`;
+
 /** Where the short address goes when it has no page to show: the maintainers page, about that PR. */
 export const prTimelineFallbackPath = (attemptId: string): Route =>
   `${MAINTAINERS_PATH}?${new URLSearchParams({ from: attemptId })}` as Route;

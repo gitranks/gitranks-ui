@@ -23,7 +23,8 @@ async function readHero(): Promise<{ hero: UnsungHero | null; ok: boolean }> {
   }
 }
 
-function askHero(now = Date.now()): Promise<UnsungHero | null> {
+function askHero(at?: number): Promise<UnsungHero | null> {
+  const now = at ?? Date.now();
   if (asked && now >= keptUntil && known !== undefined) {
     asked = null;
     known = undefined;

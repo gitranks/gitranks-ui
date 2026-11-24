@@ -156,7 +156,8 @@ const FIRST_READ_WINDOW_MS = 24 * 60 * 60 * 1000;
  * the libraries are not worked out yet, or a source or library is still read for the first time (for a day at most).
  * Until one is read, the agent works on all issues, whatever happens when the stack has nothing ready.
  */
-export function stackPendingOf(set: ContributeSet, now = new Date()): boolean {
+export function stackPendingOf(set: ContributeSet, at?: Date): boolean {
+  const now = at ?? new Date();
   const { resolve } = set.stack;
   const sources = live(set.stack.sources);
   if (!sources.length) return false;

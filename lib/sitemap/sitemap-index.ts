@@ -99,7 +99,8 @@ async function packageSitemapLocs(): Promise<string[]> {
  * `lastmod` must reflect real content change. Stamping request time on every fetch
  * makes crawlers distrust the signal, so anchor it to the month like the child sitemaps.
  */
-export function buildSitemapIndexXml(locs: string[], lastModified = startOfMonth(new Date())): string {
+export function buildSitemapIndexXml(locs: string[], at?: Date): string {
+  const lastModified = at ?? startOfMonth(new Date());
   const lastmod = lastModified.toISOString();
   const entries = locs
     .map(

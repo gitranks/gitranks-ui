@@ -165,6 +165,69 @@ const e = await import('@/lib/learn/learn-path');`;
     ]);
   });
 
+  it("names Skills' three folders, shared by both products, and the Learn card's folder as Learn's", () => {
+    expect(zoneOf('lib/skills/paths.ts')).toBe('lib/skills');
+    expect(zoneOf('components/skills/numbers-box.tsx')).toBe('components/skills');
+    expect(zoneOf('app/profile/[login]/skills/page.tsx')).toBe('app/skills');
+    expect(zoneOf('app/profile/[login]/skills/card.png/route.ts')).toBe('app/skills');
+    expect(zoneOf('app/profile/[login]/page.tsx')).toBeNull();
+    expect(zoneOf('app/profile/[login]/skills-old/page.tsx')).toBeNull();
+    expect(zoneOf('components/learn/entity/learn-entity-card.tsx')).toBe('components/learn');
+    expect(isChecked('components/skills/numbers-box.tsx')).toBe(true);
+    expect(isChecked('app/profile/[login]/skills/page.tsx')).toBe(true);
+  });
+
+  it("lets Skills read Learn's parts and the shared ones, never Contribute's own code or Learn's server actions", () => {
+    const page = 'app/profile/[login]/skills/page.tsx';
+    for (const file of ['lib/skills/skills-share-card.ts', 'components/skills/course-card.tsx', page]) {
+      for (const own of [
+        'lib/contribute/set-format',
+        'lib/learn/actions',
+        'lib/learn/check.actions',
+        'lib/learn/lesson-page.actions',
+      ]) {
+        expect(crosses(file, own)).toBe(true);
+      }
+      for (const shared of ['lib/skills/paths', 'lib/learn/paths', 'lib/learn/learn.types', 'lib/workspace/format']) {
+        expect(crosses(file, shared)).toBe(false);
+      }
+      expect(crosses(file, 'lib/utils')).toBe(false);
+      expect(crosses(file, 'lib/auth/light-sign-in')).toBe(false);
+    }
+    const parts = 'components/skills/course-card.tsx';
+    expect(crosses(parts, 'components/learn/course/squares')).toBe(false);
+    expect(crosses(parts, 'components/workspace/primitives')).toBe(false);
+    expect(crosses(parts, 'components/skills/numbers-box')).toBe(false);
+    expect(crosses(parts, 'components/contribute/mode-cards')).toBe(true);
+    expect(crosses(parts, 'app/learn/components/learn-home')).toBe(true);
+    expect(crosses(parts, 'app/profile/[login]/components/overview-page')).toBe(false);
+    // The library reads no component; the page may draw any part but Contribute's and Learn's pages.
+    expect(crosses('lib/skills/skills-share-card.ts', 'components/skills/numbers-box')).toBe(true);
+    expect(crosses('lib/skills/skills-share-card.ts', 'components/learn/course/squares')).toBe(true);
+    expect(crosses(page, 'components/learn/course/squares')).toBe(false);
+    expect(crosses(page, 'components/skills/numbers-box')).toBe(false);
+    expect(crosses(page, 'components/contribute/mode-cards')).toBe(true);
+    expect(crosses(page, 'app/contribute/components/landing')).toBe(true);
+    expect(crosses(page, 'app/learn/components/learn-home')).toBe(true);
+    expect(crosses(page, 'app/profile/[login]/components/overview-page')).toBe(false);
+    expect(crossingsOf(page, `import { hide } from '../../../../lib/learn/settings.actions';`)).toEqual([
+      `${page} -> lib/learn/settings.actions`,
+    ]);
+  });
+
+  it("keeps each product's own folders off Skills, and the Learn card's folder off Contribute", () => {
+    expect(crosses('lib/learn/course.data.ts', 'lib/skills/paths')).toBe(true);
+    expect(crosses('lib/contribute/overview.ts', 'lib/skills/paths')).toBe(true);
+    expect(crosses('components/contribute/mode-cards.tsx', 'components/skills/numbers-box')).toBe(true);
+    expect(crosses('components/learn/entity/learn-entity-card.tsx', 'lib/learn/paths')).toBe(false);
+    expect(crosses('components/learn/entity/learn-entity-card.tsx', 'components/learn/course/squares')).toBe(false);
+    expect(crosses('components/learn/entity/learn-entity-card.tsx', 'lib/contribute/overview')).toBe(true);
+    expect(crosses('components/learn/entity/learn-entity-card.tsx', 'components/skills/numbers-box')).toBe(true);
+    expect(crosses('app/contribute/components/landing.tsx', 'components/learn/entity/learn-entity-card')).toBe(true);
+    // Learn's own code still uses its server actions.
+    expect(crosses('components/learn/lesson-flow.tsx', 'lib/learn/actions')).toBe(false);
+  });
+
   it('checks the code, not its specs or fixtures', () => {
     expect(isChecked('lib/workspace/paths.ts')).toBe(true);
     expect(isChecked('lib/workspace/paths.spec.ts')).toBe(false);

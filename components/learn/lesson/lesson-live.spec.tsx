@@ -149,7 +149,7 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     fetchMock.mockImplementation(() => new Promise<Response>((resolve) => answers.push(resolve)));
     await draw();
     expect(fetchMock.mock.calls.map(([path]) => path)).toEqual([
-      `/api/me/learn/lessons/${setLesson.slug}`,
+      `/api/me/learn/lessons/${setLesson.slug}?main=1`,
       `/api/me/learn/courses/${setLesson.course.slug}`,
       `/api/me/learn/lessons/${setLesson.slug}/real-world`,
     ]);
@@ -428,5 +428,116 @@ describe('our guess of the setup, from a lesson', () => {
     expect(startLearnSetupGuessAction).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalled();
     expect(host.textContent).toContain(setLesson.title);
+  });
+});
+
+const { lessonPartsOf } = await import('./lesson-view');
+const { loopGroup, loopLesson, loopQuestionCodes, loopExampleCodes } = await import(
+  '@/lib/learn/__fixtures__/lesson-page'
+);
+const { EXAMPLE_LANGUAGE_KEY } = await import('@/lib/learn/use-example-language');
+
+describe("the language of a lesson's examples", () => {
+  /** The person's routes, the lesson's side bringing their setup's main language. */
+  function routesWithMain(mainLanguage: string | null) {
+    fetchMock.mockImplementation(async (path: string) => {
+      const body = path.endsWith('/real-world')
+        ? NO_LESSON_REAL
+        : path.startsWith('/api/me/learn/lessons/')
+          ? { mine: mineNew, mainLanguage }
+          : { course: { slug: 'algorithms', lessons: [] } };
+      return new Response(JSON.stringify(body), { status: 200 });
+    });
+  }
+
+  /** The page as the lesson's route draws it: the article drawn the same for everyone, with no main language. */
+  async function drawLoop() {
+    const parts = lessonPartsOf({
+      lesson: loopLesson,
+      examples: [{ name: 'main', codes: loopExampleCodes }],
+      group: loopGroup,
+      links: { markdown: '/learn/lessons/big-o-of-two-loops.md', report: '/report' },
+    });
+    await act(async () => {
+      root.render(
+        <LessonLive
+          lesson={loopLesson}
+          group={loopGroup}
+          questionCodes={loopQuestionCodes}
+          article={parts.article}
+          more={parts.more}
+        />,
+      );
+    });
+  }
+
+  const exampleLanguage = () => $('[data-lesson-article] [data-code-language]')?.dataset.codeLanguage;
+  /** The question's code, a line to pick: JavaScript's `function`, or Python's `def`. */
+  const questionLanguage = () => {
+    const text = $('fieldset[aria-label="The code: pick a line"]')?.textContent ?? '';
+    return text.includes('function hasDuplicate') ? 'javascript' : text.includes('def ') ? 'python' : null;
+  };
+
+  beforeEach(() => window.localStorage.removeItem(EXAMPLE_LANGUAGE_KEY));
+
+  it("switches the article's example and the question's code to the main language once the person's side brings it", async () => {
+    signedIn();
+    routesWithMain('javascript');
+    await drawLoop();
+    expect(exampleLanguage()).toBe('javascript');
+    expect(questionLanguage()).toBe('javascript');
+  });
+
+  it('keeps Python for a visitor, and for a person whose main language the course does not have', async () => {
+    await drawLoop();
+    expect(exampleLanguage()).toBe('python');
+    expect(questionLanguage()).toBe('python');
+    act(() => root.unmount());
+    root = createRoot(host);
+    signedIn();
+    routesWithMain('rust');
+    await drawLoop();
+    expect(exampleLanguage()).toBe('python');
+    expect(questionLanguage()).toBe('python');
+  });
+
+  it('keeps the code an answer was given in when the side brings the main language after a pick and a check', async () => {
+    signedIn();
+    // The side is slow: it answers only when the spec lets it.
+    const waiting: (() => void)[] = [];
+    fetchMock.mockImplementation(
+      (path: string) =>
+        new Promise<Response>((resolve) => {
+          const body = path.endsWith('/real-world')
+            ? NO_LESSON_REAL
+            : path.startsWith('/api/me/learn/lessons/')
+              ? { mine: mineNew, mainLanguage: 'javascript' }
+              : { course: { slug: 'algorithms', lessons: [] } };
+          waiting.push(() => resolve(new Response(JSON.stringify(body), { status: 200 })));
+        }),
+    );
+    answerLearnLessonAction.mockResolvedValue({ ok: true, data: null });
+    await drawLoop();
+    expect(questionLanguage()).toBe('python');
+    // Python's inner loop is line 3: picked, then checked.
+    await tap($('[data-line="3"]')!);
+    await tap(main());
+    expect($('[data-line="3"]')!.getAttribute('data-line-mark')).toBe('right');
+    await act(async () => {
+      for (const answer of waiting) answer();
+    });
+    expect(questionLanguage()).toBe('python');
+    expect(exampleLanguage()).toBe('python');
+    expect($('[data-line="3"]')!.getAttribute('data-line-mark')).toBe('right');
+    expect(host.querySelectorAll('[data-line-mark="right"]')).toHaveLength(1);
+  });
+
+  it('lets a tab picked on the page win over the main language', async () => {
+    signedIn();
+    routesWithMain('javascript');
+    await drawLoop();
+    await click($('[data-lesson-article] [role="tab"][data-language="python"]')!);
+    expect(exampleLanguage()).toBe('python');
+    expect(questionLanguage()).toBe('python');
   });
 });

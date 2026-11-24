@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronDown, ChevronUp, GripVertical, X } from 'lucide-react';
-import { type ReactNode, useId, useRef } from 'react';
+import { type ReactNode, type Ref, useEffect, useId, useRef } from 'react';
 
 import { Kbd, KeyLine, type KeyLineItem } from './kbd';
 import { QuestionPart } from './question-part';
@@ -83,10 +83,32 @@ export function AnswerPart({
   const label = done || oneShot ? place.labels.done : place.labels.check;
   const enabled = done || (!oneShot && answer.canSend);
   const keyLine = <KeyLine items={keyLineOf(question, state, place, answer.language)} hints={hints} />;
+  const mainRef = useRef<HTMLButtonElement>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const seen = useRef({ done, tries: state.tries });
+  const right = state.shown?.right === true;
+  // A verdict disables the pick that held the focus, which would fall to the page. It lands where the person goes on
+  // instead; a focus kept elsewhere is left alone. Right and done: the main button (Next). Wrong with picks left: the
+  // first one that can still be picked, so the arrow keys keep working and the status reads the reason once. Wrong and
+  // done: the status saying why, so moving the focus does not cut the reason off.
+  useEffect(() => {
+    const graded = (done && !seen.current.done) || state.tries > seen.current.tries;
+    seen.current = { done, tries: state.tries };
+    if (!graded || !place.verdict) return;
+    const active = document.activeElement as (HTMLElement & { disabled?: boolean }) | null;
+    if (active && active !== document.body && !active.disabled) return;
+    if (done) return (right ? mainRef.current : statusRef.current)?.focus();
+    const pickable =
+      sectionRef.current?.querySelector<HTMLElement>('[data-option] input:not(:disabled)') ??
+      document.querySelector<HTMLElement>('[data-question-code="line"] [data-line]:not(:disabled)');
+    (pickable ?? statusRef.current)?.focus();
+  }, [done, right, state.tries, place.verdict]);
 
   return (
     <>
       <section
+        ref={sectionRef}
         className="flex flex-col gap-3.5 rounded-xl border-2 border-primary bg-card p-4.5"
         aria-labelledby={titleId}
         data-answer-part={question.type}
@@ -107,19 +129,31 @@ export function AnswerPart({
           <QuestionPart question={question} answer={answer} withExample highlighted={highlighted} />
         ) : null}
         <AnswerBody question={question} answer={answer} place={place} hints={hints} titleId={titleId} />
-        <Status question={question} state={state} place={place} />
+        <Status question={question} state={state} place={place} statusRef={statusRef} />
         <Button
           type="button"
           size="lg"
           // Not `disabled`: a disabled button drops the focus of whoever pressed it to the page.
           aria-disabled={!enabled || undefined}
-          className="w-full font-semibold aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:hover:bg-primary"
+          className="w-full font-semibold max-sm:min-h-11 aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:hover:bg-primary"
           aria-busy={state.phase === 'sending' || undefined}
           onClick={answer.main}
+          // A held Enter that checked the answer must not press Next, which took the focus, before the verdict is read.
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && event.repeat) event.preventDefault();
+          }}
+          ref={mainRef}
           data-answer-main=""
         >
-          {label}
-          {hints ? <Kbd onPrimary>⏎</Kbd> : null}
+          {/* A long "Next: <title>" ends in an ellipsis inside the button; the key stays whole beside it. */}
+          <span className="min-w-0 truncate" data-answer-label="">
+            {label}
+          </span>
+          {hints ? (
+            <Kbd onPrimary className="shrink-0">
+              ⏎
+            </Kbd>
+          ) : null}
         </Button>
       </section>
       {below !== undefined ? (
@@ -529,17 +563,22 @@ function Status({
   question,
   state,
   place,
+  statusRef,
 }: {
   question: LearnQuestion;
   state: LearnAnswerState;
   place: AnswerPartPlace;
+  statusRef?: Ref<HTMLParagraphElement>;
 }) {
   const { tone, lead, text } = statusOf(question.type, state, place);
   return (
     <p
+      ref={statusRef}
+      // Focused only by the page, after a wrong answer ended the card; never a stop of the Tab key.
+      tabIndex={-1}
       role="status"
       className={cn(
-        'm-0 min-h-[84px] rounded-lg p-3 text-sm',
+        'm-0 min-h-[84px] rounded-lg p-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
         tone === 'neutral' && 'bg-muted/50 text-muted-foreground',
         tone === 'wrong' && 'bg-warning-soft text-warning-soft-foreground',
         tone === 'right' && 'bg-positive/10 text-positive',

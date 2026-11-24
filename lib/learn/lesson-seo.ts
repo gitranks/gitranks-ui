@@ -12,8 +12,7 @@ const NO_INDEX = { index: false, follow: false } as const;
 export const LEARN_ABOUT_METADATA: Metadata = {
   ...pageMetadata({
     title: 'How Learn works',
-    description:
-      'Short lessons on algorithms, databases, design patterns, system design and seven languages, then a real open-source issue to use them on.',
+    description: 'Short programming lessons, then a real open-source issue to use them on.',
     path: LEARN_PATH,
   }),
   robots: NO_INDEX,

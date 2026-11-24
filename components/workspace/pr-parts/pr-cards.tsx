@@ -1,7 +1,8 @@
 import type { Route } from 'next';
-import Link from 'next/link';
 
+import { RichText } from '@/components/workspace/blocks/rich-text';
 import { CopyButton } from '@/components/workspace/copy-button';
+import { PageLink } from '@/components/workspace/page-link';
 import { cn } from '@/lib/utils';
 import {
   type CardWords,
@@ -33,13 +34,17 @@ function Card({
       data-card={card}
     >
       <span className={cn('text-sm font-semibold', quiet && 'text-muted-foreground')}>{name}</span>
-      {summary ? <span className="text-sm text-foreground">{summary}</span> : null}
+      {summary ? (
+        <span className="text-sm text-foreground">
+          <RichText text={summary} />
+        </span>
+      ) : null}
       <span className="text-sm text-muted-foreground">{text}</span>
       <span className="min-h-5 text-sm">
         {link ? (
-          <Link className="font-semibold text-link hover:underline" href={link.href} prefetch={false}>
+          <PageLink className="font-semibold text-link hover:underline" href={link.href}>
             {link.label}
-          </Link>
+          </PageLink>
         ) : null}
       </span>
     </div>

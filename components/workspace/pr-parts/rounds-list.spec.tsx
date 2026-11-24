@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { Route } from 'next';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +8,7 @@ import { ChecksLine } from './checks-line';
 import { RoundsList, type RoundsListProps } from './rounds-list';
 import {
   PR_NOW,
+  prAsk,
   prChecks,
   prContribute,
   prLinks,
@@ -158,6 +160,94 @@ describe('a round that waits', () => {
     await press(button('Open round 2'));
     expect(round(2)?.querySelector('h3')?.textContent).toBe('Round 2');
   });
+
+  it("names the word its run was started over and the person's note, each with who and what", async () => {
+    const asked = [
+      prAsk({
+        id: 'IC_9',
+        kind: 'conversation',
+        author: 'maint',
+        excerpt: 'Could you add a test?',
+        comments: null,
+        url: 'https://github.com/harbor-kit/relay/pull/58#issuecomment-9',
+      }),
+      prAsk({
+        id: null,
+        kind: 'note',
+        author: 'Your note',
+        excerpt: 'Answer the maintainer',
+        comments: null,
+        url: 'https://github.com/harbor-kit/relay/pull/58',
+      }),
+    ];
+    await rounds({ page: prPage({ ...prContribute.asked, rounds: [prRound({ asked })] }), onStartRound: vi.fn() });
+    const open = round(2);
+    expect(open?.textContent).toContain('1 comment, your note');
+    const word = open?.querySelector('[data-ask="conversation"]');
+    expect(word?.textContent).toContain('maintin the conversation');
+    expect(word?.textContent).toContain('“Could you add a test?”');
+    expect(word?.querySelector('a')?.getAttribute('href')).toBe(
+      'https://github.com/harbor-kit/relay/pull/58#issuecomment-9',
+    );
+    const note = open?.querySelector('[data-ask="note"]');
+    expect(note?.textContent).toContain('Your noteto your agent');
+    expect(note?.textContent).toContain('“Answer the maintainer”');
+    expect(note?.querySelector('a')).toBeNull();
+    expect(button('Start round 2')).not.toBeNull();
+  });
+
+  it("says its own agent's note is the agent's, and names what a link opens when it is not the comment", async () => {
+    const asked = [
+      prAsk({
+        id: null,
+        kind: 'conversation',
+        author: 'A reviewer',
+        excerpt: null,
+        comments: null,
+        url: 'https://github.com/harbor-kit/relay/pull/58',
+      }),
+      prAsk({
+        id: null,
+        kind: 'agent_note',
+        author: 'Your agent',
+        excerpt: 'Reply to the maintainer',
+        comments: null,
+        url: 'https://github.com/harbor-kit/relay/pull/58',
+      }),
+    ];
+    await rounds({ page: prPage({ ...prContribute.asked, rounds: [prRound({ asked })] }) });
+    const open = round(2);
+    expect(open?.textContent).toContain('1 comment, your agent’s note');
+    const word = open?.querySelector('[data-ask="conversation"]');
+    expect(word?.querySelector('a')?.textContent).toContain('(opens the pull request on GitHub)');
+    const note = open?.querySelector('[data-ask="agent_note"]');
+    expect(note?.textContent).toContain('Your agentits note');
+    expect(note?.textContent).toContain('“Reply to the maintainer”');
+    expect(note?.querySelector('a')).toBeNull();
+    // A line that links its own comment says so.
+    await rounds({ page: prReview.asked });
+    expect(round(2)?.querySelector('[data-ask="conversation"] a')?.textContent).toContain(
+      '(opens this comment on GitHub)',
+    );
+  });
+
+  it('says the run stopped without sending when that is all that keeps the round open', async () => {
+    const stopped = prAsk({
+      id: null,
+      kind: 'run_ended',
+      author: 'Your agent',
+      excerpt: 'The run ended without a verdict',
+      comments: null,
+      url: 'https://github.com/harbor-kit/relay/pull/58',
+    });
+    await rounds({ page: prPage({ ...prContribute.asked, rounds: [prRound({ asked: [stopped] })] }) });
+    const open = round(2);
+    expect(open?.textContent).toContain('Your agent’s run stopped without sending');
+    const line = open?.querySelector('[data-ask="run_ended"]');
+    expect(line?.textContent).toContain('Your agentstopped without sending');
+    expect(line?.textContent).toContain('“The run ended without a verdict”');
+    expect(line?.querySelector('a')).toBeNull();
+  });
 });
 
 describe('a round that is ready', () => {
@@ -176,6 +266,16 @@ describe('a round that is ready', () => {
     expect(onSendRound).toHaveBeenCalledWith(2);
     await press(button('Send it back to your agent'));
     expect(onSendBack).toHaveBeenCalledWith(2);
+  });
+
+  it('reads the change on GitHub in a new tab, marked, once the pull request is open', async () => {
+    const change = 'https://github.com/harbor-kit/relay/pull/58/files' as Route;
+    await rounds({ page: prReview.ready, links: { ...prLinks, change } });
+    const link = [...container.querySelectorAll('a')].find((each) => each.textContent?.startsWith('Read the change'));
+    expect(link?.getAttribute('href')).toBe(change);
+    expect(link?.getAttribute('target')).toBe('_blank');
+    expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(link?.textContent).toBe('Read the change ↗ (opens GitHub)');
   });
 
   it('edits a reply in place, leaves one out and puts it back', async () => {

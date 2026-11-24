@@ -31,6 +31,8 @@ vi.mock('@/components/navigation-progress/navigation-progress', () => ({ useRepo
 vi.mock('@/lib/workspace/actions', () => ({ readWorkspaceChanges: vi.fn(), readNeedsYouCount: vi.fn() }));
 const hint = vi.hoisted(() => ({ present: true }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
+const auth = vi.hoisted(() => ({ status: 'loading' as 'loading' | 'authenticated' | 'unauthenticated' }));
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: undefined, status: auth.status }) }));
 const { startLearnSetupGuessAction } = vi.hoisted(() => ({ startLearnSetupGuessAction: vi.fn() }));
 vi.mock('@/lib/learn/setup.actions', () => ({ startLearnSetupGuessAction }));
 
@@ -47,6 +49,7 @@ describe("Learn's bar", () => {
     document.body.append(container);
     root = createRoot(container);
     hint.present = true;
+    auth.status = 'loading';
     startLearnSetupGuessAction.mockReset();
   });
 
@@ -62,7 +65,10 @@ describe("Learn's bar", () => {
   const SETUP_OPEN = 'Set up Learn, nothing to check yet';
   const setupLook = () => container.querySelector('[data-learn-setup-tab]')?.getAttribute('data-learn-setup-tab');
 
-  const tabs = () => [...container.querySelectorAll('ul a')].map((a) => a.textContent);
+  /** The tabs drawn for everyone; a signed-in person's, drawn from the browser's hint alone, are left out. */
+  const tabs = () => [...container.querySelectorAll('ul a')].filter((a) => !isHinted(a)).map((a) => a.textContent);
+  const isHinted = (a: Element) => !!a.closest('li')?.classList.contains('hidden');
+  const hintedTabs = () => [...container.querySelectorAll('ul a')].filter(isHinted).map((a) => a.textContent);
   const current = () => [...container.querySelectorAll('[aria-current="page"]')].map((a) => a.textContent);
   const items = () =>
     [...container.querySelectorAll('[data-learn-bar-item]')].map((a) => [a.getAttribute('href'), a.textContent]);
@@ -178,6 +184,33 @@ describe("Learn's bar", () => {
     await act(async () => answers[1](bar(9)));
     expect(current()).toEqual(['Progress']);
     expect(items()).toEqual([['/learn/review', 'Review 1 lesson due']]);
+  });
+
+  it("draws a signed-in person's tabs from the first paint, in their places, shown by the browser's hint", async () => {
+    // The page drawn for everyone: Progress and Settings are there, after Issues, hidden unless the root holds the hint.
+    await act(async () => root.render(<LearnBar state={{ kind: 'visitor' }} place="courses" />));
+    expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
+    expect(hintedTabs()).toEqual(['Progress', 'Settings']);
+    const hinted = [...container.querySelectorAll('li')].filter((li) => li.classList.contains('hidden'));
+    for (const li of hinted) expect(li.className).toContain('[html[data-has-session]_&]:list-item');
+
+    // The person's bar read: the same five, now drawn for them, in the same order, so nothing moves.
+    const state = { kind: 'learner' as const, due: 0, pullRequests: false, pullRequestsNeedYou: 0 };
+    await act(async () => root.render(<LearnBar state={state} place="courses" />));
+    expect(tabs()).toEqual(['Home', 'Courses', 'Issues', 'Progress', 'Settings']);
+    expect(hintedTabs()).toEqual([]);
+  });
+
+  it("draws a visitor's tabs alone once the session says nobody is signed in", async () => {
+    auth.status = 'unauthenticated';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ bar: null })),
+    );
+    path.current = '/learn/courses';
+    await act(async () => root.render(<LearnBarLive />));
+    expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
+    expect(hintedTabs()).toEqual([]);
   });
 
   it('records itself as the bar seen last, for a visitor too', async () => {

@@ -18,6 +18,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { WebAnalytics } from '@/components/web-analytics/web-analytics';
 import { buildSiteJsonLd } from '@/lib/seo/json-ld';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_X_HANDLE } from '@/lib/seo/site';
+import { SESSION_HINT_SCRIPT } from '@/lib/session-hint';
 
 import './globals.css';
 
@@ -59,6 +60,9 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
         <BrowserCheck />
+        {/* Before the first paint: marks the root when the browser holds a session, so the header and the bars draw a
+            signed-in person's look from the start (`lib/session-hint.ts`). */}
+        <script dangerouslySetInnerHTML={{ __html: SESSION_HINT_SCRIPT }} />
         {/* In the head, not the body: tools that copy the page's text (directory listings, readers) then leave it out. */}
         <JsonLd payloads={buildSiteJsonLd()} />
         <link rel="preconnect" href="https://avatars.githubusercontent.com" crossOrigin="anonymous" />

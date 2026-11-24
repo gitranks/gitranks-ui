@@ -24,6 +24,8 @@ vi.mock('@/lib/learn/setup.actions', () => ({ startLearnSetupGuessAction }));
 
 const { CheckLive, readCheckSide, readKnownSide } = await import('./check-live');
 const { forgetLearnSetupGuessStart } = await import('@/lib/learn/use-setup-guess');
+const { EXAMPLE_LANGUAGE_KEY } = await import('@/lib/learn/use-example-language');
+const { hasDuplicateCodes } = await import('@/lib/learn/__fixtures__/player');
 const {
   checkEnded,
   checkResult,
@@ -635,5 +637,42 @@ describe('our guess of the setup, from the check', () => {
     await draw();
     expect(startLearnSetupGuessAction).toHaveBeenCalledTimes(1);
     expect(checkReads()).toBeGreaterThan(0);
+  });
+});
+
+describe("the language of a check question's code", () => {
+  /** A run whose questions have their code in Python and JavaScript. */
+  const twoLanguageRun = () => {
+    const run = checkRunOf(0);
+    return {
+      ...run,
+      questions: run.questions.map((asked) => ({
+        ...asked,
+        question: {
+          ...asked.question,
+          codes: [
+            { language: 'python', code: 'print(1)\n' },
+            { language: 'javascript', code: 'console.log(1);\n' },
+          ],
+        },
+        highlighted: hasDuplicateCodes.slice(0, 2),
+      })),
+    };
+  };
+  const codeLanguage = () => $('[data-code-language]')?.dataset.codeLanguage;
+
+  beforeEach(() => window.localStorage.removeItem(EXAMPLE_LANGUAGE_KEY));
+
+  it("opens in the person's main language when the course has it, else in Python", async () => {
+    hint.present = true;
+    answer({ check: twoLanguageRun(), missing: false, mainLanguage: 'javascript' });
+    await draw();
+    expect(codeLanguage()).toBe('javascript');
+    act(() => root.unmount());
+    root = createRoot(host);
+    runs = [];
+    answer({ check: twoLanguageRun(), missing: false, mainLanguage: 'rust' });
+    await draw();
+    expect(codeLanguage()).toBe('python');
   });
 });

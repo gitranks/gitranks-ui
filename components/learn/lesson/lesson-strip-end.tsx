@@ -29,7 +29,7 @@ export function DepthSquares({ squares }: { squares: readonly LessonSquare[] }) 
 
 /**
  * The strip's right side on a lesson: "Lesson 3 of 9" for a visitor; for a member, the group's squares by depth and
- * "3 of 9 learned".
+ * "3 of 9 learned", or, with nothing of the group learned yet, "9 lessons" beside them: never a zero.
  */
 export function LessonStripEnd({ place }: { place: LessonPlace }) {
   if (!place.squares || place.learned === null) {
@@ -42,9 +42,21 @@ export function LessonStripEnd({ place }: { place: LessonPlace }) {
   return (
     <span className="flex items-center gap-3 text-sm text-muted-foreground" data-lesson-run="">
       <DepthSquares squares={place.squares} />
-      <span>
-        <span className="font-mono font-semibold text-foreground tabular-nums">{place.learned}</span> of{' '}
-        {place.squares.length} learned
+      {/*
+        Wide enough for "12 of 12 learned" either way, so the first learned lesson moves and wraps nothing: the squares
+        stay put and the strip keeps its line.
+      */}
+      <span className="inline-block min-w-[16ch] text-right whitespace-nowrap" data-lesson-count="">
+        {place.learned > 0 ? (
+          <>
+            <span className="font-mono font-semibold text-foreground tabular-nums">{place.learned}</span> of{' '}
+            {place.squares.length} learned
+          </>
+        ) : place.squares.length === 1 ? (
+          'One lesson'
+        ) : (
+          `${place.squares.length} lessons`
+        )}
       </span>
     </span>
   );

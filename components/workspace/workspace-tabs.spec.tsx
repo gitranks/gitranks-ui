@@ -238,6 +238,32 @@ describe('the current tab on a phone', () => {
     revealSideways(shown, box(10, 100));
     expect(shown.scrollLeft).toBe(20);
   });
+
+  it('shows a tab at the end clear of the fade at the right edge, and reads no fade on wider screens', () => {
+    const widths: string[] = [];
+    vi.stubGlobal('getComputedStyle', (_list: Element, pseudo?: string) => ({
+      width: pseudo === '::after' ? (widths.shift() ?? 'auto') : 'auto',
+    }));
+    try {
+      // On a phone: the last 32px are the fade, so the tab ends 32px before the edge.
+      widths.push('32px');
+      const phone = bar(0);
+      revealSideways(phone, box(330, 420));
+      expect(phone.scrollLeft).toBe(92);
+      // A tab that ends in the fade is scrolled out of it too.
+      widths.push('32px');
+      const inFade = bar(0);
+      revealSideways(inFade, box(250, 340));
+      expect(inFade.scrollLeft).toBe(12);
+      // Wider screens draw no blank (`auto`): just enough, as before.
+      widths.push('auto');
+      const wide = bar(0);
+      revealSideways(wide, box(330, 420));
+      expect(wide.scrollLeft).toBe(60);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe("the workspace's layout", () => {

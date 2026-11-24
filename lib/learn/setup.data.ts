@@ -1,6 +1,8 @@
 import 'server-only';
 
 import { loadLearnCourse, loadLearnCourses } from './course.data';
+import { isLanguageKey } from './lesson-answer-input';
+import { LearnSetupMainLanguageDocument } from './review.documents';
 import {
   type LearnSetupRead,
   NO_SETUP_STARTS,
@@ -24,6 +26,24 @@ export async function loadLearnSetup(githubLogin: string): Promise<LearnSetupRea
   try {
     const { learnSetupOfMine } = await graphqlDirect(LearnSetupOfMineDocument, {}, { source: 'ssr', githubLogin });
     return setupReadOf(learnSetupOfMine);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The main language of the person's setup, or of our guess of it: every example opens in it first. None when there is
+ * none, and on any failure.
+ */
+export async function loadLearnMainLanguage(githubLogin: string): Promise<string | null> {
+  try {
+    const { learnSetupOfMine } = await graphqlDirect(
+      LearnSetupMainLanguageDocument,
+      {},
+      { source: 'ssr', githubLogin },
+    );
+    const main = learnSetupOfMine?.mainLanguage;
+    return isLanguageKey(main) ? main : null;
   } catch {
     return null;
   }

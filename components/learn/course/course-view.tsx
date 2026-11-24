@@ -71,6 +71,8 @@ export type CourseViewProps = {
   person?: CoursePerson;
   /** The check takes the highlight and Enter: a course not started, for an experienced developer. */
   checkFirst?: boolean;
+  /** The learner's main language, once their side brings it: the examples open in it when the course has it. */
+  mainLanguage?: string | null;
   /** The open issues of the learner's list for lessons of the course: the third box, while there are some. */
   openIssues?: number | null;
   /** For the catalogue: a state drawn as it stands. */
@@ -90,6 +92,7 @@ export function CourseView({
   calls,
   person = 'visitor',
   checkFirst = false,
+  mainLanguage = null,
   openIssues = null,
   drawn = {},
   hints: hintsGiven,
@@ -102,7 +105,7 @@ export function CourseView({
   const view = learner ? (picked ?? stored) : 'list';
   const [filter, setFilter] = useState<CourseFilter>(drawn.filter ?? 'all');
   const [query, setQuery] = useState(drawn.query ?? '');
-  const [language, pickLanguage] = useExampleLanguage(course.languages);
+  const [language, pickLanguage] = useExampleLanguage(course.languages, mainLanguage);
   const inputRef = useRef<HTMLInputElement>(null);
   const clear = useCallback(() => setQuery(''), []);
   useCoursePageKeys({ inputRef, onClear: clear });

@@ -4,6 +4,7 @@ import { contributeCards, HOME_NOW, homeProducts, learnCards } from './__fixture
 import {
   contributeCardOf,
   HOME_PROMOS,
+  homePromosOf,
   learnCardOf,
   needsYouLineOf,
   productsWordsOf,
@@ -162,5 +163,46 @@ describe("the block's cards and words", () => {
       heading: 'Learn from real open source',
       line: 'Short lessons, then real issues in real projects to use them on.',
     });
+  });
+});
+
+describe("Learn's promotion line", () => {
+  const live = [
+    { slug: 'algorithms', name: 'Algorithms and data structures' },
+    { slug: 'javascript-and-typescript', name: 'JavaScript and TypeScript' },
+    { slug: 'python', name: 'Python' },
+    { slug: 'contributing-to-open-source', name: 'Contributing to open source' },
+    { slug: 'working-with-llm-apis', name: 'Working with LLM APIs' },
+  ];
+
+  it('names the live courses in their order', () => {
+    const promos = homePromosOf(live);
+    expect(promos.LEARN.line).toBe(
+      'Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs. Then fix a real issue with what you learned.',
+    );
+    expect(learnCardOf(homeProducts.visitor, HOME_NOW, promos)).toBe(promos.LEARN);
+    expect(promos.CONTRIBUTE).toBe(HOME_PROMOS.CONTRIBUTE);
+    expect(promos.LEARN).toMatchObject({ mark: 'New', title: HOME_PROMOS.LEARN.title, href: '/learn' });
+  });
+
+  it('past six names the first five and how many more', () => {
+    const seven = [...live, { slug: 'go', name: 'Go' }, { slug: 'rust', name: 'Rust' }];
+    expect(homePromosOf(seven).LEARN.line).toBe(
+      'Short lessons on algorithms, JavaScript and TypeScript, Python, open source, LLM APIs and 2 more courses. Then fix a real issue with what you learned.',
+    );
+  });
+
+  it('is a plain line with no course or a failed read, naming no course', () => {
+    expect(homePromosOf([])).toBe(HOME_PROMOS);
+    expect(HOME_PROMOS.LEARN.line).toBe('Short lessons on programming. Then fix a real issue with what you learned.');
+    for (const line of [HOME_PROMOS.LEARN.line, homePromosOf(live).LEARN.line]) {
+      expect(line).not.toMatch(/databases|design patterns|seven languages/);
+    }
+  });
+
+  it('stays the line of a learner whose card has nothing on it', () => {
+    const promos = homePromosOf(live);
+    const card = learnCardOf({ ...uses, usesContribute: false }, HOME_NOW, promos);
+    expect(card).toMatchObject({ line: promos.LEARN.line, mark: null, action: 'Open Learn' });
   });
 });

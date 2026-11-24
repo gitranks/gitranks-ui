@@ -201,6 +201,8 @@ describe('My progress: the box "Days"', () => {
     expect(dayLabelOf(dayOf('2026-11-20', 2, 6), PROGRESS_TODAY)).toBe(
       'Friday 20 Nov: 2 lessons learned, 6 lessons repeated',
     );
+    // Active for something else (a merged fix, a walkthrough): words, never an empty colon or a zero.
+    expect(dayLabelOf(dayOf('2026-11-20', 0, 0), PROGRESS_TODAY)).toBe('Friday 20 Nov: active');
   });
 
   it('counts a merged fix and a passed walkthrough one each, and rings the day a fix was merged', () => {
@@ -235,15 +237,16 @@ describe('My progress: the box "Days"', () => {
 
   it('words the line, never with a zero', () => {
     expect(daysLineWords({ kind: 'days', count: 80, since: '8 Jun' })).toEqual({
-      before: 'You learned or repeated something on ',
+      before: 'You were active on ',
       after: ' days since 8 Jun.',
     });
     expect(daysLineWords({ kind: 'days', count: 1, since: null })).toEqual({
-      before: 'You learned or repeated something on ',
+      before: 'You were active on ',
       after: ' day.',
     });
+    expect(daysLineWords({ kind: 'days', count: 1, since: '20 Nov' })).toBe('You were active on 20 Nov.');
     expect(daysLineWords({ kind: 'first' })).toBe('Your first day.');
-    expect(daysLineWords({ kind: 'none' })).toBe('The days you learn or repeat a lesson show here.');
+    expect(daysLineWords({ kind: 'none' })).toBe('The days you are active show here.');
   });
 });
 

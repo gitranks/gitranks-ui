@@ -4,6 +4,7 @@ import {
   fetchContributeForVisitors,
   fetchFeaturedOrg,
   fetchGlobalTiers,
+  fetchHomeLearnCourses,
   fetchLandingInsights,
   fetchLandingPackages,
   fetchLeaderboards,
@@ -46,6 +47,7 @@ export default async function Home() {
     contribute,
     hero,
     packages,
+    learnCourses,
   ] = await Promise.all([
     fetchLandingInsights(),
     fetchLeaderboards(),
@@ -62,6 +64,8 @@ export default async function Home() {
     fetchUnsungHero().catch(() => null),
     // The top of the package rankings; a ranking that cannot be read is left out, with none the block is.
     fetchLandingPackages().catch(() => null),
+    // Learn's live courses, which the Learn card names; a failed read is none, and the card keeps its plain line.
+    fetchHomeLearnCourses(),
   ]);
 
   return (
@@ -78,6 +82,7 @@ export default async function Home() {
       showcase={showcase}
       hero={hero}
       packages={packages}
+      learnCourses={learnCourses}
       contribute={contribute}
     />
   );

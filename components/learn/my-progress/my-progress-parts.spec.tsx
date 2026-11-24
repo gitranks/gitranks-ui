@@ -94,7 +94,16 @@ describe('My progress: the two boxes', () => {
     // The oldest nine weeks are left out on a phone.
     expect(calendar.querySelector('[data-day="2026-05-25"]')!.className).toContain('max-sm:hidden');
     expect(calendar.querySelector('[data-day="2026-07-27"]')!.className).not.toContain('max-sm:hidden');
-    expect(textOf(page, '[data-days-line]')).toBe('You learned or repeated something on 80 days since 8 Jun.');
+    expect(textOf(page, '[data-days-line]')).toBe('You were active on 80 days since 8 Jun.');
+  });
+
+  it('gives a day active with no lesson and no review words, never a bare date', () => {
+    const quiet = { day: '2026-11-19', lessons: 0, reviews: 0, learned: [], repeated: [] };
+    const page = body({ ...myProgress, days: [...myProgress.days, quiet] });
+    const day = page.querySelector('[data-calendar] a[data-day="2026-11-19"]')!;
+    expect(day.getAttribute('aria-label')).toBe('Thursday 19 Nov: active');
+    expect(day.textContent).toContain('Thursday 19 NovActive');
+    expect(day.textContent).not.toMatch(/: ?$|\b0\b/);
   });
 
   it('the first day: one row, one day, "Your first day."', () => {
@@ -112,7 +121,7 @@ describe('My progress: the two boxes', () => {
     expect(textOf(page, '[data-lessons-headline]')).toBe('37lessons marked as known');
     expect(page.textContent).toContain('Answer a lesson and it counts as Learned.');
     expect(page.querySelectorAll('[data-calendar] a')).toHaveLength(0);
-    expect(textOf(page, '[data-days-line]')).toBe('The days you learn or repeat a lesson show here.');
+    expect(textOf(page, '[data-days-line]')).toBe('The days you are active show here.');
     const card = page.querySelector('[data-my-course="algorithms"]')!;
     expect(card.querySelector('[data-course-standing]')).toBeNull();
     expect(card.textContent).toContain('37 marked as known');
@@ -280,7 +289,7 @@ describe('My progress: headings, labels and phone targets', () => {
 
   it('the days are labelled without a count of weeks: a phone shows fewer of them', () => {
     const label = body(myProgress).querySelector('[data-calendar]')!.getAttribute('aria-label');
-    expect(label).toBe('The days you learned or repeated something on');
+    expect(label).toBe('The days you were active');
   });
 
   it('the switch, the course buttons and History’s buttons are 44 pixels tall on a phone', () => {
@@ -297,9 +306,7 @@ describe('My progress: headings, labels and phone targets', () => {
 
   it('History with no day at all says where the days will show', () => {
     const page = draw(<HistoryList days={[]} today={PROGRESS_TODAY} more="end" onMore={() => {}} />);
-    expect(page.querySelector('[data-history-none]')!.textContent).toBe(
-      'The days you learn or repeat a lesson show here.',
-    );
+    expect(page.querySelector('[data-history-none]')!.textContent).toBe('The days you are active show here.');
     const some = draw(<HistoryList days={historyFirst.days} today={PROGRESS_TODAY} more="end" onMore={() => {}} />);
     expect(some.querySelector('[data-history-none]')).toBeNull();
   });

@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import { toRepeatWords } from '@/lib/learn/course';
+import { type CourseInLine, landingCoursesLineOf } from '@/lib/learn/courses-line';
 import type { LearnLessonLink } from '@/lib/learn/lesson-page';
 import { LEARN_HOME_PATH } from '@/lib/learn/paths';
 import { nothingDueOf } from '@/lib/learn/review';
@@ -77,7 +78,14 @@ export const showsContributeOf = (
 export const productsWordsOf = (both: boolean): { heading: string; line: string } =>
   both ? { heading: PRODUCTS_HEADING, line: PRODUCTS_LINE } : { heading: LEARN_ONLY_HEADING, line: LEARN_ONLY_LINE };
 
-/** Each product's promotion, the same for everyone. */
+/**
+ * Learn's promotion line, naming the live courses as Learn's landing does: "Short lessons on algorithms, JavaScript and
+ * TypeScript, Python, open source and LLM APIs. Then fix a real issue with what you learned."
+ */
+export const learnPromoLineOf = (courses: readonly CourseInLine[]) =>
+  `${landingCoursesLineOf(courses)}. Then fix a real issue with what you learned.`;
+
+/** Each product's promotion, the same for everyone; Learn's line here names no course (see `homePromosOf`). */
 export const HOME_PROMOS: Record<HomeProduct, HomeCardWords> = {
   CONTRIBUTE: {
     product: 'CONTRIBUTE',
@@ -94,12 +102,16 @@ export const HOME_PROMOS: Record<HomeProduct, HomeCardWords> = {
     name: 'GitRanks Learn',
     mark: 'New',
     title: 'Learn one idea in two minutes',
-    line: 'Short lessons on algorithms, databases, design patterns and seven languages. Then fix a real issue with what you learned.',
+    line: learnPromoLineOf([]),
     action: 'Start learning',
     href: LEARN_HOME_PATH,
     personal: false,
   },
 };
+
+/** The promotions with Learn's line naming the live courses; none (or a failed read) keeps the plain line. */
+export const homePromosOf = (courses: readonly CourseInLine[]): Record<HomeProduct, HomeCardWords> =>
+  courses.length ? { ...HOME_PROMOS, LEARN: { ...HOME_PROMOS.LEARN, line: learnPromoLineOf(courses) } } : HOME_PROMOS;
 
 /** A count the card can show: a whole number from 1. */
 const countOf = (count: number | null) => (count !== null && Number.isInteger(count) && count > 0 ? count : null);
@@ -107,8 +119,8 @@ const countOf = (count: number | null) => (count !== null && Number.isInteger(co
 const NUMBER = new Intl.NumberFormat('en-US');
 
 /** The promotion of a product the person uses with nothing on its card: no mark, and it leads into the product. */
-const usedPromoOf = (product: HomeProduct): HomeCardWords => ({
-  ...HOME_PROMOS[product],
+const usedPromoOf = (product: HomeProduct, promos = HOME_PROMOS): HomeCardWords => ({
+  ...promos[product],
   mark: null,
   action: product === 'LEARN' ? 'Open Learn' : 'Open Contribute',
 });
@@ -162,13 +174,13 @@ export function contributeCardOf(products: HomeProducts | null): HomeCardWords {
 
 /**
  * Learn's card: the lessons due today, then the next lesson, then the next review. A learner with none of them keeps
- * the promotion, which leads into Learn.
+ * the promotion, which leads into Learn. `promos`: the promotions as drawn, Learn's line naming the live courses.
  */
-export function learnCardOf(products: HomeProducts | null, now: Date): HomeCardWords {
-  if (!products?.usesLearn) return HOME_PROMOS.LEARN;
+export function learnCardOf(products: HomeProducts | null, now: Date, promos = HOME_PROMOS): HomeCardWords {
+  if (!products?.usesLearn) return promos.LEARN;
   const card = products.learn;
-  if (!card) return usedPromoOf('LEARN');
-  const base = { ...usedPromoOf('LEARN'), personal: true };
+  if (!card) return usedPromoOf('LEARN', promos);
+  const base = { ...usedPromoOf('LEARN', promos), personal: true };
   const count = countOf(card.count);
   if (card.state === 'REVIEW_DUE' && count) {
     return {
@@ -188,5 +200,5 @@ export function learnCardOf(products: HomeProducts | null, now: Date): HomeCardW
     const { title, text } = nothingDueOf(card.at, count, now);
     return { ...base, title, line: text };
   }
-  return usedPromoOf('LEARN');
+  return usedPromoOf('LEARN', promos);
 }

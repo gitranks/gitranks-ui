@@ -10,6 +10,7 @@ import {
   reviewMinutesWords,
   toRepeatWords,
 } from './course';
+import { languageNameOf } from './learn-question';
 import type { LearnLessonLink } from './lesson-page';
 import { addLearnDays, learnTodayIn, shortDayWords } from './my-progress';
 import { type LearnSetupRead, SETUP_LEVELS } from './setup';
@@ -350,5 +351,5 @@ export function suggestedForOf(
   if (!setup?.mainLanguage) return null;
   const languages = [setup.mainLanguage, ...setup.otherLanguages.filter((language) => language !== setup.mainLanguage)];
   const level = SETUP_LEVELS.find((each) => each.level === setup.level)?.label.toLowerCase();
-  return `Suggested for ${listWords(languages.slice(0, 3))}${level ? `, ${level}` : ''}`;
+  return `Suggested for ${listWords(languages.slice(0, 3).map(languageNameOf))}${level ? `, ${level}` : ''}`;
 }

@@ -114,6 +114,10 @@ export const learnCourseDepthsPath = (courses: readonly string[]) =>
 export const CHECK_FIRST_QUERY = 'check';
 /** The person's side of a course as the course's page asks it: with whether the check leads the page. */
 export const learnCourseSidePath = (slug: string) => `${learnCourseMinePath(slug)}?${CHECK_FIRST_QUERY}=1`;
+/** The query a lesson's page adds to ask the person's main language with their side; the route reads it only then. */
+export const MAIN_LANGUAGE_QUERY = 'main';
+/** The person's side of a lesson as the lesson's page asks it: with their setup's main language. */
+export const learnLessonSidePath = (slug: string) => `${learnLessonMinePath(slug)}?${MAIN_LANGUAGE_QUERY}=1`;
 
 /**
  * Where the proxy shows a paused or removed course's page, with its status, and a missing course's 404: addresses no

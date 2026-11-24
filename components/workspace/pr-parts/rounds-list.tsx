@@ -1,23 +1,26 @@
 'use client';
 
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import Link from 'next/link';
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/workspace/copy-button';
+import { PageLink } from '@/components/workspace/page-link';
 import { ChecksLine } from '@/components/workspace/pr-parts/checks-line';
 import { Fold, Replies, type ReplyPresses, SMALL, SMALL_MAIN } from '@/components/workspace/pr-parts/round-replies';
 import { cn } from '@/lib/utils';
 import { githubUrlOf } from '@/lib/workspace/attempt-format';
 import {
+  AGENT_NOTE_ASK,
   askedSummaryOf,
   isOpenRound,
   NOT_NEEDED_REASONS,
+  NOTE_ASK,
   notNeededLineOf,
   onDayOf,
   type PullRequestLinks,
   ROUND_STATE_WORDS,
+  RUN_STOPPED_ASK,
   reopensRounds,
   sendRoundLabelOf,
   sendsOf,
@@ -89,13 +92,41 @@ function closedLineOf(round: PullRequestRound, now: Date): string {
   }
 }
 
-/** Where a person's words came in: a review, its thread, or the conversation. */
-const placeOf = (ask: PullRequestRoundAsk) =>
-  ask.kind === 'changes_requested'
-    ? `a review with ${ask.comments ?? 1} comment${ask.comments === 1 ? '' : 's'}`
-    : ask.kind === 'conversation'
-      ? 'in the conversation'
-      : 'in a review thread';
+/**
+ * Where a person's words came in: a review, its thread, or the conversation; the person's note went to their agent,
+ * and their agent's run stopped without sending.
+ */
+function placeOf(ask: PullRequestRoundAsk): string {
+  switch (ask.kind) {
+    case 'changes_requested':
+      return `a review with ${ask.comments ?? 1} comment${ask.comments === 1 ? '' : 's'}`;
+    case 'conversation':
+      return 'in the conversation';
+    case NOTE_ASK:
+      return 'to your agent';
+    case AGENT_NOTE_ASK:
+      return 'its note';
+    case RUN_STOPPED_ASK:
+      return 'stopped without sending';
+    default:
+      return 'in a review thread';
+  }
+}
+
+/** The line's own words: the person's note and their agent's run are named so, whatever the line says. */
+const whoOf = (ask: PullRequestRoundAsk) =>
+  ask.kind === NOTE_ASK
+    ? 'Your note'
+    : ask.kind === RUN_STOPPED_ASK || ask.kind === AGENT_NOTE_ASK
+      ? 'Your agent'
+      : ask.author;
+
+/** Lines that are not words on GitHub: no link. */
+const OFF_GITHUB: ReadonlySet<string> = new Set([NOTE_ASK, AGENT_NOTE_ASK, RUN_STOPPED_ASK]);
+
+/** What a line's link opens: its comment or review when the link points at it, else the pull request. */
+const linkedOf = (ask: PullRequestRoundAsk) =>
+  !ask.url.includes('#') ? 'the pull request' : ask.kind === 'changes_requested' ? 'this review' : 'this comment';
 
 function GitHubLink({ url, what }: { url: string; what: string }) {
   const safe = githubUrlOf(url);
@@ -126,13 +157,13 @@ function AskFigure({ ask, after, id }: { ask: PullRequestRoundAsk; after?: React
       data-ask={ask.kind}
     >
       <figcaption className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        <span className="font-semibold text-foreground">{ask.author}</span>
+        <span className="font-semibold text-foreground">{whoOf(ask)}</span>
         {review ? (
           <span className={cn(PILL, 'bg-warning-soft text-warning-soft-foreground')}>Asked for changes</span>
         ) : null}
         <span className="text-muted-foreground">{placeOf(ask)}</span>
         {after}
-        <GitHubLink url={ask.url} what={review ? 'this review' : 'this comment'} />
+        {OFF_GITHUB.has(ask.kind) ? null : <GitHubLink url={ask.url} what={linkedOf(ask)} />}
       </figcaption>
       {ask.excerpt ? (
         <blockquote className="m-0 line-clamp-3 text-sm text-foreground">“{ask.excerpt}”</blockquote>
@@ -401,9 +432,9 @@ function OpenRound({
                 {round.state === 'SENT' ? sentLineOf(round, now) : sentence(sends || 'no commits')}
               </span>
               {round.commits && links.change ? (
-                <Link className="text-sm font-semibold text-link hover:underline" href={links.change} prefetch={false}>
+                <PageLink className="text-sm font-semibold text-link hover:underline" href={links.change}>
                   Read the change
-                </Link>
+                </PageLink>
               ) : null}
             </div>
             {round.did ? <span className="text-sm text-muted-foreground">{round.did}</span> : null}

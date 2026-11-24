@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { LessonBlock } from '@/components/workspace/blocks/lesson-block';
+import { OpensGitHub, OpensNewTab } from '@/components/workspace/page-link';
 import type { PlayerCrumb } from '@/components/workspace/player/player-strip';
 import { LEARN_FIXES_PAGE_BUILT } from '@/lib/learn/built-pages';
 import { hasLearnView, type LearnFixPage } from '@/lib/learn/fix-page';
@@ -85,7 +86,7 @@ export function WalkthroughHead({ facts }: { facts: WalkthroughFacts }) {
           rel="noopener noreferrer"
         >
           Issue #{facts.issueNumber}
-          <span aria-hidden="true">↗</span>
+          <OpensGitHub />
         </a>
         {facts.number ? (
           <a
@@ -95,7 +96,7 @@ export function WalkthroughHead({ facts }: { facts: WalkthroughFacts }) {
             rel="noopener noreferrer"
           >
             PR #{facts.number}
-            <span aria-hidden="true">↗</span>
+            <OpensGitHub />
           </a>
         ) : null}
         {facts.language ? <span>{facts.language}</span> : null}
@@ -109,6 +110,7 @@ export function WalkthroughHead({ facts }: { facts: WalkthroughFacts }) {
               rel="noopener noreferrer"
             >
               {facts.fixer}
+              <OpensGitHub />
             </a>
           </span>
         ) : null}
@@ -234,6 +236,7 @@ export function FixStateView({
           {action.external ? (
             <a href={action.href} target="_blank" rel="noopener noreferrer">
               <span className="truncate">{action.label}</span>
+              <OpensNewTab />
             </a>
           ) : (
             <Link href={action.href as Route} prefetch={false}>

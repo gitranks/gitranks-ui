@@ -266,7 +266,7 @@ export function DaysBoxView({
           <div
             role="group"
             className="grid auto-cols-min grid-flow-col grid-rows-[repeat(7,13px)] gap-[3px] sm:grid-rows-[repeat(7,17px)]"
-            aria-label="The days you learned or repeated something on"
+            aria-label="The days you were active"
             data-calendar=""
           >
             {calendar.weeks.flatMap((week, index) =>
@@ -567,7 +567,7 @@ export function HistoryList({
       ) : null}
       {!days.length && more === 'end' ? (
         <p className="m-0 text-sm text-muted-foreground" data-history-none="">
-          The days you learn or repeat a lesson show here.
+          The days you are active show here.
         </p>
       ) : null}
       {days.map((day) => (

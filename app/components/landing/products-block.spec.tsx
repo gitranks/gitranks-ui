@@ -24,7 +24,7 @@ describe('ProductsBlock', () => {
   it('promotes both products to a visitor, each card one link', () => {
     const { contribute, learn } = draw(homeProducts.visitor);
     expect(contribute?.getAttribute('href')).toBe('/contribute');
-    expect(contribute?.textContent).toContain('Beta');
+    expect(contribute?.textContent).not.toMatch(/beta/i);
     expect(contribute?.textContent).toContain('Start contributing');
     expect(learn?.getAttribute('href')).toBe('/learn');
     expect(learn?.textContent).toContain('New');
@@ -50,7 +50,7 @@ describe('ProductsBlock', () => {
     expect(contribute?.textContent).toContain('2 pull requests need you');
     expect(contribute?.textContent).toContain('Round 2: something to answer, in kelp-db/kelp, and 1 more.');
     expect(contribute?.getAttribute('href')).toBe('/my/pull-requests');
-    expect(contribute?.textContent).not.toContain('Beta');
+    expect(contribute?.textContent).not.toMatch(/beta/i);
     expect(learn?.textContent).toContain('Start learning');
   });
 

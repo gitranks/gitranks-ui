@@ -5,7 +5,7 @@ import { FaqScreen } from '@/app/contribute/components/faq';
 export const metadata: Metadata = {
   title: 'Questions',
   description:
-    'GitRanks Contribute: how your agent signs in, whose name is on the pull request, what happens when the agent is wrong, what it costs, credits, beta and autopilot.',
+    'GitRanks Contribute: how your agent signs in, whose name is on the pull request, what happens when the agent is wrong, what it costs, credits, what may change and autopilot.',
 };
 
 /** The preview list's until the launch, then every visitor's (the proxy decides); it reads nothing of theirs. */

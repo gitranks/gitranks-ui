@@ -14,10 +14,10 @@ export type FaqGroup = { id: string; title: string; entries: FaqEntry[] };
 export const AUTOPILOT_LAUNCH_LINE =
   'Autopilot opens about a month after launch. Until then every pull request waits for your review, and your record keeps counting.';
 
-const IN_BETA: FaqEntry = {
-  id: 'in-beta',
-  question: 'Is Contribute in beta?',
-  answer: `Yes. It is free, its limits may change, and every pull request waits for your review while autopilot is off. We read how every pull request turns out, to tune what we pick and how the agent works. Tell us what to fix at ${CONTACT_EMAIL}.`,
+const CHANGES: FaqEntry = {
+  id: 'changes',
+  question: 'Will Contribute change?',
+  answer: `Yes, as we learn from it. It is free, its limits may change, and every pull request waits for your review while autopilot is off. We read how every pull request turns out, to tune what we pick and how the agent works. Tell us what to fix at ${CONTACT_EMAIL}.`,
 };
 
 const COST: FaqEntry = {
@@ -64,8 +64,8 @@ const FULL_ISSUES: FaqEntry = {
   more: { href: CONTRIBUTE_RULES_PATH, label: 'How you may use issues from GitRanks' },
 };
 
-/** The landing's six, short, in the landing's own order: that it is in beta, then cost (its visitors ask that first). */
-export const LANDING_QUESTIONS: readonly FaqEntry[] = [IN_BETA, COST, GITHUB, BILL, NOT_GOOD, FAIR];
+/** The landing's six, short, in the landing's own order: that it will change, then cost (its visitors ask that first). */
+export const LANDING_QUESTIONS: readonly FaqEntry[] = [CHANGES, COST, GITHUB, BILL, NOT_GOOD, FAIR];
 
 /** The questions page: contribution first, then the guardrails, the credits, and the record last. */
 export const FAQ_GROUPS: readonly FaqGroup[] = [
@@ -142,10 +142,10 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
     ],
   },
   {
-    id: 'beta',
-    title: 'Beta and your record',
+    id: 'changes-and-record',
+    title: 'Changes and your record',
     entries: [
-      IN_BETA,
+      CHANGES,
       {
         id: 'record',
         question: 'Does it count toward my rank?',

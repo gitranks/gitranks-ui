@@ -59,6 +59,8 @@ export type IssuePageLiveProps = {
   page: IssuePage;
   from: IssuePageFrom;
   back: { href: Route; label: string };
+  /** From Learn: the query of the Issues view the person came from, kept in the address for the way back. */
+  view?: string | null;
   numbers: IssueNumbers | null;
   /** When the server rendered the page: the hold's clock starts there. */
   openedAt: string;
@@ -85,7 +87,7 @@ export type IssuePageLiveProps = {
  * through leaves the page as it was and says so; a hosted start that is refused says why.
  */
 export function IssuePageLive(props: IssuePageLiveProps) {
-  const { id, from } = props;
+  const { id, from, view = null } = props;
   const router = useRouter();
   const [page, setPage] = useState(props.page);
   const [pressing, setPressing] = useState(false);
@@ -139,7 +141,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   useEffect(() => {
     if (!props.returning || returned.current) return;
     returned.current = true;
-    routerRef.current.replace(issuePageHrefOf(id, from));
+    routerRef.current.replace(issuePageHrefOf(id, from, false, view));
     const masked = props.page.state === 'MASKED';
     if (masked) setPressing(true);
     void lookOnReturn(id, from, masked)
@@ -148,7 +150,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
         if (result) onLooked(result);
         if (masked) setPressing(false);
       });
-  }, [props.returning, props.page.state, id, from, onLooked]);
+  }, [props.returning, props.page.state, id, from, view, onLooked]);
 
   /** The page read again: once the agent started, on to the work's page. */
   const ask = useCallback(async () => {

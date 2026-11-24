@@ -30,6 +30,7 @@ export const MASKED_LIST_NOTICES = {
 type MaskedListApi = {
   from: IssueLookFrom;
   pageFrom: IssuePageFrom;
+  pageView: string | null;
   visitor: boolean;
   colors?: Readonly<Record<string, string>>;
   looks: IssueLooksToday | null;
@@ -53,6 +54,11 @@ export type MaskedListProps = {
   from: IssueLookFrom;
   /** The page of one issue it leads to, and back. */
   pageFrom: IssuePageFrom;
+  /**
+   * Learn's Issues page: the query of the view it shows, which the page of one issue keeps for its way back to the
+   * same view. Left out, the way back opens Learn's Issues as it is.
+   */
+  pageView?: string | null;
   /** A visitor's list: no Skip; "See the full issue" is the GitHub sign-in. */
   visitor?: boolean;
   reads?: MaskedListReads;
@@ -67,6 +73,7 @@ export type MaskedListProps = {
 export function MaskedList({
   from,
   pageFrom,
+  pageView = null,
   visitor = false,
   reads = NO_MASKED_READS,
   colors,
@@ -95,6 +102,7 @@ export function MaskedList({
     () => ({
       from,
       pageFrom,
+      pageView,
       visitor,
       colors,
       looks,
@@ -116,7 +124,7 @@ export function MaskedList({
       shown,
       held: visitor ? null : held,
     }),
-    [from, pageFrom, visitor, colors, looks, limited, closed, shown, held],
+    [from, pageFrom, pageView, visitor, colors, looks, limited, closed, shown, held],
   );
 
   return (
@@ -160,7 +168,7 @@ export function MaskedListRow({ issue, lesson = null, full = null, onLeave, onRe
   // A skip that did not go through brings the row back as it was: a new round of the same row.
   const [round, setRound] = useState(0);
   if (!list) throw new Error('MaskedListRow is used inside a MaskedList');
-  const { from, pageFrom, visitor, shown, say, onLimit, onClosed, held } = list;
+  const { from, pageFrom, pageView, visitor, shown, say, onLimit, onClosed, held } = list;
   const holdsThis = held?.id === issue.id;
 
   useEffect(() => {
@@ -180,12 +188,13 @@ export function MaskedListRow({ issue, lesson = null, full = null, onLeave, onRe
       const form = new FormData();
       form.set('id', issue.id);
       form.set('from', pageFrom);
+      if (pageView) form.set('view', pageView);
       await signInToSeeIssue(form);
       return;
     }
     // Held already: its page, with no new press.
     if (holdsThis) {
-      router.push(issuePageHrefOf(issue.id, pageFrom));
+      router.push(issuePageHrefOf(issue.id, pageFrom, false, pageView));
       return;
     }
     setState('opening');
@@ -197,7 +206,7 @@ export function MaskedListRow({ issue, lesson = null, full = null, onLeave, onRe
     }
     const { outcome, page } = result.data;
     if (outcome === 'OK') {
-      router.push(issuePageHrefOf(issue.id, pageFrom));
+      router.push(issuePageHrefOf(issue.id, pageFrom, false, pageView));
       return;
     }
     setState('masked');
@@ -208,7 +217,7 @@ export function MaskedListRow({ issue, lesson = null, full = null, onLeave, onRe
       say(MASKED_LIST_NOTICES.gone);
       leave();
     }
-  }, [visitor, holdsThis, issue.id, pageFrom, from, router, say, onLimit, onClosed, leave]);
+  }, [visitor, holdsThis, issue.id, pageFrom, pageView, from, router, say, onLimit, onClosed, leave]);
 
   const skip = useCallback(
     async (reason: IssueOutReason) => {

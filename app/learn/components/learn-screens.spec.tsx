@@ -375,7 +375,7 @@ describe("a Learn pull request's Lesson view", () => {
     const html = renderToStaticMarkup(
       <LessonViewScreen view={views.active} attempt={detail({ mode: 'LEARN' })} lesson={lessons.ended} base={BASE} />,
     );
-    expect(html).toMatch(/data-variant="default"[^>]*href="\/learn\/earlier#issues"/);
+    expect(html).toMatch(/data-variant="default"[^>]*href="\/learn\/issues"/);
   });
 
   it("says a pull request opened by hand is the person's own, the lesson private", () => {

@@ -87,7 +87,7 @@ const live = (props: Partial<Parameters<typeof IssuePageLive>[0]> = {}, strict =
       id="q7k2m9xa"
       page={issuePage()}
       from="learn"
-      back={{ href: '/learn/earlier', label: 'Issues' }}
+      back={{ href: '/learn/issues', label: 'Issues' }}
       numbers={issueNumbers}
       openedAt={MASKED_NOW.toISOString()}
       hosted={false}
@@ -184,6 +184,12 @@ describe('back from the sign-in', () => {
     expect(actions.lookOnReturn).toHaveBeenCalledExactlyOnceWith('q7k2m9xa', 'contribute', true);
     expect(router.replace).toHaveBeenCalledWith('/my/issues/q7k2m9xa?from=contribute');
     expect(state()).toBe('FULL');
+  });
+
+  it("keeps the Learn view's filters in the address it drops the press from, for the way back", async () => {
+    actions.lookOnReturn.mockResolvedValue({ ok: true, data: { outcome: 'OK', page: fullPage() } });
+    await live({ returning: true, view: 'lesson=a-queue&for-you=0' });
+    expect(router.replace).toHaveBeenCalledWith('/my/issues/q7k2m9xa?from=learn&lesson=a-queue&for-you=0');
   });
 
   it('uses the mark up, making no press, when the page is already past its hidden details', async () => {
@@ -320,6 +326,8 @@ describe('"Give it back"', () => {
     await press('Give it back');
     expect(actions.giveBackIssue).toHaveBeenCalledWith('q7k2m9xa');
     expect(state()).toBe('GIVEN_BACK');
+    // The end's way back is the page's own: the list the person came from, never Learn's earlier page.
+    expect(button('Back to Issues')?.getAttribute('href')).toBe('/learn/issues');
     await press('It is already fixed');
     expect(actions.setIssueOutReason).toHaveBeenCalledWith('q7k2m9xa', 'FIXED', true);
     expect(button('It is already fixed')?.getAttribute('aria-pressed')).toBe('true');

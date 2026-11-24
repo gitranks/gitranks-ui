@@ -2,6 +2,7 @@ import type { Route } from 'next';
 
 import type { ContributeIssueSize } from './contribute.types';
 import type { IssueHint, IssueLooksToday, IssueNumbers, IssueOutReason } from './masked-issue.types';
+import { ISSUE_VIEW_PARAM, learnIssuesPathOf, learnIssuesViewOf, PICK_ISSUE_PATHS } from './paths';
 import { REPO_TIER_NAMES, TIER_NAMES } from '@/app/app.consts';
 import { languageColorOf } from '@/utils/language-colors';
 
@@ -57,21 +58,63 @@ export const NO_MASKED_READS: MaskedListReads = { looks: null, numbers: null };
 /** The parameter a sign-in's return carries: the person pressed "See the full issue" before signing in. */
 export const ISSUE_LOOK_PARAM = 'look';
 
-/** The page of one issue with where the person came from, and (back from the sign-in) the press they made. */
-export function issuePageHrefOf(id: string, from: IssuePageFrom, pressed = false): Route {
+/**
+ * The page of one issue with where the person came from, and (back from the sign-in) the press they made. From Learn,
+ * `view` is the query of the Issues view the person was on: its filters ride along (`learnIssuesViewOf`, nothing
+ * else), so the page's way back opens that view again.
+ */
+export function issuePageHrefOf(id: string, from: IssuePageFrom, pressed = false, view?: string | null): Route {
   const query = new URLSearchParams({ from });
+  if (from === 'learn' && view) {
+    for (const [key, value] of learnIssuesViewOf(new URLSearchParams(view))) query.set(key, value);
+  }
   if (pressed) query.set(ISSUE_LOOK_PARAM, '1');
   return `${issuePagePath(id)}?${query}` as Route;
 }
 
 /**
+ * "← Issues" and every end's "Back to Issues" on the page of one issue: the list the person came from. From Learn
+ * (`from`, the address's `?from=`: `learn`), Learn's Issues page with the filters the address carries (`query`); from
+ * Contribute, Contribute's issues. When the address does not say (a link without `from`), Learn's Issues for a person
+ * who uses Learn, else Contribute's.
+ */
+export function issuePageBackOf(
+  from: unknown,
+  query: URLSearchParams,
+  usesLearn: boolean,
+): { href: Route; label: string } {
+  const learn = from === 'learn' || (from !== 'contribute' && usesLearn);
+  return { href: learn ? learnIssuesPathOf(query) : PICK_ISSUE_PATHS.fix, label: 'Issues' };
+}
+
+/**
  * The page of one issue a new account was on when it was sent to Contribute's home to be set up (`?issue=` with
- * `from` and `look`, as `settingUpHomeOf` carries them): where the home sends it back once ready. Null for none.
+ * `from`, the Learn view and `look`, as `settingUpHomeOf` carries them): where the home sends it back once ready, the
+ * view's filters checked again (`issuePageHrefOf`). Null for none.
  */
 export function issuePageCarriedOf(query: Record<string, string | string[] | undefined>): Route | null {
   const id = maskIdOf(query.issue);
-  return id ? issuePageHrefOf(id, query.from === 'learn' ? 'learn' : 'contribute', query.look === '1') : null;
+  if (!id) return null;
+  const view = query[ISSUE_VIEW_PARAM];
+  const from = query.from === 'learn' ? 'learn' : 'contribute';
+  return issuePageHrefOf(id, from, query.look === '1', typeof view === 'string' ? view : null);
 }
+
+/** What tells whether a person uses Learn: their setup of Learn, and the older Learn profile while it is still served. */
+export type LearnUse = {
+  /** The setup (`/learn/setup`) as the API answers it; null when it was not read. */
+  setup?: { state: string } | null;
+  /** The older Learn profile; null when it was not read. */
+  profile?: { goalKind: string | null; updatedAt: string | null } | null;
+};
+
+/**
+ * Whether a person uses Learn: they saved their setup of Learn (`SAVED`; a guess started by a visit is not a save),
+ * else, while the older profile is still served, they saved one (a goal, or a time it was saved). The API answers an
+ * empty profile, with neither, for anyone signed in who has none. Nothing read says no.
+ */
+export const usesLearnOf = ({ setup, profile }: LearnUse): boolean =>
+  setup?.state === 'SAVED' || (!!profile && (profile.updatedAt != null || profile.goalKind != null));
 
 /** The kinds of issue, the icon each one has in the row, and its name. */
 export const ISSUE_KINDS = {

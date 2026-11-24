@@ -1,0 +1,83 @@
+// @vitest-environment jsdom
+import { act, type ReactNode } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { FairUseAppealForm } from './fair-use-appeal';
+import { openAppeal } from '@/lib/workspace/__fixtures__/masked-issue';
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+let container: HTMLDivElement;
+let root: Root;
+
+beforeEach(() => {
+  container = document.createElement('div');
+  document.body.append(container);
+  root = createRoot(container);
+});
+
+afterEach(() => {
+  act(() => root.unmount());
+  container.remove();
+});
+
+const render = (node: ReactNode) => act(async () => root.render(node));
+const textarea = () => container.querySelector('textarea') as HTMLTextAreaElement;
+const submit = () => container.querySelector<HTMLButtonElement>('button[type="submit"]');
+const type = (value: string) =>
+  act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
+    setter?.call(textarea(), value);
+    textarea().dispatchEvent(new Event('input', { bubbles: true }));
+  });
+const send = () => act(async () => submit()?.closest('form')?.requestSubmit());
+
+describe('asking to look again', () => {
+  it('shows the closing words and a form with one text box of up to 2,000 characters', async () => {
+    await render(<FairUseAppealForm appeal={null} />);
+    expect(container.querySelector('[data-ban]')?.textContent).toBe(
+      'Your access to real issues on GitRanks is closed. If you think this is wrong, ask us to look again.',
+    );
+    expect(container.querySelector('h2')?.textContent).toBe('Ask us to look again');
+    expect(container.querySelectorAll('textarea')).toHaveLength(1);
+    expect(textarea().maxLength).toBe(2000);
+    expect(submit()?.disabled).toBe(true);
+    expect(container.querySelector('a[href="/terms#contribute-rules"]')).not.toBeNull();
+  });
+
+  it("sends the request and shows its date in the form's place", async () => {
+    const onSend = vi.fn(async () => ({ at: '2026-10-28T12:00:00.000Z', answeredAt: null }));
+    await render(<FairUseAppealForm appeal={null} onSend={onSend} />);
+    await type('  The pull request was opened before I took the issue.  ');
+    expect(submit()?.disabled).toBe(false);
+    await send();
+    expect(onSend).toHaveBeenCalledWith('The pull request was opened before I took the issue.');
+    expect(container.querySelector('form')).toBeNull();
+    expect(container.querySelector('[data-appeal-sent]')?.textContent).toContain(
+      'You asked us to look again on Oct 28.',
+    );
+  });
+
+  it('says so when it was not sent, and keeps the text', async () => {
+    await render(<FairUseAppealForm appeal={null} onSend={async () => null} />);
+    await type('Please look again.');
+    await send();
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      'Your request was not sent. Try again in a minute.',
+    );
+    expect(textarea().value).toBe('Please look again.');
+  });
+
+  it('shows no form while a request is open: one at a time', async () => {
+    await render(<FairUseAppealForm appeal={openAppeal} />);
+    expect(container.querySelector('form')).toBeNull();
+    expect(container.textContent).toContain('You asked us to look again on Oct 27.');
+  });
+
+  it('lets the person ask again once a request was answered', async () => {
+    await render(<FairUseAppealForm appeal={{ ...openAppeal, answeredAt: '2026-10-28T08:00:00.000Z' }} />);
+    expect(container.querySelector('form')).not.toBeNull();
+    expect(container.textContent).toContain('We answered your request of Oct 27. You can ask again.');
+  });
+});

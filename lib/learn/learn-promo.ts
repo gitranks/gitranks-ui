@@ -1,7 +1,7 @@
 import type { LearnPromo, LearnPromoIssue, LearnPromoPlacement, LearnRecord } from './learn.types';
 import { githubLoginOf } from './learn-path';
-import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
 import type { OwnerIssue } from '@/app/profile/[login]/components/profile-contribute-block';
+import { languageColorOf, languageColorsOf } from '@/utils/language-colors';
 import { isProfileOwner } from '@/utils/profile-owner';
 
 /**
@@ -121,21 +121,7 @@ export function reasonLineOf(reason: string | null): string | null {
   return /[.!?]$/.test(line) ? line : `${line}.`;
 }
 
-/** An issue's language colour, from the profile's own languages; the site's grey for any other. */
-export const languageColorOf = (language: string | null, colors: Readonly<Record<string, string>> = {}): string =>
-  (language && colors[language.toLowerCase()]) || DEFAULT_LANGUAGE_COLOR;
-
-/** The profile's languages and their colours, keyed by lower-case name, for its issues' rows. */
-export function languageColorsOf(
-  languages: ReadonlyArray<{ name?: string | null; color?: string | null } | null | undefined>,
-): Record<string, string> {
-  const colors: Record<string, string> = {};
-  for (const language of languages) {
-    const name = language?.name?.trim().toLowerCase();
-    if (name && language?.color && !colors[name]) colors[name] = language.color;
-  }
-  return colors;
-}
+export { languageColorOf, languageColorsOf };
 
 /** An issue of the suggestion as the owner's blocks list it: its issue on GitHub, its language, the lesson's topic. */
 export const ownerIssueOf = (issue: LearnPromoIssue, colors?: Readonly<Record<string, string>>): OwnerIssue => ({

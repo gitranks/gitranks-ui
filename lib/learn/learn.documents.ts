@@ -2,13 +2,11 @@ import { parse } from 'graphql';
 
 import type {
   LearnAttemptLesson,
-  LearnIssues,
   LearnIssuesAnswer,
   LearnProfile,
   LearnProfileInput,
   LearnPromo,
   LearnPromoPlacement,
-  LearnPublicIssues,
   LearnPublicIssuesAnswer,
   LearnRecord,
   LessonAnswerResult,
@@ -150,21 +148,6 @@ const LEARN_PUBLIC_ISSUE = 'url repo number title language size why';
 /** An issue a lesson can be written for: the same fields wherever Learn lists one. */
 export const LEARN_ISSUE = `issueId ${LEARN_PUBLIC_ISSUE}`;
 
-/**
- * The issues for the viewer's goal (`first`: 0 to 100; 0 answers the total alone and reveals nothing), why there are
- * none, and whether they have room to start one.
- */
-export const LearnIssuesDocument = doc<{ learnIssues: LearnIssues }, { first: number }>(
-  `query LearnIssues($first: Int) {
-  learnIssues(first: $first) {
-    goal { kind value level }
-    items { ${LEARN_ISSUE} }
-    total empty capReached
-    room { limit value }
-  }
-}`,
-);
-
 const PRACTICE_LESSON = `slug title repo issue issueTitle language
       author { login agentName agentFamily }
       writtenFor { kind value level }
@@ -180,33 +163,25 @@ export const PracticeLessonsDocument = doc<{ practiceLessons: PracticeLessons },
 }`,
 );
 
-/** The same issues with each one's masked form: an API without it answers `LearnIssuesDocument` instead. */
+/**
+ * The issues for the viewer's goal, each with its masked form (`first`: 0 to 100; 0 answers the total alone and reveals
+ * nothing), why there are none, and whether they have room to start one.
+ */
 export const LearnIssuesMaskedDocument = doc<{ learnIssues: LearnIssuesAnswer }, { first: number }>(
   `query LearnIssuesMasked($first: Int) {
   learnIssues(first: $first) {
     goal { kind value level }
     items { ${LEARN_ISSUE} ${MASKED_PART} }
-    total empty capReached
+    total empty
     room { limit value }
   }
 }`,
 );
 
 /**
- * A language's day list for visitors, asked without a viewer: a short list, the same for every visitor that day.
- * Null while Learn is not open to everyone, or for a language Learn finds no issues for.
+ * A language's day list for visitors, asked without a viewer: a short list, the same for every visitor that day, each
+ * issue with its masked form. Null while Learn is not open to everyone, or for a language Learn finds no issues for.
  */
-export const LearnPublicIssuesDocument = doc<{ learnPublicIssues: LearnPublicIssues | null }, { language: string }>(
-  `query LearnPublicIssues($language: String!) {
-  learnPublicIssues(language: $language) {
-    language
-    items { ${LEARN_PUBLIC_ISSUE} }
-    total
-  }
-}`,
-);
-
-/** The same day list with each issue's masked form: an API without it answers `LearnPublicIssuesDocument` instead. */
 export const LearnPublicIssuesMaskedDocument = doc<
   { learnPublicIssues: LearnPublicIssuesAnswer | null },
   { language: string }
@@ -331,19 +306,9 @@ export const ReactToResultDocument = doc<
 }`);
 
 /**
- * Whether to suggest Learn to the signed-in viewer here, read with `learnOpen` so the suggestion shows only to someone
- * Learn is open to. `login`: the profile, which must be the viewer's own.
+ * Whether to suggest Learn to the signed-in viewer here, each issue with its masked form, read with `learnOpen` so the
+ * suggestion shows only to someone Learn is open to. `login`: the profile, which must be the viewer's own.
  */
-export const LearnPromoDocument = doc<
-  { learnOpen: boolean; learnPromo: LearnPromo | null },
-  { placement: LearnPromoPlacement; login: string | null }
->(`query LearnPromo($placement: LearnPromoPlacement!, $login: String) {
-  learnOpen
-  learnPromo(placement: $placement, login: $login) { show reason language issues { title repo number language topic } }
-}`);
-
-/** "Not for me": the viewer's Learn suggestions stay hidden from then on. */
-/** The same suggestion with each issue's masked form: an API without it answers `LearnPromoDocument` instead. */
 export const LearnPromoMaskedDocument = doc<
   { learnOpen: boolean; learnPromo: LearnPromo | null },
   { placement: LearnPromoPlacement; login: string | null }
@@ -354,6 +319,7 @@ export const LearnPromoMaskedDocument = doc<
   }
 }`);
 
+/** "Not for me": the viewer's Learn suggestions stay hidden from then on. */
 export const DismissLearnPromoDocument = doc<{ dismissLearnPromo: boolean }>(
   'mutation DismissLearnPromo { dismissLearnPromo }',
 );

@@ -82,7 +82,6 @@ export const issueNumbers: IssueNumbers = {
   read: 2_707_100,
   kept: 3_138,
   at: '2026-10-28T03:40:00.000Z',
-  rulesLive: true,
 };
 
 /** Held until 12:14, 14 minutes after the catalogue's clock. */

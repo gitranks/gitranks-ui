@@ -3,7 +3,7 @@
 import type { Route } from 'next';
 import { type ReactNode, useState, useTransition } from 'react';
 
-import { LearnCapNote, LearnHeldNote, LearnIssuesEmpty, LearnRoomNote } from '@/components/learn/learn-issue-notes';
+import { LearnHeldNote, LearnIssuesEmpty, LearnRoomNote } from '@/components/learn/learn-issue-notes';
 import { IssueRow } from '@/components/workspace/issue-row';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
 import { ShowMore } from '@/components/workspace/show-more';
@@ -47,7 +47,7 @@ export type LearnIssueListProps = {
   source?: ContributeSource;
   /** Where the notes' Change your goal leads: the goal's page in Settings by default. */
   changeHref?: Route;
-  /** For masked rows: whether the new rules are live, the day's full issues, the numbers of a night. */
+  /** For masked rows: the day's full issues and the numbers of a night. */
   masked?: MaskedListReads;
   /** A visitor's list: a masked row's "See the full issue" is the GitHub sign-in, and it has no Skip. */
   visitor?: boolean;
@@ -73,8 +73,8 @@ export function LearnIssueList({
   className,
 }: LearnIssueListProps) {
   let body: ReactNode;
-  // Once the rules are live, a list of masked rows says how it works above it.
-  const maskedLine = masked.rulesLive && !held && issues?.items.some((issue) => issue.masked);
+  // A list of masked rows says how it works above it.
+  const maskedLine = !held && issues?.items.some((issue) => issue.masked);
   if (held) {
     body = <LearnHeldNote />;
   } else if (!issues?.items.length) {
@@ -112,7 +112,7 @@ const issueKey = ({ issueId, masked }: LearnIssue) => (masked?.id ? maskKeyOf(ma
 /**
  * The rows, and "Show 10 more": the list is ordered again on each read, so it is read again with a larger `first`
  * (20, 30, … up to 100) and only the rows not shown yet are added under the others. Rows already there never move, a
- * new read of the page included. A read that adds nothing, or the day's cap, ends it; the count line stays.
+ * new read of the page included. A read that adds nothing ends it; the count line stays.
  */
 function GrowingRows({
   issues,
@@ -128,14 +128,12 @@ function GrowingRows({
   const { rows, add, swap, drop } = useStableRows(issues.items, issueKey);
   const [asked, setAsked] = useState(Math.max(issues.items.length, LEARN_ISSUES_FIRST));
   const [ended, setEnded] = useState(false);
-  const [capReached, setCapReached] = useState(false);
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const total = Math.max(issues.total, rows.length);
   const room = issues.room;
-  const capped = issues.capReached || capReached;
-  const growing = more && !ended && !capped && asked < LEARN_ISSUES_MAX && rows.length < total;
+  const growing = more && !ended && asked < LEARN_ISSUES_MAX && rows.length < total;
   const anyMasked = rows.some((issue) => issue.masked);
   // The foot stays once the last masked row left, so the line on why it left is still read.
   const [hadMasked, setHadMasked] = useState(anyMasked);
@@ -153,7 +151,6 @@ function GrowingRows({
         return;
       }
       setAsked(first);
-      if (result.data.capReached) setCapReached(true);
       if (!add(result.data.items)) setEnded(true);
     });
 
@@ -194,7 +191,6 @@ function GrowingRows({
             );
           })}
         </ul>
-        {capped ? <LearnCapNote /> : null}
         {growing ? (
           <ShowMore shown={rows.length} total={total} noun="issue" pending={pending} onMore={showMore} />
         ) : more && rows.length < total ? (

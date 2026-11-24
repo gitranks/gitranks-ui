@@ -386,13 +386,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
           }),
       },
       {
-        id: 'account-new',
-        title: 'A new account: its smaller limits in one line',
-        path: '/my/pull-requests/driftwood-js/driftwood/871',
-        height: 1300,
-        render: () => contributionPage(attempts.prOpen, { view: views.newAccount }),
-      },
-      {
         id: 'account-suspended',
         title: 'A suspended account, in one line',
         path: '/my/pull-requests/driftwood-js/driftwood/871',
@@ -1217,18 +1210,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
                 <Button type="button">{AUTOPILOT_CONFIRM_ACTION}</Button>
               </div>
             </OpenDialog>,
-          ),
-      },
-      {
-        id: 'new-account',
-        title: 'A new account: the limit beside the budget',
-        path: '/my/agent',
-        height: 1900,
-        render: () =>
-          frame(
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
-              <AgentScreen view={views.newAccount} runs={previewPageOf()} now={NOW} />
-            </main>,
           ),
       },
     ],

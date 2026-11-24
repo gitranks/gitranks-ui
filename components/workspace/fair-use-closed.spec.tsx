@@ -97,7 +97,7 @@ describe('the answer page of a closed access', () => {
     expect(plain()).toContain('You can also write to us at hello@gitranks.com.');
   });
 
-  it('answers the other messages of the rules of today as before', async () => {
+  it('answers a message that does not close access with the answer form, not the request to look again', async () => {
     await render(<FairUseAnswerScreen notice={outsideFixNotice} />);
     expect(container.querySelector('[data-answer-form]')).not.toBeNull();
     expect(container.querySelector('[data-appeal-form]')).toBeNull();
@@ -115,8 +115,8 @@ describe('the request to look again, wired', () => {
     expect(plain()).toContain('You asked us to look again on');
   });
 
-  it('points to email while the API does not take requests yet', async () => {
-    actions.appealFairUse.mockResolvedValue({ ok: false, error: 'NOT_AVAILABLE_YET' });
+  it('points to email when the API refuses the request', async () => {
+    actions.appealFairUse.mockResolvedValue({ ok: false, error: 'INVALID', message: 'Not closed.' });
     await render(<FairUseAppealLive />);
     await type('Please look again.');
     await submit();
@@ -130,8 +130,6 @@ describe('the request to look again, wired', () => {
   it("gives the form the refusal's code, a thrown send as failed, and the request for a saved one", async () => {
     actions.appealFairUse.mockResolvedValueOnce({ ok: false, error: 'INVALID', message: 'Not closed.' });
     expect(await sendFairUseAppeal('x')).toEqual({ ok: false, error: 'INVALID', message: 'Not closed.' });
-    actions.appealFairUse.mockResolvedValueOnce({ ok: false, error: 'NOT_AVAILABLE_YET' });
-    expect(await sendFairUseAppeal('x')).toEqual({ ok: false, error: 'NOT_AVAILABLE_YET' });
     actions.appealFairUse.mockRejectedValueOnce(new Error('down'));
     expect(await sendFairUseAppeal('x')).toEqual({ ok: false, error: 'FAILED' });
     const appeal = { at: '2026-11-24T10:00:00.000Z', answeredAt: null };

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { HEADING, Panel } from '@/components/workspace/primitives';
 import { ReposAskLessNote } from '@/components/workspace/pull-request/repo-rules';
 import { cn } from '@/lib/utils';
-import { type CappedSetting, capHintOf, capRefusalOf, openPrsOverrideOf } from '@/lib/workspace/access-limits';
+import { openPrsOverrideOf } from '@/lib/workspace/access-limits';
 import { saveContributeSettings } from '@/lib/workspace/actions';
 import type {
   ContributeDcoMode,
@@ -95,41 +95,19 @@ const draftOf = (settings: ContributeSettings): Draft => ({
 export type SettingsSection = 'limits' | 'pacing' | 'agent' | 'prs';
 type Section = SettingsSection;
 
-/**
- * The access level's caps on the settings, with the values as stored: a value typed above a cap is refused, one kept
- * as stored is not (it comes back when the limit lifts).
- */
-export type SettingsCaps = {
-  limits: ContributeLimits | null | undefined;
-  stored: Pick<ContributeSettings, CappedSetting>;
-};
-
-/** Why a field is refused: its label, and the message when it is not "enter a number". */
-export type SettingsInvalid = { invalid: string; message?: string };
+/** Why a field is refused: its label. */
+export type SettingsInvalid = { invalid: string };
 
 /** A refused field, thrown out of the section's fields. */
 class Refused {
-  constructor(
-    readonly label: string,
-    readonly message?: string,
-  ) {}
+  constructor(readonly label: string) {}
 }
 
-/** Each section's patch from the draft, or the first field that is not a valid number or is above its cap. */
-export function patchOf(
-  section: Section,
-  draft: Draft,
-  caps?: SettingsCaps,
-): { patch: ContributeSettingsInput } | SettingsInvalid {
+/** Each section's patch from the draft, or the first field that is not a valid number. */
+export function patchOf(section: Section, draft: Draft): { patch: ContributeSettingsInput } | SettingsInvalid {
   const required = (label: string, text: string, integer = false) => {
     const value = parseAmount(text);
     if (value === null || value === undefined || (integer && !Number.isInteger(value))) throw new Refused(label);
-    return value;
-  };
-  const capped = (field: CappedSetting, label: string) => {
-    const value = required(label, draft[field], true);
-    const refusal = caps ? capRefusalOf(caps.limits, field, label, value, caps.stored[field]) : null;
-    if (refusal) throw new Refused(label, refusal);
     return value;
   };
   const optional = (label: string, text: string) => {
@@ -170,15 +148,15 @@ export function patchOf(
           patch: {
             maxChangedLines: required('Changed lines', draft.maxChangedLines, true),
             maxFiles: required('Files', draft.maxFiles, true),
-            openPrsAtATime: capped('openPrsAtATime', 'Open PRs at a time'),
-            attemptsAtATime: capped('attemptsAtATime', 'Attempts at a time'),
+            openPrsAtATime: required('Open PRs at a time', draft.openPrsAtATime, true),
+            attemptsAtATime: required('Attempts at a time', draft.attemptsAtATime, true),
             dco: draft.dco,
           },
         };
     }
   } catch (error) {
     if (!(error instanceof Refused)) throw error;
-    return error.message ? { invalid: error.label, message: error.message } : { invalid: error.label };
+    return { invalid: error.label };
   }
 }
 
@@ -206,17 +184,6 @@ function Field({
         </span>
       ) : null}
     </div>
-  );
-}
-
-/** The cap's hint under a capped field: "Up to 1 while your account is new"; nothing with no cap. */
-function capHint(limits: ContributeLimits | null | undefined, field: CappedSetting): ReactNode {
-  const hint = capHintOf(limits, field);
-  if (!hint) return undefined;
-  return (
-    <>
-      Up to <span className="font-mono tabular-nums">{hint.max}</span> {hint.text}
-    </>
   );
 }
 
@@ -281,11 +248,10 @@ export type SettingsFormPage = keyof typeof PAGES;
 export function pagePatchOf(
   page: SettingsFormPage,
   draft: Draft,
-  caps?: SettingsCaps,
 ): { patch: ContributeSettingsInput } | SettingsInvalid {
   let patch: ContributeSettingsInput = {};
   for (const section of PAGES[page].sections) {
-    const built = patchOf(section, draft, caps);
+    const built = patchOf(section, draft);
     if ('invalid' in built) return built;
     patch = { ...patch, ...built.patch };
   }
@@ -312,8 +278,7 @@ export const moreLimitsSummaryOf = (draft: Draft) =>
 /**
  * One settings page's form: budget and pacing, or the model and effort (the Agent tab's), or the pull request limits
  * (Settings'). What most people change up front, the rest folded with its values shown, and one Save for the page,
- * which goes back to `back` once saved. `limits` caps attempts and open PRs at a time while the access level holds them
- * lower, and shows an open PR limit set for the account in place of that setting.
+ * which goes back to `back` once saved. `limits` shows an open PR limit set for the account in place of that setting.
  */
 export function SettingsForm({
   settings,
@@ -342,11 +307,11 @@ export function SettingsForm({
   }, []);
 
   const save = () => {
-    const built = pagePatchOf(page, draft, { limits, stored: settings });
+    const built = pagePatchOf(page, draft);
     if ('invalid' in built) {
       // A field that is folded away opens, so the user sees what to fix.
       if ((PAGES[page].folded as readonly string[]).includes(built.invalid)) setFolded(false);
-      setStatus({ ok: false, text: built.message ?? `${built.invalid}: enter a number.` });
+      setStatus({ ok: false, text: `${built.invalid}: enter a number.` });
       return;
     }
     startTransition(async () => {
@@ -365,13 +330,12 @@ export function SettingsForm({
   };
 
   const field = (key: keyof Draft) => `${id}-${key}`;
-  const textInput = (key: keyof Draft, placeholder?: string, described = false) => (
+  const textInput = (key: keyof Draft, placeholder?: string) => (
     <Input
       id={field(key)}
       inputMode="decimal"
       value={draft[key] as string}
       placeholder={placeholder}
-      aria-describedby={described ? `${field(key)}-hint` : undefined}
       onChange={(event) => set(key, event.target.value as never)}
       className={inputClass}
     />
@@ -565,12 +529,8 @@ export function SettingsForm({
           <div className="grid gap-3.5 border-t pt-4 sm:grid-cols-2">
             <div id="open" className="scroll-mt-20">
               {prsOverride === null ? (
-                <Field
-                  label="Open PRs at a time"
-                  htmlFor={field('openPrsAtATime')}
-                  hint={capHint(limits, 'openPrsAtATime')}
-                >
-                  {textInput('openPrsAtATime', undefined, !!capHintOf(limits, 'openPrsAtATime'))}
+                <Field label="Open PRs at a time" htmlFor={field('openPrsAtATime')}>
+                  {textInput('openPrsAtATime')}
                 </Field>
               ) : (
                 // A limit set for the account holds over the setting: shown, not edited. The setting is kept and
@@ -591,12 +551,8 @@ export function SettingsForm({
               )}
             </div>
             <div id="attempts" className="scroll-mt-20">
-              <Field
-                label="Attempts at a time"
-                htmlFor={field('attemptsAtATime')}
-                hint={capHint(limits, 'attemptsAtATime')}
-              >
-                {textInput('attemptsAtATime', undefined, !!capHintOf(limits, 'attemptsAtATime'))}
+              <Field label="Attempts at a time" htmlFor={field('attemptsAtATime')}>
+                {textInput('attemptsAtATime')}
               </Field>
             </div>
           </div>

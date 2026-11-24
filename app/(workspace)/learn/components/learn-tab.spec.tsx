@@ -35,12 +35,8 @@ const workspace = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/workspace/contribute.data', () => workspace);
 const masked = vi.hoisted(() => ({
-  loadMaskedListReads: vi.fn(async () => ({ rulesLive: false, looks: null, numbers: null })),
+  loadMaskedListReads: vi.fn(async () => ({ looks: null, numbers: null })),
 }));
-const rulesReader = vi.hoisted(() => ({
-  issueRules: vi.fn(async (): Promise<unknown> => ({ state: 'live', termsDate: '2026-11-30' })),
-}));
-vi.mock('@/lib/workspace/rules-live', () => rulesReader);
 vi.mock('@/lib/workspace/masked-issue.data', () => masked);
 const data = vi.hoisted(() => ({
   loadLearnOpen: vi.fn(async () => true),
@@ -217,14 +213,10 @@ describe('The Learn tab, ready', () => {
     });
     expect(text(unsupported)).toContain('Learn can’t find issues for this goal yet. Change your goal');
     expect(unsupported).toMatch(/data-variant="default"[^>]*href="\/my\/settings\/goal"/);
-    const cap = tab(myLearnAttempts.none, { issues: emptyIssues.cap });
-    expect(text(cap)).toContain('That’s today’s new issues');
     for (const issues of [emptyIssues.unread, undefined]) {
       const unread = tab(myLearnAttempts.none, { issues });
       expect(text(unread)).toContain('Couldn’t load the issues. Try again in a minute. Try again');
     }
-    const capped = tab(myLearnAttempts.none, { issues: learnIssues({ capReached: true }) });
-    expect(capped).toContain('data-issues-cap');
   });
 });
 
@@ -361,31 +353,18 @@ describe("The Learn tab's reads", () => {
   });
 
   it("shows the Terms banner alone at the top, from Contribute's own answer, and none without it", async () => {
-    workspace.loadFairUseNotices.mockResolvedValue(
-      fairUse({ rulesBanner, notices: [fairUseNotice()], listCut: { text: 'Cut.', noticeId: 'n1' } }),
-    );
+    workspace.loadFairUseNotices.mockResolvedValue(fairUse({ rulesBanner, notices: [fairUseNotice()] }));
     const html = await signedIn(myLearnAttempts.none);
     expect(html).toContain('data-fair-use="rules"');
     expect(html).toContain('href="/terms#contribute-rules"');
     expect(html.indexOf('data-fair-use="rules"')).toBeLessThan(html.indexOf('<h1'));
     // Contribute's own messages stay on Contribute.
     expect(html).not.toContain('data-fair-use="notice"');
-    expect(html).not.toContain('Cut.');
 
     for (const answer of [fairUse(), null]) {
       workspace.loadFairUseNotices.mockResolvedValue(answer);
       expect(await signedIn(myLearnAttempts.none)).not.toContain('data-fair-use');
     }
-  });
-
-  it('shows no banner before the rules are live, nor while the rules reader cannot tell', async () => {
-    workspace.loadFairUseNotices.mockResolvedValue(fairUse({ rulesBanner }));
-    for (const rules of [{ state: 'before' }, { state: 'unknown' }]) {
-      rulesReader.issueRules.mockResolvedValueOnce(rules);
-      expect(await signedIn(myLearnAttempts.none)).not.toContain('data-fair-use');
-    }
-    rulesReader.issueRules.mockRejectedValueOnce(new Error('down'));
-    expect(await signedIn(myLearnAttempts.none)).not.toContain('data-fair-use');
   });
 
   it('reads what masked rows need beside the issues, and only where it lists them', async () => {

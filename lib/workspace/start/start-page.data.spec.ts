@@ -79,7 +79,6 @@ describe("the Start page's reads", () => {
             openPrsEffective: 4,
             openPrsOverride: null,
             claimsPerDay: 10,
-            revealsPerDay: 150,
           },
           scheduleCounts: { prBound: 4 },
           ...patch,
@@ -92,24 +91,25 @@ describe("the Start page's reads", () => {
     });
     expect(asked()).toEqual(['StartPageIssue', 'StartPageLimits']);
 
-    // Smaller limits cap the setting.
+    // A limit set for the account holds over the open pull request setting.
     graphqlDirect.mockReset();
     answer({
       StartPageIssue: { startPageIssue: startViews.limitAttempts.start },
       StartPageLimits: contributor({
         limits: {
-          level: 'REDUCED',
-          reason: 'NEW_ACCOUNT',
-          attemptsAtATime: 1,
-          openPrsAtATime: 2,
-          claimsPerDay: 3,
-          revealsPerDay: 40,
+          level: 'STANDARD',
+          reason: null,
+          attemptsAtATime: 10,
+          openPrsAtATime: 10,
+          openPrsEffective: 2,
+          openPrsOverride: 2,
+          claimsPerDay: 10,
         },
         scheduleCounts: null,
       }),
     });
     expect(await startPageViewOf(READER, REPO, 934, 'fix')).toMatchObject({
-      data: { limits: { openPrs: { count: 2, limit: 2 }, attempts: 1 } },
+      data: { limits: { openPrs: { count: 2, limit: 2 }, attempts: 3 } },
     });
 
     graphqlDirect.mockReset();

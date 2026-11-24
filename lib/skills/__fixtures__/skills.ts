@@ -368,7 +368,6 @@ export const skillsIssueNumbers: SkillsIssueNumbers = {
   read: 2_340_000,
   kept: 2_499,
   at: '2026-11-24T03:40:00.000Z',
-  rulesLive: true,
   repos: 51_270,
   aiReadsPerDay: 2_800,
 };

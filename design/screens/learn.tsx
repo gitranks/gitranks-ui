@@ -288,13 +288,6 @@ export const LEARN_SCREENS: Screen[] = [
           }),
       },
       {
-        id: 'cap',
-        title: 'The day’s new issues are all shown',
-        path: '/learn/earlier',
-        height: 1220,
-        render: () => learnTab(myLearnAttempts.none, { issues: emptyIssues.cap }),
-      },
-      {
         id: 'unread',
         title: 'The issues could not be loaded',
         path: '/learn/earlier',

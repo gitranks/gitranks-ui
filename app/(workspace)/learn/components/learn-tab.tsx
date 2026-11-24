@@ -168,7 +168,7 @@ export type LearnTabData = {
   activity?: ContributeActivity | null;
   /** The viewer's own agent's name, for Right now's lane. */
   agentName?: string | null;
-  /** For masked rows: whether the new rules are live, the day's full issues, the numbers of a night. */
+  /** For masked rows: the day's full issues and the numbers of a night. */
   masked?: MaskedListReads;
   /** The Terms banner, alone (`rulesBannerOf`); null or left out when there is none. */
   rulesBanner?: ContributeFairUseNotices | null;

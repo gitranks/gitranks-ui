@@ -1,13 +1,9 @@
 import { DocLayout, DocSection, HashSafeLink, MorePages, PublicPageHead } from './public-pages';
-import { faqGroupsOf } from '@/lib/contribute/faq';
+import { FAQ_GROUPS } from '@/lib/contribute/faq';
 import { CONTACT_EMAIL } from '@/lib/legal';
 
-/**
- * The questions people ask before they start, in groups: contribution, the guardrails, the credits, the record. With
- * `rulesLive`, the one on full issues a day too.
- */
-export function FaqScreen({ rulesLive = false }: { rulesLive?: boolean } = {}) {
-  const groups = faqGroupsOf(rulesLive);
+/** The questions people ask before they start, in groups: contribution, the guardrails, the credits, the record. */
+export function FaqScreen() {
   return (
     <main className="mx-auto w-full max-w-7xl px-4 flex flex-col gap-9 pt-10 pb-16">
       <PublicPageHead eyebrow="Contribute · Questions" title="Questions before you start">
@@ -20,8 +16,8 @@ export function FaqScreen({ rulesLive = false }: { rulesLive?: boolean } = {}) {
         </p>
       </PublicPageHead>
 
-      <DocLayout sections={groups.map(({ id, title }) => ({ id, title }))}>
-        {groups.map(({ id, title, entries }) => (
+      <DocLayout sections={FAQ_GROUPS.map(({ id, title }) => ({ id, title }))}>
+        {FAQ_GROUPS.map(({ id, title, entries }) => (
           <DocSection key={id} id={id} title={title}>
             <dl className="flex flex-col gap-6">
               {entries.map(({ id: entry, question, answer, more }) => (

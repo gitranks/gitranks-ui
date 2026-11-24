@@ -1,7 +1,6 @@
 import type {
   ContributeCredential,
   ContributeFairUseNotice,
-  ContributeLimits,
   ContributeSettings,
   ContributeView,
 } from './contribute.types';
@@ -15,10 +14,6 @@ export type ContributeNotice =
   | { kind: 'key-invalid' }
   | { kind: 'exhausted'; until: string | null }
   | { kind: 'limit-reached'; until: string | null }
-  /** Smaller limits while the account is new: every new account starts so. */
-  | { kind: 'new-account'; limits: ContributeLimits }
-  /** Smaller limits for now: the recent claims ran out without a pull request. */
-  | { kind: 'follow-through'; limits: ContributeLimits }
   /**
    * Nothing new starts for this account: it can't see or claim issues. `fairUse` when a fair-use rule blocked it, with
    * the block's message (null when it could not be read).
@@ -30,17 +25,13 @@ export const isSuspended = (view: ContributeView | null | undefined): boolean =>
   view?.contributor?.limits?.level === 'SUSPENDED';
 
 /** The notices of the account's access level: they belong on every page that shows notices. */
-export const ACCESS_NOTICE_KINDS = [
-  'suspended',
-  'new-account',
-  'follow-through',
-] as const satisfies readonly ContributeNotice['kind'][];
+export const ACCESS_NOTICE_KINDS = ['suspended'] as const satisfies readonly ContributeNotice['kind'][];
 
 const isAccessKind = (kind: ContributeNotice['kind']) => (ACCESS_NOTICE_KINDS as readonly string[]).includes(kind);
 
 /**
- * The account's access level as a notice: suspended, or reduced for a new account or for claims that ran out. None at
- * the standard level, while the API does not answer the limits, or for limits the owner set with no reason to name.
+ * The account's access level as a notice: suspended. None at any other level, or while the API does not answer the
+ * limits.
  */
 export function accessNoticesOf(view: ContributeView): ContributeNotice[] {
   const limits = view.contributor?.limits;
@@ -52,9 +43,6 @@ export function accessNoticesOf(view: ContributeView): ContributeNotice[] {
         : { kind: 'suspended' },
     ];
   }
-  if (limits.level !== 'REDUCED') return [];
-  if (limits.reason === 'NEW_ACCOUNT') return [{ kind: 'new-account', limits }];
-  if (limits.reason === 'FOLLOW_THROUGH') return [{ kind: 'follow-through', limits }];
   return [];
 }
 
@@ -88,9 +76,8 @@ export const claudeKeyOf = (view: ContributeView | null | undefined): Contribute
 export const isPaused = (view: ContributeView) => view.contributor?.status === 'PAUSED';
 
 export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
-  const access = accessNoticesOf(view);
   // Suspended stops everything new: it comes before what a key would fix.
-  const notices: ContributeNotice[] = access.filter(({ kind }) => kind === 'suspended');
+  const notices: ContributeNotice[] = accessNoticesOf(view);
   const key = claudeKeyOf(view);
 
   // Without a key, a user who works with their own agent has nothing missing: a key is one of two ways.
@@ -99,8 +86,6 @@ export function contributeNoticesOf(view: ContributeView): ContributeNotice[] {
   } else if (key.state === 'INVALID') notices.push({ kind: 'key-invalid' });
   else if (key.state === 'EXHAUSTED') notices.push({ kind: 'exhausted', until: key.blockedUntil });
   else if (key.state === 'LIMIT_REACHED') notices.push({ kind: 'limit-reached', until: key.blockedUntil });
-
-  notices.push(...access.filter(({ kind }) => kind !== 'suspended'));
   return notices;
 }
 

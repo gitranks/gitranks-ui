@@ -175,18 +175,3 @@ function MessageBanner({
     </Banner>
   );
 }
-
-/**
- * The line over the list while it is cut, in place of the line on its size: the cut's sentence and its message's answer
- * page. It cannot be closed, so the reason stays after the message's banner is closed.
- */
-export function ListCutLine({ listCut }: { listCut: { text: string; noticeId: string } }) {
-  return (
-    <p className="text-sm text-muted-foreground" data-list-cut={listCut.noticeId}>
-      {listCut.text}{' '}
-      <Link href={fairUseAnswerPathOf(listCut.noticeId)} prefetch={false} className={LINK}>
-        Answer
-      </Link>
-    </p>
-  );
-}

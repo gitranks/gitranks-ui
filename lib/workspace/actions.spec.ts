@@ -24,9 +24,7 @@ const {
   ContributeAttemptLiveBareDocument,
   ContributeAttemptLiveDocument,
   ContributeIssueStatusDocument,
-  ContributeIssuesDocument,
   ContributeIssuesMaskedDocument,
-  ContributeIssuesWithRulesDocument,
   ContributeMcpConnectionsUsedDocument,
   ContributeOnboardingDocument,
   DismissReplyDocument,
@@ -1060,54 +1058,8 @@ describe('readIssuesPage with masked rows', () => {
     expect(read.ok && read.data?.items[0]).toMatchObject({ issueId: 'mask:q7k2m9xa', masked: leaky.masked });
   });
 
-  it('falls back to the rules and on only when the API does not know the field, and fails once on an outage', async () => {
-    const page = { items: [], next: null, total: 0, computedAt: null };
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === ContributeIssuesMaskedDocument)
-        throw new Error('[{"message":"Cannot query field \\"masked\\" on type \\"ContributeIssue\\"."}]');
-      return { contributeIssues: page };
-    });
-    expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toEqual({ ok: true, data: page });
-    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
-      ContributeIssuesMaskedDocument,
-      ContributeIssuesWithRulesDocument,
-    ]);
-
-    graphqlDirect.mockReset();
+  it('fails once on an outage', async () => {
     graphqlDirect.mockRejectedValue(new Error('GraphQL error! 502: Bad Gateway'));
-    expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toMatchObject({ ok: false, error: 'FAILED' });
-    expect(graphqlDirect).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("readIssuesPage on an API without the repos' rules", () => {
-  beforeEach(() => {
-    graphqlDirect.mockReset();
-    auth.mockReset();
-    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
-  });
-
-  it('reads the page as it was when the API does not know the rules, and only then', async () => {
-    const page = { items: [], next: null, total: 0, computedAt: null };
-    const unknown = new Error(
-      JSON.stringify([{ message: 'Cannot query field "repoRules" on type "ContributeIssue".' }]),
-    );
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === ContributeIssuesMaskedDocument)
-        throw new Error('[{"message":"Cannot query field \\"masked\\" on type \\"ContributeIssue\\"."}]');
-      if (document === ContributeIssuesWithRulesDocument) throw unknown;
-      return { contributeIssues: page };
-    });
-
-    expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toEqual({ ok: true, data: page });
-    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
-      ContributeIssuesMaskedDocument,
-      ContributeIssuesWithRulesDocument,
-      ContributeIssuesDocument,
-    ]);
-
-    graphqlDirect.mockReset();
-    graphqlDirect.mockRejectedValue(new Error('down'));
     expect(await actions.readIssuesPage({ after: 'c2', first: 2 })).toMatchObject({ ok: false, error: 'FAILED' });
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
   });

@@ -9,9 +9,7 @@ import { viewerLogin } from '@/lib/workspace/contribute.data';
 import {
   AddToContributeSetDocument,
   ContributeIssueStatusDocument,
-  ContributeIssuesDocument,
   ContributeIssuesMaskedDocument,
-  ContributeIssuesWithRulesDocument,
   IgnoreContributeRepoDocument,
   RemoveFromContributeSetDocument,
   ResolveContributeStackDocument,
@@ -95,13 +93,7 @@ export async function readIssuesPage(
   const first = Math.min(Math.max(Math.trunc(Number(input.first)) || 1, 1), ISSUES_PAGE_SIZE);
   const filter = issuesFilterOf(input.filter);
   const variables = { first, after, ...(Object.keys(filter).length ? { filter } : {}) };
-  // Each issue's masked form first; an API without it answers the page with the repos' rules.
-  const masked = await run(ContributeIssuesMaskedDocument, variables, (data) => keyedPageOf(data.contributeIssues));
-  if (masked.ok || masked.error !== 'NOT_AVAILABLE_YET') return masked;
-  const read = await run(ContributeIssuesWithRulesDocument, variables, (data) => data.contributeIssues);
-  // An API without the repos' rules: the page as it was.
-  if (read.ok || read.error !== 'NOT_AVAILABLE_YET') return read;
-  return run(ContributeIssuesDocument, variables, (data) => data.contributeIssues);
+  return run(ContributeIssuesMaskedDocument, variables, (data) => keyedPageOf(data.contributeIssues));
 }
 
 /** What the user works on: the mode, the lists and the ignored repos. */

@@ -2,7 +2,6 @@ import { contributor, limits, views } from './contribute-views';
 import type {
   ContributeFairUseNotice,
   ContributeFairUseNotices,
-  ContributeListSize,
   ContributeView,
 } from '@/lib/workspace/contribute.types';
 
@@ -77,7 +76,7 @@ export const answeredNotice = fairUseNotice({
 });
 
 /** What the API answers while its switches are off: nothing to show. */
-export const noFairUse: ContributeFairUseNotices = { rulesBanner: null, notices: [], block: null, listCut: null };
+export const noFairUse: ContributeFairUseNotices = { rulesBanner: null, notices: [], block: null };
 
 export const rulesBanner: ContributeFairUseNotices['rulesBanner'] = {
   text: 'We updated our Terms of service. GitRanks Contribute has a new rule. By continuing to use Contribute you agree to it.',
@@ -87,16 +86,6 @@ export const rulesBanner: ContributeFairUseNotices['rulesBanner'] = {
 
 export const fairUse = (patch: Partial<ContributeFairUseNotices> = {}): ContributeFairUseNotices => ({
   ...noFairUse,
-  ...patch,
-});
-
-/** The list's size: a Pro with no merged pull request, its list not cut, unless `patch` says otherwise. */
-export const listSize = (patch: Partial<ContributeListSize> = {}): ContributeListSize => ({
-  size: 30,
-  base: 30,
-  tier: 3,
-  merged: 0,
-  cut: false,
   ...patch,
 });
 

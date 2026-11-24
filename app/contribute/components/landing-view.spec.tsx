@@ -31,8 +31,6 @@ vi.mock('@/lib/workspace/contribute.data', () => data);
 const gate = vi.hoisted(() => ({ contributeOpen: vi.fn(async () => true) }));
 vi.mock('@/lib/workspace/preview-gate', () => gate);
 vi.mock('@/lib/contribute/agent-page', () => ({ loadAgentPage: vi.fn(async () => null) }));
-const rules = vi.hoisted(() => ({ issueRules: vi.fn(async (): Promise<unknown> => ({ state: 'before' })) }));
-vi.mock('@/lib/workspace/rules-live', () => rules);
 
 const { ContributeAboutView, signedInStartOf } = await import('./landing-view');
 const { metadata: aboutMetadata } = await import('@/app/(public)/contribute/about/page');
@@ -51,21 +49,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   data.loadContributeSetup.mockResolvedValue(false);
   data.viewerLogin.mockResolvedValue(null);
-  rules.issueRules.mockResolvedValue({ state: 'before' });
 });
 
 describe("the landing's example issue", () => {
   const about = async () => renderToStaticMarkup((await ContributeAboutView()) as ReactElement);
 
-  it('names the example issue while the rules are not live', async () => {
-    data.loadContribute.mockResolvedValue(null);
-    const html = await about();
-    expect(html).toContain('data-example="named"');
-    expect(html).toContain('fern-lang/fern · #2481');
-  });
-
-  it('shows it as lists show it once the rules are live: its facts and title, its project hidden', async () => {
-    rules.issueRules.mockResolvedValue({ state: 'live', termsDate: '2026-11-30' });
+  it('shows it as lists show it: its facts and title, its project hidden', async () => {
     for (const view of [null, views.active]) {
       data.loadContribute.mockResolvedValue(view);
       const html = await about();
@@ -78,18 +67,6 @@ describe("the landing's example issue", () => {
       expect(html).toContain('data-hints');
       expect(html).toContain('A maintainer agreed it should be fixed');
       expect(html).not.toContain('Why:');
-    }
-  });
-
-  it('shows only what both share while the rules are not known: its title, nothing named, nothing hidden', async () => {
-    for (const answer of [() => Promise.resolve({ state: 'unknown' }), () => Promise.reject(new Error('down'))]) {
-      rules.issueRules.mockImplementation(answer);
-      data.loadContribute.mockResolvedValue(null);
-      const html = await about();
-      expect(html).toContain('data-example="shared"');
-      expect(html).toContain('Formatter drops a trailing comment in match arms');
-      expect(html).not.toContain('fern-lang');
-      expect(html).not.toContain('Issue details are hidden');
     }
   });
 });

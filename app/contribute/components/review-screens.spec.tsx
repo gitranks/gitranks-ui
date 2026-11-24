@@ -1129,40 +1129,21 @@ describe('the review screen', () => {
 
   it('says the access level above an attempt and a run, and nothing at the standard level', () => {
     expect(review(detail(), views.suspended)).toContain('data-notice="suspended"');
-    expect(review(detail(), views.newAccount)).toContain('data-notice="new-account"');
     expect(review(detail())).not.toContain('data-notice');
   });
 
-  it('says the access level in one line, its explanation under "Why?"', () => {
-    const html = review(attempts.prOpen, views.newAccount);
-    const notice = html.match(/<div role="status" data-notice="new-account"[^>]*>(.*?)<\/details><\/div>/)?.[0] ?? '';
+  it('says the access level in one line, in the warning tone, its explanation under "Why?"', () => {
+    const html = review(attempts.prOpen, views.suspended);
+    const start = html.indexOf('<div role="status" data-notice="suspended"');
+    const notice = html.slice(start, html.indexOf('</details></div>', start));
     const summary = notice.match(/<summary[^>]*>(.*?)<\/summary>/)?.[1] ?? '';
 
+    expect(notice).toContain('border-warning/30 bg-warning-soft');
     expect(notice).toContain('data-notice-line=""');
     expect(notice).toContain('<details class="group">');
     expect(notice).not.toContain(' open=""');
-    expect(text(summary).trim()).toBe(
-      'Smaller limits while your account is new 1 issue at a time · 3 new claims a day Why?',
-    );
-    expect(text(notice)).toContain('Every new account starts this way');
-    expect(text(notice.slice(notice.indexOf('</summary>')))).toContain('Every new account starts this way');
-  });
-
-  it('draws a suspension and lower limits in the warning tone, the limits with their fact', () => {
-    const suspended = review(attempts.prOpen, views.suspended).match(
-      /<div role="status" data-notice="suspended"[^>]*>/,
-    )?.[0];
-    expect(suspended).toContain('border-warning/30 bg-warning-soft');
-    const suspendedLine = review(attempts.prOpen, views.suspended);
-    const summary = suspendedLine.slice(suspendedLine.indexOf('data-notice="suspended"'));
-    expect(text(summary.match(/<summary[^>]*>(.*?)<\/summary>/)?.[1] ?? '').trim()).toBe(
-      'Contribute is paused for this account Why?',
-    );
-
-    const lower = review(attempts.prOpen, views.followThrough);
-    const line = lower.match(/<div role="status" data-notice="follow-through"[^>]*>/)?.[0];
-    expect(line).toContain('border-warning/30 bg-warning-soft');
-    expect(text(lower)).toContain('Your limits are lower for now 1 issue at a time · 3 new claims a day Why?');
+    expect(text(summary).trim()).toBe('Contribute is paused for this account Why?');
+    expect(text(notice.slice(notice.indexOf('</summary>')))).toContain('Activity on this account looks automated');
   });
 
   it('hides nothing for a suspension: the page offers what it offers to an active account', () => {

@@ -69,12 +69,13 @@ const status = () => container.querySelector('[data-list-status]')?.textContent 
 const rowState = () => container.querySelector('[data-masked-row]')?.getAttribute('data-row-state');
 
 const NUMBERS = { read: issueNumbers.read, kept: issueNumbers.kept };
-const LIVE = { rulesLive: true, looks: looksToday(), numbers: NUMBERS };
-const BEFORE = { rulesLive: false, looks: null, numbers: NUMBERS };
+const LIVE = { looks: looksToday(), numbers: NUMBERS };
+/** A day that is not read: signed out, or a read that failed. */
+const UNREAD = { looks: null, numbers: NUMBERS };
 const looked = (outcome: string, page: unknown = null) => ({ ok: true, data: { outcome, page } });
 
 describe('the foot under a list of masked issues', () => {
-  it('says the day once the rules are live, with the link to why issue details are hidden', async () => {
+  it('says the day, with the link to why issue details are hidden', async () => {
     await render(
       <MaskedList from="contribute" pageFrom="contribute" reads={LIVE}>
         <MaskedListRow issue={maskedIssue()} />
@@ -87,9 +88,9 @@ describe('the foot under a list of masked issues', () => {
     expect(container.querySelector('[data-list-status]')?.getAttribute('role')).toBe('status');
   });
 
-  it("has the link alone before the rules are live: today's words", async () => {
+  it('has the link alone while the day cannot be read', async () => {
     await render(
-      <MaskedList from="contribute" pageFrom="contribute" reads={{ ...BEFORE, looks: looksToday() }}>
+      <MaskedList from="contribute" pageFrom="contribute" reads={UNREAD}>
         <MaskedListRow issue={maskedIssue()} />
       </MaskedList>,
     );
@@ -99,7 +100,7 @@ describe('the foot under a list of masked issues', () => {
 
   it("says a visitor's line under a visitor's list, which has no Skip", async () => {
     await render(
-      <MaskedList from="learn" pageFrom="learn" visitor reads={BEFORE}>
+      <MaskedList from="learn" pageFrom="learn" visitor reads={UNREAD}>
         <MaskedListRow issue={maskedIssue()} />
       </MaskedList>,
     );
@@ -175,7 +176,7 @@ describe('"See the full issue" in a list', () => {
 
   it("says the day's limit in the status line when the answer has no numbers", async () => {
     actions.lookAtIssue.mockResolvedValue(looked('LIMIT', null));
-    await list({ reads: BEFORE });
+    await list({ reads: UNREAD });
     await press(button('See the full issue'));
     expect(rowState()).toBe('limit');
     expect(status()).toBe(MASKED_LIST_NOTICES.limit);
@@ -245,7 +246,7 @@ describe('"See the full issue" in a list', () => {
 
   it("is a visitor's GitHub sign-in, back to the issue's page", async () => {
     await render(
-      <MaskedList from="learn" pageFrom="learn" visitor reads={BEFORE}>
+      <MaskedList from="learn" pageFrom="learn" visitor reads={UNREAD}>
         <MaskedListRow issue={maskedIssue()} />
       </MaskedList>,
     );
@@ -392,7 +393,7 @@ describe('a list while the person holds an issue open', () => {
   it("never shows a visitor's list a hold", async () => {
     holdUntil('r3n8p1vd', inMinutes(10));
     await render(
-      <MaskedList from="learn" pageFrom="learn" visitor reads={BEFORE}>
+      <MaskedList from="learn" pageFrom="learn" visitor reads={UNREAD}>
         <MaskedListRow issue={maskedIssues[0]} />
       </MaskedList>,
     );

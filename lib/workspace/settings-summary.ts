@@ -1,4 +1,4 @@
-import { type CappedSetting, capHintOf, effectiveSettingOf } from './access-limits';
+import { effectiveSettingOf } from './access-limits';
 import type {
   ContributeCredential,
   ContributeGrant,
@@ -41,15 +41,9 @@ export const budgetSummaryOf = (settings: ContributeSettings, spend?: Contribute
 export const modelSummaryOf = (settings: ContributeSettings) =>
   `${MODELS[settings.mainModel]}, ${EFFORTS[settings.effort].toLowerCase()} effort`;
 
-/** The cap's words when the access level holds a setting below what the user set: " while your account is new". */
-function capWordsOf(settings: ContributeSettings, limits: ContributeLimits | null | undefined, field: CappedSetting) {
-  const hint = capHintOf(limits, field);
-  return hint && hint.max < settings[field] ? ` ${hint.text}` : '';
-}
-
 /**
- * Settings' Open pull requests at a time row: "Up to 8 · 3 open now", the limit that holds (a cap, or a limit set for
- * the account, included) and, when known, how many count against it now.
+ * Settings' Open pull requests at a time row: "Up to 8 · 3 open now", the limit that holds (a limit set for the account
+ * included) and, when known, how many count against it now.
  */
 export function openPrsSummaryOf(
   settings: ContributeSettings,
@@ -58,14 +52,13 @@ export function openPrsSummaryOf(
 ): string {
   const limit = effectiveSettingOf(settings, limits, 'openPrsAtATime');
   const now = typeof open === 'number' ? ` · ${open} open now` : '';
-  return `Up to ${limit}${capWordsOf(settings, limits, 'openPrsAtATime')}${now}`;
+  return `Up to ${limit}${now}`;
 }
 
-/** Settings' Attempts at a time row: "Up to 2 issues in work at once", "1 issue in work at once while your account is new". */
+/** Settings' Attempts at a time row: "Up to 2 issues in work at once", "1 issue in work at once". */
 export function attemptsSummaryOf(settings: ContributeSettings, limits?: ContributeLimits | null): string {
   const limit = effectiveSettingOf(settings, limits, 'attemptsAtATime');
-  const words = limit === 1 ? '1 issue in work at once' : `Up to ${limit} issues in work at once`;
-  return `${words}${capWordsOf(settings, limits, 'attemptsAtATime')}`;
+  return limit === 1 ? '1 issue in work at once' : `Up to ${limit} issues in work at once`;
 }
 
 /** Settings' Pull request size row: "Up to 400 changed lines, 15 files · a larger change stops before review". */

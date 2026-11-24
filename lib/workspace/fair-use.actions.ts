@@ -47,10 +47,7 @@ export async function answerFairUseNotice(
   return run(AnswerContributeNoticeDocument, { noticeId: id, choice, text }, (data) => data.answerContributeNotice);
 }
 
-/**
- * Asks us to look again at a closed access, with the user's words: the request as saved, or the one already open.
- * `NOT_AVAILABLE_YET` from an API that does not take requests yet; the page then points to email.
- */
+/** Asks us to look again at a closed access, with the user's words: the request as saved, or the one already open. */
 export async function appealFairUse(text: string): Promise<ContributeActionResult<FairUseAppeal>> {
   const words = typeof text === 'string' ? text.trim() : '';
   if (!words) return { ok: false, error: 'INVALID', message: 'Write what we should look at again.' };

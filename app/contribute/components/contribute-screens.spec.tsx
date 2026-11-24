@@ -574,32 +574,7 @@ describe('the confirms before what cannot be undone', () => {
 });
 
 describe('the access level', () => {
-  it("tells a new account its smaller limits, with the numbers from the API, and that it isn't a judgement", () => {
-    const html = notices(views.newAccount);
-
-    expect(html).toContain('data-notice="new-account"');
-    expect(html).toContain('bg-brand-soft');
-    expect(text(html)).toContain(
-      "Smaller limits while your account is new Contribute starts new accounts on smaller limits: 1 issue at a time, 3 new claims a day and 40 new issues a day in this list. Every new account starts this way, to keep automated accounts from claiming issues meant for people; it isn't a judgement of you. The limits lift on their own as your account builds a track record.",
-    );
-    expect(html).toContain('<span class="font-mono tabular-nums text-foreground">40</span>');
-  });
-
-  it('says the counts as the API sets them, one or many', () => {
-    const wider = { ...limits.newAccount, attemptsAtATime: 2, claimsPerDay: 1, revealsPerDay: 1500 };
-    const view = { ...views.newAccount, contributor: { ...views.newAccount.contributor, limits: wider } };
-
-    expect(text(notices(view))).toContain('2 issues at a time, 1 new claim a day and 1,500 new issues a day');
-  });
-
-  it('warns of lower limits after claims ran out, and of a paused account with the address to write to', () => {
-    const followThrough = notices(views.followThrough);
-    expect(followThrough).toContain('data-notice="follow-through"');
-    expect(followThrough).toContain('bg-warning-soft');
-    expect(text(followThrough)).toContain(
-      "Your limits are lower for now Most of your recent claims ran out without a pull request, and each one kept the issue from other contributors. For now Contribute holds you to 1 issue at a time and 3 new claims a day. Release an issue you won't finish instead of letting it run out; the limits come back as your claims turn into pull requests.",
-    );
-
+  it('warns of a paused account, with the address to write to', () => {
     const suspended = notices(views.suspended);
     expect(suspended).toContain('data-notice="suspended"');
     expect(suspended).toContain('bg-warning-soft');
@@ -609,26 +584,13 @@ describe('the access level', () => {
     );
   });
 
-  it("says the attempts the limit holds on Settings' row, below the setting alone", () => {
-    expect(text(renderToStaticMarkup(<SettingsScreen view={views.newAccount} />))).toContain(
-      'Attempts at a time 1 issue in work at once while your account is new',
-    );
-    expect(text(renderToStaticMarkup(<SettingsScreen view={views.followThrough} />))).toContain(
-      'Attempts at a time 1 issue in work at once for now',
-    );
+  it("says the attempts that hold on Settings' row", () => {
     expect(text(renderToStaticMarkup(<SettingsScreen view={views.active} />))).toContain(
       'Attempts at a time 1 issue in work at once Edit',
     );
   });
 
-  it('caps attempts and open PRs at a time on their pages, with the hint tied to the field', () => {
-    const prs = renderToStaticMarkup(<PullRequestsSettingsScreen view={views.newAccount} />);
-    expect(text(prs)).toContain('Attempts at a time Up to 1 while your account is new');
-    expect(prs).toMatch(/aria-describedby="([^"]*attemptsAtATime-hint)"[^>]*>.*id="\1"/s);
-
-    const agent = renderToStaticMarkup(<PullRequestsSettingsScreen view={views.followThrough} />);
-    expect(text(agent)).toContain('Open PRs at a time Up to 2 for now');
-
+  it('shows attempts and open PRs at a time on their page with no hint under them', () => {
     const standard = renderToStaticMarkup(<PullRequestsSettingsScreen view={views.active} />);
     expect(standard).not.toContain('data-cap-hint');
   });
@@ -642,7 +604,7 @@ describe('the access level', () => {
     expect(text(agent)).not.toContain('Up to');
   });
 
-  it('refuses a value typed above the cap on save, and keeps the stored one', async () => {
+  it('saves attempts and open PRs at a time as typed, and refuses one that is not a number', async () => {
     const { pagePatchOf } = await import('@/components/workspace/settings/settings-form');
     const draft = {
       cycleCapUsd: '$200',
@@ -662,33 +624,9 @@ describe('the access level', () => {
       effort: 'MEDIUM' as const,
       dco: 'ASK' as const,
     };
-    const caps = { limits: limits.newAccount, stored: { attemptsAtATime: 1, openPrsAtATime: 3 } };
-
-    expect(pagePatchOf('pull-requests', draft, caps)).toEqual({
+    expect(pagePatchOf('pull-requests', draft)).toMatchObject({ patch: { attemptsAtATime: 2, openPrsAtATime: 3 } });
+    expect(pagePatchOf('pull-requests', { ...draft, attemptsAtATime: '1.5' })).toEqual({
       invalid: 'Attempts at a time',
-      message: 'Attempts at a time: up to 1 while your account is new.',
     });
-    // Open PRs at 3 is as stored: kept for when the limit lifts.
-    expect(pagePatchOf('pull-requests', { ...draft, attemptsAtATime: '1' }, caps)).toMatchObject({
-      patch: { openPrsAtATime: 3 },
-    });
-    expect(pagePatchOf('pull-requests', { ...draft, attemptsAtATime: '1', openPrsAtATime: '4' }, caps)).toMatchObject({
-      message: 'Open PRs at a time: up to 2 while your account is new.',
-    });
-    expect(pagePatchOf('pull-requests', { ...draft, attemptsAtATime: '1' }, caps)).toMatchObject({
-      patch: { attemptsAtATime: 1 },
-    });
-    expect(pagePatchOf('pull-requests', draft)).toMatchObject({ patch: { attemptsAtATime: 2 } });
-
-    // A limit set for the account is never saved as the setting: the stored one goes back as it is.
-    const stored = { attemptsAtATime: 2, openPrsAtATime: 3 };
-    const set = pagePatchOf('pull-requests', draft, { limits: limits.openPrsSet, stored });
-    expect(set).toMatchObject({ patch: { openPrsAtATime: 3 } });
-    expect(set).not.toHaveProperty('invalid');
-    // On smaller limits too, with the stored value above the level's cap: kept, and not refused.
-    const reduced = { ...limits.newAccount, openPrsEffective: 16, openPrsOverride: 16 };
-    const small = pagePatchOf('pull-requests', { ...draft, attemptsAtATime: '1' }, { limits: reduced, stored });
-    expect(small).toMatchObject({ patch: { openPrsAtATime: 3 } });
-    expect(small).not.toHaveProperty('invalid');
   });
 });

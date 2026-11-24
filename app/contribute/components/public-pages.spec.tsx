@@ -5,10 +5,6 @@ vi.mock('@/lib/workspace/preview-gate', () => ({ contributeShown: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
 vi.mock('@/components/workspace/scroll-to-hash', () => ({ ScrollToHash: () => <span data-scroll-to-hash /> }));
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
-vi.mock('@/lib/workspace/rules-live', () => ({
-  issueRules: vi.fn(async () => ({ state: 'before' })),
-  issueRulesLive: vi.fn(async () => false),
-}));
 
 const { FaqScreen } = await import('./faq');
 const { McpDocsScreen } = await import('./mcp-docs');
@@ -297,7 +293,7 @@ describe('the Terms', () => {
     const shown = text(renderToStaticMarkup(<TermsScreen contribute />));
     const hidden = text(renderToStaticMarkup(<TermsScreen contribute={false} />));
     expect(shown).toContain('GitRanks Contribute');
-    expect(shown).toContain('22 November 2026');
+    expect(shown).toContain('24 November 2026');
     expect(hidden).toContain('31 October 2026');
     expect(shown).toContain('not affiliated with or endorsed by Anthropic');
     expect(shown).toContain('gitranks.com/contribute/maintainers');
@@ -308,17 +304,17 @@ describe('the Terms', () => {
     expect(shown).toContain('your reaction may be shown on the result page with your username, avatar and role');
   });
 
-  it('open Contribute’s section with the rule for issues from your list, at its own anchor', () => {
+  it('open Contribute’s section with the rules for issues from GitRanks, at their own anchor', () => {
     const html = renderToStaticMarkup(<TermsScreen contribute />);
     const plain = text(html);
     const rule = html.indexOf('id="contribute-rules"');
     expect(rule).toBeGreaterThan(html.indexOf('id="contribute"'));
     expect(rule).toBeLessThan(html.indexOf('Your key, your usage.'));
     expect(plain).toContain(
-      'Pull requests for issues from your list. GitRanks watches 50,000 repositories and reads about 3,000 issues with AI every day to find the best ones to work on. The lists it makes belong to GitRanks. This costs us money and work, and the service is free for you. Every pull request for an issue from your list is opened through GitRanks, never by hand or with another tool, and carries a small footer with a link to GitRanks. That link is how other developers find us. This is the only thing we ask in return. Do not copy the list or pass it on. If we find a pull request that goes around GitRanks, we ask you why. If it goes on, your list gets shorter. If it still goes on, your account is blocked.',
+      'Issues from GitRanks. GitRanks reads millions of open issues, with its own rules and with AI, and keeps about one in a thousand. This costs us money and work, and the service is free for you. The lists it makes, and what it tells you about each issue, belong to GitRanks.',
     );
     expect(plain).toContain(
-      'Your agent must follow the rule for issues from your list too: GitRanks tells it so when it connects.',
+      'Your agent must follow the rules for issues from GitRanks too: GitRanks tells it so when it connects.',
     );
     expect(plain).toContain(
       'By using GitRanks, its badges, its sign-in or its MCP server through any AI agent, you accept them.',
@@ -357,7 +353,7 @@ describe('the launch gate', () => {
     shown.mockResolvedValue(true);
     const open = renderToStaticMarkup(await LaunchedTerms());
     expect(open).toContain('id="contribute"');
-    expect(open).toContain('2026-11-22');
+    expect(open).toContain('2026-11-24');
     expect(open).toContain('data-scroll-to-hash');
 
     shown.mockResolvedValue(false);

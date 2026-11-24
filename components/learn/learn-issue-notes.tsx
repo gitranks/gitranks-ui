@@ -36,21 +36,6 @@ const ChangeGoal = ({ primary = false, href = GOAL_PAGE }: { primary?: boolean; 
   </Button>
 );
 
-/** The day's cap on new issues, in the words Contribute's feed uses there. */
-const CAP_TITLE = 'That’s today’s new issues';
-const CAP_TEXT = 'You’ve seen the most new issues we show in a day. More arrive at 00:00 UTC.';
-/** Under a list the cap cut short: the issues already shown stay. */
-const CAP_KEEPS = 'The ones you’ve seen stay here until then.';
-
-/** Under the rows the day's cap cut short. */
-export function LearnCapNote() {
-  return (
-    <p className="text-sm text-muted-foreground" data-issues-cap="">
-      {CAP_TITLE}. {CAP_TEXT} {CAP_KEEPS}
-    </p>
-  );
-}
-
 /**
  * Why the list is empty, worded apart for each reason; `goal` is what the viewer wants to learn, `changeHref` where
  * changing it leads. `issues` undefined: the API did not answer, and the note offers to read the page again.
@@ -80,12 +65,6 @@ export function LearnIssuesEmpty({
         <ListNote id="goal-unsupported">
           <p className="text-sm text-muted-foreground">Learn can’t find issues for this goal yet.</p>
           <ChangeGoal primary href={changeHref} />
-        </ListNote>
-      );
-    case 'CAP':
-      return (
-        <ListNote id="cap" title={CAP_TITLE}>
-          <p className="text-sm text-muted-foreground">{CAP_TEXT}</p>
         </ListNote>
       );
     default:

@@ -30,9 +30,6 @@ const answer = (answers: Record<string, unknown>) =>
     return value;
   });
 
-/** Today's API, which does not know the masked form: what GraphQL answers a query for it. */
-const todaysAnswerTo = (type: string) =>
-  new Error(JSON.stringify([{ message: `Cannot query field "masked" on type "${type}".` }]));
 const outage = () => new Error('fetch failed');
 
 beforeEach(() => {
@@ -82,15 +79,8 @@ describe("Learn's list for the viewer's goal, with masked issues", () => {
     expect(read).toContain('"issueId":"mask:q7k2m9xa"');
   });
 
-  it("reads today's list from an API that does not know the masked form", async () => {
-    const today = learnIssues();
-    answer({ LearnIssuesMasked: todaysAnswerTo('LearnIssue'), LearnIssues: { learnIssues: today } });
-    expect(await loadLearnIssues(11)).toEqual(today);
-    expect(asked()).toEqual(['LearnIssuesMasked', 'LearnIssues']);
-  });
-
-  it('is not read on an outage, never taken for an API without the field', async () => {
-    answer({ LearnIssuesMasked: outage(), LearnIssues: { learnIssues: learnIssues() } });
+  it('is not read on an outage, asked once', async () => {
+    answer({ LearnIssuesMasked: outage() });
     expect(await loadLearnIssues(12)).toBeUndefined();
     expect(asked()).toEqual(['LearnIssuesMasked']);
   });
@@ -113,17 +103,6 @@ describe("a visitor's day list, with masked issues", () => {
     });
     expect(asked()).toEqual(['LearnPublicIssuesMasked']);
     expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr' });
-  });
-
-  it("reads today's day list from an API that does not know the masked form", async () => {
-    const today = { language: 'Go', items: [], total: 9 };
-    answer({
-      LearnPublicIssuesMasked: todaysAnswerTo('LearnPublicIssue'),
-      LearnPublicIssues: { learnPublicIssues: today },
-    });
-    expect(await readLearnPublicIssues('Go')).toEqual({ ok: true, data: today });
-    expect(asked()).toEqual(['LearnPublicIssuesMasked', 'LearnPublicIssues']);
-    expect(cacheLife).toHaveBeenCalledExactlyOnceWith('minutes');
   });
 
   it('says the read failed on an outage, kept for seconds', async () => {

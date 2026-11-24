@@ -106,10 +106,8 @@ describe('asking to look again', () => {
     expect(textarea().value).toBe('Please look again.');
   });
 
-  it.each([
-    ['refuses it', { ok: false as const, error: 'INVALID' as const, message: 'Your access is not closed.' }],
-    ['does not take requests yet', { ok: false as const, error: 'NOT_AVAILABLE_YET' as const }],
-  ])('points to email when the API %s', async (_, answer) => {
+  it('points to email when the API refuses it', async () => {
+    const answer = { ok: false as const, error: 'INVALID' as const, message: 'Your access is not closed.' };
     await render(<FairUseAppealForm appeal={null} onSend={async () => answer} />);
     await type('Please look again.');
     await send();

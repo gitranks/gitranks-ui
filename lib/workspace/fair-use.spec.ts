@@ -8,7 +8,6 @@ import {
   fairUseNoticeIdOf,
   fairUseTextLabelOf,
   isAccessClosed,
-  listSizeLineOf,
   rulesBannerPartsOf,
 } from './fair-use';
 import {
@@ -16,35 +15,10 @@ import {
   blockNotice,
   claimRatioWarning,
   fairUseNotice,
-  listSize,
   outsideFixNotice,
   rulesBanner,
   warningNotice,
 } from '@/lib/contribute/__fixtures__/fair-use';
-
-describe('the line on the list size', () => {
-  it('says the size, the tier with its part and the merged share, word for word', () => {
-    expect(listSizeLineOf(listSize())).toBe(
-      'You see your top 30 issues. The size comes from your GitRanks tier (Pro: 30) plus 5 for every pull request merged through GitRanks, up to 100.',
-    );
-    expect(listSizeLineOf(listSize({ size: 85, base: 70, tier: 7, merged: 3 }))).toBe(
-      'You see your top 85 issues. The size comes from your GitRanks tier (Legend: 70) plus 5 for every pull request merged through GitRanks, up to 100.',
-    );
-  });
-
-  it('names an account that is not ranked "not ranked yet"', () => {
-    expect(listSizeLineOf(listSize({ size: 10, base: 10, tier: null }))).toBe(
-      'You see your top 10 issues. The size comes from your GitRanks tier (not ranked yet: 10) plus 5 for every pull request merged through GitRanks, up to 100.',
-    );
-    expect(listSizeLineOf(listSize({ tier: 9 }))).toContain('(not ranked yet: 30)');
-  });
-
-  it('says nothing while the list is cut or lists are not capped', () => {
-    expect(listSizeLineOf(listSize({ size: 10, cut: true }))).toBeNull();
-    expect(listSizeLineOf(null)).toBeNull();
-    expect(listSizeLineOf(undefined)).toBeNull();
-  });
-});
 
 describe('a message in pieces', () => {
   it('links the pull requests it names and keeps every word', () => {

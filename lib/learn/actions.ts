@@ -8,7 +8,6 @@ import {
   AnswerLessonQuestionDocument,
   AnswerWarmupDocument,
   DismissLearnPromoDocument,
-  LearnIssuesDocument,
   LearnIssuesMaskedDocument,
   LogCopyForAgentDocument,
   MarkStepShownDocument,
@@ -51,7 +50,6 @@ import {
   type PrFeedbackErrorCode,
   prFeedbackErrorOf,
 } from '@/lib/workspace/errors';
-import { runWithMasked } from '@/lib/workspace/masked-read';
 import { REACT_PARAM } from '@/lib/workspace/paths';
 import { attemptIdOf } from '@/lib/workspace/pr-feedback';
 import type DocumentNode from '@/types/typed-document-node';
@@ -307,13 +305,12 @@ export async function readLearnIssues(first: number): Promise<ContributeActionRe
   return readIssuesFor(count);
 }
 
-/** The issues for the viewer's goal, with each one's masked form; an API without it answers them as they were. */
+/**
+ * The issues for the viewer's goal, with each one's masked form. A masked row leaves the read stripped of what names its
+ * issue, keyed by its mask id.
+ */
 const readIssuesFor = (first: number) =>
-  runWithMasked(
-    // A masked row leaves the read stripped of what names its issue, keyed by its mask id.
-    () => run(LearnIssuesMaskedDocument, { first }, (data) => learnIssuesOf(data.learnIssues)),
-    () => run(LearnIssuesDocument, { first }, (data) => data.learnIssues),
-  );
+  run(LearnIssuesMaskedDocument, { first }, (data) => learnIssuesOf(data.learnIssues));
 
 /** How many issues a passed practice lesson shows. */
 const PASSED_ISSUES = 2;

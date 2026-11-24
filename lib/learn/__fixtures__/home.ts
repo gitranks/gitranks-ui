@@ -57,7 +57,6 @@ export const learnIssues = (patch: Partial<LearnIssues> = {}): LearnIssues => ({
   items: ISSUES,
   total: ISSUES.length,
   empty: null,
-  capReached: false,
   room: null,
   ...patch,
 });
@@ -71,7 +70,6 @@ export const emptyIssues = {
     total: 0,
     empty: 'GOAL_UNSUPPORTED',
   }),
-  cap: learnIssues({ items: [], total: 6, empty: 'CAP', capReached: true }),
   unread: learnIssues({ items: [], total: 6, empty: 'UNREAD' }),
   noRoom: learnIssues({ room: { limit: 'open_prs_at_a_time', value: 2 } }),
 };

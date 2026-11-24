@@ -30,9 +30,8 @@ const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn() }));
 vi.mock('@/lib/workspace/gate.data', () => gate);
 const start = vi.hoisted(() => ({ loadStartPageView: vi.fn() }));
 vi.mock('@/lib/workspace/start/start-page.data', () => start);
-const masks = vi.hoisted(() => ({ issueRulesLive: vi.fn(), loadStartPageWithMask: vi.fn() }));
+const masks = vi.hoisted(() => ({ loadStartPageWithMask: vi.fn() }));
 vi.mock('@/lib/workspace/masked-issue.data', () => ({ loadStartPageWithMask: masks.loadStartPageWithMask }));
-vi.mock('@/lib/workspace/rules-live', () => ({ issueRulesLive: masks.issueRulesLive }));
 // The poll outside the tabs: a mark, so the page says where it mounts it.
 vi.mock('@/components/workspace/workspace-live', () => ({
   WorkspaceLive: ({ children }: { children: ReactElement }) => <div data-workspace-live="">{children}</div>,
@@ -72,7 +71,6 @@ beforeEach(() => {
   gate.loadWorkspaceGate.mockResolvedValue(OPEN);
   learn.loadLearnOpen.mockResolvedValue(true);
   learn.loadLearnProfile.mockResolvedValue(filledProfile);
-  masks.issueRulesLive.mockResolvedValue(false);
   masks.loadStartPageWithMask.mockResolvedValue(null);
   start.loadStartPageView.mockImplementation(async (_ref, _mode, goal) => ({
     kind: 'view',
@@ -131,29 +129,19 @@ describe('the Start page at /my/start', () => {
   describe('the old address of an issue whose details are hidden', () => {
     const ANSWER = { ok: true, data: startPageViewOf().issue.start };
 
-    it("is today's page until the switch, and asks nothing about the mask", async () => {
-      const html = await startPage();
-      expect(html).toContain('data-start-mode="fix"');
-      expect(masks.loadStartPageWithMask).not.toHaveBeenCalled();
-      expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null, undefined);
-    });
-
-    it('is not found from the switch for an issue the viewer neither named nor holds', async () => {
-      masks.issueRulesLive.mockResolvedValue(true);
+    it('is not found for an issue the viewer neither named nor holds', async () => {
       masks.loadStartPageWithMask.mockResolvedValue({ answer: ANSWER, maskId: 'q7k2m9xa' });
       await expect(startPage()).rejects.toThrow('NEXT_NOT_FOUND');
       expect(masks.loadStartPageWithMask).toHaveBeenCalledWith(REF, 'fix');
     });
 
     it('reads the issue once: the answer with the mask goes on to the page, which asks it no more', async () => {
-      masks.issueRulesLive.mockResolvedValue(true);
       masks.loadStartPageWithMask.mockResolvedValue({ answer: ANSWER, maskId: null });
       expect(await startPage()).toContain('data-start-mode="fix"');
       expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null, ANSWER);
     });
 
-    it('keeps working from the switch for an issue the viewer named or holds, and one they work on', async () => {
-      masks.issueRulesLive.mockResolvedValue(true);
+    it('keeps working for an issue the viewer named or holds, and one they work on', async () => {
       masks.loadStartPageWithMask.mockResolvedValue({ answer: ANSWER, maskId: null });
       expect(await startPage()).toContain('data-start-mode="fix"');
       masks.loadStartPageWithMask.mockResolvedValue({ answer: ANSWER, maskId: 'q7k2m9xa' });
@@ -161,10 +149,10 @@ describe('the Start page at /my/start', () => {
       await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /my/pull-requests/by-attempt/A_9');
     });
 
-    it("is today's page, read as today, when the API does not know the mask yet", async () => {
-      masks.issueRulesLive.mockResolvedValue(true);
+    it('leaves the page to read the issue itself when the mask read answers nothing', async () => {
       masks.loadStartPageWithMask.mockResolvedValue(null);
       expect(await startPage()).toContain('data-start-mode="fix"');
+      expect(masks.loadStartPageWithMask).toHaveBeenCalledWith(REF, 'fix');
       expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null, undefined);
     });
   });

@@ -1,10 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-const { graphqlDirect, cacheLife } = vi.hoisted(() => ({ graphqlDirect: vi.fn(), cacheLife: vi.fn() }));
-vi.mock('next/cache', () => ({ cacheLife }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('@/lib/workspace/preview-gate', () => ({ contributeShown: vi.fn(async () => true) }));
 vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
 vi.mock('@/components/workspace/scroll-to-hash', () => ({ ScrollToHash: () => null }));
@@ -14,10 +11,7 @@ const { LaunchedTerms, TermsScreen } = await import('@/app/terms/terms');
 const { McpDocsScreen } = await import('./mcp-docs');
 const { FaqScreen } = await import('./faq');
 const { agentsDocOf } = await import('@/lib/contribute/agents-doc');
-const { MCP_DOC_ISSUE_LIMITS, MCP_DOC_LIMITS } = await import('@/lib/contribute/mcp-docs');
-const { IssueRulesLiveDocument, issueRules, issueRulesLive, resetIssueRulesLive } = await import(
-  '@/lib/workspace/rules-live'
-);
+const { MCP_DOC_LIMITS } = await import('@/lib/contribute/mcp-docs');
 
 const text = (html: string) =>
   html
@@ -27,106 +21,13 @@ const text = (html: string) =>
     .replaceAll('&amp;', '&')
     .replace(/\s+/g, ' ');
 
-/** Today's API: it does not know the field yet. */
-const unknownField = () =>
-  Promise.reject(new Error('[{"message":"Cannot query field \\"termsDate\\" on type \\"IssueNumbers\\"."}]'));
-/** An API that does not answer. */
-const outage = () => Promise.reject(new Error('GraphQL error! 502: Bad Gateway'));
-const TERMS_DATE = '2026-11-26T00:00:00.000Z';
-const LIVE = { state: 'live', termsDate: TERMS_DATE } as const;
-const live = { issueNumbers: { rulesLive: true, termsDate: TERMS_DATE } };
-
-beforeEach(() => {
-  graphqlDirect.mockReset();
-  cacheLife.mockReset();
-  resetIssueRulesLive();
-});
-
-describe('which rules about issues hold', () => {
-  it('is read in an operation of its own, live with the date of the Terms, and cached a minute', async () => {
-    graphqlDirect.mockResolvedValue(live);
-    expect(await issueRules()).toEqual(LIVE);
-    expect(await issueRulesLive()).toBe(true);
-    expect(graphqlDirect).toHaveBeenCalledWith(IssueRulesLiveDocument, undefined, { source: 'ssr' });
-    expect(cacheLife).toHaveBeenCalledWith('minutes');
-  });
-
-  it("is today's while the API does not know the field, cached a minute", async () => {
-    graphqlDirect.mockImplementation(unknownField);
-    expect(await issueRules()).toEqual({ state: 'before' });
-    expect(cacheLife).toHaveBeenCalledWith('minutes');
-  });
-
-  it('is not live when the API says live without a date', async () => {
-    graphqlDirect.mockResolvedValue({ issueNumbers: { rulesLive: true, termsDate: null } });
-    expect(await issueRules()).toEqual({ state: 'before' });
-    expect(await issueRulesLive()).toBe(false);
-  });
-
-  it('is unknown while the API does not answer and nothing was read, asked again 10 seconds later', async () => {
-    graphqlDirect.mockImplementation(outage);
-    expect(await issueRules()).toEqual({ state: 'unknown' });
-    expect(await issueRulesLive()).toBe(false);
-    expect(cacheLife).toHaveBeenLastCalledWith({ stale: 30, revalidate: 10, expire: 600 });
-    expect(cacheLife).not.toHaveBeenCalledWith('minutes');
-    graphqlDirect.mockResolvedValue(live);
-    expect(await issueRules()).toEqual(LIVE);
-  });
-
-  it('keeps the last answer read when the API does not answer, asked again 10 seconds later', async () => {
-    graphqlDirect.mockResolvedValueOnce(live);
-    expect(await issueRules()).toEqual(LIVE);
-    graphqlDirect.mockImplementationOnce(outage);
-    expect(await issueRules()).toEqual(LIVE);
-    expect(cacheLife).toHaveBeenLastCalledWith({ stale: 30, revalidate: 10, expire: 600 });
-    graphqlDirect.mockResolvedValueOnce({ issueNumbers: { rulesLive: false, termsDate: null } });
-    expect(await issueRules()).toEqual({ state: 'before' });
-  });
-
-  it('never reads the clock, so a prerendered page may call it', async () => {
-    const now = vi.spyOn(Date, 'now');
-    graphqlDirect.mockResolvedValue(live);
-    await issueRules();
-    graphqlDirect.mockImplementation(outage);
-    await issueRules();
-    expect(now).not.toHaveBeenCalled();
-    now.mockRestore();
-  });
-});
-
 describe('the Terms', () => {
-  it.each([
-    ['does not know the field', unknownField],
-    ['says live without a date', async () => ({ issueNumbers: { rulesLive: true, termsDate: null } })],
-  ])('keep the rule for issues from your list and its date while the API %s', async (_, answer) => {
-    graphqlDirect.mockImplementation(answer);
-    const html = renderToStaticMarkup(await LaunchedTerms());
-    expect(text(html)).toContain('Pull requests for issues from your list.');
-    expect(text(html)).not.toContain('Issues from GitRanks.');
-    expect(text(html)).toContain('Last updated 22 November 2026');
-  });
-
-  it('say the rules could not be loaded, with no date, while the API does not answer', async () => {
-    graphqlDirect.mockImplementation(outage);
+  it('carry the rules for issues from GitRanks at their anchor, dated 24 November 2026', async () => {
     const html = renderToStaticMarkup(await LaunchedTerms());
     const plain = text(html);
     expect(html).toContain('id="contribute-rules"');
-    expect(plain).toContain(
-      'Issues from GitRanks. This part could not be loaded just now. Reload the page to read it.',
-    );
-    expect(plain).toContain('Fair use of Contribute. This part could not be loaded just now.');
-    expect(plain).not.toContain('Last updated');
-    expect(plain).not.toContain('from your list');
-    expect(plain).not.toContain('full issues a day');
-  });
-
-  it('carry the rules for issues from GitRanks once they are live, at the same anchor, with their date', async () => {
-    graphqlDirect.mockResolvedValue(live);
-    const html = renderToStaticMarkup(await LaunchedTerms());
-    const plain = text(html);
-    expect(html).toContain('id="contribute-rules"');
-    expect(plain).toContain('Last updated 26 November 2026');
-    expect(html).toContain('dateTime="2026-11-26"');
+    expect(plain).toContain('Last updated 24 November 2026');
+    expect(html).toContain('dateTime="2026-11-24"');
     expect(plain).toContain(
       'Issues from GitRanks. GitRanks reads millions of open issues, with its own rules and with AI, and keeps about one in a thousand.',
     );
@@ -148,26 +49,21 @@ describe('the Terms', () => {
       'Your agent must follow the rules for issues from GitRanks too: GitRanks tells it so when it connects.',
     );
     expect(plain).toContain('Each brings an email first, then 5 full issues a day, then your access to real issues');
+    expect(plain).not.toContain('Pull requests for issues from your list.');
     expect(plain).not.toContain('your list gets shorter');
-    expect(plain).not.toContain('to claim');
+    expect(plain).not.toContain('could not be loaded');
   });
 
   it('use none of the words the rules leave behind', () => {
-    const plain = text(renderToStaticMarkup(<TermsScreen contribute rules={LIVE} />));
+    const plain = text(renderToStaticMarkup(<TermsScreen contribute />));
     const rules = plain.slice(plain.indexOf('Issues from GitRanks.'), plain.indexOf('Your key, your usage.'));
-    expect(rules).not.toMatch(/claim|\u2014|issues are hidden/i);
+    expect(rules).not.toMatch(/claim|—|issues are hidden/i);
   });
 });
 
 describe('the MCP docs', () => {
-  it('list today’s limits until the rules are live', () => {
+  it('list full issues a day, without issues shown or smaller limits', () => {
     const plain = text(renderToStaticMarkup(<McpDocsScreen />));
-    expect(plain).toContain('Issues shown for the first time');
-    expect(plain).toContain('A new GitHub account, or one whose claims rarely turn into pull requests');
-  });
-
-  it('list full issues a day once they are live, without issues shown or smaller limits', () => {
-    const plain = text(renderToStaticMarkup(<McpDocsScreen rules={LIVE} />));
     expect(plain).toContain(
       'Full issues a day From your GitRanks tier, 10 to 70, plus 5 for each pull request merged through GitRanks, up to 100.',
     );
@@ -178,8 +74,8 @@ describe('the MCP docs', () => {
     expect(plain).not.toContain('gets smaller limits');
   });
 
-  it("build the limits of full issues a day from today's, with the rows that change swapped", () => {
-    expect(MCP_DOC_ISSUE_LIMITS.map(({ what }) => what)).toEqual([
+  it('list the limits in their order', () => {
+    expect(MCP_DOC_LIMITS.map(({ what }) => what)).toEqual([
       'Requests',
       'Tool calls',
       'find_issues',
@@ -189,34 +85,12 @@ describe('the MCP docs', () => {
       'An issue stays held',
       'Personal tokens',
     ]);
-    const held = MCP_DOC_ISSUE_LIMITS.find(({ what }) => what === 'An issue stays held');
-    expect(held?.limit).toBe(MCP_DOC_LIMITS.find(({ what }) => what === 'A claim lasts')?.limit);
-  });
-
-  it.each([
-    ['while the read is under way, with no note', { state: 'pending' } as const, null],
-    [
-      'and say the rest could not be loaded while the API does not answer',
-      { state: 'unknown' } as const,
-      'The limits on issues could not be loaded just now. Reload the page to see them.',
-    ],
-  ])('list only the limits both rules share %s', (_, rules, note) => {
-    const plain = text(renderToStaticMarkup(<McpDocsScreen rules={rules} />));
-    expect(plain).toContain('Requests 300 a minute');
-    expect(plain).toContain('Personal tokens');
-    for (const gone of ['Issues shown', 'New claims', 'A claim lasts', 'Full issues a day', 'An issue stays held']) {
-      expect(plain).not.toContain(gone);
-    }
-    expect(plain).not.toContain('gets smaller limits');
-    expect(plain).not.toContain('Under a fair-use warning');
-    if (note) expect(plain).toContain(note);
   });
 });
 
 describe('the questions', () => {
-  it('ask why issue details are hidden only once the rules are live, after fairness to maintainers', () => {
-    expect(text(renderToStaticMarkup(<FaqScreen />))).not.toContain('Why are issue details hidden');
-    const html = renderToStaticMarkup(<FaqScreen rulesLive />);
+  it('ask why issue details are hidden, after fairness to maintainers', () => {
+    const html = renderToStaticMarkup(<FaqScreen />);
     const plain = text(html);
     expect(plain).toContain('Why are issue details hidden, and how many issues can I see in full?');
     expect(plain).toContain('Press "See the full issue" and it is held for you alone for 15 minutes');
@@ -227,15 +101,11 @@ describe('the questions', () => {
 });
 
 describe('the agents’ page', () => {
-  it('links the rules in the Terms, and lists today’s limits until they are live', () => {
+  it('links the rules in the Terms, and lists full issues a day', () => {
     const doc = agentsDocOf(null);
     expect(doc).toContain('- Terms, the rules for issues from GitRanks: https://gitranks.com/terms#contribute-rules');
-    expect(doc).toContain('- Issues shown for the first time: 150 a day');
-    expect(agentsDocOf(null, { rules: LIVE })).toContain('- Full issues a day: From your GitRanks tier');
-    expect(agentsDocOf(null, { rules: LIVE })).not.toContain('Issues shown for the first time');
+    expect(doc).toContain('- Full issues a day: From your GitRanks tier');
+    expect(doc).not.toContain('Issues shown for the first time');
     expect(doc).not.toContain('could not be loaded');
-    const unknown = agentsDocOf(null, { rules: { state: 'unknown' } });
-    expect(unknown).toContain('The limits on issues could not be loaded just now.');
-    expect(unknown).not.toMatch(/Issues shown for the first time|Full issues a day/);
   });
 });

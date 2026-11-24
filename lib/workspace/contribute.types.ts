@@ -171,16 +171,13 @@ export type Contributor = {
  */
 export type ContributeAccessLevel = 'STANDARD' | 'REDUCED' | 'SUSPENDED';
 
-/**
- * Why the limits are reduced: every new account starts so, or the recent claims ran out; or why the account is
- * suspended: a fair-use rule blocked it.
- */
-export type ContributeAccessReason = 'NEW_ACCOUNT' | 'FOLLOW_THROUGH' | 'FAIR_USE';
+/** Why the account is suspended: a fair-use rule blocked it. */
+export type ContributeAccessReason = 'FAIR_USE';
 
 /** The limits that hold for the account now: the settings' maxima and the day's counts. */
 export type ContributeLimits = {
   level: ContributeAccessLevel;
-  /** Why `REDUCED`, or `FAIR_USE` for a `SUSPENDED` account a fair-use rule blocked; null otherwise. */
+  /** `FAIR_USE` for a `SUSPENDED` account a fair-use rule blocked; null otherwise. */
   reason: ContributeAccessReason | null;
   /** The most attempts at a time that hold now: the settings field's maximum. */
   attemptsAtATime: number;
@@ -188,7 +185,7 @@ export type ContributeLimits = {
   openPrsAtATime: number;
   /**
    * The open pull requests at a time that hold now: the setting under the level's maximum, or the limit set for the
-   * account. Null when the API does not work it out: `effectiveSettingOf` then works it out as before. The limits read
+   * account. Null when the API does not work it out: `effectiveSettingOf` then holds the setting. The limits read
    * selects it, so an API without the field answers no limits at all.
    */
   openPrsEffective?: number | null;
@@ -196,8 +193,6 @@ export type ContributeLimits = {
   openPrsOverride?: number | null;
   /** New claims a day, every runner together. */
   claimsPerDay: number;
-  /** Newly shown issues a day; null once the API no longer counts them (only full issues a day are limited). */
-  revealsPerDay: number | null;
 };
 
 export type ContributeGrant = { connected: boolean; login: string | null };
@@ -266,36 +261,12 @@ export type ContributeIssueAnswer = MaskedAnswer<
 /** A page of the feed as the API answers it, before its masked rows are stripped (`keyedPageOf`). */
 export type ContributeIssuePageAnswer = Omit<ContributeIssuePage, 'items'> & { items: ContributeIssueAnswer[] };
 
-/** The day's cap on newly shown issues: `reached` once no new issue can be shown until 00:00 UTC. */
-export type ContributeDailyCap = { limit: number; reached: boolean };
-
 export type ContributeIssuePage = {
-  /** Can hold fewer than asked for: new issues past the day's cap are left off. */
   items: ContributeIssue[];
-  /** The next page's cursor; null on the last page, and once only issues past the day's cap remain. */
+  /** The next page's cursor; null on the last page. */
   next: string | null;
   total: number;
   computedAt: string | null;
-  /** The day's cap on new issues; null while well under it, and left out where the page is not read with it. */
-  dailyCap?: ContributeDailyCap | null;
-  /** How many issues of the list the user sees; null while lists are not capped, left out where it is not read. */
-  listSize?: ContributeListSize | null;
-};
-
-/**
- * How many issues of the list the user sees ("Show more" stops there): their GitRanks tier's part plus a share for every
- * pull request merged through GitRanks, up to a maximum; the shorter list's size while the list is cut.
- */
-export type ContributeListSize = {
-  size: number;
-  /** The GitRanks tier's part of the size. */
-  base: number;
-  /** The GitRanks tier, 1 Rookie to 7 Legend; null when not ranked. */
-  tier: number | null;
-  /** Pull requests merged through GitRanks. */
-  merged: number;
-  /** True while the list is cut: `size` is the shorter list's. */
-  cut: boolean;
 };
 
 /**
@@ -355,8 +326,6 @@ export type ContributeFairUseNotices = {
   notices: ContributeFairUseNotice[];
   /** The block's notice while the account is blocked by a rule, closed or not. */
   block: ContributeFairUseNotice | null;
-  /** While the list is cut: the step's sentence about the list and its notice, for the line that cannot be closed. */
-  listCut: { text: string; noticeId: string } | null;
 };
 
 /** Where a shown issue stands now: still free, taken by the user's own agent, or by another contributor. */

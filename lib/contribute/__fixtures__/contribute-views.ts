@@ -84,23 +84,6 @@ export const limits = {
     attemptsAtATime: 3,
     openPrsAtATime: 10,
     claimsPerDay: 10,
-    revealsPerDay: 150,
-  },
-  newAccount: {
-    level: 'REDUCED',
-    reason: 'NEW_ACCOUNT',
-    attemptsAtATime: 1,
-    openPrsAtATime: 2,
-    claimsPerDay: 3,
-    revealsPerDay: 40,
-  },
-  followThrough: {
-    level: 'REDUCED',
-    reason: 'FOLLOW_THROUGH',
-    attemptsAtATime: 1,
-    openPrsAtATime: 2,
-    claimsPerDay: 3,
-    revealsPerDay: 40,
   },
   suspended: {
     level: 'SUSPENDED',
@@ -108,7 +91,6 @@ export const limits = {
     attemptsAtATime: 1,
     openPrsAtATime: 2,
     claimsPerDay: 0,
-    revealsPerDay: 0,
   },
   openPrsSet: {
     level: 'STANDARD',
@@ -118,7 +100,6 @@ export const limits = {
     openPrsEffective: 16,
     openPrsOverride: 16,
     claimsPerDay: 10,
-    revealsPerDay: 150,
   },
 } satisfies Record<string, ContributeLimits>;
 
@@ -251,21 +232,6 @@ export const views = {
   /** Paused, as a refused key leaves the account: the key's notice says it. */
   paused: {
     contributor: contributor({ status: 'PAUSED', credentials: [key({ state: 'INVALID' })] }),
-    grant: connected,
-    grantAvailable: true,
-  },
-  /** A new account, on smaller limits: its settings ask for 3 at a time and 3 open PRs, the limits hold 1 and 2. */
-  newAccount: {
-    contributor: contributor({
-      settings: { ...settings, attemptsAtATime: 3 },
-      limits: limits.newAccount,
-    }),
-    grant: connected,
-    grantAvailable: true,
-  },
-  /** Smaller limits for now: most recent claims ran out without a pull request. */
-  followThrough: {
-    contributor: contributor({ settings: { ...settings, attemptsAtATime: 2 }, limits: limits.followThrough }),
     grant: connected,
     grantAvailable: true,
   },

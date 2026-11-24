@@ -12,16 +12,7 @@ type OwnProfilePicks = {
   ownProfilePicks: { contributor: boolean; items: ProfilePick[]; stats: ProfilePicksStats | null } | null;
 };
 
-/** The block on the signed-in owner's own profile; null for anyone else. */
-export const OwnProfilePicksDocument = parse(`query OwnProfilePicks($login: String!) {
-  ownProfilePicks(login: $login) {
-    contributor
-    items { ${PICK} }
-    stats { screenedRepos issuesRead readyIssues }
-  }
-}`) as DocumentNode<OwnProfilePicks, { login: string }>;
-
-/** The same block with each issue's masked form: an API without it answers `OwnProfilePicksDocument` instead. */
+/** The block on the signed-in owner's own profile, each issue with its masked form; null for anyone else. */
 export const OwnProfilePicksMaskedDocument = parse(`query OwnProfilePicksMasked($login: String!) {
   ownProfilePicks(login: $login) {
     contributor

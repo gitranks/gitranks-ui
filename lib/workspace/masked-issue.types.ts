@@ -126,8 +126,6 @@ export type IssueNumbers = {
   /** Of them, the ones kept now. */
   kept: number;
   at: string;
-  /** The rules about full issues a day are live: the site shows their words. */
-  rulesLive: boolean;
 };
 
 /** A request to look again at a closed access, and whether it was answered. */

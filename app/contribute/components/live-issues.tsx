@@ -15,21 +15,15 @@ import { readIssueStatuses, readIssuesPage } from '@/lib/contribute/actions';
 import { createLiveFeed, type LiveFeed, type LiveRow } from '@/lib/contribute/live-issues';
 import { cn } from '@/lib/utils';
 import { onContributeChanges } from '@/lib/workspace/changes-bus';
-import type { ContributeDailyCap, ContributeIssue, ContributeIssuesFilter } from '@/lib/workspace/contribute.types';
+import type { ContributeIssue, ContributeIssuesFilter } from '@/lib/workspace/contribute.types';
 
-type LivePage = {
-  items: ContributeIssue[];
-  total: number;
-  next: string | null;
-  dailyCap?: ContributeDailyCap | null;
-};
+type LivePage = { items: ContributeIssue[]; total: number; next: string | null };
 
 const reducedMotion = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** A newer read of the page (another cursor, the filters, a refresh): the list takes it in. */
-const signatureOf = (page: LivePage) =>
-  `${page.total}|${page.next ?? ''}|${page.dailyCap?.reached ?? ''}|${page.items.map((i) => i.issueId).join()}`;
+const signatureOf = (page: LivePage) => `${page.total}|${page.next ?? ''}|${page.items.map((i) => i.issueId).join()}`;
 
 /**
  * The focus on a row about to leave, moved to the nearest row that stays (the next one first), else to the list
@@ -83,7 +77,7 @@ export function useLiveFeed(
   useEffect(() => {
     feed.start();
     feed.onBeforeRemove((issueId) => moveFocusOff(root.current, issueId));
-    // A page that came short (the day's cap left issues off) is filled now, not at the next change.
+    // A page that came short is filled now, not at the next change.
     void feed.fill();
     // One status read at a time; a change named while one runs reads once more after it, never lost.
     let reading = false;
@@ -167,21 +161,3 @@ export const liveOf = (feed: LiveFeed, row: LiveRow): IssueLive => ({
   onSkipped: () => feed.forget(row.issue.issueId),
   onFold: () => feed.fold(row.issue.issueId),
 });
-
-/**
- * The end of the list once the day's cap on new issues is reached: the issues shown today stay, new ones come at
- * 00:00 UTC.
- */
-export function DailyCapEnd({ cap }: { cap: ContributeDailyCap }) {
-  return (
-    <div data-feed-end="daily-cap" className="flex flex-col gap-1 rounded-xl border bg-card px-4 py-3.5">
-      <span className="font-semibold">That&apos;s today&apos;s new issues</span>
-      <span className="text-sm text-muted-foreground">
-        You&apos;ve seen{' '}
-        <span className="font-mono tabular-nums text-foreground">{cap.limit.toLocaleString('en-US')}</span> new issues
-        today, the most we show in a day. More arrive at 00:00 UTC; the ones you&apos;ve seen stay on this list until
-        then.
-      </span>
-    </div>
-  );
-}

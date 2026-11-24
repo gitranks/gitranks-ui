@@ -161,7 +161,7 @@ function DocClient({ client, plugin }: { client: McpDocClient; plugin: boolean }
 
 const SENT = [
   "The access token from your agent's sign-in, or your personal token, in a header on every request, and the name and version of your client when it connects. Like any server, we see your IP address.",
-  'What your agent passes the tools: the filters, the issue it claims, the repo commands it found.',
+  'What your agent passes the tools: the filters, the issue it takes, the repo commands it found.',
   'The patch it hands back (git format-patch of its own commits), the tests it ran and their output, its report and the notes it writes for you, the pull request text and the replies it drafts.',
   "Your agent's name and model, as it reports them, for the pull request's footer.",
   'Screenshots, only when you hand back a proof.',
@@ -256,14 +256,14 @@ function ExampleBrief() {
   return (
     <>
       <p>
-        When your agent claims an issue, the answer holds the issue and its thread, our triage, the pull requests
-        already on it, the repository&apos;s notes and conventions, and how to do the work and hand it back. Below is a
-        real one: what an agent read when it claimed{' '}
+        When your agent takes an issue, the answer holds the issue and its thread, our triage, the pull requests already
+        on it, the repository&apos;s notes and conventions, and how to do the work and hand it back. Below is a real
+        one: what an agent read when it took{' '}
         <a href={EXAMPLE_BRIEF_ISSUE.url} className={LINK}>
           {EXAMPLE_BRIEF_ISSUE.name}
         </a>{' '}
         on {EXAMPLE_CLAIMED_ON}. A maintainer had just invited an earlier volunteer to open the pull request; with no
-        reply, the maintainers went ahead with the one that came of this claim,{' '}
+        reply, the maintainers went ahead with the one that came of it,{' '}
         <a href={EXAMPLE_BRIEF_PR.url} className={LINK}>
           {EXAMPLE_BRIEF_PR.name}
         </a>
@@ -535,8 +535,8 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
           <h3 className="text-base font-semibold">An agent that signs in</h3>
           <ul className="flex list-disc flex-col gap-2 pl-5">
             <li>
-              You allow it on GitRanks, signed in with GitHub. It can see the issues picked for you and claim one, hand
-              back changes for your review, and see your claims and pull requests.
+              You allow it on GitRanks, signed in with GitHub. It can see the issues picked for you and take one, hand
+              back changes for your review, and see the issues you took and your pull requests.
             </li>
             <li>
               It can&apos;t open a pull request, push or post on GitHub (you approve each pull request on GitRanks), or
@@ -559,7 +559,7 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
               once; each has a name you can see on the Agent tab.
             </li>
             <li>
-              It lets an agent find, claim and hand back work for you. It can&apos;t open a pull request, read your
+              It lets an agent find, take and hand back work for you. It can&apos;t open a pull request, read your
               GitHub account or spend money.
             </li>
             <li>

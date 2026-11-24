@@ -133,9 +133,9 @@ export function waitingLineOf(waiting: ContributeOAuthWaiting | null | undefined
 
 /** What the connected agent can do, as the consent page lists it. */
 export const AGENT_CAN = [
-  'see the issues picked for you, and claim one;',
+  'see the issues picked for you, and take one;',
   'hand back changes for you to review here;',
-  'see your claims and pull requests.',
+  'see the issues you took and your pull requests.',
 ] as const;
 
 /** What it can't. */

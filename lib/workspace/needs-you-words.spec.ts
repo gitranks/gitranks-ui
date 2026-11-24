@@ -402,7 +402,7 @@ describe('the work in progress', () => {
     // No lease yet: the user's own agent has claimed it and checks the issue.
     expect(
       said({ kind: 'ATTEMPT_WORKING', runner: 'MCP', progress: progress({ agentName: 'Claude Code' }) }).move,
-    ).toBe('Your own agent claimed it: checking the issue on GitHub.');
+    ).toBe('Your own agent took it: checking the issue on GitHub.');
     expect(said({ kind: 'ATTEMPT_SUBMITTING', progress: progress({ submitStep: 'PUSH' }) }).move).toBe(
       'Pushing the change to a branch on your fork.',
     );

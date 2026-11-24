@@ -200,7 +200,7 @@ function attemptProgressOf(entry: NeedsYouEntry, progress: ContributeNeedsYouPro
   if (entry.runner === 'MCP') {
     // The user's own agent holds the issue on a lease while it works; before that it is checking it on GitHub.
     if (entry.kind === 'attempt-working' && !progress.leaseUntil) {
-      return 'Your own agent claimed it: checking the issue on GitHub.';
+      return 'Your own agent took it: checking the issue on GitHub.';
     }
     const agent = progress.agentName ?? 'Your own agent';
     const left = timeLeftLabel(progress.leaseUntil, now);

@@ -37,7 +37,7 @@ import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
 /** How to give the issue back while the agent works. */
 const CHANGED_YOUR_MIND =
-  'Changed your mind? Ask your agent to release the issue. If your agent stops, the claim ends by itself within 24 hours.';
+  'Changed your mind? Ask your agent to release the issue. If your agent stops, the issue goes back by itself within 24 hours.';
 
 const Text = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
 

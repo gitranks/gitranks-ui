@@ -51,9 +51,9 @@ describe('the consent page of an agent sign-in', () => {
       'Claude Code (calls itself that · goes back to an app on this computer) asks to work on Contribute as @octocat',
     );
     expect(plain).toContain('It will be able to:');
-    expect(plain).toContain('see the issues picked for you, and claim one;');
+    expect(plain).toContain('see the issues picked for you, and take one;');
     expect(plain).toContain('hand back changes for you to review here;');
-    expect(plain).toContain('see your claims and pull requests.');
+    expect(plain).toContain('see the issues you took and your pull requests.');
     expect(plain).toContain("It won't be able to open a pull request, push, or post on GitHub");
     expect(plain).toContain('You can disconnect it any time on the Agent tab');
     expect(plain).toContain('7 issues are waiting for you, in acme/widgets, acme/gadgets and acme/tools.');

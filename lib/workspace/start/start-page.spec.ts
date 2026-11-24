@@ -195,7 +195,7 @@ describe("step 3: the viewer's attempt on the issue", () => {
   });
 
   it('words a Fix attempt in lesson mode by its state: wait, release, discard, or pick another', () => {
-    expect(words('QUEUED')).toEqual({ text: "Wait a moment: we're checking the claim.", pickAnother: false });
+    expect(words('QUEUED')).toEqual({ text: "Wait a moment: we're checking the issue.", pickAnother: false });
     expect(words('CLAIMING')).toEqual(words('QUEUED'));
     expect(words('RUNNING').text).toBe('Ask your agent to release it, then paste the prompt again.');
     expect(words('CHECKS').text).toBe('Wait for its checks, then discard it on its page.');

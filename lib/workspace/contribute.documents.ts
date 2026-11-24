@@ -29,7 +29,6 @@ import type {
   ContributeGrant,
   ContributeHelpedLike,
   ContributeIssue,
-  ContributeIssuePage,
   ContributeIssuePageAnswer,
   ContributeIssueStatus,
   ContributeIssuesFilter,
@@ -285,18 +284,8 @@ export const ContributeGrantDocument = doc<{ contribute: { grant: ContributeGran
 export const ContributeLimitsDocument = doc<{
   contribute: { contributor: { limits: ContributeLimits } | null } | null;
 }>(
-  'query ContributeLimits { contribute { contributor { limits { level reason attemptsAtATime openPrsAtATime openPrsEffective openPrsOverride claimsPerDay revealsPerDay } } } }',
+  'query ContributeLimits { contribute { contributor { limits { level reason attemptsAtATime openPrsAtATime openPrsEffective openPrsOverride claimsPerDay } } } }',
 );
-
-export const ContributeIssuesDocument = doc<
-  { contributeIssues: ContributeIssuePage | null },
-  { first?: number; after?: string; filter?: ContributeIssuesFilter }
->(`query ContributeIssues($first: Int, $after: String, $filter: ContributeIssuesFilter) {
-  contributeIssues(first: $first, after: $after, filter: $filter) {
-    items { ${ISSUE} tier forNewcomers }
-    next total computedAt dailyCap { limit reached }
-  }
-}`);
 
 // A repo's rules for AI contributions: read with the feed, the attempt and "Your repos", each surface its own fields.
 const RULE_SOURCE = 'source { label url }';
@@ -307,31 +296,14 @@ const ATTEMPT_RULES = `repoRules {
 const MAINTAINER_CONFIG = 'config { key value source setBy ignoredRaw fileReadAt }';
 const MAINTAINER_RULES = `rules { manualOnly lines { kind text quote setBy ${RULE_SOURCE} } }`;
 
-/**
- * The feed with each issue's repo rules and the list's size: an API without them answers `ContributeIssuesDocument`
- * instead.
- */
-export const ContributeIssuesWithRulesDocument = doc<
-  { contributeIssues: ContributeIssuePage | null },
-  { first?: number; after?: string; filter?: ContributeIssuesFilter }
->(`query ContributeIssuesWithRules($first: Int, $after: String, $filter: ContributeIssuesFilter) {
-  contributeIssues(first: $first, after: $after, filter: $filter) {
-    items { ${ISSUE} tier forNewcomers ${ISSUE_RULES} }
-    next total computedAt dailyCap { limit reached } listSize { size base tier merged cut }
-  }
-}`);
-
-/**
- * The feed with each issue's masked form beside its rules and the list's size: an API without it answers
- * `ContributeIssuesWithRulesDocument` instead.
- */
+/** The feed with each issue's masked form beside its repo's rules. */
 export const ContributeIssuesMaskedDocument = doc<
   { contributeIssues: ContributeIssuePageAnswer | null },
   { first?: number; after?: string; filter?: ContributeIssuesFilter }
 >(`query ContributeIssuesMasked($first: Int, $after: String, $filter: ContributeIssuesFilter) {
   contributeIssues(first: $first, after: $after, filter: $filter) {
     items { ${ISSUE} tier forNewcomers ${ISSUE_RULES} ${MASKED_PART} }
-    next total computedAt dailyCap { limit reached } listSize { size base tier merged cut }
+    next total computedAt
   }
 }`);
 

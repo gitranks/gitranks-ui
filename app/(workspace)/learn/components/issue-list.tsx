@@ -47,7 +47,7 @@ export type LearnIssueListProps = {
   source?: ContributeSource;
   /** Where the notes' Change your goal leads: the goal's page in Settings by default. */
   changeHref?: Route;
-  /** For masked rows: whether the new rules are live, the day's full issues, the numbers of a night. */
+  /** For masked rows: the day's full issues and the numbers of a night. */
   masked?: MaskedListReads;
   /** A visitor's list: a masked row's "See the full issue" is the GitHub sign-in, and it has no Skip. */
   visitor?: boolean;
@@ -73,8 +73,8 @@ export function LearnIssueList({
   className,
 }: LearnIssueListProps) {
   let body: ReactNode;
-  // Once the rules are live, a list of masked rows says how it works above it.
-  const maskedLine = masked.rulesLive && !held && issues?.items.some((issue) => issue.masked);
+  // A list of masked rows says how it works above it.
+  const maskedLine = !held && issues?.items.some((issue) => issue.masked);
   if (held) {
     body = <LearnHeldNote />;
   } else if (!issues?.items.length) {

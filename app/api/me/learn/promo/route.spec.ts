@@ -19,7 +19,7 @@ vi.mock('@/auth', () => ({
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
 const { GET } = (await import('./route')) as unknown as { GET: (req: NextRequest) => Promise<Response> };
-const { LearnPromoDocument, LearnPromoMaskedDocument } = await import('@/lib/learn/learn.documents');
+const { LearnPromoMaskedDocument } = await import('@/lib/learn/learn.documents');
 const { maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
 
 const get = (query: string) => GET(new NextRequest(`https://gitranks.com/api/me/learn/promo?${query}`));
@@ -84,7 +84,7 @@ describe("the route for the viewer's Learn suggestion", () => {
     expect(await response.json()).toEqual({ promo: null });
   });
 
-  it("answers the masked issues, and today's from an API that does not know them", async () => {
+  it('answers the masked issues, and a named one as it came', async () => {
     signIn('octocat');
     const masked = maskedIssue();
     const issue = { title: null, repo: null, number: null, language: 'Go', topic: 'maps', masked };
@@ -97,20 +97,17 @@ describe("the route for the viewer's Learn suggestion", () => {
       },
     });
 
-    graphqlDirect.mockReset();
-    const today = { title: 'Fix it', repo: 'o/r', number: 7, language: 'Go', topic: 'maps' };
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === LearnPromoMaskedDocument) {
-        throw new Error('[{"message":"Cannot query field \\"masked\\" on type \\"LearnPromoIssue\\"."}]');
-      }
-      return { learnOpen: true, learnPromo: { ...PROMO, issues: [today] } };
+    const named = { title: 'Fix it', repo: 'o/r', number: 7, language: 'Go', topic: 'maps' };
+    graphqlDirect.mockResolvedValueOnce({
+      learnOpen: true,
+      learnPromo: { ...PROMO, issues: [{ ...named, masked: null }] },
     });
     expect(await (await get('placement=profile&login=octocat')).json()).toEqual({
-      promo: { reason: 'Why.', language: 'Go', issues: [today] },
+      promo: { reason: 'Why.', language: 'Go', issues: [named] },
     });
     expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
       LearnPromoMaskedDocument,
-      LearnPromoDocument,
+      LearnPromoMaskedDocument,
     ]);
   });
 

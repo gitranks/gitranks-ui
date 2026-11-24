@@ -59,7 +59,7 @@ const issue = (n: number): LearnIssue => ({
 const issues = (from: number, count: number) => Array.from({ length: count }, (_, at) => issue(from + at));
 
 describe("Learn's list with masked issues", () => {
-  const LIVE = { rulesLive: true, looks: looksToday(), numbers: null };
+  const LIVE = { looks: looksToday(), numbers: null };
   const masked = (n: number, id: string): LearnIssue => ({
     ...issue(n),
     issueId: null as never,
@@ -90,20 +90,20 @@ describe("Learn's list with masked issues", () => {
     );
   });
 
-  it('says neither the line above nor the day before the rules are live', async () => {
+  it('says the line above but not the day while the day cannot be read', async () => {
     await render(
       <LearnIssueList
         issues={learnIssues({ items: [masked(1, 'q7k2m9xa')], total: 1 })}
-        masked={{ ...LIVE, rulesLive: false }}
+        masked={{ ...LIVE, looks: null }}
       />,
     );
     expect(container.querySelector('[data-masked-row]')).not.toBeNull();
-    expect(container.querySelector('[data-learn-masked-line]')).toBeNull();
+    expect(container.querySelector('[data-learn-masked-line]')?.textContent).toBe(LEARN_MASKED_LINE);
     expect(container.querySelector('[data-looks-line]')).toBeNull();
     expect(container.querySelector('[data-masked-foot]')).not.toBeNull();
   });
 
-  it("is today's list, with no line and no foot, when no issue is masked (an API without the masked form)", async () => {
+  it('has no line and no foot when every issue comes back named (the viewer named its project)', async () => {
     await render(<LearnIssueList issues={learnIssues({ items: issues(1, 3), total: 3 })} masked={LIVE} />);
     expect(shown()).toHaveLength(3);
     expect(container.querySelector('[data-learn-masked-line]')).toBeNull();

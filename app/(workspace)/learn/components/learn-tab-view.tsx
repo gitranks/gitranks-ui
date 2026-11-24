@@ -12,22 +12,19 @@ import { rulesBannerOf } from '@/lib/learn/rules-banner';
 import { lastUsedTokenOf } from '@/lib/workspace/agent-way';
 import { loadContribute, loadContributeActivity, loadFairUseNotices } from '@/lib/workspace/contribute.data';
 import { isSuspended } from '@/lib/workspace/contribute-state';
-import type { IssueRules } from '@/lib/workspace/fair-use';
 import { loadMaskedListReads } from '@/lib/workspace/masked-issue.data';
-import { issueRules } from '@/lib/workspace/rules-live';
 
 /**
  * The Learn tab's reads, by the state: the numbers, the viewer's lessons in progress and the account beside each
  * other; the issues and practice lessons only where the state shows them. A read that fails leaves its part out.
  */
 export async function LearnTab() {
-  const [settingUp, attempts, progress, view, fairUse, rules] = await Promise.all([
+  const [settingUp, attempts, progress, view, fairUse] = await Promise.all([
     loadLearnSetup(),
     loadMyLearnAttempts(),
     loadLearnProgress(),
     loadContribute().catch(() => null),
     loadFairUseNotices(),
-    issueRules().catch((): IssueRules => ({ state: 'unknown' })),
   ]);
   // A new account's profile cannot be read yet: its setup line stands for everything else.
   const profile = settingUp ? null : await loadLearnProfile();
@@ -53,7 +50,7 @@ export async function LearnTab() {
       activity={activity}
       agentName={lastUsedTokenOf(view?.ownAgent?.tokens)?.name ?? null}
       masked={masked}
-      rulesBanner={rulesBannerOf(fairUse, rules)}
+      rulesBanner={rulesBannerOf(fairUse)}
     />
   );
 }

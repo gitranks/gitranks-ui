@@ -36,9 +36,8 @@ export default function MaskedIssuePage({ params, searchParams }: Params) {
 }
 
 /**
- * The page's reads. An id that names no issue, a viewer the workspace is not open to, and an API without the page yet
- * are all not found, as the address was before. The start form's reads come with the page, since a press shows the
- * form in place.
+ * The page's reads. An id that names no issue and a viewer the workspace is not open to are both not found. The start
+ * form's reads come with the page, since a press shows the form in place.
  */
 async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'searchParams'>) {
   const [{ id: raw }, search] = await Promise.all([params, searchParams]);

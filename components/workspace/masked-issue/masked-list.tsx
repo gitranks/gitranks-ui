@@ -63,10 +63,7 @@ export type MaskedListProps = {
   className?: string;
 };
 
-/**
- * Around a list with masked rows: what each row's press and skip need, the day's full issues, and the foot under the
- * rows. The day's line is shown only once the new rules are live; until then the foot has the link alone.
- */
+/** Around a list with masked rows: what each row's press and skip need, the day's full issues, and the foot under the rows. */
 export function MaskedList({
   from,
   pageFrom,
@@ -77,7 +74,7 @@ export function MaskedList({
   children,
   className,
 }: MaskedListProps) {
-  const looksRead = reads.rulesLive ? reads.looks : null;
+  const looksRead = reads.looks;
   const limitedRead = !visitor && !!looksRead && looksRead.left <= 0;
   const [looks, setLooks] = useState(looksRead);
   const [limited, setLimited] = useState(limitedRead);

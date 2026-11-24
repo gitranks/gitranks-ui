@@ -3,11 +3,7 @@ import 'server-only';
 import { cacheLife } from 'next/cache';
 
 import { loadLearnOpen, loadLearnProfile } from './learn.data';
-import {
-  LearnPublicIssuesDocument,
-  LearnPublicIssuesMaskedDocument,
-  LearnPublicPracticeDocument,
-} from './learn.documents';
+import { LearnPublicIssuesMaskedDocument, LearnPublicPracticeDocument } from './learn.documents';
 import type { LearnProfile, LearnPublicIssues, PracticeLessons } from './learn.types';
 import { learnOpenToEveryone } from './learn-everyone';
 import { hasGoal } from './learn-home';
@@ -17,7 +13,6 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type { WorkspaceGate } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { type FlowPlace, type LearnFlowStep, learnFlowPlaceOf } from '@/lib/workspace/getting-in';
-import { readWithMasked } from '@/lib/workspace/masked-read';
 import type { IssueRef } from '@/lib/workspace/paths';
 import { contributeOpen } from '@/lib/workspace/preview-gate';
 
@@ -64,14 +59,9 @@ export const LEARN_PUBLIC_PRACTICE_MAX = 30;
 export async function readLearnPublicIssues(language: LearnGoalLanguage): Promise<PublicRead<LearnPublicIssues>> {
   'use cache';
   try {
-    // Each issue's masked form first; an API without it answers the day list as it was.
     // A masked row leaves the read stripped of what names its issue.
-    const learnPublicIssues = await readWithMasked(
-      async () =>
-        learnPublicIssuesOf(
-          (await graphqlDirect(LearnPublicIssuesMaskedDocument, { language }, { source: 'ssr' })).learnPublicIssues,
-        ),
-      async () => (await graphqlDirect(LearnPublicIssuesDocument, { language }, { source: 'ssr' })).learnPublicIssues,
+    const learnPublicIssues = learnPublicIssuesOf(
+      (await graphqlDirect(LearnPublicIssuesMaskedDocument, { language }, { source: 'ssr' })).learnPublicIssues,
     );
     cacheLife('minutes');
     return { ok: true, data: learnPublicIssues };

@@ -14,10 +14,7 @@ import { START_PAGE_ISSUE_FIELDS } from './start/start-page.documents';
 import type { StartPageIssue } from './start/start-page.types';
 import type DocumentNode from '@/types/typed-document-node';
 
-/**
- * The page of one issue and a look at it. Each read is an operation of its own, never a field added to an existing
- * query: an API that does not know these fields yet fails only them, and the caller falls back to today's view.
- */
+/** The page of one issue and a look at it. */
 
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
   parse(source) as DocumentNode<TData, TVariables>;
@@ -57,9 +54,9 @@ export const SkipMaskedIssueDocument = doc<
 }`,
 );
 
-/** The numbers of a night, the same for everyone, and whether the rules about full issues a day are live. */
+/** The numbers of a night, the same for everyone. */
 export const IssueNumbersDocument = doc<{ issueNumbers: IssueNumbers }>(
-  'query IssueNumbers { issueNumbers { read kept at rulesLive } }',
+  'query IssueNumbers { issueNumbers { read kept at } }',
 );
 
 /** "See the full issue": holds it for the viewer and answers the page, or why not. */
@@ -111,8 +108,7 @@ export const StartMaskedIssueDocument = doc<{ startContributeIssue: IssueStart }
 
 /**
  * The Start page's answer for an old address with the issue's mask, for the viewer: the mask is null when they named its
- * project or hold it. An operation of its own, so an API without the field fails it alone and the page asks
- * `StartPageIssue` as today; the answer is read once either way.
+ * project or hold it. The page reads the issue's answer once, with its mask.
  */
 export const StartPageMaskDocument = doc<
   { startPageIssue: StartPageIssue & { masked: { id: string } | null } },

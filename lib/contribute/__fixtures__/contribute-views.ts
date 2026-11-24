@@ -84,7 +84,6 @@ export const limits = {
     attemptsAtATime: 3,
     openPrsAtATime: 10,
     claimsPerDay: 10,
-    revealsPerDay: 150,
   },
   newAccount: {
     level: 'REDUCED',
@@ -92,7 +91,6 @@ export const limits = {
     attemptsAtATime: 1,
     openPrsAtATime: 2,
     claimsPerDay: 3,
-    revealsPerDay: 40,
   },
   followThrough: {
     level: 'REDUCED',
@@ -100,7 +98,6 @@ export const limits = {
     attemptsAtATime: 1,
     openPrsAtATime: 2,
     claimsPerDay: 3,
-    revealsPerDay: 40,
   },
   suspended: {
     level: 'SUSPENDED',
@@ -108,7 +105,6 @@ export const limits = {
     attemptsAtATime: 1,
     openPrsAtATime: 2,
     claimsPerDay: 0,
-    revealsPerDay: 0,
   },
   openPrsSet: {
     level: 'STANDARD',
@@ -118,7 +114,6 @@ export const limits = {
     openPrsEffective: 16,
     openPrsOverride: 16,
     claimsPerDay: 10,
-    revealsPerDay: 150,
   },
 } satisfies Record<string, ContributeLimits>;
 

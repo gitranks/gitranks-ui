@@ -2,6 +2,7 @@ import { type AgentPage, agentPageStatsLineOf } from './agent-page.types';
 import {
   CLAUDE_APP_DOC,
   MCP_DOC_CLIENTS,
+  MCP_DOC_LIMITS,
   MCP_DOC_MORE_CLIENTS,
   MCP_DOC_PLUGINS,
   MCP_DOC_SAVES,
@@ -13,11 +14,9 @@ import {
   MCP_URL,
   type McpDocClient,
   type McpDocPlugin,
-  mcpDocLimitsNoteOf,
-  mcpDocLimitsOf,
   TOKEN_PLACEHOLDER,
 } from './mcp-docs';
-import { CONTRIBUTE_RULES_PATH, type IssueRules, RULES_BEFORE } from '@/lib/workspace/fair-use';
+import { CONTRIBUTE_RULES_PATH } from '@/lib/workspace/fair-use';
 import { MCP_INSTALL_LINKS, type McpInstallClient } from '@/lib/workspace/mcp-install-links';
 import { START_AGENT_PATH } from '@/lib/workspace/paths';
 
@@ -77,12 +76,11 @@ const HUMAN_STEP = [
  * `/contribute/agents.md`: GitRanks Contribute for an AI agent, in markdown. Built from the MCP docs' own data (the
  * clients, the tools, the limits) and the day's numbers and sample, so it can't drift from the docs page. `page` is
  * null when its read failed: the numbers and the sample are then left out. Agents sign in with GitHub: each client's
- * sign-in comes first, then the token setup for a client that can't. `rules`: the limits of the rules that hold, as the
- * MCP docs list them.
+ * sign-in comes first, then the token setup for a client that can't.
  */
 export function agentsDocOf(
   page: AgentPage | null,
-  { plugin = MCP_PLUGIN_DOCS_SHOWN, rules = RULES_BEFORE }: { plugin?: boolean; rules?: IssueRules } = {},
+  { plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boolean } = {},
 ): string {
   const lines: string[] = [
     '# GitRanks Contribute, for AI agents',
@@ -180,9 +178,7 @@ export function agentsDocOf(
     '## Limits',
     '',
   );
-  for (const { what, limit } of mcpDocLimitsOf(rules)) lines.push(`- ${what}: ${limit}`);
-  // While the API does not answer, the shared limits say the rest could not be loaded.
-  if (rules.state === 'unknown') lines.push('', mcpDocLimitsNoteOf(rules) ?? '');
+  for (const { what, limit } of MCP_DOC_LIMITS) lines.push(`- ${what}: ${limit}`);
   lines.push(
     '',
     '## More',

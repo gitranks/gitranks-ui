@@ -20,7 +20,6 @@ const {
   loadMaskedListReads,
   loadStartPageWithMask,
 } = await import('./masked-issue.data');
-const { resetIssueRulesLive } = await import('./rules-live');
 const { fullPage, issueNumbers, looksToday } = await import('./__fixtures__/masked-issue');
 const { startViews } = await import('./start/__fixtures__/start-page');
 const { mcpToken } = await import('@/lib/contribute/__fixtures__/contribute-views');
@@ -37,9 +36,6 @@ const answer = (answers: Record<string, unknown>) =>
     return value;
   });
 
-/** Today's API, which knows none of the new fields: what GraphQL answers a query for one of them. */
-const todaysAnswerTo = (field: string, type = 'Query') =>
-  new Error(JSON.stringify([{ message: `Cannot query field "${field}" on type "${type}".` }]));
 const outage = () => new Error('fetch failed');
 
 beforeEach(() => {
@@ -68,11 +64,6 @@ describe('the page of one issue', () => {
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
-  it("falls back to today's answer for the address, not found, when the API does not know the page yet", async () => {
-    answer({ IssuePage: todaysAnswerTo('issuePage') });
-    expect(await loadIssuePage('q7k2m9xa')).toEqual({ kind: 'not-found' });
-  });
-
   it('is the outage the page says, never a 404, when the API does not answer', async () => {
     answer({ IssuePage: outage() });
     await expect(loadIssuePage('q7k2m9xa')).rejects.toBeInstanceOf(contribute.ContributeUnavailableError);
@@ -86,61 +77,27 @@ describe('the numbers of a night', () => {
     expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('githubLogin');
   });
 
-  it('fall back to none when the API does not know them or does not answer', async () => {
-    answer({ IssueNumbers: todaysAnswerTo('issueNumbers') });
-    expect(await loadIssueNumbers()).toBeNull();
+  it('fall back to none when the API does not answer', async () => {
     answer({ IssueNumbers: outage() });
     expect(await loadIssueNumbers()).toBeNull();
   });
 });
 
 describe('what a list of masked issues reads beside its rows', () => {
-  const LIVE = { issueNumbers: { rulesLive: true, termsDate: '2026-11-30' } };
-  const BEFORE = { issueNumbers: { rulesLive: false, termsDate: null } };
   const NUMBERS = { read: issueNumbers.read, kept: issueNumbers.kept };
 
-  beforeEach(() => resetIssueRulesLive());
-
-  it("reads the rules from the one reader, then the viewer's day as the viewer once they are live", async () => {
-    answer({
-      IssueRulesLive: LIVE,
-      IssueNumbers: { issueNumbers },
-      IssueLooksToday: { issueLooksToday: looksToday() },
-    });
-    expect(await loadMaskedListReads()).toEqual({ rulesLive: true, looks: looksToday(), numbers: NUMBERS });
-    expect(asked().sort()).toEqual(['IssueLooksToday', 'IssueNumbers', 'IssueRulesLive']);
+  it("reads the viewer's day as the viewer, and the numbers of a night", async () => {
+    answer({ IssueNumbers: { issueNumbers }, IssueLooksToday: { issueLooksToday: looksToday() } });
+    expect(await loadMaskedListReads()).toEqual({ looks: looksToday(), numbers: NUMBERS });
+    expect(asked().sort()).toEqual(['IssueLooksToday', 'IssueNumbers']);
     expect(graphqlDirect.mock.calls.find(([document]) => nameOf(document) === 'IssueLooksToday')?.[2]).toMatchObject({
       githubLogin: 'octocat',
     });
   });
 
-  it("reads no day before the rules are live, nor from an API that does not know the rules: today's words", async () => {
-    answer({ IssueRulesLive: BEFORE, IssueNumbers: { issueNumbers } });
-    expect(await loadMaskedListReads()).toEqual({ rulesLive: false, looks: null, numbers: NUMBERS });
-    resetIssueRulesLive();
-    answer({
-      IssueRulesLive: todaysAnswerTo('termsDate', 'IssueNumbers'),
-      IssueNumbers: todaysAnswerTo('issueNumbers'),
-    });
-    expect(await loadMaskedListReads()).toEqual({ rulesLive: false, looks: null, numbers: null });
-    expect(asked()).not.toContain('IssueLooksToday');
-  });
-
-  it("says the rules are unknown on an outage with no answer kept, never today's words as if they were final", async () => {
-    answer({ IssueRulesLive: outage(), IssueNumbers: outage() });
-    expect(await loadMaskedListReads()).toEqual({ rulesLive: false, rulesUnknown: true, looks: null, numbers: null });
-    expect(asked()).not.toContain('IssueLooksToday');
-  });
-
-  it('leaves the day out when it cannot be read, or for a visitor', async () => {
-    answer({
-      IssueRulesLive: LIVE,
-      IssueNumbers: { issueNumbers },
-      IssueLooksToday: todaysAnswerTo('issueLooksToday'),
-    });
-    expect((await loadMaskedListReads()).looks).toBeNull();
-    answer({ IssueRulesLive: LIVE, IssueNumbers: { issueNumbers }, IssueLooksToday: outage() });
-    expect((await loadMaskedListReads()).looks).toBeNull();
+  it('leaves out each part it cannot read, or the day for a visitor', async () => {
+    answer({ IssueNumbers: outage(), IssueLooksToday: outage() });
+    expect(await loadMaskedListReads()).toEqual({ looks: null, numbers: null });
 
     graphqlDirect.mockClear();
     contribute.viewerLogin.mockResolvedValue(null);
@@ -168,10 +125,10 @@ describe("an old Start page address's answer, with its mask", () => {
     expect(await loadStartPageWithMask(REF, 'fix')).toEqual({ answer: { ok: true, data: START }, maskId: null });
   });
 
-  it("falls back to today's read, and today's page, only when the API does not know the mask yet", async () => {
-    // Today's answer to the query: the Start page's issue has no `masked`.
-    answer({ StartPageMask: todaysAnswerTo('masked', 'StartPageIssue') });
+  it('is not read for a viewer signed out: the page reads its answer itself', async () => {
+    contribute.viewerLogin.mockResolvedValueOnce(null);
     expect(await loadStartPageWithMask(REF, 'fix')).toBeNull();
+    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
   it("passes on an issue it cannot show as the Start page's own answer, and is the error page in an outage", async () => {

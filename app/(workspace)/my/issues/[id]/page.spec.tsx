@@ -132,12 +132,12 @@ describe('the page of one issue at /my/issues/[id]', () => {
     expect(await issuePageAt({ from: 'learn' })).toContain('href="/contribute#issues"');
   });
 
-  it('is not found for an address that names no issue, a viewer it is not open to, and an API without it', async () => {
+  it('is not found for an address that names no issue, and a viewer it is not open to', async () => {
     await expect(issuePageAt({}, '../x')).rejects.toThrow('NEXT_NOT_FOUND');
     expect(data.loadIssuePage).not.toHaveBeenCalled();
     gate.loadWorkspaceGate.mockResolvedValueOnce({ kind: 'hidden' });
     await expect(issuePageAt()).rejects.toThrow('NEXT_NOT_FOUND');
-    // `loadIssuePage`'s answer for an id no issue has, and for an API that does not know the page yet.
+    // `loadIssuePage`'s answer for an id no issue has.
     data.loadIssuePage.mockResolvedValueOnce({ kind: 'not-found' });
     await expect(issuePageAt()).rejects.toThrow('NEXT_NOT_FOUND');
   });

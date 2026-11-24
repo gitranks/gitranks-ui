@@ -20,10 +20,10 @@ const LINK = 'font-semibold text-link hover:underline';
 export type FairUseAppealSent = ContributeActionResult<FairUseAppeal>;
 
 /**
- * Refusals that sending again will not change: an API that does not take requests yet, or one that refuses this one
- * (an access that is not closed, a text it does not take). Email is the way left.
+ * Refusals that sending again will not change: the API refuses this one (an access that is not closed, a text it does
+ * not take). Email is the way left.
  */
-const SEND_BY_EMAIL: readonly ContributeErrorCode[] = ['INVALID', 'NOT_AVAILABLE_YET', 'NOT_FOUND'];
+const SEND_BY_EMAIL: readonly ContributeErrorCode[] = ['INVALID', 'NOT_FOUND'];
 
 /**
  * A request saved before the send began is the one already open. The slack keeps a browser clock a little ahead of the

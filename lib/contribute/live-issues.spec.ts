@@ -119,7 +119,7 @@ describe('a live list of issues', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(readMore).not.toHaveBeenCalled();
 
-    // At the end, or the day's cap: nothing more, whatever the total.
+    // At the end: nothing more, whatever the total.
     const end = feedOf({ items: ISSUES, limit: 4, next: null, total: 300 });
     expect(end.getSnapshot().more).toBe(false);
     expect(feedOf({ items: ISSUES, limit: 2, next: null }).getSnapshot().more).toBe(true);
@@ -315,10 +315,10 @@ describe('a live list of issues', () => {
     expect(feed.getSnapshot().next).toBeNull();
   });
 
-  it("reads past a page the day's cap left empty while the feed has more, and takes the cap from it", async () => {
+  it('reads past a page that brings nothing new while the feed has more', async () => {
     const pages: ContributeIssuePage[] = [
-      { items: [], next: 'c3', total: 40, computedAt: null, dailyCap: { limit: 40, reached: true } },
-      { items: [issue({ issueId: 'I_9', rank: 9 })], next: null, total: 40, computedAt: null, dailyCap: null },
+      { items: [], next: 'c3', total: 40, computedAt: null },
+      { items: [issue({ issueId: 'I_9', rank: 9 })], next: null, total: 40, computedAt: null },
     ];
     const readMore = vi.fn(
       async (_after: string): Promise<ContributeActionResult<ContributeIssuePage | null>> => ({
@@ -333,7 +333,6 @@ describe('a live list of issues', () => {
     expect(readMore.mock.calls.map(([after]) => after)).toEqual(['c2', 'c3']);
     expect(ids(feed)).toEqual(['I_1', 'I_9']);
     expect(feed.getSnapshot().next).toBeNull();
-    expect(feed.getSnapshot().dailyCap).toBeNull();
   });
 
   it('reads at most a few empty pages a fill, and stops at a cursor that does not move', async () => {
@@ -342,20 +341,14 @@ describe('a live list of issues', () => {
       cursor += 1;
       return {
         ok: true,
-        data: {
-          items: [],
-          next: `c${cursor}`,
-          total: 40,
-          computedAt: null,
-          dailyCap: { limit: 40, reached: true },
-        },
+        data: { items: [], next: `c${cursor}`, total: 40, computedAt: null },
       };
     });
     const feed = feedOf({ items: ISSUES.slice(0, 1), limit: 2, next: 'c0', readMore });
 
     await feed.fill();
     expect(readMore).toHaveBeenCalledTimes(FILL_READS_MAX);
-    expect(feed.getSnapshot()).toMatchObject({ next: `c${FILL_READS_MAX}`, dailyCap: { limit: 40, reached: true } });
+    expect(feed.getSnapshot()).toMatchObject({ next: `c${FILL_READS_MAX}` });
 
     const stuck = vi.fn(
       async (): Promise<ContributeActionResult<ContributeIssuePage | null>> => ({
@@ -391,7 +384,7 @@ describe('a live list of issues', () => {
     let answer: (value: ContributeActionResult<ContributeIssuePage | null>) => void = () => undefined;
     const empty = (next: string) => ({ ok: true as const, data: { items: [], next, total: 4, computedAt: null } });
     const readMore = vi.fn<NonNullable<LiveFeedOptions['readMore']>>();
-    // The fill's first reads bring nothing past the cap; its last one is on its way when a row leaves.
+    // The fill's first reads bring nothing new; its last one is on its way when a row leaves.
     for (let read = 1; read < FILL_READS_MAX; read += 1) readMore.mockResolvedValueOnce(empty(`c${read}`));
     readMore.mockImplementationOnce(() => new Promise((r) => (answer = r)));
     readMore.mockResolvedValueOnce({
@@ -413,13 +406,6 @@ describe('a live list of issues', () => {
     expect(readMore).toHaveBeenCalledTimes(FILL_READS_MAX + 1);
     expect(readMore).toHaveBeenLastCalledWith('c7', 1);
     expect(ids(feed)).toEqual(['I_2', 'I_3', 'I_7', 'I_8']);
-  });
-
-  it("keeps the day's cap the page was read with, and a newer read's", () => {
-    const feed = feedOf({ dailyCap: { limit: 150, reached: true } });
-    expect(feed.getSnapshot().dailyCap).toEqual({ limit: 150, reached: true });
-    feed.reset({ items: ISSUES, total: 42, next: null, dailyCap: null });
-    expect(feed.getSnapshot().dailyCap).toBeNull();
   });
 
   it('moves the focus off a row just before it leaves', async () => {

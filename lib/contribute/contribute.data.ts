@@ -6,18 +6,12 @@ import { ISSUES_PAGE_SIZE } from './live-issues';
 import { keyedPageOf } from './masked-feed';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { settled, viewerLogin } from '@/lib/workspace/contribute.data';
-import {
-  ContributeIssuesDocument,
-  ContributeIssuesMaskedDocument,
-  ContributeIssuesWithRulesDocument,
-} from '@/lib/workspace/contribute.documents';
+import { ContributeIssuesMaskedDocument } from '@/lib/workspace/contribute.documents';
 import type { ContributeIssuePage, ContributeIssuesFilter } from '@/lib/workspace/contribute.types';
-import { contributeErrorOf } from '@/lib/workspace/errors';
 
 /**
- * The first page of issues for the signed-in user; `undefined` when the API does not answer the feed (yet). Read with
- * each issue's masked form first; an API without it answers the feed with the repos' rules, and one without those
- * the feed as it was.
+ * The first page of issues for the signed-in user, each with its masked form and its repo's rules; `undefined` when the
+ * API does not answer the feed.
  */
 export async function loadIssues(filter: ContributeIssuesFilter): Promise<ContributeIssuePage | null | undefined> {
   const githubLogin = await viewerLogin();
@@ -31,18 +25,6 @@ export async function loadIssues(filter: ContributeIssuesFilter): Promise<Contri
   try {
     const { contributeIssues } = await graphqlDirect(ContributeIssuesMaskedDocument, variables, options);
     return keyedPageOf(contributeIssues);
-  } catch (error) {
-    // An API without the masked form: the feed with the repos' rules. An outage is the feed's, as below.
-    if (contributeErrorOf(error).error !== 'NOT_AVAILABLE_YET') return undefined;
-  }
-  try {
-    return (await graphqlDirect(ContributeIssuesWithRulesDocument, variables, options)).contributeIssues;
-  } catch (error) {
-    // An API without the repos' rules: the feed as it was.
-    if (contributeErrorOf(error).error !== 'NOT_AVAILABLE_YET') return undefined;
-  }
-  try {
-    return (await graphqlDirect(ContributeIssuesDocument, variables, options)).contributeIssues;
   } catch {
     return undefined;
   }

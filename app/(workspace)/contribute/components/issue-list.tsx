@@ -7,7 +7,7 @@ import { createContext, type ReactNode, useContext, useEffect, useRef, useState,
 
 import { filterOf, type IssuesQuery, isFiltered, issuesHref } from '@/app/contribute/components/issues-filter';
 import { OtherIssuesDivider, SetIssuesHeading, SetOnlyEmpty } from '@/app/contribute/components/issues-mode';
-import { DailyCapEnd, LiveAnnouncer, LiveRowItem, liveOf, useLiveFeed } from '@/app/contribute/components/live-issues';
+import { LiveAnnouncer, LiveRowItem, liveOf, useLiveFeed } from '@/app/contribute/components/live-issues';
 import { StillRanking } from '@/app/contribute/components/still-ranking';
 import { Button } from '@/components/ui/button';
 import { IssueRow } from '@/components/workspace/issue-row';
@@ -91,7 +91,7 @@ export type ContributeIssueListProps = {
   source?: ContributeSource;
   /** What the list says when nothing matches what the person works on. */
   noneTitle?: string;
-  /** For masked rows: whether the new rules are live, the day's full issues, the numbers of a night. */
+  /** For masked rows: the day's full issues and the numbers of a night. */
   masked?: MaskedListReads;
   className?: string;
 };
@@ -163,7 +163,6 @@ export function ContributeIssueList({
         filter={filter}
         learnOpen={learnOpen}
         limit={limit}
-        size={page?.listSize?.size ?? null}
         set={set}
         languages={languages}
         facts={facts}
@@ -192,7 +191,6 @@ function LiveRows({
   filter,
   learnOpen,
   limit,
-  size,
   set,
   languages,
   facts,
@@ -205,8 +203,6 @@ function LiveRows({
 > & {
   page: ContributeIssuePage | null;
   limit: LimitCounts | null;
-  /** The list's size: "Show more" ends there whatever the feed says; null while lists are not capped. */
-  size: number | null;
   set?: ContributeSet | null;
   facts?: IssueStartFacts;
   source?: ContributeSource;
@@ -231,9 +227,6 @@ function LiveRows({
         set.mode,
       )
     : null;
-  // The cap ends the list: only once no page is left to read.
-  const capped = snapshot.dailyCap?.reached && !snapshot.next ? snapshot.dailyCap : null;
-  const atSize = size !== null && snapshot.rows.length >= size;
   const first = snapshot.rows.find(({ issue }) => !issue.masked)?.issue.issueId;
   const anyMasked = snapshot.rows.some(({ issue }) => issue.masked);
   // The foot stays once the last masked row folded, so the line on why it left is still read.
@@ -279,7 +272,7 @@ function LiveRows({
     ) : null;
 
   let empty: ReactNode = null;
-  if (!snapshot.rows.length && !snapshot.next && !capped) {
+  if (!snapshot.rows.length && !snapshot.next) {
     if (set && set.mode !== 'ALL' && setOnly(set) && !isFiltered(filter)) {
       empty = <SetOnlyEmpty set={set as ContributeSet & { mode: 'STACK' | 'REPOS' }} languages={languages} />;
     } else if (isFiltered(filter)) {
@@ -317,12 +310,11 @@ function LiveRows({
           ) : (
             rowsOf(snapshot.rows.map(({ issue }) => issue))
           )}
-          {capped ? <DailyCapEnd cap={capped} /> : null}
-          {/* Only while there is more to show: none at the day's cap, the list's size or the end, whatever the total says. */}
-          {snapshot.more && !capped && !atSize ? (
+          {/* Only while there is more to show: none at the end, whatever the total says. */}
+          {snapshot.more ? (
             <ShowMore
               shown={snapshot.rows.length}
-              total={Math.min(Math.max(snapshot.total, snapshot.rows.length + 1), size ?? Number.POSITIVE_INFINITY)}
+              total={Math.max(snapshot.total, snapshot.rows.length + 1)}
               noun="issue"
               pending={growing}
               onMore={() => startGrowing(() => feed.grow(ISSUES_PAGE_SIZE))}

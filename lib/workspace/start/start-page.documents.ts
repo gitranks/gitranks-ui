@@ -52,7 +52,7 @@ export const StartPageLimitsDocument = doc<{
 }>(
   `query StartPageLimits { contribute { contributor {
   settings { attemptsAtATime openPrsAtATime }
-  limits { level reason attemptsAtATime openPrsAtATime openPrsEffective openPrsOverride claimsPerDay revealsPerDay }
+  limits { level reason attemptsAtATime openPrsAtATime openPrsEffective openPrsOverride claimsPerDay }
   scheduleCounts { prBound }
 } } }`,
 );

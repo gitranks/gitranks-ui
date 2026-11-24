@@ -55,8 +55,8 @@ const FAIR: FaqEntry = {
   more: { href: MAINTAINERS_PATH as Route, label: 'The rules for maintainers' },
 };
 
-/** Why issue details are hidden and how many full issues a day: asked once the rules about full issues are live. */
-export const FULL_ISSUES: FaqEntry = {
+/** Why issue details are hidden and how many full issues a day. */
+const FULL_ISSUES: FaqEntry = {
   id: 'full-issues',
   question: 'Why are issue details hidden, and how many issues can I see in full?',
   answer:
@@ -113,6 +113,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
           "Usually you find out first. Every change goes through our checks (it stays within your size limits, touches no workflow, CI or license file, adds nothing that looks like a secret, and the tests your agent ran passed) and then waits for you: discard it, or send it back with a note. If a maintainer asks for changes, you or your agent can follow up on the same pull request; if they close it, that's the end of it. A pull request no one answers for 30 days gets you a warning, and we close it at 45 days, at least 15 days after the warning, unless you keep it open. Two misses in one repo within 90 days (no answer for 30 days, or closed as wrong, low quality or harshly) take it out of the shared pool for 90 days; a merge cancels its own miss. A maintainer who closes one saying the project takes no AI-made pull requests takes the repo out of Contribute for 90 days, one who asks us to stay away for 365. You answer for what you submit, so review it as you would anyone's code.",
       },
       FAIR,
+      FULL_ISSUES,
       {
         id: 'autopilot',
         question: 'Is there an autopilot?',
@@ -160,13 +161,3 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
     ],
   },
 ];
-
-/** The questions page's groups: with the one on full issues a day after fairness to maintainers, once it is live. */
-export const faqGroupsOf = (rulesLive: boolean): readonly FaqGroup[] =>
-  rulesLive
-    ? FAQ_GROUPS.map((group) =>
-        group.id === 'guardrails'
-          ? { ...group, entries: group.entries.flatMap((entry) => (entry === FAIR ? [FAIR, FULL_ISSUES] : [entry])) }
-          : group,
-      )
-    : FAQ_GROUPS;

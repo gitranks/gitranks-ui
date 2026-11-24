@@ -7,9 +7,7 @@ vi.mock('@/auth', () => ({ auth }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
 const { loadContribute, loadFairUseNotice, loadFairUseNotices } = await import('./contribute.data');
-const { ContributeIssuesWithRulesDocument, ContributeLimitsDocument, ContributeOverviewDocument } = await import(
-  './contribute.documents'
-);
+const { ContributeLimitsDocument, ContributeOverviewDocument } = await import('./contribute.documents');
 const {
   AnswerContributeNoticeDocument,
   AppealFairUseDocument,
@@ -176,18 +174,5 @@ describe('the fair-use actions', () => {
     expect(await appealFairUse('   ')).toMatchObject({ ok: false, error: 'INVALID' });
     expect(await appealFairUse('x'.repeat(2001))).toMatchObject({ ok: false, error: 'INVALID' });
     expect(graphqlDirect).not.toHaveBeenCalled();
-  });
-
-  it('say an API that does not take requests yet is not ready, from its answer of today', async () => {
-    graphqlDirect.mockImplementation(() =>
-      Promise.reject(new Error('[{"message":"Cannot query field \\"appealFairUse\\" on type \\"Mutation\\"."}]')),
-    );
-    expect(await appealFairUse('Please look again.')).toEqual({ ok: false, error: 'NOT_AVAILABLE_YET' });
-  });
-});
-
-describe('the list size', () => {
-  it('is read with the feed and its repos’ rules', () => {
-    expect(print(ContributeIssuesWithRulesDocument)).toMatch(/listSize \{\s*size\s+base\s+tier\s+merged\s+cut\s*\}/);
   });
 });

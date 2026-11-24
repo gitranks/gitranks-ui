@@ -95,7 +95,7 @@ describe('the landing', () => {
     expect(at.every((index) => index >= 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(plain).toContain('Free to use. Nothing reaches GitHub without your OK. Leave any time.');
-    expect(plain).toContain('fern-lang/fern · #2481');
+    expect(plain).toContain('Issue details are hidden until you see the full issue');
     expect(plain).toContain('Merged');
   });
 

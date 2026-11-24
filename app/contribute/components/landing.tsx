@@ -11,7 +11,6 @@ import { ResumeLink } from '@/components/workspace/getting-in/resume-link';
 import { IssueHints, MaskedIssueFacts } from '@/components/workspace/masked-issue/facts';
 import { type AgentPageStats, agentPageStatsLineOf } from '@/lib/contribute/agent-page.types';
 import { LANDING_QUESTIONS } from '@/lib/contribute/faq';
-import type { LandingExample } from '@/lib/contribute/landing-example';
 import { cn } from '@/lib/utils';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeComingSoonProvider } from '@/lib/workspace/contribute.types';
@@ -160,49 +159,17 @@ const MASKED_EXAMPLE_HINTS: IssueHint[] = [
   { kind: 'MERGES_OUTSIDE', count: null },
 ];
 
-/**
- * The example's first card: the issue as a list shows it, masked once the rules are live, named before; while the rules
- * are not known, its title alone, so the page says nothing that may be wrong.
- */
-function ExampleIssue({ example }: { example: LandingExample }) {
-  if (example === 'shared') {
-    return (
-      <ExampleCard>
-        <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground" data-example="shared">
-          <span>picked for you</span>
-        </div>
-        <span className="font-semibold">Formatter drops a trailing comment in match arms</span>
-      </ExampleCard>
-    );
-  }
-  if (example === 'masked') {
-    return (
-      <ExampleCard>
-        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground" data-example="masked">
-          <span>Issue details are hidden until you see the full issue</span>
-          <span>picked for you</span>
-        </div>
-        <MaskedIssueFacts issue={MASKED_EXAMPLE} />
-        <span className="font-semibold">Formatter drops a trailing comment in match arms</span>
-        <IssueHints hints={MASKED_EXAMPLE_HINTS} />
-      </ExampleCard>
-    );
-  }
+/** The example's first card: the issue as a list shows it, its details hidden. */
+function ExampleIssue() {
   return (
     <ExampleCard>
-      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground" data-example="named">
-        <span className="font-mono">fern-lang/fern · #2481</span>
+      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground" data-example="masked">
+        <span>Issue details are hidden until you see the full issue</span>
         <span>picked for you</span>
       </div>
+      <MaskedIssueFacts issue={MASKED_EXAMPLE} />
       <span className="font-semibold">Formatter drops a trailing comment in match arms</span>
-      <div className="flex flex-wrap gap-1.5">
-        <Pill tone="green">good first issue</Pill>
-        <Pill>bug</Pill>
-        <Pill>Rust</Pill>
-      </div>
-      <span className="text-xs text-muted-foreground">
-        Why: you write Rust, and you've contributed to fern-lang/fern-lsp
-      </span>
+      <IssueHints hints={MASKED_EXAMPLE_HINTS} />
     </ExampleCard>
   );
 }
@@ -219,7 +186,6 @@ export function Landing({
   preview = false,
   noted,
   stats = null,
-  example = 'named',
 }: {
   viewer: LandingViewer;
   start: LandingStart;
@@ -227,8 +193,6 @@ export function Landing({
   noted?: readonly ContributeComingSoonProvider[];
   /** The pool's public numbers, a line under the hero's button; left out when unread. */
   stats?: AgentPageStats | null;
-  /** How the example issue is shown, by the rules that hold (`landingExampleOf`). */
-  example?: LandingExample;
 }) {
   return (
     <main className="flex flex-col" data-landing-viewer={viewer}>
@@ -260,7 +224,7 @@ export function Landing({
           aria-label="Example: from an issue to a merged pull request"
           className="m-0 flex min-w-0 flex-[1_1_400px] flex-col gap-3.5"
         >
-          <ExampleIssue example={example} />
+          <ExampleIssue />
           <div aria-hidden="true" className="flex items-center gap-2.5 pl-5 font-mono text-xs text-muted-foreground">
             <span className="h-8 w-0.5 bg-primary/30" />
             an agent writes the fix · you review · you submit

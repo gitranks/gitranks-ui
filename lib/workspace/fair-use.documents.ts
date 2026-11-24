@@ -10,10 +10,10 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 const NOTICE =
   'id kind rule phase text vars { prs { name url } n k } choices { id label } createdAt dismissedAt answer { choice text at }';
 
-/** What the top of Contribute shows about fair use: the Terms banner, the open messages, the block, the list cut. */
+/** What the top of Contribute shows about fair use: the Terms banner, the open messages, the block. */
 export const ContributeFairUseNoticesDocument = doc<{ contributeFairUseNotices: ContributeFairUseNotices | null }>(
   `query ContributeFairUseNotices { contributeFairUseNotices {
-    rulesBanner { text linkText path } notices { ${NOTICE} } block { ${NOTICE} } listCut { text noticeId }
+    rulesBanner { text linkText path } notices { ${NOTICE} } block { ${NOTICE} }
   } }`,
 );
 
@@ -43,8 +43,7 @@ export const AnswerContributeNoticeDocument = doc<
 
 /**
  * A request to look again at a closed access, with one text: when it was sent and when we answered it. One open at a
- * time: while one is open, the API answers it as it is. An operation of its own, so an API that does not know it yet
- * fails it alone.
+ * time: while one is open, the API answers it as it is.
  */
 export const AppealFairUseDocument = doc<{ appealFairUse: FairUseAppeal }, { text: string }>(
   'mutation AppealFairUse($text: String!) { appealFairUse(text: $text) { at answeredAt } }',

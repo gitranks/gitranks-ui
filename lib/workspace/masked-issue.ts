@@ -45,24 +45,15 @@ export type IssueSurface = 'LEARN' | 'CONTRIBUTE' | 'PROFILE';
 export const issueSurfaceOf = (from: IssueLookFrom): IssueSurface =>
   from === 'learn' ? 'LEARN' : from === 'profile' ? 'PROFILE' : 'CONTRIBUTE';
 
-/**
- * What a list of masked issues shows beside its rows: whether the rules about full issues a day are live (the looks
- * line and the lines about them show only then), the viewer's full issues today, and the numbers for the window.
- */
+/** What a list of masked issues shows beside its rows: the viewer's full issues today, and the numbers for the window. */
 export type MaskedListReads = {
-  /**
-   * The rules could not be read and no answer is kept: a list then says neither today's words about its size nor the
-   * new ones, since either may be wrong.
-   */
-  rulesUnknown?: boolean;
-  rulesLive: boolean;
-  /** The viewer's full issues today; null signed out, before the rules are live, or when it cannot be read. */
+  /** The viewer's full issues today; null signed out, or when it cannot be read. */
   looks: IssueLooksToday | null;
   numbers: Pick<IssueNumbers, 'read' | 'kept'> | null;
 };
 
-/** A list's reads when none were made: today's words, no numbers. */
-export const NO_MASKED_READS: MaskedListReads = { rulesLive: false, looks: null, numbers: null };
+/** A list's reads when none were made: no looks line, no numbers. */
+export const NO_MASKED_READS: MaskedListReads = { looks: null, numbers: null };
 
 /** The parameter a sign-in's return carries: the person pressed "See the full issue" before signing in. */
 export const ISSUE_LOOK_PARAM = 'look';
@@ -167,7 +158,7 @@ export function looksLineOf(looks: IssueLooksToday): string {
   return `You can see ${count.format(looks.limit)} full ${looks.limit === 1 ? 'issue' : 'issues'} a day. ${count.format(Math.max(0, looks.left))} left today.`;
 }
 
-/** The line above Learn's list of masked issues, once the rules are live. */
+/** The line above Learn's list of masked issues. */
 export const LEARN_MASKED_LINE =
   'Five open issues at a time, in the same order for everyone. Skip one, or see it in full and say it is not for you, and the next takes its place.';
 

@@ -1,7 +1,6 @@
 import type { Route } from 'next';
 
-import type { ContributeFairUseNotice, ContributeFairUsePr, ContributeListSize } from './contribute.types';
-import { TIER_NAMES } from '@/app/app.consts';
+import type { ContributeFairUseNotice, ContributeFairUsePr } from './contribute.types';
 
 /** The anchor of Contribute's rule for pull requests on issues from a contributor's list, in the Terms of service. */
 export const CONTRIBUTE_RULES_ID = 'contribute-rules';
@@ -30,29 +29,6 @@ export const isAccessClosed = (notice: Pick<ContributeFairUseNotice, 'rule' | 'p
 
 /** The words of the way to ask us to look again at a closed access. */
 export const ASK_AGAIN = 'Ask us to look again';
-
-/**
- * Which rules about issues the API says hold, for the Terms, the Privacy policy, the MCP docs, the agents' page and the
- * questions. `live`: the rules about full issues a day, with the date of the Terms that describe them. `before`: the
- * rules of today, also when the API does not know the read yet. `unknown`: the API did not answer and no answer is
- * kept, so the pages say that part could not be loaded rather than show words that may be wrong. `pending`: the read
- * is under way (a static fallback), so the pages show only what both rules share.
- */
-export type IssueRules =
-  | { state: 'live'; termsDate: string }
-  | { state: 'before' }
-  | { state: 'unknown' }
-  | { state: 'pending' };
-
-export const RULES_BEFORE: IssueRules = { state: 'before' };
-export const RULES_PENDING: IssueRules = { state: 'pending' };
-
-/** The day the Terms that describe the live rules took effect ('YYYY-MM-DD'), or null before they are live. */
-export const termsDayOf = (rules: IssueRules): string | null =>
-  rules.state === 'live' ? rules.termsDate.slice(0, 10) : null;
-
-/** What a page says where the rules could not be read. */
-export const RULES_UNREAD = 'This part could not be loaded just now. Reload the page to read it.';
 
 /** The notice id an address names, as the API gives them; null for anything else. */
 export function fairUseNoticeIdOf(value: string | null | undefined): string | null {
@@ -102,19 +78,6 @@ export function fairUseMessagePartsOf(text: string, prs: readonly ContributeFair
 export function rulesBannerPartsOf(text: string): { title: string | null; rest: string } {
   const match = /^(.+?)\.\s+(\S[\s\S]*)$/.exec(text.trim());
   return match ? { title: match[1], rest: match[2] } : { title: null, rest: text.trim() };
-}
-
-/** The tier name in the list's size line for an account that is not ranked (or a tier the page does not know). */
-export const NOT_RANKED_YET = 'not ranked yet';
-
-/**
- * The line above the list that says how many issues the user sees and why; none while the list is cut (no other
- * wording is used then: the line that cannot be closed says it).
- */
-export function listSizeLineOf(listSize: ContributeListSize | null | undefined): string | null {
-  if (!listSize || listSize.cut) return null;
-  const tier = (listSize.tier ? TIER_NAMES[listSize.tier - 1] : undefined) ?? NOT_RANKED_YET;
-  return `You see your top ${listSize.size} issues. The size comes from your GitRanks tier (${tier}: ${listSize.base}) plus 5 for every pull request merged through GitRanks, up to 100.`;
 }
 
 /** The answer page's label over the text box, by the message's step: an addition to a choice, or the answer itself. */

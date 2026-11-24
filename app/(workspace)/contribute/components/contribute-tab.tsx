@@ -5,7 +5,7 @@ import { PicksDialog } from './picks-dialog';
 import type { IssuesQuery } from '@/app/contribute/components/issues-filter';
 import { IssuesFilters } from '@/app/contribute/components/issues-filters';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
-import { FairUseBanners, ListCutLine } from '@/components/workspace/fair-use-banners';
+import { FairUseBanners } from '@/components/workspace/fair-use-banners';
 import { NumberTiles } from '@/components/workspace/number-tiles';
 import { HEADING } from '@/components/workspace/primitives';
 import { RightNow } from '@/components/workspace/right-now';
@@ -21,7 +21,7 @@ import type {
   ContributeView,
 } from '@/lib/workspace/contribute.types';
 import { accessNoticesOf, claudeKeyOf, isSuspended } from '@/lib/workspace/contribute-state';
-import { fairUseAnswerPathOf, listSizeLineOf } from '@/lib/workspace/fair-use';
+import { fairUseAnswerPathOf } from '@/lib/workspace/fair-use';
 import { MODELS, relativeLabel } from '@/lib/workspace/format';
 import type { ConnectedAgents } from '@/lib/workspace/issue-row';
 import { limitReachedOf } from '@/lib/workspace/limit-words';
@@ -43,7 +43,7 @@ export type ContributeTabData = {
   counts?: Pick<ContributeScheduleCounts, 'prBound'>;
   /** What the top shows about fair use; null or left out when the API answers nothing. */
   fairUse?: ContributeFairUseNotices | null;
-  /** For masked rows: whether the new rules are live, the day's full issues, the numbers of a night. */
+  /** For masked rows: the day's full issues, the numbers of a night. */
   masked?: MaskedListReads;
   query: IssuesQuery;
   now: Date;
@@ -51,8 +51,8 @@ export type ContributeTabData = {
 
 /**
  * The Contribute tab: the messages about fair use, its head and four numbers, Right now while a Contribute run is at
- * work, then Issues for you (the line on the list's size, or the cut's line that cannot be closed; the line on how
- * Start works, the count and the filters, then the list with its own notices).
+ * work, then Issues for you (the line on the day's full issues, the line on how Start works, the count and the filters,
+ * then the list with its own notices).
  */
 export function ContributeTabScreen({
   view,
@@ -77,13 +77,8 @@ export function ContributeTabScreen({
   const ownName = lastUsedTokenOf(view.ownAgent?.tokens)?.name ?? null;
   const key = claudeKeyOf(view);
   const keyWaiting = key?.state === 'EXHAUSTED' || key?.state === 'LIMIT_REACHED' ? key.state : null;
-  const listCut = held ? null : (fairUse?.listCut ?? null);
-  // Once the rules are live, the day's full issues and what they are made of say the list's limit in its place.
-  const looksLine = held || listCut || !masked.rulesLive || !masked.looks ? null : looksLongLineOf(masked.looks);
-  // Today's words only before the rules are live: once live they would be wrong, and a day that could not be read
-  // says nothing; rules that could not be read say neither, since either may be wrong.
-  const sizeLine =
-    held || listCut || looksLine || masked.rulesLive || masked.rulesUnknown ? null : listSizeLineOf(page?.listSize);
+  // The day's full issues and what they are made of; a day that could not be read says nothing.
+  const looksLine = held || !masked.looks ? null : looksLongLineOf(masked.looks);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-contribute-tab="">
@@ -121,15 +116,9 @@ export function ContributeTabScreen({
               <h2 id="issues-heading" className={HEADING.section}>
                 Issues for you
               </h2>
-              {listCut ? <ListCutLine listCut={listCut} /> : null}
               {looksLine ? (
                 <p className="max-w-prose text-sm text-muted-foreground" data-looks-long-line="">
                   {looksLine}
-                </p>
-              ) : null}
-              {sizeLine ? (
-                <p className="max-w-prose text-sm text-muted-foreground" data-list-size={page?.listSize?.size}>
-                  {sizeLine}
                 </p>
               ) : null}
               {limit || held ? null : (

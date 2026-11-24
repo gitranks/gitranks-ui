@@ -1,9 +1,4 @@
-import type {
-  ContributeDailyCap,
-  ContributeIssue,
-  ContributeIssuePage,
-  ContributeIssueStatus,
-} from '@/lib/workspace/contribute.types';
+import type { ContributeIssue, ContributeIssuePage, ContributeIssueStatus } from '@/lib/workspace/contribute.types';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
 import { isMaskKey } from '@/lib/workspace/masked-answer';
 
@@ -17,8 +12,8 @@ export const LIVE_EXIT_AFTER_MS = 2_000;
 /** How long it takes to fade and fold away; the classes that animate it last as long. */
 export const LIVE_LEAVE_MS = 300;
 /**
- * The most pages one fill reads. Past the day's cap a page can come back empty with more after it (the issues past the
- * cap are left off), so a fill reads on while there is a cursor, up to this many pages.
+ * The most pages one fill reads. A page can bring nothing new with more after it (only rows held or settled here), so a
+ * fill reads on while there is a cursor, up to this many pages.
  */
 export const FILL_READS_MAX = 5;
 
@@ -41,9 +36,7 @@ export type LiveSnapshot = {
   total: number;
   /** The cursor after the last issue held; null when the feed has no more. */
   next: string | null;
-  /** The day's cap on new issues as last read; null while well under it or not read with the page. */
-  dailyCap: ContributeDailyCap | null;
-  /** Rows beyond those shown: held already, or after the cursor. False at the day's cap and at the end. */
+  /** Rows beyond those shown: held already, or after the cursor. False at the end. */
   more: boolean;
 };
 
@@ -54,7 +47,6 @@ export type LiveFeedOptions = {
   items: ContributeIssue[];
   total: number;
   next: string | null;
-  dailyCap?: ContributeDailyCap | null;
   /** How many rows are shown; below it, while the feed has more, the list is filled from the next issues. */
   limit: number;
   readStatus: (issueIds: string[]) => Promise<ContributeActionResult<ContributeIssueStatus[] | null>>;
@@ -69,7 +61,7 @@ export type LiveFeed = {
   getSnapshot: () => LiveSnapshot;
   /** One read of the shown rows; also fills a short list. `'stop'` when the reads should stop for good. */
   poll: () => Promise<PollOutcome>;
-  /** Fills a short list from the next issues, while the feed has more: a page the day's cap left short, at once. */
+  /** Fills a short list from the next issues, while the feed has more. */
   fill: () => Promise<void>;
   /** "Show 10 more": `count` more rows shown, read from the next issues when the list holds fewer. */
   grow: (count: number) => Promise<void>;
@@ -93,12 +85,7 @@ export type LiveFeed = {
    * A newer read of the page (a refresh, other filters, another cursor): its rows replace the list, keeping what is
    * known of the ones still in it; a row it drops while it says it was taken stays until it has left.
    */
-  reset: (page: {
-    items: ContributeIssue[];
-    total: number;
-    next: string | null;
-    dailyCap?: ContributeDailyCap | null;
-  }) => void;
+  reset: (page: { items: ContributeIssue[]; total: number; next: string | null }) => void;
   /** Starts it again after `stop`: the rows on their way out are sent out again. */
   start: () => void;
   /** Stops it: no timers, and an answer still on its way is dropped. */
@@ -118,14 +105,7 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
   let rows: LiveRow[] = options.items.map((issue) => ({ issue, status: 'AVAILABLE', attemptId: null, leaving: false }));
   let total = options.total;
   let next = options.next;
-  let dailyCap = options.dailyCap ?? null;
-  let snapshot: LiveSnapshot = {
-    rows: rows.slice(0, limit),
-    total,
-    next,
-    dailyCap,
-    more: rows.length > limit || next !== null,
-  };
+  let snapshot: LiveSnapshot = { rows: rows.slice(0, limit), total, next, more: rows.length > limit || next !== null };
   const settled = new Set<string>();
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const listeners = new Set<() => void>();
@@ -140,7 +120,7 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
   let generation = 0;
 
   const emit = () => {
-    snapshot = { rows: rows.slice(0, limit), total, next, dailyCap, more: rows.length > limit || next !== null };
+    snapshot = { rows: rows.slice(0, limit), total, next, more: rows.length > limit || next !== null };
     for (const listener of listeners) listener();
   };
   const fresh = (issue: ContributeIssue): LiveRow => ({ issue, status: 'AVAILABLE', attemptId: null, leaving: false });
@@ -157,8 +137,8 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
   };
 
   /**
-   * Reads the next issues while the list is short and the feed has more: a page that brings none (past the day's cap,
-   * or only rows held or settled here) is read past while its cursor moves on, up to `FILL_READS_MAX` pages a fill.
+   * Reads the next issues while the list is short and the feed has more: a page that brings none (only rows held or
+   * settled here) is read past while its cursor moves on, up to `FILL_READS_MAX` pages a fill.
    */
   const fill = async (): Promise<void> => {
     if (!active || !readMore) return;
@@ -180,7 +160,6 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
         const more = result.data.items.filter(({ issueId }) => !held.has(issueId) && !settled.has(issueId));
         rows = [...rows, ...more.map(fresh)];
         next = result.data.next;
-        if (result.data.dailyCap !== undefined) dailyCap = result.data.dailyCap;
         emit();
         // A cursor that did not move brings the same page again.
         if (next === after) break;
@@ -316,7 +295,6 @@ export function createLiveFeed(options: LiveFeedOptions): LiveFeed {
       rows = [...merged, ...kept];
       total = page.total;
       next = kept.length ? next : page.next;
-      if (page.dailyCap !== undefined) dailyCap = page.dailyCap;
       emit();
       void fill();
     },

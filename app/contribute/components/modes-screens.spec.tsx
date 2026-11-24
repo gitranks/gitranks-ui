@@ -66,7 +66,9 @@ const IssuesScreen = ({
 );
 const { FeedbackForm } = await import('@/components/contribute/feedback-dialog');
 const { Dialog } = await import('@/components/ui/dialog');
-const { ContributeIssuesDocument, IssuesForProfileDocument } = await import('@/lib/workspace/contribute.documents');
+const { ContributeIssuesMaskedDocument, IssuesForProfileDocument } = await import(
+  '@/lib/workspace/contribute.documents'
+);
 const { NOW, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { fullReposSet, resolve, smallReposSet, stackSet } = await import(
   '@/lib/contribute/__fixtures__/contribute-sets'
@@ -451,7 +453,7 @@ describe('the Issues page while the stack is worked out', () => {
   });
 
   it("reads each issue's tier with the feed itself, and only there", () => {
-    const feed = print(ContributeIssuesDocument);
+    const feed = print(ContributeIssuesMaskedDocument);
     expect(feed).toMatch(/items \{[^}]*\btier\b/);
     expect(print(IssuesForProfileDocument)).not.toContain('tier');
   });

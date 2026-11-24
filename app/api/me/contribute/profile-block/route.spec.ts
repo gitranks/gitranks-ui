@@ -19,7 +19,7 @@ vi.mock('@/auth', () => ({
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
 const { GET } = (await import('./route')) as unknown as { GET: (req: NextRequest) => Promise<Response> };
-const { OwnProfilePicksDocument, OwnProfilePicksMaskedDocument } = await import('@/lib/contribute/profile-picks.data');
+const { OwnProfilePicksMaskedDocument } = await import('@/lib/contribute/profile-picks.data');
 const { maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
 
 const get = (login?: string) =>
@@ -96,7 +96,7 @@ describe("the owner's profile block route", () => {
     expect(JSON.parse(sent).issues[0].masked).toEqual(maskedIssue());
   });
 
-  it("answers the masked picks, and today's from an API that does not know them", async () => {
+  it('answers the masked picks, and a named one as it came', async () => {
     signIn('octocat');
     const masked = { ...pick(1), masked: maskedIssue() };
     graphqlDirect.mockResolvedValueOnce({ ownProfilePicks: { contributor: true, items: [masked], stats: null } });
@@ -115,17 +115,12 @@ describe("the owner's profile block route", () => {
       ],
     });
 
-    graphqlDirect.mockReset();
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === OwnProfilePicksMaskedDocument) {
-        throw new Error('[{"message":"Cannot query field \\"masked\\" on type \\"ProfilePick\\"."}]');
-      }
-      return { ownProfilePicks: { contributor: true, items: [pick(1)], stats: null } };
-    });
-    expect(await (await get('octocat')).json()).toEqual({ kind: 'contributor', issues: [pick(1)] });
+    const named = { ...pick(2), masked: null };
+    graphqlDirect.mockResolvedValueOnce({ ownProfilePicks: { contributor: true, items: [named], stats: null } });
+    expect(await (await get('octocat')).json()).toEqual({ kind: 'contributor', issues: [named] });
     expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
       OwnProfilePicksMaskedDocument,
-      OwnProfilePicksDocument,
+      OwnProfilePicksMaskedDocument,
     ]);
   });
 });

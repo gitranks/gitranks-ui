@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { FairUseItem, PrivacyUpdated } from './fair-use-item';
+import { TermsRulesLink } from './terms-rules-link';
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
 import { pageMetadata } from '@/lib/seo/page-metadata';
@@ -220,7 +220,18 @@ const sections: LegalSection[] = [
             it for as long as GitRanks runs Contribute; when you delete your Contribute data, it stays without your
             username and account id. Basis: legitimate interests, in keeping Contribute fair and knowing how it is used.
           </li>
-          <FairUseItem />
+          <li>
+            <B>Fair use</B>: pull requests for issues you take on GitRanks go through GitRanks (see the{' '}
+            <TermsRulesLink />
+            ). Once a day we compare the issues you took with the pull requests you open, on GitRanks or outside it, and
+            count the issues you took against the pull requests you opened through GitRanks. We keep what we find: the
+            days on which an issue you took here was fixed outside GitRanks, your counts of issues taken and pull
+            requests opened, the issues you took in the last 30 days, a lower limit or a closed access, and your
+            requests to look again. We keep them for as long as GitRanks runs Contribute, even after you delete your
+            Contribute data, so that deleting resets nothing. Messages and your answers: 180 days after they were sent,
+            longer while a lower limit or a closed access holds. What our earlier checks found is kept for up to 180
+            days after its last change. Basis: legitimate interests, in keeping Contribute fair.
+          </li>
           <li>
             <B>Deleting it</B>: in Settings, choose <B>Delete all data</B>. It stops runs under way, deletes your key,
             settings, preferences, suggestions, runs and their history, drafted replies, agent connections and tokens
@@ -585,7 +596,5 @@ const sections: LegalSection[] = [
 ];
 
 export default function Privacy() {
-  // The date is read per request (`PrivacyUpdated`): today's, or that of the Terms once the rules about full issues a
-  // day are live.
-  return <LegalPage title="Privacy policy" sections={sections} updatedLine={<PrivacyUpdated />} />;
+  return <LegalPage title="Privacy policy" sections={sections} updated="2026-11-24" />;
 }

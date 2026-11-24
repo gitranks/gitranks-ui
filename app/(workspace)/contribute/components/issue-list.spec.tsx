@@ -62,7 +62,7 @@ describe("Contribute's list with masked issues", () => {
     total: 2,
     computedAt: '2026-10-28T07:00:00.000Z',
   };
-  const LIVE = { rulesLive: true, looks: looksToday(), numbers: { read: 10, kept: 2 } };
+  const LIVE = { looks: looksToday(), numbers: { read: 10, kept: 2 } };
 
   beforeEach(() => {
     vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
@@ -92,7 +92,7 @@ describe("Contribute's list with masked issues", () => {
     vi.useRealTimers();
   });
 
-  it("is today's list, with no foot, when no issue is masked (an API without the masked form)", async () => {
+  it('has no masked row and no foot when no issue is masked', async () => {
     await render(<ContributeIssueList page={{ ...PAGE, items: [PAGE.items[0]] }} agents={AGENTS} masked={LIVE} />);
     expect(container.querySelector('[data-masked-row]')).toBeNull();
     expect(container.querySelector('[data-masked-foot]')).toBeNull();

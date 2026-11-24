@@ -27,7 +27,6 @@ import {
   fairUse,
   fairUseBlocked,
   fairUseNotice,
-  listSize,
   rulesBanner,
   warningNotice,
 } from '@/lib/contribute/__fixtures__/fair-use';
@@ -138,9 +137,6 @@ const tab = (
   );
 
 const busy = activityOf(WORKING, FOLLOW_UP, own, stopped);
-/** The first page with the list's size: a Pro's 30. */
-const sizedPage: ContributeIssuePage = { ...issuePage, listSize: listSize() };
-
 /** A message's answer page, as the workspace's layout frames it. */
 const answerPage = (notice: ContributeFairUseNotice) =>
   frame(
@@ -362,13 +358,6 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         render: () => tab(both, activityOf(), { page: rulesPage }),
       },
       {
-        id: 'daily-cap',
-        title: "Today's new issues seen",
-        path: '/contribute',
-        height: 1800,
-        render: () => tab(both, activityOf(), { page: { ...issuePage, dailyCap: { limit: 150, reached: true } } }),
-      },
-      {
         id: 'phone',
         title: 'Agents working · phone',
         path: '/contribute',
@@ -378,28 +367,17 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       },
       {
         id: 'rules-banner',
-        title: 'The Terms banner for people who connected an agent before the rule, and the line on the list size',
+        title: 'The Terms banner for people who connected an agent before the rule',
         path: '/contribute',
         height: 1300,
-        render: () => tab(both, activityOf(), { page: sizedPage, fairUse: fairUse({ rulesBanner }) }),
+        render: () => tab(both, activityOf(), { page: issuePage, fairUse: fairUse({ rulesBanner }) }),
       },
       {
         id: 'fair-use-message',
         title: 'A message after a pull request opened outside GitRanks: Answer, the Terms, a close button',
         path: '/contribute',
         height: 1400,
-        render: () => tab(both, activityOf(), { page: sizedPage, fairUse: fairUse({ notices: [fairUseNotice()] }) }),
-      },
-      {
-        id: 'list-cut',
-        title: 'The list cut: the line that cannot be closed, with its answer page, in place of the size line',
-        path: '/contribute',
-        height: 1200,
-        render: () =>
-          tab(both, activityOf(), {
-            page: { ...issuePage, listSize: listSize({ size: 10, cut: true }) },
-            fairUse: fairUse({ listCut: { text: 'Your list is now 10 issues.', noticeId: warningNotice.id } }),
-          }),
+        render: () => tab(both, activityOf(), { page: issuePage, fairUse: fairUse({ notices: [fairUseNotice()] }) }),
       },
       {
         id: 'fair-use-blocked',

@@ -580,16 +580,16 @@ describe('the access level', () => {
     expect(html).toContain('data-notice="new-account"');
     expect(html).toContain('bg-brand-soft');
     expect(text(html)).toContain(
-      "Smaller limits while your account is new Contribute starts new accounts on smaller limits: 1 issue at a time, 3 new claims a day and 40 new issues a day in this list. Every new account starts this way, to keep automated accounts from claiming issues meant for people; it isn't a judgement of you. The limits lift on their own as your account builds a track record.",
+      "Smaller limits while your account is new Contribute starts new accounts on smaller limits: 1 issue at a time and 3 new claims a day. Every new account starts this way, to keep automated accounts from claiming issues meant for people; it isn't a judgement of you. The limits lift on their own as your account builds a track record.",
     );
-    expect(html).toContain('<span class="font-mono tabular-nums text-foreground">40</span>');
+    expect(html).toContain('<span class="font-mono tabular-nums text-foreground">3</span>');
   });
 
   it('says the counts as the API sets them, one or many', () => {
-    const wider = { ...limits.newAccount, attemptsAtATime: 2, claimsPerDay: 1, revealsPerDay: 1500 };
+    const wider = { ...limits.newAccount, attemptsAtATime: 2, claimsPerDay: 1 };
     const view = { ...views.newAccount, contributor: { ...views.newAccount.contributor, limits: wider } };
 
-    expect(text(notices(view))).toContain('2 issues at a time, 1 new claim a day and 1,500 new issues a day');
+    expect(text(notices(view))).toContain('2 issues at a time and 1 new claim a day.');
   });
 
   it('warns of lower limits after claims ran out, and of a paused account with the address to write to', () => {

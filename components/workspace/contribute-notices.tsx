@@ -68,17 +68,10 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         text: (
           <>
             Contribute starts new accounts on smaller limits:{' '}
-            <Count count={notice.limits.attemptsAtATime} one="issue" /> at a time
-            {notice.limits.revealsPerDay === null ? ' and ' : ', '}
-            <Count count={notice.limits.claimsPerDay} one="new claim" /> a day
-            {notice.limits.revealsPerDay === null ? null : (
-              <>
-                {' '}
-                and <Count count={notice.limits.revealsPerDay} one="new issue" /> a day in this list
-              </>
-            )}
-            . Every new account starts this way, to keep automated accounts from claiming issues meant for people; it
-            isn&apos;t a judgement of you. The limits lift on their own as your account builds a track record.
+            <Count count={notice.limits.attemptsAtATime} one="issue" /> at a time and{' '}
+            <Count count={notice.limits.claimsPerDay} one="new claim" /> a day. Every new account starts this way, to
+            keep automated accounts from claiming issues meant for people; it isn&apos;t a judgement of you. The limits
+            lift on their own as your account builds a track record.
           </>
         ),
       };

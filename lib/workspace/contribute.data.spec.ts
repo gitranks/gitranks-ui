@@ -39,9 +39,7 @@ const {
   ContributeAttemptDcoDocument,
   ContributeAttemptDisclosureDocument,
   ContributeAttemptRepoRulesDocument,
-  ContributeIssuesDocument,
   ContributeIssuesMaskedDocument,
-  ContributeIssuesWithRulesDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeProviderInterestsDocument,
@@ -117,7 +115,6 @@ describe('loadContribute', () => {
       attemptsAtATime: 1,
       openPrsAtATime: 2,
       claimsPerDay: 3,
-      revealsPerDay: 40,
     };
     graphqlDirect.mockImplementation(async (document) => {
       if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
@@ -128,24 +125,6 @@ describe('loadContribute', () => {
 
     answer(async () => ({ contribute: { previewAllowed: true, contributor } }));
     expect((await loadContribute())?.contributor).not.toHaveProperty('limits');
-  });
-
-  it('keeps the limits when the API no longer counts issues shown a day (null), so a closed access still shows', async () => {
-    const contributor = { status: 'ACTIVE', login: 'octocat', autopilot: null };
-    const limits = {
-      level: 'SUSPENDED',
-      reason: 'FAIR_USE',
-      attemptsAtATime: 0,
-      openPrsAtATime: 0,
-      claimsPerDay: 0,
-      revealsPerDay: null,
-    };
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
-      if (document === ContributeLimitsDocument) return { contribute: { contributor: { limits } } };
-      throw new Error('[{"message":"Cannot query field"}]');
-    });
-    expect((await loadContribute())?.contributor?.limits).toEqual(limits);
   });
 });
 
@@ -425,36 +404,14 @@ describe("loadIssues: the repos' rules with the feed", () => {
     expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([ContributeIssuesMaskedDocument]);
   });
 
-  it('reads the feed with the rules from an API without the masked form, and as it was from one without them', async () => {
-    const unknownMasked = new Error('[{"message":"Cannot query field \\"masked\\" on type \\"ContributeIssue\\"."}]');
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === ContributeIssuesMaskedDocument) throw unknownMasked;
-      return { contributeIssues: PAGE };
-    });
-    expect(await loadIssues({})).toEqual(PAGE);
-    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
-      ContributeIssuesMaskedDocument,
-      ContributeIssuesWithRulesDocument,
-    ]);
-
-    graphqlDirect.mockReset();
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === ContributeIssuesMaskedDocument) throw unknownMasked;
-      if (document === ContributeIssuesWithRulesDocument) {
-        throw new Error('[{"message":"Cannot query field \\"repoRules\\" on type \\"ContributeIssue\\"."}]');
-      }
-      return { contributeIssues: PAGE };
-    });
-    expect(await loadIssues({})).toEqual(PAGE);
-    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
-      ContributeIssuesMaskedDocument,
-      ContributeIssuesWithRulesDocument,
-      ContributeIssuesDocument,
-    ]);
-  });
-
-  it('is undefined on an outage, asked once', async () => {
+  it('is undefined on an outage, or an API that does not know a field it asks, asked once', async () => {
     graphqlDirect.mockRejectedValue(new Error('GraphQL error! 502: Bad Gateway'));
+    expect(await loadIssues({})).toBeUndefined();
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    graphqlDirect.mockReset();
+    graphqlDirect.mockRejectedValue(
+      new Error('[{"message":"Cannot query field \\"masked\\" on type \\"ContributeIssue\\"."}]'),
+    );
     expect(await loadIssues({})).toBeUndefined();
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
   });

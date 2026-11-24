@@ -6,9 +6,7 @@ vi.mock('@/auth', () => ({ auth }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
 const { readLearnIssues, readPracticeLessons, readPracticeNext, saveLearnProfile } = await import('./actions');
-const { LearnIssuesDocument, LearnIssuesMaskedDocument, MyLearnAttemptsDocument } = await import(
-  '@/lib/learn/learn.documents'
-);
+const { LearnIssuesMaskedDocument, MyLearnAttemptsDocument } = await import('@/lib/learn/learn.documents');
 const { maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
 const { learnIssues, myLearnAttempts } = await import('@/lib/learn/__fixtures__/home');
 const { SaveLearnProfileDocument } = await import('@/lib/learn/learn.documents');
@@ -90,7 +88,7 @@ describe("The Learn tab's reads from the browser", () => {
     expect(graphqlDirect.mock.calls.map(([, variables]) => variables)).toEqual([{ first: 20 }, { first: 100 }]);
   });
 
-  it('reads the issues with their masked form, and as they were from an API without it', async () => {
+  it('reads the issues with their masked form', async () => {
     const masked = { items: [{ ...learnIssues().items[0], masked: maskedIssue() }], total: 1 };
     graphqlDirect.mockResolvedValue({ learnIssues: masked });
     // A masked row leaves stripped of what names its issue, keyed by its mask id.
@@ -112,24 +110,9 @@ describe("The Learn tab's reads from the browser", () => {
       },
     });
     expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([LearnIssuesMaskedDocument]);
-
-    // Today's answer of an API that does not know the field: the list as it was.
-    graphqlDirect.mockReset();
-    const today = learnIssues();
-    graphqlDirect.mockImplementation(async (document) => {
-      if (document === LearnIssuesMaskedDocument) {
-        throw new Error('[{"message":"Cannot query field \\"masked\\" on type \\"LearnIssue\\"."}]');
-      }
-      return { learnIssues: today };
-    });
-    expect(await readLearnIssues(10)).toEqual({ ok: true, data: today });
-    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
-      LearnIssuesMaskedDocument,
-      LearnIssuesDocument,
-    ]);
   });
 
-  it('answers an outage as a failure, asked once, never as an API without the field', async () => {
+  it('answers an outage as a failure, asked once', async () => {
     graphqlDirect.mockRejectedValue(new Error('GraphQL error! 502: Bad Gateway'));
     expect(await readLearnIssues(10)).toMatchObject({ ok: false, error: 'FAILED' });
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
@@ -145,11 +128,7 @@ describe("The Learn tab's reads from the browser", () => {
       ok: true,
       data: { current: myLearnAttempts.working.current, issues: null },
     });
-    expect(
-      graphqlDirect.mock.calls.some(([document]) =>
-        [LearnIssuesDocument, LearnIssuesMaskedDocument].includes(document),
-      ),
-    ).toBe(false);
+    expect(graphqlDirect.mock.calls.some(([document]) => document === LearnIssuesMaskedDocument)).toBe(false);
 
     graphqlDirect.mockReset();
     answer(myLearnAttempts.prOpen);

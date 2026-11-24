@@ -6,7 +6,7 @@ import { Pill } from '@/components/pill/pill';
 import { buttonVariants } from '@/components/ui/button';
 import { HEADING } from '@/components/workspace/primitives';
 import { cn } from '@/lib/utils';
-import { GETTING_IN_PATHS, MCP_DOCS_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { GETTING_IN_PATHS, MCP_DOCS_PATH, PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 const link = 'font-semibold text-link hover:underline';
 
@@ -119,7 +119,7 @@ export function AgentFirst({ entered }: { entered: boolean }) {
               Contribute
             </Link>{' '}
             or{' '}
-            <Link href={WORKSPACE_PATHS.learn} prefetch={false} className={link}>
+            <Link href={PICK_ISSUE_PATHS.learn} prefetch={false} className={link}>
               Learn
             </Link>{' '}
             and press Start. You can set up the other way later.

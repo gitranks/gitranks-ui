@@ -40,6 +40,7 @@ import { personalTokensOf } from '@/lib/workspace/oauth-consent';
 import {
   GETTING_IN_PATHS,
   MCP_DOCS_PATH,
+  PICK_ISSUE_PATHS,
   pullRequestByAttemptPath,
   settingsPathOf,
   WORKSPACE_PATHS,
@@ -450,7 +451,7 @@ export function AgentConnectView({
             Contribute
           </Link>{' '}
           or{' '}
-          <Link href={WORKSPACE_PATHS.learn} prefetch={false} className="font-semibold text-link hover:underline">
+          <Link href={PICK_ISSUE_PATHS.learn} prefetch={false} className="font-semibold text-link hover:underline">
             Learn
           </Link>{' '}
           and press Start.

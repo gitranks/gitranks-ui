@@ -140,7 +140,7 @@ export function MaintainersScreen({
             title="The person"
             items={[
               'Reviews and submits every PR by default',
-              'Daily caps from their tier and merged PRs',
+              'Daily issue cap: GitRanks tier, plus PRs merged with us',
               'Issues taken and left unfinished slow them down',
               'We review abuse flags every day and suspend',
             ]}

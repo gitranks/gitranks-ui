@@ -1295,36 +1295,8 @@ export type ContributeNeedsYouCount = { count: number; complete: boolean };
 /** Which sides the user uses; neither: connected and nothing else yet (both are assumed then). */
 export type ContributeSides = { contribute: boolean; learn: boolean };
 
-/** A Learn pull request's lesson: the steps of the version it is bound to, and how many the user passed. */
-export type ContributeContributionLesson = {
-  slug: string | null;
-  steps: number;
-  stepsPassed: number;
-  visibility: string;
-};
-
 /** One side's pull requests by state. */
 export type ContributeSideTotals = { open: number; merged: number; closed: number; reposHelped: number };
-
-/** A page of the Pull requests tab's table: its rows, the totals of all, and the rows the filter matches. */
-export type ContributePullRequestsPage = {
-  items: (Pick<
-    ContributeContribution,
-    'attemptId' | 'nameWithOwner' | 'issueNumber' | 'title' | 'pullRequest' | 'costUsd' | 'agent' | 'openedBy'
-  > & {
-    runner: ContributeAttemptRunner;
-    mode: ContributeAttemptMode | null;
-    lesson: ContributeContributionLesson | null;
-  })[];
-  totals: {
-    open: number;
-    merged: number;
-    closed: number;
-    byMode: { fix: ContributeSideTotals; learn: ContributeSideTotals } | null;
-  };
-  /** The rows the filter matches, every page of them; null from an older API. */
-  total: number | null;
-};
 
 /**
  * A poll's answer: what moved, the work in progress when it was read too, and the count of what needs the user when it

@@ -39,8 +39,7 @@ describe('the workspace import rule', () => {
     expect(zoneOf('app/(player)/my/pull-requests/[owner]/[repo]/[issue]/approve/page.tsx')).toBe('app/shared');
     expect(zoneOf('app/(player)/my/pull-requests/[owner]/[repo]/[issue]/walkthrough/page.tsx')).toBe('app/learn');
     expect(zoneOf('app/(player)/my/walkthrough/parts/answer.tsx')).toBe('app/learn');
-    // My progress and a pull request's lesson are Learn's own pages under /my.
-    expect(zoneOf('app/(workspace)/my/progress/page.tsx')).toBe('app/learn');
+    // A pull request's lesson is Learn's own page under /my.
     expect(zoneOf('app/(workspace)/my/pull-requests/[owner]/[repo]/[issue]/(latest)/lesson/page.tsx')).toBe(
       'app/learn',
     );
@@ -48,9 +47,10 @@ describe('the workspace import rule', () => {
       'app/learn',
     );
     expect(zoneOf('app/(workspace)/my/lessons/page.tsx')).toBe('app/shared');
-    expect(zoneOf('app/(workspace)/my/progress-old/page.tsx')).toBe('app/shared');
-    expect(crosses('app/(workspace)/my/progress/page.tsx', 'components/learn/progress/progress-view')).toBe(false);
-    expect(crosses('app/(workspace)/my/progress/page.tsx', 'components/contribute/mode-switch')).toBe(true);
+    expect(zoneOf('app/(workspace)/my/progress/page.tsx')).toBe('app/shared');
+    const lesson = 'app/(workspace)/my/pull-requests/[owner]/[repo]/[issue]/(latest)/lesson/page.tsx';
+    expect(crosses(lesson, 'components/learn/walkthrough/answer')).toBe(false);
+    expect(crosses(lesson, 'components/contribute/mode-switch')).toBe(true);
     // A segment that only starts with the word is not the walkthrough.
     expect(zoneOf('app/(player)/my/walkthroughs/page.tsx')).toBe('app/shared');
     expect(zoneOf('app/(player)/learn/layout.tsx')).toBe('app/learn');

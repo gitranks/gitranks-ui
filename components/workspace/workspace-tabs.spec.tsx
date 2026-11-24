@@ -157,9 +157,7 @@ describe('the tab bar', () => {
     ['/learn/start/acme/widgets/42', '', null],
     // Learn home has Learn's own bar: no workspace tab is marked there.
     ['/learn', '', null],
-    ['/my/progress/', '', 'learn'],
     ['/my/settings/pull-requests', '', 'settings'],
-    ['/my/progress', '', 'learn'],
     ['/my/pull-requests', '', 'pull-requests'],
     ['/my/pull-requests/by-attempt/A_1', '', 'pull-requests'],
     ['/my/pull-requests/acme/widgets/42/runs/R_1', '', 'pull-requests'],

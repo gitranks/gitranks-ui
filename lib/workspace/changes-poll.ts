@@ -225,7 +225,6 @@ const REFRESHED_BY: [test: (path: string) => boolean, areas: ContributeChangeAre
   [(path) => path === '/contribute', ['ATTEMPTS', 'FEED', 'SET', 'SETTINGS', 'FAIR_USE']],
   [(path) => under(path, '/my/pull-requests'), ['ATTEMPTS']],
   // Not the Start page: it asks about its issue itself, on `ATTEMPTS` (a page read would read GitHub again).
-  [(path) => path === '/my/progress', ['ATTEMPTS']],
   [(path) => under(path, '/my/agent'), ['ATTEMPTS', 'SETTINGS']],
   [(path) => under(path, '/my/settings'), ['SET', 'SETTINGS']],
 ];

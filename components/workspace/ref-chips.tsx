@@ -28,11 +28,11 @@ function Chip({ href, icon, children }: { href: string | null; icon: ReactNode; 
 }
 
 /** GitHub's page of `repo`; null for anything not of GitHub's `owner/name` shape, which stays text. */
-export const repoUrlOf = (repo: string | null) =>
+const repoUrlOf = (repo: string | null) =>
   repo && /^[\w.-]+\/[\w.-]+$/.test(repo) ? `https://github.com/${repo}` : null;
 
 /** `PR #N ↗` alone, to GitHub: the pull request's own address, else the repo's pull request by its number. */
-export function PullRequestChip({ repo, pr }: { repo: string | null; pr: { number: number; url?: string | null } }) {
+function PullRequestChip({ repo, pr }: { repo: string | null; pr: { number: number; url?: string | null } }) {
   return (
     <Chip
       href={githubUrlOf(pr.url ?? '') ?? (repoUrlOf(repo) ? `${repoUrlOf(repo)}/pull/${pr.number}` : null)}

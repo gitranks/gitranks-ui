@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { CAUSE_QUESTION, FIX_QUESTION, STEPS, WARMUP } from './__fixtures__/lesson';
-import { DONT_KNOW, optionsOf, partsLabelOf, pickOf } from './question';
+import { CAUSE_QUESTION, FIX_QUESTION, WARMUP } from './__fixtures__/lesson';
+import { DONT_KNOW, optionsOf, pickOf } from './question';
 
 describe("a lesson's question", () => {
   it('takes one pick for a single-answer question, any for a multi-answer one', () => {
@@ -18,10 +18,5 @@ describe("a lesson's question", () => {
     const multi = { ...WARMUP[0], type: 'MULTI' as const };
     expect(pickOf(multi, ['w1a', 'w1b'], DONT_KNOW, true)).toEqual([DONT_KNOW]);
     expect(pickOf(multi, [DONT_KNOW], 'w1a', true)).toEqual(['w1a']);
-  });
-
-  it('names what a step covers', () => {
-    expect(STEPS.map(partsLabelOf)).toEqual(['Before', 'Cause', 'The fix', 'How it connects', 'Deep dive']);
-    expect(partsLabelOf({ parts: ['before', 'cause'] })).toBe('Before and cause');
   });
 });

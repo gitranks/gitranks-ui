@@ -50,7 +50,6 @@ import {
   ContributePrNotesDocument,
   ContributeProfileLanguagesDocument,
   ContributeProviderInterestsDocument,
-  ContributePullRequestsDocument,
   ContributeRepliesWaitingDocument,
   ContributeRepliesWaitingPlanDocument,
   ContributeScheduleCountsDocument,
@@ -64,7 +63,6 @@ import type {
   ContributeActivity,
   ContributeAttempt,
   ContributeAttemptDetail,
-  ContributeAttemptMode,
   ContributeAttemptState,
   ContributeAutopilot,
   ContributeComingSoonProvider,
@@ -79,7 +77,6 @@ import type {
   ContributeOwnAgent,
   ContributePaths,
   ContributePrNotes,
-  ContributePullRequestsPage,
   ContributeReplyWaiting,
   ContributeScheduleCounts,
   ContributeSet,
@@ -92,7 +89,6 @@ import { ContributeFairUseNoticeDocument, ContributeFairUseNoticesDocument } fro
 import { isGrantAvailable } from './grant-availability';
 import { contributeMcpSignIn } from './mcp-sign-in';
 import { withRepliesPlanOf, withReplyPlansOf } from './one-comment';
-import { PULL_REQUESTS_PAGE_SIZE } from './paths';
 import { auth } from '@/auth';
 import { accountEmailOf } from '@/lib/account-email';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -475,33 +471,6 @@ export const loadIssueAttempt = cache(
     }
   },
 );
-
-/**
- * One page of the user's pull requests, newest first, under a state chip and a side ("Made with"); `undefined` when
- * the API does not answer.
- */
-export async function loadPullRequestsPage({
-  page,
-  state,
-  mode,
-}: {
-  page: number;
-  state: 'OPEN' | 'MERGED' | 'CLOSED' | null;
-  mode: ContributeAttemptMode | null;
-}): Promise<ContributePullRequestsPage | undefined> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-  try {
-    const { contributeContributions } = await graphqlDirect(
-      ContributePullRequestsDocument,
-      { first: PULL_REQUESTS_PAGE_SIZE, offset: (Math.max(1, page) - 1) * PULL_REQUESTS_PAGE_SIZE, state, mode },
-      { source: 'ssr', githubLogin },
-    );
-    return contributeContributions ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 /** The scheduler's counts: the pull requests open or on their way (`prBound`); `undefined` when not answered. */
 export const loadScheduleCounts = cache(async (): Promise<ContributeScheduleCounts | undefined> => {

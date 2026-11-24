@@ -264,8 +264,6 @@ describe('what a read does', () => {
     // The Start page asks about its issue itself (`useChanges`): a page read would read GitHub again.
     ['/my/start/acme/widgets/42', ['ATTEMPTS'], false],
     ['/learn/start/acme/widgets/42', ['ATTEMPTS'], false],
-    ['/my/progress', ['ATTEMPTS'], true],
-    ['/my/progress', ['SETTINGS'], false],
     ['/my/agent', ['ATTEMPTS'], true],
     ['/my/agent', ['SETTINGS'], true],
     ['/my/agent/runs', ['ATTEMPTS'], true],
@@ -282,7 +280,7 @@ describe('what a read does', () => {
   });
 
   it('never reads a page again for an issue’s availability or the work alone: those parts ask themselves', () => {
-    for (const path of ['/contribute', '/my/progress', '/my/pull-requests', '/my/agent', '/my/settings']) {
+    for (const path of ['/contribute', '/my/pull-requests', '/my/agent', '/my/settings']) {
       expect(refreshesFor(path, ['ISSUES', 'ACTIVITY'])).toBe(false);
     }
   });

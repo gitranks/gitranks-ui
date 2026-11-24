@@ -56,7 +56,6 @@ import type {
   ContributeProofSession,
   ContributePrSignalKind,
   ContributePrUndoResult,
-  ContributePullRequestsPage,
   ContributeRepliesOneComment,
   ContributeRepliesPlanFields,
   ContributeReplyDraft,
@@ -1044,22 +1043,6 @@ export const ContributeAttemptByIssueDocument = doc<
 export const ContributeSidesDocument = doc<{ contribute: { sides: ContributeSides | null } | null }>(
   'query ContributeSides { contribute { sides { contribute learn } } }',
 );
-
-/** A page of the Pull requests tab's table, under a state chip and a side, newest first. */
-export const ContributePullRequestsDocument = doc<
-  { contributeContributions: ContributePullRequestsPage | null },
-  { first: number; offset: number; state: 'OPEN' | 'MERGED' | 'CLOSED' | null; mode: ContributeAttemptMode | null }
->(`query ContributePullRequests($first: Int, $offset: Int, $state: ContributeContributionState, $mode: ContributeAttemptMode) {
-  contributeContributions(first: $first, offset: $offset, state: $state, mode: $mode) {
-    items {
-      attemptId nameWithOwner issueNumber title costUsd runner agent { name model } openedBy mode
-      lesson { slug steps stepsPassed visibility }
-      pullRequest { ${PULL_REQUEST} }
-    }
-    totals { open merged closed byMode { fix { open merged closed reposHelped } learn { open merged closed reposHelped } } }
-    total
-  }
-}`);
 
 export const SetContributeModeDocument = doc<{ setContributeMode: ContributeSet }, { mode: ContributeSetMode }>(
   `mutation SetContributeMode($mode: ContributeSetMode!) { setContributeMode(mode: $mode) { ${SET} } }`,

@@ -78,8 +78,8 @@ describe('the old workspace addresses', () => {
     ['/contribute/attempts/A_1/runs/A_F1?move=reply-failed', '/my/pull-requests/by-attempt/A_F1?move=reply-failed'],
     ['/learn/attempts/A_1', '/my/pull-requests/by-attempt/A_1'],
     ['/learn/attempts/A_1?resume=n0nce', '/my/pull-requests/by-attempt/A_1?resume=n0nce'],
-    ['/learn/lessons', '/my/progress'],
-    ['/learn/lessons/', '/my/progress'],
+    ['/learn/lessons', '/learn/progress'],
+    ['/learn/lessons/', '/learn/progress'],
     ['/contribute?start=key', '/contribute/start/agent/key?start=key'],
     ['/contribute?about=1', '/contribute/about?about=1'],
     ['/contribute/?about=1', '/contribute/about?about=1'],
@@ -104,7 +104,7 @@ describe('the old workspace addresses', () => {
       '/learn/lessons/a-lesson-1x/passes/octocat',
       '/learn/start/acme/widgets/42',
       '/learn/start/issues/more',
-      '/my/progress',
+      '/learn/progress',
       '/my/pull-requests',
     ]) {
       expect(redirectOf(address), address).toBeNull();
@@ -178,6 +178,9 @@ describe('Learn’s pages that went away', () => {
     ['/learn/maintainers', '/contribute/maintainers#learn'],
     ['/learn/maintainers/', '/contribute/maintainers#learn'],
     ['/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0', '/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0#learn'],
+    ['/my/progress', '/learn/progress'],
+    ['/my/progress/', '/learn/progress'],
+    ['/my/progress?view=merged', '/learn/progress?view=merged'],
   ])('%s goes on to %s, for good (308)', (from, to) => {
     expect(redirectOf(from)).toEqual({ location: to, status: 308 });
   });

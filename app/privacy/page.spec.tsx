@@ -8,6 +8,7 @@ const { contributeShown, graphqlDirect } = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/workspace/preview-gate', () => ({ contributeShown }));
 vi.mock('server-only', () => ({}));
+vi.mock('next/cache', () => ({ cacheLife: () => {} }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('next/server', async (original) => ({ ...(await original<object>()), connection: async () => undefined }));
 

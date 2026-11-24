@@ -5,6 +5,8 @@ import { formatPackageDate, PACKAGE_RANKINGS, packageRankingOrdersOf } from '@/a
 import { fetchInsightsServer } from '@/graphql/helpers/fetch-insights-server';
 import { fetchPackageRankingFacts, fetchPackageRankings } from '@/graphql/helpers/fetch-package-rankings';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { loadLearnCourses } from '@/lib/learn/course.data';
+import type { CourseInLine } from '@/lib/learn/courses-line';
 import { apiRegistryOf, DEFAULT_REGISTRY } from '@/lib/packages/registries';
 import { ContributeOpenDocument } from '@/lib/workspace/contribute.documents';
 import {
@@ -39,6 +41,24 @@ export const fetchLandingInsights = async () => {
     return insights ?? [];
   } catch {
     // An optional block: a failed read hides it for a few minutes instead of failing the page.
+    cacheLife('minutes');
+    return [];
+  }
+};
+
+/**
+ * Learn's live courses for the home page's Learn card, from Learn's own cached list: the slug and name only, in the
+ * list's order. A failed read is none for a few minutes (the card keeps its plain line), never a failed page.
+ */
+export const fetchHomeLearnCourses = async (): Promise<CourseInLine[]> => {
+  'use cache';
+  cacheLife(HOURLY);
+
+  try {
+    const courses = await loadLearnCourses();
+    if (!courses.length) cacheLife('minutes');
+    return courses.map(({ slug, name }) => ({ slug, name }));
+  } catch {
     cacheLife('minutes');
     return [];
   }

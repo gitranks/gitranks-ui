@@ -10,13 +10,12 @@ import { tryLessons } from './__fixtures__/learn-home-page';
 import { outputLesson, setExampleCodes, setLesson } from './__fixtures__/lesson-page';
 import type { LearnCourseCard } from './course';
 import { landingMarkdownResponse } from './course-markdown-response';
+import { LANDING_COURSES_LINE_EMPTY, landingCoursesLineOf } from './courses-line';
 import {
-  LANDING_COURSES_LINE_EMPTY,
   LANDING_COURSES_PER_KIND,
   LANDING_QUESTIONS,
   LANDING_SEARCH_TITLE,
   LANDING_STEPS,
-  landingCoursesLineOf,
   landingSectionsOf,
   landingTextOf,
   learnLandingMarkdownOf,

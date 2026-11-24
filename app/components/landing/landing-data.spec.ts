@@ -2,19 +2,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PackageRankingType, PackageRegistry, RepoRankingsDocument } from '@/types/generated/graphql';
 
-const { graphqlDirect, cacheLife, fetchPackageRankings, fetchPackageRankingFacts } = vi.hoisted(() => ({
-  graphqlDirect: vi.fn(),
-  cacheLife: vi.fn(),
-  fetchPackageRankings: vi.fn(),
-  fetchPackageRankingFacts: vi.fn(),
-}));
+const { graphqlDirect, cacheLife, fetchPackageRankings, fetchPackageRankingFacts, loadLearnCourses } = vi.hoisted(
+  () => ({
+    graphqlDirect: vi.fn(),
+    loadLearnCourses: vi.fn(),
+    cacheLife: vi.fn(),
+    fetchPackageRankings: vi.fn(),
+    fetchPackageRankingFacts: vi.fn(),
+  }),
+);
 
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('next/cache', () => ({ cacheLife }));
 vi.mock('@/graphql/helpers/fetch-insights-server', () => ({ fetchInsightsServer: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-package-rankings', () => ({ fetchPackageRankings, fetchPackageRankingFacts }));
+vi.mock('@/lib/learn/course.data', () => ({ loadLearnCourses }));
 
-const { fetchContributeForVisitors, fetchLandingPackages, fetchTopRepos } = await import('./landing-data');
+const { fetchContributeForVisitors, fetchHomeLearnCourses, fetchLandingPackages, fetchTopRepos } = await import(
+  './landing-data'
+);
 const { ContributeOpenDocument } = await import('@/lib/workspace/contribute.documents');
 
 describe('fetchTopRepos', () => {
@@ -112,5 +118,35 @@ describe('fetchLandingPackages', () => {
     fetchPackageRankingFacts.mockResolvedValue(null);
 
     await expect(fetchLandingPackages()).resolves.toBeNull();
+  });
+});
+
+describe('fetchHomeLearnCourses', () => {
+  beforeEach(() => {
+    loadLearnCourses.mockReset();
+    cacheLife.mockReset();
+  });
+
+  it("gives Learn's live courses from its cached list, the slug and name only, in the list's order, for an hour", async () => {
+    loadLearnCourses.mockResolvedValueOnce([
+      { slug: 'algorithms', name: 'Algorithms and data structures', kind: 'TOPIC', lessons: 99 },
+      { slug: 'python', name: 'Python', kind: 'LANGUAGE', lessons: 89 },
+    ]);
+    await expect(fetchHomeLearnCourses()).resolves.toEqual([
+      { slug: 'algorithms', name: 'Algorithms and data structures' },
+      { slug: 'python', name: 'Python' },
+    ]);
+    expect(cacheLife).toHaveBeenCalledTimes(1);
+    expect(cacheLife).toHaveBeenCalledWith(expect.objectContaining({ revalidate: 3_600 }));
+  });
+
+  it('gives none, kept for minutes, when there are none or the read fails, never failing the page', async () => {
+    loadLearnCourses.mockResolvedValueOnce([]);
+    await expect(fetchHomeLearnCourses()).resolves.toEqual([]);
+    expect(cacheLife).toHaveBeenLastCalledWith('minutes');
+    cacheLife.mockReset();
+    loadLearnCourses.mockRejectedValueOnce(new Error('GraphQL error! 502: Bad Gateway'));
+    await expect(fetchHomeLearnCourses()).resolves.toEqual([]);
+    expect(cacheLife).toHaveBeenLastCalledWith('minutes');
   });
 });

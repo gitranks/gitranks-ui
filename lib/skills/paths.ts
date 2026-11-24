@@ -45,5 +45,9 @@ export const SKILLS_MINE_PATH = '/api/me/skills';
 /** What the owner's tab needs: its "New" mark. */
 export const SKILLS_TAB_MINE_PATH = `${SKILLS_MINE_PATH}/tab`;
 
+/** What the owner's own profile overview shows them of Skills: their box's case, their block, their Learn list's top. */
+export const skillsProfileMinePath = (login: string) =>
+  `${SKILLS_MINE_PATH}/profile?login=${encodeURIComponent(login.trim())}`;
+
 /** The owner opened their tab: its "New" mark goes. */
 export const SKILLS_SEEN_MINE_PATH = `${SKILLS_MINE_PATH}/seen`;

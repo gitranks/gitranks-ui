@@ -30,6 +30,7 @@ import {
   DiscardContributeProofDocument,
   DismissReplyDocument,
   FixContributePullRequestDocument,
+  HideContributePrNoteDocument,
   IgnoreReviewThreadsDocument,
   MarkNeedsYouHandledDocument,
   MarkNeedsYouHandledKindsDocument,
@@ -65,6 +66,7 @@ import type {
   ContributeEmailSettings,
   ContributeEmailSettingsInput,
   ContributeMcpTokenCreated,
+  ContributePrNote,
   ContributeProofSession,
   ContributePrSignalKind,
   ContributeRepliesOneComment,
@@ -85,7 +87,7 @@ import {
   type ContributePrFixKind,
   PR_FIX_KINDS,
 } from '@/lib/workspace/pr-conventions';
-import { parsePrLink } from '@/lib/workspace/pr-feedback';
+import { objectIdOf, parsePrLink } from '@/lib/workspace/pr-feedback';
 import { prTimelineAttemptTagOf, prTimelineTagOf } from '@/lib/workspace/pr-timeline-path';
 import { PROOF_NOTE_MAX, PROOF_REPLY_MAX } from '@/lib/workspace/proof';
 
@@ -734,4 +736,18 @@ export async function readNeedsYouCount(): Promise<ContributeActionResult<number
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   const count = await countOf(githubLogin);
   return count === undefined ? { ok: false, error: 'FAILED' } : { ok: true, data: count };
+}
+
+/** Hides a "this PR helped" note from the user's pull request page, or shows it again. */
+export async function hidePrNote(
+  feedbackId: string,
+  hidden: boolean,
+): Promise<ContributeActionResult<ContributePrNote>> {
+  const id = objectIdOf(feedbackId);
+  if (!id) return { ok: false, error: 'INVALID' };
+  return run(
+    HideContributePrNoteDocument,
+    { feedbackId: id, hidden: hidden === true },
+    (data) => data.hideContributePrNote,
+  );
 }

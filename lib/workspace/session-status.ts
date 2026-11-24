@@ -388,7 +388,6 @@ export function firstStatusOf(
           title: 'Merged',
           fact: `Your code is in ${first.nameWithOwner ?? 'the repo'}. It counts toward your contribution stars. Your lesson stays public, so others can keep learning from this fix.`,
           link: { href: WORKSPACE_PATHS.learnHome, label: 'Start the next lesson →', external: false },
-          more: base ? { href: `${base}/lesson`, label: 'See the lesson →', external: false } : null,
         });
       }
       return line({
@@ -403,7 +402,7 @@ export function firstStatusOf(
       return line({
         name: 'CLOSED',
         title: 'Closed without merging',
-        fact: learn ? 'Your lesson stays public. You can take it down on the Lesson view.' : null,
+        fact: null,
         link: url ? { href: url, label: 'See why on GitHub ↗', external: true } : null,
         more: learn ? { href: PICK_ISSUE_PATHS.learn, label: 'Pick another issue →', external: false } : null,
       });

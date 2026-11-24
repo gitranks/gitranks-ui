@@ -83,7 +83,7 @@ export function needsYouRowWordsOf(
   switch (row.box) {
     case 'WALKTHROUGH':
       return row.walkthroughBlocked
-        ? { line: BLOCKED_WALKTHROUGH_WORDS.line, button: BLOCKED_WALKTHROUGH_WORDS.button }
+        ? { line: BLOCKED_WALKTHROUGH_WORDS.line, button: BLOCKED_WALKTHROUGH_WORDS.rowButton }
         : { line: 'The fix walkthrough is ready', button: 'Start the walkthrough' };
     case 'APPROVE':
       return { line: 'Ready to open the pull request', button: 'Read and approve' };

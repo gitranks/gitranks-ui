@@ -114,10 +114,11 @@ function GitHubLink({ url, what }: { url: string; what: string }) {
 }
 
 /** A person's words: who, where, three lines at most, and a link to GitHub. A review that asks for changes is marked. */
-function AskFigure({ ask, after }: { ask: PullRequestRoundAsk; after?: ReactNode }) {
+function AskFigure({ ask, after, id }: { ask: PullRequestRoundAsk; after?: ReactNode; id?: string }) {
   const review = ask.kind === 'changes_requested';
   return (
     <figure
+      id={id}
       className={cn(
         'm-0 flex flex-col gap-1 rounded-lg border-l-[3px] bg-muted/40 px-3.5 py-2.5',
         review ? 'border-l-warning' : 'border-l-border',
@@ -142,9 +143,16 @@ function AskFigure({ ask, after }: { ask: PullRequestRoundAsk; after?: ReactNode
 
 /** Words that ask for nothing, each marked so, with "It does need an answer" when the page gives the press. */
 function AsksNothing({ asks, onAsks }: { asks: readonly PullRequestRoundAsk[]; onAsks?: (comment: string) => void }) {
-  return asks.map((ask, index) => (
-    <div key={`${ask.id ?? ask.author}-${index}`} className="flex flex-col gap-1.5">
+  return asks.map((ask, index) => <AskNothing key={`${ask.id ?? ask.author}-${index}`} ask={ask} onAsks={onAsks} />);
+}
+
+/** One of them: its button names the words it is about (who, where, what), as several sit one under the other. */
+function AskNothing({ ask, onAsks }: { ask: PullRequestRoundAsk; onAsks?: (comment: string) => void }) {
+  const id = useId();
+  return (
+    <div className="flex flex-col gap-1.5">
       <AskFigure
+        id={id}
         ask={ask}
         after={<span className={cn(PILL, 'bg-muted text-muted-foreground')}>No answer needed</span>}
       />
@@ -152,13 +160,14 @@ function AsksNothing({ asks, onAsks }: { asks: readonly PullRequestRoundAsk[]; o
         <button
           type="button"
           className="self-start text-sm font-semibold text-link hover:underline max-sm:min-h-11"
+          aria-describedby={id}
           onClick={() => ask.id && onAsks(ask.id)}
         >
           It does need an answer
         </button>
       ) : null}
     </div>
-  ));
+  );
 }
 
 /**

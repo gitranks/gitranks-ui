@@ -300,8 +300,10 @@ export function fixBoxWordsOf(row: PullRequestListRow, state: HomeFixState): Fix
     return {
       eyebrow: 'Your fix needs you',
       title: BLOCKED_WALKTHROUGH_WORDS.line,
-      text: blocked.reason ? `${blocked.reason} ${BLOCKED_WALKTHROUGH_WORDS.text}` : BLOCKED_WALKTHROUGH_WORDS.text,
-      button: { label: BLOCKED_WALKTHROUGH_WORDS.button, to: 'fix' },
+      text: blocked.reason
+        ? `${blocked.reason} ${BLOCKED_WALKTHROUGH_WORDS.homeText}`
+        : BLOCKED_WALKTHROUGH_WORDS.homeText,
+      button: { label: BLOCKED_WALKTHROUGH_WORDS.rowButton, to: 'fix' },
     };
   }
   switch (state) {

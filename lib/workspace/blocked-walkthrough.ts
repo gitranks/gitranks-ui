@@ -10,9 +10,21 @@ export type BlockedWalkthroughs = ReadonlyMap<string, { reason: string | null }>
 
 export const BLOCKED_WALKTHROUGH_WORDS = {
   line: 'The fix walkthrough needs another pass',
+  /** The pull request's page, when the fix can go back to the person's agent. */
   text: 'Send it back to your agent, and it writes the questions again.',
   button: 'Send it back to your agent',
+  /** The pull request's page, when no send-back is left. */
+  noneLeftText:
+    'No send-backs are left for this fix, so its questions can’t be written again. You can discard it below.',
+  /** The pull request's page, when the fix can't go back to the person's own agent. */
+  noSendBackText: 'It can’t go back to your agent from here. You can discard it below.',
+  /** A row, and Learn home's box: they can't tell whether a send-back is left, so the fix's page says. */
+  rowButton: 'See what to do',
+  homeText: 'Open your fix to see what you can do.',
 } as const;
+
+/** Whether a stopped walkthrough can go back to the person's agent: yes, no send-back left, or not from here. */
+export type WalkthroughSendBack = 'yes' | 'none-left' | 'no';
 
 /** What the person reported, in one line; null for a reason this page does not know. */
 const REASON_LINES: Record<string, string> = {

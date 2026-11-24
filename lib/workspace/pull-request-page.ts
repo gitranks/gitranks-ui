@@ -1,7 +1,7 @@
 import type { Route } from 'next';
 
 import { githubUrlOf } from './attempt-format';
-import { BLOCKED_WALKTHROUGH_WORDS } from './blocked-walkthrough';
+import { BLOCKED_WALKTHROUGH_WORDS, type WalkthroughSendBack } from './blocked-walkthrough';
 import type {
   PullRequestBox,
   PullRequestCheckClass,
@@ -476,7 +476,7 @@ export function boxOf(
     agent?: string | null;
     now: Date;
     stoppedAtLimit?: boolean;
-    walkthroughBlocked?: { reason: string | null } | null;
+    walkthroughBlocked?: { reason: string | null; sendBack?: WalkthroughSendBack } | null;
   },
 ): BoxWords {
   const who = agentOf(page, agent);
@@ -513,13 +513,19 @@ export function boxOf(
       };
     case 'WALKTHROUGH': {
       if (walkthroughBlocked) {
+        // Only what is true: the send-back when one is left, else why not.
+        const sendBack = walkthroughBlocked.sendBack ?? 'yes';
+        const what =
+          sendBack === 'yes'
+            ? BLOCKED_WALKTHROUGH_WORDS.text
+            : sendBack === 'none-left'
+              ? BLOCKED_WALKTHROUGH_WORDS.noneLeftText
+              : BLOCKED_WALKTHROUGH_WORDS.noSendBackText;
         return {
           ...base,
           title: BLOCKED_WALKTHROUGH_WORDS.line,
-          text: walkthroughBlocked.reason
-            ? `${walkthroughBlocked.reason} ${BLOCKED_WALKTHROUGH_WORDS.text}`
-            : BLOCKED_WALKTHROUGH_WORDS.text,
-          actions: [{ id: 'sendBack', label: BLOCKED_WALKTHROUGH_WORDS.button }],
+          text: walkthroughBlocked.reason ? `${walkthroughBlocked.reason} ${what}` : what,
+          actions: sendBack === 'yes' ? [{ id: 'sendBack', label: BLOCKED_WALKTHROUGH_WORDS.button }] : [],
         };
       }
       const questions = card?.questions ? count(card.questions, 'question') : 'the questions';

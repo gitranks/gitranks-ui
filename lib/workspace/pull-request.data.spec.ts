@@ -25,7 +25,7 @@ describe("the pull request's reads", () => {
   it('asks as the session user; null when the fix is not theirs, nothing read when the API fails', async () => {
     graphqlDirect.mockResolvedValueOnce({ pullRequestPage: null });
     await expect(data.loadPullRequestPage(REF)).resolves.toBeNull();
-    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr', githubLogin: 'octocat' });
+    expect(graphqlDirect.mock.calls[0][2]).toMatchObject({ source: 'ssr', githubLogin: 'octocat' });
     graphqlDirect.mockRejectedValueOnce(unknownField());
     await expect(data.loadPullRequestPage(REF)).resolves.toBeUndefined();
     graphqlDirect.mockResolvedValueOnce({ pullRequestApproval: null });
@@ -36,17 +36,32 @@ describe("the pull request's reads", () => {
     await expect(data.loadPullRequestPage(REF)).resolves.toBeUndefined();
   });
 
-  it('offers to hide the public page only when its approval carried the choice and the page is shown', async () => {
-    graphqlDirect.mockResolvedValueOnce({
-      contributeAttempt: { timeline: { eligible: true, shown: true, hideable: true } },
-    });
-    await expect(data.loadTimelineHideable('A_1')).resolves.toBe(true);
-    graphqlDirect.mockResolvedValueOnce({
-      contributeAttempt: { timeline: { eligible: true, shown: true, hideable: false } },
-    });
-    await expect(data.loadTimelineHideable('A_1')).resolves.toBe(false);
+  it('gives each read a time limit, so a slow answer never holds the page', async () => {
+    graphqlDirect.mockResolvedValue({});
+    await data.loadPullRequestPage(REF);
+    await data.loadPullRequestApproval(REF);
+    await data.loadPullRequestList();
+    await data.loadTimelineSwitch('A_1');
+    expect(graphqlDirect).toHaveBeenCalledTimes(4);
+    for (const [, , options] of graphqlDirect.mock.calls) expect(options.signal).toBeInstanceOf(AbortSignal);
+    // Past the limit the read is aborted: the page says it did not load.
+    graphqlDirect.mockRejectedValueOnce(new DOMException('The operation timed out.', 'TimeoutError'));
+    await expect(data.loadPullRequestPage(REF)).resolves.toBeUndefined();
+  });
+
+  it('offers to hide or show the public page only when its approval carried the choice', async () => {
+    const answer = (timeline: unknown) => graphqlDirect.mockResolvedValueOnce({ contributeAttempt: { timeline } });
+    answer({ eligible: true, shown: true, hideable: true });
+    await expect(data.loadTimelineSwitch('A_1')).resolves.toEqual({ shown: true });
+    // Hidden by the person: shown again from the same line.
+    answer({ eligible: true, shown: false, hideable: true });
+    await expect(data.loadTimelineSwitch('A_1')).resolves.toEqual({ shown: false });
+    answer({ eligible: true, shown: true, hideable: false });
+    await expect(data.loadTimelineSwitch('A_1')).resolves.toBeNull();
+    answer({ eligible: false, shown: null, hideable: true });
+    await expect(data.loadTimelineSwitch('A_1')).resolves.toBeNull();
     graphqlDirect.mockRejectedValueOnce(unknownField());
-    await expect(data.loadTimelineHideable('A_1')).resolves.toBe(false);
+    await expect(data.loadTimelineSwitch('A_1')).resolves.toBeNull();
   });
 });
 
@@ -54,13 +69,9 @@ describe('the walkthroughs that wait for another pass', () => {
   const answerBy = (byDocument: Map<unknown, () => Promise<unknown>>) =>
     graphqlDirect.mockImplementation((document: unknown) => (byDocument.get(document) ?? (() => Promise.reject()))());
 
-  it('reads the kinds and the reasons in two operations of their own, each with a time limit', async () => {
+  it('reads them with their reasons in one operation of its own, with a time limit', async () => {
     answerBy(
       new Map<unknown, () => Promise<unknown>>([
-        [
-          documents.NeedsYouKindsDocument,
-          async () => ({ contributeNeedsYou: { items: [{ kind: 'LESSON_BLOCKED', attemptId: 'A_1' }] } }),
-        ],
         [
           documents.BlockedWalkthroughReasonsDocument,
           async () => ({
@@ -73,7 +84,9 @@ describe('the walkthroughs that wait for another pass', () => {
     );
     const blocked = await data.loadBlockedWalkthroughs();
     expect(blocked?.get('A_1')).toEqual({ reason: 'A question is unclear.' });
-    for (const [, , options] of graphqlDirect.mock.calls) expect(options.signal).toBeInstanceOf(AbortSignal);
+    // One read of the "needs you" items, not two.
+    expect(graphqlDirect).toHaveBeenCalledOnce();
+    expect(graphqlDirect.mock.calls[0][2].signal).toBeInstanceOf(AbortSignal);
   });
 
   it('keeps the title and the button when only the reason fails, and nothing when the kinds fail', async () => {

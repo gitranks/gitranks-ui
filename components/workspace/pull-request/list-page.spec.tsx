@@ -48,6 +48,17 @@ describe('the Pull requests tab', () => {
     expect((await open()).props.list.rows.every((row) => row.walkthroughBlocked === undefined)).toBe(true);
   });
 
+  it('asks whether a walkthrough waits for another pass only when a Learn fix is on its walkthrough', async () => {
+    prData.loadPullRequestList.mockResolvedValue(
+      prList({ rows: [prRow('OPEN', { attemptId: 'A_2' }), prRow('WALKTHROUGH', { made: 'CONTRIBUTE' })] }),
+    );
+    await open();
+    expect(prData.loadBlockedWalkthroughs).not.toHaveBeenCalled();
+    prData.loadPullRequestList.mockResolvedValue(prList({ rows: [prRow('WALKTHROUGH', { attemptId: 'A_1' })] }));
+    await open();
+    expect(prData.loadBlockedWalkthroughs).toHaveBeenCalledOnce();
+  });
+
   it('says so when the list does not load, and sends a user not onboarded to the landing', async () => {
     prData.loadPullRequestList.mockResolvedValue(undefined);
     expect((await open()).type).not.toBe(PullRequestListPageView);

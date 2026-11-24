@@ -1725,7 +1725,7 @@ export type ContributeHelpedLike =
 /** What a maintainer's report may do at once, each undoable. */
 export type ContributePrAction = 'STOP_PR' | 'BLOCK_CONTRIBUTOR' | 'REPO_OFF';
 /** The writer's role in the PR's repo, as GitHub answered for their account. */
-type ContributePrRole = 'MAINTAINER' | 'COLLABORATOR' | 'USER';
+export type ContributePrRole = 'MAINTAINER' | 'COLLABORATOR' | 'USER';
 
 /** One of our PRs, as the PR on GitHub shows it. */
 export type ContributePrCard = {
@@ -1782,7 +1782,7 @@ export type ContributePrFeedbackResult = {
 export type ContributePrUndoResult = { feedbackId: string; actions: ContributePrActionState[] };
 
 /** A "this PR helped" note, as the PR's contributor sees it. */
-type ContributePrNote = {
+export type ContributePrNote = {
   feedbackId: string;
   login: string;
   role: ContributePrRole;

@@ -22,17 +22,18 @@ type Search = Record<string, string | string[] | undefined>;
  * apart and marked on its row; without that read the row is as the list says.
  */
 export async function PullRequestListPage({ searchParams }: { searchParams: Promise<Search> }) {
-  const [view, read, blocked, query, jar] = await Promise.all([
+  const [view, read, query, jar] = await Promise.all([
     loadContribute(),
     loadPullRequestList(),
-    loadBlockedWalkthroughs(),
     searchParams,
     cookies(),
   ]);
   if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'me')) redirect(WORKSPACE_PATHS.contribute);
   if (!read) return <Unavailable />;
-  const list = withBlockedWalkthroughs(read, blocked);
+  // Only a Learn fix on its walkthrough can wait for another pass: the list asks only then.
+  const walkthrough = read.rows.some((row) => row.made === 'LEARN' && row.box === 'WALKTHROUGH');
+  const list = walkthrough ? withBlockedWalkthroughs(read, await loadBlockedWalkthroughs()) : read;
   const side = settingsBarOf({
     from: query.from,
     lastBar: lastBarOf(jar.get(LAST_BAR_COOKIE)?.value),

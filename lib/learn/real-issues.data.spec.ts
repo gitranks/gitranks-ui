@@ -20,6 +20,7 @@ const { NO_HOME_REAL, NO_LESSON_REAL } = await import('./real-issues');
 const { issueRows, learnFixes } = await import('./__fixtures__/issues');
 const { homeFixNeedsYou, homeMergedFix, myFixOpen } = await import('./__fixtures__/real-issues');
 const { prRow } = await import('@/lib/workspace/__fixtures__/pull-request');
+const { needsYouRowWordsOf } = await import('@/lib/workspace/pull-request-list');
 
 /** The API's answer to a field it does not know yet, as it throws it. */
 const unknownField = (field: string, type: string) =>
@@ -206,6 +207,21 @@ describe("Learn home's real issues", () => {
     );
     await loadHomeReal('octocat');
     expect(m.loadBlockedWalkthroughs).not.toHaveBeenCalled();
+  });
+
+  it('marks a walkthrough under "Real issues" that waits for another pass, whatever fix the box shows', async () => {
+    const walkthrough = prRow('WALKTHROUGH', { attemptId: 'A_2' });
+    m.graphqlDirect.mockImplementation(async (document: unknown) =>
+      operationOf([document]) === 'HomeFixes'
+        ? { learnHome: { thirdBox: { needsYou: true, fix: homeFixNeedsYou }, fixes: [homeFixNeedsYou, walkthrough] } }
+        : null,
+    );
+    m.loadBlockedWalkthroughs.mockResolvedValue(new Map([['A_2', { reason: null }]]));
+    const home = await loadHomeReal('octocat');
+    expect(home.box).toMatchObject({ kind: 'fix', row: homeFixNeedsYou });
+    expect(home.fixes.map((row) => row.walkthroughBlocked ?? null)).toEqual([null, { reason: null }]);
+    // Its row's words never say the walkthrough is ready.
+    expect(needsYouRowWordsOf(home.fixes[1])?.line).toBe('The fix walkthrough needs another pass');
   });
 });
 

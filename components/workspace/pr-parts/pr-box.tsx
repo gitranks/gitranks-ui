@@ -10,6 +10,7 @@ import { EnterKey } from '@/components/workspace/masked-issue/facts';
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
 import { SendKey, useSendKey, useSendKeyName } from '@/components/workspace/pr-parts/send-key';
 import { cn } from '@/lib/utils';
+import type { WalkthroughSendBack } from '@/lib/workspace/blocked-walkthrough';
 import {
   type BoxAction,
   type BoxActionId,
@@ -42,7 +43,7 @@ export type PullRequestBoxProps = PullRequestBoxPresses & {
   /** A hosted round stopped at the person's limit: "Try again", or finish it by hand on GitHub. */
   stoppedAtLimit?: boolean;
   /** A walkthrough of an older version waits for another pass by the person's agent: why, when known. */
-  walkthroughBlocked?: { reason: string | null } | null;
+  walkthroughBlocked?: { reason: string | null; sendBack?: WalkthroughSendBack } | null;
   /** A press went through and waits for the API: the buttons wait. */
   pending?: boolean;
   /** Enter does the main action (the page's one Enter key); a round's send takes Ctrl + Enter, as Approve does. */

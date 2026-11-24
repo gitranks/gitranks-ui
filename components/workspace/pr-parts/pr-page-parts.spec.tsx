@@ -362,7 +362,7 @@ describe('also waiting for you', () => {
 });
 
 describe('the foot links', () => {
-  it("opens the project's rules in place, and discards or closes on a press", async () => {
+  it("opens the project's rules in place, and discards only once the person said yes", async () => {
     const onDiscard = vi.fn();
     await render(<PullRequestFootLinks rules={prStages.walkthrough.rules} onDiscard={onDiscard} />);
     const rules = container.querySelector<HTMLElement>('[data-rules]');
@@ -370,7 +370,18 @@ describe('the foot links', () => {
     await press(control('The project’s rules for pull requests'));
     expect(rules?.hidden).toBe(false);
     await press(control('Discard this fix'));
+    expect(onDiscard).not.toHaveBeenCalled();
+    const dialog = document.querySelector<HTMLElement>('[role="alertdialog"]');
+    expect(dialog?.textContent).toContain('Discard this attempt?');
+    expect(dialog?.textContent).toContain('Nothing is submitted, and the issue goes back to the pool.');
+    const confirm = [...(dialog?.querySelectorAll('button') ?? [])].find((each) => each.textContent === 'Discard');
+    await press(confirm ?? null);
     expect(onDiscard).toHaveBeenCalledOnce();
     expect(control('Close this pull request')).toBeNull();
+  });
+
+  it('holds the discard while a call is under way', async () => {
+    await render(<PullRequestFootLinks rules={null} onDiscard={vi.fn()} discarding />);
+    expect((control('Discard this fix') as HTMLButtonElement | null)?.disabled).toBe(true);
   });
 });

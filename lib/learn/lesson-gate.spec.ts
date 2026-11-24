@@ -78,7 +78,7 @@ describe('lessonGateOf', () => {
       fixAsk.mockResolvedValueOnce({ lessonPage });
       expect(await lessonGateOf({ slug: SLUG })).toEqual({ kind: 'page' });
     }
-    expect(fixAsk).toHaveBeenLastCalledWith({ slug: SLUG }, { source: 'ssr' });
+    expect(fixAsk).toHaveBeenLastCalledWith({ slug: SLUG }, { source: 'ssr', signal: expect.any(AbortSignal) });
   });
 
   it('answers an unknown or hidden lesson as missing', async () => {
@@ -111,6 +111,8 @@ describe('lessonGateOf', () => {
       const gate = lessonGateOf({ slug: SLUG }, 2000);
       await vi.advanceTimersByTimeAsync(2000);
       expect(await gate).toEqual({ kind: 'page' });
+      // The ask that did not answer in time is stopped, not left running.
+      expect((fixAsk.mock.calls.at(-1)?.[1] as { signal?: AbortSignal } | undefined)?.signal?.aborted).toBe(true);
     } finally {
       vi.useRealTimers();
     }
@@ -122,7 +124,7 @@ describe('lessonGateOf', () => {
       lessonResult: { __typename: 'LessonResultPage', login: 'octocat', head: { slug: SLUG } },
     });
     expect(await lessonGateOf(route)).toEqual({ kind: 'page' });
-    expect(fixAsk).toHaveBeenLastCalledWith(route, { source: 'ssr' });
+    expect(fixAsk).toHaveBeenLastCalledWith(route, { source: 'ssr', signal: expect.any(AbortSignal) });
 
     fixAsk.mockResolvedValueOnce({ lessonResult: null });
     expect(await lessonGateOf(route)).toEqual({ kind: 'missing' });
@@ -155,7 +157,7 @@ describe('lessonGateOf', () => {
         permanent: true,
       });
     }
-    expect(passAsk).toHaveBeenLastCalledWith(route, { source: 'ssr' });
+    expect(passAsk).toHaveBeenLastCalledWith(route, { source: 'ssr', signal: expect.any(AbortSignal) });
     // No answers page to go to, or the API does not know the ask: the result page as before.
     passAsk.mockResolvedValueOnce({
       learnFixAddress: { state: 'REMOVED', owner: 'acme', repo: 'widgets', number: 57 },

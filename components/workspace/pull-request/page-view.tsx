@@ -1,6 +1,7 @@
 'use client';
 
 import type { Route } from 'next';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useId, useRef, useState, useTransition } from 'react';
 
@@ -27,10 +28,13 @@ import {
   vetoAutopilot,
 } from '@/lib/workspace/actions';
 import { PR_TITLE_MAX } from '@/lib/workspace/attempt-format';
+import type { WalkthroughSendBack } from '@/lib/workspace/blocked-walkthrough';
 import { attemptActionErrorMessage, type ContributeActionResult, retryErrorMessage } from '@/lib/workspace/errors';
+import { FOLLOW_UP_NOTE_MAX } from '@/lib/workspace/follow-up-format';
 import { SEND_BACK_NOTE_MAX } from '@/lib/workspace/mcp-setup';
 import { requestKeyOf } from '@/lib/workspace/one-comment';
 import { pullRequestByAttemptPath } from '@/lib/workspace/paths';
+import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 import {
   markCommentAsksAction,
   markRoundNotNeededAction,
@@ -60,21 +64,33 @@ export type PullRequestOps = {
   prId: string | null;
   /** The run a round's "Send it back to your agent" goes to. */
   runId: string | null;
-  /** A walkthrough that waits for another pass can go back to the person's own agent (sends left). */
-  walkthroughSendBack: boolean;
+  /** Whether a walkthrough that waits for another pass can go back to the person's own agent (a send-back left). */
+  walkthroughSendBack: WalkthroughSendBack;
   /** The attempt "Try again" starts again; null when nothing can. */
   retryId: string | null;
   /** "Discard this fix", while there is no pull request. */
   discard: boolean;
   /** Replies that did not post, by the run that drafted them. */
   failedReplies: { runId: string; draftIds: string[] } | null;
-  /** "Hide its public page", for a pull request whose approval carried that choice. */
-  hide: { nameWithOwner: string; number: number } | null;
+  /** The public page's switch, for a pull request whose approval carried that choice: hide it, or show it again. */
+  timeline: { nameWithOwner: string; number: number; shown: boolean } | null;
   /** Where the page comes back to after GitHub's access screen. */
   returnTo: Route;
 };
 
-type Form = { kind: 'sendBack'; round: number | null } | { kind: 'rename' } | null;
+type Form = { kind: 'sendBack'; round: number | null } | { kind: 'rename' } | { kind: 'retry' } | null;
+
+/** Gives the focus back to the box's first action once a form in its place closes; its title when it has none. */
+function focusBox() {
+  requestAnimationFrame(() => {
+    const action = document.querySelector<HTMLElement>('[data-box] [data-box-actions] :is(a, button):not([disabled])');
+    if (action) return action.focus();
+    const title = document.querySelector<HTMLElement>('[data-box] h2');
+    if (!title) return;
+    title.tabIndex = -1;
+    title.focus();
+  });
+}
 
 /**
  * The pull request's page, one for Learn and Contribute: the issue's card, the strip, the box and its one action,
@@ -90,6 +106,8 @@ export function PullRequestPageView({
   ops,
   openRound = null,
   proof,
+  maintainers,
+  takeDown,
   walkthroughBlocked = null,
 }: {
   page: PullRequestPage;
@@ -103,6 +121,10 @@ export function PullRequestPageView({
   openRound?: number | null;
   /** Today's proof card, when a bot asks for proof. */
   proof?: ReactNode;
+  /** The maintainers' "this PR helped" notes, each to hide or show again. */
+  maintainers?: ReactNode;
+  /** "Take the walkthrough down", for a Learn fix's public walkthrough. */
+  takeDown?: ReactNode;
   /** A walkthrough of an older version waits for another pass by the person's agent, read apart. */
   walkthroughBlocked?: { reason: string | null } | null;
 }) {
@@ -112,8 +134,15 @@ export function PullRequestPageView({
   const page = answered && answered.from === read ? answered.page : read;
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<Form>(null);
-  const [hidden, setHidden] = useState(false);
+  const [form, setFormState] = useState<Form>(null);
+  const setForm = (next: Form) => {
+    setFormState(next);
+    if (!next) focusBox();
+  };
+  // The public page's switch as the person last set it here, until the next read of the page.
+  const [shown, setShown] = useState<{ from: PullRequestPage; shown: boolean } | null>(null);
+  const timelineShown = shown && shown.from === read ? shown.shown : (ops.timeline?.shown ?? false);
+  const [discardError, setDiscardError] = useState<string | null>(null);
   const grant = useGrantGithub(ops.returnTo);
   const working = isWorking(page);
 
@@ -186,20 +215,27 @@ export function PullRequestPageView({
   const presses = {
     onStartRound: ops.prId ? () => act(() => startFollowUp(ops.prId as string)) : undefined,
     onSendRound: (round: number) => onPage(() => sendRoundAction(refInput, round)),
-    onRetry: ops.retryId
-      ? () =>
-          act(
-            () => retryAttempt(ops.retryId as string),
-            (attempt) => router.push(pullRequestByAttemptPath(attempt.attemptId)),
-            retryErrorMessage,
-          )
-      : undefined,
+    onRetry: ops.retryId ? () => setForm({ kind: 'retry' }) : undefined,
     onVeto: page.autoSend ? () => act(() => vetoAutopilot(ops.attemptId)) : undefined,
     onOnlyYou,
   };
-  // A walkthrough that waits for another pass goes back to the agent from the fix itself; a round, from its run.
-  const blocked = page.box === 'WALKTHROUGH' ? walkthroughBlocked : null;
-  const backTo = blocked ? (ops.walkthroughSendBack ? ops.attemptId : null) : ops.runId;
+  // A walkthrough that waits for another pass goes back to the agent from the fix itself, when a send-back is left; a
+  // round, from its run.
+  const blocked =
+    page.box === 'WALKTHROUGH' && walkthroughBlocked
+      ? { ...walkthroughBlocked, sendBack: ops.walkthroughSendBack }
+      : null;
+  const backTo = blocked ? (ops.walkthroughSendBack === 'yes' ? ops.attemptId : null) : ops.runId;
+  const discard = () =>
+    startTransition(async () => {
+      setDiscardError(null);
+      const result = await discardAttempt(ops.attemptId);
+      if (!result.ok) {
+        setDiscardError(attemptActionErrorMessage(result.error, result.message));
+        return;
+      }
+      router.refresh();
+    });
   const sendBack = backTo ? (round: number | null) => setForm({ kind: 'sendBack', round }) : undefined;
 
   return (
@@ -242,6 +278,27 @@ export function PullRequestPageView({
           }
         />
       ) : null}
+      {form?.kind === 'retry' && ops.retryId ? (
+        <NoteForm
+          title="Try again"
+          lead="Your note comes first: the agent follows it within the rules and limits. You can leave it empty."
+          label="A note for the agent"
+          submit="Try again"
+          max={FOLLOW_UP_NOTE_MAX}
+          optional
+          pending={pending}
+          onCancel={() => setForm(null)}
+          onSubmit={(note) => {
+            const retryId = ops.retryId;
+            if (!retryId) return;
+            act(
+              () => retryAttempt(retryId, note || undefined),
+              (attempt) => router.push(pullRequestByAttemptPath(attempt.attemptId)),
+              retryErrorMessage,
+            );
+          }}
+        />
+      ) : null}
       {form?.kind === 'rename' ? (
         <NoteForm
           title="Rename the pull request"
@@ -272,25 +329,27 @@ export function PullRequestPageView({
       <AlsoWaiting box={page.box} onlyYou={page.onlyYou} onOnlyYou={onOnlyYou} />
       {proof}
       <PullRequestCards page={page} now={now} links={links} />
-      {ops.hide && !hidden ? (
-        <button
-          type="button"
-          className="-mt-2 self-start text-xs text-muted-foreground hover:underline"
-          disabled={pending}
-          data-hide-public-page=""
-          onClick={() => {
-            const hide = ops.hide;
-            if (!hide) return;
+      {ops.timeline ? (
+        <TimelineLine
+          pr={ops.timeline}
+          shown={timelineShown}
+          pending={pending}
+          onSwitch={() => {
+            const timeline = ops.timeline;
+            if (!timeline) return;
+            const { nameWithOwner, number } = timeline;
             act(
-              () => setPrTimeline({ attemptId: ops.attemptId, shown: false, ...hide }),
-              () => setHidden(true),
+              () => setPrTimeline({ attemptId: ops.attemptId, shown: !timelineShown, nameWithOwner, number }),
+              (result) => {
+                setShown({ from: read, shown: result.shown });
+                router.refresh();
+              },
             );
           }}
-        >
-          Hide its public page
-        </button>
+        />
       ) : null}
       {fixUrl ? <FixLinkLine url={fixUrl} /> : null}
+      {maintainers}
       <RoundsList
         page={page}
         now={now}
@@ -314,11 +373,57 @@ export function PullRequestPageView({
         since={page.since ?? []}
         onAsks={(comment) => onPage(() => markCommentAsksAction(refInput, comment))}
       />
+      {takeDown}
       <PullRequestFootLinks
         rules={page.rules}
-        onDiscard={ops.discard && page.number === null ? () => act(() => discardAttempt(ops.attemptId)) : undefined}
+        onDiscard={ops.discard && page.number === null && page.box !== 'OPENING' ? discard : undefined}
+        discarding={pending}
+        discardError={discardError}
       />
     </div>
+  );
+}
+
+/**
+ * The fix's public page, for a pull request whose approval carried the choice: whether it shows, a link while it does,
+ * and the switch to hide it or show it again.
+ */
+function TimelineLine({
+  pr,
+  shown,
+  pending,
+  onSwitch,
+}: {
+  pr: { nameWithOwner: string; number: number };
+  shown: boolean;
+  pending: boolean;
+  onSwitch: () => void;
+}) {
+  return (
+    <p
+      className="-mt-2 m-0 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"
+      data-public-page={shown ? 'shown' : 'hidden'}
+    >
+      <span>{shown ? 'Its public page shows how it was made.' : 'Its public page is hidden.'}</span>
+      {shown ? (
+        <Link
+          href={prTimelinePath(pr)}
+          prefetch={false}
+          className="inline-flex items-center font-medium text-link hover:underline max-sm:min-h-11"
+        >
+          See it
+        </Link>
+      ) : null}
+      <button
+        type="button"
+        className="hover:underline disabled:opacity-50 max-sm:min-h-11"
+        disabled={pending}
+        data-switch-public-page={shown ? 'hide' : 'show'}
+        onClick={onSwitch}
+      >
+        {shown ? 'Hide its public page' : 'Show its public page again'}
+      </button>
+    </p>
   );
 }
 
@@ -335,6 +440,7 @@ function NoteForm({
   submit,
   max,
   line = false,
+  optional = false,
   pending,
   onSubmit,
   onCancel,
@@ -346,6 +452,8 @@ function NoteForm({
   max: number;
   /** One line (a title) rather than a note. */
   line?: boolean;
+  /** The form goes without any words too (a note the agent may do without). */
+  optional?: boolean;
   pending: boolean;
   onSubmit: (text: string) => void;
   onCancel: () => void;
@@ -361,7 +469,7 @@ function NoteForm({
       data-note-form=""
       onSubmit={(event) => {
         event.preventDefault();
-        if (text.trim()) onSubmit(text.trim());
+        if (optional || text.trim()) onSubmit(text.trim());
       }}
     >
       <h2 id={id} className="m-0 text-base font-semibold">
@@ -388,7 +496,11 @@ function NoteForm({
         />
       )}
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" className="h-10 px-5 font-semibold max-sm:min-h-11" disabled={pending || !text.trim()}>
+        <Button
+          type="submit"
+          className="h-10 px-5 font-semibold max-sm:min-h-11"
+          disabled={pending || (!optional && !text.trim())}
+        >
           {submit}
         </Button>
         <Button type="button" variant="outline" className="h-10 px-4 max-sm:min-h-11" onClick={onCancel}>

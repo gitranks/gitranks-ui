@@ -54,16 +54,17 @@ describe('a walkthrough that waits for another pass', () => {
     expect(withBlockedWalkthroughs(list, null)).toBe(list);
   });
 
-  it('never reads as ready on its row: another pass, the reason, and the send-back', () => {
+  it('never reads as ready on its row: another pass, the reason, and a button that promises no send-back', () => {
     const row = prRow('WALKTHROUGH', { walkthroughBlocked: { reason: 'A question is unclear.' } });
+    // The row can't tell whether a send-back is left: the fix's page says what the person can do.
     expect(needsYouRowWordsOf(row)).toEqual({
       line: 'The fix walkthrough needs another pass',
-      button: 'Send it back to your agent',
+      button: 'See what to do',
     });
     expect(rowWordsOf(row, PR_NOW)).toMatchObject({
       line: 'The fix walkthrough needs another pass',
       reason: 'A question is unclear.',
-      button: 'Send it back to your agent',
+      button: 'See what to do',
     });
     expect(rowWordsOf(prRow('WALKTHROUGH', { walkthroughBlocked: { reason: null } }), PR_NOW).reason).toBeNull();
     // Not marked: as the list says.
@@ -84,5 +85,21 @@ describe('a walkthrough that waits for another pass', () => {
       'Send it back to your agent, and it writes the questions again.',
     );
     expect(boxOf(page, { now: PR_NOW }).actions.map((action) => action.id)).toEqual(['walkthrough']);
+  });
+
+  it('never tells the person to send it back when it cannot go back, and says why', () => {
+    const page = prPage({ made: 'LEARN', box: 'WALKTHROUGH', stage: 'WALKTHROUGH' });
+    const noneLeft = boxOf(page, {
+      now: PR_NOW,
+      walkthroughBlocked: { reason: 'A question is unclear.', sendBack: 'none-left' },
+    });
+    expect(noneLeft.title).toBe('The fix walkthrough needs another pass');
+    expect(noneLeft.text).toBe(
+      'A question is unclear. No send-backs are left for this fix, so its questions can’t be written again. You can discard it below.',
+    );
+    expect(noneLeft.actions).toEqual([]);
+    const notOwn = boxOf(page, { now: PR_NOW, walkthroughBlocked: { reason: null, sendBack: 'no' } });
+    expect(notOwn.text).toBe('It can’t go back to your agent from here. You can discard it below.');
+    expect(notOwn.actions).toEqual([]);
   });
 });

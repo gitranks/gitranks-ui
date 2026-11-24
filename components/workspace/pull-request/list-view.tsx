@@ -16,7 +16,11 @@ function rowHrefOf(row: PullRequestListRow): Route | null {
   return row.path?.startsWith('/my/pull-requests/') ? (row.path as Route) : null;
 }
 
-/** The person's pull requests, with "Show 20 more" of "Ended" read in place. */
+/**
+ * The person's pull requests, with "Show 20 more" of "Ended" read in place. Each new read of the page (the workspace's
+ * poll reads it again when a fix moves) draws its rows at once; the rows "Show 20 more" added belong to the read they
+ * extended, and go with it.
+ */
 export function PullRequestListPageView({
   list: first,
   now,
@@ -28,7 +32,13 @@ export function PullRequestListPageView({
   side: 'learn' | 'contribute';
   issuesHref: Route;
 }) {
-  const [list, setList] = useState(first);
+  const [added, setAdded] = useState<{
+    from: PullRequestList;
+    rows: PullRequestListRow[];
+    more: PullRequestList['more'];
+  } | null>(null);
+  const list =
+    added && added.from === first ? { ...first, rows: [...first.rows, ...added.rows], more: added.more } : first;
   const [error, setError] = useState<string | null>(null);
   const [loading, startTransition] = useTransition();
   const more = (after: string) =>
@@ -40,10 +50,11 @@ export function PullRequestListPageView({
         return;
       }
       const page = result.data;
-      setList((was) => {
-        const seen = new Set(was.rows.map((row) => row.attemptId));
+      setAdded((was) => {
+        const kept = was && was.from === first ? was.rows : [];
+        const seen = new Set([...first.rows, ...kept].map((row) => row.attemptId));
         const ended = page.rows.filter((row) => row.group === 'ENDED' && !seen.has(row.attemptId));
-        return { ...was, rows: [...was.rows, ...ended], more: page.more };
+        return { from: first, rows: [...kept, ...ended], more: page.more };
       });
     });
   return (

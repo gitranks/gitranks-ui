@@ -12,7 +12,7 @@ const data = vi.hoisted(() => ({
 }));
 const prData = vi.hoisted(() => ({
   loadPullRequestPage: vi.fn(),
-  loadTimelineHideable: vi.fn(),
+  loadTimelineSwitch: vi.fn(),
   loadBlockedWalkthroughs: vi.fn(),
 }));
 vi.mock('server-only', () => ({}));
@@ -31,6 +31,10 @@ vi.mock('@/lib/workspace/pull-request.data', async (original) => ({
 }));
 vi.mock('./page-view', () => ({ PullRequestPageView: () => null }));
 vi.mock('./proof-section', () => ({ ProofSection: () => null }));
+vi.mock('./pr-notes', () => ({ PrNotesPanel: () => null }));
+vi.mock('./walkthrough-take-down', () => ({ WalkthroughTakeDown: () => null }));
+const learnData = vi.hoisted(() => ({ loadAttemptLesson: vi.fn() }));
+vi.mock('@/lib/learn/learn.data', () => learnData);
 vi.mock('@/components/workspace/workspace-sign-in', () => ({ WorkspaceSignIn: () => null }));
 
 const { PullRequestPageScreen } = await import('./page-screen');
@@ -43,7 +47,13 @@ const { prPage } = await import('@/lib/workspace/__fixtures__/pull-request');
 type ViewProps = {
   page: { box: string };
   walkthroughBlocked: { reason: string | null } | null;
-  ops: { walkthroughSendBack: boolean; attemptId: string };
+  ops: {
+    walkthroughSendBack: string;
+    attemptId: string;
+    timeline: { nameWithOwner: string; number: number; shown: boolean } | null;
+  };
+  maintainers: ReactElement<{ notes: unknown }> | null;
+  takeDown: ReactElement<{ slug: string }> | null;
 };
 
 const open = (params: Record<string, string> = {}, query: Record<string, string> = {}) =>
@@ -61,7 +71,9 @@ beforeEach(() => {
   data.loadIssueAttempt.mockResolvedValue({ attemptId: 'A_1', repo: 'acme/widgets', number: 42, earlier: [] });
   data.loadAttempt.mockResolvedValue(FIRST);
   prData.loadPullRequestPage.mockResolvedValue(prPage({ attemptId: 'A_1', repo: 'acme/widgets', issueNumber: 42 }));
-  prData.loadTimelineHideable.mockResolvedValue(false);
+  prData.loadTimelineSwitch.mockResolvedValue(null);
+  data.loadPrNotes.mockResolvedValue(undefined);
+  learnData.loadAttemptLesson.mockReset().mockResolvedValue(null);
   prData.loadBlockedWalkthroughs.mockResolvedValue(null);
 });
 
@@ -108,12 +120,55 @@ describe("the pull request's page, by its address", () => {
     data.loadAttempt.mockResolvedValue({ ...FIRST, sendBacksLeft: 2 });
     const page = await open();
     expect(page?.props.walkthroughBlocked).toEqual({ reason: 'A question is unclear.' });
-    expect(page?.props.ops).toMatchObject({ attemptId: 'A_1', walkthroughSendBack: true });
-    // No send-back left: the box keeps its words, without the button.
+    expect(page?.props.ops).toMatchObject({ attemptId: 'A_1', walkthroughSendBack: 'yes' });
+    // No send-back left: the box says so, without the button.
     data.loadAttempt.mockResolvedValue({ ...FIRST, sendBacksLeft: 0 });
-    expect((await open())?.props.ops.walkthroughSendBack).toBe(false);
+    expect((await open())?.props.ops.walkthroughSendBack).toBe('none-left');
     // The read failed: the page as its own read says.
     prData.loadBlockedWalkthroughs.mockResolvedValue(null);
     expect((await open())?.props.walkthroughBlocked).toBeNull();
+  });
+
+  it("keeps today's actions on an open pull request: the public page's switch, the notes, the take-down", async () => {
+    prData.loadPullRequestPage.mockResolvedValue(
+      prPage({ attemptId: 'A_1', made: 'LEARN', repo: 'acme/widgets', issueNumber: 42, number: 57, box: 'OPEN' }),
+    );
+    data.loadAttempt.mockResolvedValue({ ...FIRST, pullRequest: { prId: 'PR_1', number: 57 } });
+    prData.loadTimelineSwitch.mockResolvedValue({ shown: false });
+    const notes = { stopped: null, notes: [{ feedbackId: 'F_1', login: 'mona', hidden: false }] };
+    data.loadPrNotes.mockResolvedValue(notes);
+    learnData.loadAttemptLesson.mockResolvedValue({ head: { slug: 'retry-list-1x' }, visibility: 'PUBLIC' });
+    const page = await open();
+    // Hidden by the person: the switch stays, to show it again.
+    expect(page?.props.ops.timeline).toEqual({ nameWithOwner: 'acme/widgets', number: 57, shown: false });
+    expect(prData.loadTimelineSwitch).toHaveBeenCalledWith('A_1');
+    expect(page?.props.maintainers?.props.notes).toBe(notes);
+    expect(page?.props.takeDown?.props.slug).toBe('retry-list-1x');
+
+    // A walkthrough already down, no notes, no switch: none of them.
+    learnData.loadAttemptLesson.mockResolvedValue({ head: { slug: 'retry-list-1x' }, visibility: 'REMOVED' });
+    data.loadPrNotes.mockResolvedValue({ stopped: null, notes: [] });
+    prData.loadTimelineSwitch.mockResolvedValue(null);
+    const quiet = await open();
+    expect(quiet?.props).toMatchObject({ maintainers: null, takeDown: null, ops: { timeline: null } });
+  });
+
+  it('draws the page without a part whose read is slow', async () => {
+    vi.useFakeTimers();
+    try {
+      prData.loadPullRequestPage.mockResolvedValue(
+        prPage({ attemptId: 'A_1', made: 'LEARN', repo: 'acme/widgets', issueNumber: 42, number: 57, box: 'OPEN' }),
+      );
+      data.loadAttempt.mockResolvedValue({ ...FIRST, pullRequest: { prId: 'PR_1', number: 57 } });
+      data.loadPrNotes.mockReturnValue(new Promise(() => {}));
+      learnData.loadAttemptLesson.mockReturnValue(new Promise(() => {}));
+      const pending = open();
+      await vi.advanceTimersByTimeAsync(2500);
+      const page = await pending;
+      expect(page?.type).toBe(PullRequestPageView);
+      expect(page?.props).toMatchObject({ maintainers: null, takeDown: null });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

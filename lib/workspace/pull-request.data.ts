@@ -17,9 +17,15 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /*
  * The person's own reads of a pull request's page, Approve and their list: never kept, each asked as the session's
- * user. Each answers `undefined` when the API did not answer (an older API without the read, a failure), which the page
- * says as "did not load", and null when the API says there is nothing of the person's to show.
+ * user. Each answers `undefined` when the API did not answer (an older API without the read, a failure, or no answer
+ * within its time limit), which the page says as "did not load", and null when the API says there is nothing of the
+ * person's to show. A slow answer never holds the page.
  */
+
+/** How long a page's own read may take: past it, the page says it did not load. */
+const PAGE_READ_MS = 8000;
+/** How long a read that only adds to the page may take: past it, the page is drawn without it. */
+const PART_READ_MS = 2500;
 
 /** A fix of the person's by its issue and first attempt, as the API takes it. */
 export function pullRequestRefOf(repo: string, issue: number, attempt: string | null): PullRequestRefInput {
@@ -27,9 +33,9 @@ export function pullRequestRefOf(repo: string, issue: number, attempt: string | 
   return { owner, repo: name, issue, attempt };
 }
 
-const as = async () => {
+const as = async (limitMs = PAGE_READ_MS) => {
   const githubLogin = await viewerLogin();
-  return githubLogin ? { source: 'ssr' as const, githubLogin } : null;
+  return githubLogin ? { source: 'ssr' as const, githubLogin, signal: AbortSignal.timeout(limitMs) } : null;
 };
 
 /** The page of one fix of the person's; null when it is not theirs. */
@@ -73,38 +79,42 @@ export async function loadPullRequestList(after: string | null = null): Promise<
 }
 
 /**
- * Whether the person can still hide the public page of a fix: only when its approval carried that choice and the page
- * is shown. False on any failure, and against an API that does not say: the link is then left out.
+ * The public page of a fix the person may hide or show again: only when its approval carried that choice, with whether
+ * it shows now. Null on any failure, past its time limit, and against an API that does not say: the line is then left
+ * out.
  */
-export async function loadTimelineHideable(attemptId: string): Promise<boolean> {
-  const options = await as();
-  if (!options) return false;
+export async function loadTimelineSwitch(attemptId: string): Promise<{ shown: boolean } | null> {
+  const options = await as(PART_READ_MS);
+  if (!options) return null;
   try {
     const { contributeAttempt } = await graphqlDirect(AttemptTimelineHideableDocument, { id: attemptId }, options);
-    const timeline = (contributeAttempt as { timeline?: { shown?: unknown; hideable?: unknown } | null } | null)
-      ?.timeline;
-    return timeline?.hideable === true && timeline.shown === true;
+    const timeline = (
+      contributeAttempt as { timeline?: { eligible?: unknown; shown?: unknown; hideable?: unknown } | null } | null
+    )?.timeline;
+    if (timeline?.eligible !== true || timeline.hideable !== true) return null;
+    return { shown: timeline.shown === true };
   } catch {
-    return false;
+    return null;
   }
 }
 
-/** How long the stopped walkthroughs' reads may take: past it, the list and the page are drawn without them. */
-const BLOCKED_READ_MS = 2500;
-
 /**
  * The person's walkthroughs that wait for another pass by their agent, by the fix's first attempt, each with its
- * reason when that read answers too. Two reads of their own, each with a time limit: null when the first fails (the
- * rows and the page stay as their own reads say), no reason when the second does.
+ * reason. One read with the reasons; only when it fails (an API without them), the same read without them, so the
+ * title and the button still show. Each has its own time limit; null when neither answers (the rows and the page stay
+ * as their own reads say).
  */
 export async function loadBlockedWalkthroughs(): Promise<BlockedWalkthroughs | null> {
-  const options = await as();
-  if (!options) return null;
-  const read = (document: typeof NeedsYouKindsDocument) =>
-    graphqlDirect(document, undefined, { ...options, signal: AbortSignal.timeout(BLOCKED_READ_MS) }).then(
+  const read = async (document: typeof NeedsYouKindsDocument) => {
+    const options = await as(PART_READ_MS);
+    if (!options) return undefined;
+    return graphqlDirect(document, undefined, options).then(
       (data) => data.contributeNeedsYou ?? null,
       () => undefined,
     );
-  const [kinds, reasons] = await Promise.all([read(NeedsYouKindsDocument), read(BlockedWalkthroughReasonsDocument)]);
-  return kinds === undefined ? null : blockedWalkthroughsOf(kinds, reasons ?? null);
+  };
+  const withReasons = await read(BlockedWalkthroughReasonsDocument);
+  if (withReasons !== undefined) return blockedWalkthroughsOf(withReasons, withReasons);
+  const kinds = await read(NeedsYouKindsDocument);
+  return kinds === undefined ? null : blockedWalkthroughsOf(kinds);
 }

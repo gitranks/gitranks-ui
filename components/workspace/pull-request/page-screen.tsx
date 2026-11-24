@@ -4,17 +4,20 @@ import { notFound, redirect } from 'next/navigation';
 import { fixPageUrlOf, pullRequestLinksOf } from './page-links';
 import { gate, type PageParams, pageOf, type Query, Unavailable, withQuery } from './page-read';
 import { type PullRequestOps, PullRequestPageView } from './page-view';
+import { PrNotesPanel } from './pr-notes';
 import { ProofSection } from './proof-section';
+import { WalkthroughTakeDown } from './walkthrough-take-down';
 import { WorkspaceSignIn } from '@/components/workspace/workspace-sign-in';
 import { SITE_URL } from '@/lib/seo/site';
 import { ownAgentChangesOf } from '@/lib/workspace/attempt-format';
+import type { WalkthroughSendBack } from '@/lib/workspace/blocked-walkthrough';
 import { loadAttempt, loadPrNotes, loadRepliesWaiting, viewerLogin } from '@/lib/workspace/contribute.data';
 import type { ContributeAttemptDetail, ContributeReplyWaiting } from '@/lib/workspace/contribute.types';
 import { pullRequestByAttemptPath, pullRequestPath } from '@/lib/workspace/paths';
 import {
   loadBlockedWalkthroughs,
   loadPullRequestPage,
-  loadTimelineHideable,
+  loadTimelineSwitch,
   pullRequestRefOf,
 } from '@/lib/workspace/pull-request.data';
 import type { PullRequestPage } from '@/lib/workspace/pull-request-page.types';
@@ -28,6 +31,32 @@ function retryIdOf(page: PullRequestPage, first: ContributeAttemptDetail): strin
   if (page.box !== 'STOPPED') return null;
   if (page.number === null) return first.retry ? first.attemptId : null;
   return page.stoppedAtLimit ? (first.followUps?.history?.at(-1)?.attemptId ?? null) : null;
+}
+
+/** How long a read that only adds a part to the page may take: past it, the page is drawn without that part. */
+const PART_MS = 2500;
+
+/** A read that only adds a part: null when it fails or is late, so it never holds the page. */
+function part<T>(read: Promise<T>): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), PART_MS);
+  });
+  return Promise.race([read.catch(() => null), late]).finally(() => clearTimeout(timer));
+}
+
+/** Whether a walkthrough that waits for another pass can go back to the person's own agent. */
+function walkthroughSendBackOf(first: ContributeAttemptDetail): WalkthroughSendBack {
+  if (!ownAgentChangesOf(first)) return 'no';
+  return (first.sendBacksLeft ?? 0) > 0 ? 'yes' : 'none-left';
+}
+
+/** The fixer's walkthrough of a Learn fix, while it is public or paused: the one they may take down. */
+async function takeDownSlugOf(attemptId: string): Promise<string | null> {
+  const { loadAttemptLesson } = await import('@/lib/learn/learn.data');
+  const lesson = await part(loadAttemptLesson(attemptId));
+  const visible = lesson?.visibility === 'PUBLIC' || lesson?.visibility === 'HELD';
+  return visible ? (lesson?.head?.slug ?? null) : null;
 }
 
 /** The replies of the pull request that did not post, by the newest run that drafted any. */
@@ -75,14 +104,16 @@ export async function PullRequestPageScreen({
 
   const prId = first.pullRequest?.prId ?? null;
   const kinds = new Set(page.onlyYou.map(({ kind }) => kind));
-  const [hideable, waiting, current, prNotes, blocked] = await Promise.all([
-    page.number !== null ? loadTimelineHideable(first.attemptId) : false,
+  const open = page.number !== null;
+  const [timeline, waiting, current, prNotes, blocked, takeDown] = await Promise.all([
+    open ? loadTimelineSwitch(first.attemptId) : null,
     kinds.has('replies_failed') || kinds.has('bot_blocked') ? loadRepliesWaiting() : undefined,
     kinds.has('bot_blocked') && first.followUps?.currentAttemptId
       ? loadAttempt(first.followUps.currentAttemptId).catch(() => undefined)
       : undefined,
-    kinds.has('bot_blocked') && first.pullRequest ? loadPrNotes(first.attemptId) : undefined,
+    first.pullRequest ? part(loadPrNotes(first.attemptId)) : null,
     page.made === 'LEARN' && page.box === 'WALKTHROUGH' ? loadBlockedWalkthroughs() : null,
+    page.made === 'LEARN' && open && !earlier ? takeDownSlugOf(first.attemptId) : null,
   ]);
   const now = new Date();
   const latest = !earlier;
@@ -90,11 +121,14 @@ export async function PullRequestPageScreen({
     attemptId: first.attemptId,
     prId: page.number !== null && page.box !== 'MERGED' ? prId : null,
     runId: runIdOf(first),
-    walkthroughSendBack: ownAgentChangesOf(first) && (first.sendBacksLeft ?? 0) > 0,
+    walkthroughSendBack: walkthroughSendBackOf(first),
     retryId: retryIdOf(page, first),
     discard: latest && page.number === null && !['STOPPED', 'DISCARDED', 'CLOSED'].includes(page.box),
     failedReplies: failedRepliesOf(waiting, prId),
-    hide: hideable && page.number !== null ? { nameWithOwner: page.repo, number: page.number } : null,
+    timeline:
+      timeline && page.number !== null
+        ? { nameWithOwner: page.repo, number: page.number, shown: timeline.shown }
+        : null,
     returnTo: base,
   };
   const replies = waiting?.filter((reply) => reply.prId === prId);
@@ -108,6 +142,8 @@ export async function PullRequestPageScreen({
       ops={ops}
       openRound={openRound}
       walkthroughBlocked={blocked?.get(first.attemptId) ?? null}
+      maintainers={prNotes?.notes.length ? <PrNotesPanel notes={prNotes} /> : null}
+      takeDown={takeDown ? <WalkthroughTakeDown slug={takeDown} /> : null}
       proof={
         kinds.has('bot_blocked') ? (
           <ProofSection
@@ -115,7 +151,7 @@ export async function PullRequestPageScreen({
             first={first}
             current={current ?? undefined}
             replies={replies}
-            prNotes={prNotes}
+            prNotes={prNotes ?? undefined}
             now={now}
           />
         ) : null

@@ -50,6 +50,7 @@ import type {
   ContributePreferences,
   ContributePreferencesInput,
   ContributePrFeedbackResult,
+  ContributePrNote,
   ContributePrNotes,
   ContributeProof,
   ContributeProofSession,
@@ -938,6 +939,15 @@ export const UndoContributePrActionDocument = doc<
 export const ContributePrNotesDocument = doc<{ contributePrNotes: ContributePrNotes | null }, { attemptId: string }>(
   `query ContributePrNotes($attemptId: ID!) {
   contributePrNotes(attemptId: $attemptId) { stopped { login at } notes { ${PR_NOTE} } }
+}`,
+);
+
+export const HideContributePrNoteDocument = doc<
+  { hideContributePrNote: ContributePrNote },
+  { feedbackId: string; hidden: boolean }
+>(
+  `mutation HideContributePrNote($feedbackId: ID!, $hidden: Boolean!) {
+  hideContributePrNote(feedbackId: $feedbackId, hidden: $hidden) { ${PR_NOTE} }
 }`,
 );
 

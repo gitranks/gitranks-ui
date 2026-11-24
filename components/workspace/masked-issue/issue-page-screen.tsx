@@ -90,6 +90,8 @@ export type IssuePageScreenProps = {
   givenBack?: Omit<GivenBackProps, 'backHref' | 'reasons' | 'note'>;
   /** Access to real issues is closed: the closing's words and the request to look again, in place of the page. */
   suspended?: FairUseAppealFormProps | null;
+  /** A press that did not go through, said under the page's body ("Not opened. Try again."). */
+  notice?: string | null;
 };
 
 const CARD = 'flex flex-col gap-3 rounded-xl border bg-card p-5';
@@ -389,6 +391,11 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
         ← {back.label}
       </Link>
       {body}
+      {props.notice ? (
+        <p role="alert" className="m-0 text-sm text-destructive" data-page-notice="">
+          {props.notice}
+        </p>
+      ) : null}
       <p className="sr-only" aria-live="polite" data-page-said="">
         {said}
       </p>

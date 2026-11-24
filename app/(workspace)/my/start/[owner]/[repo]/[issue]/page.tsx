@@ -8,6 +8,7 @@ import { loadLearnProfile } from '@/lib/learn/learn.data';
 import { learnGoalLabelOf } from '@/lib/learn/profile-form';
 import { notEnteredTargetOf } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
+import { loadRulesLive, loadStartPageMask } from '@/lib/workspace/masked-issue.data';
 import { startPath } from '@/lib/workspace/paths';
 import { learnStartIssueOf, startBackOf, startModeOf } from '@/lib/workspace/start/start-page';
 import { loadStartPageView } from '@/lib/workspace/start/start-page.data';
@@ -35,6 +36,11 @@ export default function StartPage({ params, searchParams }: Params) {
  * to the same address in Fix mode; an account that has not entered goes where the gate says (a lesson: Learn's step
  * for the issue). The viewer's own
  * attempt on the issue moves on to its pull request's page (a Fix attempt in lesson mode is worded instead).
+ *
+ * Issue details are hidden until a person asks to see one, and an issue's own page is at its mask's address. From the
+ * switch on (the rules about full issues a day live), this address keeps working for an issue the viewer works on (its
+ * pull request's page), holds or named (this page), and is not found for any other: it would name an issue nobody
+ * uncovered. Until then, and whenever the switch or the mask cannot be read, it is today's page.
  */
 async function StartView({ params, searchParams }: Pick<Params, 'params' | 'searchParams'>) {
   const [{ owner, repo, issue }, search] = await Promise.all([params, searchParams]);
@@ -60,6 +66,7 @@ async function StartView({ params, searchParams }: Pick<Params, 'params' | 'sear
     notFound();
   }
   if (load.kind === 'claimed') redirect(load.href);
+  if ((await loadRulesLive()) && (await loadStartPageMask(ref, mode))) notFound();
 
   const back = startBackOf(mode, search.from);
   return (

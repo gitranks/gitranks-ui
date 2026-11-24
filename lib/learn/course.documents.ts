@@ -1,6 +1,7 @@
 import { parse } from 'graphql';
 
 import type { LearnCourse, LearnCourseCard, LearnCourseMineCard, LearnLessonListItem } from './course';
+import type { LearnProject } from './paths';
 import type DocumentNode from '@/types/typed-document-node';
 
 /*
@@ -13,7 +14,15 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
   parse(source) as DocumentNode<TData, TVariables>;
 
 const LINK = 'slug title';
-const CARD = 'slug name kind covers languages lessons numbers { learners goodShare }';
+/** A project course's project, as its card and its page name it. */
+const PROJECT = 'project { name repo org language githubUrl onGitranks covers checkedAt }';
+/** A course's card: a project course's carries its project. */
+export const COURSE_CARD_FIELDS = `slug name kind covers languages lessons numbers { learners goodShare } ${PROJECT}`;
+const CARD = COURSE_CARD_FIELDS;
+/** A course whole, as everyone reads it: its groups name their repository and the group about contributing. */
+const COURSE = `${CARD} numbers { issuesFixed } about
+      groups { slug name repo contributing lessons { slug title level paused } }
+      next { ${CARD} } checkOffered changedAt`;
 
 /** Every live course, in the order the list shows them: the same for everyone. */
 export const LearnCoursesDocument = doc<{ learnCourses: LearnCourseCard[] }>(
@@ -28,11 +37,24 @@ export const LearnLessonsDocument = doc<{ learnLessons: LearnLessonListItem[] }>
 /** A course whole: the same for everyone. Null when it is not live, or not one of ours. */
 export const LearnCourseDocument = doc<{ learnCourse: LearnCourse | null }, { slug: string }>(
   `query LearnCourse($slug: String!) {
-    learnCourse(slug: $slug) {
-      ${CARD} numbers { issuesFixed } about
-      groups { slug name lessons { slug title level paused } }
-      next { ${CARD} } checkOffered changedAt
-    }
+    learnCourse(slug: $slug) { ${COURSE} }
+  }`,
+);
+
+/** A project course by its project, exactly one of a repository and an organisation: whole, the same for everyone. */
+export const LearnProjectCourseDocument = doc<{ learnProjectCourse: LearnCourse | null }, LearnProject>(
+  `query LearnProjectCourse($repo: String, $org: String) {
+    learnProjectCourse(repo: $repo, org: $org) { ${COURSE} }
+  }`,
+);
+
+/** A project course's open issues to fix, alone: they change through the day, the course does not. */
+export const LearnProjectOpenIssuesDocument = doc<
+  { learnProjectCourse: { openIssues: number | null } | null },
+  LearnProject
+>(
+  `query LearnProjectOpenIssues($repo: String, $org: String) {
+    learnProjectCourse(repo: $repo, org: $org) { openIssues }
   }`,
 );
 

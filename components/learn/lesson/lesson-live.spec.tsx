@@ -203,6 +203,20 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     expect(push).toHaveBeenCalledWith(`/learn/courses/${setLessonLast.course.slug}`);
   });
 
+  it("leads a project course's lesson to its project's address: the breadcrumb, and after the group's last lesson", async () => {
+    signedIn();
+    routes(mineNew, setDepthsLast);
+    answerLearnLessonAction.mockResolvedValue({ ok: false, error: 'FAILED' });
+    const project = { name: 'Django', repo: 'django/django', org: null };
+    await draw({ lesson: { ...setLessonLast, course: { ...setLessonLast.course, project } }, group: setGroupLast });
+    const crumbs = [...document.querySelectorAll('[data-player-strip] a')].map((a) => a.getAttribute('href'));
+    expect(crumbs).toContain('/learn/repos/django/django');
+    await click(option(1));
+    await click(main());
+    await click(main());
+    expect(push).toHaveBeenCalledWith('/learn/repos/django/django');
+  });
+
   it('sends a rating, and says whether it was saved', async () => {
     signedIn();
     routes(mineLearned);

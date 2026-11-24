@@ -477,3 +477,75 @@ export const lessonDepths: Record<string, LearnDepth> = {
   [slugOf('Merge sort: split, sort, merge')]: 'LEARNED',
   [slugOf('Sort a slice with sort.Slice')]: 'LEARNED',
 };
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Project courses                                                                                                    */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** A repository's course, with a group about one repository and the group on contributing. */
+export const djangoCourse: LearnCourse = {
+  slug: 'django',
+  name: 'Django, from the inside',
+  kind: 'REPOSITORY',
+  covers: 'How a request goes through Django',
+  languages: ['python'],
+  lessons: 2,
+  numbers: { learners: null, goodShare: null },
+  project: {
+    name: 'Django',
+    repo: 'django/django',
+    org: null,
+    language: 'python',
+    githubUrl: 'https://github.com/django/django',
+    onGitranks: true,
+    covers: [],
+    checkedAt: '2026-11-12',
+  },
+  about: 'How a request goes through Django, read from its own code.',
+  groups: [
+    {
+      slug: 'requests',
+      name: 'Requests',
+      repo: 'django/django',
+      lessons: [{ slug: 'django-request-handler', title: 'Where a request starts', level: E, paused: false }],
+    },
+    {
+      slug: 'contributing',
+      name: 'Contributing',
+      contributing: true,
+      lessons: [{ slug: 'django-first-patch', title: 'Send a first patch', level: E, paused: false }],
+    },
+  ],
+  next: null,
+  checkOffered: false,
+  changedAt: '2026-11-20T09:00:00.000Z',
+};
+
+/** An organisation's course, over three of its repositories. */
+export const kubernetesCourse: LearnCourse = {
+  ...djangoCourse,
+  slug: 'kubernetes',
+  name: 'Kubernetes, from the inside',
+  kind: 'ORG',
+  covers: 'How the parts of Kubernetes fit',
+  languages: ['go'],
+  project: {
+    name: 'Kubernetes',
+    repo: null,
+    org: 'kubernetes',
+    language: 'go',
+    githubUrl: 'https://github.com/kubernetes',
+    onGitranks: false,
+    covers: ['kubernetes', 'kubectl', 'website'],
+    checkedAt: '',
+  },
+  about: 'How the parts of Kubernetes fit, read from their code.',
+  groups: [
+    {
+      slug: 'scheduler',
+      name: 'The scheduler',
+      repo: 'kubernetes/kubernetes',
+      lessons: [{ slug: 'kubernetes-scheduler', title: 'How a pod finds a node', level: M, paused: false }],
+    },
+  ],
+};

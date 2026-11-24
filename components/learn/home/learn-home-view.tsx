@@ -11,7 +11,7 @@ import { MyCourseCard } from '@/components/learn/my-progress/my-progress-parts';
 import { PHONE_LINK } from '@/components/learn/phone-link';
 import { Kbd } from '@/components/learn/question/kbd';
 import { Button } from '@/components/ui/button';
-import type { CourseSection, LearnCourseCard } from '@/lib/learn/course';
+import type { CourseSection, CourseSectionKind, LearnCourseCard } from '@/lib/learn/course';
 import {
   dueLineOf,
   dueTitleOf,
@@ -31,6 +31,7 @@ import {
 import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
 import { learnTodayIn } from '@/lib/learn/my-progress';
 import {
+  courseHrefOf,
   coursePath,
   LEARN_COURSES_PATH,
   LEARN_ISSUES_PATH,
@@ -39,6 +40,7 @@ import {
   LEARN_SETUP_PATH,
   learnLessonPath,
 } from '@/lib/learn/paths';
+import { projectLanguageOf } from '@/lib/learn/project-course';
 import {
   fixBoxIssuesLineOf,
   fixBoxWordsOf,
@@ -329,15 +331,26 @@ function ThirdBox({
   );
 }
 
-/** One course of a column: its name, then its lessons and the numbers worth showing. */
+/** A project course's main language, beside its name in a column. */
+const languageOf = (course: LearnCourseCard) => (course.project ? projectLanguageOf(course.project) : null);
+
+/** A column's short title on Learn home. */
+const SHORT_SECTION_TITLES: Record<CourseSectionKind, string> = {
+  TOPIC: 'Topics',
+  LANGUAGE: 'Languages',
+  PROJECT: 'Projects',
+};
+
+/** One course of a column: its name (a project course's with its main language), then its lessons and numbers. */
 function CourseRow({ course }: { course: LearnCourseCard }) {
   return (
     <li className="flex min-w-0 flex-col gap-0.5">
       <Link
-        href={coursePath(course.slug)}
+        href={courseHrefOf(course)}
         className="truncate text-sm font-semibold hover:underline max-sm:min-h-11 max-sm:leading-11"
       >
         {course.name}
+        {languageOf(course) ? <span className="font-normal text-muted-foreground"> · {languageOf(course)}</span> : null}
       </Link>
       <CourseStats course={course} mine={null} />
     </li>
@@ -353,9 +366,7 @@ export function CourseColumns({ sections, full = false }: { sections: readonly C
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" data-course-columns="">
       {sections.map((section) => (
         <div key={section.kind} className="flex min-w-0 flex-col gap-3" data-course-column={section.kind}>
-          <h3 className={cn(EYEBROW, 'm-0')}>
-            {full ? section.title : section.kind === 'TOPIC' ? 'Topics' : 'Languages'}
-          </h3>
+          <h3 className={cn(EYEBROW, 'm-0')}>{full ? section.title : SHORT_SECTION_TITLES[section.kind]}</h3>
           <ul className="m-0 flex list-none flex-col gap-3 p-0">
             {section.courses.map((course) => (
               <CourseRow key={course.slug} course={course} />
@@ -465,7 +476,7 @@ function FirstCourse({
                 <Title>{course.name}</Title>
                 {course.covers ? <Text>{course.covers}</Text> : null}
                 <CourseStats course={course} mine={null} />
-                <Action lit={index === 0} hints={hints} href={coursePath(course.slug)}>
+                <Action lit={index === 0} hints={hints} href={courseHrefOf(course)}>
                   Start this course
                 </Action>
               </Box>

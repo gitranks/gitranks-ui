@@ -10,7 +10,7 @@ vi.mock('@/lib/workspace/masked-issue.actions', () => ({
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
 
-const { OwnerBoxSlot, OwnerBoxView, ProfileContributeView, ownProfileBlockUrl } = await import('./profile-contribute');
+const { OwnerBoxView, ProfileContributeView, ownProfileBlockUrl } = await import('./profile-contribute');
 const { maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
 
 const pick = (n: number, fit = 'language', language = { name: 'TypeScript', color: '#3178c6' }) => ({
@@ -148,12 +148,6 @@ describe("the owner's box on their own profile", () => {
   it('is left out without picks', () => {
     expect(box({ kind: 'none' }, skills({ sides: sides(false, false) }))).toBe('');
     expect(box({ kind: 'none' }, skills())).toBe('');
-  });
-
-  it("keeps the box's place, empty and hidden from screen readers, while the reads are on their way", () => {
-    const html = renderToStaticMarkup(<OwnerBoxSlot />);
-    expect(html).toContain('data-owner-box-slot=""');
-    expect(html).toContain('aria-hidden="true"');
   });
 });
 

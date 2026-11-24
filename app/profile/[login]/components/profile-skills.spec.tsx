@@ -75,7 +75,6 @@ describe("the overview's Skills block", () => {
     expect(container.textContent).toContain('All 6 fixes');
     expect(q('a[href="/profile/octocat/skills"]')).not.toBeNull();
     expect(urls()).toEqual(['/api/skills/octocat']);
-    expect(q('[data-owner-box-slot]')).toBeNull();
   });
 
   it('adds nothing without a public page, nor when the numbers cannot be read', async () => {
@@ -96,22 +95,75 @@ describe("the overview's Skills block", () => {
 });
 
 describe("the owner's own overview", () => {
-  it("keeps the box's place from the moment the session says it is the owner, until the reads are in", async () => {
-    signedInAs('OctoCat');
+  /** The owner's reads held until `release`, the public numbers answered at once; the page's top-level insertions. */
+  const held = (skills: unknown, picks: unknown = { kind: 'none' }) => {
     let release: () => void = () => {};
-    const held = new Promise<void>((resolve) => {
+    const wait = new Promise<void>((resolve) => {
       release = resolve;
     });
     fetchMock.mockImplementation(async (url: string) => {
-      if (url.startsWith('/api/skills/')) return json({ brief: null, learnOpen: true });
-      await held;
-      return json(url.startsWith('/api/me/skills/profile') ? NONE : { kind: 'none' });
+      if (url.startsWith('/api/skills/')) {
+        return json({ brief: { login: 'octocat', numbers: learnerNumbers }, learnOpen: true });
+      }
+      await wait;
+      return json(url.startsWith('/api/me/skills/profile') ? skills : picks);
+    });
+    const batches: MutationRecord[][] = [];
+    const observer = new MutationObserver((records) => batches.push(records));
+    observer.observe(container, { childList: true });
+    return {
+      release: () => act(async () => release()),
+      added: () => batches.filter((batch) => batch.some((record) => record.addedNodes.length)).length,
+      removed: () => batches.flat().some((record) => record.removedNodes.length),
+      stop: () => observer.disconnect(),
+    };
+  };
+
+  it("draws nothing for the owner while a read of theirs is on its way, though everyone else's numbers are in", async () => {
+    signedInAs('OctoCat');
+    const page = held(NONE);
+    await draw();
+    expect(container.innerHTML).toBe('');
+    await page.release();
+    await settle();
+    page.stop();
+  });
+
+  it('gives an owner whose box comes back empty the block alone, put in once', async () => {
+    signedInAs('octocat');
+    const page = held({ ...NONE, sides: { usesContribute: false, usesLearn: true, learnOpen: true }, learnRows: [] });
+    await draw();
+    await page.release();
+    await settle();
+    page.stop();
+    expect(q('[data-owner-box]')).toBeNull();
+    expect(q('h3#profile-skills')).not.toBeNull();
+    expect(page.added()).toBe(1);
+    expect(page.removed()).toBe(false);
+  });
+
+  it('gives an owner with a box the box and the block at once', async () => {
+    signedInAs('octocat');
+    const page = held({
+      ...NONE,
+      sides: { usesContribute: false, usesLearn: true, learnOpen: true },
+      learnRows: [{ kind: 'masked', masked: maskedIssue() }],
     });
     await draw();
-    expect(q('[data-owner-box-slot]')).not.toBeNull();
-    await act(async () => release());
+    await page.release();
     await settle();
-    expect(q('[data-owner-box-slot]')).toBeNull();
+    page.stop();
+    expect(q('[data-owner-box="learn"]')).not.toBeNull();
+    expect(q('h3#profile-skills')).not.toBeNull();
+    expect(page.added()).toBe(1);
+    expect(page.removed()).toBe(false);
+  });
+
+  it('draws nothing while the session is unknown, so the owner never sees the block come and go', async () => {
+    useSession.mockReturnValue({ data: null, status: 'loading' });
+    answers({ brief: { login: 'octocat', numbers: contributorNumbers } });
+    await draw();
+    expect(container.innerHTML).toBe('');
   });
 
   it('puts the box above the block', async () => {

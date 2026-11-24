@@ -78,14 +78,6 @@ export function OwnerBoxView({ reads, colors }: { reads: OwnerReads; colors?: Re
   }
 }
 
-/**
- * The box's place while the owner's reads are on their way, at about its height, so the box takes it without moving
- * what is under it. Nothing for anyone else.
- */
-export function OwnerBoxSlot() {
-  return <div aria-hidden="true" className="min-h-[28rem] max-sm:min-h-[42rem]" data-owner-box-slot="" />;
-}
-
 /** Contribute's own box for an answer: a contributor's own list, the owner's picks, or nothing. */
 export function ProfileContributeView({ answer }: { answer: OwnProfileBlockAnswer }) {
   if (answer.kind === 'none') return null;

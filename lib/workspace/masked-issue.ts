@@ -274,13 +274,21 @@ export const SKIP_REASONS: { reason: IssueOutReason; text: string }[] = [
  */
 export function numbersLineOf(numbers: Pick<IssueNumbers, 'read' | 'kept'> | null): string {
   const how = 'Our own rules look first, then two AI models, Jev and Claude.';
-  if (!numbers || numbers.read <= 0) return `We read open issues and keep very few of them. ${how}`;
-  const share = numbers.kept / numbers.read;
-  const shareText =
-    share >= 0.0005 && share <= 0.002
-      ? 'about 1 in 1,000'
-      : `${new Intl.NumberFormat('en-US', { maximumSignificantDigits: 2 }).format(share * 100)}%`;
+  const shareText = keptShareOf(numbers);
+  if (!numbers || shareText === null) return `We read open issues and keep very few of them. ${how}`;
   return `We read ${count.format(numbers.read)} open issues and kept ${count.format(numbers.kept)} of them: ${shareText}. ${how}`;
+}
+
+/**
+ * The share of issues read that were kept, in words: "about 1 in 1,000" while it is between 0.05% and 0.2%, else the
+ * percent itself ("0.3%"). Null before anything was read. Every place that words the share uses it, so none disagree.
+ */
+export function keptShareOf(numbers: Pick<IssueNumbers, 'read' | 'kept'> | null): string | null {
+  if (!numbers || numbers.read <= 0) return null;
+  const share = numbers.kept / numbers.read;
+  return share >= 0.0005 && share <= 0.002
+    ? 'about 1 in 1,000'
+    : `${new Intl.NumberFormat('en-US', { maximumSignificantDigits: 2 }).format(share * 100)}%`;
 }
 
 /** The window's three reasons, in their order. */

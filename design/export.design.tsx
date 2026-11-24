@@ -49,6 +49,7 @@ it('exports the screens', async () => {
   // A fresh drawing: boards and images an earlier export wrote and this one no longer draws don't linger.
   rmSync(join(OUT, 'project/current'), { recursive: true, force: true });
   for (const screen of SCREENS) {
+    if (screen.exported === false) continue;
     for (const state of screen.states) {
       const path = boardPathOf(screen, state);
       const [pathname, search = ''] = state.path.split('?');

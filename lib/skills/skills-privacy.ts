@@ -9,27 +9,21 @@ import type { SkillsMine } from './skills.types';
 export type PrivacyRow = { line: string; choice: { hidden: boolean } | null };
 
 /**
- * The row by the page's state: a choice on a page with something on it; while nothing is on it, or while only its
- * owner may see it (what it shows is all of GitRanks Learn, not open to everyone yet), the row says so with no choice.
- * Null when the view could not be read.
+ * The row by the page's state: a choice on a page with something on it; while nothing is on it, the row says so with
+ * no choice. Null when the view could not be read.
  */
-export function privacyRowOf(mine: Pick<SkillsMine, 'state' | 'learnOpen'> | null | undefined): PrivacyRow | null {
+export function privacyRowOf(mine: Pick<SkillsMine, 'state'> | null | undefined): PrivacyRow | null {
   if (!mine) return null;
   switch (mine.state) {
     case 'PUBLIC':
       return { line: 'Everyone can see it.', choice: { hidden: false } };
     case 'HIDDEN':
-      return { line: 'Only you can see it.', choice: { hidden: true } };
+    // An older API may still answer `PRIVATE`: drawn as `HIDDEN`.
     case 'PRIVATE':
-      return {
-        line: 'Only you can see it for now: what it shows is from GitRanks Learn, which is not open to everyone yet.',
-        choice: null,
-      };
+      return { line: 'Only you can see it.', choice: { hidden: true } };
     default:
       return {
-        line: mine.learnOpen
-          ? 'Nothing is on it yet. It shows to everyone from your first pull request sent or lesson learned.'
-          : 'Nothing is on it yet. It shows to everyone from your first pull request sent.',
+        line: 'Nothing is on it yet. It shows to everyone from your first pull request sent or lesson learned.',
         choice: null,
       };
   }

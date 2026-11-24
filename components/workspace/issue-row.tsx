@@ -94,8 +94,6 @@ export type IssueRowProps = {
   control?: boolean;
   /** The "⋯" (Contribute rows): false leaves it out, with Fix it and teach me and Skip. */
   menu?: boolean;
-  /** Learn is open to the person: "Fix it and teach me" shows in the menu. */
-  learnOpen?: boolean;
   /** Where the issue stands now, and what the row tells its list; none: nothing is followed (a visitor's list). */
   live?: IssueLive;
   /** A Learn row's Start a lesson, where the page that places the list sends it. */
@@ -139,7 +137,6 @@ function NamedIssueRow({
   primary = false,
   control = true,
   menu = true,
-  learnOpen = false,
   live,
   startHref,
   facts,
@@ -275,7 +272,7 @@ function NamedIssueRow({
             <IssueRowMenu
               issueId={issue.issueId}
               issueRef={ref}
-              teach={learnOpen && showControl}
+              teach={showControl}
               disabled={gone}
               onSkipped={() => {
                 setSkipped(true);

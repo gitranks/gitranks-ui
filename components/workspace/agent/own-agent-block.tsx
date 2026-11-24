@@ -128,17 +128,9 @@ const MCP_DOCS_LINK =
 /**
  * The Agent tab's "Your own agent" (`#own-agent`): one card per live connection, each with Revoke, then "Connect another
  * agent" and the MCP docs. None: "No agent is connected." and Connect your agent. `ownAgent` is `undefined` when its
- * read failed. The chip says what it serves: Contribute and Learn, or Contribute while Learn is not open.
+ * read failed. The chip says what it serves: Contribute and Learn.
  */
-export function OwnAgentBlock({
-  ownAgent,
-  learnOpen,
-  now,
-}: {
-  ownAgent: ContributeOwnAgent | undefined;
-  learnOpen: boolean;
-  now?: Date;
-}) {
+export function OwnAgentBlock({ ownAgent, now }: { ownAgent: ContributeOwnAgent | undefined; now?: Date }) {
   const tokens = ownAgent?.tokens ?? [];
   return (
     <section id="own-agent" aria-labelledby="own-agent-title" className="flex scroll-mt-20 flex-col gap-3">
@@ -146,7 +138,7 @@ export function OwnAgentBlock({
         <h2 id="own-agent-title" className={HEADING.section}>
           Your own agent
         </h2>
-        <Pill tone="neutral">{learnOpen ? 'For Contribute and Learn' : 'For Contribute'}</Pill>
+        <Pill tone="neutral">For Contribute and Learn</Pill>
       </div>
       {ownAgent === undefined ? (
         <p

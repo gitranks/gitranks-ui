@@ -1,6 +1,6 @@
 import { SkillsLine } from './skills-line';
 import type { SkillsNumbers } from '@/lib/skills/skills.types';
-import { figureWordsOf, numbersFor, shownFigures, sinceLineOf } from '@/lib/skills/skills-figures';
+import { figureWordsOf, shownFigures, sinceLineOf } from '@/lib/skills/skills-figures';
 import { cn } from '@/lib/utils';
 
 /** The row's columns by how many figures it holds: one cell each, from a phone's two upwards. */
@@ -14,21 +14,17 @@ const COLUMNS: Record<number, string> = {
 /**
  * The numbers box of a Skills page: a short row of figures, each centred in its cell, and one line under them (since
  * when, with which product). The tab draws its four at most (`numbers.figures`), the block its three
- * (`numbers.blockFigures`). While Learn is not open to the reader, nothing of Learn shows. A figure with nothing in it
- * is left out, so no number is ever a zero. On a phone the figures go two in a row and an odd last one takes the whole
+ * (`numbers.blockFigures`). A figure with nothing in it is left out, so no number is ever a zero. On a phone the figures go two in a row and an odd last one takes the whole
  * row. Nothing with no figure.
  */
 export function SkillsNumbersBox({
-  numbers: given,
+  numbers,
   place = 'tab',
-  learnOpen = true,
 }: {
   numbers: SkillsNumbers;
   /** Whose figures to draw: the tab's, or the block's. */
   place?: 'tab' | 'block';
-  learnOpen?: boolean;
 }) {
-  const numbers = numbersFor(given, learnOpen);
   const shown = shownFigures(place === 'block' ? numbers.blockFigures : numbers.figures);
   if (!shown.length) return null;
   return (

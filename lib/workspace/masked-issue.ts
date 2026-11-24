@@ -32,9 +32,8 @@ export const maskIdOf = (value: unknown): string | null =>
 /** The list a person came from, which the page's words, form and back link follow. */
 export type IssuePageFrom = 'learn' | 'contribute';
 
-/** `?from=learn` from Learn's lists, when Learn is open to the person; Contribute's otherwise. */
-export const issuePageFromOf = (value: unknown, learnOpen: boolean): IssuePageFrom =>
-  value === 'learn' && learnOpen ? 'learn' : 'contribute';
+/** `?from=learn` from Learn's lists; Contribute's otherwise. */
+export const issuePageFromOf = (value: unknown): IssuePageFrom => (value === 'learn' ? 'learn' : 'contribute');
 
 /** Where a press of "See the full issue" was made: one of the two lists, or the owner's block on their profile. */
 export type IssueLookFrom = IssuePageFrom | 'profile';

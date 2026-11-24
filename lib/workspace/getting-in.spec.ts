@@ -14,11 +14,10 @@ import {
 const SIGNED_OUT: WorkspaceGate = { kind: 'signed-out' };
 const SETTING_UP: WorkspaceGate = { kind: 'setting-up' };
 const HIDDEN: WorkspaceGate = { kind: 'hidden' };
-const open = (entered: boolean, agents = { hosted: false, own: entered }, learnOpen = true): WorkspaceGate => ({
+const open = (entered: boolean, agents = { hosted: false, own: entered }): WorkspaceGate => ({
   kind: 'open',
   entered,
   agents,
-  learnOpen,
 });
 
 const STEPS: ContributeFlowStep[] = ['work', 'agent', 'agent-own', 'agent-key', 'issue'];
@@ -96,29 +95,20 @@ describe('contributeFlowPlaceOf: who belongs on which step of Contribute', () =>
 const learn = (
   step: 'goal' | 'issues' | 'issue',
   gate: WorkspaceGate,
-  facts: Partial<{
-    openToEveryone: boolean;
-    goalSaved: boolean;
-    goalInAddress: boolean;
-    launched: boolean;
-    learnOpen: boolean;
-  }> = {},
+  facts: Partial<{ goalSaved: boolean; goalInAddress: boolean; launched: boolean }> = {},
 ) =>
   learnFlowPlaceOf(step, {
     gate,
     launched: facts.launched ?? true,
-    learnOpen: facts.learnOpen ?? true,
-    openToEveryone: facts.openToEveryone ?? true,
     goalSaved: facts.goalSaved ?? false,
     goalInAddress: facts.goalInAddress ?? false,
     issue: { repo: 'acme/widgets', issue: 42 },
   });
 
 describe('learnFlowPlaceOf: who belongs on which step of Learn', () => {
-  it('a visitor sees every step while Learn is open to everyone, and the 404 otherwise', () => {
+  it('a visitor sees every step', () => {
     for (const step of ['goal', 'issues', 'issue'] as const) {
       expect(learn(step, SIGNED_OUT, { goalInAddress: true }), step).toEqual({ kind: 'page' });
-      expect(learn(step, SIGNED_OUT, { openToEveryone: false }), step).toEqual({ kind: 'not-found' });
     }
   });
 
@@ -132,18 +122,6 @@ describe('learnFlowPlaceOf: who belongs on which step of Learn', () => {
     expect(learn('goal', SETTING_UP)).toEqual({ kind: 'setting-up' });
     expect(learn('issues', HIDDEN)).toEqual({ kind: 'no-profile' });
     expect(learn('issues', HIDDEN, { launched: false })).toEqual({ kind: 'not-found' });
-  });
-
-  it('an account Learn is not open to gets the 404', () => {
-    expect(learn('goal', open(false, undefined, false))).toEqual({ kind: 'not-found' });
-    expect(learn('issue', open(true, undefined, false))).toEqual({ kind: 'not-found' });
-  });
-
-  it('being set up or with no profile, an account Learn is not open to gets the 404, never a Learn panel', () => {
-    for (const step of ['goal', 'issues', 'issue'] as const) {
-      expect(learn(step, SETTING_UP, { learnOpen: false }), step).toEqual({ kind: 'not-found' });
-      expect(learn(step, HIDDEN, { learnOpen: false }), step).toEqual({ kind: 'not-found' });
-    }
   });
 
   it('signed in and not entered: steps 2 and 3 with no goal saved and none in the address go to step 1', () => {

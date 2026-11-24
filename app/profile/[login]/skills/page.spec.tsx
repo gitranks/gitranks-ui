@@ -4,12 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { bothPage } from '@/lib/skills/__fixtures__/skills';
 
-const { loadSkillsPage, fetchProfilePageOverview, cacheLife, cacheTag, learn } = vi.hoisted(() => ({
+const { loadSkillsPage, fetchProfilePageOverview, cacheLife, cacheTag } = vi.hoisted(() => ({
   loadSkillsPage: vi.fn(),
   fetchProfilePageOverview: vi.fn(),
   cacheLife: vi.fn(),
   cacheTag: vi.fn(),
-  learn: { open: true },
 }));
 vi.mock('next/cache', () => ({ cacheLife, cacheTag }));
 vi.mock('next/navigation', () => ({
@@ -18,16 +17,13 @@ vi.mock('next/navigation', () => ({
   },
 }));
 vi.mock('@/lib/skills/skills.data', () => ({ loadSkillsPage }));
-vi.mock('@/app/components/landing/landing-data', () => ({ fetchLearnForVisitors: async () => learn.open }));
 vi.mock('@/graphql/helpers/fetch-profile-page-overview', () => ({ fetchProfilePageOverview }));
 // The left column and the page's client layer are drawn by their own specs; this one reads what the page hands them.
 vi.mock('../components/layout-left-column', () => ({
   LayoutLeftColumn: ({ children }: PropsWithChildren) => children,
 }));
 vi.mock('../components/skills-screen', () => ({
-  SkillsScreen: (props: { login: string; learnOpen: boolean; now: Date }) => (
-    <div data-screen={props.login} data-learn-open={String(props.learnOpen)} />
-  ),
+  SkillsScreen: (props: { login: string; now: Date }) => <div data-screen={props.login} />,
 }));
 vi.mock('../components/skills-owner', () => ({ SkillsHeading: () => <h2>Skills</h2> }));
 vi.hoisted(() => {
@@ -42,7 +38,6 @@ const user = { login: 'octocat', name: 'The Octocat' };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  learn.open = true;
   fetchProfilePageOverview.mockResolvedValue(user);
   loadSkillsPage.mockResolvedValue({ value: bothPage, failed: false });
 });
@@ -54,7 +49,6 @@ describe("a person's Skills page", () => {
     expect(cacheLife).toHaveBeenCalledExactlyOnceWith({ stale: 300, revalidate: 900, expire: 86_400 });
     expect(html).toContain('<h2>Skills</h2>');
     expect(html).toContain('data-screen="OctoCat"');
-    expect(html).toContain('data-learn-open="true"');
     expect(html).toContain('application/ld+json');
     expect(html).toContain('"ProfilePage"');
   });

@@ -108,7 +108,7 @@ export const LEARN_REAL_ISSUES_SCREENS: Screen[] = [
       },
       {
         id: 'lesson-visitor',
-        title: 'A visitor while Learn is open to everyone: the merged fixes alone',
+        title: 'A visitor: the merged fixes alone',
         path: `/learn/lessons/${setLesson.slug}`,
         signedOut: true,
         height: 600,
@@ -186,7 +186,6 @@ export const LEARN_REAL_ISSUES_SCREENS: Screen[] = [
             others={otherCourses}
             calls={{ onSignIn: noop, onRate: saved }}
             openIssues={3}
-            learnOpen
             hints
           />
         ),
@@ -204,7 +203,6 @@ export const LEARN_REAL_ISSUES_SCREENS: Screen[] = [
             others={otherCourses}
             calls={{ onSignIn: noop, onRate: saved }}
             openIssues={2}
-            learnOpen
             hints
           />
         ),
@@ -216,14 +214,7 @@ export const LEARN_REAL_ISSUES_SCREENS: Screen[] = [
         signedOut: true,
         height: 4200,
         render: () => (
-          <LearnLandingView
-            viewer="visitor"
-            markdown
-            courses={courseCards}
-            lessons={tryLessons}
-            hints
-            fixes={landingFixes}
-          />
+          <LearnLandingView viewer="visitor" courses={courseCards} lessons={tryLessons} hints fixes={landingFixes} />
         ),
       },
     ],

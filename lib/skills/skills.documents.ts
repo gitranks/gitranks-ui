@@ -29,7 +29,7 @@ const PAGE = `login
   indexable`;
 const MINE = `state
   page { ${PAGE} }
-  usesContribute usesLearn learnOpen tabNew
+  usesContribute usesLearn tabNew
   numbers { read kept at repos aiReadsPerDay }`;
 
 type Login = { login: string };

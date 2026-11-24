@@ -88,7 +88,7 @@ const stopped = runOf({
   latestEvent: { state: 'STOPPED', detail: 'No-go: nothing here needs a code change.', at: '2026-10-31T11:58:00.000Z' },
 });
 
-/** Every tab, as an account Learn is open to sees them. */
+/** Every tab, as an account that has entered sees them. */
 const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
 
 /** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */
@@ -124,7 +124,6 @@ const tab = (
     <ContributeTabScreen
       view={view}
       agents={{ hosted: true, own: true }}
-      learnOpen
       tab={{ totals: { open: 2, merged: 7, closed: 4, reposHelped: 6 }, hostedLevel: 'MANUAL' }}
       page={issuePage}
       activity={activity}
@@ -800,18 +799,11 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     states: [
       {
         id: 'launched',
-        title: 'Once Contribute is open',
+        title: "Once Contribute is open: its section and Learn's",
         path: '/terms',
         signedOut: true,
-        height: 4850,
-        render: () => <TermsScreen contribute />,
-      },
-      {
-        id: 'learn',
-        title: 'With the Learn section, for whoever Learn is open to',
-        path: '/terms#learn',
         height: 5600,
-        render: () => <TermsScreen contribute learn />,
+        render: () => <TermsScreen contribute />,
       },
     ],
   },

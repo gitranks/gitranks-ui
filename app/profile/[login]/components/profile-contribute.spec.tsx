@@ -46,11 +46,7 @@ const own: Extract<OwnProfileBlockAnswer, { kind: 'own' }> = {
   stats: { screenedRepos: 1, issuesRead: 2, readyIssues: 2500 },
 };
 const contributor = { kind: 'contributor' as const, issues: [1, 2, 3].map((n) => pick(n, 'listed')) };
-const sides = (usesContribute: boolean, usesLearn: boolean, learnOpen = true) => ({
-  usesContribute,
-  usesLearn,
-  learnOpen,
-});
+const sides = (usesContribute: boolean, usesLearn: boolean) => ({ usesContribute, usesLearn });
 const skills = (patch: Partial<{ sides: ReturnType<typeof sides> | null; learnRows: unknown[] | null }> = {}) => ({
   sides: null,
   block: null,
@@ -86,14 +82,6 @@ describe("the owner's box on their own profile", () => {
     expect(html).toContain('href="/learn"');
     expect(html).toContain('See GitRanks Learn');
     expect(html.match(/data-issue=/g)).toHaveLength(3);
-  });
-
-  it('names nothing of Learn to someone it is not open to', () => {
-    const html = box(own, skills({ sides: sides(false, false, false) }));
-    expect(html).toContain('Fix one with your AI agent.');
-    expect(html).not.toContain('learn from one');
-    expect(html).not.toContain('See GitRanks Learn');
-    expect(html).not.toContain('href="/learn"');
   });
 
   it('shows no zero: the ready issues are left out when there are none or they are not known', () => {

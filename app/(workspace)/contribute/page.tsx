@@ -66,7 +66,6 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
       <ContributeTab
         view={view}
         agents={open ? gate.agents : { hosted: false, own: false }}
-        learnOpen={open && gate.learnOpen}
         query={issuesQueryOf(params)}
       />
     );

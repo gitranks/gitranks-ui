@@ -49,7 +49,7 @@ async function cardOf(login: string, read: (login: string) => Promise<SkillsCard
     return { response: unavailable() };
   }
   if (found.failed) return { response: unavailable() };
-  const card = found.brief ? skillsCardOf(found.brief, found.learnOpen) : null;
+  const card = found.brief ? skillsCardOf(found.brief) : null;
   return card ? { card } : { response: notFound() };
 }
 

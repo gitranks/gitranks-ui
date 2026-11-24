@@ -3,7 +3,6 @@ import type { Screen } from '../registry';
 import { landingData } from '@/app/components/landing/__fixtures__/landing';
 import { LandingScreen } from '@/app/components/landing/landing-screen';
 import { orgBig, repoBig, userBig, userMid } from '@/badge/v3/fixtures';
-import { landingPromo } from '@/lib/learn/__fixtures__/promo';
 import { unsungHero } from '@/lib/unsung-hero/__fixtures__/hero';
 
 // The README mock draws today's #1s; the signed-in viewer's card and badges are theirs (`viewerRankCard`).
@@ -19,8 +18,6 @@ const SOURCES = [
   'app/components/landing/example-cards.tsx',
   'app/components/landing/rank-facts.tsx',
   'app/components/landing/packages-section.tsx',
-  'app/components/landing/landing-promos.tsx',
-  'app/components/landing/learn-section.tsx',
   'app/components/landing/products-block-live.tsx',
   'app/components/landing/products-block.tsx',
   'app/components/landing/readme-section.tsx',
@@ -39,31 +36,24 @@ export const LANDING_SCREENS: Screen[] = [
         id: 'signed-in',
         title: 'Signed in, with the package rankings',
         path: '/',
-        height: 6900,
-        render: () => <LandingScreen {...landingData} />,
+        height: 7500,
+        render: () => <LandingScreen {...landingData} contribute />,
       },
       {
-        id: 'signed-out-learn',
-        title: 'Signed out, once Learn is open to everyone: the block for Contribute and Learn under the hero',
+        id: 'signed-out',
+        title: 'Signed out: the block for Contribute and Learn under the hero',
         path: '/',
         signedOut: true,
         height: 7500,
-        render: () => <LandingScreen {...landingData} learn={{ forVisitors: true }} />,
-      },
-      {
-        id: 'likely-learner',
-        title: 'Signed in, Learn suggested after the package rankings',
-        path: '/',
-        height: 6800,
-        render: () => <LandingScreen {...landingData} learn={{ promo: landingPromo }} />,
+        render: () => <LandingScreen {...landingData} contribute />,
       },
       {
         id: 'unsung-hero',
         title: 'Unsung hero of the week, signed in or out',
         path: '/',
         signedOut: true,
-        height: 6100,
-        render: () => <LandingScreen {...landingData} hero={unsungHero} />,
+        height: 6700,
+        render: () => <LandingScreen {...landingData} contribute hero={unsungHero} />,
       },
       {
         id: 'signed-out-phone',
@@ -71,8 +61,8 @@ export const LANDING_SCREENS: Screen[] = [
         path: '/',
         signedOut: true,
         width: 390,
-        height: 6500,
-        render: () => <LandingScreen {...landingData} />,
+        height: 7300,
+        render: () => <LandingScreen {...landingData} contribute />,
       },
     ],
   },

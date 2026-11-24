@@ -22,7 +22,6 @@ import type {
   LessonResultPage,
   LessonStepResult,
 } from '@/lib/learn/learn.types';
-import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
 import { LEARN_MAINTAINERS_PATH, lessonPath, lessonResultPath } from '@/lib/learn/learn-path';
 import {
   askedByStepOf,
@@ -167,22 +166,20 @@ function WhatThisPageIs({ result }: { result: LessonResultPage }) {
   );
 }
 
-/** The way to the lesson; it offers the sign-in to answer only once Learn is open to everyone (`answerable`). */
-function TakeItYourself({ result, answerable }: { result: LessonResultPage; answerable: boolean }) {
+/** The way to the lesson, with the sign-in to answer it. */
+function TakeItYourself({ result }: { result: LessonResultPage }) {
   const { passes, slug } = result.head;
   return (
-    <section className={CARD} data-take-it={answerable ? 'answer' : 'read'}>
-      <h2 className={HEADING.block}>{answerable ? 'Take it yourself' : 'Read the lesson'}</h2>
+    <section className={CARD} data-take-it="answer">
+      <h2 className={HEADING.block}>Take it yourself</h2>
       <p className="text-sm text-muted-foreground">
         {passesShown(passes) ? (
           <>
             <span className="font-mono font-semibold text-foreground tabular-nums">{passes}</span> people passed this
             lesson.
           </>
-        ) : answerable ? (
-          'Anyone can read every step. Sign in with GitHub to answer.'
         ) : (
-          'Anyone can read every step.'
+          'Anyone can read every step. Sign in with GitHub to answer.'
         )}
       </p>
       <Link
@@ -213,16 +210,7 @@ export type ResultViewer = {
  * with the questions that run was asked and their answers, what the page is, the reactions, and the lesson to take.
  * Its facts come from GitRanks' own record of the run, which the person cannot edit.
  */
-export function LessonResultScreen({
-  result,
-  viewer,
-  answerable = true,
-}: {
-  result: LessonResultPage;
-  viewer: ResultViewer;
-  /** Whether a visitor may sign in to take the lesson: once Learn is open to everyone. */
-  answerable?: boolean;
-}) {
+export function LessonResultScreen({ result, viewer }: { result: LessonResultPage; viewer: ResultViewer }) {
   const { head } = result;
   return (
     <main className={LESSON_MAIN} data-lesson-result={head.slug} data-login={result.login}>
@@ -270,7 +258,7 @@ export function LessonResultScreen({
             />
           ) : null}
           <WhatThisPageIs result={result} />
-          <TakeItYourself result={result} answerable={answerable} />
+          <TakeItYourself result={result} />
         </aside>
       </div>
     </main>
@@ -296,17 +284,10 @@ export async function LessonResultView({
   if (answer.kind === 'stub') return <LessonStubScreen visibility={answer.visibility} />;
   const result = answer.value;
   if (result.login !== login) redirect(lessonResultPath(result.head.slug, result.login));
-  const answerable = await learnOpenToEveryone(Date.now());
 
   // Only the author's result asks for reactions (the pull request links it): nothing to read for another.
   if (!isAuthorResult(result)) {
-    return (
-      <LessonResultScreen
-        result={result}
-        viewer={{ canReact: false, mine: null, returned: null, own: false }}
-        answerable={answerable}
-      />
-    );
+    return <LessonResultScreen result={result} viewer={{ canReact: false, mine: null, returned: null, own: false }} />;
   }
   // A pick back from the sign-in this browser started for this page; `?react=` on a link alone picks nothing.
   const pick = reactionParamOf(react);
@@ -316,7 +297,5 @@ export async function LessonResultView({
   const { canReact, reaction } = own
     ? { canReact: false, reaction: null }
     : await loadMyResultReaction(result.head.slug, result.login);
-  return (
-    <LessonResultScreen result={result} viewer={{ canReact, mine: reaction, returned, own }} answerable={answerable} />
-  );
+  return <LessonResultScreen result={result} viewer={{ canReact, mine: reaction, returned, own }} />;
 }

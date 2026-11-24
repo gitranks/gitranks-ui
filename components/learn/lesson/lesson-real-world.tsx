@@ -130,7 +130,7 @@ function IssueRows({ rows: given, reads }: { rows: readonly IssuesRow[]; reads: 
 
 export type LessonRealWorldProps = {
   slug: string;
-  /** The lesson's merged fixes as everyone reads them: given only while Learn is open to everyone. */
+  /** The lesson's merged fixes as everyone reads them; null when they cannot be read. */
   fixes: LearnFixes | null;
   /** What the signed-in person's route answered; null for a visitor, and while it is on its way. */
   mine: LessonRealMine | null;

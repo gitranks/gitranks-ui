@@ -83,9 +83,7 @@ const PICKED = maskedIssues.map((masked) => ({
   why: null,
   masked,
 }));
-const picked = (learnOpen: boolean) => (
-  <ProfilePickedBox issues={PICKED} readyIssues={2500} matchedTo="TypeScript, Python and Go" learnOpen={learnOpen} />
-);
+const picked = <ProfilePickedBox issues={PICKED} readyIssues={2500} matchedTo="TypeScript, Python and Go" />;
 
 /** A learner's own box, above the Skills block everyone reads, as the owner sees them. */
 const learner = (
@@ -216,7 +214,7 @@ export const PROFILE_SCREENS: Screen[] = [
         title: 'The owner uses neither product: issues picked for them, with a way into each',
         path: PROFILE_PATH,
         height: 620,
-        render: () => alone(picked(true)),
+        render: () => alone(picked),
       },
       {
         id: 'learns',
@@ -227,11 +225,11 @@ export const PROFILE_SCREENS: Screen[] = [
       },
       {
         id: 'uses-neither-phone',
-        title: 'The owner uses neither product, Learn not open to them · phone',
+        title: 'The owner uses neither product · phone',
         path: PROFILE_PATH,
         width: 390,
         height: 1100,
-        render: () => alone(picked(false)),
+        render: () => alone(picked),
       },
     ],
   },

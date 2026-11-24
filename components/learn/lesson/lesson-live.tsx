@@ -108,7 +108,7 @@ export function LessonLive({
   article: ReactNode;
   more: ReactNode;
   openFact?: boolean;
-  /** The lesson's merged fixes as everyone reads them, or on their way: given only while Learn is open to everyone. */
+  /** The lesson's merged fixes as everyone reads them, or on their way; null when they cannot be read. */
   fixes?: SharedFixes;
 }) {
   useLearnSetupGuess();

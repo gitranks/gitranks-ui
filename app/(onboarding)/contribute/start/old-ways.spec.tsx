@@ -44,7 +44,7 @@ async function renderInner(page: ReactElement): Promise<string> {
   return renderToStaticMarkup(drawn);
 }
 
-const OPEN = (entered: boolean) => ({ kind: 'open', entered, agents: { hosted: false, own: true }, learnOpen: true });
+const OPEN = (entered: boolean) => ({ kind: 'open', entered, agents: { hosted: false, own: true } });
 const home = (search: Record<string, string>) =>
   renderInner(ContributeHomePage({ searchParams: Promise.resolve(search) } as never) as ReactElement);
 const connect = (search: Record<string, string>) =>

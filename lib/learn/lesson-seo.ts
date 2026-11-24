@@ -27,21 +27,20 @@ function fixOf(head: Pick<LessonHead, 'subject'>): string {
 
 /**
  * A shared lesson's description: the page's, its link preview's and its structured data's. It invites the reader to
- * sign in and take it only once Learn is open to everyone (`frontDoorOpen`).
+ * sign in and take it.
  */
-function lessonDescriptionOf({ head, steps }: LessonPage, frontDoorOpen: boolean): string {
-  const take = frontDoorOpen ? ' Read it, then sign in with GitHub to take it.' : '';
+function lessonDescriptionOf({ head, steps }: LessonPage): string {
   return clipText(
-    `A short lesson on ${fixOf(head)}, written by ${head.author.agentName}: ${steps.length} steps with a question each.${take} Made with GitRanks Learn.`,
+    `A short lesson on ${fixOf(head)}, written by ${head.author.agentName}: ${steps.length} steps with a question each. Read it, then sign in with GitHub to take it. Made with GitRanks Learn.`,
     158,
   );
 }
 
 /** A shared lesson's title, description and link preview; a stub's title, not indexed. */
-export function lessonPageMetadata(answer: LessonPageAnswer, { frontDoorOpen }: { frontDoorOpen: boolean }): Metadata {
+export function lessonPageMetadata(answer: LessonPageAnswer): Metadata {
   if (answer?.kind !== 'found') return stubMetadata(answer?.visibility ?? null);
   const { head } = answer.value;
-  const description = lessonDescriptionOf(answer.value, frontDoorOpen);
+  const description = lessonDescriptionOf(answer.value);
   const path = lessonPath(head.slug);
   return head.publishedAt
     ? pageMetadata({ title: head.title, description, path, openGraphType: 'article', publishedTime: head.publishedAt })
@@ -103,17 +102,16 @@ export const LEARN_EARLIER_METADATA: Metadata = { title: 'Fix a real issue with 
 
 /**
  * A shared lesson's structured data: the lesson as a `LearningResource` (the repository and language of the fix, the
- * person who made it with their agent, its steps: what the page shows), and where it sits on the site. Learn's front door is a crumb only
- * once it is open to visitors.
+ * person who made it with their agent, its steps: what the page shows), and where it sits on the site.
  */
-export function lessonJsonLd(page: LessonPage, { frontDoorOpen }: { frontDoorOpen: boolean }): object[] {
+export function lessonJsonLd(page: LessonPage): object[] {
   const { head, steps } = page;
   const url = absoluteUrl(lessonPath(head.slug));
   const { repo } = head.subject;
   const login = head.author.login;
   const crumbs = [
     { name: 'Home', item: absoluteUrl('/') },
-    ...(frontDoorOpen ? [{ name: 'Learn', item: absoluteUrl(LEARN_PATH) }] : []),
+    { name: 'Learn', item: absoluteUrl(LEARN_PATH) },
     { name: head.title, item: url },
   ];
   return [
@@ -123,7 +121,7 @@ export function lessonJsonLd(page: LessonPage, { frontDoorOpen }: { frontDoorOpe
       '@id': `${url}#lesson`,
       url,
       name: head.title,
-      description: lessonDescriptionOf(page, frontDoorOpen),
+      description: lessonDescriptionOf(page),
       inLanguage: 'en',
       learningResourceType: 'Lesson',
       isAccessibleForFree: true,

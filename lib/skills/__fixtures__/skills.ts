@@ -376,7 +376,6 @@ const mine = (extra: Partial<SkillsMine> & Pick<SkillsMine, 'state'>): SkillsMin
   page: null,
   usesContribute: false,
   usesLearn: false,
-  learnOpen: true,
   tabNew: false,
   numbers: null,
   ...extra,
@@ -384,13 +383,11 @@ const mine = (extra: Partial<SkillsMine> & Pick<SkillsMine, 'state'>): SkillsMin
 
 export const skillsMine = {
   new: mine({ state: 'NEW', tabNew: true, numbers: skillsIssueNumbers }),
-  newLearnClosed: mine({ state: 'NEW', tabNew: true, learnOpen: false, numbers: skillsIssueNumbers }),
   nothingYetBoth: mine({ state: 'NOTHING_YET', usesContribute: true, usesLearn: true }),
   nothingYetContributor: mine({ state: 'NOTHING_YET', usesContribute: true }),
   nothingYetLearner: mine({ state: 'NOTHING_YET', usesLearn: true }),
   publicLearner: mine({ state: 'PUBLIC', page: learnerPage, usesLearn: true }),
   hiddenLearner: mine({ state: 'HIDDEN', page: learnerPage, usesLearn: true }),
-  privateLearner: mine({ state: 'PRIVATE', page: firstLessonPage, usesLearn: true }),
   publicFirstFix: mine({ state: 'PUBLIC', page: firstFixPage, usesContribute: true }),
   publicFirstLesson: mine({ state: 'PUBLIC', page: firstLessonPage, usesLearn: true }),
   publicBoth: mine({ state: 'PUBLIC', page: bothPage, usesContribute: true, usesLearn: true }),

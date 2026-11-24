@@ -12,7 +12,6 @@ const contribute = vi.hoisted(() => ({
 vi.mock('@/lib/workspace/contribute.data', () => contribute);
 vi.mock('@/lib/workspace/gate.data', () => ({ loadWorkspaceGate: vi.fn() }));
 vi.mock('@/lib/workspace/preview-gate', () => ({ contributeOpen: vi.fn(async () => true) }));
-vi.mock('./learn-everyone', () => ({ learnOpenToEveryone: vi.fn(async () => false) }));
 
 const { loadLearnIssues } = await import('./learn.data');
 const { readLearnPublicIssues } = await import('./start-flow.data');

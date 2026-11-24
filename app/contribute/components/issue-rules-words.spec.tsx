@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/workspace/preview-gate', () => ({ contributeShown: vi.fn(async () => true) }));
-vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
+vi.mock('@/lib/learn/learn.data', () => ({}));
 vi.mock('@/components/workspace/scroll-to-hash', () => ({ ScrollToHash: () => null }));
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
 

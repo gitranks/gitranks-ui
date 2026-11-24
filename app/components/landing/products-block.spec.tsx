@@ -109,6 +109,14 @@ describe('ProductsBlock', () => {
     ]);
   });
 
+  it("draws Learn's card alone while Contribute is not launched", () => {
+    const root = document.createElement('div');
+    root.innerHTML = renderToStaticMarkup(<ProductsBlock products={null} now={HOME_NOW} contribute={false} />);
+    expect([...root.querySelectorAll('[data-home-card]')].map((card) => card.getAttribute('data-home-card'))).toEqual([
+      'LEARN',
+    ]);
+  });
+
   it('takes its own id for a board that draws it twice', () => {
     const root = document.createElement('div');
     root.innerHTML = renderToStaticMarkup(<ProductsBlock products={null} now={HOME_NOW} id="products-two" />);

@@ -56,7 +56,7 @@ const hrefs = (selector: string) => $$(selector).map((node) => node.getAttribute
 
 describe('Issues', () => {
   it("draws a visitor's five with their lesson lines, all new, no switch, and the sign-in under them", async () => {
-    await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'visitor', rows: visitorRows }} everyone />);
+    await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'visitor', rows: visitorRows }} />);
     expect($('main')?.getAttribute('data-issues')).toBe('visitor');
     expect($('h1')?.textContent).toBe('Real issues and fixes');
     expect($$('[data-masked-row], li')).not.toHaveLength(0);
@@ -70,12 +70,9 @@ describe('Issues', () => {
     expect(hrefs('[data-issues-foot] a')).toEqual(['/learn/issues.md', '/learn/about', '/learn/maintainers']);
   });
 
-  it('links the Markdown copy only while Learn is open to everyone, where it answers', async () => {
+  it('links the Markdown copy for a person too', async () => {
     await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'personal', list: personalList() }} />);
-    expect(hrefs('[data-issues-foot] a')).toEqual(['/learn/about', '/learn/maintainers']);
-    expect($('[data-issues-foot]')?.textContent).toBe('How Learn works · For maintainers');
-    await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'personal', list: personalList() }} everyone />);
-    expect(hrefs('[data-issues-foot] a')[0]).toBe('/learn/issues.md');
+    expect(hrefs('[data-issues-foot] a')).toEqual(['/learn/issues.md', '/learn/about', '/learn/maintainers']);
   });
 
   it('holds the sign-in back while the signed-in list is read', async () => {
@@ -162,7 +159,6 @@ describe('Issues', () => {
         at="lesson"
         names={issuesNames}
         layer={{ kind: 'personal', list: personalList() }}
-        everyone
       />,
     );
     expect(hrefs('[data-issues-foot] a')[0]).toBe('/learn/lessons/find-duplicates-with-a-set/real-world.md');
@@ -272,12 +268,7 @@ describe('Issues', () => {
     );
     expect($$('[data-issues-switch]')).toHaveLength(0);
     await render(
-      <IssuesScreen
-        view={views.courseFixed}
-        names={issuesNames}
-        layer={{ kind: 'fixed', fixes: learnFixes }}
-        everyone
-      />,
+      <IssuesScreen view={views.courseFixed} names={issuesNames} layer={{ kind: 'fixed', fixes: learnFixes }} />,
     );
     expect($$('[data-issues-switch]')).toHaveLength(0);
     expect($$('[data-issues-chip]').map((node) => node.getAttribute('data-issues-chip'))).toEqual(['course', 'fixed']);

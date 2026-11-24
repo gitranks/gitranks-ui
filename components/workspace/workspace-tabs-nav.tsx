@@ -26,7 +26,7 @@ import { activeTabOf, WORKSPACE_TABS, workspaceTabsShown } from '@/lib/workspace
 /** Every tab link's mark: moving between tabs is never counted as a step into Contribute. */
 const TAB_MARK = contributeSource('workspace_tab');
 
-/** Learn's bar for Settings, where Learn is open to the person, with what picks it (`settingsBarOf`). */
+/** Learn's bar for Settings, with what picks it (`settingsBarOf`). */
 export type LearnBarChoice = {
   /** Learn's bar. */
   bar: ReactNode;
@@ -55,7 +55,7 @@ export function WorkspaceTabsNav({
   activity?: ContributeActivity | null;
   version?: string | null;
   needsYou?: number | null;
-  /** Given only where Learn is open to the person. */
+  /** Given to an account the workspace is open to. */
   learn?: LearnBarChoice;
 }) {
   const pathname = usePathname();
@@ -68,8 +68,7 @@ export function WorkspaceTabsNav({
   const showLearn =
     !!learn &&
     isSharedSettingsPath(pathname) &&
-    settingsBarOf({ from: search.get('from'), lastBar: seenLast, audience: learn.audience, learnOpen: true }) ===
-      'learn';
+    settingsBarOf({ from: search.get('from'), lastBar: seenLast, audience: learn.audience }) === 'learn';
   // Learn's bar arrives after the screen, as the tabs do: a link's jump to a section is made again under it.
   useEffect(() => {
     if (showLearn) scrollToHash();

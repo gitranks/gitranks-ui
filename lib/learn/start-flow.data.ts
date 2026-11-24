@@ -2,10 +2,9 @@ import 'server-only';
 
 import { cacheLife } from 'next/cache';
 
-import { loadLearnOpen, loadLearnProfile } from './learn.data';
+import { loadLearnProfile } from './learn.data';
 import { LearnPublicIssuesMaskedDocument, LearnPublicPracticeDocument } from './learn.documents';
 import type { LearnProfile, LearnPublicIssues, PracticeLessons } from './learn.types';
-import { learnOpenToEveryone } from './learn-everyone';
 import { hasGoal } from './learn-home';
 import { learnPublicIssuesOf } from './masked-rows';
 import type { LearnGoalLanguage } from './start-flow';
@@ -18,27 +17,21 @@ import { contributeOpen } from '@/lib/workspace/preview-gate';
 
 /**
  * Where the viewer belongs on Learn's step `step` (`learnFlowPlaceOf`), with the gate it was decided by and the
- * viewer's saved goal (null when none is read: a visitor, or an account Learn is not open to). Whether Contribute is
- * launched is asked only for an account with no profile; whether Learn is open to everyone only for a visitor; whether
- * Learn is open to the account, apart from the gate, only for one being set up or with no profile.
+ * viewer's saved goal (null when none is read: a visitor, or an account the workspace is not open to). Whether
+ * Contribute is launched is asked only for an account with no profile.
  */
 export async function loadLearnFlowPlace(
   step: LearnFlowStep,
   { goalInAddress, issue }: { goalInAddress: boolean; issue?: Pick<IssueRef, 'repo' | 'issue'> },
 ): Promise<{ place: FlowPlace; gate: WorkspaceGate; profile: LearnProfile | null }> {
   const gate = await loadWorkspaceGate();
-  const [launched, openToEveryone, learnOpen, profile] = await Promise.all([
+  const [launched, profile] = await Promise.all([
     gate.kind === 'hidden' ? contributeOpen(Date.now()) : true,
-    gate.kind === 'signed-out' ? learnOpenToEveryone(Date.now()) : false,
-    // The gate carries it for an open account; one being set up or with no profile is asked here (read once per request).
-    gate.kind === 'open' ? gate.learnOpen : gate.kind === 'signed-out' ? false : loadLearnOpen(),
-    gate.kind === 'open' && gate.learnOpen ? loadLearnProfile() : null,
+    gate.kind === 'open' ? loadLearnProfile() : null,
   ]);
   const place = learnFlowPlaceOf(step, {
     gate,
     launched,
-    learnOpen,
-    openToEveryone,
     goalSaved: hasGoal(profile),
     goalInAddress,
     issue,

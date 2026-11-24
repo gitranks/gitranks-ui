@@ -20,7 +20,7 @@ export function SkillsStrip({
   onShow,
   pending = false,
 }: {
-  mine: Pick<SkillsMine, 'state' | 'usesLearn' | 'learnOpen'>;
+  mine: Pick<SkillsMine, 'state' | 'usesLearn'>;
   /** The page's address, which "Copy link" copies. */
   href: string;
   onHide?: () => void;

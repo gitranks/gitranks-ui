@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { bothPage, contributorPage, firstLessonPage, hiddenPageFix, longPage, SKILLS_NOW } from './__fixtures__/skills';
+import { bothPage, contributorPage, hiddenPageFix, longPage, SKILLS_NOW } from './__fixtures__/skills';
 import { skillsMarkdownOf } from './skills-markdown';
 
 // The site's address is read once, as the module loads: vitest runs this before the imports.
@@ -23,7 +23,7 @@ beforeEach(() => {
 
 describe("a Skills page's Markdown copy", () => {
   it('holds the numbers with their line, then each fix with its links, as the page shows them', () => {
-    const text = skillsMarkdownOf(contributorPage, { learnOpen: true, now: SKILLS_NOW });
+    const text = skillsMarkdownOf(contributorPage, { now: SKILLS_NOW });
     expect(text).toMatch(/^# octocat’s skills\n\n/);
     expect(text).toContain('[octocat’s profile](https://gitranks.com/profile/octocat)');
     expect(text).toContain(
@@ -41,7 +41,7 @@ describe("a Skills page's Markdown copy", () => {
   });
 
   it('names each fix’s product, its lesson and "How it was made" for someone who uses both, then the courses', () => {
-    const text = skillsMarkdownOf(bothPage, { learnOpen: true, now: SKILLS_NOW });
+    const text = skillsMarkdownOf(bothPage, { now: SKILLS_NOW });
     expect(text).toContain('Made with [GitRanks Contribute](https://gitranks.com/contribute) or [GitRanks Learn]');
     expect(text).toContain('· with Learn ·');
     expect(text).toContain(
@@ -58,24 +58,17 @@ describe("a Skills page's Markdown copy", () => {
 
   it('names a Learn fix in plain text while its "Learn from it" view is not built, "How it was made" kept', () => {
     built.fix = false;
-    const text = skillsMarkdownOf(bothPage, { learnOpen: true, now: SKILLS_NOW });
+    const text = skillsMarkdownOf(bothPage, { now: SKILLS_NOW });
     expect(text).not.toContain('/learn/fixes/');
     const learnRow = text.split('\n').find((line) => line.includes('· with Learn ·'));
     expect(learnRow?.startsWith('- [')).toBe(false);
     expect(learnRow).toContain('[How it was made](https://gitranks.com/contribute/pr/');
   });
 
-  it('holds nothing of Learn while it is not open to everyone', () => {
-    const text = skillsMarkdownOf(bothPage, { learnOpen: false, now: SKILLS_NOW });
-    expect(text).not.toMatch(/Learn|lesson|## Courses/);
-    expect(text).toContain('Made with [GitRanks Contribute]');
-    expect(skillsMarkdownOf(firstLessonPage, { learnOpen: false, now: SKILLS_NOW })).not.toContain('## In numbers');
-  });
-
   it('keeps a fix whose page was hidden with its GitHub links alone, and says how many more the page lists', () => {
     const text = skillsMarkdownOf(
       { ...longPage, fixes: { ...longPage.fixes, rows: [...longPage.fixes.rows, hiddenPageFix] } },
-      { learnOpen: true, now: SKILLS_NOW },
+      { now: SKILLS_NOW },
     );
     const row = text.split('\n').find((line) => line.includes('quill-db/quill'));
     expect(row?.startsWith(`- ${hiddenPageFix.title} · quill-db/quill`)).toBe(true);

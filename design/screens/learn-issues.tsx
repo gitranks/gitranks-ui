@@ -27,7 +27,7 @@ const SOURCES = [
 ];
 
 const draw = (view: IssuesView, layer: IssuesLayer, at: IssuesAt = 'issues') => (
-  <IssuesScreen view={view} at={at} names={issuesNames} layer={layer} everyone />
+  <IssuesScreen view={view} at={at} names={issuesNames} layer={layer} />
 );
 
 /** A labelled part of a board that shows several states one under the other. */

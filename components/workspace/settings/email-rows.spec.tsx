@@ -19,7 +19,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/workspace/actions', () => ({ setContributeEmailSettings }));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
+vi.mock('@/lib/workspace/gate.data', () => ({}));
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
 vi.mock('@/lib/learn/settings.data', () => ({ loadLearnEmailSettings: vi.fn(), loadLearnSetupForSettings: vi.fn() }));
 vi.mock('@/lib/skills/skills.data', () => ({}));
@@ -27,7 +27,6 @@ vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction: v
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(),
-  loadLearnOpen: vi.fn(),
 }));
 
 const { EmailRows } = await import('./email-rows');

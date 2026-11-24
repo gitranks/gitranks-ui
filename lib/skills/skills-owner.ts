@@ -23,25 +23,20 @@ export type StripWords = {
   progress: Route | null;
 };
 
-/** Whether the owner learns where Learn is open to them: their progress and Learn's boxes show only then. */
-const learns = (mine: Pick<SkillsMine, 'usesLearn' | 'learnOpen'>) => mine.usesLearn && mine.learnOpen;
-
-/** The strip at the top of the owner's own page, in every state. */
-export function stripOf(mine: Pick<SkillsMine, 'state' | 'usesLearn' | 'learnOpen'>): StripWords {
-  const progress = learns(mine) ? LEARN_PROGRESS_PATH : null;
+/** The strip at the top of the owner's own page, in every state; Learn's progress for someone who learns. */
+export function stripOf(mine: Pick<SkillsMine, 'state' | 'usesLearn'>): StripWords {
+  const progress = mine.usesLearn ? LEARN_PROGRESS_PATH : null;
   switch (mine.state) {
     case 'PUBLIC':
       return { strong: 'Everyone can see this page.', rest: '', actions: ['copy', 'hide'], progress };
     case 'HIDDEN':
-      return { strong: 'Only you can see this page.', rest: '', actions: ['show'], progress };
+    // An older API may still answer `PRIVATE`: drawn as `HIDDEN`.
     case 'PRIVATE':
-      return { strong: 'Only you can see this page.', rest: '', actions: [], progress };
+      return { strong: 'Only you can see this page.', rest: '', actions: ['show'], progress };
     default:
       return {
         strong: 'Only you can see this page',
-        rest: mine.learnOpen
-          ? ', until you send a pull request or learn a lesson.'
-          : ', until you send a pull request.',
+        rest: ', until you send a pull request or learn a lesson.',
         actions: [],
         progress: null,
       };
@@ -56,39 +51,28 @@ export type StartWords = { heading: string; line: string; numbers: boolean; boxe
 
 /**
  * `NEW` (uses neither product) and `NOTHING_YET` (uses one or both, nothing to show): the heading, the line, the box
- * about our list of issues on `NEW` alone, then one box for each product, a step for a product the person uses. Learn's
- * box and words are left out while Learn is not open to the person. Null for a page with something on it.
+ * about our list of issues on `NEW` alone, then one box for each product, a step for a product the person uses. Null
+ * for a page with something on it.
  */
-export function startOf(
-  mine: Pick<SkillsMine, 'state' | 'usesContribute' | 'usesLearn' | 'learnOpen'>,
-): StartWords | null {
+export function startOf(mine: Pick<SkillsMine, 'state' | 'usesContribute' | 'usesLearn'>): StartWords | null {
   if (mine.state !== 'NEW' && mine.state !== 'NOTHING_YET') return null;
-  const learn = mine.learnOpen;
   const boxes: ProductBox[] = [
     {
       product: 'CONTRIBUTE',
       mode: mine.state === 'NOTHING_YET' && mine.usesContribute ? 'step' : 'promo',
       onlyYou: false,
     },
-    ...(learn
-      ? [
-          {
-            product: 'LEARN' as const,
-            mode: mine.state === 'NOTHING_YET' && mine.usesLearn ? ('step' as const) : ('promo' as const),
-            onlyYou: false,
-          },
-        ]
-      : []),
+    {
+      product: 'LEARN',
+      mode: mine.state === 'NOTHING_YET' && mine.usesLearn ? 'step' : 'promo',
+      onlyYou: false,
+    },
   ];
-  const line = learn
-    ? 'Fixes that real projects merged, and lessons you learned: a page you can show an employer.'
-    : 'Fixes that real projects merged: a page you can show an employer.';
+  const line = 'Fixes that real projects merged, and lessons you learned: a page you can show an employer.';
   return {
-    heading: learn
-      ? 'This page shows what you fix and learn with GitRanks'
-      : 'This page shows what you fix with GitRanks',
+    heading: 'This page shows what you fix and learn with GitRanks',
     line:
-      mine.state === 'NOTHING_YET' && learn && mine.usesContribute && mine.usesLearn
+      mine.state === 'NOTHING_YET' && mine.usesContribute && mine.usesLearn
         ? `${line} There are two ways to fill it, and you can use both.`
         : line,
     numbers: mine.state === 'NEW',
@@ -98,15 +82,11 @@ export function startOf(
 
 /**
  * The box about the other product at the end of a page with something on it, for someone who uses one product: only
- * its owner sees it. Learn's is left out while Learn is not open to them.
+ * its owner sees it.
  */
-export function otherBoxOf(
-  mine: Pick<SkillsMine, 'state' | 'usesContribute' | 'usesLearn' | 'learnOpen'>,
-): ProductBox | null {
+export function otherBoxOf(mine: Pick<SkillsMine, 'state' | 'usesContribute' | 'usesLearn'>): ProductBox | null {
   if (mine.state !== 'PUBLIC' && mine.state !== 'HIDDEN' && mine.state !== 'PRIVATE') return null;
-  if (mine.usesContribute && !mine.usesLearn) {
-    return mine.learnOpen ? { product: 'LEARN', mode: 'promo', onlyYou: true } : null;
-  }
+  if (mine.usesContribute && !mine.usesLearn) return { product: 'LEARN', mode: 'promo', onlyYou: true };
   if (mine.usesLearn && !mine.usesContribute) return { product: 'CONTRIBUTE', mode: 'promo', onlyYou: true };
   return null;
 }
@@ -154,9 +134,9 @@ export const PRODUCT_BOX: Record<
 
 /** The line the owner reads on the overview's block of a page only they see; null on a page everyone sees. */
 export function blockOwnerLineOf(state: SkillsState): { text: string; link: string | null } | null {
-  if (state === 'HIDDEN')
+  // An older API may still answer `PRIVATE`: drawn as `HIDDEN`.
+  if (state === 'HIDDEN' || state === 'PRIVATE')
     return { text: 'Only you see this block. Your Skills page is hidden.', link: 'Open your Skills page' };
-  if (state === 'PRIVATE') return { text: 'Only you see this block.', link: null };
   return null;
 }
 

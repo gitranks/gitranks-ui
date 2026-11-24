@@ -27,7 +27,7 @@ describe('Learn pages for search engines', () => {
   });
 
   it('describes a lesson as a LearningResource on its repository, with its steps', () => {
-    const [lesson] = lessonJsonLd(lessonPage, { frontDoorOpen: false }) as [Record<string, unknown>];
+    const [lesson] = lessonJsonLd(lessonPage) as [Record<string, unknown>];
     expect(lesson).toMatchObject({
       '@type': 'LearningResource',
       '@id': `${LESSON_URL}#lesson`,
@@ -55,12 +55,15 @@ describe('Learn pages for search engines', () => {
     expect((lesson.hasPart as { position: number }[])[0].position).toBe(1);
   });
 
-  it('names Learn in the breadcrumbs only once its front door is open', () => {
-    const crumbsOf = (frontDoorOpen: boolean) =>
-      (lessonJsonLd(lessonPage, { frontDoorOpen })[1] as { itemListElement: { name: string; item: string }[] })
-        .itemListElement;
-    expect(crumbsOf(false).map((crumb) => crumb.item)).toEqual(['https://example.test/', LESSON_URL]);
-    expect(crumbsOf(true).map((crumb) => crumb.name)).toEqual(['Home', 'Learn', PUBLIC_HEAD.title]);
+  it('names Learn in the breadcrumbs', () => {
+    const crumbs = (lessonJsonLd(lessonPage)[1] as { itemListElement: { name: string; item: string }[] })
+      .itemListElement;
+    expect(crumbs.map((crumb) => crumb.name)).toEqual(['Home', 'Learn', PUBLIC_HEAD.title]);
+    expect(crumbs.map((crumb) => crumb.item)).toEqual([
+      'https://example.test/',
+      'https://example.test/learn',
+      LESSON_URL,
+    ]);
   });
 
   it('gives the maintainers page its own canonical and preview', () => {
@@ -78,14 +81,11 @@ describe('Learn pages for search engines', () => {
     });
   });
 
-  it('invites the reader to sign in and take a lesson only once Learn is open to everyone', () => {
-    const description = (frontDoorOpen: boolean) =>
-      String(lessonPageMetadata({ kind: 'found', value: lessonPage }, { frontDoorOpen }).description);
+  it('invites the reader to sign in and take a lesson', () => {
+    const description = String(lessonPageMetadata({ kind: 'found', value: lessonPage }).description);
     // Clipped to 158 characters: the invitation starts after the steps' count.
-    expect(description(true)).toMatch(/question each\. Read it/);
-    expect(description(false)).not.toMatch(/Read it|sign in/i);
-    expect(description(false)).toContain('Made with GitRanks Learn');
-    const [closed] = lessonJsonLd(lessonPage, { frontDoorOpen: false }) as [{ description: string }];
-    expect(closed.description).not.toMatch(/sign in/i);
+    expect(description).toMatch(/question each\. Read it/);
+    const [lesson] = lessonJsonLd(lessonPage) as [{ description: string }];
+    expect(lesson.description).toBe(description);
   });
 });

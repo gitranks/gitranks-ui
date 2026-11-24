@@ -5,8 +5,6 @@ import type {
   LearnIssuesAnswer,
   LearnProfile,
   LearnProfileInput,
-  LearnPromo,
-  LearnPromoPlacement,
   LearnPublicIssuesAnswer,
   LearnRecord,
   LessonAnswerResult,
@@ -27,11 +25,6 @@ import type DocumentNode from '@/types/typed-document-node';
 
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
   parse(source) as DocumentNode<TData, TVariables>;
-
-/** Whether Learn is open to every signed-in person: the same answer for everyone, asked without a viewer. */
-export const LearnOpenToEveryoneDocument = doc<{ learnOpenToEveryone: boolean }>(
-  'query LearnOpenToEveryone { learnOpenToEveryone }',
-);
 
 /** Whether the viewer's GitRanks account is still being set up (a new account), so Learn cannot answer for it yet. */
 export const LearnSetupDocument = doc<{ learnSetup: boolean }>('query LearnSetup { learnSetup }');
@@ -304,25 +297,6 @@ export const ReactToResultDocument = doc<
 >(`mutation ReactToResult($slug: String!, $login: String!, $reaction: LessonReaction!, $token: String!) {
   reactToResult(slug: $slug, login: $login, reaction: $reaction, token: $token) { login role reaction }
 }`);
-
-/**
- * Whether to suggest Learn to the signed-in viewer here, each issue with its masked form, read with `learnOpen` so the
- * suggestion shows only to someone Learn is open to. `login`: the profile, which must be the viewer's own.
- */
-export const LearnPromoMaskedDocument = doc<
-  { learnOpen: boolean; learnPromo: LearnPromo | null },
-  { placement: LearnPromoPlacement; login: string | null }
->(`query LearnPromoMasked($placement: LearnPromoPlacement!, $login: String) {
-  learnOpen
-  learnPromo(placement: $placement, login: $login) {
-    show reason language issues { title repo number language topic ${MASKED_PART} }
-  }
-}`);
-
-/** "Not for me": the viewer's Learn suggestions stay hidden from then on. */
-export const DismissLearnPromoDocument = doc<{ dismissLearnPromo: boolean }>(
-  'mutation DismissLearnPromo { dismissLearnPromo }',
-);
 
 /** A login's public Learn record, the same for every reader; null without a public pass. */
 export const LearnRecordDocument = doc<{ learnRecord: LearnRecord | null }, { login: string }>(

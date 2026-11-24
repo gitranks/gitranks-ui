@@ -6,8 +6,7 @@ const data = vi.hoisted(() => ({
   loadIssueAttempt: vi.fn(),
 }));
 vi.mock('@/lib/workspace/contribute.data', () => data);
-const learn = vi.hoisted(() => ({ open: vi.fn(async () => true), lesson: vi.fn() }));
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: learn.open }));
+const learn = vi.hoisted(() => ({ lesson: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({ loadAttemptLesson: learn.lesson }));
 vi.mock('@/lib/seo/site', () => ({ SITE_URL: 'https://gitranks.com' }));
 
@@ -84,13 +83,6 @@ describe('the address by attempt', () => {
     data.loadAttemptRef.mockResolvedValue({ ...first, mode: 'LEARN', pullRequest: { prId: 'PR_1' } });
     learn.lesson.mockResolvedValue({ stage: 'PR_OPEN' });
     expect((await call('A_1')).headers.get('location')).toBe('https://gitranks.com/my/pull-requests/acme/gadgets/42');
-    // Learn closed to the viewer: the Pull request view alone, and its lesson never asked.
-    learn.open.mockResolvedValueOnce(false);
-    learn.lesson.mockClear();
-    expect((await call('A_1', '?view=lesson')).headers.get('location')).toBe(
-      'https://gitranks.com/my/pull-requests/acme/gadgets/42',
-    );
-    expect(learn.lesson).not.toHaveBeenCalled();
   });
 
   it('answers a 404 page, with the way back, for an attempt that is not the viewer’s or has no page', async () => {

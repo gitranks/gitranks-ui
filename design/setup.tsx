@@ -105,7 +105,6 @@ vi.mock('@/lib/learn/actions', async () => ({
       'saveLearnProfile',
       'reactToLessonResult',
       'reactOnReturn',
-      'dismissLearnPromo',
       'readMyLearnAttempts',
       'readPracticeLessons',
       'readPracticeNext',
@@ -118,11 +117,6 @@ vi.mock('@/lib/learn/learn.data', async () => (await import('./inert')).inert())
 // Issues' and the masked rows' actions: a board never calls them, and their modules reach the server's sign-in.
 vi.mock('@/lib/learn/issues.actions', async () => (await import('./inert')).inert());
 vi.mock('@/lib/workspace/masked-issue.actions', async () => (await import('./inert')).inert());
-// The menu's "Learn" is asked in the browser: the Learn boards draw it open, every other board as a visitor sees it.
-vi.mock('@/lib/learn/learn-open', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/learn/learn-open')>()),
-  learnOpenKnown: () => ((globalThis as DesignGlobals).__designPath ?? '').startsWith('/learn'),
-}));
 // Named: the sign-in form checks the export exists, which `inert()`'s proxy does not answer.
 vi.mock('@/app/(public)/contribute/maintainers/actions', () => ({
   signInAsMaintainer: async () => {},

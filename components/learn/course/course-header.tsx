@@ -83,18 +83,16 @@ export function CourseHeader({
   mine,
   language,
   onLanguage,
-  fixesLinked = false,
 }: {
   course: LearnCourse;
   mine: LearnCourseMine | null;
   language: string | null;
   onLanguage: (language: string) => void;
-  /** "N real issues fixed" shows (from five), as a link to the course's merged fixes: while Learn's lists are open. */
-  fixesLinked?: boolean;
 }) {
   const learners = learnersOf(course.numbers);
   const good = goodShareOf(course.numbers);
-  const fixed = fixesLinked ? courseFixesCountOf(course.numbers.issuesFixed) : null;
+  // "N real issues fixed" shows from five, as a link to the course's merged fixes.
+  const fixed = courseFixesCountOf(course.numbers.issuesFixed);
   const progress = mine ? courseProgressLineOf(mine, course) : null;
   // A language course has one language, or two that are one language with and without types ("JavaScript and
   // TypeScript"); each example is in one of them.

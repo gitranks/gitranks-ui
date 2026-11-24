@@ -19,8 +19,7 @@ import { startPath } from '@/lib/workspace/paths';
 const ITEM = 'min-h-11 cursor-pointer sm:min-h-9';
 
 /**
- * A Contribute row's quiet "⋯": Fix it and teach me (the Start page with a lesson; where Learn is open to the person
- * and the row has a Start), and Skip this issue, which asks first. A Skip that finds the issue taken meanwhile says
+ * A Contribute row's quiet "⋯": Fix it and teach me (the Start page with a lesson; where the row has a Start), and Skip this issue, which asks first. A Skip that finds the issue taken meanwhile says
  * nothing: the row turns taken (`onTaken`).
  */
 export function IssueRowMenu({

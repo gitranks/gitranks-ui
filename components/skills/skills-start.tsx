@@ -51,7 +51,7 @@ export function SkillsProductBox({ box }: { box: ProductBox }) {
 }
 
 /** The box about our list of issues: why good issues are hard to find, how we read them, and four live numbers. */
-export function SkillsIssuesBox({ numbers, learnOpen }: { numbers: SkillsIssueNumbers | null; learnOpen: boolean }) {
+export function SkillsIssuesBox({ numbers }: { numbers: SkillsIssueNumbers | null }) {
   const cells = issueCellsOf(numbers);
   return (
     <section aria-labelledby="skills-issues" className="flex flex-col gap-4 rounded-xl border bg-card p-5">
@@ -59,7 +59,7 @@ export function SkillsIssuesBox({ numbers, learnOpen }: { numbers: SkillsIssueNu
         <h3 id="skills-issues" className="m-0 text-lg font-semibold">
           We find the issues that really need a fix
         </h3>
-        <p className="m-0 max-w-[82ch] text-sm text-muted-foreground">{issuesTextOf(numbers, learnOpen)}</p>
+        <p className="m-0 max-w-[82ch] text-sm text-muted-foreground">{issuesTextOf(numbers)}</p>
       </div>
       {cells.length ? (
         <dl
@@ -84,8 +84,7 @@ export function SkillsIssuesBox({ numbers, learnOpen }: { numbers: SkillsIssueNu
 /**
  * The owner's page while it has nothing on it: `NEW` (uses neither product) says what this area is for, with the box
  * about our list of issues and one box for each product; `NOTHING_YET` gives each product the owner uses the step that
- * puts the first thing on the page. Learn's box and words are left out while Learn is not open to the owner. Nothing
- * for a page with something on it.
+ * puts the first thing on the page. Nothing for a page with something on it.
  */
 export function SkillsStart({ mine }: { mine: SkillsMine }) {
   const start = startOf(mine);
@@ -96,7 +95,7 @@ export function SkillsStart({ mine }: { mine: SkillsMine }) {
         <h3 className="m-0 text-xl font-bold tracking-tight text-balance">{start.heading}</h3>
         <p className="m-0 max-w-[70ch] text-sm text-muted-foreground">{start.line}</p>
       </div>
-      {start.numbers ? <SkillsIssuesBox numbers={mine.numbers} learnOpen={mine.learnOpen} /> : null}
+      {start.numbers ? <SkillsIssuesBox numbers={mine.numbers} /> : null}
       <div className={cn('grid grid-cols-1 gap-4', start.boxes.length > 1 && 'md:grid-cols-2')}>
         {start.boxes.map((box) => (
           <SkillsProductBox key={box.product} box={box} />

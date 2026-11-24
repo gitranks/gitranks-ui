@@ -75,38 +75,6 @@ describe('SkillsPageView', () => {
     expect(text).toContain('Only you see this');
   });
 
-  it('drops everything of Learn while Learn is not open to the reader', () => {
-    const { root, text, hrefs } = draw(<SkillsPageView now={SKILLS_NOW} page={bothPage} learnOpen={false} />);
-    expect(hrefs.some((href) => href?.startsWith('/learn'))).toBe(false);
-    expect(text).not.toContain('Learn');
-    expect(text).toContain('Made with GitRanks Contribute: an AI agent wrote each fix');
-    expect(text).toContain('With GitRanks Contribute since June 2026');
-    expect(root.querySelector('[data-skills-courses]')).toBeNull();
-    expect(root.querySelector('[data-star]')).toBeNull();
-    expect(root.querySelectorAll('[data-skills-fix]')).toHaveLength(4);
-    expect(hrefs.filter((href) => href === '/contribute/pr/harbor-kit/relay/58')).toHaveLength(2);
-  });
-
-  it('leaves a learner’s numbers and Learn’s box out while Learn is closed, keeping the fixes', () => {
-    const mine = { ...skillsMine.publicFirstFix, learnOpen: false };
-    const { root, text } = draw(
-      <SkillsPageView now={SKILLS_NOW} page={learnerPage} other={otherBoxOf(mine)} learnOpen={false} />,
-    );
-    expect(root.querySelector('[data-skills-numbers]')).toBeNull();
-    expect(root.querySelector('[data-product-box]')).toBeNull();
-    expect(root.querySelectorAll('[data-skills-fix]')).toHaveLength(3);
-    expect(text).not.toContain('Learn');
-  });
-
-  it('keeps the owner’s Learn box when Learn is open to them, though not to everyone', () => {
-    const mine = skillsMine.publicFirstFix;
-    const { root } = draw(
-      <SkillsPageView now={SKILLS_NOW} page={contributorPage} other={otherBoxOf(mine)} learnOpen={false} />,
-    );
-    expect(root.querySelector('[data-product-box="LEARN"]')).not.toBeNull();
-    expect(root.querySelector('[data-skills-courses]')).toBeNull();
-  });
-
   it('writes a plain line under the fixes, in place of the button, when one is given', () => {
     const line = 'And 20 more, listed once your page is public.';
     const { root, text } = draw(<SkillsPageView now={SKILLS_NOW} page={longPage} leftLine={line} />);

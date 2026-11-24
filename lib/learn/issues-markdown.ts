@@ -79,11 +79,10 @@ export function learnIssuesMarkdownOf(
 }
 
 /**
- * The copy as an answer; not found while Learn is not open to everyone, never kept then. A read that failed (not the
+ * The copy as an answer; not found for a lesson or a course that is not one, never kept. A read that failed (not the
  * API answering none, which the copy says) answers 503, never kept either, so the next ask reads again.
  */
 export async function learnIssuesMarkdownResponse(
-  open: () => Promise<boolean>,
   read: () => Promise<{ rows: readonly IssuesRow[] | null; failed?: boolean; names: IssuesNames }>,
   view: IssuesView,
   at: IssuesAt,
@@ -93,7 +92,6 @@ export async function learnIssuesMarkdownResponse(
       status,
       headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': cache },
     });
-  if (!(await open().catch(() => false))) return plain('Not found.', 404);
   const { rows, failed = false, names } = await read();
   if ((at === 'lesson' && !names.lesson) || (at === 'course' && !names.course)) return plain('Not found.', 404);
   if (failed) return plain(ISSUES_FAILED, 503, 'no-store');

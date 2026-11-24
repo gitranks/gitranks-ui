@@ -23,9 +23,13 @@ const LONG_LOGIN = 'a-very-long-github-login-of-39-chars-xy';
 const briefOf = (page: SkillsBrief): SkillsBrief => ({ login: page.login, numbers: page.numbers });
 const reading =
   (brief: SkillsBrief | null, extra: Partial<SkillsCardRead> = {}) =>
-  async (): Promise<SkillsCardRead> => ({ brief, failed: false, learnOpen: true, ...extra });
+  async (): Promise<SkillsCardRead> => ({ brief, failed: false, ...extra });
 const png = async () => new Uint8Array([1, 2, 3]);
-const cardOf = (page: SkillsBrief, learnOpen = true) => skillsCardOf(page, learnOpen) as SkillsCard;
+const cardOf = (page: SkillsBrief) => skillsCardOf(page) as SkillsCard;
+const bare = (page: SkillsBrief): SkillsBrief => ({
+  login: page.login,
+  numbers: { ...page.numbers, blockFigures: [] },
+});
 
 /** A PNG's width and height, from its header. */
 const sizeOf = (bytes: Uint8Array) => {
@@ -92,27 +96,10 @@ describe('the Skills picture', () => {
     }
   });
 
-  it('draws what a reader Learn is not open to sees while Learn is not open to everyone', async () => {
-    const shut = skillsCardUrlOf(cardOf(bothPage, false));
-    const response = await skillsCardResponse('octocat', '?v=x', reading(briefOf(bothPage), { learnOpen: false }), png);
-    expect(response.headers.get('location')).toBe(shut);
-    let drawn: SkillsCard | null = null;
-    await skillsCardResponse(
-      'octocat',
-      shut.slice(shut.indexOf('?')),
-      reading(briefOf(bothPage), { learnOpen: false }),
-      async (card) => {
-        drawn = card;
-        return png();
-      },
-    );
-    expect(drawn).toMatchObject({ sentence: 'fixes real issues in open-source projects' });
-  });
-
   it('is not found for no public page, a page with nothing to draw, and anything that is not a login', async () => {
     for (const [login, read] of [
       ['octocat', reading(null)],
-      ['octocat', reading(briefOf(learnerPage), { learnOpen: false })],
+      ['octocat', reading(bare(learnerPage))],
       ['not a login', reading(briefOf(contributorPage))],
     ] as const) {
       const response = await skillsCardResponse(login, '?v=x', read, png);
@@ -163,8 +150,8 @@ describe('the old Learn picture', () => {
   it('is not found where there is no public page, and 503 when it cannot be read', async () => {
     const none = await oldLearnCardResponse('octocat', reading(null));
     expect([none.status, none.headers.get('cache-control')]).toEqual([404, 'private, no-store']);
-    const learner = await oldLearnCardResponse('octocat', reading(briefOf(learnerPage), { learnOpen: false }));
-    expect(learner.status).toBe(404);
+    const empty = await oldLearnCardResponse('octocat', reading(bare(learnerPage)));
+    expect(empty.status).toBe(404);
     expect((await oldLearnCardResponse('not a login', reading(briefOf(contributorPage)))).status).toBe(404);
     expect((await oldLearnCardResponse('octocat', reading(null, { failed: true }))).status).toBe(503);
   });

@@ -70,12 +70,15 @@ describe('Settings\' "Your Skills page"', () => {
     expect(button('Only you')?.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('offers no choice while nothing is on the page or only its owner may see it', async () => {
+  it('offers no choice while nothing is on the page', async () => {
     await draw(skillsMine.new);
     expect(row()?.textContent).toContain('Nothing is on it yet.');
     expect(container.querySelector('button')).toBeNull();
-    await draw(skillsMine.privateLearner);
-    expect(container.querySelector('button')).toBeNull();
+  });
+
+  it('draws an older API’s private page as a hidden one', async () => {
+    await draw({ ...skillsMine.hiddenLearner, state: 'PRIVATE' });
+    expect(button('Only you')?.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('says who can see it could not be read when the view is missing', async () => {

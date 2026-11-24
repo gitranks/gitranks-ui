@@ -24,7 +24,7 @@ const signIn = () => {
 };
 const answer = (body: unknown, ok = true) => ({ ok, json: async () => body });
 const card = (product: string) => container.querySelector<HTMLAnchorElement>(`[data-home-card="${product}"]`);
-const render = () => act(async () => root.render(<ProductsBlockLive />));
+const render = () => act(async () => root.render(<ProductsBlockLive contribute />));
 
 beforeEach(() => {
   session.current = { data: null, status: 'unauthenticated' };
@@ -51,10 +51,16 @@ const expectPromotions = () => {
 describe('ProductsBlockLive', () => {
   it('serves both promotions with the page, asking nothing while it is drawn ahead of a request', () => {
     signIn();
-    const html = renderToStaticMarkup(<ProductsBlockLive />);
+    const html = renderToStaticMarkup(<ProductsBlockLive contribute />);
     expect(html).toContain('Fix issues in the open source you build on');
     expect(html).toContain('Learn one idea in two minutes');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("leaves out Contribute's card until Contribute is launched", () => {
+    const html = renderToStaticMarkup(<ProductsBlockLive contribute={false} />);
+    expect(html).not.toContain('data-home-card="CONTRIBUTE"');
+    expect(html).toContain('data-home-card="LEARN"');
   });
 
   it('asks nothing for a visitor, or while the session loads', async () => {

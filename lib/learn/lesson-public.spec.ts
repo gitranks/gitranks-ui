@@ -199,7 +199,7 @@ describe('the public reads', () => {
 
 describe('the pages’ metadata', () => {
   it('gives a lesson its title, description and preview, at its own address', () => {
-    const metadata = lessonPageMetadata({ kind: 'found', value: lessonPage }, { frontDoorOpen: true });
+    const metadata = lessonPageMetadata({ kind: 'found', value: lessonPage });
     expect(metadata.title).toBe(PUBLIC_HEAD.title);
     expect(metadata.alternates?.canonical).toBe('/learn/lessons/route-cache-miss-8f3k');
     expect(metadata.description).toContain('driftwood-js/driftwood issue #871');
@@ -216,10 +216,10 @@ describe('the pages’ metadata', () => {
 
   it('keeps stubs and missing lessons out of search engines', () => {
     for (const answer of [{ kind: 'stub', visibility: 'REMOVED' } as const, null]) {
-      expect(lessonPageMetadata(answer, { frontDoorOpen: true }).robots).toEqual({ index: false, follow: false });
+      expect(lessonPageMetadata(answer).robots).toEqual({ index: false, follow: false });
       expect(lessonResultMetadata(answer).robots).toEqual({ index: false, follow: false });
     }
-    expect(lessonPageMetadata({ kind: 'stub', visibility: 'REMOVED' }, { frontDoorOpen: true }).title).toBe(
+    expect(lessonPageMetadata({ kind: 'stub', visibility: 'REMOVED' }).title).toBe(
       'This lesson was removed by its author',
     );
   });

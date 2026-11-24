@@ -13,17 +13,19 @@ describe('stripOf', () => {
     });
   });
 
-  it('gives a hidden page "Show it to everyone", and a private one no button', () => {
+  it('gives a hidden page "Show it to everyone", and draws an older API’s private page the same', () => {
     expect(stripOf(skillsMine.hiddenLearner)).toMatchObject({
       strong: 'Only you can see this page.',
       actions: ['show'],
     });
-    expect(stripOf(skillsMine.privateLearner)).toMatchObject({ actions: [], progress: '/learn/progress' });
+    expect(stripOf({ ...skillsMine.hiddenLearner, state: 'PRIVATE' as const })).toEqual(
+      stripOf(skillsMine.hiddenLearner),
+    );
   });
 
-  it('links "Your progress" only for someone who learns, while Learn is open to them', () => {
+  it('links "Your progress" only for someone who learns', () => {
     expect(stripOf(skillsMine.publicFirstFix).progress).toBeNull();
-    expect(stripOf({ ...skillsMine.publicLearner, learnOpen: false }).progress).toBeNull();
+    expect(stripOf(skillsMine.publicLearner).progress).toBe('/learn/progress');
   });
 
   it('says until when an empty page is only theirs', () => {
@@ -33,7 +35,6 @@ describe('stripOf', () => {
       actions: [],
       progress: null,
     });
-    expect(stripOf(skillsMine.newLearnClosed).rest).toBe(', until you send a pull request.');
   });
 });
 
@@ -47,14 +48,6 @@ describe('startOf', () => {
         { product: 'CONTRIBUTE', mode: 'promo', onlyYou: false },
         { product: 'LEARN', mode: 'promo', onlyYou: false },
       ],
-    });
-  });
-
-  it('names Contribute alone while Learn is not open', () => {
-    expect(startOf(skillsMine.newLearnClosed)).toMatchObject({
-      heading: 'This page shows what you fix with GitRanks',
-      line: 'Fixes that real projects merged: a page you can show an employer.',
-      boxes: [{ product: 'CONTRIBUTE', mode: 'promo', onlyYou: false }],
     });
   });
 
@@ -80,9 +73,8 @@ describe('otherBoxOf', () => {
     expect(otherBoxOf(skillsMine.publicFirstFix)).toEqual({ product: 'LEARN', mode: 'promo', onlyYou: true });
   });
 
-  it('offers nothing to someone of both, nor Learn while it is closed to them', () => {
+  it('offers nothing to someone of both', () => {
     expect(otherBoxOf(skillsMine.publicBoth)).toBeNull();
-    expect(otherBoxOf({ ...skillsMine.publicFirstFix, learnOpen: false })).toBeNull();
     expect(otherBoxOf(skillsMine.new)).toBeNull();
   });
 });
@@ -93,7 +85,8 @@ describe('the block', () => {
       text: 'Only you see this block. Your Skills page is hidden.',
       link: 'Open your Skills page',
     });
-    expect(blockOwnerLineOf('PRIVATE')).toEqual({ text: 'Only you see this block.', link: null });
+    // An older API’s private page is drawn as a hidden one.
+    expect(blockOwnerLineOf('PRIVATE')).toEqual(blockOwnerLineOf('HIDDEN'));
     expect(blockOwnerLineOf('PUBLIC')).toBeNull();
   });
 

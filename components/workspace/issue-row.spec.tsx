@@ -52,7 +52,7 @@ const HOSTED = { hosted: true, own: false };
 
 const render = (node: ReactNode) => act(async () => root.render(<IssueStartsProvider>{node}</IssueStartsProvider>));
 const row = (props: Partial<IssueRowProps> = {}, which = ROW_A) => (
-  <IssueRow key={which.issueId} issue={which} side="contribute" agents={HOSTED} learnOpen {...props} />
+  <IssueRow key={which.issueId} issue={which} side="contribute" agents={HOSTED} {...props} />
 );
 const startOf = (issueId: string) =>
   container.querySelector<HTMLButtonElement>(`[data-issue="${issueId}"] [data-start-control]`);
@@ -198,7 +198,7 @@ describe('an issue row, placed', () => {
     expect(startOf('I_1')).not.toBeNull();
   });
 
-  it('offers "Fix it and teach me" where Learn is open', async () => {
+  it('offers "Fix it and teach me"', async () => {
     await render(row());
     await act(async () => {
       container

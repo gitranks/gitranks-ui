@@ -34,7 +34,7 @@ export default function ContributeOwnAgentPage({ searchParams }: PageProps<'/con
 async function ContributeOwnAgent({ searchParams }: Pick<PageProps<'/contribute/start/agent/own'>, 'searchParams'>) {
   // An account that has entered is sent on to the Agent tab's connect page, the query (`?from=agent`) kept.
   const query = searchParamsOf(await searchParams).toString();
-  const { place, gate } = await loadContributeFlowPlace('agent-own', query);
+  const { place } = await loadContributeFlowPlace('agent-own', query);
   const panel = flowPanelOf(place, CONTRIBUTE_FLOW_PANELS);
   let step = panel;
   if (!step && place.kind === 'sign-in') {
@@ -45,7 +45,6 @@ async function ContributeOwnAgent({ searchParams }: Pick<PageProps<'/contribute/
       <OwnAgentStep
         tokens={view?.ownAgent?.tokens}
         signIn={view?.ownAgent?.signIn === true}
-        learnOpen={gate.kind === 'open' && gate.learnOpen}
         openedAt={new Date().toISOString()}
       />
     );

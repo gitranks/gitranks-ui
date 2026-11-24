@@ -78,8 +78,7 @@ async function render(page: (props: never) => ReactElement, search: Record<strin
 }
 
 const SIGNED_OUT = { kind: 'signed-out' } as const;
-const open = (entered: boolean, agents = { hosted: false, own: true }) =>
-  ({ kind: 'open', entered, agents, learnOpen: true }) as const;
+const open = (entered: boolean, agents = { hosted: false, own: true }) => ({ kind: 'open', entered, agents }) as const;
 const at = (kind: string, gate: object = open(false), to?: string) =>
   place.loadContributeFlowPlace.mockResolvedValue({ place: to ? { kind, to } : { kind }, gate });
 

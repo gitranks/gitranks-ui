@@ -22,24 +22,24 @@ import { contributeErrorMessage } from '@/lib/workspace/errors';
 export const DELETE_CONFIRMATION = 'delete';
 
 /**
- * What deleting removes, as the person has it: the Claude key only with a key, the lessons only with Learn open. "your
- * Claude key, your agent tokens, the GitHub access, your settings, and your attempts and lessons".
+ * What deleting removes, as the person has it: the Claude key only with a key. "your Claude key, your agent tokens,
+ * the GitHub access, your settings, and your attempts and lessons".
  */
-export function deletedThingsOf({ hasKey, learnOpen }: { hasKey: boolean; learnOpen: boolean }): string {
+export function deletedThingsOf({ hasKey }: { hasKey: boolean }): string {
   return [
     hasKey ? 'your Claude key' : null,
     'your agent tokens',
     'the GitHub access',
     'your settings',
-    learnOpen ? 'and your attempts and lessons' : 'and your attempt history',
+    'and your attempts and lessons',
   ]
     .filter(Boolean)
     .join(', ');
 }
 
 /** Deletes every row on the user, the GitHub grant included, after a typed confirmation. */
-export function DeleteDataSection({ hasKey = true, learnOpen = false }: { hasKey?: boolean; learnOpen?: boolean }) {
-  const things = deletedThingsOf({ hasKey, learnOpen });
+export function DeleteDataSection({ hasKey = true }: { hasKey?: boolean }) {
+  const things = deletedThingsOf({ hasKey });
   const router = useRouter();
   const id = useId();
   const [open, setOpen] = useState(false);

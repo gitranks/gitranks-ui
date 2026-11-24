@@ -5,8 +5,8 @@ import { formatPackageDate, PACKAGE_RANKINGS, packageRankingOrdersOf } from '@/a
 import { fetchInsightsServer } from '@/graphql/helpers/fetch-insights-server';
 import { fetchPackageRankingFacts, fetchPackageRankings } from '@/graphql/helpers/fetch-package-rankings';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { LearnOpenToEveryoneDocument } from '@/lib/learn/learn.documents';
 import { apiRegistryOf, DEFAULT_REGISTRY } from '@/lib/packages/registries';
+import { ContributeOpenDocument } from '@/lib/workspace/contribute.documents';
 import {
   BadgeTiersDocument,
   GlobalRankingsDocument,
@@ -114,17 +114,18 @@ export const fetchTopRepos = async () => {
 };
 
 /**
- * Whether the home page shows Learn's section to visitors: once the API says Learn is open to everyone. Asked as often
- * as the page's shortest read (15 minutes), so opening Learn reaches the home page without a deploy and the page lives
- * as long as before; a failed read leaves the section out for a few minutes.
+ * Whether the home page's block draws Contribute's card: once the API says Contribute is launched (`contributeOpen`),
+ * since its landing is not found for visitors before. Asked as often as the page's shortest read (15 minutes), so the
+ * launch reaches the home page without a deploy and the page lives as long as before; a failed read leaves the card
+ * out for a few minutes.
  */
-export const fetchLearnForVisitors = async (): Promise<boolean> => {
+export const fetchContributeForVisitors = async (): Promise<boolean> => {
   'use cache';
   cacheLife({ stale: 300, revalidate: 900, expire: 86_400 });
 
   try {
-    const { learnOpenToEveryone } = await graphqlDirect(LearnOpenToEveryoneDocument, undefined, { source: 'ssr' });
-    return learnOpenToEveryone === true;
+    const { contributeOpen } = await graphqlDirect(ContributeOpenDocument, undefined, { source: 'ssr' });
+    return contributeOpen === true;
   } catch {
     cacheLife('minutes');
     return false;

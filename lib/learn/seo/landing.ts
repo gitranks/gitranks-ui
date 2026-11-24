@@ -6,7 +6,7 @@ import { LANDING_QUESTIONS, LANDING_SEARCH_TITLE, LANDING_TEXT } from '../landin
 import type { LearnLesson } from '../lesson-page';
 import { learnLessonCardUrlOf } from '../lesson-share-card';
 import { LEARN_HOME_PATH, LEARN_LANDING_MARKDOWN_PATH, learnLessonPath } from '../paths';
-import { learnCoursesJsonLd, learnIndexedWhile, withPreview } from './course';
+import { learnCoursesJsonLd, withPreview } from './course';
 import { lessonDescriptionOf } from './lesson';
 import { clipText } from '@/lib/seo/clip-text';
 import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
@@ -16,12 +16,9 @@ import { absoluteUrl } from '@/lib/seo/site';
 /** The landing's description: its own words, clipped to what search engines show. */
 export const LANDING_DESCRIPTION = clipText(LANDING_TEXT, 158);
 
-/**
- * `/learn`: the landing is the page search engines and agents get. Only while Learn is open to everyone (`open`) is it
- * indexed and its Markdown copy named as an alternate: `/learn.md` is not found before then.
- */
-export function learnLandingMetadata(courses: readonly Pick<LearnCourseCard, 'lessons'>[], open: boolean): Metadata {
-  const metadata = withPreview(
+/** `/learn`: the landing is the page search engines and agents get, its Markdown copy named as an alternate. */
+export function learnLandingMetadata(courses: readonly Pick<LearnCourseCard, 'lessons'>[]): Metadata {
+  return withPreview(
     pageMetadata({
       title: { absolute: LANDING_SEARCH_TITLE },
       description: LANDING_DESCRIPTION,
@@ -36,8 +33,6 @@ export function learnLandingMetadata(courses: readonly Pick<LearnCourseCard, 'le
     },
     LEARN_LANDING_MARKDOWN_PATH,
   );
-  if (open) return metadata;
-  return learnIndexedWhile({ ...metadata, alternates: { canonical: metadata.alternates?.canonical } }, false);
 }
 
 /**

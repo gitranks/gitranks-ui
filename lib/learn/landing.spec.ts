@@ -24,11 +24,10 @@ import {
   tryTextOf,
 } from './landing';
 import { LEARN_LANDING_MARKDOWN_PATH, LEARN_LANDING_MARKDOWN_ROUTE, learnLandingMarkdownRouteOf } from './paths';
-import { learnCourseMetadata, learnCoursesMetadata, learnIndexedWhile } from './seo/course';
+import { learnCourseMetadata, learnCoursesMetadata } from './seo/course';
 import { LANDING_DESCRIPTION, learnLandingJsonLd, learnLandingMetadata } from './seo/landing';
 import { learnLessonMetadata } from './seo/lesson';
 
-const NO_INDEX = { index: false, follow: false };
 const many = (count: number, kind: 'TOPIC' | 'LANGUAGE') =>
   Array.from({ length: count }, (_, n) => ({ ...courseCards[0], slug: `${kind}-${n}`, kind }));
 
@@ -136,22 +135,8 @@ describe("the landing's Markdown copy", () => {
 });
 
 describe("the landing's Markdown copy, answered", () => {
-  it('is not found, never kept, while Learn is not open to everyone, and reads no course', async () => {
-    const courses = vi.fn(async () => courseCards);
-    for (const open of [async () => false, async () => Promise.reject(new Error('down'))]) {
-      const response = await landingMarkdownResponse(open, courses);
-      expect(response.status).toBe(404);
-      expect(response.headers.get('cache-control')).toBe('private, no-store');
-      expect(await response.text()).not.toContain('#');
-    }
-    expect(courses).not.toHaveBeenCalled();
-  });
-
-  it('is the copy once open, never indexed, the landing named as the canonical', async () => {
-    const response = await landingMarkdownResponse(
-      async () => true,
-      async () => courseCards,
-    );
+  it('is the copy, never indexed, the landing named as the canonical', async () => {
+    const response = await landingMarkdownResponse(async () => courseCards);
     expect(response.status).toBe(200);
     expect(await response.text()).toBe(learnLandingMarkdownOf(courseCards));
     expect(Object.fromEntries(response.headers)).toMatchObject({
@@ -162,17 +147,14 @@ describe("the landing's Markdown copy, answered", () => {
   });
 
   it('is the copy without the courses when they cannot be read', async () => {
-    const response = await landingMarkdownResponse(
-      async () => true,
-      async () => Promise.reject(new Error('down')),
-    );
+    const response = await landingMarkdownResponse(async () => Promise.reject(new Error('down')));
     expect([response.status, await response.text()]).toEqual([200, learnLandingMarkdownOf([])]);
   });
 });
 
 describe("the landing's metadata", () => {
   it('names the landing for search engines, its address, its copy and the courses picture', () => {
-    const metadata = learnLandingMetadata(courseCards, true);
+    const metadata = learnLandingMetadata(courseCards);
     expect(metadata.title).toEqual({ absolute: LANDING_SEARCH_TITLE });
     expect(metadata.description).toBe(LANDING_DESCRIPTION);
     expect(LANDING_DESCRIPTION.length).toBeLessThanOrEqual(158);
@@ -181,13 +163,9 @@ describe("the landing's metadata", () => {
     expect(metadata.robots).toBeUndefined();
   });
 
-  it('is never indexed, and names no Markdown copy, while the switch that opens Learn to everyone is closed', () => {
-    const closed = learnLandingMetadata(courseCards, false);
-    expect(closed.robots).toEqual(NO_INDEX);
-    expect(closed.alternates).toEqual({ canonical: '/learn' });
-    expect(JSON.stringify(closed)).not.toContain('/learn.md');
-    expect(learnLandingMetadata([], false).alternates?.canonical).toBe('/learn');
-    expect(learnLandingMetadata(courseCards, true).alternates?.types).toEqual({ 'text/markdown': '/learn.md' });
+  it('names its Markdown copy, with or without courses', () => {
+    expect(learnLandingMetadata([]).alternates?.canonical).toBe('/learn');
+    expect(learnLandingMetadata(courseCards).alternates?.types).toEqual({ 'text/markdown': '/learn.md' });
   });
 
   it('is the courses, the lesson at the top and the questions as structured data', () => {
@@ -208,21 +186,12 @@ describe("the landing's metadata", () => {
   });
 });
 
-describe("Learn's public pages while the switch that opens Learn to everyone is closed", () => {
-  it('adds the do-not-index mark when closed, and changes nothing when open', () => {
-    const metadata = { title: 'A page', robots: { index: true, follow: true } };
-    expect(learnIndexedWhile(metadata, true)).toBe(metadata);
-    expect(learnIndexedWhile(metadata, false)).toEqual({ title: 'A page', robots: NO_INDEX });
-  });
-
-  it("marks a course's page, all courses (searched or not) and a lesson's page", () => {
-    const course = algorithmsCourse;
-    expect(learnCourseMetadata(course).robots).toBeUndefined();
-    expect(learnCourseMetadata(course, { open: false }).robots).toEqual(NO_INDEX);
-    expect(learnCoursesMetadata(courseCards, { searched: false, open: false }).robots).toEqual(NO_INDEX);
-    expect(learnCoursesMetadata(courseCards, { searched: true, open: false }).robots).toEqual(NO_INDEX);
+describe("Learn's public pages", () => {
+  it("are indexed: a course's page, all courses (a search's page is not) and a lesson's page", () => {
+    expect(learnCourseMetadata(algorithmsCourse).robots).toBeUndefined();
+    expect(learnCoursesMetadata(courseCards, { searched: false }).robots).toBeUndefined();
+    expect(learnCoursesMetadata(courseCards, { searched: true }).robots).toEqual({ index: false, follow: true });
     expect(learnLessonMetadata(setLesson).robots).toBeUndefined();
-    expect(learnLessonMetadata(setLesson, { open: false }).robots).toEqual(NO_INDEX);
-    expect(learnLessonMetadata(setLesson, { fact: true, open: false }).robots).toEqual(NO_INDEX);
+    expect(learnLessonMetadata(setLesson, { fact: true }).robots).toBeUndefined();
   });
 });

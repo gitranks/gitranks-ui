@@ -2,7 +2,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/workspace/preview-gate', () => ({ contributeShown: vi.fn() }));
-vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
 vi.mock('@/components/workspace/scroll-to-hash', () => ({ ScrollToHash: () => <span data-scroll-to-hash /> }));
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
 
@@ -11,7 +10,6 @@ const { McpDocsScreen } = await import('./mcp-docs');
 const { LaunchedTerms, TermsScreen } = await import('@/app/terms/terms');
 const { LaunchedMorePages } = await import('./launched-more-pages');
 const { contributeShown } = await import('@/lib/workspace/preview-gate');
-const { loadLearnOpen } = await import('@/lib/learn/learn.data');
 const { FAQ_GROUPS, LANDING_QUESTIONS } = await import('@/lib/contribute/faq');
 const {
   MCP_DOC_CHECKS,
@@ -299,9 +297,12 @@ describe('the Terms', () => {
     expect(shown).toContain('gitranks.com/contribute/maintainers');
     expect(hidden).not.toContain('Contribute');
     expect(shown).not.toContain('Claude Code');
-    expect(shown).not.toContain('GitRanks Learn');
     // Maintainers who react are not on Learn's list: the reactions line is in Contribute's section.
-    expect(shown).toContain('your reaction may be shown on the result page with your username, avatar and role');
+    const reactions = shown.indexOf(
+      'your reaction may be shown on the result page with your username, avatar and role',
+    );
+    expect(reactions).toBeGreaterThan(-1);
+    expect(reactions).toBeLessThan(shown.indexOf('the lesson becomes public under your GitHub username'));
   });
 
   it('open Contribute’s section with the rules for issues from GitRanks, at their own anchor', () => {
@@ -328,8 +329,8 @@ describe('the Terms', () => {
     expect(hidden).not.toContain('contribute-rules');
   });
 
-  it('carry the Learn section only with Contribute and Learn open to the reader', () => {
-    const learn = renderToStaticMarkup(<TermsScreen contribute learn />);
+  it("carry the Learn section after Contribute's, and only with it", () => {
+    const learn = renderToStaticMarkup(<TermsScreen contribute />);
     const plain = text(learn);
     expect(learn).toContain('id="learn"');
     expect(plain).toContain('the lesson becomes public under your GitHub username');
@@ -341,8 +342,9 @@ describe('the Terms', () => {
     expect(plain).toContain('never the options you got wrong');
     expect(plain).toContain('Learn is only for people aged 16 and over');
     expect(learn).toContain('href="/learn/maintainers"');
+    expect(learn.indexOf('id="learn"')).toBeGreaterThan(learn.indexOf('id="contribute"'));
     // Learn sits on Contribute's terms, so it never shows without them.
-    expect(text(renderToStaticMarkup(<TermsScreen contribute={false} learn />))).not.toContain('GitRanks Learn');
+    expect(text(renderToStaticMarkup(<TermsScreen contribute={false} />))).not.toContain('GitRanks Learn');
   });
 });
 
@@ -363,25 +365,10 @@ describe('the launch gate', () => {
     expect(text(closed)).not.toContain('Contribute');
   });
 
-  it("gives the Terms Learn's section only when Learn is open to the reader", async () => {
-    const learnOpen = vi.mocked(loadLearnOpen);
+  it("gives the Terms Learn's section with Contribute's, and never without it", async () => {
     shown.mockResolvedValue(true);
-    learnOpen.mockResolvedValue(true);
-    const open = renderToStaticMarkup(await LaunchedTerms());
-    expect(open).toContain('id="learn"');
-
-    learnOpen.mockResolvedValue(false);
-    expect(renderToStaticMarkup(await LaunchedTerms())).not.toContain('id="learn"');
-
-    // A failed check leaves Learn's section out, never the Terms.
-    learnOpen.mockRejectedValue(new Error('down'));
-    const failed = renderToStaticMarkup(await LaunchedTerms());
-    expect(failed).toContain('id="contribute"');
-    expect(failed).not.toContain('id="learn"');
-
-    // Learn's section needs Contribute's.
+    expect(renderToStaticMarkup(await LaunchedTerms())).toContain('id="learn"');
     shown.mockResolvedValue(false);
-    learnOpen.mockResolvedValue(true);
     expect(renderToStaticMarkup(await LaunchedTerms())).not.toContain('id="learn"');
   });
 

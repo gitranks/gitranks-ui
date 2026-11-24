@@ -36,8 +36,6 @@ import {
 export type PullRequestsData = {
   /** Which sides the user uses; unknown: both. */
   sides: ContributeSides | null | undefined;
-  /** Learn is open to the account: its card, its pill and the "Made with" filter. */
-  learnOpen: boolean;
   /** The limit's line: what it counts, the limit, and the open ones; undefined when not known. */
   limit?: LimitCounts;
   /** What waits on the user; null when the API does not answer it, undefined when the read failed. */
@@ -69,10 +67,10 @@ function Head({ limit, text }: { limit?: LimitCounts; text?: ReactNode }) {
   );
 }
 
-/** Nothing yet: one card per side the account may start on, the one it is more likely to want first primary. */
-function Empty({ learnOpen, sides }: { learnOpen: boolean; sides: ContributeSides | null | undefined }) {
+/** Nothing yet: one card per side, the one the account is more likely to want first primary. */
+function Empty({ sides }: { sides: ContributeSides | null | undefined }) {
   // Learn's card leads unless the account uses Contribute alone.
-  const learnFirst = learnOpen && sides?.learn !== false;
+  const learnFirst = sides?.learn !== false;
   const cards = [
     {
       side: 'contribute',
@@ -82,24 +80,20 @@ function Empty({ learnOpen, sides }: { learnOpen: boolean; sides: ContributeSide
       href: WORKSPACE_PATHS.contribute,
       label: 'Start contributing',
     },
-    ...(learnOpen
-      ? [
-          {
-            side: 'learn',
-            eyebrow: 'Learn',
-            title: 'Learn from a fix',
-            text: 'For people who want to understand a real fix: your own agent fixes an issue you pick and writes a lesson on it, and the pull request opens once you pass the lesson.',
-            href: WORKSPACE_PATHS.learn,
-            label: 'Start learning',
-          },
-        ]
-      : []),
+    {
+      side: 'learn',
+      eyebrow: 'Learn',
+      title: 'Learn from a fix',
+      text: 'For people who want to understand a real fix: your own agent fixes an issue you pick and writes a lesson on it, and the pull request opens once you pass the lesson.',
+      href: WORKSPACE_PATHS.learn,
+      label: 'Start learning',
+    },
   ];
-  const primary = cards.length === 1 ? cards[0].side : learnFirst ? 'learn' : 'contribute';
+  const primary = learnFirst ? 'learn' : 'contribute';
   return (
     <section aria-labelledby="first-one" className="flex flex-col gap-3" data-section="empty">
       <h2 id="first-one" className={HEADING.block}>
-        {cards.length === 1 ? 'Send your first one' : 'Two ways to send your first one'}
+        Two ways to send your first one
       </h2>
       <div className="grid gap-4 md:grid-cols-2">
         {cards.map((card) => (
@@ -433,17 +427,8 @@ function TableNote({ children, name }: { children: ReactNode; name: string }) {
  * The title and the limit's line; Needs you (the API's list, each row worded here); In progress; the state chips and
  * "Made with"; the table, 20 a page.
  */
-export function PullRequestsScreen({
-  sides,
-  learnOpen,
-  limit,
-  needsYou,
-  page,
-  filter,
-  activity,
-  now,
-}: PullRequestsData) {
-  const audience = audienceOf(sides, learnOpen);
+export function PullRequestsScreen({ sides, limit, needsYou, page, filter, activity, now }: PullRequestsData) {
+  const audience = audienceOf(sides);
   // Someone who only learns sees no Learn pill: every row is one.
   const learnPill = audience !== 'learner';
   const nothingWaits = !needsYou || (!needsYou.items.length && !needsYou.inProgress.length);
@@ -461,7 +446,7 @@ export function PullRequestsScreen({
     return (
       <>
         <Head text="Every pull request you send shows here, with what it needs from you." />
-        <Empty learnOpen={learnOpen} sides={sides} />
+        <Empty sides={sides} />
       </>
     );
   }

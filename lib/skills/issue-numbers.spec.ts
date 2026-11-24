@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { skillsIssueNumbers } from './__fixtures__/skills';
-import { issueCellsOf, issuesTextOf, keptLineOf, listUsersOf, roundedOf } from './issue-numbers';
+import { issueCellsOf, issuesTextOf, keptLineOf, LIST_USERS, roundedOf } from './issue-numbers';
 
 describe('roundedOf', () => {
   it('rounds to two significant digits, in millions from a million', () => {
@@ -47,17 +47,16 @@ describe('keptLineOf', () => {
 });
 
 describe('issuesTextOf', () => {
-  it('names both products while Learn is open, and Contribute alone otherwise', () => {
-    expect(listUsersOf(true)).toBe('GitRanks Contribute and GitRanks Learn take their issues from it.');
-    expect(listUsersOf(false)).toBe('GitRanks Contribute takes its issues from it.');
-    const text = issuesTextOf(skillsIssueNumbers, true);
+  it('names both products', () => {
+    expect(LIST_USERS).toBe('GitRanks Contribute and GitRanks Learn take their issues from it.');
+    const text = issuesTextOf(skillsIssueNumbers);
     expect(text).toContain('Then two AI models, Jev and Claude, read each one that is left');
     expect(text).toContain('About 1 issue in 1,000 makes the list. GitRanks Contribute and GitRanks Learn');
   });
 
   it('leaves the share out without numbers', () => {
-    const text = issuesTextOf(null, false);
+    const text = issuesTextOf(null);
     expect(text).not.toContain('About');
-    expect(text.endsWith('GitRanks Contribute takes its issues from it.')).toBe(true);
+    expect(text.endsWith(LIST_USERS)).toBe(true);
   });
 });

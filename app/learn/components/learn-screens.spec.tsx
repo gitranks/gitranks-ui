@@ -22,8 +22,6 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/lib/learn/actions', () => ({}));
-const everyone = vi.hoisted(() => ({ open: true }));
-vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => everyone.open }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   viewerLogin: vi.fn(async () => 'octocat'),
@@ -36,7 +34,6 @@ vi.mock('@/components/workspace/pull-request/review-view', async (original) => (
   lessonPageOf: page.lessonPageOf,
 }));
 vi.mock('@/lib/learn/learn.data', () => ({
-  loadLearnOpen: vi.fn(),
   loadLearnSetup: vi.fn(),
   loadAttemptLesson: vi.fn(),
   loadPracticeLessons: vi.fn(),
@@ -404,7 +401,6 @@ describe("the Lesson view's page", () => {
 
   it('says the account is being set up, with a refresh', async () => {
     page.lessonPageOf.mockResolvedValue(read());
-    vi.mocked(learnData.loadLearnOpen).mockResolvedValue(true);
     vi.mocked(learnData.loadLearnSetup).mockResolvedValue(true);
     const html = renderToStaticMarkup(
       await LessonView({ params: Promise.resolve({ owner: 'a', repo: 'b', issue: '1' }) }),
@@ -413,7 +409,6 @@ describe("the Lesson view's page", () => {
   });
 
   it('reads practice lessons only while the agent works', async () => {
-    vi.mocked(learnData.loadLearnOpen).mockResolvedValue(true);
     vi.mocked(learnData.loadLearnSetup).mockResolvedValue(false);
     vi.mocked(learnData.loadPracticeLessons).mockResolvedValue(practiceLessons());
     page.lessonPageOf.mockResolvedValue(read(lessons.working));

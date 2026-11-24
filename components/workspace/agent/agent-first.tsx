@@ -66,21 +66,19 @@ function WayCard({
 /**
  * The Agent tab with nothing connected (`agent-tab-first`): the two ways side by side (stacked on a phone), the
  * person's own agent first and recommended, then the one line on what comes next. For an account that has entered the
- * buttons lead to the Agent tab's own connect and key pages; for one that has not, into Contribute's flow. Where Learn
- * is not open to the account, the page names no Learn: no "What it is for" rows, and the next step names Contribute
- * alone.
+ * buttons lead to the Agent tab's own connect and key pages; for one that has not, into Contribute's flow.
  */
-export function AgentFirst({ entered, learnOpen }: { entered: boolean; learnOpen: boolean }) {
+export function AgentFirst({ entered }: { entered: boolean }) {
   const own: Fact[] = [
     { label: 'Where it runs', text: 'On your computer: Claude Code, Codex CLI, Cursor, Gemini CLI and others.' },
     { label: 'What it costs', text: 'Nothing here. It works with the plan you already pay for.' },
-    ...(learnOpen ? [{ label: 'What it is for', text: 'Contribute and Learn' }] : []),
+    { label: 'What it is for', text: 'Contribute and Learn' },
     { label: 'Setup', text: 'About a minute' },
   ];
   const hosted: Fact[] = [
     { label: 'Where it runs', text: 'On our side, for you. Your computer can be off.' },
     { label: 'What it costs', text: 'Your Claude API key pays, within a monthly budget you set.' },
-    ...(learnOpen ? [{ label: 'What it is for', text: 'Contribute only. Learn always uses your own agent.' }] : []),
+    { label: 'What it is for', text: 'Contribute only. Learn always uses your own agent.' },
     { label: 'Setup', text: 'A Claude API key and a budget' },
   ];
   return (
@@ -114,7 +112,7 @@ export function AgentFirst({ entered, learnOpen }: { entered: boolean; learnOpen
       <p className="text-sm text-muted-foreground" data-agent-first-next="">
         {!entered ? (
           'Then you pick your first issue.'
-        ) : learnOpen ? (
+        ) : (
           <>
             Next, pick an issue on{' '}
             <Link href={WORKSPACE_PATHS.contribute} prefetch={false} className={link}>
@@ -125,14 +123,6 @@ export function AgentFirst({ entered, learnOpen }: { entered: boolean; learnOpen
               Learn
             </Link>{' '}
             and press Start. You can set up the other way later.
-          </>
-        ) : (
-          <>
-            Next, pick an issue on{' '}
-            <Link href={WORKSPACE_PATHS.contribute} prefetch={false} className={link}>
-              Contribute
-            </Link>{' '}
-            and press Start.
           </>
         )}
       </p>

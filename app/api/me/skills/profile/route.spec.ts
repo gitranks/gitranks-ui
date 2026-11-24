@@ -36,7 +36,6 @@ const mine = (patch: Partial<SkillsOverviewMine>): SkillsOverviewMine => ({
   page: { login: 'octocat', numbers: learnerNumbers },
   usesContribute: false,
   usesLearn: true,
-  learnOpen: true,
   ...patch,
 });
 const rows = [{ kind: 'masked' as const, masked: maskedIssue() }];
@@ -69,20 +68,16 @@ describe("the route for what the owner's profile overview shows them of Skills",
     loadSkillsOverview.mockResolvedValueOnce(mine({ state: 'HIDDEN' }));
     loadLearnQueueTop.mockResolvedValueOnce(rows);
     expect(await (await get(' octocat ')).json()).toEqual({
-      sides: { usesContribute: false, usesLearn: true, learnOpen: true },
-      block: { numbers: learnerNumbers, state: 'HIDDEN', learnOpen: true },
+      sides: { usesContribute: false, usesLearn: true },
+      block: { numbers: learnerNumbers, state: 'HIDDEN' },
       learnRows: rows,
     });
     expect(loadLearnQueueTop).toHaveBeenCalledWith('OctoCat');
   });
 
-  it('asks no Learn list for someone who contributes, uses neither, or Learn is closed to; no block on a public page', async () => {
+  it('asks no Learn list for someone who contributes or uses neither; no block on a public page', async () => {
     signIn();
-    for (const view of [
-      mine({ usesContribute: true }),
-      mine({ usesLearn: false, state: 'NEW', page: null }),
-      mine({ learnOpen: false }),
-    ]) {
+    for (const view of [mine({ usesContribute: true }), mine({ usesLearn: false, state: 'NEW', page: null })]) {
       loadSkillsOverview.mockResolvedValueOnce(view);
       const answer = await (await get()).json();
       expect(answer.learnRows).toBeNull();

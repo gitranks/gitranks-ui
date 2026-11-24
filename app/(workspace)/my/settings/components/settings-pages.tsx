@@ -16,7 +16,7 @@ import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
 import { SettingsForm } from '@/components/workspace/settings/settings-form';
 import { SettingsGroup, SettingsList, SettingsPageHead, SettingsRow } from '@/components/workspace/settings-rows';
 import { MODES, modeTitleOf } from '@/lib/contribute/set-format';
-import { loadLearnOpen, loadLearnProfile, loadLearnSetup } from '@/lib/learn/learn.data';
+import { loadLearnProfile, loadLearnSetup } from '@/lib/learn/learn.data';
 import type { LearnProfile } from '@/lib/learn/learn.types';
 import { loadContribute, loadContributeSet, loadContributeSetup } from '@/lib/workspace/contribute.data';
 import type {
@@ -184,12 +184,8 @@ export function PullRequestsSettingsScreen({ view }: { view: ContributeView }) {
 }
 
 export async function GoalSettingsView() {
-  const profile = loadLearnProfile();
-  const settingUp = loadLearnSetup();
-  // Read together; a closed Learn is a 404 whatever the profile read does.
-  profile.catch(() => {});
-  if (!(await loadLearnOpen())) notFound();
-  return <GoalSettingsScreen profile={await profile} settingUp={await settingUp} />;
+  const [profile, settingUp] = await Promise.all([loadLearnProfile(), loadLearnSetup()]);
+  return <GoalSettingsScreen profile={profile} settingUp={settingUp} />;
 }
 
 /**

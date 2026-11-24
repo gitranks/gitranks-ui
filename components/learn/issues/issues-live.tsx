@@ -67,15 +67,12 @@ export function IssuesLive({
   at = 'issues',
   names,
   initial,
-  everyone = false,
 }: {
   view: IssuesView;
   at?: IssuesAt;
   names?: IssuesNames;
   /** The public layer, drawn on the server. */
   initial: IssuesLayer;
-  /** Learn is open to everyone: the view's Markdown copy answers. */
-  everyone?: boolean;
 }) {
   const router = useRouter();
   const key = issuesMinePathOf(view);
@@ -219,7 +216,6 @@ export function IssuesLive({
       at={at}
       names={names}
       layer={layer}
-      everyone={everyone}
       onSkipped={onSkipped}
       onLeave={onLeave}
       onRetry={onRetry}

@@ -19,23 +19,17 @@ const clear = () => {
 describe('the bar Settings shows', () => {
   afterEach(clear);
 
-  it("is Learn's when Learn's link opened it, and only where Learn is open", () => {
-    const base = { lastBar: 'contribute', audience: 'both', learnOpen: true } as const;
+  it("is Learn's when Learn's link opened it", () => {
+    const base = { lastBar: 'contribute', audience: 'both' } as const;
     expect(settingsBarOf({ ...base, from: 'learn' })).toBe('learn');
     expect(settingsBarOf({ ...base, from: ['learn', 'contribute'] })).toBe('learn');
-    expect(settingsBarOf({ ...base, from: 'learn', learnOpen: false })).toBe('contribute');
   });
 
   it('else the bar seen last, else the product the person uses', () => {
-    expect(settingsBarOf({ from: null, lastBar: 'learn', audience: 'contributor', learnOpen: true })).toBe('learn');
-    expect(settingsBarOf({ from: 'other', lastBar: 'contribute', audience: 'learner', learnOpen: true })).toBe(
-      'contribute',
-    );
-    expect(settingsBarOf({ from: undefined, lastBar: null, audience: 'learner', learnOpen: true })).toBe('learn');
-    expect(settingsBarOf({ from: undefined, lastBar: null, audience: 'both', learnOpen: true })).toBe('contribute');
-    expect(settingsBarOf({ from: undefined, lastBar: 'learn', audience: 'learner', learnOpen: false })).toBe(
-      'contribute',
-    );
+    expect(settingsBarOf({ from: null, lastBar: 'learn', audience: 'contributor' })).toBe('learn');
+    expect(settingsBarOf({ from: 'other', lastBar: 'contribute', audience: 'learner' })).toBe('contribute');
+    expect(settingsBarOf({ from: undefined, lastBar: null, audience: 'learner' })).toBe('learn');
+    expect(settingsBarOf({ from: undefined, lastBar: null, audience: 'both' })).toBe('contribute');
   });
 
   it('applies to Settings and its own pages only', () => {

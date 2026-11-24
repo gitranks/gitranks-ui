@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 const stub =
   (name: string) =>
-  ({ promo }: { promo?: unknown }) => <div data-part={name} data-promo={promo ? '' : undefined} />;
+  ({ contribute }: { contribute?: boolean }) => (
+    <div data-part={name} data-contribute={contribute === undefined ? undefined : String(contribute)} />
+  );
 
 vi.mock('@/components/header/header', () => ({ Header: stub('header') }));
 vi.mock('./landing-sections', () => ({
@@ -22,38 +24,32 @@ vi.mock('./landing-sections', () => ({
 }));
 vi.mock('./packages-section', () => ({ PackagesSection: stub('packages') }));
 vi.mock('./repos-section', () => ({ ReposSection: stub('repos') }));
-vi.mock('./landing-promos', () => ({ LandingPromos: stub('learn-promos') }));
 vi.mock('./products-block-live', () => ({ ProductsBlockLive: stub('products-block') }));
 
 const { landingData } = await import('./__fixtures__/landing');
 const { LandingScreen } = await import('./landing-screen');
-const { landingPromo } = await import('@/lib/learn/__fixtures__/promo');
 
 /** The page's parts, top to bottom, by name. */
 const partsOf = (html: string) => [...html.matchAll(/data-part="([a-z-]+)"/g)].map((match) => match[1]);
 
 describe('LandingScreen', () => {
-  it("is today's page while Learn is not open to everyone: no block, and Learn's suggestion after the packages", () => {
-    for (const learn of [undefined, { forVisitors: false }, { promo: landingPromo }]) {
-      const parts = partsOf(renderToStaticMarkup(<LandingScreen {...landingData} learn={learn} />));
-      expect(parts).not.toContain('products-block');
-      expect(parts.slice(0, 6)).toEqual(['header', 'ticker', 'hero', 'container', 'packages', 'learn-promos']);
-    }
-    const html = renderToStaticMarkup(<LandingScreen {...landingData} learn={{ promo: landingPromo }} />);
-    expect(html).toContain('data-part="learn-promos" data-promo=""');
-  });
-
-  it('draws the block directly under the hero once Learn is open to everyone, in the place of the suggestion', () => {
-    const parts = partsOf(renderToStaticMarkup(<LandingScreen {...landingData} learn={{ forVisitors: true }} />));
+  it('draws the block for Contribute and Learn directly under the hero, then the packages', () => {
+    const parts = partsOf(renderToStaticMarkup(<LandingScreen {...landingData} contribute />));
     expect(parts.slice(0, 6)).toEqual(['header', 'ticker', 'hero', 'products-block', 'container', 'packages']);
-    expect(parts).not.toContain('learn-promos');
     expect(parts.filter((part) => part === 'products-block')).toHaveLength(1);
   });
 
-  it('keeps the block under the hero when no package ranking could be read', () => {
-    const parts = partsOf(
-      renderToStaticMarkup(<LandingScreen {...landingData} packages={null} learn={{ forVisitors: true }} />),
+  it('tells the block whether Contribute is launched, so its card is drawn only then', () => {
+    expect(renderToStaticMarkup(<LandingScreen {...landingData} contribute />)).toContain(
+      'data-part="products-block" data-contribute="true"',
     );
+    expect(renderToStaticMarkup(<LandingScreen {...landingData} contribute={false} />)).toContain(
+      'data-part="products-block" data-contribute="false"',
+    );
+  });
+
+  it('keeps the block under the hero when no package ranking could be read', () => {
+    const parts = partsOf(renderToStaticMarkup(<LandingScreen {...landingData} packages={null} contribute />));
     expect(parts.slice(0, 6)).toEqual(['header', 'ticker', 'hero', 'products-block', 'container', 'leaderboard']);
   });
 });

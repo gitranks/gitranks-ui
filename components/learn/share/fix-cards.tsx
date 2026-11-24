@@ -38,13 +38,13 @@ function Words({ parts }: Readonly<{ parts: { text: string; strong?: boolean }[]
 
 /**
  * A fix's picture: its state, the project and the issue, the title, "Fixed by @octocat with Claude Code", then "Merged
- * on 20 Nov 2026", with the lesson it used where Learn may name it, or "Waiting for the project's review".
+ * on 20 Nov 2026", with the lesson it used, or "Waiting for the project's review".
  */
-export function FixShareCard({ fix, learnOpen }: Readonly<{ fix: LearnFixCard; learnOpen: boolean }>): ReactElement {
+export function FixShareCard({ fix }: Readonly<{ fix: LearnFixCard }>): ReactElement {
   const project = fixCardProjectOf(fix);
   const title = fixCardTitleOf(fix);
   const agent = fixCardAgentOf(fix);
-  const status = fixCardStatusOf(fix, learnOpen);
+  const status = fixCardStatusOf(fix);
   const address = fixCardAddressOf(fix);
   return (
     <Frame eyebrow={fixCardEyebrowOf(fix)} brand="start">

@@ -12,12 +12,10 @@ const reads = vi.hoisted(() => ({
   loadContributeActivity: vi.fn(async () => null),
   loadContributeSetup: vi.fn(),
   loadProviderInterests: vi.fn(async () => []),
-  loadLearnOpen: vi.fn(async () => true),
   loadRuns: vi.fn(),
   loadScheduleCounts: vi.fn(async () => undefined),
 }));
 vi.mock('@/lib/workspace/contribute.data', () => reads);
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: reads.loadLearnOpen }));
 vi.mock('@/lib/workspace/runs.data', () => ({ loadRuns: reads.loadRuns }));
 
 const { AgentScreen } = await import('./agent-screen');
@@ -38,7 +36,7 @@ const text = (html: string) =>
 
 const render = (props: Partial<ComponentProps<typeof AgentScreen>> = {}) => {
   const html = renderToStaticMarkup(
-    <AgentScreen view={agentTabViews.both} learnOpen runs={previewPageOf()} now={NOW} {...props} />,
+    <AgentScreen view={agentTabViews.both} runs={previewPageOf()} now={NOW} {...props} />,
   );
   return { html, plain: text(html) };
 };
@@ -61,8 +59,6 @@ describe('the Agent tab, both agents set up', () => {
     expect(plain).toContain('Revoke Claude Code on macOS');
     expect(html).toMatch(/href="\/my\/agent\/connect"[^>]*>Connect another agent/);
     expect(html).toContain('href="/contribute/mcp"');
-    // Without Learn open, Contribute alone.
-    expect(render({ learnOpen: false }).plain).toContain('Your own agent For Contribute ');
   });
 
   it("holds the hosted agent's control slot, its three rows with Edit, what repos can ask, and what is coming", () => {
@@ -133,7 +129,7 @@ describe('the Agent tab, both agents set up', () => {
 
 describe('the Agent tab, by who uses it (W1 §9.4)', () => {
   it('shows a contributor with their own agent alone what the hosted agent is, and the key to start it', () => {
-    const { html, plain } = render({ view: agentTabViews.ownOnly, learnOpen: false });
+    const { html, plain } = render({ view: agentTabViews.ownOnly });
     expect(html).toContain('data-hosted="pitch"');
     expect(plain).toContain('Where it runs');
     expect(plain).toContain('What it costs');
@@ -191,7 +187,7 @@ describe('the Agent tab, by who uses it (W1 §9.4)', () => {
   });
 
   it('asks someone with the hosted agent alone to connect their own', () => {
-    const { html, plain } = render({ view: agentTabViews.hostedOnly, learnOpen: false });
+    const { html, plain } = render({ view: agentTabViews.hostedOnly });
     expect(plain).toContain('No agent is connected.');
     expect(html).toMatch(/href="\/my\/agent\/connect"[^>]*>Connect your agent/);
     expect(html).toContain('id="hosted-level"');
@@ -214,10 +210,9 @@ describe('the Agent tab, by who uses it (W1 §9.4)', () => {
     expect(notice).toBeLessThan(html.indexOf('id="own-agent"'));
   });
 
-  it('says there are no runs yet, naming Learn only while it is open', () => {
+  it('says there are no runs yet, naming both sides', () => {
     const none = pageOf({ items: [], repos: [], days: [] });
     expect(render({ runs: none }).plain).toContain('No runs yet. Start an issue on Contribute or Learn .');
-    expect(render({ runs: none, learnOpen: false }).plain).toContain('No runs yet. Start an issue on Contribute .');
   });
 
   it("says when the runs or the connections didn't load, and the rest of the page works", () => {
@@ -267,13 +262,6 @@ describe('the Agent tab with nothing connected', () => {
     const { html } = render({ view: { ...agentTabViews.nothing, ownAgent: undefined } });
     expect(html).toContain('data-own-agent="failed"');
     expect(html).not.toContain('data-agent-first');
-  });
-
-  it('names no Learn where Learn is not open to the account', () => {
-    const { plain } = render({ view: agentTabViews.nothing, learnOpen: false, runs: pageOf({ items: [] }) });
-    expect(plain).not.toContain('Learn');
-    expect(plain).not.toContain('What it is for');
-    expect(plain).toContain('Next, pick an issue on Contribute and press Start.');
   });
 
   it('keeps the runs when there are some', () => {

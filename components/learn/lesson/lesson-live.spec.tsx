@@ -309,13 +309,13 @@ describe('"In the real world" under a lesson', () => {
       );
     });
 
-  it('is left out for a visitor while Learn is not open to everyone, reading nothing', async () => {
+  it('is left out for a visitor when the merged fixes cannot be read, reading nothing', async () => {
     await draw();
     expect(section()).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("shows a visitor the lesson's merged fixes while Learn is open to everyone, as plain text", async () => {
+  it("shows a visitor the lesson's merged fixes, as plain text", async () => {
     await draw({ fixes: learnFixes });
     expect(section()!.textContent).toContain(learnFixes.rows[0].title);
     expect($('[data-real-all-fixes]')!.getAttribute('href')).toBe(

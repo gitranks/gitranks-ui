@@ -50,34 +50,12 @@ describe("Issues' Markdown copies", () => {
     expect(language).toContain('The list of real issues to learn from is not available right now.');
   });
 
-  it('is not found while Learn is not open to everyone, without reading the list', async () => {
-    const read = vi.fn();
-    const closed = await learnIssuesMarkdownResponse(async () => false, read, ISSUES_VIEW, 'issues');
-    expect(closed.status).toBe(404);
-    expect(closed.headers.get('cache-control')).toBe('private, no-store');
-    const failed = await learnIssuesMarkdownResponse(
-      () => Promise.reject(new Error('down')),
-      read,
-      ISSUES_VIEW,
-      'issues',
-    );
-    expect(failed.status).toBe(404);
-    expect(read).not.toHaveBeenCalled();
-  });
-
-  it("is the copy once open, and not found for a lesson's or a course's view of no known name", async () => {
-    const open = async () => true;
-    const ok = await learnIssuesMarkdownResponse(
-      open,
-      async () => ({ rows: issueRows, names: {} }),
-      ISSUES_VIEW,
-      'issues',
-    );
+  it("is the copy, and not found for a lesson's or a course's view of no known name", async () => {
+    const ok = await learnIssuesMarkdownResponse(async () => ({ rows: issueRows, names: {} }), ISSUES_VIEW, 'issues');
     expect(ok.status).toBe(200);
     expect(ok.headers.get('content-type')).toBe('text/markdown; charset=utf-8');
     expect(ok.headers.get('link')).toBe('</learn/issues>; rel="canonical"');
     const missing = await learnIssuesMarkdownResponse(
-      open,
       async () => ({ rows: [], names: { lesson: null } }),
       views.lesson,
       'lesson',
@@ -86,9 +64,7 @@ describe("Issues' Markdown copies", () => {
   });
 
   it('answers a failed read with 503, never kept, and the API answering none with the copy', async () => {
-    const open = async () => true;
     const failed = await learnIssuesMarkdownResponse(
-      open,
       async () => ({ rows: null, failed: true, names: {} }),
       ISSUES_VIEW,
       'issues',
@@ -97,7 +73,6 @@ describe("Issues' Markdown copies", () => {
     expect(failed.headers.get('cache-control')).toBe('no-store');
     expect(await failed.text()).toBe('The issues didn’t load. Try again in a minute.\n');
     const none = await learnIssuesMarkdownResponse(
-      open,
       async () => ({ rows: null, failed: false, names: {} }),
       ISSUES_VIEW,
       'issues',

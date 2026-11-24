@@ -6,8 +6,8 @@ import type { LearnQueueTopRow } from '@/lib/learn/learn-queue-top';
  * the overview decides from these alone.
  */
 
-/** Which products the owner uses, and whether Learn is open to them: what the box on their profile follows. */
-export type SkillsSides = Pick<SkillsMine, 'usesContribute' | 'usesLearn' | 'learnOpen'>;
+/** Which products the owner uses: what the box on their profile follows. */
+export type SkillsSides = Pick<SkillsMine, 'usesContribute' | 'usesLearn'>;
 
 /** The owner's view as their profile's overview reads it: where the page stands and its numbers alone. */
 export type SkillsOverviewMine = SkillsSides & {
@@ -15,8 +15,8 @@ export type SkillsOverviewMine = SkillsSides & {
   page: { login: string; numbers: SkillsNumbers } | null;
 };
 
-/** The owner's own block, for a page only they see: its numbers, its state, and whether Learn is open to them. */
-export type SkillsOwnBlock = { numbers: SkillsNumbers; state: 'HIDDEN' | 'PRIVATE'; learnOpen: boolean };
+/** The owner's own block, for a page only they see: its numbers and its state (`PRIVATE` only from an older API). */
+export type SkillsOwnBlock = { numbers: SkillsNumbers; state: 'HIDDEN' | 'PRIVATE' };
 
 /**
  * What the owner's own profile overview reads of Skills (`GET /api/me/skills/profile?login=`): which products they
@@ -35,33 +35,33 @@ export const NO_SKILLS_PROFILE: SkillsProfileAnswer = { sides: null, block: null
 /**
  * What the owner's box holds, by the products they use: `neither` (issues picked for them, with a way into each
  * product), `learns` (the top of their own Learn list), `contributes` (Contribute's own box, for someone who
- * contributes or uses both). Learn counts only where it is open to them. Their sides unread: Contribute's own box.
+ * contributes or uses both). Their sides unread: Contribute's own box.
  */
 export type OwnerBoxCase = 'neither' | 'learns' | 'contributes';
 
 export function ownerBoxCaseOf(sides: SkillsSides | null): OwnerBoxCase {
   if (!sides || sides.usesContribute) return 'contributes';
-  return sides.usesLearn && sides.learnOpen ? 'learns' : 'neither';
+  return sides.usesLearn ? 'learns' : 'neither';
 }
 
-/** The block as drawn: its numbers, the owner's state for a page only they see, and whether Learn's words show. */
-export type OverviewBlock = { numbers: SkillsNumbers; ownState: SkillsState | null; learnOpen: boolean };
+/** The block as drawn: its numbers, and the owner's state for a page only they see. */
+export type OverviewBlock = { numbers: SkillsNumbers; ownState: SkillsState | null };
 
 /**
- * The owner's own block: only for a page they alone see (`HIDDEN`, or `PRIVATE`) that has numbers. On a page everyone
- * sees, the owner reads the public block like everyone else.
+ * The owner's own block: only for a page they alone see (`HIDDEN`, or `PRIVATE` from an older API, drawn the same)
+ * that has numbers. On a page everyone sees, the owner reads the public block like everyone else.
  */
 export function ownBlockOf(mine: SkillsOverviewMine | null): SkillsOwnBlock | null {
   if (!mine?.page || (mine.state !== 'HIDDEN' && mine.state !== 'PRIVATE')) return null;
-  return { numbers: mine.page.numbers, state: mine.state, learnOpen: mine.learnOpen };
+  return { numbers: mine.page.numbers, state: mine.state };
 }
 
 /**
- * The block for a reader: the owner's own one when their page is theirs alone, else the public numbers everyone gets,
- * with Learn's words only while Learn is open to everyone. Null, no block, before either answer or without a page.
+ * The block for a reader: the owner's own one when their page is theirs alone, else the public numbers everyone gets.
+ * Null, no block, before either answer or without a page.
  */
 export function overviewBlockOf(brief: SkillsBriefAnswer | null, own: SkillsOwnBlock | null): OverviewBlock | null {
-  if (own) return { numbers: own.numbers, ownState: own.state, learnOpen: own.learnOpen };
-  if (brief?.brief) return { numbers: brief.brief.numbers, ownState: null, learnOpen: brief.learnOpen };
+  if (own) return { numbers: own.numbers, ownState: own.state };
+  if (brief?.brief) return { numbers: brief.brief.numbers, ownState: null };
   return null;
 }

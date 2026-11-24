@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SkillsBlock } from './skills-block';
 import { SkillsCourseCard } from './skills-course-card';
@@ -24,6 +24,19 @@ import {
   repoCourse,
   SKILLS_NOW,
 } from '@/lib/skills/__fixtures__/skills';
+
+// The "Learn from it" view of a fix, built or not: each case below sets it.
+const built = vi.hoisted(() => ({ fix: true }));
+vi.mock('@/lib/learn/built-pages', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  get LEARN_FIXES_PAGE_BUILT() {
+    return built.fix;
+  },
+}));
+
+beforeEach(() => {
+  built.fix = true;
+});
 
 const LONG_DASH = String.fromCodePoint(0x2014);
 
@@ -98,6 +111,16 @@ describe('SkillsFixRow', () => {
     expect(text).toContain('with Learn');
     expect(text).toContain('A hash map stores values by key');
     expect(hrefs).toContain('/learn/fixes/honojs/hono/3196');
+  });
+
+  it('draws a Learn fix’s title as plain text while its "Learn from it" view is not built', () => {
+    built.fix = false;
+    const { root, text, hrefs } = draw(<SkillsFixRow now={SKILLS_NOW} fix={learnerFixes[2]} namesProduct />);
+    expect(text).toContain(learnerFixes[2].title);
+    expect([...root.querySelectorAll('a')].some((a) => a.textContent === learnerFixes[2].title)).toBe(false);
+    expect(hrefs.some((href) => href?.startsWith('/learn/fixes/'))).toBe(false);
+    expect(hrefs.filter((href) => href === '/contribute/pr/honojs/hono/3196')).toHaveLength(1);
+    expect(text).toContain('How it was made');
   });
 
   it('keeps a hidden fix’s GitHub links alone', () => {

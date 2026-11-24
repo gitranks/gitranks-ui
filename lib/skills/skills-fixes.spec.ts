@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   contributorFixes,
@@ -18,6 +18,19 @@ import {
   namesProduct,
 } from './skills-fixes';
 
+// The "Learn from it" view of a fix, built or not: each case below sets it.
+const built = vi.hoisted(() => ({ fix: true }));
+vi.mock('@/lib/learn/built-pages', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  get LEARN_FIXES_PAGE_BUILT() {
+    return built.fix;
+  },
+}));
+
+beforeEach(() => {
+  built.fix = true;
+});
+
 describe('fixLinksOf', () => {
   it('links both of a Contribute fix to its timeline', () => {
     expect(fixLinksOf(contributorFixes[0])).toEqual({
@@ -31,6 +44,15 @@ describe('fixLinksOf', () => {
       title: '/learn/fixes/harbor-kit/relay/58',
       made: '/contribute/pr/harbor-kit/relay/58',
     });
+    expect(fixLinksOf(learnerFixes[0], { learnOpen: false })).toEqual({
+      title: '/contribute/pr/harbor-kit/relay/58',
+      made: '/contribute/pr/harbor-kit/relay/58',
+    });
+  });
+
+  it('leaves a Learn fix’s title unlinked while its "Learn from it" view is not built', () => {
+    built.fix = false;
+    expect(fixLinksOf(learnerFixes[0])).toEqual({ title: null, made: '/contribute/pr/harbor-kit/relay/58' });
     expect(fixLinksOf(learnerFixes[0], { learnOpen: false })).toEqual({
       title: '/contribute/pr/harbor-kit/relay/58',
       made: '/contribute/pr/harbor-kit/relay/58',

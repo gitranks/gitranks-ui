@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { bothPage, contributorPage, firstLessonPage, hiddenPageFix, longPage, SKILLS_NOW } from './__fixtures__/skills';
 import { skillsMarkdownOf } from './skills-markdown';
@@ -6,6 +6,19 @@ import { skillsMarkdownOf } from './skills-markdown';
 // The site's address is read once, as the module loads: vitest runs this before the imports.
 vi.hoisted(() => {
   process.env.NEXT_PUBLIC_URI = 'https://gitranks.com';
+});
+
+// The "Learn from it" view of a fix, built or not: each case below sets it.
+const built = vi.hoisted(() => ({ fix: true }));
+vi.mock('@/lib/learn/built-pages', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  get LEARN_FIXES_PAGE_BUILT() {
+    return built.fix;
+  },
+}));
+
+beforeEach(() => {
+  built.fix = true;
 });
 
 describe("a Skills page's Markdown copy", () => {
@@ -41,6 +54,15 @@ describe("a Skills page's Markdown copy", () => {
     expect(text).toContain('- Big-O: all 8');
     expect(text).toContain('Not started: Linked lists, Trees, Graphs, Sorting and searching');
     expect(text).toContain('Topic course · All 62 lessons learned · 20 practised · Finished on 12 Nov.');
+  });
+
+  it('names a Learn fix in plain text while its "Learn from it" view is not built, "How it was made" kept', () => {
+    built.fix = false;
+    const text = skillsMarkdownOf(bothPage, { learnOpen: true, now: SKILLS_NOW });
+    expect(text).not.toContain('/learn/fixes/');
+    const learnRow = text.split('\n').find((line) => line.includes('· with Learn ·'));
+    expect(learnRow?.startsWith('- [')).toBe(false);
+    expect(learnRow).toContain('[How it was made](https://gitranks.com/contribute/pr/');
   });
 
   it('holds nothing of Learn while it is not open to everyone', () => {

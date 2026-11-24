@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { graphqlDirect } = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
+const { graphqlDirect, cacheLife } = vi.hoisted(() => ({ graphqlDirect: vi.fn(), cacheLife: vi.fn() }));
+vi.mock('next/cache', () => ({ cacheLife }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('@/lib/workspace/preview-gate', () => ({ contributeShown: vi.fn(async () => true) }));
@@ -37,49 +38,59 @@ const live = { issueNumbers: { rulesLive: true, termsDate: TERMS_DATE } };
 
 beforeEach(() => {
   graphqlDirect.mockReset();
+  cacheLife.mockReset();
   resetIssueRulesLive();
 });
 
 describe('which rules about issues hold', () => {
-  it('is read in an operation of its own, live with the date of the Terms, and kept a minute', async () => {
+  it('is read in an operation of its own, live with the date of the Terms, and cached a minute', async () => {
     graphqlDirect.mockResolvedValue(live);
-    expect(await issueRules(1_000)).toEqual(LIVE);
-    expect(await issueRulesLive(30_000)).toBe(true);
-    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    expect(await issueRules()).toEqual(LIVE);
+    expect(await issueRulesLive()).toBe(true);
     expect(graphqlDirect).toHaveBeenCalledWith(IssueRulesLiveDocument, undefined, { source: 'ssr' });
+    expect(cacheLife).toHaveBeenCalledWith('minutes');
   });
 
-  it("is today's while the API does not know the field, kept a minute", async () => {
+  it("is today's while the API does not know the field, cached a minute", async () => {
     graphqlDirect.mockImplementation(unknownField);
-    expect(await issueRules(1_000)).toEqual({ state: 'before' });
-    expect(await issueRules(30_000)).toEqual({ state: 'before' });
-    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    expect(await issueRules()).toEqual({ state: 'before' });
+    expect(cacheLife).toHaveBeenCalledWith('minutes');
   });
 
   it('is not live when the API says live without a date', async () => {
     graphqlDirect.mockResolvedValue({ issueNumbers: { rulesLive: true, termsDate: null } });
-    expect(await issueRules(1_000)).toEqual({ state: 'before' });
-    expect(await issueRulesLive(1_000)).toBe(false);
+    expect(await issueRules()).toEqual({ state: 'before' });
+    expect(await issueRulesLive()).toBe(false);
   });
 
-  it('is unknown, kept for nobody, while the API does not answer and no answer is kept', async () => {
+  it('is unknown while the API does not answer and nothing was read, asked again 10 seconds later', async () => {
     graphqlDirect.mockImplementation(outage);
-    expect(await issueRules(1_000)).toEqual({ state: 'unknown' });
-    expect(await issueRulesLive(1_001)).toBe(false);
-    expect(graphqlDirect).toHaveBeenCalledTimes(2);
+    expect(await issueRules()).toEqual({ state: 'unknown' });
+    expect(await issueRulesLive()).toBe(false);
+    expect(cacheLife).toHaveBeenLastCalledWith({ stale: 30, revalidate: 10, expire: 600 });
+    expect(cacheLife).not.toHaveBeenCalledWith('minutes');
     graphqlDirect.mockResolvedValue(live);
-    expect(await issueRules(1_002)).toEqual(LIVE);
+    expect(await issueRules()).toEqual(LIVE);
   });
 
-  it('keeps the last answer when the API does not answer, and asks again 10 seconds later', async () => {
+  it('keeps the last answer read when the API does not answer, asked again 10 seconds later', async () => {
     graphqlDirect.mockResolvedValueOnce(live);
-    expect(await issueRules(0)).toEqual(LIVE);
+    expect(await issueRules()).toEqual(LIVE);
     graphqlDirect.mockImplementationOnce(outage);
-    expect(await issueRules(60_000)).toEqual(LIVE);
-    expect(await issueRules(65_000)).toEqual(LIVE);
-    expect(graphqlDirect).toHaveBeenCalledTimes(2);
+    expect(await issueRules()).toEqual(LIVE);
+    expect(cacheLife).toHaveBeenLastCalledWith({ stale: 30, revalidate: 10, expire: 600 });
     graphqlDirect.mockResolvedValueOnce({ issueNumbers: { rulesLive: false, termsDate: null } });
-    expect(await issueRules(71_000)).toEqual({ state: 'before' });
+    expect(await issueRules()).toEqual({ state: 'before' });
+  });
+
+  it('never reads the clock, so a prerendered page may call it', async () => {
+    const now = vi.spyOn(Date, 'now');
+    graphqlDirect.mockResolvedValue(live);
+    await issueRules();
+    graphqlDirect.mockImplementation(outage);
+    await issueRules();
+    expect(now).not.toHaveBeenCalled();
+    now.mockRestore();
   });
 });
 

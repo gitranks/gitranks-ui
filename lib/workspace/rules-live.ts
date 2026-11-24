@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { parse } from 'graphql';
+import { cacheLife } from 'next/cache';
 
 import { contributeErrorOf } from './errors';
 import { type IssueRules, RULES_BEFORE } from './fair-use';
@@ -20,56 +21,48 @@ export const IssueRulesLiveDocument = parse(
 }>;
 
 /**
- * How long an answer is reused. The API keeps its numbers for 5 minutes, so a change of the rules can take up to about
- * 6 minutes to reach every server.
+ * The last answer this server read, so a failed ask keeps it rather than lose it. Never the clock: a page that is
+ * prerendered may call this, and the build refuses a read of the time there.
  */
-const ANSWER_TTL_MS = 60_000;
-/** After a failed ask, a kept answer holds this long before the next try. */
-const RETRY_MS = 10_000;
+let lastRead: IssueRules | null = null;
 
-let kept: { rules: IssueRules; at: number } | null = null;
-let asking: Promise<IssueRules> | null = null;
+/** After a failed ask: asked again 10 seconds later, and long enough lived to be kept in a prerendered page. */
+const RETRY_LIFE = { stale: 30, revalidate: 10, expire: 600 };
 
 /**
- * The API's answer, asked once a minute per server, one ask at a time. Live needs a date: live without one is not live.
- * An API that does not know the read yet answers the rules of today, kept a minute. Any other failure returns the kept
- * answer and tries again 10 seconds later; with none kept it is `unknown`, kept for nobody, and the next request asks
- * again.
+ * The API's answer, cached across requests: kept a minute (`minutes`), so a change of the rules can take up to about
+ * 6 minutes to reach every page (the API keeps its numbers for 5). Live needs a date: live without one is not live. An
+ * API that does not know the read yet answers the rules of today. Any other failure answers the last answer this
+ * server read, or `unknown` with none, and asks again 10 seconds later. It never throws: an error inside a cached read
+ * fails a prerendered page even when its caller catches it.
  */
-export function issueRules(now = Date.now()): Promise<IssueRules> {
-  if (kept && now - kept.at < ANSWER_TTL_MS) return Promise.resolve(kept.rules);
-  asking ??= ask(now).finally(() => {
-    asking = null;
-  });
-  return asking;
-}
-
-/** Whether the rules about full issues a day are live; false while unknown (the old Start page address reads as today). */
-export async function issueRulesLive(now = Date.now()): Promise<boolean> {
-  return (await issueRules(now)).state === 'live';
-}
-
-async function ask(now: number): Promise<IssueRules> {
+export async function issueRules(): Promise<IssueRules> {
+  'use cache';
   try {
     const { issueNumbers } = await graphqlDirect(IssueRulesLiveDocument, undefined, { source: 'ssr' });
     const termsDate = issueNumbers?.termsDate;
     const rules: IssueRules =
       issueNumbers?.rulesLive === true && termsDate ? { state: 'live', termsDate } : RULES_BEFORE;
-    kept = { rules, at: now };
+    lastRead = rules;
+    cacheLife('minutes');
     return rules;
   } catch (failure) {
     if (contributeErrorOf(failure).error === 'NOT_AVAILABLE_YET') {
-      kept = { rules: RULES_BEFORE, at: now };
+      lastRead = RULES_BEFORE;
+      cacheLife('minutes');
       return RULES_BEFORE;
     }
-    if (!kept) return { state: 'unknown' };
-    kept = { rules: kept.rules, at: now - ANSWER_TTL_MS + RETRY_MS };
-    return kept.rules;
+    cacheLife(RETRY_LIFE);
+    return lastRead ?? { state: 'unknown' };
   }
 }
 
-/** Forgets the kept answer (tests). */
+/** Whether the rules about full issues a day are live; false while unknown (the old Start page address reads as today). */
+export async function issueRulesLive(): Promise<boolean> {
+  return (await issueRules()).state === 'live';
+}
+
+/** Forgets the last answer read (tests). */
 export function resetIssueRulesLive(): void {
-  kept = null;
-  asking = null;
+  lastRead = null;
 }

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { bothPage, contributorPage, firstFixPage, firstLessonPage, learnerPage } from './__fixtures__/skills';
 import { skillsDescriptionOf, skillsJsonLdOf, skillsKnowsAboutOf, skillsMetadataOf, skillsTitleOf } from './seo';
 import type { SkillsPage } from './skills.types';
+import { type SkillsCard, skillsCardOf, skillsCardUrlOf } from './skills-share-card';
 
 // The site's address is read once, as the module loads: vitest runs this before the imports.
 vi.hoisted(() => {
@@ -56,7 +57,7 @@ describe("a Skills page's title and description", () => {
 });
 
 describe("a Skills page's metadata", () => {
-  it('is indexed only when the API says so, with its own address, the avatar and its Markdown copy', () => {
+  it('is indexed only when the API says so, with its own address, its Skills picture and its Markdown copy', () => {
     const indexed = skillsMetadataOf({ ...contributorPage, indexable: true }, { name: 'Octo Cat', learnOpen: true });
     expect(indexed.title).toEqual({ absolute: 'octocat’s skills · GitRanks' });
     expect(indexed.robots).toEqual({ index: true, follow: true });
@@ -64,10 +65,28 @@ describe("a Skills page's metadata", () => {
       canonical: '/profile/octocat/skills',
       types: { 'text/markdown': '/profile/octocat/skills.md' },
     });
-    expect(JSON.stringify(indexed.openGraph)).toContain('https://gitranks.com/api/avatar/octocat');
-    expect(JSON.stringify(indexed.openGraph)).toContain('GitHub avatar of Octo Cat (@octocat)');
+    const card = skillsCardOf(contributorPage, true);
+    const image = {
+      url: `https://gitranks.com${card ? skillsCardUrlOf(card) : '-'}`,
+      width: 1200,
+      height: 630,
+      alt: 'octocat fixes real issues in open-source projects',
+    };
+    expect(indexed.openGraph?.images).toEqual([image]);
+    expect(indexed.twitter).toMatchObject({ card: 'summary_large_image', images: [image] });
     const fresh = skillsMetadataOf({ ...contributorPage, indexable: false }, { learnOpen: true });
     expect(fresh.robots).toEqual({ index: false, follow: true });
+  });
+
+  it('draws the picture as a reader Learn is not open to sees it, and keeps the avatar when it has nothing to draw', () => {
+    const shut = skillsCardOf(bothPage, false) as SkillsCard;
+    const open = skillsCardOf(bothPage, true) as SkillsCard;
+    expect(skillsCardUrlOf(shut)).not.toBe(skillsCardUrlOf(open));
+    const closed = skillsMetadataOf(bothPage, { learnOpen: false });
+    expect(JSON.stringify(closed.openGraph)).toContain(skillsCardUrlOf(shut));
+    const learner = skillsMetadataOf(learnerPage, { name: 'Octo Cat', learnOpen: false });
+    expect(JSON.stringify(learner.openGraph)).toContain('https://gitranks.com/api/avatar/octocat');
+    expect(JSON.stringify(learner.openGraph)).toContain('GitHub avatar of Octo Cat (@octocat)');
   });
 });
 

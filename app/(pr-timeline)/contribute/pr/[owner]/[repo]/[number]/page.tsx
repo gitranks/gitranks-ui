@@ -6,6 +6,8 @@ import { Header } from '@/components/header/header';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { NO_PR, publicPrTimeline } from '@/lib/contribute/pr-timeline.data';
 import { prTimelineDescriptionOf, prTimelineJsonLdOf, prTimelineTitleOf } from '@/lib/contribute/pr-timeline-seo';
+import { loadFixCard } from '@/lib/learn/fix-share.data';
+import { fixPreviewOf } from '@/lib/learn/fix-share-card';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { parsePrLink } from '@/lib/workspace/pr-feedback';
 import { prTimelineMarkdownPath, prTimelinePath } from '@/lib/workspace/pr-timeline-path';
@@ -38,11 +40,18 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     openGraphType: 'article',
     publishedTime: timeline.openedAt,
   });
-  // Only a shown page answers (the proxy's gate): it is indexed.
+  // Only a shown page answers (the proxy's gate): it is indexed. A posted link shows the fix's picture.
+  const preview = fixPreviewOf(await loadFixCard({ nameWithOwner: timeline.nameWithOwner, number: timeline.number }));
   return {
     ...base,
     alternates: { ...base.alternates, types: { 'text/markdown': prTimelineMarkdownPath(timeline) } },
     robots: { index: true, follow: true },
+    ...(preview
+      ? {
+          openGraph: { ...base.openGraph, ...preview },
+          twitter: { ...base.twitter, card: 'summary_large_image', ...preview },
+        }
+      : {}),
   };
 }
 

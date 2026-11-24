@@ -1,3 +1,4 @@
+import { countWords } from './course';
 import type { LearnLesson } from './lesson-page';
 import { learnFactCardPath, learnLessonCardPath, learnLessonPath } from './paths';
 import { clipText } from '@/lib/seo/clip-text';
@@ -11,7 +12,17 @@ import { clipText } from '@/lib/seo/clip-text';
 export type LessonCardKind = 'lesson' | 'fact';
 
 /** What a picture's version reads: everything either picture draws, and when the lesson last changed. */
-type CardLesson = Pick<LearnLesson, 'slug' | 'changedAt' | 'title' | 'course' | 'group' | 'fact'>;
+type CardLesson = Pick<LearnLesson, 'slug' | 'changedAt' | 'title' | 'course' | 'group' | 'fact' | 'fixesMerged'>;
+
+/** A lesson's merged fixes are drawn from this many: fewer leave the place empty. */
+const FIXES_SHOWN_FROM = 3;
+
+/** The lesson picture's figure: "14 merged fixes in real projects used it", from 3; null below, so no zero shows. */
+export function lessonCardFixesOf(lesson: Pick<LearnLesson, 'fixesMerged'>): { value: string; label: string } | null {
+  const fixes = lesson.fixesMerged;
+  if (typeof fixes !== 'number' || !Number.isInteger(fixes) || fixes < FIXES_SHOWN_FROM) return null;
+  return { value: countWords(fixes), label: 'merged fixes in real projects used it' };
+}
 
 /** A short, stable hash of a text (32-bit FNV-1a), in base 36. */
 function hashOf(text: string): string {
@@ -31,7 +42,7 @@ export function lessonCardVersionOf(kind: LessonCardKind, lesson: CardLesson): s
   const drawn =
     kind === 'fact'
       ? [lesson.title, lesson.fact?.title ?? '', lesson.fact?.text ?? '']
-      : [lesson.title, lesson.course.title, lesson.group.title];
+      : [lesson.title, lesson.course.title, lesson.group.title, lessonCardFixesOf(lesson)?.value ?? ''];
   return hashOf([kind, lesson.changedAt, ...drawn].join('\n'));
 }
 

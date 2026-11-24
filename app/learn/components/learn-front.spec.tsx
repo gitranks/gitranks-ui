@@ -39,6 +39,7 @@ vi.mock('@/lib/workspace/gate.data', () => ({ loadWorkspaceGate: m.loadWorkspace
 vi.mock('@/lib/learn/course.data', () => ({ loadLearnCourses: m.loadLearnCourses }));
 vi.mock('@/lib/learn/landing.data', () => ({ loadTryLessons: m.loadTryLessons }));
 vi.mock('@/components/learn/bar/learn-bar-live', () => ({ LearnBarLive: () => null }));
+vi.mock('@/components/learn/bar/learn-bar-frame', () => ({ LearnBarFrame: () => null }));
 vi.mock('@/lib/learn/lesson-page.actions', () => ({ answerLearnLessonAction: vi.fn() }));
 
 const { LearnAboutView, LearnFrontView } = await import('./learn-front');

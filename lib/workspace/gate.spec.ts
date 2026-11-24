@@ -7,7 +7,7 @@ vi.mock('@/lib/workspace/session-token', () => ({ sessionTokenOf }));
 
 const { learnOpenFor, notEnteredTargetOf, requestLearnAccess, tabsOf, workspaceGateOf } = await import('./gate');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { isLearnOpenPath, isLearnPath } = await import('@/lib/learn/learn-path');
+const { isLearnIssuesPath, isLearnOpenPath, isLearnPath } = await import('@/lib/learn/learn-path');
 
 describe('the Learn gate', () => {
   beforeEach(() => {
@@ -107,6 +107,32 @@ describe("Learn's paths", () => {
       '/learn/courses//',
     ]) {
       expect(isLearnOpenPath(path), path).toBe(false);
+    }
+  });
+
+  it('knows Issues and its views at a lesson and a course, in the spellings the router reads as them', () => {
+    for (const path of [
+      '/learn/issues',
+      '/learn/issues/',
+      '/Learn/Issues',
+      '//learn//issues',
+      '/learn/lessons/binary-search/real-world',
+      '/learn/courses/algorithms/real-world/',
+      '/learn/courses/algorithms/Real-World',
+      '/learn/lessons/binary-search%2Freal-world',
+    ]) {
+      expect(isLearnIssuesPath(path), path).toBe(true);
+    }
+    for (const path of [
+      '/learn',
+      '/learn/issuesx',
+      '/learn/issues/more',
+      '/learn/lessons/binary-search',
+      '/learn/lessons/real-world',
+      '/learn/courses/algorithms/real-world/more',
+      '/learn/start/issues',
+    ]) {
+      expect(isLearnIssuesPath(path), path).toBe(false);
     }
   });
 

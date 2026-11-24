@@ -4,6 +4,7 @@ import {
   FROM_LEARN,
   LEARN_COURSES_PATH,
   LEARN_HOME_PATH,
+  LEARN_ISSUES_PATH,
   LEARN_PROGRESS_PATH,
   LEARN_PULL_REQUESTS_PATH,
   LEARN_REVIEW_PATH,
@@ -38,12 +39,12 @@ export type LearnBarSetup = 'working' | 'guessed' | 'open';
 
 /**
  * Who looks at Learn's bar, as the boards of pages 5 and 7 draw it:
- * - `visitor`: not signed in (or not known yet): Home and Courses, nothing on the right;
+ * - `visitor`: not signed in (or not known yet): Home and Courses, and Issues while Learn is open to everyone; nothing
+ *   on the right;
  * - `setup`: signed in, Learn not set up (setting up is not required): a learner's tabs, and "Set up Learn" on the
  *   right with how far it is; then what waits for them, as a learner's;
- * - `learner`: Home, Courses, Progress and Settings; "Pull requests" once one was sent through GitRanks, with how many
- *   need them; "Review" with how many lessons are due.
- * Issues is not a tab yet: it comes with real issues to fix.
+ * - `learner`: Home, Courses, Issues, Progress and Settings; "Pull requests" once one was sent through GitRanks, with
+ *   how many need them; "Review" with how many lessons are due.
  */
 export type LearnBarState =
   | { kind: 'visitor' }
@@ -68,13 +69,14 @@ export function learnBarStateOf(read: LearnBarRead | null | undefined, guessing 
 }
 
 /** The bar's tabs, in order. */
-export type LearnBarTab = 'home' | 'courses' | 'progress' | 'settings';
+export type LearnBarTab = 'home' | 'courses' | 'issues' | 'progress' | 'settings';
 /** What on the bar is the current place: a tab, or one of the items on the right. */
 export type LearnBarPlace = LearnBarTab | 'pull-requests' | 'setup' | 'review';
 
 export const LEARN_BAR_TABS: Record<LearnBarTab, { label: string; href: Route }> = {
   home: { label: 'Home', href: LEARN_HOME_PATH },
   courses: { label: 'Courses', href: LEARN_COURSES_PATH },
+  issues: { label: 'Issues', href: LEARN_ISSUES_PATH },
   progress: { label: 'Progress', href: LEARN_PROGRESS_PATH },
   settings: { label: 'Settings', href: LEARN_SETTINGS_PATH },
 };
@@ -85,9 +87,18 @@ export const LEARN_BAR_LINKS = {
   pullRequests: LEARN_PULL_REQUESTS_PATH,
 } as const;
 
-/** The tabs a state shows: Home and Courses for everyone, Progress and Settings for anyone signed in, set up or not. */
-export const learnBarTabsOf = (state: LearnBarState): LearnBarTab[] =>
-  state.kind === 'visitor' ? ['home', 'courses'] : ['home', 'courses', 'progress', 'settings'];
+/**
+ * The tabs a state shows: Home and Courses for everyone; Issues for anyone signed in, and for a visitor only while
+ * Learn is open to everyone (`everyone`), since Issues is not found for them before; Progress and Settings for anyone
+ * signed in, set up or not.
+ */
+export const learnBarTabsOf = (state: LearnBarState, everyone = false): LearnBarTab[] => {
+  if (state.kind !== 'visitor') return ['home', 'courses', 'issues', 'progress', 'settings'];
+  return everyone ? ['home', 'courses', 'issues'] : ['home', 'courses'];
+};
+
+/** A lesson's or a course's view of Issues, `/learn/lessons/<slug>/real-world` or `/learn/courses/<slug>/real-world`. */
+const REAL_WORLD = /^\/learn\/(?:lessons|courses)\/[^/]+\/real-world\/?$/;
 
 /** Matches the path, ending in a slash or not, against the address or anything under it. */
 const under = (pathname: string, path: string) => pathname === path || pathname.startsWith(`${path}/`);
@@ -96,10 +107,12 @@ const at = (pathname: string, path: string) => pathname === path || pathname ===
 /**
  * The current place for a path, as the board's table "Which tab is current" lists it. `from` is the page's `?from=`:
  * a page both products share (Settings, the pull requests) is Learn's place only when Learn opened it. A person's
- * public progress page (`/learn/progress/<login>`) is no tab: Progress is the person's own.
+ * public progress page (`/learn/progress/<login>`) is no tab: Progress is the person's own. A lesson's and a course's
+ * view of Issues are Issues.
  */
 export function learnBarPlaceOf(pathname: string, from: string | null = null): LearnBarPlace | null {
   if (at(pathname, LEARN_HOME_PATH)) return 'home';
+  if (at(pathname, LEARN_ISSUES_PATH) || REAL_WORLD.test(pathname)) return 'issues';
   if (under(pathname, LEARN_COURSES_PATH)) return 'courses';
   if (at(pathname, LEARN_PROGRESS_PATH)) return 'progress';
   if (at(pathname, LEARN_SETUP_PATH)) return 'setup';

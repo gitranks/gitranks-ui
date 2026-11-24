@@ -37,8 +37,13 @@ export type MaskedRowState = 'masked' | 'opening' | 'taken' | 'limit' | 'holding
 export type MaskedIssueRowProps = {
   issue: MaskedIssue;
   state?: MaskedRowState;
-  /** With `full`: the issue as the person holds it. */
+  /** With `full`: the issue as the person holds it. With `named`: the issue whose project the person named. */
   full?: FullIssue | null;
+  /**
+   * A row whose project the person named (their own stack, a project they contributed to): the project and the
+   * issue's chip over the line of facts, and its own title, with the row's buttons as in every other state.
+   */
+  named?: boolean;
   /** The lesson it uses or teaches, when there is one. */
   lesson?: MaskedIssueLesson | null;
   /** With `limit`: the day's full issues, for the note. */
@@ -76,6 +81,7 @@ export function MaskedIssueRow({
   issue,
   state = 'masked',
   full = null,
+  named = false,
   lesson = null,
   looks = null,
   visitor = false,
@@ -106,7 +112,7 @@ export function MaskedIssueRow({
   }, [skipped]);
 
   const page = href ?? issuePagePath(issue.id);
-  const shown = state === 'full' && full ? full : null;
+  const shown = (state === 'full' || named) && full ? full : null;
 
   const note =
     state === 'taken'

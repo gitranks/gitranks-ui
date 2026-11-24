@@ -50,6 +50,15 @@ export const isLearnOpenPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i) ||
   decodedMatches(pathname, /^\/+learn\/+progress\/+[^/\\]+\/?$/i);
 
+/**
+ * Issues and the views of it at a lesson's and a course's own address (`/learn/issues`,
+ * `/learn/lessons/<slug>/real-world`, `/learn/courses/<slug>/real-world`), in any spelling the router reads as them.
+ * A visitor sees them once Learn is open to everyone, though a lesson's and a course's other pages are open to all.
+ */
+export const isLearnIssuesPath = (pathname: string): boolean =>
+  decodedMatches(pathname, /^\/+learn\/+issues\/?$/i) ||
+  decodedMatches(pathname, /^\/+learn\/+(?:lessons|courses)\/+[^/\\]+\/+real-world\/?$/i);
+
 /** Learn's front door, `/learn`, in any spelling the router reads as it. */
 export const isLearnHomePath = (pathname: string): boolean => decodedMatches(pathname, /^\/+learn\/?$/i);
 

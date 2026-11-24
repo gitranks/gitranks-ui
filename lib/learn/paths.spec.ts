@@ -18,12 +18,14 @@ import {
   learnCourseGonePath,
   learnCourseMarkdownRouteOf,
   learnCourseMinePath,
+  learnCourseRealWorldPath,
   learnCourseTag,
   learnEntityTag,
   learnFactCardPath,
   learnFixPath,
   learnFixTag,
   learnFixTagOf,
+  learnIssuesMarkdownRouteOf,
   learnKnownPath,
   learnLessonCardPath,
   learnLessonGonePath,
@@ -31,6 +33,7 @@ import {
   learnLessonMarkdownRouteOf,
   learnLessonMinePath,
   learnLessonPath,
+  learnLessonRealWorldPath,
   learnLessonTag,
   learnProjectCourseCardPath,
   learnProjectCourseMarkdownPath,
@@ -47,6 +50,11 @@ describe("Learn's addresses", () => {
     expect(checkPath('algorithms')).toBe('/learn/check/algorithms');
     expect(learnLessonPath('hash-sets')).toBe('/learn/lessons/hash-sets');
     expect(coursePath('a b')).toBe('/learn/courses/a%20b');
+  });
+
+  it("gives a lesson's and a course's view of Issues at their own addresses", () => {
+    expect(learnLessonRealWorldPath('hash-sets')).toBe('/learn/lessons/hash-sets/real-world');
+    expect(learnCourseRealWorldPath('algorithms')).toBe('/learn/courses/algorithms/real-world');
   });
 
   it('gives "What you know" and the person’s run of a check, encoded', () => {
@@ -188,6 +196,31 @@ describe("a course's addresses", () => {
       '/learn/lessons/algorithms.md',
     ]) {
       expect(learnCourseMarkdownRouteOf(path), path).toBeNull();
+    }
+  });
+
+  it("answers Issues' Markdown copies from their route, with the view carried", () => {
+    expect(learnIssuesMarkdownRouteOf('/learn/issues.md')).toBe('/api/learn/issues.md');
+    expect(learnIssuesMarkdownRouteOf('/learn/issues.md', '?language=go&fixed=1')).toBe(
+      '/api/learn/issues.md?language=go&fixed=1',
+    );
+    // `at` is the route's own: a query never sets it.
+    expect(learnIssuesMarkdownRouteOf('/learn/issues.md', '?at=lesson&lesson=x')).toBe('/api/learn/issues.md?lesson=x');
+    expect(learnIssuesMarkdownRouteOf('/learn/lessons/binary-search/real-world.md')).toBe(
+      '/api/learn/issues.md?lesson=binary-search&at=lesson',
+    );
+    expect(learnIssuesMarkdownRouteOf('/learn/courses/algorithms/real-world.md', '?language=go')).toBe(
+      '/api/learn/issues.md?language=go&course=algorithms&at=course',
+    );
+    for (const path of [
+      '/learn/issues',
+      '/learn/issues.md/',
+      '/learn/lessons/Binary-Search/real-world.md',
+      '/learn/courses/a/b/real-world.md',
+      '/learn/courses/algorithms.md',
+      '/learn/lessons/binary-search/real-world',
+    ]) {
+      expect(learnIssuesMarkdownRouteOf(path), path).toBeNull();
     }
   });
 

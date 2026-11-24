@@ -40,9 +40,9 @@ export async function readLearnBar(): Promise<LearnBarRead | null> {
  * starts here (Set up Learn starts it itself; the lesson, review and check pages, which have no bar, start it from
  * their own side: `useLearnSetupGuess`), and the bar is read again every two seconds while
  * it runs: "Set up Learn" shows a spinner until the guess is in, and the page hears when it is. `from` is the page's `?from=`, for a page both products
- * share. It records itself as the bar seen last.
+ * share. `everyone`: Learn is open to everyone, so a visitor's bar shows Issues. It records itself as the bar seen last.
  */
-export function LearnBarLive({ from = null }: { from?: string | null }) {
+export function LearnBarLive({ from = null, everyone = false }: { from?: string | null; everyone?: boolean }) {
   const pathname = usePathname();
   const [state, setState] = useState<LearnBarState>({ kind: 'visitor' });
   // The bar seen last, for Settings to show again (`settings-bar.ts`): kept for everyone, visitors too.
@@ -91,5 +91,5 @@ export function LearnBarLive({ from = null }: { from?: string | null }) {
       clearTimeout(timer);
     };
   }, [pathname]);
-  return <LearnBar state={state} place={learnBarPlaceOf(pathname, from)} />;
+  return <LearnBar state={state} place={learnBarPlaceOf(pathname, from)} everyone={everyone} />;
 }

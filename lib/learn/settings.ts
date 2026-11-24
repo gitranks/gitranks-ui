@@ -276,3 +276,18 @@ export function setupRowOf(read: LearnSetupRead | null | undefined): SetupRow {
 
 /** Where the row's button goes. */
 export const SETUP_ROW_PATH = LEARN_SETUP_PATH;
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* An email switch with no address                                                                                    */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * Under a Learn email's switch while the person has no address ("Lessons to repeat" in Settings, "A new issue for
+ * you" on Issues): the email cannot be sent, and where the address comes from. Said in place, so a switch never looks
+ * on while it sends nothing; it goes once an address is read.
+ */
+export const EMAIL_NEEDS_ADDRESS = {
+  lead: 'This email needs an address, and we have none for you. Add or verify one in your',
+  link: 'GitHub email settings',
+  tail: ', then sign in again.',
+} as const;

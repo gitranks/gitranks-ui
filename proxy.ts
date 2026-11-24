@@ -11,6 +11,7 @@ import { learnOpenToEveryone } from './lib/learn/learn-everyone';
 import {
   isLearnAboutPath,
   isLearnHomePath,
+  isLearnIssuesPath,
   isLearnOpenPath,
   isLearnPath,
   LEARN_PATH,
@@ -24,6 +25,7 @@ import {
   courseRouteOf,
   LEARN_COURSE_MISSING_PATH,
   learnCourseMarkdownRouteOf,
+  learnIssuesMarkdownRouteOf,
   learnLandingMarkdownRouteOf,
   learnLessonMarkdownRouteOf,
 } from './lib/learn/paths';
@@ -189,6 +191,13 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return NextResponse.rewrite(new URL(landingMarkdown, request.url));
   }
 
+  // The Markdown copies of Issues and of a lesson's and a course's view of it: their route handler answers not found
+  // until Learn is open to everyone. Rewritten before Auth.js, like the copies above.
+  const issuesMarkdown = learnIssuesMarkdownRouteOf(request.nextUrl.pathname, request.nextUrl.search);
+  if (issuesMarkdown) {
+    return NextResponse.rewrite(new URL(issuesMarkdown, request.url));
+  }
+
   // A lesson's page and its result pages stream, so their own notFound() comes too late for a 404 status: the lesson
   // is asked for here first. Missing, the lesson's 404 page answers; a paused or removed lesson of ours answers its own
   // page with a 503 or a 410 (the status a rewrite carries); a moved one redirects for good to its new address, and a
@@ -314,14 +323,17 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // server cannot read (expired) is a visitor's.
   // Only a page view is asked (GET, HEAD): a page's own actions are checked by the API itself. An ask that takes too
   // long lets the request on, to the page's own check.
-  if (isLearnPath(pathname) && !isLearnOpenPath(pathname)) {
+  // Issues and its views are Learn's lists: under a lesson's or a course's address too, a visitor is let through only
+  // once Learn is open to everyone.
+  const learnIssues = isLearnIssuesPath(pathname);
+  if (isLearnPath(pathname) && (!isLearnOpenPath(pathname) || learnIssues)) {
     const access = !hasSession(request)
       ? 'signed-out'
       : request.method === 'GET' || request.method === 'HEAD'
         ? await requestLearnAccess(request)
         : 'open';
     const visitorLetThrough = async () =>
-      (isLearnHomePath(pathname) || isLearnAboutPath(pathname) || isLearnFlowPath(pathname)) &&
+      (isLearnHomePath(pathname) || isLearnAboutPath(pathname) || isLearnFlowPath(pathname) || learnIssues) &&
       (await learnOpenToEveryone(Date.now()));
     if (access === 'closed' || (access === 'signed-out' && !(await visitorLetThrough()))) {
       const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));

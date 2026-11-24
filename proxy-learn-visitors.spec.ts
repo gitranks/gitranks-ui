@@ -19,6 +19,7 @@ vi.mock('./lib/learn/course-gate', () => ({
   courseGateOf: async () => ({ kind: 'page' }),
   checkGateOf: async () => ({ kind: 'page' }),
 }));
+vi.mock('./lib/learn/fix-gate', () => ({ fixRouteGateOf: async () => ({ kind: 'page' }) }));
 const progressGate = vi.hoisted(() => ({ value: 'page' as 'page' | 'missing', asked: [] as string[] }));
 vi.mock('./lib/learn/public-progress/progress-gate', () => ({
   progressGateOf: async (login: string) => {
@@ -145,6 +146,25 @@ describe('Learn open to visitors', () => {
       }
     } finally {
       everyone.open = true;
+    }
+  });
+
+  it("lets a visitor through to a fix's walkthrough, a person's answers and the address by attempt, switch or not", async () => {
+    const paths = [
+      '/learn/fixes/acme/widgets/57/walkthrough',
+      '/learn/fixes/acme/widgets/57/walkthrough/by/octocat',
+      '/learn/fixes/by-attempt/A_1/answers',
+      '/learn/fixes/_removed/acme/widgets/57',
+    ];
+    for (const open of [true, false]) {
+      everyone.open = open;
+      try {
+        for (const path of paths) {
+          expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBeNull();
+        }
+      } finally {
+        everyone.open = true;
+      }
     }
   });
 

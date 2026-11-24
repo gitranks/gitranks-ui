@@ -179,14 +179,12 @@ export const walkthroughQuestions: LearnQuestion[] = walkthroughParts.map((part)
 /** A wrong pick on the first question: crossed out, its reason shown, the question still open. */
 export const walkthroughAnswerWrong: LearnAnswerState = answerAfter(walkthroughQuestions[0], [
   { type: 'pick', at: 0 },
-  // biome-ignore lint/style/noNonNullAssertion: the fixture's own key grades it.
   { type: 'graded', verdict: verdictOf(walkthroughQuestions[0], 0, null)! },
 ]);
 
 /** The last question answered right. */
 export const walkthroughAnswerLastRight: LearnAnswerState = answerAfter(walkthroughQuestions[3], [
   { type: 'pick', at: 0 },
-  // biome-ignore lint/style/noNonNullAssertion: the fixture's own key grades it.
   { type: 'graded', verdict: verdictOf(walkthroughQuestions[3], 0, null)! },
 ]);
 

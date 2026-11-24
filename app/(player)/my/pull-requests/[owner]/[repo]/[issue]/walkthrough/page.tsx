@@ -91,6 +91,8 @@ async function FixerWalkthroughView({ params }: { params: Promise<PageParams> })
   );
   return (
     <FixerWalkthroughPlayer
+      // A new stage from the API starts the run's screen afresh: a passed run, a blocked one.
+      key={lesson.stage}
       attemptId={first.attemptId}
       crumbs={crumbs}
       head={head}

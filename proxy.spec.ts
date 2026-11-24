@@ -49,6 +49,10 @@ const { checkGate } = vi.hoisted(() => ({
   checkGate: vi.fn(async (_slug: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
 vi.mock('./lib/learn/course-gate', () => ({ courseGateOf: courseGate, checkGateOf: checkGate }));
+const { fixGate } = vi.hoisted(() => ({
+  fixGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
+}));
+vi.mock('./lib/learn/fix-gate', () => ({ fixRouteGateOf: fixGate }));
 
 const {
   default: proxy,
@@ -79,6 +83,8 @@ describe('proxy', () => {
     lessonGate.mockResolvedValue({ kind: 'page' });
     courseGate.mockReset();
     courseGate.mockResolvedValue({ kind: 'page' });
+    fixGate.mockReset();
+    fixGate.mockResolvedValue({ kind: 'page' });
     checkGate.mockReset();
     checkGate.mockResolvedValue({ kind: 'page' });
     sessionRead.ok = true;
@@ -1093,6 +1099,65 @@ describe('proxy', () => {
         'https://gitranks.com/learn/courses/algorithms-and-data?from=learn',
       );
       expect(response?.headers.get('cache-control')).toBe('private, no-store');
+    });
+
+    describe("a fix's walkthrough and a person's answers", () => {
+      const WALKTHROUGH = '/learn/fixes/acme/widgets/57/walkthrough';
+      const ANSWERS = `${WALKTHROUGH}/by/octocat`;
+
+      it('lets everyone reach them, asking where the address leads first', async () => {
+        for (const path of [WALKTHROUGH, `${WALKTHROUGH}/`, ANSWERS]) {
+          const signedOut = await proxy(request(undefined, path), event);
+          expect(signedOut?.headers.get('x-middleware-rewrite'), path).toBeNull();
+          expect(signedOut?.headers.get('cache-control'), path).toBeNull();
+        }
+        expect(fixGate.mock.calls).toEqual([
+          [{ pr: { nameWithOwner: 'acme/widgets', number: 57 }, login: null }],
+          [{ pr: { nameWithOwner: 'acme/widgets', number: 57 }, login: null }],
+          [{ pr: { nameWithOwner: 'acme/widgets', number: 57 }, login: 'octocat' }],
+        ]);
+        expect(maySeeContribute).not.toHaveBeenCalled();
+      });
+
+      it('answers nothing there with the real 404 nobody caches, signed in or not, before Auth.js', async () => {
+        fixGate.mockResolvedValue({ kind: 'missing' });
+        for (const cookie of [undefined, 'authjs.session-token=t']) {
+          for (const path of [WALKTHROUGH, ANSWERS]) {
+            const response = await proxy(request(cookie, path), event);
+            expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+            expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+          }
+        }
+        expect(withSession).not.toHaveBeenCalled();
+      });
+
+      it('answers a fix whose page was removed with its own page and a 410', async () => {
+        fixGate.mockResolvedValue({ kind: 'removed', path: '/learn/fixes/_removed/acme/widgets/57' });
+        const response = await proxy(request(undefined, WALKTHROUGH), event);
+        expect(response?.status).toBe(410);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/learn/fixes/_removed/acme/widgets/57',
+        );
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+      });
+
+      it("sends another spelling to the API's for now (a 307), with the query", async () => {
+        fixGate.mockResolvedValue({ kind: 'redirect', path: '/learn/fixes/acme/gadgets/57/walkthrough/by/Octocat' });
+        const response = await proxy(request(undefined, `${ANSWERS}?from=pr`), event);
+        expect(response?.status).toBe(307);
+        expect(response?.headers.get('location')).toBe(
+          'https://gitranks.com/learn/fixes/acme/gadgets/57/walkthrough/by/Octocat?from=pr',
+        );
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+      });
+
+      it('asks nothing for the address by attempt, the removed page, a POST, or a path naming no pull request', async () => {
+        await proxy(request(undefined, '/learn/fixes/by-attempt/A_1/answers'), event);
+        await proxy(request(undefined, '/learn/fixes/_removed/acme/widgets/57'), event);
+        await proxy(new NextRequest(`https://gitranks.com${WALKTHROUGH}`, { method: 'POST' }), event);
+        await proxy(request(undefined, '/learn/fixes/acme/widgets/0x1/walkthrough'), event);
+        expect(fixGate).not.toHaveBeenCalled();
+      });
     });
 
     it("answers a course's .md and that of all courses from their route handlers, before Auth.js and the gate", async () => {

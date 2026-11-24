@@ -1,5 +1,6 @@
 'use client';
 
+import { ArrowLeft } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -63,6 +64,8 @@ export type KeyConnectProps = {
   ownAgentHref?: Route;
   /** The line over the title for a first key: "The only step" unless the page is a step of a longer flow. */
   eyebrow?: string;
+  /** On the Agent tab's own key page: the back link to it, and no first-time words. */
+  inWorkspace?: boolean;
 };
 
 /**
@@ -82,6 +85,7 @@ export function KeyConnect({
   notices,
   ownAgentHref = WORKSPACE_PATHS.agentConnect,
   eyebrow = 'The only step · about two minutes',
+  inWorkspace = false,
 }: KeyConnectProps) {
   const router = useRouter();
   const id = useId();
@@ -145,12 +149,26 @@ export function KeyConnect({
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 sm:gap-5" data-connect-path="key">
       <div className="flex flex-col gap-2 pb-1">
-        <span className="text-xs font-semibold text-primary">{replacing ? 'Replace your key' : eyebrow}</span>
+        {inWorkspace ? (
+          <Link
+            href={WORKSPACE_PATHS.agent}
+            prefetch={false}
+            className="mb-1 inline-flex items-center gap-1.5 self-start rounded text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft aria-hidden="true" className="size-4" />
+            Agent
+          </Link>
+        ) : null}
+        <span className="text-xs font-semibold text-primary">
+          {replacing ? 'Replace your key' : inWorkspace ? 'Hosted agent · about two minutes' : eyebrow}
+        </span>
         <h1 className={HEADING.page}>{replacing ? 'Connect a new Claude key' : 'Connect your Claude key'}</h1>
         <p className="text-foreground/80">
           {replacing
             ? 'A new key replaces the one you connected. Your limits and picks stay as they are, unless you change them here.'
-            : "Everything else starts from sensible defaults. You'll see your first issues right after this."}
+            : inWorkspace
+              ? 'Everything else starts from sensible defaults, and you can change any of it later.'
+              : "Everything else starts from sensible defaults. You'll see your first issues right after this."}
         </p>
         {replacing ? (
           <Link href={ISSUES_PATH} prefetch={false} className="text-sm font-semibold text-link">

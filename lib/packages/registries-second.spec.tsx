@@ -30,7 +30,7 @@ vi.mock('@/lib/packages/registries', async (importOriginal) => {
   return actual;
 });
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => '/packages' }));
 
 const maven: RegistryId = 'maven';
 
@@ -62,13 +62,13 @@ describe('a registry with no download counts and two-part names: Maven Central',
     expect(isInvalidRankingPath('/packages/npm/downloads/1')).toBe(false);
   });
 
-  it('shows the registry switch beside "Rank by", keeping the order where the other registry has it', () => {
+  it('shows the registries as tabs above "Rank by", keeping the order where the other registry has it', () => {
     const npm = renderToStaticMarkup(
       <PackageRankingFrame registry="npm" order="downloads">
         <p>page</p>
       </PackageRankingFrame>,
     );
-    expect(npm).toContain('Registry:');
+    expect(npm).toContain('<nav aria-label="Registry">');
     expect(npm).toContain('href="/packages/maven/dependents-stars/1"');
     expect(npm).toContain('href="/packages/npm/downloads/1"');
     expect(npm).toContain('href="/packages/pypi/downloads/1"');

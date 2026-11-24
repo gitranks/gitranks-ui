@@ -120,12 +120,20 @@ describe('a run’s row', () => {
 });
 
 describe('Working now on the runs page', () => {
-  it('lists the runs, and nothing with none', () => {
+  it('lists the runs, and keeps its place with one quiet line when there are none or they could not be read', () => {
     const html = renderToStaticMarkup(<WorkingNowSection activity={activityOf(WORKING, READY)} />);
     expect(html).toContain('data-overview-section="working"');
     expect(text(html)).toContain('Working now 1 agent working');
     expect(html).toContain('data-run="att_ready"');
-    expect(renderToStaticMarkup(<WorkingNowSection activity={activityOf()} />)).toBe('');
-    expect(renderToStaticMarkup(<WorkingNowSection activity={null} />)).toBe('');
+    const none = renderToStaticMarkup(<WorkingNowSection activity={activityOf()} />);
+    expect(none).toContain('data-working="none"');
+    expect(text(none).trim()).toBe('Working now No agent is working on an issue for you right now.');
+    // A failed read does not claim nothing runs: it says so, in the same box.
+    const unread = renderToStaticMarkup(<WorkingNowSection activity={null} />);
+    expect(unread).toContain('data-working="unread"');
+    expect(text(unread).trim()).toBe(
+      "Working now The runs at work can't be read right now. They show here once they can.",
+    );
+    expect(unread).toContain('border-dashed');
   });
 });

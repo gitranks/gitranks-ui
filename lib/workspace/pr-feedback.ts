@@ -125,7 +125,7 @@ export function actionChoicesOf(card: ContributePrCard): { value: ContributePrAc
     {
       value: 'REPO_OFF',
       title: 'Keep GitRanks out of this repo',
-      text: 'Same as contribute: off. No new picks or PRs from anyone.',
+      text: 'The same as opting the repo out. No new picks or PRs from anyone.',
     },
   ];
 }

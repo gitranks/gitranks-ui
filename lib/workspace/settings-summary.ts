@@ -7,7 +7,7 @@ import type {
   ContributeSpend,
   ContributeView,
 } from './contribute.types';
-import { dayLabel, EFFORTS, MODELS, maskedKey, ordinalDay, plural, usd } from './format';
+import { dayLabel, EFFORTS, isSpent, MODELS, maskedKey, ordinalDay, plural, usd } from './format';
 
 /** What we say of the Claude key's state, after its last 4. */
 export const KEY_STATES: Record<ContributeCredential['state'], string> = {
@@ -18,16 +18,19 @@ export const KEY_STATES: Record<ContributeCredential['state'], string> = {
 };
 
 /**
- * The Budget and pacing row: "$63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt" (before any spend,
- * "$200 a cycle · renews on the 14th").
+ * The Budget and pacing row: "$63.40 of $200 used this cycle · renews Nov 14 · up to $5 a run" ("Nothing spent of $200
+ * this cycle" before the cycle's first spend; with no spend read, "$200 a cycle · renews on the 14th"). A run, as the
+ * budget page's field is called.
  */
 export const budgetSummaryOf = (settings: ContributeSettings, spend?: ContributeSpend | null) =>
   [
     spend
-      ? `${usd(spend.cycleUsd)} of ${usd(settings.cycleCapUsd)} used this cycle`
+      ? isSpent(spend.cycleUsd)
+        ? `${usd(spend.cycleUsd)} of ${usd(settings.cycleCapUsd)} used this cycle`
+        : `Nothing spent of ${usd(settings.cycleCapUsd)} this cycle`
       : `${usd(settings.cycleCapUsd)} a cycle`,
     spend ? `renews ${dayLabel(spend.cycleEnd)}` : `renews on ${ordinalDay(settings.renewalDay)}`,
-    `up to ${usd(settings.attemptCapUsd)} an attempt`,
+    `up to ${usd(settings.attemptCapUsd)} a run`,
   ]
     .filter(Boolean)
     .join(' · ');

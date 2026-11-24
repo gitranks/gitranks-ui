@@ -150,7 +150,7 @@ export function EnterKey() {
   return (
     <span
       aria-hidden="true"
-      className="ml-1 hidden h-5 items-center rounded border border-current px-1 font-mono text-[11px] opacity-70 sm:inline-flex"
+      className="ml-1 hidden h-5 items-center rounded border border-current px-1 font-mono text-[11px] opacity-70 pointer-fine:inline-flex"
     >
       ⏎
     </span>

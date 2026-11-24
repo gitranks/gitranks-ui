@@ -4,7 +4,12 @@ import { SettingUpAutoRefresh } from './setting-up-refresh';
 import { LearnSetupRefresh } from '@/components/workspace/setup-refresh';
 
 export const SETTING_UP_TITLE = 'Setting up your GitRanks account';
-export const NO_PROFILE_TITLE = "We couldn't set up your GitRanks account yet";
+export const NO_PROFILE_TITLE = 'Not open to your GitHub account';
+/**
+ * The one case where a later try helps. The no-profile panels reach an account whose first read failed or waits, and one
+ * GitRanks does not read at all: the API does not tell the two apart, so nothing says "just now".
+ */
+const NO_PROFILE_NEW_ACCOUNT = 'If your account is new, try again in an hour.';
 export const SETTING_UP_TEXT =
   'GitRanks is reading your GitHub profile for the first time. This takes about a minute, and this page updates by itself.';
 
@@ -36,8 +41,8 @@ export function ContributeSettingUp({ product = 'Contribute' }: { product?: Setu
 
 /**
  * Contribute's home (or a step of Learn's flow, `product`) for a signed-in account GitRanks has no profile of, with
- * none on its way (its first read failed or is held for now): what happened, and a refresh, which asks the read again
- * once it may.
+ * none on its way (its first read failed or is held for now, or GitRanks does not read the account): what is so, and a
+ * refresh, which asks the read again once it may.
  */
 export function ContributeNoProfile({ product = 'Contribute' }: { product?: SetupProduct }) {
   return (
@@ -48,8 +53,7 @@ export function ContributeNoProfile({ product = 'Contribute' }: { product?: Setu
       <span className="text-xs font-semibold uppercase tracking-wider text-primary">GitRanks {product}</span>
       <h1 className="text-2xl leading-tight font-bold text-balance">{NO_PROFILE_TITLE}</h1>
       <p className="text-base leading-normal text-foreground/80">
-        GitRanks couldn&apos;t read your GitHub profile just now, so {product} can&apos;t open for your account yet. Try
-        again later.
+        GitRanks has not read your GitHub account, so {product} is not open to it. {NO_PROFILE_NEW_ACCOUNT}
       </p>
       <LearnSetupRefresh className="self-start" />
     </section>

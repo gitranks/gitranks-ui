@@ -68,6 +68,12 @@ export function onDayOf(iso: string | null | undefined, now: Date): string {
 
 const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/** A day after words, `on 21 Nov` or `today` with its space; nothing when the day is not known, so no gap is left. */
+const dayAfter = (iso: string | null | undefined, now: Date) => {
+  const day = onDayOf(iso, now);
+  return day ? ` ${day}` : '';
+};
+
 /** The first letter as a capital. */
 const sentence = (text: string) => (text ? `${text[0].toUpperCase()}${text.slice(1)}` : text);
 
@@ -104,7 +110,8 @@ function tallyOf(asked: readonly PullRequestRoundAsk[]): Tally {
     else if (ask.kind === NOTE_ASK) tally.note = 'person';
     else if (ask.kind === AGENT_NOTE_ASK) tally.note = 'agent';
     else if (ask.kind === RUN_STOPPED_ASK) tally.stopped = true;
-    else if (ask.bot) tally.bots.set(ask.author, (tally.bots.get(ask.author) ?? 0) + (ask.comments ?? 1));
+    // A bot's ask counts at least once: it is there, even with no comment counted on it.
+    else if (ask.bot) tally.bots.set(ask.author, (tally.bots.get(ask.author) ?? 0) + Math.max(ask.comments ?? 1, 1));
     else if (ask.kind === REVIEW) tally.reviews += 1;
     else if (PERSON_COMMENTS.has(ask.kind)) tally.comments += 1;
     else tally.other += 1;
@@ -262,8 +269,14 @@ export function changeCardOf(page: Pick<PullRequestPage, 'change' | 'box'>): Car
       quiet: true,
     };
   }
+  // A side with nothing is left out: "1 file changed: 3 lines removed.", never "0 lines added".
+  const lines = change.added
+    ? `${count(change.added, 'line')} added${change.removed ? `, ${change.removed} removed` : ''}`
+    : change.removed
+      ? `${count(change.removed, 'line')} removed`
+      : '';
   return {
-    text: `${count(change.files, 'file')} changed: ${count(change.added, 'line')} added, ${change.removed} removed.`,
+    text: `${count(change.files, 'file')} changed${lines ? `: ${lines}` : ''}.`,
     link: true,
     quiet: false,
   };
@@ -280,17 +293,17 @@ export function walkthroughCardOf(page: Pick<PullRequestPage, 'walkthrough' | 'b
     return { text: ended ? 'No walkthrough.' : 'Written after the fix.', link: false, quiet: true };
   }
   if (card.passedAt) {
-    const passed = onDayOf(card.passedAt, now);
+    const passed = `Passed${dayAfter(card.passedAt, now)}`;
     if (page.number === null) {
       return {
-        text: `${sentence(`passed ${passed}`)}. Private until the pull request opens.`,
+        text: `${passed}. Private until the pull request opens.`,
         link: true,
         quiet: false,
       };
     }
     const readers = card.readers ? ` ${count(card.readers, 'person', 'people')} read it.` : '';
     const shared = card.shared ? ' Your answers are shared.' : ' Your answers are not shared.';
-    return { text: `${sentence(`passed ${passed}`)}.${readers}${shared}`, link: true, quiet: false };
+    return { text: `${passed}.${readers}${shared}`, link: true, quiet: false };
   }
   if (card.answered) {
     return { text: `${card.answered} of ${count(card.questions, 'question')} answered.`, link: false, quiet: false };
@@ -571,7 +584,7 @@ export function boxOf(
       };
     }
     case 'APPROVE': {
-      const passed = learn && card?.passedAt ? `You finished the walkthrough ${onDayOf(card.passedAt, now)}. ` : '';
+      const passed = learn && card?.passedAt ? `You finished the walkthrough${dayAfter(card.passedAt, now)}. ` : '';
       return {
         ...base,
         title: 'Read the change and open the pull request',
@@ -666,7 +679,7 @@ export function boxOf(
         ? {
             ...base,
             title: `Round ${sent.n} is sent. Waiting for the maintainers`,
-            text: `Your agent’s answer went to the same pull request ${onDayOf(sent.sentAt, now)}. We keep reading it and bring you back when something needs you.`,
+            text: `Your agent’s answer went to the same pull request${dayAfter(sent.sentAt, now)}. We keep reading it and bring you back when something needs you.`,
             note: 'Nothing is needed from you.',
           }
         : {

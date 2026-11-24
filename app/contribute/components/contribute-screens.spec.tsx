@@ -238,7 +238,7 @@ describe('the Agent and Settings tabs', () => {
       'What you work on',
       'What you work on Rust',
       'Hosted agent Contribute only',
-      'Budget and pacing $63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt',
+      'Budget and pacing $63.40 of $200 used this cycle · renews Nov 14 · up to $5 a run',
       'Model and effort Claude Sonnet 5.5, medium effort',
       'Autopilot',
       'Claude API key …k3Qa · works',
@@ -347,7 +347,7 @@ describe('the Agent and Settings tabs', () => {
 
     expect(html).toContain('data-fold="closed"');
     expect(html).toMatch(/aria-expanded="false"[^>]*>.*More limits/);
-    expect(plain).toContain('no week cap · $15 a day · $5 an attempt · sweep 3 days · renews on the 14th');
+    expect(plain).toContain('no week cap · $15 a day · $5 a run · sweep 3 days · renews on the 14th');
     // Folded, still on the page: the draft and the labels stay.
     expect(html).toMatch(/<div id="[^"]*-more" hidden=""/);
     expect(html.match(/>Save</g)).toHaveLength(1);
@@ -411,11 +411,9 @@ describe('the Agent and Settings tabs', () => {
     expect(pagePatchOf('pull-requests', { ...draft, maxFiles: '' })).toEqual({ invalid: 'Files' });
 
     // The fold's line says what was typed, even what Save will refuse.
-    expect(moreLimitsSummaryOf(draft)).toBe(
-      'no week cap · $15 a day · $5 an attempt · sweep 3 days · renews on the 14th',
-    );
+    expect(moreLimitsSummaryOf(draft)).toBe('no week cap · $15 a day · $5 a run · sweep 3 days · renews on the 14th');
     expect(moreLimitsSummaryOf({ ...draft, weekCapUsd: 'abc', attemptCapUsd: '5', sweepDays: '1' })).toBe(
-      'week cap “abc” · $15 a day · $5 an attempt · sweep 1 day · renews on the 14th',
+      'week cap “abc” · $15 a day · $5 a run · sweep 1 day · renews on the 14th',
     );
   });
 
@@ -558,10 +556,11 @@ describe('the confirms before what cannot be undone', () => {
         <AgentScreen view={view} now={NOW} />
       </>,
     );
+    // A popover's trigger (the list of what is coming) confirms nothing.
     const triggersOf = (markup: string) =>
-      [...markup.matchAll(/<button[^>]*aria-haspopup="dialog"[^>]*>(.*?)<\/button>/g)].map(([, label]) =>
-        text(label).trim(),
-      );
+      [...markup.matchAll(/<button([^>]*aria-haspopup="dialog"[^>]*)>(.*?)<\/button>/g)]
+        .filter(([, attributes]) => !attributes.includes('data-slot="popover-trigger"'))
+        .map(([, , label]) => text(label).trim());
 
     expect(triggersOf(html)).toEqual(['Remove key', 'Revoke', 'Revoke Claude Code on macOS', 'How autopilot works']);
     expect(text(html)).not.toContain('Yes, remove it');

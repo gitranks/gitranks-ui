@@ -1,7 +1,7 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState, useTransition } from 'react';
+import { type ReactNode, useState, useTransition } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
 import { AuthorizeNextStep } from './authorize-next-step';
@@ -33,12 +33,33 @@ export function AuthorizeCancel({ requestId, label = 'Cancel' }: { requestId: st
   );
 }
 
+/** Cancel once allowed: kept in its place, off, so the buttons' row does not change. */
+function OffCancel() {
+  return (
+    <Button type="button" variant="outline" disabled className={ACTION} data-authorize="cancel">
+      Cancel
+    </Button>
+  );
+}
+
 /**
  * Allow and Cancel. Allow connects the agent, then the browser goes back to it, only to an address that passes the
  * check (`https:`, `http:` to this computer, or an app's own scheme): a server action's own redirect can't open an
  * app's scheme, so the page assigns it. An app's scheme leaves this page open, so it says what to ask the agent next.
+ * Once allowed, Cancel stays in its place, off, and what to do next shows after the card's own lines (`children`), so
+ * nothing above it moves.
  */
-export function AuthorizeActions({ requestId, clientName }: { requestId: string; clientName: string }) {
+export function AuthorizeActions({
+  requestId,
+  clientName,
+  children,
+}: {
+  requestId: string;
+  /** The name the app gave itself; none, and the page says "the app". */
+  clientName?: string;
+  /** The card's lines under the buttons: they stay where they are when Allow goes through. */
+  children?: ReactNode;
+}) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(false);
@@ -65,20 +86,21 @@ export function AuthorizeActions({ requestId, clientName }: { requestId: string;
         <Button type="button" onClick={allow} disabled={pending || left} className={ACTION} data-authorize="allow">
           {pending ? 'Allowing…' : 'Allow'}
         </Button>
-        {left ? null : <AuthorizeCancel requestId={requestId} />}
+        {left ? <OffCancel /> : <AuthorizeCancel requestId={requestId} />}
       </div>
-      {left ? (
-        <>
-          <p role="status" className="text-sm font-medium">
-            Allowed. Go back to {clientName}: it is connected.
-          </p>
-          <AuthorizeNextStep clientName={clientName} />
-        </>
-      ) : null}
       {error ? (
         <p role="alert" className="text-sm font-medium text-destructive">
           {error}
         </p>
+      ) : null}
+      {children}
+      {left ? (
+        <>
+          <p role="status" className="text-sm font-medium">
+            Allowed. Go back to {clientName ?? 'the app'}: it is connected.
+          </p>
+          <AuthorizeNextStep clientName={clientName} />
+        </>
       ) : null}
     </div>
   );
@@ -111,7 +133,7 @@ export function AuthorizeSignIn({ requestId }: { requestId: string }) {
  * The directory reviewers' sign-in (octoscope's OpenAI directory spec §4): the review account's username and password
  * allow this request as that account, with no session here; then the browser goes back to the app, as Allow's does.
  */
-export function AuthorizeReviewSignIn({ requestId }: { requestId: string }) {
+export function AuthorizeReviewSignIn({ requestId, children }: { requestId: string; children?: ReactNode }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(false);
@@ -167,8 +189,14 @@ export function AuthorizeReviewSignIn({ requestId }: { requestId: string }) {
         <Button type="submit" disabled={pending || left} className={ACTION} data-authorize="review-allow">
           {pending ? 'Signing in…' : 'Sign in and allow'}
         </Button>
-        {left ? null : <AuthorizeCancel requestId={requestId} />}
+        {left ? <OffCancel /> : <AuthorizeCancel requestId={requestId} />}
       </div>
+      {error ? (
+        <p role="alert" className="text-sm font-medium text-destructive">
+          {error}
+        </p>
+      ) : null}
+      {children}
       {left ? (
         <>
           <p role="status" className="text-sm font-medium">
@@ -176,11 +204,6 @@ export function AuthorizeReviewSignIn({ requestId }: { requestId: string }) {
           </p>
           <AuthorizeNextStep />
         </>
-      ) : null}
-      {error ? (
-        <p role="alert" className="text-sm font-medium text-destructive">
-          {error}
-        </p>
       ) : null}
     </form>
   );

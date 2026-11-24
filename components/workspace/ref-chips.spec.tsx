@@ -41,6 +41,7 @@ describe('RefChips', () => {
       expect(html).not.toContain('<a ');
       expect(html).toContain('Issue #57');
     }
-    expect(renderToStaticMarkup(<RefChips repo={null} issue={57} />)).toContain('a repo');
+    // No name is made up for a missing repo: it is left out.
+    expect(renderToStaticMarkup(<RefChips repo={null} issue={57} />)).not.toContain('a repo');
   });
 });

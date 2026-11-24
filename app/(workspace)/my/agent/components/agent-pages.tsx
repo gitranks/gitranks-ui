@@ -26,12 +26,18 @@ function PageNotices({ view }: { view: ContributeView }) {
   return <ContributeNotices notices={contributeNoticesOf(view)} />;
 }
 
-/** With their own agent alone, or before a key: the hosted agent's limits have nothing to limit yet, and why. */
-function NoSettingsPanel({ view }: { view: ContributeView }) {
+/** The panel's title on each page, before a key: what that page would set. */
+const NO_SETTINGS_TITLES = {
+  budget: 'Spending limits and pacing',
+  model: 'The model and its effort',
+} as const satisfies Record<AgentFormPage, string>;
+
+/** With their own agent alone, or before a key: the hosted agent's settings have nothing to set yet, and why. */
+function NoSettingsPanel({ view, page }: { view: ContributeView; page: AgentFormPage }) {
   return (
     <Panel id="limits">
       <PanelTitle
-        title="Spending limits, pacing and the model"
+        title={NO_SETTINGS_TITLES[page]}
         text={
           isOwnAgentOnly(view)
             ? 'Your own agent spends nothing through us. These come with a Claude key, if you connect one for hosted attempts.'
@@ -77,7 +83,7 @@ export function FormSettingsScreen({ page, view }: { page: AgentFormPage; view: 
       {settings ? (
         <SettingsForm settings={settings} page={page} limits={view.contributor?.limits} back={BACK_TO_AGENT} />
       ) : (
-        <NoSettingsPanel view={view} />
+        <NoSettingsPanel view={view} page={page} />
       )}
       {page === 'model' ? <SettingsAnchors only={['prs']} /> : <ScrollToHash />}
     </>
@@ -127,7 +133,7 @@ export function KeyScreen({
   if (!key || replace) {
     return (
       <>
-        <ConnectScreen view={view} today={today} profileLanguages={profileLanguages} />
+        <ConnectScreen view={view} today={today} profileLanguages={profileLanguages} inWorkspace />
         {github}
       </>
     );

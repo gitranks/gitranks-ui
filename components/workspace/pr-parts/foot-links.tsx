@@ -56,7 +56,7 @@ export function PullRequestFootLinks({
         }
         open={asking}
         onOpenChange={setAsking}
-        title="Discard this attempt?"
+        title="Discard this fix?"
         description="Nothing is submitted, and the issue goes back to the pool. What it cost stays spent."
         action="Discard"
         pendingAction="Discarding…"

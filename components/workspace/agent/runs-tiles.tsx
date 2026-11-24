@@ -1,8 +1,9 @@
 import { cn } from '@/lib/utils';
-import { usd } from '@/lib/workspace/format';
+import { isSpent, plural, usd } from '@/lib/workspace/format';
 import { type ContributeRunsTotals, percentLabel } from '@/lib/workspace/runs';
 
-type TileCopy = { name: string; label: string; value: string; text: string; className?: string };
+/** A tile: `value` null when there is nothing to count or divide, and the line says so in words instead. */
+type TileCopy = { name: string; label: string; value: string | null; text: string; className?: string };
 
 function Tile({ name, label, value, text, className }: TileCopy) {
   return (
@@ -11,11 +12,27 @@ function Tile({ name, label, value, text, className }: TileCopy) {
       className={cn('flex min-w-0 flex-col gap-1 rounded-xl border bg-card px-4 py-3.5', className)}
     >
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="font-mono text-2xl font-bold tabular-nums">{value}</span>
-      <span className="text-xs text-muted-foreground">{text}</span>
+      {value === null ? (
+        <span className="flex min-h-8 items-center text-sm text-muted-foreground">{text}</span>
+      ) : (
+        <>
+          <span className="font-mono text-2xl font-bold tabular-nums">{value}</span>
+          <span className="text-xs text-muted-foreground">{text}</span>
+        </>
+      )}
     </div>
   );
 }
+
+/** "3 merged · 1 open": the counts that are not zero, in order; `none` when every one is. */
+const countsLine = (counts: readonly [number, string][], none: string) =>
+  counts
+    .filter(([count]) => count > 0)
+    .map(([count, word]) => `${count} ${word}`)
+    .join(' · ') || none;
+
+/** A rate's value: null with nothing to divide by. */
+const rateOf = (part: number, whole: number) => (whole ? percentLabel(part, whole) : null);
 
 const GRID: Record<number, string> = {
   3: 'sm:grid-cols-3',
@@ -48,43 +65,66 @@ export function RunsTiles({
   const runs: TileCopy = {
     name: 'runs',
     label: 'Runs',
-    value: totals.runs.toLocaleString('en-US'),
-    text:
-      learner && preview && atWork
+    value: totals.runs ? totals.runs.toLocaleString('en-US') : null,
+    text: !totals.runs
+      ? 'No runs yet'
+      : learner && preview && atWork
         ? `${atWork} at work now`
         : notStarted
           ? `${notStarted} didn't start`
           : 'All reached the agent',
   };
+  const average = totals.started ? Math.round((totals.costUsd / totals.started) * 100) / 100 : 0;
   const spent: TileCopy = {
     name: 'spent',
     label: 'Spent',
-    value: usd(totals.costUsd),
-    text: totals.started
-      ? `${usd(Math.round((totals.costUsd / totals.started) * 100) / 100)} a started run`
-      : 'Nothing yet',
+    value: isSpent(totals.costUsd) ? usd(totals.costUsd) : null,
+    text: !isSpent(totals.costUsd)
+      ? 'Nothing spent yet'
+      : isSpent(average)
+        ? `${usd(average)} a started run`
+        : 'Under a cent a started run',
   };
   const prs: TileCopy = {
     name: 'prs',
     label: 'Pull requests',
-    value: String(totals.prs),
-    text: preview
-      ? `${open} open · ${totals.merged} merged`
-      : `${totals.merged} merged · ${totals.closed} closed · ${open} open`,
+    value: totals.prs ? String(totals.prs) : null,
+    text: !totals.prs
+      ? 'None opened yet'
+      : preview
+        ? countsLine(
+            [
+              [open, 'open'],
+              [totals.merged, 'merged'],
+            ],
+            'None open or merged',
+          )
+        : countsLine(
+            [
+              [totals.merged, 'merged'],
+              [totals.closed, 'closed'],
+              [open, 'open'],
+            ],
+            'None decided yet',
+          ),
   };
   const mergeRate: TileCopy = {
     name: 'merge-rate',
     label: 'Merge rate',
-    value: percentLabel(totals.merged, decided),
-    text: `of ${decided} decided`,
+    value: rateOf(totals.merged, decided),
+    text: decided ? `of ${decided} decided` : 'None decided yet',
   };
+  const noGoCost = !preview && isSpent(totals.noGoCostUsd) ? ` · ${usd(totals.noGoCostUsd)}` : '';
   const noGoRate: TileCopy = {
     name: 'no-go-rate',
     label: 'No-go rate',
-    value: percentLabel(totals.noGo, totals.started),
-    text: preview
-      ? `${totals.noGo} of ${totals.started} started`
-      : `${totals.noGo} of ${totals.started} started · ${usd(totals.noGoCostUsd)}`,
+    // No no-go yet: said in words, not as 0%.
+    value: totals.noGo ? rateOf(totals.noGo, totals.started) : null,
+    text: !totals.started
+      ? 'None started yet'
+      : totals.noGo
+        ? `${totals.noGo} of ${totals.started} started${noGoCost}`
+        : `No no-go in ${plural(totals.started, 'started run')}`,
     // On the Runs page's phones the no-go card says the rate.
     className: preview ? undefined : 'max-lg:hidden',
   };
@@ -94,8 +134,12 @@ export function RunsTiles({
       ? {
           name: 'lessons',
           label: 'Lessons written',
-          value: String(totals.lessons),
-          text: `${totals.lessonsPassed ?? 0} passed by you`,
+          value: totals.lessons ? String(totals.lessons) : null,
+          text: !totals.lessons
+            ? 'None written yet'
+            : totals.lessonsPassed
+              ? `${totals.lessonsPassed} passed by you`
+              : 'None passed by you yet',
         }
       : null;
 

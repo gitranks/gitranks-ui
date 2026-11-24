@@ -12,22 +12,50 @@ import { ContributeEmailSettingsDocument } from '@/lib/workspace/contribute.docu
 
 const isCount = (value: unknown) => typeof value === 'number' && Number.isFinite(value);
 
-/** An answer the page can draw: the counts are numbers and the lists are lists. */
-function isMyProgress(value: LearnMyProgress | null | undefined): value is LearnMyProgress {
-  return (
-    !!value &&
-    [value.learned, value.practised, value.mastered, value.known, value.activeDays].every(isCount) &&
-    Array.isArray(value.days) &&
-    Array.isArray(value.courses)
-  );
+const COUNTS = ['learned', 'practised', 'mastered', 'known', 'activeDays'] as const;
+
+/**
+ * Why the page cannot draw an answer: none came, a count is not a number, or a list is not a list. Null for an answer
+ * it can draw.
+ */
+export function myProgressFaultOf(value: LearnMyProgress | null | undefined): string | null {
+  if (!value) return 'no answer';
+  const count = COUNTS.find((key) => !isCount(value[key]));
+  if (count) return `${count} is not a number`;
+  if (!Array.isArray(value.days)) return 'days is not a list';
+  if (!Array.isArray(value.courses)) return 'courses is not a list';
+  return null;
 }
 
-/** The person's progress: null when Learn is not open to them, and on any failure or an answer it cannot draw. */
+/** A failed read's errors as `path: message`, the API's own words; else the error's message. Nothing of the person. */
+export function readFaultOf(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  try {
+    const errors = JSON.parse(message) as { message?: unknown; path?: unknown }[];
+    if (Array.isArray(errors) && errors.length) {
+      return errors
+        .map((each) => `${Array.isArray(each.path) ? each.path.join('.') : '(no path)'}: ${String(each.message)}`)
+        .join('; ');
+    }
+  } catch {
+    // Not the API's errors: the message as it is.
+  }
+  return message.slice(0, 300);
+}
+
+/**
+ * The person's progress: null when Learn is not open to them, and on any failure or an answer it cannot draw, each
+ * logged with what went wrong, so "Your progress did not load" can be traced.
+ */
 export async function loadLearnMyProgress(githubLogin: string): Promise<LearnMyProgress | null> {
   try {
     const { learnMyProgress } = await graphqlDirect(LearnMyProgressDocument, {}, { source: 'ssr', githubLogin });
-    return isMyProgress(learnMyProgress) ? learnMyProgress : null;
-  } catch {
+    const fault = myProgressFaultOf(learnMyProgress);
+    if (!fault) return learnMyProgress;
+    console.warn(`My progress not drawn: ${fault}`);
+    return null;
+  } catch (error) {
+    console.warn(`My progress read failed: ${readFaultOf(error)}`);
     return null;
   }
 }

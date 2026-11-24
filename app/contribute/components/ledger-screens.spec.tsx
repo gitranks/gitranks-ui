@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { LedgerScreen } from './ledger-view';
+import { LedgerScreen, reasonSpanOf } from './ledger-view';
 import { emptyLedger, ledger, publicLedger } from '@/lib/contribute/__fixtures__/ledger';
 
 describe('LedgerScreen', () => {
@@ -61,6 +61,44 @@ describe('LedgerScreen', () => {
     expect(html).toContain('None decided yet');
     expect(html).not.toContain('—');
     expect(html).not.toMatch(/>0</);
+  });
+
+  it('says a merge rate of nothing merged in words, never 0%', () => {
+    const totals = { ...publicLedger.totals, merged: 0, closed: 3, mergeRate: 0, latestMerged: null };
+    const html = renderToStaticMarkup(<LedgerScreen ledger={{ ...publicLedger, totals }} />);
+    expect(html).toContain('None merged yet, 3 closed');
+    expect(html).not.toContain('0%');
+    expect(html).not.toContain('0 of 3 decided');
+  });
+
+  it('shows one reason alone, with no total repeating its number', () => {
+    const one = {
+      ...publicLedger,
+      saidNo: { ...publicLedger.saidNo, total: 4, optedOut: 4, hostileClose: 0, closedNoAi: 0, aiPolicy: 0 },
+    };
+    const html = renderToStaticMarkup(<LedgerScreen ledger={one} />);
+    expect(html).toContain('data-total="opted-out"');
+    expect(html).not.toContain('data-total="total"');
+  });
+
+  it('leaves no reason tile alone in a row, on a phone (2 columns) or a wide screen (6)', () => {
+    for (let n = 2; n <= 5; n += 1) {
+      const spans = Array.from({ length: n }, (_, at) => reasonSpanOf(at, n));
+      const phone = spans.map((span) => (/(^| )col-span-2/.test(span) ? 2 : 1));
+      const wide = spans.map((span) => (span.includes('lg:col-span-2') ? 2 : 3));
+      for (const [widths, columns] of [
+        [phone, 2],
+        [wide, 6],
+      ] as const) {
+        // Fill rows: a row that ends with one tile in it, not filling the columns, is a tile alone.
+        let row: number[] = [];
+        for (const width of widths) {
+          if (row.reduce((a, b) => a + b, 0) + width > columns) row = [];
+          row.push(width);
+        }
+        expect(row.length > 1 || row[0] === columns, `${n} reasons, ${columns} columns`).toBe(true);
+      }
+    }
   });
 
   it('says so before the first PR, with no totals, chart or tables', () => {

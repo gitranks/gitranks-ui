@@ -1,3 +1,5 @@
+import { plural } from '@/lib/workspace/format';
+
 /** The pool's public numbers. */
 export type AgentPageStats = {
   readyIssues: number;
@@ -28,8 +30,7 @@ export type AgentPage = {
 
 /** "3,124 issues ready in 1,412 repositories, checked at 12:04 UTC": the landing's and the page's numbers line. */
 export function agentPageStatsLineOf(stats: AgentPageStats): string {
-  const n = (value: number) => value.toLocaleString('en-US');
   const at = stats.checkedAt ? new Date(stats.checkedAt) : null;
   const checked = at && !Number.isNaN(at.getTime()) ? `, checked at ${at.toISOString().slice(11, 16)} UTC` : '';
-  return `${n(stats.readyIssues)} issues ready in ${n(stats.repos)} repositories${checked}`;
+  return `${plural(stats.readyIssues, 'issue')} ready in ${plural(stats.repos, 'repository', 'repositories')}${checked}`;
 }

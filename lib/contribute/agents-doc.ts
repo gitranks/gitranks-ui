@@ -92,7 +92,7 @@ export function agentsDocOf(
     'Every issue we hand you has been checked:',
     '',
     '- it is still open on GitHub;',
-    '- nobody said they are working on it, and no pull request is linked to it;',
+    '- nobody is assigned to it or said they are working on it, and no pull request is linked to it;',
     '- its repository is active and takes outside pull requests;',
     "- the repository doesn't ban AI-assisted pull requests;",
     "- it isn't a good first issue the maintainers keep for people;",

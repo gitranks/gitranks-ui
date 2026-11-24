@@ -110,4 +110,16 @@ describe('VS Code among the agents to pick', () => {
     await act(async () => added?.click());
     await vi.waitFor(() => expect(onConnected).toHaveBeenCalledWith('vscode'));
   });
+
+  it('with a token, says VS Code calls once a message is sent in Agent mode, not as it starts', async () => {
+    actions.readAgentConnected.mockResolvedValue({ ok: true, data: false });
+    await act(async () => root.render(<AgentConnect embedded onboarded tokens={[]} signIn={false} withVsCode />));
+    const vsCode = [...container.querySelectorAll('button')].find((button) => button.textContent === 'VS Code');
+    await act(async () => vsCode?.click());
+    await act(async () => createButton()?.click());
+    const added = [...container.querySelectorAll('button')].find((button) => button.textContent === "I've added it");
+    await act(async () => added?.click());
+    await vi.waitFor(() => expect(container.textContent).toContain('Open VS Code and send a message in Agent mode'));
+    expect(container.textContent).not.toContain('it calls GitRanks as it starts');
+  });
 });

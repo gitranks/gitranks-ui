@@ -383,7 +383,9 @@ export function AgentConnectView({
       <span className="text-muted-foreground">
         {signInSetup
           ? `Start ${name} and sign it in. ${signInSetup.check}`
-          : `Start ${name}, or restart it if it is open: it calls GitRanks as it starts. This step closes by itself the moment it does.`}
+          : client === 'vscode'
+            ? 'Open VS Code and send a message in Agent mode: it calls GitRanks then. This step closes by itself the moment it does.'
+            : `Start ${name}, or restart it if it is open: it calls GitRanks as it starts. This step closes by itself the moment it does.`}
       </span>
     </>
   ) : (

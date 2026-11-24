@@ -7,6 +7,9 @@ import { type IssuePageLearn, issuePageLearnOf } from './issue-page-learn';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type DocumentNode from '@/types/typed-document-node';
 
+/** How long the page waits for Learn's parts: a slower answer draws the page without them, as a failed one does. */
+export const ISSUE_PAGE_LEARN_TIMEOUT_MS = 3_000;
+
 /**
  * Learn's parts of the page of one issue, in an operation of their own beside the page's read: the lesson and why,
  * whether it is kept for learners, and how the work started. Personal, read per request.
@@ -30,7 +33,15 @@ export async function loadIssuePageLearn(id: string): Promise<IssuePageLearn | n
   const githubLogin = await viewerLogin();
   if (!githubLogin) return null;
   try {
-    const { issuePage } = await graphqlDirect(IssuePageLearnDocument, { id }, { source: 'ssr', githubLogin });
+    const { issuePage } = await graphqlDirect(
+      IssuePageLearnDocument,
+      { id },
+      {
+        source: 'ssr',
+        githubLogin,
+        signal: AbortSignal.timeout(ISSUE_PAGE_LEARN_TIMEOUT_MS),
+      },
+    );
     return issuePageLearnOf(issuePage);
   } catch {
     return null;

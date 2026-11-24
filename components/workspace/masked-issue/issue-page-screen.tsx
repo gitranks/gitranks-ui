@@ -41,14 +41,14 @@ import type { StartRefusalAction } from '@/lib/workspace/start-refusals';
 const TICK_MS = 10_000;
 
 /**
- * The hold's clock, from `start`: it moves while an issue is held and its minutes are not over (`held && !over`),
- * and stops at the end, so an ended hold keeps no timer.
+ * The page's clock, from `start`: it moves while an issue is held and its minutes are not over (`held && !over`), and
+ * while the started line says how long ago the work started (`started`). Otherwise it keeps no timer.
  */
-function useHoldClock(start: Date, until: string | null): Date {
+function useHoldClock(start: Date, until: string | null, started = false): Date {
   const [now, setNow] = useState(start);
   const held = until !== null;
   const over = held && minutesLeftOf(until, now) === 0;
-  const running = held && !over;
+  const running = (held && !over) || started;
   useEffect(() => {
     if (!running) return;
     setNow(new Date());
@@ -312,7 +312,7 @@ const pressPrimary = () => document.querySelector<HTMLElement>('[data-primary-ac
 export function IssuePageScreen(props: IssuePageScreenProps) {
   const { page, from, back, numbers, visitor = false, timeZone, lesson = null, colors, pressing = false } = props;
   const until = page.state === 'FULL' ? page.until : null;
-  const now = useHoldClock(props.now, until);
+  const now = useHoldClock(props.now, until, page.state === 'STARTED' && Boolean(props.started));
   const over = until !== null && minutesLeftOf(until, now) === 0;
   const state: IssuePageState = over ? 'EXPIRED' : page.state;
   const masked = page.masked;
@@ -395,7 +395,7 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
     // A page with nothing to show of its issue: it is no longer open to the viewer.
     body = endOf('NOT_AVAILABLE', props);
   } else {
-    body = endOf(state, props);
+    body = endOf(state, { ...props, now });
   }
 
   return (

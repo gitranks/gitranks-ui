@@ -30,7 +30,7 @@ describe("Learn's parts of the page of one issue", () => {
     expect(query).toMatch(/query IssuePageLearn\b/);
     expect(query).not.toMatch(/\b(?:masked|full|state|looks|until)\b/);
     expect(variables).toEqual({ id: 'q7k2m9xa' });
-    expect(options).toEqual({ source: 'ssr', githubLogin: 'octocat' });
+    expect(options).toEqual({ source: 'ssr', githubLogin: 'octocat', signal: expect.any(AbortSignal) });
   });
 
   it('are none signed out (nothing asked), for an id no issue has, and when the read fails', async () => {

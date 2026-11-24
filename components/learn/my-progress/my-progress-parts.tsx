@@ -266,7 +266,7 @@ export function DaysBoxView({
           <div
             role="group"
             className="grid auto-cols-min grid-flow-col grid-rows-[repeat(7,13px)] gap-[3px] sm:grid-rows-[repeat(7,17px)]"
-            aria-label="The days you learned or repeated something on"
+            aria-label="The days you were active"
             data-calendar=""
           >
             {calendar.weeks.flatMap((week, index) =>

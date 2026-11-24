@@ -290,7 +290,7 @@ export function daysLineWords(line: DaysLine): { before: string; after: string }
   if (line.kind === 'none') return 'The days you learn or repeat a lesson show here.';
   if (line.kind === 'first') return 'Your first day.';
   return {
-    before: 'You learned or repeated something on ',
+    before: 'You were active on ',
     after: ` ${line.count === 1 ? 'day' : 'days'}${line.since ? ` since ${line.since}` : ''}.`,
   };
 }

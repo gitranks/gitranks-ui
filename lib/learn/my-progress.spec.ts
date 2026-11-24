@@ -213,11 +213,11 @@ describe('My progress: the box "Days"', () => {
 
   it('words the line, never with a zero', () => {
     expect(daysLineWords({ kind: 'days', count: 80, since: '8 Jun' })).toEqual({
-      before: 'You learned or repeated something on ',
+      before: 'You were active on ',
       after: ' days since 8 Jun.',
     });
     expect(daysLineWords({ kind: 'days', count: 1, since: null })).toEqual({
-      before: 'You learned or repeated something on ',
+      before: 'You were active on ',
       after: ' day.',
     });
     expect(daysLineWords({ kind: 'first' })).toBe('Your first day.');

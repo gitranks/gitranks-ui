@@ -87,7 +87,7 @@ describe('My progress: the two boxes', () => {
     // The oldest nine weeks are left out on a phone.
     expect(calendar.querySelector('[data-day="2026-05-25"]')!.className).toContain('max-sm:hidden');
     expect(calendar.querySelector('[data-day="2026-07-27"]')!.className).not.toContain('max-sm:hidden');
-    expect(textOf(page, '[data-days-line]')).toBe('You learned or repeated something on 80 days since 8 Jun.');
+    expect(textOf(page, '[data-days-line]')).toBe('You were active on 80 days since 8 Jun.');
   });
 
   it('gives a day active with no lesson and no review words, never a bare date', () => {
@@ -279,7 +279,7 @@ describe('My progress: headings, labels and phone targets', () => {
 
   it('the days are labelled without a count of weeks: a phone shows fewer of them', () => {
     const label = body(myProgress).querySelector('[data-calendar]')!.getAttribute('aria-label');
-    expect(label).toBe('The days you learned or repeated something on');
+    expect(label).toBe('The days you were active');
   });
 
   it('the switch, the course buttons and History’s buttons are 44 pixels tall on a phone', () => {

@@ -12,22 +12,70 @@ import { ContributeEmailSettingsDocument } from '@/lib/workspace/contribute.docu
 
 const isCount = (value: unknown) => typeof value === 'number' && Number.isFinite(value);
 
-/** An answer the page can draw: the counts are numbers and the lists are lists. */
-function isMyProgress(value: LearnMyProgress | null | undefined): value is LearnMyProgress {
-  return (
-    !!value &&
-    [value.learned, value.practised, value.mastered, value.known, value.activeDays].every(isCount) &&
-    Array.isArray(value.days) &&
-    Array.isArray(value.courses)
-  );
+const COUNTS = ['learned', 'practised', 'mastered', 'known', 'activeDays'] as const;
+
+/**
+ * Why the page cannot draw an answer: none came, a count is not a number, or a list is not a list. Null for an answer
+ * it can draw.
+ */
+export function myProgressFaultOf(value: LearnMyProgress | null | undefined): string | null {
+  if (!value) return 'no answer';
+  const count = COUNTS.find((key) => !isCount(value[key]));
+  if (count) return `${count} is not a number`;
+  if (!Array.isArray(value.days)) return 'days is not a list';
+  if (!Array.isArray(value.courses)) return 'courses is not a list';
+  return null;
 }
 
-/** The person's progress: null when Learn is not open to them, and on any failure or an answer it cannot draw. */
+/** The most errors a log line names, and its length. */
+const FAULT_ERRORS = 3;
+const FAULT_LENGTH = 300;
+/** The codes whose message is the API's fixed words about the query, never a value it was given. */
+const MESSAGE_CODES: ReadonlySet<string> = new Set(['GRAPHQL_PARSE_FAILED', 'GRAPHQL_VALIDATION_FAILED']);
+const MESSAGE_LENGTH = 120;
+
+type ApiError = { message?: unknown; path?: unknown; extensions?: { code?: unknown } };
+
+/** One error as `path [CODE]`, with its message cut short only for a code whose message carries no value. */
+function errorFaultOf(error: ApiError): string {
+  const path = Array.isArray(error.path) ? error.path.join('.') : '(no path)';
+  const code = typeof error.extensions?.code === 'string' ? error.extensions.code : 'NO_CODE';
+  const words = MESSAGE_CODES.has(code) ? `: ${String(error.message).slice(0, MESSAGE_LENGTH)}` : '';
+  return `${path} [${code}]${words}`;
+}
+
+/**
+ * A failed read in one short line: the API's errors by path and code (the first three, then how many more), else the
+ * request's own message. No server message that could quote a value, so nothing of the person.
+ */
+export function readFaultOf(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  let line = message;
+  try {
+    const errors = JSON.parse(message) as ApiError[];
+    if (Array.isArray(errors) && errors.length) {
+      const named = errors.slice(0, FAULT_ERRORS).map(errorFaultOf).join('; ');
+      line = errors.length > FAULT_ERRORS ? `${named} (+${errors.length - FAULT_ERRORS} more)` : named;
+    }
+  } catch {
+    // Not the API's errors: the request's message as it is.
+  }
+  return line.slice(0, FAULT_LENGTH);
+}
+
+/**
+ * The person's progress: null when Learn is not open to them, and on any failure or an answer it cannot draw, each
+ * logged with what went wrong, so "Your progress did not load" can be traced.
+ */
 export async function loadLearnMyProgress(githubLogin: string): Promise<LearnMyProgress | null> {
   try {
     const { learnMyProgress } = await graphqlDirect(LearnMyProgressDocument, {}, { source: 'ssr', githubLogin });
-    return isMyProgress(learnMyProgress) ? learnMyProgress : null;
-  } catch {
+    const fault = myProgressFaultOf(learnMyProgress);
+    if (!fault) return learnMyProgress;
+    console.warn(`My progress not drawn: ${fault}`);
+    return null;
+  } catch (error) {
+    console.warn(`My progress read failed: ${readFaultOf(error)}`);
     return null;
   }
 }

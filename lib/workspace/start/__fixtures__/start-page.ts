@@ -12,7 +12,6 @@ export const START_REPO = 'driftwood-js/driftwood';
 export const START_NUMBER = 934;
 export const START_REF = { repo: START_REPO, issue: START_NUMBER };
 export const START_PATH = `/my/start/${START_REPO}/${START_NUMBER}`;
-export const LEARN_START_PATH = `/learn/start/${START_REPO}/${START_NUMBER}`;
 
 export const startIssue: StartIssueRow = {
   issueId: 'I_kwDOdrift934',

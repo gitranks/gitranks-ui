@@ -19,7 +19,17 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('server-only', () => ({}));
 
 const { GET } = (await import('./route')) as unknown as { GET: (req: NextRequest) => Promise<Response> };
-const { historyFirst } = await import('@/lib/learn/__fixtures__/my-progress');
+const { historyFirst, historyWithFixes } = await import('@/lib/learn/__fixtures__/my-progress');
+const { LearnHistoryDocument, LearnHistoryFixesDocument } = await import('@/lib/learn/my-progress.documents');
+
+/** The two reads: the page of History, and what its days gain from real fixes (none unless given). */
+function answers(
+  history: () => Promise<unknown>,
+  fixes: () => Promise<unknown> = async () => ({ learnHistory: null }),
+) {
+  graphqlDirect.mockImplementation((document: unknown) => (document === LearnHistoryDocument ? history() : fixes()));
+}
+const callsOf = (document: unknown) => graphqlDirect.mock.calls.filter(([each]) => each === document);
 
 const get = (query = '') => GET(new NextRequest(`https://gitranks.com/api/me/learn/progress/history${query}`));
 const signIn = (error?: string) => {
@@ -54,25 +64,48 @@ describe("History's route", () => {
 
   it('answers the newest days, or the days before a date, for the person alone', async () => {
     signIn();
-    graphqlDirect.mockResolvedValueOnce({ learnHistory: historyFirst });
+    answers(async () => ({ learnHistory: historyFirst }));
     const res = await get();
     expect(await res.json()).toEqual({ history: historyFirst, signedOut: false });
     expect(res.headers.get('cache-control')).toBe('private, no-store');
-    expect(graphqlDirect.mock.calls[0][1]).toEqual({ before: null });
-    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr', githubLogin: 'octocat' });
+    expect(callsOf(LearnHistoryDocument)[0].slice(1)).toEqual([
+      { before: null },
+      { source: 'ssr', githubLogin: 'octocat' },
+    ]);
 
-    graphqlDirect.mockResolvedValueOnce({ learnHistory: historyFirst });
     await get('?before=2026-11-12');
-    expect(graphqlDirect.mock.calls[1][1]).toEqual({ before: '2026-11-12' });
+    expect(callsOf(LearnHistoryDocument)[1][1]).toEqual({ before: '2026-11-12' });
+    expect(callsOf(LearnHistoryFixesDocument).map((call) => call[1])).toEqual([
+      { before: null },
+      { before: '2026-11-12' },
+    ]);
+    expect(callsOf(LearnHistoryFixesDocument)[0][2]).toMatchObject({ signal: expect.any(AbortSignal) });
+  });
+
+  it("adds each day's fixes merged and walkthroughs passed when they come, and the days alone when not", async () => {
+    signIn();
+    const days = historyWithFixes.days.filter((day) => day.fixesMerged);
+    answers(
+      async () => ({ learnHistory: historyFirst }),
+      async () => ({ learnHistory: { days } }),
+    );
+    expect((await (await get()).json()).history).toEqual({ days: historyWithFixes.days, more: true });
+    answers(
+      async () => ({ learnHistory: historyFirst }),
+      async () => {
+        throw new Error('down');
+      },
+    );
+    expect((await (await get()).json()).history).toEqual(historyFirst);
   });
 
   it('answers none when Learn is not open to them, the answer is odd or the API fails', async () => {
     signIn();
-    graphqlDirect.mockResolvedValueOnce({ learnHistory: null });
+    answers(async () => ({ learnHistory: null }));
     expect(await (await get()).json()).toEqual({ history: null, signedOut: false });
-    graphqlDirect.mockResolvedValueOnce({ learnHistory: { days: historyFirst.days } });
+    answers(async () => ({ learnHistory: { days: historyFirst.days } }));
     expect(await (await get()).json()).toEqual({ history: null, signedOut: false });
-    graphqlDirect.mockRejectedValueOnce(new Error('down'));
+    graphqlDirect.mockReset().mockRejectedValue(new Error('down'));
     expect(await (await get()).json()).toEqual({ history: null, signedOut: false });
   });
 });

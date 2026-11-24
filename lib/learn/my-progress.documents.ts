@@ -30,3 +30,43 @@ export const LearnMyProgressDocument = doc<{ learnMyProgress: LearnMyProgress | 
 export const LearnHistoryDocument = doc<{ learnHistory: LearnHistory | null }, { before: string | null }>(
   `query LearnHistory($before: String) { learnHistory(before: $before) { days { ${DAY} } more } }`,
 );
+
+/*
+ * The reads of real fixes, each its own operation, apart from the two above: an API that does not know one yet fails
+ * that read alone, and the page draws without it.
+ */
+
+const LESSON = 'lesson { slug title course courseName }';
+const DAY_FIXES = `day
+  fixesMerged { repo issueNumber number title ${LESSON} }
+  walkthroughs { repo issueNumber number title fixer ${LESSON} mine }`;
+
+/** What each day of the last 26 weeks gains from real fixes: the person's fixes merged, the walkthroughs passed. */
+export const LearnMyProgressFixesDocument = doc<{ learnMyProgress: { days?: unknown } | null }>(
+  `query LearnMyProgressFixes { learnMyProgress { days { ${DAY_FIXES} } } }`,
+);
+
+/** The same for a page of History. */
+export const LearnHistoryFixesDocument = doc<{ learnHistory: { days?: unknown } | null }, { before: string | null }>(
+  `query LearnHistoryFixes($before: String) { learnHistory(before: $before) { days { ${DAY_FIXES} } } }`,
+);
+
+/** "Your fixes": every fix of the person's made with Learn, newest first. */
+export const LearnMyFixesDocument = doc<{ learnMyFixes: unknown }>(
+  `query LearnMyFixes { learnMyFixes { repo issueNumber number title state ${LESSON} mastered readers at } }`,
+);
+
+/** "Walkthroughs": the walkthroughs of other people's fixes the person passed. */
+export const LearnMyWalkthroughsDocument = doc<{ learnMyWalkthroughs: unknown }>(
+  `query LearnMyWalkthroughs {
+    learnMyWalkthroughs { fix { repo issueNumber number title fixer ${LESSON} } passedAt }
+  }`,
+);
+
+/** "Your fixes" with nothing in it: the open issues that fit the person, and their list's email. */
+export const LearnProgressIssuesDocument = doc<{
+  learnHome: {
+    thirdBox?: { openIssues?: unknown } | null;
+    issues?: { emailOn?: unknown; emailTo?: unknown } | null;
+  } | null;
+}>('query LearnProgressIssues { learnHome { thirdBox { openIssues } issues { emailOn emailTo } } }');

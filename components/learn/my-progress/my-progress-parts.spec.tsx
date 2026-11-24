@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction: vi.fn(), readMoreLearnFixes: vi.fn() }));
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
 
 import { type MyProgressHistory, ProgressBody } from './my-progress-live';
 import {
@@ -123,12 +130,14 @@ describe('My progress: the two boxes', () => {
 });
 
 describe('My progress: the switch and Courses', () => {
-  it('marks the view shown, with links to both views', () => {
-    for (const view of ['courses', 'history'] as const) {
+  it('marks the view shown, with links to the four views', () => {
+    for (const view of ['courses', 'fixes', 'walkthroughs', 'history'] as const) {
       const page = body(myProgress, view);
       const nav = page.querySelector('nav[aria-label="What to list"]')!;
       expect([...nav.querySelectorAll('a')].map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
         ['Courses', '/learn/progress'],
+        ['Your fixes', '/learn/progress?view=fixes'],
+        ['Walkthroughs', '/learn/progress?view=walkthroughs'],
         ['History', '/learn/progress?view=history'],
       ]);
       expect(nav.querySelector('[aria-current="page"]')!.getAttribute('data-view')).toBe(view);
@@ -242,7 +251,8 @@ describe('My progress: the pages with nothing to list', () => {
     const page = draw(<ProgressEmpty />);
     expect(page.querySelector('h1')!.textContent).toBe('Your progress starts with your first lesson');
     expect(page.querySelector('a')!.getAttribute('href')).toBe('/learn/courses');
-    expect(page.textContent).not.toContain('fixes');
+    expect(page.textContent).toContain('shows how well they stay, and lists your fixes.');
+    expect(page.querySelectorAll('a')).toHaveLength(1);
   });
 
   it('a read that failed, and the wait', () => {

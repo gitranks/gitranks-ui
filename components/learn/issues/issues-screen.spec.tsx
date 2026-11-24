@@ -64,7 +64,11 @@ describe('Issues', () => {
     expect($('[data-issues-visitor-note]')?.textContent).toContain('Sign in with GitHub to see the issues that fit');
     await act(async () => ($('[data-issues-visitor-note] button') as HTMLButtonElement).click());
     expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/issues' });
-    expect(hrefs('[data-issues-foot] a')).toEqual(['/learn/issues.md', '/learn/about', '/learn/maintainers']);
+    expect(hrefs('[data-issues-foot] a')).toEqual([
+      '/learn/issues.md',
+      '/learn/about',
+      '/contribute/maintainers#learn',
+    ]);
   });
 
   it("opens an issue's page with the view's filters, so its way back opens this view again", async () => {
@@ -89,7 +93,11 @@ describe('Issues', () => {
 
   it('links the Markdown copy for a person too', async () => {
     await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'personal', list: personalList() }} />);
-    expect(hrefs('[data-issues-foot] a')).toEqual(['/learn/issues.md', '/learn/about', '/learn/maintainers']);
+    expect(hrefs('[data-issues-foot] a')).toEqual([
+      '/learn/issues.md',
+      '/learn/about',
+      '/contribute/maintainers#learn',
+    ]);
   });
 
   it('holds the sign-in back while the signed-in list is read', async () => {

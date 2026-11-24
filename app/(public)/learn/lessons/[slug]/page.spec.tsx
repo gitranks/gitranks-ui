@@ -1,20 +1,21 @@
 import { isValidElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadLearnLessonPage, loadLessonPage, loadMergedFixes } = vi.hoisted(() => ({
+const { loadLearnLessonPage, loadMergedFixes } = vi.hoisted(() => ({
   loadLearnLessonPage: vi.fn(),
-  loadLessonPage: vi.fn(),
   loadMergedFixes: vi.fn(async (): Promise<unknown> => null),
 }));
 vi.mock('server-only', () => ({}));
+vi.mock('next/navigation', () => ({
+  notFound: () => {
+    throw new Error('NEXT_NOT_FOUND');
+  },
+}));
 vi.mock('@/lib/learn/lesson-page.data', () => ({ loadLearnLessonPage }));
-vi.mock('@/lib/learn/lesson-public.data', () => ({ loadLessonPage }));
 vi.mock('@/lib/learn/real-issues.data', () => ({ loadMergedFixes }));
-vi.mock('@/app/learn/components/lesson-page', () => ({ LessonPageView: () => null }));
 vi.mock('@/components/learn/lesson/lesson-screen', () => ({ LessonScreen: () => null }));
 
 const { default: LessonPage, generateMetadata } = await import('./page');
-const { LessonPageView } = await import('@/app/learn/components/lesson-page');
 const { LessonScreen } = await import('@/components/learn/lesson/lesson-screen');
 const { setGroup, setLesson } = await import('@/lib/learn/__fixtures__/lesson-page');
 const { learnFixes } = await import('@/lib/learn/__fixtures__/issues');
@@ -28,7 +29,6 @@ const props = (slug: string, query: Record<string, string> = {}) =>
 
 beforeEach(() => {
   loadLearnLessonPage.mockReset();
-  loadLessonPage.mockReset();
   loadMergedFixes.mockReset().mockResolvedValue(null);
 });
 
@@ -42,7 +42,6 @@ describe("a lesson's address", () => {
     expect(await (page as { props: { fixes: Promise<unknown> } }).props.fixes).toBeNull();
     const plain = await LessonPage(props(setLesson.slug));
     expect((plain as { props: { openFact: boolean } }).props.openFact).toBe(false);
-    expect(loadLessonPage).not.toHaveBeenCalled();
     loadLearnLessonPage.mockResolvedValueOnce(ours);
     expect((await generateMetadata(props(setLesson.slug))).robots).toBeUndefined();
   });
@@ -58,20 +57,17 @@ describe("a lesson's address", () => {
     expect(await fixesOf()).toBeNull();
   });
 
-  it("draws a fix's lesson as before when the slug is not one of ours", async () => {
+  it('draws nothing for a slug that is not one of ours: the proxy answered it before the page', async () => {
     loadLearnLessonPage.mockResolvedValue(null);
-    const page = await LessonPage(props('route-cache-miss-8f3k'));
-    expect(isValidElement(page) && page.type).toBe(LessonPageView);
-    expect((page as { props: object }).props).toEqual({ slug: 'route-cache-miss-8f3k' });
+    await expect(LessonPage(props('route-cache-miss-8f3k'))).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
-  it("names a lesson of ours by its own title and address, and a fix's lesson as before", async () => {
+  it('names a lesson of ours by its own title and address, and nothing else', async () => {
     loadLearnLessonPage.mockResolvedValueOnce(ours);
     const metadata = await generateMetadata(props(setLesson.slug));
     expect(metadata.title).toBe(setLesson.title);
     expect(metadata.alternates?.canonical).toBe(`/learn/lessons/${setLesson.slug}`);
     expect(metadata.openGraph?.images).toEqual([expect.objectContaining({ alt: setLesson.title })]);
-    expect(loadLessonPage).not.toHaveBeenCalled();
 
     // A shared fact's link shows the fact's own preview; the page stays the lesson's.
     loadLearnLessonPage.mockResolvedValueOnce(ours);
@@ -80,10 +76,6 @@ describe("a lesson's address", () => {
     expect(fact.title).toBe(setLesson.title);
 
     loadLearnLessonPage.mockResolvedValueOnce(null);
-    loadLessonPage.mockResolvedValueOnce(null);
-    expect((await generateMetadata(props('route-cache-miss-8f3k'))).robots).toEqual({
-      index: false,
-      follow: false,
-    });
+    expect(await generateMetadata(props('route-cache-miss-8f3k'))).toEqual({});
   });
 });

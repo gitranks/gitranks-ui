@@ -3,21 +3,18 @@ import type { Route } from 'next';
 import type { ContributeAttempt, ContributeView } from './contribute.types';
 import { isMidSetup } from './contribute-state';
 import type { WorkspaceGate } from './gate';
-import { GETTING_IN_PATHS, type IssueRef, PICK_ISSUE_PATHS, startPath, WORKSPACE_PATHS } from './paths';
+import { GETTING_IN_PATHS, WORKSPACE_PATHS } from './paths';
 
 /**
  * Who belongs where on the way in (getting in, §4 and §5.3): the step a landing's button resumes at, and what a step's
  * page does for the person who opens it. One fact decides most of it: `entered`, once an agent of theirs has connected.
  */
 
-/** The two flows, by side. */
-export type FlowSide = 'contribute' | 'learn';
+/** The flow, by side: Contribute's (Learn's own flow became Set up Learn). */
+export type FlowSide = 'contribute';
 
 /** Contribute's steps: What you work on, Your agent (the choice, your own agent, a Claude key), Your first issue. */
 export type ContributeFlowStep = 'work' | 'agent' | 'agent-own' | 'agent-key' | 'issue';
-
-/** Learn's steps: Your goal, Pick an issue, Your agent (at the picked issue's own start address). */
-export type LearnFlowStep = 'goal' | 'issues' | 'issue';
 
 /**
  * What a step's page does: draw the step; draw the frame's sign-in card (back to the same address); the setting-up
@@ -80,41 +77,6 @@ export function contributeFlowPlaceOf(
 }
 
 /**
- * The facts a Learn step is decided by: the gate, whether Contribute is launched, whether the account has a goal saved,
- * whether the address carries one, and the issue step 3 is at.
- */
-export type LearnFlowFacts = {
-  gate: WorkspaceGate;
-  launched: boolean;
-  goalSaved: boolean;
-  goalInAddress: boolean;
-  issue?: Pick<IssueRef, 'repo' | 'issue'>;
-};
-
-/** What Learn's step `step` does for the person who opens it (§5.3, §6.2). */
-export function learnFlowPlaceOf(
-  step: LearnFlowStep,
-  { gate, launched, goalSaved, goalInAddress, issue }: LearnFlowFacts,
-): FlowPlace {
-  if (gate.kind === 'signed-out') {
-    // A visitor's goal lives in the address alone: Pick an issue without one asks it first.
-    return step === 'issues' && !goalInAddress ? redirectTo(GETTING_IN_PATHS.learnGoal) : PAGE;
-  }
-  const shared = sharedPlaceOf(gate, launched);
-  if (shared) return shared;
-  if (gate.kind !== 'open') return { kind: 'not-found' };
-  if (!gate.entered) {
-    // Pick an issue and Your agent need a goal: saved, or in the address to save first; Your goal asks it otherwise.
-    return step !== 'goal' && !goalSaved && !goalInAddress ? redirectTo(GETTING_IN_PATHS.learnGoal) : PAGE;
-  }
-  // Entered: Your goal on to Learn home, Pick an issue on to Learn's Issues, and an issue's start address on to its
-  // Start page in lesson mode; a goal the address carries and the account lacks is saved first.
-  if (step === 'goal') return redirectTo(WORKSPACE_PATHS.learnHome);
-  const to = step === 'issue' && issue ? startPath(issue, { lesson: true }) : PICK_ISSUE_PATHS.learn;
-  return goalInAddress && !goalSaved ? { kind: 'apply-then', to } : redirectTo(to);
-}
-
-/**
  * Where a landing's one button leads: into its flow at `href` (the server's step, swapped in the browser for the step
  * this browser was last on when that is where the person resumes), or, for a member reading how it works, back to the
  * side itself.
@@ -130,10 +92,6 @@ export function contributeResumeOf(view: ContributeView | null | undefined): Rou
   if (view?.contributor?.preferences) return GETTING_IN_PATHS.contributeAgent;
   return GETTING_IN_PATHS.contributeWork;
 }
-
-/** Where Learn's landing button resumes a signed-in person (§4.1): step 2 once a goal is saved, else step 1. */
-export const learnResumeOf = (goalSaved: boolean): Route =>
-  goalSaved ? GETTING_IN_PATHS.learnIssues : GETTING_IN_PATHS.learnGoal;
 
 /**
  * Whether the account has any attempt, of either mode (a fix or a lesson), in any state: the read of one attempt

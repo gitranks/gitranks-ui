@@ -139,7 +139,7 @@ describe('/learn for someone signed in', () => {
     signedIn({ home: homeNewLearner, setup: UNSET, gate: { kind: 'open', entered: false } });
     m.loadLearnProfile.mockResolvedValue(goal);
     const html = await landingHtmlOf(await LearnFrontView());
-    expect(html?.match(/<a [^>]*data-landing-resume[^>]*>/)?.[0]).toContain('href="/learn/start/issues"');
+    expect(html?.match(/<a [^>]*data-landing-resume[^>]*>/)?.[0]).toContain('href="/learn/issues"');
 
     // No goal saved, a goal that cannot be read, or a gate that is not open: no link.
     for (const [profile, gate] of [

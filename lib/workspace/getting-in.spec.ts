@@ -2,14 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ContributeAttempt, ContributeView } from './contribute.types';
 import type { WorkspaceGate } from './gate';
-import {
-  type ContributeFlowStep,
-  contributeFlowPlaceOf,
-  contributeResumeOf,
-  hasAnyAttempt,
-  learnFlowPlaceOf,
-  learnResumeOf,
-} from './getting-in';
+import { type ContributeFlowStep, contributeFlowPlaceOf, contributeResumeOf, hasAnyAttempt } from './getting-in';
 
 const SIGNED_OUT: WorkspaceGate = { kind: 'signed-out' };
 const SETTING_UP: WorkspaceGate = { kind: 'setting-up' };
@@ -92,96 +85,6 @@ describe('contributeFlowPlaceOf: who belongs on which step of Contribute', () =>
   });
 });
 
-const learn = (
-  step: 'goal' | 'issues' | 'issue',
-  gate: WorkspaceGate,
-  facts: Partial<{ goalSaved: boolean; goalInAddress: boolean; launched: boolean }> = {},
-) =>
-  learnFlowPlaceOf(step, {
-    gate,
-    launched: facts.launched ?? true,
-    goalSaved: facts.goalSaved ?? false,
-    goalInAddress: facts.goalInAddress ?? false,
-    issue: { repo: 'acme/widgets', issue: 42 },
-  });
-
-describe('learnFlowPlaceOf: who belongs on which step of Learn', () => {
-  it('a visitor sees every step', () => {
-    for (const step of ['goal', 'issues', 'issue'] as const) {
-      expect(learn(step, SIGNED_OUT, { goalInAddress: true }), step).toEqual({ kind: 'page' });
-    }
-  });
-
-  it('a visitor on Pick an issue with no goal in the address is asked it first; the other steps need none', () => {
-    expect(learn('issues', SIGNED_OUT)).toEqual({ kind: 'redirect', to: '/learn/start' });
-    expect(learn('goal', SIGNED_OUT)).toEqual({ kind: 'page' });
-    expect(learn('issue', SIGNED_OUT)).toEqual({ kind: 'page' });
-  });
-
-  it('an account being set up waits; one with no profile sees its panel once launched, a 404 before', () => {
-    expect(learn('goal', SETTING_UP)).toEqual({ kind: 'setting-up' });
-    expect(learn('issues', HIDDEN)).toEqual({ kind: 'no-profile' });
-    expect(learn('issues', HIDDEN, { launched: false })).toEqual({ kind: 'not-found' });
-  });
-
-  it('signed in and not entered: steps 2 and 3 with no goal saved and none in the address go to step 1', () => {
-    expect(learn('goal', open(false))).toEqual({ kind: 'page' });
-    for (const step of ['issues', 'issue'] as const) {
-      expect(learn(step, open(false)), step).toEqual({ kind: 'redirect', to: '/learn/start' });
-      expect(learn(step, open(false), { goalSaved: true }), step).toEqual({ kind: 'page' });
-      expect(learn(step, open(false), { goalInAddress: true }), step).toEqual({ kind: 'page' });
-    }
-  });
-
-  it('entered: Your goal to Learn home, Pick an issue to Learn’s Issues, an issue to its Start page in lesson mode', () => {
-    expect(learn('goal', open(true))).toEqual({ kind: 'redirect', to: '/learn' });
-    expect(learn('goal', open(true), { goalSaved: true })).toEqual({ kind: 'redirect', to: '/learn' });
-    expect(learn('goal', open(true), { goalInAddress: true })).toEqual({ kind: 'redirect', to: '/learn' });
-    expect(learn('issues', open(true))).toEqual({ kind: 'redirect', to: '/learn/issues' });
-    expect(learn('issues', open(true), { goalSaved: true })).toEqual({ kind: 'redirect', to: '/learn/issues' });
-    expect(learn('issues', open(true), { goalSaved: true, goalInAddress: true })).toEqual({
-      kind: 'redirect',
-      to: '/learn/issues',
-    });
-    expect(learn('issue', open(true), { goalSaved: true, goalInAddress: true })).toEqual({
-      kind: 'redirect',
-      to: '/my/start/acme/widgets/42?lesson=1',
-    });
-    expect(learn('issue', open(true), { goalInAddress: true })).toEqual({
-      kind: 'apply-then',
-      to: '/my/start/acme/widgets/42?lesson=1',
-    });
-  });
-
-  it('entered, a goal only the address has is saved first, then on to the same page', () => {
-    expect(learn('issues', open(true), { goalInAddress: true })).toEqual({ kind: 'apply-then', to: '/learn/issues' });
-    expect(learn('issue', open(true), { goalInAddress: true })).toEqual({
-      kind: 'apply-then',
-      to: '/my/start/acme/widgets/42?lesson=1',
-    });
-  });
-
-  it('entered, an issue step that names no issue goes to Learn’s Issues', () => {
-    const place = (facts: { goalSaved: boolean; goalInAddress: boolean }) =>
-      learnFlowPlaceOf('issue', { gate: open(true), launched: true, ...facts });
-    expect(place({ goalSaved: true, goalInAddress: false })).toEqual({ kind: 'redirect', to: '/learn/issues' });
-    expect(place({ goalSaved: false, goalInAddress: true })).toEqual({ kind: 'apply-then', to: '/learn/issues' });
-  });
-
-  it('entered, no step leads to the earlier Learn page', () => {
-    for (const step of ['goal', 'issues', 'issue'] as const) {
-      for (const goalSaved of [true, false]) {
-        for (const goalInAddress of [true, false]) {
-          const place = learn(step, open(true), { goalSaved, goalInAddress });
-          expect('to' in place ? place.to : '', `${step} ${goalSaved} ${goalInAddress}`).not.toContain(
-            '/learn/earlier',
-          );
-        }
-      }
-    }
-  });
-});
-
 const view = (contributor: Partial<NonNullable<ContributeView['contributor']>> | null, mcp = false) =>
   ({
     contributor: contributor ? { credentials: [], onboardedAt: null, preferences: null, ...contributor } : null,
@@ -197,11 +100,6 @@ describe('the step a landing resumes at, signed in', () => {
     expect(contributeResumeOf(view({ preferences }))).toBe('/contribute/start/agent');
     expect(contributeResumeOf(view({ preferences }, true))).toBe('/contribute/start/agent/own');
     expect(contributeResumeOf(view({}, true))).toBe('/contribute/start/agent/own');
-  });
-
-  it('Learn: step 2 once a goal is saved, else step 1', () => {
-    expect(learnResumeOf(true)).toBe('/learn/start/issues');
-    expect(learnResumeOf(false)).toBe('/learn/start');
   });
 });
 

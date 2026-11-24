@@ -3,12 +3,10 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { loadSettingsView } from './settings-view';
-import { LearnSettingUp } from '@/app/learn/components/learn-setting-up';
 import { ModeSwitch } from '@/components/contribute/mode-switch';
 import { PreferencesSection } from '@/components/contribute/preferences-section';
 import { SetListScreen } from '@/components/contribute/set-list-screen';
 import { SettingsWorkGroup } from '@/components/contribute/settings-work-group';
-import { LearnProfileForm } from '@/components/learn/learn-profile-form';
 import { GithubAccessSection } from '@/components/workspace/agent/access-section';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { Panel, PanelTitle } from '@/components/workspace/primitives';
@@ -16,8 +14,6 @@ import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
 import { SettingsForm } from '@/components/workspace/settings/settings-form';
 import { SettingsGroup, SettingsList, SettingsPageHead, SettingsRow } from '@/components/workspace/settings-rows';
 import { MODES, modeTitleOf } from '@/lib/contribute/set-format';
-import { loadLearnProfile, loadLearnSetup } from '@/lib/learn/learn.data';
-import type { LearnProfile } from '@/lib/learn/learn.types';
 import { loadContribute, loadContributeSet, loadContributeSetup } from '@/lib/workspace/contribute.data';
 import type {
   ContributePreferences,
@@ -179,33 +175,6 @@ export function PullRequestsSettingsScreen({ view }: { view: ContributeView }) {
         </Panel>
       )}
       <ScrollToHash />
-    </>
-  );
-}
-
-export async function GoalSettingsView() {
-  const [profile, settingUp] = await Promise.all([loadLearnProfile(), loadLearnSetup()]);
-  return <GoalSettingsScreen profile={profile} settingUp={settingUp} />;
-}
-
-/**
- * Goal and level (W1 §10.4): the form every lesson is written for; Save goes back to Settings. While a new account is
- * being set up, the setup line stands in for the form. `profile` is null before the user has one.
- */
-export function GoalSettingsScreen({
-  profile,
-  settingUp = false,
-}: {
-  profile: LearnProfile | null;
-  settingUp?: boolean;
-}) {
-  return (
-    <>
-      <SettingsPageHead
-        title="Goal and level"
-        text="Your agent writes each lesson for these answers. Change them any time; the next lesson follows."
-      />
-      {settingUp ? <LearnSettingUp /> : <LearnProfileForm profile={profile} />}
     </>
   );
 }

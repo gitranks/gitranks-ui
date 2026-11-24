@@ -3,6 +3,7 @@ import { HOME_PRODUCT_SCREENS } from './home-products';
 import { LEARN_ENTITY_PART_SCREENS } from './learn-entity-parts';
 import { LEARN_FIX_SCREENS } from './learn-fix';
 import { LEARN_ISSUES_SCREENS } from './learn-issues';
+import { LEARN_PROGRESS_FIXES_SCREENS } from './learn-progress-fixes';
 import { LEARN_REAL_ISSUES_SCREENS } from './learn-real-issues';
 import { LEARN_WALKTHROUGH_SCREENS } from './learn-walkthrough';
 import { SKILLS_PART_SCREENS } from './skills-parts';
@@ -22,6 +23,7 @@ export const HELD_BACK_SCREENS: Screen[] = [
   ...LEARN_REAL_ISSUES_SCREENS,
   ...LEARN_WALKTHROUGH_SCREENS,
   ...LEARN_FIX_SCREENS,
+  ...LEARN_PROGRESS_FIXES_SCREENS,
   ...HOME_PRODUCT_SCREENS,
   ...WORKSPACE_ISSUE_LEARN_SCREENS,
 ];

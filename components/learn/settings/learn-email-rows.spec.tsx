@@ -4,17 +4,22 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { saveLearnEmailSettingsAction, setContributeEmailSettings, refresh } = vi.hoisted(() => ({
-  saveLearnEmailSettingsAction: vi.fn(),
-  setContributeEmailSettings: vi.fn(),
-  refresh: vi.fn(),
-}));
+const { saveLearnEmailSettingsAction, setContributeEmailSettings, setLearnIssuesEmailAction, refresh } = vi.hoisted(
+  () => ({
+    saveLearnEmailSettingsAction: vi.fn(),
+    setContributeEmailSettings: vi.fn(),
+    setLearnIssuesEmailAction: vi.fn(),
+    refresh: vi.fn(),
+  }),
+);
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction }));
+
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push: vi.fn(), replace: vi.fn() }) }));
 vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction }));
 vi.mock('@/lib/workspace/actions', () => ({ setContributeEmailSettings }));
 
-const { LearnEmailFailedRow, LessonsToRepeatRow, TimeZoneRow } = await import('./learn-email-rows');
-const { learnEmail } = await import('@/lib/learn/__fixtures__/settings');
+const { LearnEmailFailedRow, LessonsToRepeatRow, NewIssuesRow, TimeZoneRow } = await import('./learn-email-rows');
+const { learnEmail, learnIssuesEmail } = await import('@/lib/learn/__fixtures__/settings');
 const { email } = await import('@/lib/contribute/__fixtures__/contribute-views');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -72,6 +77,35 @@ describe("Learn's rows as the server draws them", () => {
     expect(html).toContain('data-time-zone-by="person"');
     expect(html).toContain('aria-label="Time zone: Berlin (UTC+1)"');
     expect(html).toContain('You chose it, so it no longer follows your device.');
+  });
+
+  it('draws New issues for you off as it starts, with its line, and with no address unable to be turned on', () => {
+    const off = renderToStaticMarkup(
+      <ul>
+        <NewIssuesRow setting={learnIssuesEmail.off} />
+      </ul>,
+    );
+    expect(off).toContain('data-email-row="new-issues"');
+    expect(off).toContain('data-email-new-issues="off"');
+    expect(off).toContain(
+      'When an issue comes onto your Learn list. One email a day at most, with five issues at most.',
+    );
+    expect(off).toContain('aria-label="Email new issues for you"');
+    const none = renderToStaticMarkup(
+      <ul>
+        <NewIssuesRow setting={learnIssuesEmail.off} noAddress />
+      </ul>,
+    );
+    // Turning it on with no address is not refused.
+    expect(none).not.toMatch(/role="switch"[^>]*disabled=""/);
+    expect(none).toContain('This email needs an address, and we have none for you.');
+    const on = renderToStaticMarkup(
+      <ul>
+        <NewIssuesRow setting={learnIssuesEmail.forYou} noAddress />
+      </ul>,
+    );
+    expect(on).toContain('data-email-new-issues="on"');
+    expect(on).not.toMatch(/role="switch"[^>]*disabled=""/);
   });
 
   it("says when Learn's rows did not load", () => {
@@ -296,5 +330,71 @@ describe("Learn's rows in the browser", () => {
     await openList();
     await choose('Europe/Lisbon');
     expect(saveLearnEmailSettingsAction).not.toHaveBeenCalled();
+  });
+});
+
+describe('New issues for you in the browser', () => {
+  let container: HTMLDivElement;
+  let root: Root;
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+  });
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    setLearnIssuesEmailAction.mockReset();
+    refresh.mockReset();
+  });
+  const toggle = () => container.querySelector<HTMLInputElement>('[role="switch"]')!;
+  const row = () => container.querySelector<HTMLElement>('[data-email-row="new-issues"]')!;
+  const draw = (setting = learnIssuesEmail.off) =>
+    act(() =>
+      root.render(
+        <ul>
+          <NewIssuesRow setting={setting} />
+        </ul>,
+      ),
+    );
+
+  it("turned on, covers the person's list with For you on, saves at once and reads the page again", async () => {
+    setLearnIssuesEmailAction.mockResolvedValueOnce({ ok: true, data: { newIssues: true, newIssuesCover: 'FOR_YOU' } });
+    draw();
+    await act(async () => toggle().click());
+    expect(setLearnIssuesEmailAction).toHaveBeenCalledWith(true, 'FOR_YOU');
+    expect(row().dataset.emailNewIssues).toBe('on');
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('turned off and on again, covers the list it covered last', async () => {
+    setLearnIssuesEmailAction
+      .mockResolvedValueOnce({ ok: true, data: { newIssues: false, newIssuesCover: null } })
+      .mockResolvedValueOnce({ ok: true, data: { newIssues: true, newIssuesCover: 'LEARNED' } });
+    draw(learnIssuesEmail.learned);
+    await act(async () => toggle().click());
+    expect(setLearnIssuesEmailAction).toHaveBeenLastCalledWith(false, null);
+    await act(async () => toggle().click());
+    expect(setLearnIssuesEmailAction).toHaveBeenLastCalledWith(true, 'LEARNED');
+  });
+
+  it('moves back and says why when the save fails, or Learn is no longer open', async () => {
+    draw();
+    setLearnIssuesEmailAction.mockResolvedValueOnce({ ok: false, error: 'SIGNED_OUT' });
+    await act(async () => toggle().click());
+    expect(toggle().checked).toBe(false);
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      'Your session ended. Sign in again, then change it.',
+    );
+    setLearnIssuesEmailAction.mockResolvedValueOnce({ ok: true, data: null });
+    await act(async () => toggle().click());
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe('Nothing was saved. Try again in a minute.');
+    setLearnIssuesEmailAction.mockRejectedValueOnce(new Error('down'));
+    await act(async () => toggle().click());
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      'We could not save just now. Try again in a minute.',
+    );
+    expect(row().dataset.emailNewIssues).toBe('off');
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

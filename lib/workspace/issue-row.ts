@@ -5,7 +5,6 @@ import { type ContributeActionResult, contributeErrorMessage } from './errors';
 import { GOOD_FIRST_LABEL, LANGUAGES, SIZES } from './format';
 import type { MaskedIssue } from './masked-issue.types';
 import { startPath } from './paths';
-import type { StartIssueRow } from './start/start-page.types';
 
 /**
  * One issue row, the same on both front tabs: what it shows of the issue, and what its Start does. A Contribute row
@@ -36,8 +35,6 @@ export type IssueRowIssue = {
   masked?: MaskedIssue | null;
 };
 
-const SIZE_KEYS = new Set<string>(Object.keys(SIZES));
-
 /** A Contribute issue as a row shows it. */
 export const issueRowOfContribute = (issue: ContributeIssue): IssueRowIssue => ({
   issueId: issue.issueId,
@@ -50,19 +47,6 @@ export const issueRowOfContribute = (issue: ContributeIssue): IssueRowIssue => (
   labels: issue.labels,
   forNewcomers: issue.forNewcomers,
   repoRules: issue.repoRules,
-});
-
-/** A Learn issue as a row shows it: Learn's list has no labels, rules or first-timers note. */
-export const issueRowOfLearn = (issue: StartIssueRow): IssueRowIssue => ({
-  issueId: issue.issueId,
-  repo: issue.repo,
-  number: issue.number,
-  title: issue.title,
-  language: issue.language,
-  size:
-    issue.size && SIZE_KEYS.has(issue.size.toUpperCase()) ? (issue.size.toUpperCase() as ContributeIssueSize) : null,
-  why: issue.why,
-  labels: [],
 });
 
 /** "Size small", "Size medium", "Size large"; null where not known. */

@@ -152,11 +152,11 @@ describe('the tab bar', () => {
     ['/contribute/', '', 'contribute'],
     ['/my/start/acme/widgets/42', '', 'contribute'],
     ['/my/start/acme/widgets/42', 'lesson=1', 'learn'],
-    ['/learn/earlier', '', 'learn'],
+    ['/learn/earlier', '', null],
+    ['/learn/start/acme/widgets/42', '', null],
     // Learn home has Learn's own bar: no workspace tab is marked there.
     ['/learn', '', null],
     ['/my/progress/', '', 'learn'],
-    ['/my/settings/goal', '', 'settings'],
     ['/my/settings/pull-requests', '', 'settings'],
     ['/my/progress', '', 'learn'],
     ['/my/pull-requests', '', 'pull-requests'],
@@ -189,15 +189,7 @@ describe('the tab bar', () => {
     const line = renderToStaticMarkup(<HeaderLine />);
     expect(tabsAt('/contribute', '', { tabs: [] })).toBe(line);
     expect(tabsAt('/contribute', 'as=visitor')).toBe(line);
-    for (const path of [
-      '/contribute/maintainers',
-      '/contribute/mcp',
-      '/learn/about',
-      '/learn/lessons/a-lesson-1x',
-      '/learn/start',
-      '/learn/start/issues',
-      '/learn/start/acme/widgets/42',
-    ]) {
+    for (const path of ['/contribute/maintainers', '/contribute/mcp', '/learn/about', '/learn/lessons/a-lesson-1x']) {
       expect(tabsAt(path), path).toBe(line);
     }
     // Only on the landing does the visitor's view hide them.
@@ -291,9 +283,7 @@ describe("the workspace's layout", () => {
 describe("the workspace's metadata", () => {
   it('sets no robots on the group, so /learn stays indexable', async () => {
     const group = await import('@/app/(workspace)/layout');
-    const learn = await import('@/app/(workspace)/learn/layout');
     expect('metadata' in group).toBe(false);
-    expect(learn.metadata).toEqual({ title: 'Learn' });
   });
 
   it("keeps Contribute's pages and every page under /my out of the index", async () => {

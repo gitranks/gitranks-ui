@@ -34,16 +34,3 @@ export function controlNames(html: string, role: 'radio' | 'checkbox'): string[]
       .join(' ');
   });
 }
-
-/** The text a control's `aria-describedby` points at, per control of `role` (empty when it has none). */
-export function controlDescriptions(html: string, role: 'radio' | 'checkbox'): string[] {
-  return [...html.matchAll(new RegExp(`<button[^>]*role="${role}"[^>]*>`, 'g'))].map(([tag]) => {
-    const describedBy = tag.match(/aria-describedby="([^"]+)"/)?.[1];
-    return describedBy
-      ? describedBy
-          .split(' ')
-          .map((id) => textById(html, id))
-          .join(' ')
-      : '';
-  });
-}

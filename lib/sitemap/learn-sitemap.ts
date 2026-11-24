@@ -1,8 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 import type { LearnCourseCard, LearnLessonListItem } from '@/lib/learn/course';
-import type { PublicLesson } from '@/lib/learn/learn.types';
-import { LEARN_MAINTAINERS_PATH, LEARN_PATH, lessonPath } from '@/lib/learn/learn-path';
+import { LEARN_PATH } from '@/lib/learn/learn-path';
 import { coursePath, LEARN_COURSES_PATH, learnLessonPath } from '@/lib/learn/paths';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 
@@ -19,18 +18,17 @@ function changedAt(times: readonly string[]): { lastModified?: string } {
 }
 
 /**
- * GitRanks Learn's pages for search engines: the landing, the page for maintainers and every public lesson of a fix at
- * its last change; and with `content` read, all courses, every course at the last change of its lessons and every live
- * lesson of a course at its own. A paused lesson is left out, and so is a lesson's result page: it names a person and
- * repeats the lesson.
+ * GitRanks Learn's pages for search engines: the landing; and with `content` read, all courses, every course at the
+ * last change of its lessons and every live lesson of a course at its own. A paused lesson is left out. A fix's pages
+ * are in the pull requests' sitemap; the page for maintainers is Contribute's.
  */
-export function learnSitemapEntries(
-  lessons: readonly PublicLesson[],
-  { content = null }: { content?: LearnSitemapContent | null } = {},
-): MetadataRoute.Sitemap {
+export function learnSitemapEntries({
+  content = null,
+}: {
+  content?: LearnSitemapContent | null;
+} = {}): MetadataRoute.Sitemap {
   const ours = content ?? { courses: [], lessons: [] };
   const live = ours.lessons.filter((lesson) => !lesson.paused);
-  const listed = new Set(live.map((lesson) => lesson.slug));
   return [
     sitemapEntry(LEARN_PATH, { priority: 0.7 }),
     ...(content
@@ -45,15 +43,5 @@ export function learnSitemapEntries(
     ...live.map((lesson) =>
       sitemapEntry(learnLessonPath(lesson.slug), { lastModified: lesson.changedAt, priority: 0.6 }),
     ),
-    sitemapEntry(LEARN_MAINTAINERS_PATH, { priority: 0.4 }),
-    ...lessons
-      .filter((lesson) => !listed.has(lesson.slug))
-      .map((lesson) =>
-        sitemapEntry(lessonPath(lesson.slug), {
-          lastModified: lesson.modifiedAt,
-          changeFrequency: 'yearly',
-          priority: 0.6,
-        }),
-      ),
   ];
 }

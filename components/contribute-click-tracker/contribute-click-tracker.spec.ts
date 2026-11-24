@@ -23,7 +23,7 @@ describe('reports from the browser', () => {
     vi.stubGlobal('window', {
       localStorage: storage,
       sessionStorage: storage,
-      location: { pathname: '/learn/start/driftwood-js/driftwood/934' },
+      location: { pathname: '/my/start/driftwood-js/driftwood/934' },
     });
     vi.stubGlobal('navigator', { sendBeacon: beacon });
   });
@@ -31,10 +31,10 @@ describe('reports from the browser', () => {
     vi.unstubAllGlobals();
   });
 
-  it('names a connect by the click that led to it, the issue’s step named without the issue', async () => {
+  it('names a connect by the click that led to it, on the page it was made', async () => {
     reportContributeConnect('agent');
     expect(await sent(beacon)).toEqual([
-      { kind: 'connect', path: '/learn/start/issue', target: 'agent', source: 'learn_home_issue' },
+      { kind: 'connect', path: '/my/start/driftwood-js/driftwood/934', target: 'agent', source: 'learn_home_issue' },
     ]);
     expect(stored.has('contribute_last_click_v1')).toBe(false);
   });
@@ -42,7 +42,7 @@ describe('reports from the browser', () => {
   it('names a connect by the place it was made, when told, and still forgets the click', async () => {
     reportContributeConnect('agent', 'learn_start');
     expect(await sent(beacon)).toEqual([
-      { kind: 'connect', path: '/learn/start/issue', target: 'agent', source: 'learn_start' },
+      { kind: 'connect', path: '/my/start/driftwood-js/driftwood/934', target: 'agent', source: 'learn_start' },
     ]);
     expect(stored.has('contribute_last_click_v1')).toBe(false);
   });
@@ -51,8 +51,8 @@ describe('reports from the browser', () => {
     reportLearnEvent({ kind: 'learn_view', event: 'learn_start_view', source: 'learn_start' });
     reportLearnEvent({ kind: 'learn_view', event: 'learn_start_claimed', source: 'learn_start' });
     expect((await sent(beacon)).map(({ event, source, path }) => [event, source, path])).toEqual([
-      ['learn_start_view', 'learn_start', '/learn/start/issue'],
-      ['learn_start_claimed', 'learn_start', '/learn/start/issue'],
+      ['learn_start_view', 'learn_start', '/my/start/driftwood-js/driftwood/934'],
+      ['learn_start_claimed', 'learn_start', '/my/start/driftwood-js/driftwood/934'],
     ]);
   });
 });

@@ -2,15 +2,19 @@ import type { Route } from 'next';
 
 import { countWords, type LearnCourseMineCard } from './course';
 import type { LearnLessonLink } from './lesson-page';
+import type { LearnDayFix, LearnDayFixes, LearnDayWalkthrough } from './my-progress-fixes';
 import { LEARN_PROGRESS_PATH } from './paths';
 
 /*
- * My progress (page 18): the two boxes (lessons by depth, the days something was done), and two views under them,
- * Courses and History. The rules the page draws, pure, so the page, the catalogue and the specs agree. Your fixes and
- * Walkthroughs come with real issues to fix; until then the switch has the two views.
+ * My progress (page 18): the two boxes (lessons by depth, the days something was done), and four views under them,
+ * Courses, Your fixes, Walkthroughs and History. The rules the page draws, pure, so the page, the catalogue and the
+ * specs agree. The fixes' own rules are in `my-progress-fixes.ts`.
  */
 
-/** One day with something done: how many lessons were learned and reviews answered, and links to them. */
+/**
+ * One day with something done: how many lessons were learned and reviews answered, and links to them; the person's
+ * fixes merged and the walkthroughs passed that day when their read answered (`my-progress-fixes.ts`).
+ */
 export type LearnDay = {
   /** The person's local date, `2026-11-20`. */
   day: string;
@@ -20,7 +24,7 @@ export type LearnDay = {
   learned: LearnLessonLink[];
   /** The lessons repeated in a review that day that a page still shows. */
   repeated: LearnLessonLink[];
-};
+} & Partial<LearnDayFixes>;
 
 /** My progress as the API answers it. `learned` counts every depth; `known`, the lessons marked and not learned. */
 export type LearnMyProgress = {
@@ -43,15 +47,18 @@ export type LearnHistory = { days: LearnDay[]; more: boolean };
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** The views under the boxes. */
-export type MyProgressView = 'courses' | 'history';
+export type MyProgressView = 'courses' | 'fixes' | 'walkthroughs' | 'history';
 
 export const MY_PROGRESS_VIEWS: { view: MyProgressView; label: string }[] = [
   { view: 'courses', label: 'Courses' },
+  { view: 'fixes', label: 'Your fixes' },
+  { view: 'walkthroughs', label: 'Walkthroughs' },
   { view: 'history', label: 'History' },
 ];
 
-/** The view an address asks for: History by name, Courses for anything else. */
-export const myProgressViewOf = (value: unknown): MyProgressView => (value === 'history' ? 'history' : 'courses');
+/** The view an address asks for, by name; Courses for anything else. */
+export const myProgressViewOf = (value: unknown): MyProgressView =>
+  MY_PROGRESS_VIEWS.find((each) => each.view !== 'courses' && each.view === value)?.view ?? 'courses';
 
 const DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -70,6 +77,7 @@ export const myProgressDayOf = (value: unknown): string | null => (isLearnDay(va
 /** My progress at a view, History opened at a day when one is given. */
 export function myProgressPath({ view = 'courses', day = null }: { view?: MyProgressView; day?: string | null } = {}) {
   if (view === 'courses') return LEARN_PROGRESS_PATH;
+  if (view !== 'history') return `${LEARN_PROGRESS_PATH}?view=${view}` as Route;
   return `${LEARN_PROGRESS_PATH}?view=history${day ? `&day=${day}` : ''}` as Route;
 }
 
@@ -159,7 +167,7 @@ export type DepthRow = {
 const DEPTH_ROWS: Omit<DepthRow, 'count' | 'share'>[] = [
   { kind: 'learned', label: 'Learned', hint: 'you passed the lesson' },
   { kind: 'practised', label: 'Practised', hint: 'right again in a review, days later' },
-  { kind: 'mastered', label: 'Mastered', hint: 'right again in a review, 10 days later' },
+  { kind: 'mastered', label: 'Mastered', hint: 'right again 10 days later, or a merged fix of yours' },
 ];
 const KNOWN_ROW: Omit<DepthRow, 'count' | 'share'> = {
   kind: 'known',
@@ -216,17 +224,32 @@ export const CALENDAR_WEEKS_PHONE = 17;
 /** A square's shade, from none (0) to the most (4), by the lessons learned and the reviews answered on its day. */
 export type DayLevel = 0 | 1 | 2 | 3 | 4;
 
-/** The shades' lower bounds: 1 or 2 things done, 3 to 5, 6 to 9, 10 and more. */
-export function dayLevelOf(day: Pick<LearnDay, 'lessons' | 'reviews'> | undefined): DayLevel {
-  const done = day ? Math.max(0, day.lessons) + Math.max(0, day.reviews) : 0;
+type DayCounts = Pick<LearnDay, 'lessons' | 'reviews' | 'fixesMerged' | 'walkthroughs'>;
+
+/** How many things were done on a day: lessons learned, reviews answered, fixes merged and walkthroughs passed. */
+const doneOf = (day: DayCounts) =>
+  Math.max(0, day.lessons) +
+  Math.max(0, day.reviews) +
+  (day.fixesMerged?.length ?? 0) +
+  (day.walkthroughs?.length ?? 0);
+
+/**
+ * The shades' lower bounds: 1 or 2 things done, 3 to 5, 6 to 9, 10 and more. A fix merged and a walkthrough passed
+ * count one each.
+ */
+export function dayLevelOf(day: DayCounts | undefined): DayLevel {
+  const done = day ? doneOf(day) : 0;
   if (done >= 10) return 4;
   if (done >= 6) return 3;
   if (done >= 3) return 2;
   return done >= 1 ? 1 : 0;
 }
 
-/** One square: its day, its shade, and the day's numbers when something was done. */
-export type CalendarCell = { day: string; level: DayLevel; done: LearnDay | null };
+/**
+ * One square: its day, its shade, the day's numbers when something was done, and whether a fix of the person's was
+ * merged that day (a gold border).
+ */
+export type CalendarCell = { day: string; level: DayLevel; done: LearnDay | null; merged: boolean };
 
 /** The squares in weeks from Monday, the newest week last and cut at today; a month's name over its first Monday. */
 export type Calendar = { weeks: CalendarCell[][]; months: (string | null)[] };
@@ -249,20 +272,35 @@ export function calendarOf(days: readonly LearnDay[], today: string, weeks = CAL
       const day = addLearnDays(monday, weekday);
       if (day > last) break;
       const done = byDay.get(day) ?? null;
-      cells.push({ day, level: done ? dayLevelOf(done) : 0, done });
+      cells.push({ day, level: done ? dayLevelOf(done) : 0, done, merged: !!done?.fixesMerged?.length });
     }
     out.push(cells);
   }
   return { weeks: out, months };
 }
 
-/** "2 lessons learned", "6 lessons repeated": what a day's card and its label say, each only when above zero. */
-export function dayDoneWordsOf(day: Pick<LearnDay, 'lessons' | 'reviews'>): string[] {
-  const words: string[] = [];
-  if (day.lessons > 0) words.push(`${countWords(day.lessons)} ${day.lessons === 1 ? 'lesson' : 'lessons'} learned`);
-  if (day.reviews > 0) words.push(`${countWords(day.reviews)} ${day.reviews === 1 ? 'lesson' : 'lessons'} repeated`);
-  return words;
+/** One thing a day's card says: its words, and whether it is the merged fix (drawn with the gold mark). */
+export type DayDone = { words: string; merged: boolean };
+
+/**
+ * "2 lessons learned", "6 lessons repeated", "Your fix was merged", "1 walkthrough passed": what a day's card and its
+ * label say, each only when above zero.
+ */
+export function dayDoneOf(day: DayCounts): DayDone[] {
+  const done: DayDone[] = [];
+  const plain = (words: string) => done.push({ words, merged: false });
+  if (day.lessons > 0) plain(`${countWords(day.lessons)} ${day.lessons === 1 ? 'lesson' : 'lessons'} learned`);
+  if (day.reviews > 0) plain(`${countWords(day.reviews)} ${day.reviews === 1 ? 'lesson' : 'lessons'} repeated`);
+  const merged = day.fixesMerged?.length ?? 0;
+  if (merged === 1) done.push({ words: 'Your fix was merged', merged: true });
+  else if (merged > 1) done.push({ words: `${countWords(merged)} fixes of yours were merged`, merged: true });
+  const passed = day.walkthroughs?.length ?? 0;
+  if (passed > 0) plain(`${countWords(passed)} ${passed === 1 ? 'walkthrough' : 'walkthroughs'} passed`);
+  return done;
 }
+
+/** The words alone of `dayDoneOf`. */
+export const dayDoneWordsOf = (day: DayCounts): string[] => dayDoneOf(day).map((each) => each.words);
 
 /**
  * A square's label for a screen reader: "Friday 20 Nov: 2 lessons learned, 6 lessons repeated". A day active with no
@@ -322,21 +360,32 @@ export function finishedWordsOf(finishedAt: string, today: string): string | nul
 /** Where a History page starts: the first day of the next page, as `before` asks (the day after the one to open). */
 export const historyBeforeOf = (day: string | null) => (day ? addLearnDays(day, 1) : null);
 
-/** One line of a day in History: what was done, its count, and the lessons a page still shows. */
-export type HistoryEntry = {
-  kind: 'review' | 'lessons';
-  label: string;
-  count: number;
-  words: string;
-  links: LearnLessonLink[];
-};
+/**
+ * One line of a day in History: a review or the lessons learned, with its count and the lessons a page still shows; a
+ * fix of the person's that was merged; or a walkthrough passed.
+ */
+export type HistoryEntry =
+  | { kind: 'review' | 'lessons'; key: string; label: string; count: number; words: string; links: LearnLessonLink[] }
+  | { kind: 'fix'; key: string; label: string; fix: LearnDayFix }
+  | { kind: 'walkthrough'; key: string; label: string; walkthrough: LearnDayWalkthrough };
 
-/** A day's lines: the review first, then the lessons learned, as the board draws them; each only when above zero. */
+/**
+ * A day's lines: the fixes merged first, then the walkthroughs passed, the review and the lessons learned, as the
+ * boards draw them; each only when there is one.
+ */
 export function historyEntriesOf(day: LearnDay): HistoryEntry[] {
   const entries: HistoryEntry[] = [];
+  for (const fix of day.fixesMerged ?? []) {
+    entries.push({ kind: 'fix', key: `fix:${fix.repo}#${fix.number}`, label: 'Your fix', fix });
+  }
+  for (const walkthrough of day.walkthroughs ?? []) {
+    const key = `walkthrough:${walkthrough.repo}#${walkthrough.issueNumber}:${walkthrough.number ?? ''}`;
+    entries.push({ kind: 'walkthrough', key, label: 'Walkthrough', walkthrough });
+  }
   if (day.reviews > 0) {
     entries.push({
       kind: 'review',
+      key: 'review',
       label: 'Review',
       count: day.reviews,
       words: day.reviews === 1 ? 'lesson' : 'lessons',
@@ -346,6 +395,7 @@ export function historyEntriesOf(day: LearnDay): HistoryEntry[] {
   if (day.lessons > 0) {
     entries.push({
       kind: 'lessons',
+      key: 'lessons',
       label: 'Lessons',
       count: day.lessons,
       words: day.lessons === 1 ? 'lesson' : 'lessons',

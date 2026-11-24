@@ -111,7 +111,7 @@ describe('Learn home, a normal day', () => {
     const links = [...page.querySelectorAll('[data-home-foot] a')].map((a) => [words(a), a.getAttribute('href')]);
     expect(links).toEqual([
       ['How Learn works', '/learn/about'],
-      ['For maintainers', '/learn/maintainers'],
+      ['For maintainers', '/contribute/maintainers#learn'],
       ['Fix a real issue with your agent', '/learn/issues'],
     ]);
   });

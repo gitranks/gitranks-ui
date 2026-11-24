@@ -109,7 +109,7 @@ export function LandingBoards() {
         title="Signed in, part-way through fixing an issue with their agent · a link back to the step they reached"
         height={880}
       >
-        <Landing bar={setup} viewer="member" resume="/learn/start/issues" />
+        <Landing bar={setup} viewer="member" resume="/learn/issues" />
       </Frame>
       <Frame title="Launch day · no numbers yet: a course row shows its lessons alone" height={1660}>
         <Landing courses={launchCourses} />

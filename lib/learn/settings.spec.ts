@@ -7,6 +7,7 @@ import {
   isTimeZoneName,
   learnEmailSettingsInputOf,
   learnEmailSettingsOf,
+  learnIssuesEmailOf,
   learnSettingsErrorOf,
   pickChangesNothing,
   settingsAfterPick,
@@ -44,6 +45,19 @@ describe("Learn's email settings as the API answers them", () => {
     for (const bad of ['', '+02:00', '-5', 'Mars/Olympus', `Europe/${'x'.repeat(64)}`, 3, null]) {
       expect(isTimeZoneName(bad)).toBe(false);
     }
+  });
+});
+
+describe('"A new issue for you" as the API answers it', () => {
+  it('reads the switch and the list it covers, no list until it was first turned on, and nothing of another shape', () => {
+    expect(learnIssuesEmailOf({ newIssues: true, newIssuesCover: 'FOR_YOU' })).toEqual({ on: true, cover: 'FOR_YOU' });
+    expect(learnIssuesEmailOf({ newIssues: false, newIssuesCover: 'LEARNED' })).toEqual({
+      on: false,
+      cover: 'LEARNED',
+    });
+    expect(learnIssuesEmailOf({ newIssues: false, newIssuesCover: null })).toEqual({ on: false, cover: null });
+    expect(learnIssuesEmailOf({ newIssues: true, newIssuesCover: 'ALL' })).toEqual({ on: true, cover: null });
+    for (const odd of [null, undefined, 'on', {}, { newIssues: 'true' }]) expect(learnIssuesEmailOf(odd)).toBeNull();
   });
 });
 

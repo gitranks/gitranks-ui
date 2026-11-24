@@ -19,17 +19,27 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('server-only', () => ({}));
 
 const { GET } = (await import('./route')) as unknown as { GET: (req: NextRequest) => Promise<Response> };
-const { myProgress } = await import('@/lib/learn/__fixtures__/my-progress');
-const { LearnMyProgressDocument } = await import('@/lib/learn/my-progress.documents');
+const { myProgress, myProgressWithFixes } = await import('@/lib/learn/__fixtures__/my-progress');
+const { LearnMyProgressDocument, LearnMyProgressFixesDocument } = await import('@/lib/learn/my-progress.documents');
 
 const get = () => GET(new NextRequest('https://gitranks.com/api/me/learn/progress'));
 const signIn = (error?: string) => {
   current.session = { user: { githubLogin: 'octocat' }, expires: '2099-01-01T00:00:00.000Z', error } as Session;
 };
-/** The two reads: the progress, and the person's saved zone (the Email rows of Settings). */
-function answers(progress: () => Promise<unknown>, zone: () => Promise<unknown>) {
-  graphqlDirect.mockImplementation((document: unknown) => (document === LearnMyProgressDocument ? progress() : zone()));
+/**
+ * The three reads: the progress, the person's saved zone (the Email rows of Settings), and what the days gain from real
+ * fixes (none unless given).
+ */
+function answers(
+  progress: () => Promise<unknown>,
+  zone: () => Promise<unknown>,
+  fixes: () => Promise<unknown> = async () => ({ learnMyProgress: null }),
+) {
+  graphqlDirect.mockImplementation((document: unknown) =>
+    document === LearnMyProgressDocument ? progress() : document === LearnMyProgressFixesDocument ? fixes() : zone(),
+  );
 }
+const callOf = (document: unknown) => graphqlDirect.mock.calls.find(([each]) => each === document);
 const zoneOf = (timeZone: string | null) => async () => ({
   contributeEmailSettings: { to: null, needsYou: 'NEVER', ended: false, timeZone },
 });
@@ -66,7 +76,30 @@ describe("My progress's route", () => {
     const res = await get();
     expect(await res.json()).toEqual({ progress: myProgress, today: '2026-11-22', signedOut: false });
     expect(res.headers.get('cache-control')).toBe('private, no-store');
-    for (const call of graphqlDirect.mock.calls) expect(call[2]).toEqual({ source: 'ssr', githubLogin: 'octocat' });
+    expect(callOf(LearnMyProgressDocument)?.[2]).toEqual({ source: 'ssr', githubLogin: 'octocat' });
+    // The read of real fixes is its own, with a time limit.
+    expect(callOf(LearnMyProgressFixesDocument)?.[2]).toEqual({
+      source: 'ssr',
+      githubLogin: 'octocat',
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it("adds the days' fixes merged and walkthroughs passed when they come, and draws the days without them when not", async () => {
+    signIn();
+    const days = myProgressWithFixes.days.filter((day) => day.fixesMerged || day.walkthroughs);
+    const fixes = async () => ({ learnMyProgress: { days } });
+    answers(async () => ({ learnMyProgress: myProgress }), zoneOf('Asia/Tokyo'), fixes);
+    expect((await (await get()).json()).progress).toEqual(myProgressWithFixes);
+    for (const failed of [
+      async () => {
+        throw new Error('Cannot query field "fixesMerged"');
+      },
+      async () => ({ learnMyProgress: { days: null } }),
+    ]) {
+      answers(async () => ({ learnMyProgress: myProgress }), zoneOf('Asia/Tokyo'), failed);
+      expect((await (await get()).json()).progress).toEqual(myProgress);
+    }
   });
 
   it("counts today in Learn's default zone with no zone saved, or one that is not a real zone", async () => {

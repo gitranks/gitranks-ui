@@ -102,6 +102,9 @@ export const learnHistoryMinePath = (before: string | null) =>
   before
     ? `${LEARN_MY_PROGRESS_MINE_PATH}/history?before=${encodeURIComponent(before)}`
     : `${LEARN_MY_PROGRESS_MINE_PATH}/history`;
+/** Where the browser reads the signed-in person's fixes made with Learn, and the walkthroughs they passed. */
+export const LEARN_MY_FIXES_MINE_PATH = `${LEARN_MY_PROGRESS_MINE_PATH}/fixes`;
+export const LEARN_MY_WALKTHROUGHS_MINE_PATH = `${LEARN_MY_PROGRESS_MINE_PATH}/walkthroughs`;
 /** The query that asks the depth of each lesson in some of the person's courses, by their slugs, comma-separated. */
 export const COURSE_DEPTHS_QUERY = 'depths';
 /** Where the browser reads the depth of each lesson in the given courses of the person. */

@@ -3,11 +3,14 @@ import { describe, expect, it } from 'vitest';
 import {
   historyEarlier,
   historyFirst,
+  historyWithFixes,
+  myFixes,
   myProgress,
   myProgressEmpty,
   myProgressFirstDay,
   myProgressKnownOnly,
   myProgressLong,
+  myProgressWithFixes,
   PROGRESS_TODAY,
 } from './__fixtures__/my-progress';
 import {
@@ -15,6 +18,7 @@ import {
   CALENDAR_WEEKS,
   calendarOf,
   coursesLineOf,
+  dayDoneOf,
   dayDoneWordsOf,
   dayLabelOf,
   dayLevelOf,
@@ -48,11 +52,13 @@ const dayOf = (day: string, lessons: number, reviews: number): LearnDay => ({
 });
 
 describe('My progress: the address', () => {
-  it('opens History by name and Courses for anything else; Your fixes and Walkthroughs come later', () => {
-    expect(myProgressViewOf('history')).toBe('history');
-    for (const value of [undefined, '', 'courses', 'fixes', 'walkthroughs', ['history'], 'HISTORY']) {
+  it('opens Your fixes, Walkthroughs and History by name, and Courses for anything else', () => {
+    for (const view of ['fixes', 'walkthroughs', 'history'] as const) expect(myProgressViewOf(view)).toBe(view);
+    for (const value of [undefined, '', 'courses', ['history'], 'HISTORY', 'Fixes']) {
       expect(myProgressViewOf(value)).toBe('courses');
     }
+    expect(myProgressPath({ view: 'fixes' })).toBe('/learn/progress?view=fixes');
+    expect(myProgressPath({ view: 'walkthroughs', day: '2026-11-20' })).toBe('/learn/progress?view=walkthroughs');
   });
 
   it('takes only a real date for the day History opens at', () => {
@@ -199,6 +205,24 @@ describe('My progress: the box "Days"', () => {
     expect(dayLabelOf(dayOf('2026-11-20', 0, 0), PROGRESS_TODAY)).toBe('Friday 20 Nov: active');
   });
 
+  it('counts a merged fix and a passed walkthrough one each, and rings the day a fix was merged', () => {
+    const [fix] = myFixes;
+    const merged = { ...dayOf('2026-11-20', 1, 0), fixesMerged: [{ ...fix, lesson: null }], walkthroughs: [] };
+    expect(dayLevelOf({ ...merged, lessons: 2 })).toBe(2);
+    expect(dayDoneWordsOf(merged)).toEqual(['1 lesson learned', 'Your fix was merged']);
+    expect(dayDoneOf(merged).find((each) => each.merged)?.words).toBe('Your fix was merged');
+    expect(dayDoneWordsOf({ ...merged, fixesMerged: [fix, fix] })).toContain('2 fixes of yours were merged');
+    const passed = { ...dayOf('2026-11-21', 0, 0), walkthroughs: historyWithFixes.days[1].walkthroughs };
+    expect(dayDoneWordsOf(passed)).toEqual(['1 walkthrough passed']);
+    const cells = calendarOf(myProgressWithFixes.days, PROGRESS_TODAY).weeks.flat();
+    expect(cells.filter((cell) => cell.merged).map((cell) => cell.day)).toEqual(['2026-11-20']);
+    expect(
+      calendarOf(myProgress.days, PROGRESS_TODAY)
+        .weeks.flat()
+        .some((cell) => cell.merged),
+    ).toBe(false);
+  });
+
   it('counts the days, since the first one only when the calendar holds every day counted', () => {
     expect(daysLineOf(myProgress, PROGRESS_TODAY)).toEqual({ kind: 'days', count: 80, since: '8 Jun' });
     expect(daysLineOf(myProgressLong, PROGRESS_TODAY)).toEqual({ kind: 'days', count: 212, since: null });
@@ -247,7 +271,11 @@ describe('My progress: History', () => {
 
   it('lists the review first, then the lessons learned, each only when above zero, with the lessons a page shows', () => {
     const [today, saturday] = historyFirst.days;
-    expect(historyEntriesOf(today).map((entry) => [entry.kind, entry.count, entry.words, entry.links.length])).toEqual([
+    const counted = (day: LearnDay) =>
+      historyEntriesOf(day).map((entry) =>
+        'count' in entry ? [entry.kind, entry.count, entry.words, entry.links.length] : [entry.kind],
+      );
+    expect(counted(today)).toEqual([
       ['review', 6, 'lessons', 3],
       ['lessons', 2, 'lessons', 2],
     ]);
@@ -258,6 +286,19 @@ describe('My progress: History', () => {
       links: [],
     });
     expect(historyEntriesOf(dayOf('2026-11-20', 0, 0))).toEqual([]);
+  });
+
+  it("lists a day's merged fixes first, then its walkthroughs, then the review and the lessons", () => {
+    const [, saturday, friday] = historyWithFixes.days;
+    expect(historyEntriesOf(friday).map((entry) => [entry.kind, entry.label])).toEqual([
+      ['fix', 'Your fix'],
+      ['lessons', 'Lessons'],
+    ]);
+    expect(historyEntriesOf(friday)[0]).toMatchObject({ kind: 'fix', fix: { repo: 'acme/widgets', number: 57 } });
+    expect(historyEntriesOf(saturday).map((entry) => entry.kind)).toEqual(['walkthrough', 'review', 'lessons']);
+    const keys = historyWithFixes.days.flatMap((day) => historyEntriesOf(day).map((entry) => entry.key));
+    expect(keys).toContain('fix:acme/widgets#57');
+    expect(keys).toContain('walkthrough:vitejs/vite#18011:18020');
   });
 
   it('adds a page of earlier days after the ones shown, never a day twice', () => {

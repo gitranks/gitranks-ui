@@ -30,11 +30,9 @@ describe('the "try again" pages', () => {
       await import('@/app/(onboarding)/contribute/start/error'),
     ];
     const learn = [
-      await import('@/app/(workspace)/learn/error'),
       await import('@/app/(learn)/error'),
       await import('@/app/(player)/learn/error'),
       await import('@/app/(public)/learn/error'),
-      await import('@/app/(onboarding)/learn/start/error'),
     ];
     for (const page of contribute) expect(page.default).toBe(ContributeError);
     for (const page of learn) expect(page.default).toBe(LearnError);

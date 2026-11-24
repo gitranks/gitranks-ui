@@ -21,7 +21,7 @@ import {
   type DayLevel,
   type DaysLine,
   type DepthRow,
-  dayDoneWordsOf,
+  dayDoneOf,
   dayLabelOf,
   daysLineWords,
   dayTitleOf,
@@ -37,6 +37,7 @@ import {
   type MyProgressView,
   myProgressPath,
 } from '@/lib/learn/my-progress';
+import { dayWalkthroughHrefOf, myFixPagePath } from '@/lib/learn/my-progress-fixes';
 import { coursePath, LEARN_COURSES_PATH, learnLessonPath, learnReviewPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
 
@@ -158,12 +159,19 @@ const PHONE_HIDDEN_WEEKS = CALENDAR_WEEKS - CALENDAR_WEEKS_PHONE;
 const CELL = 'size-[13px] rounded-[3px] sm:size-[17px]';
 
 /**
+ * The gold border of a day a fix of the person's was merged on, inside the square so nothing moves. It is not a star:
+ * on a course's page the star marks a lesson with a merged fix.
+ */
+export const MERGED_FIX_RING = 'shadow-[inset_0_0_0_2px_var(--warning)]';
+
+/**
  * A day with something done: a link to it in History, with a small card when pointed at or focused. Its label says the
  * day and what was done; the card says it again for the eye. A late week's card opens to the left, to stay in the box.
  */
 function DaySquare({
   day,
   level,
+  merged,
   today,
   late,
   pointed,
@@ -171,6 +179,8 @@ function DaySquare({
 }: {
   day: LearnDay;
   level: DayLevel;
+  /** A fix of the person's was merged that day: the gold border. */
+  merged: boolean;
   today: string;
   late: boolean;
   /** The catalogue's "pointed at" state: the card drawn open. */
@@ -182,9 +192,16 @@ function DaySquare({
       href={myProgressPath({ view: 'history', day: day.day })}
       scroll={false}
       aria-label={dayLabelOf(day, today)}
-      className={cn('group/day relative block outline-offset-1', CELL, LEVEL_CLASS[level], className)}
+      className={cn(
+        'group/day relative block outline-offset-1',
+        CELL,
+        LEVEL_CLASS[level],
+        merged && MERGED_FIX_RING,
+        className,
+      )}
       data-day={day.day}
       data-level={level}
+      data-merged-fix={merged ? '' : undefined}
     >
       <span
         aria-hidden="true"
@@ -196,11 +213,18 @@ function DaySquare({
       >
         <span className="text-xs text-muted-foreground">{dayTitleOf(day.day, today)}</span>
         {/* A day active with no lesson and no review says so, never a bare date. */}
-        {(dayDoneWordsOf(day).length ? dayDoneWordsOf(day) : ['Active']).map((words) => (
-          <span key={words} className="text-sm text-foreground">
-            {words}
-          </span>
-        ))}
+        {(dayDoneOf(day).length ? dayDoneOf(day) : [{ words: 'Active', merged: false }]).map((done) =>
+          done.merged ? (
+            <span key={done.words} className="flex items-center gap-1.5 text-sm text-foreground">
+              <span className={cn('inline-block size-3 shrink-0 rounded-[3px] bg-muted', MERGED_FIX_RING)} />
+              {done.words}
+            </span>
+          ) : (
+            <span key={done.words} className="text-sm text-foreground">
+              {done.words}
+            </span>
+          ),
+        )}
         <span className="text-xs text-muted-foreground">Click to see this day in History</span>
       </span>
     </Link>
@@ -277,6 +301,7 @@ export function DaysBoxView({
                     key={cell.day}
                     day={cell.done}
                     level={cell.level}
+                    merged={cell.merged}
                     today={today}
                     late={index >= CALENDAR_WEEKS - 8}
                     pointed={cell.day === pointed}
@@ -481,7 +506,56 @@ function LessonLinks({ links }: { links: readonly LearnLessonLink[] }) {
   );
 }
 
-/** One line of a day: its label on the left, a dot on the day's thread, what was done and the lessons. */
+/** What a line of a day says: what was done, then the lessons or the fix it names. */
+function HistoryWords({ entry }: { entry: HistoryEntry }) {
+  if (entry.kind === 'fix') {
+    const { fix } = entry;
+    return (
+      <>
+        <span className="text-sm text-foreground">
+          <Link href={myFixPagePath(fix)} className="font-semibold text-link hover:underline">
+            {fix.title}
+          </Link>{' '}
+          was merged
+        </span>
+        {fix.lesson ? (
+          <span className="text-sm text-muted-foreground">
+            <Link href={learnLessonPath(fix.lesson.slug)} className="font-medium text-foreground hover:underline">
+              {fix.lesson.title}
+            </Link>{' '}
+            is Mastered now.
+          </span>
+        ) : null}
+      </>
+    );
+  }
+  if (entry.kind === 'walkthrough') {
+    const { walkthrough } = entry;
+    return (
+      <>
+        <span className="text-sm text-foreground">
+          Passed the walkthrough of {walkthrough.mine ? 'your fix ' : null}
+          <Link href={dayWalkthroughHrefOf(walkthrough)} className="font-semibold text-link hover:underline">
+            {walkthrough.title}
+          </Link>
+        </span>
+        <span className="text-sm text-muted-foreground">
+          {walkthrough.mine ? `${walkthrough.repo}.` : `${walkthrough.repo}, a fix by ${walkthrough.fixer}.`}
+        </span>
+      </>
+    );
+  }
+  return (
+    <>
+      <span className="text-sm text-foreground">
+        {entry.kind === 'review' ? 'Repeated' : 'Learned'} <Figure count={entry.count} /> {entry.words}
+      </span>
+      {entry.links.length ? <LessonLinks links={entry.links} /> : null}
+    </>
+  );
+}
+
+/** One line of a day: its label on the left, a dot on the day's thread (filled for a merged fix), and its words. */
 function HistoryLine({ entry, last }: { entry: HistoryEntry; last: boolean }) {
   return (
     <li
@@ -491,13 +565,15 @@ function HistoryLine({ entry, last }: { entry: HistoryEntry; last: boolean }) {
       <span className="pt-[3px] text-right text-xs font-medium text-muted-foreground">{entry.label}</span>
       <span className="relative flex justify-center" aria-hidden="true">
         {!last ? <span className="absolute top-2.5 bottom-0 w-0.5 bg-border" /> : null}
-        <span className="relative mt-1 size-3 rounded-full border-2 border-muted-foreground bg-background" />
+        <span
+          className={cn(
+            'relative mt-1 size-3 rounded-full border-2',
+            entry.kind === 'fix' ? 'border-primary bg-primary' : 'border-muted-foreground bg-background',
+          )}
+        />
       </span>
       <span className={cn('flex min-w-0 flex-col gap-0.5', !last && 'pb-[18px]')}>
-        <span className="text-sm text-foreground">
-          {entry.kind === 'review' ? 'Repeated' : 'Learned'} <Figure count={entry.count} /> {entry.words}
-        </span>
-        {entry.links.length ? <LessonLinks links={entry.links} /> : null}
+        <HistoryWords entry={entry} />
       </span>
     </li>
   );
@@ -523,7 +599,7 @@ export function HistoryDay({
       </h3>
       <ol className="m-0 flex list-none flex-col p-0">
         {entries.map((entry, index) => (
-          <HistoryLine key={entry.kind} entry={entry} last={index === entries.length - 1} />
+          <HistoryLine key={entry.key} entry={entry} last={index === entries.length - 1} />
         ))}
       </ol>
     </section>
@@ -678,7 +754,7 @@ export function ProgressEmpty({ titleRef }: { titleRef?: Ref<HTMLHeadingElement>
       state="empty"
       titleRef={titleRef}
       title="Your progress starts with your first lesson"
-      text="This page counts the lessons you learn, and shows how well they stay."
+      text="This page counts the lessons you learn, shows how well they stay, and lists your fixes."
     >
       <Button asChild size="lg" className="min-h-11 font-semibold">
         <Link href={LEARN_COURSES_PATH}>Pick your first course</Link>

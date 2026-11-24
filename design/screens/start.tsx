@@ -80,7 +80,6 @@ export const START_SCREENS: Screen[] = [
     route: '/my/start/[owner]/[repo]/[issue]',
     sources: [
       'app/(workspace)/my/start/[owner]/[repo]/[issue]/page.tsx',
-      'app/(onboarding)/learn/start/[owner]/[repo]/[issue]/page.tsx',
       'components/workspace/start/start-page-body.tsx',
       'components/workspace/start/start-page-screen.tsx',
       'components/workspace/start/start-refusal.tsx',

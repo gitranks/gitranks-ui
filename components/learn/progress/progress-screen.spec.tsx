@@ -81,8 +81,8 @@ describe('Your progress', () => {
       { view: 'merged', list: { view: 'merged', merged: mergedPage } },
     ] as Partial<ProgressScreenProps>[]) {
       const html = screen(props);
-      expect(text(html)).toMatch(/Pick your next lesson$/);
-      expect(html).toMatch(/data-next-lesson=""[^>]*href="\/learn\/earlier"/);
+      expect(text(html)).toMatch(/Pick your next issue$/);
+      expect(html).toMatch(/data-next-lesson=""[^>]*href="\/learn\/issues"/);
     }
   });
 
@@ -116,7 +116,7 @@ describe('Lessons passed', () => {
   });
 
   it('opens an own lesson’s Lesson view and its pull request’s page, a practice lesson’s page', () => {
-    expect(html).toContain('href="/my/pull-requests/driftwood-js/driftwood/934/lesson"');
+    expect(html).toContain('href="/my/pull-requests/driftwood-js/driftwood/934/walkthrough"');
     expect(html).toMatch(/href="\/my\/pull-requests\/driftwood-js\/driftwood\/934"[^>]*>Details</);
     expect(html).toMatch(/href="\/learn\/lessons\/retry-backoff-jitter-2m9q"[^>]*>See the lesson</);
     // No primary button: the page has no main action.
@@ -127,7 +127,7 @@ describe('Lessons passed', () => {
     expect(plain).toContain(
       'Why nested layouts rebuilt on every navigation Passed Oct 28 · 2 new things learned · Taken down Merged Details',
     );
-    expect(html).not.toContain('/my/pull-requests/driftwood-js/driftwood/871/lesson');
+    expect(html).not.toContain('/my/pull-requests/driftwood-js/driftwood/871/walkthrough');
     expect(plain).toContain(
       'Why two all-day events overlapped by an hour Passed Oct 20 · 1 new thing learned · Its author took it down',
     );
@@ -171,7 +171,7 @@ describe('New things learned', () => {
     expect(plain).toContain(
       'Why a redirect dropped the route’s param types Passed Nov 12 · 3 new things learned 2 · Cause The redirect built its target from a plain string 3 · The fix The fix: carry the params type through redirect() 5 · Deep dive How a generic keeps a literal type',
     );
-    expect(html).toContain('href="/my/pull-requests/driftwood-js/driftwood/934/lesson#step-s2"');
+    expect(html).toContain('href="/my/pull-requests/driftwood-js/driftwood/934/walkthrough#step-s2"');
     expect(html).toContain('href="/learn/lessons/retry-backoff-jitter-2m9q#step-s5"');
     expect(plain).toContain('1–6 of 6 lessons');
   });
@@ -192,7 +192,7 @@ describe('New things learned', () => {
     expect(none).toContain(
       'You already knew what these lessons asked you first. A new thing shows here when a lesson teaches you one.',
     );
-    expect(none).toMatch(/Pick your next lesson$/);
+    expect(none).toMatch(/Pick your next issue$/);
   });
 });
 
@@ -217,7 +217,7 @@ describe('Repos helped and Pull requests merged', () => {
       'tidewave/tide Issue #931 ↗ (opens GitHub) PR #947 ↗ (opens GitHub) Sidebar width resets after a reload Merged Nov 9 Lesson',
     );
     expect(html).toMatch(/href="\/my\/pull-requests\/tidewave\/tide\/931"[^>]*>Sidebar width resets/);
-    expect(html).toMatch(/href="\/my\/pull-requests\/tidewave\/tide\/931\/lesson"[^>]*>Lesson</);
+    expect(html).toMatch(/href="\/my\/pull-requests\/tidewave\/tide\/931\/walkthrough"[^>]*>Lesson</);
     expect(html.match(/>Lesson</g)).toHaveLength(1);
     expect(plain).toContain('1–6 of 6 pull requests');
   });
@@ -243,9 +243,9 @@ describe('the states with nothing to list', () => {
     const plain = text(html);
     expect(plain).toContain('Lessons passed 0 New things learned 0 Repos helped 0 Pull requests merged 0');
     expect(plain).toContain(
-      'No lessons yet Each lesson is written by your agent for an issue you pick, about that exact fix. Start a lesson',
+      'No lessons yet Your agent fixes an issue you pick, and the fix walkthrough teaches what it used. See the issues',
     );
-    expect(html).toMatch(/data-variant="default"[^>]*href="\/learn\/earlier"[^>]*>Start a lesson/);
+    expect(html).toMatch(/data-variant="default"[^>]*href="\/learn\/issues"[^>]*>See the issues/);
     // Its one next step: no second link to the same place.
     expect(html).not.toContain('data-next-lesson');
   });

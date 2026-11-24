@@ -138,31 +138,9 @@ describe("the maintainers page's sign-in mark", () => {
     expect(redirectTo).toMatch(/^\/contribute\/maintainers\?s=[0-9a-f-]{36}$/);
   });
 
-  it("returns to a Learn result page with only its reaction kept, and counts for that page's sign-in", async () => {
-    const redirectTo = await markMaintainerSignIn(
-      '/learn/lessons/route-cache-miss-8f3k/passes/octocat?react=yes&s=old&next=https://evil.example#x',
-    );
-    const nonce = jar.set.mock.calls[0][1];
-    expect(redirectTo).toBe(`/learn/lessons/route-cache-miss-8f3k/passes/octocat?react=yes&s=${nonce}`);
-
-    returnsTo(redirectTo);
-    expect(await takeMaintainerSignIn()).toBe(true);
-
-    expect(String(maintainerReturnOf('/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0&react=yes&s=old&x=1#top'))).toBe(
-      'https://gitranks.invalid/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0&react=yes',
-    );
-    expect(String(maintainerReturnOf('/learn/maintainers?from=nope&react=yes'))).toBe(
-      'https://gitranks.invalid/learn/maintainers',
-    );
-    expect(String(maintainerReturnOf('/learn/lessons/a-1/passes/Mona-Lisa?react=no'))).toBe(
-      'https://gitranks.invalid/learn/lessons/a-1/passes/Mona-Lisa?react=no',
-    );
-    expect(String(maintainerReturnOf('/learn/lessons/a-1/passes/mona?react=maybe'))).toBe(
-      'https://gitranks.invalid/learn/lessons/a-1/passes/mona',
-    );
-  });
-
   it.each([
+    '/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0&react=yes',
+    '/learn/lessons/route-cache-miss-8f3k/passes/octocat?react=yes',
     '/learn/lessons/route-cache-miss-8f3k',
     '/learn/lessons',
     '/learn/lessons/route-cache-miss-8f3k/passes',
@@ -177,7 +155,7 @@ describe("the maintainers page's sign-in mark", () => {
     '/learn/attempts/A_1',
     '//evil.example/learn/lessons/x/passes/octocat',
     'https://evil.example/learn/lessons/x/passes/octocat',
-  ])('refuses %s, which is no result page as the site writes it', (returnTo) => {
+  ])('refuses %s: a Learn page is no maintainers page', (returnTo) => {
     expect(String(maintainerReturnOf(returnTo))).toBe('https://gitranks.invalid/contribute/maintainers');
   });
 

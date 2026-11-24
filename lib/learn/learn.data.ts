@@ -2,16 +2,8 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import {
-  LearnAttemptLessonDocument,
-  LearnIssuesMaskedDocument,
-  LearnProfileDocument,
-  LearnSetupDocument,
-  MyLearnAttemptsDocument,
-  PracticeLessonsDocument,
-} from './learn.documents';
-import type { LearnAttemptLesson, LearnIssues, LearnProfile, MyLearnAttempts, PracticeLessons } from './learn.types';
-import { learnIssuesOf } from './masked-rows';
+import { LearnAttemptLessonDocument, LearnProfileDocument, LearnSetupDocument } from './learn.documents';
+import type { LearnAttemptLesson, LearnProfile } from './learn.types';
 import type { LearnSetupRead } from './setup';
 import { loadLearnSetup as loadSetupOf } from './setup.data';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -81,58 +73,3 @@ export const loadLearnProfile = cache(async (): Promise<LearnProfile | null> => 
     throw new ContributeUnavailableError();
   }
 });
-
-/** A Learn read for the viewer that answers nothing when it fails: the page leaves its part out or says so. */
-async function viewerRead<T>(read: (githubLogin: string) => Promise<T>): Promise<T | undefined> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-  try {
-    return await read(githubLogin);
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * The issues for the viewer's goal, `first` of them (0 answers the total alone and reveals nothing): undefined signed
- * out, or when the API does not answer them. Read once per request and `first`.
- */
-export const loadLearnIssues = cache(
-  async (first: number): Promise<LearnIssues | undefined> =>
-    viewerRead(async (githubLogin) => {
-      const options = { source: 'ssr' as const, githubLogin };
-      // A masked row leaves the read stripped of what names its issue, keyed by its mask id.
-      return learnIssuesOf((await graphqlDirect(LearnIssuesMaskedDocument, { first }, options)).learnIssues);
-    }),
-);
-
-/**
- * Other learners' lessons for the viewer's goal, `first` of them: undefined signed out, or when the API does not
- * answer them. Read once per request and `first`.
- */
-export const loadPracticeLessons = cache(
-  async (first: number): Promise<PracticeLessons | undefined> =>
-    viewerRead(async (githubLogin) => {
-      const { practiceLessons } = await graphqlDirect(
-        PracticeLessonsDocument,
-        { first },
-        { source: 'ssr', githubLogin },
-      );
-      return practiceLessons;
-    }),
-);
-
-/**
- * The viewer's Learn attempt in progress and their newest pull request: undefined signed out, or when the API does not
- * answer it. Read once per request.
- */
-export const loadMyLearnAttempts = cache(
-  async (): Promise<MyLearnAttempts | undefined> =>
-    viewerRead(async (githubLogin) => {
-      const { myLearnAttempts } = await graphqlDirect(MyLearnAttemptsDocument, undefined, {
-        source: 'ssr',
-        githubLogin,
-      });
-      return myLearnAttempts;
-    }),
-);

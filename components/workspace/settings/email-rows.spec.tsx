@@ -4,6 +4,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction: vi.fn() }));
+
 const { setContributeEmailSettings, refresh } = vi.hoisted(() => ({
   setContributeEmailSettings: vi.fn(),
   refresh: vi.fn(),

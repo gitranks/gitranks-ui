@@ -1,17 +1,23 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { graphqlDirect } = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
+const { graphqlDirect, progressRead } = vi.hoisted(() => ({ graphqlDirect: vi.fn(), progressRead: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
 const { loadLearnMyProgress, myProgressFaultOf, readFaultOf } = await import('./my-progress.data');
 const { myProgress } = await import('./__fixtures__/my-progress');
+const { LearnMyProgressFixesDocument } = await import('./my-progress.documents');
 
 const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 const logged = () => warn.mock.calls.map(([line]) => String(line));
 
 beforeEach(() => {
   graphqlDirect.mockReset();
+  progressRead.mockReset();
+  // The days' fixes are their own read, which answers nothing here: these cases are about the progress read.
+  graphqlDirect.mockImplementation((document: unknown) =>
+    document === LearnMyProgressFixesDocument ? Promise.resolve({ learnMyProgress: null }) : progressRead(),
+  );
   warn.mockClear();
 });
 
@@ -21,7 +27,7 @@ afterAll(() => {
 
 describe('My progress read', () => {
   it('gives an answer it can draw, and logs nothing', async () => {
-    graphqlDirect.mockResolvedValueOnce({ learnMyProgress: myProgress });
+    progressRead.mockResolvedValueOnce({ learnMyProgress: myProgress });
     expect(await loadLearnMyProgress('octocat')).toEqual(myProgress);
     expect(warn).not.toHaveBeenCalled();
   });
@@ -35,7 +41,7 @@ describe('My progress read', () => {
       },
       { message: 'Cast to string failed for value "octocat"', path: ['learnMyProgress'] },
     ];
-    graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify(errors)));
+    progressRead.mockRejectedValueOnce(new Error(JSON.stringify(errors)));
     expect(await loadLearnMyProgress('octocat')).toBeNull();
     expect(logged()).toEqual([
       'My progress read failed: learnMyProgress.days.0.lessons [INTERNAL_SERVER_ERROR]; learnMyProgress [NO_CODE]',
@@ -45,7 +51,7 @@ describe('My progress read', () => {
 
   it('keeps the message of a query the API refused, cut short', async () => {
     const message = `Cannot query field "nope" on type "LearnMyProgress". ${'x'.repeat(200)}`;
-    graphqlDirect.mockRejectedValueOnce(
+    progressRead.mockRejectedValueOnce(
       new Error(JSON.stringify([{ message, extensions: { code: 'GRAPHQL_VALIDATION_FAILED' } }])),
     );
     await loadLearnMyProgress('octocat');
@@ -60,7 +66,7 @@ describe('My progress read', () => {
       path: ['learnMyProgress', 'days', day, 'lessons'],
       extensions: { code: 'INTERNAL_SERVER_ERROR' },
     }));
-    graphqlDirect.mockRejectedValueOnce(new Error(JSON.stringify(errors)));
+    progressRead.mockRejectedValueOnce(new Error(JSON.stringify(errors)));
     await loadLearnMyProgress('octocat');
     const [line] = logged();
     expect(line).toBe(
@@ -74,15 +80,15 @@ describe('My progress read', () => {
   });
 
   it('logs a failure that is not the API’s errors by its message', async () => {
-    graphqlDirect.mockRejectedValueOnce(new Error('GraphQL error! 502: Bad Gateway'));
+    progressRead.mockRejectedValueOnce(new Error('GraphQL error! 502: Bad Gateway'));
     expect(await loadLearnMyProgress('octocat')).toBeNull();
     expect(logged()).toEqual(['My progress read failed: GraphQL error! 502: Bad Gateway']);
   });
 
   it('logs an answer it cannot draw with the check that failed', async () => {
-    graphqlDirect.mockResolvedValueOnce({ learnMyProgress: { ...myProgress, activeDays: null } });
+    progressRead.mockResolvedValueOnce({ learnMyProgress: { ...myProgress, activeDays: null } });
     expect(await loadLearnMyProgress('octocat')).toBeNull();
-    graphqlDirect.mockResolvedValueOnce({ learnMyProgress: null });
+    progressRead.mockResolvedValueOnce({ learnMyProgress: null });
     expect(await loadLearnMyProgress('octocat')).toBeNull();
     expect(logged()).toEqual(['My progress not drawn: activeDays is not a number', 'My progress not drawn: no answer']);
   });

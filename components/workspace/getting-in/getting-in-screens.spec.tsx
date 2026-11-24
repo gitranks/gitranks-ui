@@ -51,13 +51,6 @@ describe('the line of steps', () => {
     expect(doc.querySelectorAll('[aria-current]')).toHaveLength(1);
   });
 
-  it('names Learn’s steps', () => {
-    const html = renderToStaticMarkup(<FlowSteps side="learn" current={1} />);
-    expect(html).toContain('Your goal');
-    expect(html).toContain('Pick an issue');
-    expect(html).toContain('Your agent');
-  });
-
   it('frames a step with no tabs, the line of steps over one narrow column', () => {
     const html = renderToStaticMarkup(
       <FlowFrame side="contribute" step={1}>
@@ -125,7 +118,7 @@ describe('the bookmark in the browser', () => {
         learn: { href: '/learn/start', at: Date.now() - 31 * 24 * 60 * 60 * 1000 },
       }),
     );
-    expect(readFlowBookmark('learn')).toBeNull();
+    expect(readFlowBookmark('contribute')).toBe('/contribute/start/issue');
     expect(JSON.parse(window.localStorage.getItem(BOOKMARK_KEY) ?? '{}')).not.toHaveProperty('learn');
     forgetFlowBookmark('contribute');
     expect(window.localStorage.getItem(BOOKMARK_KEY)).toBeNull();

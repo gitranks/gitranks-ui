@@ -23,8 +23,8 @@ import { skillsPath } from '@/lib/skills/paths';
 import { viewerLogin } from '@/lib/workspace/contribute.data';
 import type { WorkspaceGate } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
-import { learnResumeOf } from '@/lib/workspace/getting-in';
 import { loadMaskedListReads } from '@/lib/workspace/masked-issue.data';
+import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 
 /*
  * `/learn` and `/learn/about`, read per request. A visitor reads the landing; a signed-in person Learn home, or the
@@ -47,13 +47,13 @@ async function LoadedLanding({ viewer, resume = null }: { viewer: LandingViewer;
 }
 
 /**
- * Where someone part-way through today's flow (a goal saved, never entered) left it: Pick an issue. Null for anyone
+ * Where someone part-way in (a goal saved, never entered) goes on: Issues, to pick one for their agent. Null for anyone
  * else, and when their goal cannot be read.
  */
 async function resumeOf(gate: WorkspaceGate | null): Promise<string | null> {
   if (gate?.kind !== 'open' || gate.entered) return null;
   const profile = await loadLearnProfile().catch(() => null);
-  return hasGoal(profile) ? learnResumeOf(true) : null;
+  return hasGoal(profile) ? PICK_ISSUE_PATHS.learn : null;
 }
 
 /**

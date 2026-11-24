@@ -8,11 +8,6 @@ import type { ContributeSetListMode } from './contribute.types';
  */
 export const WORKSPACE_PATHS = {
   contribute: '/contribute' as Route,
-  /**
-   * Learn as it worked before its courses: an issue fixed by your agent, and a lesson on the fix. A link to pick an
-   * issue on Learn goes to Learn's Issues (`PICK_ISSUE_PATHS.learn`) instead.
-   */
-  learn: '/learn/earlier' as Route,
   /** Learn home, which the workspace's Learn tab opens. */
   learnHome: '/learn' as Route,
   /** The user's pull requests, both sides. */
@@ -30,25 +25,23 @@ export const WORKSPACE_PATHS = {
   /** The limits on pull requests and attempts, which bind both agents. */
   settingsPullRequests: '/my/settings/pull-requests' as Route,
   settingsWork: '/my/settings/work' as Route,
-  /** Learn's goal and level. */
-  settingsGoal: '/my/settings/goal' as Route,
   /**
-   * The earlier Your progress: what the user has learned, and where their Learn pull requests landed. Its own tabs and
-   * the earlier Learn page's numbers link it, for the lists only it has; other links go to Learn's own progress page,
-   * `/learn/progress`.
+   * The earlier Your progress: what the user has learned, and where their Learn pull requests landed. Its own tabs link
+   * it, for the lists only it has; other links go to Learn's own progress page, `/learn/progress`.
    */
   progress: '/my/progress' as Route,
 } as const;
 
 /**
  * The rows other pages link to by what they are, wherever their page is now: the limit on open pull requests, attempts
- * at a time, the filters of what the user works on, Learn's goal, the Claude key, the budget.
+ * at a time, the filters of what the user works on, Learn's languages and level (Set up Learn), the Claude key, the
+ * budget.
  */
 export const WORKSPACE_ANCHORS = {
   limitRow: `${WORKSPACE_PATHS.settingsPullRequests}#open` as Route,
   attemptsRow: `${WORKSPACE_PATHS.settingsPullRequests}#attempts` as Route,
   work: `${WORKSPACE_PATHS.settingsWork}#work` as Route,
-  forLearning: WORKSPACE_PATHS.settingsGoal,
+  forLearning: '/learn/setup' as Route,
   agentKey: WORKSPACE_PATHS.agentKey,
   agentBudget: WORKSPACE_PATHS.agentBudget,
 } as const;
@@ -129,24 +122,6 @@ export const LESSON_SLUG = '[A-Za-z0-9][A-Za-z0-9-]{0,99}';
 /** A GitHub login: letters, digits and hyphens, up to 39 characters. It never holds a dot. */
 export const GITHUB_LOGIN = '[A-Za-z0-9][A-Za-z0-9-]{0,38}';
 
-const RESULT_PATH = new RegExp(`^/learn/lessons/${LESSON_SLUG}/passes/${GITHUB_LOGIN}$`);
-
-/**
- * Whether the path is a lesson's result page, exactly as `lessonResultPath` writes it: no other spelling, nothing under
- * it. The light sign-in returns there too, with a reaction (`REACT_PARAM`).
- */
-export const isLessonResultPath = (pathname: string): boolean => RESULT_PATH.test(pathname);
-
-/** The query parameter a result page's reaction travels in through the sign-in: `?react=yes|no`. */
-export const REACT_PARAM = 'react';
-
-/** `?react=` as the API's reaction; null for anything but `yes` and `no`. */
-export function reactionParamOf(value: unknown): 'YES' | 'NO' | null {
-  if (value === 'yes') return 'YES';
-  if (value === 'no') return 'NO';
-  return null;
-}
-
 /**
  * Whether the path is the maintainers page or its report page, in any spelling the router reads as them; nothing else
  * under them, and no path that does not decode, is.
@@ -198,8 +173,8 @@ export const ABOUT_PATH = '/contribute/about' as Route;
 export const CONTRIBUTE_TERMS_PATH = '/terms#contribute' as Route;
 
 /**
- * The steps of the flows that start Contribute and Learn (getting in, §5.3): a landing's one button leads into them,
- * and each step's page checks who opens it.
+ * The steps of the flow that starts Contribute (getting in, §5.3): its landing's one button leads into it, and each
+ * step's page checks who opens it.
  */
 export const GETTING_IN_PATHS = {
   /** Contribute, step 1: what you work on. */
@@ -210,22 +185,11 @@ export const GETTING_IN_PATHS = {
   contributeAgentKey: '/contribute/start/agent/key' as Route,
   /** Contribute, step 3: your first issue. */
   contributeIssue: '/contribute/start/issue' as Route,
-  /** Learn, step 1: your goal. Step 3 is an issue's own start address (`learnStartPath`). */
-  learnGoal: '/learn/start' as Route,
-  /** Learn, step 2: pick an issue. */
-  learnIssues: '/learn/start/issues' as Route,
 } as const;
 
 /** Whether the path is a step of Contribute's flow, `/contribute/start` or under it, in any spelling the router reads. */
 export const isContributeFlowPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+contribute\/+start(?:[/\\]|$)/i);
-
-/**
- * Whether the path is a step of Learn's flow, in any spelling the router reads: `/learn/start`, `/learn/start/issues`,
- * or an issue's own start address `/learn/start/<owner>/<repo>/<issue>`.
- */
-export const isLearnFlowPath = (pathname: string): boolean =>
-  decodedMatches(pathname, /^\/+learn\/+start(?:\/+issues|\/+[^/\\]+\/+[^/\\]+\/+[^/\\]+)?\/?$/i);
 
 /**
  * Whether the path is a page every visitor sees once Contribute is launched: the landing and how Contribute works, the
@@ -240,15 +204,12 @@ export const isOpenAtLaunchPath = (pathname: string): boolean =>
 /**
  * Whether the path is one of the pages about Contribute or Learn rather than the user's workspace, which show no tabs:
  * how Contribute works, Contribute's maintainers page and its report page, the ledger, the MCP docs, the questions and
- * the agent sign-in's
- * consent page; the steps of Contribute's flow and of Learn's; how Learn works, Learn's page for maintainers, and a
- * shared lesson with its result pages.
+ * the agent sign-in's consent page; the steps of Contribute's flow; how Learn works, and a lesson's page.
  */
 export const isTablessPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+contribute\/+(?:about|maintainers(?:\/+report)?|ledger|mcp|faq|authorize)\/?$/i) ||
   isContributeFlowPath(pathname) ||
-  isLearnFlowPath(pathname) ||
-  decodedMatches(pathname, /^\/+learn\/+(?:about|maintainers)\/?$/i) ||
+  decodedMatches(pathname, /^\/+learn\/+about\/?$/i) ||
   decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i);
 
 /** The workspace's pages: Contribute's and Learn's, and everything under `/my`, in any spelling the router reads. */
@@ -297,7 +258,6 @@ export const SETTINGS_PATHS = {
   summary: WORKSPACE_PATHS.settings,
   github: WORKSPACE_PATHS.settingsGithub,
   pullRequests: WORKSPACE_PATHS.settingsPullRequests,
-  goal: WORKSPACE_PATHS.settingsGoal,
   work: WORKSPACE_PATHS.settingsWork,
   budget: WORKSPACE_PATHS.agentBudget,
   agent: WORKSPACE_PATHS.agentModel,
@@ -489,11 +449,12 @@ export const isByAttemptPath = (pathname: string): boolean =>
 
 /**
  * The Start page for one issue: `/my/start/<owner>/<repo>/<issue>`. `lesson` asks for its lesson mode (`?lesson=1`);
- * `from: 'contribute'` sends lesson mode's back link to Contribute's issues instead of Learn's.
+ * `from: 'contribute'` sends lesson mode's back link to Contribute's issues instead of Learn's; `from: 'learn'` names
+ * Learn as where the person came from (an old Learn address for the issue).
  */
 export function startPath(
   ref: Pick<IssueRef, 'repo' | 'issue'>,
-  opts: { lesson?: boolean; from?: 'contribute' } = {},
+  opts: { lesson?: boolean; from?: 'contribute' | 'learn' } = {},
 ): Route {
   const [owner = '', name = ''] = ref.repo.split('/');
   const path = `/my/start/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/${ref.issue}`;
@@ -503,12 +464,6 @@ export function startPath(
   });
   const text = query.toString();
   return (text ? `${path}?${text}` : path) as Route;
-}
-
-/** Learn's own start page for an issue of `repo` (`owner/name`): the Start page in lesson mode, at Learn's address. */
-export function learnStartPath(repo: string, number: number): Route {
-  const [owner, name] = repo.split('/');
-  return `/learn/start/${encodeURIComponent(owner)}/${encodeURIComponent(name ?? '')}/${number}` as Route;
 }
 
 /** The Pull requests tab's table holds this many rows a page. */

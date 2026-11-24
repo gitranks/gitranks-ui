@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction: vi.fn() }));
+
 const nav = vi.hoisted(() => ({ pathname: '/contribute', search: '' }));
 const data = vi.hoisted(() => ({
   loadContribute: vi.fn(),
@@ -48,6 +50,7 @@ vi.mock('@/lib/workspace/gate.data', () => ({}));
 vi.mock('@/lib/learn/settings.data', () => ({
   loadLearnEmailSettings: vi.fn(async () => null),
   loadLearnSetupForSettings: vi.fn(async () => null),
+  loadLearnIssuesEmail: vi.fn(async () => null),
 }));
 vi.mock('@/lib/skills/skills.data', () => ({ loadSkillsMine: async () => undefined }));
 vi.mock('@/lib/learn/settings.actions', () => ({}));

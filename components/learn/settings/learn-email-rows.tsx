@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronsUpDown, Clock, Repeat } from 'lucide-react';
+import { Check, ChevronsUpDown, CircleDot, Clock, Repeat } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useId, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react';
 
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SettingsRow } from '@/components/workspace/settings-rows';
+import { setLearnIssuesEmailAction } from '@/lib/learn/issues.actions';
 import {
   allZonesOf,
   DEVICE_ZONE_NOT_SAVED,
@@ -17,7 +18,10 @@ import {
   LESSONS_TO_REPEAT_TITLE,
   type LearnEmailSettings,
   type LearnEmailSettingsInput,
+  type LearnIssuesEmailSetting,
   learnSettingsErrorOf,
+  NEW_ISSUES_LINE,
+  NEW_ISSUES_TITLE,
   pickChangesNothing,
   settingsAfterPick,
   TIME_ZONE_TITLE,
@@ -33,9 +37,9 @@ import { setContributeEmailSettings } from '@/lib/workspace/actions';
 import { browserTimeZone, forgetSentTimeZone, rememberSentTimeZone } from '@/lib/workspace/email-settings';
 
 /*
- * Learn's two rows of Settings' Email group (page 23): "Lessons to repeat" and "Time zone". Each change saves at once
- * and sends only its own field, so the switch never moves the zone and a zone never moves the switch. A save that
- * fails moves the row back and says why; a change while one saves is ignored.
+ * Learn's rows of Settings' Email group (page 23): "Lessons to repeat", "New issues for you" and "Time zone". Each
+ * change saves at once and sends only its own field, so the switch never moves the zone and a zone never moves the
+ * switch. A save that fails moves the row back and says why; a change while one saves is ignored.
  */
 
 const noSubscribe = () => () => {};
@@ -175,6 +179,87 @@ export function LessonsToRepeatRow({ on: initial, noAddress = false }: { on: boo
           aria-disabled={pending || undefined}
           checked={on}
           disabled={noAddress && !on}
+          onChange={(event) => change(event.target.checked)}
+          className="size-4.5 accent-primary disabled:opacity-60 aria-disabled:opacity-60"
+        />
+        {/* "On" and "Off" take the same width, so nothing moves when it changes. */}
+        <span className="inline-block w-6">{on ? 'On' : 'Off'}</span>
+      </label>
+    </SettingsRow>
+  );
+}
+
+/**
+ * "New issues for you": the switch of "A new issue for you", the same as "Email me when one appears" on Issues, off
+ * until the person turns it on. Turned on here, it covers the list it covered last, else the person's list with "For
+ * you" on, as Issues opens. With no address it says so but can still be turned on, as on Issues: the email goes
+ * out once an address is known.
+ */
+export function NewIssuesRow({
+  setting,
+  noAddress = false,
+}: {
+  setting: LearnIssuesEmailSetting;
+  noAddress?: boolean;
+}) {
+  const router = useRouter();
+  const id = useId();
+  const [on, setOn] = useState(setting.on);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const saved = useRef(setting.on);
+  // The list it covers when turned on again: what it covered last, kept while it is off.
+  const cover = useRef(setting.cover ?? 'FOR_YOU');
+  const saving = useRef(false);
+
+  const change = (next: boolean) => {
+    if (saving.current) return;
+    saving.current = true;
+    setOn(next);
+    setError(null);
+    startTransition(async () => {
+      const result = await setLearnIssuesEmailAction(next, next ? cover.current : null).catch(() => null);
+      saving.current = false;
+      const failure = !result
+        ? learnSettingsErrorOf('FAILED')
+        : !result.ok
+          ? learnSettingsErrorOf(result.error)
+          : !result.data
+            ? learnSettingsErrorOf('CLOSED')
+            : null;
+      if (failure || !result?.ok || !result.data) {
+        setOn(saved.current);
+        setError(failure);
+        return;
+      }
+      saved.current = result.data.newIssues;
+      if (result.data.newIssuesCover) cover.current = result.data.newIssuesCover;
+      setOn(result.data.newIssues);
+      router.refresh();
+    });
+  };
+
+  return (
+    <SettingsRow
+      icon={CircleDot}
+      title={NEW_ISSUES_TITLE}
+      value={<RowValue id={`${id}-line`} line={noAddress ? <EmailNeedsAddress /> : NEW_ISSUES_LINE} error={error} />}
+      data={{
+        'data-email-row': 'new-issues',
+        'data-email-new-issues': on ? 'on' : 'off',
+        ...(noAddress ? { 'data-email-no-address': '' } : {}),
+      }}
+    >
+      <label htmlFor={`${id}-switch`} className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm sm:min-h-0">
+        <input
+          id={`${id}-switch`}
+          type="checkbox"
+          // biome-ignore lint/a11y/useAriaPropsForRole: a native checkbox: the switch role reads its checked state, so aria-checked would only repeat it.
+          role="switch"
+          aria-label={`Email ${NEW_ISSUES_TITLE.toLowerCase()}`}
+          aria-describedby={`${id}-line`}
+          aria-disabled={pending || undefined}
+          checked={on}
           onChange={(event) => change(event.target.checked)}
           className="size-4.5 accent-primary disabled:opacity-60 aria-disabled:opacity-60"
         />

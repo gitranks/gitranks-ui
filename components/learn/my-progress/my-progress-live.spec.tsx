@@ -3,15 +3,21 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction: vi.fn(), readMoreLearnFixes: vi.fn() }));
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 const { hint, signIn } = vi.hoisted(() => ({ hint: { present: false }, signIn: vi.fn(async () => undefined) }));
 // The session's hint cookie, as the browser holds it.
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 vi.mock('next-auth/react', () => ({ signIn }));
 
 const { MyProgressLive, readHistory, readMyProgress } = await import('./my-progress-live');
-const { historyEarlier, historyFirst, myProgress, myProgressEmpty, myProgressFirstDay } = await import(
-  '@/lib/learn/__fixtures__/my-progress'
-);
+const { historyEarlier, historyFirst, myFixes, myProgress, myProgressEmpty, myProgressFirstDay, myWalkthroughs } =
+  await import('@/lib/learn/__fixtures__/my-progress');
 const { learnDayOfDate } = await import('@/lib/learn/my-progress');
 
 /** The first day, on `day`. */
@@ -62,7 +68,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const draw = (view: 'courses' | 'history' = 'courses', day: string | null = null) =>
+const draw = (view: 'courses' | 'fixes' | 'walkthroughs' | 'history' = 'courses', day: string | null = null) =>
   act(async () => {
     root.render(<MyProgressLive view={view} day={day} />);
   });
@@ -312,5 +318,65 @@ describe('My progress in the browser', () => {
     link.focus();
     await draw('history');
     expect(document.activeElement).toBe(link);
+  });
+});
+
+describe('My progress: the views of real fixes in the browser', () => {
+  /** The routes: the progress, and the two lists, each answering `answer` or failing with `status`. */
+  function listRoutes({
+    fixes = { fixes: myFixes } as unknown,
+    walkthroughs = { walkthroughs: [] } as unknown,
+    status = 200,
+  } = {}) {
+    fetchMock.mockImplementation(async (path: string) => {
+      if (path === '/api/me/learn/progress/fixes') return json({ ...(fixes as object), signedOut: false }, status);
+      if (path === '/api/me/learn/progress/walkthroughs') {
+        return json({ ...(walkthroughs as object), signedOut: false }, status);
+      }
+      return json({ progress: myProgress, signedOut: false });
+    });
+  }
+  const asked = (path: string) => fetchMock.mock.calls.filter(([each]) => each === path);
+
+  it('reads Your fixes only when its view is shown, once, never kept, and keeps it across views', async () => {
+    hint.present = true;
+    listRoutes();
+    await draw('courses');
+    expect(asked('/api/me/learn/progress/fixes')).toHaveLength(0);
+    await draw('fixes');
+    expect(asked('/api/me/learn/progress/fixes')).toEqual([['/api/me/learn/progress/fixes', { cache: 'no-store' }]]);
+    expect(host.querySelectorAll('[data-my-fixes] > li')).toHaveLength(myFixes.length);
+    await draw('courses');
+    await draw('fixes');
+    expect(asked('/api/me/learn/progress/fixes')).toHaveLength(1);
+    expect(asked('/api/me/learn/progress/walkthroughs')).toHaveLength(0);
+  });
+
+  it('a list that did not come says so, and Try again reads it once more', async () => {
+    hint.present = true;
+    listRoutes({ status: 502 });
+    await draw('walkthroughs');
+    expect(host.querySelector('[data-view-list="failed"]')?.textContent).toContain('Your walkthroughs did not load.');
+    listRoutes({ walkthroughs: { walkthroughs: myWalkthroughs.map(({ passedAt, ...fix }) => ({ fix, passedAt })) } });
+    await click(host.querySelector('[data-view-list="failed"] button')!);
+    expect(host.querySelectorAll('[data-my-walkthroughs] > li')).toHaveLength(myWalkthroughs.length);
+    expect(asked('/api/me/learn/progress/walkthroughs')).toHaveLength(2);
+  });
+
+  it('a list answering no rows draws its empty end, and one answering signed out asks to sign in again', async () => {
+    hint.present = true;
+    listRoutes({ fixes: { fixes: [], end: { openIssues: 12, email: null } } });
+    await draw('fixes');
+    expect(host.querySelector('[data-view-empty]')?.getAttribute('data-view-empty')).toBe('fixes-issues');
+
+    act(() => root.unmount());
+    root = createRoot(host);
+    fetchMock.mockImplementation(async (path: string) =>
+      path === '/api/me/learn/progress/fixes'
+        ? json({ fixes: null, end: null, signedOut: true })
+        : json({ progress: myProgress, signedOut: false }),
+    );
+    await draw('fixes');
+    expect(stateOf()).toBe('ended');
   });
 });

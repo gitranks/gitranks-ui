@@ -189,7 +189,7 @@ describe("the landing's Markdown copy", () => {
     for (const course of courseCards) {
       expect(markdown).toContain(`](https://example.test/learn/courses/${course.slug}.md): `);
     }
-    expect(markdown).toContain('For maintainers: https://example.test/learn/maintainers');
+    expect(markdown).toContain('For maintainers: https://example.test/contribute/maintainers#learn');
     for (const each of LANDING_QUESTIONS) expect(markdown).toContain(`### ${each.question}\n\n${each.answer}`);
     expect(markdown).not.toContain(String.fromCodePoint(0x2014));
   });

@@ -74,41 +74,20 @@ describe('llms.txt', () => {
     `);
   });
 
-  it('lists Learn and its recent public lessons, and Learn alone when there are none', () => {
-    const lesson = (n: number) => ({
-      slug: `lesson-${n}-abcdef`,
-      title: `Lesson [${n}]\nsecond line`,
-      language: n === 1 ? 'Go' : null,
-      repo: n === 1 ? 'o/n' : null,
-      publishedAt: '2026-11-14T10:00:00.000Z',
-      modifiedAt: '2026-11-14T10:00:00.000Z',
-    });
-    const open = llmsTxtOf({
-      contribute: false,
-      learn: Array.from({ length: 25 }, (_, n) => lesson(n + 1)),
-    });
-
+  it('lists Learn, with its page for maintainers only when Contribute is listed, and no lesson of a fix', () => {
+    const open = llmsTxtOf({ contribute: true });
     expect(open).toContain('\n## Learn\n\n- [GitRanks Learn](https://example.test/learn): ');
-    expect(open).toContain('- [For maintainers](https://example.test/learn/maintainers)');
-    expect(open).toContain(
-      '- [Lesson 1 second line](https://example.test/learn/lessons/lesson-1-abcdef): a lesson on a fix in o/n (Go)\n',
-    );
-    expect(open).toContain(
-      '- [Lesson 2 second line](https://example.test/learn/lessons/lesson-2-abcdef): a lesson on a fix\n',
-    );
-    expect(open.match(/\/learn\/lessons\//g)).toHaveLength(20);
-    expect(llmsTxtOf({ contribute: false, learn: [] })).toContain('## Learn');
-    const odd = { ...lesson(1), title: 'A <https://x.test> `b` c\\', repo: 'o/<n>', language: 'Go`' };
-    expect(llmsTxtOf({ contribute: false, learn: [odd] })).toContain(
-      '- [A https://x.test b c](https://example.test/learn/lessons/lesson-1-abcdef): a lesson on a fix in o/n (Go)\n',
-    );
-    expect(llmsTxtOf({ contribute: true })).toContain('## Learn');
+    expect(open).toContain('- [For maintainers](https://example.test/contribute/maintainers#learn)');
+    expect(open).not.toContain('/learn/lessons/');
+    expect(open).not.toContain('/learn/maintainers');
+    const closed = llmsTxtOf({ contribute: false });
+    expect(closed).toContain('## Learn');
+    expect(closed).not.toContain('For maintainers');
   });
 
   it("lists Learn's landing, all courses and each course with its Markdown copy", () => {
     const open = llmsTxtOf({
       contribute: false,
-      learn: [],
       learnCourses: [
         { slug: 'algorithms', name: 'Algorithms\nand data structures', covers: 'Sets, maps and  sorting.' },
         { slug: 'go', name: 'Go', covers: '' },

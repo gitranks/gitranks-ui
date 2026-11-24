@@ -1,5 +1,6 @@
 import type { LearnCourseCard, LearnCourseMineCard } from '../course';
 import { addLearnDays, type LearnDay, type LearnHistory, type LearnMyProgress } from '../my-progress';
+import { type LearnDayFixes, type MyFixRow, type MyWalkthroughRow, withDayFixes } from '../my-progress-fixes';
 import { courseCards } from './course';
 
 /** The day the boards are drawn on: Sunday 22 Nov 2026. */
@@ -174,3 +175,130 @@ export const historyEarlier: LearnHistory = {
   ],
   more: false,
 };
+
+/* Real fixes ------------------------------------------------------------------------------------------------------- */
+
+const lessonOf = (title: string) => ({ ...link(title), course: 'algorithms', courseName: 'Algorithms' });
+
+/** Page 18's "Your fixes": three merged in three projects, one open, one closed. */
+export const myFixes: MyFixRow[] = [
+  {
+    repo: 'driftwood-js/driftwood',
+    issueNumber: 934,
+    number: 941,
+    title: 'Keep route params typed after a redirect',
+    state: 'OPEN',
+    lesson: lessonOf('A hash map stores values by key'),
+    mastered: false,
+    readers: null,
+    at: '2026-11-21T10:00:00.000Z',
+  },
+  {
+    repo: 'acme/widgets',
+    issueNumber: 42,
+    number: 57,
+    title: 'Stop the cache from growing without a limit',
+    state: 'MERGED',
+    lesson: lessonOf('A queue: first in, first out'),
+    mastered: true,
+    readers: 3,
+    at: '2026-11-20T15:30:00.000Z',
+  },
+  {
+    repo: 'tinyhttp/core',
+    issueNumber: 310,
+    number: 318,
+    title: 'Close the file when a read fails',
+    state: 'MERGED',
+    lesson: lessonOf('Close what you open'),
+    mastered: false,
+    readers: 1,
+    at: '2026-11-12T09:00:00.000Z',
+  },
+  {
+    repo: 'mdpress/mdpress',
+    issueNumber: 77,
+    number: 80,
+    title: 'Fix an off-by-one in the line counter',
+    state: 'MERGED',
+    lesson: null,
+    mastered: false,
+    readers: null,
+    at: '2026-11-03T12:00:00.000Z',
+  },
+  {
+    repo: 'acme/widgets',
+    issueNumber: 12,
+    number: 19,
+    title: 'Sort the list once, not on every render',
+    state: 'CLOSED',
+    lesson: lessonOf('Count things with a hash map'),
+    mastered: false,
+    readers: null,
+    at: '2026-10-28T08:00:00.000Z',
+  },
+];
+
+/** Page 18's "Walkthroughs": other people's fixes, newest first. */
+export const myWalkthroughs: MyWalkthroughRow[] = [
+  {
+    repo: 'vitejs/vite',
+    issueNumber: 18011,
+    number: 18020,
+    title: 'Read the config file once per build',
+    fixer: 'mona-lisa',
+    lesson: lessonOf('Read a file line by line'),
+    passedAt: '2026-11-21T18:00:00.000Z',
+  },
+  {
+    repo: 'acme/widgets',
+    issueNumber: 31,
+    number: 36,
+    title: 'Use a set to drop repeated tags',
+    fixer: 'hubot',
+    lesson: lessonOf('Find duplicates in one pass with a set'),
+    passedAt: '2026-11-18T11:00:00.000Z',
+  },
+];
+
+/** What the newest days gain from real fixes: a fix merged on Friday, a walkthrough passed on Saturday. */
+export const recentDayFixes = new Map<string, LearnDayFixes>([
+  [
+    '2026-11-20',
+    {
+      fixesMerged: [
+        {
+          repo: 'acme/widgets',
+          issueNumber: 42,
+          number: 57,
+          title: 'Stop the cache from growing without a limit',
+          lesson: lessonOf('A queue: first in, first out'),
+        },
+      ],
+      walkthroughs: [],
+    },
+  ],
+  [
+    '2026-11-21',
+    {
+      fixesMerged: [],
+      walkthroughs: [
+        {
+          repo: 'vitejs/vite',
+          issueNumber: 18011,
+          number: 18020,
+          title: 'Read the config file once per build',
+          fixer: 'mona-lisa',
+          lesson: lessonOf('Read a file line by line'),
+          mine: false,
+        },
+      ],
+    },
+  ],
+]);
+
+/** History's first page with its fixes and walkthroughs. */
+export const historyWithFixes: LearnHistory = { days: withDayFixes(historyFirst.days, recentDayFixes), more: true };
+
+/** A learner of some months whose calendar shows the fix merged on Friday. */
+export const myProgressWithFixes: LearnMyProgress = { ...myProgress, days: withDayFixes(allDays, recentDayFixes) };

@@ -55,8 +55,8 @@ describe("the fixer's answers by attempt", () => {
 
   it('sends the browser to the pages for maintainers when the API does not answer', async () => {
     graphqlDirect.mockRejectedValueOnce(new Error('down'));
-    await expectRedirect(await call('A_1'), 'https://gitranks.com/learn/maintainers');
+    await expectRedirect(await call('A_1'), 'https://gitranks.com/contribute/maintainers#learn');
     graphqlDirect.mockResolvedValueOnce({ learnFixAddress: null });
-    await expectRedirect(await call('A_1'), 'https://gitranks.com/learn/maintainers');
+    await expectRedirect(await call('A_1'), 'https://gitranks.com/contribute/maintainers#learn');
   });
 });

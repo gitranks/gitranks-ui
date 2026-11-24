@@ -21,7 +21,7 @@ import {
   startYoursOf,
 } from './start-page';
 import type { ContributeAttemptState, ContributeMcpToken } from '@/lib/workspace/contribute.types';
-import { learnStartPath, startPath } from '@/lib/workspace/paths';
+import { startPath } from '@/lib/workspace/paths';
 
 describe("the Start page's address", () => {
   it('names an issue by owner, repository and number, and nothing else', () => {
@@ -54,13 +54,13 @@ describe("the Start page's address", () => {
     expect(learnStartNumberOf(12)).toBe(12);
     expect(learnStartNumberOf(1.5)).toBeNull();
     expect(learnStartNumberOf('12')).toBeNull();
-    expect(learnStartPath('driftwood-js/driftwood', 934)).toBe('/learn/start/driftwood-js/driftwood/934');
     const ref = { repo: 'driftwood-js/driftwood', issue: 934 };
     expect(startPath(ref)).toBe('/my/start/driftwood-js/driftwood/934');
     expect(startPath(ref, { lesson: true })).toBe('/my/start/driftwood-js/driftwood/934?lesson=1');
     expect(startPath(ref, { lesson: true, from: 'contribute' })).toBe(
       '/my/start/driftwood-js/driftwood/934?lesson=1&from=contribute',
     );
+    expect(startPath(ref, { from: 'learn' })).toBe('/my/start/driftwood-js/driftwood/934?from=learn');
     expect(startPath({ repo: 'a b/c', issue: 1 })).toBe('/my/start/a%20b/c/1');
   });
 
@@ -69,6 +69,7 @@ describe("the Start page's address", () => {
     for (const other of [undefined, '', '0', 'true', ['1']]) expect(startModeOf(other)).toBe('fix');
     expect(startBackOf('fix')).toEqual({ href: '/contribute#issues', label: 'Issues for you' });
     expect(startBackOf('fix', 'contribute')).toEqual(startBackOf('fix'));
+    expect(startBackOf('fix', 'learn')).toEqual({ href: '/learn/issues', label: 'Back to the issues' });
     expect(startBackOf('lesson')).toEqual({ href: '/learn/issues', label: 'Back to the issues' });
     expect(startBackOf('lesson', 'contribute')).toEqual({ href: '/contribute#issues', label: 'Back to the issues' });
   });

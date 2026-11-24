@@ -1,7 +1,12 @@
 import 'server-only';
 
-import { type LearnEmailSettings, learnEmailSettingsOf } from './settings';
-import { LearnEmailSettingsDocument } from './settings.documents';
+import {
+  type LearnEmailSettings,
+  type LearnIssuesEmailSetting,
+  learnEmailSettingsOf,
+  learnIssuesEmailOf,
+} from './settings';
+import { LearnEmailSettingsDocument, LearnIssuesEmailSettingsDocument } from './settings.documents';
 import type { LearnSetupRead } from './setup';
 import { setupReadOf } from './setup';
 import { LearnSetupOfMineDocument } from './setup.documents';
@@ -32,5 +37,25 @@ export async function loadLearnSetupForSettings(githubLogin: string): Promise<Le
     return setupReadOf(learnSetupOfMine) ?? undefined;
   } catch {
     return undefined;
+  }
+}
+
+/** How long Settings waits for the switch of "A new issue for you": a slower answer leaves its row out. */
+export const LEARN_ISSUES_EMAIL_TIMEOUT_MS = 3_000;
+
+/**
+ * "A new issue for you" on or off, and the list it covers (null until it was first turned on): null when Learn is not
+ * open to the person, on any failure, and when the API does not answer it in time. Its row is drawn only with it.
+ */
+export async function loadLearnIssuesEmail(githubLogin: string): Promise<LearnIssuesEmailSetting | null> {
+  try {
+    const { learnEmailSettings } = await graphqlDirect(
+      LearnIssuesEmailSettingsDocument,
+      {},
+      { source: 'ssr', githubLogin, signal: AbortSignal.timeout(LEARN_ISSUES_EMAIL_TIMEOUT_MS) },
+    );
+    return learnIssuesEmailOf(learnEmailSettings);
+  } catch {
+    return null;
   }
 }

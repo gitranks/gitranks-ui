@@ -9,7 +9,7 @@ import type DocumentNode from '@/types/typed-document-node';
 
 /** What the viewer's profile overview needs: where their page stands, its numbers, and which products they use. */
 export const SkillsOverviewDocument = parse(`query SkillsOverview {
-  skillsMine { state page { login numbers { ${NUMBERS} } } usesContribute usesLearn learnOpen }
+  skillsMine { state page { login numbers { ${NUMBERS} } } usesContribute usesLearn }
 }`) as DocumentNode<{ skillsMine: SkillsOverviewMine | null }, Record<string, never>>;
 
 /** The viewer's view as their profile's overview reads it; null signed out, and when it cannot be read. Never kept. */

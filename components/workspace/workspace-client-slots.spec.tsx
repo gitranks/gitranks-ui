@@ -7,7 +7,7 @@ vi.mock('@/lib/workspace/actions', () => ({ setContributeEmailSettings: vi.fn() 
 const { WorkspaceClientSlots } = await import('./workspace-client-slots');
 const { TimeZoneNote } = await import('./time-zone-note');
 
-const open = { kind: 'open', entered: true, agents: { hosted: false, own: true }, learnOpen: false };
+const open = { kind: 'open', entered: true, agents: { hosted: false, own: true } };
 
 describe('the workspace client slots', () => {
   it('mount the time zone note only for an account the workspace is open to', async () => {

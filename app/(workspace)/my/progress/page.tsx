@@ -5,7 +5,7 @@ import { ProgressView } from '@/components/learn/progress/progress-view';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { learnPageMetadata } from '@/lib/workspace/learn-page-title';
 
-/** Named only to an account Learn is open to (`learnPageMetadata`). */
+/** Named only to an account the workspace is open to (`learnPageMetadata`). */
 export function generateMetadata(): Promise<Metadata> {
   return learnPageMetadata('Your progress');
 }

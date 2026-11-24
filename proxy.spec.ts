@@ -30,13 +30,6 @@ vi.mock('./lib/contribute/pr-timeline-gate', () => ({ prTimelineGateOf: timeline
 const { lessonGate } = vi.hoisted(() => ({
   lessonGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
-// Learn is not open to everyone: a visitor's /learn stays a 404.
-vi.mock('./lib/learn/learn-everyone', () => ({ learnOpenToEveryone: async () => false }));
-// Learn for the request's signed-in viewer, as the API answers it.
-const { learnAccess } = vi.hoisted(() => ({
-  learnAccess: vi.fn(async (_req?: unknown): Promise<'open' | 'closed' | 'signed-out'> => 'open'),
-}));
-vi.mock('./lib/workspace/gate', () => ({ requestLearnAccess: learnAccess }));
 vi.mock('./lib/learn/lesson-gate', () => ({
   LESSON_MISSING_PATH: '/learn/lessons/_missing',
   lessonGateOf: lessonGate,
@@ -49,6 +42,11 @@ const { checkGate } = vi.hoisted(() => ({
   checkGate: vi.fn(async (_slug: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
 vi.mock('./lib/learn/course-gate', () => ({ courseGateOf: courseGate, checkGateOf: checkGate }));
+const { fixGate, attemptGate } = vi.hoisted(() => ({
+  fixGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
+  attemptGate: vi.fn(async (_attemptId: string): Promise<unknown> => ({ kind: 'missing' })),
+}));
+vi.mock('./lib/learn/fix-gate', () => ({ fixRouteGateOf: fixGate, fixByAttemptRouteGateOf: attemptGate }));
 
 const {
   default: proxy,
@@ -79,6 +77,10 @@ describe('proxy', () => {
     lessonGate.mockResolvedValue({ kind: 'page' });
     courseGate.mockReset();
     courseGate.mockResolvedValue({ kind: 'page' });
+    fixGate.mockReset();
+    fixGate.mockResolvedValue({ kind: 'page' });
+    attemptGate.mockReset();
+    attemptGate.mockResolvedValue({ kind: 'missing' });
     checkGate.mockReset();
     checkGate.mockResolvedValue({ kind: 'page' });
     sessionRead.ok = true;
@@ -769,107 +771,48 @@ describe('proxy', () => {
   });
 
   describe('Learn', () => {
-    const CLOSED = [
+    const PAGES = [
       '/learn',
       '/learn/',
+      '/learn/courses',
+      '/learn/issues',
       '/learn/profile',
-      '/learn/lessons',
-      '/learn/lessons/',
-      '/learn/attempts',
-      '/learn/attempts/A_1/more',
-      '/learn/maintainers/x',
-      '/learn/%E0%A4%A',
+      '/learn/attempts/A_1',
       '/learn/start/driftwood-js/driftwood/934',
-      // The review, the check, Set up Learn and My progress: signed in only.
+      // The review, the check, Set up Learn and My progress ask a visitor to sign in themselves.
       '/learn/review',
       '/learn/check/algorithms',
       '/learn/setup',
-      '/learn/setup/',
       '/learn/progress',
-      '/learn/progress/',
     ];
 
-    it.each(CLOSED)('answers %s with a 404 nobody caches, to a visitor without a session', async (path) => {
+    it.each(PAGES)('lets a visitor without a session through to %s, asking nothing', async (path) => {
       const response = await proxy(request(undefined, path), event);
-
-      expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
-      expect(response?.headers.get('cache-control')).toBe('private, no-store');
-      expect(withSession).not.toHaveBeenCalled();
+      expect(response?.headers.get('x-middleware-rewrite')).toBeNull();
+      expect(response?.headers.get('location')).toBeNull();
+      expect(maySeeContribute).not.toHaveBeenCalled();
     });
 
-    it('answers a signed-in viewer Learn is not open to with a 404 nobody caches, before any page renders', async () => {
-      learnAccess.mockResolvedValue('closed');
-      try {
-        for (const path of [
-          ...CLOSED.slice(0, 5),
-          '/learn/attempts/A_1',
-          '/learn/start/driftwood-js/driftwood/934',
-          '/learn/review',
-          '/learn/check/algorithms',
-          '/learn/setup',
-          '/learn/progress',
-        ]) {
-          const response = await proxy(request('authjs.session-token=t', path), event);
-          expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
-          expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
-        }
-        // The pages open to everyone are not asked about.
-        learnAccess.mockClear();
-        const lesson = await proxy(request('authjs.session-token=t', '/learn/lessons/route-cache-miss-8f3k'), event);
-        expect(lesson?.headers.get('x-middleware-rewrite')).not.toBe('https://gitranks.com/_404');
-        expect(learnAccess).not.toHaveBeenCalled();
-      } finally {
-        learnAccess.mockResolvedValue('open');
-      }
-    });
-
-    it("asks nothing for a page's own actions (a POST): the API checks those itself", async () => {
-      learnAccess.mockClear();
-      learnAccess.mockResolvedValue('closed');
-      try {
-        for (const path of ['/learn/attempts/A_1', '/learn/setup']) {
-          const post = new NextRequest(`https://gitranks.com${path}`, {
-            method: 'POST',
-            headers: { cookie: 'authjs.session-token=t' },
-          });
-          const response = await proxy(post, event);
-          expect(response?.headers.get('x-middleware-rewrite'), path).not.toBe('https://gitranks.com/_404');
-        }
-        expect(learnAccess).not.toHaveBeenCalled();
-      } finally {
-        learnAccess.mockResolvedValue('open');
-      }
-    });
-
-    it("treats a session the server cannot read as a visitor's (a lesson's old address redirects before this)", async () => {
-      learnAccess.mockResolvedValue('signed-out');
-      try {
-        for (const path of ['/learn', '/learn/profile', '/learn/lessons', '/learn/attempts/A_1']) {
-          const response = await proxy(request('authjs.session-token=t', path), event);
-          expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
-        }
-      } finally {
-        learnAccess.mockResolvedValue('open');
-      }
-    });
-
-    it('lets a signed-in viewer Learn is open to through to its pages', async () => {
-      for (const path of [
-        ...CLOSED.slice(0, 5),
-        '/learn/attempts/A_1',
-        '/Learn/Attempts/A_1',
-        '/learn/start/driftwood-js/driftwood/934',
-        '/learn/review',
-        '/learn/check/algorithms',
-        '/learn/setup',
-        '/learn/progress',
-      ]) {
+    it('lets a signed-in viewer through to its pages', async () => {
+      for (const path of [...PAGES, '/Learn/Attempts/A_1', '/learn/about']) {
         const response = await proxy(request('authjs.session-token=t', path), event);
         expect(response?.headers.get('x-middleware-rewrite'), path).toBeNull();
+        expect(response?.headers.get('location'), path).toBeNull();
         expect(response?.headers.get('cache-control'), path).toBe('private, no-cache');
       }
       expect(maySeeContribute).not.toHaveBeenCalled();
     });
+
+    it.each(['/learn/about', '/learn/about/'])(
+      'sends a visitor without a session from %s to the landing, kept by nobody',
+      async (path) => {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.status).toBe(307);
+        expect(response?.headers.get('location')).toBe('https://gitranks.com/learn');
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        expect(withSession).not.toHaveBeenCalled();
+      },
+    );
 
     it('lets everyone reach a shared lesson, its result pages and the page for maintainers', async () => {
       for (const path of [
@@ -991,24 +934,19 @@ describe('proxy', () => {
       }
     });
 
-    it('lets everyone reach all courses, a course, their copies and pictures, Learn closed to them or not', async () => {
-      learnAccess.mockResolvedValue('closed');
-      try {
-        for (const cookie of [undefined, 'authjs.session-token=t']) {
-          for (const path of [
-            '/learn/courses',
-            '/learn/courses/',
-            '/learn/courses/algorithms',
-            '/learn/courses/algorithms/',
-            '/learn/courses/card.png',
-            '/learn/courses/algorithms/card.png',
-          ]) {
-            const response = await proxy(request(cookie, path), event);
-            expect(response?.headers.get('x-middleware-rewrite') ?? null, path).toBeNull();
-          }
+    it('lets everyone reach all courses, a course, their copies and pictures', async () => {
+      for (const cookie of [undefined, 'authjs.session-token=t']) {
+        for (const path of [
+          '/learn/courses',
+          '/learn/courses/',
+          '/learn/courses/algorithms',
+          '/learn/courses/algorithms/',
+          '/learn/courses/card.png',
+          '/learn/courses/algorithms/card.png',
+        ]) {
+          const response = await proxy(request(cookie, path), event);
+          expect(response?.headers.get('x-middleware-rewrite') ?? null, path).toBeNull();
         }
-      } finally {
-        learnAccess.mockResolvedValue('open');
       }
     });
 
@@ -1095,8 +1033,108 @@ describe('proxy', () => {
       expect(response?.headers.get('cache-control')).toBe('private, no-store');
     });
 
+    describe("a fix's walkthrough and a person's answers", () => {
+      const WALKTHROUGH = '/learn/fixes/acme/widgets/57/walkthrough';
+      const ANSWERS = `${WALKTHROUGH}/by/octocat`;
+
+      it('lets everyone reach them, asking where the address leads first', async () => {
+        for (const path of [WALKTHROUGH, `${WALKTHROUGH}/`, ANSWERS]) {
+          const signedOut = await proxy(request(undefined, path), event);
+          expect(signedOut?.headers.get('x-middleware-rewrite'), path).toBeNull();
+          expect(signedOut?.headers.get('cache-control'), path).toBeNull();
+        }
+        expect(fixGate.mock.calls).toEqual([
+          [{ pr: { nameWithOwner: 'acme/widgets', number: 57 }, login: null }],
+          [{ pr: { nameWithOwner: 'acme/widgets', number: 57 }, login: null }],
+          [{ pr: { nameWithOwner: 'acme/widgets', number: 57 }, login: 'octocat' }],
+        ]);
+        expect(maySeeContribute).not.toHaveBeenCalled();
+      });
+
+      it('answers nothing there with the real 404 nobody caches, signed in or not, before Auth.js', async () => {
+        fixGate.mockResolvedValue({ kind: 'missing' });
+        for (const cookie of [undefined, 'authjs.session-token=t']) {
+          for (const path of [WALKTHROUGH, ANSWERS]) {
+            const response = await proxy(request(cookie, path), event);
+            expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+            expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+          }
+        }
+        expect(withSession).not.toHaveBeenCalled();
+      });
+
+      it('answers a fix whose page was removed with its own page and a 410', async () => {
+        fixGate.mockResolvedValue({ kind: 'removed', path: '/learn/fixes/_removed/acme/widgets/57' });
+        const response = await proxy(request(undefined, WALKTHROUGH), event);
+        expect(response?.status).toBe(410);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/learn/fixes/_removed/acme/widgets/57',
+        );
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+      });
+
+      it("sends another spelling to the API's for now (a 307), with the query", async () => {
+        fixGate.mockResolvedValue({ kind: 'redirect', path: '/learn/fixes/acme/gadgets/57/walkthrough/by/Octocat' });
+        const response = await proxy(request(undefined, `${ANSWERS}?from=pr`), event);
+        expect(response?.status).toBe(307);
+        expect(response?.headers.get('location')).toBe(
+          'https://gitranks.com/learn/fixes/acme/gadgets/57/walkthrough/by/Octocat?from=pr',
+        );
+        expect(response?.headers.get('cache-control')).toBe('private, no-store');
+      });
+
+      it('asks nothing for a POST or a path of another shape', async () => {
+        await proxy(new NextRequest(`https://gitranks.com${WALKTHROUGH}`, { method: 'POST' }), event);
+        await proxy(
+          new NextRequest('https://gitranks.com/learn/fixes/by-attempt/A_1/answers', { method: 'POST' }),
+          event,
+        );
+        await proxy(request(undefined, '/learn/fixes/acme/widgets/57'), event);
+        expect(fixGate).not.toHaveBeenCalled();
+        expect(attemptGate).not.toHaveBeenCalled();
+      });
+
+      it('answers the real 404 nobody caches, asking nothing, for an address of that shape naming no pull request or login', async () => {
+        for (const path of [
+          '/learn/fixes/acme/widgets/057/walkthrough',
+          '/learn/fixes/acme/widgets/0x1/walkthrough',
+          `${WALKTHROUGH}/by/-bad-`,
+          '/learn/fixes/by-attempt/a.b/answers',
+        ]) {
+          const response = await proxy(request(undefined, path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+          expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+        }
+        expect(fixGate).not.toHaveBeenCalled();
+        expect(attemptGate).not.toHaveBeenCalled();
+      });
+
+      it("answers the removed fix's page opened directly with the real 404: only the gate shows it", async () => {
+        for (const path of ['/learn/fixes/_removed/acme/widgets/57', '/learn/fixes/_removed']) {
+          const response = await proxy(request(undefined, path), event);
+          expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+          expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+        }
+        expect(fixGate).not.toHaveBeenCalled();
+      });
+
+      it('sends the address by attempt where the API says (a 307 without the query), or to the real 404', async () => {
+        attemptGate.mockResolvedValue({ kind: 'redirect', path: `${WALKTHROUGH}/by/octocat` });
+        const found = await proxy(request(undefined, '/learn/fixes/by-attempt/A_1/answers?utm_source=pr'), event);
+        expect(found?.status).toBe(307);
+        expect(found?.headers.get('location')).toBe(`https://gitranks.com${WALKTHROUGH}/by/octocat`);
+        expect(found?.headers.get('cache-control')).toBe('private, no-store');
+        expect(attemptGate).toHaveBeenCalledWith('A_1');
+        expect(fixGate).not.toHaveBeenCalled();
+
+        attemptGate.mockResolvedValue({ kind: 'missing' });
+        const missing = await proxy(request(undefined, '/learn/fixes/by-attempt/A_1/answers'), event);
+        expect(missing?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+        expect(missing?.headers.get('cache-control')).toBe('private, no-store');
+      });
+    });
+
     it("answers a course's .md and that of all courses from their route handlers, before Auth.js and the gate", async () => {
-      learnAccess.mockClear();
       for (const cookie of [undefined, 'authjs.session-token=t']) {
         const course = await proxy(request(cookie, '/learn/courses/algorithms.md'), event);
         expect(course?.headers.get('x-middleware-rewrite')).toBe(
@@ -1106,14 +1144,12 @@ describe('proxy', () => {
         expect(all?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/api/learn/courses/all.md');
       }
       expect(withSession).not.toHaveBeenCalled();
-      expect(learnAccess).not.toHaveBeenCalled();
       expect(courseGate).not.toHaveBeenCalled();
       const odd = await proxy(request(undefined, '/learn/courses/Algorithms.md'), event);
       expect(odd?.headers.get('x-middleware-rewrite') ?? '').not.toContain('/api/learn/');
     });
 
     it("answers a lesson's .md from its route handler, for anyone, before Auth.js and before the lesson's gate", async () => {
-      learnAccess.mockClear();
       lessonGate.mockClear();
       for (const cookie of [undefined, 'authjs.session-token=t']) {
         const response = await proxy(request(cookie, '/learn/lessons/route-cache-miss-8f3k.md'), event);
@@ -1123,25 +1159,19 @@ describe('proxy', () => {
         expect(response?.headers.get('set-cookie')).toBeNull();
       }
       expect(withSession).not.toHaveBeenCalled();
-      expect(learnAccess).not.toHaveBeenCalled();
       expect(lessonGate).not.toHaveBeenCalled();
     });
 
-    it("lets anyone reach a lesson's pictures, Learn closed to them or not, without the lesson's gate", async () => {
+    it("lets anyone reach a lesson's pictures, without the lesson's gate", async () => {
       lessonGate.mockClear();
-      learnAccess.mockResolvedValue('closed');
-      try {
-        for (const cookie of [undefined, 'authjs.session-token=t']) {
-          for (const picture of ['card.png', 'fact.png']) {
-            const path = `/learn/lessons/route-cache-miss-8f3k/${picture}`;
-            const response = await proxy(request(cookie, path), event);
-            expect(response?.headers.get('x-middleware-rewrite') ?? null, path).toBeNull();
-          }
+      for (const cookie of [undefined, 'authjs.session-token=t']) {
+        for (const picture of ['card.png', 'fact.png']) {
+          const path = `/learn/lessons/route-cache-miss-8f3k/${picture}`;
+          const response = await proxy(request(cookie, path), event);
+          expect(response?.headers.get('x-middleware-rewrite') ?? null, path).toBeNull();
         }
-        expect(lessonGate).not.toHaveBeenCalled();
-      } finally {
-        learnAccess.mockResolvedValue('open');
       }
+      expect(lessonGate).not.toHaveBeenCalled();
     });
 
     it('rewrites no other .md address, nor one whose slug is not shaped as ours', async () => {

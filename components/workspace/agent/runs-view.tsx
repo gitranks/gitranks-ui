@@ -16,7 +16,6 @@ import { audienceOf } from '@/lib/workspace/audience';
 import { loadContribute, loadContributeActivity, loadContributeSetup } from '@/lib/workspace/contribute.data';
 import type { ContributeActivity, ContributeView } from '@/lib/workspace/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
-import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import { PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import {
   type ContributeRunsPage,
@@ -44,11 +43,10 @@ export async function RunsView({
   const query = runsQueryOf(params);
   const number = runsPageOf(params);
   const now = new Date();
-  const [view, page, activity, learnOpen] = await Promise.all([
+  const [view, page, activity] = await Promise.all([
     loadContribute(),
     loadRuns(runsFilterOf(query, now), { page: number }),
     loadContributeActivity().catch(() => null),
-    loadLearnOpen(),
   ]);
   if (!view) contributeHidden(await loadContributeSetup());
   if (!isContributePageOpen(view, 'runs')) redirect('/contribute');
@@ -63,7 +61,7 @@ export async function RunsView({
       page={page}
       query={query}
       number={number}
-      learner={audienceOf(view.sides, learnOpen) === 'learner'}
+      learner={audienceOf(view.sides) === 'learner'}
       activity={activity}
       now={now}
     />

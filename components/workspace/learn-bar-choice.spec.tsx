@@ -51,14 +51,14 @@ const setCookie = (value: string | null) => {
   document.cookie = value ? `gr_last_bar=${value}; Path=/` : 'gr_last_bar=; Path=/; Max-Age=0';
 };
 
-type Choice = { audience?: Audience; lastBar?: ProductBar | null; learnOpen?: boolean; tabs?: WorkspaceTab[] };
+type Choice = { audience?: Audience; lastBar?: ProductBar | null; withLearn?: boolean; tabs?: WorkspaceTab[] };
 
-const nav = ({ audience = 'both', lastBar = null, learnOpen = true, tabs = TABS }: Choice = {}) => (
+const nav = ({ audience = 'both', lastBar = null, withLearn = true, tabs = TABS }: Choice = {}) => (
   <WorkspaceTabsNav
     tabs={tabs}
     activity={READING}
     version="4.2"
-    learn={learnOpen ? { bar: LEARN, audience, lastBar } : undefined}
+    learn={withLearn ? { bar: LEARN, audience, lastBar } : undefined}
   />
 );
 
@@ -102,13 +102,13 @@ describe('the bar on the workspace pages', () => {
     expect(shown({ audience: 'learner' })).toBe('learn');
   });
 
-  it("keeps the workspace's tabs elsewhere, and wherever Learn is not open", () => {
+  it("keeps the workspace's tabs elsewhere, and where no Learn bar is given", () => {
     setCookie('learn');
     at.path = '/my/pull-requests';
     at.search = 'from=learn';
     expect(shown()).toBe('contribute');
     at.path = '/my/settings';
-    expect(shown({ learnOpen: false })).toBe('contribute');
+    expect(shown({ withLearn: false })).toBe('contribute');
   });
 
   it("keeps the check for updates and the work's bar under Learn's bar, once, on Settings and its own pages", () => {

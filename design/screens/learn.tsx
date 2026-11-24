@@ -61,7 +61,7 @@ const progress = {
 /** A page's own container, as its `page.tsx` draws it. */
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
 
-/** Every tab, as an account Learn is open to sees them. */
+/** Every tab, as a signed-in account sees them. */
 const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
 
 /** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */
@@ -184,7 +184,7 @@ const shared = (publicCounts: LearnProgressCounts | null) => ({
 const PUBLIC_PROGRESS_PATH = '/learn/progress/octocat';
 const publicPage = (props: Partial<PublicProgressScreenProps> = {}) => (
   <main className={MAIN}>
-    <PublicProgressScreen login="octocat" page={1} progress={publicProgress} own={false} everyone={false} {...props} />
+    <PublicProgressScreen login="octocat" page={1} progress={publicProgress} own={false} {...props} />
   </main>
 );
 
@@ -542,12 +542,12 @@ export const LEARN_SCREENS: Screen[] = [
         render: () => open(publicPage({ own: true })),
       },
       {
-        id: 'everyone',
-        title: 'Once Learn is open to everyone: the way in at the end',
+        id: 'visitor',
+        title: 'A visitor: the way in at the end',
         path: PUBLIC_PROGRESS_PATH,
         signedOut: true,
         height: 1460,
-        render: () => open(publicPage({ everyone: true })),
+        render: () => open(publicPage()),
       },
       {
         id: 'unavailable',
@@ -591,7 +591,7 @@ export const LEARN_SCREENS: Screen[] = [
     states: [
       {
         id: 'signed-out',
-        title: 'Signed out, once Learn is open to everyone: every step to read, sign in to answer',
+        title: 'Signed out: every step to read, sign in to answer',
         path: LESSON_PATH,
         signedOut: true,
         height: 4300,
@@ -599,27 +599,12 @@ export const LEARN_SCREENS: Screen[] = [
       },
       {
         id: 'phone',
-        title: 'Signed out on a phone, once Learn is open to everyone',
+        title: 'Signed out on a phone',
         path: LESSON_PATH,
         signedOut: true,
         width: 390,
         height: 6900,
         render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'visitor' }} />),
-      },
-      {
-        id: 'guest',
-        title: 'Signed out while Learn is not open to everyone: every step to read, asked nothing',
-        path: LESSON_PATH,
-        signedOut: true,
-        height: 4200,
-        render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'guest' }} />),
-      },
-      {
-        id: 'reader',
-        title: 'Signed in, Learn not open to the account: read only, told nothing of Learn',
-        path: LESSON_PATH,
-        height: 3900,
-        render: () => open(<LessonPageScreen page={lessonPage} viewer={{ kind: 'reader', login: 'mona' }} />),
       },
       {
         id: 'start',

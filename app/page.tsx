@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 
 import {
+  fetchContributeForVisitors,
   fetchFeaturedOrg,
   fetchGlobalTiers,
   fetchLandingInsights,
   fetchLandingPackages,
   fetchLeaderboards,
-  fetchLearnForVisitors,
   fetchTopOrgs,
   fetchTopRepos,
 } from './components/landing/landing-data';
@@ -29,8 +29,8 @@ export const metadata: Metadata = pageMetadata({
 // Every read below is a shared, cached function (see landing-data.ts and the helpers' own cache
 // lifetimes), so the page is prerendered and a view sends no request to the API. Only the signed-in
 // visitor's own parts are fetched in the browser: their rank card, from a route cached per user; their
-// badges, from the public badge data the builder reads; and, once Learn is open to everyone, their
-// cards in the block for Contribute and Learn, from a route never kept.
+// badges, from the public badge data the builder reads; and their cards in the block for Contribute
+// and Learn, from a route never kept.
 export default async function Home() {
   const [
     insights,
@@ -43,7 +43,7 @@ export default async function Home() {
     countryList,
     repos,
     showcase,
-    learn,
+    contribute,
     hero,
     packages,
   ] = await Promise.all([
@@ -57,7 +57,7 @@ export default async function Home() {
     fetchCountries(),
     fetchTopRepos(),
     fetchReadmeShowcase(),
-    fetchLearnForVisitors(),
+    fetchContributeForVisitors(),
     // This week's Unsung hero, in the page's HTML; a failed read leaves the column's other cards.
     fetchUnsungHero().catch(() => null),
     // The top of the package rankings; a ranking that cannot be read is left out, with none the block is.
@@ -78,7 +78,7 @@ export default async function Home() {
       showcase={showcase}
       hero={hero}
       packages={packages}
-      learn={{ forVisitors: learn }}
+      contribute={contribute}
     />
   );
 }

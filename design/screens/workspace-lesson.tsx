@@ -27,7 +27,7 @@ const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
 /** A Settings page's column. */
 const SETTINGS_MAIN = 'mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16';
 
-/** Every tab, as an account Learn is open to sees them. */
+/** Every tab, as a signed-in account sees them. */
 const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
 
 /** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */

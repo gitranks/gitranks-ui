@@ -40,7 +40,7 @@ type Props = Parameters<typeof LearnLandingView>[0];
 function draw(props: Partial<Props> = {}) {
   const page = document.createElement('div');
   page.innerHTML = renderToStaticMarkup(
-    <LearnLandingView viewer="visitor" markdown courses={courseCards} lessons={tryLessons} hints {...props} />,
+    <LearnLandingView viewer="visitor" courses={courseCards} lessons={tryLessons} hints {...props} />,
   );
   return page;
 }
@@ -103,13 +103,6 @@ describe('the landing for a visitor', () => {
     const links = [...page.querySelectorAll('footer a')].map((a) => a.getAttribute('href'));
     expect(links).toEqual(['/learn.md', '/llms.txt']);
     expect(page.textContent).not.toContain(LONG_DASH);
-  });
-
-  it('leaves out the Markdown copy while it does not answer', () => {
-    const closed = draw({ viewer: 'member', markdown: false });
-    const links = [...closed.querySelectorAll('footer a')].map((a) => a.getAttribute('href'));
-    expect(links).toEqual(['/llms.txt']);
-    expect(closed.innerHTML).not.toContain('/learn.md');
   });
 
   it('goes from its title to the lesson card, the card titled at the next level, before How it works', () => {

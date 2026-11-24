@@ -25,8 +25,6 @@ export type PublicProgressScreenProps = {
   progress: LearnPublicProgress | 'unavailable';
   /** The signed-in viewer is the person: one line to their own page, with everything. */
   own: boolean;
-  /** Learn is open to everyone: the page ends with the way in. */
-  everyone: boolean;
 };
 
 const n = (value: number) => value.toLocaleString('en-US');
@@ -73,7 +71,7 @@ function Title({ login }: { login: string }) {
  * already public alone (lessons whose result is public, and the Learn pull requests that were merged). The same for
  * every reader, but one line for the person themself.
  */
-export function PublicProgressScreen({ login, page, progress, own, everyone }: PublicProgressScreenProps) {
+export function PublicProgressScreen({ login, page, progress, own }: PublicProgressScreenProps) {
   if (progress === 'unavailable') {
     return (
       <div data-public-progress="unavailable" className="flex flex-col gap-5">
@@ -123,18 +121,16 @@ export function PublicProgressScreen({ login, page, progress, own, everyone }: P
           always
         />
       </section>
-      {everyone ? (
-        <div className="border-t pt-4">
-          <Link
-            href={LEARN_PATH}
-            prefetch={false}
-            className="inline-flex items-center gap-1 text-sm font-semibold text-link hover:underline max-sm:min-h-11"
-          >
-            Learn from a real fix yourself
-            <ArrowRight aria-hidden="true" className="size-4" />
-          </Link>
-        </div>
-      ) : null}
+      <div className="border-t pt-4">
+        <Link
+          href={LEARN_PATH}
+          prefetch={false}
+          className="inline-flex items-center gap-1 text-sm font-semibold text-link hover:underline max-sm:min-h-11"
+        >
+          Learn from a real fix yourself
+          <ArrowRight aria-hidden="true" className="size-4" />
+        </Link>
+      </div>
     </div>
   );
 }

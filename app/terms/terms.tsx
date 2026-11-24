@@ -1,6 +1,5 @@
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
 import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
-import { loadLearnOpen } from '@/lib/learn/learn.data';
 import { LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
 import { CONTRIBUTE_RULES_ID } from '@/lib/workspace/fair-use';
@@ -194,8 +193,8 @@ const LEARN: LegalSection = {
 /** When the Terms last changed with Contribute's section in them: they show that date only once the section shows. */
 const CONTRIBUTE_TERMS_UPDATED = '2026-11-24';
 
-/** The sections; Contribute's only for whoever may see Contribute, and Learn's for whoever Learn is open to. */
-const sectionsOf = (contribute: boolean, learn: boolean): LegalSection[] => [
+/** The sections; Contribute's and Learn's only for whoever may see Contribute. */
+const sectionsOf = (contribute: boolean): LegalSection[] => [
   {
     id: 'who',
     title: 'Who we are',
@@ -279,8 +278,7 @@ const sectionsOf = (contribute: boolean, learn: boolean): LegalSection[] => [
       </P>
     ),
   },
-  ...(contribute ? [CONTRIBUTE] : []),
-  ...(contribute && learn ? [LEARN] : []),
+  ...(contribute ? [CONTRIBUTE, LEARN] : []),
   {
     id: 'use',
     title: 'Fair use',
@@ -398,28 +396,26 @@ const sectionsOf = (contribute: boolean, learn: boolean): LegalSection[] => [
   },
 ];
 
-/** The Terms as drawn: with Contribute's section or without it, and with Learn's (which needs Contribute's). */
-export function TermsScreen({ contribute, learn = false }: { contribute: boolean; learn?: boolean }) {
+/** The Terms as drawn: with Contribute's and Learn's sections or without them. */
+export function TermsScreen({ contribute }: { contribute: boolean }) {
   return (
     <LegalPage
       title="Terms of service"
-      sections={sectionsOf(contribute, learn)}
+      sections={sectionsOf(contribute)}
       updated={contribute ? CONTRIBUTE_TERMS_UPDATED : undefined}
     />
   );
 }
 
 /**
- * The Terms for whoever may see Contribute (the preview list, everyone once launched): with its section, Learn's for
- * whoever Learn is open to, and a scroll to `#contribute` or `#learn`, which streamed
- * in after the browser looked.
+ * The Terms for whoever may see Contribute (the preview list, everyone once launched): with its section and Learn's,
+ * and a scroll to `#contribute` or `#learn`, which streamed in after the browser looked.
  */
 export async function LaunchedTerms() {
-  // Learn's section is extra: a failed check leaves it out rather than fail the Terms.
-  const [contribute, learn] = await Promise.all([contributeShown(), loadLearnOpen().catch(() => false)]);
+  const contribute = await contributeShown();
   return (
     <>
-      <TermsScreen contribute={contribute} learn={learn} />
+      <TermsScreen contribute={contribute} />
       {contribute ? <ScrollToHash /> : null}
     </>
   );

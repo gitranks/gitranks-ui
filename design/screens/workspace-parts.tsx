@@ -51,15 +51,7 @@ const contributeRows = (props: Partial<IssueRowProps> = {}, picks = PICKS) =>
   frame(
     list(
       picks.map((pick, index) => (
-        <IssueRow
-          key={pick.issueId}
-          issue={pick}
-          side="contribute"
-          agents={BOTH}
-          primary={index === 0}
-          learnOpen
-          {...props}
-        />
+        <IssueRow key={pick.issueId} issue={pick} side="contribute" agents={BOTH} primary={index === 0} {...props} />
       )),
     ),
   );
@@ -198,7 +190,6 @@ export const WORKSPACE_PART_SCREENS: Screen[] = [
                   side="contribute"
                   agents={{ hosted: true, own: false }}
                   initialRefusal={refusal}
-                  learnOpen
                 />
               )),
             ),

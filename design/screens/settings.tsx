@@ -94,7 +94,6 @@ function SettingsStates() {
         <SettingsScreen
           view={settingsViews.both}
           bar="learn"
-          learnOpen
           email={LISBON}
           learnSetup={setupSaved}
           learnEmail={learnEmail.device}
@@ -166,7 +165,6 @@ export const SETTINGS_SCREEN: Screen = {
         contributeFrame(
           screen({
             view: settingsViews.contributor,
-            learnOpen: true,
             email: LISBON,
             learnSetup: setupSaved,
             learnEmail: learnEmail.device,
@@ -184,7 +182,6 @@ export const SETTINGS_SCREEN: Screen = {
           screen({
             view: settingsViews.learner,
             bar: 'learn',
-            learnOpen: true,
             email: LISBON,
             learnSetup: setupSaved,
             learnEmail: learnEmail.device,
@@ -200,7 +197,6 @@ export const SETTINGS_SCREEN: Screen = {
         contributeFrame(
           screen({
             view: settingsViews.both,
-            learnOpen: true,
             email: LISBON,
             emailHint: 'ONCE_A_DAY',
             learnSetup: setupSaved,
@@ -228,7 +224,6 @@ export const SETTINGS_SCREEN: Screen = {
           screen({
             view: settingsViews.both,
             bar: 'learn',
-            learnOpen: true,
             email: { ...LISBON, needsYou: 'ONCE_A_DAY' },
             learnSetup: setupSaved,
             learnEmail: learnEmail.on,

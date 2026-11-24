@@ -69,7 +69,7 @@ describe("Learn's bar", () => {
 
   /** What each row of page 7's board shows: the tabs, the current place, and the right side. */
   const expected = [
-    { tabs: 2, current: ['Home'], items: [] },
+    { tabs: 3, current: ['Home'], items: [] },
     { tabs: 5, current: ['Home'], items: [['/learn/setup', SETUP_READY]] },
     { tabs: 5, current: ['Home'], items: [] },
     { tabs: 5, current: ['Home'], items: [['/learn/review', 'Review 6 lessons due']] },
@@ -157,7 +157,7 @@ describe("Learn's bar", () => {
     const bar = (due: number) =>
       Response.json({ bar: { setup: 'SAVED', due, pullRequests: false, pullRequestsNeedYou: 0 } });
     path.current = '/learn/courses';
-    await act(async () => root.render(<LearnBarLive everyone />));
+    await act(async () => root.render(<LearnBarLive />));
     // Before the read answers: a visitor's bar, the current tab already marked.
     expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/bar', { cache: 'no-store' });
     expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
@@ -211,19 +211,17 @@ describe("Learn's bar", () => {
     );
     path.current = '/learn/courses';
     await act(async () => root.render(<LearnBarLive />));
-    expect(tabs()).toEqual(['Home', 'Courses']);
+    expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
     expect(items()).toEqual([]);
   });
 
-  it("shows Issues on a visitor's bar only while Learn is open to everyone", async () => {
+  it("shows Issues on a visitor's bar", async () => {
     hint.present = false;
     path.current = '/learn/courses';
-    await act(async () => root.render(<LearnBarLive everyone={false} />));
-    expect(tabs()).toEqual(['Home', 'Courses']);
-    await act(async () => root.render(<LearnBarLive everyone />));
+    await act(async () => root.render(<LearnBarLive />));
     expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
     await act(async () => root.render(<LearnBar state={{ kind: 'visitor' }} place={null} />));
-    expect(tabs()).toEqual(['Home', 'Courses']);
+    expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
   });
 
   /** What each row of page 5's board of the tab shows: its look, the right side, and the current place. */
@@ -280,7 +278,7 @@ describe("Learn's bar", () => {
     await act(async () => root.render(<LearnBarLive />));
     expect(fetchMock).not.toHaveBeenCalled();
     expect(startLearnSetupGuessAction).not.toHaveBeenCalled();
-    expect(tabs()).toEqual(['Home', 'Courses']);
+    expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
   });
 
   const barOf = (setup: string, due = 0) =>

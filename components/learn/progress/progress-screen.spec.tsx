@@ -292,18 +292,16 @@ describe('LearnLessonStatePill', () => {
 });
 
 describe('the page’s reads and gate', () => {
-  const open = { kind: 'open', entered: true, agents: { hosted: false, own: true }, learnOpen: true };
+  const open = { kind: 'open', entered: true, agents: { hosted: false, own: true } };
   const view = (search: Record<string, string> = {}) => ProgressView({ searchParams: Promise.resolve(search) });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('answers not found to an account Learn is not open to, and to one the workspace is hidden from', async () => {
+  it('answers not found to an account the workspace is hidden from', async () => {
     data.loadLearnProgress.mockResolvedValue({ counts: progressCounts });
     data.loadProgressList.mockResolvedValue({ view: 'lessons', lessons: lessonsPage });
-    gate.loadWorkspaceGate.mockResolvedValue({ ...open, learnOpen: false });
-    await expect(view()).rejects.toThrow('NEXT_NOT_FOUND');
     gate.loadWorkspaceGate.mockResolvedValue({ kind: 'hidden' });
     await expect(view()).rejects.toThrow('NEXT_NOT_FOUND');
     // The API's own "not for you" is a 404 too.

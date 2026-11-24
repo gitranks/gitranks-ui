@@ -74,11 +74,11 @@ export function learnEmailSettingsInputOf(value: unknown): LearnEmailSettingsInp
   return Object.keys(input).length ? input : null;
 }
 
-/** Why a change did not save, under its row. `CLOSED`: Learn is no longer open to the person. */
+/** Why a change did not save, under its row. `CLOSED`: the API answered nothing for the person. */
 export function learnSettingsErrorOf(error: LearnActionError | 'CLOSED'): string {
   if (error === 'SIGNED_OUT') return 'Your session ended. Sign in again, then change it.';
   if (error === 'INVALID') return 'That is not a choice Learn takes. Reload the page and pick again.';
-  if (error === 'CLOSED') return 'Learn is not open to your account now, so nothing was saved.';
+  if (error === 'CLOSED') return 'Nothing was saved. Try again in a minute.';
   return 'We could not save just now. Try again in a minute.';
 }
 

@@ -33,7 +33,6 @@ const link = 'font-semibold text-link hover:underline';
 export type ContributeTabData = {
   view: ContributeView;
   agents: ConnectedAgents;
-  learnOpen: boolean;
   tab: ContributeTabRead;
   /** The first page of issues; `undefined` when the API did not answer it. */
   page: ContributeIssuePage | null | undefined;
@@ -56,7 +55,6 @@ export type ContributeTabData = {
 export function ContributeTabScreen({
   view,
   agents,
-  learnOpen,
   tab,
   page,
   set,
@@ -152,7 +150,6 @@ export function ContributeTabScreen({
             page={page}
             agents={agents}
             filter={query}
-            learnOpen={learnOpen}
             held={held}
             heldAnswerHref={fairUse?.block ? fairUseAnswerPathOf(fairUse.block.id) : undefined}
             limit={limit}

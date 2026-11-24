@@ -13,7 +13,6 @@ import {
 } from '@/lib/workspace/contribute.data';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { isContributePageOpen } from '@/lib/workspace/contribute-state';
-import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import type { LimitCounts } from '@/lib/workspace/limit-words';
 import {
   PULL_REQUESTS_PAGE_SIZE,
@@ -55,7 +54,7 @@ function limitOf(view: ContributeView, prBound: number | undefined, open: number
 export async function PullRequestsView({ searchParams }: { searchParams: Promise<Search> }) {
   const filter = pullRequestsFilterOf(await searchParams);
   const page = filter.page ?? 1;
-  const [view, needsYou, pulls, counts, learnOpen, activity] = await Promise.all([
+  const [view, needsYou, pulls, counts, activity] = await Promise.all([
     loadContribute(),
     loadNeedsYou(),
     loadPullRequestsPage({
@@ -64,7 +63,6 @@ export async function PullRequestsView({ searchParams }: { searchParams: Promise
       mode: filter.made === 'learn' ? 'LEARN' : filter.made === 'contribute' ? 'FIX' : null,
     }),
     loadScheduleCounts(),
-    loadLearnOpen(),
     loadContributeActivity().catch(() => null),
   ]);
   if (!view) contributeHidden(await loadContributeSetup());
@@ -78,7 +76,6 @@ export async function PullRequestsView({ searchParams }: { searchParams: Promise
   return (
     <PullRequestsScreen
       sides={view.sides}
-      learnOpen={learnOpen}
       limit={limitOf(view, counts?.prBound, pulls?.totals.open)}
       needsYou={needsYou}
       page={pulls}

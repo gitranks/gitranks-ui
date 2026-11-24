@@ -27,7 +27,7 @@ const { startLearnSetupGuessAction } = vi.hoisted(() => ({
 // Our guess of the person's setup, which every Learn page a signed-in person opens starts.
 vi.mock('@/lib/learn/setup.actions', () => ({ startLearnSetupGuessAction }));
 
-const { LEARN_NOT_OPEN_NOTE, LessonLive } = await import('./lesson-live');
+const { ANSWER_NOT_SAVED_NOTE, LessonLive } = await import('./lesson-live');
 const { forgetLearnSetupGuessStart } = await import('@/lib/learn/use-setup-guess');
 const {
   mineLearned,
@@ -230,14 +230,14 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     expect(signIn).not.toHaveBeenCalled();
   });
 
-  it('says so in one line when Learn is not open to the person', async () => {
+  it('says so in one line when the API saves no answer', async () => {
     signedIn();
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ mine: null, course: null })));
     answerLearnLessonAction.mockResolvedValue({ ok: true, data: null });
     await draw();
     await tap(option(1));
     await click(main());
-    expect($('[data-answer-note]')!.textContent).toBe(LEARN_NOT_OPEN_NOTE);
+    expect($('[data-answer-note]')!.textContent).toBe(ANSWER_NOT_SAVED_NOTE);
     expect($('[data-visitor-line]')).toBeNull();
     expect(main().textContent).toBe(`Next: ${setLesson.next!.title}`);
   });
@@ -309,13 +309,13 @@ describe('"In the real world" under a lesson', () => {
       );
     });
 
-  it('is left out for a visitor while Learn is not open to everyone, reading nothing', async () => {
+  it('is left out for a visitor when the merged fixes cannot be read, reading nothing', async () => {
     await draw();
     expect(section()).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("shows a visitor the lesson's merged fixes while Learn is open to everyone, as plain text", async () => {
+  it("shows a visitor the lesson's merged fixes, as plain text", async () => {
     await draw({ fixes: learnFixes });
     expect(section()!.textContent).toContain(learnFixes.rows[0].title);
     expect($('[data-real-all-fixes]')!.getAttribute('href')).toBe(

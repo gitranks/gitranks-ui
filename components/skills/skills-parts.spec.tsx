@@ -81,17 +81,6 @@ describe('SkillsNumbersBox', () => {
 });
 
 describe('SkillsFixRow', () => {
-  it('draws a Learn fix as a plain fix while Learn is not open to the reader', () => {
-    const { text, hrefs } = draw(
-      <SkillsFixRow now={SKILLS_NOW} fix={learnerFixes[0]} namesProduct learnOpen={false} />,
-    );
-    expect(text).not.toContain('with Learn');
-    expect(text).not.toContain('A queue: first in, first out');
-    expect(hrefs.filter((href) => href?.startsWith('/learn'))).toEqual([]);
-    expect(hrefs.filter((href) => href === '/contribute/pr/harbor-kit/relay/58')).toHaveLength(2);
-    expect(text).toContain('How it was made');
-  });
-
   it('writes the year of a merge in another year', () => {
     expect(draw(<SkillsFixRow now={SKILLS_NOW} fix={contributorFixes[4]} />).text).toContain('merged 14 Dec 2025');
   });
@@ -177,8 +166,10 @@ describe('SkillsBlock', () => {
     expect(draw(<SkillsBlock login="octocat" numbers={learnerNumbers} ownState="HIDDEN" />).text).toContain(
       'Only you see this block. Your Skills page is hidden.Open your Skills page',
     );
-    const own = draw(<SkillsBlock login="octocat" numbers={learnerNumbers} ownState="PRIVATE" />);
-    expect(own.root.querySelector('[data-skills-block-owner]')?.textContent).toBe('Only you see this block.');
+    // An older API's private page is drawn as a hidden one.
+    expect(draw(<SkillsBlock login="octocat" numbers={learnerNumbers} ownState="PRIVATE" />).text).toContain(
+      'Only you see this block. Your Skills page is hidden.Open your Skills page',
+    );
   });
 
   it('names its product from the numbers: a contributor whose fixes Learn made is with Learn', () => {
@@ -187,14 +178,6 @@ describe('SkillsBlock', () => {
     expect(draw(<SkillsBlock login="octocat" numbers={contributorNumbers} />).text).toContain(
       'With GitRanks Contribute since',
     );
-  });
-
-  it('drops everything of Learn while Learn is not open to the reader', () => {
-    const both = draw(<SkillsBlock login="octocat" numbers={bothNumbers} learnOpen={false} />);
-    expect(figures(both.root)).toEqual(['FIXES_MERGED']);
-    expect(both.text).not.toContain('Learn');
-    expect(both.text).toContain('All 4 fixes');
-    expect(renderToStaticMarkup(<SkillsBlock login="octocat" numbers={learnerNumbers} learnOpen={false} />)).toBe('');
   });
 
   it('takes its own id', () => {

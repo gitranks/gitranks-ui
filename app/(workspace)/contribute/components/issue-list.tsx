@@ -74,8 +74,6 @@ export type ContributeIssueListProps = {
   menu?: boolean;
   /** The filters in the address. */
   filter?: IssuesQuery;
-  /** Learn is open to the person: "Fix it and teach me" in the rows' menu. */
-  learnOpen?: boolean;
   /** GitRanks holds the account: no issues, no Start. */
   held?: boolean;
   /** A fair-use rule holds the account: its message's answer page, the held note's one next step. */
@@ -106,7 +104,6 @@ export function ContributeIssueList({
   agents,
   menu = true,
   filter = NO_QUERY,
-  learnOpen = false,
   held = false,
   heldAnswerHref,
   limit = null,
@@ -161,7 +158,6 @@ export function ContributeIssueList({
         agents={agents}
         menu={menu}
         filter={filter}
-        learnOpen={learnOpen}
         limit={limit}
         set={set}
         languages={languages}
@@ -189,7 +185,6 @@ function LiveRows({
   agents,
   menu,
   filter,
-  learnOpen,
   limit,
   set,
   languages,
@@ -198,9 +193,7 @@ function LiveRows({
   noneTitle,
   masked,
   onLimitReached,
-}: Required<
-  Pick<ContributeIssueListProps, 'agents' | 'menu' | 'filter' | 'learnOpen' | 'languages' | 'noneTitle' | 'masked'>
-> & {
+}: Required<Pick<ContributeIssueListProps, 'agents' | 'menu' | 'filter' | 'languages' | 'noneTitle' | 'masked'>> & {
   page: ContributeIssuePage | null;
   limit: LimitCounts | null;
   set?: ContributeSet | null;
@@ -255,7 +248,6 @@ function LiveRows({
                   primary={issueId === first}
                   control={!limit}
                   menu={menu}
-                  learnOpen={learnOpen}
                   live={liveOf(feed, row)}
                   facts={facts}
                   startSource={source}

@@ -98,8 +98,6 @@ export type AgentConnectViewProps = {
    * offers those, and goes on to its own prompt.
    */
   embedded?: boolean;
-  /** Learn is open to the account: the lead says one connection serves both, and the next step names Learn. */
-  learnOpen?: boolean;
   /** "Contributing only? You can also use a Claude key →": left out for someone who uses Learn alone. */
   keyLink?: boolean;
   /** Once the agent says hello the page stays, with the next step: the account was in the workspace already. */
@@ -144,7 +142,6 @@ export function AgentConnectView({
   proof = null,
   signIn = false,
   embedded = false,
-  learnOpen = false,
   keyLink = true,
   stay = false,
   tokenName,
@@ -445,16 +442,11 @@ export function AgentConnectView({
           Next, pick an issue on{' '}
           <Link href={WORKSPACE_PATHS.contribute} prefetch={false} className="font-semibold text-link hover:underline">
             Contribute
-          </Link>
-          {learnOpen ? (
-            <>
-              {' '}
-              or{' '}
-              <Link href={WORKSPACE_PATHS.learn} prefetch={false} className="font-semibold text-link hover:underline">
-                Learn
-              </Link>
-            </>
-          ) : null}{' '}
+          </Link>{' '}
+          or{' '}
+          <Link href={WORKSPACE_PATHS.learn} prefetch={false} className="font-semibold text-link hover:underline">
+            Learn
+          </Link>{' '}
           and press Start.
         </p>
       ) : null}
@@ -494,7 +486,7 @@ export function AgentConnectView({
         <h1 className={HEADING.page}>Connect your own agent</h1>
         <p className="text-foreground/80">
           Your agent fixes issues on your computer, with the plan you already pay for, and hands each change back.
-          Nothing reaches GitHub before you approve it.{learnOpen ? ' One connection serves Contribute and Learn.' : ''}
+          Nothing reaches GitHub before you approve it. One connection serves Contribute and Learn.
         </p>
         {keyLink ? (
           <p className="text-sm text-muted-foreground" data-key-link="">
@@ -571,7 +563,6 @@ export function AgentConnect({
   signIn = false,
   openedAt = null,
   embedded = false,
-  learnOpen = false,
   keyLink = true,
   onConnected,
   onAdded,
@@ -588,8 +579,6 @@ export function AgentConnect({
   openedAt?: string | null;
   /** The steps inside another page, which `onConnected` hears from instead of a move to Contribute. */
   embedded?: boolean;
-  /** Learn is open to the account (the page's lead and its next step). */
-  learnOpen?: boolean;
   /** The page's "You can also use a Claude key" line. */
   keyLink?: boolean;
   /** Embedded: the agent has called, with the client picked here (our guess: the call does not say which client made it). */
@@ -786,7 +775,6 @@ export function AgentConnect({
       proof={proof}
       signIn={viaSignIn}
       embedded={embedded}
-      learnOpen={learnOpen}
       keyLink={keyLink}
       stay={onboarded && !proof}
       tokenName={customName ?? tokenName}

@@ -52,7 +52,7 @@ const render = async (search?: Record<string, string>, route?: Record<string, st
   renderToStaticMarkup((await treeOf(search, route)) as ReactElement);
 
 const SIGNED_OUT = { kind: 'signed-out' } as const;
-const OPEN = { kind: 'open', entered: false, agents: { hosted: false, own: false }, learnOpen: true } as const;
+const OPEN = { kind: 'open', entered: false, agents: { hosted: false, own: false } } as const;
 const PAGE = { kind: 'page' };
 const at = (place: object, gate: object = OPEN, profile: unknown = null) =>
   flow.loadLearnFlowPlace.mockResolvedValue({ place, gate, profile });
@@ -195,8 +195,8 @@ describe('Your agent: signed in', () => {
     expect(start.loadStartPageView).not.toHaveBeenCalled();
   });
 
-  it('Learn not open to the account, or one being set up, is decided before the page: a 404, or the panel', async () => {
-    at({ kind: 'not-found' }, { ...OPEN, learnOpen: false });
+  it('a 404, or an account being set up, is decided before the page: the 404, or the panel', async () => {
+    at({ kind: 'not-found' }, { kind: 'hidden' });
     await expect(render()).rejects.toThrow('NEXT_NOT_FOUND');
     at({ kind: 'setting-up' }, { kind: 'setting-up' });
     expect(text(await render(GOAL))).toContain('Setting up your GitRanks account');

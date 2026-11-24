@@ -90,7 +90,7 @@ describe('a save of the email settings', () => {
 
   it('says why a change did not save', () => {
     expect(learnSettingsErrorOf('SIGNED_OUT')).toBe('Your session ended. Sign in again, then change it.');
-    expect(learnSettingsErrorOf('CLOSED')).toBe('Learn is not open to your account now, so nothing was saved.');
+    expect(learnSettingsErrorOf('CLOSED')).toBe('Nothing was saved. Try again in a minute.');
     expect(learnSettingsErrorOf('INVALID')).toBe('That is not a choice Learn takes. Reload the page and pick again.');
     expect(learnSettingsErrorOf('FAILED')).toBe('We could not save just now. Try again in a minute.');
   });

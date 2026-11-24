@@ -15,6 +15,7 @@ import {
   keyActionOf,
   type LearnPicked,
   type LearnQuestion,
+  type LearnVerdict,
   verdictOf,
   wirePickOf,
 } from '@/lib/learn/learn-question';
@@ -22,8 +23,17 @@ import {
 /** An answer as a place sends it: the pick as the API takes it, or the place's extra choice; and the code's language. */
 export type LearnAnswerSent = { picked: LearnPicked | null; extra: boolean; language: string | null };
 
-/** What the call answered: right or not, and the question with its key when it brings one (the review does). */
-export type LearnAnswerReply = { right: boolean; question?: LearnQuestion | null };
+/**
+ * What the call answered: right or not, and the question with its key when it brings one (the review does). `why`:
+ * the call's own reasons, for a question with no key. `again`: a wrong pick the person picks again after (a fix's
+ * walkthrough), crossed out as the page's own verdict would be, never the answer's end.
+ */
+export type LearnAnswerReply = {
+  right: boolean;
+  question?: LearnQuestion | null;
+  why?: string | null;
+  again?: LearnVerdict;
+};
 
 export type LearnAnswerOptions = {
   question: LearnQuestion;
@@ -120,7 +130,8 @@ export function useLearnAnswer(options: LearnAnswerOptions): LearnAnswer {
     if (!alive.current) return;
     if (!reply) return dispatch({ type: 'failed' });
     if (!options.verdict) return options.onDone();
-    dispatch({ type: 'answered', right: reply.right, key: reply.question ?? null, language });
+    if (!reply.right && reply.again) return dispatch({ type: 'again', verdict: reply.again });
+    dispatch({ type: 'answered', right: reply.right, key: reply.question ?? null, language, why: reply.why ?? null });
   }, []);
 
   /** Grades the pick on the page when the question has its key; otherwise sends it. */

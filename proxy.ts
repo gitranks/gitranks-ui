@@ -7,13 +7,9 @@ import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
 import { checkGateOf, courseGateOf } from './lib/learn/course-gate';
-import { learnOpenToEveryone } from './lib/learn/learn-everyone';
+import { fixByAttemptRouteGateOf, fixRouteGateOf } from './lib/learn/fix-gate';
 import {
   isLearnAboutPath,
-  isLearnHomePath,
-  isLearnIssuesPath,
-  isLearnOpenPath,
-  isLearnPath,
   LEARN_PATH,
   lessonResultJsonRouteOf,
   lessonRouteOf,
@@ -23,8 +19,11 @@ import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
 import {
   checkRouteOf,
   courseRouteOf,
+  isLearnFixRemovedPath,
   LEARN_COURSE_MISSING_PATH,
   learnCourseMarkdownRouteOf,
+  learnFixByAttemptOf,
+  learnFixRouteOf,
   learnIssuesMarkdownRouteOf,
   learnLandingMarkdownRouteOf,
   learnLessonMarkdownRouteOf,
@@ -36,7 +35,6 @@ import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_COOKIE, SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
 import { isSkillsCardPath } from './lib/skills/paths';
-import { requestLearnAccess } from './lib/workspace/gate';
 import {
   AGENTS_DOC_PATH,
   isAuthorizePath,
@@ -45,7 +43,6 @@ import {
   isContributePath,
   isFairUseAnswerPath,
   isLandingPath,
-  isLearnFlowPath,
   isLedgerPath,
   isMaintainersPath,
   isMyPath,
@@ -74,6 +71,12 @@ const RANK_CARD_PATH = '/api/me/rank-card';
 
 /** Matches no route, so a rewrite here renders `app/not-found.tsx` with a 404 status. */
 const NOT_FOUND_PATH = '/_404';
+
+/** A gate's answer, kept by no shared cache. */
+function noStore(response: NextResponse): NextResponse {
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
+}
 
 /** The admin pages: answered per viewer, never stored. */
 const ADMIN_PATH = /^\/admin(?:\/|$)/;
@@ -185,14 +188,13 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   if (courseMarkdown) {
     return NextResponse.rewrite(new URL(courseMarkdown, request.url));
   }
-  // The landing's Markdown copy, `/learn.md`: its route handler answers not found until Learn is open to everyone.
+  // The landing's Markdown copy, `/learn.md`, the same way.
   const landingMarkdown = learnLandingMarkdownRouteOf(request.nextUrl.pathname);
   if (landingMarkdown) {
     return NextResponse.rewrite(new URL(landingMarkdown, request.url));
   }
 
-  // The Markdown copies of Issues and of a lesson's and a course's view of it: their route handler answers not found
-  // until Learn is open to everyone. Rewritten before Auth.js, like the copies above.
+  // The Markdown copies of Issues and of a lesson's and a course's view of it, the same way.
   const issuesMarkdown = learnIssuesMarkdownRouteOf(request.nextUrl.pathname, request.nextUrl.search);
   if (issuesMarkdown) {
     return NextResponse.rewrite(new URL(issuesMarkdown, request.url));
@@ -243,6 +245,32 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
       if (gate.kind === 'gone' && gate.status === 503) response.headers.set('Retry-After', PAUSED_RETRY_AFTER_SECONDS);
       return response;
     }
+  }
+
+  // A fix's walkthrough and a person's answers stream too: where the address leads is asked here first. Nothing there
+  // gets the 404, a fix whose page was removed its own page with a 410, another spelling a redirect to the API's; an
+  // address of their shape that names no pull request or login, the 404 at once. The footer's address by attempt is
+  // answered here as well (a 307 on, or the 404), and the removed fixes' page is shown only by the gate's own
+  // rewrite. None is kept by a shared cache: a pull request opens, and answers are shared again.
+  const fixPath = request.nextUrl.pathname;
+  const fix = asked ? learnFixRouteOf(fixPath) : null;
+  const fixAttempt = asked && !fix ? learnFixByAttemptOf(fixPath) : null;
+  if (fix === 'invalid' || fixAttempt === 'invalid' || (asked && isLearnFixRemovedPath(fixPath))) {
+    return noStore(NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url)));
+  }
+  const fixGate = fix
+    ? await fixRouteGateOf(fix)
+    : fixAttempt
+      ? await fixByAttemptRouteGateOf(fixAttempt.attemptId)
+      : null;
+  if (fixGate && fixGate.kind !== 'page') {
+    return noStore(
+      fixGate.kind === 'missing'
+        ? NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url))
+        : fixGate.kind === 'removed'
+          ? NextResponse.rewrite(new URL(fixGate.path, request.url), { status: 410 })
+          : NextResponse.redirect(new URL(`${fixGate.path}${fix ? request.nextUrl.search : ''}`, request.url), 307),
+    );
   }
 
   // A person's public progress page streams too: their record is asked for here first. None, or the login asked under
@@ -305,47 +333,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return response;
   }
 
-  // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared
-  // cache (it would be served to someone who is let in). The page for maintainers and the agent sign-in's consent page
-  // (which tells a visitor off the preview so itself) are open to everyone, and once
-  // Contribute is launched so are the landing, the MCP docs, the questions and the steps of Contribute's flow, to
-  // visitors without a session too.
-  // Learn is behind its own list of people, which the API answers: a closed Learn page answers a visitor without a
-  // session, and a signed-in viewer Learn is not open to, with the 404 here; a signed-in one it is open to goes on. A
-  // shared lesson, its result pages and the page for maintainers are open to everyone; the front door, How Learn works
-  // (which sends a visitor on to the front door) and the three steps of Learn's flow too once the API says Learn is
-  // open to everyone (the home page's Learn section links there and
-  // follows the same answer, asked once a minute per server, only for a visitor's `/learn` and its flow). A
-  // contribution's or a lesson's old address redirects before this, to the pull request's page under `/my`, which asks
-  // a visitor to sign in.
-  // A request with a session is asked here too, before anything renders: an account Learn is not open to gets the
-  // real 404, not Learn's shell (its header, tabs and titles) streamed ahead of the page's own not-found. A session the
-  // server cannot read (expired) is a visitor's.
-  // Only a page view is asked (GET, HEAD): a page's own actions are checked by the API itself. An ask that takes too
-  // long lets the request on, to the page's own check.
-  // Issues and its views are Learn's lists: under a lesson's or a course's address too, a visitor is let through only
-  // once Learn is open to everyone.
-  const learnIssues = isLearnIssuesPath(pathname);
-  if (isLearnPath(pathname) && (!isLearnOpenPath(pathname) || learnIssues)) {
-    const access = !hasSession(request)
-      ? 'signed-out'
-      : request.method === 'GET' || request.method === 'HEAD'
-        ? await requestLearnAccess(request)
-        : 'open';
-    const visitorLetThrough = async () =>
-      (isLearnHomePath(pathname) || isLearnAboutPath(pathname) || isLearnFlowPath(pathname) || learnIssues) &&
-      (await learnOpenToEveryone(Date.now()));
-    if (access === 'closed' || (access === 'signed-out' && !(await visitorLetThrough()))) {
-      const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
-      response.headers.set('Cache-Control', 'private, no-store');
-      return response;
-    }
-    // How Learn works is a learner's: a visitor let through is sent on to the landing, one address for one page.
-    if (access === 'signed-out' && isLearnAboutPath(pathname)) {
-      const response = NextResponse.redirect(new URL(LEARN_PATH, request.url), 307);
-      response.headers.set('Cache-Control', 'private, no-store');
-      return response;
-    }
+  // How Learn works is a learner's: a visitor without a session is sent on to the landing, one address for one page.
+  // Every other Learn page is open to everyone; a person's own pages ask a visitor to sign in themselves.
+  if (isLearnAboutPath(pathname) && !hasSession(request)) {
+    const response = NextResponse.redirect(new URL(LEARN_PATH, request.url), 307);
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
   }
   // The admin pages answer a visitor without a session with a real 404 here, before anything renders: the page reads
   // the session, so it is sent behind a prerendered shell, and its own not-found would come after a 200. Nothing is
@@ -355,6 +348,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     response.headers.set('Cache-Control', 'private, no-store');
     return response;
   }
+  // Contribute is open only to signed-in users the API lets in; everyone else gets a real 404, never kept by a shared
+  // cache (it would be served to someone who is let in). The page for maintainers and the agent sign-in's consent page
+  // (which tells a visitor off the preview so itself) are open to everyone, and once
+  // Contribute is launched so are the landing, the MCP docs, the questions and the steps of Contribute's flow, to
+  // visitors without a session too.
   // A fair-use message's answer page is what its email and the user's agent link, often opened where the user is not
   // signed in: asked about as the pages under `/my` are (below), never with Contribute's 404 for visitors.
   const answerPage = isFairUseAnswerPath(pathname);

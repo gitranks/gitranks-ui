@@ -1,11 +1,11 @@
 import { skillsCardPath, skillsPath } from './paths';
 import type { SkillsBrief, SkillsFigureKey, SkillsKind } from './skills.types';
-import { figureWordsOf, numbersFor, shownFigures } from './skills-figures';
+import { figureWordsOf, shownFigures } from './skills-figures';
 
 /*
  * The picture a posted link to a Skills page shows: one sentence about the person by kind, the block's figures (three
  * at most) and the page's address. Pure, from the public answer alone, so the card, the page's metadata and the
- * design catalogue use the same rules. While Learn is not open to everyone it holds nothing of Learn. No zero.
+ * design catalogue use the same rules. No zero.
  */
 
 /** A figure as the picture draws it: the big text and its label. A name (the agent) is not in mono. */
@@ -30,12 +30,9 @@ export const skillsCardAddressOf = (login: string) => `gitranks.com${skillsPath(
 /** The most figures a picture draws: the block's. */
 const MOST_FIGURES = 3;
 
-/**
- * The picture of a public page, as a reader Learn is open to or not sees it; null when no figure is left to draw (a
- * learner's page while Learn is not open to everyone), so the picture is not served.
- */
-export function skillsCardOf(brief: Pick<SkillsBrief, 'login' | 'numbers'>, learnOpen: boolean): SkillsCard | null {
-  const numbers = numbersFor(brief.numbers, learnOpen);
+/** The picture of a public page; null when it has no figure to draw, so the picture is not served. */
+export function skillsCardOf(brief: Pick<SkillsBrief, 'login' | 'numbers'>): SkillsCard | null {
+  const { numbers } = brief;
   const figures = shownFigures(numbers.blockFigures)
     .slice(0, MOST_FIGURES)
     .map((figure): SkillsCardFigure => {

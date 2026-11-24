@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { bothPage, contributorPage, firstFixPage, firstLessonPage, learnerPage } from './__fixtures__/skills';
 import { skillsDescriptionOf, skillsJsonLdOf, skillsKnowsAboutOf, skillsMetadataOf, skillsTitleOf } from './seo';
 import type { SkillsPage } from './skills.types';
-import { type SkillsCard, skillsCardOf, skillsCardUrlOf } from './skills-share-card';
+import { skillsCardOf, skillsCardUrlOf } from './skills-share-card';
 
 // The site's address is read once, as the module loads: vitest runs this before the imports.
 vi.hoisted(() => {
@@ -28,44 +28,37 @@ describe("a Skills page's title and description", () => {
   });
 
   it('says what a contributor fixed, where and in which languages, singular for one', () => {
-    expect(skillsDescriptionOf(contributorPage, true)).toBe(
+    expect(skillsDescriptionOf(contributorPage)).toBe(
       '5 fixes merged in 5 open-source projects, in Go, Python and TypeScript.',
     );
-    expect(skillsDescriptionOf(firstFixPage, true)).toBe('1 fix merged in 1 open-source project, in Go.');
-    expect(skillsDescriptionOf(openOnly, true)).toBe('1 pull request open in 1 open-source project, in Rust.');
+    expect(skillsDescriptionOf(firstFixPage)).toBe('1 fix merged in 1 open-source project, in Go.');
+    expect(skillsDescriptionOf(openOnly)).toBe('1 pull request open in 1 open-source project, in Rust.');
   });
 
   it('says what a learner learned, with what they mastered, and both for someone who uses both', () => {
-    expect(skillsDescriptionOf(learnerPage, true)).toBe('103 lessons learned in 3 courses, 2 mastered.');
-    expect(skillsDescriptionOf(firstLessonPage, true)).toBe('1 lesson learned in 1 course.');
-    expect(skillsDescriptionOf(bothPage, true)).toBe(
+    expect(skillsDescriptionOf(learnerPage)).toBe('103 lessons learned in 3 courses, 2 mastered.');
+    expect(skillsDescriptionOf(firstLessonPage)).toBe('1 lesson learned in 1 course.');
+    expect(skillsDescriptionOf(bothPage)).toBe(
       '3 fixes merged in 3 open-source projects, in Go, Python and TypeScript, and 103 lessons learned in 3 courses.',
     );
   });
 
-  it('names nothing of Learn while it is not open to everyone', () => {
-    expect(skillsDescriptionOf(bothPage, false)).toBe(
-      '3 fixes merged in 3 open-source projects, in Go, Python and TypeScript.',
-    );
-    expect(skillsDescriptionOf(learnerPage, false)).toBe('What octocat fixed with GitRanks.');
-  });
-
   it('says what the page is for when no number has anything in it', () => {
     const empty = { ...contributorPage, numbers: { ...contributorPage.numbers, figures: [] } };
-    expect(skillsDescriptionOf(empty, true)).toBe('What octocat fixed and learned with GitRanks.');
+    expect(skillsDescriptionOf(empty)).toBe('What octocat fixed and learned with GitRanks.');
   });
 });
 
 describe("a Skills page's metadata", () => {
   it('is indexed only when the API says so, with its own address, its Skills picture and its Markdown copy', () => {
-    const indexed = skillsMetadataOf({ ...contributorPage, indexable: true }, { name: 'Octo Cat', learnOpen: true });
+    const indexed = skillsMetadataOf({ ...contributorPage, indexable: true }, { name: 'Octo Cat' });
     expect(indexed.title).toEqual({ absolute: 'octocat’s skills · GitRanks' });
     expect(indexed.robots).toEqual({ index: true, follow: true });
     expect(indexed.alternates).toEqual({
       canonical: '/profile/octocat/skills',
       types: { 'text/markdown': '/profile/octocat/skills.md' },
     });
-    const card = skillsCardOf(contributorPage, true);
+    const card = skillsCardOf(contributorPage);
     const image = {
       url: `https://gitranks.com${card ? skillsCardUrlOf(card) : '-'}`,
       width: 1200,
@@ -74,25 +67,21 @@ describe("a Skills page's metadata", () => {
     };
     expect(indexed.openGraph?.images).toEqual([image]);
     expect(indexed.twitter).toMatchObject({ card: 'summary_large_image', images: [image] });
-    const fresh = skillsMetadataOf({ ...contributorPage, indexable: false }, { learnOpen: true });
+    const fresh = skillsMetadataOf({ ...contributorPage, indexable: false });
     expect(fresh.robots).toEqual({ index: false, follow: true });
   });
 
-  it('draws the picture as a reader Learn is not open to sees it, and keeps the avatar when it has nothing to draw', () => {
-    const shut = skillsCardOf(bothPage, false) as SkillsCard;
-    const open = skillsCardOf(bothPage, true) as SkillsCard;
-    expect(skillsCardUrlOf(shut)).not.toBe(skillsCardUrlOf(open));
-    const closed = skillsMetadataOf(bothPage, { learnOpen: false });
-    expect(JSON.stringify(closed.openGraph)).toContain(skillsCardUrlOf(shut));
-    const learner = skillsMetadataOf(learnerPage, { name: 'Octo Cat', learnOpen: false });
-    expect(JSON.stringify(learner.openGraph)).toContain('https://gitranks.com/api/avatar/octocat');
-    expect(JSON.stringify(learner.openGraph)).toContain('GitHub avatar of Octo Cat (@octocat)');
+  it('keeps the avatar when the picture has nothing to draw', () => {
+    const empty = { ...learnerPage, numbers: { ...learnerPage.numbers, blockFigures: [] } };
+    const avatar = skillsMetadataOf(empty, { name: 'Octo Cat' });
+    expect(JSON.stringify(avatar.openGraph)).toContain('https://gitranks.com/api/avatar/octocat');
+    expect(JSON.stringify(avatar.openGraph)).toContain('GitHub avatar of Octo Cat (@octocat)');
   });
 });
 
 describe("a Skills page's structured data", () => {
   it('is a profile page about the person, who knows the courses they learned in and the languages of their fixes', () => {
-    const [page, crumbs] = skillsJsonLdOf(bothPage, { name: 'Octo Cat', learnOpen: true }) as Record<string, any>[];
+    const [page, crumbs] = skillsJsonLdOf(bothPage, { name: 'Octo Cat' }) as Record<string, any>[];
     expect(page['@type']).toBe('ProfilePage');
     expect(page.url).toBe('https://gitranks.com/profile/octocat/skills');
     expect(page.mainEntity).toMatchObject({
@@ -102,7 +91,7 @@ describe("a Skills page's structured data", () => {
       url: 'https://gitranks.com/profile/octocat',
       sameAs: ['https://github.com/octocat'],
     });
-    expect(page.mainEntity.knowsAbout).toEqual(skillsKnowsAboutOf(bothPage, true));
+    expect(page.mainEntity.knowsAbout).toEqual(skillsKnowsAboutOf(bothPage));
     expect(page.mainEntity.knowsAbout).toEqual([
       'Algorithms and data structures',
       'Go',
@@ -113,10 +102,9 @@ describe("a Skills page's structured data", () => {
     expect(crumbs.itemListElement.map((item: { name: string }) => item.name)).toEqual(['Home', 'Octo Cat', 'Skills']);
   });
 
-  it('names no course while Learn is not open to everyone, and no knowledge when there is none', () => {
-    expect(skillsKnowsAboutOf(bothPage, false)).toEqual(['Go', 'Python', 'TypeScript']);
-    const none = { ...learnerPage, numbers: { ...learnerPage.numbers, languages: [] } };
-    const [page] = skillsJsonLdOf(none, { learnOpen: false }) as Record<string, any>[];
+  it('names no knowledge when there is none', () => {
+    const none = { ...learnerPage, numbers: { ...learnerPage.numbers, languages: [] }, courses: [] };
+    const [page] = skillsJsonLdOf(none) as Record<string, any>[];
     expect(page.mainEntity.knowsAbout).toBeUndefined();
     expect(page.mainEntity.name).toBe('octocat');
   });

@@ -21,7 +21,7 @@ export const GET = auth(async function GET(req: AuthRequest) {
   }
   const mine = await loadSkillsOverview(viewer);
   if (!mine) return NextResponse.json(NO_SKILLS_PROFILE, { headers: NO_STORE });
-  const sides = { usesContribute: mine.usesContribute, usesLearn: mine.usesLearn, learnOpen: mine.learnOpen };
+  const sides = { usesContribute: mine.usesContribute, usesLearn: mine.usesLearn };
   const learnRows = ownerBoxCaseOf(sides) === 'learns' ? await loadLearnQueueTop(viewer) : null;
   return NextResponse.json({ sides, block: ownBlockOf(mine), learnRows } satisfies SkillsProfileAnswer, {
     headers: NO_STORE,

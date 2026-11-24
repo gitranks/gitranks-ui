@@ -1,91 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  languageColorOf,
-  languageColorsOf,
-  learnPromoUrl,
-  learnRecordOf,
-  learnRecordUrl,
-  ownerIssueOf,
-  promoPlacementOf,
-  promoTitleOf,
-  reasonLineOf,
-  recordTopicsOf,
-  shownPromoOf,
-} from './learn-promo';
+import { languageColorOf, languageColorsOf, learnRecordOf, learnRecordUrl, recordTopicsOf } from './learn-promo';
 import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
-import { maskedIssue } from '@/lib/workspace/__fixtures__/masked-issue';
 
-const issue = (number: number, extra: Record<string, unknown> = {}) => ({
-  title: `Issue ${number}`,
-  repo: 'o/r',
-  number,
-  language: 'TypeScript',
-  topic: 'cache keys',
-  ...extra,
-});
-
-describe('which Learn suggestion shows', () => {
-  it('shows one only when Learn is open to the viewer and the API says to', () => {
-    const learnPromo = { show: true, reason: 'Why.', language: 'Go', issues: [] };
-    expect(shownPromoOf({ learnOpen: true, learnPromo })).toEqual({ reason: 'Why.', language: 'Go', issues: [] });
-    expect(shownPromoOf({ learnOpen: false, learnPromo })).toBeNull();
-    expect(shownPromoOf({ learnOpen: true, learnPromo: { ...learnPromo, show: false } })).toBeNull();
-    expect(shownPromoOf({ learnOpen: true, learnPromo: null })).toBeNull();
-    expect(shownPromoOf({ learnPromo })).toBeNull();
-    expect(shownPromoOf(null)).toBeNull();
-  });
-
-  it('keeps up to three whole issues, with their text trimmed and blanks as none', () => {
-    const promo = shownPromoOf({
-      learnOpen: true,
-      learnPromo: {
-        show: true,
-        reason: '  ',
-        language: ' TypeScript ',
-        issues: [
-          issue(1, { title: ' First ', topic: '' }),
-          issue(0),
-          issue(2, { repo: '' }),
-          issue(3, { language: null }),
-          issue(4),
-          issue(5),
-        ],
-      },
-    });
-    expect(promo).toEqual({
-      reason: null,
-      language: 'TypeScript',
-      issues: [{ ...issue(1), title: 'First', topic: null }, { ...issue(3), language: null }, issue(4)],
-    });
-  });
-
-  it('reads the placement from the address, and nothing else', () => {
-    expect(promoPlacementOf('landing')).toBe('LANDING');
-    expect(promoPlacementOf('profile')).toBe('PROFILE');
-    expect(promoPlacementOf('LANDING')).toBeNull();
-    expect(promoPlacementOf(null)).toBeNull();
-  });
-
-  it('asks on the home page for any signed-in viewer, and on a profile only for its owner', () => {
-    expect(learnPromoUrl('LANDING', 'OctoCat')).toBe('/api/me/learn/promo?placement=landing&login=OctoCat');
-    expect(learnPromoUrl('PROFILE', 'OctoCat', 'octocat')).toBe('/api/me/learn/promo?placement=profile&login=OctoCat');
-    expect(learnPromoUrl('PROFILE', 'someone', 'octocat')).toBeNull();
-    expect(learnPromoUrl('PROFILE', 'octocat')).toBeNull();
-    expect(learnPromoUrl('LANDING', null)).toBeNull();
-    expect(learnPromoUrl('LANDING', ' ')).toBeNull();
-  });
-
-  it('says why and what it is about', () => {
-    expect(promoTitleOf('TypeScript')).toBe('Learn TypeScript on real issues');
-    expect(promoTitleOf(null)).toBe('Learn on real open-source issues');
-    expect(reasonLineOf('You started your first Go repo 3 weeks ago')).toBe(
-      'You started your first Go repo 3 weeks ago.',
-    );
-    expect(reasonLineOf('Your account is new!')).toBe('Your account is new!');
-    expect(reasonLineOf(null)).toBeNull();
-  });
-
+describe('language colours', () => {
   it("colours an issue's language from the profile's own, else the site's grey", () => {
     const colors = languageColorsOf([
       { name: 'TypeScript', color: '#3178c6' },
@@ -97,68 +15,6 @@ describe('which Learn suggestion shows', () => {
     expect(languageColorOf('TypeScript', colors)).toBe('#3178c6');
     expect(languageColorOf('Go', colors)).toBe(DEFAULT_LANGUAGE_COLOR);
     expect(languageColorOf(null)).toBe(DEFAULT_LANGUAGE_COLOR);
-  });
-});
-
-describe("the suggestion's issues as the owner's block lists them", () => {
-  it('links the issue on GitHub, colours its language and names the lesson', () => {
-    expect(ownerIssueOf(issue(7), { typescript: '#3178c6' })).toEqual({
-      repo: 'o/r',
-      number: 7,
-      url: 'https://github.com/o/r/issues/7',
-      title: 'Issue 7',
-      language: { name: 'TypeScript', color: '#3178c6' },
-      why: 'Lesson: cache keys',
-      masked: null,
-    });
-    expect(ownerIssueOf({ ...issue(8), language: null, topic: null })).toMatchObject({ language: null, why: null });
-  });
-
-  it('carries a masked issue to its masked row', () => {
-    const masked = maskedIssue();
-    expect(ownerIssueOf({ ...issue(7), masked })).toMatchObject({ masked });
-  });
-});
-
-describe("the suggestion's masked issues", () => {
-  const promoOf = (issues: Record<string, unknown>[]) =>
-    shownPromoOf({
-      learnOpen: true,
-      learnPromo: { show: true, reason: null, language: 'Go', issues: issues as never },
-    });
-
-  it('keeps a masked issue that names no repository, by its rewritten title', () => {
-    const masked = maskedIssue();
-    const promo = promoOf([{ title: null, repo: null, number: null, language: 'Go', topic: 'maps', masked }]);
-    expect(promo?.issues).toEqual([
-      { title: masked.title, repo: '', number: 0, language: 'Go', topic: 'maps', masked },
-    ]);
-  });
-
-  it('keeps nothing that names a masked issue, by its rewritten title, whatever the API sent beside it', () => {
-    const masked = maskedIssue();
-    const leaky = {
-      title: 'Secret title of the real issue',
-      repo: 'secret-org/secret-repo',
-      number: 4242,
-      language: 'Go',
-      topic: 'maps',
-      masked,
-    };
-    const promo = promoOf([leaky]);
-    expect(promo?.issues).toEqual([
-      { title: masked.title, repo: '', number: 0, language: 'Go', topic: 'maps', masked },
-    ]);
-    for (const secret of ['secret', '4242']) expect(JSON.stringify(promo)).not.toContain(secret);
-  });
-
-  it("keeps today's issue as it was when the API sends no masked form, or a named one", () => {
-    expect(promoOf([issue(1)])?.issues).toEqual([issue(1)]);
-    expect(promoOf([{ ...issue(2), masked: null }])?.issues).toEqual([issue(2)]);
-  });
-
-  it('leaves out an issue with neither a name nor a masked form', () => {
-    expect(promoOf([{ title: 'x', repo: null, number: null, masked: null }])?.issues).toEqual([]);
   });
 });
 

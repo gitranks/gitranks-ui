@@ -2,14 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { bothPage } from '@/lib/skills/__fixtures__/skills';
 
-const { loadSkillsPage, connection, learn } = vi.hoisted(() => ({
+const { loadSkillsPage, connection } = vi.hoisted(() => ({
   loadSkillsPage: vi.fn(),
   connection: vi.fn(async () => undefined),
-  learn: { open: true },
 }));
 vi.mock('next/server', async (importOriginal) => ({ ...(await importOriginal<object>()), connection }));
 vi.mock('@/lib/skills/skills.data', () => ({ loadSkillsPage }));
-vi.mock('@/app/components/landing/landing-data', () => ({ fetchLearnForVisitors: async () => learn.open }));
 vi.hoisted(() => {
   process.env.NEXT_PUBLIC_URI = 'https://gitranks.com';
 });
@@ -22,7 +20,6 @@ const get = (login: string) =>
 beforeEach(() => {
   loadSkillsPage.mockReset();
   connection.mockClear();
-  learn.open = true;
 });
 
 describe("a Skills page's Markdown route", () => {
@@ -38,12 +35,6 @@ describe("a Skills page's Markdown route", () => {
     const text = await response.text();
     expect(text).toMatch(/^# octocat’s skills/);
     expect(text).toContain('## Courses');
-  });
-
-  it('leaves Learn out while it is not open to everyone', async () => {
-    learn.open = false;
-    loadSkillsPage.mockResolvedValueOnce({ value: bothPage, failed: false });
-    expect(await (await get('octocat')).text()).not.toContain('## Courses');
   });
 
   it('is not found, never kept, where there is no page, and for what is not a login without asking', async () => {

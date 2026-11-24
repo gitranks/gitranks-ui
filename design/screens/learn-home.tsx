@@ -78,7 +78,7 @@ const Home = ({ home, bar = learner(home.due) }: { home: LearnHomeRead; bar?: Le
 
 const Landing = ({ bar = visitor, ...props }: Partial<LearnLandingViewProps> & { bar?: LearnBarState }) => (
   <Site bar={bar}>
-    <LearnLandingView viewer="visitor" markdown courses={courseCards} lessons={tryLessons} hints {...props} />
+    <LearnLandingView viewer="visitor" courses={courseCards} lessons={tryLessons} hints {...props} />
   </Site>
 );
 
@@ -91,7 +91,7 @@ export function LandingBoards() {
   return (
     <Board
       title="Learn landing"
-      intro="At /learn for a visitor, and for a signed-in person who has not set up Learn and has learned no lesson. A real lesson at the top, answered right there. Shown only while Learn is open to everyone."
+      intro="At /learn for a visitor, and for a signed-in person who has not set up Learn and has learned no lesson. A real lesson at the top, answered right there."
     >
       <Frame title="Not signed in · the whole page, before an answer" height={3110}>
         <Landing />

@@ -11,7 +11,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/issue-actions', () => ({}));
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
+vi.mock('@/lib/workspace/gate.data', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 vi.mock('@/lib/learn/actions', () => ({}));
@@ -21,7 +21,6 @@ vi.mock('@/lib/learn/settings.actions', () => ({}));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(),
-  loadLearnOpen: vi.fn(),
 }));
 
 const { ConnectScreen } = await import('@/components/workspace/agent/connect-view');

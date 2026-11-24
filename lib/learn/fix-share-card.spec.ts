@@ -43,12 +43,11 @@ describe("a fix's picture", () => {
     expect(fixCardAgentOf({ agent: '  ' })).toBeNull();
   });
 
-  it('says when it merged and the lesson it used, only when it has one and Learn may name it', () => {
-    expect(fixCardStatusOf(mergedFix, true)).toEqual({ text: 'Merged on 20 Nov 2026', lesson: 'Bound every retry' });
-    expect(fixCardStatusOf(mergedFix, false)).toEqual({ text: 'Merged on 20 Nov 2026', lesson: null });
-    expect(fixCardStatusOf(noLessonFix, true)).toEqual({ text: 'Merged on 14 Oct 2026', lesson: null });
-    expect(fixCardStatusOf({ ...mergedFix, mergedAt: null }, true).text).toBe('Merged');
-    expect(fixCardStatusOf(openFix, true)).toEqual({ text: 'Waiting for the project’s review', lesson: null });
+  it('says when it merged and the lesson it used, only when it has one', () => {
+    expect(fixCardStatusOf(mergedFix)).toEqual({ text: 'Merged on 20 Nov 2026', lesson: 'Bound every retry' });
+    expect(fixCardStatusOf(noLessonFix)).toEqual({ text: 'Merged on 14 Oct 2026', lesson: null });
+    expect(fixCardStatusOf({ ...mergedFix, mergedAt: null }).text).toBe('Merged');
+    expect(fixCardStatusOf(openFix)).toEqual({ text: 'Waiting for the project’s review', lesson: null });
   });
 
   it('writes a day in UTC with its year, and nothing for a time it cannot read', () => {
@@ -78,18 +77,16 @@ describe("a fix's picture", () => {
   });
 
   it('lives beside its page under a version that changes with anything it draws', () => {
-    const version = fixCardVersionOf(mergedFix, true);
+    const version = fixCardVersionOf(mergedFix);
     expect(version).toMatch(/^[0-9a-z]{1,7}$/);
-    expect(fixCardUrlOf(mergedFix, true)).toBe(`/contribute/pr/harbor-kit/relay/436/card.png?v=${version}`);
-    expect(fixCardVersionOf({ ...mergedFix }, true)).toBe(version);
-    expect(fixCardVersionOf(mergedFix, false)).not.toBe(version);
-    expect(fixCardVersionOf({ ...mergedFix, agent: 'Codex' }, true)).not.toBe(version);
-    expect(fixCardVersionOf({ ...mergedFix, title: 'Another title' }, true)).not.toBe(version);
-    expect(fixCardVersionOf({ ...mergedFix, state: 'OPEN', mergedAt: null }, true)).not.toBe(version);
+    expect(fixCardUrlOf(mergedFix)).toBe(`/contribute/pr/harbor-kit/relay/436/card.png?v=${version}`);
+    expect(fixCardVersionOf({ ...mergedFix })).toBe(version);
+    expect(fixCardVersionOf({ ...mergedFix, agent: 'Codex' })).not.toBe(version);
+    expect(fixCardVersionOf({ ...mergedFix, title: 'Another title' })).not.toBe(version);
+    expect(fixCardVersionOf({ ...mergedFix, state: 'OPEN', mergedAt: null })).not.toBe(version);
     // How it was made is not drawn: it changes nothing.
-    expect(fixCardVersionOf({ ...mergedFix, made: 'CONTRIBUTE' }, true)).toBe(version);
-    // A fix with no lesson draws the same whether Learn is open or not.
-    expect(fixCardVersionOf(noLessonFix, false)).toBe(fixCardVersionOf(noLessonFix, true));
+    expect(fixCardVersionOf({ ...mergedFix, made: 'CONTRIBUTE' })).toBe(version);
+    expect(fixCardVersionOf({ ...mergedFix, lesson: null })).not.toBe(version);
   });
 });
 
@@ -114,19 +111,19 @@ describe("a fix's posted link", () => {
   });
 
   it('shows the picture at 1,200 by 630, and none without a fix or for a closed one', () => {
-    expect(fixPreviewOf({ fix: mergedFix, learnOpen: true })).toEqual({
+    expect(fixPreviewOf({ fix: mergedFix })).toEqual({
       title: fixShareTitleOf(mergedFix),
       description: fixShareDescriptionOf(mergedFix),
       images: [
         {
-          url: `https://gitranks.com${fixCardUrlOf(mergedFix, true)}`,
+          url: `https://gitranks.com${fixCardUrlOf(mergedFix)}`,
           width: 1200,
           height: 630,
           alt: 'The retry list grows without limit when a webhook keeps failing',
         },
       ],
     });
-    expect(fixPreviewOf({ fix: null, learnOpen: true })).toBeNull();
-    expect(fixPreviewOf({ fix: { ...mergedFix, state: 'CLOSED' }, learnOpen: true })).toBeNull();
+    expect(fixPreviewOf({ fix: null })).toBeNull();
+    expect(fixPreviewOf({ fix: { ...mergedFix, state: 'CLOSED' } })).toBeNull();
   });
 });

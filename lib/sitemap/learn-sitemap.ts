@@ -6,7 +6,7 @@ import { LEARN_MAINTAINERS_PATH, LEARN_PATH, lessonPath } from '@/lib/learn/lear
 import { coursePath, LEARN_COURSES_PATH, learnLessonPath } from '@/lib/learn/paths';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 
-/** Learn's courses and their lessons, as the sitemap lists them once Learn is open to everyone. */
+/** Learn's courses and their lessons, as the sitemap lists them. */
 export type LearnSitemapContent = {
   courses: readonly Pick<LearnCourseCard, 'slug'>[];
   lessons: readonly Pick<LearnLessonListItem, 'slug' | 'course' | 'paused' | 'changedAt'>[];
@@ -19,21 +19,21 @@ function changedAt(times: readonly string[]): { lastModified?: string } {
 }
 
 /**
- * GitRanks Learn's pages for search engines: the page for maintainers and every public lesson of a fix at its last
- * change, as before; and only while the switch that opens Learn to everyone is open (`frontDoorOpen`), the landing,
- * all courses, every course at the last change of its lessons and every live lesson of a course at its own. A paused
- * lesson is left out, and so is a lesson's result page: it names a person and repeats the lesson.
+ * GitRanks Learn's pages for search engines: the landing, the page for maintainers and every public lesson of a fix at
+ * its last change; and with `content` read, all courses, every course at the last change of its lessons and every live
+ * lesson of a course at its own. A paused lesson is left out, and so is a lesson's result page: it names a person and
+ * repeats the lesson.
  */
 export function learnSitemapEntries(
   lessons: readonly PublicLesson[],
-  { frontDoorOpen, content = null }: { frontDoorOpen: boolean; content?: LearnSitemapContent | null },
+  { content = null }: { content?: LearnSitemapContent | null } = {},
 ): MetadataRoute.Sitemap {
-  const ours = frontDoorOpen && content ? content : { courses: [], lessons: [] };
+  const ours = content ?? { courses: [], lessons: [] };
   const live = ours.lessons.filter((lesson) => !lesson.paused);
   const listed = new Set(live.map((lesson) => lesson.slug));
   return [
-    ...(frontDoorOpen ? [sitemapEntry(LEARN_PATH, { priority: 0.7 })] : []),
-    ...(frontDoorOpen && content
+    sitemapEntry(LEARN_PATH, { priority: 0.7 }),
+    ...(content
       ? [sitemapEntry(LEARN_COURSES_PATH, { ...changedAt(live.map((lesson) => lesson.changedAt)), priority: 0.7 })]
       : []),
     ...ours.courses.map((course) =>

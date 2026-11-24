@@ -7,27 +7,7 @@ const { reportLearnEvent } = vi.hoisted(() => ({ reportLearnEvent: vi.fn() }));
 vi.mock('@/components/contribute-click-tracker/contribute-click-tracker', () => ({ reportLearnEvent }));
 
 const { LearnRecordCard, ProfileLearnRecord } = await import('./profile-learn-record');
-const { reportPromo } = await import('@/app/learn/components/use-promo-report');
 const { learnRecord } = await import('@/lib/learn/__fixtures__/promo');
-
-describe('a Learn suggestion reported from a profile', () => {
-  it("reports the owner's own profile as a profile, never by its login", () => {
-    vi.stubGlobal('window', { location: { pathname: '/profile/octocat' } });
-    reportPromo('promo_dismissed', 'learn_promo_profile');
-    expect(reportLearnEvent).toHaveBeenLastCalledWith(
-      { kind: 'learn_click', event: 'promo_dismissed', source: 'learn_promo_profile' },
-      undefined,
-      '/profile',
-    );
-    reportPromo('promo_clicked', 'learn_promo_signed_in');
-    expect(reportLearnEvent).toHaveBeenLastCalledWith(
-      { kind: 'learn_click', event: 'promo_clicked', source: 'learn_promo_signed_in' },
-      undefined,
-      '/profile/octocat',
-    );
-    vi.unstubAllGlobals();
-  });
-});
 
 describe('the Learn record on a profile', () => {
   it('shows the numbers, five topics and the rest counted', () => {

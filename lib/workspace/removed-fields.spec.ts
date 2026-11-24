@@ -149,7 +149,7 @@ describe('the fields the API removes after this', () => {
     // Documents files, and documents built elsewhere and not exported, are among them: an empty scan cannot pass.
     expect(from('lib/workspace/contribute.documents.ts')).toBe(true);
     expect(from('lib/contribute/contribute-tab.documents.ts')).toBe(true);
-    expect(from('lib/workspace/gate.ts')).toBe(true);
+    expect(from('lib/learn/learn-bar.data.ts')).toBe(true);
     expect(all.some(({ where }) => where === 'lib/contribute/agent-page.ts ContributeAgentPage')).toBe(true);
     // Every file that builds documents gave at least one.
     for (const path of buildersOf()) {

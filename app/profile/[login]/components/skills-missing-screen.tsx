@@ -49,7 +49,6 @@ export function SkillsMissingScreen() {
           now={view.at}
           strip={<OwnerStrip login={login} mine={layer.mine} pending={pending} toggle={toggle} />}
           other={otherBoxOf(layer.mine)}
-          learnOpen={layer.mine.learnOpen}
           leftLine={fixesLeftLineOf(
             Math.max(layer.page.numbers.fixes, layer.page.fixes.total),
             layer.page.fixes.rows.length,

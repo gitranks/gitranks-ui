@@ -165,7 +165,7 @@ describe("Learn's rows in the browser", () => {
     saveLearnEmailSettingsAction.mockResolvedValueOnce({ ok: true, data: null });
     await act(async () => toggle().click());
     expect(toggle().checked).toBe(false);
-    expect(alert()?.textContent).toBe('Learn is not open to your account now, so nothing was saved.');
+    expect(alert()?.textContent).toBe('Nothing was saved. Try again in a minute.');
     saveLearnEmailSettingsAction.mockRejectedValueOnce(new Error('down'));
     await act(async () => toggle().click());
     expect(alert()?.textContent).toBe('We could not save just now. Try again in a minute.');

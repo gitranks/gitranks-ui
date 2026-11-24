@@ -19,17 +19,16 @@ export const FIXES_PAGE = 20;
  * Where a fix's title and "How it was made" lead. A fix made with Learn has its "Learn from it" view for its title, and
  * "How it was made" leads to the pull request's timeline; a fix made with Contribute has the timeline alone, so both
  * lead there. While the "Learn from it" view is not built, a Learn fix's title is plain text and "How it was made"
- * still leads to the timeline. While Learn is closed to the reader, a Learn fix is drawn as a plain fix, both leading
- * to the timeline. A fix whose page was hidden has no link to our pages: its GitHub links alone.
+ * still leads to the timeline. A fix whose page was hidden has no link to our pages: its GitHub links alone.
  */
-export function fixLinksOf(
-  fix: Pick<SkillsFix, 'repo' | 'number' | 'made' | 'page'>,
-  { learnOpen = true }: { learnOpen?: boolean } = {},
-): { title: Route | null; made: Route | null } {
+export function fixLinksOf(fix: Pick<SkillsFix, 'repo' | 'number' | 'made' | 'page'>): {
+  title: Route | null;
+  made: Route | null;
+} {
   if (!fix.page) return { title: null, made: null };
   const pr = { nameWithOwner: fix.repo, number: fix.number };
   const timeline = prTimelinePath(pr);
-  if (fix.made !== 'LEARN' || !learnOpen) return { title: timeline, made: timeline };
+  if (fix.made !== 'LEARN') return { title: timeline, made: timeline };
   return { title: LEARN_FIXES_PAGE_BUILT ? learnFixPath(pr) : null, made: timeline };
 }
 

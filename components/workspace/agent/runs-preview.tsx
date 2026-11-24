@@ -74,12 +74,10 @@ function PreviewRow({ run, cost }: { run: ContributeRun; cost: boolean }) {
 export function RunsPreview({
   page,
   learner = false,
-  learnOpen,
   atWork = 0,
 }: {
   page: ContributeRunsPage | undefined;
   learner?: boolean;
-  learnOpen: boolean;
   /** Runs an agent works on now. */
   atWork?: number;
 }) {
@@ -98,16 +96,11 @@ export function RunsPreview({
         No runs yet. Start an issue on{' '}
         <Link href={WORKSPACE_PATHS.contribute} prefetch={false} className="font-semibold text-link hover:underline">
           Contribute
+        </Link>{' '}
+        or{' '}
+        <Link href={WORKSPACE_PATHS.learn} prefetch={false} className="font-semibold text-link hover:underline">
+          Learn
         </Link>
-        {learnOpen ? (
-          <>
-            {' '}
-            or{' '}
-            <Link href={WORKSPACE_PATHS.learn} prefetch={false} className="font-semibold text-link hover:underline">
-              Learn
-            </Link>
-          </>
-        ) : null}
         .
       </p>
     );

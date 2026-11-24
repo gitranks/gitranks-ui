@@ -39,20 +39,17 @@ export function keptLineOf(numbers: Pick<SkillsIssueNumbers, 'read' | 'kept'> | 
     : `About ${share} of them make the list.`;
 }
 
-/** Who takes their issues from the list: both products, or Contribute alone while Learn is not open to the person. */
-export const listUsersOf = (learnOpen: boolean) =>
-  learnOpen
-    ? 'GitRanks Contribute and GitRanks Learn take their issues from it.'
-    : 'GitRanks Contribute takes its issues from it.';
+/** Who takes their issues from the list. */
+export const LIST_USERS = 'GitRanks Contribute and GitRanks Learn take their issues from it.';
 
 /** The box's text: why issues are hard to find, how we read them, how few are kept, and who uses the list. */
-export function issuesTextOf(numbers: SkillsIssueNumbers | null, learnOpen: boolean): string {
+export function issuesTextOf(numbers: SkillsIssueNumbers | null): string {
   const kept = keptLineOf(numbers);
   return [
     'Good issues are hard to find: most open issues are stale, taken, unclear or already fixed.',
     'We check every issue in the repositories we watch. Rules drop most of them.',
     'Then two AI models, Jev and Claude, read each one that is left and keep only what a maintainer wants fixed.',
     ...(kept ? [kept] : []),
-    listUsersOf(learnOpen),
+    LIST_USERS,
   ].join(' ');
 }

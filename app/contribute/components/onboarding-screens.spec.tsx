@@ -46,11 +46,14 @@ vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/issue-actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => data);
 vi.mock('@/lib/contribute/contribute.data', () => data);
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
-vi.mock('@/lib/learn/settings.data', () => ({}));
+vi.mock('@/lib/workspace/gate.data', () => ({}));
+vi.mock('@/lib/learn/settings.data', () => ({
+  loadLearnEmailSettings: vi.fn(async () => null),
+  loadLearnSetupForSettings: vi.fn(async () => null),
+}));
 vi.mock('@/lib/skills/skills.data', () => ({ loadSkillsMine: async () => undefined }));
 vi.mock('@/lib/learn/settings.actions', () => ({}));
-vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false), loadAttemptLesson: vi.fn() }));
+vi.mock('@/lib/learn/learn.data', () => ({ loadAttemptLesson: vi.fn(async () => null) }));
 
 const { Landing } = await import('./landing');
 const { SignInButton, SignInPanel, startSignIn } = await import('@/components/workspace/sign-in-dialog');

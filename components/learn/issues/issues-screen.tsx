@@ -74,8 +74,6 @@ export type IssuesScreenProps = {
   at?: IssuesAt;
   names?: IssuesNames;
   layer: IssuesLayer;
-  /** Learn is open to everyone: the view's Markdown copy answers, so the foot links it. */
-  everyone?: boolean;
 } & IssuesHandlers;
 
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
@@ -87,14 +85,7 @@ const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
  * with the one press that would show something; "Fixed" shows the merged fixes instead. While a new view is read, the
  * switches show its state with no count: the counts on the screen are still the last view's.
  */
-export function IssuesScreen({
-  view,
-  at = 'issues',
-  names = {},
-  layer,
-  everyone = false,
-  ...handlers
-}: IssuesScreenProps) {
+export function IssuesScreen({ view, at = 'issues', names = {}, layer, ...handlers }: IssuesScreenProps) {
   const chips = issuesChipsOf(view, names, at);
   const back = issuesBackOf(view, names);
   const switches =
@@ -106,7 +97,7 @@ export function IssuesScreen({
       {back ? <IssuesBack back={back} /> : null}
       <IssuesFilters chips={chips} switches={switches} clearHref={clearHref} />
       <IssuesBody view={view} at={at} layer={layer} handlers={handlers} />
-      <IssuesFoot markdownHref={everyone ? issuesMarkdownPathOf(view, at) : null} />
+      <IssuesFoot markdownHref={issuesMarkdownPathOf(view, at)} />
     </main>
   );
 }

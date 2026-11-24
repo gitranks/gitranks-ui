@@ -36,7 +36,7 @@ const { fullPage, issueNumbers, issuePage, looksAtLimit, MASKED_NOW } = await im
   '@/lib/workspace/__fixtures__/masked-issue'
 );
 
-const OPEN = { kind: 'open', entered: true, agents: { hosted: false, own: true }, learnOpen: true } as const;
+const OPEN = { kind: 'open', entered: true, agents: { hosted: false, own: true } } as const;
 const START = {
   connection: { client: 'claude-code', lastCallAt: '2026-10-28T11:00:00.000Z' },
   agent: { onboarded: true, tokens: [], signIn: true },
@@ -125,11 +125,9 @@ describe('the page of one issue at /my/issues/[id]', () => {
     expect(html).toContain('Not for me');
   });
 
-  it('follows the list the person came from: Learn only when it is open to them', async () => {
+  it('follows the list the person came from', async () => {
     expect(await issuePageAt({ from: 'learn' })).toContain('href="/learn/earlier#issues"');
     expect(await issuePageAt()).toContain('href="/contribute#issues"');
-    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, learnOpen: false });
-    expect(await issuePageAt({ from: 'learn' })).toContain('href="/contribute#issues"');
   });
 
   it('is not found for an address that names no issue, and a viewer it is not open to', async () => {
@@ -150,8 +148,7 @@ describe('the page of one issue at /my/issues/[id]', () => {
     learn.loadLearnProfile.mockRejectedValue(new Error('down'));
     expect(text(await issuePageAt())).not.toContain('You also use GitRanks Learn');
     learn.loadLearnProfile.mockClear();
-    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, learnOpen: false });
-    await issuePageAt();
+    await issuePageAt({ from: 'learn' });
     expect(learn.loadLearnProfile).not.toHaveBeenCalled();
   });
 

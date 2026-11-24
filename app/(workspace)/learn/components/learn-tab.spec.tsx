@@ -39,7 +39,6 @@ const masked = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/workspace/masked-issue.data', () => masked);
 const data = vi.hoisted(() => ({
-  loadLearnOpen: vi.fn(async () => true),
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(async () => false),
   loadMyLearnAttempts: vi.fn(),

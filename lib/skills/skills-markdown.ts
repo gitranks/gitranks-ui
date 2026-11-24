@@ -1,15 +1,7 @@
 import { skillsPath, skillsProfilePath } from './paths';
 import type { SkillsCourse, SkillsFix, SkillsPage } from './skills.types';
 import { COURSE_KIND_WORDS, courseCountsOf, finishedWordsOf, groupCountOf, notStartedLineOf } from './skills-courses';
-import {
-  countOf,
-  figureWordsOf,
-  type LinePart,
-  numbersFor,
-  PRODUCT_NAMES,
-  shownFigures,
-  sinceLineOf,
-} from './skills-figures';
+import { countOf, figureWordsOf, type LinePart, PRODUCT_NAMES, shownFigures, sinceLineOf } from './skills-figures';
 import { fixesLineOf, fixLessonOf, fixLinksOf, fixStateWordsOf, MADE_WORDS, namesProduct } from './skills-fixes';
 import { coursePath, LEARN_HOME_PATH, learnLessonPath } from '@/lib/learn/paths';
 import { absoluteUrl } from '@/lib/seo/site';
@@ -17,8 +9,7 @@ import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import type { LearnFixMade } from '@/lib/workspace/pull-request-page.types';
 
 /*
- * A Skills page's Markdown copy, for agents: what the page shows everyone, in its order. Pure, from the public answer;
- * while Learn is not open to everyone, nothing of Learn is in it.
+ * A Skills page's Markdown copy, for agents: what the page shows everyone, in its order. Pure, from the public answer.
  */
 
 /** One line of text: a title cannot start a heading or a list of its own. */
@@ -39,9 +30,9 @@ const lineOf = (parts: readonly LinePart[]) =>
     .join('');
 
 /** One fix: its title (a link to our page when it has one), the project, its state and its two GitHub links. */
-function fixLineOf(fix: SkillsFix, { both, learnOpen, now }: { both: boolean; learnOpen: boolean; now: Date }) {
-  const links = fixLinksOf(fix, { learnOpen });
-  const lesson = learnOpen ? fixLessonOf(fix) : null;
+function fixLineOf(fix: SkillsFix, { both, now }: { both: boolean; now: Date }) {
+  const links = fixLinksOf(fix);
+  const lesson = fixLessonOf(fix);
   const parts = [
     links.title ? link(fix.title, links.title) : oneLine(fix.title),
     fix.repo,
@@ -72,17 +63,17 @@ function courseSectionOf(course: SkillsCourse, now: Date): string {
 }
 
 /** The copy: the heading, the numbers with their line, the fixes, and the courses. */
-export function skillsMarkdownOf(page: SkillsPage, { learnOpen, now }: { learnOpen: boolean; now: Date }): string {
-  const numbers = numbersFor(page.numbers, learnOpen);
+export function skillsMarkdownOf(page: SkillsPage, { now }: { now: Date }): string {
+  const { numbers } = page;
   const figures = shownFigures(numbers.figures).map((figure) => {
     const words = figureWordsOf(figure, numbers.kind, numbers.fixes);
     return `- **${words.value}** ${words.label}${words.under ? `, ${words.under}` : ''}`;
   });
-  const made: readonly LearnFixMade[] = learnOpen ? numbers.made : ['CONTRIBUTE'];
+  const made: readonly LearnFixMade[] = numbers.made;
   const both = namesProduct(made);
-  const rows = page.fixes.rows.map((fix) => fixLineOf(fix, { both, learnOpen, now }));
+  const rows = page.fixes.rows.map((fix) => fixLineOf(fix, { both, now }));
   const more = page.fixes.total - page.fixes.rows.length;
-  const courses = learnOpen ? page.courses : [];
+  const { courses } = page;
 
   const sections = [
     `# ${page.login}’s skills`,

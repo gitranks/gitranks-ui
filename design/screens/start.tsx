@@ -23,7 +23,7 @@ const SHOWN_TOKEN = 'gr_8Kq2vN4tXb7RwL1mZc9HpYe3Ud6SfA0jQg5Ko2Ti8Lm';
 const LESSON_PATH = `${START_PATH}?lesson=1`;
 const noop = () => {};
 
-/** Every tab, as an account Learn is open to sees them. */
+/** Every tab, as a signed-in account sees them. */
 const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
 
 /** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */

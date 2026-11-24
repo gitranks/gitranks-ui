@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 import { skillsMarkdownPath, skillsPath, skillsProfilePath } from './paths';
 import type { SkillsFigure, SkillsPage } from './skills.types';
-import { countOf, listWords, numbersFor, shownFigures } from './skills-figures';
+import { countOf, listWords, shownFigures } from './skills-figures';
 import { skillsCardAltOf, skillsCardOf, skillsCardUrlOf } from './skills-share-card';
 import { SOCIAL_CARD_SIZE } from '@/badge/v3/links';
 import { type PreviewImage, pageMetadata } from '@/lib/seo/page-metadata';
@@ -11,8 +11,7 @@ import { avatarPath, userAvatarAlt } from '@/utils/avatar-path';
 
 /*
  * A Skills page for search engines and posted links: its title, its description, whether it may be indexed, and its
- * structured data with what the person knows. Pure, from the public answer and the profile's name alone. While Learn
- * is not open to everyone, nothing of Learn is named.
+ * structured data with what the person knows. Pure, from the public answer and the profile's name alone.
  */
 
 /** "octocat’s skills · GitRanks". */
@@ -42,8 +41,8 @@ function lessonsClauseOf(figure: SkillsFigure | undefined): string | null {
  * The description: "5 fixes merged in 5 open-source projects, in Go, Python and TypeScript.", "103 lessons learned in 3
  * courses, 2 mastered.", or both clauses for someone who uses both. A page with no number says what it is for.
  */
-export function skillsDescriptionOf(page: Pick<SkillsPage, 'login' | 'numbers'>, learnOpen: boolean): string {
-  const numbers = numbersFor(page.numbers, learnOpen);
+export function skillsDescriptionOf(page: Pick<SkillsPage, 'login' | 'numbers'>): string {
+  const { numbers } = page;
   const figures = shownFigures(numbers.figures);
   const find = (key: SkillsFigure['key']) => figures.find((figure) => figure.key === key);
   const fixes = fixesClauseOf(find('FIXES_MERGED') ?? find('PULL_REQUESTS_OPEN'));
@@ -54,22 +53,18 @@ export function skillsDescriptionOf(page: Pick<SkillsPage, 'login' | 'numbers'>,
   if (fixesPart && lessons) return `${fixesPart}, and ${lessons}.`;
   if (fixesPart) return `${fixesPart}.`;
   if (lessons) return mastered?.value ? `${lessons}, ${countOf(mastered.value)} mastered.` : `${lessons}.`;
-  return learnOpen ? `What ${page.login} fixed and learned with GitRanks.` : `What ${page.login} fixed with GitRanks.`;
+  return `What ${page.login} fixed and learned with GitRanks.`;
 }
 
 /** What the person knows, for structured data: the courses with a lesson learned, then the languages of their fixes. */
-export function skillsKnowsAboutOf(page: Pick<SkillsPage, 'courses' | 'numbers'>, learnOpen: boolean): string[] {
-  const courses = learnOpen ? page.courses.map((course) => course.course.name) : [];
+export function skillsKnowsAboutOf(page: Pick<SkillsPage, 'courses' | 'numbers'>): string[] {
+  const courses = page.courses.map((course) => course.course.name);
   return [...new Set([...courses, ...page.numbers.languages])];
 }
 
 /** A posted link's picture: the Skills card, or the avatar while the card has nothing to draw. */
-function previewImageOf(
-  page: Pick<SkillsPage, 'login' | 'numbers'>,
-  name: string | null,
-  learnOpen: boolean,
-): PreviewImage {
-  const card = skillsCardOf(page, learnOpen);
+function previewImageOf(page: Pick<SkillsPage, 'login' | 'numbers'>, name: string | null): PreviewImage {
+  const card = skillsCardOf(page);
   return card
     ? { url: absoluteUrl(skillsCardUrlOf(card)), ...SOCIAL_CARD_SIZE, alt: skillsCardAltOf(card) }
     : { url: absoluteUrl(avatarPath(page.login)), alt: userAvatarAlt(page.login, name) };
@@ -78,13 +73,13 @@ function previewImageOf(
 /** The page's metadata: indexed only once the API says so (5 lessons learned or a merged fix). */
 export function skillsMetadataOf(
   page: Pick<SkillsPage, 'login' | 'numbers' | 'indexable'>,
-  { name = null, learnOpen }: { name?: string | null; learnOpen: boolean },
+  { name = null }: { name?: string | null } = {},
 ): Metadata {
   const base = pageMetadata({
     title: { absolute: skillsTitleOf(page.login) },
-    description: skillsDescriptionOf(page, learnOpen),
+    description: skillsDescriptionOf(page),
     path: skillsPath(page.login),
-    images: [previewImageOf(page, name, learnOpen)],
+    images: [previewImageOf(page, name)],
     openGraphType: 'profile',
   });
   return {
@@ -97,11 +92,11 @@ export function skillsMetadataOf(
 /** The page's structured data: a profile page about the person, with what they know, and its breadcrumbs. */
 export function skillsJsonLdOf(
   page: Pick<SkillsPage, 'login' | 'numbers' | 'courses'>,
-  { name = null, learnOpen }: { name?: string | null; learnOpen: boolean },
+  { name = null }: { name?: string | null } = {},
 ): object[] {
   const url = absoluteUrl(skillsPath(page.login));
   const profile = absoluteUrl(skillsProfilePath(page.login));
-  const knowsAbout = skillsKnowsAboutOf(page, learnOpen);
+  const knowsAbout = skillsKnowsAboutOf(page);
   const person = {
     '@type': 'Person',
     name: name || page.login,
@@ -117,7 +112,7 @@ export function skillsJsonLdOf(
       '@type': 'ProfilePage',
       url,
       name: skillsTitleOf(page.login),
-      description: skillsDescriptionOf(page, learnOpen),
+      description: skillsDescriptionOf(page),
       mainEntity: person,
     },
     {

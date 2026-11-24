@@ -15,19 +15,16 @@ import { cn } from '@/lib/utils';
 export function SkillsFixRow({
   fix,
   namesProduct = false,
-  learnOpen = true,
   now,
 }: {
   fix: SkillsFix;
   /** Both products made fixes: the row says which made this one. */
   namesProduct?: boolean;
-  /** Whether Learn is open to the reader: otherwise a Learn fix is drawn as a plain fix, with nothing of Learn. */
-  learnOpen?: boolean;
   /** The time the page is drawn at: a merge date in another year shows its year. */
   now: Date;
 }) {
-  const links = fixLinksOf(fix, { learnOpen });
-  const lesson = learnOpen && fix.page ? fixLessonOf(fix) : null;
+  const links = fixLinksOf(fix);
+  const lesson = fix.page ? fixLessonOf(fix) : null;
   const merged = fix.state === 'MERGED';
   return (
     <article
@@ -38,7 +35,7 @@ export function SkillsFixRow({
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <RefChips repo={fix.repo} issue={fix.issueNumber} pr={{ number: fix.number, url: fix.url }} />
           {fix.language ? <span>{fix.language}</span> : null}
-          {namesProduct && learnOpen ? <span data-made={fix.made}>{MADE_WORDS[fix.made]}</span> : null}
+          {namesProduct ? <span data-made={fix.made}>{MADE_WORDS[fix.made]}</span> : null}
         </span>
         {links.title ? (
           <Link

@@ -55,7 +55,7 @@ async function render(page: (props: never) => ReactElement, search: Record<strin
 }
 
 const SIGNED_OUT = { kind: 'signed-out' } as const;
-const OPEN = { kind: 'open', entered: false, agents: { hosted: false, own: false }, learnOpen: true } as const;
+const OPEN = { kind: 'open', entered: false, agents: { hosted: false, own: false } } as const;
 const at = (place: object, gate: object = OPEN, profile: unknown = null) =>
   flow.loadLearnFlowPlace.mockResolvedValue({ place, gate, profile });
 const PAGE = { kind: 'page' };

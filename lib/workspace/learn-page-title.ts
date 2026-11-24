@@ -7,11 +7,12 @@ export const SIGN_IN_TITLE = 'Sign in';
 
 /**
  * A Learn page's title under `/my` (Your progress, a lesson, Goal and level), which names the page only to an account
- * Learn is open to: a visitor reads the sign-in card under `SIGN_IN_TITLE`, anyone else (they get the 404) the site's
- * own title. Read from the gate the layout and the page already read once per request; a failed read names nothing.
+ * the workspace is open to: a visitor reads the sign-in card under `SIGN_IN_TITLE`, anyone else (they get the 404) the
+ * site's own title. Read from the gate the layout and the page already read once per request; a failed read names
+ * nothing.
  */
 export async function learnPageMetadata(title: string): Promise<Metadata> {
   const gate = await loadWorkspaceGate().catch(() => null);
-  if (gate?.kind === 'open' && gate.learnOpen) return { title };
+  if (gate?.kind === 'open') return { title };
   return gate?.kind === 'signed-out' ? { title: SIGN_IN_TITLE } : {};
 }

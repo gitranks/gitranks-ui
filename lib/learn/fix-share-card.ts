@@ -9,7 +9,7 @@ import type { LearnFixMade, LearnIssueLesson } from '@/lib/workspace/pull-reques
  * The picture a posted link to a fix shows, one for each pull request with a public page: its state, the project and
  * the issue, the title, who fixed it with which agent, and when it merged or that it waits for review. Pure and free
  * of server reads, so the card, the page's metadata and the design catalogue use the same rules. It never shows an
- * answer or a number of tries, and while Learn is not open to everyone it names no lesson. No zero.
+ * answer or a number of tries. No zero.
  */
 
 /** Where a fix stands. A closed pull request has no picture of its own. */
@@ -80,16 +80,13 @@ export function fixCardDayOf(at: string | null): string | null {
   return when && !Number.isNaN(when.getTime()) ? DAY.format(when) : null;
 }
 
-/** The line at the bottom: when it merged, or that it waits; and the lesson it used, when Learn may name it. */
+/** The line at the bottom: when it merged, or that it waits; and the lesson it used. */
 export type FixCardStatus = { text: string; lesson: string | null };
 
-export function fixCardStatusOf(
-  fix: Pick<LearnFixCard, 'state' | 'mergedAt' | 'lesson'>,
-  learnOpen: boolean,
-): FixCardStatus {
+export function fixCardStatusOf(fix: Pick<LearnFixCard, 'state' | 'mergedAt' | 'lesson'>): FixCardStatus {
   if (fix.state !== 'MERGED') return { text: 'Waiting for the project’s review', lesson: null };
   const day = fixCardDayOf(fix.mergedAt);
-  const lesson = learnOpen ? fix.lesson?.title.trim() || null : null;
+  const lesson = fix.lesson?.title.trim() || null;
   return { text: day ? `Merged on ${day}` : 'Merged', lesson };
 }
 
@@ -111,8 +108,8 @@ function hashOf(text: string): string {
 }
 
 /** A picture's version: a hash of everything it draws, so a change to any of it is a new address. */
-export function fixCardVersionOf(fix: LearnFixCard, learnOpen: boolean): string {
-  const status = fixCardStatusOf(fix, learnOpen);
+export function fixCardVersionOf(fix: LearnFixCard): string {
+  const status = fixCardStatusOf(fix);
   return hashOf(
     [
       'fix',
@@ -129,8 +126,7 @@ export function fixCardVersionOf(fix: LearnFixCard, learnOpen: boolean): string 
 }
 
 /** The picture under its one current address. */
-export const fixCardUrlOf = (fix: LearnFixCard, learnOpen: boolean) =>
-  `${prTimelineCardPath(fixPrOf(fix))}?v=${fixCardVersionOf(fix, learnOpen)}`;
+export const fixCardUrlOf = (fix: LearnFixCard) => `${prTimelineCardPath(fixPrOf(fix))}?v=${fixCardVersionOf(fix)}`;
 
 /** A posted link's title: the fix's title, then the project and the issue. */
 export const fixShareTitleOf = (fix: Pick<LearnFixCard, 'title' | 'number' | 'repo' | 'issueNumber'>) =>
@@ -149,12 +145,12 @@ export function fixShareDescriptionOf(fix: Pick<LearnFixCard, 'fixer' | 'agent' 
 }
 
 /** A fix's link preview: its picture, title and description; null without a picture (no fix, a closed one, a failed read). */
-export function fixPreviewOf(read: { fix: LearnFixCard | null; learnOpen: boolean }) {
-  const { fix, learnOpen } = read;
+export function fixPreviewOf(read: { fix: LearnFixCard | null }) {
+  const { fix } = read;
   if (!fix || !hasFixCard(fix)) return null;
   return {
     title: fixShareTitleOf(fix),
     description: fixShareDescriptionOf(fix),
-    images: [{ url: absoluteUrl(fixCardUrlOf(fix, learnOpen)), ...SOCIAL_CARD_SIZE, alt: fixCardTitleOf(fix) }],
+    images: [{ url: absoluteUrl(fixCardUrlOf(fix)), ...SOCIAL_CARD_SIZE, alt: fixCardTitleOf(fix) }],
   };
 }

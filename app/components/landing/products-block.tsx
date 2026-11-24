@@ -8,8 +8,8 @@ import {
   type HomeCardWords,
   type HomeProducts,
   learnCardOf,
-  PRODUCTS_HEADING,
-  PRODUCTS_LINE,
+  productsWordsOf,
+  showsContributeOf,
 } from './products-block-words';
 
 /**
@@ -60,26 +60,33 @@ const ProductCard: FC<{ card: HomeCardWords }> = ({ card }) => {
 /**
  * The home page's block for Contribute and Learn: the heading, one line, and two cards of one size, Contribute on the
  * left. With no `products` (a visitor, or a read that failed) both cards promote their product; otherwise a card whose
- * product the person uses says what it has for them today. `now` words the next review. `id` is the heading's, for a
- * board that draws the block more than once.
+ * product the person uses says what it has for them today. `now` words the next review. `contribute` false (Contribute
+ * not launched, so its landing is not found for visitors) leaves Contribute's card out, except for a person who uses
+ * it; Learn's card then stands alone in one column, under Learn's own words. `id` is the heading's, for a board that
+ * draws the block more than once.
  */
-export const ProductsBlock: FC<{ products?: HomeProducts | null; now: Date; id?: string }> = ({
+export const ProductsBlock: FC<{ products?: HomeProducts | null; now: Date; contribute?: boolean; id?: string }> = ({
   products = null,
   now,
+  contribute = true,
   id = 'products',
-}) => (
-  <section aria-labelledby={id} className="py-12 lg:py-16" data-products-block="">
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4">
-      <div className="flex flex-col gap-2">
-        <h2 id={id} className="m-0 text-2xl font-semibold tracking-tight text-balance md:text-3xl">
-          {PRODUCTS_HEADING}
-        </h2>
-        <p className="m-0 max-w-prose text-muted-foreground">{PRODUCTS_LINE}</p>
+}) => {
+  const both = showsContributeOf(contribute, products);
+  const { heading, line } = productsWordsOf(both);
+  return (
+    <section aria-labelledby={id} className="py-12 lg:py-16" data-products-block={both ? 'both' : 'learn'}>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4">
+        <div className="flex flex-col gap-2">
+          <h2 id={id} className="m-0 text-2xl font-semibold tracking-tight text-balance md:text-3xl">
+            {heading}
+          </h2>
+          <p className="m-0 max-w-prose text-muted-foreground">{line}</p>
+        </div>
+        <div className={`grid grid-cols-1 gap-4${both ? ' md:grid-cols-2' : ''}`}>
+          {both ? <ProductCard card={contributeCardOf(products)} /> : null}
+          <ProductCard card={learnCardOf(products, now)} />
+        </div>
       </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <ProductCard card={contributeCardOf(products)} />
-        <ProductCard card={learnCardOf(products, now)} />
-      </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};

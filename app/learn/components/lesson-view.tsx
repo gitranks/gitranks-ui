@@ -25,7 +25,7 @@ import { SendBackForm } from '@/components/workspace/pull-request/send-back-form
 import { SessionActionsProvider } from '@/components/workspace/pull-request/session-actions';
 import { LiveSubmit } from '@/components/workspace/pull-request/submit-stepper';
 import { Box } from '@/components/workspace/status-box';
-import { loadLearnOpen, loadLearnSetup, loadPracticeLessons } from '@/lib/learn/learn.data';
+import { loadLearnSetup, loadPracticeLessons } from '@/lib/learn/learn.data';
 import type { LearnAttemptLesson, PracticeLessons } from '@/lib/learn/learn.types';
 import { endedReasonOf, WAIT_PRACTICE } from '@/lib/learn/learn-home';
 import { LEARN_EARLIER_PATH, LEARN_PRACTICE_PATH } from '@/lib/learn/learn-path';
@@ -393,7 +393,7 @@ export async function LessonView({ params }: { params: Promise<PageParams> }) {
   const read = await lessonPageOf(params);
   if (!read) return null;
   if (read === 'unread') return <LessonUnavailable />;
-  if ((await loadLearnOpen()) && (await loadLearnSetup())) return <LearnSettingUp />;
+  if (await loadLearnSetup()) return <LearnSettingUp />;
   const waiting = read.lesson.stage === 'AGENT_WORKING' || read.lesson.stage === 'AGENT_REWRITING';
   const practice = waiting ? await loadPracticeLessons(WAIT_PRACTICE) : undefined;
   return (

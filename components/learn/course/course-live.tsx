@@ -51,21 +51,12 @@ type Personal = { kind: CoursePerson } | { kind: 'learner'; side: CourseSide };
 /**
  * A course's page as it lives in the browser. The page is the same for everyone; once it is up, a person with a
  * session reads their side, which fills the page in place, and a visitor asks for nothing. Only a visitor is asked to
- * sign in: while a session's side is on its way nothing is lit, and a session whose side does not come (a failed read,
- * or Learn not open to them yet) is never sent to sign in again. Signing in comes back to the course; a rating is sent
+ * sign in: while a session's side is on its way nothing is lit, and a session whose side does not come (a failed read)
+ * is never sent to sign in again. Signing in comes back to the course; a rating is sent
  * as the session's user. The open issues of the person's list for the course come in a read of their own, which an
- * API without them answers with none: the third box then stays as it was. `everyone`: Learn is open to everyone, so
- * the count of merged fixes links to them for a visitor too.
+ * API without them answers with none: the third box then stays as it was.
  */
-export function CourseLive({
-  course,
-  others,
-  everyone = false,
-}: {
-  course: LearnCourse;
-  others: readonly LearnCourseCard[];
-  everyone?: boolean;
-}) {
+export function CourseLive({ course, others }: { course: LearnCourse; others: readonly LearnCourseCard[] }) {
   const [personal, setPersonal] = useState<Personal>({ kind: 'pending' });
   const [openIssues, setOpenIssues] = useState<number | null>(null);
   const { slug } = course;
@@ -98,7 +89,6 @@ export function CourseLive({
       others={others}
       checkFirst={side?.checkFirst ?? false}
       openIssues={side ? openIssues : null}
-      learnOpen={everyone || !!side}
       calls={{
         onSignIn: () => {
           signIn(IDENTITY_PROVIDER, { redirectTo: coursePath(slug) }).catch(() => {});

@@ -54,6 +54,8 @@ type RequestOptions = {
   githubLogin?: string;
   /** The same session's email, sent with `githubLogin` alone. */
   accountEmail?: string;
+  /** Stops the request at request time, for a caller that gives up on a slow answer. */
+  signal?: AbortSignal;
 };
 
 export async function request(
@@ -83,7 +85,7 @@ export async function request(
       options?.githubLogin,
       options?.accountEmail,
     );
-  const response = isBuildPhase() ? await withBuildRetries(send) : await send();
+  const response = isBuildPhase() ? await withBuildRetries(send) : await send(options?.signal);
 
   if (!response.ok) {
     // A query the API refuses (a field it does not know, a variable it cannot read) comes back as a 4xx with the

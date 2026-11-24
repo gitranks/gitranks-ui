@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const { response, read, connection } = vi.hoisted(() => ({
   response: vi.fn(async (..._args: unknown[]) => new Response('png')),
-  read: vi.fn(async (_login: string) => ({ brief: null, failed: false, learnOpen: true })),
+  read: vi.fn(async (_login: string) => ({ brief: null, failed: false })),
   connection: vi.fn(async () => undefined),
 }));
 vi.mock('next/server', async (importOriginal) => ({ ...(await importOriginal<object>()), connection }));

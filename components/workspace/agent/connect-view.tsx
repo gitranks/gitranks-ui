@@ -8,7 +8,6 @@ import { loadAttempt, loadContribute, loadContributeSetup } from '@/lib/workspac
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isOnboarded, withoutAccessNotices } from '@/lib/workspace/contribute-state';
 import { LANGUAGES } from '@/lib/workspace/format';
-import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import { proofParamOf, proofPromptOf } from '@/lib/workspace/proof';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 
@@ -18,9 +17,9 @@ export async function OwnAgentConnectView({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params, learnOpen] = await Promise.all([loadContribute(), searchParams, loadLearnOpen()]);
+  const [view, params] = await Promise.all([loadContribute(), searchParams]);
   if (!view) contributeHidden(await loadContributeSetup());
-  return <OwnAgentConnectScreen view={view} learnOpen={learnOpen} proof={await proofOf(proofParamOf(params?.proof))} />;
+  return <OwnAgentConnectScreen view={view} proof={await proofOf(proofParamOf(params?.proof))} />;
 }
 
 /**
@@ -30,16 +29,13 @@ export async function OwnAgentConnectView({
  */
 export function OwnAgentConnectScreen({
   view,
-  learnOpen = false,
   proof = null,
 }: {
   view: ContributeView;
-  learnOpen?: boolean;
   proof?: AgentConnectProof | null;
 }) {
   return (
     <AgentConnect
-      learnOpen={learnOpen}
       keyLink={view.sides?.contribute !== false}
       onboarded={isOnboarded(view)}
       tokens={view.ownAgent?.tokens}

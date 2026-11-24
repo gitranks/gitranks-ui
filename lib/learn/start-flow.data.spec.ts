@@ -7,34 +7,25 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 const reads = vi.hoisted(() => ({
   loadWorkspaceGate: vi.fn(),
   contributeOpen: vi.fn(async () => true),
-  learnOpenToEveryone: vi.fn(async () => false),
   loadLearnProfile: vi.fn(),
-  loadLearnOpen: vi.fn(async () => true),
 }));
 vi.mock('@/lib/workspace/gate.data', () => ({ loadWorkspaceGate: reads.loadWorkspaceGate }));
 vi.mock('@/lib/workspace/preview-gate', () => ({ contributeOpen: reads.contributeOpen }));
-vi.mock('./learn-everyone', () => ({ learnOpenToEveryone: reads.learnOpenToEveryone }));
-vi.mock('./learn.data', () => ({ loadLearnProfile: reads.loadLearnProfile, loadLearnOpen: reads.loadLearnOpen }));
+vi.mock('./learn.data', () => ({ loadLearnProfile: reads.loadLearnProfile }));
 
 const { loadLearnFlowPlace, readLearnPublicIssues, readLearnPublicPractice, LEARN_PUBLIC_PRACTICE_MAX } = await import(
   './start-flow.data'
 );
 const { filledProfile } = await import('./__fixtures__/profile');
 
-const open = (entered: boolean, learnOpen = true) => ({
-  kind: 'open',
-  entered,
-  agents: { hosted: false, own: entered },
-  learnOpen,
-});
+const open = (entered: boolean) => ({ kind: 'open', entered, agents: { hosted: false, own: entered } });
 
 beforeEach(() => vi.clearAllMocks());
 
 describe("where a person belongs on Learn's flow", () => {
-  it('asks a visitor only whether Learn is open to everyone; nothing of an account', async () => {
+  it('asks nothing of an account for a visitor', async () => {
     reads.loadWorkspaceGate.mockResolvedValue({ kind: 'signed-out' });
-    expect((await loadLearnFlowPlace('goal', { goalInAddress: false })).place).toEqual({ kind: 'not-found' });
-    reads.learnOpenToEveryone.mockResolvedValueOnce(true);
+    expect((await loadLearnFlowPlace('goal', { goalInAddress: false })).place).toEqual({ kind: 'page' });
     expect(await loadLearnFlowPlace('issues', { goalInAddress: true })).toMatchObject({
       place: { kind: 'page' },
       profile: null,
@@ -43,7 +34,7 @@ describe("where a person belongs on Learn's flow", () => {
     expect(reads.contributeOpen).not.toHaveBeenCalled();
   });
 
-  it('reads the saved goal of an account Learn is open to, and decides by it', async () => {
+  it('reads the saved goal of an account, and decides by it', async () => {
     reads.loadWorkspaceGate.mockResolvedValue(open(false));
     reads.loadLearnProfile.mockResolvedValueOnce(null);
     expect((await loadLearnFlowPlace('issues', { goalInAddress: false })).place).toEqual({
@@ -55,7 +46,6 @@ describe("where a person belongs on Learn's flow", () => {
       place: { kind: 'page' },
       profile: filledProfile,
     });
-    expect(reads.learnOpenToEveryone).not.toHaveBeenCalled();
   });
 
   it('an entered account with a goal only in the address saves it before it moves on to the Learn tab', async () => {
@@ -67,27 +57,13 @@ describe("where a person belongs on Learn's flow", () => {
     });
   });
 
-  it('an account Learn is not open to gets the 404, its goal unread; one with no profile asks about the launch', async () => {
-    reads.loadWorkspaceGate.mockResolvedValue(open(false, false));
-    expect((await loadLearnFlowPlace('goal', { goalInAddress: false })).place).toEqual({ kind: 'not-found' });
-    expect(reads.loadLearnProfile).not.toHaveBeenCalled();
-    expect(reads.loadLearnOpen).not.toHaveBeenCalled();
+  it('one with no profile asks about the launch, its goal unread; one being set up waits', async () => {
     reads.loadWorkspaceGate.mockResolvedValue({ kind: 'hidden' });
     expect((await loadLearnFlowPlace('goal', { goalInAddress: false })).place).toEqual({ kind: 'no-profile' });
     expect(reads.contributeOpen).toHaveBeenCalledOnce();
-  });
-
-  it('being set up or with no profile, an account Learn is not open to gets the 404: Learn is asked apart', async () => {
-    for (const kind of ['setting-up', 'hidden'] as const) {
-      reads.loadWorkspaceGate.mockResolvedValue({ kind });
-      reads.loadLearnOpen.mockResolvedValueOnce(false);
-      expect((await loadLearnFlowPlace('issues', { goalInAddress: true })).place, kind).toEqual({
-        kind: 'not-found',
-      });
-    }
-    expect(reads.loadLearnOpen).toHaveBeenCalledTimes(2);
     reads.loadWorkspaceGate.mockResolvedValue({ kind: 'setting-up' });
     expect((await loadLearnFlowPlace('goal', { goalInAddress: false })).place).toEqual({ kind: 'setting-up' });
+    expect(reads.loadLearnProfile).not.toHaveBeenCalled();
   });
 });
 

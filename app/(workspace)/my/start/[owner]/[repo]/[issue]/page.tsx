@@ -32,10 +32,10 @@ export default function StartPage({ params, searchParams }: Params) {
 }
 
 /**
- * The page's reads. An address that names no issue is not found. Lesson mode, for an account Learn is not open to, goes
- * to the same address in Fix mode; an account that has not entered goes where the gate says (a lesson: Learn's step
- * for the issue). The viewer's own
- * attempt on the issue moves on to its pull request's page (a Fix attempt in lesson mode is worded instead).
+ * The page's reads. An address that names no issue is not found. Lesson mode the API has no page for goes to the same
+ * address in Fix mode; an account that has not entered goes where the gate says (a lesson: Learn's step for the issue).
+ * The viewer's own attempt on the issue moves on to its pull request's page (a Fix attempt in lesson mode is worded
+ * instead).
  *
  * Issue details are hidden until a person asks to see one, and an issue's own page is at its mask's address. This
  * address keeps working for an issue the viewer works on (its pull request's page), holds or named (this page), and is
@@ -52,7 +52,6 @@ async function StartView({ params, searchParams }: Pick<Params, 'params' | 'sear
   // Signed out, hidden and being set up are the layout's (the sign-in, the 404, Contribute's home).
   const gate = await loadWorkspaceGate();
   if (gate.kind !== 'open') notFound();
-  if (mode === 'lesson' && !gate.learnOpen) redirect(fixMode);
   if (!gate.entered) {
     const to = notEnteredTargetOf(fixMode, new URLSearchParams(mode === 'lesson' ? { lesson: '1' } : {}));
     if (to) redirect(to);

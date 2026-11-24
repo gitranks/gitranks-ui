@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { contributeCards, HOME_NOW, homeProducts, learnCards } from './__fixtures__/products-block';
-import { contributeCardOf, HOME_PROMOS, learnCardOf, needsYouLineOf } from './products-block-words';
+import {
+  contributeCardOf,
+  HOME_PROMOS,
+  learnCardOf,
+  needsYouLineOf,
+  productsWordsOf,
+  showsContributeOf,
+} from './products-block-words';
 import { needsYouRowWordsOf } from '@/lib/workspace/pull-request-list';
 
 const uses = { usesContribute: true, usesLearn: true, contribute: null, learn: null };
@@ -134,5 +141,26 @@ describe('learnCardOf', () => {
         href: '/learn',
       });
     }
+  });
+});
+
+describe("the block's cards and words", () => {
+  it("draws Contribute's card while Contribute is launched, and for a person who uses it before then", () => {
+    expect(showsContributeOf(true, null)).toBe(true);
+    expect(showsContributeOf(true, homeProducts.learner)).toBe(true);
+    expect(showsContributeOf(false, null)).toBe(false);
+    expect(showsContributeOf(false, homeProducts.learner)).toBe(false);
+    expect(showsContributeOf(false, homeProducts.contributor)).toBe(true);
+  });
+
+  it('names both products over two cards, and Learn alone over its own card', () => {
+    expect(productsWordsOf(true)).toEqual({
+      heading: 'Contribute to open source, and learn from it',
+      line: 'Both work with your own coding agent, on real issues in real projects.',
+    });
+    expect(productsWordsOf(false)).toEqual({
+      heading: 'Learn from real open source',
+      line: 'Short lessons, then real issues in real projects to use them on.',
+    });
   });
 });

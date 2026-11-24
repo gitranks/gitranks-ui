@@ -43,7 +43,6 @@ const render = (props: Partial<ComponentProps<typeof ContributeTabScreen>> = {})
     <ContributeTabScreen
       view={views.active}
       agents={{ hosted: true, own: true }}
-      learnOpen
       tab={{ totals: TOTALS, hostedLevel: 'MANUAL' }}
       page={issuePage}
       activity={activityOf()}

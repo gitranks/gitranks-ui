@@ -143,11 +143,27 @@ export function WhyHiddenDialog({
   );
 }
 
-/** "You can see 20 full issues a day. 17 left today.", its numbers set apart; a visitor's line without a count. */
-export function LooksLine({ looks, className }: { looks: IssueLooksToday | null; className?: string }) {
-  if (!looks) {
-    return <span className={cn('text-sm text-muted-foreground', className)}>{VISITOR_LOOKS_LINE}</span>;
+/**
+ * "You can see 20 full issues a day. 17 left today.", its numbers set apart. A visitor's line says that seeing one
+ * needs a sign-in; a signed-in person whose day is not known yet gets no line.
+ */
+export function LooksLine({
+  looks,
+  visitor = false,
+  className,
+}: {
+  looks: IssueLooksToday | null;
+  visitor?: boolean;
+  className?: string;
+}) {
+  if (visitor) {
+    return (
+      <span className={cn('text-sm text-muted-foreground', className)} data-visitor-line="">
+        {VISITOR_LOOKS_LINE}
+      </span>
+    );
   }
+  if (!looks) return null;
   return (
     <span className={cn('text-sm text-muted-foreground', className)} data-looks-line="">
       {looksLineOf(looks)
@@ -167,22 +183,41 @@ export function LooksLine({ looks, className }: { looks: IssueLooksToday | null;
 
 /**
  * Under every list of masked issues, and on the page of one issue: the link to the window on the left, the day's full
- * issues on the right (a visitor: that seeing one needs a sign-in, and costs no money).
+ * issues on the right (a visitor: that seeing one needs a sign-in, and costs no money). Under a list it also carries
+ * the list's one status line, where a row says what changed in it.
  */
 export function MaskedListFoot({
   looks,
+  visitor = false,
   numbers,
+  status,
   className,
 }: {
-  /** The day's full issues; null for a visitor. */
+  /** The day's full issues; null while not known. */
   looks: IssueLooksToday | null;
+  /** A visitor, who is not signed in. */
+  visitor?: boolean;
   numbers: Pick<IssueNumbers, 'read' | 'kept'> | null;
+  /** The list's status: what a row last said about itself ("Someone else is looking at this one right now."). */
+  status?: string;
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-wrap items-center justify-between gap-x-6 gap-y-2', className)} data-masked-foot="">
-      <WhyHiddenDialog numbers={numbers} />
-      <LooksLine looks={looks} />
+    <div className={cn('flex flex-col gap-2', className)} data-masked-foot="">
+      {status === undefined ? null : <MaskedListStatus text={status} />}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <WhyHiddenDialog numbers={numbers} />
+        <LooksLine looks={looks} visitor={visitor} />
+      </div>
     </div>
+  );
+}
+
+/** The one status line under a list of masked issues: polite, so a row's change is said once, without moving focus. */
+export function MaskedListStatus({ text }: { text: string }) {
+  return (
+    <p role="status" className="m-0 min-h-4 text-xs text-muted-foreground" data-list-status="">
+      {text}
+    </p>
   );
 }

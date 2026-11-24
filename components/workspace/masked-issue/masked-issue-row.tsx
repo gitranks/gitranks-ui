@@ -2,7 +2,7 @@
 
 import type { Route } from 'next';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -57,6 +57,11 @@ export type MaskedIssueRowProps = {
   onNext?: () => void;
   /** The row asks why it is skipped from the start (the catalogue's state). */
   initialAsking?: boolean;
+  /**
+   * What the row says when its state changes (taken, the day's limit, holding another): for the list's one status
+   * line under it, so a list has one live region, not one a row.
+   */
+  onStatus?: (text: string) => void;
 };
 
 const NOTE = 'min-h-4 text-xs text-foreground';
@@ -80,7 +85,9 @@ export function MaskedIssueRow({
   onSkip,
   onNext,
   initialAsking = false,
+  onStatus,
 }: MaskedIssueRowProps) {
+  const titleId = useId();
   const [asking, setAsking] = useState(initialAsking);
   const [skipped, setSkipped] = useState(false);
   const question = useRef<HTMLHeadingElement>(null);
@@ -101,14 +108,26 @@ export function MaskedIssueRow({
   const page = href ?? issuePagePath(issue.id);
   const shown = state === 'full' && full ? full : null;
 
+  const note =
+    state === 'taken'
+      ? TAKEN_NOTE
+      : state === 'limit' && looks
+        ? limitNoteOf(looks)
+        : state === 'holding'
+          ? HOLDING_NOTE
+          : null;
+  // A note that comes with a change of state is said once, through the list's status line; the first one is not.
+  const saidNote = useRef(note);
+  useEffect(() => {
+    if (note === saidNote.current) return;
+    saidNote.current = note;
+    if (note) onStatus?.(note);
+  }, [note, onStatus]);
+
   if (skipped) {
+    // The focus moves here, which reads the line; nothing else announces it.
     return (
-      <p
-        ref={done}
-        role="status"
-        tabIndex={-1}
-        className="px-4 py-3 text-sm text-muted-foreground outline-none sm:px-5"
-      >
+      <p ref={done} tabIndex={-1} className="px-4 py-3 text-sm text-muted-foreground outline-none sm:px-5">
         Skipped. It will not be shown to you again.
       </p>
     );
@@ -157,14 +176,6 @@ export function MaskedIssueRow({
     );
   }
 
-  const note =
-    state === 'taken'
-      ? TAKEN_NOTE
-      : state === 'limit' && looks
-        ? limitNoteOf(looks)
-        : state === 'holding'
-          ? HOLDING_NOTE
-          : null;
   const seeLabel = state === 'opening' ? 'Opening…' : state === 'full' ? 'Go to the issue' : 'See the full issue';
   const seeDisabled = state === 'opening' || state === 'limit';
   const seeClass = 'h-9 min-w-[9.5rem] px-4 max-sm:min-h-11';
@@ -183,10 +194,12 @@ export function MaskedIssueRow({
           </div>
         ) : null}
         <MaskedIssueFacts issue={issue} colors={colors} />
-        <span className="font-semibold text-pretty text-foreground">{shown ? shown.title : issue.title}</span>
+        <span id={titleId} className="font-semibold text-pretty text-foreground">
+          {shown ? shown.title : issue.title}
+        </span>
         {lesson ? <LessonLine lesson={lesson} /> : null}
         {note ? (
-          <p role="status" className={cn(NOTE, 'm-0')} data-row-note="">
+          <p className={cn(NOTE, 'm-0')} data-row-note="">
             {note}
           </p>
         ) : (
@@ -195,7 +208,7 @@ export function MaskedIssueRow({
       </div>
       <div className="flex flex-none items-center gap-3 max-sm:[&>*:last-child]:flex-1">
         {state === 'taken' ? (
-          <Button type="button" variant="outline" className={seeClass} onClick={onNext}>
+          <Button type="button" variant="outline" className={seeClass} onClick={onNext} aria-describedby={titleId}>
             Show the next one
           </Button>
         ) : (
@@ -221,17 +234,24 @@ export function MaskedIssueRow({
                 variant="outline"
                 className={cn(seeClass, 'aria-disabled:opacity-50')}
                 aria-disabled={seeDisabled || undefined}
+                aria-describedby={titleId}
                 onClick={seeDisabled ? undefined : onSee}
               >
                 {seeLabel}
               </Button>
             ) : seeDisabled ? (
-              <Button type="button" variant="outline" className={cn(seeClass, 'opacity-50')} aria-disabled="true">
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(seeClass, 'opacity-50')}
+                aria-disabled="true"
+                aria-describedby={titleId}
+              >
                 {seeLabel}
               </Button>
             ) : (
               <Button asChild variant="outline" className={seeClass}>
-                <Link href={page} prefetch={false}>
+                <Link href={page} prefetch={false} aria-describedby={titleId}>
                   {seeLabel}
                 </Link>
               </Button>

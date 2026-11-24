@@ -77,7 +77,32 @@ describe('the line under a list', () => {
   });
 
   it('tells a visitor that seeing one needs a sign-in', async () => {
-    await render(<LooksLine looks={null} />);
+    await render(<LooksLine looks={null} visitor />);
     expect(container.textContent).toBe('Seeing an issue in full needs a GitHub sign-in. It costs no money.');
+  });
+
+  it('shows no line to a signed-in person whose day is not known', async () => {
+    await render(<LooksLine looks={null} />);
+    expect(container.textContent).toBe('');
+    await render(<MaskedListFoot looks={null} numbers={issueNumbers} />);
+    expect(container.querySelector('[data-looks-line], [data-visitor-line]')).toBeNull();
+    expect(container.querySelector('[data-why-hidden-link]')).not.toBeNull();
+  });
+});
+
+describe("the list's status line", () => {
+  it('is one polite line under the list, there before anything is said', async () => {
+    await render(<MaskedListFoot looks={looksToday()} numbers={issueNumbers} status="" />);
+    expect(container.querySelectorAll('[role="status"]')).toHaveLength(1);
+    await render(
+      <MaskedListFoot
+        looks={looksToday()}
+        numbers={issueNumbers}
+        status="Someone else is looking at this one right now."
+      />,
+    );
+    expect(container.querySelector('[role="status"]')?.textContent).toBe(
+      'Someone else is looking at this one right now.',
+    );
   });
 });

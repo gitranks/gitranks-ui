@@ -52,12 +52,24 @@ describe('a masked row', () => {
       'A maintainer agreed it should be fixed',
       'Merges outside pull requests',
     ]);
-    expect(container.querySelector('[data-fact="rank tier"] .text-tier-4-strong svg')).not.toBeNull();
+    // The tier's glyph and its name, both in the tier's colour.
+    const tier = container.querySelector('[data-fact="rank tier"] .text-tier-4-strong');
+    expect(tier?.querySelector('svg')).not.toBeNull();
+    expect(tier?.textContent).toBe('Planet');
     // No project, number or GitHub link before the press.
     expect(container.querySelector('a[href*="github.com"]')).toBeNull();
-    expect(text()).not.toMatch(/#\d|tessera/);
+    expect(text()).not.toMatch(/#\d|acme/);
     expect(button('See the full issue')?.getAttribute('href')).toBe('/my/issues/q7k2m9xa');
     expect(button('Skip')).not.toBeNull();
+  });
+
+  it('says when the lesson is new for the person', async () => {
+    await render(
+      <MaskedIssueRow issue={maskedIssue()} lesson={{ title: 'A stack: last in, first out', learned: false }} />,
+    );
+    expect(container.querySelector('[data-lesson]')?.textContent).toBe(
+      'Teaches A stack: last in, first out, which is new for you.',
+    );
   });
 
   it('leaves out the facts it does not have, and shows no hints when there are none', async () => {
@@ -119,7 +131,7 @@ describe('a masked row', () => {
   it('shows the project and the issue chip over the same line once the person holds it', async () => {
     await render(<MaskedIssueRow issue={maskedIssue()} state="full" full={fullIssue()} />);
     const line = container.querySelector('[data-full-line]');
-    expect(line?.textContent).toContain('tessera-ui/tessera');
+    expect(line?.textContent).toContain('acme/notebook');
     expect(line?.textContent).toContain('Issue #1290');
     expect(line?.textContent).toContain('18.4k stars');
     expect(container.querySelector('[data-masked-facts]')).not.toBeNull();
@@ -141,7 +153,33 @@ describe('a masked row', () => {
     await press(button('Skip'));
     await press(button('Not interesting to me'));
     expect(onSkip).toHaveBeenCalledWith('NOT_INTERESTING');
-    expect(container.querySelector('[role="status"]')?.textContent).toBe('Skipped. It will not be shown to you again.');
+    expect(document.activeElement?.textContent).toBe('Skipped. It will not be shown to you again.');
+  });
+
+  it("has no live region of its own: a change of state goes to the list's one status line, once", async () => {
+    const onStatus = vi.fn();
+    await render(<MaskedIssueRow issue={maskedIssue()} onStatus={onStatus} />);
+    expect(onStatus).not.toHaveBeenCalled();
+    await render(<MaskedIssueRow issue={maskedIssue()} state="taken" onStatus={onStatus} />);
+    expect(onStatus).toHaveBeenCalledWith('Someone else is looking at this one right now.');
+    await render(<MaskedIssueRow issue={maskedIssue()} state="taken" onStatus={onStatus} />);
+    expect(onStatus).toHaveBeenCalledOnce();
+    expect(container.querySelector('[role="status"], [aria-live]')).toBeNull();
+  });
+
+  it('does not announce the note it is first drawn with', async () => {
+    const onStatus = vi.fn();
+    await render(<MaskedIssueRow issue={maskedIssue()} state="holding" onStatus={onStatus} />);
+    expect(onStatus).not.toHaveBeenCalled();
+  });
+
+  it('names the issue to the button that opens it', async () => {
+    await render(<MaskedIssueRow issue={maskedIssue()} />);
+    const id = button('See the full issue')?.getAttribute('aria-describedby');
+    expect(id).toBeTruthy();
+    expect(document.getElementById(id ?? '')?.textContent).toBe(
+      'Tags show twice in a sidebar after one of them is renamed',
+    );
   });
 
   it('gives a visitor the button without Skip', async () => {

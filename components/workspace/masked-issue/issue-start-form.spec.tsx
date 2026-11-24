@@ -30,7 +30,7 @@ afterEach(() => {
   container.remove();
 });
 
-const URL = 'https://github.com/tessera-ui/tessera/issues/1290';
+const URL = 'https://github.com/acme/notebook/issues/1290';
 const render = (node: ReactNode) => act(async () => root.render(node));
 const form = (props: Partial<IssueStartFormProps> = {}) =>
   render(
@@ -92,6 +92,10 @@ describe('Start fixing it, from Learn', () => {
       'Copied. Waiting for Claude Code. The issue is now held for 30 minutes.',
     );
     expect(button('Copy again')).not.toBeNull();
+    // A second copy copies again, and tells nobody: the 30 minutes started with the first.
+    await press(button('Copy again'));
+    expect(writeText).toHaveBeenCalledTimes(2);
+    expect(onCopy).toHaveBeenCalledOnce();
   });
 
   it('copies with Enter while nothing else has the focus', async () => {
@@ -153,5 +157,12 @@ describe('Start fixing it, from Contribute', () => {
     expect(button('Change the limit in Settings')?.getAttribute('href')).toBe('/my/settings/pull-requests#open');
     await enter();
     expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it('says it of one pull request in the singular', async () => {
+    await form({ from: 'contribute', waitingPrs: 1 });
+    expect(container.querySelector('[role="status"]')?.textContent).toBe(
+      'Your pull request is waiting on maintainers. A new one can start when it is merged or closed. Change the limit in Settings',
+    );
   });
 });

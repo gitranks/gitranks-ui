@@ -2,7 +2,8 @@ import type { Route } from 'next';
 
 import type { ContributeIssueSize } from './contribute.types';
 import type { IssueHint, IssueLooksToday, IssueNumbers, IssueOutReason } from './masked-issue.types';
-import { DEFAULT_LANGUAGE_COLOR, REPO_TIER_NAMES, TIER_NAMES } from '@/app/app.consts';
+import { REPO_TIER_NAMES, TIER_NAMES } from '@/app/app.consts';
+import { languageColorOf } from '@/utils/language-colors';
 
 /**
  * The words of a masked issue, its page and the window that says why details are hidden: one place, so the row, the
@@ -42,8 +43,8 @@ export function issueKindOf(kind: string | null | undefined): IssueKind | null {
 /** The size letter's word, for its title: "small", "medium", "large". */
 export const SIZE_WORDS: Record<ContributeIssueSize, string> = { S: 'small', M: 'medium', L: 'large' };
 
-/** The colours GitHub gives the languages issues come in, keyed by lower-case name. */
-const LANGUAGE_COLORS: Readonly<Record<string, string>> = {
+/** GitHub's colours for the languages issues come in, keyed by lower-case name: the fallback under the viewer's own. */
+const GITHUB_LANGUAGE_COLORS: Readonly<Record<string, string>> = {
   typescript: '#3178c6',
   javascript: '#f1e05a',
   python: '#3572a5',
@@ -64,11 +65,9 @@ const LANGUAGE_COLORS: Readonly<Record<string, string>> = {
   vue: '#41b883',
 };
 
-/** A language's colour: the caller's (a profile's own languages) first, then GitHub's, then the site's grey. */
-export const languageColorOf = (language: string | null, colors: Readonly<Record<string, string>> = {}): string => {
-  const key = language?.trim().toLowerCase();
-  return (key && (colors[key] ?? LANGUAGE_COLORS[key])) || DEFAULT_LANGUAGE_COLOR;
-};
+/** An issue's language colour: the viewer's own colours first, then GitHub's, then the site's grey. */
+export const issueLanguageColorOf = (language: string | null, colors: Readonly<Record<string, string>> = {}): string =>
+  languageColorOf(language, { ...GITHUB_LANGUAGE_COLORS, ...colors });
 
 /** A repository tier's name, 1 Stardust to 7 Supernova; null for none. */
 export const projectTierNameOf = (tier: number | null | undefined): string | null =>
@@ -170,6 +169,10 @@ export const clockOf = (at: string | Date, timeZone?: string): string =>
 export function heldLineOf(until: string, now: Date, timeZone?: string): string {
   return `Held for you until ${clockOf(until, timeZone)} · ${minutes(minutesLeftOf(until, now))} left`;
 }
+
+/** The strip before the page knows the viewer's zone: "Held for you · 14 minutes left". */
+export const heldMinutesLineOf = (until: string, now: Date): string =>
+  `Held for you · ${minutes(minutesLeftOf(until, now))} left`;
 
 /** The line under the button before the press, holding another issue or not. */
 export function beforePressLineOf(holding: { until: string } | null, now: Date): string {

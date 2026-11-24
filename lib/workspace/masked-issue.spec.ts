@@ -9,8 +9,8 @@ import {
   hintsShownOf,
   hintTextOf,
   issueKindOf,
+  issueLanguageColorOf,
   issuePagePath,
-  languageColorOf,
   limitEndOf,
   limitNoteOf,
   looksLineOf,
@@ -41,10 +41,10 @@ describe('the facts of a masked issue', () => {
   });
 
   it("colours a language by the viewer's own colours, then GitHub's, then the site's grey", () => {
-    expect(languageColorOf('TypeScript')).toBe('#3178c6');
-    expect(languageColorOf('typescript', { typescript: '#000001' })).toBe('#000001');
-    expect(languageColorOf('Zig')).toBe('#64748B');
-    expect(languageColorOf(null)).toBe('#64748B');
+    expect(issueLanguageColorOf('TypeScript')).toBe('#3178c6');
+    expect(issueLanguageColorOf('typescript', { typescript: '#000001' })).toBe('#000001');
+    expect(issueLanguageColorOf('Zig')).toBe('#64748B');
+    expect(issueLanguageColorOf(null)).toBe('#64748B');
   });
 
   it("names the project's rank tier, and none outside 1 to 7", () => {

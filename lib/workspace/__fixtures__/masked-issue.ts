@@ -53,9 +53,9 @@ export const maskedIssues: MaskedIssue[] = [
 /** The same issue in full, for the person who holds it. */
 export const fullIssue = (patch: Partial<FullIssue> = {}): FullIssue => ({
   id: 'q7k2m9xa',
-  repo: 'tessera-ui/tessera',
+  repo: 'acme/notebook',
   number: 1290,
-  url: 'https://github.com/tessera-ui/tessera/issues/1290',
+  url: 'https://github.com/acme/notebook/issues/1290',
   title: 'Duplicate tags appear in the sidebar after a rename',
   labels: ['bug', 'sidebar'],
   stars: 18_400,

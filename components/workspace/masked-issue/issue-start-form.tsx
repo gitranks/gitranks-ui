@@ -187,11 +187,15 @@ export function IssueStartForm({
   const prompt = startPromptOf(issueUrl, way === 'teach' ? 'lesson' : 'fix');
   const chosen: StartAgent | null = own && hosted ? agent : own ? 'own' : hosted ? 'hosted' : null;
 
+  // The first copy starts the 30 minutes; a copy after it changes nothing.
+  const reported = useRef(initialCopied);
   const copy = () => {
     navigator.clipboard
       ?.writeText(prompt)
       .then(() => {
         setCopied(true);
+        if (reported.current) return;
+        reported.current = true;
         onCopy?.();
       })
       .catch(() => {});
@@ -292,8 +296,9 @@ export function IssueStartForm({
       <Step key="last" n={next()} title={lastTitle}>
         {waitingPrs ? (
           <p role="status" className="m-0 text-sm font-medium text-foreground">
-            {waitingPrs} of your pull requests are waiting on maintainers. A new one can start when one is merged or
-            closed.{' '}
+            {waitingPrs === 1
+              ? 'Your pull request is waiting on maintainers. A new one can start when it is merged or closed.'
+              : `${waitingPrs} of your pull requests are waiting on maintainers. A new one can start when one is merged or closed.`}{' '}
             <Link href={WORKSPACE_ANCHORS.limitRow} prefetch={false} className={LINK}>
               Change the limit in Settings
             </Link>

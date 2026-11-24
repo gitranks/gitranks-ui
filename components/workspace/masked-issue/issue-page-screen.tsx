@@ -3,7 +3,7 @@
 import { Clock } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { FairUseAppealForm, type FairUseAppealFormProps } from '@/components/workspace/fair-use-appeal';
@@ -19,7 +19,14 @@ import { IssueStartForm, type IssueStartFormProps } from '@/components/workspace
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
 import { MaskedListFoot, WhyHiddenDialog } from '@/components/workspace/masked-issue/why-hidden';
 import { RefChips } from '@/components/workspace/ref-chips';
-import { beforePressLineOf, heldLineOf, limitEndOf, minutesLeftOf, starsTextOf } from '@/lib/workspace/masked-issue';
+import {
+  beforePressLineOf,
+  heldLineOf,
+  heldMinutesLineOf,
+  limitEndOf,
+  minutesLeftOf,
+  starsTextOf,
+} from '@/lib/workspace/masked-issue';
 import type {
   FullIssue,
   IssueNumbers,
@@ -31,9 +38,15 @@ import type {
 /** How often the hold's minutes are counted again. */
 const TICK_MS = 10_000;
 
-/** The clock, from `start`, moving while `running`. */
-function useNow(start: Date, running: boolean): Date {
+/**
+ * The hold's clock, from `start`: it moves while an issue is held and its minutes are not over (`held && !over`),
+ * and stops at the end, so an ended hold keeps no timer.
+ */
+function useHoldClock(start: Date, until: string | null): Date {
   const [now, setNow] = useState(start);
+  const held = until !== null;
+  const over = held && minutesLeftOf(until, now) === 0;
+  const running = held && !over;
   useEffect(() => {
     if (!running) return;
     setNow(new Date());
@@ -55,7 +68,11 @@ export type IssuePageScreenProps = {
   visitor?: boolean;
   /** The clock of the first render; the hold's minutes count down from it. */
   now: Date;
-  /** The zone the hold's end is written in; the browser's unless given. */
+  /**
+   * The zone the hold's end is written in. Without it the end is written in the browser's zone once the page is in
+   * the browser, so the server's render and the first one in the browser agree; until then the strip gives the
+   * minutes alone.
+   */
   timeZone?: string;
   /** The lesson the issue uses or teaches, when there is one. */
   lesson?: MaskedIssueLesson | null;
@@ -93,7 +110,9 @@ function MaskedCard({
     <section className={CARD} data-issue-card="masked">
       {masked.project ? <span className="font-mono text-sm text-muted-foreground">{masked.project}</span> : null}
       <MaskedIssueFacts issue={masked} colors={colors} />
-      <h1 className="m-0 text-2xl font-bold tracking-tight text-balance">{masked.title}</h1>
+      <h1 tabIndex={-1} className="m-0 text-2xl font-bold tracking-tight text-balance outline-none">
+        {masked.title}
+      </h1>
       {lesson ? <LessonLine lesson={lesson} /> : null}
       <IssueHints hints={masked.hints} />
     </section>
@@ -124,7 +143,9 @@ function FullCard({
         {stars ? <span>{stars}</span> : null}
       </div>
       {masked ? <MaskedIssueFacts issue={masked} colors={colors} /> : null}
-      <h1 className="m-0 text-2xl font-bold tracking-tight text-balance">{full.title}</h1>
+      <h1 tabIndex={-1} className="m-0 text-2xl font-bold tracking-tight text-balance outline-none">
+        {full.title}
+      </h1>
       {lesson ? <LessonLine lesson={lesson} /> : null}
       <a href={full.url} target="_blank" rel="noopener noreferrer" className={THREAD_LINK}>
         Read the whole thread on GitHub ↗<span className="sr-only"> (opens GitHub)</span>
@@ -141,7 +162,9 @@ function FullCard({
 function End({ state, title, text, children }: { state: string; title: string; text: string; children: ReactNode }) {
   return (
     <section className="flex flex-col items-start gap-3 rounded-xl border bg-card p-5" data-end={state}>
-      <h1 className="m-0 text-2xl font-bold tracking-tight">{title}</h1>
+      <h1 tabIndex={-1} className="m-0 text-2xl font-bold tracking-tight outline-none">
+        {title}
+      </h1>
       <p className="m-0 max-w-[70ch] text-sm text-muted-foreground">{text}</p>
       <div className="flex flex-wrap items-center gap-3">{children}</div>
     </section>
@@ -162,9 +185,16 @@ function endOf(
       </Link>
     </Button>
   );
+  const pressing = props.pressing ?? false;
   const again = (
-    <Button type="button" className={PRIMARY} onClick={props.onSee} data-primary-action="">
-      See the full issue again
+    <Button
+      type="button"
+      className={`${PRIMARY} aria-disabled:opacity-60`}
+      onClick={pressing ? undefined : props.onSee}
+      aria-disabled={pressing || undefined}
+      data-primary-action=""
+    >
+      {pressing ? 'Opening…' : 'See the full issue again'}
     </Button>
   );
   switch (state) {
@@ -251,6 +281,9 @@ function endOf(
   }
 }
 
+/** The words said once when the hold's minutes run out while the page is open. */
+export const HOLD_OVER_SAID = 'The 15 minutes are over. The issue went back to the list.';
+
 /** Presses the page's main link or button, for Enter. */
 const pressPrimary = () => document.querySelector<HTMLElement>('[data-primary-action]')?.click();
 
@@ -263,21 +296,36 @@ const pressPrimary = () => document.querySelector<HTMLElement>('[data-primary-ac
  */
 export function IssuePageScreen(props: IssuePageScreenProps) {
   const { page, from, back, numbers, visitor = false, timeZone, lesson = null, colors, pressing = false } = props;
-  const held = page.state === 'FULL' && !!page.until;
-  const now = useNow(props.now, held);
-  const over = held && page.until !== null && minutesLeftOf(page.until, now) === 0;
+  const until = page.state === 'FULL' ? page.until : null;
+  const now = useHoldClock(props.now, until);
+  const over = until !== null && minutesLeftOf(until, now) === 0;
   const state: IssuePageState = over ? 'EXPIRED' : page.state;
   const masked = page.masked;
 
+  // The browser's zone is known only in the browser: the end's time is written after the page is there.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const enter =
-    props.suspended || state === 'FULL'
-      ? null
-      : state === 'MASKED'
-        ? pressing || !props.onSee
-          ? null
-          : props.onSee
-        : pressPrimary;
+    props.suspended || state === 'FULL' || pressing ? null : state === 'MASKED' ? (props.onSee ?? null) : pressPrimary;
   useEnterKey(enter);
+
+  // Each new state takes the focus to its heading, so a keyboard or a screen reader starts at the top of what changed.
+  // The first render keeps the focus where the browser puts it.
+  const root = useRef<HTMLDivElement>(null);
+  const shownState = props.suspended ? 'SUSPENDED' : state;
+  const focused = useRef(shownState);
+  useEffect(() => {
+    if (focused.current === shownState) return;
+    focused.current = shownState;
+    root.current?.querySelector<HTMLElement>('h1, [data-ban] [tabindex="-1"]')?.focus();
+  }, [shownState]);
+
+  // The minutes running out is said once, politely; the countdown itself says nothing.
+  const [said, setSaid] = useState('');
+  useEffect(() => {
+    if (over) setSaid(HOLD_OVER_SAID);
+  }, [over]);
 
   let body: ReactNode;
   if (props.suspended) {
@@ -301,7 +349,7 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
             {beforePressLineOf(page.holding, now)}
           </span>
         </div>
-        <MaskedListFoot looks={visitor ? null : page.looks} numbers={numbers} className="border-t pt-4" />
+        <MaskedListFoot looks={page.looks} visitor={visitor} numbers={numbers} className="border-t pt-4" />
       </>
     );
   } else if (state === 'FULL' && page.full) {
@@ -313,7 +361,11 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
         >
           <span className="inline-flex items-center gap-2 font-medium" role="timer" aria-live="off">
             <Clock aria-hidden="true" className="size-3.5" />
-            {page.until ? heldLineOf(page.until, now, timeZone) : 'Held for you'}
+            {!page.until
+              ? 'Held for you'
+              : timeZone || mounted
+                ? heldLineOf(page.until, now, timeZone)
+                : heldMinutesLineOf(page.until, now)}
           </span>
           <span className="text-muted-foreground">Nobody else sees this issue while you hold it.</span>
         </div>
@@ -332,11 +384,14 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5" data-issue-page={state}>
+    <div ref={root} className="flex flex-col gap-5" data-issue-page={state}>
       <Link href={back.href} prefetch={false} className={LINK}>
         ← {back.label}
       </Link>
       {body}
+      <p className="sr-only" aria-live="polite" data-page-said="">
+        {said}
+      </p>
     </div>
   );
 }

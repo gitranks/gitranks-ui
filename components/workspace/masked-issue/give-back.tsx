@@ -86,15 +86,21 @@ export function GivenBack({
   const [noteSaid, setNoteSaid] = useState('');
   const [saving, startSaving] = useTransition();
 
+  /** Sets one reason on or off, leaving the others as they are now. */
+  const turn = (reason: IssueOutReason, on: boolean) =>
+    setReasons((current) =>
+      on ? (current.includes(reason) ? current : [...current, reason]) : current.filter((each) => each !== reason),
+    );
+
   const press = (reason: IssueOutReason) => {
     const on = !reasons.includes(reason);
-    const before = reasons;
-    setReasons(on ? [...reasons, reason] : reasons.filter((each) => each !== reason));
+    turn(reason, on);
     setReasonSaid('');
     void (onReason ? onReason(reason, on).catch(() => false) : Promise.resolve(true)).then((ok) => {
       if (ok) setReasonSaid('Saved.');
       else {
-        setReasons(before);
+        // Only this reason goes back: another pressed meanwhile keeps its own answer.
+        turn(reason, !on);
         setReasonSaid('Not saved. Try again.');
       }
     });
@@ -112,7 +118,9 @@ export function GivenBack({
   return (
     <section className="flex flex-col gap-4 rounded-xl border bg-card p-5" data-given-back="">
       <div className="flex flex-col gap-1">
-        <h1 className="m-0 text-2xl font-bold tracking-tight">You gave this issue back</h1>
+        <h1 tabIndex={-1} className="m-0 text-2xl font-bold tracking-tight outline-none">
+          You gave this issue back
+        </h1>
         <p className="m-0 text-sm text-muted-foreground">
           It is with the others again, and you will not be shown it again.
         </p>

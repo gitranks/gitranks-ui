@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { act, type ReactNode } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { createRoot, hydrateRoot, type Root } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { IssuePageScreen, type IssuePageScreenProps } from './issue-page-screen';
+import { HOLD_OVER_SAID, IssuePageScreen, type IssuePageScreenProps } from './issue-page-screen';
 import {
   fullPage,
   issueNumbers,
@@ -120,8 +121,8 @@ describe('before the press', () => {
   });
 
   it('names the project on a page about one project, and keeps the title rewritten', async () => {
-    await screen(issuePage({ masked: { ...issuePage().masked!, project: 'tessera-ui/tessera' } }));
-    expect(container.textContent).toContain('tessera-ui/tessera');
+    await screen(issuePage({ masked: { ...issuePage().masked!, project: 'acme/notebook' } }));
+    expect(container.textContent).toContain('acme/notebook');
     expect(container.textContent).not.toContain('#1290');
   });
 });
@@ -135,13 +136,13 @@ describe('after the press', () => {
       'Held for you until 12:14 · 14 minutes leftNobody else sees this issue while you hold it.',
     );
     const card = container.querySelector('[data-issue-card="full"]');
-    expect(card?.textContent).toContain('tessera-ui/tessera');
+    expect(card?.textContent).toContain('acme/notebook');
     expect(card?.textContent).toContain('Issue #1290');
     expect(card?.textContent).toContain('18.4k stars');
     expect(card?.querySelector('[data-masked-facts]')).not.toBeNull();
     expect(h1()).toBe('Duplicate tags appear in the sidebar after a rename');
     expect(button('Read the whole thread on GitHub ↗ (opens GitHub)')?.getAttribute('href')).toBe(
-      'https://github.com/tessera-ui/tessera/issues/1290',
+      'https://github.com/acme/notebook/issues/1290',
     );
     expect([...container.querySelectorAll('[data-hints] li')].map((each) => each.textContent)).toEqual([
       'A maintainer agreed it should be fixed',
@@ -168,6 +169,53 @@ describe('after the press', () => {
     });
     expect(state()).toBe('EXPIRED');
     expect(h1()).toBe('The 15 minutes are over');
+  });
+
+  it('takes the focus to the new heading, says the end of the minutes once, and stops its clock', async () => {
+    await screen(issuePage());
+    expect(document.activeElement).toBe(document.body);
+    await screen(fullPage());
+    expect(document.activeElement).toBe(container.querySelector('h1'));
+    expect(document.activeElement?.textContent).toBe('Duplicate tags appear in the sidebar after a rename');
+    const said = () => container.querySelector('[data-page-said]')?.textContent;
+    await act(async () => {
+      vi.advanceTimersByTime(5 * 60_000);
+    });
+    // The countdown says nothing.
+    expect(said()).toBe('');
+    await act(async () => {
+      vi.advanceTimersByTime(9 * 60_000);
+    });
+    expect(container.querySelector('[data-page-said]')?.getAttribute('aria-live')).toBe('polite');
+    expect(said()).toBe(HOLD_OVER_SAID);
+    expect(document.activeElement?.textContent).toBe('The 15 minutes are over');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('writes the end of the hold only in the browser when no zone is given, so the two renders agree', async () => {
+    const node = (
+      <IssuePageScreen
+        page={fullPage()}
+        from="learn"
+        back={BACK}
+        numbers={issueNumbers}
+        now={MASKED_NOW}
+        start={{ agents: { own: true, hosted: false }, ownName: 'Claude Code' }}
+      />
+    );
+    const html = renderToString(node);
+    expect(html).toContain('Held for you · 14 minutes left');
+    expect(html).not.toContain('until');
+    act(() => root.unmount());
+    container.innerHTML = html;
+    const errors = vi.fn();
+    await act(async () => {
+      root = hydrateRoot(container, node, { onRecoverableError: errors });
+    });
+    expect(errors).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-held]')?.textContent).toMatch(
+      /^Held for you until \d\d:\d\d · 14 minutes left/,
+    );
   });
 
   it('says when the project asks for an agreement to be signed', async () => {
@@ -204,6 +252,17 @@ describe('the other ends', () => {
     if (way === 'See the full issue again') expect(onSee).toHaveBeenCalledOnce();
   });
 
+  it.each(['EXPIRED', 'REPLACED'] as const)('%s: waits in its place while the press is on its way', async (end) => {
+    const onSee = vi.fn();
+    await screen(issuePage({ state: end }), { onSee, pressing: true });
+    const opening = button('Opening…');
+    expect(opening?.getAttribute('aria-disabled')).toBe('true');
+    expect(button('See the full issue again')).toBeNull();
+    await press(opening);
+    await enter();
+    expect(onSee).not.toHaveBeenCalled();
+  });
+
   it("says at the day's limit what the tier gives, when more come, and links the window", async () => {
     await screen(issuePage({ state: 'LIMIT', looks: looksAtLimit }));
     expect(h1()).toBe('You have seen 10 full issues today');
@@ -212,9 +271,9 @@ describe('the other ends', () => {
   });
 
   it('goes to the work on an issue the person started', async () => {
-    await screen(issuePage({ state: 'STARTED', startPath: '/my/pull-requests/tessera-ui/tessera/1290' }));
+    await screen(issuePage({ state: 'STARTED', startPath: '/my/pull-requests/acme/notebook/1290' }));
     expect(h1()).toBe('You started this issue');
-    expect(button('Go to its page')?.getAttribute('href')).toBe('/my/pull-requests/tessera-ui/tessera/1290');
+    expect(button('Go to its page')?.getAttribute('href')).toBe('/my/pull-requests/acme/notebook/1290');
   });
 
   it('shows a closed access with the request to look again in place of the page', async () => {

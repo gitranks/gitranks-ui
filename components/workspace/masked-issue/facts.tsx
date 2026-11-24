@@ -12,7 +12,7 @@ import {
   ISSUE_KINDS,
   type IssueKind,
   issueKindOf,
-  languageColorOf,
+  issueLanguageColorOf,
   projectTierNameOf,
   SIZE_WORDS,
 } from '@/lib/workspace/masked-issue';
@@ -39,7 +39,8 @@ function Fact({ name, children }: { name: string; children: ReactNode }) {
 
 /**
  * The line of facts of a masked issue, each a quiet word then its mark and value, 24 px apart: the language with its
- * colour dot, the size letter, the kind with its icon, and the project's rank tier with its glyph in the tier's colour.
+ * colour dot, the size letter, the kind with its icon, and the project's rank tier, its glyph and name in the tier's
+ * colour.
  * A fact the issue does not have is left out.
  */
 export function MaskedIssueFacts({
@@ -65,7 +66,7 @@ export function MaskedIssueFacts({
           <span
             aria-hidden="true"
             className="inline-block size-2.5 shrink-0 rounded-full"
-            style={{ background: languageColorOf(issue.language, colors) }}
+            style={{ background: issueLanguageColorOf(issue.language, colors) }}
           />
           {issue.language}
         </Fact>
@@ -86,10 +87,13 @@ export function MaskedIssueFacts({
       ) : null}
       {issue.projectTier && tierName ? (
         <Fact name="Rank tier">
-          <span className={cn('inline-flex', tierStrongTextClass(issue.projectTier))}>
+          <span
+            className={cn('inline-flex items-center gap-1', tierStrongTextClass(issue.projectTier))}
+            data-tier-name=""
+          >
             <RepoTierIcon tier={issue.projectTier} className="size-3.5" />
+            {tierName}
           </span>
-          {tierName}
         </Fact>
       ) : null}
     </div>

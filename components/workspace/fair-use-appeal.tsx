@@ -62,7 +62,9 @@ export function FairUseAppealForm({
   return (
     <div className="flex flex-col gap-5" data-fair-use-appeal={open ? 'open' : 'form'}>
       <div className={cn(CARD, 'gap-3')} data-ban="">
-        <p className="m-0 text-base leading-relaxed">{BAN_TEXT}</p>
+        <p tabIndex={-1} className="m-0 text-base leading-relaxed outline-none">
+          {BAN_TEXT}
+        </p>
       </div>
       {open ? (
         <div className={cn(CARD, 'gap-2')} role="status" data-appeal-sent="">

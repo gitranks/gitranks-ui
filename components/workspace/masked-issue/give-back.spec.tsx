@@ -96,6 +96,19 @@ describe('after giving back', () => {
     expect(statuses()[0]).toBe('Not saved. Try again.');
   });
 
+  it('lets only the reason that failed go back, and keeps one pressed meanwhile', async () => {
+    let fail: (ok: boolean) => void = () => {};
+    const onReason = vi.fn((reason: string) =>
+      reason === 'TOO_HARD' ? new Promise<boolean>((done) => (fail = done)) : Promise.resolve(true),
+    );
+    await render(<GivenBack backHref="/learn/earlier" onReason={onReason} />);
+    await press(button('Too hard for me'));
+    await press(button('It is already fixed'));
+    await act(async () => fail(false));
+    expect(button('Too hard for me')?.getAttribute('aria-pressed')).toBe('false');
+    expect(button('It is already fixed')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('shows the reasons and the note saved before', async () => {
     await render(<GivenBack backHref="/learn/earlier" reasons={['TAKEN', 'UNCLEAR']} note="Planned rewrite." />);
     const pressed = [...container.querySelectorAll('[aria-pressed="true"]')].map((each) => each.textContent);

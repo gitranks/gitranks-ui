@@ -429,13 +429,20 @@ describe('all courses', () => {
         { languages: seven },
         { languages: seven },
       ]),
-    ).toBe('Most courses show their examples in all seven languages. Others use Shell, or Python and JavaScript.');
+    ).toBe('Most courses show their examples in seven languages. Others use Shell, or Python and JavaScript.');
     expect(
       topicLanguagesLineOf([{ languages: seven }, { languages: ['javascript', 'python'] }, { languages: two }]),
-    ).toBe('Most courses show their examples in JavaScript and Python. Others use all seven languages.');
+    ).toBe('Most courses show their examples in JavaScript and Python. Others use seven languages.');
     expect(topicLanguagesLineOf([{ languages: seven }, { languages: two }])).toBe(
-      'Some courses show their examples in all seven languages. Others use Python and JavaScript.',
+      'Some courses show their examples in seven languages. Others use Python and JavaScript.',
     );
+    // A course with no languages still counts toward "Most".
+    expect(
+      topicLanguagesLineOf([{ languages: seven }, { languages: seven }, { languages: ['shell'] }, { languages: [] }]),
+    ).toBe('Some courses show their examples in seven languages. Others use Shell.');
+    expect(
+      topicLanguagesLineOf([{ languages: ['shell'] }, { languages: two }, { languages: ['python', 'go', 'ruby'] }]),
+    ).toBe('Some courses show their examples in Shell. Others use Python and JavaScript, or Python, Go and Ruby.');
     expect(topicLanguagesLineOf([{ languages: ['python', 'go', 'ruby'] }])).toBe(
       'Every example comes in Python, Go and Ruby.',
     );

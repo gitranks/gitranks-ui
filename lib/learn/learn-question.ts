@@ -65,6 +65,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   java: 'Java',
   php: 'PHP',
   ruby: 'Ruby',
+  shell: 'Shell',
 };
 
 /** "Python" for `python`; an unknown language's own id. */

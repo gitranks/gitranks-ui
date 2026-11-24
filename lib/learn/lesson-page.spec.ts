@@ -182,10 +182,10 @@ describe('where the examples and visuals sit', () => {
       { kind: 'text', markdown: 'Only text.' },
       { kind: 'example', name: 'main' },
     ]);
-    expect(bodyPartsOf('Only text.', { examples: ['other'], visuals: [] }).at(-1)).toEqual({
-      kind: 'example',
-      name: 'other',
-    });
+    // A lesson with no main example: its question's code is not the lesson's example.
+    expect(bodyPartsOf('Only text.', { examples: ['q1'], visuals: [] })).toEqual([
+      { kind: 'text', markdown: 'Only text.' },
+    ]);
     expect(bodyPartsOf('Only text.', { examples: [], visuals: [] })).toEqual([
       { kind: 'text', markdown: 'Only text.' },
     ]);

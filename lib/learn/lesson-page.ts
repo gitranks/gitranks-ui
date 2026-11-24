@@ -268,7 +268,8 @@ const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 /**
  * The body cut where it places an example or a visual. A name the lesson does not have places nothing, and a name
  * placed twice shows once. A placement line inside fenced code is code, left as it is. With no example placed, the
- * main example (else the first) follows the text.
+ * main example follows the text; a lesson with none (a lesson about people and process)
+ * shows only what it places.
  */
 export function bodyPartsOf(
   body: string,
@@ -315,8 +316,8 @@ export function bodyPartsOf(
   }
   flush();
   if (![...placed].some((key) => key.startsWith('example:'))) {
-    const main = examples.includes('main') ? 'main' : examples[0];
-    if (main) parts.push({ kind: 'example', name: main });
+    // Never another folder: it is a question's code, shown with its question.
+    if (examples.includes('main')) parts.push({ kind: 'example', name: 'main' });
   }
   return parts;
 }

@@ -33,6 +33,13 @@ describe('highlightCodes', () => {
     }
   }, 20_000);
 
+  it('highlights shell commands', async () => {
+    const [code] = await highlightCodes([{ language: 'shell', code: 'git commit -m "Fix it"  # a comment\n' }]);
+    expect(code.language).toBe('shell');
+    expect(text(code.lines)).toEqual(['git commit -m "Fix it"  # a comment']);
+    expect(code.lines[0].length).toBeGreaterThan(1);
+  }, 20_000);
+
   it('sends a language it does not know as plain lines', async () => {
     const highlighted = await highlightCodes([{ language: 'cobol', code: 'DISPLAY "HI".\nSTOP RUN.' }]);
     expect(highlighted).toEqual([{ language: 'cobol', lines: [[{ text: 'DISPLAY "HI".' }], [{ text: 'STOP RUN.' }]] }]);

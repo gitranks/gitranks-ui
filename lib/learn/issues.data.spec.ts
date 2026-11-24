@@ -35,7 +35,7 @@ describe("Issues' reads", () => {
     });
     const [document, variables, options] = graphqlDirect.mock.calls[0];
     expect(print(document)).toContain('learnQueuePublic(input: $input)');
-    expect(variables).toEqual({ input: { lesson: null, course: 'algorithms', language: null } });
+    expect(variables).toEqual({ input: { lesson: null, course: 'algorithms', language: null, repo: null, org: null } });
     expect(options).toEqual({ source: 'ssr' });
   });
 
@@ -45,7 +45,7 @@ describe("Issues' reads", () => {
     const [document, variables, options] = graphqlDirect.mock.calls[0];
     expect(print(document)).toContain('learnQueue(input: $input, issuesPage: $issuesPage)');
     expect(variables).toEqual({
-      input: { lesson: null, course: null, language: null, forYou: true, learned: true },
+      input: { lesson: null, course: null, language: null, repo: null, org: null, forYou: true, learned: true },
       issuesPage: true,
     });
     expect(options).toEqual({ source: 'ssr', githubLogin: 'octocat' });
@@ -93,7 +93,7 @@ describe("Issues' reads", () => {
     graphqlDirect.mockResolvedValueOnce({ learnFixes });
     expect(await loadLearnFixes(views.courseFixed, 'cursor-2')).toEqual({ kind: 'ok', data: learnFixes });
     expect(graphqlDirect.mock.calls[0][1]).toEqual({
-      input: { lesson: null, course: 'algorithms', language: null, after: 'cursor-2' },
+      input: { lesson: null, course: 'algorithms', language: null, repo: null, org: null, after: 'cursor-2' },
     });
   });
 

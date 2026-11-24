@@ -69,7 +69,9 @@ export function learnIssuesMarkdownOf(
   else if (!rows.length) lines.push('No open issue right now. We look for new ones every day.');
   else {
     lines.push(
-      'Five open issues at a time, in the same order for everyone. Each is shown without its project; seeing one in full needs a GitHub sign-in.',
+      view.repo || view.org
+        ? 'Five open issues at a time, in the same order for everyone. Each is shown with a rewritten title; seeing one in full needs a GitHub sign-in.'
+        : 'Five open issues at a time, in the same order for everyone. Each is shown without its project; seeing one in full needs a GitHub sign-in.',
       '',
       ...rows.map(rowLineOf),
     );

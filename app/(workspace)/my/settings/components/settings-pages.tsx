@@ -60,11 +60,11 @@ export function WorkSettingsScreen({
         <SettingsWorkGroup
           set={set}
           preferences={preferences}
-          title="Your mode, filters and ignored repos"
+          title="Your mode, languages and ignored repos"
           list={mode && mode !== 'ALL' ? <SetListScreen set={set} mode={mode} now={now} /> : null}
         />
       ) : (
-        <SettingsGroup id="modes" title="Your filters">
+        <SettingsGroup id="modes" title="Your languages">
           <SettingsList>
             {setFailed ? (
               <SettingsRow

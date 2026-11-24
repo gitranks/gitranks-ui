@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
+import { ProjectAuthor, ProjectFacts } from './project-course-parts';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,17 +78,22 @@ function LanguagePicker({
 /**
  * A course's head: the way back, its name, a line saying what kind of course it is with its public numbers (each only
  * when worth showing), what it is about, and a line of counts: the course's own, or the learner's figures in its place.
+ * A project course's line names its project with its links instead of its examples' languages, and who wrote it
+ * follows what it is about.
  */
 export function CourseHeader({
   course,
   mine,
   language,
   onLanguage,
+  projectIssues = null,
 }: {
   course: LearnCourse;
   mine: LearnCourseMine | null;
   language: string | null;
   onLanguage: (language: string) => void;
+  /** A project course's open issues to fix: its line of facts links them, while there are some. */
+  projectIssues?: number | null;
 }) {
   const learners = learnersOf(course.numbers);
   const good = goodShareOf(course.numbers);
@@ -107,7 +113,9 @@ export function CourseHeader({
         <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-foreground">
           {COURSE_KIND_LABELS[course.kind]}
         </span>
-        {course.kind === 'TOPIC' ? (
+        {course.project ? (
+          <ProjectFacts project={course.project} slug={course.slug} openIssues={projectIssues} />
+        ) : course.kind === 'TOPIC' ? (
           <>
             <span className="whitespace-nowrap">Works in any language</span>
             {course.languages.length > 1 ? (
@@ -143,6 +151,7 @@ export function CourseHeader({
         ) : null}
       </div>
       <p className="m-0 max-w-[70ch] text-base text-muted-foreground">{course.about}</p>
+      {course.project ? <ProjectAuthor project={course.project} /> : null}
       {/* One line in one place: the course's count, or the learner's figures and the door to the check. */}
       <p className="m-0 text-sm text-muted-foreground" data-course-line={progress ? 'mine' : 'course'}>
         {progress ? (

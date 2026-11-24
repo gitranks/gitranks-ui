@@ -149,4 +149,14 @@ describe("a lesson's structured data", () => {
       { '@type': 'ListItem', position: 3, name: lesson.title, item: absoluteUrl('/learn/lessons/sets') },
     ]);
   });
+
+  it("names a project course at its project's address, in its breadcrumbs and as the course it is part of", () => {
+    const project = { name: 'Django', repo: 'django/django', org: null };
+    const [resource, breadcrumbs] = learnLessonJsonLd({ ...lesson, course: { ...lesson.course, project } }) as [
+      { isPartOf: { url: string } },
+      { itemListElement: { item: string }[] },
+    ];
+    expect(resource.isPartOf.url).toBe(absoluteUrl('/learn/repos/django/django'));
+    expect(breadcrumbs.itemListElement[1].item).toBe(absoluteUrl('/learn/repos/django/django'));
+  });
 });

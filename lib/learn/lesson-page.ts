@@ -16,11 +16,37 @@ export type LearnLessonLevel = 'EASY' | 'MEDIUM' | 'HARD';
 /** A link to a lesson, a course or a group: its slug and its title. */
 export type LearnLessonLink = { slug: string; title: string };
 
+/** A project course's project, as a lesson of it names it: its name, and its repository or its organisation. */
+export type LearnLessonProject = { name: string; repo: string | null; org: string | null };
+
+/**
+ * A lesson's course: its slug and title, and its project when it is a project course (read with the course's groups,
+ * so links lead to the project's address and a quote names the project).
+ */
+export type LearnLessonCourse = LearnLessonLink & { project?: LearnLessonProject | null };
+
 /** "Did you know?": its own short title, the text, where it comes from and a link to it. */
 export type LearnFact = { title: string; text: string; source: string; url: string };
 
-/** One example of a lesson, by its name (`main` is the lesson's own), in each language of its course. */
-export type LearnExample = { name: string; codes: LearnCode[] };
+/**
+ * Where a quote of a project's code comes from: the repository (`owner/name`), the file at a full commit, its first
+ * and last line there, and the day it was quoted (`YYYY-MM-DD`).
+ */
+export type LearnCodeSource = {
+  repo: string;
+  path: string;
+  commit: string;
+  firstLine: number;
+  lastLine: number;
+  at: string;
+};
+
+/**
+ * One example of a lesson, by its name (`main` is the lesson's own), in each language of its course. A project
+ * course's example may quote the project's own code instead: then `source` says where from, and its one code is the
+ * quoted lines.
+ */
+export type LearnExample = { name: string; codes: LearnCode[]; source?: LearnCodeSource | null };
 
 /** A lesson as the API gives it to everyone. */
 export type LearnLesson = {
@@ -29,7 +55,7 @@ export type LearnLesson = {
   level: LearnLessonLevel;
   /** The lesson in Markdown. A line of its own `[[example: name]]` or `[[visual: name]]` places one there. */
   body: string;
-  course: LearnLessonLink;
+  course: LearnLessonCourse;
   group: LearnLessonLink;
   examples: LearnExample[];
   /** The visuals the body can place, by name. */
@@ -69,14 +95,31 @@ export type LearnLessonMine = {
   feedbackGood: boolean | null;
 };
 
-/** One example's codes as the server highlighted them, one entry a language. */
-export type HighlightedExample = { name: string; codes: readonly HighlightedCode[] };
+/**
+ * One example's codes as the server highlighted them, one entry a language; a quote of a project's code carries its
+ * source, and the project's name when the course's could be read.
+ */
+export type HighlightedExample = {
+  name: string;
+  codes: readonly HighlightedCode[];
+  source?: LearnCodeSource | null;
+  project?: string | null;
+};
 
 /** A lesson of a course's group, as the course lists it. */
 export type LearnGroupLesson = { slug: string; title: string; level: LearnLessonLevel; paused: boolean };
 
-/** A course's group: its lessons in order. */
-export type LearnCourseGroup = { slug: string; name: string; lessons: LearnGroupLesson[] };
+/**
+ * A course's group: its lessons in order. In an organisation's course, `repo` is the repository the group is about;
+ * `contributing` marks a project course's last group, about contributing to the project.
+ */
+export type LearnCourseGroup = {
+  slug: string;
+  name: string;
+  lessons: LearnGroupLesson[];
+  repo?: string | null;
+  contributing?: boolean;
+};
 
 /** A square of the strip: one for each lesson of the group, by its depth; the current one ringed until it is learned. */
 export type LessonSquare = 'none' | 'current' | 'learned' | 'practised' | 'mastered' | 'paused';

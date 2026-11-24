@@ -10,8 +10,8 @@ import { savePreferences } from '@/lib/contribute/actions';
 import { type WorkPicks, withWorkPicks } from '@/lib/contribute/start-flow';
 import { cn } from '@/lib/utils';
 import { contributeSource } from '@/lib/workspace/click-tracking';
-import type { ContributeIssueKind, ContributeLanguage } from '@/lib/workspace/contribute.types';
-import { KINDS, LANGUAGES } from '@/lib/workspace/format';
+import type { ContributeLanguage } from '@/lib/workspace/contribute.types';
+import { LANGUAGES } from '@/lib/workspace/format';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 
 const toggle = <T,>(list: readonly T[], value: T): T[] =>
@@ -69,7 +69,7 @@ function TickCard<T extends string>({
 }
 
 /**
- * What you work on, the first step of Contribute's flow: languages and kinds of issue as tick boxes, then Continue. A
+ * What you work on, the first step of Contribute's flow: languages as tick boxes, then Continue. A
  * visitor's picks ride in the address to the next step, nothing saved; a signed-in person's are saved first. A visitor
  * may sign in here to have the languages filled in from their repositories, the picks made so far kept.
  */
@@ -87,7 +87,7 @@ export function WorkStep({ initial, signedIn }: { initial: WorkPicks; signedIn: 
       return;
     }
     startTransition(async () => {
-      const saved = await savePreferences({ languages: picks.languages, kinds: picks.kinds });
+      const saved = await savePreferences({ languages: picks.languages });
       if (saved.ok) router.push(GETTING_IN_PATHS.contributeAgent);
       else setFailed(true);
     });
@@ -122,14 +122,6 @@ export function WorkStep({ initial, signedIn }: { initial: WorkPicks; signedIn: 
         options={LANGUAGES}
         picked={picks.languages}
         onToggle={(language) => setPicks((now) => ({ ...now, languages: toggle(now.languages, language) }))}
-      />
-      <TickCard<ContributeIssueKind>
-        title="Kinds of issue"
-        hint="Pick any."
-        none="None picked: every kind."
-        options={KINDS}
-        picked={picks.kinds}
-        onToggle={(kind) => setPicks((now) => ({ ...now, kinds: toggle(now.kinds, kind) }))}
       />
       <div className="flex flex-col gap-2">
         <Button

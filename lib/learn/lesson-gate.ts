@@ -98,7 +98,9 @@ export async function lessonGateOf(route: LessonRoute, timeoutMs = LESSON_GATE_T
       const answer = await fix;
       return answer.kind === 'missing' ? PAGE : answer;
     }
+    // A lesson has no address of its own elsewhere: only a project course does.
     case 'page':
+    case 'elsewhere':
       return PAGE;
     case 'moved':
       return { kind: 'redirect', path: ours.path, permanent: true };

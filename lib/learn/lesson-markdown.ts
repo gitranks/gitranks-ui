@@ -17,7 +17,8 @@ import {
   type LearnLessonLink,
   visualsOf,
 } from './lesson-page';
-import { coursePath, learnLessonMarkdownPath, learnLessonPath } from './paths';
+import { courseHrefOf, learnLessonMarkdownPath, learnLessonPath } from './paths';
+import { quoteFileWordsOf, quoteLineOf, quoteUrlOf } from './project-course';
 import { absoluteUrl } from '@/lib/seo/site';
 
 /*
@@ -34,8 +35,20 @@ function fenced(code: string, language: string): string {
   return `${fence}${language}\n${code.replace(/\r\n?/g, '\n').replace(/\n$/, '')}\n${fence}`;
 }
 
-/** An example in each language of the course, each under its language's name. */
-function exampleOf(example: LearnExample): string {
+/**
+ * An example in each language of the course, each under its language's name; a quote of a project's code as the file
+ * and its lines linked to that exact version, the code, and the line on the pinned version.
+ */
+function exampleOf(example: LearnExample, project: string | null): string {
+  const { source } = example;
+  if (source) {
+    const [code] = example.codes;
+    return [
+      `[${quoteFileWordsOf(source)}](${quoteUrlOf(source)}):`,
+      fenced(code.code, code.language),
+      quoteLineOf(source, project),
+    ].join('\n\n');
+  }
   return example.codes
     .map((code) => `${languageNameOf(code.language)}:\n\n${fenced(code.code, code.language)}`)
     .join('\n\n');
@@ -127,7 +140,7 @@ export function learnLessonMarkdownOf(lesson: LearnLesson): string {
   const head = [
     `# ${oneLine(lesson.title)}`,
     [
-      `A lesson of the course ${linkOf(lesson.course, coursePath(lesson.course.slug))}, in its group "${oneLine(lesson.group.title)}". ${LEVEL_NAMES[lesson.level] ?? lesson.level}.`,
+      `A lesson of the course ${linkOf(lesson.course, courseHrefOf(lesson.course))}, in its group "${oneLine(lesson.group.title)}". ${LEVEL_NAMES[lesson.level] ?? lesson.level}.`,
       `The page: ${absoluteUrl(learnLessonPath(lesson.slug))}`,
       `Written and checked by GitRanks${checked ? `, last checked ${checked}` : ''}.`,
     ].join('\n'),
@@ -145,7 +158,7 @@ export function learnLessonMarkdownOf(lesson: LearnLesson): string {
   }).flatMap((part) => {
     if (part.kind === 'text') return [part.markdown];
     const example = part.kind === 'example' ? examples.get(part.name) : undefined;
-    return example?.codes.length ? [exampleOf(example)] : [];
+    return example?.codes.length ? [exampleOf(example, lesson.course.project?.name ?? null)] : [];
   });
 
   const sections = [...head, ...body, '## The question', ...questionOf(lesson.question)];

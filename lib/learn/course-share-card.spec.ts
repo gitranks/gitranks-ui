@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { algorithmsCourse, courseCards, goCourse } from './__fixtures__/course';
+import { algorithmsCourse, courseCards, djangoCourse, goCourse, kubernetesCourse } from './__fixtures__/course';
 import {
+  courseCardAddressOf,
   courseCardFiguresOf,
   courseCardSubOf,
   courseCardVersionOf,
@@ -19,6 +20,14 @@ describe("a course's picture", () => {
     expect(courseCardSubOf({ kind: 'LANGUAGE', languages: ['javascript', 'typescript'] })).toBe(
       'A language course: JavaScript and TypeScript',
     );
+  });
+
+  it("says a project course's kind with its language, and shows its project's address", () => {
+    expect(courseCardSubOf(djangoCourse)).toBe('A repository course, in Python');
+    expect(courseCardSubOf(kubernetesCourse)).toBe('An org course, in Go');
+    expect(courseCardSubOf({ kind: 'ORG', languages: [] })).toBe('An org course');
+    expect(courseCardAddressOf(djangoCourse)).toBe('gitranks.com/learn/repos/django/django');
+    expect(courseCardAddressOf(algorithmsCourse)).toBe('gitranks.com/learn/courses/algorithms');
   });
 
   it('shows the lessons always, the learners from 10, and never a zero', () => {

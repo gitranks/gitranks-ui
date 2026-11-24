@@ -2,7 +2,7 @@ import 'server-only';
 
 import { cacheLife, cacheTag } from 'next/cache';
 
-import type { LearnAddress, LearnAddressKind } from './address-gate';
+import { isAddressSlug, type LearnAddress, type LearnAddressKind } from './address-gate';
 import type { HighlightedCode } from './code-tokens';
 import type { LearnCourseMine } from './course';
 import { highlightCodes } from './highlight';
@@ -12,6 +12,7 @@ import type {
   LearnGroupLesson,
   LearnLesson,
   LearnLessonMine,
+  LearnLessonProject,
 } from './lesson-page';
 import {
   LearnAddressDocument,
@@ -20,7 +21,7 @@ import {
   LearnLessonDocument,
   LearnLessonMineDocument,
 } from './lesson-page.documents';
-import { isContentSlug, learnCourseTag, learnLessonTag } from './paths';
+import { isContentSlug, LEARN_COURSES_TAG, learnCourseTag, learnLessonTag } from './paths';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { contributeErrorOf } from '@/lib/workspace/errors';
 
@@ -44,12 +45,15 @@ const isMissingAnswer = (failure: unknown) => {
   return error === 'NOT_FOUND' || error === 'INVALID' || error === 'NOT_AVAILABLE_YET';
 };
 
+/** A course's groups in order, and a project course's project (null for any other course). */
+export type LearnCourseOutline = { groups: LearnCourseGroup[]; project: LearnLessonProject | null };
+
 /**
- * A course's groups, in order; cached under the course's tag: for hours when it has some, for minutes when it has none
- * (a course not live yet, or a deploy in between), so the squares come back soon. A failed read throws, and nothing is
- * kept.
+ * A course's groups, in order, with a project course's name; cached under the course's tag: for hours when it has
+ * groups, for minutes when it has none (a course not live yet, or a deploy in between), so the squares come back soon.
+ * Null with no group. A failed read throws, and nothing is kept.
  */
-export async function loadLearnCourseGroups(course: string): Promise<LearnCourseGroup[] | null> {
+export async function loadLearnCourseOutline(course: string): Promise<LearnCourseOutline | null> {
   'use cache';
   cacheTag(learnCourseTag(course));
   if (!isContentSlug(course)) {
@@ -60,7 +64,18 @@ export async function loadLearnCourseGroups(course: string): Promise<LearnCourse
   const groups = learnCourse?.groups ?? [];
   if (groups.length) cacheLife('hours');
   else cacheLife('minutes');
-  return groups.length ? groups : null;
+  const project = learnCourse?.project;
+  return groups.length
+    ? {
+        groups,
+        project: project?.name ? { name: project.name, repo: project.repo ?? null, org: project.org ?? null } : null,
+      }
+    : null;
+}
+
+/** A course's groups, in order (`loadLearnCourseOutline`); null with none. */
+export async function loadLearnCourseGroups(course: string): Promise<LearnCourseGroup[] | null> {
+  return (await loadLearnCourseOutline(course))?.groups ?? null;
 }
 
 /**
@@ -88,28 +103,40 @@ export async function loadLearnLessonPage(slug: string): Promise<LearnLessonPage
     return null;
   }
   cacheTag(learnCourseTag(lesson.course.slug));
-  const [examples, questionCodes, groups] = await Promise.all([
+  const [highlighted, questionCodes, outline] = await Promise.all([
     Promise.all(
-      lesson.examples.map(async (example) => ({ name: example.name, codes: await highlightCodes(example.codes) })),
+      lesson.examples.map(async (example) => ({
+        name: example.name,
+        codes: await highlightCodes(example.codes),
+        source: example.source ?? null,
+      })),
     ),
     highlightCodes(lesson.question.codes),
-    loadLearnCourseGroups(lesson.course.slug).catch(() => null),
+    loadLearnCourseOutline(lesson.course.slug).catch(() => null),
   ]);
-  const group = groups?.find((entry) => entry.slug === lesson.group.slug)?.lessons ?? null;
+  // A project course's lesson carries its project, when the course could be read: its links lead to the project's
+  // address, and a quote names the project.
+  const project = outline?.project ?? null;
+  const examples = highlighted.map((example) =>
+    example.source ? { ...example, project: project?.name ?? null } : example,
+  );
+  const group = outline?.groups.find((entry) => entry.slug === lesson.group.slug)?.lessons ?? null;
   if (group) cacheLife('hours');
   else cacheLife('minutes');
-  return { lesson, examples, questionCodes, group: group ?? [] };
+  const read = project ? { ...lesson, course: { ...lesson.course, project } } : lesson;
+  return { lesson: read, examples, questionCodes, group: group ?? [] };
 }
 
 /**
- * What a lesson's or a course's address answers, for the page of a paused or removed one: kept for hours under its
- * tag, which a pause, a removal and a return expire. A failed read throws.
+ * What a lesson's, a course's or a project course's address answers, for the page of a paused or removed one: kept
+ * for hours under its tag, which a pause, a removal and a return expire (a project's, under the list's tag, which
+ * every change of the content expires). A failed read throws.
  */
 export async function loadLearnAddress(kind: LearnAddressKind, slug: string): Promise<LearnAddress | null> {
   'use cache';
-  cacheTag(kind === 'lesson' ? learnLessonTag(slug) : learnCourseTag(slug));
+  cacheTag(kind === 'lesson' ? learnLessonTag(slug) : kind === 'course' ? learnCourseTag(slug) : LEARN_COURSES_TAG);
   cacheLife('hours');
-  if (!isContentSlug(slug)) return null;
+  if (!isAddressSlug(kind, slug)) return null;
   const { learnAddress } = await graphqlDirect(LearnAddressDocument, { kind, slug }, { source: 'ssr' });
   return learnAddress ?? null;
 }

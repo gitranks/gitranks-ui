@@ -7,8 +7,28 @@ import { SETUP_LANGUAGES } from './setup';
  * of all courses and of a course draw, pure, so the pages, the copies and the specs agree.
  */
 
-/** A topic course works in any language; a language course is about one (or JavaScript and TypeScript together). */
-export type LearnCourseKind = 'TOPIC' | 'LANGUAGE';
+/**
+ * A topic course works in any language; a language course is about one (or JavaScript and TypeScript together); a
+ * project course is about one repository or one organisation, written by GitRanks from the project's docs and code.
+ */
+export type LearnCourseKind = 'TOPIC' | 'LANGUAGE' | 'REPOSITORY' | 'ORG';
+
+/**
+ * The project a project course is about: its name on the page, its repository (`owner/name`) or its organisation, both
+ * lower case, its main language, its GitHub address, whether GitRanks has a page for it, the short names of an
+ * organisation's covered repositories (none for a repository's course), and the day it was last checked against the
+ * code (`YYYY-MM-DD`).
+ */
+export type LearnCourseProject = {
+  name: string;
+  repo: string | null;
+  org: string | null;
+  language: string;
+  githubUrl: string;
+  onGitranks: boolean;
+  covers: string[];
+  checkedAt: string;
+};
 
 /**
  * A course's public numbers: each null until it is worth showing. `issuesFixed`, the merged fixes that used a lesson
@@ -25,6 +45,8 @@ export type LearnCourseCard = {
   languages: string[];
   lessons: number;
   numbers: LearnCourseNumbers;
+  /** The project of a project course; null or absent for a topic or a language course. */
+  project?: LearnCourseProject | null;
 };
 
 /** A course whole: its groups of lessons in order, and the course to take after it. */
@@ -107,10 +129,17 @@ export const lessonsWords = (count: number) => `${countWords(count)} ${count ===
 export const COURSE_KIND_LABELS: Record<LearnCourseKind, string> = {
   TOPIC: 'Topic course',
   LANGUAGE: 'Language course',
+  REPOSITORY: 'Repository course',
+  ORG: 'Org course',
 };
 
-/** The word a search finds a kind of course by. */
-const KIND_WORDS: Record<LearnCourseKind, string> = { TOPIC: 'topic', LANGUAGE: 'language' };
+/** The words a search finds a kind of course by. */
+const KIND_WORDS: Record<LearnCourseKind, string> = {
+  TOPIC: 'topic',
+  LANGUAGE: 'language',
+  REPOSITORY: 'repository project',
+  ORG: 'org organisation project',
+};
 
 /** "86 lessons in 9 groups. Each one takes about two minutes." */
 export function courseCountLineOf(course: Pick<LearnCourse, 'lessons' | 'groups'>): string {
@@ -657,8 +686,21 @@ export function courseSearchOf(groups: readonly LearnCourseGroup[], query: strin
 /* All courses                                                                                                        */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A section of all courses: one kind. */
-export type CourseSection = { kind: LearnCourseKind; title: string; sub: string; courses: LearnCourseCard[] };
+/** The sections of all courses: topics, languages, and the courses about one project. */
+export type CourseSectionKind = 'TOPIC' | 'LANGUAGE' | 'PROJECT';
+
+/** A section of all courses: one kind, or the project courses of both kinds together. */
+export type CourseSection = { kind: CourseSectionKind; title: string; sub: string; courses: LearnCourseCard[] };
+
+/** Whether a course is about one project: a repository's or an organisation's. */
+export const isProjectCourse = (course: Partial<Pick<LearnCourseCard, 'kind'>>): boolean =>
+  course.kind === 'REPOSITORY' || course.kind === 'ORG';
+
+/** The title and the line of the section of project courses. */
+export const PROJECT_SECTION = {
+  title: 'Projects, from the inside',
+  sub: 'For people who want to contribute to them.',
+};
 
 /** "all seven languages" for Learn's seven; the names for any other list ("Python and JavaScript", "Shell"). */
 const examplesInWords = (languages: readonly string[], all = 'all ') =>
@@ -696,7 +738,10 @@ export function topicLanguagesLineOf(topics: readonly Pick<LearnCourseCard, 'lan
   return `${lead} courses show their examples in ${ways[0]}. Others use ${ways.slice(1).join(', or ')}.`;
 }
 
-/** The sections of all courses, topics first, each in the API's order; a kind with no course has none. */
+/**
+ * The sections of all courses, topics first, then languages, then projects, each in the API's order; a section with no
+ * course is left out.
+ */
 export function courseSectionsOf(courses: readonly LearnCourseCard[]): CourseSection[] {
   const topics = courses.filter((course) => course.kind === 'TOPIC');
   const languages = courses.filter((course) => course.kind === 'LANGUAGE');
@@ -719,6 +764,8 @@ export function courseSectionsOf(courses: readonly LearnCourseCard[]): CourseSec
       courses: languages,
     });
   }
+  const projects = courses.filter(isProjectCourse);
+  if (projects.length) sections.push({ kind: 'PROJECT', ...PROJECT_SECTION, courses: projects });
   return sections;
 }
 

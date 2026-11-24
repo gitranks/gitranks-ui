@@ -2,22 +2,25 @@ import { isValidElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadLearnCourse, loadLearnCourses, notFound } = vi.hoisted(() => ({
+const { loadLearnCourse, loadLearnCourses, notFound, permanentRedirect } = vi.hoisted(() => ({
   loadLearnCourse: vi.fn(),
   loadLearnCourses: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error('NEXT_NOT_FOUND');
   }),
+  permanentRedirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT ${path}`);
+  }),
 }));
 vi.mock('server-only', () => ({}));
-vi.mock('next/navigation', () => ({ notFound }));
+vi.mock('next/navigation', () => ({ notFound, permanentRedirect }));
 vi.mock('@/lib/learn/course.data', () => ({ loadLearnCourse, loadLearnCourses }));
 vi.mock('@/components/learn/course/course-live', () => ({ CourseLive: () => null }));
 
 const { default: CoursePage, generateMetadata } = await import('./page');
 const { default: CourseNotFound } = await import('./not-found');
 const { CourseLive } = await import('@/components/learn/course/course-live');
-const { algorithmsCourse, courseCards } = await import('@/lib/learn/__fixtures__/course');
+const { algorithmsCourse, courseCards, djangoCourse } = await import('@/lib/learn/__fixtures__/course');
 
 const props = (slug: string) =>
   ({ params: Promise.resolve({ slug }) }) as unknown as PageProps<'/learn/courses/[slug]'>;
@@ -45,6 +48,11 @@ describe("a course's page", () => {
       course: algorithmsCourse,
       others: [],
     });
+  });
+
+  it("sends a project course to its project's address", async () => {
+    loadLearnCourse.mockResolvedValue(djangoCourse);
+    await expect(CoursePage(props('django'))).rejects.toThrow('NEXT_REDIRECT /learn/repos/django/django');
   });
 
   it('is not there for a course that is not, and fails with the course read', async () => {

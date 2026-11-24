@@ -1,6 +1,7 @@
 'use client';
 
 import { Check, ExternalLink, ThumbsDown, ThumbsUp } from 'lucide-react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { type ReactNode, useState } from 'react';
 
@@ -19,7 +20,7 @@ import {
 } from '@/lib/learn/course';
 import {
   checkPath,
-  coursePath,
+  courseHrefOf,
   LEARN_REVIEW_PATH,
   learnCourseRealWorldPath,
   learnKnownPath,
@@ -348,13 +349,14 @@ function LastBox({
   box,
   lit,
   hints,
-  slug,
+  issuesHref,
   onSignIn,
 }: {
   box: CourseLastBox;
   lit: boolean;
   hints: boolean;
-  slug: string;
+  /** Where "Fix a real issue" leads. */
+  issuesHref: Route;
   onSignIn: () => void;
 }) {
   switch (box.kind) {
@@ -365,7 +367,7 @@ function LastBox({
           <Eyebrow>Fix a real issue</Eyebrow>
           <Title>{words.title}</Title>
           <Text>{words.text}</Text>
-          <Action lit={lit} hints={hints} href={learnCourseRealWorldPath(slug)}>
+          <Action lit={lit} hints={hints} href={issuesHref}>
             {words.button}
           </Action>
         </Box>
@@ -393,7 +395,7 @@ function LastBox({
           <ul className="m-0 flex list-none flex-col gap-3 p-0 text-sm">
             {box.next ? (
               <li className="flex flex-col">
-                <Link href={coursePath(box.next.slug)} className="font-semibold text-link hover:underline">
+                <Link href={courseHrefOf(box.next)} className="font-semibold text-link hover:underline">
                   Next course: {box.next.name}
                 </Link>
                 <span className="text-xs text-muted-foreground">{lessonsWords(box.next.lessons)}</span>
@@ -401,7 +403,7 @@ function LastBox({
             ) : null}
             {box.issues ? (
               <li className="flex flex-col" data-further-issues="">
-                <Link href={learnCourseRealWorldPath(slug)} className="font-semibold text-link hover:underline">
+                <Link href={issuesHref} className="font-semibold text-link hover:underline">
                   Fix a real issue
                 </Link>
                 <span className="text-xs text-muted-foreground">{courseIssuesBoxWordsOf(box.issues).title}.</span>
@@ -431,11 +433,14 @@ export function CourseBoxesRow({
   slug,
   hints,
   calls,
+  issuesHref,
 }: {
   boxes: CourseBoxes;
   slug: string;
   hints: boolean;
   calls: CourseBoxCalls;
+  /** Where "Fix a real issue" leads: the course's own view of Issues, or the Issues of a project course's project. */
+  issuesHref?: Route;
 }) {
   return (
     <div className="grid gap-4 md:grid-cols-3" data-course-boxes="">
@@ -447,7 +452,13 @@ export function CourseBoxesRow({
         slug={slug}
         onSignIn={calls.onSignIn}
       />
-      <LastBox box={boxes.last} lit={boxes.highlight === 'last'} hints={hints} slug={slug} onSignIn={calls.onSignIn} />
+      <LastBox
+        box={boxes.last}
+        lit={boxes.highlight === 'last'}
+        hints={hints}
+        issuesHref={issuesHref ?? learnCourseRealWorldPath(slug)}
+        onSignIn={calls.onSignIn}
+      />
     </div>
   );
 }

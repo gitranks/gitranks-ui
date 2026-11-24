@@ -35,7 +35,8 @@ describe('the picks back from the sign-in, applied once', () => {
     contribute.savePreferences.mockResolvedValue({ ok: true, data: {} });
     await arrive('?languages=rust,go&kinds=bug', false);
     expect(contribute.savePreferences).toHaveBeenCalledOnce();
-    expect(contribute.savePreferences).toHaveBeenCalledWith({ languages: ['GO', 'RUST'], kinds: ['BUG'] });
+    // An old address's kinds are no choice any more: languages only.
+    expect(contribute.savePreferences).toHaveBeenCalledWith({ languages: ['GO', 'RUST'] });
     expect(window.location.search).toBe('');
     expect(container.textContent).toBe('');
   });
@@ -51,14 +52,20 @@ describe('the picks back from the sign-in, applied once', () => {
     expect(contribute.savePreferences).not.toHaveBeenCalled();
   });
 
+  it('write nothing for an old address that carries kinds alone, and drop them from it', async () => {
+    await arrive('?kinds=docs', false);
+    expect(contribute.savePreferences).not.toHaveBeenCalled();
+    expect(window.location.search).toBe('');
+  });
+
   it('a failed save says so quietly, keeps the picks in the address, and Try again uses them', async () => {
     contribute.savePreferences.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
-    await arrive('?kinds=docs', false);
+    await arrive('?languages=python', false);
     expect(container.textContent).toContain('Your picks from step 1 could not be saved.');
-    expect(window.location.search).toBe('?kinds=docs');
+    expect(window.location.search).toBe('?languages=python');
     contribute.savePreferences.mockResolvedValueOnce({ ok: true, data: {} });
     await act(async () => container.querySelector('button')?.click());
-    expect(contribute.savePreferences).toHaveBeenLastCalledWith({ languages: [], kinds: ['DOCS'] });
+    expect(contribute.savePreferences).toHaveBeenLastCalledWith({ languages: ['PYTHON'] });
     expect(window.location.search).toBe('');
     expect(container.textContent).toBe('');
   });

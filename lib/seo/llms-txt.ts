@@ -1,8 +1,8 @@
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from './site';
-import type { LearnCourseCard } from '@/lib/learn/course';
+import { isProjectCourse, type LearnCourseCard, PROJECT_SECTION } from '@/lib/learn/course';
 import { LEARN_MAINTAINERS_PATH, LEARN_PATH } from '@/lib/learn/learn-path';
 import {
-  courseMarkdownPath,
+  courseMarkdownHrefOf,
   LEARN_COURSES_MARKDOWN_PATH,
   LEARN_COURSES_PATH,
   LEARN_LANDING_MARKDOWN_PATH,
@@ -50,9 +50,13 @@ export function llmsTxtOf({
   learnCourses = [],
 }: {
   contribute: boolean;
-  learnCourses?: readonly Pick<LearnCourseCard, 'slug' | 'name' | 'covers'>[];
+  learnCourses?: readonly (Pick<LearnCourseCard, 'slug' | 'name' | 'covers'> &
+    Partial<Pick<LearnCourseCard, 'kind' | 'project'>>)[];
 }): string {
   const url = (path: string) => `${SITE_URL}${path}`;
+  const courseLine = (course: (typeof learnCourses)[number]) =>
+    `- [${oneLine(course.name)}](${url(courseMarkdownHrefOf(course))}): ${oneLine(course.covers) || 'a course of GitRanks Learn'}`;
+  const projects = learnCourses.filter(isProjectCourse);
   const lines = [`# ${SITE_NAME}`, '', `> ${SITE_DESCRIPTION}`, ''];
   if (contribute) {
     lines.push(
@@ -82,10 +86,12 @@ export function llmsTxtOf({
     '',
     `- [GitRanks Learn](${url(LEARN_PATH)}): short programming lessons, each one idea with an example and one question, then real open-source issues to use them on ([Markdown](${url(LEARN_LANDING_MARKDOWN_PATH)}))`,
     `- [All courses](${url(LEARN_COURSES_PATH)}) ([Markdown](${url(LEARN_COURSES_MARKDOWN_PATH)}))`,
-    ...learnCourses.map(
-      (course) =>
-        `- [${oneLine(course.name)}](${url(courseMarkdownPath(course.slug))}): ${oneLine(course.covers) || 'a course of GitRanks Learn'}`,
-    ),
+    ...learnCourses.filter((course) => !isProjectCourse(course)).map(courseLine),
+    // The courses about one project, under their group's name, each written by GitRanks from the project's code.
+    ...(projects.length
+      ? [`- ${PROJECT_SECTION.title}: courses about one project, written by GitRanks from its docs and code`]
+      : []),
+    ...projects.map((course) => `  ${courseLine(course)}`),
     // The page for maintainers is Contribute's, so it is listed with Contribute.
     ...(contribute ? [`- [For maintainers](${url(LEARN_MAINTAINERS_PATH)}): what a Learn pull request is`] : []),
     '',

@@ -12,6 +12,7 @@ import { useCoursePageKeys } from '@/components/learn/course/use-course-keys';
 import { Kbd } from '@/components/learn/question/kbd';
 import { Button } from '@/components/ui/button';
 import {
+  type CourseSectionKind,
   type CourseSquareKind,
   countWords,
   coursesSearchOf,
@@ -45,6 +46,9 @@ export type CoursesViewProps = {
   drawn?: { allLessons?: boolean };
   hints?: boolean;
 };
+
+/** Each section's heading id, a link's target. */
+const SECTION_IDS: Record<CourseSectionKind, string> = { TOPIC: 'topics', LANGUAGE: 'languages', PROJECT: 'projects' };
 
 const SQUARE_OF_DEPTH: Record<LearnDepth, CourseSquareKind> = {
   NONE: 'none',
@@ -244,7 +248,7 @@ export function CoursesView({
       ) : (
         <>
           {search.sections.map((section) => {
-            const id = section.kind === 'TOPIC' ? 'topics' : 'languages';
+            const id = SECTION_IDS[section.kind];
             return (
               <section key={section.kind} className="flex flex-col gap-3" aria-labelledby={id}>
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">

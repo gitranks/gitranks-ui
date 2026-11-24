@@ -325,12 +325,24 @@ describe('Issues', () => {
     expect(hrefs('[data-issues-foot] a')[0]).toBe('/learn/issues.md?course=algorithms');
     await act(async () => ($('[data-fixes-count] button') as HTMLButtonElement).click());
     expect(readMoreLearnFixes).toHaveBeenCalledWith(
-      { lesson: undefined, course: 'algorithms', language: undefined },
+      { lesson: null, course: 'algorithms', language: null, repo: null, org: null },
       'cursor-2',
     );
     // A fix already shown is not drawn twice; the last page has no "Show more".
     expect($$('[data-fix-row]')).toHaveLength(3);
     expect($('[data-fixes-count] button')).toBeNull();
+  });
+
+  it("reads ten more of a project's fixes for the same project", async () => {
+    readMoreLearnFixes.mockResolvedValue({ rows: [], total: 2, next: null });
+    const view = { ...views.repo, fixed: true };
+    await render(<IssuesScreen view={view} layer={{ kind: 'fixed', fixes: learnFixes }} />);
+    expect($$('[data-issues-chip]').map((node) => node.getAttribute('data-issues-chip'))).toEqual(['repo', 'fixed']);
+    await act(async () => ($('[data-fixes-count] button') as HTMLButtonElement).click());
+    expect(readMoreLearnFixes).toHaveBeenCalledWith(
+      { lesson: null, course: null, language: null, repo: 'django/django', org: null },
+      'cursor-2',
+    );
   });
 
   it('says when no fix was merged yet', async () => {

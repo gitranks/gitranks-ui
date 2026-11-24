@@ -32,6 +32,7 @@ import {
   issuesEndOf,
   issuesHrefOf,
   issuesMarkdownPathOf,
+  issuesPublicInputOf,
   issuesSwitchesOf,
   issuesViewQueryOf,
   type LearnFixes,
@@ -252,10 +253,8 @@ export function FixesList({ view, fixes }: { view: IssuesView; fixes: LearnFixes
     startTransition(async () => {
       if (!next) return;
       setFailed(false);
-      const read = await readMoreLearnFixes(
-        { lesson: view.lesson ?? undefined, course: view.course ?? undefined, language: view.language ?? undefined },
-        next,
-      ).catch(() => null);
+      // The whole narrowing, a project's included, so the next page is the same view's.
+      const read = await readMoreLearnFixes(issuesPublicInputOf(view), next).catch(() => null);
       if (!read) {
         setFailed(true);
         return;

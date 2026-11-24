@@ -21,7 +21,13 @@ export const ISSUES_ROW_FIELDS = `issue { ${MASKED_ISSUE_FIELDS} }
   why
   learnOnly`;
 
-type View = { lesson: string | null; course: string | null; language: string | null };
+type View = {
+  lesson: string | null;
+  course: string | null;
+  language: string | null;
+  repo?: string | null;
+  org?: string | null;
+};
 
 /** A visitor's five for a view, the same for everyone. */
 export const IssuesListPublicDocument = doc<{ list: unknown }, { input: View }>(

@@ -34,7 +34,7 @@ import {
   storedAnswerOf,
   storedLanguageOf,
 } from '@/lib/learn/lesson-page';
-import { coursePath, LEARN_HOME_PATH, learnFactPath } from '@/lib/learn/paths';
+import { courseHrefOf, LEARN_HOME_PATH, learnFactPath } from '@/lib/learn/paths';
 import { FIX_A_REAL_ISSUE, FIX_ON_ITS_WAY_TAIL, fixOnItsWay, type LessonReal } from '@/lib/learn/real-issues';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
@@ -275,7 +275,7 @@ export function LessonPlayer({
 
   const crumbs: PlayerCrumb[] = [
     { label: 'Learn', href: LEARN_HOME_PATH },
-    { label: lesson.course.title, href: coursePath(lesson.course.slug) },
+    { label: lesson.course.title, href: courseHrefOf(lesson.course) },
     { label: lesson.group.title },
   ];
 

@@ -6,8 +6,9 @@ import { isV2BuilderRequest, mapV2BuilderQuery } from './badge/v3/v2-mapping';
 import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
-import { checkGateOf, courseGateOf } from './lib/learn/course-gate';
+import { checkGateOf, courseGateOf, projectCourseGateOf } from './lib/learn/course-gate';
 import { fixByAttemptRouteGateOf, fixRouteGateOf, fixViewRouteGateOf } from './lib/learn/fix-gate';
+import { issuesShowFixedRedirectOf } from './lib/learn/issues';
 import { isLearnAboutPath, LEARN_PATH, lessonRouteOf } from './lib/learn/learn-path';
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
 import {
@@ -22,6 +23,8 @@ import {
   learnIssuesMarkdownRouteOf,
   learnLandingMarkdownRouteOf,
   learnLessonMarkdownRouteOf,
+  learnProjectCourseMarkdownRouteOf,
+  learnProjectCourseRouteOf,
 } from './lib/learn/paths';
 import { isLinkPagePath, LINK_PAGE_HEADERS } from './lib/link-token/link-token';
 import { packageMarkdownRewriteOf } from './lib/packages/package-paths';
@@ -177,6 +180,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   if (courseMarkdown) {
     return NextResponse.rewrite(new URL(courseMarkdown, request.url));
   }
+  // A project course's Markdown copy, at its page's address with `.md`, the same way.
+  const projectMarkdown = learnProjectCourseMarkdownRouteOf(request.nextUrl.pathname);
+  if (projectMarkdown) {
+    return NextResponse.rewrite(new URL(projectMarkdown, request.url));
+  }
   // The landing's Markdown copy, `/learn.md`, the same way.
   const landingMarkdown = learnLandingMarkdownRouteOf(request.nextUrl.pathname);
   if (landingMarkdown) {
@@ -185,6 +193,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // Contribute's landing in Markdown, `/contribute.md`, the same way: its route handler follows the landing's gate.
   if (request.nextUrl.pathname === CONTRIBUTE_LANDING_MARKDOWN_PATH) {
     return NextResponse.rewrite(new URL(CONTRIBUTE_LANDING_MARKDOWN_ROUTE, request.url));
+  }
+
+  // Issues' fixed view as some links spell it, `show=fixed`: the one address, `fixed=1`, for good.
+  const issuesFixed = issuesShowFixedRedirectOf(request.nextUrl.pathname, request.nextUrl.search);
+  if (issuesFixed) {
+    return noStore(NextResponse.redirect(new URL(issuesFixed, request.url), 308));
   }
 
   // The Markdown copies of Issues and of a lesson's and a course's view of it, the same way.
@@ -222,11 +236,20 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // page answers; paused or removed, its own page with a 503 or a 410; moved, a permanent redirect to its new address
   // (the search kept). A course's check streams as well and is asked the same way; moved, it goes to the new course's
   // check. None is kept by a shared cache: a course comes back, and a new one may take a free address.
+  // A project course's page, `/learn/repos/<owner>/<name>` or `/learn/orgs/<login>`, is asked the same way, by its
+  // project; an address that names no GitHub project is the course's 404 at once.
   const asked = request.method === 'GET' || request.method === 'HEAD';
   const course = asked ? courseRouteOf(request.nextUrl.pathname) : null;
-  const checked = asked && !course ? checkRouteOf(request.nextUrl.pathname) : null;
-  if (course || checked) {
-    const gate = course ? await courseGateOf(course) : await checkGateOf(checked as string);
+  const project = asked && !course ? learnProjectCourseRouteOf(request.nextUrl.pathname) : null;
+  const checked = asked && !course && !project ? checkRouteOf(request.nextUrl.pathname) : null;
+  if (course || project || checked) {
+    const gate = course
+      ? await courseGateOf(course)
+      : project === 'invalid'
+        ? ({ kind: 'missing' } as const)
+        : project
+          ? await projectCourseGateOf(project)
+          : await checkGateOf(checked as string);
     if (gate.kind !== 'page') {
       const response =
         gate.kind === 'missing'

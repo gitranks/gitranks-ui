@@ -111,6 +111,8 @@ export const views = {
   courseFixed: { ...ISSUES_VIEW, course: 'algorithms', fixed: true },
   language: { ...ISSUES_VIEW, language: 'go' },
   learned: { ...ISSUES_VIEW, learned: true },
+  repo: { ...ISSUES_VIEW, repo: 'django/django' },
+  orgFixed: { ...ISSUES_VIEW, org: 'kubernetes', fixed: true },
 } satisfies Record<string, IssuesView>;
 
 export const issuesNames = {

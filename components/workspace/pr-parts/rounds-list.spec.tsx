@@ -196,6 +196,41 @@ describe('a round that waits', () => {
     expect(button('Start round 2')).not.toBeNull();
   });
 
+  it("says its own agent's note is the agent's, and names what a link opens when it is not the comment", async () => {
+    const asked = [
+      prAsk({
+        id: null,
+        kind: 'conversation',
+        author: 'A reviewer',
+        excerpt: null,
+        comments: null,
+        url: 'https://github.com/harbor-kit/relay/pull/58',
+      }),
+      prAsk({
+        id: null,
+        kind: 'agent_note',
+        author: 'Your agent',
+        excerpt: 'Reply to the maintainer',
+        comments: null,
+        url: 'https://github.com/harbor-kit/relay/pull/58',
+      }),
+    ];
+    await rounds({ page: prPage({ ...prContribute.asked, rounds: [prRound({ asked })] }) });
+    const open = round(2);
+    expect(open?.textContent).toContain('1 comment, your agent’s note');
+    const word = open?.querySelector('[data-ask="conversation"]');
+    expect(word?.querySelector('a')?.textContent).toContain('(opens the pull request on GitHub)');
+    const note = open?.querySelector('[data-ask="agent_note"]');
+    expect(note?.textContent).toContain('Your agentits note');
+    expect(note?.textContent).toContain('“Reply to the maintainer”');
+    expect(note?.querySelector('a')).toBeNull();
+    // A line that links its own comment says so.
+    await rounds({ page: prReview.asked });
+    expect(round(2)?.querySelector('[data-ask="conversation"] a')?.textContent).toContain(
+      '(opens this comment on GitHub)',
+    );
+  });
+
   it('says the run stopped without sending when that is all that keeps the round open', async () => {
     const stopped = prAsk({
       id: null,

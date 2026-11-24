@@ -77,12 +77,14 @@ const listOf = (parts: string[]) =>
 
 /**
  * A review that asks for changes, a comment of a person (on a review thread or the conversation), a bot's comments, a
- * check that fails; the person's note to a run of their own, and their agent's run that stopped without sending.
+ * check that fails; the note to a run of the person's own (theirs, or their agent's when it started the run), and
+ * their agent's run that stopped without sending.
  */
 const REVIEW = 'changes_requested';
 const PERSON_COMMENTS = new Set(['comment', 'conversation']);
 const CHECK = 'check_failed';
 export const NOTE_ASK = 'note';
+export const AGENT_NOTE_ASK = 'agent_note';
 export const RUN_STOPPED_ASK = 'run_ended';
 
 type Tally = {
@@ -91,15 +93,16 @@ type Tally = {
   checks: number;
   other: number;
   bots: Map<string, number>;
-  note: boolean;
+  note: 'person' | 'agent' | null;
   stopped: boolean;
 };
 
 function tallyOf(asked: readonly PullRequestRoundAsk[]): Tally {
-  const tally: Tally = { reviews: 0, comments: 0, checks: 0, other: 0, bots: new Map(), note: false, stopped: false };
+  const tally: Tally = { reviews: 0, comments: 0, checks: 0, other: 0, bots: new Map(), note: null, stopped: false };
   for (const ask of asked) {
     if (ask.kind === CHECK) tally.checks += 1;
-    else if (ask.kind === NOTE_ASK) tally.note = true;
+    else if (ask.kind === NOTE_ASK) tally.note = 'person';
+    else if (ask.kind === AGENT_NOTE_ASK) tally.note = 'agent';
     else if (ask.kind === RUN_STOPPED_ASK) tally.stopped = true;
     else if (ask.bot) tally.bots.set(ask.author, (tally.bots.get(ask.author) ?? 0) + (ask.comments ?? 1));
     else if (ask.kind === REVIEW) tally.reviews += 1;
@@ -110,6 +113,7 @@ function tallyOf(asked: readonly PullRequestRoundAsk[]): Tally {
 }
 
 const STOPPED_WORDS = 'your agent’s run stopped without sending';
+const NOTE_WORDS = { person: 'your note', agent: 'your agent’s note' } as const;
 
 /** What a round was asked, as one line: "A review asking for changes, 1 comment, 5 from CodeRabbit, 1 failing check". */
 export function askedSummaryOf(asked: readonly PullRequestRoundAsk[]): string {
@@ -124,7 +128,7 @@ export function askedSummaryOf(asked: readonly PullRequestRoundAsk[]): string {
     ...[...tally.bots].map(([bot, n]) => `${n} from ${bot}`),
     tally.checks ? count(tally.checks, 'failing check') : '',
     tally.other ? count(tally.other, 'other request') : '',
-    tally.note ? 'your note' : '',
+    tally.note ? NOTE_WORDS[tally.note] : '',
     tally.stopped ? STOPPED_WORDS : '',
   ].filter(Boolean);
   return sentence(parts.join(', '));
@@ -132,7 +136,7 @@ export function askedSummaryOf(asked: readonly PullRequestRoundAsk[]): string {
 
 /**
  * The box's title while a round waits: "Round 2: a review, a comment and 1 failing check to answer"; a round asked only
- * by the person's note, "Round 2: your note to your agent"; one kept open only by a run that stopped, "Round 2: your
+ * by a note, "Round 2: your note to your agent" (or "Round 2: your agent's note"); one kept open only by a run that stopped, "Round 2: your
  * agent's run stopped without sending". "Round 2 has something to answer" only when it lists nothing.
  */
 export function roundAskTitleOf(round: Pick<PullRequestRound, 'n' | 'asked'>): string {
@@ -145,7 +149,7 @@ export function roundAskTitleOf(round: Pick<PullRequestRound, 'n' | 'asked'>): s
     tally.other ? count(tally.other, 'other request') : '',
   ].filter(Boolean);
   if (parts.length) return `Round ${round.n}: ${listOf(parts)} to answer`;
-  if (tally.note) return `Round ${round.n}: your note to your agent`;
+  if (tally.note) return `Round ${round.n}: ${tally.note === 'agent' ? NOTE_WORDS.agent : 'your note to your agent'}`;
   if (tally.stopped) return `Round ${round.n}: ${STOPPED_WORDS}`;
   return `Round ${round.n} has something to answer`;
 }

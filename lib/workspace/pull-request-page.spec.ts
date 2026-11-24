@@ -114,6 +114,10 @@ describe('what a round was asked', () => {
     expect(roundAskTitleOf({ n: 4, asked: [word, note] })).toBe('Round 4: a comment to answer');
     expect(askedSummaryOf([note])).toBe('Your note');
     expect(roundAskTitleOf({ n: 4, asked: [note] })).toBe('Round 4: your note to your agent');
+    // A note the person's own agent wrote when it started the run is its own.
+    const agents = { ...note, kind: 'agent_note', author: 'Your agent' };
+    expect(askedSummaryOf([word, agents])).toBe('1 comment, your agent’s note');
+    expect(roundAskTitleOf({ n: 4, asked: [agents] })).toBe('Round 4: your agent’s note');
     expect(askedSummaryOf([stopped])).toBe('Your agent’s run stopped without sending');
     expect(roundAskTitleOf({ n: 4, asked: [stopped] })).toBe('Round 4: your agent’s run stopped without sending');
   });

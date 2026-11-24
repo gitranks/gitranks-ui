@@ -46,6 +46,8 @@ import {
   type HomeReal,
   type HomeThirdBox,
   issuesBoxWordsOf,
+  type LearnMergedFix,
+  mergedBoxWordsOf,
   myFixPathOf,
   NO_ISSUES_BOX_WORDS,
 } from '@/lib/learn/real-issues';
@@ -55,8 +57,9 @@ import { cn } from '@/lib/utils';
 import type { MaskedListReads } from '@/lib/workspace/masked-issue';
 
 /*
- * Learn home (page 3): three boxes (the next lesson, the review, and real issues: the person's fix followed to its
- * end, else the open issues that fit them, else a quiet box with the email for a new one), the "Real issues" rows, the
+ * Learn home (page 3): three boxes (the next lesson, the review, and real issues: the person's fix that needs them,
+ * else their fix merged in the last 7 days, else a fix of theirs followed to its end, else the open issues that fit
+ * them, else a quiet box with the email for a new one), the "Real issues" rows, the
  * courses the person started, the courses they have not, and the foot. A new learner picks a first course in the
  * boxes' place. The lit box takes Enter, the review R; a fix that needs the person takes the light from the others.
  */
@@ -235,9 +238,30 @@ function ReviewBox({ box, lit, hints }: { box: HomeReviewBox; lit: boolean; hint
 }
 
 /**
- * The third box, always there once its reads answer: the person's fix followed to its end (only one that needs them is
- * lit, with the open issues a quiet line under it); else the open issues that fit them; else quiet, with the email
- * for a new one. Its button names a page that exists: the fix's own page, Issues, or the person's Skills page.
+ * The person's fix merged in the last 7 days, as the board draws it: the lesson it made Mastered, and their Skills page.
+ * Never lit: nothing waits on them.
+ */
+function MergedBox({ fix, hints, skillsHref }: { fix: LearnMergedFix; hints: boolean; skillsHref: string | null }) {
+  const words = mergedBoxWordsOf(fix);
+  return (
+    <Box kind="merged">
+      <Eyebrow>{words.eyebrow}</Eyebrow>
+      <Title>{words.title}</Title>
+      <Text>{words.text}</Text>
+      {skillsHref ? (
+        <Action lit={false} hints={hints} href={skillsHref}>
+          {words.button}
+        </Action>
+      ) : null}
+    </Box>
+  );
+}
+
+/**
+ * The third box, always there once its reads answer: the person's fix that needs them (lit, with the open issues a
+ * quiet line under it); else their fix merged in the last 7 days; else a fix of theirs followed to its end; else the
+ * open issues that fit them; else quiet, with the email for a new one. Its button names a page that exists: the fix's
+ * own page, Issues, or the person's Skills page.
  */
 function ThirdBox({
   box,
@@ -278,6 +302,9 @@ function ThirdBox({
         ) : null}
       </Box>
     );
+  }
+  if (box.kind === 'merged') {
+    return <MergedBox fix={box.fix} hints={hints} skillsHref={skillsHref} />;
   }
   if (box.kind === 'none') {
     return (

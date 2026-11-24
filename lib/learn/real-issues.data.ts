@@ -16,6 +16,7 @@ import {
   CourseOpenIssuesDocument,
   HomeFixesDocument,
   HomeIssuesDocument,
+  HomeMergedDocument,
   LessonRealDocument,
   RealIssuesListDocument,
 } from './real-issues.documents';
@@ -67,14 +68,18 @@ export async function loadLessonRealMine(slug: string, githubLogin: string): Pro
   return { real, rows, reads, fixes };
 }
 
-/** What Learn home adds: its third box and its "Real issues" rows; nothing when neither read answers. */
+/**
+ * What Learn home adds: its third box and its "Real issues" rows; nothing when no read answers. The merged fix is a
+ * read of its own: an API without it (or any failure of it) leaves the box as the other two reads make it.
+ */
 export async function loadHomeReal(githubLogin: string): Promise<HomeReal> {
   const as = { source: 'ssr' as const, githubLogin };
-  const [issues, fixes] = await Promise.all([
+  const [issues, fixes, merged] = await Promise.all([
     quietly(graphqlDirect(HomeIssuesDocument, undefined, as)),
     quietly(graphqlDirect(HomeFixesDocument, undefined, as)),
+    quietly(graphqlDirect(HomeMergedDocument, undefined, as)),
   ]);
-  return homeRealOf(issues?.learnHome, fixes?.learnHome);
+  return homeRealOf(issues?.learnHome, fixes?.learnHome, merged?.learnHome);
 }
 
 /** Learn home's list email, read again while the person has no address; null on any failure. */

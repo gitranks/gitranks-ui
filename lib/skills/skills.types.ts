@@ -11,11 +11,8 @@ import type { LearnFixMade, LearnIssueLesson } from '@/lib/workspace/pull-reques
 /** Which kind of person the page is about, read from what it shows. */
 export type SkillsKind = 'CONTRIBUTOR' | 'LEARNER' | 'BOTH';
 
-/**
- * Where a page stands, for everyone else and for its owner. `PRIVATE` is kept for an older API that may still answer
- * it: drawn as `HIDDEN` for the owner, not found for anyone else.
- */
-export type SkillsState = 'NEW' | 'NOTHING_YET' | 'PUBLIC' | 'HIDDEN' | 'PRIVATE';
+/** Where a page stands, for everyone else and for its owner. */
+export type SkillsState = 'NEW' | 'NOTHING_YET' | 'PUBLIC' | 'HIDDEN';
 
 export type SkillsFigureKey =
   | 'FIXES_MERGED'

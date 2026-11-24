@@ -30,9 +30,11 @@ import {
   homeFixMerged,
   homeFixOpen,
   homeFixWorking,
+  homeMergedFix,
   homeRealFix,
   homeRealFixAt,
   homeRealIssues,
+  homeRealMerged,
   homeRealNone,
 } from '@/lib/learn/__fixtures__/real-issues';
 import type { LearnHomeRead } from '@/lib/learn/home';
@@ -270,6 +272,36 @@ describe("Learn home's real issues", () => {
     expect(words(merged)).toContain('is now Mastered.');
     // Without the Skills page's address: no button.
     expect(third(draw(homeDay, { real: homeRealFixAt(homeFixMerged, 'merged') }))!.querySelector('a')).toBeNull();
+  });
+
+  it('shows the fix merged in the last 7 days as the board does: the lesson Mastered, then the Skills page', () => {
+    const page = draw(homeDay, { real: homeRealMerged, skillsHref: '/profile/octocat/skills' });
+    const box = third(page)!;
+    expect(box.getAttribute('data-third-box')).toBe('merged');
+    expect([...box.children].map(words)).toEqual([
+      'Your fix',
+      'Your fix was merged',
+      '“Find duplicates in one pass with a set” is now Mastered.',
+      'See your Skills page',
+    ]);
+    // One link: the Skills page. No fix title, no pull request line, no open issues line.
+    expect([...box.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['/profile/octocat/skills']);
+    expect(box.querySelector('[data-third-box-issues]')).toBeNull();
+    expect(words(box)).not.toContain(homeMergedFix.title);
+    expect(words(box)).not.toContain('#440');
+    // Nothing waits on the person: the light stays where the day puts it.
+    expect(box.hasAttribute('data-lit')).toBe(false);
+    expect(boxes(page)[1].hasAttribute('data-lit')).toBe(true);
+    expect(page.innerHTML).not.toContain(LONG_DASH);
+  });
+
+  it('says the lesson is Mastered only when it is', () => {
+    const notYet = { ...homeRealMerged, box: { kind: 'merged' as const, fix: { ...homeMergedFix, mastered: false } } };
+    const box = third(draw(homeDay, { real: notYet, skillsHref: '/profile/octocat/skills' }))!;
+    expect(words(box)).not.toContain('Mastered');
+    expect(words(box)).toContain('The project has your fix now.');
+    // Without the Skills page's address: no button.
+    expect(third(draw(homeDay, { real: notYet }))!.querySelector('a')).toBeNull();
   });
 
   it('is quiet with no fix and no open issue: never a zero, with the email for a new one', () => {

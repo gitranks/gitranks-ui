@@ -162,12 +162,8 @@ describe('SkillsBlock', () => {
     expect(draw(<SkillsBlock login="octocat" numbers={bothNumbers} />).text).toContain('All fixes and courses');
   });
 
-  it('tells the owner of a hidden or private page', () => {
+  it('tells the owner of a hidden page', () => {
     expect(draw(<SkillsBlock login="octocat" numbers={learnerNumbers} ownState="HIDDEN" />).text).toContain(
-      'Only you see this block. Your Skills page is hidden.Open your Skills page',
-    );
-    // An older API's private page is drawn as a hidden one.
-    expect(draw(<SkillsBlock login="octocat" numbers={learnerNumbers} ownState="PRIVATE" />).text).toContain(
       'Only you see this block. Your Skills page is hidden.Open your Skills page',
     );
   });

@@ -1,5 +1,5 @@
 import type { LearnFixes } from '../issues';
-import type { HomeFixState, HomeReal, LearnMyFix, LessonRealMine } from '../real-issues';
+import type { HomeFixState, HomeReal, LearnMergedFix, LearnMyFix, LessonRealMine } from '../real-issues';
 import { issueRows, learnFixes } from './issues';
 import { prLesson, prRow, prRowsLearn } from '@/lib/workspace/__fixtures__/pull-request';
 import type { PullRequestListRow } from '@/lib/workspace/pull-request-page.types';
@@ -107,4 +107,23 @@ export const homeRealNone: HomeReal = {
   box: { kind: 'none', emailOn: false, emailTo: 'octocat@example.com' },
   fixes: [],
   issues: [],
+};
+
+/** The person's fix merged in the last 7 days, its lesson now Mastered, as the merged fix's read answers it. */
+export const homeMergedFix: LearnMergedFix = {
+  repo: 'harbor-kit/relay',
+  issueNumber: 431,
+  number: 440,
+  title: 'The retry list grows without limit when a webhook keeps failing',
+  state: 'MERGED',
+  lesson: { ...prLesson, slug: 'find-duplicates', title: 'Find duplicates in one pass with a set' },
+  mastered: true,
+  at: '2026-11-20T10:00:00.000Z',
+};
+
+/** Learn home with the person's fix merged in the last 7 days: the box says so, and that its lesson is Mastered. */
+export const homeRealMerged: HomeReal = {
+  box: { kind: 'merged', fix: homeMergedFix },
+  fixes: [],
+  issues: issueRows,
 };

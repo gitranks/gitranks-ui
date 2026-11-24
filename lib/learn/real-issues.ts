@@ -49,6 +49,12 @@ export type LearnMyFix = {
   at: string | null;
 };
 
+/**
+ * The person's newest merged fix, for Learn home's third box: answered for 7 days after its merge (the API decides),
+ * and none once a newer fix of theirs is under way. `mastered`: its lesson is Mastered now.
+ */
+export type LearnMergedFix = LearnMyFix & { mastered: boolean };
+
 /** What a lesson's personal side adds: the person's fix that uses it, and the first issue of their list for it. */
 export type LessonReal = { fix: LearnMyFix | null; fixAnIssue: IssuesRow | null };
 
@@ -73,11 +79,13 @@ export const NO_LESSON_REAL: LessonRealMine = { real: null, rows: null, reads: n
 export type HomeFixState = 'needs-you' | 'working' | 'open' | 'merged';
 
 /**
- * Learn home's third box: a fix of the person's, followed to its end (with the open issues a quiet line under it while
- * it needs them); else the open issues that fit them; else none open, with the email for a new one.
+ * Learn home's third box: a fix of the person's that needs them (with the open issues a quiet line under it); else
+ * their fix merged in the last 7 days; else a fix of theirs followed to its
+ * end; else the open issues that fit them; else none open, with the email for a new one.
  */
 export type HomeThirdBox =
   | { kind: 'fix'; row: PullRequestListRow; state: HomeFixState; openIssues: number | null }
+  | { kind: 'merged'; fix: LearnMergedFix }
   | { kind: 'issues'; count: number }
   | { kind: 'none'; emailOn: boolean; emailTo: string | null };
 
@@ -129,6 +137,13 @@ export function myFixOf(value: unknown): LearnMyFix | null {
     lesson: lessonOf(raw.lesson),
     at: textOf(raw.at),
   };
+}
+
+/** The person's fix merged in the last 7 days, as Learn home's third box has it; null for none, or one not merged. */
+export function mergedFixOf(value: unknown): LearnMergedFix | null {
+  const fix = myFixOf(value);
+  if (fix?.state !== 'MERGED') return null;
+  return { ...fix, mastered: recordOf(value)?.mastered === true };
 }
 
 /** A lesson's personal side as the API answers it; null when there is none (Learn not open to the person). */
@@ -209,13 +224,15 @@ export function homeFixStateOf(row: Pick<PullRequestListRow, 'group' | 'mark'>):
 }
 
 /**
- * Learn home's parts from its two reads: the issues' (`thirdBox.openIssues`, `issues` with its email) and the fixes'
- * (`thirdBox`'s fix, `fixes`). Either may be missing (null), and the home draws what the other gives. The box follows
- * a fix of the person's: the one that needs them, else the first of their fixes the API sends (in progress, or merged
- * when it sends one); else the count of open issues that fit them; else, when the issues' read answered, none open.
- * Neither answered: no box, and the home is as it was. A fix row that has ended is left out of the rows.
+ * Learn home's parts from its three reads: the issues' (`thirdBox.openIssues`, `issues` with its email), the fixes'
+ * (`thirdBox`'s fix, `fixes`) and the merged fix's (`thirdBox.needsYou`, `thirdBox.merged`). Any may be missing (null),
+ * and the home draws what the others give. The box is the fix that needs the person; else their fix merged in the last
+ * 7 days, while no read says a fix needs them; else the
+ * first of their fixes the API sends (in progress, or merged when it sends one); else the count of open issues that
+ * fit them; else, when the issues' read answered, none open (a box that answers nothing is that quiet box, never a
+ * zero). None answered: no box, and the home is as it was. A fix row that has ended is left out of the rows.
  */
-export function homeRealOf(issuesRead: unknown, fixesRead: unknown): HomeReal {
+export function homeRealOf(issuesRead: unknown, fixesRead: unknown, mergedRead: unknown = null): HomeReal {
   const issuesHome = recordOf(issuesRead);
   const fixesHome = recordOf(fixesRead);
   const issuesBox = recordOf(issuesHome?.thirdBox);
@@ -224,10 +241,17 @@ export function homeRealOf(issuesRead: unknown, fixesRead: unknown): HomeReal {
   const allFixes = (Array.isArray(fixesHome?.fixes) ? fixesHome.fixes : [])
     .map(pullRequestRowOf)
     .filter((row): row is PullRequestListRow => row !== null);
-  const needsYou = fixBox?.needsYou === true ? pullRequestRowOf(fixBox.fix) : null;
+  const needsYou =
+    (fixBox?.needsYou === true ? pullRequestRowOf(fixBox.fix) : null) ??
+    allFixes.find((row) => row.group === 'NEEDS_YOU') ??
+    null;
+  // The merged fix only while no read says a fix needs the person: the merged read must say so itself (`needsYou`
+  // false), so a fixes' read that failed, or a needs-you fix that could not be read, never lets it take the box.
+  const mergedBox = recordOf(recordOf(mergedRead)?.thirdBox);
+  const merged =
+    needsYou || fixBox?.needsYou === true || mergedBox?.needsYou !== false ? null : mergedFixOf(mergedBox.merged);
   const followed =
     needsYou ??
-    allFixes.find((row) => row.group === 'NEEDS_YOU') ??
     allFixes.find((row) => row.group === 'IN_PROGRESS') ??
     allFixes.find((row) => homeFixStateOf(row) === 'merged') ??
     null;
@@ -235,7 +259,8 @@ export function homeRealOf(issuesRead: unknown, fixesRead: unknown): HomeReal {
   const list = recordOf(issuesHome?.issues);
   const issues = realRowsOf(list) ?? [];
   let box: HomeThirdBox | null = null;
-  if (followed && state) box = { kind: 'fix', row: followed, state, openIssues };
+  if (merged) box = { kind: 'merged', fix: merged };
+  else if (followed && state) box = { kind: 'fix', row: followed, state, openIssues };
   else if (openIssues) box = { kind: 'issues', count: openIssues };
   else if (issuesBox && list) {
     box = { kind: 'none', emailOn: list.emailOn === true, emailTo: textOf(list.emailTo) };
@@ -343,6 +368,24 @@ export function fixBoxWordsOf(row: PullRequestListRow, state: HomeFixState): Fix
         button: { label: 'See your Skills page', to: 'skills' },
       };
   }
+}
+
+/**
+ * The third box with the person's fix merged in the last 7 days, as the board draws it: the lesson it made Mastered,
+ * only when it did (and names it); else that the project has the fix.
+ */
+export function mergedBoxWordsOf(fix: Pick<LearnMergedFix, 'mastered' | 'lesson'>): {
+  eyebrow: string;
+  title: string;
+  text: string;
+  button: string;
+} {
+  return {
+    eyebrow: 'Your fix',
+    title: 'Your fix was merged',
+    text: fix.mastered && fix.lesson ? `“${fix.lesson.title}” is now Mastered.` : 'The project has your fix now.',
+    button: 'See your Skills page',
+  };
 }
 
 /** The quiet line under a fix that needs the person: the open issues that fit them; null for none. */

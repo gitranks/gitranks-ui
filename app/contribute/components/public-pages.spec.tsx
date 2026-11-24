@@ -291,18 +291,16 @@ describe('the Terms', () => {
     const shown = text(renderToStaticMarkup(<TermsScreen contribute />));
     const hidden = text(renderToStaticMarkup(<TermsScreen contribute={false} />));
     expect(shown).toContain('GitRanks Contribute');
-    expect(shown).toContain('24 November 2026');
+    expect(shown).toContain('Last updated 25 November 2026');
     expect(hidden).toContain('31 October 2026');
     expect(shown).toContain('not affiliated with or endorsed by Anthropic');
     expect(shown).toContain('gitranks.com/contribute/maintainers');
     expect(hidden).not.toContain('Contribute');
     expect(shown).not.toContain('Claude Code');
-    // Maintainers who react are not on Learn's list: the reactions line is in Contribute's section.
-    const reactions = shown.indexOf(
-      'your reaction may be shown on the result page with your username, avatar and role',
-    );
-    expect(reactions).toBeGreaterThan(-1);
-    expect(reactions).toBeLessThan(shown.indexOf('the lesson becomes public under your GitHub username'));
+    // Maintainers who say a pull request helped are not on Learn's list: that line is in Contribute's section.
+    const helped = shown.indexOf('your username may be shown on its public page');
+    expect(helped).toBeGreaterThan(-1);
+    expect(helped).toBeLessThan(shown.indexOf('the lesson becomes public under your GitHub username'));
   });
 
   it('open Contribute’s section with the rules for issues from GitRanks, at their own anchor', () => {
@@ -336,7 +334,13 @@ describe('the Terms', () => {
     expect(plain).toContain('the lesson becomes public under your GitHub username');
     expect(plain).toContain('the goal and level it was written for');
     expect(plain).toContain('search engines may list them');
-    expect(plain).toContain('Learn record on your GitRanks profile');
+    expect(plain).toContain(
+      'Your public results also count on the Skills page of your GitRanks profile (lessons, topics and merged pull requests), which you can hide.',
+    );
+    expect(plain).toContain(
+      'Learn pull requests. A pull request made with GitRanks Learn links to its public page on GitRanks',
+    );
+    expect(plain).not.toContain('Learn record');
     expect(plain).toContain('or by writing to');
     expect(plain).toContain("closes if the lesson's author takes the lesson down");
     expect(plain).toContain('never the options you got wrong');
@@ -369,7 +373,7 @@ describe('the launch gate', () => {
     shown.mockResolvedValue(true);
     const open = renderToStaticMarkup(await LaunchedTerms());
     expect(open).toContain('id="contribute"');
-    expect(open).toContain('2026-11-24');
+    expect(open).toContain('dateTime="2026-11-25"');
     expect(open).toContain('data-scroll-to-hash');
 
     shown.mockResolvedValue(false);

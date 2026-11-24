@@ -40,7 +40,8 @@ export function isLearnPath(pathname: string): boolean {
 /**
  * The Learn pages open to every visitor: a shared lesson and its result pages (`/learn/lessons/<slug>…`, which pull
  * requests link to), a person's public progress page (`/learn/progress/<login>`), the page for maintainers, and all
- * courses and each course (`/learn/courses`, `/learn/courses/<slug>…`) with their Markdown copies and pictures.
+ * courses and each course (`/learn/courses`, `/learn/courses/<slug>…`) with their Markdown copies and pictures, and
+ * everything of a fix (`/learn/fixes/…`: its walkthrough, a person's answers, the footer's address by attempt).
  * `/learn/lessons` itself is not: it goes on to Your progress.
  */
 export const isLearnOpenPath = (pathname: string): boolean =>
@@ -48,7 +49,8 @@ export const isLearnOpenPath = (pathname: string): boolean =>
   decodedMatches(pathname, /^\/+learn\/+courses(?:\.md)?\/?$/i) ||
   decodedMatches(pathname, /^\/+learn\/+courses\/+[^/\\]+(?:[/\\].*)?$/i) ||
   decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i) ||
-  decodedMatches(pathname, /^\/+learn\/+progress\/+[^/\\]+\/?$/i);
+  decodedMatches(pathname, /^\/+learn\/+progress\/+[^/\\]+\/?$/i) ||
+  decodedMatches(pathname, /^\/+learn\/+fixes\/+[^/\\]+(?:[/\\].*)?$/i);
 
 /**
  * Issues and the views of it at a lesson's and a course's own address (`/learn/issues`,

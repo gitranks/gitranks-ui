@@ -204,16 +204,17 @@ async function lessonOf(first: ContributeAttemptDetail): Promise<LearnAttemptLes
 const learnReads = () => import('@/lib/learn/learn.data');
 
 /**
- * The Lesson view's reads (`…/lesson`): the page's first attempt and its lesson. A Fix attempt's goes to its page; an
- * address in another spelling to the current one; Learn closed to the viewer, or no lesson, is the 404. Null signed out
- * (the layout asks to sign in); `unread` while the API does not answer.
+ * The Lesson view's reads (`…/lesson`, or the fixer's walkthrough at `…/walkthrough`): the page's first attempt and its
+ * lesson. A Fix attempt's goes to its page; an address in another spelling to the current one, under the same `view`;
+ * Learn closed to the viewer, or no lesson, is the 404. Null signed out (the layout asks to sign in); `unread` while the
+ * API does not answer.
  */
-export async function lessonPageOf(params: Promise<PageParams>) {
+export async function lessonPageOf(params: Promise<PageParams>, view: 'lesson' | 'walkthrough' = 'lesson') {
   const gated = await gate();
   if (!gated) return null;
   const page = await pageOf(params);
   if (page.kind === 'unread') return 'unread' as const;
-  if (page.kind === 'move') redirect(`${pullRequestPath(page.ref)}/lesson` as Route);
+  if (page.kind === 'move') redirect(`${pullRequestPath(page.ref)}/${view}` as Route);
   const { first, base } = page;
   if (first.mode !== 'LEARN') redirect(base);
   const { loadLearnOpen, loadAttemptLesson } = await learnReads();

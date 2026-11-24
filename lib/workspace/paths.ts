@@ -381,6 +381,17 @@ export function pullRequestPath(ref: IssueRef, view?: { run: string } | 'next'):
 }
 
 /**
+ * A Learn fix's walkthrough before its pull request opens, the fixer's own: `/my/pull-requests/<owner>/<repo>/<issue>/
+ * walkthrough`, the latest attempt on the issue.
+ */
+export const pullRequestWalkthroughPath = (ref: Pick<IssueRef, 'repo' | 'issue'>) =>
+  `${pullRequestPath(ref)}/walkthrough` as Route;
+
+/** Approve and send, one screen for both products: `/my/pull-requests/<owner>/<repo>/<issue>/approve`. */
+export const pullRequestApprovePath = (ref: Pick<IssueRef, 'repo' | 'issue'>) =>
+  `${pullRequestPath(ref)}/approve` as Route;
+
+/**
  * Where the person picks an issue, by side: the Contribute tab's issues, or Learn's.
  */
 export const PICK_ISSUE_PATHS = {

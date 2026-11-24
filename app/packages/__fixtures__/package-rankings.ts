@@ -61,6 +61,29 @@ export const dependentsStarsRanking: PackageRankRows = [
   row(3, 2, 'kite-router', 'A tiny HTTP router for Bun and Node.', 'harborlabs/kite', 3_906_441.4, -2_310),
 ];
 
+/** Go's ranking by dependents' stars: module paths, which name their repository. */
+export const goDependentsStarsRanking: PackageRankRows = [
+  row(
+    1,
+    1,
+    'github.com/mossbyte/moss-date',
+    'Dates without time zones until you need them.',
+    'mossbyte/moss-date',
+    5_902_441,
+    12_004,
+  ),
+  row(
+    2,
+    null,
+    'github.com/orbit-hq/fetch',
+    'A fetch wrapper with retries and typed errors.',
+    'orbit-hq/fetch',
+    4_211_098,
+    null,
+  ),
+  row(3, 2, 'github.com/harborlabs/kite', 'A tiny HTTP router.', 'harborlabs/kite', 3_906_441.4, -2_310),
+];
+
 /** The dependents ranking. */
 export const dependentsRanking: PackageRankRows = [
   row(1, 1, 'moss-date', 'Dates without time zones until you need them.', 'mossbyte/moss-date', 1_877, 41),

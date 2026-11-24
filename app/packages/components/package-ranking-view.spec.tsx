@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { downloadsRanking, packageRankingFacts } from '../__fixtures__/package-rankings';
 import { PackageRankingFrame, PackageRankingScreen } from './package-ranking-view';
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => '/packages' }));
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
 vi.mock('@/components/ranking-table/clickable-row', () => ({
   ClickableRow: ({ children }: { children: React.ReactNode }) => <tr>{children}</tr>,
@@ -33,7 +33,7 @@ describe('PackageRankingFrame', () => {
     const text = visibleText(html);
 
     expect(html).toMatch(/<h1 [^>]*>Package Ranking · Dependents&#x27; stars<\/h1><span[^>]*>Beta<\/span>/);
-    expect(text).toContain('Rank by:');
+    expect(text).toContain('Rank by');
     for (const order of ['downloads', 'dependents-stars', 'dependents']) {
       expect(html).toContain(`href="/packages/npm/${order}/1"`);
     }
@@ -46,9 +46,38 @@ describe('PackageRankingFrame', () => {
       'Package rankings are new. For now we rank npm, PyPI, Go, crates.io, pub.dev, Packagist, Maven Central, NuGet and RubyGems packages only',
     );
     expect(text).toContain('that list the package in their own package.json.');
-    expect(text).toContain('Registry:npmPyPIGocrates.iopub.devPackagistMaven CentralNuGetRubyGems');
+    expect(html).toContain('<nav aria-label="Registry">');
+    expect(text).toContain('npmPyPIGocrates.iopub.devPackagistMaven CentralNuGetRubyGems');
+    expect(html).toMatch(/aria-current="page"[^>]*>(<span[^>]*>)?<svg[^>]*>.*?<\/svg>npm</);
     expect(html).toContain('href="/methodology/packages"');
     expect(html).toContain('<p>page</p>');
+  });
+});
+
+describe('the registry tabs', () => {
+  it("lead to each registry's ranking in the same order, else by dependents' stars", () => {
+    const html = renderToStaticMarkup(
+      <PackageRankingFrame registry="npm" order="downloads">
+        <p>page</p>
+      </PackageRankingFrame>,
+    );
+
+    expect(html).toContain('href="/packages/pypi/downloads/1"');
+    expect(html).toContain('href="/packages/go/dependents-stars/1"');
+    expect(html).toContain('href="/packages/maven/dependents-stars/1"');
+  });
+
+  it('mark the registry shown, and its "Rank by" holds only its own orders', () => {
+    const html = renderToStaticMarkup(
+      <PackageRankingFrame registry="go" order="dependents-stars">
+        <p>page</p>
+      </PackageRankingFrame>,
+    );
+
+    expect(html).toMatch(/aria-current="page"[^>]*href="\/packages\/go\/dependents-stars\/1"/);
+    expect(html).not.toContain('href="/packages/go/downloads/1"');
+    expect(html).toContain('href="/packages/go/dependents/1"');
+    expect(visibleText(html)).not.toMatch(/Rank by.*Downloads/);
   });
 });
 

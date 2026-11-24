@@ -71,6 +71,44 @@ describe('ProductsBlock', () => {
     expect(learn?.textContent).not.toContain('New');
   });
 
+  it('keeps the promotion’s words under a person’s own, hidden, so the card keeps its size', () => {
+    const { contribute, learn } = draw(homeProducts.both);
+    for (const card of [contribute, learn]) {
+      const layers = [...(card?.querySelectorAll<HTMLElement>('[data-promo-layer]') ?? [])];
+      expect(layers).toHaveLength(3);
+      for (const layer of layers) {
+        expect(layer.getAttribute('aria-hidden')).toBe('true');
+        expect(layer.className).toContain('invisible');
+        expect(layer.className).toContain('row-start-1');
+        expect(layer.previousElementSibling?.className).toContain('row-start-1');
+      }
+    }
+    const hiddenText = (card: HTMLElement | null | undefined) =>
+      [...(card?.querySelectorAll('[data-promo-layer]') ?? [])].map((layer) => layer.textContent).join('|');
+    expect(hiddenText(contribute)).toBe(
+      'Fix issues in the open source you build on|Contribute finds issues that fit you. Your coding agent writes the fix, you review it, and the pull request opens in your name.|Start contributing',
+    );
+    expect(hiddenText(learn)).toContain('Learn one idea in two minutes');
+  });
+
+  it('gives screen readers only the shown words', () => {
+    const { contribute } = draw(homeProducts.contributor);
+    const spoken = contribute?.cloneNode(true) as HTMLElement;
+    for (const hidden of spoken.querySelectorAll('[aria-hidden="true"]')) hidden.remove();
+    expect(spoken.textContent).toBe(
+      'GitRanks Contribute2 pull requests need youRound 2: something to answer, in kelp-db/kelp, and 1 more.Open your pull requests',
+    );
+  });
+
+  it('draws no hidden layer on a promotion', () => {
+    const { root } = draw(homeProducts.visitor);
+    expect(root.querySelectorAll('[data-promo-layer]')).toHaveLength(0);
+    const learner = draw(homeProducts.learnerNothing).learn;
+    expect([...(learner?.querySelectorAll('[data-promo-layer]') ?? [])].map((layer) => layer.textContent)).toEqual([
+      'Start learning',
+    ]);
+  });
+
   it('takes its own id for a board that draws it twice', () => {
     const root = document.createElement('div');
     root.innerHTML = renderToStaticMarkup(<ProductsBlock products={null} now={HOME_NOW} id="products-two" />);

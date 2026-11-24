@@ -28,8 +28,9 @@ export const metadata: Metadata = pageMetadata({
 
 // Every read below is a shared, cached function (see landing-data.ts and the helpers' own cache
 // lifetimes), so the page is prerendered and a view sends no request to the API. Only the signed-in
-// visitor's own rank card is fetched in the browser, from a route cached per user, their own
-// badges, from the public badge data the builder reads.
+// visitor's own parts are fetched in the browser: their rank card, from a route cached per user; their
+// badges, from the public badge data the builder reads; and, once Learn is open to everyone, their
+// cards in the block for Contribute and Learn, from a route never kept.
 export default async function Home() {
   const [
     insights,

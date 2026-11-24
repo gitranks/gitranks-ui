@@ -164,7 +164,7 @@ describe("ProductsBlock's Learn line", () => {
 
   it('names the live courses it is given, and no course that is not live', () => {
     const text = learnOf(live);
-    expect(text).toContain('Short lessons on algorithms, JavaScript/TypeScript, Python, open source and LLM APIs.');
+    expect(text).toContain('Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs.');
     expect(text).not.toMatch(/databases|design patterns|seven languages/);
   });
 

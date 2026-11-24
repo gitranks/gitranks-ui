@@ -119,20 +119,20 @@ const liveCourses = [
 describe("the landing's line of courses", () => {
   it('names the five live courses in their order, each by its name in a sentence', () => {
     expect(landingCoursesLineOf(liveCourses)).toBe(
-      'Short lessons on algorithms, JavaScript/TypeScript, Python, open source and LLM APIs',
+      'Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs',
     );
   });
 
   it('names all six with six courses', () => {
     expect(landingCoursesLineOf([...liveCourses, more('go', 'Go')])).toBe(
-      'Short lessons on algorithms, JavaScript/TypeScript, Python, open source, LLM APIs and Go',
+      'Short lessons on algorithms, JavaScript and TypeScript, Python, open source, LLM APIs and Go',
     );
   });
 
   it('past six, names the first five and says how many more', () => {
     const seven = [...liveCourses, more('go', 'Go'), more('rust', 'Rust')];
     expect(landingCoursesLineOf(seven)).toBe(
-      'Short lessons on algorithms, JavaScript/TypeScript, Python, open source, LLM APIs and 2 more courses',
+      'Short lessons on algorithms, JavaScript and TypeScript, Python, open source, LLM APIs and 2 more courses',
     );
     expect(landingCoursesLineOf(courseCards)).toMatch(/ and 6 more courses$/);
   });
@@ -142,7 +142,16 @@ describe("the landing's line of courses", () => {
     expect(landingCoursesLineOf([more('python', 'Python'), more('go', 'Go')])).toBe('Short lessons on Python and Go');
   });
 
-  it('never runs a course name with its own "and" into the joining "and"', () => {
+  it('never runs a course name with its own "and" into the joining "and": a short name only next to that "and"', () => {
+    expect(landingCoursesLineOf([liveCourses[1]])).toBe('Short lessons on JavaScript and TypeScript');
+    const [algorithms, js, python, openSource, llm] = liveCourses;
+    expect(landingCoursesLineOf([algorithms, python, openSource, llm, js, more('go', 'Go')])).toBe(
+      'Short lessons on algorithms, Python, open source, LLM APIs, JavaScript/TypeScript and Go',
+    );
+    expect(
+      landingCoursesLineOf([algorithms, python, openSource, llm, js, more('go', 'Go'), more('rust', 'Rust')]),
+    ).toBe('Short lessons on algorithms, Python, open source, LLM APIs, JavaScript/TypeScript and 2 more courses');
+    expect(landingCoursesLineOf(liveCourses.slice(1, 3))).toBe('Short lessons on JavaScript/TypeScript and Python');
     expect(landingCoursesLineOf(liveCourses.slice(0, 2))).toBe('Short lessons on algorithms and JavaScript/TypeScript');
     expect(landingCoursesLineOf([liveCourses[2], liveCourses[1]])).toBe(
       'Short lessons on Python and JavaScript/TypeScript',
@@ -157,7 +166,7 @@ describe("the landing's line of courses", () => {
   it('opens the words under the title, the same in the Markdown copy', () => {
     const text = landingTextOf(liveCourses);
     expect(
-      text.startsWith('Short lessons on algorithms, JavaScript/TypeScript, Python, open source and LLM APIs. '),
+      text.startsWith('Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs. '),
     ).toBe(true);
     expect(learnLandingMarkdownOf(liveCourses)).toContain(`\n\n${text}\n\n`);
     expect(learnLandingMarkdownOf([])).toContain(`\n\n${LANDING_COURSES_LINE_EMPTY}. When you are ready`);
@@ -225,7 +234,7 @@ describe("the landing's metadata", () => {
     expect(metadata.description?.length).toBeLessThanOrEqual(158);
     expect(
       learnLandingMetadata(liveCourses).description?.startsWith(
-        'Short lessons on algorithms, JavaScript/TypeScript, Python, open source and LLM APIs. ',
+        'Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs. ',
       ),
     ).toBe(true);
     expect(metadata.alternates?.canonical).toBe('/learn');

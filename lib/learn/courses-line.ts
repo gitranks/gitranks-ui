@@ -9,15 +9,21 @@ import type { LearnCourseCard } from './course';
 export type CourseInLine = Pick<LearnCourseCard, 'slug' | 'name'>;
 
 /**
- * A course's name inside a sentence ("Short lessons on algorithms, JavaScript/TypeScript, ... and LLM APIs"), by its slug; a
- * course not here goes by its own name.
+ * A course's name inside a sentence ("Short lessons on algorithms, JavaScript and TypeScript, ... and LLM APIs"), by
+ * its slug; a course not here goes by its own name.
  */
 const COURSE_NAMES_IN_A_LINE: Readonly<Record<string, string>> = {
   algorithms: 'algorithms',
-  // No "and" of its own, so it never runs into the "and" that joins the list.
-  'javascript-and-typescript': 'JavaScript/TypeScript',
   'contributing-to-open-source': 'open source',
   'working-with-llm-apis': 'LLM APIs',
+};
+
+/**
+ * A course's name on either side of the "and" that joins the list, for a name with its own "and", which would run into
+ * it ("algorithms and JavaScript/TypeScript"). Elsewhere in the list the course keeps its name.
+ */
+const COURSE_NAMES_BY_THE_AND: Readonly<Record<string, string>> = {
+  'javascript-and-typescript': 'JavaScript/TypeScript',
 };
 
 /** The line names every course up to this many; past it, the first five and how many more. */
@@ -27,17 +33,23 @@ const NAMED_BEFORE_MORE = 5;
 /** The line when there is no course to name. */
 export const LANDING_COURSES_LINE_EMPTY = 'Short lessons on programming';
 
+const nameInLineOf = (course: CourseInLine) => COURSE_NAMES_IN_A_LINE[course.slug] ?? course.name.trim();
+
 /**
- * "Short lessons on algorithms, JavaScript/TypeScript, Python, open source and LLM APIs": the live courses in
+ * "Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs": the live courses in
  * their order, every one up to six; past six, the first five "and 2 more courses". No full stop.
  */
 export function landingCoursesLineOf(courses: readonly CourseInLine[]): string {
-  const names = courses.map((course) => COURSE_NAMES_IN_A_LINE[course.slug] ?? course.name.trim()).filter(Boolean);
-  if (!names.length) return LANDING_COURSES_LINE_EMPTY;
-  const shown =
-    names.length > LANDING_COURSES_NAMED_MAX
-      ? [...names.slice(0, NAMED_BEFORE_MORE), `${names.length - NAMED_BEFORE_MORE} more courses`]
-      : names;
-  const list = shown.length === 1 ? shown[0] : `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}`;
-  return `Short lessons on ${list}`;
+  const named = courses.filter((course) => nameInLineOf(course));
+  if (!named.length) return LANDING_COURSES_LINE_EMPTY;
+  if (named.length === 1) return `Short lessons on ${nameInLineOf(named[0])}`;
+  const byTheAnd = (course: CourseInLine) => COURSE_NAMES_BY_THE_AND[course.slug] ?? nameInLineOf(course);
+  if (named.length > LANDING_COURSES_NAMED_MAX) {
+    const first = named.slice(0, NAMED_BEFORE_MORE - 1).map(nameInLineOf);
+    const fifth = byTheAnd(named[NAMED_BEFORE_MORE - 1]);
+    return `Short lessons on ${[...first, fifth].join(', ')} and ${named.length - NAMED_BEFORE_MORE} more courses`;
+  }
+  const before = named.slice(0, -2).map(nameInLineOf);
+  const [second, last] = named.slice(-2).map(byTheAnd);
+  return `Short lessons on ${[...before, second].join(', ')} and ${last}`;
 }

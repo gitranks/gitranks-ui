@@ -16,6 +16,8 @@ const actions = vi.hoisted(() => ({
   startHeldIssue: vi.fn(),
 }));
 vi.mock('@/lib/workspace/masked-issue.actions', () => actions);
+const keptActions = vi.hoisted(() => ({ readIssueKept: vi.fn(async (): Promise<unknown> => null) }));
+vi.mock('@/lib/workspace/issue-page-kept.actions', () => keptActions);
 const fairUse = vi.hoisted(() => ({ appealFairUse: vi.fn() }));
 vi.mock('@/lib/workspace/fair-use.actions', () => fairUse);
 vi.mock('@/components/workspace/agent/agent-connect', () => ({
@@ -462,5 +464,72 @@ describe("the page of one issue, live: Learn's parts", () => {
     });
     expect(container.textContent).toContain('Your agent is on it.');
     expect(container.textContent).not.toMatch(/walkthrough/i);
+  });
+});
+
+describe('the page of one issue, live: an issue kept for learners, from Contribute', () => {
+  const CONTRIBUTE = { from: 'contribute', back: { href: '/contribute#issues', label: 'Issues' } } as const;
+  const keptLine = () => container.querySelector('[data-kept-line]')?.textContent;
+
+  it('offers no press when the read says it is kept, and the way to it in Learn to a person who uses Learn', async () => {
+    await live({ ...CONTRIBUTE, kept: { until: null }, alsoLearn: true });
+    expect(keptLine()).toBe('This issue is kept for learners.');
+    expect(button('See the full issue')).toBeNull();
+    expect(button('Open it in Learn')?.getAttribute('href')).toBe('/my/issues/q7k2m9xa?from=learn');
+    await live({ ...CONTRIBUTE, kept: { until: null }, alsoLearn: false });
+    expect(button('Open it in Learn')).toBeNull();
+  });
+
+  it('says the kept line in place of the plain end when a press is refused and the read again says kept', async () => {
+    actions.lookAtIssue.mockResolvedValue({
+      ok: true,
+      data: { outcome: 'NOT_AVAILABLE', page: issuePage({ state: 'NOT_AVAILABLE' }) },
+    });
+    keptActions.readIssueKept.mockResolvedValueOnce({ until: null });
+    await live({ ...CONTRIBUTE, alsoLearn: true });
+    await press('See the full issue');
+    expect(keptActions.readIssueKept).toHaveBeenCalledExactlyOnceWith('q7k2m9xa');
+    expect(state()).toBe('NOT_AVAILABLE');
+    expect(h1()).toBe('This issue is kept for learners');
+    expect(button('Open it in Learn')).not.toBeNull();
+    expect(container.textContent).not.toContain('This issue is not on your list');
+  });
+
+  it('keeps the plain end when the read again says nothing', async () => {
+    actions.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'NOT_AVAILABLE', page: null } });
+    await live(CONTRIBUTE);
+    await press('See the full issue');
+    expect(keptActions.readIssueKept).toHaveBeenCalledOnce();
+    expect(h1()).toBe('This issue is not on your list');
+  });
+
+  it('keeps the plain end when the read again fails', async () => {
+    actions.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'NOT_AVAILABLE', page: null } });
+    keptActions.readIssueKept.mockRejectedValueOnce(new Error('down'));
+    await live(CONTRIBUTE);
+    await press('See the full issue');
+    expect(h1()).toBe('This issue is not on your list');
+  });
+
+  it("asks nothing again on Learn's page, where the person can take it", async () => {
+    actions.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'NOT_AVAILABLE', page: null } });
+    await live();
+    await press('See the full issue');
+    expect(keptActions.readIssueKept).not.toHaveBeenCalled();
+    expect(h1()).toBe('This issue is not on your list');
+  });
+
+  it('asks nothing again for any other refusal', async () => {
+    actions.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'TAKEN', page: null } });
+    await live(CONTRIBUTE);
+    await press('See the full issue');
+    expect(keptActions.readIssueKept).not.toHaveBeenCalled();
+    expect(h1()).toBe('Someone else is looking at this issue');
+  });
+
+  it('is not said from Learn, even with the read', async () => {
+    await live({ kept: { until: null }, alsoLearn: true });
+    expect(container.querySelector('[data-kept]')).toBeNull();
+    expect(button('See the full issue')).not.toBeNull();
   });
 });

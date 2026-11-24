@@ -9,6 +9,8 @@ import { sendFairUseAppeal } from '@/components/workspace/fair-use-appeal-live';
 import { type IssuePageNotice, IssuePageScreen } from '@/components/workspace/masked-issue/issue-page-screen';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
 import { clearHeldMark, writeHeldMark } from '@/lib/workspace/held-mark';
+import type { IssueKeptForLearners } from '@/lib/workspace/issue-page-kept';
+import { readIssueKept } from '@/lib/workspace/issue-page-kept.actions';
 import { type IssuePageLearn, issueLessonLineOf } from '@/lib/workspace/issue-page-learn';
 import { limitWordsOf } from '@/lib/workspace/limit-words';
 import { type IssuePageFrom, issuePageHrefOf } from '@/lib/workspace/masked-issue';
@@ -77,6 +79,11 @@ export type IssuePageLiveProps = {
    * left out, the page draws none of them.
    */
   learn?: IssuePageLearn | null;
+  /**
+   * From Contribute: the issue is kept for learners from the person, read on its own. The page then offers no press and
+   * no start, and says so (with the way to it in Learn for a person who uses Learn). Null or left out: today's page.
+   */
+  kept?: IssueKeptForLearners | null;
 };
 
 /**
@@ -96,6 +103,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   const [notice, setNotice] = useState<IssuePageNotice | null>(null);
   const [hostedSending, setHostedSending] = useState(false);
   const [connection, setConnection] = useState(props.start.connection);
+  const [kept, setKept] = useState(props.kept ?? null);
   // A page opened in full with the person's agent connected (a reload) waits for the agent at once.
   const [waiting, setWaiting] = useState(props.page.state === 'FULL' && !!props.start.connection);
   const routerRef = useRef(router);
@@ -109,29 +117,40 @@ export function IssuePageLive(props: IssuePageLiveProps) {
     if (page.state !== 'FULL' && page.state !== 'MASKED') clearHeldMark(id);
   }, [id, page.state, page.until, page.holding]);
 
-  /** The page after a press: in full, one of the ends, or the closed access. */
-  const onLooked = useCallback((result: ContributeActionResult<IssueLooked>) => {
-    if (!result.ok) {
-      setNotice({ text: ISSUE_PAGE_NOTICES.look });
-      return;
-    }
-    const { outcome, page: next } = result.data;
-    if (outcome === 'SUSPENDED') {
-      setSuspended(true);
-      return;
-    }
-    if (next) setPage(next);
-    else {
-      const state = OUTCOME_STATES[outcome];
-      if (state) setPage((current) => ({ ...current, state }));
-    }
-  }, []);
+  /**
+   * The page after a press: in full, one of the ends, or the closed access. A press Contribute refuses as not available
+   * asks again, on its own, whether the issue is kept for learners (a read made before it was, or none), so the end
+   * says so in place of its plain words.
+   */
+  const onLooked = useCallback(
+    async (result: ContributeActionResult<IssueLooked>) => {
+      if (!result.ok) {
+        setNotice({ text: ISSUE_PAGE_NOTICES.look });
+        return;
+      }
+      const { outcome, page: next } = result.data;
+      if (outcome === 'SUSPENDED') {
+        setSuspended(true);
+        return;
+      }
+      if (outcome === 'NOT_AVAILABLE' && from === 'contribute') {
+        const again = await readIssueKept(id).catch(() => null);
+        if (again) setKept(again);
+      }
+      if (next) setPage(next);
+      else {
+        const state = OUTCOME_STATES[outcome];
+        if (state) setPage((current) => ({ ...current, state }));
+      }
+    },
+    [id, from],
+  );
 
   const see = useCallback(async () => {
     setPressing(true);
     setNotice(null);
     const result = await lookAtIssue(id, from).catch(() => null);
-    onLooked(result ?? { ok: false, error: 'FAILED' });
+    await onLooked(result ?? { ok: false, error: 'FAILED' });
     setPressing(false);
   }, [id, from, onLooked]);
 
@@ -146,8 +165,8 @@ export function IssuePageLive(props: IssuePageLiveProps) {
     if (masked) setPressing(true);
     void lookOnReturn(id, from, masked)
       .catch(() => null)
-      .then((result) => {
-        if (result) onLooked(result);
+      .then(async (result) => {
+        if (result) await onLooked(result);
         if (masked) setPressing(false);
       });
   }, [props.returning, props.page.state, id, from, view, onLooked]);
@@ -225,6 +244,9 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   const ownName = connection?.client ? MCP_CLIENT_NAMES[connection.client] : null;
   // Learn's parts show only from Learn: Contribute's page stays as it is.
   const learn = from === 'learn' ? (props.learn ?? null) : null;
+  // Kept for learners shows only from Contribute, where it cannot be taken; the way to it in Learn only to a person who
+  // uses Learn.
+  const keptHere = from === 'contribute' ? kept : null;
   return (
     <IssuePageScreen
       page={page}
@@ -232,6 +254,8 @@ export function IssuePageLive(props: IssuePageLiveProps) {
       lesson={issueLessonLineOf(learn)}
       learnOnly={learn?.learnOnly ?? false}
       started={learn?.started ?? null}
+      kept={keptHere}
+      learnHref={keptHere && props.alsoLearn ? issuePageHrefOf(id, 'learn') : null}
       back={props.back}
       numbers={props.numbers}
       now={new Date(props.openedAt)}

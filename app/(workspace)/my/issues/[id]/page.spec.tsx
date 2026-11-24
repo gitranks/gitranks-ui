@@ -29,6 +29,8 @@ const data = vi.hoisted(() => ({
 vi.mock('@/lib/workspace/masked-issue.data', () => data);
 const learnParts = vi.hoisted(() => ({ loadIssuePageLearn: vi.fn() }));
 vi.mock('@/lib/workspace/issue-page-learn.data', () => learnParts);
+const keptRead = vi.hoisted(() => ({ loadIssuePageKept: vi.fn() }));
+vi.mock('@/lib/workspace/issue-page-kept.data', () => keptRead);
 const learn = vi.hoisted(() => ({ loadLearnProfile: vi.fn(), loadLearnSetupOfMine: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => learn);
 
@@ -85,6 +87,7 @@ beforeEach(() => {
   learn.loadLearnProfile.mockResolvedValue(null);
   learn.loadLearnSetupOfMine.mockResolvedValue(null);
   learnParts.loadIssuePageLearn.mockResolvedValue(null);
+  keptRead.loadIssuePageKept.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -256,5 +259,69 @@ describe("the page of one issue from Learn: Learn's parts", () => {
     expect(stateOf(html)).toBe('FULL');
     expect(html).not.toContain('data-lesson');
     expect(text(html)).toContain('Fix it and teach me');
+  });
+});
+
+describe('the page of one issue from Contribute: an issue kept for learners', () => {
+  const ALWAYS = { until: null };
+
+  it('reads it on its own from Contribute or a side the address does not name, never from Learn', async () => {
+    await issuePageAt({ from: 'contribute' });
+    expect(keptRead.loadIssuePageKept).toHaveBeenCalledWith('q7k2m9xa');
+    keptRead.loadIssuePageKept.mockClear();
+    await issuePageAt();
+    expect(keptRead.loadIssuePageKept).toHaveBeenCalledOnce();
+    keptRead.loadIssuePageKept.mockClear();
+    await issuePageAt({ from: 'learn' });
+    expect(keptRead.loadIssuePageKept).not.toHaveBeenCalled();
+  });
+
+  it('says it is kept in one line, with no "See the full issue", and the way back as it is', async () => {
+    keptRead.loadIssuePageKept.mockResolvedValue(ALWAYS);
+    const html = await issuePageAt({ from: 'contribute' });
+    expect(stateOf(html)).toBe('MASKED');
+    expect(text(html)).toContain('This issue is kept for learners.');
+    expect(text(html)).not.toContain('See the full issue');
+    expect(html).toContain('href="/contribute#issues"');
+    expect(text(html)).not.toMatch(/acme|#1290|—/);
+  });
+
+  it('says it is kept for now, writing when it opens only in the browser', async () => {
+    keptRead.loadIssuePageKept.mockResolvedValue({ until: '2026-10-28T14:30:00.000Z' });
+    const html = text(await issuePageAt({ from: 'contribute' }));
+    expect(html).toContain('This issue is kept for learners for now.');
+    expect(html).not.toContain('It opens to Contribute');
+  });
+
+  it('offers no start on an issue held in full', async () => {
+    keptRead.loadIssuePageKept.mockResolvedValue(ALWAYS);
+    data.loadIssuePage.mockResolvedValue({ kind: 'page', page: fullPage() });
+    const html = text(await issuePageAt({ from: 'contribute' }));
+    expect(html).toContain('This issue is kept for learners.');
+    expect(html).not.toContain('Claude Code is connected');
+  });
+
+  it('leads a person who uses Learn to the same issue in Learn; others get no such link', async () => {
+    keptRead.loadIssuePageKept.mockResolvedValue(ALWAYS);
+    expect(await issuePageAt({ from: 'contribute' })).not.toContain('Open it in Learn');
+    learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
+    const html = await issuePageAt({ from: 'contribute' });
+    expect(/href="([^"]*)"[^>]*>Open it in Learn/.exec(html)?.[1]).toBe('/my/issues/q7k2m9xa?from=learn');
+  });
+
+  it("draws Learn's page as it is: the read is not made, and a kept answer is not shown", async () => {
+    keptRead.loadIssuePageKept.mockResolvedValue(ALWAYS);
+    const html = text(await issuePageAt({ from: 'learn' }));
+    expect(html).toContain('See the full issue');
+    expect(html).not.toContain('kept for learners');
+  });
+
+  it("draws today's page when the API does not answer it or the read fails", async () => {
+    keptRead.loadIssuePageKept.mockResolvedValue(null);
+    expect(text(await issuePageAt({ from: 'contribute' }))).toContain('See the full issue');
+    keptRead.loadIssuePageKept.mockRejectedValue(new Error('down'));
+    const html = text(await issuePageAt({ from: 'contribute' }));
+    expect(html).toContain('See the full issue');
+    expect(html).not.toContain('kept for learners');
   });
 });

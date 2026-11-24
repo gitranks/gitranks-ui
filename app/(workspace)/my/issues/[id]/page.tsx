@@ -6,6 +6,7 @@ import { IssuePageLive } from '@/components/workspace/masked-issue/issue-page-li
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { loadLearnProfile, loadLearnSetupOfMine } from '@/lib/learn/learn.data';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
+import { loadIssuePageKept } from '@/lib/workspace/issue-page-kept.data';
 import { loadIssuePageLearn } from '@/lib/workspace/issue-page-learn.data';
 import {
   ISSUE_LOOK_PARAM,
@@ -61,12 +62,17 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
   // From Learn, Learn's parts (the lesson and why, kept for learners, how the work started), in a read of their own:
   // without them the page draws what it draws today.
   const learnParts = from === 'learn' ? loadIssuePageLearn(id).catch(() => null) : null;
-  const [load, numbers, start, usesLearn, learn] = await Promise.all([
+  // From Contribute (or a side the address does not name), whether the issue is kept for learners, in a read of its
+  // own: Contribute does not let the person take it, so the page says so in place of the press. Without it (an API
+  // that does not answer it yet, a failed or slow read) the page draws what it draws today.
+  const keptRead = from === 'contribute' ? loadIssuePageKept(id).catch(() => null) : null;
+  const [load, numbers, start, usesLearn, learn, kept] = await Promise.all([
     loadIssuePage(id),
     loadIssueNumbers(),
     loadIssueStartReads(),
     learnUse,
     learnParts,
+    keptRead,
   ]);
   if (load.kind === 'not-found') notFound();
   return (
@@ -83,6 +89,7 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
       alsoLearn={usesLearn}
       returning={search[ISSUE_LOOK_PARAM] === '1'}
       learn={learn}
+      kept={kept}
     />
   );
 }

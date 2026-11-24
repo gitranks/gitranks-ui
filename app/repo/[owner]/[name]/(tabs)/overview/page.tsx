@@ -10,6 +10,7 @@ import { OVERVIEW_DEPENDENTS } from '@/components/dependents/dependents.consts';
 import { fetchRepoLanguages } from '@/graphql/helpers/fetch-repo-languages';
 import { fetchRepoPackages, fetchRepoUsedBy, UNAVAILABLE } from '@/graphql/helpers/fetch-repo-packages';
 import { fetchRepoRankTiers } from '@/graphql/helpers/fetch-repo-rank-tiers';
+import { loadLearnEntityCard } from '@/lib/learn/entity-card.data';
 
 // Drawn at `/repo/<owner>/<name>`: the proxy sends that address here, and asked for by its own address this page is a
 // 404. Its metadata is the repository's own.
@@ -25,9 +26,10 @@ export default async function RepoOverviewPage({ params }: PageProps<'/repo/[own
   const repo = await repoForTab(owner, name, 'overview');
 
   const rank = isRepoRanked(repo) ? repo.rank : null;
-  const [[languages, rankTiers], packages] = await Promise.all([
+  const [[languages, rankTiers], packages, learn] = await Promise.all([
     rank ? Promise.all([fetchRepoLanguages(), fetchRepoRankTiers()]) : ([[], { tiers: null, ok: true }] as const),
     fetchRepoPackages(repo.owner, repo.name),
+    loadLearnEntityCard({ repo: repo.nameWithOwner }),
   ]);
   const dependents =
     packages && packages !== UNAVAILABLE && packages.dependents > 0
@@ -38,7 +40,8 @@ export default async function RepoOverviewPage({ params }: PageProps<'/repo/[own
           hideArchived: false,
         })
       : null;
-  // A failed read of the tier table, or package data that could not be read: try again in minutes.
+  // A failed read of the tier table, or package data that could not be read: try again in minutes. A Learn card that
+  // could not be read leaves the page's life as it is: the card is left out until the page's next render.
   if (!rankTiers.ok || packages === UNAVAILABLE || dependents === UNAVAILABLE) {
     cacheLife('minutes');
   }
@@ -50,6 +53,7 @@ export default async function RepoOverviewPage({ params }: PageProps<'/repo/[own
       tiers={rankTiers.tiers}
       packages={packages}
       dependents={dependents}
+      learnCard={learn.card}
     />
   );
 }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { courseCards, djangoCourse, kubernetesCourse } from './__fixtures__/course';
+import { coursesSearchOf } from './course';
 import { courseCardVersionOf } from './course-share-card';
 import { courseCardOf } from './home';
 import { learnLandingMarkdownOf } from './landing';
@@ -17,6 +18,31 @@ beforeEach(() => {
 });
 
 describe('a project course in the lists', () => {
+  it("finds a project course by its project's owner and its full owner/name, when its name says neither", () => {
+    const nextJs = {
+      ...djangoCourse,
+      slug: 'next-js',
+      name: 'Next.js, from the inside',
+      project: { ...djangoCourse.project!, name: 'Next.js', repo: 'vercel/next.js' },
+    };
+    const starlight = {
+      ...kubernetesCourse,
+      slug: 'starlight',
+      name: 'Starlight, from the inside',
+      project: { ...kubernetesCourse.project!, name: 'Starlight', org: 'nebula' },
+    };
+    const courses = [...courseCards, nextJs, starlight];
+    const slugsOf = (query: string) =>
+      coursesSearchOf(courses, [], query).sections.flatMap((section) =>
+        section.found.map((found) => found.course.slug),
+      );
+    expect(slugsOf('vercel')).toEqual(['next-js']);
+    expect(slugsOf('vercel/next.js')).toEqual(['next-js']);
+    expect(slugsOf('Vercel/Next')).toEqual(['next-js']);
+    expect(slugsOf('nebula')).toEqual(['starlight']);
+    expect(slugsOf('ercel')).toEqual([]);
+  });
+
   it("reads a project course's card with its project, and drops one that names no project", () => {
     expect(courseCardOf({ ...djangoCourse })).toEqual({
       slug: 'django',

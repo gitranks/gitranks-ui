@@ -24,6 +24,7 @@ import {
 } from '@/components/dependents/dependents.fixtures';
 import type { Unavailable } from '@/graphql/helpers/fetch-repo-packages';
 import type { RepoPackages } from '@/graphql/repo-packages';
+import { entityCards } from '@/lib/learn/__fixtures__/entity-card';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 
@@ -62,7 +63,7 @@ const youngFrame = (tab: ReactElement, repo = youngRepo) => (
   </RepoFrame>
 );
 
-/** `nebula/ui`'s Overview: today's sections and the Used by card of its three packages. */
+/** `nebula/ui`'s Overview: today's sections, the Used by card of its three packages, and its Learn card. */
 const bigOverview = () =>
   bigFrame(
     threePackages,
@@ -72,6 +73,7 @@ const bigOverview = () =>
       tiers={repoRankTiers}
       packages={threePackages}
       dependents={firstPage}
+      learnCard={entityCards.repoEverything}
     />,
   );
 
@@ -87,6 +89,7 @@ const youngOverview = (repo = youngRepo) =>
       tiers={repoRankTiers}
       packages={null}
       dependents={null}
+      learnCard={null}
     />,
     repo,
   );
@@ -134,6 +137,7 @@ export const REPO_SCREENS: Screen[] = [
       'app/repo/[owner]/[name]/(tabs)/overview/page.tsx',
       'app/repo/[owner]/[name]/(tabs)/overview/components/repo-overview-screen.tsx',
       'app/repo/[owner]/[name]/(tabs)/overview/components/used-by-card.tsx',
+      'components/learn/entity/learn-entity-card.tsx',
       'app/repo/[owner]/[name]/components/repo-overview-sections.tsx',
       'app/repo/[owner]/[name]/components/repo-tier-card.tsx',
       'app/repo/[owner]/[name]/components/who-builds-it-card.tsx',
@@ -144,9 +148,9 @@ export const REPO_SCREENS: Screen[] = [
     states: [
       {
         id: 'supernova',
-        title: 'A Supernova whose packages are used: the Used by card',
+        title: 'A Supernova whose packages are used: the Used by card, then the Learn card',
         path: OVERVIEW_PATH,
-        height: 1700,
+        height: 2100,
         render: bigOverview,
       },
       {
@@ -176,7 +180,7 @@ export const REPO_SCREENS: Screen[] = [
         title: 'A Supernova whose packages are used · phone',
         path: OVERVIEW_PATH,
         width: 390,
-        height: 2800,
+        height: 3500,
         render: bigOverview,
       },
     ],

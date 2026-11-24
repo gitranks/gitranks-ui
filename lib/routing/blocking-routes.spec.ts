@@ -12,6 +12,8 @@ import {
 } from '@/scripts/check-blocking-routes.mjs';
 
 vi.mock('server-only', () => ({}));
+// A page's client parts may import a server action that reads the session: none is read when the module loads.
+vi.mock('@/auth', () => ({ auth: async () => null }));
 vi.mock('@/graphql/helpers/fetch-repo-languages', () => ({
   fetchRepoLanguages: async () => [{ language: null }, { language: 'Rust' }],
 }));

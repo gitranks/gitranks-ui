@@ -66,10 +66,18 @@ describe("a person's Skills page", () => {
     await expect(ProfileSkills(props('octocat'))).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
-  it('keeps a failed read for minutes only', async () => {
+  it('shows the error page on a failed read, never "no Skills page"', async () => {
+    loadSkillsPage.mockResolvedValueOnce({ value: null, failed: true });
+    await expect(ProfileSkills(props('octocat'))).rejects.toThrow('The Skills page of octocat could not be read.');
+    expect(cacheLife).not.toHaveBeenCalled();
+  });
+
+  it('keeps a failed read during the build as "not found" for minutes, so the build goes on', async () => {
+    vi.stubEnv('NEXT_PHASE', 'phase-production-build');
     loadSkillsPage.mockResolvedValueOnce({ value: null, failed: true });
     await expect(ProfileSkills(props('octocat'))).rejects.toThrow('NEXT_NOT_FOUND');
     expect(cacheLife).toHaveBeenCalledExactlyOnceWith('minutes');
+    vi.unstubAllEnvs();
   });
 });
 
@@ -79,6 +87,14 @@ describe("a Skills page's metadata", () => {
     expect(metadata.title).toEqual({ absolute: 'octocat’s skills · GitRanks' });
     expect(metadata.alternates?.canonical).toBe('/profile/octocat/skills');
     expect(JSON.stringify(metadata.alternates?.types)).toContain('/profile/octocat/skills.md');
+  });
+
+  it('names the page, never indexed, when it cannot be read', async () => {
+    loadSkillsPage.mockResolvedValueOnce({ value: null, failed: true });
+    expect(await generateMetadata(props('octocat'))).toEqual({
+      title: { absolute: 'octocat’s skills · GitRanks' },
+      robots: { index: false, follow: false },
+    });
   });
 
   it('is never indexed where there is no page', async () => {

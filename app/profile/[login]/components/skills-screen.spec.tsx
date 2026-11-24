@@ -125,6 +125,18 @@ describe('a public Skills page', () => {
     expect(container.querySelector('[data-skills-strip]')?.getAttribute('data-skills-strip')).toBe('PUBLIC');
   });
 
+  it('gives its owner the box about Learn when Learn is open to them, though the page leaves Learn out', async () => {
+    signedInAs('octocat');
+    fetchMock.mockResolvedValueOnce(mineAnswer(skillsMine.publicFirstFix));
+    await draw(<SkillsScreen login="octocat" page={contributorPage} learnOpen={false} now={SKILLS_NOW} />);
+    expect(container.querySelector('[data-product-box="LEARN"]')).not.toBeNull();
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    fetchMock.mockResolvedValueOnce(mineAnswer({ ...skillsMine.publicFirstFix, learnOpen: false }));
+    await draw(<SkillsScreen login="octocat" page={contributorPage} learnOpen={false} now={SKILLS_NOW} />);
+    expect(container.querySelector('[data-product-box]')).toBeNull();
+  });
+
   it('draws nothing of the owner when their view cannot be read', async () => {
     signedInAs('octocat');
     fetchMock.mockResolvedValueOnce(json({ mine: null, signedOut: false }));
@@ -166,6 +178,28 @@ describe('a Skills address with no public page', () => {
     expect(container.querySelector('[data-skills-strip]')?.getAttribute('data-skills-strip')).toBe('HIDDEN');
     expect(button('Show it to everyone')).toBeDefined();
     expect(button('Show 20 more')).toBeUndefined();
+    expect(container.querySelector('[data-skills-fixes-left]')).toBeNull();
+  });
+
+  it('says how many more fixes its owner has, one or many, where the next ones cannot be read', async () => {
+    signedInAs('octocat');
+    for (const [more, line] of [
+      [20, 'And 20 more, listed once your page is public.'],
+      [1, 'And 1 more, listed once your page is public.'],
+    ] as const) {
+      fetchMock.mockResolvedValueOnce(
+        mineAnswer({
+          ...skillsMine.hiddenLearner,
+          page: { ...longPage, fixes: { ...longPage.fixes, total: 6 + more } },
+        }),
+      );
+      await act(async () => root.unmount());
+      root = createRoot(container);
+      await draw(<SkillsMissingScreen />);
+      expect(container.querySelectorAll('[data-skills-fix]')).toHaveLength(6);
+      expect(container.querySelector('[data-skills-fixes-left]')?.textContent).toBe(line);
+      expect(button('Show 20 more')).toBeUndefined();
+    }
   });
 
   it('stays "no Skills page" for its owner when their view cannot be read', async () => {

@@ -72,3 +72,13 @@ export function moreFixesOf(fixes: Pick<SkillsFixes, 'rows' | 'total' | 'next'>)
   if (!fixes.next || left <= 0) return null;
   return `Show ${Math.min(FIXES_PAGE, left)} more`;
 }
+
+/**
+ * The line under the list of the owner's own page while only they can see it, where the next fixes cannot be read:
+ * how many more the numbers count. Null when every fix counted is listed.
+ */
+export function fixesLeftLineOf(counted: number, listed: number): string | null {
+  const left = counted - listed;
+  if (left <= 0) return null;
+  return `And ${left} more, listed once your page is public.`;
+}

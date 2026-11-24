@@ -9,7 +9,8 @@ import type { LearnFixMade } from '@/lib/workspace/pull-request-page.types';
 
 /**
  * "Fixes in real projects": the heading, the line that names the products that made them, the rows (merged first, then
- * open, in the API's order), and "Show 20 more", which adds rows in place. Nothing without a fix.
+ * open, in the API's order), and "Show 20 more", which adds rows in place, or a plain line where the next rows cannot
+ * be read. Nothing without a fix.
  */
 export function SkillsFixesSection({
   fixes,
@@ -19,6 +20,7 @@ export function SkillsFixesSection({
   now,
   onMore,
   loading = false,
+  leftLine = null,
 }: {
   fixes: SkillsFixes;
   made: readonly LearnFixMade[];
@@ -29,6 +31,8 @@ export function SkillsFixesSection({
   /** Asks for the next fixes; the button shows only with it. */
   onMore?: () => void;
   loading?: boolean;
+  /** The line under the list when there is no button: how many fixes are not listed. */
+  leftLine?: string | null;
 }) {
   if (!fixes.rows.length) return null;
   const more = moreFixesOf(fixes);
@@ -55,6 +59,10 @@ export function SkillsFixesSection({
         <Button variant="outline" className="self-start max-sm:min-h-11" onClick={onMore} disabled={loading}>
           {more}
         </Button>
+      ) : leftLine ? (
+        <p className="m-0 text-sm text-muted-foreground" data-skills-fixes-left="">
+          {leftLine}
+        </p>
       ) : null}
     </section>
   );

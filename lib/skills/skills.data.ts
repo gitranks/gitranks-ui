@@ -2,7 +2,7 @@ import 'server-only';
 
 import { cacheLife, cacheTag } from 'next/cache';
 
-import { skillsTag } from './paths';
+import { SKILLS_LOGINS_TAG, skillsTag } from './paths';
 import {
   MarkSkillsSeenDocument,
   SetSkillsHiddenDocument,
@@ -77,6 +77,7 @@ export const SKILLS_LOGIN_PAGES = 50;
 /** Every login whose page search engines may index, for the sitemap; null when they cannot all be read. */
 export async function loadSkillsLogins(): Promise<string[] | null> {
   'use cache';
+  cacheTag(SKILLS_LOGINS_TAG);
   const logins: string[] = [];
   let after: string | null = null;
   try {

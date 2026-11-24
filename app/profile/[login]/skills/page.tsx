@@ -11,7 +11,7 @@ import { fetchLearnForVisitors } from '@/app/components/landing/landing-data';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { fetchProfilePageOverview } from '@/graphql/helpers/fetch-profile-page-overview';
 import { skillsTag } from '@/lib/skills/paths';
-import { skillsJsonLdOf, skillsMetadataOf } from '@/lib/skills/seo';
+import { skillsJsonLdOf, skillsMetadataOf, skillsTitleOf } from '@/lib/skills/seo';
 import { loadSkillsPage } from '@/lib/skills/skills.data';
 import { profileCacheTag } from '@/utils/profile-refresh';
 
@@ -22,14 +22,24 @@ export async function generateMetadata({ params }: PageProps<'/profile/[login]/s
     fetchLearnForVisitors(),
     fetchProfilePageOverview(login),
   ]);
+  if (skills.failed) return { title: { absolute: skillsTitleOf(login) }, robots: { index: false, follow: false } };
   if (!user || !skills.value) return { title: 'No Skills page', robots: { index: false, follow: false } };
   return skillsMetadataOf(skills.value, { name: user.name, learnOpen });
 }
 
+/** A failed read is an error, never "no Skills page"; while the site is built it is a "not found" kept for minutes. */
+const failedRead = (login: string) => {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    cacheLife('minutes');
+    notFound();
+  }
+  throw new Error(`The Skills page of ${login} could not be read.`);
+};
+
 /**
  * A person's Skills tab: what they proved with GitRanks, the same page for everyone, cached fifteen minutes under the
- * person's tag (which hiding the page expires at once); a failed read is kept for minutes. A person with no public page
- * gets the "no Skills page" end, the same for everyone; its owner's view is read in the browser, never here.
+ * person's tag (which hiding the page expires at once). "Not found" only ever means no public page: the same for
+ * everyone, with its owner's view read in the browser, never here. A failed read shows the error page instead.
  */
 export default async function ProfileSkills({ params }: PageProps<'/profile/[login]/skills'>) {
   const { login } = await params;
@@ -40,11 +50,8 @@ export default async function ProfileSkills({ params }: PageProps<'/profile/[log
     loadSkillsPage(login),
     fetchLearnForVisitors(),
   ]);
-  if (skills.failed) {
-    cacheLife('minutes');
-  } else {
-    cacheLife({ stale: 300, revalidate: 900, expire: 86_400 });
-  }
+  if (skills.failed) failedRead(login);
+  cacheLife({ stale: 300, revalidate: 900, expire: 86_400 });
 
   if (!user || !skills.value) {
     notFound();

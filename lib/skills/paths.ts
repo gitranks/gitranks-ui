@@ -20,6 +20,12 @@ export const skillsMarkdownPath = (login: string) => `${skillsPath(login)}.md`;
  */
 export const skillsTag = (login: string) => `skills:${login.toLowerCase()}`;
 
+/**
+ * The cache tag of the sitemap's list of Skills pages. Hiding or showing a page expires it from this site alone, so
+ * the site's expire route does not take it (it is not a `skills:<login>` tag).
+ */
+export const SKILLS_LOGINS_TAG = 'skills-logins';
+
 /** A login of GitHub's characters, in lower case: up to 39, older logins with hyphens anywhere. */
 const SKILLS_TAG = /^skills:[a-z0-9-]{1,39}$/;
 

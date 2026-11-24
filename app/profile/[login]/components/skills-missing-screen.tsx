@@ -9,6 +9,7 @@ import { OwnerStrip, SkillsHeading, useSkillsOwner } from './skills-owner';
 import { SkillsMissing } from '@/components/skills/skills-missing';
 import { SkillsPageView } from '@/components/skills/skills-page-view';
 import { SkillsStart } from '@/components/skills/skills-start';
+import { fixesLeftLineOf } from '@/lib/skills/skills-fixes';
 import { otherBoxOf } from '@/lib/skills/skills-owner';
 import { ownerLayerOf } from '@/lib/skills/skills-view';
 import { avatarPath, userAvatarAlt } from '@/utils/avatar-path';
@@ -17,7 +18,8 @@ import { loginFromPath } from '@/utils/login-from-path';
 /**
  * A Skills address with no public page: "[login] has no Skills page", the same for everyone, whatever the reason. Its
  * owner's own page takes its place once their view arrives: what fills it while there is nothing on it, or the page only
- * they can see, with its strip. The login comes from the address, as a not-found page gets no params.
+ * they can see, with its strip. That page's next fixes cannot be read (they are read as everyone reads them), so a line
+ * says how many more there are. The login comes from the address, as a not-found page gets no params.
  */
 export function SkillsMissingScreen() {
   const params = useParams<{ login: string }>();
@@ -48,6 +50,10 @@ export function SkillsMissingScreen() {
           strip={<OwnerStrip login={login} mine={layer.mine} pending={pending} toggle={toggle} />}
           other={otherBoxOf(layer.mine)}
           learnOpen={layer.mine.learnOpen}
+          leftLine={fixesLeftLineOf(
+            Math.max(layer.page.numbers.fixes, layer.page.fixes.total),
+            layer.page.fixes.rows.length,
+          )}
         />
       </>
     );

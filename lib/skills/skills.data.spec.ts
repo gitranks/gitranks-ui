@@ -62,7 +62,7 @@ describe('the public Skills reads', () => {
 });
 
 describe("the sitemap's logins", () => {
-  it('reads every page, kept for hours once it lists any', async () => {
+  it('reads every page, tagged for hiding a page to expire, kept for hours once it lists any', async () => {
     graphqlDirect
       .mockResolvedValueOnce({ skillsLogins: { logins: ['a', 'b'], next: 'n1' } })
       .mockResolvedValueOnce({ skillsLogins: { logins: ['c'], next: null } });
@@ -74,6 +74,7 @@ describe("the sitemap's logins", () => {
       { source: 'ssr' },
     );
     expect(cacheLife).toHaveBeenCalledExactlyOnceWith('hours');
+    expect(cacheTag).toHaveBeenCalledWith('skills-logins');
   });
 
   it('is kept for minutes while empty, and null on a failure', async () => {

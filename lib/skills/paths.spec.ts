@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSkillsTag, skillsCardPath, skillsMarkdownPath, skillsPath, skillsProfilePath, skillsTag } from './paths';
+import {
+  isSkillsTag,
+  SKILLS_LOGINS_TAG,
+  skillsCardPath,
+  skillsMarkdownPath,
+  skillsPath,
+  skillsProfilePath,
+  skillsTag,
+} from './paths';
 
 describe("a Skills page's addresses", () => {
   it("lives under the person's profile, with its picture and its Markdown copy", () => {
@@ -57,5 +65,12 @@ describe("a Skills page's reads in the browser", () => {
     expect(paths.SKILLS_MINE_PATH).toBe('/api/me/skills');
     expect(paths.SKILLS_TAB_MINE_PATH).toBe('/api/me/skills/tab');
     expect(paths.SKILLS_SEEN_MINE_PATH).toBe('/api/me/skills/seen');
+  });
+});
+
+describe('SKILLS_LOGINS_TAG', () => {
+  it('is not a page tag, so only this site expires it', () => {
+    expect(SKILLS_LOGINS_TAG).toBe('skills-logins');
+    expect(isSkillsTag(SKILLS_LOGINS_TAG)).toBe(false);
   });
 });

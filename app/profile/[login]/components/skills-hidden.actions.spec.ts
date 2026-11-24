@@ -20,11 +20,12 @@ beforeEach(() => {
 });
 
 describe('hiding or showing the Skills page', () => {
-  it("sets the session's own page, then expires what is kept under its tag at once", async () => {
+  it("sets the session's own page, then expires its tag and the sitemap's list at once", async () => {
     setSkillsHidden.mockResolvedValueOnce(skillsMine.hiddenLearner);
     await expect(setSkillsHiddenAction(true)).resolves.toEqual({ ok: true, mine: skillsMine.hiddenLearner });
     expect(setSkillsHidden).toHaveBeenCalledWith('OctoCat', true);
     expect(revalidateTag).toHaveBeenCalledWith('skills:octocat', { expire: 0 });
+    expect(revalidateTag).toHaveBeenCalledWith('skills-logins', { expire: 0 });
   });
 
   it('says signed out without a session, asking nothing', async () => {

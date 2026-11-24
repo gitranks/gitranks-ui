@@ -8,6 +8,7 @@ import {
   dependentsRanking,
   dependentsStarsRanking,
   downloadsRanking,
+  goDependentsStarsRanking,
   packageRankingFacts,
 } from '@/app/packages/__fixtures__/package-rankings';
 import { PackageRankingFrame, PackageRankingScreen } from '@/app/packages/components/package-ranking-view';
@@ -36,6 +37,7 @@ import {
   worldLanguages,
 } from '@/components/summary-ranking/__fixtures__/summary-rankings';
 import type { PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
+import { REGISTRIES, type RegistryId } from '@/lib/packages/registries';
 import { CountrySummaryOrder, LanguageSummaryOrder } from '@/types/generated/graphql';
 import { RankingTypeClient } from '@/types/ranking.types';
 import { packageRankingPath } from '@/utils/package-paths';
@@ -98,22 +100,24 @@ const LANGUAGE_SOURCES = [
  * Page 1 of a package ranking, as its layout and page draw it: rows, none yet, or `undefined` when not readable (then
  * its facts are not either, and the header names no date).
  */
-const packageRanking = (order: PackageRankingOrder, rows: PackageRankRows | undefined) => () => (
-  <PackageRankingFrame
-    registry="npm"
-    order={order}
-    downloadsThrough={order === 'downloads' && rows ? packageRankingFacts.downloadsThrough : undefined}
-  >
-    <PackageRankingScreen
-      registry="npm"
-      registryLabel="npm"
+const packageRanking =
+  (order: PackageRankingOrder, rows: PackageRankRows | undefined, registry: RegistryId = 'npm') =>
+  () => (
+    <PackageRankingFrame
+      registry={registry}
       order={order}
-      page={1}
-      rows={rows}
-      facts={rows ? packageRankingFacts : undefined}
-    />
-  </PackageRankingFrame>
-);
+      downloadsThrough={order === 'downloads' && rows ? packageRankingFacts.downloadsThrough : undefined}
+    >
+      <PackageRankingScreen
+        registry={registry}
+        registryLabel={REGISTRIES[registry].label}
+        order={order}
+        page={1}
+        rows={rows}
+        facts={rows ? packageRankingFacts : undefined}
+      />
+    </PackageRankingFrame>
+  );
 
 const PACKAGE_RANKING_SOURCES = [
   'app/packages/[registry]/[by]/[page]/layout.tsx',
@@ -277,6 +281,13 @@ export const RANKINGS_SCREENS: Screen[] = [
         path: packageRankingPath('downloads'),
         height: 800,
         render: packageRanking('downloads', undefined),
+      },
+      {
+        id: 'go-dependents-stars-1',
+        title: "Go, by dependents' stars (no downloads ranking)",
+        path: packageRankingPath('dependents-stars', 1, 'go'),
+        height: 1200,
+        render: packageRanking('dependents-stars', goDependentsStarsRanking, 'go'),
       },
       {
         id: 'downloads-1-phone',

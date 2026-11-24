@@ -7,7 +7,7 @@ import { FairUseMessage } from './fair-use-message';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
 import type { ContributeNotice } from '@/lib/workspace/contribute-state';
-import { CONTRIBUTE_RULES_PATH, fairUseAnswerPathOf } from '@/lib/workspace/fair-use';
+import { ASK_AGAIN, CONTRIBUTE_RULES_PATH, fairUseAnswerPathOf, isAccessClosed } from '@/lib/workspace/fair-use';
 import { dayLabel } from '@/lib/workspace/format';
 import { KEY_REPLACE_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
@@ -68,11 +68,17 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         text: (
           <>
             Contribute starts new accounts on smaller limits:{' '}
-            <Count count={notice.limits.attemptsAtATime} one="issue" /> at a time,{' '}
-            <Count count={notice.limits.claimsPerDay} one="new claim" /> a day and{' '}
-            <Count count={notice.limits.revealsPerDay} one="new issue" /> a day in this list. Every new account starts
-            this way, to keep automated accounts from claiming issues meant for people; it isn&apos;t a judgement of
-            you. The limits lift on their own as your account builds a track record.
+            <Count count={notice.limits.attemptsAtATime} one="issue" /> at a time
+            {notice.limits.revealsPerDay === null ? ' and ' : ', '}
+            <Count count={notice.limits.claimsPerDay} one="new claim" /> a day
+            {notice.limits.revealsPerDay === null ? null : (
+              <>
+                {' '}
+                and <Count count={notice.limits.revealsPerDay} one="new issue" /> a day in this list
+              </>
+            )}
+            . Every new account starts this way, to keep automated accounts from claiming issues meant for people; it
+            isn&apos;t a judgement of you. The limits lift on their own as your account builds a track record.
           </>
         ),
       };
@@ -111,7 +117,8 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
 
 /**
  * A fair-use rule blocked the account: still paused, but the block's message, its answer page and the rule in the Terms
- * in place of the automated-activity words; the rule alone when the message could not be read.
+ * in place of the automated-activity words; the rule alone when the message could not be read. A closed access (a rule
+ * of today) says so, and its answer page is where to ask us to look again.
  */
 function fairUseBlockCopyOf(block: NonNullable<Extract<ContributeNotice, { kind: 'suspended' }>['fairUse']>['block']) {
   const copy: NoticeCopy = { tone: 'warn', title: 'Contribute is paused for this account', text: null };
@@ -129,10 +136,12 @@ function fairUseBlockCopyOf(block: NonNullable<Extract<ContributeNotice, { kind:
       ),
     };
   }
+  const closed = isAccessClosed(block);
   return {
     ...copy,
+    ...(closed ? { title: 'Your access to real issues is closed' } : {}),
     text: <FairUseMessage notice={block} />,
-    action: { href: fairUseAnswerPathOf(block.id), label: 'Answer' },
+    action: { href: fairUseAnswerPathOf(block.id), label: closed ? ASK_AGAIN : 'Answer' },
     more: { href: CONTRIBUTE_RULES_PATH, label: 'Terms of service' },
   };
 }

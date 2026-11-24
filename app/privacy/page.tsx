@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { TermsRulesLink } from './terms-rules-link';
+import { FairUseItem, PrivacyUpdated } from './fair-use-item';
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
 import { pageMetadata } from '@/lib/seo/page-metadata';
@@ -20,12 +20,6 @@ export const metadata: Metadata = pageMetadata({
  */
 
 const mail = <A href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</A>;
-
-/**
- * The Privacy policy's own date: it changed after `LAST_UPDATED` (GitRanks Learn and following a package, 2026-11-18;
- * the public progress page, 2026-11-20; Contribute's fair use, 2026-11-22; the bar Settings opens with, 2026-11-23).
- */
-const PRIVACY_UPDATED = '2026-11-23';
 
 const sections: LegalSection[] = [
   {
@@ -217,12 +211,16 @@ const sections: LegalSection[] = [
             Basis: legitimate interests, in respecting maintainers&apos; choices.
           </li>
           <li>
-            <B>Fair use</B>: pull requests for issues from your list go through GitRanks (see the <TermsRulesLink />
-            ). To check that, we compare the issues we showed you with the pull requests you open for them, and count
-            the issues you view. What we find, the messages we send you about it and your answers are kept for up to 180
-            days after the last change, even after you delete your Contribute data, and longer while a shorter list or a
-            block is in place. Basis: legitimate interests, in keeping Contribute fair.
+            <B>Issues you take</B>: we keep a record of every request to take an issue, granted or refused: when you see
+            one in full on GitRanks, when your agent takes one, when you start one, or when the hosted agent picks one
+            for you. It holds which issue, when, from which page or agent, why a request was refused, how it ended (for
+            example started, given back with the reasons and note you gave, or expired), whether you or your agent said
+            the issue was no longer open, and when its pull request was opened, merged or closed. We use it to count the
+            full issues you can see in a day, for fair use (below) and to see how Contribute and Learn are used. We keep
+            it for as long as GitRanks runs Contribute; when you delete your Contribute data, it stays without your
+            username and account id. Basis: legitimate interests, in keeping Contribute fair and knowing how it is used.
           </li>
+          <FairUseItem />
           <li>
             <B>Deleting it</B>: in Settings, choose <B>Delete all data</B>. It stops runs under way, deletes your key,
             settings, preferences, suggestions, runs and their history, drafted replies, agent connections and tokens
@@ -234,8 +232,9 @@ const sections: LegalSection[] = [
             were AI-assisted. We also keep the records we need to stop abuse of Contribute: an access level we set on
             your account and flags about misuse, for up to 180 days after you delete (an open flag until 180 days after
             it is resolved), checks we made of other GitHub accounts, for 30 days, and what our fair-use checks found,
-            with the messages we sent you about it and your answers, as long as <B>Fair use</B> above says. Basis:
-            legitimate interests, in keeping Contribute fair and safe.
+            with the messages we sent you about it and your answers, as long as <B>Fair use</B> above says. The record
+            of the issues you asked to take stays, without your username and account id. Basis: legitimate interests, in
+            keeping Contribute fair and safe.
           </li>
         </List>
       </>
@@ -505,6 +504,7 @@ const sections: LegalSection[] = [
             <A href="#contribute">GitRanks Contribute</A>
             {';'}
           </li>
+          <li>the record of the issues you asked to take, without your username and account id;</li>
           <li>backups, until they are rotated out.</li>
         </List>
         <P>
@@ -547,6 +547,10 @@ const sections: LegalSection[] = [
           lesson result through the GitHub sign-in), and Cloudflare&apos;s security cookies.
         </li>
         <li>
+          <B>Seeing an issue in full</B>: when you press &quot;See the full issue&quot; before you sign in, one cookie,
+          for 10 minutes, carries the press through the GitHub sign-in, so the issue shows in full when you return.
+        </li>
+        <li>
           <B>Preferences</B>: one cookie, gr_last_bar, that keeps which bar you saw last, Learn&apos;s or
           Contribute&apos;s, so Settings opens with the same one. It lasts a year and is renewed on each page that shows
           either bar.
@@ -581,5 +585,7 @@ const sections: LegalSection[] = [
 ];
 
 export default function Privacy() {
-  return <LegalPage title="Privacy policy" sections={sections} updated={PRIVACY_UPDATED} />;
+  // The date is read per request (`PrivacyUpdated`): today's, or that of the Terms once the rules about full issues a
+  // day are live.
+  return <LegalPage title="Privacy policy" sections={sections} updatedLine={<PrivacyUpdated />} />;
 }

@@ -80,7 +80,8 @@ export function ContributeTabScreen({
   const listCut = held ? null : (fairUse?.listCut ?? null);
   // Once the rules are live, the day's full issues and what they are made of say the list's limit in its place.
   const looksLine = held || listCut || !masked.rulesLive || !masked.looks ? null : looksLongLineOf(masked.looks);
-  const sizeLine = held || listCut || looksLine ? null : listSizeLineOf(page?.listSize);
+  // Rules that could not be read: neither today's words nor the new ones, since either may be wrong.
+  const sizeLine = held || listCut || looksLine || masked.rulesUnknown ? null : listSizeLineOf(page?.listSize);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-contribute-tab="">

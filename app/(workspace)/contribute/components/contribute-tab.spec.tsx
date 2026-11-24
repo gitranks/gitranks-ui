@@ -228,6 +228,14 @@ describe('the Contribute tab and fair use', () => {
     }
   });
 
+  it("says no line about the list's limits while the rules cannot be read, neither today's nor the new one", () => {
+    const masked = { rulesLive: false, rulesUnknown: true, looks: null, numbers: null };
+    const { html, plain } = render({ page: { ...issuePage, listSize: listSize() }, masked });
+    expect(html).not.toContain('data-list-size');
+    expect(html).not.toContain('data-looks-long-line');
+    expect(plain).not.toContain('You see your top');
+  });
+
   it('shows the Terms banner with its link to the rule and a close button', () => {
     const { html, plain } = render({ fairUse: fairUse({ rulesBanner }) });
     expect(html).toContain('data-fair-use="rules"');

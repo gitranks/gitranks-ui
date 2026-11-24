@@ -50,6 +50,11 @@ export const issueSurfaceOf = (from: IssueLookFrom): IssueSurface =>
  * line and the lines about them show only then), the viewer's full issues today, and the numbers for the window.
  */
 export type MaskedListReads = {
+  /**
+   * The rules could not be read and no answer is kept: a list then says neither today's words about its size nor the
+   * new ones, since either may be wrong.
+   */
+  rulesUnknown?: boolean;
   rulesLive: boolean;
   /** The viewer's full issues today; null signed out, before the rules are live, or when it cannot be read. */
   looks: IssueLooksToday | null;

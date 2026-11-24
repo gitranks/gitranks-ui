@@ -31,8 +31,8 @@ vi.mock('@/lib/workspace/contribute.data', () => data);
 const gate = vi.hoisted(() => ({ contributeOpen: vi.fn(async () => true) }));
 vi.mock('@/lib/workspace/preview-gate', () => gate);
 vi.mock('@/lib/contribute/agent-page', () => ({ loadAgentPage: vi.fn(async () => null) }));
-const rules = vi.hoisted(() => ({ loadRulesLive: vi.fn(async () => false) }));
-vi.mock('@/lib/workspace/masked-issue.data', () => rules);
+const rules = vi.hoisted(() => ({ issueRules: vi.fn(async (): Promise<unknown> => ({ state: 'before' })) }));
+vi.mock('@/lib/workspace/rules-live', () => rules);
 
 const { ContributeAboutView, signedInStartOf } = await import('./landing-view');
 const { metadata: aboutMetadata } = await import('@/app/(public)/contribute/about/page');
@@ -51,7 +51,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   data.loadContributeSetup.mockResolvedValue(false);
   data.viewerLogin.mockResolvedValue(null);
-  rules.loadRulesLive.mockResolvedValue(false);
+  rules.issueRules.mockResolvedValue({ state: 'before' });
 });
 
 describe("the landing's example issue", () => {
@@ -65,7 +65,7 @@ describe("the landing's example issue", () => {
   });
 
   it('shows it as lists show it once the rules are live: its facts and title, its project hidden', async () => {
-    rules.loadRulesLive.mockResolvedValue(true);
+    rules.issueRules.mockResolvedValue({ state: 'live', termsDate: '2026-11-30' });
     for (const view of [null, views.active]) {
       data.loadContribute.mockResolvedValue(view);
       const html = await about();
@@ -74,6 +74,18 @@ describe("the landing's example issue", () => {
       expect(html).toContain('Formatter drops a trailing comment in match arms');
       expect(html).toContain('data-masked-facts');
       expect(html).not.toContain('fern-lang');
+    }
+  });
+
+  it('shows only what both share while the rules are not known: its title, nothing named, nothing hidden', async () => {
+    for (const answer of [() => Promise.resolve({ state: 'unknown' }), () => Promise.reject(new Error('down'))]) {
+      rules.issueRules.mockImplementation(answer);
+      data.loadContribute.mockResolvedValue(null);
+      const html = await about();
+      expect(html).toContain('data-example="shared"');
+      expect(html).toContain('Formatter drops a trailing comment in match arms');
+      expect(html).not.toContain('fern-lang');
+      expect(html).not.toContain('Issue details are hidden');
     }
   });
 });

@@ -7,13 +7,17 @@ import {
   fairUseMessagePartsOf,
   fairUseNoticeIdOf,
   fairUseTextLabelOf,
+  isAccessClosed,
   listSizeLineOf,
   rulesBannerPartsOf,
 } from './fair-use';
 import {
+  accessClosedNotice,
   blockNotice,
+  claimRatioWarning,
   fairUseNotice,
   listSize,
+  outsideFixNotice,
   rulesBanner,
   warningNotice,
 } from '@/lib/contribute/__fixtures__/fair-use';
@@ -113,5 +117,21 @@ describe('the answer page', () => {
     expect(fairUseTextLabelOf(warningNotice)).toEqual({ label: 'Tell us what is in your way', optional: false });
     expect(fairUseTextLabelOf(blockNotice)).toEqual({ label: 'If this is a mistake, tell us why', optional: false });
     expect(choiceLabelOf('approval took too long')).toBe('Approval took too long');
+  });
+
+  it('takes the ids of the rules of today, each step', () => {
+    for (const id of ['583231-outsideFix-1-1', '583231-outsideFix-3-2', '583231-claimRatio-2-1']) {
+      expect(fairUseNoticeIdOf(id)).toBe(id);
+    }
+    expect(fairUseNoticeIdOf('583231-claimRatio-4-1')).toBeNull();
+  });
+
+  it('tells a closed access of the rules of today from every other message', () => {
+    expect(isAccessClosed(accessClosedNotice)).toBe(true);
+    for (const notice of [outsideFixNotice, claimRatioWarning, blockNotice, fairUseNotice()]) {
+      expect(isAccessClosed(notice)).toBe(false);
+    }
+    expect(fairUseTextLabelOf(outsideFixNotice)).toEqual({ label: 'Anything to add', optional: true });
+    expect(fairUseTextLabelOf(claimRatioWarning)).toEqual({ label: 'Tell us what is in your way', optional: false });
   });
 });

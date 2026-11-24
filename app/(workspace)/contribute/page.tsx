@@ -8,13 +8,15 @@ import { issuesQueryOf } from '@/app/contribute/components/issues-filter';
 import { Landing } from '@/app/contribute/components/landing';
 import { noViewPanelOf, signedInStartOf, VISITOR_START } from '@/app/contribute/components/landing-view';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
+import { landingExampleOf } from '@/lib/contribute/landing-example';
 import { loadAttempts, loadContribute, loadProviderInterests } from '@/lib/workspace/contribute.data';
 import { contributeHomeOf } from '@/lib/workspace/contribute-state';
+import type { IssueRules } from '@/lib/workspace/fair-use';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { hasAnyAttempt } from '@/lib/workspace/getting-in';
 import { issuePageCarriedOf } from '@/lib/workspace/masked-issue';
-import { loadRulesLive } from '@/lib/workspace/masked-issue.data';
 import { AGENTS_DOC_PATH, GETTING_IN_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { issueRules } from '@/lib/workspace/rules-live';
 
 /**
  * The landing's markdown, for agents: named in the head, and served on `Accept: text/markdown`. Not indexed, set here as
@@ -39,7 +41,7 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   // The landing's numbers line, read beside the view: it never holds the page up, and a failed read leaves it out.
   const agentPage = loadAgentPage();
   // Whether the landing's example shows the issue as lists show it once its details are hidden.
-  const rulesLive = loadRulesLive();
+  const rules = issueRules().catch((): IssueRules => ({ state: 'unknown' }));
   const view = await loadContribute();
   if (!view) {
     // Being set up, or no profile: the panel that says so. Launched, the landing is everyone's: a visitor's.
@@ -50,7 +52,7 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
           start={VISITOR_START}
           noted={[]}
           stats={(await agentPage)?.stats}
-          masked={await rulesLive}
+          example={landingExampleOf(await rules)}
         />
       )
     );
@@ -89,7 +91,7 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
       preview={home.preview}
       noted={visitor ? [] : await loadProviderInterests()}
       stats={(await agentPage)?.stats}
-      masked={await rulesLive}
+      example={landingExampleOf(await rules)}
     />
   );
 }

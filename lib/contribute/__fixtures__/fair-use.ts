@@ -106,3 +106,48 @@ export const fairUseBlocked: ContributeView = {
   contributor: contributor({ limits: { ...limits.suspended, reason: 'FAIR_USE' } }),
   fairUseBlock: blockNotice,
 };
+
+/** The rules of today, as the API words them, filled. */
+const OUTSIDE_FIX_INFO =
+  'A pull request you opened outside GitRanks fixes an issue you took on GitRanks. Issues you take here are for fixing through GitRanks. If this was a mistake, reply and tell us.';
+const CLAIM_RATIO_WARNING =
+  'You have taken 48 issues and opened 1 pull request. You can now see 5 full issues a day, until pull requests catch up.';
+const ACCESS_CLOSED =
+  'Your access to real issues on GitRanks is closed. If you think this is wrong, ask us to look again.';
+
+/** Rule 1's first step: an email, with its choices. */
+export const outsideFixNotice = fairUseNotice({
+  id: '583231-outsideFix-1-1',
+  kind: 'OUTSIDE_FIX_INFO',
+  rule: 'OUTSIDE_FIX',
+  text: OUTSIDE_FIX_INFO,
+  vars: { prs: null, n: null, k: null },
+});
+
+/** Rule 2's warning: 5 full issues a day, no choices. */
+export const claimRatioWarning = fairUseNotice({
+  id: '583231-claimRatio-2-1',
+  kind: 'CLAIM_RATIO_WARNING',
+  rule: 'CLAIM_RATIO',
+  phase: 2,
+  text: CLAIM_RATIO_WARNING,
+  vars: { prs: null, n: 48, k: 1 },
+  choices: [],
+});
+
+/** Rule 2's last step: the access closed, answered by asking us to look again. */
+export const accessClosedNotice = fairUseNotice({
+  id: '583231-claimRatio-3-1',
+  kind: 'CLAIM_RATIO_BAN',
+  rule: 'CLAIM_RATIO',
+  phase: 3,
+  text: ACCESS_CLOSED,
+  vars: { prs: null, n: null, k: null },
+  choices: [],
+});
+
+/** An account whose access a rule of today closed, with the closing message read. */
+export const accessClosed: ContributeView = {
+  ...fairUseBlocked,
+  fairUseBlock: accessClosedNotice,
+};

@@ -36,6 +36,10 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadFairUseNotices: vi.fn(async () => null),
   viewerLogin,
 }));
+const rulesReader = vi.hoisted(() => ({
+  issueRules: vi.fn(async (): Promise<unknown> => ({ state: 'live', termsDate: '2026-11-30' })),
+}));
+vi.mock('@/lib/workspace/rules-live', () => rulesReader);
 vi.mock('@/lib/workspace/masked-issue.data', () => ({
   loadMaskedListReads: vi.fn(async () => ({ rulesLive: false, looks: null, numbers: null })),
 }));

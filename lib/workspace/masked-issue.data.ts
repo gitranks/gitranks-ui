@@ -3,6 +3,7 @@ import 'server-only';
 import { ContributeUnavailableError, loadOwnAgent, viewerLogin } from './contribute.data';
 import type { ContributeActionResult } from './errors';
 import { contributeErrorOf } from './errors';
+import type { IssueRules } from './fair-use';
 import type { MaskedListReads } from './masked-issue';
 import {
   IssueLooksTodayDocument,
@@ -12,6 +13,7 @@ import {
 } from './masked-issue.documents';
 import type { IssueLooksToday, IssueNumbers, IssuePage } from './masked-issue.types';
 import { contributeMcpSignIn } from './mcp-sign-in';
+import { issueRules } from './rules-live';
 import { learnStartConnectionOf } from './start/start-page';
 import { limitsOf, startPageOnboarded } from './start/start-page.data';
 import type { LearnStartConnection, StartMode, StartPageAgent, StartPageIssue } from './start/start-page.types';
@@ -51,14 +53,6 @@ export async function loadIssueNumbers(): Promise<IssueNumbers | null> {
   } catch {
     return null;
   }
-}
-
-/**
- * Whether the rules about full issues a day are live (the switch): the site shows their words and the old Start page
- * address stops naming issues nobody uncovered. False whenever the numbers cannot be read: today's words.
- */
-export async function loadRulesLive(): Promise<boolean> {
-  return (await loadIssueNumbers())?.rulesLive === true;
 }
 
 /**
@@ -109,15 +103,24 @@ export async function loadIssueLooksToday(): Promise<IssueLooksToday | null> {
 }
 
 /**
- * What a list of masked issues shows beside its rows, read beside the list: the numbers of a night (for the window,
- * and whether the rules are live), then the viewer's day only once they are. Nothing here holds the list up: each
- * read that fails leaves its part out, and numbers that cannot be read keep today's words.
+ * What a list of masked issues shows beside its rows, read beside the list: the rules (the one reader the Terms and the
+ * old Start page address use), the numbers of a night for the window, then the viewer's day only once the rules are
+ * live. Nothing here holds the list up: each read that fails leaves its part out. Rules the API does not know are
+ * today's; rules it did not answer are unknown, and the list says no words about its limits.
  */
 export async function loadMaskedListReads(): Promise<MaskedListReads> {
-  const numbers = await loadIssueNumbers();
-  const rulesLive = numbers?.rulesLive === true;
+  const [rules, numbers] = await Promise.all([
+    issueRules().catch((): IssueRules => ({ state: 'unknown' })),
+    loadIssueNumbers(),
+  ]);
+  const rulesLive = rules.state === 'live';
   const looks = rulesLive ? await loadIssueLooksToday() : null;
-  return { rulesLive, looks, numbers: numbers ? { read: numbers.read, kept: numbers.kept } : null };
+  return {
+    rulesLive,
+    ...(rules.state === 'unknown' ? { rulesUnknown: true } : {}),
+    looks,
+    numbers: numbers ? { read: numbers.read, kept: numbers.kept } : null,
+  };
 }
 
 /** What the form "Start fixing it" needs: the agents, the connect steps' reads, and the pull requests that wait. */

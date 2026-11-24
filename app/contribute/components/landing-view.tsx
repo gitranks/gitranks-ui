@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Landing } from './landing';
 import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
+import { landingExampleOf } from '@/lib/contribute/landing-example';
 import {
   loadContribute,
   loadContributeSetup,
@@ -12,10 +13,11 @@ import {
 } from '@/lib/workspace/contribute.data';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { isOnboarded } from '@/lib/workspace/contribute-state';
+import type { IssueRules } from '@/lib/workspace/fair-use';
 import { contributeResumeOf, type LandingStart } from '@/lib/workspace/getting-in';
-import { loadRulesLive } from '@/lib/workspace/masked-issue.data';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 import { contributeOpen } from '@/lib/workspace/preview-gate';
+import { issueRules } from '@/lib/workspace/rules-live';
 
 /** A visitor's way in, the same for every visitor: the flow's first step (a bookmark may resume them further on). */
 export const VISITOR_START: LandingStart = { href: GETTING_IN_PATHS.contributeWork, signedIn: false };
@@ -50,7 +52,7 @@ export async function noViewPanelOf(): Promise<ReactNode | null> {
  */
 export async function ContributeAboutView() {
   const agentPage = loadAgentPage();
-  const rulesLive = loadRulesLive();
+  const rules = issueRules().catch((): IssueRules => ({ state: 'unknown' }));
   const view = await loadContribute();
   if (!view) {
     return (
@@ -60,7 +62,7 @@ export async function ContributeAboutView() {
           start={VISITOR_START}
           noted={[]}
           stats={(await agentPage)?.stats}
-          masked={await rulesLive}
+          example={landingExampleOf(await rules)}
         />
       )
     );
@@ -71,7 +73,7 @@ export async function ContributeAboutView() {
       start={signedInStartOf(view)}
       noted={await loadProviderInterests()}
       stats={(await agentPage)?.stats}
-      masked={await rulesLive}
+      example={landingExampleOf(await rules)}
     />
   );
 }

@@ -6,6 +6,7 @@ import { type FormEvent, useId, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { FairUseAppealLive } from '@/components/workspace/fair-use-appeal-live';
 import { FairUseMessage } from '@/components/workspace/fair-use-message';
 import { cn } from '@/lib/utils';
 import type { ContributeFairUseNotice } from '@/lib/workspace/contribute.types';
@@ -15,6 +16,7 @@ import {
   choiceLabelOf,
   FAIR_USE_ANSWER_MAX,
   fairUseTextLabelOf,
+  isAccessClosed,
 } from '@/lib/workspace/fair-use';
 import { answerFairUseNotice } from '@/lib/workspace/fair-use.actions';
 import { dayLabel } from '@/lib/workspace/format';
@@ -35,7 +37,8 @@ function errorOf(result: Extract<ContributeActionResult<unknown>, { ok: false }>
 /**
  * A message from GitRanks about fair use and the user's answer to it, on its own page: the message as sent, then the
  * form (its choices when it has them, and a text box), which turns into the answer in the same place once sent; "Change
- * my answer" opens the form again, filled. A second answer replaces the first.
+ * my answer" opens the form again, filled. A second answer replaces the first. A message that closed the access is
+ * answered by asking us to look again: its words, that form and email, in place of the message and the answer.
  */
 export function FairUseAnswerScreen({
   notice,
@@ -48,6 +51,24 @@ export function FairUseAnswerScreen({
   const [answer, setAnswer] = useState<Answer | null>(notice.answer);
   const [editing, setEditing] = useState(!notice.answer);
   const sent = dayLabel(notice.createdAt);
+
+  if (isAccessClosed(notice)) {
+    return (
+      <div className="flex flex-col gap-5" data-answer-page="appeal">
+        <span className="text-xs font-semibold tracking-[0.08em] text-primary uppercase">Contribute</span>
+        <h1 className="text-2xl font-semibold tracking-tight md:text-[32px] md:leading-tight">
+          A message from GitRanks
+        </h1>
+        {sent ? (
+          <span className="-mt-2 text-sm text-muted-foreground">
+            Sent {sent}
+            {byEmail ? ' · also by email' : ''}
+          </span>
+        ) : null}
+        <FairUseAppealLive />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5" data-answer-page={editing ? 'open' : 'sent'}>

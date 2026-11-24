@@ -17,9 +17,9 @@ const {
   loadIssuePage,
   loadIssueStartReads,
   loadMaskedListReads,
-  loadRulesLive,
   loadStartPageWithMask,
 } = await import('./masked-issue.data');
+const { resetIssueRulesLive } = await import('./rules-live');
 const { fullPage, issueNumbers, looksToday } = await import('./__fixtures__/masked-issue');
 const { startViews } = await import('./start/__fixtures__/start-page');
 const { mcpToken } = await import('@/lib/contribute/__fixtures__/contribute-views');
@@ -83,54 +83,62 @@ describe('the numbers of a night', () => {
     answer({ IssueNumbers: { issueNumbers } });
     expect(await loadIssueNumbers()).toEqual(issueNumbers);
     expect(graphqlDirect.mock.calls[0][2]).not.toHaveProperty('githubLogin');
-    expect(await loadRulesLive()).toBe(true);
   });
 
-  it("fall back to none, and today's words, when the API does not know them or does not answer", async () => {
+  it('fall back to none when the API does not know them or does not answer', async () => {
     answer({ IssueNumbers: todaysAnswerTo('issueNumbers') });
     expect(await loadIssueNumbers()).toBeNull();
-    expect(await loadRulesLive()).toBe(false);
     answer({ IssueNumbers: outage() });
-    expect(await loadRulesLive()).toBe(false);
-    answer({ IssueNumbers: { issueNumbers: { ...issueNumbers, rulesLive: false } } });
-    expect(await loadRulesLive()).toBe(false);
+    expect(await loadIssueNumbers()).toBeNull();
   });
 });
 
 describe('what a list of masked issues reads beside its rows', () => {
-  it("reads the viewer's day as the viewer, once the rules are live", async () => {
-    answer({ IssueNumbers: { issueNumbers }, IssueLooksToday: { issueLooksToday: looksToday() } });
-    expect(await loadMaskedListReads()).toEqual({
-      rulesLive: true,
-      looks: looksToday(),
-      numbers: { read: issueNumbers.read, kept: issueNumbers.kept },
+  const LIVE = { issueNumbers: { rulesLive: true, termsDate: '2026-11-30' } };
+  const BEFORE = { issueNumbers: { rulesLive: false, termsDate: null } };
+  const NUMBERS = { read: issueNumbers.read, kept: issueNumbers.kept };
+
+  beforeEach(() => resetIssueRulesLive());
+
+  it("reads the rules from the one reader, then the viewer's day as the viewer once they are live", async () => {
+    answer({
+      IssueRulesLive: LIVE,
+      IssueNumbers: { issueNumbers },
+      IssueLooksToday: { issueLooksToday: looksToday() },
     });
-    expect(asked()).toEqual(['IssueNumbers', 'IssueLooksToday']);
-    expect(graphqlDirect.mock.calls[1][2]).toMatchObject({ githubLogin: 'octocat' });
+    expect(await loadMaskedListReads()).toEqual({ rulesLive: true, looks: looksToday(), numbers: NUMBERS });
+    expect(asked().sort()).toEqual(['IssueLooksToday', 'IssueNumbers', 'IssueRulesLive']);
+    expect(graphqlDirect.mock.calls.find(([document]) => nameOf(document) === 'IssueLooksToday')?.[2]).toMatchObject({
+      githubLogin: 'octocat',
+    });
   });
 
-  it("reads no day before the rules are live: today's words, the window's numbers kept", async () => {
-    answer({ IssueNumbers: { issueNumbers: { ...issueNumbers, rulesLive: false } } });
-    expect(await loadMaskedListReads()).toEqual({
-      rulesLive: false,
-      looks: null,
-      numbers: { read: issueNumbers.read, kept: issueNumbers.kept },
+  it("reads no day before the rules are live, nor from an API that does not know the rules: today's words", async () => {
+    answer({ IssueRulesLive: BEFORE, IssueNumbers: { issueNumbers } });
+    expect(await loadMaskedListReads()).toEqual({ rulesLive: false, looks: null, numbers: NUMBERS });
+    resetIssueRulesLive();
+    answer({
+      IssueRulesLive: todaysAnswerTo('termsDate', 'IssueNumbers'),
+      IssueNumbers: todaysAnswerTo('issueNumbers'),
     });
-    expect(asked()).toEqual(['IssueNumbers']);
+    expect(await loadMaskedListReads()).toEqual({ rulesLive: false, looks: null, numbers: null });
+    expect(asked()).not.toContain('IssueLooksToday');
   });
 
-  it("keeps today's words when the API does not know the numbers, and when it does not answer", async () => {
-    const none = { rulesLive: false, looks: null, numbers: null };
-    answer({ IssueNumbers: todaysAnswerTo('issueNumbers') });
-    expect(await loadMaskedListReads()).toEqual(none);
-    answer({ IssueNumbers: outage() });
-    expect(await loadMaskedListReads()).toEqual(none);
+  it("says the rules are unknown on an outage with no answer kept, never today's words as if they were final", async () => {
+    answer({ IssueRulesLive: outage(), IssueNumbers: outage() });
+    expect(await loadMaskedListReads()).toEqual({ rulesLive: false, rulesUnknown: true, looks: null, numbers: null });
+    expect(asked()).not.toContain('IssueLooksToday');
   });
 
   it('leaves the day out when it cannot be read, or for a visitor', async () => {
-    answer({ IssueNumbers: { issueNumbers }, IssueLooksToday: todaysAnswerTo('issueLooksToday') });
+    answer({
+      IssueRulesLive: LIVE,
+      IssueNumbers: { issueNumbers },
+      IssueLooksToday: todaysAnswerTo('issueLooksToday'),
+    });
     expect((await loadMaskedListReads()).looks).toBeNull();
-    answer({ IssueNumbers: { issueNumbers }, IssueLooksToday: outage() });
+    answer({ IssueRulesLive: LIVE, IssueNumbers: { issueNumbers }, IssueLooksToday: outage() });
     expect((await loadMaskedListReads()).looks).toBeNull();
 
     graphqlDirect.mockClear();

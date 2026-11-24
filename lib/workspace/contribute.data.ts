@@ -285,11 +285,15 @@ function sidesOf(sides: ContributeSides | null | undefined): { sides?: Contribut
   return typeof sides?.contribute === 'boolean' && typeof sides.learn === 'boolean' ? { sides } : {};
 }
 
-/** The limits as the API answered them; `undefined` when it does not answer them (yet) or answers them partly. */
+/**
+ * The limits as the API answered them; `undefined` when it does not answer them (yet) or answers them partly. Issues
+ * newly shown a day may be null: an API that limits only full issues a day no longer counts them.
+ */
 function limitsOf(limits: ContributeLimits | null | undefined): ContributeLimits | undefined {
   if (!limits || typeof limits.level !== 'string') return undefined;
-  const counts = [limits.attemptsAtATime, limits.openPrsAtATime, limits.claimsPerDay, limits.revealsPerDay];
-  return counts.every((count) => typeof count === 'number') ? limits : undefined;
+  const counts = [limits.attemptsAtATime, limits.openPrsAtATime, limits.claimsPerDay];
+  const reveals = limits.revealsPerDay === null || typeof limits.revealsPerDay === 'number';
+  return reveals && counts.every((count) => typeof count === 'number') ? limits : undefined;
 }
 
 /** The onboarding fields the API answered; those it did not are left out, so they read as "not available yet". */

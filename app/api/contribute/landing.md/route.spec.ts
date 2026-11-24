@@ -31,6 +31,8 @@ describe('/contribute.md (answered here)', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('text/markdown; charset=utf-8');
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=300, s-maxage=300');
+    expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
+    expect(response.headers.get('Link')).toBe('</contribute>; rel="canonical"');
     const doc = await response.text();
     expect(doc).toContain('# GitRanks Contribute');
     expect(doc).toContain('2,792 issues ready in 1,291 repositories.');

@@ -19,7 +19,7 @@ describe('llms.txt', () => {
       '- [Contribute in Markdown](https://example.test/contribute.md): what Contribute is, its two ways and its steps\n',
     );
     const skills =
-      "- A person's Skills page in Markdown: https://example.test/profile/<login>/skills.md: lessons learned and fixes merged through GitRanks, when the person shows the page\n";
+      "- A person's Skills page, in Markdown: https://example.test/profile/<login>/skills.md — lessons learned and fixes merged through GitRanks, when the person shows the page\n";
     for (const contribute of [true, false]) {
       const text = llmsTxtOf({ contribute });
       expect(text.slice(text.indexOf('## Rankings and badges'), text.indexOf('## Packages'))).toContain(skills);

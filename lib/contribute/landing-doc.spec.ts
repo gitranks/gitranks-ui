@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AgentPageStats } from './agent-page.types';
-import { LANDING_HERO, LANDING_STEPS, LANDING_WAYS, LANDING_WAYS_HEAD } from './landing-copy';
+import { LANDING_HERO, LANDING_STEPS, LANDING_WAYS, LANDING_WAYS_HEAD, landingStepLabelOf } from './landing-copy';
 import { contributeLandingDocOf } from './landing-doc';
 
 const STATS: AgentPageStats = { readyIssues: 2792, repos: 1291, languages: [], checkedAt: '2026-11-24T12:05:55Z' };
@@ -24,6 +24,16 @@ describe('/contribute.md', () => {
     }
     expect(doc).toContain('1. Issues worth your time (we pick): From active repos');
     expect(doc).toContain(`${LANDING_STEPS.length}. You see it here (maintainers reply): Reviews and comments`);
+  });
+
+  it("labels the page's steps by number and who acts", () => {
+    expect(LANDING_STEPS.map(({ who }, index) => landingStepLabelOf(index, who))).toEqual([
+      '01 · we pick',
+      '02 · the agent works',
+      '03 · you review',
+      '04 · it opens in your name',
+      '05 · maintainers reply',
+    ]);
   });
 
   it('points an agent at the page for AI agents', () => {

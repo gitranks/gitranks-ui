@@ -39,8 +39,8 @@ function registryPackageLines(registry: RegistryId, url: (path: string) => strin
 }
 
 /**
- * The site's llms.txt (llmstxt.org): an H1, a one-line summary, then link sections. Top-level pages alone, never a
- * per-profile URL. `contribute`: Contribute is launched, so its pages for agents and its pull request timelines are listed. The packages section
+ * The site's llms.txt (llmstxt.org): an H1, a one-line summary, then link sections. Top-level pages, and the address
+ * patterns of per-item pages (never one person's or one project's own URL). `contribute`: Contribute is launched, so its pages for agents and its pull request timelines are listed. The packages section
  * lists the package rankings, the address patterns of a package's page and a repository's Used by tab, and the Unsung
  * heroes archive. Learn's pages are listed with its courses (`learnCourses`, each with its Markdown copy), and its page
  * for maintainers with Contribute.
@@ -98,7 +98,7 @@ export function llmsTxtOf({
     `- [README badges](${url('/badge')}): badges for profiles, organizations and repositories`,
     `- [Badge gallery](${url('/badge/gallery')})`,
     `- [How ranking works](${url('/methodology')})`,
-    `- A person's Skills page in Markdown: ${url('/profile/<login>/skills.md')}: lessons learned and fixes merged through GitRanks, when the person shows the page`,
+    `- A person's Skills page, in Markdown: ${url('/profile/<login>/skills.md')} — lessons learned and fixes merged through GitRanks, when the person shows the page`,
     '',
   );
   lines.push(

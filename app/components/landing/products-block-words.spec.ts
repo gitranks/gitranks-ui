@@ -178,7 +178,7 @@ describe("Learn's promotion line", () => {
   it('names the live courses in their order', () => {
     const promos = homePromosOf(live);
     expect(promos.LEARN.line).toBe(
-      'Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs. Then fix a real issue with what you learned.',
+      'Short lessons on algorithms, JavaScript/TypeScript, Python, open source and LLM APIs. Then fix a real issue with what you learned.',
     );
     expect(learnCardOf(homeProducts.visitor, HOME_NOW, promos)).toBe(promos.LEARN);
     expect(promos.CONTRIBUTE).toBe(HOME_PROMOS.CONTRIBUTE);
@@ -188,7 +188,7 @@ describe("Learn's promotion line", () => {
   it('past six names the first five and how many more', () => {
     const seven = [...live, { slug: 'go', name: 'Go' }, { slug: 'rust', name: 'Rust' }];
     expect(homePromosOf(seven).LEARN.line).toBe(
-      'Short lessons on algorithms, JavaScript and TypeScript, Python, open source, LLM APIs and 2 more courses. Then fix a real issue with what you learned.',
+      'Short lessons on algorithms, JavaScript/TypeScript, Python, open source, LLM APIs and 2 more courses. Then fix a real issue with what you learned.',
     );
   });
 

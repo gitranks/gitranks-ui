@@ -9,11 +9,13 @@ import type { LearnCourseCard } from './course';
 export type CourseInLine = Pick<LearnCourseCard, 'slug' | 'name'>;
 
 /**
- * A course's name inside a sentence ("Short lessons on algorithms, ... open source and LLM APIs"), by its slug; a
+ * A course's name inside a sentence ("Short lessons on algorithms, JavaScript/TypeScript, ... and LLM APIs"), by its slug; a
  * course not here goes by its own name.
  */
 const COURSE_NAMES_IN_A_LINE: Readonly<Record<string, string>> = {
   algorithms: 'algorithms',
+  // No "and" of its own, so it never runs into the "and" that joins the list.
+  'javascript-and-typescript': 'JavaScript/TypeScript',
   'contributing-to-open-source': 'open source',
   'working-with-llm-apis': 'LLM APIs',
 };
@@ -26,7 +28,7 @@ const NAMED_BEFORE_MORE = 5;
 export const LANDING_COURSES_LINE_EMPTY = 'Short lessons on programming';
 
 /**
- * "Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs": the live courses in
+ * "Short lessons on algorithms, JavaScript/TypeScript, Python, open source and LLM APIs": the live courses in
  * their order, every one up to six; past six, the first five "and 2 more courses". No full stop.
  */
 export function landingCoursesLineOf(courses: readonly CourseInLine[]): string {

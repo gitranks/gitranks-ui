@@ -11,6 +11,7 @@ import {
   MaintainersScreen,
   PrStrip,
 } from '@/app/contribute/components/maintainers-view';
+import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
 import { loadMaintainerRepos } from '@/lib/contribute/maintainers.data';
 import { loadMaintainerFacts, loadPrStrip } from '@/lib/contribute/pr-feedback.data';
 import type { ContributeMaintainerFacts, ContributePrCard } from '@/lib/workspace/contribute.types';
@@ -77,7 +78,13 @@ export default async function MaintainersPage({ searchParams }: PageProps<'/cont
 async function StripSlot({ card }: { card: Promise<ContributePrCard | null> }) {
   const read = await card;
   if (!read) return null;
-  return <PrStrip card={read} timelinePath={await publicTimelinePathOf(read.attemptId)} />;
+  // The card streams in above `#learn`: once it is in place, land on the part the address names again.
+  return (
+    <>
+      <PrStrip card={read} timelinePath={await publicTimelinePathOf(read.attemptId)} />
+      <ScrollToHash />
+    </>
+  );
 }
 
 async function BadgeMarkdownSlot({ card }: { card: Promise<ContributePrCard | null> }) {

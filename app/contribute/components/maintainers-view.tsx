@@ -408,7 +408,7 @@ function LearnPart() {
             GitRanks stays away from issues you keep for first-time contributors. If you want learners on them, add{' '}
             <code className="font-mono text-foreground">learn: welcome</code> to{' '}
             <a href="#work-with-us" className="font-medium text-link hover:underline">
-              your rules file ↓
+              your rules file <span aria-hidden="true">↓</span>
             </a>
           </span>
         </li>
@@ -584,7 +584,7 @@ export function PrStrip({ card, timelinePath = null }: { card: ContributePrCard;
               </>
             ) : null}
             <a href={`#${LEARN_PART_ID}`} className="font-medium whitespace-nowrap text-link hover:underline">
-              What that means ↓
+              What that means <span aria-hidden="true">↓</span>
             </a>
           </span>
         ) : timelinePath ? (
@@ -632,9 +632,9 @@ export function MaintainersFoot({ card }: { card: ContributePrCard | null }) {
         aria-labelledby={`${FOOT_ID}-title`}
         className="flex scroll-mt-6 flex-col items-center gap-1.5 rounded-xl bg-muted/50 px-6 py-7 text-center"
       >
-        <strong id={`${FOOT_ID}-title`} className="text-[17px] font-semibold">
+        <h2 id={`${FOOT_ID}-title`} className="text-[17px] font-semibold">
           Want to talk to us?
-        </strong>
+        </h2>
         <p className="text-sm text-muted-foreground">
           Write to <MailLink />. A person reads every message.
           <br />
@@ -663,6 +663,7 @@ export function MaintainersFoot({ card }: { card: ContributePrCard | null }) {
             className="font-medium text-foreground hover:underline"
           >
             {card.nameWithOwner}#{card.number}
+            <span className="sr-only"> (opens in a new tab)</span>
           </a>
           {card.title ? ` · ${card.title}` : null}
         </p>

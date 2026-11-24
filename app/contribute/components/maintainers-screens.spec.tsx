@@ -101,6 +101,7 @@ describe('the maintainers page', () => {
       'GitRanks stays away from issues you keep for first-time contributors. If you want learners on them, add learn: welcome to your rules file ↓',
     );
     expect(part).toContain('href="#work-with-us"');
+    expect(part).toContain('your rules file <span aria-hidden="true">↓</span>');
   });
 
   it('lists the learn key in the rules file’s keys, with what the API says it does, and never in the example', () => {
@@ -111,7 +112,7 @@ describe('the maintainers page', () => {
       'contribute: on | off off keeps GitRanks out of the repository, Contribute and Learn: no issue is picked, no pull request opened',
     );
     expect(keys).toContain(
-      'learn: welcome | off welcome takes GitRanks Learn pull requests on issues you keep for first-time contributors too. off keeps GitRanks Learn out, and Contribute stays',
+      'learn: welcome | off welcome takes GitRanks Learn pull requests even where you keep issues or first contributions for first-time contributors. off keeps GitRanks Learn out, and Contribute stays',
     );
     expect(text(html.split('data-config-card')[1].split('</pre>')[0])).toContain(
       '# off keeps GitRanks out: Contribute and Learn contribute: on',
@@ -218,6 +219,8 @@ describe('the maintainers page', () => {
     );
     expect(line).toContain(`href="${TIMELINE}"`);
     expect(line).toContain('href="#learn"');
+    // The arrow is drawn, not read: the link's name is its words.
+    expect(line).toContain('What that means <span aria-hidden="true">↓</span>');
     expect(text(html)).not.toContain('See how this PR was made');
     expect(text(html)).toContain('This PR helped This PR did not help');
 
@@ -231,7 +234,7 @@ describe('the maintainers page', () => {
     const asked = renderToStaticMarkup(<MaintainersFoot card={prCard()} />);
 
     expect(text(asked)).toContain(
-      'Did this pull request help? driftwood-js/driftwood#912 · Keep scroll position when a nested layout re-renders Yes, it helped No, it did not',
+      'Did this pull request help? driftwood-js/driftwood#912 (opens in a new tab) · Keep scroll position when a nested layout re-renders Yes, it helped No, it did not',
     );
     expect(asked).toContain('href="/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0&amp;kind=helped"');
     expect(asked).toContain('href="/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0"');
@@ -242,6 +245,9 @@ describe('the maintainers page', () => {
     const note = renderToStaticMarkup(<MaintainersFoot card={null} />);
     expect(text(note)).toContain('Want to talk to us? Write to hello@gitranks.com . A person reads every message.');
     expect(note).not.toContain('/contribute/maintainers/report');
+    // Both ends are headings, so heading navigation finds them.
+    expect(note).toContain('Want to talk to us?</h2>');
+    expect(asked).toContain('Did this pull request help?</h2>');
     // The report page's "Back to the page for maintainers" lands on the foot either way.
     expect(asked).toContain('id="feedback"');
     expect(note).toContain('id="feedback"');
@@ -463,8 +469,15 @@ describe('the report pages', () => {
     if (error === 'NOT_OURS') expect(text(html)).toContain("We didn't open this PR");
   });
 
-  it('says a link that names no PR', () => {
-    expect(text(screen(null, 'report', null))).toContain('This link doesn’t name a pull request');
+  it('says a link that names no PR, and where a note starts now', () => {
+    const html = screen(null, 'report', null);
+
+    expect(text(html)).toContain('This link doesn’t name a pull request');
+    expect(text(html)).toContain(
+      'A note starts from the pull request itself: use the link in the footer GitRanks adds to it. With no pull request, write to us at hello@gitranks.com .',
+    );
+    expect(html).toContain('href="mailto:hello@gitranks.com"');
+    expect(text(html)).not.toMatch(/Paste the PR|Report this PR/);
   });
 
   it('says where a word goes in "This PR helped": a maintainer’s to the author, a user’s to us', () => {

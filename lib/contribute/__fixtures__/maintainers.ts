@@ -86,7 +86,7 @@ export const maintainerFacts = (patch: Partial<ContributeMaintainerFacts> = {}):
       kind: 'welcomeOff',
       values: 'welcome | off',
       meaning:
-        'welcome takes GitRanks Learn pull requests on issues you keep for first-time contributors too. off keeps GitRanks Learn out, and Contribute stays',
+        'welcome takes GitRanks Learn pull requests even where you keep issues or first contributions for first-time contributors. off keeps GitRanks Learn out, and Contribute stays',
       live: true,
       page: false,
     }),

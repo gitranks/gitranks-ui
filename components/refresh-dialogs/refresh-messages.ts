@@ -82,7 +82,7 @@ export const REFRESH_MESSAGES = {
       'Star our repo.',
       'Get 1 refresh of your profile every day.',
     ],
-    closing: ['Need more? Later you can use your own GitHub token.'],
+    closing: ['Not your profile? Then you need your own GitHub token to fetch it.'],
     primary: 'Sign in with GitHub',
     secondary: 'Maybe later',
   },
@@ -128,6 +128,21 @@ export const REFRESH_MESSAGES = {
     paragraphs: [
       'Nice! Our daily refresh is only for your own profile.',
       'Use your own GitHub token to refresh any profile, any time. It runs on your GitHub limits, not ours.',
+    ],
+    ...TOKEN_NOTE,
+    primary: 'Use my GitHub token',
+    secondary: 'Maybe later',
+  },
+
+  /**
+   * Signed in without a token, presses "Fetch profile from GitHub" on someone else's profile GitRanks does not have yet:
+   * the first fetch of it, not a refresh.
+   */
+  fetchOther: {
+    title: 'This one needs your token 🔑',
+    paragraphs: [
+      'Without your own GitHub token, we can only fetch your own profile.',
+      'Sign in with your token, then press “Fetch profile from GitHub” again to get @{login}. It runs on your GitHub limits, not ours.',
     ],
     ...TOKEN_NOTE,
     primary: 'Use my GitHub token',

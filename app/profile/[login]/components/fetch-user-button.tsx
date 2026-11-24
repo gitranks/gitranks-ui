@@ -66,10 +66,11 @@ type FetchUserButtonProps = {
   /** Offers the owner their daily updates on their own profile, once the API says they are open to them. */
   ownerStates?: boolean;
   /**
-   * Signed out, Refresh opens the deal: daily updates, and a badge with "Check my badge" as the way without a star.
-   * Off where GitRanks has no such profile: there it opens today's sign-in.
+   * GitRanks has no such profile yet: the press fetches it for the first time. Signed out it opens today's sign-in, not
+   * the deal (daily updates, and a badge with "Check my badge" as the way without a star); on someone else's profile it
+   * says the fetch needs the visitor's own token, not why a refresh does.
    */
-  dealOffered?: boolean;
+  missing?: boolean;
 };
 
 /**
@@ -111,7 +112,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   dailyUpdates,
   profileLogin,
   ownerStates = false,
-  dealOffered = true,
+  missing = false,
 }) => {
   const { data: session, status } = useSession();
   const { login } = useParams<{ login: string }>();
@@ -415,9 +416,9 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
       case 'loading':
         return;
       case 'signed-out':
-        return openDialog(dealOffered ? { kind: 'deal', check: true } : { kind: 'signIn' });
+        return openDialog(missing ? { kind: 'signIn' } : { kind: 'deal', check: true });
       case 'other':
-        return openDialog({ kind: 'otherProfile' });
+        return openDialog({ kind: missing ? 'fetchOther' : 'otherProfile' });
       case 'token':
         return fetchUser();
       case 'daily':
@@ -501,6 +502,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     manualUsed: { primary: { onClick: signInWithToken } },
     ownBadge: { primary: { onClick: startDailyUpdates } },
     otherProfile: { primary: { onClick: signInWithToken } },
+    fetchOther: { primary: { onClick: signInWithToken } },
     blocked: { primary: { href: STAR_REPO_URL } },
     whyDailyOwner: { primary: { onClick: getDailyUpdates } },
     whyDailyBadge: { primary: { onClick: makeBadge } },
@@ -613,7 +615,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
 
 export const FetchUserButtonForNotFoundPage: FC<Omit<FetchUserButtonProps, 'children'>> = (props) => {
   return (
-    <FetchUserButton {...props} dealOffered={false}>
+    <FetchUserButton {...props} missing>
       <Button size="lg">Fetch profile from GitHub</Button>
     </FetchUserButton>
   );

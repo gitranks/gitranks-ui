@@ -17,6 +17,7 @@ import {
   fixMarkdownOf,
   fixMarksOf,
   hasLearnView,
+  isLearnCanonical,
   learnFixOf,
   lessonCardOf,
   mainActionOf,
@@ -46,6 +47,14 @@ describe('learnFixOf', () => {
     expect(hasLearnView(learnFixClosed)).toBe(false);
     expect(hasLearnView({ ...learnFix, made: 'CONTRIBUTE' })).toBe(false);
     expect(hasLearnView(null)).toBe(false);
+  });
+
+  it('makes "Learn from it" the canonical of a merged Learn fix only, where the sitemap lists it', () => {
+    expect(isLearnCanonical(learnFix)).toBe(true);
+    expect(isLearnCanonical({ ...learnFix, state: 'OPEN' })).toBe(false);
+    expect(isLearnCanonical(learnFixClosed)).toBe(false);
+    expect(isLearnCanonical({ ...learnFix, made: 'CONTRIBUTE' })).toBe(false);
+    expect(isLearnCanonical(null)).toBe(false);
   });
 });
 

@@ -96,6 +96,13 @@ describe('factsOf', () => {
     expect(factsOf(openTimeline)[4]).toEqual({ label: 'Open', value: 'Since Oct 24', note: null });
     expect(factsOf(closedTimeline)[4]).toMatchObject({ label: 'Opened to closed', value: '6 days' });
   });
+
+  it('leaves out a fact with nothing to say, never a long dash', () => {
+    const quiet = { ...openTimeline, milestones: openTimeline.milestones.filter((row) => row.kind === 'OPENED') };
+    const facts = factsOf(quiet);
+    expect(facts.map(({ label }) => label)).toEqual(['Agent', 'Review rounds', 'Open']);
+    expect(JSON.stringify(facts)).not.toContain('—');
+  });
 });
 
 describe('dates and times', () => {

@@ -86,6 +86,13 @@ export const fixKeyOf = ({ nameWithOwner, number }: PrRef) => `${nameWithOwner.t
 export const hasLearnView = (fix: Pick<LearnFixPage, 'made' | 'state'> | null): boolean =>
   !!fix && fix.made === 'LEARN' && fix.state !== 'CLOSED';
 
+/**
+ * Whether "Learn from it" is the canonical of both views: a merged Learn fix, the ones the sitemap lists there. An
+ * open one keeps "How it was made" as its own canonical, where the sitemap lists it, until it merges.
+ */
+export const isLearnCanonical = (fix: Pick<LearnFixPage, 'made' | 'state'> | null): boolean =>
+  !!fix && fix.made === 'LEARN' && fix.state === 'MERGED';
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The person's marks                                                                                                 */
 /* ------------------------------------------------------------------------------------------------------------------ */

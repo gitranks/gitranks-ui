@@ -40,13 +40,31 @@ function MadeList({ rows }: { rows: readonly MadeRow[] }) {
   );
 }
 
-/** The letter of a login, its first character: a small round mark that opens the person's profile. */
+/** "7 people said it helped": how many said so, named or not. */
+function HelpedCount({ count }: { count: number }) {
+  return (
+    <span className="text-sm" data-helped="">
+      <span className="font-mono font-semibold tabular-nums">{count.toLocaleString('en-US')}</span>{' '}
+      <span className="text-muted-foreground">{count === 1 ? 'person said it helped' : 'people said it helped'}</span>
+    </span>
+  );
+}
+
+/**
+ * Who said it helped: the letter of each named login, its first character, a small round mark that opens the
+ * person's profile, and "+N more" for the rest. When more said so than are named, the count leads, so no note is lost.
+ */
 function HelpedPeople({ helped, count }: { helped: PrTimelineHelped | null; count: number }) {
   if (helped?.helpedBy.length) {
-    const more = helpedMoreOf({ names: helped.helpedBy, named: helped.helpedNamed });
+    const all = Math.max(count, helped.helpedNamed);
+    const more = helpedMoreOf({ names: helped.helpedBy, named: all });
     return (
       <div className="flex flex-wrap items-center gap-2" data-helped-by="">
-        <span className="text-sm text-muted-foreground">Said it helped</span>
+        {all > helped.helpedNamed ? (
+          <HelpedCount count={all} />
+        ) : (
+          <span className="text-sm text-muted-foreground">Said it helped</span>
+        )}
         <ul className="m-0 flex list-none gap-1 p-0">
           {helped.helpedBy.map((login) => (
             <li key={login}>
@@ -66,13 +84,7 @@ function HelpedPeople({ helped, count }: { helped: PrTimelineHelped | null; coun
       </div>
     );
   }
-  if (count <= 0) return null;
-  return (
-    <span className="text-sm" data-helped="">
-      <span className="font-mono font-semibold tabular-nums">{count.toLocaleString('en-US')}</span>{' '}
-      <span className="text-muted-foreground">{count === 1 ? 'person said it helped' : 'people said it helped'}</span>
-    </span>
-  );
+  return count > 0 ? <HelpedCount count={count} /> : null;
 }
 
 export type MaintainerLinks = {

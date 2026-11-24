@@ -46,7 +46,7 @@ export async function readFixMarks(pr: PrRef): Promise<FixMarksRead> {
   }
 }
 
-/** A card: its eyebrow and its mark in a place of fixed height, its title, text, link and button. */
+/** A card: its eyebrow and its mark, and its link, each in a place of fixed height; its title, text and button. */
 function FixCard({ card, main }: { card: FixCardWords; main: boolean }) {
   return (
     <section
@@ -86,16 +86,19 @@ function FixCard({ card, main }: { card: FixCardWords; main: boolean }) {
           </>
         ) : null}
       </p>
-      {card.link ? (
-        <Link
-          href={card.link.href}
-          prefetch={false}
-          className="self-start text-sm font-medium text-link hover:underline"
-          data-fix-card-link={card.kind}
-        >
-          {card.link.text}
-        </Link>
-      ) : null}
+      {/* The link's line is always kept: the fixer's "See your answers" arrives with their marks, and moves nothing. */}
+      <p className="m-0 min-h-5 text-sm leading-5" data-fix-card-link-place={card.kind}>
+        {card.link ? (
+          <Link
+            href={card.link.href}
+            prefetch={false}
+            className="font-medium text-link hover:underline"
+            data-fix-card-link={card.kind}
+          >
+            {card.link.text}
+          </Link>
+        ) : null}
+      </p>
       <Button asChild variant={main ? 'default' : 'outline'} className="mt-auto h-9 self-start px-4 max-sm:min-h-11">
         <Link href={card.button.href} prefetch={false} data-fix-card-button={card.kind}>
           {card.button.text}

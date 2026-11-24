@@ -1,8 +1,9 @@
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadWalkthrough, notFound } = vi.hoisted(() => ({
+const { loadWalkthrough, loadFixPage, notFound } = vi.hoisted(() => ({
   loadWalkthrough: vi.fn(),
+  loadFixPage: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error('NEXT_NOT_FOUND');
   }),
@@ -10,6 +11,7 @@ const { loadWalkthrough, notFound } = vi.hoisted(() => ({
 vi.mock('server-only', () => ({}));
 vi.mock('next/navigation', () => ({ notFound }));
 vi.mock('@/lib/learn/walkthrough.data', () => ({ loadWalkthrough }));
+vi.mock('@/lib/learn/fix-page.data', () => ({ loadFixPage }));
 vi.mock('@/components/learn/walkthrough/walkthrough-player', () => ({ PublicWalkthroughPlayer: () => null }));
 vi.mock('@/components/learn/walkthrough/walkthrough-not-here', () => ({ WalkthroughNotHere: () => null }));
 
@@ -27,6 +29,8 @@ const drawn = async (number?: string) => {
 
 beforeEach(() => {
   loadWalkthrough.mockReset();
+  loadFixPage.mockReset();
+  loadFixPage.mockResolvedValue(null);
 });
 
 describe("a fix's public walkthrough page", () => {
@@ -44,6 +48,18 @@ describe("a fix's public walkthrough page", () => {
     const metadata = await generateMetadata(props());
     expect(metadata.title).toBe('Fix walkthrough: Saving a widget with an empty name breaks the list');
     expect(metadata.robots).toBeUndefined();
+  });
+
+  it('hands the box about the fix how it stands, and nothing when that read fails', async () => {
+    loadWalkthrough.mockResolvedValue(walkthrough);
+    const stand = { repo: 'acme/widgets', number: 57, made: 'LEARN', state: 'CLOSED' };
+    loadFixPage.mockResolvedValueOnce(stand);
+    const aboutOf = async () =>
+      ((await drawn())[1] as ReactElement<{ about: ReactElement<{ fix: unknown }> }>).props.about.props.fix;
+    expect(await aboutOf()).toBe(stand);
+    expect(loadFixPage).toHaveBeenCalledWith({ nameWithOwner: 'acme/widgets', number: 57 });
+    loadFixPage.mockRejectedValueOnce(new Error('down'));
+    expect(await aboutOf()).toBeNull();
   });
 
   it('leads a finished fix that used no lesson to Issues', async () => {

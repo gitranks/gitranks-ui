@@ -51,13 +51,24 @@ describe('loadFixPage', () => {
     );
   });
 
-  it('answers null for none, an API that does not know the read yet, and any failure', async () => {
+  it('answers null for none, no such fix, and an API that does not know the read yet', async () => {
     m.graphqlDirect.mockResolvedValueOnce({ learnFix: null });
     expect(await loadFixPage(FIX_PR)).toBeNull();
     m.graphqlDirect.mockRejectedValueOnce(unknownField);
     expect(await loadFixPage(FIX_PR)).toBeNull();
-    m.graphqlDirect.mockRejectedValueOnce(new Error('socket hang up'));
+    m.graphqlDirect.mockRejectedValueOnce(
+      new Error(JSON.stringify([{ message: 'Not found', extensions: { code: 'NOT_FOUND' } }])),
+    );
     expect(await loadFixPage(FIX_PR)).toBeNull();
+  });
+
+  it('throws a failed read, so no page keeps a passing outage as a 404 or a redirect', async () => {
+    m.graphqlDirect.mockRejectedValueOnce(new Error('socket hang up'));
+    await expect(loadFixPage(FIX_PR)).rejects.toThrow('socket hang up');
+    m.graphqlDirect.mockRejectedValueOnce(
+      new Error(JSON.stringify([{ message: 'Internal error', extensions: { code: 'INTERNAL_SERVER_ERROR' } }])),
+    );
+    await expect(loadFixPage(FIX_PR)).rejects.toThrow('Internal error');
   });
 
   it('asks nothing for the build-time page no repository has', async () => {
@@ -114,11 +125,24 @@ describe('loadMergedFixKeys', () => {
     expect(keys?.size).toBe(learnFixes.rows.length + 1);
   });
 
-  it('is null when the first page cannot be read, and stops at its limit', async () => {
+  it('is empty for an API that does not know the read yet: no fix has a Learn view', async () => {
     m.fixesCached.mockResolvedValueOnce(null);
+    expect(await loadMergedFixKeys()).toEqual(new Set());
+  });
+
+  it('is null when any page cannot be read: the sitemap cannot tell which address is canonical', async () => {
+    m.fixesCached.mockRejectedValueOnce(new Error('down'));
     expect(await loadMergedFixKeys()).toBeNull();
+    m.fixesCached.mockResolvedValueOnce({ ...learnFixes, next: 'c1' }).mockRejectedValueOnce(new Error('down'));
+    expect(await loadMergedFixKeys()).toBeNull();
+    m.fixesCached.mockResolvedValueOnce({ ...learnFixes, next: 'c1' }).mockResolvedValueOnce(null);
+    expect(await loadMergedFixKeys()).toBeNull();
+  });
+
+  it('walks as many fixes as the sitemap lists pages, and stops there', async () => {
+    expect(FIX_SITEMAP_PAGES * 10).toBe(5000);
     m.fixesCached.mockResolvedValue({ ...learnFixes, next: 'more' });
     await loadMergedFixKeys();
-    expect(m.fixesCached).toHaveBeenCalledTimes(1 + FIX_SITEMAP_PAGES);
+    expect(m.fixesCached).toHaveBeenCalledTimes(FIX_SITEMAP_PAGES);
   });
 });

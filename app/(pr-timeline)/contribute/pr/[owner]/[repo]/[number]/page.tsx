@@ -10,7 +10,7 @@ import { FixLearnBlock } from '@/components/learn/fix/fix-learn-block';
 import { FixViewRow } from '@/components/workspace/fix-page/fix-frame';
 import { CONTRIBUTE_MADE_LINKS, MadePage } from '@/components/workspace/fix-page/made-page';
 import { prTimelineDescriptionOf, prTimelineJsonLdOf, prTimelineTitleOf } from '@/lib/contribute/pr-timeline-seo';
-import { fixLearnBlockOf, hasLearnView, type LearnFixPage } from '@/lib/learn/fix-page';
+import { fixLearnBlockOf, hasLearnView, isLearnCanonical, type LearnFixPage } from '@/lib/learn/fix-page';
 import { loadFixPage } from '@/lib/learn/fix-page.data';
 import { loadFixCard } from '@/lib/learn/fix-share.data';
 import { fixPreviewOf } from '@/lib/learn/fix-share-card';
@@ -42,7 +42,10 @@ async function prOf(params: Params) {
 
 const refOf = (timeline: PrTimeline) => ({ nameWithOwner: timeline.nameWithOwner, number: timeline.number });
 
-/** A Learn fix's public part, or none: a pull request made with Contribute, or a read that failed. */
+/**
+ * A Learn fix's public part, or none: a pull request made with Contribute (or an API that does not know the read
+ * yet). A failed read throws, so the page is never kept as a Contribute pull request for a passing outage.
+ */
 async function learnFixOf(timeline: PrTimeline): Promise<LearnFixPage | null> {
   const fix = await loadFixPage(refOf(timeline));
   return fix?.made === 'LEARN' ? fix : null;
@@ -60,14 +63,15 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     openGraphType: 'article',
     publishedTime: timeline.openedAt,
   });
-  // Only a shown page answers (the proxy's gate): it is indexed. A Learn fix with a "Learn from it" view points search
-  // engines there. A posted link shows the fix's picture.
+  // Only a shown page answers (the proxy's gate): it is indexed. A merged Learn fix points search engines to "Learn
+  // from it", where the sitemap lists it; an open one is its own canonical until it merges. A posted link shows the
+  // fix's picture.
   const preview = fixPreviewOf(card);
   return {
     ...base,
     alternates: {
       ...base.alternates,
-      ...(hasLearnView(fix) ? { canonical: learnFixPath(refOf(timeline)) } : {}),
+      ...(isLearnCanonical(fix) ? { canonical: learnFixPath(refOf(timeline)) } : {}),
       types: { 'text/markdown': prTimelineMarkdownPath(timeline) },
     },
     robots: { index: true, follow: true },
@@ -94,7 +98,12 @@ export default async function PrTimelinePage({ params }: { params: Params }) {
   const block = fixLearnBlockOf(at, fix);
   return (
     <>
-      <JsonLd payloads={prTimelineJsonLdOf(timeline)} />
+      <JsonLd
+        payloads={prTimelineJsonLdOf(timeline, {
+          made: fix ? 'LEARN' : 'CONTRIBUTE',
+          questions: fix?.questions ?? null,
+        })}
+      />
       <Header section={fix ? 'learn' : 'contribute'} />
       {fix ? (
         <Suspense fallback={<LearnBar state={{ kind: 'visitor' }} place={null} />}>

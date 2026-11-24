@@ -1,5 +1,5 @@
 import { prTimelineMarkdownOf } from '@/lib/contribute/pr-timeline-seo';
-import { fixMarkdownOf, hasLearnView } from '@/lib/learn/fix-page';
+import { fixMarkdownOf, isLearnCanonical } from '@/lib/learn/fix-page';
 import { loadFixPage } from '@/lib/learn/fix-page.data';
 import { learnFixPath } from '@/lib/learn/paths';
 import { absoluteUrl } from '@/lib/seo/site';
@@ -10,8 +10,9 @@ import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 /**
  * A pull request timeline as Markdown, for agents: only at this address (the page's own answers HTML to everyone). The
  * proxy has asked the API first, as for the page; a shown one is the same for everyone and kept by shared caches, a
- * page without its reviews for a minute only. One copy covers both views of a Learn fix: its Learn part is added, and
- * its canonical is "Learn from it" while the fix has that view.
+ * page without its reviews for a minute only. One copy covers both views of a Learn fix: it names Learn, its Learn
+ * part is added, and its canonical is the pages': "Learn from it" for a merged one. A read that fails throws: the
+ * error is answered and no cache keeps a copy that names the wrong product.
  */
 export async function GET(
   _request: Request,
@@ -29,8 +30,9 @@ export async function GET(
   const at = { nameWithOwner: timeline.nameWithOwner, number: timeline.number };
   const fix = await loadFixPage(at);
   const learn = fixMarkdownOf(at, fix, absoluteUrl);
-  const canonical = hasLearnView(fix) ? learnFixPath(at) : prTimelinePath(timeline);
-  return new Response(prTimelineMarkdownOf(timeline, { learn: learn.length ? learn : null }), {
+  const canonical = isLearnCanonical(fix) ? learnFixPath(at) : prTimelinePath(timeline);
+  const made = fix?.made === 'LEARN' ? 'LEARN' : 'CONTRIBUTE';
+  return new Response(prTimelineMarkdownOf(timeline, { learn: learn.length ? learn : null, made }), {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
       'Cache-Control': timeline.partial ? 'public, max-age=60, s-maxage=60' : 'public, max-age=60, s-maxage=120',

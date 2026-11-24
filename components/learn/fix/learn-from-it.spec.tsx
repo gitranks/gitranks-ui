@@ -75,6 +75,8 @@ describe('"Learn from it" for a visitor', () => {
     );
     // The marks' places are there, empty: nothing moves when they fill.
     expect($('[data-fix-learn-card="walkthrough"] .min-h-6')).not.toBeNull();
+    // So is the link's line.
+    expect($('[data-fix-card-link-place="walkthrough"]')?.className).toContain('min-h-5');
     expect($('[data-change]')).not.toBeNull();
     expect($('[data-fix-similar]')).toBeNull();
     await enter();
@@ -147,6 +149,32 @@ describe('"Learn from it" for a signed-in person', () => {
     expect($('[data-fix-fixer] a')?.getAttribute('href')).toBe(PULL_REQUEST);
     expect($('[data-fix-held]')).not.toBeNull();
     expect(words('[data-fix-card-link="walkthrough"]')).toBe('See your answers');
+    // In the place kept for it.
+    expect($('[data-fix-card-link-place="walkthrough"] [data-fix-card-link]')).not.toBeNull();
+  });
+
+  it("keeps the line of the fixer's link when their answers are private, so their marks move nothing", async () => {
+    const shut = { ...learnFix, answersShared: false };
+    await draw(
+      <LearnFromIt key="visitor" pr={FIX_PR} fix={shut} pullRequest={PULL_REQUEST}>
+        {change}
+      </LearnFromIt>,
+    );
+    const place = $('[data-fix-card-link-place="walkthrough"]');
+    expect(place?.className).toContain('min-h-5');
+    expect(place?.textContent).toBe('');
+    await draw(
+      <LearnFromIt
+        key="fixer"
+        pr={FIX_PR}
+        fix={shut}
+        pullRequest={PULL_REQUEST}
+        initial={{ marks: marksFixer, reads: null }}
+      >
+        {change}
+      </LearnFromIt>,
+    );
+    expect(words('[data-fix-card-link-place="walkthrough"]')).toBe('See your answers');
   });
 
   it('stays as a visitor sees it when the read fails', async () => {

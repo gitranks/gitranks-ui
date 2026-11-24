@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { contributeFix, learnFix, learnFixClosed } from '@/lib/learn/__fixtures__/fix-page';
+import { contributeFix, learnFix, learnFixClosed, learnFixOpen } from '@/lib/learn/__fixtures__/fix-page';
 import { mergedFix } from '@/lib/learn/__fixtures__/fix-share';
 import type { LearnFixPage } from '@/lib/learn/fix-page';
 import { fixCardUrlOf, type LearnFixCard } from '@/lib/learn/fix-share-card';
@@ -111,7 +111,7 @@ describe('"How it was made"', () => {
     for (const line of [
       'Normalize route paths before the layout cache lookup',
       'merged 26 Oct',
-      'Made with GitRanks Contribute, powered by Claude. mira-dev reviewed and submitted it.',
+      'Made with GitRanks Contribute, powered by Claude (Opus). mira-dev reviewed and submitted it.',
       'How this pull request was made',
       'Claude (Opus), run by GitRanks, wrote the fix in 38 minutes.',
       'Merged into driftwood-js/driftwood.',
@@ -134,6 +134,59 @@ describe('"How it was made"', () => {
     expect(html).toContain('data-fix-made');
   });
 
+  it('throws on a failed read, so no cache keeps a Learn fix drawn as a Contribute pull request', async () => {
+    page.mockRejectedValue(new Error('socket hang up'));
+    await expect(drawn()).rejects.toThrow('socket hang up');
+    await expect(generateMetadata({ params } as never)).rejects.toThrow('socket hang up');
+  });
+
+  it("names the agent the pull request was made with, the contributor's own one included", async () => {
+    timeline.mockResolvedValue({ ...mergedTimeline, ownAgent: true, agentPhrase: 'Codex (GPT)' });
+    page.mockResolvedValue(contributeFix);
+    const text = words(await drawn());
+    expect(text).toContain('Made with GitRanks Contribute and Codex (GPT). mira-dev reviewed and submitted it.');
+    expect(text).toContain('Codex (GPT), mira-dev’s own agent, wrote the fix');
+    expect(text).not.toContain('Claude');
+  });
+
+  it('keeps the count beside the named people when some said it helped without a name', async () => {
+    helped.mockResolvedValue({ helpedBy: ['mara-k', 'tomas-r'], helpedNamed: 2 });
+    timeline.mockResolvedValue({ ...mergedTimeline, helped: 7 });
+    const text = words(await drawn());
+    expect(text).toContain('7 people said it helped');
+    expect(text).toContain('+5 more');
+    expect(text).not.toContain('Said it helped');
+    // Every one of them named: the names alone.
+    timeline.mockResolvedValue({ ...mergedTimeline, helped: 2 });
+    const named = words(await drawn());
+    expect(named).toContain('Said it helped');
+    expect(named).not.toContain('people said it helped');
+    expect(named).not.toContain('more');
+  });
+
+  it("describes a Learn fix as Learn's in its structured data, and a Contribute one as Contribute's", async () => {
+    const crumbsOf = (html: string) => {
+      const payloads = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>(.*?)<\/script>/g)].flatMap(
+        ([, json]) => JSON.parse(json) as unknown[],
+      ) as Record<string, unknown>[];
+      const crumbs = payloads.find((payload) => payload['@type'] === 'BreadcrumbList') as {
+        itemListElement: { name: string }[];
+      };
+      const list = payloads.find((payload) => payload['@type'] === 'ItemList') as {
+        itemListElement: { name: string }[];
+      };
+      return { first: crumbs.itemListElement[0].name, rows: list.itemListElement.map(({ name }) => name) };
+    };
+    timeline.mockResolvedValue(learnTimeline);
+    page.mockResolvedValue(learnFix);
+    const learn = crumbsOf(await drawn());
+    expect(learn.first).toBe('GitRanks Learn');
+    // The rows the page lists, not the old milestones.
+    expect(learn.rows).toEqual(['Fix', 'Walkthrough', 'Approved', 'Round 1', 'Review', 'Merged']);
+    page.mockResolvedValue(contributeFix);
+    expect(crumbsOf(await drawn()).first).toBe('GitRanks Contribute');
+  });
+
   it("draws a Learn fix under Learn's bar, with the two views, its Learn part and its walkthrough row", async () => {
     timeline.mockResolvedValue(learnTimeline);
     page.mockResolvedValue(learnFix);
@@ -145,14 +198,14 @@ describe('"How it was made"', () => {
     expect(html).toMatch(/aria-current="page"[^>]*data-fix-view="made"/);
     const text = words(html);
     for (const line of [
-      'Fixed by mira-dev with Claude Code, run by GitRanks.',
+      'Fixed by mira-dev with Claude (Opus), run by GitRanks.',
       'mira-dev answered 4 questions about this change before sending it',
       'See the questions and mira-dev’s answers',
       'Answer them yourself',
       'The lesson behind it: Normalize a key before you look it up',
       'mira-dev answered 4 questions about the change.',
-      'Said it helped',
-      '+2 more',
+      '4 people said it helped',
+      '+3 more',
       'What a GitRanks Learn pull request is',
       'How Learn works',
     ]) {
@@ -180,13 +233,14 @@ describe('"How it was made"', () => {
 });
 
 describe('search engines on "How it was made"', () => {
-  it('point to "Learn from it" for a Learn fix that has it, and keep this page for any other', async () => {
+  it('point to "Learn from it" for a merged Learn fix, and keep this page for any other', async () => {
     fix.mockResolvedValue({ fix: null, failed: false });
     page.mockResolvedValue(learnFix);
     expect((await generateMetadata({ params } as never)).alternates?.canonical).toBe(
       '/learn/fixes/driftwood-js/driftwood/1419',
     );
-    for (const other of [learnFixClosed, contributeFix, null]) {
+    // An open Learn fix is listed in the sitemap here, so this page is its own canonical until it merges.
+    for (const other of [learnFixOpen, learnFixClosed, contributeFix, null]) {
       page.mockResolvedValue(other);
       expect((await generateMetadata({ params } as never)).alternates?.canonical).toBe(
         '/contribute/pr/driftwood-js/driftwood/1419',

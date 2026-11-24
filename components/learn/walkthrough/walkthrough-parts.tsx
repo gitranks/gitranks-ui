@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/button';
 import { LessonBlock } from '@/components/workspace/blocks/lesson-block';
 import type { PlayerCrumb } from '@/components/workspace/player/player-strip';
 import { LEARN_FIXES_PAGE_BUILT } from '@/lib/learn/built-pages';
+import { hasLearnView, type LearnFixPage } from '@/lib/learn/fix-page';
 import { LEARN_HOME_PATH, LEARN_ISSUES_PATH, learnFixPath, learnLessonPath } from '@/lib/learn/paths';
 import { questionsWordsOf, type Walkthrough } from '@/lib/learn/walkthrough';
 import type { LessonBlock as Block } from '@/lib/workspace/blocks/block.types';
+import type { PrRef } from '@/lib/workspace/pr-feedback';
+import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 /*
  * The pieces every page of a fix's walkthrough draws the same: the line of facts and the title, one part of the
@@ -147,12 +150,28 @@ export function WalkthroughPartArticle({
   );
 }
 
+/** How the fix stands, as far as its own page goes: made with Learn or not, and merged, open or closed. */
+export type FixPageStand = Pick<LearnFixPage, 'made' | 'state'>;
+
 /**
- * Under a public walkthrough's question: who fixed it and how, the lesson it used, and the fix's own page once it
- * exists.
+ * The walkthrough's way to the fix's own page, worded for what is there: "Learn from it" (the change, and a signed-in
+ * person's similar issues) while the fix has it, "How it was made" for one closed without a merge. None while it is
+ * not known how the fix stands, so no button promises a page it cannot show.
  */
-export function AboutThisFix({ walkthrough }: { walkthrough: Walkthrough }) {
+export function fixPageLinkOf(pr: PrRef, fix: FixPageStand | null): { text: string; href: Route } | null {
+  if (!LEARN_FIXES_PAGE_BUILT || fix?.made !== 'LEARN') return null;
+  return hasLearnView(fix)
+    ? { text: 'The change and similar issues', href: learnFixPath(pr) }
+    : { text: 'How the fix was made', href: prTimelinePath(pr) };
+}
+
+/**
+ * Under a public walkthrough's question: who fixed it and how, the lesson it used, and the fix's own page (`fix`, how
+ * it stands, from its own read) when it is known.
+ */
+export function AboutThisFix({ walkthrough, fix = null }: { walkthrough: Walkthrough; fix?: FixPageStand | null }) {
   const pr = { nameWithOwner: walkthrough.repo, number: walkthrough.number };
+  const page = fixPageLinkOf(pr, fix);
   return (
     <section className="flex flex-col gap-3 rounded-xl border bg-card p-5" data-about-fix="">
       <h2 className="m-0 text-base font-semibold">About this fix</h2>
@@ -160,7 +179,7 @@ export function AboutThisFix({ walkthrough }: { walkthrough: Walkthrough }) {
         {walkthrough.fixer} fixed this issue in {walkthrough.repo}, then answered these{' '}
         {questionsWordsOf(walkthrough.parts.length)} before the pull request opened.
       </p>
-      {walkthrough.lesson || LEARN_FIXES_PAGE_BUILT ? (
+      {walkthrough.lesson || page ? (
         <div className="flex flex-wrap gap-2">
           {walkthrough.lesson ? (
             <Button asChild variant="outline" className="h-8 max-w-full px-3 text-[13px] max-sm:min-h-11">
@@ -169,10 +188,10 @@ export function AboutThisFix({ walkthrough }: { walkthrough: Walkthrough }) {
               </Link>
             </Button>
           ) : null}
-          {LEARN_FIXES_PAGE_BUILT ? (
+          {page ? (
             <Button asChild variant="outline" className="h-8 px-3 text-[13px] max-sm:min-h-11">
-              <Link href={learnFixPath(pr)} prefetch={false}>
-                The change and similar issues
+              <Link href={page.href} prefetch={false} data-fix-page-link="">
+                {page.text}
               </Link>
             </Button>
           ) : null}

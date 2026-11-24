@@ -33,18 +33,21 @@ export const LearnFixMarksDocument = doc<{ learnFixMine: unknown }, { ref: FixRe
 );
 
 /**
- * Where a fix page's address leads, asked by the proxy: the address's state and spelling, and how the pull request
- * was made and stands, which says whether it has a "Learn from it" view at all.
+ * Where a fix page's address leads, asked by the proxy: the address's state and spelling, how the pull request was
+ * made and stands, which says whether it has a "Learn from it" view at all, and whether its public page is shown (a
+ * fixer who hides it hides both views).
  */
 export const LearnFixViewGateDocument = doc<
   {
     learnFixAddress: unknown;
     learnFix: { repo: string; number: number; made: string; state: string } | null;
+    contributePrTimeline: { timeline: { number: number } | null } | null;
   },
-  { ref: FixRefInput }
+  { ref: FixRefInput; owner: string; repo: string; number: number }
 >(
-  `query LearnFixViewGate($ref: LearnFixRef!) {
+  `query LearnFixViewGate($ref: LearnFixRef!, $owner: String!, $repo: String!, $number: Int!) {
     learnFixAddress(ref: $ref) { state owner repo number login }
     learnFix(ref: $ref) { repo number made state }
+    contributePrTimeline(owner: $owner, repo: $repo, number: $number) { timeline { number } }
   }`,
 );

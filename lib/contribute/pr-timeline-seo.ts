@@ -1,6 +1,7 @@
 import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
 import { absoluteUrl } from '@/lib/seo/site';
 import type { PrTimeline } from '@/lib/workspace/pr-timeline.types';
+import { madeRowsOf } from '@/lib/workspace/pr-timeline-made';
 import { prTimelineMarkdownPath, prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 import {
   dayHeadingOf,
@@ -12,6 +13,13 @@ import {
 } from '@/lib/workspace/pr-timeline-words';
 
 const prOf = (timeline: PrTimeline) => ({ nameWithOwner: timeline.nameWithOwner, number: timeline.number });
+
+/** How the pull request was made: with GitRanks Learn, or with GitRanks Contribute. */
+export type PrTimelineMade = 'LEARN' | 'CONTRIBUTE';
+
+/** The product a pull request was made with, by name, and its home: the breadcrumbs' first step. */
+const productOf = (made: PrTimelineMade) =>
+  made === 'LEARN' ? { name: 'GitRanks Learn', path: '/learn' } : { name: 'GitRanks Contribute', path: '/contribute' };
 
 /** "<title> · owner/repo#n": the page's title, the search result's line. */
 export const prTimelineTitleOf = (timeline: PrTimeline) =>
@@ -26,9 +34,17 @@ export function prTimelineDescriptionOf(timeline: PrTimeline): string {
   );
 }
 
-/** The page's structured data: the page itself, its breadcrumbs, and the milestones as a list. */
-export function prTimelineJsonLdOf(timeline: PrTimeline): unknown[] {
+/**
+ * The page's structured data: the page itself, its breadcrumbs from the product it was made with (`made`), and the
+ * rows the page lists (with `questions`, the walkthrough's row counts them).
+ */
+export function prTimelineJsonLdOf(
+  timeline: PrTimeline,
+  { made = 'CONTRIBUTE', questions = null }: { made?: PrTimelineMade; questions?: number | null } = {},
+): unknown[] {
   const url = absoluteUrl(prTimelinePath(prOf(timeline)));
+  const product = productOf(made);
+  const rows = madeRowsOf(timeline, { questions });
   return [
     {
       '@context': 'https://schema.org',
@@ -51,7 +67,7 @@ export function prTimelineJsonLdOf(timeline: PrTimeline): unknown[] {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'GitRanks Contribute', item: absoluteUrl('/contribute') },
+        { '@type': 'ListItem', position: 1, name: product.name, item: absoluteUrl(product.path) },
         {
           '@type': 'ListItem',
           position: 2,
@@ -66,12 +82,12 @@ export function prTimelineJsonLdOf(timeline: PrTimeline): unknown[] {
       '@type': 'ItemList',
       name: 'How this pull request was made',
       itemListOrder: 'https://schema.org/ItemListOrderAscending',
-      numberOfItems: timeline.milestones.length,
-      itemListElement: timeline.milestones.map((row, at) => ({
+      numberOfItems: rows.length,
+      itemListElement: rows.map((row, at) => ({
         '@type': 'ListItem',
         position: at + 1,
-        name: milestoneWordsOf(row, timeline).title,
-        description: row.at,
+        name: row.label,
+        description: row.text,
       })),
     },
   ];
@@ -82,14 +98,14 @@ const plain = (text: string) => text.replace(/([\\`*_[\]<>#|])/g, '\\$1');
 
 /**
  * The page as Markdown, for agents: the title, the facts, every milestone with its ISO time, and the links. A Learn
- * fix's copy names Learn and carries its own part (`learn`, Markdown lines from the page that knows it) before the
- * links, so one copy covers both views of the fix.
+ * fix's copy (`made`) names Learn and carries its own part (`learn`, Markdown lines from the page that knows it)
+ * before the links, so one copy covers both views of the fix.
  */
 export function prTimelineMarkdownOf(
   timeline: PrTimeline,
-  { learn = null }: { learn?: readonly string[] | null } = {},
+  { learn = null, made = 'CONTRIBUTE' }: { learn?: readonly string[] | null; made?: PrTimelineMade } = {},
 ): string {
-  const product = learn ? 'GitRanks Learn' : 'GitRanks Contribute';
+  const product = productOf(made).name;
   const lines = [
     `# ${plain(timeline.title ?? `Pull request #${timeline.number}`)}`,
     '',

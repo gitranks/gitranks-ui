@@ -74,7 +74,7 @@ const Public = ({ shown = walkthrough, drawn }: { shown?: Walkthrough; drawn?: W
     head={<WalkthroughHead facts={factsOf(shown)} />}
     articles={articlesOf(shown)}
     questions={walkthroughQuestions}
-    about={<AboutThisFix walkthrough={shown} />}
+    about={<AboutThisFix walkthrough={shown} fix={{ made: 'LEARN', state: 'MERGED' }} />}
     next={LEARN_ISSUES_PATH}
     drawn={drawn}
     hints

@@ -24,9 +24,10 @@ import { prTimelineMarkdownPath, prTimelinePath } from '@/lib/workspace/pr-timel
 
 /**
  * The public page of a fix, "Learn from it" (page 12): one cached page for everyone, read with no session. The proxy
- * has asked where the address leads first (`lib/learn/fix-gate.ts`): nothing there gets a real 404, a removed fix its
- * 410, and a pull request with no such view (made with Contribute, or closed without a merge) goes to "How it was
- * made". The person's marks are read in the browser and fill places of fixed size.
+ * has asked where the address leads first (`lib/learn/fix-gate.ts`): nothing there (or a page its fixer hid) gets a
+ * real 404, a removed fix its 410, and a pull request with no such view (made with Contribute, or closed without a
+ * merge) goes to "How it was made". A read that fails throws: the error page answers, and no cache keeps it. The
+ * person's marks are read in the browser and fill places of fixed size.
  */
 export const instant = false;
 
@@ -40,8 +41,8 @@ async function readOf(params: Params) {
   const { owner, repo, number } = await params;
   const pr = fixRefOf(owner, repo, number);
   if (!pr) return { pr: null, timeline: null, fix: null };
-  // A failed timeline read is a page with nothing to show: the not-found page, never an error.
-  const [timeline, fix] = await Promise.all([publicPrTimeline(pr).catch(() => null), loadFixPage(pr)]);
+  // A failed read throws, so a passing outage is never kept as a 404 or a redirect: only "none" is null.
+  const [timeline, fix] = await Promise.all([publicPrTimeline(pr), loadFixPage(pr)]);
   return { pr, timeline, fix };
 }
 
@@ -54,7 +55,7 @@ export default async function LearnFixPage({ params }: { params: Params }) {
   const { pr, timeline, fix } = await readOf(params);
   if (!pr || !timeline) notFound();
   const at = { nameWithOwner: timeline.nameWithOwner, number: timeline.number };
-  // No "Learn from it" for this pull request, or its read failed: "How it was made" is always there.
+  // No "Learn from it" for this pull request (none, or the API does not know it yet): "How it was made" is there.
   if (!fix || !hasLearnView(fix)) redirect(prTimelinePath(at));
   return (
     <>

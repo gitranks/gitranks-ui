@@ -86,7 +86,9 @@ const articles = fx.walkthrough.parts.map((part, index) => (
   <WalkthroughPartArticle key={part.id} heading={part.heading} blocks={part.blocks} index={index} count={4} />
 ));
 
-const drawPublic = () =>
+type Stand = { made: 'LEARN' | 'CONTRIBUTE'; state: 'OPEN' | 'MERGED' | 'CLOSED' } | null;
+
+const drawPublic = (fix: Stand = { made: 'LEARN', state: 'MERGED' }) =>
   act(async () => {
     root.render(
       <PublicWalkthroughPlayer
@@ -96,7 +98,7 @@ const drawPublic = () =>
         head={<WalkthroughHead facts={factsOf(fx.walkthrough)} />}
         articles={articles}
         questions={fx.walkthroughQuestions}
-        about={<AboutThisFix walkthrough={fx.walkthrough} />}
+        about={<AboutThisFix walkthrough={fx.walkthrough} fix={fix} />}
         next={'/learn/lessons/validate-input/real-world' as Route}
       />,
     );
@@ -127,6 +129,19 @@ describe('the public walkthrough', () => {
       'The change and similar issues',
     );
     expect(text()).not.toMatch(/\bstory\b|\blesson:/i);
+  });
+
+  it('leads a fix closed without a merge to "How it was made", and promises nothing it cannot show', async () => {
+    await drawPublic({ made: 'LEARN', state: 'CLOSED' });
+    expect(host.querySelector('[data-fix-page-link]')?.getAttribute('href')).toBe('/contribute/pr/acme/widgets/57');
+    expect(host.querySelector('[data-fix-page-link]')?.textContent).toBe('How the fix was made');
+    expect(text()).not.toContain('similar issues');
+  });
+
+  it("has no button to the fix's own page while it is not known how the fix stands", async () => {
+    await drawPublic(null);
+    expect(host.querySelector('[data-fix-page-link]')).toBeNull();
+    expect(text()).toContain('The lesson it used: Check input at the edge');
   });
 
   it("has no button to the fix's own page while that page is not built", async () => {

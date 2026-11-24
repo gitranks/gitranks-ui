@@ -128,22 +128,39 @@ describe('the issue card and the change', () => {
     expect(fixBylineOf(mergedTimeline, 'LEARN', 'Claude Code')).toEqual({
       before: 'Fixed by',
       login: 'mira-dev',
-      after: 'with Claude Code, run by GitRanks.',
+      after: 'with Claude (Opus), run by GitRanks.',
     });
-    expect(fixBylineOf({ ...openTimeline, ownAgent: true }, 'LEARN', 'Claude Code').after).toBe(
-      'with their own agent, Claude Code. The project has not merged it yet.',
+    expect(fixBylineOf({ ...openTimeline, ownAgent: true, agentPhrase: 'Codex (GPT)' }, 'LEARN').after).toBe(
+      'with their own agent, Codex (GPT). The project has not merged it yet.',
     );
     expect(fixBylineOf(closedTimeline, 'LEARN').after).toBe(
       'with Claude (Opus), run by GitRanks. The project closed it without merging.',
     );
     expect(fixBylineOf(mergedTimeline, 'CONTRIBUTE')).toEqual({
-      before: 'Made with GitRanks Contribute, powered by Claude.',
+      before: 'Made with GitRanks Contribute, powered by Claude (Opus).',
       login: 'mira-dev',
       after: 'reviewed and submitted it.',
     });
     expect(fixBylineOf(autopilotTimeline, 'CONTRIBUTE').after).toBe(
       '’s autopilot sent it: no person read the change first.',
     );
+  });
+
+  it('names the agent the Fix row names, never one the pull request was not made with', () => {
+    // The contributor's own agent: the card and the Fix row say the same.
+    const own = { ...ownAgentTimeline, agentPhrase: 'GitRanks Contribute and Codex (GPT)' };
+    expect(fixBylineOf(own, 'CONTRIBUTE').before).toBe('Made with GitRanks Contribute and Codex (GPT).');
+    expect(rowsOf(own)[0].text).toMatch(/^Codex \(GPT\), mira-dev’s own agent, wrote the fix/);
+    expect(JSON.stringify(fixBylineOf(own, 'CONTRIBUTE'))).not.toContain('Claude');
+    // The fix's own name for the agent only when the timeline never said; with neither, none is named.
+    expect(fixBylineOf({ ...own, agentPhrase: '' }, 'LEARN', 'Claude Code').after).toBe(
+      'with their own agent, Claude Code. The project has not merged it yet.',
+    );
+    expect(fixBylineOf({ ...own, agentPhrase: '' }, 'CONTRIBUTE').before).toBe('Made with GitRanks Contribute.');
+    expect(fixBylineOf({ ...own, agentPhrase: '' }, 'LEARN').after).toBe(
+      'with their own agent. The project has not merged it yet.',
+    );
+    expect(rowsOf({ ...own, agentPhrase: '' })[0].text).toMatch(/^mira-dev’s own agent wrote the fix/);
   });
 
   it("gives the change the agent's own words, its numbers and the diff", () => {

@@ -83,11 +83,25 @@ export type MadeOptions = {
 
 const whoOf = (timeline: PrTimeline) => timeline.contributorLogin ?? 'The contributor';
 
+/**
+ * The agent the pull request was made with, as the timeline names it ("Claude (Opus)", "Codex (GPT)"), without the
+ * product in front ("GitRanks Contribute and …"); null when it never said. The Fix row and the byline both read it.
+ */
+export function agentNameOf(timeline: Pick<PrTimeline, 'agentPhrase'>): string | null {
+  const phrase = (timeline.agentPhrase ?? '').trim();
+  return phrase.replace(/^GitRanks (?:Contribute|Learn),? (?:powered by|and)\s+/i, '').trim() || null;
+}
+
 function fixRowOf(timeline: PrTimeline, worked: PrTimelineMilestone, checks: PrTimelineMilestone | null): MadeRow {
   const took = worked.minutes ? ` in ${minutesWordsOf(worked.minutes)}` : '';
+  const name = agentNameOf(timeline);
   const agent = timeline.ownAgent
-    ? `${timeline.agentPhrase}, ${whoOf(timeline)}’s own agent,`
-    : `${timeline.agentPhrase}, run by GitRanks,`;
+    ? name
+      ? `${name}, ${whoOf(timeline)}’s own agent,`
+      : `${whoOf(timeline)}’s own agent`
+    : name
+      ? `${name}, run by GitRanks,`
+      : 'An agent run by GitRanks';
   let note: string | null = null;
   if (checks?.passed === false) note = 'Some of our checks failed.';
   else if (checks?.passed) {
@@ -331,9 +345,10 @@ export function fixStatePillOf(
 }
 
 /**
- * The line under the issue card's title, around the person's login: "Fixed by" octocat "with their own agent, Claude
- * Code." for a Learn fix; "Made with GitRanks Contribute, powered by Claude." hubot "reviewed and submitted it." for
- * a Contribute pull request. `agent` names the agent as the page knows it (the fix's own name for it).
+ * The line under the issue card's title, around the person's login: "Fixed by" octocat "with their own agent, Codex
+ * (GPT)." for a Learn fix; "Made with GitRanks Contribute, powered by Claude (Opus)." hubot "reviewed and submitted
+ * it." for a Contribute pull request. The agent is the one the Fix row names (`agentNameOf`); `agent`, the fix's own
+ * name for it, only when the timeline never said. With neither, no agent is named.
  */
 export type FixByline = { before: string; login: string | null; after: string };
 
@@ -343,14 +358,24 @@ export function fixBylineOf(
   agent: string | null = null,
 ): FixByline {
   const login = timeline.contributorLogin;
+  const name = agentNameOf(timeline) ?? (agent?.trim() || null);
   if (made === 'CONTRIBUTE') {
-    const before = 'Made with GitRanks Contribute, powered by Claude.';
+    const before = !name
+      ? 'Made with GitRanks Contribute.'
+      : timeline.ownAgent
+        ? `Made with GitRanks Contribute and ${name}.`
+        : `Made with GitRanks Contribute, powered by ${name}.`;
     if (!timeline.reviewed)
       return { before, login, after: login ? '’s autopilot sent it: no person read the change first.' : '' };
     return { before, login, after: login ? 'reviewed and submitted it.' : '' };
   }
-  const name = agent ?? timeline.agentPhrase;
-  const how = timeline.ownAgent ? `with their own agent, ${name}.` : `with ${name}, run by GitRanks.`;
+  const how = timeline.ownAgent
+    ? name
+      ? `with their own agent, ${name}.`
+      : 'with their own agent.'
+    : name
+      ? `with ${name}, run by GitRanks.`
+      : 'with an agent run by GitRanks.';
   const state =
     timeline.state === 'OPEN'
       ? ' The project has not merged it yet.'

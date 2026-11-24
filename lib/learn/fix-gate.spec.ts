@@ -152,9 +152,20 @@ describe('fixViewGateOf', () => {
   const fix = { repo: 'acme/widgets', number: 57, made: 'LEARN', state: 'MERGED' };
 
   it('goes on to "Learn from it" for a Learn fix at its own spelling, and leaves no answer to the page', () => {
-    expect(fixViewGateOf(pr, { address: live, fix })).toEqual({ kind: 'page' });
-    expect(fixViewGateOf(pr, { address: live, fix: { ...fix, state: 'OPEN' } })).toEqual({ kind: 'page' });
+    expect(fixViewGateOf(pr, { address: live, fix, shown: true })).toEqual({ kind: 'page' });
+    expect(fixViewGateOf(pr, { address: live, fix: { ...fix, state: 'OPEN' }, shown: true })).toEqual({
+      kind: 'page',
+    });
     expect(fixViewGateOf(pr, null)).toEqual({ kind: 'page' });
+  });
+
+  it('answers nothing there for a Learn fix whose public page its fixer hid: the page could not draw it', () => {
+    expect(fixViewGateOf(pr, { address: live, fix, shown: false })).toEqual({ kind: 'missing' });
+    // Another spelling still moves first: the page at the API's spelling is asked again.
+    expect(fixViewGateOf({ nameWithOwner: 'ACME/widgets', number: 57 }, { address: live, fix, shown: false })).toEqual({
+      kind: 'redirect',
+      path: '/learn/fixes/acme/widgets/57',
+    });
   });
 
   it('sends a pull request with no such view to "How it was made"', () => {
@@ -162,7 +173,7 @@ describe('fixViewGateOf', () => {
       { ...fix, made: 'CONTRIBUTE' },
       { ...fix, state: 'CLOSED' },
     ]) {
-      expect(fixViewGateOf(pr, { address: { ...live, state: 'MISSING' }, fix: other })).toEqual({
+      expect(fixViewGateOf(pr, { address: { ...live, state: 'MISSING' }, fix: other, shown: true })).toEqual({
         kind: 'redirect',
         path: '/contribute/pr/acme/widgets/57',
       });
@@ -170,12 +181,14 @@ describe('fixViewGateOf', () => {
   });
 
   it('answers nothing there, a removed fix, and another spelling', () => {
-    expect(fixViewGateOf(pr, { address: { ...live, state: 'MISSING' }, fix: null })).toEqual({ kind: 'missing' });
-    expect(fixViewGateOf(pr, { address: { ...live, state: 'REMOVED' }, fix })).toEqual({
+    expect(fixViewGateOf(pr, { address: { ...live, state: 'MISSING' }, fix: null, shown: false })).toEqual({
+      kind: 'missing',
+    });
+    expect(fixViewGateOf(pr, { address: { ...live, state: 'REMOVED' }, fix, shown: false })).toEqual({
       kind: 'removed',
       path: '/learn/fixes/_removed/acme/widgets/57',
     });
-    expect(fixViewGateOf({ nameWithOwner: 'ACME/widgets', number: 57 }, { address: live, fix })).toEqual({
+    expect(fixViewGateOf({ nameWithOwner: 'ACME/widgets', number: 57 }, { address: live, fix, shown: true })).toEqual({
       kind: 'redirect',
       path: '/learn/fixes/acme/widgets/57',
     });
@@ -187,15 +200,27 @@ describe('fixViewRouteGateOf', () => {
     graphqlDirect.mockResolvedValue({
       learnFixAddress: live,
       learnFix: { repo: 'acme/widgets', number: 57, made: 'LEARN', state: 'MERGED' },
+      contributePrTimeline: { timeline: { number: 57 } },
     });
     expect(await fixViewRouteGateOf(pr, 2000, 0)).toEqual({ kind: 'page' });
     expect(graphqlDirect).toHaveBeenCalledWith(
       expect.anything(),
-      { ref: { owner: 'acme', repo: 'widgets', number: 57 } },
+      { ref: { owner: 'acme', repo: 'widgets', number: 57 }, owner: 'acme', repo: 'widgets', number: 57 },
       expect.objectContaining({ source: 'ssr' }),
     );
     expect(await fixViewRouteGateOf(pr, 2000, FIX_GATE_MEMO_MS - 1)).toEqual({ kind: 'page' });
     expect(graphqlDirect).toHaveBeenCalledTimes(1);
+  });
+
+  it('answers nothing there for a hidden page, never kept', async () => {
+    graphqlDirect.mockResolvedValue({
+      learnFixAddress: live,
+      learnFix: { repo: 'acme/widgets', number: 57, made: 'LEARN', state: 'MERGED' },
+      contributePrTimeline: { timeline: null, movedTo: null },
+    });
+    expect(await fixViewRouteGateOf(pr, 2000, 0)).toEqual({ kind: 'missing' });
+    expect(await fixViewRouteGateOf(pr, 2000, 1)).toEqual({ kind: 'missing' });
+    expect(graphqlDirect).toHaveBeenCalledTimes(2);
   });
 
   it('leaves a failed ask (an API that does not know the read) to the page, never kept', async () => {

@@ -7,8 +7,9 @@ import type { PublicPrTimeline } from '@/lib/workspace/pr-timeline.types';
 import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 /**
- * The shown pull request pages, each at its last change. A merged Learn fix (`learnFixes`, as `fixKeyOf` writes them)
- * is listed at "Learn from it", the view search engines keep; every other one at "How it was made".
+ * The shown pull request pages, each at its last change and at its canonical address. A merged Learn fix
+ * (`learnFixes`, as `fixKeyOf` writes them) is listed at "Learn from it", the view search engines keep; every other
+ * one, an open Learn fix included, at "How it was made", which is its own canonical (`isLearnCanonical`).
  */
 export const prTimelineSitemapEntries = (
   items: readonly PublicPrTimeline[],

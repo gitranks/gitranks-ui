@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { contributeFix, learnFix, learnFixClosed } from '@/lib/learn/__fixtures__/fix-page';
+import { contributeFix, learnFix, learnFixClosed, learnFixHeld, learnFixOpen } from '@/lib/learn/__fixtures__/fix-page';
 import { mergedTimeline } from '@/lib/workspace/__fixtures__/pr-timeline';
 
 const { read, fix } = vi.hoisted(() => ({
@@ -58,6 +58,13 @@ describe('the Markdown twin', () => {
     const closed = await call('driftwood-js', 'driftwood', '1419');
     expect(await closed.text()).not.toContain('[Learn from it]');
     expect(closed.headers.get('link')).toBe('</contribute/pr/driftwood-js/driftwood/1419>; rel="canonical"');
+    // Open: listed in the sitemap at "How it was made", which stays its canonical until it merges.
+    fix.mockResolvedValueOnce(learnFixOpen);
+    const open = await call('driftwood-js', 'driftwood', '1419');
+    expect(await open.text()).toContain(
+      '[Learn from it](https://gitranks.com/learn/fixes/driftwood-js/driftwood/1419)',
+    );
+    expect(open.headers.get('link')).toBe('</contribute/pr/driftwood-js/driftwood/1419>; rel="canonical"');
     // Made with Contribute, or no fix read: the copy as before.
     for (const other of [contributeFix, null]) {
       fix.mockResolvedValueOnce(other);
@@ -65,5 +72,20 @@ describe('the Markdown twin', () => {
       expect(page).toContain('was made with GitRanks Contribute.');
       expect(page).not.toContain('## Learn from it');
     }
+  });
+
+  it('names Learn for a Learn fix with no Learn part to add, and never a long dash', async () => {
+    read.mockResolvedValue(mergedTimeline);
+    fix.mockResolvedValueOnce({ ...learnFixHeld, state: 'CLOSED', lesson: null });
+    const text = await (await call('driftwood-js', 'driftwood', '1419')).text();
+    expect(text).toContain('was made with GitRanks Learn.');
+    expect(text).not.toContain('## Learn from it');
+    expect(text).not.toContain('—');
+  });
+
+  it('throws a failed fix read, so no cache keeps a copy that names the wrong product', async () => {
+    read.mockResolvedValue(mergedTimeline);
+    fix.mockRejectedValueOnce(new Error('socket hang up'));
+    await expect(call('driftwood-js', 'driftwood', '1419')).rejects.toThrow('socket hang up');
   });
 });

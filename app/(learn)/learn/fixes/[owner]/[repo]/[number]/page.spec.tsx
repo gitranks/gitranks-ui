@@ -55,6 +55,7 @@ beforeEach(() => {
   page.mockReset();
   page.mockResolvedValue(learnFix);
   redirect.mockClear();
+  notFound.mockClear();
 });
 
 describe('"Learn from it"', () => {
@@ -72,7 +73,7 @@ describe('"Learn from it"', () => {
     for (const line of [
       'Normalize route paths before the layout cache lookup',
       'merged 26 Oct',
-      'Fixed by mira-dev with Claude Code, run by GitRanks.',
+      'Fixed by mira-dev with Claude (Opus), run by GitRanks.',
       'The change',
       'See the diff on GitHub',
       'Markdown version',
@@ -89,10 +90,10 @@ describe('"Learn from it"', () => {
     page.mockResolvedValue(learnFixOpen);
     const text = words(await drawn());
     expect(text).toContain('open since 24 Oct');
-    expect(text).toContain('Sent by mira-dev with Claude Code, run by GitRanks. The project has not merged it yet.');
+    expect(text).toContain('Sent by mira-dev with Claude (Opus), run by GitRanks. The project has not merged it yet.');
   });
 
-  it('sends a pull request with no such view, or no fix read, to "How it was made"', async () => {
+  it('sends a pull request with no such view, or none read (an older API), to "How it was made"', async () => {
     for (const other of [contributeFix, learnFixClosed, null]) {
       page.mockResolvedValue(other);
       await expect(drawn()).rejects.toThrow('NEXT_REDIRECT /contribute/pr/driftwood-js/driftwood/1419');
@@ -102,9 +103,18 @@ describe('"Learn from it"', () => {
   it('is the not-found page when the timeline is not there, or the address names no pull request', async () => {
     timeline.mockResolvedValue(null);
     await expect(drawn()).rejects.toThrow('NEXT_NOT_FOUND');
-    timeline.mockRejectedValue(new Error('down'));
-    await expect(drawn()).rejects.toThrow('NEXT_NOT_FOUND');
     await expect(LearnFixPageView(props('057') as never)).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('throws a failed read as it is, never a 404 or a redirect a cache would keep', async () => {
+    timeline.mockRejectedValue(new Error('down'));
+    await expect(drawn()).rejects.toThrow(/^down$/);
+    timeline.mockResolvedValue(mergedTimeline);
+    page.mockRejectedValue(new Error('socket hang up'));
+    await expect(drawn()).rejects.toThrow(/^socket hang up$/);
+    await expect(generateMetadata(props() as never)).rejects.toThrow(/^socket hang up$/);
+    expect(notFound).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
   });
 });
 

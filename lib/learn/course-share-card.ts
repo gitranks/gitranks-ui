@@ -1,5 +1,5 @@
 import { countWords, type LearnCourse, type LearnCourseCard, learnersOf } from './course';
-import { languageNameOf } from './learn-question';
+import { languageNameOf, languageNamesOf } from './learn-question';
 import { coursePath, LEARN_COURSES_CARD_PATH, LEARN_COURSES_PATH, learnCourseCardPath } from './paths';
 
 /*
@@ -23,10 +23,12 @@ function hashOf(text: string): string {
   return hash.toString(36);
 }
 
-/** The line under a course's name: a topic course with its languages, or the one language of a language course. */
+/** The line under a course's name: a topic course with its languages, or the language of a language course. */
 export function courseCardSubOf(course: Pick<LearnCourse, 'kind' | 'languages'>): string {
   const [first] = course.languages;
-  if (course.kind === 'LANGUAGE') return first ? `A language course: ${languageNameOf(first)}` : 'A language course';
+  if (course.kind === 'LANGUAGE') {
+    return first ? `A language course: ${languageNamesOf(course.languages)}` : 'A language course';
+  }
   const count = course.languages.length;
   if (count === 1 && first) return `A topic course, with examples in ${languageNameOf(first)}`;
   return count > 1 ? `A topic course, with examples in ${countWords(count)} languages` : 'A topic course';

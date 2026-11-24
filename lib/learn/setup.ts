@@ -340,7 +340,7 @@ export function setupCoursesOf(courses: readonly LearnCourseCard[]): {
 } {
   const byLanguage: Partial<Record<SetupLanguage, string>> = {};
   for (const language of SETUP_LANGUAGES) {
-    const own = courses.find((course) => course.kind === 'LANGUAGE' && course.languages[0] === language);
+    const own = courses.find((course) => course.kind === 'LANGUAGE' && course.languages.includes(language));
     if (own) byLanguage[language] = own.slug;
   }
   return { byLanguage, fallback: courses.find((course) => course.kind === 'TOPIC')?.slug ?? null };

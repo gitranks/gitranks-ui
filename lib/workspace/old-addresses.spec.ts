@@ -124,3 +124,20 @@ describe('the old workspace addresses', () => {
     expect(connect.map(({ has }) => has?.[0]?.key ?? null)).toEqual(['path', null]);
   });
 });
+
+describe('the old address of a public Learn record', () => {
+  it.each([
+    ['/learn/progress/octocat', '/profile/octocat/skills'],
+    ['/learn/progress/octocat/', '/profile/octocat/skills'],
+    ['/learn/progress/Octo-Cat', '/profile/Octo-Cat/skills'],
+    ['/learn/progress/octocat?page=3', '/profile/octocat/skills?page=3'],
+  ])('%s goes on to %s, for good (308)', (from, to) => {
+    expect(redirectOf(from)).toEqual({ location: to, status: 308 });
+  });
+
+  it('leaves the learner’s own progress where it is', () => {
+    expect(redirectOf('/learn/progress')).toBeNull();
+    expect(redirectOf('/learn/progress/')).toBeNull();
+    expect(redirectOf('/learn/progress/octocat/more')).toBeNull();
+  });
+});

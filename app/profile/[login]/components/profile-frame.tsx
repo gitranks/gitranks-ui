@@ -1,11 +1,15 @@
 import type { FC, ReactNode } from 'react';
 
 import { OwnerTab } from './owner-tab';
+import { SkillsTab } from './skills-tab';
 import { Header } from '@/components/header/header';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
 
-/** A profile's header and tabs around the open tab's content, as its layout draws them. */
+/**
+ * A profile's header and tabs around the open tab's content, as its layout draws them. Skills and Privacy are decided in
+ * the browser: the layout is the same for everyone.
+ */
 export const ProfileFrame: FC<{ login: string; children: ReactNode }> = ({ login, children }) => (
   <>
     <Header title={login} />
@@ -16,6 +20,7 @@ export const ProfileFrame: FC<{ login: string; children: ReactNode }> = ({ login
       <Tab href={`/profile/${login}/ranks`}>Ranks</Tab>
       <Tab href={`/profile/${login}/repositories`}>Repositories</Tab>
       <Tab href={`/profile/${login}/languages`}>Languages</Tab>
+      <SkillsTab login={login} />
       <OwnerTab login={login} href={`/profile/${login}/privacy`}>
         Privacy
       </OwnerTab>

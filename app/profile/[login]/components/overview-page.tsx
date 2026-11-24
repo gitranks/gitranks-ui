@@ -16,8 +16,7 @@ import { ProfileLanguageCard } from './overview-cards/overview-language-card';
 import { ProfileRankCard } from './overview-cards/overview-rank-card';
 import { OwnProjectsCard } from './overview-cards/own-projects-card';
 import { MoreLink, ProfileSection } from './profile-card';
-import { ProfileContribute } from './profile-contribute';
-import { ProfileLearnRecord } from './profile-learn-record';
+import { ProfileSkills } from './profile-skills';
 import { ProfileSummary } from './profile-summary';
 import { RankHistoryTable } from './rank-history-table';
 import { StarsReviewNote } from './stars-review-note';
@@ -132,13 +131,9 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, badgeFacts, 
         <ProfileSummary parts={summary} />
       </div>
 
-      {/* One suggestion on the owner's own profile alone, read in the browser after the cached page loads: GitRanks
-          Learn when it may suit them, else Contribute's picks, or their own list's top once they contribute. Below the
-          cards, so it never pushes them down. */}
-      <ProfileContribute login={login} colors={languageColorsOf([...(sLangs ?? []), ...(cLangs ?? [])])} />
-
-      {/* Their GitRanks Learn record, the same for every reader, read in the browser: nothing without a public pass. */}
-      <ProfileLearnRecord login={login} />
+      {/* The box only the owner sees, then the Skills block everyone sees, both read in the browser after the cached
+          page loads. Below the cards, so they never push them down. */}
+      <ProfileSkills login={login} colors={languageColorsOf([...(sLangs ?? []), ...(cLangs ?? [])])} />
 
       {!!repositoriesCount && (
         <ProfileSection

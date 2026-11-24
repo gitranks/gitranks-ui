@@ -16,6 +16,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loa
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 vi.mock('@/lib/learn/actions', () => ({}));
 vi.mock('@/lib/learn/settings.data', () => ({}));
+vi.mock('@/lib/skills/skills.data', () => ({}));
 vi.mock('@/lib/learn/settings.actions', () => ({}));
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnProfile: vi.fn(),

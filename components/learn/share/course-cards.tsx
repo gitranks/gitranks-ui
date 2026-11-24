@@ -18,10 +18,10 @@ import { CARD_COLORS, Figure, Frame } from '@/lib/social-card/card-parts';
  * colours only, no avatar, no zero: a figure not worth showing leaves its place empty.
  */
 
-/** The figures in a row, and the page's address in the corner. */
+/** The figures in a row, and the page's address under them in the corner, so three figures keep their room. */
 function Foot({ figures, address }: Readonly<{ figures: readonly CardFigure[]; address: string }>) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', gap: 56 }}>
         {figures.map((figure) => (
           <Figure key={figure.label} value={figure.value} label={figure.label} />
@@ -30,6 +30,7 @@ function Foot({ figures, address }: Readonly<{ figures: readonly CardFigure[]; a
       <div
         style={{
           display: 'flex',
+          justifyContent: 'flex-end',
           fontFamily: 'JetBrains Mono',
           fontWeight: 700,
           fontSize: address.length > 44 ? 20 : 24,
@@ -42,7 +43,10 @@ function Foot({ figures, address }: Readonly<{ figures: readonly CardFigure[]; a
   );
 }
 
-/** A course's picture: its name, its kind and languages, its lessons and its learners from 10, its address. */
+/**
+ * A course's picture: its name, its kind and languages, its lessons, its learners from 10, the real issues fixed with
+ * it from 5, and its address.
+ */
 export function CourseShareCard({
   course,
 }: Readonly<{

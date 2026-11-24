@@ -443,6 +443,31 @@ describe('proxy', () => {
         );
       });
 
+      it("a Skills page's picture keeps its route's own headers, unlike the profile's pages", async () => {
+        const picture = await proxy(request(undefined, '/profile/octocat/skills/card.png'), event);
+        expect(picture?.headers.get('cache-control')).toBeNull();
+        const page = await proxy(request(undefined, '/profile/octocat/skills'), event);
+        expect(page?.headers.get('cache-control')).toBe(ENTITY_PAGE_CACHE_CONTROL);
+      });
+
+      it("the fix's picture answers exactly when the page does, past the Contribute gate", async () => {
+        const shown = await proxy(request(undefined, `${PAGE}/card.png?v=abc`), event);
+        expect(shown?.headers.get('x-middleware-rewrite')).toBeNull();
+        expect(shown?.headers.get('link')).toBeNull();
+        expect(timelineGate).toHaveBeenCalledWith({ nameWithOwner: 'acme/widgets', number: 42 });
+        expect(maySeeContribute).not.toHaveBeenCalled();
+        timelineGate.mockResolvedValueOnce({ kind: 'missing' });
+        const missing = await proxy(request(undefined, `${PAGE}/card.png`), event);
+        expect(missing?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/_404');
+        expect(missing?.headers.get('cache-control')).toBe('private, no-store');
+        timelineGate.mockResolvedValueOnce({ kind: 'redirect', path: '/contribute/pr/acme/gadgets/42' });
+        const moved = await proxy(request(undefined, `${PAGE}/card.png?v=abc`), event);
+        expect(moved?.status).toBe(307);
+        expect(moved?.headers.get('location')).toBe(
+          'https://gitranks.com/contribute/pr/acme/gadgets/42/card.png?v=abc',
+        );
+      });
+
       it('the short address skips every gate: its route handler answers', async () => {
         const response = await proxy(request(undefined, '/contribute/pr/6728f0c2a1b2c3d4e5f60718'), event);
         expect(response?.headers.get('x-middleware-rewrite')).toBeNull();

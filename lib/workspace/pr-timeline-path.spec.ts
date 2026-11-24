@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  isPrTimelinePath,
   prTimelineCardPath,
   prTimelineFallbackPath,
   prTimelineMarkdownPath,
   prTimelinePath,
   prTimelineRouteOf,
+  prTimelineRoutePathOf,
 } from './pr-timeline-path';
 
 describe('prTimelineRouteOf', () => {
@@ -51,5 +53,27 @@ describe("a fix's picture", () => {
     const pr = { nameWithOwner: 'acme/widgets.js', number: 42 };
     expect(prTimelineCardPath(pr)).toBe('/contribute/pr/acme/widgets.js/42/card.png');
     expect(prTimelineMarkdownPath(pr)).toBe('/contribute/pr/acme/widgets.js/42/timeline.md');
+  });
+
+  it('is read as its own kind, so the proxy gates it as it does the page', () => {
+    const pr = { nameWithOwner: 'acme/widgets', number: 42 };
+    expect(prTimelineRouteOf('/contribute/pr/acme/widgets/42/card.png')).toEqual({ kind: 'card', pr });
+    expect(isPrTimelinePath('/contribute/pr/acme/widgets/42/card.png')).toBe(true);
+    for (const path of [
+      '/contribute/pr/acme/widgets/42/card.png/',
+      '/contribute/pr/acme/widgets/42card.png',
+      '/contribute/pr/acme/widgets/42/card.jpg',
+      '/contribute/pr/acme/widgets/42/card.png/timeline.md',
+    ]) {
+      expect(prTimelineRouteOf(path), path).toBeNull();
+    }
+  });
+
+  it("writes a moved page's twin and picture under the address it has now", () => {
+    const pr = { nameWithOwner: 'acme/widgets', number: 42 };
+    const now = '/contribute/pr/acme/gadgets/42';
+    expect(prTimelineRoutePathOf({ kind: 'page', pr }, now)).toBe(now);
+    expect(prTimelineRoutePathOf({ kind: 'twin', pr }, now)).toBe(`${now}/timeline.md`);
+    expect(prTimelineRoutePathOf({ kind: 'card', pr }, now)).toBe(`${now}/card.png`);
   });
 });

@@ -16,15 +16,17 @@ export const CARD_COLORS = {
   rule: '#e5e5e5',
 } as const;
 
-/** A big mono figure over its label. */
+/** A big figure over its label: a number in mono, or a name (`mono` false) in the text's type, a little smaller. */
 export function Figure({
   value,
   label,
   color = CARD_COLORS.ink,
-}: Readonly<{ value: string; label: string; color?: string }>): ReactElement {
+  mono = true,
+}: Readonly<{ value: string; label: string; color?: string; mono?: boolean }>): ReactElement {
+  const type = mono ? { fontFamily: 'JetBrains Mono', fontSize: 60 } : { fontFamily: 'Inter', fontSize: 52 };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ display: 'flex', fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 60, color }}>{value}</div>
+      <div style={{ display: 'flex', ...type, fontWeight: 700, color }}>{value}</div>
       <div style={{ display: 'flex', fontSize: 26, color: CARD_COLORS.muted }}>{label}</div>
     </div>
   );

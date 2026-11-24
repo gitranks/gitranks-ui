@@ -11,6 +11,9 @@ export const skillsPath = (login: string) => `${skillsProfilePath(login)}/skills
 /** The picture a posted link to a Skills page shows. */
 export const skillsCardPath = (login: string) => `${skillsPath(login)}/card.png`;
 
+/** Whether a path is a Skills page's picture, which keeps the headers its route gives it. */
+export const isSkillsCardPath = (pathname: string): boolean => /^\/profile\/[^/]+\/skills\/card\.png$/.test(pathname);
+
 /** A Skills page's Markdown copy, at the page's own address with `.md`. */
 export const skillsMarkdownPath = (login: string) => `${skillsPath(login)}.md`;
 

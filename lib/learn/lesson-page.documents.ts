@@ -31,7 +31,7 @@ export const LearnLessonDocument = doc<{ learnLesson: LearnLesson | null }, { sl
       question { id type prompt example visual content ${CODES} }
       say fact { title text source url } deeper
       buildsOn { ${LINK} } previous { ${LINK} } next { ${LINK} }
-      changedAt publishedAt
+      changedAt publishedAt fixesMerged
     }
   }`,
 );

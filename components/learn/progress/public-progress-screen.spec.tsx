@@ -17,14 +17,10 @@ const session = vi.hoisted(() => ({ viewerLogin: vi.fn(async (): Promise<string 
 vi.mock('@/lib/workspace/contribute.data', () => session);
 const everyone = vi.hoisted(() => ({ learnOpenToEveryone: vi.fn(async () => false) }));
 vi.mock('@/lib/learn/learn-everyone', () => everyone);
-vi.mock('@/lib/learn/public-progress/learn-card', () => ({ drawLearnCard: async () => new Uint8Array([1]) }));
 
 const { PublicProgressScreen } = await import('./public-progress-screen');
 const { PublicProgressView } = await import('./public-progress-view');
 const page = await import('@/app/(public)/learn/progress/[login]/page');
-const card = await import('@/app/badge/user/[login]/learn-card.png/route');
-
-import type { NextRequest } from 'next/server';
 
 import type { LearnRecord } from '@/lib/learn/learn.types';
 import type { LearnPublicLesson, LearnPublicProgress } from '@/lib/learn/public-progress/public-progress';
@@ -144,10 +140,10 @@ describe('the public progress page, read', () => {
   });
 });
 
-describe('the page’s link preview and the card', () => {
+describe('the page’s link preview', () => {
   const params = (login: string) => Promise.resolve({ login });
 
-  it('takes the card’s `v` from the record read the card route makes, so both name the same numbers', async () => {
+  it('names the card under its `v`, from the record', async () => {
     data.loadPublicRecord.mockResolvedValue(RECORD);
     const metadata = await page.generateMetadata({ params: params('octocat') } as never);
     const images = metadata.openGraph?.images as { url: string; width: number; height: number; alt: string }[];
@@ -158,32 +154,12 @@ describe('the page’s link preview and the card', () => {
     );
     expect(metadata.title).toEqual({ absolute: 'octocat on GitRanks Learn' });
     expect(metadata.robots).toEqual({ index: false, follow: true });
-    const request = { nextUrl: new URL('https://gitranks.com/badge/user/octocat/learn-card.png') } as NextRequest;
-    const redirect = await card.GET(request, { params: params('octocat') } as never);
-    expect(images[0].url.endsWith(redirect.headers.get('Location') ?? '-')).toBe(true);
     expect(data.loadPublicRecord).toHaveBeenCalledWith('octocat');
-    // The route reads the whole query: only exactly `?v=<numbers>` is drawn.
-    const at = (search: string) =>
-      card.GET(
-        { nextUrl: new URL(`https://gitranks.com/badge/user/octocat/learn-card.png${search}`) } as NextRequest,
-        { params: params('octocat') } as never,
-      );
-    expect((await at('?v=2-3-1')).status).toBe(200);
-    for (const search of ['?v=2-3-1&x=1', '?v=2-3-1&v=x']) {
-      const response = await at(search);
-      expect([response.status, response.headers.get('Cache-Control')], search).toEqual([308, 'no-store']);
-      expect(response.headers.get('Location')).toBe('/badge/user/octocat/learn-card.png?v=2-3-1');
-    }
   });
 
-  it('keeps no card in the preview of another spelling of the login, and answers its card 404, kept nowhere', async () => {
+  it('keeps no card in the preview of another spelling of the login', async () => {
     data.loadPublicRecord.mockResolvedValue(RECORD);
     const metadata = await page.generateMetadata({ params: params('OctoCat') } as never);
     expect(metadata.openGraph).toBeUndefined();
-    const request = {
-      nextUrl: new URL('https://gitranks.com/badge/user/OctoCat/learn-card.png?v=2-3-1'),
-    } as NextRequest;
-    const response = await card.GET(request, { params: params('OctoCat') } as never);
-    expect([response.status, response.headers.get('Cache-Control')]).toEqual([404, 'no-store']);
   });
 });

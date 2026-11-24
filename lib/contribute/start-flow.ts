@@ -46,7 +46,10 @@ export function workPicksQuery(picks: WorkPicks): string {
 /** A step's address with the picks in its query. */
 export function withWorkPicks(path: Route, picks: WorkPicks): Route {
   const query = workPicksQuery(picks);
-  return (query ? `${path}?${query}` : path) as Route;
+  // A plain string: on `Route`, the conditional joins every typed route with each one plus a query, and TypeScript
+  // gives up as routes grow (TS2590).
+  const base: string = path;
+  return (query ? `${base}?${query}` : base) as Route;
 }
 
 /**

@@ -42,8 +42,12 @@ export function learnGoalQuery(goal: LearnGoalPick): string {
 }
 
 /** A step's address with the goal in its query; the path alone without one. */
-export const withLearnGoal = (path: Route, goal: LearnGoalPick | null): Route =>
-  (goal ? `${path}?${learnGoalQuery(goal)}` : path) as Route;
+export function withLearnGoal(path: Route, goal: LearnGoalPick | null): Route {
+  // A plain string: on `Route`, the conditional joins every typed route with each one plus a query, and TypeScript
+  // gives up as routes grow (TS2590).
+  const base: string = path;
+  return (goal ? `${base}?${learnGoalQuery(goal)}` : base) as Route;
+}
 
 /**
  * The saved goal as Your goal pre-sets it: a language Learn finds issues for, and its saved level (null when none is

@@ -1,5 +1,6 @@
 import type { Route } from 'next';
 
+import { LEARN_ISSUES_PAGE_BUILT, LEARN_PROJECT_COURSE_PAGE_BUILT } from './built-pages';
 import { countWords } from './course';
 import { coursesSearchPath, type LearnProject, learnProjectCoursePath, learnProjectIssuesPath } from './paths';
 
@@ -52,9 +53,12 @@ const lessonsOf = (count: number) => (count === 1 ? ' lesson' : ' lessons');
 const projectOf = (entity: LearnEntity): LearnProject =>
   entity.kind === 'repo' ? { repo: entity.repo } : { org: entity.login };
 
-/** A course about one repository, as a row: none for a course that names no repository, which has no address. */
+/**
+ * A course about one repository, as a row: none for a course that names no repository, which has no address, and none
+ * while a project course has no page.
+ */
 const repoCourseRow = (course: LearnEntityCourse, text: string): EntityRow[] =>
-  course.repo
+  course.repo && LEARN_PROJECT_COURSE_PAGE_BUILT
     ? [
         {
           id: `course:${course.slug}`,
@@ -69,7 +73,8 @@ const repoCourseRow = (course: LearnEntityCourse, text: string): EntityRow[] =>
 /**
  * The card's rows, in order: the course about the project; for an organisation, the courses about its repositories
  * (one row each up to two, one row for all of them past that); the fixes to learn from; the open issues, which never
- * make a card alone. A row with nothing behind it is left out; no row, no card.
+ * make a card alone. A row with nothing behind it is left out, and so is a row whose page is not built (a project
+ * course's, the Issues page's); no row, no card.
  */
 export function entityRowsOf(card: LearnEntityCard | null, entity: LearnEntity): EntityRow[] {
   if (!card) return [];
@@ -83,7 +88,7 @@ export function entityRowsOf(card: LearnEntityCard | null, entity: LearnEntity):
       ),
     );
   }
-  if (card.course && entity.kind === 'org') {
+  if (card.course && entity.kind === 'org' && LEARN_PROJECT_COURSE_PAGE_BUILT) {
     rows.push({
       id: `course:${card.course.slug}`,
       title: ['A course about ', entity.name, ' · ', card.course.lessons, lessonsOf(card.course.lessons)],
@@ -104,7 +109,7 @@ export function entityRowsOf(card: LearnEntityCard | null, entity: LearnEntity):
     for (const course of card.repoCourses) rows.push(...repoCourseRow(course, `One of ${entity.name}’s repositories.`));
   }
   const fixes = card.fixes ?? 0;
-  if (fixes > 0) {
+  if (fixes > 0 && LEARN_ISSUES_PAGE_BUILT) {
     const where = entity.kind === 'repo' ? 'here' : `in ${entity.name}’s repositories`;
     rows.push({
       id: 'fixes',
@@ -118,7 +123,7 @@ export function entityRowsOf(card: LearnEntityCard | null, entity: LearnEntity):
     });
   }
   const open = card.openIssues ?? 0;
-  if (open > 0 && rows.length > 0) {
+  if (open > 0 && rows.length > 0 && LEARN_ISSUES_PAGE_BUILT) {
     rows.push({
       id: 'issues',
       title: [open, open === 1 ? ' open issue to fix' : ' open issues to fix'],

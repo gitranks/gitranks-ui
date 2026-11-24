@@ -1,10 +1,27 @@
 // @vitest-environment jsdom
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LearnEntityCard } from './learn-entity-card';
 import { entityCards, orgEntity, repoEntity } from '@/lib/learn/__fixtures__/entity-card';
 import type { LearnEntity, LearnEntityCard as LearnEntityCardData } from '@/lib/learn/entity-card';
+
+// The pages the rows lead to, built or not: each case below sets them.
+const built = vi.hoisted(() => ({ issues: true, projectCourse: true }));
+vi.mock('@/lib/learn/built-pages', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  get LEARN_ISSUES_PAGE_BUILT() {
+    return built.issues;
+  },
+  get LEARN_PROJECT_COURSE_PAGE_BUILT() {
+    return built.projectCourse;
+  },
+}));
+
+beforeEach(() => {
+  built.issues = true;
+  built.projectCourse = true;
+});
 
 const LONG_DASH = String.fromCodePoint(0x2014);
 
@@ -41,6 +58,16 @@ describe('LearnEntityCard', () => {
   it('draws no card with nothing behind it, nor for open issues alone', () => {
     expect(renderToStaticMarkup(<LearnEntityCard card={entityCards.repoIssuesOnly} entity={repoEntity} />)).toBe('');
     expect(renderToStaticMarkup(<LearnEntityCard card={null} entity={repoEntity} />)).toBe('');
+  });
+
+  it('draws no row to a page that is not built, and no card with none left', () => {
+    built.issues = false;
+    built.projectCourse = false;
+    expect(renderToStaticMarkup(<LearnEntityCard card={entityCards.repoEverything} entity={repoEntity} />)).toBe('');
+    const many = draw(entityCards.orgManyRepos, orgEntity);
+    expect(many.rows).toEqual(['repo-courses']);
+    expect(many.root.innerHTML).not.toContain('/learn/issues');
+    expect(many.root.innerHTML).not.toContain('/learn/repos/');
   });
 
   it('draws an org’s card', () => {

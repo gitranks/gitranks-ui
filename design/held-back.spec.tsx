@@ -1,10 +1,17 @@
 import { renderToReadableStream } from 'react-dom/server';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 
 import type { DesignGlobals, Screen } from './registry';
 
 // The screens the export leaves out (`exported: false`) are drawn nowhere else: this draws each of their states as the
-// export would, in memory, so a state that throws fails here. It writes no file.
+// export would, in memory, so a state that throws fails here. It writes no file. They are drawn for the pages that will
+// use them, so with every Learn page their links lead to built.
+
+vi.mock('@/lib/learn/built-pages', () => ({
+  LEARN_ISSUES_PAGE_BUILT: true,
+  LEARN_PROJECT_COURSE_PAGE_BUILT: true,
+  LEARN_FIXES_PAGE_BUILT: true,
+}));
 
 /** A state's markup as the server sends it, its async parts awaited. */
 async function markupOf(state: Screen['states'][number]): Promise<string> {

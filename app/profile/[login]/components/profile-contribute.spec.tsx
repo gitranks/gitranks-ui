@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { OwnProfileBlockAnswer } from '@/lib/contribute/profile-picks';
 
@@ -9,6 +9,14 @@ vi.mock('@/lib/workspace/masked-issue.actions', () => ({
   skipMaskedIssue: vi.fn(),
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
+// The Issues page, built or not: each case below sets it.
+const built = vi.hoisted(() => ({ issues: true }));
+vi.mock('@/lib/learn/built-pages', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  get LEARN_ISSUES_PAGE_BUILT() {
+    return built.issues;
+  },
+}));
 
 const { OwnerBoxView, ProfileContributeView, ownProfileBlockUrl } = await import('./profile-contribute');
 const { maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
@@ -55,6 +63,10 @@ const box = (picks: OwnProfileBlockAnswer, answer: ReturnType<typeof skills>) =>
   ).replaceAll('<!-- -->', '');
 
 describe("the owner's box on their own profile", () => {
+  beforeEach(() => {
+    built.issues = true;
+  });
+
   it("asks only on the owner's own profile: nothing for a visitor, signed in or out", () => {
     expect(ownProfileBlockUrl('OctoCat', 'octocat ')).toBe('/api/me/contribute/profile-block?login=octocat');
     expect(ownProfileBlockUrl('someone', 'octocat')).toBeNull();
@@ -114,6 +126,18 @@ describe("the owner's box on their own profile", () => {
     expect(html).toContain('See the full issue');
     // Not a word of the picks.
     expect(html).not.toContain('Fix 1');
+  });
+
+  it('gives a learner the top of their own list with no way to all of it while the Issues page is not built', () => {
+    built.issues = false;
+    const html = box(
+      own,
+      skills({ sides: sides(false, true), learnRows: [maskedIssue()].map((masked) => ({ kind: 'masked', masked })) }),
+    );
+    expect(html).toContain('Issues for you to learn on');
+    expect(html.match(/data-masked-row=/g)).toHaveLength(1);
+    expect(html).not.toContain('/learn/issues');
+    expect(html).not.toContain('All my issues');
   });
 
   it("names a learner's row only for a project they named", () => {

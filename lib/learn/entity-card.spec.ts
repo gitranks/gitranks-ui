@@ -1,7 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { entityCards, orgEntity, repoEntity } from './__fixtures__/entity-card';
 import { entityHeadOf, entityNumberOf, entityRowsOf } from './entity-card';
+
+// The pages the rows lead to, built or not: each case below sets them.
+const built = vi.hoisted(() => ({ issues: true, projectCourse: true }));
+vi.mock('@/lib/learn/built-pages', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  get LEARN_ISSUES_PAGE_BUILT() {
+    return built.issues;
+  },
+  get LEARN_PROJECT_COURSE_PAGE_BUILT() {
+    return built.projectCourse;
+  },
+}));
+
+beforeEach(() => {
+  built.issues = true;
+  built.projectCourse = true;
+});
 
 const ids = (rows: { id: string }[]) => rows.map((row) => row.id);
 const titleOf = (title: (string | number)[]) => title.join('');
@@ -77,6 +94,32 @@ describe('entityRowsOf on an org', () => {
       action: 'See the courses',
       href: '/learn/courses?q=nebula',
     });
+  });
+});
+
+describe('entityRowsOf while a page the rows lead to is not built', () => {
+  it('leaves out the fixes and the open issues while the Issues page is not built', () => {
+    built.issues = false;
+    expect(ids(entityRowsOf(entityCards.repoEverything, repoEntity))).toEqual(['course:nebula-ui']);
+    expect(entityRowsOf(entityCards.repoNoCourse, repoEntity)).toEqual([]);
+    expect(ids(entityRowsOf(entityCards.orgEverything, orgEntity))).toEqual(['course:nebula', 'course:nebula-ui']);
+    expect(ids(entityRowsOf(entityCards.orgManyRepos, orgEntity))).toEqual(['repo-courses']);
+  });
+
+  it('leaves out every project course while its page is not built, and the open issues with nothing else', () => {
+    built.projectCourse = false;
+    expect(ids(entityRowsOf(entityCards.repoEverything, repoEntity))).toEqual(['fixes', 'issues']);
+    expect(entityRowsOf(entityCards.repoNewCourse, repoEntity)).toEqual([]);
+    expect(ids(entityRowsOf(entityCards.orgEverything, orgEntity))).toEqual(['fixes', 'issues']);
+    expect(ids(entityRowsOf(entityCards.orgManyRepos, orgEntity))).toEqual(['fixes', 'issues']);
+  });
+
+  it('gives no row at all while neither page is built', () => {
+    built.issues = false;
+    built.projectCourse = false;
+    expect(entityRowsOf(entityCards.repoEverything, repoEntity)).toEqual([]);
+    expect(entityRowsOf(entityCards.orgEverything, orgEntity)).toEqual([]);
+    expect(entityRowsOf(entityCards.orgManyRepos, orgEntity)).toEqual([]);
   });
 });
 

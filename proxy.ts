@@ -35,6 +35,7 @@ import { packageMarkdownRewriteOf } from './lib/packages/package-paths';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
 import { isInvalidRankingPath } from './lib/routing/ranking-routes';
 import { SESSION_COOKIE, SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_SET } from './lib/session-hint';
+import { isSkillsCardPath } from './lib/skills/paths';
 import { requestLearnAccess } from './lib/workspace/gate';
 import {
   AGENTS_DOC_PATH,
@@ -52,7 +53,12 @@ import {
   settingUpHomeOf,
   WORKSPACE_PATHS,
 } from './lib/workspace/paths';
-import { isPrTimelinePath, prTimelineMarkdownPath, prTimelineRouteOf } from './lib/workspace/pr-timeline-path';
+import {
+  isPrTimelinePath,
+  prTimelineMarkdownPath,
+  prTimelineRouteOf,
+  prTimelineRoutePathOf,
+} from './lib/workspace/pr-timeline-path';
 import { contributeOpen, requestContributeAccess, requestWorkspaceAccess } from './lib/workspace/preview-gate';
 
 /** When search engines may ask again for a paused lesson: an hour, in seconds. */
@@ -249,10 +255,10 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return response;
   }
 
-  // A pull request's timeline (its page and its Markdown twin): the API is asked here before anything renders, signed
-  // out. Shown goes on to the one cached page, a renamed repo gets a 307 to the address it has now, and anything else
-  // the 404, which no shared cache keeps. The short address the footer links is its own route handler, outside every
-  // gate. Asked before Auth.js, like the 404s above.
+  // A pull request's timeline (its page, its Markdown twin and its picture): the API is asked here before anything
+  // renders, signed out. Shown goes on to the one cached page, a renamed repo gets a 307 to the address it has now, and
+  // anything else the 404, which no shared cache keeps. The short address the footer links is its own route handler,
+  // outside every gate. Asked before Auth.js, like the 404s above.
   let shownTimeline = false;
   const timeline =
     request.method === 'GET' || request.method === 'HEAD' ? prTimelineRouteOf(request.nextUrl.pathname) : null;
@@ -264,10 +270,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
         gate.kind === 'missing'
           ? NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url))
           : NextResponse.redirect(
-              new URL(
-                `${gate.path}${timeline.kind === 'twin' ? '/timeline.md' : ''}${request.nextUrl.search}`,
-                request.url,
-              ),
+              new URL(`${prTimelineRoutePathOf(timeline, gate.path)}${request.nextUrl.search}`, request.url),
               307,
             );
       response.headers.set('Cache-Control', 'private, no-store');
@@ -447,7 +450,8 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
         response.headers.set('Cache-Control', 'private, no-store');
         return response;
       }
-      if (!ENTITY_PAGE.test(request.nextUrl.pathname)) {
+      // A Skills page's picture is no page: it keeps the headers its route gives it, so shared caches may keep it.
+      if (!ENTITY_PAGE.test(request.nextUrl.pathname) || isSkillsCardPath(request.nextUrl.pathname)) {
         return served(NextResponse.next());
       }
       const response = NextResponse.next();

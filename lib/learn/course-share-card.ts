@@ -34,7 +34,16 @@ export function courseCardSubOf(course: Pick<LearnCourse, 'kind' | 'languages'>)
   return count > 1 ? `A topic course, with examples in ${countWords(count)} languages` : 'A topic course';
 }
 
-/** A course's figures: its lessons, and its learners from 10. None is a zero. */
+/** A course's real issues fixed are drawn from this many: fewer leave the place empty. */
+const ISSUES_FIXED_SHOWN_FROM = 5;
+
+/** The merged fixes that used a lesson of the course, when worth showing: from 5. */
+export function issuesFixedOf(numbers: Pick<LearnCourse['numbers'], 'issuesFixed'>): number | null {
+  const fixed = numbers.issuesFixed;
+  return typeof fixed === 'number' && Number.isInteger(fixed) && fixed >= ISSUES_FIXED_SHOWN_FROM ? fixed : null;
+}
+
+/** A course's figures: its lessons, its learners from 10, and the real issues fixed with it from 5. None is a zero. */
 export function courseCardFiguresOf(course: Pick<LearnCourse, 'lessons' | 'numbers'>): CardFigure[] {
   const figures: CardFigure[] = [];
   if (course.lessons > 0) {
@@ -42,6 +51,8 @@ export function courseCardFiguresOf(course: Pick<LearnCourse, 'lessons' | 'numbe
   }
   const learners = learnersOf(course.numbers);
   if (learners !== null) figures.push({ value: countWords(learners), label: 'learners' });
+  const fixed = issuesFixedOf(course.numbers);
+  if (fixed !== null) figures.push({ value: countWords(fixed), label: 'real issues fixed with it' });
   return figures;
 }
 

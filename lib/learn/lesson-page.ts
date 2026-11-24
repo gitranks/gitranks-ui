@@ -46,6 +46,8 @@ export type LearnLesson = {
   next: LearnLessonLink | null;
   changedAt: string;
   publishedAt: string;
+  /** The merged fixes in real projects that used it, counted each night: null under 3 (left out where not read). */
+  fixesMerged?: number | null;
 };
 
 /** The person's side of a lesson: how deep, when it is next asked, their answer and their rating. */

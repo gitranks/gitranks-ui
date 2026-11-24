@@ -6,6 +6,7 @@ import type { FC, ReactNode } from 'react';
 
 import { OWNER_BLOCK_SHOWN, type OwnerIssue, OwnerIssueRows } from './profile-contribute-block';
 import { buttonVariants } from '@/components/ui/button';
+import { LEARN_ISSUES_PAGE_BUILT } from '@/lib/learn/built-pages';
 import type { LearnQueueTopRow } from '@/lib/learn/learn-queue-top';
 import { LEARN_HOME_PATH, LEARN_ISSUES_PATH } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
@@ -19,13 +20,13 @@ import { languageColorOf } from '@/utils/language-colors';
  * violet, so they never read as part of the profile.
  */
 
-/** The frame every owner's box shares: its label, heading, line and links, then its rows. */
+/** The frame every owner's box shares: its label, heading, line and links (when it has any), then its rows. */
 const OwnerBoxFrame: FC<{
   id: string;
   label: string;
   title: string;
   lead: ReactNode;
-  links: ReactNode;
+  links?: ReactNode;
   box: string;
   children: ReactNode;
 }> = ({ id, label, title, lead, links, box, children }) => (
@@ -43,7 +44,7 @@ const OwnerBoxFrame: FC<{
         </h2>
         <p className="max-w-prose text-sm text-muted-foreground">{lead}</p>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:w-full">{links}</div>
+      {links ? <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:w-full">{links}</div> : null}
     </div>
     {children}
   </section>
@@ -116,7 +117,10 @@ export const learnOwnerIssueOf = (row: LearnQueueTopRow, colors?: Readonly<Recor
         masked: null,
       };
 
-/** The top of a learner's own list of issues ("For you" on), with the way to all of it. Nothing without a row. */
+/**
+ * The top of a learner's own list of issues ("For you" on), with the way to all of it once the Issues page is built.
+ * Nothing without a row.
+ */
 export const ProfileLearnListBox: FC<{ rows: LearnQueueTopRow[]; colors?: Readonly<Record<string, string>> }> = ({
   rows,
   colors,
@@ -130,10 +134,12 @@ export const ProfileLearnListBox: FC<{ rows: LearnQueueTopRow[]; colors?: Readon
       title="Issues for you to learn on"
       lead="From your own list, best first. Your agent fixes one, and its walkthrough teaches you the change."
       links={
-        <Link href={LEARN_ISSUES_PATH} prefetch={false} className={linkClass(true)}>
-          All my issues
-          <ArrowRight aria-hidden />
-        </Link>
+        LEARN_ISSUES_PAGE_BUILT ? (
+          <Link href={LEARN_ISSUES_PATH} prefetch={false} className={linkClass(true)}>
+            All my issues
+            <ArrowRight aria-hidden />
+          </Link>
+        ) : null
       }
     >
       <OwnerIssueRows

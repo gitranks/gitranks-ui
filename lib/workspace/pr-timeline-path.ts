@@ -10,13 +10,18 @@ const ATTEMPT_ID = /^[a-f\d]{24}$/;
 
 /**
  * A pull request timeline's address, as the router reads it: the short one the footer links (`/contribute/pr/<attempt
- * id>`, which only redirects), the page (`/contribute/pr/<owner>/<repo>/<number>`), or its Markdown twin (the page's
- * address and `/timeline.md`). Null for any other path, and for parts no GitHub name or number can be.
+ * id>`, which only redirects), the page (`/contribute/pr/<owner>/<repo>/<number>`), its Markdown twin (the page's
+ * address and `/timeline.md`) or its picture, the fix's card (the page's address and `/card.png`). Null for any other
+ * path, and for parts no GitHub name or number can be.
  */
 export type PrTimelineRoute =
   | { kind: 'short'; attemptId: string }
   | { kind: 'page'; pr: PrRef }
-  | { kind: 'twin'; pr: PrRef };
+  | { kind: 'twin'; pr: PrRef }
+  | { kind: 'card'; pr: PrRef };
+
+/** What follows the page's address in its twin's and its picture's: `/timeline.md`, `/card.png`. */
+const SUFFIXES = { twin: '/timeline.md', card: '/card.png' } as const;
 
 export function prTimelineRouteOf(pathname: string): PrTimelineRoute | null {
   let path: string;
@@ -25,17 +30,24 @@ export function prTimelineRouteOf(pathname: string): PrTimelineRoute | null {
   } catch {
     return null;
   }
-  const match = /^\/+contribute\/+pr\/+([^/]+)(?:\/+([^/]+)\/+([^/]+)(\/+timeline\.md)?)?\/?$/i.exec(path);
+  const match = /^\/+contribute\/+pr\/+([^/]+)(?:\/+([^/]+)\/+([^/]+)(?:\/+(timeline\.md|card\.png))?)?\/?$/i.exec(
+    path,
+  );
   if (!match) return null;
-  const [, first, repo, number, twin] = match;
+  const [, first, repo, number, file] = match;
   if (repo === undefined) return ATTEMPT_ID.test(first) ? { kind: 'short', attemptId: first } : null;
-  if (twin && pathname.endsWith('/')) return null;
+  if (file && pathname.endsWith('/')) return null;
   const pr = parsePrLink(`${first}/${repo}#${number}`);
   if (!pr || String(pr.number) !== number) return null;
-  return twin ? { kind: 'twin', pr } : { kind: 'page', pr };
+  if (!file) return { kind: 'page', pr };
+  return { kind: file.toLowerCase() === 'card.png' ? 'card' : 'twin', pr };
 }
 
-/** Whether the path is a pull request timeline's, in any of its three forms. */
+/** The address of a timeline's page, twin or picture under the page's address `page`. */
+export const prTimelineRoutePathOf = (route: Exclude<PrTimelineRoute, { kind: 'short' }>, page: string) =>
+  route.kind === 'page' ? page : `${page}${SUFFIXES[route.kind]}`;
+
+/** Whether the path is a pull request timeline's, in any of its four forms. */
 export const isPrTimelinePath = (pathname: string): boolean => prTimelineRouteOf(pathname) !== null;
 
 /** The page's canonical address. */

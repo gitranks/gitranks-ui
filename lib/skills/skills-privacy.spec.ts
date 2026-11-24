@@ -9,10 +9,10 @@ describe('the Settings row "Your Skills page"', () => {
     expect(privacyRowOf(skillsMine.hiddenLearner)).toEqual({ line: 'Only you can see it.', choice: { hidden: true } });
   });
 
-  it('draws an older API’s private page as a hidden one', () => {
+  it('words an older API’s private page as a hidden one, with no choice to make', () => {
     expect(privacyRowOf({ ...skillsMine.hiddenLearner, state: 'PRIVATE' as const })).toEqual({
       line: 'Only you can see it.',
-      choice: { hidden: true },
+      choice: null,
     });
   });
 

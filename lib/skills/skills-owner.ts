@@ -30,9 +30,10 @@ export function stripOf(mine: Pick<SkillsMine, 'state' | 'usesLearn'>): StripWor
     case 'PUBLIC':
       return { strong: 'Everyone can see this page.', rest: '', actions: ['copy', 'hide'], progress };
     case 'HIDDEN':
-    // An older API may still answer `PRIVATE`: drawn as `HIDDEN`.
-    case 'PRIVATE':
       return { strong: 'Only you can see this page.', rest: '', actions: ['show'], progress };
+    // An older API may still answer `PRIVATE`: worded as `HIDDEN`, with nothing to change, as that API keeps it so.
+    case 'PRIVATE':
+      return { strong: 'Only you can see this page.', rest: '', actions: [], progress };
     default:
       return {
         strong: 'Only you can see this page',

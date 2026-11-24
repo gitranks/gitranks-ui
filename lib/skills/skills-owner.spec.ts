@@ -13,14 +13,15 @@ describe('stripOf', () => {
     });
   });
 
-  it('gives a hidden page "Show it to everyone", and draws an older API’s private page the same', () => {
+  it('gives a hidden page "Show it to everyone", and words an older API’s private page the same with no action', () => {
     expect(stripOf(skillsMine.hiddenLearner)).toMatchObject({
       strong: 'Only you can see this page.',
       actions: ['show'],
     });
-    expect(stripOf({ ...skillsMine.hiddenLearner, state: 'PRIVATE' as const })).toEqual(
-      stripOf(skillsMine.hiddenLearner),
-    );
+    expect(stripOf({ ...skillsMine.hiddenLearner, state: 'PRIVATE' as const })).toEqual({
+      ...stripOf(skillsMine.hiddenLearner),
+      actions: [],
+    });
   });
 
   it('links "Your progress" only for someone who learns', () => {

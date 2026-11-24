@@ -60,6 +60,22 @@ export type HomeCardWords = {
 
 export const PRODUCTS_HEADING = 'Contribute to open source, and learn from it';
 export const PRODUCTS_LINE = 'Both work with your own coding agent, on real issues in real projects.';
+/** The heading and line when Learn's card is drawn alone. */
+export const LEARN_ONLY_HEADING = 'Learn from real open source';
+export const LEARN_ONLY_LINE = 'Short lessons, then real issues in real projects to use them on.';
+
+/**
+ * Whether the block draws Contribute's card: while Contribute is launched, and for a person who uses it, whose card
+ * leads to their own work.
+ */
+export const showsContributeOf = (
+  contribute: boolean,
+  products: Pick<HomeProducts, 'usesContribute'> | null,
+): boolean => contribute || products?.usesContribute === true;
+
+/** The block's heading and line: both products', or Learn's alone. */
+export const productsWordsOf = (both: boolean): { heading: string; line: string } =>
+  both ? { heading: PRODUCTS_HEADING, line: PRODUCTS_LINE } : { heading: LEARN_ONLY_HEADING, line: LEARN_ONLY_LINE };
 
 /** Each product's promotion, the same for everyone. */
 export const HOME_PROMOS: Record<HomeProduct, HomeCardWords> = {

@@ -216,6 +216,11 @@ describe('/learn for someone signed in', () => {
     signedIn({ home: homeNewLearner, setup: null });
     expect(((await LearnFrontView()) as Shown).type).toBe(LearnHomeView);
   });
+
+  it('is the landing as for a member when the API answers neither a setup nor a home', async () => {
+    signedIn({ home: null, setup: null });
+    expect(await landingOf(await LearnFrontView())).toBe('member');
+  });
 });
 
 describe('/learn/about, How Learn works', () => {

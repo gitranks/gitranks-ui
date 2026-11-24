@@ -29,10 +29,12 @@ describe('SkillsStrip', () => {
     expect(hrefs).toContain('/learn/progress');
   });
 
-  it('offers "Show it to everyone" on a hidden page, and on an older API’s private one', () => {
+  it('offers "Show it to everyone" on a hidden page, and nothing to press on an older API’s private one', () => {
     expect(draw(<SkillsStrip mine={skillsMine.hiddenLearner} href={HREF} />).buttons).toEqual(['Show it to everyone']);
     const older = { ...skillsMine.hiddenLearner, state: 'PRIVATE' as const };
-    expect(draw(<SkillsStrip mine={older} href={HREF} />).buttons).toEqual(['Show it to everyone']);
+    const drawn = draw(<SkillsStrip mine={older} href={HREF} />);
+    expect(drawn.buttons).toEqual([]);
+    expect(drawn.text).toContain('Only you can see this page.');
   });
 
   it('says until when an empty page is only theirs', () => {

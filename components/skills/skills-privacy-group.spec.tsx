@@ -76,9 +76,10 @@ describe('Settings\' "Your Skills page"', () => {
     expect(container.querySelector('button')).toBeNull();
   });
 
-  it('draws an older API’s private page as a hidden one', async () => {
+  it('words an older API’s private page as a hidden one, with no switch to press', async () => {
     await draw({ ...skillsMine.hiddenLearner, state: 'PRIVATE' });
-    expect(button('Only you')?.getAttribute('aria-pressed')).toBe('true');
+    expect(row()?.textContent).toContain('Only you can see it.');
+    expect(container.querySelector('button')).toBeNull();
   });
 
   it('says who can see it could not be read when the view is missing', async () => {

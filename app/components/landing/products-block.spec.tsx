@@ -109,12 +109,34 @@ describe('ProductsBlock', () => {
     ]);
   });
 
-  it("draws Learn's card alone while Contribute is not launched", () => {
+  const drawn = (products: HomeProducts | null, contribute: boolean) => {
     const root = document.createElement('div');
-    root.innerHTML = renderToStaticMarkup(<ProductsBlock products={null} now={HOME_NOW} contribute={false} />);
-    expect([...root.querySelectorAll('[data-home-card]')].map((card) => card.getAttribute('data-home-card'))).toEqual([
-      'LEARN',
-    ]);
+    root.innerHTML = renderToStaticMarkup(<ProductsBlock products={products} now={HOME_NOW} contribute={contribute} />);
+    return {
+      cards: [...root.querySelectorAll('[data-home-card]')].map((card) => card.getAttribute('data-home-card')),
+      heading: root.querySelector('h2')?.textContent,
+      line: root.querySelector('h2 + p')?.textContent,
+      grid: root.querySelector('[data-home-card]')?.parentElement?.className ?? '',
+      text: root.textContent ?? '',
+    };
+  };
+
+  it("draws Learn's card alone, in one column under Learn's own words, while Contribute is not launched", () => {
+    for (const products of [null, homeProducts.learner]) {
+      const block = drawn(products, false);
+      expect(block.cards).toEqual(['LEARN']);
+      expect(block.heading).toBe('Learn from real open source');
+      expect(block.line).toBe('Short lessons, then real issues in real projects to use them on.');
+      expect(block.grid).not.toContain('md:grid-cols-2');
+      expect(block.text).not.toContain(LONG_DASH);
+    }
+  });
+
+  it("keeps Contribute's card, in two columns, for a person who uses Contribute before it is launched", () => {
+    const block = drawn(homeProducts.contributor, false);
+    expect(block.cards).toEqual(['CONTRIBUTE', 'LEARN']);
+    expect(block.heading).toBe('Contribute to open source, and learn from it');
+    expect(block.grid).toContain('md:grid-cols-2');
   });
 
   it('takes its own id for a board that draws it twice', () => {

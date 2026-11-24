@@ -129,6 +129,12 @@ describe('who gets Learn home at /learn', () => {
     expect(learnPageOf({ setup: null, home: { learned: 0 }, entered: false })).toBe('home');
     expect(learnPageOf({ setup: unset, home: null, entered: false })).toBe('home');
   });
+
+  it('gives the landing to someone the API answers neither a setup nor a home for', () => {
+    for (const entered of [false, true]) {
+      expect(learnPageOf({ setup: null, home: null, entered })).toBe('landing');
+    }
+  });
 });
 
 describe('the next lesson box', () => {

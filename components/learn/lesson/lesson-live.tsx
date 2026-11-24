@@ -80,8 +80,8 @@ type Personal =
   | { kind: 'session' }
   | { kind: 'member'; viewer: LessonViewer };
 
-/** Said under the card when the API answers that Learn is not open to the person, in the words the site uses. */
-export const LEARN_NOT_OPEN_NOTE = 'GitRanks Learn is not open to your account yet, so your answer is not saved.';
+/** Said under the card when the API saves no answer for the person. */
+export const ANSWER_NOT_SAVED_NOTE = 'Your answer was not saved. Try again in a minute.';
 
 /**
  * A lesson's page as it lives in the browser. The page is the same for everyone and comes drawn (`article`, `more`);
@@ -168,7 +168,7 @@ export function LessonLive({
         (result) => {
           if (!result.ok) return;
           if (result.data) setSaved({ ...result.data.mine, language: result.data.mine.language ?? language });
-          else setNote(LEARN_NOT_OPEN_NOTE);
+          else setNote(ANSWER_NOT_SAVED_NOTE);
         },
         () => {},
       );

@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { AgentConnect } from '@/components/workspace/agent/agent-connect';
-import { IssuePageScreen } from '@/components/workspace/masked-issue/issue-page-screen';
+import { type IssuePageNotice, IssuePageScreen } from '@/components/workspace/masked-issue/issue-page-screen';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
+import { limitWordsOf } from '@/lib/workspace/limit-words';
 import { type IssuePageFrom, issuePageHrefOf } from '@/lib/workspace/masked-issue';
 import {
   extendIssueLook,
@@ -27,6 +28,7 @@ import type {
   IssuePageState,
 } from '@/lib/workspace/masked-issue.types';
 import { MCP_CLIENT_NAMES, type McpClient } from '@/lib/workspace/mcp-setup';
+import { issueStartRefusalOf } from '@/lib/workspace/start-refusals';
 import { useChanges, useFastChanges } from '@/lib/workspace/use-changes';
 
 /** The page a refused press turns to, when the API answers the outcome without a page. */
@@ -44,6 +46,9 @@ export const ISSUE_PAGE_NOTICES = {
   hosted: 'The hosted agent did not start. Try again in a minute.',
 } as const;
 
+/** A hosted start's refusal that ends the page, as a look's would. */
+const START_REFUSAL_STATES: Partial<Record<string, IssuePageState>> = { TAKEN: 'TAKEN', CLOSED: 'LEFT_POOL' };
+
 export type IssuePageLiveProps = {
   /** The issue's mask id. */
   id: string;
@@ -58,7 +63,7 @@ export type IssuePageLiveProps = {
   hosted: boolean;
   /** The start form's reads: the own agent, its connect steps, the pull requests that wait. */
   start: IssueStartReads;
-  /** From Contribute: the person also uses Learn. */
+  /** From Contribute: the person also uses Learn (they have a Learn profile). */
   alsoLearn: boolean;
   /** Back from the sign-in with a press made before it (`?look=1`): the press is made now, once. */
   returning: boolean;
@@ -66,9 +71,10 @@ export type IssuePageLiveProps = {
 
 /**
  * The page of one issue, live: "See the full issue" holds it and shows it in full in place, "Give it back" turns the
- * page to the reasons and the note, each saved as it is pressed. Copying the prompt, or connecting an agent, holds the
- * issue 30 minutes, once; the page then waits for the agent to start and moves on to the work's page. A press that
- * does not go through leaves the page as it was and says so.
+ * page to the reasons and the note, each saved as it is pressed. Copying the prompt, or "I added it" in the connect
+ * steps, holds the issue 30 minutes, once; the page then waits for the agent to start and moves on to the work's page,
+ * as it does from the start when the page opens in full with the person's agent connected. A press that does not go
+ * through leaves the page as it was and says so; a hosted start that is refused says why.
  */
 export function IssuePageLive(props: IssuePageLiveProps) {
   const { id, from } = props;
@@ -77,17 +83,18 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   const [pressing, setPressing] = useState(false);
   const [givingBack, setGivingBack] = useState(false);
   const [suspended, setSuspended] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<IssuePageNotice | null>(null);
   const [hostedSending, setHostedSending] = useState(false);
   const [connection, setConnection] = useState(props.start.connection);
-  const [waiting, setWaiting] = useState(false);
+  // A page opened in full with the person's agent connected (a reload) waits for the agent at once.
+  const [waiting, setWaiting] = useState(props.page.state === 'FULL' && !!props.start.connection);
   const routerRef = useRef(router);
   routerRef.current = router;
 
   /** The page after a press: in full, one of the ends, or the closed access. */
   const onLooked = useCallback((result: ContributeActionResult<IssueLooked>) => {
     if (!result.ok) {
-      setNotice(ISSUE_PAGE_NOTICES.look);
+      setNotice({ text: ISSUE_PAGE_NOTICES.look });
       return;
     }
     const { outcome, page: next } = result.data;
@@ -111,18 +118,19 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   }, [id, from, onLooked]);
 
   // Back from the sign-in: the press made before it, once, and the address without it (a reload makes no second one).
+  // The sign-in's mark is used up either way; the press is made only while the details are still hidden.
   const returned = useRef(false);
   useEffect(() => {
     if (!props.returning || returned.current) return;
     returned.current = true;
     routerRef.current.replace(issuePageHrefOf(id, from));
-    if (props.page.state !== 'MASKED') return;
-    setPressing(true);
-    void lookOnReturn(id, from)
+    const masked = props.page.state === 'MASKED';
+    if (masked) setPressing(true);
+    void lookOnReturn(id, from, masked)
       .catch(() => null)
       .then((result) => {
         if (result) onLooked(result);
-        setPressing(false);
+        if (masked) setPressing(false);
       });
   }, [props.returning, props.page.state, id, from, onLooked]);
 
@@ -149,21 +157,35 @@ export function IssuePageLive(props: IssuePageLiveProps) {
     if (result?.ok) setPage(result.data);
   }, [id]);
 
-  const onConnected = useCallback(
-    (client: McpClient) => {
-      setConnection({ client, lastCallAt: new Date().toISOString() });
-      void holdLonger();
-    },
-    [holdLonger],
-  );
+  /** The agent has called: the start form names it, and the page waits for it to start. */
+  const onConnected = useCallback((client: McpClient) => {
+    setConnection({ client, lastCallAt: new Date().toISOString() });
+    setWaiting(true);
+  }, []);
 
   const startHosted = useCallback(async () => {
     setHostedSending(true);
     setNotice(null);
     const result = await startHeldIssue(id).catch(() => null);
     setHostedSending(false);
-    if (!result?.ok || (!result.data.started && !result.data.attempt)) {
-      setNotice(ISSUE_PAGE_NOTICES.hosted);
+    if (!result?.ok) {
+      setNotice({ text: ISSUE_PAGE_NOTICES.hosted });
+      return;
+    }
+    const refused = issueStartRefusalOf(result.data);
+    if (refused) {
+      const ended = START_REFUSAL_STATES[refused.code];
+      if (ended) {
+        setPage((current) => ({ ...current, state: ended }));
+        return;
+      }
+      const action = refused.action && 'href' in refused.action ? refused.action : null;
+      const limit = refused.limit ? limitWordsOf(refused.limit) : null;
+      setNotice({ text: refused.text ?? (limit ? `${limit.lead} ${limit.rest}` : ISSUE_PAGE_NOTICES.hosted), action });
+      return;
+    }
+    if (!result.data.started && !result.data.attempt) {
+      setNotice({ text: ISSUE_PAGE_NOTICES.hosted });
       return;
     }
     setWaiting(true);
@@ -178,7 +200,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
     if (result?.ok) {
       setWaiting(false);
       setPage(result.data);
-    } else setNotice(ISSUE_PAGE_NOTICES.giveBack);
+    } else setNotice({ text: ISSUE_PAGE_NOTICES.giveBack });
   }, [id]);
 
   const ownName = connection?.client ? MCP_CLIENT_NAMES[connection.client] : null;
@@ -205,6 +227,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
             signIn={props.start.agent.signIn}
             openedAt={props.openedAt}
             onConnected={onConnected}
+            onAdded={() => void holdLonger()}
             connectSource={from === 'learn' ? 'learn_start' : 'contribute_start'}
           />
         ),
@@ -218,7 +241,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
         onReason: async (reason, on) => (await setIssueOutReason(id, reason, on).catch(() => null))?.ok === true,
         onNote: async (note) => (await saveIssueOutNote(id, note).catch(() => null))?.ok === true,
       }}
-      suspended={suspended ? { appeal: null } : null}
+      suspended={suspended ? { appeal: null, formNeedsSend: true } : null}
     />
   );
 }

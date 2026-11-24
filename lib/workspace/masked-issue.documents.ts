@@ -2,6 +2,8 @@ import { parse } from 'graphql';
 
 import type { IssueStart } from './issue-start';
 import type { IssueLooked, IssueNumbers, IssueOutReason, IssuePage } from './masked-issue.types';
+import { START_PAGE_ISSUE_FIELDS } from './start/start-page.documents';
+import type { StartPageIssue } from './start/start-page.types';
 import type DocumentNode from '@/types/typed-document-node';
 
 /**
@@ -81,14 +83,18 @@ export const StartMaskedIssueDocument = doc<{ startContributeIssue: IssueStart }
 );
 
 /**
- * The mask of the issue an old Start page address names, for the viewer: null when they named its project or hold it.
- * The same read as the Start page's, asked apart for its one new field.
+ * The Start page's answer for an old address with the issue's mask, for the viewer: the mask is null when they named its
+ * project or hold it. An operation of its own, so an API without the field fails it alone and the page asks
+ * `StartPageIssue` as today; the answer is read once either way.
  */
 export const StartPageMaskDocument = doc<
-  { startPageIssue: { masked: { id: string } | null } | null },
+  { startPageIssue: StartPageIssue & { masked: { id: string } | null } },
   { repo: string; number: number; mode: 'FIX' | 'LEARN' }
 >(
   `query StartPageMask($repo: String!, $number: Int!, $mode: ContributeAttemptMode) {
-  startPageIssue(repo: $repo, number: $number, mode: $mode) { masked { id } }
+  startPageIssue(repo: $repo, number: $number, mode: $mode) {
+    ${START_PAGE_ISSUE_FIELDS}
+    masked { id }
+  }
 }`,
 );

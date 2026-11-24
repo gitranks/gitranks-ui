@@ -248,12 +248,26 @@ export const isTablessPath = (pathname: string): boolean =>
 export const isWorkspacePath = (pathname: string): boolean =>
   isContributePath(pathname) || isMyPath(pathname) || decodedMatches(pathname, /^\/+learn(?:[/\\]|$)/i);
 
+/** The page of one issue, `/my/issues/<mask id>`: its mask id. */
+const ISSUE_PAGE = /^\/+my\/+issues\/+([A-Za-z0-9_-]{1,64})\/?$/;
+
 /**
  * Where a workspace page sends an account being set up: the two connect pages to their steps of Contribute's flow
  * (which say so in place and keep the query), any other page to Contribute's home, which says so too. Both read
- * themselves again until the account is ready.
+ * themselves again until the account is ready. An issue's page (a new account back from the sign-in) rides along in
+ * the home's query, `?issue=<mask id>` with where the person came from and their press, and the home sends them back
+ * to it once the account is ready.
  */
 export function settingUpHomeOf(url: { pathname: string; search?: string }): string {
+  const issue = ISSUE_PAGE.exec(url.pathname)?.[1];
+  if (issue) {
+    const query = new URLSearchParams(url.search ?? '');
+    const carried = new URLSearchParams({ issue });
+    const from = query.get('from');
+    if (from === 'learn' || from === 'contribute') carried.set('from', from);
+    if (query.get('look') === '1') carried.set('look', '1');
+    return `/contribute?${carried}`;
+  }
   if (decodedMatches(url.pathname, /^\/+my\/+agent\/+connect\/?$/i)) {
     return `${GETTING_IN_PATHS.contributeAgentOwn}${url.search ?? ''}`;
   }

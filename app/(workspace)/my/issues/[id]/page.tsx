@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 
 import { IssuePageLive } from '@/components/workspace/masked-issue/issue-page-live';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
+import { loadLearnProfile } from '@/lib/learn/learn.data';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { ISSUE_LOOK_PARAM, type IssuePageFrom, issuePageFromOf, maskIdOf } from '@/lib/workspace/masked-issue';
 import { loadIssueNumbers, loadIssuePage, loadIssueStartReads } from '@/lib/workspace/masked-issue.data';
@@ -47,7 +48,14 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
   if (gate.kind !== 'open') notFound();
   const from = issuePageFromOf(search.from, gate.learnOpen);
 
-  const [load, numbers, start] = await Promise.all([loadIssuePage(id), loadIssueNumbers(), loadIssueStartReads()]);
+  // From Contribute, the start form names Learn too when the person uses it: a Learn profile of theirs.
+  const usesLearn = from === 'contribute' && gate.learnOpen ? loadLearnProfile().catch(() => null) : null;
+  const [load, numbers, start, profile] = await Promise.all([
+    loadIssuePage(id),
+    loadIssueNumbers(),
+    loadIssueStartReads(),
+    usesLearn,
+  ]);
   if (load.kind === 'not-found') notFound();
   return (
     <IssuePageLive
@@ -59,7 +67,7 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
       openedAt={new Date().toISOString()}
       hosted={gate.agents.hosted}
       start={start}
-      alsoLearn={from === 'contribute' && gate.learnOpen}
+      alsoLearn={profile !== null}
       returning={search[ISSUE_LOOK_PARAM] === '1'}
     />
   );

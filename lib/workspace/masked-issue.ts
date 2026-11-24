@@ -50,6 +50,15 @@ export function issuePageHrefOf(id: string, from: IssuePageFrom, pressed = false
   return `${issuePagePath(id)}?${query}` as Route;
 }
 
+/**
+ * The page of one issue a new account was on when it was sent to Contribute's home to be set up (`?issue=` with
+ * `from` and `look`, as `settingUpHomeOf` carries them): where the home sends it back once ready. Null for none.
+ */
+export function issuePageCarriedOf(query: Record<string, string | string[] | undefined>): Route | null {
+  const id = maskIdOf(query.issue);
+  return id ? issuePageHrefOf(id, query.from === 'learn' ? 'learn' : 'contribute', query.look === '1') : null;
+}
+
 /** The kinds of issue, the icon each one has in the row, and its name. */
 export const ISSUE_KINDS = {
   bug: 'Bug',

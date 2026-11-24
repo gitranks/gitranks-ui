@@ -34,6 +34,7 @@ import type {
   IssuePageState,
   MaskedIssue,
 } from '@/lib/workspace/masked-issue.types';
+import type { StartRefusalAction } from '@/lib/workspace/start-refusals';
 
 /** How often the hold's minutes are counted again. */
 const TICK_MS = 10_000;
@@ -90,9 +91,12 @@ export type IssuePageScreenProps = {
   givenBack?: Omit<GivenBackProps, 'backHref' | 'reasons' | 'note'>;
   /** Access to real issues is closed: the closing's words and the request to look again, in place of the page. */
   suspended?: FairUseAppealFormProps | null;
-  /** A press that did not go through, said under the page's body ("Not opened. Try again."). */
-  notice?: string | null;
+  /** A press that did not go through, said under the page's body ("Not opened. Try again."), with its next step. */
+  notice?: IssuePageNotice | null;
 };
+
+/** A press that did not go through: one sentence, and the page it leads to when there is one. */
+export type IssuePageNotice = { text: string; action?: StartRefusalAction | null };
 
 const CARD = 'flex flex-col gap-3 rounded-xl border bg-card p-5';
 const LINK = 'self-start text-sm font-semibold text-link hover:underline';
@@ -393,7 +397,21 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
       {body}
       {props.notice ? (
         <p role="alert" className="m-0 text-sm text-destructive" data-page-notice="">
-          {props.notice}
+          {props.notice.text}
+          {props.notice.action ? (
+            <>
+              {' '}
+              {props.notice.action.external ? (
+                <a href={props.notice.action.href} className={LINK}>
+                  {props.notice.action.label}
+                </a>
+              ) : (
+                <Link href={props.notice.action.href} prefetch={false} className={LINK}>
+                  {props.notice.action.label}
+                </Link>
+              )}
+            </>
+          ) : null}
         </p>
       ) : null}
       <p className="sr-only" aria-live="polite" data-page-said="">

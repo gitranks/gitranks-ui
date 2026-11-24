@@ -58,23 +58,30 @@ export async function limitsOf(reader: Reader): Promise<StartPageLimits> {
 /**
  * The Start page's answer for an issue in `mode`, as `githubLogin`: whether it can be started, and what the refusal
  * links (`OWN_IN_PROGRESS`: the lesson in progress) or counts (`LIMIT_REACHED`: the limit), read only then. A failed
- * read of those leaves them null; a failed `startPageIssue` is the error.
+ * read of those leaves them null; a failed `startPageIssue` is the error. `answered`: the answer read already (with the
+ * issue's mask, on an old address), which is then not asked again.
  */
 export async function startPageViewOf(
   reader: Reader,
   repo: string,
   number: number,
   mode: StartMode,
+  answered?: ContributeActionResult<StartPageIssueView['start']>,
 ): Promise<ContributeActionResult<StartPageIssueView>> {
   let start: StartPageIssueView['start'];
-  try {
-    ({ startPageIssue: start } = await graphqlDirect(
-      StartPageIssueDocument,
-      { repo, number, mode: mode === 'lesson' ? 'LEARN' : 'FIX' },
-      reader,
-    ));
-  } catch (failure) {
-    return { ok: false, ...contributeErrorOf(failure) };
+  if (answered) {
+    if (!answered.ok) return answered;
+    start = answered.data;
+  } else {
+    try {
+      ({ startPageIssue: start } = await graphqlDirect(
+        StartPageIssueDocument,
+        { repo, number, mode: mode === 'lesson' ? 'LEARN' : 'FIX' },
+        reader,
+      ));
+    } catch (failure) {
+      return { ok: false, ...contributeErrorOf(failure) };
+    }
   }
   const [current, limits] = await Promise.all([
     start.refusal === 'OWN_IN_PROGRESS'
@@ -132,18 +139,20 @@ const unavailable = (repo: string, number: number): StartPageIssueView => ({
  * The Start page's reads for the viewer, once per request: the issue in `mode` and what its refusal names, the agent
  * (connected, and step 1's connect steps), and in lesson mode the restart sentence. The viewer's own attempt on the
  * issue moves the page on to its pull request's page (`claimed`), unless it is a Fix attempt in lesson mode, which the
- * page words. A failed read of the issue is the outage the page's error says; `goal` is the caller's (Learn's) read.
+ * page words. A failed read of the issue is the outage the page's error says; `goal` is the caller's (Learn's) read,
+ * `answered` the issue's answer when the caller read it already.
  */
 export async function loadStartPageView(
   ref: { repo: string; issue: number },
   mode: StartMode,
   goal: string | null,
+  answered?: ContributeActionResult<StartPageIssueView['start']>,
 ): Promise<StartPageLoad> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { kind: 'not-found' };
   const reader = { source: 'ssr' as const, githubLogin };
   const [answer, ownAgent, onboarded, signIn] = await Promise.all([
-    startPageViewOf(reader, ref.repo, ref.issue, mode),
+    startPageViewOf(reader, ref.repo, ref.issue, mode, answered),
     loadOwnAgent(),
     startPageOnboarded(reader),
     contributeMcpSignIn(),

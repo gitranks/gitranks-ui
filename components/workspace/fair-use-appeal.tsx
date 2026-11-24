@@ -23,6 +23,8 @@ export type FairUseAppealFormProps = {
   initialText?: string;
   /** The last send failed (the catalogue's state). */
   initialFailed?: boolean;
+  /** No form without `onSend`: the closing words and the Terms link alone, until the page can send a request. */
+  formNeedsSend?: boolean;
 };
 
 /**
@@ -35,6 +37,7 @@ export function FairUseAppealForm({
   onSend,
   initialText = '',
   initialFailed = false,
+  formNeedsSend = false,
 }: FairUseAppealFormProps) {
   const ids = useId();
   const [appeal, setAppeal] = useState(initial);
@@ -43,6 +46,7 @@ export function FairUseAppealForm({
   const [sending, startSending] = useTransition();
   const open = appeal && !appeal.answeredAt;
   const ready = text.trim().length > 0 && !sending;
+  const formShown = !formNeedsSend || !!onSend;
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -60,7 +64,7 @@ export function FairUseAppealForm({
   };
 
   return (
-    <div className="flex flex-col gap-5" data-fair-use-appeal={open ? 'open' : 'form'}>
+    <div className="flex flex-col gap-5" data-fair-use-appeal={open ? 'open' : formShown ? 'form' : 'closed'}>
       <div className={cn(CARD, 'gap-3')} data-ban="">
         <p tabIndex={-1} className="m-0 text-base leading-relaxed outline-none">
           {BAN_TEXT}
@@ -73,7 +77,7 @@ export function FairUseAppealForm({
             You asked us to look again on {dayLabel(appeal.at)}. We read every request and answer by email.
           </p>
         </div>
-      ) : (
+      ) : formShown ? (
         <form onSubmit={submit} className={cn(CARD, 'gap-5')} data-appeal-form="">
           <h2 className="m-0 text-lg font-semibold">Ask us to look again</h2>
           {appeal?.answeredAt ? (
@@ -106,7 +110,7 @@ export function FairUseAppealForm({
             <span className="text-xs text-muted-foreground">Only the GitRanks team reads it.</span>
           </div>
         </form>
-      )}
+      ) : null}
       <p className="m-0 text-sm text-muted-foreground">
         Read the rules in our{' '}
         <Link href={CONTRIBUTE_RULES_PATH} prefetch={false} className={LINK}>

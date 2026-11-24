@@ -51,14 +51,17 @@ export async function lookAtIssue(id: string, from: IssuePageFrom): Promise<Cont
 
 /**
  * The press a visitor made before signing in, made on their return: only when this browser started that sign-in for
- * this issue, so a link carrying `?look=1` counts nothing by itself. Null: no press to make.
+ * this issue, so a link carrying `?look=1` counts nothing by itself, and only while the details are still hidden
+ * (`masked`). The mark is used up on every return. Null: no press to make.
  */
 export async function lookOnReturn(
   id: string,
   from: IssuePageFrom,
+  masked = true,
 ): Promise<ContributeActionResult<IssueLooked> | null> {
   const maskId = maskIdOf(id);
-  if (!maskId || !(await takeIssueLookMark(maskId))) return null;
+  if (!maskId) return null;
+  if (!(await takeIssueLookMark(maskId)) || masked !== true) return null;
   return run(
     LookAtIssueDocument,
     { id: maskId, surface: issueSurfaceOf(fromOf(from)), channel: 'SIGN_IN' },
@@ -101,7 +104,7 @@ export async function saveIssueOutNote(id: string, note: string): Promise<Contri
   return run(SaveIssueOutNoteDocument, { id: maskId, note }, (data) => data.saveIssueOutNote);
 }
 
-/** Holds the issue 30 minutes from now, once: the prompt copied, or an agent connected. */
+/** Holds the issue 30 minutes from now, once: the prompt copied, or "I added it" pressed. */
 export async function extendIssueLook(id: string): Promise<ContributeActionResult<IssuePage>> {
   const maskId = maskIdOf(id);
   if (!maskId) return invalid();

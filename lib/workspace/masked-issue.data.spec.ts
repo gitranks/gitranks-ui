@@ -11,7 +11,7 @@ const contribute = vi.hoisted(() => ({
 vi.mock('@/lib/workspace/contribute.data', () => contribute);
 vi.mock('@/lib/workspace/mcp-sign-in', () => ({ contributeMcpSignIn: vi.fn(async () => true) }));
 
-const { loadIssueNumbers, loadIssuePage, loadIssueStartReads, loadRulesLive, loadStartPageMask } = await import(
+const { loadIssueNumbers, loadIssuePage, loadIssueStartReads, loadRulesLive, loadStartPageWithMask } = await import(
   './masked-issue.data'
 );
 const { fullPage, issueNumbers } = await import('./__fixtures__/masked-issue');
@@ -91,24 +91,39 @@ describe('the numbers of a night', () => {
   });
 });
 
-describe("an old Start page address's mask", () => {
+describe("an old Start page address's answer, with its mask", () => {
   const REF = { repo: 'driftwood-js/driftwood', issue: 934 };
+  const START = startViews.open.start;
 
-  it('is read apart from the Start page, in its mode', async () => {
-    answer({ StartPageMask: { startPageIssue: { masked: { id: 'q7k2m9xa' } } } });
-    expect(await loadStartPageMask(REF, 'lesson')).toBe('q7k2m9xa');
+  it('is read once, in an operation of its own that asks the Start page answer with the mask, in its mode', async () => {
+    answer({ StartPageMask: { startPageIssue: { ...START, masked: { id: 'q7k2m9xa' } } } });
+    expect(await loadStartPageWithMask(REF, 'lesson')).toEqual({
+      answer: { ok: true, data: START },
+      maskId: 'q7k2m9xa',
+    });
     expect(asked()).toEqual(['StartPageMask']);
     expect(graphqlDirect.mock.calls[0][1]).toEqual({ repo: REF.repo, number: 934, mode: 'LEARN' });
   });
 
-  it("is none when the viewer named or holds the issue, and falls back to none (today's page) with today's API", async () => {
-    answer({ StartPageMask: { startPageIssue: { masked: null } } });
-    expect(await loadStartPageMask(REF, 'fix')).toBeNull();
-    // Today's answer: the Start page's issue as it is read now, which has no `masked`.
-    answer({ StartPageMask: todaysAnswerTo('masked', 'StartPageIssue'), StartPageIssue: startViews.open.start });
-    expect(await loadStartPageMask(REF, 'fix')).toBeNull();
+  it('has no mask when the viewer named or holds the issue', async () => {
+    answer({ StartPageMask: { startPageIssue: { ...START, masked: null } } });
+    expect(await loadStartPageWithMask(REF, 'fix')).toEqual({ answer: { ok: true, data: START }, maskId: null });
+  });
+
+  it("falls back to today's read, and today's page, only when the API does not know the mask yet", async () => {
+    // Today's answer to the query: the Start page's issue has no `masked`.
+    answer({ StartPageMask: todaysAnswerTo('masked', 'StartPageIssue') });
+    expect(await loadStartPageWithMask(REF, 'fix')).toBeNull();
+  });
+
+  it("passes on an issue it cannot show as the Start page's own answer, and is the error page in an outage", async () => {
+    answer({ StartPageMask: new Error(JSON.stringify([{ message: 'nope', extensions: { code: 'NOT_FOUND' } }])) });
+    expect(await loadStartPageWithMask(REF, 'fix')).toEqual({
+      answer: { ok: false, error: 'NOT_FOUND' },
+      maskId: null,
+    });
     answer({ StartPageMask: outage() });
-    expect(await loadStartPageMask(REF, 'fix')).toBeNull();
+    await expect(loadStartPageWithMask(REF, 'fix')).rejects.toBeInstanceOf(contribute.ContributeUnavailableError);
   });
 });
 

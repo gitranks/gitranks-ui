@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,10 +17,19 @@ const actions = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/workspace/masked-issue.actions', () => actions);
 vi.mock('@/components/workspace/agent/agent-connect', () => ({
-  AgentConnect: () => <div data-agent-connect="" />,
+  AgentConnect: ({ onAdded }: { onAdded?: () => void }) => (
+    <div data-agent-connect="">
+      <button type="button" onClick={onAdded}>
+        I added it
+      </button>
+    </div>
+  ),
 }));
+const changes = vi.hoisted(() => ({ useFastChanges: vi.fn(), useChanges: vi.fn() }));
+vi.mock('@/lib/workspace/use-changes', () => changes);
 
 const { ISSUE_PAGE_NOTICES, IssuePageLive } = await import('./issue-page-live');
+const { issueStartRefusalOf } = await import('@/lib/workspace/start-refusals');
 const { fullPage, issueNumbers, issuePage, MASKED_NOW } = await import('@/lib/workspace/__fixtures__/masked-issue');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -67,24 +76,27 @@ const START = {
   waitingPrs: null,
 };
 
-const live = (props: Partial<Parameters<typeof IssuePageLive>[0]> = {}) =>
-  act(async () =>
-    root.render(
-      <IssuePageLive
-        id="q7k2m9xa"
-        page={issuePage()}
-        from="learn"
-        back={{ href: '/learn/earlier', label: 'Issues' }}
-        numbers={issueNumbers}
-        openedAt={MASKED_NOW.toISOString()}
-        hosted={false}
-        start={START}
-        alsoLearn={false}
-        returning={false}
-        {...props}
-      />,
-    ),
+const live = (props: Partial<Parameters<typeof IssuePageLive>[0]> = {}, strict = false) => {
+  const page = (
+    <IssuePageLive
+      id="q7k2m9xa"
+      page={issuePage()}
+      from="learn"
+      back={{ href: '/learn/earlier', label: 'Issues' }}
+      numbers={issueNumbers}
+      openedAt={MASKED_NOW.toISOString()}
+      hosted={false}
+      start={START}
+      alsoLearn={false}
+      returning={false}
+      {...props}
+    />
   );
+  return act(async () => root.render(strict ? <StrictMode>{page}</StrictMode> : page));
+};
+/** Whether the page waits for the agent: the workspace's poll fast, and the attempts asked about. */
+const waiting = () =>
+  changes.useChanges.mock.lastCall?.[2] === true && changes.useFastChanges.mock.lastCall?.[0] === true;
 const state = () => container.querySelector('[data-issue-page]')?.getAttribute('data-issue-page');
 const h1 = () => container.querySelector('h1')?.textContent;
 const button = (label: string) =>
@@ -123,11 +135,14 @@ describe('"See the full issue"', () => {
     expect(h1()).toBe(title);
   });
 
-  it('shows the closed access and the request to look again when the account is suspended', async () => {
+  it('shows the closed access, with no form that cannot send yet, when the account is suspended', async () => {
     actions.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'SUSPENDED', page: null } });
     await live();
     await press('See the full issue');
-    expect(container.querySelector('[data-fair-use-appeal]')).not.toBeNull();
+    expect(container.querySelector('[data-fair-use-appeal]')?.getAttribute('data-fair-use-appeal')).toBe('closed');
+    expect(container.querySelector('[data-ban]')).not.toBeNull();
+    expect(container.querySelector('form')).toBeNull();
+    expect(container.querySelector('a[href="/terms#contribute-rules"]')).not.toBeNull();
     expect(container.querySelector('[data-issue-card]')).toBeNull();
   });
 
@@ -150,12 +165,19 @@ describe('"See the full issue"', () => {
 describe('back from the sign-in', () => {
   it('makes the press made before it, once, and drops it from the address', async () => {
     actions.lookOnReturn.mockResolvedValue({ ok: true, data: { outcome: 'OK', page: fullPage() } });
-    await live({ returning: true, from: 'contribute' });
-    expect(actions.lookOnReturn).toHaveBeenCalledExactlyOnceWith('q7k2m9xa', 'contribute');
+    // Strict mode runs the effect twice, and the page renders again with the same address: still one press.
+    await live({ returning: true, from: 'contribute' }, true);
+    await live({ returning: true, from: 'contribute' }, true);
+    expect(actions.lookOnReturn).toHaveBeenCalledExactlyOnceWith('q7k2m9xa', 'contribute', true);
     expect(router.replace).toHaveBeenCalledWith('/my/issues/q7k2m9xa?from=contribute');
     expect(state()).toBe('FULL');
-    await live({ returning: false, from: 'contribute' });
-    expect(actions.lookOnReturn).toHaveBeenCalledOnce();
+  });
+
+  it('uses the mark up, making no press, when the page is already past its hidden details', async () => {
+    actions.lookOnReturn.mockResolvedValue(null);
+    await live({ returning: true, page: fullPage() });
+    expect(actions.lookOnReturn).toHaveBeenCalledExactlyOnceWith('q7k2m9xa', 'learn', false);
+    expect(state()).toBe('FULL');
   });
 
   it('stays masked when there was no press of this browser to make', async () => {
@@ -164,6 +186,23 @@ describe('back from the sign-in', () => {
     expect(state()).toBe('MASKED');
   });
 });
+
+/** A hosted start's answer that refused, with `code`. */
+const refusal = (code: string, rest: Record<string, unknown> = {}) => ({
+  attempt: null,
+  started: false,
+  refusal: code,
+  value: null,
+  holder: null,
+  until: null,
+  ...rest,
+});
+const hostedPage = {
+  page: fullPage(),
+  from: 'contribute' as const,
+  hosted: true,
+  start: { ...START, connection: null },
+};
 
 describe('while it is held', () => {
   it('holds it 30 minutes once the prompt is copied, and waits for the agent', async () => {
@@ -176,6 +215,21 @@ describe('while it is held', () => {
     expect(container.querySelector('[data-held]')?.textContent).toContain('30 minutes left');
   });
 
+  it('holds it 30 minutes once "I added it" is pressed in the connect steps, and waits for the agent', async () => {
+    actions.extendIssueLook.mockResolvedValue({ ok: true, data: fullPage({ until: '2026-10-28T12:30:00.000Z' }) });
+    await live({ page: fullPage(), start: { ...START, connection: null } });
+    expect(waiting()).toBe(false);
+    await press('I added it');
+    expect(actions.extendIssueLook).toHaveBeenCalledWith('q7k2m9xa');
+    expect(waiting()).toBe(true);
+  });
+
+  it("waits for the person's agent at once when the page opens in full with it connected (a reload)", async () => {
+    await live({ page: fullPage() });
+    expect(waiting()).toBe(true);
+    expect(actions.extendIssueLook).not.toHaveBeenCalled();
+  });
+
   it('starts the hosted agent and moves on to the work once it started', async () => {
     actions.startHeldIssue.mockResolvedValue({
       ok: true,
@@ -185,7 +239,7 @@ describe('while it is held', () => {
       ok: true,
       data: issuePage({ state: 'STARTED', startPath: '/my/pull-requests/acme/notebook/1290' }),
     });
-    await live({ page: fullPage(), from: 'contribute', hosted: true, start: { ...START, connection: null } });
+    await live(hostedPage);
     await press('Start with the hosted agent');
     expect(actions.startHeldIssue).toHaveBeenCalledWith('q7k2m9xa');
     expect(router.replace).toHaveBeenCalledWith('/my/pull-requests/acme/notebook/1290');
@@ -193,10 +247,50 @@ describe('while it is held', () => {
 
   it('says so when the hosted agent does not start', async () => {
     actions.startHeldIssue.mockResolvedValue({ ok: false, error: 'FAILED' });
-    await live({ page: fullPage(), from: 'contribute', hosted: true, start: { ...START, connection: null } });
+    await live(hostedPage);
     await press('Start with the hosted agent');
     expect(notice()).toBe(ISSUE_PAGE_NOTICES.hosted);
     expect(state()).toBe('FULL');
+  });
+
+  it.each([
+    ['KEY_INVALID', 'Replace the key'],
+    ['NO_KEY', 'Add a key'],
+    ['BUDGET', 'Budget and pacing'],
+    ['DAILY_LIMIT', null],
+    ['ACCOUNT_PAUSED', 'Write to us'],
+  ])(
+    'says why the hosted agent did not start (%s), in the words of a Start, with its next step',
+    async (code, link) => {
+      const answer = refusal(code);
+      actions.startHeldIssue.mockResolvedValue({ ok: true, data: answer });
+      await live(hostedPage);
+      await press('Start with the hosted agent');
+      const said = issueStartRefusalOf(answer as never)?.text ?? '';
+      expect(notice()).toBe(link ? `${said} ${link}` : said);
+      expect(notice()).not.toContain(ISSUE_PAGE_NOTICES.hosted);
+      expect(state()).toBe('FULL');
+    },
+  );
+
+  it('says the open pull request limit in its one sentence', async () => {
+    actions.startHeldIssue.mockResolvedValue({ ok: true, data: refusal('LIMIT_REACHED', { value: 3 }) });
+    await live(hostedPage);
+    await press('Start with the hosted agent');
+    expect(notice()).toBe(
+      '3 of your pull requests are waiting on maintainers. A new one can start when one is merged or closed.',
+    );
+  });
+
+  it.each([
+    ['TAKEN', 'TAKEN'],
+    ['CLOSED', 'LEFT_POOL'],
+  ])('turns to its end when the hosted start is refused with %s', async (code, ended) => {
+    actions.startHeldIssue.mockResolvedValue({ ok: true, data: refusal(code) });
+    await live(hostedPage);
+    await press('Start with the hosted agent');
+    expect(state()).toBe(ended);
+    expect(notice()).toBeUndefined();
   });
 
   it('shows the connect steps to someone with no agent yet', async () => {

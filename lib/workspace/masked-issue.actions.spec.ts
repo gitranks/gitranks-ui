@@ -116,6 +116,14 @@ describe('a visitor’s press, through the sign-in', () => {
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
+  it('uses the mark up when the page is already past its hidden details, making no press', async () => {
+    await actions.signInToSeeIssue(form({ id: 'q7k2m9xa', from: 'learn' }));
+    graphqlDirect.mockClear();
+    expect(await actions.lookOnReturn('q7k2m9xa', 'learn', false)).toBeNull();
+    expect(store.has(MARK)).toBe(false);
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
   it('signs in back home when the form names no issue', async () => {
     await actions.signInToSeeIssue(form({ id: '../x' }));
     expect(store.size).toBe(0);

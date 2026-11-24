@@ -46,6 +46,16 @@ describe('asking to look again', () => {
     expect(container.querySelector('a[href="/terms#contribute-rules"]')).not.toBeNull();
   });
 
+  it('shows no form that cannot send: the closing words and the Terms link alone', async () => {
+    await render(<FairUseAppealForm appeal={null} formNeedsSend />);
+    expect(container.querySelector('[data-fair-use-appeal]')?.getAttribute('data-fair-use-appeal')).toBe('closed');
+    expect(container.querySelector('[data-ban]')).not.toBeNull();
+    expect(container.querySelector('form')).toBeNull();
+    expect(container.querySelector('a[href="/terms#contribute-rules"]')).not.toBeNull();
+    await render(<FairUseAppealForm appeal={null} formNeedsSend onSend={async () => null} />);
+    expect(container.querySelector('form')).not.toBeNull();
+  });
+
   it("sends the request and shows its date in the form's place", async () => {
     const onSend = vi.fn(async () => ({ at: '2026-10-28T12:00:00.000Z', answeredAt: null }));
     await render(<FairUseAppealForm appeal={null} onSend={onSend} />);

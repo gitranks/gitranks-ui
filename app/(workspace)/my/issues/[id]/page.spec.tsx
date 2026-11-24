@@ -26,8 +26,11 @@ const data = vi.hoisted(() => ({
   loadIssueStartReads: vi.fn(),
 }));
 vi.mock('@/lib/workspace/masked-issue.data', () => data);
+const learn = vi.hoisted(() => ({ loadLearnProfile: vi.fn() }));
+vi.mock('@/lib/learn/learn.data', () => learn);
 
 const { default: MaskedIssuePage } = await import('./page');
+const { filledProfile } = await import('@/lib/learn/__fixtures__/profile');
 const { fullPage, issueNumbers, issuePage, looksAtLimit, MASKED_NOW } = await import(
   '@/lib/workspace/__fixtures__/masked-issue'
 );
@@ -74,6 +77,7 @@ beforeEach(() => {
   data.loadIssuePage.mockResolvedValue({ kind: 'page', page: issuePage() });
   data.loadIssueNumbers.mockResolvedValue(issueNumbers);
   data.loadIssueStartReads.mockResolvedValue(START);
+  learn.loadLearnProfile.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -135,6 +139,19 @@ describe('the page of one issue at /my/issues/[id]', () => {
     // `loadIssuePage`'s answer for an id no issue has, and for an API that does not know the page yet.
     data.loadIssuePage.mockResolvedValueOnce({ kind: 'not-found' });
     await expect(issuePageAt()).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('names Learn in the start form, from Contribute, only to a person who uses it (a Learn profile)', async () => {
+    data.loadIssuePage.mockResolvedValue({ kind: 'page', page: fullPage() });
+    expect(text(await issuePageAt())).not.toContain('You also use GitRanks Learn');
+    learn.loadLearnProfile.mockResolvedValue(filledProfile);
+    expect(text(await issuePageAt())).toContain('You also use GitRanks Learn');
+    learn.loadLearnProfile.mockRejectedValue(new Error('down'));
+    expect(text(await issuePageAt())).not.toContain('You also use GitRanks Learn');
+    learn.loadLearnProfile.mockClear();
+    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, learnOpen: false });
+    await issuePageAt();
+    expect(learn.loadLearnProfile).not.toHaveBeenCalled();
   });
 
   it('shows the window without numbers when they cannot be read', async () => {

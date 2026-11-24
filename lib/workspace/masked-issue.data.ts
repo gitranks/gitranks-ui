@@ -1,19 +1,20 @@
 import 'server-only';
 
 import { ContributeUnavailableError, loadOwnAgent, viewerLogin } from './contribute.data';
+import type { ContributeActionResult } from './errors';
 import { contributeErrorOf } from './errors';
 import { IssueNumbersDocument, IssuePageDocument, StartPageMaskDocument } from './masked-issue.documents';
 import type { IssueNumbers, IssuePage } from './masked-issue.types';
 import { contributeMcpSignIn } from './mcp-sign-in';
 import { learnStartConnectionOf } from './start/start-page';
 import { limitsOf, startPageOnboarded } from './start/start-page.data';
-import type { LearnStartConnection, StartMode, StartPageAgent } from './start/start-page.types';
+import type { LearnStartConnection, StartMode, StartPageAgent, StartPageIssue } from './start/start-page.types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /**
  * The reads of the page of one issue. Each is an operation of its own: an API that does not know a field yet fails
  * that read alone, and the page falls back to what the address answered before (no page: a 404; no numbers: the
- * window's words without them; no mask: today's Start page).
+ * window's words without them; no mask: today's Start page, read as today).
  */
 
 /** The page of one issue, or none: an id no issue has, a viewer it is not open to, or an API without the page yet. */
@@ -55,10 +56,17 @@ export async function loadRulesLive(): Promise<boolean> {
 }
 
 /**
- * The mask of the issue an old Start page address names: null when the viewer named its project or holds it, when no
- * mask is made for it, and whenever it cannot be read (an API without the field: today's Start page).
+ * An old Start page address's answer, read once with the issue's mask: `answer` goes on to the Start page as its own
+ * read would (an issue it cannot show is its answer too), `maskId` is null when the viewer named the issue's project or
+ * holds it. Null when the API does not know the mask yet: the page reads its answer as today. An outage is the page's
+ * error, as the Start page's own read is.
  */
-export async function loadStartPageMask(ref: { repo: string; issue: number }, mode: StartMode): Promise<string | null> {
+export type StartPageWithMask = { answer: ContributeActionResult<StartPageIssue>; maskId: string | null };
+
+export async function loadStartPageWithMask(
+  ref: { repo: string; issue: number },
+  mode: StartMode,
+): Promise<StartPageWithMask | null> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return null;
   try {
@@ -67,9 +75,15 @@ export async function loadStartPageMask(ref: { repo: string; issue: number }, mo
       { repo: ref.repo, number: ref.issue, mode: mode === 'lesson' ? 'LEARN' : 'FIX' },
       { source: 'ssr', githubLogin },
     );
-    return startPageIssue?.masked?.id ?? null;
-  } catch {
-    return null;
+    const { masked, ...start } = startPageIssue;
+    return { answer: { ok: true, data: start }, maskId: masked?.id ?? null };
+  } catch (failure) {
+    const error = contributeErrorOf(failure);
+    if (error.error === 'NOT_AVAILABLE_YET') return null;
+    if (error.error === 'NOT_FOUND' || error.error === 'SIGNED_OUT' || error.error === 'INVALID') {
+      return { answer: { ok: false, ...error }, maskId: null };
+    }
+    throw new ContributeUnavailableError();
   }
 }
 

@@ -8,7 +8,7 @@ import { loadLearnProfile } from '@/lib/learn/learn.data';
 import { learnGoalLabelOf } from '@/lib/learn/profile-form';
 import { notEnteredTargetOf } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
-import { loadRulesLive, loadStartPageMask } from '@/lib/workspace/masked-issue.data';
+import { loadRulesLive, loadStartPageWithMask } from '@/lib/workspace/masked-issue.data';
 import { startPath } from '@/lib/workspace/paths';
 import { learnStartIssueOf, startBackOf, startModeOf } from '@/lib/workspace/start/start-page';
 import { loadStartPageView } from '@/lib/workspace/start/start-page.data';
@@ -40,7 +40,8 @@ export default function StartPage({ params, searchParams }: Params) {
  * Issue details are hidden until a person asks to see one, and an issue's own page is at its mask's address. From the
  * switch on (the rules about full issues a day live), this address keeps working for an issue the viewer works on (its
  * pull request's page), holds or named (this page), and is not found for any other: it would name an issue nobody
- * uncovered. Until then, and whenever the switch or the mask cannot be read, it is today's page.
+ * uncovered. Until then, and whenever the switch cannot be read or the API does not know the mask yet, it is today's
+ * page. The issue's answer is read once: with its mask from the switch on, as today before it.
  */
 async function StartView({ params, searchParams }: Pick<Params, 'params' | 'searchParams'>) {
   const [{ owner, repo, issue }, search] = await Promise.all([params, searchParams]);
@@ -59,14 +60,17 @@ async function StartView({ params, searchParams }: Pick<Params, 'params' | 'sear
     if (to) redirect(to);
   }
 
-  const goal = mode === 'lesson' ? learnGoalLabelOf(await loadLearnProfile()) : null;
-  const load = await loadStartPageView(ref, mode, goal);
+  const [goal, withMask] = await Promise.all([
+    mode === 'lesson' ? loadLearnProfile().then(learnGoalLabelOf) : null,
+    loadRulesLive().then((live) => (live ? loadStartPageWithMask(ref, mode) : null)),
+  ]);
+  const load = await loadStartPageView(ref, mode, goal, withMask?.answer);
   if (load.kind === 'not-found') {
     if (mode === 'lesson') redirect(fixMode);
     notFound();
   }
   if (load.kind === 'claimed') redirect(load.href);
-  if ((await loadRulesLive()) && (await loadStartPageMask(ref, mode))) notFound();
+  if (withMask?.maskId) notFound();
 
   const back = startBackOf(mode, search.from);
   return (

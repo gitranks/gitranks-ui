@@ -29,7 +29,8 @@ vi.mock('@/lib/workspace/actions', () => ({ readWorkspaceChanges: vi.fn(), readN
 vi.mock('@/lib/workspace/contribute.data', () => data);
 vi.mock('@/lib/workspace/gate.data', () => gate);
 
-const { revealSideways, WorkspaceTabsNav } = await import('./workspace-tabs-nav');
+const { WorkspaceTabsNav } = await import('./workspace-tabs-nav');
+const { revealSideways } = await import('@/components/tabs/reveal-sideways');
 const { WorkspaceTabs } = await import('./workspace-tabs');
 const { HeaderLine } = await import('./header-line');
 const { default: WorkspaceLayout } = await import('@/app/(workspace)/layout');

@@ -13,6 +13,7 @@ import { buildPackageRankingJsonLd, buildPackageRankingQuestions } from '../seo'
 import { GoToPackageField } from './go-to-package-field';
 import { PackageBetaNotice } from './package-beta-notice';
 import { PackageRankingTable } from './package-ranking-table';
+import { type PackageRegistryTab, PackageRegistryTabs } from './package-registry-tabs';
 import { ITEMS_PER_PAGE, MAX_PAGES } from '@/app/app.consts';
 import { Header } from '@/components/header/header';
 import { JsonLd } from '@/components/json-ld/json-ld';
@@ -20,7 +21,7 @@ import { Page } from '@/components/page/page';
 import { Pagination } from '@/components/pagination/pagination';
 import { Pill } from '@/components/pill/pill';
 import { QuestionsBlock } from '@/components/questions-block/questions-block';
-import { RankingHeaderSection } from '@/components/ranking-header-section/ranking-header-section';
+import { RankingTypeSwitcher } from '@/components/rank-type-switcher/ranking-type-switcher';
 import { RankingStats } from '@/components/ranking-stats/ranking-stats';
 import { buildPackageRankingStats } from '@/components/ranking-stats/ranking-stats.utils';
 import type { PackageRankingFactsData, PackageRankRows } from '@/graphql/helpers/fetch-package-rankings';
@@ -41,49 +42,58 @@ type PackageRankingFrameProps = Omit<PackageRankingProps, 'registryLabel'> & {
 };
 
 /**
- * The registry switch beside "Rank by", with more than one registry listed (none with one): each registry's ranking in
- * the same order when it has it, else by dependents' stars.
+ * The registry tabs: each registry's ranking in the same order when it has it, else by dependents' stars. None with
+ * one registry listed.
  */
-function registrySwitches(registry: RegistryId, order: PackageRankingOrder) {
+function registryTabsOf(registry: RegistryId, order: PackageRankingOrder): PackageRegistryTab[] {
   if (REGISTRY_IDS.length < 2) return [];
-  const options = REGISTRY_IDS.map((id) => ({
+  return REGISTRY_IDS.map((id) => ({
+    registry: id,
     href: packageRankingPath(packageRankingOrdersOf(id).includes(order) ? order : 'dependents-stars', 1, id),
     label: REGISTRIES[id].label,
     active: id === registry,
   }));
-  return [{ label: 'Registry:', options }];
 }
 
 /**
- * A package ranking's frame, as its layout draws it: the title with its Beta pill, the registry (with more than one),
- * "Rank by", what the rank is based on, the "Go to a package" field and the Beta notice, around a page of the ranking.
+ * A package ranking's frame, as its layout draws it: the title with its Beta pill, the registries as tabs (with more
+ * than one), under them the registry's own "Rank by" (its orders only: no Downloads where it has no downloads), what the
+ * rank is based on, the "Go to a package" field and the Beta notice, around a page of the ranking.
  */
-export const PackageRankingFrame: FC<PackageRankingFrameProps> = ({ registry, order, downloadsThrough, children }) => (
-  <>
-    <Header section="rankings" />
-    <Page className="max-w-5xl gap-6">
-      <RankingHeaderSection
-        title={`Package Ranking · ${PACKAGE_RANKINGS[order].label}`}
-        pill={
-          <Pill tone="violet" size="small">
-            Beta
-          </Pill>
-        }
-        optionsLabel="Rank by:"
-        switches={registrySwitches(registry, order)}
-        options={packageRankingOrdersOf(registry).map((option) => ({
-          href: packageRankingPath(option, 1, registry),
-          label: PACKAGE_RANKINGS[option].label,
-          active: option === order,
-        }))}
-        subtitle={packageRankingBasis(order, formatPackageDate(downloadsThrough), registry)}
-      />
-      <GoToPackageField registry={registry} />
-      <PackageBetaNotice registry={registry} />
-      {children}
-    </Page>
-  </>
-);
+export const PackageRankingFrame: FC<PackageRankingFrameProps> = ({ registry, order, downloadsThrough, children }) => {
+  const tabs = registryTabsOf(registry, order);
+  return (
+    <>
+      <Header section="rankings" />
+      <Page className="max-w-5xl gap-6">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">{`Package Ranking · ${PACKAGE_RANKINGS[order].label}`}</h1>
+            <Pill tone="violet" size="small">
+              Beta
+            </Pill>
+          </div>
+          {tabs.length ? <PackageRegistryTabs tabs={tabs} /> : null}
+          <RankingTypeSwitcher
+            beside
+            label="Rank by"
+            options={packageRankingOrdersOf(registry).map((option) => ({
+              href: packageRankingPath(option, 1, registry),
+              label: PACKAGE_RANKINGS[option].label,
+              active: option === order,
+            }))}
+          />
+        </div>
+        <div className="text-sm text-muted-foreground">
+          {packageRankingBasis(order, formatPackageDate(downloadsThrough), registry)}
+        </div>
+        <GoToPackageField registry={registry} />
+        <PackageBetaNotice registry={registry} />
+        {children}
+      </Page>
+    </>
+  );
+};
 
 /** The one state a page draws when its ranking cannot be read now. */
 const RankingNotice: FC<{ title: string; children: ReactNode }> = ({ title, children }) => (

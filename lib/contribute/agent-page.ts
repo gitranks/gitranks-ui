@@ -6,12 +6,13 @@ import { cache } from 'react';
 import type { AgentPage } from './agent-page.types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { viewerEmail, viewerLogin } from '@/lib/workspace/contribute.data';
+import { MASKED_ISSUE_FIELDS } from '@/lib/workspace/masked-issue.fields';
 import type DocumentNode from '@/types/typed-document-node';
 
 const AgentPageDocument = parse(`query ContributeAgentPage {
   contributeAgentPage {
     stats { readyIssues repos languages { language issues } checkedAt }
-    sample { day items { repo number url title labels language kind size why testCommand } }
+    sample { day items { repo number url title labels language kind size why testCommand masked { ${MASKED_ISSUE_FIELDS} } } }
   }
 }`) as DocumentNode<{ contributeAgentPage: AgentPage | null }, Record<string, never>>;
 

@@ -5,7 +5,7 @@ import { LESSON_CARD_HEADERS } from './lesson-card-response';
 import type { LearnCourse, LearnCourseCard } from '@/lib/learn/course';
 import { type CourseShareState, courseNotServedResponse, courseUnavailableResponse } from '@/lib/learn/course-share';
 import { courseCardVersionOf, coursesCardFiguresOf, coursesCardVersionOf } from '@/lib/learn/course-share-card';
-import { LEARN_COURSES_CARD_PATH, learnCourseCardPath } from '@/lib/learn/paths';
+import { courseCardHrefOf, LEARN_COURSES_CARD_PATH, learnCourseCardPath } from '@/lib/learn/paths';
 import { drawSocialCard } from '@/lib/social-card/social-card';
 
 /** A course's picture drawn as a PNG. */
@@ -36,9 +36,12 @@ async function versionedCard(
   }
 }
 
-/** A course's picture, by the course's state (`course-share.ts`), kept as a lesson's picture is. */
+/**
+ * A course's picture, by the course's state (`course-share.ts`), kept as a lesson's picture is. It is drawn at the
+ * address its course's links lead to: a project course's picture asked under its slug goes to its project's address.
+ */
 export async function courseCardResponse(
-  slug: string,
+  _slug: string,
   search: string,
   state: () => Promise<CourseShareState>,
   draw: (course: LearnCourse) => Promise<Uint8Array<ArrayBuffer>> = drawCourseCard,
@@ -51,7 +54,7 @@ export async function courseCardResponse(
   }
   if (found.kind !== 'live') return courseNotServedResponse(found, learnCourseCardPath);
   const { course } = found;
-  return versionedCard(learnCourseCardPath(slug), courseCardVersionOf(course), search, () => draw(course));
+  return versionedCard(courseCardHrefOf(course), courseCardVersionOf(course), search, () => draw(course));
 }
 
 /** The picture of all courses, drawn from the list as everyone reads it. */

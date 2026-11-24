@@ -18,6 +18,7 @@ import {
   visualsOf,
 } from './lesson-page';
 import { coursePath, learnLessonMarkdownPath, learnLessonPath } from './paths';
+import { quoteFileWordsOf, quoteLineOf, quoteUrlOf } from './project-course';
 import { absoluteUrl } from '@/lib/seo/site';
 
 /*
@@ -34,8 +35,20 @@ function fenced(code: string, language: string): string {
   return `${fence}${language}\n${code.replace(/\r\n?/g, '\n').replace(/\n$/, '')}\n${fence}`;
 }
 
-/** An example in each language of the course, each under its language's name. */
+/**
+ * An example in each language of the course, each under its language's name; a quote of a project's code as the file
+ * and its lines linked to that exact version, the code, and the line on the pinned version.
+ */
 function exampleOf(example: LearnExample): string {
+  const { source } = example;
+  if (source) {
+    const [code] = example.codes;
+    return [
+      `[${quoteFileWordsOf(source)}](${quoteUrlOf(source)}):`,
+      fenced(code.code, code.language),
+      quoteLineOf(source, null),
+    ].join('\n\n');
+  }
   return example.codes
     .map((code) => `${languageNameOf(code.language)}:\n\n${fenced(code.code, code.language)}`)
     .join('\n\n');

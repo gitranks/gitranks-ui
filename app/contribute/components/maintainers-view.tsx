@@ -609,6 +609,7 @@ export function PrStrip({ card, timelinePath = null }: { card: ContributePrCard;
   );
 }
 
+/** The owner's sentence on courses, word for word: the address line before it says where, not "write to" again. */
 const COURSES_NOTE = 'We also write courses about some projects. To have one corrected or taken down, write to us.';
 
 function MailLink() {
@@ -636,7 +637,7 @@ export function MaintainersFoot({ card }: { card: ContributePrCard | null }) {
           Want to talk to us?
         </h2>
         <p className="text-sm text-muted-foreground">
-          Write to <MailLink />. A person reads every message.
+          A person reads every message sent to <MailLink />.
           <br />
           {COURSES_NOTE}
         </p>
@@ -683,7 +684,7 @@ export function MaintainersFoot({ card }: { card: ContributePrCard | null }) {
         </Button>
       </div>
       <p className="text-sm text-muted-foreground">
-        Want to talk to us about something else? Write to <MailLink />. A person reads every message.
+        Want to talk to us about something else? A person reads every message sent to <MailLink />.
         <br />
         {COURSES_NOTE}
       </p>

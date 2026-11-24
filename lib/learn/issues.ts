@@ -10,14 +10,16 @@ import {
   learnLessonPath,
   learnLessonRealWorldPath,
   markdownPathOf,
+  orgLoginOf,
+  repoNameOf,
 } from './paths';
 import { SETUP_LANGUAGES } from './setup';
 import type { FullIssue, MaskedIssue } from '@/lib/workspace/masked-issue.types';
 
 /*
  * Issues (page 8): one list of real open issues, each masked with the lesson it uses or teaches. The switches ("For
- * you", "Lessons I learned") and the chips (a course, a lesson, a language, "Fixed") live in the address, so a view
- * can be linked. A visitor sees the same five for the view; a signed-in person sees their own five with the switches.
+ * you", "Lessons I learned") and the chips (a course, a lesson, a project, a language, "Fixed") live in the address,
+ * so a view can be linked. A visitor sees the same five for the view; a signed-in person sees their own five with the switches.
  */
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -98,6 +100,10 @@ export type IssuesLanguage = (typeof SETUP_LANGUAGES)[number];
 export type IssuesView = {
   lesson: string | null;
   course: string | null;
+  /** One repository, `owner/name` in lower case: the issues of a project. */
+  repo: string | null;
+  /** One organisation's login, in lower case: the issues of its projects. Never with `repo`. */
+  org: string | null;
   language: IssuesLanguage | null;
   fixed: boolean;
   forYou: boolean;
@@ -110,6 +116,8 @@ export type IssuesAt = 'issues' | 'lesson' | 'course';
 export const ISSUES_VIEW: IssuesView = {
   lesson: null,
   course: null,
+  repo: null,
+  org: null,
   language: null,
   fixed: false,
   forYou: true,
@@ -131,14 +139,22 @@ export function issuesLanguageOf(value: unknown): IssuesLanguage | null {
   return (SETUP_LANGUAGES as readonly string[]).includes(lower) ? (lower as IssuesLanguage) : null;
 }
 
+/** A project's name from the address, in lower case (GitHub's names are not case-sensitive); null for another shape. */
+const projectNameOf = (value: string | null, shape: (value: string) => string | null) =>
+  value === null ? null : (shape(value)?.toLowerCase() ?? null);
+
 /**
- * The view an address sets; a value of the wrong shape is left out. A lesson's or a course's own address sets that
- * lesson or course from its path (`fromPath`), over the query.
+ * The view an address sets; a value of the wrong shape is left out, and so is an organisation beside a repository
+ * (the repository is the narrower). A lesson's or a course's own address sets that lesson or course from its path
+ * (`fromPath`), over the query.
  */
 export function issuesViewOf(query: Query, fromPath: Partial<Pick<IssuesView, 'lesson' | 'course'>> = {}): IssuesView {
+  const repo = projectNameOf(one(query.repo), repoNameOf);
   return {
     lesson: fromPath.lesson ?? slugOf(one(query.lesson)),
     course: fromPath.course ?? slugOf(one(query.course)),
+    repo,
+    org: repo ? null : projectNameOf(one(query.org), orgLoginOf),
     language: issuesLanguageOf(one(query.language)),
     fixed: one(query.fixed) === '1',
     forYou: one(query['for-you']) !== '0',
@@ -153,16 +169,21 @@ function baseOf(view: IssuesView, at: IssuesAt): { path: string; drop: 'lesson' 
   return { path: LEARN_ISSUES_PATH, drop: null };
 }
 
+/** A query as the pages write it: a repository keeps its `/` (`repo=django/django`), as every link to it writes it. */
+const queryText = (query: URLSearchParams) => query.toString().replace(/%2F/g, '/');
+
 /** The query of a view, in one order, without what is as it is by default. */
 function queryOf(view: IssuesView, drop: 'lesson' | 'course' | null): string {
   const query = new URLSearchParams();
   if (view.course && drop !== 'course') query.set('course', view.course);
   if (view.lesson && drop !== 'lesson') query.set('lesson', view.lesson);
+  if (view.repo) query.set('repo', view.repo);
+  else if (view.org) query.set('org', view.org);
   if (view.language) query.set('language', view.language);
   if (view.fixed) query.set('fixed', '1');
   if (!view.forYou) query.set('for-you', '0');
   if (view.learned) query.set('learned', '1');
-  return query.toString();
+  return queryText(query);
 }
 
 /**
@@ -183,7 +204,7 @@ export function issuesHrefOf(view: IssuesView, at: IssuesAt = 'issues'): Route {
 export function issuesViewQueryOf(view: IssuesView, at: IssuesAt = 'issues'): string {
   const query = new URLSearchParams(queryOf(view, null));
   if (baseOf(view, at).drop) query.set('at', at);
-  return query.toString();
+  return queryText(query);
 }
 
 /** The address search engines are pointed to: the view's chips, with the switches as they are by default. */
@@ -211,8 +232,9 @@ export const unchippedOf = (view: IssuesView): IssuesView => ({
   learned: view.learned,
 });
 
-/** Whether the view names a lesson, a course or a language: what narrows the open issues. */
-export const hasScope = (view: IssuesView): boolean => !!(view.lesson || view.course || view.language);
+/** Whether the view names a lesson, a course, a project or a language: what narrows the open issues. */
+export const hasScope = (view: IssuesView): boolean =>
+  !!(view.lesson || view.course || view.repo || view.org || view.language);
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Chips                                                                                                              */
@@ -222,9 +244,16 @@ export const hasScope = (view: IssuesView): boolean => !!(view.lesson || view.co
 export type IssuesNames = { lesson?: string | null; course?: string | null };
 
 /** One chip: what it says, and the address without it (its cross). */
-export type IssuesChip = { key: 'course' | 'lesson' | 'language' | 'fixed'; label: string; removeHref: Route };
+export type IssuesChip = {
+  key: 'course' | 'lesson' | 'repo' | 'org' | 'language' | 'fixed';
+  label: string;
+  removeHref: Route;
+};
 
-/** The chips of a view, in the boards' order: the course, the lesson, the language, then "Fixed". */
+/**
+ * The chips of a view, in the boards' order: the course, the lesson, the project ("Repository: django/django" or
+ * "Org: kubernetes"), the language, then "Fixed".
+ */
 export function issuesChipsOf(view: IssuesView, names: IssuesNames = {}, at: IssuesAt = 'issues'): IssuesChip[] {
   const chips: IssuesChip[] = [];
   if (view.course) {
@@ -240,6 +269,15 @@ export function issuesChipsOf(view: IssuesView, names: IssuesNames = {}, at: Iss
       label: `Lesson: ${names.lesson ?? view.lesson}`,
       removeHref: issuesHrefOf({ ...view, lesson: null }, at),
     });
+  }
+  if (view.repo) {
+    chips.push({
+      key: 'repo',
+      label: `Repository: ${view.repo}`,
+      removeHref: issuesHrefOf({ ...view, repo: null }, at),
+    });
+  } else if (view.org) {
+    chips.push({ key: 'org', label: `Org: ${view.org}`, removeHref: issuesHrefOf({ ...view, org: null }, at) });
   }
   if (view.language) {
     chips.push({
@@ -380,10 +418,12 @@ export type IssuesEnd = {
   email: boolean;
 };
 
-/** "for this lesson", "in this course", "in Go": what a view narrows to, in a sentence. */
+/** "for this lesson", "in this course", "in this project", "in Go": what a view narrows to, in a sentence. */
 function scopeWordsOf(view: IssuesView): string {
   if (view.lesson) return 'for this lesson';
   if (view.course) return 'in this course';
+  if (view.repo) return 'in this project';
+  if (view.org) return 'in the projects of this org';
   return view.language ? `in ${languageNameOf(view.language)}` : '';
 }
 
@@ -560,7 +600,22 @@ export const issuesPublicInputOf = (view: IssuesView) => ({
   lesson: view.lesson,
   course: view.course,
   language: view.language,
+  repo: view.repo,
+  org: view.org,
 });
+
+/**
+ * Issues' fixed view as some links spell it, `show=fixed`, at `/learn/issues`: the same view at its one address, with
+ * `show` dropped and `fixed=1` set; null for any other address, and for a query without it.
+ */
+export function issuesShowFixedRedirectOf(pathname: string, search: string): string | null {
+  if (pathname !== LEARN_ISSUES_PATH) return null;
+  const query = new URLSearchParams(search);
+  if (query.get('show') !== 'fixed') return null;
+  query.delete('show');
+  query.set('fixed', '1');
+  return `${LEARN_ISSUES_PATH}?${queryText(query)}`;
+}
 
 export const issuesInputOf = (view: IssuesView) => ({
   ...issuesPublicInputOf(view),

@@ -4,7 +4,7 @@ import { type CourseInLine, landingCoursesLineOf } from './courses-line';
 import { LEARN_MAINTAINERS_PATH } from './learn-path';
 import { languageNameOf } from './learn-question';
 import type { LearnLesson } from './lesson-page';
-import { courseMarkdownPath, LEARN_COURSES_MARKDOWN_PATH, LEARN_COURSES_PATH, LEARN_HOME_PATH } from './paths';
+import { courseMarkdownHrefOf, LEARN_COURSES_MARKDOWN_PATH, LEARN_COURSES_PATH, LEARN_HOME_PATH } from './paths';
 import { lessonPlainTextOf } from './seo/lesson';
 import { clipText } from '@/lib/seo/clip-text';
 import { absoluteUrl } from '@/lib/seo/site';
@@ -134,11 +134,11 @@ export function learnLandingMarkdownOf(courses: readonly LearnCourseCard[]): str
     );
     for (const kind of kinds) {
       sections.push(
-        `### ${kind.title}`,
+        kind.kind === 'PROJECT' ? `### ${kind.title}\n\n${kind.sub}` : `### ${kind.title}`,
         kind.courses
           .map((course) => {
             const about = [sentence(course.covers), `${lessonsWords(course.lessons)}.`].filter(Boolean).join(' ');
-            return `- [${oneLine(course.name)}](${absoluteUrl(courseMarkdownPath(course.slug))}): ${about}`;
+            return `- [${oneLine(course.name)}](${absoluteUrl(courseMarkdownHrefOf(course))}): ${about}`;
           })
           .join('\n'),
       );

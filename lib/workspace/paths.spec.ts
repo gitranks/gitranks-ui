@@ -258,7 +258,11 @@ describe("the pull request's page, by repo and issue", () => {
     expect(view('learned=1&for-you=0&fixed=1&language=go&lesson=a-queue&course=data-structures')).toBe(
       'course=data-structures&lesson=a-queue&language=go&fixed=1&for-you=0&learned=1',
     );
-    expect(view('from=learn&look=1&next=%2F%2Fevil.example&repo=a%2Fb')).toBe('');
+    expect(view('from=learn&look=1&next=%2F%2Fevil.example&repo=..%2Fb&org=-bad-')).toBe('');
+    // A project's view: a repository as `owner/name`, an organisation as its login.
+    expect(view('fixed=1&repo=django%2Fdjango')).toBe('repo=django%2Fdjango&fixed=1');
+    expect(view('org=django&course=algorithms')).toBe('course=algorithms&org=django');
+    expect(view('repo=a%2F..')).toBe('');
     expect(view('lesson=../x&course=Data%20Structures&language=c%2B%2B&fixed=yes&for-you=1&learned=0')).toBe('');
     expect(view(`lesson=${'a'.repeat(101)}`)).toBe('');
     // The page the view was on: a lesson's or a course's own, only with the lesson or the course it names.

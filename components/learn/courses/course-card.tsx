@@ -19,7 +19,8 @@ import {
   lessonsWords,
   type MarkedText,
 } from '@/lib/learn/course';
-import { coursePath } from '@/lib/learn/paths';
+import { courseHrefOf } from '@/lib/learn/paths';
+import { projectLanguageOf } from '@/lib/learn/project-course';
 import { cn } from '@/lib/utils';
 
 /*
@@ -122,7 +123,17 @@ export function CourseStats({
   );
 }
 
-/** A course on the list: one link to its page. */
+/** A project course's main language, beside its name on the list. */
+export function ProjectLanguage({ course }: { course: Pick<LearnCourseCard, 'project'> }) {
+  const language = course.project ? projectLanguageOf(course.project) : null;
+  return language ? (
+    <span className="rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground">
+      {language}
+    </span>
+  ) : null;
+}
+
+/** A course on the list: one link to its page. A project course names its main language beside its name. */
 export function CourseCard({
   course,
   name,
@@ -137,7 +148,7 @@ export function CourseCard({
   return (
     <li className="min-w-0">
       <Link
-        href={coursePath(course.slug)}
+        href={courseHrefOf(course)}
         className="relative flex h-full min-w-0 flex-col gap-1 overflow-hidden rounded-xl border bg-card px-4 py-3.5 hover:bg-accent"
         data-course-card={course.slug}
       >
@@ -145,6 +156,7 @@ export function CourseCard({
           <h3 className="m-0 text-base font-semibold">
             <Marked text={name ?? { text: course.name }} tone="courses" />
           </h3>
+          <ProjectLanguage course={course} />
         </span>
         <span className="text-sm text-muted-foreground">{course.covers}</span>
         <CourseStats course={course} mine={mine} className="mt-0.5" />

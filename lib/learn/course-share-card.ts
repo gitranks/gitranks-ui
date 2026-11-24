@@ -1,6 +1,6 @@
 import { countWords, type LearnCourse, type LearnCourseCard, learnersOf } from './course';
 import { languageNameOf, languageNamesOf } from './learn-question';
-import { coursePath, LEARN_COURSES_CARD_PATH, LEARN_COURSES_PATH, learnCourseCardPath } from './paths';
+import { type CourseRef, courseCardHrefOf, courseHrefOf, LEARN_COURSES_CARD_PATH, LEARN_COURSES_PATH } from './paths';
 
 /*
  * The share pictures of a course and of all courses (page 21): where each lives, and what each says. Pure and free of
@@ -11,7 +11,10 @@ import { coursePath, LEARN_COURSES_CARD_PATH, LEARN_COURSES_PATH, learnCourseCar
 export type CardFigure = { value: string; label: string };
 
 /** What a course's picture reads. */
-type CardCourse = Pick<LearnCourse, 'slug' | 'name' | 'kind' | 'languages' | 'lessons' | 'numbers' | 'changedAt'>;
+type CardCourse = Pick<
+  LearnCourse,
+  'slug' | 'name' | 'kind' | 'languages' | 'lessons' | 'numbers' | 'changedAt' | 'project'
+>;
 
 /** A short, stable hash of a text (32-bit FNV-1a), in base 36. */
 function hashOf(text: string): string {
@@ -23,9 +26,16 @@ function hashOf(text: string): string {
   return hash.toString(36);
 }
 
-/** The line under a course's name: a topic course with its languages, or the language of a language course. */
+/**
+ * The line under a course's name: a topic course with its languages, the language of a language course, or a
+ * project course's kind with the project's language.
+ */
 export function courseCardSubOf(course: Pick<LearnCourse, 'kind' | 'languages'>): string {
   const [first] = course.languages;
+  if (course.kind === 'REPOSITORY' || course.kind === 'ORG') {
+    const kind = course.kind === 'REPOSITORY' ? 'A repository course' : 'An org course';
+    return first ? `${kind}, in ${languageNameOf(first)}` : kind;
+  }
   if (course.kind === 'LANGUAGE') {
     return first ? `A language course: ${languageNamesOf(course.languages)}` : 'A language course';
   }
@@ -84,13 +94,13 @@ export function coursesCardVersionOf(courses: readonly Pick<LearnCourseCard, 'le
 
 /** A course's picture, under its one current address. */
 export const learnCourseCardUrlOf = (course: CardCourse) =>
-  `${learnCourseCardPath(course.slug)}?v=${courseCardVersionOf(course)}`;
+  `${courseCardHrefOf(course)}?v=${courseCardVersionOf(course)}`;
 /** The picture of all courses, under its one current address. */
 export const learnCoursesCardUrlOf = (courses: readonly Pick<LearnCourseCard, 'lessons'>[]) =>
   `${LEARN_COURSES_CARD_PATH}?v=${coursesCardVersionOf(courses)}`;
 
 /** The address printed on a course's picture, and on that of all courses: the page, without the scheme. */
-export const courseCardAddressOf = (slug: string) => `gitranks.com${coursePath(slug)}`;
+export const courseCardAddressOf = (course: CourseRef) => `gitranks.com${courseHrefOf(course)}`;
 export const COURSES_CARD_ADDRESS = `gitranks.com${LEARN_COURSES_PATH}`;
 
 /** The name's size on a course's picture: smaller in two steps for a long name, so it keeps to two lines. */

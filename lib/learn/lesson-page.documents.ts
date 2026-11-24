@@ -15,6 +15,8 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
 
 const LINK = 'slug title';
 const CODES = 'codes { language code }';
+/** Where a quote of a project's code comes from. */
+const SOURCE = 'source { repo path commit firstLine lastLine at }';
 
 /** The person's side of a lesson as the API answers it, with the language of the last answer kept. */
 export type LearnLessonMineRead = LearnLessonMine;
@@ -26,7 +28,7 @@ export const LearnLessonDocument = doc<{ learnLesson: LearnLesson | null }, { sl
     learnLesson(slug: $slug) {
       slug title level body
       course { ${LINK} } group { ${LINK} }
-      examples { name ${CODES} }
+      examples { name ${CODES} ${SOURCE} }
       visuals
       question { id type prompt example visual content ${CODES} }
       say fact { title text source url } deeper
@@ -36,17 +38,20 @@ export const LearnLessonDocument = doc<{ learnLesson: LearnLesson | null }, { sl
   }`,
 );
 
-/** A course's groups and their lessons, in order: where a lesson sits in its group. */
+/**
+ * A course's groups and their lessons, in order: where a lesson sits in its group; and a project course's name, which
+ * a quote of its code names.
+ */
 export const LearnCourseGroupsDocument = doc<
-  { learnCourse: { slug: string; groups: LearnCourseGroup[] } | null },
+  { learnCourse: { slug: string; groups: LearnCourseGroup[]; project?: { name: string } | null } | null },
   { slug: string }
 >(
-  'query LearnCourseGroups($slug: String!) { learnCourse(slug: $slug) { slug groups { slug name lessons { slug title level paused } } } }',
+  'query LearnCourseGroups($slug: String!) { learnCourse(slug: $slug) { slug groups { slug name lessons { slug title level paused } } project { name } } }',
 );
 
 /** What a lesson's or a course's address answers. */
 export const LearnAddressDocument = doc<{ learnAddress: LearnAddress | null }, { kind: string; slug: string }>(
-  `query LearnAddress($kind: String!, $slug: String!) { learnAddress(kind: $kind, slug: $slug) { state movedTo title course { ${LINK} } } }`,
+  `query LearnAddress($kind: String!, $slug: String!) { learnAddress(kind: $kind, slug: $slug) { state movedTo title course { ${LINK} } path project } }`,
 );
 
 /** The signed-in person's side of a lesson; null when Learn is not open to them. */

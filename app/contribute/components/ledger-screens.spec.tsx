@@ -25,22 +25,49 @@ describe('LedgerScreen', () => {
     expect(html).not.toMatch(/Paused to|AI policy says no<\/td>/);
   });
 
-  it('counts the repos that said no, the pause only while old rows count it', () => {
-    const html = renderToStaticMarkup(<LedgerScreen ledger={publicLedger} />);
+  it('counts the repos that said no: a reason at zero, and the retired pause, are not shown', () => {
+    const paused = { ...publicLedger, saidNo: { ...publicLedger.saidNo, paused: 3 } };
+    const html = renderToStaticMarkup(<LedgerScreen ledger={paused} />);
     expect(html).toContain('data-total="hostile-close"');
     expect(html).toContain('Asked us to stay away');
     expect(html).toContain('data-total="closed-no-ai"');
     expect(html).toContain('Said no AI-made PRs');
+    expect(html).not.toContain('data-total="outside-prs-closed"');
     expect(html).not.toContain('data-total="paused"');
-
-    const paused = { ...publicLedger, saidNo: { ...publicLedger.saidNo, paused: 3 } };
-    expect(renderToStaticMarkup(<LedgerScreen ledger={paused} />)).toContain('data-total="paused"');
+    expect(html).not.toMatch(/retired rule|Paused after/);
   });
 
-  it('says so before the first PR, with no chart or tables', () => {
+  it('says it in words when no repo said no', () => {
+    const none = {
+      ...publicLedger,
+      saidNo: { ...publicLedger.saidNo, total: 0, optedOut: 0, hostileClose: 0, closedNoAi: 0, aiPolicy: 0 },
+    };
+    const html = renderToStaticMarkup(<LedgerScreen ledger={none} />);
+    expect(html).toContain('No repo has said no so far.');
+    expect(html).not.toContain('data-total="total"');
+  });
+
+  it('shows no zero count and no dash: a zero or a missing rate is said in words', () => {
+    const totals = {
+      ...publicLedger.totals,
+      merged: 0,
+      closed: 0,
+      mergeRate: null,
+      latestMerged: null,
+      latestClosed: null,
+    };
+    const html = renderToStaticMarkup(<LedgerScreen ledger={{ ...publicLedger, totals }} />);
+    expect(html).toContain('None yet');
+    expect(html).toContain('None decided yet');
+    expect(html).not.toContain('—');
+    expect(html).not.toMatch(/>0</);
+  });
+
+  it('says so before the first PR, with no totals, chart or tables', () => {
     const html = renderToStaticMarkup(<LedgerScreen ledger={emptyLedger} />);
     expect(html).toContain('No pull requests yet');
     expect(html).not.toContain('data-ledger="recent"');
-    expect(html).not.toContain('—'.repeat(2));
+    expect(html).not.toContain('data-total="opened"');
+    expect(html).not.toContain('—');
   });
 });

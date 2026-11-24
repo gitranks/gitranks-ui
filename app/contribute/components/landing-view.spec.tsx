@@ -36,6 +36,7 @@ const { ContributeAboutView, signedInStartOf } = await import('./landing-view');
 const { metadata: aboutMetadata } = await import('@/app/(public)/contribute/about/page');
 const { default: ContributeHomePage, metadata: homeMetadata } = await import('@/app/(workspace)/contribute/page');
 const { AuthorizeNextStep } = await import('./authorize-next-step');
+const { loadAgentPage } = await import('@/lib/contribute/agent-page');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 
 /** The landing's one button, as drawn: its label and where it goes. */
@@ -153,5 +154,32 @@ describe('the agent sign-in’s consent page', () => {
     const html = renderToStaticMarkup(<AuthorizeNextStep clientName="Codex" />);
     expect(html).toContain('Started on gitranks.com? Go back to that tab: it moves on by itself.');
     expect(html).toContain('Then ask it:');
+  });
+});
+
+describe('how Contribute works: the words', () => {
+  const about = async () => renderToStaticMarkup((await ContributeAboutView()) as ReactElement);
+  const stats = (readyIssues: number, repos: number) =>
+    vi.mocked(loadAgentPage).mockResolvedValue({
+      stats: { readyIssues, repos, languages: [], checkedAt: null },
+      sample: { day: null, items: [] },
+    });
+
+  it('shows the numbers line only when issues are ready', async () => {
+    data.loadContribute.mockResolvedValue(null);
+    stats(3124, 1412);
+    expect(await about()).toContain('3,124 issues ready in 1,412 repositories.');
+    stats(0, 0);
+    const html = await about();
+    expect(html).not.toContain('data-landing="stats"');
+    expect(html).not.toContain('0 issues ready');
+  });
+
+  it('names VS Code among your own agents, and narrows by language or repo only', async () => {
+    data.loadContribute.mockResolvedValue(null);
+    const html = await about();
+    expect(html).toContain('Claude Code, Codex, Cursor, Gemini CLI, Antigravity or VS Code');
+    expect(html).toContain('Narrow by language or repo whenever you like.');
+    expect(html).not.toMatch(/kind, size/);
   });
 });

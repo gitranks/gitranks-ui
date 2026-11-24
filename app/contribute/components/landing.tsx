@@ -47,8 +47,8 @@ const WAYS: {
   {
     path: 'agent',
     who: 'Your agent does the work',
-    title: 'Claude Code, Codex, Cursor, Gemini CLI or Antigravity',
-    text: 'Best if you already work with a coding agent. It asks GitRanks for an issue, fixes it on your machine, and hands the change back for your review here. Your agent and its model stay your own.',
+    title: 'With your own agent',
+    text: 'Best if you already work with a coding agent: Claude Code, Codex, Cursor, Gemini CLI, Antigravity or VS Code. It asks GitRanks for an issue, fixes it on your machine, and hands the change back for your review here.',
     facts: [
       ['You bring', "An agent that speaks MCP. It signs in with your GitHub account; a client that can't gets a token"],
       ['It spends', 'Nothing through us: your agent, your plan'],
@@ -92,7 +92,7 @@ const STEPS = [
 const DEFAULTS = [
   {
     title: 'What you work on',
-    text: "Every kind of issue at first: bugs, docs, tests, features. Your profile's languages rank first. Narrow by language, kind, size or repo whenever you like.",
+    text: "Every kind of issue at first: bugs, docs, tests, features. Your profile's languages rank first. Narrow by language or repo whenever you like.",
   },
   {
     title: 'Spend limits',
@@ -190,7 +190,7 @@ export function Landing({
   start: LandingStart;
   preview?: boolean;
   noted?: readonly ContributeComingSoonProvider[];
-  /** The pool's public numbers, a line under the hero's button; left out when unread. */
+  /** The pool's public numbers, a line under the hero's button; left out when unread or when nothing is ready. */
   stats?: AgentPageStats | null;
 }) {
   return (
@@ -211,7 +211,7 @@ export function Landing({
           <p className="text-sm text-muted-foreground">
             Free to use. Nothing reaches GitHub without your OK. Leave any time.
           </p>
-          {stats ? (
+          {stats?.readyIssues ? (
             <p className="text-sm text-muted-foreground" data-landing="stats">
               {agentPageStatsLineOf(stats)}.
             </p>

@@ -8,7 +8,12 @@ import { ContributeBadgePreview } from '@/app/contribute/components/contribute-b
 import { FaqScreen } from '@/app/contribute/components/faq';
 import { Landing } from '@/app/contribute/components/landing';
 import { LedgerScreen } from '@/app/contribute/components/ledger-view';
-import { MaintainerReposPanel, MaintainersScreen, PrStrip } from '@/app/contribute/components/maintainers-view';
+import {
+  MaintainerReposPanel,
+  MaintainersFoot,
+  MaintainersScreen,
+  PrStrip,
+} from '@/app/contribute/components/maintainers-view';
 import { McpDocsScreen } from '@/app/contribute/components/mcp-docs';
 import { HelpedSent, ReportSent } from '@/app/contribute/components/pr-feedback-forms';
 import { PrFeedbackScreen } from '@/app/contribute/components/pr-feedback-view';
@@ -54,11 +59,13 @@ import type {
   ContributeFairUseNotice,
   ContributeIssuePage,
   ContributeMaintainerFacts,
+  ContributePrCard,
   ContributeView,
 } from '@/lib/workspace/contribute.types';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
-import { type PrFeedbackFlow, prUrlOf } from '@/lib/workspace/pr-feedback';
+import type { PrFeedbackFlow } from '@/lib/workspace/pr-feedback';
 import type { PrTimeline } from '@/lib/workspace/pr-timeline.types';
+import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 /** A key and a live token the agent has called with: both lanes of Right now. */
 const both: ContributeView = {
@@ -145,24 +152,30 @@ const answerPage = (notice: ContributeFairUseNotice) =>
   );
 const ORG_ACCESS_URL = 'https://github.com/settings/applications';
 
-/** The page for maintainers: open to everyone, the site header with no tabs, the visitor's repos in "Opt out". */
+/** A Learn pull request's footer link: its card, and its public page ("See their answers"). */
+const learnPrCard = () => prCard({ learn: { slug: null } });
+
+/**
+ * The page for maintainers: open to everyone, the site header with no tabs, the visitor's repos in "Opt out". `from`:
+ * the PR a footer link came from, on top and in the question at the foot.
+ */
 const maintainersPage = (
   view: MaintainerReposView,
   {
     shown = false,
-    fromPr = false,
+    from = null,
     facts = maintainerFacts(),
-  }: { shown?: boolean; fromPr?: boolean; facts?: ContributeMaintainerFacts } = {},
+  }: { shown?: boolean; from?: ContributePrCard | null; facts?: ContributeMaintainerFacts } = {},
 ) => (
   <>
     <Header section="contribute" />
     <HeaderLine />
     <MaintainersScreen
       facts={facts}
-      strip={fromPr ? <PrStrip card={prCard()} /> : null}
+      strip={from ? <PrStrip card={from} timelinePath={from.learn ? prTimelinePath(from) : null} /> : null}
       badge={<ContributeBadgePreview />}
-      badgeRepo={fromPr ? prCard().nameWithOwner : undefined}
-      prLink={fromPr ? prUrlOf(prCard()) : undefined}
+      badgeRepo={from ? from.nameWithOwner : undefined}
+      foot={<MaintainersFoot card={from} />}
       repos={<MaintainerReposPanel view={view} orgAccessUrl={ORG_ACCESS_URL} facts={facts} />}
       more={shown ? <MorePages current="maintainers" /> : null}
     />
@@ -531,7 +544,24 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         path: '/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0',
         signedOut: true,
         height: 3700,
-        render: () => maintainersPage({ state: 'signed-out' }, { shown: true, fromPr: true }),
+        render: () => maintainersPage({ state: 'signed-out' }, { shown: true, from: prCard() }),
+      },
+      {
+        id: 'from-learn-pr',
+        title: 'Arriving from a Learn PR footer: the line about Learn, and its part under the steps',
+        path: '/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0',
+        signedOut: true,
+        height: 3800,
+        render: () => maintainersPage({ state: 'signed-out' }, { shown: true, from: learnPrCard() }),
+      },
+      {
+        id: 'from-learn-pr-phone',
+        title: 'Phone, from a Learn PR footer',
+        path: '/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0',
+        signedOut: true,
+        width: 390,
+        height: 7800,
+        render: () => maintainersPage({ state: 'signed-out' }, { shown: true, from: learnPrCard() }),
       },
       {
         id: 'phone',

@@ -66,8 +66,13 @@ export function PrFeedbackScreen({
     return (
       <Column flow={flow}>
         <h1 className={TITLE}>This link doesn’t name a pull request</h1>
-        <p className="text-muted-foreground">
-          Paste the PR’s link on the page for maintainers, or use the link in the PR’s footer.
+        <p data-no-pr="" className="text-muted-foreground">
+          A note starts from the pull request itself: use the link in the footer GitRanks adds to it. With no pull
+          request, write to us at{' '}
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-link hover:underline">
+            {CONTACT_EMAIL}
+          </a>
+          .
         </p>
         <Button asChild variant="outline" className="min-h-11 self-start sm:min-h-9">
           <a href={maintainersSectionPath('feedback')}>Back to the page for maintainers</a>
@@ -92,8 +97,8 @@ export function PrFeedbackScreen({
           <CardContent className="flex flex-col gap-3.5">
             <p className="text-[15px] leading-relaxed">
               Signing in with GitHub lets us see how you’re involved in {repo}, so we can show you the right options.
-              The same step comes before {flow === 'helped' ? '“Report this PR”' : '“This PR helped”'}. If you help run
-              the repo, you can also stop our work on the spot.
+              The same step comes before {flow === 'helped' ? '“This PR did not help”' : '“This PR helped”'}. If you
+              help run the repo, you can also stop our work on the spot.
             </p>
             <ul className="grid gap-2.5 sm:grid-cols-3">
               {ROLES.map(({ title, text }) => (

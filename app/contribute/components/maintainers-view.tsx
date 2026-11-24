@@ -1,3 +1,4 @@
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -9,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CopyButton } from '@/components/workspace/copy-button';
-import { PrLinkForm } from '@/components/workspace/pr-link-form';
 import { PrCardFacts } from '@/components/workspace/pull-request/pr-card';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import { CONTACT_EMAIL } from '@/lib/legal';
@@ -28,16 +28,20 @@ import {
   liveKeysOf,
 } from '@/lib/workspace/maintainer-config';
 import { MAINTAINERS_PATH } from '@/lib/workspace/paths';
-import { reportPathOf } from '@/lib/workspace/pr-feedback';
+import { prUrlOf, reportPathOf } from '@/lib/workspace/pr-feedback';
 
 /** The page's sections, in order, as "On this page" lists them. */
 export const MAINTAINER_SECTIONS = [
   { id: 'how-it-works', title: 'How it works' },
   { id: 'checks', title: 'Checks and limits' },
   { id: 'work-with-us', title: 'Work with us' },
-  { id: 'feedback', title: 'Feedback on a PR' },
   { id: 'opt-out', title: 'Opt out' },
 ] as const;
+
+/** The part about Learn, under the four steps: where a Learn pull request's footer and "What that means" lead. */
+export const LEARN_PART_ID = 'learn';
+/** The page's foot: the question about the pull request the visitor came from, or the note alone. */
+export const FOOT_ID = 'feedback';
 
 const H2 = 'text-2xl font-semibold tracking-tight text-balance md:text-[28px] md:leading-tight';
 const SUB = 'max-w-[44rem] text-[15px] leading-relaxed text-muted-foreground';
@@ -68,8 +72,7 @@ export function MaintainersScreen({
   badge = null,
   badgeRepo = BADGE_EXAMPLE_REPO,
   badgeMarkdown,
-  prLink = '',
-  prLinkForm,
+  foot = <MaintainersFoot card={null} />,
   repos,
   more = null,
 }: {
@@ -83,10 +86,8 @@ export function MaintainersScreen({
   badgeRepo?: string;
   /** The badge's Markdown and Copy, in place of `badgeRepo`'s: the page streams the footer link's repo into it. */
   badgeMarkdown?: ReactNode;
-  /** The PR link form, in place of `prLink`'s: the page streams the footer link's PR into it. */
-  prLinkForm?: ReactNode;
-  /** The PR link "Tell us how a PR went" starts with: the one a footer link came from. */
-  prLink?: string;
+  /** The page's end: the question about the PR a footer link came from, or the note alone (`MaintainersFoot`). */
+  foot?: ReactNode;
   /** "Your repos": the sign-in, or the visitor's repositories. */
   repos: ReactNode;
   /** The other pages about Contribute, at the foot: once it is launched. */
@@ -109,6 +110,7 @@ export function MaintainersScreen({
             </li>
           ))}
         </ol>
+        <LearnPart />
       </Section>
       <Section
         id="checks"
@@ -175,24 +177,6 @@ export function MaintainersScreen({
         </div>
       </Section>
       <Section
-        id="feedback"
-        title="Tell us how a PR went"
-        text="Good or bad, one note is enough for us to look. We ask GitHub for your role in the repo first."
-      >
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <Card className={cn(CARD, 'gap-4 p-6')}>{prLinkForm ?? <PrLinkForm defaultValue={prLink} />}</Card>
-          <div className={cn(MUTED, 'flex flex-col gap-3.5 p-6')}>
-            <strong className="text-[15px] font-semibold">What you can do depends on your role</strong>
-            <Step n={1} title="Anyone signed in">
-              tells us a PR helped (the author sees it), or reports one; we review every report within one working day
-            </Step>
-            <Step n={2} title="Admins and maintainers">
-              can also stop work at once: on that PR, from that contributor, or in the whole repo
-            </Step>
-          </div>
-        </div>
-      </Section>
-      <Section
         id="opt-out"
         title="Rather we stay away? One step, at once"
         text="No questions asked. Open PRs stay as they are; close them if you like."
@@ -214,15 +198,7 @@ export function MaintainersScreen({
           </Card>
         </div>
       </Section>
-      <section className="flex flex-col items-start justify-between gap-4 rounded-xl bg-muted/50 px-7 py-6 md:flex-row md:items-center">
-        <div className="flex flex-col gap-1">
-          <strong className="text-[17px] font-semibold">Questions, ideas, anything else</strong>
-          <span className={SMALL}>A person reads every message.</span>
-        </div>
-        <Button asChild variant="outline" className="min-h-11 sm:min-h-10">
-          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
-        </Button>
-      </section>
+      {foot}
       {more}
     </main>
   );
@@ -268,18 +244,6 @@ function Dot({ children, small = false }: { children: ReactNode; small?: boolean
   );
 }
 
-function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-[36px_1fr] items-start gap-3">
-      <Dot>{n}</Dot>
-      <div className="flex flex-col gap-0.5">
-        <strong className="text-sm font-semibold">{title}</strong>
-        <span className={SMALL}>{children}</span>
-      </div>
-    </div>
-  );
-}
-
 function Mark({ ok }: { ok: boolean }) {
   return ok ? (
     <span aria-hidden="true" className="flex-none font-bold text-positive">
@@ -320,7 +284,7 @@ function Hero({ facts }: { facts: ContributeMaintainerFacts | null }) {
         </h1>
         <p className="max-w-[40rem] text-base leading-relaxed text-muted-foreground md:text-lg">
           You’ve seen them: a cheap model, nobody reading the diff, twenty PRs in a night. We built GitRanks Contribute
-          to be the opposite, and we hold every PR to it.
+          and GitRanks Learn to be the opposite, and we hold every PR to it.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
@@ -379,21 +343,77 @@ function LimitTiles({ facts }: { facts: ContributeMaintainerFacts }) {
     {
       count: facts.missesMax,
       title: `misses in ${countOf(facts.outDays, 'day', 'days')}`,
-      text: `take your repo out of the shared pool for ${countOf(facts.outDays, 'day', 'days')}, no ask needed: a PR with no answer for ${countOf(facts.silentDays, 'day', 'days')}, or one closed as wrong, low quality or harshly. A merge cancels its own miss. Someone who picked your repo themselves may still send one.`,
+      text: `pause your repo for ${countOf(facts.outDays, 'day', 'days')}, with no ask needed`,
     },
     { count: 0, title: 'replies without their OK', text: 'an agent may draft one; the PR’s author approves each' },
     { count: 0, title: 'CI or workflow edits', text: 'nor license files or unrelated lockfiles' },
   ];
   return (
-    <ul className="grid grid-cols-2 gap-3 md:grid-cols-5">
-      {tiles.map(({ count, title, text }) => (
-        <li key={title} data-limit={title} className="flex flex-col gap-1.5 rounded-xl bg-muted/50 p-[18px]">
-          <span className="font-mono text-[28px] leading-none font-bold text-primary tabular-nums">{count}</span>
-          <strong className="text-sm font-semibold">{title}</strong>
-          <span className={SMALL}>{text}</span>
+    <>
+      <ul className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        {tiles.map(({ count, title, text }) => (
+          <li key={title} data-limit={title} className="flex flex-col gap-1.5 rounded-xl bg-muted/50 p-[18px]">
+            <span className="font-mono text-[28px] leading-none font-bold text-primary tabular-nums">{count}</span>
+            <strong className="text-sm font-semibold">{title}</strong>
+            <span className={SMALL}>{text}</span>
+          </li>
+        ))}
+      </ul>
+      <p data-miss="" className={cn(SMALL, '-mt-2')}>
+        A miss is a PR with no answer for {countOf(facts.silentDays, 'day', 'days')}, or one closed as wrong, low
+        quality or harshly. A merge cancels its own miss. During a pause your repo is out of the shared pool, and
+        someone who picked it themselves may still send a PR.
+      </p>
+    </>
+  );
+}
+
+/** What a Learn pull request adds to the four steps: the author's answers, and that nothing else differs. */
+function LearnPart() {
+  const facts = [
+    {
+      title: 'The author answers questions first',
+      text: 'On what was wrong and why the fix works. Until they are answered, the pull request cannot be sent.',
+    },
+    {
+      title: 'You can read their answers',
+      text: '“How it was made”, at the end of the pull request, opens the explanation they read and what they answered.',
+    },
+  ];
+  return (
+    <section
+      id={LEARN_PART_ID}
+      aria-labelledby={`${LEARN_PART_ID}-title`}
+      className="flex scroll-mt-6 flex-col gap-4 rounded-xl bg-muted/50 px-6 py-[22px]"
+    >
+      <div className="flex flex-col gap-1">
+        <h3 id={`${LEARN_PART_ID}-title`} className="text-lg font-semibold tracking-tight">
+          A pull request made with GitRanks Learn
+        </h3>
+        <p className="text-[15px] text-muted-foreground">
+          GitRanks Learn teaches developers on real issues. Its pull requests are made the same way, with one step added
+          before sending.
+        </p>
+      </div>
+      <ul className="grid gap-x-8 gap-y-4 md:grid-cols-3">
+        {facts.map(({ title, text }) => (
+          <li key={title} className="flex min-w-0 flex-col gap-1">
+            <strong className="text-[15px] font-semibold">{title}</strong>
+            <span className={SMALL}>{text}</span>
+          </li>
+        ))}
+        <li className="flex min-w-0 flex-col gap-1">
+          <strong className="text-[15px] font-semibold">Your rules and our limits are the same</strong>
+          <span className={SMALL}>
+            GitRanks stays away from issues you keep for first-time contributors. If you want learners on them, add{' '}
+            <code className="font-mono text-foreground">learn: welcome</code> to{' '}
+            <a href="#work-with-us" className="font-medium text-link hover:underline">
+              your rules file <span aria-hidden="true">↓</span>
+            </a>
+          </span>
         </li>
-      ))}
-    </ul>
+      </ul>
+    </section>
   );
 }
 
@@ -525,8 +545,20 @@ function ConfigCard({ facts }: { facts: ContributeMaintainerFacts | null }) {
   );
 }
 
-/** The PR a footer link came from, with the two notes on it. */
+/** The two notes on a PR, each its own form on the report page: the strip's buttons and the foot's answers. */
+function feedbackLinksOf(card: ContributePrCard) {
+  return {
+    helped: reportPathOf({ from: card.attemptId }, 'helped'),
+    notHelped: reportPathOf({ from: card.attemptId }),
+  };
+}
+
+/**
+ * The PR a footer link came from, with the two notes on it. A Learn PR has one more line: the author answered
+ * questions before sending it, their answers on its public page when it has one, and the part about Learn.
+ */
 export function PrStrip({ card, timelinePath = null }: { card: ContributePrCard; timelinePath?: string | null }) {
+  const links = feedbackLinksOf(card);
   return (
     <Card
       data-pr-strip={card.attemptId}
@@ -535,7 +567,27 @@ export function PrStrip({ card, timelinePath = null }: { card: ContributePrCard;
       <div className="flex min-w-0 flex-col gap-1">
         <span className={SMALL}>You came here from this pull request</span>
         <PrCardFacts card={card} />
-        {timelinePath ? (
+        {card.learn ? (
+          <span data-learn-line="" className="mt-0.5 text-sm break-words">
+            Made with GitRanks Learn: before sending it, {card.contributorLogin ?? 'its author'} answered questions
+            about the change.{' '}
+            {timelinePath ? (
+              <>
+                <Link
+                  href={timelinePath as Route}
+                  prefetch={false}
+                  className="font-medium whitespace-nowrap text-link hover:underline"
+                >
+                  See their answers
+                </Link>{' '}
+                <span className="text-muted-foreground">·</span>{' '}
+              </>
+            ) : null}
+            <a href={`#${LEARN_PART_ID}`} className="font-medium whitespace-nowrap text-link hover:underline">
+              What that means <span aria-hidden="true">↓</span>
+            </a>
+          </span>
+        ) : timelinePath ? (
           <Link href={timelinePath as Route} prefetch={false} className="text-sm font-medium text-link hover:underline">
             See how this PR was made →
           </Link>
@@ -543,17 +595,99 @@ export function PrStrip({ card, timelinePath = null }: { card: ContributePrCard;
       </div>
       <div className="flex flex-none flex-wrap gap-2">
         <Button asChild variant="outline" size="lg" className="max-sm:min-h-11">
-          <Link href={reportPathOf({ from: card.attemptId }, 'helped')} prefetch={false}>
+          <Link href={links.helped} prefetch={false}>
             This PR helped
           </Link>
         </Button>
-        <Button asChild variant="ghost" size="lg" className="max-sm:min-h-11">
-          <Link href={reportPathOf({ from: card.attemptId })} prefetch={false}>
-            Report this PR
+        <Button asChild variant="outline" size="lg" className="max-sm:min-h-11">
+          <Link href={links.notHelped} prefetch={false}>
+            This PR did not help
           </Link>
         </Button>
       </div>
     </Card>
+  );
+}
+
+const COURSES_NOTE = 'We also write courses about some projects. To have one corrected or taken down, write to us.';
+
+function MailLink() {
+  return (
+    <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium text-link hover:underline">
+      {CONTACT_EMAIL}
+    </a>
+  );
+}
+
+/**
+ * The page's end: one question about the PR a footer link came from, its two answers opening the same two forms as the
+ * strip's buttons, and where to write. With no PR there is nothing to ask, and only the note is left.
+ */
+export function MaintainersFoot({ card }: { card: ContributePrCard | null }) {
+  if (!card) {
+    return (
+      <section
+        id={FOOT_ID}
+        data-foot=""
+        aria-labelledby={`${FOOT_ID}-title`}
+        className="flex scroll-mt-6 flex-col items-center gap-1.5 rounded-xl bg-muted/50 px-6 py-7 text-center"
+      >
+        <h2 id={`${FOOT_ID}-title`} className="text-[17px] font-semibold">
+          Want to talk to us?
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Write to <MailLink />. A person reads every message.
+          <br />
+          {COURSES_NOTE}
+        </p>
+      </section>
+    );
+  }
+  const links = feedbackLinksOf(card);
+  return (
+    <section
+      id={FOOT_ID}
+      data-foot={card.attemptId}
+      aria-labelledby={`${FOOT_ID}-title`}
+      className="flex scroll-mt-6 flex-col items-center gap-6 rounded-xl bg-muted/50 px-6 py-11 text-center"
+    >
+      <div className="flex flex-col items-center gap-2">
+        <h2 id={`${FOOT_ID}-title`} className={H2}>
+          Did this pull request help?
+        </h2>
+        <p className="text-[15px] leading-relaxed break-words text-muted-foreground">
+          <a
+            href={prUrlOf(card)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground hover:underline"
+          >
+            {card.nameWithOwner}#{card.number}
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+          {card.title ? ` · ${card.title}` : null}
+        </p>
+      </div>
+      <div className="flex w-full flex-wrap justify-center gap-3">
+        <Button asChild variant="outline" size="lg" className="max-sm:min-h-11">
+          <Link href={links.helped} prefetch={false}>
+            <ThumbsUp aria-hidden="true" />
+            Yes, it helped
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="max-sm:min-h-11">
+          <Link href={links.notHelped} prefetch={false}>
+            <ThumbsDown aria-hidden="true" />
+            No, it did not
+          </Link>
+        </Button>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Want to talk to us about something else? Write to <MailLink />. A person reads every message.
+        <br />
+        {COURSES_NOTE}
+      </p>
+    </section>
   );
 }
 

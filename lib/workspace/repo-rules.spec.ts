@@ -18,6 +18,7 @@ import {
   typedCommitOf,
   UNSET,
 } from './repo-rules';
+import { allLiveFacts } from '@/lib/contribute/__fixtures__/maintainers';
 import { issueRules } from '@/lib/contribute/__fixtures__/repo-rules';
 
 const key = (patch: Partial<ContributeConfigKey> & { key: string }): ContributeConfigKey => ({
@@ -94,6 +95,12 @@ describe('a key’s control on "Your repos"', () => {
       key({ key: 'contact', kind: 'contact' }),
     ];
     expect(pageControlsOf(keys).map(({ key }) => key)).toEqual(['autopilot', 'contact']);
+  });
+
+  it('never offers learn on a form: a file-only key, its values words to read', () => {
+    const learn = key({ key: 'learn', kind: 'welcomeOff', values: 'welcome | off', page: false });
+    expect(pageControlsOf([learn])).toEqual([]);
+    expect(pageControlsOf(allLiveFacts().configKeys).map(({ key }) => key)).not.toContain('learn');
   });
 });
 

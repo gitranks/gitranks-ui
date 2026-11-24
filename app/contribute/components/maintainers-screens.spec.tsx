@@ -20,7 +20,9 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadAttempt: vi.fn(),
 }));
 
-const { MaintainerReposLoading, MaintainerReposPanel, MaintainersScreen, PrStrip } = await import('./maintainers-view');
+const { MaintainerReposLoading, MaintainerReposPanel, MaintainersFoot, MaintainersScreen, PrStrip } = await import(
+  './maintainers-view'
+);
 const { OptOutResults } = await import('./maintainer-repos-form');
 const { PrFeedbackScreen } = await import('./pr-feedback-view');
 const { HelpedSent, ReportSent } = await import('./pr-feedback-forms');
@@ -52,6 +54,7 @@ const text = (html: string) =>
 
 const repo = maintainerRepo;
 const ORG_URL = 'https://github.com/settings/applications';
+const TIMELINE = '/contribute/pr/driftwood-js/driftwood/912';
 
 const REPOS = [
   repo({ repoId: 'R_1', optedOut: true, optedOutAt: '2026-10-28T09:00:00.000Z' }),
@@ -70,17 +73,53 @@ describe('the maintainers page', () => {
 
     expect(html).toContain('Not another AI pull-request bot');
     expect(html).toContain('The AI PRs you’re used to');
-    expect(html).toContain('On this page 01 How it works ↓ 02 Checks and limits ↓ 03 Work with us ↓');
+    expect(html).toContain('We built GitRanks Contribute and GitRanks Learn to be the opposite');
+    expect(html).toContain('On this page 01 How it works ↓ 02 Checks and limits ↓ 03 Work with us ↓ 04 Opt out ↓ How');
     const order = [
       'How every PR is made',
+      'A pull request made with GitRanks Learn',
       'Our own checks and limits come first',
       'Tell us how you’d like help',
-      'Tell us how a PR went',
       'Rather we stay away? One step, at once',
-      'Questions, ideas, anything else',
+      'Want to talk to us?',
     ].map((heading) => html.indexOf(heading));
     expect(order.every((at, index) => at > 0 && (index === 0 || at > order[index - 1]))).toBe(true);
-    expect(html).not.toMatch(/track record|pull requests opened/i);
+    expect(html).not.toMatch(/track record|pull requests opened|Tell us how a PR went|Questions, ideas/i);
+  });
+
+  it('tells what a Learn pull request adds, at #learn under the four steps, with the key that lets learners in', () => {
+    const html = page();
+    const part = html.split('id="learn"')[1].split('</section>')[0];
+
+    expect(html.indexOf('id="learn"')).toBeGreaterThan(html.indexOf('id="how-it-works"'));
+    expect(html.indexOf('id="learn"')).toBeLessThan(html.indexOf('id="checks"'));
+    expect(text(part)).toContain(
+      'The author answers questions first On what was wrong and why the fix works. Until they are answered, the pull request cannot be sent.',
+    );
+    expect(text(part)).toContain('You can read their answers');
+    expect(text(part)).toContain(
+      'GitRanks stays away from issues you keep for first-time contributors. If you want learners on them, add learn: welcome to your rules file ↓',
+    );
+    expect(part).toContain('href="#work-with-us"');
+    expect(part).toContain('your rules file <span aria-hidden="true">↓</span>');
+  });
+
+  it('lists the learn key in the rules file’s keys, with what the API says it does, and never in the example', () => {
+    const html = page();
+    const keys = text(html.split('data-config-keys=""')[1].split('</dl>')[0]);
+
+    expect(keys).toContain(
+      'contribute: on | off off keeps GitRanks out of the repository, Contribute and Learn: no issue is picked, no pull request opened',
+    );
+    expect(keys).toContain(
+      'learn: welcome | off welcome takes GitRanks Learn pull requests even where you keep issues or first contributions for first-time contributors. off keeps GitRanks Learn out, and Contribute stays',
+    );
+    expect(text(html.split('data-config-card')[1].split('</pre>')[0])).toContain(
+      '# off keeps GitRanks out: Contribute and Learn contribute: on',
+    );
+    expect(text(html.split('data-config-card')[1].split('</pre>')[0])).not.toContain('learn:');
+    // Every key live: the example shows the rules, still without learn.
+    expect(text(page(allLiveFacts()).split('data-config-card')[1].split('</pre>')[0])).not.toContain('learn:');
   });
 
   it('takes every number from the facts, never its own', () => {
@@ -97,8 +136,9 @@ describe('the maintainers page', () => {
     expect(html).toContain('2 at a time in your repo, 7 in 28 days at most');
     expect(html).toContain('2 attempts at a time');
     expect(html).toContain('7 PRs in 28 days');
+    expect(html).toContain('3 misses in 45 days pause your repo for 45 days, with no ask needed 0 replies');
     expect(html).toContain(
-      '3 misses in 45 days take your repo out of the shared pool for 45 days, no ask needed: a PR with no answer for 21 days, or one closed as wrong, low quality or harshly. A merge cancels its own miss. Someone who picked your repo themselves may still send one.',
+      'A miss is a PR with no answer for 21 days, or one closed as wrong, low quality or harshly. A merge cancels its own miss. During a pause your repo is out of the shared pool, and someone who picked it themselves may still send a PR.',
     );
     expect(html).not.toMatch(/\b60 days\b|\b90 days\b|\b4 in 30\b|in a row/);
   });
@@ -107,6 +147,7 @@ describe('the maintainers page', () => {
     const html = page(null);
 
     expect(html).not.toContain('data-limit');
+    expect(html).not.toContain('data-miss');
     expect(text(html)).not.toContain('at a time in your repo');
     expect(text(html)).toContain('# .github/gitranks.yml contribute: off');
   });
@@ -150,18 +191,68 @@ describe('the maintainers page', () => {
     expect(text(noBoost)).not.toContain('come first in their feed');
   });
 
-  it('names the PR a footer link came from, with "This PR helped" and "Report this PR"', () => {
+  it('names the PR a footer link came from, with "This PR helped" and "This PR did not help"', () => {
     const html = renderToStaticMarkup(<PrStrip card={prCard()} />);
 
     expect(text(html)).toContain('You came here from this pull request');
     expect(text(html)).toContain(
       'driftwood-js/driftwood#912 · opened Oct 27 by mira-dev · reviewed and submitted by mira-dev · agent: Claude (Opus)',
     );
+    expect(text(html)).toContain('This PR helped This PR did not help');
     expect(html).toContain('href="/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0&amp;kind=helped"');
     expect(html).toContain('href="/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0"');
+    expect(html).not.toContain('data-learn-line');
     expect(text(renderToStaticMarkup(<PrStrip card={prCard({ reviewed: false })} />))).toContain(
       'opened by mira-dev’s autopilot',
     );
+    const shown = renderToStaticMarkup(<PrStrip card={prCard()} timelinePath={TIMELINE} />);
+    expect(text(shown)).toContain('See how this PR was made →');
+  });
+
+  it('adds one line for a Learn PR: the author answered questions, their answers and what that means', () => {
+    const learn = prCard({ learn: { slug: null } });
+    const html = renderToStaticMarkup(<PrStrip card={learn} timelinePath={TIMELINE} />);
+    const line = html.split('data-learn-line=""')[1].split('</div>')[0];
+
+    expect(text(line)).toContain(
+      'Made with GitRanks Learn: before sending it, mira-dev answered questions about the change. See their answers · What that means ↓',
+    );
+    expect(line).toContain(`href="${TIMELINE}"`);
+    expect(line).toContain('href="#learn"');
+    // The arrow is drawn, not read: the link's name is its words.
+    expect(line).toContain('What that means <span aria-hidden="true">↓</span>');
+    expect(text(html)).not.toContain('See how this PR was made');
+    expect(text(html)).toContain('This PR helped This PR did not help');
+
+    // No public page: the line stays, the link to the answers is not drawn.
+    const hidden = text(renderToStaticMarkup(<PrStrip card={learn} />));
+    expect(hidden).toContain('answered questions about the change. What that means ↓');
+    expect(hidden).not.toContain('See their answers');
+  });
+
+  it('ends with one question about the PR the visitor came from, or the note alone', () => {
+    const asked = renderToStaticMarkup(<MaintainersFoot card={prCard()} />);
+
+    expect(text(asked)).toContain(
+      'Did this pull request help? driftwood-js/driftwood#912 (opens in a new tab) · Keep scroll position when a nested layout re-renders Yes, it helped No, it did not',
+    );
+    expect(asked).toContain('href="/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0&amp;kind=helped"');
+    expect(asked).toContain('href="/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0"');
+    expect(text(asked)).toContain(
+      'Want to talk to us about something else? Write to hello@gitranks.com . A person reads every message. We also write courses about some projects. To have one corrected or taken down, write to us.',
+    );
+
+    const note = renderToStaticMarkup(<MaintainersFoot card={null} />);
+    expect(text(note)).toContain('Want to talk to us? Write to hello@gitranks.com . A person reads every message.');
+    expect(note).not.toContain('/contribute/maintainers/report');
+    // Both ends are headings, so heading navigation finds them.
+    expect(note).toContain('Want to talk to us?</h2>');
+    expect(asked).toContain('Did this pull request help?</h2>');
+    // The report page's "Back to the page for maintainers" lands on the foot either way.
+    expect(asked).toContain('id="feedback"');
+    expect(note).toContain('id="feedback"');
+    expect(text(page())).toContain('Want to talk to us?');
+    expect(text(page())).not.toContain('Did this pull request help?');
   });
 
   it('asks a visitor without the page sign-in to sign in with GitHub, and says what the sign-in is used for', () => {
@@ -378,8 +469,15 @@ describe('the report pages', () => {
     if (error === 'NOT_OURS') expect(text(html)).toContain("We didn't open this PR");
   });
 
-  it('says a link that names no PR', () => {
-    expect(text(screen(null, 'report', null))).toContain('This link doesn’t name a pull request');
+  it('says a link that names no PR, and where a note starts now', () => {
+    const html = screen(null, 'report', null);
+
+    expect(text(html)).toContain('This link doesn’t name a pull request');
+    expect(text(html)).toContain(
+      'A note starts from the pull request itself: use the link in the footer GitRanks adds to it. With no pull request, write to us at hello@gitranks.com .',
+    );
+    expect(html).toContain('href="mailto:hello@gitranks.com"');
+    expect(text(html)).not.toMatch(/Paste the PR|Report this PR/);
   });
 
   it('says where a word goes in "This PR helped": a maintainer’s to the author, a user’s to us', () => {

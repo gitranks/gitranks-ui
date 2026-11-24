@@ -286,5 +286,8 @@ describe('Skip in a list', () => {
     );
     await skip('Too hard for me');
     expect(status()).toBe(MASKED_LIST_NOTICES.skip);
+    // The row is back as it was, never "Skipped" for a skip that was not made.
+    expect(rowState()).toBe('masked');
+    expect(text()).not.toContain('Skipped.');
   });
 });

@@ -137,6 +137,8 @@ export function MaskedListRow({ issue: first, lesson = null, onLeave, replace = 
   const [issue, setIssue] = useState(first);
   const [state, setState] = useState<Exclude<MaskedRowState, 'limit' | 'full'>>('masked');
   const [gone, setGone] = useState(false);
+  // A skip that did not go through brings the row back as it was: a new round of the same row.
+  const [round, setRound] = useState(0);
   if (!list) throw new Error('MaskedListRow is used inside a MaskedList');
   const { from, pageFrom, visitor, shown, say, onLimit, onClosed } = list;
 
@@ -188,6 +190,7 @@ export function MaskedListRow({ issue: first, lesson = null, onLeave, replace = 
       const result = await skipMaskedIssue(issue.id, from, reason, others).catch(() => null);
       if (!result?.ok) {
         say(MASKED_LIST_NOTICES.skip);
+        setRound((was) => was + 1);
         return;
       }
       if (replace && result.data) {
@@ -203,7 +206,7 @@ export function MaskedListRow({ issue: first, lesson = null, onLeave, replace = 
   return (
     <MaskedIssueRow
       // A new issue in the row's place is a new row: its own Skip question, its own focus.
-      key={issue.id}
+      key={`${issue.id}:${round}`}
       issue={issue}
       state={rowState}
       lesson={lesson}

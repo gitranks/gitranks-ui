@@ -119,6 +119,7 @@ describe('the avatar menu', () => {
     expect(trigger.tagName).toBe('BUTTON');
     expect(trigger.getAttribute('aria-label')).toBe('Your account');
     expect(trigger.tabIndex).toBe(0);
+    expect(trigger.className.split(' ')).toEqual(expect.arrayContaining(['h-8', 'w-9']));
     trigger.focus();
     expect(document.activeElement).toBe(trigger);
 
@@ -144,7 +145,7 @@ describe('the avatar menu', () => {
 });
 
 describe('while the session is read', () => {
-  const avatarPlace = () => container.querySelector('span[aria-hidden="true"]');
+  const avatarPlace = () => container.querySelector('[data-avatar-place]');
   const signInButton = () => container.querySelector('button[aria-label="Sign in"]');
 
   it('draws the avatar’s place for a browser holding a session, and Sign in for one without, from the first paint', async () => {
@@ -152,8 +153,9 @@ describe('while the session is read', () => {
     await act(async () => root.render(<SigninButton />));
     // Both are in the page; the hint set on the root before the first paint picks the one shown.
     expect(avatarPlace()?.className).toContain('hidden');
-    expect(avatarPlace()?.className).toContain('[html[data-has-session]_&]:block');
-    expect(avatarPlace()?.className).toContain('size-8');
+    expect(avatarPlace()?.className).toContain('[html[data-has-session]_&]:flex');
+    // The Sign in button's box (36 by 32 px), so nothing beside it moves when it becomes Sign in or the avatar.
+    expect(avatarPlace()?.className.split(' ')).toEqual(expect.arrayContaining(['h-8', 'w-9']));
     expect(signInButton()?.className).toContain('[html[data-has-session]_&]:hidden');
   });
 

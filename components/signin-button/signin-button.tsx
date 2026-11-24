@@ -31,8 +31,11 @@ const signOutHere = () => {
   return signOut();
 };
 
-/** The avatar's place while the session is read: the same size, so nothing moves when the avatar comes. */
-const AVATAR_PLACE = 'size-8 rounded-full bg-muted';
+/**
+ * The box the header's right end holds, whatever is in it: the Sign in button's (36 by 32 px), so the avatar, its place
+ * while the session is read and Sign in take the same room, and nothing beside them moves when one becomes another.
+ */
+const SLOT = 'h-8 w-9 items-center justify-center';
 
 export default function SigninButton() {
   const { data: session, status } = useSession();
@@ -46,7 +49,7 @@ export default function SigninButton() {
             <button
               type="button"
               aria-label="Your account"
-              className="block size-8 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className={`flex ${SLOT} rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50`}
             >
               <Image
                 src={`${session.user.image}&s=${AVATAR_SIZE * 2}`}
@@ -79,7 +82,9 @@ export default function SigninButton() {
         <>
           {/* While the session is read, the hint (set before the first paint) picks what is drawn. */}
           {status === 'loading' ? (
-            <span aria-hidden="true" className={`hidden [html[data-has-session]_&]:block ${AVATAR_PLACE}`} />
+            <span aria-hidden="true" data-avatar-place="" className={`hidden [html[data-has-session]_&]:flex ${SLOT}`}>
+              <span className="size-8 rounded-full bg-muted" />
+            </span>
           ) : null}
           <Button
             onClick={() => signIn(IDENTITY_PROVIDER)}

@@ -17,7 +17,8 @@ export const checkRunOf = (answered: number): CheckSide => ({
   course,
   questions: algorithmsCourse.groups.map((group, at) => ({
     group: { slug: group.slug, title: group.name },
-    question: { ...checkQuestion, id: `${checkQuestion.id}-${group.slug}` },
+    // As real courses have it: a question's id is its lesson's own (`c1`), so every group's question shares it.
+    question: checkQuestion,
     answered: at < answered,
     highlighted: hasDuplicateCodes.slice(0, 1),
   })),

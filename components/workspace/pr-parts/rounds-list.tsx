@@ -1,11 +1,11 @@
 'use client';
 
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import Link from 'next/link';
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/workspace/copy-button';
+import { PageLink } from '@/components/workspace/page-link';
 import { ChecksLine } from '@/components/workspace/pr-parts/checks-line';
 import { Fold, Replies, type ReplyPresses, SMALL, SMALL_MAIN } from '@/components/workspace/pr-parts/round-replies';
 import { cn } from '@/lib/utils';
@@ -401,9 +401,9 @@ function OpenRound({
                 {round.state === 'SENT' ? sentLineOf(round, now) : sentence(sends || 'no commits')}
               </span>
               {round.commits && links.change ? (
-                <Link className="text-sm font-semibold text-link hover:underline" href={links.change} prefetch={false}>
+                <PageLink className="text-sm font-semibold text-link hover:underline" href={links.change}>
                   Read the change
-                </Link>
+                </PageLink>
               ) : null}
             </div>
             {round.did ? <span className="text-sm text-muted-foreground">{round.did}</span> : null}

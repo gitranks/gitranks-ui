@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { Route } from 'next';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -176,6 +177,16 @@ describe('a round that is ready', () => {
     expect(onSendRound).toHaveBeenCalledWith(2);
     await press(button('Send it back to your agent'));
     expect(onSendBack).toHaveBeenCalledWith(2);
+  });
+
+  it('reads the change on GitHub in a new tab, marked, once the pull request is open', async () => {
+    const change = 'https://github.com/harbor-kit/relay/pull/58/files' as Route;
+    await rounds({ page: prReview.ready, links: { ...prLinks, change } });
+    const link = [...container.querySelectorAll('a')].find((each) => each.textContent?.startsWith('Read the change'));
+    expect(link?.getAttribute('href')).toBe(change);
+    expect(link?.getAttribute('target')).toBe('_blank');
+    expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(link?.textContent).toBe('Read the change ↗ (opens GitHub)');
   });
 
   it('edits a reply in place, leaves one out and puts it back', async () => {

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { Route } from 'next';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -330,6 +331,43 @@ describe('the two cards', () => {
     await render(<PullRequestCards page={prContribute.asked} now={PR_NOW} links={prLinks} />);
     expect(container.querySelector('[data-card="walkthrough"]')).toBeNull();
     expect(control('Read or edit it')?.getAttribute('href')).toBe(prLinks.pullRequestText);
+  });
+
+  it('opens GitHub in a new tab, marked, once the pull request is open', async () => {
+    const github = 'https://github.com/harbor-kit/relay/pull/58';
+    await render(
+      <PullRequestCards
+        page={prContribute.asked}
+        now={PR_NOW}
+        links={{ change: `${github}/files` as Route, pullRequestText: github as Route }}
+      />,
+    );
+    for (const [label, href] of [
+      ['Read the change', `${github}/files`],
+      ['Read or edit it', github],
+    ]) {
+      const link = control(label);
+      expect(link?.getAttribute('href')).toBe(href);
+      expect(link?.getAttribute('target')).toBe('_blank');
+      expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+      expect(link?.textContent).toBe(`${label} ↗ (opens GitHub)`);
+      expect(link?.querySelector('.sr-only')?.textContent).toBe(' (opens GitHub)');
+    }
+  });
+
+  it('keeps our own pages in the same tab, unmarked', async () => {
+    await render(<PullRequestCards page={prContribute.asked} now={PR_NOW} links={prLinks} />);
+    expect(control('Read or edit it')?.getAttribute('target')).toBeNull();
+    expect(control('Read or edit it')?.textContent).toBe('Read or edit it');
+  });
+
+  it("draws the change's `code` as code, never its backticks", async () => {
+    const page = { ...prStages.open, change: { ...prStages.open.change, summary: 'Caps `retries` at `max`.' } };
+    await render(<PullRequestCards page={page as PullRequestPage} now={PR_NOW} links={prLinks} />);
+    const card = container.querySelector('[data-card="change"]');
+    expect([...(card?.querySelectorAll('code') ?? [])].map((code) => code.textContent)).toEqual(['retries', 'max']);
+    expect(card?.textContent).toContain('Caps retries at max.');
+    expect(card?.textContent).not.toContain('`');
   });
 
   it('shows the public page of the fix with a button that copies it', async () => {

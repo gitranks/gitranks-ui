@@ -98,6 +98,19 @@ describe("a course's page in the browser, for a person with a session", () => {
     hint.present = true;
   });
 
+  it('names the main language in "Examples in" once their side brings it, else Python', async () => {
+    window.localStorage.removeItem('gitranks:learn:language:v1');
+    const examplesIn = () => host.querySelector('[aria-label^="Examples in"]')?.getAttribute('aria-label');
+    answer({ course: progressMine, checkFirst: false, mainLanguage: 'javascript' });
+    await draw();
+    expect(examplesIn()).toBe('Examples in JavaScript. Change the language');
+    act(() => root.unmount());
+    root = createRoot(host);
+    answer({ course: progressMine, checkFirst: false, mainLanguage: null });
+    await draw();
+    expect(examplesIn()).toBe('Examples in Python. Change the language');
+  });
+
   it('lights nothing and never asks to sign in while their side is on its way', async () => {
     fetchMock.mockReturnValue(new Promise(() => {}));
     await draw();
@@ -216,8 +229,12 @@ describe("reading a course's side", () => {
   });
 
   it('takes only a whole side of this course', async () => {
-    answer({ course: progressMine, checkFirst: true });
-    expect(await readCourseSide('algorithms')).toEqual({ mine: progressMine, checkFirst: true });
+    answer({ course: progressMine, checkFirst: true, mainLanguage: 'javascript' });
+    expect(await readCourseSide('algorithms')).toEqual({
+      mine: progressMine,
+      checkFirst: true,
+      mainLanguage: 'javascript',
+    });
     // Another course's side.
     answer({ course: progressMine });
     expect(await readCourseSide('go')).toBeNull();
@@ -230,8 +247,8 @@ describe("reading a course's side", () => {
     }
     answer({}, 500);
     expect(await readCourseSide('algorithms')).toBeNull();
-    answer({ course: progressMine, checkFirst: 'yes' });
-    expect(await readCourseSide('algorithms')).toEqual({ mine: progressMine, checkFirst: false });
+    answer({ course: progressMine, checkFirst: 'yes', mainLanguage: 7 });
+    expect(await readCourseSide('algorithms')).toEqual({ mine: progressMine, checkFirst: false, mainLanguage: null });
     fetchMock.mockRejectedValueOnce(new Error('offline'));
     expect(await readCourseSide('algorithms')).toBeNull();
   });

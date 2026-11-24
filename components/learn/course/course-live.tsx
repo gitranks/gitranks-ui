@@ -10,8 +10,11 @@ import { sendLearnCourseFeedbackAction } from '@/lib/learn/course.actions';
 import { coursePath, learnCourseMinePath, learnCourseRealMinePath, learnCourseSidePath } from '@/lib/learn/paths';
 import { hasSessionHint } from '@/lib/session-hint';
 
-/** The signed-in person's side of a course, and whether the check leads the page. */
-export type CourseSide = { mine: LearnCourseMine; checkFirst: boolean };
+/**
+ * The signed-in person's side of a course, whether the check leads the page, and their setup's main language (asked
+ * with the check; null when it has none, or it was not read).
+ */
+export type CourseSide = { mine: LearnCourseMine; checkFirst: boolean; mainLanguage: string | null };
 
 // The check's page is live: a course not started may lead with it.
 const CHECK_PAGE_LIVE = true;
@@ -24,10 +27,18 @@ export async function readCourseSide(slug: string, askCheck = CHECK_PAGE_LIVE): 
   try {
     const res = await fetch(askCheck ? learnCourseSidePath(slug) : learnCourseMinePath(slug), { cache: 'no-store' });
     if (!res.ok) return null;
-    const { course, checkFirst } = (await res.json()) as { course?: LearnCourseMine | null; checkFirst?: unknown };
+    const { course, checkFirst, mainLanguage } = (await res.json()) as {
+      course?: LearnCourseMine | null;
+      checkFirst?: unknown;
+      mainLanguage?: unknown;
+    };
     // Only a whole side is drawn: a part of one would mark the page wrong.
     if (!course || course.slug !== slug || !Array.isArray(course.lessons) || !course.check) return null;
-    return { mine: course, checkFirst: checkFirst === true };
+    return {
+      mine: course,
+      checkFirst: checkFirst === true,
+      mainLanguage: typeof mainLanguage === 'string' && mainLanguage ? mainLanguage : null,
+    };
   } catch {
     return null;
   }
@@ -88,6 +99,7 @@ export function CourseLive({ course, others }: { course: LearnCourse; others: re
       person={personal.kind === 'learner' ? 'session' : personal.kind}
       others={others}
       checkFirst={side?.checkFirst ?? false}
+      mainLanguage={side?.mainLanguage ?? null}
       openIssues={side ? openIssues : null}
       calls={{
         onSignIn: () => {

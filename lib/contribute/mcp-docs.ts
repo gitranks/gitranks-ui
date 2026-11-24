@@ -280,6 +280,11 @@ export const MCP_DOC_TOOLS: readonly McpDocTool[] = [
     changes: true,
   },
   {
+    name: 'submit_lesson',
+    text: 'With GitRanks Learn: hands back the lesson your agent wrote on its fix. You take the lesson on GitRanks, then approve the pull request.',
+    changes: true,
+  },
+  {
     name: 'release_issue',
     text: 'Gives back an issue you took, with why. It is not offered to you again.',
     changes: true,
@@ -326,7 +331,7 @@ export const MCP_DOC_LIMITS: readonly { what: string; limit: string }[] = [
     limit:
       'From your GitRanks tier, 10 to 70, plus 5 for each pull request merged through GitRanks, up to 100. Every issue your agent takes counts, refused ones included, together with the issues you see in full on GitRanks and runs on your Claude key',
   },
-  { what: 'submit_patch calls', limit: '30 a day, refused ones included' },
+  { what: 'submit_patch calls', limit: '30 a day, refused ones included, shared with submit_lesson' },
   { what: 'start_proof calls', limit: '20 an hour, renewals included; 3 accepted submissions a day per pull request' },
   {
     what: 'An issue stays held',

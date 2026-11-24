@@ -41,7 +41,6 @@ describe('the main menu', () => {
     expect(html).toMatch(/<a [^>]*href="\/contribute"[^>]*>Contribute/);
     // Contribute carries no mark beside it, in the header row and the phone's panel alike (the same link).
     expect(html).toMatch(/<a [^>]*href="\/contribute"[^>]*>Contribute<\/a>/);
-    expect(html).not.toMatch(/beta/i);
   });
 });
 

@@ -142,7 +142,7 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
     ],
   },
   {
-    id: 'record-and-changes',
+    id: 'changes-and-record',
     title: 'Changes and your record',
     entries: [
       CHANGES,

@@ -251,7 +251,7 @@ describe('the MCP docs', () => {
 
 describe('the questions', () => {
   it('run contribution, guardrails, credits, then the record, each question with its own anchor', () => {
-    expect(FAQ_GROUPS.map(({ id }) => id)).toEqual(['contributing', 'guardrails', 'credits', 'record-and-changes']);
+    expect(FAQ_GROUPS.map(({ id }) => id)).toEqual(['contributing', 'guardrails', 'credits', 'changes-and-record']);
     const ids = FAQ_GROUPS.flatMap(({ id, entries }) => [id, ...entries.map((entry) => entry.id)]);
     expect(new Set(ids).size).toBe(ids.length);
   });

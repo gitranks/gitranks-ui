@@ -28,7 +28,7 @@ const { TRY_DONE_LABELS, TryLessonCard } = await import('./try-lesson');
 const { courseCards } = await import('@/lib/learn/__fixtures__/course');
 const { launchCourses, tryLessons } = await import('@/lib/learn/__fixtures__/learn-home-page');
 const { setAnswerRight, setAnswerWrong } = await import('@/lib/learn/__fixtures__/lesson-page');
-const { LANDING_QUESTIONS, LANDING_TITLE } = await import('@/lib/learn/landing');
+const { LANDING_QUESTIONS, LANDING_TITLE, landingTextOf } = await import('@/lib/learn/landing');
 const { learnFixes } = await import('@/lib/learn/__fixtures__/issues');
 const { landingFixes } = await import('@/lib/learn/__fixtures__/real-issues');
 
@@ -85,6 +85,7 @@ describe('the landing for a visitor', () => {
   it('opens with what Learn is, the start button and its line, and a real lesson to answer', () => {
     expect(page.querySelector('[data-landing-viewer="visitor"]')).not.toBeNull();
     expect(words(page.querySelector('h1'))).toBe(LANDING_TITLE);
+    expect(words(page.querySelector('h1')?.nextElementSibling ?? null)).toBe(landingTextOf(courseCards));
     expect(page.textContent).toContain('Start learning');
     expect(page.textContent).toContain('Free. You sign in with GitHub.');
     const card = page.querySelector('[data-try-lesson="visitor"]');

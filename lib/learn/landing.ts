@@ -14,8 +14,43 @@ import { absoluteUrl } from '@/lib/seo/site';
  */
 
 export const LANDING_TITLE = 'Learn one idea in two minutes. Then fix a real issue with it.';
-export const LANDING_TEXT =
-  'Short lessons on algorithms, databases, design patterns, system design and seven languages. When you are ready, your coding agent fixes a real open-source issue that uses what you learned, and you learn from the fix.';
+
+/**
+ * A course's name inside a sentence ("Short lessons on algorithms, ... open source and LLM APIs"), by its slug; a
+ * course not here goes by its own name.
+ */
+const COURSE_NAMES_IN_A_LINE: Readonly<Record<string, string>> = {
+  algorithms: 'algorithms',
+  'contributing-to-open-source': 'open source',
+  'working-with-llm-apis': 'LLM APIs',
+};
+
+/** The line names every course up to this many; past it, the first five and how many more. */
+export const LANDING_COURSES_NAMED_MAX = 6;
+const NAMED_BEFORE_MORE = 5;
+
+/** The line when there is no course to name. */
+export const LANDING_COURSES_LINE_EMPTY = 'Short lessons on programming';
+
+/**
+ * "Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs": the live courses in
+ * their order, every one up to six; past six, the first five "and 2 more courses". No full stop.
+ */
+export function landingCoursesLineOf(courses: readonly Pick<LearnCourseCard, 'slug' | 'name'>[]): string {
+  const names = courses.map((course) => COURSE_NAMES_IN_A_LINE[course.slug] ?? course.name.trim()).filter(Boolean);
+  if (!names.length) return LANDING_COURSES_LINE_EMPTY;
+  const shown =
+    names.length > LANDING_COURSES_NAMED_MAX
+      ? [...names.slice(0, NAMED_BEFORE_MORE), `${names.length - NAMED_BEFORE_MORE} more courses`]
+      : names;
+  const list = shown.length === 1 ? shown[0] : `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}`;
+  return `Short lessons on ${list}`;
+}
+
+/** The words under the landing's title, naming the live courses. */
+export const landingTextOf = (courses: readonly Pick<LearnCourseCard, 'slug' | 'name'>[]) =>
+  `${landingCoursesLineOf(courses)}. When you are ready, your coding agent fixes a real open-source issue that uses what you learned, and you learn from the fix.`;
+
 /** The title search engines show for `/learn`. */
 export const LANDING_SEARCH_TITLE = 'GitRanks Learn: two-minute programming lessons and real issues to use them on';
 
@@ -118,7 +153,7 @@ const sentence = (text: string) => {
 export function learnLandingMarkdownOf(courses: readonly LearnCourseCard[]): string {
   const sections = [
     '# GitRanks Learn',
-    [LANDING_TITLE, '', LANDING_TEXT, '', `The page: ${absoluteUrl(LEARN_HOME_PATH)}`].join('\n'),
+    [LANDING_TITLE, '', landingTextOf(courses), '', `The page: ${absoluteUrl(LEARN_HOME_PATH)}`].join('\n'),
     '## How it works',
     LANDING_STEPS.map((step, index) => `${index + 1}. ${step.title} (${step.label}). ${step.text}`).join('\n'),
   ];

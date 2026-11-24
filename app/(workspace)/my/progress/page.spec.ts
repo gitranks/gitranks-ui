@@ -18,3 +18,11 @@ describe('the Learn page under /my', () => {
     expect(title.learnPageMetadata).toHaveBeenCalledWith(name);
   });
 });
+
+describe('Your progress', () => {
+  it('gives Share the address of the person’s Skills page', () => {
+    const main = pages['Your progress'].default({ searchParams: Promise.resolve({}) } as PageProps<'/my/progress'>);
+    const view = main.props.children.props.children;
+    expect(view.props.shareUrlOf('octocat')).toMatch(/\/profile\/octocat\/skills$/);
+  });
+});

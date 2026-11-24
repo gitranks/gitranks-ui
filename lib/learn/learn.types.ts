@@ -167,22 +167,6 @@ export type LearnProfile = {
 /** A lesson anyone with the link may read: its head and every step, never a question's key. */
 export type LessonPage = { __typename: 'LessonPage'; head: LessonHead; steps: LessonStep[] };
 
-/** A login's Learn record, from their public passes: lessons, topics learned, pull requests opened and merged. */
-/**
- * A person's public Learn record: only what is already public. `login` is the spelling GitRanks stores (the one
- * address their public page and card answer under); null from an API that does not send it yet. `newThings`: the new
- * things of their public passes; `reposHelped`: the repositories that merged their Learn pull requests.
- */
-export type LearnRecord = {
-  login: string | null;
-  lessons: number;
-  newThings: number;
-  topics: string[];
-  prsOpened: number;
-  prsMerged: number;
-  reposHelped: number;
-};
-
 /** Who a lesson was written for: their goal's kind and value, and their level's name. */
 export type LessonWrittenFor = { kind: string; value: string; level: string };
 

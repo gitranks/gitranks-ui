@@ -179,3 +179,18 @@ export function repoLineOf(repo: { merged: number; lastMergedAt: string }): stri
 
 /** A repository's row shows this many of its pull requests, then "and N more". */
 export const REPO_PRS_SHOWN = 3;
+
+/**
+ * What Your progress' Share control says: nothing before a first pass; nothing public yet to share; public numbers
+ * that are the viewer's own; or public numbers that count less (a lesson whose pull request is not open yet, a
+ * practice result not shared).
+ */
+export type ShareState = 'nothing' | 'no-record' | 'equal' | 'differ';
+
+const SHARED_COUNTS = ['lessonsPassed', 'newThings', 'reposHelped', 'prsMerged'] as const;
+
+export function shareStateOf(counts: LearnProgressCounts, publicCounts: LearnProgressCounts | null): ShareState {
+  if (counts.lessonsPassed === 0) return 'nothing';
+  if (!publicCounts || publicCounts.lessonsPassed === 0) return 'no-record';
+  return SHARED_COUNTS.every((key) => counts[key] === publicCounts[key]) ? 'equal' : 'differ';
+}

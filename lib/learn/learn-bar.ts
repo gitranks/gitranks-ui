@@ -102,8 +102,8 @@ const at = (pathname: string, path: string) => pathname === path || pathname ===
 
 /**
  * The current place for a path, as the board's table "Which tab is current" lists it. `from` is the page's `?from=`:
- * a page both products share (Settings, the pull requests) is Learn's place only when Learn opened it. A person's
- * public progress page (`/learn/progress/<login>`) is no tab: Progress is the person's own. A lesson's and a course's
+ * a page both products share (Settings, the pull requests) is Learn's place only when Learn opened it. Progress is
+ * `/learn/progress` alone, never a path under it. A lesson's and a course's
  * view of Issues are Issues, and so is a fix's public page, in either view.
  */
 export function learnBarPlaceOf(pathname: string, from: string | null = null): LearnBarPlace | null {

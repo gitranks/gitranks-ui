@@ -293,7 +293,11 @@ describe('LearnLessonStatePill', () => {
 
 describe('the page’s reads and gate', () => {
   const open = { kind: 'open', entered: true, agents: { hosted: false, own: true } };
-  const view = (search: Record<string, string> = {}) => ProgressView({ searchParams: Promise.resolve(search) });
+  const view = (search: Record<string, string> = {}) =>
+    ProgressView({
+      searchParams: Promise.resolve(search),
+      shareUrlOf: (login) => `https://gitranks.com/profile/${login}/skills`,
+    });
 
   afterEach(() => {
     vi.clearAllMocks();
@@ -375,7 +379,7 @@ describe('the page’s reads and gate', () => {
 
 describe('Your progress: Share', () => {
   const share = (publicCounts: ProgressScreenProps['counts'] | null) =>
-    screen({ share: { url: 'https://gitranks.com/learn/progress/octocat', publicCounts: publicCounts ?? null } });
+    screen({ share: { url: 'https://gitranks.com/profile/octocat/skills', publicCounts: publicCounts ?? null } });
 
   it('copies the public link when the public page counts as much as Your progress', () => {
     const html = share(progressCounts);

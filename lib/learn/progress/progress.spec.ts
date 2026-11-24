@@ -12,6 +12,7 @@ import {
   progressViewOf,
   pullRequestPageOf,
   repoLineOf,
+  shareStateOf,
   unfinishedRowOf,
 } from './progress';
 import type { LearnProgressLesson } from './progress.types';
@@ -142,5 +143,18 @@ describe('a repository’s row', () => {
       '2 pull requests merged · last on Nov 9',
     );
     expect(repoLineOf({ merged: 1, lastMergedAt: '' })).toBe('1 pull request merged');
+  });
+});
+
+describe('the Share control', () => {
+  const counts = { lessonsPassed: 7, newThings: 19, reposHelped: 2, prsMerged: 2, prsOpened: 3 };
+
+  it('says what to show from the viewer’s numbers and the public ones', () => {
+    expect(shareStateOf({ ...counts, lessonsPassed: 0 }, null)).toBe('nothing');
+    expect(shareStateOf(counts, null)).toBe('no-record');
+    expect(shareStateOf(counts, { ...counts, lessonsPassed: 0 })).toBe('no-record');
+    expect(shareStateOf(counts, { ...counts, prsOpened: 1 })).toBe('equal');
+    expect(shareStateOf(counts, { ...counts, lessonsPassed: 5 })).toBe('differ');
+    expect(shareStateOf(counts, { ...counts, prsMerged: 1 })).toBe('differ');
   });
 });

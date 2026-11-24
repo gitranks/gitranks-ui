@@ -3,7 +3,6 @@ import { parse } from 'graphql';
 import type {
   LearnAttemptLesson,
   LearnProfile,
-  LearnRecord,
   LessonAnswerResult,
   LessonRun,
   LessonWarmupAnswer,
@@ -92,9 +91,4 @@ const PROFILE = 'goalKind goalValue levels { language level guessed hint } focus
 /** The viewer's goal, levels and focus; null when Learn is not open to them. */
 export const LearnProfileDocument = doc<{ learnProfile: LearnProfile | null }>(
   `query LearnProfile { learnProfile { ${PROFILE} } }`,
-);
-
-/** A login's public Learn record, the same for every reader; null without a public pass. */
-export const LearnRecordDocument = doc<{ learnRecord: LearnRecord | null }, { login: string }>(
-  'query LearnRecord($login: String!) { learnRecord(login: $login) { login lessons newThings topics prsOpened prsMerged reposHelped } }',
 );

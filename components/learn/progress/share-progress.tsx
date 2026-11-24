@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { reportLearnEvent } from '@/components/contribute-click-tracker/contribute-click-tracker';
 import { Button } from '@/components/ui/button';
+import { type ShareState, shareStateOf } from '@/lib/learn/progress/progress';
 import type { LearnProgressCounts } from '@/lib/learn/progress/progress.types';
-import { type ShareState, shareStateOf } from '@/lib/learn/public-progress/public-progress';
 
 /** The helper line under a Share button. */
 const SHARE_TEXT = 'Copies your public link. Posted anywhere, it shows a card with your numbers.';

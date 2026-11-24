@@ -11,7 +11,7 @@ const { progressCounts } = await import('@/lib/learn/progress/__fixtures__/progr
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const URL = 'https://gitranks.com/learn/progress/octocat';
+const URL = 'https://gitranks.com/profile/octocat/skills';
 let container: HTMLDivElement;
 let root: Root;
 

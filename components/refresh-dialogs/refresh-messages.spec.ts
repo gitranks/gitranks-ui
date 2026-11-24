@@ -87,7 +87,7 @@ describe('refresh messages', () => {
       .filter(([, message]) => JSON.stringify(message).includes(GITHUB_AUTHORIZATIONS_URL))
       .map(([kind]) => kind);
 
-    expect(noted).toEqual(['otherProfile']);
+    expect(noted.sort()).toEqual(['fetchOther', 'otherProfile']);
   });
 
   it('offers the deal signed out in the words of the design, with a badge as the way without a star', () => {
@@ -191,7 +191,7 @@ describe('refresh messages', () => {
       .filter(([, message]) => JSON.stringify(message).includes('{login}'))
       .map(([kind]) => kind);
 
-    expect(withLoginKinds.sort()).toEqual(['whyDailyBadge', 'whyDailyOwner']);
+    expect(withLoginKinds.sort()).toEqual(['fetchOther', 'whyDailyBadge', 'whyDailyOwner']);
     expect(withLogin(REFRESH_MESSAGES.used, 'octo-dev')).toEqual(REFRESH_MESSAGES.used);
   });
 

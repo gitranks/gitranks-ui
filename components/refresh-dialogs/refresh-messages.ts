@@ -134,6 +134,21 @@ export const REFRESH_MESSAGES = {
     secondary: 'Maybe later',
   },
 
+  /**
+   * Signed in without a token, presses "Fetch profile from GitHub" on someone else's profile GitRanks does not have yet:
+   * the first fetch of it, not a refresh.
+   */
+  fetchOther: {
+    title: 'Not on GitRanks yet 👀',
+    paragraphs: [
+      'We don’t have @{login} yet. Our daily refresh is only for your own profile.',
+      'Use your own GitHub token to fetch @{login} now. It runs on your GitHub limits, not ours.',
+    ],
+    ...TOKEN_NOTE,
+    primary: 'Use my GitHub token',
+    secondary: 'Maybe later',
+  },
+
   /** Too many checks without a star; checks pause for {time}. */
   blocked: {
     title: 'Our robot needs a break 🥱',

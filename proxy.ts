@@ -31,6 +31,8 @@ import { SESSION_COOKIE, SESSION_HINT_CLEAR, SESSION_HINT_COOKIE, SESSION_HINT_S
 import { isSkillsCardPath } from './lib/skills/paths';
 import {
   AGENTS_DOC_PATH,
+  CONTRIBUTE_LANDING_MARKDOWN_PATH,
+  CONTRIBUTE_LANDING_MARKDOWN_ROUTE,
   isAuthorizePath,
   isByAttemptPath,
   isContributeFlowPath,
@@ -179,6 +181,10 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   const landingMarkdown = learnLandingMarkdownRouteOf(request.nextUrl.pathname);
   if (landingMarkdown) {
     return NextResponse.rewrite(new URL(landingMarkdown, request.url));
+  }
+  // Contribute's landing in Markdown, `/contribute.md`, the same way: its route handler follows the landing's gate.
+  if (request.nextUrl.pathname === CONTRIBUTE_LANDING_MARKDOWN_PATH) {
+    return NextResponse.rewrite(new URL(CONTRIBUTE_LANDING_MARKDOWN_ROUTE, request.url));
   }
 
   // The Markdown copies of Issues and of a lesson's and a course's view of it, the same way.

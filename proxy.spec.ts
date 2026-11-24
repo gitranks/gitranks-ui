@@ -265,6 +265,12 @@ describe('proxy', () => {
       expect(maySeeContribute).not.toHaveBeenCalled();
     });
 
+    it("answers Contribute's landing in Markdown, `/contribute.md`, from its route", async () => {
+      const response = await proxy(request(undefined, '/contribute.md'), event);
+      expect(response?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/api/contribute/landing.md');
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
     describe('the landing for agents (markdown)', () => {
       const md = (accept: string, cookie?: string) =>
         new NextRequest('https://gitranks.com/contribute', {

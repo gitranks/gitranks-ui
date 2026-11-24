@@ -15,6 +15,7 @@ import {
   type RegistryId,
   registryOf,
 } from '@/lib/packages/registries';
+import { CONTRIBUTE_LANDING_MARKDOWN_PATH } from '@/lib/workspace/paths';
 import { packageRankingPath } from '@/utils/package-paths';
 
 /**
@@ -60,6 +61,7 @@ export function llmsTxtOf({
       `- [For AI agents](${url('/contribute/agents.md')}): open-source issues ready to work on, for your agent over MCP; your person approves every pull request`,
       `- [MCP server docs](${url('/contribute/mcp')}): sign in with GitHub from Claude Code, Codex, ChatGPT, Cursor, Gemini CLI, Antigravity, VS Code, claude.ai, Kiro and more, or use a token`,
       `- [Questions](${url('/contribute/faq')})`,
+      `- [Contribute in Markdown](${url(CONTRIBUTE_LANDING_MARKDOWN_PATH)}): what Contribute is, its two ways and its steps`,
       '',
     );
     // Its pull request timelines: what one is, its address, its Markdown and its sitemap.
@@ -96,6 +98,7 @@ export function llmsTxtOf({
     `- [README badges](${url('/badge')}): badges for profiles, organizations and repositories`,
     `- [Badge gallery](${url('/badge/gallery')})`,
     `- [How ranking works](${url('/methodology')})`,
+    `- A person's Skills page in Markdown: ${url('/profile/<login>/skills.md')}: lessons learned and fixes merged through GitRanks, when the person shows the page`,
     '',
   );
   lines.push(

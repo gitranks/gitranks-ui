@@ -239,15 +239,11 @@ describe('the maintainers page', () => {
     expect(asked).toContain('href="/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0&amp;kind=helped"');
     expect(asked).toContain('href="/contribute/maintainers/report?from=6650a1b2c3d4e5f6a7b8c9d0"');
     expect(text(asked)).toContain(
-      'Want to talk to us about something else? A person reads every message sent to hello@gitranks.com . We also write courses about some projects. To have one corrected or taken down, write to us.',
+      'Want to talk to us about something else? Write to hello@gitranks.com . A person reads every message. We also write courses about some projects. To have one corrected or taken down, write to us.',
     );
 
     const note = renderToStaticMarkup(<MaintainersFoot card={null} />);
-    expect(text(note)).toContain(
-      'Want to talk to us? A person reads every message sent to hello@gitranks.com . We also write courses about some projects. To have one corrected or taken down, write to us.',
-    );
-    // "Write to" is said once, by the sentence on courses.
-    expect(text(note).match(/write to/gi)).toHaveLength(1);
+    expect(text(note)).toContain('Want to talk to us? Write to hello@gitranks.com . A person reads every message.');
     expect(note).not.toContain('/contribute/maintainers/report');
     // Both ends are headings, so heading navigation finds them.
     expect(note).toContain('Want to talk to us?</h2>');

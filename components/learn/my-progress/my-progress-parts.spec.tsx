@@ -90,6 +90,15 @@ describe('My progress: the two boxes', () => {
     expect(textOf(page, '[data-days-line]')).toBe('You learned or repeated something on 80 days since 8 Jun.');
   });
 
+  it('gives a day active with no lesson and no review words, never a bare date', () => {
+    const quiet = { day: '2026-11-19', lessons: 0, reviews: 0, learned: [], repeated: [] };
+    const page = body({ ...myProgress, days: [...myProgress.days, quiet] });
+    const day = page.querySelector('[data-calendar] a[data-day="2026-11-19"]')!;
+    expect(day.getAttribute('aria-label')).toBe('Thursday 19 Nov: active');
+    expect(day.textContent).toContain('Thursday 19 NovActive');
+    expect(day.textContent).not.toMatch(/: ?$|\b0\b/);
+  });
+
   it('the first day: one row, one day, "Your first day."', () => {
     const page = body(myProgressFirstDay);
     expect(textOf(page, '[data-lessons-headline]')).toBe('1lesson learned');

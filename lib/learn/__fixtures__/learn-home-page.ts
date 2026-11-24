@@ -140,8 +140,8 @@ export const homeNoCourses: LearnHomeRead = empty;
 
 /** The setup the new learner saved: Go and Python, experienced developer. */
 export const homeSetup: Pick<LearnSetupRead, 'mainLanguage' | 'otherLanguages' | 'level'> = {
-  mainLanguage: 'Go',
-  otherLanguages: ['Python'],
+  mainLanguage: 'go',
+  otherLanguages: ['python'],
   level: 3,
 };
 

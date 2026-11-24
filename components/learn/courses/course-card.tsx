@@ -80,16 +80,19 @@ export function CourseStats({
   if (standing) {
     lessons = (
       <>
-        {standing.all ? (
+        {standing.learned && standing.all ? (
           <span className="font-medium text-foreground">
             All <Figure count={standing.learned.count ?? course.lessons} />
             {standing.learned.words}
           </span>
-        ) : (
+        ) : standing.learned ? (
           <span className="text-foreground">
             <Figure count={standing.learned.count ?? 0} />
             {standing.learned.words}
           </span>
+        ) : (
+          // Nothing learned, only marks: the course's own count, never "0 of 104 learned".
+          lessonsWords(course.lessons)
         )}
         {standing.known !== null ? (
           <>

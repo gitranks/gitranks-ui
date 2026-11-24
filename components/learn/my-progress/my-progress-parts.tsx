@@ -195,7 +195,8 @@ function DaySquare({
         )}
       >
         <span className="text-xs text-muted-foreground">{dayTitleOf(day.day, today)}</span>
-        {dayDoneWordsOf(day).map((words) => (
+        {/* A day active with no lesson and no review says so, never a bare date. */}
+        {(dayDoneWordsOf(day).length ? dayDoneWordsOf(day) : ['Active']).map((words) => (
           <span key={words} className="text-sm text-foreground">
             {words}
           </span>
@@ -386,7 +387,7 @@ export function MyCourseCard({ mine, today }: { mine: LearnCourseMineCard; today
         <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-foreground">
           {COURSE_KIND_LABELS[course.kind]}
         </span>
-        {standing ? (
+        {standing?.learned ? (
           <span className="text-sm whitespace-nowrap text-muted-foreground" data-course-standing="">
             {standing.all ? 'All ' : null}
             <Figure count={standing.learned.count ?? 0} />

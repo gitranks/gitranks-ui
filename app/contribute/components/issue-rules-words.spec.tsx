@@ -22,12 +22,12 @@ const text = (html: string) =>
     .replace(/\s+/g, ' ');
 
 describe('the Terms', () => {
-  it('carry the rules for issues from GitRanks at their anchor, dated 24 November 2026', async () => {
+  it('carry the rules for issues from GitRanks at their anchor, dated 25 November 2026', async () => {
     const html = renderToStaticMarkup(await LaunchedTerms());
     const plain = text(html);
     expect(html).toContain('id="contribute-rules"');
-    expect(plain).toContain('Last updated 24 November 2026');
-    expect(html).toContain('dateTime="2026-11-24"');
+    expect(plain).toContain('Last updated 25 November 2026');
+    expect(html).toContain('dateTime="2026-11-25"');
     expect(plain).toContain(
       'Issues from GitRanks. GitRanks reads millions of open issues, with its own rules and with AI, and keeps about one in a thousand.',
     );

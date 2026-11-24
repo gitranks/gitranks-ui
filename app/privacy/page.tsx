@@ -99,8 +99,7 @@ const sections: LegalSection[] = [
         <li>
           <B>Sign in with GitHub</B>: we receive your GitHub username, account id, name, email address and avatar link.
           The basic sign-in lets us read your profile and email address when you sign in; we don&apos;t keep the access
-          it grants, except briefly for the maintainers page and lesson result pages (see{' '}
-          <A href="#contribute">GitRanks Contribute</A>).
+          it grants, except briefly for the maintainers page (see <A href="#contribute">GitRanks Contribute</A>).
         </li>
         <li>
           <B>Sign in with your own token</B>: if you choose it, GitHub gives us a token that can act on your behalf. We
@@ -188,13 +187,14 @@ const sections: LegalSection[] = [
             score it.
           </li>
           <li>
-            <B>Public timelines</B>: a pull request Contribute opens for you can have a public page about how it was
-            made, unless you turn it off when you approve it or hide it later. It shows your GitHub username, the
-            agent&apos;s name, the times of each step, the agent&apos;s short summary of its work, our checks, and the
-            usernames of maintainers who reviewed, merged or closed it on GitHub. It never shows your conversation with
-            the agent, costs or prompts. Search engines may list it. It goes when you hide it, when the repository opts
-            out, or when you delete your Contribute data. Basis: legitimate interests, in showing maintainers how a pull
-            request sent to them was made.
+            <B>Public pages</B>: a pull request Contribute or Learn opens for you has a public page about how it was
+            made. A pull request sent before 24 November 2026 can be hidden from its page. It shows your GitHub
+            username, the agent&apos;s name, the times of each step, the agent&apos;s short summary of its work, our
+            checks, your answers to its walkthrough when you choose to share them, and the usernames of maintainers who
+            reviewed, merged or closed it on GitHub. It never shows your conversation with the agent, costs or prompts.
+            Search engines may list it. It goes when the repository opts out or when you delete your Contribute data,
+            and we may hide it. Basis: legitimate interests, in showing maintainers how a pull request sent to them was
+            made.
           </li>
           <li>
             <B>The issues we suggest</B>: Contribute reads public issues, their comments and labels, and public
@@ -205,10 +205,9 @@ const sections: LegalSection[] = [
           <li>
             <B>Maintainers</B>: the maintainers page has you sign in with GitHub to list the repositories you maintain
             and let you opt them out of Contribute. The token GitHub gives that sign-in is kept in your encrypted
-            sign-in cookie and used for up to one hour, on that page only and, to store and show your reaction to a
-            lesson result, on lesson result pages (see <A href="#learn">GitRanks Learn</A>). When you opt a repository
-            out, we keep your GitHub account id and username and when you did it, until the repository is opted back in.
-            Basis: legitimate interests, in respecting maintainers&apos; choices.
+            sign-in cookie and used for up to one hour, on that page only. When you opt a repository out, we keep your
+            GitHub account id and username and when you did it, until the repository is opted back in. Basis: legitimate
+            interests, in respecting maintainers&apos; choices.
           </li>
           <li>
             <B>Issues you take</B>: we keep a record of every request to take an issue, granted or refused: when you see
@@ -287,19 +286,20 @@ const sections: LegalSection[] = [
             level it was written for. So does your result: how each step went, when you passed and how long it took, and
             the questions you were asked with their right answers, never the options you got wrong. Its form for
             machines also gives your GitHub account id. Anyone can read them, search engines may list them, and the pull
-            request links to your result. Your public results also show as a Learn record on your profile (lessons,
-            topics, and the Learn pull requests opened and merged). Your public results also show on your public
-            progress page, with the Learn pull requests that were merged, and in the image a link to that page shows
-            when it is posted. If you take someone else&apos;s lesson, your result stays private unless you share it.
+            request links to your result. Your public results also count on the Skills page of your GitRanks profile
+            (lessons, the topics they cover, days active, and the Learn pull requests that were merged), and in the
+            image a link to that page shows when it is posted. You can hide your Skills page from the page itself;
+            search engines may list it once it shows 5 lessons or a merged fix. If you take someone else&apos;s lesson,
+            your result stays private unless you share it.
           </li>
           <li>
-            <B>Reactions</B>: anyone signed in with GitHub can say whether a lesson result helped review its pull
-            request. A reaction is stored with the person&apos;s GitHub username and id, their role on the repository
-            (read from GitHub with their sign-in) and when they reacted. Reactions from the repository&apos;s
-            maintainers and collaborators may be shown on the result page with their username, avatar and role; others
-            are never shown. A click on these buttons while signed out is counted as described under{' '}
-            <A href="#visitors">Visiting the site</A>, never shown. Basis: legitimate interests, in showing what
-            maintainers think of a lesson.
+            <B>Said it helped</B>: on the maintainers page, anyone signed in with GitHub can say that a pull request
+            made with Contribute or Learn helped. We store their GitHub username, id and account creation date, their
+            role on the repository (read from GitHub with their sign-in), what they picked and wrote, whether we may
+            quote it, and when they sent it. Notes from the repository&apos;s maintainers and collaborators may show
+            their username on the pull request&apos;s public page; others are counted and never named. The pull
+            request&apos;s author can hide a note from their page. Basis: legitimate interests, in showing what
+            maintainers think of a pull request.
           </li>
           <li>
             <B>Who is shown Learn</B>: to decide whether to show a signed-in person a block about Learn, we use what we
@@ -596,7 +596,7 @@ const sections: LegalSection[] = [
 ];
 
 /** The day the Privacy policy last changed (YYYY-MM-DD). */
-const PRIVACY_UPDATED = '2026-11-24';
+const PRIVACY_UPDATED = '2026-11-25';
 
 export default function Privacy() {
   return <LegalPage title="Privacy policy" sections={sections} updated={PRIVACY_UPDATED} />;

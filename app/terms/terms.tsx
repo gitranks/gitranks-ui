@@ -122,10 +122,11 @@ const CONTRIBUTE: LegalSection = {
           Contribute data.
         </li>
         <li>
-          <B>Lessons on pull requests.</B> Some pull requests link to a lesson on GitRanks and their author&apos;s
-          result on it. The lesson was written by the author&apos;s AI agent and can be wrong. If you react to a result
-          as a maintainer or collaborator of its repository, your reaction may be shown on the result page with your
-          username, avatar and role. See <A href={LEARN_MAINTAINERS_PATH}>what these lessons are for maintainers</A>.
+          <B>Learn pull requests.</B> A pull request made with GitRanks Learn links to its public page on GitRanks,
+          where its author&apos;s answers to questions about the fix can be read. The questions were written by the
+          author&apos;s AI agent and can be wrong. If you say a pull request helped, as a maintainer or collaborator of
+          its repository, your username may be shown on its public page. See{' '}
+          <A href={LEARN_MAINTAINERS_PATH}>what Learn pull requests are for maintainers</A>.
         </li>
         <li>
           <B>Fair use of Contribute.</B> You must not get around a repository&apos;s rules or our limits, open pull
@@ -147,8 +148,8 @@ const CONTRIBUTE: LegalSection = {
 
 /**
  * Learn's section: Contribute's terms apply, lessons are AI-written, what goes public when the pull request opens and
- * under whose name, taking it down, someone else's lesson, and the age rule. Reactions are in Contribute's section,
- * which every reader sees: the maintainers who react are not on Learn's list.
+ * under whose name, taking it down, someone else's lesson, and the age rule. Saying a pull request helped is in Contribute's
+ * section, which every reader sees: the maintainers who say so are not on Learn's list.
  */
 const LEARN: LegalSection = {
   id: 'learn',
@@ -171,9 +172,9 @@ const LEARN: LegalSection = {
           username, with the issue, the pull request, the agent that wrote it and the goal and level it was written for.
           So does your result: how each step went, when you passed and how long it took, and the questions you were
           asked with their right answers, never the options you got wrong. The pull request links to your result, anyone
-          can read both, and search engines may list them. Your public results also show as a Learn record on your
-          GitRanks profile (lessons, topics and pull requests). A lesson whose pull request never opens stays private.
-          You let us store, show and publish the lesson and your results this way. The{' '}
+          can read both, and search engines may list them. Your public results also count on the Skills page of your
+          GitRanks profile (lessons, topics and merged pull requests), which you can hide. A lesson whose pull request
+          never opens stays private. You let us store, show and publish the lesson and your results this way. The{' '}
           <A href="/privacy">Privacy policy</A> says what data GitRanks uses.
         </li>
         <li>
@@ -196,7 +197,7 @@ const LEARN: LegalSection = {
 };
 
 /** When the Terms last changed with Contribute's section in them: they show that date only once the section shows. */
-const CONTRIBUTE_TERMS_UPDATED = PUBLIC_PAGES_FROM;
+const CONTRIBUTE_TERMS_UPDATED = '2026-11-25';
 
 /** The sections; Contribute's and Learn's only for whoever may see Contribute. */
 const sectionsOf = (contribute: boolean): LegalSection[] => [

@@ -64,12 +64,12 @@ describe('organization page', () => {
     expect(vi.mocked(cacheLife).mock.calls).toEqual([['hours']]);
   });
 
-  it('is kept for minutes, without the Learn card, when the card could not be read in time', async () => {
+  it('keeps its normal life, without the Learn card, when the card could not be read in time', async () => {
     vi.mocked(loadBadgeOrgCard).mockResolvedValue(null);
     vi.mocked(loadLearnEntityCard).mockResolvedValue({ card: null, ok: false });
     const page = await render();
 
     expect(page.props.learnCard).toBeNull();
-    expect(vi.mocked(cacheLife).mock.calls).toEqual([['minutes']]);
+    expect(vi.mocked(cacheLife).mock.calls).toEqual([['hours']]);
   });
 });

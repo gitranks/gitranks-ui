@@ -43,11 +43,12 @@ describe("a repository's Overview and its Learn card", () => {
     expect(cacheLife).not.toHaveBeenCalledWith('minutes');
   });
 
-  it('is kept for minutes, without the card, when the card could not be read in time', async () => {
+  it('keeps its normal life, without the card, when the card could not be read in time', async () => {
     vi.mocked(loadLearnEntityCard).mockResolvedValue({ card: null, ok: false });
     const page = await render();
 
     expect(page.props.learnCard).toBeNull();
-    expect(cacheLife).toHaveBeenCalledWith('minutes');
+    // The life the repository's read sets stands: the page shortens it for nothing else here.
+    expect(cacheLife).not.toHaveBeenCalled();
   });
 });

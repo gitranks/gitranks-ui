@@ -40,9 +40,9 @@ export default async function RepoOverviewPage({ params }: PageProps<'/repo/[own
           hideArchived: false,
         })
       : null;
-  // A failed read of the tier table, package data that could not be read, or a Learn card that could not be read in
-  // time: try again in minutes.
-  if (!rankTiers.ok || packages === UNAVAILABLE || dependents === UNAVAILABLE || !learn.ok) {
+  // A failed read of the tier table, or package data that could not be read: try again in minutes. A Learn card that
+  // could not be read leaves the page's life as it is: the card is left out until the page's next render.
+  if (!rankTiers.ok || packages === UNAVAILABLE || dependents === UNAVAILABLE) {
     cacheLife('minutes');
   }
 

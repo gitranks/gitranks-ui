@@ -33,9 +33,9 @@ export default async function OrgPage({ params }: PageProps<'/org/[login]'>) {
     loadLearnEntityCard({ org: login }),
   ]);
 
-  // A page that rendered without its Badges card, or without a Learn card it could not read in time, is kept briefly,
-  // so the card comes back soon.
-  if (!badges.brief && learn.ok) {
+  // A page that rendered without its Badges card is kept briefly, so the card comes back soon. A Learn card that could
+  // not be read leaves the page's life as it is: the card is left out until the page's next render.
+  if (!badges.brief) {
     cacheLife('hours');
   } else {
     cacheLife('minutes');

@@ -4,19 +4,20 @@ import { cacheLife, cacheTag } from 'next/cache';
 
 import { type LearnEntityCard, learnEntityCardOf } from './entity-card';
 import { LearnEntityCardDocument } from './entity-card.documents';
-import { type LearnProject, learnEntityTag } from './paths';
+import { type LearnProject, learnEntityTag, orgLoginOf, repoNameOf } from './paths';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /** How long a page waits for its Learn card: a slower answer draws the page without it, as a failed one does. */
 export const LEARN_ENTITY_CARD_TIMEOUT_MS = 2_000;
 
-/** The card, or none; `ok` is false when the read failed or was too slow, so the page is kept only briefly. */
+/** The card, or none; `ok` is false when the read failed or was too slow (the card is then left out). */
 export type LearnEntityCardRead = { card: LearnEntityCard | null; ok: boolean };
 
 /**
  * The card's read, by its project in lower case, under the project's own tag, which the API expires when the card
  * changes. Kept for hours; a failure is decided inside, kept for minutes and never thrown, so it cannot fail the page
- * around it.
+ * around it. The tag is not expired when only the count of open issues changes, so that count can be as old as the
+ * page that shows it.
  */
 async function readLearnEntityCard(project: LearnProject, tag: string): Promise<LearnEntityCardRead> {
   'use cache';
@@ -34,15 +35,12 @@ async function readLearnEntityCard(project: LearnProject, tag: string): Promise<
   }
 }
 
-/** A project in lower case, with its card's tag; null for one no tag can name, which has no card. */
+/** A project in lower case, with its card's tag; null for a name GitHub cannot have, which has no card. */
 function keyOf(project: LearnProject): { project: LearnProject; tag: string } | null {
-  const lower: LearnProject =
-    project.repo !== undefined ? { repo: project.repo.toLowerCase() } : { org: project.org.toLowerCase() };
-  try {
-    return { project: lower, tag: learnEntityTag(lower) };
-  } catch {
-    return null;
-  }
+  const repo = project.repo !== undefined ? repoNameOf(project.repo) : null;
+  const org = project.repo === undefined ? orgLoginOf(project.org) : null;
+  const lower: LearnProject | null = repo ? { repo: repo.toLowerCase() } : org ? { org: org.toLowerCase() } : null;
+  return lower ? { project: lower, tag: learnEntityTag(lower) } : null;
 }
 
 /**

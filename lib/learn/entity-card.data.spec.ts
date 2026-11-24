@@ -30,7 +30,6 @@ describe('loadLearnEntityCard', () => {
     );
     expect(cacheTag.mock.calls.flat()).toEqual(['learn:entity:repo:nebula/ui']);
     expect(cacheLife).toHaveBeenLastCalledWith('hours');
-    expect(LEARN_ENTITY_CARD_TIMEOUT_MS).toBeLessThanOrEqual(3_000);
   });
 
   it("reads an org's card by its login in lower case", async () => {
@@ -54,8 +53,36 @@ describe('loadLearnEntityCard', () => {
     }
   });
 
-  it('asks nothing for a project no tag can name', async () => {
-    for (const project of [{ repo: 'no-slash' }, { repo: 'a/b/c' }, { org: '' }]) {
+  it('gives up on a hung answer once its time is up, with no card', async () => {
+    // The time limit's own signal, run out by hand: Node's timer behind `AbortSignal.timeout` is not a faked one.
+    const limit = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(limit.signal);
+    try {
+      graphqlDirect.mockImplementationOnce(
+        (_document: unknown, _variables: unknown, { signal }: { signal: AbortSignal }) =>
+          new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason))),
+      );
+      const read = loadLearnEntityCard({ repo: 'nebula/ui' });
+      expect(timeout).toHaveBeenCalledWith(LEARN_ENTITY_CARD_TIMEOUT_MS);
+      limit.abort(Object.assign(new Error('slow'), { name: 'TimeoutError' }));
+      expect(await read).toEqual({ card: null, ok: false });
+      expect(cacheLife).toHaveBeenLastCalledWith('minutes');
+    } finally {
+      timeout.mockRestore();
+    }
+  });
+
+  it('asks nothing for a name GitHub cannot have', async () => {
+    for (const project of [
+      { repo: 'no-slash' },
+      { repo: 'a/b/c' },
+      { repo: 'octo.labs/ui' },
+      { repo: 'octo/..' },
+      { repo: 'octo/hello world' },
+      { org: '' },
+      { org: 'octo_labs' },
+      { org: 'a'.repeat(40) },
+    ]) {
       expect(await loadLearnEntityCard(project), JSON.stringify(project)).toEqual({ card: null, ok: true });
     }
     expect(graphqlDirect).not.toHaveBeenCalled();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { languageColorOf, languageColorsOf } from './learn-promo';
+import { languageColorOf, languageColorsOf } from './language-colors';
 import { DEFAULT_LANGUAGE_COLOR } from '@/app/app.consts';
 
 describe('language colours', () => {

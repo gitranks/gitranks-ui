@@ -13,11 +13,14 @@ export type LearnProgressCounts = {
   prsOpened: number;
 };
 
+/** The viewer's Learn numbers, as the API answers them. */
+export type LearnProgress = { counts: LearnProgressCounts };
+
 /**
- * `publicCounts`: what the viewer's public progress page counts (only what is already public); null without a public
- * record, and from an API that does not send it yet.
+ * Your progress' Share, from the viewer's Skills page: `public` while everyone can see it, `hidden` while only they can,
+ * `not-yet` while nothing is on it. `path`: the Skills page.
  */
-export type LearnProgress = { counts: LearnProgressCounts; publicCounts?: LearnProgressCounts | null };
+export type ProgressShare = { state: 'public' | 'hidden' | 'not-yet'; path: string };
 
 /** The viewer's own lesson (written for their pull request), or another learner's they took as practice. */
 export type LearnProgressLessonKind = 'OWN' | 'PRACTICE';

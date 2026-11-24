@@ -9,6 +9,7 @@ import {
   progressViewOf,
 } from '@/lib/learn/progress/progress';
 import { loadLearnProgress, loadProgressList } from '@/lib/learn/progress/progress.data';
+import type { ProgressShare } from '@/lib/learn/progress/progress.types';
 import { loadPullRequestsPage, viewerLogin } from '@/lib/workspace/contribute.data';
 import { notEnteredTargetOf } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
@@ -23,11 +24,11 @@ type Search = Record<string, string | string[] | undefined>;
  */
 export async function ProgressView({
   searchParams,
-  shareUrlOf,
+  loadShare,
 }: {
   searchParams: Promise<Search>;
-  /** The full address of a login's public page, the link Share copies. */
-  shareUrlOf: (login: string) => string;
+  /** Share, from the Skills page of the login signed in: read per request, null when it could not be read. */
+  loadShare: (login: string) => Promise<ProgressShare | null>;
 }) {
   const search = await searchParams;
   const view = progressViewOf(search.view);
@@ -55,9 +56,9 @@ export async function ProgressView({
 
   const list = await listRead;
   if (list === null) notFound();
-  // The Share control's link: the login the viewer is signed in with.
+  // Share: the Skills page of the login the viewer is signed in with, read beside the count of open pull requests.
   const login = await viewerLogin();
-  const share = login ? { url: shareUrlOf(login), publicCounts: progress?.publicCounts ?? null } : undefined;
+  const shareRead = login ? loadShare(login) : Promise.resolve(null);
   const last = list ? lastPageOf(progressTotalOf(list)) : page;
   if (page > last) redirect(progressPath({ view, page: last }));
   // No merged pull request yet: how many are open now, the Pull requests tab's own count.
@@ -65,5 +66,7 @@ export async function ProgressView({
   const openPrs = noneMerged
     ? ((await loadPullRequestsPage({ page: 1, state: 'OPEN', mode: 'LEARN' }))?.total ?? null)
     : undefined;
-  return <ProgressScreen view={view} page={page} counts={counts} list={list} openPrs={openPrs} share={share} />;
+  return (
+    <ProgressScreen view={view} page={page} counts={counts} list={list} openPrs={openPrs} share={await shareRead} />
+  );
 }

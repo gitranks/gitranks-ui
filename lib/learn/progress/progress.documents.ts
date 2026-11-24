@@ -17,7 +17,6 @@ export const LearnProgressDocument = doc<{ learnProgress: LearnProgress }>(
   `query LearnProgress {
     learnProgress {
       counts { lessonsPassed newThings reposHelped prsMerged prsOpened }
-      publicCounts { lessonsPassed newThings reposHelped prsMerged prsOpened }
     }
   }`,
 );

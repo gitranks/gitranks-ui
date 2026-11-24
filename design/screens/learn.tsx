@@ -13,7 +13,7 @@ import {
   reposPage,
   zeroCounts,
 } from '@/lib/learn/progress/__fixtures__/progress';
-import type { LearnProgressCounts } from '@/lib/learn/progress/progress.types';
+import type { ProgressShare } from '@/lib/learn/progress/progress.types';
 
 /** Your progress's lists, one per view. */
 const progress = {
@@ -38,13 +38,13 @@ const frame = (children: ReactNode) => (
   </>
 );
 
-/** Your progress with its Share control, as a learner with a public record (or none) reads it. */
-const shared = (publicCounts: LearnProgressCounts | null) => ({
+/** Your progress with its Share, by the learner's Skills page: everyone sees it, only they do, or nothing is on it. */
+const shared = (state: ProgressShare['state']) => ({
   view: 'lessons' as const,
   page: 1,
   counts: progressCounts,
   list: progress.lessons,
-  share: { url: 'https://gitranks.com/profile/octocat/skills', publicCounts },
+  share: { state, path: '/profile/octocat/skills' },
 });
 
 export const LEARN_SCREENS: Screen[] = [
@@ -176,24 +176,24 @@ export const LEARN_SCREENS: Screen[] = [
       },
       {
         id: 'share',
-        title: 'Share: the public page counts as much as Your progress',
+        title: 'Share: everyone can see the Skills page, Copy link',
         path: '/my/progress',
         height: 1700,
-        render: () => frame(<ProgressScreen {...shared(progressCounts)} />),
+        render: () => frame(<ProgressScreen {...shared('public')} />),
       },
       {
-        id: 'share-differ',
-        title: 'Share: the public page counts fewer lessons, and says why',
+        id: 'share-hidden',
+        title: 'Share: only the learner can see the Skills page, the way to show it',
         path: '/my/progress',
         height: 1700,
-        render: () => frame(<ProgressScreen {...shared({ ...progressCounts, lessonsPassed: 5, newThings: 9 })} />),
+        render: () => frame(<ProgressScreen {...shared('hidden')} />),
       },
       {
-        id: 'share-none',
-        title: 'Share: nothing public yet, no button',
+        id: 'share-not-yet',
+        title: 'Share: nothing on the Skills page yet, no button',
         path: '/my/progress',
         height: 1700,
-        render: () => frame(<ProgressScreen {...shared(null)} />),
+        render: () => frame(<ProgressScreen {...shared('not-yet')} />),
       },
     ],
   },

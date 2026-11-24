@@ -24,7 +24,7 @@ const { LearnLessonStatePill } = await import('./learn-lesson-state-pill');
 const fixtures = await import('@/lib/learn/progress/__fixtures__/progress');
 
 import type { ProgressScreenProps } from './progress-screen';
-import type { LearnPrLabel } from '@/lib/learn/progress/progress.types';
+import type { LearnPrLabel, ProgressShare } from '@/lib/learn/progress/progress.types';
 
 const { learnedPage, lessonsPage, mergedPage, progressCounts, reposPage, zeroCounts } = fixtures;
 
@@ -293,11 +293,14 @@ describe('LearnLessonStatePill', () => {
 
 describe('the page’s reads and gate', () => {
   const open = { kind: 'open', entered: true, agents: { hosted: false, own: true } };
+  const loadShare = vi.fn(
+    async (login: string): Promise<ProgressShare | null> => ({
+      state: 'public',
+      path: `/profile/${login}/skills`,
+    }),
+  );
   const view = (search: Record<string, string> = {}) =>
-    ProgressView({
-      searchParams: Promise.resolve(search),
-      shareUrlOf: (login) => `https://gitranks.com/profile/${login}/skills`,
-    });
+    ProgressView({ searchParams: Promise.resolve(search), loadShare });
 
   afterEach(() => {
     vi.clearAllMocks();
@@ -364,60 +367,55 @@ describe('the page’s reads and gate', () => {
     expect(text(html)).toContain('3 are open.');
   });
 
-  it('gives the Share control the viewer’s public link and what their public page counts', async () => {
+  it('reads Share from the Skills page of the login signed in', async () => {
     gate.loadWorkspaceGate.mockResolvedValue(open);
-    data.loadLearnProgress.mockResolvedValue({
-      counts: progressCounts,
-      publicCounts: { ...progressCounts, lessonsPassed: 5 },
-    });
+    data.loadLearnProgress.mockResolvedValue({ counts: progressCounts });
     data.loadProgressList.mockResolvedValue({ view: 'lessons', lessons: lessonsPage });
     const html = renderToStaticMarkup(await view());
-    expect(html).toContain('data-share="differ"');
-    expect(text(html)).toContain('Your public page counts 5 lessons.');
+    expect(loadShare).toHaveBeenCalledWith('octocat');
+    expect(html).toContain('data-share="public"');
+  });
+
+  it('leaves Share out when the Skills page could not be read', async () => {
+    gate.loadWorkspaceGate.mockResolvedValue(open);
+    data.loadLearnProgress.mockResolvedValue({ counts: progressCounts });
+    data.loadProgressList.mockResolvedValue({ view: 'lessons', lessons: lessonsPage });
+    loadShare.mockResolvedValueOnce(null);
+    const html = renderToStaticMarkup(await view());
+    expect(html).not.toContain('data-share');
   });
 });
 
 describe('Your progress: Share', () => {
-  const share = (publicCounts: ProgressScreenProps['counts'] | null) =>
-    screen({ share: { url: 'https://gitranks.com/profile/octocat/skills', publicCounts: publicCounts ?? null } });
+  const share = (state: ProgressShare['state']) => screen({ share: { state, path: '/profile/octocat/skills' } });
 
-  it('copies the public link when the public page counts as much as Your progress', () => {
-    const html = share(progressCounts);
-    expect(html).toContain('data-share="equal"');
-    expect(text(html)).toContain('Share your progress');
-    expect(text(html)).toContain('Copies your public link. Posted anywhere, it shows a card with your numbers.');
-    expect(text(html)).not.toContain('Your public page counts');
+  it('copies the Skills page’s link while everyone can see it, with no count of its own', () => {
+    const html = share('public');
+    expect(html).toContain('data-share="public"');
+    expect(text(html)).toContain('Copy link');
+    expect(text(html)).toContain('Everyone can see your Skills page');
+    expect(html).toContain('href="/profile/octocat/skills"');
+    expect(text(html)).not.toContain('counts');
   });
 
-  it('says why the public page counts less', () => {
-    const html = share({ ...progressCounts, lessonsPassed: 1, newThings: 2 });
-    expect(html).toContain('data-share="differ"');
-    expect(text(html)).toContain(
-      'Your public page counts 1 lesson. A lesson is counted there once its pull request is open, and a practice lesson once you share your result.',
-    );
+  it('leads to a hidden Skills page to show it, with no Copy', () => {
+    const html = share('hidden');
+    expect(html).toContain('data-share="hidden"');
+    expect(text(html)).toContain('Only you can see your Skills page. Open it to show it to everyone.');
+    expect(html).toContain('href="/profile/octocat/skills"');
+    expect(text(html)).not.toContain('Copy link');
   });
 
-  it('names the count that differs: merged pull requests whose repository is no longer public', () => {
-    const html = share({ ...progressCounts, prsMerged: progressCounts.prsMerged - 1, reposHelped: 1 });
-    expect(html).toContain('data-share="differ"');
-    expect(text(html)).not.toContain('lesson is counted there');
-    expect(text(html)).toContain(
-      `Your public page counts ${progressCounts.prsMerged - 1} pull requests merged in 1 repository. A merged pull request is counted there while its repository is public.`,
-    );
-    const learned = share({ ...progressCounts, newThings: 3 });
-    expect(text(learned)).toContain(
-      'Your public page counts 3 new things learned. It counts the new things of the results that are public.',
-    );
+  it('says it can be shared once the Skills page has something to show', () => {
+    const html = share('not-yet');
+    expect(html).toContain('data-share="not-yet"');
+    expect(text(html)).toContain('You can share your Skills page once it has something to show.');
+    expect(text(html)).not.toContain('Copy link');
   });
 
-  it('offers no button before anything is public, and nothing before a first pass', () => {
-    const none = share(null);
-    expect(none).toContain('data-share="no-record"');
-    expect(text(none)).toContain(
-      'You can share once your first pull request opens, or after you share a practice result.',
-    );
-    expect(text(none)).not.toContain('Share your progress');
-    const empty = screen({ counts: zeroCounts, list: undefined, share: { url: 'u', publicCounts: null } });
+  it('shows no Share without a Skills read, nor before a first pass', () => {
+    expect(screen({ share: null })).not.toContain('data-share');
+    const empty = screen({ counts: zeroCounts, list: undefined, share: { state: 'public', path: '/p' } });
     expect(empty).not.toContain('data-share');
   });
 });

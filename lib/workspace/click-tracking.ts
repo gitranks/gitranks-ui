@@ -126,8 +126,6 @@ export type LearnEvent =
        * Start page in Fix mode sends `contribute_start_view` and `contribute_start_claimed` the same way.
        */
       event:
-        | 'lesson_opened'
-        | 'result_opened'
         | 'promo_shown'
         | 'learn_start_view'
         | 'learn_start_claimed'

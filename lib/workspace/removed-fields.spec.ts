@@ -11,8 +11,9 @@ import { PACES } from './format';
 /**
  * What the pages no longer ask the API for, now that a pause is lifted only by fixing the key and starting issues is
  * the hosted agent's level: no operation pauses or resumes contributing or reads the pause, no `contributor` selects
- * `paused` or `pausedByYou`, no settings select or send `autopilot`, and a pace is even or fast. The API removes these
- * once this holds on the main branch, so this spec is that gate: it reads every document the pages send.
+ * `paused` or `pausedByYou`, no settings select or send `autopilot`, a pace is even or fast, and nothing reads a
+ * person's old Learn record (`learnRecord`, `learnPublicProgress`). The API removes these once this holds on the main
+ * branch, so this spec is that gate: it reads every document the pages send.
  *
  * "Every document": each one `graphql`'s `parse` builds when its module loads (every source file that imports `parse`
  * is loaded here, so a document need not be exported, nor live in a `*.documents.ts`), and each `.gql` file.
@@ -85,7 +86,13 @@ const whereOf = (path: string, document: DocumentNode) => {
   return `${relative(ROOT, path)} ${names.join(', ') || '(unnamed)'}`;
 };
 
-const REMOVED_OPERATIONS = ['pauseContributing', 'resumeContributing', 'ContributePaused'];
+const REMOVED_OPERATIONS = [
+  'pauseContributing',
+  'resumeContributing',
+  'ContributePaused',
+  'learnRecord',
+  'learnPublicProgress',
+];
 /** The fields whose selection is the contributor's settings. */
 const SETTINGS_FIELDS = ['settings', 'contributeSettings', 'setContributeSettings'];
 /** The mutations that send settings, where an `autopilot` field or a `QUEUED` pace would go. */
@@ -158,7 +165,7 @@ describe('the fields the API removes after this', () => {
     }
   });
 
-  it('asks for no pause or resume, no paused or pausedByYou on contributor, and no autopilot setting', async () => {
+  it('asks for no pause or resume, no paused or pausedByYou on contributor, no autopilot setting, no Learn record', async () => {
     const found = (await documents()).flatMap(({ where, document }) => removedIn(where, document));
     expect(found).toEqual([]);
   });
@@ -170,7 +177,9 @@ describe('the fields the API removes after this', () => {
         mutation M { resumeContributing pauseContributing }
         query S { contributeSettings { autopilot } }
         mutation W { setContributeSettings(settings: { autopilot: true, pace: QUEUED }) { autopilot } }
-        mutation K { connectClaudeKey(input: { limits: { pace: QUEUED } }) { result } }`),
+        mutation K { connectClaudeKey(input: { limits: { pace: QUEUED } }) { result } }
+        query LearnRecord { learnRecord(login: "a") { lessons } }
+        query P { learnPublicProgress(login: "a") { total } }`),
     );
     expect(caught).toEqual([
       'probe: operation ContributePaused',
@@ -184,6 +193,9 @@ describe('the fields the API removes after this', () => {
       'probe: setContributeSettings(… autopilot: …)',
       'probe: setContributeSettings(… QUEUED …)',
       'probe: connectClaudeKey(… QUEUED …)',
+      'probe: operation LearnRecord',
+      'probe: field learnRecord',
+      'probe: field learnPublicProgress',
     ]);
     const clean = `query Q { contribute { contributor { status settings { pace } } } }
       mutation W($settings: ContributeSettingsInput!) { setContributeSettings(settings: $settings) { pace } }

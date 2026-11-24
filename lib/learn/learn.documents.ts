@@ -1,6 +1,6 @@
 import { parse } from 'graphql';
 
-import type { LearnAttemptLesson, LearnRecord, LessonAnswerResult, LessonRun, LessonWarmupAnswer } from './learn.types';
+import type { LearnAttemptLesson, LessonAnswerResult, LessonRun, LessonWarmupAnswer } from './learn.types';
 import type DocumentNode from '@/types/typed-document-node';
 
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
@@ -80,9 +80,4 @@ export const AnswerLessonQuestionDocument = doc<
 
 export const RemoveLessonDocument = doc<{ removeLesson: boolean }, { slug: string }>(
   'mutation RemoveLesson($slug: String!) { removeLesson(slug: $slug) }',
-);
-
-/** A login's public Learn record, the same for every reader; null without a public pass. */
-export const LearnRecordDocument = doc<{ learnRecord: LearnRecord | null }, { login: string }>(
-  'query LearnRecord($login: String!) { learnRecord(login: $login) { login lessons newThings topics prsOpened prsMerged reposHelped } }',
 );

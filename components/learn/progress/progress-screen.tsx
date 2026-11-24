@@ -18,7 +18,7 @@ import {
   progressPath,
   progressTotalOf,
 } from '@/lib/learn/progress/progress';
-import type { LearnProgressCounts } from '@/lib/learn/progress/progress.types';
+import type { LearnProgressCounts, ProgressShare } from '@/lib/learn/progress/progress.types';
 import { PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** What Your progress shows: the numbers, the view the address names and a page of its list. */
@@ -34,8 +34,8 @@ export type ProgressScreenProps = {
   list?: ProgressList;
   /** The viewer's Learn pull requests open now, for the merged views' empty state; null when not known. */
   openPrs?: number | null;
-  /** The Share control's facts: the viewer's public link and what their public page counts. */
-  share?: { url: string; publicCounts: LearnProgressCounts | null };
+  /** Share, from the viewer's Skills page; left out when it could not be read. */
+  share?: ProgressShare | null;
 };
 
 /** One sentence above each view's list. */
@@ -183,13 +183,7 @@ export function ProgressScreen({ view, page, counts, list, openPrs, share }: Pro
   }));
   return (
     <div data-progress={empty ? 'empty' : view} className="flex flex-col gap-5">
-      <Head
-        share={
-          share && !empty ? (
-            <ShareProgress url={share.url} counts={counts} publicCounts={share.publicCounts} />
-          ) : undefined
-        }
-      />
+      <Head share={share && !empty ? <ShareProgress share={share} /> : undefined} />
       <ViewTabs tabs={tabs} label="Your progress" current={view} />
       {empty ? (
         <>

@@ -117,3 +117,86 @@ describe("Learn home's quiet third box", () => {
     expect(host.querySelector('[data-issues-email]')?.getAttribute('data-issues-email')).toBe('no-address');
   });
 });
+
+describe("Learn home's email line while it waits for an address", () => {
+  const fetchMock = vi.fn();
+  let clock = 1_000_000;
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    fetchMock.mockReset();
+    vi.spyOn(Date, 'now').mockImplementation(() => clock);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+  const comeBack = () =>
+    act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+  const answer = (email: unknown) => new Response(JSON.stringify({ email }), { status: 200 });
+  const waiting = () => (
+    <LearnHomeView
+      home={homeDay}
+      setup={homeSetup}
+      now={HOME_NOW}
+      timeZone={null}
+      hints
+      real={{ ...homeRealNone, box: { kind: 'none', emailOn: true, emailTo: null } }}
+    />
+  );
+  const line = () => host.querySelector('[data-issues-email]')?.getAttribute('data-issues-email');
+
+  it('reads the email again when the person comes back, once at a time, and changes the line in place', async () => {
+    let land!: (response: Response) => void;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          land = resolve;
+        }),
+    );
+    await draw(waiting());
+    expect(fetchMock).not.toHaveBeenCalled();
+    await comeBack();
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/me/learn/home/issues-email', { cache: 'no-store' });
+    // A read in flight: no second one.
+    clock += 60_000;
+    await comeBack();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    await act(async () => land(answer({ emailOn: true, emailTo: 'octocat@example.com' })));
+    expect(line()).toBe('on');
+    expect(host.textContent).toContain('octocat@example.com');
+    // The line no longer waits: no more reads.
+    clock += 60_000;
+    await comeBack();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('reads at least 30 seconds apart while the address is still missing, and keeps the line on a failure', async () => {
+    fetchMock.mockImplementation(async () => answer({ emailOn: true, emailTo: null }));
+    await draw(waiting());
+    await comeBack();
+    clock += 29_000;
+    await comeBack();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    clock += 2_000;
+    await comeBack();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    fetchMock.mockImplementation(async () => new Response('{}', { status: 500 }));
+    clock += 31_000;
+    await comeBack();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(line()).toBe('no-address');
+  });
+
+  it('reads nothing while the line does not wait for an address', async () => {
+    await draw(
+      <LearnHomeView home={homeDay} setup={homeSetup} now={HOME_NOW} timeZone={null} hints real={homeRealNone} />,
+    );
+    await comeBack();
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

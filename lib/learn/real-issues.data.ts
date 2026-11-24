@@ -5,6 +5,7 @@ import { fixesCached } from './issues.data';
 import { isContentSlug } from './paths';
 import {
   type HomeReal,
+  homeIssuesEmailOf,
   homeRealOf,
   type LessonRealMine,
   lessonRealOf,
@@ -74,6 +75,14 @@ export async function loadHomeReal(githubLogin: string): Promise<HomeReal> {
     quietly(graphqlDirect(HomeFixesDocument, undefined, as)),
   ]);
   return homeRealOf(issues?.learnHome, fixes?.learnHome);
+}
+
+/** Learn home's list email, read again while the person has no address; null on any failure. */
+export async function loadHomeIssuesEmail(
+  githubLogin: string,
+): Promise<{ emailOn: boolean; emailTo: string | null } | null> {
+  const read = await quietly(graphqlDirect(HomeIssuesDocument, undefined, { source: 'ssr', githubLogin }));
+  return homeIssuesEmailOf(read?.learnHome);
 }
 
 /** A course's open issues of the person's list, for lessons of the course; null for none, and on any failure. */

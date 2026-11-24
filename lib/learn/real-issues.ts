@@ -194,6 +194,13 @@ export function pullRequestRowOf(value: unknown): PullRequestListRow | null {
   };
 }
 
+/** The email for a new issue on the person's list, as Learn home's issues read answers it; null when it does not. */
+export function homeIssuesEmailOf(issuesRead: unknown): { emailOn: boolean; emailTo: string | null } | null {
+  const list = recordOf(recordOf(issuesRead)?.issues);
+  if (!list || typeof list.emailOn !== 'boolean') return null;
+  return { emailOn: list.emailOn, emailTo: textOf(list.emailTo) };
+}
+
 /** Where a fix stands for the third box; null for one that ended without a merge. */
 export function homeFixStateOf(row: Pick<PullRequestListRow, 'group' | 'mark'>): HomeFixState | null {
   if (row.group === 'NEEDS_YOU') return 'needs-you';

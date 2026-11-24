@@ -11,7 +11,9 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect: m.graphqlDirect 
 vi.mock('./issues.data', () => ({ fixesCached: m.fixesCached }));
 vi.mock('@/lib/workspace/masked-issue.data', () => ({ loadMaskedListReads: m.loadMaskedListReads }));
 
-const { loadCourseOpenIssues, loadHomeReal, loadLessonRealMine, loadMergedFixes } = await import('./real-issues.data');
+const { loadCourseOpenIssues, loadHomeIssuesEmail, loadHomeReal, loadLessonRealMine, loadMergedFixes } = await import(
+  './real-issues.data'
+);
 const { NO_HOME_REAL, NO_LESSON_REAL } = await import('./real-issues');
 const { issueRows, learnFixes } = await import('./__fixtures__/issues');
 const { homeFixNeedsYou, myFixOpen } = await import('./__fixtures__/real-issues');
@@ -157,5 +159,20 @@ describe("a course's open issues", () => {
     m.graphqlDirect.mockRejectedValueOnce(unknownField('openIssues', 'LearnCourseMine'));
     expect(await loadCourseOpenIssues('algorithms', 'octocat')).toBeNull();
     expect(await loadCourseOpenIssues('../x', 'octocat')).toBeNull();
+  });
+});
+
+describe("Learn home's list email, read again", () => {
+  it('is the email of the home issues read, as the person, and none on a failure or with none', async () => {
+    m.graphqlDirect.mockResolvedValueOnce({ learnHome: { issues: { rows: [], emailOn: true, emailTo: 'a@b.c' } } });
+    expect(await loadHomeIssuesEmail('octocat')).toEqual({ emailOn: true, emailTo: 'a@b.c' });
+    expect(operationOf(m.graphqlDirect.mock.calls[0])).toBe('HomeIssues');
+    expect(m.graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr', githubLogin: 'octocat' });
+    m.graphqlDirect.mockResolvedValueOnce({ learnHome: { issues: { rows: [], emailOn: true, emailTo: '' } } });
+    expect(await loadHomeIssuesEmail('octocat')).toEqual({ emailOn: true, emailTo: null });
+    m.graphqlDirect.mockResolvedValueOnce({ learnHome: null });
+    expect(await loadHomeIssuesEmail('octocat')).toBeNull();
+    m.graphqlDirect.mockRejectedValueOnce(unknownField('emailOn', 'LearnQueue'));
+    expect(await loadHomeIssuesEmail('octocat')).toBeNull();
   });
 });

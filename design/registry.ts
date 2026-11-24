@@ -61,5 +61,7 @@ export type Screen = {
   route: string;
   /** The files that draw it, so an agent starts from the code. */
   sources: string[];
+  /** `false` keeps the screen out of the export while it is drawn here only; the export draws every other screen. */
+  exported?: boolean;
   states: ScreenState[];
 };

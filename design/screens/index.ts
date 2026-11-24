@@ -2,6 +2,7 @@ import type { Screen } from '../registry';
 import { ADMIN_SCREENS } from './admin';
 import { BADGES_SCREENS } from './badges';
 import { CONTRIBUTE_SCREENS } from './contribute';
+import { HELD_BACK_SCREENS } from './held-back';
 import { LANDING_SCREENS } from './landing';
 import { LEARN_SCREENS } from './learn';
 import { LEARN_FRAME_SCREENS } from './learn-frame';
@@ -31,6 +32,7 @@ export const SCREENS: Screen[] = [
   ...WORKSPACE_LESSON_SCREENS,
   ...START_SCREENS,
   ...WORKSPACE_PART_SCREENS,
+  ...HELD_BACK_SCREENS,
   ...LEARN_SCREENS,
   ...LEARN_FRAME_SCREENS,
   ...ADMIN_SCREENS,

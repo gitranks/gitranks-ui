@@ -10,6 +10,7 @@ import { boardOf, boardPathOf } from './board';
 import { drawImages } from './images';
 import { AREAS, type DesignGlobals } from './registry';
 import { SCREENS } from './screens';
+import { HELD_BACK_SCREENS } from './screens/held-back';
 
 const OUT = join(process.cwd(), '.design');
 
@@ -48,7 +49,16 @@ it('exports the screens', async () => {
   const images = new Set<string>();
   // A fresh drawing: boards and images an earlier export wrote and this one no longer draws don't linger.
   rmSync(join(OUT, 'project/current'), { recursive: true, force: true });
+  // A screen held back from the export is drawn by `held-back.spec.tsx` instead, which reads the list.
+  const held = SCREENS.filter((screen) => screen.exported === false).map((screen) => screen.id);
+  const listed = HELD_BACK_SCREENS.map((screen) => screen.id);
+  if (held.join() !== listed.join()) {
+    throw new Error(
+      `Held back but not listed in design/screens/held-back.ts, or listed and exported: ${held} vs ${listed}`,
+    );
+  }
   for (const screen of SCREENS) {
+    if (screen.exported === false) continue;
     for (const state of screen.states) {
       const path = boardPathOf(screen, state);
       const [pathname, search = ''] = state.path.split('?');

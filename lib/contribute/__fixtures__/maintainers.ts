@@ -45,7 +45,8 @@ export const maintainerFacts = (patch: Partial<ContributeMaintainerFacts> = {}):
   configKeys: [
     key({
       key: 'contribute',
-      meaning: 'off keeps GitRanks Contribute out of the repository: no issue is picked, no pull request opened',
+      meaning:
+        'off keeps GitRanks out of the repository, Contribute and Learn: no issue is picked, no pull request opened',
       live: true,
       page: false,
     }),
@@ -83,9 +84,9 @@ export const maintainerFacts = (patch: Partial<ContributeMaintainerFacts> = {}):
     key({
       key: 'learn',
       kind: 'welcomeOff',
-      values: 'welcome',
+      values: 'welcome | off',
       meaning:
-        'GitRanks Learn pull requests are welcome, even where good first issues and first contributions are kept for people (to keep all GitRanks pull requests out, use contribute: off)',
+        'welcome takes GitRanks Learn pull requests on issues you keep for first-time contributors too. off keeps GitRanks Learn out, and Contribute stays',
       live: true,
       page: false,
     }),

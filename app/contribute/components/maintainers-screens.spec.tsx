@@ -103,15 +103,22 @@ describe('the maintainers page', () => {
     expect(part).toContain('href="#work-with-us"');
   });
 
-  it('lists the learn key in the rules file’s keys, with what the API says it does', () => {
+  it('lists the learn key in the rules file’s keys, with what the API says it does, and never in the example', () => {
     const html = page();
     const keys = text(html.split('data-config-keys=""')[1].split('</dl>')[0]);
 
-    expect(keys).toContain('contribute: on | off');
-    expect(keys).toContain('learn: welcome GitRanks Learn pull requests are welcome');
+    expect(keys).toContain(
+      'contribute: on | off off keeps GitRanks out of the repository, Contribute and Learn: no issue is picked, no pull request opened',
+    );
+    expect(keys).toContain(
+      'learn: welcome | off welcome takes GitRanks Learn pull requests on issues you keep for first-time contributors too. off keeps GitRanks Learn out, and Contribute stays',
+    );
     expect(text(html.split('data-config-card')[1].split('</pre>')[0])).toContain(
       '# off keeps GitRanks out: Contribute and Learn contribute: on',
     );
+    expect(text(html.split('data-config-card')[1].split('</pre>')[0])).not.toContain('learn:');
+    // Every key live: the example shows the rules, still without learn.
+    expect(text(page(allLiveFacts()).split('data-config-card')[1].split('</pre>')[0])).not.toContain('learn:');
   });
 
   it('takes every number from the facts, never its own', () => {

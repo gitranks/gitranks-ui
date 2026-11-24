@@ -244,6 +244,7 @@ export function BadgeBuilder() {
           changeHref={hrefs.find}
           onChange={() => go({ kind: null })}
           onPick={({ badge, style }) => go({ kind: facts.kind, name: entityName(facts), badge, style })}
+          now={now}
         />
       ) : facts && state.badge && step === 'style' ? (
         <StyleStep

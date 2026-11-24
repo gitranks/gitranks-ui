@@ -19,20 +19,22 @@
 // | Shared pages (both products open them:  | anything but either product's own: lib/learn/, components/learn/,       |
 // |   (workspace)/my/ and (player)/my/,     |   lib/contribute/, components/contribute/ and either product's pages    |
 // |   Approve included)                     |                                                                         |
-// | lib/skills/ (Skills, shared by both     | itself, Learn's read-only parts (lib/learn/ but its server actions),    |
-// |   products)                             |   lib/workspace/                                                        |
+// | lib/skills/ (Skills, shared by both     | itself, Learn's read-only parts (lib/learn/), lib/workspace/; never a   |
+// |   products)                             |   server action                                                         |
 // | components/skills/                      | itself, lib/skills/, Learn's read-only parts (lib/learn/ and            |
-// |                                         |   components/learn/ but Learn's server actions), components/workspace/, |
-// |                                         |   lib/workspace/                                                        |
+// |                                         |   components/learn/), components/workspace/, lib/workspace/; never a    |
+// |                                         |   server action                                                         |
 // | The Skills page (app/profile/[login]/   | anything but Contribute's own (lib/contribute/, components/contribute/, |
-// |   skills/)                              |   its pages), Learn's pages and Learn's server actions                  |
+// |   skills/)                              |   its pages), Learn's pages and any server action                       |
 //
-// Learn's own parts include components/learn/entity/, the Learn card on a project's page. Learn's server actions are
-// its modules named `actions` or `<name>.actions`: what changes a learner's data, never read by Skills.
+// Learn's own parts include components/learn/entity/, the Learn card on a project's page. A server action module is
+// one whose file starts with the `'use server'` directive, or one of Learn's modules named `actions` or
+// `<name>.actions`: what changes a person's data, never imported by Skills. Only a direct import is checked: an action
+// a client component imports, drawn by Skills, is not followed.
 //
 // Specs and fixtures are not checked. The imports that still cross are listed in `ALLOWED` below, by the importing
 // file and the imported module; the list only shrinks: an entry that no longer crosses fails the check too.
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, posix, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -138,17 +140,32 @@ const MAY_NOT_IMPORT = {
 /** The folders of Skills, which read Learn but never change a learner's data. */
 const SKILLS_ZONES = new Set(['lib/skills', 'components/skills', 'app/skills']);
 
-/** Whether a module is one of Learn's server actions: `actions` or `<name>.actions` in Learn's folders. */
+/** Whether a module is one of Learn's server actions by its name: `actions` or `<name>.actions` in Learn's folders. */
 const isLearnAction = (module) =>
   (zoneOf(module) === 'lib/learn' || zoneOf(module) === 'components/learn') && /(?:^|[/.])actions$/.test(module);
 
-/** Whether a file at `from` may not import the module at `to` (both repo paths). */
-export function crosses(from, to) {
+/** Whether a source is a server action module: `'use server'` among the directives it starts with, after any comments. */
+export function isServerActionSource(source) {
+  let rest = source.replace(/^﻿/, '');
+  for (;;) {
+    rest = rest.replace(/^(?:\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/)+/, '');
+    const directive = /^(['"])([^'"\n]*)\1\s*;?/.exec(rest);
+    if (!directive) return false;
+    if (directive[2] === 'use server') return true;
+    rest = rest.slice(directive[0].length);
+  }
+}
+
+/**
+ * Whether a file at `from` may not import the module at `to` (both repo paths). `isServerAction` tells whether a
+ * module's file is a server action module, which no Skills folder imports.
+ */
+export function crosses(from, to, isServerAction = () => false) {
   const a = zoneOf(from);
   const b = zoneOf(to);
+  if (SKILLS_ZONES.has(a) && (isLearnAction(to) || isServerAction(to))) return true;
   // Site-wide modules: every folder may import them. `lib/auth/` is one, with its own imports checked.
   if (!a || !b || b === 'lib/auth') return false;
-  if (SKILLS_ZONES.has(a) && isLearnAction(to)) return true;
   if (MAY_IMPORT[a]) return !MAY_IMPORT[a].includes(b);
   return (MAY_NOT_IMPORT[a] ?? []).includes(b);
 }
@@ -166,11 +183,11 @@ export function moduleOf(file, specifier) {
 }
 
 /** Every import of `source` (a file at `file`) the rule forbids, as `<file> -> <module>`. */
-export function crossingsOf(file, source) {
+export function crossingsOf(file, source, isServerAction = () => false) {
   const found = new Set();
   for (const match of source.matchAll(SPECIFIER)) {
     const module = moduleOf(file, match[2]);
-    if (module && crosses(file, module)) found.add(`${file} -> ${module}`);
+    if (module && crosses(file, module, isServerAction)) found.add(`${file} -> ${module}`);
   }
   return [...found];
 }
@@ -190,6 +207,21 @@ export function problemsOf(crossings, allowed = ALLOWED) {
   ];
 }
 
+/** The endings a module's file may have, `index` files included. */
+const MODULE_FILES = ['.ts', '.tsx', '.mjs', '.js', '/index.ts', '/index.tsx'];
+
+/** Whether a module (a repo path without its extension) is a server action module, read from its file under `root`. */
+export function serverActionsUnder(root) {
+  const known = new Map();
+  return (module) => {
+    if (!known.has(module)) {
+      const file = MODULE_FILES.map((ending) => join(root, `${module}${ending}`)).find((path) => existsSync(path));
+      known.set(module, file ? isServerActionSource(readFileSync(file, 'utf8')) : false);
+    }
+    return known.get(module);
+  };
+}
+
 function filesUnder(root, dir) {
   let entries;
   try {
@@ -206,7 +238,8 @@ function filesUnder(root, dir) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const root = relative(process.cwd(), fileURLToPath(new URL('..', import.meta.url))) || '.';
   const files = ['lib', 'components', 'app'].flatMap((dir) => filesUnder(root, dir)).filter(isChecked);
-  const crossings = files.flatMap((file) => crossingsOf(file, readFileSync(join(root, file), 'utf8')));
+  const isServerAction = serverActionsUnder(root);
+  const crossings = files.flatMap((file) => crossingsOf(file, readFileSync(join(root, file), 'utf8'), isServerAction));
   const problems = problemsOf(crossings);
   for (const problem of problems) console.error(`check-workspace-imports: ${problem}`);
   console.log(`check-workspace-imports: ${files.length} files, ${crossings.length} allowed crossings`);

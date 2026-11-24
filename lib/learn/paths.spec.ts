@@ -225,11 +225,24 @@ describe("a project course's addresses", () => {
 
   it("finds a repository's course by its owner and name, and an organisation's by its login", () => {
     expect(learnProjectCoursePath(repo)).toBe('/learn/repos/django/django');
-    expect(learnProjectCoursePath({ repo: 'Octo-Labs/scroll.guard', org: null })).toBe(
-      '/learn/repos/Octo-Labs/scroll.guard',
-    );
+    expect(learnProjectCoursePath({ repo: 'Octo-Labs/scroll.guard' })).toBe('/learn/repos/Octo-Labs/scroll.guard');
     expect(learnProjectCoursePath(org)).toBe('/learn/orgs/kubernetes');
-    expect(learnProjectCoursePath({ repo: null, org: 'Nebula' })).toBe('/learn/orgs/Nebula');
+    expect(learnProjectCoursePath({ org: 'Nebula' })).toBe('/learn/orgs/Nebula');
+  });
+
+  it.each([
+    ['an owner alone', { repo: 'owner' }],
+    ['an empty repository', { repo: '' }],
+    ['an empty owner', { repo: '/name' }],
+    ['an empty name', { repo: 'owner/' }],
+    ['two slashes', { repo: 'a/b/c' }],
+    ['an empty login', { org: '' }],
+  ])('refuses %s, in every address and tag', (_, project) => {
+    expect(() => learnProjectCoursePath(project)).toThrow();
+    expect(() => learnProjectCourseMarkdownPath(project)).toThrow();
+    expect(() => learnProjectCourseCardPath(project)).toThrow();
+    expect(() => learnProjectIssuesPath(project)).toThrow();
+    expect(() => learnEntityTag(project)).toThrow();
   });
 
   it('encodes each segment, and keeps the slash between owner and name', () => {

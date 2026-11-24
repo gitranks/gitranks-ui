@@ -154,6 +154,14 @@ describe('the share button', () => {
     expect(document.activeElement).toBe(input);
     expect([input?.selectionStart, input?.selectionEnd]).toEqual([0, URL_OF_PATH.length]);
 
+    // Refused again, with the field already there: it takes the focus back, selected.
+    container.querySelector('button')?.focus();
+    input?.setSelectionRange(0, 0);
+    await press();
+    expect(field()).toBe(input);
+    expect(document.activeElement).toBe(input);
+    expect([input?.selectionStart, input?.selectionEnd]).toEqual([0, URL_OF_PATH.length]);
+
     const writeText = copies();
     await press();
     expect(writeText).toHaveBeenCalledWith(URL_OF_PATH);

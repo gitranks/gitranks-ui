@@ -28,7 +28,7 @@ import {
   suggestedForOf,
   totalsLineOf,
 } from '@/lib/learn/home';
-import { LEARN_ABOUT_PATH, LEARN_EARLIER_PATH, LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
+import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
 import { learnTodayIn } from '@/lib/learn/my-progress';
 import {
   coursePath,
@@ -484,7 +484,7 @@ function FirstCourse({
   );
 }
 
-/** The foot: how Learn works, the page for maintainers, and the way Learn worked before its courses. */
+/** The foot: how Learn works, the page for maintainers, and Issues, where your agent fixes a real one. */
 export function LearnHomeFoot() {
   const link = cn('font-semibold text-link hover:underline', PHONE_LINK);
   return (
@@ -500,7 +500,7 @@ export function LearnHomeFoot() {
         For maintainers
       </Link>
       <span aria-hidden="true">·</span>
-      <Link href={LEARN_EARLIER_PATH} prefetch={false} className={link}>
+      <Link href={LEARN_ISSUES_PATH} className={link}>
         Fix a real issue with your agent
       </Link>
     </footer>

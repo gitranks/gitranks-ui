@@ -6,7 +6,7 @@ import { GITHUB_LOGIN as LOGIN, LESSON_SLUG as SLUG } from '@/lib/workspace/path
 export const LEARN_PATH = '/learn' as Route;
 /**
  * The way Learn worked before its courses: your agent fixes an issue and you take a lesson on the fix. Not indexed and
- * not in Learn's bar; Learn home's foot links it.
+ * not in Learn's bar; Learn's new pages lead to Issues instead.
  */
 export const LEARN_EARLIER_PATH = '/learn/earlier' as Route;
 /** The earlier page's practice lessons: a state without the section shows its top. */

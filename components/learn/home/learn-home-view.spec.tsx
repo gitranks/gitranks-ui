@@ -107,12 +107,12 @@ describe('Learn home, a normal day', () => {
     expect(other?.innerHTML).not.toContain('/learn/courses/go"');
   });
 
-  it("ends with the foot: How Learn works, maintainers, and today's Learn, the only link to it", () => {
+  it('ends with the foot: How Learn works, maintainers, and Issues, where your agent fixes a real one', () => {
     const links = [...page.querySelectorAll('[data-home-foot] a')].map((a) => [words(a), a.getAttribute('href')]);
     expect(links).toEqual([
       ['How Learn works', '/learn/about'],
       ['For maintainers', '/learn/maintainers'],
-      ['Fix a real issue with your agent', '/learn/earlier'],
+      ['Fix a real issue with your agent', '/learn/issues'],
     ]);
   });
 

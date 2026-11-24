@@ -3,7 +3,7 @@ import type { Route } from 'next';
 import type { ContributeAttempt, ContributeView } from './contribute.types';
 import { isMidSetup } from './contribute-state';
 import type { WorkspaceGate } from './gate';
-import { GETTING_IN_PATHS, type IssueRef, startPath, WORKSPACE_PATHS } from './paths';
+import { GETTING_IN_PATHS, type IssueRef, PICK_ISSUE_PATHS, startPath, WORKSPACE_PATHS } from './paths';
 
 /**
  * Who belongs where on the way in (getting in, §4 and §5.3): the step a landing's button resumes at, and what a step's
@@ -107,10 +107,10 @@ export function learnFlowPlaceOf(
     // Pick an issue and Your agent need a goal: saved, or in the address to save first; Your goal asks it otherwise.
     return step !== 'goal' && !goalSaved && !goalInAddress ? redirectTo(GETTING_IN_PATHS.learnGoal) : PAGE;
   }
-  // Entered: on to the Learn tab, or the issue's Start page in lesson mode; a goal the address carries and the account
-  // lacks is saved first.
-  if (step === 'goal') return redirectTo(WORKSPACE_PATHS.learn);
-  const to = step === 'issue' && issue ? startPath(issue, { lesson: true }) : WORKSPACE_PATHS.learn;
+  // Entered: Your goal on to Learn home, Pick an issue on to Learn's Issues, and an issue's start address on to its
+  // Start page in lesson mode; a goal the address carries and the account lacks is saved first.
+  if (step === 'goal') return redirectTo(WORKSPACE_PATHS.learnHome);
+  const to = step === 'issue' && issue ? startPath(issue, { lesson: true }) : PICK_ISSUE_PATHS.learn;
   return goalInAddress && !goalSaved ? { kind: 'apply-then', to } : redirectTo(to);
 }
 

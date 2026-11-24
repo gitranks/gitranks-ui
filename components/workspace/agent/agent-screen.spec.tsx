@@ -212,7 +212,9 @@ describe('the Agent tab, by who uses it (W1 §9.4)', () => {
 
   it('says there are no runs yet, naming both sides', () => {
     const none = pageOf({ items: [], repos: [], days: [] });
-    expect(render({ runs: none }).plain).toContain('No runs yet. Start an issue on Contribute or Learn .');
+    const { plain, html } = render({ runs: none });
+    expect(plain).toContain('No runs yet. Start an issue on Contribute or Learn .');
+    expect(html).toMatch(/data-runs="none"[^>]*>.*href="\/contribute".*href="\/learn\/issues"/);
   });
 
   it("says when the runs or the connections didn't load, and the rest of the page works", () => {
@@ -252,6 +254,7 @@ describe('the Agent tab with nothing connected', () => {
     expect(plain).toContain(
       'Next, pick an issue on Contribute or Learn and press Start. You can set up the other way later.',
     );
+    expect(html).toMatch(/data-agent-first-next=""[^>]*>.*href="\/contribute".*href="\/learn\/issues"/);
     expect(html).not.toContain('id="own-agent"');
     expect(html).not.toContain('id="hosted-agent"');
     expect(html).not.toContain('id="runs"');

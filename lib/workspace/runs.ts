@@ -297,7 +297,7 @@ const NOT_STARTED: Record<string, string> = {
   locked: 'The issue was locked',
   too_old: 'The issue was too old to take',
   assigned: 'Someone is assigned to it',
-  claimed_in_comments: 'Someone claimed it in the comments',
+  claimed_in_comments: 'Someone took it in the comments',
   linked_pr: 'A PR is already linked to it',
   merged_pr: 'A merged PR already fixed it',
   ref_pr: 'Another PR already references it',
@@ -405,10 +405,10 @@ export function runDaysOf(runs: ContributeRun[]): RunDay[] {
  */
 export function daySumLabel(day: ContributeRunsDay | undefined, usd: ((amount: number) => string) | null): string {
   if (!day) return '';
-  const parts = [`${day.runs} run${day.runs === 1 ? '' : 's'}`, ...(usd ? [usd(day.costUsd)] : [])];
+  const parts = [`${day.runs} run${day.runs === 1 ? '' : 's'}`, ...(usd && day.costUsd > 0 ? [usd(day.costUsd)] : [])];
   if (day.prs) parts.push(`${day.prs} PR${day.prs === 1 ? '' : 's'}`);
   return parts.join(' · ');
 }
 
-/** `42%`, or `—` with nothing to divide by. */
-export const percentLabel = (part: number, whole: number) => (whole ? `${Math.round((part / whole) * 100)}%` : '—');
+/** `42%`; empty with nothing to divide by, which the caller leaves out. */
+export const percentLabel = (part: number, whole: number) => (whole ? `${Math.round((part / whole) * 100)}%` : '');

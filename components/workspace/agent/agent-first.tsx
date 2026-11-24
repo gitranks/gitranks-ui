@@ -6,14 +6,17 @@ import { Pill } from '@/components/pill/pill';
 import { buttonVariants } from '@/components/ui/button';
 import { HEADING } from '@/components/workspace/primitives';
 import { cn } from '@/lib/utils';
-import { GETTING_IN_PATHS, MCP_DOCS_PATH, PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { FAQ_PATH, GETTING_IN_PATHS, MCP_DOCS_PATH, PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 const link = 'font-semibold text-link hover:underline';
 
 /** One fact of a way: what it is about, and the answer. */
 type Fact = { label: string; text: string };
 
-/** One way of doing the work, as a card: its name, its facts, and its one button. */
+/**
+ * One way of doing the work, as a card: its name (its pill's row kept on both, so the two line up), its facts, its
+ * link to read more, and its one button.
+ */
 function WayCard({
   title,
   recommended = false,
@@ -24,7 +27,7 @@ function WayCard({
   title: string;
   recommended?: boolean;
   facts: readonly Fact[];
-  extra?: ReactNode;
+  extra: ReactNode;
   button: { label: string; href: Route; primary: boolean };
 }) {
   return (
@@ -36,7 +39,7 @@ function WayCard({
         recommended ? 'border-2 border-primary' : 'border',
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex min-h-6 flex-wrap items-center justify-between gap-2">
         <h2 className={HEADING.card}>{title}</h2>
         {recommended ? <Pill tone="violet">Recommended</Pill> : null}
       </div>
@@ -102,6 +105,11 @@ export function AgentFirst({ entered }: { entered: boolean }) {
         <WayCard
           title="Hosted agent"
           facts={hosted}
+          extra={
+            <Link href={`${FAQ_PATH}#cost-per-pr` as Route} prefetch={false} className={cn(link, 'self-start text-sm')}>
+              What a run costs: the FAQ →
+            </Link>
+          }
           button={{
             label: 'Use a Claude key',
             href: entered ? WORKSPACE_PATHS.agentKey : GETTING_IN_PATHS.contributeAgentKey,

@@ -68,7 +68,9 @@ describe('the step after Allow', () => {
     expect(next?.textContent).toContain('While autopilot is off, each pull request waits for your approval');
     expect(next?.querySelector('a[href="/contribute"]')).not.toBeNull();
     expect(next?.querySelector('a[href="/contribute/mcp"]')?.textContent).toBe('The MCP docs');
-    expect(container.querySelector('[data-authorize="cancel"]')).toBeNull();
+    // Cancel keeps its place, off: the lines under the buttons do not move.
+    expect(container.querySelector('a[data-authorize="cancel"]')).toBeNull();
+    expect(container.querySelector<HTMLButtonElement>('button[data-authorize="cancel"]')?.disabled).toBe(true);
   });
 
   it('shows no next step when the address is not one we allow', async () => {

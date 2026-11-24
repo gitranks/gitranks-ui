@@ -89,13 +89,11 @@ describe('the consent page of an agent sign-in', () => {
     });
   });
 
-  it('names the repositories waiting, never an issue, and nothing when none waits', () => {
-    expect(waitingLineOf({ count: 7, repos: ['a/x', 'b/y', 'c/z'] })).toBe(
-      '7 issues are waiting for you, in a/x, b/y and c/z.',
-    );
-    expect(waitingLineOf({ count: 1, repos: ['a/x'] })).toBe('1 issue is waiting for you, in a/x.');
-    expect(waitingLineOf({ count: 1200, repos: [] })).toBe('1,200 issues are waiting for you.');
-    expect(waitingLineOf({ count: 0, repos: ['a/x'] })).toBeNull();
+  it('counts the issues waiting, names no project, and says nothing when none waits', () => {
+    expect(waitingLineOf({ count: 7 })).toBe('7 issues are waiting for you.');
+    expect(waitingLineOf({ count: 1 })).toBe('1 issue is waiting for you.');
+    expect(waitingLineOf({ count: 1200 })).toBe('1,200 issues are waiting for you.');
+    expect(waitingLineOf({ count: 0 })).toBeNull();
     expect(waitingLineOf(null)).toBeNull();
   });
 

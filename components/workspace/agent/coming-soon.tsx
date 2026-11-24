@@ -1,12 +1,13 @@
 'use client';
 
 import { BellIcon, CheckIcon } from 'lucide-react';
-import { useId, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { IconType } from 'react-icons';
 import { RiCursorAiFill, RiGeminiLine, RiGrokAiFill, RiOpenaiFill } from 'react-icons/ri';
 import { SiGithubcopilot, SiGooglejules } from 'react-icons/si';
 import { toast } from 'sonner';
 
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SignInButton } from '@/components/workspace/sign-in-dialog';
 import { cn } from '@/lib/utils';
 import { noteProviderInterest, withdrawProviderInterest } from '@/lib/workspace/actions';
@@ -189,8 +190,8 @@ function ProviderMark({
  * The providers that are coming, each with a "Notify me" that counts towards which comes first. A visitor's opens the
  * sign-in; a signed-in user's puts the provider on their list, or takes it off. `noted`: the user's list as the API
  * keeps it. `compact`: one line of what is coming (Overview's, inside "Ways you contribute", and the Agent tab's,
- * under the hosted agent, with its own `title`), its "Notify me" opening the mark, the title and the toggle of each,
- * for a signed-in user.
+ * under the hosted agent, with its own `title`), its "Notify me" opening, over the page so nothing under the line
+ * moves, the mark, the title and the toggle of each, for a signed-in user.
  */
 export function ComingSoon({
   viewer,
@@ -208,8 +209,6 @@ export function ComingSoon({
 }) {
   const visitor = viewer === 'visitor';
   const { noted, busy, flip } = useNotify(visitor ? [] : initial);
-  const [open, setOpen] = useState(false);
-  const listId = useId();
 
   if (variant === 'compact') {
     return (
@@ -218,43 +217,48 @@ export function ComingSoon({
           <div>
             <h3 className="inline font-semibold text-foreground">{title}</h3> {comingSoonLineOf()}
           </div>
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-controls={listId}
-            onClick={() => setOpen((value) => !value)}
-            className="inline-flex min-h-10 items-center font-semibold text-link hover:underline max-sm:min-h-11"
-          >
-            {open ? 'Hide the list' : 'Notify me →'}
-          </button>
-        </div>
-        <div id={listId} hidden={!open} className="flex flex-col gap-2.5">
-          <p className="text-sm text-muted-foreground">Tell us which you&apos;d use; the most asked for comes first.</p>
-          {/* Four from 1280: at 1024 a quarter of the row leaves a title a few letters beside the toggle. */}
-          <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
-            {COMING_SOON.map(({ provider, mono, title }) => (
-              <li
-                key={provider}
-                data-provider={provider}
-                className="flex min-w-0 items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5"
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex min-h-10 items-center font-semibold text-link hover:underline max-sm:min-h-11"
               >
-                <ProviderMark provider={provider} mono={mono} className="size-7 text-xs" iconClassName="size-4" />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{title}</span>
-                <NotifyToggle
-                  title={title}
-                  on={noted.has(provider)}
-                  busy={busy.has(provider)}
-                  onClick={() => flip(provider)}
-                  className="flex-none self-center px-2.5 max-sm:min-h-11"
-                />
-              </li>
-            ))}
-          </ul>
+                {noted.size ? 'On the list →' : 'Notify me →'}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              className="flex w-[min(36rem,calc(100vw-2rem))] flex-col gap-2.5"
+              data-coming-soon-list=""
+            >
+              <p className="text-sm text-muted-foreground">
+                Tell us which you&apos;d use; the most asked for comes first.
+              </p>
+              <ul className="grid gap-2.5 sm:grid-cols-2">
+                {COMING_SOON.map(({ provider, mono, title }) => (
+                  <li
+                    key={provider}
+                    data-provider={provider}
+                    className="flex min-w-0 items-center gap-2.5 rounded-lg border bg-card px-3 py-2.5"
+                  >
+                    <ProviderMark provider={provider} mono={mono} className="size-7 text-xs" iconClassName="size-4" />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{title}</span>
+                    <NotifyToggle
+                      title={title}
+                      on={noted.has(provider)}
+                      busy={busy.has(provider)}
+                      onClick={() => flip(provider)}
+                      className="flex-none self-center px-2.5 max-sm:min-h-11"
+                    />
+                  </li>
+                ))}
+              </ul>
+              <p role="status" className="min-h-5 text-sm text-foreground/80">
+                {comingSoonStatusOf(noted)}
+              </p>
+            </PopoverContent>
+          </Popover>
         </div>
-        {/* Empty, it takes back the gap above it, and stays in place to announce the list. */}
-        <p role="status" className="text-sm text-foreground/80 empty:-mt-2.5">
-          {comingSoonStatusOf(noted)}
-        </p>
       </div>
     );
   }

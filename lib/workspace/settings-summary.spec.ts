@@ -30,9 +30,9 @@ describe('the Settings summary', () => {
 
   it("says the hosted agent's budget and model in a line each", () => {
     expect(budgetSummaryOf(settings, contributor().spend)).toBe(
-      '$63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt',
+      '$63.40 of $200 used this cycle · renews Nov 14 · up to $5 a run',
     );
-    expect(budgetSummaryOf(settings, null)).toBe('$200 a cycle · renews on the 14th · up to $5 an attempt');
+    expect(budgetSummaryOf(settings, null)).toBe('$200 a cycle · renews on the 14th · up to $5 a run');
     expect(modelSummaryOf(settings)).toBe('Claude Sonnet 5.5, medium effort');
   });
 

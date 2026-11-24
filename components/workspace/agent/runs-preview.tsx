@@ -35,8 +35,8 @@ function MetaLine({ run }: { run: ContributeRun }) {
   );
 }
 
-/** Its cost; a run of the user's own agent spends nothing through us: a dash. */
-const costOf = (run: ContributeRun) => (run.runner === 'MCP' && !run.costUsd ? '—' : usd(run.costUsd));
+/** Its cost; none shown when it spent nothing (a run of the user's own agent spends nothing through us). */
+const costOf = (run: ContributeRun) => (run.costUsd > 0 ? usd(run.costUsd) : null);
 
 function PreviewRow({ run, cost }: { run: ContributeRun; cost: boolean }) {
   const reason = runReasonOf(run);

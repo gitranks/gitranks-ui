@@ -141,8 +141,8 @@ function TableLine({ line, cost }: { line: RunLine; cost: boolean }) {
             {line.runs.length > 1 ? ', at each retry' : ''}
           </div>
         </td>
-        <td className="px-3 py-3 text-right align-top font-mono text-xs">—</td>
-        {cost ? <td className="py-3 pr-5 pl-3 text-right align-top font-mono text-xs">{usd(0)}</td> : null}
+        <td className="px-3 py-3 text-right align-top font-mono text-xs" />
+        {cost ? <td className="py-3 pr-5 pl-3 text-right align-top font-mono text-xs" /> : null}
       </tr>
     );
   }
@@ -179,13 +179,15 @@ function TableLine({ line, cost }: { line: RunLine; cost: boolean }) {
         ) : null}
       </td>
       <td className="px-3 py-3 text-right align-top font-mono text-xs whitespace-nowrap">
-        {durationLabel(run.startedAt, run.finishedAt) || '—'}
+        {durationLabel(run.startedAt, run.finishedAt)}
       </td>
       {cost ? (
         <td className="py-3 pr-5 pl-3 text-right align-top">
-          <span className={cn('font-mono text-sm', ABOVE_LINK)} title={costSplitOf(run)}>
-            {usd(run.costUsd)}
-          </span>
+          {run.costUsd > 0 ? (
+            <span className={cn('font-mono text-sm', ABOVE_LINK)} title={costSplitOf(run)}>
+              {usd(run.costUsd)}
+            </span>
+          ) : null}
         </td>
       ) : null}
     </tr>
@@ -224,8 +226,9 @@ export function RunCard({ line, cost = true }: { line: RunLine; cost?: boolean }
           <div className="mt-0.5 flex justify-between gap-2 border-t pt-2 text-xs text-muted-foreground">
             <span className="truncate">{runnerLabelOf(run)}</span>
             <span className="shrink-0 font-mono text-foreground">
-              {durationLabel(run.startedAt, run.finishedAt) || '—'}
-              {cost ? ` · ${usd(run.costUsd)}` : ''}
+              {[durationLabel(run.startedAt, run.finishedAt), cost && run.costUsd > 0 ? usd(run.costUsd) : '']
+                .filter(Boolean)
+                .join(' · ')}
             </span>
           </div>
           {cost && run.costUsd ? <div className="text-xs text-muted-foreground">{costSplitOf(run)}</div> : null}

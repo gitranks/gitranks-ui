@@ -98,7 +98,7 @@ function NoGoBreakdown({
           Why agents said no-go, or ran out
         </h2>
         <span className="text-xs text-muted-foreground">
-          {!learner && !query.outcome && !query.reason ? (
+          {!learner && !query.outcome && !query.reason && totals.started ? (
             <span className="lg:hidden">{percentLabel(totals.noGo, totals.started)} of started runs · </span>
           ) : null}
           {sum ? `${sum} no-go${sum === 1 ? '' : 's'} · pick one to filter` : `${totals.noGo} no-gos`}
@@ -162,7 +162,7 @@ function OutcomeChips({ page, query }: { page: ContributeRunsPage; query: RunsQu
               className="inline-flex min-h-9 items-center gap-1.5 rounded-full border bg-card px-3 text-sm whitespace-nowrap hover:bg-muted aria-[current]:border-foreground aria-[current]:bg-foreground aria-[current]:text-background"
             >
               {label}
-              <span className="font-mono text-xs opacity-70">{countOf(value)}</span>
+              {countOf(value) ? <span className="font-mono text-xs opacity-70">{countOf(value)}</span> : null}
             </Link>
           </li>
         ))}

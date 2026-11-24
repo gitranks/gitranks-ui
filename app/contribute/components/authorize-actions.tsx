@@ -1,7 +1,7 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState, useTransition } from 'react';
+import { type ReactNode, useState, useTransition } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
 import { AuthorizeNextStep } from './authorize-next-step';
@@ -37,8 +37,20 @@ export function AuthorizeCancel({ requestId, label = 'Cancel' }: { requestId: st
  * Allow and Cancel. Allow connects the agent, then the browser goes back to it, only to an address that passes the
  * check (`https:`, `http:` to this computer, or an app's own scheme): a server action's own redirect can't open an
  * app's scheme, so the page assigns it. An app's scheme leaves this page open, so it says what to ask the agent next.
+ * Once allowed, Cancel stays in its place, off, and what to do next shows after the card's own lines (`children`), so
+ * nothing above it moves.
  */
-export function AuthorizeActions({ requestId, clientName }: { requestId: string; clientName: string }) {
+export function AuthorizeActions({
+  requestId,
+  clientName,
+  children,
+}: {
+  requestId: string;
+  /** The name the app gave itself; none, and the page says "the app". */
+  clientName?: string;
+  /** The card's lines under the buttons: they stay where they are when Allow goes through. */
+  children?: ReactNode;
+}) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(false);
@@ -65,20 +77,27 @@ export function AuthorizeActions({ requestId, clientName }: { requestId: string;
         <Button type="button" onClick={allow} disabled={pending || left} className={ACTION} data-authorize="allow">
           {pending ? 'Allowing…' : 'Allow'}
         </Button>
-        {left ? null : <AuthorizeCancel requestId={requestId} />}
+        {left ? (
+          <Button type="button" variant="outline" disabled className={ACTION} data-authorize="cancel">
+            Cancel
+          </Button>
+        ) : (
+          <AuthorizeCancel requestId={requestId} />
+        )}
       </div>
-      {left ? (
-        <>
-          <p role="status" className="text-sm font-medium">
-            Allowed. Go back to {clientName}: it is connected.
-          </p>
-          <AuthorizeNextStep clientName={clientName} />
-        </>
-      ) : null}
       {error ? (
         <p role="alert" className="text-sm font-medium text-destructive">
           {error}
         </p>
+      ) : null}
+      {children}
+      {left ? (
+        <>
+          <p role="status" className="text-sm font-medium">
+            Allowed. Go back to {clientName ?? 'the app'}: it is connected.
+          </p>
+          <AuthorizeNextStep clientName={clientName} />
+        </>
       ) : null}
     </div>
   );

@@ -92,16 +92,16 @@ function PendingCard({
   login: string;
   request: ContributeOAuthRequest;
 }) {
-  const name = request.clientName?.trim() || 'An app';
+  const named = request.clientName?.trim() || null;
   const where = clientWhereTextOf(request.clientWhere);
   const waiting = waitingLineOf(request.waiting);
   return (
     <Frame
-      title={`Connect ${name} to GitRanks Contribute`}
+      title={named ? `Connect ${named} to GitRanks Contribute` : 'Connect your agent to GitRanks Contribute'}
       text={
         <>
-          {name} (calls itself that · goes back to {where.text}) asks to work on Contribute as{' '}
-          <strong className="font-semibold text-foreground">@{login}</strong>.
+          {named ? `${named} (calls itself that · goes back to ${where.text})` : `An app (goes back to ${where.text})`}{' '}
+          asks to work on Contribute as <strong className="font-semibold text-foreground">@{login}</strong>.
         </>
       }
     >
@@ -133,19 +133,20 @@ function PendingCard({
         ) : null}
       </CardContent>
       <CardFooter className="flex flex-col items-stretch gap-3">
-        <AuthorizeActions requestId={requestId} clientName={name} />
-        <p className="text-sm text-muted-foreground">
-          You can disconnect it any time on the{' '}
-          <Link href={settingsPathOf('own-agent')} prefetch={false} className={LINK}>
-            Agent tab
-          </Link>
-          .
-        </p>
-        {waiting ? (
-          <p className="text-sm text-muted-foreground" data-authorize="waiting">
-            {waiting}
+        <AuthorizeActions requestId={requestId} clientName={named ?? undefined}>
+          <p className="text-sm text-muted-foreground">
+            You can disconnect it any time on the{' '}
+            <Link href={settingsPathOf('own-agent')} prefetch={false} className={LINK}>
+              Agent tab
+            </Link>
+            .
           </p>
-        ) : null}
+          {waiting ? (
+            <p className="text-sm text-muted-foreground" data-authorize="waiting">
+              {waiting}
+            </p>
+          ) : null}
+        </AuthorizeActions>
       </CardFooter>
     </Frame>
   );
@@ -230,7 +231,7 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
       return (
         <Frame
           title={NO_PROFILE_TITLE}
-          text="GitRanks couldn't read your GitHub profile just now, so your agent can't connect yet. Try again later: start again from your agent."
+          text="GitRanks has not read your GitHub account, so Contribute is not open to it and your agent can't connect. If your account is new, try again in an hour: start again from your agent then."
         >
           <CardFooter className="flex flex-col items-start gap-4">
             <AuthorizeCancel requestId={state.requestId} />

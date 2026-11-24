@@ -24,9 +24,21 @@ import { cn } from '@/lib/utils';
  * with how many). A count shows only when there is something to count. On a phone the tabs scroll sideways under the
  * right side, which stays at the edge, and the current tab is scrolled into sight.
  */
-export function LearnBar({ state, place }: { state: LearnBarState; place: LearnBarPlace | null }) {
+export function LearnBar({
+  state,
+  place,
+  signedOut = false,
+}: {
+  state: LearnBarState;
+  place: LearnBarPlace | null;
+  /** The session said nobody is signed in: a visitor's bar, whatever the browser's hint says. */
+  signedOut?: boolean;
+}) {
   const bar = useRef<HTMLDivElement>(null);
-  const tabs = learnBarTabsOf(state);
+  // Until the person's bar is read, a browser holding a session draws a signed-in person's tabs from the first paint
+  // (the hint, set before it), so the bar does not grow under the reader when the read comes in.
+  const own = learnBarTabsOf(state);
+  const tabs = state.kind === 'visitor' && !signedOut ? learnBarTabsOf({ kind: 'learner', ...NOTHING_WAITING }) : own;
   // Progress and Settings appear once the person's bar is read: the current tab may only then be there to show.
   const shown = tabs.find((tab) => tab === place) ?? null;
   useEffect(() => {
@@ -47,7 +59,13 @@ export function LearnBar({ state, place }: { state: LearnBarState; place: LearnB
     <div ref={bar} data-learn-bar={state.kind}>
       <TabsBar end={barEndOf(state, place)}>
         {tabs.map((tab) => (
-          <Tab key={tab} href={LEARN_BAR_TABS[tab].href} active={place === tab} data={{ 'data-learn-tab': tab }}>
+          <Tab
+            key={tab}
+            href={LEARN_BAR_TABS[tab].href}
+            active={place === tab}
+            data={{ 'data-learn-tab': tab }}
+            className={own.includes(tab) ? undefined : 'hidden [html[data-has-session]_&]:list-item'}
+          >
             {LEARN_BAR_TABS[tab].label}
           </Tab>
         ))}
@@ -55,6 +73,8 @@ export function LearnBar({ state, place }: { state: LearnBarState; place: LearnB
     </div>
   );
 }
+
+const NOTHING_WAITING = { due: 0, pullRequests: false, pullRequestsNeedYou: 0 };
 
 /**
  * The right side: nothing for a visitor; before setup, "Set up Learn" first; then what waits for the person: their pull

@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
 import { LearnBar } from './learn-bar';
@@ -44,6 +45,7 @@ export async function readLearnBar(): Promise<LearnBarRead | null> {
  */
 export function LearnBarLive({ from = null }: { from?: string | null }) {
   const pathname = usePathname();
+  const { status } = useSession();
   const [state, setState] = useState<LearnBarState>({ kind: 'visitor' });
   // The bar seen last, for Settings to show again (`settings-bar.ts`): kept for everyone, visitors too.
   useEffect(() => rememberBar('learn'), []);
@@ -91,5 +93,5 @@ export function LearnBarLive({ from = null }: { from?: string | null }) {
       clearTimeout(timer);
     };
   }, [pathname]);
-  return <LearnBar state={state} place={learnBarPlaceOf(pathname, from)} />;
+  return <LearnBar state={state} place={learnBarPlaceOf(pathname, from)} signedOut={status === 'unauthenticated'} />;
 }

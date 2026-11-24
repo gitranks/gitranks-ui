@@ -30,3 +30,13 @@ export const sessionClearsOf = (names: readonly string[]): string[] =>
 /** Whether a `document.cookie` string holds the hint. */
 export const hasSessionHint = (cookie: string) =>
   cookie.split(';').some((part) => part.trim().startsWith(`${SESSION_HINT_COOKIE}=`));
+
+/**
+ * Set on the page's root by an inline script in the head when the browser holds the hint, before the first paint: a
+ * part drawn the same for everyone (a cached page) shows a signed-in person's look from the start while the session
+ * is read (`[html[data-has-session]_&]:…`), so nothing moves when the session comes.
+ */
+export const SESSION_HINT_ATTRIBUTE = 'data-has-session';
+
+/** The inline script: plain ES5, and it never throws (a browser with cookies turned off reads none). */
+export const SESSION_HINT_SCRIPT = `try{if(document.cookie.split(';').some(function(p){return p.trim().indexOf(${JSON.stringify(`${SESSION_HINT_COOKIE}=`)})===0}))document.documentElement.setAttribute(${JSON.stringify(SESSION_HINT_ATTRIBUTE)},'')}catch(e){}`;

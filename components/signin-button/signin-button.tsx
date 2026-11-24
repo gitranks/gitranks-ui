@@ -31,23 +31,36 @@ const signOutHere = () => {
   return signOut();
 };
 
+/**
+ * The box the header's right end holds, whatever is in it: the Sign in button's (36 by 32 px), so the avatar, its place
+ * while the session is read and Sign in take the same room, and nothing beside them moves when one becomes another.
+ */
+const SLOT = 'h-8 w-9 items-center justify-center';
+
 export default function SigninButton() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   return (
     <div>
       {session ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Image
-              src={`${session.user.image}&s=${AVATAR_SIZE * 2}`}
-              alt={`${session.user.name} avatar`}
-              className="rounded-full"
-              width={AVATAR_SIZE}
-              height={AVATAR_SIZE}
-              loading="lazy"
-              decoding="async"
-            />
+            {/* A button, so the menu is reached with Tab and opened with Enter or Space; Escape closes it. */}
+            <button
+              type="button"
+              aria-label="Your account"
+              className={`flex ${SLOT} rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50`}
+            >
+              <Image
+                src={`${session.user.image}&s=${AVATAR_SIZE * 2}`}
+                alt={`${session.user.name} avatar`}
+                className="rounded-full"
+                width={AVATAR_SIZE}
+                height={AVATAR_SIZE}
+                loading="lazy"
+                decoding="async"
+              />
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem asChild>
@@ -66,9 +79,23 @@ export default function SigninButton() {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Button onClick={() => signIn(IDENTITY_PROVIDER)} variant="ghost" size="sm">
-          <LogIn className="size-4" />
-        </Button>
+        <>
+          {/* While the session is read, the hint (set before the first paint) picks what is drawn. */}
+          {status === 'loading' ? (
+            <span aria-hidden="true" data-avatar-place="" className={`hidden [html[data-has-session]_&]:flex ${SLOT}`}>
+              <span className="size-8 rounded-full bg-muted" />
+            </span>
+          ) : null}
+          <Button
+            onClick={() => signIn(IDENTITY_PROVIDER)}
+            variant="ghost"
+            size="sm"
+            aria-label="Sign in"
+            className={status === 'loading' ? '[html[data-has-session]_&]:hidden' : undefined}
+          >
+            <LogIn className="size-4" />
+          </Button>
+        </>
       )}
 
       <Dialog open={session?.error === 'RefreshTokenError'}>

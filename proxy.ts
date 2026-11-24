@@ -7,6 +7,7 @@ import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
 import { checkGateOf, courseGateOf } from './lib/learn/course-gate';
+import { fixRouteGateOf } from './lib/learn/fix-gate';
 import { learnOpenToEveryone } from './lib/learn/learn-everyone';
 import {
   isLearnAboutPath,
@@ -25,6 +26,7 @@ import {
   courseRouteOf,
   LEARN_COURSE_MISSING_PATH,
   learnCourseMarkdownRouteOf,
+  learnFixRouteOf,
   learnIssuesMarkdownRouteOf,
   learnLandingMarkdownRouteOf,
   learnLessonMarkdownRouteOf,
@@ -241,6 +243,24 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
             : NextResponse.redirect(new URL(`${gate.path}${request.nextUrl.search}`, request.url), 308);
       response.headers.set('Cache-Control', 'private, no-store');
       if (gate.kind === 'gone' && gate.status === 503) response.headers.set('Retry-After', PAUSED_RETRY_AFTER_SECONDS);
+      return response;
+    }
+  }
+
+  // A fix's walkthrough and a person's answers stream too: where the address leads is asked here first. Nothing there
+  // gets the 404, a fix whose page was removed its own page with a 410, another spelling a redirect to the API's. None
+  // is kept by a shared cache: a pull request opens, and answers are shared again.
+  const fix = asked ? learnFixRouteOf(request.nextUrl.pathname) : null;
+  if (fix) {
+    const gate = await fixRouteGateOf(fix);
+    if (gate.kind !== 'page') {
+      const response =
+        gate.kind === 'missing'
+          ? NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url))
+          : gate.kind === 'removed'
+            ? NextResponse.rewrite(new URL(gate.path, request.url), { status: 410 })
+            : NextResponse.redirect(new URL(`${gate.path}${request.nextUrl.search}`, request.url), 307);
+      response.headers.set('Cache-Control', 'private, no-store');
       return response;
     }
   }

@@ -11,6 +11,8 @@ vi.mock('@/lib/learn/built-pages', () => ({
   LEARN_ISSUES_PAGE_BUILT: true,
   LEARN_PROJECT_COURSE_PAGE_BUILT: true,
   LEARN_FIXES_PAGE_BUILT: true,
+  LEARN_APPROVE_PAGE_BUILT: true,
+  LEARN_ANSWERS_SHARE_SWITCH_ON: true,
 }));
 
 /** A state's markup as the server sends it, its async parts awaited. */

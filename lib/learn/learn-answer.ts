@@ -49,7 +49,8 @@ export type LearnAnswerAction =
   | { type: 'step'; by: -1 | 1 }
   | { type: 'graded'; verdict: LearnVerdict }
   | { type: 'sending' }
-  | { type: 'answered'; right: boolean; key: LearnQuestion | null; language: string | null }
+  | { type: 'answered'; right: boolean; key: LearnQuestion | null; language: string | null; why?: string | null }
+  | { type: 'again'; verdict: LearnVerdict }
   | { type: 'failed' };
 
 /** An answer before anything is picked: `put-in-order` starts from its rows as given. */
@@ -113,6 +114,9 @@ export function answerReducerOf(question: LearnQuestion) {
         return state.phase === 'sending' ? answeredOf(state, action) : state;
       case 'graded':
         return state.phase === 'open' ? gradedOf(question, state, action.verdict) : state;
+      case 'again':
+        // The call graded a pick wrong and the person picks again (a fix's walkthrough): as a page's own wrong verdict.
+        return state.phase === 'sending' ? gradedOf(question, { ...state, phase: 'open' }, action.verdict) : state;
     }
     if (state.phase !== 'open') return state;
     switch (action.type) {
@@ -199,13 +203,14 @@ function gradedOf(question: LearnQuestion, state: LearnAnswerState, verdict: Lea
  */
 function answeredOf(
   state: LearnAnswerState,
-  { right, key, language }: Extract<LearnAnswerAction, { type: 'answered' }>,
+  { right, key, language, why: told }: Extract<LearnAnswerAction, { type: 'answered' }>,
 ): LearnAnswerState {
   const keyed = key && isKeyed(key) ? key : state.key;
   const own = keyed && !state.extra ? verdictOf(keyed, state.picked, language) : null;
   const rightWhy = keyed ? rightWhyOf(keyed, language) : null;
   const whys = right ? [own?.why ?? rightWhy] : [own?.why, rightWhy];
-  const why = [...new Set(whys.filter((text): text is string => !!text))].join(' ') || null;
+  // With no key to read, the reasons the call gave.
+  const why = [...new Set(whys.filter((text): text is string => !!text))].join(' ') || told || null;
   return {
     ...state,
     phase: 'done',

@@ -185,6 +185,60 @@ export function learnFixPath({ nameWithOwner, number }: PrRef): Route {
   return `/learn/fixes/${repoSegments({ owner, name })}/${number}` as Route;
 }
 
+/** A fix's walkthrough, public once its pull request is open: `/learn/fixes/<owner>/<repo>/<number>/walkthrough`. */
+export const learnFixWalkthroughPath = (pr: PrRef) => `${learnFixPath(pr)}/walkthrough` as Route;
+
+/** A person's answers to a fix's walkthrough: `…/walkthrough/by/<login>`. */
+export const learnFixAnswersPath = (pr: PrRef, login: string) =>
+  `${learnFixWalkthroughPath(pr)}/by/${encodeURIComponent(login)}` as Route;
+
+/**
+ * The fixer's answers by the attempt that made the fix, the link a Learn pull request's footer gives (it is written
+ * before the pull request has a number): a route that only redirects to the answers page once the pull request is open.
+ */
+export const learnFixAnswersByAttemptPath = (attemptId: string) =>
+  `/learn/fixes/by-attempt/${encodeURIComponent(attemptId)}/answers` as Route;
+
+/**
+ * Where the proxy shows a fix whose page was removed, with its status: `_removed` is no GitHub owner's shape, so no
+ * fix is ever under it.
+ */
+export function learnFixRemovedPath({ nameWithOwner, number }: PrRef): Route {
+  const [owner = '', name = ''] = nameWithOwner.split('/');
+  return `/learn/fixes/_removed/${repoSegments({ owner, name })}/${number}` as Route;
+}
+
+/** Where the browser reads the signed-in person's side of a fix; with `answers`, the fixer's own answers too. */
+export function learnFixMinePath({ nameWithOwner, number }: PrRef, { answers = false } = {}): string {
+  const [owner = '', name = ''] = nameWithOwner.split('/');
+  return `/api/me/learn/fixes/${repoSegments({ owner, name })}/${number}${answers ? '?answers=1' : ''}`;
+}
+
+const FIX_PAGE = /^\/learn\/fixes\/([^/]+)\/([^/]+)\/([^/]+)\/walkthrough(?:\/by\/([^/]+))?\/?$/;
+
+/** A fix's walkthrough or a person's answers, as the proxy's gate asks about them. */
+export type LearnFixRoute = { pr: PrRef; login: string | null };
+
+/**
+ * The fix a walkthrough's or an answers page's address names, for the proxy's gate: `/learn/fixes/<owner>/<repo>/
+ * <number>/walkthrough` and `…/by/<login>`, a trailing slash allowed. Null for any other path, and for one that cannot
+ * name a pull request (the page then answers not found itself).
+ */
+export function learnFixRouteOf(pathname: string): LearnFixRoute | null {
+  const match = FIX_PAGE.exec(pathname);
+  if (!match) return null;
+  const [, owner, repo, number, login] = match;
+  let decoded: string[];
+  try {
+    decoded = [owner, repo, login ?? ''].map(decodeURIComponent);
+  } catch {
+    return null;
+  }
+  const pr = parsePrLink(`${decoded[0]}/${decoded[1]}#${number}`);
+  if (!pr || String(pr.number) !== number) return null;
+  return { pr, login: login === undefined ? null : decoded[2] };
+}
+
 /** "Report a mistake" on a lesson: an email to us, its subject naming the lesson. */
 export const lessonMistakeHref = (title: string) =>
   `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`A mistake in the lesson "${title}"`)}`;

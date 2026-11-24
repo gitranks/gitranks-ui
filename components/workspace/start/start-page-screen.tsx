@@ -68,7 +68,8 @@ const WORDS: Record<
 };
 
 /** VS Code takes the prompt in its chat, not in a terminal. */
-const promptInVsCodeOf = (prompt: string) => prompt.replace('In a terminal, in any folder.', "In VS Code's chat, in Agent mode.");
+const promptInVsCodeOf = (prompt: string) =>
+  prompt.replace('In a terminal, in any folder.', "In VS Code's chat, in Agent mode.");
 
 /** The sentence for an agent that may still hold the tool list from before Learn opened for the account. */
 export const RESTART_HINT =

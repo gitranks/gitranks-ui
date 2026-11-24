@@ -141,7 +141,7 @@ export function MaintainersScreen({
             items={[
               'Reviews and submits every PR by default',
               'Daily caps; new GitHub accounts get fewer',
-              'Unfinished claims slow them down',
+              'Issues taken and left unfinished slow them down',
               'We review abuse flags every day and suspend',
             ]}
           />

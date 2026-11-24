@@ -87,7 +87,7 @@ describe('agents.md', () => {
     expect(signIns).toContain('On chatgpt.com/plugins, press + and choose Add custom MCP server.');
     expect(signIns).toContain('MCP server URL:\n\n```\nhttps://mcp.gitranks.com/mcp\n```');
     expect(signIns).toContain(
-      'In ChatGPT, on the web, desktop or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell, signed in to the same account: it picks up your claim.',
+      'In ChatGPT, on the web, desktop or your phone, you can find, take and track issues. The fix needs Codex or another agent that can run a shell, signed in to the same account: it picks up the issue you took.',
     );
     expect(signIns).toContain(
       'In the Codex app or the IDE extension: Settings → MCP servers → Add server → Streamable HTTP, enter https://mcp.gitranks.com/mcp, then restart Codex. If it asks you to sign in, your browser opens GitRanks, where you allow it.',

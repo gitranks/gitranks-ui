@@ -184,7 +184,7 @@ export const MCP_DOC_MORE_CLIENTS: readonly McpDocClient[] = [
     file: false,
     lines: MCP_URL,
     after:
-      'In ChatGPT, on the web, desktop or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell, signed in to the same account: it picks up your claim.',
+      'In ChatGPT, on the web, desktop or your phone, you can find, take and track issues. The fix needs Codex or another agent that can run a shell, signed in to the same account: it picks up the issue you took.',
   },
   {
     id: 'copilot-cli',
@@ -266,7 +266,7 @@ export type McpDocTool = { name: string; text: string; changes: boolean };
 export const MCP_DOC_TOOLS: readonly McpDocTool[] = [
   {
     name: 'find_issues',
-    text: 'Open-source issues picked for you, best first, filtered as you ask. Each says whether it can be claimed now.',
+    text: 'Open-source issues picked for you, best first, filtered as you ask. Each says whether it can be taken now.',
     changes: false,
   },
   {
@@ -281,12 +281,12 @@ export const MCP_DOC_TOOLS: readonly McpDocTool[] = [
   },
   {
     name: 'release_issue',
-    text: 'Gives a claimed issue back, with why. It is not offered to you again.',
+    text: 'Gives back an issue you took, with why. It is not offered to you again.',
     changes: true,
   },
   {
     name: 'my_contributions',
-    text: 'Your claims at work (it renews them), the changes waiting for your review, and your pull requests with their follow-ups.',
+    text: 'The issues you are working on (it renews them), the changes waiting for your review, and your pull requests with their follow-ups.',
     changes: false,
   },
   {
@@ -346,7 +346,7 @@ export const MCP_DOC_LIMITS_NOTE =
  */
 export const MCP_DOC_NEXT_STEPS: readonly string[] = [
   'Your agent shows you a few issues, and you choose one.',
-  'It claims the issue, fixes it and submits the patch.',
+  'It takes the issue, fixes it and submits the patch.',
   'You review and approve the pull request at gitranks.com/contribute. While autopilot is off, nothing reaches GitHub before you approve it.',
   'The first time you approve one, GitHub asks you for one permission.',
 ];

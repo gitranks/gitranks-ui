@@ -58,8 +58,8 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         title: 'Contribute is paused for this account',
         text: (
           <>
-            Activity on this account looks automated, so it can&apos;t see or claim issues for now. If we got this
-            wrong, write to{' '}
+            Activity on this account looks automated, so it can&apos;t see or take issues for now. If we got this wrong,
+            write to{' '}
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-link hover:underline">
               {CONTACT_EMAIL}
             </a>{' '}

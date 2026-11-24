@@ -106,7 +106,7 @@ describe('the answer page of a closed access', () => {
 
 describe('the request to look again, wired', () => {
   it('sends the words and turns into the request in place', async () => {
-    actions.appealFairUse.mockResolvedValue({ ok: true, data: { at: '2026-11-24T10:00:00.000Z', answeredAt: null } });
+    actions.appealFairUse.mockResolvedValue({ ok: true, data: { at: new Date().toISOString(), answeredAt: null } });
     await render(<FairUseAppealLive />);
     await type('It was my own repository.');
     await submit();

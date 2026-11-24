@@ -108,7 +108,7 @@ function ConnectionCard({ token, now }: { token: ContributeMcpToken; now?: Date 
           title={signedIn ? `Disconnect "${token.name}"?` : `Revoke "${token.name}"?`}
           description={
             signedIn
-              ? 'It can no longer reach us, and the claims it is working on end if it is your only connection. Sign in from it again to reconnect.'
+              ? 'It can no longer reach us, and the issues it is working on go back if it is your only connection. Sign in from it again to reconnect.'
               : 'An agent using this token can no longer reach us, and the token cannot be brought back. Connect it again with a new one.'
           }
           action={signedIn ? 'Disconnect' : 'Revoke token'}

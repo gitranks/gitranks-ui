@@ -134,7 +134,7 @@ export function learnStartFixOf(state: ContributeAttemptState): { text: string; 
   switch (state) {
     case 'QUEUED':
     case 'CLAIMING':
-      return { text: "Wait a moment: we're checking the claim.", pickAnother: false };
+      return { text: "Wait a moment: we're checking the issue.", pickAnother: false };
     case 'RUNNING':
       return { text: 'Ask your agent to release it, then paste the prompt again.', pickAnother: false };
     case 'CHECKS':

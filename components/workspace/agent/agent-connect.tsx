@@ -279,9 +279,9 @@ export function AgentConnectView({
     <div className="flex flex-col gap-3" data-agent-sign-in="setup">
       <p className="max-w-2xl text-sm text-foreground/80">
         {name} signs in to GitRanks with your GitHub account, and you allow it in your browser. It can see the issues
-        picked for you and claim one, hand back changes for your review, and see your claims and pull requests. It
-        can&apos;t open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub access.
-        Disconnect it any time on the Agent tab.
+        picked for you and take one, hand back changes for your review, and see the issues you took and your pull
+        requests. It can&apos;t open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub
+        access. Disconnect it any time on the Agent tab.
       </p>
       <p className="text-sm text-muted-foreground">{signInSetup.where}</p>
       <CodeBlock label={signInSetup.label} file={signInSetup.file} copyLabel={`Copy the ${name} setup`}>

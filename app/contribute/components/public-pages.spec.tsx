@@ -79,7 +79,7 @@ describe('the MCP docs, sign-in first', () => {
   it('say what a sign-in can and cannot do, how long it lasts, what is kept and how to disconnect it', () => {
     const plain = text(renderToStaticMarkup(<McpDocsScreen />));
     expect(plain).toContain('Sign-in and tokens');
-    expect(plain).toContain('see the issues picked for you and claim one');
+    expect(plain).toContain('see the issues picked for you and take one');
     expect(plain).toContain("It can't open a pull request, push or post on GitHub");
     expect(plain).toContain('Its access lasts an hour');
     expect(plain).toContain('Unused for 30 days, it has to sign in again.');
@@ -133,7 +133,7 @@ describe('the MCP docs, one click and more clients', () => {
     expect(chatgpt).toContain('MCP server URL');
     expect(chatgpt).toContain('https://mcp.gitranks.com/mcp');
     expect(chatgpt).toContain(
-      'In ChatGPT, on the web, desktop or your phone, you can find, claim and track issues. The fix needs Codex or another agent that can run a shell, signed in to the same account: it picks up your claim.',
+      'In ChatGPT, on the web, desktop or your phone, you can find, take and track issues. The fix needs Codex or another agent that can run a shell, signed in to the same account: it picks up the issue you took.',
     );
     expect(chatgptHtml).not.toContain('data-install-link');
     expect(plain).not.toContain('Add to ChatGPT');

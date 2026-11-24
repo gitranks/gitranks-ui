@@ -580,7 +580,7 @@ describe('the access level', () => {
     expect(suspended).toContain('bg-warning-soft');
     expect(suspended).toContain('href="mailto:hello@gitranks.com"');
     expect(text(suspended)).toContain(
-      "Contribute is paused for this account Activity on this account looks automated, so it can't see or claim issues for now. If we got this wrong, write to hello@gitranks.com and we'll look at it.",
+      "Contribute is paused for this account Activity on this account looks automated, so it can't see or take issues for now. If we got this wrong, write to hello@gitranks.com and we'll look at it.",
     );
   });
 

@@ -56,7 +56,7 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
   const [load, numbers, start, profile, learn] = await Promise.all([
     loadIssuePage(id),
     loadIssueNumbers(),
-    loadIssueStartReads({ vsCode: from === 'learn' }),
+    loadIssueStartReads(),
     usesLearn,
     learnParts,
   ]);

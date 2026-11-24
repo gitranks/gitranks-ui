@@ -22,7 +22,7 @@ export type McpClient = 'claude-code' | 'codex' | 'cursor' | 'gemini-cli' | 'ant
 /** The clients we have setup for, in the order the pickers list them. */
 export const MCP_CLIENTS: readonly McpClient[] = ['claude-code', 'codex', 'cursor', 'gemini-cli', 'antigravity'];
 
-/** The same, with VS Code last: the connect step on the page of one issue, from Learn. */
+/** The same, with VS Code last: the connect step on the page of one issue, from Learn and from Contribute alike. */
 export const MCP_CLIENTS_WITH_VS_CODE: readonly McpClient[] = [...MCP_CLIENTS, 'vscode'];
 
 export const MCP_CLIENT_NAMES: Record<McpClient, string> = {

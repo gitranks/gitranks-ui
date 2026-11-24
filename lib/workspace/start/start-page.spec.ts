@@ -152,10 +152,14 @@ describe('step 1: connected means the agent has called', () => {
     expect(mcpClientOfName('Cursor')).toBe('cursor');
     expect(mcpClientOfName('Claude Desktop')).toBeNull();
     expect(mcpClientOfName('')).toBeNull();
-    // VS Code only where the picker offers it.
-    expect(mcpClientOfName('VS Code on macOS')).toBeNull();
-    expect(mcpClientOfName('VS Code on macOS', true)).toBe('vscode');
-    expect(mcpClientOfName('Codex on Linux', true)).toBe('codex');
+    // VS Code on every page alike: an agent named on one is named on all.
+    expect(mcpClientOfName('VS Code on macOS')).toBe('vscode');
+    expect(
+      learnStartConnectionOf([token({ name: 'VS Code on Windows', lastUsedAt: '2026-10-28T11:00:00.000Z' })]),
+    ).toEqual({
+      client: 'vscode',
+      lastCallAt: '2026-10-28T11:00:00.000Z',
+    });
     expect(agentNameOf('codex')).toBe('Codex CLI');
     expect(agentNameOf(null)).toBe('your agent');
   });

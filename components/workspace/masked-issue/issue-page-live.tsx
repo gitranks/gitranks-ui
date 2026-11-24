@@ -251,7 +251,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
             onConnected={onConnected}
             onAdded={() => void holdLonger()}
             connectSource={from === 'learn' ? 'learn_start' : 'contribute_start'}
-            withVsCode={from === 'learn'}
+            withVsCode
           />
         ),
         onCopy: () => void holdLonger(),

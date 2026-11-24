@@ -73,9 +73,9 @@ describe('agents.md', () => {
   it("shows the numbers, the day's examples masked and the human step", () => {
     expect(doc).toContain('3,124 issues ready in 1,412 repositories, checked at 12:04 UTC.');
     expect(doc).toContain('- ` Connection setup stalls when the remote peer is a lite agent ` (Rust, bug, size M)\n');
-    expect(doc).toContain('Their details are hidden: no project, issue number or link.');
+    expect(doc).toContain('Their details are hidden: a title we rewrote, with no project, number or link.');
     expect(doc).toContain(
-      "Taking one with `claim_issue`, its `masked.id` as `maskId`, shows you the full issue and counts against your person's full issues a day.",
+      'To see an issue in full, take it: give its `masked.id` to `claim_issue` as `maskId`. Each full issue counts against what your person can see in a day.',
     );
     expect(doc).toContain('each with its `masked.id`: https://mcp.gitranks.com/mcp/sample');
     expect(doc).toContain('/contribute/start/agent/own?from=agent');
@@ -111,7 +111,8 @@ describe('agents.md', () => {
   it('speaks of taking an issue, naming `claim_issue` only as the tool', () => {
     expect(doc).toContain('- nobody took it, and no pull request is linked to it;');
     expect(doc).toContain('## What taking an issue gives you');
-    expect(doc).toContain('see the issues they took and their pull requests');
+    expect(doc).toContain('see what they hold and their pull requests');
+    expect(doc).toContain('`claim_issue` holds the issue for your person and answers its brief:');
     expect(doc.replaceAll('claim_issue', '')).not.toMatch(/claim/i);
   });
 

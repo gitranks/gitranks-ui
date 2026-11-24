@@ -11,16 +11,33 @@ type RankingTypeSwitcherProps = {
   options: readonly RankingOption[];
   /** The words before the options. */
   label?: string;
-  /** Lets the options run onto more lines on a narrow screen: for a switch with many of them (the registries). */
-  wrap?: boolean;
+  /**
+   * The label beside the options from `sm` up, the options as wide as the screen below it: the switch on its own line
+   * (a package ranking's, under its registry tabs).
+   */
+  beside?: boolean;
 };
 
 /** The orders a ranking can be shown in, as one group of links with the shown one marked. */
-export const RankingTypeSwitcher: FC<RankingTypeSwitcherProps> = ({ options, label = 'Rank By:', wrap = false }) => {
+export const RankingTypeSwitcher: FC<RankingTypeSwitcherProps> = ({ options, label = 'Rank By:', beside = false }) => {
+  if (beside) {
+    return (
+      <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-3">
+        <span className="text-muted-foreground">{label}</span>
+        <ButtonGroup className="w-full sm:w-fit">
+          {options.map(({ href, label: optionLabel, active }) => (
+            <LinkGroupItem key={href} href={href} active={active}>
+              {optionLabel}
+            </LinkGroupItem>
+          ))}
+        </ButtonGroup>
+      </div>
+    );
+  }
   return (
     <div className="text-sm flex flex-col gap-1">
       {label}
-      <ButtonGroup className={wrap ? 'h-auto max-w-full flex-wrap justify-start' : undefined}>
+      <ButtonGroup>
         {options.map(({ href, label: optionLabel, active }) => (
           <LinkGroupItem key={href} href={href} active={active}>
             {optionLabel}

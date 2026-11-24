@@ -647,9 +647,9 @@ export function courseSearchOf(groups: readonly LearnCourseGroup[], query: strin
 export type CourseSection = { kind: LearnCourseKind; title: string; sub: string; courses: LearnCourseCard[] };
 
 /** "all seven languages" for Learn's seven; the names for any other list ("Python and JavaScript", "Shell"). */
-const examplesInWords = (languages: readonly string[]) =>
+const examplesInWords = (languages: readonly string[], all = 'all ') =>
   languages.length === SETUP_LANGUAGES.length && SETUP_LANGUAGES.every((language) => languages.includes(language))
-    ? 'all seven languages'
+    ? `${all}seven languages`
     : languageListOf(languages);
 
 /** "Python", "Python and JavaScript", "Python, JavaScript and Go". */
@@ -660,9 +660,10 @@ const languageListOf = (languages: readonly string[]) => {
 
 /**
  * The line under the topic courses, from their own languages: one way when they all share it ("Every example comes in
- * all seven languages."), else each way, the most common first and ties in the API's order ("Each course's examples
- * come in all seven languages, Python and JavaScript, or Shell."). The same languages in another order are one way. A
- * course that lists no languages is left out of the line.
+ * all seven languages."), else the most common way in a sentence of its own, "Most" when it is over half of them,
+ * then the others, ties in the API's order ("Most courses show their examples in seven languages. Others use Python
+ * and JavaScript, or Shell."). The same languages in another order are one way. A course that lists no
+ * languages is left out of the line.
  */
 export function topicLanguagesLineOf(topics: readonly Pick<LearnCourseCard, 'languages'>[]): string {
   const counts = new Map<string, { languages: readonly string[]; count: number }>();
@@ -672,11 +673,13 @@ export function topicLanguagesLineOf(topics: readonly Pick<LearnCourseCard, 'lan
     const seen = counts.get(key);
     counts.set(key, { languages: seen?.languages ?? languages, count: (seen?.count ?? 0) + 1 });
   }
-  const ways = [...counts.values()].sort((a, b) => b.count - a.count).map((way) => examplesInWords(way.languages));
-  if (!ways.length) return 'Each one works in any language.';
-  if (ways.length === 1) return `Every example comes in ${ways[0]}.`;
-  const last = ways.length === 2 ? ' or ' : ', or ';
-  return `Each course's examples come in ${ways.slice(0, -1).join(', ')}${last}${ways.at(-1)}.`;
+  const sorted = [...counts.values()].sort((a, b) => b.count - a.count);
+  if (!sorted.length) return 'Each one works in any language.';
+  if (sorted.length === 1) return `Every example comes in ${examplesInWords(sorted[0].languages)}.`;
+  // ", or " between the other ways, so two sets never run together; "Most" counts every topic course.
+  const ways = sorted.map((way) => examplesInWords(way.languages, ''));
+  const lead = sorted[0].count * 2 > topics.length ? 'Most' : 'Some';
+  return `${lead} courses show their examples in ${ways[0]}. Others use ${ways.slice(1).join(', or ')}.`;
 }
 
 /** The sections of all courses, topics first, each in the API's order; a kind with no course has none. */

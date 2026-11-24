@@ -25,11 +25,6 @@ export const WORKSPACE_PATHS = {
   /** The limits on pull requests and attempts, which bind both agents. */
   settingsPullRequests: '/my/settings/pull-requests' as Route,
   settingsWork: '/my/settings/work' as Route,
-  /**
-   * The earlier Your progress: what the user has learned, and where their Learn pull requests landed. Its own tabs link
-   * it, for the lists only it has; other links go to Learn's own progress page, `/learn/progress`.
-   */
-  progress: '/my/progress' as Route,
 } as const;
 
 /**
@@ -469,9 +464,6 @@ export function startPath(
   const text = query.toString();
   return (text ? `${path}?${text}` : path) as Route;
 }
-
-/** The Pull requests tab's table holds this many rows a page. */
-export const PULL_REQUESTS_PAGE_SIZE = 20;
 
 /**
  * Whether the path is a fair-use message's answer page, `/contribute/answer/<noticeId>`, in any spelling the router

@@ -43,7 +43,6 @@ describe('the workspace addresses', () => {
       settingsGithub: '/my/settings/github',
       settingsPullRequests: '/my/settings/pull-requests',
       settingsWork: '/my/settings/work',
-      progress: '/my/progress',
     });
   });
 

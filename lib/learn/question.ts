@@ -1,4 +1,4 @@
-import type { LessonOption, LessonQuestion, LessonReportReason, LessonStep } from './learn.types';
+import type { LessonOption, LessonQuestion, LessonReportReason } from './learn.types';
 
 /** A warm-up question's own last option: it costs nothing, and changes nothing. GitRanks adds it, never the lesson. */
 export const DONT_KNOW = '__dont_know';
@@ -28,20 +28,3 @@ export function pickOf(question: LessonQuestion, picked: readonly string[], opti
 
 /** What a graded question shows. */
 export type OptionMark = 'plain' | 'picked' | 'right' | 'hint';
-
-/** The names of a step's parts, as the rail and the step's eyebrow show them. */
-const PART_NAMES: Record<string, string> = {
-  before: 'Before',
-  cause: 'Cause',
-  fix: 'The fix',
-  connects: 'How it connects',
-  deep_dive: 'Deep dive',
-};
-
-/** "Before", "Before and cause", "The fix": what a step covers. */
-export function partsLabelOf(step: Pick<LessonStep, 'parts'>): string {
-  const names = step.parts.map((part) => PART_NAMES[part] ?? part.replaceAll('_', ' '));
-  if (!names.length) return 'Step';
-  const joined = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)!.toLowerCase()}`;
-  return joined.charAt(0).toUpperCase() + joined.slice(1);
-}

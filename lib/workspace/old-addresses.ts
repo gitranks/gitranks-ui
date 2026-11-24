@@ -52,8 +52,8 @@ export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
   to('/contribute/attempts/:id', '/my/pull-requests/by-attempt/:id'),
   // A lesson's page: the address by attempt opens the view its stage names, the query kept.
   to('/learn/attempts/:id', '/my/pull-requests/by-attempt/:id'),
-  // My lessons: Your progress now. Only the list itself: a shared lesson's page under it stays.
-  to('/learn/lessons', '/my/progress'),
+  // My lessons: Learn's Progress now. Only the list itself: a shared lesson's page under it stays.
+  to('/learn/lessons', '/learn/progress'),
 ];
 
 /**
@@ -75,7 +75,7 @@ export const LESSON_VIEW_REDIRECTS = [
 
 /**
  * Learn's pages that went away, and where each leads now (permanent: they are gone for good). The Learn tab before
- * courses and its flow's pick of an issue are Issues now; the flow's first step and the goal and level page are Set up
+ * courses and its flow's pick of an issue are Issues now; the earlier Your progress is Progress; the flow's first step and the goal and level page are Set up
  * Learn; the page for maintainers is the part about Learn of Contribute's page for maintainers, with the query kept (the
  * `from` its footer links carry; the browser puts the query before the part's anchor). An issue's own start address
  * under the flow depends on the person, so a route answers it (`app/learn/start/[owner]/[repo]/[issue]/route.ts`).
@@ -88,4 +88,6 @@ export const OLD_LEARN_REDIRECTS = [
   // Learn's goal and level: Set up Learn now.
   { source: '/learn/profile{/}?', destination: '/learn/setup', permanent: true },
   { source: '/learn/maintainers{/}?', destination: '/contribute/maintainers#learn', permanent: true },
+  // The earlier Your progress: Learn's Progress now.
+  { source: '/my/progress{/}?', destination: '/learn/progress', permanent: true },
 ] as const satisfies { source: string; destination: string; permanent: true }[];

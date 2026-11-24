@@ -14,7 +14,6 @@ const data = vi.hoisted(() => ({
   loadContributeVersion: vi.fn(async () => '4.2'),
   loadAttempt: vi.fn(),
   loadAttempts: vi.fn(),
-  loadPullRequestsPage: vi.fn(async () => undefined),
   loadScheduleCounts: vi.fn(async () => undefined),
   loadRepliesWaiting: vi.fn(),
   loadIssueAttempt: vi.fn(async () => ({

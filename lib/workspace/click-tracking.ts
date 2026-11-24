@@ -60,8 +60,6 @@ export const CONTRIBUTE_SOURCES = [
   'contribute_flow_skip',
   /** Start learning, on Learn's landing. */
   'learn_landing',
-  /** Your progress (its Share button). */
-  'learn_progress',
   /** The workspace's own tabs: moving between them is never counted (`clickOf` drops it on every page). */
   'workspace_tab',
   /** A link to Contribute that carries no mark. */
@@ -135,8 +133,7 @@ export type LearnEvent =
     }
   | {
       kind: 'learn_click';
-      /** `progress_share`: Your progress' Share button pressed. */
-      event: 'reaction_clicked' | 'promo_clicked' | 'promo_dismissed' | 'progress_share';
+      event: 'reaction_clicked' | 'promo_clicked' | 'promo_dismissed';
       source: LearnSource;
       detail?: string;
     };

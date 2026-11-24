@@ -23,8 +23,15 @@ const { algorithmsCourse, doneMine, freshMine, otherCourses, progressMine } = aw
 let root: Root;
 let host: HTMLDivElement;
 const fetchMock = vi.fn();
-const answer = (body: unknown, status = 200) =>
-  fetchMock.mockResolvedValue(new Response(JSON.stringify(body), { status }));
+const REAL_WORLD = '/api/me/learn/courses/algorithms/real-world';
+/** The person's side answers `body`; the course's open issues answer `real` (an API without them: nothing). */
+const answer = (body: unknown, status = 200, real: { body: unknown; status?: number } = { body: {} }) =>
+  fetchMock.mockImplementation(async (url: string) =>
+    url.endsWith('/real-world')
+      ? new Response(JSON.stringify(real.body), { status: real.status ?? 200 })
+      : new Response(JSON.stringify(body), { status }),
+  );
+const sideCalls = () => fetchMock.mock.calls.filter(([url]) => !String(url).endsWith('/real-world'));
 
 beforeEach(() => {
   window.matchMedia = ((query: string) => ({
@@ -68,6 +75,27 @@ describe("a course's page in the browser, for a visitor", () => {
     await act(async () => buttonOf('Sign in with GitHub')!.click());
     expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/courses/algorithms' });
   });
+
+  it('names the merged fixes (from five) as a link while Learn is open to everyone, and not at all while it is closed', async () => {
+    const numbers = (issuesFixed: number | null) => ({ ...algorithmsCourse.numbers, issuesFixed });
+    const drawWith = async (issuesFixed: number | null, everyone: boolean) => {
+      await act(async () =>
+        root.render(
+          <CourseLive
+            course={{ ...algorithmsCourse, numbers: numbers(issuesFixed) }}
+            others={otherCourses}
+            everyone={everyone}
+          />,
+        ),
+      );
+      return host.querySelector<HTMLAnchorElement>('[data-course-fixed]');
+    };
+    expect((await drawWith(212, true))?.getAttribute('href')).toBe('/learn/courses/algorithms/real-world?fixed=1');
+    expect(await drawWith(212, false)).toBeNull();
+    expect(await drawWith(4, true)).toBeNull();
+    expect(await drawWith(null, true)).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("a course's page in the browser, for a person with a session", () => {
@@ -85,8 +113,8 @@ describe("a course's page in the browser, for a person with a session", () => {
   it("reads the person's side once, never kept, asking whether the check leads, and fills the page in place", async () => {
     answer({ course: progressMine, checkFirst: false });
     await draw();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/courses/algorithms?check=1', { cache: 'no-store' });
+    expect(sideCalls()).toEqual([['/api/me/learn/courses/algorithms?check=1', { cache: 'no-store' }]]);
+    expect(fetchMock).toHaveBeenCalledWith(REAL_WORLD, { cache: 'no-store' });
     expect(host.querySelectorAll('[data-square]').length).toBeGreaterThan(0);
     expect(signInButton()).toBeUndefined();
   });
@@ -95,6 +123,67 @@ describe("a course's page in the browser, for a person with a session", () => {
     answer({ course: freshMine, checkFirst: true });
     await draw();
     expect(lit()).toContain('Take the 2-minute check');
+  });
+
+  it("makes the last box the course's open issues when their list has some, linking to the course's view", async () => {
+    answer({ course: progressMine, checkFirst: false }, 200, { body: { openIssues: 2 } });
+    await draw();
+    const box = host.querySelector('[data-course-boxes]')!;
+    expect(box.textContent).toContain('2 open issues for this course');
+    expect(box.querySelector('a[href="/learn/courses/algorithms/real-world"]')).not.toBeNull();
+  });
+
+  it("draws the person's boxes once, after the open issues are read too, never changing them after", async () => {
+    let answerIssues!: (response: Response) => void;
+    fetchMock.mockImplementation((url: string) =>
+      url.endsWith('/real-world')
+        ? new Promise<Response>((resolve) => {
+            answerIssues = resolve;
+          })
+        : Promise.resolve(new Response(JSON.stringify({ course: progressMine, checkFirst: false }))),
+    );
+    await draw();
+    // The side came; the open issues did not yet: nothing of the person's is drawn.
+    expect(host.querySelectorAll('ol [data-square]').length).toBe(0);
+    await act(async () => answerIssues(new Response(JSON.stringify({ openIssues: 2 }))));
+    expect(host.querySelectorAll('[data-square]').length).toBeGreaterThan(0);
+    expect(host.querySelector('[data-course-boxes]')!.textContent).toContain('2 open issues for this course');
+  });
+
+  it('keeps where to go next on a finished course, naming the open issues there', async () => {
+    answer({ course: doneMine, checkFirst: false }, 200, { body: { openIssues: 3 } });
+    await draw();
+    const boxes = host.querySelector('[data-course-boxes]')!;
+    expect(boxes.textContent).toContain('Go further');
+    const issues = boxes.querySelector('[data-further-issues]')!;
+    expect(issues.textContent).toContain('Fix a real issue');
+    expect(issues.textContent).toContain('3 open issues for this course.');
+    expect(issues.querySelector('a')!.getAttribute('href')).toBe('/learn/courses/algorithms/real-world');
+  });
+
+  it('keeps the boxes as they were when the open issues are none, fail, or are not known to the API', async () => {
+    const boxesWith = async (real: { body: unknown; status?: number }) => {
+      answer({ course: progressMine, checkFirst: false }, 200, real);
+      await draw();
+      const text = host.querySelector('[data-course-boxes]')!.textContent;
+      act(() => root.unmount());
+      root = createRoot(host);
+      return text;
+    };
+    const plain = await boxesWith({ body: {} });
+    expect(plain).not.toContain('open issues');
+    for (const real of [{ body: { openIssues: 0 } }, { body: { openIssues: null } }, { body: {}, status: 500 }]) {
+      expect(await boxesWith(real), JSON.stringify(real)).toBe(plain);
+    }
+  });
+
+  it("links the merged fixes' count for a learner, and for a visitor only while Learn is open to everyone", async () => {
+    const course = { ...algorithmsCourse, numbers: { ...algorithmsCourse.numbers, issuesFixed: 212 } };
+    answer({ course: progressMine, checkFirst: false });
+    await act(async () => root.render(<CourseLive course={course} others={otherCourses} />));
+    const link = host.querySelector<HTMLAnchorElement>('[data-course-fixed]');
+    expect(link?.textContent).toContain('real issues fixed');
+    expect(link?.getAttribute('href')).toBe('/learn/courses/algorithms/real-world?fixed=1');
   });
 
   it("sends a rating as the person's, for this course", async () => {

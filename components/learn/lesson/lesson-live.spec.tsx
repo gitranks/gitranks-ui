@@ -10,7 +10,13 @@ const { hint, push, signIn, answerLearnLessonAction, sendLearnFeedbackAction } =
   answerLearnLessonAction: vi.fn(),
   sendLearnFeedbackAction: vi.fn(),
 }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh: vi.fn(), replace: vi.fn() }) }));
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 vi.mock('next-auth/react', () => ({ signIn }));
 vi.mock('@/lib/learn/lesson-page.actions', () => ({ answerLearnLessonAction, sendLearnFeedbackAction }));
 // The session's hint cookie, as the browser holds it.
@@ -34,6 +40,9 @@ const {
   setLesson,
   setLessonLast,
 } = await import('@/lib/learn/__fixtures__/lesson-page');
+const { NO_LESSON_REAL } = await import('@/lib/learn/real-issues');
+const { learnFixes } = await import('@/lib/learn/__fixtures__/issues');
+const { lessonRealIssues, lessonRealWithFix } = await import('@/lib/learn/__fixtures__/real-issues');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -46,12 +55,17 @@ let root: Root;
 let host: HTMLDivElement;
 const fetchMock = vi.fn();
 
-/** What the person's two routes answer: their side of the lesson, and each lesson's depth in the course. */
-function routes(mine: unknown, depths: Record<string, string> = setDepths) {
+/**
+ * What the person's routes answer: their side of the lesson, each lesson's depth in the course, and what "In the real
+ * world" adds (by default nothing, as an API without it answers).
+ */
+function routes(mine: unknown, depths: Record<string, string> = setDepths, real: unknown = NO_LESSON_REAL) {
   fetchMock.mockImplementation(async (path: string) => {
-    const body = path.startsWith('/api/me/learn/lessons/')
-      ? { mine }
-      : { course: { slug: 'algorithms', lessons: Object.entries(depths).map(([slug, depth]) => ({ slug, depth })) } };
+    const body = path.endsWith('/real-world')
+      ? real
+      : path.startsWith('/api/me/learn/lessons/')
+        ? { mine }
+        : { course: { slug: 'algorithms', lessons: Object.entries(depths).map(([slug, depth]) => ({ slug, depth })) } };
     return new Response(JSON.stringify(body), { status: 200 });
   });
 }
@@ -82,12 +96,13 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function draw({ lesson = setLesson, group = setGroup } = {}) {
+async function draw({ lesson = setLesson, group = setGroup, fixes = null as typeof learnFixes | null } = {}) {
   await act(async () => {
     root.render(
       <LessonLive
         lesson={lesson}
         group={group}
+        fixes={fixes}
         article={<article data-lesson-article="">{lesson.title}</article>}
         more={<footer data-more="" />}
       />,
@@ -136,6 +151,7 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     expect(fetchMock.mock.calls.map(([path]) => path)).toEqual([
       `/api/me/learn/lessons/${setLesson.slug}`,
       `/api/me/learn/courses/${setLesson.course.slug}`,
+      `/api/me/learn/lessons/${setLesson.slug}/real-world`,
     ]);
     expect($('[data-visitor-note]')).toBeNull();
     expect($('[data-lesson-run]')!.textContent).toBe('Lesson 3 of 9');
@@ -275,6 +291,124 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     });
     expect($('[data-answer-part]')).not.toBe(before);
     expect($('[data-answer-part]')!.getAttribute('data-answer-phase')).toBe('done');
+  });
+});
+
+describe('"In the real world" under a lesson', () => {
+  const section = () => $('[data-lesson-real-world]');
+  const fixButton = () => $('[data-fix-real-issue]') as HTMLAnchorElement | null;
+  const answerRight = async () => {
+    answerLearnLessonAction.mockResolvedValue({ ok: true, data: { right: true, mine: mineLearned, next: null } });
+    await tap(option(1));
+    await click(main());
+  };
+  const shiftEnter = () =>
+    act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }),
+      );
+    });
+
+  it('is left out for a visitor while Learn is not open to everyone, reading nothing', async () => {
+    await draw();
+    expect(section()).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("shows a visitor the lesson's merged fixes while Learn is open to everyone, as plain text", async () => {
+    await draw({ fixes: learnFixes });
+    expect(section()!.textContent).toContain(learnFixes.rows[0].title);
+    expect($('[data-real-all-fixes]')!.getAttribute('href')).toBe(
+      `/learn/lessons/${setLesson.slug}/real-world?fixed=1`,
+    );
+    expect($('[data-real-issues-link]')!.getAttribute('href')).toBe(`/learn/lessons/${setLesson.slug}/real-world`);
+    // No fix page yet: a fix's title links nowhere on Learn.
+    expect(section()!.querySelector('a[href^="/learn/fixes"]')).toBeNull();
+  });
+
+  it('is the page as before when the API answers none of it, or fails', async () => {
+    signedIn();
+    routes(mineNew);
+    await draw();
+    expect(section()).toBeNull();
+    await answerRight();
+    expect(fixButton()).toBeNull();
+    expect($('[data-depth-line]')!.textContent).not.toContain('Mastered when your fix');
+
+    act(() => root.unmount());
+    root = createRoot(host);
+    fetchMock.mockImplementation(async (path: string) =>
+      path.endsWith('/real-world')
+        ? new Response('{}', { status: 500 })
+        : new Response(JSON.stringify({ mine: mineNew }), { status: 200 }),
+    );
+    await draw();
+    expect(section()).toBeNull();
+  });
+
+  it('shows a person their merged fixes and issues for the lesson, and after a right answer, Fix a real issue', async () => {
+    signedIn();
+    routes(mineNew, setDepths, lessonRealIssues);
+    await draw();
+    expect($('[data-real-column="fixes"]')).not.toBeNull();
+    expect($('[data-real-column="issues"]')!.querySelectorAll('[data-real-issue]')).toHaveLength(3);
+    // Only after a right answer.
+    expect(fixButton()).toBeNull();
+    await answerRight();
+    const href = `/my/issues/${lessonRealIssues.real!.fixAnIssue!.issue.id}?from=learn`;
+    expect(fixButton()!.getAttribute('href')).toBe(href);
+    expect(fixButton()!.textContent).toContain('Fix a real issue');
+  });
+
+  it('opens the issue with Shift + Enter, and leaves Enter to the next lesson', async () => {
+    signedIn();
+    routes(mineNew, setDepths, lessonRealIssues);
+    await draw();
+    await answerRight();
+    const opened = vi.fn((event: Event) => event.preventDefault());
+    fixButton()!.addEventListener('click', opened);
+    await shiftEnter();
+    expect(opened).toHaveBeenCalledOnce();
+    expect(push).not.toHaveBeenCalled();
+    // Shift + Enter typed in a field is the field's.
+    const field = document.createElement('textarea');
+    host.append(field);
+    await act(async () => {
+      field.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }),
+      );
+    });
+    expect(opened).toHaveBeenCalledOnce();
+    field.remove();
+    // Another link with the focus keeps the key; Next, the answer's own button, does not.
+    const other = $('[data-real-issues-link]')!;
+    await act(async () => {
+      other.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }),
+      );
+    });
+    expect(opened).toHaveBeenCalledOnce();
+    await act(async () => {
+      main().dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }),
+      );
+    });
+    expect(opened).toHaveBeenCalledTimes(2);
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("puts the person's own fix first, with its address, and never offers another issue", async () => {
+    signedIn();
+    routes(mineLearned, setDepths, lessonRealWithFix);
+    await draw();
+    const mine = $('[data-real-my-fix]')!;
+    expect(mine.getAttribute('data-real-my-fix')).toBe('OPEN');
+    expect(mine.querySelector('[data-real-my-fix-open]')!.getAttribute('href')).toBe(
+      '/my/pull-requests/harbor-kit/relay/431?from=learn',
+    );
+    expect($('[data-real-column="others"]')).not.toBeNull();
+    expect($('[data-real-column="issues"]')).toBeNull();
+    expect(fixButton()).toBeNull();
   });
 });
 

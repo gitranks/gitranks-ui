@@ -14,6 +14,9 @@ const m = vi.hoisted(() => ({
   everyone: vi.fn(async () => false),
   loadLearnProfile: vi.fn(async (): Promise<unknown> => null),
   loadLearnTimeZone: vi.fn(async (): Promise<unknown> => null),
+  loadHomeReal: vi.fn(async (): Promise<unknown> => ({ box: null, fixes: [], issues: [] })),
+  loadMergedFixes: vi.fn(async (): Promise<unknown> => null),
+  loadMaskedListReads: vi.fn(async (): Promise<unknown> => null),
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/navigation', () => ({
@@ -38,6 +41,13 @@ vi.mock('@/lib/learn/setup.data', () => ({ loadLearnSetup: m.loadLearnSetup }));
 vi.mock('@/lib/workspace/gate.data', () => ({ loadWorkspaceGate: m.loadWorkspaceGate }));
 vi.mock('@/lib/learn/course.data', () => ({ loadLearnCourses: m.loadLearnCourses }));
 vi.mock('@/lib/learn/landing.data', () => ({ loadTryLessons: m.loadTryLessons }));
+vi.mock('@/lib/learn/real-issues.data', () => ({ loadHomeReal: m.loadHomeReal, loadMergedFixes: m.loadMergedFixes }));
+vi.mock('@/lib/workspace/masked-issue.data', () => ({ loadMaskedListReads: m.loadMaskedListReads }));
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
 vi.mock('@/components/learn/bar/learn-bar-live', () => ({ LearnBarLive: () => null }));
 vi.mock('@/components/learn/bar/learn-bar-frame', () => ({ LearnBarFrame: () => null }));
 vi.mock('@/lib/learn/lesson-page.actions', () => ({ answerLearnLessonAction: vi.fn() }));
@@ -46,6 +56,8 @@ const { LearnAboutView, LearnFrontView } = await import('./learn-front');
 const { LearnHomeError, LearnHomeView } = await import('@/components/learn/home/learn-home-view');
 const { homeDay, homeNewLearner } = await import('@/lib/learn/__fixtures__/learn-home-page');
 const { courseCards } = await import('@/lib/learn/__fixtures__/course');
+const { homeRealFix, landingFixes } = await import('@/lib/learn/__fixtures__/real-issues');
+const { NO_HOME_REAL } = await import('@/lib/learn/real-issues');
 
 type Shown = ReactElement<Record<string, unknown>>;
 
@@ -78,6 +90,9 @@ beforeEach(() => {
   m.everyone.mockResolvedValue(false);
   m.loadLearnProfile.mockResolvedValue(null);
   m.loadLearnTimeZone.mockResolvedValue(null);
+  m.loadHomeReal.mockResolvedValue(NO_HOME_REAL);
+  m.loadMergedFixes.mockResolvedValue(null);
+  m.loadMaskedListReads.mockResolvedValue(null);
 });
 
 const signedIn = ({ home = homeDay as unknown, setup = SAVED as unknown, gate = null as unknown } = {}) => {
@@ -109,6 +124,17 @@ describe('/learn for a visitor', () => {
     m.loadLearnCourses.mockRejectedValue(new Error('down'));
     expect(await landingOf(await LearnFrontView())).toBe('visitor');
     expect(m.loadTryLessons).toHaveBeenCalledWith([]);
+  });
+
+  it('names the newest merged fixes made with Learn, and is as before when they cannot be read', async () => {
+    m.openToVisitor.mockResolvedValue(true);
+    m.loadMergedFixes.mockResolvedValue(landingFixes);
+    const html = await landingHtmlOf(await LearnFrontView());
+    expect(m.loadMergedFixes).toHaveBeenCalledWith();
+    expect(html).toContain('data-landing-fixes');
+    expect(html).toContain(landingFixes.rows[0].title);
+    m.loadMergedFixes.mockResolvedValue(null);
+    expect(await landingHtmlOf(await LearnFrontView())).not.toContain('data-landing-fixes');
   });
 });
 
@@ -159,6 +185,33 @@ describe('/learn for someone signed in', () => {
     expect(view.type).toBe(LearnHomeView);
     expect(view.props).toMatchObject({ home: homeDay, setup: SAVED, timeZone: null });
     expect(Number.isNaN(Date.parse(view.props.now as string))).toBe(false);
+  });
+
+  it('adds the third box and the real issues read apart, with what the masked rows need', async () => {
+    signedIn();
+    const reads = { looks: null, numbers: { read: 3, kept: 1 } };
+    m.loadHomeReal.mockResolvedValue(homeRealFix);
+    m.loadMaskedListReads.mockResolvedValue(reads);
+    const view = (await LearnFrontView()) as Shown;
+    expect(m.loadHomeReal).toHaveBeenCalledWith('octocat');
+    expect(view.props).toMatchObject({
+      home: homeDay,
+      real: homeRealFix,
+      reads,
+      skillsHref: '/profile/octocat/skills',
+    });
+  });
+
+  it('draws the home as before when the real issues are not answered, reading nothing for their rows', async () => {
+    signedIn();
+    const view = (await LearnFrontView()) as Shown;
+    expect(view.type).toBe(LearnHomeView);
+    expect(view.props).toMatchObject({ home: homeDay, real: NO_HOME_REAL, reads: null });
+    expect(m.loadMaskedListReads).not.toHaveBeenCalled();
+    // The rows' reads failing leave the rows without their looks line.
+    m.loadHomeReal.mockResolvedValue(homeRealFix);
+    m.loadMaskedListReads.mockRejectedValue(new Error('down'));
+    expect(((await LearnFrontView()) as Shown).props.reads).toBeNull();
   });
 
   it("counts a learner's days in the zone they saved", async () => {

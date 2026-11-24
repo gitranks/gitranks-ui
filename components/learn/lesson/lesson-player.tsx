@@ -1,15 +1,18 @@
 'use client';
 
-import { type ReactNode, useState } from 'react';
+import Link from 'next/link';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { InsightsPanel } from './insights-panel';
 import { LessonFeedback } from './lesson-feedback';
 import { LessonStripEnd } from './lesson-strip-end';
 import { lessonPlace } from '@/components/learn/player/places';
 import { AnswerPart } from '@/components/learn/question/answer-part';
+import { Kbd } from '@/components/learn/question/kbd';
 import { QuestionPart } from '@/components/learn/question/question-part';
 import { useLearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { useHydrated } from '@/components/pulse/use-hydrated';
+import { Button } from '@/components/ui/button';
 import { type PlayerCrumb, PlayerStrip } from '@/components/workspace/player/player-strip';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
 import type { LearnAnswerState } from '@/lib/learn/learn-answer';
@@ -32,8 +35,10 @@ import {
   storedLanguageOf,
 } from '@/lib/learn/lesson-page';
 import { coursePath, LEARN_HOME_PATH, learnFactPath } from '@/lib/learn/paths';
+import { FIX_A_REAL_ISSUE, FIX_ON_ITS_WAY_TAIL, fixOnItsWay, type LessonReal } from '@/lib/learn/real-issues';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
+import { issuePageHrefOf } from '@/lib/workspace/masked-issue';
 
 /** The key of a lesson's player: another lesson, or a changed question, starts a new answer. */
 export const lessonPlayerKeyOf = (lesson: Pick<LearnLesson, 'slug' | 'question'>) =>
@@ -78,6 +83,47 @@ function DepthDots({ filled }: { filled: number }) {
   );
 }
 
+/** Fields and dialogs that take Shift + Enter themselves. */
+const TYPES_SHIFT_ENTER =
+  'input, textarea, select, [contenteditable="true"], [role="dialog"], [role="alertdialog"], [role="combobox"]';
+
+/**
+ * "Fix a real issue" on the right of the line under the card: the page of one issue. Shift + Enter follows it, caught
+ * in the capture phase so the answer's own Enter (the next step, bound on the way up) sees it handled.
+ */
+function FixRealIssue({ href, hints }: { href: string; hints: boolean }) {
+  const link = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Enter' || !event.shiftKey || event.defaultPrevented || event.repeat || event.isComposing)
+        return;
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.(TYPES_SHIFT_ENTER) || target?.isContentEditable) return;
+      // Another link or button with the focus keeps the key; the answer's own button (Next) does not.
+      const pressable = target?.closest?.('a, button, [role="button"]');
+      if (pressable && pressable !== link.current && !pressable.matches('[data-answer-main]')) return;
+      event.preventDefault();
+      link.current?.click();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, []);
+  return (
+    <Button asChild variant="outline" className="h-8 shrink-0 gap-1.5 px-2.5 text-[13px] max-sm:min-h-11">
+      <Link ref={link} href={href as never} prefetch={false} data-fix-real-issue="">
+        {FIX_A_REAL_ISSUE}
+        {hints ? (
+          <span className="inline-flex items-center gap-1" aria-hidden="true">
+            <Kbd>⇧</Kbd>
+            <Kbd>⏎</Kbd>
+          </span>
+        ) : null}
+      </Link>
+    </Button>
+  );
+}
+
 /**
  * A lesson's page, its living part: the strip, the two columns (one on a phone), and the aside's question, depth line
  * and insights, which all follow the one answer. The article and what follows it come drawn (`article`, `more`), so
@@ -99,6 +145,8 @@ export function LessonPlayer({
   hints: hintsGiven,
   now,
   timeZone,
+  real = null,
+  realWorld = null,
 }: {
   lesson: LearnLesson;
   group: readonly LearnGroupLesson[];
@@ -125,6 +173,10 @@ export function LessonPlayer({
    */
   now?: Date;
   timeZone?: string;
+  /** The person's real issues for the lesson: their fix that uses it, and the first issue of their list for it. */
+  real?: LessonReal | null;
+  /** "In the real world", drawn after the lesson and before previous and next. */
+  realWorld?: ReactNode;
 }) {
   const live = useKeyHints();
   const hints = hintsGiven ?? live;
@@ -180,15 +232,24 @@ export function LessonPlayer({
       })
     : null;
 
+  // A fix of the person's that uses the lesson, not merged yet: the lesson becomes Mastered with it.
+  const tail =
+    line && fixOnItsWay(real?.fix) && (depth === 'LEARNED' || depth === 'PRACTISED') ? FIX_ON_ITS_WAY_TAIL : line?.tail;
+  // "Fix a real issue": after a right answer, for a person whose list has an issue for the lesson and no fix of theirs.
+  const fixIssueHref = member && right && real?.fixAnIssue ? issuePageHrefOf(real.fixAnIssue.issue.id, 'learn') : null;
+
   let below: ReactNode;
   if (right && line) {
     below = (
-      <div className="flex min-h-8 items-center gap-2 text-sm" data-depth-line="">
-        <DepthDots filled={line.dots} />
-        <span>
-          <b className="font-semibold">{line.lead}</b>
-          {line.tail ? <span className="text-muted-foreground"> {line.tail}</span> : null}
+      <div className="flex min-h-8 items-center justify-between gap-3 text-sm" data-depth-line="">
+        <span className="flex min-w-0 items-center gap-2">
+          <DepthDots filled={line.dots} />
+          <span>
+            <b className="font-semibold">{line.lead}</b>
+            {tail ? <span className="text-muted-foreground"> {tail}</span> : null}
+          </span>
         </span>
+        {fixIssueHref ? <FixRealIssue href={fixIssueHref} hints={hints} /> : null}
       </div>
     );
   } else if (right && note) {
@@ -258,7 +319,10 @@ export function LessonPlayer({
               </p>
             ) : null}
           </aside>
-          <div className="flex min-w-0 flex-col gap-8 lg:col-start-1 lg:row-start-2 lg:gap-10">{more}</div>
+          <div className="flex min-w-0 flex-col gap-8 lg:col-start-1 lg:row-start-2 lg:gap-10">
+            {realWorld}
+            {more}
+          </div>
         </div>
       </main>
     </>

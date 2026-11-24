@@ -20,6 +20,7 @@ import {
 } from '@/lib/learn/course';
 import { languageNameOf, languageNamesOf } from '@/lib/learn/learn-question';
 import { checkPath, LEARN_COURSES_PATH, learnKnownPath } from '@/lib/learn/paths';
+import { courseFixesCountOf, courseFixesPathOf } from '@/lib/learn/real-issues';
 
 /** A number in the pages' mono face. */
 export function Figure({ count }: { count: number }) {
@@ -82,14 +83,18 @@ export function CourseHeader({
   mine,
   language,
   onLanguage,
+  fixesLinked = false,
 }: {
   course: LearnCourse;
   mine: LearnCourseMine | null;
   language: string | null;
   onLanguage: (language: string) => void;
+  /** "N real issues fixed" shows (from five), as a link to the course's merged fixes: while Learn's lists are open. */
+  fixesLinked?: boolean;
 }) {
   const learners = learnersOf(course.numbers);
   const good = goodShareOf(course.numbers);
+  const fixed = fixesLinked ? courseFixesCountOf(course.numbers.issuesFixed) : null;
   const progress = mine ? courseProgressLineOf(mine, course) : null;
   // A language course has one language, or two that are one language with and without types ("JavaScript and
   // TypeScript"); each example is in one of them.
@@ -114,12 +119,22 @@ export function CourseHeader({
         ) : (
           <span className="whitespace-nowrap">Examples in {examplesIn} only</span>
         )}
-        {learners !== null || good !== null ? (
+        {learners !== null || good !== null || fixed !== null ? (
           <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1">
             {learners !== null ? (
               <span className="whitespace-nowrap">
                 <Figure count={learners} /> learners
               </span>
+            ) : null}
+            {fixed !== null ? (
+              <Link
+                href={courseFixesPathOf(course.slug)}
+                prefetch={false}
+                className="whitespace-nowrap text-link hover:underline"
+                data-course-fixed=""
+              >
+                <Figure count={fixed} /> real issues fixed
+              </Link>
             ) : null}
             {good !== null ? (
               <span className="whitespace-nowrap">

@@ -3,12 +3,14 @@ import Link from 'next/link';
 import { type TryDrawn, TryLessonCard } from './try-lesson';
 import { SQUARE_CLASS } from '@/components/learn/course/course-marks';
 import { CourseColumns } from '@/components/learn/home/learn-home-view';
+import { FixRow } from '@/components/learn/issues/issues-parts';
 import { LearnSignInButton } from '@/components/learn/learn-sign-in';
 import { PHONE_LINK } from '@/components/learn/phone-link';
 import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { buttonVariants } from '@/components/ui/button';
 import { H2, MUTED_SECTION, WIDTH } from '@/components/workspace/getting-in/landing-parts';
 import type { LearnCourseCard } from '@/lib/learn/course';
+import type { LearnFixes } from '@/lib/learn/issues';
 import {
   LANDING_GAINS,
   LANDING_MAINTAINERS_TEXT,
@@ -22,6 +24,7 @@ import {
 } from '@/lib/learn/landing';
 import { LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
 import { LEARN_COURSES_PATH, LEARN_HOME_PATH, LEARN_LANDING_MARKDOWN_PATH, LEARN_SETUP_PATH } from '@/lib/learn/paths';
+import { ALL_FIXES_PATH, landingFixesLineOf, landingFixesOf } from '@/lib/learn/real-issues';
 import { cn } from '@/lib/utils';
 
 /*
@@ -56,6 +59,40 @@ const START_LINES: Record<LandingViewer, string | null> = {
   learner: null,
 };
 
+/**
+ * "Real issues fixed with Learn": the three newest merged fixes, each in the name of who fixed it, with how many there
+ * are from five. Left out with fewer than three. A fix's title is plain text until its own page is there. Plain, not
+ * muted: the section after it is muted.
+ */
+function MergedFixes({ fixes }: { fixes: LearnFixes | null }) {
+  const shown = landingFixesOf(fixes);
+  if (!shown) return null;
+  return (
+    <section aria-labelledby="fixed-with-learn" data-landing-fixes="">
+      <div className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+          <div className="flex min-w-0 flex-col gap-2">
+            <h2 id="fixed-with-learn" className={H2}>
+              Real issues fixed with Learn
+            </h2>
+            <p className="m-0 max-w-prose text-muted-foreground">{landingFixesLineOf(shown.total)}</p>
+          </div>
+          <Link href={ALL_FIXES_PATH} className={cn('text-sm font-semibold text-link hover:underline', PHONE_LINK)}>
+            All fixes
+          </Link>
+        </div>
+        <ul className="m-0 list-none divide-y overflow-hidden rounded-xl border bg-card p-0">
+          {shown.rows.map((fix) => (
+            <li key={`${fix.repo}#${fix.number}`}>
+              <FixRow fix={fix} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 /** The footer every Learn pull request ends with, as a maintainer reads it. */
 function FooterExample() {
   return (
@@ -85,6 +122,8 @@ export type LearnLandingViewProps = {
   courses: readonly LearnCourseCard[];
   /** The lessons the top offers; none leaves the card out. */
   lessons: readonly TryLesson[];
+  /** The newest merged fixes made with Learn; none (or fewer than three) leaves their section out. */
+  fixes?: LearnFixes | null;
   /** A state of the lesson at the top, for the catalogue. */
   tryDrawn?: TryDrawn;
   hints?: boolean;
@@ -97,6 +136,7 @@ export function LearnLandingView({
   resume = null,
   courses,
   lessons,
+  fixes = null,
   tryDrawn,
   hints,
 }: LearnLandingViewProps) {
@@ -173,6 +213,7 @@ export function LearnLandingView({
           <CourseColumns sections={sections} full />
         </section>
       ) : null}
+      <MergedFixes fixes={fixes} />
 
       <section className={MUTED_SECTION} aria-labelledby="what-you-get">
         <div className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>

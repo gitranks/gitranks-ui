@@ -16,6 +16,12 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: m.signIn, useSession: () => ({ data: null }) }));
 vi.mock('@/lib/learn/lesson-page.actions', () => ({ answerLearnLessonAction: m.answer }));
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction: vi.fn(), readMoreLearnFixes: vi.fn() }));
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
 
 const { LearnLandingView } = await import('./learn-landing-view');
 const { TRY_DONE_LABELS, TryLessonCard } = await import('./try-lesson');
@@ -23,6 +29,8 @@ const { courseCards } = await import('@/lib/learn/__fixtures__/course');
 const { launchCourses, tryLessons } = await import('@/lib/learn/__fixtures__/learn-home-page');
 const { setAnswerRight, setAnswerWrong } = await import('@/lib/learn/__fixtures__/lesson-page');
 const { LANDING_QUESTIONS, LANDING_TITLE } = await import('@/lib/learn/landing');
+const { learnFixes } = await import('@/lib/learn/__fixtures__/issues');
+const { landingFixes } = await import('@/lib/learn/__fixtures__/real-issues');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -41,6 +49,34 @@ const words = (element: Element | null) => (element?.textContent ?? '').replace(
 /** The page's own section headings, the lesson card's question left out. */
 const headings = (page: Element) =>
   [...page.querySelectorAll('h2')].filter((h2) => !h2.closest('[data-try-lesson]')).map((h2) => words(h2));
+
+describe('Real issues fixed with Learn, on the landing', () => {
+  const section = (page: Element) => page.querySelector('[data-landing-fixes]');
+
+  it('names the three newest merged fixes, how many there are, and links all of them on Issues', () => {
+    const page = draw({ fixes: landingFixes });
+    const fixes = section(page)!;
+    expect(words(fixes.querySelector('h2'))).toBe('Real issues fixed with Learn');
+    expect(words(fixes)).toContain('12 merged so far, each in the name of the person who learned from it.');
+    expect(fixes.querySelectorAll('li')).toHaveLength(3);
+    expect(fixes.querySelector('a[href="/learn/issues?fixed=1"]')).not.toBeNull();
+    // A fix's title is plain text: its own page is not there yet.
+    expect(fixes.querySelector('a[href^="/learn/fixes"]')).toBeNull();
+    expect(fixes.innerHTML).not.toContain(LONG_DASH);
+  });
+
+  it('says how many only from five', () => {
+    const fixes = section(draw({ fixes: { ...landingFixes, total: 3 } }))!;
+    expect(words(fixes)).toContain('Each in the name of the person who learned from it.');
+    expect(words(fixes)).not.toContain('merged so far');
+  });
+
+  it('is left out with fewer than three, or when they cannot be read: the page as before', () => {
+    const before = draw().innerHTML;
+    expect(section(draw({ fixes: learnFixes }))).toBeNull();
+    expect(draw({ fixes: null }).innerHTML).toBe(before);
+  });
+});
 
 describe('the landing for a visitor', () => {
   const page = draw();

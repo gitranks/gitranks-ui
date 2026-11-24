@@ -17,13 +17,16 @@ import { learnFrontDoorOpenToVisitor } from '@/lib/learn/learn-front-door';
 import { hasGoal } from '@/lib/learn/learn-home';
 import { loadLearnTimeZone } from '@/lib/learn/my-progress.data';
 import { LEARN_HOME_PATH } from '@/lib/learn/paths';
+import { loadHomeReal, loadMergedFixes } from '@/lib/learn/real-issues.data';
 import { learnLandingJsonLd } from '@/lib/learn/seo/landing';
 import type { LearnSetupRead } from '@/lib/learn/setup';
 import { loadLearnSetup as loadLearnSetupOf } from '@/lib/learn/setup.data';
+import { skillsPath } from '@/lib/skills/paths';
 import { viewerLogin } from '@/lib/workspace/contribute.data';
 import type { WorkspaceGate } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { learnResumeOf } from '@/lib/workspace/getting-in';
+import { loadMaskedListReads } from '@/lib/workspace/masked-issue.data';
 
 /*
  * `/learn` and `/learn/about`, read per request. A visitor reads the landing only while Learn is open to everyone (the
@@ -32,16 +35,28 @@ import { learnResumeOf } from '@/lib/workspace/getting-in';
  */
 
 /**
- * The landing with its courses and the lessons at the top; a read that fails leaves its part out. Its Markdown copy is
+ * The landing with its courses, the lessons at the top and the newest merged fixes; a read that fails leaves its part
+ * out. Its Markdown copy is
  * linked only while it answers (Learn open to everyone); `resume` is the step of today's flow someone stopped at.
  */
 async function LoadedLanding({ viewer, resume = null }: { viewer: LandingViewer; resume?: string | null }) {
-  const [courses, markdown] = await Promise.all([loadLearnCourses().catch(() => []), learnOpenToEveryone(Date.now())]);
+  const [courses, markdown, fixes] = await Promise.all([
+    loadLearnCourses().catch(() => []),
+    learnOpenToEveryone(Date.now()),
+    loadMergedFixes(),
+  ]);
   const lessons = await loadTryLessons(courses);
   return (
     <>
       <JsonLd payloads={learnLandingJsonLd(courses, lessons[0]?.lesson ?? null)} />
-      <LearnLandingView viewer={viewer} markdown={markdown} resume={resume} courses={courses} lessons={lessons} />
+      <LearnLandingView
+        viewer={viewer}
+        markdown={markdown}
+        resume={resume}
+        courses={courses}
+        lessons={lessons}
+        fixes={fixes}
+      />
     </>
   );
 }
@@ -85,10 +100,23 @@ export async function LearnFrontView() {
     return <LoadedLanding viewer="visitor" />;
   }
   if (!(await loadLearnOpen())) notFound();
-  const { home, setup, timeZone, gate, page } = await personOf(login);
+  // The third box and the "Real issues" rows are read apart, beside the home: none of them (an API without them yet)
+  // draws the home as before.
+  const [{ home, setup, timeZone, gate, page }, real] = await Promise.all([personOf(login), loadHomeReal(login)]);
   if (page === 'landing') return <LoadedLanding viewer="member" resume={await resumeOf(gate)} />;
   if (!home) return <LearnHomeError />;
-  return <LearnHomeView home={home} setup={setup} now={new Date().toISOString()} timeZone={timeZone} />;
+  const reads = real.issues.length ? await loadMaskedListReads().catch(() => null) : null;
+  return (
+    <LearnHomeView
+      home={home}
+      setup={setup}
+      now={new Date().toISOString()}
+      timeZone={timeZone}
+      real={real}
+      reads={reads}
+      skillsHref={skillsPath(login)}
+    />
+  );
 }
 
 /**

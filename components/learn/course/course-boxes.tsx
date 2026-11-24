@@ -17,7 +17,15 @@ import {
   reviewMinutesWords,
   toRepeatWords,
 } from '@/lib/learn/course';
-import { checkPath, coursePath, LEARN_REVIEW_PATH, learnKnownPath, learnLessonPath } from '@/lib/learn/paths';
+import {
+  checkPath,
+  coursePath,
+  LEARN_REVIEW_PATH,
+  learnCourseRealWorldPath,
+  learnKnownPath,
+  learnLessonPath,
+} from '@/lib/learn/paths';
+import { courseIssuesBoxWordsOf } from '@/lib/learn/real-issues';
 import { cn } from '@/lib/utils';
 
 /*
@@ -340,14 +348,29 @@ function LastBox({
   box,
   lit,
   hints,
+  slug,
   onSignIn,
 }: {
   box: CourseLastBox;
   lit: boolean;
   hints: boolean;
+  slug: string;
   onSignIn: () => void;
 }) {
   switch (box.kind) {
+    case 'issues': {
+      const words = courseIssuesBoxWordsOf(box.count);
+      return (
+        <Box lit={lit}>
+          <Eyebrow>Fix a real issue</Eyebrow>
+          <Title>{words.title}</Title>
+          <Text>{words.text}</Text>
+          <Action lit={lit} hints={hints} href={learnCourseRealWorldPath(slug)}>
+            {words.button}
+          </Action>
+        </Box>
+      );
+    }
     case 'grows':
       return <GrowsBox />;
     case 'sign-in':
@@ -374,6 +397,14 @@ function LastBox({
                   Next course: {box.next.name}
                 </Link>
                 <span className="text-xs text-muted-foreground">{lessonsWords(box.next.lessons)}</span>
+              </li>
+            ) : null}
+            {box.issues ? (
+              <li className="flex flex-col" data-further-issues="">
+                <Link href={learnCourseRealWorldPath(slug)} className="font-semibold text-link hover:underline">
+                  Fix a real issue
+                </Link>
+                <span className="text-xs text-muted-foreground">{courseIssuesBoxWordsOf(box.issues).title}.</span>
               </li>
             ) : null}
             <li className="flex flex-col">
@@ -416,7 +447,7 @@ export function CourseBoxesRow({
         slug={slug}
         onSignIn={calls.onSignIn}
       />
-      <LastBox box={boxes.last} lit={boxes.highlight === 'last'} hints={hints} onSignIn={calls.onSignIn} />
+      <LastBox box={boxes.last} lit={boxes.highlight === 'last'} hints={hints} slug={slug} onSignIn={calls.onSignIn} />
     </div>
   );
 }

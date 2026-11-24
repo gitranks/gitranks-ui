@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowLeft, X } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
@@ -271,7 +273,14 @@ export function IssuesEmail({
  * One merged fix: the project with its issue and pull request, who fixed it, the title, its lesson and the day. The
  * title is plain text: the fix's own page is not there yet, and a link never leads to a page that is not.
  */
-export function FixRow({ fix }: { fix: LearnFixRow }) {
+export function FixRow({
+  fix,
+  lessonLine = true,
+}: {
+  fix: LearnFixRow;
+  /** The line naming the lesson the fix used; left out under that lesson, where it would link to the page itself. */
+  lessonLine?: boolean;
+}) {
   const merged = mergedOnOf(fix.mergedAt);
   return (
     <article className="flex flex-col gap-3 px-4 py-3.5 sm:px-5" data-fix-row={`${fix.repo}#${fix.number}`}>
@@ -284,7 +293,7 @@ export function FixRow({ fix }: { fix: LearnFixRow }) {
           {fix.title}
         </span>
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          {fix.lesson ? (
+          {fix.lesson && lessonLine ? (
             <span data-lesson="">
               Used{' '}
               <Link

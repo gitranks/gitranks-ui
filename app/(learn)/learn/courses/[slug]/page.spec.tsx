@@ -36,14 +36,27 @@ describe("a course's page", () => {
     loadLearnCourse.mockResolvedValue(algorithmsCourse);
     const page = await CoursePage(props('algorithms'));
     expect(isValidElement(page)).toBe(true);
-    expect(liveOf(page).props).toEqual({ course: algorithmsCourse, others: courseCards });
+    expect(liveOf(page).props).toEqual({ course: algorithmsCourse, others: courseCards, everyone: true });
     expect(loadLearnCourse).toHaveBeenCalledWith('algorithms');
+  });
+
+  it("says whether Learn is open to everyone, so a visitor sees the merged fixes' link only then", async () => {
+    loadLearnCourse.mockResolvedValue(algorithmsCourse);
+    everyone.mockResolvedValueOnce(false);
+    expect((liveOf(await CoursePage(props('algorithms'))).props as { everyone: boolean }).everyone).toBe(false);
+    // A switch that cannot be read is closed: the page is as it was.
+    everyone.mockRejectedValueOnce(new Error('down'));
+    expect((liveOf(await CoursePage(props('algorithms'))).props as { everyone: boolean }).everyone).toBe(false);
   });
 
   it('still draws the course when the other courses cannot be read, naming none', async () => {
     loadLearnCourse.mockResolvedValue(algorithmsCourse);
     loadLearnCourses.mockRejectedValue(new Error('down'));
-    expect(liveOf(await CoursePage(props('algorithms'))).props).toEqual({ course: algorithmsCourse, others: [] });
+    expect(liveOf(await CoursePage(props('algorithms'))).props).toEqual({
+      course: algorithmsCourse,
+      others: [],
+      everyone: true,
+    });
   });
 
   it('is not there for a course that is not, and fails with the course read', async () => {

@@ -71,6 +71,13 @@ export type CourseViewProps = {
   person?: CoursePerson;
   /** The check takes the highlight and Enter: a course not started, for an experienced developer. */
   checkFirst?: boolean;
+  /** The open issues of the learner's list for lessons of the course: the third box, while there are some. */
+  openIssues?: number | null;
+  /**
+   * Learn is open to everyone, or to the person: the parts that lead to Learn's lists (the merged fixes' count) show.
+   * Course pages are open to visitors whatever Learn's switch says.
+   */
+  learnOpen?: boolean;
   /** For the catalogue: a state drawn as it stands. */
   drawn?: { view?: CourseLessonsView; filter?: CourseFilter; query?: string; openCard?: string };
   hints?: boolean;
@@ -88,6 +95,8 @@ export function CourseView({
   calls,
   person = 'visitor',
   checkFirst = false,
+  openIssues = null,
+  learnOpen = false,
   drawn = {},
   hints: hintsGiven,
 }: CourseViewProps) {
@@ -116,7 +125,7 @@ export function CourseView({
   const counts = filterCountsOf(foundLessons, squareOf);
   const foundSlugs = useMemo(() => new Set(foundLessons.map((lesson) => lesson.slug)), [foundLessons]);
   const visible = (lesson: LearnGroupLesson) => foundSlugs.has(lesson.slug) && passesFilter(squareOf(lesson), filter);
-  const boxes = courseBoxesOf(course, mine, { checkFirst, person });
+  const boxes = courseBoxesOf(course, mine, { checkFirst, person, openIssues });
   const shownCount = foundLessons.filter((lesson) => passesFilter(squareOf(lesson), filter)).length;
   const nothing = shownCount === 0;
   // What the search and the filter leave, said to a screen reader as it changes; nothing while the whole course shows.
@@ -146,7 +155,13 @@ export function CourseView({
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-course={course.slug}>
-      <CourseHeader course={course} mine={mine} language={language} onLanguage={pickLanguage} />
+      <CourseHeader
+        course={course}
+        mine={mine}
+        language={language}
+        onLanguage={pickLanguage}
+        fixesLinked={learnOpen || learner}
+      />
       <CourseBoxesRow boxes={boxes} slug={course.slug} hints={hints} calls={calls} />
       <div className="flex flex-col gap-3">
         <CourseToolbar

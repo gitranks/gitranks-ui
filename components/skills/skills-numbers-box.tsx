@@ -48,7 +48,9 @@ export function SkillsNumbersBox({
               <dd className={cn('order-1 m-0 text-2xl font-bold', words.mono && 'font-mono tabular-nums')}>
                 {words.value}
               </dd>
-              {words.under ? <dd className="order-3 m-0 text-xs text-muted-foreground">{words.under}</dd> : null}
+              {words.under ? (
+                <dd className="order-3 m-0 text-balance text-xs text-muted-foreground">{words.under}</dd>
+              ) : null}
             </div>
           );
         })}

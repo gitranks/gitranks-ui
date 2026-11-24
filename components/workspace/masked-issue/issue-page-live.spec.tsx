@@ -439,13 +439,13 @@ describe("the page of one issue, live: Learn's parts", () => {
     expect([...container.querySelectorAll('[data-step] h3')].map((each) => each.textContent)[0]).toBe('How');
   });
 
-  it("from Contribute, shows none of Learn's parts and no VS Code", async () => {
+  it("from Contribute, shows none of Learn's parts, and offers the same agents, VS Code included", async () => {
     await live({ from: 'contribute', learn: LEARN, back: { href: '/contribute#issues', label: 'Issues' } });
     expect(container.querySelector('[data-lesson]')).toBeNull();
     fresh();
     await live({ from: 'contribute', learn: LEARN, page: fullPage(), start: NO_AGENT });
     expect(container.querySelector('[data-learn-only]')).toBeNull();
-    expect(container.querySelector('[data-agent-connect]')?.hasAttribute('data-vs-code')).toBe(false);
+    expect(container.querySelector('[data-agent-connect]')?.hasAttribute('data-vs-code')).toBe(true);
     fresh();
     await live({
       from: 'contribute',

@@ -594,7 +594,7 @@ export function AgentConnect({
   onAdded?: () => void;
   /** Where the connect is counted from, in place of the click that led here. */
   connectSource?: ContributeSource;
-  /** VS Code is one of the agents to pick (the page of one issue, from Learn). */
+  /** VS Code is one of the agents to pick (the page of one issue, from Learn and Contribute alike). */
   withVsCode?: boolean;
 }) {
   const goTo = useOnboardedPush();

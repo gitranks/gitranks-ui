@@ -11,6 +11,7 @@ import {
   coursesMine,
   coursesMineAllLearned,
   coursesMineChecked,
+  djangoCourse,
   doneMine,
   donePausedMine,
   donePausedUnstampedMine,
@@ -18,6 +19,7 @@ import {
   goCourse,
   groupDoneMine,
   knownLaterMine,
+  kubernetesCourse,
   lessonAt,
   lessonList,
   progressMine,
@@ -43,6 +45,7 @@ import {
   groupSquaresCountOf,
   groupStandingOf,
   isPausedSquare,
+  isProjectCourse,
   learnersOf,
   learnersWords,
   markedTextOf,
@@ -425,6 +428,24 @@ describe('all courses', () => {
       ['Languages', 'About 100 lessons each.', 7],
     ]);
     expect(courseSectionsOf(courseCards.filter((course) => course.kind === 'LANGUAGE'))).toHaveLength(1);
+  });
+
+  it('adds "Projects, from the inside" after the languages only when there is a project course', () => {
+    expect(courseSectionsOf(courseCards).some((section) => section.kind === 'PROJECT')).toBe(false);
+    const sections = courseSectionsOf([djangoCourse, ...courseCards, kubernetesCourse]);
+    expect(sections.map((section) => [section.kind, section.courses.length])).toEqual([
+      ['TOPIC', 4],
+      ['LANGUAGE', 7],
+      ['PROJECT', 2],
+    ]);
+    expect(sections[2]).toMatchObject({
+      title: 'Projects, from the inside',
+      sub: 'For people who want to contribute to them.',
+    });
+    expect(sections[2].courses.map((course) => course.slug)).toEqual(['django', 'kubernetes']);
+    expect(isProjectCourse(djangoCourse)).toBe(true);
+    expect(isProjectCourse(courseCards[0])).toBe(false);
+    expect(isProjectCourse({})).toBe(false);
   });
 
   it("says the topic courses' languages from the courses themselves", () => {

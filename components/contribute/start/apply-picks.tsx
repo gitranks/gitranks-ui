@@ -25,7 +25,7 @@ export function ApplyWorkPicks({ saved }: { saved: boolean }) {
         if (window.location.search) dropFlowQuery();
         return;
       }
-      const result = await savePreferences({ languages: picks.languages, kinds: picks.kinds }).catch(() => null);
+      const result = await savePreferences({ languages: picks.languages }).catch(() => null);
       setFailed(!result?.ok);
       if (result?.ok) dropFlowQuery();
     });

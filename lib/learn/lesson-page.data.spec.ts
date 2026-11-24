@@ -58,6 +58,41 @@ describe("a lesson's public layer", () => {
     expect(cacheLife.mock.calls.flat().filter((life) => life !== 'hours')).toEqual([]);
   });
 
+  it("names a quote's project from its course, and leaves an example of ours as it is", async () => {
+    const source = { repo: 'django/django', path: 'a.py', commit: 'abc', firstLine: 1, lastLine: 2, at: '2026-11-12' };
+    const quoted = {
+      ...setLesson,
+      examples: [...setLesson.examples, { name: 'quote', codes: setLesson.examples[0].codes, source }],
+    };
+    answer({
+      lesson: quoted,
+      groupsRead: async () => ({
+        learnCourse: { slug: 'c', groups, project: { name: 'Django', repo: 'django/django', org: null } },
+      }),
+    });
+    const page = await loadLearnLessonPage(setLesson.slug);
+    expect(page?.examples.at(-1)).toMatchObject({ name: 'quote', source, project: 'Django' });
+    expect(page?.examples[0]).toMatchObject({ source: null });
+    expect(page?.examples[0]).not.toHaveProperty('project');
+    expect(page?.group).toEqual(setGroup);
+    // The lesson carries its course's project, so its links lead to the project's address.
+    expect(page?.lesson.course).toEqual({
+      ...setLesson.course,
+      project: { name: 'Django', repo: 'django/django', org: null },
+    });
+
+    // Its course could not be read: the quote names its repository.
+    answer({
+      lesson: quoted,
+      groupsRead: async () => {
+        throw new Error('down');
+      },
+    });
+    const unread = await loadLearnLessonPage(setLesson.slug);
+    expect(unread?.examples.at(-1)).toMatchObject({ project: null });
+    expect(unread?.lesson).toBe(quoted);
+  });
+
   it('keeps a page whose group could not be read only for minutes, with no squares', async () => {
     answer({
       groupsRead: async () => {
@@ -107,6 +142,12 @@ describe("a lesson's public layer", () => {
     expect(cacheTag).toHaveBeenLastCalledWith('learn:lesson:sets');
     expect(await loadLearnAddress('course', 'algorithms')).toEqual(address);
     expect(cacheTag).toHaveBeenLastCalledWith('learn:course:algorithms');
+    // A project course's address, by its project, under the list's tag.
+    expect(await loadLearnAddress('repository', 'django/django')).toEqual(address);
+    expect(cacheTag).toHaveBeenLastCalledWith('learn:courses');
+    graphqlDirect.mockClear();
+    expect(await loadLearnAddress('org', '_gone')).toBeNull();
+    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });
 

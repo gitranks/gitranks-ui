@@ -40,18 +40,23 @@ const isNotHereYet = (failure: unknown) => contributeErrorOf(failure).error === 
  * as the API answering none is), and throws anything else, which nothing keeps.
  */
 
-/** A visitor's five, kept for minutes; null when the API answers none or does not know the read yet. */
+/**
+ * A visitor's five, kept for minutes; null when the API answers none or does not know the read yet. A project's view
+ * names its repository or its organisation (`repo`, `org`).
+ */
 export async function publicIssuesCached(
   lesson: string | null,
   course: string | null,
   language: string | null,
+  repo: string | null = null,
+  org: string | null = null,
 ): Promise<IssuesListPublic | null> {
   'use cache';
   cacheLife('minutes');
   try {
     const { list } = await graphqlDirect(
       IssuesListPublicDocument,
-      { input: { lesson, course, language } },
+      { input: { lesson, course, language, repo, org } },
       { source: 'ssr' },
     );
     return issuesListPublicOf(list);
@@ -63,9 +68,9 @@ export async function publicIssuesCached(
 
 /** A visitor's five for the view; any failure that leaves the kept read is a real one. */
 export async function loadIssuesListPublic(view: IssuesView): Promise<IssuesRead<IssuesListPublic>> {
-  const { lesson, course, language } = issuesPublicInputOf(view);
+  const { lesson, course, language, repo, org } = issuesPublicInputOf(view);
   try {
-    const list = await publicIssuesCached(lesson, course, language);
+    const list = await publicIssuesCached(lesson, course, language, repo, org);
     return list ? { kind: 'ok', data: list } : { kind: 'unavailable' };
   } catch {
     return { kind: 'failed' };
@@ -92,13 +97,15 @@ export async function loadIssuesList(githubLogin: string, view: IssuesView): Pro
 
 /**
  * A page of merged fixes, kept for minutes under the fixes' tag, which a new merged fix expires; null when the API
- * answers none or does not know the read yet.
+ * answers none or does not know the read yet. A project's view names its repository or its organisation.
  */
 export async function fixesCached(
   lesson: string | null,
   course: string | null,
   language: string | null,
   after: string | null,
+  repo: string | null = null,
+  org: string | null = null,
 ): Promise<LearnFixes | null> {
   'use cache';
   cacheTag(LEARN_FIXES_TAG);
@@ -107,7 +114,7 @@ export async function fixesCached(
   try {
     ({ learnFixes } = await graphqlDirect(
       LearnFixesDocument,
-      { input: { lesson, course, language, after } },
+      { input: { lesson, course, language, repo, org, after } },
       { source: 'ssr' },
     ));
   } catch (failure) {
@@ -127,9 +134,9 @@ export async function fixesCached(
  * is a real one.
  */
 export async function loadLearnFixes(view: IssuesView, after: string | null = null): Promise<IssuesRead<LearnFixes>> {
-  const { lesson, course, language } = issuesPublicInputOf(view);
+  const { lesson, course, language, repo, org } = issuesPublicInputOf(view);
   try {
-    const fixes = await fixesCached(lesson, course, language, after);
+    const fixes = await fixesCached(lesson, course, language, after, repo, org);
     return fixes ? { kind: 'ok', data: fixes } : { kind: 'unavailable' };
   } catch {
     return { kind: 'failed' };

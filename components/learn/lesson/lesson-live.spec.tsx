@@ -203,6 +203,20 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     expect(push).toHaveBeenCalledWith(`/learn/courses/${setLessonLast.course.slug}`);
   });
 
+  it("leads a project course's lesson to its project's address: the breadcrumb, and after the group's last lesson", async () => {
+    signedIn();
+    routes(mineNew, setDepthsLast);
+    answerLearnLessonAction.mockResolvedValue({ ok: false, error: 'FAILED' });
+    const project = { name: 'Django', repo: 'django/django', org: null };
+    await draw({ lesson: { ...setLessonLast, course: { ...setLessonLast.course, project } }, group: setGroupLast });
+    const crumbs = [...document.querySelectorAll('[data-player-strip] a')].map((a) => a.getAttribute('href'));
+    expect(crumbs).toContain('/learn/repos/django/django');
+    await click(option(1));
+    await click(main());
+    await click(main());
+    expect(push).toHaveBeenCalledWith('/learn/repos/django/django');
+  });
+
   it('sends a rating, and says whether it was saved', async () => {
     signedIn();
     routes(mineLearned);
@@ -321,7 +335,8 @@ describe('"In the real world" under a lesson', () => {
     expect($('[data-real-all-fixes]')!.getAttribute('href')).toBe(
       `/learn/lessons/${setLesson.slug}/real-world?fixed=1`,
     );
-    expect($('[data-real-issues-link]')!.getAttribute('href')).toBe(`/learn/lessons/${setLesson.slug}/real-world`);
+    // A visitor has no issues part, so no link to the lesson's open issues either.
+    expect($('[data-real-issues-link]')).toBeNull();
     // Each fix opens its own page, "Learn from it".
     expect(section()!.querySelector('a[href="/learn/fixes/harbor-kit/relay/418"]')).not.toBeNull();
   });
@@ -397,7 +412,7 @@ describe('"In the real world" under a lesson', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("puts the person's own fix first, with its address, and never offers another issue", async () => {
+  it("puts the person's own fix under the merged fixes, with its address, and never offers another issue", async () => {
     signedIn();
     routes(mineLearned, setDepths, lessonRealWithFix);
     await draw();
@@ -406,8 +421,10 @@ describe('"In the real world" under a lesson', () => {
     expect(mine.querySelector('[data-real-my-fix-open]')!.getAttribute('href')).toBe(
       '/my/pull-requests/harbor-kit/relay/431?from=learn',
     );
-    expect($('[data-real-column="others"]')).not.toBeNull();
-    expect($('[data-real-column="issues"]')).toBeNull();
+    const parts = [...section()!.querySelectorAll('[data-real-column]')].map((part) =>
+      part.getAttribute('data-real-column'),
+    );
+    expect(parts).toEqual(['fixes', 'mine']);
     expect(fixButton()).toBeNull();
   });
 });

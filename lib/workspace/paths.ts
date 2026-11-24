@@ -381,12 +381,14 @@ const ISSUES_AT = { lesson: 'lessons', course: 'courses' } as const;
 
 /**
  * The filters of Learn's Issues page, in the order Learn writes them, each with the one shape it takes there: the
- * chips (a course, a lesson, a language, "Fixed") and the two switches ("For you" off, "Lessons I learned" on). Then
+ * chips (a course, a lesson, a project, a language, "Fixed") and the two switches ("For you" off, "Lessons I learned" on). Then
  * the page the view was on (`at`): a lesson's or a course's own view of Issues.
  */
 const ISSUES_VIEW_PARAMS: readonly (readonly [key: string, shape: RegExp])[] = [
   ['course', VIEW_SLUG],
   ['lesson', VIEW_SLUG],
+  ['repo', new RegExp(`^${GITHUB_LOGIN}/(?!\\.\\.?$)[A-Za-z0-9._-]{1,100}$`)],
+  ['org', new RegExp(`^${GITHUB_LOGIN}$`)],
   ['language', /^[a-z]{1,20}$/],
   ['fixed', /^1$/],
   ['for-you', /^0$/],

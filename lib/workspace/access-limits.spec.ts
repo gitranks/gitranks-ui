@@ -37,6 +37,8 @@ describe('the access level on the settings', () => {
     expect(attemptsSummaryOf(three, limits.suspended)).toBe('Up to 3 issues in work at once');
     expect(openPrsSummaryOf(settings, limits.standard, 2)).toBe('Up to 3 · 2 open now');
     expect(openPrsSummaryOf(settings, limits.openPrsSet)).toBe('Up to 16');
+    // None open: no zero count.
+    expect(openPrsSummaryOf(settings, limits.standard, 0)).toBe('Up to 3');
     expect(budgetSummaryOf(three)).toBe('$200 a cycle · renews on the 14th · up to $5 a run');
   });
 });

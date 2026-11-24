@@ -2,11 +2,12 @@ import 'server-only';
 
 import { parse } from 'graphql';
 
+import { COURSE_CARD_FIELDS } from './course.documents';
 import { type LearnHomeRead, learnHomeReadOf } from './home';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import type DocumentNode from '@/types/typed-document-node';
 
-const CARD = 'slug name kind covers languages lessons numbers { learners goodShare }';
+const CARD = COURSE_CARD_FIELDS;
 const LINK = 'slug title';
 
 const LearnHomeDocument = parse(

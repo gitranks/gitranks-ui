@@ -42,9 +42,9 @@ const flow = (side: FlowSide, step: FlowStepNumber, children: ReactNode) => (
   </>
 );
 
-const NO_PICKS: WorkPicks = { languages: [], kinds: [] };
+const NO_PICKS: WorkPicks = { languages: [] };
 /** A signed-in person's languages, pre-ticked from their profile's top three. */
-const PROFILE_PICKS: WorkPicks = { languages: ['JS_TS', 'GO', 'RUST'], kinds: [] };
+const PROFILE_PICKS: WorkPicks = { languages: ['JS_TS', 'GO', 'RUST'] };
 const noop = () => {};
 
 /**

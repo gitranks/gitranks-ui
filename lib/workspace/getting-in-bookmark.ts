@@ -7,7 +7,7 @@ import { GETTING_IN_PATHS } from './paths';
 /**
  * The browser's bookmark of the flow (getting in, §6.3): the last step it was on in this browser, so a landing's
  * button resumes there. One record in `localStorage`, `{ contribute?: { href, at } }`; it holds
- * a step's path and query at most (languages, kinds, a level, an issue's address), never anything of the account.
+ * a step's path and query at most (languages, a level, an issue's address), never anything of the account.
  */
 export const BOOKMARK_KEY = 'gitranks:getting-in:v1';
 

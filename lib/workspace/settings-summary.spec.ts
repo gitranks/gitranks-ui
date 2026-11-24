@@ -16,8 +16,8 @@ import { stackPendingOf } from '@/lib/contribute/set-format';
 import { keptListOf, listSummaryOf, preferencesSummaryOf, waitingLibrariesOf } from '@/lib/contribute/work-summary';
 
 describe('the Settings summary', () => {
-  it('says the preferences in short, naming three languages and counting the rest', () => {
-    expect(preferencesSummaryOf(null)).toBe('Every language · every kind of issue · any size');
+  it('says the languages in short, naming three and counting the rest, and no kinds or size', () => {
+    expect(preferencesSummaryOf(null)).toBe('Every language');
     expect(
       preferencesSummaryOf({
         languages: ['RUST', 'GO', 'PYTHON', 'JAVA', 'JS_TS'],
@@ -25,7 +25,7 @@ describe('the Settings summary', () => {
         kinds: ['BUG', 'DOCS'],
         maxSize: 'M',
       }),
-    ).toMatch(/^Rust, Go, Python \+2 · Bugs, Docs · up to medium$/);
+    ).toBe('Rust, Go, Python +2');
   });
 
   it("says the hosted agent's budget and model in a line each", () => {

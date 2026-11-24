@@ -25,7 +25,6 @@ vi.mock('@/lib/learn/learn.data', () => ({}));
 const { ConnectScreen } = await import('@/components/workspace/agent/connect-view');
 const { renewalDayOptionsOf } = await import('@/components/workspace/agent/key-connect');
 const { helperModelLabelOf, testModelLabelOf } = await import('@/components/workspace/settings/settings-form');
-const { sizeLabelOf } = await import('@/components/contribute/preferences-fields');
 const { SettingsScreen } = await import('@/app/(workspace)/my/settings/components/settings-view');
 const { AgentScreen } = await import('@/components/workspace/agent/agent-screen');
 const { FormSettingsScreen, KeyScreen } = await import('@/app/(workspace)/my/agent/components/agent-pages');
@@ -224,7 +223,7 @@ describe('the Agent and Settings tabs', () => {
       <>
         <FormSettingsScreen page="budget" view={view} />
         <FormSettingsScreen page="model" view={view} />
-        <PreferencesFields value={{ languages: [], kinds: [], maxSize: null }} onChange={() => {}} />
+        <PreferencesFields value={{ languages: [] }} onChange={() => {}} />
         <PullRequestsSettingsScreen view={view} />
         <KeyScreen view={view} today={30} now={NOW} />
         <GithubSettingsScreen view={view} grantRefusal={grantRefusal} />
@@ -237,7 +236,7 @@ describe('the Agent and Settings tabs', () => {
 
     for (const label of [
       'What you work on',
-      'What you work on Rust · Bugs · any size',
+      'What you work on Rust',
       'Hosted agent Contribute only',
       'Budget and pacing $63.40 of $200 used this cycle · renews Nov 14 · up to $5 a run',
       'Model and effort Claude Sonnet 5.5, medium effort',
@@ -301,14 +300,15 @@ describe('the Agent and Settings tabs', () => {
       'Open PRs at a time',
       'DCO sign-off',
       'Languages',
-      'Issue kinds',
-      'Largest issue size',
       'Claude API key',
       'GitHub access',
       'Attempts at a time is in Settings →',
     ]) {
       expect(plain).toContain(label);
     }
+    // Kinds of issue and a largest size are no choice.
+    expect(plain).not.toContain('Issue kinds');
+    expect(plain).not.toContain('Largest issue size');
   });
 
   it('says each pick in its trigger: the stored day, the models, the effort, and no size', () => {
@@ -323,11 +323,9 @@ describe('the Agent and Settings tabs', () => {
       'Medium',
       'Claude Haiku 5.5 (cheaper)',
       'Same as the main model',
-      'Any size',
     ]);
     expect(helperModelLabelOf('CLAUDE_OPUS_5_5')).toBe('Claude Opus 5.5');
     expect(testModelLabelOf('CLAUDE_OPUS_5_5')).toBe('Claude Opus 5.5');
-    expect(sizeLabelOf('L')).toBe('Up to large');
   });
 
   it('renders the pace and the DCO sign-off as radio groups, named, with the stored ones checked', () => {
@@ -591,14 +589,17 @@ describe('the access level', () => {
   it('shows attempts and open PRs at a time on their page with no hint under them', () => {
     const standard = renderToStaticMarkup(<PullRequestsSettingsScreen view={views.active} />);
     expect(standard).not.toContain('data-cap-hint');
+    // The large pull request note keeps its place, empty until the numbers are large.
+    expect(standard).toMatch(/<span[^>]*data-large-note=""[^>]*><\/span>/);
   });
 
   it('shows an open PRs limit set for the account in place of the setting, not to be edited', () => {
     const view = { ...views.active, contributor: { ...views.active.contributor, limits: limits.openPrsSet } };
     const agent = renderToStaticMarkup(<PullRequestsSettingsScreen view={view} />);
-    expect(text(agent)).toContain('Open PRs at a time Set for your account by GitRanks.');
+    // The note sits over both boxes, so the two stay the same.
+    expect(text(agent)).toContain('Open PRs at a time is set for your account by GitRanks.');
     expect(agent).toMatch(/readOnly=""[^>]*value="16"|value="16"[^>]*readOnly=""/);
-    expect(agent).toMatch(/aria-describedby="([^"]*openPrsAtATime-hint)"[^>]*>.*id="\1"/s);
+    expect(agent).toMatch(/id="([^"]*openPrsAtATime-hint)".*aria-describedby="\1"/s);
     expect(text(agent)).not.toContain('Up to');
   });
 

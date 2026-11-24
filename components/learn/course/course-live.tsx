@@ -7,7 +7,7 @@ import { CourseView } from './course-view';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { CoursePerson, LearnCourse, LearnCourseCard, LearnCourseMine } from '@/lib/learn/course';
 import { sendLearnCourseFeedbackAction } from '@/lib/learn/course.actions';
-import { coursePath, learnCourseMinePath, learnCourseRealMinePath, learnCourseSidePath } from '@/lib/learn/paths';
+import { courseHrefOf, learnCourseMinePath, learnCourseRealMinePath, learnCourseSidePath } from '@/lib/learn/paths';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /**
@@ -67,7 +67,16 @@ type Personal = { kind: CoursePerson } | { kind: 'learner'; side: CourseSide };
  * as the session's user. The open issues of the person's list for the course come in a read of their own, which an
  * API without them answers with none: the third box then stays as it was.
  */
-export function CourseLive({ course, others }: { course: LearnCourse; others: readonly LearnCourseCard[] }) {
+export function CourseLive({
+  course,
+  others,
+  projectIssues = null,
+}: {
+  course: LearnCourse;
+  others: readonly LearnCourseCard[];
+  /** A project course's open issues to fix, read apart from the cached course. */
+  projectIssues?: number | null;
+}) {
   const [personal, setPersonal] = useState<Personal>({ kind: 'pending' });
   const [openIssues, setOpenIssues] = useState<number | null>(null);
   const { slug } = course;
@@ -101,9 +110,10 @@ export function CourseLive({ course, others }: { course: LearnCourse; others: re
       checkFirst={side?.checkFirst ?? false}
       mainLanguage={side?.mainLanguage ?? null}
       openIssues={side ? openIssues : null}
+      projectIssues={projectIssues}
       calls={{
         onSignIn: () => {
-          signIn(IDENTITY_PROVIDER, { redirectTo: coursePath(slug) }).catch(() => {});
+          signIn(IDENTITY_PROVIDER, { redirectTo: courseHrefOf(course) }).catch(() => {});
         },
         onRate: async (good) => {
           const result = await sendLearnCourseFeedbackAction({ course: slug, good });

@@ -8,11 +8,13 @@ import {
   LearnCoursesDocument,
   LearnCoursesMineDocument,
   LearnLessonsDocument,
+  LearnProjectCourseDocument,
+  LearnProjectOpenIssuesDocument,
   LearnSetupLevelDocument,
 } from './course.documents';
 import type { LearnDepth } from './lesson-page';
 import { loadLearnCourseMine } from './lesson-page.data';
-import { isContentSlug, LEARN_COURSES_TAG, learnCourseTag } from './paths';
+import { isContentSlug, LEARN_COURSES_TAG, type LearnProject, learnCourseTag } from './paths';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { contributeErrorOf } from '@/lib/workspace/errors';
 
@@ -73,6 +75,45 @@ export async function loadLearnCourse(slug: string): Promise<LearnCourse | null>
   if (course) cacheLife('hours');
   else cacheLife('minutes');
   return course;
+}
+
+/**
+ * A live project course, whole, by its project in lower case: null when the project has none. Kept as a course is,
+ * for hours under its course's tag (known once read) and the list's; a null only for minutes, under the list's tag. A
+ * failed read throws: nothing is kept. Its open issues are not part of it (`loadLearnProjectOpenIssues`).
+ */
+export async function loadLearnProjectCourse(project: LearnProject): Promise<LearnCourse | null> {
+  'use cache';
+  cacheTag(LEARN_COURSES_TAG);
+  let course: LearnCourse | null;
+  try {
+    ({ learnProjectCourse: course } = await graphqlDirect(LearnProjectCourseDocument, project, { source: 'ssr' }));
+  } catch (failure) {
+    if (!isMissingAnswer(failure)) throw failure;
+    course = null;
+  }
+  if (course) {
+    cacheTag(learnCourseTag(course.slug));
+    cacheLife('hours');
+  } else cacheLife('minutes');
+  return course;
+}
+
+/**
+ * A project course's open issues to fix, read apart from the course, whose cache lives until the content changes:
+ * kept for minutes only. Null for none, and when the read fails (decided inside, so a failure is never thrown out of
+ * the kept read and the page shows no count).
+ */
+export async function loadLearnProjectOpenIssues(project: LearnProject): Promise<number | null> {
+  'use cache';
+  cacheLife('minutes');
+  try {
+    const { learnProjectCourse } = await graphqlDirect(LearnProjectOpenIssuesDocument, project, { source: 'ssr' });
+    const count = learnProjectCourse?.openIssues;
+    return typeof count === 'number' && Number.isFinite(count) && count > 0 ? Math.floor(count) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** The person's level, from their setup or our guess of it: null when there is none, Learn is not open, or on failure. */

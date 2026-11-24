@@ -50,7 +50,7 @@ function Foot({ figures, address }: Readonly<{ figures: readonly CardFigure[]; a
 export function CourseShareCard({
   course,
 }: Readonly<{
-  course: Pick<LearnCourse, 'slug' | 'name' | 'kind' | 'languages' | 'lessons' | 'numbers'>;
+  course: Pick<LearnCourse, 'slug' | 'name' | 'kind' | 'languages' | 'lessons' | 'numbers' | 'project'>;
 }>): ReactElement {
   return (
     <Frame eyebrow="Course" brand="start">
@@ -70,7 +70,7 @@ export function CourseShareCard({
           {courseCardSubOf(course)}
         </div>
       </div>
-      <Foot figures={courseCardFiguresOf(course)} address={courseCardAddressOf(course.slug)} />
+      <Foot figures={courseCardFiguresOf(course)} address={courseCardAddressOf(course)} />
     </Frame>
   );
 }

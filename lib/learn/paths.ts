@@ -1,5 +1,6 @@
 import type { Route } from 'next';
 
+import { LEARN_PROJECT_COURSE_PAGE_BUILT } from './built-pages';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { ATTEMPT_ID, GITHUB_LOGIN } from '@/lib/workspace/paths';
 import { type PrRef, parsePrLink } from '@/lib/workspace/pr-feedback';
@@ -185,6 +186,142 @@ export function learnProjectIssuesPath(project: LearnProject, { fixed = false }:
   const parts = partsOf(project);
   const narrowing = parts.kind === 'repo' ? `repo=${repoSegments(parts)}` : `org=${encodeURIComponent(parts.login)}`;
   return `${LEARN_ISSUES_PATH}?${narrowing}${fixed ? '&fixed=1' : ''}` as Route;
+}
+
+/** A course as a link names it: its slug, and its project when it is a project course. */
+export type CourseRef = { slug: string; project?: { repo: string | null; org: string | null } | null };
+
+/** The project a project course is about, as the paths take it; null for any other course. */
+export function courseProjectOf(course: CourseRef): LearnProject | null {
+  if (course.project?.repo) return { repo: course.project.repo };
+  if (course.project?.org) return { org: course.project.org };
+  return null;
+}
+
+/**
+ * Where a link to a course leads: a project course's own address, `/learn/repos/<owner>/<name>` or
+ * `/learn/orgs/<login>`, once those pages exist; any other course's, and a project the paths cannot name, at
+ * `/learn/courses/<slug>` (which sends a project course on to its own address).
+ */
+export function courseHrefOf(course: CourseRef): Route {
+  const project = LEARN_PROJECT_COURSE_PAGE_BUILT ? courseProjectOf(course) : null;
+  if (project) {
+    try {
+      return learnProjectCoursePath(project);
+    } catch {
+      // A repository that is not one owner/name: the course's slug address still leads to it.
+    }
+  }
+  return coursePath(course.slug);
+}
+
+/** A course's Markdown copy, at the address its links lead to, with `.md`. */
+export const courseMarkdownHrefOf = (course: CourseRef) => markdownPathOf(courseHrefOf(course));
+
+/** The picture a posted link to a course shows, beside the address its links lead to. */
+export const courseCardHrefOf = (course: CourseRef) => `${courseHrefOf(course)}/card.png`;
+
+/**
+ * Where the proxy shows a project course that was removed (its 410) or paused (its 503): `_gone` is no GitHub
+ * login's shape, so no project is ever under it.
+ */
+export function learnProjectCourseGonePath(project: LearnProject): Route {
+  const parts = partsOf(project);
+  return (
+    parts.kind === 'repo'
+      ? `/learn/repos/_gone/${repoSegments(parts)}`
+      : `/learn/orgs/_gone/${encodeURIComponent(parts.login)}`
+  ) as Route;
+}
+
+/** A project course's address as the API asks about it: `repository` with `owner/name`, or `org` with the login. */
+export type LearnProjectRoute = { kind: 'repository' | 'org'; slug: string };
+
+/** The project an address names, as the paths take it. */
+export const projectOfRoute = (route: LearnProjectRoute): LearnProject =>
+  route.kind === 'repository' ? { repo: route.slug } : { org: route.slug };
+
+const LOGIN_SHAPE = new RegExp(`^${GITHUB_LOGIN}$`);
+/** A repository's name as GitHub allows it: up to 100 of its characters, never `.` or `..`. */
+const REPO_NAME_SHAPE = /^(?!\.\.?$)[A-Za-z0-9._-]{1,100}$/;
+
+/**
+ * A project by its names, as GitHub allows them: a login alone (an organisation), or a login and a repository's name.
+ * Null when either cannot be a GitHub name.
+ */
+function projectRouteOfNames(names: readonly string[]): LearnProjectRoute | null {
+  if (!LOGIN_SHAPE.test(names[0] ?? '')) return null;
+  if (names.length === 1) return { kind: 'org', slug: names[0] };
+  return names.length === 2 && REPO_NAME_SHAPE.test(names[1])
+    ? { kind: 'repository', slug: `${names[0]}/${names[1]}` }
+    : null;
+}
+
+/** A repository's `owner/name` as written, when GitHub could name one so; null otherwise. */
+export const repoNameOf = (value: string): string | null =>
+  projectRouteOfNames(value.split('/'))?.kind === 'repository' ? value : null;
+
+/** An organisation's login as written, when GitHub could name one so; null otherwise. */
+export const orgLoginOf = (value: string): string | null => (LOGIN_SHAPE.test(value) ? value : null);
+
+/** The project of `owner`/`name` or a login as written in an address; `invalid` when either cannot be a GitHub name. */
+function projectRouteFrom(segments: readonly string[]): LearnProjectRoute | 'invalid' {
+  let decoded: string[];
+  try {
+    decoded = segments.map(decodeURIComponent);
+  } catch {
+    return 'invalid';
+  }
+  return projectRouteOfNames(decoded) ?? 'invalid';
+}
+
+/**
+ * The project a project course's page's segments name (`[owner]`, `[name]`, or `[login]`), in lower case as the API
+ * names projects; null when they cannot name a GitHub project.
+ */
+export function learnProjectRouteOfSegments(segments: readonly string[]): LearnProjectRoute | null {
+  const route = projectRouteFrom(segments);
+  return route === 'invalid' ? null : { ...route, slug: route.slug.toLowerCase() };
+}
+
+const PROJECT_REPO_PAGE = /^\/learn\/repos\/([^/]+)\/([^/]+?)\/?$/;
+const PROJECT_ORG_PAGE = /^\/learn\/orgs\/([^/]+?)\/?$/;
+
+/**
+ * The project a project course's page names, `/learn/repos/<owner>/<name>` or `/learn/orgs/<login>` (a trailing
+ * slash allowed), for the proxy's gate: `invalid` for an address of that shape that cannot name a GitHub project (the
+ * proxy answers the 404 itself, `_gone` among them); null for any other path.
+ */
+export function learnProjectCourseRouteOf(pathname: string): LearnProjectRoute | 'invalid' | null {
+  const repo = PROJECT_REPO_PAGE.exec(pathname);
+  if (repo) return projectRouteFrom([repo[1], repo[2]]);
+  const org = PROJECT_ORG_PAGE.exec(pathname);
+  return org ? projectRouteFrom([org[1]]) : null;
+}
+
+// A repository whose own name ends in `.md` reads as the copy of the one without it: the address cannot tell them
+// apart without asking, and such a repository with a course is not worth a read on every copy.
+const PROJECT_REPO_MARKDOWN = /^\/learn\/repos\/([^/]+)\/([^/]+)\.md$/;
+const PROJECT_ORG_MARKDOWN = /^\/learn\/orgs\/([^/]+)\.md$/;
+
+/** Where a project course's Markdown copy is answered from, since a page and a route handler cannot share a segment. */
+export function learnProjectCourseMarkdownRoute(project: LearnProject): string {
+  const parts = partsOf(project);
+  return parts.kind === 'repo'
+    ? `/api/learn/projects/repos/${repoSegments(parts)}/course.md`
+    : `/api/learn/projects/orgs/${encodeURIComponent(parts.login)}/course.md`;
+}
+
+/**
+ * Where the proxy answers a project course's Markdown copy from, for `/learn/repos/<owner>/<name>.md` and
+ * `/learn/orgs/<login>.md` as `learnProjectCourseMarkdownPath` writes them; null for any other path, and for names
+ * no GitHub project can have.
+ */
+export function learnProjectCourseMarkdownRouteOf(pathname: string): string | null {
+  const repo = PROJECT_REPO_MARKDOWN.exec(pathname);
+  const org = repo ? null : PROJECT_ORG_MARKDOWN.exec(pathname);
+  const route = repo ? projectRouteFrom([repo[1], repo[2]]) : org ? projectRouteFrom([org[1]]) : null;
+  return route && route !== 'invalid' ? learnProjectCourseMarkdownRoute(projectOfRoute(route)) : null;
 }
 
 /** A fix made with Learn, its "Learn from it" view: `/learn/fixes/<owner>/<repo>/<number>`. */

@@ -33,6 +33,7 @@ export function LessonScreen({
         questionCodes={questionCodes}
         article={parts.article}
         more={parts.more}
+        footer={parts.footer}
         openFact={openFact}
         fixes={fixes}
       />

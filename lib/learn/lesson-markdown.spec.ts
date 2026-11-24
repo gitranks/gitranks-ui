@@ -47,6 +47,37 @@ describe("a lesson's Markdown copy", () => {
     expect(markdown).not.toContain('[[example');
   });
 
+  it("quotes a project's code with its file and lines linked to that exact version, in its one language", () => {
+    const source = {
+      repo: 'django/django',
+      path: 'django/core/handlers/base.py',
+      commit: 'abc123',
+      firstLine: 138,
+      lastLine: 139,
+      at: '2026-11-12',
+    };
+    const quoted: LearnLesson = {
+      ...setLesson,
+      course: { ...setLesson.course, project: { name: 'Django', repo: 'django/django', org: null } },
+      examples: [
+        { name: 'main', codes: [{ language: 'python', code: 'def get_response(self, request):\n    pass' }], source },
+      ],
+    };
+    const text = learnLessonMarkdownOf(quoted);
+    expect(text).toContain(
+      [
+        '[django/core/handlers/base.py, lines 138 to 139](https://github.com/django/django/blob/abc123/django/core/handlers/base.py#L138-L139):',
+        `${FENCE}python\ndef get_response(self, request):\n    pass\n${FENCE}`,
+        'Django’s own code, as it was on 12 Nov 2026. The link opens this exact version on GitHub, so it still matches the lesson after the project changes the file.',
+      ].join('\n\n'),
+    );
+    expect(text).not.toContain('Python:\n');
+    // Its course is linked at its project's address.
+    expect(text).toContain(`](${absoluteUrl('/learn/repos/django/django')}), in its group`);
+    // Without the project, a quote names its repository.
+    expect(learnLessonMarkdownOf({ ...quoted, course: setLesson.course })).toContain('django/django’s own code');
+  });
+
   it('drops a visual, a picture on the page with no words here', () => {
     expect(learnLessonMarkdownOf(setLessonWithVisual)).not.toContain('[[visual');
   });
@@ -188,6 +219,15 @@ describe("a lesson's Markdown copy", () => {
     const copy = learnLessonMarkdownOf({ ...setLesson, question });
     expect(copy).toContain('1. One # Two\n2. Three');
     expect(copy).toContain('1. Right. Because - this\n2. Wrong.');
+  });
+
+  it('has no "In the real world" part: no fixes, no open issues, no link to them', () => {
+    for (const lesson of [setLesson, regexLesson, loopLesson, mythLesson, outputLesson]) {
+      const copy = learnLessonMarkdownOf(lesson);
+      expect(copy, lesson.slug).not.toContain('In the real world');
+      expect(copy, lesson.slug).not.toContain('/real-world');
+      expect(copy, lesson.slug).not.toMatch(/fixes that used it|open issues for this lesson/i);
+    }
   });
 
   it('never holds a long dash', () => {

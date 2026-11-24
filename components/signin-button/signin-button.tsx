@@ -31,23 +31,33 @@ const signOutHere = () => {
   return signOut();
 };
 
+/** The avatar's place while the session is read: the same size, so nothing moves when the avatar comes. */
+const AVATAR_PLACE = 'size-8 rounded-full bg-muted';
+
 export default function SigninButton() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   return (
     <div>
       {session ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Image
-              src={`${session.user.image}&s=${AVATAR_SIZE * 2}`}
-              alt={`${session.user.name} avatar`}
-              className="rounded-full"
-              width={AVATAR_SIZE}
-              height={AVATAR_SIZE}
-              loading="lazy"
-              decoding="async"
-            />
+            {/* A button, so the menu is reached with Tab and opened with Enter or Space; Escape closes it. */}
+            <button
+              type="button"
+              aria-label="Your account"
+              className="block size-8 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              <Image
+                src={`${session.user.image}&s=${AVATAR_SIZE * 2}`}
+                alt={`${session.user.name} avatar`}
+                className="rounded-full"
+                width={AVATAR_SIZE}
+                height={AVATAR_SIZE}
+                loading="lazy"
+                decoding="async"
+              />
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem asChild>
@@ -66,9 +76,21 @@ export default function SigninButton() {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Button onClick={() => signIn(IDENTITY_PROVIDER)} variant="ghost" size="sm">
-          <LogIn className="size-4" />
-        </Button>
+        <>
+          {/* While the session is read, the hint (set before the first paint) picks what is drawn. */}
+          {status === 'loading' ? (
+            <span aria-hidden="true" className={`hidden [html[data-has-session]_&]:block ${AVATAR_PLACE}`} />
+          ) : null}
+          <Button
+            onClick={() => signIn(IDENTITY_PROVIDER)}
+            variant="ghost"
+            size="sm"
+            aria-label="Sign in"
+            className={status === 'loading' ? '[html[data-has-session]_&]:hidden' : undefined}
+          >
+            <LogIn className="size-4" />
+          </Button>
+        </>
       )}
 
       <Dialog open={session?.error === 'RefreshTokenError'}>

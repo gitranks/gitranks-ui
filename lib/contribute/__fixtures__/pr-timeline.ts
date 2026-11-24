@@ -162,3 +162,22 @@ export const autopilotTimeline: PrTimeline = {
         : each,
   ),
 };
+
+/**
+ * A row of a kind this page does not know yet (the API may add one before the page learns it), with the agent's own
+ * text, before the merge: the kind is cast, as the API's answer is not checked against the list.
+ */
+export const unknownKindTimeline: PrTimeline = {
+  ...mergedTimeline,
+  milestones: [
+    ...mergedTimeline.milestones.slice(0, -1),
+    row({
+      kind: 'WALKTHROUGH' as PrTimelineMilestone['kind'],
+      at: '2026-10-26T14:40:00.000Z',
+      by: 'AGENT',
+      text: 'Wrote a walkthrough of the fix.',
+      minutes: 4,
+    }),
+    ...mergedTimeline.milestones.slice(-1),
+  ],
+};

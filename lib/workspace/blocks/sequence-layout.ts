@@ -1,5 +1,5 @@
 import { clamp, clip, DIAGRAM_WIDTH, edgeOf, LABEL_CHAR, round, SUB_CHAR } from './diagram-layout';
-import type { LessonDiagramEdge, LessonDiagramNode, LessonDiagramTone } from './learn.types';
+import type { LessonDiagramEdge, LessonDiagramNode, LessonDiagramTone } from '@/lib/workspace/blocks/block.types';
 
 /**
  * A call sequence, laid out here: the lesson sends actors (nodes, left to right in its order) and calls (edges, top to

@@ -7,8 +7,8 @@ import { Diagram } from './diagram';
 import { RichText } from './rich-text';
 import { SequenceDiagram } from './sequence-diagram';
 import { Counts, LINE_CLASSES } from '@/components/workspace/diff-viewer';
-import type { LessonBlock as Block, LessonDiffLineKind } from '@/lib/learn/learn.types';
 import { cn } from '@/lib/utils';
+import type { LessonBlock as Block, LessonDiffLineKind } from '@/lib/workspace/blocks/block.types';
 import type { PatchLineKind } from '@/lib/workspace/patch';
 
 const DIFF_KINDS: Record<LessonDiffLineKind, PatchLineKind> = { HUNK: 'hunk', CTX: 'context', ADD: 'add', DEL: 'del' };

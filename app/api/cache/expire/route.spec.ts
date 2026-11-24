@@ -127,6 +127,24 @@ describe('POST /api/cache/expire', () => {
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
   });
 
+  it("takes the fixes' tags: the list of merged fixes and one fix's, beside the others", async () => {
+    const tags = ['learn:fixes', 'learn:fix:octo-labs/scroll.guard#42', 'learn:courses', 'profile:octocat'];
+    const response = await signed({ tags });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ expired: 4 });
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
+  });
+
+  it("expires a fix's tag in the lower case its pages carry, whatever case is sent, once", async () => {
+    const response = await signed({
+      tags: ['learn:fix:Octo-Labs/Scroll_Guard#7', 'learn:fix:octo-labs/scroll_guard#7'],
+    });
+
+    expect(response.status).toBe(200);
+    expect(revalidateTag.mock.calls).toEqual([['learn:fix:octo-labs/scroll_guard#7', { expire: 0 }]]);
+  });
+
   it.each([
     ['no token', undefined],
     ['a token that is not a bearer', `Basic ${tokenOf({ source: 'gitranks' })}`],
@@ -209,6 +227,19 @@ describe('POST /api/cache/expire', () => {
     ['a Learn tag over 100 characters', { tags: [`learn:lesson:${'a'.repeat(101)}`] }],
     ['a Learn tag with a line break', { tags: ['learn:lesson:sets\n'] }],
     ['a Learn tag with a slash', { tags: ['learn:course:a/b'] }],
+    ['the singular of the fixes tag', { tags: ['learn:fix'] }],
+    ['a fix tag with no pull request', { tags: ['learn:fix:'] }],
+    ['a fix tag with no number', { tags: ['learn:fix:octo/repo'] }],
+    ['a fix tag with a number of 0', { tags: ['learn:fix:octo/repo#0'] }],
+    ['a fix tag with a leading zero', { tags: ['learn:fix:octo/repo#07'] }],
+    ['a fix tag with no repository', { tags: ['learn:fix:octo#7'] }],
+    ['a fix tag as a link', { tags: ['learn:fix:https://github.com/octo/repo/pull/7'] }],
+    ['a fix tag with a slash before the number', { tags: ['learn:fix:octo/repo/7'] }],
+    ['a fix tag with a space', { tags: ['learn:fix:octo/repo #7'] }],
+    ['a fix tag with a line break', { tags: ['learn:fix:octo/repo#7\n'] }],
+    ['a fix tag with an owner starting with a hyphen', { tags: ['learn:fix:-octo/repo#7'] }],
+    ['a fix tag in capitals before the pull request', { tags: ['Learn:Fix:octo/repo#7'] }],
+    ['a walkthrough tag', { tags: ['learn:walkthrough:octo/repo#7'] }],
   ])('answers 400 for %s and expires nothing', async (_name, body) => {
     const response = await signed(body);
 

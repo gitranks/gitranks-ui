@@ -5,11 +5,11 @@ import type { ReactNode, Ref } from 'react';
 
 import { LiveStatus } from '@/components/learn/player/live-status';
 import { reviewPlace } from '@/components/learn/player/places';
-import { type PlayerCrumb, PlayerStrip } from '@/components/learn/player/player-strip';
 import { AnswerPart } from '@/components/learn/question/answer-part';
 import { Kbd } from '@/components/learn/question/kbd';
 import type { LearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { Button } from '@/components/ui/button';
+import { type PlayerCrumb, PlayerStrip } from '@/components/workspace/player/player-strip';
 import type { LearnLessonLink } from '@/lib/learn/lesson-page';
 import { coursePath, LEARN_HOME_PATH, learnLessonPath } from '@/lib/learn/paths';
 import {

@@ -2,9 +2,9 @@ import type { ReactNode } from 'react';
 
 import { CodeExcerpt } from './code-excerpt';
 import { Diagram } from './diagram';
-import type { DiagramOptions } from '@/lib/learn/diagram-layout';
-import type { LessonBlock as Block, LessonCompareSide } from '@/lib/learn/learn.types';
-import { lineDiffOf } from '@/lib/learn/line-diff';
+import type { LessonBlock as Block, LessonCompareSide } from '@/lib/workspace/blocks/block.types';
+import type { DiagramOptions } from '@/lib/workspace/blocks/diagram-layout';
+import { lineDiffOf } from '@/lib/workspace/blocks/line-diff';
 
 const PANE_HEAD = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase';
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { cleanDiagram, DIAGRAM_WIDTH, type DiagramBox, layoutDiagram } from './diagram-layout';
-import type { LessonDiagramEdge, LessonDiagramNode } from './learn.types';
+import type { LessonDiagramEdge, LessonDiagramNode } from '@/lib/workspace/blocks/block.types';
 
 const node = (id: string, extra: Partial<LessonDiagramNode> = {}): LessonDiagramNode => ({
   id,

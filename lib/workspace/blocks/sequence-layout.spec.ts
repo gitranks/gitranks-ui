@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { DIAGRAM_WIDTH } from './diagram-layout';
-import type { LessonDiagramEdge, LessonDiagramNode } from './learn.types';
 import { cleanSequence, layoutSequence, SEQUENCE_MAX_ACTORS, SEQUENCE_MAX_CALLS } from './sequence-layout';
+import type { LessonDiagramEdge, LessonDiagramNode } from '@/lib/workspace/blocks/block.types';
 
 const node = (id: string, extra: Partial<LessonDiagramNode> = {}): LessonDiagramNode => ({
   id,

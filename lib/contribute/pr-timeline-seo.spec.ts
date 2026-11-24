@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { autopilotTimeline, mergedTimeline } from './__fixtures__/pr-timeline';
+import { autopilotTimeline, mergedTimeline, unknownKindTimeline } from './__fixtures__/pr-timeline';
 import {
   prTimelineDescriptionOf,
   prTimelineJsonLdOf,
@@ -38,6 +38,14 @@ describe('the PR timeline for search engines and agents', () => {
     expect(markdown).toContain(`[The pull request on GitHub](${mergedTimeline.url})`);
     expect(markdown).toContain('/contribute/pr/driftwood-js/driftwood/1419/timeline.md');
     expect(prTimelineMarkdownOf(autopilotTimeline)).toContain('autopilot, not reviewed by a person');
+  });
+
+  it('writes a row of a kind it does not know as a plain row, in the Markdown twin and the structured data', () => {
+    const markdown = prTimelineMarkdownOf(unknownKindTimeline);
+    expect(markdown).toContain('Another step · Agent');
+    expect(markdown).not.toContain('Wrote a walkthrough of the fix.');
+    const [, , list] = prTimelineJsonLdOf(unknownKindTimeline) as Record<string, unknown>[];
+    expect(list).toMatchObject({ numberOfItems: unknownKindTimeline.milestones.length });
   });
 
   it('escapes Markdown in the agent’s words', () => {

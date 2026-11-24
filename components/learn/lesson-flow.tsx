@@ -4,13 +4,13 @@ import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useRef, useState, useTransition } from 'react';
 
-import { LessonBlock } from './lesson-block';
 import { LESSON_GRID, LessonSteps, stepAnchorOf } from './lesson-steps';
 import { LessonSummary, type SummaryShare } from './lesson-summary';
 import { QuestionCard } from './question-card';
-import { RichText } from './rich-text';
 import { WrittenFor } from './written-for';
 import { Button } from '@/components/ui/button';
+import { LessonBlock } from '@/components/workspace/blocks/lesson-block';
+import { RichText } from '@/components/workspace/blocks/rich-text';
 import { CopyButton } from '@/components/workspace/copy-button';
 import { HEADING } from '@/components/workspace/primitives';
 import { Box } from '@/components/workspace/status-box';

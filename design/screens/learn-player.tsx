@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { ExampleBlock } from '@/components/learn/blocks/example-block';
-import { VisualBlock } from '@/components/learn/blocks/visual-block';
 import {
   CheckFrame,
   CheckMessage,
@@ -15,7 +14,6 @@ import {
   KnownSheet,
 } from '@/components/learn/check/check-parts';
 import { lessonPlace } from '@/components/learn/player/places';
-import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/learn/player/player-strip';
 import { AnswerPart } from '@/components/learn/question/answer-part';
 import { QuestionPart } from '@/components/learn/question/question-part';
 import type { LearnAnswer } from '@/components/learn/question/use-learn-answer';
@@ -29,6 +27,8 @@ import {
   ReviewVisitor,
 } from '@/components/learn/review/review-parts';
 import { Button } from '@/components/ui/button';
+import { VisualBlock } from '@/components/workspace/blocks/visual-block';
+import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/workspace/player/player-strip';
 import {
   checkResult,
   checkResultAll,
@@ -74,8 +74,8 @@ import {
 import { canSendOf, type LearnAnswerAction } from '@/lib/learn/learn-answer';
 import type { LearnQuestion } from '@/lib/learn/learn-question';
 import type { LearnLessonLink } from '@/lib/learn/lesson-page';
-import { type PlayerRun, runWordsOf, squaresOf } from '@/lib/learn/player';
 import type { LearnReviewChange } from '@/lib/learn/review';
+import { type PlayerRun, runWordsOf, squaresOf } from '@/lib/workspace/player';
 
 const noop = () => {};
 
@@ -296,19 +296,19 @@ export const LEARN_PLAYER_SCREEN: Screen = {
   area: 'learn',
   route: '/learn/review',
   sources: [
-    'components/learn/player/player-strip.tsx',
+    'components/workspace/player/player-strip.tsx',
     'components/learn/player/places.ts',
-    'components/learn/player/use-player.ts',
+    'components/workspace/player/use-player.ts',
     'components/learn/review/review-parts.tsx',
     'components/learn/check/check-parts.tsx',
     'lib/learn/check.ts',
     'lib/learn/review.ts',
     'components/learn/blocks/example-block.tsx',
     'components/learn/blocks/code-lines.tsx',
-    'components/learn/blocks/visual-block.tsx',
-    'lib/learn/player.ts',
+    'components/workspace/blocks/visual-block.tsx',
+    'lib/workspace/player.ts',
     'lib/learn/highlight.ts',
-    'lib/learn/learn-visual.ts',
+    'lib/workspace/blocks/learn-visual.ts',
   ],
   states: [
     {

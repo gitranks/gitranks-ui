@@ -12,8 +12,12 @@
 // |   import it)                            |                                                                         |
 // | Contribute's pages (app/contribute/)    | anything but lib/learn/, components/learn/ and Learn's pages            |
 // | Learn's pages (app/learn/, the groups   | anything but lib/contribute/, components/contribute/ and Contribute's   |
-// |   (learn) and (player), and Learn's     |                                                                         |
-// |   pages in (public))                    |                                                                         |
+// |   (learn) and (player), the fixer's     |                                                                         |
+// |   walkthrough under (player)/my/, and   |                                                                         |
+// |   Learn's pages in (public))            |                                                                         |
+// | Shared pages (both products open them:  | anything but either product's own: lib/learn/, components/learn/,       |
+// |   (workspace)/my/ and (player)/my/,     |   lib/contribute/, components/contribute/ and either product's pages    |
+// |   Approve included)                     |                                                                         |
 //
 // Specs and fixtures are not checked. The imports that still cross are listed in `ALLOWED` below, by the importing
 // file and the imported module; the list only shrinks: an entry that no longer crosses fails the check too.
@@ -21,8 +25,38 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, posix, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** The crossings left today, as `<file> -> <module>` (the module's path without its extension): none now. */
-export const ALLOWED = [];
+/**
+ * The crossings left today, as `<file> -> <module>` (the module's path without its extension): the shared pages under
+ * `/my` that still draw a product's own parts (Settings' two groups, the lesson and progress pages, the start page),
+ * until those parts move to the shared folders or the pages are replaced.
+ */
+export const ALLOWED = [
+  'app/(workspace)/my/error.tsx -> app/(workspace)/contribute/error',
+  'app/(workspace)/my/issues/[id]/page.tsx -> lib/learn/learn.data',
+  'app/(workspace)/my/progress/page.tsx -> components/learn/progress/progress-view',
+  'app/(workspace)/my/pull-requests/by-attempt/[attemptId]/route.ts -> lib/learn/learn.data',
+  'app/(workspace)/my/pull-requests/by-attempt/[attemptId]/route.ts -> lib/learn/learn-view',
+  'app/(workspace)/my/pull-requests/[owner]/[repo]/[issue]/(latest)/lesson/page.tsx -> app/learn/components/lesson-view',
+  'app/(workspace)/my/pull-requests/[owner]/[repo]/[issue]/earlier/[attemptId]/lesson/page.tsx -> app/learn/components/lesson-view',
+  'app/(workspace)/my/settings/components/settings-pages.tsx -> app/learn/components/learn-setting-up',
+  'app/(workspace)/my/settings/components/settings-pages.tsx -> components/contribute/mode-switch',
+  'app/(workspace)/my/settings/components/settings-pages.tsx -> components/contribute/preferences-section',
+  'app/(workspace)/my/settings/components/settings-pages.tsx -> components/contribute/set-list-screen',
+  'app/(workspace)/my/settings/components/settings-pages.tsx -> components/contribute/settings-work-group',
+  'app/(workspace)/my/settings/components/settings-pages.tsx -> components/learn/learn-profile-form',
+  'app/(workspace)/my/settings/components/settings-pages.tsx -> lib/contribute/set-format',
+  'app/(workspace)/my/settings/components/settings-pages.tsx -> lib/learn/learn.data',
+  'app/(workspace)/my/settings/components/settings-pages.tsx -> lib/learn/learn.types',
+  'app/(workspace)/my/settings/components/settings-view.tsx -> components/learn/settings/learn-email-rows',
+  'app/(workspace)/my/settings/components/settings-view.tsx -> components/learn/settings/learn-preferences-group',
+  'app/(workspace)/my/settings/components/settings-view.tsx -> lib/contribute/set-format',
+  'app/(workspace)/my/settings/components/settings-view.tsx -> lib/contribute/work-summary',
+  'app/(workspace)/my/settings/components/settings-view.tsx -> lib/learn/settings',
+  'app/(workspace)/my/settings/components/settings-view.tsx -> lib/learn/settings.data',
+  'app/(workspace)/my/settings/components/settings-view.tsx -> lib/learn/setup',
+  'app/(workspace)/my/start/[owner]/[repo]/[issue]/page.tsx -> lib/learn/learn.data',
+  'app/(workspace)/my/start/[owner]/[repo]/[issue]/page.tsx -> lib/learn/profile-form',
+];
 
 /** The folder rule's name for a path, or null for a site-wide module every folder may import. */
 export function zoneOf(path) {
@@ -36,6 +70,10 @@ export function zoneOf(path) {
   if (path.startsWith('components/learn/')) return 'components/learn';
   if (/^app\/(?:\((?:workspace|onboarding)\)\/)?contribute\//.test(path)) return 'app/contribute';
   if (/^app\/(?:\((?:workspace|onboarding|public)\)\/)?learn\//.test(path)) return 'app/learn';
+  // Under the player's `/my`, the fixer's walkthrough is Learn's (only a Learn fix has one); the rest, Approve first, is
+  // shared, as every workspace page under `/my` is.
+  if (/^app\/\(player\)\/my\/(?:[^/]+\/)*walkthrough\//.test(path)) return 'app/learn';
+  if (/^app\/\((?:workspace|player)\)\/my\//.test(path)) return 'app/shared';
   if (/^app\/\((?:learn|player)\)\//.test(path)) return 'app/learn';
   return null;
 }
@@ -71,6 +109,7 @@ const MAY_IMPORT = {
 const MAY_NOT_IMPORT = {
   'app/contribute': ['lib/learn', 'components/learn', 'app/learn'],
   'app/learn': ['lib/contribute', 'components/contribute', 'app/contribute'],
+  'app/shared': ['lib/learn', 'components/learn', 'app/learn', 'lib/contribute', 'components/contribute', 'app/contribute'],
 };
 
 /** Whether a file at `from` may not import the module at `to` (both repo paths). */

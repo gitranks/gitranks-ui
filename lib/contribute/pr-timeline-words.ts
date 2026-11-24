@@ -66,9 +66,15 @@ function workPills(row: PrTimelineMilestone): string[] {
 const whoOf = (row: PrTimelineMilestone, timeline: PrTimeline) =>
   row.login ?? timeline.contributorLogin ?? 'The contributor';
 
-/** One row's words: every sentence on the page is written here, from the row's kind and numbers. */
+/** The title of a row whose kind this page does not know yet: a plain row, never a broken page. */
+export const PLAIN_ROW_TITLE = 'Another step';
+
+/**
+ * One row's words: every sentence on the page is written here, from the row's kind and numbers. A kind the API adds
+ * before this page learns it is drawn as a plain row: its title, its actor, nothing else.
+ */
 export function milestoneWordsOf(row: PrTimelineMilestone, timeline: PrTimeline): PrTimelineRowWords {
-  const base = { actor: ACTORS[row.by], agent: row.by === 'AGENT', text: null, pills: [] as string[] };
+  const base = { actor: ACTORS[row.by] ?? null, agent: row.by === 'AGENT', text: null, pills: [] as string[] };
   const who = whoOf(row, timeline);
   switch (row.kind) {
     case 'PICKED':
@@ -157,6 +163,8 @@ export function milestoneWordsOf(row: PrTimelineMilestone, timeline: PrTimeline)
       return { ...base, title: 'Reopened' };
     case 'MERGED':
       return { ...base, title: 'Merged' };
+    default:
+      return { ...base, title: PLAIN_ROW_TITLE };
   }
 }
 

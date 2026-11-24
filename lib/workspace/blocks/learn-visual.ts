@@ -4,7 +4,7 @@ import type {
   LessonDiagramEdge,
   LessonDiagramNode,
   LessonDiagramTone,
-} from './learn.types';
+} from '@/lib/workspace/blocks/block.types';
 
 /**
  * A course's visual (a table, a diagram, a before-and-after of two diagrams), as the API gives it, turned into the

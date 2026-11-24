@@ -22,6 +22,73 @@ describe('the workspace import rule', () => {
     expect(zoneOf('app/(pr-timeline)/contribute/pr/[owner]/route.ts')).toBeNull();
   });
 
+  it("names the shared pages under /my, Approve among them, and the fixer's walkthrough as Learn's", () => {
+    expect(zoneOf('app/(workspace)/my/settings/page.tsx')).toBe('app/shared');
+    expect(zoneOf('app/(workspace)/my/pull-requests/[owner]/[repo]/[issue]/(latest)/page.tsx')).toBe('app/shared');
+    expect(zoneOf('app/(player)/my/layout.tsx')).toBe('app/shared');
+    expect(zoneOf('app/(player)/my/pull-requests/[owner]/[repo]/[issue]/approve/page.tsx')).toBe('app/shared');
+    expect(zoneOf('app/(player)/my/pull-requests/[owner]/[repo]/[issue]/walkthrough/page.tsx')).toBe('app/learn');
+    expect(zoneOf('app/(player)/my/walkthrough/parts/answer.tsx')).toBe('app/learn');
+    // A segment that only starts with the word is not the walkthrough.
+    expect(zoneOf('app/(player)/my/walkthroughs/page.tsx')).toBe('app/shared');
+    expect(zoneOf('app/(player)/learn/layout.tsx')).toBe('app/learn');
+    expect(zoneOf('app/(player)/layout.tsx')).toBe('app/learn');
+  });
+
+  it('keeps both products out of a shared page, and lets it use the shared parts and the site-wide ones', () => {
+    const approve = 'app/(player)/my/pull-requests/[owner]/[repo]/[issue]/approve/page.tsx';
+    for (const own of [
+      'lib/learn/learn.data',
+      'components/learn/lesson-flow',
+      'app/learn/components/lesson-view',
+      'lib/contribute/set-format',
+      'components/contribute/mode-switch',
+      'app/contribute/components/pr-timeline-view',
+    ]) {
+      expect(crosses(approve, own)).toBe(true);
+      expect(crosses('app/(workspace)/my/settings/page.tsx', own)).toBe(true);
+    }
+    for (const shared of [
+      'components/workspace/player/player-strip',
+      'components/workspace/player/use-player',
+      'components/workspace/blocks/visual-block',
+      'components/workspace/timeline-rail',
+      'lib/workspace/player',
+      'components/header/header',
+      'components/ui/button',
+    ]) {
+      expect(crosses(approve, shared)).toBe(false);
+    }
+    // The walkthrough is Learn's: Learn's own code, never Contribute's.
+    const walkthrough = 'app/(player)/my/pull-requests/[owner]/[repo]/[issue]/walkthrough/page.tsx';
+    expect(crosses(walkthrough, 'components/learn/question/answer-part')).toBe(false);
+    expect(crosses(walkthrough, 'components/contribute/mode-switch')).toBe(true);
+  });
+
+  it("lets both products use the player's frame, the block renderer and the timeline's rail from the shared folder", () => {
+    for (const shared of [
+      'components/workspace/player/player-strip',
+      'components/workspace/blocks/visual-block',
+      'components/workspace/timeline-rail',
+    ]) {
+      expect(crosses('components/learn/review/review-parts.tsx', shared)).toBe(false);
+      expect(crosses('app/contribute/components/pr-timeline-view.tsx', shared)).toBe(false);
+      expect(crosses('app/(learn)/learn/fixes/page.tsx', shared)).toBe(false);
+    }
+    for (const file of [
+      'components/workspace/player/player-strip.tsx',
+      'components/workspace/player/use-player.ts',
+      'components/workspace/blocks/visual-block.tsx',
+      'components/workspace/blocks/lesson-block.tsx',
+      'components/workspace/blocks/rich-text.tsx',
+      'components/workspace/timeline-rail.tsx',
+      'lib/workspace/player.ts',
+      'lib/workspace/blocks/learn-visual.ts',
+    ]) {
+      expect(crossingsOf(file, readFileSync(file, 'utf8'))).toEqual([]);
+    }
+  });
+
   it('keeps the shared library to itself', () => {
     expect(crosses('lib/workspace/needs-you.ts', 'lib/workspace/paths')).toBe(false);
     expect(crosses('lib/workspace/needs-you.ts', 'lib/utils')).toBe(false);
@@ -45,7 +112,7 @@ describe('the workspace import rule', () => {
     expect(crosses('lib/learn/learn-home.ts', 'lib/contribute/overview')).toBe(true);
     expect(crosses('components/contribute/mode-cards.tsx', 'components/workspace/primitives')).toBe(false);
     expect(crosses('components/contribute/mode-cards.tsx', 'lib/contribute/set-format')).toBe(false);
-    expect(crosses('components/contribute/mode-cards.tsx', 'components/learn/lesson-block')).toBe(true);
+    expect(crosses('components/contribute/mode-cards.tsx', 'components/learn/lesson-flow')).toBe(true);
     expect(crosses('components/learn/lesson-flow.tsx', 'lib/learn/actions')).toBe(false);
     expect(crosses('components/learn/lesson-flow.tsx', 'components/contribute/mode-cards')).toBe(true);
     expect(crosses('app/contribute/components/landing.tsx', 'lib/learn/learn-path')).toBe(true);

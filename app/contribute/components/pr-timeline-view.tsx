@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eyebrow, HEADING, Panel } from '@/components/workspace/primitives';
+import { RAIL_ROW, Rail } from '@/components/workspace/timeline-rail';
 import type { PrTimeline, PrTimelineMilestone } from '@/lib/contribute/pr-timeline.types';
 import {
   dayHeadingOf,
@@ -84,31 +85,11 @@ function Facts({ timeline }: { timeline: PrTimeline }) {
   );
 }
 
-/** The rail between the time and the row: a line through every row, a dot on each, filled on the last. */
-function Rail({ dot }: { dot: 'agent' | 'other' | 'end' | null }) {
-  return (
-    <span className="relative flex justify-center before:absolute before:inset-y-0 before:w-0.5 before:bg-border group-first/row:before:top-2.5 group-last/row:before:bottom-auto group-last/row:before:h-2.5">
-      {dot ? (
-        <span
-          data-who={dot}
-          className={cn(
-            'relative mt-1 size-3 rounded-full border-2 bg-background',
-            dot === 'other' ? 'border-muted-foreground' : 'border-primary',
-            dot === 'end' && 'bg-primary',
-          )}
-        />
-      ) : null}
-    </span>
-  );
-}
-
-const ROW = 'group/row grid grid-cols-[3rem_1rem_minmax(0,1fr)] gap-x-3';
-
 function Row({ row, timeline, last }: { row: PrTimelineMilestone; timeline: PrTimeline; last: boolean }) {
   const words = milestoneWordsOf(row, timeline);
   const ends = last && (row.kind === 'MERGED' || row.kind === 'CLOSED');
   return (
-    <li className={ROW} data-kind={row.kind.toLowerCase()}>
+    <li className={RAIL_ROW} data-kind={row.kind.toLowerCase()}>
       <span className="pt-0.5 text-right font-mono text-xs text-muted-foreground tabular-nums">
         {row.dayOnly ? '' : <time dateTime={row.at}>{timeOf(row.at)}</time>}
       </span>
@@ -162,7 +143,7 @@ function Timeline({ timeline }: { timeline: PrTimeline }) {
     if (key !== day) {
       day = key;
       items.push(
-        <li key={`day-${key}`} className={ROW}>
+        <li key={`day-${key}`} className={RAIL_ROW}>
           <span />
           <Rail dot={null} />
           <div className="pt-0.5 pb-3.5">

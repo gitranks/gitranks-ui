@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { LessonBlock } from './lesson-block';
+import { LessonBlock } from '@/components/workspace/blocks/lesson-block';
 import { VISUALS_STEP } from '@/lib/learn/__fixtures__/lesson';
 import type { LessonBlock as Block } from '@/lib/learn/learn.types';
 

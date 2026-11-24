@@ -1,4 +1,4 @@
-import { codeSpansOf } from '@/lib/learn/question';
+import { codeSpansOf } from '@/lib/workspace/blocks/code-spans';
 
 /** Plain text with `code` spans, as a lesson writes it: never HTML. */
 export function RichText({ text }: { text: string }) {

@@ -6,11 +6,11 @@ import { type KeyboardEvent, type ReactNode, type Ref, useId } from 'react';
 
 import { LiveStatus } from '@/components/learn/player/live-status';
 import { checkPlace } from '@/components/learn/player/places';
-import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/learn/player/player-strip';
 import { AnswerPart } from '@/components/learn/question/answer-part';
 import { Kbd } from '@/components/learn/question/kbd';
 import type { LearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { Button } from '@/components/ui/button';
+import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/workspace/player/player-strip';
 import {
   type CheckQuestionShown,
   checkResultWordsOf,
@@ -26,8 +26,8 @@ import {
 } from '@/lib/learn/check';
 import type { LearnLessonLink } from '@/lib/learn/lesson-page';
 import { coursePath, LEARN_HOME_PATH } from '@/lib/learn/paths';
-import type { PlayerSquare } from '@/lib/learn/player';
 import { cn } from '@/lib/utils';
+import type { PlayerSquare } from '@/lib/workspace/player';
 
 /*
  * The check's screens as page 17's boards draw them, from plain data: the strip, one question, the result with its

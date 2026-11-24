@@ -286,7 +286,7 @@ export const MCP_DOC_TOOLS: readonly McpDocTool[] = [
   },
   {
     name: 'my_contributions',
-    text: 'The issues you are working on (it renews them), the changes waiting for your review, and your pull requests with their follow-ups.',
+    text: 'The issues you are working on (the call renews your hold on them), the changes waiting for your review, and your pull requests with their follow-ups.',
     changes: false,
   },
   {

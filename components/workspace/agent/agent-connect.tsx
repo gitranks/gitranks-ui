@@ -326,7 +326,7 @@ export function AgentConnectView({
   ) : (
     <div className="flex flex-col items-start gap-3">
       <p className="max-w-2xl text-sm text-foreground/80">
-        Your agent connects to GitRanks with this token, as you: it finds issues, claims one, hands back the patch and
+        Your agent connects to GitRanks with this token, as you: it finds issues, takes one, hands back the patch and
         sees your contributions. It can&apos;t open a pull request or spend anything, and you can revoke it on the Agent
         tab.
       </p>

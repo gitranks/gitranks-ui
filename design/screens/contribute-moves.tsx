@@ -444,7 +444,7 @@ export const sessionHeadStates = (page: Page): ScreenState[] => [
   },
   {
     id: 'claim-refused',
-    title: 'The repo’s rules refused the claim',
+    title: 'The repo’s rules refused the issue',
     path: FIRST,
     height: 1300,
     render: () => firstPage(page, firstAttempt.claimRefused),

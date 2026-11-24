@@ -263,7 +263,7 @@ function ExampleBrief() {
           {EXAMPLE_BRIEF_ISSUE.name}
         </a>{' '}
         on {EXAMPLE_CLAIMED_ON}. A maintainer had just invited an earlier volunteer to open the pull request; with no
-        reply, the maintainers went ahead with the one that came of this brief,{' '}
+        reply, the maintainers went ahead with the one that came of it,{' '}
         <a href={EXAMPLE_BRIEF_PR.url} className={LINK}>
           {EXAMPLE_BRIEF_PR.name}
         </a>

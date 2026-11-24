@@ -30,10 +30,11 @@ describe('sitemap index', () => {
     const locs = paths(listChildSitemapLocs(2));
 
     expect(locs[0]).toBe('/sitemaps/static/sitemap.xml');
-    expect(locs.slice(-5)).toEqual([
+    expect(locs.slice(-6)).toEqual([
       '/sitemaps/insights/sitemap.xml',
       '/sitemaps/learn/sitemap.xml',
       '/sitemaps/contribute-prs/sitemap.xml',
+      '/sitemaps/skills/sitemap.xml',
       '/sitemaps/repos/sitemap/0.xml',
       '/sitemaps/repos/sitemap/1.xml',
     ]);
@@ -50,10 +51,11 @@ describe('sitemap index', () => {
       '/sitemaps/repos/sitemap/1.xml',
       '/sitemaps/orgs/pages/sitemap/0.xml',
     ]);
-    expect(paths(listChildSitemapLocs(0, 2)).slice(-5)).toEqual([
+    expect(paths(listChildSitemapLocs(0, 2)).slice(-6)).toEqual([
       '/sitemaps/insights/sitemap.xml',
       '/sitemaps/learn/sitemap.xml',
       '/sitemaps/contribute-prs/sitemap.xml',
+      '/sitemaps/skills/sitemap.xml',
       '/sitemaps/orgs/pages/sitemap/0.xml',
       '/sitemaps/orgs/pages/sitemap/1.xml',
     ]);

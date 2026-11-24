@@ -4,8 +4,10 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { setSkillsHiddenAction } from '@/app/profile/[login]/components/skills-hidden.actions';
 import { LearnEmailFailedRow, LessonsToRepeatRow, TimeZoneRow } from '@/components/learn/settings/learn-email-rows';
 import { LearnPreferencesGroup } from '@/components/learn/settings/learn-preferences-group';
+import { SkillsPrivacyGroup } from '@/components/skills/skills-privacy-group';
 import { PageTitle } from '@/components/workspace/primitives';
 import { ReposAskLessNote } from '@/components/workspace/pull-request/repo-rules';
 import { DeleteDataSection } from '@/components/workspace/settings/delete-data-section';
@@ -17,6 +19,7 @@ import { preferencesSummaryOf } from '@/lib/contribute/work-summary';
 import type { LearnEmailSettings } from '@/lib/learn/settings';
 import { loadLearnEmailSettings, loadLearnSetupForSettings } from '@/lib/learn/settings.data';
 import type { LearnSetupRead } from '@/lib/learn/setup';
+import { loadSkillsMine } from '@/lib/skills/skills.data';
 import { openPrsOverrideOf } from '@/lib/workspace/access-limits';
 import { audienceOf } from '@/lib/workspace/audience';
 import {
@@ -67,6 +70,14 @@ async function loadSummaryView(): Promise<ContributeView> {
   return view;
 }
 
+/** Settings' "Privacy" group: who can see the person's Skills page. Nothing without a session. */
+async function loadPrivacyGroup(): Promise<ReactNode> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+  const mine = await loadSkillsMine(githubLogin);
+  return <SkillsPrivacyGroup login={githubLogin} mine={mine} setHidden={setSkillsHiddenAction} />;
+}
+
 /** Learn's two reads for its rows, each the person's own; none where Learn is not open to them. */
 async function loadLearnRows(learnOpen: boolean) {
   const githubLogin = learnOpen ? await viewerLogin() : null;
@@ -83,7 +94,7 @@ export async function SettingsView({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params, set, email, learnOpen, counts, jar] = await Promise.all([
+  const [view, params, set, email, learnOpen, counts, jar, privacy] = await Promise.all([
     loadSummaryView(),
     searchParams,
     loadContributeSet(),
@@ -91,6 +102,7 @@ export async function SettingsView({
     loadLearnOpen(),
     loadScheduleCounts(),
     cookies(),
+    loadPrivacyGroup(),
   ]);
   // GitHub's consent comes back here when it was not saved: its answer is on GitHub's own page.
   const grant = grantRefusalOf(params.grant);
@@ -117,6 +129,7 @@ export async function SettingsView({
       learnEmail={learn.email ?? null}
       learnEmailFailed={learn.email === undefined}
       openPrs={counts?.prBound}
+      privacy={privacy}
     />
   );
 }
@@ -251,9 +264,9 @@ function LimitsGroup({ view, openPrs }: { view: ContributeView; openPrs?: number
 /**
  * Settings (page 23): one page for both products, opened from either bar, with the product's own preferences first.
  * From Learn: Learn preferences, Email, Agent and GitHub, Limits, then Contribute preferences; from Contribute:
- * Contribute preferences, Agent and GitHub, Limits, Email, then Learn preferences. Delete all data last. A product's
- * group shows only to someone who uses it (Learn's, wherever Learn is open; Contribute's, to all but someone who only
- * learns). In Email, Learn's "Lessons to repeat" comes first from Learn and after Contribute's rows from Contribute; the
+ * Contribute preferences, Agent and GitHub, Limits, Email, then Learn preferences. Privacy, then Delete all data,
+ * last. A product's group shows only to someone who uses it (Learn's, wherever Learn is open; Contribute's, to all but
+ * someone who only learns). In Email, Learn's "Lessons to repeat" comes first from Learn and after Contribute's rows from Contribute; the
  * time zone is last. Each row opens the page it is changed on; the Email rows change on the page itself. Old links to
  * a section go on to where it is now (`SettingsAnchors`).
  */
@@ -271,6 +284,7 @@ export function SettingsScreen({
   learnEmail = null,
   learnEmailFailed = false,
   openPrs,
+  privacy = null,
 }: {
   view: ContributeView;
   /** The bar the page shows, whose product's groups come first. */
@@ -296,6 +310,8 @@ export function SettingsScreen({
   learnEmailFailed?: boolean;
   /** The pull requests that count against the limit now. */
   openPrs?: number;
+  /** The group "Privacy": who can see the person's Skills page. */
+  privacy?: ReactNode;
 }) {
   const audience = audienceOf(view.sides, learnOpen);
   const fromLearn = learnOpen && bar === 'learn';
@@ -353,6 +369,7 @@ export function SettingsScreen({
           {learn}
         </>
       )}
+      {privacy}
       <DeleteDataSection hasKey={!!claudeKeyOf(view)} learnOpen={learnOpen} />
       <SettingsAnchors />
     </>

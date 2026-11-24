@@ -88,7 +88,7 @@ describe('SkillsPageView', () => {
   });
 
   it('leaves a learner’s numbers and Learn’s box out while Learn is closed, keeping the fixes', () => {
-    const mine = skillsMine.publicFirstFix;
+    const mine = { ...skillsMine.publicFirstFix, learnOpen: false };
     const { root, text } = draw(
       <SkillsPageView now={SKILLS_NOW} page={learnerPage} other={otherBoxOf(mine)} learnOpen={false} />,
     );
@@ -96,6 +96,25 @@ describe('SkillsPageView', () => {
     expect(root.querySelector('[data-product-box]')).toBeNull();
     expect(root.querySelectorAll('[data-skills-fix]')).toHaveLength(3);
     expect(text).not.toContain('Learn');
+  });
+
+  it('keeps the owner’s Learn box when Learn is open to them, though not to everyone', () => {
+    const mine = skillsMine.publicFirstFix;
+    const { root } = draw(
+      <SkillsPageView now={SKILLS_NOW} page={contributorPage} other={otherBoxOf(mine)} learnOpen={false} />,
+    );
+    expect(root.querySelector('[data-product-box="LEARN"]')).not.toBeNull();
+    expect(root.querySelector('[data-skills-courses]')).toBeNull();
+  });
+
+  it('writes a plain line under the fixes, in place of the button, when one is given', () => {
+    const line = 'And 20 more, listed once your page is public.';
+    const { root, text } = draw(<SkillsPageView now={SKILLS_NOW} page={longPage} leftLine={line} />);
+    expect(root.querySelector('[data-skills-fixes-left]')?.textContent).toBe(line);
+    expect(text).not.toContain('Show 20 more');
+    expect(
+      draw(<SkillsPageView now={SKILLS_NOW} page={longPage} />).root.querySelector('[data-skills-fixes-left]'),
+    ).toBeNull();
   });
 
   it('writes the year of a date in another year', () => {

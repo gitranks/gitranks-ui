@@ -8,7 +8,15 @@ import {
   SKILLS_LOGIN,
   SKILLS_NOW,
 } from './__fixtures__/skills';
-import { fixesLineOf, fixLessonOf, fixLinksOf, fixStateWordsOf, moreFixesOf, namesProduct } from './skills-fixes';
+import {
+  fixesLeftLineOf,
+  fixesLineOf,
+  fixLessonOf,
+  fixLinksOf,
+  fixStateWordsOf,
+  moreFixesOf,
+  namesProduct,
+} from './skills-fixes';
 
 describe('fixLinksOf', () => {
   it('links both of a Contribute fix to its timeline', () => {
@@ -79,5 +87,14 @@ describe('moreFixesOf', () => {
     expect(moreFixesOf({ ...longPage.fixes, total: 9 })).toBe('Show 3 more');
     expect(moreFixesOf({ ...longPage.fixes, next: null })).toBeNull();
     expect(moreFixesOf({ ...longPage.fixes, total: 6 })).toBeNull();
+  });
+});
+
+describe('fixesLeftLineOf', () => {
+  it('counts the fixes not listed yet, one or many, and says nothing when all are listed', () => {
+    expect(fixesLeftLineOf(26, 6)).toBe('And 20 more, listed once your page is public.');
+    expect(fixesLeftLineOf(7, 6)).toBe('And 1 more, listed once your page is public.');
+    expect(fixesLeftLineOf(6, 6)).toBeNull();
+    expect(fixesLeftLineOf(3, 6)).toBeNull();
   });
 });

@@ -12,6 +12,8 @@ export const SITEMAP_SEGMENTS = [
   'learn',
   /** Public pull request timelines: empty until they are public. */
   'contribute-prs',
+  /** The Skills pages search engines may index. */
+  'skills',
 ] as const;
 
 export type SitemapSegment = (typeof SITEMAP_SEGMENTS)[number];

@@ -26,7 +26,7 @@ import { loginFromPath } from '@/utils/login-from-path';
 export function SkillsMissingScreen() {
   const params = useParams<{ login: string }>();
   const login = loginFromPath(params.login ?? '');
-  const { owner, view, pending, toggle } = useSkillsOwner(login);
+  const { owner, view, pending, toggle, sessionLoading } = useSkillsOwner(login);
   const layer = owner && view ? ownerLayerOf(view.mine, false) : { kind: 'none' as const };
 
   // The page's title is the same for everyone ("No Skills page"); its owner reads their own page under its own name.
@@ -69,6 +69,14 @@ export function SkillsMissingScreen() {
         <SkillsHeading />
         <StripRow />
       </>
+    );
+  }
+  // Until the session says who is reading, the line is in the page, keeping its room, but not seen: its owner never reads it.
+  if (sessionLoading) {
+    return (
+      <div className="invisible">
+        <SkillsMissing login={login} />
+      </div>
     );
   }
   return <SkillsMissing login={login} />;

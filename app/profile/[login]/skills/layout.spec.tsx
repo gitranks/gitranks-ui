@@ -22,6 +22,12 @@ vi.mock('../components/skills-missing-screen', () => ({
   ),
 }));
 
+vi.mock('../components/skills-owner', () => ({
+  SkillsOwnerProvider: ({ login, children }: PropsWithChildren<{ login: string }>) => (
+    <div data-owner={login}>{children}</div>
+  ),
+}));
+
 const { default: SkillsLayout } = await import('./layout');
 const { default: SkillsNotFound } = await import('./not-found');
 
@@ -37,10 +43,12 @@ beforeEach(() => {
 });
 
 describe("a Skills address's layout", () => {
-  it("draws the profile's full left column around a page with no public Skills page", async () => {
+  it("draws the profile's full left column, and the owner's layer, around a page with no public Skills page", async () => {
     const html = await draw('octocat');
     expect(fetchProfilePageOverview).toHaveBeenCalledWith('octocat');
-    expect(html).toBe('<div data-column="The Octocat @octocat"><p data-skills-missing=""></p></div>');
+    expect(html).toBe(
+      '<div data-column="The Octocat @octocat"><div data-owner="octocat"><p data-skills-missing=""></p></div></div>',
+    );
   });
 
   it("keeps the column under the person's tag, never the Skills page's, so hiding the page does not touch it", async () => {
@@ -51,6 +59,8 @@ describe("a Skills address's layout", () => {
 
   it('keeps the avatar and the login for a login with no profile here', async () => {
     fetchProfilePageOverview.mockResolvedValueOnce(null);
-    expect(await draw('octo%2Dcat')).toBe('<div data-login-column="octo-cat"><p data-skills-missing=""></p></div>');
+    expect(await draw('octo%2Dcat')).toBe(
+      '<div data-login-column="octo-cat"><div data-owner="octo-cat"><p data-skills-missing=""></p></div></div>',
+    );
   });
 });

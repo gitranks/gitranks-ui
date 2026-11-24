@@ -10,6 +10,14 @@ import { ResumeLink } from '@/components/workspace/getting-in/resume-link';
 import { IssueHints, MaskedIssueFacts } from '@/components/workspace/masked-issue/facts';
 import { type AgentPageStats, agentPageStatsLineOf } from '@/lib/contribute/agent-page.types';
 import { LANDING_QUESTIONS } from '@/lib/contribute/faq';
+import {
+  LANDING_HERO,
+  LANDING_STEPS,
+  LANDING_STEPS_TITLE,
+  LANDING_WAYS,
+  LANDING_WAYS_HEAD,
+  landingStepLabelOf,
+} from '@/lib/contribute/landing-copy';
 import { cn } from '@/lib/utils';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeComingSoonProvider } from '@/lib/workspace/contribute.types';
@@ -24,70 +32,6 @@ import {
   MCP_DOCS_PATH,
   WORKSPACE_PATHS,
 } from '@/lib/workspace/paths';
-
-const WAYS: {
-  path: 'key' | 'agent';
-  who: string;
-  title: string;
-  text: string;
-  facts: [string, string][];
-}[] = [
-  {
-    path: 'key',
-    who: 'We run the agent',
-    title: 'On your Claude key',
-    text: "Best if your Claude Max, Ultra or Team plan has API credits that expire unused. We pick an issue, run Claude in Anthropic's hosted sandbox, and bring you a tested change to review. You never touch a terminal.",
-    facts: [
-      ['You bring', 'A Claude API key, from a workspace with its own spend limit'],
-      ['It spends', 'Your API credits; each run stops at the caps you set'],
-      ['The pace', 'Spread across your billing cycle, or as fast as your caps allow'],
-      ['Setup', 'One step, about two minutes'],
-    ],
-  },
-  {
-    path: 'agent',
-    who: 'Your agent does the work',
-    title: 'With your own agent',
-    text: 'Best if you already work with a coding agent: Claude Code, Codex, Cursor, Gemini CLI, Antigravity or VS Code. It asks GitRanks for an issue, fixes it on your machine, and hands the change back for your review here.',
-    facts: [
-      ['You bring', "An agent that speaks MCP. It signs in with your GitHub account; a client that can't gets a token"],
-      ['It spends', 'Nothing through us: your agent, your plan'],
-      [
-        'The pace',
-        'Whenever you ask your agent. An issue is held for you 24 hours from its last step, 48 hours without a patch that passes the checks, 7 days at most',
-      ],
-      ['Setup', 'Add GitRanks, then sign in and Allow in your browser. About a minute'],
-    ],
-  },
-];
-
-const STEPS = [
-  {
-    label: '01 · we pick',
-    title: 'Issues worth your time',
-    text: "From active repos that handle outside PRs and want the issue solved, ranked by your languages and the repos you've worked on.",
-  },
-  {
-    label: '02 · the agent works',
-    title: 'A fix, with tests run',
-    text: "It reads the repo, writes the change and runs the project's tests. Nothing leaves the sandbox, or your machine, yet.",
-  },
-  {
-    label: '03 · you review',
-    title: 'The diff, the tests, the cost',
-    text: 'Submit it, send it back with a note, or discard it. Every pull request waits for your OK.',
-  },
-  {
-    label: '04 · it opens in your name',
-    title: 'From your fork',
-    text: 'On your first submit we ask GitHub for one permission, public_repo, so we can fork and open the PR as you.',
-  },
-  {
-    label: '05 · maintainers reply',
-    title: 'You see it here',
-    text: 'Reviews and comments show up in Pull requests, with a draft reply or a follow-up commit when they ask for changes.',
-  },
-];
 
 const DEFAULTS = [
   {
@@ -197,20 +141,12 @@ export function Landing({
     <main className="flex flex-col" data-landing-viewer={viewer}>
       <section className={cn(WIDTH, 'flex flex-wrap items-center gap-9 pt-8 pb-11 sm:gap-14 sm:pt-14 sm:pb-16')}>
         <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
-          <h1 className="text-4xl font-bold tracking-tight text-balance md:text-5xl">
-            Fix real open-source issues with the AI you already pay for
-          </h1>
-          <p className="max-w-xl text-lg text-foreground/80">
-            We find issues maintainers want solved and match them to what you know. An agent writes the fix: ours,
-            running on your Claude key, or your own agent on your machine. You review every change, and the pull request
-            opens in your name.
-          </p>
+          <h1 className="text-4xl font-bold tracking-tight text-balance md:text-5xl">{LANDING_HERO.title}</h1>
+          <p className="max-w-xl text-lg text-foreground/80">{LANDING_HERO.lead}</p>
           <div className="flex flex-wrap gap-3">
             <StartButton start={start} />
           </div>
-          <p className="text-sm text-muted-foreground">
-            Free to use. Nothing reaches GitHub without your OK. Leave any time.
-          </p>
+          <p className="text-sm text-muted-foreground">{LANDING_HERO.terms}</p>
           {stats?.readyIssues ? (
             <p className="text-sm text-muted-foreground" data-landing="stats">
               {agentPageStatsLineOf(stats)}.
@@ -249,14 +185,11 @@ export function Landing({
       <section id="ways" className={cn(MUTED_SECTION, 'scroll-mt-4')}>
         <div className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>
           <div className="flex flex-col gap-2">
-            <h2 className={H2}>Two ways to contribute. Pick either, add the other later.</h2>
-            <p className="max-w-3xl text-muted-foreground">
-              Both get the same issues, the same review before anything is sent, and the same pull request in your name.
-              They differ in who runs the agent and whose credits it spends.
-            </p>
+            <h2 className={H2}>{LANDING_WAYS_HEAD.title}</h2>
+            <p className="max-w-3xl text-muted-foreground">{LANDING_WAYS_HEAD.text}</p>
           </div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-5">
-            {WAYS.map(({ path, who, title, text, facts }) => (
+            {LANDING_WAYS.map(({ path, who, title, text, facts }) => (
               <div key={path} className="flex min-w-0 flex-col gap-4.5 rounded-2xl border bg-card p-5 sm:p-7">
                 <div className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-primary">{who}</span>
@@ -280,11 +213,11 @@ export function Landing({
       <ComingSoon viewer={viewer} preview={preview} noted={noted} />
 
       <section className={cn(WIDTH, 'flex flex-col gap-7 py-11 sm:py-16')}>
-        <h2 className={H2}>From an issue to a merged pull request</h2>
+        <h2 className={H2}>{LANDING_STEPS_TITLE}</h2>
         <ol className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
-          {STEPS.map(({ label, title, text }) => (
-            <li key={label} className="flex min-w-0 flex-col gap-2">
-              <span className="font-mono text-xs text-primary">{label}</span>
+          {LANDING_STEPS.map(({ who, title, text }, index) => (
+            <li key={who} className="flex min-w-0 flex-col gap-2">
+              <span className="font-mono text-xs text-primary">{landingStepLabelOf(index, who)}</span>
               <span className="font-bold">{title}</span>
               <span className="text-sm text-muted-foreground">{text}</span>
             </li>

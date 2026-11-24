@@ -2,8 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import type { AgentPage, AgentPageIssue } from './agent-page.types';
 import { agentPageStatsLineOf } from './agent-page.types';
-import { agentsDocOf } from './agents-doc';
+import { agentsDocOf, LEARN_DOC_LINKS } from './agents-doc';
+import { FAQ_GROUPS, fullIssuesADayOf } from './faq';
 import { MCP_DOC_CLIENTS, MCP_DOC_MORE_CLIENTS, MCP_DOC_TOOLS, MCP_PLUGIN_DOCS_SHOWN } from './mcp-docs';
+import {
+  LEARN_COURSES_MARKDOWN_PATH,
+  LEARN_COURSES_PATH,
+  LEARN_HOME_PATH,
+  LEARN_LANDING_MARKDOWN_PATH,
+} from '@/lib/learn/paths';
 import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 import { MCP_INSTALL_LINKS } from '@/lib/workspace/mcp-install-links';
 
@@ -115,6 +122,36 @@ describe('agents.md', () => {
     expect(agentsDocOf({ stats: null, sample: undefined } as unknown as AgentPage)).not.toContain('## Ready right now');
   });
 
+  it("says how many full issues a day in the FAQ's words, after the examples and before the human step", () => {
+    const faq = FAQ_GROUPS.flatMap((group) => group.entries).find((entry) => entry.id === 'full-issues');
+    expect(faq?.answer).toContain(`You can see ${fullIssuesADayOf('your')}.`);
+    expect(doc).toContain(
+      '## How many full issues a day\n\nYour person can see 10 to 70 full issues a day, by their GitRanks tier, plus 5 for each pull request merged through GitRanks, up to 100. Give back what you will not fix with `release_issue`, so it is free for someone else.\n',
+    );
+    expect(doc.indexOf('## Ready right now')).toBeLessThan(doc.indexOf('## How many full issues a day'));
+    expect(doc.indexOf('## How many full issues a day')).toBeLessThan(doc.indexOf('## The one human step'));
+    // Without the day's data the part stays.
+    expect(agentsDocOf(null)).toContain('## How many full issues a day');
+  });
+
+  it('has a part on Learn, with its Markdown pages, before the limits', () => {
+    const learn = doc.slice(doc.indexOf('## With GitRanks Learn'), doc.indexOf('## Limits'));
+    expect(learn).toContain(
+      '`find_issues` and `claim_issue` take `mode: "learn"`: the issues are then the ones on their Learn list, and `claim_issue` also answers a `lessonBrief`.',
+    );
+    expect(learn).toContain('write the fix walkthrough it asks for and hand it back with `submit_lesson`');
+    expect(learn).toContain('- Learn: https://gitranks.com/learn (Markdown: https://gitranks.com/learn.md)\n');
+    expect(learn).toContain(
+      '- All courses: https://gitranks.com/learn/courses (Markdown: https://gitranks.com/learn/courses.md)\n',
+    );
+    expect(doc.indexOf('## The tools, in the order you use them')).toBeLessThan(doc.indexOf('## With GitRanks Learn'));
+    // Learn's own addresses, written out here since Contribute's code may not import Learn's.
+    expect(LEARN_DOC_LINKS.home).toBe(LEARN_HOME_PATH);
+    expect(`${LEARN_DOC_LINKS.home}.md`).toBe(LEARN_LANDING_MARKDOWN_PATH);
+    expect(LEARN_DOC_LINKS.courses).toBe(LEARN_COURSES_PATH);
+    expect(`${LEARN_DOC_LINKS.courses}.md`).toBe(LEARN_COURSES_MARKDOWN_PATH);
+  });
+
   it('speaks of taking an issue, naming `claim_issue` only as the tool', () => {
     expect(doc).toContain('- nobody took it, and no pull request is linked to it;');
     expect(doc).toContain('## What taking an issue gives you');
@@ -125,7 +162,7 @@ describe('agents.md', () => {
 
   it('makes the human step the browser sign-in, the sign-in setups first and the tokens after, with no token-less try', () => {
     expect(doc).toContain('opens a GitRanks sign-in page');
-    expect(doc).toContain("You can't open a pull request, push or post on GitHub");
+    expect(doc).toContain('You cannot open a pull request, push or post on GitHub');
     expect(doc).not.toContain('## Try it first');
     expect(doc).toContain('### claude.ai and Claude Desktop');
     expect(doc).toContain('codex mcp login gitranks');

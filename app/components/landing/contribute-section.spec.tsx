@@ -7,7 +7,7 @@ const { session } = vi.hoisted(() => ({
 
 vi.mock('next-auth/react', () => ({ useSession: () => ({ data: session.data }) }));
 
-const { ContributeSection, ContributeSectionView, EXAMPLE_PICKS } = await import('./contribute-section');
+const { ContributeSection, ContributeSectionView, EXAMPLE_PICKS, namedPicksOf } = await import('./contribute-section');
 
 const own = {
   ...EXAMPLE_PICKS[0],
@@ -73,6 +73,11 @@ describe('the Contribute section on the home page', () => {
 
     expect(html).toMatch(/<a [^>]*href="\/contribute">Start contributing/);
     expect(html).not.toContain('<button');
+  });
+
+  it('leaves out a masked pick, which names no issue', () => {
+    const masked = { ...own, issueId: 'mask:abc', nameWithOwner: null, number: null, url: null, title: null };
+    expect(namedPicksOf([own, masked as unknown as typeof own])).toEqual([own]);
   });
 
   it('shows a contributor their own picks, linked, with the way to Issues and to Contribute', () => {

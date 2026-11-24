@@ -11,57 +11,19 @@ import { getRankingTitle } from '@/utils/get-ranking-title';
 
 type RankingHeaderSectionProps = {
   title: string;
-  /** A mark beside the title, such as a "Beta" pill. */
-  pill?: ReactNode;
   /** The orders the ranking can be shown in. */
   options: readonly RankingOption[];
-  /** The words before the orders; the switcher's own when unset. */
-  optionsLabel?: string;
-  /** More switches before the orders, each with its words (a package ranking's registry). */
-  switches?: readonly { label: string; options: readonly RankingOption[] }[];
   /** What the rank is based on, with a link after it. */
   subtitle: ReactNode;
 };
 
-/** How many options a switch holds before it may run onto more lines on a narrow screen (the registries, once many). */
-const WRAP_FROM = 4;
-
-/**
- * A ranking's title, its "Rank by" switch (after any others), and the line on what the rank is based on. A switch with
- * many options wraps on a narrow screen.
- */
-export const RankingHeaderSection: FC<RankingHeaderSectionProps> = ({
-  title,
-  pill,
-  options,
-  optionsLabel,
-  switches = [],
-  subtitle,
-}) => {
-  const wraps = switches.some((switcher) => switcher.options.length >= WRAP_FROM);
+/** A ranking's title, its "Rank by" switch and the line on what the rank is based on. */
+export const RankingHeaderSection: FC<RankingHeaderSectionProps> = ({ title, options, subtitle }) => {
   return (
     <>
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        {pill ? (
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold">{title}</h1>
-            {pill}
-          </div>
-        ) : (
-          <h1 className="text-2xl font-semibold">{title}</h1>
-        )}
-
-        <div className={wraps ? 'flex min-w-0 flex-wrap gap-4' : 'flex gap-4'}>
-          {switches.map((switcher) => (
-            <RankingTypeSwitcher
-              key={switcher.label}
-              options={switcher.options}
-              label={switcher.label}
-              wrap={switcher.options.length >= WRAP_FROM}
-            />
-          ))}
-          <RankingTypeSwitcher options={options} label={optionsLabel} />
-        </div>
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        <RankingTypeSwitcher options={options} />
       </div>
 
       <div className="text-sm text-muted-foreground">{subtitle}</div>

@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { type ReactNode, useEffect, useRef } from 'react';
 
 import { formatFull } from '@/badge/v3/format';
+import { revealSideways } from '@/components/tabs/reveal-sideways';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
-import { revealSideways } from '@/components/workspace/workspace-tabs-nav';
 import {
   LEARN_BAR_LINKS,
   LEARN_BAR_TABS,

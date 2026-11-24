@@ -13,7 +13,6 @@ import {
   PICK_ISSUE_PATHS,
   pullRequestByAttemptPath,
   pullRequestPath,
-  pullRequestsPath,
   SETTINGS_PATHS,
   settingsPathOf,
   settingUpHomeOf,
@@ -232,17 +231,5 @@ describe("the pull request's page, by repo and issue", () => {
 
   it("picks another issue on the attempt's side", () => {
     expect(PICK_ISSUE_PATHS).toEqual({ fix: '/contribute#issues', learn: '/learn/earlier#issues' });
-  });
-});
-
-describe('the Pull requests tab under its filters', () => {
-  it('says only what differs from the first page of everything', () => {
-    expect(pullRequestsPath()).toBe('/my/pull-requests');
-    expect(pullRequestsPath({ page: 1 })).toBe('/my/pull-requests');
-    expect(pullRequestsPath({ state: 'open' })).toBe('/my/pull-requests?state=open');
-    expect(pullRequestsPath({ made: 'learn', page: 3 })).toBe('/my/pull-requests?made=learn&page=3');
-    expect(pullRequestsPath({ state: 'merged', made: 'contribute', page: 2 })).toBe(
-      '/my/pull-requests?state=merged&made=contribute&page=2',
-    );
   });
 });

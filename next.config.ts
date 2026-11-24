@@ -5,7 +5,7 @@ import { HTML_LIMITED_BOT_UA_RE } from 'next/dist/shared/lib/router/utils/html-b
 
 import { LINK_PAGE_HEADERS, LINK_PAGE_SOURCES } from './lib/link-token/link-token';
 import { OLD_SKILLS_REDIRECTS } from './lib/skills/old-addresses';
-import { OLD_WORKSPACE_REDIRECTS } from './lib/workspace/old-addresses';
+import { LESSON_VIEW_REDIRECTS, OLD_WORKSPACE_REDIRECTS } from './lib/workspace/old-addresses';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -108,6 +108,8 @@ const nextConfig: NextConfig = {
       { source: '/orgs/sitemap.xml', destination: '/sitemaps/orgs/sitemap.xml', permanent: true },
       // Old workspace addresses (2026-11). Remove after 2027-03-01.
       ...OLD_WORKSPACE_REDIRECTS,
+      // A pull request's old Lesson view: the fixer's walkthrough, or an earlier attempt's page.
+      ...LESSON_VIEW_REDIRECTS,
       // A person's old public Learn record: their Skills page.
       ...OLD_SKILLS_REDIRECTS,
     ];

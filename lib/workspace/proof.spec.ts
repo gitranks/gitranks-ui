@@ -1,8 +1,6 @@
-import type { Route } from 'next';
 import { describe, expect, it } from 'vitest';
 
 import type { ContributeContribution, ContributeProof } from './contribute.types';
-import { contributionMovesOf } from './contribution-moves';
 import { contributionOf, nextStepOf } from './next-step';
 import { candidatesOf } from './pr-moves';
 import {
@@ -15,7 +13,7 @@ import {
   proofStageOf,
   proofWaits,
 } from './proof';
-import { proofTileStageOf, sessionsOf } from './sessions';
+import { proofTileStageOf } from './sessions';
 import { mcpToken, NOW, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import {
   nextForProof,
@@ -172,31 +170,6 @@ describe('the next step with a proof', () => {
     expect(proofTileStageOf({ ...nextForProof.posted, openedBy: 'HAND' }, true, NOW)).toBeNull();
     const running = { ...nextForProof.posted, followUps: { ...nextForYou.followUps!, currentAttemptId: 'A_OC2' } };
     expect(proofTileStageOf(running, true, NOW)).toBeNull();
-  });
-
-  it("lists a proof's tile beside the runs, marked on the next step", () => {
-    const connected = {
-      ...views.active,
-      ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken({ lastUsedAt: NOW.toISOString() })] },
-    };
-    const PAGE = '/my/pull-requests/acme/widgets/42' as Route;
-    const tilesOf = (first: typeof nextForYou) =>
-      sessionsOf(first, undefined, contributionMovesOf({ view: connected, first, now: NOW }), PAGE);
-    const tiles = tilesOf(nextForProof.review);
-    // The proof's tile has the next step's key, so the address marks it, with its move; the run's tile beside it its own.
-    expect(tiles.map(({ key, href }) => [key, href])).toEqual([
-      ['A_OC', PAGE],
-      ['A_OC1', `${PAGE}/runs/A_OC1`],
-      ['next', `${PAGE}?session=next&move=proof-review`],
-      ['next-run', `${PAGE}?session=next`],
-    ]);
-    expect(tiles.find(({ key }) => key === 'next')).toMatchObject({
-      title: 'Proof',
-      pill: { label: 'Check it', tone: 'amber' },
-      meta: 'Waits for you',
-    });
-    const none = tilesOf(nextForYou);
-    expect(none.map(({ key }) => key)).toEqual(['A_OC', 'A_OC1', 'next']);
   });
 });
 

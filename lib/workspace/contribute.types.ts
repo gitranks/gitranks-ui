@@ -461,10 +461,10 @@ export type ContributeAttemptEndReason =
   | 'RELEASED'
   | 'MCP_IDLE'
   | 'MCP_EXPIRED';
-export type ContributeSubmitStep = 'QUEUED' | 'WAITING_CAP' | 'FORK' | 'SYNC' | 'PUSH' | 'PULL_REQUEST' | 'BODY';
-export type ContributePrState = 'OPEN' | 'MERGED' | 'CLOSED';
-export type ContributeReviewDecision = 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED';
-export type ContributeChecksState = 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED';
+type ContributeSubmitStep = 'QUEUED' | 'WAITING_CAP' | 'FORK' | 'SYNC' | 'PUSH' | 'PULL_REQUEST' | 'BODY';
+type ContributePrState = 'OPEN' | 'MERGED' | 'CLOSED';
+type ContributeReviewDecision = 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED';
+type ContributeChecksState = 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED';
 export type ContributeAttemptVerdict = 'DONE' | 'PARTIAL' | 'NO_GO';
 export type ContributeRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 export type ContributeAttemptCheckName =
@@ -505,12 +505,6 @@ export type ContributeAttemptSubmit = {
   /** The fork's branch the sync brings up to date (read with the clock): where the user syncs by hand. */
   syncBranch?: string | null;
 };
-
-/** The parts of an attempt the submission's stepper reads again while it submits, and when they were read. */
-export type ContributeAttemptLive = Pick<
-  ContributeAttempt,
-  'attemptId' | 'state' | 'updatedAt' | 'submit' | 'pullRequest'
->;
 
 export type ContributeAttemptPullRequest = {
   prId: string;
@@ -760,7 +754,7 @@ export type ContributeAttempt = Partial<ContributeAttemptFollowUpFields> & {
     learnGatePassed?: boolean | null;
   };
 
-export type ContributeAttemptTest = {
+type ContributeAttemptTest = {
   command: string;
   passed: boolean;
   output: string | null;
@@ -815,7 +809,7 @@ export type ContributeGoNoGo = {
  * What `retryAttempt` does with a stop, once: `BOOST`, a check that ran out, again on twice its budget; `OVERRIDE`, a
  * no-go that is a judgement, worked on anyway by a new run told the user overrode it.
  */
-export type ContributeRetryKind = 'BOOST' | 'OVERRIDE';
+type ContributeRetryKind = 'BOOST' | 'OVERRIDE';
 
 export type ContributeRetry = {
   kind: ContributeRetryKind;
@@ -905,7 +899,7 @@ export type ContributeCheckNoteKind = 'NOT_PR' | 'CONTRIBUTOR' | 'BASE' | 'SOMEO
  * run's number; `by`: the login of who pushed the commit it started failing on. Each null otherwise. `name` and `why`
  * are untrusted plain text.
  */
-export type ContributeCheckNote = {
+type ContributeCheckNote = {
   name: string;
   kind: ContributeCheckNoteKind;
   why: string | null;
@@ -917,7 +911,7 @@ export type ContributeCheckNote = {
 export type ContributeCheckVerdictWhose = 'PR' | 'NOT_PR' | 'CONTRIBUTOR' | 'BASE';
 
 /** A run's verdict on one failing check of the pull request, with its reason in one sentence. Untrusted plain text. */
-export type ContributeCheckVerdict = { name: string; whose: ContributeCheckVerdictWhose; why: string };
+type ContributeCheckVerdict = { name: string; whose: ContributeCheckVerdictWhose; why: string };
 
 /** One step of the claim's check: what it is doing, in words, and whether it is running, done or failed. */
 export type ContributeClaimStep = { key: string; words: string; at: string; state: 'running' | 'done' | 'failed' };
@@ -932,7 +926,7 @@ export type ContributeReplyTarget = {
   excerpt: string;
 };
 
-export type ContributeReplyState = 'DRAFT' | 'POSTING' | 'POSTED' | 'FAILED' | 'DISMISSED';
+type ContributeReplyState = 'DRAFT' | 'POSTING' | 'POSTED' | 'FAILED' | 'DISMISSED';
 
 /**
  * Why a reply was dismissed: by the user (posted by hand, not needed), its thread was resolved on GitHub, or the run
@@ -1029,7 +1023,7 @@ export type ContributeReplyBatch = {
 };
 
 /** The repository's organization refuses GitRanks' review-thread replies, since its first refusal. */
-export type ContributeThreadRepliesBlocked = { org: string; since: string; lastRefusedAt: string };
+type ContributeThreadRepliesBlocked = { org: string; since: string; lastRefusedAt: string };
 
 /** What "Post them as one comment" would post now: the replies, and the comment's text in parts. */
 export type ContributeOneCommentPreview = { draftIds: string[]; bodies: string[] };
@@ -1297,112 +1291,6 @@ export type ContributeChanges = {
 
 /** How many things wait on the user, and whether every list behind the count was read (`contributeNeedsYou`). */
 export type ContributeNeedsYouCount = { count: number; complete: boolean };
-
-/**
- * One thing waiting on the user, or under way, as the API's `contributeNeedsYou` answers it: the API decides which
- * items exist, their kind, order and button, and every value a sentence uses (`facts`); the page only words it
- * (`needs-you-words.ts`). Enum values as GraphQL sends them (`RUN_READY`, `PAGE`, `SIGN_OFF`); dates are ISO strings.
- */
-export type ContributeNeedsYouItem = {
-  /** The first attempt's id, or `key`: kept while the item waits. */
-  key: string;
-  kind: string;
-  side: 'CONTRIBUTE' | 'LEARN';
-  /** In progress, not counted. */
-  working: boolean;
-  /** Other things waiting on the same pull request. */
-  more: number;
-  since: string;
-  orderAt: string;
-  attemptId: string | null;
-  /** The run to review or under way, or the run whose replies the item is about. */
-  sessionAttemptId: string | null;
-  /** `owner/name`. */
-  repo: string | null;
-  issueNumber: number | null;
-  title: string | null;
-  pullRequest: { id: string; number: number; url: string | null } | null;
-  runner: ContributeAttemptRunner | null;
-  autosubmitAt: string | null;
-  /** The signal's detail: untrusted plain text. */
-  detail: string | null;
-  action: {
-    kind: 'PAGE' | 'GITHUB' | 'AGENT';
-    view: 'PAGE' | 'LESSON' | 'RUN' | 'NEXT' | null;
-    move: string | null;
-    url: string | null;
-    copy: string | null;
-    target: 'KEY' | 'CONNECT' | null;
-  } | null;
-  secondary: {
-    kind: 'HANDLED' | 'AGENT';
-    prId: string | null;
-    prNumber: number | null;
-    signalKinds: ContributePrSignalKind[] | null;
-    all: boolean | null;
-    target: 'KEY' | 'CONNECT' | null;
-  } | null;
-  facts: ContributeNeedsYouFacts;
-  progress: ContributeNeedsYouProgress | null;
-};
-
-/** Every value an item's sentence uses; a value its kind does not use is empty (null, 0, false, []). */
-export type ContributeNeedsYouFacts = {
-  noRun: boolean;
-  byHand: boolean;
-  repoSaidNo: boolean;
-  round: number | null;
-  nextRound: number | null;
-  drafts: number;
-  draftsTo: string | null;
-  fixed: number;
-  skipped: number;
-  checkStatus: ContributeCheckStatus | null;
-  checks: string[];
-  agreement: {
-    kind: 'CLA' | 'DCO';
-    check: string | null;
-    signComment: string | null;
-    signUrl: string | null;
-  } | null;
-  ruleIssues: string[];
-  ruleSources: { kind: string; label: string }[];
-  templateCheck: string | null;
-  runOutcome: 'NO_GO' | 'STOPPED' | 'PUSH_FAILED' | null;
-  proofStage: string | null;
-  proofBot: string | null;
-  proofAsks: string | null;
-  outReason: string | null;
-  replyTrouble: string | null;
-  replyRest: { same: number; others: { round: number | null; count: number }[] } | null;
-  waitEndsAt: string | null;
-  lastFour: string | null;
-  fix: { kind: string; note: string | null } | null;
-  submitError: { reason: string; note: string | null } | null;
-};
-
-/** An in-progress item's values. */
-export type ContributeNeedsYouProgress = {
-  startedAt: string;
-  costUsd: number | null;
-  budgetUsd: number | null;
-  submitStep: ContributeSubmitStep | null;
-  waitUntil: string | null;
-  leaseUntil: string | null;
-  changesRequested: boolean;
-  agentName: string | null;
-  pushedSha: string | null;
-  /** A follow-up's step: reading, fixing, checks, ready, starting, pushing; null when the run was not read. */
-  runStep: string | null;
-};
-
-/** `contributeNeedsYou`: the items that need the user, in order, the work in progress apart, and whether all was read. */
-export type ContributeNeedsYouAnswer = {
-  count: number;
-  items: ContributeNeedsYouItem[];
-  inProgress: ContributeNeedsYouItem[];
-  complete: boolean;
-};
 
 /** Which sides the user uses; neither: connected and nothing else yet (both are assumed then). */
 export type ContributeSides = { contribute: boolean; learn: boolean };
@@ -1744,7 +1632,7 @@ export type ContributeIssueRepoRules = {
 export type ContributeRepoRule = ContributeIssueRepoRule & { quote: string | null };
 
 /** The size limits an attempt runs under in a repository: the smaller of the user's and the repo's. */
-export type ContributeRepoRuleCaps = {
+type ContributeRepoRuleCaps = {
   lines: number;
   files: number;
   /** Null when the line limit is the user's own; else where the repo's comes from, in words. */
@@ -1837,7 +1725,7 @@ export type ContributeHelpedLike =
 /** What a maintainer's report may do at once, each undoable. */
 export type ContributePrAction = 'STOP_PR' | 'BLOCK_CONTRIBUTOR' | 'REPO_OFF';
 /** The writer's role in the PR's repo, as GitHub answered for their account. */
-export type ContributePrRole = 'MAINTAINER' | 'COLLABORATOR' | 'USER';
+type ContributePrRole = 'MAINTAINER' | 'COLLABORATOR' | 'USER';
 
 /** One of our PRs, as the PR on GitHub shows it. */
 export type ContributePrCard = {
@@ -1894,7 +1782,7 @@ export type ContributePrFeedbackResult = {
 export type ContributePrUndoResult = { feedbackId: string; actions: ContributePrActionState[] };
 
 /** A "this PR helped" note, as the PR's contributor sees it. */
-export type ContributePrNote = {
+type ContributePrNote = {
   feedbackId: string;
   login: string;
   role: ContributePrRole;

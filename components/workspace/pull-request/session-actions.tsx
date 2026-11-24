@@ -104,7 +104,7 @@ export const offOf = (actions: SessionActions | null, state?: Pick<ActionState, 
   isOff(state, { pending: actions?.pending ?? null, done: actions?.done ?? null });
 
 /** For the catalogue and the specs: a static render shows a pending, failed or open state without a click. */
-export type SessionActionsSeed = { pending?: PendingSource; error?: ActionError; formOpen?: boolean };
+type SessionActionsSeed = { pending?: PendingSource; error?: ActionError; formOpen?: boolean };
 
 const stateOf = (hidden: boolean, busy: boolean): ActionState => ({ hidden, disabled: null, busy });
 

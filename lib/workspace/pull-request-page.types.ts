@@ -1,6 +1,6 @@
 /**
- * A pull request's page, Approve and the list of pull requests, as the GitRanks GraphQL API will answer them: one page
- * for Learn and Contribute. The parts in `components/workspace/pr-parts/` draw them from this data alone.
+ * A pull request's page, Approve and the list of pull requests, as the GitRanks GraphQL API answers them: one page for
+ * Learn and Contribute. The parts in `components/workspace/pr-parts/` draw them from this data alone.
  */
 
 /** Which product a fix was made in. */
@@ -48,6 +48,9 @@ export type PullRequestRoundNotNeeded =
   | 'BOT_IS_WRONG'
   | 'OTHER';
 
+/** Who closed a round that is not needed: the person ("You marked it"), or GitRanks ("Not needed any more"). */
+export type PullRequestRoundCloser = 'PERSON' | 'GITRANKS';
+
 /** Who can act on a check that does not pass. */
 export type PullRequestCheckClass = 'AGENT_CAN_FIX' | 'NEEDS_YOU' | 'NOT_YOURS';
 
@@ -94,6 +97,8 @@ export type PullRequestRound = {
   /** What came after it was sent and asks for nothing. */
   since: PullRequestRoundAsk[];
   notNeeded: PullRequestRoundNotNeeded | null;
+  /** Who closed it, while it is not needed; null in any other state, and absent from an older API. */
+  closedBy?: PullRequestRoundCloser | null;
   /** The prompt for the person's own agent, while the round waits. */
   prompt: string | null;
 };
@@ -142,11 +147,26 @@ export type PullRequestOnlyYou = {
   url: string | null;
 };
 
+/**
+ * A Learn fix's three ways on once its pull request is with the maintainers or merged, as addresses: "Learn the lesson
+ * it used", "Another issue on this lesson", "Back to your course". Each is null when what it leads to does not exist.
+ */
+export type PullRequestWaysOn = {
+  lessonQuestions: string | null;
+  lessonIssues: string | null;
+  course: string | null;
+};
+
+/** One file of the change, for Approve's list. */
+export type PullRequestFile = { path: string; added: number; removed: number };
+
 export type PullRequestPage = {
   attemptId: string;
   made: LearnFixMade;
   /** A hosted agent started it. */
   hosted: boolean;
+  /** The person's own agent's name; null for a hosted one. Absent from fixtures that leave it to a prop. */
+  agent?: string | null;
   /** `owner/name`. */
   repo: string;
   issueNumber: number;
@@ -168,17 +188,25 @@ export type PullRequestPage = {
   round: number | null;
   /** While `OPENING`: the part it is in, 1 to 5. */
   openingStep: number | null;
+  /** Autopilot will send it unless the person says "Don't send it". */
+  autoSend?: boolean;
+  /** A hosted round stopped at the person's limit. */
+  stoppedAtLimit?: boolean;
   onlyYou: PullRequestOnlyYou[];
   change: PullRequestChange | null;
   walkthrough: PullRequestWalkthroughCard | null;
   /** Newest first. */
   rounds: PullRequestRound[];
+  /** Words that ask for nothing from before any round was sent, oldest first. */
+  since?: PullRequestRoundAsk[];
   checks: PullRequestChecks | null;
   /** The repository's rules for pull requests, as text. */
   rules: string | null;
   /** The lesson's own questions can be offered. */
   lessonToAsk: boolean;
   outcome: PullRequestOutcome | null;
+  /** A Learn fix's ways on; null for Contribute and before the pull request is sent. */
+  waysOn?: PullRequestWaysOn | null;
 };
 
 /** What Approve needs before the press. */
@@ -199,6 +227,10 @@ export type PullRequestApproval = {
   /** The lesson whose questions are offered after sending. */
   lessonLater: LearnIssueLesson | null;
   change: PullRequestChange;
+  /** The change file by file, the first 300 at most; absent from fixtures. */
+  files?: PullRequestFile[];
+  /** How many files the change has, listed or not. */
+  filesTotal?: number;
 };
 
 export type PullRequestListGroup = 'NEEDS_YOU' | 'IN_PROGRESS' | 'ENDED';
@@ -227,6 +259,15 @@ export type PullRequestListRow = {
   pageRemoved: boolean;
   /** When it came to where it stands. */
   since: string;
+  /** A stopped row ended at the person's limit, not by a maintainer's stop. */
+  stoppedAtLimit?: boolean;
+  /**
+   * The row's page: the issue's, or an earlier attempt's when a later fix of the same issue exists; null when the
+   * repository's name is not known (no page then). Absent from fixtures: the issue's page.
+   */
+  path?: string | null;
+  /** Not the API's row: its walkthrough waits for another pass by the person's agent, read apart. */
+  walkthroughBlocked?: { reason: string | null };
 };
 
 export type PullRequestList = {

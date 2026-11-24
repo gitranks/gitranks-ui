@@ -15,12 +15,8 @@ import { fromLearn, LEARN_ISSUES_PATH, learnLessonRealWorldPath } from './paths'
 import type { MaskedListReads } from '@/lib/workspace/masked-issue';
 import { pullRequestPath } from '@/lib/workspace/paths';
 import { needsYouRowWordsOf } from '@/lib/workspace/pull-request-list';
-import type {
-  PullRequestBox,
-  PullRequestListGroup,
-  PullRequestListMark,
-  PullRequestListRow,
-} from '@/lib/workspace/pull-request-page.types';
+import type { PullRequestBox, PullRequestListRow } from '@/lib/workspace/pull-request-page.types';
+import { pullRequestRowOf } from '@/lib/workspace/pull-request-read';
 
 /*
  * Real issues where Learn's pages meet them: "In the real world" under a lesson, the third box and the "Real issues"
@@ -169,44 +165,6 @@ export function fixesOf(value: unknown): LearnFixes | null {
     return !!fix && !!textOf(fix.repo) && numberOf(fix.number) !== null && !!textOf(fix.title);
   });
   return { rows, total: Math.max(numberOf(raw.total) ?? 0, rows.length), next: textOf(raw.next) };
-}
-
-const GROUPS: readonly PullRequestListGroup[] = ['NEEDS_YOU', 'IN_PROGRESS', 'ENDED'];
-const MARKS: readonly PullRequestListMark[] = ['NEEDS_YOU', 'AGENT_WORKING', 'MAINTAINERS', 'MERGED'];
-
-/** A row of the person's pull requests, as their list has it; null when it is not one. */
-export function pullRequestRowOf(value: unknown): PullRequestListRow | null {
-  const raw = recordOf(value);
-  const attemptId = textOf(raw?.attemptId);
-  const repo = textOf(raw?.repo);
-  const issueNumber = numberOf(raw?.issueNumber);
-  const title = textOf(raw?.title);
-  const box = textOf(raw?.box) as PullRequestBox | null;
-  const since = textOf(raw?.since);
-  if (!raw || !attemptId || !repo?.includes('/') || issueNumber === null || !title || !box || !since) {
-    return null;
-  }
-  const group = GROUPS.includes(raw.group as PullRequestListGroup) ? (raw.group as PullRequestListGroup) : null;
-  if (!group) return null;
-  return {
-    attemptId,
-    made: raw.made === 'CONTRIBUTE' ? 'CONTRIBUTE' : 'LEARN',
-    repo,
-    issueNumber,
-    issueUrl: textOf(raw.issueUrl) ?? `https://github.com/${repo}/issues/${issueNumber}`,
-    number: numberOf(raw.number),
-    url: textOf(raw.url),
-    title,
-    group,
-    box,
-    round: numberOf(raw.round),
-    mark: MARKS.includes(raw.mark as PullRequestListMark) ? (raw.mark as PullRequestListMark) : null,
-    agent: textOf(raw.agent),
-    costUsd: numberOf(raw.costUsd),
-    lesson: lessonOf(raw.lesson),
-    pageRemoved: raw.pageRemoved === true,
-    since,
-  };
 }
 
 /** The email for a new issue on the person's list, as Learn home's issues read answers it; null when it does not. */

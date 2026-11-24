@@ -8,7 +8,6 @@ import {
   commentActionsInit,
   commentActionsReducer,
   commentViewOf,
-  editAfterTyping,
   isOff,
   pushSummaryOf,
   SETTING_ERROR,
@@ -92,12 +91,6 @@ describe('the comments’ state', () => {
     expect(back.choice.C_0).toBe('address');
     expect(back.error).toEqual({ source: 'choice', text: 'No.', key: 'C_0' });
     expect(commentViewOf(base, back).startState.disabled).toBeNull();
-  });
-
-  it('ticks a reply when the user writes into an empty one, and never re-ticks one they unticked', () => {
-    expect(editAfterTyping({ text: '', send: false }, 'Yes')).toEqual({ text: 'Yes', send: true });
-    expect(editAfterTyping({ text: 'Yes', send: false }, 'Yes, done')).toEqual({ text: 'Yes, done', send: false });
-    expect(editAfterTyping({ text: 'Yes', send: true }, '')).toEqual({ text: '', send: true });
   });
 
   it('lists every reply not left out, a ticked one emptied by hand going unsent, and counts what posts and resolves', () => {

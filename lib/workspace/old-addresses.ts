@@ -57,3 +57,20 @@ export const OLD_WORKSPACE_REDIRECTS: OldAddressRedirect[] = [
   // My lessons: Your progress now. Only the list itself: a shared lesson's page under it stays.
   to('/learn/lessons', '/my/progress'),
 ];
+
+/**
+ * A pull request's old Lesson view, which emails and pull requests already sent link: the fixer's walkthrough, and on
+ * an earlier attempt that attempt's page (its walkthrough is read from there). Permanent: the view is gone for good.
+ */
+export const LESSON_VIEW_REDIRECTS = [
+  {
+    source: '/my/pull-requests/:owner/:repo/:issue/lesson{/}?',
+    destination: '/my/pull-requests/:owner/:repo/:issue/walkthrough',
+    permanent: true,
+  },
+  {
+    source: '/my/pull-requests/:owner/:repo/:issue/earlier/:attemptId/lesson{/}?',
+    destination: '/my/pull-requests/:owner/:repo/:issue/earlier/:attemptId',
+    permanent: true,
+  },
+] as const satisfies { source: string; destination: string; permanent: true }[];

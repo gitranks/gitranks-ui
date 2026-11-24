@@ -4,7 +4,6 @@ import type {
   ContributeHelpedLike,
   ContributePrAction,
   ContributePrCard,
-  ContributePrRole,
   ContributeReportReason,
 } from './contribute.types';
 import { fullDayLabel } from './maintainers-format';
@@ -97,16 +96,6 @@ export const HELPED_LIKES: { value: ContributeHelpedLike; label: string }[] = [
   { value: 'GOOD_TESTS', label: 'Good tests' },
   { value: 'ANSWERED_REVIEW', label: 'The author answered our review' },
 ];
-
-export const likeLabelOf = (like: ContributeHelpedLike) =>
-  HELPED_LIKES.find(({ value }) => value === like)?.label ?? like;
-
-/** The role in plain words, never GitHub's permission names. */
-export const ROLE_WORDS: Record<ContributePrRole, string> = {
-  MAINTAINER: 'Maintainer',
-  COLLABORATOR: 'Collaborator',
-  USER: 'User',
-};
 
 /** The actions a maintainer's report may take at once, as the form offers them. */
 export function actionChoicesOf(card: ContributePrCard): { value: ContributePrAction; title: string; text: string }[] {

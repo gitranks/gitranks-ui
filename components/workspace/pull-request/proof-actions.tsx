@@ -14,7 +14,6 @@ import {
   retryContributeProof,
   sendBackContributeProof,
   startFollowUp,
-  takeBackContributeProof,
 } from '@/lib/workspace/actions';
 import { holdFastChanges } from '@/lib/workspace/changes-bus';
 import { attemptActionErrorMessage, type ContributeActionResult } from '@/lib/workspace/errors';
@@ -364,23 +363,5 @@ export function ProofRetryActions({ id }: { id: string }) {
       </div>
       <ErrorLine error={error} />
     </div>
-  );
-}
-
-/** The agent holding the proof is stuck or closed: take it back, then run the prompt again. */
-export function ProofTakeBack({ id }: { id: string }) {
-  const { act, error, busy } = useProofAction();
-  return (
-    <span className="inline-flex flex-col gap-1">
-      <button
-        type="button"
-        onClick={() => act(() => takeBackContributeProof(id))}
-        disabled={busy}
-        className="font-semibold text-link disabled:opacity-60"
-      >
-        {busy ? 'Taking it back…' : 'Take it back'}
-      </button>
-      <ErrorLine error={error} />
-    </span>
   );
 }

@@ -4,7 +4,6 @@ import type { Route } from 'next';
 import { revalidateTag } from 'next/cache';
 
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { LEARN_ANSWERS_SHARE_SWITCH_ON } from '@/lib/learn/built-pages';
 import { learnFixTag } from '@/lib/learn/paths';
 import { fixMineOf, fixRefInputOf, type WalkthroughAnswers, walkthroughAnswersOf } from '@/lib/learn/walkthrough';
 import {
@@ -52,14 +51,12 @@ export async function finishWalkthroughAction(pr: unknown, version: unknown): Pr
 
 /**
  * The fixer shares their answers, or keeps them private: their answers as they are now. The fix's public pages are
- * expired at once, so everyone reads the new choice. Null data for anyone but the fixer. Refused while the switch is
- * off (`LEARN_ANSWERS_SHARE_SWITCH_ON`): the page draws no switch, and the server takes no call either.
+ * expired at once, so everyone reads the new choice. Null data for anyone but the fixer.
  */
 export async function shareAnswersAction(
   pr: unknown,
   shared: unknown,
 ): Promise<ContributeActionResult<WalkthroughAnswers | null>> {
-  if (!LEARN_ANSWERS_SHARE_SWITCH_ON) return { ok: false, error: 'NOT_AVAILABLE_YET' };
   const ref = prOf(pr);
   if (!ref || typeof shared !== 'boolean') return { ok: false, error: 'INVALID', message: 'That was not accepted.' };
   const githubLogin = await viewerLogin();

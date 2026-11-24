@@ -2,9 +2,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { HEADING } from './primitives';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 /**
  * A row of the user's lists: its reference line (the repo, the issue and pull request, a pill), its title, a line of
@@ -63,27 +61,5 @@ export function ListRow({
         </div>
       ) : null}
     </li>
-  );
-}
-
-/** A list of the user's, in a card with its heading and count: "In progress · 2". */
-export function ListSection({
-  id,
-  title,
-  count,
-  children,
-}: {
-  id: string;
-  title: string;
-  count: number;
-  children: ReactNode;
-}) {
-  return (
-    <section aria-labelledby={id} data-section={id} className="overflow-hidden rounded-xl border bg-card">
-      <h2 id={id} className={cn(HEADING.card, 'border-b px-5 py-3.5')}>
-        {title} · {count}
-      </h2>
-      <ul>{children}</ul>
-    </section>
   );
 }

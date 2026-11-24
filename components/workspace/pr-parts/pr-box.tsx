@@ -41,6 +41,8 @@ export type PullRequestBoxProps = PullRequestBoxPresses & {
   agent?: string | null;
   /** A hosted round stopped at the person's limit: "Try again", or finish it by hand on GitHub. */
   stoppedAtLimit?: boolean;
+  /** A walkthrough of an older version waits for another pass by the person's agent: why, when known. */
+  walkthroughBlocked?: { reason: string | null } | null;
   /** A press went through and waits for the API: the buttons wait. */
   pending?: boolean;
   /** Enter does the main action (the page's one Enter key); a round's send takes Ctrl + Enter, as Approve does. */
@@ -187,11 +189,12 @@ export function PullRequestBox({
   links,
   agent,
   stoppedAtLimit = false,
+  walkthroughBlocked = null,
   pending = false,
   enterKey = true,
   ...presses
 }: PullRequestBoxProps) {
-  const words = boxOf(page, { agent, now, stoppedAtLimit });
+  const words = boxOf(page, { agent, now, stoppedAtLimit, walkthroughBlocked });
   const shown = shownOf(words.actions, { page, links, ...presses });
   const actions = useRef<HTMLDivElement>(null);
   const keyName = useSendKeyName();

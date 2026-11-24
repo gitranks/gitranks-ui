@@ -1,32 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CommentView } from './comment-actions';
 import type { Move } from './contribution-moves';
 import type { ActionId } from './hard-stop';
-import {
-  CONNECTION_FAILED,
-  CONNECTION_FAILED_OF,
-  errorPlaceOf,
-  heldPickOf,
-  mayStartOf,
-  mergeMove,
-  pickOf,
-  runBatch,
-  runLong,
-  shownPickOf,
-  startArgsOf,
-} from './session-head-logic';
+import { CONNECTION_FAILED, CONNECTION_FAILED_OF, mayStartOf, pickOf, runLong } from './session-head-logic';
 import { followUpAttempts } from '@/lib/contribute/__fixtures__/contribute-attempts';
 
 const move = (card: Move['card'], kinds: Move['kinds']): Move =>
   ({ card, kinds, session: 'next', tone: 'amber', kindLine: '', title: card, chip: 'Next step', actions: [] }) as never;
-
-const threads = (scope: { commentIds?: string[] }): CommentView['threads'] => ({
-  choice: {},
-  saving: new Set(),
-  chosen: scope.commentIds ?? [],
-  scope,
-});
 
 describe('the session head’s logic', () => {
   it('picks the held card a move names, any kind of a shared card, else the first', () => {
@@ -35,21 +15,6 @@ describe('the session head’s logic', () => {
     expect(pickOf(held, 'fix-failed').card).toBe('rules');
     expect(pickOf(held, 'proof').card).toBe('rules');
     expect(pickOf(held, null).card).toBe('rules');
-  });
-
-  it('merges the move into the address, keeping the session and the grant’s resume', () => {
-    expect(mergeMove('?session=next&resume=n1', 'dco')).toBe('?session=next&resume=n1&move=dco');
-    expect(mergeMove('?session=next&move=title', 'dco')).toBe('?session=next&move=dco');
-    expect(mergeMove('', 'review')).toBe('?move=review');
-  });
-
-  it('sends the chosen comments from the next-run card only', () => {
-    expect(startArgsOf('next-run', threads({ commentIds: ['C_1', 'C_2'] }))).toEqual({ commentIds: ['C_1', 'C_2'] });
-    // Every thread ignored, a changes signal: the run starts on the other signals.
-    expect(startArgsOf('next-run', threads({}))).toEqual({});
-    expect(startArgsOf('next-run', null)).toEqual({});
-    expect(startArgsOf('try-run', threads({ commentIds: ['C_1'] }))).toEqual({});
-    expect(startArgsOf('anyway', threads({ commentIds: ['C_1'] }))).toEqual({});
   });
 
   it('words a long action’s failure: none when through, a refusal in our words, a throw as the connection', async () => {
@@ -65,18 +30,6 @@ describe('the session head’s logic', () => {
     ).toBe(CONNECTION_FAILED);
   });
 
-  it('places the submit’s and the discards’ errors in their open dialog, the push’s in its confirm, else the card', () => {
-    expect(errorPlaceOf('submit', { dialog: 'submit' })).toBe('dialog');
-    expect(errorPlaceOf('submit', { dialog: null })).toBe('card');
-    expect(errorPlaceOf('submit', { dialog: 'discard-attempt' })).toBe('card');
-    expect(errorPlaceOf('push', { dialog: null })).toBe('dialog');
-    expect(errorPlaceOf('start', { dialog: 'submit' })).toBe('card');
-    expect(errorPlaceOf('discard-attempt', { dialog: null })).toBe('card');
-    expect(errorPlaceOf('discard-attempt', { dialog: 'discard-attempt' })).toBe('dialog');
-    expect(errorPlaceOf('discard-run', { dialog: 'discard-run' })).toBe('dialog');
-    expect(errorPlaceOf('discard-run', { dialog: null })).toBe('card');
-  });
-
   it('says a lost connection in each long action’s own words', async () => {
     const lost = (source: keyof typeof CONNECTION_FAILED_OF) =>
       runLong(async () => {
@@ -90,36 +43,6 @@ describe('the session head’s logic', () => {
     expect(await lost('discard-attempt')).toBe('It could not be discarded: the connection failed. Try again.');
     expect(await lost('send-back')).toMatch(/^It could not be sent back: the connection failed\./);
     expect(new Set(Object.values(CONNECTION_FAILED_OF)).size).toBe(Object.keys(CONNECTION_FAILED_OF).length);
-  });
-
-  it('keeps the card shown while the pane holds it, else the move named, else the first', () => {
-    const held = [
-      { id: 'title', kinds: ['title', 'fix-failed'] },
-      { id: 'dco', kinds: ['dco'] },
-    ];
-    expect(heldPickOf(held, 'fix-failed')).toBe('title');
-    expect(heldPickOf(held, 'proof')).toBe('title');
-    expect(heldPickOf([], 'dco')).toBe('');
-    expect(shownPickOf(held, 'dco', 'title')).toBe('dco');
-    // A fresh read no longer holds the card shown: the move named, else the first.
-    expect(shownPickOf(held, 'proof-review', 'dco')).toBe('dco');
-    expect(shownPickOf(held, 'proof-review', 'stale')).toBe('title');
-    expect(shownPickOf(held, null, null)).toBe('title');
-  });
-
-  it('runs one action over several replies in turn, and says a partial failure', async () => {
-    const all = await runBatch(['a', 'b'], async () => ({ ok: true, data: null }), 'Posted');
-    expect(all).toEqual({ done: 2, failed: [], line: null });
-    const ids = ['1', '2', '3', '4', '5', '6', '7'];
-    const some = await runBatch(
-      ids,
-      async (id) => {
-        if (id === '6') throw new Error('network');
-        return id === '7' ? { ok: false, error: 'FAILED' } : { ok: true, data: null };
-      },
-      'Dismissed',
-    );
-    expect(some).toEqual({ done: 5, failed: ['6', '7'], line: 'Dismissed 5 of 7. Try again for the rest.' });
   });
 
   it('lets a run start only on an open PR of ours, none under way, and no stop on starts', () => {

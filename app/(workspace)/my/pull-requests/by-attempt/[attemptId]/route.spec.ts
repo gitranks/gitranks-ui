@@ -6,8 +6,6 @@ const data = vi.hoisted(() => ({
   loadIssueAttempt: vi.fn(),
 }));
 vi.mock('@/lib/workspace/contribute.data', () => data);
-const learn = vi.hoisted(() => ({ lesson: vi.fn() }));
-vi.mock('@/lib/learn/learn.data', () => ({ loadAttemptLesson: learn.lesson }));
 vi.mock('@/lib/seo/site', () => ({ SITE_URL: 'https://gitranks.com' }));
 
 const { GET } = await import('./route');
@@ -51,10 +49,10 @@ beforeEach(() => {
 
 describe('the address by attempt', () => {
   it("answers a 307 nobody keeps to the pull request's page, on the site's own address, the query kept", async () => {
-    const answer = await call('A_1', '?session=next&move=changes&resume=n0nce');
+    const answer = await call('A_1', '?session=next&move=changes');
     expect(answer.status).toBe(307);
     expect(answer.headers.get('location')).toBe(
-      'https://gitranks.com/my/pull-requests/acme/gadgets/42?session=next&move=changes&resume=n0nce',
+      'https://gitranks.com/my/pull-requests/acme/gadgets/42?session=next&move=changes',
     );
     expect(answer.headers.get('cache-control')).toBe('private, no-store');
     // The issue is asked for by the attempt's own repo and number; its answer carries the current name.
@@ -74,14 +72,14 @@ describe('the address by attempt', () => {
     );
   });
 
-  it("sends a Learn attempt to the view its lesson's stage names, the Pull request view once it is open", async () => {
+  it("leads a Learn fix's lesson to the fixer's walkthrough, and the way back from GitHub to Approve", async () => {
     data.loadAttemptRef.mockResolvedValue({ ...first, mode: 'LEARN', pullRequest: null });
-    learn.lesson.mockResolvedValue({ stage: 'LESSON' });
-    expect((await call('A_1', '?resume=n0nce')).headers.get('location')).toBe(
-      'https://gitranks.com/my/pull-requests/acme/gadgets/42/lesson?resume=n0nce',
+    expect((await call('A_1', '?view=lesson')).headers.get('location')).toBe(
+      'https://gitranks.com/my/pull-requests/acme/gadgets/42/walkthrough',
     );
-    data.loadAttemptRef.mockResolvedValue({ ...first, mode: 'LEARN', pullRequest: { prId: 'PR_1' } });
-    learn.lesson.mockResolvedValue({ stage: 'PR_OPEN' });
+    expect((await call('A_1', '?resume=n0nce')).headers.get('location')).toBe(
+      'https://gitranks.com/my/pull-requests/acme/gadgets/42/approve?resume=n0nce',
+    );
     expect((await call('A_1')).headers.get('location')).toBe('https://gitranks.com/my/pull-requests/acme/gadgets/42');
   });
 

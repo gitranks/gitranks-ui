@@ -39,10 +39,10 @@ import {
   NO_HOME_REAL,
   NO_ISSUES_BOX_WORDS,
   openIssuesWordsOf,
-  pullRequestRowOf,
   realRowsOf,
 } from './real-issues';
 import { prRow } from '@/lib/workspace/__fixtures__/pull-request';
+import { pullRequestRowOf } from '@/lib/workspace/pull-request-read';
 
 const LONG_DASH = String.fromCodePoint(0x2014);
 

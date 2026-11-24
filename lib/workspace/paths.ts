@@ -439,19 +439,6 @@ export function learnStartPath(repo: string, number: number): Route {
 /** The Pull requests tab's table holds this many rows a page. */
 export const PULL_REQUESTS_PAGE_SIZE = 20;
 
-/** The Pull requests tab's filters: a state chip, a side ("Made with"), a page. */
-export type PullRequestsFilter = { state?: 'open' | 'merged' | 'closed'; made?: 'contribute' | 'learn'; page?: number };
-
-/** The Pull requests tab under its filters; the first page has no `?page`. */
-export function pullRequestsPath(filter: PullRequestsFilter = {}): Route {
-  const query = new URLSearchParams();
-  if (filter.state) query.set('state', filter.state);
-  if (filter.made) query.set('made', filter.made);
-  if (filter.page && filter.page > 1) query.set('page', String(filter.page));
-  const text = query.toString();
-  return (text ? `${WORKSPACE_PATHS.pullRequests}?${text}` : WORKSPACE_PATHS.pullRequests) as Route;
-}
-
 /**
  * Whether the path is a fair-use message's answer page, `/contribute/answer/<noticeId>`, in any spelling the router
  * reads as it. Its email and its agent link reach people signed out too, so it asks them to sign in as `/my` does; the

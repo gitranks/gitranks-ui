@@ -123,6 +123,3 @@ export const isSendKey = (
 
 /** The key's name beside Enter: ⌘ on a Mac, Ctrl elsewhere. */
 export const sendKeyNameOf = (platform: string) => (/mac|iphone|ipad/i.test(platform) ? '⌘' : 'Ctrl');
-
-/** The longest note for the agent when the change is sent back. */
-export const SEND_BACK_MAX = 4_000;

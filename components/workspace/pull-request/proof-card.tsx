@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 
 import { MarkHandledButton } from './follow-up-buttons';
 import { allKindsOf, GithubButton, MoveCard, Steps } from './move-card';
@@ -10,14 +9,12 @@ import {
   ProofReplyActions,
   ProofRetryActions,
   ProofReviewActions,
-  ProofTakeBack,
   ProofUnreadableActions,
 } from './proof-actions';
 import { ProofPreview } from './proof-preview';
-import { StatusLine, StatusLinkView } from './status-line';
 import { Button } from '@/components/ui/button';
 import { CodeBlock } from '@/components/workspace/code-block';
-import { agentLabelOf, githubUrlOf, timeLabel } from '@/lib/workspace/attempt-format';
+import { agentLabelOf, githubUrlOf } from '@/lib/workspace/attempt-format';
 import type {
   ContributeAttemptDetail,
   ContributeProofPostStep,
@@ -27,7 +24,6 @@ import { relativeLabel } from '@/lib/workspace/format';
 import { MCP_CLIENT_NAMES, MCP_CLIENTS } from '@/lib/workspace/mcp-setup';
 import type { UserMove } from '@/lib/workspace/next-step';
 import { clipped } from '@/lib/workspace/pr-moves';
-import type { ProofStage } from '@/lib/workspace/proof';
 import {
   lastUsedTokenOf,
   PROOF_FILE_MB,
@@ -413,204 +409,4 @@ export function ProofMoveCard({ move: model, first, view, blocked, now, rider }:
     default:
       return null;
   }
-}
-
-/** What a posted proof put where: the description, the screenshots on the fork, the bot's command (or a reply). */
-function PostedList({
-  first,
-  reply,
-  bot,
-  now,
-}: {
-  first: ContributeAttemptDetail;
-  reply: boolean;
-  bot: string;
-  now: Date;
-}) {
-  const session = first.proof?.session;
-  const pr = first.pullRequest;
-  if (!session || !pr) return null;
-  const url = githubUrlOf(pr.url);
-  const post = session.post;
-  const files = session.result?.files.length ?? 0;
-  const commentUrl = githubUrlOf(post?.commentUrl);
-  const link = (href: string | null, label: string) =>
-    href ? (
-      <a className="font-semibold text-link" href={href} target="_blank" rel="noopener noreferrer">
-        {label}
-      </a>
-    ) : (
-      label
-    );
-  const items: ReactNode[] = reply
-    ? [
-        <>
-          Your reply is on {link(commentUrl, `#${pr.number} ↗`)}
-          {session.stateAt ? ` · ${relativeLabel(session.stateAt, now)}` : ''}
-        </>,
-      ]
-    : [
-        <>
-          The proof is in the {link(url, "pull request's description ↗")}
-          {post?.bodyAt ? ` · ${relativeLabel(post.bodyAt, now)}` : ''}
-        </>,
-        ...(files
-          ? [
-              <>
-                {screenshotsOf(files)} on <span className="font-mono">{proofBranchOf(pr.number)}</span> in your fork
-              </>,
-            ]
-          : []),
-        commentUrl ? (
-          <>
-            Asked {bot} to read it again in {link(commentUrl, 'a comment ↗')}
-          </>
-        ) : (
-          <>
-            {bot} names no command to read it again: ask it on GitHub
-            {url ? <> {link(url, `on #${pr.number} ↗`)}</> : null}
-          </>
-        ),
-      ];
-  return (
-    <ul className="flex flex-col gap-1.5" data-proof-posted="">
-      {items.map((item, index) => (
-        <li key={index} className="break-words">
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/**
- * The proof's status line on the next step's pane, for the stages that wait for nobody; `compact`, its one muted line
- * under the card the pane shows ("Proof: … · its link"). Null for the stages that are moves.
- */
-export function ProofStatus({
-  first,
-  stage,
-  now,
-  compact = false,
-  details,
-  moveLink,
-}: {
-  first: ContributeAttemptDetail;
-  stage: ProofStage | null;
-  now: Date;
-  compact?: boolean;
-  details?: ReactNode;
-  /** A move another session holds: it takes the line's link, and the proof's own link goes into Details. */
-  moveLink?: ReactNode;
-}) {
-  const session = first.proof?.session;
-  const pr = first.pullRequest;
-  if (!session || !pr || !stage) return null;
-  const url = githubUrlOf(pr.url);
-  const held = session.state === 'RUNNING' || session.state === 'UPLOADING';
-  const bot = first.proof?.ask?.bot ?? 'the bot';
-  const reply = session.result?.outcome === 'CANNOT_PROVE';
-  const commentUrl = githubUrlOf(session.post?.commentUrl);
-  const line =
-    stage === 'working'
-      ? {
-          name: 'proof-working',
-          lead: { kind: 'dot' } as const,
-          title: 'Your agent is capturing the proof',
-          fact: [
-            relativeLabel(session.startedAt, now) ? `picked up ${relativeLabel(session.startedAt, now)}` : null,
-            session.leaseUntil ? `holds it until ${timeLabel(session.leaseUntil).split(', ').at(-1)}` : null,
-          ]
-            .filter(Boolean)
-            .join('; '),
-          link: held ? <ProofTakeBack id={session.id} /> : null,
-          extra: (
-            <>
-              {session.state === 'CHECKING' ? <p>GitRanks is checking the screenshots.</p> : null}
-              {session.checkError ? (
-                <p data-proof-check-error="">
-                  The last screenshots were refused: {clipped(session.checkError, 200)}. Your agent was told.
-                </p>
-              ) : null}
-            </>
-          ),
-          poll: true,
-        }
-      : stage === 'posting'
-        ? {
-            name: 'proof-posting',
-            lead: { kind: 'dot' } as const,
-            title: 'Posting the proof',
-            fact: session.post?.step ? `Now ${POST_STEPS[session.post.step]}.` : null,
-            link: null,
-            extra: null,
-            poll: true,
-          }
-        : stage === 'posted'
-          ? {
-              name: 'proof-posted',
-              lead: { kind: 'pill', label: 'Bot reads it', tone: 'neutral' } as const,
-              title: reply ? 'Reply posted' : `Proof posted: ${bot} reads it again`,
-              fact: null,
-              link:
-                (commentUrl ?? url) ? (
-                  <StatusLinkView
-                    link={{ href: commentUrl ?? url ?? '', label: 'See it on GitHub ↗', external: true }}
-                  />
-                ) : null,
-              extra: (
-                <>
-                  <PostedList first={first} reply={reply} bot={bot} now={now} />
-                  <p>
-                    This leaves Needs you when {bot} lets the merge through. If it asks for more, the ask shows here and
-                    your agent can try again.
-                  </p>
-                </>
-              ),
-              poll: false,
-            }
-          : stage === 'ask-cleared'
-            ? {
-                name: 'proof-ask-cleared',
-                lead: { kind: 'pill', label: 'Not needed', tone: 'neutral' } as const,
-                title: 'The bot no longer asks for proof',
-                fact: 'Nothing was posted.',
-                link: null,
-                extra: null,
-                poll: false,
-              }
-            : null;
-  if (!line) return null;
-  if (compact) {
-    return (
-      <p
-        className="flex flex-wrap items-center gap-x-1.5 border-t pt-3 text-xs text-muted-foreground"
-        data-proof-rider={line.name}
-      >
-        Proof: {line.title}
-        {line.link ? <> · {line.link}</> : null}
-        {line.poll ? <ProofPoll /> : null}
-      </p>
-    );
-  }
-  return (
-    <StatusLine
-      name={line.name}
-      lead={line.lead}
-      title={line.title}
-      fact={line.fact}
-      link={moveLink ?? line.link}
-      live={line.poll}
-      poll={line.poll ? <ProofPoll /> : null}
-      details={
-        line.extra || details || (moveLink && line.link) ? (
-          <>
-            {line.extra}
-            {moveLink && line.link ? <p>{line.link}</p> : null}
-            {details}
-          </>
-        ) : null
-      }
-    />
-  );
 }

@@ -7,7 +7,7 @@ import { FixerWalkthroughPlayer } from '@/components/learn/walkthrough/fixer-wal
 import { WalkthroughHead, WalkthroughPartArticle } from '@/components/learn/walkthrough/walkthrough-parts';
 import { ContributeSessionSkeleton } from '@/components/workspace/page-skeleton';
 import { type PlayerCrumb, PlayerStrip } from '@/components/workspace/player/player-strip';
-import { LessonUnavailable, lessonPageOf, type PageParams } from '@/components/workspace/pull-request/review-view';
+import { lessonPageOf, type PageParams, Unavailable } from '@/components/workspace/pull-request/page-read';
 import { LEARN_APPROVE_PAGE_BUILT } from '@/lib/learn/built-pages';
 import type { LearnAttemptLesson } from '@/lib/learn/learn.types';
 import { LEARN_PULL_REQUESTS_PATH, learnFixWalkthroughPath } from '@/lib/learn/paths';
@@ -36,25 +36,30 @@ function crumbsOf(repo: string, issue: number, base: Route): PlayerCrumb[] {
   ];
 }
 
+/** The attempt's states while its pull request is being opened. */
+const OPENING: ReadonlySet<string> = new Set(['PENDING_AUTOSUBMIT', 'SUBMITTING']);
+
 /** The pull request the walkthrough is about, once it is open: from the lesson, else from the attempt. */
 const openPrOf = (lesson: LearnAttemptLesson, number: number | null | undefined) =>
   lesson.head?.subject.pr ?? number ?? null;
 
 /**
  * The fixer's walkthrough by stage. While the agent writes or rewrites it, a box that says so; then the parts and the
- * run (`WARMUP` and `LESSON`, and a passed or blocked run, which the player draws). Once the pull request is open the
+ * run (`WARMUP` and `LESSON`, and a blocked run, which the player draws). A passed one opens Approve, the way on (the
+ * pull request's page while it is being opened). Once the pull request is open the
  * walkthrough is public: its public address. A pull request opened by hand, or an attempt that ended, has its own words
  * on the pull request's page. A Fix attempt has no walkthrough: its pull request's page.
  */
 async function FixerWalkthroughView({ params }: { params: Promise<PageParams> }) {
-  const read = await lessonPageOf(params, 'walkthrough');
+  const read = await lessonPageOf(params);
   if (!read) return null;
-  if (read === 'unread') return <LessonUnavailable />;
+  if (read === 'unread') return <Unavailable />;
   const { first, lesson, base } = read;
   const { owner, repo: name, issue } = await params;
   const repo = first.nameWithOwner ?? `${owner}/${name}`;
   const issueNumber = first.number ?? Number(issue);
   const crumbs = crumbsOf(repo, issueNumber, base);
+  const approve = LEARN_APPROVE_PAGE_BUILT ? pullRequestApprovePath({ repo, issue: issueNumber }) : base;
 
   switch (lesson.stage) {
     case 'PR_OPEN': {
@@ -64,6 +69,9 @@ async function FixerWalkthroughView({ params }: { params: Promise<PageParams> })
     case 'HAND_PR':
     case 'ENDED':
       return redirect(base);
+    // Passed: the emails' "Read and send" lead here, and the way on is Approve; a pull request being opened, its page.
+    case 'READY_TO_APPROVE':
+      return redirect(OPENING.has(first.state) ? base : approve);
     case 'AGENT_WORKING':
     case 'AGENT_REWRITING':
       return (
@@ -108,7 +116,7 @@ async function FixerWalkthroughView({ params }: { params: Promise<PageParams> })
       ))}
       run={lesson.run}
       pullRequest={base}
-      finish={LEARN_APPROVE_PAGE_BUILT ? pullRequestApprovePath({ repo, issue: issueNumber }) : base}
+      finish={approve}
     />
   );
 }

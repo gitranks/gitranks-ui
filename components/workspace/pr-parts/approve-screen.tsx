@@ -16,13 +16,8 @@ import { SendKey, useSendKey, useSendKeyName } from '@/components/workspace/pr-p
 import { RefChips } from '@/components/workspace/ref-chips';
 import { cn } from '@/lib/utils';
 import { PR_BODY_MAX, PR_TITLE_MAX, prBodyPreview } from '@/lib/workspace/attempt-format';
-import {
-  type ApproveCardState,
-  approveCardOf,
-  SEND_BACK_MAX,
-  titleHasPrefix,
-  withPrefix,
-} from '@/lib/workspace/pull-request-approve';
+import { SEND_BACK_NOTE_MAX } from '@/lib/workspace/mcp-setup';
+import { type ApproveCardState, approveCardOf, titleHasPrefix, withPrefix } from '@/lib/workspace/pull-request-approve';
 import type { LearnFixMade, PullRequestApproval } from '@/lib/workspace/pull-request-page.types';
 
 /** What the person sends: the title and the description they wrote, and the sign-off tick. */
@@ -314,7 +309,7 @@ export function ApproveScreen({
                 id={`${id}-back`}
                 rows={3}
                 value={sendBack}
-                maxLength={SEND_BACK_MAX}
+                maxLength={SEND_BACK_NOTE_MAX}
                 onChange={(event) => setSendBack(event.target.value)}
                 className="min-h-21 text-sm"
               />

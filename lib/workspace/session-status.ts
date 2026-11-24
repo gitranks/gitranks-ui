@@ -30,8 +30,8 @@ import { pageAtOf, sessionPath } from './sessions';
  * reason by reason. Pure: the status line, the move cards and their specs read the same.
  */
 
-export type StatusLead = { kind: 'dot' } | { kind: 'pill'; label: string; tone: Tone } | { kind: 'check' } | null;
-export type StatusLink = { href: string; label: string; external: boolean };
+type StatusLead = { kind: 'dot' } | { kind: 'pill'; label: string; tone: Tone } | { kind: 'check' } | null;
+type StatusLink = { href: string; label: string; external: boolean };
 
 export type SessionStatus = {
   /** `data-status`: the state, or what the line says when the state alone does not tell. */
@@ -359,7 +359,7 @@ export function firstStatusOf(
       if (elsewhere) return line({ name: 'PR_OPEN', title: 'Your pull request is open' });
       const nextLesson =
         first.mode === 'LEARN'
-          ? { href: WORKSPACE_PATHS.learn, label: 'Start the next lesson →', external: false }
+          ? { href: WORKSPACE_PATHS.learnHome, label: 'Start the next lesson →', external: false }
           : null;
       if (justOpened(pr, now))
         return line({
@@ -387,7 +387,7 @@ export function firstStatusOf(
           lead: { kind: 'check' },
           title: 'Merged',
           fact: `Your code is in ${first.nameWithOwner ?? 'the repo'}. It counts toward your contribution stars. Your lesson stays public, so others can keep learning from this fix.`,
-          link: { href: WORKSPACE_PATHS.learn, label: 'Start the next lesson →', external: false },
+          link: { href: WORKSPACE_PATHS.learnHome, label: 'Start the next lesson →', external: false },
           more: base ? { href: `${base}/lesson`, label: 'See the lesson →', external: false } : null,
         });
       }

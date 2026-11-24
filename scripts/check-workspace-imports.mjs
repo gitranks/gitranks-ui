@@ -40,13 +40,11 @@ import { fileURLToPath } from 'node:url';
 
 /**
  * The crossings left today, as `<file> -> <module>` (the module's path without its extension): the shared pages under
- * `/my` that still draw a product's own parts (Settings' two groups, the start page, an issue's page, a pull request's lookup by attempt),
+ * `/my` that still draw a product's own parts (Settings' two groups, the start page, an issue's page),
  * until those parts move to the shared folders or the pages are replaced.
  */
 export const ALLOWED = [
   'app/(workspace)/my/issues/[id]/page.tsx -> lib/learn/learn.data',
-  'app/(workspace)/my/pull-requests/by-attempt/[attemptId]/route.ts -> lib/learn/learn.data',
-  'app/(workspace)/my/pull-requests/by-attempt/[attemptId]/route.ts -> lib/learn/learn-view',
   'app/(workspace)/my/settings/components/settings-pages.tsx -> app/learn/components/learn-setting-up',
   'app/(workspace)/my/settings/components/settings-pages.tsx -> components/contribute/mode-switch',
   'app/(workspace)/my/settings/components/settings-pages.tsx -> components/contribute/preferences-section',

@@ -51,8 +51,11 @@ function Mark({ mark, removed }: { mark: PullRequestListMark | null; removed: bo
 export type PullRequestListRowProps = {
   row: PullRequestListRow;
   now: Date;
-  /** The fix's page: the page picks it, an earlier attempt at the same issue having its own address. */
-  href: Route;
+  /**
+   * The fix's page: the page picks it, an earlier attempt at the same issue having its own address. Null when it has
+   * none: the row is then words alone, as a removed page's is.
+   */
+  href: Route | null;
   /** The first row of the page: its button is the filled one, with the Enter key. */
   primary?: boolean;
   /** The lesson's page; the lesson is plain text without it. */
@@ -67,8 +70,9 @@ export type PullRequestListRowProps = {
 export function PullRequestListRowView({ row, now, href, primary = false, lessonHrefOf }: PullRequestListRowProps) {
   const words = rowWordsOf(row, now);
   const button = useRef<HTMLAnchorElement>(null);
-  useEnterKey(primary && !row.pageRemoved ? () => button.current?.click() : null);
   const removed = row.pageRemoved;
+  const linked = !removed && href !== null;
+  useEnterKey(primary && linked ? () => button.current?.click() : null);
   return (
     <article
       className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:px-5"
@@ -81,8 +85,10 @@ export function PullRequestListRowView({ row, now, href, primary = false, lesson
           issue={row.issueNumber}
           pr={row.number !== null ? { number: row.number, url: row.url } : null}
         />
-        {removed ? (
-          <span className="font-semibold text-pretty text-muted-foreground">{row.title}</span>
+        {!linked ? (
+          <span className={cn('font-semibold text-pretty', removed ? 'text-muted-foreground' : 'text-foreground')}>
+            {row.title}
+          </span>
         ) : (
           <Link href={href} prefetch={false} className="font-semibold text-pretty text-foreground hover:underline">
             {row.title}
@@ -102,6 +108,11 @@ export function PullRequestListRowView({ row, now, href, primary = false, lesson
             </span>
           ) : null}
           {words.when ? <span className="text-muted-foreground">{words.when}</span> : null}
+          {words.reason ? (
+            <span className="basis-full text-muted-foreground" data-row-reason="">
+              {words.reason}
+            </span>
+          ) : null}
           {removed ? (
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground">
               Page removed
@@ -131,7 +142,7 @@ export function PullRequestListRowView({ row, now, href, primary = false, lesson
           ) : null}
         </span>
       </div>
-      {removed ? null : (
+      {!linked ? null : (
         <div className="flex flex-none items-center gap-1 max-sm:[&>*]:flex-1">
           <Button
             asChild
@@ -156,8 +167,8 @@ export type PullRequestListViewProps = {
   side: 'learn' | 'contribute';
   /** The issues of that side, for the empty page. */
   issuesHref: Route;
-  /** Each fix's page. */
-  hrefOf: (row: PullRequestListRow) => Route;
+  /** Each fix's page; null for one without a page. */
+  hrefOf: (row: PullRequestListRow) => Route | null;
   lessonHrefOf?: (lesson: LearnIssueLesson) => Route;
   /** "Show 20 more" of "Ended"; the page reads the next 20 from `list.more` and adds them in place. */
   onMore?: (after: string) => void;

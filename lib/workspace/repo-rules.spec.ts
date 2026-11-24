@@ -4,13 +4,11 @@ import type { ContributeConfigKey } from './contribute.types';
 import {
   type ConfigControl,
   type ConfigSaveResult,
-  capRowsOf,
   configControlOf,
   configDraftErrorOf,
   configNoteOf,
   configSaverOf,
   fileReadAtOf,
-  isFinishedAttempt,
   pageControlsOf,
   pickWithRollback,
   type RepoSettingsState,
@@ -45,25 +43,6 @@ describe('rulesSummaryOf', () => {
     expect(rulesSummaryOf(rules)).toEqual(['6 rules']);
     expect(rulesSummaryOf({ manualOnly: false, lines: rules.lines.slice(1, 2) })).toEqual(['1 rule']);
     expect(rulesSummaryOf({ manualOnly: false, lines: [] })).toEqual([]);
-  });
-});
-
-describe('capRowsOf', () => {
-  it('puts the user’s own limit beside the repo’s, and only there', () => {
-    const rows = capRowsOf(
-      { lines: 300, files: 15, linesSource: '.github/gitranks.yml', filesSource: null },
-      { maxChangedLines: 400, maxFiles: 15 },
-    );
-    expect(rows).toEqual([
-      { id: 'lines', label: 'Changed lines', value: 300, source: '.github/gitranks.yml', yours: 400 },
-      { id: 'files', label: 'Files', value: 15, source: null, yours: null },
-    ]);
-  });
-
-  it('leaves out the user’s limit when it is not known or the same', () => {
-    const caps = { lines: 300, files: 10, linesSource: 'CONTRIBUTING.md', filesSource: 'CONTRIBUTING.md' };
-    expect(capRowsOf(caps, null).map(({ yours }) => yours)).toEqual([null, null]);
-    expect(capRowsOf(caps, { maxChangedLines: 300, maxFiles: 12 }).map(({ yours }) => yours)).toEqual([null, 12]);
   });
 });
 
@@ -245,16 +224,5 @@ describe('saving a key on "Your repos"', () => {
     expect(typedCommitOf(files, '500', '10')).toEqual({ kind: 'invalid', text: 'A whole number from 1 to 100.' });
     expect(typedCommitOf(files, '20', '10')).toEqual({ kind: 'save', value: '20' });
     expect(typedCommitOf(files, '', '10')).toEqual({ kind: 'save', value: null });
-  });
-});
-
-describe('isFinishedAttempt', () => {
-  it('is an attempt that is over, not one still working or waiting', () => {
-    expect(
-      ['MERGED', 'CLOSED', 'STOPPED', 'DISCARDED', 'DONE'].every((state) => isFinishedAttempt(state as never)),
-    ).toBe(true);
-    expect(['RUNNING', 'REVIEW', 'PR_OPEN', 'FOLLOW_UP'].some((state) => isFinishedAttempt(state as never))).toBe(
-      false,
-    );
   });
 });

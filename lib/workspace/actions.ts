@@ -18,8 +18,6 @@ import {
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
   ContributeActivityDocument,
-  ContributeAttemptLiveBareDocument,
-  ContributeAttemptLiveDocument,
   ContributeChangesDocument,
   ContributeFeedComputedDocument,
   ContributeMcpConnectionsUsedDocument,
@@ -32,7 +30,6 @@ import {
   DiscardContributeProofDocument,
   DismissReplyDocument,
   FixContributePullRequestDocument,
-  HideContributePrNoteDocument,
   IgnoreReviewThreadsDocument,
   MarkNeedsYouHandledDocument,
   MarkNeedsYouHandledKindsDocument,
@@ -57,7 +54,6 @@ import {
 } from '@/lib/workspace/contribute.documents';
 import type {
   ContributeAttempt,
-  ContributeAttemptLive,
   ContributeChangeArea,
   ContributeChanges,
   ContributeChangesRead,
@@ -69,7 +65,6 @@ import type {
   ContributeEmailSettings,
   ContributeEmailSettingsInput,
   ContributeMcpTokenCreated,
-  ContributePrNote,
   ContributeProofSession,
   ContributePrSignalKind,
   ContributeRepliesOneComment,
@@ -90,7 +85,7 @@ import {
   type ContributePrFixKind,
   PR_FIX_KINDS,
 } from '@/lib/workspace/pr-conventions';
-import { objectIdOf, parsePrLink } from '@/lib/workspace/pr-feedback';
+import { parsePrLink } from '@/lib/workspace/pr-feedback';
 import { prTimelineAttemptTagOf, prTimelineTagOf } from '@/lib/workspace/pr-timeline-path';
 import { PROOF_NOTE_MAX, PROOF_REPLY_MAX } from '@/lib/workspace/proof';
 
@@ -219,28 +214,6 @@ export async function approveAttempt(input: ApproveAttemptInput): Promise<Contri
     );
   }
   return run(ApproveAttemptDocument, approval, (data) => data.approveAttempt);
-}
-
-/**
- * The submission's stepper reads the attempt again while it submits: its state, the submission with its steps' clock
- * and the pull request, plus when they were read (to set the elapsed times against our clock). An API that does not
- * answer the clock yet is read without it, and `clock: false` tells the stepper to ask without it from then on.
- */
-export async function readAttemptLive(
-  id: string,
-  withClock = true,
-): Promise<ContributeActionResult<{ attempt: ContributeAttemptLive | null; readAt: string; clock: boolean }>> {
-  const variables = { id: String(id) };
-  const bare = () => run(ContributeAttemptLiveBareDocument, variables, (data) => data.contributeAttempt);
-  let clock = withClock !== false;
-  let result = clock
-    ? await run(ContributeAttemptLiveDocument, variables, (data) => data.contributeAttempt)
-    : await bare();
-  if (!result.ok && clock && result.error === 'NOT_AVAILABLE_YET') {
-    clock = false;
-    result = await bare();
-  }
-  return result.ok ? { ok: true, data: { attempt: result.data, readAt: new Date().toISOString(), clock } } : result;
 }
 
 /**
@@ -761,18 +734,4 @@ export async function readNeedsYouCount(): Promise<ContributeActionResult<number
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   const count = await countOf(githubLogin);
   return count === undefined ? { ok: false, error: 'FAILED' } : { ok: true, data: count };
-}
-
-/** Hides a "this PR helped" note from the user's contribution page, or shows it again. */
-export async function hidePrNote(
-  feedbackId: string,
-  hidden: boolean,
-): Promise<ContributeActionResult<ContributePrNote>> {
-  const id = objectIdOf(feedbackId);
-  if (!id) return { ok: false, error: 'INVALID' };
-  return run(
-    HideContributePrNoteDocument,
-    { feedbackId: id, hidden: hidden === true },
-    (data) => data.hideContributePrNote,
-  );
 }

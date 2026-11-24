@@ -1,20 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { graphqlDirect, viewerLogin, revalidateTag, switches } = vi.hoisted(() => ({
+const { graphqlDirect, viewerLogin, revalidateTag } = vi.hoisted(() => ({
   graphqlDirect: vi.fn(),
   viewerLogin: vi.fn(),
   revalidateTag: vi.fn(),
-  switches: { share: false },
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/cache', () => ({ revalidateTag }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin }));
-vi.mock('@/lib/learn/built-pages', () => ({
-  get LEARN_ANSWERS_SHARE_SWITCH_ON() {
-    return switches.share;
-  },
-}));
 
 const { finishWalkthroughAction, shareAnswersAction } = await import('./walkthrough.actions');
 const { PassLearnWalkthroughDocument, ShareLearnWalkthroughAnswersDocument } = await import('./walkthrough.documents');
@@ -27,19 +21,10 @@ beforeEach(() => {
   revalidateTag.mockReset();
   viewerLogin.mockReset();
   viewerLogin.mockResolvedValue('octocat');
-  switches.share = false;
 });
 
 describe('shareAnswersAction', () => {
-  it('is refused by the server while the switch is off, without asking the API', async () => {
-    expect(await shareAnswersAction(PR, false)).toEqual({ ok: false, error: 'NOT_AVAILABLE_YET' });
-    expect(viewerLogin).not.toHaveBeenCalled();
-    expect(graphqlDirect).not.toHaveBeenCalled();
-    expect(revalidateTag).not.toHaveBeenCalled();
-  });
-
   it("once on, shares as the session's user and expires the fix's pages", async () => {
-    switches.share = true;
     graphqlDirect.mockResolvedValue({
       shareLearnWalkthroughAnswers: { login: 'octocat', shared: true, passedAt: null, walkthrough: null, answers: [] },
     });
@@ -54,7 +39,6 @@ describe('shareAnswersAction', () => {
   });
 
   it('refuses a pull request of no shape, and a signed-out call', async () => {
-    switches.share = true;
     expect(await shareAnswersAction({ nameWithOwner: 'acme', number: 1 }, true)).toMatchObject({ error: 'INVALID' });
     viewerLogin.mockResolvedValue(null);
     expect(await shareAnswersAction(PR, true)).toEqual({ ok: false, error: 'SIGNED_OUT' });

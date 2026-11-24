@@ -5,7 +5,6 @@ import type {
   ContributeAttempt,
   ContributeAttemptDetail,
   ContributeAttemptFollowUpFields,
-  ContributeAttemptLive,
   ContributeAttemptMode,
   ContributeAttemptState,
   ContributeAttemptSubmit,
@@ -39,7 +38,6 @@ import type {
   ContributeMcpToken,
   ContributeMcpTokenCreated,
   ContributeNeedsYou,
-  ContributeNeedsYouAnswer,
   ContributeNeedsYouCount,
   ContributeOAuthClientWhere,
   ContributeOAuthRequest,
@@ -52,7 +50,6 @@ import type {
   ContributePreferences,
   ContributePreferencesInput,
   ContributePrFeedbackResult,
-  ContributePrNote,
   ContributePrNotes,
   ContributeProof,
   ContributeProofSession,
@@ -581,23 +578,6 @@ export const ContributeAttemptDecisionsDocument = doc<
   contributeAttempt(id: $id) { attemptId goNoGo { verdict reason decidedAtLimit at } brief }
 }`);
 
-/** What the stepper reads again while the attempt submits: its state, the submission with its clock, the PR. */
-export const ContributeAttemptLiveDocument = doc<{ contributeAttempt: ContributeAttemptLive | null }, { id: string }>(
-  `query ContributeAttemptLive($id: ID!) {
-  contributeAttempt(id: $id) {
-    attemptId state updatedAt submit { ${SUBMIT} ${SUBMIT_CLOCK} } pullRequest { ${PULL_REQUEST} }
-  }
-}`,
-);
-
-/** The same, without the clock: for an API that does not answer it yet. */
-export const ContributeAttemptLiveBareDocument = doc<
-  { contributeAttempt: ContributeAttemptLive | null },
-  { id: string }
->(`query ContributeAttemptLiveBare($id: ID!) {
-  contributeAttempt(id: $id) { attemptId state updatedAt submit { ${SUBMIT} } pullRequest { ${PULL_REQUEST} } }
-}`);
-
 export const ContributeAttemptsFollowUpsDocument = doc<
   { contributeAttempts: FollowUpFieldsOf<ContributeAttemptFollowUpFields>[] | null },
   { state?: ContributeAttemptState; first?: number }
@@ -712,11 +692,6 @@ export const ApproveFollowUpDocument = doc<
 >(`mutation ApproveFollowUp($id: ID!, $title: String!, $replies: [ContributeReplyInput!]) {
   approveAttempt(id: $id, title: $title, body: "", dco: false, replies: $replies) { ${ATTEMPT} }
 }`);
-
-/** Whether a follow-up's replies resolve people's threads too (off: only bots'), read and written on its own. */
-export const ContributeResolveHumansDocument = doc<{
-  contribute: { contributor: { settings: { resolveHumanThreads: boolean } | null } | null } | null;
-}>('query ContributeResolveHumans { contribute { contributor { settings { resolveHumanThreads } } } }');
 
 export const SetResolveHumansDocument = doc<
   { setContributeSettings: { resolveHumanThreads: boolean } },
@@ -966,15 +941,6 @@ export const ContributePrNotesDocument = doc<{ contributePrNotes: ContributePrNo
 }`,
 );
 
-export const HideContributePrNoteDocument = doc<
-  { hideContributePrNote: ContributePrNote },
-  { feedbackId: string; hidden: boolean }
->(
-  `mutation HideContributePrNote($feedbackId: ID!, $hidden: Boolean!) {
-  hideContributePrNote(feedbackId: $feedbackId, hidden: $hidden) { ${PR_NOTE} }
-}`,
-);
-
 /** The reply drafts the user can approve now, oldest first. */
 export const ContributeRepliesWaitingDocument = doc<{ contributeRepliesWaiting: ContributeReplyWaiting[] | null }>(
   `query ContributeRepliesWaiting { contributeRepliesWaiting { ${REPLY_DRAFT} nameWithOwner prNumber inReview } }`,
@@ -1030,18 +996,6 @@ export const ContributeNeedsYouCountDocument = doc<{ contributeNeedsYou: Contrib
   `query ContributeNeedsYouCount { contributeNeedsYou(countOnly: true) { count complete } }`,
 );
 
-const NEEDS_YOU_ITEM = `key kind side working more since orderAt attemptId sessionAttemptId repo issueNumber title
-  pullRequest { id number url } runner autosubmitAt detail
-  action { kind view move url copy target }
-  secondary { kind prId prNumber signalKinds all target }
-  facts {
-    noRun byHand repoSaidNo round nextRound drafts draftsTo fixed skipped checkStatus checks
-    agreement { kind check signComment signUrl } ruleIssues ruleSources { kind label } templateCheck runOutcome
-    proofStage proofBot proofAsks outReason replyTrouble replyRest { same others { round count } } waitEndsAt lastFour
-    fix { kind note } submitError { reason note }
-  }
-  progress { startedAt costUsd budgetUsd submitStep waitUntil leaseUntil changesRequested agentName pushedSha runStep }`;
-
 /** An attempt as the address by attempt reads it: a run or a first attempt, Fix or Learn, and its first attempt. */
 export const ContributeAttemptRefDocument = doc<
   {
@@ -1074,11 +1028,6 @@ export const ContributeAttemptByIssueDocument = doc<
   { owner: string; repo: string; number: number }
 >(
   'query ContributeAttemptByIssue($owner: String!, $repo: String!, $number: Int!) { contributeAttemptRef(owner: $owner, repo: $repo, number: $number) { attemptId mode repo number earlier } }',
-);
-
-/** What waits on the user, in order, and the work in progress (the Pull requests tab); null when hidden. */
-export const ContributeNeedsYouDocument = doc<{ contributeNeedsYou: ContributeNeedsYouAnswer | null }>(
-  `query ContributeNeedsYou { contributeNeedsYou { count complete items { ${NEEDS_YOU_ITEM} } inProgress { ${NEEDS_YOU_ITEM} } } }`,
 );
 
 /** Which sides the user uses (Contribute, Learn); null from an older API. */

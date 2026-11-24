@@ -1,13 +1,10 @@
 import type {
-  ContributeAttemptState,
   ContributeConfigKey,
   ContributeIssueRepoRules,
   ContributeMaintainerConfigValue,
   ContributeMaintainerRepoConfig,
   ContributeMaintainerRepoRules,
-  ContributeRepoRuleCaps,
   ContributeRepoRuleKind,
-  ContributeSettings,
 } from './contribute.types';
 import { type MaintainerConfigErrorCode, maintainerConfigErrorMessage } from './errors';
 import { CONFIG_FILE } from './maintainer-config';
@@ -16,8 +13,6 @@ import { TIER_NAMES } from '@/app/app.consts';
 
 /** A repo with no rules, on the issue card and the attempt page. */
 export const RULES_NONE = 'This repo sets no rules for AI contributions beyond its CONTRIBUTING.';
-/** The attempt page's second sentence for a repo with no rules. */
-export const RULES_NONE_REVIEW = 'Every PR waits for your review.';
 /** The line under the caps and autopilot in Settings. */
 export const REPOS_ASK_LESS =
   'Repos can ask for less: their rules lower these caps and can turn autopilot off for their PRs.';
@@ -36,39 +31,6 @@ export function rulesSummaryOf(rules: ContributeIssueRepoRules): string[] {
   const rest = rules.lines.length - autopilot;
   if (!rules.manualOnly) return rest ? [plural(rest, 'rule', 'rules')] : [];
   return rest ? ['autopilot off', `${rest} more`] : ['autopilot off'];
-}
-
-/** An attempt that is over: its limits no longer meet the user's setting now. */
-const FINISHED: readonly ContributeAttemptState[] = ['MERGED', 'CLOSED', 'STOPPED', 'DISCARDED', 'DONE'];
-export const isFinishedAttempt = (state: ContributeAttemptState) => FINISHED.includes(state);
-
-/** One size limit the attempt runs under: the repo's (with `yours` beside it) or the user's own. */
-export type CapRow = {
-  id: 'lines' | 'files';
-  label: string;
-  value: number;
-  /** Where the repo's limit comes from, in words; null when the limit is the user's own. */
-  source: string | null;
-  /** The user's own limit beside the repo's; null when it is theirs, or not known. */
-  yours: number | null;
-};
-
-/** The effective caps as rows, the repo's beside the user's setting (`settings`, when known). */
-export function capRowsOf(
-  caps: ContributeRepoRuleCaps,
-  settings: Pick<ContributeSettings, 'maxChangedLines' | 'maxFiles'> | null | undefined,
-): CapRow[] {
-  const row = (id: CapRow['id'], label: string, value: number, source: string | null, own: number | undefined) => ({
-    id,
-    label,
-    value,
-    source,
-    yours: source && typeof own === 'number' && own !== value ? own : null,
-  });
-  return [
-    row('lines', 'Changed lines', caps.lines, caps.linesSource, settings?.maxChangedLines),
-    row('files', 'Files', caps.files, caps.filesSource, settings?.maxFiles),
-  ];
 }
 
 // ─── "Your repos": a key's control ────────────────────────────────────────────────────────────────────────────────────

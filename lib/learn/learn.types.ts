@@ -131,7 +131,7 @@ export type LessonRun = {
 export type LessonAnswerResult = { correct: boolean; why: LessonWhy[]; run: LessonRun };
 export type LessonWarmupAnswer = { questionId: string; picked: string[]; dontKnow: boolean };
 
-export type LessonCounts = {
+type LessonCounts = {
   opens: number;
   passes: number;
   reactionsYes: number;

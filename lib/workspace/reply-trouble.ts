@@ -1,6 +1,5 @@
 import type { ContributeReplyDraft } from './contribute.types';
 import { isNoReply } from './one-comment';
-import { clipped } from './pr-moves';
 
 /**
  * Replies GitHub did not take, as the contribution's page says them: grouped by the run that drafted them, then by why.
@@ -29,19 +28,6 @@ export const reasonKeyOf = (draft: Pick<ContributeReplyDraft, 'lastError'>): str
 export const BLOCK_REASONS: ReadonlySet<string> = new Set([
   'org_restricted',
   'forbidden',
-  'grant_missing',
-  'grant_revoked',
-]);
-
-/**
- * A retry can fix it: GitHub did not answer, a fault on our side, a reason not known, or GitHub access (once it is
- * allowed again).
- */
-export const RETRY_REASONS: ReadonlySet<string> = new Set([
-  'transient',
-  'no_answer',
-  'unknown',
-  'error',
   'grant_missing',
   'grant_revoked',
 ]);
@@ -80,59 +66,3 @@ export function replyTroubleOf(drafts: readonly ContributeReplyDraft[] | null | 
       };
     });
 }
-
-/** A note's first sentence, clipped to a line. */
-const firstSentenceOf = (note: string | null | undefined): string | null => {
-  const text = note?.trim();
-  if (!text) return null;
-  const end = text.search(/[.!?](\s|$)/);
-  return clipped(end >= 0 ? text.slice(0, end + 1) : text, 200);
-};
-
-/**
- * One line for a reason the replies of a run share (or one reply's own, `count` 1): why they did not post, in the words
- * the move card and the comments' list both say. `org` is the organization (the owner part of the repo's name),
- * `pushed` whether the run's commits went on the pull request, `note` the first draft's note from the API.
- */
-export function replyTroubleLineOf(
-  reason: string,
-  count: number,
-  org: string,
-  pushed: boolean,
-  note?: string | null,
-): string {
-  const many = count > 1;
-  const them = many ? 'them' : 'it';
-  switch (reason) {
-    case 'org_restricted':
-      return `${pushed ? 'Your fixes are on the pull request. ' : ''}${many ? 'The replies are not' : 'The reply is not'}: ${org} only lets apps it has approved post in review threads, and GitRanks isn't one of them yet.`;
-    case 'forbidden':
-      return `GitHub refused ${them}: the conversation is locked or closed to you.`;
-    case 'grant_missing':
-    case 'grant_revoked':
-      return `GitRanks has no GitHub access to post ${them}. Allow GitHub access again, then try again.`;
-    case 'not_found':
-      return many
-        ? 'The comments they answer, or the pull request, are no longer on GitHub.'
-        : 'The comment it answers, or the pull request, is no longer on GitHub.';
-    case 'not_ours':
-      return many
-        ? "GitHub refused them: they aren't on a pull request GitRanks opened for you."
-        : "GitHub refused it: it isn't on a pull request GitRanks opened for you.";
-    case 'invalid':
-      return many
-        ? 'GitHub refused them as invalid. Check their text first.'
-        : 'GitHub refused it as invalid. Check its text first.';
-    case 'no_answer':
-    case 'transient':
-      return `GitHub didn't answer when GitRanks posted ${them}.`;
-    case 'error':
-      return `Something went wrong on our side, not in your ${many ? 'replies' : 'reply'}. Try again.`;
-    default:
-      return firstSentenceOf(note) ?? `GitHub refused ${them}.`;
-  }
-}
-
-/** The organization a repo belongs to, as the reply lines name it: the owner part of `owner/repo`. */
-export const orgNameOf = (nameWithOwner: string | null | undefined): string =>
-  nameWithOwner?.split('/')[0] || 'the organization';

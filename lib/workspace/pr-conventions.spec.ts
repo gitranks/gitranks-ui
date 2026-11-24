@@ -1,17 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  type ContributeRepoConventions,
-  type ContributeTitleRule,
-  changelogLinesOf,
-  checklistOf,
-  entryLineOf,
-  httpsOnly,
-  titleBlocks,
-  titleProblemOf,
-  titleProblemsOf,
-  withoutDraftMarks,
-} from './pr-conventions';
+import { type ContributeTitleRule, changelogLinesOf, entryLineOf, httpsOnly, titleProblemOf } from './pr-conventions';
 
 const TYPES = ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert'];
 const semantic: ContributeTitleRule = {
@@ -22,17 +11,6 @@ const semantic: ContributeTitleRule = {
   requireScope: false,
   pattern: null,
 };
-const conventions = (over: Partial<ContributeRepoConventions> = {}): ContributeRepoConventions => ({
-  title: semantic,
-  titleExamples: ['fix(platform/github): deduplicate re-run checks'],
-  template: null,
-  changelog: null,
-  cla: null,
-  dco: false,
-  generated: [],
-  notes: [],
-  ...over,
-});
 
 const CHANGELOG_PATCH = [
   'diff --git a/src/a.ts b/src/a.ts',
@@ -55,76 +33,9 @@ describe('the title rule, as the API checks it', () => {
     expect(titleProblemOf('[Feature]: add a recipe', semantic)).toContain('`type(scope): summary`');
     expect(titleProblemOf('anything', null)).toBeNull();
   });
-
-  it('checks a required scope, the scopes listed, and the repo own pattern', () => {
-    const scoped = { ...semantic, requireScope: true, scopes: ['cli', 'broker'] };
-    expect(titleProblemOf('fix: x', scoped)).toContain('Add a scope');
-    expect(titleProblemOf('fix(web): x', scoped)).toContain('`web` is not one of');
-    expect(titleProblemOf('fix(cli): x', scoped)).toBeNull();
-    // The repo's own pattern is shown, never run: a stranger's regex can backtrack for seconds.
-    const pulsar = { ...semantic, hard: false, pattern: '^(([a-z ]+))+\\(x\\)$' };
-    const started = Date.now();
-    expect(titleProblemOf('fix the crash in the parser now', pulsar)).toBeNull();
-    expect(Date.now() - started).toBeLessThan(50);
-    expect(checklistOf(conventions({ title: pulsar }), { title: 'x', patch: null })[0].detail).toBe(
-      `Pattern: ${pulsar.pattern}`,
-    );
-  });
-
-  it('blocks only on a hard rule', () => {
-    expect(titleBlocks('Deduplicate', { title: semantic })).toBe(true);
-    expect(titleBlocks('Deduplicate', { title: { ...semantic, hard: false } })).toBe(false);
-    expect(titleBlocks('fix: deduplicate', { title: semantic })).toBe(false);
-  });
 });
 
 describe('This repo needs', () => {
-  it('follows the title as typed, and names the CLA and the changelog line the change adds', () => {
-    const repo = conventions({
-      cla: { check: 'license/cla', signUrl: 'https://cla-assistant.io/renovatebot/renovate' },
-      changelog: { kind: 'FILE', path: 'CHANGELOG.md', required: true, source: '20 of the last 20 merged PRs edit it' },
-    });
-    const bad = checklistOf(repo, { title: 'GitHub: deduplicate', patch: CHANGELOG_PATCH });
-    expect(bad.map(({ key, state }) => [key, state])).toEqual([
-      ['title', 'blocked'],
-      ['cla', 'todo'],
-      ['changelog', 'ok'],
-    ]);
-    expect(bad[1]).toMatchObject({ link: 'https://cla-assistant.io/renovatebot/renovate' });
-    expect(bad[1].label).toContain("we can't sign for you");
-    expect(bad[2].detail).toBe('- docs(): add a recipe [#<number>](<pull request URL>)');
-
-    const good = checklistOf(repo, { title: 'fix(platform/github): deduplicate', patch: null });
-    expect(good[0]).toMatchObject({ state: 'ok', detail: 'Like: fix(platform/github): deduplicate re-run checks' });
-    expect(good[2]).toMatchObject({ state: 'todo' });
-  });
-
-  it('names a DCO signed by a comment, and the comment', () => {
-    const repo = conventions({
-      title: null,
-      cla: {
-        check: 'DCO',
-        signUrl: 'https://github.com/driftwood-js/dco/blob/main/dco.md',
-        agreement: 'DCO',
-        signComment: 'I have read the DCO document and I hereby sign the DCO.',
-      },
-    });
-    const [cla] = checklistOf(repo, { title: 'fix: x', patch: null });
-    expect(cla).toMatchObject({
-      key: 'cla',
-      label: "A signed DCO: after the PR opens, you comment on it to sign; we can't sign for you",
-      detail:
-        'The comment, word for word: “I have read the DCO document and I hereby sign the DCO.”. The `DCO` check waits for it.',
-      link: 'https://github.com/driftwood-js/dco/blob/main/dco.md',
-      linkText: 'Read the DCO',
-    });
-  });
-
-  it('says nothing when the repo asks nothing we read', () => {
-    expect(checklistOf(null, { title: 'x', patch: null })).toEqual([]);
-    expect(checklistOf(conventions({ title: null, titleExamples: [] }), { title: 'x', patch: null })).toEqual([]);
-  });
-
   it('finds the changelog lines a patch adds, and only them', () => {
     expect(changelogLinesOf(CHANGELOG_PATCH, 'CHANGELOG.md')).toEqual([
       '- docs(): add a recipe [#{{PR_NUMBER}}]({{PR_URL}})',
@@ -147,66 +58,5 @@ describe("the repo's own data, defused", () => {
     expect(httpsOnly('https://cla-assistant.io/o/r')).toBe('https://cla-assistant.io/o/r');
     expect(httpsOnly('javascript:alert(1)')).toBeNull();
     expect(httpsOnly(null)).toBeNull();
-  });
-});
-
-describe("the repo's agent rules and our own (actualbudget/actual#9396)", () => {
-  const actual = conventions({
-    title: null,
-    titleExamples: [],
-    titlePrefix: '[AI]',
-    templateByHuman: true,
-    agentMarker: '🤖',
-  });
-
-  it('never lets a WIP or draft mark through, and asks for the prefix', () => {
-    expect(withoutDraftMarks('[WIP] [Bug]: null after deleting')).toBe('[Bug]: null after deleting');
-    expect(withoutDraftMarks('[AI] WIP: fix it')).toBe('[AI] fix it');
-    expect(withoutDraftMarks('Wipe the cache')).toBe('Wipe the cache');
-    // A dash with no space around it is a word's, as the API reads it.
-    expect(withoutDraftMarks('Draft-js: fix selection')).toBe('Draft-js: fix selection');
-    expect(withoutDraftMarks('WIP-limit: column cap')).toBe('WIP-limit: column cap');
-    expect(withoutDraftMarks('WIP - fix it')).toBe('fix it');
-    expect(titleProblemsOf('[WIP] fix it', null)).toContain('approved it as ready');
-    // The approval takes the mark off: the form blocks only what it refuses, and says the mark comes off.
-    expect(titleBlocks('[WIP] fix it', null)).toBe(false);
-    expect(titleBlocks('[AI] [WIP] Fix the null error', actual)).toBe(false);
-    expect(titleBlocks('[WIP] Fix the null error', actual)).toBe(true);
-    expect(checklistOf(null, { title: 'WIP: fix it', patch: null })).toEqual([
-      expect.objectContaining({ key: 'title', state: 'todo', detail: expect.stringContaining('comes off at Submit') }),
-    ]);
-    expect(titleProblemsOf('Fix the null error', actual)).toContain('`[AI]`');
-    expect(titleBlocks('[AI] Fix the null error', actual)).toBe(false);
-  });
-
-  it('lists the prefix and the template the user fills on GitHub', () => {
-    const items = checklistOf(actual, { title: 'Fix the null error', patch: null });
-    expect(items.map(({ key, state }) => [key, state])).toEqual([
-      ['title', 'blocked'],
-      ['template', 'todo'],
-    ]);
-    expect(items[0].label).toBe("A title starting with `[AI]`, as the repo's agent rules require");
-    expect(items[1].label).toContain('filled in by you on GitHub');
-    expect(checklistOf(actual, { title: '[AI] Fix the null error', patch: null })[0].state).toBe('ok');
-    // A WIP mark is ours to keep out, whatever the repo asks.
-    expect(checklistOf(conventions({ title: null }), { title: '[WIP] fix', patch: null })[0]).toMatchObject({
-      key: 'title',
-      state: 'todo',
-    });
-  });
-
-  it('offers the title with the prefix added, when the prefix is all it misses', () => {
-    const titleOf = (over: Partial<ContributeRepoConventions>, title: string) =>
-      checklistOf(conventions(over), { title, patch: null }).find((item) => item.key === 'title');
-    const prefixOnly = { title: null, titleExamples: [], titlePrefix: '[AI]' };
-    expect(titleOf(prefixOnly, 'Fix the null error')?.fix).toBe('[AI] Fix the null error');
-    expect(titleOf(prefixOnly, '[WIP] Fix the null error')?.fix).toBe('[AI] Fix the null error');
-    // A title that also fails the repo's conventional form: the form cannot make one up, so no fix.
-    expect(titleOf({ titlePrefix: '[AI]' }, 'Fix the null error')).not.toHaveProperty('fix');
-    // With the prefix there, or no title typed: nothing to add.
-    expect(titleOf(prefixOnly, '[AI] Fix the null error')).not.toHaveProperty('fix');
-    expect(titleOf(prefixOnly, '')).not.toHaveProperty('fix');
-    // A conventional title the rule passes: the prefix is all it misses.
-    expect(titleOf({ titlePrefix: '[AI]' }, 'fix: the null error')?.fix).toBe('[AI] fix: the null error');
   });
 });

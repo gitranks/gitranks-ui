@@ -13,14 +13,14 @@ export const LEARN_PROJECT_COURSE_PAGE_BUILT: boolean = false;
 export const LEARN_FIXES_PAGE_BUILT: boolean = true;
 
 /**
- * Approve and send: `/my/pull-requests/<owner>/<repo>/<issue>/approve`. Until it exists, "Finish the walkthrough" leads
- * the fixer to their pull request's page, where today's form approves. True once the page exists (step 19).
+ * Approve and send: `/my/pull-requests/<owner>/<repo>/<issue>/approve`. "Finish the walkthrough" leads the fixer there
+ * while it is true, and to their pull request's page while it is false. True once the page exists.
  */
-export const LEARN_APPROVE_PAGE_BUILT: boolean = false;
+export const LEARN_APPROVE_PAGE_BUILT: boolean = true;
 
 /**
  * The fixer's switch that stops sharing their answers, on the answers page. Pull requests already sent link the old
- * address of the fixer's result, which would show "not found" once the answers are hidden; the switch reaches people
- * only once that address leads to the new answers page. Step 19, which adds that redirect, turns it on.
+ * address of the fixer's result, which leads to the new answers page; with the answers hidden, that page says so. True
+ * once that address leads there.
  */
-export const LEARN_ANSWERS_SHARE_SWITCH_ON: boolean = false;
+export const LEARN_ANSWERS_SHARE_SWITCH_ON: boolean = true;

@@ -1,6 +1,5 @@
 import type {
   ContributeAttemptDetail,
-  ContributeCheckStatus,
   ContributeFollowUpRound,
   ContributeReplyDraft,
   ContributeThreadOutcome,
@@ -16,13 +15,7 @@ export const FOLLOW_UP_THREADS_MAX = 20;
 
 /** The run's steps as the user sees them, in order. */
 export const FOLLOW_UP_STEPS = ['reading', 'fixing', 'checks', 'ready'] as const;
-export type FollowUpStep = (typeof FOLLOW_UP_STEPS)[number];
-export const FOLLOW_UP_STEP_LABELS: Record<FollowUpStep, string> = {
-  reading: 'Reading comments',
-  fixing: 'Fixing',
-  checks: 'Checks',
-  ready: 'Ready for you',
-};
+type FollowUpStep = (typeof FOLLOW_UP_STEPS)[number];
 
 /** The timeline's mark of the work phase: the go/no-go said go and the work was sent (contrib's `go:` note). */
 const WORK_SENT = /^go:/;
@@ -58,21 +51,9 @@ export const OUTCOMES: Record<
   NO_REPLY: { label: 'No reply needed', tone: 'neutral', hint: 'Its last word asks nothing of you.' },
 };
 
-/** Our checks in plain words, with the tone the result card shows them in. */
-export const CHECK_STATUSES: Record<ContributeCheckStatus, { title: string; tone: 'green' | 'amber' | 'red' }> = {
-  PASSED: { title: 'Checks passed', tone: 'green' },
-  FAILED: { title: 'A test failed', tone: 'red' },
-  NOT_RUN: { title: 'The tests could not run', tone: 'amber' },
-  BLOCKED: { title: 'Our checks block this push', tone: 'red' },
-};
-
 /** A draft of the follow-up flow: one per thread the user chose, with its outcome (absent on an older API). */
 export const hasOutcomes = (drafts: ContributeReplyDraft[] | undefined): drafts is ContributeReplyDraft[] =>
   Array.isArray(drafts) && drafts.some((draft) => draft.outcome !== undefined);
-
-/** `src/a.ts:12`, or nothing for a thread on the whole diff. */
-export const whereOfThread = (thread: { path: string | null; line: number | null }) =>
-  thread.path ? `${thread.path}${thread.line ? `:${thread.line}` : ''}` : '';
 
 /** A commit as GitHub links it: seven characters. */
 export const shortSha = (sha: string | null | undefined) =>
@@ -87,9 +68,3 @@ export const roundTalliesOf = (round: ContributeFollowUpRound): string[] =>
     round.replied ? `${round.replied} replied` : null,
     round.resolved ? `${round.resolved} resolved` : null,
   ].filter((tally) => tally !== null);
-
-/** The reply as it will read on GitHub: its prefix ("Fixed in <the new commit>: ") and the text. */
-export function replyPreviewOf(prefix: string | null | undefined, text: string): string {
-  const shown = (prefix ?? '').replace('<commit>', 'the new commit');
-  return `${shown}${text.trim()}`;
-}

@@ -64,18 +64,16 @@ describe('the Contribute tab', () => {
     expect(html).toContain('href="/contribute/about"');
   });
 
-  it("shows four numbers of Contribute's own pull requests, each opening the Pull requests tab filtered to them", () => {
+  it("shows four numbers of Contribute's own pull requests, each opening the Pull requests tab", () => {
     const { html, plain } = render();
     expect(plain).toContain(
       '7 pull requests merged 2 open, waiting on maintainers 6 repos helped 64% merged, of those decided',
     );
-    expect(html).toContain('href="/my/pull-requests?state=merged&amp;made=contribute"');
-    expect(html).toContain('href="/my/pull-requests?state=open&amp;made=contribute"');
-    expect(html).toContain('href="/my/pull-requests?made=contribute"');
+    expect(html.match(/href="\/my\/pull-requests"/g)).toHaveLength(4);
     // Nothing answered: dashes, still links.
     const none = render({ tab: { totals: null, hostedLevel: null } });
     expect(none.plain).toContain('– pull requests merged – open, waiting on maintainers – repos helped –');
-    expect(none.html.match(/href="\/my\/pull-requests\?/g)).toHaveLength(4);
+    expect(none.html.match(/href="\/my\/pull-requests"/g)).toHaveLength(4);
     // Nothing decided yet: no percent.
     expect(render({ tab: { totals: { ...TOTALS, merged: 0, closed: 0 }, hostedLevel: null } }).plain).toContain(
       '– merged, of those decided',

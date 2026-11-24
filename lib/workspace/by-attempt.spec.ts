@@ -28,10 +28,10 @@ const PAGE = '/my/pull-requests/acme/gadgets/42';
 describe('the address by attempt', () => {
   it("sends a Fix attempt to the pull request's page by the repo's current name, the whole query kept", () => {
     expect(at(read())).toBe(PAGE);
-    expect(at(read(), 'resume=n0nce&session=next&move=changes')).toBe(`${PAGE}?resume=n0nce&session=next&move=changes`);
+    expect(at(read(), 'session=next&move=changes')).toBe(`${PAGE}?session=next&move=changes`);
   });
 
-  it("sends an older first attempt on the issue to its earlier page, and a run to its session under its first's", () => {
+  it("sends an older first attempt on the issue to its earlier page, and a run to its address under its first's", () => {
     expect(at(read({ attemptId: 'A_0' }), '', issue({ earlier: ['A_0'] }))).toBe(`${PAGE}/earlier/A_0`);
     const run = read({ attemptId: 'A_F2', kind: 'FOLLOW_UP', followUpOf: { attemptId: 'A_1' } });
     expect(at(run, 'move=reply-failed')).toBe(`${PAGE}/runs/A_F2?move=reply-failed`);
@@ -39,24 +39,31 @@ describe('the address by attempt', () => {
     expect(at(older)).toBe(`${PAGE}/earlier/A_0/runs/A_F1`);
   });
 
-  it('sends a Learn attempt to the view its lesson names, the lesson asked by name, a move to the next step', () => {
+  it('sends the way back from GitHub’s access screen to Approve, the resume kept', () => {
+    expect(at(read(), 'resume=n0nce')).toBe(`${PAGE}/approve?resume=n0nce`);
+    expect(at(read({ mode: 'LEARN' }), 'resume=n0nce')).toBe(`${PAGE}/approve?resume=n0nce`);
+    // An earlier attempt has no Approve of its own: its page.
+    expect(at(read({ attemptId: 'A_0' }), 'resume=n0nce', issue({ earlier: ['A_0'] }))).toBe(
+      `${PAGE}/earlier/A_0?resume=n0nce`,
+    );
+  });
+
+  it("leads a Learn fix's lesson, asked by name, to the fixer's walkthrough; anything else to the pull request", () => {
     const learn = read({ mode: 'LEARN' });
-    const lessonAt = (query = '', view: 'pr' | 'lesson' | null = 'lesson') =>
-      byAttemptTargetOf(learn, issue(), new URLSearchParams(query), view);
-    expect(lessonAt()).toBe(`${PAGE}/lesson`);
-    expect(lessonAt('resume=n0nce')).toBe(`${PAGE}/lesson?resume=n0nce`);
-    expect(lessonAt('', 'pr')).toBe(PAGE);
-    // The lesson asked for by name: view= is the address's own word, dropped on the way.
-    expect(lessonAt('view=lesson', 'pr')).toBe(`${PAGE}/lesson`);
-    // The next step, or a move on it: the Pull request view's next step.
-    expect(lessonAt('session=next')).toBe(`${PAGE}?session=next`);
-    expect(lessonAt('move=changes')).toBe(`${PAGE}?move=changes&session=next`);
-    // No Lesson view (Learn closed to the viewer): the Pull request view.
-    expect(lessonAt('', null)).toBe(PAGE);
-    expect(lessonAt('view=lesson', null)).toBe(PAGE);
+    // `view=` is the address's own word, dropped on the way.
+    expect(at(learn, 'view=lesson')).toBe(`${PAGE}/walkthrough`);
+    expect(at(learn, 'view=lesson&from=email')).toBe(`${PAGE}/walkthrough?from=email`);
+    expect(at(learn)).toBe(PAGE);
+    expect(at(learn, 'session=next')).toBe(`${PAGE}?session=next`);
+    // A Fix attempt has no walkthrough: its page.
+    expect(at(read(), 'view=lesson')).toBe(PAGE);
+    // An earlier attempt's walkthrough is read from its page.
+    expect(at(read({ attemptId: 'A_0', mode: 'LEARN' }), 'view=lesson', issue({ earlier: ['A_0'] }))).toBe(
+      `${PAGE}/earlier/A_0`,
+    );
     // A Learn attempt's runs show on the pull request's page.
     const run = read({ attemptId: 'A_F2', kind: 'FOLLOW_UP', mode: undefined, followUpOf: { attemptId: 'A_1' } });
-    expect(byAttemptTargetOf(run, issue({ mode: 'LEARN' }), new URLSearchParams(), 'lesson')).toBe(`${PAGE}/runs/A_F2`);
+    expect(at(run, 'view=lesson', issue({ mode: 'LEARN' }))).toBe(`${PAGE}/runs/A_F2`);
   });
 
   it('has no page for an attempt the issue read does not know, or a run without its first attempt', () => {

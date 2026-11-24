@@ -23,6 +23,16 @@ const unavailable = () =>
 /** A Skills picture drawn as a PNG. */
 export const drawSkillsCard = (card: SkillsCard) => drawSocialCard(<SkillsShareCard card={card} />);
 
+/** The picture drawn, kept as a lesson's picture is; 503 when it cannot be drawn. */
+async function drawn(card: SkillsCard, draw: (card: SkillsCard) => Promise<Uint8Array<ArrayBuffer>>) {
+  try {
+    return new Response(await draw(card), { headers: LESSON_CARD_HEADERS });
+  } catch (error) {
+    console.error('Error drawing a Skills card:', error);
+    return unavailable();
+  }
+}
+
 type Found = { card: SkillsCard } | { response: Response };
 
 /**
@@ -59,26 +69,19 @@ export async function skillsCardResponse(
   if (login !== card.login || search !== `?v=${skillsCardVersionOf(card)}`) {
     return new Response(null, { status: 308, headers: { Location: skillsCardUrlOf(card), ...NOT_KEPT } });
   }
-  try {
-    return new Response(await draw(card), { headers: LESSON_CARD_HEADERS });
-  } catch (error) {
-    console.error('Error drawing a Skills card:', error);
-    return unavailable();
-  }
+  return drawn(card, draw);
 }
 
 /**
- * The old Learn picture of a login, which a README may show: a 307 to the Skills picture's current address, kept five
- * minutes (the address changes with the numbers); not found where there is no public page.
+ * The old Learn picture of a login, which a README may show: it answers the Skills picture at its own address, drawn
+ * and kept as the new one is, whatever its query; not found where there is no public page.
  */
 export async function oldLearnCardResponse(
   login: string,
   read: (login: string) => Promise<SkillsCardRead>,
+  draw: (card: SkillsCard) => Promise<Uint8Array<ArrayBuffer>> = drawSkillsCard,
 ): Promise<Response> {
   const found = await cardOf(login, read);
   if ('response' in found) return found.response;
-  return new Response(null, {
-    status: 307,
-    headers: { Location: skillsCardUrlOf(found.card), 'Cache-Control': 'public, max-age=300' },
-  });
+  return drawn(found.card, draw);
 }

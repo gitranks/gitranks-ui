@@ -147,11 +147,17 @@ describe('the Skills picture', () => {
 });
 
 describe('the old Learn picture', () => {
-  it("redirects to the Skills picture's current address, kept five minutes", async () => {
-    const response = await oldLearnCardResponse('octocat', reading(briefOf(contributorPage)));
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(skillsCardUrlOf(cardOf(contributorPage)));
+  it('answers the Skills picture itself at its own address, whatever its query, kept as the new picture is', async () => {
+    let drawn: SkillsCard | null = null;
+    const response = await oldLearnCardResponse('octocat', reading(briefOf(contributorPage)), async (card) => {
+      drawn = card;
+      return png();
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('content-type')).toBe('image/png');
     expect(response.headers.get('cache-control')).toBe('public, max-age=300');
+    expect(drawn).toEqual(cardOf(contributorPage));
   });
 
   it('is not found where there is no public page, and 503 when it cannot be read', async () => {

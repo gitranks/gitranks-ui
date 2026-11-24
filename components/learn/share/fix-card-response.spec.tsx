@@ -68,11 +68,13 @@ describe("a fix's picture", () => {
     expect(sizeOf(await drawFixCard(longFix, true))).toEqual({ width: 1200, height: 630 });
   }, 30_000);
 
-  it('draws a merged or open fix under its own address and version, kept as a lesson picture is', async () => {
+  it('draws a merged or open fix under its own address and version, kept no longer than its page', async () => {
     const response = await fixCardResponse(PR, PATH, versionOf(mergedFix), reading(mergedFix), png);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/png');
-    expect(response.headers.get('cache-control')).toBe('public, max-age=300');
+    // As the page's Markdown copy: a minute in a browser, two in a shared cache, and no longer anywhere.
+    expect([...response.headers.keys()].sort()).toEqual(['cache-control', 'content-type']);
+    expect(response.headers.get('cache-control')).toBe('public, max-age=60, s-maxage=120');
     const open = await fixCardResponse(
       { nameWithOwner: 'gin-gonic/gin', number: 3925 },
       '/contribute/pr/gin-gonic/gin/3925/card.png',

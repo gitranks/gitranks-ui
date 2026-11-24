@@ -98,13 +98,15 @@ export function entityRowsOf(card: LearnEntityCard | null, entity: LearnEntity):
     });
   }
   if (entity.kind === 'org' && card.repoCourses.length > 2) {
-    rows.push({
-      id: 'repo-courses',
-      title: ['Courses about ', card.repoCourses.length, ' of its repositories'],
-      text: `Each one shows how a repository of ${entity.name} works inside.`,
-      action: 'See the courses',
-      href: coursesSearchPath(entity.login),
-    });
+    // The courses list holds no project course: the row leads there only once a project course has its page.
+    if (LEARN_PROJECT_COURSE_PAGE_BUILT)
+      rows.push({
+        id: 'repo-courses',
+        title: ['Courses about ', card.repoCourses.length, ' of its repositories'],
+        text: `Each one shows how a repository of ${entity.name} works inside.`,
+        action: 'See the courses',
+        href: coursesSearchPath(entity.login),
+      });
   } else if (entity.kind === 'org') {
     for (const course of card.repoCourses) rows.push(...repoCourseRow(course, `One of ${entity.name}’s repositories.`));
   }

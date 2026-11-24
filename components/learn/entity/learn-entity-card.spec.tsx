@@ -64,10 +64,15 @@ describe('LearnEntityCard', () => {
     built.issues = false;
     built.projectCourse = false;
     expect(renderToStaticMarkup(<LearnEntityCard card={entityCards.repoEverything} entity={repoEntity} />)).toBe('');
+    expect(renderToStaticMarkup(<LearnEntityCard card={entityCards.orgEverything} entity={orgEntity} />)).toBe('');
+    expect(renderToStaticMarkup(<LearnEntityCard card={entityCards.orgManyRepos} entity={orgEntity} />)).toBe('');
+  });
+
+  it('draws only the search of an org’s many repository courses while the Issues page alone is not built', () => {
+    built.issues = false;
     const many = draw(entityCards.orgManyRepos, orgEntity);
     expect(many.rows).toEqual(['repo-courses']);
     expect(many.root.innerHTML).not.toContain('/learn/issues');
-    expect(many.root.innerHTML).not.toContain('/learn/repos/');
   });
 
   it('draws an org’s card', () => {

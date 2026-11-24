@@ -111,15 +111,15 @@ describe('entityRowsOf while a page the rows lead to is not built', () => {
     expect(ids(entityRowsOf(entityCards.repoEverything, repoEntity))).toEqual(['fixes', 'issues']);
     expect(entityRowsOf(entityCards.repoNewCourse, repoEntity)).toEqual([]);
     expect(ids(entityRowsOf(entityCards.orgEverything, orgEntity))).toEqual(['fixes', 'issues']);
-    expect(ids(entityRowsOf(entityCards.orgManyRepos, orgEntity))).toEqual(['repo-courses', 'fixes', 'issues']);
+    expect(ids(entityRowsOf(entityCards.orgManyRepos, orgEntity))).toEqual(['fixes', 'issues']);
   });
 
-  it('keeps only the search of an org’s many repository courses while neither page is built', () => {
+  it('gives no row at all while neither page is built', () => {
     built.issues = false;
     built.projectCourse = false;
     expect(entityRowsOf(entityCards.repoEverything, repoEntity)).toEqual([]);
     expect(entityRowsOf(entityCards.orgEverything, orgEntity)).toEqual([]);
-    expect(ids(entityRowsOf(entityCards.orgManyRepos, orgEntity))).toEqual(['repo-courses']);
+    expect(entityRowsOf(entityCards.orgManyRepos, orgEntity)).toEqual([]);
   });
 });
 

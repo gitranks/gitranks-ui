@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AgentPage, AgentPageIssue } from './agent-page.types';
-import { agentsDocOf } from './agents-doc';
+import { agentsDocOf, LEARN_DOC_LINKS } from './agents-doc';
 import { FAQ_GROUPS, fullIssuesADayOf } from './faq';
 import { MCP_DOC_CLIENTS, MCP_DOC_MORE_CLIENTS, MCP_DOC_TOOLS, MCP_PLUGIN_DOCS_SHOWN } from './mcp-docs';
+import {
+  LEARN_COURSES_MARKDOWN_PATH,
+  LEARN_COURSES_PATH,
+  LEARN_HOME_PATH,
+  LEARN_LANDING_MARKDOWN_PATH,
+} from '@/lib/learn/paths';
 import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 import { MCP_INSTALL_LINKS } from '@/lib/workspace/mcp-install-links';
 
@@ -138,6 +144,11 @@ describe('agents.md', () => {
       '- All courses: https://gitranks.com/learn/courses (Markdown: https://gitranks.com/learn/courses.md)\n',
     );
     expect(doc.indexOf('## The tools, in the order you use them')).toBeLessThan(doc.indexOf('## With GitRanks Learn'));
+    // Learn's own addresses, written out here since Contribute's code may not import Learn's.
+    expect(LEARN_DOC_LINKS.home).toBe(LEARN_HOME_PATH);
+    expect(`${LEARN_DOC_LINKS.home}.md`).toBe(LEARN_LANDING_MARKDOWN_PATH);
+    expect(LEARN_DOC_LINKS.courses).toBe(LEARN_COURSES_PATH);
+    expect(`${LEARN_DOC_LINKS.courses}.md`).toBe(LEARN_COURSES_MARKDOWN_PATH);
   });
 
   it('speaks of taking an issue, naming `claim_issue` only as the tool', () => {

@@ -17,17 +17,17 @@ import {
   type McpDocPlugin,
   TOKEN_PLACEHOLDER,
 } from './mcp-docs';
-import {
-  LEARN_COURSES_MARKDOWN_PATH,
-  LEARN_COURSES_PATH,
-  LEARN_HOME_PATH,
-  LEARN_LANDING_MARKDOWN_PATH,
-} from '@/lib/learn/paths';
 import { CONTRIBUTE_RULES_PATH } from '@/lib/workspace/fair-use';
 import { MCP_INSTALL_LINKS, type McpInstallClient } from '@/lib/workspace/mcp-install-links';
 import { START_AGENT_PATH } from '@/lib/workspace/paths';
 
 const SITE = 'https://gitranks.com';
+
+/**
+ * Learn's landing and all courses, each with its Markdown copy at its address with `.md`. Learn's own paths, which
+ * Contribute's code may not import; the spec holds them equal.
+ */
+export const LEARN_DOC_LINKS = { home: '/learn', courses: '/learn/courses' } as const;
 
 const fence = (lines: string, lang = '') => `\`\`\`${lang}\n${lines}\n\`\`\``;
 
@@ -223,8 +223,8 @@ export function agentsDocOf(
     '',
     "Learn's lessons are open to read, as pages and as Markdown:",
     '',
-    `- Learn: ${SITE}${LEARN_HOME_PATH} (Markdown: ${SITE}${LEARN_LANDING_MARKDOWN_PATH})`,
-    `- All courses: ${SITE}${LEARN_COURSES_PATH} (Markdown: ${SITE}${LEARN_COURSES_MARKDOWN_PATH})`,
+    `- Learn: ${SITE}${LEARN_DOC_LINKS.home} (Markdown: ${SITE}${LEARN_DOC_LINKS.home}.md)`,
+    `- All courses: ${SITE}${LEARN_DOC_LINKS.courses} (Markdown: ${SITE}${LEARN_DOC_LINKS.courses}.md)`,
     "- Each course and each lesson: its page's address with `.md` is its Markdown copy",
     '',
     '## Limits',

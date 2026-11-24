@@ -170,8 +170,10 @@ export function learnProjectIssuesPath(project: LearnProject, { fixed = false }:
 }
 
 /** A fix made with Learn, its "Learn from it" view: `/learn/fixes/<owner>/<repo>/<number>`. */
-export const learnFixPath = ({ nameWithOwner, number }: PrRef) =>
-  `/learn/fixes/${repoSegments(nameWithOwner)}/${number}` as Route;
+export function learnFixPath({ nameWithOwner, number }: PrRef): Route {
+  const [owner = '', name = ''] = nameWithOwner.split('/');
+  return `/learn/fixes/${repoSegments({ owner, name })}/${number}` as Route;
+}
 
 /** "Report a mistake" on a lesson: an email to us, its subject naming the lesson. */
 export const lessonMistakeHref = (title: string) =>

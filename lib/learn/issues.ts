@@ -278,7 +278,10 @@ export type IssuesSwitch = {
   key: 'for-you' | 'learned';
   label: string;
   on: boolean;
-  /** How many issues the list holds once it is pressed; null for none. */
+  /**
+   * How many issues the list holds once it is pressed; null for none. A pressed switch has none: the API counts only
+   * the list with a switch flipped, and for a pressed one that is the list with it turned off, not the list it gives.
+   */
   count: string | null;
   /** The view once it is pressed. */
   href: Route;
@@ -287,7 +290,7 @@ export type IssuesSwitch = {
 export const FOR_YOU_LABEL = 'For you';
 export const LEARNED_LABEL = 'Lessons I learned';
 
-/** The two switches of a signed-in person's list, each with the count the API gives for it flipped. */
+/** The two switches of a signed-in person's list; one that is off carries the count the API gives for it pressed. */
 export function issuesSwitchesOf(
   view: IssuesView,
   list: Pick<IssuesList, 'forYouCount' | 'learnedCount'> | null,
@@ -298,14 +301,14 @@ export function issuesSwitchesOf(
       key: 'for-you',
       label: FOR_YOU_LABEL,
       on: view.forYou,
-      count: issuesCountTextOf(list?.forYouCount),
+      count: view.forYou ? null : issuesCountTextOf(list?.forYouCount),
       href: issuesHrefOf({ ...view, forYou: !view.forYou }, at),
     },
     {
       key: 'learned',
       label: LEARNED_LABEL,
       on: view.learned,
-      count: issuesCountTextOf(list?.learnedCount),
+      count: view.learned ? null : issuesCountTextOf(list?.learnedCount),
       href: issuesHrefOf({ ...view, learned: !view.learned }, at),
     },
   ];

@@ -51,6 +51,7 @@ import {
   searchQueryOf,
   squareHintOf,
   squareLabelOf,
+  topicLanguagesLineOf,
   wordStartMatchOf,
 } from './course';
 import { courseMarkdownPath, coursesSearchPath, LEARN_COURSES_MARKDOWN_PATH } from './paths';
@@ -411,6 +412,19 @@ describe('all courses', () => {
       ['Languages', 'About 100 lessons each.', 7],
     ]);
     expect(courseSectionsOf(courseCards.filter((course) => course.kind === 'LANGUAGE'))).toHaveLength(1);
+  });
+
+  it("says the topic courses' languages from the courses themselves", () => {
+    const seven = ['python', 'javascript', 'go', 'rust', 'java', 'php', 'ruby'];
+    const two = ['python', 'javascript'];
+    expect(topicLanguagesLineOf([{ languages: seven }, { languages: seven }])).toBe(
+      'Every example comes in all seven languages.',
+    );
+    expect(topicLanguagesLineOf([{ languages: two }])).toBe('Every example comes in Python and JavaScript.');
+    expect(
+      topicLanguagesLineOf([{ languages: seven }, { languages: ['shell'] }, { languages: two }, { languages: seven }]),
+    ).toBe("Each course's examples come in all seven languages, Shell, or Python and JavaScript.");
+    expect(topicLanguagesLineOf([{ languages: [] }])).toBe('Each one works in any language.');
   });
 
   it('finds courses by name or kind, then live lessons by name', () => {

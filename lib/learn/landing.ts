@@ -79,7 +79,8 @@ export const LANDING_QUESTIONS = [
   },
   {
     question: 'Which languages?',
-    answer: 'Python, JavaScript, Go, Rust, Java, PHP and Ruby. The topic courses show every example in all seven.',
+    answer:
+      'Python, JavaScript, Go, Rust, Java, PHP and Ruby. Each topic course names on its page the languages its examples come in.',
   },
   { question: 'What if I answer wrong?', answer: 'Nothing bad. You see why, and you pick again.' },
   {

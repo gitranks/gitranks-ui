@@ -1,3 +1,4 @@
+import { languageNamesOf } from './learn-question';
 import type { LearnCourseGroup, LearnDepth, LearnGroupLesson, LearnLessonLevel, LearnLessonLink } from './lesson-page';
 
 /*
@@ -644,6 +645,33 @@ export function courseSearchOf(groups: readonly LearnCourseGroup[], query: strin
 /** A section of all courses: one kind. */
 export type CourseSection = { kind: LearnCourseKind; title: string; sub: string; courses: LearnCourseCard[] };
 
+const SMALL_NUMBERS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+
+/** "all seven languages" for a list of seven; "Python and JavaScript" for two or one. */
+const examplesInWords = (languages: readonly string[]) =>
+  languages.length > 2
+    ? `all ${SMALL_NUMBERS[languages.length] ?? countWords(languages.length)} languages`
+    : languageNamesOf(languages);
+
+/**
+ * The line under the topic courses, from their own languages: one way when they all share it ("Every example comes in
+ * all seven languages."), else each way, the most common first ("Each course's examples come in all seven languages,
+ * Python and JavaScript, or Shell.").
+ */
+export function topicLanguagesLineOf(topics: readonly Pick<LearnCourseCard, 'languages'>[]): string {
+  const counts = new Map<string, { languages: readonly string[]; count: number }>();
+  for (const { languages } of topics) {
+    if (!languages.length) continue;
+    const key = languages.join(',');
+    const seen = counts.get(key);
+    counts.set(key, { languages, count: (seen?.count ?? 0) + 1 });
+  }
+  const ways = [...counts.values()].sort((a, b) => b.count - a.count).map((way) => examplesInWords(way.languages));
+  if (!ways.length) return 'Each one works in any language.';
+  if (ways.length === 1) return `Every example comes in ${ways[0]}.`;
+  return `Each course's examples come in ${ways.slice(0, -1).join(', ')}, or ${ways.at(-1)}.`;
+}
+
 /** The sections of all courses, topics first, each in the API's order; a kind with no course has none. */
 export function courseSectionsOf(courses: readonly LearnCourseCard[]): CourseSection[] {
   const topics = courses.filter((course) => course.kind === 'TOPIC');
@@ -653,7 +681,7 @@ export function courseSectionsOf(courses: readonly LearnCourseCard[]): CourseSec
     sections.push({
       kind: 'TOPIC',
       title: 'Topics, in any language',
-      sub: 'Every example comes in all seven languages.',
+      sub: topicLanguagesLineOf(topics),
       courses: topics,
     });
   }

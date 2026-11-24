@@ -24,8 +24,6 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContributeActivity: vi.fn(async () => null),
   loadNeedsYouCount: vi.fn(async () => 0),
 }));
-const learn = vi.hoisted(() => ({ loadLearnProfile: vi.fn() }));
-vi.mock('@/lib/learn/learn.data', () => learn);
 const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn() }));
 vi.mock('@/lib/workspace/gate.data', () => gate);
 const start = vi.hoisted(() => ({ loadStartPageView: vi.fn() }));
@@ -38,7 +36,6 @@ vi.mock('@/components/workspace/workspace-live', () => ({
 }));
 
 const { default: StartPage } = await import('./page');
-const { filledProfile, emptyProfile } = await import('@/lib/learn/__fixtures__/profile');
 const { startPageViewOf } = await import('@/lib/workspace/start/__fixtures__/start-page');
 
 const text = (html: string) =>
@@ -69,34 +66,28 @@ beforeEach(() => {
   vi.clearAllMocks();
   viewerLogin.mockResolvedValue('octocat');
   gate.loadWorkspaceGate.mockResolvedValue(OPEN);
-  learn.loadLearnProfile.mockResolvedValue(filledProfile);
   masks.loadStartPageWithMask.mockResolvedValue(null);
-  start.loadStartPageView.mockImplementation(async (_ref, _mode, goal) => ({
-    kind: 'view',
-    view: startPageViewOf({ goal }),
-  }));
+  start.loadStartPageView.mockImplementation(async () => ({ kind: 'view', view: startPageViewOf() }));
 });
 
 describe('the Start page at /my/start', () => {
   const REF = { repo: 'driftwood-js/driftwood', issue: 934 };
 
-  it('is Fix it by default, without reading the goal', async () => {
+  it('is Fix it by default', async () => {
     const html = await startPage();
-    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null, undefined);
-    expect(learn.loadLearnProfile).not.toHaveBeenCalled();
+    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', undefined);
     expect(html).toContain('data-start-mode="fix"');
     expect(text(html)).toContain('Fix this issue');
     expect(html).not.toContain('data-workspace-live');
   });
 
-  it('is lesson mode for ?lesson=1, with the saved goal, back to the tab it came from', async () => {
+  it('is lesson mode for ?lesson=1, back to the tab it came from', async () => {
     const html = await startPage({ lesson: '1' });
-    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'lesson', 'TypeScript, Some', undefined);
+    expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'lesson', undefined);
     expect(html).toContain('data-start-mode="lesson"');
     expect(html).toContain('href="/learn/issues"');
     expect(await startPage({ lesson: '1', from: 'contribute' })).toContain('href="/contribute#issues"');
-    learn.loadLearnProfile.mockResolvedValueOnce(emptyProfile);
-    expect(text(await startPage({ lesson: '1' }))).toContain('Your lesson will be written for a general reader.');
+    expect(text(await startPage({ lesson: '1' }))).not.toContain('Your lesson will be written for');
   });
 
   it('sends lesson mode to Fix mode when the API has no lesson page for the issue', async () => {
@@ -132,7 +123,7 @@ describe('the Start page at /my/start', () => {
     it('reads the issue once: the answer with the mask goes on to the page, which asks it no more', async () => {
       masks.loadStartPageWithMask.mockResolvedValue({ answer: ANSWER, maskId: null });
       expect(await startPage()).toContain('data-start-mode="fix"');
-      expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null, ANSWER);
+      expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', ANSWER);
     });
 
     it('keeps working for an issue the viewer named or holds, and one they work on', async () => {
@@ -147,7 +138,7 @@ describe('the Start page at /my/start', () => {
       masks.loadStartPageWithMask.mockResolvedValue(null);
       expect(await startPage()).toContain('data-start-mode="fix"');
       expect(masks.loadStartPageWithMask).toHaveBeenCalledWith(REF, 'fix');
-      expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', null, undefined);
+      expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', undefined);
     });
   });
 });

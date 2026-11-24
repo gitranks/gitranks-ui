@@ -89,15 +89,11 @@ export const startViews = {
 /** Claude Code, which last called a minute before the catalogue's clock. */
 export const startConnection: LearnStartConnection = { client: 'claude-code', lastCallAt: '2026-10-28T11:59:00.000Z' };
 
-/** What the lesson is written for, as `learnGoalLabelOf` words the saved TypeScript goal. */
-export const START_GOAL = 'TypeScript, Some';
-
 /** The page's whole read: connected, the issue open to start, unless `patch` says otherwise. */
 export const startPageViewOf = (patch: Partial<StartPageView> = {}): StartPageView => ({
   issue: startViews.open,
   connection: startConnection,
   agent: { onboarded: true, tokens: [], signIn: false },
-  goal: START_GOAL,
   restartHint: false,
   openedAt: '2026-10-28T12:00:00.000Z',
   ...patch,

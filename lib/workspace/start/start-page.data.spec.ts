@@ -174,28 +174,28 @@ describe("the Start page's load", () => {
     answer({ StartPageIssue: { startPageIssue: startViews.open.start }, ContributeOnboarding: onboarded });
     const stale = mcpToken({ lastUsedAt: new Date().toISOString(), learnListed: false });
     contribute.loadOwnAgent.mockResolvedValue({ paths: { hosted: false, mcp: true }, tokens: [stale] });
-    const fix = await loadStartPageView(ref, 'fix', null);
+    const fix = await loadStartPageView(ref, 'fix');
     expect(fix).toMatchObject({
       kind: 'view',
-      view: { issue: startViews.open, agent: { onboarded: true, signIn: true }, goal: null, restartHint: false },
+      view: { issue: startViews.open, agent: { onboarded: true, signIn: true }, restartHint: false },
     });
-    const lesson = await loadStartPageView(ref, 'lesson', 'TypeScript, Some');
-    expect(lesson).toMatchObject({ kind: 'view', view: { goal: 'TypeScript, Some', restartHint: true } });
+    const lesson = await loadStartPageView(ref, 'lesson');
+    expect(lesson).toMatchObject({ kind: 'view', view: { restartHint: true } });
     // One read of the connections: the agent's own.
     expect(asked()).toEqual(['StartPageIssue', 'ContributeOnboarding', 'StartPageIssue', 'ContributeOnboarding']);
   });
 
   it("moves on to the viewer's own attempt, but words a Fix attempt in lesson mode", async () => {
     answer({ StartPageIssue: { startPageIssue: startViews.yoursFix.start }, ContributeOnboarding: onboarded });
-    expect(await loadStartPageView(ref, 'fix', null)).toEqual({
+    expect(await loadStartPageView(ref, 'fix')).toEqual({
       kind: 'claimed',
       href: '/my/pull-requests/driftwood-js/driftwood/934',
     });
     answer({ StartPageIssue: { startPageIssue: startViews.yoursFix.start }, ContributeOnboarding: onboarded });
-    expect(await loadStartPageView(ref, 'lesson', null)).toMatchObject({ kind: 'view' });
+    expect(await loadStartPageView(ref, 'lesson')).toMatchObject({ kind: 'view' });
 
     answer({ StartPageIssue: { startPageIssue: startViews.yoursLesson.start }, ContributeOnboarding: onboarded });
-    expect(await loadStartPageView(ref, 'fix', null)).toEqual({
+    expect(await loadStartPageView(ref, 'fix')).toEqual({
       kind: 'claimed',
       href: '/my/pull-requests/driftwood-js/driftwood/934',
     });
@@ -203,24 +203,24 @@ describe("the Start page's load", () => {
 
   it('is no page signed out or closed in the mode, an unavailable issue for one it would not take, and throws on an outage', async () => {
     contribute.viewerLogin.mockResolvedValueOnce(null);
-    expect(await loadStartPageView(ref, 'fix', null)).toEqual({ kind: 'not-found' });
+    expect(await loadStartPageView(ref, 'fix')).toEqual({ kind: 'not-found' });
 
     answer({
       StartPageIssue: new Error(JSON.stringify([{ message: 'Not found', extensions: { code: 'NOT_FOUND' } }])),
       ContributeOnboarding: onboarded,
     });
-    expect(await loadStartPageView(ref, 'fix', null)).toEqual({ kind: 'not-found' });
+    expect(await loadStartPageView(ref, 'fix')).toEqual({ kind: 'not-found' });
 
     answer({
       StartPageIssue: new Error(JSON.stringify([{ message: 'Bad', extensions: { code: 'BAD_USER_INPUT' } }])),
       ContributeOnboarding: onboarded,
     });
-    expect(await loadStartPageView(ref, 'fix', null)).toMatchObject({
+    expect(await loadStartPageView(ref, 'fix')).toMatchObject({
       kind: 'view',
       view: { issue: { start: { refusal: 'UNAVAILABLE', issue: null } } },
     });
 
     answer({ StartPageIssue: new Error('down'), ContributeOnboarding: onboarded });
-    await expect(loadStartPageView(ref, 'fix', null)).rejects.toBeInstanceOf(contribute.ContributeUnavailableError);
+    await expect(loadStartPageView(ref, 'fix')).rejects.toBeInstanceOf(contribute.ContributeUnavailableError);
   });
 });

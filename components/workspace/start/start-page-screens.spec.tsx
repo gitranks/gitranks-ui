@@ -12,7 +12,7 @@ vi.mock('@/lib/workspace/actions', () => ({}));
 
 const { StartPageScreen, RESTART_HINT } = await import('./start-page-screen');
 const { AgentConnectView } = await import('@/components/workspace/agent/agent-connect');
-const { fixAttemptOf, START_GOAL, START_REF, startConnection, startViews } = await import(
+const { fixAttemptOf, START_REF, startConnection, startViews } = await import(
   '@/lib/workspace/start/__fixtures__/start-page'
 );
 const { startBackOf } = await import('@/lib/workspace/start/start-page');
@@ -55,7 +55,6 @@ const screen = (mode: StartMode, props: Partial<ComponentProps<typeof StartPageS
       issueRef={START_REF}
       mode={mode}
       issue={startViews.open}
-      goal={mode === 'lesson' ? START_GOAL : null}
       connection={startConnection}
       connect={connectSteps}
       fix={null}
@@ -141,15 +140,14 @@ describe('the Start page, Fix it', () => {
 });
 
 describe('the Start page with a lesson', () => {
-  it('marks Learn, says the lesson and its goal, gives the Learn prompt and the way out of the lesson', () => {
+  it('marks Learn, says the lesson, gives the Learn prompt and the way out of the lesson', () => {
     const { html, plain } = screen('lesson');
     expect(plain).toContain('Back to the issues');
     expect(html).toContain('href="/learn/issues"');
     expect(plain).toContain(
       'Learn Fix this issue and learn from it Your agent fixes this issue on your computer and also writes a lesson on the fix.',
     );
-    expect(plain).toContain('Your lesson will be written for: TypeScript, Some · Change');
-    expect(html).toContain('href="/learn/setup"');
+    expect(plain).not.toContain('Your lesson will be written for');
     expect(plain).not.toContain('Why it was picked');
     expect(plain).toContain('Your agent forks the project, fixes the issue and writes your lesson.');
     expect(plain).toContain(`Fix ${ISSUE_URL} with GitRanks Learn and teach me`);
@@ -161,11 +159,6 @@ describe('the Start page with a lesson', () => {
       'You can close it: once your agent takes the issue, your fix shows on Learn home, and its fix walkthrough opens from there when it is ready.',
     );
     expect(plain).not.toContain(RESTART_HINT);
-  });
-
-  it('writes for a general reader without a saved goal, and offers to set one', () => {
-    const { plain } = screen('lesson', { goal: null });
-    expect(plain).toContain('Your lesson will be written for a general reader. Set your goal');
   });
 
   it('says to restart an agent that may have the old tool list, under the prompt and with a Fix claim', () => {
@@ -202,7 +195,6 @@ describe('the Start page as a part of another page', () => {
       firstSection: <section data-first="">1 · Sign in</section>,
       locked: true,
       frame: 'flow',
-      card: { goalLine: 'Your lesson will be written for your saved goal: Rust' },
     });
     expect(plain).toContain('1 · Sign in');
     expect(plain).toContain('2 · Connect your agent');
@@ -214,7 +206,6 @@ describe('the Start page as a part of another page', () => {
     expect(plain).not.toContain('Back to the issues');
     // Nothing read: the issue it was handed.
     expect(plain).toContain('The issue you picked Issue #934 ↗');
-    expect(plain).toContain('Your lesson will be written for your saved goal: Rust');
   });
 
   it("takes the card's repo and title over a read", () => {

@@ -31,11 +31,10 @@ const learnParts = vi.hoisted(() => ({ loadIssuePageLearn: vi.fn() }));
 vi.mock('@/lib/workspace/issue-page-learn.data', () => learnParts);
 const keptRead = vi.hoisted(() => ({ loadIssuePageKept: vi.fn() }));
 vi.mock('@/lib/workspace/issue-page-kept.data', () => keptRead);
-const learn = vi.hoisted(() => ({ loadLearnProfile: vi.fn(), loadLearnSetupOfMine: vi.fn() }));
+const learn = vi.hoisted(() => ({ loadLearnSetupOfMine: vi.fn(), loadUsesLearnSide: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => learn);
 
 const { default: MaskedIssuePage } = await import('./page');
-const { emptyProfile, filledProfile } = await import('@/lib/learn/__fixtures__/profile');
 const { fullPage, issueNumbers, issuePage, looksAtLimit, MASKED_NOW } = await import(
   '@/lib/workspace/__fixtures__/masked-issue'
 );
@@ -84,8 +83,8 @@ beforeEach(() => {
   data.loadIssuePage.mockResolvedValue({ kind: 'page', page: issuePage() });
   data.loadIssueNumbers.mockResolvedValue(issueNumbers);
   data.loadIssueStartReads.mockResolvedValue(START);
-  learn.loadLearnProfile.mockResolvedValue(null);
   learn.loadLearnSetupOfMine.mockResolvedValue(null);
+  learn.loadUsesLearnSide.mockResolvedValue(false);
   learnParts.loadIssuePageLearn.mockResolvedValue(null);
   keptRead.loadIssuePageKept.mockResolvedValue(null);
 });
@@ -143,38 +142,33 @@ describe('the page of one issue at /my/issues/[id]', () => {
     expect(filtered).not.toContain('evil.example');
     const lessonView = await issuePageAt({ from: 'learn', lesson: 'a-queue', at: 'lesson' });
     expect(lessonView).toContain('href="/learn/lessons/a-queue/real-world"');
-    learn.loadLearnProfile.mockResolvedValue(filledProfile);
+    learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
     expect(await issuePageAt({ from: 'contribute' })).toContain('href="/contribute#issues"');
     expect(await issuePageAt({ from: 'contribute' })).not.toContain('href="/learn/issues');
   });
 
   it("leads back, when the address names no side, to Learn's Issues for a person who uses Learn, else Contribute's", async () => {
-    // What the API answers a signed-in person with no Learn profile: an empty one, nothing saved.
-    learn.loadLearnProfile.mockResolvedValue(emptyProfile);
+    // No setup of Learn: Contribute's.
+    learn.loadLearnSetupOfMine.mockResolvedValue({ ...SETUP_SAVED, state: 'NONE' });
     expect(await issuePageAt()).toContain('href="/contribute#issues"');
     expect(await issuePageAt({ from: 'elsewhere' })).toContain('href="/contribute#issues"');
-    learn.loadLearnProfile.mockResolvedValue(null);
+    learn.loadLearnSetupOfMine.mockResolvedValue(null);
     expect(await issuePageAt()).toContain('href="/contribute#issues"');
-    learn.loadLearnProfile.mockResolvedValue(filledProfile);
+    learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
     const learner = await issuePageAt();
     expect(learner).toContain('href="/learn/issues"');
     expect(learner).not.toContain('href="/contribute#issues"');
-    // A Learn read that fails knows no Learn: Contribute's.
-    learn.loadLearnProfile.mockRejectedValue(new Error('down'));
-    expect(await issuePageAt()).toContain('href="/contribute#issues"');
   });
 
-  it('counts a saved setup of Learn as using Learn, the older profile empty or gone, and a failed read as not', async () => {
-    learn.loadLearnProfile.mockResolvedValue(emptyProfile);
-    learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
-    expect(await issuePageAt()).toContain('href="/learn/issues"');
-    learn.loadLearnProfile.mockRejectedValue(new Error('gone'));
-    expect(await issuePageAt()).toContain('href="/learn/issues"');
+  it('counts a saved setup of Learn as using Learn, and a guess or a failed read as not', async () => {
     // A guess a visit to Learn started is not a save.
     learn.loadLearnSetupOfMine.mockResolvedValue({ ...SETUP_SAVED, state: 'GUESSED' });
     expect(await issuePageAt()).toContain('href="/contribute#issues"');
     learn.loadLearnSetupOfMine.mockRejectedValue(new Error('down'));
     expect(await issuePageAt()).toContain('href="/contribute#issues"');
+    // Someone who used Learn without saving a setup is on Learn's side too.
+    learn.loadUsesLearnSide.mockResolvedValueOnce(true);
+    expect(await issuePageAt()).toContain('href="/learn/issues"');
     // Never read from Learn, where the side is known.
     learn.loadLearnSetupOfMine.mockClear();
     await issuePageAt({ from: 'learn' });
@@ -208,22 +202,16 @@ describe('the page of one issue at /my/issues/[id]', () => {
     await expect(issuePageAt()).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
-  it('names Learn in the start form, from Contribute, only to a person who uses it (a saved setup or profile)', async () => {
+  it('names Learn in the start form, from Contribute, only to a person who uses it (a saved setup)', async () => {
     data.loadIssuePage.mockResolvedValue({ kind: 'page', page: fullPage() });
-    expect(text(await issuePageAt())).not.toContain('You also use GitRanks Learn');
-    // The empty profile the API answers a person who has none says nothing.
-    learn.loadLearnProfile.mockResolvedValue(emptyProfile);
     expect(text(await issuePageAt())).not.toContain('You also use GitRanks Learn');
     learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
     expect(text(await issuePageAt())).toContain('You also use GitRanks Learn');
-    learn.loadLearnSetupOfMine.mockResolvedValue(null);
-    learn.loadLearnProfile.mockResolvedValue(filledProfile);
-    expect(text(await issuePageAt())).toContain('You also use GitRanks Learn');
-    learn.loadLearnProfile.mockRejectedValue(new Error('down'));
+    learn.loadLearnSetupOfMine.mockRejectedValue(new Error('down'));
     expect(text(await issuePageAt())).not.toContain('You also use GitRanks Learn');
-    learn.loadLearnProfile.mockClear();
+    learn.loadLearnSetupOfMine.mockClear();
     await issuePageAt({ from: 'learn' });
-    expect(learn.loadLearnProfile).not.toHaveBeenCalled();
+    expect(learn.loadLearnSetupOfMine).not.toHaveBeenCalled();
   });
 
   it('shows the window without numbers when they cannot be read', async () => {

@@ -26,10 +26,7 @@ vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined })
 vi.mock('@/lib/learn/settings.data', () => ({ loadLearnEmailSettings: vi.fn(), loadLearnSetupForSettings: vi.fn() }));
 vi.mock('@/lib/skills/skills.data', () => ({}));
 vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction: vi.fn() }));
-vi.mock('@/lib/learn/learn.data', () => ({
-  loadLearnProfile: vi.fn(),
-  loadLearnSetup: vi.fn(),
-}));
+vi.mock('@/lib/learn/learn.data', () => ({}));
 
 const { EmailRows } = await import('./email-rows');
 const { SettingsScreen } = await import('@/app/(workspace)/my/settings/components/settings-view');

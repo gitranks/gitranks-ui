@@ -4,8 +4,6 @@ import { Suspense } from 'react';
 
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { StartPageBody } from '@/components/workspace/start/start-page-body';
-import { loadLearnProfile } from '@/lib/learn/learn.data';
-import { learnGoalLabelOf } from '@/lib/learn/profile-form';
 import { notEnteredTargetOf } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { loadStartPageWithMask } from '@/lib/workspace/masked-issue.data';
@@ -57,11 +55,8 @@ async function StartView({ params, searchParams }: Pick<Params, 'params' | 'sear
     if (to) redirect(to);
   }
 
-  const [goal, withMask] = await Promise.all([
-    mode === 'lesson' ? loadLearnProfile().then(learnGoalLabelOf) : null,
-    loadStartPageWithMask(ref, mode),
-  ]);
-  const load = await loadStartPageView(ref, mode, goal, withMask?.answer);
+  const withMask = await loadStartPageWithMask(ref, mode);
+  const load = await loadStartPageView(ref, mode, withMask?.answer);
   if (load.kind === 'not-found') {
     if (mode === 'lesson') redirect(fixMode);
     notFound();

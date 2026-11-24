@@ -57,8 +57,6 @@ export const ALLOWED = [
   'app/(workspace)/my/settings/components/settings-view.tsx -> lib/learn/settings',
   'app/(workspace)/my/settings/components/settings-view.tsx -> lib/learn/settings.data',
   'app/(workspace)/my/settings/components/settings-view.tsx -> lib/learn/setup',
-  'app/(workspace)/my/start/[owner]/[repo]/[issue]/page.tsx -> lib/learn/learn.data',
-  'app/(workspace)/my/start/[owner]/[repo]/[issue]/page.tsx -> lib/learn/profile-form',
 ];
 
 /** The folder rule's name for a path, or null for a site-wide module every folder may import. */

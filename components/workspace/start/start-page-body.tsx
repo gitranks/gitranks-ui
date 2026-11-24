@@ -30,7 +30,7 @@ export type StartPageBodyProps = {
    * card draws from `card`.
    */
   view: StartPageView | null;
-  /** What the issue card shows when `view` is null, or over the read: a repo, a title, a goal line. */
+  /** What the issue card shows when `view` is null, or over the read: a repo and a title. */
   card?: StartPageCard;
   /** Drawn before "Connect your agent"; the steps after it are then numbered from 2. */
   firstSection?: ReactNode;
@@ -62,7 +62,6 @@ export function StartPageBody(props: StartPageBodyProps) {
         mode={props.mode}
         issue={view?.issue ?? null}
         card={props.card}
-        goal={view?.goal ?? null}
         connection={view?.connection ?? null}
         connect={null}
         fix={null}
@@ -204,7 +203,6 @@ function LiveStartPage({
       mode={mode}
       issue={issue}
       card={card}
-      goal={initial.goal}
       connection={connection}
       connect={
         // The embedded connect steps: no title or back link of their own, and the page goes on in place.

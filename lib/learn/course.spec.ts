@@ -314,13 +314,15 @@ describe('the three boxes', () => {
   });
 
   it('offers a check only opened, with nothing answered, as one not begun', () => {
+    // Without `checkFirst`, as the route gives it once a run exists: the opened check still leads.
     const opened = courseBoxesOf(algorithmsCourse, checkOpenedMine);
     expect(opened.middle).toEqual({ kind: 'check' });
-    expect(opened.highlight).toBe('first');
-    expect(courseBoxesOf(algorithmsCourse, checkOpenedMine, { checkFirst: true }).highlight).toBe('middle');
-    expect(
-      courseBoxesOf(algorithmsCourse, { ...checkOpenedMine, check: { state: 'UNFINISHED', left: 8 } }).middle,
-    ).toEqual({ kind: 'check-unfinished', left: 8 });
+    expect(opened.highlight).toBe('middle');
+    const left = (count: number) =>
+      courseBoxesOf(algorithmsCourse, { ...checkOpenedMine, check: { state: 'UNFINISHED', left: count } }).middle;
+    expect(left(8)).toEqual({ kind: 'check-unfinished', left: 8 });
+    // More left than the course has groups: the course read is older than the run, so an answer may exist.
+    expect(left(10)).toEqual({ kind: 'check-unfinished', left: 10 });
   });
 
   it("makes the last box a learner's open issues for a course not finished, and as before with none", () => {

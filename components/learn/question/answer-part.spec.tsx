@@ -122,14 +122,25 @@ describe('a lesson’s keyed question', () => {
     option(0).focus();
     press('1', option(0));
     press('Enter', option(0));
-    // The wrong pick is disabled: the focus goes to the status saying why.
+    // The wrong pick is disabled: the focus goes to the first option still to pick, and the arrows keep working.
     expect(option(0).disabled).toBe(true);
-    expect(document.activeElement).toBe(status());
+    expect(document.activeElement).toBe(option(1));
     option(1).focus();
     press('2', option(1));
     press('Enter', option(1));
     expect(status().textContent).toMatch(/^Right\./);
     expect(document.activeElement).toBe(main());
+  });
+
+  it('keeps a held Enter from pressing Next before the verdict is read', () => {
+    draw({ question: pickOneQuestion });
+    option(1).focus();
+    press('2', option(1));
+    press('Enter', option(1));
+    expect(document.activeElement).toBe(main());
+    // The key's auto-repeat reaches the focused Next: it is held back; a fresh press still goes on.
+    expect(press('Enter', main(), { repeat: true }).defaultPrevented).toBe(true);
+    expect(press('Enter', main()).defaultPrevented).toBe(false);
   });
 
   it('leaves a focus that stays usable where it is', () => {
@@ -212,6 +223,31 @@ describe('a keyless question', () => {
     expect(status().textContent).toBe('Not quite. First in is last out. The last one in comes out first.');
     expect(host.querySelector('[data-option="1"]')?.getAttribute('data-option-mark')).toBe('right');
     expect(host.querySelector('[data-option="0"]')?.getAttribute('data-option-mark')).toBe('wrong');
+  });
+
+  it('lands the focus on the reason when a wrong answer ends the card, on Next when a right one does', async () => {
+    const place: AnswerPartPlace = {
+      verdict: true,
+      extra: 'I don’t remember',
+      labels: { check: 'Check', done: 'Next' },
+    };
+    let reply: (value: { right: boolean; question: LearnQuestion }) => void = () => {};
+    const send = () => new Promise<{ right: boolean; question: LearnQuestion }>((resolve) => (reply = resolve));
+    draw({ question: checkQuestion, send, place });
+    option(0).focus();
+    press('1', option(0));
+    press('Enter', option(0));
+    await act(async () => reply({ right: false, question: keyed }));
+    expect(main().textContent).toBe('Next');
+    expect(document.activeElement).toBe(status());
+
+    act(() => root.render(<div />));
+    draw({ question: checkQuestion, send, place });
+    option(1).focus();
+    press('2', option(1));
+    press('Enter', option(1));
+    await act(async () => reply({ right: true, question: keyed }));
+    expect(document.activeElement).toBe(main());
   });
 
   it('sends the extra choice and goes on at once where no verdict shows', async () => {

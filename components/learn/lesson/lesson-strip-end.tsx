@@ -42,14 +42,22 @@ export function LessonStripEnd({ place }: { place: LessonPlace }) {
   return (
     <span className="flex items-center gap-3 text-sm text-muted-foreground" data-lesson-run="">
       <DepthSquares squares={place.squares} />
-      {place.learned > 0 ? (
-        <span>
-          <span className="font-mono font-semibold text-foreground tabular-nums">{place.learned}</span> of{' '}
-          {place.squares.length} learned
-        </span>
-      ) : (
-        <span>{place.squares.length === 1 ? 'One lesson' : `${place.squares.length} lessons`}</span>
-      )}
+      {/*
+        Wide enough for "12 of 12 learned" either way, so the first learned lesson moves and wraps nothing: the squares
+        stay put and the strip keeps its line.
+      */}
+      <span className="inline-block min-w-[16ch] text-right whitespace-nowrap" data-lesson-count="">
+        {place.learned > 0 ? (
+          <>
+            <span className="font-mono font-semibold text-foreground tabular-nums">{place.learned}</span> of{' '}
+            {place.squares.length} learned
+          </>
+        ) : place.squares.length === 1 ? (
+          'One lesson'
+        ) : (
+          `${place.squares.length} lessons`
+        )}
+      </span>
     </span>
   );
 }

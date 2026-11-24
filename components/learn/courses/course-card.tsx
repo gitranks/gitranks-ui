@@ -90,10 +90,13 @@ export function CourseStats({
             <Figure count={standing.learned.count ?? 0} />
             {standing.learned.words}
           </span>
-        ) : null}
+        ) : (
+          // Nothing learned, only marks: the course's own count, never "0 of 104 learned".
+          lessonsWords(course.lessons)
+        )}
         {standing.known !== null ? (
           <>
-            {standing.learned ? ' · ' : null}
+            {' · '}
             <Figure count={standing.known} /> marked as known
           </>
         ) : null}

@@ -85,21 +85,30 @@ export function AnswerPart({
   const keyLine = <KeyLine items={keyLineOf(question, state, place, answer.language)} hints={hints} />;
   const mainRef = useRef<HTMLButtonElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const seen = useRef({ done, tries: state.tries });
-  // A verdict disables the pick that held the focus, which would fall to the page. It lands on the result instead: the
-  // main button (Next) once done, the status saying why after a wrong pick; a focus kept elsewhere is left alone.
+  const right = state.shown?.right === true;
+  // A verdict disables the pick that held the focus, which would fall to the page. It lands where the person goes on
+  // instead; a focus kept elsewhere is left alone. Right and done: the main button (Next). Wrong with picks left: the
+  // first one that can still be picked, so the arrow keys keep working and the status reads the reason once. Wrong and
+  // done: the status saying why, so moving the focus does not cut the reason off.
   useEffect(() => {
     const graded = (done && !seen.current.done) || state.tries > seen.current.tries;
     seen.current = { done, tries: state.tries };
     if (!graded || !place.verdict) return;
     const active = document.activeElement as (HTMLElement & { disabled?: boolean }) | null;
     if (active && active !== document.body && !active.disabled) return;
-    (done ? mainRef.current : statusRef.current)?.focus();
-  }, [done, state.tries, place.verdict]);
+    if (done) return (right ? mainRef.current : statusRef.current)?.focus();
+    const pickable =
+      sectionRef.current?.querySelector<HTMLElement>('[data-option] input:not(:disabled)') ??
+      document.querySelector<HTMLElement>('[data-question-code="line"] [data-line]:not(:disabled)');
+    (pickable ?? statusRef.current)?.focus();
+  }, [done, right, state.tries, place.verdict]);
 
   return (
     <>
       <section
+        ref={sectionRef}
         className="flex flex-col gap-3.5 rounded-xl border-2 border-primary bg-card p-4.5"
         aria-labelledby={titleId}
         data-answer-part={question.type}
@@ -129,6 +138,10 @@ export function AnswerPart({
           className="w-full font-semibold max-sm:min-h-11 aria-disabled:cursor-default aria-disabled:opacity-50 aria-disabled:hover:bg-primary"
           aria-busy={state.phase === 'sending' || undefined}
           onClick={answer.main}
+          // A held Enter that checked the answer must not press Next, which took the focus, before the verdict is read.
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && event.repeat) event.preventDefault();
+          }}
           ref={mainRef}
           data-answer-main=""
         >
@@ -561,7 +574,7 @@ function Status({
   return (
     <p
       ref={statusRef}
-      // Focused only by the page, after a wrong pick took the focus away; never a stop of the Tab key.
+      // Focused only by the page, after a wrong answer ended the card; never a stop of the Tab key.
       tabIndex={-1}
       role="status"
       className={cn(

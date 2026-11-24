@@ -131,6 +131,8 @@ describe("a course's page, signed in", () => {
   it('a check only opened, nothing answered: offered as not begun, never "the answers you gave are kept"', () => {
     const page = draw({ mine: checkOpenedMine });
     expect(boxesOf(page)[1]).toContain('Take the 2-minute check');
+    // It still leads the page, as the run did: lit and on Enter.
+    expect(litOf(page)).toContain('Take the check');
     expect(page.textContent).not.toContain('Finish the check');
     expect(page.textContent).not.toContain('The answers you gave are kept');
   });

@@ -476,8 +476,13 @@ export function courseBoxesOf(
       : issues
         ? { kind: 'issues', count: issues }
         : { kind: 'grows' };
+  // A check only opened leads as a run does: the person was sent to it (an experienced developer's setup), and the
+  // route reads `checkFirst` only for a course with no run at all.
+  const checkOpened = middle.kind === 'check' && mine.check.state === 'UNFINISHED';
   const checkLeads =
-    (middle.kind === 'check' && checkFirst) || middle.kind === 'check-unfinished' || middle.kind === 'check-ended';
+    (middle.kind === 'check' && (checkFirst || checkOpened)) ||
+    middle.kind === 'check-unfinished' ||
+    middle.kind === 'check-ended';
   const middleActs = middle.kind !== 'review-none';
   const highlight = checkLeads
     ? 'middle'
@@ -497,12 +502,13 @@ export function courseBoxesOf(
 export const EXPERIENCED_LEVEL = 3;
 
 /**
- * Whether the learner answered a question of their unfinished check. The check asks one question for each group, and
- * its questions left count only the groups still in the course: as many left as the course has groups means none is
- * answered yet, only opened, and the page offers the check as if no run existed.
+ * Whether the learner may have answered a question of their unfinished check. The check asks one question for each
+ * group, and its questions left count only the groups still in the course: exactly as many left as the course has
+ * groups means none is answered yet, only opened, and the page offers the check as if no run existed. Any other count
+ * (fewer, or more when the course read is older than the run) keeps "Finish the check", so no answer is ever hidden.
  */
 export const checkAnsweredOf = (course: Pick<LearnCourse, 'groups'>, mine: Pick<LearnCourseMine, 'check'>) =>
-  mine.check.state === 'UNFINISHED' && mine.check.left < course.groups.length;
+  mine.check.state === 'UNFINISHED' && mine.check.left !== course.groups.length;
 
 /** A course not started: nothing learned, nothing marked as known, and no check begun. */
 export const courseNotStartedOf = (mine: Pick<LearnCourseMine, 'learned' | 'known' | 'check'>) =>

@@ -43,7 +43,7 @@ export type SummaryShare = {
 
 /**
  * "Share my result": the viewer's result page shows this run, or stops showing it. Another taker's result is private
- * until they switch it on here; the author's is always public.
+ * until they switch it on here; the author's is public once their pull request opens.
  */
 export function ShareMyResult({ run, share }: { run: LessonRun; share: SummaryShare }) {
   const [shared, setShared] = useState(run.resultPublic);
@@ -61,10 +61,17 @@ export function ShareMyResult({ run, share }: { run: LessonRun; share: SummarySh
   );
 
   if (share.author) {
-    return (
+    // The author's result is private until their pull request opens; then it is public and the pull request links to it.
+    return run.resultPublic ? (
       <div className="flex flex-col gap-1 border-t pt-3" data-share-result="author">
         <p className="text-sm text-muted-foreground">Your result is public: your pull request links to it.</p>
         <div>{resultLink}</div>
+      </div>
+    ) : (
+      <div className="flex flex-col gap-1 border-t pt-3" data-share-result="author-private">
+        <p className="text-sm text-muted-foreground">
+          Your result is private for now. It is shared when your pull request opens, and the pull request links to it.
+        </p>
       </div>
     );
   }

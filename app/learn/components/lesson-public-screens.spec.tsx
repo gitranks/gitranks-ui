@@ -146,7 +146,18 @@ describe('a shared lesson', () => {
     const author = renderToStaticMarkup(
       <LessonPageScreen page={lessonPage} viewer={{ kind: 'taker', login: 'octocat', run: sharedRuns.passed }} />,
     );
-    expect(author).toContain('data-share-result="author"');
+    // Before their pull request opens the author's result is private, with no link to a page that would not show it.
+    expect(author).toContain('data-share-result="author-private"');
+    expect(text(author)).toContain('It is shared when your pull request opens');
+    expect(author).not.toContain('/passes/octocat');
+    const opened = renderToStaticMarkup(
+      <LessonPageScreen
+        page={lessonPage}
+        viewer={{ kind: 'taker', login: 'octocat', run: { ...sharedRuns.passed, resultPublic: true } }}
+      />,
+    );
+    expect(opened).toContain('data-share-result="author"');
+    expect(opened).toContain('href="/learn/lessons/route-cache-miss-8f3k/passes/octocat"');
     expect(author).not.toContain('data-next-step');
   });
 

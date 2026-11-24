@@ -3,7 +3,14 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('./lesson-live', () => ({ LessonLive: ({ more }: { more: ReactNode }) => <div>{more}</div> }));
+vi.mock('./lesson-live', () => ({
+  LessonLive: ({ more, footer }: { more: ReactNode; footer: ReactNode }) => (
+    <div>
+      {more}
+      {footer}
+    </div>
+  ),
+}));
 
 const { LessonScreen } = await import('./lesson-screen');
 const { setGroup, setLesson } = await import('@/lib/learn/__fixtures__/lesson-page');

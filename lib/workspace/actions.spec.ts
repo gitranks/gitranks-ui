@@ -135,6 +135,12 @@ describe('the Contribute server actions', () => {
     expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'client', githubLogin: loginOf(name) });
   });
 
+  it('saves the languages alone, never a kind or a size, so ones saved earlier are kept', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'octocat' }, expires: '2099-01-01' });
+    await actions.savePreferences({ languages: ['GO'], kinds: ['BUG'], maxSize: 'M' } as never);
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ preferences: { languages: ['GO'] } });
+  });
+
   it("sends the session's email with a write, so Notify me's email has an address; never a malformed one", async () => {
     auth.mockResolvedValue({ user: { githubLogin: 'octocat', email: ' octo@example.com ' }, expires: '2099-01-01' });
     await actions.noteProviderInterest('CHATGPT');

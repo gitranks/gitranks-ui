@@ -43,10 +43,15 @@ import {
 import { KINDS, LANGUAGES, SIZES } from '@/lib/workspace/format';
 import type DocumentNode from '@/types/typed-document-node';
 
+/**
+ * Saves the languages alone. Kinds of issue and a largest size are no choice: they are never sent, so one saved earlier
+ * is kept as it is (the API keeps a field a save leaves out).
+ */
 export async function savePreferences(
-  preferences: ContributePreferencesInput,
+  preferences: Pick<ContributePreferencesInput, 'languages'>,
 ): Promise<ContributeActionResult<ContributePreferences>> {
-  return run(SetPreferencesDocument, { preferences }, (data) => data.setPreferences);
+  const languages = Array.isArray(preferences?.languages) ? preferences.languages : undefined;
+  return run(SetPreferencesDocument, { preferences: languages ? { languages } : {} }, (data) => data.setPreferences);
 }
 
 /**

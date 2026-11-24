@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import { githubUrlOf } from './attempt-format';
+import { BLOCKED_WALKTHROUGH_WORDS, type WalkthroughSendBack } from './blocked-walkthrough';
 import type {
   PullRequestBox,
   PullRequestCheckClass,
@@ -10,6 +11,7 @@ import type {
   PullRequestPage,
   PullRequestRound,
   PullRequestRoundAsk,
+  PullRequestRoundCloser,
   PullRequestRoundNotNeeded,
   PullRequestRoundState,
   PullRequestStage,
@@ -171,8 +173,16 @@ export const NOT_NEEDED_REASONS: { reason: PullRequestRoundNotNeeded; text: stri
   { reason: 'OTHER', text: 'Something else' },
 ];
 
-/** "You marked it as not needed: the checks fail on the main branch too." */
-export function notNeededLineOf(reason: PullRequestRoundNotNeeded | null): string {
+/**
+ * Who closed a round that is not needed, and why: "You marked it as not needed: the checks fail on the main branch
+ * too.", or "Not needed any more." when GitRanks closed it itself (its ask went away, or the pull request ended). An
+ * older API does not say who: the person, as before.
+ */
+export function notNeededLineOf(
+  reason: PullRequestRoundNotNeeded | null,
+  closedBy?: PullRequestRoundCloser | null,
+): string {
+  if (closedBy === 'GITRANKS') return 'Not needed any more.';
   const text = NOT_NEEDED_REASONS.find((each) => each.reason === reason)?.text;
   return text
     ? `You marked it as not needed: ${text[0].toLowerCase()}${text.slice(1)}.`
@@ -182,6 +192,13 @@ export function notNeededLineOf(reason: PullRequestRoundNotNeeded | null): strin
 /** A round that is open: it waits, works or is ready. */
 export const isOpenRound = (round: Pick<PullRequestRound, 'state'>) =>
   round.state === 'WAITING' || round.state === 'WORKING' || round.state === 'READY';
+
+/** The boxes of a pull request that ended: merged, or a quiet end. */
+const ENDED: readonly PullRequestBox[] = ['MERGED', ...ENDS];
+
+/** A round marked as not needed opens again only while its pull request is open and no other round is. */
+export const reopensRounds = (page: Pick<PullRequestPage, 'box' | 'rounds'>) =>
+  !ENDED.includes(page.box) && !page.rounds.some(isOpenRound);
 
 export const CHECK_CLASS_WORDS: Record<PullRequestCheckClass, string> = {
   AGENT_CAN_FIX: 'Your agent can fix',
@@ -444,11 +461,23 @@ export const answeredRoundsOf = (page: Pick<PullRequestPage, 'rounds'>) =>
 
 /**
  * The box's words for the page's state. `agent`: the agent's name when known ("Claude Code"); `stoppedAtLimit`: a
- * hosted round stopped at the person's limit. The part leaves out an action the page gives it no link or press for.
+ * hosted round stopped at the person's limit; `walkthroughBlocked`: a walkthrough of an older version that waits for
+ * another pass by the person's agent, with its reason line. The part leaves out an action the page gives it no link or
+ * press for.
  */
 export function boxOf(
   page: PullRequestPage,
-  { agent, now, stoppedAtLimit = false }: { agent?: string | null; now: Date; stoppedAtLimit?: boolean },
+  {
+    agent,
+    now,
+    stoppedAtLimit = false,
+    walkthroughBlocked = null,
+  }: {
+    agent?: string | null;
+    now: Date;
+    stoppedAtLimit?: boolean;
+    walkthroughBlocked?: { reason: string | null; sendBack?: WalkthroughSendBack } | null;
+  },
 ): BoxWords {
   const who = agentOf(page, agent);
   const learn = page.made === 'LEARN';
@@ -483,6 +512,22 @@ export function boxOf(
         note: NOTHING_NEEDED,
       };
     case 'WALKTHROUGH': {
+      if (walkthroughBlocked) {
+        // Only what is true: the send-back when one is left, else why not.
+        const sendBack = walkthroughBlocked.sendBack ?? 'yes';
+        const what =
+          sendBack === 'yes'
+            ? BLOCKED_WALKTHROUGH_WORDS.text
+            : sendBack === 'none-left'
+              ? BLOCKED_WALKTHROUGH_WORDS.noneLeftText
+              : BLOCKED_WALKTHROUGH_WORDS.noSendBackText;
+        return {
+          ...base,
+          title: BLOCKED_WALKTHROUGH_WORDS.line,
+          text: walkthroughBlocked.reason ? `${walkthroughBlocked.reason} ${what}` : what,
+          actions: sendBack === 'yes' ? [{ id: 'sendBack', label: BLOCKED_WALKTHROUGH_WORDS.button }] : [],
+        };
+      }
       const questions = card?.questions ? count(card.questions, 'question') : 'the questions';
       const after = 'After them, the pull request is yours to approve.';
       const text = card?.answered
@@ -670,6 +715,9 @@ export function boxOf(
       return { ...base, title: 'Your pull request', text: 'This page moves on by itself.' };
   }
 }
+
+/** Where the box's "Prove it" leads on the page: today's proof card, under the box. */
+export const PROOF_ANCHOR = 'proof';
 
 /** "This fix used A stack", or before the fix is written, the lesson it is likely to use. */
 export const lessonLeadOf = (page: Pick<PullRequestPage, 'lessonConfirmed'>) =>

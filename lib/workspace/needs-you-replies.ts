@@ -124,7 +124,7 @@ function troubleOf(lead: { case: ReplyCase; drafts: ContributeReplyWaiting[] }):
  * held-back reply's, else the error's: untrusted, plain text) and the organization (the owner part of the repo's
  * name). The page's own rows and the API's items say the same.
  */
-export function replyWordsOf({
+function replyWordsOf({
   trouble,
   count,
   note,
@@ -265,7 +265,7 @@ export type ReplyRest = { same: number; others: { round: number | null; count: n
  * The replies the row's case leaves, in one sentence: "1 more reply didn't post for another reason, and 2 from run 1
  * wait too: open the pull request's runs." Null when none is left.
  */
-export function closingWordsOf(rest: ReplyRest | null | undefined): string | null {
+function closingWordsOf(rest: ReplyRest | null | undefined): string | null {
   if (!rest) return null;
   const { same, others } = rest;
   const sameWords = same ? `${same} more ${same === 1 ? 'reply' : 'replies'} didn't post for another reason` : null;

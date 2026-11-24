@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ContributeAttemptDetail, ContributeReplyWaiting, ContributeView } from './contribute.types';
-import {
-  addressTitleOf,
-  cardReasonsOf,
-  contributionMovesOf,
-  elsewhereLabelOf,
-  headOf,
-  type MovesInput,
-} from './contribution-moves';
+import { addressTitleOf, contributionMovesOf, type MovesInput } from './contribution-moves';
 import { contributionOf } from './next-step';
 import { candidatesOf } from './pr-moves';
 import {
@@ -61,22 +54,6 @@ const afterRun = (patch: Partial<ContributeAttemptDetail> = {}) =>
   });
 
 describe('the contribution’s moves: cards and who holds them', () => {
-  it('puts what a run acts on in one next-run card, titled by the comments it takes', () => {
-    const moves = model(nextForRun);
-    expect(cards(nextForRun)).toEqual(['next-run:changes+check@next']);
-    expect(moves.moves[0]).toMatchObject({
-      tone: 'violet',
-      kindLine: 'Changes requested',
-      title: 'Address 2 comments from ana-kelp',
-      chip: 'Next step',
-    });
-    expect(moves.nextTileTitle).toBe('Run 2');
-    expect(moves.sessions.next?.pill).toEqual({ label: 'Your move', tone: 'amber' });
-    // Any kind of the card opens it.
-    const head = headOf(moves, 'next', 'check');
-    expect(head.kind === 'card' && head.shown.card).toBe('next-run');
-  });
-
   it('names who the comments are from, or "review comments" past three authors', () => {
     expect(addressTitleOf([{ author: 'a' }, { author: 'b' }, { author: 'a' }])).toBe('Address 3 comments from a and b');
     expect(addressTitleOf([{ author: 'a' }, { author: 'b' }, { author: 'c' }, { author: 'd' }])).toBe(
@@ -96,19 +73,6 @@ describe('the contribution’s moves: cards and who holds them', () => {
     expect(cards(page)[0]).toBe('agreement:cla@next');
   });
 
-  it('holds a CLA rule with no CLA signal on the rules card, alone with the kind cla, in the agreement’s slot', () => {
-    const page = detail({
-      ...nextForDco,
-      needsYou: { since: NOW.toISOString(), signals: [signal('DCO')] },
-      prIssues: [{ kind: 'CLA', check: 'cla', message: 'Sign the CLA', suggestion: 'https://example.com/cla' }],
-    });
-    const moves = model(page).moves;
-    expect(moves.map(({ card, kinds }) => `${card}:${kinds.join('+')}`)).toEqual(['rules:cla', 'dco:dco']);
-    expect(moves[0].kindLine).toBe('CLA to sign');
-    const head = headOf(model(page), 'next', 'cla');
-    expect(head.kind === 'card' && head.shown.card).toBe('rules');
-  });
-
   it('lists a signal-only title among other rule items, and alone as the whole card', () => {
     const both = detail({
       ...nextForDco,
@@ -123,28 +87,6 @@ describe('the contribution’s moves: cards and who holds them', () => {
     expect(rules.title).toBe("The pull request breaks 2 of the repo's rules");
     const alone = detail({ ...both, prIssues: [] });
     expect(model(alone).moves[0]).toMatchObject({ card: 'rules', kinds: ['title'], title: 'Retitle the pull request' });
-  });
-
-  it('routes a failed fix: a sign-off to the DCO card, a retitle to the rules card', () => {
-    const signOff = detail({
-      ...nextForDco,
-      prFix: { kind: 'SIGN_OFF', state: 'FAILED', note: 'Force-push refused.', at: '2026-10-28T11:00:00.000Z' },
-    });
-    expect(cards(signOff)).toEqual(['dco:dco+fix-failed@next']);
-    expect(model(signOff).moves[0]).toMatchObject({ tone: 'red', kindLine: 'A fix failed' });
-    for (const move of ['dco', 'fix-failed']) {
-      const head = headOf(model(signOff), 'next', move);
-      expect(head.kind === 'card' && head.shown.card).toBe('dco');
-    }
-    const retitle = detail({
-      ...nextForDco,
-      needsYou: null,
-      prIssues: [{ kind: 'TITLE', check: 'semantic', message: 'Retitle', suggestion: 'fix: a title' }],
-      prFix: { kind: 'TITLE', state: 'FAILED', note: 'Refused.', at: '2026-10-28T11:00:00.000Z' },
-    });
-    expect(cards(retitle)).toEqual(['rules:title+fix-failed@next']);
-    const head = headOf(model(retitle), 'next', 'title');
-    expect(head.kind === 'card' && head.shown.data.card === 'rules' && head.shown.data.items[0].failed).toBe(true);
   });
 
   it('holds back the DCO move while a sign-off is on its way', () => {
@@ -195,19 +137,6 @@ describe('the contribution’s moves: cards and who holds them', () => {
     expect(cards({ ...nextForConversation, openedBy: 'HAND' })).toEqual(['conversation:conversation@next']);
     expect(model({ ...nextForConversation, openedBy: 'HAND' }).nextTileTitle).toBe('Next step');
   });
-
-  it('holds the proof on its own session, shown on the next step’s pane', () => {
-    const review = model(nextForProof.review);
-    const proof = review.moves.find(({ card }) => card === 'proof');
-    expect(proof).toMatchObject({ session: 'proof', kinds: ['proof-review'], kindLine: 'Check the proof' });
-    expect(review.sessions.proof?.pill).toEqual({ label: 'Check it', tone: 'amber' });
-    const head = headOf(review, 'next');
-    expect(head.kind === 'card' && head.held.some(({ session }) => session === 'proof')).toBe(true);
-    // A proof at work waits for nobody: no move, its line.
-    const working = model(nextForProof.working);
-    expect(working.moves.some(({ card }) => card === 'proof')).toBe(false);
-    expect(working.sessions.proof?.statusLead).toBe('Your agent is capturing the proof');
-  });
 });
 
 describe('the gates', () => {
@@ -216,22 +145,6 @@ describe('the gates', () => {
       const done = detail({ ...nextForRun, state, pullRequest: pullRequest({ state }) });
       expect(model(done, { replies: [failed('D_1', 'transient'), failed('D_2', 'transient')] }).moves).toEqual([]);
     }
-  });
-
-  it('holds the next step back right after a push, keeps the run’s reply moves, and reads the PR again', () => {
-    const pushed = afterRun({
-      needsYou: nextForRun.needsYou,
-      followUps: followUps({ used: 1, history: [followUpRun()], lastEndedAt: '2026-10-28T11:50:00.000Z' }),
-      pullRequest: pullRequest({ syncedAt: '2026-10-28T11:45:00.000Z' }),
-    });
-    const quiet = model(pushed);
-    expect(quiet.moves).toEqual([]);
-    expect(quiet.reading).toBe(true);
-    expect(quiet.sessions['run:A_F1']?.statusLead).toBe('Run 1 pushed 46de700');
-    const withReplies = model(pushed, { replies: [failed('D_1', 'transient'), failed('D_2', 'transient')] });
-    expect(withReplies.moves.map(({ card, session }) => `${card}@${session}`)).toEqual(['reply-failed@run:A_F1']);
-    const head = headOf(withReplies, 'run:A_F1');
-    expect(head.kind).toBe('card');
   });
 
   it('leaves the next step and the proof out while a run is under way, its review and countdown included', () => {
@@ -315,27 +228,6 @@ describe('replies per run', () => {
     }),
   });
 
-  it('holds each run’s replies on that run, unsent ones before failed ones, oldest run first', () => {
-    const replies = [
-      failed('D_1', 'org_restricted'),
-      failed('D_2', 'org_restricted'),
-      replyWaiting({ draftId: 'D_3', attemptId: 'A_F2', createdAt: '2026-10-29T10:00:00.000Z' }),
-      replyWaiting({ draftId: 'D_4', attemptId: 'A_F1', createdAt: '2026-10-28T11:00:00.000Z' }),
-    ];
-    const moves = model(page, { replies });
-    expect(moves.moves.map(({ card, session }) => `${card}@${session}`)).toEqual([
-      'replies@run:A_F1',
-      'replies@run:A_F2',
-      'reply-failed@run:A_F1',
-    ]);
-    expect(moves.sessions['run:A_F1']?.pill).toEqual({ label: 'Your move', tone: 'amber' });
-    const failedMove = moves.moves[2];
-    expect(failedMove).toMatchObject({ tone: 'amber', kindLine: 'Run 1 · replies not posted' });
-    expect(failedMove.title).toBe("Your 2 replies didn't reach GitHub");
-    expect([...cardReasonsOf(moves, 'A_F1')]).toEqual(['org_restricted']);
-    expect([...cardReasonsOf(moves, 'A_F2')]).toEqual([]);
-  });
-
   it('makes no move of a thread that needs no reply, even one that arrives failed, held back or as a draft', () => {
     const page = afterRun();
     const none = (patch: Partial<ContributeReplyWaiting>) =>
@@ -362,15 +254,6 @@ describe('replies per run', () => {
     expect(model(page, { replies: inReview }).moves).toEqual([]);
     const sending = [replyWaiting({ draftId: 'D_1', send: true })];
     expect(model(page, { replies: sending }).moves).toEqual([]);
-  });
-
-  it('makes no move of the first attempt’s own drafts, and holds a run the history does not list', () => {
-    expect(model(page, { replies: [failed('D_1', 'transient', { attemptId: 'A_1' })] }).moves).toEqual([]);
-    expect(cardReasonsOf(model(page, { replies: [failed('D_1', 'x', { attemptId: 'A_1' })] }), 'A_1').size).toBe(0);
-    const unlisted = model(page, { replies: [failed('D_1', 'transient', { attemptId: 'A_F9' })] });
-    expect(unlisted.moves.map(({ session }) => session)).toEqual(['run:A_F9']);
-    expect(unlisted.moves[0].title).toBe("One reply didn't post");
-    expect(unlisted.moves[0].tone).toBe('red');
   });
 });
 
@@ -420,25 +303,6 @@ describe('sessions and their moves', () => {
   it('gives a run whose first attempt is not known its own moves only', () => {
     expect(cards(undefined, { shown: followUp() })).toEqual(['run-ready:run-ready@run:A_F1']);
     expect(cards(undefined, { shown: followUp({ state: 'DONE' }) })).toEqual([]);
-  });
-
-  it('shows on the next pane both its moves and the proof’s; ignores a stale or other pane’s move', () => {
-    const both = detail({
-      ...nextForProof.review,
-      needsYou: { since: NOW.toISOString(), signals: [signal('DCO'), ...nextForProof.review.needsYou!.signals] },
-    });
-    const moves = model(both);
-    const head = headOf(moves, 'next', 'nope');
-    expect(head.kind === 'card' && head.held.map(({ session }) => session).sort()).toEqual(['next', 'proof']);
-    expect(head.kind === 'card' && head.shown).toBe(
-      moves.moves.find((move) => move.session === 'next' || move.session === 'proof'),
-    );
-    const first = headOf(moves, 'first', 'dco');
-    expect(first.kind).toBe('status');
-    expect(first.kind === 'status' && first.elsewhere?.session).toMatch(/next|proof/);
-    expect(elsewhereLabelOf({ session: 'proof', chip: 'Proof' })).toBe('Your move is in the next step →');
-    expect(elsewhereLabelOf({ session: 'run:A_F2', chip: 'Run 2' })).toBe('Your move is on run 2 →');
-    expect(elsewhereLabelOf({ session: 'first', chip: 'First attempt' })).toBe('Your move is on the first attempt →');
   });
 });
 
@@ -618,21 +482,6 @@ describe('the run’s replies as one comment', () => {
   const heldBack = { reason: 'no_answer', note: 'The first reply got no answer.', at: '2026-10-28T11:59:00.000Z' };
   const draft = (id: string, patch: Partial<ContributeReplyWaiting> = {}) =>
     replyWaiting({ draftId: id, state: 'DRAFT', send: false, ...patch });
-
-  it('says replies held back with the ones not posted, never as replies to approve', () => {
-    const replies = [
-      failed('D_1', 'no_answer'),
-      ...['D_2', 'D_3'].map((id) => draft(id, { heldBack, canGoInOneComment: true })),
-      draft('D_4'),
-    ];
-    const moves = model(afterRun(), { replies });
-    const notPosted = moves.moves.find(({ card }) => card === 'reply-failed');
-    expect(notPosted?.title).toBe("Your 3 replies didn't reach GitHub");
-    expect(notPosted?.data).toMatchObject({ heldBack: [{ draftId: 'D_2' }, { draftId: 'D_3' }] });
-    const toApprove = moves.moves.find(({ card }) => card === 'replies');
-    expect(toApprove?.data).toMatchObject({ drafts: [{ draftId: 'D_4' }] });
-    expect([...cardReasonsOf(moves, 'A_F1')]).toContain('held_back');
-  });
 
   it('titles a card of replies held back only, and of a failed comment', () => {
     const held = model(afterRun(), { replies: ['D_1', 'D_2'].map((id) => draft(id, { heldBack })) });

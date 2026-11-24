@@ -2,18 +2,18 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
 import { ContributeSessionSkeleton } from '@/components/workspace/page-skeleton';
-import { FirstSessionView } from '@/components/workspace/pull-request/review-view';
+import { PullRequestPageScreen } from '@/components/workspace/pull-request/page-screen';
 
 export const metadata: Metadata = { title: 'A pull request' };
 
-/** The first attempt's session, or the next step (`?session=next`). */
+/** The pull request's page: where it stands and the one thing to do, for Learn and Contribute. */
 export default function PullRequestPage({
   params,
   searchParams,
 }: PageProps<'/my/pull-requests/[owner]/[repo]/[issue]'>) {
   return (
     <Suspense fallback={<ContributeSessionSkeleton />}>
-      <FirstSessionView params={params} searchParams={searchParams} />
+      <PullRequestPageScreen params={params} searchParams={searchParams} />
     </Suspense>
   );
 }

@@ -21,7 +21,10 @@ import {
   RealIssuesListDocument,
 } from './real-issues.documents';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { withBlockedWalkthrough } from '@/lib/workspace/blocked-walkthrough';
 import { loadMaskedListReads } from '@/lib/workspace/masked-issue.data';
+import { loadBlockedWalkthroughs } from '@/lib/workspace/pull-request.data';
+import type { PullRequestListRow } from '@/lib/workspace/pull-request-page.types';
 
 /*
  * Real issues on Learn's pages, read apart from each page's own read. The merged fixes are the same for everyone and
@@ -70,7 +73,10 @@ export async function loadLessonRealMine(slug: string, githubLogin: string): Pro
 
 /**
  * What Learn home adds: its third box and its "Real issues" rows; nothing when no read answers. The merged fix is a
- * read of its own: an API without it (or any failure of it) leaves the box as the other two reads make it.
+ * read of its own: an API without it (or any failure of it) leaves the box as the other two reads make it. When the box or
+ * a row of "Real issues" shows a Learn fix on its walkthrough, the home asks too whether that walkthrough waits for
+ * another pass (its own read, with a time limit), so neither says the walkthrough is ready then; without that answer
+ * both are as the reads make them.
  */
 export async function loadHomeReal(githubLogin: string): Promise<HomeReal> {
   const as = { source: 'ssr' as const, githubLogin };
@@ -79,7 +85,17 @@ export async function loadHomeReal(githubLogin: string): Promise<HomeReal> {
     quietly(graphqlDirect(HomeFixesDocument, undefined, as)),
     quietly(graphqlDirect(HomeMergedDocument, undefined, as)),
   ]);
-  return homeRealOf(issues?.learnHome, fixes?.learnHome, merged?.learnHome);
+  const home = homeRealOf(issues?.learnHome, fixes?.learnHome, merged?.learnHome);
+  const boxRow = home.box?.kind === 'fix' ? home.box.row : null;
+  const onWalkthrough = (row: PullRequestListRow) => row.made === 'LEARN' && row.box === 'WALKTHROUGH';
+  if (!(boxRow && onWalkthrough(boxRow)) && !home.fixes.some(onWalkthrough)) return home;
+  const blocked = await loadBlockedWalkthroughs().catch(() => null);
+  if (!blocked?.size) return home;
+  return {
+    ...home,
+    box: home.box?.kind === 'fix' ? { ...home.box, row: withBlockedWalkthrough(home.box.row, blocked) } : home.box,
+    fixes: home.fixes.map((row) => withBlockedWalkthrough(row, blocked)),
+  };
 }
 
 /** Learn home's list email, read again while the person has no address; null on any failure. */

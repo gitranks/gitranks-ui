@@ -11,13 +11,10 @@ vi.mock('@/lib/workspace/actions', () => ({ readWorkspaceChanges: vi.fn(), readN
 vi.mock('@/components/navigation-progress/navigation-progress', () => ({ useReportPendingNavigation: () => {} }));
 vi.mock('@/lib/workspace/contribute.data', () => ({}));
 
-const { LiveRunPhase, LiveRunsLabel, RightNowLanes, WorkingNowSection } = await import(
-  '@/components/workspace/agent/agent-runs'
-);
+const { LiveRunsLabel, RightNowLanes, WorkingNowSection } = await import('@/components/workspace/agent/agent-runs');
 const { activityOf, FOLLOW_UP, QUEUED, READY, runOf, WORKING } = await import(
   '@/lib/contribute/__fixtures__/agent-runs'
 );
-const { publishContributeActivity } = await import('@/lib/workspace/changes-bus');
 
 const text = (html: string) =>
   html
@@ -130,23 +127,5 @@ describe('Working now on the runs page', () => {
     expect(html).toContain('data-run="att_ready"');
     expect(renderToStaticMarkup(<WorkingNowSection activity={activityOf()} />)).toBe('');
     expect(renderToStaticMarkup(<WorkingNowSection activity={null} />)).toBe('');
-  });
-});
-
-describe('My contributions’ rows in progress', () => {
-  it('follows the poll’s newer read', () => {
-    const later = {
-      ...activityOf(runOf({ phase: 'RUNNING_CHECKS', label: 'Running checks' })),
-      readAt: '2026-10-31T12:00:10.000Z',
-    };
-    publishContributeActivity(later);
-    const html = renderToStaticMarkup(
-      <LiveRunPhase attemptId="att_working" activity={activityOf(WORKING)}>
-        own line
-      </LiveRunPhase>,
-    );
-    // The server snapshot is the page's: the bus only counts once hydrated.
-    expect(html).toContain('data-live-phase="WORKING"');
-    publishContributeActivity(null);
   });
 });

@@ -7,23 +7,12 @@ import {
   isHeldBack,
   isRequestKey,
   isToApprove,
-  noteSplitOf,
-  oneCommentCardOf,
-  partOf,
-  previewOf,
-  probeLineOf,
   requestKeyOf,
   waitsForProbe,
   withRepliesPlanOf,
   withReplyPlansOf,
 } from './one-comment';
 import { detail, flowDraft } from '@/lib/contribute/__fixtures__/contribute-attempts';
-import {
-  heldBackRun,
-  oneCommentFailed,
-  oneCommentPlan,
-  orgRefusedOneComment,
-} from '@/lib/contribute/__fixtures__/session-head';
 
 const batch = (patch: Partial<ContributeReplyBatch> = {}): ContributeReplyBatch => ({
   batchId: 'B_1',
@@ -102,125 +91,6 @@ describe('a failed comment’s offer', () => {
     ['not_found', null, { tryAgain: false, grantFirst: false, copy: false }],
   ] as const)('%s, %s', (reason, retry, offer) => {
     expect(batchOfferOf(batch({ retry, lastError: { reason, note: '', at: 'x' } }))).toEqual(offer);
-  });
-});
-
-describe('the replies-not-posted card', () => {
-  it('posts what the API says one click would post, and copies every reply not posted', () => {
-    const drafts = orgRefusedOneComment();
-    const card = oneCommentCardOf({ ...oneCommentPlan(), replyDrafts: drafts }, 'A_F1', drafts);
-    expect(card.post?.draftIds).toHaveLength(7);
-    expect(card.copy?.count).toBe(7);
-    expect(card.copy?.text).toContain('Replies to 7 review comments by maintainer-mo.');
-    expect(card.failedBatches).toEqual([]);
-    expect(card.threadFailed).toHaveLength(7);
-  });
-
-  it('posts only the replies it is about, never a draft left out of the push', () => {
-    const [refused] = orgRefusedOneComment();
-    const leftOut = flowDraft({ draftId: 'D_9', canGoInOneComment: true });
-    const run = {
-      ...oneCommentPlan(),
-      oneComment: { draftIds: ['D_1', 'D_9'], bodies: ['Replies to 2 review comments…'] },
-      replyDrafts: [refused, leftOut],
-    };
-    const card = oneCommentCardOf(run, 'A_F1', [refused]);
-    expect(card.post?.draftIds).toEqual(['D_1']);
-    // The API's text holds the left-out draft too: not shown as what goes; the confirm lists the reply instead.
-    expect(card.post?.bodies).toEqual([]);
-    expect(card.post?.drafts.map(({ draftId }) => draftId)).toEqual(['D_1']);
-    // None of the card's own replies in the preview: no button at all.
-    expect(
-      oneCommentCardOf({ ...run, oneComment: { draftIds: ['D_9'], bodies: ['x'] } }, 'A_F1', [refused]).post,
-    ).toBeNull();
-  });
-
-  it('counts Copy all over this run’s replies only, and leaves replies in a comment out of the thread lines', () => {
-    const drafts = orgRefusedOneComment();
-    const other = flowDraft({ draftId: 'D_OTHER', attemptId: 'A_F2', state: 'FAILED' });
-    expect(oneCommentCardOf({ ...oneCommentPlan(), replyDrafts: [...drafts, other] }, 'A_F1', drafts).copy?.count).toBe(
-      7,
-    );
-    const inComment = flowDraft({ draftId: 'D_C', state: 'FAILED', batchId: 'B_GONE' });
-    expect(oneCommentCardOf(oneCommentPlan(), 'A_F1', [...drafts, inComment]).threadFailed).toHaveLength(7);
-  });
-
-  it('offers nothing of its own without the API’s plan', () => {
-    const drafts = orgRefusedOneComment();
-    expect(oneCommentCardOf(undefined, 'A_F1', drafts)).toMatchObject({ post: null, copy: null, failedBatches: [] });
-  });
-
-  it('serves a failed comment only with a reply still failed in it, and posts nothing it would try again', () => {
-    const { drafts, plan } = oneCommentFailed('invalid', 'Refused. Check the text.', 'REBUILD');
-    const card = oneCommentCardOf({ ...plan, replyDrafts: drafts }, 'A_F1', drafts);
-    expect(card.failedBatches).toHaveLength(1);
-    expect(card.failedBatches[0]).toMatchObject({ lead: 'Refused.', rest: 'Check the text.' });
-    // Its own Try again builds it again: no second way to post the same replies.
-    expect(card.post).toBeNull();
-    expect(card.threadFailed).toEqual([]);
-    // Its replies dismissed or posted since: not served.
-    expect(oneCommentCardOf({ ...plan, replyDrafts: drafts }, 'A_F1', []).failedBatches).toEqual([]);
-  });
-
-  it('keeps the replies held back apart', () => {
-    const { drafts, plan } = heldBackRun();
-    const held = drafts.filter(isHeldBack);
-    const card = oneCommentCardOf({ ...plan, replyDrafts: drafts }, 'A_F1', drafts.slice(0, 1), held);
-    expect(card.heldBack).toHaveLength(6);
-    expect(card.post?.draftIds).toHaveLength(6);
-  });
-
-  it('splits a note into its first sentence and the rest', () => {
-    expect(noteSplitOf('GitHub refused it. Copy the replies.')).toEqual({
-      lead: 'GitHub refused it.',
-      rest: 'Copy the replies.',
-    });
-    expect(noteSplitOf('One sentence only')).toEqual({ lead: 'One sentence only', rest: null });
-    expect(noteSplitOf(null)).toEqual({ lead: '', rest: null });
-  });
-
-  it('names a split comment’s parts', () => {
-    expect(partOf(batch({ part: 2, parts: 3 }))).toBe('Part 2 of 3');
-    expect(partOf(batch())).toBeNull();
-    expect(previewOf(['a', 'b'])).toEqual([
-      { title: 'Comment 1 of 2', body: 'a' },
-      { title: 'Comment 2 of 2', body: 'b' },
-    ]);
-    expect(previewOf(['a'])).toEqual([{ title: null, body: 'a' }]);
-  });
-});
-
-describe('the run’s approval line', () => {
-  it('says the first reply is tried in its thread, by what is known of the organization', () => {
-    const run = { nameWithOwner: 'driftwood-js/driftwood' };
-    expect(
-      probeLineOf({
-        ...run,
-        probeFirst: true,
-        threadRepliesBlocked: { org: 'driftwood-js', since: 'x', lastRefusedAt: 'x' },
-      }),
-    ).toEqual({ org: 'driftwood-js', blocked: true, oneComment: false });
-    expect(probeLineOf({ ...run, probeFirst: true, threadRepliesBlocked: null })).toEqual({
-      org: 'driftwood-js',
-      blocked: false,
-      oneComment: false,
-    });
-    // A personal account's repo, or an API that does not say: no line.
-    expect(probeLineOf({ ...run, probeFirst: false, threadRepliesBlocked: null })).toBeNull();
-    expect(probeLineOf({ ...run, probeFirst: false, oneCommentFirst: false, threadRepliesBlocked: null })).toBeNull();
-    expect(probeLineOf(run)).toBeNull();
-  });
-
-  it('says the replies go as one comment when the organization refused them lately', () => {
-    const blocked = { org: 'driftwood-js', since: 'x', lastRefusedAt: 'x' };
-    const run = { nameWithOwner: 'driftwood-js/driftwood', probeFirst: false, threadRepliesBlocked: blocked };
-    expect(probeLineOf({ ...run, oneCommentFirst: true })).toEqual({
-      org: 'driftwood-js',
-      blocked: true,
-      oneComment: true,
-    });
-    // Its refusal 7 days old or more: the first reply is tried in its thread again.
-    expect(probeLineOf({ ...run, probeFirst: true, oneCommentFirst: false })).toMatchObject({ oneComment: false });
   });
 });
 

@@ -18,8 +18,6 @@ import {
   ConnectClaudeKeyDocument,
   ConnectClaudeKeyWithLimitsDocument,
   ContributeActivityDocument,
-  ContributeAttemptLiveBareDocument,
-  ContributeAttemptLiveDocument,
   ContributeChangesDocument,
   ContributeFeedComputedDocument,
   ContributeMcpConnectionsUsedDocument,
@@ -57,7 +55,6 @@ import {
 } from '@/lib/workspace/contribute.documents';
 import type {
   ContributeAttempt,
-  ContributeAttemptLive,
   ContributeChangeArea,
   ContributeChanges,
   ContributeChangesRead,
@@ -219,28 +216,6 @@ export async function approveAttempt(input: ApproveAttemptInput): Promise<Contri
     );
   }
   return run(ApproveAttemptDocument, approval, (data) => data.approveAttempt);
-}
-
-/**
- * The submission's stepper reads the attempt again while it submits: its state, the submission with its steps' clock
- * and the pull request, plus when they were read (to set the elapsed times against our clock). An API that does not
- * answer the clock yet is read without it, and `clock: false` tells the stepper to ask without it from then on.
- */
-export async function readAttemptLive(
-  id: string,
-  withClock = true,
-): Promise<ContributeActionResult<{ attempt: ContributeAttemptLive | null; readAt: string; clock: boolean }>> {
-  const variables = { id: String(id) };
-  const bare = () => run(ContributeAttemptLiveBareDocument, variables, (data) => data.contributeAttempt);
-  let clock = withClock !== false;
-  let result = clock
-    ? await run(ContributeAttemptLiveDocument, variables, (data) => data.contributeAttempt)
-    : await bare();
-  if (!result.ok && clock && result.error === 'NOT_AVAILABLE_YET') {
-    clock = false;
-    result = await bare();
-  }
-  return result.ok ? { ok: true, data: { attempt: result.data, readAt: new Date().toISOString(), clock } } : result;
 }
 
 /**
@@ -763,7 +738,7 @@ export async function readNeedsYouCount(): Promise<ContributeActionResult<number
   return count === undefined ? { ok: false, error: 'FAILED' } : { ok: true, data: count };
 }
 
-/** Hides a "this PR helped" note from the user's contribution page, or shows it again. */
+/** Hides a "this PR helped" note from the user's pull request page, or shows it again. */
 export async function hidePrNote(
   feedbackId: string,
   hidden: boolean,

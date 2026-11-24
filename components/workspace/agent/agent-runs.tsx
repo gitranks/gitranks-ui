@@ -248,24 +248,6 @@ export function WorkingNowView({ activity }: { activity: ContributeActivity }) {
   );
 }
 
-/**
- * My contributions' row of an attempt an agent works on: its live phase and steps from the runs, or `children` (the
- * row's own line) when the runs do not list it.
- */
-export function LiveRunPhase({
-  attemptId,
-  activity,
-  children,
-}: {
-  attemptId: string;
-  activity: ContributeActivity | null | undefined;
-  children: ReactNode;
-}) {
-  const run = runsOf(useLiveActivity(activity)).find((item) => item.attemptId === attemptId);
-  if (!run) return <>{children}</>;
-  return <LiveRunPhaseView run={run}>{children}</LiveRunPhaseView>;
-}
-
 export function LiveRunPhaseView({ run, children }: { run: ContributeAgentRun; children: ReactNode }) {
   const event = eventLineOf(run);
   // The row's own line says the submission's step and the own agent's hold; a hosted run's time and spend are fresher here.

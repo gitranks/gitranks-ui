@@ -13,11 +13,9 @@ vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
-  loadResolveHumanThreads: vi.fn(async () => undefined),
 }));
-
-const { ReviewScreen } = await import('./review-view');
 const { ProofPreview } = await import('./proof-preview');
+const { ProofSection } = await import('./proof-section');
 const { AgentConnectView } = await import('@/components/workspace/agent/agent-connect');
 const { NOW, mcpToken, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { nextForProof, proofResult, proofSession, proofAsk } = await import('@/lib/contribute/__fixtures__/needs-you');
@@ -44,202 +42,76 @@ const connected: ContributeView = {
   },
 };
 
-const page = (first: ContributeAttemptDetail, view: ContributeView = connected) => {
-  const html = renderToStaticMarkup(<ReviewScreen view={view} attempt={first} next now={NOW} />);
+/** The pull request page's proof section, for a first attempt. */
+const section = (first: ContributeAttemptDetail, view: ContributeView = connected) => {
+  const html = renderToStaticMarkup(<ProofSection view={view} first={first} now={NOW} />);
   return { html, plain: text(html) };
 };
 
-describe('the proof card', () => {
+describe("the proof card, on the pull request's page", () => {
   it('A: asks to connect the agent first, from the connect page that shows the proof prompt', () => {
-    const { html, plain } = page(nextForProof.notConnected, views.active);
+    const { html, plain } = section(nextForProof.notConnected, views.active);
+    expect(html).toContain('id="proof"');
     expect(html).toContain('data-move="proof"');
-    expect(plain).toContain('Proof needed Prove the fix on your machine');
+    expect(plain).toContain('Prove the fix on your machine');
     expect(plain).toContain('clawsweeper · blocks the merge');
-    expect(plain).toContain('“Add real behavior proof”');
-    expect(plain).toContain('Why only you');
     expect(html).toContain('href="/my/agent/connect?proof=A_OC"');
     expect(plain).toContain('Connect your agent →');
-    expect(plain).toContain('gitranks-proof/190186');
     expect(plain).toContain('Add it on GitHub yourself ↗');
-    expect(plain).toContain("I've done it");
-    // The proof card tells the block: no found card beside it.
-    expect(html).not.toContain('data-move="found"');
   });
 
-  it('B: shows the one-line prompt for any agent once one has called, and waits for it', () => {
-    const { html, plain } = page(nextForProof.connected);
-    expect(plain).toContain('Proof needed Run the proof prompt in your agent');
-    expect(plain).toContain('Claude Code on macOS · last used 2 hours ago');
-    expect(plain).toContain('Prompt for your agent');
+  it('B: shows the one-line prompt for any agent once one has called, with the note sent back', () => {
+    const { plain } = section(nextForProof.connected);
+    expect(plain).toContain('Run the proof prompt in your agent');
     expect(plain).toContain('Prove openclaw/openclaw#190186 for GitRanks');
-    expect(plain).not.toContain('Prompt for Claude Code');
     expect(plain).toContain('Waiting for your agent…');
-    // The proof's tile takes the next step's mark; the run's keeps its own.
-    expect(html).toMatch(/data-session="next"[^>]*>\s*<a[^>]*aria-current="page"/);
-    expect(html).toContain('data-session="next-run"');
-  });
-
-  it('B: carries the note the user sent back', () => {
-    const first = {
+    const noted = {
       ...nextForProof.connected,
       proof: {
         ask: proofAsk(),
         session: proofSession({ state: 'WAITING', sendBack: { note: 'Capture the log too' } }),
       },
     };
-    expect(page(first).plain).toContain('Your note goes with it: Capture the log too');
+    expect(section(noted).plain).toContain('Your note goes with it: Capture the log too');
   });
 
-  it('C: tells the agent at work with its lease, and offers to take it back; checking offers nothing', () => {
-    const { html, plain } = page(nextForProof.working);
-    // Nothing waits on the user: the next step's line, not a card.
-    expect(html).toContain('data-status="proof-working"');
-    expect(plain).toContain('Your agent is capturing the proof');
-    expect(plain).toContain('picked up 6 minutes ago; holds it until 13:54 UTC');
-    expect(plain).toContain('Take it back');
-
-    const checking = page({
-      ...nextForProof.working,
-      proof: {
-        ask: proofAsk(),
-        session: proofSession({ state: 'CHECKING', checkError: 'slot 2: too_large' }),
-      },
-    }).plain;
-    expect(checking).toContain('GitRanks is checking the screenshots.');
-    expect(checking).toContain('The last screenshots were refused: slot 2: too_large. Your agent was told.');
-    expect(checking).not.toContain('Take it back');
-  });
-
-  it('D: shows the proof as it will be posted, what gets posted, and Post waits for the tick', () => {
-    const { html, plain } = page(nextForProof.review);
+  it('D: shows the proof as it will be posted, and Post waits for the tick', () => {
+    const { html, plain } = section(nextForProof.review);
     expect(html).toContain('data-move="proof-review"');
-    expect(plain).toContain('Check the proof Check the proof, then post it');
-    expect(plain).toContain('Claude Code · 14 minutes ago: “Reproduced the lock');
+    expect(plain).toContain('Check the proof, then post it');
     expect(html).toContain('src="/api/me/contribute/proofs/PF_1/files/1"');
-    expect(html).toContain('src="/api/me/contribute/proofs/PF_1/files/2"');
-    expect(html).toContain('<details');
-    expect(plain).toContain('2 screenshots on the branch gitranks-proof/190186 in your fork.');
-    expect(plain).toContain('A comment: @clawsweeper re-review.');
-    expect(plain).toContain('Your agent says it removed 2 IP addresses, 1 API key.');
     expect(plain).toContain("I've checked it: nothing private is left");
     expect(html).toMatch(
       /<button[^>]*disabled=""[^>]*data-proof-post=""|<button[^>]*data-proof-post=""[^>]*disabled=""/,
     );
-    expect(html).not.toContain('data-proof-moved-head');
   });
 
-  it('D: says when the pull request moved on since the proof was captured', () => {
-    const first = {
-      ...nextForProof.review,
-      proof: { session: nextForProof.review.proof?.session ?? null, ask: proofAsk(), prHeadSha: 'aa11bb22cc33' },
-    };
-    expect(page(first).plain).toContain('Captured on 89cc1af0; the pull request is now at aa11bb22.');
-    // The ask's head is the bot's, not the pull request's now: no line without the head the last read saw.
-    const askOnly = {
-      ...nextForProof.review,
-      proof: { session: nextForProof.review.proof?.session ?? null, ask: proofAsk({ headSha: 'aa11bb22cc33' }) },
-    };
-    expect(page(askOnly).html).not.toContain('data-proof-moved-head');
-  });
-
-  it('a proof the page cannot show offers send back and discard, never post; checking offers no take back', () => {
+  it('a proof the page cannot show offers send back, never post', () => {
     const unknown = {
       ...nextForProof.review,
-      proof: {
-        ask: proofAsk(),
-        session: proofSession({ state: 'REVIEW', result: proofResult({ section: null }) }),
-      },
+      proof: { ask: proofAsk(), session: proofSession({ state: 'REVIEW', result: proofResult({ section: null }) }) },
     };
-    const { html, plain } = page(unknown);
-    expect(html).toContain('data-move="proof-review"');
-    expect(plain).toContain("Check the proof The proof can't be shown");
+    const { plain } = section(unknown);
+    expect(plain).toContain("The proof can't be shown");
     expect(plain).toContain('Send back to your agent');
     expect(plain).not.toContain('Post the proof');
-    expect(plain).not.toContain('Take it back');
   });
 
-  it('a block the bot raised after the proof was posted gets the found card with its verdict', () => {
-    const later = {
-      ...nextForProof.posted,
-      needsYou: {
-        since: '2026-10-28T11:58:00.000Z',
-        signals: [
-          {
-            kind: 'BOT_BLOCKED' as const,
-            at: '2026-10-28T11:58:00.000Z',
-            detail: 'clawsweeper: Needs changes before merge — 1 item remains: Rename the flag',
-          },
-        ],
-      },
-    };
-    const { html, plain } = page(later);
-    expect(html).toContain('data-move="found"');
-    // The posted proof rides under the card in one muted line.
-    expect(html).toContain('data-proof-rider="proof-posted"');
-    expect(plain).toContain('Proof: Proof posted: clawsweeper reads it again');
-    expect(plain).toContain('Rename the flag');
-  });
-
-  it("E: the agent's reason and its reply to edit; the fix broken offers the next run with its note", () => {
-    const cannot = page(nextForProof.cannot);
-    expect(cannot.plain).toContain("Check the proof Your agent couldn't capture the proof");
-    expect(cannot.plain).toContain('A reply for the pull request, written by your agent');
+  it("E: the agent's reason and its reply to edit", () => {
+    const cannot = section(nextForProof.cannot);
+    expect(cannot.plain).toContain("Your agent couldn't capture the proof");
     expect(cannot.plain).toContain('Post the reply');
-    expect(cannot.plain).toContain('Try again with a note');
-
-    const broken = page(nextForProof.fixBroken);
-    expect(broken.html).toContain('data-move="proof-review"');
-    expect(broken.plain).toContain("Your agent found the fix doesn't work");
-    expect(broken.plain).toContain('Start run 2 with this note');
-    expect(broken.plain).toContain('Make the abort path drop the queued message');
   });
 
-  it('F: posted, with links to the description and the comment; a failed post offers the retry', () => {
-    const posted = page(nextForProof.posted);
-    expect(posted.html).toContain('data-status="proof-posted"');
-    expect(posted.plain).toContain('Bot reads it Proof posted: clawsweeper reads it again');
-    expect(posted.plain).toContain('2 screenshots on gitranks-proof/190186 in your fork');
-    expect(posted.html).toContain('href="https://github.com/openclaw/openclaw/pull/190186#issuecomment-1"');
-
-    const failed = page(nextForProof.failed);
+  it('F: a failed post offers the retry', () => {
+    const failed = section(nextForProof.failed);
     expect(failed.html).toContain('data-move="proof-failed"');
-    expect(failed.plain).toContain('Posting failed Posting the proof failed');
-    expect(failed.plain).toContain("It stopped adding the section to the pull request's description");
-    expect(failed.plain).toContain('body_too_long');
+    expect(failed.plain).toContain('Posting the proof failed');
     expect(failed.plain).toContain('Try again');
   });
 
-  it('a posted reply says so, and the bot that names no command is asked on GitHub', () => {
-    const reply = {
-      ...nextForProof.posted,
-      proof: {
-        ask: proofAsk(),
-        session: proofSession({
-          state: 'POSTED',
-          stateAt: '2026-10-28T11:56:00.000Z',
-          result: proofResult({ outcome: 'CANNOT_PROVE', section: null, reply: 'Thanks', files: [] }),
-          post: {
-            step: 'COMMENT',
-            commitSha: null,
-            bodyAt: null,
-            commentUrl: 'https://github.com/o/r/pull/1#c',
-            error: null,
-          },
-        }),
-      },
-    };
-    expect(page(reply).plain).toContain('Reply posted');
-    const noCommand = {
-      ...nextForProof.posted,
-      proof: {
-        ask: proofAsk({ reReview: null }),
-        session: proofSession({
-          ...nextForProof.posted.proof?.session,
-          post: { step: 'BODY', commitSha: null, bodyAt: null, commentUrl: null, error: null },
-        }),
-      },
-    };
-    expect(page(noCommand).plain).toContain('clawsweeper names no command to read it again: ask it on GitHub');
+  it('draws nothing while there is no proof to give', () => {
+    expect(section(nextForProof.posted).html).toBe('');
   });
 });
 

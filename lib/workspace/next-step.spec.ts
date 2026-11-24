@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ContributeAttemptDetail } from './contribute.types';
-import { contributionMovesOf, headOf } from './contribution-moves';
+import { contributionMovesOf } from './contribution-moves';
 import { contributionOf, defaultNoteOf, nextStepOf } from './next-step';
 import { feedbackThread, followUp, followUps } from '@/lib/contribute/__fixtures__/contribute-attempts';
 import { NOW, views } from '@/lib/contribute/__fixtures__/contribute-views';
@@ -233,31 +233,6 @@ describe('nextStepOf', () => {
       'next-run:comment',
       'conversation:conversation',
     ]);
-  });
-
-  it('offers no run in a repo that said no to AI-made PRs, whatever else waits; one out of the pool only keeps it', () => {
-    const beside = (detail: string) =>
-      nextStepOf(
-        {
-          ...nextForRun,
-          needsYou: {
-            since: '',
-            signals: [...(nextForRun.needsYou?.signals ?? []), signal('REPO_OUT', { detail })],
-          },
-        },
-        false,
-        NOW,
-      );
-    for (const detail of ['hostile_close', 'closed_no_ai']) {
-      const step = beside(detail);
-      expect(step.run).toMatchObject({ open: false, recommended: false });
-      expect(step.user).toEqual([expect.objectContaining({ kind: 'repo-out', reason: detail })]);
-    }
-    expect(beside('pr_misses').run).toMatchObject({ open: true, recommended: true });
-    // On the other sessions, the repo's no leads: the first attempt's line points at it.
-    const saidNo = { since: '', signals: [signal('REPO_OUT', { detail: 'hostile_close' })] };
-    const head = headOf(movesOf({ ...nextForRun, reviewFeedback: null, needsYou: saidNo }), 'first');
-    expect(head.kind === 'status' && head.elsewhere?.kinds).toEqual(['repo-out']);
   });
 
   it('sees nothing waiting on a quiet pull request', () => {

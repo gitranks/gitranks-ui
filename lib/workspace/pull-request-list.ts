@@ -1,3 +1,4 @@
+import { BLOCKED_WALKTHROUGH_WORDS } from './blocked-walkthrough';
 import { relativeLabel } from './format';
 import { onDayOf } from './pull-request-page';
 import type {
@@ -76,12 +77,14 @@ const AGENT_AT_WORK: readonly PullRequestBox[] = [
  * the home page's card word it here, so the two never differ. Null for a box that needs nothing from them.
  */
 export function needsYouRowWordsOf(
-  row: Pick<PullRequestListRow, 'box' | 'round'>,
+  row: Pick<PullRequestListRow, 'box' | 'round' | 'walkthroughBlocked'>,
 ): { line: string; button: string } | null {
   const round = row.round ?? 1;
   switch (row.box) {
     case 'WALKTHROUGH':
-      return { line: 'The fix walkthrough is ready', button: 'Start the walkthrough' };
+      return row.walkthroughBlocked
+        ? { line: BLOCKED_WALKTHROUGH_WORDS.line, button: BLOCKED_WALKTHROUGH_WORDS.rowButton }
+        : { line: 'The fix walkthrough is ready', button: 'Start the walkthrough' };
     case 'APPROVE':
       return { line: 'Ready to open the pull request', button: 'Read and approve' };
     case 'ONLY_YOU':
@@ -99,7 +102,15 @@ export function needsYouRowWordsOf(
  * A row's words: one line on where the fix stands (the pull request page's words), when it got there, its facts (the
  * agent, the cost of a hosted run) and its one button, which says what opening it does.
  */
-export type RowWords = { line: string; when: string | null; agent: string | null; cost: string | null; button: string };
+export type RowWords = {
+  line: string;
+  when: string | null;
+  agent: string | null;
+  cost: string | null;
+  button: string;
+  /** A walkthrough that waits for another pass: why, in one line, when the read said. */
+  reason: string | null;
+};
 
 export function rowWordsOf(row: PullRequestListRow, now: Date): RowWords {
   const hosted = isHosted(row);
@@ -148,6 +159,7 @@ export function rowWordsOf(row: PullRequestListRow, now: Date): RowWords {
     ...shown,
     agent: agentNamed ? null : row.agent?.trim() || (hosted ? 'Hosted agent' : null),
     cost: row.costUsd !== null ? costOf(row.costUsd) : null,
+    reason: row.box === 'WALKTHROUGH' ? (row.walkthroughBlocked?.reason ?? null) : null,
   };
 }
 

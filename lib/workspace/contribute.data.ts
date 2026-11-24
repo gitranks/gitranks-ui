@@ -44,7 +44,6 @@ import {
   ContributeLimitsDocument,
   ContributeMcpConnectionsDocument,
   ContributeNeedsYouCountDocument,
-  ContributeNeedsYouDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
   ContributeOwnAgentDocument,
@@ -54,7 +53,6 @@ import {
   ContributePullRequestsDocument,
   ContributeRepliesWaitingDocument,
   ContributeRepliesWaitingPlanDocument,
-  ContributeResolveHumansDocument,
   ContributeScheduleCountsDocument,
   ContributeSetDocument,
   ContributeSetupDocument,
@@ -77,7 +75,6 @@ import type {
   ContributeLimits,
   ContributeMcpToken,
   ContributeNeedsYou,
-  ContributeNeedsYouAnswer,
   ContributeOnboardedVia,
   ContributeOwnAgent,
   ContributePaths,
@@ -434,24 +431,6 @@ export const loadContributeActivity = cache(async (): Promise<ContributeActivity
     return contributeActivity;
   } catch {
     return null;
-  }
-});
-
-/**
- * What waits on the signed-in user, in order, and the work in progress: the Pull requests tab's lists. Null when the
- * API hides it or does not answer it yet; `undefined` when the read failed. Read once per request.
- */
-export const loadNeedsYou = cache(async (): Promise<ContributeNeedsYouAnswer | null | undefined> => {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return null;
-  try {
-    const { contributeNeedsYou } = await graphqlDirect(ContributeNeedsYouDocument, undefined, {
-      source: 'ssr',
-      githubLogin,
-    });
-    return contributeNeedsYou ?? null;
-  } catch {
-    return undefined;
   }
 });
 
@@ -937,16 +916,3 @@ export const loadPrNotes = cache(async (attemptId: string): Promise<ContributePr
     return undefined;
   }
 });
-
-/** Whether the user's follow-ups resolve people's threads too; `undefined` when the API does not answer it. */
-export async function loadResolveHumanThreads(): Promise<boolean | undefined> {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return undefined;
-  try {
-    const read = await graphqlDirect(ContributeResolveHumansDocument, undefined, { source: 'ssr', githubLogin });
-    const on = read.contribute?.contributor?.settings?.resolveHumanThreads;
-    return typeof on === 'boolean' ? on : undefined;
-  } catch {
-    return undefined;
-  }
-}

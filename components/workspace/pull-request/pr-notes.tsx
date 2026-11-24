@@ -30,6 +30,7 @@ function Note({ note, onHide, pending }: { note: ContributePrNote; onHide: () =>
           size="xs"
           className="shrink-0 max-sm:min-h-11"
           disabled={pending}
+          aria-label={`Hide ${note.login}’s note`}
           onClick={onHide}
         >
           Hide
@@ -40,7 +41,7 @@ function Note({ note, onHide, pending }: { note: ContributePrNote; onHide: () =>
 }
 
 /**
- * "From the maintainers" in the contribution's rail: the "this PR helped" notes on its pull request, newest first. Each
+ * "From the maintainers" on the pull request's page: the "this PR helped" notes on it, newest first. Each
  * can be hidden; hidden ones are counted in a line, to show again. Nothing without a note: a maintainer's stop is the
  * header's to say.
  */

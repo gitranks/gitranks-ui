@@ -2,23 +2,36 @@
 
 import { useId, useState } from 'react';
 
+import { ConfirmDialog } from '@/components/workspace/confirm-dialog';
+
+/** The foot's buttons: quiet text, the height of the page's other buttons on a phone. */
+const FOOT_BUTTON = 'hover:underline disabled:opacity-50 max-sm:min-h-11';
+
 /**
  * The quiet line at the foot of a pull request's page: the repository's rules for pull requests, one line that opens
- * to them; "Discard this fix" while there is no pull request; "Close this pull request" while it is open. Each is left
- * out when the page does not give it.
+ * to them; "Discard this fix" while there is no pull request, which asks first; "Close this pull request" while it is
+ * open. Each is left out when the page does not give it.
  */
 export function PullRequestFootLinks({
   rules,
   onDiscard,
+  discarding = false,
+  discardError = null,
   onClose,
   initialOpen = false,
 }: {
   rules: string | null;
+  /** Discards the fix, once the person said yes in the dialog. */
   onDiscard?: () => void;
+  /** A call is under way: the discard waits, and the dialog says it discards. */
+  discarding?: boolean;
+  /** Why the discard failed, in its dialog. */
+  discardError?: string | null;
   onClose?: () => void;
   initialOpen?: boolean;
 }) {
   const [open, setOpen] = useState(initialOpen);
+  const [asking, setAsking] = useState(false);
   const id = useId();
   const links = [
     rules ? (
@@ -27,19 +40,33 @@ export function PullRequestFootLinks({
         type="button"
         aria-expanded={open}
         aria-controls={id}
-        className="hover:underline"
+        className={FOOT_BUTTON}
         onClick={() => setOpen((was) => !was)}
       >
         The project’s rules for pull requests
       </button>
     ) : null,
     onDiscard ? (
-      <button key="discard" type="button" className="hover:underline" onClick={onDiscard}>
-        Discard this fix
-      </button>
+      <ConfirmDialog
+        key="discard"
+        trigger={
+          <button type="button" className={FOOT_BUTTON} disabled={discarding}>
+            Discard this fix
+          </button>
+        }
+        open={asking}
+        onOpenChange={setAsking}
+        title="Discard this attempt?"
+        description="Nothing is submitted, and the issue goes back to the pool. What it cost stays spent."
+        action="Discard"
+        pendingAction="Discarding…"
+        pending={discarding}
+        error={discardError}
+        onConfirm={onDiscard}
+      />
     ) : null,
     onClose ? (
-      <button key="close" type="button" className="hover:underline" onClick={onClose}>
+      <button key="close" type="button" className={FOOT_BUTTON} onClick={onClose}>
         Close this pull request
       </button>
     ) : null,

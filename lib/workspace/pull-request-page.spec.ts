@@ -23,6 +23,7 @@ import {
   onDayOf,
   onlyYouWordsOf,
   openingStepOf,
+  reopensRounds,
   roundAskTitleOf,
   sendRoundLabelOf,
   sentRoundMarkOf,
@@ -119,6 +120,21 @@ describe('sending a round', () => {
       'You marked it as not needed: the checks fail on the main branch too.',
     );
     expect(notNeededLineOf(null)).toBe('You marked it as not needed.');
+  });
+
+  it('says who closed it: the person, or GitRanks when it is not needed any more', () => {
+    expect(notNeededLineOf('ASKS_NOTHING', 'PERSON')).toMatch(/^You marked it as not needed/);
+    expect(notNeededLineOf('ASKS_NOTHING', 'GITRANKS')).toBe('Not needed any more.');
+    // An older API does not say who: the person, as before.
+    expect(notNeededLineOf('ASKS_NOTHING', null)).toMatch(/^You marked it as not needed/);
+  });
+
+  it('opens a round not needed again only while the pull request is open and no other round is', () => {
+    const closed = prRound({ n: 1, state: 'NOT_NEEDED' });
+    expect(reopensRounds({ box: 'WITH_MAINTAINERS', rounds: [closed] })).toBe(true);
+    expect(reopensRounds({ box: 'ROUND_WAITING', rounds: [closed, prRound({ n: 2, state: 'WAITING' })] })).toBe(false);
+    expect(reopensRounds({ box: 'MERGED', rounds: [closed] })).toBe(false);
+    expect(reopensRounds({ box: 'CLOSED', rounds: [closed] })).toBe(false);
   });
 });
 

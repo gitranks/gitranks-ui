@@ -65,16 +65,14 @@ describe('the workspace has one poll', () => {
   /**
    * The timers allowed under the workspace's pages and components: clocks that read nothing, and the bounded waits that
    * end by themselves (the setting-up reload, the matching moment, the connect page's wait for the agent's first call,
-   * the submit stepper, the first picks being ranked). Anything else that reads the API again rides the one poll.
+   * the first picks being ranked). Anything else that reads the API again rides the one poll.
    */
   const ALLOWED: Record<string, string> = {
     'components/workspace/activity.tsx': 'a clock for the bar',
-    'components/workspace/pull-request/follow-up-buttons.tsx': 'a clock for a countdown',
     'components/workspace/masked-issue/issue-page-screen.tsx': "a clock for the hold's minutes",
     'components/workspace/setting-up-refresh.tsx': 'the setting-up reload, bounded',
     'components/workspace/matching.tsx': 'the matching moment, bounded',
     'components/workspace/agent/agent-connect.tsx': "the wait for the agent's first call, bounded",
-    'components/workspace/pull-request/submit-stepper.tsx': 'the submit stepper, bounded',
     'app/contribute/components/still-ranking.tsx': 'the first picks being ranked, bounded',
   };
 

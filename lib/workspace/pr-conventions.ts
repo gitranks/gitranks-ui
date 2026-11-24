@@ -45,7 +45,7 @@ export type ContributePrIssueKind = 'TITLE' | 'CHANGELOG' | 'TEMPLATE' | 'CLA';
  * What the user fills on GitHub: the text to paste under `label` (a template's heading; `value` null: nothing drafted,
  * `note` says what to write), or a checklist line to tick or leave (`tick`). `note`: what to check first, or why.
  */
-export type ContributePrIssueField = {
+type ContributePrIssueField = {
   label: string;
   value: string | null;
   note: string | null;
@@ -76,7 +76,8 @@ export type ContributePrFix = {
   at: string;
 };
 
-export const PR_FIX_KINDS = ['TITLE', 'BODY', 'CHANGELOG', 'SIGN_OFF'] as const;
+/** The fixes the API makes on an open pull request; `CO_AUTHOR` adds the co-author line the project asks for. */
+export const PR_FIX_KINDS = ['TITLE', 'BODY', 'CHANGELOG', 'SIGN_OFF', 'CO_AUTHOR'] as const;
 export type ContributePrFixKind = (typeof PR_FIX_KINDS)[number];
 
 /** What each fix does, in a few words. */
@@ -145,67 +146,6 @@ const DRAFT_MARK =
 
 export const hasDraftMark = (title: string): boolean => DRAFT_MARK.test(title);
 
-/** The title without its leading WIP, draft and "do not merge" marks (each, however many, behind a `[tag]` too). */
-export function withoutDraftMarks(title: string): string {
-  const trimmed = title.trim();
-  const tag = trimmed.match(/^\[[^\]]{1,20}\]\s+/)?.[0];
-  if (tag && !hasDraftMark(tag) && hasDraftMark(trimmed.slice(tag.length))) {
-    return `${tag.trim()} ${withoutDraftMarks(trimmed.slice(tag.length))}`;
-  }
-  let rest = trimmed;
-  for (let match = rest.match(DRAFT_MARK); match; match = rest.match(DRAFT_MARK)) rest = rest.slice(match[0].length);
-  return rest.trim();
-}
-
-type TitleConventions = Pick<ContributeRepoConventions, 'title' | 'titlePrefix'>;
-
-/**
- * Why `title` fails the repo's conventions, as the API checks it: a draft mark (never ours: a GitRanks PR opens only
- * once approved as ready), the prefix the repo requires, then its title rule on what follows the prefix. `hardOnly`
- * checks the title rule only when a check enforces it.
- */
-export function titleProblemsOf(
-  title: string,
-  conventions: TitleConventions | null | undefined,
-  hardOnly = false,
-): string | null {
-  const trimmed = title.trim();
-  const prefix = conventions?.titlePrefix ?? null;
-  const rest = prefix && trimmed.startsWith(prefix) ? trimmed.slice(prefix.length).trim() : trimmed;
-  if (hasDraftMark(trimmed) || hasDraftMark(rest)) {
-    return 'Leave out the WIP or draft mark: GitRanks opens a pull request only once you approved it as ready.';
-  }
-  if (prefix && !trimmed.startsWith(prefix))
-    return `Start the title with \`${prefix}\`, as the repo's agent rules require.`;
-  const rule = conventions?.title ?? null;
-  if (!rule || (hardOnly && !rule.hard)) return null;
-  return titleProblemOf(rest, rule);
-}
-
-/**
- * What blocks Submit, as the approval refuses it: a missing required prefix, or a title rule the repo checks, on the
- * title without its WIP or draft marks (the approval takes them off; the list says so).
- */
-export const titleBlocks = (title: string, conventions: TitleConventions | null | undefined): boolean =>
-  Boolean(titleProblemsOf(withoutDraftMarks(title), conventions, true));
-
-/** The note on a typed WIP or draft mark: it never goes with the pull request. */
-const DRAFT_NOTE =
-  'The WIP or draft mark comes off at Submit: GitRanks opens a pull request only once you approved it as ready.';
-
-export type ChecklistItem = {
-  key: 'title' | 'cla' | 'changelog' | 'template' | 'generated';
-  /** ok: met; blocked: Submit waits on it; todo: the user's to do, nothing blocks; info: told, nothing to do. */
-  state: 'ok' | 'blocked' | 'todo' | 'info';
-  label: string;
-  detail: string | null;
-  link: string | null;
-  /** The link's words; absent: "Sign here". */
-  linkText?: string;
-  /** The title with the repo's required prefix added, when that prefix is all it misses. */
-  fix?: string;
-};
-
 /** The added lines of a changelog file in the patch: what the PR adds to the repo's changelog. */
 export function changelogLinesOf(patch: string | null | undefined, path: string | null | undefined): string[] {
   if (!patch) return [];
@@ -245,114 +185,3 @@ export function entryLineOf(lines: readonly string[]): string | null {
 /** The PR number and URL placeholders the agent writes in the changelog line; filled in once the PR opens. */
 export const fillPlaceholders = (line: string): string =>
   line.replaceAll('{{PR_NUMBER}}', '<number>').replaceAll('{{PR_URL}}', '<pull request URL>');
-
-/**
- * "This repo needs", before Submit: the title rule as typed, the CLA to sign, the changelog line the change adds, the
- * template's asks of AI-written PRs, the generated files the repo commits. Empty when the repo asks nothing we read.
- */
-export function checklistOf(
-  conventions: ContributeRepoConventions | null | undefined,
-  input: { title: string; patch: string | null | undefined },
-): ChecklistItem[] {
-  const draft = hasDraftMark(input.title.trim()) || withoutDraftMarks(input.title) !== input.title.trim();
-  if (!conventions) {
-    return draft
-      ? [{ key: 'title', state: 'todo', label: 'A title, ready for review', detail: DRAFT_NOTE, link: null }]
-      : [];
-  }
-  const items: ChecklistItem[] = [];
-  const rule = conventions.title;
-  const prefix = conventions.titlePrefix ?? null;
-  if (rule || prefix || draft) {
-    const bare = withoutDraftMarks(input.title);
-    const problem = titleProblemsOf(bare, conventions) ?? (draft ? DRAFT_NOTE : null);
-    const blocks = titleBlocks(input.title, conventions);
-    // A missing required prefix is the one problem the form can fix itself: when the title passes once it is added.
-    const prefixed = prefix && bare && !bare.startsWith(prefix) ? `${prefix} ${bare}` : null;
-    const fix = prefixed && !titleProblemsOf(prefixed, conventions) ? prefixed : undefined;
-    const form = rule?.pattern ? `the repo's own form` : rule ? `\`type(scope): summary\`` : null;
-    const starts = prefix ? `starting with \`${prefix}\`` : null;
-    const what = ['A title', form ? `in ${form}` : null, starts].filter(Boolean).join(' ');
-    items.push({
-      key: 'title',
-      state: problem ? (blocks ? 'blocked' : 'todo') : 'ok',
-      label: !rule
-        ? `${what}${prefix ? ", as the repo's agent rules require" : ', ready for review'}`
-        : rule.hard
-          ? `${what}, checked by ${rule.source}`
-          : `${what}, as ${rule.source} asks`,
-      detail:
-        problem ??
-        (rule?.pattern
-          ? `Pattern: ${rule.pattern}`
-          : conventions.titleExamples[0]
-            ? `Like: ${conventions.titleExamples[0]}`
-            : null),
-      link: null,
-      ...(fix ? { fix } : {}),
-    });
-  }
-  if (conventions.cla) {
-    const { check, signUrl, signComment } = conventions.cla;
-    const what = conventions.cla.agreement ?? 'CLA';
-    items.push({
-      key: 'cla',
-      state: 'todo',
-      label: signComment
-        ? `A signed ${what}: after the PR opens, you comment on it to sign; we can't sign for you`
-        : httpsOnly(signUrl)
-          ? `A signed ${what}: sign it after the PR opens; we can't sign for you`
-          : `A signed ${what}: the check on the PR links it after it opens; we can't sign for you`,
-      detail: signComment
-        ? `The comment, word for word: “${signComment}”. The \`${check}\` check waits for it.`
-        : `The \`${check}\` check waits for it.`,
-      link: httpsOnly(signUrl),
-      // Signed by a comment: the link is the document to read, not where to sign.
-      ...(signComment ? { linkText: `Read the ${what}` } : {}),
-    });
-  }
-  if (conventions.changelog) {
-    const entry = entryLineOf(changelogLinesOf(input.patch, conventions.changelog.path));
-    const what =
-      conventions.changelog.kind === 'CHANGESETS'
-        ? 'A changeset'
-        : conventions.changelog.kind === 'FRAGMENTS'
-          ? `A news fragment in ${conventions.changelog.path}`
-          : `A line in ${conventions.changelog.path}`;
-    items.push({
-      key: 'changelog',
-      state: entry ? 'ok' : conventions.changelog.required ? 'todo' : 'info',
-      label: `${what}${conventions.changelog.required ? '' : ', as most PRs add'}`,
-      detail: entry ? fillPlaceholders(entry) : 'This change adds none: edit the diff, or send it back to the agent.',
-      link: null,
-    });
-  }
-  if (conventions.templateByHuman) {
-    items.push({
-      key: 'template',
-      state: 'todo',
-      label: 'The description, filled in by you on GitHub after the PR opens',
-      detail:
-        "The repo's rules for AI agents forbid an agent to fill in its pull request template: the person who tested the change does. So the agent leaves it empty, and once the PR opens we show what to write in each section and which boxes to tick.",
-      link: null,
-    });
-  } else if (conventions.template?.aiAsks.length) {
-    items.push({
-      key: 'template',
-      state: 'info',
-      label: 'The template asks AI-written PRs to say so',
-      detail: conventions.template.aiAsks[0],
-      link: null,
-    });
-  }
-  if (conventions.generated.length) {
-    items.push({
-      key: 'generated',
-      state: 'info',
-      label: 'Generated files the repo commits',
-      detail: conventions.generated.join(', '),
-      link: null,
-    });
-  }
-  return items;
-}

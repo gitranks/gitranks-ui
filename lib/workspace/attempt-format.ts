@@ -6,16 +6,11 @@ import type {
   ContributeAttempt,
   ContributeAttemptCheckName,
   ContributeAttemptEndReason,
-  ContributeAttemptEvent,
   ContributeAttemptKind,
   ContributeAttemptRunner,
   ContributeAttemptState,
   ContributeCheckLimitView,
-  ContributeChecksState,
-  ContributePrState,
-  ContributeReviewDecision,
   ContributeRiskLevel,
-  ContributeSubmitStep,
 } from './contribute.types';
 import { movedAnchorOf, SETTINGS_PATHS } from './paths';
 
@@ -56,30 +51,6 @@ export const EVENT_LABELS: Record<ContributeAttemptState, string> = {
   DISCARDED: 'Discarded',
   DONE: 'Pushed to the pull request',
 };
-
-/**
- * One timeline event in words: a run's `DONE` says what it pushed (the new commits, or nothing but its replies); every
- * other state as `EVENT_LABELS` says it.
- */
-export const eventLabelOf = (
-  event: Pick<ContributeAttemptEvent, 'state'>,
-  attempt: { patch?: string | null },
-): string =>
-  event.state === 'DONE'
-    ? attempt.patch?.trim()
-      ? 'Pushed the new commits'
-      : 'Done'
-    : labelOf(EVENT_LABELS, event.state);
-
-/** States whose page changes on its own: the page reads them again every little while. */
-export const LIVE_STATES: ContributeAttemptState[] = [
-  'QUEUED',
-  'CLAIMING',
-  'RUNNING',
-  'CHECKS',
-  'PENDING_AUTOSUBMIT',
-  'SUBMITTING',
-];
 
 /** Why an attempt stopped or was discarded, in plain words. */
 export const END_REASONS: Record<ContributeAttemptEndReason, string> = {
@@ -285,7 +256,7 @@ type ReviewWaitFields = { runner?: ContributeAttemptRunner | null; kind?: Contri
  * How long a change waits in review for the user: 48 hours for a first attempt by the user's own agent (its claim
  * lapses then), seven days for the rest.
  */
-export const reviewWaitOf = (attempt: ReviewWaitFields): string =>
+const reviewWaitOf = (attempt: ReviewWaitFields): string =>
   isOwnAgent(attempt) && attempt.kind !== 'FOLLOW_UP' ? '48 hours' : 'seven days';
 
 /**
@@ -353,44 +324,6 @@ export const CHECK_LABELS: Record<ContributeAttemptCheckName, string> = {
   TEST_TOUCHED: 'A test was added or updated',
 };
 
-/** A submission's steps in order, as the stepper shows them. */
-export const SUBMIT_STEPS: { step: ContributeSubmitStep; label: string }[] = [
-  { step: 'FORK', label: 'Fork' },
-  { step: 'SYNC', label: 'Sync' },
-  { step: 'PUSH', label: 'Push' },
-  { step: 'PULL_REQUEST', label: 'Pull request' },
-];
-
-export const SUBMIT_STEP_TEXT: Record<ContributeSubmitStep, string> = {
-  QUEUED: 'Approved. The submission starts in a moment.',
-  WAITING_CAP: 'Waiting for tomorrow: the pull requests for today are all open.',
-  FORK: 'Making your fork of the repo.',
-  SYNC: 'Bringing your fork up to date with the repo.',
-  PUSH: 'Pushing the change to a branch on your fork.',
-  PULL_REQUEST: 'Opening the pull request.',
-  BODY: "Updating the pull request's description.",
-};
-
-export const PR_STATES: Record<ContributePrState, { label: string; tone: Tone }> = {
-  OPEN: { label: 'Open', tone: 'green' },
-  MERGED: { label: 'Merged', tone: 'violet' },
-  CLOSED: { label: 'Closed', tone: 'red' },
-};
-
-export const REVIEW_DECISIONS: Record<ContributeReviewDecision, string> = {
-  APPROVED: 'Approved',
-  CHANGES_REQUESTED: 'Changes requested',
-  REVIEW_REQUIRED: 'Waiting for review',
-};
-
-export const PR_CHECKS: Record<ContributeChecksState, string> = {
-  SUCCESS: 'Checks passed',
-  FAILURE: 'Checks failed',
-  ERROR: 'Checks errored',
-  PENDING: 'Checks running',
-  EXPECTED: 'Checks expected',
-};
-
 export const RISKS: Record<ContributeRiskLevel, { label: string; tone: Tone }> = {
   LOW: { label: 'Low risk', tone: 'green' },
   MEDIUM: { label: 'Medium risk', tone: 'amber' },
@@ -420,29 +353,6 @@ export const attemptTitleOf = (attempt: Pick<ContributeAttempt, 'title' | 'numbe
 
 /** The attempt's repo, `owner/name`, or a placeholder while the API does not know it. */
 export const repoOf = (attempt: Pick<ContributeAttempt, 'nameWithOwner'>) => attempt.nameWithOwner || 'a repo';
-
-/**
- * The footer line an API that does not say it (`prFooter`, before the 2026-11-03 wording) adds to a pull request it
- * opens for a reviewed change, as Markdown.
- */
-export const prFooterText = (login: string) =>
-  `🤖 Made with Claude via [gitranks.com](https://gitranks.com) · reviewed by @${login}`;
-
-/** The text as words to compare: a sentence the body says already, however it is spaced or cased (the API's own). */
-const sayingOf = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
-
-/**
- * What follows the body in the preview: the API's `prFooter` without the repo's sentence when the body says it already
- * (the API leaves it out then too), and whether a sentence is shown.
- */
-export function footerPreviewOf(footer: string, body: string): { text: string; sentence: boolean } {
-  const cut = footer.lastIndexOf('\n\n');
-  if (cut < 0) return { text: footer, sentence: false };
-  const sentence = footer.slice(0, cut);
-  return sayingOf(body).includes(sayingOf(sentence))
-    ? { text: footer.slice(cut + 2), sentence: false }
-    : { text: footer, sentence: true };
-}
 
 /** A pull request body names the issue with a closing keyword, so GitHub closes it on merge. */
 const linksIssue = (body: string, number: number) =>
@@ -508,17 +418,3 @@ export const isOwnAgent = (attempt: { runner?: string | null }): boolean => atte
  */
 export const ownAgentChangesOf = (first: { mode?: string | null; runner?: string | null }): boolean =>
   first.mode === 'LEARN' || isOwnAgent(first);
-
-/**
- * What the person pastes in their own agent for a change on their pull request: the pull request by its address, and
- * the id the agent's follow-up tool takes today, so it starts the follow-up through GitRanks; the change comes back for
- * the person to read before anything is pushed.
- */
-export const followUpPromptOf = (pullRequestUrl: string, prId: string) =>
-  `Continue my GitRanks pull request ${pullRequestUrl}: start the follow-up with start_follow_up (prId ${prId}), then submit the change for my review. Don't push anything yourself.`;
-
-/** What an attempt cost, or, for the user's own agent, which agent made it. */
-export const costOrAgentOf = (
-  attempt: { runner?: string | null; agent?: ContributeAgent | null; costUsd: number },
-  usd: (amount: number) => string,
-): string => (isOwnAgent(attempt) ? (agentLabelOf(attempt.agent) ?? 'your own agent') : usd(attempt.costUsd));

@@ -110,7 +110,7 @@ const TONES = {
  * A notice in one line, its explanation one click away under "Why?": the account's access level on a contribution's
  * page, and the maintainer's stop in its header.
  */
-export function NoticeLine({
+function NoticeLine({
   tone,
   icon,
   title,

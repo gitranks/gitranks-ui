@@ -204,8 +204,8 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // A lesson's page and its result pages stream, so their own notFound() comes too late for a 404 status: the lesson
   // is asked for here first. Missing, the lesson's 404 page answers; a paused or removed lesson of ours answers its own
   // page with a 503 or a 410 (the status a rewrite carries); a moved one redirects for good to its new address, and a
-  // renamed login goes to its current result page. None is kept by a shared cache: a lesson comes back, goes public,
-  // and a login may change again.
+  // renamed login goes to its current result page, and a result whose answers are now on its fix's page goes there for
+  // good. None is kept by a shared cache: a lesson comes back, goes public, and a login may change again.
   const lesson = request.method === 'GET' || request.method === 'HEAD' ? lessonRouteOf(request.nextUrl.pathname) : null;
   if (lesson) {
     const gate = await lessonGateOf(lesson);

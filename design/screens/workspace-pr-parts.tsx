@@ -29,9 +29,8 @@ import { pullRequestPath } from '@/lib/workspace/paths';
 import type { PullRequestPage } from '@/lib/workspace/pull-request-page.types';
 
 /**
- * The parts of a pull request's page, of Approve and of the list of pull requests, from fixtures, before a page uses
- * them. Held back from the export (`exported: false`) until the pages switch to them and today's boards of those
- * pages leave the catalogue: the export is at its file limit.
+ * The parts of a pull request's page, of Approve and of the list of pull requests, from fixtures: the parts those pages
+ * draw. Held back from the export (`exported: false`): the export is at its file limit.
  */
 
 const noop = () => {};

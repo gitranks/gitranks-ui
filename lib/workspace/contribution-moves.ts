@@ -19,7 +19,7 @@ import type { ContributePrConventionIssue, ContributePrFix } from './pr-conventi
 import type { NeedsYouKind } from './pr-moves';
 import { agentConnectedOf, type ProofStage } from './proof';
 import type { RunTrouble } from './reply-trouble';
-import { mayStartOf, pickOf } from './session-head-logic';
+import { mayStartOf } from './session-head-logic';
 import { type BounceWords, firstStatusOf, nextStatusOf, roundLeadOf, runStatusOf } from './session-status';
 import { nextRunNumberOf, proofTileStageOf, waitingThreadsOf } from './sessions';
 
@@ -461,52 +461,5 @@ export function contributionMovesOf({
 
 /** The panes a contribution shows: the first attempt, a run, or the next step (which shows the proof too). */
 export type Pane = 'first' | `run:${string}` | 'next';
-
-/** Whether a move shows on a pane: the next step's pane holds the proof's moves too. */
-export const onPane = (move: Pick<Move, 'session'>, pane: Pane) =>
-  pane === 'next' ? move.session === 'next' || move.session === 'proof' : move.session === pane;
-
-/**
- * One pane's head: a card when the pane holds a move (the one `move` names, else its first), with every other move of
- * the contribution under it; else a status line, pointing at the move another session holds.
- */
-export function headOf(
-  model: ContributionMoves,
-  pane: Pane,
-  move?: string | null,
-):
-  | { kind: 'card'; shown: Move; held: Move[]; also: Move[] }
-  | { kind: 'status'; lead: string; elsewhere: Move | null } {
-  const held = model.moves.filter((each) => onPane(each, pane));
-  if (held.length) {
-    const shown = pickOf(held, move);
-    return { kind: 'card', shown, held, also: model.moves.filter((each) => each !== shown) };
-  }
-  const ref: SessionRef = pane;
-  return { kind: 'status', lead: model.sessions[ref]?.statusLead ?? '', elsewhere: model.moves[0] ?? null };
-}
-
-/** What the replies-not-posted card says for held-back replies, among its reasons: their rows say only "Held back". */
-export const HELD_BACK_REASON = 'held_back';
-
-/**
- * The shared reasons of the replies-not-posted move covering `attemptId`'s drafts (with `HELD_BACK_REASON` when it
- * holds replies the run's plan gave back); empty when there is none.
- */
-export function cardReasonsOf(model: ContributionMoves, attemptId: string): ReadonlySet<string> {
-  const move = model.moves.find((each) => each.data.card === 'reply-failed' && each.data.runId === attemptId);
-  if (move?.data.card !== 'reply-failed') return new Set();
-  return new Set([
-    ...move.data.trouble.shared.map(({ reason }) => reason),
-    ...(move.data.heldBack.length ? [HELD_BACK_REASON] : []),
-  ]);
-}
-
-/** The words a status line's link says when the move is held elsewhere. */
-export function elsewhereLabelOf(move: Pick<Move, 'session' | 'chip'>): string {
-  if (move.session === 'next' || move.session === 'proof') return 'Your move is in the next step →';
-  if (move.session === 'first') return 'Your move is on the first attempt →';
-  return `Your move is on ${move.chip.toLowerCase()} →`;
-}
 
 export type { RunFinding };

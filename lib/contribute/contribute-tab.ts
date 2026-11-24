@@ -1,7 +1,7 @@
 import type { Route } from 'next';
 
 import type { ContributeHostedLevel, ContributeSideTotals } from '@/lib/workspace/contribute.types';
-import { pullRequestsPath } from '@/lib/workspace/paths';
+import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** The Contribute tab: its four numbers, the line over the issues, and the limit state. */
 
@@ -17,29 +17,29 @@ export type NumberTile = { value: string; label: string; href: Route };
 
 const count = (value: number | undefined) => (typeof value === 'number' ? value.toLocaleString('en-US') : '–');
 
-/** The four numbers of Contribute's pull requests, each a link to the Pull requests tab filtered to this side. */
+/** The four numbers of Contribute's pull requests, each a link to the Pull requests tab. */
 export function numberTilesOf(totals: ContributeSideTotals | null | undefined): NumberTile[] {
   const decided = totals ? totals.merged + totals.closed : 0;
   return [
     {
       value: count(totals?.merged),
       label: 'pull requests merged',
-      href: pullRequestsPath({ state: 'merged', made: 'contribute' }),
+      href: WORKSPACE_PATHS.pullRequests,
     },
     {
       value: count(totals?.open),
       label: 'open, waiting on maintainers',
-      href: pullRequestsPath({ state: 'open', made: 'contribute' }),
+      href: WORKSPACE_PATHS.pullRequests,
     },
     {
       value: count(totals?.reposHelped),
       label: 'repos helped',
-      href: pullRequestsPath({ state: 'merged', made: 'contribute' }),
+      href: WORKSPACE_PATHS.pullRequests,
     },
     {
       value: totals && decided ? `${Math.round((totals.merged / decided) * 100)}%` : '–',
       label: 'merged, of those decided',
-      href: pullRequestsPath({ made: 'contribute' }),
+      href: WORKSPACE_PATHS.pullRequests,
     },
   ];
 }

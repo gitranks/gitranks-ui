@@ -87,6 +87,3 @@ export function takePendingApproval(
     return null;
   }
 }
-
-/** A submit bounced for want of the grant: GitHub access is asked again from the review. */
-export const GRANT_BOUNCES: ReadonlySet<string> = new Set(['grant_missing', 'grant_revoked']);

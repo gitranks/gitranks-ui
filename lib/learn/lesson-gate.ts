@@ -3,7 +3,9 @@ import type { Route } from 'next';
 import { learnAddressGateOf } from './address-gate';
 import { LessonPageGateDocument, LessonResultGateDocument } from './learn.documents';
 import { type LessonRoute, lessonResultPath } from './learn-path';
-import { isContentSlug, learnLessonGonePath } from './paths';
+import { isContentSlug, learnFixAnswersPath, learnLessonGonePath } from './paths';
+import { fixAddressOf } from './walkthrough';
+import { LearnFixAddressBySlugDocument } from './walkthrough.documents';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { contributeErrorOf } from '@/lib/workspace/errors';
 
@@ -42,13 +44,13 @@ const MISSING: LessonGate = { kind: 'missing' };
 const isMissing = (answer: { __typename: string; visibility?: string } | null | undefined) =>
   !answer || (answer.__typename === 'LessonStub' && answer.visibility === 'HIDDEN');
 
-async function askGate({ slug, login }: LessonRoute): Promise<LessonGate> {
+async function askGate({ slug, login }: LessonRoute, signal: AbortSignal): Promise<LessonGate> {
   try {
     if (login === undefined) {
-      const { lessonPage } = await graphqlDirect(LessonPageGateDocument, { slug }, { source: 'ssr' });
+      const { lessonPage } = await graphqlDirect(LessonPageGateDocument, { slug }, { source: 'ssr', signal });
       return isMissing(lessonPage) ? MISSING : PAGE;
     }
-    const { lessonResult } = await graphqlDirect(LessonResultGateDocument, { slug, login }, { source: 'ssr' });
+    const { lessonResult } = await graphqlDirect(LessonResultGateDocument, { slug, login }, { source: 'ssr', signal });
     if (isMissing(lessonResult)) return MISSING;
     if (lessonResult?.__typename === 'LessonResultPage' && lessonResult.login !== login) {
       return { kind: 'redirect', path: lessonResultPath(lessonResult.head.slug, lessonResult.login) };
@@ -90,14 +92,48 @@ export async function lessonGateOf(route: LessonRoute, timeoutMs = LESSON_GATE_T
   }
 }
 
+/**
+ * A result page whose answers now live on the fix's page (`/learn/fixes/<owner>/<repo>/<n>/walkthrough/by/<login>`):
+ * there for good, shared or kept private (that page says which). Null for any other answer, a failure or an API that
+ * does not know the ask yet.
+ */
+async function movedResultOf({ slug, login }: LessonRoute, signal: AbortSignal): Promise<LessonGate | null> {
+  if (login === undefined) return null;
+  try {
+    const { learnFixAddress } = await graphqlDirect(
+      LearnFixAddressBySlugDocument,
+      { slug, login },
+      { source: 'ssr', signal },
+    );
+    const address = fixAddressOf(learnFixAddress);
+    if (!address || (address.state !== 'LIVE' && address.state !== 'PRIVATE')) return null;
+    if (!address.owner || !address.repo || !address.number) return null;
+    const pr = { nameWithOwner: `${address.owner}/${address.repo}`, number: address.number };
+    return { kind: 'redirect', path: learnFixAnswersPath(pr, address.login ?? login), permanent: true };
+  } catch {
+    return null;
+  }
+}
+
 async function fixLessonGateOf(route: LessonRoute, timeoutMs: number): Promise<LessonGate> {
+  // The asks stop once an answer is given: a late one is aborted, never left running.
+  const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<LessonGate>((resolve) => {
     timer = setTimeout(() => resolve(PAGE), timeoutMs);
   });
+  const ask = async () => {
+    // Both at once: the answers' new address wins, else the result page as before.
+    const [moved, gate] = await Promise.all([
+      movedResultOf(route, controller.signal),
+      askGate(route, controller.signal),
+    ]);
+    return moved ?? gate;
+  };
   try {
-    return await Promise.race([askGate(route), late]);
+    return await Promise.race([ask(), late]);
   } finally {
     clearTimeout(timer);
+    controller.abort();
   }
 }

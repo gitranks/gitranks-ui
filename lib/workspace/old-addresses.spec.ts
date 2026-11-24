@@ -141,3 +141,22 @@ describe('the old address of a public Learn record', () => {
     expect(redirectOf('/learn/progress/octocat/more')).toBeNull();
   });
 });
+
+describe("a pull request's old Lesson view", () => {
+  it.each([
+    ['/my/pull-requests/acme/widgets/42/lesson', '/my/pull-requests/acme/widgets/42/walkthrough'],
+    ['/my/pull-requests/acme/widgets/42/lesson/', '/my/pull-requests/acme/widgets/42/walkthrough'],
+    ['/my/pull-requests/acme/widgets/42/lesson?from=email', '/my/pull-requests/acme/widgets/42/walkthrough?from=email'],
+    ['/my/pull-requests/acme/widgets/42/earlier/A_1/lesson', '/my/pull-requests/acme/widgets/42/earlier/A_1'],
+    ['/my/pull-requests/acme/widgets/42/earlier/A_1/lesson/', '/my/pull-requests/acme/widgets/42/earlier/A_1'],
+  ])('%s goes on to %s, for good (308)', (from, to) => {
+    expect(redirectOf(from)).toEqual({ location: to, status: 308 });
+  });
+
+  it('leaves the pull request’s own pages where they are', () => {
+    expect(redirectOf('/my/pull-requests/acme/widgets/42')).toBeNull();
+    expect(redirectOf('/my/pull-requests/acme/widgets/42/walkthrough')).toBeNull();
+    expect(redirectOf('/my/pull-requests/acme/widgets/42/earlier/A_1')).toBeNull();
+    expect(redirectOf('/my/pull-requests/acme/widgets/42/runs/R_1')).toBeNull();
+  });
+});

@@ -22,13 +22,10 @@ vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 const { KeyConnect } = await import('@/components/workspace/agent/key-connect');
 const { LimitsManual } = await import('@/components/workspace/settings/limits-manual');
 const { Matching } = await import('@/components/workspace/matching');
-
-const { ReviewScreen, grantNeededOf } = await import('@/components/workspace/pull-request/review-view');
-const { NOW, settings, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
+const { settings } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { manualDraftOf } = await import('@/lib/workspace/connect-limits');
 
-import type { ContributeIssuePage, ContributeView } from '@/lib/workspace/contribute.types';
+import type { ContributeIssuePage } from '@/lib/workspace/contribute.types';
 
 const text = (html: string) =>
   html
@@ -164,77 +161,6 @@ describe('A2, matching', () => {
     expect(html).toContain('href="/contribute/start/issue"');
     expect(plain).toContain('Pick one and press Start.');
     expect(plain).toContain('See my issues');
-  });
-});
-
-describe('A4, GitHub access at the first submit', () => {
-  const review = (view: ContributeView, attempt = detail()) =>
-    renderToStaticMarkup(<ReviewScreen view={view} attempt={attempt} now={NOW} />);
-
-  it('asks for public_repo from the submit button while the grant is not connected', () => {
-    const html = review(views.firstKey);
-    const plain = text(html);
-
-    expect(html).toContain('data-grant-ask');
-    expect(plain).toContain('GitHub asks you once for one permission, public_repo');
-    expect(plain).toContain('never on private repos or workflow files');
-    expect(plain).toContain('You come back here and the PR opens.');
-    expect(plain).toContain('Allow GitHub access and open the PR');
-    expect(plain).not.toContain('Submit pull request');
-    expect(plain).not.toContain('This is your first one');
-  });
-
-  it('is the plain submit once the grant is connected, or while it cannot be granted or is not answered', () => {
-    for (const view of [views.active, { ...views.firstKey, grantAvailable: false }, views.fieldsMissing]) {
-      const plain = text(review(view));
-      expect(plain).toContain('Submit pull request');
-      expect(plain).not.toContain('Allow GitHub access');
-    }
-  });
-
-  it('asks again when the last submit bounced for want of the grant', () => {
-    const bounced = detail({
-      submit: {
-        step: 'QUEUED',
-        waitUntil: null,
-        fork: null,
-        branch: null,
-        lastError: { reason: 'grant_revoked', note: 'Allow it again from this page.', at: '2026-10-28T11:00:00.000Z' },
-      },
-    });
-
-    expect(grantNeededOf(views.active, bounced)).toBe(true);
-    // Access not connected: the grant card, the form open with the page.
-    const again = review(views.firstKey, bounced);
-    expect(again).toContain('data-submit-panel="open"');
-    expect(again).toContain('data-move="grant"');
-    expect(text(again)).toContain('Allow GitHub access to open the pull request');
-    expect(text(again)).toContain('GitHub asks you once more for public_repo.');
-    expect(text(again)).not.toContain('GitHub access for pull requests is not connected');
-    // The bounce's note is the card's to say, once.
-    expect(text(again).match(/Allow it again from this page\./g)).toHaveLength(1);
-    const errorAt = again.indexOf('data-submit-error');
-    const noteAt = again.indexOf('Allow it again from this page.');
-    expect(errorAt).toBeGreaterThan(-1);
-    expect(noteAt).toBeGreaterThan(errorAt);
-    // Said in the card, not again inside the form that follows it.
-    expect(noteAt).toBeLessThan(again.indexOf('data-pr-form'));
-    // The form is open: the card draws no primary, the form's Submit is the one.
-    const head = again.slice(again.indexOf('data-session-head'), again.indexOf('data-pr-form'));
-    expect(head).not.toContain('data-variant="default"');
-    expect(grantNeededOf(views.active, detail())).toBe(false);
-    // A grant missing at the submit and connected since asks no more.
-    const missing = detail({
-      submit: {
-        step: 'QUEUED',
-        waitUntil: null,
-        fork: null,
-        branch: null,
-        lastError: { reason: 'grant_missing', note: 'Allow it from this page.', at: '2026-10-28T11:00:00.000Z' },
-      },
-    });
-    expect(grantNeededOf(views.active, missing)).toBe(false);
-    expect(grantNeededOf(views.firstKey, missing)).toBe(true);
   });
 });
 

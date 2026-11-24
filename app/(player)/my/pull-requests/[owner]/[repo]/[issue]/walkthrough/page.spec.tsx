@@ -16,9 +16,9 @@ vi.mock('@/lib/learn/built-pages', async (original) => ({
     return approve.built;
   },
 }));
-vi.mock('@/components/workspace/pull-request/review-view', () => ({
+vi.mock('@/components/workspace/pull-request/page-read', () => ({
   lessonPageOf,
-  LessonUnavailable: () => null,
+  Unavailable: () => null,
 }));
 vi.mock('@/components/learn/walkthrough/fixer-walkthrough', () => ({ FixerWalkthroughPlayer: () => null }));
 vi.mock('@/components/learn/walkthrough/fixer-waiting', () => ({ FixerWaiting: () => null }));
@@ -58,7 +58,7 @@ describe("the fixer's walkthrough page", () => {
   it('reads the lesson as the Lesson view does, keeping the walkthrough address on a move', async () => {
     read('LESSON');
     await viewOf();
-    expect(lessonPageOf).toHaveBeenCalledWith(params, 'walkthrough');
+    expect(lessonPageOf).toHaveBeenCalledWith(params);
   });
 
   it("draws the run's parts, leading the end to the pull request's page until Approve exists", async () => {
@@ -85,6 +85,20 @@ describe("the fixer's walkthrough page", () => {
     const player = (await viewOf()) as ReactElement<{ finish: string; pullRequest: string }>;
     expect(player.props.finish).toBe(`${BASE}/approve`);
     expect(player.props.pullRequest).toBe(BASE);
+  });
+
+  it('opens Approve for a passed walkthrough, where the emails’ “Read and send” lead', async () => {
+    approve.built = true;
+    read('READY_TO_APPROVE');
+    await expect(viewOf()).rejects.toThrow(`NEXT_REDIRECT ${BASE}/approve`);
+    // While the pull request is being opened: its page, which follows the opening.
+    lessonPageOf.mockResolvedValue({
+      view: {},
+      first: { ...first, state: 'SUBMITTING' },
+      lesson: lessonAt('READY_TO_APPROVE'),
+      base: BASE,
+    });
+    await expect(viewOf()).rejects.toThrow(`NEXT_REDIRECT ${BASE}`);
   });
 
   it('says the agent is writing or rewriting the walkthrough', async () => {

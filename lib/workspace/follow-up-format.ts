@@ -1,12 +1,6 @@
-import type {
-  ContributeAttempt,
-  ContributeFollowUps,
-  ContributePrSignal,
-  ContributePrSignalKind,
-  ContributeReplyState,
-} from './contribute.types';
+import type { ContributeFollowUps, ContributePrSignal, ContributePrSignalKind } from './contribute.types';
 import { type ContributeErrorCode, contributeErrorMessage } from './errors';
-import { dayLabel, relativeLabel } from './format';
+import { dayLabel } from './format';
 
 /** What the last read of the pull request found, in plain words. */
 export const SIGNALS: Record<ContributePrSignalKind, string> = {
@@ -27,33 +21,8 @@ export const SIGNALS: Record<ContributePrSignalKind, string> = {
 /** Every kind this UI knows: what "Mark as handled" may name. */
 export const PR_SIGNAL_KINDS = Object.keys(SIGNALS) as ContributePrSignalKind[];
 
-/** `A check started failing: lint, test · 2 hours ago`. */
-export function signalText(signal: ContributePrSignal, now: Date): string {
-  // A DCO signed like a CLA (its check names it): the agreement by its own name.
-  const dco = signal.kind === 'CLA' && /\bdco\b/i.test(signal.detail ?? '');
-  const what = dco
-    ? 'Sign the Developer Certificate of Origin (DCO)'
-    : (SIGNALS[signal.kind] ?? 'Something changed on it');
-  const when = relativeLabel(signal.at, now);
-  return `${what}${signalDetailOf(signal)}${when ? ` · ${when}` : ''}`;
-}
-
-/** What a signal's detail adds after its words: `: lint, test`; '' when it adds nothing. */
-function signalDetailOf(signal: ContributePrSignal): string {
-  if (signal.kind === 'SILENT') {
-    const day = silentCloseDayOf(signal.detail);
-    return day ? `: we'll close it on ${day}` : '';
-  }
-  if (signal.kind === 'REPO_OUT') {
-    const reason = repoOutReasonOf(signal.detail);
-    return reason ? `: ${REPO_OUT_WHY[reason]}` : '';
-  }
-  const named = ['CHECK_FAILED', 'CLA', 'TITLE', 'BOT_BLOCKED', 'RUN_ENDED', 'DCO'].includes(signal.kind);
-  return named && signal.detail?.trim() ? `: ${signal.detail.trim()}` : '';
-}
-
 /** The day GitRanks closes a silent pull request (`SILENT`'s detail, an ISO day or time), as `Dec 1`; '' if unread. */
-export const silentCloseDayOf = (detail: string | null | undefined): string => dayLabel(detail?.trim() || null);
+const silentCloseDayOf = (detail: string | null | undefined): string => dayLabel(detail?.trim() || null);
 
 /** "No one has looked at this PR for 30 days. We'll close it on Dec 1 to keep your profile tidy." */
 export function silentTextOf(detail: string | null | undefined): string {
@@ -95,10 +64,6 @@ export function repoOutTextOf(reason: RepoOutReason | null): string {
     ? `This repo is out of Contribute: ${REPO_OUT_WHY[reason]}. You may want to close this PR.`
     : 'This repo is out of Contribute. You may want to close this PR.';
 }
-
-/** The note's hint when GitRanks filled it in from what waits on the pull request. */
-export const FILLED_NOTE_HINT =
-  'GitRanks filled this in from what waits on the pull request. Change it if you know better: the agent follows your note first.';
 
 /** The longest note the user can give a follow-up's agent (the API's). */
 export const FOLLOW_UP_NOTE_MAX = 2_000;
@@ -157,54 +122,6 @@ export function followUpErrorMessage(error: ContributeErrorCode, message?: strin
 
 /** A refusal of a reply, in our words, and whether approving it again can help. */
 export type ReplyRefusal = { text: string; final: boolean };
-
-const REPLY_REFUSALS: [RegExp, ReplyRefusal][] = [
-  [
-    /never pushed/i,
-    {
-      text: "This reply is about the follow-up's commits, which were never pushed to the pull request, so it cannot be posted.",
-      final: true,
-    },
-  ],
-  [
-    /not on the pull request yet|approve them first/i,
-    {
-      text: "This reply is about the follow-up's commits, which are not on the pull request yet. Push the commits first, then approve the reply.",
-      final: true,
-    },
-  ],
-  [/no longer open/i, { text: 'The pull request is no longer open, so the reply cannot be posted.', final: true }],
-  [
-    /opted out|AI-assisted/i,
-    {
-      text: "The repo's maintainers keep it out of GitRanks Contribute, so the reply cannot be posted.",
-      final: true,
-    },
-  ],
-];
-
-/** Why a reply was not posted, for the user. */
-export function replyRefusalOf(error: ContributeErrorCode, message?: string): ReplyRefusal {
-  if (error === 'NOT_FOUND') {
-    return { text: 'This reply is gone, or it is no longer yours. Reload the page.', final: true };
-  }
-  if (error === 'INVALID' && message) {
-    const known = REPLY_REFUSALS.find(([pattern]) => pattern.test(message));
-    if (known) return known[1];
-  }
-  return { text: contributeErrorMessage(error, message), final: false };
-}
-
-/** Why stopping autopilot did not go through, for the user. */
-export function vetoErrorMessage(error: ContributeErrorCode, message?: string): string {
-  if (error === 'NOT_FOUND') return 'This attempt is gone, or it is no longer yours. Reload the page.';
-  if (error === 'INVALID') {
-    return /submitted/i.test(message ?? '')
-      ? 'Autopilot submitted it just before. Reload the page to see the pull request.'
-      : 'It is no longer waiting for autopilot. Reload the page to see where it stands.';
-  }
-  return contributeErrorMessage(error, message);
-}
 
 /**
  * What a follow-up cannot do: sign a CLA, retitle (no commit), give the proof a review bot asks of the user, what a run
@@ -265,30 +182,6 @@ export function handledErrorMessage(error: ContributeErrorCode, message?: string
   }
   return contributeErrorMessage(error, message);
 }
-
-/**
- * Why a reply drafted by `followUp` cannot be posted yet, when its commits are known: they must reach the pull request
- * first. Null when it can be approved (or when it is not known; the API then says).
- */
-export function replyBlockOf(followUp: Pick<ContributeAttempt, 'state'> & { patch?: string | null }): string | null {
-  if (!followUp.patch?.trim() || followUp.state === 'DONE') return null;
-  if (followUp.state === 'STOPPED' || followUp.state === 'DISCARDED') {
-    return "This reply is about the follow-up's commits, which were never pushed to the pull request, so it cannot be posted.";
-  }
-  return "This reply is about the follow-up's commits, which are not on the pull request yet. Push them first, then approve the reply.";
-}
-
-/** Each draft's state as a short label. */
-export const REPLY_STATES: Record<
-  ContributeReplyState,
-  { label: string; tone: 'neutral' | 'violet' | 'green' | 'red' }
-> = {
-  DRAFT: { label: 'Draft', tone: 'neutral' },
-  POSTING: { label: 'Posting', tone: 'violet' },
-  POSTED: { label: 'Posted', tone: 'green' },
-  FAILED: { label: 'Not posted', tone: 'red' },
-  DISMISSED: { label: 'Dismissed', tone: 'neutral' },
-};
 
 /** The title a follow-up's approval carries: the API needs one, and ignores it for a follow-up. */
 export const followUpApprovalTitle = (prNumber: number | null | undefined) =>

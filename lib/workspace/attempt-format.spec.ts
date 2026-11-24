@@ -1,19 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  editableBodyOf,
-  endMoveOf,
-  endReasonLabelOf,
-  eventLabelOf,
-  followUpPromptOf,
-  footerPreviewOf,
-  ownAgentChangesOf,
-} from './attempt-format';
+import { editableBodyOf, endMoveOf, endReasonLabelOf, ownAgentChangesOf } from './attempt-format';
 import type { ContributeAttemptEndReason } from './contribute.types';
 
 const FOOTER =
   '<sub>Made with [GitRanks Contribute](https://gitranks.com) and Codex (GPT) · Reviewed and submitted by @octocat</sub>';
-const SENTENCE = 'This PR was written in part with the assistance of generative AI.';
 
 describe('editableBodyOf', () => {
   it('takes out our footer, the old wording and the new, whatever page it links', () => {
@@ -62,25 +53,6 @@ describe('editableBodyOf', () => {
     expect(editableBodyOf(`Done.\n\n<sub>${made}<br>${say}</sub>`)).toBe('Done.');
     expect(editableBodyOf(`Done.\n\n<sub>${made}</sub><br>\n<sub>${say}</sub>`)).toBe('Done.');
     expect(editableBodyOf(`Done.\n\n<sub>${made}</sub>`)).toBe('Done.');
-  });
-});
-
-describe('footerPreviewOf', () => {
-  it("shows the repo's sentence above the footer, unless the body says it already", () => {
-    expect(footerPreviewOf(FOOTER, 'Done.')).toEqual({ text: FOOTER, sentence: false });
-    expect(footerPreviewOf(`${SENTENCE}\n\n${FOOTER}`, 'Done.')).toEqual({
-      text: `${SENTENCE}\n\n${FOOTER}`,
-      sentence: true,
-    });
-    expect(
-      footerPreviewOf(
-        `${SENTENCE}\n\n${FOOTER}`,
-        `Done.\n\nthis PR was written in part with\nthe assistance of generative AI.`,
-      ),
-    ).toEqual({
-      text: FOOTER,
-      sentence: false,
-    });
   });
 });
 
@@ -139,29 +111,6 @@ describe("a claim the repo's rules refused at the start", () => {
     expect(endReasonLabelOf(refused(null))).toBe('It was cancelled before it finished.');
     expect(endReasonLabelOf(refused('something_else'))).toBe('It was cancelled before it finished.');
     expect(endMoveOf(refused('repo_no_gfi', 'USER'))).toBeNull();
-  });
-});
-
-describe('eventLabelOf', () => {
-  it("says what a run's DONE pushed: its new commits, or nothing", () => {
-    expect(eventLabelOf({ state: 'DONE' }, { patch: 'diff --git a/x b/x' })).toBe('Pushed the new commits');
-    expect(eventLabelOf({ state: 'DONE' }, { patch: null })).toBe('Done');
-    expect(eventLabelOf({ state: 'DONE' }, { patch: '  ' })).toBe('Done');
-  });
-
-  it('says every other state as before', () => {
-    expect(eventLabelOf({ state: 'RUNNING' }, { patch: null })).toBe('The agent started');
-    expect(eventLabelOf({ state: 'PR_OPEN' }, { patch: 'x' })).toBe('Pull request opened');
-  });
-});
-
-describe("the own agent's prompt for a change", () => {
-  it('names the pull request and the id the follow-up tool takes, and never asks the agent to push', () => {
-    const prompt = followUpPromptOf('https://github.com/driftwood-js/driftwood/pull/1419', 'PR_kwDO1419');
-    expect(prompt).toBe(
-      "Continue my GitRanks pull request https://github.com/driftwood-js/driftwood/pull/1419: start the follow-up with start_follow_up (prId PR_kwDO1419), then submit the change for my review. Don't push anything yourself.",
-    );
-    expect(prompt).not.toMatch(/\bpush (it|the|your)/i);
   });
 });
 

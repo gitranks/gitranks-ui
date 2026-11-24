@@ -18,6 +18,7 @@ import {
   onDayOf,
   type PullRequestLinks,
   ROUND_STATE_WORDS,
+  reopensRounds,
   sendRoundLabelOf,
   sendsOf,
   sentRoundMarkOf,
@@ -72,7 +73,7 @@ const focusRowIn = (list: HTMLElement | null, n: number) =>
 function closedLineOf(round: PullRequestRound, now: Date): string {
   switch (round.state) {
     case 'NOT_NEEDED':
-      return notNeededLineOf(round.notNeeded);
+      return notNeededLineOf(round.notNeeded, round.closedBy);
     case 'SENT':
       return sentLineOf(round, now);
     case 'WAITING':
@@ -113,10 +114,11 @@ function GitHubLink({ url, what }: { url: string; what: string }) {
 }
 
 /** A person's words: who, where, three lines at most, and a link to GitHub. A review that asks for changes is marked. */
-function AskFigure({ ask, after }: { ask: PullRequestRoundAsk; after?: ReactNode }) {
+function AskFigure({ ask, after, id }: { ask: PullRequestRoundAsk; after?: ReactNode; id?: string }) {
   const review = ask.kind === 'changes_requested';
   return (
     <figure
+      id={id}
       className={cn(
         'm-0 flex flex-col gap-1 rounded-lg border-l-[3px] bg-muted/40 px-3.5 py-2.5',
         review ? 'border-l-warning' : 'border-l-border',
@@ -136,6 +138,60 @@ function AskFigure({ ask, after }: { ask: PullRequestRoundAsk; after?: ReactNode
         <blockquote className="m-0 line-clamp-3 text-sm text-foreground">“{ask.excerpt}”</blockquote>
       ) : null}
     </figure>
+  );
+}
+
+/** Words that ask for nothing, each marked so, with "It does need an answer" when the page gives the press. */
+function AsksNothing({ asks, onAsks }: { asks: readonly PullRequestRoundAsk[]; onAsks?: (comment: string) => void }) {
+  return asks.map((ask, index) => <AskNothing key={`${ask.id ?? ask.author}-${index}`} ask={ask} onAsks={onAsks} />);
+}
+
+/** One of them: its button names the words it is about (who, where, what), as several sit one under the other. */
+function AskNothing({ ask, onAsks }: { ask: PullRequestRoundAsk; onAsks?: (comment: string) => void }) {
+  const id = useId();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <AskFigure
+        id={id}
+        ask={ask}
+        after={<span className={cn(PILL, 'bg-muted text-muted-foreground')}>No answer needed</span>}
+      />
+      {ask.id && onAsks ? (
+        <button
+          type="button"
+          className="self-start text-sm font-semibold text-link hover:underline max-sm:min-h-11"
+          aria-describedby={id}
+          onClick={() => ask.id && onAsks(ask.id)}
+        >
+          It does need an answer
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The words on the pull request that ask for nothing from before any round was sent, oldest first: listed on the page
+ * itself, under the rounds. Nothing without them.
+ */
+export function SinceOpened({
+  since,
+  onAsks,
+}: {
+  since: readonly PullRequestRoundAsk[];
+  onAsks?: (comment: string) => void;
+}) {
+  const id = useId();
+  if (!since.length) return null;
+  return (
+    <section className="flex flex-col gap-2" aria-labelledby={id} data-since-opened="">
+      <h2 id={id} className="m-0 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+        Since the pull request was opened
+      </h2>
+      <div className="flex flex-col gap-3 rounded-xl border bg-card p-5">
+        <AsksNothing asks={since} onAsks={onAsks} />
+      </div>
+    </section>
   );
 }
 
@@ -367,23 +423,7 @@ function OpenRound({
       ) : null}
       {round.since.length ? (
         <Section title="Since it was sent">
-          {round.since.map((ask, index) => (
-            <div key={`${ask.id ?? ask.author}-${index}`} className="flex flex-col gap-1.5">
-              <AskFigure
-                ask={ask}
-                after={<span className={cn(PILL, 'bg-muted text-muted-foreground')}>No answer needed</span>}
-              />
-              {ask.id && presses.onAsks ? (
-                <button
-                  type="button"
-                  className="self-start text-sm font-semibold text-link hover:underline max-sm:min-h-11"
-                  onClick={() => ask.id && presses.onAsks?.(ask.id)}
-                >
-                  It does need an answer
-                </button>
-              ) : null}
-            </div>
-          ))}
+          <AsksNothing asks={round.since} onAsks={presses.onAsks} />
         </Section>
       ) : null}
       {open ? (
@@ -534,7 +574,7 @@ export function RoundsList({ page, now, links = {}, initialAsking = null, initia
               now={now}
               mark={markOf(round)}
               onOpen={() => toggle(round.n, true)}
-              onReopen={presses.onReopen}
+              onReopen={reopensRounds(page) ? presses.onReopen : undefined}
             />
           ),
         )}

@@ -15,7 +15,6 @@ vi.mock('@/lib/workspace/gate.data', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
-  loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
   loadRepliesWaiting: vi.fn(),
 }));
@@ -23,9 +22,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
 const { OwnAgentBlock, OWN_AGENT_SAFETY } = await import('@/components/workspace/agent/own-agent-block');
 const { AgentScreen } = await import('@/components/workspace/agent/agent-screen');
 const { OwnAgentConnectScreen, ConnectScreen } = await import('@/components/workspace/agent/connect-view');
-const { ReviewScreen } = await import('@/components/workspace/pull-request/review-view');
 const { NOW, views, contributor } = await import('@/lib/contribute/__fixtures__/contribute-views');
-const { detail, ownAgentAttempt } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { contributeNoticesOf } = await import('@/lib/workspace/contribute-state');
 const { MCP_SETUPS, MCP_URL, exportLineOf } = await import('@/lib/workspace/mcp-setup');
 
@@ -161,83 +158,5 @@ describe('Connect, with your own agent', () => {
     expect(plain).not.toContain('GitHub access');
     expect(plain).not.toContain('What you like to work on');
     expect(plain).not.toContain('Paste the key');
-  });
-});
-
-describe('the review of a change made by your own agent', () => {
-  const ownAgentDetail = ownAgentAttempt;
-  const page = (item: typeof ownAgentAttempt) =>
-    renderToStaticMarkup(<ReviewScreen view={views.active} attempt={item} now={NOW} />);
-  /** The markup of the "What the agent did" card. */
-  const card = (html: string) => {
-    const start = html.indexOf('data-panel="agent-did"');
-    expect(start).toBeGreaterThan(-1);
-    return html.slice(start, html.indexOf('</section>', start));
-  };
-
-  it('names the agent as reported in place of a cost, and the tests as reported', () => {
-    const html = page(ownAgentDetail);
-    const plain = text(html);
-    expect(card(html)).toContain('data-agent-meta');
-    expect(text(card(html))).toContain('Made by Codex (gpt-5.5-codex), as your agent reported it.');
-    expect(html).toContain('data-panel="cost" data-own-agent=""');
-    expect(plain).toContain('Nothing on your Claude key: your agent ran on your machine.');
-    expect(plain).not.toContain('$0 of your');
-    expect(plain).toContain('Tests reported by your agent');
-  });
-
-  it('says how long the issue is held for it, and what you sent it back with in Activity', () => {
-    const html = page({
-      ...ownAgentDetail,
-      leaseUntil: '2026-10-29T12:00:00.000Z',
-      changesRequested: { note: 'Add a test for the trailing slash.', at: '2026-10-28T10:00:00.000Z' },
-    });
-    // The hold is the head's kind line to say; the decisions card no longer says it.
-    expect(text(html)).toContain('First attempt · ready for you · 1 day left');
-    expect(text(card(html))).not.toContain('held for it');
-    expect(text(card(html))).not.toContain('Add a test for the trailing slash.');
-    const activity = text(html.slice(html.indexOf('data-tab-panel="activity"')));
-    expect(activity).toContain('You sent it back on Oct 28: Add a test for the trailing slash.');
-  });
-
-  it('says your agent has not submitted yet while it works', () => {
-    const html = page({ ...ownAgentDetail, state: 'RUNNING', result: null, agent: null });
-    expect(text(card(html))).toContain("Your agent hasn't submitted yet.");
-  });
-
-  it('offers to send it back, with how many times are left, and stops offering at none', () => {
-    const plain = text(renderToStaticMarkup(<ReviewScreen view={views.active} attempt={ownAgentDetail} now={NOW} />));
-    expect(plain).toContain(
-      'Your agent sent a change Check it, then open the pull request or send it back with a note.',
-    );
-    expect(plain).toContain('Send back to my agent (2 left)');
-    const none = text(
-      renderToStaticMarkup(
-        <ReviewScreen view={views.active} attempt={{ ...ownAgentDetail, sendBacksLeft: 0 }} now={NOW} />,
-      ),
-    );
-    expect(none).toContain('It was sent back as many times as it can be.');
-    expect(none).not.toContain('Send back to my agent');
-  });
-
-  it('starts the title from the one the agent proposed', () => {
-    const html = renderToStaticMarkup(
-      <ReviewScreen
-        view={views.active}
-        attempt={{
-          ...ownAgentDetail,
-          result: ownAgentDetail.result && { ...ownAgentDetail.result, prTitle: 'fix: nested layouts' },
-        }}
-        now={NOW}
-      />,
-    );
-    expect(html).toContain('value="fix: nested layouts"');
-  });
-
-  it('keeps the hosted review as it was', () => {
-    const html = renderToStaticMarkup(<ReviewScreen view={views.active} attempt={detail()} now={NOW} />);
-    expect(html).toContain('data-panel="cost"');
-    expect(html).not.toContain('data-own-agent');
-    expect(text(html)).not.toContain('Send back to my agent');
   });
 });

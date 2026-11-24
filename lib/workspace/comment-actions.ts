@@ -115,19 +115,13 @@ export const sendsByDefault = (draft: ContributeReplyDraft) =>
  * Whether a reply's thread is resolved once it posts: a thread's reply the agent fixed or answered without a change, a
  * bot's thread, or a person's with the setting on. An unanswered setting resolves only bots' threads.
  */
-export const resolvesOf = (
+const resolvesOf = (
   draft: Pick<ContributeReplyDraft, 'comment' | 'outcome' | 'bot'>,
   resolveHumans: boolean | undefined,
 ) =>
   Boolean(draft.comment) &&
   (draft.outcome === 'FIXED' || draft.outcome === 'SKIPPED') &&
   (draft.bot === true || resolveHumans === true);
-
-/** The edit after typing `text`: writing into an empty reply ticks it; an edit never re-ticks one the user unticked. */
-export const editAfterTyping = (edit: ReplyEdit, text: string): ReplyEdit => ({
-  text,
-  send: edit.text.trim() ? edit.send : Boolean(text.trim()),
-});
 
 /** The state a pane starts with, from what the server read. */
 export function commentActionsInit(init: CommentActionsInit): CommentState {

@@ -11,9 +11,7 @@ const data = vi.hoisted(() => ({
   loadContributeActivity: vi.fn(async () => null),
   loadContributeVersion: vi.fn(async () => '4.2'),
   loadAttempt: vi.fn(),
-  loadResolveHumanThreads: vi.fn(async () => undefined),
   loadAttempts: vi.fn(),
-  loadNeedsYou: vi.fn(async () => null),
   loadPullRequestsPage: vi.fn(async () => undefined),
   loadScheduleCounts: vi.fn(async () => undefined),
   loadRepliesWaiting: vi.fn(),
@@ -57,8 +55,6 @@ vi.mock('@/lib/learn/learn.data', () => ({ loadAttemptLesson: vi.fn(async () => 
 
 const { Landing } = await import('./landing');
 const { SignInButton, SignInPanel, startSignIn } = await import('@/components/workspace/sign-in-dialog');
-const { PullRequestsView } = await import('@/components/workspace/pull-requests-view');
-const { ContributionLayout, FirstSessionView } = await import('@/components/workspace/pull-request/review-view');
 const { SettingsView } = await import('@/app/(workspace)/my/settings/components/settings-view');
 const { Dialog } = await import('@/components/ui/dialog');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
@@ -241,71 +237,24 @@ describe('the sign-in', () => {
   });
 });
 
-describe('the pages that wait for onboarding', () => {
-  const searchParams = Promise.resolve({});
-  const params = Promise.resolve({ owner: 'driftwood-js', repo: 'driftwood', issue: '871' });
-  const pages = {
-    me: () => PullRequestsView({ searchParams: Promise.resolve({}) }),
-    attempt: () => FirstSessionView({ params, searchParams: Promise.resolve({}) }),
-    layout: () => ContributionLayout({ params, children: null }),
-    settings: () => SettingsView({ searchParams }),
-  };
-
-  const visit = (page: keyof typeof pages, view: ContributeView) => {
+describe('Settings, before onboarding', () => {
+  const visit = (view: ContributeView) => {
     data.viewerLogin.mockResolvedValue('octocat');
     data.loadContribute.mockResolvedValue(view);
     data.loadIssues.mockResolvedValue(undefined);
     data.loadAttempts.mockResolvedValue(undefined);
     data.loadAttempt.mockResolvedValue(undefined);
     data.loadRepliesWaiting.mockResolvedValue([]);
-    return pages[page]();
+    return SettingsView({ searchParams: Promise.resolve({}) });
   };
 
-  it.each(['me', 'attempt', 'layout'] as const)('sends a user not onboarded from %s to the landing', async (page) => {
-    await expect(visit(page, views.midSetup)).rejects.toThrow('NEXT_REDIRECT /contribute');
-    await expect(visit(page, views.noKey)).rejects.toThrow('NEXT_REDIRECT /contribute');
-  });
-
-  it.each(['me', 'attempt', 'settings'] as const)('opens %s to an onboarded user', async (page) => {
-    await expect(visit(page, views.active)).resolves.toBeTruthy();
-  });
-
-  it("asks a visitor without a session to sign in on a contribution's page, the link their agent handed them", async () => {
-    data.viewerLogin.mockResolvedValue(null);
-    data.loadContribute.mockClear();
-    data.loadAttempt.mockClear();
-    const html = renderToStaticMarkup(await ContributionLayout({ params, children: <span data-session /> }));
-    expect(html).toContain('data-attempt-sign-in="contribution"');
-    expect(text(html)).toContain('Sign in to see this contribution');
-    expect(html).toContain('data-sign-in="attempt"');
-    expect(html).not.toContain('data-session');
-    await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).resolves.toBeNull();
-    expect(data.loadContribute).not.toHaveBeenCalled();
-    expect(data.loadAttempt).not.toHaveBeenCalled();
-  });
-
-  it('keeps the 404 for a signed-in user whose attempt it is not', async () => {
-    data.viewerLogin.mockResolvedValue('octocat');
-    data.loadContribute.mockResolvedValue(views.active);
-    data.loadAttempt.mockResolvedValue(null);
-    await expect(ContributionLayout({ params, children: null })).rejects.toThrow('NEXT_NOT_FOUND');
-    data.loadIssueAttempt.mockResolvedValueOnce(null as never);
-    await expect(ContributionLayout({ params, children: null })).rejects.toThrow('NEXT_NOT_FOUND');
-  });
-
-  it("draws a Learn attempt's Pull request view here, as a Fix attempt's", async () => {
-    data.viewerLogin.mockResolvedValue('octocat');
-    const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
-    data.loadContribute.mockResolvedValue(views.active);
-    data.loadAttempt.mockResolvedValue(detail({ mode: 'LEARN' }));
-    await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).resolves.toBeTruthy();
-    data.loadAttempt.mockResolvedValue(detail({ mode: 'FIX' }));
-    await expect(FirstSessionView({ params, searchParams: Promise.resolve({}) })).resolves.toBeTruthy();
+  it('opens to an onboarded user', async () => {
+    await expect(visit(views.active)).resolves.toBeTruthy();
   });
 
   it('keeps Settings open to a contributor mid-setup, and to an account with no contributor row yet', async () => {
-    await expect(visit('settings', views.midSetup)).resolves.toBeTruthy();
+    await expect(visit(views.midSetup)).resolves.toBeTruthy();
     // A learner who has not connected an agent comes back here from their goal: the summary opens.
-    await expect(visit('settings', views.newcomer)).resolves.toBeTruthy();
+    await expect(visit(views.newcomer)).resolves.toBeTruthy();
   });
 });

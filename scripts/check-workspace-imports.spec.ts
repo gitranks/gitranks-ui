@@ -2,7 +2,17 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { ALLOWED, crosses, crossingsOf, isChecked, moduleOf, problemsOf, zoneOf } from './check-workspace-imports.mjs';
+import {
+  ALLOWED,
+  crosses,
+  crossingsOf,
+  isChecked,
+  isServerActionSource,
+  moduleOf,
+  problemsOf,
+  serverActionsUnder,
+  zoneOf,
+} from './check-workspace-imports.mjs';
 
 describe('the workspace import rule', () => {
   it('names the folders, and leaves the site-wide modules free', () => {
@@ -213,6 +223,40 @@ const e = await import('@/lib/learn/learn-path');`;
     expect(crossingsOf(page, `import { hide } from '../../../../lib/learn/settings.actions';`)).toEqual([
       `${page} -> lib/learn/settings.actions`,
     ]);
+  });
+
+  it("reads a server action module from its file: 'use server' among the directives it starts with", () => {
+    expect(isServerActionSource("'use server';\n\nexport async function a() {}")).toBe(true);
+    expect(isServerActionSource('﻿// Changes a set.\n/* two */\n"use server"\nexport async function a() {}')).toBe(true);
+    expect(isServerActionSource("'use strict';\n'use server';\nexport async function a() {}")).toBe(true);
+    expect(isServerActionSource("import 'server-only';\n'use server';")).toBe(false);
+    expect(isServerActionSource("export const mark = 'use server';")).toBe(false);
+    expect(isServerActionSource("'use client';\nexport function A() {}")).toBe(false);
+    expect(isServerActionSource('')).toBe(false);
+  });
+
+  it('keeps every server action module off Skills, whatever its name or folder, as its file says', () => {
+    const isServerAction = serverActionsUnder('.');
+    expect(isServerAction('lib/workspace/issue-actions')).toBe(true);
+    expect(isServerAction('lib/workspace/fair-use.actions')).toBe(true);
+    expect(isServerAction('lib/workspace/actions')).toBe(true);
+    expect(isServerAction('app/following/actions')).toBe(true);
+    expect(isServerAction('lib/workspace/format')).toBe(false);
+    expect(isServerAction('lib/workspace/no-such-module')).toBe(false);
+    for (const file of ['lib/skills/x.ts', 'components/skills/x.tsx', 'app/profile/[login]/skills/page.tsx']) {
+      for (const action of ['lib/workspace/issue-actions', 'lib/workspace/fair-use.actions', 'app/following/actions']) {
+        expect(crosses(file, action, isServerAction)).toBe(true);
+      }
+      expect(crosses(file, 'lib/workspace/format', isServerAction)).toBe(false);
+      // By its name, without reading the file.
+      expect(crosses(file, 'lib/learn/settings.actions')).toBe(true);
+    }
+    expect(
+      crossingsOf('lib/skills/x.ts', `import { hide } from '@/lib/workspace/issue-actions';`, isServerAction),
+    ).toEqual(['lib/skills/x.ts -> lib/workspace/issue-actions']);
+    // Other folders keep their own rule.
+    expect(crosses('components/workspace/x.tsx', 'lib/workspace/issue-actions', isServerAction)).toBe(false);
+    expect(crosses('app/following/page.tsx', 'app/following/actions', isServerAction)).toBe(false);
   });
 
   it("keeps each product's own folders off Skills, and the Learn card's folder off Contribute", () => {

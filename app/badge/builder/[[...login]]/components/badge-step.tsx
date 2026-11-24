@@ -16,6 +16,8 @@ type BadgeStepProps = {
   changeHref: string;
   onChange: () => void;
   onPick: (offered: OfferedBadge) => void;
+  /** The builder's time, which decides the badges it offers; the alt texts read it too. */
+  now: Date;
 };
 
 /** Step 2: the entity's available badges, drawn live, grouped Shields · Cards · Charts. */
@@ -27,6 +29,7 @@ export function BadgeStep({
   changeHref,
   onChange,
   onPick,
+  now,
 }: Readonly<BadgeStepProps>) {
   const theme = usePageTheme();
 
@@ -72,7 +75,7 @@ export function BadgeStep({
                       badge={each.badge}
                       style={each.style}
                       theme={theme}
-                      alt={badgeAlt(facts, each.badge, each.style, new Date())}
+                      alt={badgeAlt(facts, each.badge, each.style, now)}
                     />
                   </button>
                 </li>

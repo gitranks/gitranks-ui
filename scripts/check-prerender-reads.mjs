@@ -7,9 +7,13 @@
 // - a module-level statement (`const startedAt = Date.now()`), read when the module is imported, by the build too.
 //
 // The reads are those Next.js refuses while prerendering: `Date.now()`, `Date()`, `new Date()` with no argument,
-// `Math.random()`, `crypto.randomUUID()` and `crypto.getRandomValues()`, each also through `globalThis`. A read inside
-// a function's body, or in a field set per instance, is the caller's to place (after `await connection()`, or inside
-// a cached read). Files marked `'use client'`, specs, tests and fixtures are not checked.
+// `Math.random()`, `crypto.randomUUID()` and `crypto.getRandomValues()`, each also through `globalThis` or a type
+// assertion, and Node's `randomUUID`, `randomBytes`, `randomInt` and `getRandomValues` imported from `crypto` or
+// `node:crypto`. A read inside a function's body, or in a field set per instance, is the caller's to place (after
+// `await connection()`, or inside a cached read); a function called where it is written runs its body there, so its
+// reads are placed with the call. A default parameter of a function whose body starts with `'use cache'` is read
+// inside the cached call. Files marked `'use client'`, specs, tests and fixtures are not checked. A class whose fields
+// read one, made with `new` in another file, is not followed.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +27,23 @@ const CALL_READS = {
   'crypto.getRandomValues': 'a random value',
 };
 
+/** Node's `crypto` functions that read a random value, by the name they are exported as. */
+const NODE_RANDOM = new Set(['randomUUID', 'randomBytes', 'randomInt', 'getRandomValues']);
+
+/** The names Node's `crypto` is imported from. */
+const NODE_CRYPTO = new Set(['crypto', 'node:crypto']);
+
+/** Expressions that only wrap another: parentheses, an optional chain, a type assertion. */
+const WRAPPERS = new Set([
+  'ChainExpression',
+  'ParenthesizedExpression',
+  'TSNonNullExpression',
+  'TSAsExpression',
+  'TSSatisfiesExpression',
+  'TSTypeAssertion',
+  'TSInstantiationExpression',
+]);
+
 /** Whether a file is checked: source under the three folders, not a spec, a test or a fixture. */
 export const isChecked = (path) =>
   /^(?:lib|components|app)\//.test(path) &&
@@ -35,8 +56,7 @@ export const isChecked = (path) =>
 export function nameOf(node) {
   if (!node) return null;
   if (node.type === 'Identifier') return node.name;
-  if (node.type === 'ChainExpression' || node.type === 'TSNonNullExpression' || node.type === 'ParenthesizedExpression')
-    return nameOf(node.expression);
+  if (WRAPPERS.has(node.type)) return nameOf(node.expression);
   if (node.type !== 'MemberExpression') return null;
   const object = nameOf(node.object);
   const property = node.computed
@@ -48,22 +68,76 @@ export function nameOf(node) {
   return object === 'globalThis' ? property : `${object}.${property}`;
 }
 
+/**
+ * The names a program imports Node's random functions under: `named` maps a local name to the function
+ * (`import { randomUUID as id } from 'node:crypto'`), `modules` holds the names the whole module is imported as.
+ */
+export function cryptoImportsOf(program) {
+  const named = new Map();
+  const modules = new Set();
+  for (const statement of program.body) {
+    if (statement.type !== 'ImportDeclaration' || !NODE_CRYPTO.has(statement.source.value)) continue;
+    if (statement.importKind === 'type') continue;
+    for (const specifier of statement.specifiers) {
+      if (specifier.type !== 'ImportSpecifier') {
+        modules.add(specifier.local.name);
+        continue;
+      }
+      const imported = specifier.imported.name ?? specifier.imported.value;
+      if (NODE_RANDOM.has(imported) && specifier.importKind !== 'type') named.set(specifier.local.name, imported);
+    }
+  }
+  return { named, modules };
+}
+
+const NO_IMPORTS = { named: new Map(), modules: new Set() };
+
 /** What a node reads, as written in the message (`Date.now()`), or null when it reads neither the clock nor chance. */
-export function readOf(node) {
+export function readOf(node, imports = NO_IMPORTS) {
   if (node.type === 'NewExpression' && nameOf(node.callee) === 'Date' && node.arguments.length === 0) {
     return { what: 'new Date()', reads: 'the clock' };
   }
   if (node.type !== 'CallExpression') return null;
   const name = nameOf(node.callee);
-  if (!name || !Object.hasOwn(CALL_READS, name)) return null;
+  if (!name) return null;
+  if (imports.named.has(name)) return { what: `${imports.named.get(name)}()`, reads: 'a random value' };
+  const [object, property, ...rest] = name.split('.');
+  if (imports.modules.has(object) && NODE_RANDOM.has(property) && !rest.length) {
+    return { what: `${name}()`, reads: 'a random value' };
+  }
+  if (!Object.hasOwn(CALL_READS, name)) return null;
   return { what: `${name}()`, reads: CALL_READS[name] };
 }
 
 const FUNCTIONS = new Set(['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression']);
 
+/** Whether a function's body starts with `'use cache'` (or one of its kinds, as `'use cache: remote'`). */
+const isCached = (fn) =>
+  fn.body?.type === 'BlockStatement' &&
+  fn.body.body.some(
+    (statement) =>
+      statement.type === 'ExpressionStatement' &&
+      typeof statement.directive === 'string' &&
+      /^use cache(?::|$)/.test(statement.directive),
+  );
+
+/** Whether the function at `ancestors[index]` is called (or made with `new`) right where it is written. */
+function isCalledInPlace(ancestors, index) {
+  let fn = ancestors[index];
+  for (let at = index - 1; at >= 0; at -= 1) {
+    const parent = ancestors[at];
+    if (!WRAPPERS.has(parent.type)) {
+      return (parent.type === 'CallExpression' || parent.type === 'NewExpression') && parent.callee === fn;
+    }
+    fn = parent;
+  }
+  return false;
+}
+
 /**
  * Where a read with these ancestors (the file's root first) runs: `default` in a function's default parameter,
- * `module` when the module is imported, null inside a function's body or a field set per instance.
+ * `module` when the module is imported, null inside a function's body or a field set per instance. The body and the
+ * defaults of a function called where it is written run where that call does.
  */
 export function placeOf(ancestors, node) {
   let child = node;
@@ -72,8 +146,13 @@ export function placeOf(ancestors, node) {
     const parent = ancestors[index];
     if (parent.type === 'AssignmentPattern' && parent.right === child) inDefault = true;
     if (FUNCTIONS.has(parent.type)) {
-      if (parent.body === child) return null;
-      if (parent.params.includes(child)) return inDefault ? 'default' : null;
+      const inPlace = isCalledInPlace(ancestors, index);
+      if (parent.body === child && !inPlace) return null;
+      if (parent.params.includes(child)) {
+        if (!inDefault || isCached(parent)) return null;
+        if (!inPlace) return 'default';
+      }
+      inDefault = false;
     }
     // A class's own field is set on each `new`; a static one when the class is defined, with the module.
     if ((parent.type === 'PropertyDefinition' || parent.type === 'AccessorProperty') && parent.value === child) {
@@ -107,10 +186,11 @@ const lineOf = (source, offset) => source.slice(0, offset).split('\n').length;
 export function problemsOf(file, source, parse) {
   const program = parse(source, { lang: langOf(file) });
   if (isClient(program)) return [];
+  const imports = cryptoImportsOf(program);
   const problems = [];
   const ancestors = [];
   const visit = (node) => {
-    const read = readOf(node);
+    const read = readOf(node, imports);
     const place = read && placeOf(ancestors, node);
     if (place) {
       const where = place === 'default' ? 'in a default parameter' : 'at module level';

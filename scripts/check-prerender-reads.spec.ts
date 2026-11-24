@@ -110,6 +110,84 @@ describe('the prerender reads guard', () => {
     ).toEqual([]);
   });
 
+  it('finds a read in the body or a default of a function called where it is written, at module level', () => {
+    const found = problems(
+      [
+        'export const x = (() => Date.now())();',
+        'export const y = (function () { return Math.random(); })();',
+        'const w = ((now = Date.now()) => now)();',
+        'const v = (async () => { await 0; return Date.now(); })();',
+        'const u = (<T,>(make: () => T) => make)(() => Date.now());',
+      ].join('\n'),
+      'lib/x/y.tsx',
+    );
+    expect(found.map((line) => line.split(' reads ')[0])).toEqual([
+      'lib/x/y.tsx:1: Date.now() at module level',
+      'lib/x/y.tsx:2: Math.random() at module level',
+      'lib/x/y.tsx:3: Date.now() at module level',
+      'lib/x/y.tsx:4: Date.now() at module level',
+    ]);
+  });
+
+  it('finds a read reached through a type assertion', () => {
+    const found = problems(
+      [
+        'const a = (Date as DateConstructor).now();',
+        'const b = (Math satisfies Math).random();',
+        'const c = (<Crypto>crypto).randomUUID();',
+        'const d = crypto!.getRandomValues(new Uint8Array(2));',
+        'export function f(now = (Date as DateConstructor)()) {}',
+      ].join('\n'),
+    );
+    expect(found.map((line) => line.split(' reads ')[0])).toEqual([
+      'lib/x/y.ts:1: Date.now() at module level',
+      'lib/x/y.ts:2: Math.random() at module level',
+      'lib/x/y.ts:3: crypto.randomUUID() at module level',
+      'lib/x/y.ts:4: crypto.getRandomValues() at module level',
+      'lib/x/y.ts:5: Date() in a default parameter',
+    ]);
+  });
+
+  it("finds Node's random functions imported from crypto, by name or with the module", () => {
+    const found = problems(
+      [
+        "import { randomUUID, randomBytes as bytes, createHash } from 'node:crypto';",
+        "import nodeCrypto, * as all from 'crypto';",
+        "import type { randomInt } from 'node:crypto';",
+        'const a = randomUUID();',
+        'const b = bytes(8);',
+        'const c = nodeCrypto.randomInt(4);',
+        'const d = all.getRandomValues(new Uint8Array(2));',
+        "const e = createHash('sha1');",
+        'export function f(id = randomUUID()) {}',
+        'export function g() { return bytes(4); }',
+      ].join('\n'),
+    );
+    expect(found.map((line) => line.split(' reads ')[0])).toEqual([
+      'lib/x/y.ts:4: randomUUID() at module level',
+      'lib/x/y.ts:5: randomBytes() at module level',
+      'lib/x/y.ts:6: nodeCrypto.randomInt() at module level',
+      'lib/x/y.ts:7: all.getRandomValues() at module level',
+      'lib/x/y.ts:9: randomUUID() in a default parameter',
+    ]);
+    // Without the import, a function of that name is the file's own.
+    expect(problems('const a = randomUUID();\nfunction randomUUID() { return 1; }')).toEqual([]);
+  });
+
+  it("leaves a default parameter of a function whose body starts with 'use cache'", () => {
+    expect(
+      problems(
+        [
+          "export async function a(now = Date.now()) { 'use cache'; return now; }",
+          "export const b = async (at = new Date()) => { 'use cache: remote'; return at; };",
+        ].join('\n'),
+      ),
+    ).toEqual([]);
+    expect(
+      problems("export async function c(now = Date.now()) { const mark = 'use cache'; return now; }"),
+    ).toHaveLength(1);
+  });
+
   it("leaves a file marked 'use client', and checks one marked 'use server' or 'use cache'", () => {
     expect(problems("'use client';\n\nconst A = Date.now();\nexport function f(now = Date.now()) {}")).toEqual([]);
     expect(problems("'use server';\nexport async function f(now = Date.now()) {}")).toHaveLength(1);

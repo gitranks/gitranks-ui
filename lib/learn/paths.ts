@@ -123,16 +123,36 @@ export const LEARN_COURSES_MARKDOWN_ROUTE = '/api/learn/courses/all.md';
  * The project a project course is about, as the API names it: a repository's `owner/name`, or an organisation's
  * login. Exactly one of the two.
  */
-export type LearnProject = { repo: string; org?: null } | { repo?: null; org: string };
+export type LearnProject = { repo: string; org?: never } | { org: string; repo?: never };
+
+type ProjectParts = { kind: 'repo'; owner: string; name: string } | { kind: 'org'; login: string };
+
+/** A project's parts; throws for a repository that is not one `owner/name`, or an empty login. */
+function partsOf(project: LearnProject): ProjectParts {
+  if (project.repo !== undefined) {
+    const [owner, name, ...rest] = project.repo.split('/');
+    if (!owner || !name || rest.length)
+      throw new Error(`A project course's repository is not owner/name: "${project.repo}"`);
+    return { kind: 'repo', owner, name };
+  }
+  if (!project.org) throw new Error("A project course's organisation has no login");
+  return { kind: 'org', login: project.org };
+}
 
 /** A repository's `owner/name` as two address segments, each encoded. */
-const repoSegments = (repo: string) => repo.split('/', 2).map(encodeURIComponent).join('/');
+const repoSegments = ({ owner, name }: { owner: string; name: string }) =>
+  `${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
 
-/** A project course's page: `/learn/repos/<owner>/<name>` for a repository, `/learn/orgs/<login>` for an organisation. */
-export const learnProjectCoursePath = (project: LearnProject) =>
-  (project.repo
-    ? `/learn/repos/${repoSegments(project.repo)}`
-    : `/learn/orgs/${encodeURIComponent(project.org ?? '')}`) as Route;
+/**
+ * A project course's page: `/learn/repos/<owner>/<name>` for a repository, `/learn/orgs/<login>` for an organisation.
+ * Throws for a repository that is not one `owner/name`, or an empty login, as the paths below do.
+ */
+export function learnProjectCoursePath(project: LearnProject): Route {
+  const parts = partsOf(project);
+  return (
+    parts.kind === 'repo' ? `/learn/repos/${repoSegments(parts)}` : `/learn/orgs/${encodeURIComponent(parts.login)}`
+  ) as Route;
+}
 /** A project course's Markdown copy, at its page's address with `.md`. */
 export const learnProjectCourseMarkdownPath = (project: LearnProject) =>
   markdownPathOf(learnProjectCoursePath(project));
@@ -144,9 +164,8 @@ export const learnProjectCourseCardPath = (project: LearnProject) => `${learnPro
  * (`fixed=1`).
  */
 export function learnProjectIssuesPath(project: LearnProject, { fixed = false }: { fixed?: boolean } = {}): Route {
-  const narrowing = project.repo
-    ? `repo=${repoSegments(project.repo)}`
-    : `org=${encodeURIComponent(project.org ?? '')}`;
+  const parts = partsOf(project);
+  const narrowing = parts.kind === 'repo' ? `repo=${repoSegments(parts)}` : `org=${encodeURIComponent(parts.login)}`;
   return `${LEARN_ISSUES_PATH}?${narrowing}${fixed ? '&fixed=1' : ''}` as Route;
 }
 
@@ -198,10 +217,12 @@ export const learnFixTag = ({ nameWithOwner, number }: PrRef) => `learn:fix:${na
  * `learn:entity:repo:<owner>/<name>` or `learn:entity:org:<login>`, in lower case (GitHub's names are not
  * case-sensitive, and an address keeps the case the visitor typed).
  */
-export const learnEntityTag = (project: LearnProject) =>
-  project.repo
-    ? `learn:entity:repo:${project.repo.toLowerCase()}`
-    : `learn:entity:org:${(project.org ?? '').toLowerCase()}`;
+export function learnEntityTag(project: LearnProject): string {
+  const parts = partsOf(project);
+  return parts.kind === 'repo'
+    ? `learn:entity:repo:${parts.owner.toLowerCase()}/${parts.name.toLowerCase()}`
+    : `learn:entity:org:${parts.login.toLowerCase()}`;
+}
 
 /**
  * A Learn card's tag as the API sends it: lower case, a login of GitHub's characters (up to 39, older logins with

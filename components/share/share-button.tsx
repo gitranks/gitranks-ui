@@ -41,6 +41,7 @@ export function ShareButton({
   const [state, setState] = useState<'idle' | 'copied' | 'refused'>('idle');
   const [url, setUrl] = useState(href);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const field = useRef<HTMLInputElement>(null);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const copy = async (address: string) => {
@@ -51,6 +52,9 @@ export function ShareButton({
       timer.current = setTimeout(() => setState('idle'), COPIED_MS);
     } catch {
       setState('refused');
+      // Refused again: the field is already there, so it takes the focus here; the first time, it takes it as it appears.
+      field.current?.focus();
+      field.current?.select();
     }
   };
 
@@ -89,6 +93,7 @@ export function ShareButton({
       </span>
       {state === 'refused' ? (
         <input
+          ref={field}
           readOnly
           // biome-ignore lint/a11y/noAutofocus: the field appears because the press could not copy; it takes the focus so the address can be copied at once.
           autoFocus

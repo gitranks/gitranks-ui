@@ -75,17 +75,35 @@ const sentence = (text: string) => (text ? `${text[0].toUpperCase()}${text.slice
 const listOf = (parts: string[]) =>
   parts.length < 2 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
 
-/** A review that asks for changes, a comment of a person, a bot's comments, a check that fails. */
+/**
+ * A review that asks for changes, a comment of a person (on a review thread or the conversation), a bot's comments, a
+ * check that fails; the note to a run of the person's own (theirs, or their agent's when it started the run), and
+ * their agent's run that stopped without sending.
+ */
 const REVIEW = 'changes_requested';
 const PERSON_COMMENTS = new Set(['comment', 'conversation']);
 const CHECK = 'check_failed';
+export const NOTE_ASK = 'note';
+export const AGENT_NOTE_ASK = 'agent_note';
+export const RUN_STOPPED_ASK = 'run_ended';
 
-type Tally = { reviews: number; comments: number; checks: number; other: number; bots: Map<string, number> };
+type Tally = {
+  reviews: number;
+  comments: number;
+  checks: number;
+  other: number;
+  bots: Map<string, number>;
+  note: 'person' | 'agent' | null;
+  stopped: boolean;
+};
 
 function tallyOf(asked: readonly PullRequestRoundAsk[]): Tally {
-  const tally: Tally = { reviews: 0, comments: 0, checks: 0, other: 0, bots: new Map() };
+  const tally: Tally = { reviews: 0, comments: 0, checks: 0, other: 0, bots: new Map(), note: null, stopped: false };
   for (const ask of asked) {
     if (ask.kind === CHECK) tally.checks += 1;
+    else if (ask.kind === NOTE_ASK) tally.note = 'person';
+    else if (ask.kind === AGENT_NOTE_ASK) tally.note = 'agent';
+    else if (ask.kind === RUN_STOPPED_ASK) tally.stopped = true;
     else if (ask.bot) tally.bots.set(ask.author, (tally.bots.get(ask.author) ?? 0) + (ask.comments ?? 1));
     else if (ask.kind === REVIEW) tally.reviews += 1;
     else if (PERSON_COMMENTS.has(ask.kind)) tally.comments += 1;
@@ -93,6 +111,9 @@ function tallyOf(asked: readonly PullRequestRoundAsk[]): Tally {
   }
   return tally;
 }
+
+const STOPPED_WORDS = 'your agent’s run stopped without sending';
+const NOTE_WORDS = { person: 'your note', agent: 'your agent’s note' } as const;
 
 /** What a round was asked, as one line: "A review asking for changes, 1 comment, 5 from CodeRabbit, 1 failing check". */
 export function askedSummaryOf(asked: readonly PullRequestRoundAsk[]): string {
@@ -107,11 +128,17 @@ export function askedSummaryOf(asked: readonly PullRequestRoundAsk[]): string {
     ...[...tally.bots].map(([bot, n]) => `${n} from ${bot}`),
     tally.checks ? count(tally.checks, 'failing check') : '',
     tally.other ? count(tally.other, 'other request') : '',
+    tally.note ? NOTE_WORDS[tally.note] : '',
+    tally.stopped ? STOPPED_WORDS : '',
   ].filter(Boolean);
   return sentence(parts.join(', '));
 }
 
-/** The box's title while a round waits: "Round 2: a review, a comment and 1 failing check to answer". */
+/**
+ * The box's title while a round waits: "Round 2: a review, a comment and 1 failing check to answer"; a round asked only
+ * by a note, "Round 2: your note to your agent" (or "Round 2: your agent's note"); one kept open only by a run that stopped, "Round 2: your
+ * agent's run stopped without sending". "Round 2 has something to answer" only when it lists nothing.
+ */
 export function roundAskTitleOf(round: Pick<PullRequestRound, 'n' | 'asked'>): string {
   const tally = tallyOf(round.asked);
   const parts = [
@@ -121,7 +148,10 @@ export function roundAskTitleOf(round: Pick<PullRequestRound, 'n' | 'asked'>): s
     tally.checks ? count(tally.checks, 'failing check') : '',
     tally.other ? count(tally.other, 'other request') : '',
   ].filter(Boolean);
-  return parts.length ? `Round ${round.n}: ${listOf(parts)} to answer` : `Round ${round.n} has something to answer`;
+  if (parts.length) return `Round ${round.n}: ${listOf(parts)} to answer`;
+  if (tally.note) return `Round ${round.n}: ${tally.note === 'agent' ? NOTE_WORDS.agent : 'your note to your agent'}`;
+  if (tally.stopped) return `Round ${round.n}: ${STOPPED_WORDS}`;
+  return `Round ${round.n} has something to answer`;
 }
 
 /** The replies a round's send posts: every one the person did not leave out. */

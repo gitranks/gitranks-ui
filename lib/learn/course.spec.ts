@@ -424,6 +424,12 @@ describe('all courses', () => {
     expect(
       topicLanguagesLineOf([{ languages: seven }, { languages: ['shell'] }, { languages: two }, { languages: seven }]),
     ).toBe("Each course's examples come in all seven languages, Shell, or Python and JavaScript.");
+    expect(
+      topicLanguagesLineOf([{ languages: seven }, { languages: ['javascript', 'python'] }, { languages: two }]),
+    ).toBe("Each course's examples come in JavaScript and Python or all seven languages.");
+    expect(topicLanguagesLineOf([{ languages: ['python', 'go', 'ruby'] }])).toBe(
+      'Every example comes in Python, Go and Ruby.',
+    );
     expect(topicLanguagesLineOf([{ languages: [] }])).toBe('Each one works in any language.');
   });
 

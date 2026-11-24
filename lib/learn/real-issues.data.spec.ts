@@ -16,7 +16,7 @@ const { loadCourseOpenIssues, loadHomeIssuesEmail, loadHomeReal, loadLessonRealM
 );
 const { NO_HOME_REAL, NO_LESSON_REAL } = await import('./real-issues');
 const { issueRows, learnFixes } = await import('./__fixtures__/issues');
-const { homeFixNeedsYou, myFixOpen } = await import('./__fixtures__/real-issues');
+const { homeFixNeedsYou, homeMergedFix, myFixOpen } = await import('./__fixtures__/real-issues');
 
 /** The API's answer to a field it does not know yet, as it throws it. */
 const unknownField = (field: string, type: string) =>
@@ -124,17 +124,46 @@ describe("Learn home's real issues", () => {
       fixes: [homeFixNeedsYou],
       issues: issueRows,
     });
-    expect(m.graphqlDirect.mock.calls.map(operationOf).sort()).toEqual(['HomeFixes', 'HomeIssues']);
+    expect(m.graphqlDirect.mock.calls.map(operationOf).sort()).toEqual(['HomeFixes', 'HomeIssues', 'HomeMerged']);
     // The list's email rides on the issues' read, for the quiet box.
     const issues = m.graphqlDirect.mock.calls.find((call) => operationOf(call) === 'HomeIssues')!;
     expect(print(issues[0])).toContain('emailOn');
+  });
+
+  it('reads the merged fix in its own operation, as the person, and makes it the box', async () => {
+    m.graphqlDirect.mockImplementation(async (document: unknown) => {
+      const name = operationOf([document]);
+      if (name === 'HomeIssues') return { learnHome: { thirdBox: { openIssues: 4 }, issues: { rows: [] } } };
+      if (name === 'HomeFixes') return { learnHome: { thirdBox: { needsYou: false, fix: null }, fixes: [] } };
+      return { learnHome: { thirdBox: { needsYou: false, merged: homeMergedFix } } };
+    });
+    expect((await loadHomeReal('octocat')).box).toEqual({ kind: 'merged', fix: homeMergedFix });
+    const merged = m.graphqlDirect.mock.calls.find((call) => operationOf(call) === 'HomeMerged')!;
+    expect(print(merged[0])).toContain('mastered');
+    // It says itself whether a fix needs the person, which wins the box when the fixes' read fails.
+    expect(print(merged[0])).toMatch(/thirdBox \{\s*needsYou/);
+    expect(merged[2]).toEqual({ source: 'ssr', githubLogin: 'octocat' });
+    // The other reads never ask for it: an API without it fails this read alone.
+    for (const call of m.graphqlDirect.mock.calls.filter((one) => operationOf(one) !== 'HomeMerged')) {
+      expect(print(call[0])).not.toContain('merged');
+    }
+  });
+
+  it("keeps today's box when the API does not know the merged fix", async () => {
+    m.graphqlDirect.mockImplementation(async (document: unknown) => {
+      const name = operationOf([document]);
+      if (name === 'HomeMerged') throw unknownField('merged', 'LearnThirdBox');
+      if (name === 'HomeIssues') return { learnHome: { thirdBox: { openIssues: 4 }, issues: { rows: [] } } };
+      return { learnHome: { thirdBox: { needsYou: false, fix: null }, fixes: [] } };
+    });
+    expect(await loadHomeReal('octocat')).toEqual({ box: { kind: 'issues', count: 4 }, fixes: [], issues: [] });
   });
 
   it('is nothing when the API knows neither, and the issues alone when the fixes fail', async () => {
     m.graphqlDirect.mockRejectedValue(unknownField('thirdBox', 'LearnHome'));
     expect(await loadHomeReal('octocat')).toEqual(NO_HOME_REAL);
     m.graphqlDirect.mockImplementation(async (document: unknown) => {
-      if (operationOf([document]) === 'HomeFixes') throw new Error('down');
+      if (operationOf([document]) !== 'HomeIssues') throw new Error('down');
       return { learnHome: { thirdBox: { openIssues: 2 }, issues: { rows: [] } } };
     });
     expect(await loadHomeReal('octocat')).toEqual({ box: { kind: 'issues', count: 2 }, fixes: [], issues: [] });

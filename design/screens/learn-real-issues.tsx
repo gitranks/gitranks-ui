@@ -25,6 +25,7 @@ import {
   homeRealFix,
   homeRealFixAt,
   homeRealIssues,
+  homeRealMerged,
   homeRealNone,
   landingFixes,
   lessonRealIssues,
@@ -162,6 +163,23 @@ export const LEARN_REAL_ISSUES_SCREENS: Screen[] = [
               />
             ))}
           </>
+        ),
+      },
+      {
+        id: 'home-merged',
+        title: "Learn home's third box: your fix merged in the last 7 days, its lesson now Mastered",
+        path: '/learn',
+        height: 1600,
+        render: () => (
+          <LearnHomeView
+            home={homeDay}
+            setup={homeSetup}
+            now={HOME_NOW}
+            timeZone={null}
+            hints
+            skillsHref="/profile/octocat/skills"
+            real={homeRealMerged}
+          />
         ),
       },
       {

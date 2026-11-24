@@ -660,9 +660,10 @@ const languageListOf = (languages: readonly string[]) => {
 
 /**
  * The line under the topic courses, from their own languages: one way when they all share it ("Every example comes in
- * all seven languages."), else each way, the most common first and ties in the API's order ("Each course's examples
- * come in all seven languages, Python and JavaScript, or Shell."). The same languages in another order are one way. A
- * course that lists no languages is left out of the line.
+ * all seven languages."), else the most common way in a sentence of its own, "Most" when it is over half of them,
+ * then the others, ties in the API's order ("Most courses show their examples in all seven languages. Others use
+ * Python and JavaScript, or Shell."). The same languages in another order are one way. A course that lists no
+ * languages is left out of the line.
  */
 export function topicLanguagesLineOf(topics: readonly Pick<LearnCourseCard, 'languages'>[]): string {
   const counts = new Map<string, { languages: readonly string[]; count: number }>();
@@ -672,11 +673,14 @@ export function topicLanguagesLineOf(topics: readonly Pick<LearnCourseCard, 'lan
     const seen = counts.get(key);
     counts.set(key, { languages: seen?.languages ?? languages, count: (seen?.count ?? 0) + 1 });
   }
-  const ways = [...counts.values()].sort((a, b) => b.count - a.count).map((way) => examplesInWords(way.languages));
+  const sorted = [...counts.values()].sort((a, b) => b.count - a.count);
+  const ways = sorted.map((way) => examplesInWords(way.languages));
   if (!ways.length) return 'Each one works in any language.';
   if (ways.length === 1) return `Every example comes in ${ways[0]}.`;
-  const last = ways.length === 2 ? ' or ' : ', or ';
-  return `Each course's examples come in ${ways.slice(0, -1).join(', ')}${last}${ways.at(-1)}.`;
+  // ", or " between the other ways, so two sets never run together.
+  const total = sorted.reduce((sum, way) => sum + way.count, 0);
+  const lead = sorted[0].count * 2 > total ? 'Most' : 'Some';
+  return `${lead} courses show their examples in ${ways[0]}. Others use ${ways.slice(1).join(', or ')}.`;
 }
 
 /** The sections of all courses, topics first, each in the API's order; a kind with no course has none. */

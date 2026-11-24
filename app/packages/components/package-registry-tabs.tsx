@@ -23,7 +23,13 @@ export const PackageRegistryTabs: FC<{ tabs: readonly PackageRegistryTab[] }> = 
     if (!current) return;
     const tab = bar.current?.querySelector<HTMLElement>('[aria-current="page"]');
     const list = tab?.closest('ul');
-    if (tab && list) revealSideways(list, tab);
+    if (!tab || !list) return;
+    revealSideways(list, tab);
+    // The list's box changes once the fonts are in, or when a phone is turned: the tab is shown again then.
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => revealSideways(list, tab));
+    observer.observe(list);
+    return () => observer.disconnect();
   }, [current]);
 
   return (

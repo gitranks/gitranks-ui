@@ -8,6 +8,7 @@ import {
   dependentsRanking,
   dependentsStarsRanking,
   downloadsRanking,
+  goDependentsStarsRanking,
   packageRankingFacts,
 } from '@/app/packages/__fixtures__/package-rankings';
 import { PackageRankingFrame, PackageRankingScreen } from '@/app/packages/components/package-ranking-view';
@@ -286,7 +287,7 @@ export const RANKINGS_SCREENS: Screen[] = [
         title: "Go, by dependents' stars (no downloads ranking)",
         path: packageRankingPath('dependents-stars', 1, 'go'),
         height: 1200,
-        render: packageRanking('dependents-stars', dependentsStarsRanking, 'go'),
+        render: packageRanking('dependents-stars', goDependentsStarsRanking, 'go'),
       },
       {
         id: 'downloads-1-phone',

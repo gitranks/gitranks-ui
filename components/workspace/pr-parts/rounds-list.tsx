@@ -99,10 +99,8 @@ function closedLineOf(round: PullRequestRound, now: Date): string {
 function placeOf(ask: PullRequestRoundAsk): string {
   switch (ask.kind) {
     case 'changes_requested':
-      // No comment counted on it: the review alone, never "with 0 comments".
-      return ask.comments === 0
-        ? 'a review'
-        : `a review with ${ask.comments ?? 1} comment${ask.comments === 1 || ask.comments == null ? '' : 's'}`;
+      // Without a count of its comments, the review alone: never "with 0 comments", nor a count we do not have.
+      return ask.comments ? `a review with ${ask.comments} comment${ask.comments === 1 ? '' : 's'}` : 'a review';
     case 'conversation':
       return 'in the conversation';
     case NOTE_ASK:
@@ -115,6 +113,12 @@ function placeOf(ask: PullRequestRoundAsk): string {
       return 'in a review thread';
   }
 }
+
+/** A bot's folded row: its comments, at least one (as the round's tally counts it), never "0 comments". */
+const botCommentsOf = (ask: PullRequestRoundAsk) => {
+  const comments = Math.max(ask.comments ?? 1, 1);
+  return `${comments} comment${comments === 1 ? '' : 's'}`;
+};
 
 /** The line's own words: the person's note and their agent's run are named so, whatever the line says. */
 const whoOf = (ask: PullRequestRoundAsk) =>
@@ -248,12 +252,7 @@ function AskedList({ asked, withChecks }: { asked: readonly PullRequestRoundAsk[
         }
         if (ask.bot) {
           return (
-            <Fold
-              key={key}
-              name={ask.author}
-              tag="bot"
-              line={`${ask.comments ?? 1} comment${ask.comments === 1 ? '' : 's'}`}
-            >
+            <Fold key={key} name={ask.author} tag="bot" line={botCommentsOf(ask)}>
               {ask.excerpt ? <p className="m-0 text-sm text-foreground">“{ask.excerpt}”</p> : null}
               <GitHubLink url={ask.url} what={`${ask.author}’s comments`} />
             </Fold>

@@ -46,7 +46,8 @@ export function PullRequestChip({ repo, pr }: { repo: string | null; pr: { numbe
 /**
  * "This is the issue, this is the pull request" (decision 5): the repo in mono, then `Issue #N ↗` and, when one
  * exists, `PR #N ↗`, both to GitHub in a new tab; then `children` (the Learn pill, a state). The row's title opens our
- * page. With no repo its name is left out and the chips are plain text. They wrap under the repo on a phone.
+ * page. With no repo its name is left out and the issue chip is plain text; a PR chip with its own GitHub address still
+ * links. They wrap under the repo on a phone.
  */
 export function RefChips({
   repo,

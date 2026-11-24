@@ -148,8 +148,8 @@ describe("the pull request page keeps today's actions", () => {
     expect(actions.retryAttempt).toHaveBeenCalledWith('A_1', 'Run the tests with --runInBand.');
     expect(router.push).toHaveBeenCalledWith('/my/pull-requests/by-attempt/A_2');
 
+    // The form closed with the call: it opens again from the box.
     await page({ box: 'STOPPED', number: null }, { retryId: 'A_1' });
-    await press(button('Keep it as it is'));
     await press(button('Try again'));
     await press(document.querySelector<HTMLButtonElement>('[data-note-form] button[type="submit"]'));
     expect(actions.retryAttempt).toHaveBeenLastCalledWith('A_1', undefined);
@@ -172,6 +172,55 @@ describe("the pull request page keeps today's actions", () => {
     for (const run of frames.splice(0)) run(0);
     expect(document.activeElement?.textContent).toMatch(/^Try again/);
     vi.restoreAllMocks();
+  });
+
+  it("says a failed call's error in the dialog, not under the box, and drops it with the form", async () => {
+    actions.retryAttempt.mockResolvedValue({ ok: false, error: 'UNKNOWN', message: 'It broke.' });
+    await page({ box: 'STOPPED', number: null }, { retryId: 'A_1' });
+    await press(button('Try again'));
+    await press(document.querySelector<HTMLButtonElement>('[data-note-form] button[type="submit"]'));
+    expect(document.querySelector('[role="dialog"] [data-pr-error]')).not.toBeNull();
+    expect(container.querySelector('[data-pr-error]')).toBeNull();
+    await press(button('Keep it as it is'));
+    expect(document.querySelector('[data-pr-error]')).toBeNull();
+  });
+
+  it('closes the form once a retry is under way, even when the next address draws this page', async () => {
+    actions.retryAttempt.mockResolvedValue({ ok: true, data: { attemptId: 'A_1' } });
+    await page({ box: 'STOPPED', number: null }, { retryId: 'A_1' });
+    await press(button('Try again'));
+    await press(document.querySelector<HTMLButtonElement>('[data-note-form] button[type="submit"]'));
+    expect(router.push).toHaveBeenCalled();
+    expect(document.querySelector('[data-note-form]')).toBeNull();
+  });
+
+  it('leaves a form whose action the page no longer offers', async () => {
+    await page({ box: 'STOPPED', number: null }, { retryId: 'A_1' });
+    await press(button('Try again'));
+    expect(document.querySelector('[data-note-form]')).not.toBeNull();
+    await page({ box: 'STOPPED', number: null }, { retryId: null });
+    expect(document.querySelector('[data-note-form]')).toBeNull();
+  });
+
+  it('keeps the form while its call runs: no close button, Escape does nothing', async () => {
+    let finish: (value: unknown) => void = () => {};
+    actions.retryAttempt.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    await page({ box: 'STOPPED', number: null }, { retryId: 'A_1' });
+    await press(button('Try again'));
+    expect(document.querySelector('[data-slot="dialog-close"]')).not.toBeNull();
+    await press(document.querySelector<HTMLButtonElement>('[data-note-form] button[type="submit"]'));
+    expect(document.querySelector('[data-slot="dialog-close"]')).toBeNull();
+    await act(async () => {
+      document
+        .querySelector('[role="dialog"]')
+        ?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(document.querySelector('[data-note-form]')).not.toBeNull();
+    await act(async () => finish({ ok: false, error: 'UNKNOWN', message: 'It broke.' }));
   });
 
   it('draws the notes and the take-down where the page gives them', async () => {

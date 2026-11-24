@@ -32,12 +32,15 @@ export function useSendKeyName() {
   return name;
 }
 
-/** The key that sends, inside a filled button: Ctrl ⏎, or ⌘ ⏎ on a Mac. Not on a phone. */
+/**
+ * The key that sends, inside a filled button: Ctrl ⏎, or ⌘ ⏎ on a Mac. Only for a fine main pointer (a mouse or a
+ * trackpad), never where touch is the main way in, whatever the screen's width: the same rule as Learn's key hints.
+ */
 export function SendKey({ name }: { name: string }) {
   const key =
     'inline-grid h-[22px] min-w-[22px] place-items-center rounded-[5px] border border-b-2 border-primary-foreground/40 px-[5px] font-mono text-[11px] leading-none';
   return (
-    <span aria-hidden="true" className="hidden items-center gap-1 sm:inline-flex" data-send-key="">
+    <span aria-hidden="true" className="hidden items-center gap-1 pointer-fine:inline-flex" data-send-key="">
       <kbd className={key}>{name}</kbd>
       <kbd className={key}>⏎</kbd>
     </span>

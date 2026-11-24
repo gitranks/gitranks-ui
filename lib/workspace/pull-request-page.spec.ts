@@ -255,6 +255,12 @@ describe('the box', () => {
       actions: [{ id: 'approve', label: 'Write the pull request' }],
     });
     expect(box(prStages.approve).text).toMatch(/^You finished the walkthrough today\./);
+    // A day that is not known leaves no gap before the full stop.
+    const undated = {
+      ...prStages.approve,
+      walkthrough: { ...prStages.approve.walkthrough, passedAt: 'x' },
+    } as PullRequestPage;
+    expect(box(undated).text).toMatch(/^You finished the walkthrough\. Nothing/);
     expect(box(prStages.opening).title).toBe('Opening your pull request');
     expect(ids(prStages.opening)).toEqual(['veto']);
     expect(openingStepOf(4).line).toBe('Step 4 of 5 · sending your change to GitHub');
@@ -302,6 +308,11 @@ describe('the box', () => {
     });
     expect(ids(prReview.sent)).toEqual(['lessonQuestions', 'lessonIssues', 'course']);
     expect(box(prReview.sent).text).toContain('went to the same pull request today');
+    const undatedSent = prPage({
+      ...prReview.sent,
+      rounds: prReview.sent.rounds.map((round) => (round.n === 2 ? { ...round, sentAt: null } : round)),
+    });
+    expect(box(undatedSent).text).toContain('went to the same pull request. We keep');
     expect(ids(prPage({ ...prReview.sent, lesson: null }))).toEqual([]);
     expect(ids(prPage({ ...prReview.sent, made: 'CONTRIBUTE', lesson: null }))).toEqual([]);
   });

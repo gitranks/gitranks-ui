@@ -6,10 +6,12 @@ const m = vi.hoisted(() => ({
   graphqlDirect: vi.fn(),
   fixesCached: vi.fn(),
   loadMaskedListReads: vi.fn(),
+  loadBlockedWalkthroughs: vi.fn(),
 }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect: m.graphqlDirect }));
 vi.mock('./issues.data', () => ({ fixesCached: m.fixesCached }));
 vi.mock('@/lib/workspace/masked-issue.data', () => ({ loadMaskedListReads: m.loadMaskedListReads }));
+vi.mock('@/lib/workspace/pull-request.data', () => ({ loadBlockedWalkthroughs: m.loadBlockedWalkthroughs }));
 
 const { loadCourseOpenIssues, loadHomeIssuesEmail, loadHomeReal, loadLessonRealMine, loadMergedFixes } = await import(
   './real-issues.data'
@@ -17,6 +19,7 @@ const { loadCourseOpenIssues, loadHomeIssuesEmail, loadHomeReal, loadLessonRealM
 const { NO_HOME_REAL, NO_LESSON_REAL } = await import('./real-issues');
 const { issueRows, learnFixes } = await import('./__fixtures__/issues');
 const { homeFixNeedsYou, homeMergedFix, myFixOpen } = await import('./__fixtures__/real-issues');
+const { prRow } = await import('@/lib/workspace/__fixtures__/pull-request');
 
 /** The API's answer to a field it does not know yet, as it throws it. */
 const unknownField = (field: string, type: string) =>
@@ -38,6 +41,7 @@ beforeEach(() => {
   for (const mock of Object.values(m)) mock.mockReset();
   m.fixesCached.mockResolvedValue(learnFixes);
   m.loadMaskedListReads.mockResolvedValue(reads);
+  m.loadBlockedWalkthroughs.mockResolvedValue(null);
 });
 
 describe('merged fixes', () => {
@@ -167,6 +171,41 @@ describe("Learn home's real issues", () => {
       return { learnHome: { thirdBox: { openIssues: 2 }, issues: { rows: [] } } };
     });
     expect(await loadHomeReal('octocat')).toEqual({ box: { kind: 'issues', count: 2 }, fixes: [], issues: [] });
+  });
+
+  it('asks whether a walkthrough in the box waits for another pass, and keeps the box when that read fails', async () => {
+    const walkthrough = prRow('WALKTHROUGH', { attemptId: 'A_1' });
+    m.graphqlDirect.mockImplementation(async (document: unknown) =>
+      operationOf([document]) === 'HomeFixes'
+        ? { learnHome: { thirdBox: { needsYou: true, fix: walkthrough }, fixes: [walkthrough] } }
+        : null,
+    );
+    m.loadBlockedWalkthroughs.mockResolvedValue(new Map([['A_1', { reason: 'A question is unclear.' }]]));
+    const home = await loadHomeReal('octocat');
+    expect(home.box).toMatchObject({ kind: 'fix', row: { walkthroughBlocked: { reason: 'A question is unclear.' } } });
+    expect(home.fixes[0].walkthroughBlocked).toEqual({ reason: 'A question is unclear.' });
+    // The read failed, or answered nothing: the box as the other reads make it.
+    for (const failed of [
+      () => m.loadBlockedWalkthroughs.mockResolvedValue(null),
+      () => m.loadBlockedWalkthroughs.mockRejectedValue(new Error('down')),
+    ]) {
+      failed();
+      expect((await loadHomeReal('octocat')).box).toEqual({
+        kind: 'fix',
+        row: walkthrough,
+        state: 'needs-you',
+        openIssues: null,
+      });
+    }
+    // A box on any other step never asks.
+    m.loadBlockedWalkthroughs.mockClear();
+    m.graphqlDirect.mockImplementation(async (document: unknown) =>
+      operationOf([document]) === 'HomeFixes'
+        ? { learnHome: { thirdBox: { needsYou: true, fix: homeFixNeedsYou }, fixes: [homeFixNeedsYou] } }
+        : null,
+    );
+    await loadHomeReal('octocat');
+    expect(m.loadBlockedWalkthroughs).not.toHaveBeenCalled();
   });
 });
 

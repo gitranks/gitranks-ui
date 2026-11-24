@@ -312,6 +312,26 @@ describe('words', () => {
     expect(fixBoxWordsOf(prRow('WALKTHROUGH'), 'needs-you').text).not.toMatch(/\d/);
   });
 
+  it('never says a walkthrough that waits for another pass is ready, and leads to its pull request page', () => {
+    const blocked = prRow('WALKTHROUGH', { walkthroughBlocked: { reason: 'A question is unclear.' } });
+    expect(fixBoxWordsOf(blocked, 'needs-you')).toEqual({
+      eyebrow: 'Your fix needs you',
+      title: 'The fix walkthrough needs another pass',
+      text: 'A question is unclear. Send it back to your agent, and it writes the questions again.',
+      button: { label: 'Send it back to your agent', to: 'fix' },
+    });
+    const noReason = { ...blocked, walkthroughBlocked: { reason: null } };
+    expect(fixBoxWordsOf(noReason, 'working')).toMatchObject({
+      title: 'The fix walkthrough needs another pass',
+      text: 'Send it back to your agent, and it writes the questions again.',
+    });
+    for (const state of ['needs-you', 'working'] as const) {
+      expect(JSON.stringify(fixBoxWordsOf(noReason, state))).not.toContain('walkthrough is ready');
+    }
+    // Without the read the box says what it said.
+    expect(fixBoxWordsOf(prRow('WALKTHROUGH'), 'needs-you').title).toBe('The fix walkthrough is ready');
+  });
+
   it('says a merged fix made its lesson Mastered only when it did', () => {
     expect(mergedBoxWordsOf(homeMergedFix)).toEqual({
       eyebrow: 'Your fix',

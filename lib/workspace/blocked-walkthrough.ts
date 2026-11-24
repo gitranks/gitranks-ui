@@ -1,4 +1,4 @@
-import type { PullRequestList } from './pull-request-page.types';
+import type { PullRequestList, PullRequestListRow } from './pull-request-page.types';
 
 /**
  * A walkthrough of an older version that the person's reports stopped: its questions need another pass by their agent.
@@ -54,14 +54,17 @@ export function blockedWalkthroughsOf(items: unknown, reasons: unknown = null): 
   return blocked;
 }
 
-/** The list with its stopped walkthroughs marked, by each row's first attempt; as it is without the read. */
+/** A row marked when its walkthrough is stopped, by its first attempt; as it is otherwise or without the read. */
+export function withBlockedWalkthrough(
+  row: PullRequestListRow,
+  blocked: BlockedWalkthroughs | null,
+): PullRequestListRow {
+  const found = row.box === 'WALKTHROUGH' ? blocked?.get(row.attemptId) : undefined;
+  return found ? { ...row, walkthroughBlocked: found } : row;
+}
+
+/** The list with its stopped walkthroughs marked; as it is without the read. */
 export function withBlockedWalkthroughs(list: PullRequestList, blocked: BlockedWalkthroughs | null): PullRequestList {
   if (!blocked?.size) return list;
-  return {
-    ...list,
-    rows: list.rows.map((row) => {
-      const found = row.box === 'WALKTHROUGH' ? blocked.get(row.attemptId) : undefined;
-      return found ? { ...row, walkthroughBlocked: found } : row;
-    }),
-  };
+  return { ...list, rows: list.rows.map((row) => withBlockedWalkthrough(row, blocked)) };
 }

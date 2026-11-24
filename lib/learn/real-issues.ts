@@ -12,6 +12,7 @@ import {
   mergedOnOf,
 } from './issues';
 import { fromLearn, LEARN_ISSUES_PATH, learnLessonRealWorldPath } from './paths';
+import { BLOCKED_WALKTHROUGH_WORDS } from '@/lib/workspace/blocked-walkthrough';
 import type { MaskedListReads } from '@/lib/workspace/masked-issue';
 import { pullRequestPath } from '@/lib/workspace/paths';
 import { needsYouRowWordsOf } from '@/lib/workspace/pull-request-list';
@@ -292,6 +293,17 @@ const WORKING_TEXT: Partial<Record<PullRequestBox, string>> = {
 
 export function fixBoxWordsOf(row: PullRequestListRow, state: HomeFixState): FixBoxWords {
   const open = { label: 'Open your contribution', to: 'fix' as const };
+  // A walkthrough that waits for another pass is never ready: its pull request's page holds the send-back.
+  const blocked =
+    row.box === 'WALKTHROUGH' && (state === 'needs-you' || state === 'working') ? row.walkthroughBlocked : null;
+  if (blocked) {
+    return {
+      eyebrow: 'Your fix needs you',
+      title: BLOCKED_WALKTHROUGH_WORDS.line,
+      text: blocked.reason ? `${blocked.reason} ${BLOCKED_WALKTHROUGH_WORDS.text}` : BLOCKED_WALKTHROUGH_WORDS.text,
+      button: { label: BLOCKED_WALKTHROUGH_WORDS.button, to: 'fix' },
+    };
+  }
   switch (state) {
     case 'needs-you': {
       const words = needsYouRowWordsOf(row);

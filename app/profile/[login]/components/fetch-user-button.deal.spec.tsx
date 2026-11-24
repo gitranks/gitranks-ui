@@ -231,8 +231,8 @@ describe('the deal on the profile', () => {
     });
     await press('Fetch profile from GitHub');
 
-    expect(dialogTitle()).toBe('Not on GitRanks yet 👀');
-    expect(dialogText()).toContain('We don’t have @octo-dev yet.');
+    expect(dialogTitle()).toBe('This one needs your token 🔑');
+    expect(dialogText()).toContain('again to get @octo-dev.');
     expect(dialogText()).not.toContain('Checking on a friend');
     expect(fetchMock).not.toHaveBeenCalled();
     await press('Use my GitHub token');

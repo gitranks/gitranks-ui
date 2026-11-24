@@ -96,7 +96,8 @@ describe("Learn's rows as the server draws them", () => {
         <NewIssuesRow setting={learnIssuesEmail.off} noAddress />
       </ul>,
     );
-    expect(none).toMatch(/role="switch"[^>]*disabled=""/);
+    // Turning it on with no address is not refused.
+    expect(none).not.toMatch(/role="switch"[^>]*disabled=""/);
     expect(none).toContain('This email needs an address, and we have none for you.');
     const on = renderToStaticMarkup(
       <ul>

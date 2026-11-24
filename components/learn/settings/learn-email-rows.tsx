@@ -192,7 +192,8 @@ export function LessonsToRepeatRow({ on: initial, noAddress = false }: { on: boo
 /**
  * "New issues for you": the switch of "A new issue for you", the same as "Email me when one appears" on Issues, off
  * until the person turns it on. Turned on here, it covers the list it covered last, else the person's list with "For
- * you" on, as Issues opens. With no address it says so and cannot be turned on, as "Lessons to repeat".
+ * you" on, as Issues opens. With no address it says so but can still be turned on, as on Issues: the email goes
+ * out once an address is known.
  */
 export function NewIssuesRow({
   setting,
@@ -259,7 +260,6 @@ export function NewIssuesRow({
           aria-describedby={`${id}-line`}
           aria-disabled={pending || undefined}
           checked={on}
-          disabled={noAddress && !on}
           onChange={(event) => change(event.target.checked)}
           className="size-4.5 accent-primary disabled:opacity-60 aria-disabled:opacity-60"
         />

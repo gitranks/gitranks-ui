@@ -12,6 +12,7 @@ import { loadAttempts, loadContribute, loadProviderInterests } from '@/lib/works
 import { contributeHomeOf } from '@/lib/workspace/contribute-state';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { hasAnyAttempt } from '@/lib/workspace/getting-in';
+import { issuePageCarriedOf } from '@/lib/workspace/masked-issue';
 import { AGENTS_DOC_PATH, GETTING_IN_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /**
@@ -45,6 +46,10 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
       )
     );
   }
+
+  // Ready now, after the setting-up: back to the page of the issue the account came from.
+  const carried = issuePageCarriedOf(params);
+  if (carried) redirect(carried);
 
   const home = contributeHomeOf(view, params);
   // The own agent's old welcome (`?welcome=agent`, from a connect page still open in a tab): the first issue while

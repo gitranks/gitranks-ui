@@ -574,6 +574,7 @@ export function AgentConnect({
   learnOpen = false,
   keyLink = true,
   onConnected,
+  onAdded,
   connectSource,
 }: {
   /** Onboarded already (a key, or another agent): the new token's first use is what the page waits for. */
@@ -593,6 +594,8 @@ export function AgentConnect({
   keyLink?: boolean;
   /** Embedded: the agent has called, with the client picked here (our guess: the call does not say which client made it). */
   onConnected?: (client: McpClient) => void;
+  /** "I added it" pressed: the person says GitRanks is in their agent now, before the agent's first call. */
+  onAdded?: () => void;
   /** Where the connect is counted from, in place of the click that led here. */
   connectSource?: ContributeSource;
 }) {
@@ -759,6 +762,7 @@ export function AgentConnect({
       onAdded={() => {
         setStage('added');
         moveFocus('hello');
+        onAdded?.();
       }}
       onReopen={() => {
         if (viaSignIn && !shown) {

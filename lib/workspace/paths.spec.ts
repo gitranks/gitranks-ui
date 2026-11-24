@@ -144,9 +144,16 @@ describe('which pages are which', () => {
     expect(at('/my/agent/connect/?proof=A_1')).toBe('/contribute/start/agent/own?proof=A_1');
     expect(at('/my/agent/connect?from=agent')).toBe('/contribute/start/agent/own?from=agent');
     expect(at('/my/agent/key')).toBe('/contribute/start/agent/key');
-    for (const path of ['/my/agent', '/my/settings', '/my/pull-requests', '/contribute/issues']) {
+    for (const path of ['/my/agent', '/my/settings', '/my/pull-requests', '/contribute/issues', '/my/issues/a/b']) {
       expect(at(path), path).toBe('/contribute');
     }
+  });
+
+  it("carries the page of one issue in the home's query, with where the person came from and their press", () => {
+    const at = (path: string) => settingUpHomeOf(new URL(path, 'https://gitranks.com'));
+    expect(at('/my/issues/q7k2m9xa?from=learn&look=1')).toBe('/contribute?issue=q7k2m9xa&from=learn&look=1');
+    expect(at('/my/issues/q7k2m9xa/')).toBe('/contribute?issue=q7k2m9xa');
+    expect(at('/my/issues/q7k2m9xa?from=elsewhere&look=yes')).toBe('/contribute?issue=q7k2m9xa');
   });
 });
 

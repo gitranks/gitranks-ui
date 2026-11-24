@@ -122,6 +122,18 @@ describe("the Start page's reads", () => {
     expect(asked()).toEqual(['StartPageIssue']);
   });
 
+  it('asks nothing again for an answer read already, and passes on its error', async () => {
+    expect(await startPageViewOf(READER, REPO, 934, 'fix', { ok: true, data: startViews.open.start })).toEqual({
+      ok: true,
+      data: startViews.open,
+    });
+    expect(await startPageViewOf(READER, REPO, 934, 'fix', { ok: false, error: 'NOT_FOUND' })).toEqual({
+      ok: false,
+      error: 'NOT_FOUND',
+    });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
   it('answers a failed ask with its error', async () => {
     graphqlDirect.mockRejectedValueOnce(schemaError());
     expect(await startPageViewOf(READER, REPO, 934, 'fix')).toEqual({ ok: false, error: 'NOT_AVAILABLE_YET' });

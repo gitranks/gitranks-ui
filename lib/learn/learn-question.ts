@@ -70,6 +70,10 @@ const LANGUAGE_NAMES: Record<string, string> = {
 /** "Python" for `python`; an unknown language's own id. */
 export const languageNameOf = (language: string) => LANGUAGE_NAMES[language] ?? language;
 
+/** "JavaScript and TypeScript" for a language course of both; "Go" for a course of one. */
+export const languageNamesOf = (languages: readonly string[]) =>
+  languages.map((language) => languageNameOf(language)).join(' and ');
+
 const recordOf = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 

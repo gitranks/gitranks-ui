@@ -5,7 +5,7 @@ import type { LearnCourseGroup, LearnDepth, LearnGroupLesson, LearnLessonLevel, 
  * of all courses and of a course draw, pure, so the pages, the copies and the specs agree.
  */
 
-/** A topic course works in any language; a language course is about one. */
+/** A topic course works in any language; a language course is about one (or JavaScript and TypeScript together). */
 export type LearnCourseKind = 'TOPIC' | 'LANGUAGE';
 
 /** A course's public numbers: each null until it is worth showing. */

@@ -18,7 +18,7 @@ import {
   type LearnCourseMine,
   learnersOf,
 } from '@/lib/learn/course';
-import { languageNameOf } from '@/lib/learn/learn-question';
+import { languageNameOf, languageNamesOf } from '@/lib/learn/learn-question';
 import { checkPath, LEARN_COURSES_PATH, learnKnownPath } from '@/lib/learn/paths';
 
 /** A number in the pages' mono face. */
@@ -93,9 +93,7 @@ export function CourseHeader({
   const progress = mine ? courseProgressLineOf(mine, course) : null;
   // A language course has one language, or two that are one language with and without types ("JavaScript and
   // TypeScript"); each example is in one of them.
-  const examplesIn = course.languages.length
-    ? course.languages.map((each) => languageNameOf(each)).join(' and ')
-    : course.name;
+  const examplesIn = course.languages.length ? languageNamesOf(course.languages) : course.name;
   return (
     <header className="flex flex-col gap-2">
       <Link href={LEARN_COURSES_PATH} className="self-start text-sm font-semibold text-link hover:underline">

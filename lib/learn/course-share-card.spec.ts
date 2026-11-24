@@ -15,6 +15,9 @@ describe("a course's picture", () => {
     expect(courseCardSubOf({ kind: 'TOPIC', languages: ['python'] })).toBe('A topic course, with examples in Python');
     expect(courseCardSubOf({ kind: 'TOPIC', languages: [] })).toBe('A topic course');
     expect(courseCardSubOf(goCourse)).toBe('A language course: Go');
+    expect(courseCardSubOf({ kind: 'LANGUAGE', languages: ['javascript', 'typescript'] })).toBe(
+      'A language course: JavaScript and TypeScript',
+    );
   });
 
   it('shows the lessons always, the learners from 10, and never a zero', () => {

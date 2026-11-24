@@ -37,6 +37,9 @@ describe("a course's Markdown copy", () => {
   it('shows no number not worth showing, and no zero', () => {
     const text = learnCourseMarkdownOf({ ...goCourse, numbers: { learners: 9, goodShare: null } });
     expect(text).toContain('A language course: Go.');
+    expect(learnCourseMarkdownOf({ ...goCourse, languages: ['javascript', 'typescript'] })).toContain(
+      'A language course: JavaScript and TypeScript.',
+    );
     expect(text).not.toMatch(/learners|rate it good|\b0\b/);
     expect(text).not.toContain('## After this course');
   });

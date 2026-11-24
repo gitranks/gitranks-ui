@@ -524,7 +524,10 @@ export function SettingsForm({
                 {textInput('maxFiles')}
               </Field>
             </div>
-            {large ? <span className="text-sm text-warning">Large pull requests are merged less often.</span> : null}
+            {/* Its place is kept, so the form below does not move as the numbers are typed. */}
+            <span className="min-h-5 text-sm text-warning" aria-live="polite" data-large-note="">
+              {large ? 'Large pull requests are merged less often.' : null}
+            </span>
           </div>
           <div className="grid gap-3.5 border-t pt-4 sm:grid-cols-2">
             <div id="open" className="scroll-mt-20">
@@ -534,12 +537,9 @@ export function SettingsForm({
                 </Field>
               ) : (
                 // A limit set for the account holds over the setting: shown, not edited. The setting is kept and
-                // saved as it is, and holds again once that limit is lifted.
-                <Field
-                  label="Open PRs at a time"
-                  htmlFor={field('openPrsAtATime')}
-                  hint="Set for your account by GitRanks."
-                >
+                // saved as it is, and holds again once that limit is lifted. Its note is under both boxes, so they
+                // stay the same.
+                <Field label="Open PRs at a time" htmlFor={field('openPrsAtATime')}>
                   <Input
                     id={field('openPrsAtATime')}
                     readOnly
@@ -555,6 +555,15 @@ export function SettingsForm({
                 {textInput('attemptsAtATime')}
               </Field>
             </div>
+            {prsOverride === null ? null : (
+              <span
+                id={`${field('openPrsAtATime')}-hint`}
+                className="text-xs text-muted-foreground sm:col-span-2"
+                data-cap-hint=""
+              >
+                Open PRs at a time is set for your account by GitRanks.
+              </span>
+            )}
           </div>
           <ReposAskLessNote text="Repos can ask for less: their rules lower these limits for their pull requests." />
           <div id="dco" className="flex scroll-mt-20 flex-col gap-2 border-t pt-4">

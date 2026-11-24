@@ -141,16 +141,15 @@ describe('a key connected before', () => {
     expect(moved['Week and day']).toBe('$40 a week: the smallest cap wins');
   });
 
-  it("says the user's own picks, not ours", () => {
+  it("says the user's own picks, not ours, and no kinds or size: neither is a choice", () => {
     const own = picked('plan', 'MAX_5X', manualDraftOf(), {
       plan: 'MAX_5X',
       settings: stored,
       preferences: { languages: ['RUST', 'GO'], topicIds: [], kinds: ['BUG'], maxSize: 'M' },
     });
 
-    expect(own.Issues).toBe('bugs, up to medium');
+    expect(own.Issues).toBeUndefined();
     expect(own.Languages).toBe('Rust, Go first');
-    expect(picked('plan', 'MAX_5X', manualDraftOf()).Issues).toBe('every kind and size');
   });
 
   it('starts the hand-set limits from the stored settings', () => {

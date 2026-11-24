@@ -19,7 +19,7 @@ import { useHashOpen } from '@/components/workspace/use-hash-open';
 import { unignoreContributeRepo } from '@/lib/contribute/actions';
 import { SOURCE_RULES, WORK_RULES } from '@/lib/contribute/set-format';
 import { cn } from '@/lib/utils';
-import type { ContributeIgnoredRepo, ContributeSet } from '@/lib/workspace/contribute.types';
+import type { ContributeIgnoredRepo, ContributeSet, ContributeSetLimits } from '@/lib/workspace/contribute.types';
 
 function Rules({ title, rules }: { title: string; rules: string[] }) {
   return (
@@ -37,8 +37,16 @@ function Rules({ title, rules }: { title: string; rules: string[] }) {
   );
 }
 
-/** The rules a repo the user adds must pass, in plain words, with how often lists are checked. */
-export function RulesContent() {
+/** "Lists hold up to 50 repos each", from the set's own caps; null when they are not known. */
+export function listCapsLineOf(limits: Pick<ContributeSetLimits, 'sources' | 'repos'> | undefined): string | null {
+  if (!limits) return null;
+  if (limits.sources === limits.repos) return `Lists hold up to ${limits.repos} repos each`;
+  return `Your stack's sources hold up to ${limits.sources} repos and your repos list up to ${limits.repos}`;
+}
+
+/** The rules a repo the user adds must pass, in plain words, with the lists' caps and how often they are checked. */
+export function RulesContent({ limits }: { limits?: Pick<ContributeSetLimits, 'sources' | 'repos'> }) {
+  const caps = listCapsLineOf(limits);
   return (
     <div className="flex flex-col gap-4" data-rules>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -49,8 +57,8 @@ export function RulesContent() {
         </div>
       </div>
       <p className="rounded-lg bg-muted px-3.5 py-2.5 text-xs text-muted-foreground">
-        Lists hold up to 50 repos each, and we check every repo for new issues every 12 hours. Repos you add are read
-        right away.
+        {caps ? `${caps}, and we` : 'We'} check every repo for new issues every 12 hours. Repos you add are read right
+        away.
       </p>
     </div>
   );
@@ -60,7 +68,16 @@ export function RulesContent() {
  * "How we pick repos" as a link-styled button that opens the rules, with Suggest a change (which closes them and opens
  * the feedback). Opens by itself when the page's URL ends in `#rules`.
  */
-export function RulesDialog({ onFeedback, className }: { onFeedback: () => void; className?: string }) {
+export function RulesDialog({
+  onFeedback,
+  className,
+  limits,
+}: {
+  onFeedback: () => void;
+  className?: string;
+  /** The set's caps, for the lists' line. */
+  limits?: Pick<ContributeSetLimits, 'sources' | 'repos'>;
+}) {
   const [open, setOpen] = useHashOpen('rules');
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -76,7 +93,7 @@ export function RulesDialog({ onFeedback, className }: { onFeedback: () => void;
             We only send PRs where they have a fair chance of being reviewed. A repo you add must pass these rules.
           </DialogDescription>
         </DialogHeader>
-        <RulesContent />
+        <RulesContent limits={limits} />
         <DialogFooter>
           <Button
             type="button"
@@ -101,7 +118,13 @@ export function IgnoredList({ set, write }: { set: ContributeSet; write: SetWrit
   return (
     <div className="flex flex-col gap-3" data-ignored>
       <span className="font-mono text-xs text-muted-foreground" data-count={set.ignore.length}>
-        <span className="text-foreground">{set.ignore.length}</span> / {set.limits.ignore}
+        {set.ignore.length ? (
+          <>
+            <span className="text-foreground">{set.ignore.length}</span> / {set.limits.ignore}
+          </>
+        ) : (
+          `Up to ${set.limits.ignore}`
+        )}
       </span>
       {set.ignore.length ? (
         <ul className="flex flex-wrap gap-1.5">

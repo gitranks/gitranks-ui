@@ -1,13 +1,14 @@
 import type { Route } from 'next';
 
-import type { ContributeIssueKind, ContributeLanguage, ContributePreferences } from '@/lib/workspace/contribute.types';
-import { KINDS, LANGUAGES } from '@/lib/workspace/format';
+import type { ContributeLanguage, ContributePreferences } from '@/lib/workspace/contribute.types';
+import { LANGUAGES } from '@/lib/workspace/format';
 
 /**
  * What a visitor picked on What you work on, carried in the address from step to step and through the GitHub sign-in
- * (getting in, §6.1): `?languages=rust,js_ts&kinds=bug,tests`, the names in lower case. Nothing is kept anywhere else.
+ * (getting in, §6.1): `?languages=rust,js_ts`, the names in lower case. Nothing is kept anywhere else. Kinds of issue are
+ * no choice: an address's `kinds` is ignored.
  */
-export type WorkPicks = { languages: ContributeLanguage[]; kinds: ContributeIssueKind[] };
+export type WorkPicks = { languages: ContributeLanguage[] };
 
 type Query = Record<string, string | string[] | undefined> | URLSearchParams;
 
@@ -25,21 +26,17 @@ function namesOf<T extends string>(value: string | undefined, table: Record<T, s
 
 /** The picks an address carries; an unknown name, an empty list or a missing one is none. */
 export function workPicksOf(query: Query): WorkPicks {
-  return {
-    languages: namesOf(paramOf(query, 'languages'), LANGUAGES),
-    kinds: namesOf(paramOf(query, 'kinds'), KINDS),
-  };
+  return { languages: namesOf(paramOf(query, 'languages'), LANGUAGES) };
 }
 
 /** Whether the address carries any pick. */
-export const hasPicks = (picks: WorkPicks): boolean => picks.languages.length > 0 || picks.kinds.length > 0;
+export const hasPicks = (picks: WorkPicks): boolean => picks.languages.length > 0;
 
-/** The query that carries the picks (`languages=…&kinds=…`, empty lists left out); empty for none. */
+/** The query that carries the picks (`languages=…`, an empty list left out); empty for none. */
 export function workPicksQuery(picks: WorkPicks): string {
   const query = new URLSearchParams();
   if (picks.languages.length) query.set('languages', picks.languages.map((name) => name.toLowerCase()).join(','));
-  if (picks.kinds.length) query.set('kinds', picks.kinds.map((name) => name.toLowerCase()).join(','));
-  // The lists' commas read better left as they are; every name is letters and `_`.
+  // The list's commas read better left as they are; every name is letters and `_`.
   return query.toString().replaceAll('%2C', ',');
 }
 
@@ -64,13 +61,13 @@ export function workStartPicksOf({
   profile,
 }: {
   signedIn: boolean;
-  saved: Pick<ContributePreferences, 'languages' | 'kinds'> | null | undefined;
+  saved: Pick<ContributePreferences, 'languages'> | null | undefined;
   address: WorkPicks;
   profile: readonly ContributeLanguage[];
 }): WorkPicks {
   if (!signedIn) return address;
-  if (saved) return { languages: [...saved.languages], kinds: [...saved.kinds] };
-  return { languages: address.languages.length ? address.languages : [...profile], kinds: address.kinds };
+  if (saved) return { languages: [...saved.languages] };
+  return { languages: address.languages.length ? address.languages : [...profile] };
 }
 
 /** Whether the profile's languages are asked for: signed in, nothing saved, and no languages in the address. */

@@ -25,11 +25,9 @@ import { plural } from '@/lib/workspace/format';
 
 const draftOf = (preferences: ContributePreferences | null): PreferencesDraft => ({
   languages: preferences?.languages ?? [],
-  kinds: preferences?.kinds ?? [],
-  maxSize: preferences?.maxSize ?? null,
 });
 
-/** Languages, kinds and size, with the topics counted, and why they apply. */
+/** The languages, with the topics counted, and why they apply. */
 export function PreferencesForm({
   preferences,
   modes,
@@ -58,8 +56,8 @@ export function PreferencesForm({
 }
 
 /**
- * The preferences' row on the Settings summary: languages, kinds and size in short, and Edit, which opens them in a
- * dialog saved with one button. Opens by itself at `#work`, where links to them point.
+ * The languages' row on the Settings work page: the languages in short, and Edit, which opens them in a dialog saved
+ * with one button. Opens by itself at `#work`, where links to them point.
  */
 export function PreferencesSection({
   preferences,
@@ -76,7 +74,7 @@ export function PreferencesSection({
   const [saved, setSaved] = useState<PreferencesDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const title = modes ? 'Filters' : 'What you work on';
+  const title = 'Languages';
 
   const change = (next: boolean) => {
     if (pending) return;
@@ -113,7 +111,7 @@ export function PreferencesSection({
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
               {modes
-                ? 'Filters on top of where your issues come from, in every mode. Filled from your profile.'
+                ? 'Issues are matched to these in every mode. Filled from your profile.'
                 : 'Filled from your profile. Add or remove anything.'}
             </DialogDescription>
           </DialogHeader>

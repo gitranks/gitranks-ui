@@ -56,7 +56,7 @@ const hrefs = (selector: string) => $$(selector).map((node) => node.getAttribute
 
 describe('Issues', () => {
   it("draws a visitor's five with their lesson lines, all new, no switch, and the sign-in under them", async () => {
-    await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'visitor', rows: visitorRows }} />);
+    await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'visitor', rows: visitorRows }} everyone />);
     expect($('main')?.getAttribute('data-issues')).toBe('visitor');
     expect($('h1')?.textContent).toBe('Real issues and fixes');
     expect($$('[data-masked-row], li')).not.toHaveLength(0);
@@ -68,6 +68,14 @@ describe('Issues', () => {
     await act(async () => ($('[data-issues-visitor-note] button') as HTMLButtonElement).click());
     expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/issues' });
     expect(hrefs('[data-issues-foot] a')).toEqual(['/learn/issues.md', '/learn/about', '/learn/maintainers']);
+  });
+
+  it('links the Markdown copy only while Learn is open to everyone, where it answers', async () => {
+    await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'personal', list: personalList() }} />);
+    expect(hrefs('[data-issues-foot] a')).toEqual(['/learn/about', '/learn/maintainers']);
+    expect($('[data-issues-foot]')?.textContent).toBe('How Learn works · For maintainers');
+    await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'personal', list: personalList() }} everyone />);
+    expect(hrefs('[data-issues-foot] a')[0]).toBe('/learn/issues.md');
   });
 
   it('holds the sign-in back while the signed-in list is read', async () => {
@@ -97,6 +105,32 @@ describe('Issues', () => {
     expect($('[data-issues-clear]')).toBeNull();
   });
 
+  it("shows no count while a new view is read: the counts on the screen are the last view's", async () => {
+    await render(
+      <IssuesScreen view={views.learned} layer={{ kind: 'personal', list: personalList(), pending: true }} />,
+    );
+    const switches = $$('[data-issues-switch]');
+    expect(switches.map((node) => [node.textContent, node.getAttribute('aria-checked')])).toEqual([
+      ['For you', 'true'],
+      ['Lessons I learned', 'true'],
+    ]);
+  });
+
+  it('presses a switch with Space as a click does, and leaves other keys alone', async () => {
+    await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'personal', list: personalList() }} />);
+    const learned = $('[data-issues-switch="learned"]') as HTMLAnchorElement;
+    const clicks = vi.fn((event: Event) => event.preventDefault());
+    learned.addEventListener('click', clicks);
+    const space = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    await act(async () => learned.dispatchEvent(space));
+    expect(space.defaultPrevented).toBe(true);
+    expect(clicks).toHaveBeenCalledTimes(1);
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    await act(async () => learned.dispatchEvent(tab));
+    expect(tab.defaultPrevented).toBe(false);
+    expect(clicks).toHaveBeenCalledTimes(1);
+  });
+
   it('names an issue whose project the person named, over its facts', async () => {
     await render(
       <IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'personal', list: personalList({ rows: [namedRow] }) }} />,
@@ -122,6 +156,15 @@ describe('Issues', () => {
       '/learn/lessons/find-duplicates-with-a-set/real-world?learned=1',
     ]);
     expect($('[data-issues-clear]')?.getAttribute('href')).toBe('/learn/issues');
+    await render(
+      <IssuesScreen
+        view={views.lesson}
+        at="lesson"
+        names={issuesNames}
+        layer={{ kind: 'personal', list: personalList() }}
+        everyone
+      />,
+    );
     expect(hrefs('[data-issues-foot] a')[0]).toBe('/learn/lessons/find-duplicates-with-a-set/real-world.md');
   });
 
@@ -191,6 +234,24 @@ describe('Issues', () => {
     expect($('[role="alert"]')?.textContent).toBe('Not saved.');
   });
 
+  it("moves the focus to the button that takes the pressed one's place, and only after a press", async () => {
+    const press = vi.fn();
+    await render(<IssuesEmail state={{ kind: 'on', to: 'y***@example.com' }} onTurnOff={press} />);
+    // Drawn on, with no press: the focus stays where it is.
+    expect(document.activeElement).toBe(document.body);
+    await render(<IssuesEmail state={{ kind: 'off' }} onTurnOn={press} />);
+    expect(document.activeElement).toBe(document.body);
+
+    await act(async () => ($('button') as HTMLButtonElement).click());
+    await render(<IssuesEmail state={{ kind: 'no-address' }} onTurnOff={press} />);
+    expect(document.activeElement?.textContent).toBe('Turn off');
+
+    await act(async () => ($('button') as HTMLButtonElement).click());
+    await render(<IssuesEmail state={{ kind: 'off' }} onTurnOn={press} />);
+    expect(document.activeElement?.textContent).toBe('Email me when one appears');
+    expect(press).toHaveBeenCalledTimes(2);
+  });
+
   it('offers "Turn off “Lessons I learned”" when issues wait behind it', async () => {
     await render(
       <IssuesScreen view={views.learned} layer={{ kind: 'personal', list: listNone({ learnedCount: 40 }) }} />,
@@ -211,7 +272,12 @@ describe('Issues', () => {
     );
     expect($$('[data-issues-switch]')).toHaveLength(0);
     await render(
-      <IssuesScreen view={views.courseFixed} names={issuesNames} layer={{ kind: 'fixed', fixes: learnFixes }} />,
+      <IssuesScreen
+        view={views.courseFixed}
+        names={issuesNames}
+        layer={{ kind: 'fixed', fixes: learnFixes }}
+        everyone
+      />,
     );
     expect($$('[data-issues-switch]')).toHaveLength(0);
     expect($$('[data-issues-chip]').map((node) => node.getAttribute('data-issues-chip'))).toEqual(['course', 'fixed']);
@@ -220,6 +286,11 @@ describe('Issues', () => {
       'lumen-data/importer#93',
     ]);
     const first = $('[data-fix-row]')?.textContent ?? '';
+    expect($('[data-fix-row] [data-fix-title]')?.textContent).toBe('Webhook deliveries were processed twice');
+    // The fix's own page is not there yet: its title is plain text, and nothing links to it.
+    expect($('[data-fix-row] [data-fix-title]')?.closest('a')).toBeNull();
+    expect(hrefs('[data-fix-row] a').some((href) => href?.startsWith('/learn/fixes'))).toBe(false);
+    expect(text()).not.toContain('Open the fix');
     expect(first).toContain('fixed by octocat');
     expect(first).toContain('Used Find duplicates in one pass with a set.');
     expect(first).toContain('merged 18 Nov');

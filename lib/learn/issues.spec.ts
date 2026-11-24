@@ -221,13 +221,25 @@ describe('rows', () => {
     ]);
   });
 
-  it("takes the skip's next issue when the list cannot be read again, and drops the row with nothing new", () => {
+  it("takes the skip's next issue only when the list cannot be read again, and drops the row with nothing new", () => {
     const next = maskedIssue({ id: 'next0001' });
-    const after = rowsAfterSkip(issueRows, issueRows[0].issue.id, null, bareRowOf(next));
+    const after = rowsAfterSkip(issueRows, issueRows[0].issue.id, null, { fallback: bareRowOf(next) });
     expect(after[0]).toEqual({ issue: next, full: null, lesson: null, why: 'NO_LESSON', learnOnly: false });
     expect(rowsAfterSkip(issueRows, issueRows[0].issue.id, issueRows)).toHaveLength(4);
+    // A read that answered with nothing new drops the row: the next issue never stands in then.
+    const dropped = rowsAfterSkip(issueRows, issueRows[0].issue.id, issueRows, { fallback: bareRowOf(next) });
+    expect(dropped.map((row) => row.issue.id)).toEqual(issueRows.slice(1).map((row) => row.issue.id));
+    expect(rowsAfterSkip(issueRows, issueRows[0].issue.id, [], { fallback: bareRowOf(next) })).toHaveLength(4);
     // A fallback already on the screen is not drawn twice.
-    expect(rowsAfterSkip(issueRows, issueRows[0].issue.id, null, issueRows[1])).toHaveLength(4);
+    expect(rowsAfterSkip(issueRows, issueRows[0].issue.id, null, { fallback: issueRows[1] })).toHaveLength(4);
+  });
+
+  it('never brings back a row skipped earlier in the view', () => {
+    const fresh = { ...issueRows[0], issue: maskedIssue({ id: 'fresh001' }) };
+    const shown = issueRows.slice(1);
+    const read = [issueRows[0], fresh];
+    const after = rowsAfterSkip(shown, shown[0].issue.id, read, { leftOut: [issueRows[0].issue.id] });
+    expect(after[0].issue.id).toBe('fresh001');
   });
 });
 

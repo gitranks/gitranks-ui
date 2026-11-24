@@ -1,5 +1,6 @@
 import {
   ISSUES_DESCRIPTION,
+  ISSUES_FAILED,
   ISSUES_TITLE,
   ISSUES_UNAVAILABLE,
   type IssuesAt,
@@ -77,21 +78,25 @@ export function learnIssuesMarkdownOf(
   return lines.join('\n');
 }
 
-/** The copy as an answer; not found while Learn is not open to everyone, never kept then. */
+/**
+ * The copy as an answer; not found while Learn is not open to everyone, never kept then. A read that failed (not the
+ * API answering none, which the copy says) answers 503, never kept either, so the next ask reads again.
+ */
 export async function learnIssuesMarkdownResponse(
   open: () => Promise<boolean>,
-  read: () => Promise<{ rows: readonly IssuesRow[] | null; names: IssuesNames }>,
+  read: () => Promise<{ rows: readonly IssuesRow[] | null; failed?: boolean; names: IssuesNames }>,
   view: IssuesView,
   at: IssuesAt,
 ): Promise<Response> {
-  const notFound = () =>
-    new Response('Not found.\n', {
-      status: 404,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' },
+  const plain = (text: string, status: number, cache = 'private, no-store') =>
+    new Response(`${text}\n`, {
+      status,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': cache },
     });
-  if (!(await open().catch(() => false))) return notFound();
-  const { rows, names } = await read();
-  if ((at === 'lesson' && !names.lesson) || (at === 'course' && !names.course)) return notFound();
+  if (!(await open().catch(() => false))) return plain('Not found.', 404);
+  const { rows, failed = false, names } = await read();
+  if ((at === 'lesson' && !names.lesson) || (at === 'course' && !names.course)) return plain('Not found.', 404);
+  if (failed) return plain(ISSUES_FAILED, 503, 'no-store');
   return new Response(learnIssuesMarkdownOf(view, rows, { at, names }), {
     headers: { ...LESSON_MARKDOWN_HEADERS, Link: `<${issuesCanonicalOf(view, at)}>; rel="canonical"` },
   });

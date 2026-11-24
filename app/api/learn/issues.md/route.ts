@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     () => learnOpenToEveryone(Date.now()),
     async () => {
       const [list, names] = await Promise.all([loadIssuesListPublic(view), issuesNamesOf(view)]);
-      return { rows: list.kind === 'ok' ? list.data.rows : null, names };
+      return { rows: list.kind === 'ok' ? list.data.rows : null, failed: list.kind === 'failed', names };
     },
     view,
     at,

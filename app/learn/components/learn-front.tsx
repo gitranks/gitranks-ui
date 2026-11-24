@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { LearnBar } from '@/components/learn/bar/learn-bar';
-import { LearnBarLive } from '@/components/learn/bar/learn-bar-live';
+import { LearnBarFrame } from '@/components/learn/bar/learn-bar-frame';
 import { LearnHomeError, LearnHomeView } from '@/components/learn/home/learn-home-view';
 import { LearnLandingView } from '@/components/learn/landing/learn-landing-view';
 import { loadLearnCourses } from '@/lib/learn/course.data';
@@ -104,7 +104,7 @@ export async function LearnAboutView() {
   return (
     <>
       <Suspense fallback={<LearnBar state={{ kind: 'visitor' }} place={null} />}>
-        <LearnBarLive />
+        <LearnBarFrame />
       </Suspense>
       <LoadedLanding viewer="learner" />
     </>

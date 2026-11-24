@@ -34,6 +34,11 @@ export const learnReviewPath = (course: string | null) =>
 /** A lesson's page. */
 export const learnLessonPath = (slug: string) => `/learn/lessons/${encodeURIComponent(slug)}` as Route;
 
+/** A lesson's view of Issues, at its own address. */
+export const learnLessonRealWorldPath = (slug: string) => `${learnLessonPath(slug)}/real-world` as Route;
+/** A course's view of Issues, at its own address. */
+export const learnCourseRealWorldPath = (slug: string) => `${coursePath(slug)}/real-world` as Route;
+
 /** A page's Markdown copy: the page's own address with `.md`. */
 export const markdownPathOf = (path: string) => `${path}.md`;
 

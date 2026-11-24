@@ -6,7 +6,9 @@ import {
   isContentSlug,
   LEARN_ISSUES_PATH,
   LEARN_SETUP_PATH,
+  learnCourseRealWorldPath,
   learnLessonPath,
+  learnLessonRealWorldPath,
   markdownPathOf,
 } from './paths';
 import { SETUP_LANGUAGES } from './setup';
@@ -143,11 +145,6 @@ export function issuesViewOf(query: Query, fromPath: Partial<Pick<IssuesView, 'l
     learned: one(query.learned) === '1',
   };
 }
-
-/** A lesson's view of Issues, at its own address. */
-export const learnLessonRealWorldPath = (slug: string) => `${learnLessonPath(slug)}/real-world` as Route;
-/** A course's view of Issues, at its own address. */
-export const learnCourseRealWorldPath = (slug: string) => `${coursePath(slug)}/real-world` as Route;
 
 /** Where the address of a view starts: a lesson's or a course's own address while the view still names it. */
 function baseOf(view: IssuesView, at: IssuesAt): { path: string; drop: 'lesson' | 'course' | null } {
@@ -339,18 +336,19 @@ export const bareRowOf = (issue: MaskedIssue): IssuesRow => ({
 
 /**
  * The rows once a skip is answered, read again: the skipped row's place takes the first row of the new read that is
- * not on the screen (or `fallback`), and the other rows stay where they are, so the list does not move. With nothing
- * new, the skipped row leaves.
+ * not on the screen and not skipped in this view (`leftOut`), and the other rows stay where they are, so the list does
+ * not move. With nothing new in the read, the skipped row leaves. `fallback` (the skip's next issue as a bare row) takes
+ * the place only when the read failed (`read` null).
  */
 export function rowsAfterSkip(
   current: readonly IssuesRow[],
   skippedId: string,
   read: readonly IssuesRow[] | null,
-  fallback: IssuesRow | null = null,
+  { fallback = null, leftOut = [] }: { fallback?: IssuesRow | null; leftOut?: Iterable<string> } = {},
 ): IssuesRow[] {
-  const onScreen = new Set(current.map((row) => row.issue.id));
-  const incoming = read?.find((row) => !onScreen.has(row.issue.id)) ?? fallback;
-  const takes = incoming && !onScreen.has(incoming.issue.id) ? incoming : null;
+  const shut = new Set([...current.map((row) => row.issue.id), ...leftOut]);
+  const incoming = read ? read.find((row) => !shut.has(row.issue.id)) : fallback;
+  const takes = incoming && !shut.has(incoming.issue.id) ? incoming : null;
   return current.flatMap((row) => (row.issue.id === skippedId ? (takes ? [takes] : []) : [row]));
 }
 

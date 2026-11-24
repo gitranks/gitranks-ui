@@ -21,5 +21,6 @@ export async function generateMetadata({ searchParams }: PageProps<'/learn/issue
 
 export default async function LearnIssuesPage({ searchParams }: PageProps<'/learn/issues'>) {
   const view = issuesViewOf(await searchParams);
-  return <IssuesPage view={view} at="issues" names={await issuesNamesOf(view)} />;
+  const [names, everyone] = await Promise.all([issuesNamesOf(view), learnOpenToEveryoneCached()]);
+  return <IssuesPage view={view} at="issues" names={names} everyone={everyone} />;
 }

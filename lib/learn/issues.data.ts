@@ -34,26 +34,41 @@ export type IssuesRead<T> = { kind: 'ok'; data: T } | { kind: 'unavailable' } | 
 /** A failure the API means as "not here": a read or a field it does not know yet. */
 const isNotHereYet = (failure: unknown) => contributeErrorOf(failure).error === 'NOT_AVAILABLE_YET';
 
-/** A visitor's five, kept for minutes; null when the API answers none. A failure throws, and nothing is kept. */
-async function publicIssuesCached(lesson: string | null, course: string | null, language: string | null) {
+/*
+ * A kept read decides "not here yet" inside itself: an error that leaves a kept read reaches its caller with a new,
+ * plain message in production, so the caller could no longer tell it apart. It answers null for it (kept for minutes,
+ * as the API answering none is), and throws anything else, which nothing keeps.
+ */
+
+/** A visitor's five, kept for minutes; null when the API answers none or does not know the read yet. */
+export async function publicIssuesCached(
+  lesson: string | null,
+  course: string | null,
+  language: string | null,
+): Promise<IssuesListPublic | null> {
   'use cache';
   cacheLife('minutes');
-  const { list } = await graphqlDirect(
-    IssuesListPublicDocument,
-    { input: { lesson, course, language } },
-    { source: 'ssr' },
-  );
-  return issuesListPublicOf(list);
+  try {
+    const { list } = await graphqlDirect(
+      IssuesListPublicDocument,
+      { input: { lesson, course, language } },
+      { source: 'ssr' },
+    );
+    return issuesListPublicOf(list);
+  } catch (failure) {
+    if (!isNotHereYet(failure)) throw failure;
+    return null;
+  }
 }
 
-/** A visitor's five for the view. */
+/** A visitor's five for the view; any failure that leaves the kept read is a real one. */
 export async function loadIssuesListPublic(view: IssuesView): Promise<IssuesRead<IssuesListPublic>> {
   const { lesson, course, language } = issuesPublicInputOf(view);
   try {
     const list = await publicIssuesCached(lesson, course, language);
     return list ? { kind: 'ok', data: list } : { kind: 'unavailable' };
-  } catch (failure) {
-    return isNotHereYet(failure) ? { kind: 'unavailable' } : { kind: 'failed' };
+  } catch {
+    return { kind: 'failed' };
   }
 }
 
@@ -75,8 +90,11 @@ export async function loadIssuesList(githubLogin: string, view: IssuesView): Pro
   }
 }
 
-/** A page of merged fixes, kept for minutes under the fixes' tag, which a new merged fix expires. */
-async function fixesCached(
+/**
+ * A page of merged fixes, kept for minutes under the fixes' tag, which a new merged fix expires; null when the API
+ * answers none or does not know the read yet.
+ */
+export async function fixesCached(
   lesson: string | null,
   course: string | null,
   language: string | null,
@@ -85,11 +103,17 @@ async function fixesCached(
   'use cache';
   cacheTag(LEARN_FIXES_TAG);
   cacheLife('minutes');
-  const { learnFixes } = await graphqlDirect(
-    LearnFixesDocument,
-    { input: { lesson, course, language, after } },
-    { source: 'ssr' },
-  );
+  let learnFixes: LearnFixes | null | undefined;
+  try {
+    ({ learnFixes } = await graphqlDirect(
+      LearnFixesDocument,
+      { input: { lesson, course, language, after } },
+      { source: 'ssr' },
+    ));
+  } catch (failure) {
+    if (!isNotHereYet(failure)) throw failure;
+    return null;
+  }
   if (!learnFixes || !Array.isArray(learnFixes.rows)) return null;
   return {
     rows: learnFixes.rows,
@@ -98,14 +122,17 @@ async function fixesCached(
   };
 }
 
-/** The merged fixes of a view, from `after` (a page's cursor) or from the newest. */
+/**
+ * The merged fixes of a view, from `after` (a page's cursor) or from the newest; any failure that leaves the kept read
+ * is a real one.
+ */
 export async function loadLearnFixes(view: IssuesView, after: string | null = null): Promise<IssuesRead<LearnFixes>> {
   const { lesson, course, language } = issuesPublicInputOf(view);
   try {
     const fixes = await fixesCached(lesson, course, language, after);
     return fixes ? { kind: 'ok', data: fixes } : { kind: 'unavailable' };
-  } catch (failure) {
-    return isNotHereYet(failure) ? { kind: 'unavailable' } : { kind: 'failed' };
+  } catch {
+    return { kind: 'failed' };
   }
 }
 

@@ -3,10 +3,8 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
-  usePathname: () => '/learn/issues',
-}));
+const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }));
+vi.mock('next/navigation', () => ({ useRouter: () => router, usePathname: () => '/learn/issues' }));
 vi.mock('@/lib/workspace/masked-issue.actions', () => ({
   lookAtIssue: vi.fn(),
   signInToSeeIssue: vi.fn(),
@@ -18,7 +16,7 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 const hint = vi.hoisted(() => ({ present: true }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 
-const { IssuesLive, readIssuesMine } = await import('./issues-live');
+const { ADDRESS_READ_GAP_MS, IssuesLive, readIssuesMine } = await import('./issues-live');
 const { ISSUES_VIEW } = await import('@/lib/learn/issues');
 const { learnFixes, listNone, personalList, views, visitorRows } = await import('@/lib/learn/__fixtures__/issues');
 
@@ -48,6 +46,7 @@ beforeEach(() => {
   root = createRoot(container);
   fetchMock.mockReset();
   setLearnIssuesEmailAction.mockReset();
+  router.refresh.mockReset();
   vi.stubGlobal('fetch', fetchMock);
   hint.present = true;
 });
@@ -56,6 +55,7 @@ afterEach(() => {
   act(() => root.unmount());
   container.remove();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 const $ = (selector: string) => container.querySelector(selector);
@@ -136,6 +136,80 @@ describe('Issues in the browser', () => {
     await flush();
     expect($('[data-issues-email]')?.getAttribute('data-issues-email')).toBe('on');
     expect($('[data-issues-email]')?.textContent).toContain('We’ll email you at y***@example.com when one appears.');
+  });
+
+  it('reads for an address once while one read is out, then not again for 30 seconds', async () => {
+    let now = 1_000_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    fetchMock.mockReturnValueOnce(answer({ state: 'ok', list: listNone({ emailOn: true, emailTo: null }), reads }));
+    await act(async () => root.render(<IssuesLive view={ISSUES_VIEW} initial={{ kind: 'visitor', rows: [] }} />));
+    await flush();
+    expect($('[data-issues-email]')?.getAttribute('data-issues-email')).toBe('no-address');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Coming back fires both "focus" and "visibilitychange": one read.
+    let answerRead: (res: Response) => void = () => {};
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (answerRead = resolve)));
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await act(async () =>
+      answerRead(
+        new Response(JSON.stringify({ state: 'ok', list: listNone({ emailOn: true, emailTo: null }), reads })),
+      ),
+    );
+    await flush();
+
+    // Back again within 30 seconds: no read; after them, one.
+    now += ADDRESS_READ_GAP_MS - 1;
+    await act(async () => window.dispatchEvent(new Event('focus')));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    now += 1;
+    fetchMock.mockReturnValueOnce(answer({ state: 'ok', list: listNone({ emailOn: true, emailTo: null }), reads }));
+    await act(async () => window.dispatchEvent(new Event('focus')));
+    await flush();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('never reads on focus while the line about an address is not shown', async () => {
+    fetchMock.mockReturnValueOnce(answer({ state: 'ok', list: personalList({ emailOn: true, emailTo: null }), reads }));
+    await act(async () =>
+      root.render(<IssuesLive view={ISSUES_VIEW} initial={{ kind: 'visitor', rows: visitorRows }} />),
+    );
+    await flush();
+    await act(async () => window.dispatchEvent(new Event('focus')));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("tries the page again for a failed public list, and the person's own again for theirs", async () => {
+    hint.present = false;
+    await act(async () => root.render(<IssuesLive view={ISSUES_VIEW} initial={{ kind: 'failed' }} />));
+    await act(async () => ($('[data-issues-box="failed"] button') as HTMLButtonElement).click());
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // The merged fixes are the page's own too.
+    hint.present = true;
+    await act(async () => root.render(<IssuesLive view={views.courseFixed} initial={{ kind: 'failed' }} />));
+    await act(async () => ($('[data-issues-box="failed"] button') as HTMLButtonElement).click());
+    expect(router.refresh).toHaveBeenCalledTimes(2);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // The person's list failed: it is read again, and the page is not.
+    fetchMock.mockReturnValueOnce(answer({}, 500));
+    await act(async () =>
+      root.render(<IssuesLive view={ISSUES_VIEW} initial={{ kind: 'visitor', rows: visitorRows }} />),
+    );
+    await flush();
+    expect($('main')?.getAttribute('data-issues')).toBe('failed');
+    fetchMock.mockReturnValueOnce(answer({ state: 'ok', list: personalList(), reads }));
+    await act(async () => ($('[data-issues-box="failed"] button') as HTMLButtonElement).click());
+    await flush();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(router.refresh).toHaveBeenCalledTimes(2);
+    expect($('main')?.getAttribute('data-issues')).toBe('personal');
   });
 
   it('says a save that failed, and keeps the button', async () => {

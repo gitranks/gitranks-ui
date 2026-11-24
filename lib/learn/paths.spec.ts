@@ -18,6 +18,7 @@ import {
   learnCourseGonePath,
   learnCourseMarkdownRouteOf,
   learnCourseMinePath,
+  learnCourseRealWorldPath,
   learnCourseTag,
   learnEntityTag,
   learnFactCardPath,
@@ -32,6 +33,7 @@ import {
   learnLessonMarkdownRouteOf,
   learnLessonMinePath,
   learnLessonPath,
+  learnLessonRealWorldPath,
   learnLessonTag,
   learnProjectCourseCardPath,
   learnProjectCourseMarkdownPath,
@@ -48,6 +50,11 @@ describe("Learn's addresses", () => {
     expect(checkPath('algorithms')).toBe('/learn/check/algorithms');
     expect(learnLessonPath('hash-sets')).toBe('/learn/lessons/hash-sets');
     expect(coursePath('a b')).toBe('/learn/courses/a%20b');
+  });
+
+  it("gives a lesson's and a course's view of Issues at their own addresses", () => {
+    expect(learnLessonRealWorldPath('hash-sets')).toBe('/learn/lessons/hash-sets/real-world');
+    expect(learnCourseRealWorldPath('algorithms')).toBe('/learn/courses/algorithms/real-world');
   });
 
   it('gives "What you know" and the person’s run of a check, encoded', () => {

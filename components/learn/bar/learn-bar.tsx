@@ -24,9 +24,18 @@ import { cn } from '@/lib/utils';
  * with how many). A count shows only when there is something to count. On a phone the tabs scroll sideways under the
  * right side, which stays at the edge, and the current tab is scrolled into sight.
  */
-export function LearnBar({ state, place }: { state: LearnBarState; place: LearnBarPlace | null }) {
+export function LearnBar({
+  state,
+  place,
+  everyone = false,
+}: {
+  state: LearnBarState;
+  place: LearnBarPlace | null;
+  /** Learn is open to everyone: a visitor's bar shows Issues too. */
+  everyone?: boolean;
+}) {
   const bar = useRef<HTMLDivElement>(null);
-  const tabs = learnBarTabsOf(state);
+  const tabs = learnBarTabsOf(state, everyone);
   // Progress and Settings appear once the person's bar is read: the current tab may only then be there to show.
   const shown = tabs.find((tab) => tab === place) ?? null;
   useEffect(() => {

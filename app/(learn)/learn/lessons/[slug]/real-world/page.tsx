@@ -28,7 +28,7 @@ export default async function LessonRealWorldPage({
 }: PageProps<'/learn/lessons/[slug]/real-world'>) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const view = issuesViewOf(query, { lesson: slug });
-  const names = await issuesNamesOf(view);
+  const [names, everyone] = await Promise.all([issuesNamesOf(view), learnOpenToEveryoneCached()]);
   if (!names.lesson) notFound();
-  return <IssuesPage view={view} at="lesson" names={names} />;
+  return <IssuesPage view={view} at="lesson" names={names} everyone={everyone} />;
 }

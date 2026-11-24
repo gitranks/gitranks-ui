@@ -84,4 +84,26 @@ describe("Issues' Markdown copies", () => {
     );
     expect(missing.status).toBe(404);
   });
+
+  it('answers a failed read with 503, never kept, and the API answering none with the copy', async () => {
+    const open = async () => true;
+    const failed = await learnIssuesMarkdownResponse(
+      open,
+      async () => ({ rows: null, failed: true, names: {} }),
+      ISSUES_VIEW,
+      'issues',
+    );
+    expect(failed.status).toBe(503);
+    expect(failed.headers.get('cache-control')).toBe('no-store');
+    expect(await failed.text()).toBe('The issues didn’t load. Try again in a minute.\n');
+    const none = await learnIssuesMarkdownResponse(
+      open,
+      async () => ({ rows: null, failed: false, names: {} }),
+      ISSUES_VIEW,
+      'issues',
+    );
+    expect(none.status).toBe(200);
+    expect(none.headers.get('cache-control')).toBe('public, max-age=60, s-maxage=60');
+    expect(await none.text()).toContain('The list of real issues to learn from is not available right now.');
+  });
 });

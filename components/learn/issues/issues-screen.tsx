@@ -74,6 +74,8 @@ export type IssuesScreenProps = {
   at?: IssuesAt;
   names?: IssuesNames;
   layer: IssuesLayer;
+  /** Learn is open to everyone: the view's Markdown copy answers, so the foot links it. */
+  everyone?: boolean;
 } & IssuesHandlers;
 
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
@@ -82,12 +84,21 @@ const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
  * Issues (page 8) from plain data: one list with no visible title. Above it the way back to the lesson or the course
  * that opened it, the chips with their crosses and, for a signed-in person, the switches with their counts; then the
  * line on how the list works, the masked rows with their lesson lines and the foot under them. An empty list says why,
- * with the one press that would show something; "Fixed" shows the merged fixes instead.
+ * with the one press that would show something; "Fixed" shows the merged fixes instead. While a new view is read, the
+ * switches show its state with no count: the counts on the screen are still the last view's.
  */
-export function IssuesScreen({ view, at = 'issues', names = {}, layer, ...handlers }: IssuesScreenProps) {
+export function IssuesScreen({
+  view,
+  at = 'issues',
+  names = {},
+  layer,
+  everyone = false,
+  ...handlers
+}: IssuesScreenProps) {
   const chips = issuesChipsOf(view, names, at);
   const back = issuesBackOf(view, names);
-  const switches = layer.kind === 'personal' && !view.fixed ? issuesSwitchesOf(view, layer.list, at) : [];
+  const switches =
+    layer.kind === 'personal' && !view.fixed ? issuesSwitchesOf(view, layer.pending ? null : layer.list, at) : [];
   const clearHref = chips.length ? issuesHrefOf(unchippedOf(view), 'issues') : null;
   return (
     <main className={MAIN} data-issues={layer.kind} aria-busy={('pending' in layer && layer.pending) || undefined}>
@@ -95,7 +106,7 @@ export function IssuesScreen({ view, at = 'issues', names = {}, layer, ...handle
       {back ? <IssuesBack back={back} /> : null}
       <IssuesFilters chips={chips} switches={switches} clearHref={clearHref} />
       <IssuesBody view={view} at={at} layer={layer} handlers={handlers} />
-      <IssuesFoot markdownHref={issuesMarkdownPathOf(view, at)} />
+      <IssuesFoot markdownHref={everyone ? issuesMarkdownPathOf(view, at) : null} />
     </main>
   );
 }

@@ -9,7 +9,8 @@ const content = vi.hoisted(() => ({ loadLearnLessonPage: vi.fn(), loadLearnCours
 vi.mock('./lesson-page.data', () => ({ loadLearnLessonPage: content.loadLearnLessonPage }));
 vi.mock('./course.data', () => ({ loadLearnCourse: content.loadLearnCourse }));
 
-const { issuesNamesOf, loadIssuesList, loadIssuesListPublic, loadLearnFixes } = await import('./issues.data');
+const { fixesCached, issuesNamesOf, loadIssuesList, loadIssuesListPublic, loadLearnFixes, publicIssuesCached } =
+  await import('./issues.data');
 const { ISSUES_VIEW } = await import('./issues');
 const { issueRows, learnFixes, personalList, views } = await import('./__fixtures__/issues');
 
@@ -67,6 +68,25 @@ describe("Issues' reads", () => {
 
     graphqlDirect.mockRejectedValueOnce(new Error('socket hang up'));
     expect(await loadIssuesList('octocat', ISSUES_VIEW)).toEqual({ kind: 'failed' });
+  });
+
+  it('decides "not here yet" inside the kept reads, and throws anything else out of them', async () => {
+    graphqlDirect.mockRejectedValueOnce(unknownField('learnQueuePublic'));
+    expect(await publicIssuesCached(null, null, null)).toBeNull();
+    graphqlDirect.mockRejectedValueOnce(unknownField('learnFixes'));
+    expect(await fixesCached(null, 'algorithms', null, null)).toBeNull();
+    graphqlDirect.mockRejectedValueOnce(new Error('socket hang up'));
+    await expect(publicIssuesCached(null, null, null)).rejects.toThrow('socket hang up');
+    graphqlDirect.mockRejectedValueOnce(new Error('socket hang up'));
+    await expect(fixesCached(null, null, null, null)).rejects.toThrow('socket hang up');
+  });
+
+  it('answers failed for any error out of a kept read, whatever its message says', async () => {
+    // In production an error that leaves a kept read reaches the caller with a new, plain message: never read it.
+    graphqlDirect.mockRejectedValueOnce(new Error('An error occurred in the Server Components render.'));
+    expect(await loadIssuesListPublic(ISSUES_VIEW)).toEqual({ kind: 'failed' });
+    graphqlDirect.mockRejectedValueOnce(new Error('An error occurred in the Server Components render.'));
+    expect(await loadLearnFixes(views.courseFixed)).toEqual({ kind: 'failed' });
   });
 
   it('reads a page of merged fixes from its cursor', async () => {

@@ -1,7 +1,7 @@
 import { ArrowLeft, X } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { type KeyboardEvent, type ReactNode, useEffect, useRef } from 'react';
 
 import { EmailNeedsAddress } from '@/components/learn/email-needs-address';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import {
   switchCountLabelOf,
 } from '@/lib/learn/issues';
 import { LEARN_ABOUT_PATH, LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
-import { learnFixPath, learnLessonPath } from '@/lib/learn/paths';
+import { learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
 
 /*
@@ -68,6 +68,13 @@ function Chip({ chip }: { chip: IssuesChip }) {
   );
 }
 
+/** A switch is pressed with Space as well as Enter: Space on a link does nothing of itself, so it clicks it. */
+const pressOnSpace = (event: KeyboardEvent<HTMLAnchorElement>) => {
+  if (event.key !== ' ' && event.key !== 'Spacebar') return;
+  event.preventDefault();
+  event.currentTarget.click();
+};
+
 /** "For you 212": one switch, pressed or not, with the count the list holds once it is pressed. */
 function Switch({ item }: { item: IssuesSwitch }) {
   return (
@@ -77,6 +84,7 @@ function Switch({ item }: { item: IssuesSwitch }) {
       scroll={false}
       role="switch"
       aria-checked={item.on}
+      onKeyDown={pressOnSpace}
       className={cn(
         PILL,
         PHONE_TARGET,
@@ -191,6 +199,7 @@ export function IssuesEndBox({ end, email }: { end: IssuesEnd; email: ReactNode 
 /**
  * "Email me when one appears", changed in place: the button; once on, a line in its place with the address and
  * "Turn off"; on with no address, a line that says the email needs one and where it is set. No pop-up, no question.
+ * A press that changes it moves the focus to the button that takes the pressed one's place.
  */
 export function IssuesEmail({
   state,
@@ -205,6 +214,19 @@ export function IssuesEmail({
   onTurnOn?: () => void;
   onTurnOff?: () => void;
 }) {
+  const button = useRef<HTMLButtonElement>(null);
+  // The state a press was made from: once the state is another, the focus goes to the button now drawn.
+  const pressedFrom = useRef<'off' | 'on' | null>(null);
+  const shown = state.kind === 'off' ? 'off' : 'on';
+  useEffect(() => {
+    if (!pressedFrom.current || pressedFrom.current === shown) return;
+    pressedFrom.current = null;
+    button.current?.focus();
+  }, [shown]);
+  const press = (action: (() => void) | undefined) => () => {
+    pressedFrom.current = shown;
+    action?.();
+  };
   const failed = error ? (
     <span role="alert" className="block text-sm font-medium text-destructive">
       {error}
@@ -214,11 +236,12 @@ export function IssuesEmail({
     return (
       <span className="flex flex-col items-start gap-2" data-issues-email="off">
         <Button
+          ref={button}
           type="button"
           variant="outline"
           className="max-sm:min-h-11"
           aria-disabled={pending || undefined}
-          onClick={pending ? undefined : onTurnOn}
+          onClick={pending ? undefined : press(onTurnOn)}
         >
           {EMAIL_ME_LABEL}
         </Button>
@@ -230,11 +253,12 @@ export function IssuesEmail({
     <span className="flex flex-col items-start gap-2 text-sm" data-issues-email={state.kind}>
       {state.kind === 'on' ? <span className="text-foreground">{emailOnLineOf(state.to)}</span> : <EmailNeedsAddress />}
       <Button
+        ref={button}
         type="button"
         variant="link"
         className="h-auto p-0 max-sm:min-h-11"
         aria-disabled={pending || undefined}
-        onClick={pending ? undefined : onTurnOff}
+        onClick={pending ? undefined : press(onTurnOff)}
       >
         Turn off
       </Button>
@@ -243,23 +267,22 @@ export function IssuesEmail({
   );
 }
 
-/** One merged fix: the project with its issue and pull request, who fixed it, the title, its lesson and the day. */
+/**
+ * One merged fix: the project with its issue and pull request, who fixed it, the title, its lesson and the day. The
+ * title is plain text: the fix's own page is not there yet, and a link never leads to a page that is not.
+ */
 export function FixRow({ fix }: { fix: LearnFixRow }) {
   const merged = mergedOnOf(fix.mergedAt);
-  const page = learnFixPath({ nameWithOwner: fix.repo, number: fix.number });
   return (
-    <article
-      className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:px-5"
-      data-fix-row={`${fix.repo}#${fix.number}`}
-    >
+    <article className="flex flex-col gap-3 px-4 py-3.5 sm:px-5" data-fix-row={`${fix.repo}#${fix.number}`}>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <RefChips repo={fix.repo} issue={fix.issueNumber} pr={{ number: fix.number, url: fix.url }} />
           <span>fixed by {fix.fixer}</span>
         </div>
-        <Link href={page} prefetch={false} className="font-semibold text-pretty text-foreground hover:underline">
+        <span className="font-semibold text-pretty text-foreground" data-fix-title="">
           {fix.title}
-        </Link>
+        </span>
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           {fix.lesson ? (
             <span data-lesson="">
@@ -277,24 +300,26 @@ export function FixRow({ fix }: { fix: LearnFixRow }) {
           {merged ? <span className="text-xs">{merged}</span> : null}
         </span>
       </div>
-      <Button asChild variant="outline" className="h-9 px-4 max-sm:min-h-11">
-        <Link href={page} prefetch={false}>
-          Open the fix
-        </Link>
-      </Button>
     </article>
   );
 }
 
-/** Under every view: its Markdown copy, how Learn works, and the page for maintainers. */
-export function IssuesFoot({ markdownHref }: { markdownHref: string }) {
+/**
+ * Under every view: its Markdown copy (null while Learn is not open to everyone, when the copy is not found), how
+ * Learn works, and the page for maintainers.
+ */
+export function IssuesFoot({ markdownHref }: { markdownHref: string | null }) {
   return (
     <p className="m-0 text-xs text-muted-foreground" data-issues-foot="">
-      {/* A route handler's answer, not a page: a plain link. */}
-      <a href={markdownHref} className="hover:underline">
-        Markdown version
-      </a>
-      {' · '}
+      {markdownHref ? (
+        <>
+          {/* A route handler's answer, not a page: a plain link. */}
+          <a href={markdownHref} className="hover:underline">
+            Markdown version
+          </a>
+          {' · '}
+        </>
+      ) : null}
       <Link href={LEARN_ABOUT_PATH} prefetch={false} className="hover:underline">
         How Learn works
       </Link>

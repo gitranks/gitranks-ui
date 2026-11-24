@@ -39,7 +39,8 @@ export type LearnBarSetup = 'working' | 'guessed' | 'open';
 
 /**
  * Who looks at Learn's bar, as the boards of pages 5 and 7 draw it:
- * - `visitor`: not signed in (or not known yet): Home, Courses and Issues, nothing on the right;
+ * - `visitor`: not signed in (or not known yet): Home and Courses, and Issues while Learn is open to everyone; nothing
+ *   on the right;
  * - `setup`: signed in, Learn not set up (setting up is not required): a learner's tabs, and "Set up Learn" on the
  *   right with how far it is; then what waits for them, as a learner's;
  * - `learner`: Home, Courses, Issues, Progress and Settings; "Pull requests" once one was sent through GitRanks, with
@@ -87,11 +88,14 @@ export const LEARN_BAR_LINKS = {
 } as const;
 
 /**
- * The tabs a state shows: Home, Courses and Issues for everyone, Progress and Settings for anyone signed in, set up or
- * not.
+ * The tabs a state shows: Home and Courses for everyone; Issues for anyone signed in, and for a visitor only while
+ * Learn is open to everyone (`everyone`), since Issues is not found for them before; Progress and Settings for anyone
+ * signed in, set up or not.
  */
-export const learnBarTabsOf = (state: LearnBarState): LearnBarTab[] =>
-  state.kind === 'visitor' ? ['home', 'courses', 'issues'] : ['home', 'courses', 'issues', 'progress', 'settings'];
+export const learnBarTabsOf = (state: LearnBarState, everyone = false): LearnBarTab[] => {
+  if (state.kind !== 'visitor') return ['home', 'courses', 'issues', 'progress', 'settings'];
+  return everyone ? ['home', 'courses', 'issues'] : ['home', 'courses'];
+};
 
 /** A lesson's or a course's view of Issues, `/learn/lessons/<slug>/real-world` or `/learn/courses/<slug>/real-world`. */
 const REAL_WORLD = /^\/learn\/(?:lessons|courses)\/[^/]+\/real-world\/?$/;

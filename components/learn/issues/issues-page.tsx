@@ -21,8 +21,21 @@ export async function issuesLayerOf(view: IssuesView): Promise<IssuesLayer> {
 
 export { issuesNamesOf } from '@/lib/learn/issues.data';
 
-/** Issues, or a lesson's or a course's view of it, as every page of them draws it. */
-export async function IssuesPage({ view, at, names }: { view: IssuesView; at: IssuesAt; names: IssuesNames }) {
+/**
+ * Issues, or a lesson's or a course's view of it, as every page of them draws it. `everyone`: Learn is open to
+ * everyone, so the view's Markdown copy answers and is linked.
+ */
+export async function IssuesPage({
+  view,
+  at,
+  names,
+  everyone,
+}: {
+  view: IssuesView;
+  at: IssuesAt;
+  names: IssuesNames;
+  everyone: boolean;
+}) {
   const initial = await issuesLayerOf(view);
-  return <IssuesLive view={view} at={at} names={names} initial={initial} />;
+  return <IssuesLive view={view} at={at} names={names} initial={initial} everyone={everyone} />;
 }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
+vi.mock('next/cache', () => ({ cacheLife: () => {} }));
 const { graphqlDirect } = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 const contribute = vi.hoisted(() => ({

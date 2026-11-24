@@ -7,6 +7,7 @@ const m = vi.hoisted(() => ({
   loadAgentPage: vi.fn(async () => null),
 }));
 vi.mock('server-only', () => ({}));
+vi.mock('next/cache', () => ({ cacheLife: () => {} }));
 vi.mock('next/server', () => ({ connection: async () => undefined }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect: m.graphqlDirect }));
 vi.mock('@/lib/workspace/preview-gate', () => ({

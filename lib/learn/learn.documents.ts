@@ -25,6 +25,11 @@ const HEAD = `slug title kind version
   language publishedAt passes writtenFor topics
   writtenForGoal { kind value level }`;
 
+/** Whether the API counts the viewer as using Learn: the side their Skills page reads. */
+export const LearnSideDocument = doc<{ skillsMine: { usesLearn: boolean } | null }>(
+  'query LearnSide { skillsMine { usesLearn } }',
+);
+
 const NODES = 'nodes { id label sub tone mono } edges { from to label reply tone }';
 const SIDE = `${NODES} path fromLine toLine excerpt`;
 const BLOCK = `type text

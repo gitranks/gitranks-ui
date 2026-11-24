@@ -2,7 +2,7 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import { LearnAttemptLessonDocument } from './learn.documents';
+import { LearnAttemptLessonDocument, LearnSideDocument } from './learn.documents';
 import type { LearnAttemptLesson } from './learn.types';
 import type { LearnSetupRead } from './setup';
 import { loadLearnSetup as loadSetupOf } from './setup.data';
@@ -17,6 +17,21 @@ import { contributeErrorOf } from '@/lib/workspace/errors';
 export const loadLearnSetupOfMine = cache(async (): Promise<LearnSetupRead | null> => {
   const githubLogin = await viewerLogin();
   return githubLogin ? loadSetupOf(githubLogin) : null;
+});
+
+/**
+ * Whether the API counts the viewer as using Learn (a Learn attempt of theirs, say), for someone who has used Learn
+ * without saving a setup: false signed out and on any failure. Read once per request.
+ */
+export const loadUsesLearnSide = cache(async (): Promise<boolean> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return false;
+  try {
+    const { skillsMine } = await graphqlDirect(LearnSideDocument, {}, { source: 'ssr', githubLogin });
+    return skillsMine?.usesLearn === true;
+  } catch {
+    return false;
+  }
 });
 
 /**

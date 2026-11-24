@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 
 import { IssuePageLive } from '@/components/workspace/masked-issue/issue-page-live';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
-import { loadLearnSetupOfMine } from '@/lib/learn/learn.data';
+import { loadLearnSetupOfMine, loadUsesLearnSide } from '@/lib/learn/learn.data';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { loadIssuePageKept } from '@/lib/workspace/issue-page-kept.data';
 import { loadIssuePageLearn } from '@/lib/workspace/issue-page-learn.data';
@@ -50,10 +50,15 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
   const from = issuePageFromOf(search.from);
   const query = searchParamsOf(search);
 
-  // From Contribute, the start form names Learn too when the person uses it (`usesLearnOf`: their setup of Learn
-  // saved). With no side in the address, the same read sends the way back to Learn's Issues for them. A read that
-  // fails says no: Contribute's words and list.
-  const learnUse = from === 'contribute' ? loadLearnSetupOfMine().then(usesLearnOf, () => false) : false;
+  // From Contribute, the start form names Learn too when the person uses it: their setup of Learn saved
+  // (`usesLearnOf`), or the API counting them on Learn's side (a Learn attempt of theirs). With no side in the address,
+  // the same reads send the way back to Learn's Issues for them. A read that fails says no: Contribute's words and list.
+  const learnUse =
+    from === 'contribute'
+      ? Promise.all([loadLearnSetupOfMine().then(usesLearnOf, () => false), loadUsesLearnSide()]).then(
+          ([saved, side]) => saved || side,
+        )
+      : false;
   // From Learn, Learn's parts (the lesson and why, kept for learners, how the work started), in a read of their own:
   // without them the page draws what it draws today.
   const learnParts = from === 'learn' ? loadIssuePageLearn(id).catch(() => null) : null;

@@ -31,7 +31,7 @@ const learnParts = vi.hoisted(() => ({ loadIssuePageLearn: vi.fn() }));
 vi.mock('@/lib/workspace/issue-page-learn.data', () => learnParts);
 const keptRead = vi.hoisted(() => ({ loadIssuePageKept: vi.fn() }));
 vi.mock('@/lib/workspace/issue-page-kept.data', () => keptRead);
-const learn = vi.hoisted(() => ({ loadLearnSetupOfMine: vi.fn() }));
+const learn = vi.hoisted(() => ({ loadLearnSetupOfMine: vi.fn(), loadUsesLearnSide: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => learn);
 
 const { default: MaskedIssuePage } = await import('./page');
@@ -84,6 +84,7 @@ beforeEach(() => {
   data.loadIssueNumbers.mockResolvedValue(issueNumbers);
   data.loadIssueStartReads.mockResolvedValue(START);
   learn.loadLearnSetupOfMine.mockResolvedValue(null);
+  learn.loadUsesLearnSide.mockResolvedValue(false);
   learnParts.loadIssuePageLearn.mockResolvedValue(null);
   keptRead.loadIssuePageKept.mockResolvedValue(null);
 });
@@ -165,6 +166,9 @@ describe('the page of one issue at /my/issues/[id]', () => {
     expect(await issuePageAt()).toContain('href="/contribute#issues"');
     learn.loadLearnSetupOfMine.mockRejectedValue(new Error('down'));
     expect(await issuePageAt()).toContain('href="/contribute#issues"');
+    // Someone who used Learn without saving a setup is on Learn's side too.
+    learn.loadUsesLearnSide.mockResolvedValueOnce(true);
+    expect(await issuePageAt()).toContain('href="/learn/issues"');
     // Never read from Learn, where the side is known.
     learn.loadLearnSetupOfMine.mockClear();
     await issuePageAt({ from: 'learn' });

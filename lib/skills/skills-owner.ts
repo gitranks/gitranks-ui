@@ -31,9 +31,6 @@ export function stripOf(mine: Pick<SkillsMine, 'state' | 'usesLearn'>): StripWor
       return { strong: 'Everyone can see this page.', rest: '', actions: ['copy', 'hide'], progress };
     case 'HIDDEN':
       return { strong: 'Only you can see this page.', rest: '', actions: ['show'], progress };
-    // An older API may still answer `PRIVATE`: worded as `HIDDEN`, with nothing to change, as that API keeps it so.
-    case 'PRIVATE':
-      return { strong: 'Only you can see this page.', rest: '', actions: [], progress };
     default:
       return {
         strong: 'Only you can see this page',
@@ -86,7 +83,7 @@ export function startOf(mine: Pick<SkillsMine, 'state' | 'usesContribute' | 'use
  * its owner sees it.
  */
 export function otherBoxOf(mine: Pick<SkillsMine, 'state' | 'usesContribute' | 'usesLearn'>): ProductBox | null {
-  if (mine.state !== 'PUBLIC' && mine.state !== 'HIDDEN' && mine.state !== 'PRIVATE') return null;
+  if (mine.state !== 'PUBLIC' && mine.state !== 'HIDDEN') return null;
   if (mine.usesContribute && !mine.usesLearn) return { product: 'LEARN', mode: 'promo', onlyYou: true };
   if (mine.usesLearn && !mine.usesContribute) return { product: 'CONTRIBUTE', mode: 'promo', onlyYou: true };
   return null;
@@ -135,8 +132,7 @@ export const PRODUCT_BOX: Record<
 
 /** The line the owner reads on the overview's block of a page only they see; null on a page everyone sees. */
 export function blockOwnerLineOf(state: SkillsState): { text: string; link: string | null } | null {
-  // An older API may still answer `PRIVATE`: drawn as `HIDDEN`.
-  if (state === 'HIDDEN' || state === 'PRIVATE')
+  if (state === 'HIDDEN')
     return { text: 'Only you see this block. Your Skills page is hidden.', link: 'Open your Skills page' };
   return null;
 }

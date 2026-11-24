@@ -19,9 +19,6 @@ export function privacyRowOf(mine: Pick<SkillsMine, 'state'> | null | undefined)
       return { line: 'Everyone can see it.', choice: { hidden: false } };
     case 'HIDDEN':
       return { line: 'Only you can see it.', choice: { hidden: true } };
-    // An older API may still answer `PRIVATE`: worded as `HIDDEN`, with no switch, as that API keeps it so.
-    case 'PRIVATE':
-      return { line: 'Only you can see it.', choice: null };
     default:
       return {
         line: 'Nothing is on it yet. It shows to everyone from your first pull request sent or lesson learned.',

@@ -1,4 +1,3 @@
-import type { PropsWithChildren } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,10 +17,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/lib/skills/skills.data', () => ({ loadSkillsPage }));
 vi.mock('@/graphql/helpers/fetch-profile-page-overview', () => ({ fetchProfilePageOverview }));
-// The left column and the page's client layer are drawn by their own specs; this one reads what the page hands them.
-vi.mock('../components/layout-left-column', () => ({
-  LayoutLeftColumn: ({ children }: PropsWithChildren) => children,
-}));
+// The page's client layer is drawn by its own specs; this one reads what the page hands it.
 vi.mock('../components/skills-screen', () => ({
   SkillsScreen: (props: { login: string; now: Date }) => <div data-screen={props.login} />,
 }));

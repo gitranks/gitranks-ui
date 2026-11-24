@@ -1,9 +1,15 @@
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
 import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
 import { LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
-import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
+import { CONTACT_EMAIL, legalDate, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
 import { CONTRIBUTE_RULES_ID } from '@/lib/workspace/fair-use';
 import { contributeShown } from '@/lib/workspace/preview-gate';
+
+/**
+ * The day every pull request got a public page with no choice to hide it (YYYY-MM-DD): the Terms that remove the choice.
+ * A pull request sent before it keeps its choice. Set to the day these Terms go live, with the API's date of them.
+ */
+const PUBLIC_PAGES_FROM = '2026-11-24';
 
 /*
  * The Terms of service. Short on purpose: what EU/UK consumer law requires for a free service, plus the clauses that
@@ -60,9 +66,8 @@ const CONTRIBUTE: LegalSection = {
     <>
       <P>
         GitRanks Contribute suggests issues in public repositories and helps you work on them with an AI agent: your own
-        agent, through our MCP server, or an agent we run on your Claude API key. It is in beta: it may change, be
-        limited or stop, and its limits may change. The <A href="/privacy#contribute">Privacy policy</A> says what data
-        it uses.
+        agent, through our MCP server, or an agent we run on your Claude API key. It may change, be limited or stop, and
+        its limits may change. The <A href="/privacy#contribute">Privacy policy</A> says what data it uses.
       </P>
       <List>
         {ISSUE_RULES}
@@ -108,12 +113,13 @@ const CONTRIBUTE: LegalSection = {
           <A href="/contribute/maintainers">gitranks.com/contribute/maintainers</A>.
         </li>
         <li>
-          <B>Public timelines.</B> When you approve a pull request you can leave on, or turn off, a public page about
-          how it was made: when the issue was picked, what the agent checked and changed, in its own short words, our
-          checks, the reviews and when it was merged or closed, with your username and the agent&apos;s name. It never
-          shows your conversation with the agent, costs or prompts. Anyone can read it and search engines may list it.
-          You can hide it at any time from the pull request&apos;s page in Contribute; we may hide it too, and it goes
-          when a repository opts out or you delete your Contribute data.
+          <B>Public pages.</B> Every pull request you send through Contribute or Learn has a public page about how it
+          was made: when the issue was picked, what the agent checked and changed, in its own short words, our checks,
+          the reviews, your answers when you choose to share them, and when it was merged or closed, with your username
+          and the agent&apos;s name. It never shows your conversation with the agent, costs or prompts. Anyone can read
+          it and search engines may list it. A pull request sent before {legalDate(PUBLIC_PAGES_FROM)} can still be
+          hidden from its page; we may hide any page, and it goes when a repository opts out or you delete your
+          Contribute data.
         </li>
         <li>
           <B>Lessons on pull requests.</B> Some pull requests link to a lesson on GitRanks and their author&apos;s
@@ -152,8 +158,7 @@ const LEARN: LegalSection = {
       <P>
         GitRanks Learn is a way of working with Contribute: your agent fixes an issue and writes a short lesson on its
         fix, you take the lesson on GitRanks, and the pull request can be approved only after you pass it. The terms of{' '}
-        <A href="#contribute">GitRanks Contribute</A> apply to Learn too. Learn is in beta, may be open only to some
-        accounts, and may change or stop.
+        <A href="#contribute">GitRanks Contribute</A> apply to Learn too. Learn may change or stop.
       </P>
       <List>
         <li>
@@ -191,7 +196,7 @@ const LEARN: LegalSection = {
 };
 
 /** When the Terms last changed with Contribute's section in them: they show that date only once the section shows. */
-const CONTRIBUTE_TERMS_UPDATED = '2026-11-24';
+const CONTRIBUTE_TERMS_UPDATED = PUBLIC_PAGES_FROM;
 
 /** The sections; Contribute's and Learn's only for whoever may see Contribute. */
 const sectionsOf = (contribute: boolean): LegalSection[] => [

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  MCP_CLIENT_NAMES,
   MCP_CLIENTS,
+  MCP_CLIENTS_WITH_VS_CODE,
   MCP_SETUPS,
   MCP_SIGN_IN_SETUPS,
   MCP_TOKEN_NAME_MAX,
@@ -206,5 +208,38 @@ describe('the sign-in setups', () => {
     );
     expect(setup.where).toContain("Don't use the Authenticate button on the Manage MCP Servers page");
     expect(setup.check).toContain('Customizations');
+  });
+});
+
+describe('VS Code, where a picker offers it', () => {
+  it('is not one of the clients the pickers, the docs and Settings list, only the picker that asks for it', () => {
+    expect(MCP_CLIENTS).not.toContain('vscode');
+    expect(MCP_SETUPS.map(({ client }) => client)).not.toContain('vscode');
+    expect(MCP_CLIENTS_WITH_VS_CODE).toEqual([...MCP_CLIENTS, 'vscode']);
+    expect(MCP_CLIENT_NAMES.vscode).toBe('VS Code');
+    expect(mcpTokenNameOf('vscode', 'windows')).toBe('VS Code on Windows');
+  });
+
+  it("signs in from VS Code's own MCP file, with no token", () => {
+    for (const os of ['mac', 'linux', 'windows'] as const) {
+      const setup = mcpSignInSetupOf('vscode', os);
+      expect(JSON.parse(setup.lines)).toEqual({ servers: { gitranks: { type: 'http', url: MCP_URL } } });
+      expect(setup.lines).not.toMatch(/Authorization|Bearer|GITRANKS_MCP_TOKEN/);
+      expect(setup.where).toContain('your browser opens GitRanks');
+      expect(setup.check.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("reads the token from the environment in Copilot's portable MCP file, its path in the OS's spelling", () => {
+    const mac = mcpClientSetupOf('vscode', 'mac');
+    expect(JSON.parse(mac.lines).mcpServers.gitranks.headers).toEqual({
+      Authorization: `Bearer \${GITRANKS_MCP_TOKEN}`,
+    });
+    expect(mac.lines).not.toContain(TOKEN);
+    expect(mac.label).toBe('~/.copilot/mcp-config.json');
+    expect(mcpClientSetupOf('vscode', 'windows').label).toBe('%USERPROFILE%\\.copilot\\mcp-config.json');
+    expect(tokenInConfigOf('vscode')).toBe(false);
+    // Its words say to quit VS Code and open it again already: a replaced token adds nothing.
+    expect(mcpClientSetupOf('vscode', 'mac', { replacing: true }).where).toBe(mac.where);
   });
 });

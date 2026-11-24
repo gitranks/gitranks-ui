@@ -9,6 +9,7 @@ import { sendFairUseAppeal } from '@/components/workspace/fair-use-appeal-live';
 import { type IssuePageNotice, IssuePageScreen } from '@/components/workspace/masked-issue/issue-page-screen';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
 import { clearHeldMark, writeHeldMark } from '@/lib/workspace/held-mark';
+import { type IssuePageLearn, issueLessonLineOf } from '@/lib/workspace/issue-page-learn';
 import { limitWordsOf } from '@/lib/workspace/limit-words';
 import { type IssuePageFrom, issuePageHrefOf } from '@/lib/workspace/masked-issue';
 import {
@@ -69,6 +70,11 @@ export type IssuePageLiveProps = {
   alsoLearn: boolean;
   /** Back from the sign-in with a press made before it (`?look=1`): the press is made now, once. */
   returning: boolean;
+  /**
+   * From Learn: Learn's parts, read on their own (the lesson and why, kept for learners, how the work started). Null or
+   * left out, the page draws none of them.
+   */
+  learn?: IssuePageLearn | null;
 };
 
 /**
@@ -215,10 +221,15 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   }, [id]);
 
   const ownName = connection?.client ? MCP_CLIENT_NAMES[connection.client] : null;
+  // Learn's parts show only from Learn: Contribute's page stays as it is.
+  const learn = from === 'learn' ? (props.learn ?? null) : null;
   return (
     <IssuePageScreen
       page={page}
       from={from}
+      lesson={issueLessonLineOf(learn)}
+      learnOnly={learn?.learnOnly ?? false}
+      started={learn?.started ?? null}
       back={props.back}
       numbers={props.numbers}
       now={new Date(props.openedAt)}
@@ -240,6 +251,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
             onConnected={onConnected}
             onAdded={() => void holdLonger()}
             connectSource={from === 'learn' ? 'learn_start' : 'contribute_start'}
+            withVsCode={from === 'learn'}
           />
         ),
         onCopy: () => void holdLonger(),

@@ -6,6 +6,7 @@ import { IssuePageLive } from '@/components/workspace/masked-issue/issue-page-li
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { loadLearnProfile } from '@/lib/learn/learn.data';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
+import { loadIssuePageLearn } from '@/lib/workspace/issue-page-learn.data';
 import { ISSUE_LOOK_PARAM, type IssuePageFrom, issuePageFromOf, maskIdOf } from '@/lib/workspace/masked-issue';
 import { loadIssueNumbers, loadIssuePage, loadIssueStartReads } from '@/lib/workspace/masked-issue.data';
 import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
@@ -49,11 +50,15 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
 
   // From Contribute, the start form names Learn too when the person uses it: a Learn profile of theirs.
   const usesLearn = from === 'contribute' ? loadLearnProfile().catch(() => null) : null;
-  const [load, numbers, start, profile] = await Promise.all([
+  // From Learn, Learn's parts (the lesson and why, kept for learners, how the work started), in a read of their own:
+  // without them the page draws what it draws today.
+  const learnParts = from === 'learn' ? loadIssuePageLearn(id).catch(() => null) : null;
+  const [load, numbers, start, profile, learn] = await Promise.all([
     loadIssuePage(id),
     loadIssueNumbers(),
-    loadIssueStartReads(),
+    loadIssueStartReads({ vsCode: from === 'learn' }),
     usesLearn,
+    learnParts,
   ]);
   if (load.kind === 'not-found') notFound();
   return (
@@ -68,6 +73,7 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
       start={start}
       alsoLearn={profile !== null}
       returning={search[ISSUE_LOOK_PARAM] === '1'}
+      learn={learn}
     />
   );
 }

@@ -6,6 +6,7 @@ import { LEARN_ISSUES_SCREENS } from './learn-issues';
 import { LEARN_REAL_ISSUES_SCREENS } from './learn-real-issues';
 import { LEARN_WALKTHROUGH_SCREENS } from './learn-walkthrough';
 import { SKILLS_PART_SCREENS } from './skills-parts';
+import { WORKSPACE_ISSUE_LEARN_SCREENS } from './workspace-issue-learn';
 import { WORKSPACE_PR_PART_SCREENS } from './workspace-pr-parts';
 
 /**
@@ -22,4 +23,5 @@ export const HELD_BACK_SCREENS: Screen[] = [
   ...LEARN_WALKTHROUGH_SCREENS,
   ...LEARN_FIX_SCREENS,
   ...HOME_PRODUCT_SCREENS,
+  ...WORKSPACE_ISSUE_LEARN_SCREENS,
 ];

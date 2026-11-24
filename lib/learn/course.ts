@@ -1,4 +1,6 @@
+import { languageNameOf } from './learn-question';
 import type { LearnCourseGroup, LearnDepth, LearnGroupLesson, LearnLessonLevel, LearnLessonLink } from './lesson-page';
+import { SETUP_LANGUAGES } from './setup';
 
 /*
  * A course and the list of courses, as everyone reads them and as a learner's own side marks them: the rules the pages
@@ -644,6 +646,39 @@ export function courseSearchOf(groups: readonly LearnCourseGroup[], query: strin
 /** A section of all courses: one kind. */
 export type CourseSection = { kind: LearnCourseKind; title: string; sub: string; courses: LearnCourseCard[] };
 
+/** "all seven languages" for Learn's seven; the names for any other list ("Python and JavaScript", "Shell"). */
+const examplesInWords = (languages: readonly string[]) =>
+  languages.length === SETUP_LANGUAGES.length && SETUP_LANGUAGES.every((language) => languages.includes(language))
+    ? 'all seven languages'
+    : languageListOf(languages);
+
+/** "Python", "Python and JavaScript", "Python, JavaScript and Go". */
+const languageListOf = (languages: readonly string[]) => {
+  const names = languages.map(languageNameOf);
+  return names.length > 2 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names.join(' and ');
+};
+
+/**
+ * The line under the topic courses, from their own languages: one way when they all share it ("Every example comes in
+ * all seven languages."), else each way, the most common first and ties in the API's order ("Each course's examples
+ * come in all seven languages, Python and JavaScript, or Shell."). The same languages in another order are one way. A
+ * course that lists no languages is left out of the line.
+ */
+export function topicLanguagesLineOf(topics: readonly Pick<LearnCourseCard, 'languages'>[]): string {
+  const counts = new Map<string, { languages: readonly string[]; count: number }>();
+  for (const { languages } of topics) {
+    if (!languages.length) continue;
+    const key = [...languages].sort().join(',');
+    const seen = counts.get(key);
+    counts.set(key, { languages: seen?.languages ?? languages, count: (seen?.count ?? 0) + 1 });
+  }
+  const ways = [...counts.values()].sort((a, b) => b.count - a.count).map((way) => examplesInWords(way.languages));
+  if (!ways.length) return 'Each one works in any language.';
+  if (ways.length === 1) return `Every example comes in ${ways[0]}.`;
+  const last = ways.length === 2 ? ' or ' : ', or ';
+  return `Each course's examples come in ${ways.slice(0, -1).join(', ')}${last}${ways.at(-1)}.`;
+}
+
 /** The sections of all courses, topics first, each in the API's order; a kind with no course has none. */
 export function courseSectionsOf(courses: readonly LearnCourseCard[]): CourseSection[] {
   const topics = courses.filter((course) => course.kind === 'TOPIC');
@@ -653,7 +688,7 @@ export function courseSectionsOf(courses: readonly LearnCourseCard[]): CourseSec
     sections.push({
       kind: 'TOPIC',
       title: 'Topics, in any language',
-      sub: 'Every example comes in all seven languages.',
+      sub: topicLanguagesLineOf(topics),
       courses: topics,
     });
   }

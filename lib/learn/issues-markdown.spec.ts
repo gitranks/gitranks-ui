@@ -30,7 +30,7 @@ describe("Issues' Markdown copies", () => {
     );
     expect(copy).toContain('/learn/lessons/find-duplicates-with-a-set).');
     expect(copy).toContain('See it in full: ');
-    expect(copy).toContain('/my/issues/q7k2m9xa');
+    expect(copy).toContain('/my/issues/q7k2m9xa?from=learn');
     // A visitor's copy: every lesson is taught, none "learned"; a row without a lesson has no lesson line.
     expect(copy).not.toContain('learned');
     expect(copy.match(/^- \*\*/gm)).toHaveLength(5);

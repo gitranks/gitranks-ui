@@ -12,8 +12,8 @@ const PILL_TONES = {
 } as const;
 
 /**
- * A word or two on a soft fill of its tone: a state, a label, a mark. `small` is the one beside a menu item ("Beta",
- * "New"): smaller type and no border, so it sits on the item's line.
+ * A word or two on a soft fill of its tone: a state, a label, a mark. `small` is the one beside a menu item ("New"):
+ * smaller type and no border, so it sits on the item's line.
  */
 export function Pill({
   children,

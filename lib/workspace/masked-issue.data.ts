@@ -109,8 +109,11 @@ export type IssueStartReads = {
   waitingPrs: number | null;
 };
 
-/** The start form's reads for the viewer who holds an issue. Each failed read leaves its part as if nothing were there. */
-export async function loadIssueStartReads(): Promise<IssueStartReads> {
+/**
+ * The start form's reads for the viewer who holds an issue. Each failed read leaves its part as if nothing were there.
+ * `vsCode`: the form offers VS Code (from Learn), so a connection named for it is named so.
+ */
+export async function loadIssueStartReads({ vsCode = false }: { vsCode?: boolean } = {}): Promise<IssueStartReads> {
   const githubLogin = await viewerLogin();
   const reader = { source: 'ssr' as const, githubLogin: githubLogin ?? '' };
   const [ownAgent, onboarded, signIn, limits] = await Promise.all([
@@ -121,7 +124,7 @@ export async function loadIssueStartReads(): Promise<IssueStartReads> {
   ]);
   const open = limits?.openPrs;
   return {
-    connection: learnStartConnectionOf(ownAgent?.tokens),
+    connection: learnStartConnectionOf(ownAgent?.tokens, vsCode),
     agent: { onboarded, tokens: ownAgent?.tokens, signIn },
     waitingPrs: open && open.limit > 0 && open.count >= open.limit ? open.count : null,
   };

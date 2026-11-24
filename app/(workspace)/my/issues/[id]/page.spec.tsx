@@ -27,6 +27,8 @@ const data = vi.hoisted(() => ({
   loadIssueStartReads: vi.fn(),
 }));
 vi.mock('@/lib/workspace/masked-issue.data', () => data);
+const learnParts = vi.hoisted(() => ({ loadIssuePageLearn: vi.fn() }));
+vi.mock('@/lib/workspace/issue-page-learn.data', () => learnParts);
 const learn = vi.hoisted(() => ({ loadLearnProfile: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => learn);
 
@@ -79,6 +81,7 @@ beforeEach(() => {
   data.loadIssueNumbers.mockResolvedValue(issueNumbers);
   data.loadIssueStartReads.mockResolvedValue(START);
   learn.loadLearnProfile.mockResolvedValue(null);
+  learnParts.loadIssuePageLearn.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -155,5 +158,35 @@ describe('the page of one issue at /my/issues/[id]', () => {
   it('shows the window without numbers when they cannot be read', async () => {
     data.loadIssueNumbers.mockResolvedValue(null);
     expect(stateOf(await issuePageAt())).toBe('MASKED');
+  });
+});
+
+describe("the page of one issue from Learn: Learn's parts", () => {
+  const PARTS = {
+    lesson: { slug: 'a-queue', title: 'A queue: first in, first out' },
+    why: 'USES_LEARNED',
+    learnOnly: true,
+    started: null,
+  };
+
+  it('reads them on their own, from Learn only, and says the lesson and why on the masked card', async () => {
+    learnParts.loadIssuePageLearn.mockResolvedValue(PARTS);
+    const html = await issuePageAt({ from: 'learn' });
+    expect(learnParts.loadIssuePageLearn).toHaveBeenCalledWith('q7k2m9xa');
+    expect(text(html)).toContain('Uses A queue: first in, first out , which you learned.');
+    expect(html).toContain('href="/learn/lessons/a-queue"');
+    expect(text(html)).not.toMatch(/acme|#1290/);
+    learnParts.loadIssuePageLearn.mockClear();
+    await issuePageAt();
+    expect(learnParts.loadIssuePageLearn).not.toHaveBeenCalled();
+  });
+
+  it('draws the page as today when their read fails', async () => {
+    learnParts.loadIssuePageLearn.mockRejectedValue(new Error('down'));
+    data.loadIssuePage.mockResolvedValue({ kind: 'page', page: fullPage() });
+    const html = await issuePageAt({ from: 'learn' });
+    expect(stateOf(html)).toBe('FULL');
+    expect(html).not.toContain('data-lesson');
+    expect(text(html)).toContain('Fix it and teach me');
   });
 });

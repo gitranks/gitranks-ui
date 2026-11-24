@@ -177,14 +177,7 @@ export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: Contri
     className="grid items-center gap-10 py-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:py-20"
   >
     <div className="flex min-w-0 flex-col gap-5">
-      <div className="flex items-center gap-2">
-        <span className="rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
-          Beta
-        </span>
-        <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-          GitRanks Contribute
-        </span>
-      </div>
+      <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">GitRanks Contribute</span>
       <h2 id="contribute" className="text-2xl font-semibold tracking-tight text-balance md:text-3xl lg:text-4xl">
         Invest in the open source you build on
       </h2>

@@ -65,7 +65,7 @@ describe('the Contribute section on the home page', () => {
     expect(html).toContain('Why: Your stack: fern-fmt · used by 3 of 5 repos · A maintainer asked for a PR');
     expect(html).not.toContain('href="https://github.com/');
     expect(html).toContain('Fix it with');
-    expect(html).toContain('>Beta<');
+    expect(html).not.toMatch(/beta/i);
   });
 
   it("opens Contribute, where the header's item goes, with no sign-in of its own", () => {
@@ -85,6 +85,6 @@ describe('the Contribute section on the home page', () => {
     expect(html).toMatch(/<a [^>]*href="\/contribute">Open Contribute/);
     expect(html).not.toContain('Example picks');
     expect(html).not.toContain('Fix it with');
-    expect(html).toContain('>Beta<');
+    expect(html).not.toMatch(/beta/i);
   });
 });

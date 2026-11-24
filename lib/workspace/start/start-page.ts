@@ -3,7 +3,7 @@ import type { Route } from 'next';
 import type { LearnStartConnection, StartMode, StartPageAttempt, StartPageIssueView } from './start-page.types';
 import type { ContributeAttemptState, ContributeMcpToken } from '@/lib/workspace/contribute.types';
 import { relativeLabel } from '@/lib/workspace/format';
-import { MCP_CLIENT_NAMES, MCP_CLIENTS, type McpClient } from '@/lib/workspace/mcp-setup';
+import { MCP_CLIENT_NAMES, MCP_CLIENTS, MCP_CLIENTS_WITH_VS_CODE, type McpClient } from '@/lib/workspace/mcp-setup';
 import { isSignedInAgent } from '@/lib/workspace/oauth-consent';
 import { PICK_ISSUE_PATHS, pullRequestPath } from '@/lib/workspace/paths';
 
@@ -76,12 +76,15 @@ export const startIssueUrlOf = ({ start }: Pick<StartPageIssueView, 'start'>) =>
 const CLIENT_ALIASES: Partial<Record<McpClient, string>> = { codex: 'codex', 'gemini-cli': 'gemini' };
 const keyOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-/** The agent as its connection's name says, when it names one of the clients we set up: "Claude Code on macOS". */
-export function mcpClientOfName(name: string | null | undefined): McpClient | null {
+/**
+ * The agent as its connection's name says, when it names one of the clients we set up: "Claude Code on macOS". VS Code
+ * only where its picker offers it (`vsCode`).
+ */
+export function mcpClientOfName(name: string | null | undefined, vsCode = false): McpClient | null {
   const key = keyOf(name ?? '');
   if (!key) return null;
   return (
-    MCP_CLIENTS.find((client) => {
+    (vsCode ? MCP_CLIENTS_WITH_VS_CODE : MCP_CLIENTS).find((client) => {
       const alias = CLIENT_ALIASES[client];
       return key.startsWith(keyOf(MCP_CLIENT_NAMES[client])) || (alias !== undefined && key.startsWith(alias));
     }) ?? null
@@ -92,12 +95,15 @@ export function mcpClientOfName(name: string | null | undefined): McpClient | nu
  * Whether the viewer's agent has called: an agent that signed in, or a personal token with a last use. A token made and
  * never used doesn't count. The connection named is the one used last.
  */
-export function learnStartConnectionOf(tokens: ContributeMcpToken[] | undefined): LearnStartConnection | null {
+export function learnStartConnectionOf(
+  tokens: ContributeMcpToken[] | undefined,
+  vsCode = false,
+): LearnStartConnection | null {
   const live = (tokens ?? []).filter((token) => isSignedInAgent(token) || token.lastUsedAt);
   if (!live.length) return null;
   const at = (token: ContributeMcpToken) => (token.lastUsedAt ? Date.parse(token.lastUsedAt) || 0 : -1);
   const last = live.reduce((best, token) => (at(token) > at(best) ? token : best));
-  return { client: mcpClientOfName(last.name), lastCallAt: last.lastUsedAt };
+  return { client: mcpClientOfName(last.name, vsCode), lastCallAt: last.lastUsedAt };
 }
 
 /** How far back a connection's use counts for the restart sentence. */

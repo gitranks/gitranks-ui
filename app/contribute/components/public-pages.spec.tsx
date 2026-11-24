@@ -187,9 +187,9 @@ describe('the MCP docs', () => {
     for (const { line } of MCP_DOC_SAVES) expect(line).toContain('<your GitRanks token>');
   });
 
-  it('list the ten tools, an anchor per client, the header forms and what is sent', () => {
+  it('list the eleven tools, an anchor per client, the header forms and what is sent', () => {
     const html = renderToStaticMarkup(<McpDocsScreen />);
-    expect(MCP_DOC_TOOLS).toHaveLength(10);
+    expect(MCP_DOC_TOOLS).toHaveLength(11);
     for (const { name } of MCP_DOC_TOOLS) expect(html).toContain(name);
     for (const { id } of MCP_DOC_CLIENTS) expect(html).toContain(`id="${id}"`);
     const said = text(html);
@@ -251,7 +251,7 @@ describe('the MCP docs', () => {
 
 describe('the questions', () => {
   it('run contribution, guardrails, credits, then the record, each question with its own anchor', () => {
-    expect(FAQ_GROUPS.map(({ id }) => id)).toEqual(['contributing', 'guardrails', 'credits', 'beta']);
+    expect(FAQ_GROUPS.map(({ id }) => id)).toEqual(['contributing', 'guardrails', 'credits', 'changes-and-record']);
     const ids = FAQ_GROUPS.flatMap(({ id, entries }) => [id, ...entries.map((entry) => entry.id)]);
     expect(new Set(ids).size).toBe(ids.length);
   });
@@ -282,7 +282,7 @@ describe('the questions', () => {
       'take a repo out of the shared pool for 90 days after two misses there within 90 days: a PR no one answers for 30 days, or one closed as wrong, low quality or harshly.',
     );
     expect(said).not.toMatch(/60 days|in a row/);
-    expect(LANDING_QUESTIONS[0]?.id).toBe('in-beta');
+    expect(LANDING_QUESTIONS[0]?.id).toBe('changes');
   });
 });
 

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { Route } from 'next';
 import { act, type ReactNode } from 'react';
 import { createRoot, hydrateRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
@@ -280,5 +281,48 @@ describe('the other ends', () => {
     await screen(issuePage(), { suspended: { appeal: openAppeal } });
     expect(container.querySelector('[data-fair-use-appeal]')).not.toBeNull();
     expect(container.querySelector('[data-issue-card]')).toBeNull();
+  });
+});
+
+describe("the page of one issue: Learn's parts", () => {
+  const LESSON = { title: 'A queue: first in, first out', href: '/learn/lessons/a-queue' as Route, learned: false };
+  const lessonLine = () => container.querySelector('[data-lesson]')?.textContent;
+  const STARTED = { agent: 'Claude Code', at: '2026-10-28T11:48:00.000Z', walkthrough: true };
+  const startedPage = issuePage({ state: 'STARTED', startPath: '/my/pull-requests/acme/notebook/1290' });
+
+  it('says the lesson and why on the masked card, which names no project', async () => {
+    await screen(issuePage(), { lesson: LESSON });
+    expect(lessonLine()).toBe('Teaches A queue: first in, first out, which is new for you.');
+    expect(container.querySelector('[data-lesson] a')?.getAttribute('href')).toBe('/learn/lessons/a-queue');
+    expect(container.textContent).not.toMatch(/acme|#1290/);
+  });
+
+  it('says it on the full issue too, as "Uses" once the lesson is learned', async () => {
+    await screen(fullPage(), { lesson: { ...LESSON, learned: true } });
+    expect(lessonLine()).toBe('Uses A queue: first in, first out, which you learned.');
+  });
+
+  it('has no "How" step for an issue kept for learners', async () => {
+    await screen(fullPage(), { learnOnly: true });
+    const steps = [...container.querySelectorAll('[data-step] h3')].map((each) => each.textContent);
+    expect(steps).toEqual(['Your agent', 'Paste this in Claude Code']);
+    expect(container.querySelector('[data-learn-only]')).not.toBeNull();
+  });
+
+  it('says in one line how the work started, with the walkthrough or without', async () => {
+    await screen(startedPage, { started: STARTED });
+    expect(container.querySelector('[data-end="STARTED"] p')?.textContent).toBe(
+      'Claude Code started it 12 minutes ago, with the walkthrough. Its page shows each step as it goes.',
+    );
+    await screen(startedPage, { started: { ...STARTED, walkthrough: false } });
+    expect(container.textContent).toContain('Claude Code started it 12 minutes ago, without the walkthrough.');
+    expect(container.textContent).not.toMatch(/—/);
+  });
+
+  it("keeps today's words without the started line", async () => {
+    await screen(startedPage);
+    expect(container.querySelector('[data-end="STARTED"] p')?.textContent).toBe(
+      'Your agent is on it. Its page shows each step as it goes.',
+    );
   });
 });

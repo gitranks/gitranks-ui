@@ -149,7 +149,7 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     fetchMock.mockImplementation(() => new Promise<Response>((resolve) => answers.push(resolve)));
     await draw();
     expect(fetchMock.mock.calls.map(([path]) => path)).toEqual([
-      `/api/me/learn/lessons/${setLesson.slug}`,
+      `/api/me/learn/lessons/${setLesson.slug}?main=1`,
       `/api/me/learn/courses/${setLesson.course.slug}`,
       `/api/me/learn/lessons/${setLesson.slug}/real-world`,
     ]);
@@ -499,6 +499,37 @@ describe("the language of a lesson's examples", () => {
     await drawLoop();
     expect(exampleLanguage()).toBe('python');
     expect(questionLanguage()).toBe('python');
+  });
+
+  it('keeps the code an answer was given in when the side brings the main language after a pick and a check', async () => {
+    signedIn();
+    // The side is slow: it answers only when the spec lets it.
+    const waiting: (() => void)[] = [];
+    fetchMock.mockImplementation(
+      (path: string) =>
+        new Promise<Response>((resolve) => {
+          const body = path.endsWith('/real-world')
+            ? NO_LESSON_REAL
+            : path.startsWith('/api/me/learn/lessons/')
+              ? { mine: mineNew, mainLanguage: 'javascript' }
+              : { course: { slug: 'algorithms', lessons: [] } };
+          waiting.push(() => resolve(new Response(JSON.stringify(body), { status: 200 })));
+        }),
+    );
+    answerLearnLessonAction.mockResolvedValue({ ok: true, data: null });
+    await drawLoop();
+    expect(questionLanguage()).toBe('python');
+    // Python's inner loop is line 3: picked, then checked.
+    await tap($('[data-line="3"]')!);
+    await tap(main());
+    expect($('[data-line="3"]')!.getAttribute('data-line-mark')).toBe('right');
+    await act(async () => {
+      for (const answer of waiting) answer();
+    });
+    expect(questionLanguage()).toBe('python');
+    expect(exampleLanguage()).toBe('python');
+    expect($('[data-line="3"]')!.getAttribute('data-line-mark')).toBe('right');
+    expect(host.querySelectorAll('[data-line-mark="right"]')).toHaveLength(1);
   });
 
   it('lets a tab picked on the page win over the main language', async () => {

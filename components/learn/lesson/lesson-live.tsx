@@ -21,9 +21,9 @@ import type { LearnCourseLessonMine } from '@/lib/learn/lesson-page.documents';
 import {
   coursePath,
   learnCourseMinePath,
-  learnLessonMinePath,
   learnLessonPath,
   learnLessonRealMinePath,
+  learnLessonSidePath,
 } from '@/lib/learn/paths';
 import { fixesOf, type LessonRealMine, lessonRealOf, realRowsOf } from '@/lib/learn/real-issues';
 import { MainLanguageContext } from '@/lib/learn/use-example-language';
@@ -49,7 +49,7 @@ export async function readLessonViewer(lesson: {
   course: { slug: string };
 }): Promise<{ viewer: LessonViewer | null; mainLanguage: string | null }> {
   const [lessonAnswer, courseAnswer] = await Promise.all([
-    readJson<{ mine?: LearnLessonMine | null; mainLanguage?: unknown }>(learnLessonMinePath(lesson.slug)),
+    readJson<{ mine?: LearnLessonMine | null; mainLanguage?: unknown }>(learnLessonSidePath(lesson.slug)),
     readJson<{ course?: { lessons?: LearnCourseLessonMine[] } | null }>(learnCourseMinePath(lesson.course.slug)),
   ]);
   const main = lessonAnswer?.mainLanguage;
@@ -143,7 +143,8 @@ export function LessonLive({
     setRealMine(null);
     readLessonViewer({ slug, course: { slug: course } }).then(({ viewer, mainLanguage: read }) => {
       if (!live) return;
-      setMainOfSide(read);
+      // Only while the person has not touched the player: an answer started is graded and marked in the code it shows.
+      if (!touched.current) setMainOfSide(read);
       setPersonal(viewer ? { kind: 'member', viewer } : { kind: 'session' });
       if (viewer && !touched.current) setRedrawn(true);
     });

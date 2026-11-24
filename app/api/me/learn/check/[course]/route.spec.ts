@@ -22,7 +22,7 @@ vi.mock('@/lib/learn/setup.data', () => ({ loadLearnMainLanguage }));
 const { GET } = (await import('./route')) as unknown as {
   GET: (req: NextRequest, ctx: { params: Promise<{ course: string }> }) => Promise<Response>;
 };
-const { checkRunOf } = await import('@/lib/learn/__fixtures__/check');
+const { checkEnded, checkRunOf } = await import('@/lib/learn/__fixtures__/check');
 
 const get = (course = 'algorithms') =>
   GET(new NextRequest(`https://gitranks.com/api/me/learn/check/${course}`), { params: Promise.resolve({ course }) });
@@ -66,5 +66,17 @@ describe("the person's check route", () => {
     signIn();
     loadLearnCheckSide.mockResolvedValue({ check: null, missing: true });
     expect(await (await get('nope')).json()).toEqual({ check: null, missing: true, mainLanguage: null });
+    expect(loadLearnMainLanguage).not.toHaveBeenCalled();
+  });
+
+  it('reads the main language for a run still going only: never for an ended run or none', async () => {
+    signIn();
+    loadLearnMainLanguage.mockResolvedValue('javascript');
+    const ended = { check: checkEnded(), missing: false };
+    loadLearnCheckSide.mockResolvedValue(ended);
+    expect(await (await get()).json()).toEqual({ ...ended, mainLanguage: null });
+    loadLearnCheckSide.mockResolvedValue({ check: null, missing: false });
+    expect(await (await get()).json()).toEqual({ check: null, missing: false, mainLanguage: null });
+    expect(loadLearnMainLanguage).not.toHaveBeenCalled();
   });
 });

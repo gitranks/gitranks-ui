@@ -9,14 +9,13 @@ import { loadLearnMainLanguage } from '@/lib/learn/setup.data';
  * The signed-in person's run of a course's check, read in the browser once the page is up: `{ check, missing,
  * mainLanguage }`, the questions still to answer or the result once the run ended. Null signed out (without asking the
  * API), when Learn is not open to them, and on any failure; `missing` when the course offers no check. `mainLanguage`
- * is their setup's main language, the one each question's code opens in, read apart so it fails alone. Never kept:
- * every answer changes it.
+ * is their setup's main language, the one each question's code opens in: read only for a run still going, apart so
+ * it fails alone; null otherwise. Never kept: every answer changes it.
  */
 export const GET = auth(async function GET(req: AuthRequest, { params }) {
   const { course } = (await params) as { course: string };
   const viewer = req.auth && !req.auth.error ? req.auth.user.githubLogin : undefined;
-  const [side, mainLanguage] = viewer
-    ? await Promise.all([loadLearnCheckSide(viewer, course), loadLearnMainLanguage(viewer)])
-    : [{ check: null, missing: false }, null];
+  const side = viewer ? await loadLearnCheckSide(viewer, course) : { check: null, missing: false };
+  const mainLanguage = viewer && side.check && !side.check.result ? await loadLearnMainLanguage(viewer) : null;
   return NextResponse.json({ ...side, mainLanguage }, { headers: { 'Cache-Control': 'private, no-store' } });
 });

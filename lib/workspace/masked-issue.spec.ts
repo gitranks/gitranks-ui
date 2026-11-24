@@ -12,6 +12,7 @@ import {
   issueLanguageColorOf,
   issuePageCarriedOf,
   issuePagePath,
+  keptShareOf,
   limitEndOf,
   limitNoteOf,
   looksLineOf,
@@ -207,5 +208,14 @@ describe('the words people read', () => {
       expect(words).not.toMatch(/—/);
       expect(words).not.toMatch(/claim/i);
     }
+  });
+});
+
+describe('keptShareOf', () => {
+  it('says "about 1 in 1,000" in its band, a share otherwise, and nothing before a read', () => {
+    expect(keptShareOf({ read: 2_340_000, kept: 2_499 })).toBe('about 1 in 1,000');
+    expect(keptShareOf({ read: 1_000_000, kept: 5_000 })).toBe('0.5%');
+    expect(keptShareOf({ read: 0, kept: 0 })).toBeNull();
+    expect(keptShareOf(null)).toBeNull();
   });
 });

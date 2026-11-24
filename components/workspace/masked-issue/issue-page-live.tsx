@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { AgentConnect } from '@/components/workspace/agent/agent-connect';
+import { sendFairUseAppeal } from '@/components/workspace/fair-use-appeal-live';
 import { type IssuePageNotice, IssuePageScreen } from '@/components/workspace/masked-issue/issue-page-screen';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
 import { limitWordsOf } from '@/lib/workspace/limit-words';
@@ -241,7 +242,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
         onReason: async (reason, on) => (await setIssueOutReason(id, reason, on).catch(() => null))?.ok === true,
         onNote: async (note) => (await saveIssueOutNote(id, note).catch(() => null))?.ok === true,
       }}
-      suspended={suspended ? { appeal: null, formNeedsSend: true } : null}
+      suspended={suspended ? { appeal: null, onSend: sendFairUseAppeal } : null}
     />
   );
 }

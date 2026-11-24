@@ -128,6 +128,24 @@ describe('loadContribute', () => {
     answer(async () => ({ contribute: { previewAllowed: true, contributor } }));
     expect((await loadContribute())?.contributor).not.toHaveProperty('limits');
   });
+
+  it('keeps the limits when the API no longer counts issues shown a day (null), so a closed access still shows', async () => {
+    const contributor = { status: 'ACTIVE', login: 'octocat', autopilot: null };
+    const limits = {
+      level: 'SUSPENDED',
+      reason: 'FAIR_USE',
+      attemptsAtATime: 0,
+      openPrsAtATime: 0,
+      claimsPerDay: 0,
+      revealsPerDay: null,
+    };
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
+      if (document === ContributeLimitsDocument) return { contribute: { contributor: { limits } } };
+      throw new Error('[{"message":"Cannot query field"}]');
+    });
+    expect((await loadContribute())?.contributor?.limits).toEqual(limits);
+  });
 });
 
 const graphqlError = (code: string, message = 'refused') =>

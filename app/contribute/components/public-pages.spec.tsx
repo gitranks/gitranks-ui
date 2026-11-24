@@ -5,6 +5,10 @@ vi.mock('@/lib/workspace/preview-gate', () => ({ contributeShown: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: vi.fn(async () => false) }));
 vi.mock('@/components/workspace/scroll-to-hash', () => ({ ScrollToHash: () => <span data-scroll-to-hash /> }));
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
+vi.mock('@/lib/workspace/rules-live', () => ({
+  issueRules: vi.fn(async () => ({ state: 'before' })),
+  issueRulesLive: vi.fn(async () => false),
+}));
 
 const { FaqScreen } = await import('./faq');
 const { McpDocsScreen } = await import('./mcp-docs');

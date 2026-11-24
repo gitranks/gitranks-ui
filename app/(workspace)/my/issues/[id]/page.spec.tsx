@@ -15,6 +15,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/workspace/masked-issue.actions', () => ({}));
+vi.mock('@/lib/workspace/fair-use.actions', () => ({}));
 vi.mock('@/components/workspace/agent/agent-connect', () => ({
   AgentConnect: () => <div data-agent-connect="" />,
 }));

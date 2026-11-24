@@ -16,7 +16,43 @@ export const fairUseAnswerPathOf = (noticeId: string): Route =>
 export const FAIR_USE_ANSWER_MAX = 2_000;
 
 /** A notice id as the API gives them: anything else is no notice of the user's, and is never asked about. */
-const NOTICE_ID = /^[A-Za-z0-9_=+/-]{1,100}-(?:outsidePr|viewing)-[123]-\d{1,6}$/;
+const NOTICE_ID = /^[A-Za-z0-9_=+/-]{1,100}-(?:outsidePr|viewing|outsideFix|claimRatio)-[123]-\d{1,6}$/;
+
+/** The rules of today, each with three steps: an email, 5 full issues a day, access closed. */
+const STEP_RULES: readonly ContributeFairUseNotice['rule'][] = ['OUTSIDE_FIX', 'CLAIM_RATIO'];
+
+/**
+ * Whether a message closed the user's access under one of today's rules: its answer is a request to look again
+ * ("Ask us to look again"), not an answer to the message.
+ */
+export const isAccessClosed = (notice: Pick<ContributeFairUseNotice, 'rule' | 'phase'>): boolean =>
+  STEP_RULES.includes(notice.rule) && notice.phase >= 3;
+
+/** The words of the way to ask us to look again at a closed access. */
+export const ASK_AGAIN = 'Ask us to look again';
+
+/**
+ * Which rules about issues the API says hold, for the Terms, the Privacy policy, the MCP docs, the agents' page and the
+ * questions. `live`: the rules about full issues a day, with the date of the Terms that describe them. `before`: the
+ * rules of today, also when the API does not know the read yet. `unknown`: the API did not answer and no answer is
+ * kept, so the pages say that part could not be loaded rather than show words that may be wrong. `pending`: the read
+ * is under way (a static fallback), so the pages show only what both rules share.
+ */
+export type IssueRules =
+  | { state: 'live'; termsDate: string }
+  | { state: 'before' }
+  | { state: 'unknown' }
+  | { state: 'pending' };
+
+export const RULES_BEFORE: IssueRules = { state: 'before' };
+export const RULES_PENDING: IssueRules = { state: 'pending' };
+
+/** The day the Terms that describe the live rules took effect ('YYYY-MM-DD'), or null before they are live. */
+export const termsDayOf = (rules: IssueRules): string | null =>
+  rules.state === 'live' ? rules.termsDate.slice(0, 10) : null;
+
+/** What a page says where the rules could not be read. */
+export const RULES_UNREAD = 'This part could not be loaded just now. Reload the page to read it.';
 
 /** The notice id an address names, as the API gives them; null for anything else. */
 export function fairUseNoticeIdOf(value: string | null | undefined): string | null {

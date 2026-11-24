@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import { CONTACT_EMAIL } from '@/lib/legal';
+import { CONTRIBUTE_RULES_PATH } from '@/lib/workspace/fair-use';
 import { AUTOPILOT_UNLOCK_AT } from '@/lib/workspace/format';
 import { MAINTAINERS_PATH, MCP_DOCS_PATH } from '@/lib/workspace/paths';
 
@@ -52,6 +53,15 @@ const FAIR: FaqEntry = {
   answer:
     'We open at most one PR in a repo at a time, never more than four a month, and take a repo out of the shared pool for 90 days after two misses there within 90 days: a PR no one answers for 30 days, or one closed as wrong, low quality or harshly. Every PR says it was made with AI. Maintainers can opt their repo out.',
   more: { href: MAINTAINERS_PATH as Route, label: 'The rules for maintainers' },
+};
+
+/** Why issue details are hidden and how many full issues a day: asked once the rules about full issues are live. */
+export const FULL_ISSUES: FaqEntry = {
+  id: 'full-issues',
+  question: 'Why are issue details hidden, and how many issues can I see in full?',
+  answer:
+    'Finding issues worth working on costs us a lot, and an open list gets copied by bots. So a list shows each issue without the details that name it. Press "See the full issue" and it is held for you alone for 15 minutes while you decide. You can see 10 to 70 full issues a day, by your GitRanks tier, plus 5 for each pull request merged through GitRanks, up to 100. Seeing one costs no money, and it counts toward the day, given back or not.',
+  more: { href: CONTRIBUTE_RULES_PATH, label: 'How you may use issues from GitRanks' },
 };
 
 /** The landing's six, short, in the landing's own order: that it is in beta, then cost (its visitors ask that first). */
@@ -150,3 +160,13 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
     ],
   },
 ];
+
+/** The questions page's groups: with the one on full issues a day after fairness to maintainers, once it is live. */
+export const faqGroupsOf = (rulesLive: boolean): readonly FaqGroup[] =>
+  rulesLive
+    ? FAQ_GROUPS.map((group) =>
+        group.id === 'guardrails'
+          ? { ...group, entries: group.entries.flatMap((entry) => (entry === FAIR ? [FAIR, FULL_ISSUES] : [entry])) }
+          : group,
+      )
+    : FAQ_GROUPS;

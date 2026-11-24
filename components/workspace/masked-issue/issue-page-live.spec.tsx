@@ -16,6 +16,8 @@ const actions = vi.hoisted(() => ({
   startHeldIssue: vi.fn(),
 }));
 vi.mock('@/lib/workspace/masked-issue.actions', () => actions);
+const fairUse = vi.hoisted(() => ({ appealFairUse: vi.fn() }));
+vi.mock('@/lib/workspace/fair-use.actions', () => fairUse);
 vi.mock('@/components/workspace/agent/agent-connect', () => ({
   AgentConnect: ({ onAdded }: { onAdded?: () => void }) => (
     <div data-agent-connect="">
@@ -135,15 +137,23 @@ describe('"See the full issue"', () => {
     expect(h1()).toBe(title);
   });
 
-  it('shows the closed access, with no form that cannot send yet, when the account is suspended', async () => {
+  it('shows the closed access and the request to look again, which sends, when the account is suspended', async () => {
     actions.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'SUSPENDED', page: null } });
+    fairUse.appealFairUse.mockResolvedValue({ ok: true, data: { at: new Date().toISOString(), answeredAt: null } });
     await live();
     await press('See the full issue');
-    expect(container.querySelector('[data-fair-use-appeal]')?.getAttribute('data-fair-use-appeal')).toBe('closed');
+    expect(container.querySelector('[data-fair-use-appeal]')?.getAttribute('data-fair-use-appeal')).toBe('form');
     expect(container.querySelector('[data-ban]')).not.toBeNull();
-    expect(container.querySelector('form')).toBeNull();
     expect(container.querySelector('a[href="/terms#contribute-rules"]')).not.toBeNull();
     expect(container.querySelector('[data-issue-card]')).toBeNull();
+    const area = container.querySelector('textarea') as HTMLTextAreaElement;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set?.call(area, 'Please look again.');
+      area.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => container.querySelector('form')?.requestSubmit());
+    expect(fairUse.appealFairUse).toHaveBeenCalledExactlyOnceWith('Please look again.');
+    expect(container.querySelector('[data-fair-use-appeal]')?.getAttribute('data-fair-use-appeal')).toBe('open');
   });
 
   it('stays as it was and says so when the press does not go through', async () => {

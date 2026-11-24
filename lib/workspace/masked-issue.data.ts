@@ -48,14 +48,6 @@ export async function loadIssueNumbers(): Promise<IssueNumbers | null> {
 }
 
 /**
- * Whether the rules about full issues a day are live (the switch): the site shows their words and the old Start page
- * address stops naming issues nobody uncovered. False whenever the numbers cannot be read: today's words.
- */
-export async function loadRulesLive(): Promise<boolean> {
-  return (await loadIssueNumbers())?.rulesLive === true;
-}
-
-/**
  * An old Start page address's answer, read once with the issue's mask: `answer` goes on to the Start page as its own
  * read would (an issue it cannot show is its answer too), `maskId` is null when the viewer named the issue's project or
  * holds it. Null when the API does not know the mask yet: the page reads its answer as today. An outage is the page's

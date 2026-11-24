@@ -97,8 +97,11 @@ function isNotOurs(target: HTMLElement | null): boolean {
 }
 
 /**
- * The engine of one question's answer. Key the component that calls it by the question's id: a new question starts a
- * new answer. With a key the verdict is the page's own; without one it waits for `send`'s.
+ * The engine of one question's answer. Key the component that calls it by something unique among the questions that
+ * can follow each other there: a new question starts a new answer. A question's id is unique only within its lesson
+ * (every check question is `c1`), so where questions of several lessons follow each other, key by what names the
+ * place (a check's group, a review's item). With a key the verdict is the page's own; without one it waits for
+ * `send`'s.
  */
 export function useLearnAnswer(options: LearnAnswerOptions): LearnAnswer {
   const { question } = options;

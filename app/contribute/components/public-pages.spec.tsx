@@ -187,9 +187,9 @@ describe('the MCP docs', () => {
     for (const { line } of MCP_DOC_SAVES) expect(line).toContain('<your GitRanks token>');
   });
 
-  it('list the ten tools, an anchor per client, the header forms and what is sent', () => {
+  it('list the eleven tools, an anchor per client, the header forms and what is sent', () => {
     const html = renderToStaticMarkup(<McpDocsScreen />);
-    expect(MCP_DOC_TOOLS).toHaveLength(10);
+    expect(MCP_DOC_TOOLS).toHaveLength(11);
     for (const { name } of MCP_DOC_TOOLS) expect(html).toContain(name);
     for (const { id } of MCP_DOC_CLIENTS) expect(html).toContain(`id="${id}"`);
     const said = text(html);

@@ -33,7 +33,7 @@ const key = (patch: Partial<ContributeConfigKey> & { key: string }): ContributeC
   ...patch,
 });
 
-/** The page's facts as the API answers them today: only `contribute` enforced. */
+/** The page's facts as the API answers them today: only `contribute` and `learn` enforced. */
 export const maintainerFacts = (patch: Partial<ContributeMaintainerFacts> = {}): ContributeMaintainerFacts => ({
   prsPerMonth: 4,
   monthDays: 30,
@@ -80,6 +80,15 @@ export const maintainerFacts = (patch: Partial<ContributeMaintainerFacts> = {}):
       meaning: 'Only this tier and above',
     }),
     key({ key: 'contact', kind: 'contact', values: 'an email or an https URL', meaning: 'Where to reach you' }),
+    key({
+      key: 'learn',
+      kind: 'welcomeOff',
+      values: 'welcome',
+      meaning:
+        'GitRanks Learn pull requests are welcome, even where good first issues and first contributions are kept for people (to keep all GitRanks pull requests out, use contribute: off)',
+      live: true,
+      page: false,
+    }),
   ],
   ...patch,
 });

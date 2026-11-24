@@ -153,14 +153,17 @@ describe('a failed note', () => {
 });
 
 describe('the keys the page shows', () => {
-  it('are the live ones, `contribute` only while no other is live', () => {
+  it('are the live ones, `contribute` only while no other rule is live', () => {
     const facts = maintainerFacts();
-    expect(liveKeysOf(facts).map(({ key }) => key)).toEqual(['contribute']);
+    expect(liveKeysOf(facts).map(({ key }) => key)).toEqual(['contribute', 'learn']);
+    // `learn` says which product may come in, as `contribute` does: the example shows rules, never it.
     expect(configExampleOf(liveKeysOf(facts))).toEqual([
-      { key: 'contribute', value: 'on', comment: 'off keeps GitRanks Contribute out' },
+      { key: 'contribute', value: 'on', comment: 'off keeps GitRanks out: Contribute and Learn' },
     ]);
     expect(configAbilitiesOf(liveKeysOf(facts))).toBeNull();
     expect(liveKeysOf(null)).toEqual([]);
+    const learnOnly = liveKeysOf(facts).filter(({ key }) => key === 'learn');
+    expect(configExampleOf(learnOnly)).toEqual([{ key: 'learn', value: 'welcome' }]);
   });
 
   it('give each live key a value within its bounds, and say what they allow', () => {
@@ -168,6 +171,7 @@ describe('the keys the page shows', () => {
     const example = configExampleOf(keys);
 
     expect(example.map(({ key }) => key)).not.toContain('contribute');
+    expect(example.map(({ key }) => key)).not.toContain('learn');
     expect(example.find(({ key }) => key === 'max_open_prs')?.value).toBe('1');
     expect(example.find(({ key }) => key === 'min_account_age_years')?.value).toBe('6');
     const tight = configExampleOf([{ ...keys[3], min: 5, max: 8 }]);

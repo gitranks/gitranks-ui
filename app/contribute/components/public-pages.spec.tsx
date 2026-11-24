@@ -379,4 +379,17 @@ describe('the launch gate', () => {
     shown.mockResolvedValue(false);
     expect(await LaunchedMorePages({})).toBeNull();
   });
+
+  it('leads to Learn from the page about both products only', async () => {
+    shown.mockResolvedValue(true);
+    const maintainers = renderToStaticMarkup(await LaunchedMorePages({ current: 'maintainers' }));
+    expect(text(maintainers)).toContain(
+      'More about Contribute and Learn GitRanks Contribute → What it does, from an issue to a merged pull request. GitRanks Learn → Short lessons, and what a person answers before a fix is sent. MCP server →',
+    );
+    expect(maintainers).toContain('href="/learn"');
+
+    const faq = renderToStaticMarkup(await LaunchedMorePages({ current: 'faq' }));
+    expect(text(faq)).toContain('More about Contribute GitRanks Contribute →');
+    expect(text(faq)).not.toContain('GitRanks Learn');
+  });
 });

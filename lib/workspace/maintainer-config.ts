@@ -15,7 +15,8 @@ export type ConfigExampleLine = { key: string; value: string; comment?: string }
 
 /** The example's value for each key the page knows a good one for; others fall back to their kind's. */
 const EXAMPLES: Record<string, Omit<ConfigExampleLine, 'key'>> = {
-  contribute: { value: 'on', comment: 'off keeps GitRanks Contribute out' },
+  contribute: { value: 'on', comment: 'off keeps GitRanks out: Contribute and Learn' },
+  learn: { value: 'welcome' },
   autopilot: { value: 'off', comment: 'a person submits every PR' },
   beginner_issues: { value: 'no', comment: 'good first issues stay with people' },
   max_open_prs: { value: '1' },
@@ -30,6 +31,7 @@ const KIND_VALUES: Record<string, string> = {
   onOff: 'on',
   yesNo: 'yes',
   allowedOff: 'allowed',
+  welcomeOff: 'welcome',
   tier: 'pro',
   contact: 'maintainers@example.org',
 };
@@ -49,12 +51,20 @@ export const liveKeysOf = (facts: Pick<ContributeMaintainerFacts, 'configKeys'> 
   facts?.configKeys.filter(({ live }) => live) ?? [];
 
 /**
- * The example file the page shows: the live keys alone, with a value of the right kind. `contribute` has its own
- * line under "Rather we stay away?", so it shows here only when no other key is live.
+ * The keys that say which product may come in, not how: `contribute` has its own line under "Rather we stay away?",
+ * and `learn` its own in the part about Learn.
+ */
+const SWITCH_KEYS = new Set(['contribute', 'learn']);
+
+/**
+ * The example file the page shows: the live rules alone, with a value of the right kind. With no live rule it shows
+ * `contribute`, the key every repo can set.
  */
 export function configExampleOf(keys: ContributeConfigKey[]): ConfigExampleLine[] {
-  const rules = keys.filter(({ key }) => key !== 'contribute');
-  return (rules.length ? rules : keys).map(exampleOf);
+  const rules = keys.filter(({ key }) => !SWITCH_KEYS.has(key));
+  if (rules.length) return rules.map(exampleOf);
+  const contribute = keys.filter(({ key }) => key === 'contribute');
+  return (contribute.length ? contribute : keys).map(exampleOf);
 }
 
 /** What the live keys let a maintainer do, in a line; null when only `contribute` is live. */

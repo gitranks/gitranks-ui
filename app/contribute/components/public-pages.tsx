@@ -4,17 +4,36 @@ import type { ReactNode } from 'react';
 
 import { Eyebrow } from '@/components/workspace/primitives';
 import { cn } from '@/lib/utils';
-import { ABOUT_PATH, CONTRIBUTE_TERMS_PATH, FAQ_PATH, MAINTAINERS_PATH, MCP_DOCS_PATH } from '@/lib/workspace/paths';
+import {
+  ABOUT_PATH,
+  CONTRIBUTE_TERMS_PATH,
+  FAQ_PATH,
+  MAINTAINERS_PATH,
+  MCP_DOCS_PATH,
+  WORKSPACE_PATHS,
+} from '@/lib/workspace/paths';
 
 /** Contribute's pages open to every visitor, linked from each other's foot. */
 export type PublicPage = 'landing' | 'maintainers' | 'mcp' | 'faq' | 'terms';
 
-const PUBLIC_PAGES: { page: PublicPage; href: Route; title: string; text: string }[] = [
+/** The pages a foot may link: Contribute's own, and Learn's landing from a page about both products. */
+type FootPage = PublicPage | 'learn';
+
+/** The public pages about both products, whose foot also leads to Learn. */
+const BOTH_PRODUCTS: readonly PublicPage[] = ['maintainers'];
+
+const PUBLIC_PAGES: { page: FootPage; href: Route; title: string; text: string }[] = [
   {
     page: 'landing',
     href: ABOUT_PATH,
     title: 'GitRanks Contribute',
     text: 'What it does, from an issue to a merged pull request.',
+  },
+  {
+    page: 'learn',
+    href: WORKSPACE_PATHS.learnHome,
+    title: 'GitRanks Learn',
+    text: 'Short lessons, and what a person answers before a fix is sent.',
   },
   {
     page: 'mcp',
@@ -121,15 +140,20 @@ export function DocSection({
   );
 }
 
-/** The foot of every public page: the others, so a visitor from a directory or a PR footer finds the rest. */
+/**
+ * The foot of every public page: the others, so a visitor from a directory or a PR footer finds the rest. A page about
+ * both products (the one for maintainers) leads to Learn's landing too.
+ */
 export function MorePages({ current, className }: { current: PublicPage; className?: string }) {
+  const both = BOTH_PRODUCTS.includes(current);
+  const pages = PUBLIC_PAGES.filter(({ page }) => page !== current && (both || page !== 'learn'));
   return (
     <nav aria-labelledby="more-pages" className={cn('flex flex-col gap-4 border-t pt-9', className)}>
       <h2 id="more-pages" className="text-xl font-semibold tracking-tight">
-        More about Contribute
+        {both ? 'More about Contribute and Learn' : 'More about Contribute'}
       </h2>
       <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-3.5">
-        {PUBLIC_PAGES.filter(({ page }) => page !== current).map(({ page, href, title, text }) => (
+        {pages.map(({ page, href, title, text }) => (
           <li key={page} className="flex">
             <HashSafeLink
               href={href}

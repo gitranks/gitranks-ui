@@ -19,7 +19,7 @@ describe('the promotions', () => {
       expect(contributeCardOf(products)).toBe(HOME_PROMOS.CONTRIBUTE);
       expect(learnCardOf(products, HOME_NOW)).toBe(HOME_PROMOS.LEARN);
     }
-    expect(HOME_PROMOS.CONTRIBUTE).toMatchObject({ mark: 'Beta', action: 'Start contributing', href: '/contribute' });
+    expect(HOME_PROMOS.CONTRIBUTE).toMatchObject({ mark: null, action: 'Start contributing', href: '/contribute' });
     expect(HOME_PROMOS.LEARN).toMatchObject({ mark: 'New', action: 'Start learning', href: '/learn' });
   });
 

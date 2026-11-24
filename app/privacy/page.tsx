@@ -286,11 +286,11 @@ const sections: LegalSection[] = [
             level it was written for. So does your result: how each step went, when you passed and how long it took, and
             the questions you were asked with their right answers, never the options you got wrong. Its form for
             machines also gives your GitHub account id. Anyone can read them, search engines may list them, and the pull
-            request links to your result. Your public results also count on the Skills page of your GitRanks profile
-            (lessons, the topics they cover, days active, and the Learn pull requests that were merged), and in the
-            image a link to that page shows when it is posted. You can hide your Skills page from the page itself;
-            search engines may list it once it shows 5 lessons or a merged fix. If you take someone else&apos;s lesson,
-            your result stays private unless you share it.
+            request links to its public page, where your answers can be read. Your public results also count on the
+            Skills page of your GitRanks profile (lessons, the topics they cover, days active, and the Learn pull
+            requests that were merged), and in the image a link to that page shows when it is posted. You can hide your
+            Skills page from the page itself; search engines may list it once it shows 5 lessons or a merged fix. If you
+            take someone else&apos;s lesson, your result stays private unless you share it.
           </li>
           <li>
             <B>Said it helped</B>: on the maintainers page, anyone signed in with GitHub can say that a pull request
@@ -314,8 +314,8 @@ const sections: LegalSection[] = [
           <li>
             <B>Deleting it</B>: <B>Delete all data</B> in Settings and removing your data from GitRanks also delete your
             Learn profile, the lessons you wrote with every result, event and report on them (other people&apos;s
-            results on them included), your own results, answers, events, reports and reactions on other lessons, and
-            the reactions others left on your results. Pull requests and their links stay on GitHub.
+            results on them included), your own results, answers, events and reports on other lessons, and any reactions
+            left before 24 November 2026 by you or on your results. Pull requests and their links stay on GitHub.
           </li>
         </List>
       </>
@@ -375,11 +375,9 @@ const sections: LegalSection[] = [
           interests, in knowing which pages bring people to Contribute.
         </li>
         <li>
-          <B>Learn pages</B>: when a lesson or a result page is opened, or a block about Learn is shown, clicked or
-          closed, we count it with the page, the lesson, whether you were signed in and, for a reaction, the pick; your
-          IP address and browser are used as above and not stored. A reaction picked while signed out is counted, never
-          shown, and carried through the sign-in it starts (see <A href="#learn">GitRanks Learn</A>). Basis: legitimate
-          interests, in knowing how lessons are used.
+          <B>Learn pages</B>: when a Learn page is opened or a block about Learn is shown, clicked or closed, we count
+          it with the page, the lesson, and whether you were signed in; your IP address and browser are used as above
+          and not stored. Basis: legitimate interests, in knowing how lessons are used.
         </li>
         <li>
           <B>Check my badge</B>: when you check a badge, we read the README of that profile or repository on GitHub.
@@ -554,8 +552,7 @@ const sections: LegalSection[] = [
       <List>
         <li>
           <B>Needed for the site</B>: the sign-in session, a cookie that tells the page you&apos;re signed in,
-          short-lived security cookies during sign-in (including one, for 10 minutes, that carries a reaction to a
-          lesson result through the GitHub sign-in), and Cloudflare&apos;s security cookies.
+          short-lived security cookies during sign-in, and Cloudflare&apos;s security cookies.
         </li>
         <li>
           <B>Seeing an issue in full</B>: when you press &quot;See the full issue&quot; before you sign in, one cookie,

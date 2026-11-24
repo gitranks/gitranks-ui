@@ -13,12 +13,14 @@ import {
 import { OverviewPage } from '@/app/profile/[login]/components/overview-page';
 import { ProfileContributeBlock } from '@/app/profile/[login]/components/profile-contribute-block';
 import { ProfileFrame } from '@/app/profile/[login]/components/profile-frame';
-import { ProfileLearnBlock } from '@/app/profile/[login]/components/profile-learn-block';
-import { LearnRecordCard } from '@/app/profile/[login]/components/profile-learn-record';
+import { ProfileLearnListBox, ProfilePickedBox } from '@/app/profile/[login]/components/profile-owner-boxes';
 import type { UserFacts } from '@/badge/v3/facts';
 import { userBig, userUnranked } from '@/badge/v3/fixtures';
 import { REFRESH_MESSAGES } from '@/components/refresh-dialogs/refresh-messages';
-import { learnRecord, profilePromo, promoColors } from '@/lib/learn/__fixtures__/promo';
+import { SkillsBlock } from '@/components/skills/skills-block';
+import { promoColors } from '@/lib/learn/__fixtures__/promo';
+import { learnerNumbers } from '@/lib/skills/__fixtures__/skills';
+import { maskedIssues } from '@/lib/workspace/__fixtures__/masked-issue';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 
@@ -69,11 +71,27 @@ const notConnected = (
 );
 const connected = <ProfileContributeBlock state="connected" issues={CONNECTED_ISSUES} />;
 
-/** Learn's suggestion in the Contribute block's place, and the Learn record under it, as the owner reads them. */
-const learn = (record: boolean) => (
+const PROFILE_PATH = `/profile/${strongProfile.login}`;
+
+/** Issues picked for an owner who uses neither product: masked, as the box lists them. */
+const PICKED = maskedIssues.map((masked) => ({
+  repo: '',
+  number: 0,
+  url: '',
+  title: null,
+  language: null,
+  why: null,
+  masked,
+}));
+const picked = (learnOpen: boolean) => (
+  <ProfilePickedBox issues={PICKED} readyIssues={2500} matchedTo="TypeScript, Python and Go" learnOpen={learnOpen} />
+);
+
+/** A learner's own box, above the Skills block everyone reads, as the owner sees them. */
+const learner = (
   <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 py-6">
-    <ProfileLearnBlock promo={profilePromo} colors={promoColors} />
-    <LearnRecordCard record={record ? learnRecord : null} own />
+    <ProfileLearnListBox rows={maskedIssues.map((masked) => ({ kind: 'masked', masked }))} colors={promoColors} />
+    <SkillsBlock login={strongProfile.login} numbers={learnerNumbers} />
   </div>
 );
 
@@ -184,37 +202,36 @@ export const PROFILE_SCREENS: Screen[] = [
     ],
   },
   {
-    id: 'profile-learn',
-    title: 'Profile · Learn, suggested to the owner, and the Learn record',
+    id: 'profile-owner-box',
+    title: "Profile · the owner's box, for someone who does not contribute",
     area: 'profile',
     route: '/profile/[login]',
     sources: [
       'app/profile/[login]/components/profile-contribute.tsx',
-      'app/profile/[login]/components/profile-learn-block.tsx',
-      'app/profile/[login]/components/profile-learn-record.tsx',
+      'app/profile/[login]/components/profile-owner-boxes.tsx',
     ],
     states: [
       {
-        id: 'owner-promo',
-        title: 'The owner Learn may suit, with a record',
-        path: `/profile/${strongProfile.login}`,
-        height: 660,
-        render: () => learn(true),
+        id: 'uses-neither',
+        title: 'The owner uses neither product: issues picked for them, with a way into each',
+        path: PROFILE_PATH,
+        height: 620,
+        render: () => alone(picked(true)),
       },
       {
-        id: 'owner-promo-no-issues',
-        title: 'The owner Learn may suit, no issues to list',
-        path: `/profile/${strongProfile.login}`,
-        height: 240,
-        render: () => alone(<ProfileLearnBlock promo={{ ...profilePromo, issues: [] }} />),
+        id: 'learns',
+        title: 'The owner learns: the top of their own list, above the Skills block',
+        path: PROFILE_PATH,
+        height: 900,
+        render: () => learner,
       },
       {
-        id: 'owner-promo-phone',
-        title: 'The owner Learn may suit, with a record · phone',
-        path: `/profile/${strongProfile.login}`,
+        id: 'uses-neither-phone',
+        title: 'The owner uses neither product, Learn not open to them · phone',
+        path: PROFILE_PATH,
         width: 390,
-        height: 1020,
-        render: () => learn(true),
+        height: 1100,
+        render: () => alone(picked(false)),
       },
     ],
   },

@@ -9,7 +9,8 @@ const doc = <TData, TVariables extends Record<string, unknown> = Record<string, 
   parse(source) as DocumentNode<TData, TVariables>;
 
 const FIGURE = 'key value second name also';
-const NUMBERS = `kind
+/** The numbers box's fields, as every read of a person's numbers asks them. */
+export const NUMBERS = `kind
   figures { ${FIGURE} }
   blockFigures { ${FIGURE} }
   since languages fixes courses made`;

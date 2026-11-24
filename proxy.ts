@@ -319,7 +319,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
         : 'open';
     const visitorLetThrough = async () =>
       (isLearnHomePath(pathname) || isLearnAboutPath(pathname) || isLearnFlowPath(pathname)) &&
-      (await learnOpenToEveryone());
+      (await learnOpenToEveryone(Date.now()));
     if (access === 'closed' || (access === 'signed-out' && !(await visitorLetThrough()))) {
       const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
       response.headers.set('Cache-Control', 'private, no-store');
@@ -346,7 +346,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   // The ledger has its own switch (ledger design §6): open, it goes on as any public page; closed, a visitor without a
   // session gets the 404 here, and a signed-in one goes on to the page, which asks the API whether they are on its list.
   if (isLedgerPath(pathname)) {
-    if (!(await contributeLedgerOpen()) && !hasSession(request)) {
+    if (!(await contributeLedgerOpen(Date.now())) && !hasSession(request)) {
       const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
       response.headers.set('Cache-Control', 'private, no-store');
       return response;
@@ -357,7 +357,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     !isPrTimelinePath(pathname) &&
     !isMaintainersPath(pathname) &&
     !isAuthorizePath(pathname) &&
-    !(isOpenAtLaunchPath(pathname) && (await contributeOpen()))
+    !(isOpenAtLaunchPath(pathname) && (await contributeOpen(Date.now())))
   ) {
     const access = await requestContributeAccess(request);
     // A new account being set up goes to Contribute's home, which says so (and is let through itself). A step of

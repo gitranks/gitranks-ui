@@ -29,7 +29,7 @@ export async function PublicProgressView({ login, searchParams }: { login: strin
   if (progress !== 'unavailable' && page > lastPageOf(progress.total)) {
     redirect(publicProgressPath(asked, lastPageOf(progress.total)));
   }
-  const [viewer, everyone] = await Promise.all([viewerLogin(), learnOpenToEveryone()]);
+  const [viewer, everyone] = await Promise.all([viewerLogin(), learnOpenToEveryone(Date.now())]);
   return (
     <PublicProgressScreen
       login={asked}

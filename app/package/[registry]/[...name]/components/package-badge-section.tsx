@@ -9,19 +9,21 @@ export type PackageBadgeSectionProps = {
   registry: RegistryId;
   /** The package's name: on npm `x` or `@scope/x`. */
   name: string;
+  /** The time the page is drawn at, which decides the badges it offers. */
+  now: Date;
 };
 
 /** The package's badge data, read as its images read it, and its Badges card; nothing while it cannot be read. */
-export const PackageBadges: FC<PackageBadgeSectionProps> = async ({ registry, name }) => (
-  <BadgesCard entity={await loadBadgePackageCard(registry, name)} />
+export const PackageBadges: FC<PackageBadgeSectionProps> = async ({ registry, name, now }) => (
+  <BadgesCard entity={await loadBadgePackageCard(registry, name)} now={now} />
 );
 
 /**
  * The package's badges on its page: three promoted shields, the first one's code and the way to every package badge.
  * Its data is read on its own (kept under the package's tag); the page's cached render holds it.
  */
-export const PackageBadgeSection: FC<PackageBadgeSectionProps> = ({ registry, name }) => (
+export const PackageBadgeSection: FC<PackageBadgeSectionProps> = ({ registry, name, now }) => (
   <Suspense fallback={null}>
-    <PackageBadges registry={registry} name={name} />
+    <PackageBadges registry={registry} name={name} now={now} />
   </Suspense>
 );

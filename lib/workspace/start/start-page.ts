@@ -109,9 +109,8 @@ export const RESTART_HINT_DAYS = 30;
  */
 export function restartHintOf(
   tokens: readonly { lastUsedAt: string | null; learnListed?: boolean | null }[] | null | undefined,
-  at?: Date,
+  now: Date,
 ): boolean {
-  const now = at ?? new Date();
   const since = now.getTime() - RESTART_HINT_DAYS * 86_400_000;
   return (tokens ?? []).some(
     (token) => token.learnListed === false && !!token.lastUsedAt && Date.parse(token.lastUsedAt) >= since,
@@ -122,8 +121,7 @@ export function restartHintOf(
 export const agentNameOf = (client: McpClient | null | undefined) => (client ? MCP_CLIENT_NAMES[client] : 'your agent');
 
 /** "a moment ago" within the minute, else "3 hours ago". */
-export function lastCallLabel(iso: string, at?: Date): string {
-  const now = at ?? new Date();
+export function lastCallLabel(iso: string, now: Date): string {
   const age = now.getTime() - Date.parse(iso);
   return Number.isFinite(age) && age < 60_000 ? 'a moment ago' : relativeLabel(iso, now);
 }

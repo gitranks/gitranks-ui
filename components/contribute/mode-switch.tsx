@@ -178,7 +178,7 @@ export function SwitchReview({
   const { count } = listOf(set, target);
   const fallback = (target === 'STACK' ? set.stack.fallback : set.repos.fallback) ?? 'THEN_ALL';
   const kept = set.mode === 'ALL' ? null : keptListOf(set);
-  const waiting = target === 'STACK' ? waitingLibrariesOf(set) : null;
+  const waiting = target === 'STACK' ? waitingLibrariesOf(set, new Date()) : null;
 
   return (
     <div className="flex flex-col gap-4" data-review>

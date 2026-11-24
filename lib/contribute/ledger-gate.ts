@@ -13,8 +13,7 @@ let asking: Promise<boolean> | null = null;
  * §6). Asked once a minute per server, one ask at a time, as `contributeOpen` is. A failed ask keeps the last answer
  * (closed when there is none) and tries again 10 seconds later.
  */
-export function contributeLedgerOpen(at?: number): Promise<boolean> {
-  const now = at ?? Date.now();
+export function contributeLedgerOpen(now: number): Promise<boolean> {
   if (open && now - open.at < OPEN_TTL_MS) return Promise.resolve(open.value);
   asking ??= askOpen(now).finally(() => {
     asking = null;

@@ -359,7 +359,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     // Back signed out (the sign-in was given up): the mark is dropped, so a later sign-in takes no step by itself.
     if (mode === 'signed-out') {
       followedUp.current = true;
-      takeDealSignIn(dealPageOf('profile', login));
+      takeDealSignIn(dealPageOf('profile', login), Date.now());
       return;
     }
     if (mode === 'daily' && ownerStates && viewerRead !== 'done') {
@@ -367,7 +367,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
     }
 
     followedUp.current = true;
-    if (!takeDealSignIn(dealPageOf('profile', login)) || mode !== 'daily') {
+    if (!takeDealSignIn(dealPageOf('profile', login), Date.now()) || mode !== 'daily') {
       return;
     }
     if (open) {
@@ -487,7 +487,7 @@ export const FetchUserButton: FC<FetchUserButtonProps> = ({
   const signInWithToken = () => signIn(TOKEN_PROVIDER);
   // The page this sign-in comes back to takes the next step by itself.
   const signInFromDeal = () => {
-    keepDealSignIn(dealPageOf('profile', login));
+    keepDealSignIn(dealPageOf('profile', login), Date.now());
     return signIn(IDENTITY_PROVIDER);
   };
   const dialogActions: Record<RefreshDialogKind, { primary: RefreshDialogAction; secondary?: RefreshDialogAction }> = {

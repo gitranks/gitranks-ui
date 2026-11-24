@@ -33,7 +33,7 @@ export function DailyUpdatesVisit() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new page is a later visit, so `pathname` asks again.
   useEffect(() => {
-    if (!login || counted.current === login || inFlight.current || visitedToday(login)) {
+    if (!login || counted.current === login || inFlight.current || visitedToday(login, Date.now())) {
       return;
     }
     const now = Date.now();
@@ -58,7 +58,7 @@ export function DailyUpdatesVisit() {
         return;
       }
       counted.current = login;
-      stampVisit(login);
+      stampVisit(login, Date.now());
       if (result.restarted) {
         toast.success(WELCOME_BACK.title, { ...WELCOME_BACK_TOAST, description: WELCOME_BACK.text });
       }

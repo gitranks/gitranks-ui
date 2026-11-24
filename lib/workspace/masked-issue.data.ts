@@ -140,7 +140,7 @@ export async function loadIssueStartReads(): Promise<IssueStartReads> {
   const [ownAgent, onboarded, signIn, limits] = await Promise.all([
     loadOwnAgent(),
     githubLogin ? startPageOnboarded(reader) : true,
-    contributeMcpSignIn(),
+    contributeMcpSignIn(Date.now()),
     githubLogin ? limitsOf(reader) : null,
   ]);
   const open = limits?.openPrs;

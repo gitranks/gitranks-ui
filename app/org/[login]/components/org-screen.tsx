@@ -26,10 +26,12 @@ type OrgScreenProps = {
   org: NonNullable<PageOrgQuery['organization']>;
   /** The organization's badge data, for its Badges card. */
   badgeFacts: OrgFacts | null;
+  /** The time the page is drawn at, which decides the badges it offers. */
+  now: Date;
 };
 
 /** The organization page from its data: its stars rank, top repositories, analytics and badges. */
-export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts }) => {
+export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts, now }) => {
   const rank = org.rankOrg ?? {};
   const hasData = (org.s ?? 0) >= MIN_VALUE;
 
@@ -82,7 +84,7 @@ export const OrgScreen: FC<OrgScreenProps> = ({ login, org, badgeFacts }) => {
         <OrgTopRepos repos={org.topRepos} />
       </ProfileCardsGrid>
       {org.hasActivity && org.pulse && <OrgPulseSections login={login} avatarUrl={org.avatarUrl} pulse={org.pulse} />}
-      <BadgesCard entity={badgeFacts} />
+      <BadgesCard entity={badgeFacts} now={now} />
     </LayoutLeftColumn>
   );
 };

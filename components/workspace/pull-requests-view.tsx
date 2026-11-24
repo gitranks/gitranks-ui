@@ -84,6 +84,7 @@ export async function PullRequestsView({ searchParams }: { searchParams: Promise
       page={pulls}
       filter={filter}
       activity={activity}
+      now={new Date()}
     />
   );
 }

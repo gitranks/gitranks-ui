@@ -100,7 +100,7 @@ type CommentsContext = {
   model: ContributionMoves;
   view: ContributeView;
   cardShown: boolean;
-  now?: Date;
+  now: Date;
 };
 
 /** The shared props of the review comments: the PR, the stop, GitHub access, and who says a shared reason. */
@@ -272,7 +272,7 @@ export function SessionPane({
   move,
   resumed = false,
   seed,
-  now: at,
+  now,
   resolveHumans,
   base,
   lessonView = false,
@@ -293,11 +293,10 @@ export function SessionPane({
   resumed?: boolean;
   /** The catalogue's and the specs' static states: pending, failed, the form open. */
   seed?: SessionActionsSeed;
-  now?: Date;
+  now: Date;
   /** Whether a follow-up's replies resolve people's threads too; `undefined` while the API does not answer it. */
   resolveHumans?: boolean;
 }) {
-  const now = at ?? new Date();
   const showNext = next && !!first;
   const followUp = attempt.kind === 'FOLLOW_UP';
   const pane: Pane = showNext ? 'next' : followUp ? `run:${attempt.attemptId}` : 'first';

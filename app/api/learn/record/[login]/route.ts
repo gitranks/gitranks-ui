@@ -18,7 +18,7 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 export async function GET(_request: Request, { params }: RouteContext<'/api/learn/record/[login]'>) {
   const login = githubLoginOf((await params).login);
   // No card while Learn is not open to everyone: the profile names nothing of it until then.
-  if (!login || !(await learnOpenToEveryone())) {
+  if (!login || !(await learnOpenToEveryone(Date.now()))) {
     return NextResponse.json({ record: null } satisfies LearnRecordAnswer, { headers: KEPT });
   }
   try {

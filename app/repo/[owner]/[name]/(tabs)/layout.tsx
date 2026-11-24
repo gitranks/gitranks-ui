@@ -60,6 +60,7 @@ export default async function RepoTabsLayout({ children, params }: LayoutProps<'
       packages={packages}
       contributors={pulse ? pulse.last12.activeContributors : null}
       badgeFacts={badges.facts}
+      now={new Date()}
     >
       {children}
     </RepoFrame>

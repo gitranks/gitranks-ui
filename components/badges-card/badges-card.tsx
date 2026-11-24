@@ -38,7 +38,7 @@ const MORE: Record<EntityFacts['kind'], string> = {
 type BadgesCardProps = {
   /** The entity's badge data; nothing shows without it. */
   entity: EntityFacts | null;
-  now?: Date;
+  now: Date;
 };
 
 /** "Used by", "npm downloads": the badge's name, as the Markdown's alt text; a registry's name is kept as it writes it. */
@@ -63,8 +63,7 @@ function packageMarkdown(pkg: PackageFacts, first: PromotedBadge): string | null
  * The badges a page promotes for its entity's size, live, each opening its code in the builder. Nothing shows when
  * none of them is available. A package's page shows the first one's Markdown under them.
  */
-export const BadgesCard: FC<BadgesCardProps> = ({ entity, now: at }) => {
-  const now = at ?? new Date();
+export const BadgesCard: FC<BadgesCardProps> = ({ entity, now }) => {
   if (!entity) {
     return null;
   }

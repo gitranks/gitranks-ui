@@ -296,7 +296,7 @@ export async function LessonResultView({
   if (answer.kind === 'stub') return <LessonStubScreen visibility={answer.visibility} />;
   const result = answer.value;
   if (result.login !== login) redirect(lessonResultPath(result.head.slug, result.login));
-  const answerable = await learnOpenToEveryone();
+  const answerable = await learnOpenToEveryone(Date.now());
 
   // Only the author's result asks for reactions (the pull request links it): nothing to read for another.
   if (!isAuthorResult(result)) {

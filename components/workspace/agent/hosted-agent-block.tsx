@@ -100,7 +100,7 @@ export function HostedAgentBlock({
   noted: readonly ContributeComingSoonProvider[];
   /** The pull requests open or on their way, for when the agent starts its next issue by itself. */
   counts?: ContributeScheduleCounts;
-  now?: Date;
+  now: Date;
 }) {
   const key = claudeKeyOf(view);
   const comingSoon = (

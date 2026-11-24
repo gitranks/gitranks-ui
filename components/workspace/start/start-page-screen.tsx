@@ -217,7 +217,7 @@ export type StartPageScreenProps = {
   back: { href: Route; label: string };
   /** `flow`: no back link row of its own. */
   frame: 'tabs' | 'flow';
-  now?: Date;
+  now: Date;
 };
 
 /**
@@ -242,9 +242,8 @@ export function StartPageScreen({
   locked = false,
   back,
   frame,
-  now: at,
+  now,
 }: StartPageScreenProps) {
-  const now = at ?? new Date();
   const id = useId();
   const words = WORDS[mode];
   const refusal = issue ? startRefusalOf(issue, back) : null;

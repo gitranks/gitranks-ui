@@ -144,7 +144,7 @@ export async function LessonPageView({ slug }: { slug: string }) {
   const answer = await loadLessonPage(slug);
   if (!answer || (answer.kind === 'stub' && answer.visibility === 'HIDDEN')) notFound();
   if (answer.kind === 'stub') return <LessonStubScreen visibility={answer.visibility} />;
-  const frontDoorOpen = await learnOpenToEveryone();
+  const frontDoorOpen = await learnOpenToEveryone(Date.now());
   const viewer = await lessonViewerOf(answer.value, frontDoorOpen);
   return (
     <>

@@ -62,7 +62,7 @@ const POST_STEPS: Record<ContributeProofPostStep, string> = {
   COMMENT: 'commenting on the pull request',
 };
 
-function BotAsk({ move, now }: { move: ProofMove; now?: Date }) {
+function BotAsk({ move, now }: { move: ProofMove; now: Date }) {
   const ask = move.proof.ask;
   const by = ask?.bot ?? move.bot?.by ?? null;
   const title = ask?.title ?? move.bot?.verdict ?? null;

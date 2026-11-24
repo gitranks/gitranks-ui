@@ -167,7 +167,7 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
 
   // The note a refresh left before the reload stays until the visitor closes it.
   useEffect(() => {
-    showKeptPullNote(noteOwnerOf(registry), name, (note, options) => toast.success(note, options));
+    showKeptPullNote(noteOwnerOf(registry), name, (note, options) => toast.success(note, options), Date.now());
   }, [registry, name]);
 
   // A refresh shown running on the page: anyone waits for it.
@@ -180,7 +180,7 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
   const reloadWithNote = useCallback(
     (note: string | null) => {
       setReloading(true);
-      reloadWithPullNote(noteOwnerOf(registry), name, note, () => window.location.reload());
+      reloadWithPullNote(noteOwnerOf(registry), name, note, () => window.location.reload(), Date.now());
     },
     [registry, name],
   );
@@ -306,7 +306,7 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
 
   // The page this sign-in comes back to adds the package by itself, as the deal said.
   const signInFromDeal = () => {
-    keepDealSignIn(page);
+    keepDealSignIn(page, Date.now());
     return signIn(IDENTITY_PROVIDER);
   };
 
@@ -321,14 +321,14 @@ export const PackageUpdatesButton: FC<PackageUpdatesButtonProps> = ({
     }
     if (status === 'unauthenticated') {
       followedUp.current = true;
-      takeDealSignIn(page);
+      takeDealSignIn(page, Date.now());
       return;
     }
     if (login && read !== 'done') {
       return;
     }
     followedUp.current = true;
-    if (takeDealSignIn(page) && !onDaily && login) {
+    if (takeDealSignIn(page, Date.now()) && !onDaily && login) {
       void picks.pick();
     }
   });

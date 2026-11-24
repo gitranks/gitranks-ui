@@ -20,7 +20,7 @@ vi.mock('@/lib/learn/actions', () => ({ dismissLearnPromo: async () => ({ ok: tr
 
 // The first percentage line after the card's title, with React's text-node separators removed.
 const contributionsRankLine = (rankGlobal: ProfileUser['rankGlobal']) =>
-  renderToStaticMarkup(<OverviewPage user={user(rankGlobal)} isGlobalContext />)
+  renderToStaticMarkup(<OverviewPage now={new Date('2026-11-24T00:00:00Z')} user={user(rankGlobal)} isGlobalContext />)
     .replaceAll('<!-- -->', '')
     .split('Open source contributions')[1]
     ?.match(/(Top|Bottom) [\d.]+% of ranked profiles/)?.[0];
@@ -36,8 +36,8 @@ describe('OverviewPage', () => {
 });
 
 // The page as text, the way a reader of the HTML gets it: a space between elements, none inside a sentence.
-const pageText = (props: Parameters<typeof OverviewPage>[0]) =>
-  renderToStaticMarkup(<OverviewPage {...props} />)
+const pageText = (props: Omit<Parameters<typeof OverviewPage>[0], 'now'>) =>
+  renderToStaticMarkup(<OverviewPage now={new Date('2026-11-24T00:00:00Z')} {...props} />)
     .replaceAll('<!-- -->', '')
     .replace(/<\/?(a|span|time)\b[^>]*>/g, '')
     .replace(/<[^>]+>/g, ' ')
@@ -70,7 +70,9 @@ describe('OverviewPage text', () => {
   });
 
   it('sets the summary as muted small text right below the four cards, links in its color', () => {
-    const markup = renderToStaticMarkup(<OverviewPage user={ranked} isGlobalContext />);
+    const markup = renderToStaticMarkup(
+      <OverviewPage now={new Date('2026-11-24T00:00:00Z')} user={ranked} isGlobalContext />,
+    );
     const summary = markup.indexOf('data-testid="profile-summary"');
     const lastCard = markup.indexOf('Open source contributions');
     const repositories = markup.indexOf('>Repositories</h3>');

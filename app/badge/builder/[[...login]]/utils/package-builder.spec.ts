@@ -239,7 +239,7 @@ describe("a package's code", () => {
 
 describe("a package's daily updates card", () => {
   it('says where the badge goes before the first check', () => {
-    expect(badgeCheckViewOf('package', 'npm/react', null)).toMatchObject({
+    expect(badgeCheckViewOf('package', 'npm/react', null, Date.parse('2026-11-24T00:00:00Z'))).toMatchObject({
       state: 'idle',
       text: BADGE_CHECK_COPY.intro.package,
       action: 'Check my badge',
@@ -256,7 +256,9 @@ describe("a package's daily updates card", () => {
       badgeCheckViewOf('package', 'npm/react', { status: 'not_found', checksLeft: 1 }, Date.now(), 'facebook/react')
         .text,
     ).toContain('README of facebook/react');
-    expect(badgeCheckViewOf('package', 'npm/react', { status: 'no_repository' })).toEqual({
+    expect(
+      badgeCheckViewOf('package', 'npm/react', { status: 'no_repository' }, Date.parse('2026-11-24T00:00:00Z')),
+    ).toEqual({
       state: 'no-repository',
       text: 'We could not find this package’s repository, so there is no README to check.',
       note: null,

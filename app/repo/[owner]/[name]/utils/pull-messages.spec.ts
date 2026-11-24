@@ -101,7 +101,7 @@ describe('pullOutcomeOf', () => {
 
 describe('refreshNoteOf', () => {
   it('is the note on badges alone after a fetch, which knows no next read', () => {
-    expect(refreshNoteOf()).toBe(PULL_TOASTS.updated);
+    expect(refreshNoteOf(undefined, NOW)).toBe(PULL_TOASTS.updated);
   });
 
   it('adds the time left until the full star history is read again', () => {

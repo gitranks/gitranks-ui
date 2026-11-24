@@ -155,7 +155,7 @@ export async function loadStartPageView(
     startPageViewOf(reader, ref.repo, ref.issue, mode, answered),
     loadOwnAgent(),
     startPageOnboarded(reader),
-    contributeMcpSignIn(),
+    contributeMcpSignIn(Date.now()),
   ]);
   if (!answer.ok) {
     // Closed to the viewer in this mode, or an API that doesn't answer it yet: as Learn's other reads do, no page.
@@ -173,6 +173,7 @@ export async function loadStartPageView(
     };
   }
   const tokens = ownAgent?.tokens;
+  const now = new Date();
   return {
     kind: 'view',
     view: {
@@ -180,8 +181,8 @@ export async function loadStartPageView(
       connection: learnStartConnectionOf(tokens),
       agent: { onboarded, tokens, signIn },
       goal,
-      restartHint: mode === 'lesson' && restartHintOf(tokens),
-      openedAt: new Date().toISOString(),
+      restartHint: mode === 'lesson' && restartHintOf(tokens, now),
+      openedAt: now.toISOString(),
     },
   };
 }

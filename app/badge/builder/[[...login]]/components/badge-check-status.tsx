@@ -18,7 +18,7 @@ type BadgeCheckStatusProps = {
  * the gap the dialog puts before it.
  */
 export function BadgeCheckStatus({ kind, name, result, checking }: Readonly<BadgeCheckStatusProps>) {
-  const view = result && !checking ? badgeCheckViewOf(kind, name, result) : null;
+  const view = result && !checking ? badgeCheckViewOf(kind, name, result, Date.now()) : null;
 
   return (
     <div aria-live="polite" className="flex flex-col gap-1 text-xs empty:-mt-3">

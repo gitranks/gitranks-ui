@@ -464,7 +464,7 @@ export function summaryOf(
   rows: CommentRowItem[],
   mode: RowMode,
   run: { state: ContributeAttemptState; hasPatch: boolean; flow: boolean } | null,
-  extra: { addressed?: number; readAt?: string | null; now?: Date } = {},
+  extra: { addressed?: number; readAt?: string | null; now: Date },
 ): CommentsSummary {
   if (mode === 'waiting') {
     const addressed = extra.addressed ?? rows.filter((row) => row.state === 'waiting').length;

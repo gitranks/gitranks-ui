@@ -148,7 +148,10 @@ export const ReadmeSection: FC<{ showcase: ReadmeShowcase }> = ({ showcase }) =>
   const { data: session, status } = useSession();
   const login = (status === 'authenticated' && session?.user?.githubLogin) || null;
   const own = useEntityFacts(login ? 'user' : null, login);
-  const ownContent = useMemo(() => (own.status === 'found' ? readmeContent(own.facts, 'embed') : null), [own]);
+  const ownContent = useMemo(
+    () => (own.status === 'found' ? readmeContent(own.facts, 'embed', new Date()) : null),
+    [own],
+  );
   const [selected, setSelected] = useState<GithubEntityKind>('user');
 
   const hinted = useSessionHint();

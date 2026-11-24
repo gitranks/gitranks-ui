@@ -51,11 +51,17 @@ describe('npm copy', () => {
   it('draws the package page as before', () => {
     for (const pkg of [rankedPackage, quietPackage, notReadPackage]) {
       expect(
-        renderToStaticMarkup(<PackageScreen registry="npm" name={pkg.name} pkg={pkg} />),
+        renderToStaticMarkup(
+          <PackageScreen now={new Date('2026-11-24T00:00:00Z')} registry="npm" name={pkg.name} pkg={pkg} />,
+        ),
         pkg.name,
       ).toMatchSnapshot();
     }
-    expect(renderToStaticMarkup(<PackageScreen registry="npm" name="@acme/x" pkg="unavailable" />)).toMatchSnapshot();
+    expect(
+      renderToStaticMarkup(
+        <PackageScreen now={new Date('2026-11-24T00:00:00Z')} registry="npm" name="@acme/x" pkg="unavailable" />,
+      ),
+    ).toMatchSnapshot();
     expect(buildPackageSummary('npm', rankedPackage, rankedPackage.dependents?.items[0])).toMatchSnapshot();
     expect(buildPackageSummary('npm', quietPackage)).toMatchSnapshot();
   });

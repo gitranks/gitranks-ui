@@ -232,8 +232,7 @@ export const isFiltered = (query: RunsQuery) =>
   !!(query.outcome || query.reason || query.repo || query.runner || query.range !== DEFAULT_RANGE);
 
 /** The API's filter for a query; the range counts back from `now`, to the start of that UTC day. */
-export function runsFilterOf(query: RunsQuery, at?: Date): ContributeRunsFilter {
-  const now = at ?? new Date();
+export function runsFilterOf(query: RunsQuery, now: Date): ContributeRunsFilter {
   const days = RANGES.find(({ value }) => value === query.range)?.days ?? null;
   const from = days
     ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days + 1)).toISOString()
@@ -362,8 +361,7 @@ export const isLearnRun = (run: Pick<ContributeRun, 'mode'>) => run.mode === 'LE
 export const dayKeyOf = (iso: string) => iso.slice(0, 10);
 
 /** `Today · Sat, Oct 31`, `Yesterday · Fri, Oct 30`, `Thu, Oct 29`: a day row's label, in UTC. */
-export function dayRowLabel(day: string, at?: Date): string {
-  const now = at ?? new Date();
+export function dayRowLabel(day: string, now: Date): string {
   const date = new Date(`${day}T12:00:00Z`);
   const label = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
   const today = now.toISOString().slice(0, 10);

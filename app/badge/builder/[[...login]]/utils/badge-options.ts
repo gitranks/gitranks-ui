@@ -28,8 +28,7 @@ export function paramsOf(badge: BadgeDefinition, style: Style): BadgeParams | nu
   }
 }
 
-export function isAvailable(entity: EntityFacts, badge: BadgeDefinition, style: Style, at?: Date): boolean {
-  const now = at ?? new Date();
+export function isAvailable(entity: EntityFacts, badge: BadgeDefinition, style: Style, now: Date): boolean {
   const params = paramsOf(badge, style);
   return !!params && availabilityOf(entity, badge.id, params, now) === 'available';
 }
@@ -45,10 +44,9 @@ export function settleStyle(
   entity: EntityFacts,
   badge: BadgeDefinition,
   style: Style,
-  at?: Date,
+  now: Date,
   keep: readonly string[] = [],
 ): Style | null {
-  const now = at ?? new Date();
   const next: Style = { ...style };
   if (isAvailable(entity, badge, next, now)) return next;
   for (const key of SETTLE_KEYS) {
@@ -63,8 +61,7 @@ export function settleStyle(
  * The entity's available badges in catalogue order, each with the first ranking it is available in; badges with
  * nothing to show (and the developer contributors wall, never offered) are left out.
  */
-export function offeredBadges(entity: EntityFacts, at?: Date): OfferedBadge[] {
-  const now = at ?? new Date();
+export function offeredBadges(entity: EntityFacts, now: Date): OfferedBadge[] {
   return badgesOf(entity.kind).flatMap((badge): OfferedBadge[] => {
     const starts: Style[] = badge.options.includes('by') ? BYS.map((by) => (by === 'stars' ? {} : { by })) : [{}];
     const style = starts.find((start) => isAvailable(entity, badge, start, now));
@@ -89,8 +86,7 @@ const SITE_NAME = 'GitRanks';
  * What a shield says, in one line: "repo rank #41,206 · top 1%". A label that only names the site is left out
  * ("GitRanks | Unsung hero · Nov 2026" reads "Unsung hero · Nov 2026"): the alt text names it already.
  */
-export function shieldText(entity: EntityFacts, badge: BadgeDefinition, params: BadgeParams, at?: Date) {
-  const now = at ?? new Date();
+export function shieldText(entity: EntityFacts, badge: BadgeDefinition, params: BadgeParams, now: Date) {
   const content = shieldContent(entity, badge, params, now);
   if (!content) return null;
   const extra = segmentText(content.extra);
@@ -103,8 +99,7 @@ export const entityName = (entity: EntityFacts) =>
   entity.kind === 'repo' ? entity.nameWithOwner : entity.kind === 'package' ? packageBadgeName(entity) : entity.login;
 
 /** The image's alt text: the entity and the fact it shows; the Contribute badge's own name, as its page writes it. */
-export function badgeAlt(entity: EntityFacts, badge: BadgeDefinition, style: Style, at?: Date): string {
-  const now = at ?? new Date();
+export function badgeAlt(entity: EntityFacts, badge: BadgeDefinition, style: Style, now: Date): string {
   if (badge.id === 'contribute') return 'GitRanks Contribute';
   const params = paramsOf(badge, style);
   const fact = (params && badge.format === 'shield' && shieldText(entity, badge, params, now)) || badge.title;
@@ -148,9 +143,8 @@ export function extraChoices(
   entity: EntityFacts,
   badge: BadgeDefinition,
   params: BadgeParams,
-  at?: Date,
+  now: Date,
 ): Choice<ExtraKey>[] {
-  const now = at ?? new Date();
   if (badge.format !== 'shield') return [];
   return badge.extras.flatMap((extra): Choice<ExtraKey>[] => {
     if (badge.values && extra === params.value) return [];
@@ -172,8 +166,7 @@ export function valueChoices(entity: EntityFacts, badge: BadgeDefinition): Choic
 const BY_NAMES: Record<By, string> = { stars: 'Stars', contributions: 'Contributions', followers: 'Followers' };
 
 /** The rankings the badge is available in, for a developer badge that reads `by`. */
-export function byChoices(entity: EntityFacts, badge: BadgeDefinition, style: Style, at?: Date): Choice<By>[] {
-  const now = at ?? new Date();
+export function byChoices(entity: EntityFacts, badge: BadgeDefinition, style: Style, now: Date): Choice<By>[] {
   if (!badge.options.includes('by')) return [];
   return BYS.filter((by) => isAvailable(entity, badge, { ...style, by }, now)).map((by) => ({
     value: by,
@@ -186,9 +179,8 @@ export function scopeChoices(
   entity: EntityFacts,
   badge: BadgeDefinition,
   style: Style,
-  at?: Date,
+  now: Date,
 ): Choice<'global' | 'country'>[] {
-  const now = at ?? new Date();
   if (entity.kind !== 'user' || !badge.options.includes('scope')) return [];
   const choices: Choice<'global' | 'country'>[] = [{ value: 'global', name: 'All developers' }];
   if (entity.country && isAvailable(entity, badge, { ...style, scope: 'country' }, now)) {
@@ -220,8 +212,7 @@ const ORDER_NAMES: Record<WallOrder, string> = {
 };
 
 /** The orders a wall has people in. */
-export function orderChoices(entity: EntityFacts, badge: BadgeDefinition, style: Style, at?: Date) {
-  const now = at ?? new Date();
+export function orderChoices(entity: EntityFacts, badge: BadgeDefinition, style: Style, now: Date) {
   if (!badge.options.includes('order')) return [];
   return (['popular', 'contributions', 'newest'] as const)
     .filter((order) => wallOf(entity, order) && isAvailable(entity, badge, { ...style, order }, now))
@@ -229,8 +220,7 @@ export function orderChoices(entity: EntityFacts, badge: BadgeDefinition, style:
 }
 
 /** A repository's rank and language rank are one choice in the builder: "Rank among all repositories | Rust". */
-export function rankAmongChoices(entity: EntityFacts, badge: BadgeDefinition, at?: Date) {
-  const now = at ?? new Date();
+export function rankAmongChoices(entity: EntityFacts, badge: BadgeDefinition, now: Date) {
   if (entity.kind !== 'repo' || (badge.id !== 'rank' && badge.id !== 'language-rank')) return [];
   const language = repoLanguageOf(entity, null);
   const languageRank = badgesOf('repo').find(({ id }) => id === 'language-rank');

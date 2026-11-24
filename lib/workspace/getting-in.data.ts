@@ -17,7 +17,7 @@ export async function loadContributeFlowPlace(
 ): Promise<{ place: FlowPlace; gate: WorkspaceGate }> {
   const gate = await loadWorkspaceGate();
   const [launched, hasAttempt] = await Promise.all([
-    gate.kind === 'signed-out' || gate.kind === 'hidden' ? contributeOpen() : true,
+    gate.kind === 'signed-out' || gate.kind === 'hidden' ? contributeOpen(Date.now()) : true,
     gate.kind === 'open' && gate.entered && step !== 'agent-own'
       ? loadAttempts(undefined, 1).then(hasAnyAttempt)
       : false,

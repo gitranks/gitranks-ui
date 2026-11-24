@@ -160,11 +160,11 @@ function ResolveState({ set, write, now }: { set: ContributeSet; write: SetWrite
   const state = resolve?.state;
   const [dot, label] =
     state === 'RESOLVING'
-      ? ['bg-warning', `Working out your libraries… started ${relativeLabel(resolve?.startedAt, now)}`]
+      ? ['bg-warning', `Working out your libraries… started ${relativeLabel(resolve?.startedAt, now ?? new Date())}`]
       : state === 'FAILED'
         ? ['bg-negative', "Couldn't update them: showing the last ones"]
         : state === 'READY'
-          ? ['bg-positive', `Updated ${relativeLabel(resolve?.endedAt ?? resolve?.startedAt, now)}`]
+          ? ['bg-positive', `Updated ${relativeLabel(resolve?.endedAt ?? resolve?.startedAt, now ?? new Date())}`]
           : ['bg-muted-foreground', 'Not worked out yet'];
 
   return (

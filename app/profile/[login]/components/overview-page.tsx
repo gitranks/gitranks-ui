@@ -35,9 +35,11 @@ type OverviewPageProps = {
   /** The profile's badge data, for its Badges card. */
   badgeFacts?: UserFacts | null;
   isGlobalContext?: boolean;
+  /** The time the page is drawn at, which decides the badges it offers. */
+  now: Date;
 };
 
-export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, badgeFacts, isGlobalContext }) => {
+export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, badgeFacts, isGlobalContext, now }) => {
   if (!user) {
     notFound();
   }
@@ -169,7 +171,7 @@ export const OverviewPage: FC<OverviewPageProps> = ({ user, extras, badgeFacts, 
       {!!timeline?.length && <ProfileTimeline timeline={timeline} firstSeenAt={firstSeenAt} />}
 
       <div className="grid gap-4 md:gap-6 lg:has-[>:nth-child(2)]:grid-cols-[2fr_1fr]">
-        <BadgesCard entity={badgeFacts ?? null} />
+        <BadgesCard entity={badgeFacts ?? null} now={now} />
         <MessengerIntegration login={login} />
       </div>
     </LayoutLeftColumn>

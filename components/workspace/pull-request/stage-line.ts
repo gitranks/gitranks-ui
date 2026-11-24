@@ -76,8 +76,7 @@ function learnLineOf(attempt: StageInput, stage: LearnStage): StageLine | null {
  * `lessonStage`: a Learn attempt's lesson stage, when it is read; its line then follows the lesson (written, taken,
  * passed, ended).
  */
-export function stageLineOf(attempt: StageInput, at?: Date, lessonStage?: LearnStage | null): StageLine | null {
-  const now = at ?? new Date();
+export function stageLineOf(attempt: StageInput, now: Date, lessonStage?: LearnStage | null): StageLine | null {
   if (attempt.pullRequest) return null;
   const learn = attempt.mode === 'LEARN' && lessonStage ? learnLineOf(attempt, lessonStage) : null;
   if (learn) return learn;

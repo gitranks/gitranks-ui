@@ -17,8 +17,7 @@ let asking: Promise<boolean> | null = null;
  * server, one ask at a time, not per request. A failed ask keeps the last answer (closed when there is none, as an API
  * without the field yet) and tries again 10 seconds later.
  */
-export function contributeOpen(at?: number): Promise<boolean> {
-  const now = at ?? Date.now();
+export function contributeOpen(now: number): Promise<boolean> {
   if (open && now - open.at < OPEN_TTL_MS) return Promise.resolve(open.value);
   asking ??= askOpen(now).finally(() => {
     asking = null;
@@ -97,5 +96,5 @@ export async function requestMaySeeContribute(req: { headers: Headers }): Promis
  */
 export async function contributeShown(): Promise<boolean> {
   const requestHeaders = await headers();
-  return (await contributeOpen()) || requestMaySeeContribute({ headers: requestHeaders });
+  return (await contributeOpen(Date.now())) || requestMaySeeContribute({ headers: requestHeaders });
 }

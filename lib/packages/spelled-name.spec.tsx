@@ -75,7 +75,15 @@ describe("a package's name as the registry writes it", () => {
 
   it('leaves an npm package page as it was, whether the display name is the name, null or missing', () => {
     const page = (pkg: typeof rankedPackage) =>
-      renderToStaticMarkup(<PackageScreen registry="npm" name="react-resize-detector" pkg={pkg} jsonLd={[{}]} />);
+      renderToStaticMarkup(
+        <PackageScreen
+          now={new Date('2026-11-24T00:00:00Z')}
+          registry="npm"
+          name="react-resize-detector"
+          pkg={pkg}
+          jsonLd={[{}]}
+        />,
+      );
     const before = page(rankedPackage);
     expect(page({ ...rankedPackage, displayName: 'react-resize-detector' })).toBe(before);
     expect(page({ ...rankedPackage, displayName: null })).toBe(before);
@@ -91,7 +99,13 @@ describe("a package's name as the registry writes it", () => {
 
   it('titles the page of a package on a registry that folds names with its display name, and keeps its name for links, follows, refreshes and badges', () => {
     const html = renderToStaticMarkup(
-      <PackageScreen registry="pypi" name="zope-interface" pkg={spelledPackage} jsonLd={[{}]} />,
+      <PackageScreen
+        now={new Date('2026-11-24T00:00:00Z')}
+        registry="pypi"
+        name="zope-interface"
+        pkg={spelledPackage}
+        jsonLd={[{}]}
+      />,
     );
     const page = text(html);
 
@@ -107,6 +121,7 @@ describe("a package's name as the registry writes it", () => {
 
     const empty = renderToStaticMarkup(
       <PackageScreen
+        now={new Date('2026-11-24T00:00:00Z')}
         registry="pypi"
         name="zope-interface"
         pkg={{ ...spelledPackage, dependentsCount: 0, dependents: { total: 0, archived: 0, items: [] } }}

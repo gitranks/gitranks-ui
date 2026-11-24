@@ -71,7 +71,7 @@ export function StartPageBody(props: StartPageBodyProps) {
         locked={locked}
         back={{ href: props.backHref, label: props.backLabel }}
         frame={props.frame}
-        now={view ? new Date(view.openedAt) : undefined}
+        now={view ? new Date(view.openedAt) : new Date()}
       />
     );
   }

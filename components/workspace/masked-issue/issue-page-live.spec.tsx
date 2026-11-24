@@ -394,7 +394,7 @@ describe("the browser's mark of the held issue, for the lists", () => {
   it('ends by itself at its time: a list reads no mark past it', async () => {
     const { readHeldMark, writeHeldMark } = await import('@/lib/workspace/held-mark');
     writeHeldMark({ id: 'q7k2m9xa', until: HELD_UNTIL });
-    expect(readHeldMark()?.id).toBe('q7k2m9xa');
+    expect(readHeldMark(Date.parse(HELD_UNTIL) - 1_000)?.id).toBe('q7k2m9xa');
     expect(readHeldMark(Date.parse(HELD_UNTIL))).toBeNull();
     expect(mark()).toBeNull();
   });

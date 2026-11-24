@@ -101,8 +101,7 @@ export const PULL_TOASTS = {
 } as const;
 
 /** The note after a refresh, shown until the visitor closes it, with when the full history is read again if known. */
-export function refreshNoteOf(historyUntil?: string, at?: number) {
-  const now = at ?? Date.now();
+export function refreshNoteOf(historyUntil: string | undefined, now: number) {
   return historyUntil
     ? `${PULL_TOASTS.updated} ${fillTime(PULL_TOASTS.historyAgain, timeLeftUntil(historyUntil, now))}`
     : PULL_TOASTS.updated;
@@ -117,8 +116,7 @@ export type PullOutcome =
 
 const info = (text: string): PullOutcome => ({ kind: 'toast', tone: 'info', text });
 
-export function pullOutcomeOf(result: RepoPullResult, mode: PullMode, at?: number): PullOutcome {
-  const now = at ?? Date.now();
+export function pullOutcomeOf(result: RepoPullResult, mode: PullMode, now: number): PullOutcome {
   switch (result.status) {
     case 'started':
       return { kind: 'poll', toast: mode === 'daily' ? PULL_TOASTS.startedDaily : PULL_TOASTS.started };

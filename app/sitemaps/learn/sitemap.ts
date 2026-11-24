@@ -23,7 +23,7 @@ async function readContent(): Promise<LearnSitemapContent | null> {
  * opens Learn to everyone is open. A failed read lists the rest, for minutes only.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [lessons, frontDoorOpen] = await Promise.all([readPublicLessons(), learnOpenToEveryone()]);
+  const [lessons, frontDoorOpen] = await Promise.all([readPublicLessons(), learnOpenToEveryone(Date.now())]);
   const content = frontDoorOpen ? await readContent() : null;
   // Kept for hours once it lists everything and Learn is open; before that, for minutes, so opening it reaches the
   // sitemap within minutes.

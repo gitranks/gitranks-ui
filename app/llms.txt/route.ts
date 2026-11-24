@@ -14,7 +14,7 @@ import { contributeOpen } from '@/lib/workspace/preview-gate';
  */
 export async function GET(): Promise<Response> {
   await connection();
-  const [contribute, learnOpen] = await Promise.all([contributeOpen(), learnOpenToEveryone()]);
+  const [contribute, learnOpen] = await Promise.all([contributeOpen(Date.now()), learnOpenToEveryone(Date.now())]);
   // Learn's pages, its courses and its lessons are listed only while the switch that opens Learn to everyone is open.
   const [learn, learnCourses] = learnOpen
     ? await Promise.all([readPublicLessons().then((lessons) => lessons ?? []), loadLearnCourses().catch(() => [])])

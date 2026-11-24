@@ -289,7 +289,9 @@ describe('Go and Maven Central publish no download counts', () => {
   });
 
   it('draw a package page that promises no downloads: no card, no ranking tile, no sentence', () => {
-    const html = renderToStaticMarkup(<PackageScreen registry="go" name={goModule.name} pkg={goModule} />);
+    const html = renderToStaticMarkup(
+      <PackageScreen now={new Date('2026-11-24T00:00:00Z')} registry="go" name={goModule.name} pkg={goModule} />,
+    );
     const page = text(html);
 
     expect(page).not.toMatch(/download/i);
@@ -308,7 +310,9 @@ describe('Go and Maven Central publish no download counts', () => {
 
   it("credit deps.dev for Maven Central's facts", () => {
     const artifact: PackagePage = { ...goModule, registry: 'MAVEN', name: 'org.slf4j:slf4j-api' };
-    const html = renderToStaticMarkup(<PackageScreen registry="maven" name={artifact.name} pkg={artifact} />);
+    const html = renderToStaticMarkup(
+      <PackageScreen now={new Date('2026-11-24T00:00:00Z')} registry="maven" name={artifact.name} pkg={artifact} />,
+    );
     expect(text(html)).toContain('Facts from deps.dev');
     expect(html).toContain('href="https://deps.dev/"');
     expect(html).toContain('href="https://central.sonatype.com/artifact/org.slf4j/slf4j-api"');

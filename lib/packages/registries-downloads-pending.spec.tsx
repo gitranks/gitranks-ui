@@ -72,7 +72,9 @@ describe("pub.dev before its first month's download count is read", () => {
   });
 
   it('draws a package page that says nothing of downloads, linking to the package on pub.dev', () => {
-    const html = renderToStaticMarkup(<PackageScreen registry="pub" name="http" pkg={pubPackage} />);
+    const html = renderToStaticMarkup(
+      <PackageScreen now={new Date('2026-11-24T00:00:00Z')} registry="pub" name="http" pkg={pubPackage} />,
+    );
     const page = text(html);
 
     expect(page).not.toMatch(/download/i);

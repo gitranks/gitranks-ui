@@ -17,8 +17,7 @@ export const DEAL_SIGN_IN_TTL = 15 * 60_000;
 export const dealPageOf = (kind: 'profile' | 'repo' | 'package', name: string) => `${kind}:${name}`.toLowerCase();
 
 /** Marks a sign-in from the deal on this page, just before it starts. */
-export function keepDealSignIn(page: string, storage: StorageOf = sessionStorageOf, at?: number) {
-  const now = at ?? Date.now();
+export function keepDealSignIn(page: string, now: number, storage: StorageOf = sessionStorageOf) {
   try {
     storage().setItem(KEY, JSON.stringify({ page, at: now }));
   } catch {
@@ -39,8 +38,7 @@ const parse = (raw: string): { page?: unknown; at?: unknown } => {
  * Whether the sign-in this page came back from started at the deal on this page, once: a mark for this page is
  * removed when read, and an old or broken one is dropped. A fresh mark of another page stays for that page.
  */
-export function takeDealSignIn(page: string, storage: StorageOf = sessionStorageOf, at?: number): boolean {
-  const now = at ?? Date.now();
+export function takeDealSignIn(page: string, now: number, storage: StorageOf = sessionStorageOf): boolean {
   try {
     const store = storage();
     const raw = store.getItem(KEY);

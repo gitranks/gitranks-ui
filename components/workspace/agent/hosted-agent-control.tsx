@@ -16,7 +16,7 @@ export function HostedAgentControl({
   view: ContributeView;
   /** The pull requests open or on their way, against the limit; `undefined` when not answered. */
   counts?: ContributeScheduleCounts;
-  now?: Date;
+  now: Date;
 }) {
   const { contributor } = view;
   const settings = settingsOf(view);

@@ -30,7 +30,7 @@ export async function generateMetadata({
       open: await learnOpenToEveryoneCached(),
     });
   }
-  const [answer, frontDoorOpen] = await Promise.all([loadLessonPage(slug), learnOpenToEveryone()]);
+  const [answer, frontDoorOpen] = await Promise.all([loadLessonPage(slug), learnOpenToEveryone(Date.now())]);
   return lessonPageMetadata(answer, { frontDoorOpen });
 }
 

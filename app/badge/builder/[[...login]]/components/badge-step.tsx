@@ -72,7 +72,7 @@ export function BadgeStep({
                       badge={each.badge}
                       style={each.style}
                       theme={theme}
-                      alt={badgeAlt(facts, each.badge, each.style)}
+                      alt={badgeAlt(facts, each.badge, each.style, new Date())}
                     />
                   </button>
                 </li>

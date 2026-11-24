@@ -59,8 +59,7 @@ export type ReadmeContent = {
  * The README the landing draws for an entity; `null` when it has no shield to show. `link` says where a badge leads:
  * `embed` for the visitor's own profile, `find` for a showcase entity (make the same badge for one's own).
  */
-export function readmeContent(entity: EntityFacts, link: TileLink, at?: Date): ReadmeContent | null {
-  const now = at ?? new Date();
+export function readmeContent(entity: EntityFacts, link: TileLink, now: Date): ReadmeContent | null {
   if (entity.kind === 'package') {
     return null;
   }

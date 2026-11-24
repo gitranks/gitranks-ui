@@ -33,8 +33,8 @@ export const shownFigures = (figures: readonly SkillsFigure[]) => figures.filter
 /** What a contributor's, a learner's and a person's of both days count. */
 const DAYS_UNDER: Record<SkillsKind, string> = {
   CONTRIBUTOR: 'with work on a fix',
-  LEARNER: 'with a lesson or a review',
-  BOTH: 'with a fix or a lesson',
+  LEARNER: 'with a lesson, a review or work on a fix',
+  BOTH: 'with a lesson, a review or work on a fix',
 };
 
 /** A figure as the box draws it: the big text, its label, and the small line under it. */

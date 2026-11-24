@@ -68,8 +68,8 @@ describe('figureWordsOf', () => {
   it('says what a day counts by the kind of page', () => {
     const day = figure('DAYS_ACTIVE', 1);
     expect(figureWordsOf(day, 'CONTRIBUTOR', 1)).toMatchObject({ label: 'day active', under: 'with work on a fix' });
-    expect(figureWordsOf(day, 'LEARNER', 0).under).toBe('with a lesson or a review');
-    expect(figureWordsOf(day, 'BOTH', 1).under).toBe('with a fix or a lesson');
+    expect(figureWordsOf(day, 'LEARNER', 0).under).toBe('with a lesson, a review or work on a fix');
+    expect(figureWordsOf(day, 'BOTH', 1).under).toBe('with a lesson, a review or work on a fix');
   });
 
   it('names the agent in plain type, with the other agent or "for this fix"', () => {

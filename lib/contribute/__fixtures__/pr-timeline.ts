@@ -76,7 +76,7 @@ const REVIEW: PrTimelineMilestone[] = [
   }),
 ];
 
-/** Merged after one review round: the canvas's approved board. */
+/** Merged after one review round, as the approved design draws it. */
 export const mergedTimeline: PrTimeline = {
   attemptId: '6728f0c2a1b2c3d4e5f60718',
   nameWithOwner: 'driftwood-js/driftwood',
@@ -161,4 +161,23 @@ export const autopilotTimeline: PrTimeline = {
         ? { ...each, passed: false, failingFirst: false }
         : each,
   ),
+};
+
+/**
+ * A row of a kind this page does not know yet (the API may add one before the page learns it), with the agent's own
+ * text, before the merge: the kind is cast, as the API's answer is not checked against the list.
+ */
+export const unknownKindTimeline: PrTimeline = {
+  ...mergedTimeline,
+  milestones: [
+    ...mergedTimeline.milestones.slice(0, -1),
+    row({
+      kind: 'WALKTHROUGH' as PrTimelineMilestone['kind'],
+      at: '2026-10-26T14:40:00.000Z',
+      by: 'AGENT',
+      text: 'Wrote a walkthrough of the fix.',
+      minutes: 4,
+    }),
+    ...mergedTimeline.milestones.slice(-1),
+  ],
 };

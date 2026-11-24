@@ -2,8 +2,8 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { Fragment, type ReactNode } from 'react';
 
-import type { PlayerSquare } from '@/lib/learn/player';
 import { cn } from '@/lib/utils';
+import type { PlayerSquare } from '@/lib/workspace/player';
 
 /** A step of the strip’s way back: a link, plain words where there is no page to go to, or the page itself (the last). */
 export type PlayerCrumb = { label: string; href?: Route };

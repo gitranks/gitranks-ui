@@ -1,6 +1,6 @@
 import { LessonMarkdown } from './lesson-markdown';
 import { ExampleBlock } from '@/components/learn/blocks/example-block';
-import { VisualBlock } from '@/components/learn/blocks/visual-block';
+import { VisualBlock } from '@/components/workspace/blocks/visual-block';
 import { bodyPartsOf, type HighlightedExample, type LearnLesson, visualsOf } from '@/lib/learn/lesson-page';
 
 export type { HighlightedExample } from '@/lib/learn/lesson-page';

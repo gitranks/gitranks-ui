@@ -1,6 +1,6 @@
 import { ARROW_TONES, ArrowHead, arrowHeadId, Box, MONO, SANS } from './diagram';
-import type { LessonDiagramEdge, LessonDiagramNode, LessonDiagramTone } from '@/lib/learn/learn.types';
-import { layoutSequence, NUMBER_R, type SequenceCall } from '@/lib/learn/sequence-layout';
+import type { LessonDiagramEdge, LessonDiagramNode, LessonDiagramTone } from '@/lib/workspace/blocks/block.types';
+import { layoutSequence, NUMBER_R, type SequenceCall } from '@/lib/workspace/blocks/sequence-layout';
 
 /** Below this width a sequence of four actors scrolls sideways in its own box, so its labels stay readable. */
 const FOUR_ACTORS_MIN_W = 520;

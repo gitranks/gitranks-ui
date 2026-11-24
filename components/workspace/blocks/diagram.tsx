@@ -1,5 +1,10 @@
-import { type DiagramArrow, type DiagramBox, type DiagramOptions, layoutDiagram } from '@/lib/learn/diagram-layout';
-import type { LessonDiagramEdge, LessonDiagramNode, LessonDiagramTone } from '@/lib/learn/learn.types';
+import type { LessonDiagramEdge, LessonDiagramNode, LessonDiagramTone } from '@/lib/workspace/blocks/block.types';
+import {
+  type DiagramArrow,
+  type DiagramBox,
+  type DiagramOptions,
+  layoutDiagram,
+} from '@/lib/workspace/blocks/diagram-layout';
 
 /** Each tone's box and text, in the design system's colours. */
 const TONES: Record<LessonDiagramTone, { fill: string; stroke: string; text: string }> = {

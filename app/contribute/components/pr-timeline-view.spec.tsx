@@ -7,6 +7,7 @@ import {
   openTimeline,
   ownAgentTimeline,
   stoppedTimeline,
+  unknownKindTimeline,
 } from '@/lib/contribute/__fixtures__/pr-timeline';
 
 const html = (timeline = mergedTimeline) => renderToStaticMarkup(<PrTimelineScreen timeline={timeline} />);
@@ -54,5 +55,20 @@ describe('PrTimelineScreen', () => {
     expect(text(stoppedTimeline)).toContain('A maintainer stopped GitRanks work on this pull request.');
     expect(text(ownAgentTimeline)).toContain('the contributor’s own agent');
     expect(text(ownAgentTimeline)).toContain('after 3 tries');
+  });
+
+  it('draws a row of a kind it does not know as a plain row, and every other row as before', () => {
+    const page = html(unknownKindTimeline);
+    const row = /<li[^>]*data-kind="walkthrough"[^>]*>.*?<\/li>/s.exec(page)?.[0] ?? '';
+    expect(row).toContain('14:40');
+    expect(row).toContain('Another step');
+    expect(row).toContain('data-who="agent"');
+    expect(row).not.toContain('Wrote a walkthrough of the fix.');
+    expect(row).not.toContain('4 min');
+    // The merge still ends the timeline with the filled dot; the rest is the same page.
+    expect(page.match(/data-who="end"/g)).toHaveLength(1);
+    for (const words of ['Wrote the fix', 'tomas-r asked for changes', 'Agent work 53 min 2 runs']) {
+      expect(text(unknownKindTimeline)).toContain(words);
+    }
   });
 });

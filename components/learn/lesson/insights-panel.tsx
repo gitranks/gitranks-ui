@@ -4,8 +4,8 @@ import { Check, ChevronDown, ChevronUp, Lock, Share } from 'lucide-react';
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 import { Kbd } from '@/components/learn/question/kbd';
-import { RichText } from '@/components/learn/rich-text';
 import { Button } from '@/components/ui/button';
+import { RichText } from '@/components/workspace/blocks/rich-text';
 import { CopyButton } from '@/components/workspace/copy-button';
 import type { InsightId, InsightRow, LearnLesson } from '@/lib/learn/lesson-page';
 import { cn } from '@/lib/utils';

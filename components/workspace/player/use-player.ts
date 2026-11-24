@@ -10,7 +10,7 @@ import {
   recordedOf,
   runStartOf,
   squaresOf,
-} from '@/lib/learn/player';
+} from '@/lib/workspace/player';
 
 /**
  * The player's run of questions: which one is asked, how each answered one went, and going on. A lesson is a run of

@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import { CONTACT_EMAIL } from '@/lib/legal';
+import { type PrRef, parsePrLink } from '@/lib/workspace/pr-feedback';
 
 /**
  * Every address of Learn's pages, built here and nowhere else. Today's pages keep theirs in `learn-path.ts` until they
@@ -149,6 +150,13 @@ export const LEARN_COURSES_TAG = 'learn:courses';
 export const learnCourseTag = (slug: string) => `learn:course:${slug}`;
 /** A lesson's cache tag. */
 export const learnLessonTag = (slug: string) => `learn:lesson:${slug}`;
+/** The cache tag of every list of merged fixes. */
+export const LEARN_FIXES_TAG = 'learn:fixes';
+/**
+ * One fix's cache tag, by its pull request, in lower case (GitHub's names are not case-sensitive): every public page
+ * of the fix carries it, its two views, its walkthrough and its answers page.
+ */
+export const learnFixTag = ({ nameWithOwner, number }: PrRef) => `learn:fix:${nameWithOwner.toLowerCase()}#${number}`;
 
 /** A course's or a lesson's slug as the content writes it: lower-case words joined by single hyphens. */
 const CONTENT_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -209,9 +217,23 @@ export function courseRouteOf(pathname: string): string | null {
   return segment !== undefined && !NOT_A_COURSE.has(segment) ? segment : null;
 }
 
-/** A Learn cache tag as the API sends it to expire: `learn:courses`, a course's or a lesson's. */
+/**
+ * A fix's cache tag as the API may send it, `learn:fix:<owner>/<repo>#<number>` in any case, written the way the
+ * fix's pages carry it; null for anything else.
+ */
+export function learnFixTagOf(tag: string): string | null {
+  const ref = /^learn:fix:(.*)$/s.exec(tag)?.[1];
+  const pr = ref === undefined ? null : parsePrLink(ref);
+  return pr && ref === `${pr.nameWithOwner}#${pr.number}` ? learnFixTag(pr) : null;
+}
+
+/**
+ * A Learn cache tag as the API sends it to expire: `learn:courses`, a course's, a lesson's, `learn:fixes`, or a
+ * fix's (see `learnFixTagOf`).
+ */
 export function isLearnTag(tag: string): boolean {
-  if (tag === LEARN_COURSES_TAG) return true;
+  if (tag === LEARN_COURSES_TAG || tag === LEARN_FIXES_TAG) return true;
+  if (learnFixTagOf(tag) !== null) return true;
   const slug = /^learn:(?:course|lesson):(.*)$/s.exec(tag)?.[1];
   return slug !== undefined && isContentSlug(slug);
 }

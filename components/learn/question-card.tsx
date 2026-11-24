@@ -3,11 +3,11 @@
 import { ArrowRight, Flag, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
-import { RichText } from './rich-text';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { RichText } from '@/components/workspace/blocks/rich-text';
 import type { LessonQuestion, LessonReportReason, LessonWhy } from '@/lib/learn/learn.types';
 import { type OptionMark, optionsOf, pickHintOf, pickOf, REPORT_REASONS, shownOptionsOf } from '@/lib/learn/question';
 import { cn } from '@/lib/utils';

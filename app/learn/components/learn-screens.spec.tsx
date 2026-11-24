@@ -46,7 +46,7 @@ const { QuestionCard } = await import('@/components/learn/question-card');
 const { LessonViewScreen, LessonView } = await import('./lesson-view');
 const learnData = await import('@/lib/learn/learn.data');
 const { phaseOf } = await import('@/components/learn/lesson-flow');
-const { Diagram } = await import('@/components/learn/diagram');
+const { Diagram } = await import('@/components/workspace/blocks/diagram');
 const { detail } = await import('@/lib/contribute/__fixtures__/contribute-attempts');
 const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { controlDescriptions, controlNames } = await import('@/lib/learn/__fixtures__/control-names');
@@ -187,7 +187,7 @@ describe('the question card', () => {
 
 describe('code in lesson text', () => {
   it('keeps the spaces inside a code span, which can be the point of a question', async () => {
-    const { RichText } = await import('@/components/learn/rich-text');
+    const { RichText } = await import('@/components/workspace/blocks/rich-text');
     const html = renderToStaticMarkup(<RichText text="What does `'a  b'.replace(/ /g, '-')` return?" />);
     expect(html.replaceAll('&#x27;', "'")).toContain("'a  b'.replace(/ /g, '-')");
     expect(html).toMatch(/<code class="[^"]*whitespace-break-spaces/);

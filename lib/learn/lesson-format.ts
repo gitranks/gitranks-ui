@@ -1,4 +1,3 @@
-import { cleanDiagram } from './diagram-layout';
 import type {
   LessonBlock,
   LessonCompareSide,
@@ -8,7 +7,8 @@ import type {
   LessonQuestion,
   LessonStep,
 } from './learn.types';
-import { cleanSequence } from './sequence-layout';
+import { cleanDiagram } from '@/lib/workspace/blocks/diagram-layout';
+import { cleanSequence } from '@/lib/workspace/blocks/sequence-layout';
 
 /** What a new account reads while GitRanks sets up its account, before Learn can answer for it. */
 export const LEARN_SETTING_UP_TEXT = 'Setting up your GitRanks account. This takes about a minute.';

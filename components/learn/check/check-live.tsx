@@ -17,11 +17,11 @@ import {
   KnownList,
   KnownSheet,
 } from './check-parts';
-import { PlayerRunEnd } from '@/components/learn/player/player-strip';
 import { useEnter, useFocusOnShow } from '@/components/learn/player/use-page-keys';
-import { usePlayer } from '@/components/learn/player/use-player';
 import { type LearnAnswer, useLearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { Button } from '@/components/ui/button';
+import { PlayerRunEnd } from '@/components/workspace/player/player-strip';
+import { usePlayer } from '@/components/workspace/player/use-player';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import {
   type CheckQuestionShown,
@@ -56,11 +56,11 @@ import {
   learnKnownPath,
   learnLessonPath,
 } from '@/lib/learn/paths';
-import { runWordsOf } from '@/lib/learn/player';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
+import { runWordsOf } from '@/lib/workspace/player';
 
 /** The person's run from its route: the run, or none (with `missing` when the course offers no check). */
 export async function readCheckSide(course: string): Promise<{ check: CheckSide | null; missing: boolean } | null> {

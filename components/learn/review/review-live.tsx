@@ -14,20 +14,20 @@ import {
   ReviewPending,
   ReviewVisitor,
 } from './review-parts';
-import { PlayerRunEnd } from '@/components/learn/player/player-strip';
 import { useEnter, useFocusOnShow } from '@/components/learn/player/use-page-keys';
-import { usePlayer } from '@/components/learn/player/use-player';
 import { useLearnAnswer } from '@/components/learn/question/use-learn-answer';
+import { PlayerRunEnd } from '@/components/workspace/player/player-strip';
+import { usePlayer } from '@/components/workspace/player/use-player';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { LearnLessonLink } from '@/lib/learn/lesson-page';
 import { learnReviewMinePath, learnReviewPath } from '@/lib/learn/paths';
-import { runWordsOf } from '@/lib/learn/player';
 import type { LearnReviewAnswered, ReviewDone, ReviewItemShown, ReviewSide } from '@/lib/learn/review';
 import { answerLearnReviewAction } from '@/lib/learn/review.actions';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
+import { runWordsOf } from '@/lib/workspace/player';
 
 /**
  * The person's review from its route: `'signed-out'` when the session is gone or needs a new sign-in; null when there

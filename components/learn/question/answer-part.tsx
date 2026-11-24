@@ -6,8 +6,8 @@ import { type ReactNode, useId, useRef } from 'react';
 import { Kbd, KeyLine, type KeyLineItem } from './kbd';
 import { QuestionPart } from './question-part';
 import { type LearnAnswer, PICKER } from './use-learn-answer';
-import { RichText } from '@/components/learn/rich-text';
 import { Button } from '@/components/ui/button';
+import { RichText } from '@/components/workspace/blocks/rich-text';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
 import { type LearnAnswerState, pickCountOf } from '@/lib/learn/learn-answer';
 import {

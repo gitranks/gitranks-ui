@@ -6,9 +6,18 @@ import {
   mergedTimeline,
   openTimeline,
   ownAgentTimeline,
+  unknownKindTimeline,
 } from './__fixtures__/pr-timeline';
 import type { PrTimelineMilestone } from './pr-timeline.types';
-import { dayHeadingOf, durationOf, factsOf, milestoneWordsOf, openedLineOf, timeOf } from './pr-timeline-words';
+import {
+  dayHeadingOf,
+  durationOf,
+  factsOf,
+  milestoneWordsOf,
+  openedLineOf,
+  PLAIN_ROW_TITLE,
+  timeOf,
+} from './pr-timeline-words';
 
 const rowOf = (kind: PrTimelineMilestone['kind'], timeline = mergedTimeline) =>
   timeline.milestones.find((row) => row.kind === kind) as PrTimelineMilestone;
@@ -49,6 +58,25 @@ describe('milestoneWordsOf', () => {
       'Some of our checks failed',
     );
     expect(openedLineOf(autopilotTimeline)).toBe('opened Oct 24 by mira-dev’s autopilot, not reviewed by a person');
+  });
+
+  it('words a kind it does not know as a plain row: the title and the actor, no text or numbers', () => {
+    const row = unknownKindTimeline.milestones.find((each) => (each.kind as string) === 'WALKTHROUGH');
+    expect(row).toBeDefined();
+    expect(milestoneWordsOf(row as PrTimelineMilestone, unknownKindTimeline)).toEqual({
+      title: PLAIN_ROW_TITLE,
+      actor: 'Agent',
+      agent: true,
+      text: null,
+      pills: [],
+    });
+    // An actor it does not know either: no badge.
+    const stranger = { ...(row as PrTimelineMilestone), by: 'ROBOT' as PrTimelineMilestone['by'] };
+    expect(milestoneWordsOf(stranger, unknownKindTimeline)).toMatchObject({ actor: null, agent: false });
+  });
+
+  it('leaves a row of a kind it does not know out of the facts', () => {
+    expect(factsOf(unknownKindTimeline)).toEqual(factsOf(mergedTimeline));
   });
 });
 

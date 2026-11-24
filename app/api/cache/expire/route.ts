@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { isLearnTag } from '@/lib/learn/paths';
+import { isLearnTag, learnFixTagOf } from '@/lib/learn/paths';
 import { packageCacheTag } from '@/lib/packages/package-paths';
 import { ALL_REGISTRY_IDS, isRegistryRow, type RegistryId, registryOf } from '@/lib/packages/registries';
 import { UNSUNG_HERO_CACHE_TAG } from '@/lib/unsung-hero/unsung-hero';
@@ -62,11 +62,13 @@ function verifiedClaims(request: NextRequest): Record<string, unknown> | null {
 }
 
 /**
- * The tag a package's cached pages carry for a tag as sent: the spelling the site's addresses use (PyPI's
- * `package:pypi/zope-interface` for `package:pypi/zope.interface`), so another spelling still expires them. Any other
- * tag as it is.
+ * The tag a package's or a fix's cached pages carry for a tag as sent: the spelling the site's addresses use (PyPI's
+ * `package:pypi/zope-interface` for `package:pypi/zope.interface`; a fix's pull request in lower case), so another
+ * spelling still expires them. Any other tag as it is.
  */
 function expiredTagOf(tag: string): string {
+  const fix = learnFixTagOf(tag);
+  if (fix) return fix;
   const match = /^package:([^/]+)\/(.+)$/.exec(tag);
   return match && isRegistryRow(match[1]) ? packageCacheTag(match[1], match[2]) : tag;
 }
@@ -75,9 +77,10 @@ const isTagList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.length >= 1 && value.length <= MAX_TAGS && value.every(isTag);
 
 /**
- * Expires the cached data of repositories, profiles, packages and Learn's courses and lessons whose data changed, and
- * of the Unsung heroes: `{ tags }`, 1 to `MAX_TAGS` tags of a repository, a profile, a package, a Learn page
- * (`learn:courses`, `learn:course:<slug>`, `learn:lesson:<slug>`), or `unsung-hero`. Only a call signed with
+ * Expires the cached data of repositories, profiles, packages, and Learn's courses, lessons and fixes whose data
+ * changed, and of the Unsung heroes: `{ tags }`, 1 to `MAX_TAGS` tags of a repository, a profile, a package, a Learn
+ * page (`learn:courses`, `learn:course:<slug>`, `learn:lesson:<slug>`, `learn:fixes`,
+ * `learn:fix:<owner>/<repo>#<number>`), or `unsung-hero`. Only a call signed with
  * the internal secret and naming the API as its source is served; a visitor's own refresh goes through
  * `/api/revalidate` instead.
  */
@@ -97,8 +100,9 @@ export async function POST(request: NextRequest) {
   }
 
   // `expire: 0`: the next read gets the new data, never the stale copy served while a fresh one is made.
-  for (const tag of new Set(tags.map(expiredTagOf))) {
+  const expired = new Set(tags.map(expiredTagOf));
+  for (const tag of expired) {
     revalidateTag(tag, { expire: 0 });
   }
-  return NextResponse.json({ expired: tags.length }, { headers: NO_STORE });
+  return NextResponse.json({ expired: expired.size }, { headers: NO_STORE });
 }

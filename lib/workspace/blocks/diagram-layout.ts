@@ -1,4 +1,4 @@
-import type { LessonDiagramEdge, LessonDiagramNode, LessonDiagramTone } from './learn.types';
+import type { LessonDiagramEdge, LessonDiagramNode, LessonDiagramTone } from '@/lib/workspace/blocks/block.types';
 
 /**
  * A lesson's diagram, laid out here: the lesson sends boxes and arrows (nodes and edges), never coordinates. Boxes go in

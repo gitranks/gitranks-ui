@@ -1,5 +1,5 @@
-import { LessonBlock } from '@/components/learn/lesson-block';
-import { blockOfVisual } from '@/lib/learn/learn-visual';
+import { LessonBlock } from './lesson-block';
+import { blockOfVisual } from '@/lib/workspace/blocks/learn-visual';
 
 /**
  * A course's visual (a table, a diagram, a before-and-after of two diagrams), drawn by today's views. One of an unknown

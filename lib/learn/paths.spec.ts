@@ -10,6 +10,7 @@ import {
   isLearnTag,
   LEARN_COURSES_CARD_PATH,
   LEARN_COURSES_MINE_PATH,
+  LEARN_FIXES_TAG,
   LEARN_PULL_REQUESTS_PATH,
   LEARN_SETTINGS_PATH,
   learnCheckMinePath,
@@ -19,6 +20,8 @@ import {
   learnCourseMinePath,
   learnCourseTag,
   learnFactCardPath,
+  learnFixTag,
+  learnFixTagOf,
   learnKnownPath,
   learnLessonCardPath,
   learnLessonGonePath,
@@ -84,6 +87,38 @@ describe("Learn's cache tags", () => {
     expect(isLearnTag(learnCourseTag('algorithms'))).toBe(true);
     expect(isLearnTag(learnLessonTag('hash-sets-2'))).toBe(true);
     expect(isLearnTag(learnLessonTag('a'.repeat(100)))).toBe(true);
+  });
+
+  it('takes the list of merged fixes and a fix, as the helpers write them', () => {
+    expect(LEARN_FIXES_TAG).toBe('learn:fixes');
+    expect(isLearnTag(LEARN_FIXES_TAG)).toBe(true);
+    const tag = learnFixTag({ nameWithOwner: 'Octo-Labs/Scroll.Guard', number: 42 });
+    expect(tag).toBe('learn:fix:octo-labs/scroll.guard#42');
+    expect(isLearnTag(tag)).toBe(true);
+    expect(learnFixTagOf(tag)).toBe(tag);
+  });
+
+  it("reads a fix's tag sent in any case as the lower-case one its pages carry", () => {
+    expect(learnFixTagOf('learn:fix:Octo-Labs/Scroll.Guard#42')).toBe('learn:fix:octo-labs/scroll.guard#42');
+    expect(isLearnTag('learn:fix:Octo-Labs/Scroll.Guard#42')).toBe(true);
+  });
+
+  it.each([
+    'learn:fix',
+    'learn:fix:',
+    'learn:fix:octo/repo',
+    'learn:fix:octo/repo#0',
+    'learn:fix:octo/repo#007',
+    'learn:fix:octo#7',
+    'learn:fix:octo/repo/7',
+    'learn:fix: octo/repo#7',
+    'learn:fix:octo/repo#7 ',
+    'learn:fix:github.com/octo/repo/pull/7',
+    'learn:fix:octo/..#7',
+    'Learn:fix:octo/repo#7',
+  ])('refuses the fix tag %j', (tag) => {
+    expect(learnFixTagOf(tag)).toBeNull();
+    expect(isLearnTag(tag)).toBe(false);
   });
 
   it.each([

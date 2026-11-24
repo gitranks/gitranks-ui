@@ -1,6 +1,5 @@
 import type { Route } from 'next';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 
 import { stepAnchorOf } from '../lesson-steps';
 import { Pill } from '@/components/pill/pill';
@@ -9,7 +8,7 @@ import { LESSON_KINDS, passedLineOf } from '@/lib/learn/progress/progress';
 import type { LearnedStep, LearnProgressLessonKind } from '@/lib/learn/progress/progress.types';
 import { partsLabelOf } from '@/lib/learn/question';
 
-/** What the card draws of a lesson: wherever it is listed, the viewer's own page or a public one. */
+/** What the card draws of a lesson. */
 export type LearnedLesson = {
   kind: LearnProgressLessonKind;
   title: string;
@@ -24,24 +23,15 @@ export type LearnedLesson = {
 /**
  * A lesson and the new things it taught: the reference line, the title (to the lesson, `href`), when it was passed,
  * and one tile per new thing ("2 · Cause", then the step's title), each to its step of the lesson. One column of
- * tiles on a phone. `pills`: what follows the reference chips, the lesson's kind by default (a public page says only
- * `Practice` and `Merged`).
+ * tiles on a phone. The lesson's kind follows the reference chips.
  */
-export function LearnedLessonCard({
-  lesson,
-  href,
-  pills,
-}: {
-  lesson: LearnedLesson;
-  href: Route | null;
-  pills?: ReactNode;
-}) {
+export function LearnedLessonCard({ lesson, href }: { lesson: LearnedLesson; href: Route | null }) {
   const kind = LESSON_KINDS[lesson.kind];
   return (
     <li data-learned-lesson="" className="flex flex-col gap-4 rounded-xl border bg-card p-5">
       <div className="flex flex-col gap-1">
         <RefChips repo={lesson.repo} issue={lesson.issueNumber} pr={lesson.pr}>
-          {pills === undefined ? <Pill tone={kind.tone}>{kind.label}</Pill> : pills}
+          <Pill tone={kind.tone}>{kind.label}</Pill>
         </RefChips>
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <span className="text-base font-medium text-pretty">

@@ -139,13 +139,12 @@ const unavailable = (repo: string, number: number): StartPageIssueView => ({
  * The Start page's reads for the viewer, once per request: the issue in `mode` and what its refusal names, the agent
  * (connected, and step 1's connect steps), and in lesson mode the restart sentence. The viewer's own attempt on the
  * issue moves the page on to its pull request's page (`claimed`), unless it is a Fix attempt in lesson mode, which the
- * page words. A failed read of the issue is the outage the page's error says; `goal` is the caller's (Learn's) read,
- * `answered` the issue's answer when the caller read it already.
+ * page words. A failed read of the issue is the outage the page's error says; `answered` is the issue's answer when the
+ * caller read it already.
  */
 export async function loadStartPageView(
   ref: { repo: string; issue: number },
   mode: StartMode,
-  goal: string | null,
   answered?: ContributeActionResult<StartPageIssueView['start']>,
 ): Promise<StartPageLoad> {
   const githubLogin = await viewerLogin();
@@ -180,7 +179,6 @@ export async function loadStartPageView(
       issue,
       connection: learnStartConnectionOf(tokens),
       agent: { onboarded, tokens, signIn },
-      goal,
       restartHint: mode === 'lesson' && restartHintOf(tokens, now),
       openedAt: now.toISOString(),
     },

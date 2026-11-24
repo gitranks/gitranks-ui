@@ -73,7 +73,7 @@ export type IssuePageLiveProps = {
   hosted: boolean;
   /** The start form's reads: the own agent, its connect steps, the pull requests that wait. */
   start: IssueStartReads;
-  /** From Contribute: the person also uses Learn (they have a Learn profile). */
+  /** From Contribute: the person also uses Learn (a saved setup of Learn, or a Learn attempt of theirs). */
   alsoLearn: boolean;
   /** Back from the sign-in with a press made before it (`?look=1`): the press is made now, once. */
   returning: boolean;

@@ -46,17 +46,6 @@ export const lessonPath = (slug: string) => `/learn/lessons/${encodeURIComponent
 export const lessonResultPath = (slug: string, login: string) =>
   `/learn/lessons/${encodeURIComponent(slug)}/passes/${encodeURIComponent(login)}` as Route;
 
-/** A person's public progress page: their public lessons and numbers, the link Share copies. */
-export const publicProgressPath = (login: string, page = 1) =>
-  `/learn/progress/${encodeURIComponent(login)}${page > 1 ? `?page=${page}` : ''}` as Route;
-
-const PUBLIC_PROGRESS_ROUTE = new RegExp(`^/learn/progress/(${LOGIN})/?$`);
-
-/** The login of a path as `publicProgressPath` writes it (a trailing slash allowed); null for any other path. */
-export function publicProgressRouteOf(pathname: string): string | null {
-  return PUBLIC_PROGRESS_ROUTE.exec(pathname)?.[1] ?? null;
-}
-
 const LESSON_PAGE_ROUTE = new RegExp(`^/learn/lessons/(${SLUG})/?$`);
 const RESULT_PAGE_ROUTE = new RegExp(`^/learn/lessons/(${SLUG})/passes/(${LOGIN})/?$`);
 

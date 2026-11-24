@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { myAttempt } from './__fixtures__/home';
-import { emptyProfile, filledProfile } from './__fixtures__/profile';
-import { attemptTitleOf, hasGoal } from './learn-home';
+import { attemptTitleOf } from './learn-home';
 import { LEARN_ABOUT_PATH } from './learn-path';
 import { LEARN_ABOUT_METADATA } from './lesson-seo';
 import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
@@ -12,12 +11,6 @@ describe("Learn's words", () => {
     expect(attemptTitleOf(myAttempt())).toBe('Route params lose their type after a redirect');
     expect(attemptTitleOf(myAttempt({ title: null }))).toBe('driftwood-js/driftwood#934');
     expect(attemptTitleOf(myAttempt({ title: ' ', repo: null }))).toBe('Issue #934');
-  });
-
-  it('knows a saved goal', () => {
-    expect(hasGoal(filledProfile)).toBe(true);
-    expect(hasGoal(emptyProfile)).toBe(false);
-    expect(hasGoal(null)).toBe(false);
   });
 });
 

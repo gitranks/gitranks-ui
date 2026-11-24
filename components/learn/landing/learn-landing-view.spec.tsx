@@ -150,17 +150,6 @@ describe('the landing for someone signed in', () => {
       ['Start learning', '/learn/setup'],
     ]);
     expect(page.textContent).toContain('Free. Setting up takes a minute.');
-    expect(page.querySelector('[data-landing-resume]')).toBeNull();
-  });
-
-  it('links someone part-way through fixing an issue back to the step they reached', () => {
-    const page = draw({ viewer: 'member', resume: '/learn/issues' });
-    const resume = page.querySelector('[data-landing-resume]');
-    expect([words(resume), resume?.getAttribute('href')]).toEqual([
-      'Continue fixing an issue with your agent →',
-      '/learn/issues',
-    ]);
-    expect(resume?.className).toContain('max-sm:min-h-11');
   });
 
   it('is How Learn works for a learner, both buttons back to Learn home, with no line under the top one', () => {

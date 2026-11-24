@@ -24,9 +24,9 @@ import type { UserFacts } from '@/badge/v3/facts';
 import { BadgesCard } from '@/components/badges-card/badges-card';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import type { ProfileOverviewExtras } from '@/graphql/helpers/fetch-profile-overview-extras';
-import { languageColorsOf } from '@/lib/learn/learn-promo';
 import type { PageProfileOverviewQuery } from '@/types/generated/graphql';
 import { countryInSentence } from '@/utils/country-in-sentence';
+import { languageColorsOf } from '@/utils/language-colors';
 
 type OverviewPageProps = {
   user: PageProfileOverviewQuery['user'];

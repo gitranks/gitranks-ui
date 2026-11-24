@@ -140,48 +140,8 @@ export type LearnAttemptLesson = {
   visibility: LessonVisibility | null;
 };
 
-/** What the user wants to learn: a language, a domain, or how one project works. */
-export type LearnGoalKind = 'LANGUAGE' | 'DOMAIN' | 'PROJECT';
-/** What lessons spend more of their steps on. */
-export type LearnFocus = 'LANGUAGE' | 'STRUCTURE' | 'PATTERNS' | 'TESTS';
-
-/** The user's level in a language: 0 New to it, 1 Some, 2 Comfortable, 3 Expert. */
-export type LearnLevel = {
-  language: string;
-  level: number;
-  /** Read from the user's public work, not set by them yet. */
-  guessed: boolean;
-  /** What the guess is based on: "2 repos, since Oct 2026". */
-  hint: string | null;
-};
-
-/** The user's goal, levels and focus; every lesson is written for them. */
-export type LearnProfile = {
-  goalKind: LearnGoalKind | null;
-  goalValue: string | null;
-  levels: LearnLevel[];
-  focus: LearnFocus[];
-  updatedAt: string | null;
-};
-
 /** A lesson anyone with the link may read: its head and every step, never a question's key. */
 export type LessonPage = { __typename: 'LessonPage'; head: LessonHead; steps: LessonStep[] };
-
-/** A login's Learn record, from their public passes: lessons, topics learned, pull requests opened and merged. */
-/**
- * A person's public Learn record: only what is already public. `login` is the spelling GitRanks stores (the one
- * address their public page and card answer under); null from an API that does not send it yet. `newThings`: the new
- * things of their public passes; `reposHelped`: the repositories that merged their Learn pull requests.
- */
-export type LearnRecord = {
-  login: string | null;
-  lessons: number;
-  newThings: number;
-  topics: string[];
-  prsOpened: number;
-  prsMerged: number;
-  reposHelped: number;
-};
 
 /** Who a lesson was written for: their goal's kind and value, and their level's name. */
 export type LessonWrittenFor = { kind: string; value: string; level: string };

@@ -18,11 +18,13 @@ import type { UserFacts } from '@/badge/v3/facts';
 import { userBig, userUnranked } from '@/badge/v3/fixtures';
 import { REFRESH_MESSAGES } from '@/components/refresh-dialogs/refresh-messages';
 import { SkillsBlock } from '@/components/skills/skills-block';
-import { promoColors } from '@/lib/learn/__fixtures__/promo';
 import { learnerNumbers } from '@/lib/skills/__fixtures__/skills';
 import { maskedIssues } from '@/lib/workspace/__fixtures__/masked-issue';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
+
+/** The profile's languages, as the overview passes them to the owner's box. */
+const LANGUAGE_COLORS = { typescript: '#3178c6', javascript: '#f1e05a' };
 
 // The strong profile is the badge fixtures' `userBig`; the newcomer has nothing a badge could show yet.
 const strongBadges = withBadgeFacts(userBig);
@@ -88,7 +90,7 @@ const picked = <ProfilePickedBox issues={PICKED} readyIssues={2500} matchedTo="T
 /** A learner's own box, above the Skills block everyone reads, as the owner sees them. */
 const learner = (
   <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 py-6">
-    <ProfileLearnListBox rows={maskedIssues.map((masked) => ({ kind: 'masked', masked }))} colors={promoColors} />
+    <ProfileLearnListBox rows={maskedIssues.map((masked) => ({ kind: 'masked', masked }))} colors={LANGUAGE_COLORS} />
     <SkillsBlock login={strongProfile.login} numbers={learnerNumbers} />
   </div>
 );

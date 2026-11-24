@@ -1,8 +1,4 @@
-import type { LearnProfile, MyLearnAttempt } from './learn.types';
-
-/** Whether a Learn goal is saved. */
-export const hasGoal = (profile: LearnProfile | null | undefined): boolean =>
-  !!profile?.goalKind && !!profile.goalValue?.trim();
+import type { MyLearnAttempt } from './learn.types';
 
 /** "owner/repo#12": an issue named before its title is known. */
 export const issueRefOf = (attempt: Pick<MyLearnAttempt, 'repo' | 'issueNumber'>): string =>

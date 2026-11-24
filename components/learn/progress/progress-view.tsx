@@ -9,7 +9,7 @@ import {
   progressViewOf,
 } from '@/lib/learn/progress/progress';
 import { loadLearnProgress, loadProgressList } from '@/lib/learn/progress/progress.data';
-import { publicProgressUrlOf } from '@/lib/learn/public-progress/public-progress';
+import type { ProgressShare } from '@/lib/learn/progress/progress.types';
 import { loadPullRequestsPage, viewerLogin } from '@/lib/workspace/contribute.data';
 import { notEnteredTargetOf } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
@@ -22,7 +22,14 @@ type Search = Record<string, string | string[] | undefined>;
  * up home; here an account the workspace is hidden from gets the 404 (the page never names Learn to it), and one that has not
  * entered the workspace goes to Contribute's home, which starts them. A page past the last goes to the last.
  */
-export async function ProgressView({ searchParams }: { searchParams: Promise<Search> }) {
+export async function ProgressView({
+  searchParams,
+  loadShare,
+}: {
+  searchParams: Promise<Search>;
+  /** Share, from the Skills page of the login signed in: read per request, null when it could not be read. */
+  loadShare: (login: string) => Promise<ProgressShare | null>;
+}) {
   const search = await searchParams;
   const view = progressViewOf(search.view);
   const page = progressPageOf(search.page);
@@ -49,9 +56,9 @@ export async function ProgressView({ searchParams }: { searchParams: Promise<Sea
 
   const list = await listRead;
   if (list === null) notFound();
-  // The Share control's link: the login the viewer is signed in with.
+  // Share: the Skills page of the login the viewer is signed in with, read beside the count of open pull requests.
   const login = await viewerLogin();
-  const share = login ? { url: publicProgressUrlOf(login), publicCounts: progress?.publicCounts ?? null } : undefined;
+  const shareRead = login ? loadShare(login) : Promise.resolve(null);
   const last = list ? lastPageOf(progressTotalOf(list)) : page;
   if (page > last) redirect(progressPath({ view, page: last }));
   // No merged pull request yet: how many are open now, the Pull requests tab's own count.
@@ -59,5 +66,7 @@ export async function ProgressView({ searchParams }: { searchParams: Promise<Sea
   const openPrs = noneMerged
     ? ((await loadPullRequestsPage({ page: 1, state: 'OPEN', mode: 'LEARN' }))?.total ?? null)
     : undefined;
-  return <ProgressScreen view={view} page={page} counts={counts} list={list} openPrs={openPrs} share={share} />;
+  return (
+    <ProgressScreen view={view} page={page} counts={counts} list={list} openPrs={openPrs} share={await shareRead} />
+  );
 }

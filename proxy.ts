@@ -9,7 +9,7 @@ import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
 import { checkGateOf, courseGateOf, projectCourseGateOf } from './lib/learn/course-gate';
 import { fixByAttemptRouteGateOf, fixRouteGateOf, fixViewRouteGateOf } from './lib/learn/fix-gate';
 import { issuesShowFixedRedirectOf } from './lib/learn/issues';
-import { isLearnAboutPath, LEARN_PATH, lessonRouteOf, publicProgressRouteOf } from './lib/learn/learn-path';
+import { isLearnAboutPath, LEARN_PATH, lessonRouteOf } from './lib/learn/learn-path';
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
 import {
   checkRouteOf,
@@ -26,7 +26,6 @@ import {
   learnProjectCourseMarkdownRouteOf,
   learnProjectCourseRouteOf,
 } from './lib/learn/paths';
-import { progressGateOf } from './lib/learn/public-progress/progress-gate';
 import { isLinkPagePath, LINK_PAGE_HEADERS } from './lib/link-token/link-token';
 import { packageMarkdownRewriteOf } from './lib/packages/package-paths';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
@@ -292,16 +291,6 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
           ? NextResponse.rewrite(new URL(fixGate.path, request.url), { status: 410 })
           : NextResponse.redirect(new URL(`${fixGate.path}${search}`, request.url), 307),
     );
-  }
-
-  // A person's public progress page streams too: their record is asked for here first. None, or the login asked under
-  // another spelling than the one stored, gets the 404, which no shared cache keeps (a record may appear soon).
-  const progressLogin =
-    request.method === 'GET' || request.method === 'HEAD' ? publicProgressRouteOf(request.nextUrl.pathname) : null;
-  if (progressLogin && (await progressGateOf(progressLogin)) === 'missing') {
-    const response = NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
-    response.headers.set('Cache-Control', 'private, no-store');
-    return response;
   }
 
   // A pull request's timeline (its page, its Markdown twin and its picture): the API is asked here before anything

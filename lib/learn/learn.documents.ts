@@ -1,20 +1,10 @@
 import { parse } from 'graphql';
 
-import type {
-  LearnAttemptLesson,
-  LearnProfile,
-  LearnRecord,
-  LessonAnswerResult,
-  LessonRun,
-  LessonWarmupAnswer,
-} from './learn.types';
+import type { LearnAttemptLesson, LessonAnswerResult, LessonRun, LessonWarmupAnswer } from './learn.types';
 import type DocumentNode from '@/types/typed-document-node';
 
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
   parse(source) as DocumentNode<TData, TVariables>;
-
-/** Whether the viewer's GitRanks account is still being set up (a new account), so Learn cannot answer for it yet. */
-export const LearnSetupDocument = doc<{ learnSetup: boolean }>('query LearnSetup { learnSetup }');
 
 /** A question as a taker sees it: never its key. */
 const QUESTION = 'id stepId role type prompt options { id text }';
@@ -34,6 +24,11 @@ const HEAD = `slug title kind version
   subject { type repo issue issueTitle pr prUrl }
   language publishedAt passes writtenFor topics
   writtenForGoal { kind value level }`;
+
+/** Whether the API counts the viewer as using Learn: the side their Skills page reads. */
+export const LearnSideDocument = doc<{ skillsMine: { usesLearn: boolean } | null }>(
+  'query LearnSide { skillsMine { usesLearn } }',
+);
 
 const NODES = 'nodes { id label sub tone mono } edges { from to label reply tone }';
 const SIDE = `${NODES} path fromLine toLine excerpt`;
@@ -85,16 +80,4 @@ export const AnswerLessonQuestionDocument = doc<
 
 export const RemoveLessonDocument = doc<{ removeLesson: boolean }, { slug: string }>(
   'mutation RemoveLesson($slug: String!) { removeLesson(slug: $slug) }',
-);
-
-const PROFILE = 'goalKind goalValue levels { language level guessed hint } focus updatedAt';
-
-/** The viewer's goal, levels and focus; null when Learn is not open to them. */
-export const LearnProfileDocument = doc<{ learnProfile: LearnProfile | null }>(
-  `query LearnProfile { learnProfile { ${PROFILE} } }`,
-);
-
-/** A login's public Learn record, the same for every reader; null without a public pass. */
-export const LearnRecordDocument = doc<{ learnRecord: LearnRecord | null }, { login: string }>(
-  'query LearnRecord($login: String!) { learnRecord(login: $login) { login lessons newThings topics prsOpened prsMerged reposHelped } }',
 );

@@ -346,6 +346,20 @@ describe('the Terms', () => {
     // Learn sits on Contribute's terms, so it never shows without them.
     expect(text(renderToStaticMarkup(<TermsScreen contribute={false} />))).not.toContain('GitRanks Learn');
   });
+
+  it('give every pull request a public page, keep the choice for those sent before the day, and say neither is in beta', () => {
+    const plain = text(renderToStaticMarkup(<TermsScreen contribute />));
+    expect(plain).toContain(
+      'Public pages. Every pull request you send through Contribute or Learn has a public page about how it was made',
+    );
+    expect(plain).toContain('your answers when you choose to share them');
+    expect(plain).toContain('A pull request sent before 24 November 2026 can still be hidden from its page');
+    expect(plain).not.toContain('Public timelines');
+    expect(plain).toContain('It may change, be limited or stop, and its limits may change.');
+    expect(plain).toContain('Learn may change or stop.');
+    expect(plain).not.toContain('It is in beta');
+    expect(plain).not.toContain('Learn is in beta');
+  });
 });
 
 describe('the launch gate', () => {

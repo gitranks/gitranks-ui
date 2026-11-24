@@ -157,7 +157,9 @@ describe('the Start page with a lesson', () => {
     expect(plain).toContain('Only want the pull request? Just fix it, no lesson');
     expect(html).toContain('href="/my/start/driftwood-js/driftwood/934"');
     expect(plain).toContain('3 · Your lesson page opens');
-    expect(plain).toContain('You can close it: the Learn tab links your lesson as soon as your agent takes the issue.');
+    expect(plain).toContain(
+      'You can close it: once your agent takes the issue, your fix shows on Learn home, and its fix walkthrough opens from there when it is ready.',
+    );
     expect(plain).not.toContain(RESTART_HINT);
   });
 

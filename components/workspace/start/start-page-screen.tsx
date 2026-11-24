@@ -63,7 +63,8 @@ const WORDS: Record<
     connect: 'Once per computer. Learn works with your own agent and the plan you already have.',
     prompt: 'In a terminal, in any folder. Your agent forks the project, fixes the issue and writes your lesson.',
     opens: 'Your lesson page opens',
-    closeIt: 'You can close it: the Learn tab links your lesson as soon as your agent takes the issue.',
+    closeIt:
+      'You can close it: once your agent takes the issue, your fix shows on Learn home, and its fix walkthrough opens from there when it is ready.',
   },
 };
 

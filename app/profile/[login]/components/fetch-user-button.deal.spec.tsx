@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FetchUserButtonForNotFoundPage, FetchUserButtonForProfilePage } from './fetch-user-button';
+import { TOKEN_PROVIDER } from '@/lib/auth-providers';
 import type { DailyUpdatesViewer } from '@/types/daily-updates.types';
 import { DailyUpdateReason } from '@/types/generated/graphql';
 import type { DailyUpdatesFacts } from '@/utils/daily-updates-view';
@@ -221,6 +222,21 @@ describe('the deal on the profile', () => {
     await press('Sign in with GitHub');
     expect(signIn).toHaveBeenCalledExactlyOnceWith('github-basic');
     expect(sessionStorage.getItem(MARK)).toBeNull();
+  });
+
+  it('says the first fetch of someone else’s profile needs a token, where GitRanks has no such profile', async () => {
+    session.current = SOMEONE;
+    await act(async () => {
+      root.render(<FetchUserButtonForNotFoundPage profileLogin="octo-dev" />);
+    });
+    await press('Fetch profile from GitHub');
+
+    expect(dialogTitle()).toBe('This one needs your token 🔑');
+    expect(dialogText()).toContain('again to get @octo-dev.');
+    expect(dialogText()).not.toContain('Checking on a friend');
+    expect(fetchMock).not.toHaveBeenCalled();
+    await press('Use my GitHub token');
+    expect(signIn).toHaveBeenCalledExactlyOnceWith(TOKEN_PROVIDER);
   });
 
   it('drops the mark of a sign-in given up, once the page settles signed out', async () => {

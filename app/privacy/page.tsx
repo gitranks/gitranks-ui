@@ -183,7 +183,7 @@ const sections: LegalSection[] = [
           </li>
           <li>
             <B>AI-assisted work</B>: pull requests Contribute opens for you say in their text that they were made with
-            AI. We mark those, and pull requests your own agent opens for an issue it claimed through Contribute, as
+            AI. We mark those, and pull requests your own agent opens for an issue it took through Contribute, as
             AI-assisted in our data, and may show or weigh them apart from the rest of your work wherever we show or
             score it.
           </li>

@@ -146,8 +146,20 @@ describe('a shared lesson', () => {
     const author = renderToStaticMarkup(
       <LessonPageScreen page={lessonPage} viewer={{ kind: 'taker', login: 'octocat', run: sharedRuns.passed }} />,
     );
-    expect(author).toContain('data-share-result="author"');
+    // An author whose result is not public (hidden, or not shared at the opening) gets the switch, never a dead link.
+    expect(author).toContain('data-share-result="off"');
+    expect(text(author)).toContain('the link to it in your pull request shows nothing');
+    expect(author).not.toContain('/passes/octocat');
     expect(author).not.toContain('data-next-step');
+    const opened = renderToStaticMarkup(
+      <LessonPageScreen
+        page={lessonPage}
+        viewer={{ kind: 'taker', login: 'octocat', run: { ...sharedRuns.passed, resultPublic: true } }}
+      />,
+    );
+    expect(opened).toContain('data-share-result="author"');
+    expect(opened).toContain('href="/learn/lessons/route-cache-miss-8f3k/passes/octocat"');
+    expect(opened).not.toContain('data-next-step');
   });
 
   it('reads the lesson as anyone would, and the run only for a viewer Learn is open to', async () => {

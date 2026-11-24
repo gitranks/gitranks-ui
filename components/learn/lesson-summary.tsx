@@ -35,7 +35,7 @@ export type SummaryShare = {
   slug: string;
   /** The viewer's login, for the address of their result page. */
   login: string;
-  /** The viewer wrote the lesson: their result is public already, as their pull request links to it. */
+  /** The viewer wrote the lesson: their pull request links to their result, which is public unless it was hidden. */
   author: boolean;
   /** What the passed card offers next, when already read (the catalogue); else it is read once the card shows. */
   next?: PracticeNext | null;
@@ -43,7 +43,8 @@ export type SummaryShare = {
 
 /**
  * "Share my result": the viewer's result page shows this run, or stops showing it. Another taker's result is private
- * until they switch it on here; the author's is always public.
+ * until they switch it on here. The author's is public, as their pull request links to it; if it is not, they get the
+ * switch too, so the link in their pull request can show it again.
  */
 export function ShareMyResult({ run, share }: { run: LessonRun; share: SummaryShare }) {
   const [shared, setShared] = useState(run.resultPublic);
@@ -60,7 +61,7 @@ export function ShareMyResult({ run, share }: { run: LessonRun; share: SummarySh
     </Link>
   );
 
-  if (share.author) {
+  if (share.author && run.resultPublic) {
     return (
       <div className="flex flex-col gap-1 border-t pt-3" data-share-result="author">
         <p className="text-sm text-muted-foreground">Your result is public: your pull request links to it.</p>
@@ -68,6 +69,9 @@ export function ShareMyResult({ run, share }: { run: LessonRun; share: SummarySh
       </div>
     );
   }
+  const privateHint = share.author
+    ? 'Your result is private, so the link to it in your pull request shows nothing. Share it to show how you did on each step, never an answer you picked.'
+    : 'Your result is private. Shared, your result page shows how you did on each step, never an answer you picked.';
 
   const change = (next: boolean) =>
     startTransition(async () => {
@@ -101,7 +105,7 @@ export function ShareMyResult({ run, share }: { run: LessonRun; share: SummarySh
       <p id={`${id}-hint`} className="text-xs text-muted-foreground">
         {shared
           ? 'Anyone with the link to your result page sees how you did on each step. Never an answer you picked.'
-          : 'Your result is private. Shared, your result page shows how you did on each step, never an answer you picked.'}
+          : privateHint}
       </p>
       {shared ? <div>{resultLink}</div> : null}
       {error ? (

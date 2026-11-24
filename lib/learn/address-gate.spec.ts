@@ -83,3 +83,56 @@ describe('learnAddressGateOf', () => {
     }
   });
 });
+
+describe("a project course's address", () => {
+  beforeEach(() => graphqlDirect.mockReset());
+
+  it("sends a live project course asked for by its slug to its project's address, and nothing else", () => {
+    expect(
+      learnAddressGateFrom('course', { state: 'LIVE', movedTo: null, path: '/learn/repos/django/django' }),
+    ).toEqual({ kind: 'elsewhere', path: '/learn/repos/django/django' });
+    expect(learnAddressGateFrom('course', { state: 'LIVE', movedTo: null, path: '/learn/orgs/kubernetes' })).toEqual({
+      kind: 'elsewhere',
+      path: '/learn/orgs/kubernetes',
+    });
+    // Its own address, a lesson's, and a path no project course has: the page asked for.
+    expect(learnAddressGateFrom('repository', { state: 'LIVE', movedTo: null, path: '/learn/repos/a/b' })).toEqual({
+      kind: 'page',
+    });
+    expect(learnAddressGateFrom('lesson', { state: 'LIVE', movedTo: null, path: '/learn/repos/a/b' })).toEqual({
+      kind: 'page',
+    });
+    for (const path of [
+      null,
+      undefined,
+      '',
+      '/learn/courses/django',
+      'https://example.com/learn/orgs/x',
+      '/learn/orgs/a_b',
+    ]) {
+      expect(learnAddressGateFrom('course', { state: 'LIVE', movedTo: null, path }), String(path)).toEqual({
+        kind: 'page',
+      });
+    }
+  });
+
+  it('asks a repository by `owner/name` and an organisation by its login, and nothing of another shape', async () => {
+    const { isAddressSlug } = await import('./address-gate');
+    expect(isAddressSlug('repository', 'django/django')).toBe(true);
+    expect(isAddressSlug('org', 'kubernetes')).toBe(true);
+    for (const slug of ['django', 'a/b/c', '_gone/x', 'a/..'])
+      expect(isAddressSlug('repository', slug), slug).toBe(false);
+    for (const slug of ['a/b', '_gone', '-x']) expect(isAddressSlug('org', slug), slug).toBe(false);
+    expect(isAddressSlug('course', 'django/django')).toBe(false);
+
+    graphqlDirect.mockResolvedValueOnce(answer('REMOVED'));
+    expect(await learnAddressGateOf('repository', 'django/django')).toEqual({ kind: 'removed' });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      LearnAddressDocument,
+      { kind: 'repository', slug: 'django/django' },
+      { source: 'ssr' },
+    );
+    expect(await learnAddressGateOf('org', '_gone')).toEqual({ kind: 'missing' });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+  });
+});

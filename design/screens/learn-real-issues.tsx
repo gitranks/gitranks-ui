@@ -97,14 +97,14 @@ export const LEARN_REAL_ISSUES_SCREENS: Screen[] = [
         id: 'lesson-fix-one',
         title: 'A lesson after a right answer: "Fix a real issue", fixes that used it, issues of your list',
         path: `/learn/lessons/${setLesson.slug}`,
-        height: 2400,
+        height: 3000,
         render: () => <Lesson mine={lessonRealIssues} />,
       },
       {
         id: 'lesson-your-fix',
         title: 'A lesson with your fix that uses it, its pull request open',
         path: `/learn/lessons/${setLesson.slug}`,
-        height: 2400,
+        height: 3000,
         render: () => <Lesson mine={lessonRealWithFix} />,
       },
       {

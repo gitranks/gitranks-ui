@@ -13,6 +13,7 @@ import {
 import { languageNameOf } from './learn-question';
 import type { LearnLessonLink } from './lesson-page';
 import { addLearnDays, learnTodayIn, shortDayWords } from './my-progress';
+import { learnCourseProjectOf } from './project-course';
 import { type LearnSetupRead, SETUP_LEVELS } from './setup';
 
 /*
@@ -45,7 +46,7 @@ export type LearnHomeRead = {
   suggested: LearnSuggestedCourse[];
 };
 
-const KINDS: readonly LearnCourseKind[] = ['TOPIC', 'LANGUAGE'];
+const KINDS: readonly LearnCourseKind[] = ['TOPIC', 'LANGUAGE', 'REPOSITORY', 'ORG'];
 const REASONS: readonly LearnSuggestedReason[] = ['main-language', 'most-start', 'other-language'];
 
 const recordOf = (value: unknown): Record<string, unknown> | null =>
@@ -63,13 +64,15 @@ export function linkOf(value: unknown): LearnLessonLink | null {
   return slug && title ? { slug, title } : null;
 }
 
-/** A course's card; null for one without a slug, a name or a kind this page draws (a project course comes later). */
+/** A course's card; null for one without a slug, a name or a kind this page draws, or a project course with no project. */
 export function courseCardOf(value: unknown): LearnCourseCard | null {
   const raw = recordOf(value);
   const slug = textOf(raw?.slug);
   const name = textOf(raw?.name);
   const kind = raw?.kind as LearnCourseKind;
   if (!slug || !name || !KINDS.includes(kind)) return null;
+  const project = learnCourseProjectOf(raw?.project);
+  if ((kind === 'REPOSITORY' || kind === 'ORG') && !project) return null;
   const numbers = recordOf(raw?.numbers);
   const numberOf = (field: unknown) => (typeof field === 'number' && Number.isFinite(field) ? field : null);
   return {
@@ -80,6 +83,7 @@ export function courseCardOf(value: unknown): LearnCourseCard | null {
     languages: arrayOf(raw?.languages).filter((language): language is string => typeof language === 'string'),
     lessons: countOf(raw?.lessons),
     numbers: { learners: numberOf(numbers?.learners), goodShare: numberOf(numbers?.goodShare) },
+    ...(project ? { project } : {}),
   };
 }
 

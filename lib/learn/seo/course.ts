@@ -10,8 +10,8 @@ import {
 } from '../course-share-card';
 import { learnShareTitleOf } from '../lesson-share-card';
 import {
-  courseMarkdownPath,
-  coursePath,
+  courseHrefOf,
+  courseMarkdownHrefOf,
   LEARN_COURSES_MARKDOWN_PATH,
   LEARN_COURSES_PATH,
   LEARN_HOME_PATH,
@@ -60,7 +60,7 @@ export function withPreview(metadata: Metadata, preview: Preview, markdown: stri
 /** What a course's metadata reads. */
 type MetadataCourse = Pick<
   LearnCourse,
-  'slug' | 'name' | 'about' | 'kind' | 'languages' | 'lessons' | 'numbers' | 'changedAt'
+  'slug' | 'name' | 'about' | 'kind' | 'languages' | 'lessons' | 'numbers' | 'changedAt' | 'project'
 >;
 
 /**
@@ -68,7 +68,7 @@ type MetadataCourse = Pick<
  * alternate, and a preview with its picture, as page 21 draws it.
  */
 export function learnCourseMetadata(course: MetadataCourse): Metadata {
-  const path = coursePath(course.slug);
+  const path = courseHrefOf(course);
   return withPreview(
     pageMetadata({ title: course.name, description: courseDescriptionOf(course), path }),
     {
@@ -78,7 +78,7 @@ export function learnCourseMetadata(course: MetadataCourse): Metadata {
       picture: learnCourseCardUrlOf(course),
       alt: course.name,
     },
-    courseMarkdownPath(course.slug),
+    courseMarkdownHrefOf(course),
   );
 }
 
@@ -105,11 +105,24 @@ export function learnCoursesMetadata(
 }
 
 /**
+ * What a project course is about, for its structured data: the repository's code, or the organisation, at GitHub;
+ * null for any other course.
+ */
+function projectAboutOf(course: Pick<LearnCourse, 'project'>): object | null {
+  const { project } = course;
+  if (!project) return null;
+  return project.repo
+    ? { '@type': 'SoftwareSourceCode', name: project.name, codeRepository: project.githubUrl }
+    : { '@type': 'Organization', name: project.name, url: project.githubUrl };
+}
+
+/**
  * A course's structured data: a `Course` with its lessons as its parts (a paused lesson is left out: its address
- * answers that it is paused), and its breadcrumbs (Learn, All courses, the course).
+ * answers that it is paused), what a project course is about, and its breadcrumbs (Learn, All courses, the course).
  */
 export function learnCourseJsonLd(course: MetadataCourse & Pick<LearnCourse, 'groups'>): object[] {
-  const url = absoluteUrl(coursePath(course.slug));
+  const url = absoluteUrl(courseHrefOf(course));
+  const about = projectAboutOf(course);
   const crumbs = [
     { name: 'Learn', item: absoluteUrl(LEARN_HOME_PATH) },
     { name: 'All courses', item: absoluteUrl(LEARN_COURSES_PATH) },
@@ -129,6 +142,7 @@ export function learnCourseJsonLd(course: MetadataCourse & Pick<LearnCourse, 'gr
       dateModified: course.changedAt,
       image: absoluteUrl(learnCourseCardUrlOf(course)),
       provider: { '@id': ORGANIZATION_ID },
+      ...(about ? { about } : {}),
       hasPart: lessons.map((lesson) => ({
         '@type': 'LearningResource',
         name: lesson.title,
@@ -145,7 +159,7 @@ export function learnCourseJsonLd(course: MetadataCourse & Pick<LearnCourse, 'gr
 }
 
 /** All courses' structured data: an `ItemList` of the courses, in the list's order. */
-export function learnCoursesJsonLd(courses: readonly Pick<LearnCourseCard, 'slug' | 'name'>[]): object[] {
+export function learnCoursesJsonLd(courses: readonly Pick<LearnCourseCard, 'slug' | 'name' | 'project'>[]): object[] {
   return [
     {
       '@context': 'https://schema.org',
@@ -157,7 +171,7 @@ export function learnCoursesJsonLd(courses: readonly Pick<LearnCourseCard, 'slug
         '@type': 'ListItem',
         position: index + 1,
         name: course.name,
-        url: absoluteUrl(coursePath(course.slug)),
+        url: absoluteUrl(courseHrefOf(course)),
       })),
     },
   ];

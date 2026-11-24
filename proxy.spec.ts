@@ -40,7 +40,14 @@ const { courseGate } = vi.hoisted(() => ({
 const { checkGate } = vi.hoisted(() => ({
   checkGate: vi.fn(async (_slug: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
-vi.mock('./lib/learn/course-gate', () => ({ courseGateOf: courseGate, checkGateOf: checkGate }));
+const { projectGate } = vi.hoisted(() => ({
+  projectGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
+}));
+vi.mock('./lib/learn/course-gate', () => ({
+  courseGateOf: courseGate,
+  checkGateOf: checkGate,
+  projectCourseGateOf: projectGate,
+}));
 const { fixGate, attemptGate, viewGate } = vi.hoisted(() => ({
   fixGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
   attemptGate: vi.fn(async (_attemptId: string): Promise<unknown> => ({ kind: 'missing' })),
@@ -81,6 +88,8 @@ describe('proxy', () => {
     lessonGate.mockResolvedValue({ kind: 'page' });
     courseGate.mockReset();
     courseGate.mockResolvedValue({ kind: 'page' });
+    projectGate.mockReset();
+    projectGate.mockResolvedValue({ kind: 'page' });
     fixGate.mockReset();
     fixGate.mockResolvedValue({ kind: 'page' });
     attemptGate.mockReset();
@@ -1018,6 +1027,75 @@ describe('proxy', () => {
       expect(response?.headers.get('location')).toBe(
         'https://gitranks.com/learn/courses/algorithms-and-data?from=learn',
       );
+      expect(response?.headers.get('cache-control')).toBe('private, no-store');
+    });
+
+    it("asks a project course's address by its project before its page, and nothing for its picture", async () => {
+      await proxy(request(undefined, '/learn/repos/django/django'), event);
+      await proxy(request('authjs.session-token=t', '/learn/orgs/Kubernetes/'), event);
+      for (const path of [
+        '/learn/repos/django/django/card.png',
+        '/learn/repos/_gone/django/django',
+        '/learn/orgs/_gone/k',
+      ]) {
+        await proxy(request(undefined, path), event);
+      }
+      expect(projectGate.mock.calls).toEqual([
+        [{ kind: 'repository', slug: 'django/django' }],
+        [{ kind: 'org', slug: 'Kubernetes' }],
+      ]);
+      expect(courseGate).not.toHaveBeenCalled();
+    });
+
+    it("answers an address that names no GitHub project with the course's 404 at once", async () => {
+      for (const path of ['/learn/repos/_gone/django', '/learn/orgs/_gone', '/learn/orgs/a_b', '/learn/repos/-x/y']) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/learn/courses/_missing');
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+      }
+      expect(projectGate).not.toHaveBeenCalled();
+    });
+
+    it("answers a project course's states: its `_gone` page with a 503 or a 410, a redirect, the 404", async () => {
+      projectGate.mockResolvedValueOnce({ kind: 'gone', status: 410, path: '/learn/repos/_gone/django/django' });
+      const removed = await proxy(request(undefined, '/learn/repos/django/django'), event);
+      expect(removed?.status).toBe(410);
+      expect(removed?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/learn/repos/_gone/django/django');
+      projectGate.mockResolvedValueOnce({ kind: 'redirect', path: '/learn/repos/django/django' });
+      const spelled = await proxy(request(undefined, '/learn/repos/Django/Django?from=learn'), event);
+      expect(spelled?.status).toBe(308);
+      expect(spelled?.headers.get('location')).toBe('https://gitranks.com/learn/repos/django/django?from=learn');
+      projectGate.mockResolvedValueOnce({ kind: 'missing' });
+      const missing = await proxy(request(undefined, '/learn/orgs/nobody'), event);
+      expect(missing?.headers.get('x-middleware-rewrite')).toBe('https://gitranks.com/learn/courses/_missing');
+    });
+
+    it("sends a project course asked for by its slug to its project's address", async () => {
+      courseGate.mockResolvedValue({ kind: 'redirect', path: '/learn/repos/django/django' });
+      const response = await proxy(request(undefined, '/learn/courses/django'), event);
+      expect(response?.status).toBe(308);
+      expect(response?.headers.get('location')).toBe('https://gitranks.com/learn/repos/django/django');
+    });
+
+    it("answers a project course's .md from its route handler, before Auth.js and the gate", async () => {
+      for (const cookie of [undefined, 'authjs.session-token=t']) {
+        const repo = await proxy(request(cookie, '/learn/repos/django/django.md'), event);
+        expect(repo?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/api/learn/projects/repos/django/django/course.md',
+        );
+        const org = await proxy(request(cookie, '/learn/orgs/kubernetes.md'), event);
+        expect(org?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/api/learn/projects/orgs/kubernetes/course.md',
+        );
+      }
+      expect(withSession).not.toHaveBeenCalled();
+      expect(projectGate).not.toHaveBeenCalled();
+    });
+
+    it('sends `show=fixed` on Issues to `fixed=1` for good, the rest of the query kept', async () => {
+      const response = await proxy(request(undefined, '/learn/issues?repo=django/django&show=fixed'), event);
+      expect(response?.status).toBe(308);
+      expect(response?.headers.get('location')).toBe('https://gitranks.com/learn/issues?repo=django/django&fixed=1');
       expect(response?.headers.get('cache-control')).toBe('private, no-store');
     });
 

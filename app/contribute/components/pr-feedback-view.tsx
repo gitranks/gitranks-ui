@@ -32,10 +32,11 @@ function Column({ flow, children }: { flow: PrFeedbackFlow; children: ReactNode 
   );
 }
 
+/** What each role may do, said the same way in each box. */
 const ROLES = [
-  { title: 'Admin or maintain', text: 'Report + stop work' },
-  { title: 'Write or triage', text: 'Report, marked as the team’s; we act first' },
-  { title: 'Anyone else', text: 'Report or say it helped; we review it' },
+  { title: 'Admin or maintain', text: 'You report, and can stop our work at once.' },
+  { title: 'Write or triage', text: 'You report for the team, and we act on it first.' },
+  { title: 'Anyone else', text: 'You report or say it helped, and we review it.' },
 ];
 
 /** The address the page is at, for the sign-in to come back to. */

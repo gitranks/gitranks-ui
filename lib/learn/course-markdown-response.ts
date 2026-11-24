@@ -3,10 +3,25 @@ import { learnCourseMarkdownOf, learnCoursesMarkdownOf } from './course-markdown
 import { type CourseShareState, courseNotServedResponse, courseUnavailableResponse } from './course-share';
 import { learnLandingMarkdownOf } from './landing';
 import { LESSON_MARKDOWN_HEADERS } from './lesson-markdown-response';
-import { courseMarkdownPath, coursePath, LEARN_COURSES_PATH, LEARN_HOME_PATH } from './paths';
+import {
+  courseHrefOf,
+  courseMarkdownHrefOf,
+  courseMarkdownPath,
+  courseProjectOf,
+  LEARN_COURSES_PATH,
+  LEARN_HOME_PATH,
+} from './paths';
 
-/** A course's copy as Markdown, by the course's state (`course-share.ts`); a moved one goes to its new copy. */
-export async function courseMarkdownResponse(slug: string, state: () => Promise<CourseShareState>): Promise<Response> {
+/**
+ * A course's copy as Markdown, by the course's state (`course-share.ts`); a moved one goes to its new copy. A project
+ * course's copy is at its project's address: asked under its slug, it goes there for good. Its open issues are read
+ * apart (`openIssues`), only for a live project course.
+ */
+export async function courseMarkdownResponse(
+  slug: string,
+  state: () => Promise<CourseShareState>,
+  { asked = 'slug', openIssues }: { asked?: 'slug' | 'project'; openIssues?: () => Promise<number | null> } = {},
+): Promise<Response> {
   let found: CourseShareState;
   try {
     found = await state();
@@ -14,8 +29,13 @@ export async function courseMarkdownResponse(slug: string, state: () => Promise<
     return courseUnavailableResponse();
   }
   if (found.kind !== 'live') return courseNotServedResponse(found, courseMarkdownPath);
-  return new Response(learnCourseMarkdownOf(found.course), {
-    headers: { ...LESSON_MARKDOWN_HEADERS, Link: `<${coursePath(slug)}>; rel="canonical"` },
+  const { course } = found;
+  if (asked === 'slug' && courseProjectOf(course) && courseHrefOf(course) !== courseHrefOf({ slug })) {
+    return courseNotServedResponse({ kind: 'moved', slug }, () => courseMarkdownHrefOf(course));
+  }
+  const count = course.project && openIssues ? await openIssues().catch(() => null) : null;
+  return new Response(learnCourseMarkdownOf(course, { openIssues: count }), {
+    headers: { ...LESSON_MARKDOWN_HEADERS, Link: `<${courseHrefOf(course)}>; rel="canonical"` },
   });
 }
 

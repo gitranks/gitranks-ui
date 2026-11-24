@@ -50,6 +50,7 @@ export function SettingsWorkGroup({
         <RulesDialog
           className="text-sm font-medium"
           onFeedback={() => setFeedback({ topic: 'GATES', context: { mode: set.mode } })}
+          limits={set.limits}
         />
       }
     >

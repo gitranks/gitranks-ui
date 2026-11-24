@@ -114,7 +114,7 @@ export function ModeCards({ set, write }: { set: ContributeSet; write: SetWrite 
           <DialogHeader>
             <DialogTitle>Switch to All issues?</DialogTitle>
             <DialogDescription>
-              Your agent picks the best issues across ~300 projects we picked. Your filters still apply.
+              Your agent picks the best issues across the projects we picked. Your languages still apply.
               {kept ? ` ${kept}` : ''}
             </DialogDescription>
           </DialogHeader>

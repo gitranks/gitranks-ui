@@ -20,6 +20,7 @@ import {
   issuesMinePathOf,
   issuesPublicInputOf,
   issuesRowOf,
+  issuesShowFixedRedirectOf,
   issuesSwitchesOf,
   issuesViewOf,
   issuesViewQueryOf,
@@ -75,6 +76,8 @@ describe('the view in the address', () => {
         fixed: true,
         forYou: false,
         learned: true,
+        repo: null,
+        org: null,
       }),
     ).toBe('/learn/issues?course=algorithms&lesson=binary-search&language=go&fixed=1&for-you=0&learned=1');
     for (const view of Object.values(views)) {
@@ -110,11 +113,19 @@ describe('the view in the address', () => {
   });
 
   it("gives the API's input from a view", () => {
-    expect(issuesPublicInputOf(views.course)).toEqual({ lesson: null, course: 'algorithms', language: null });
+    expect(issuesPublicInputOf(views.course)).toEqual({
+      lesson: null,
+      course: 'algorithms',
+      language: null,
+      repo: null,
+      org: null,
+    });
     expect(issuesInputOf(views.course)).toEqual({
       lesson: null,
       course: 'algorithms',
       language: null,
+      repo: null,
+      org: null,
       forYou: true,
       learned: true,
     });
@@ -395,5 +406,62 @@ describe("the API's answers checked", () => {
     expect(mergedOnOf('2026-11-18T23:30:00.000Z')).toBe('merged 18 Nov');
     expect(mergedOnOf(null)).toBeNull();
     expect(mergedOnOf('not a date')).toBeNull();
+  });
+});
+
+describe("a project's issues", () => {
+  it('reads a repository or an organisation from the address, in lower case, and never both', () => {
+    expect(issuesViewOf({ repo: 'Django/Django' })).toEqual({ ...ISSUES_VIEW, repo: 'django/django' });
+    expect(issuesViewOf({ org: 'Kubernetes', fixed: '1' })).toEqual({ ...ISSUES_VIEW, org: 'kubernetes', fixed: true });
+    expect(issuesViewOf({ repo: 'django/django', org: 'kubernetes' })).toEqual({
+      ...ISSUES_VIEW,
+      repo: 'django/django',
+    });
+    for (const query of [{ repo: 'django' }, { repo: 'a/b/c' }, { repo: 'a/..' }, { org: 'a_b' }, { org: '-x' }]) {
+      expect(issuesViewOf(query), JSON.stringify(query)).toEqual(ISSUES_VIEW);
+    }
+  });
+
+  it('writes a repository with its slash, as every link to it does', () => {
+    expect(issuesHrefOf(views.repo)).toBe('/learn/issues?repo=django/django');
+    expect(issuesHrefOf(views.orgFixed)).toBe('/learn/issues?org=kubernetes&fixed=1');
+    expect(issuesMarkdownPathOf(views.repo)).toBe('/learn/issues.md?repo=django/django');
+    expect(issuesPublicInputOf(views.orgFixed)).toEqual({
+      lesson: null,
+      course: null,
+      language: null,
+      repo: null,
+      org: 'kubernetes',
+    });
+  });
+
+  it('shows the narrowing as a chip, and "Clear filters" drops it', () => {
+    expect(issuesChipsOf(views.repo)).toEqual([
+      { key: 'repo', label: 'Repository: django/django', removeHref: '/learn/issues' },
+    ]);
+    expect(issuesChipsOf(views.orgFixed).map(({ key, label, removeHref }) => [key, label, removeHref])).toEqual([
+      ['org', 'Org: kubernetes', '/learn/issues?fixed=1'],
+      ['fixed', 'Fixed', '/learn/issues?org=kubernetes'],
+    ]);
+    expect(unchippedOf(views.repo)).toEqual(ISSUES_VIEW);
+  });
+
+  it("says what a project's view narrows to when it has no issue", () => {
+    expect(visitorEndOf(views.repo).text).toBe(
+      'There is no open issue in this project right now. We look for new ones every day.',
+    );
+    expect(visitorEndOf({ ...ISSUES_VIEW, org: 'kubernetes' }).text).toBe(
+      'There is no open issue in the projects of this org right now. We look for new ones every day.',
+    );
+  });
+
+  it('sends `show=fixed` to the fixed view at its one address', () => {
+    expect(issuesShowFixedRedirectOf('/learn/issues', '?show=fixed')).toBe('/learn/issues?fixed=1');
+    expect(issuesShowFixedRedirectOf('/learn/issues', '?repo=django/django&show=fixed')).toBe(
+      '/learn/issues?repo=django/django&fixed=1',
+    );
+    expect(issuesShowFixedRedirectOf('/learn/issues', '?show=open')).toBeNull();
+    expect(issuesShowFixedRedirectOf('/learn/issues', '')).toBeNull();
+    expect(issuesShowFixedRedirectOf('/learn/issues.md', '?show=fixed')).toBeNull();
   });
 });

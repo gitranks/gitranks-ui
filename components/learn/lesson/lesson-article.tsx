@@ -1,5 +1,6 @@
 import { LessonMarkdown } from './lesson-markdown';
 import { ExampleBlock } from '@/components/learn/blocks/example-block';
+import { QuoteBlock } from '@/components/learn/blocks/quote-block';
 import { VisualBlock } from '@/components/workspace/blocks/visual-block';
 import { bodyPartsOf, type HighlightedExample, type LearnLesson, visualsOf } from '@/lib/learn/lesson-page';
 
@@ -7,7 +8,8 @@ export type { HighlightedExample } from '@/lib/learn/lesson-page';
 
 /**
  * The lesson itself: its one title, then its text with each example and visual where the text places it (the main
- * example after the text when the text places none).
+ * example after the text when the text places none). A quote of a project's code shows as a quote, in its one
+ * language.
  */
 export function LessonArticle({
   lesson,
@@ -35,7 +37,13 @@ export function LessonArticle({
           return <VisualBlock key={index} visual={visuals[part.name]} id={`${lesson.slug}-visual-${part.name}`} />;
         }
         const example = shown.find((entry) => entry.name === part.name);
-        return example ? <ExampleBlock key={index} codes={example.codes} main={mainLanguage} /> : null;
+        if (!example) return null;
+        if (example.source) {
+          return (
+            <QuoteBlock key={index} code={example.codes[0]} source={example.source} project={example.project ?? null} />
+          );
+        }
+        return <ExampleBlock key={index} codes={example.codes} main={mainLanguage} />;
       })}
     </article>
   );

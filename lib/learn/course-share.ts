@@ -1,7 +1,7 @@
 import { type LearnAddress, learnAddressGateFrom } from './address-gate';
 import type { LearnCourse } from './course';
 import { PAUSED_RETRY_AFTER } from './lesson-share';
-import { isContentSlug } from './paths';
+import { isContentSlug, type LearnProjectRoute } from './paths';
 
 /*
  * What a course's Markdown copy and its share picture answer, by the course's state. They follow the page's own gate:
@@ -45,6 +45,25 @@ export async function courseShareStateOf(
       // Live by its address, yet not readable as live: a moment between two deploys. Not found for now.
       return { kind: 'missing' };
   }
+}
+
+/**
+ * A project course's state, by its project in lower case: the course as everyone reads it (null when it is not live)
+ * and, only then, its project's address. Moved is missing: a project course keeps its project's address.
+ */
+export async function projectCourseShareStateOf(
+  route: LearnProjectRoute,
+  read: {
+    course: (route: LearnProjectRoute) => Promise<LearnCourse | null>;
+    address: (route: LearnProjectRoute) => Promise<Pick<LearnAddress, 'state' | 'movedTo'> | null>;
+  },
+): Promise<CourseShareState> {
+  const course = await read.course(route);
+  if (course) return { kind: 'live', course };
+  const address = await read.address(route);
+  if (address?.state === 'PAUSED') return { kind: 'paused' };
+  if (address?.state === 'REMOVED') return { kind: 'removed' };
+  return { kind: 'missing' };
 }
 
 /** The headers every answer that is not the thing itself carries: kept nowhere, so a course coming back shows at once. */

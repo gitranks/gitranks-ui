@@ -6,6 +6,7 @@ import { Fragment, type KeyboardEvent, type RefObject, useState } from 'react';
 
 import { CountLine } from './course-header';
 import { CourseMark, SquareCard } from './course-marks';
+import { GroupRepo } from './project-course-parts';
 import { Kbd } from '@/components/learn/question/kbd';
 import {
   type CourseFilter,
@@ -269,6 +270,7 @@ export function CourseList({
             <div className="flex flex-wrap items-baseline justify-between gap-3 border-b pb-2">
               <h2 id={id} className="m-0 text-lg font-semibold tracking-tight">
                 {byName ? <Marked text={markedTextOf(group.name, query)} /> : group.name}
+                <GroupRepo repo={group.repo} />
               </h2>
               <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 {narrowed ? (
@@ -352,7 +354,10 @@ export function CourseSquares({
       <ul className="m-0 flex list-none flex-col divide-y rounded-xl border bg-card px-5 py-2">
         {groups.map((group) => (
           <li key={group.slug} className="grid grid-cols-[17rem_minmax(0,1fr)_auto] items-center gap-4 py-2.5">
-            <span className="text-sm font-medium">{group.name}</span>
+            <span className="text-sm font-medium">
+              {group.name}
+              <GroupRepo repo={group.repo} />
+            </span>
             <span className="flex flex-wrap items-center gap-1.5">
               {group.lessons.map((lesson) => {
                 const square = squareOf(lesson);

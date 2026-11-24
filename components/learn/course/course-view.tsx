@@ -7,6 +7,7 @@ import { type CourseBoxCalls, CourseBoxesRow } from './course-boxes';
 import { CourseHeader } from './course-header';
 import { type CourseLessonsView, CourseList, CourseSquares, CourseToolbar } from './course-lessons';
 import { CourseLegend } from './course-marks';
+import { ProjectFoot } from './project-course-parts';
 import { useCoursePageKeys } from './use-course-keys';
 import {
   type CourseFilter,
@@ -24,7 +25,7 @@ import {
   searchQueryOf,
 } from '@/lib/learn/course';
 import type { LearnGroupLesson } from '@/lib/learn/lesson-page';
-import { courseMarkdownPath, coursePath } from '@/lib/learn/paths';
+import { courseHrefOf, courseMarkdownHrefOf, courseProjectOf, learnProjectIssuesPath } from '@/lib/learn/paths';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
 
@@ -75,6 +76,8 @@ export type CourseViewProps = {
   mainLanguage?: string | null;
   /** The open issues of the learner's list for lessons of the course: the third box, while there are some. */
   openIssues?: number | null;
+  /** A project course's open issues to fix, the same for everyone: linked in its line of facts, while there are some. */
+  projectIssues?: number | null;
   /** For the catalogue: a state drawn as it stands. */
   drawn?: { view?: CourseLessonsView; filter?: CourseFilter; query?: string; openCard?: string };
   hints?: boolean;
@@ -94,6 +97,7 @@ export function CourseView({
   checkFirst = false,
   mainLanguage = null,
   openIssues = null,
+  projectIssues = null,
   drawn = {},
   hints: hintsGiven,
 }: CourseViewProps) {
@@ -123,6 +127,9 @@ export function CourseView({
   const foundSlugs = useMemo(() => new Set(foundLessons.map((lesson) => lesson.slug)), [foundLessons]);
   const visible = (lesson: LearnGroupLesson) => foundSlugs.has(lesson.slug) && passesFilter(squareOf(lesson), filter);
   const boxes = courseBoxesOf(course, mine, { checkFirst, person, openIssues });
+  // "Fix a real issue" on a project course leads to the Issues of its project.
+  const project = courseProjectOf(course);
+  const issuesHref = project ? learnProjectIssuesPath(project) : undefined;
   const shownCount = foundLessons.filter((lesson) => passesFilter(squareOf(lesson), filter)).length;
   const nothing = shownCount === 0;
   // What the search and the filter leave, said to a screen reader as it changes; nothing while the whole course shows.
@@ -152,8 +159,14 @@ export function CourseView({
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-course={course.slug}>
-      <CourseHeader course={course} mine={mine} language={language} onLanguage={pickLanguage} />
-      <CourseBoxesRow boxes={boxes} slug={course.slug} hints={hints} calls={calls} />
+      <CourseHeader
+        course={course}
+        mine={mine}
+        language={language}
+        onLanguage={pickLanguage}
+        projectIssues={projectIssues}
+      />
+      <CourseBoxesRow boxes={boxes} slug={course.slug} hints={hints} calls={calls} issuesHref={issuesHref} />
       <div className="flex flex-col gap-3">
         <CourseToolbar
           learner={learner}
@@ -193,18 +206,22 @@ export function CourseView({
       ) : (
         list
       )}
-      <CourseFooter slug={course.slug} others={others} />
+      {course.project ? (
+        <ProjectFoot project={course.project} markdown={courseMarkdownHrefOf(course)} />
+      ) : (
+        <CourseFooter course={course} others={others} />
+      )}
     </main>
   );
 }
 
 /** Who wrote the course, its Markdown copy, and the other courses. */
-function CourseFooter({ slug, others }: { slug: string; others: readonly LearnCourseCard[] }) {
-  const rest = others.filter((other) => other.slug !== slug);
+function CourseFooter({ course, others }: { course: LearnCourseCard; others: readonly LearnCourseCard[] }) {
+  const rest = others.filter((other) => other.slug !== course.slug);
   return (
     <p className="m-0 text-xs text-muted-foreground">
       Written and checked by GitRanks ·{' '}
-      <a href={courseMarkdownPath(slug)} className="hover:underline">
+      <a href={courseMarkdownHrefOf(course)} className="hover:underline">
         Markdown version
       </a>
       {rest.length ? (
@@ -213,7 +230,7 @@ function CourseFooter({ slug, others }: { slug: string; others: readonly LearnCo
           {rest.map((other, index) => (
             <Fragment key={other.slug}>
               {index > 0 ? ', ' : null}
-              <Link href={coursePath(other.slug)} className="hover:underline">
+              <Link href={courseHrefOf(other)} className="hover:underline">
                 {other.name}
               </Link>
             </Fragment>

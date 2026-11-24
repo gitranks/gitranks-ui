@@ -1,7 +1,6 @@
 import { liveTargetsOf, modeSummaryOf, readingLibrariesOf, stackPendingOf } from './set-format';
 import type { ContributePreferences, ContributeSet, ContributeSetListMode } from '@/lib/workspace/contribute.types';
-import { KINDS, LANGUAGES, plural } from '@/lib/workspace/format';
-import { sizeLabelOf } from '@/lib/workspace/settings-summary';
+import { LANGUAGES, plural } from '@/lib/workspace/format';
 
 /** Languages named before "+N". */
 const LANGUAGES_SHOWN = 3;
@@ -61,15 +60,10 @@ export function keptListOf(set: ContributeSet): string | null {
   return null;
 }
 
-/** "TypeScript, Go · Bugs, Docs · Up to medium"; an empty list filters nothing, and says so. */
+/** "TypeScript, Go +2", or "Every language" when none is picked (none filters nothing). */
 export function preferencesSummaryOf(preferences: ContributePreferences | null): string {
   const languages = preferences?.languages ?? [];
-  const kinds = preferences?.kinds ?? [];
   const named = languages.slice(0, LANGUAGES_SHOWN).map((language) => LANGUAGES[language]);
   const more = languages.length - named.length;
-  return [
-    languages.length ? `${named.join(', ')}${more > 0 ? ` +${more}` : ''}` : 'Every language',
-    kinds.length ? kinds.map((kind) => KINDS[kind]).join(', ') : 'every kind of issue',
-    sizeLabelOf(preferences?.maxSize ?? null).toLowerCase(),
-  ].join(' · ');
+  return languages.length ? `${named.join(', ')}${more > 0 ? ` +${more}` : ''}` : 'Every language';
 }

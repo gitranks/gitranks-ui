@@ -19,7 +19,7 @@ import {
 import { answerLearnLessonAction, sendLearnFeedbackAction } from '@/lib/learn/lesson-page.actions';
 import type { LearnCourseLessonMine } from '@/lib/learn/lesson-page.documents';
 import {
-  coursePath,
+  courseHrefOf,
   learnCourseMinePath,
   learnLessonPath,
   learnLessonRealMinePath,
@@ -104,6 +104,7 @@ export function LessonLive({
   mainLanguage,
   article,
   more,
+  footer = null,
   openFact = false,
   fixes = null,
 }: {
@@ -113,6 +114,7 @@ export function LessonLive({
   mainLanguage?: string | null;
   article: ReactNode;
   more: ReactNode;
+  footer?: ReactNode;
   openFact?: boolean;
   /** The lesson's merged fixes as everyone reads them, or on their way; null when they cannot be read. */
   fixes?: SharedFixes;
@@ -185,7 +187,7 @@ export function LessonLive({
       );
     },
     onNext: () => {
-      router.push(last || !lesson.next ? coursePath(lesson.course.slug) : learnLessonPath(lesson.next.slug));
+      router.push(last || !lesson.next ? courseHrefOf(lesson.course) : learnLessonPath(lesson.next.slug));
     },
     onSignIn: () => {
       signIn(IDENTITY_PROVIDER, { redirectTo: learnLessonPath(lesson.slug) }).catch(() => {});
@@ -213,6 +215,7 @@ export function LessonLive({
           mainLanguage={main}
           article={article}
           more={more}
+          footer={footer}
           calls={calls}
           openFact={openFact}
           signedIn={personal.kind !== 'visitor'}

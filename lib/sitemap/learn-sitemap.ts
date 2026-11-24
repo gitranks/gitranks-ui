@@ -2,12 +2,12 @@ import type { MetadataRoute } from 'next';
 
 import type { LearnCourseCard, LearnLessonListItem } from '@/lib/learn/course';
 import { LEARN_PATH } from '@/lib/learn/learn-path';
-import { coursePath, LEARN_COURSES_PATH, learnLessonPath } from '@/lib/learn/paths';
+import { courseHrefOf, LEARN_COURSES_PATH, learnLessonPath } from '@/lib/learn/paths';
 import { sitemapEntry } from '@/lib/sitemap/sitemap-url';
 
 /** Learn's courses and their lessons, as the sitemap lists them. */
 export type LearnSitemapContent = {
-  courses: readonly Pick<LearnCourseCard, 'slug'>[];
+  courses: readonly Pick<LearnCourseCard, 'slug' | 'project'>[];
   lessons: readonly Pick<LearnLessonListItem, 'slug' | 'course' | 'paused' | 'changedAt'>[];
 };
 
@@ -19,7 +19,8 @@ function changedAt(times: readonly string[]): { lastModified?: string } {
 
 /**
  * GitRanks Learn's pages for search engines: the landing; and with `content` read, all courses, every course at the
- * last change of its lessons and every live lesson of a course at its own. A paused lesson is left out. A fix's pages
+ * last change of its lessons (a project course at its project's address) and every live lesson of a course at its own.
+ * A paused lesson is left out, and so is every course the list does not show (a project's removed course among them). A fix's pages
  * are in the pull requests' sitemap; the page for maintainers is Contribute's.
  */
 export function learnSitemapEntries({
@@ -35,7 +36,7 @@ export function learnSitemapEntries({
       ? [sitemapEntry(LEARN_COURSES_PATH, { ...changedAt(live.map((lesson) => lesson.changedAt)), priority: 0.7 })]
       : []),
     ...ours.courses.map((course) =>
-      sitemapEntry(coursePath(course.slug), {
+      sitemapEntry(courseHrefOf(course), {
         ...changedAt(live.filter((lesson) => lesson.course.slug === course.slug).map((each) => each.changedAt)),
         priority: 0.7,
       }),

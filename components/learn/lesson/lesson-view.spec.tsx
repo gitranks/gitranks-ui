@@ -576,3 +576,15 @@ describe('the lesson’s text', () => {
     expect(links).toEqual(['mailto:hello@gitranks.com']);
   });
 });
+
+describe('"In the real world" on a lesson\'s page', () => {
+  it('comes after previous and next and before the footer: the last part, so nothing under it but the footer moves', () => {
+    draw({ realWorld: <section data-lesson-real-world="" /> });
+    const order = [
+      ...host.querySelectorAll('[data-lesson-neighbours], [data-lesson-real-world], [data-lesson-footer]'),
+    ];
+    expect(order.map((element) => element.getAttributeNames().find((name) => name.startsWith('data-lesson-')))).toEqual(
+      ['data-lesson-neighbours', 'data-lesson-real-world', 'data-lesson-footer'],
+    );
+  });
+});

@@ -23,7 +23,7 @@ export const FEEDBACK_MAX = 2000;
 export const MODES: { mode: ContributeSetMode; title: string; text: string }[] = [
   { mode: 'STACK', title: 'Support my stack', text: 'Issues in the libraries your repos depend on.' },
   { mode: 'REPOS', title: 'Support these repos', text: 'Issues from repos, users and orgs you choose.' },
-  { mode: 'ALL', title: 'All issues', text: 'The best issues across ~300 projects we picked.' },
+  { mode: 'ALL', title: 'All issues', text: 'The best issues across the projects we picked.' },
 ];
 
 export const modeTitleOf = (mode: ContributeSetMode) => MODES.find((entry) => entry.mode === mode)?.title ?? mode;
@@ -191,7 +191,7 @@ export function modeSummaryOf(set: ContributeSet, mode: ContributeSetMode): stri
       : 'No repos added yet';
   }
   if (mode === 'REPOS') return set.repos.count ? `${plural(set.repos.count, 'repo')} saved` : 'No repos added yet';
-  return '~300 projects we picked';
+  return 'Projects we picked';
 }
 
 /** What an add asked for: "@me", a user or org, or one repo, with the name as typed (a GitHub link read as one). */

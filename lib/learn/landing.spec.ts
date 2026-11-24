@@ -84,9 +84,12 @@ describe('the lesson at the top', () => {
 
   it('shows the first language without Python, and no example for a lesson with none', () => {
     const go = setExampleCodes.filter((code) => code.language !== 'python');
-    expect(tryLessonOf({ lesson: setLesson, examples: [{ name: 'x', codes: go }], questionCodes: [] }).code).toBe(
+    expect(tryLessonOf({ lesson: setLesson, examples: [{ name: 'main', codes: go }], questionCodes: [] }).code).toBe(
       go[0],
     );
+    // A lesson whose only folder is its question's code has no example of its own.
+    const questionOnly = tryLessonOf({ lesson: setLesson, examples: [{ name: 'q1', codes: go }], questionCodes: go });
+    expect([questionOnly.code, questionOnly.languages]).toEqual([null, []]);
     const none = tryLessonOf({ lesson: outputLesson, examples: [], questionCodes: [] });
     expect([none.code, none.languages]).toEqual([null, []]);
   });

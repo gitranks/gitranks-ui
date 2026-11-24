@@ -132,10 +132,11 @@ export function LessonPlayer({
   // Asked to sign in only without a session; a person with one goes on as a member does.
   const goesOn = member || signedIn;
   const mine = viewer?.mine ?? null;
+  // The main example's languages; a lesson with none reads its question's code, else has no tab.
   const exampleLanguages = (
-    lesson.examples.find((example) => example.name === 'main') ?? lesson.examples[0]
-  )?.codes.map((code) => code.language);
-  const [tab] = useExampleLanguage(exampleLanguages ?? [], mainLanguage);
+    lesson.examples.find((example) => example.name === 'main')?.codes ?? lesson.question.codes
+  ).map((code) => code.language);
+  const [tab] = useExampleLanguage(exampleLanguages, mainLanguage);
   const stored = member ? storedAnswerOf(lesson.question, mine, tab) : null;
   const start = drawn.answer ?? stored ?? undefined;
   // Opened again after it was learned: fixed when the page is drawn, not by an answer given on it.

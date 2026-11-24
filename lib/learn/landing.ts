@@ -191,7 +191,8 @@ export function tryLessonOf(page: {
   examples: readonly { name: string; codes: readonly HighlightedCode[] }[];
   questionCodes: readonly HighlightedCode[];
 }): TryLesson {
-  const example = page.examples.find((each) => each.name === 'main') ?? page.examples[0] ?? null;
+  // Only the main example: another folder is the question's code, shown with the question.
+  const example = page.examples.find((each) => each.name === 'main') ?? null;
   const codes = example?.codes ?? [];
   return {
     lesson: page.lesson,

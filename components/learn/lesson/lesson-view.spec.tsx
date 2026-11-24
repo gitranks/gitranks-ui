@@ -361,6 +361,12 @@ describe('a lesson for a member', () => {
     expect([...article.children].every((child) => child.textContent!.trim() !== '')).toBe(true);
   });
 
+  it("never draws a lesson's question code as its example", () => {
+    const questionCode = { name: 'q1', codes: setExampleCodes };
+    draw({ lesson: { ...setLesson, examples: [questionCode] }, examples: [questionCode] });
+    expect($('[data-lesson-article] [data-block="example"]')).toBeNull();
+  });
+
   it('starts a new answer for another lesson in the same place', () => {
     draw({ viewer: member(mineLearnedRated) });
     expect($('[data-answer-part]')!.getAttribute('data-answer-phase')).toBe('done');

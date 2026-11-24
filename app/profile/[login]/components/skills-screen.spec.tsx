@@ -22,7 +22,8 @@ vi.mock('sonner', () => ({ toast: { error: toastError } }));
 vi.mock('./skills-hidden.actions', () => ({ setSkillsHiddenAction }));
 
 const { SkillsScreen } = await import('./skills-screen');
-const { SkillsMissingScreen } = await import('./skills-missing-screen');
+const { SkillsLoginColumn, SkillsMissingScreen } = await import('./skills-missing-screen');
+const { SkillsOwnerProvider } = await import('./skills-owner');
 const { contributorPage, hiddenPageFix, longPage, SKILLS_NOW, skillsMine } = await import(
   '@/lib/skills/__fixtures__/skills'
 );
@@ -134,18 +135,29 @@ describe('a public Skills page', () => {
 });
 
 describe('a Skills address with no public page', () => {
-  it('says the login has no Skills page, to everyone else, with the login beside it', async () => {
+  it('says the login has no Skills page, to everyone else, under the page’s own title', async () => {
+    document.title = 'No Skills page | GitRanks';
     await draw(<SkillsMissingScreen />);
     expect(container.querySelector('[data-skills-missing]')?.textContent).toContain('octocat has no Skills page');
-    expect(container.querySelector('img')?.getAttribute('alt')).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(document.title).toBe('No Skills page | GitRanks');
   });
 
-  it('keeps the login alone when its avatar cannot be drawn', async () => {
+  it('never says "no Skills page" to its owner while their view is on its way', async () => {
+    signedInAs('octocat');
+    fetchMock.mockReturnValueOnce(new Promise(() => {}));
     await draw(<SkillsMissingScreen />);
-    await act(async () => container.querySelector('img')?.dispatchEvent(new Event('error')));
-    expect(container.querySelector('img')).toBeNull();
-    expect(container.textContent).toContain('octocat');
+    expect(container.querySelector('[data-skills-missing]')).toBeNull();
+    expect(container.querySelector('h2')?.textContent).toBe('Skills');
+    expect(container.querySelector('[data-skills-strip-row]')).not.toBeNull();
+  });
+
+  it('names its owner\'s page in the browser\'s title, not "No Skills page"', async () => {
+    document.title = 'No Skills page | GitRanks';
+    signedInAs('octocat');
+    fetchMock.mockResolvedValueOnce(mineAnswer(skillsMine.hiddenLearner));
+    await draw(<SkillsMissingScreen />);
+    expect(document.title).toBe('octocat’s skills · GitRanks');
   });
 
   it('gives its owner what fills the page while nothing is on it, with the strip', async () => {
@@ -194,5 +206,73 @@ describe('a Skills address with no public page', () => {
     signedInAs('octocat');
     await draw(<SkillsMissingScreen />);
     expect(container.querySelector('[data-skills-missing]')).not.toBeNull();
+  });
+});
+
+describe('a Skills address\'s owner layer, kept above its page and its "not found"', () => {
+  it('hides and shows the page with no second read and no empty strip row as the screens swap', async () => {
+    signedInAs('octocat');
+    fetchMock.mockResolvedValueOnce(mineAnswer(skillsMine.publicLearner));
+    const publicScreen = (
+      <SkillsOwnerProvider login="octocat">
+        <SkillsScreen login="octocat" page={contributorPage} now={SKILLS_NOW} />
+      </SkillsOwnerProvider>
+    );
+    const missingScreen = (
+      <SkillsOwnerProvider login="octocat">
+        <SkillsMissingScreen />
+      </SkillsOwnerProvider>
+    );
+    await draw(publicScreen);
+    expect(container.querySelector('[data-skills-strip]')?.getAttribute('data-skills-strip')).toBe('PUBLIC');
+
+    setSkillsHiddenAction.mockResolvedValueOnce({ ok: true, mine: skillsMine.hiddenLearner });
+    await act(async () => button('Hide this page')?.click());
+    await draw(missingScreen);
+    expect(container.querySelector('[data-skills-strip-row]')).toBeNull();
+    expect(container.querySelector('[data-skills-missing]')).toBeNull();
+    expect(container.querySelector('[data-skills-page]')).not.toBeNull();
+    expect(container.querySelector('[data-skills-strip]')?.getAttribute('data-skills-strip')).toBe('HIDDEN');
+
+    setSkillsHiddenAction.mockResolvedValueOnce({ ok: true, mine: skillsMine.publicLearner });
+    await act(async () => button('Show it to everyone')?.click());
+    await draw(publicScreen);
+    expect(container.querySelector('[data-skills-strip-row]')).toBeNull();
+    expect(container.querySelector('[data-skills-strip]')?.getAttribute('data-skills-strip')).toBe('PUBLIC');
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('keeps "no Skills page" in the page but out of sight while the session is loading', async () => {
+    useSession.mockReturnValue({ data: null, status: 'loading' });
+    await draw(<SkillsMissingScreen />);
+    const missing = container.querySelector('[data-skills-missing]');
+    expect(missing?.textContent).toContain('octocat has no Skills page');
+    expect(missing?.closest('.invisible')).not.toBeNull();
+  });
+
+  it('shows "no Skills page" once the session says the reader is someone else', async () => {
+    useSession.mockReturnValue({ data: null, status: 'unauthenticated' });
+    await draw(<SkillsMissingScreen />);
+    expect(container.querySelector('[data-skills-missing]')?.closest('.invisible')).toBeNull();
+  });
+});
+
+describe('the left column of a login with no profile here', () => {
+  it('draws the avatar and the login beside the tab', async () => {
+    await draw(
+      <SkillsLoginColumn login="octocat">
+        <p data-tab="" />
+      </SkillsLoginColumn>,
+    );
+    expect(container.querySelector('img')?.getAttribute('alt')).toBeTruthy();
+    expect(container.textContent).toContain('octocat');
+    expect(container.querySelector('[data-tab]')).not.toBeNull();
+  });
+
+  it('keeps the login alone when its avatar cannot be drawn', async () => {
+    await draw(<SkillsLoginColumn login="octocat">{null}</SkillsLoginColumn>);
+    await act(async () => container.querySelector('img')?.dispatchEvent(new Event('error')));
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.textContent).toContain('octocat');
   });
 });

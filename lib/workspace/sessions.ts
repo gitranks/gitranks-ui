@@ -205,8 +205,12 @@ export function sessionsOf(
   const stage = model.proofStage;
   const moveOf = (sessions: string[], cardKind?: string) =>
     model.moves.find((move) => sessions.includes(move.session) && (!cardKind || move.card === cardKind));
-  const withMove = (kind: string | undefined) =>
-    (kind ? `${nextSessionPath(at)}&move=${encodeURIComponent(kind)}` : nextSessionPath(at)) as Route;
+  // A plain string: on `Route`, the conditional joins every typed route with each one plus a query, and TypeScript
+  // gives up as routes grow (TS2590).
+  const withMove = (kind: string | undefined) => {
+    const next: string = nextSessionPath(at);
+    return (kind ? `${next}&move=${encodeURIComponent(kind)}` : next) as Route;
+  };
   if (stage) {
     const { meta } = PROOF_TILES[stage];
     const at = stage === 'posted' ? first.proof?.session?.stateAt : null;

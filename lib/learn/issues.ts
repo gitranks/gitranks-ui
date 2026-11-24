@@ -176,10 +176,15 @@ export function issuesHrefOf(view: IssuesView, at: IssuesAt = 'issues'): Route {
 }
 
 /**
- * The query of a view on Issues' own address (its chips and switches, the lesson and the course among them): what a
- * row's link carries to the page of one issue, so its way back opens this view again.
+ * The query of a view on Issues' own address (its chips and switches, the lesson and the course among them), and the
+ * page it is on when that is a lesson's or a course's own view (`at`): what a row's link carries to the page of one
+ * issue, so its way back opens this view again, at its own address (`issuesHrefOf`).
  */
-export const issuesViewQueryOf = (view: IssuesView): string => queryOf(view, null);
+export function issuesViewQueryOf(view: IssuesView, at: IssuesAt = 'issues'): string {
+  const query = new URLSearchParams(queryOf(view, null));
+  if (baseOf(view, at).drop) query.set('at', at);
+  return query.toString();
+}
 
 /** The address search engines are pointed to: the view's chips, with the switches as they are by default. */
 export const issuesCanonicalOf = (view: IssuesView, at: IssuesAt = 'issues'): Route =>

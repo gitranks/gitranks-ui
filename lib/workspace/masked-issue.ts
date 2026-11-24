@@ -2,7 +2,7 @@ import type { Route } from 'next';
 
 import type { ContributeIssueSize } from './contribute.types';
 import type { IssueHint, IssueLooksToday, IssueNumbers, IssueOutReason } from './masked-issue.types';
-import { learnIssuesPathOf, learnIssuesViewOf, PICK_ISSUE_PATHS } from './paths';
+import { ISSUE_VIEW_PARAM, learnIssuesPathOf, learnIssuesViewOf, PICK_ISSUE_PATHS } from './paths';
 import { REPO_TIER_NAMES, TIER_NAMES } from '@/app/app.consts';
 import { languageColorOf } from '@/utils/language-colors';
 
@@ -89,12 +89,24 @@ export function issuePageBackOf(
 
 /**
  * The page of one issue a new account was on when it was sent to Contribute's home to be set up (`?issue=` with
- * `from` and `look`, as `settingUpHomeOf` carries them): where the home sends it back once ready. Null for none.
+ * `from`, the Learn view and `look`, as `settingUpHomeOf` carries them): where the home sends it back once ready, the
+ * view's filters checked again (`issuePageHrefOf`). Null for none.
  */
 export function issuePageCarriedOf(query: Record<string, string | string[] | undefined>): Route | null {
   const id = maskIdOf(query.issue);
-  return id ? issuePageHrefOf(id, query.from === 'learn' ? 'learn' : 'contribute', query.look === '1') : null;
+  if (!id) return null;
+  const view = query[ISSUE_VIEW_PARAM];
+  const from = query.from === 'learn' ? 'learn' : 'contribute';
+  return issuePageHrefOf(id, from, query.look === '1', typeof view === 'string' ? view : null);
 }
+
+/**
+ * Whether a person uses Learn, by their Learn profile: one they saved (a goal, or a time it was saved). The API
+ * answers an empty profile, with neither, for anyone signed in who has none; null signed out or refused.
+ */
+export const usesLearnOf = (
+  profile: { goalKind: string | null; updatedAt: string | null } | null | undefined,
+): boolean => !!profile && (profile.updatedAt != null || profile.goalKind != null);
 
 /** The kinds of issue, the icon each one has in the row, and its name. */
 export const ISSUE_KINDS = {

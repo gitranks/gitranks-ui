@@ -7,7 +7,13 @@ import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { loadLearnProfile } from '@/lib/learn/learn.data';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { loadIssuePageLearn } from '@/lib/workspace/issue-page-learn.data';
-import { ISSUE_LOOK_PARAM, issuePageBackOf, issuePageFromOf, maskIdOf } from '@/lib/workspace/masked-issue';
+import {
+  ISSUE_LOOK_PARAM,
+  issuePageBackOf,
+  issuePageFromOf,
+  maskIdOf,
+  usesLearnOf,
+} from '@/lib/workspace/masked-issue';
 import { loadIssueNumbers, loadIssuePage, loadIssueStartReads } from '@/lib/workspace/masked-issue.data';
 import { learnIssuesViewOf, searchParamsOf } from '@/lib/workspace/paths';
 
@@ -44,7 +50,7 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
   const query = searchParamsOf(search);
 
   // From Contribute, the start form names Learn too when the person uses it: a Learn profile of theirs. With no side
-  // in the address, the same read sends the way back to Learn's Issues for a person who uses Learn.
+  // in the address, the same read sends the way back to Learn's Issues for a person who saved a Learn profile.
   const usesLearn = from === 'contribute' ? loadLearnProfile().catch(() => null) : null;
   // From Learn, Learn's parts (the lesson and why, kept for learners, how the work started), in a read of their own:
   // without them the page draws what it draws today.
@@ -62,7 +68,7 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
       id={id}
       page={load.page}
       from={from}
-      back={issuePageBackOf(search.from, query, profile !== null)}
+      back={issuePageBackOf(search.from, query, usesLearnOf(profile))}
       view={from === 'learn' ? learnIssuesViewOf(query).toString() : null}
       numbers={numbers}
       openedAt={new Date().toISOString()}

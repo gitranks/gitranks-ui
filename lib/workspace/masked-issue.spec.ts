@@ -24,9 +24,11 @@ import {
   projectTierNameOf,
   SKIP_REASONS,
   starsTextOf,
+  usesLearnOf,
   WHY_HIDDEN_CLOSING,
   WHY_HIDDEN_REASONS,
 } from './masked-issue';
+import { emptyProfile, filledProfile } from '@/lib/learn/__fixtures__/profile';
 
 describe('the page of one issue', () => {
   it('is at an address that names only the mask id', () => {
@@ -39,6 +41,16 @@ describe('the page of one issue', () => {
       '/my/issues/q7k2m9xa?from=learn&look=1',
     );
     expect(issuePageCarriedOf({ issue: 'q7k2m9xa' })).toBe('/my/issues/q7k2m9xa?from=contribute');
+    // A Learn view's filters, checked again; none from Contribute, and nothing but the filters.
+    expect(issuePageCarriedOf({ issue: 'q7k2m9xa', from: 'learn', view: 'lesson=a-queue&at=lesson&x=1' })).toBe(
+      '/my/issues/q7k2m9xa?from=learn&lesson=a-queue&at=lesson',
+    );
+    expect(issuePageCarriedOf({ issue: 'q7k2m9xa', from: 'contribute', view: 'lesson=a-queue' })).toBe(
+      '/my/issues/q7k2m9xa?from=contribute',
+    );
+    expect(issuePageCarriedOf({ issue: 'q7k2m9xa', from: 'learn', view: ['lesson=a', 'lesson=b'] })).toBe(
+      '/my/issues/q7k2m9xa?from=learn',
+    );
     expect(issuePageCarriedOf({ issue: '../x' })).toBeNull();
     expect(issuePageCarriedOf({ issue: ['a', 'b'] })).toBeNull();
     expect(issuePageCarriedOf({})).toBeNull();
@@ -74,6 +86,21 @@ describe('the way to the page of one issue, and back from it', () => {
       '/learn/issues?lesson=a-queue&language=go&learned=1',
     );
     expect(back('from=learn&lesson=A%20Queue&back=%2F%2Fevil.example')).toBe('/learn/issues');
+  });
+
+  it("leads from a lesson's or a course's own view of Issues back to that page", () => {
+    expect(back('from=learn&lesson=a-queue&learned=1&at=lesson')).toBe('/learn/lessons/a-queue/real-world?learned=1');
+    expect(back('from=learn&course=algorithms&at=course')).toBe('/learn/courses/algorithms/real-world');
+    expect(back('from=learn&at=lesson')).toBe('/learn/issues');
+  });
+
+  it('knows a person uses Learn by a Learn profile they saved, not by the empty one the API answers', () => {
+    expect(usesLearnOf(filledProfile)).toBe(true);
+    expect(usesLearnOf({ ...emptyProfile, goalKind: 'LANGUAGE' })).toBe(true);
+    expect(usesLearnOf({ ...emptyProfile, updatedAt: '2026-10-27T18:00:00.000Z' })).toBe(true);
+    expect(usesLearnOf(emptyProfile)).toBe(false);
+    expect(usesLearnOf(null)).toBe(false);
+    expect(usesLearnOf(undefined)).toBe(false);
   });
 
   it("leads from Contribute to Contribute's issues, whoever the person is", () => {

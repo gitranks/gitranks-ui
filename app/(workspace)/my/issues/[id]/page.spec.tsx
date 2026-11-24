@@ -33,7 +33,7 @@ const learn = vi.hoisted(() => ({ loadLearnProfile: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => learn);
 
 const { default: MaskedIssuePage } = await import('./page');
-const { filledProfile } = await import('@/lib/learn/__fixtures__/profile');
+const { emptyProfile, filledProfile } = await import('@/lib/learn/__fixtures__/profile');
 const { fullPage, issueNumbers, issuePage, looksAtLimit, MASKED_NOW } = await import(
   '@/lib/workspace/__fixtures__/masked-issue'
 );
@@ -135,12 +135,19 @@ describe('the page of one issue at /my/issues/[id]', () => {
     const filtered = await issuePageAt({ from: 'learn', lesson: 'a-queue', 'for-you': '0', next: '//evil.example' });
     expect(filtered).toContain('href="/learn/issues?lesson=a-queue&amp;for-you=0"');
     expect(filtered).not.toContain('evil.example');
+    const lessonView = await issuePageAt({ from: 'learn', lesson: 'a-queue', at: 'lesson' });
+    expect(lessonView).toContain('href="/learn/lessons/a-queue/real-world"');
     learn.loadLearnProfile.mockResolvedValue(filledProfile);
     expect(await issuePageAt({ from: 'contribute' })).toContain('href="/contribute#issues"');
     expect(await issuePageAt({ from: 'contribute' })).not.toContain('href="/learn/issues');
   });
 
   it("leads back, when the address names no side, to Learn's Issues for a person who uses Learn, else Contribute's", async () => {
+    // What the API answers a signed-in person with no Learn profile: an empty one, nothing saved.
+    learn.loadLearnProfile.mockResolvedValue(emptyProfile);
+    expect(await issuePageAt()).toContain('href="/contribute#issues"');
+    expect(await issuePageAt({ from: 'elsewhere' })).toContain('href="/contribute#issues"');
+    learn.loadLearnProfile.mockResolvedValue(null);
     expect(await issuePageAt()).toContain('href="/contribute#issues"');
     learn.loadLearnProfile.mockResolvedValue(filledProfile);
     const learner = await issuePageAt();

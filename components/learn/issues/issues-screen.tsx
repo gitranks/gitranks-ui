@@ -145,7 +145,7 @@ function IssuesBody({
     }
     return (
       <>
-        <IssueRows rows={layer.rows} view={view} visitor handlers={handlers} reads={NO_MASKED_READS} />
+        <IssueRows rows={layer.rows} view={view} at={at} visitor handlers={handlers} reads={NO_MASKED_READS} />
         {layer.pending ? null : <VisitorNote href={issuesHrefOf(view, at)} />}
       </>
     );
@@ -167,20 +167,24 @@ function IssuesBody({
       />
     );
   }
-  return <IssueRows rows={layer.list.rows} view={view} handlers={handlers} reads={layer.reads ?? NO_MASKED_READS} />;
+  return (
+    <IssueRows rows={layer.list.rows} view={view} at={at} handlers={handlers} reads={layer.reads ?? NO_MASKED_READS} />
+  );
 }
 
 /** The line on how the list works, the masked rows with their lesson lines, and the foot under them. */
 function IssueRows({
   rows,
   view,
+  at,
   visitor = false,
   handlers,
   reads,
 }: {
   rows: readonly IssuesRow[];
-  /** The view on the screen: a row's page of one issue keeps it for its way back. */
+  /** The view on the screen, and the page it is on: a row's page of one issue keeps both for its way back. */
   view: IssuesView;
+  at: IssuesAt;
   visitor?: boolean;
   handlers: IssuesHandlers;
   reads: MaskedListReads;
@@ -193,7 +197,7 @@ function IssueRows({
       <MaskedList
         from="learn"
         pageFrom="learn"
-        pageView={issuesViewQueryOf(view)}
+        pageView={issuesViewQueryOf(view, at)}
         visitor={visitor}
         reads={reads}
         className="gap-4"

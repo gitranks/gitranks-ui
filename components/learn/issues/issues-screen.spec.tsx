@@ -77,6 +77,16 @@ describe('Issues', () => {
     );
   });
 
+  it("opens an issue's page from a lesson's own view with the page it is on, for its way back", async () => {
+    masked.lookAtIssue.mockResolvedValue({ ok: true, data: { outcome: 'OK', page: null } });
+    await render(<IssuesScreen view={views.lesson} at="lesson" layer={{ kind: 'personal', list: personalList() }} />);
+    const see = $$('button, a').find((each) => each.textContent?.trim() === 'See the full issue') as HTMLElement;
+    await act(async () => see.click());
+    expect(router.push).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/my\/issues\/[\w-]+\?from=learn&lesson=find-duplicates-with-a-set&at=lesson$/),
+    );
+  });
+
   it('links the Markdown copy for a person too', async () => {
     await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'personal', list: personalList() }} />);
     expect(hrefs('[data-issues-foot] a')).toEqual(['/learn/issues.md', '/learn/about', '/learn/maintainers']);

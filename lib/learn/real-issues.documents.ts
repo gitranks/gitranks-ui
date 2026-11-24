@@ -40,11 +40,11 @@ export const HomeFixesDocument = doc<{ learnHome: unknown }>(
 );
 
 /**
- * Learn home's merged fix: the person's newest, for 7 days after its merge. Its own operation: an API that does not
- * know `merged` yet fails this read alone, and the box is as it was.
+ * Learn home's merged fix: the person's newest, for 7 days after its merge, with whether a fix needs them (which wins
+ * the box). Its own operation: an API that does not know `merged` yet fails this read alone, and the box is as it was.
  */
 export const HomeMergedDocument = doc<{ learnHome: unknown }>(
-  `query HomeMerged { learnHome { thirdBox { merged { ${MY_FIX} mastered } } } }`,
+  `query HomeMerged { learnHome { thirdBox { needsYou merged { ${MY_FIX} mastered } } } }`,
 );
 
 /** A course's open issues of the person's list, for lessons of the course. */

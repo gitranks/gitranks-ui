@@ -135,11 +135,13 @@ describe("Learn home's real issues", () => {
       const name = operationOf([document]);
       if (name === 'HomeIssues') return { learnHome: { thirdBox: { openIssues: 4 }, issues: { rows: [] } } };
       if (name === 'HomeFixes') return { learnHome: { thirdBox: { needsYou: false, fix: null }, fixes: [] } };
-      return { learnHome: { thirdBox: { merged: homeMergedFix } } };
+      return { learnHome: { thirdBox: { needsYou: false, merged: homeMergedFix } } };
     });
     expect((await loadHomeReal('octocat')).box).toEqual({ kind: 'merged', fix: homeMergedFix });
     const merged = m.graphqlDirect.mock.calls.find((call) => operationOf(call) === 'HomeMerged')!;
     expect(print(merged[0])).toContain('mastered');
+    // It says itself whether a fix needs the person, which wins the box when the fixes' read fails.
+    expect(print(merged[0])).toMatch(/thirdBox \{\s*needsYou/);
     expect(merged[2]).toEqual({ source: 'ssr', githubLogin: 'octocat' });
     // The other reads never ask for it: an API without it fails this read alone.
     for (const call of m.graphqlDirect.mock.calls.filter((one) => operationOf(one) !== 'HomeMerged')) {

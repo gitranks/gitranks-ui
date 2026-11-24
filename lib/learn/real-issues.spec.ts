@@ -64,7 +64,8 @@ describe('real issues as the API answers them', () => {
   it("reads the person's merged fix, and none for one not merged", () => {
     expect(mergedFixOf(homeMergedFix)).toEqual(homeMergedFix);
     expect(mergedFixOf({ ...homeMergedFix, mastered: null })).toEqual({ ...homeMergedFix, mastered: false });
-    expect(mergedFixOf({ ...homeMergedFix, state: null })).toEqual({ ...homeMergedFix, state: null });
+    // A fix with no state has no pull request yet: never "merged".
+    expect(mergedFixOf({ ...homeMergedFix, state: null })).toBeNull();
     // No pull request number is needed: the box names none.
     expect(mergedFixOf({ ...homeMergedFix, number: null })).toEqual({ ...homeMergedFix, number: null });
     for (const broken of [
@@ -157,7 +158,7 @@ describe("Learn home's real issues", () => {
   });
 
   it('makes the fix merged in the last 7 days the box, after a fix that needs the person', () => {
-    const mergedRead = { thirdBox: { merged: homeMergedFix } };
+    const mergedRead = { thirdBox: { needsYou: false, merged: homeMergedFix } };
     expect(homeRealOf(issuesRead(5), fixesRead(false, []), mergedRead).box).toEqual({
       kind: 'merged',
       fix: homeMergedFix,
@@ -184,6 +185,25 @@ describe("Learn home's real issues", () => {
     for (const mergedRead of [null, undefined, { thirdBox: { merged: null } }, { thirdBox: null }, 'x']) {
       expect(homeRealOf(issuesRead(5), fixesRead(false, [homeFixOpen]), mergedRead), String(mergedRead)).toEqual(today);
     }
+  });
+
+  it('never makes the merged fix the box while any read says a fix needs the person', () => {
+    const mergedRead = (needsYou: unknown) => ({ thirdBox: { needsYou, merged: homeMergedFix } });
+    // The fixes' read failed, and the merged read says a fix needs them: today's box (the count).
+    expect(homeRealOf(issuesRead(5), null, mergedRead(true)).box).toEqual({ kind: 'issues', count: 5 });
+    // The merged read does not say (a malformed answer): no merged box either.
+    expect(homeRealOf(issuesRead(5), null, { thirdBox: { merged: homeMergedFix } }).box).toEqual({
+      kind: 'issues',
+      count: 5,
+    });
+    // The fixes' read says a fix needs them, but its fix could not be read: no merged box.
+    const unreadable = { thirdBox: { needsYou: true, fix: { ...homeFixNeedsYou, group: 'ELSEWHERE' } }, fixes: [] };
+    expect(homeRealOf(issuesRead(5), unreadable, mergedRead(false)).box).toEqual({ kind: 'issues', count: 5 });
+    // A needs-you fix in the rows wins as before, even when the merged read says none needs them.
+    expect(homeRealOf(null, fixesRead(false, [homeFixNeedsYou]), mergedRead(false)).box).toMatchObject({
+      kind: 'fix',
+      state: 'needs-you',
+    });
   });
 
   it('makes the box of a person with nothing the quiet box: never a zero, never taken for something', () => {

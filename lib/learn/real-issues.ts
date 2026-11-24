@@ -142,7 +142,7 @@ export function myFixOf(value: unknown): LearnMyFix | null {
 /** The person's fix merged in the last 7 days, as Learn home's third box has it; null for none, or one not merged. */
 export function mergedFixOf(value: unknown): LearnMergedFix | null {
   const fix = myFixOf(value);
-  if (!fix || (fix.state !== null && fix.state !== 'MERGED')) return null;
+  if (fix?.state !== 'MERGED') return null;
   return { ...fix, mastered: recordOf(value)?.mastered === true };
 }
 
@@ -225,8 +225,9 @@ export function homeFixStateOf(row: Pick<PullRequestListRow, 'group' | 'mark'>):
 
 /**
  * Learn home's parts from its three reads: the issues' (`thirdBox.openIssues`, `issues` with its email), the fixes'
- * (`thirdBox`'s fix, `fixes`) and the merged fix's (`thirdBox.merged`). Any may be missing (null), and the home draws
- * what the others give. The box is the fix that needs the person; else their fix merged in the last 7 days; else the
+ * (`thirdBox`'s fix, `fixes`) and the merged fix's (`thirdBox.needsYou`, `thirdBox.merged`). Any may be missing (null),
+ * and the home draws what the others give. The box is the fix that needs the person; else their fix merged in the last
+ * 7 days, while no read says a fix needs them; else the
  * first of their fixes the API sends (in progress, or merged when it sends one); else the count of open issues that
  * fit them; else, when the issues' read answered, none open (a box that answers nothing is that quiet box, never a
  * zero). None answered: no box, and the home is as it was. A fix row that has ended is left out of the rows.
@@ -244,7 +245,11 @@ export function homeRealOf(issuesRead: unknown, fixesRead: unknown, mergedRead: 
     (fixBox?.needsYou === true ? pullRequestRowOf(fixBox.fix) : null) ??
     allFixes.find((row) => row.group === 'NEEDS_YOU') ??
     null;
-  const merged = needsYou ? null : mergedFixOf(recordOf(recordOf(recordOf(mergedRead)?.thirdBox)?.merged));
+  // The merged fix only while no read says a fix needs the person: the merged read must say so itself (`needsYou`
+  // false), so a fixes' read that failed, or a needs-you fix that could not be read, never lets it take the box.
+  const mergedBox = recordOf(recordOf(mergedRead)?.thirdBox);
+  const merged =
+    needsYou || fixBox?.needsYou === true || mergedBox?.needsYou !== false ? null : mergedFixOf(mergedBox.merged);
   const followed =
     needsYou ??
     allFixes.find((row) => row.group === 'IN_PROGRESS') ??

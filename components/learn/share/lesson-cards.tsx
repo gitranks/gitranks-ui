@@ -5,9 +5,10 @@ import {
   factCardTextOf,
   lessonCardAddressOf,
   lessonCardAddressSize,
+  lessonCardFixesOf,
   lessonCardTitleSize,
 } from '@/lib/learn/lesson-share-card';
-import { CARD_COLORS, Frame } from '@/lib/social-card/card-parts';
+import { CARD_COLORS, Figure, Frame } from '@/lib/social-card/card-parts';
 
 /*
  * The two pictures a posted link to a lesson shows, as page 21 draws them: the lesson's own, and its fun fact's (the
@@ -33,10 +34,14 @@ function Address({ slug }: Readonly<{ slug: string }>) {
   );
 }
 
-/** A lesson's picture: its title, then its course and group, and its address. */
+/**
+ * A lesson's picture: its title, then its course and group, the merged fixes that used it (from 3; below, the place
+ * stays empty), and its address.
+ */
 export function LessonCard({
   lesson,
-}: Readonly<{ lesson: Pick<LearnLesson, 'slug' | 'title' | 'course' | 'group'> }>): ReactElement {
+}: Readonly<{ lesson: Pick<LearnLesson, 'slug' | 'title' | 'course' | 'group' | 'fixesMerged'> }>): ReactElement {
+  const fixes = lessonCardFixesOf(lesson);
   return (
     <Frame eyebrow="Lesson" brand="start">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -55,7 +60,10 @@ export function LessonCard({
           {`${lesson.course.title} · ${lesson.group.title}`}
         </div>
       </div>
-      <Address slug={lesson.slug} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {fixes ? <Figure value={fixes.value} label={fixes.label} /> : null}
+        <Address slug={lesson.slug} />
+      </div>
     </Frame>
   );
 }

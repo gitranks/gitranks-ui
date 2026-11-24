@@ -8,8 +8,11 @@ import type { LearnCourseGroup, LearnDepth, LearnGroupLesson, LearnLessonLevel, 
 /** A topic course works in any language; a language course is about one (or JavaScript and TypeScript together). */
 export type LearnCourseKind = 'TOPIC' | 'LANGUAGE';
 
-/** A course's public numbers: each null until it is worth showing. */
-export type LearnCourseNumbers = { learners: number | null; goodShare: number | null };
+/**
+ * A course's public numbers: each null until it is worth showing. `issuesFixed`, the merged fixes that used a lesson
+ * of the course, is read by the course's own page and picture alone (null under 5).
+ */
+export type LearnCourseNumbers = { learners: number | null; goodShare: number | null; issuesFixed?: number | null };
 
 /** A course as the list shows it. */
 export type LearnCourseCard = {

@@ -29,7 +29,7 @@ export const LearnLessonsDocument = doc<{ learnLessons: LearnLessonListItem[] }>
 export const LearnCourseDocument = doc<{ learnCourse: LearnCourse | null }, { slug: string }>(
   `query LearnCourse($slug: String!) {
     learnCourse(slug: $slug) {
-      ${CARD} about
+      ${CARD} numbers { issuesFixed } about
       groups { slug name lessons { slug title level paused } }
       next { ${CARD} } checkOffered changedAt
     }

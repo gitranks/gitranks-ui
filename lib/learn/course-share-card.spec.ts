@@ -7,6 +7,7 @@ import {
   courseCardVersionOf,
   courseShareDescriptionOf,
   coursesCardFiguresOf,
+  issuesFixedOf,
 } from './course-share-card';
 
 describe("a course's picture", () => {
@@ -32,6 +33,27 @@ describe("a course's picture", () => {
       { value: '1', label: 'lesson' },
     ]);
     expect(courseCardFiguresOf({ lessons: 0, numbers: { learners: 0, goodShare: 0 } })).toEqual([]);
+  });
+
+  it('draws the real issues fixed with the course from 5, beside its lessons and its learners', () => {
+    const numbers = { ...algorithmsCourse.numbers, issuesFixed: 37 };
+    expect(courseCardFiguresOf({ ...algorithmsCourse, numbers })).toEqual([
+      { value: '86', label: 'lessons' },
+      { value: '1,240', label: 'learners' },
+      { value: '37', label: 'real issues fixed with it' },
+    ]);
+    expect(courseCardFiguresOf({ lessons: 9, numbers: { learners: null, goodShare: null, issuesFixed: 5 } })).toEqual([
+      { value: '9', label: 'lessons' },
+      { value: '5', label: 'real issues fixed with it' },
+    ]);
+    for (const issuesFixed of [4, 0, null, undefined]) {
+      expect(issuesFixedOf({ issuesFixed }), String(issuesFixed)).toBeNull();
+    }
+    expect(courseCardVersionOf({ ...algorithmsCourse, numbers })).not.toBe(courseCardVersionOf(algorithmsCourse));
+    // Under 5 nothing is drawn: the same picture.
+    expect(courseCardVersionOf({ ...algorithmsCourse, numbers: { ...numbers, issuesFixed: 4 } })).toBe(
+      courseCardVersionOf(algorithmsCourse),
+    );
   });
 
   it('is a new address when anything it draws changes', () => {

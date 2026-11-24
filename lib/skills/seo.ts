@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import { skillsMarkdownPath, skillsPath, skillsProfilePath } from './paths';
 import type { SkillsFigure, SkillsPage } from './skills.types';
 import { countOf, listWords, numbersFor, shownFigures } from './skills-figures';
-import { pageMetadata } from '@/lib/seo/page-metadata';
+import { skillsCardAltOf, skillsCardOf, skillsCardUrlOf } from './skills-share-card';
+import { SOCIAL_CARD_SIZE } from '@/badge/v3/links';
+import { type PreviewImage, pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 import { avatarPath, userAvatarAlt } from '@/utils/avatar-path';
 
@@ -61,6 +63,18 @@ export function skillsKnowsAboutOf(page: Pick<SkillsPage, 'courses' | 'numbers'>
   return [...new Set([...courses, ...page.numbers.languages])];
 }
 
+/** A posted link's picture: the Skills card, or the avatar while the card has nothing to draw. */
+function previewImageOf(
+  page: Pick<SkillsPage, 'login' | 'numbers'>,
+  name: string | null,
+  learnOpen: boolean,
+): PreviewImage {
+  const card = skillsCardOf(page, learnOpen);
+  return card
+    ? { url: absoluteUrl(skillsCardUrlOf(card)), ...SOCIAL_CARD_SIZE, alt: skillsCardAltOf(card) }
+    : { url: absoluteUrl(avatarPath(page.login)), alt: userAvatarAlt(page.login, name) };
+}
+
 /** The page's metadata: indexed only once the API says so (5 lessons learned or a merged fix). */
 export function skillsMetadataOf(
   page: Pick<SkillsPage, 'login' | 'numbers' | 'indexable'>,
@@ -70,7 +84,7 @@ export function skillsMetadataOf(
     title: { absolute: skillsTitleOf(page.login) },
     description: skillsDescriptionOf(page, learnOpen),
     path: skillsPath(page.login),
-    images: [{ url: absoluteUrl(avatarPath(page.login)), alt: userAvatarAlt(page.login, name) }],
+    images: [previewImageOf(page, name, learnOpen)],
     openGraphType: 'profile',
   });
   return {

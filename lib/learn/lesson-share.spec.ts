@@ -13,6 +13,7 @@ import {
   learnShareTitleOf,
   lessonCardAddressOf,
   lessonCardAddressSize,
+  lessonCardFixesOf,
   lessonCardTitleSize,
   lessonCardVersionOf,
 } from './lesson-share-card';
@@ -130,6 +131,24 @@ describe("a lesson's pictures", () => {
     expect(lessonCardVersionOf('fact', { ...setLesson, group: { ...setLesson.group, title: 'Sets and maps' } })).toBe(
       fact,
     );
+  });
+
+  it('draw the merged fixes that used the lesson from 3, and leave the place empty below', () => {
+    expect(lessonCardFixesOf({ fixesMerged: 14 })).toEqual({
+      value: '14',
+      label: 'merged fixes in real projects used it',
+    });
+    expect(lessonCardFixesOf({ fixesMerged: 1240 })?.value).toBe('1,240');
+    expect(lessonCardFixesOf({ fixesMerged: 3 })?.value).toBe('3');
+    for (const fixesMerged of [2, 0, null, undefined, 3.5]) {
+      expect(lessonCardFixesOf({ fixesMerged }), String(fixesMerged)).toBeNull();
+    }
+    const lesson = lessonCardVersionOf('lesson', setLesson);
+    expect(lessonCardVersionOf('lesson', { ...setLesson, fixesMerged: 14 })).not.toBe(lesson);
+    // Below 3 nothing is drawn: the same picture.
+    expect(lessonCardVersionOf('lesson', { ...setLesson, fixesMerged: 2 })).toBe(lesson);
+    // The fact's picture does not draw it.
+    expect(lessonCardVersionOf('fact', { ...setLesson, fixesMerged: 14 })).toBe(lessonCardVersionOf('fact', setLesson));
   });
 
   it("print the lesson's page address, without the scheme", () => {

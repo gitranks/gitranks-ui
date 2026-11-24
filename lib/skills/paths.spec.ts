@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  isSkillsCardPath,
   isSkillsTag,
   SKILLS_LOGINS_TAG,
   skillsCardPath,
@@ -15,6 +16,17 @@ describe("a Skills page's addresses", () => {
     expect(skillsPath('octocat')).toBe('/profile/octocat/skills');
     expect(skillsCardPath('octocat')).toBe('/profile/octocat/skills/card.png');
     expect(skillsMarkdownPath('octocat')).toBe('/profile/octocat/skills.md');
+  });
+
+  it('knows its picture by its path alone', () => {
+    expect(isSkillsCardPath(skillsCardPath('octocat'))).toBe(true);
+    for (const path of [
+      '/profile/octocat/skills',
+      '/profile/octocat/skills/card.png/',
+      '/profile/a/b/skills/card.png',
+    ]) {
+      expect(isSkillsCardPath(path), path).toBe(false);
+    }
   });
 
   it('keeps the case it is given, and encodes what a login cannot hold', () => {

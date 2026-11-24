@@ -1,11 +1,14 @@
-import type { NextRequest } from 'next/server';
+import { connection } from 'next/server';
 
-import { drawLearnCard } from '@/lib/learn/public-progress/learn-card';
-import { learnCardResponse } from '@/lib/learn/public-progress/learn-card-response';
-import { loadPublicRecord } from '@/lib/learn/public-progress/public-progress.data';
+import { oldLearnCardResponse } from '@/components/skills/skills-card-response';
+import { loadSkillsCard } from '@/lib/skills/skills-card.data';
 
-/** The Learn progress card, with a developer's other images: the picture a link to their public progress page shows. */
-export async function GET(req: NextRequest, { params }: RouteContext<'/badge/user/[login]/learn-card.png'>) {
+/**
+ * A developer's old Learn picture, which a README may show: it answers their Skills picture at its own address, from
+ * the Skills page's cached read, and not found where there is no public Skills page. Answered on request.
+ */
+export async function GET(_req: Request, { params }: RouteContext<'/badge/user/[login]/learn-card.png'>) {
+  await connection();
   const { login } = await params;
-  return learnCardResponse(login, req.nextUrl.search, loadPublicRecord, drawLearnCard);
+  return oldLearnCardResponse(login, loadSkillsCard);
 }

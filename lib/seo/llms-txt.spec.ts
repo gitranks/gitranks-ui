@@ -14,6 +14,18 @@ describe('llms.txt', () => {
     expect(llmsTxtOf({ contribute: false })).not.toContain('/contribute');
   });
 
+  it("lists Contribute's landing in Markdown with Contribute, and the Skills page's Markdown with the rankings", () => {
+    expect(llmsTxtOf({ contribute: true })).toContain(
+      '- [Contribute in Markdown](https://example.test/contribute.md): what Contribute is, its two ways and its steps\n',
+    );
+    const skills =
+      "- A person's Skills page, in Markdown: https://example.test/profile/<login>/skills.md — lessons learned and fixes merged through GitRanks, when the person shows the page\n";
+    for (const contribute of [true, false]) {
+      const text = llmsTxtOf({ contribute });
+      expect(text.slice(text.indexOf('## Rankings and badges'), text.indexOf('## Packages'))).toContain(skills);
+    }
+  });
+
   it('lists the packages after the rankings', () => {
     const open = llmsTxtOf({ contribute: false });
 

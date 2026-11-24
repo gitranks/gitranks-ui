@@ -248,6 +248,10 @@ export function settingUpHomeOf(url: { pathname: string; search?: string }): str
 
 /** The page for AI agents, in markdown: a route handler, so links to it are plain anchors, never the router's. */
 export const AGENTS_DOC_PATH = '/contribute/agents.md';
+/** Contribute's landing in Markdown, for agents: a route handler, like the page for AI agents. */
+export const CONTRIBUTE_LANDING_MARKDOWN_PATH = '/contribute.md';
+/** Where the proxy answers `/contribute.md` from: a page and a route handler cannot share the segment. */
+export const CONTRIBUTE_LANDING_MARKDOWN_ROUTE = '/api/contribute/landing.md';
 /** Where a person goes to connect their own agent: the own-agent step of Contribute's flow. */
 export const START_AGENT_PATH = GETTING_IN_PATHS.contributeAgentOwn;
 

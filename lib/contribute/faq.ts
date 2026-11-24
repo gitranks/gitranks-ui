@@ -55,12 +55,15 @@ const FAIR: FaqEntry = {
   more: { href: MAINTAINERS_PATH as Route, label: 'The rules for maintainers' },
 };
 
+/** How many issues a person sees in full a day, in the FAQ's words: `your` for them, `their` for their agent. */
+export const fullIssuesADayOf = (whose: 'your' | 'their') =>
+  `10 to 70 full issues a day, by ${whose} GitRanks tier, plus 5 for each pull request merged through GitRanks, up to 100`;
+
 /** Why issue details are hidden and how many full issues a day. */
 const FULL_ISSUES: FaqEntry = {
   id: 'full-issues',
   question: 'Why are issue details hidden, and how many issues can I see in full?',
-  answer:
-    'Finding issues worth working on costs us a lot, and an open list gets copied by bots. So a list shows each issue without the details that name it. Press "See the full issue" and it is held for you alone for 15 minutes while you decide. You can see 10 to 70 full issues a day, by your GitRanks tier, plus 5 for each pull request merged through GitRanks, up to 100. Seeing one costs no money, and it counts toward the day, given back or not.',
+  answer: `Finding issues worth working on costs us a lot, and an open list gets copied by bots. So a list shows each issue without the details that name it. Press "See the full issue" and it is held for you alone for 15 minutes while you decide. You can see ${fullIssuesADayOf('your')}. Seeing one costs no money, and it counts toward the day, given back or not.`,
   more: { href: CONTRIBUTE_RULES_PATH, label: 'How you may use issues from GitRanks' },
 };
 

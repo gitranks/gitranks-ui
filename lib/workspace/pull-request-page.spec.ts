@@ -100,6 +100,12 @@ describe('what a round was asked', () => {
     expect(roundAskTitleOf({ n: 3, asked: [] })).toBe('Round 3 has something to answer');
   });
 
+  it('counts a bot at least once, never "0 from" it', () => {
+    const bot = prAsk({ kind: 'comment', id: 'z', bot: true, author: 'CodeRabbit', comments: 0 });
+    expect(askedSummaryOf([bot])).toBe('1 from CodeRabbit');
+    expect(roundAskTitleOf({ n: 2, asked: [bot] })).toBe('Round 2: 1 from CodeRabbit to answer');
+  });
+
   it("counts a word on the conversation as a comment, and names the person's note and a run that stopped", () => {
     const word = prAsk({ id: 'IC_9', kind: 'conversation', author: 'maint', comments: null });
     const note = prAsk({
@@ -193,6 +199,24 @@ describe('the two cards', () => {
     });
   });
 
+  it('leaves out a side of the change with nothing in it, never "0 lines"', () => {
+    const card = (added: number, removed: number) =>
+      changeCardOf({
+        box: 'OPEN',
+        change: { ...prStages.walkthrough.change, files: 1, added, removed },
+      } as PullRequestPage).text;
+    expect(card(3, 0)).toBe('1 file changed: 3 lines added.');
+    expect(card(0, 1)).toBe('1 file changed: 1 line removed.');
+    expect(card(0, 0)).toBe('1 file changed.');
+  });
+
+  it('leaves no gap before the full stop when the day is not known', () => {
+    const walkthrough = { ...prStages.open.walkthrough, passedAt: 'not a date' };
+    expect(walkthroughCardOf({ ...prStages.open, walkthrough } as PullRequestPage, PR_NOW).text).toBe(
+      'Passed. 3 people read it. Your answers are shared.',
+    );
+  });
+
   it('follows the walkthrough from written to shared', () => {
     const card = (page: PullRequestPage) => walkthroughCardOf(page, PR_NOW).text;
     expect(card(prStages.fixing)).toBe('Written after the fix.');
@@ -231,6 +255,12 @@ describe('the box', () => {
       actions: [{ id: 'approve', label: 'Write the pull request' }],
     });
     expect(box(prStages.approve).text).toMatch(/^You finished the walkthrough today\./);
+    // A day that is not known leaves no gap before the full stop.
+    const undated = {
+      ...prStages.approve,
+      walkthrough: { ...prStages.approve.walkthrough, passedAt: 'x' },
+    } as PullRequestPage;
+    expect(box(undated).text).toMatch(/^You finished the walkthrough\. Nothing/);
     expect(box(prStages.opening).title).toBe('Opening your pull request');
     expect(ids(prStages.opening)).toEqual(['veto']);
     expect(openingStepOf(4).line).toBe('Step 4 of 5 · sending your change to GitHub');
@@ -278,6 +308,11 @@ describe('the box', () => {
     });
     expect(ids(prReview.sent)).toEqual(['lessonQuestions', 'lessonIssues', 'course']);
     expect(box(prReview.sent).text).toContain('went to the same pull request today');
+    const undatedSent = prPage({
+      ...prReview.sent,
+      rounds: prReview.sent.rounds.map((round) => (round.n === 2 ? { ...round, sentAt: null } : round)),
+    });
+    expect(box(undatedSent).text).toContain('went to the same pull request. We keep');
     expect(ids(prPage({ ...prReview.sent, lesson: null }))).toEqual([]);
     expect(ids(prPage({ ...prReview.sent, made: 'CONTRIBUTE', lesson: null }))).toEqual([]);
   });

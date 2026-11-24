@@ -207,6 +207,10 @@ export const ContributeSectionView: FC<{ viewer: ContributeViewer; picks: Contri
   </section>
 );
 
+/** The picks this section can draw: a masked one names no issue, so it is left out (never "#null"). */
+export const namedPicksOf = (issues: readonly ContributeIssue[]): ContributeIssue[] =>
+  issues.filter((issue) => Boolean(issue.nameWithOwner && issue.number));
+
 /** The signed-in user's own top picks; none for a visitor or on a failure. */
 function useOwnPicks(login: string | null): ContributeIssue[] {
   const [picks, setPicks] = useState<ContributeIssue[]>([]);
@@ -219,7 +223,7 @@ function useOwnPicks(login: string | null): ContributeIssue[] {
     fetch(url)
       .then((res) => (res.ok ? (res.json() as Promise<ProfileIssuesAnswer>) : null))
       .then((data) => {
-        if (live) setPicks(data?.issues ?? []);
+        if (live) setPicks(namedPicksOf(data?.issues ?? []));
       })
       .catch(() => {});
     return () => {

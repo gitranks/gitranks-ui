@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { entityCards, orgEntity, repoEntity } from './__fixtures__/entity-card';
-import { entityHeadOf, entityNumberOf, entityRowsOf } from './entity-card';
+import { entityHeadOf, entityNumberOf, entityRowsOf, learnEntityCardOf } from './entity-card';
 
 // The pages the rows lead to, built or not: each case below sets them.
 const built = vi.hoisted(() => ({ issues: true, projectCourse: true }));
@@ -21,7 +21,8 @@ beforeEach(() => {
 });
 
 const ids = (rows: { id: string }[]) => rows.map((row) => row.id);
-const titleOf = (title: (string | number)[]) => title.join('');
+const titleOf = (title: ReturnType<typeof entityRowsOf>[number]['title']) =>
+  title.map((part) => (typeof part === 'object' ? part.figure : part)).join('');
 
 describe('entityHeadOf', () => {
   it('names a repository and an org', () => {
@@ -42,7 +43,10 @@ describe('entityRowsOf on a repository', () => {
       href: '/learn/issues?repo=nebula/ui&fixed=1',
     });
     expect(rows[1].text).toMatch(/^Issues fixed here through GitRanks\./);
-    expect(rows[2]).toMatchObject({ title: [9, ' open issues to fix'], href: '/learn/issues?repo=nebula/ui' });
+    expect(rows[2]).toMatchObject({
+      title: [{ figure: '9' }, ' open issues to fix'],
+      href: '/learn/issues?repo=nebula/ui',
+    });
   });
 
   it('words one fix and one issue in the singular', () => {
@@ -52,7 +56,25 @@ describe('entityRowsOf on a repository', () => {
     expect(fix[0].text).toMatch(/^An issue fixed here through GitRanks\. It has a few questions/);
     const issue = entityRowsOf(entityCards.repoNewCourse, repoEntity);
     expect(ids(issue)).toEqual(['course:nebula-ui', 'issues']);
-    expect(issue[1]).toMatchObject({ title: [1, ' open issue to fix'], action: 'See the issue' });
+    expect(issue[1]).toMatchObject({ title: [{ figure: '1' }, ' open issue to fix'], action: 'See the issue' });
+  });
+
+  it('writes open issues past the API’s cap as 1,000+', () => {
+    const rows = entityRowsOf({ ...entityCards.repoEverything, openIssues: 1001 }, repoEntity);
+    expect(titleOf(rows[2].title)).toBe('1,000+ open issues to fix');
+    expect(rows[2].action).toBe('See the issues');
+  });
+
+  it('leads a course whose repository the address cannot name to its slug’s address', () => {
+    const odd = { ...entityCards.repoEverything.course, repo: 'not-a-repo' };
+    expect(entityRowsOf({ ...entityCards.repoEverything, course: odd }, repoEntity)[0].href).toBe(
+      '/learn/courses/nebula-ui',
+    );
+  });
+
+  it('leaves out the rows to the Issues page for a project the address cannot name', () => {
+    const odd = { kind: 'repo' as const, repo: 'not-a-repo' };
+    expect(ids(entityRowsOf(entityCards.repoEverything, odd))).toEqual(['course:nebula-ui']);
   });
 
   it('makes no card from open issues alone, nor from nothing', () => {
@@ -124,7 +146,44 @@ describe('entityRowsOf while a page the rows lead to is not built', () => {
 });
 
 describe('entityNumberOf', () => {
-  it('groups thousands', () => {
+  it('groups thousands, and writes a figure as it is', () => {
     expect(entityNumberOf(1234)).toBe('1,234');
+    expect(entityNumberOf({ figure: '1,000+' })).toBe('1,000+');
+  });
+});
+
+describe('learnEntityCardOf', () => {
+  it('reads the API’s card as it is', () => {
+    expect(learnEntityCardOf(entityCards.orgManyRepos)).toEqual(entityCards.orgManyRepos);
+  });
+
+  it('answers null for no card', () => {
+    for (const value of [null, undefined, 'x', [], 3]) expect(learnEntityCardOf(value)).toBeNull();
+  });
+
+  it('leaves out a course or a number it cannot draw', () => {
+    expect(
+      learnEntityCardOf({
+        course: { slug: 'x', name: '', lessons: 3 },
+        repoCourses: [
+          { slug: 'a', name: 'a/b', lessons: 0, repo: 'a/b' },
+          null,
+          { slug: 'c', name: 'c/d', lessons: 2.5, repo: 'c/d' },
+        ],
+        fixes: 0,
+        openIssues: -1,
+      }),
+    ).toEqual({
+      course: null,
+      repoCourses: [{ slug: 'c', name: 'c/d', lessons: 2, repo: 'c/d', org: null }],
+      fixes: null,
+      openIssues: null,
+    });
+    expect(learnEntityCardOf({ fixes: 7, openIssues: Number.NaN })).toEqual({
+      course: null,
+      repoCourses: [],
+      fixes: 7,
+      openIssues: null,
+    });
   });
 });

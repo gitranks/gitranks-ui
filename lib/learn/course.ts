@@ -772,7 +772,10 @@ export function courseSectionsOf(courses: readonly LearnCourseCard[]): CourseSec
 /** A course the search found, its name marked when the name matched. */
 export type FoundCourse = { course: LearnCourseCard; name: MarkedText };
 
-/** What the search of all courses found: courses by name or kind, then lessons by name, live ones only. */
+/**
+ * What the search of all courses found: courses by name, kind or project (a project course's `owner/name` or its
+ * organisation's login), then lessons by name, live ones only.
+ */
 export type CoursesSearch = {
   query: string;
   sections: (CourseSection & { found: FoundCourse[] })[];
@@ -791,7 +794,9 @@ export function coursesSearchOf(
       if (!query) return [{ course, name: { text: course.name } }];
       const name = markedTextOf(course.name, query);
       if ('mark' in name) return [{ course, name }];
-      return wordStartMatchOf(KIND_WORDS[course.kind], query) ? [{ course, name }] : [];
+      const project = course.project;
+      const byProject = [project?.repo, project?.org].some((text) => !!text && wordStartMatchOf(text, query));
+      return byProject || wordStartMatchOf(KIND_WORDS[course.kind], query) ? [{ course, name }] : [];
     });
     return found.length ? [{ ...section, found }] : [];
   });

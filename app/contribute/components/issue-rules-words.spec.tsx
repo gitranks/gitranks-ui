@@ -74,6 +74,17 @@ describe('the MCP docs', () => {
     expect(plain).not.toContain('gets smaller limits');
   });
 
+  it('speak of taking an issue, `claim_issue` named only as the tool; the example answer alone keeps its words', () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    // The example is `claim_issue`'s answer shown exactly as an agent gets it, so it keeps the tool's own words
+    // ("claimed", "a claim that still holds"): its fold is the one part of the page this check leaves out.
+    const example = html.match(/<details[^>]*data-example-brief[\s\S]*?<\/details>/)?.[0] ?? '';
+    expect(example).toContain('data-example-verbatim');
+    expect(text(example)).toContain('This is the answer of the tool claim_issue exactly as your agent gets it');
+    const page = text(html.replace(example, '')).replaceAll('claim_issue', '');
+    expect(page).not.toMatch(/claim/i);
+  });
+
   it('list the limits in their order', () => {
     expect(MCP_DOC_LIMITS.map(({ what }) => what)).toEqual([
       'Requests',

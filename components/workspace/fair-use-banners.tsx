@@ -9,7 +9,13 @@ import { FairUseMessage } from './fair-use-message';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { ContributeFairUseNotice, ContributeFairUseNotices } from '@/lib/workspace/contribute.types';
-import { CONTRIBUTE_RULES_PATH, fairUseAnswerPathOf, rulesBannerPartsOf } from '@/lib/workspace/fair-use';
+import {
+  ASK_AGAIN,
+  CONTRIBUTE_RULES_PATH,
+  fairUseAnswerPathOf,
+  isAccessClosed,
+  rulesBannerPartsOf,
+} from '@/lib/workspace/fair-use';
 import { dismissFairUseNotice, dismissRulesBanner } from '@/lib/workspace/fair-use.actions';
 
 const LINK = 'font-semibold text-link hover:underline';
@@ -67,13 +73,16 @@ function Banner({
   );
 }
 
-/** "Answer", the message's answer page, then the rule in the Terms. */
-function MessageActions({ noticeId }: { noticeId: string }) {
+/**
+ * "Answer", the message's answer page, then the rule in the Terms. A closed access asks "Ask us to look again" on the
+ * same page instead, where its form is.
+ */
+function MessageActions({ notice }: { notice: ContributeFairUseNotice }) {
   return (
     <>
       <Button asChild className="max-sm:min-h-11">
-        <Link href={fairUseAnswerPathOf(noticeId)} prefetch={false}>
-          Answer
+        <Link href={fairUseAnswerPathOf(notice.id)} prefetch={false}>
+          {isAccessClosed(notice) ? ASK_AGAIN : 'Answer'}
         </Link>
       </Button>
       <Link href={CONTRIBUTE_RULES_PATH} prefetch={false} className={`${LINK} text-sm`}>
@@ -85,8 +94,9 @@ function MessageActions({ noticeId }: { noticeId: string }) {
 
 /**
  * What the top of Contribute shows about fair use, as the API answers it; nothing when it answers none (or nothing at
- * all). The block's message, which cannot be closed; each open message, closed with its button (it stays on its
- * answer page); the Terms banner for people who connected an agent before the rule, closed for good on every device.
+ * all). The block's message (or the closed access), which cannot be closed; each open message, closed with its button
+ * (it stays on its answer page); the Terms banner, for whoever the API says has not read the Terms of its date yet,
+ * closed for good on every device.
  * A close hides the banner at once and is sent to the API; a close that fails shows it again.
  */
 export function FairUseBanners({ fairUse }: { fairUse: ContributeFairUseNotices | null | undefined }) {
@@ -158,7 +168,7 @@ function MessageBanner({
       tone="warning"
       name={name}
       title={FAIR_USE_TITLE}
-      actions={<MessageActions noticeId={notice.id} />}
+      actions={<MessageActions notice={notice} />}
       onClose={onClose}
     >
       <FairUseMessage notice={notice} />

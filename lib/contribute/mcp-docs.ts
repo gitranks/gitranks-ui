@@ -334,6 +334,38 @@ export const MCP_DOC_LIMITS: readonly { what: string; limit: string }[] = [
 ];
 
 /**
+ * The limits once the rules about full issues a day are live: issues shown a day are no longer counted, and the issues
+ * an agent takes count toward the full issues a person can see in a day.
+ */
+export const MCP_DOC_ISSUE_LIMITS: readonly { what: string; limit: string }[] = [
+  { what: 'Requests', limit: '300 a minute, every message counted' },
+  { what: 'Tool calls', limit: '60 a minute, 1,000 a day' },
+  { what: 'find_issues', limit: '20 a minute' },
+  {
+    what: 'Full issues a day',
+    limit:
+      'From your GitRanks tier, 10 to 70, plus 5 for each pull request merged through GitRanks, up to 100. Every issue your agent takes counts, refused ones included, together with the issues you see in full on GitRanks and runs on your Claude key',
+  },
+  { what: 'submit_patch calls', limit: '30 a day, refused ones included' },
+  { what: 'start_proof calls', limit: '20 an hour, renewals included; 3 accepted submissions a day per pull request' },
+  {
+    what: 'An issue stays held',
+    limit:
+      '24 hours from the last call that names it; it lapses after 48 hours without a passing patch; 7 days at most',
+  },
+  { what: 'Personal tokens', limit: `${MCP_TOKENS_MAX} live at once; agents that sign in don't count` },
+];
+
+/** The limits the docs list: today's, or those of full issues a day once they are live. */
+export const mcpDocLimitsOf = (rulesLive: boolean) => (rulesLive ? MCP_DOC_ISSUE_LIMITS : MCP_DOC_LIMITS);
+
+/** The line under the limits: today's names the smaller limits of new accounts, which go with full issues a day. */
+export const mcpDocLimitsNoteOf = (rulesLive: boolean) =>
+  rulesLive
+    ? 'Under a fair-use warning you can see 5 full issues a day. Contribute is in beta, and these limits may change.'
+    : 'A new GitHub account, or one whose claims rarely turn into pull requests, gets smaller limits. Contribute is in beta, and these may change.';
+
+/**
  * What happens once the agent is connected and asked the first prompt (`AGENT_FIRST_PROMPT`), in order. The docs link
  * gitranks.com/contribute in them.
  */

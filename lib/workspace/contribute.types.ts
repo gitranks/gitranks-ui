@@ -194,8 +194,8 @@ export type ContributeLimits = {
   openPrsOverride?: number | null;
   /** New claims a day, every runner together. */
   claimsPerDay: number;
-  /** Newly shown issues a day. */
-  revealsPerDay: number;
+  /** Newly shown issues a day; null once the API no longer counts them (only full issues a day are limited). */
+  revealsPerDay: number | null;
 };
 
 export type ContributeGrant = { connected: boolean; login: string | null };
@@ -282,17 +282,31 @@ export type ContributeListSize = {
   cut: boolean;
 };
 
-/** Contribute's fair-use rules: pull requests opened outside GitRanks, and issues viewed with none worked on. */
-export type ContributeFairUseRule = 'OUTSIDE_PR' | 'VIEWING';
+/**
+ * Contribute's fair-use rules: an issue taken on GitRanks and fixed by a pull request opened outside it
+ * (`OUTSIDE_FIX`), and many issues taken with few pull requests through GitRanks (`CLAIM_RATIO`); the earlier rules,
+ * pull requests opened outside GitRanks (`OUTSIDE_PR`) and issues viewed with none worked on (`VIEWING`), for the
+ * messages they wrote.
+ */
+export type ContributeFairUseRule = 'OUTSIDE_PR' | 'VIEWING' | 'OUTSIDE_FIX' | 'CLAIM_RATIO';
 
-/** Which message a fair-use notice is: its rule and its step (1 a note, 2 the list cut, 3 the block). */
+/**
+ * Which message a fair-use notice is: its rule and its step. The two rules of today: `INFO` an email, `WARNING` 5 full
+ * issues a day, `BAN` access closed. The earlier ones: 1 a note, 2 the list cut, 3 the block.
+ */
 export type ContributeFairUseNoticeKind =
   | 'OUTSIDE_PR_1'
   | 'OUTSIDE_PR_2'
   | 'OUTSIDE_PR_3'
   | 'VIEWING_1'
   | 'VIEWING_2'
-  | 'VIEWING_3';
+  | 'VIEWING_3'
+  | 'OUTSIDE_FIX_INFO'
+  | 'OUTSIDE_FIX_WARNING'
+  | 'OUTSIDE_FIX_BAN'
+  | 'CLAIM_RATIO_INFO'
+  | 'CLAIM_RATIO_WARNING'
+  | 'CLAIM_RATIO_BAN';
 
 /** A pull request a fair-use notice names: `owner/name#number` and its page on GitHub. */
 export type ContributeFairUsePr = { name: string; url: string };
@@ -305,7 +319,7 @@ export type ContributeFairUseNotice = {
   id: string;
   kind: ContributeFairUseNoticeKind;
   rule: ContributeFairUseRule;
-  /** 1 a note, 2 the list cut, 3 the block. */
+  /** 1 a note (or an email), 2 the list cut (or 5 full issues a day), 3 the block (or access closed). */
   phase: number;
   text: string;
   vars: { prs?: ContributeFairUsePr[] | null; n?: number | null; k?: number | null };

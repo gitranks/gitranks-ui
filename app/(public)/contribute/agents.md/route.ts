@@ -3,19 +3,20 @@ import { connection } from 'next/server';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
 import { agentsDocOf } from '@/lib/contribute/agents-doc';
 import { contributeOpen, contributeShown } from '@/lib/workspace/preview-gate';
+import { issueRulesLive } from '@/lib/workspace/rules-live';
 
 /**
  * GitRanks Contribute for an AI agent, in markdown: what it gets, the one human step, how to connect, the day's
- * examples. The preview list's until the launch (as the MCP docs), then everyone's; the same text for everyone, so a
- * shared cache may keep it once launched. Indexed.
+ * examples, the limits the API says are live (today's when it does not know). The preview list's until the launch (as
+ * the MCP docs), then everyone's; the same text for everyone, so a shared cache may keep it once launched. Indexed.
  */
 export async function GET(): Promise<Response> {
   await connection();
   if (!(await contributeShown())) {
     return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'private, no-store' } });
   }
-  const [page, open] = await Promise.all([loadAgentPage(), contributeOpen()]);
-  return new Response(agentsDocOf(page), {
+  const [page, open, rulesLive] = await Promise.all([loadAgentPage(), contributeOpen(), issueRulesLive()]);
+  return new Response(agentsDocOf(page, { rulesLive }), {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
       'X-Content-Type-Options': 'nosniff',

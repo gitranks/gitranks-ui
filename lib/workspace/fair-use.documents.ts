@@ -1,6 +1,7 @@
 import { parse } from 'graphql';
 
 import type { ContributeFairUseNotice, ContributeFairUseNotices } from './contribute.types';
+import type { FairUseAppeal } from './masked-issue.types';
 import type DocumentNode from '@/types/typed-document-node';
 
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
@@ -38,4 +39,13 @@ export const AnswerContributeNoticeDocument = doc<
   `mutation AnswerContributeNotice($noticeId: ID!, $choice: String, $text: String!) {
     answerContributeNotice(noticeId: $noticeId, choice: $choice, text: $text) { ${NOTICE} }
   }`,
+);
+
+/**
+ * A request to look again at a closed access, with one text: when it was sent and when we answered it. One open at a
+ * time: while one is open, the API answers it as it is. An operation of its own, so an API that does not know it yet
+ * fails it alone.
+ */
+export const AppealFairUseDocument = doc<{ appealFairUse: FairUseAppeal }, { text: string }>(
+  'mutation AppealFairUse($text: String!) { appealFairUse(text: $text) { at answeredAt } }',
 );

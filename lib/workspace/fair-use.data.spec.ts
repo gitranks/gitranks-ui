@@ -12,12 +12,16 @@ const { ContributeIssuesWithRulesDocument, ContributeLimitsDocument, ContributeO
 );
 const {
   AnswerContributeNoticeDocument,
+  AppealFairUseDocument,
   ContributeFairUseNoticeDocument,
   ContributeFairUseNoticesDocument,
   DismissContributeNoticeDocument,
 } = await import('./fair-use.documents');
-const { answerFairUseNotice, dismissFairUseNotice, dismissRulesBanner } = await import('./fair-use.actions');
-const { blockNotice, fairUse, fairUseNotice, noFairUse } = await import('@/lib/contribute/__fixtures__/fair-use');
+const { answerFairUseNotice, appealFairUse, dismissFairUseNotice, dismissRulesBanner } = await import(
+  './fair-use.actions'
+);
+const { accessClosedNotice, blockNotice, claimRatioWarning, fairUse, fairUseNotice, noFairUse, outsideFixNotice } =
+  await import('@/lib/contribute/__fixtures__/fair-use');
 const { limits } = await import('@/lib/contribute/__fixtures__/contribute-views');
 
 const notAnswered = () => Promise.reject(new Error('[{"message":"Cannot query field"}]'));
@@ -70,6 +74,14 @@ describe('loadFairUseNotice', () => {
     expect(await loadFairUseNotice('583231-outsidePr-1-1')).toBeNull();
     auth.mockResolvedValueOnce(null);
     expect(await loadFairUseNotice('583231-outsidePr-1-1')).toBeNull();
+  });
+
+  it('reads the messages of the rules of today by their ids too', async () => {
+    for (const notice of [outsideFixNotice, claimRatioWarning, accessClosedNotice]) {
+      graphqlDirect.mockResolvedValueOnce({ contributeFairUseNotice: notice });
+      expect(await loadFairUseNotice(notice.id)).toEqual(notice);
+    }
+    expect(graphqlDirect).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -146,6 +158,31 @@ describe('the fair-use actions', () => {
       error: 'NOT_FOUND',
     });
     expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('ask us to look again in an operation of its own, trimmed, and answer the request as saved', async () => {
+    const appeal = { at: '2026-11-24T10:00:00.000Z', answeredAt: null };
+    graphqlDirect.mockResolvedValue({ appealFairUse: appeal });
+    expect(await appealFairUse('  It was my own repository.  ')).toEqual({ ok: true, data: appeal });
+    expect(graphqlDirect).toHaveBeenLastCalledWith(
+      AppealFairUseDocument,
+      { text: 'It was my own repository.' },
+      expect.objectContaining({ githubLogin: 'octocat' }),
+    );
+    expect(print(AppealFairUseDocument)).toContain('appealFairUse(text: $text)');
+  });
+
+  it('refuse an empty or too long request without asking', async () => {
+    expect(await appealFairUse('   ')).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(await appealFairUse('x'.repeat(2001))).toMatchObject({ ok: false, error: 'INVALID' });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
+  it('say an API that does not take requests yet is not ready, from its answer of today', async () => {
+    graphqlDirect.mockImplementation(() =>
+      Promise.reject(new Error('[{"message":"Cannot query field \\"appealFairUse\\" on type \\"Mutation\\"."}]')),
+    );
+    expect(await appealFairUse('Please look again.')).toEqual({ ok: false, error: 'NOT_AVAILABLE_YET' });
   });
 });
 

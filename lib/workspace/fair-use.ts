@@ -16,7 +16,26 @@ export const fairUseAnswerPathOf = (noticeId: string): Route =>
 export const FAIR_USE_ANSWER_MAX = 2_000;
 
 /** A notice id as the API gives them: anything else is no notice of the user's, and is never asked about. */
-const NOTICE_ID = /^[A-Za-z0-9_=+/-]{1,100}-(?:outsidePr|viewing)-[123]-\d{1,6}$/;
+const NOTICE_ID = /^[A-Za-z0-9_=+/-]{1,100}-(?:outsidePr|viewing|outsideFix|claimRatio)-[123]-\d{1,6}$/;
+
+/** The rules of today, each with three steps: an email, 5 full issues a day, access closed. */
+const STEP_RULES: readonly ContributeFairUseNotice['rule'][] = ['OUTSIDE_FIX', 'CLAIM_RATIO'];
+
+/**
+ * Whether a message closed the user's access under one of today's rules: its answer is a request to look again
+ * ("Ask us to look again"), not an answer to the message.
+ */
+export const isAccessClosed = (notice: Pick<ContributeFairUseNotice, 'rule' | 'phase'>): boolean =>
+  STEP_RULES.includes(notice.rule) && notice.phase >= 3;
+
+/** The words of the way to ask us to look again at a closed access. */
+export const ASK_AGAIN = 'Ask us to look again';
+
+/**
+ * The date of the Terms and the Privacy policy that describe full issues a day and today's fair-use rules: they show
+ * it once the API says those rules are live. The rules banner is due for everyone who closed it before the same day.
+ */
+export const ISSUE_RULES_DATE = '2026-11-24';
 
 /** The notice id an address names, as the API gives them; null for anything else. */
 export function fairUseNoticeIdOf(value: string | null | undefined): string | null {

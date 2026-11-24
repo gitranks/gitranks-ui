@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { LessonBlock } from '@/components/workspace/blocks/lesson-block';
-import { OpensGitHub } from '@/components/workspace/page-link';
+import { OpensGitHub, OpensNewTab } from '@/components/workspace/page-link';
 import type { PlayerCrumb } from '@/components/workspace/player/player-strip';
 import { LEARN_FIXES_PAGE_BUILT } from '@/lib/learn/built-pages';
 import { hasLearnView, type LearnFixPage } from '@/lib/learn/fix-page';
@@ -236,7 +236,7 @@ export function FixStateView({
           {action.external ? (
             <a href={action.href} target="_blank" rel="noopener noreferrer">
               <span className="truncate">{action.label}</span>
-              <OpensGitHub />
+              <OpensNewTab />
             </a>
           ) : (
             <Link href={action.href as Route} prefetch={false}>

@@ -35,9 +35,8 @@ vi.mock('@/lib/learn/built-pages', () => ({
 const { PublicWalkthroughPlayer } = await import('./walkthrough-player');
 const { FixerWalkthroughPlayer } = await import('./fixer-walkthrough');
 const { AnswersLive } = await import('./answers-view');
-const { AboutThisFix, factsOf, WalkthroughHead, WalkthroughPartArticle, walkthroughCrumbsOf } = await import(
-  './walkthrough-parts'
-);
+const { AboutThisFix, factsOf, FixRemovedView, WalkthroughHead, WalkthroughPartArticle, walkthroughCrumbsOf } =
+  await import('./walkthrough-parts');
 const fx = await import('@/lib/learn/__fixtures__/walkthrough');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -144,6 +143,15 @@ describe('the public walkthrough', () => {
       expect(link.getAttribute('target')).toBe('_blank');
       expect(link.getAttribute('rel')).toBe('noopener noreferrer');
     }
+  });
+
+  it('opens the pull request on GitHub from a removed fix in a new tab, marked once', async () => {
+    await act(async () => root.render(<FixRemovedView repo="acme/widgets" number={57} />));
+    const link = host.querySelector<HTMLAnchorElement>('[data-fix-state="removed"] a');
+    expect(link?.getAttribute('href')).toBe('https://github.com/acme/widgets/pull/57');
+    expect(link?.getAttribute('target')).toBe('_blank');
+    expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(link?.textContent).toBe('Open acme/widgets #57 on GitHub ↗ (opens in a new tab)');
   });
 
   it('leads a fix closed without a merge to "How it was made", and promises nothing it cannot show', async () => {

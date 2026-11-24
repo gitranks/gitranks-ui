@@ -362,8 +362,10 @@ describe('a lesson for a member', () => {
   });
 
   it("never draws a lesson's question code as its example", () => {
-    const questionCode = { name: 'q1', codes: setExampleCodes };
-    draw({ lesson: { ...setLesson, examples: [questionCode] }, examples: [questionCode] });
+    draw({
+      lesson: { ...setLesson, examples: [{ ...setLesson.examples[0], name: 'q1' }] },
+      examples: [{ name: 'q1', codes: setExampleCodes }],
+    });
     expect($('[data-lesson-article] [data-block="example"]')).toBeNull();
   });
 

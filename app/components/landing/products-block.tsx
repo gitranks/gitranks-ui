@@ -4,13 +4,16 @@ import type { FC } from 'react';
 
 import {
   contributeCardOf,
-  HOME_PROMOS,
   type HomeCardWords,
   type HomeProducts,
+  homePromosOf,
   learnCardOf,
   productsWordsOf,
   showsContributeOf,
 } from './products-block-words';
+import type { CourseInLine } from '@/lib/learn/courses-line';
+
+const NO_COURSES: readonly CourseInLine[] = [];
 
 /**
  * One of a card's parts: the words shown, with the promotion's words under them in the same grid cell, hidden from
@@ -29,8 +32,7 @@ const Stacked: FC<{ shown: string; promo: string; className: string }> = ({ show
 );
 
 /** One card: the product's name with its mark, a title, one line and where it leads, in the same places in every state. */
-const ProductCard: FC<{ card: HomeCardWords }> = ({ card }) => {
-  const promo = HOME_PROMOS[card.product];
+const ProductCard: FC<{ card: HomeCardWords; promo: HomeCardWords }> = ({ card, promo }) => {
   return (
     <Link
       href={card.href}
@@ -63,14 +65,16 @@ const ProductCard: FC<{ card: HomeCardWords }> = ({ card }) => {
  * product the person uses says what it has for them today. `now` words the next review. `contribute` false (Contribute
  * not launched, so its landing is not found for visitors) leaves Contribute's card out, except for a person who uses
  * it; Learn's card then stands alone in one column, under Learn's own words. `id` is the heading's, for a board that
- * draws the block more than once.
+ * draws the block more than once. `courses`: Learn's live courses, which its promotion names; none keeps a plain line.
  */
-export const ProductsBlock: FC<{ products?: HomeProducts | null; now: Date; contribute?: boolean; id?: string }> = ({
-  products = null,
-  now,
-  contribute = true,
-  id = 'products',
-}) => {
+export const ProductsBlock: FC<{
+  products?: HomeProducts | null;
+  now: Date;
+  contribute?: boolean;
+  id?: string;
+  courses?: readonly CourseInLine[];
+}> = ({ products = null, now, contribute = true, id = 'products', courses = NO_COURSES }) => {
+  const promos = homePromosOf(courses);
   const both = showsContributeOf(contribute, products);
   const { heading, line } = productsWordsOf(both);
   return (
@@ -83,8 +87,8 @@ export const ProductsBlock: FC<{ products?: HomeProducts | null; now: Date; cont
           <p className="m-0 max-w-prose text-muted-foreground">{line}</p>
         </div>
         <div className={`grid grid-cols-1 gap-4${both ? ' md:grid-cols-2' : ''}`}>
-          {both ? <ProductCard card={contributeCardOf(products)} /> : null}
-          <ProductCard card={learnCardOf(products, now)} />
+          {both ? <ProductCard card={contributeCardOf(products)} promo={promos.CONTRIBUTE} /> : null}
+          <ProductCard card={learnCardOf(products, now, promos)} promo={promos.LEARN} />
         </div>
       </div>
     </section>

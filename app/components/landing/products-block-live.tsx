@@ -6,6 +6,7 @@ import { type FC, useEffect, useState } from 'react';
 import { ProductsBlock } from './products-block';
 import { HOME_PRODUCTS_URL, type HomeProductsAnswer, homeProductsOf } from './products-block-read';
 import type { HomeProducts } from './products-block-words';
+import type { CourseInLine } from '@/lib/learn/courses-line';
 
 /**
  * How long the browser waits for the cards: the API gives each half 1.5 seconds and answers them together, so this
@@ -46,9 +47,12 @@ export function useHomeProducts(viewer: string | undefined): Personal | null {
 /**
  * The home page's block as served: the promotions with the cached page, the same for everyone; for a signed-in person,
  * their cards' words change in place once read, and each card keeps its size. `contribute`: Contribute is launched, so
- * its card is drawn.
+ * its card is drawn. `courses`: Learn's live courses, read with the cached page, which Learn's promotion names.
  */
-export const ProductsBlockLive: FC<{ contribute: boolean }> = ({ contribute }) => {
+export const ProductsBlockLive: FC<{ contribute: boolean; courses?: readonly CourseInLine[] }> = ({
+  contribute,
+  courses,
+}) => {
   const { data: session, status } = useSession();
   const viewer = status === 'authenticated' && session && !session.error ? session.user?.githubLogin : undefined;
   const personal = useHomeProducts(viewer);
@@ -57,6 +61,7 @@ export const ProductsBlockLive: FC<{ contribute: boolean }> = ({ contribute }) =
       products={personal?.products ?? null}
       now={personal?.now ?? PROMOTIONS_NOW}
       contribute={contribute}
+      courses={courses}
     />
   );
 };

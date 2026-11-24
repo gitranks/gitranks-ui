@@ -6,7 +6,6 @@ import type { FlowSide } from '@/lib/workspace/getting-in';
 /** Each flow's steps, in order, by their fixed names. */
 export const FLOW_STEPS: Record<FlowSide, readonly [string, string, string]> = {
   contribute: ['What you work on', 'Your agent', 'Your first issue'],
-  learn: ['Your goal', 'Pick an issue', 'Your agent'],
 };
 
 /** A step's number in its flow: 1, 2 or 3. */

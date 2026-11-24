@@ -481,18 +481,6 @@ export const CAUSE_HINT: LessonWhy[] = [
   },
 ];
 
-/** Every option's why on the fix's question, after a right answer. */
-export const FIX_WHY: LessonWhy[] = [
-  {
-    optionId: 'q3a1',
-    correct: true,
-    why: '`normalizePath` runs before the key is made, so both spellings give one key.',
-  },
-  { optionId: 'q3a2', correct: false, why: 'Nothing empties the cache; it keeps every route it built.' },
-  { optionId: 'q3a3', correct: true, why: 'The two new lines return a cache hit before anything is built.' },
-  { optionId: 'q3a4', correct: false, why: 'The cache stays; it now has one entry per route.' },
-];
-
 export const HEAD: LessonHead = {
   slug: 'route-cache-miss-8f3k',
   title: 'Why nested layouts rebuilt on every navigation',

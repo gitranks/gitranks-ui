@@ -91,6 +91,22 @@ export const LEARN_EMAIL_READ_FAILED =
   "Lessons to repeat and your time zone didn't load. Reload the page to try again; the rest works as usual.";
 export const LESSONS_TO_REPEAT_LINE = 'One email a day at most, in the morning, and only when a lesson is still due.';
 
+/** "A new issue for you" as Settings reads it: on or off, and the list it covers (null until first turned on). */
+export type LearnIssuesEmailSetting = { on: boolean; cover: 'FOR_YOU' | 'LEARNED' | null };
+
+/** The switch of "A new issue for you" as the API answers it; null for any other shape. */
+export function learnIssuesEmailOf(value: unknown): LearnIssuesEmailSetting | null {
+  if (!value || typeof value !== 'object') return null;
+  const { newIssues, newIssuesCover } = value as { newIssues?: unknown; newIssuesCover?: unknown };
+  if (typeof newIssues !== 'boolean') return null;
+  return { on: newIssues, cover: newIssuesCover === 'FOR_YOU' || newIssuesCover === 'LEARNED' ? newIssuesCover : null };
+}
+
+/** "A new issue for you": its row, the same switch as "Email me when one appears" on Issues. */
+export const NEW_ISSUES_TITLE = 'New issues for you';
+export const NEW_ISSUES_LINE =
+  'When an issue comes onto your Learn list. One email a day at most, with five issues at most.';
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Time zone                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */

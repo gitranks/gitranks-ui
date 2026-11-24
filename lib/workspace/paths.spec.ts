@@ -31,7 +31,6 @@ describe('the workspace addresses', () => {
   it('are under /my, but for the two front tabs and the Learn pages that keep theirs until their own are built', () => {
     expect(WORKSPACE_PATHS).toEqual({
       contribute: '/contribute',
-      learn: '/learn/earlier',
       learnHome: '/learn',
       pullRequests: '/my/pull-requests',
       agent: '/my/agent',
@@ -44,7 +43,6 @@ describe('the workspace addresses', () => {
       settingsGithub: '/my/settings/github',
       settingsPullRequests: '/my/settings/pull-requests',
       settingsWork: '/my/settings/work',
-      settingsGoal: '/my/settings/goal',
       progress: '/my/progress',
     });
   });
@@ -54,7 +52,6 @@ describe('the workspace addresses', () => {
       summary: '/my/settings',
       github: '/my/settings/github',
       pullRequests: '/my/settings/pull-requests',
-      goal: '/my/settings/goal',
       work: '/my/settings/work',
       budget: '/my/agent/budget',
       agent: '/my/agent/model',
@@ -72,7 +69,7 @@ describe('the workspace addresses', () => {
       limitRow: '/my/settings/pull-requests#open',
       attemptsRow: '/my/settings/pull-requests#attempts',
       work: '/my/settings/work#work',
-      forLearning: '/my/settings/goal',
+      forLearning: '/learn/setup',
       agentKey: '/my/agent/key',
       agentBudget: '/my/agent/budget',
     });
@@ -132,7 +129,6 @@ describe('which pages are which', () => {
       '/contribute/start',
       '/contribute/start/agent/own',
       '/learn/about',
-      '/learn/maintainers',
       '/learn/lessons/a-lesson-1x',
       '/learn/lessons/a-lesson-1x/passes/octocat',
     ]) {

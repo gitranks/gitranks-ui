@@ -860,16 +860,11 @@ describe('proxy', () => {
       expect(withSession).not.toHaveBeenCalled();
     });
 
-    it("sends a renamed login to its current result page, with the page's query", async () => {
-      lessonGate.mockResolvedValue({ kind: 'redirect', path: '/learn/lessons/route-cache-miss-8f3k/passes/octo-cat' });
-      const response = await proxy(
-        request(undefined, '/learn/lessons/route-cache-miss-8f3k/passes/octocat?react=yes'),
-        event,
-      );
-      expect(response?.status).toBe(307);
-      expect(response?.headers.get('location')).toBe(
-        'https://gitranks.com/learn/lessons/route-cache-miss-8f3k/passes/octo-cat?react=yes',
-      );
+    it("sends a walkthrough's old address to its fix's page for good, with the query", async () => {
+      lessonGate.mockResolvedValue({ kind: 'redirect', path: '/learn/fixes/acme/widgets/57', permanent: true });
+      const response = await proxy(request(undefined, '/learn/lessons/route-cache-miss-8f3k?from=pr'), event);
+      expect(response?.status).toBe(308);
+      expect(response?.headers.get('location')).toBe('https://gitranks.com/learn/fixes/acme/widgets/57?from=pr');
       expect(response?.headers.get('cache-control')).toBe('private, no-store');
     });
 
@@ -913,22 +908,9 @@ describe('proxy', () => {
       expect(lessonGate).not.toHaveBeenCalled();
     });
 
-    it("answers a result page's .json from its route handler, signed in or not, before Auth.js", async () => {
-      for (const cookie of [undefined, 'authjs.session-token=t']) {
-        const response = await proxy(
-          request(cookie, '/learn/lessons/route-cache-miss-8f3k/passes/Octo-cat.json'),
-          event,
-        );
-        expect(response?.headers.get('x-middleware-rewrite')).toBe(
-          'https://gitranks.com/api/learn/lessons/route-cache-miss-8f3k/passes/Octo-cat',
-        );
-        expect(response?.headers.get('set-cookie')).toBeNull();
-      }
-      expect(withSession).not.toHaveBeenCalled();
-    });
-
-    it('rewrites no other .json address, nor one whose slug or login is not shaped as ours', async () => {
+    it('rewrites no .json address under a lesson to a route: an old result page has none', async () => {
       for (const path of [
+        '/learn/lessons/route-cache-miss-8f3k/passes/Octo-cat.json',
         '/learn/lessons/route-cache-miss-8f3k.json',
         '/learn/lessons/route-cache-miss-8f3k/passes/octo.cat.json',
         '/learn/lessons/route%2Fcache/passes/octocat.json',

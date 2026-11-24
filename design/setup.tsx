@@ -87,32 +87,14 @@ vi.mock('@/app/unsung-heroes/apply/actions', () => ({
   sendApplication: async () => ({ ok: false, refusal: 'UNAVAILABLE', application: null }),
   cancelApplication: async () => ({ ok: false, refusal: 'UNAVAILABLE', application: null }),
 }));
-// Named, with the one a form posts to: a form's action checks the export exists, which `inert()`'s proxy does not answer.
-vi.mock('@/lib/learn/actions', async () => ({
-  ...Object.fromEntries(
-    [
-      'startLessonRun',
-      'startSharedLessonRun',
-      'answerWarmup',
-      'markStepShown',
-      'answerLessonQuestion',
-      'sendQuestionFeedback',
-      'reportQuestion',
-      'logCopyForAgent',
-      'rateLesson',
-      'shareMyResult',
-      'removeLesson',
-      'saveLearnProfile',
-      'reactToLessonResult',
-      'reactOnReturn',
-      'readMyLearnAttempts',
-      'readPracticeLessons',
-      'readPracticeNext',
-      'readLearnIssues',
-    ].map((name) => [name, async () => undefined]),
+vi.mock('@/lib/learn/actions', async () =>
+  Object.fromEntries(
+    ['startLessonRun', 'answerWarmup', 'markStepShown', 'answerLessonQuestion', 'removeLesson'].map((name) => [
+      name,
+      async () => undefined,
+    ]),
   ),
-  signInToReact: async () => {},
-}));
+);
 vi.mock('@/lib/learn/learn.data', async () => (await import('./inert')).inert());
 // Issues' and the masked rows' actions: a board never calls them, and their modules reach the server's sign-in.
 vi.mock('@/lib/learn/issues.actions', async () => (await import('./inert')).inert());

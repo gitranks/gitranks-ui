@@ -4,6 +4,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction: vi.fn() }));
+
 const router = vi.hoisted(() => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }));
 const workspace = vi.hoisted(() => ({ saveContributeSettings: vi.fn() }));
 vi.mock('next/navigation', () => ({
@@ -39,6 +41,7 @@ vi.mock('next/headers', () => ({
 const learnReads = vi.hoisted(() => ({
   loadLearnEmailSettings: vi.fn(async () => null),
   loadLearnSetupForSettings: vi.fn(async () => null),
+  loadLearnIssuesEmail: vi.fn(async () => null),
 }));
 vi.mock('@/lib/learn/settings.data', () => learnReads);
 vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction: vi.fn() }));
@@ -57,7 +60,7 @@ const { SettingsAnchors } = await import('@/components/workspace/settings/settin
 const { contributor, email, limits, settingsViews, views } = await import(
   '@/lib/contribute/__fixtures__/contribute-views'
 );
-const { learnEmail } = await import('@/lib/learn/__fixtures__/settings');
+const { learnEmail, learnIssuesEmail } = await import('@/lib/learn/__fixtures__/settings');
 const { setupGuessed, setupSaved, setupWorking } = await import('@/lib/learn/__fixtures__/setup');
 
 const text = (html: string) =>
@@ -121,6 +124,21 @@ describe('the Settings page (page 23)', () => {
       'contribute-preferences',
     ]);
     expect(emailRowsOf(html)).toEqual(['lessons-to-repeat', 'needs-you', 'ended', 'time-zone']);
+  });
+
+  it('draws New issues for you under Lessons to repeat when its read answered, and no row when it did not', () => {
+    const fromLearn = render({ bar: 'learn', learnIssuesEmail: learnIssuesEmail.off });
+    expect(emailRowsOf(fromLearn.html)).toEqual(['lessons-to-repeat', 'new-issues', 'needs-you', 'ended', 'time-zone']);
+    expect(fromLearn.plain).toContain('New issues for you');
+    const fromContribute = render({ learnIssuesEmail: learnIssuesEmail.forYou });
+    expect(emailRowsOf(fromContribute.html)).toEqual([
+      'needs-you',
+      'ended',
+      'lessons-to-repeat',
+      'new-issues',
+      'time-zone',
+    ]);
+    expect(emailRowsOf(render({ bar: 'learn' }).html)).not.toContain('new-issues');
   });
 
   it('shows a learner Learn first and no Contribute preferences', () => {
@@ -333,6 +351,7 @@ describe('the reads of Settings and the key page', () => {
       reads.loadContribute.mockResolvedValue(settingsViews.learner);
       expect(await first()).toBe('learn-preferences');
       expect(learnReads.loadLearnEmailSettings).toHaveBeenCalledWith('octocat');
+      expect(learnReads.loadLearnIssuesEmail).toHaveBeenCalledWith('octocat');
     } finally {
       jar.value = undefined;
     }

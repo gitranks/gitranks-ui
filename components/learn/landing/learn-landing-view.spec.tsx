@@ -117,7 +117,7 @@ describe('the landing for a visitor', () => {
     const links = [
       ...page.querySelectorAll('footer a'),
       ...page.querySelectorAll('[data-try-lesson] a'),
-      page.querySelector('a[href="/learn/maintainers"]'),
+      page.querySelector('a[href="/contribute/maintainers#learn"]'),
       page.querySelector('section a[href="/learn/courses"]'),
     ];
     for (const link of links) expect(link?.className, link?.textContent ?? '').toContain('max-sm:min-h-11');
@@ -153,11 +153,11 @@ describe('the landing for someone signed in', () => {
   });
 
   it('links someone part-way through fixing an issue back to the step they reached', () => {
-    const page = draw({ viewer: 'member', resume: '/learn/start/issues' });
+    const page = draw({ viewer: 'member', resume: '/learn/issues' });
     const resume = page.querySelector('[data-landing-resume]');
     expect([words(resume), resume?.getAttribute('href')]).toEqual([
       'Continue fixing an issue with your agent →',
-      '/learn/start/issues',
+      '/learn/issues',
     ]);
     expect(resume?.className).toContain('max-sm:min-h-11');
   });

@@ -73,7 +73,7 @@ describe('a passed lesson’s row', () => {
 
   it('opens an own lesson’s Lesson view and its pull request’s page', () => {
     expect(progressLessonLinksOf(mergedOwn)).toEqual({
-      lesson: '/my/pull-requests/tidewave/tide/931/lesson',
+      lesson: '/my/pull-requests/tidewave/tide/931/walkthrough',
       action: { href: '/my/pull-requests/tidewave/tide/931', label: 'Details' },
       note: null,
     });
@@ -113,7 +113,7 @@ describe('a passed lesson’s row', () => {
     expect(pullRequestPageOf(null, 3)).toBeNull();
     expect(pullRequestPageOf('acme/widgets', null)).toBeNull();
     expect(pullRequestPageOf('not a repo', 3)).toBeNull();
-    expect(lessonViewPathOf('acme/widgets', 7)).toBe('/my/pull-requests/acme/widgets/7/lesson');
+    expect(lessonViewPathOf('acme/widgets', 7)).toBe('/my/pull-requests/acme/widgets/7/walkthrough');
     expect(progressLessonLinksOf({ ...openOwn, repo: null })).toEqual({ lesson: null, action: null, note: null });
   });
 });

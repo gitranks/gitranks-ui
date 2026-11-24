@@ -5,8 +5,8 @@ import type { FlowSide } from './getting-in';
 import { GETTING_IN_PATHS } from './paths';
 
 /**
- * The browser's bookmark of the flows (getting in, §6.3): the last step each flow was on in this browser, so a landing's
- * button resumes there. One record in `localStorage`, `{ contribute?: { href, at }, learn?: { href, at } }`; it holds
+ * The browser's bookmark of the flow (getting in, §6.3): the last step it was on in this browser, so a landing's
+ * button resumes there. One record in `localStorage`, `{ contribute?: { href, at } }`; it holds
  * a step's path and query at most (languages, kinds, a level, an issue's address), never anything of the account.
  */
 export const BOOKMARK_KEY = 'gitranks:getting-in:v1';
@@ -21,14 +21,13 @@ type Bookmarks = Partial<Record<FlowSide, Mark>>;
 
 const FLOW_ROOTS: Record<FlowSide, string> = {
   contribute: GETTING_IN_PATHS.contributeWork,
-  learn: GETTING_IN_PATHS.learnGoal,
 };
 
 /** Any origin: an address is accepted only when it stays on it. */
 const HERE = 'https://flow.invalid';
 
 /**
- * Whether `href` is a step of `side`'s flow: a path on this site, `/contribute/start` or `/learn/start` or under it.
+ * Whether `href` is a step of `side`'s flow: a path on this site, `/contribute/start` or under it.
  * Anything else (another site, another page, a protocol-relative address) is never followed.
  */
 export function isFlowHref(side: FlowSide, href: string): boolean {
@@ -40,13 +39,6 @@ export function isFlowHref(side: FlowSide, href: string): boolean {
   } catch {
     return false;
   }
-}
-
-/** Learn's step 3: an issue's own start address, under `/learn/start/` but neither of the other two steps. */
-export function isLearnIssueHref(href: string): boolean {
-  if (!isFlowHref('learn', href)) return false;
-  const { pathname } = new URL(href, HERE);
-  return /^\/learn\/start\/[^/]+\/[^/]+\/[^/]+\/?$/.test(pathname);
 }
 
 /** The record's sides that are whole, recent and a step of their own flow; a broken record is none. */
@@ -93,12 +85,9 @@ export const keptBookmarks = (stored: string | null, now: number): string | null
 
 /**
  * Where a landing's button leads (§4.1): a visitor resumes at the bookmark when there is one; a signed-in person at the
- * server's step, whatever the bookmark says (it may be older than what the account holds, or another person's). One
- * exception: on Learn, when the server says Pick an issue and the bookmark is an issue's step, the bookmark wins, so
- * the picked issue is found again.
+ * server's step, whatever the bookmark says (it may be older than what the account holds, or another person's).
  */
 export function resumeHrefOf({
-  side,
   server,
   signedIn,
   bookmark,
@@ -109,7 +98,5 @@ export function resumeHrefOf({
   bookmark: Route | null;
 }): Route {
   if (!bookmark) return server;
-  if (!signedIn) return bookmark;
-  const pickedIssue = side === 'learn' && server === GETTING_IN_PATHS.learnIssues && isLearnIssueHref(bookmark);
-  return pickedIssue ? bookmark : server;
+  return signedIn ? server : bookmark;
 }

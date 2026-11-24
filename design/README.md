@@ -22,10 +22,10 @@ Both links are private to the owner.
 One canvas, one page per area (Landing, Developer profile, Repository, Package, Organization, Rankings, Badges,
 Contribute, Workspace, Learn, Admin), plus To review and Archive. Workspace holds the signed-in pages both sides share
 (Pull requests, a pull request's page with its Lesson view, Agent, Settings, the Start page, the parts both front tabs
-use); Contribute and Learn hold their own tab and their public pages. Each side's way in sits on its page right under
-its landing: the flow's steps, one row each (`design/screens/getting-in.tsx`; routes under `/contribute/start` and
-`/learn/start`). The Agent tab's "nothing connected" states, for an account that has entered and for one that has not,
-are on Workspace with the Agent tab.
+use); Contribute and Learn hold their own tab and their public pages. Contribute's way in sits on its page right under
+its landing: the flow's steps, one row each (`design/screens/getting-in.tsx`; routes under `/contribute/start`). The
+Agent tab's "nothing connected" states, for an account that has entered and for one that has not, are on Workspace with
+the Agent tab.
 
 - **Live boards** (`project/current/<area>/<screen>--<state>.dc.html`) are drawn from this repo's code by
   `pnpm design:export`: the real components, rendered from fixtures, with the app's own stylesheet

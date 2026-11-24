@@ -8,13 +8,7 @@ import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
 import { checkGateOf, courseGateOf } from './lib/learn/course-gate';
 import { fixByAttemptRouteGateOf, fixRouteGateOf, fixViewRouteGateOf } from './lib/learn/fix-gate';
-import {
-  isLearnAboutPath,
-  LEARN_PATH,
-  lessonResultJsonRouteOf,
-  lessonRouteOf,
-  publicProgressRouteOf,
-} from './lib/learn/learn-path';
+import { isLearnAboutPath, LEARN_PATH, lessonRouteOf, publicProgressRouteOf } from './lib/learn/learn-path';
 import { LESSON_MISSING_PATH, lessonGateOf } from './lib/learn/lesson-gate';
 import {
   checkRouteOf,
@@ -171,15 +165,8 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url));
   }
 
-  // A result page's facts as JSON: a page and a route handler cannot share the `[login]` segment, so the address ending
-  // in `.json` is answered by the route handler over the same read. Rewritten before Auth.js, like the 404s above.
-  const resultJson = lessonResultJsonRouteOf(request.nextUrl.pathname);
-  if (resultJson) {
-    return NextResponse.rewrite(new URL(resultJson, request.url));
-  }
-
   // A lesson's Markdown copy, for agents, at the page's address with `.md`: answered by its route handler, which follows
-  // the page's own gate (paused 503, removed 410, moved to its new copy). Rewritten before Auth.js, like the JSON above.
+  // the page's own gate (paused 503, removed 410, moved to its new copy). Rewritten before Auth.js, like the 404s above.
   const lessonMarkdown = learnLessonMarkdownRouteOf(request.nextUrl.pathname);
   if (lessonMarkdown) {
     return NextResponse.rewrite(new URL(lessonMarkdown, request.url));
@@ -201,11 +188,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return NextResponse.rewrite(new URL(issuesMarkdown, request.url));
   }
 
-  // A lesson's page and its result pages stream, so their own notFound() comes too late for a 404 status: the lesson
-  // is asked for here first. Missing, the lesson's 404 page answers; a paused or removed lesson of ours answers its own
-  // page with a 503 or a 410 (the status a rewrite carries); a moved one redirects for good to its new address, and a
-  // renamed login goes to its current result page, and a result whose answers are now on its fix's page goes there for
-  // good. None is kept by a shared cache: a lesson comes back, goes public, and a login may change again.
+  // A lesson's page streams, so its own notFound() comes too late for a 404 status: the lesson is asked for here first.
+  // Missing, the lesson's 404 page answers; a paused or removed lesson of ours answers its own page with a 503 or a 410
+  // (the status a rewrite carries); a moved one redirects for good to its new address. A walkthrough's old address, and
+  // an old result page, go for good to the fix's page and the person's answers there. None is kept by a shared cache:
+  // a lesson comes back, and a fix's pull request opens.
   const lesson = request.method === 'GET' || request.method === 'HEAD' ? lessonRouteOf(request.nextUrl.pathname) : null;
   if (lesson) {
     const gate = await lessonGateOf(lesson);

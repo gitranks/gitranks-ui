@@ -22,9 +22,11 @@ describe('My progress’s page', () => {
     expect(instant).toBe(false);
   });
 
-  it('opens Courses unless the address asks for History', async () => {
+  it('opens the view the address asks for, and Courses for anything else', async () => {
     expect(await propsOf({})).toEqual({ view: 'courses', day: null });
-    expect(await propsOf({ view: 'fixes' })).toEqual({ view: 'courses', day: null });
+    expect(await propsOf({ view: 'fixes' })).toEqual({ view: 'fixes', day: null });
+    expect(await propsOf({ view: 'walkthroughs' })).toEqual({ view: 'walkthroughs', day: null });
+    expect(await propsOf({ view: 'lessons' })).toEqual({ view: 'courses', day: null });
     expect(await propsOf({ view: 'history' })).toEqual({ view: 'history', day: null });
   });
 

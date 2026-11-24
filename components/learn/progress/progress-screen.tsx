@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/workspace/pagination';
 import { HEADING, PageTitle } from '@/components/workspace/primitives';
 import { ViewTabs } from '@/components/workspace/view-tabs';
-import { LEARN_EARLIER_PATH, LEARN_PATH } from '@/lib/learn/learn-path';
+import { LEARN_PATH } from '@/lib/learn/learn-path';
 import {
   LEARN_PROGRESS_PAGE,
   PROGRESS_TABS,
@@ -19,7 +19,7 @@ import {
   progressTotalOf,
 } from '@/lib/learn/progress/progress';
 import type { LearnProgressCounts } from '@/lib/learn/progress/progress.types';
-import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** What Your progress shows: the numbers, the view the address names and a page of its list. */
 export type ProgressScreenProps = {
@@ -80,24 +80,24 @@ function Notice({ id, children }: { id: string; children: ReactNode }) {
   );
 }
 
-/** The page's last line, on every view: the next lesson. */
+/** The page's last line, on every view: the next issue, on Learn's Issues. */
 function NextLesson() {
   return (
     <div className="border-t pt-4">
       <Link
-        href={LEARN_EARLIER_PATH}
+        href={PICK_ISSUE_PATHS.learn}
         prefetch={false}
         data-next-lesson=""
         className="inline-flex items-center gap-1 text-sm font-semibold text-link hover:underline max-sm:min-h-11"
       >
-        Pick your next lesson
+        Pick your next issue
         <ArrowRight aria-hidden="true" className="size-4" />
       </Link>
     </div>
   );
 }
 
-/** Nothing passed yet, a contributor who never used Learn too: one card and the way to a first lesson. */
+/** Nothing passed yet, a contributor who never used Learn too: one card and the way to Learn's Issues. */
 function NoLessons() {
   return (
     <section
@@ -109,11 +109,11 @@ function NoLessons() {
         No lessons yet
       </h2>
       <p className="max-w-prose text-sm text-muted-foreground">
-        Each lesson is written by your agent for an issue you pick, about that exact fix.
+        Your agent fixes an issue you pick, and the fix walkthrough teaches what it used.
       </p>
       <Button asChild className="min-h-11 px-5 font-semibold max-sm:w-full">
-        <Link href={LEARN_EARLIER_PATH} prefetch={false}>
-          Start a lesson
+        <Link href={PICK_ISSUE_PATHS.learn} prefetch={false}>
+          See the issues
           <ArrowRight aria-hidden="true" />
         </Link>
       </Button>

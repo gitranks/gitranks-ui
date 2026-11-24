@@ -60,15 +60,6 @@ export const CONTRIBUTE_SOURCES = [
   'contribute_flow_skip',
   /** Start learning, on Learn's landing. */
   'learn_landing',
-  /**
-   * The flow that starts Learn: Show issues on Your goal; Start a lesson, Take this lesson and Sign in with GitHub to see
-   * all on Pick an issue; Sign in with GitHub on Your agent.
-   */
-  'learn_flow_goal',
-  'learn_flow_issue',
-  'learn_flow_practice',
-  'learn_flow_more',
-  'learn_flow_sign_in',
   /** Your progress (its Share button) and a person's public progress page (shown). */
   'learn_progress',
   /** The workspace's own tabs: moving between them is never counted (`clickOf` drops it on every page). */
@@ -106,20 +97,10 @@ const INSIDE_SOURCES: ReadonlySet<string> = new Set<ContributeSource>([
 ]);
 
 /**
- * A click on a step of the flows that start Contribute and Learn: counted, never remembered for a later connect, which
- * keeps naming the click that led into the flow.
+ * A click on a step of the flow that starts Contribute: counted, never remembered for a later connect, which keeps
+ * naming the click that led into the flow.
  */
-export const isFlowSource = (source: string): boolean =>
-  source.startsWith('contribute_flow_') || source.startsWith('learn_flow_');
-
-/** Learn's step 3, at an issue's own start address: `/learn/start/<owner>/<repo>/<issue>`. */
-const LEARN_ISSUE_STEP = /^\/learn\/start\/[^/]+\/[^/]+\/[^/]+\/?$/;
-
-/**
- * A page's or a link's path as a report names it: Learn's step for one issue is `/learn/start/issue`, so no report
- * says which issue a visitor picked. Every other path as it is.
- */
-export const flowStepPathOf = (path: string): string => (LEARN_ISSUE_STEP.test(path) ? '/learn/start/issue' : path);
+export const isFlowSource = (source: string): boolean => source.startsWith('contribute_flow_');
 
 export const CLICK_REPORT_PATH = '/api/contribute/click';
 
@@ -219,7 +200,7 @@ export function clickOf({
   const source = own || (target ? around || 'other' : null);
   if (!source) return null;
   if (isInsidePath(pagePath) && !INSIDE_SOURCES.has(source)) return null;
-  return path ? { source, target: flowStepPathOf(path) } : { source };
+  return path ? { source, target: path } : { source };
 }
 
 const tagOf = (params: URLSearchParams, name: string) =>

@@ -45,15 +45,11 @@ import { fileURLToPath } from 'node:url';
  */
 export const ALLOWED = [
   'app/(workspace)/my/issues/[id]/page.tsx -> lib/learn/learn.data',
-  'app/(workspace)/my/settings/components/settings-pages.tsx -> app/learn/components/learn-setting-up',
   'app/(workspace)/my/settings/components/settings-pages.tsx -> components/contribute/mode-switch',
   'app/(workspace)/my/settings/components/settings-pages.tsx -> components/contribute/preferences-section',
   'app/(workspace)/my/settings/components/settings-pages.tsx -> components/contribute/set-list-screen',
   'app/(workspace)/my/settings/components/settings-pages.tsx -> components/contribute/settings-work-group',
-  'app/(workspace)/my/settings/components/settings-pages.tsx -> components/learn/learn-profile-form',
   'app/(workspace)/my/settings/components/settings-pages.tsx -> lib/contribute/set-format',
-  'app/(workspace)/my/settings/components/settings-pages.tsx -> lib/learn/learn.data',
-  'app/(workspace)/my/settings/components/settings-pages.tsx -> lib/learn/learn.types',
   'app/(workspace)/my/settings/components/settings-view.tsx -> components/learn/settings/learn-email-rows',
   'app/(workspace)/my/settings/components/settings-view.tsx -> components/learn/settings/learn-preferences-group',
   'app/(workspace)/my/settings/components/settings-view.tsx -> lib/contribute/set-format',

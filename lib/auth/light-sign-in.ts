@@ -3,19 +3,11 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import type { JWT } from 'next-auth/jwt';
 
-import {
-  isLessonResultPath,
-  MAINTAINER_RETURN_PATHS,
-  MAINTAINERS_PATH,
-  REACT_PARAM,
-  reactionParamOf,
-} from '@/lib/workspace/paths';
-import { attemptIdOf } from '@/lib/workspace/pr-feedback';
+import { MAINTAINER_RETURN_PATHS, MAINTAINERS_PATH } from '@/lib/workspace/paths';
 import { currentSessionToken } from '@/lib/workspace/session-token';
 
 /**
- * The light sign-in, site-wide: the maintainers pages (Contribute's) and a Learn result's reaction both start one, so
- * it belongs to neither side. The maintainers page lists a visitor's repositories with the GitHub token of their light
+ * The light sign-in of the maintainers pages (Contribute's). The maintainers page lists a visitor's repositories with the GitHub token of their light
  * sign-in, which the site otherwise never keeps. The page's sign-in button leaves a mark holding a random nonce, and
  * sends the sign-in back to the page with that nonce in its address. The sign-in's callback keeps the token only when
  * both agree, so a mark left by a sign-in abandoned at GitHub is never applied to another one. The token then stays in
@@ -48,21 +40,12 @@ export function maintainerSignInCookie(secure = process.env.NODE_ENV === 'produc
 /** Any local address, read against a base no address of ours has; anything else answers another origin. */
 const LOCAL_BASE = 'https://gitranks.invalid';
 
-/** The Learn maintainers page, where a Learn pull request's footer lands (`?from=`) with its reactions block. */
-const LEARN_MAINTAINERS = '/learn/maintainers';
-
-/**
- * The paths the light sign-in returns to: the maintainers page, its report page, a Learn result page and the Learn
- * maintainers page.
- */
-const isReturnPath = (pathname: string) =>
-  MAINTAINER_RETURN_PATHS.includes(pathname) || pathname === LEARN_MAINTAINERS || isLessonResultPath(pathname);
+/** The paths the light sign-in returns to: the maintainers page and its report page. */
+const isReturnPath = (pathname: string) => MAINTAINER_RETURN_PATHS.includes(pathname);
 
 /**
  * Where the page's sign-in may return to: `returnTo` when it is one of the maintainers page's own paths (its query
- * kept, any nonce in it dropped), a Learn result page (only its `?react=yes|no` kept) or the Learn maintainers page
- * (only its `?from=` and `?react=yes|no` kept), else the maintainers page.
- * Never another path or another site.
+ * kept, any nonce in it dropped), else the maintainers page. Never another path or another site.
  */
 export function maintainerReturnOf(returnTo: unknown): URL {
   const fallback = new URL(MAINTAINERS_PATH, LOCAL_BASE);
@@ -71,20 +54,6 @@ export function maintainerReturnOf(returnTo: unknown): URL {
     const url = new URL(returnTo, LOCAL_BASE);
     if (url.origin !== LOCAL_BASE || !isReturnPath(url.pathname)) return fallback;
     url.hash = '';
-    if (isLessonResultPath(url.pathname)) {
-      const reaction = reactionParamOf(url.searchParams.get(REACT_PARAM));
-      url.search = '';
-      if (reaction) url.searchParams.set(REACT_PARAM, reaction.toLowerCase());
-      return url;
-    }
-    if (url.pathname === LEARN_MAINTAINERS) {
-      const from = attemptIdOf(url.searchParams.get('from'));
-      const reaction = reactionParamOf(url.searchParams.get(REACT_PARAM));
-      url.search = '';
-      if (from) url.searchParams.set('from', from);
-      if (from && reaction) url.searchParams.set(REACT_PARAM, reaction.toLowerCase());
-      return url;
-    }
     url.searchParams.delete(NONCE_PARAM);
     return url;
   } catch {

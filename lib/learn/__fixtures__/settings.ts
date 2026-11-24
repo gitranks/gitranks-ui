@@ -1,4 +1,4 @@
-import type { LearnEmailSettings } from '../settings';
+import type { LearnEmailSettings, LearnIssuesEmailSetting } from '../settings';
 
 /** Learn's email settings as page 23's boards draw them. */
 export const learnEmail = {
@@ -21,3 +21,10 @@ export const BOARD_ZONES = [
   'America/New_York',
   'America/Los_Angeles',
 ];
+
+/** "New issues for you": off as it starts, on for the person's list, and on for the lessons they learned. */
+export const learnIssuesEmail: Record<'off' | 'forYou' | 'learned', LearnIssuesEmailSetting> = {
+  off: { on: false, cover: null },
+  forYou: { on: true, cover: 'FOR_YOU' },
+  learned: { on: true, cover: 'LEARNED' },
+};

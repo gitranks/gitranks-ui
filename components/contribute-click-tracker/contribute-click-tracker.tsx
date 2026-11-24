@@ -12,7 +12,6 @@ import {
   type Entry,
   entryOf,
   firstEntryOf,
-  flowStepPathOf,
   isFlowSource,
   isLanding,
   type LearnEvent,
@@ -44,14 +43,10 @@ function keepFirstEntry(entry: Entry) {
   }
 }
 
-/** Sends one report, its paths as reports name them (`flowStepPathOf`). */
+/** Sends one report. */
 function send(report: ClickReport) {
   try {
-    const body = JSON.stringify({
-      ...report,
-      path: flowStepPathOf(report.path),
-      ...(report.target ? { target: flowStepPathOf(report.target) } : {}),
-    });
+    const body = JSON.stringify(report);
     if (typeof navigator.sendBeacon === 'function') {
       if (navigator.sendBeacon(CLICK_REPORT_PATH, new Blob([body], { type: 'application/json' }))) return;
     }
@@ -164,7 +159,7 @@ export function ContributeClickTracker() {
       });
       if (!click) return;
 
-      const path = flowStepPathOf(window.location.pathname);
+      const path = window.location.pathname;
       send({ kind: 'click', path, ...click, ...entryNow() });
       // A step of a flow is counted, but the connect keeps naming the click that led into the flow.
       if (isFlowSource(click.source)) return;

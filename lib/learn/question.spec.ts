@@ -1,16 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { CAUSE_HINT, CAUSE_QUESTION, FIX_QUESTION, FIX_WHY, STEPS, WARMUP } from './__fixtures__/lesson';
-import {
-  answeredCountOf,
-  DONT_KNOW,
-  optionsOf,
-  partsLabelOf,
-  pickOf,
-  shownOptionsOf,
-  stepResultLabel,
-  warmupAnswersOf,
-} from './question';
+import { CAUSE_QUESTION, FIX_QUESTION, STEPS, WARMUP } from './__fixtures__/lesson';
+import { DONT_KNOW, optionsOf, partsLabelOf, pickOf } from './question';
 
 describe("a lesson's question", () => {
   it('takes one pick for a single-answer question, any for a multi-answer one', () => {
@@ -29,41 +20,8 @@ describe("a lesson's question", () => {
     expect(pickOf(multi, [DONT_KNOW], 'w1a', true)).toEqual(['w1a']);
   });
 
-  it('shows every option before it is checked, the picked ones marked', () => {
-    const shown = shownOptionsOf(CAUSE_QUESTION.options, ['q2a2'], null);
-    expect(shown.map(({ mark }) => mark)).toEqual(['plain', 'picked', 'plain']);
-    expect(shown.every(({ why }) => why === null)).toBe(true);
-  });
-
-  it('after a wrong answer, shows only the picks with why they are not right, never the right answer', () => {
-    const shown = shownOptionsOf(CAUSE_QUESTION.options, ['q2a1'], { correct: false, why: CAUSE_HINT });
-    expect(shown).toEqual([
-      expect.objectContaining({ mark: 'hint', why: CAUSE_HINT[0].why, option: CAUSE_QUESTION.options[0] }),
-    ]);
-  });
-
-  it('after a right answer, shows every option with its why, the right ones marked', () => {
-    const shown = shownOptionsOf(FIX_QUESTION.options, ['q3a1', 'q3a3'], { correct: true, why: FIX_WHY });
-    expect(shown.map(({ mark }) => mark)).toEqual(['right', 'plain', 'right', 'plain']);
-    expect(shown.map(({ why }) => why)).toEqual(FIX_WHY.map(({ why }) => why));
-    expect(shown.map(({ picked }) => picked)).toEqual([true, false, true, false]);
-  });
-
-  it('sends the warm-up with every question answered: unanswered and "I don\'t know yet" alike', () => {
-    expect(warmupAnswersOf(WARMUP, { w1: ['w1a'], w2: [DONT_KNOW] })).toEqual([
-      { questionId: 'w1', picked: ['w1a'], dontKnow: false },
-      { questionId: 'w2', picked: [], dontKnow: true },
-      { questionId: 'w3', picked: [], dontKnow: true },
-    ]);
-    expect(answeredCountOf({ w1: ['w1a'], w2: [DONT_KNOW], w3: [] }, WARMUP)).toBe(2);
-    // A question reported away no longer counts.
-    expect(answeredCountOf({ w1: ['w1a'], w2: [DONT_KNOW] }, WARMUP.slice(1))).toBe(1);
-  });
-
-  it('names what a step covers, and how it went', () => {
+  it('names what a step covers', () => {
     expect(STEPS.map(partsLabelOf)).toEqual(['Before', 'Cause', 'The fix', 'How it connects', 'Deep dive']);
     expect(partsLabelOf({ parts: ['before', 'cause'] })).toBe('Before and cause');
-    expect(stepResultLabel({ stepId: 's1', state: 'TRY_N', tries: 3 })).toBe('Passed on try 3');
-    expect(stepResultLabel({ stepId: 's1', state: 'KNEW', tries: 0 })).toBe('Knew it before');
   });
 });

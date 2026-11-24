@@ -54,7 +54,7 @@ const LEARNER_BAR: LearnBarState = { kind: 'learner', due: 6, pullRequests: fals
 const VISITOR_BAR: LearnBarState = { kind: 'visitor' };
 
 /** One state: its name, then Learn's bar with Progress current and the page, cut at `height`. */
-function ProgressFrame({
+export function ProgressFrame({
   title,
   height,
   bar = LEARNER_BAR,

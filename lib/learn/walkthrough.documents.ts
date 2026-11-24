@@ -53,9 +53,12 @@ export const LearnFixAddressDocument = doc<{ learnFixAddress: unknown }, { ref: 
 }`,
 );
 
-/** Where a lesson's result page now is: a person's answers on the fix's page, by the lesson and the login. */
-export const LearnFixAddressBySlugDocument = doc<{ learnFixAddress: unknown }, { slug: string; login: string }>(
-  `query LearnFixAddressBySlug($slug: String!, $login: String!) {
+/**
+ * Where a walkthrough's old address now is, by its slug: with a login, that person's answers on the fix's page (an old
+ * result page); without, the fix's page.
+ */
+export const LearnFixAddressBySlugDocument = doc<{ learnFixAddress: unknown }, { slug: string; login: string | null }>(
+  `query LearnFixAddressBySlug($slug: String!, $login: String) {
   learnFixAddress(slug: $slug, login: $login) { state owner repo number login }
 }`,
 );

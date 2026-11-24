@@ -7,8 +7,7 @@ import { RunStepsList } from '@/components/workspace/run-steps';
 import { IssueStartsProvider } from '@/components/workspace/start-control';
 import { activityOf, runOf } from '@/lib/contribute/__fixtures__/agent-runs';
 import { issue } from '@/lib/contribute/__fixtures__/contribute-overview';
-import { issueRowOfContribute, issueRowOfLearn } from '@/lib/workspace/issue-row';
-import { startIssue } from '@/lib/workspace/start/__fixtures__/start-page';
+import { issueRowOfContribute } from '@/lib/workspace/issue-row';
 import { ISSUE_START_FAILED, issueStartRefusalOf } from '@/lib/workspace/start-refusals';
 
 /** The parts the two front tabs share, before a page places them: in a plain container. */
@@ -55,18 +54,6 @@ const contributeRows = (props: Partial<IssueRowProps> = {}, picks = PICKS) =>
       )),
     ),
   );
-
-const LESSONS = [
-  startIssue,
-  {
-    ...startIssue,
-    issueId: 'I_9',
-    repo: 'calendarist/cal',
-    number: 102,
-    title: 'Week starts on Sunday for en-GB',
-    size: 'M',
-  },
-].map(issueRowOfLearn);
 
 const refused = (refusal: Parameters<typeof issueStartRefusalOf>[0]['refusal'], patch = {}) =>
   issueStartRefusalOf(
@@ -154,20 +141,6 @@ export const WORKSPACE_PART_SCREENS: Screen[] = [
         render: () => contributeRows({ agents: { hosted: false, own: false } }),
       },
       {
-        id: 'learn',
-        title: 'Learn: Start a lesson, never a menu',
-        path: '/learn/earlier',
-        height: 360,
-        render: () =>
-          frame(
-            list(
-              LESSONS.map((row, index) => (
-                <IssueRow key={row.issueId} issue={row} side="learn" agents={BOTH} primary={index === 0} />
-              )),
-            ),
-          ),
-      },
-      {
         id: 'refusals',
         title: "A hosted Start refused: the row's sentence and its one next step",
         path: '/contribute',
@@ -233,16 +206,6 @@ export const WORKSPACE_PART_SCREENS: Screen[] = [
                 own: { note: 'Claude Code' },
               }}
             />,
-          ),
-      },
-      {
-        id: 'learn',
-        title: 'Learn: the own agent writing a lesson',
-        path: '/learn/earlier',
-        height: 320,
-        render: () =>
-          frame(
-            <RightNow side="learn" activity={activityOf(working, lesson)} notes={{ own: { note: 'Claude Code' } }} />,
           ),
       },
       {

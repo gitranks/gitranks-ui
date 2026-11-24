@@ -4,17 +4,10 @@ import { GITHUB_LOGIN as LOGIN, LESSON_SLUG as SLUG } from '@/lib/workspace/path
 
 /** Learn home for a signed-in learner; the landing for everyone else. */
 export const LEARN_PATH = '/learn' as Route;
-/**
- * The way Learn worked before its courses: your agent fixes an issue and you take a lesson on the fix. Not indexed and
- * not in Learn's bar; Learn's new pages lead to Issues instead.
- */
-export const LEARN_EARLIER_PATH = '/learn/earlier' as Route;
-/** The earlier page's practice lessons: a state without the section shows its top. */
-export const LEARN_PRACTICE_PATH = `${LEARN_EARLIER_PATH}#practice` as Route;
 /** How Learn works: the landing, for a learner. */
 export const LEARN_ABOUT_PATH = '/learn/about' as Route;
-/** What a Learn pull request is, for maintainers. Open to everyone. */
-export const LEARN_MAINTAINERS_PATH = '/learn/maintainers' as Route;
+/** What a Learn pull request is, for maintainers: the part about Learn of the page for maintainers. Open to everyone. */
+export const LEARN_MAINTAINERS_PATH = '/contribute/maintainers#learn' as Route;
 
 /** Matches the path, decoded as the router reads it, against `pattern`; a path that does not decode never matches. */
 function decodedMatches(pathname: string, pattern: RegExp): boolean {
@@ -40,12 +33,7 @@ export function isLearnPath(pathname: string): boolean {
 /** How Learn works, `/learn/about`, in any spelling the router reads as it. */
 export const isLearnAboutPath = (pathname: string): boolean => decodedMatches(pathname, /^\/+learn\/+about\/?$/i);
 
-const SLUG_RE = new RegExp(`^${SLUG}$`);
 const LOGIN_RE = new RegExp(`^${LOGIN}$`);
-
-/** The slug when it has a slug's shape; null for anything else. */
-export const lessonSlugOf = (value: unknown): string | null =>
-  typeof value === 'string' && SLUG_RE.test(value) ? value : null;
 
 /** The login when it has a GitHub login's shape; null for anything else. */
 export const githubLoginOf = (value: unknown): string | null =>
@@ -67,18 +55,6 @@ const PUBLIC_PROGRESS_ROUTE = new RegExp(`^/learn/progress/(${LOGIN})/?$`);
 /** The login of a path as `publicProgressPath` writes it (a trailing slash allowed); null for any other path. */
 export function publicProgressRouteOf(pathname: string): string | null {
   return PUBLIC_PROGRESS_ROUTE.exec(pathname)?.[1] ?? null;
-}
-
-const RESULT_JSON_PATH = new RegExp(`^/learn/lessons/(${SLUG})/passes/(${LOGIN})\\.json$`);
-
-/**
- * Where `/learn/lessons/<slug>/passes/<login>.json` is answered: the route handler over the result page's read (a page
- * and a route handler cannot share the `[login]` segment). Null for any other path. A login holds no dot, so the
- * ending is never part of one.
- */
-export function lessonResultJsonRouteOf(pathname: string): string | null {
-  const match = RESULT_JSON_PATH.exec(pathname);
-  return match ? `/api/learn/lessons/${match[1]}/passes/${match[2]}` : null;
 }
 
 const LESSON_PAGE_ROUTE = new RegExp(`^/learn/lessons/(${SLUG})/?$`);

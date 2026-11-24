@@ -1,7 +1,6 @@
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from './site';
 import type { LearnCourseCard } from '@/lib/learn/course';
-import type { PublicLesson } from '@/lib/learn/learn.types';
-import { LEARN_MAINTAINERS_PATH, LEARN_PATH, lessonPath } from '@/lib/learn/learn-path';
+import { LEARN_MAINTAINERS_PATH, LEARN_PATH } from '@/lib/learn/learn-path';
 import {
   courseMarkdownPath,
   LEARN_COURSES_MARKDOWN_PATH,
@@ -17,9 +16,6 @@ import {
   registryOf,
 } from '@/lib/packages/registries';
 import { packageRankingPath } from '@/utils/package-paths';
-
-/** The most recent public lessons llms.txt names. */
-export const LLMS_TXT_LESSONS = 20;
 
 /**
  * A registry's lines in the packages section: its rankings (by downloads in its own unit; by dependents alone where it
@@ -45,16 +41,14 @@ function registryPackageLines(registry: RegistryId, url: (path: string) => strin
  * The site's llms.txt (llmstxt.org): an H1, a one-line summary, then link sections. Top-level pages alone, never a
  * per-profile URL. `contribute`: Contribute is launched, so its pages for agents and its pull request timelines are listed. The packages section
  * lists the package rankings, the address patterns of a package's page and a repository's Used by tab, and the Unsung
- * heroes archive. Learn's pages are listed with its courses (`learnCourses`, each with its Markdown copy) and its most
- * recent public lessons of a fix (`learn`, newest first, at most `LLMS_TXT_LESSONS`).
+ * heroes archive. Learn's pages are listed with its courses (`learnCourses`, each with its Markdown copy), and its page
+ * for maintainers with Contribute.
  */
 export function llmsTxtOf({
   contribute,
-  learn = [],
   learnCourses = [],
 }: {
   contribute: boolean;
-  learn?: readonly PublicLesson[];
   learnCourses?: readonly Pick<LearnCourseCard, 'slug' | 'name' | 'covers'>[];
 }): string {
   const url = (path: string) => `${SITE_URL}${path}`;
@@ -90,13 +84,8 @@ export function llmsTxtOf({
       (course) =>
         `- [${oneLine(course.name)}](${url(courseMarkdownPath(course.slug))}): ${oneLine(course.covers) || 'a course of GitRanks Learn'}`,
     ),
-    `- [For maintainers](${url(LEARN_MAINTAINERS_PATH)}): what a Learn pull request is`,
-    ...learn
-      .slice(0, LLMS_TXT_LESSONS)
-      .map(
-        (lesson) =>
-          `- [${oneLine(lesson.title)}](${url(lessonPath(lesson.slug))}): a lesson on a fix${lesson.repo ? ` in ${oneLine(lesson.repo)}` : ''}${lesson.language ? ` (${oneLine(lesson.language)})` : ''}`,
-      ),
+    // The page for maintainers is Contribute's, so it is listed with Contribute.
+    ...(contribute ? [`- [For maintainers](${url(LEARN_MAINTAINERS_PATH)}): what a Learn pull request is`] : []),
     '',
   );
   lines.push(

@@ -5,7 +5,12 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { setSkillsHiddenAction } from '@/app/profile/[login]/components/skills-hidden.actions';
-import { LearnEmailFailedRow, LessonsToRepeatRow, TimeZoneRow } from '@/components/learn/settings/learn-email-rows';
+import {
+  LearnEmailFailedRow,
+  LessonsToRepeatRow,
+  NewIssuesRow,
+  TimeZoneRow,
+} from '@/components/learn/settings/learn-email-rows';
 import { LearnPreferencesGroup } from '@/components/learn/settings/learn-preferences-group';
 import { SkillsPrivacyGroup } from '@/components/skills/skills-privacy-group';
 import { PageTitle } from '@/components/workspace/primitives';
@@ -16,8 +21,8 @@ import { SettingsAnchors } from '@/components/workspace/settings/settings-anchor
 import { SettingsGroup, SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
 import { modeTitleOf } from '@/lib/contribute/set-format';
 import { preferencesSummaryOf } from '@/lib/contribute/work-summary';
-import type { LearnEmailSettings } from '@/lib/learn/settings';
-import { loadLearnEmailSettings, loadLearnSetupForSettings } from '@/lib/learn/settings.data';
+import type { LearnEmailSettings, LearnIssuesEmailSetting } from '@/lib/learn/settings';
+import { loadLearnEmailSettings, loadLearnIssuesEmail, loadLearnSetupForSettings } from '@/lib/learn/settings.data';
 import type { LearnSetupRead } from '@/lib/learn/setup';
 import { loadSkillsMine } from '@/lib/skills/skills.data';
 import { openPrsOverrideOf } from '@/lib/workspace/access-limits';
@@ -77,15 +82,16 @@ async function loadPrivacyGroup(): Promise<ReactNode> {
   return <SkillsPrivacyGroup login={githubLogin} mine={mine} setHidden={setSkillsHiddenAction} />;
 }
 
-/** Learn's two reads for its rows, each the person's own; none signed out. */
+/** Learn's reads for its rows, each the person's own; none signed out. */
 async function loadLearnRows() {
   const githubLogin = await viewerLogin();
-  if (!githubLogin) return { setup: null, email: null };
-  const [setup, email] = await Promise.all([
+  if (!githubLogin) return { setup: null, email: null, issues: null };
+  const [setup, email, issues] = await Promise.all([
     loadLearnSetupForSettings(githubLogin),
     loadLearnEmailSettings(githubLogin),
+    loadLearnIssuesEmail(githubLogin),
   ]);
-  return { setup, email };
+  return { setup, email, issues };
 }
 
 export async function SettingsView({
@@ -124,6 +130,7 @@ export async function SettingsView({
       learnSetupFailed={learn.setup === undefined}
       learnEmail={learn.email ?? null}
       learnEmailFailed={learn.email === undefined}
+      learnIssuesEmail={learn.issues}
       openPrs={counts?.prBound}
       privacy={privacy}
     />
@@ -262,9 +269,9 @@ function LimitsGroup({ view, openPrs }: { view: ContributeView; openPrs?: number
  * From Learn: Learn preferences, Email, Agent and GitHub, Limits, then Contribute preferences; from Contribute:
  * Contribute preferences, Agent and GitHub, Limits, Email, then Learn preferences. Privacy, then Delete all data,
  * last. A product's group shows only to someone who uses it (Learn's, to everyone; Contribute's, to all but
- * someone who only learns). In Email, Learn's "Lessons to repeat" comes first from Learn and after Contribute's rows from Contribute; the
- * time zone is last. Each row opens the page it is changed on; the Email rows change on the page itself. Old links to
- * a section go on to where it is now (`SettingsAnchors`).
+ * someone who only learns). In Email, Learn's "Lessons to repeat" and "New issues for you" come first from Learn and
+ * after Contribute's rows from Contribute; the time zone is last. Each row opens the page it is changed on; the Email
+ * rows change on the page itself. Old links to a section go on to where it is now (`SettingsAnchors`).
  */
 export function SettingsScreen({
   view,
@@ -278,6 +285,7 @@ export function SettingsScreen({
   learnSetupFailed = false,
   learnEmail = null,
   learnEmailFailed = false,
+  learnIssuesEmail = null,
   openPrs,
   privacy = null,
 }: {
@@ -302,6 +310,8 @@ export function SettingsScreen({
   learnEmail?: LearnEmailSettings | null;
   /** Learn's email settings did not load: a line in Email says so. */
   learnEmailFailed?: boolean;
+  /** "A new issue for you": its row is drawn only when this read answered. */
+  learnIssuesEmail?: LearnIssuesEmailSetting | null;
   /** The pull requests that count against the limit now. */
   openPrs?: number;
   /** The group "Privacy": who can see the person's Skills page. */
@@ -317,7 +327,13 @@ export function SettingsScreen({
   let lessons: ReactNode = null;
   let zone: ReactNode = null;
   if (learnEmail) {
-    lessons = <LessonsToRepeatRow on={learnEmail.lessonsToRepeat} noAddress={!!email && !email.to} />;
+    const noAddress = !!email && !email.to;
+    lessons = (
+      <>
+        <LessonsToRepeatRow on={learnEmail.lessonsToRepeat} noAddress={noAddress} />
+        {learnIssuesEmail ? <NewIssuesRow setting={learnIssuesEmail} noAddress={noAddress} /> : null}
+      </>
+    );
     zone = <TimeZoneRow settings={learnEmail} savedZone={email ? email.timeZone : undefined} />;
   } else if (learnEmailFailed) {
     zone = <LearnEmailFailedRow />;

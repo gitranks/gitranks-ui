@@ -64,7 +64,6 @@ describe('the old workspace addresses', () => {
     ['/contribute/settings/agent', '/my/agent/model'],
     ['/contribute/settings/keys', '/my/agent/key'],
     ['/contribute/settings/keys?grant=unavailable', '/my/settings/github?grant=unavailable'],
-    ['/learn/profile', '/my/settings/goal'],
     ['/contribute/settings/own-agent', '/my/agent'],
     ['/Contribute/Me', '/my/pull-requests'],
     ['/contribute/attempts/A_1', '/my/pull-requests/by-attempt/A_1'],
@@ -84,6 +83,7 @@ describe('the old workspace addresses', () => {
     ['/contribute?start=key', '/contribute/start/agent/key?start=key'],
     ['/contribute?about=1', '/contribute/about?about=1'],
     ['/contribute/?about=1', '/contribute/about?about=1'],
+    ['/learn/profile', '/learn/setup'],
   ])('%s goes on to %s, for now (307)', (from, to) => {
     expect(redirectOf(from)).toEqual({ location: to, status: 307 });
   });
@@ -104,6 +104,8 @@ describe('the old workspace addresses', () => {
       '/learn/lessons/a-lesson-1x',
       '/learn/lessons/a-lesson-1x/passes/octocat',
       '/learn/start/acme/widgets/42',
+      '/learn/start/issues/more',
+      '/my/progress',
       '/my/pull-requests',
     ]) {
       expect(redirectOf(address), address).toBeNull();
@@ -158,5 +160,25 @@ describe("a pull request's old Lesson view", () => {
     expect(redirectOf('/my/pull-requests/acme/widgets/42/walkthrough')).toBeNull();
     expect(redirectOf('/my/pull-requests/acme/widgets/42/earlier/A_1')).toBeNull();
     expect(redirectOf('/my/pull-requests/acme/widgets/42/runs/R_1')).toBeNull();
+  });
+});
+
+describe('Learn’s pages that went away', () => {
+  it.each([
+    ['/learn/earlier', '/learn/issues'],
+    ['/learn/earlier/', '/learn/issues'],
+    ['/learn/earlier?language=go', '/learn/issues?language=go'],
+    ['/learn/start/issues', '/learn/issues'],
+    ['/learn/start/issues/', '/learn/issues'],
+    ['/learn/start', '/learn/setup'],
+    ['/learn/start/', '/learn/setup'],
+    ['/learn/start?language=TypeScript&level=1', '/learn/setup?language=TypeScript&level=1'],
+    ['/my/settings/goal', '/learn/setup'],
+    ['/my/settings/goal/', '/learn/setup'],
+    ['/learn/maintainers', '/contribute/maintainers#learn'],
+    ['/learn/maintainers/', '/contribute/maintainers#learn'],
+    ['/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0', '/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0#learn'],
+  ])('%s goes on to %s, for good (308)', (from, to) => {
+    expect(redirectOf(from)).toEqual({ location: to, status: 308 });
   });
 });

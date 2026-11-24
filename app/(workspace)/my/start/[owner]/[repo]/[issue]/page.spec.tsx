@@ -113,7 +113,7 @@ describe('the Start page at /my/start', () => {
 
   it("sends an account that has not entered where the gate says, and moves on to the viewer's attempt", async () => {
     gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false });
-    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /learn/start/driftwood-js/driftwood/934');
+    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /contribute/start');
     gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false });
     await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /contribute/start');
     start.loadStartPageView.mockResolvedValueOnce({ kind: 'claimed', href: '/my/pull-requests/by-attempt/A_9' });

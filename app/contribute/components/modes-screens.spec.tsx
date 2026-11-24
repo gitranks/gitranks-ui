@@ -3,6 +3,8 @@ import type { ComponentProps } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction: vi.fn() }));
+
 vi.mock('@/lib/workspace/masked-issue.actions', () => ({
   lookAtIssue: vi.fn(),
   signInToSeeIssue: vi.fn(),

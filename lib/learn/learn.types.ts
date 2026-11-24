@@ -2,8 +2,6 @@
 
 import type { LessonBlock } from '@/lib/workspace/blocks/block.types';
 import type { ContributeAttemptEvent, ContributeAttemptState } from '@/lib/workspace/contribute.types';
-import type { MaskedAnswer } from '@/lib/workspace/masked-answer';
-import type { StartIssueRow } from '@/lib/workspace/start/start-page.types';
 
 export type {
   LessonBlock,
@@ -86,18 +84,6 @@ export type LessonHead = {
   topics: string[];
 };
 
-/** A public lesson whose page is open, as its page shows it to anyone: the sitemaps' and the pages for agents' list. */
-export type PublicLesson = {
-  slug: string;
-  title: string;
-  language: string | null;
-  /** `owner/name` of the repository the fix is in. */
-  repo: string | null;
-  publishedAt: string;
-  /** When the page's content last changed. */
-  modifiedAt: string;
-};
-
 export type LessonStepResult = { stepId: string; state: LessonStepState; tries: number };
 export type LessonWhy = { optionId: string; correct: boolean; why: string };
 export type LessonRunQuestion = {
@@ -178,48 +164,8 @@ export type LearnProfile = {
   updatedAt: string | null;
 };
 
-export type LearnLevelInput = { language: string; level: number };
-export type LearnProfileInput = {
-  goalKind: LearnGoalKind;
-  goalValue: string;
-  levels: LearnLevelInput[];
-  focus: LearnFocus[];
-};
-
-/** A maintainer's answer to "Did this help you review the pull request?". */
-export type LessonReaction = 'YES' | 'NO';
-
-/** An option with its key: shown on a result page, where the kind allows it. */
-export type LessonOptionKeyed = { id: string; text: string; correct: boolean; why: string };
-export type LessonQuestionKeyed = Omit<LessonQuestion, 'options'> & { options: LessonOptionKeyed[] };
-
 /** A lesson anyone with the link may read: its head and every step, never a question's key. */
 export type LessonPage = { __typename: 'LessonPage'; head: LessonHead; steps: LessonStep[] };
-
-/** A lesson that is not public: its visibility alone, no title, author or subject. */
-export type LessonStub = { __typename: 'LessonStub'; visibility: LessonVisibility };
-
-/** A signed-in reaction on a result page; `role` is the person's role on the repository (maintainer, collaborator). */
-export type LessonResultReaction = { login: string; role: string; reaction: LessonReaction };
-
-/** One login's passed run of a lesson, as anyone may read it: the proof of a pass. */
-export type LessonResultPage = {
-  __typename: 'LessonResultPage';
-  head: LessonHead;
-  /** The GitHub account's current login. */
-  login: string;
-  /** The login when the run passed. */
-  loginAtPass: string;
-  githubId: number;
-  version: number;
-  passedAt: string;
-  minutes: number;
-  steps: LessonStep[];
-  results: LessonStepResult[];
-  /** The step questions the run was asked, with their key; empty when the kind keeps its key. */
-  asked: LessonQuestionKeyed[];
-  reactions: LessonResultReaction[];
-};
 
 /** A login's Learn record, from their public passes: lessons, topics learned, pull requests opened and merged. */
 /**
@@ -237,73 +183,8 @@ export type LearnRecord = {
   reposHelped: number;
 };
 
-/** A saved Learn goal, as the issues for it name it: `kind` is language, project or domain; `level` its level's name. */
-export type LearnGoalView = { kind: string; value: string; level: string | null };
-
-/**
- * Why the issues for the goal are empty: none fit it today, Learn can't find issues for it, or GitHub's titles could not
- * be read.
- */
-export type LearnIssuesEmpty = 'NONE_TODAY' | 'GOAL_UNSUPPORTED' | 'UNREAD';
-
-/** An open issue a lesson can be written for: picked from the ready issues for the viewer's goal. */
-export type LearnIssue = StartIssueRow;
-
-/** An issue of a language's day list for visitors: as Learn's own list words it, without its node id. */
-export type LearnPublicIssue = Omit<LearnIssue, 'issueId'>;
-
-/** A language's day list for visitors: a short list, the same for every visitor that day. */
-export type LearnPublicIssues = {
-  /** The language, as GitHub names it. */
-  language: string;
-  items: LearnPublicIssue[];
-  /** The language's ready issues, approximate: said as "about". */
-  total: number;
-};
-
-/** An issue of a visitor's day list as the API answers it: a masked one may leave the fields that name it null. */
-export type LearnPublicIssueAnswer = MaskedAnswer<LearnPublicIssue, 'url' | 'repo' | 'number' | 'title' | 'why'>;
-
-/** A visitor's day list as the API answers it, before its masked rows are stripped. */
-export type LearnPublicIssuesAnswer = Omit<LearnPublicIssues, 'items'> & { items: LearnPublicIssueAnswer[] };
-
-/** The limit that leaves the viewer no room for a new claim: `attempts_at_a_time` or `open_prs_at_a_time`. */
-export type LearnRoom = { limit: string; value: number };
-
-/** The issues for the viewer's goal, with why there are none and whether they have room to start one. */
-export type LearnIssues = {
-  /** Null when no goal is saved. */
-  goal: LearnGoalView | null;
-  items: LearnIssue[];
-  /** The list's length before `first`. */
-  total: number;
-  /** Null whenever `total` is above 0, and with no goal. */
-  empty: LearnIssuesEmpty | null;
-  /** Null when the viewer has room for a new claim. */
-  room: LearnRoom | null;
-};
-
 /** Who a lesson was written for: their goal's kind and value, and their level's name. */
 export type LessonWrittenFor = { kind: string; value: string; level: string };
-
-/** Another learner's finished lesson for the same goal, offered as practice. */
-export type PracticeLesson = {
-  slug: string;
-  title: string;
-  repo: string | null;
-  issue: number | null;
-  issueTitle: string | null;
-  language: string | null;
-  author: LessonAuthor;
-  writtenFor: LessonWrittenFor;
-  publishedAt: string;
-  passes: number;
-  topics: string[];
-  steps: number;
-  minutes: number;
-};
-
-export type PracticeLessons = { items: PracticeLesson[]; total: number };
 
 export type LearnPrState = 'OPEN' | 'MERGED' | 'CLOSED';
 
@@ -328,18 +209,3 @@ export type MyLearnAttempt = {
   /** The bound lesson's length in minutes; null before a lesson is bound. */
   lessonMinutes: number | null;
 };
-
-/** The viewer's newest Learn attempt in progress, and their newest one's pull request opened in the last 14 days. */
-export type MyLearnAttempts = { current: MyLearnAttempt | null; lastPullRequest: MyLearnAttempt | null };
-
-/**
- * What a passed practice lesson offers next: the viewer's own lesson in progress, or the first issues for their goal
- * (`issues.goal` null: no goal saved yet). Null parts were not read.
- */
-/** An issue for the viewer's goal as the API answers it: a masked one may leave the fields that name it null. */
-export type LearnIssueAnswer = MaskedAnswer<LearnIssue, 'issueId' | 'url' | 'repo' | 'number' | 'title' | 'why'>;
-
-/** The issues for the viewer's goal as the API answers them, before their masked rows are stripped. */
-export type LearnIssuesAnswer = Omit<LearnIssues, 'items'> & { items: LearnIssueAnswer[] };
-
-export type PracticeNext = { current: MyLearnAttempt | null; issues: LearnIssues | null };

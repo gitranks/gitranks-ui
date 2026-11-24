@@ -4,6 +4,16 @@ import { signIn } from 'next-auth/react';
 import { type Ref, useCallback, useEffect, useRef, useState } from 'react';
 
 import {
+  FixesLine,
+  FixesList,
+  NoFixes,
+  NoWalkthroughs,
+  ViewListFailed,
+  ViewListPending,
+  WalkthroughsLine,
+  WalkthroughsList,
+} from './my-progress-fixes';
+import {
   CoursesLine,
   CoursesList,
   DaysBoxView,
@@ -36,7 +46,19 @@ import {
   type MyProgressView,
   myProgressPath,
 } from '@/lib/learn/my-progress';
-import { LEARN_MY_PROGRESS_MINE_PATH, learnHistoryMinePath } from '@/lib/learn/paths';
+import {
+  type MyFixRow,
+  type MyWalkthroughRow,
+  myFixesOf,
+  myWalkthroughsOf,
+  type NoFixEnd,
+} from '@/lib/learn/my-progress-fixes';
+import {
+  LEARN_MY_FIXES_MINE_PATH,
+  LEARN_MY_PROGRESS_MINE_PATH,
+  LEARN_MY_WALKTHROUGHS_MINE_PATH,
+  learnHistoryMinePath,
+} from '@/lib/learn/paths';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** The person's progress and today's date as the API counts days, when the route knows it. */
@@ -70,6 +92,98 @@ export async function readHistory(before: string | null): Promise<LearnHistory |
   } catch {
     return null;
   }
+}
+
+/** "Your fixes" as its route answers it, with what its empty end needs. */
+export type MyFixesRead = { fixes: MyFixRow[]; end: NoFixEnd };
+
+const NO_END: NoFixEnd = { openIssues: null, email: null };
+
+function endOf(value: unknown): NoFixEnd {
+  const raw = value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+  if (!raw) return NO_END;
+  const count = raw.openIssues;
+  const email = raw.email && typeof raw.email === 'object' ? (raw.email as Record<string, unknown>) : null;
+  return {
+    openIssues: typeof count === 'number' && count > 0 ? count : null,
+    email:
+      email && typeof email.emailOn === 'boolean'
+        ? { emailOn: email.emailOn, emailTo: typeof email.emailTo === 'string' ? email.emailTo : null }
+        : null,
+  };
+}
+
+/** The person's fixes from their route; as `readMyProgress` answers. */
+export async function readMyFixes(): Promise<MyFixesRead | 'signed-out' | null> {
+  try {
+    const res = await fetch(LEARN_MY_FIXES_MINE_PATH, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const { fixes, end, signedOut } = (await res.json()) as { fixes?: unknown; end?: unknown; signedOut?: boolean };
+    if (signedOut === true) return 'signed-out';
+    const rows = myFixesOf(fixes);
+    return rows ? { fixes: rows, end: endOf(end) } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** "Walkthroughs" as its route answers it, with how many merged fixes have one for its empty end. */
+export type MyWalkthroughsRead = { walkthroughs: MyWalkthroughRow[]; fixes: number | null };
+
+/** The walkthroughs the person passed, from their route; as `readMyProgress` answers. */
+export async function readMyWalkthroughs(): Promise<MyWalkthroughsRead | 'signed-out' | null> {
+  try {
+    const res = await fetch(LEARN_MY_WALKTHROUGHS_MINE_PATH, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const { walkthroughs, fixes, signedOut } = (await res.json()) as {
+      walkthroughs?: unknown;
+      fixes?: unknown;
+      signedOut?: boolean;
+    };
+    if (signedOut === true) return 'signed-out';
+    const rows = myWalkthroughsOf(walkthroughs);
+    return rows ? { walkthroughs: rows, fixes: typeof fixes === 'number' && fixes > 0 ? fixes : null } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A view's list as the page holds it: on its way, not loaded, or read. */
+export type ViewList<T> = { kind: 'pending' } | { kind: 'failed' } | { kind: 'ready'; read: T };
+
+/**
+ * A view's list, read the first time its view is shown once the progress is in, and kept: switching views keeps what
+ * was read. "Try again" reads it once more; a session that ended says so to the page.
+ */
+function useViewList<T>(
+  shown: boolean,
+  read: () => Promise<T | 'signed-out' | null>,
+  onSignedOut: () => void,
+): { list: ViewList<T> | null; reload: () => void } {
+  const [list, setList] = useState<ViewList<T> | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const kind = list?.kind ?? null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Try again reads the list once more.
+  useEffect(() => {
+    if (!shown || kind === 'ready' || kind === 'failed') return;
+    let live = true;
+    setList({ kind: 'pending' });
+    read().then((answer) => {
+      if (!live) return;
+      if (answer === 'signed-out') onSignedOut();
+      else setList(answer ? { kind: 'ready', read: answer } : { kind: 'failed' });
+    });
+    return () => {
+      live = false;
+      // A read dropped on the way leaves no list waiting for it: the view reads again when it is shown.
+      setList((current) => (current?.kind === 'pending' ? null : current));
+    };
+  }, [shown, attempt]);
+  const reload = useCallback(() => {
+    setList(null);
+    setAttempt((count) => count + 1);
+  }, []);
+  return { list, reload };
 }
 
 type Page =
@@ -163,6 +277,10 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
     lastView.current = view;
   }, [view]);
 
+  const ended = useCallback(() => setPage({ kind: 'ended' }), []);
+  const fixes = useViewList(ready && view === 'fixes', readMyFixes, ended);
+  const walkthroughs = useViewList(ready && view === 'walkthroughs', readMyWalkthroughs, ended);
+
   // The day to show takes the focus once it is drawn: the day a square opened, or the first of the days added.
   const focusDay = history?.kind === 'ready' ? history.focus : null;
   useEffect(() => {
@@ -230,12 +348,18 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
               setHistoryAttempt((count) => count + 1);
             }}
             dayTitleRef={dayTitleRef}
+            fixes={fixes.list}
+            onFixesReload={fixes.reload}
+            walkthroughs={walkthroughs.list}
+            onWalkthroughsReload={walkthroughs.reload}
           />
         </>
       )}
     </main>
   );
 }
+
+const noop = () => {};
 
 /** The boxes, the switch, and the view: the page once the person's progress is in. */
 export function ProgressBody({
@@ -246,6 +370,10 @@ export function ProgressBody({
   onMore,
   onHistoryReload,
   dayTitleRef,
+  fixes = null,
+  onFixesReload = noop,
+  walkthroughs = null,
+  onWalkthroughsReload = noop,
 }: {
   progress: LearnMyProgress;
   today: string;
@@ -254,6 +382,12 @@ export function ProgressBody({
   onMore: () => void;
   onHistoryReload: () => void;
   dayTitleRef?: Ref<HTMLHeadingElement>;
+  /** "Your fixes", once its view was opened. */
+  fixes?: ViewList<MyFixesRead> | null;
+  onFixesReload?: () => void;
+  /** "Walkthroughs", once its view was opened. */
+  walkthroughs?: ViewList<MyWalkthroughsRead> | null;
+  onWalkthroughsReload?: () => void;
 }) {
   const box = lessonsBoxOf(progress);
   const line = daysLineOf(progress, today);
@@ -269,6 +403,47 @@ export function ProgressBody({
         <>
           <ViewHead view={view} line={<CoursesLine courses={progress.courses} />} />
           <CoursesList courses={progress.courses} today={today} />
+        </>
+      ) : view === 'fixes' ? (
+        <>
+          <ViewHead view={view} line={fixes?.kind === 'ready' ? <FixesLine fixes={fixes.read.fixes} /> : null} />
+          {fixes?.kind === 'ready' ? (
+            fixes.read.fixes.length ? (
+              <FixesList fixes={fixes.read.fixes} today={today} />
+            ) : (
+              <NoFixes end={fixes.read.end} />
+            )
+          ) : fixes?.kind === 'failed' ? (
+            <ViewListFailed
+              text="Your fixes did not load. Nothing is lost; try again in a minute."
+              onReload={onFixesReload}
+            />
+          ) : (
+            <ViewListPending label="Loading your fixes…" />
+          )}
+        </>
+      ) : view === 'walkthroughs' ? (
+        <>
+          <ViewHead
+            view={view}
+            line={
+              walkthroughs?.kind === 'ready' ? <WalkthroughsLine walkthroughs={walkthroughs.read.walkthroughs} /> : null
+            }
+          />
+          {walkthroughs?.kind === 'ready' ? (
+            walkthroughs.read.walkthroughs.length ? (
+              <WalkthroughsList walkthroughs={walkthroughs.read.walkthroughs} today={today} />
+            ) : (
+              <NoWalkthroughs fixes={walkthroughs.read.fixes} />
+            )
+          ) : walkthroughs?.kind === 'failed' ? (
+            <ViewListFailed
+              text="Your walkthroughs did not load. Nothing is lost; try again in a minute."
+              onReload={onWalkthroughsReload}
+            />
+          ) : (
+            <ViewListPending label="Loading your walkthroughs…" />
+          )}
         </>
       ) : (
         <>

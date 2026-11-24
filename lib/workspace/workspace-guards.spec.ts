@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
@@ -44,6 +44,24 @@ describe("the workspace's addresses are built in one place", () => {
       .flatMap((path) =>
         codeLines(path)
           .filter(({ line }) => OLD.test(line))
+          .map(({ number, line }) => `${path}:${number}: ${line.trim()}`),
+      );
+    expect(found).toEqual([]);
+  });
+
+  /** Learn's retired pages: the earlier Learn tab, its flow, its page for maintainers and the old goal page. */
+  const OLD_LEARN = /['"`]\/(?:learn\/(?:earlier|start|maintainers)|my\/settings\/goal)(?=[/'"`?#]|\$\{)/;
+  /** The route that still answers an issue's old start address, by its own type. */
+  const OLD_LEARN_ROUTE = 'app/(learn)/learn/start/[owner]/[repo]/[issue]/route.ts';
+  /** A repo path written with forward slashes on any system. */
+  const posix = (path: string) => path.split(sep).join('/');
+
+  it("links none of Learn's retired pages outside the paths and the redirects", () => {
+    const found = sourcesUnder('app', 'components', 'lib', 'design')
+      .filter((path) => !BUILDERS.includes(posix(path)) && posix(path) !== OLD_LEARN_ROUTE)
+      .flatMap((path) =>
+        codeLines(path)
+          .filter(({ line }) => OLD_LEARN.test(line))
           .map(({ number, line }) => `${path}:${number}: ${line.trim()}`),
       );
     expect(found).toEqual([]);

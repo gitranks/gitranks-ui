@@ -2,28 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { learnSitemapEntries } from './learn-sitemap';
 
-const LESSON = {
-  slug: 'route-cache-miss-8f3kab',
-  title: 'Route cache miss',
-  language: 'TypeScript',
-  repo: 'o/n',
-  publishedAt: '2026-11-14T10:00:00.000Z',
-  modifiedAt: '2026-11-15T10:00:00.000Z',
-};
-
 describe('the Learn sitemap', () => {
   beforeEach(() => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://example.test');
-  });
-
-  it('lists the landing, the page for maintainers and every public lesson at its last change, never a result page', () => {
-    const entries = learnSitemapEntries([LESSON]);
-    expect(entries.map((entry) => entry.url)).toEqual([
-      'https://example.test/learn',
-      'https://example.test/learn/maintainers',
-      'https://example.test/learn/lessons/route-cache-miss-8f3kab',
-    ]);
-    expect(entries[2]).toMatchObject({ lastModified: LESSON.modifiedAt, priority: 0.6 });
   });
 
   const link = (slug: string) => ({ slug, title: slug });
@@ -33,12 +14,12 @@ describe('the Learn sitemap', () => {
       { slug: 'sets', course: link('algorithms'), paused: false, changedAt: '2026-11-10T10:00:00.000Z' },
       { slug: 'hash-maps', course: link('algorithms'), paused: false, changedAt: '2026-11-12T10:00:00.000Z' },
       { slug: 'heaps', course: link('algorithms'), paused: true, changedAt: '2026-11-20T10:00:00.000Z' },
-      { slug: 'route-cache-miss-8f3kab', course: link('go'), paused: false, changedAt: '2026-11-11T10:00:00.000Z' },
+      { slug: 'go-variables', course: link('go'), paused: false, changedAt: '2026-11-11T10:00:00.000Z' },
     ],
   };
 
-  it('lists the courses and their live lessons, each at its last change', () => {
-    const entries = learnSitemapEntries([LESSON], { content: CONTENT });
+  it('lists the landing, the courses and their live lessons, each at its last change', () => {
+    const entries = learnSitemapEntries({ content: CONTENT });
     expect(entries.map((entry) => [entry.url, entry.lastModified])).toEqual([
       ['https://example.test/learn', undefined],
       ['https://example.test/learn/courses', '2026-11-12T10:00:00.000Z'],
@@ -46,24 +27,28 @@ describe('the Learn sitemap', () => {
       ['https://example.test/learn/courses/go', '2026-11-11T10:00:00.000Z'],
       ['https://example.test/learn/lessons/sets', '2026-11-10T10:00:00.000Z'],
       ['https://example.test/learn/lessons/hash-maps', '2026-11-12T10:00:00.000Z'],
-      // A lesson of a course at the same address as a public lesson of a fix is listed once.
-      ['https://example.test/learn/lessons/route-cache-miss-8f3kab', '2026-11-11T10:00:00.000Z'],
-      ['https://example.test/learn/maintainers', undefined],
+      ['https://example.test/learn/lessons/go-variables', '2026-11-11T10:00:00.000Z'],
     ]);
   });
 
-  it('lists a course with no live lesson without a day, and the landing when the courses could not be read', () => {
+  it('lists no old address: the page for maintainers is Contribute’s, and a fix’s pages are not here', () => {
+    const urls = learnSitemapEntries({ content: CONTENT }).map((entry) => entry.url);
+    for (const old of ['/learn/maintainers', '/learn/earlier', '/learn/start', '/passes/']) {
+      expect(
+        urls.some((url) => url.includes(old)),
+        old,
+      ).toBe(false);
+    }
+  });
+
+  it('lists a course with no live lesson without a day, and the landing alone when the courses could not be read', () => {
     const paused = { courses: [{ slug: 'algorithms' }], lessons: [{ ...CONTENT.lessons[2] }] };
-    const entries = learnSitemapEntries([], { content: paused });
-    expect(entries.map((entry) => [entry.url, entry.lastModified])).toEqual([
+    expect(learnSitemapEntries({ content: paused }).map((entry) => [entry.url, entry.lastModified])).toEqual([
       ['https://example.test/learn', undefined],
       ['https://example.test/learn/courses', undefined],
       ['https://example.test/learn/courses/algorithms', undefined],
-      ['https://example.test/learn/maintainers', undefined],
     ]);
-    expect(learnSitemapEntries([], { content: null }).map((entry) => entry.url)).toEqual([
-      'https://example.test/learn',
-      'https://example.test/learn/maintainers',
-    ]);
+    expect(learnSitemapEntries({ content: null }).map((entry) => entry.url)).toEqual(['https://example.test/learn']);
+    expect(learnSitemapEntries().map((entry) => entry.url)).toEqual(['https://example.test/learn']);
   });
 });

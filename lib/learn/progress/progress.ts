@@ -13,7 +13,7 @@ import type {
 } from './progress.types';
 import type { Tone } from '@/lib/workspace/attempt-format';
 import { dayLabel } from '@/lib/workspace/format';
-import { pullRequestPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { pullRequestPath, pullRequestWalkthroughPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** Your progress's four views, in the order of its tabs; the first shows when the address names none. */
 export const PROGRESS_VIEWS = ['lessons', 'learned', 'repos', 'merged'] as const;
@@ -104,10 +104,10 @@ export function pullRequestPageOf(repo: string | null, issue: number | null): Ro
   return ref ? pullRequestPath(ref) : null;
 }
 
-/** The Lesson view of the viewer's issue's pull request; null without a repo and a number. */
+/** The walkthrough of the viewer's issue's pull request (its Lesson view before); null without a repo and a number. */
 export function lessonViewPathOf(repo: string | null, issue: number | null): Route | null {
-  const page = pullRequestPageOf(repo, issue);
-  return page ? (`${page}/lesson` as Route) : null;
+  const ref = refOf(repo, issue);
+  return ref ? pullRequestWalkthroughPath(ref) : null;
 }
 
 /** A lesson taken down, by its author or by us: its row stays, its title leads nowhere. */

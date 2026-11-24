@@ -26,3 +26,11 @@ export const SaveLearnEmailSettingsDocument = doc<
     saveLearnEmailSettings(settings: $settings) { ${SETTINGS} }
   }`,
 );
+
+/**
+ * "A new issue for you" on or off, and the list it covers: an operation of its own beside the read above, so an API
+ * that does not know it yet fails it alone and Settings draws its other rows.
+ */
+export const LearnIssuesEmailSettingsDocument = doc<{
+  learnEmailSettings: { newIssues?: unknown; newIssuesCover?: unknown } | null;
+}>('query LearnIssuesEmailSettings { learnEmailSettings { newIssues newIssuesCover } }');

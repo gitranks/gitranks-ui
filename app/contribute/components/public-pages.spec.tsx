@@ -341,7 +341,7 @@ describe('the Terms', () => {
     expect(plain).toContain("closes if the lesson's author takes the lesson down");
     expect(plain).toContain('never the options you got wrong');
     expect(plain).toContain('Learn is only for people aged 16 and over');
-    expect(learn).toContain('href="/learn/maintainers"');
+    expect(learn).toContain('href="/contribute/maintainers#learn"');
     expect(learn.indexOf('id="learn"')).toBeGreaterThan(learn.indexOf('id="contribute"'));
     // Learn sits on Contribute's terms, so it never shows without them.
     expect(text(renderToStaticMarkup(<TermsScreen contribute={false} />))).not.toContain('GitRanks Learn');

@@ -7,8 +7,8 @@ import { type PrFeedbackErrorCode, prFeedbackErrorOf } from '@/lib/workspace/err
 import { attemptIdOf } from '@/lib/workspace/pr-feedback';
 
 /*
- * A footer link's pull request (`?from=`), as both maintainers pages read it: Contribute's (`/contribute/maintainers`)
- * and Learn's (`/learn/maintainers`), with the cap a page waits for a read it can do without.
+ * A footer link's pull request (`?from=`), as the page for maintainers reads it (`/contribute/maintainers`, Learn's
+ * part included), with the cap a page waits for a read it can do without.
  */
 
 /** A PR's public card changes when its repo is renamed, at most. */

@@ -8,8 +8,8 @@ import { isSignedInAgent } from '@/lib/workspace/oauth-consent';
 import { PICK_ISSUE_PATHS, pullRequestPath } from '@/lib/workspace/paths';
 
 /**
- * The Start page for one issue, `/my/start/<owner>/<repo>/<issue>` (Learn's step 3, at `/learn/start/…`, uses its body):
- * the address it names, the agent that is connected, and what the page says of an attempt it finds.
+ * The Start page for one issue, `/my/start/<owner>/<repo>/<issue>`: the address it names, the agent that is connected,
+ * and what the page says of an attempt it finds.
  */
 
 /** A GitHub owner: letters, digits and hyphens, up to 39 characters. */

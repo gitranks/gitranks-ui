@@ -49,9 +49,8 @@ export function tabsOf(gate: WorkspaceGate): WorkspaceTab[] {
 /**
  * Where a signed-in account that has not entered the workspace yet is sent from a page under `/my`; null when the page
  * opens. The Agent and Settings pages open (someone mid-setup can revoke a token or delete their data), but for the
- * agent's connect page, whose step of Contribute's flow it goes to with its query. A Start page in Fix mode goes to the
- * flow's first step, one in lesson mode to Learn's step for the issue; every other page to Contribute's home, which
- * starts them.
+ * agent's connect page, whose step of Contribute's flow it goes to with its query. A Start page, in either mode, goes to
+ * the flow's first step, where the agent gets connected; every other page to Contribute's home, which starts them.
  */
 export function notEnteredTargetOf(pathname: string, search?: URLSearchParams): Route | null {
   const path = pathname.replace(/\/+$/, '');
@@ -61,11 +60,6 @@ export function notEnteredTargetOf(pathname: string, search?: URLSearchParams): 
     return (query ? `${GETTING_IN_PATHS.contributeAgentOwn}?${query}` : GETTING_IN_PATHS.contributeAgentOwn) as Route;
   }
   if (/^\/my\/(?:agent|settings)(?:\/|$)/.test(path)) return null;
-  if (/^\/my\/start\//.test(path)) {
-    if (search?.get('lesson') !== '1') return GETTING_IN_PATHS.contributeWork;
-    // A lesson's Start page: Learn's own step for the issue, at its start address.
-    const issue = /^\/my\/start\/([^/]+\/[^/]+\/[^/]+)$/.exec(path);
-    if (issue) return `${GETTING_IN_PATHS.learnGoal}/${issue[1]}` as Route;
-  }
+  if (/^\/my\/start\//.test(path)) return GETTING_IN_PATHS.contributeWork;
   return WORKSPACE_PATHS.contribute;
 }

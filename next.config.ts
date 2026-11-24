@@ -5,7 +5,7 @@ import { HTML_LIMITED_BOT_UA_RE } from 'next/dist/shared/lib/router/utils/html-b
 
 import { LINK_PAGE_HEADERS, LINK_PAGE_SOURCES } from './lib/link-token/link-token';
 import { OLD_SKILLS_REDIRECTS } from './lib/skills/old-addresses';
-import { LESSON_VIEW_REDIRECTS, OLD_WORKSPACE_REDIRECTS } from './lib/workspace/old-addresses';
+import { LESSON_VIEW_REDIRECTS, OLD_LEARN_REDIRECTS, OLD_WORKSPACE_REDIRECTS } from './lib/workspace/old-addresses';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -112,6 +112,8 @@ const nextConfig: NextConfig = {
       ...LESSON_VIEW_REDIRECTS,
       // A person's old public Learn record: their Skills page.
       ...OLD_SKILLS_REDIRECTS,
+      // Learn's pages that went away: Issues, Set up Learn, and the part about Learn of the page for maintainers.
+      ...OLD_LEARN_REDIRECTS,
     ];
   },
 };

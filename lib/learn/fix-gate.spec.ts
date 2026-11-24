@@ -126,7 +126,7 @@ describe('fixByAttemptGateOf', () => {
   it('answers nothing there for no pull request, and the pages for maintainers when the API cannot say', () => {
     expect(fixByAttemptGateOf({ ...live, state: 'MISSING' })).toEqual({ kind: 'missing' });
     expect(fixByAttemptGateOf({ ...live, number: null })).toEqual({ kind: 'missing' });
-    expect(fixByAttemptGateOf(null)).toEqual({ kind: 'redirect', path: '/learn/maintainers' });
+    expect(fixByAttemptGateOf(null)).toEqual({ kind: 'redirect', path: '/contribute/maintainers#learn' });
   });
 });
 
@@ -141,9 +141,12 @@ describe('fixByAttemptRouteGateOf', () => {
 
   it('sends a failed or slow ask to the pages for maintainers, never kept', async () => {
     graphqlDirect.mockRejectedValue(new Error('down'));
-    expect(await fixByAttemptRouteGateOf('A_1')).toEqual({ kind: 'redirect', path: '/learn/maintainers' });
+    expect(await fixByAttemptRouteGateOf('A_1')).toEqual({ kind: 'redirect', path: '/contribute/maintainers#learn' });
     graphqlDirect.mockReturnValue(new Promise(() => {}));
-    expect(await fixByAttemptRouteGateOf('A_1', 5)).toEqual({ kind: 'redirect', path: '/learn/maintainers' });
+    expect(await fixByAttemptRouteGateOf('A_1', 5)).toEqual({
+      kind: 'redirect',
+      path: '/contribute/maintainers#learn',
+    });
     expect(graphqlDirect).toHaveBeenCalledTimes(2);
   });
 });

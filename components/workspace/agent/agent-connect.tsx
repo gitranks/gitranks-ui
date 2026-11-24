@@ -23,6 +23,7 @@ import {
   ANTIGRAVITY_RELOAD,
   MCP_CLIENT_NAMES,
   MCP_CLIENTS,
+  MCP_CLIENTS_WITH_VS_CODE,
   MCP_TOKEN_NAME_MAX,
   MCP_TOKENS_MAX,
   type McpClient,
@@ -105,6 +106,8 @@ export type AgentConnectViewProps = {
   /** The name the next token gets; the client and the OS until the user writes another. */
   tokenName?: string;
   onTokenName?: (name: string) => void;
+  /** The agents to pick, in order; VS Code only where a page asks for it. */
+  clients?: readonly McpClient[];
 };
 
 /** The proof the page was reached for: its contribution, its prompt and its pull request's number. */
@@ -146,6 +149,7 @@ export function AgentConnectView({
   stay = false,
   tokenName,
   onTokenName = () => {},
+  clients = MCP_CLIENTS,
 }: AgentConnectViewProps) {
   const tokenNameValue = tokenName ?? mcpTokenNameOf(client, os);
   const id = useId();
@@ -167,7 +171,7 @@ export function AgentConnectView({
     <>
       <fieldset className="flex flex-wrap gap-2">
         <legend className="sr-only">Your agent</legend>
-        {MCP_CLIENTS.map((each) => (
+        {clients.map((each) => (
           <button
             key={each}
             type="button"
@@ -189,7 +193,7 @@ export function AgentConnectView({
         prefetch={false}
         className="inline-flex items-center max-sm:min-h-11 self-start text-sm font-semibold text-link"
       >
-        VS Code or another agent? The MCP docs →
+        {clients.includes('vscode') ? 'Another agent? The MCP docs →' : 'VS Code or another agent? The MCP docs →'}
       </Link>
     </>
   );
@@ -567,6 +571,7 @@ export function AgentConnect({
   onConnected,
   onAdded,
   connectSource,
+  withVsCode = false,
 }: {
   /** Onboarded already (a key, or another agent): the new token's first use is what the page waits for. */
   onboarded: boolean;
@@ -587,6 +592,8 @@ export function AgentConnect({
   onAdded?: () => void;
   /** Where the connect is counted from, in place of the click that led here. */
   connectSource?: ContributeSource;
+  /** VS Code is one of the agents to pick (the page of one issue, from Learn). */
+  withVsCode?: boolean;
 }) {
   const goTo = useOnboardedPush();
   // Mid-setup: the newest token the agent has not called with is the one the user came back to.
@@ -779,6 +786,7 @@ export function AgentConnect({
       stay={onboarded && !proof}
       tokenName={customName ?? tokenName}
       onTokenName={setCustomName}
+      clients={withVsCode ? MCP_CLIENTS_WITH_VS_CODE : MCP_CLIENTS}
     />
   );
 }

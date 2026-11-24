@@ -166,3 +166,30 @@ describe('Start fixing it, from Contribute', () => {
     );
   });
 });
+
+describe('Start fixing it, an issue kept for people who are learning', () => {
+  it('from Learn, has no "How" step: the walkthrough is always on, and one line says so', async () => {
+    await form({ learnOnly: true });
+    expect(steps()).toEqual(['Your agent', 'Paste this in Claude Code']);
+    expect(radio('Just fix it')).toBeNull();
+    expect(prompt()).toBe(`Fix ${URL} with GitRanks Learn and teach me`);
+    expect(container.querySelector('[data-learn-only]')?.textContent).toBe(
+      'Your agent fixes it and writes the walkthrough. You answer a few questions, then send the pull request. This issue is kept for people who are learning, so it always comes with its walkthrough.',
+    );
+    await enter();
+    expect(writeText).toHaveBeenCalledWith(`Fix ${URL} with GitRanks Learn and teach me`);
+  });
+
+  it('from Learn with no agent connected, the connect step comes first', async () => {
+    await form({ learnOnly: true, agents: { own: false, hosted: false } });
+    expect(steps()).toEqual(['Connect your agent', 'Paste one prompt in your agent']);
+  });
+
+  it('from Contribute, changes nothing', async () => {
+    await form({ from: 'contribute', learnOnly: true });
+    expect(steps()).toEqual(['Your agent', 'Paste this in Claude Code']);
+    expect(prompt()).toBe(`Fix ${URL} with GitRanks`);
+    expect(container.querySelector('[data-learn-only]')).toBeNull();
+    expect(container.textContent).not.toMatch(/walkthrough/i);
+  });
+});

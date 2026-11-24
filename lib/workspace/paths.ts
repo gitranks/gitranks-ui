@@ -399,6 +399,9 @@ export const PICK_ISSUE_PATHS = {
   learn: `${WORKSPACE_PATHS.learn}#issues` as Route,
 } as const;
 
+/** A lesson's page, `/learn/lessons/<slug>`, as Learn's own paths write it: the line on the page of one issue links it. */
+export const issueLessonPath = (slug: string): Route => `/learn/lessons/${encodeURIComponent(slug)}` as Route;
+
 /** An attempt's id as the API writes it: anything else names no attempt, for anyone. */
 export const ATTEMPT_ID = /^[\w-]{1,64}$/;
 

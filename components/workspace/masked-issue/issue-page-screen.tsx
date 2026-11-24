@@ -19,6 +19,7 @@ import { IssueStartForm, type IssueStartFormProps } from '@/components/workspace
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
 import { MaskedListFoot, WhyHiddenDialog } from '@/components/workspace/masked-issue/why-hidden';
 import { RefChips } from '@/components/workspace/ref-chips';
+import { type IssueStarted, startedLineOf } from '@/lib/workspace/issue-page-learn';
 import {
   beforePressLineOf,
   heldLineOf,
@@ -77,13 +78,17 @@ export type IssuePageScreenProps = {
   timeZone?: string;
   /** The lesson the issue uses or teaches, when there is one. */
   lesson?: MaskedIssueLesson | null;
+  /** From Learn, an issue kept for people who are learning: the start form has no choice of how. */
+  learnOnly?: boolean;
+  /** With the started state, from Learn: how the work started, said in one line. */
+  started?: IssueStarted | null;
   colors?: Readonly<Record<string, string>>;
   /** The press is on its way: the button waits in its place. */
   pressing?: boolean;
   /** "See the full issue", and "See the full issue again". */
   onSee?: () => void;
   /** "Start fixing it": the agents and what its buttons do. */
-  start: Omit<IssueStartFormProps, 'from' | 'issueUrl'>;
+  start: Omit<IssueStartFormProps, 'from' | 'issueUrl' | 'learnOnly'>;
   /** "Give it back". */
   onGiveBack?: () => void;
   givingBack?: boolean;
@@ -272,7 +277,11 @@ function endOf(
         <End
           state={state}
           title="You started this issue"
-          text="Your agent is on it. Its page shows each step as it goes."
+          text={
+            props.started
+              ? `${startedLineOf(props.started, props.now)} Its page shows each step as it goes.`
+              : 'Your agent is on it. Its page shows each step as it goes.'
+          }
         >
           {props.page.startPath ? (
             <Button asChild className={PRIMARY}>
@@ -376,7 +385,7 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
           <span className="text-muted-foreground">Nobody else sees this issue while you hold it.</span>
         </div>
         <FullCard masked={masked} full={page.full} lesson={lesson} colors={colors} />
-        <IssueStartForm from={from} issueUrl={page.full.url} {...props.start} />
+        <IssueStartForm from={from} issueUrl={page.full.url} learnOnly={props.learnOnly} {...props.start} />
         <NotForMe onGiveBack={props.onGiveBack} sending={props.givingBack} />
       </>
     );

@@ -19,8 +19,8 @@ vi.mock('@/lib/workspace/masked-issue.actions', () => actions);
 const fairUse = vi.hoisted(() => ({ appealFairUse: vi.fn() }));
 vi.mock('@/lib/workspace/fair-use.actions', () => fairUse);
 vi.mock('@/components/workspace/agent/agent-connect', () => ({
-  AgentConnect: ({ onAdded }: { onAdded?: () => void }) => (
-    <div data-agent-connect="">
+  AgentConnect: ({ onAdded, withVsCode }: { onAdded?: () => void; withVsCode?: boolean }) => (
+    <div data-agent-connect="" data-vs-code={withVsCode ? '' : undefined}>
       <button type="button" onClick={onAdded}>
         I added it
       </button>
@@ -397,5 +397,62 @@ describe("the browser's mark of the held issue, for the lists", () => {
     expect(readHeldMark(Date.parse(HELD_UNTIL) - 1_000)?.id).toBe('q7k2m9xa');
     expect(readHeldMark(Date.parse(HELD_UNTIL))).toBeNull();
     expect(mark()).toBeNull();
+  });
+});
+
+describe("the page of one issue, live: Learn's parts", () => {
+  const LEARN = {
+    lesson: { slug: 'a-queue', title: 'A queue: first in, first out' },
+    why: 'TEACHES_NEW' as const,
+    learnOnly: true,
+    started: { agent: 'Claude Code', at: '2026-10-28T11:48:00.000Z', walkthrough: true },
+  };
+  const NO_AGENT = { ...START, connection: null };
+  const lessonLine = () => container.querySelector('[data-lesson]')?.textContent;
+  /** The page keeps the page it was first given: a new one is drawn on a new root. */
+  const fresh = () => {
+    act(() => root.unmount());
+    root = createRoot(container);
+  };
+
+  it('from Learn, says the lesson and why, has no "How" step for an issue kept for learners, and offers VS Code', async () => {
+    await live({ learn: LEARN });
+    expect(lessonLine()).toBe('Teaches A queue: first in, first out, which is new for you.');
+    fresh();
+    await live({ learn: LEARN, page: fullPage(), start: NO_AGENT });
+    expect(container.querySelector('[data-learn-only]')).not.toBeNull();
+    expect(container.querySelector('[data-agent-connect]')?.hasAttribute('data-vs-code')).toBe(true);
+  });
+
+  it('from Learn, says how the work started', async () => {
+    await live({
+      learn: LEARN,
+      page: issuePage({ state: 'STARTED', startPath: '/my/pull-requests/acme/notebook/1290' }),
+    });
+    expect(container.textContent).toContain('Claude Code started it 12 minutes ago, with the walkthrough.');
+  });
+
+  it('from Learn without the parts (their read failed), draws the page as before', async () => {
+    await live({ learn: null, page: fullPage() });
+    expect(container.querySelector('[data-lesson]')).toBeNull();
+    expect(container.querySelector('[data-learn-only]')).toBeNull();
+    expect([...container.querySelectorAll('[data-step] h3')].map((each) => each.textContent)[0]).toBe('How');
+  });
+
+  it("from Contribute, shows none of Learn's parts and no VS Code", async () => {
+    await live({ from: 'contribute', learn: LEARN, back: { href: '/contribute#issues', label: 'Issues' } });
+    expect(container.querySelector('[data-lesson]')).toBeNull();
+    fresh();
+    await live({ from: 'contribute', learn: LEARN, page: fullPage(), start: NO_AGENT });
+    expect(container.querySelector('[data-learn-only]')).toBeNull();
+    expect(container.querySelector('[data-agent-connect]')?.hasAttribute('data-vs-code')).toBe(false);
+    fresh();
+    await live({
+      from: 'contribute',
+      learn: LEARN,
+      page: issuePage({ state: 'STARTED', startPath: '/my/pull-requests/acme/notebook/1290' }),
+    });
+    expect(container.textContent).toContain('Your agent is on it.');
+    expect(container.textContent).not.toMatch(/walkthrough/i);
   });
 });

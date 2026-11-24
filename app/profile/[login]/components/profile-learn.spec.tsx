@@ -24,7 +24,7 @@ describe('the Learn record on a profile', () => {
 
   it('gives the owner the way to their progress', () => {
     const html = renderToStaticMarkup(<LearnRecordCard record={learnRecord} own />);
-    expect(html).toContain('href="/my/progress"');
+    expect(html).toContain('href="/learn/progress"');
     expect(html).toContain('Your progress →');
   });
 

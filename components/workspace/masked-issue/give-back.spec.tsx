@@ -60,7 +60,7 @@ describe('Not for me', () => {
 
 describe('after giving back', () => {
   it('offers the six reasons, none pressed, and the note, with nothing to fill in', async () => {
-    await render(<GivenBack backHref="/learn/earlier" />);
+    await render(<GivenBack backHref="/learn/issues" />);
     expect(container.querySelector('h1')?.textContent).toBe('You gave this issue back');
     const reasons = [...container.querySelectorAll('[aria-pressed]')];
     expect(reasons.map((each) => each.textContent)).toEqual([
@@ -73,13 +73,13 @@ describe('after giving back', () => {
     ]);
     expect(reasons.every((each) => each.getAttribute('aria-pressed') === 'false')).toBe(true);
     expect(button('Save the note')?.hasAttribute('disabled')).toBe(true);
-    expect(button('Back to Issues')?.getAttribute('href')).toBe('/learn/earlier');
+    expect(button('Back to Issues')?.getAttribute('href')).toBe('/learn/issues');
     expect(container.textContent).toContain('The next issue has taken its place.');
   });
 
   it('saves each reason when it is pressed, on and off, and says so', async () => {
     const onReason = vi.fn(async () => true);
-    await render(<GivenBack backHref="/learn/earlier" onReason={onReason} />);
+    await render(<GivenBack backHref="/learn/issues" onReason={onReason} />);
     await press(button('It is already fixed'));
     expect(onReason).toHaveBeenLastCalledWith('FIXED', true);
     expect(button('It is already fixed')?.getAttribute('aria-pressed')).toBe('true');
@@ -90,7 +90,7 @@ describe('after giving back', () => {
   });
 
   it('lets a reason go back when it was not saved', async () => {
-    await render(<GivenBack backHref="/learn/earlier" onReason={async () => false} />);
+    await render(<GivenBack backHref="/learn/issues" onReason={async () => false} />);
     await press(button('Too hard for me'));
     expect(button('Too hard for me')?.getAttribute('aria-pressed')).toBe('false');
     expect(statuses()[0]).toBe('Not saved. Try again.');
@@ -101,7 +101,7 @@ describe('after giving back', () => {
     const onReason = vi.fn((reason: string) =>
       reason === 'TOO_HARD' ? new Promise<boolean>((done) => (fail = done)) : Promise.resolve(true),
     );
-    await render(<GivenBack backHref="/learn/earlier" onReason={onReason} />);
+    await render(<GivenBack backHref="/learn/issues" onReason={onReason} />);
     await press(button('Too hard for me'));
     await press(button('It is already fixed'));
     await act(async () => fail(false));
@@ -110,7 +110,7 @@ describe('after giving back', () => {
   });
 
   it('shows the reasons and the note saved before', async () => {
-    await render(<GivenBack backHref="/learn/earlier" reasons={['TAKEN', 'UNCLEAR']} note="Planned rewrite." />);
+    await render(<GivenBack backHref="/learn/issues" reasons={['TAKEN', 'UNCLEAR']} note="Planned rewrite." />);
     const pressed = [...container.querySelectorAll('[aria-pressed="true"]')].map((each) => each.textContent);
     expect(pressed).toEqual(['Someone is already working on it', 'The issue is not clear']);
     expect(textarea().value).toBe('Planned rewrite.');
@@ -119,7 +119,7 @@ describe('after giving back', () => {
 
   it('saves the note with its own button', async () => {
     const onNote = vi.fn(async () => true);
-    await render(<GivenBack backHref="/learn/earlier" onNote={onNote} />);
+    await render(<GivenBack backHref="/learn/issues" onNote={onNote} />);
     await type('  A rewrite of the sidebar is planned.  ');
     await press(button('Save the note'));
     expect(onNote).toHaveBeenCalledWith('A rewrite of the sidebar is planned.');

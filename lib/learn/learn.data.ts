@@ -12,6 +12,8 @@ import {
 } from './learn.documents';
 import type { LearnAttemptLesson, LearnIssues, LearnProfile, MyLearnAttempts, PracticeLessons } from './learn.types';
 import { learnIssuesOf } from './masked-rows';
+import type { LearnSetupRead } from './setup';
+import { loadLearnSetup as loadSetupOf } from './setup.data';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { ContributeUnavailableError, viewerLogin } from '@/lib/workspace/contribute.data';
 import { contributeErrorOf } from '@/lib/workspace/errors';
@@ -28,6 +30,15 @@ export const loadLearnSetup = cache(async (): Promise<boolean> => {
   } catch {
     return false;
   }
+});
+
+/**
+ * The viewer's own setup of Learn (`/learn/setup`), for the page of one issue to tell whether they use Learn: null
+ * signed out, when Learn is not open to them, and on any failure. Read once per request.
+ */
+export const loadLearnSetupOfMine = cache(async (): Promise<LearnSetupRead | null> => {
+  const githubLogin = await viewerLogin();
+  return githubLogin ? loadSetupOf(githubLogin) : null;
 });
 
 /**

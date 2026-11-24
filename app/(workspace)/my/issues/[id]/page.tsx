@@ -4,22 +4,23 @@ import { Suspense } from 'react';
 
 import { IssuePageLive } from '@/components/workspace/masked-issue/issue-page-live';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
-import { loadLearnProfile } from '@/lib/learn/learn.data';
+import { loadLearnProfile, loadLearnSetupOfMine } from '@/lib/learn/learn.data';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
+import { loadIssuePageKept } from '@/lib/workspace/issue-page-kept.data';
 import { loadIssuePageLearn } from '@/lib/workspace/issue-page-learn.data';
-import { ISSUE_LOOK_PARAM, type IssuePageFrom, issuePageFromOf, maskIdOf } from '@/lib/workspace/masked-issue';
+import {
+  ISSUE_LOOK_PARAM,
+  issuePageBackOf,
+  issuePageFromOf,
+  maskIdOf,
+  usesLearnOf,
+} from '@/lib/workspace/masked-issue';
 import { loadIssueNumbers, loadIssuePage, loadIssueStartReads } from '@/lib/workspace/masked-issue.data';
-import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
+import { learnIssuesViewOf, searchParamsOf } from '@/lib/workspace/paths';
 
 export const metadata: Metadata = { title: 'An issue', robots: { index: false, follow: false } };
 
 type Params = PageProps<'/my/issues/[id]'>;
-
-/** "← Issues": the list the person came from. */
-const BACK: Record<IssuePageFrom, { href: (typeof PICK_ISSUE_PATHS)[keyof typeof PICK_ISSUE_PATHS]; label: string }> = {
-  learn: { href: PICK_ISSUE_PATHS.learn, label: 'Issues' },
-  contribute: { href: PICK_ISSUE_PATHS.fix, label: 'Issues' },
-};
 
 /**
  * The page of one issue, by its mask id: the address names no project. The viewer's own, read per request, not indexed
@@ -47,18 +48,31 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
   const gate = await loadWorkspaceGate();
   if (gate.kind !== 'open') notFound();
   const from = issuePageFromOf(search.from);
+  const query = searchParamsOf(search);
 
-  // From Contribute, the start form names Learn too when the person uses it: a Learn profile of theirs.
-  const usesLearn = from === 'contribute' ? loadLearnProfile().catch(() => null) : null;
+  // From Contribute, the start form names Learn too when the person uses it (`usesLearnOf`: their setup of Learn saved,
+  // else the older profile). With no side in the address, the same reads send the way back to Learn's Issues for them.
+  // Each read that fails says no: Contribute's words and list.
+  const learnUse =
+    from === 'contribute'
+      ? Promise.all([loadLearnSetupOfMine().catch(() => null), loadLearnProfile().catch(() => null)]).then(
+          ([setup, profile]) => usesLearnOf({ setup, profile }),
+        )
+      : false;
   // From Learn, Learn's parts (the lesson and why, kept for learners, how the work started), in a read of their own:
   // without them the page draws what it draws today.
   const learnParts = from === 'learn' ? loadIssuePageLearn(id).catch(() => null) : null;
-  const [load, numbers, start, profile, learn] = await Promise.all([
+  // From Contribute (or a side the address does not name), whether the issue is kept for learners, in a read of its
+  // own: Contribute does not let the person take it, so the page says so in place of the press. Without it (an API
+  // that does not answer it yet, a failed or slow read) the page draws what it draws today.
+  const keptRead = from === 'contribute' ? loadIssuePageKept(id).catch(() => null) : null;
+  const [load, numbers, start, usesLearn, learn, kept] = await Promise.all([
     loadIssuePage(id),
     loadIssueNumbers(),
     loadIssueStartReads(),
-    usesLearn,
+    learnUse,
     learnParts,
+    keptRead,
   ]);
   if (load.kind === 'not-found') notFound();
   return (
@@ -66,14 +80,16 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
       id={id}
       page={load.page}
       from={from}
-      back={BACK[from]}
+      back={issuePageBackOf(search.from, query, usesLearn)}
+      view={from === 'learn' ? learnIssuesViewOf(query).toString() : null}
       numbers={numbers}
       openedAt={new Date().toISOString()}
       hosted={gate.agents.hosted}
       start={start}
-      alsoLearn={profile !== null}
+      alsoLearn={usesLearn}
       returning={search[ISSUE_LOOK_PARAM] === '1'}
       learn={learn}
+      kept={kept}
     />
   );
 }

@@ -22,6 +22,7 @@ import {
   issuesRowOf,
   issuesSwitchesOf,
   issuesViewOf,
+  issuesViewQueryOf,
   mergedOnOf,
   rowLessonOf,
   rowsAfterSkip,
@@ -30,6 +31,7 @@ import {
   visitorEndOf,
 } from './issues';
 import { maskedIssue } from '@/lib/workspace/__fixtures__/masked-issue';
+import { learnIssuesPathOf } from '@/lib/workspace/paths';
 
 describe('the view in the address', () => {
   it('reads "For you" on unless turned off, the rest off unless set', () => {
@@ -123,6 +125,29 @@ describe('the view in the address', () => {
       ...ISSUES_VIEW,
       forYou: false,
     });
+  });
+});
+
+describe("a view as a row's link carries it to the page of one issue", () => {
+  it("writes the view's query, and the lesson's or the course's own page while the view names it", () => {
+    expect(issuesViewQueryOf(ISSUES_VIEW)).toBe('');
+    expect(issuesViewQueryOf(views.course)).toBe('course=algorithms&learned=1');
+    expect(issuesViewQueryOf(views.lesson, 'lesson')).toBe('lesson=find-duplicates-with-a-set&at=lesson');
+    expect(issuesViewQueryOf(views.course, 'course')).toBe('course=algorithms&learned=1&at=course');
+    // A lesson's page whose view no longer names the lesson is Issues' own.
+    expect(issuesViewQueryOf(views.language, 'lesson')).toBe('language=go');
+  });
+
+  it('is read back by the way back into the same address the view has', () => {
+    for (const [view, at] of [
+      [ISSUES_VIEW, 'issues'],
+      [views.course, 'issues'],
+      [views.lesson, 'lesson'],
+      [views.course, 'course'],
+      [{ ...views.lesson, course: 'algorithms', forYou: false }, 'lesson'],
+    ] as const) {
+      expect(learnIssuesPathOf(new URLSearchParams(issuesViewQueryOf(view, at)))).toBe(issuesHrefOf(view, at));
+    }
   });
 });
 

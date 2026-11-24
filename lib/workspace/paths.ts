@@ -8,7 +8,10 @@ import type { ContributeSetListMode } from './contribute.types';
  */
 export const WORKSPACE_PATHS = {
   contribute: '/contribute' as Route,
-  /** Learn as it worked before its courses: an issue fixed by your agent, and a lesson on the fix. */
+  /**
+   * Learn as it worked before its courses: an issue fixed by your agent, and a lesson on the fix. A link to pick an
+   * issue on Learn goes to Learn's Issues (`PICK_ISSUE_PATHS.learn`) instead.
+   */
   learn: '/learn/earlier' as Route,
   /** Learn home, which the workspace's Learn tab opens. */
   learnHome: '/learn' as Route,
@@ -29,7 +32,11 @@ export const WORKSPACE_PATHS = {
   settingsWork: '/my/settings/work' as Route,
   /** Learn's goal and level. */
   settingsGoal: '/my/settings/goal' as Route,
-  /** Your progress: what the user has learned, and where their Learn pull requests landed. */
+  /**
+   * The earlier Your progress: what the user has learned, and where their Learn pull requests landed. Its own tabs and
+   * the earlier Learn page's numbers link it, for the lists only it has; other links go to Learn's own progress page,
+   * `/learn/progress`.
+   */
   progress: '/my/progress' as Route,
 } as const;
 
@@ -255,8 +262,8 @@ const ISSUE_PAGE = /^\/+my\/+issues\/+([A-Za-z0-9_-]{1,64})\/?$/;
  * Where a workspace page sends an account being set up: the two connect pages to their steps of Contribute's flow
  * (which say so in place and keep the query), any other page to Contribute's home, which says so too. Both read
  * themselves again until the account is ready. An issue's page (a new account back from the sign-in) rides along in
- * the home's query, `?issue=<mask id>` with where the person came from and their press, and the home sends them back
- * to it once the account is ready.
+ * the home's query, `?issue=<mask id>` with where the person came from, the Learn view they were on (`view`) and their
+ * press, and the home sends them back to it once the account is ready.
  */
 export function settingUpHomeOf(url: { pathname: string; search?: string }): string {
   const issue = ISSUE_PAGE.exec(url.pathname)?.[1];
@@ -265,6 +272,9 @@ export function settingUpHomeOf(url: { pathname: string; search?: string }): str
     const carried = new URLSearchParams({ issue });
     const from = query.get('from');
     if (from === 'learn' || from === 'contribute') carried.set('from', from);
+    // From Learn, the view's filters, as one value: the home's own filters (`?language=`) never read it.
+    const view = from === 'learn' ? learnIssuesViewOf(query).toString() : '';
+    if (view) carried.set(ISSUE_VIEW_PARAM, view);
     if (query.get('look') === '1') carried.set('look', '1');
     return `/contribute?${carried}`;
   }
@@ -391,13 +401,78 @@ export const pullRequestWalkthroughPath = (ref: Pick<IssueRef, 'repo' | 'issue'>
 export const pullRequestApprovePath = (ref: Pick<IssueRef, 'repo' | 'issue'>) =>
   `${pullRequestPath(ref)}/approve` as Route;
 
+/** Learn's Issues page, as Learn's own paths write it. */
+const LEARN_ISSUES = '/learn/issues' as Route;
+
 /**
- * Where the person picks an issue, by side: the Contribute tab's issues, or Learn's.
+ * Where the person picks an issue, by side: the Contribute tab's issues, or Learn's Issues page.
  */
 export const PICK_ISSUE_PATHS = {
   fix: '/contribute#issues' as Route,
-  learn: `${WORKSPACE_PATHS.learn}#issues` as Route,
+  learn: LEARN_ISSUES,
 } as const;
+
+/** A course's or a lesson's slug as Learn writes it: lower-case words joined by single hyphens, up to 100 characters. */
+const VIEW_SLUG = /^(?=.{1,100}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/**
+ * The view's own page: a lesson's or a course's view of Issues at its own address (`at`), as Learn's paths write them;
+ * Issues' own page otherwise.
+ */
+const ISSUES_AT = { lesson: 'lessons', course: 'courses' } as const;
+
+/**
+ * The filters of Learn's Issues page, in the order Learn writes them, each with the one shape it takes there: the
+ * chips (a course, a lesson, a language, "Fixed") and the two switches ("For you" off, "Lessons I learned" on). Then
+ * the page the view was on (`at`): a lesson's or a course's own view of Issues.
+ */
+const ISSUES_VIEW_PARAMS: readonly (readonly [key: string, shape: RegExp])[] = [
+  ['course', VIEW_SLUG],
+  ['lesson', VIEW_SLUG],
+  ['language', /^[a-z]{1,20}$/],
+  ['fixed', /^1$/],
+  ['for-you', /^0$/],
+  ['learned', /^1$/],
+  ['at', /^(?:lesson|course)$/],
+];
+
+/** The parameter that carries a Learn view through a new account's setup, as one value: `view=<the view's query>`. */
+export const ISSUE_VIEW_PARAM = 'view';
+
+/**
+ * The filters of Learn's Issues page a query holds, and nothing else: a link from that page carries them to the page
+ * of one issue, so its way back opens the same view. A key of no filter, or a value of the wrong shape, is left out;
+ * so is `at` without the lesson or the course it names.
+ */
+export function learnIssuesViewOf(query: URLSearchParams): URLSearchParams {
+  const view = new URLSearchParams();
+  for (const [key, shape] of ISSUES_VIEW_PARAMS) {
+    const value = query.get(key);
+    if (value !== null && shape.test(value)) view.set(key, value);
+  }
+  const at = view.get('at');
+  if (at && !view.has(at)) view.delete('at');
+  return view;
+}
+
+/**
+ * Learn's view of Issues under the filters a query holds (`learnIssuesViewOf`), as Learn writes its address
+ * (`issuesHrefOf`): a lesson's or a course's own view at its own address when `at` names it, else Issues' own page.
+ * Always one of those Learn pages, whatever the query.
+ */
+export function learnIssuesPathOf(query: URLSearchParams): Route {
+  const view = learnIssuesViewOf(query);
+  const at = view.get('at') as keyof typeof ISSUES_AT | null;
+  view.delete('at');
+  let path: string = LEARN_ISSUES;
+  const slug = at ? view.get(at) : null;
+  if (at && slug) {
+    path = `/learn/${ISSUES_AT[at]}/${encodeURIComponent(slug)}/real-world`;
+    view.delete(at);
+  }
+  const text = view.toString();
+  return (text ? `${path}?${text}` : path) as Route;
+}
 
 /** A lesson's page, `/learn/lessons/<slug>`, as Learn's own paths write it: the line on the page of one issue links it. */
 export const issueLessonPath = (slug: string): Route => `/learn/lessons/${encodeURIComponent(slug)}` as Route;

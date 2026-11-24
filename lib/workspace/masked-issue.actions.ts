@@ -77,12 +77,18 @@ export async function lookOnReturn(
   );
 }
 
-/** A visitor's "See the full issue": the GitHub sign-in, back to the issue's page, where the press is made. */
+/**
+ * A visitor's "See the full issue": the GitHub sign-in, back to the issue's page, where the press is made. From
+ * Learn's Issues, the view's filters ride along (`view`), only those `issuePageHrefOf` keeps.
+ */
 export async function signInToSeeIssue(form: FormData): Promise<void> {
   const maskId = maskIdOf(form.get('id'));
   const from = fromOf(form.get('from'));
+  const view = form.get('view');
   if (maskId) await markIssueLook(maskId);
-  await signIn(IDENTITY_PROVIDER, { redirectTo: maskId ? issuePageHrefOf(maskId, from, true) : '/' });
+  await signIn(IDENTITY_PROVIDER, {
+    redirectTo: maskId ? issuePageHrefOf(maskId, from, true, typeof view === 'string' ? view : null) : '/',
+  });
 }
 
 /** "Give it back": the issue leaves the person's list and goes to the others at once. */

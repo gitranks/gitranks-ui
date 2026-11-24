@@ -94,6 +94,15 @@ describe('a visitor’s press, through the sign-in', () => {
     expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/my/issues/q7k2m9xa?from=learn&look=1' });
   });
 
+  it("carries the Learn view's filters back to the page, and nothing else", async () => {
+    await actions.signInToSeeIssue(
+      form({ id: 'q7k2m9xa', from: 'learn', view: 'lesson=a-queue&next=https://evil.example&for-you=0' }),
+    );
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: '/my/issues/q7k2m9xa?from=learn&lesson=a-queue&for-you=0&look=1',
+    });
+  });
+
   it('is made on return, once, from the sign-in, when the mark names the issue', async () => {
     await actions.signInToSeeIssue(form({ id: 'q7k2m9xa', from: 'contribute' }));
     const looked = await actions.lookOnReturn('q7k2m9xa', 'contribute');

@@ -9,6 +9,8 @@ import { sendFairUseAppeal } from '@/components/workspace/fair-use-appeal-live';
 import { type IssuePageNotice, IssuePageScreen } from '@/components/workspace/masked-issue/issue-page-screen';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
 import { clearHeldMark, writeHeldMark } from '@/lib/workspace/held-mark';
+import { type IssueKeptForLearners, keptNowOf } from '@/lib/workspace/issue-page-kept';
+import { readIssueKept } from '@/lib/workspace/issue-page-kept.actions';
 import { type IssuePageLearn, issueLessonLineOf } from '@/lib/workspace/issue-page-learn';
 import { limitWordsOf } from '@/lib/workspace/limit-words';
 import { type IssuePageFrom, issuePageHrefOf } from '@/lib/workspace/masked-issue';
@@ -49,6 +51,9 @@ export const ISSUE_PAGE_NOTICES = {
   hosted: 'The hosted agent did not start. Try again in a minute.',
 } as const;
 
+/** The longest wait a browser timer takes: a time further off is checked again then. */
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
 /** A hosted start's refusal that ends the page, as a look's would. */
 const START_REFUSAL_STATES: Partial<Record<string, IssuePageState>> = { TAKEN: 'TAKEN', CLOSED: 'LEFT_POOL' };
 
@@ -59,6 +64,8 @@ export type IssuePageLiveProps = {
   page: IssuePage;
   from: IssuePageFrom;
   back: { href: Route; label: string };
+  /** From Learn: the query of the Issues view the person came from, kept in the address for the way back. */
+  view?: string | null;
   numbers: IssueNumbers | null;
   /** When the server rendered the page: the hold's clock starts there. */
   openedAt: string;
@@ -75,6 +82,11 @@ export type IssuePageLiveProps = {
    * left out, the page draws none of them.
    */
   learn?: IssuePageLearn | null;
+  /**
+   * From Contribute: the issue is kept for learners from the person, read on its own. The page then offers no press and
+   * no start, and says so (with the way to it in Learn for a person who uses Learn). Null or left out: today's page.
+   */
+  kept?: IssueKeptForLearners | null;
 };
 
 /**
@@ -85,7 +97,7 @@ export type IssuePageLiveProps = {
  * through leaves the page as it was and says so; a hosted start that is refused says why.
  */
 export function IssuePageLive(props: IssuePageLiveProps) {
-  const { id, from } = props;
+  const { id, from, view = null } = props;
   const router = useRouter();
   const [page, setPage] = useState(props.page);
   const [pressing, setPressing] = useState(false);
@@ -94,6 +106,12 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   const [notice, setNotice] = useState<IssuePageNotice | null>(null);
   const [hostedSending, setHostedSending] = useState(false);
   const [connection, setConnection] = useState(props.start.connection);
+  const [kept, setKept] = useState(props.kept ?? null);
+  // The kept answer was read again after a press Contribute refused as not available: only then does it stand in for
+  // that plain end (one read before any press is the person's own skip or give-back).
+  const [keptOnRefusal, setKeptOnRefusal] = useState(false);
+  const keptRef = useRef(kept);
+  keptRef.current = kept;
   // A page opened in full with the person's agent connected (a reload) waits for the agent at once.
   const [waiting, setWaiting] = useState(props.page.state === 'FULL' && !!props.start.connection);
   const routerRef = useRef(router);
@@ -107,29 +125,43 @@ export function IssuePageLive(props: IssuePageLiveProps) {
     if (page.state !== 'FULL' && page.state !== 'MASKED') clearHeldMark(id);
   }, [id, page.state, page.until, page.holding]);
 
-  /** The page after a press: in full, one of the ends, or the closed access. */
-  const onLooked = useCallback((result: ContributeActionResult<IssueLooked>) => {
-    if (!result.ok) {
-      setNotice({ text: ISSUE_PAGE_NOTICES.look });
-      return;
-    }
-    const { outcome, page: next } = result.data;
-    if (outcome === 'SUSPENDED') {
-      setSuspended(true);
-      return;
-    }
-    if (next) setPage(next);
-    else {
-      const state = OUTCOME_STATES[outcome];
-      if (state) setPage((current) => ({ ...current, state }));
-    }
-  }, []);
+  /**
+   * The page after a press: in full, one of the ends, or the closed access. A press Contribute refuses as not available
+   * asks again, on its own, whether the issue is kept for learners (a read made before it was, or none), so the end
+   * says so in place of its plain words.
+   */
+  const onLooked = useCallback(
+    async (result: ContributeActionResult<IssueLooked>) => {
+      if (!result.ok) {
+        setNotice({ text: ISSUE_PAGE_NOTICES.look });
+        return;
+      }
+      const { outcome, page: answered } = result.data;
+      if (outcome === 'SUSPENDED') {
+        setSuspended(true);
+        return;
+      }
+      if (outcome === 'NOT_AVAILABLE' && from === 'contribute') {
+        // A read that worked sets the answer, "not kept" included; one that failed keeps what the page showed.
+        const again = await readIssueKept(id).catch(() => null);
+        const next = again ? again.kept : keptRef.current;
+        if (again) setKept(again.kept);
+        setKeptOnRefusal(next !== null);
+      }
+      if (answered) setPage(answered);
+      else {
+        const state = OUTCOME_STATES[outcome];
+        if (state) setPage((current) => ({ ...current, state }));
+      }
+    },
+    [id, from],
+  );
 
   const see = useCallback(async () => {
     setPressing(true);
     setNotice(null);
     const result = await lookAtIssue(id, from).catch(() => null);
-    onLooked(result ?? { ok: false, error: 'FAILED' });
+    await onLooked(result ?? { ok: false, error: 'FAILED' });
     setPressing(false);
   }, [id, from, onLooked]);
 
@@ -139,16 +171,19 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   useEffect(() => {
     if (!props.returning || returned.current) return;
     returned.current = true;
-    routerRef.current.replace(issuePageHrefOf(id, from));
-    const masked = props.page.state === 'MASKED';
+    routerRef.current.replace(issuePageHrefOf(id, from, false, view));
+    // An issue kept for learners from Contribute: the sign-in's mark is used up, and no press is made (it would be
+    // refused).
+    const keptNow = from === 'contribute' && keptNowOf(keptRef.current, new Date()) !== null;
+    const masked = props.page.state === 'MASKED' && !keptNow;
     if (masked) setPressing(true);
     void lookOnReturn(id, from, masked)
       .catch(() => null)
-      .then((result) => {
-        if (result) onLooked(result);
+      .then(async (result) => {
+        if (result) await onLooked(result);
         if (masked) setPressing(false);
       });
-  }, [props.returning, props.page.state, id, from, onLooked]);
+  }, [props.returning, props.page.state, id, from, view, onLooked]);
 
   /** The page read again: once the agent started, on to the work's page. */
   const ask = useCallback(async () => {
@@ -164,8 +199,29 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   }, [id]);
 
   // Waiting for the agent: the workspace's poll runs fast, and each change of the person's attempts asks again.
-  useFastChanges(waiting);
-  useChanges(['ATTEMPTS'], () => void ask(), waiting);
+  // Kept for learners shows only from Contribute, where it cannot be taken (the way to it in Learn only to a person who
+  // uses Learn). Nothing can start there: no wait while it is kept.
+  const keptHere = from === 'contribute' ? kept : null;
+  const waitingNow = waiting && keptHere === null;
+  useFastChanges(waitingNow);
+  useChanges(['ATTEMPTS'], () => void ask(), waitingNow);
+
+  // An issue kept until a time: once it passes, it is no longer kept, and the press (or the wait) comes back.
+  useEffect(() => {
+    const until = keptHere?.until;
+    if (!until) return;
+    const left = Date.parse(until) - Date.now();
+    // Checked again at the time (a new answer object, so a time still to come is waited for once more).
+    const timer = setTimeout(
+      () =>
+        setKept((current) => {
+          const still = keptNowOf(current, new Date());
+          return still ? { ...still } : null;
+        }),
+      Math.min(Math.max(left, 0), MAX_TIMEOUT_MS),
+    );
+    return () => clearTimeout(timer);
+  }, [keptHere]);
 
   /** The issue held 30 minutes, once; then the page waits for the agent. */
   const holdLonger = useCallback(async () => {
@@ -230,6 +286,9 @@ export function IssuePageLive(props: IssuePageLiveProps) {
       lesson={issueLessonLineOf(learn)}
       learnOnly={learn?.learnOnly ?? false}
       started={learn?.started ?? null}
+      kept={keptHere}
+      keptOnRefusal={keptOnRefusal}
+      learnHref={keptHere && props.alsoLearn ? issuePageHrefOf(id, 'learn') : null}
       back={props.back}
       numbers={props.numbers}
       now={new Date(props.openedAt)}

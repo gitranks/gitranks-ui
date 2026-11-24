@@ -19,6 +19,7 @@ import { IssueStartForm, type IssueStartFormProps } from '@/components/workspace
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
 import { MaskedListFoot, WhyHiddenDialog } from '@/components/workspace/masked-issue/why-hidden';
 import { RefChips } from '@/components/workspace/ref-chips';
+import { type IssueKeptForLearners, keptLineOf, keptNowOf, keptOpensLineOf } from '@/lib/workspace/issue-page-kept';
 import { type IssueStarted, startedLineOf } from '@/lib/workspace/issue-page-learn';
 import {
   beforePressLineOf,
@@ -41,14 +42,16 @@ import type { StartRefusalAction } from '@/lib/workspace/start-refusals';
 const TICK_MS = 10_000;
 
 /**
- * The page's clock, from `start`: it moves while an issue is held and its minutes are not over (`held && !over`), and
- * while the started line says how long ago the work started (`started`). Otherwise it keeps no timer.
+ * The page's clock, from `start`: it moves while an issue is held and its minutes are not over (`held && !over`), while
+ * the started line says how long ago the work started (`started`), and while an issue is kept for learners until a time
+ * still to come (`keptUntil`), so the press comes back once it passes. Otherwise it keeps no timer.
  */
-function useHoldClock(start: Date, until: string | null, started = false): Date {
+function useHoldClock(start: Date, until: string | null, started = false, keptUntil: string | null = null): Date {
   const [now, setNow] = useState(start);
   const held = until !== null;
   const over = held && minutesLeftOf(until, now) === 0;
-  const running = (held && !over) || started;
+  const keptOn = keptUntil !== null && minutesLeftOf(keptUntil, now) > 0;
+  const running = (held && !over) || started || keptOn;
   useEffect(() => {
     if (!running) return;
     setNow(new Date());
@@ -82,6 +85,18 @@ export type IssuePageScreenProps = {
   learnOnly?: boolean;
   /** With the started state, from Learn: how the work started, said in one line. */
   started?: IssueStarted | null;
+  /**
+   * From Contribute, an issue kept for learners: no "See the full issue" and no start, one line instead (the press
+   * would be refused). Shown only from Contribute.
+   */
+  kept?: IssueKeptForLearners | null;
+  /** With `kept`, for a person who uses Learn: the same issue's page from Learn ("Open it in Learn"). */
+  learnHref?: Route | null;
+  /**
+   * With `kept`: it was read again after a press Contribute refused as not available, so it stands in for that plain
+   * end. A not available page read before any press is the person's own skip or give-back: it keeps its plain end.
+   */
+  keptOnRefusal?: boolean;
   colors?: Readonly<Record<string, string>>;
   /** The press is on its way: the button waits in its place. */
   pressing?: boolean;
@@ -170,13 +185,29 @@ function FullCard({
 }
 
 /** One end of a look: one sentence that says what happened, and one way on. */
-function End({ state, title, text, children }: { state: string; title: string; text: string; children: ReactNode }) {
+function End({
+  state,
+  title,
+  text,
+  kept = false,
+  children,
+}: {
+  state: string;
+  title: string;
+  text: string | null;
+  kept?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <section className="flex flex-col items-start gap-3 rounded-xl border bg-card p-5" data-end={state}>
+    <section
+      className="flex flex-col items-start gap-3 rounded-xl border bg-card p-5"
+      data-end={state}
+      data-kept={kept ? '' : undefined}
+    >
       <h1 tabIndex={-1} className="m-0 text-2xl font-bold tracking-tight outline-none">
         {title}
       </h1>
-      <p className="m-0 max-w-[70ch] text-sm text-muted-foreground">{text}</p>
+      {text ? <p className="m-0 max-w-[70ch] text-sm text-muted-foreground">{text}</p> : null}
       <div className="flex flex-wrap items-center gap-3">{children}</div>
     </section>
   );
@@ -184,18 +215,69 @@ function End({ state, title, text, children }: { state: string; title: string; t
 
 const PRIMARY = 'h-10 px-6 font-semibold max-sm:min-h-11';
 
+/** "Back to Issues", the way on of every end: the main one, or beside another. */
+function BackToIssues({ href, primary }: { href: Route; primary: boolean }) {
+  return (
+    <Button asChild variant={primary ? 'default' : 'ghost'} className={primary ? PRIMARY : 'h-9 px-3'}>
+      <Link href={href} prefetch={false} data-primary-action={primary ? '' : undefined}>
+        Back to Issues
+      </Link>
+    </Button>
+  );
+}
+
+/** What the page says of an issue kept for learners: the line, and when it opens to Contribute once that is known. */
+type KeptWords = { line: string; opens: string | null };
+
+/** "Open it in Learn", to the same issue's page from Learn, where the person can take it. */
+function OpenInLearn({ href }: { href: Route }) {
+  return (
+    <Button asChild className={PRIMARY}>
+      <Link href={href} prefetch={false} data-primary-action="" data-open-in-learn="">
+        Open it in Learn
+      </Link>
+    </Button>
+  );
+}
+
+/** In place of the press (or the start form): the line, and the way to it in Learn for a person who uses Learn. */
+function KeptForLearners({ words, learnHref }: { words: KeptWords; learnHref: Route | null }) {
+  return (
+    <div className="flex flex-col items-start gap-2.5" data-kept="">
+      <p className="m-0 text-sm font-medium" data-kept-line="">
+        {words.opens ? `${words.line} ${words.opens}` : words.line}
+      </p>
+      {learnHref ? <OpenInLearn href={learnHref} /> : null}
+    </div>
+  );
+}
+
+/**
+ * An end that would offer the press again (or says the issue is not on the list), for an issue kept for learners: the
+ * line as its heading, when it opens to Contribute, the way to it in Learn and the way back.
+ */
+function keptEndOf(state: IssuePageState, words: KeptWords, props: IssuePageScreenProps): ReactNode {
+  const learnHref = props.learnHref ?? null;
+  return (
+    <End state={state} title={words.line.slice(0, -1)} text={words.opens} kept>
+      {learnHref ? <OpenInLearn href={learnHref} /> : null}
+      <BackToIssues href={props.back.href} primary={!learnHref} />
+    </End>
+  );
+}
+
+/**
+ * The ends that offer the press again or say the issue is not on the list: from Contribute, said as kept instead. Not
+ * on the list only after a refused press (`keptOnRefusal`).
+ */
+const KEPT_ENDS: ReadonlySet<IssuePageState> = new Set(['EXPIRED', 'REPLACED', 'NOT_AVAILABLE']);
+
 /** The end's words and its way on, for the ends that are one sentence. */
 function endOf(
   state: Exclude<IssuePageState, 'MASKED' | 'FULL' | 'GIVEN_BACK'>,
   props: IssuePageScreenProps,
 ): ReactNode {
-  const back = (primary: boolean) => (
-    <Button asChild variant={primary ? 'default' : 'ghost'} className={primary ? PRIMARY : 'h-9 px-3'}>
-      <Link href={props.back.href} prefetch={false} data-primary-action={primary ? '' : undefined}>
-        Back to Issues
-      </Link>
-    </Button>
-  );
+  const back = (primary: boolean) => <BackToIssues href={props.back.href} primary={primary} />;
   const pressing = props.pressing ?? false;
   const again = (
     <Button
@@ -308,11 +390,15 @@ const pressPrimary = () => document.querySelector<HTMLElement>('[data-primary-ac
  * the press: a strip with the hold's end and its minutes, the issue in full, then "Start fixing it" and, under it,
  * "Not for me"; once the 15 minutes run out the page says so in place. After "Give it back": the reasons and the
  * note. The other ends are one sentence and one way on. A closed access shows its words and the request to look again.
+ * From Contribute, an issue kept for learners offers no press and no start: one line says so in their place (and in
+ * place of the ends that would offer the press again), with "Open it in Learn" for a person who uses Learn.
  */
 export function IssuePageScreen(props: IssuePageScreenProps) {
   const { page, from, back, numbers, visitor = false, timeZone, lesson = null, colors, pressing = false } = props;
   const until = page.state === 'FULL' ? page.until : null;
-  const now = useHoldClock(props.now, until, page.state === 'STARTED' && Boolean(props.started));
+  // From Contribute, an issue kept for learners until a time to come: the clock moves so the press comes back then.
+  const keptUntil = from === 'contribute' ? (props.kept?.until ?? null) : null;
+  const now = useHoldClock(props.now, until, page.state === 'STARTED' && Boolean(props.started), keptUntil);
   const over = until !== null && minutesLeftOf(until, now) === 0;
   const state: IssuePageState = over ? 'EXPIRED' : page.state;
   const masked = page.masked;
@@ -321,8 +407,23 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // From Contribute, an issue kept for learners: the line in place of the press. When it opens to Contribute is written
+  // in the browser's zone, so only once the page is there (or in the zone given).
+  const kept = from === 'contribute' ? keptNowOf(props.kept ?? null, now) : null;
+  const keptWords: KeptWords | null = kept
+    ? {
+        line: keptLineOf(kept),
+        opens: kept.until && (timeZone || mounted) ? keptOpensLineOf(kept.until, now, timeZone) : null,
+      }
+    : null;
+  const learnHref = props.learnHref ?? null;
+
   const enter =
-    props.suspended || state === 'FULL' || pressing ? null : state === 'MASKED' ? (props.onSee ?? null) : pressPrimary;
+    props.suspended || state === 'FULL' || pressing
+      ? null
+      : state === 'MASKED' && !keptWords
+        ? (props.onSee ?? null)
+        : pressPrimary;
   useEnterKey(enter);
 
   // Each new state takes the focus to its heading, so a keyboard or a screen reader starts at the top of what changed.
@@ -349,21 +450,25 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
     body = (
       <>
         <MaskedCard masked={masked} lesson={lesson} colors={colors} />
-        <div className="flex flex-col items-start gap-2.5">
-          <Button
-            type="button"
-            className={`${PRIMARY} aria-disabled:opacity-60`}
-            onClick={pressing ? undefined : props.onSee}
-            aria-disabled={pressing || undefined}
-            data-see-full=""
-          >
-            {pressing ? 'Opening…' : 'See the full issue'}
-            {pressing ? null : <EnterKey />}
-          </Button>
-          <span className="text-sm text-muted-foreground" data-press-line="">
-            {beforePressLineOf(page.holding, now)}
-          </span>
-        </div>
+        {keptWords ? (
+          <KeptForLearners words={keptWords} learnHref={learnHref} />
+        ) : (
+          <div className="flex flex-col items-start gap-2.5">
+            <Button
+              type="button"
+              className={`${PRIMARY} aria-disabled:opacity-60`}
+              onClick={pressing ? undefined : props.onSee}
+              aria-disabled={pressing || undefined}
+              data-see-full=""
+            >
+              {pressing ? 'Opening…' : 'See the full issue'}
+              {pressing ? null : <EnterKey />}
+            </Button>
+            <span className="text-sm text-muted-foreground" data-press-line="">
+              {beforePressLineOf(page.holding, now)}
+            </span>
+          </div>
+        )}
         <MaskedListFoot looks={page.looks} visitor={visitor} numbers={numbers} className="border-t pt-4" />
       </>
     );
@@ -385,7 +490,11 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
           <span className="text-muted-foreground">Nobody else sees this issue while you hold it.</span>
         </div>
         <FullCard masked={masked} full={page.full} lesson={lesson} colors={colors} />
-        <IssueStartForm from={from} issueUrl={page.full.url} learnOnly={props.learnOnly} {...props.start} />
+        {keptWords ? (
+          <KeptForLearners words={keptWords} learnHref={learnHref} />
+        ) : (
+          <IssueStartForm from={from} issueUrl={page.full.url} learnOnly={props.learnOnly} {...props.start} />
+        )}
         <NotForMe onGiveBack={props.onGiveBack} sending={props.givingBack} />
       </>
     );
@@ -393,7 +502,10 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
     body = <GivenBack backHref={back.href} reasons={page.reasons} note={page.note} {...props.givenBack} />;
   } else if (state === 'MASKED' || state === 'FULL') {
     // A page with nothing to show of its issue: it is no longer open to the viewer.
-    body = endOf('NOT_AVAILABLE', props);
+    body =
+      keptWords && props.keptOnRefusal ? keptEndOf('NOT_AVAILABLE', keptWords, props) : endOf('NOT_AVAILABLE', props);
+  } else if (keptWords && KEPT_ENDS.has(state) && (state !== 'NOT_AVAILABLE' || props.keptOnRefusal)) {
+    body = keptEndOf(state, keptWords, props);
   } else {
     body = endOf(state, { ...props, now });
   }

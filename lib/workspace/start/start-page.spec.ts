@@ -69,7 +69,7 @@ describe("the Start page's address", () => {
     for (const other of [undefined, '', '0', 'true', ['1']]) expect(startModeOf(other)).toBe('fix');
     expect(startBackOf('fix')).toEqual({ href: '/contribute#issues', label: 'Issues for you' });
     expect(startBackOf('fix', 'contribute')).toEqual(startBackOf('fix'));
-    expect(startBackOf('lesson')).toEqual({ href: '/learn/earlier#issues', label: 'Back to the issues' });
+    expect(startBackOf('lesson')).toEqual({ href: '/learn/issues', label: 'Back to the issues' });
     expect(startBackOf('lesson', 'contribute')).toEqual({ href: '/contribute#issues', label: 'Back to the issues' });
   });
 });

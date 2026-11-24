@@ -48,12 +48,12 @@ describe("where a person belongs on Learn's flow", () => {
     });
   });
 
-  it('an entered account with a goal only in the address saves it before it moves on to the Learn tab', async () => {
+  it("an entered account with a goal only in the address saves it before it moves on to Learn's Issues", async () => {
     reads.loadWorkspaceGate.mockResolvedValue(open(true));
     reads.loadLearnProfile.mockResolvedValueOnce(null);
     expect((await loadLearnFlowPlace('issues', { goalInAddress: true })).place).toEqual({
       kind: 'apply-then',
-      to: '/learn/earlier',
+      to: '/learn/issues',
     });
   });
 

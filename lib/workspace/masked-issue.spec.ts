@@ -10,7 +10,9 @@ import {
   hintTextOf,
   issueKindOf,
   issueLanguageColorOf,
+  issuePageBackOf,
   issuePageCarriedOf,
+  issuePageHrefOf,
   issuePagePath,
   keptShareOf,
   limitEndOf,
@@ -22,9 +24,12 @@ import {
   projectTierNameOf,
   SKIP_REASONS,
   starsTextOf,
+  usesLearnOf,
   WHY_HIDDEN_CLOSING,
   WHY_HIDDEN_REASONS,
 } from './masked-issue';
+import { emptyProfile, filledProfile } from '@/lib/learn/__fixtures__/profile';
+import type { LearnSetupRead } from '@/lib/learn/setup';
 
 describe('the page of one issue', () => {
   it('is at an address that names only the mask id', () => {
@@ -37,9 +42,106 @@ describe('the page of one issue', () => {
       '/my/issues/q7k2m9xa?from=learn&look=1',
     );
     expect(issuePageCarriedOf({ issue: 'q7k2m9xa' })).toBe('/my/issues/q7k2m9xa?from=contribute');
+    // A Learn view's filters, checked again; none from Contribute, and nothing but the filters.
+    expect(issuePageCarriedOf({ issue: 'q7k2m9xa', from: 'learn', view: 'lesson=a-queue&at=lesson&x=1' })).toBe(
+      '/my/issues/q7k2m9xa?from=learn&lesson=a-queue&at=lesson',
+    );
+    expect(issuePageCarriedOf({ issue: 'q7k2m9xa', from: 'contribute', view: 'lesson=a-queue' })).toBe(
+      '/my/issues/q7k2m9xa?from=contribute',
+    );
+    expect(issuePageCarriedOf({ issue: 'q7k2m9xa', from: 'learn', view: ['lesson=a', 'lesson=b'] })).toBe(
+      '/my/issues/q7k2m9xa?from=learn',
+    );
     expect(issuePageCarriedOf({ issue: '../x' })).toBeNull();
     expect(issuePageCarriedOf({ issue: ['a', 'b'] })).toBeNull();
     expect(issuePageCarriedOf({})).toBeNull();
+  });
+});
+
+/** A setup as the API answers it, at `state`. */
+const setupRead = (patch: Partial<LearnSetupRead> = {}): LearnSetupRead => ({
+  state: 'SAVED',
+  mainLanguage: 'python',
+  otherLanguages: [],
+  level: 2,
+  guessed: [],
+  ...patch,
+});
+
+describe('the way to the page of one issue, and back from it', () => {
+  it("carries where the person came from, and from Learn the Issues view's filters alone", () => {
+    expect(issuePageHrefOf('q7k2m9xa', 'contribute')).toBe('/my/issues/q7k2m9xa?from=contribute');
+    expect(issuePageHrefOf('q7k2m9xa', 'learn', false, 'lesson=a-queue&for-you=0')).toBe(
+      '/my/issues/q7k2m9xa?from=learn&lesson=a-queue&for-you=0',
+    );
+    expect(issuePageHrefOf('q7k2m9xa', 'learn', true, 'course=data-structures')).toBe(
+      '/my/issues/q7k2m9xa?from=learn&course=data-structures&look=1',
+    );
+    // Nothing but the view's own filters, of their own shape; and never from Contribute.
+    expect(issuePageHrefOf('q7k2m9xa', 'learn', false, 'next=https://evil.example&from=contribute&lesson=../x')).toBe(
+      '/my/issues/q7k2m9xa?from=learn',
+    );
+    expect(issuePageHrefOf('q7k2m9xa', 'contribute', false, 'lesson=a-queue')).toBe(
+      '/my/issues/q7k2m9xa?from=contribute',
+    );
+  });
+
+  const back = (search: string, usesLearn = false) => {
+    const query = new URLSearchParams(search);
+    return issuePageBackOf(query.get('from') ?? undefined, query, usesLearn).href;
+  };
+
+  it("leads from Learn to Learn's Issues page, with the filters the address carries", () => {
+    expect(back('from=learn')).toBe('/learn/issues');
+    expect(back('from=learn&lesson=a-queue&language=go&learned=1&look=1')).toBe(
+      '/learn/issues?lesson=a-queue&language=go&learned=1',
+    );
+    expect(back('from=learn&lesson=A%20Queue&back=%2F%2Fevil.example')).toBe('/learn/issues');
+  });
+
+  it("leads from a lesson's or a course's own view of Issues back to that page", () => {
+    expect(back('from=learn&lesson=a-queue&learned=1&at=lesson')).toBe('/learn/lessons/a-queue/real-world?learned=1');
+    expect(back('from=learn&course=algorithms&at=course')).toBe('/learn/courses/algorithms/real-world');
+    expect(back('from=learn&at=lesson')).toBe('/learn/issues');
+  });
+
+  it('knows a person uses Learn by their setup of Learn saved, whatever the older profile says', () => {
+    const saved = setupRead({ state: 'SAVED' });
+    expect(usesLearnOf({ setup: saved, profile: emptyProfile })).toBe(true);
+    expect(usesLearnOf({ setup: saved, profile: null })).toBe(true);
+    // A guess a visit started, or one being made, is not a save; nor is no setup.
+    for (const state of ['NONE', 'WORKING', 'GUESSED'] as const) {
+      expect(usesLearnOf({ setup: setupRead({ state }), profile: emptyProfile }), state).toBe(false);
+    }
+  });
+
+  it('falls back to an older Learn profile they saved, not the empty one the API answers', () => {
+    const none = setupRead({ state: 'NONE' });
+    expect(usesLearnOf({ setup: none, profile: filledProfile })).toBe(true);
+    expect(usesLearnOf({ setup: null, profile: { ...emptyProfile, goalKind: 'LANGUAGE' } })).toBe(true);
+    expect(usesLearnOf({ setup: null, profile: { ...emptyProfile, updatedAt: '2026-10-27T18:00:00.000Z' } })).toBe(
+      true,
+    );
+    expect(usesLearnOf({ setup: none, profile: emptyProfile })).toBe(false);
+    // Nothing read, or reads that failed: no.
+    expect(usesLearnOf({ setup: null, profile: null })).toBe(false);
+    expect(usesLearnOf({})).toBe(false);
+  });
+
+  it("leads from Contribute to Contribute's issues, whoever the person is", () => {
+    expect(back('from=contribute')).toBe('/contribute#issues');
+    expect(back('from=contribute&lesson=a-queue', true)).toBe('/contribute#issues');
+  });
+
+  it("leads, when the address does not say, to Learn's Issues for a person who uses Learn, else to Contribute's", () => {
+    expect(back('', true)).toBe('/learn/issues');
+    expect(back('')).toBe('/contribute#issues');
+    expect(back('from=elsewhere', true)).toBe('/learn/issues');
+    expect(back('from=elsewhere')).toBe('/contribute#issues');
+    expect(issuePageBackOf(undefined, new URLSearchParams(), false)).toEqual({
+      href: '/contribute#issues',
+      label: 'Issues',
+    });
   });
 });
 

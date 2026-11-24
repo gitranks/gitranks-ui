@@ -33,6 +33,7 @@ import {
   issuesHrefOf,
   issuesMarkdownPathOf,
   issuesSwitchesOf,
+  issuesViewQueryOf,
   type LearnFixes,
   rowLessonOf,
   unchippedOf,
@@ -144,7 +145,7 @@ function IssuesBody({
     }
     return (
       <>
-        <IssueRows rows={layer.rows} visitor handlers={handlers} reads={NO_MASKED_READS} />
+        <IssueRows rows={layer.rows} view={view} at={at} visitor handlers={handlers} reads={NO_MASKED_READS} />
         {layer.pending ? null : <VisitorNote href={issuesHrefOf(view, at)} />}
       </>
     );
@@ -166,17 +167,24 @@ function IssuesBody({
       />
     );
   }
-  return <IssueRows rows={layer.list.rows} handlers={handlers} reads={layer.reads ?? NO_MASKED_READS} />;
+  return (
+    <IssueRows rows={layer.list.rows} view={view} at={at} handlers={handlers} reads={layer.reads ?? NO_MASKED_READS} />
+  );
 }
 
 /** The line on how the list works, the masked rows with their lesson lines, and the foot under them. */
 function IssueRows({
   rows,
+  view,
+  at,
   visitor = false,
   handlers,
   reads,
 }: {
   rows: readonly IssuesRow[];
+  /** The view on the screen, and the page it is on: a row's page of one issue keeps both for its way back. */
+  view: IssuesView;
+  at: IssuesAt;
   visitor?: boolean;
   handlers: IssuesHandlers;
   reads: MaskedListReads;
@@ -186,7 +194,14 @@ function IssueRows({
       <p className="m-0 max-w-prose text-sm text-muted-foreground" data-learn-masked-line="">
         {LEARN_MASKED_LINE}
       </p>
-      <MaskedList from="learn" pageFrom="learn" visitor={visitor} reads={reads} className="gap-4">
+      <MaskedList
+        from="learn"
+        pageFrom="learn"
+        pageView={issuesViewQueryOf(view, at)}
+        visitor={visitor}
+        reads={reads}
+        className="gap-4"
+      >
         <ul className="m-0 list-none divide-y overflow-hidden rounded-xl border bg-card p-0">
           {rows.map((row) => (
             <li key={row.issue.id} data-learn-only={row.learnOnly ? '' : undefined}>

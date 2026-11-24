@@ -256,6 +256,26 @@ describe('"See the full issue" in a list', () => {
     expect(actions.lookAtIssue).not.toHaveBeenCalled();
   });
 
+  it("carries Learn's Issues view to the issue's page, and through a visitor's sign-in", async () => {
+    actions.lookAtIssue.mockResolvedValue(looked('OK'));
+    await render(
+      <MaskedList from="learn" pageFrom="learn" pageView="lesson=a-queue&learned=1" reads={LIVE}>
+        <MaskedListRow issue={maskedIssue()} />
+      </MaskedList>,
+    );
+    await press(button('See the full issue'));
+    expect(router.push).toHaveBeenCalledWith('/my/issues/q7k2m9xa?from=learn&lesson=a-queue&learned=1');
+    remount();
+    await render(
+      <MaskedList from="learn" pageFrom="learn" pageView="lesson=a-queue" visitor reads={UNREAD}>
+        <MaskedListRow issue={maskedIssue()} />
+      </MaskedList>,
+    );
+    await press(button('See the full issue'));
+    const form = actions.signInToSeeIssue.mock.calls[0][0] as FormData;
+    expect(form.get('view')).toBe('lesson=a-queue');
+  });
+
   it("counts a press on the owner's profile as the profile's", async () => {
     actions.lookAtIssue.mockResolvedValue(looked('OK'));
     await render(

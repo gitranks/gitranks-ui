@@ -9,6 +9,8 @@ import {
   isTablessPath,
   isWorkspacePath,
   KEY_REPLACE_PATH,
+  learnIssuesPathOf,
+  learnIssuesViewOf,
   movedAnchorOf,
   PICK_ISSUE_PATHS,
   pullRequestByAttemptPath,
@@ -20,6 +22,10 @@ import {
   WORKSPACE_ANCHORS,
   WORKSPACE_PATHS,
 } from './paths';
+import { issuesQueryOf } from '@/app/contribute/components/issues-filter';
+import { issuesHrefOf, issuesViewOf } from '@/lib/learn/issues';
+import { LEARN_ISSUES_PATH } from '@/lib/learn/paths';
+import { issuePageCarriedOf } from '@/lib/workspace/masked-issue';
 
 describe('the workspace addresses', () => {
   it('are under /my, but for the two front tabs and the Learn pages that keep theirs until their own are built', () => {
@@ -154,6 +160,23 @@ describe('which pages are which', () => {
     expect(at('/my/issues/q7k2m9xa/')).toBe('/contribute?issue=q7k2m9xa');
     expect(at('/my/issues/q7k2m9xa?from=elsewhere&look=yes')).toBe('/contribute?issue=q7k2m9xa');
   });
+
+  it("carries a Learn view's filters through the setup as one value, which the home's own filters never read", () => {
+    const at = (path: string) => settingUpHomeOf(new URL(path, 'https://gitranks.com'));
+    const home = at('/my/issues/q7k2m9xa?from=learn&course=algorithms&language=go&at=course&next=x&look=1');
+    expect(home).toBe(
+      '/contribute?issue=q7k2m9xa&from=learn&view=course%3Dalgorithms%26language%3Dgo%26at%3Dcourse&look=1',
+    );
+    const query = new URL(home, 'https://gitranks.com').searchParams;
+    expect(query.get('language')).toBeNull();
+    expect(issuesQueryOf(Object.fromEntries(query))).toEqual({});
+    expect(issuePageCarriedOf(Object.fromEntries(query))).toBe(
+      '/my/issues/q7k2m9xa?from=learn&course=algorithms&language=go&at=course&look=1',
+    );
+    // Only from Learn, and only a view's own filters.
+    expect(at('/my/issues/q7k2m9xa?from=contribute&language=go')).toBe('/contribute?issue=q7k2m9xa&from=contribute');
+    expect(at('/my/issues/q7k2m9xa?from=learn&next=%2F%2Fevil.example')).toBe('/contribute?issue=q7k2m9xa&from=learn');
+  });
 });
 
 describe("one attempt's page, by its id", () => {
@@ -229,7 +252,56 @@ describe("the pull request's page, by repo and issue", () => {
     }
   });
 
-  it("picks another issue on the attempt's side", () => {
-    expect(PICK_ISSUE_PATHS).toEqual({ fix: '/contribute#issues', learn: '/learn/earlier#issues' });
+  it("picks another issue on the attempt's side: Contribute's issues, or Learn's own Issues page", () => {
+    expect(PICK_ISSUE_PATHS).toEqual({ fix: '/contribute#issues', learn: '/learn/issues' });
+    expect(PICK_ISSUE_PATHS.learn).toBe(LEARN_ISSUES_PATH);
+  });
+
+  it("keeps the filters of Learn's Issues page, each of its own shape, in Learn's order, and nothing else", () => {
+    const view = (search: string) => learnIssuesViewOf(new URLSearchParams(search)).toString();
+    expect(view('learned=1&for-you=0&fixed=1&language=go&lesson=a-queue&course=data-structures')).toBe(
+      'course=data-structures&lesson=a-queue&language=go&fixed=1&for-you=0&learned=1',
+    );
+    expect(view('from=learn&look=1&next=%2F%2Fevil.example&repo=a%2Fb')).toBe('');
+    expect(view('lesson=../x&course=Data%20Structures&language=c%2B%2B&fixed=yes&for-you=1&learned=0')).toBe('');
+    expect(view(`lesson=${'a'.repeat(101)}`)).toBe('');
+    // The page the view was on: a lesson's or a course's own, only with the lesson or the course it names.
+    expect(view('at=lesson&lesson=a-queue&learned=1')).toBe('lesson=a-queue&learned=1&at=lesson');
+    expect(view('at=course&course=algorithms')).toBe('course=algorithms&at=course');
+    expect(view('at=lesson&course=algorithms')).toBe('course=algorithms');
+    expect(view('at=https://evil.example&lesson=a-queue')).toBe('lesson=a-queue');
+    expect(view('at=issues')).toBe('');
+  });
+
+  it("writes Learn's Issues page under those filters as Learn writes the same view", () => {
+    for (const search of ['', 'lesson=a-queue', 'course=data-structures&language=python&for-you=0', 'learned=1']) {
+      expect(learnIssuesPathOf(new URLSearchParams(search)), search).toBe(
+        issuesHrefOf(issuesViewOf(Object.fromEntries(new URLSearchParams(search)))),
+      );
+    }
+    expect(learnIssuesPathOf(new URLSearchParams('from=learn&next=https://evil.example'))).toBe('/learn/issues');
+  });
+
+  it("writes a lesson's or a course's own view of Issues at its own address, as Learn writes it", () => {
+    const cases = [
+      ['at=lesson&lesson=a-queue', 'lesson'],
+      ['at=lesson&lesson=a-queue&course=algorithms&for-you=0', 'lesson'],
+      ['at=course&course=algorithms&learned=1', 'course'],
+      ['at=course&course=algorithms&lesson=a-queue&language=go', 'course'],
+    ] as const;
+    for (const [search, at] of cases) {
+      const query = new URLSearchParams(search);
+      expect(learnIssuesPathOf(query), search).toBe(issuesHrefOf(issuesViewOf(Object.fromEntries(query)), at));
+    }
+    expect(learnIssuesPathOf(new URLSearchParams('at=lesson&lesson=a-queue'))).toBe(
+      '/learn/lessons/a-queue/real-world',
+    );
+    // Without the lesson or the course it names, Issues' own page; never anywhere but Learn's.
+    expect(learnIssuesPathOf(new URLSearchParams('at=course&lesson=a-queue'))).toBe('/learn/issues?lesson=a-queue');
+    for (const search of ['at=lesson&lesson=..%2F..%2Fmy', 'at=%2F%2Fevil.example&course=x', 'at=lesson']) {
+      expect(learnIssuesPathOf(new URLSearchParams(search)), search).toMatch(
+        /^\/learn\/(?:issues|lessons|courses)(?:[/?]|$)/,
+      );
+    }
   });
 });

@@ -262,6 +262,34 @@ export function learnCourseMarkdownRouteOf(pathname: string): string | null {
   return slug !== undefined && isContentSlug(slug) ? learnCourseMarkdownRoute(slug) : null;
 }
 
+/** Where the proxy answers the Markdown copies of Issues and of a lesson's and a course's view of it from. */
+export const LEARN_ISSUES_MARKDOWN_ROUTE = '/api/learn/issues.md';
+
+const LESSON_VIEW_MARKDOWN = /^\/learn\/lessons\/([^/]+)\/real-world\.md$/;
+const COURSE_VIEW_MARKDOWN = /^\/learn\/courses\/([^/]+)\/real-world\.md$/;
+
+/**
+ * Where the proxy answers a view's Markdown copy from: `/learn/issues.md` with its query carried (`?language=go`),
+ * and `/learn/lessons/<slug>/real-world.md` and `/learn/courses/<slug>/real-world.md` with the lesson or the course
+ * and the page they belong to (`at`); null for any other path, and for a slug of no content's shape.
+ */
+export function learnIssuesMarkdownRouteOf(pathname: string, search = ''): string | null {
+  const query = new URLSearchParams(search);
+  query.delete('at');
+  if (pathname === markdownPathOf(LEARN_ISSUES_PATH)) {
+    const rest = query.toString();
+    return rest ? `${LEARN_ISSUES_MARKDOWN_ROUTE}?${rest}` : LEARN_ISSUES_MARKDOWN_ROUTE;
+  }
+  const lesson = LESSON_VIEW_MARKDOWN.exec(pathname)?.[1];
+  const course = COURSE_VIEW_MARKDOWN.exec(pathname)?.[1];
+  const slug = lesson ?? course;
+  if (slug === undefined || !isContentSlug(slug)) return null;
+  const at = lesson !== undefined ? 'lesson' : 'course';
+  query.set(at, slug);
+  query.set('at', at);
+  return `${LEARN_ISSUES_MARKDOWN_ROUTE}?${query}`;
+}
+
 const COURSE_PAGE = /^\/learn\/courses\/([^/]+)\/?$/;
 
 /**

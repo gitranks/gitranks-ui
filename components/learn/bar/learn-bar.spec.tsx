@@ -69,12 +69,12 @@ describe("Learn's bar", () => {
 
   /** What each row of page 7's board shows: the tabs, the current place, and the right side. */
   const expected = [
-    { tabs: 2, current: ['Home'], items: [] },
-    { tabs: 4, current: ['Home'], items: [['/learn/setup', SETUP_READY]] },
-    { tabs: 4, current: ['Home'], items: [] },
-    { tabs: 4, current: ['Home'], items: [['/learn/review', 'Review 6 lessons due']] },
+    { tabs: 3, current: ['Home'], items: [] },
+    { tabs: 5, current: ['Home'], items: [['/learn/setup', SETUP_READY]] },
+    { tabs: 5, current: ['Home'], items: [] },
+    { tabs: 5, current: ['Home'], items: [['/learn/review', 'Review 6 lessons due']] },
     {
-      tabs: 4,
+      tabs: 5,
       current: ['Home'],
       items: [
         ['/my/pull-requests?from=learn', 'Pull requests'],
@@ -82,7 +82,7 @@ describe("Learn's bar", () => {
       ],
     },
     {
-      tabs: 4,
+      tabs: 5,
       current: ['Home'],
       items: [
         ['/my/pull-requests?from=learn', 'Pull requests 1 need you'],
@@ -90,14 +90,14 @@ describe("Learn's bar", () => {
       ],
     },
     {
-      tabs: 4,
+      tabs: 5,
       current: ['Pull requests 1 need you'],
       items: [
         ['/my/pull-requests?from=learn', 'Pull requests 1 need you'],
         ['/learn/review', 'Review 6 lessons due'],
       ],
     },
-    { tabs: 4, current: ['Settings'], items: [['/learn/review', 'Review 6 lessons due']] },
+    { tabs: 5, current: ['Settings'], items: [['/learn/review', 'Review 6 lessons due']] },
   ];
 
   it.each(learnBarRows.map((row, index) => [row.title, row, expected[index]] as const))(
@@ -115,7 +115,7 @@ describe("Learn's bar", () => {
       await act(async () => root.render(<LearnBar state={row.state} place={row.place} />));
       expect(container.querySelector('[data-learn-bar]')?.getAttribute('data-learn-bar')).toBe(row.state.kind);
       expect(current()).toEqual(['Home']);
-      expect(tabs()).toHaveLength(row.state.kind === 'visitor' ? 2 : 4);
+      expect(tabs()).toHaveLength(row.state.kind === 'visitor' ? 3 : 5);
     }
   });
 
@@ -160,12 +160,12 @@ describe("Learn's bar", () => {
     await act(async () => root.render(<LearnBarLive />));
     // Before the read answers: a visitor's bar, the current tab already marked.
     expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/bar', { cache: 'no-store' });
-    expect(tabs()).toEqual(['Home', 'Courses']);
+    expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
     expect(current()).toEqual(['Courses']);
     expect(items()).toEqual([]);
 
     await act(async () => answers[0](bar(2)));
-    expect(tabs()).toHaveLength(4);
+    expect(tabs()).toHaveLength(5);
     expect(items()).toEqual([['/learn/review', 'Review 2 lessons due']]);
 
     // Two moves: the newer read answers first, and the older one, late, is dropped.
@@ -211,7 +211,7 @@ describe("Learn's bar", () => {
     );
     path.current = '/learn/courses';
     await act(async () => root.render(<LearnBarLive />));
-    expect(tabs()).toEqual(['Home', 'Courses']);
+    expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
     expect(items()).toEqual([]);
   });
 
@@ -269,7 +269,7 @@ describe("Learn's bar", () => {
     await act(async () => root.render(<LearnBarLive />));
     expect(fetchMock).not.toHaveBeenCalled();
     expect(startLearnSetupGuessAction).not.toHaveBeenCalled();
-    expect(tabs()).toEqual(['Home', 'Courses']);
+    expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
   });
 
   const barOf = (setup: string, due = 0) =>

@@ -39,13 +39,28 @@ describe("Learn's rows as the server draws them", () => {
     expect(html).toMatch(/role="switch"[^>]*aria-describedby="[^"]+-line"/);
   });
 
-  it('disables the switch with no address', () => {
+  it('with no address, says the email needs one and where it is set, and cannot be turned on', () => {
+    const html = renderToStaticMarkup(
+      <ul>
+        <LessonsToRepeatRow on={false} noAddress />
+      </ul>,
+    );
+    expect(html).toMatch(/role="switch"[^>]*disabled=""/);
+    expect(html).toContain('data-email-no-address=""');
+    expect(html).toContain('This email needs an address, and we have none for you.');
+    expect(html).toContain('href="https://github.com/settings/emails"');
+    expect(html).not.toContain('One email a day at most');
+  });
+
+  it('with no address, a switch that is on says so and can still be turned off', () => {
     const html = renderToStaticMarkup(
       <ul>
         <LessonsToRepeatRow on noAddress />
       </ul>,
     );
-    expect(html).toMatch(/role="switch"[^>]*disabled=""/);
+    expect(html).not.toMatch(/role="switch"[^>]*disabled=""/);
+    expect(html).toContain('data-email-lessons="on"');
+    expect(html).toContain('data-email-needs-address=""');
   });
 
   it('draws the zone with its city and offset on a button that names it', () => {

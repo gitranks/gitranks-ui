@@ -4,6 +4,7 @@ import { Check, ChevronsUpDown, Clock, Repeat } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useId, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react';
 
+import { EmailNeedsAddress } from '@/components/learn/email-needs-address';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -117,8 +118,9 @@ export function LearnEmailFailedRow() {
 }
 
 /**
- * "Lessons to repeat": a switch, off until the person turns it on. With no address it is disabled, as the Email rows
- * are (`noAddress`).
+ * "Lessons to repeat": a switch, off until the person turns it on. With no address (`noAddress`) the line under it
+ * says the email needs one and where it is set, so the switch never looks on while it sends nothing; it cannot be
+ * turned on then, as the Email rows cannot, and one that is on can still be turned off.
  */
 export function LessonsToRepeatRow({ on: initial, noAddress = false }: { on: boolean; noAddress?: boolean }) {
   const router = useRouter();
@@ -153,8 +155,14 @@ export function LessonsToRepeatRow({ on: initial, noAddress = false }: { on: boo
     <SettingsRow
       icon={Repeat}
       title={LESSONS_TO_REPEAT_TITLE}
-      value={<RowValue id={`${id}-line`} line={LESSONS_TO_REPEAT_LINE} error={error} />}
-      data={{ 'data-email-row': 'lessons-to-repeat', 'data-email-lessons': on ? 'on' : 'off' }}
+      value={
+        <RowValue id={`${id}-line`} line={noAddress ? <EmailNeedsAddress /> : LESSONS_TO_REPEAT_LINE} error={error} />
+      }
+      data={{
+        'data-email-row': 'lessons-to-repeat',
+        'data-email-lessons': on ? 'on' : 'off',
+        ...(noAddress ? { 'data-email-no-address': '' } : {}),
+      }}
     >
       <label htmlFor={`${id}-switch`} className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm sm:min-h-0">
         <input
@@ -166,7 +174,7 @@ export function LessonsToRepeatRow({ on: initial, noAddress = false }: { on: boo
           aria-describedby={`${id}-line`}
           aria-disabled={pending || undefined}
           checked={on}
-          disabled={noAddress}
+          disabled={noAddress && !on}
           onChange={(event) => change(event.target.checked)}
           className="size-4.5 accent-primary disabled:opacity-60 aria-disabled:opacity-60"
         />

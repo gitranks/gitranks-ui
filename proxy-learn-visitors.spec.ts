@@ -123,6 +123,47 @@ describe('Learn open to visitors', () => {
     }
   });
 
+  it('lets a visitor through to Issues and its views only while Learn is open to everyone', async () => {
+    const views = [
+      '/learn/issues',
+      '/learn/issues?language=go',
+      '/Learn/Issues/',
+      '/learn/lessons/binary-search/real-world',
+      '/learn/courses/algorithms/real-world',
+    ];
+    for (const path of views) {
+      expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBeNull();
+    }
+    everyone.open = false;
+    try {
+      for (const path of views) {
+        expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
+      }
+      // A lesson's and a course's own pages stay open to all.
+      for (const path of ['/learn/lessons/binary-search', '/learn/courses/algorithms']) {
+        expect((await visit(path))?.headers.get('x-middleware-rewrite'), path).toBeNull();
+      }
+    } finally {
+      everyone.open = true;
+    }
+  });
+
+  it("answers Issues' Markdown copies from their route, which itself follows the switch", async () => {
+    for (const open of [true, false]) {
+      everyone.open = open;
+      expect((await visit('/learn/issues.md?language=go'))?.headers.get('x-middleware-rewrite'), String(open)).toBe(
+        'https://gitranks.com/api/learn/issues.md?language=go',
+      );
+      expect((await visit('/learn/lessons/binary-search/real-world.md'))?.headers.get('x-middleware-rewrite')).toBe(
+        'https://gitranks.com/api/learn/issues.md?lesson=binary-search&at=lesson',
+      );
+      expect((await visit('/learn/courses/algorithms/real-world.md'))?.headers.get('x-middleware-rewrite')).toBe(
+        'https://gitranks.com/api/learn/issues.md?course=algorithms&at=course',
+      );
+    }
+    everyone.open = true;
+  });
+
   it('lets a session the server cannot read through to the front door, as a visitor', async () => {
     access.value = 'signed-out';
     try {

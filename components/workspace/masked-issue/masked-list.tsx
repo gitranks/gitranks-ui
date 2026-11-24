@@ -17,7 +17,7 @@ import {
   NO_MASKED_READS,
 } from '@/lib/workspace/masked-issue';
 import { lookAtIssue, signInToSeeIssue, skipMaskedIssue } from '@/lib/workspace/masked-issue.actions';
-import type { IssueLooksToday, IssueOutReason, MaskedIssue } from '@/lib/workspace/masked-issue.types';
+import type { FullIssue, IssueLooksToday, IssueOutReason, MaskedIssue } from '@/lib/workspace/masked-issue.types';
 
 /** What a list's status line says when a press or a skip did not go through, or the issue left. */
 export const MASKED_LIST_NOTICES = {
@@ -132,6 +132,8 @@ export function MaskedList({
 export type MaskedListRowProps = {
   issue: MaskedIssue;
   lesson?: MaskedIssueLesson | null;
+  /** A row whose project the person named: the issue in full, shown over the row's facts. */
+  full?: FullIssue | null;
   /**
    * The row leaves the list: after "Show the next one", or when the issue is no longer open. The list drops its item;
    * without it the row removes itself.
@@ -150,7 +152,7 @@ export type MaskedListRowProps = {
  * the person holds another issue open, the row says that seeing it gives that one back; the held issue's own row opens
  * its page without a new press. Skip leaves the issue out for good.
  */
-export function MaskedListRow({ issue, lesson = null, onLeave, onReplace }: MaskedListRowProps) {
+export function MaskedListRow({ issue, lesson = null, full = null, onLeave, onReplace }: MaskedListRowProps) {
   const list = useContext(MaskedListContext);
   const router = useRouter();
   const [state, setState] = useState<Exclude<MaskedRowState, 'limit' | 'full'>>('masked');
@@ -231,6 +233,8 @@ export function MaskedListRow({ issue, lesson = null, onLeave, onReplace }: Mask
       key={round}
       issue={issue}
       state={rowState}
+      full={full}
+      named={!!full}
       lesson={lesson}
       looks={list.closed ? null : list.looks}
       visitor={visitor}

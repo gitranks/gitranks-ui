@@ -27,9 +27,9 @@ describe("Learn's bar", () => {
     expect(learnBarStateOf(read, true)).toMatchObject({ kind: 'learner' });
   });
 
-  it('shows Home and Courses to everyone, Progress and Settings to anyone signed in, and no Issues tab in wave 1', () => {
-    const all = ['home', 'courses', 'progress', 'settings'];
-    expect(learnBarTabsOf({ kind: 'visitor' })).toEqual(['home', 'courses']);
+  it('shows Home, Courses and Issues to everyone, Progress and Settings to anyone signed in', () => {
+    const all = ['home', 'courses', 'issues', 'progress', 'settings'];
+    expect(learnBarTabsOf({ kind: 'visitor' })).toEqual(['home', 'courses', 'issues']);
     // Setting up is not required: a person who keeps our guess has their progress and settings all the same.
     for (const setup of ['NONE', 'WORKING', 'GUESSED'] as const) {
       expect(learnBarTabsOf(learnBarStateOf({ ...read, setup }))).toEqual(all);
@@ -42,7 +42,12 @@ describe("Learn's bar", () => {
     ['/learn/', null, 'home'],
     ['/learn/courses', null, 'courses'],
     ['/learn/courses/algorithms', null, 'courses'],
-    ['/learn/issues', null, null],
+    ['/learn/issues', null, 'issues'],
+    ['/learn/issues/', null, 'issues'],
+    ['/learn/lessons/binary-search/real-world', null, 'issues'],
+    ['/learn/courses/algorithms/real-world', null, 'issues'],
+    ['/learn/courses/algorithms/real-world/more', null, 'courses'],
+    ['/learn/lessons/binary-search', null, null],
     ['/learn/progress', null, 'progress'],
     ['/learn/progress/octocat', null, null],
     ['/learn/setup', null, 'setup'],

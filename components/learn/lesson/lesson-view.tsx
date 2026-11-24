@@ -45,7 +45,7 @@ export type LessonViewProps = {
   realWorld?: ReactNode;
 };
 
-/** The parts of a lesson's page that render on the server: the lesson, then previous and next and the footer. */
+/** The parts of a lesson's page that render on the server: the lesson, previous and next, and the footer ("In the real world" goes between the last two). */
 export function lessonPartsOf({
   lesson,
   examples,
@@ -56,18 +56,14 @@ export function lessonPartsOf({
   const place = lessonPlaceOf(group, lesson.slug, null);
   return {
     article: <LessonArticle lesson={lesson} examples={examples} mainLanguage={mainLanguage} />,
-    more: (
-      <>
-        <LessonNeighbours lesson={lesson} place={place} />
-        <LessonFooter changedAt={lesson.changedAt} links={links} />
-      </>
-    ),
+    more: <LessonNeighbours lesson={lesson} place={place} />,
+    footer: <LessonFooter changedAt={lesson.changedAt} links={links} />,
   };
 }
 
 /**
  * A lesson's page under the site's header: the player's strip; the lesson, its question and what it gives after the
- * answer; previous and next; the line about who wrote it. Two columns, the question beside the text and in sight as
+ * answer; previous and next; "In the real world" when it has something; the line about who wrote it. Two columns, the question beside the text and in sight as
  * the text scrolls; one on a phone, the question after the text. The player is keyed by the lesson and its question
  * (`lessonPlayerKeyOf`).
  */

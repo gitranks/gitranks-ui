@@ -1,3 +1,4 @@
+import type { MaskedIssue } from './masked-issue.types';
 import type {
   ContributeConventionsFields,
   ContributePrConventionIssue,
@@ -248,6 +249,11 @@ export type ContributeIssue = {
   tier?: number;
   /** Its repo's rules for AI contributions, in our words; null when not known, absent from an older API (read on its own). */
   repoRules?: ContributeIssueRepoRules | null;
+  /**
+   * The issue with its details hidden, shown in their place; null for an issue the person named (their own list or a
+   * project they worked on), absent from an API that does not send it yet (read on its own).
+   */
+  masked?: MaskedIssue | null;
 };
 
 /** The day's cap on newly shown issues: `reached` once no new issue can be shown until 00:00 UTC. */

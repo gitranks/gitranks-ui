@@ -4,7 +4,7 @@ import { ArrowRight, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import type { FC } from 'react';
 
-import { OwnerIssueRow } from './profile-contribute-block';
+import { OwnerIssueRows } from './profile-contribute-block';
 import { reportPromo, usePromoShown } from '@/app/learn/components/use-promo-report';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ownerIssueOf, promoTitleOf, reasonLineOf, type ShownPromo } from '@/lib/learn/learn-promo';
@@ -72,15 +72,11 @@ export const ProfileLearnBlock: FC<{
         </div>
       </div>
       {promo.issues.length ? (
-        <div className="flex flex-col divide-y rounded-lg border bg-card text-card-foreground">
-          {promo.issues.map((issue) => (
-            <OwnerIssueRow
-              key={`${issue.repo}#${issue.number}`}
-              issue={ownerIssueOf(issue, colors)}
-              whyIcon={GraduationCap}
-            />
-          ))}
-        </div>
+        <OwnerIssueRows
+          issues={promo.issues.map((issue) => ownerIssueOf(issue, colors))}
+          from="learn"
+          whyIcon={GraduationCap}
+        />
       ) : null}
     </section>
   );

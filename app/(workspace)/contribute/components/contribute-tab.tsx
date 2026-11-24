@@ -25,6 +25,7 @@ import { fairUseAnswerPathOf, listSizeLineOf } from '@/lib/workspace/fair-use';
 import { MODELS, relativeLabel } from '@/lib/workspace/format';
 import type { ConnectedAgents } from '@/lib/workspace/issue-row';
 import { limitReachedOf } from '@/lib/workspace/limit-words';
+import { looksLongLineOf, type MaskedListReads, NO_MASKED_READS } from '@/lib/workspace/masked-issue';
 import { ABOUT_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 const link = 'font-semibold text-link hover:underline';
@@ -42,6 +43,8 @@ export type ContributeTabData = {
   counts?: Pick<ContributeScheduleCounts, 'prBound'>;
   /** What the top shows about fair use; null or left out when the API answers nothing. */
   fairUse?: ContributeFairUseNotices | null;
+  /** For masked rows: whether the new rules are live, the day's full issues, the numbers of a night. */
+  masked?: MaskedListReads;
   query: IssuesQuery;
   now?: Date;
 };
@@ -61,6 +64,7 @@ export function ContributeTabScreen({
   activity,
   counts,
   fairUse,
+  masked = NO_MASKED_READS,
   query,
   now,
 }: ContributeTabData) {
@@ -74,7 +78,9 @@ export function ContributeTabScreen({
   const key = claudeKeyOf(view);
   const keyWaiting = key?.state === 'EXHAUSTED' || key?.state === 'LIMIT_REACHED' ? key.state : null;
   const listCut = held ? null : (fairUse?.listCut ?? null);
-  const sizeLine = held || listCut ? null : listSizeLineOf(page?.listSize);
+  // Once the rules are live, the day's full issues and what they are made of say the list's limit in its place.
+  const looksLine = held || listCut || !masked.rulesLive || !masked.looks ? null : looksLongLineOf(masked.looks);
+  const sizeLine = held || listCut || looksLine ? null : listSizeLineOf(page?.listSize);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-contribute-tab="">
@@ -113,6 +119,11 @@ export function ContributeTabScreen({
                 Issues for you
               </h2>
               {listCut ? <ListCutLine listCut={listCut} /> : null}
+              {looksLine ? (
+                <p className="max-w-prose text-sm text-muted-foreground" data-looks-long-line="">
+                  {looksLine}
+                </p>
+              ) : null}
               {sizeLine ? (
                 <p className="max-w-prose text-sm text-muted-foreground" data-list-size={page?.listSize?.size}>
                   {sizeLine}
@@ -159,6 +170,7 @@ export function ContributeTabScreen({
             set={set}
             languages={view.contributor?.preferences?.languages ?? []}
             facts={{ capUsd: settings?.attemptCapUsd ?? null, keyWaiting }}
+            masked={masked}
           />
         </section>
       </IssuesTotalProvider>

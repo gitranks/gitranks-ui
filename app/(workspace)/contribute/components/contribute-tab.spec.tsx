@@ -2,6 +2,12 @@ import type { ComponentProps } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/contribute',
@@ -19,6 +25,7 @@ const { activityOf, runOf } = await import('@/lib/contribute/__fixtures__/agent-
 const { NOW, limits, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { blockNotice, fairUse, fairUseBlocked, fairUseNotice, listSize, noFairUse, rulesBanner, warningNotice } =
   await import('@/lib/contribute/__fixtures__/fair-use');
+const { looksToday } = await import('@/lib/workspace/__fixtures__/masked-issue');
 
 const text = (html: string) =>
   html
@@ -198,6 +205,27 @@ describe('the Contribute tab and fair use', () => {
     expect(render({ page: { ...issuePage, listSize: listSize({ tier: null, base: 10, size: 10 }) } }).plain).toContain(
       'You see your top 10 issues. The size comes from your GitRanks tier (not ranked yet: 10)',
     );
+  });
+
+  it("says the day's full issues and what they are made of in the list size's place, once the rules are live", () => {
+    const masked = { rulesLive: true, looks: looksToday(), numbers: null };
+    const { html, plain } = render({ page: { ...issuePage, listSize: listSize() }, masked });
+    expect(html).toContain('data-looks-long-line');
+    expect(plain).toContain(
+      'Issues for you You can see 20 full issues a day: your GitRanks tier (Skilled) gives 20, and every pull request merged through GitRanks adds 5, up to 100. 17 left today.',
+    );
+    expect(html).not.toContain('data-list-size');
+  });
+
+  it("keeps the list size's line before the rules are live, or when the day cannot be read", () => {
+    for (const masked of [
+      { rulesLive: false, looks: looksToday(), numbers: null },
+      { rulesLive: true, looks: null, numbers: null },
+    ]) {
+      const { html } = render({ page: { ...issuePage, listSize: listSize() }, masked });
+      expect(html).toContain('data-list-size="30"');
+      expect(html).not.toContain('data-looks-long-line');
+    }
   });
 
   it('shows the Terms banner with its link to the rule and a close button', () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ownIssueOf, ownMatchOf, type ProfilePick } from './profile-picks';
+import { maskedIssue } from '@/lib/workspace/__fixtures__/masked-issue';
 
 const pick = (over: Partial<ProfilePick> = {}): ProfilePick => ({
   repo: 'o/r',
@@ -27,7 +28,13 @@ describe("the owner's block picks", () => {
       title: 'Fix it',
       language: { name: 'TypeScript', color: '#3178c6' },
       why: 'A maintainer asked for this change',
+      masked: null,
     });
+  });
+
+  it('carries a masked pick to its masked row', () => {
+    const masked = maskedIssue();
+    expect(ownIssueOf(pick({ masked })).masked).toEqual(masked);
   });
 
   it('says so when the pick is in a repo they contributed to', () => {

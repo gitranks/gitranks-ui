@@ -12,6 +12,7 @@ import { StillRanking } from '@/app/contribute/components/still-ranking';
 import { Button } from '@/components/ui/button';
 import { IssueRow } from '@/components/workspace/issue-row';
 import { LimitNotice } from '@/components/workspace/limit-notice';
+import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
 import { ShowMore } from '@/components/workspace/show-more';
 import { IssueStartsProvider } from '@/components/workspace/start-control';
 import { ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
@@ -27,6 +28,7 @@ import type {
 } from '@/lib/workspace/contribute.types';
 import { type ConnectedAgents, issueRowOfContribute } from '@/lib/workspace/issue-row';
 import type { LimitCounts } from '@/lib/workspace/limit-words';
+import { type MaskedListReads, NO_MASKED_READS } from '@/lib/workspace/masked-issue';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import type { IssueStartFacts } from '@/lib/workspace/start-refusals';
 
@@ -89,6 +91,8 @@ export type ContributeIssueListProps = {
   source?: ContributeSource;
   /** What the list says when nothing matches what the person works on. */
   noneTitle?: string;
+  /** For masked rows: whether the new rules are live, the day's full issues, the numbers of a night. */
+  masked?: MaskedListReads;
   className?: string;
 };
 
@@ -111,6 +115,7 @@ export function ContributeIssueList({
   facts,
   source,
   noneTitle = NONE_TITLE,
+  masked = NO_MASKED_READS,
   className,
 }: ContributeIssueListProps) {
   const router = useRouter();
@@ -164,6 +169,7 @@ export function ContributeIssueList({
         facts={facts}
         source={source}
         noneTitle={noneTitle}
+        masked={masked}
         onLimitReached={() => router.refresh()}
       />
     );
@@ -192,8 +198,11 @@ function LiveRows({
   facts,
   source,
   noneTitle,
+  masked,
   onLimitReached,
-}: Required<Pick<ContributeIssueListProps, 'agents' | 'menu' | 'filter' | 'learnOpen' | 'languages' | 'noneTitle'>> & {
+}: Required<
+  Pick<ContributeIssueListProps, 'agents' | 'menu' | 'filter' | 'learnOpen' | 'languages' | 'noneTitle' | 'masked'>
+> & {
   page: ContributeIssuePage | null;
   limit: LimitCounts | null;
   /** The list's size: "Show more" ends there whatever the feed says; null while lists are not capped. */
@@ -225,7 +234,8 @@ function LiveRows({
   // The cap ends the list: only once no page is left to read.
   const capped = snapshot.dailyCap?.reached && !snapshot.next ? snapshot.dailyCap : null;
   const atSize = size !== null && snapshot.rows.length >= size;
-  const first = snapshot.rows[0]?.issue.issueId;
+  const first = snapshot.rows.find(({ issue }) => !issue.masked)?.issue.issueId;
+  const anyMasked = snapshot.rows.some(({ issue }) => issue.masked);
 
   const rowsOf = (issues: ContributeIssue[], other = false) =>
     issues.length ? (
@@ -238,22 +248,27 @@ function LiveRows({
           if (!row) return null;
           return (
             <LiveRowItem key={issueId} row={row}>
-              <IssueRow
-                issue={issueRowOfContribute(row.issue)}
-                side="contribute"
-                agents={agents}
-                primary={issueId === first}
-                control={!limit}
-                menu={menu}
-                learnOpen={learnOpen}
-                live={liveOf(feed, row)}
-                facts={facts}
-                startSource={source}
-                onRefused={(refusal) => {
-                  // The limit holds now: the page reads it again and shows its state.
-                  if (refusal.code === 'LIMIT_REACHED') onLimitReached();
-                }}
-              />
+              {row.issue.masked ? (
+                // An issue with its details hidden: its masked row, which leaves the feed when it is gone.
+                <MaskedListRow issue={row.issue.masked} onLeave={() => feed.fold(issueId)} />
+              ) : (
+                <IssueRow
+                  issue={issueRowOfContribute(row.issue)}
+                  side="contribute"
+                  agents={agents}
+                  primary={issueId === first}
+                  control={!limit}
+                  menu={menu}
+                  learnOpen={learnOpen}
+                  live={liveOf(feed, row)}
+                  facts={facts}
+                  startSource={source}
+                  onRefused={(refusal) => {
+                    // The limit holds now: the page reads it again and shows its state.
+                    if (refusal.code === 'LIMIT_REACHED') onLimitReached();
+                  }}
+                />
+              )}
             </LiveRowItem>
           );
         })}
@@ -286,29 +301,31 @@ function LiveRows({
   return (
     <IssueStartsProvider>
       <div ref={root} tabIndex={-1} className="flex flex-col gap-4 outline-none">
-        <LiveAnnouncer rows={snapshot.rows} />
-        {empty}
-        {split && set ? (
-          <>
-            {split.set.length ? <SetIssuesHeading set={set} /> : null}
-            {rowsOf(split.set)}
-            {split.other.length ? <OtherIssuesDivider set={set} none={!split.set.length} /> : null}
-            {rowsOf(split.other, true)}
-          </>
-        ) : (
-          rowsOf(snapshot.rows.map(({ issue }) => issue))
-        )}
-        {capped ? <DailyCapEnd cap={capped} /> : null}
-        {/* Only while there is more to show: none at the day's cap, the list's size or the end, whatever the total says. */}
-        {snapshot.more && !capped && !atSize ? (
-          <ShowMore
-            shown={snapshot.rows.length}
-            total={Math.min(Math.max(snapshot.total, snapshot.rows.length + 1), size ?? Number.POSITIVE_INFINITY)}
-            noun="issue"
-            pending={growing}
-            onMore={() => startGrowing(() => feed.grow(ISSUES_PAGE_SIZE))}
-          />
-        ) : null}
+        <MaskedList from="contribute" pageFrom="contribute" reads={masked} foot={anyMasked} className="gap-4">
+          <LiveAnnouncer rows={snapshot.rows} />
+          {empty}
+          {split && set ? (
+            <>
+              {split.set.length ? <SetIssuesHeading set={set} /> : null}
+              {rowsOf(split.set)}
+              {split.other.length ? <OtherIssuesDivider set={set} none={!split.set.length} /> : null}
+              {rowsOf(split.other, true)}
+            </>
+          ) : (
+            rowsOf(snapshot.rows.map(({ issue }) => issue))
+          )}
+          {capped ? <DailyCapEnd cap={capped} /> : null}
+          {/* Only while there is more to show: none at the day's cap, the list's size or the end, whatever the total says. */}
+          {snapshot.more && !capped && !atSize ? (
+            <ShowMore
+              shown={snapshot.rows.length}
+              total={Math.min(Math.max(snapshot.total, snapshot.rows.length + 1), size ?? Number.POSITIVE_INFINITY)}
+              noun="issue"
+              pending={growing}
+              onMore={() => startGrowing(() => feed.grow(ISSUES_PAGE_SIZE))}
+            />
+          ) : null}
+        </MaskedList>
       </div>
     </IssueStartsProvider>
   );

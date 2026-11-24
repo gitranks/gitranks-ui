@@ -1,6 +1,14 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/workspace/fair-use.actions', () => ({}));
+
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/learn/profile',
@@ -25,7 +33,11 @@ const { everyone, viewerLogin } = vi.hoisted(() => ({
 vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(async () => null),
   loadContributeActivity: vi.fn(async () => null),
+  loadFairUseNotices: vi.fn(async () => null),
   viewerLogin,
+}));
+vi.mock('@/lib/workspace/masked-issue.data', () => ({
+  loadMaskedListReads: vi.fn(async () => ({ rulesLive: false, looks: null, numbers: null })),
 }));
 vi.mock('@/lib/learn/learn-front-door', () => ({ learnFrontDoorOpenToVisitor: everyone }));
 const data = vi.hoisted(() => ({

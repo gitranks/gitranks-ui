@@ -1,5 +1,6 @@
 import type { ContributeAttemptState, ContributeMcpToken } from '@/lib/workspace/contribute.types';
 import type { LimitCounts } from '@/lib/workspace/limit-words';
+import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 import type { McpClient } from '@/lib/workspace/mcp-setup';
 
 /** The Start page for one issue, as the API answers it: `startPageIssue` and `startPageAttempt`. */
@@ -42,6 +43,8 @@ export type StartIssueRow = {
   size: string | null;
   /** One line on why it was picked. */
   why: string | null;
+  /** The issue with its details hidden, in a list; null for one the person named, absent where it is not read. */
+  masked?: MaskedIssue | null;
 };
 
 /** The viewer's newest live attempt on the issue, Fix or Learn: not ended or released. */

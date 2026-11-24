@@ -1,6 +1,7 @@
 /** GitRanks Learn, as the API answers it: a lesson on a fix the user's own agent made, and the user's run through it. */
 
 import type { ContributeAttemptEvent, ContributeAttemptState } from '@/lib/workspace/contribute.types';
+import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 import type { StartIssueRow } from '@/lib/workspace/start/start-page.types';
 
 export type LessonVisibility = 'PRIVATE' | 'PUBLIC' | 'REMOVED' | 'HIDDEN' | 'HELD';
@@ -281,6 +282,8 @@ export type LearnPromoIssue = {
   number: number;
   language: string | null;
   topic: string | null;
+  /** The issue with its details hidden; null for one the person named, absent from an API that does not send it. */
+  masked?: MaskedIssue | null;
 };
 
 /** Whether to suggest Learn to the viewer, and why: `reason` is one line about them ("You started…"). */

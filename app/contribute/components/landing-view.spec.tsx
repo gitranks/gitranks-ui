@@ -2,6 +2,12 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/contribute/about',
@@ -25,6 +31,8 @@ vi.mock('@/lib/workspace/contribute.data', () => data);
 const gate = vi.hoisted(() => ({ contributeOpen: vi.fn(async () => true) }));
 vi.mock('@/lib/workspace/preview-gate', () => gate);
 vi.mock('@/lib/contribute/agent-page', () => ({ loadAgentPage: vi.fn(async () => null) }));
+const rules = vi.hoisted(() => ({ loadRulesLive: vi.fn(async () => false) }));
+vi.mock('@/lib/workspace/masked-issue.data', () => rules);
 
 const { ContributeAboutView, signedInStartOf } = await import('./landing-view');
 const { metadata: aboutMetadata } = await import('@/app/(public)/contribute/about/page');
@@ -43,6 +51,31 @@ beforeEach(() => {
   vi.clearAllMocks();
   data.loadContributeSetup.mockResolvedValue(false);
   data.viewerLogin.mockResolvedValue(null);
+  rules.loadRulesLive.mockResolvedValue(false);
+});
+
+describe("the landing's example issue", () => {
+  const about = async () => renderToStaticMarkup((await ContributeAboutView()) as ReactElement);
+
+  it('names the example issue while the rules are not live', async () => {
+    data.loadContribute.mockResolvedValue(null);
+    const html = await about();
+    expect(html).toContain('data-example="named"');
+    expect(html).toContain('fern-lang/fern · #2481');
+  });
+
+  it('shows it as lists show it once the rules are live: its facts and title, its project hidden', async () => {
+    rules.loadRulesLive.mockResolvedValue(true);
+    for (const view of [null, views.active]) {
+      data.loadContribute.mockResolvedValue(view);
+      const html = await about();
+      expect(html).toContain('data-example="masked"');
+      expect(html).toContain('Issue details are hidden until you see the full issue');
+      expect(html).toContain('Formatter drops a trailing comment in match arms');
+      expect(html).toContain('data-masked-facts');
+      expect(html).not.toContain('fern-lang');
+    }
+  });
 });
 
 describe('where the landing’s button leads a signed-in person', () => {

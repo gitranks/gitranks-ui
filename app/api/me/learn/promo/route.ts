@@ -3,8 +3,9 @@ import { NextResponse } from 'next/server';
 import type { AuthRequest } from '@/app/api/profile/[login]/route';
 import { auth } from '@/auth';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { LearnPromoDocument } from '@/lib/learn/learn.documents';
+import { LearnPromoDocument, LearnPromoMaskedDocument } from '@/lib/learn/learn.documents';
 import { type LearnPromoAnswer, promoPlacementOf, shownPromoOf } from '@/lib/learn/learn-promo';
+import { readWithMasked } from '@/lib/workspace/masked-read';
 import { isProfileOwner } from '@/utils/profile-owner';
 
 /** Never kept: "Not for me" must hide the suggestion on the next page. */
@@ -23,10 +24,12 @@ export const GET = auth(async function GET(req: AuthRequest) {
 
   if (viewer && placement && isProfileOwner(viewer, login)) {
     try {
-      const data = await graphqlDirect(
-        LearnPromoDocument,
-        { placement, login: placement === 'PROFILE' ? viewer : null },
-        { source: 'client', githubLogin: viewer },
+      const variables = { placement, login: placement === 'PROFILE' ? viewer : null };
+      const options = { source: 'client' as const, githubLogin: viewer };
+      // Each issue's masked form first; an API without it answers the suggestion as it was.
+      const data = await readWithMasked(
+        () => graphqlDirect(LearnPromoMaskedDocument, variables, options),
+        () => graphqlDirect(LearnPromoDocument, variables, options),
       );
       answer = { promo: shownPromoOf(data) };
     } catch {

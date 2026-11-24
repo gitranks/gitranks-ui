@@ -2,6 +2,12 @@ import type { Route } from 'next';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 const nav = vi.hoisted(() => ({ pathname: '/my/pull-requests/driftwood-js/driftwood/871' }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/navigation', () => ({

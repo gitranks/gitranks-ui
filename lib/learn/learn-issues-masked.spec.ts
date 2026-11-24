@@ -1,0 +1,96 @@
+import { print } from 'graphql';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('server-only', () => ({}));
+const { cacheLife, graphqlDirect } = vi.hoisted(() => ({ cacheLife: vi.fn(), graphqlDirect: vi.fn() }));
+vi.mock('next/cache', () => ({ cacheLife }));
+vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
+const contribute = vi.hoisted(() => ({
+  viewerLogin: vi.fn(async (): Promise<string | null> => 'octocat'),
+  ContributeUnavailableError: class ContributeUnavailableError extends Error {},
+}));
+vi.mock('@/lib/workspace/contribute.data', () => contribute);
+vi.mock('@/lib/workspace/gate.data', () => ({ loadWorkspaceGate: vi.fn() }));
+vi.mock('@/lib/workspace/preview-gate', () => ({ contributeOpen: vi.fn(async () => true) }));
+vi.mock('./learn-everyone', () => ({ learnOpenToEveryone: vi.fn(async () => false) }));
+
+const { loadLearnIssues } = await import('./learn.data');
+const { readLearnPublicIssues } = await import('./start-flow.data');
+const { learnIssues } = await import('./__fixtures__/home');
+const { maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
+
+const nameOf = (document: unknown) => /(?:query|mutation) (\w+)/.exec(print(document as never))?.[1] ?? '';
+const asked = () => graphqlDirect.mock.calls.map(([document]) => nameOf(document));
+
+/** Answers each read by its operation's name; an Error is thrown. */
+const answer = (answers: Record<string, unknown>) =>
+  graphqlDirect.mockImplementation(async (document) => {
+    const value = answers[nameOf(document)];
+    if (value instanceof Error) throw value;
+    return value;
+  });
+
+/** Today's API, which does not know the masked form: what GraphQL answers a query for it. */
+const todaysAnswerTo = (type: string) =>
+  new Error(JSON.stringify([{ message: `Cannot query field "masked" on type "${type}".` }]));
+const outage = () => new Error('fetch failed');
+
+beforeEach(() => {
+  graphqlDirect.mockReset();
+  cacheLife.mockReset();
+  contribute.viewerLogin.mockResolvedValue('octocat');
+});
+
+describe("Learn's list for the viewer's goal, with masked issues", () => {
+  it('reads each issue with its masked form, in an operation of its own', async () => {
+    const list = { ...learnIssues(), items: [{ ...learnIssues().items[0], masked: maskedIssue() }] };
+    answer({ LearnIssuesMasked: { learnIssues: list } });
+    expect(await loadLearnIssues(10)).toEqual(list);
+    expect(asked()).toEqual(['LearnIssuesMasked']);
+  });
+
+  it("reads today's list from an API that does not know the masked form", async () => {
+    const today = learnIssues();
+    answer({ LearnIssuesMasked: todaysAnswerTo('LearnIssue'), LearnIssues: { learnIssues: today } });
+    expect(await loadLearnIssues(11)).toEqual(today);
+    expect(asked()).toEqual(['LearnIssuesMasked', 'LearnIssues']);
+  });
+
+  it('is not read on an outage, never taken for an API without the field', async () => {
+    answer({ LearnIssuesMasked: outage(), LearnIssues: { learnIssues: learnIssues() } });
+    expect(await loadLearnIssues(12)).toBeUndefined();
+    expect(asked()).toEqual(['LearnIssuesMasked']);
+  });
+});
+
+describe("a visitor's day list, with masked issues", () => {
+  it('reads each issue with its masked form, without a viewer', async () => {
+    const list = {
+      language: 'Go',
+      items: [{ title: null, repo: null, number: null, masked: maskedIssue() }],
+      total: 9,
+    };
+    answer({ LearnPublicIssuesMasked: { learnPublicIssues: list } });
+    expect(await readLearnPublicIssues('Go')).toEqual({ ok: true, data: list });
+    expect(asked()).toEqual(['LearnPublicIssuesMasked']);
+    expect(graphqlDirect.mock.calls[0][2]).toEqual({ source: 'ssr' });
+  });
+
+  it("reads today's day list from an API that does not know the masked form", async () => {
+    const today = { language: 'Go', items: [], total: 9 };
+    answer({
+      LearnPublicIssuesMasked: todaysAnswerTo('LearnPublicIssue'),
+      LearnPublicIssues: { learnPublicIssues: today },
+    });
+    expect(await readLearnPublicIssues('Go')).toEqual({ ok: true, data: today });
+    expect(asked()).toEqual(['LearnPublicIssuesMasked', 'LearnPublicIssues']);
+    expect(cacheLife).toHaveBeenCalledExactlyOnceWith('minutes');
+  });
+
+  it('says the read failed on an outage, kept for seconds', async () => {
+    answer({ LearnPublicIssuesMasked: outage() });
+    expect(await readLearnPublicIssues('Go')).toEqual({ ok: false });
+    expect(asked()).toEqual(['LearnPublicIssuesMasked']);
+    expect(cacheLife).toHaveBeenCalledExactlyOnceWith('seconds');
+  });
+});

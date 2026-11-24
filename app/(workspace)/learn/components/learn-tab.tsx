@@ -9,6 +9,7 @@ import { PracticeSection } from '@/app/learn/components/practice-lessons';
 import { PATH_ICONS, StepStrip } from '@/app/learn/components/stage-strip';
 import { GoalChips } from '@/components/learn/goal-chips';
 import { Button } from '@/components/ui/button';
+import { FairUseBanners } from '@/components/workspace/fair-use-banners';
 import { NumberTiles } from '@/components/workspace/number-tiles';
 import { HEADING } from '@/components/workspace/primitives';
 import { RightNow } from '@/components/workspace/right-now';
@@ -32,7 +33,8 @@ import {
   stepThreeOf,
 } from '@/lib/learn/learn-tab';
 import type { LearnProgressCounts } from '@/lib/learn/progress/progress.types';
-import type { ContributeActivity } from '@/lib/workspace/contribute.types';
+import type { ContributeActivity, ContributeFairUseNotices } from '@/lib/workspace/contribute.types';
+import { type MaskedListReads, NO_MASKED_READS } from '@/lib/workspace/masked-issue';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 const link = 'font-semibold text-link hover:underline';
@@ -124,11 +126,13 @@ function LearnSomethingNew({
   goal,
   held,
   primary,
+  masked,
 }: {
   issues: LearnIssues | undefined;
   goal: LearnGoalView | null;
   held: boolean;
   primary: boolean;
+  masked: MaskedListReads;
 }) {
   return (
     <section aria-labelledby="issues-title" id="issues" className="flex scroll-mt-24 flex-col gap-4">
@@ -141,7 +145,7 @@ function LearnSomethingNew({
         </div>
         {goal && !held ? <GoalChips goal={goal} changeHref={WORKSPACE_PATHS.settingsGoal} /> : null}
       </div>
-      <LearnIssueList issues={issues} held={held} primary={primary} source="learn_home_issue" />
+      <LearnIssueList issues={issues} held={held} primary={primary} source="learn_home_issue" masked={masked} />
     </section>
   );
 }
@@ -164,6 +168,10 @@ export type LearnTabData = {
   activity?: ContributeActivity | null;
   /** The viewer's own agent's name, for Right now's lane. */
   agentName?: string | null;
+  /** For masked rows: whether the new rules are live, the day's full issues, the numbers of a night. */
+  masked?: MaskedListReads;
+  /** The Terms banner, alone (`rulesBannerOf`); null or left out when there is none. */
+  rulesBanner?: ContributeFairUseNotices | null;
 };
 
 /**
@@ -181,6 +189,8 @@ export function LearnTabScreen({
   practice,
   activity,
   agentName,
+  masked = NO_MASKED_READS,
+  rulesBanner,
 }: LearnTabData) {
   const goal = issues?.goal ?? goalViewOf(profile);
   const goalText = goalValueOf(goal);
@@ -217,13 +227,20 @@ export function LearnTabScreen({
     default:
       content = (
         <>
-          <LearnSomethingNew issues={issues} goal={goal} held={state.kind === 'held'} primary={!stepLink} />
+          <LearnSomethingNew
+            issues={issues}
+            goal={goal}
+            held={state.kind === 'held'}
+            primary={!stepLink}
+            masked={masked}
+          />
           <PracticeSection practice={practice} goal={goalText} title="Practice lessons" text={PRACTICE_TEXT} />
         </>
       );
   }
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-learn-tab={state.kind}>
+      <FairUseBanners fairUse={rulesBanner} />
       <div className="flex flex-col gap-4">
         <header className="flex flex-col gap-2">
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">

@@ -4,8 +4,11 @@ import Link from 'next/link';
 import type { FC, ReactNode } from 'react';
 
 import { buttonVariants } from '@/components/ui/button';
+import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
 import { cn } from '@/lib/utils';
 import { contributeSource } from '@/lib/workspace/click-tracking';
+import type { IssuePageFrom } from '@/lib/workspace/masked-issue';
+import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 import { START_AGENT_PATH } from '@/lib/workspace/paths';
 
 /** One issue as the owner's block shows it: where, what, the repository's language, and why it is a good one. */
@@ -17,12 +20,40 @@ export type OwnerIssue = {
   /** The repository's language as GitHub names and colours it. */
   language: { name: string; color: string | null } | null;
   why: string | null;
+  /** The issue with its details hidden: the row shows it masked, with "See the full issue". */
+  masked?: MaskedIssue | null;
 };
 
 /** The owner before they connect (picked from the pool for their languages), or after (their own list's top). */
 export type OwnerBlockState = 'not_connected' | 'connected';
 
 export const OWNER_BLOCK_SHOWN = 3;
+
+/** A row's key: its mask id when its details are hidden (an API that hides them may send no repository). */
+export const ownerIssueKeyOf = (issue: OwnerIssue): string =>
+  issue.masked?.id ? `mask:${issue.masked.id}` : `${issue.repo}#${issue.number}`;
+
+/**
+ * The owner's rows, in their frame: a masked issue is its masked row (counted as seen from the profile, its page in
+ * `from`), and the foot under them says why its details are hidden.
+ */
+export const OwnerIssueRows: FC<{ issues: OwnerIssue[]; from: IssuePageFrom; whyIcon?: LucideIcon }> = ({
+  issues,
+  from,
+  whyIcon,
+}) => (
+  <MaskedList from="profile" pageFrom={from} foot={issues.some((issue) => issue.masked)}>
+    <div className="flex flex-col divide-y rounded-lg border bg-card text-card-foreground">
+      {issues.map((issue) =>
+        issue.masked ? (
+          <MaskedListRow key={ownerIssueKeyOf(issue)} issue={issue.masked} replace />
+        ) : (
+          <OwnerIssueRow key={ownerIssueKeyOf(issue)} issue={issue} whyIcon={whyIcon} />
+        ),
+      )}
+    </div>
+  </MaskedList>
+);
 
 const n = (value: number) => <span className="font-mono tabular-nums">{value.toLocaleString('en-US')}</span>;
 
@@ -122,11 +153,7 @@ export const ProfileContributeBlock: FC<{
           <ArrowRight aria-hidden />
         </Link>
       </div>
-      <div className="flex flex-col divide-y rounded-lg border bg-card text-card-foreground">
-        {issues.slice(0, OWNER_BLOCK_SHOWN).map((issue) => (
-          <OwnerIssueRow key={`${issue.repo}#${issue.number}`} issue={issue} />
-        ))}
-      </div>
+      <OwnerIssueRows issues={issues.slice(0, OWNER_BLOCK_SHOWN)} from="contribute" />
     </section>
   );
 };

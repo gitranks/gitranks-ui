@@ -8,6 +8,7 @@ import {
   loadScheduleCounts,
 } from '@/lib/workspace/contribute.data';
 import { isSuspended } from '@/lib/workspace/contribute-state';
+import { loadMaskedListReads } from '@/lib/workspace/masked-issue.data';
 
 /** The tab's reads, all at once beside the user's view (read by the page before): one that fails leaves its part out. */
 export async function ContributeTab({
@@ -16,13 +17,14 @@ export async function ContributeTab({
   learnOpen,
   query,
 }: Pick<ContributeTabData, 'view' | 'agents' | 'learnOpen' | 'query'>) {
-  const [tab, page, set, activity, counts, fairUse] = await Promise.all([
+  const [tab, page, set, activity, counts, fairUse, masked] = await Promise.all([
     loadContributeTab(),
     isSuspended(view) ? Promise.resolve(null) : loadIssues(filterOf(query)),
     loadContributeSet().catch(() => undefined),
     loadContributeActivity().catch(() => null),
     loadScheduleCounts(),
     loadFairUseNotices(),
+    loadMaskedListReads(),
   ]);
   return (
     <ContributeTabScreen
@@ -35,6 +37,7 @@ export async function ContributeTab({
       activity={activity}
       counts={counts}
       fairUse={fairUse}
+      masked={masked}
       query={query}
     />
   );

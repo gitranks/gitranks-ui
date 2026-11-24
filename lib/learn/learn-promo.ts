@@ -55,13 +55,25 @@ export function learnRecordUrl(login: string): string | null {
 
 const textOf = (value: unknown): string | null => (typeof value === 'string' && value.trim() ? value.trim() : null);
 
-/** An issue as the API answers it, when it has what a row shows: a title, a repository and a number. */
+/**
+ * An issue as the API answers it, when it has what a row shows: a title, a repository and a number, or its masked
+ * form (which names neither).
+ */
 function issueOf(issue: Partial<LearnPromoIssue> | null | undefined): LearnPromoIssue | null {
+  const masked = issue?.masked?.id ? issue.masked : null;
   const title = textOf(issue?.title);
   const repo = textOf(issue?.repo);
   const number = issue?.number;
-  if (!title || !repo || typeof number !== 'number' || !Number.isInteger(number) || number <= 0) return null;
-  return { title, repo, number, language: textOf(issue?.language), topic: textOf(issue?.topic) };
+  const named = !!title && !!repo && typeof number === 'number' && Number.isInteger(number) && number > 0;
+  if (!named && !masked) return null;
+  return {
+    title: title ?? masked?.title ?? '',
+    repo: repo ?? '',
+    number: named ? (number as number) : 0,
+    language: textOf(issue?.language),
+    topic: textOf(issue?.topic),
+    ...(masked ? { masked } : {}),
+  };
 }
 
 /**
@@ -131,4 +143,5 @@ export const ownerIssueOf = (issue: LearnPromoIssue, colors?: Readonly<Record<st
   title: issue.title,
   language: issue.language ? { name: issue.language, color: languageColorOf(issue.language, colors) } : null,
   why: issue.topic ? `Lesson: ${issue.topic}` : null,
+  masked: issue.masked ?? null,
 });

@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { LearnIssuesEmpty, LearnRoomNote } from './learn-issue-notes';
 import { Button } from '@/components/ui/button';
 import { IssueRow } from '@/components/workspace/issue-row';
+import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
 import { HEADING } from '@/components/workspace/primitives';
 import { readPracticeNext } from '@/lib/learn/actions';
 import type { PracticeNext } from '@/lib/learn/learn.types';
@@ -124,19 +125,29 @@ export function PracticeNextCard({ next: given }: { next?: PracticeNext | null }
       </p>
       {room && items.length ? <LearnRoomNote room={room} /> : null}
       {items.length ? (
-        <ul className="divide-y overflow-hidden rounded-xl border" {...contributeSource('learn_practice_passed_issue')}>
-          {items.map((issue, index) => (
-            <li key={issue.issueId}>
-              <IssueRow
-                issue={issueRowOfLearn(issue)}
-                side="learn"
-                agents={NO_AGENTS}
-                primary={index === 0}
-                control={!room}
-              />
-            </li>
-          ))}
-        </ul>
+        // A masked issue is its masked row; the foot under them says why its details are hidden.
+        <MaskedList from="learn" pageFrom="learn" foot={items.some((issue) => issue.masked)}>
+          <ul
+            className="divide-y overflow-hidden rounded-xl border"
+            {...contributeSource('learn_practice_passed_issue')}
+          >
+            {items.map((issue) => (
+              <li key={issue.masked?.id ? `mask:${issue.masked.id}` : issue.issueId}>
+                {issue.masked ? (
+                  <MaskedListRow issue={issue.masked} replace />
+                ) : (
+                  <IssueRow
+                    issue={issueRowOfLearn(issue)}
+                    side="learn"
+                    agents={NO_AGENTS}
+                    primary={issue === items.find((each) => !each.masked)}
+                    control={!room}
+                  />
+                )}
+              </li>
+            ))}
+          </ul>
+        </MaskedList>
       ) : issues ? (
         // None to start: why, as the Learn tab words it.
         <LearnIssuesEmpty issues={issues} goal={goal} />

@@ -3,8 +3,14 @@ import 'server-only';
 import { ContributeUnavailableError, loadOwnAgent, viewerLogin } from './contribute.data';
 import type { ContributeActionResult } from './errors';
 import { contributeErrorOf } from './errors';
-import { IssueNumbersDocument, IssuePageDocument, StartPageMaskDocument } from './masked-issue.documents';
-import type { IssueNumbers, IssuePage } from './masked-issue.types';
+import type { MaskedListReads } from './masked-issue';
+import {
+  IssueLooksTodayDocument,
+  IssueNumbersDocument,
+  IssuePageDocument,
+  StartPageMaskDocument,
+} from './masked-issue.documents';
+import type { IssueLooksToday, IssueNumbers, IssuePage } from './masked-issue.types';
 import { contributeMcpSignIn } from './mcp-sign-in';
 import { learnStartConnectionOf } from './start/start-page';
 import { limitsOf, startPageOnboarded } from './start/start-page.data';
@@ -85,6 +91,33 @@ export async function loadStartPageWithMask(
     }
     throw new ContributeUnavailableError();
   }
+}
+
+/**
+ * The viewer's full issues today: a read of its own, as the viewer. Null signed out, and whenever it cannot be read (an
+ * API without it yet, or one that does not answer): the lists then show no looks line.
+ */
+export async function loadIssueLooksToday(): Promise<IssueLooksToday | null> {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return null;
+  try {
+    const { issueLooksToday } = await graphqlDirect(IssueLooksTodayDocument, undefined, { source: 'ssr', githubLogin });
+    return issueLooksToday ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What a list of masked issues shows beside its rows, read beside the list: the numbers of a night (for the window,
+ * and whether the rules are live), then the viewer's day only once they are. Nothing here holds the list up: each
+ * read that fails leaves its part out, and numbers that cannot be read keep today's words.
+ */
+export async function loadMaskedListReads(): Promise<MaskedListReads> {
+  const numbers = await loadIssueNumbers();
+  const rulesLive = numbers?.rulesLive === true;
+  const looks = rulesLive ? await loadIssueLooksToday() : null;
+  return { rulesLive, looks, numbers: numbers ? { read: numbers.read, kept: numbers.kept } : null };
 }
 
 /** What the form "Start fixing it" needs: the agents, the connect steps' reads, and the pull requests that wait. */

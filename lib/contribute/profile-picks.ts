@@ -1,4 +1,5 @@
 import type { OwnerIssue } from '@/app/profile/[login]/components/profile-contribute-block';
+import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 
 /**
  * Contribute on the signed-in owner's own profile (owner-approved design 2026-11-12): before they connect, ready issues
@@ -25,6 +26,8 @@ export type ProfilePick = {
   /** contributed: a repository they contributed to; language: one of their languages; listed: their own list. */
   fit: 'contributed' | 'language' | 'listed' | string;
   repoLanguage: { name: string; color: string } | null;
+  /** The issue with its details hidden; null for one the person named, absent from an API that does not send it. */
+  masked?: MaskedIssue | null;
 };
 
 /** `GET /api/me/contribute/profile-block?login=`: what the owner's own profile shows them. */
@@ -44,6 +47,7 @@ export function ownIssueOf(pick: ProfilePick): OwnerIssue {
     title: pick.title,
     language: pick.repoLanguage,
     why: pick.fit === 'contributed' ? 'You contributed to this repository' : (pick.why[0] ?? null),
+    masked: pick.masked ?? null,
   };
 }
 

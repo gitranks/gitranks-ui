@@ -40,6 +40,7 @@ const {
   ContributeAttemptDisclosureDocument,
   ContributeAttemptRepoRulesDocument,
   ContributeIssuesDocument,
+  ContributeIssuesMaskedDocument,
   ContributeIssuesWithRulesDocument,
   ContributeOnboardingDocument,
   ContributeOverviewDocument,
@@ -396,13 +397,31 @@ describe("loadIssues: the repos' rules with the feed", () => {
 
   const PAGE = { items: [], next: null, total: 0, computedAt: null };
 
-  it('reads the feed with the rules, and as it was from an API without them', async () => {
-    graphqlDirect.mockResolvedValue({ contributeIssues: PAGE });
+  it('reads the feed with each masked form, a row without a node id keyed by its mask id', async () => {
+    const items = [
+      { issueId: 'I_1', masked: null },
+      { issueId: null, masked: { id: 'q7k2m9xa', title: 'Tags show twice' } },
+    ];
+    graphqlDirect.mockResolvedValue({ contributeIssues: { ...PAGE, items } });
+    expect((await loadIssues({}))?.items.map(({ issueId }) => issueId)).toEqual(['I_1', 'mask:q7k2m9xa']);
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([ContributeIssuesMaskedDocument]);
+  });
+
+  it('reads the feed with the rules from an API without the masked form, and as it was from one without them', async () => {
+    const unknownMasked = new Error('[{"message":"Cannot query field \\"masked\\" on type \\"ContributeIssue\\"."}]');
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeIssuesMaskedDocument) throw unknownMasked;
+      return { contributeIssues: PAGE };
+    });
     expect(await loadIssues({})).toEqual(PAGE);
-    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([ContributeIssuesWithRulesDocument]);
+    expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
+      ContributeIssuesMaskedDocument,
+      ContributeIssuesWithRulesDocument,
+    ]);
 
     graphqlDirect.mockReset();
     graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeIssuesMaskedDocument) throw unknownMasked;
       if (document === ContributeIssuesWithRulesDocument) {
         throw new Error('[{"message":"Cannot query field \\"repoRules\\" on type \\"ContributeIssue\\"."}]');
       }
@@ -410,6 +429,7 @@ describe("loadIssues: the repos' rules with the feed", () => {
     });
     expect(await loadIssues({})).toEqual(PAGE);
     expect(graphqlDirect.mock.calls.map(([document]) => document)).toEqual([
+      ContributeIssuesMaskedDocument,
       ContributeIssuesWithRulesDocument,
       ContributeIssuesDocument,
     ]);

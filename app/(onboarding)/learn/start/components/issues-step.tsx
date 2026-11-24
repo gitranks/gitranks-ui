@@ -23,6 +23,7 @@ import {
 import { readLearnPublicIssues, readLearnPublicPractice } from '@/lib/learn/start-flow.data';
 import { loadContribute } from '@/lib/workspace/contribute.data';
 import { isSuspended } from '@/lib/workspace/contribute-state';
+import { loadMaskedListReads } from '@/lib/workspace/masked-issue.data';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 
 /** Pick an issue's head: its title, the line for the goal, and the goal's chips with Change (back to Your goal). */
@@ -50,9 +51,10 @@ export const Issues = ({ who, children }: { who: 'visitor' | 'account'; children
 export async function VisitorIssues({ goal }: { goal: LearnGoalPick }) {
   const view = goalViewOfPick(goal);
   const change = withLearnGoal(GETTING_IN_PATHS.learnGoal, goal);
-  const [issues, practice] = await Promise.all([
+  const [issues, practice, masked] = await Promise.all([
     readLearnPublicIssues(goal.language),
     readLearnPublicPractice(goal.language),
+    loadMaskedListReads(),
   ]);
   const list = issues.ok ? issues.data : null;
   let body: ReactNode;
@@ -70,6 +72,8 @@ export async function VisitorIssues({ goal }: { goal: LearnGoalPick }) {
           more={false}
           source="learn_flow_issue"
           changeHref={change}
+          masked={masked}
+          visitor
         />
         <SeeAllIssues shown={list.items.length} total={list.total} />
       </>
@@ -117,10 +121,11 @@ export async function AccountIssues({
       </>
     );
   }
-  const [issues, practice, view] = await Promise.all([
+  const [issues, practice, view, masked] = await Promise.all([
     loadLearnIssues(LEARN_ISSUES_FIRST),
     loadPracticeLessons(PRACTICE_FIRST),
     loadContribute().catch(() => null),
+    loadMaskedListReads(),
   ]);
   const goal = issues?.goal ?? goalViewOf(profile);
   return (
@@ -134,6 +139,7 @@ export async function AccountIssues({
           start={issueStepTargetOf(null)}
           source="learn_flow_issue"
           changeHref={GETTING_IN_PATHS.learnGoal}
+          masked={masked}
         />
       </Issues>
       <PracticeSection

@@ -36,9 +36,28 @@ export type IssuePageFrom = 'learn' | 'contribute';
 export const issuePageFromOf = (value: unknown, learnOpen: boolean): IssuePageFrom =>
   value === 'learn' && learnOpen ? 'learn' : 'contribute';
 
-/** The list as the API names it, for a look and its count. */
-export const issueSurfaceOf = (from: IssuePageFrom): 'LEARN' | 'CONTRIBUTE' =>
-  from === 'learn' ? 'LEARN' : 'CONTRIBUTE';
+/** Where a press of "See the full issue" was made: one of the two lists, or the owner's block on their profile. */
+export type IssueLookFrom = IssuePageFrom | 'profile';
+
+/** The place as the API names it, for a look, a skip and their counts. */
+export type IssueSurface = 'LEARN' | 'CONTRIBUTE' | 'PROFILE';
+
+export const issueSurfaceOf = (from: IssueLookFrom): IssueSurface =>
+  from === 'learn' ? 'LEARN' : from === 'profile' ? 'PROFILE' : 'CONTRIBUTE';
+
+/**
+ * What a list of masked issues shows beside its rows: whether the rules about full issues a day are live (the looks
+ * line and the lines about them show only then), the viewer's full issues today, and the numbers for the window.
+ */
+export type MaskedListReads = {
+  rulesLive: boolean;
+  /** The viewer's full issues today; null signed out, before the rules are live, or when it cannot be read. */
+  looks: IssueLooksToday | null;
+  numbers: Pick<IssueNumbers, 'read' | 'kept'> | null;
+};
+
+/** A list's reads when none were made: today's words, no numbers. */
+export const NO_MASKED_READS: MaskedListReads = { rulesLive: false, looks: null, numbers: null };
 
 /** The parameter a sign-in's return carries: the person pressed "See the full issue" before signing in. */
 export const ISSUE_LOOK_PARAM = 'look';
@@ -142,6 +161,10 @@ const count = new Intl.NumberFormat('en-US');
 export function looksLineOf(looks: IssueLooksToday): string {
   return `You can see ${count.format(looks.limit)} full ${looks.limit === 1 ? 'issue' : 'issues'} a day. ${count.format(Math.max(0, looks.left))} left today.`;
 }
+
+/** The line above Learn's list of masked issues, once the rules are live. */
+export const LEARN_MASKED_LINE =
+  'Five open issues at a time, in the same order for everyone. Skip one, or see it in full and say it is not for you, and the next takes its place.';
 
 /** The line under a list for a visitor, who sees issues in full once signed in. */
 export const VISITOR_LOOKS_LINE = 'Seeing an issue in full needs a GitHub sign-in. It costs no money.';

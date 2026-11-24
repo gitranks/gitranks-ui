@@ -3,13 +3,22 @@ import 'server-only';
 import type { ContributeTabRead } from './contribute-tab';
 import { ContributeTabStateDocument, ContributeTabTotalsDocument } from './contribute-tab.documents';
 import { ISSUES_PAGE_SIZE } from './live-issues';
+import { keyedPageOf } from './masked-feed';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { settled, viewerLogin } from '@/lib/workspace/contribute.data';
-import { ContributeIssuesDocument, ContributeIssuesWithRulesDocument } from '@/lib/workspace/contribute.documents';
+import {
+  ContributeIssuesDocument,
+  ContributeIssuesMaskedDocument,
+  ContributeIssuesWithRulesDocument,
+} from '@/lib/workspace/contribute.documents';
 import type { ContributeIssuePage, ContributeIssuesFilter } from '@/lib/workspace/contribute.types';
 import { contributeErrorOf } from '@/lib/workspace/errors';
 
-/** The first page of issues for the signed-in user; `undefined` when the API does not answer the feed (yet). */
+/**
+ * The first page of issues for the signed-in user; `undefined` when the API does not answer the feed (yet). Read with
+ * each issue's masked form first; an API without it answers the feed with the repos' rules, and one without those
+ * the feed as it was.
+ */
 export async function loadIssues(filter: ContributeIssuesFilter): Promise<ContributeIssuePage | null | undefined> {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return undefined;
@@ -19,6 +28,13 @@ export async function loadIssues(filter: ContributeIssuesFilter): Promise<Contri
     ...(Object.keys(filter).length ? { filter } : {}),
   };
   const options = { source: 'ssr' as const, githubLogin };
+  try {
+    const { contributeIssues } = await graphqlDirect(ContributeIssuesMaskedDocument, variables, options);
+    return keyedPageOf(contributeIssues);
+  } catch (error) {
+    // An API without the masked form: the feed with the repos' rules. An outage is the feed's, as below.
+    if (contributeErrorOf(error).error !== 'NOT_AVAILABLE_YET') return undefined;
+  }
   try {
     return (await graphqlDirect(ContributeIssuesWithRulesDocument, variables, options)).contributeIssues;
   } catch (error) {

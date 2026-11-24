@@ -13,6 +13,7 @@ import {
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { isOnboarded } from '@/lib/workspace/contribute-state';
 import { contributeResumeOf, type LandingStart } from '@/lib/workspace/getting-in';
+import { loadRulesLive } from '@/lib/workspace/masked-issue.data';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 import { contributeOpen } from '@/lib/workspace/preview-gate';
 
@@ -49,11 +50,18 @@ export async function noViewPanelOf(): Promise<ReactNode | null> {
  */
 export async function ContributeAboutView() {
   const agentPage = loadAgentPage();
+  const rulesLive = loadRulesLive();
   const view = await loadContribute();
   if (!view) {
     return (
       (await noViewPanelOf()) ?? (
-        <Landing viewer="visitor" start={VISITOR_START} noted={[]} stats={(await agentPage)?.stats} />
+        <Landing
+          viewer="visitor"
+          start={VISITOR_START}
+          noted={[]}
+          stats={(await agentPage)?.stats}
+          masked={await rulesLive}
+        />
       )
     );
   }
@@ -63,6 +71,7 @@ export async function ContributeAboutView() {
       start={signedInStartOf(view)}
       noted={await loadProviderInterests()}
       stats={(await agentPage)?.stats}
+      masked={await rulesLive}
     />
   );
 }

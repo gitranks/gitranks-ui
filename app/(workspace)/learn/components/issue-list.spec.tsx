@@ -3,6 +3,12 @@ import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }) }));
 const learn = vi.hoisted(() => ({ readLearnIssues: vi.fn(), readPracticeLessons: vi.fn() }));
 vi.mock('@/lib/learn/actions', () => learn);
@@ -12,6 +18,8 @@ vi.mock('@/lib/workspace/start/start-page.actions', () => ({ readStartPageAttemp
 const { LearnIssueList } = await import('./issue-list');
 const { PracticeSection } = await import('@/app/learn/components/practice-lessons');
 const { learnIssues, PRACTICE, practiceLessons } = await import('@/lib/learn/__fixtures__/home');
+const { looksToday, maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
+const { LEARN_MASKED_LINE, VISITOR_LOOKS_LINE } = await import('@/lib/workspace/masked-issue');
 
 import type { LearnIssue, PracticeLesson } from '@/lib/learn/learn.types';
 
@@ -48,6 +56,67 @@ const issue = (n: number): LearnIssue => ({
   why: null,
 });
 const issues = (from: number, count: number) => Array.from({ length: count }, (_, at) => issue(from + at));
+
+describe("Learn's list with masked issues", () => {
+  const LIVE = { rulesLive: true, looks: looksToday(), numbers: null };
+  const masked = (n: number, id: string): LearnIssue => ({
+    ...issue(n),
+    issueId: null as never,
+    repo: null as never,
+    number: null as never,
+    url: null as never,
+    masked: { ...maskedIssue(), id, title: `Masked ${n}` },
+  });
+
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows each masked issue as its masked row, keyed by its mask id, with the line above and the foot under', async () => {
+    await render(
+      <LearnIssueList
+        issues={learnIssues({ items: [masked(1, 'q7k2m9xa'), masked(2, 'r3n8p1vd'), issue(3)], total: 3 })}
+        masked={LIVE}
+      />,
+    );
+    const rows = [...container.querySelectorAll('[data-masked-row]')].map((row) => row.getAttribute('data-masked-row'));
+    expect(rows).toEqual(['q7k2m9xa', 'r3n8p1vd']);
+    expect(shown()).toEqual(['I_3']);
+    expect(container.querySelector('[data-learn-masked-line]')?.textContent).toBe(LEARN_MASKED_LINE);
+    expect(container.querySelector('[data-looks-line]')?.textContent).toBe(
+      'You can see 20 full issues a day. 17 left today.',
+    );
+  });
+
+  it('says neither the line above nor the day before the rules are live', async () => {
+    await render(
+      <LearnIssueList
+        issues={learnIssues({ items: [masked(1, 'q7k2m9xa')], total: 1 })}
+        masked={{ ...LIVE, rulesLive: false }}
+      />,
+    );
+    expect(container.querySelector('[data-masked-row]')).not.toBeNull();
+    expect(container.querySelector('[data-learn-masked-line]')).toBeNull();
+    expect(container.querySelector('[data-looks-line]')).toBeNull();
+    expect(container.querySelector('[data-masked-foot]')).not.toBeNull();
+  });
+
+  it("is today's list, with no line and no foot, when no issue is masked (an API without the masked form)", async () => {
+    await render(<LearnIssueList issues={learnIssues({ items: issues(1, 3), total: 3 })} masked={LIVE} />);
+    expect(shown()).toHaveLength(3);
+    expect(container.querySelector('[data-learn-masked-line]')).toBeNull();
+    expect(container.querySelector('[data-masked-foot]')).toBeNull();
+  });
+
+  it("gives a visitor's masked rows the sign-in and no Skip", async () => {
+    await render(
+      <LearnIssueList issues={learnIssues({ items: [masked(1, 'q7k2m9xa')], total: 1 })} more={false} visitor />,
+    );
+    expect(container.textContent).toContain(VISITOR_LOOKS_LINE);
+    expect(button('Skip')).toBeNull();
+  });
+});
 
 describe("Learn's issue list", () => {
   it('reads the list again with 10 more and adds only the new rows under the ones shown, which never move', async () => {

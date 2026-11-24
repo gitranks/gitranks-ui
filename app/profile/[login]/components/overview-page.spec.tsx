@@ -2,6 +2,12 @@ import type { PropsWithChildren } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 import { type ProfileUser, rankedProfile, profileUser as user } from '../__fixtures__/overview';
 import { OverviewPage } from './overview-page';
 

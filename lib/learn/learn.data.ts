@@ -5,6 +5,7 @@ import { cache } from 'react';
 import {
   LearnAttemptLessonDocument,
   LearnIssuesDocument,
+  LearnIssuesMaskedDocument,
   LearnProfileDocument,
   LearnSetupDocument,
   MyLearnAttemptsDocument,
@@ -14,6 +15,7 @@ import type { LearnAttemptLesson, LearnIssues, LearnProfile, MyLearnAttempts, Pr
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { ContributeUnavailableError, viewerLogin } from '@/lib/workspace/contribute.data';
 import { contributeErrorOf } from '@/lib/workspace/errors';
+import { readWithMasked } from '@/lib/workspace/masked-read';
 
 /** Whether Learn is open to the signed-in viewer: the workspace gate's own read, once per request. */
 export { loadLearnOpen } from '@/lib/workspace/gate.data';
@@ -92,7 +94,12 @@ async function viewerRead<T>(read: (githubLogin: string) => Promise<T>): Promise
 export const loadLearnIssues = cache(
   async (first: number): Promise<LearnIssues | undefined> =>
     viewerRead(async (githubLogin) => {
-      const { learnIssues } = await graphqlDirect(LearnIssuesDocument, { first }, { source: 'ssr', githubLogin });
+      const options = { source: 'ssr' as const, githubLogin };
+      // Each issue's masked form first; an API without it answers the list as it was.
+      const { learnIssues } = await readWithMasked(
+        () => graphqlDirect(LearnIssuesMaskedDocument, { first }, options),
+        () => graphqlDirect(LearnIssuesDocument, { first }, options),
+      );
       return learnIssues;
     }),
 );

@@ -1,6 +1,12 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
+
 const { useSession } = vi.hoisted(() => ({ useSession: vi.fn() }));
 vi.mock('next-auth/react', () => ({ useSession }));
 // Learn's "Not for me" is a server action: nothing here calls it.

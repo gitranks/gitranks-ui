@@ -6,11 +6,13 @@ import { markIssueLook, takeIssueLookMark } from './issue-look-mark';
 import type { IssueStart } from './issue-start';
 import {
   GIVE_BACK_REASONS,
+  type IssueLookFrom,
   type IssuePageFrom,
   issuePageHrefOf,
   issueSurfaceOf,
   maskIdOf,
   OUT_NOTE_MAX,
+  SKIP_REASONS,
 } from './masked-issue';
 import {
   ExtendIssueLookDocument,
@@ -19,9 +21,10 @@ import {
   LookAtIssueDocument,
   SaveIssueOutNoteDocument,
   SetIssueOutReasonDocument,
+  SkipMaskedIssueDocument,
   StartMaskedIssueDocument,
 } from './masked-issue.documents';
-import type { IssueLooked, IssueOutReason, IssuePage } from './masked-issue.types';
+import type { IssueLooked, IssueOutReason, IssuePage, MaskedIssue } from './masked-issue.types';
 import { signIn } from '@/auth';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 
@@ -30,6 +33,8 @@ import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 const invalid = <T>(): ContributeActionResult<T> => ({ ok: false, error: 'INVALID' });
 
 const fromOf = (value: unknown): IssuePageFrom => (value === 'learn' ? 'learn' : 'contribute');
+/** A look's place: either list, or the owner's block on their profile. */
+const lookFromOf = (value: unknown): IssueLookFrom => (value === 'profile' ? 'profile' : fromOf(value));
 
 /** The page again: after a press elsewhere, and while it waits for the agent to start. */
 export async function readIssuePage(id: string): Promise<ContributeActionResult<IssuePage | null>> {
@@ -38,13 +43,16 @@ export async function readIssuePage(id: string): Promise<ContributeActionResult<
   return run(IssuePageDocument, { id: maskId }, (data) => data.issuePage);
 }
 
-/** "See the full issue": holds it for 15 minutes and shows it in full, or says why not. Counts toward the day. */
-export async function lookAtIssue(id: string, from: IssuePageFrom): Promise<ContributeActionResult<IssueLooked>> {
+/**
+ * "See the full issue", on the page of one issue or in a list (`from`: where it was pressed, which the API counts it
+ * under): holds it for 15 minutes and shows it in full, or says why not. Counts toward the day.
+ */
+export async function lookAtIssue(id: string, from: IssueLookFrom): Promise<ContributeActionResult<IssueLooked>> {
   const maskId = maskIdOf(id);
   if (!maskId) return invalid();
   return run(
     LookAtIssueDocument,
-    { id: maskId, surface: issueSurfaceOf(fromOf(from)), channel: 'WEB' },
+    { id: maskId, surface: issueSurfaceOf(lookFromOf(from)), channel: 'WEB' },
     (data) => data.lookAtIssue,
   );
 }
@@ -116,4 +124,30 @@ export async function startHeldIssue(id: string): Promise<ContributeActionResult
   const maskId = maskIdOf(id);
   if (!maskId) return invalid();
   return run(StartMaskedIssueDocument, { maskId }, (data) => data.startContributeIssue);
+}
+
+/** The reasons a masked row's Skip offers. */
+const SKIPPED_REASONS: readonly IssueOutReason[] = SKIP_REASONS.map(({ reason }) => reason);
+
+/** The most mask ids a skip names as still shown. */
+const SHOWN_MAX = 50;
+
+/**
+ * Skip on a masked row, with its reason: the issue leaves the person's list for good. Answers the issue that takes its
+ * place on that list (none of `shown`, the rows still on the screen), or null when the list has no more.
+ */
+export async function skipMaskedIssue(
+  id: string,
+  from: IssueLookFrom,
+  reason: IssueOutReason | null,
+  shown: string[] = [],
+): Promise<ContributeActionResult<MaskedIssue | null>> {
+  const maskId = maskIdOf(id);
+  if (!maskId || (reason !== null && !SKIPPED_REASONS.includes(reason)) || !Array.isArray(shown)) return invalid();
+  const others = shown.flatMap((each) => maskIdOf(each) ?? []).slice(0, SHOWN_MAX);
+  return run(
+    SkipMaskedIssueDocument,
+    { id: maskId, surface: issueSurfaceOf(lookFromOf(from)), reason, shown: others },
+    (data) => data.skipMaskedIssue,
+  );
 }

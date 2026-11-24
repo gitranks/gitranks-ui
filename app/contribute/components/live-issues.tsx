@@ -132,7 +132,8 @@ export function LiveAnnouncer({ rows }: { rows: LiveRow[] }) {
         .filter(({ status }) => status !== 'AVAILABLE')
         .map(({ issue, status }) => (
           <span key={issue.issueId}>
-            {issue.nameWithOwner} #{issue.number}:{' '}
+            {/* A masked issue is named by its rewritten title alone. */}
+            {issue.masked ? `“${issue.masked.title}”` : `${issue.nameWithOwner} #${issue.number}`}:{' '}
             {status === 'TAKEN' ? 'taken by another contributor.' : 'your agent is on this.'}{' '}
           </span>
         ))}

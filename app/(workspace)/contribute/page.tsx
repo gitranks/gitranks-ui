@@ -13,6 +13,7 @@ import { contributeHomeOf } from '@/lib/workspace/contribute-state';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { hasAnyAttempt } from '@/lib/workspace/getting-in';
 import { issuePageCarriedOf } from '@/lib/workspace/masked-issue';
+import { loadRulesLive } from '@/lib/workspace/masked-issue.data';
 import { AGENTS_DOC_PATH, GETTING_IN_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /**
@@ -37,12 +38,20 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   const params = await searchParams;
   // The landing's numbers line, read beside the view: it never holds the page up, and a failed read leaves it out.
   const agentPage = loadAgentPage();
+  // Whether the landing's example shows the issue as lists show it once its details are hidden.
+  const rulesLive = loadRulesLive();
   const view = await loadContribute();
   if (!view) {
     // Being set up, or no profile: the panel that says so. Launched, the landing is everyone's: a visitor's.
     return (
       (await noViewPanelOf()) ?? (
-        <Landing viewer="visitor" start={VISITOR_START} noted={[]} stats={(await agentPage)?.stats} />
+        <Landing
+          viewer="visitor"
+          start={VISITOR_START}
+          noted={[]}
+          stats={(await agentPage)?.stats}
+          masked={await rulesLive}
+        />
       )
     );
   }
@@ -80,6 +89,7 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
       preview={home.preview}
       noted={visitor ? [] : await loadProviderInterests()}
       stats={(await agentPage)?.stats}
+      masked={await rulesLive}
     />
   );
 }

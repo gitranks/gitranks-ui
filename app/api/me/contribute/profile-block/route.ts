@@ -4,8 +4,9 @@ import type { AuthRequest } from '@/app/api/profile/[login]/route';
 import { auth } from '@/auth';
 import { PROFILE_ISSUES_MAX } from '@/lib/contribute/profile-issues';
 import type { OwnProfileBlockAnswer } from '@/lib/contribute/profile-picks';
-import { OwnProfilePicksDocument } from '@/lib/contribute/profile-picks.data';
+import { OwnProfilePicksDocument, OwnProfilePicksMaskedDocument } from '@/lib/contribute/profile-picks.data';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { readWithMasked } from '@/lib/workspace/masked-read';
 import { isProfileOwner } from '@/utils/profile-owner';
 
 const NO_STORE = { 'Cache-Control': 'private, no-store' };
@@ -21,10 +22,11 @@ export const GET = auth(async function GET(req: AuthRequest) {
 
   if (viewer && isProfileOwner(viewer, login)) {
     try {
-      const { ownProfilePicks } = await graphqlDirect(
-        OwnProfilePicksDocument,
-        { login: viewer },
-        { source: 'client', githubLogin: viewer },
+      const options = { source: 'client' as const, githubLogin: viewer };
+      // Each issue's masked form first; an API without it answers the block as it was.
+      const { ownProfilePicks } = await readWithMasked(
+        () => graphqlDirect(OwnProfilePicksMaskedDocument, { login: viewer }, options),
+        () => graphqlDirect(OwnProfilePicksDocument, { login: viewer }, options),
       );
       const issues = (ownProfilePicks?.items ?? []).slice(0, PROFILE_ISSUES_MAX);
       if (issues.length) {

@@ -6,8 +6,9 @@ import { useEffect, useState } from 'react';
 
 import { Pill } from '@/components/pill/pill';
 import { Tab } from '@/components/tabs/tabs';
-import { SKILLS_SEEN_MINE_PATH, SKILLS_TAB_MINE_PATH, skillsBriefApiPath, skillsPath } from '@/lib/skills/paths';
-import type { SkillsBriefAnswer, SkillsTabAnswer } from '@/lib/skills/skills.types';
+import { SKILLS_SEEN_MINE_PATH, SKILLS_TAB_MINE_PATH, skillsPath } from '@/lib/skills/paths';
+import type { SkillsTabAnswer } from '@/lib/skills/skills.types';
+import { readSkillsBrief } from '@/lib/skills/skills-brief-read';
 import { loginFromPath } from '@/utils/login-from-path';
 
 /** Whether a path is the Skills tab of `login`, in any spelling of the login. */
@@ -29,12 +30,9 @@ export function SkillsTab({ login }: { login: string }) {
 
   useEffect(() => {
     let live = true;
-    fetch(skillsBriefApiPath(loginFromPath(login)))
-      .then((response) => (response.ok ? (response.json() as Promise<SkillsBriefAnswer>) : null))
-      .catch(() => null)
-      .then((answer) => {
-        if (live) setShown(!!answer?.brief);
-      });
+    readSkillsBrief(loginFromPath(login)).then((answer) => {
+      if (live) setShown(!!answer?.brief);
+    });
     return () => {
       live = false;
     };

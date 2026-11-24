@@ -8,35 +8,7 @@ export const landingPromo: ShownPromo = {
   issues: [],
 };
 
-/** The same user on their own profile, with issues it could teach on. */
-export const profilePromo: ShownPromo = {
-  ...landingPromo,
-  issues: [
-    {
-      title: 'Nested layouts re-render on every navigation',
-      repo: 'driftwood-js/driftwood',
-      number: 871,
-      language: 'TypeScript',
-      topic: 'cache keys and Map equality',
-    },
-    {
-      title: 'default color serialization truncates channel bytes',
-      repo: 'processing/p5.js',
-      number: 9124,
-      language: 'JavaScript',
-      topic: 'number formatting and rounding',
-    },
-    {
-      title: 'Retry timer keeps running after the stream closes',
-      repo: 'tidepool/tide',
-      number: 312,
-      language: 'TypeScript',
-      topic: 'async iterators and cleanup',
-    },
-  ],
-};
-
-/** The profile's languages, as the overview passes them to the block. */
+/** The profile's languages, as the overview passes them to the owner's box. */
 export const promoColors = { typescript: '#3178c6', javascript: '#f1e05a' };
 
 /** A record of four lessons. */

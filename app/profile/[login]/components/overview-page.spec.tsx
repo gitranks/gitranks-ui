@@ -13,10 +13,8 @@ import { OverviewPage } from './overview-page';
 
 // The left column needs a signed-in session and route params; the cards are all this spec reads.
 vi.mock('./layout-left-column', () => ({ LayoutLeftColumn: ({ children }: PropsWithChildren) => children }));
-// The owner's "Issues for you" block reads the session in the browser; a signed-out visitor sees nothing of it.
+// The owner's box and the Skills block read the session in the browser; a signed-out visitor sees nothing of the box.
 vi.mock('next-auth/react', () => ({ useSession: () => ({ data: null, status: 'unauthenticated' }) }));
-// Learn's "Not for me" is a server action: nothing here calls it.
-vi.mock('@/lib/learn/actions', () => ({ dismissLearnPromo: async () => ({ ok: true, data: true }) }));
 
 // The first percentage line after the card's title, with React's text-node separators removed.
 const contributionsRankLine = (rankGlobal: ProfileUser['rankGlobal']) =>

@@ -66,6 +66,11 @@ describe("a Skills page's reads in the browser", () => {
     expect(paths.SKILLS_TAB_MINE_PATH).toBe('/api/me/skills/tab');
     expect(paths.SKILLS_SEEN_MINE_PATH).toBe('/api/me/skills/seen');
   });
+
+  it("reads what the owner's profile overview shows them for the profile's login, trimmed", async () => {
+    const paths = await import('./paths');
+    expect(paths.skillsProfileMinePath(' Octo-Cat ')).toBe('/api/me/skills/profile?login=Octo-Cat');
+  });
 });
 
 describe('SKILLS_LOGINS_TAG', () => {

@@ -218,6 +218,11 @@ describe("a course's page, signed in", () => {
     expect(page.textContent).toContain('Language course');
     expect(page.textContent).toContain('Examples in Go only');
   });
+
+  it('a language course of two languages names both', () => {
+    const page = draw({ course: { ...goCourse, languages: ['javascript', 'typescript'] }, mine: null });
+    expect(page.textContent).toContain('Examples in JavaScript and TypeScript only');
+  });
 });
 
 describe("a course's search and the Squares view", () => {

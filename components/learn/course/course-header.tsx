@@ -91,6 +91,11 @@ export function CourseHeader({
   const learners = learnersOf(course.numbers);
   const good = goodShareOf(course.numbers);
   const progress = mine ? courseProgressLineOf(mine, course) : null;
+  // A language course has one language, or two that are one language with and without types ("JavaScript and
+  // TypeScript"); each example is in one of them.
+  const examplesIn = course.languages.length
+    ? course.languages.map((each) => languageNameOf(each)).join(' and ')
+    : course.name;
   return (
     <header className="flex flex-col gap-2">
       <Link href={LEARN_COURSES_PATH} className="self-start text-sm font-semibold text-link hover:underline">
@@ -109,9 +114,7 @@ export function CourseHeader({
             ) : null}
           </>
         ) : (
-          <span className="whitespace-nowrap">
-            Examples in {course.languages[0] ? languageNameOf(course.languages[0]) : course.name} only
-          </span>
+          <span className="whitespace-nowrap">Examples in {examplesIn} only</span>
         )}
         {learners !== null || good !== null ? (
           <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1">

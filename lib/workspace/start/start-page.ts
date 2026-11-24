@@ -46,11 +46,16 @@ export const learnStartNumberOf = (number: unknown): number | null =>
 export const startModeOf = (lesson: unknown): StartMode => (lesson === '1' ? 'lesson' : 'fix');
 
 /**
- * Where the back link, and every refusal's "back to the issues", lead: Issues for you in Fix mode; in lesson mode the
- * tab the person came from (`?from=contribute`), else Learn's Issues page.
+ * Where the back link, and every refusal's "back to the issues", lead: Issues for you in Fix mode, or Learn's Issues
+ * page when the person came from Learn (`?from=learn`); in lesson mode the tab the person came from
+ * (`?from=contribute`), else Learn's Issues page.
  */
 export function startBackOf(mode: StartMode, from?: unknown): { href: Route; label: string } {
-  if (mode === 'fix') return { href: PICK_ISSUE_PATHS.fix, label: 'Issues for you' };
+  if (mode === 'fix') {
+    return from === 'learn'
+      ? { href: PICK_ISSUE_PATHS.learn, label: 'Back to the issues' }
+      : { href: PICK_ISSUE_PATHS.fix, label: 'Issues for you' };
+  }
   return {
     href: from === 'contribute' ? PICK_ISSUE_PATHS.fix : PICK_ISSUE_PATHS.learn,
     label: 'Back to the issues',

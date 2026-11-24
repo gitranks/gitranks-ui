@@ -2,7 +2,7 @@ import type { Route } from 'next';
 
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, isOnboarded } from '@/lib/workspace/contribute-state';
-import { GETTING_IN_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { GETTING_IN_PATHS, PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import type { ContributeAccess } from '@/lib/workspace/preview-gate';
 
 /**
@@ -49,8 +49,9 @@ export function tabsOf(gate: WorkspaceGate): WorkspaceTab[] {
 /**
  * Where a signed-in account that has not entered the workspace yet is sent from a page under `/my`; null when the page
  * opens. The Agent and Settings pages open (someone mid-setup can revoke a token or delete their data), but for the
- * agent's connect page, whose step of Contribute's flow it goes to with its query. A Start page, in either mode, goes to
- * the flow's first step, where the agent gets connected; every other page to Contribute's home, which starts them.
+ * agent's connect page, whose step of Contribute's flow it goes to with its query. A Start page reached from Learn
+ * (`?from=learn`) goes to Learn's Issues, where the issue is listed; any other Start page to the flow's first step, where
+ * the agent gets connected; every other page to Contribute's home, which starts them.
  */
 export function notEnteredTargetOf(pathname: string, search?: URLSearchParams): Route | null {
   const path = pathname.replace(/\/+$/, '');
@@ -60,6 +61,8 @@ export function notEnteredTargetOf(pathname: string, search?: URLSearchParams): 
     return (query ? `${GETTING_IN_PATHS.contributeAgentOwn}?${query}` : GETTING_IN_PATHS.contributeAgentOwn) as Route;
   }
   if (/^\/my\/(?:agent|settings)(?:\/|$)/.test(path)) return null;
-  if (/^\/my\/start\//.test(path)) return GETTING_IN_PATHS.contributeWork;
+  if (/^\/my\/start\//.test(path)) {
+    return search?.get('from') === 'learn' ? PICK_ISSUE_PATHS.learn : GETTING_IN_PATHS.contributeWork;
+  }
   return WORKSPACE_PATHS.contribute;
 }

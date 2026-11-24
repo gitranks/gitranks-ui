@@ -87,6 +87,10 @@ describe('where an account that has not entered goes from a page under /my', () 
     );
   });
 
+  it("sends a Start page reached from Learn to Learn's Issues, where the issue is listed", () => {
+    expect(notEnteredTargetOf('/my/start/acme/widgets/42', new URLSearchParams('from=learn'))).toBe('/learn/issues');
+  });
+
   it("sends a lesson's Start page to Contribute's flow too: Learn's own flow is gone", () => {
     expect(notEnteredTargetOf('/my/start/acme/widgets/42', new URLSearchParams('lesson=1'))).toBe('/contribute/start');
     expect(notEnteredTargetOf('/my/start/acme/widgets/42/', new URLSearchParams('lesson=1&from=contribute'))).toBe(

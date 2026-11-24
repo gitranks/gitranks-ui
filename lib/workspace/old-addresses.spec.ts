@@ -83,7 +83,6 @@ describe('the old workspace addresses', () => {
     ['/contribute?start=key', '/contribute/start/agent/key?start=key'],
     ['/contribute?about=1', '/contribute/about?about=1'],
     ['/contribute/?about=1', '/contribute/about?about=1'],
-    ['/learn/profile', '/learn/setup'],
   ])('%s goes on to %s, for now (307)', (from, to) => {
     expect(redirectOf(from)).toEqual({ location: to, status: 307 });
   });
@@ -165,6 +164,7 @@ describe("a pull request's old Lesson view", () => {
 
 describe('Learn’s pages that went away', () => {
   it.each([
+    ['/learn/profile', '/learn/setup'],
     ['/learn/earlier', '/learn/issues'],
     ['/learn/earlier/', '/learn/issues'],
     ['/learn/earlier?language=go', '/learn/issues?language=go'],

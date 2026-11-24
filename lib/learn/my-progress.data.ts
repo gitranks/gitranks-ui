@@ -210,11 +210,18 @@ export async function loadLearnMyFixes(githubLogin: string): Promise<{ fixes: My
 
 /** How many merged fixes have a walkthrough, the same for everyone; null for none, and on any failure. */
 async function loadFixesWithWalkthrough(): Promise<number | null> {
+  // A cached read takes no signal: a slow one is raced against the same limit, and drawn without.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), MY_PROGRESS_FIXES_TIMEOUT_MS);
+  });
   try {
-    const fixes = await fixesCached(null, null, null, null);
+    const fixes = await Promise.race([fixesCached(null, null, null, null), late]);
     return fixes?.total ? fixes.total : null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

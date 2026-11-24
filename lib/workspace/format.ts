@@ -102,9 +102,9 @@ export const COMING_SOON: {
   {
     provider: 'CURSOR',
     mono: 'CU',
-    title: 'Cursor',
+    title: 'Cursor in the cloud',
     kind: 'Cloud agent',
-    text: 'Cloud agents on your Cursor plan, no terminal needed',
+    text: 'On your Cursor plan, no terminal needed',
   },
   {
     provider: 'JULES',

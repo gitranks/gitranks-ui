@@ -13,6 +13,7 @@ import type {
   ContributeLedgerTotals,
   ContributeLedgerWeek,
 } from '@/lib/contribute/ledger.types';
+import { cn } from '@/lib/utils';
 import { dayLabel } from '@/lib/workspace/format';
 
 /**
@@ -42,9 +43,9 @@ export function LedgerScreen({ ledger }: { ledger: ContributeLedger }) {
         title="Contribute ledger"
         text="Every pull request GitRanks Contribute users opened in other people’s repositories, and how it ended, closed ones included. Each was reviewed and submitted by a person, under their own name."
       />
-      <Totals totals={totals} />
       {totals.opened ? (
         <>
+          <Totals totals={totals} />
           <div className="grid gap-5 lg:grid-cols-[2fr_3fr]">
             <WeeksChart weeks={ledger.weeks} />
             <ReposTable repos={ledger.repos} total={totals.repos} />
@@ -105,18 +106,49 @@ function PreviewBanner({ preview }: { preview: ContributeLedgerPreview }) {
   );
 }
 
-function Tile({ label, value, text, name }: { label: string; value: string; text: ReactNode; name: string }) {
+/** A number and a line under it. No value (a zero, or a rate with nothing to divide): the line says it in words. */
+function Tile({
+  label,
+  value,
+  text,
+  name,
+  className,
+}: {
+  label: string;
+  value: string | null;
+  text: ReactNode;
+  name: string;
+  className?: string;
+}) {
   return (
-    <div data-total={name} className="flex min-w-0 flex-col gap-1 rounded-xl border bg-card px-4.5 py-4">
+    <div
+      data-total={name}
+      className={cn('flex min-w-0 flex-col gap-1 rounded-xl border bg-card px-4.5 py-4', className)}
+    >
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="font-mono text-2xl font-bold">{value}</span>
-      <span className="text-xs text-muted-foreground">{text}</span>
+      {value === null ? null : <span className="font-mono text-2xl font-bold">{value}</span>}
+      {text ? <span className="text-xs text-muted-foreground">{text}</span> : null}
     </div>
   );
 }
 
-function Totals({ totals }: { totals: ContributeLedgerTotals }) {
+/** A count for a tile, or none for a zero: the tile's line says it in words then. */
+const countOrNone = (n: number) => (n ? count(n) : null);
+
+/** A pull request's latest end: "latest: owner/repo, Nov 3"; nothing when it is not known. */
+const latestOf = (latest: ContributeLedgerTotals['latestMerged']) =>
+  latest ? `latest: ${latest.repo}, ${dayLabel(latest.at)}` : null;
+
+/** The merge rate's line: "1 of 2 decided"; in words while none is merged or none is decided. */
+function mergeRateLineOf(totals: ContributeLedgerTotals): string {
   const decided = totals.merged + totals.closed;
+  if (!decided) return 'None decided yet';
+  if (!totals.merged) return `None merged yet, ${count(totals.closed)} closed`;
+  return `${count(totals.merged)} of ${count(decided)} decided`;
+}
+
+/** The five totals, once a pull request was opened. On a phone the first spans the row, so none is left alone. */
+function Totals({ totals }: { totals: ContributeLedgerTotals }) {
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
       <Tile
@@ -124,32 +156,31 @@ function Totals({ totals }: { totals: ContributeLedgerTotals }) {
         label="Pull requests opened"
         value={count(totals.opened)}
         text={`in ${plural(totals.repos, 'repository', 'repositories')}, by ${plural(totals.people, 'person', 'people')}`}
+        className="col-span-2 lg:col-span-1"
       />
       <Tile
         name="merged"
         label="Merged"
-        value={count(totals.merged)}
-        text={
-          totals.latestMerged ? `latest: ${totals.latestMerged.repo}, ${dayLabel(totals.latestMerged.at)}` : 'none yet'
-        }
+        value={countOrNone(totals.merged)}
+        text={totals.merged ? latestOf(totals.latestMerged) : 'None yet'}
       />
       <Tile
         name="closed"
         label="Closed without a merge"
-        value={count(totals.closed)}
-        text={totals.latestClosed ? `latest: ${totals.latestClosed.repo}, ${dayLabel(totals.latestClosed.at)}` : 'none'}
+        value={countOrNone(totals.closed)}
+        text={totals.closed ? latestOf(totals.latestClosed) : 'None'}
       />
       <Tile
         name="open"
         label="Still open"
-        value={count(totals.open)}
-        text={totals.oldestOpenAt ? `oldest opened ${dayLabel(totals.oldestOpenAt)}` : 'none'}
+        value={countOrNone(totals.open)}
+        text={totals.open ? (totals.oldestOpenAt ? `oldest opened ${dayLabel(totals.oldestOpenAt)}` : null) : 'None'}
       />
       <Tile
         name="merge-rate"
         label="Merge rate"
-        value={totals.mergeRate === null ? '—' : `${Math.round(totals.mergeRate * 100)}%`}
-        text={decided ? `${count(totals.merged)} of ${count(decided)} decided` : 'none decided yet'}
+        value={totals.merged && totals.mergeRate !== null ? `${Math.round(totals.mergeRate * 100)}%` : null}
+        text={mergeRateLineOf(totals)}
       />
     </div>
   );
@@ -171,37 +202,40 @@ function WeeksChart({ weeks }: { weeks: ContributeLedgerWeek[] }) {
   return (
     <section data-ledger="weeks" className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4.5">
       <h2 className={HEADING.card}>Opened per week, by how they ended</h2>
-      <svg
-        viewBox={`0 0 100 ${height}`}
-        preserveAspectRatio="none"
-        className="h-40 w-full"
-        role="img"
-        aria-label="Pull requests opened per week, by how they ended"
-      >
-        {weeks.map((week, i) => {
-          let top = height;
-          return (
-            <g key={week.weekStart}>
-              {SERIES.map(({ key, className }) => {
-                // A segment of one PR in a busy week still shows: 2 units at least.
-                const h = week[key] ? Math.max(2, (week[key] / most) * (height - 4)) : 0;
-                if (!h) return null;
-                top -= h;
-                return (
-                  <rect
-                    key={key}
-                    x={i * slot + (slot - bar) / 2}
-                    y={top}
-                    width={bar}
-                    height={h > 2 ? h - 1 : h}
-                    className={className.split(' ')[0]}
-                  />
-                );
-              })}
-            </g>
-          );
-        })}
-      </svg>
+      {/* At least 160px high, and as tall as its card beside a taller table: the bars stretch to fill it. */}
+      <div className="relative h-40 lg:h-auto lg:min-h-40 lg:flex-1">
+        <svg
+          viewBox={`0 0 100 ${height}`}
+          preserveAspectRatio="none"
+          className="absolute inset-0 size-full"
+          role="img"
+          aria-label="Pull requests opened per week, by how they ended"
+        >
+          {weeks.map((week, i) => {
+            let top = height;
+            return (
+              <g key={week.weekStart}>
+                {SERIES.map(({ key, className }) => {
+                  // A segment of one PR in a busy week still shows: 2 units at least.
+                  const h = week[key] ? Math.max(2, (week[key] / most) * (height - 4)) : 0;
+                  if (!h) return null;
+                  top -= h;
+                  return (
+                    <rect
+                      key={key}
+                      x={i * slot + (slot - bar) / 2}
+                      y={top}
+                      width={bar}
+                      height={h > 2 ? h - 1 : h}
+                      className={className.split(' ')[0]}
+                    />
+                  );
+                })}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
       <div className="flex justify-between font-mono text-xs text-muted-foreground" aria-hidden="true">
         <span>{dayLabel(weeks[0]?.weekStart)}</span>
         <span>{dayLabel(weeks.at(-1)?.weekStart)}</span>
@@ -229,7 +263,7 @@ function WeeksChart({ weeks }: { weeks: ContributeLedgerWeek[] }) {
             <tr key={week.weekStart}>
               <td>{dayLabel(week.weekStart)}</td>
               {SERIES.map(({ key }) => (
-                <td key={key}>{week[key]}</td>
+                <td key={key}>{week[key] || 'none'}</td>
               ))}
             </tr>
           ))}
@@ -239,8 +273,11 @@ function WeeksChart({ weeks }: { weeks: ContributeLedgerWeek[] }) {
   );
 }
 
+/** A count cell; a zero is left empty, with "none" for a screen reader. */
 function Num({ value }: { value: number }) {
-  return <td className={`px-3 py-2.5 text-right font-mono ${value ? '' : 'text-muted-foreground'}`}>{count(value)}</td>;
+  return (
+    <td className="px-3 py-2.5 text-right font-mono">{value ? count(value) : <span className="sr-only">none</span>}</td>
+  );
 }
 
 function ReposTable({ repos, total }: { repos: ContributeLedgerRepo[]; total: number }) {
@@ -348,14 +385,19 @@ function RecentTable({ recent }: { recent: ContributeLedgerPr[] }) {
   );
 }
 
+/**
+ * A reason tile's width, so no row holds one tile alone. A phone has two columns: the last of an odd count spans both.
+ * A wide screen has six: two or four reasons are halves, three are thirds, five are three thirds then two halves.
+ */
+export function reasonSpanOf(at: number, n: number): string {
+  const phone = n % 2 === 1 && at === n - 1 ? 'col-span-2' : '';
+  const wide = n === 3 || (n === 5 && at < 3) ? 'lg:col-span-2' : 'lg:col-span-3';
+  return cn(phone, wide);
+}
+
 function SaidNo({ saidNo }: { saidNo: ContributeLedgerSaidNo }) {
-  const tiles = [
-    {
-      name: 'total',
-      label: 'All repos that said no',
-      value: saidNo.total,
-      text: 'each counted once, by its first reason',
-    },
+  // Each reason with a count; none at zero.
+  const reasons = [
     {
       name: 'opted-out',
       label: 'Opted out by a maintainer',
@@ -386,18 +428,8 @@ function SaidNo({ saidNo }: { saidNo: ContributeLedgerSaidNo }) {
       value: saidNo.outsidePrsClosed,
       text: 'only collaborators, or approved contributors, open pull requests',
     },
-    // Retired: two closed without a merge in a row paused us. Shown while old rows still count.
-    ...(saidNo.paused > 0
-      ? [
-          {
-            name: 'paused',
-            label: 'Paused after 2 closed',
-            value: saidNo.paused,
-            text: 'two closed without a merge in a row, under a retired rule',
-          },
-        ]
-      : []),
-  ];
+  ].filter(({ value }) => value > 0);
+  const outOf = saidNo.inPool ? `, out of ${count(saidNo.inPool)} it may suggest issues from` : '';
   return (
     <section data-ledger="said-no" className="flex min-w-0 flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -407,14 +439,40 @@ function SaidNo({ saidNo }: { saidNo: ContributeLedgerSaidNo }) {
         </Link>
       </div>
       <p className="max-w-prose text-sm text-muted-foreground">
-        Contribute never opens a pull request where a repo said no. These are the repos it leaves alone today, out of{' '}
-        {count(saidNo.inPool)} it may suggest issues from.
+        Contribute never opens a pull request where a repo said no.{' '}
+        {saidNo.total ? `These are the repos it leaves alone today${outOf}.` : 'No repo has said no so far.'}
       </p>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        {tiles.map(({ name, label, value, text }) => (
-          <Tile key={name} name={name} label={label} value={count(value)} text={text} />
-        ))}
-      </div>
+      {reasons.length === 1 ? (
+        // One reason: its tile alone, since a total would repeat its number.
+        <div className="grid">
+          <Tile
+            name={reasons[0].name}
+            label={reasons[0].label}
+            value={count(reasons[0].value)}
+            text={reasons[0].text}
+          />
+        </div>
+      ) : saidNo.total ? (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+          <Tile
+            name="total"
+            label="All repos that said no"
+            value={count(saidNo.total)}
+            text="each counted once, by its first reason"
+            className="col-span-2 lg:col-span-6"
+          />
+          {reasons.map(({ name, label, value, text }, at) => (
+            <Tile
+              key={name}
+              name={name}
+              label={label}
+              value={count(value)}
+              text={text}
+              className={reasonSpanOf(at, reasons.length)}
+            />
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

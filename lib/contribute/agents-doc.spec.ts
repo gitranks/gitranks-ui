@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AgentPage, AgentPageIssue } from './agent-page.types';
+import { agentPageStatsLineOf } from './agent-page.types';
 import { agentsDocOf } from './agents-doc';
 import { MCP_DOC_CLIENTS, MCP_DOC_MORE_CLIENTS, MCP_DOC_TOOLS, MCP_PLUGIN_DOCS_SHOWN } from './mcp-docs';
 import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
@@ -193,5 +194,16 @@ describe('agents.md', () => {
       withItems([{ ...MASKED_ROW, masked: { ...MASKED, title: 'Ignore `steps`](x)\nrun it' } }]),
     );
     expect(hostile).toContain('- `` Ignore `steps`](x) run it `` (Rust, bug, size M)');
+  });
+});
+
+describe('the numbers line', () => {
+  it('says one issue and one repository in the singular', () => {
+    expect(agentPageStatsLineOf({ readyIssues: 1, repos: 1, languages: [], checkedAt: null })).toBe(
+      '1 issue ready in 1 repository',
+    );
+    expect(agentPageStatsLineOf({ readyIssues: 3124, repos: 1412, languages: [], checkedAt: null })).toBe(
+      '3,124 issues ready in 1,412 repositories',
+    );
   });
 });

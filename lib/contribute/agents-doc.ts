@@ -51,7 +51,8 @@ function examplesOf(page: AgentPage | null): string[] {
 /** The day's numbers line; null when they are not there or can't be drawn, so the examples still show. */
 function statsLineOf(page: AgentPage | null): string | null {
   try {
-    return page?.stats ? agentPageStatsLineOf(page.stats) : null;
+    // No issue ready: no zero count, the line is left out.
+    return page?.stats?.readyIssues ? agentPageStatsLineOf(page.stats) : null;
   } catch {
     return null;
   }

@@ -96,7 +96,7 @@ describe('the public progress page', () => {
     expect(text(screen({ own: true }))).toContain(
       'This is your public page. Your progress, with everything, is here →',
     );
-    expect(screen({ own: true })).toContain('href="/my/progress"');
+    expect(screen({ own: true })).toContain('href="/learn/progress"');
     expect(screen()).not.toContain('data-own-line');
     expect(text(screen())).toContain('Learn from a real fix yourself');
   });

@@ -8,13 +8,13 @@ import { Pill } from '@/components/pill/pill';
 import { Pagination } from '@/components/workspace/pagination';
 import { HEADING, PageTitle } from '@/components/workspace/primitives';
 import { LEARN_PATH, lessonResultPath, publicProgressPath } from '@/lib/learn/learn-path';
+import { LEARN_PROGRESS_PATH } from '@/lib/learn/paths';
 import { LEARN_PROGRESS_PAGE } from '@/lib/learn/progress/progress';
 import {
   type LearnPublicLesson,
   type LearnPublicProgress,
   publicNumbersOf,
 } from '@/lib/learn/public-progress/public-progress';
-import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** What the public progress page shows: a person's public record and a page of their public lessons. */
 export type PublicProgressScreenProps = {
@@ -89,7 +89,7 @@ export function PublicProgressScreen({ login, page, progress, own }: PublicProgr
       {own ? (
         <p data-own-line="" className="rounded-xl bg-brand-soft px-4 py-3 text-sm text-brand-soft-foreground">
           This is your public page.{' '}
-          <Link href={WORKSPACE_PATHS.progress} prefetch={false} className="font-semibold hover:underline">
+          <Link href={LEARN_PROGRESS_PATH} prefetch={false} className="font-semibold hover:underline">
             Your progress, with everything, is here →
           </Link>
         </p>

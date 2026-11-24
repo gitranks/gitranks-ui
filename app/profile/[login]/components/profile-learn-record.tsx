@@ -9,7 +9,7 @@ import type { LearnRecord } from '@/lib/learn/learn.types';
 import { publicProgressPath } from '@/lib/learn/learn-path';
 import { recordTopicsOf } from '@/lib/learn/learn-promo';
 import { readLearnRecord } from '@/lib/learn/learn-promo-read';
-import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { LEARN_PROGRESS_PATH } from '@/lib/learn/paths';
 import { loginFromPath } from '@/utils/login-from-path';
 import { isProfileOwner } from '@/utils/profile-owner';
 
@@ -51,11 +51,7 @@ export const LearnRecordCard: FC<{ record: LearnRecord | null; own?: boolean }> 
           )}
         </h2>
         {own ? (
-          <Link
-            href={WORKSPACE_PATHS.progress}
-            prefetch={false}
-            className="text-sm font-semibold text-link hover:underline"
-          >
+          <Link href={LEARN_PROGRESS_PATH} prefetch={false} className="text-sm font-semibold text-link hover:underline">
             Your progress →
           </Link>
         ) : null}

@@ -255,7 +255,7 @@ describe('B1, your own agent', () => {
     expect(both.plain).toContain('Your agent is connected.');
     expect(both.plain).not.toContain('Taking you on');
     expect(both.plain).toContain('Next, pick an issue on Contribute or Learn and press Start.');
-    expect(both.html).toMatch(/data-agent-next=""[^>]*>.*href="\/contribute".*href="\/learn\/earlier"/);
+    expect(both.html).toMatch(/data-agent-next=""[^>]*>.*href="\/contribute".*href="\/learn\/issues"/);
     // Before the call, and on the way back to a proof, there is no next step here.
     expect(b1({ stage: 'added', stay: true }).html).not.toContain('data-agent-next');
     expect(

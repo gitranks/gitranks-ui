@@ -6,7 +6,7 @@ import { RunsTiles } from './runs-tiles';
 import { HEADING } from '@/components/workspace/primitives';
 import { cn } from '@/lib/utils';
 import { dayLabel, usd } from '@/lib/workspace/format';
-import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import {
   type ContributeRun,
   type ContributeRunsPage,
@@ -98,7 +98,7 @@ export function RunsPreview({
           Contribute
         </Link>{' '}
         or{' '}
-        <Link href={WORKSPACE_PATHS.learn} prefetch={false} className="font-semibold text-link hover:underline">
+        <Link href={PICK_ISSUE_PATHS.learn} prefetch={false} className="font-semibold text-link hover:underline">
           Learn
         </Link>
         .

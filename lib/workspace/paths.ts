@@ -8,7 +8,10 @@ import type { ContributeSetListMode } from './contribute.types';
  */
 export const WORKSPACE_PATHS = {
   contribute: '/contribute' as Route,
-  /** Learn as it worked before its courses: an issue fixed by your agent, and a lesson on the fix. */
+  /**
+   * Learn as it worked before its courses: an issue fixed by your agent, and a lesson on the fix. A link to pick an
+   * issue on Learn goes to Learn's Issues (`PICK_ISSUE_PATHS.learn`) instead.
+   */
   learn: '/learn/earlier' as Route,
   /** Learn home, which the workspace's Learn tab opens. */
   learnHome: '/learn' as Route,
@@ -29,7 +32,11 @@ export const WORKSPACE_PATHS = {
   settingsWork: '/my/settings/work' as Route,
   /** Learn's goal and level. */
   settingsGoal: '/my/settings/goal' as Route,
-  /** Your progress: what the user has learned, and where their Learn pull requests landed. */
+  /**
+   * The earlier Your progress: what the user has learned, and where their Learn pull requests landed. Its own tabs and
+   * the earlier Learn page's numbers link it, for the lists only it has; other links go to Learn's own progress page,
+   * `/learn/progress`.
+   */
   progress: '/my/progress' as Route,
 } as const;
 

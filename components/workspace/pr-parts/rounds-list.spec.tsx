@@ -8,6 +8,7 @@ import { ChecksLine } from './checks-line';
 import { RoundsList, type RoundsListProps } from './rounds-list';
 import {
   PR_NOW,
+  prAsk,
   prChecks,
   prContribute,
   prLinks,
@@ -158,6 +159,59 @@ describe('a round that waits', () => {
     expect(round(2)?.querySelector('h3')).toBeNull();
     await press(button('Open round 2'));
     expect(round(2)?.querySelector('h3')?.textContent).toBe('Round 2');
+  });
+
+  it("names the word its run was started over and the person's note, each with who and what", async () => {
+    const asked = [
+      prAsk({
+        id: 'IC_9',
+        kind: 'conversation',
+        author: 'maint',
+        excerpt: 'Could you add a test?',
+        comments: null,
+        url: 'https://github.com/harbor-kit/relay/pull/58#issuecomment-9',
+      }),
+      prAsk({
+        id: null,
+        kind: 'note',
+        author: 'Your note',
+        excerpt: 'Answer the maintainer',
+        comments: null,
+        url: 'https://github.com/harbor-kit/relay/pull/58',
+      }),
+    ];
+    await rounds({ page: prPage({ ...prContribute.asked, rounds: [prRound({ asked })] }), onStartRound: vi.fn() });
+    const open = round(2);
+    expect(open?.textContent).toContain('1 comment, your note');
+    const word = open?.querySelector('[data-ask="conversation"]');
+    expect(word?.textContent).toContain('maintin the conversation');
+    expect(word?.textContent).toContain('“Could you add a test?”');
+    expect(word?.querySelector('a')?.getAttribute('href')).toBe(
+      'https://github.com/harbor-kit/relay/pull/58#issuecomment-9',
+    );
+    const note = open?.querySelector('[data-ask="note"]');
+    expect(note?.textContent).toContain('Your noteto your agent');
+    expect(note?.textContent).toContain('“Answer the maintainer”');
+    expect(note?.querySelector('a')).toBeNull();
+    expect(button('Start round 2')).not.toBeNull();
+  });
+
+  it('says the run stopped without sending when that is all that keeps the round open', async () => {
+    const stopped = prAsk({
+      id: null,
+      kind: 'run_ended',
+      author: 'Your agent',
+      excerpt: 'The run ended without a verdict',
+      comments: null,
+      url: 'https://github.com/harbor-kit/relay/pull/58',
+    });
+    await rounds({ page: prPage({ ...prContribute.asked, rounds: [prRound({ asked: [stopped] })] }) });
+    const open = round(2);
+    expect(open?.textContent).toContain('Your agent’s run stopped without sending');
+    const line = open?.querySelector('[data-ask="run_ended"]');
+    expect(line?.textContent).toContain('Your agentstopped without sending');
+    expect(line?.textContent).toContain('“The run ended without a verdict”');
+    expect(line?.querySelector('a')).toBeNull();
   });
 });
 

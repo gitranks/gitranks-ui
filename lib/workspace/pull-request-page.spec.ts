@@ -99,6 +99,33 @@ describe('what a round was asked', () => {
     expect(roundAskTitleOf({ n: 3, asked })).toBe('Round 3: 2 reviews, 2 comments and 1 other request to answer');
     expect(roundAskTitleOf({ n: 3, asked: [] })).toBe('Round 3 has something to answer');
   });
+
+  it("counts a word on the conversation as a comment, and names the person's note and a run that stopped", () => {
+    const word = prAsk({ id: 'IC_9', kind: 'conversation', author: 'maint', comments: null });
+    const note = prAsk({
+      id: null,
+      kind: 'note',
+      author: 'Your note',
+      excerpt: 'Answer the maintainer',
+      comments: null,
+    });
+    const stopped = prAsk({ id: null, kind: 'run_ended', author: 'Your agent', excerpt: 'It stopped', comments: null });
+    expect(askedSummaryOf([word, note])).toBe('1 comment, your note');
+    expect(roundAskTitleOf({ n: 4, asked: [word, note] })).toBe('Round 4: a comment to answer');
+    expect(askedSummaryOf([note])).toBe('Your note');
+    expect(roundAskTitleOf({ n: 4, asked: [note] })).toBe('Round 4: your note to your agent');
+    expect(askedSummaryOf([stopped])).toBe('Your agent’s run stopped without sending');
+    expect(roundAskTitleOf({ n: 4, asked: [stopped] })).toBe('Round 4: your agent’s run stopped without sending');
+  });
+
+  it('titles the box by what the round lists, never "has something to answer" while it lists anything', () => {
+    const stopped = prAsk({ id: null, kind: 'run_ended', author: 'Your agent', excerpt: 'It stopped', comments: null });
+    const page = { ...prContribute.asked, rounds: [prRound({ asked: [stopped] })] };
+    expect(box(page)).toMatchObject({
+      title: 'Round 2: your agent’s run stopped without sending',
+      actions: [{ id: 'startRound', label: 'Start round 2' }],
+    });
+  });
 });
 
 describe('sending a round', () => {

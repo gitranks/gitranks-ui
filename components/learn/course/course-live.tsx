@@ -7,7 +7,7 @@ import { CourseView } from './course-view';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { CoursePerson, LearnCourse, LearnCourseCard, LearnCourseMine } from '@/lib/learn/course';
 import { sendLearnCourseFeedbackAction } from '@/lib/learn/course.actions';
-import { coursePath, learnCourseMinePath, learnCourseSidePath } from '@/lib/learn/paths';
+import { coursePath, learnCourseMinePath, learnCourseRealMinePath, learnCourseSidePath } from '@/lib/learn/paths';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** The signed-in person's side of a course, and whether the check leads the page. */
@@ -33,6 +33,18 @@ export async function readCourseSide(slug: string, askCheck = CHECK_PAGE_LIVE): 
   }
 }
 
+/** The open issues of the person's list for lessons of the course, from their route; null for none and on any failure. */
+export async function readCourseOpenIssues(slug: string): Promise<number | null> {
+  try {
+    const res = await fetch(learnCourseRealMinePath(slug), { cache: 'no-store' });
+    if (!res.ok) return null;
+    const { openIssues } = (await res.json()) as { openIssues?: unknown };
+    return typeof openIssues === 'number' && openIssues > 0 ? openIssues : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Where the person stands: not known yet, a visitor, a session whose side did not come, or a learner with theirs. */
 type Personal = { kind: CoursePerson } | { kind: 'learner'; side: CourseSide };
 
@@ -41,10 +53,21 @@ type Personal = { kind: CoursePerson } | { kind: 'learner'; side: CourseSide };
  * session reads their side, which fills the page in place, and a visitor asks for nothing. Only a visitor is asked to
  * sign in: while a session's side is on its way nothing is lit, and a session whose side does not come (a failed read,
  * or Learn not open to them yet) is never sent to sign in again. Signing in comes back to the course; a rating is sent
- * as the session's user.
+ * as the session's user. The open issues of the person's list for the course come in a read of their own, which an
+ * API without them answers with none: the third box then stays as it was. `everyone`: Learn is open to everyone, so
+ * the count of merged fixes links to them for a visitor too.
  */
-export function CourseLive({ course, others }: { course: LearnCourse; others: readonly LearnCourseCard[] }) {
+export function CourseLive({
+  course,
+  others,
+  everyone = false,
+}: {
+  course: LearnCourse;
+  others: readonly LearnCourseCard[];
+  everyone?: boolean;
+}) {
   const [personal, setPersonal] = useState<Personal>({ kind: 'pending' });
+  const [openIssues, setOpenIssues] = useState<number | null>(null);
   const { slug } = course;
 
   useEffect(() => {
@@ -54,6 +77,10 @@ export function CourseLive({ course, others }: { course: LearnCourse; others: re
     }
     let live = true;
     setPersonal({ kind: 'pending' });
+    setOpenIssues(null);
+    readCourseOpenIssues(slug).then((count) => {
+      if (live) setOpenIssues(count);
+    });
     readCourseSide(slug).then((side) => {
       if (live) setPersonal(side ? { kind: 'learner', side } : { kind: 'session' });
     });
@@ -70,6 +97,8 @@ export function CourseLive({ course, others }: { course: LearnCourse; others: re
       person={personal.kind === 'learner' ? 'session' : personal.kind}
       others={others}
       checkFirst={side?.checkFirst ?? false}
+      openIssues={side ? openIssues : null}
+      learnOpen={everyone || !!side}
       calls={{
         onSignIn: () => {
           signIn(IDENTITY_PROVIDER, { redirectTo: coursePath(slug) }).catch(() => {});

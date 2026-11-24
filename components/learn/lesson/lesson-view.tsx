@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { type HighlightedExample, LessonArticle } from './lesson-article';
 import { LessonFooter, type LessonFooterLinks, LessonNeighbours } from './lesson-more';
 import {
@@ -9,6 +11,7 @@ import {
 } from './lesson-player';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
 import { type LearnGroupLesson, type LearnLesson, lessonPlaceOf } from '@/lib/learn/lesson-page';
+import type { LessonReal } from '@/lib/learn/real-issues';
 
 export type { HighlightedExample } from './lesson-article';
 export type { LessonFooterLinks } from './lesson-more';
@@ -37,6 +40,9 @@ export type LessonViewProps = {
   /** The clock and the person's time zone: with both, the server draws the review's words; else the browser does. */
   now?: Date;
   timeZone?: string;
+  /** The person's real issues for the lesson, and "In the real world" drawn: for the catalogue. */
+  real?: LessonReal | null;
+  realWorld?: ReactNode;
 };
 
 /** The parts of a lesson's page that render on the server: the lesson, then previous and next and the footer. */

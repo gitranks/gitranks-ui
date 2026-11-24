@@ -81,6 +81,9 @@ export const learnLessonGonePath = (slug: string) => `/learn/lessons/_gone/${enc
 export const learnLessonMinePath = (slug: string) => `/api/me/learn/lessons/${encodeURIComponent(slug)}`;
 export const learnCourseMinePath = (slug: string) => `/api/me/learn/courses/${encodeURIComponent(slug)}`;
 export const LEARN_COURSES_MINE_PATH = '/api/me/learn/courses';
+/** Where the browser reads what a lesson's and a course's pages add of real issues for the signed-in person. */
+export const learnLessonRealMinePath = (slug: string) => `${learnLessonMinePath(slug)}/real-world`;
+export const learnCourseRealMinePath = (slug: string) => `${learnCourseMinePath(slug)}/real-world`;
 /** "What you know": a course's sheet of lessons marked as known, changed without taking the check again. */
 export const learnKnownPath = (course: string) => `${checkPath(course)}?known` as Route;
 /** Where the browser reads the signed-in person's run of a course's check, or its result once it ended. */

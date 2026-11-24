@@ -2,6 +2,7 @@ import type { Screen } from '../registry';
 import { HOME_PRODUCT_SCREENS } from './home-products';
 import { LEARN_ENTITY_PART_SCREENS } from './learn-entity-parts';
 import { LEARN_ISSUES_SCREENS } from './learn-issues';
+import { LEARN_REAL_ISSUES_SCREENS } from './learn-real-issues';
 import { SKILLS_PART_SCREENS } from './skills-parts';
 import { WORKSPACE_PR_PART_SCREENS } from './workspace-pr-parts';
 
@@ -15,5 +16,6 @@ export const HELD_BACK_SCREENS: Screen[] = [
   ...SKILLS_PART_SCREENS,
   ...LEARN_ENTITY_PART_SCREENS,
   ...LEARN_ISSUES_SCREENS,
+  ...LEARN_REAL_ISSUES_SCREENS,
   ...HOME_PRODUCT_SCREENS,
 ];

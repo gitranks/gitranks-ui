@@ -1,6 +1,16 @@
 // @vitest-environment jsdom
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
+  usePathname: () => '/learn',
+}));
+vi.mock('@/lib/workspace/masked-issue.actions', () => ({
+  lookAtIssue: vi.fn(),
+  signInToSeeIssue: vi.fn(),
+  skipMaskedIssue: vi.fn(),
+}));
 
 import { LearnHomeError, LearnHomeView, type LearnHomeViewProps } from './learn-home-view';
 import {
@@ -15,9 +25,19 @@ import {
   homeNothingDue,
   homeSetup,
 } from '@/lib/learn/__fixtures__/learn-home-page';
+import { homeRealFix, homeRealIssues } from '@/lib/learn/__fixtures__/real-issues';
 import type { LearnHomeRead } from '@/lib/learn/home';
+import { NO_HOME_REAL } from '@/lib/learn/real-issues';
 
 const LONG_DASH = String.fromCodePoint(0x2014);
+
+// The rows of real issues ask the browser about its pointer.
+window.matchMedia = ((query: string) => ({
+  matches: false,
+  media: query,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+})) as unknown as typeof window.matchMedia;
 
 function draw(home: LearnHomeRead, props: Partial<LearnHomeViewProps> = {}) {
   const page = document.createElement('div');
@@ -170,6 +190,69 @@ describe("a new learner's Learn home", () => {
     expect(page.querySelector('[data-home-section="other"]')).toBeNull();
     expect(page.querySelector('[data-home-section="yours"]')).toBeNull();
     expect(page.querySelector('[data-home-foot]')).not.toBeNull();
+  });
+});
+
+describe("Learn home's real issues", () => {
+  const third = (page: Element) => page.querySelector('[data-third-box]');
+
+  it('is the page as before when the API answers none of them', () => {
+    const before = draw(homeDay).innerHTML;
+    expect(draw(homeDay, { real: null }).innerHTML).toBe(before);
+    const none = draw(homeDay, { real: NO_HOME_REAL });
+    expect(boxes(none)).toHaveLength(2);
+    expect(none.querySelector('[data-home-section="real-issues"]')).toBeNull();
+  });
+
+  it('makes a fix that needs the person the third box, lit and taking Enter, the open issues a quiet line', () => {
+    const page = draw(homeDay, { real: homeRealFix });
+    const box = third(page)!;
+    expect(box.getAttribute('data-third-box')).toBe('fix');
+    expect(words(box)).toContain('Your fix needs you');
+    expect(words(box)).toContain(homeRealFix.fixes[0].title);
+    expect(words(box.querySelector('[data-third-box-issues]'))).toBe('5 open issues fit you.');
+    // One call to act: the fix's own page; the open issues are a line, never a second button.
+    expect(box.querySelectorAll('a')).toHaveLength(1);
+    expect(box.querySelector('a')!.getAttribute('href')).toBe(
+      '/my/pull-requests/driftwood-js/driftwood/934?from=learn',
+    );
+    expect(box.hasAttribute('data-lit')).toBe(true);
+    expect(lit(page)).toHaveLength(1);
+    expect(enter(page)).toHaveLength(1);
+    expect(box.contains(enter(page)[0])).toBe(true);
+  });
+
+  it('else counts the open issues that fit the person, leaving the light where it was', () => {
+    const page = draw(homeDay, { real: homeRealIssues });
+    const box = third(page)!;
+    expect(box.getAttribute('data-third-box')).toBe('issues');
+    expect(words(box)).toContain('5 open issues for you');
+    expect(box.querySelector('a')!.getAttribute('href')).toBe('/learn/issues');
+    expect(box.hasAttribute('data-lit')).toBe(false);
+    expect(boxes(page)[1].hasAttribute('data-lit')).toBe(true);
+    // With nothing else lit, the open issues take the light.
+    const quiet = draw(homeAllDone, { real: homeRealIssues });
+    expect(third(quiet)!.hasAttribute('data-lit')).toBe(true);
+    expect(lit(quiet)).toHaveLength(1);
+  });
+
+  it('shows no third box at no open issue and no fix that needs the person', () => {
+    expect(third(draw(homeDay, { real: { ...homeRealIssues, box: null } }))).toBeNull();
+  });
+
+  it("lists the person's fixes not ended as their pull requests list does, then the five issues of their list", () => {
+    const page = draw(homeDay, { real: homeRealFix });
+    const section = page.querySelector('[data-home-section="real-issues"]')!;
+    expect(words(section.querySelector('h2'))).toBe('Real issues');
+    expect(section.querySelector('a')!.getAttribute('href')).toBe('/learn/issues');
+    expect(section.querySelectorAll('[data-home-fix]')).toHaveLength(2);
+    expect(section.querySelectorAll('[data-home-issue]')).toHaveLength(5);
+    expect(section.querySelector('[data-home-fix] a[href^="/my/pull-requests/"]')!.getAttribute('href')).toBe(
+      '/my/pull-requests/driftwood-js/driftwood/934?from=learn',
+    );
+    // No fix page yet: nothing links to one.
+    expect(section.querySelector('a[href^="/learn/fixes"]')).toBeNull();
+    expect(page.innerHTML).not.toContain(LONG_DASH);
   });
 });
 

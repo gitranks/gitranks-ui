@@ -1,6 +1,7 @@
 import { LessonLive } from './lesson-live';
 import { lessonPartsOf } from './lesson-view';
 import { JsonLd } from '@/components/json-ld/json-ld';
+import type { LearnFixes } from '@/lib/learn/issues';
 import type { LearnLessonPage } from '@/lib/learn/lesson-page.data';
 import { learnLessonMarkdownPath, lessonMistakeHref } from '@/lib/learn/paths';
 import { learnLessonJsonLd } from '@/lib/learn/seo/lesson';
@@ -8,9 +9,18 @@ import { learnLessonJsonLd } from '@/lib/learn/seo/lesson';
 /**
  * A lesson of ours as its route draws it: the same for everyone, rendered on the server with its code highlighted,
  * then the person's side read in the browser (`LessonLive`), with its structured data. Its footer links its Markdown
- * copy. `openFact`: opened from a shared fact (`?fact`).
+ * copy. `openFact`: opened from a shared fact (`?fact`). `fixes`: the lesson's merged fixes, given only while Learn is
+ * open to everyone (else a person Learn is open to reads them with their side).
  */
-export function LessonScreen({ page, openFact = false }: { page: LearnLessonPage; openFact?: boolean }) {
+export function LessonScreen({
+  page,
+  openFact = false,
+  fixes = null,
+}: {
+  page: LearnLessonPage;
+  openFact?: boolean;
+  fixes?: LearnFixes | null;
+}) {
   const { lesson, examples, questionCodes, group } = page;
   const links = { markdown: learnLessonMarkdownPath(lesson.slug), report: lessonMistakeHref(lesson.title) };
   const parts = lessonPartsOf({ lesson, examples, group, links });
@@ -24,6 +34,7 @@ export function LessonScreen({ page, openFact = false }: { page: LearnLessonPage
         article={parts.article}
         more={parts.more}
         openFact={openFact}
+        fixes={fixes}
       />
     </>
   );

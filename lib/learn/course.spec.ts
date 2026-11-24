@@ -311,6 +311,19 @@ describe('the three boxes', () => {
     expect(courseBoxesOf(algorithmsCourse, knownLaterMine).middle).toEqual({ kind: 'review-none' });
   });
 
+  it("makes the last box a learner's open issues for the course while there are some, and as before with none", () => {
+    expect(courseBoxesOf(algorithmsCourse, progressMine, { openIssues: 2 }).last).toEqual({ kind: 'issues', count: 2 });
+    expect(courseBoxesOf(algorithmsCourse, doneMine, { openIssues: 3 }).last).toEqual({ kind: 'issues', count: 3 });
+    for (const openIssues of [0, null, undefined, -1]) {
+      expect(courseBoxesOf(algorithmsCourse, progressMine, { openIssues }), String(openIssues)).toEqual(
+        courseBoxesOf(algorithmsCourse, progressMine),
+      );
+    }
+    // Never for a visitor, or a session without its side.
+    expect(courseBoxesOf(algorithmsCourse, null, { openIssues: 2 }).last).toEqual({ kind: 'sign-in' });
+    expect(courseBoxesOf(algorithmsCourse, null, { person: 'session', openIssues: 2 }).last.kind).not.toBe('issues');
+  });
+
   it('says how long a review takes', () => {
     expect(reviewMinutesWords(1)).toBe('About a minute.');
     expect(reviewMinutesWords(4)).toBe('About 3 minutes.');

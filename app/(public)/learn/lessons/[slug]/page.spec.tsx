@@ -1,16 +1,18 @@
 import { isValidElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadLearnLessonPage, loadLessonPage, learnOpenToEveryone } = vi.hoisted(() => ({
+const { loadLearnLessonPage, loadLessonPage, learnOpenToEveryone, loadMergedFixes } = vi.hoisted(() => ({
   loadLearnLessonPage: vi.fn(),
   loadLessonPage: vi.fn(),
   learnOpenToEveryone: vi.fn(async () => true),
+  loadMergedFixes: vi.fn(async (): Promise<unknown> => null),
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/learn/lesson-page.data', () => ({ loadLearnLessonPage }));
 vi.mock('@/lib/learn/lesson-public.data', () => ({ loadLessonPage }));
 vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone }));
 vi.mock('@/lib/learn/learn-everyone-cached', () => ({ learnOpenToEveryoneCached: learnOpenToEveryone }));
+vi.mock('@/lib/learn/real-issues.data', () => ({ loadMergedFixes }));
 vi.mock('@/app/learn/components/lesson-page', () => ({ LessonPageView: () => null }));
 vi.mock('@/components/learn/lesson/lesson-screen', () => ({ LessonScreen: () => null }));
 
@@ -18,6 +20,7 @@ const { default: LessonPage, generateMetadata } = await import('./page');
 const { LessonPageView } = await import('@/app/learn/components/lesson-page');
 const { LessonScreen } = await import('@/components/learn/lesson/lesson-screen');
 const { setGroup, setLesson } = await import('@/lib/learn/__fixtures__/lesson-page');
+const { learnFixes } = await import('@/lib/learn/__fixtures__/issues');
 
 const ours = { lesson: setLesson, examples: [], questionCodes: [], group: setGroup };
 const props = (slug: string, query: Record<string, string> = {}) =>
@@ -29,6 +32,7 @@ const props = (slug: string, query: Record<string, string> = {}) =>
 beforeEach(() => {
   loadLearnLessonPage.mockReset();
   loadLessonPage.mockReset();
+  loadMergedFixes.mockReset().mockResolvedValue(null);
 });
 
 describe("a lesson's address", () => {
@@ -36,7 +40,7 @@ describe("a lesson's address", () => {
     loadLearnLessonPage.mockResolvedValue(ours);
     const page = await LessonPage(props(setLesson.slug, { fact: '' }));
     expect(isValidElement(page) && page.type).toBe(LessonScreen);
-    expect((page as { props: object }).props).toEqual({ page: ours, openFact: true });
+    expect((page as { props: object }).props).toEqual({ page: ours, openFact: true, fixes: null });
     const plain = await LessonPage(props(setLesson.slug));
     expect((plain as { props: { openFact: boolean } }).props.openFact).toBe(false);
     expect(loadLessonPage).not.toHaveBeenCalled();
@@ -47,6 +51,24 @@ describe("a lesson's address", () => {
     learnOpenToEveryone.mockResolvedValueOnce(false);
     loadLearnLessonPage.mockResolvedValueOnce(ours);
     expect((await generateMetadata(props(setLesson.slug))).robots).toEqual({ index: false, follow: false });
+  });
+
+  it("draws the lesson's merged fixes for everyone while Learn is open to everyone, and none while it is closed", async () => {
+    loadLearnLessonPage.mockResolvedValue(ours);
+    loadMergedFixes.mockResolvedValue(learnFixes);
+    const fixesOf = async () =>
+      ((await LessonPage(props(setLesson.slug))) as { props: { fixes: unknown } }).props.fixes;
+    expect(await fixesOf()).toBe(learnFixes);
+    expect(loadMergedFixes).toHaveBeenCalledWith({ lesson: setLesson.slug });
+    loadMergedFixes.mockClear();
+    learnOpenToEveryone.mockResolvedValueOnce(false);
+    expect(await fixesOf()).toBeNull();
+    expect(loadMergedFixes).not.toHaveBeenCalled();
+    // A switch that cannot be read is closed; fixes that cannot be read are none: the page is as it was.
+    learnOpenToEveryone.mockRejectedValueOnce(new Error('down'));
+    expect(await fixesOf()).toBeNull();
+    loadMergedFixes.mockResolvedValueOnce(null);
+    expect(await fixesOf()).toBeNull();
   });
 
   it("draws a fix's lesson as before when the slug is not one of ours", async () => {

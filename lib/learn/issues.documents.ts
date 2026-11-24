@@ -12,8 +12,10 @@ import type DocumentNode from '@/types/typed-document-node';
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
   parse(source) as DocumentNode<TData, TVariables>;
 
-const LESSON = 'lesson { slug title course courseName }';
-const ROW = `issue { ${MASKED_ISSUE_FIELDS} }
+/** A lesson line's fields, and a row's: the masked issue, the full one where named, its lesson and why. */
+export const ISSUES_LESSON_FIELDS = 'lesson { slug title course courseName }';
+const LESSON = ISSUES_LESSON_FIELDS;
+export const ISSUES_ROW_FIELDS = `issue { ${MASKED_ISSUE_FIELDS} }
   full { id repo number url title labels stars agreementToSign }
   ${LESSON}
   why
@@ -23,7 +25,7 @@ type View = { lesson: string | null; course: string | null; language: string | n
 
 /** A visitor's five for a view, the same for everyone. */
 export const IssuesListPublicDocument = doc<{ list: unknown }, { input: View }>(
-  `query IssuesListPublic($input: LearnQueuePublicInput!) { list: learnQueuePublic(input: $input) { rows { ${ROW} } } }`,
+  `query IssuesListPublic($input: LearnQueuePublicInput!) { list: learnQueuePublic(input: $input) { rows { ${ISSUES_ROW_FIELDS} } } }`,
 );
 
 /**
@@ -36,7 +38,7 @@ export const IssuesListDocument = doc<
 >(
   `query IssuesList($input: LearnQueueInput!, $issuesPage: Boolean) {
   list: learnQueue(input: $input, issuesPage: $issuesPage) {
-    rows { ${ROW} }
+    rows { ${ISSUES_ROW_FIELDS} }
     forYouCount learnedCount emptyEnd outsideForYou emailOn emailTo
   }
 }`,

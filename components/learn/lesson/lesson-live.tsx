@@ -5,8 +5,10 @@ import { signIn } from 'next-auth/react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { type LessonCalls, LessonPlayer, type LessonViewer, lessonPlayerKeyOf } from './lesson-player';
+import { LessonRealWorld } from './lesson-real-world';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
+import type { LearnFixes } from '@/lib/learn/issues';
 import {
   isLastOfGroup,
   type LearnDepth,
@@ -17,7 +19,14 @@ import {
 } from '@/lib/learn/lesson-page';
 import { answerLearnLessonAction, sendLearnFeedbackAction } from '@/lib/learn/lesson-page.actions';
 import type { LearnCourseLessonMine } from '@/lib/learn/lesson-page.documents';
-import { coursePath, learnCourseMinePath, learnLessonMinePath, learnLessonPath } from '@/lib/learn/paths';
+import {
+  coursePath,
+  learnCourseMinePath,
+  learnLessonMinePath,
+  learnLessonPath,
+  learnLessonRealMinePath,
+} from '@/lib/learn/paths';
+import { fixesOf, type LessonRealMine, lessonRealOf, realRowsOf } from '@/lib/learn/real-issues';
 import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
 
@@ -45,6 +54,20 @@ export async function readLessonViewer(lesson: {
   const depths: Record<string, LearnDepth> = {};
   for (const row of courseAnswer?.course?.lessons ?? []) depths[row.slug] = row.depth;
   return { mine: { ...mine, language: mine.language ?? null }, depths };
+}
+
+/**
+ * What "In the real world" adds for the signed-in person, from their route; null when none of it is answered (signed
+ * out, Learn not open to them, an API that does not know it yet, a failure).
+ */
+export async function readLessonRealMine(slug: string): Promise<LessonRealMine | null> {
+  const answer = await readJson<Record<string, unknown>>(learnLessonRealMinePath(slug));
+  if (!answer) return null;
+  const real = lessonRealOf(answer.real);
+  const rows = realRowsOf({ rows: answer.rows });
+  if (!real && !rows) return null;
+  const reads = answer.reads && typeof answer.reads === 'object' ? (answer.reads as LessonRealMine['reads']) : null;
+  return { real, rows, reads, fixes: fixesOf(answer.fixes) };
 }
 
 /**
@@ -77,6 +100,7 @@ export function LessonLive({
   article,
   more,
   openFact = false,
+  fixes = null,
 }: {
   lesson: LearnLesson;
   group: readonly LearnGroupLesson[];
@@ -85,6 +109,8 @@ export function LessonLive({
   article: ReactNode;
   more: ReactNode;
   openFact?: boolean;
+  /** The lesson's merged fixes as everyone reads them: given only while Learn is open to everyone. */
+  fixes?: LearnFixes | null;
 }) {
   useLearnSetupGuess();
   const router = useRouter();
@@ -95,6 +121,8 @@ export function LessonLive({
   // Whether the person has clicked, typed or moved the focus in the player; a ref, read when their side arrives.
   const touched = useRef(false);
   const [redrawn, setRedrawn] = useState(false);
+  // What "In the real world" adds for a person with a session; it fills its places when it comes.
+  const [realMine, setRealMine] = useState<LessonRealMine | null>(null);
   const { slug } = lesson;
   const course = lesson.course.slug;
 
@@ -104,10 +132,15 @@ export function LessonLive({
       return;
     }
     let live = true;
+    setRealMine(null);
     readLessonViewer({ slug, course: { slug: course } }).then((viewer) => {
       if (!live) return;
       setPersonal(viewer ? { kind: 'member', viewer } : { kind: 'session' });
       if (viewer && !touched.current) setRedrawn(true);
+    });
+    // Apart from the person's side: it fails alone, and the lesson is then as it was.
+    readLessonRealMine(slug).then((read) => {
+      if (live) setRealMine(read);
     });
     return () => {
       live = false;
@@ -173,6 +206,8 @@ export function LessonLive({
         openFact={openFact}
         signedIn={personal.kind !== 'visitor'}
         note={viewer ? null : note}
+        real={realMine?.real ?? null}
+        realWorld={<LessonRealWorld slug={lesson.slug} fixes={fixes} mine={realMine} />}
       />
     </div>
   );

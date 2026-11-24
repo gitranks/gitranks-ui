@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { useCoursePageKeys } from '@/components/learn/course/use-course-keys';
 import { CourseStats } from '@/components/learn/courses/course-card';
+import { HomeRealIssues } from '@/components/learn/home/home-real-issues';
 import { MyCourseCard } from '@/components/learn/my-progress/my-progress-parts';
 import { PHONE_LINK } from '@/components/learn/phone-link';
 import { Kbd } from '@/components/learn/question/kbd';
@@ -31,19 +32,30 @@ import { learnTodayIn } from '@/lib/learn/my-progress';
 import {
   coursePath,
   LEARN_COURSES_PATH,
+  LEARN_ISSUES_PATH,
   LEARN_PROGRESS_PATH,
   LEARN_REVIEW_PATH,
   LEARN_SETUP_PATH,
   learnLessonPath,
 } from '@/lib/learn/paths';
+import {
+  fixBoxIssuesLineOf,
+  fixBoxWordsOf,
+  type HomeReal,
+  type HomeThirdBox,
+  issuesBoxWordsOf,
+  myFixPathOf,
+} from '@/lib/learn/real-issues';
 import type { LearnSetupRead } from '@/lib/learn/setup';
 import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { cn } from '@/lib/utils';
+import type { MaskedListReads } from '@/lib/workspace/masked-issue';
 
 /*
- * Learn home (page 3): two boxes (the next lesson and the review; the third column stays empty until real issues
- * come), the courses the person started, the courses they have not, and the foot. A new learner picks a first course
- * in the boxes' place. The lit box takes Enter, the review R.
+ * Learn home (page 3): three boxes (the next lesson, the review, and real issues: a fix that needs the person, else the
+ * open issues that fit them, else an empty place), the "Real issues" rows, the courses the person started, the courses
+ * they have not, and the foot. A new learner picks a first course in the boxes' place. The lit box takes Enter, the
+ * review R; a fix that needs the person takes the light from the others.
  */
 
 /** Learn home has no search: the page's keys are Enter and R alone. */
@@ -54,7 +66,18 @@ const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppe
 const H2 = 'm-0 text-xl font-semibold';
 
 /** A box: lit (it takes Enter), plain, or quiet (dashed, nothing to do). */
-function Box({ lit = false, quiet = false, children }: { lit?: boolean; quiet?: boolean; children: ReactNode }) {
+function Box({
+  lit = false,
+  quiet = false,
+  kind,
+  children,
+}: {
+  lit?: boolean;
+  quiet?: boolean;
+  /** The third box's kind: a fix that needs the person, or the open issues. */
+  kind?: HomeThirdBox['kind'];
+  children: ReactNode;
+}) {
   return (
     <section
       className={cn(
@@ -64,6 +87,7 @@ function Box({ lit = false, quiet = false, children }: { lit?: boolean; quiet?: 
       )}
       data-lit={lit ? '' : undefined}
       data-quiet={quiet ? '' : undefined}
+      data-third-box={kind}
     >
       {children}
     </section>
@@ -202,6 +226,45 @@ function ReviewBox({ box, lit, hints }: { box: HomeReviewBox; lit: boolean; hint
         </Box>
       );
   }
+}
+
+/**
+ * The third box: a fix that needs the person is its one message and its one button, the open issues a quiet line under
+ * it; else the open issues that fit them; nothing with neither.
+ */
+function ThirdBox({ box, lit, hints }: { box: HomeThirdBox; lit: boolean; hints: boolean }) {
+  if (box.kind === 'fix') {
+    const words = fixBoxWordsOf(box.row);
+    const issues = fixBoxIssuesLineOf(box.openIssues);
+    return (
+      <Box lit={lit} kind="fix">
+        <span className="self-start rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
+          Your fix needs you
+        </span>
+        <Title>{words.title}</Title>
+        <Text>{box.row.title}</Text>
+        {issues ? (
+          <p className="m-0 text-xs text-muted-foreground" data-third-box-issues="">
+            {issues}
+          </p>
+        ) : null}
+        <Action lit={lit} hints={hints} href={myFixPathOf(box.row)}>
+          {words.button}
+        </Action>
+      </Box>
+    );
+  }
+  const words = issuesBoxWordsOf(box.count);
+  return (
+    <Box lit={lit} kind="issues">
+      <Eyebrow>Fix a real issue</Eyebrow>
+      <Title>{words.title}</Title>
+      <Text>{words.text}</Text>
+      <Action lit={lit} hints={hints} href={LEARN_ISSUES_PATH}>
+        {words.button}
+      </Action>
+    </Box>
+  );
 }
 
 /** One course of a column: its name, then its lessons and the numbers worth showing. */
@@ -390,10 +453,22 @@ export type LearnHomeViewProps = {
   timeZone: string | null;
   /** Key hints shown or not; the browser's answer when not given. */
   hints?: boolean;
+  /** The third box and the "Real issues" rows; none while the API does not answer them (the page is then as before). */
+  real?: HomeReal | null;
+  /** What the masked rows need: the day's full issues, the numbers of a night. */
+  reads?: MaskedListReads | null;
 };
 
 /** Learn home, as the person's answer says. */
-export function LearnHomeView({ home, setup, now, timeZone, hints: hintsGiven }: LearnHomeViewProps) {
+export function LearnHomeView({
+  home,
+  setup,
+  now,
+  timeZone,
+  hints: hintsGiven,
+  real = null,
+  reads = null,
+}: LearnHomeViewProps) {
   const live = useKeyHints();
   const hints = hintsGiven ?? live;
   useCoursePageKeys({ inputRef: NO_SEARCH, onClear: ignore });
@@ -401,6 +476,10 @@ export function LearnHomeView({ home, setup, now, timeZone, hints: hintsGiven }:
   const today = learnTodayIn(at, timeZone);
   const fresh = isNewLearner(home);
   const boxes = homeBoxesOf(home, at, timeZone);
+  // A fix that needs the person comes before everything else of the day; the open issues take the light only when no
+  // other box has it.
+  const third = real?.box ?? null;
+  const highlight = third && (third.kind === 'fix' || !boxes.highlight) ? 'third' : boxes.highlight;
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pt-7 pb-16" data-learn-home="">
       {fresh ? (
@@ -409,11 +488,13 @@ export function LearnHomeView({ home, setup, now, timeZone, hints: hintsGiven }:
         <>
           <h1 className="sr-only">Learn home</h1>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-home-boxes="">
-            <LessonBox box={boxes.lesson} lit={boxes.highlight === 'lesson'} hints={hints} />
-            <ReviewBox box={boxes.review} lit={boxes.highlight === 'review'} hints={hints} />
+            <LessonBox box={boxes.lesson} lit={highlight === 'lesson'} hints={hints} />
+            <ReviewBox box={boxes.review} lit={highlight === 'review'} hints={hints} />
+            {third ? <ThirdBox box={third} lit={highlight === 'third'} hints={hints} /> : null}
           </div>
         </>
       )}
+      {real ? <HomeRealIssues fixes={real.fixes} issues={real.issues} reads={reads} now={at} /> : null}
       <YourCourses home={home} today={today} />
       <OtherCourses home={home} />
       <LearnHomeFoot />

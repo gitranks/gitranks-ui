@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowLeft, X } from 'lucide-react';
 import type { Route } from 'next';
 import Link from 'next/link';

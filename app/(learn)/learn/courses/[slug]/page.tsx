@@ -9,7 +9,8 @@ import { LEARN_MISSING_METADATA, learnCourseJsonLd, learnCourseMetadata } from '
 
 /**
  * A course's page (page 2): the same for everyone, read from the cached course under its tag, with the other courses
- * named at its foot; the person's side is read later in the browser. The page streams, so its own notFound() reaches
+ * named at its foot; the person's side is read later in the browser. While Learn is open to everyone, the count of
+ * merged fixes links to them for a visitor too. The page streams, so its own notFound() reaches
  * the browser with a 200: an unknown, paused, removed or moved course gets its real status from the proxy, which asks
  * first (`lib/learn/course-gate.ts`).
  */
@@ -24,12 +25,16 @@ export async function generateMetadata({ params }: PageProps<'/learn/courses/[sl
 export default async function CoursePage({ params }: PageProps<'/learn/courses/[slug]'>) {
   const { slug } = await params;
   // The foot's other courses are a part of the page that may fail alone: it then names none.
-  const [course, courses] = await Promise.all([loadLearnCourse(slug), loadLearnCourses().catch(() => [])]);
+  const [course, courses, everyone] = await Promise.all([
+    loadLearnCourse(slug),
+    loadLearnCourses().catch(() => []),
+    learnOpenToEveryoneCached().catch(() => false),
+  ]);
   if (!course) notFound();
   return (
     <>
       <JsonLd payloads={learnCourseJsonLd(course)} />
-      <CourseLive course={course} others={courses} />
+      <CourseLive course={course} others={courses} everyone={everyone} />
     </>
   );
 }

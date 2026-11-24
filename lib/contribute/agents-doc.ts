@@ -48,6 +48,15 @@ function examplesOf(page: AgentPage | null): string[] {
   });
 }
 
+/** The day's numbers line; null when they are not there or can't be drawn, so the examples still show. */
+function statsLineOf(page: AgentPage | null): string | null {
+  try {
+    return page?.stats ? agentPageStatsLineOf(page.stats) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** One client's setup: where the lines go, then the lines, Windows apart where it differs, then the line under them. */
 function clientBlock(client: McpDocClient): string[] {
   const out = [`### ${client.name}`, '', client.where, '', `${client.label}:`, '', fence(client.lines)];
@@ -92,8 +101,8 @@ const HUMAN_STEP = [
 /**
  * `/contribute/agents.md`: GitRanks Contribute for an AI agent, in markdown. Built from the MCP docs' own data (the
  * clients, the tools, the limits) and the day's numbers and sample, so it can't drift from the docs page. `page` is
- * null when its read failed: the numbers and the sample are then left out. The examples are masked (`examplesOf`). Agents sign in with GitHub: each client's
- * sign-in comes first, then the token setup for a client that can't.
+ * null when its read failed: the numbers and the sample are then left out. The examples are masked (`examplesOf`).
+ * Agents sign in with GitHub: each client's sign-in comes first, then the token setup for a client that can't.
  */
 export function agentsDocOf(
   page: AgentPage | null,
@@ -126,7 +135,7 @@ export function agentsDocOf(
     '',
   ];
 
-  const statsLine = page?.stats ? agentPageStatsLineOf(page.stats) : null;
+  const statsLine = statsLineOf(page);
   const examples = examplesOf(page);
   if (statsLine || examples.length) {
     lines.push('## Ready right now', '');

@@ -12,6 +12,20 @@ vi.mock('@/lib/workspace/preview-gate', () => ({
   contributeOpen: m.contributeOpen,
 }));
 vi.mock('@/lib/contribute/agent-page', () => ({ loadAgentPage: m.loadAgentPage }));
+/** Set: the next page drawn with the day's data throws, as an unforeseen bad answer would. */
+const fail = vi.hoisted(() => ({ next: false }));
+vi.mock('@/lib/contribute/agents-doc', async (load) => {
+  const real = await load<typeof import('@/lib/contribute/agents-doc')>();
+  return {
+    agentsDocOf: (...args: Parameters<typeof real.agentsDocOf>) => {
+      if (fail.next && args[0]) {
+        fail.next = false;
+        throw new Error('bad answer');
+      }
+      return real.agentsDocOf(...args);
+    },
+  };
+});
 
 const { GET } = await import('./route');
 
@@ -77,6 +91,16 @@ describe('/contribute/agents.md', () => {
       expect(bad.status).toBe(200);
       expect(await bad.text()).toContain('## The one human step');
     }
+  });
+
+  it("draws the page without the day's data when that throws", async () => {
+    m.loadAgentPage.mockResolvedValue(MASKED_SAMPLE_PAGE);
+    fail.next = true;
+    const response = await GET();
+    expect(response.status).toBe(200);
+    const doc = await response.text();
+    expect(doc).toContain('## The one human step');
+    expect(doc).not.toContain('## Ready right now');
   });
 
   it('is kept by no cache before the launch, and not found for whoever may not see Contribute', async () => {

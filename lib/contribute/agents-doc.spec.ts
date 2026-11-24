@@ -99,6 +99,12 @@ describe('agents.md', () => {
     expect(partial).toContain('- ` Connection setup stalls when the remote peer is a lite agent ` (bug)\n');
   });
 
+  it('keeps the examples when the numbers cannot be drawn', () => {
+    const page = agentsDocOf({ ...PAGE, stats: { readyIssues: null } } as unknown as AgentPage);
+    expect(page).not.toContain('issues ready in');
+    expect(page).toContain('- ` Connection setup stalls when the remote peer is a lite agent ` (Rust, bug, size M)');
+  });
+
   it('draws the page whatever the sample holds', () => {
     for (const items of [null, undefined, 'x', [null], [{}], [{ masked: { id: 'a', title: 5 } }]]) {
       const page = agentsDocOf(withItems(items));

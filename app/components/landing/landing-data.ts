@@ -1,10 +1,13 @@
-import { cacheLife } from 'next/cache';
+import { cacheLife, cacheTag } from 'next/cache';
 
 import { LANDING_PACKAGE_ROWS, type LandingPackages } from './packages-section';
 import { formatPackageDate, PACKAGE_RANKINGS, packageRankingOrdersOf } from '@/app/packages/package-rankings';
 import { fetchInsightsServer } from '@/graphql/helpers/fetch-insights-server';
 import { fetchPackageRankingFacts, fetchPackageRankings } from '@/graphql/helpers/fetch-package-rankings';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { LearnCoursesDocument } from '@/lib/learn/course.documents';
+import type { CourseInLine } from '@/lib/learn/courses-line';
+import { LEARN_COURSES_TAG } from '@/lib/learn/paths';
 import { apiRegistryOf, DEFAULT_REGISTRY } from '@/lib/packages/registries';
 import { ContributeOpenDocument } from '@/lib/workspace/contribute.documents';
 import {
@@ -39,6 +42,27 @@ export const fetchLandingInsights = async () => {
     return insights ?? [];
   } catch {
     // An optional block: a failed read hides it for a few minutes instead of failing the page.
+    cacheLife('minutes');
+    return [];
+  }
+};
+
+/**
+ * Learn's live courses for the home page's Learn card: the slug and name only, in the list's order, under the course
+ * list's tag so a new course renews the card. Read here and not through Learn's own cached loader, which throws: an
+ * error inside a nested cached call fails the prerender even when caught. A failed read is none for a few minutes
+ * (the card keeps its plain line), never a failed page.
+ */
+export const fetchHomeLearnCourses = async (): Promise<CourseInLine[]> => {
+  'use cache';
+  cacheTag(LEARN_COURSES_TAG);
+  cacheLife(HOURLY);
+
+  try {
+    const { learnCourses: courses } = await graphqlDirect(LearnCoursesDocument, {}, { source: 'ssr' });
+    if (!courses.length) cacheLife('minutes');
+    return courses.map(({ slug, name }) => ({ slug, name }));
+  } catch {
     cacheLife('minutes');
     return [];
   }

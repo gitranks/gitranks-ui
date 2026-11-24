@@ -16,10 +16,10 @@ import {
   LANDING_MAINTAINERS_TEXT,
   LANDING_QUESTIONS,
   LANDING_STEPS,
-  LANDING_TEXT,
   LANDING_TITLE,
   type LandingViewer,
   landingSectionsOf,
+  landingTextOf,
   type TryLesson,
 } from '@/lib/learn/landing';
 import { LEARN_MAINTAINERS_PATH } from '@/lib/learn/learn-path';
@@ -154,7 +154,7 @@ export function LearnLandingView({
             <span className={EYEBROW}>GitRanks Learn</span>
           </div>
           <h1 className="m-0 text-4xl font-bold tracking-tight text-balance md:text-5xl">{LANDING_TITLE}</h1>
-          <p className="m-0 text-lg text-foreground/80">{LANDING_TEXT}</p>
+          <p className="m-0 text-lg text-foreground/80">{landingTextOf(courses)}</p>
           <div className="flex flex-wrap gap-3">
             <StartButton viewer={viewer} />
           </div>

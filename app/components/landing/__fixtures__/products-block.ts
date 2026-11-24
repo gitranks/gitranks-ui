@@ -43,3 +43,12 @@ export const homeProducts = {
   quiet: { usesContribute: true, usesLearn: true, contribute: contributeCards.newIssues, learn: learnCards.nextReview },
   learnerNothing: { usesContribute: false, usesLearn: true, contribute: null, learn: null },
 } satisfies Record<string, HomeProducts | null>;
+
+/** Learn's five live courses, in the list's order, as the home page reads them. */
+export const homeLearnCourses = [
+  { slug: 'algorithms', name: 'Algorithms and data structures' },
+  { slug: 'javascript-and-typescript', name: 'JavaScript and TypeScript' },
+  { slug: 'python', name: 'Python' },
+  { slug: 'contributing-to-open-source', name: 'Contributing to open source' },
+  { slug: 'working-with-llm-apis', name: 'Working with LLM APIs' },
+];

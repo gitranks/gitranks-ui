@@ -117,6 +117,50 @@ describe('a lesson’s keyed question', () => {
     expect(onDone).toHaveBeenCalledOnce();
   });
 
+  it('lands the focus on the result once a pick is checked, never on the page', () => {
+    draw({ question: pickOneQuestion });
+    option(0).focus();
+    press('1', option(0));
+    press('Enter', option(0));
+    // The wrong pick is disabled: the focus goes to the first option still to pick, and the arrows keep working.
+    expect(option(0).disabled).toBe(true);
+    expect(document.activeElement).toBe(option(1));
+    option(1).focus();
+    press('2', option(1));
+    press('Enter', option(1));
+    expect(status().textContent).toMatch(/^Right\./);
+    expect(document.activeElement).toBe(main());
+  });
+
+  it('keeps a held Enter from pressing Next before the verdict is read', () => {
+    draw({ question: pickOneQuestion });
+    option(1).focus();
+    press('2', option(1));
+    press('Enter', option(1));
+    expect(document.activeElement).toBe(main());
+    // The key's auto-repeat reaches the focused Next: it is held back; a fresh press still goes on.
+    expect(press('Enter', main(), { repeat: true }).defaultPrevented).toBe(true);
+    expect(press('Enter', main()).defaultPrevented).toBe(false);
+  });
+
+  it('leaves a focus that stays usable where it is', () => {
+    draw({ question: pickOneQuestion });
+    click(option(1));
+    main().focus();
+    click(main());
+    expect(document.activeElement).toBe(main());
+  });
+
+  it('takes no focus where no verdict shows', async () => {
+    draw({ question: pickOneQuestion, place: CHECK });
+    option(1).focus();
+    press('2', option(1));
+    await act(async () => {
+      press('Enter', option(1));
+    });
+    expect(document.activeElement).not.toBe(main());
+  });
+
   it('leaves keys typed into a field alone', () => {
     draw({ question: pickOneQuestion });
     const field = document.createElement('input');
@@ -179,6 +223,31 @@ describe('a keyless question', () => {
     expect(status().textContent).toBe('Not quite. First in is last out. The last one in comes out first.');
     expect(host.querySelector('[data-option="1"]')?.getAttribute('data-option-mark')).toBe('right');
     expect(host.querySelector('[data-option="0"]')?.getAttribute('data-option-mark')).toBe('wrong');
+  });
+
+  it('lands the focus on the reason when a wrong answer ends the card, on Next when a right one does', async () => {
+    const place: AnswerPartPlace = {
+      verdict: true,
+      extra: 'I don’t remember',
+      labels: { check: 'Check', done: 'Next' },
+    };
+    let reply: (value: { right: boolean; question: LearnQuestion }) => void = () => {};
+    const send = () => new Promise<{ right: boolean; question: LearnQuestion }>((resolve) => (reply = resolve));
+    draw({ question: checkQuestion, send, place });
+    option(0).focus();
+    press('1', option(0));
+    press('Enter', option(0));
+    await act(async () => reply({ right: false, question: keyed }));
+    expect(main().textContent).toBe('Next');
+    expect(document.activeElement).toBe(status());
+
+    act(() => root.render(<div />));
+    draw({ question: checkQuestion, send, place });
+    option(1).focus();
+    press('2', option(1));
+    press('Enter', option(1));
+    await act(async () => reply({ right: true, question: keyed }));
+    expect(document.activeElement).toBe(main());
   });
 
   it('sends the extra choice and goes on at once where no verdict shows', async () => {
@@ -380,6 +449,17 @@ describe('the line under the card', () => {
     act(() => root.render(<Under keyLineEnd={<span data-end="">Stop and see the result</span>} />));
     expect(keyLine()).not.toBeNull();
     expect(keyLine()?.parentElement?.querySelector('[data-end]')?.textContent).toBe('Stop and see the result');
+  });
+
+  it('keeps the label inside the main button, cut with an ellipsis when long, and the key whole beside it', () => {
+    act(() => root.render(<Under />));
+    const main = host.querySelector<HTMLElement>('[data-answer-main]')!;
+    const label = main.querySelector<HTMLElement>('[data-answer-label]')!;
+    expect(label.textContent).toBe('Check');
+    expect(label.className.split(' ')).toEqual(expect.arrayContaining(['min-w-0', 'truncate']));
+    expect(main.querySelector('kbd')?.className.split(' ')).toContain('shrink-0');
+    // At least 44px tall on a phone.
+    expect(main.className.split(' ')).toContain('max-sm:min-h-11');
   });
 
   it('draws the place’s own line in place of the keys, even an empty one', () => {

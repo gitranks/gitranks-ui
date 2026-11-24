@@ -30,6 +30,7 @@ import { ProductsBlockLive } from './products-block-live';
 import type { ReadmeShowcase } from './readme-showcase';
 import { ReposSection } from './repos-section';
 import { Header } from '@/components/header/header';
+import type { CourseInLine } from '@/lib/learn/courses-line';
 import type { UnsungHero } from '@/lib/unsung-hero/unsung-hero';
 import type { CountryQuery, CountrySummaryQuery, LanguageSummaryQuery } from '@/types/generated/graphql';
 
@@ -51,6 +52,8 @@ export type LandingData = {
   hero?: UnsungHero | null;
   /** The top of the package rankings; null when none could be read (the block is left out). */
   packages?: LandingPackages | null;
+  /** Learn's live courses, which the Learn card names; none (or a failed read) keeps its plain line. */
+  learnCourses?: readonly CourseInLine[];
 };
 
 /**
@@ -70,6 +73,7 @@ export const LandingScreen: FC<LandingData & { contribute: boolean }> = ({
   showcase,
   hero = null,
   packages = null,
+  learnCourses,
   contribute,
 }) => {
   const flags = new Map(countryList.map((country) => [country.name, country.flag]));
@@ -141,7 +145,7 @@ export const LandingScreen: FC<LandingData & { contribute: boolean }> = ({
         <Hero developersRanked={developersRanked} examples={examples} hero={hero} stats={stats} />
         {/* The block for Contribute and Learn: its promotions with the page, a signed-in person's own cards read in the
             browser. */}
-        <ProductsBlockLive contribute={contribute} />
+        <ProductsBlockLive contribute={contribute} courses={learnCourses} />
         <Container>
           {packages && <PackagesSection {...packages} />}
           <LeaderboardSection boards={boards} />

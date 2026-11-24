@@ -1,5 +1,6 @@
 import { type HighlightedCode, highlightedOf } from './code-tokens';
 import { type CourseSection, courseSectionsOf, type LearnCourseCard, lessonsWords } from './course';
+import { type CourseInLine, landingCoursesLineOf } from './courses-line';
 import { LEARN_MAINTAINERS_PATH } from './learn-path';
 import { languageNameOf } from './learn-question';
 import type { LearnLesson } from './lesson-page';
@@ -14,8 +15,11 @@ import { absoluteUrl } from '@/lib/seo/site';
  */
 
 export const LANDING_TITLE = 'Learn one idea in two minutes. Then fix a real issue with it.';
-export const LANDING_TEXT =
-  'Short lessons on algorithms, databases, design patterns, system design and seven languages. When you are ready, your coding agent fixes a real open-source issue that uses what you learned, and you learn from the fix.';
+
+/** The words under the landing's title, naming the live courses. */
+export const landingTextOf = (courses: readonly CourseInLine[]) =>
+  `${landingCoursesLineOf(courses)}. When you are ready, your coding agent fixes a real open-source issue that uses what you learned, and you learn from the fix.`;
+
 /** The title search engines show for `/learn`. */
 export const LANDING_SEARCH_TITLE = 'GitRanks Learn: two-minute programming lessons and real issues to use them on';
 
@@ -118,7 +122,7 @@ const sentence = (text: string) => {
 export function learnLandingMarkdownOf(courses: readonly LearnCourseCard[]): string {
   const sections = [
     '# GitRanks Learn',
-    [LANDING_TITLE, '', LANDING_TEXT, '', `The page: ${absoluteUrl(LEARN_HOME_PATH)}`].join('\n'),
+    [LANDING_TITLE, '', landingTextOf(courses), '', `The page: ${absoluteUrl(LEARN_HOME_PATH)}`].join('\n'),
     '## How it works',
     LANDING_STEPS.map((step, index) => `${index + 1}. ${step.title} (${step.label}). ${step.text}`).join('\n'),
   ];

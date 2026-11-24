@@ -147,3 +147,29 @@ describe('ProductsBlock', () => {
     expect(root.querySelector('#products')).toBeNull();
   });
 });
+
+describe("ProductsBlock's Learn line", () => {
+  const live = [
+    { slug: 'algorithms', name: 'Algorithms and data structures' },
+    { slug: 'javascript-and-typescript', name: 'JavaScript and TypeScript' },
+    { slug: 'python', name: 'Python' },
+    { slug: 'contributing-to-open-source', name: 'Contributing to open source' },
+    { slug: 'working-with-llm-apis', name: 'Working with LLM APIs' },
+  ];
+  const learnOf = (courses?: typeof live) => {
+    const root = document.createElement('div');
+    root.innerHTML = renderToStaticMarkup(<ProductsBlock products={null} now={HOME_NOW} courses={courses} />);
+    return root.querySelector('[data-home-card="LEARN"]')?.textContent ?? '';
+  };
+
+  it('names the live courses it is given, and no course that is not live', () => {
+    const text = learnOf(live);
+    expect(text).toContain('Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs.');
+    expect(text).not.toMatch(/databases|design patterns|seven languages/);
+  });
+
+  it('keeps a plain line with no course', () => {
+    expect(learnOf()).toContain('Short lessons on programming. Then fix a real issue with what you learned.');
+    expect(learnOf([])).toBe(learnOf());
+  });
+});

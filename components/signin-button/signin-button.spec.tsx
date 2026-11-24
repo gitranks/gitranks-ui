@@ -7,17 +7,26 @@ import { forgetHeroApplication, rememberHeroApplication } from '@/lib/unsung-her
 
 const { signOut, session } = vi.hoisted(() => ({
   signOut: vi.fn(),
-  session: { error: undefined as string | undefined, login: 'octocat' },
+  session: {
+    error: undefined as string | undefined,
+    login: 'octocat',
+    status: 'authenticated' as 'loading' | 'authenticated' | 'unauthenticated',
+  },
 }));
 vi.mock('next-auth/react', () => ({
   signIn: vi.fn(),
   signOut,
   useSession: () => ({
-    data: {
-      user: { githubLogin: session.login, name: 'Octo Cat', image: 'https://example.test/a.png?v=4' },
-      error: session.error,
-    },
-    status: 'authenticated',
+    data:
+      session.status === 'authenticated'
+        ? {
+            user: { githubLogin: session.login, name: 'Octo Cat', image: 'https://example.test/a.png?v=4' },
+            error: session.error,
+          }
+        : session.status === 'loading'
+          ? undefined
+          : null,
+    status: session.status,
   }),
 }));
 vi.mock('next/image', () => ({
@@ -38,6 +47,7 @@ beforeEach(() => {
   signOut.mockReset();
   session.error = undefined;
   session.login = 'octocat';
+  session.status = 'authenticated';
 });
 
 afterEach(() => {
@@ -100,5 +110,59 @@ describe('the avatar menu', () => {
     await act(async () => later?.click());
     expect(signOut).toHaveBeenCalled();
     expect(document.cookie).not.toContain('hero_application=octocat');
+  });
+
+  it('is reached with Tab, opens with Enter or Space, closes with Escape and gives focus back', async () => {
+    await act(async () => root.render(<SigninButton />));
+    const trigger = container.querySelector('[aria-haspopup="menu"]') as HTMLElement;
+    // A button: in the Tab order, with a name a screen reader says.
+    expect(trigger.tagName).toBe('BUTTON');
+    expect(trigger.getAttribute('aria-label')).toBe('Your account');
+    expect(trigger.tabIndex).toBe(0);
+    expect(trigger.className.split(' ')).toEqual(expect.arrayContaining(['h-8', 'w-9']));
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    for (const key of ['Enter', ' ']) {
+      await act(async () => {
+        trigger.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+      });
+      expect(trigger.getAttribute('aria-expanded')).toBe('true');
+      expect(items()).toEqual(['Profile', 'Sign Out']);
+
+      await act(async () => {
+        (document.activeElement ?? document.body).dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+        );
+      });
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+      expect(items()).toEqual([]);
+      // The menu hands focus back on the next turn of the event loop.
+      await act(async () => new Promise((done) => setTimeout(done, 0)));
+      expect(document.activeElement).toBe(trigger);
+    }
+  });
+});
+
+describe('while the session is read', () => {
+  const avatarPlace = () => container.querySelector('[data-avatar-place]');
+  const signInButton = () => container.querySelector('button[aria-label="Sign in"]');
+
+  it('draws the avatar’s place for a browser holding a session, and Sign in for one without, from the first paint', async () => {
+    session.status = 'loading';
+    await act(async () => root.render(<SigninButton />));
+    // Both are in the page; the hint set on the root before the first paint picks the one shown.
+    expect(avatarPlace()?.className).toContain('hidden');
+    expect(avatarPlace()?.className).toContain('[html[data-has-session]_&]:flex');
+    // The Sign in button's box (36 by 32 px), so nothing beside it moves when it becomes Sign in or the avatar.
+    expect(avatarPlace()?.className.split(' ')).toEqual(expect.arrayContaining(['h-8', 'w-9']));
+    expect(signInButton()?.className).toContain('[html[data-has-session]_&]:hidden');
+  });
+
+  it('draws Sign in alone once the session says nobody is signed in', async () => {
+    session.status = 'unauthenticated';
+    await act(async () => root.render(<SigninButton />));
+    expect(avatarPlace()).toBeNull();
+    expect(signInButton()?.className).not.toContain('data-has-session');
   });
 });

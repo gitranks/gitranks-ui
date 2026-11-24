@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 import type { LearnCourseCard } from '../course';
 import { LEARN_CARD_HEADLINE, learnCoursesCardUrlOf } from '../course-share-card';
-import { LANDING_QUESTIONS, LANDING_SEARCH_TITLE, LANDING_TEXT } from '../landing';
+import { LANDING_QUESTIONS, LANDING_SEARCH_TITLE, landingTextOf } from '../landing';
 import type { LearnLesson } from '../lesson-page';
 import { learnLessonCardUrlOf } from '../lesson-share-card';
 import { LEARN_HOME_PATH, LEARN_LANDING_MARKDOWN_PATH, learnLessonPath } from '../paths';
@@ -13,15 +13,16 @@ import { ORGANIZATION_ID } from '@/lib/seo/json-ld';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { absoluteUrl } from '@/lib/seo/site';
 
-/** The landing's description: its own words, clipped to what search engines show. */
-export const LANDING_DESCRIPTION = clipText(LANDING_TEXT, 158);
+/** The landing's description: its own words with the live courses, clipped to what search engines show. */
+export const landingDescriptionOf = (courses: readonly Pick<LearnCourseCard, 'slug' | 'name'>[]) =>
+  clipText(landingTextOf(courses), 158);
 
 /** `/learn`: the landing is the page search engines and agents get, its Markdown copy named as an alternate. */
-export function learnLandingMetadata(courses: readonly Pick<LearnCourseCard, 'lessons'>[]): Metadata {
+export function learnLandingMetadata(courses: readonly Pick<LearnCourseCard, 'slug' | 'name' | 'lessons'>[]): Metadata {
   return withPreview(
     pageMetadata({
       title: { absolute: LANDING_SEARCH_TITLE },
-      description: LANDING_DESCRIPTION,
+      description: landingDescriptionOf(courses),
       path: LEARN_HOME_PATH,
     }),
     {

@@ -195,7 +195,8 @@ function DaySquare({
         )}
       >
         <span className="text-xs text-muted-foreground">{dayTitleOf(day.day, today)}</span>
-        {dayDoneWordsOf(day).map((words) => (
+        {/* A day active with no lesson and no review says so, never a bare date. */}
+        {(dayDoneWordsOf(day).length ? dayDoneWordsOf(day) : ['Active']).map((words) => (
           <span key={words} className="text-sm text-foreground">
             {words}
           </span>
@@ -265,7 +266,7 @@ export function DaysBoxView({
           <div
             role="group"
             className="grid auto-cols-min grid-flow-col grid-rows-[repeat(7,13px)] gap-[3px] sm:grid-rows-[repeat(7,17px)]"
-            aria-label="The days you learned or repeated something on"
+            aria-label="The days you were active"
             data-calendar=""
           >
             {calendar.weeks.flatMap((week, index) =>
@@ -386,7 +387,7 @@ export function MyCourseCard({ mine, today }: { mine: LearnCourseMineCard; today
         <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-foreground">
           {COURSE_KIND_LABELS[course.kind]}
         </span>
-        {standing ? (
+        {standing?.learned ? (
           <span className="text-sm whitespace-nowrap text-muted-foreground" data-course-standing="">
             {standing.all ? 'All ' : null}
             <Figure count={standing.learned.count ?? 0} />
@@ -566,7 +567,7 @@ export function HistoryList({
       ) : null}
       {!days.length && more === 'end' ? (
         <p className="m-0 text-sm text-muted-foreground" data-history-none="">
-          The days you learn or repeat a lesson show here.
+          The days you are active show here.
         </p>
       ) : null}
       {days.map((day) => (

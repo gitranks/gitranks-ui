@@ -174,6 +174,20 @@ describe('a lesson for a member', () => {
     expect($('[data-visitor-note]')).toBeNull();
   });
 
+  it('never counts zero: with nothing of the group learned, the squares and how many lessons, then the count', () => {
+    draw({ viewer: { mine: mineNew, depths: {} } });
+    expect($('[data-lesson-run]')!.textContent).toBe('9 lessons');
+    expect(text()).not.toContain('0 of 9');
+    expect(host.querySelectorAll('[data-square]')).toHaveLength(9);
+    // The words keep one width, the widest's, so the change below moves and wraps nothing.
+    const width = $('[data-lesson-count]')!.className;
+    expect(width.split(' ')).toContain('min-w-[16ch]');
+    click(option(1));
+    press('Enter');
+    expect($('[data-lesson-run]')!.textContent).toBe('1 of 9 learned');
+    expect($('[data-lesson-count]')!.className).toBe(width);
+  });
+
   it('turns a right answer into Learned at once: the square, the depth line, Next, the rows and the rating', () => {
     const calls = draw({ viewer: member() });
     click(option(1));

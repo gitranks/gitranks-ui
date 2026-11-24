@@ -291,13 +291,16 @@ describe('the courses below the boxes', () => {
   });
 
   it('says whom the suggested courses are for, from the setup', () => {
-    expect(suggestedForOf({ mainLanguage: 'Go', otherLanguages: ['Python'], level: 3 })).toBe(
+    expect(suggestedForOf({ mainLanguage: 'go', otherLanguages: ['python'], level: 3 })).toBe(
       'Suggested for Go and Python, experienced developer',
     );
-    expect(suggestedForOf({ mainLanguage: 'Go', otherLanguages: ['Go', 'Rust', 'C', 'Zig'], level: null })).toBe(
-      'Suggested for Go, Rust and C',
+    expect(suggestedForOf({ mainLanguage: 'go', otherLanguages: ['go', 'rust', 'php', 'ruby'], level: null })).toBe(
+      'Suggested for Go, Rust and PHP',
     );
-    expect(suggestedForOf({ mainLanguage: 'Go', otherLanguages: [], level: 1 })).toBe(
+    expect(suggestedForOf({ mainLanguage: 'javascript', otherLanguages: ['typescript', 'java'], level: null })).toBe(
+      'Suggested for JavaScript, TypeScript and Java',
+    );
+    expect(suggestedForOf({ mainLanguage: 'go', otherLanguages: [], level: 1 })).toBe(
       'Suggested for Go, new to programming',
     );
     expect(suggestedForOf({ mainLanguage: null, otherLanguages: ['Go'], level: 2 })).toBeNull();

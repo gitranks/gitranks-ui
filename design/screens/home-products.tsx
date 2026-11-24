@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
-import { HOME_NOW, homeProducts } from '@/app/components/landing/__fixtures__/products-block';
+import { HOME_NOW, homeLearnCourses, homeProducts } from '@/app/components/landing/__fixtures__/products-block';
 import { ProductsBlock } from '@/app/components/landing/products-block';
 import type { HomeProducts } from '@/app/components/landing/products-block-words';
 
@@ -19,7 +19,7 @@ const Case = ({ title, children }: { title: string; children: ReactNode }) => (
 );
 
 const block = (products: HomeProducts | null, id?: string) => (
-  <ProductsBlock products={products} now={HOME_NOW} id={id} />
+  <ProductsBlock products={products} now={HOME_NOW} id={id} courses={homeLearnCourses} />
 );
 
 export const HOME_PRODUCT_SCREENS: Screen[] = [

@@ -8,13 +8,16 @@ vi.mock('server-only', () => ({}));
 import { algorithmsCourse, courseCards } from './__fixtures__/course';
 import { tryLessons } from './__fixtures__/learn-home-page';
 import { outputLesson, setExampleCodes, setLesson } from './__fixtures__/lesson-page';
+import type { LearnCourseCard } from './course';
 import { landingMarkdownResponse } from './course-markdown-response';
+import { LANDING_COURSES_LINE_EMPTY, landingCoursesLineOf } from './courses-line';
 import {
   LANDING_COURSES_PER_KIND,
   LANDING_QUESTIONS,
   LANDING_SEARCH_TITLE,
   LANDING_STEPS,
   landingSectionsOf,
+  landingTextOf,
   learnLandingMarkdownOf,
   TRY_LESSONS_MAX,
   TRY_TEXT_MAX,
@@ -25,7 +28,7 @@ import {
 } from './landing';
 import { LEARN_LANDING_MARKDOWN_PATH, LEARN_LANDING_MARKDOWN_ROUTE, learnLandingMarkdownRouteOf } from './paths';
 import { learnCourseMetadata, learnCoursesMetadata } from './seo/course';
-import { LANDING_DESCRIPTION, learnLandingJsonLd, learnLandingMetadata } from './seo/landing';
+import { landingDescriptionOf, learnLandingJsonLd, learnLandingMetadata } from './seo/landing';
 import { learnLessonMetadata } from './seo/lesson';
 
 const many = (count: number, kind: 'TOPIC' | 'LANGUAGE') =>
@@ -103,6 +106,77 @@ describe('the lesson at the top', () => {
   });
 });
 
+/** The live courses as they are listed today, in their order. */
+const more = (slug: string, name: string): LearnCourseCard => ({ ...courseCards[0], slug, name });
+const liveCourses = [
+  more('algorithms', 'Algorithms and data structures'),
+  more('javascript-and-typescript', 'JavaScript and TypeScript'),
+  more('python', 'Python'),
+  more('contributing-to-open-source', 'Contributing to open source'),
+  more('working-with-llm-apis', 'Working with LLM APIs'),
+];
+
+describe("the landing's line of courses", () => {
+  it('names the five live courses in their order, each by its name in a sentence', () => {
+    expect(landingCoursesLineOf(liveCourses)).toBe(
+      'Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs',
+    );
+  });
+
+  it('names all six with six courses', () => {
+    expect(landingCoursesLineOf([...liveCourses, more('go', 'Go')])).toBe(
+      'Short lessons on algorithms, JavaScript and TypeScript, Python, open source, LLM APIs and Go',
+    );
+  });
+
+  it('past six, names the first five and says how many more', () => {
+    const seven = [...liveCourses, more('go', 'Go'), more('rust', 'Rust')];
+    expect(landingCoursesLineOf(seven)).toBe(
+      'Short lessons on algorithms, JavaScript and TypeScript, Python, open source, LLM APIs and 2 more courses',
+    );
+    expect(landingCoursesLineOf(courseCards)).toMatch(/ and 6 more courses$/);
+  });
+
+  it('goes by its own name for a course with no name in a sentence, and reads right for one or two', () => {
+    expect(landingCoursesLineOf([more('go', 'Go')])).toBe('Short lessons on Go');
+    expect(landingCoursesLineOf([more('python', 'Python'), more('go', 'Go')])).toBe('Short lessons on Python and Go');
+  });
+
+  it('never runs a course name with its own "and" into the joining "and": a short name only next to that "and"', () => {
+    expect(landingCoursesLineOf([liveCourses[1]])).toBe('Short lessons on JavaScript and TypeScript');
+    const [algorithms, js, python, openSource, llm] = liveCourses;
+    expect(landingCoursesLineOf([algorithms, python, openSource, llm, js, more('go', 'Go')])).toBe(
+      'Short lessons on algorithms, Python, open source, LLM APIs, JavaScript/TypeScript and Go',
+    );
+    expect(
+      landingCoursesLineOf([algorithms, python, openSource, llm, js, more('go', 'Go'), more('rust', 'Rust')]),
+    ).toBe('Short lessons on algorithms, Python, open source, LLM APIs, JavaScript/TypeScript and 2 more courses');
+    expect(landingCoursesLineOf(liveCourses.slice(1, 3))).toBe('Short lessons on JavaScript/TypeScript and Python');
+    expect(landingCoursesLineOf(liveCourses.slice(0, 2))).toBe('Short lessons on algorithms and JavaScript/TypeScript');
+    expect(landingCoursesLineOf([liveCourses[2], liveCourses[1]])).toBe(
+      'Short lessons on Python and JavaScript/TypeScript',
+    );
+  });
+
+  it('is a plain line with no course, never a count of none', () => {
+    expect(landingCoursesLineOf([])).toBe(LANDING_COURSES_LINE_EMPTY);
+    expect(LANDING_COURSES_LINE_EMPTY).toBe('Short lessons on programming');
+  });
+
+  it('opens the words under the title, the same in the Markdown copy', () => {
+    const text = landingTextOf(liveCourses);
+    expect(
+      text.startsWith('Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs. '),
+    ).toBe(true);
+    expect(learnLandingMarkdownOf(liveCourses)).toContain(`\n\n${text}\n\n`);
+    expect(learnLandingMarkdownOf([])).toContain(`\n\n${LANDING_COURSES_LINE_EMPTY}. When you are ready`);
+    for (const line of [text, landingTextOf([]), landingTextOf(courseCards)]) {
+      expect(line).not.toMatch(/design patterns|system design|seven languages|\b0 more/);
+      expect(line).not.toContain(String.fromCodePoint(0x2014));
+    }
+  });
+});
+
 describe("the landing's Markdown copy", () => {
   it('is the landing in words, every course linked to its own copy', () => {
     const markdown = learnLandingMarkdownOf(courseCards);
@@ -156,8 +230,13 @@ describe("the landing's metadata", () => {
   it('names the landing for search engines, its address, its copy and the courses picture', () => {
     const metadata = learnLandingMetadata(courseCards);
     expect(metadata.title).toEqual({ absolute: LANDING_SEARCH_TITLE });
-    expect(metadata.description).toBe(LANDING_DESCRIPTION);
-    expect(LANDING_DESCRIPTION.length).toBeLessThanOrEqual(158);
+    expect(metadata.description).toBe(landingDescriptionOf(courseCards));
+    expect(metadata.description?.length).toBeLessThanOrEqual(158);
+    expect(
+      learnLandingMetadata(liveCourses).description?.startsWith(
+        'Short lessons on algorithms, JavaScript and TypeScript, Python, open source and LLM APIs. ',
+      ),
+    ).toBe(true);
     expect(metadata.alternates?.canonical).toBe('/learn');
     expect(JSON.stringify(metadata.alternates)).toContain('/learn.md');
     expect(metadata.robots).toBeUndefined();

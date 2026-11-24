@@ -45,6 +45,19 @@ describe('entityRowsOf on a repository', () => {
   });
 });
 
+describe('a course about a repository that names no repository', () => {
+  it('makes no row, rather than a link by its name', () => {
+    const nameless = { slug: 'x', name: 'Nebula UI', lessons: 4, repo: null, org: null };
+    expect(entityRowsOf({ ...entityCards.repoEverything, course: nameless }, repoEntity).map((row) => row.id)).toEqual([
+      'fixes',
+      'issues',
+    ]);
+    expect(
+      entityRowsOf({ ...entityCards.orgEverything, repoCourses: [nameless] }, orgEntity).map((row) => row.id),
+    ).toEqual(['course:nebula', 'fixes', 'issues']);
+  });
+});
+
 describe('entityRowsOf on an org', () => {
   it('gives the org’s course, a row for each of up to two repository courses, then fixes and issues', () => {
     const rows = entityRowsOf(entityCards.orgEverything, orgEntity);

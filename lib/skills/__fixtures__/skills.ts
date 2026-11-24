@@ -15,6 +15,9 @@ import type { LearnDepth } from '@/lib/learn/lesson-page';
 
 export const SKILLS_LOGIN = 'octocat';
 
+/** The time every Skills fixture is drawn at. */
+export const SKILLS_NOW = new Date('2026-11-24T09:00:00.000Z');
+
 const figure = (key: SkillsFigure['key'], value: number | null, extra: Partial<SkillsFigure> = {}): SkillsFigure => ({
   key,
   value,
@@ -41,6 +44,7 @@ export const contributorNumbers: SkillsNumbers = {
   languages: ['Go', 'Python', 'TypeScript'],
   fixes: 6,
   courses: 0,
+  made: ['CONTRIBUTE'],
 };
 
 /** After the first merged fix: nobody said it helped yet, so the agent takes the third place. */
@@ -60,6 +64,7 @@ export const firstFixNumbers: SkillsNumbers = {
   languages: ['Go'],
   fixes: 1,
   courses: 0,
+  made: ['CONTRIBUTE'],
 };
 
 /** Pull requests sent, none merged yet. */
@@ -79,6 +84,7 @@ export const openOnlyNumbers: SkillsNumbers = {
   languages: ['TypeScript', 'Rust'],
   fixes: 2,
   courses: 0,
+  made: ['CONTRIBUTE'],
 };
 
 export const learnerNumbers: SkillsNumbers = {
@@ -94,6 +100,7 @@ export const learnerNumbers: SkillsNumbers = {
   languages: ['Go', 'TypeScript'],
   fixes: 3,
   courses: 3,
+  made: ['LEARN'],
 };
 
 /** A learner's first day: one lesson, one course, one day. */
@@ -105,6 +112,7 @@ export const firstLessonNumbers: SkillsNumbers = {
   languages: [],
   fixes: 0,
   courses: 1,
+  made: [],
 };
 
 export const bothNumbers: SkillsNumbers = {
@@ -124,6 +132,7 @@ export const bothNumbers: SkillsNumbers = {
   languages: ['Go', 'Python', 'TypeScript'],
   fixes: 4,
   courses: 3,
+  made: ['LEARN', 'CONTRIBUTE'],
 };
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -168,7 +177,7 @@ export const contributorFixes: SkillsFix[] = [
   fix('pallets/click', 2710, 2722, {
     title: 'The help text lost its line breaks',
     language: 'Python',
-    mergedAt: '2026-10-14T12:00:00Z',
+    mergedAt: '2025-12-14T12:00:00Z',
   }),
   fix('honojs/hono', 3188, 3196, {
     title: 'A trailing slash made the router miss the route',
@@ -337,7 +346,6 @@ export const repoCourse: SkillsCourse = {
 const page = (numbers: SkillsNumbers, rows: SkillsFix[], courses: SkillsCourse[]): SkillsPage => ({
   login: SKILLS_LOGIN,
   numbers,
-  made: [...new Set(rows.map((row) => row.made))],
   fixes: { rows, total: rows.length, next: null },
   courses,
   indexable: true,

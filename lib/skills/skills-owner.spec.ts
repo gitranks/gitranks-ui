@@ -64,6 +64,8 @@ describe('startOf', () => {
     expect(both?.line).toMatch(/There are two ways to fill it, and you can use both\.$/);
     expect(both?.boxes.map((box) => box.mode)).toEqual(['step', 'step']);
     expect(startOf(skillsMine.nothingYetContributor)?.boxes.map((box) => box.mode)).toEqual(['step', 'promo']);
+    expect(startOf(skillsMine.nothingYetContributor)?.line).not.toContain('two ways');
+    expect(startOf(skillsMine.nothingYetLearner)?.line).not.toContain('two ways');
     expect(startOf(skillsMine.nothingYetLearner)?.boxes.map((box) => box.mode)).toEqual(['promo', 'step']);
   });
 
@@ -98,8 +100,10 @@ describe('the block', () => {
   it('names what the tab lists', () => {
     expect(blockLinkOf(contributorNumbers)).toBe('All 6 fixes');
     expect(blockLinkOf(firstFixNumbers)).toBe('See the fix');
-    expect(blockLinkOf(learnerNumbers)).toBe('All 3 courses');
-    expect(blockLinkOf({ ...learnerNumbers, courses: 1 })).toBe('See the course');
     expect(blockLinkOf(bothNumbers)).toBe('All fixes and courses');
+    expect(blockLinkOf(learnerNumbers)).toBe('All fixes and courses');
+    expect(blockLinkOf({ ...learnerNumbers, fixes: 0 })).toBe('All 3 courses');
+    expect(blockLinkOf({ fixes: 0, courses: 1 })).toBe('See the course');
+    expect(blockLinkOf({ fixes: 0, courses: 0 })).toBeNull();
   });
 });

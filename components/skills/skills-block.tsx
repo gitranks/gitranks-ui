@@ -5,31 +5,38 @@ import { SkillsNumbersBox } from './skills-numbers-box';
 import { MoreLink, ProfileSection } from '@/app/profile/[login]/components/profile-card';
 import { skillsPath } from '@/lib/skills/paths';
 import type { SkillsNumbers, SkillsState } from '@/lib/skills/skills.types';
-import { shownFigures } from '@/lib/skills/skills-figures';
+import { numbersFor, shownFigures } from '@/lib/skills/skills-figures';
 import { blockLinkOf, blockOwnerLineOf } from '@/lib/skills/skills-owner';
 
 /**
  * The Skills block on the profile's overview: the tab's numbers box with three numbers at most, under the heading
  * "Skills" with one link to the tab that names what is listed there. The owner of a page only they see gets one line
- * that says so. Nothing to show: no block.
+ * that says so. While Learn is not open to the reader, nothing of Learn shows. Nothing to show: no block.
  */
 export function SkillsBlock({
   login,
-  numbers,
+  numbers: given,
   ownState = null,
+  learnOpen = true,
+  id = 'profile-skills',
 }: {
   login: string;
   numbers: SkillsNumbers | null;
   /** The page's state, for its owner alone; null for everyone else. */
   ownState?: SkillsState | null;
+  learnOpen?: boolean;
+  /** The section's id, which the profile's links point at; a board that draws the block twice gives each its own. */
+  id?: string;
 }) {
+  const numbers = given ? numbersFor(given, learnOpen) : null;
   if (!numbers || !shownFigures(numbers.blockFigures).length) return null;
   const owner = ownState ? blockOwnerLineOf(ownState) : null;
+  const link = blockLinkOf(numbers);
   return (
     <ProfileSection
-      id="profile-skills"
+      id={id}
       title="Skills"
-      action={<MoreLink href={skillsPath(login)}>{blockLinkOf(numbers)}</MoreLink>}
+      action={link ? <MoreLink href={skillsPath(login)}>{link}</MoreLink> : undefined}
     >
       {owner ? (
         <div
@@ -47,7 +54,7 @@ export function SkillsBlock({
           ) : null}
         </div>
       ) : null}
-      <SkillsNumbersBox numbers={numbers} figures={numbers.blockFigures} />
+      <SkillsNumbersBox numbers={numbers} place="block" />
     </ProfileSection>
   );
 }

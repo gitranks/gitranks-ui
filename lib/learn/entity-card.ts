@@ -52,14 +52,19 @@ const lessonsOf = (count: number) => (count === 1 ? ' lesson' : ' lessons');
 const projectOf = (entity: LearnEntity): LearnProject =>
   entity.kind === 'repo' ? { repo: entity.repo } : { org: entity.login };
 
-/** A course about one repository, as a row. */
-const repoCourseRow = (course: LearnEntityCourse, text: string): EntityRow => ({
-  id: `course:${course.slug}`,
-  title: ['A course about ', course.repo ?? course.name, ' · ', course.lessons, lessonsOf(course.lessons)],
-  text,
-  action: 'Open the course',
-  href: learnProjectCoursePath({ repo: course.repo ?? course.name }),
-});
+/** A course about one repository, as a row: none for a course that names no repository, which has no address. */
+const repoCourseRow = (course: LearnEntityCourse, text: string): EntityRow[] =>
+  course.repo
+    ? [
+        {
+          id: `course:${course.slug}`,
+          title: ['A course about ', course.repo, ' · ', course.lessons, lessonsOf(course.lessons)],
+          text,
+          action: 'Open the course',
+          href: learnProjectCoursePath({ repo: course.repo }),
+        },
+      ]
+    : [];
 
 /**
  * The card's rows, in order: the course about the project; for an organisation, the courses about its repositories
@@ -72,7 +77,7 @@ export function entityRowsOf(card: LearnEntityCard | null, entity: LearnEntity):
   const project = projectOf(entity);
   if (card.course && entity.kind === 'repo') {
     rows.push(
-      repoCourseRow(
+      ...repoCourseRow(
         card.course,
         'How it works inside, one small lesson at a time. Written by GitRanks, not by the project.',
       ),
@@ -96,7 +101,7 @@ export function entityRowsOf(card: LearnEntityCard | null, entity: LearnEntity):
       href: coursesSearchPath(entity.login),
     });
   } else if (entity.kind === 'org') {
-    for (const course of card.repoCourses) rows.push(repoCourseRow(course, `One of ${entity.name}’s repositories.`));
+    for (const course of card.repoCourses) rows.push(...repoCourseRow(course, `One of ${entity.name}’s repositories.`));
   }
   const fixes = card.fixes ?? 0;
   if (fixes > 0) {

@@ -22,6 +22,7 @@ import {
   learnerNumbers,
   openOnlyNumbers,
   repoCourse,
+  SKILLS_NOW,
 } from '@/lib/skills/__fixtures__/skills';
 
 const LONG_DASH = String.fromCodePoint(0x2014);
@@ -54,21 +55,36 @@ describe('SkillsNumbersBox', () => {
   it('never draws a zero, and nothing with nothing to show', () => {
     const zero = { ...contributorNumbers.figures[2], value: 0 };
     const { root } = draw(
-      <SkillsNumbersBox numbers={contributorNumbers} figures={[contributorNumbers.figures[0], zero]} />,
+      <SkillsNumbersBox numbers={{ ...contributorNumbers, figures: [contributorNumbers.figures[0], zero] }} />,
     );
     expect(figures(root)).toEqual(['FIXES_MERGED']);
-    expect(renderToStaticMarkup(<SkillsNumbersBox numbers={contributorNumbers} figures={[zero]} />)).toBe('');
+    expect(renderToStaticMarkup(<SkillsNumbersBox numbers={{ ...contributorNumbers, figures: [zero] }} />)).toBe('');
   });
 
   it('lets an odd last number take the whole row on a phone', () => {
-    const { root } = draw(<SkillsNumbersBox numbers={learnerNumbers} figures={learnerNumbers.blockFigures} />);
+    const { root } = draw(<SkillsNumbersBox numbers={learnerNumbers} place="block" />);
     expect(root.querySelector('[data-figure="DAYS_ACTIVE"]')?.className).toContain('max-sm:col-span-2');
   });
 });
 
 describe('SkillsFixRow', () => {
+  it('draws a Learn fix as a plain fix while Learn is not open to the reader', () => {
+    const { text, hrefs } = draw(
+      <SkillsFixRow now={SKILLS_NOW} fix={learnerFixes[0]} namesProduct learnOpen={false} />,
+    );
+    expect(text).not.toContain('with Learn');
+    expect(text).not.toContain('A queue: first in, first out');
+    expect(hrefs.filter((href) => href?.startsWith('/learn'))).toEqual([]);
+    expect(hrefs.filter((href) => href === '/contribute/pr/harbor-kit/relay/58')).toHaveLength(2);
+    expect(text).toContain('How it was made');
+  });
+
+  it('writes the year of a merge in another year', () => {
+    expect(draw(<SkillsFixRow now={SKILLS_NOW} fix={contributorFixes[4]} />).text).toContain('merged 14 Dec 2025');
+  });
+
   it('draws a Contribute fix, merged, with both links to its timeline and its GitHub chips', () => {
-    const { text, hrefs } = draw(<SkillsFixRow fix={contributorFixes[0]} />);
+    const { text, hrefs } = draw(<SkillsFixRow now={SKILLS_NOW} fix={contributorFixes[0]} />);
     expect(text).toContain('The retry list grows without limit');
     expect(text).toContain('merged 20 Nov');
     expect(text).toContain('How it was made');
@@ -77,7 +93,7 @@ describe('SkillsFixRow', () => {
   });
 
   it('draws a Learn fix with its lesson, and which product made it when asked', () => {
-    const { text, hrefs } = draw(<SkillsFixRow fix={learnerFixes[2]} namesProduct />);
+    const { text, hrefs } = draw(<SkillsFixRow now={SKILLS_NOW} fix={learnerFixes[2]} namesProduct />);
     expect(text).toContain('open, in review');
     expect(text).toContain('with Learn');
     expect(text).toContain('A hash map stores values by key');
@@ -85,7 +101,7 @@ describe('SkillsFixRow', () => {
   });
 
   it('keeps a hidden fix’s GitHub links alone', () => {
-    const { text, hrefs } = draw(<SkillsFixRow fix={hiddenPageFix} />);
+    const { text, hrefs } = draw(<SkillsFixRow now={SKILLS_NOW} fix={hiddenPageFix} />);
     expect(text).not.toContain('How it was made');
     expect(hrefs.every((href) => href?.startsWith('https://github.com/'))).toBe(true);
   });
@@ -93,7 +109,7 @@ describe('SkillsFixRow', () => {
 
 describe('SkillsCourseCard and SkillsCoursesSection', () => {
   it('draws a course with its groups, its squares and the groups not started', () => {
-    const { root, text } = draw(<SkillsCourseCard course={algorithmsCourse} />);
+    const { root, text } = draw(<SkillsCourseCard now={SKILLS_NOW} course={algorithmsCourse} />);
     expect(text).toContain('23 of 86 lessons learned · 6 practised · 1 mastered');
     expect(root.querySelectorAll('[data-group]')).toHaveLength(4);
     expect(root.querySelectorAll('[data-lesson]')).toHaveLength(36);
@@ -102,17 +118,21 @@ describe('SkillsCourseCard and SkillsCoursesSection', () => {
   });
 
   it('marks a finished course, and names a course about a repository', () => {
-    expect(draw(<SkillsCourseCard course={databasesCourse} />).text).toContain('Finished on 12 Nov');
-    expect(draw(<SkillsCourseCard course={repoCourse} />).text).toContain('Repository course');
-    expect(draw(<SkillsCourseCard course={firstLessonCourse} />).text).toContain('1 of 86 lessons learned');
+    expect(draw(<SkillsCourseCard now={SKILLS_NOW} course={databasesCourse} />).text).toContain('Finished on 12 Nov');
+    expect(draw(<SkillsCourseCard now={SKILLS_NOW} course={repoCourse} />).text).toContain('Repository course');
+    expect(draw(<SkillsCourseCard now={SKILLS_NOW} course={firstLessonCourse} />).text).toContain(
+      '1 of 86 lessons learned',
+    );
   });
 
   it('draws the legend, with the star only when a merged fix used a lesson', () => {
-    expect(draw(<SkillsCoursesSection courses={[algorithmsCourse]} />).text).toContain('A merged fix used this lesson');
-    const plain = draw(<SkillsCoursesSection courses={[databasesCourse]} />);
+    expect(draw(<SkillsCoursesSection now={SKILLS_NOW} courses={[algorithmsCourse]} />).text).toContain(
+      'A merged fix used this lesson',
+    );
+    const plain = draw(<SkillsCoursesSection now={SKILLS_NOW} courses={[databasesCourse]} />);
     expect(plain.text).toContain('Mastered: right again 10 days after that, or used in a merged fix');
     expect(plain.text).not.toContain('A merged fix used this lesson');
-    expect(renderToStaticMarkup(<SkillsCoursesSection courses={[]} />)).toBe('');
+    expect(renderToStaticMarkup(<SkillsCoursesSection now={SKILLS_NOW} courses={[]} />)).toBe('');
   });
 });
 
@@ -123,7 +143,10 @@ describe('SkillsBlock', () => {
     expect(text).toContain('Skills');
     expect(text).toContain('All 6 fixes');
     expect(hrefs).toContain('/profile/octocat/skills');
-    expect(draw(<SkillsBlock login="octocat" numbers={learnerNumbers} />).text).toContain('All 3 courses');
+    expect(draw(<SkillsBlock login="octocat" numbers={learnerNumbers} />).text).toContain('All fixes and courses');
+    expect(draw(<SkillsBlock login="octocat" numbers={{ ...learnerNumbers, fixes: 0 }} />).text).toContain(
+      'All 3 courses',
+    );
     expect(draw(<SkillsBlock login="octocat" numbers={bothNumbers} />).text).toContain('All fixes and courses');
   });
 
@@ -133,6 +156,28 @@ describe('SkillsBlock', () => {
     );
     const own = draw(<SkillsBlock login="octocat" numbers={learnerNumbers} ownState="PRIVATE" />);
     expect(own.root.querySelector('[data-skills-block-owner]')?.textContent).toBe('Only you see this block.');
+  });
+
+  it('names its product from the numbers: a contributor whose fixes Learn made is with Learn', () => {
+    const learnMade = { ...contributorNumbers, made: ['LEARN' as const] };
+    expect(draw(<SkillsBlock login="octocat" numbers={learnMade} />).text).toContain('With GitRanks Learn since');
+    expect(draw(<SkillsBlock login="octocat" numbers={contributorNumbers} />).text).toContain(
+      'With GitRanks Contribute since',
+    );
+  });
+
+  it('drops everything of Learn while Learn is not open to the reader', () => {
+    const both = draw(<SkillsBlock login="octocat" numbers={bothNumbers} learnOpen={false} />);
+    expect(figures(both.root)).toEqual(['FIXES_MERGED']);
+    expect(both.text).not.toContain('Learn');
+    expect(both.text).toContain('All 4 fixes');
+    expect(renderToStaticMarkup(<SkillsBlock login="octocat" numbers={learnerNumbers} learnOpen={false} />)).toBe('');
+  });
+
+  it('takes its own id', () => {
+    const { root } = draw(<SkillsBlock login="octocat" numbers={bothNumbers} id="skills-two" />);
+    expect(root.querySelector('#skills-two')).not.toBeNull();
+    expect(root.querySelector('#profile-skills')).toBeNull();
   });
 
   it('draws nothing with nothing to show', () => {

@@ -5,7 +5,7 @@ import type { LearnLessonLink } from '@/lib/learn/lesson-page';
 import { LEARN_HOME_PATH } from '@/lib/learn/paths';
 import { nothingDueOf } from '@/lib/learn/review';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
-import { needsYouWordsOf } from '@/lib/workspace/pull-request-list';
+import { needsYouRowWordsOf } from '@/lib/workspace/pull-request-list';
 import type { PullRequestBox } from '@/lib/workspace/pull-request-page.types';
 
 /*
@@ -102,7 +102,7 @@ const usedPromoOf = (product: HomeProduct): HomeCardWords => ({
  * and how many more: "Round 2: something to answer, in kelp-db/kelp, and 1 more."
  */
 export function needsYouLineOf(card: Pick<HomeContributeCard, 'box' | 'repo' | 'round'>, count: number): string {
-  const first = card.box ? needsYouWordsOf({ box: card.box, round: card.round }) : null;
+  const first = card.box ? needsYouRowWordsOf({ box: card.box, round: card.round }) : null;
   const more = count > 1 ? `, and ${NUMBER.format(count - 1)} more` : '';
   if (!first) return `Open the list to see what ${count === 1 ? 'it needs' : 'each one needs'}.`;
   return `${first.line}${card.repo ? `, in ${card.repo}` : ''}${more}.`;

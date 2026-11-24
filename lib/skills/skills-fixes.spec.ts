@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { contributorFixes, hiddenPageFix, learnerFixes, longPage, SKILLS_LOGIN } from './__fixtures__/skills';
+import {
+  contributorFixes,
+  hiddenPageFix,
+  learnerFixes,
+  longPage,
+  SKILLS_LOGIN,
+  SKILLS_NOW,
+} from './__fixtures__/skills';
 import { fixesLineOf, fixLessonOf, fixLinksOf, fixStateWordsOf, moreFixesOf, namesProduct } from './skills-fixes';
 
 describe('fixLinksOf', () => {
@@ -16,7 +23,10 @@ describe('fixLinksOf', () => {
       title: '/learn/fixes/harbor-kit/relay/58',
       made: '/contribute/pr/harbor-kit/relay/58',
     });
-    expect(fixLinksOf(learnerFixes[0], { learnOpen: false }).title).toBeNull();
+    expect(fixLinksOf(learnerFixes[0], { learnOpen: false })).toEqual({
+      title: '/contribute/pr/harbor-kit/relay/58',
+      made: '/contribute/pr/harbor-kit/relay/58',
+    });
   });
 
   it('links nothing of a fix whose page is hidden', () => {
@@ -26,9 +36,10 @@ describe('fixLinksOf', () => {
 
 describe('fixStateWordsOf', () => {
   it('says when it merged, in UTC, or that it is open', () => {
-    expect(fixStateWordsOf(contributorFixes[0])).toBe('merged 20 Nov');
-    expect(fixStateWordsOf({ state: 'MERGED', mergedAt: null })).toBe('merged');
-    expect(fixStateWordsOf(contributorFixes[5])).toBe('open, in review');
+    expect(fixStateWordsOf(contributorFixes[0], SKILLS_NOW)).toBe('merged 20 Nov');
+    expect(fixStateWordsOf(contributorFixes[4], SKILLS_NOW)).toBe('merged 14 Dec 2025');
+    expect(fixStateWordsOf({ state: 'MERGED', mergedAt: null }, SKILLS_NOW)).toBe('merged');
+    expect(fixStateWordsOf(contributorFixes[5], SKILLS_NOW)).toBe('open, in review');
   });
 });
 

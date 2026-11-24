@@ -102,9 +102,9 @@ export type LinePart = string | { product: LearnFixMade };
  * made with Learn is "With GitRanks Learn". Three languages at most, as the API sends them.
  */
 export function sinceLineOf(
-  numbers: Pick<SkillsNumbers, 'kind' | 'since' | 'languages' | 'fixes'>,
-  made: readonly LearnFixMade[] = [],
+  numbers: Pick<SkillsNumbers, 'kind' | 'since' | 'languages' | 'fixes' | 'made'>,
 ): LinePart[] {
+  const { made } = numbers;
   const month = monthOf(numbers.since);
   const since = month ? ` since ${month}` : '';
   if (numbers.kind === 'LEARNER') {
@@ -131,6 +131,39 @@ export function sinceLineOf(
       ? `a fix${inLanguages}, in a real open-source project.`
       : `fixes${inLanguages}, in real open-source projects.`;
   return ['With ', { product }, `${since}: ${what}`];
+}
+
+const LEARN_FIGURES: readonly SkillsFigure['key'][] = ['LESSONS_LEARNED', 'PRACTISED', 'MASTERED'];
+
+/**
+ * The numbers as a reader Learn is not open to sees them: nothing of Learn. Its figures go, and so do the days of a
+ * page that counts lessons in them; the fixes stay, read as Contribute's. A learner's page keeps no figure.
+ */
+export function withoutLearnOf(numbers: SkillsNumbers): SkillsNumbers {
+  const keep = (figure: SkillsFigure) =>
+    !LEARN_FIGURES.includes(figure.key) && (numbers.kind === 'CONTRIBUTOR' || figure.key !== 'DAYS_ACTIVE');
+  return {
+    ...numbers,
+    kind: 'CONTRIBUTOR',
+    figures: numbers.kind === 'LEARNER' ? [] : numbers.figures.filter(keep),
+    blockFigures: numbers.kind === 'LEARNER' ? [] : numbers.blockFigures.filter(keep),
+    courses: 0,
+    made: numbers.fixes > 0 ? ['CONTRIBUTE'] : [],
+  };
+}
+
+/** The numbers a reader sees: all of them, or nothing of Learn while it is not open to them. */
+export const numbersFor = (numbers: SkillsNumbers, learnOpen: boolean) =>
+  learnOpen ? numbers : withoutLearnOf(numbers);
+
+const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const DAY_YEAR = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+/** A day as a page writes it, in UTC: "20 Nov", with the year when it is not `now`'s: "20 Nov 2025". Null when unreadable. */
+export function dayWordsOf(at: string | null, now: Date): string | null {
+  const when = at ? new Date(at) : null;
+  if (!when || Number.isNaN(when.getTime())) return null;
+  return (when.getUTCFullYear() === now.getUTCFullYear() ? DAY : DAY_YEAR).format(when);
 }
 
 /** A product's name as the page writes it. */

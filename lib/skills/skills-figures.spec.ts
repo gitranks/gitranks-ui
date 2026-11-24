@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { bothNumbers, contributorNumbers, firstFixNumbers, learnerNumbers } from './__fixtures__/skills';
+import { bothNumbers, contributorNumbers, firstFixNumbers, learnerNumbers, SKILLS_NOW } from './__fixtures__/skills';
 import type { SkillsFigure } from './skills.types';
-import { figureWordsOf, hasSomething, listWords, monthOf, shownFigures, sinceLineOf } from './skills-figures';
+import {
+  dayWordsOf,
+  figureWordsOf,
+  hasSomething,
+  listWords,
+  monthOf,
+  numbersFor,
+  shownFigures,
+  sinceLineOf,
+  withoutLearnOf,
+} from './skills-figures';
 
 const figure = (key: SkillsFigure['key'], value: number | null, extra: Partial<SkillsFigure> = {}): SkillsFigure => ({
   key,
@@ -96,7 +106,7 @@ describe('listWords and monthOf', () => {
 
 describe('sinceLineOf', () => {
   it('words a contributor with Contribute, three languages at most', () => {
-    expect(sinceLineOf(contributorNumbers, ['CONTRIBUTE'])).toEqual([
+    expect(sinceLineOf(contributorNumbers)).toEqual([
       'With ',
       { product: 'CONTRIBUTE' },
       ' since June 2026: fixes in Go, Python and TypeScript, in real open-source projects.',
@@ -107,14 +117,12 @@ describe('sinceLineOf', () => {
   });
 
   it('words one fix in the singular', () => {
-    expect(sinceLineOf(firstFixNumbers, ['CONTRIBUTE'])[2]).toBe(
-      ' since November 2026: a fix in Go, in a real open-source project.',
-    );
+    expect(sinceLineOf(firstFixNumbers)[2]).toBe(' since November 2026: a fix in Go, in a real open-source project.');
   });
 
   it('names Learn for a contributor whose fixes were all made with it', () => {
-    expect(sinceLineOf(contributorNumbers, ['LEARN'])[1]).toEqual({ product: 'LEARN' });
-    expect(sinceLineOf(contributorNumbers, ['LEARN', 'CONTRIBUTE'])[1]).toEqual({ product: 'CONTRIBUTE' });
+    expect(sinceLineOf({ ...contributorNumbers, made: ['LEARN'] })[1]).toEqual({ product: 'LEARN' });
+    expect(sinceLineOf({ ...contributorNumbers, made: ['LEARN', 'CONTRIBUTE'] })[1]).toEqual({ product: 'CONTRIBUTE' });
   });
 
   it('words a learner and a person of both', () => {
@@ -136,5 +144,36 @@ describe('sinceLineOf', () => {
     expect(sinceLineOf({ ...contributorNumbers, since: '' })[2]).toBe(
       ': fixes in Go, Python and TypeScript, in real open-source projects.',
     );
+  });
+});
+
+describe('withoutLearnOf and numbersFor', () => {
+  it('leaves Learn’s figures and the days that count lessons out, and reads the rest as Contribute’s', () => {
+    const both = withoutLearnOf(bothNumbers);
+    expect(both.kind).toBe('CONTRIBUTOR');
+    expect(both.figures.map((one) => one.key)).toEqual(['FIXES_MERGED']);
+    expect(both.blockFigures.map((one) => one.key)).toEqual(['FIXES_MERGED']);
+    expect(both.courses).toBe(0);
+    expect(both.made).toEqual(['CONTRIBUTE']);
+    expect(sinceLineOf(both)[1]).toEqual({ product: 'CONTRIBUTE' });
+  });
+
+  it('keeps a contributor’s days, and no figure of a learner', () => {
+    expect(withoutLearnOf(contributorNumbers).figures).toEqual(contributorNumbers.figures);
+    expect(withoutLearnOf(learnerNumbers).figures).toEqual([]);
+    expect(withoutLearnOf(learnerNumbers).blockFigures).toEqual([]);
+  });
+
+  it('changes nothing while Learn is open', () => {
+    expect(numbersFor(bothNumbers, true)).toBe(bothNumbers);
+  });
+});
+
+describe('dayWordsOf', () => {
+  it('writes the year only when it is not now’s, in UTC', () => {
+    expect(dayWordsOf('2026-11-20T15:00:00Z', SKILLS_NOW)).toBe('20 Nov');
+    expect(dayWordsOf('2025-12-31T23:30:00Z', SKILLS_NOW)).toBe('31 Dec 2025');
+    expect(dayWordsOf(null, SKILLS_NOW)).toBeNull();
+    expect(dayWordsOf('soon', SKILLS_NOW)).toBeNull();
   });
 });

@@ -86,8 +86,8 @@ function Group({ group }: { group: SkillsGroup }) {
  * counts, the groups started with their squares (read-only: the course page's squares, darker for deeper, a star on a
  * lesson a merged fix used), and the groups not started in one line.
  */
-export function SkillsCourseCard({ course }: { course: SkillsCourse }) {
-  const finished = finishedWordsOf(course);
+export function SkillsCourseCard({ course, now }: { course: SkillsCourse; now: Date }) {
+  const finished = finishedWordsOf(course, now);
   const notStarted = notStartedLineOf(course.notStarted);
   return (
     <article className="flex flex-col gap-4 rounded-xl border bg-card p-5" data-skills-course={course.course.slug}>

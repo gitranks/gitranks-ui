@@ -70,4 +70,12 @@ describe('ProductsBlock', () => {
     expect(learn?.textContent).toContain('Open Learn');
     expect(learn?.textContent).not.toContain('New');
   });
+
+  it('takes its own id for a board that draws it twice', () => {
+    const root = document.createElement('div');
+    root.innerHTML = renderToStaticMarkup(<ProductsBlock products={null} now={HOME_NOW} id="products-two" />);
+    expect(root.querySelector('section')?.getAttribute('aria-labelledby')).toBe('products-two');
+    expect(root.querySelector('#products-two')?.tagName).toBe('H2');
+    expect(root.querySelector('#products')).toBeNull();
+  });
 });

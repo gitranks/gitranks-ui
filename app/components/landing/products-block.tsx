@@ -40,13 +40,18 @@ const ProductCard: FC<{ card: HomeCardWords }> = ({ card }) => (
 /**
  * The home page's block for Contribute and Learn: the heading, one line, and two cards of one size, Contribute on the
  * left. With no `products` (a visitor, or a read that failed) both cards promote their product; otherwise a card whose
- * product the person uses says what it has for them today. `now` words the next review.
+ * product the person uses says what it has for them today. `now` words the next review. `id` is the heading's, for a
+ * board that draws the block more than once.
  */
-export const ProductsBlock: FC<{ products?: HomeProducts | null; now: Date }> = ({ products = null, now }) => (
-  <section aria-labelledby="products" className="py-12 lg:py-16" data-products-block="">
+export const ProductsBlock: FC<{ products?: HomeProducts | null; now: Date; id?: string }> = ({
+  products = null,
+  now,
+  id = 'products',
+}) => (
+  <section aria-labelledby={id} className="py-12 lg:py-16" data-products-block="">
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4">
       <div className="flex flex-col gap-2">
-        <h2 id="products" className="m-0 text-2xl font-semibold tracking-tight text-balance md:text-3xl">
+        <h2 id={id} className="m-0 text-2xl font-semibold tracking-tight text-balance md:text-3xl">
           {PRODUCTS_HEADING}
         </h2>
         <p className="m-0 max-w-prose text-muted-foreground">{PRODUCTS_LINE}</p>

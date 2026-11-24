@@ -10,8 +10,9 @@ const TWO_DIGITS = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 2 
 
 /** A number as the box rounds it: two significant digits, "51,000", "2,800", and "2.3 million" from a million. */
 export function roundedOf(value: number): string {
-  if (value >= 1_000_000) return `${TWO_DIGITS.format(value / 1_000_000)} million`;
-  return TWO_DIGITS.format(value);
+  const rounded = Number(value.toPrecision(2));
+  if (rounded >= 1_000_000) return `${TWO_DIGITS.format(rounded / 1_000_000)} million`;
+  return TWO_DIGITS.format(rounded);
 }
 
 /** The box's cells, in their order: each left out while its number is not counted yet, or is zero. */

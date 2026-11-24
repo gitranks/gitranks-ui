@@ -11,6 +11,9 @@ describe('roundedOf', () => {
     expect(roundedOf(7)).toBe('7');
     expect(roundedOf(2_340_000)).toBe('2.3 million');
     expect(roundedOf(1_000_000)).toBe('1 million');
+    expect(roundedOf(995_000)).toBe('1 million');
+    expect(roundedOf(999_999)).toBe('1 million');
+    expect(roundedOf(994_999)).toBe('990,000');
   });
 });
 

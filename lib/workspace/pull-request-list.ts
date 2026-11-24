@@ -75,7 +75,7 @@ const AGENT_AT_WORK: readonly PullRequestBox[] = [
  * The line and the button of a pull request that needs the person, in the words of its own page: the list's rows and
  * the home page's card word it here, so the two never differ. Null for a box that needs nothing from them.
  */
-export function needsYouWordsOf(
+export function needsYouRowWordsOf(
   row: Pick<PullRequestListRow, 'box' | 'round'>,
 ): { line: string; button: string } | null {
   const round = row.round ?? 1;
@@ -109,7 +109,7 @@ export function rowWordsOf(row: PullRequestListRow, now: Date): RowWords {
   const on = onDayOf(row.since, now);
   const words = (line: string, button: string, when: string | null = null) => ({ line, button, when });
   const shown = (() => {
-    const needsYou = needsYouWordsOf(row);
+    const needsYou = needsYouRowWordsOf(row);
     if (needsYou) return words(needsYou.line, needsYou.button);
     switch (row.box) {
       case 'FIXING':

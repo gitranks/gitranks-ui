@@ -88,7 +88,7 @@ export function startOf(
       ? 'This page shows what you fix and learn with GitRanks'
       : 'This page shows what you fix with GitRanks',
     line:
-      mine.state === 'NOTHING_YET' && boxes.length > 1
+      mine.state === 'NOTHING_YET' && learn && mine.usesContribute && mine.usesLearn
         ? `${line} There are two ways to fill it, and you can use both.`
         : line,
     numbers: mine.state === 'NEW',
@@ -162,11 +162,12 @@ export function blockOwnerLineOf(state: SkillsState): { text: string; link: stri
 
 /**
  * The block's link to the tab, naming what is listed there: "All 6 fixes", "All 3 courses", "All fixes and courses",
- * or "See the fix" and "See the course" for one.
+ * or "See the fix" and "See the course" for one; no link with nothing listed.
  */
-export function blockLinkOf(numbers: Pick<SkillsNumbers, 'kind' | 'fixes' | 'courses'>): string {
-  if (numbers.kind === 'BOTH') return 'All fixes and courses';
-  if (numbers.kind === 'LEARNER')
-    return numbers.courses === 1 ? 'See the course' : `All ${countOf(numbers.courses)} courses`;
-  return numbers.fixes === 1 ? 'See the fix' : `All ${countOf(numbers.fixes)} fixes`;
+export function blockLinkOf(numbers: Pick<SkillsNumbers, 'fixes' | 'courses'>): string | null {
+  const { fixes, courses } = numbers;
+  if (fixes > 0 && courses > 0) return 'All fixes and courses';
+  if (fixes > 0) return fixes === 1 ? 'See the fix' : `All ${countOf(fixes)} fixes`;
+  if (courses > 0) return courses === 1 ? 'See the course' : `All ${countOf(courses)} courses`;
+  return null;
 }

@@ -27,7 +27,7 @@ export function SkillsLegend({ star }: { star: boolean }) {
  * "Courses": the legend, one card for each course the person learned a lesson in, and how the squares work (pointed
  * at on a computer, tapped on a phone). Nothing without a course.
  */
-export function SkillsCoursesSection({ courses }: { courses: readonly SkillsCourse[] }) {
+export function SkillsCoursesSection({ courses, now }: { courses: readonly SkillsCourse[]; now: Date }) {
   if (!courses.length) return null;
   return (
     <section aria-labelledby="skills-courses" className="flex flex-col gap-3" data-skills-courses="">
@@ -36,7 +36,7 @@ export function SkillsCoursesSection({ courses }: { courses: readonly SkillsCour
       </h3>
       <SkillsLegend star={hasStar(courses)} />
       {courses.map((course) => (
-        <SkillsCourseCard key={course.course.slug} course={course} />
+        <SkillsCourseCard key={course.course.slug} course={course} now={now} />
       ))}
       <p className="m-0 text-xs text-muted-foreground max-sm:hidden">
         One square is one lesson, in order. Point at a square to see the lesson, or click it to open it.

@@ -22,6 +22,7 @@ import {
   openOnlyNumbers,
   repoCourse,
   SKILLS_LOGIN,
+  SKILLS_NOW,
   skillsMine,
 } from '@/lib/skills/__fixtures__/skills';
 import { skillsPath } from '@/lib/skills/paths';
@@ -55,7 +56,7 @@ const strip = (mine: SkillsMine) => <SkillsStrip mine={mine} href={HREF} onHide=
 
 /** The owner's own page: the strip, the content, and the box about the product they do not use. */
 const ownPage = (mine: SkillsMine) =>
-  mine.page ? <SkillsPageView page={mine.page} strip={strip(mine)} other={otherBoxOf(mine)} /> : null;
+  mine.page ? <SkillsPageView now={SKILLS_NOW} page={mine.page} strip={strip(mine)} other={otherBoxOf(mine)} /> : null;
 
 const tab = (id: string, title: string, height: number, render: () => ReactNode, width?: number) => ({
   id,
@@ -91,10 +92,10 @@ export const SKILLS_PART_SCREENS: Screen[] = [
     ],
     states: [
       tab('learner', 'A learner, as everyone sees the page', 3000, () => (
-        <SkillsPageView page={skillsMine.publicLearner.page ?? longPage} />
+        <SkillsPageView now={SKILLS_NOW} page={skillsMine.publicLearner.page ?? longPage} />
       )),
       tab('contributor', 'A contributor, with 20 fixes a page and "Show 20 more"', 1700, () => (
-        <SkillsPageView page={longPage} onMore={noop} />
+        <SkillsPageView now={SKILLS_NOW} page={longPage} onMore={noop} />
       )),
       tab('both', 'Someone who uses both, on their own page', 3200, () => ownPage(skillsMine.publicBoth)),
       tab('first-fix', 'The first merged fix, on its owner’s page: Learn offered at the end', 1100, () =>
@@ -106,13 +107,13 @@ export const SKILLS_PART_SCREENS: Screen[] = [
       tab('numbers', 'The numbers box, by how many numbers have something in them', 1300, () => (
         <>
           <Case title="Four numbers, the agent last">
-            <SkillsNumbersBox numbers={contributorNumbers} made={['CONTRIBUTE']} />
+            <SkillsNumbersBox numbers={contributorNumbers} />
           </Case>
           <Case title="Three numbers: the agent of the one fix">
-            <SkillsNumbersBox numbers={firstFixNumbers} made={['CONTRIBUTE']} />
+            <SkillsNumbersBox numbers={firstFixNumbers} />
           </Case>
           <Case title="Pull requests open, none merged yet">
-            <SkillsNumbersBox numbers={openOnlyNumbers} made={['CONTRIBUTE']} />
+            <SkillsNumbersBox numbers={openOnlyNumbers} />
           </Case>
           <Case title="Someone who uses both">
             <SkillsNumbersBox numbers={bothNumbers} />
@@ -122,24 +123,24 @@ export const SKILLS_PART_SCREENS: Screen[] = [
       tab('fix-rows', 'A fix’s row: made with Learn, open, and with its page hidden', 1000, () => (
         <div className="flex flex-col gap-3">
           <Case title="Made with Learn, merged, by someone who uses both">
-            <SkillsFixRow fix={learnerFixes[0]} namesProduct />
+            <SkillsFixRow now={SKILLS_NOW} fix={learnerFixes[0]} namesProduct />
           </Case>
           <Case title="Open, in review">
-            <SkillsFixRow fix={learnerFixes[2]} namesProduct />
+            <SkillsFixRow now={SKILLS_NOW} fix={learnerFixes[2]} namesProduct />
           </Case>
           <Case title="Its page hidden by its sender: the GitHub links alone">
-            <SkillsFixRow fix={hiddenPageFix} />
+            <SkillsFixRow now={SKILLS_NOW} fix={hiddenPageFix} />
           </Case>
           <Case title="Made with Learn, read by someone Learn is not open to">
-            <SkillsFixRow fix={learnerFixes[1]} learnOpen={false} />
+            <SkillsFixRow now={SKILLS_NOW} fix={learnerFixes[1]} learnOpen={false} />
           </Case>
         </div>
       )),
       tab('course-cards', 'A course card: finished, on its first lesson, and about a repository', 1500, () => (
         <>
-          <SkillsCourseCard course={databasesCourse} />
-          <SkillsCourseCard course={firstLessonCourse} />
-          <SkillsCourseCard course={repoCourse} />
+          <SkillsCourseCard now={SKILLS_NOW} course={databasesCourse} />
+          <SkillsCourseCard now={SKILLS_NOW} course={firstLessonCourse} />
+          <SkillsCourseCard now={SKILLS_NOW} course={repoCourse} />
         </>
       )),
       tab('strip', 'The owner’s strip in each state: one height in all of them', 700, () => (
@@ -175,6 +176,9 @@ export const SKILLS_PART_SCREENS: Screen[] = [
           </Case>
         </>
       )),
+      tab('learn-closed', 'Someone who uses both, read by someone Learn is not open to: nothing of Learn', 1100, () => (
+        <SkillsPageView now={SKILLS_NOW} page={skillsMine.publicBoth.page ?? longPage} learnOpen={false} />
+      )),
       tab('missing', 'No Skills page for this person', 600, () => (
         <>
           <Case title="A login with no Skills page">
@@ -189,7 +193,7 @@ export const SKILLS_PART_SCREENS: Screen[] = [
         'phone',
         'Someone who uses both, on a phone',
         3600,
-        () => <SkillsPageView page={skillsMine.publicBoth.page ?? longPage} />,
+        () => <SkillsPageView now={SKILLS_NOW} page={skillsMine.publicBoth.page ?? longPage} />,
         390,
       ),
     ],
@@ -210,12 +214,19 @@ export const SKILLS_PART_SCREENS: Screen[] = [
         render: () =>
           frame(
             <>
-              <SkillsBlock login={SKILLS_LOGIN} numbers={contributorNumbers} />
-              <SkillsBlock login={SKILLS_LOGIN} numbers={learnerNumbers} />
-              <SkillsBlock login={SKILLS_LOGIN} numbers={bothNumbers} />
-              <SkillsBlock login={SKILLS_LOGIN} numbers={firstFixNumbers} />
+              <SkillsBlock login={SKILLS_LOGIN} numbers={contributorNumbers} id="profile-skills-1" />
+              <SkillsBlock login={SKILLS_LOGIN} numbers={learnerNumbers} id="profile-skills-2" />
+              <SkillsBlock login={SKILLS_LOGIN} numbers={bothNumbers} id="profile-skills-3" />
+              <SkillsBlock login={SKILLS_LOGIN} numbers={firstFixNumbers} id="profile-skills-4" />
             </>,
           ),
+      },
+      {
+        id: 'learn-closed',
+        title: 'The block of someone who uses both, read by someone Learn is not open to',
+        path: PROFILE_PATH,
+        height: 500,
+        render: () => frame(<SkillsBlock login={SKILLS_LOGIN} numbers={bothNumbers} learnOpen={false} />),
       },
       {
         id: 'owner',
@@ -225,8 +236,8 @@ export const SKILLS_PART_SCREENS: Screen[] = [
         render: () =>
           frame(
             <>
-              <SkillsBlock login={SKILLS_LOGIN} numbers={learnerNumbers} ownState="HIDDEN" />
-              <SkillsBlock login={SKILLS_LOGIN} numbers={learnerNumbers} ownState="PRIVATE" />
+              <SkillsBlock login={SKILLS_LOGIN} numbers={learnerNumbers} ownState="HIDDEN" id="profile-skills-5" />
+              <SkillsBlock login={SKILLS_LOGIN} numbers={learnerNumbers} ownState="PRIVATE" id="profile-skills-6" />
             </>,
           ),
       },

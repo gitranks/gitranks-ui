@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { algorithmsCourse, databasesCourse, firstLessonCourse, goCourse } from './__fixtures__/skills';
+import { algorithmsCourse, databasesCourse, firstLessonCourse, goCourse, SKILLS_NOW } from './__fixtures__/skills';
 import {
   courseCountsOf,
   finishedWordsOf,
@@ -24,9 +24,10 @@ describe('courseCountsOf', () => {
 });
 
 describe('finishedWordsOf, groupCountOf, notStartedLineOf', () => {
-  it('says when a course was finished, in UTC', () => {
-    expect(finishedWordsOf(databasesCourse)).toBe('Finished on 12 Nov');
-    expect(finishedWordsOf(goCourse)).toBeNull();
+  it('says when a course was finished, in UTC, with the year when it is not this year', () => {
+    expect(finishedWordsOf(databasesCourse, SKILLS_NOW)).toBe('Finished on 12 Nov');
+    expect(finishedWordsOf({ finishedAt: '2025-11-12T18:00:00Z' }, SKILLS_NOW)).toBe('Finished on 12 Nov 2025');
+    expect(finishedWordsOf(goCourse, SKILLS_NOW)).toBeNull();
   });
 
   it('counts a group’s lessons', () => {

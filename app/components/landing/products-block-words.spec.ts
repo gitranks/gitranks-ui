@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { contributeCards, HOME_NOW, homeProducts, learnCards } from './__fixtures__/products-block';
 import { contributeCardOf, HOME_PROMOS, learnCardOf, needsYouLineOf } from './products-block-words';
-import { needsYouWordsOf } from '@/lib/workspace/pull-request-list';
+import { needsYouRowWordsOf } from '@/lib/workspace/pull-request-list';
 
 const uses = { usesContribute: true, usesLearn: true, contribute: null, learn: null };
 
@@ -24,7 +24,7 @@ describe('the promotions', () => {
 
 describe('needsYouLineOf', () => {
   it('words the first pull request as the list does, with its project and how many more', () => {
-    const list = needsYouWordsOf({ box: 'ROUND_WAITING', round: 2 })?.line;
+    const list = needsYouRowWordsOf({ box: 'ROUND_WAITING', round: 2 })?.line;
     expect(needsYouLineOf(contributeCards.needsYou, 2)).toBe(`${list}, in kelp-db/kelp, and 1 more.`);
     expect(needsYouLineOf({ ...contributeCards.needsYou, box: 'APPROVE' }, 1)).toBe(
       'Ready to open the pull request, in kelp-db/kelp.',

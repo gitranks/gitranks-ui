@@ -1,7 +1,7 @@
 import type { Route } from 'next';
 
 import type { SkillsFix, SkillsFixes } from './skills.types';
-import type { LinePart } from './skills-figures';
+import { dayWordsOf, type LinePart } from './skills-figures';
 import { learnFixPath } from '@/lib/learn/paths';
 import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 import type { LearnFixMade, LearnIssueLesson } from '@/lib/workspace/pull-request-page.types';
@@ -17,7 +17,7 @@ export const FIXES_PAGE = 20;
 /**
  * Where a fix's title and "How it was made" lead. A fix made with Learn has its "Learn from it" view for its title, and
  * "How it was made" leads to the pull request's timeline; a fix made with Contribute has the timeline alone, so both
- * lead there. While Learn's pages are closed to the reader, a Learn fix keeps "How it was made" as its one link. A fix
+ * lead there. While Learn is closed to the reader, a Learn fix is drawn as a plain fix, both leading to the timeline. A fix
  * whose page was hidden has no link to our pages: its GitHub links alone.
  */
 export function fixLinksOf(
@@ -27,17 +27,14 @@ export function fixLinksOf(
   if (!fix.page) return { title: null, made: null };
   const pr = { nameWithOwner: fix.repo, number: fix.number };
   const timeline = prTimelinePath(pr);
-  if (fix.made === 'CONTRIBUTE') return { title: timeline, made: timeline };
-  return { title: learnOpen ? learnFixPath(pr) : null, made: timeline };
+  return { title: fix.made === 'LEARN' && learnOpen ? learnFixPath(pr) : timeline, made: timeline };
 }
 
-const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-
-/** "merged 20 Nov", or "open, in review". */
-export function fixStateWordsOf(fix: Pick<SkillsFix, 'state' | 'mergedAt'>): string {
+/** "merged 20 Nov" ("merged 20 Nov 2025" in another year than `now`'s), or "open, in review". */
+export function fixStateWordsOf(fix: Pick<SkillsFix, 'state' | 'mergedAt'>, now: Date): string {
   if (fix.state !== 'MERGED') return 'open, in review';
-  const when = fix.mergedAt ? new Date(fix.mergedAt) : null;
-  return when && !Number.isNaN(when.getTime()) ? `merged ${DAY.format(when)}` : 'merged';
+  const day = dayWordsOf(fix.mergedAt, now);
+  return day ? `merged ${day}` : 'merged';
 }
 
 /** The lesson a fix used, "Used …" once merged and "Uses …" while open; null for a fix with no lesson. */

@@ -1,5 +1,5 @@
 import type { SkillsCourse, SkillsCourseKind, SkillsGroup, SkillsLesson } from './skills.types';
-import { countOf } from './skills-figures';
+import { countOf, dayWordsOf } from './skills-figures';
 import type { CourseSquare } from '@/lib/learn/course';
 import type { LearnDepth } from '@/lib/learn/lesson-page';
 
@@ -35,12 +35,10 @@ export function courseCountsOf(course: Pick<SkillsCourse, 'course' | 'learned' |
   ].join(' · ');
 }
 
-const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-
-/** "Finished on 12 Nov" for a course whose every shown lesson is learned; null otherwise. */
-export function finishedWordsOf(course: Pick<SkillsCourse, 'finishedAt'>): string | null {
-  const when = course.finishedAt ? new Date(course.finishedAt) : null;
-  return when && !Number.isNaN(when.getTime()) ? `Finished on ${DAY.format(when)}` : null;
+/** "Finished on 12 Nov" ("Finished on 12 Nov 2025" in another year than `now`'s) for a course whose every shown lesson is learned; null otherwise. */
+export function finishedWordsOf(course: Pick<SkillsCourse, 'finishedAt'>, now: Date): string | null {
+  const day = dayWordsOf(course.finishedAt, now);
+  return day ? `Finished on ${day}` : null;
 }
 
 /** A group's count: "all 8", or "7 of 12". */

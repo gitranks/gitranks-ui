@@ -16,20 +16,24 @@ export function SkillsFixesSection({
   made,
   login,
   learnOpen = true,
+  now,
   onMore,
   loading = false,
 }: {
   fixes: SkillsFixes;
   made: readonly LearnFixMade[];
   login: string;
+  /** Whether Learn is open to the reader: otherwise the line and the rows name Contribute alone. */
   learnOpen?: boolean;
+  now: Date;
   /** Asks for the next fixes; the button shows only with it. */
   onMore?: () => void;
   loading?: boolean;
 }) {
   if (!fixes.rows.length) return null;
   const more = moreFixesOf(fixes);
-  const both = namesProduct(made);
+  const shownMade: readonly LearnFixMade[] = learnOpen ? made : ['CONTRIBUTE'];
+  const both = namesProduct(shownMade);
   return (
     <section aria-labelledby="skills-fixes" className="flex flex-col gap-3" data-skills-fixes="">
       <div className="flex flex-col gap-1">
@@ -37,13 +41,13 @@ export function SkillsFixesSection({
           Fixes in real projects
         </h3>
         <p className="m-0 text-sm text-muted-foreground">
-          <SkillsLine parts={fixesLineOf(made, login)} />
+          <SkillsLine parts={fixesLineOf(shownMade, login)} />
         </p>
       </div>
       <ul className="m-0 list-none divide-y overflow-hidden rounded-xl border bg-card p-0">
         {fixes.rows.map((fix) => (
           <li key={`${fix.repo}#${fix.number}`}>
-            <SkillsFixRow fix={fix} namesProduct={both} learnOpen={learnOpen} />
+            <SkillsFixRow fix={fix} namesProduct={both} learnOpen={learnOpen} now={now} />
           </li>
         ))}
       </ul>

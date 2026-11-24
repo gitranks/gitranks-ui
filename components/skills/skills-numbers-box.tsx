@@ -1,8 +1,7 @@
 import { SkillsLine } from './skills-line';
-import type { SkillsFigure, SkillsNumbers } from '@/lib/skills/skills.types';
-import { figureWordsOf, shownFigures, sinceLineOf } from '@/lib/skills/skills-figures';
+import type { SkillsNumbers } from '@/lib/skills/skills.types';
+import { figureWordsOf, numbersFor, shownFigures, sinceLineOf } from '@/lib/skills/skills-figures';
 import { cn } from '@/lib/utils';
-import type { LearnFixMade } from '@/lib/workspace/pull-request-page.types';
 
 /** The row's columns by how many figures it holds: one cell each, from a phone's two upwards. */
 const COLUMNS: Record<number, string> = {
@@ -14,22 +13,23 @@ const COLUMNS: Record<number, string> = {
 
 /**
  * The numbers box of a Skills page: a short row of figures, each centred in its cell, and one line under them (since
- * when, with which product). The tab passes its four at most (`numbers.figures`), the block and the card their three
- * (`numbers.blockFigures`). A figure with nothing in it is left out, so no number is ever a zero. On a phone the figures
- * go two in a row and an odd last one takes the whole row. Nothing with no figure.
+ * when, with which product). The tab draws its four at most (`numbers.figures`), the block its three
+ * (`numbers.blockFigures`). While Learn is not open to the reader, nothing of Learn shows. A figure with nothing in it
+ * is left out, so no number is ever a zero. On a phone the figures go two in a row and an odd last one takes the whole
+ * row. Nothing with no figure.
  */
 export function SkillsNumbersBox({
-  numbers,
-  figures = numbers.figures,
-  made = [],
+  numbers: given,
+  place = 'tab',
+  learnOpen = true,
 }: {
   numbers: SkillsNumbers;
-  /** The figures to draw: the tab's by default. */
-  figures?: readonly SkillsFigure[];
-  /** The products that made the listed fixes, for the line of a contributor whose fixes were made with Learn. */
-  made?: readonly LearnFixMade[];
+  /** Whose figures to draw: the tab's, or the block's. */
+  place?: 'tab' | 'block';
+  learnOpen?: boolean;
 }) {
-  const shown = shownFigures(figures);
+  const numbers = numbersFor(given, learnOpen);
+  const shown = shownFigures(place === 'block' ? numbers.blockFigures : numbers.figures);
   if (!shown.length) return null;
   return (
     <section
@@ -58,7 +58,7 @@ export function SkillsNumbersBox({
         })}
       </dl>
       <p className="m-0 border-t pt-3 text-sm text-muted-foreground">
-        <SkillsLine parts={sinceLineOf(numbers, made)} />
+        <SkillsLine parts={sinceLineOf(numbers)} />
       </p>
     </section>
   );

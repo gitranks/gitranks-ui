@@ -48,6 +48,8 @@ export type SkillsNumbers = {
   languages: string[];
   fixes: number;
   courses: number;
+  /** The products that made the listed fixes. */
+  made: LearnFixMade[];
 };
 
 /** Where a fix stands. A closed pull request is never listed. */
@@ -100,11 +102,10 @@ export type SkillsCourse = {
   notStarted: string[];
 };
 
-/** The public page. `made` is the products that made the listed fixes. */
+/** The public page. */
 export type SkillsPage = {
   login: string;
   numbers: SkillsNumbers;
-  made: LearnFixMade[];
   fixes: SkillsFixes;
   courses: SkillsCourse[];
   indexable: boolean;

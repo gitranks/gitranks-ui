@@ -18,7 +18,9 @@ const Case = ({ title, children }: { title: string; children: ReactNode }) => (
   </div>
 );
 
-const block = (products: HomeProducts | null) => <ProductsBlock products={products} now={HOME_NOW} />;
+const block = (products: HomeProducts | null, id?: string) => (
+  <ProductsBlock products={products} now={HOME_NOW} id={id} />
+);
 
 export const HOME_PRODUCT_SCREENS: Screen[] = [
   {
@@ -44,9 +46,11 @@ export const HOME_PRODUCT_SCREENS: Screen[] = [
         height: 1300,
         render: () => (
           <main>
-            <Case title="A learner who does not contribute">{block(homeProducts.learner)}</Case>
-            <Case title="A contributor who does not learn">{block(homeProducts.contributor)}</Case>
-            <Case title="Someone who uses both">{block(homeProducts.both)}</Case>
+            <Case title="A learner who does not contribute">{block(homeProducts.learner, 'products-learner')}</Case>
+            <Case title="A contributor who does not learn">
+              {block(homeProducts.contributor, 'products-contributor')}
+            </Case>
+            <Case title="Someone who uses both">{block(homeProducts.both, 'products-both')}</Case>
           </main>
         ),
       },
@@ -57,10 +61,14 @@ export const HOME_PRODUCT_SCREENS: Screen[] = [
         height: 1300,
         render: () => (
           <main>
-            <Case title="Pull requests open, none needs them; a next lesson">{block(homeProducts.open)}</Case>
-            <Case title="No pull request open; nothing due, a review planned">{block(homeProducts.quiet)}</Case>
+            <Case title="Pull requests open, none needs them; a next lesson">
+              {block(homeProducts.open, 'products-open')}
+            </Case>
+            <Case title="No pull request open; nothing due, a review planned">
+              {block(homeProducts.quiet, 'products-quiet')}
+            </Case>
             <Case title="A learner with nothing due, no next lesson and no review planned">
-              {block(homeProducts.learnerNothing)}
+              {block(homeProducts.learnerNothing, 'products-learner-nothing')}
             </Case>
           </main>
         ),

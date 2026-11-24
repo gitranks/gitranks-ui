@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { PR_NOW, prLists, prRow, prRowsContribute, prRowsEvery } from './__fixtures__/pull-request';
-import { costOf, groupsOf, LIST_PLACE, limitLineOf, needsYouWordsOf, rowWordsOf } from './pull-request-list';
+import { costOf, groupsOf, LIST_PLACE, limitLineOf, needsYouRowWordsOf, rowWordsOf } from './pull-request-list';
 import type { PullRequestBox } from './pull-request-page.types';
 
 describe('the groups', () => {
@@ -90,16 +90,16 @@ describe('the line about the limit', () => {
   });
 });
 
-describe('needsYouWordsOf', () => {
+describe('needsYouRowWordsOf', () => {
   it('words each box that needs the person, and nothing for the others', () => {
-    expect(needsYouWordsOf({ box: 'ROUND_WAITING', round: 2 })).toEqual({
+    expect(needsYouRowWordsOf({ box: 'ROUND_WAITING', round: 2 })).toEqual({
       line: 'Round 2: something to answer',
       button: 'See what was asked',
     });
-    expect(needsYouWordsOf({ box: 'APPROVE', round: null })?.line).toBe('Ready to open the pull request');
-    expect(needsYouWordsOf({ box: 'ROUND_READY', round: null })?.line).toBe(
+    expect(needsYouRowWordsOf({ box: 'APPROVE', round: null })?.line).toBe('Ready to open the pull request');
+    expect(needsYouRowWordsOf({ box: 'ROUND_READY', round: null })?.line).toBe(
       'Round 1 is ready: your agent made the change',
     );
-    expect(needsYouWordsOf({ box: 'OPEN', round: null })).toBeNull();
+    expect(needsYouRowWordsOf({ box: 'OPEN', round: null })).toBeNull();
   });
 });

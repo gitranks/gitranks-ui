@@ -110,11 +110,11 @@ describe('loadContribute', () => {
   it('adds the limits when the API answers them, and leaves them out when it does not', async () => {
     const contributor = { status: 'ACTIVE', login: 'octocat', autopilot: null };
     const limits = {
-      level: 'REDUCED',
-      reason: 'NEW_ACCOUNT',
-      attemptsAtATime: 1,
-      openPrsAtATime: 2,
-      claimsPerDay: 3,
+      level: 'STANDARD',
+      reason: null,
+      attemptsAtATime: 3,
+      openPrsAtATime: 10,
+      claimsPerDay: 10,
     };
     graphqlDirect.mockImplementation(async (document) => {
       if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };

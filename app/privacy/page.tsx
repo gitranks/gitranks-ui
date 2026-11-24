@@ -595,6 +595,9 @@ const sections: LegalSection[] = [
   },
 ];
 
+/** The day the Privacy policy last changed (YYYY-MM-DD). */
+const PRIVACY_UPDATED = '2026-11-24';
+
 export default function Privacy() {
-  return <LegalPage title="Privacy policy" sections={sections} updated="2026-11-24" />;
+  return <LegalPage title="Privacy policy" sections={sections} updated={PRIVACY_UPDATED} />;
 }

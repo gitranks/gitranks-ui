@@ -125,7 +125,7 @@ describe('a live list of issues', () => {
     expect(feedOf({ items: ISSUES, limit: 2, next: null }).getSnapshot().more).toBe(true);
   });
 
-  it('leaves masked rows out of the status poll before its cap, and asks nothing when only they are left', async () => {
+  it('leaves masked rows out of the status poll before counting the 50 ids it asks, and asks nothing when only they are left', async () => {
     const masked = Array.from({ length: 50 }, (_, at) => issue({ issueId: `mask:m${at}`, number: 0, rank: at + 1 }));
     const named = [51, 52, 53].map((n) => issue({ issueId: `I_${n}`, number: n, rank: n }));
     const readStatus = vi.fn(async (_ids: string[]): Promise<StatusRead> => ({ ok: true, data: [] }));

@@ -259,10 +259,10 @@ export type LearnRecord = {
 export type LearnGoalView = { kind: string; value: string; level: string | null };
 
 /**
- * Why the issues for the goal are empty: none fit it today, Learn can't find issues for it, the day's cap on new issues,
- * or GitHub's titles could not be read.
+ * Why the issues for the goal are empty: none fit it today, Learn can't find issues for it, or GitHub's titles could not
+ * be read.
  */
-export type LearnIssuesEmpty = 'NONE_TODAY' | 'GOAL_UNSUPPORTED' | 'CAP' | 'UNREAD';
+export type LearnIssuesEmpty = 'NONE_TODAY' | 'GOAL_UNSUPPORTED' | 'UNREAD';
 
 /** An open issue a lesson can be written for: picked from the ready issues for the viewer's goal. */
 export type LearnIssue = StartIssueRow;
@@ -293,11 +293,10 @@ export type LearnIssues = {
   /** Null when no goal is saved. */
   goal: LearnGoalView | null;
   items: LearnIssue[];
-  /** The list's length before `first` and the day's cap. */
+  /** The list's length before `first`. */
   total: number;
   /** Null whenever `total` is above 0, and with no goal. */
   empty: LearnIssuesEmpty | null;
-  capReached: boolean;
   /** Null when the viewer has room for a new claim. */
   room: LearnRoom | null;
 };

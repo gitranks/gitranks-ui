@@ -171,16 +171,13 @@ export type Contributor = {
  */
 export type ContributeAccessLevel = 'STANDARD' | 'REDUCED' | 'SUSPENDED';
 
-/**
- * Why the limits are reduced: every new account starts so, or the recent claims ran out; or why the account is
- * suspended: a fair-use rule blocked it.
- */
-export type ContributeAccessReason = 'NEW_ACCOUNT' | 'FOLLOW_THROUGH' | 'FAIR_USE';
+/** Why the account is suspended: a fair-use rule blocked it. */
+export type ContributeAccessReason = 'FAIR_USE';
 
 /** The limits that hold for the account now: the settings' maxima and the day's counts. */
 export type ContributeLimits = {
   level: ContributeAccessLevel;
-  /** Why `REDUCED`, or `FAIR_USE` for a `SUSPENDED` account a fair-use rule blocked; null otherwise. */
+  /** `FAIR_USE` for a `SUSPENDED` account a fair-use rule blocked; null otherwise. */
   reason: ContributeAccessReason | null;
   /** The most attempts at a time that hold now: the settings field's maximum. */
   attemptsAtATime: number;
@@ -188,7 +185,7 @@ export type ContributeLimits = {
   openPrsAtATime: number;
   /**
    * The open pull requests at a time that hold now: the setting under the level's maximum, or the limit set for the
-   * account. Null when the API does not work it out: `effectiveSettingOf` then works it out as before. The limits read
+   * account. Null when the API does not work it out: `effectiveSettingOf` then holds the setting. The limits read
    * selects it, so an API without the field answers no limits at all.
    */
   openPrsEffective?: number | null;

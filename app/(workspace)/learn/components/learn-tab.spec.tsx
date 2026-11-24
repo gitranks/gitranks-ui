@@ -213,14 +213,10 @@ describe('The Learn tab, ready', () => {
     });
     expect(text(unsupported)).toContain('Learn can’t find issues for this goal yet. Change your goal');
     expect(unsupported).toMatch(/data-variant="default"[^>]*href="\/my\/settings\/goal"/);
-    const cap = tab(myLearnAttempts.none, { issues: emptyIssues.cap });
-    expect(text(cap)).toContain('That’s today’s new issues');
     for (const issues of [emptyIssues.unread, undefined]) {
       const unread = tab(myLearnAttempts.none, { issues });
       expect(text(unread)).toContain('Couldn’t load the issues. Try again in a minute. Try again');
     }
-    const capped = tab(myLearnAttempts.none, { issues: learnIssues({ capReached: true }) });
-    expect(capped).toContain('data-issues-cap');
   });
 });
 

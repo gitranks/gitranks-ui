@@ -40,28 +40,19 @@ describe('contributeNoticesOf', () => {
 });
 
 describe('accessNoticesOf', () => {
-  it('names a new account, claims that ran out, and a suspended account, with the limits that hold', () => {
-    expect(accessNoticesOf(views.newAccount)).toEqual([{ kind: 'new-account', limits: limits.newAccount }]);
-    expect(accessNoticesOf(views.followThrough)).toEqual([{ kind: 'follow-through', limits: limits.followThrough }]);
+  it('names a suspended account', () => {
     expect(accessNoticesOf(views.suspended)).toEqual([{ kind: 'suspended' }]);
   });
 
-  it('says nothing at the standard level, while the limits are not answered, or for limits with no reason', () => {
+  it('says nothing at the standard level, or while the limits are not answered', () => {
     expect(accessNoticesOf({ ...views.active, contributor: contributor({ limits: limits.standard }) })).toEqual([]);
     expect(accessNoticesOf(views.active)).toEqual([]);
-    const ownerSet = contributor({ limits: { ...limits.followThrough, reason: null } });
-    expect(accessNoticesOf({ ...views.active, contributor: ownerSet })).toEqual([]);
   });
 
-  it('puts a suspension first, and smaller limits after what the key needs', () => {
+  it('puts a suspension first, before what the key needs', () => {
     const suspendedNoKey = { ...views.noKey, contributor: { ...views.noKey.contributor, limits: limits.suspended } };
     expect(kinds(suspendedNoKey)).toEqual(['suspended', 'no-key']);
-    const newAndInvalid = {
-      ...views.keyInvalid,
-      contributor: { ...views.keyInvalid.contributor, limits: limits.newAccount },
-    };
-    expect(kinds(newAndInvalid)).toEqual(['key-invalid', 'new-account']);
-    expect(withoutAccessNotices(contributeNoticesOf(newAndInvalid)).map(({ kind }) => kind)).toEqual(['key-invalid']);
+    expect(withoutAccessNotices(contributeNoticesOf(suspendedNoKey)).map(({ kind }) => kind)).toEqual(['no-key']);
   });
 });
 

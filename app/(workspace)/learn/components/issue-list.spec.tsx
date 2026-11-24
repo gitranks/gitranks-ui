@@ -235,13 +235,6 @@ describe("Learn's issue list", () => {
     expect(shown().slice(0, 3)).toEqual(['I_1', 'I_2', 'I_3']);
   });
 
-  it('offers no Show 10 more once the day’s cap is reached, keeping the count line', async () => {
-    await render(<LearnIssueList issues={learnIssues({ items: issues(1, 10), total: 38, capReached: true })} />);
-    expect(button('Show 10 more')).toBeNull();
-    expect(container.textContent).toContain('That’s today’s new issues');
-    expect(container.textContent).toContain('Showing 10 of 38 issues');
-  });
-
   it('counts a click as from the list on its rows only, never on its notes’ links', async () => {
     await render(
       <LearnIssueList

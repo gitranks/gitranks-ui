@@ -39,10 +39,13 @@ describe('the one sentence for the open pull request limit', () => {
 });
 
 describe('the open pull request limit reached', () => {
-  it('is at the limit once what it counts reaches what holds: the setting, the cap, a limit set for the account', () => {
+  it('is at the limit once what it counts reaches what holds: the setting, or the limit the API answers', () => {
     expect(limitReachedOf({ prBound: 3 }, settings, limits.standard)).toEqual({ count: 3, limit: 3 });
     expect(limitReachedOf({ prBound: 2 }, settings, limits.standard)).toBeNull();
-    expect(limitReachedOf({ prBound: 2 }, settings, limits.newAccount)).toEqual({ count: 2, limit: 2 });
+    expect(limitReachedOf({ prBound: 2 }, settings, { ...limits.standard, openPrsEffective: 2 })).toEqual({
+      count: 2,
+      limit: 2,
+    });
     expect(limitReachedOf({ prBound: 3 }, settings, limits.openPrsSet)).toBeNull();
     expect(limitReachedOf(undefined, settings, limits.standard)).toBeNull();
   });

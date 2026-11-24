@@ -28,7 +28,7 @@ type Reader = { source: RequestSource; githubLogin: string };
 
 const NO_LIMITS: StartPageLimits = { openPrs: null, attempts: null };
 
-/** The limits a `LIMIT_REACHED` names, as the settings, the level's caps and the scheduler's count give them. */
+/** The limits a `LIMIT_REACHED` names, as the settings, the account's limits and the scheduler's count give them. */
 export async function limitsOf(reader: Reader): Promise<StartPageLimits> {
   try {
     const { contribute } = await graphqlDirect(StartPageLimitsDocument, undefined, reader);

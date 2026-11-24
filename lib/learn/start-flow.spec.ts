@@ -80,7 +80,7 @@ describe("Pick an issue's rows", () => {
     const goal = goalViewOfPick({ language: 'TypeScript', level: 1 });
     const list = learnIssuesOfPublic({ language: 'TypeScript', items, total: 40 }, goal);
     expect(list.items.map(({ issueId }) => issueId)).toEqual(['driftwood-js/driftwood#934', 'tidewave/tide#958']);
-    expect(list).toMatchObject({ goal, total: 2, empty: null, capReached: false, room: null });
+    expect(list).toMatchObject({ goal, total: 2, empty: null, room: null });
   });
 });
 

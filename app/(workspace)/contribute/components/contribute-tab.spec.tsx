@@ -147,8 +147,7 @@ describe('the Contribute tab', () => {
     expect(html).toContain('data-start-control');
   });
 
-  it("tells a new account its smaller limits, and leaves a held account's notice to the list", () => {
-    expect(render({ view: views.newAccount }).html).toContain('data-notice="new-account"');
+  it("leaves a held account's notice to the list", () => {
     expect(render({ view: views.suspended, page: null }).html).not.toContain('data-notice="suspended"');
   });
 

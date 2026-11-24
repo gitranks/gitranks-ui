@@ -172,7 +172,7 @@ export const LearnIssuesMaskedDocument = doc<{ learnIssues: LearnIssuesAnswer },
   learnIssues(first: $first) {
     goal { kind value level }
     items { ${LEARN_ISSUE} ${MASKED_PART} }
-    total empty capReached
+    total empty
     room { limit value }
   }
 }`,

@@ -40,7 +40,7 @@ export const StartPageCurrentDocument = doc<{ myLearnAttempts: { current: StartP
   'query StartPageCurrent { myLearnAttempts { current { attemptId repo issueNumber title } } }',
 );
 
-/** The limits a `LIMIT_REACHED` names: the settings, the level's caps, and what the open pull request limit counts. */
+/** The limits a `LIMIT_REACHED` names: the settings, the account's limits, and what the open pull request limit counts. */
 export const StartPageLimitsDocument = doc<{
   contribute: {
     contributor: {

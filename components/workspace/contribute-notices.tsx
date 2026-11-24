@@ -22,16 +22,6 @@ type NoticeCopy = {
 
 const untilText = (until: string | null, fallback: string) => (until ? `on ${dayLabel(until)}` : fallback);
 
-/** A limit in running text: the number in mono, "1 issue", "3 new claims". */
-function Count({ count, one, many = `${one}s` }: { count: number; one: string; many?: string }) {
-  return (
-    <>
-      <span className="font-mono tabular-nums text-foreground">{count.toLocaleString('en-US')}</span>{' '}
-      {count === 1 ? one : many}
-    </>
-  );
-}
-
 /** What each notice says, and where it sends the user. */
 export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
   switch (notice.kind) {
@@ -60,34 +50,6 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
         tone: 'warn',
         title: "Your workspace's spend limit is reached",
         text: `The Claude Console stopped this workspace at its monthly limit. Work starts again ${untilText(notice.until, 'when the limit resets on the 1st')}, or raise the limit in the Console.`,
-      };
-    case 'new-account':
-      return {
-        tone: 'info',
-        title: 'Smaller limits while your account is new',
-        text: (
-          <>
-            Contribute starts new accounts on smaller limits:{' '}
-            <Count count={notice.limits.attemptsAtATime} one="issue" /> at a time and{' '}
-            <Count count={notice.limits.claimsPerDay} one="new claim" /> a day. Every new account starts this way, to
-            keep automated accounts from claiming issues meant for people; it isn&apos;t a judgement of you. The limits
-            lift on their own as your account builds a track record.
-          </>
-        ),
-      };
-    case 'follow-through':
-      return {
-        tone: 'warn',
-        title: 'Your limits are lower for now',
-        text: (
-          <>
-            Most of your recent claims ran out without a pull request, and each one kept the issue from other
-            contributors. For now Contribute holds you to <Count count={notice.limits.attemptsAtATime} one="issue" /> at
-            a time and <Count count={notice.limits.claimsPerDay} one="new claim" /> a day. Release an issue you
-            won&apos;t finish instead of letting it run out; the limits come back as your claims turn into pull
-            requests.
-          </>
-        ),
       };
     case 'suspended':
       if (notice.fairUse) return fairUseBlockCopyOf(notice.fairUse.block);
@@ -184,17 +146,6 @@ export function NoticeLine({
   );
 }
 
-/** The limits a reduced access level holds the account to, in a line: `1 issue at a time · 3 new claims a day`. */
-function limitsFactOf(notice: ContributeNotice): ReactNode {
-  if (notice.kind !== 'new-account' && notice.kind !== 'follow-through') return null;
-  return (
-    <>
-      <Count count={notice.limits.attemptsAtATime} one="issue" /> at a time ·{' '}
-      <Count count={notice.limits.claimsPerDay} one="new claim" /> a day
-    </>
-  );
-}
-
 const ActionLink = ({ action }: { action: NonNullable<NoticeCopy['action']> }) => (
   <Link href={action.href} prefetch={false} className="text-sm font-semibold text-link">
     {action.label} →
@@ -240,7 +191,6 @@ export function ContributeNotices({
               tone={copy.tone}
               icon={copy.tone === 'warn'}
               title={copy.title}
-              fact={limitsFactOf(notice)}
               why={
                 <>
                   {copy.text}

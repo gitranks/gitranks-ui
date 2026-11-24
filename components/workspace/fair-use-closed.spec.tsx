@@ -97,7 +97,7 @@ describe('the answer page of a closed access', () => {
     expect(plain()).toContain('You can also write to us at hello@gitranks.com.');
   });
 
-  it('answers the other messages of the rules of today as before', async () => {
+  it('answers a message that does not close access with the answer form, not the request to look again', async () => {
     await render(<FairUseAnswerScreen notice={outsideFixNotice} />);
     expect(container.querySelector('[data-answer-form]')).not.toBeNull();
     expect(container.querySelector('[data-appeal-form]')).toBeNull();

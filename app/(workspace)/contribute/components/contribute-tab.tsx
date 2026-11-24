@@ -4,7 +4,6 @@ import { ContributeIssueList, IssuesTotalProvider, LiveIssuesCount } from './iss
 import { PicksDialog } from './picks-dialog';
 import type { IssuesQuery } from '@/app/contribute/components/issues-filter';
 import { IssuesFilters } from '@/app/contribute/components/issues-filters';
-import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { FairUseBanners } from '@/components/workspace/fair-use-banners';
 import { NumberTiles } from '@/components/workspace/number-tiles';
 import { HEADING } from '@/components/workspace/primitives';
@@ -20,7 +19,7 @@ import type {
   ContributeSet,
   ContributeView,
 } from '@/lib/workspace/contribute.types';
-import { accessNoticesOf, claudeKeyOf, isSuspended } from '@/lib/workspace/contribute-state';
+import { claudeKeyOf, isSuspended } from '@/lib/workspace/contribute-state';
 import { fairUseAnswerPathOf } from '@/lib/workspace/fair-use';
 import { MODELS, relativeLabel } from '@/lib/workspace/format';
 import type { ConnectedAgents } from '@/lib/workspace/issue-row';
@@ -83,8 +82,6 @@ export function ContributeTabScreen({
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-contribute-tab="">
       <FairUseBanners fairUse={fairUse} />
-      {/* The account's smaller limits; a held account is the list's own notice. */}
-      <ContributeNotices notices={accessNoticesOf(view).filter(({ kind }) => kind !== 'suspended')} />
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <h1 className={HEADING.page}>Contribute</h1>

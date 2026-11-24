@@ -170,15 +170,12 @@ describe('the Settings page (page 23)', () => {
     expect(html).not.toContain('data-row="dco"');
   });
 
-  it('says a limit set for the account, with no Edit, and a cap below the setting in words', () => {
+  it('says a limit set for the account, with no Edit', () => {
     const set = { ...views.active, contributor: contributor({ limits: limits.openPrsSet }) };
     const row = render({ view: set }).html;
     const open = row.slice(row.indexOf('data-row="open"'), row.indexOf('</li>', row.indexOf('data-row="open"')));
     expect(text(open)).toContain('Set for your account by GitRanks.');
     expect(open).not.toContain('href=');
-    expect(render({ view: views.newAccount }).plain).toContain(
-      'Attempts at a time 1 issue in work at once while your account is new',
-    );
   });
 
   it("says what you work on didn't load, and Learn's setup and emails that didn't", () => {

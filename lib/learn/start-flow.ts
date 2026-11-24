@@ -71,11 +71,11 @@ export const goalViewOfPick = (goal: LearnGoalPick): LearnGoalView => ({
 
 /**
  * A language's day list for visitors, as Learn's issue list takes it: each row keyed by its `owner/repo#n` (the list
- * names no issue id), no room or cap to note, and its own rows as the whole list (it grows only after sign-in).
+ * names no issue id), no room to note, and its own rows as the whole list (it grows only after sign-in).
  */
 export function learnIssuesOfPublic(list: LearnPublicIssues, goal: LearnGoalView): LearnIssues {
   const items = list.items.map((issue) => ({ ...issue, issueId: `${issue.repo}#${issue.number}` }));
-  return { goal, items, total: items.length, empty: null, capReached: false, room: null };
+  return { goal, items, total: items.length, empty: null, room: null };
 }
 
 /**

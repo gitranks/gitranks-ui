@@ -195,6 +195,8 @@ describe('My progress: the box "Days"', () => {
     expect(dayLabelOf(dayOf('2026-11-20', 2, 6), PROGRESS_TODAY)).toBe(
       'Friday 20 Nov: 2 lessons learned, 6 lessons repeated',
     );
+    // Active for something else (a merged fix, a walkthrough): words, never an empty colon or a zero.
+    expect(dayLabelOf(dayOf('2026-11-20', 0, 0), PROGRESS_TODAY)).toBe('Friday 20 Nov: active');
   });
 
   it('counts the days, since the first one only when the calendar holds every day counted', () => {

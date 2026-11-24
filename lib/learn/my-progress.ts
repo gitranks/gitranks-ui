@@ -264,9 +264,14 @@ export function dayDoneWordsOf(day: Pick<LearnDay, 'lessons' | 'reviews'>): stri
   return words;
 }
 
-/** A square's label for a screen reader: "Friday 20 Nov: 2 lessons learned, 6 lessons repeated". */
-export const dayLabelOf = (day: LearnDay, today: string) =>
-  `${dayTitleOf(day.day, today)}: ${dayDoneWordsOf(day).join(', ')}`;
+/**
+ * A square's label for a screen reader: "Friday 20 Nov: 2 lessons learned, 6 lessons repeated". A day active with no
+ * lesson and no review (a merged fix, a walkthrough, an agent's command; the day row does not say which) is "active".
+ */
+export const dayLabelOf = (day: LearnDay, today: string) => {
+  const words = dayDoneWordsOf(day);
+  return `${dayTitleOf(day.day, today)}: ${words.length ? words.join(', ') : 'active'}`;
+};
 
 /** The line under the calendar: the days with something done, since the first one when the calendar holds it. */
 export type DaysLine = { kind: 'none' } | { kind: 'first' } | { kind: 'days'; count: number; since: string | null };

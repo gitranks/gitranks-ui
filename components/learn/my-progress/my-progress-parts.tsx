@@ -195,7 +195,8 @@ function DaySquare({
         )}
       >
         <span className="text-xs text-muted-foreground">{dayTitleOf(day.day, today)}</span>
-        {dayDoneWordsOf(day).map((words) => (
+        {/* A day active with no lesson and no review says so, never a bare date. */}
+        {(dayDoneWordsOf(day).length ? dayDoneWordsOf(day) : ['Active']).map((words) => (
           <span key={words} className="text-sm text-foreground">
             {words}
           </span>

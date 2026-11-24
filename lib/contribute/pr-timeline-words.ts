@@ -163,8 +163,11 @@ export function milestoneWordsOf(row: PrTimelineMilestone, timeline: PrTimeline)
       return { ...base, title: 'Reopened' };
     case 'MERGED':
       return { ...base, title: 'Merged' };
-    default:
+    default: {
+      // Every kind this page knows is worded above; a kind the API added since still reaches here at run time.
+      row.kind satisfies never;
       return { ...base, title: PLAIN_ROW_TITLE };
+    }
   }
 }
 

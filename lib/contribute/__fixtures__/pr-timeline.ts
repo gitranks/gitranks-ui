@@ -76,7 +76,7 @@ const REVIEW: PrTimelineMilestone[] = [
   }),
 ];
 
-/** Merged after one review round: the canvas's approved board. */
+/** Merged after one review round, as the approved design draws it. */
 export const mergedTimeline: PrTimeline = {
   attemptId: '6728f0c2a1b2c3d4e5f60718',
   nameWithOwner: 'driftwood-js/driftwood',

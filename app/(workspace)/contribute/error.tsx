@@ -1,24 +1,4 @@
 'use client';
 
-import Link from 'next/link';
-
-import { Button } from '@/components/ui/button';
-import { HEADING } from '@/components/workspace/primitives';
-
 /** A Contribute page that could not load its data: an outage, never "not found". */
-export default function ContributeError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col items-start gap-3 px-4 pt-12 pb-16">
-      <h1 className={HEADING.page}>Contribute did not load</h1>
-      <p className="text-muted-foreground">Your data is safe; we could not read it just now. Try again in a minute.</p>
-      <div className="flex flex-wrap items-center gap-4">
-        <Button type="button" onClick={reset} className="min-h-11 px-5 font-semibold">
-          Try again
-        </Button>
-        <Link href="/" prefetch={false} className="text-sm font-semibold text-link">
-          Back to GitRanks
-        </Link>
-      </div>
-    </main>
-  );
-}
+export { ContributeError as default } from '@/components/workspace/try-again';

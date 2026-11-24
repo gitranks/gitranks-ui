@@ -100,8 +100,9 @@ export async function POST(request: NextRequest) {
   }
 
   // `expire: 0`: the next read gets the new data, never the stale copy served while a fresh one is made.
-  for (const tag of new Set(tags.map(expiredTagOf))) {
+  const expired = new Set(tags.map(expiredTagOf));
+  for (const tag of expired) {
     revalidateTag(tag, { expire: 0 });
   }
-  return NextResponse.json({ expired: tags.length }, { headers: NO_STORE });
+  return NextResponse.json({ expired: expired.size }, { headers: NO_STORE });
 }

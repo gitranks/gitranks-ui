@@ -3,11 +3,15 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/components/workspace/origin-header', () => ({ OriginHeader: () => null }));
+vi.mock('@/components/workspace/my-gate', () => ({ MyGate: () => null }));
 
-const { default: PlayerMyLayout } = await import('./layout');
+const { default: PlayerMyLayout, metadata } = await import('./layout');
 const { default: PlayerLearnLayout } = await import('../learn/layout');
 const { Header } = await import('@/components/header/header');
 const { OriginHeader } = await import('@/components/workspace/origin-header');
+const { MyGate } = await import('@/components/workspace/my-gate');
+const { default: playerMyError } = await import('./error');
+const { SharedPageError } = await import('@/components/workspace/try-again');
 
 type Parts = ReactElement<{ children: ReactNode[] }>;
 const partsOf = (layout: ReactElement) => (layout as Parts).props.children;
@@ -20,7 +24,14 @@ describe("the player's layouts", () => {
     expect(fallback.type).toBe(Header);
     expect(fallback.props).toEqual({});
     expect(children.type).toBe(OriginHeader);
-    expect(page).toEqual(<main />);
+    // The page behind the gate every page under /my has.
+    expect(isValidElement(page) && page.type).toBe(MyGate);
+    expect((page as ReactElement<{ children: ReactNode }>).props.children).toEqual(<main />);
+  });
+
+  it('under /my: never indexed, and a "try again" that names neither product', () => {
+    expect(metadata).toEqual({ robots: { index: false, follow: false } });
+    expect(playerMyError).toBe(SharedPageError);
   });
 
   it("Learn's review and check: the header with Learn marked, as before", () => {

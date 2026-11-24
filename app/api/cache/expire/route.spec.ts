@@ -82,6 +82,8 @@ describe('POST /api/cache/expire', () => {
     });
 
     expect(response.status).toBe(200);
+    // Two spellings of one project are one tag: the count is of the tags expired.
+    expect(await response.json()).toEqual({ expired: 2 });
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual([
       'package:pypi/zope-interface',
       'package:pypi/requests',
@@ -142,6 +144,7 @@ describe('POST /api/cache/expire', () => {
     });
 
     expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ expired: 1 });
     expect(revalidateTag.mock.calls).toEqual([['learn:fix:octo-labs/scroll_guard#7', { expire: 0 }]]);
   });
 

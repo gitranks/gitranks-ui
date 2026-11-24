@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import { CONTACT_EMAIL } from '@/lib/legal';
+import { ATTEMPT_ID, GITHUB_LOGIN } from '@/lib/workspace/paths';
 import { type PrRef, parsePrLink } from '@/lib/workspace/pr-feedback';
 
 /**
@@ -184,6 +185,82 @@ export function learnFixPath({ nameWithOwner, number }: PrRef): Route {
   const [owner = '', name = ''] = nameWithOwner.split('/');
   return `/learn/fixes/${repoSegments({ owner, name })}/${number}` as Route;
 }
+
+/** A fix's walkthrough, public once its pull request is open: `/learn/fixes/<owner>/<repo>/<number>/walkthrough`. */
+export const learnFixWalkthroughPath = (pr: PrRef) => `${learnFixPath(pr)}/walkthrough` as Route;
+
+/** A person's answers to a fix's walkthrough: `…/walkthrough/by/<login>`. */
+export const learnFixAnswersPath = (pr: PrRef, login: string) =>
+  `${learnFixWalkthroughPath(pr)}/by/${encodeURIComponent(login)}` as Route;
+
+/**
+ * The fixer's answers by the attempt that made the fix, the link a Learn pull request's footer gives (it is written
+ * before the pull request has a number): a route that only redirects to the answers page once the pull request is open.
+ */
+export const learnFixAnswersByAttemptPath = (attemptId: string) =>
+  `/learn/fixes/by-attempt/${encodeURIComponent(attemptId)}/answers` as Route;
+
+/**
+ * Where the proxy shows a fix whose page was removed, with its status: `_removed` is no GitHub owner's shape, so no
+ * fix is ever under it.
+ */
+export function learnFixRemovedPath({ nameWithOwner, number }: PrRef): Route {
+  const [owner = '', name = ''] = nameWithOwner.split('/');
+  return `/learn/fixes/_removed/${repoSegments({ owner, name })}/${number}` as Route;
+}
+
+/**
+ * Where the browser reads the signed-in person's side of a fix; with `answersOf`, the login of an answers page, their
+ * own answers too, which the route reads only when that login is the person's own.
+ */
+export function learnFixMinePath({ nameWithOwner, number }: PrRef, { answersOf }: { answersOf?: string } = {}): string {
+  const [owner = '', name = ''] = nameWithOwner.split('/');
+  const query = answersOf ? `?${new URLSearchParams({ answers: answersOf })}` : '';
+  return `/api/me/learn/fixes/${repoSegments({ owner, name })}/${number}${query}`;
+}
+
+const FIX_PAGE = /^\/learn\/fixes\/([^/]+)\/([^/]+)\/([^/]+)\/walkthrough(?:\/by\/([^/]+))?\/?$/;
+const FIX_LOGIN = new RegExp(`^${GITHUB_LOGIN}$`);
+const BY_ATTEMPT_PAGE = /^\/learn\/fixes\/by-attempt\/([^/]+)\/answers\/?$/;
+const REMOVED_PAGE = /^\/learn\/fixes\/_removed(?:\/|$)/;
+
+/** A fix's walkthrough or a person's answers, as the proxy's gate asks about them. */
+export type LearnFixRoute = { pr: PrRef; login: string | null };
+
+/**
+ * The fix a walkthrough's or an answers page's address names, for the proxy's gate: `/learn/fixes/<owner>/<repo>/
+ * <number>/walkthrough` and `…/by/<login>`, a trailing slash allowed. `invalid` for an address of that shape that
+ * cannot name a pull request (`057`, `x1`) or a login (the proxy answers the 404 itself, never the page's 200); null
+ * for any other path.
+ */
+export function learnFixRouteOf(pathname: string): LearnFixRoute | 'invalid' | null {
+  const match = FIX_PAGE.exec(pathname);
+  if (!match) return null;
+  const [, owner, repo, number, login] = match;
+  let decoded: string[];
+  try {
+    decoded = [owner, repo, login ?? ''].map(decodeURIComponent);
+  } catch {
+    return 'invalid';
+  }
+  const pr = parsePrLink(`${decoded[0]}/${decoded[1]}#${number}`);
+  if (!pr || String(pr.number) !== number) return 'invalid';
+  if (login !== undefined && !FIX_LOGIN.test(decoded[2])) return 'invalid';
+  return { pr, login: login === undefined ? null : decoded[2] };
+}
+
+/**
+ * The attempt of the footer's address, `/learn/fixes/by-attempt/<id>/answers`; `invalid` for that shape with an id
+ * of no attempt's shape, null for any other path.
+ */
+export function learnFixByAttemptOf(pathname: string): { attemptId: string } | 'invalid' | null {
+  const match = BY_ATTEMPT_PAGE.exec(pathname);
+  if (!match) return null;
+  return ATTEMPT_ID.test(match[1]) ? { attemptId: match[1] } : 'invalid';
+}
+
+/** Whether a path is under the removed fixes' page, which only the proxy's own rewrite may show. */
+export const isLearnFixRemovedPath = (pathname: string) => REMOVED_PAGE.test(pathname);
 
 /** "Report a mistake" on a lesson: an email to us, its subject naming the lesson. */
 export const lessonMistakeHref = (title: string) =>

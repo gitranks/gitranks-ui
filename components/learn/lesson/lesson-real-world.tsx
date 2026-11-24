@@ -2,14 +2,14 @@
 
 import type { Route } from 'next';
 import Link from 'next/link';
-import { type ReactNode, Suspense, use, useRef, useState } from 'react';
+import { type ReactNode, Suspense, use, useLayoutEffect, useRef, useState } from 'react';
 
 import { FixCard } from '@/components/learn/issues/issues-parts';
 import { PHONE_LINK } from '@/components/learn/phone-link';
 import { Button } from '@/components/ui/button';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
 import { RefChips } from '@/components/workspace/ref-chips';
-import { type IssuesRow, type LearnFixes, type LearnFixRow, rowsAfterSkip } from '@/lib/learn/issues';
+import { type IssuesRow, type LearnFixes, rowsAfterSkip } from '@/lib/learn/issues';
 import {
   allFixesWordsOf,
   LESSON_FIXES_SHOWN,
@@ -26,15 +26,17 @@ import { cn } from '@/lib/utils';
 import { NO_MASKED_READS } from '@/lib/workspace/masked-issue';
 
 /*
- * "In the real world" under a lesson (page 15): the merged fixes that used it and, for a signed-in person, the masked
- * rows of their list for it; with a fix of their own that uses it, that fix comes first, with its address. Left out
- * whole while nothing of it is answered (an API that does not know it yet), so the page is as it was.
+ * "In the real world", the last part of a lesson's page (page 15): the merged fixes that used the lesson, then, for a
+ * signed-in person, their own fix that uses it or else the masked rows of their list for it. The parts stack in that
+ * order, one under another, and a part with nothing in it is not drawn: the fixes come with the page and the person's
+ * parts arrive later under them, so nothing already drawn moves or changes width. With nothing at all, no section.
  */
 
 const H3 = 'm-0 text-xs font-semibold tracking-wider text-muted-foreground uppercase';
 const LIST = 'm-0 list-none divide-y overflow-hidden rounded-xl border bg-card p-0';
+const LINK = cn('self-start text-sm font-semibold text-link hover:underline', PHONE_LINK);
 
-function Column({ title, kind, children }: { title: string; kind: string; children: ReactNode }) {
+function Part({ title, kind, children }: { title: string; kind: string; children: ReactNode }) {
   return (
     <section className="flex min-w-0 flex-col gap-3" data-real-column={kind}>
       <h3 className={H3}>{title}</h3>
@@ -43,21 +45,25 @@ function Column({ title, kind, children }: { title: string; kind: string; childr
   );
 }
 
-const Empty = ({ children }: { children: ReactNode }) => (
-  <p className="m-0 rounded-xl border border-dashed p-4 text-sm text-muted-foreground">{children}</p>
-);
-
-/** The merged fixes, three at most, each as Issues draws it; or why there are none. */
-function FixesList({ rows }: { rows: readonly LearnFixRow[] }) {
-  if (!rows.length) return <Empty>{REAL_WORLD_WORDS.fixesNone}</Empty>;
+/** The merged fixes, three at most, each as Issues draws it, and the link to all of them while more are there. */
+function FixesPart({ slug, fixes }: { slug: string; fixes: LearnFixes }) {
+  const shown = fixes.rows.slice(0, LESSON_FIXES_SHOWN);
+  const all = allFixesWordsOf(fixes.total, shown.length);
   return (
-    <ul className="m-0 flex list-none flex-col gap-2 p-0">
-      {rows.slice(0, LESSON_FIXES_SHOWN).map((fix) => (
-        <li key={`${fix.repo}#${fix.number}`} className="flex">
-          <FixCard fix={fix} compact />
-        </li>
-      ))}
-    </ul>
+    <Part title={REAL_WORLD_WORDS.fixes} kind="fixes">
+      <ul className="m-0 flex list-none flex-col gap-2 p-0">
+        {shown.map((fix) => (
+          <li key={`${fix.repo}#${fix.number}`} className="flex">
+            <FixCard fix={fix} compact />
+          </li>
+        ))}
+      </ul>
+      {all ? (
+        <Link href={lessonFixesPathOf(slug)} prefetch={false} className={LINK} data-real-all-fixes="">
+          {all}
+        </Link>
+      ) : null}
+    </Part>
   );
 }
 
@@ -94,21 +100,36 @@ function YourFix({ fix }: { fix: LearnMyFix }) {
 }
 
 /**
- * The person's issues for the lesson, masked, three at most. A skip's place takes the next row of their list for the
- * lesson that is not on the screen and not skipped; with none, the skipped row leaves. The skip's own next issue is
- * never taken: it comes from the whole list and may be for another lesson.
+ * The person's issues for the lesson, masked, three at most, with the link to the lesson's open issues. A skip's place
+ * takes the next row of their list for the lesson that is not on the screen and not skipped; with none, the skipped
+ * row leaves. The skip's own next issue is never taken: it comes from the whole list and may be for another lesson.
+ * When the last row leaves, the part goes, and tells the section before the browser paints (`onEmpty`).
  */
-function IssueRows({ rows: given, reads }: { rows: readonly IssuesRow[]; reads: LessonRealMine['reads'] }) {
+function IssuesPart({
+  slug,
+  rows: given,
+  reads,
+  onEmpty,
+}: {
+  slug: string;
+  rows: readonly IssuesRow[];
+  reads: LessonRealMine['reads'];
+  onEmpty: () => void;
+}) {
   const [rows, setRows] = useState(() => given.slice(0, LESSON_ISSUES_SHOWN));
   const skipped = useRef(new Set<string>());
-  if (!rows.length) return <Empty>{REAL_WORLD_WORDS.issuesNone}</Empty>;
+  const empty = rows.length === 0;
+  useLayoutEffect(() => {
+    if (empty) onEmpty();
+  }, [empty, onEmpty]);
+  if (empty) return null;
   const leave = (id: string) => setRows((was) => was.filter((row) => row.issue.id !== id));
   const replace = (id: string) => {
     skipped.current.add(id);
     setRows((was) => rowsAfterSkip(was, id, given, { leftOut: skipped.current }));
   };
   return (
-    <>
+    <Part title={REAL_WORLD_WORDS.issues} kind="issues">
       <MaskedList from="learn" pageFrom="learn" reads={reads ?? NO_MASKED_READS} foot={false}>
         <ul className={LIST}>
           {rows.map((row) => (
@@ -124,7 +145,10 @@ function IssueRows({ rows: given, reads }: { rows: readonly IssuesRow[]; reads: 
         </ul>
       </MaskedList>
       <p className="m-0 text-xs text-muted-foreground">{REAL_WORLD_WORDS.issuesNote}</p>
-    </>
+      <Link href={lessonIssuesPathOf(slug) as Route} prefetch={false} className={LINK} data-real-issues-link="">
+        {REAL_WORLD_WORDS.issuesLink}
+      </Link>
+    </Part>
   );
 }
 
@@ -136,63 +160,43 @@ export type LessonRealWorldProps = {
   mine: LessonRealMine | null;
 };
 
-/** "In the real world", or nothing while none of it is answered. */
+/**
+ * "In the real world" with the parts that have something in them, in their order: the merged fixes, then the person's
+ * own fix or else their issues for the lesson. Nothing when no part has anything.
+ */
 export function LessonRealWorld({ slug, fixes: shared, mine }: LessonRealWorldProps) {
   const fixes = shared ?? mine?.fixes ?? null;
   const fix = mine?.real?.fix ?? null;
   const rows = mine?.rows ?? null;
-  if (!fixes && !fix && !rows) return null;
-  const others =
-    fixes && fix ? fixes.rows.filter((row) => !(row.repo === fix.repo && row.issueNumber === fix.issueNumber)) : null;
-  const allFixes = fixes ? allFixesWordsOf(fixes.total, Math.min(fixes.rows.length, LESSON_FIXES_SHOWN)) : null;
-  const columns: ReactNode[] = [];
+  // The list of the person's rows whose last row has left; a new list starts again.
+  const rowsKey = rows ? rows.map((row) => row.issue.id).join() : '';
+  const [emptied, setEmptied] = useState<string | null>(null);
+  const parts: ReactNode[] = [];
+  if (fixes?.rows.length) parts.push(<FixesPart key="fixes" slug={slug} fixes={fixes} />);
   if (fix) {
-    columns.push(
-      <Column key="mine" title={REAL_WORLD_WORDS.yourFix} kind="mine">
+    parts.push(
+      <Part key="mine" title={REAL_WORLD_WORDS.yourFix} kind="mine">
         <YourFix fix={fix} />
-      </Column>,
+      </Part>,
     );
-    // The person's own fix the only one: no column of other people's, which would say none used the idea.
-    if (others?.length) {
-      columns.push(
-        <Column key="others" title={REAL_WORLD_WORDS.otherFixes} kind="others">
-          <FixesList rows={others} />
-        </Column>,
-      );
-    }
-  } else {
-    if (fixes) {
-      columns.push(
-        <Column key="fixes" title={REAL_WORLD_WORDS.fixes} kind="fixes">
-          <FixesList rows={fixes.rows} />
-        </Column>,
-      );
-    }
-    if (rows) {
-      columns.push(
-        <Column key="issues" title={REAL_WORLD_WORDS.issues} kind="issues">
-          <IssueRows key={rows.map((row) => row.issue.id).join()} rows={rows} reads={mine?.reads ?? null} />
-        </Column>,
-      );
-    }
+  } else if (rows?.length && emptied !== rowsKey) {
+    parts.push(
+      <IssuesPart
+        key={rowsKey}
+        slug={slug}
+        rows={rows}
+        reads={mine?.reads ?? null}
+        onEmpty={() => setEmptied(rowsKey)}
+      />,
+    );
   }
-  const link = cn('text-sm font-semibold text-link hover:underline', PHONE_LINK);
+  if (!parts.length) return null;
   return (
-    <section className="flex flex-col gap-4" aria-labelledby="real-world-title" data-lesson-real-world="">
+    <section className="flex flex-col gap-6" aria-labelledby="real-world-title" data-lesson-real-world="">
       <h2 id="real-world-title" className="m-0 text-xl font-semibold">
         {REAL_WORLD_WORDS.title}
       </h2>
-      <div className={cn('grid gap-6', columns.length > 1 && 'md:grid-cols-2')}>{columns}</div>
-      <p className="m-0 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {allFixes ? (
-          <Link href={lessonFixesPathOf(slug)} prefetch={false} className={link} data-real-all-fixes="">
-            {allFixes}
-          </Link>
-        ) : null}
-        <Link href={lessonIssuesPathOf(slug) as Route} prefetch={false} className={link} data-real-issues-link="">
-          {REAL_WORLD_WORDS.issuesLink}
-        </Link>
-      </p>
+      {parts}
     </section>
   );
 }

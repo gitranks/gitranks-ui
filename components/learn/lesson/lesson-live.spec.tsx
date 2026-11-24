@@ -321,7 +321,8 @@ describe('"In the real world" under a lesson', () => {
     expect($('[data-real-all-fixes]')!.getAttribute('href')).toBe(
       `/learn/lessons/${setLesson.slug}/real-world?fixed=1`,
     );
-    expect($('[data-real-issues-link]')!.getAttribute('href')).toBe(`/learn/lessons/${setLesson.slug}/real-world`);
+    // A visitor has no issues part, so no link to the lesson's open issues either.
+    expect($('[data-real-issues-link]')).toBeNull();
     // Each fix opens its own page, "Learn from it".
     expect(section()!.querySelector('a[href="/learn/fixes/harbor-kit/relay/418"]')).not.toBeNull();
   });
@@ -397,7 +398,7 @@ describe('"In the real world" under a lesson', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("puts the person's own fix first, with its address, and never offers another issue", async () => {
+  it("puts the person's own fix under the merged fixes, with its address, and never offers another issue", async () => {
     signedIn();
     routes(mineLearned, setDepths, lessonRealWithFix);
     await draw();
@@ -406,8 +407,10 @@ describe('"In the real world" under a lesson', () => {
     expect(mine.querySelector('[data-real-my-fix-open]')!.getAttribute('href')).toBe(
       '/my/pull-requests/harbor-kit/relay/431?from=learn',
     );
-    expect($('[data-real-column="others"]')).not.toBeNull();
-    expect($('[data-real-column="issues"]')).toBeNull();
+    const parts = [...section()!.querySelectorAll('[data-real-column]')].map((part) =>
+      part.getAttribute('data-real-column'),
+    );
+    expect(parts).toEqual(['fixes', 'mine']);
     expect(fixButton()).toBeNull();
   });
 });

@@ -116,7 +116,7 @@ describe('Settings, what to work on', () => {
     const row = summary(stackSet());
     expect(row).not.toContain('aria-label="Where your issues come from"');
     expect(row).not.toContain('data-list="SOURCES"');
-    expect(text(row)).toContain('What you work on Support my stack · Rust · Bugs · any size Edit');
+    expect(text(row)).toContain('What you work on Support my stack · Rust Edit');
     expect(row).toContain('href="/my/settings/work"');
   });
 
@@ -127,13 +127,13 @@ describe('Settings, what to work on', () => {
     // The list is on the page itself: no row that opens it.
     expect(html).not.toContain('data-list-row="STACK"');
     expect(html).toContain('data-list="SOURCES"');
-    expect(plain).toContain('Filters Rust · Bugs · any size');
-    expect(html).toContain('aria-label="Edit filters"');
+    expect(plain).toContain('Languages Rust');
+    expect(html).toContain('aria-label="Edit languages"');
     expect(plain).toContain('Ignored repos 3 repos never picked, in any mode');
     expect(html).toContain('aria-label="Manage ignored repos"');
     expect(plain).toContain('How we pick repos');
     expect(text(summary(smallReposSet()))).toContain('What you work on Support these repos ·');
-    expect(text(summary(stackSet({ mode: 'ALL' })))).toContain('What you work on Rust · Bugs · any size');
+    expect(text(summary(stackSet({ mode: 'ALL' })))).toContain('What you work on Rust');
   });
 
   it('opens the list on its own page, with the libraries and what happens when they have nothing ready', () => {
@@ -155,7 +155,7 @@ describe('Settings, what to work on', () => {
     );
     expect(failed).toContain("Your lists didn't load. Reload the page to try again");
 
-    expect(failed).toContain('Filters Rust · Bugs · any size');
+    expect(failed).toContain('Languages Rust');
     const html = summary(undefined, true);
     expect(text(html)).toContain("Your lists didn't load. Reload the page to try again");
     // The rest of Settings is there as usual.
@@ -169,6 +169,10 @@ describe('Settings, what to work on', () => {
     expect(plain).toContain("Your stack's sources");
     expect(html).toContain('data-count="3"');
     expect(plain).toContain('3 / 50 repos');
+    // An empty list says its cap in words, never "0 / 50".
+    const empty = text(settings(stackSet({ stack: { ...stackSet().stack, sources: [], count: 0 } })));
+    expect(empty).toContain('Up to 50 repos');
+    expect(empty).not.toContain('0 / 50');
     expect(html).toContain('data-group="@me"');
     expect(html).toContain('data-group="acme-corp"');
     expect(rowOf(html, 'octocat/site')).toContain('Reading');
@@ -259,7 +263,19 @@ describe('Settings, what to work on', () => {
     expect(plain).not.toContain('At least one PR from outside the team merged in 90 days');
     expect(plain).toContain('A dependency file GitHub can read');
     expect(plain).toContain('A commit in the last 12 months');
-    expect(plain).toContain('we check every repo for new issues every 12 hours');
+    // The lists' caps come from the set, never typed by hand; unknown, the line leaves them out.
+    expect(plain).toContain('We check every repo for new issues every 12 hours.');
+    expect(plain).not.toContain('50');
+    const known = text(renderToStaticMarkup(<RulesContent limits={{ sources: 40, repos: 40 }} />));
+    expect(known).toContain('Lists hold up to 40 repos each, and we check every repo for new issues every 12 hours.');
+    const apart = text(renderToStaticMarkup(<RulesContent limits={{ sources: 30, repos: 60 }} />));
+    expect(apart).toContain("Your stack's sources hold up to 30 repos, and the repos you support up to 60, and we");
+  });
+
+  it('counts an empty ignore list in words, never as a zero', () => {
+    const html = renderToStaticMarkup(<IgnoredList set={stackSet({ ignore: [] })} write={noWrite} />);
+    expect(text(html)).toContain('Up to ');
+    expect(html).not.toMatch(/>0<\/span>/);
   });
 
   it('lists the ignored repos with Unignore, and turns Ignore off when the list is full', () => {
@@ -287,7 +303,7 @@ describe('Settings, what to work on', () => {
       expect(html).not.toContain('aria-label="Where your issues come from"');
       expect(plain).not.toContain('How we pick repos');
       expect(plain).not.toContain('Ignored repos');
-      expect(plain).toContain('What you work on Rust · Bugs · any size');
+      expect(plain).toContain('What you work on Rust');
     }
   });
 });

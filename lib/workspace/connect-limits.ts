@@ -6,7 +6,7 @@ import type {
   ContributePreferences,
   ContributeSettings,
 } from './contribute.types';
-import { KINDS, LANGUAGES, MODELS, ordinalDay, parseAmount, planOf, SIZES, usd } from './format';
+import { LANGUAGES, MODELS, ordinalDay, parseAmount, planOf, usd } from './format';
 
 /**
  * What a first key starts from, as the API sets it: the connect sends only what the user changed, so these describe
@@ -223,15 +223,6 @@ const PICKED_PACE: Record<ContributePace, string> = {
   FAST: 'as fast as the caps allow',
 };
 
-function pickedIssuesOf(preferences: ContributePreferences | null | undefined): string {
-  const kinds = preferences?.kinds.length
-    ? preferences.kinds.map((kind) => KINDS[kind].toLowerCase()).join(', ')
-    : null;
-  const size = preferences?.maxSize ? `up to ${SIZES[preferences.maxSize].toLowerCase()}` : null;
-  if (!kinds && !size) return 'every kind and size';
-  return `${kinds ?? 'every kind'}${size ? `, ${size}` : ''}`;
-}
-
 /**
  * "The limits we apply", as the connect will leave them. A first key gets the defaults under the plan's allowance or
  * the user's own numbers. A key connected before keeps its stored settings (`stored`): on the same plan its monthly
@@ -300,7 +291,6 @@ export function appliedLimitsOf(
       },
     ],
     picked: [
-      { label: 'Issues', value: pickedIssuesOf(stored?.preferences) },
       {
         label: 'Languages',
         value: languages.length

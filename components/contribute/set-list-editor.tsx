@@ -119,7 +119,13 @@ export function SetListEditor({
           </p>
         </div>
         <span className="font-mono text-xs text-muted-foreground" data-count={count}>
-          <span className={cn('text-foreground', count >= cap && 'font-medium')}>{count}</span> / {cap} repos
+          {count ? (
+            <>
+              <span className={cn('text-foreground', count >= cap && 'font-medium')}>{count}</span> / {cap} repos
+            </>
+          ) : (
+            `Up to ${cap} repos`
+          )}
         </span>
       </div>
       {nearFull ? <Meter value={count} max={cap} label={`${count} of ${cap} repos on the list`} /> : null}
@@ -138,7 +144,7 @@ export function SetListEditor({
             value={input}
             maxLength={ADD_INPUT_MAX}
             onChange={(event) => setInput(event.target.value)}
-            placeholder="Add a repo, a user or an org — vercel, facebook/react, github.com/…"
+            placeholder="Add a repo, a user or an org: vercel, facebook/react, github.com/…"
             autoComplete="off"
             spellCheck={false}
             className="h-10 pl-9"
@@ -208,7 +214,7 @@ export function SetListEditor({
         {list === 'SOURCES'
           ? `A user or org adds its public repos that pass the source rules, most stars first, up to ${cap}. `
           : `A user or org adds its repos that pass the rules, most stars first, up to ${cap}. We check every repo for new issues every 12 hours. `}
-        <RulesDialog onFeedback={() => onFeedback({ topic: 'GATES', context: { mode } })} />
+        <RulesDialog onFeedback={() => onFeedback({ topic: 'GATES', context: { mode } })} limits={set.limits} />
       </p>
     </div>
   );

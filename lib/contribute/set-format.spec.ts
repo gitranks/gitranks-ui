@@ -237,7 +237,7 @@ describe('the modes', () => {
     expect(modeSummaryOf(stackSet(), 'STACK')).toBe('50 libraries from 3 repos');
     expect(modeSummaryOf(stackSet(), 'REPOS')).toBe('No repos added yet');
     expect(modeSummaryOf(fullReposSet(), 'REPOS')).toBe('50 repos saved');
-    expect(modeSummaryOf(stackSet(), 'ALL')).toBe('~300 projects we picked');
+    expect(modeSummaryOf(stackSet(), 'ALL')).toBe('Projects we picked');
   });
 
   it('splits the feed by tier only in a mode with a list, and only once tiers are answered', () => {

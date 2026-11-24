@@ -2,13 +2,12 @@ import { effectiveSettingOf } from './access-limits';
 import type {
   ContributeCredential,
   ContributeGrant,
-  ContributeIssueSize,
   ContributeLimits,
   ContributeSettings,
   ContributeSpend,
   ContributeView,
 } from './contribute.types';
-import { dayLabel, EFFORTS, MODELS, maskedKey, ordinalDay, plural, SIZES, usd } from './format';
+import { dayLabel, EFFORTS, MODELS, maskedKey, ordinalDay, plural, usd } from './format';
 
 /** What we say of the Claude key's state, after its last 4. */
 export const KEY_STATES: Record<ContributeCredential['state'], string> = {
@@ -17,10 +16,6 @@ export const KEY_STATES: Record<ContributeCredential['state'], string> = {
   EXHAUSTED: 'credits used up',
   LIMIT_REACHED: 'workspace limit reached',
 };
-
-/** The largest size's label, "Any size" for none. */
-export const sizeLabelOf = (size: ContributeIssueSize | null) =>
-  size ? `Up to ${SIZES[size].toLowerCase()}` : 'Any size';
 
 /**
  * The Budget and pacing row: "$63.40 of $200 used this cycle · renews Nov 14 · up to $5 an attempt" (before any spend,
@@ -43,7 +38,7 @@ export const modelSummaryOf = (settings: ContributeSettings) =>
 
 /**
  * Settings' Open pull requests at a time row: "Up to 8 · 3 open now", the limit that holds (a limit set for the account
- * included) and, when known, how many count against it now.
+ * included) and, when known and not none, how many count against it now.
  */
 export function openPrsSummaryOf(
   settings: ContributeSettings,
@@ -51,7 +46,7 @@ export function openPrsSummaryOf(
   open?: number,
 ): string {
   const limit = effectiveSettingOf(settings, limits, 'openPrsAtATime');
-  const now = typeof open === 'number' ? ` · ${open} open now` : '';
+  const now = typeof open === 'number' && open > 0 ? ` · ${open} open now` : '';
   return `Up to ${limit}${now}`;
 }
 

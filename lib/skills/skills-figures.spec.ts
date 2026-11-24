@@ -8,10 +8,8 @@ import {
   hasSomething,
   listWords,
   monthOf,
-  numbersFor,
   shownFigures,
   sinceLineOf,
-  withoutLearnOf,
 } from './skills-figures';
 
 const figure = (key: SkillsFigure['key'], value: number | null, extra: Partial<SkillsFigure> = {}): SkillsFigure => ({
@@ -144,28 +142,6 @@ describe('sinceLineOf', () => {
     expect(sinceLineOf({ ...contributorNumbers, since: '' })[2]).toBe(
       ': fixes in Go, Python and TypeScript, in real open-source projects.',
     );
-  });
-});
-
-describe('withoutLearnOf and numbersFor', () => {
-  it('leaves Learn’s figures and the days that count lessons out, and reads the rest as Contribute’s', () => {
-    const both = withoutLearnOf(bothNumbers);
-    expect(both.kind).toBe('CONTRIBUTOR');
-    expect(both.figures.map((one) => one.key)).toEqual(['FIXES_MERGED']);
-    expect(both.blockFigures.map((one) => one.key)).toEqual(['FIXES_MERGED']);
-    expect(both.courses).toBe(0);
-    expect(both.made).toEqual(['CONTRIBUTE']);
-    expect(sinceLineOf(both)[1]).toEqual({ product: 'CONTRIBUTE' });
-  });
-
-  it('keeps a contributor’s days, and no figure of a learner', () => {
-    expect(withoutLearnOf(contributorNumbers).figures).toEqual(contributorNumbers.figures);
-    expect(withoutLearnOf(learnerNumbers).figures).toEqual([]);
-    expect(withoutLearnOf(learnerNumbers).blockFigures).toEqual([]);
-  });
-
-  it('changes nothing while Learn is open', () => {
-    expect(numbersFor(bothNumbers, true)).toBe(bothNumbers);
   });
 });
 

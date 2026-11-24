@@ -28,8 +28,7 @@ const unavailable = () =>
   text('This picture cannot be drawn right now. Try again in a minute.', 503, { 'Retry-After': '60' });
 
 /** A fix's picture drawn as a PNG. */
-export const drawFixCard = (fix: LearnFixCard, learnOpen: boolean) =>
-  drawSocialCard(<FixShareCard fix={fix} learnOpen={learnOpen} />);
+export const drawFixCard = (fix: LearnFixCard) => drawSocialCard(<FixShareCard fix={fix} />);
 
 /**
  * `/contribute/pr/<owner>/<repo>/<number>/card.png`: a merged or open fix's picture, drawn under exactly the address
@@ -41,25 +40,25 @@ export async function fixCardResponse(
   pr: PrRef | null,
   path: string,
   search: string,
-  read: (pr: PrRef) => Promise<FixCardRead & { learnOpen: boolean }>,
-  draw: (fix: LearnFixCard, learnOpen: boolean) => Promise<Uint8Array<ArrayBuffer>> = drawFixCard,
+  read: (pr: PrRef) => Promise<FixCardRead>,
+  draw: (fix: LearnFixCard) => Promise<Uint8Array<ArrayBuffer>> = drawFixCard,
 ): Promise<Response> {
   if (!pr) return text('Not found', 404);
-  let found: FixCardRead & { learnOpen: boolean };
+  let found: FixCardRead;
   try {
     found = await read(pr);
   } catch {
     return unavailable();
   }
   if (found.failed) return unavailable();
-  const { fix, learnOpen } = found;
+  const { fix } = found;
   if (!fix || !hasFixCard(fix)) return text('Not found', 404);
-  const url = fixCardUrlOf(fix, learnOpen);
+  const url = fixCardUrlOf(fix);
   if (`${path}${search}` !== url) {
     return new Response(null, { status: 308, headers: { Location: url, ...NOT_KEPT } });
   }
   try {
-    return new Response(await draw(fix, learnOpen), { headers: FIX_CARD_HEADERS });
+    return new Response(await draw(fix), { headers: FIX_CARD_HEADERS });
   } catch (error) {
     console.error('Error drawing a fix card:', error);
     return unavailable();

@@ -49,22 +49,16 @@ export function rememberBar(bar: ProductBar): void {
 /** Settings and its own pages: the shared pages whose bar is chosen here. */
 export const isSharedSettingsPath = (pathname: string): boolean => /^\/my\/settings(?:\/|$)/.test(pathname);
 
-/**
- * The bar Settings shows and the product whose groups come first. Contribute's wherever Learn is not open; `from` is
- * the page's `?from=`.
- */
+/** The bar Settings shows and the product whose groups come first; `from` is the page's `?from=`. */
 export function settingsBarOf({
   from,
   lastBar,
   audience,
-  learnOpen,
 }: {
   from: string | string[] | null | undefined;
   lastBar: ProductBar | null;
   audience: Audience;
-  learnOpen: boolean;
 }): ProductBar {
-  if (!learnOpen) return 'contribute';
   if ((Array.isArray(from) ? from[0] : from) === 'learn') return 'learn';
   if (lastBar) return lastBar;
   return audience === 'learner' ? 'learn' : 'contribute';

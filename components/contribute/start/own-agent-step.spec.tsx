@@ -42,7 +42,7 @@ const WAITING = [mcpToken({ id: 'T_9' })];
 describe('the own agent’s first call', () => {
   it('on the flow’s step: counts the connect, then goes on to the first issue, the layout read again', async () => {
     await act(async () =>
-      root.render(<OwnAgentStep tokens={WAITING} signIn={false} learnOpen={false} openedAt="2026-11-20T00:00:00Z" />),
+      root.render(<OwnAgentStep tokens={WAITING} signIn={false} openedAt="2026-11-20T00:00:00Z" />),
     );
     expect(actions.readAgentConnected).toHaveBeenCalledWith({ tokenId: 'T_9', onboarded: false, since: null });
     expect(tracker.reportContributeConnect).toHaveBeenCalledWith('agent', undefined);

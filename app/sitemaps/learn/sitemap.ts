@@ -4,7 +4,6 @@ import type { MetadataRoute } from 'next';
 import { cacheLife } from 'next/cache';
 
 import { loadLearnCourses, loadLearnLessons } from '@/lib/learn/course.data';
-import { learnOpenToEveryone } from '@/lib/learn/learn-everyone';
 import { readPublicLessons } from '@/lib/learn/public-lessons.data';
 import { type LearnSitemapContent, learnSitemapEntries } from '@/lib/sitemap/learn-sitemap';
 
@@ -18,19 +17,14 @@ async function readContent(): Promise<LearnSitemapContent | null> {
   }
 }
 
-/**
- * Learn's public pages: see `learnSitemapEntries`. The courses and their lessons are read only while the switch that
- * opens Learn to everyone is open. A failed read lists the rest, for minutes only.
- */
+/** Learn's public pages: see `learnSitemapEntries`. A failed read lists the rest, for minutes only. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [lessons, frontDoorOpen] = await Promise.all([readPublicLessons(), learnOpenToEveryone(Date.now())]);
-  const content = frontDoorOpen ? await readContent() : null;
-  // Kept for hours once it lists everything and Learn is open; before that, for minutes, so opening it reaches the
-  // sitemap within minutes.
-  if (lessons && frontDoorOpen && content) {
+  const [lessons, content] = await Promise.all([readPublicLessons(), readContent()]);
+  // Kept for hours once it lists everything; for minutes after a failed read, so the next one comes soon.
+  if (lessons && content) {
     cacheLife('hours');
   } else {
     cacheLife('minutes');
   }
-  return learnSitemapEntries(lessons ?? [], { frontDoorOpen, content });
+  return learnSitemapEntries(lessons ?? [], { content });
 }

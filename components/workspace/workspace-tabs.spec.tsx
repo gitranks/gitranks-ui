@@ -40,7 +40,6 @@ const { activityOf, QUEUED, READY, WORKING, FOLLOW_UP } = await import('@/lib/co
 import type { WorkspaceGate, WorkspaceTab } from '@/lib/workspace/gate';
 
 const ALL: WorkspaceTab[] = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'];
-const NO_LEARN: WorkspaceTab[] = ['contribute', 'pull-requests', 'agent', 'settings'];
 
 const text = (html: string) =>
   html
@@ -68,7 +67,6 @@ const open = (over: Partial<Extract<WorkspaceGate, { kind: 'open' }>> = {}): Wor
   kind: 'open',
   entered: true,
   agents: { hosted: true, own: false },
-  learnOpen: true,
   ...over,
 });
 
@@ -83,8 +81,7 @@ describe("the gate's tabs", () => {
     ['signed in, the workspace hidden', { kind: 'hidden' } as WorkspaceGate, []],
     ['setting up', { kind: 'setting-up' } as WorkspaceGate, []],
     ['open, not entered', open({ entered: false }), []],
-    ['open, entered, Learn not open', open({ learnOpen: false }), NO_LEARN],
-    ['open, entered, Learn open', open(), ALL],
+    ['open, entered', open(), ALL],
     // Everything revoked: the tabs stay, and the pages say what to do.
     ['entered with nothing connected now', open({ agents: { hosted: false, own: false } }), ALL],
   ])('%s: %j', (_who, viewer, tabs) => {
@@ -96,12 +93,9 @@ describe("the gate's tabs", () => {
     const html = renderToStaticMarkup(await WorkspaceTabs());
     expect(tabLinks(html)).toHaveLength(5);
     expect(text(html)).toContain('Pull requests 3 need you');
-
-    gate.loadWorkspaceGate.mockResolvedValueOnce(open({ learnOpen: false }));
-    expect(tabLinks(renderToStaticMarkup(await WorkspaceTabs()))).toHaveLength(4);
   });
 
-  it("offers Learn's bar on Settings only where Learn is open, with the bar seen last and the product used", async () => {
+  it("offers Learn's bar on Settings to an account the workspace is open to, with the bar seen last and the product used", async () => {
     nav.pathname = '/my/settings';
     const learnBar = <nav data-bar="learn" />;
     gate.loadWorkspaceGate.mockResolvedValueOnce(open());
@@ -117,7 +111,7 @@ describe("the gate's tabs", () => {
 
     jar.lastBar = 'learn';
     data.loadContribute.mockClear();
-    gate.loadWorkspaceGate.mockResolvedValueOnce(open({ learnOpen: false }));
+    gate.loadWorkspaceGate.mockResolvedValueOnce({ kind: 'hidden' });
     html = renderToStaticMarkup(await WorkspaceTabs({ learnBar }));
     expect(html).not.toContain('data-bar="learn"');
     expect(data.loadContribute).not.toHaveBeenCalled();
@@ -269,7 +263,7 @@ describe("the workspace's layout", () => {
 });
 
 describe("the workspace's metadata", () => {
-  it('sets no robots on the group, so /learn stays indexable once Learn is open to everyone', async () => {
+  it('sets no robots on the group, so /learn stays indexable', async () => {
     const group = await import('@/app/(workspace)/layout');
     const learn = await import('@/app/(workspace)/learn/layout');
     expect('metadata' in group).toBe(false);

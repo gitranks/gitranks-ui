@@ -19,7 +19,7 @@ type Search = Record<string, string | string[] | undefined>;
 
 /**
  * Your progress, read per request. The workspace's layout has asked a visitor to sign in and sent an account being set
- * up home; here an account Learn is not open to gets the 404 (the page never names Learn to it), and one that has not
+ * up home; here an account the workspace is hidden from gets the 404 (the page never names Learn to it), and one that has not
  * entered the workspace goes to Contribute's home, which starts them. A page past the last goes to the last.
  */
 export async function ProgressView({ searchParams }: { searchParams: Promise<Search> }) {
@@ -33,7 +33,7 @@ export async function ProgressView({ searchParams }: { searchParams: Promise<Sea
   // The layout's sign-in shows instead.
   if (gate.kind === 'signed-out') return null;
   if (gate.kind === 'setting-up') redirect(WORKSPACE_PATHS.contribute);
-  if (gate.kind !== 'open' || !gate.learnOpen) notFound();
+  if (gate.kind !== 'open') notFound();
   if (!gate.entered) redirect(notEnteredTargetOf(WORKSPACE_PATHS.progress) ?? WORKSPACE_PATHS.contribute);
 
   const progress = await progressRead;

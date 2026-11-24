@@ -59,8 +59,8 @@ const linkClass = (primary: boolean) =>
 const n = (value: number) => <span className="font-mono tabular-nums">{value.toLocaleString('en-US')}</span>;
 
 /**
- * Issues picked for an owner who uses neither product, with a way into each: "See GitRanks Contribute" and, while
- * Learn is open to them, "See GitRanks Learn" and "or learn from one". The ready issues are named only above zero.
+ * Issues picked for an owner who uses neither product, with a way into each: "See GitRanks Contribute" and "See
+ * GitRanks Learn". The ready issues are named only above zero.
  */
 export const ProfilePickedBox: FC<{
   issues: OwnerIssue[];
@@ -68,8 +68,7 @@ export const ProfilePickedBox: FC<{
   readyIssues?: number | null;
   /** The profile's languages the picks were matched to ("TypeScript, Rust and Go"). */
   matchedTo?: string;
-  learnOpen: boolean;
-}> = ({ issues, readyIssues, matchedTo, learnOpen }) => {
+}> = ({ issues, readyIssues, matchedTo }) => {
   if (!issues.length) return null;
   return (
     <OwnerBoxFrame
@@ -81,7 +80,7 @@ export const ProfilePickedBox: FC<{
         <>
           Picked for your {matchedTo ?? 'languages'} from{' '}
           {readyIssues && readyIssues > 0 ? <>{n(readyIssues)} </> : null}open-source issues ready to fix today. Fix one
-          with your AI agent{learnOpen ? ', or learn from one' : ''}.
+          with your AI agent, or learn from one.
         </>
       }
       links={
@@ -90,11 +89,9 @@ export const ProfilePickedBox: FC<{
             See GitRanks Contribute
             <ArrowRight aria-hidden />
           </Link>
-          {learnOpen ? (
-            <Link href={LEARN_HOME_PATH} prefetch={false} className={linkClass(false)}>
-              See GitRanks Learn
-            </Link>
-          ) : null}
+          <Link href={LEARN_HOME_PATH} prefetch={false} className={linkClass(false)}>
+            See GitRanks Learn
+          </Link>
         </>
       }
     >

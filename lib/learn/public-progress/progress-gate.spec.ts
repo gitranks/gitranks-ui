@@ -4,7 +4,7 @@ const graphql = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
 vi.mock('@/lib/graphql/graphql-direct', () => graphql);
 
 const { progressGateOf } = await import('./progress-gate');
-const { isLearnOpenPath, publicProgressPath, publicProgressRouteOf } = await import('../learn-path');
+const { publicProgressPath, publicProgressRouteOf } = await import('../learn-path');
 
 const record = { login: 'OctoCat', lessons: 2, newThings: 1, topics: [], prsOpened: 1, prsMerged: 0, reposHelped: 0 };
 
@@ -13,10 +13,9 @@ afterEach(() => {
 });
 
 describe('the public progress page’s address', () => {
-  it('is open to everyone and names one login', () => {
+  it('names one login', () => {
     expect(publicProgressPath('OctoCat')).toBe('/learn/progress/OctoCat');
     expect(publicProgressPath('OctoCat', 3)).toBe('/learn/progress/OctoCat?page=3');
-    expect(isLearnOpenPath('/learn/progress/OctoCat')).toBe(true);
     expect(publicProgressRouteOf('/learn/progress/OctoCat')).toBe('OctoCat');
     expect(publicProgressRouteOf('/learn/progress/OctoCat/')).toBe('OctoCat');
     for (const path of ['/learn/progress', '/learn/progress/a/b', '/learn/progress/-x', '/learn/lessons/a']) {

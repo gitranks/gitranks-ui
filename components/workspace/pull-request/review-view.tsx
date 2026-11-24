@@ -190,13 +190,12 @@ export async function ContributionLayout({ params, children }: { params: Promise
 }
 
 /**
- * A Learn attempt's lesson, while Learn is open to the viewer: the header's lesson line and its two views. Null for a
- * Fix attempt, for Learn closed to the account (the pull request's view alone), and while the API does not answer it.
+ * A Learn attempt's lesson: the header's lesson line and its two views. Null for a Fix attempt, and while the API does
+ * not answer it (the pull request's view alone).
  */
 async function lessonOf(first: ContributeAttemptDetail): Promise<LearnAttemptLesson | null> {
   if (first.mode !== 'LEARN') return null;
-  const { loadLearnOpen, loadAttemptLesson } = await learnReads();
-  if (!(await loadLearnOpen())) return null;
+  const { loadAttemptLesson } = await learnReads();
   return loadAttemptLesson(first.attemptId).catch(() => null);
 }
 
@@ -206,8 +205,7 @@ const learnReads = () => import('@/lib/learn/learn.data');
 /**
  * The Lesson view's reads (`…/lesson`, or the fixer's walkthrough at `…/walkthrough`): the page's first attempt and its
  * lesson. A Fix attempt's goes to its page; an address in another spelling to the current one, under the same `view`;
- * Learn closed to the viewer, or no lesson, is the 404. Null signed out (the layout asks to sign in); `unread` while the
- * API does not answer.
+ * no lesson is the 404. Null signed out (the layout asks to sign in); `unread` while the API does not answer.
  */
 export async function lessonPageOf(params: Promise<PageParams>, view: 'lesson' | 'walkthrough' = 'lesson') {
   const gated = await gate();
@@ -217,8 +215,7 @@ export async function lessonPageOf(params: Promise<PageParams>, view: 'lesson' |
   if (page.kind === 'move') redirect(`${pullRequestPath(page.ref)}/${view}` as Route);
   const { first, base } = page;
   if (first.mode !== 'LEARN') redirect(base);
-  const { loadLearnOpen, loadAttemptLesson } = await learnReads();
-  if (!(await loadLearnOpen())) notFound();
+  const { loadAttemptLesson } = await learnReads();
   const lesson = await loadAttemptLesson(first.attemptId).catch(() => undefined);
   if (lesson === undefined) return 'unread' as const;
   if (!lesson) notFound();
@@ -408,7 +405,7 @@ export function ContributionShell({
   first?: ContributeAttemptDetail;
   run?: ContributeAttemptDetail;
   shown?: string;
-  /** A Learn attempt's lesson, while Learn is open to the viewer: the header's lesson line and its two views. */
+  /** A Learn attempt's lesson, when it reads: the header's lesson line and its two views. */
   lesson?: LearnAttemptLesson | null;
   /** The page's address its sessions sit under; else the issue's, from the first attempt. */
   base?: Route;

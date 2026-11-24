@@ -29,9 +29,12 @@ describe('SkillsStrip', () => {
     expect(hrefs).toContain('/learn/progress');
   });
 
-  it('offers "Show it to everyone" on a hidden page, nothing on a private one', () => {
+  it('offers "Show it to everyone" on a hidden page, and nothing to press on an older API’s private one', () => {
     expect(draw(<SkillsStrip mine={skillsMine.hiddenLearner} href={HREF} />).buttons).toEqual(['Show it to everyone']);
-    expect(draw(<SkillsStrip mine={skillsMine.privateLearner} href={HREF} />).buttons).toEqual([]);
+    const older = { ...skillsMine.hiddenLearner, state: 'PRIVATE' as const };
+    const drawn = draw(<SkillsStrip mine={older} href={HREF} />);
+    expect(drawn.buttons).toEqual([]);
+    expect(drawn.text).toContain('Only you can see this page.');
   });
 
   it('says until when an empty page is only theirs', () => {
@@ -58,12 +61,6 @@ describe('SkillsStart', () => {
     expect(hrefs).toEqual(['/contribute/about', '/learn']);
   });
 
-  it('leaves Learn out while it is not open', () => {
-    const { root, text } = draw(<SkillsStart mine={skillsMine.newLearnClosed} />);
-    expect(text).toContain('GitRanks Contribute takes its issues from it.');
-    expect(root.querySelector('[data-product-box="LEARN"]')).toBeNull();
-  });
-
   it('gives each product used its first step', () => {
     const both = draw(<SkillsStart mine={skillsMine.nothingYetBoth} />);
     expect(both.text).toContain('There are two ways to fill it, and you can use both.');
@@ -88,10 +85,8 @@ describe('SkillsProductBox and SkillsIssuesBox', () => {
   });
 
   it('draws the box about the list with its four numbers, and without them', () => {
-    expect(draw(<SkillsIssuesBox numbers={skillsIssueNumbers} learnOpen />).root.querySelectorAll('dt')).toHaveLength(
-      4,
-    );
-    const bare = draw(<SkillsIssuesBox numbers={null} learnOpen />);
+    expect(draw(<SkillsIssuesBox numbers={skillsIssueNumbers} />).root.querySelectorAll('dt')).toHaveLength(4);
+    const bare = draw(<SkillsIssuesBox numbers={null} />);
     expect(bare.root.querySelector('dl')).toBeNull();
     expect(bare.text).toContain('Good issues are hard to find');
   });

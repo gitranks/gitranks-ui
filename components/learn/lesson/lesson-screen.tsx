@@ -10,8 +10,7 @@ import { learnLessonJsonLd } from '@/lib/learn/seo/lesson';
  * A lesson of ours as its route draws it: the same for everyone, rendered on the server with its code highlighted,
  * then the person's side read in the browser (`LessonLive`), with its structured data. Its footer links its Markdown
  * copy. `openFact`: opened from a shared fact (`?fact`). `fixes`: the lesson's merged fixes, on their way (a promise
- * that streams in), given only while Learn is open to everyone (else a person Learn is open to reads them with their
- * side).
+ * that streams in); without them, a signed-in person reads them with their side.
  */
 export function LessonScreen({
   page,

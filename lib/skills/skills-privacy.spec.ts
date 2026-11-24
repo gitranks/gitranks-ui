@@ -9,23 +9,20 @@ describe('the Settings row "Your Skills page"', () => {
     expect(privacyRowOf(skillsMine.hiddenLearner)).toEqual({ line: 'Only you can see it.', choice: { hidden: true } });
   });
 
-  it('says so, with no choice, while only its owner may see it', () => {
-    expect(privacyRowOf(skillsMine.privateLearner)).toEqual({
-      line: 'Only you can see it for now: what it shows is from GitRanks Learn, which is not open to everyone yet.',
+  it('words an older API’s private page as a hidden one, with no choice to make', () => {
+    expect(privacyRowOf({ ...skillsMine.hiddenLearner, state: 'PRIVATE' as const })).toEqual({
+      line: 'Only you can see it.',
       choice: null,
     });
   });
 
-  it('says so, with no choice, while nothing is on it, naming Learn only where it is open', () => {
+  it('says so, with no choice, while nothing is on it', () => {
     for (const mine of [skillsMine.new, skillsMine.nothingYetBoth, skillsMine.nothingYetContributor]) {
       expect(privacyRowOf(mine)).toEqual({
         line: 'Nothing is on it yet. It shows to everyone from your first pull request sent or lesson learned.',
         choice: null,
       });
     }
-    expect(privacyRowOf(skillsMine.newLearnClosed)?.line).toBe(
-      'Nothing is on it yet. It shows to everyone from your first pull request sent.',
-    );
   });
 
   it('has no row of its own when the view could not be read: the unread line takes its place', () => {

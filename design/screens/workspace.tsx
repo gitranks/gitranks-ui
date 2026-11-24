@@ -155,7 +155,7 @@ const stopped = runOf({
   latestEvent: { state: 'STOPPED', detail: 'No-go: nothing here needs a code change.', at: '2026-10-31T11:58:00.000Z' },
 });
 
-/** Every tab, as an account Learn is open to sees them. */
+/** Every tab, as an account that has entered sees them. */
 const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
 
 /** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */
@@ -271,7 +271,6 @@ const pullRequests = (data: Partial<PullRequestsData> = {}, activity: Contribute
     <main className={MAIN}>
       <PullRequestsScreen
         sides={{ contribute: true, learn: true }}
-        learnOpen
         limit={{ count: 3, limit: 8, open: 3 }}
         needsYou={needsYouAnswer()}
         page={pullRequestsPage()}
@@ -845,7 +844,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
           frame(
             <main className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 pt-9 pb-16">
               <AgentConnectView
-                learnOpen
                 client="claude-code"
                 onClient={noop}
                 stage="token"
@@ -1028,24 +1026,9 @@ export const WORKSPACE_SCREENS: Screen[] = [
         render: () =>
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
-              <AgentScreen view={agentTabViews.nothing} learnOpen runs={pageOf({ items: [] })} now={NOW} />
+              <AgentScreen view={agentTabViews.nothing} runs={pageOf({ items: [] })} now={NOW} />
             </main>,
           ),
-      },
-      {
-        id: 'nothing-connected-contribute',
-        title: 'Nothing connected, Learn not open to the account: no word of Learn',
-        path: '/my/agent',
-        height: 800,
-        render: () => (
-          <>
-            <Header />
-            <WorkspaceTabsNav tabs={TABS.filter((tab) => tab !== 'learn')} activity={activityOf()} needsYou={2} />
-            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
-              <AgentScreen view={agentTabViews.nothing} runs={pageOf({ items: [] })} now={NOW} />
-            </main>
-          </>
-        ),
       },
       {
         id: 'not-entered',
@@ -1057,7 +1040,7 @@ export const WORKSPACE_SCREENS: Screen[] = [
             <Header />
             <WorkspaceTabsNav tabs={[]} />
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
-              <AgentScreen view={agentTabViews.notEntered} learnOpen runs={pageOf({ items: [] })} now={NOW} />
+              <AgentScreen view={agentTabViews.notEntered} runs={pageOf({ items: [] })} now={NOW} />
             </main>
           </>
         ),
@@ -1070,7 +1053,7 @@ export const WORKSPACE_SCREENS: Screen[] = [
         render: () =>
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
-              <AgentScreen view={agentTabViews.both} learnOpen runs={previewPageOf()} now={NOW} />
+              <AgentScreen view={agentTabViews.both} runs={previewPageOf()} now={NOW} />
             </main>,
           ),
       },
@@ -1084,7 +1067,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
               <AgentScreen
                 view={agentAt('AUTOPILOT', { mergedCount: 6, mergedToUnlock: 4, lockedAt: '2026-10-20T08:00:00.000Z' })}
-                learnOpen
                 runs={previewPageOf()}
                 counts={{ prBound: 1, queued: 0 }}
                 now={NOW}
@@ -1102,7 +1084,6 @@ export const WORKSPACE_SCREENS: Screen[] = [
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
               <AgentScreen
                 view={agentTabViews.learner}
-                learnOpen
                 runs={learnerPageOf()}
                 activity={activityOf(WORKING)}
                 now={NOW}
@@ -1142,7 +1123,7 @@ export const WORKSPACE_SCREENS: Screen[] = [
         render: () =>
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
-              <AgentScreen view={agentTabViews.keyInvalid} learnOpen runs={undefined} now={NOW} />
+              <AgentScreen view={agentTabViews.keyInvalid} runs={undefined} now={NOW} />
             </main>,
           ),
       },
@@ -1155,7 +1136,7 @@ export const WORKSPACE_SCREENS: Screen[] = [
         render: () =>
           frame(
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
-              <AgentScreen view={agentTabViews.both} learnOpen runs={previewPageOf()} now={NOW} />
+              <AgentScreen view={agentTabViews.both} runs={previewPageOf()} now={NOW} />
             </main>,
           ),
       },

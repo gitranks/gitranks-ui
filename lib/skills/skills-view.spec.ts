@@ -10,7 +10,11 @@ describe("the owner's layer over a Skills address", () => {
   });
 
   it('puts the strip over a page everyone sees, whatever the view says, so hiding changes only the strip', () => {
-    for (const mine of [skillsMine.publicLearner, skillsMine.hiddenLearner, skillsMine.privateLearner]) {
+    for (const mine of [
+      skillsMine.publicLearner,
+      skillsMine.hiddenLearner,
+      { ...skillsMine.hiddenLearner, state: 'PRIVATE' as const },
+    ]) {
       expect(ownerLayerOf(mine, true)).toEqual({ kind: 'strip', mine });
     }
   });
@@ -21,7 +25,7 @@ describe("the owner's layer over a Skills address", () => {
       mine: skillsMine.hiddenLearner,
       page: learnerPage,
     });
-    expect(ownerLayerOf(skillsMine.privateLearner, false).kind).toBe('own');
+    expect(ownerLayerOf({ ...skillsMine.hiddenLearner, state: 'PRIVATE' as const }, false).kind).toBe('own');
     expect(ownerLayerOf(skillsMine.publicLearner, false).kind).toBe('own');
     expect(ownerLayerOf({ ...skillsMine.hiddenLearner, page: null }, false)).toEqual({ kind: 'none' });
   });

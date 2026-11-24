@@ -7,11 +7,7 @@ import { fixCardUrlOf, type LearnFixCard } from '@/lib/learn/fix-share-card';
 const { timeline, fix } = vi.hoisted(() => ({
   timeline: vi.fn(async (): Promise<unknown> => null),
   fix: vi.fn(
-    async (_pr: unknown): Promise<{ fix: LearnFixCard | null; failed: boolean; learnOpen: boolean }> => ({
-      fix: null,
-      failed: false,
-      learnOpen: true,
-    }),
+    async (_pr: unknown): Promise<{ fix: LearnFixCard | null; failed: boolean }> => ({ fix: null, failed: false }),
   ),
 }));
 vi.mock('server-only', () => ({}));
@@ -39,11 +35,11 @@ beforeEach(() => {
 
 describe("a pull request timeline's link preview", () => {
   it("shows the fix's picture, title and description, read by the pull request's own name", async () => {
-    fix.mockResolvedValueOnce({ fix: timelineFix, failed: false, learnOpen: false });
+    fix.mockResolvedValueOnce({ fix: timelineFix, failed: false });
     const metadata = await generateMetadata({ params } as never);
     expect(fix).toHaveBeenCalledWith({ nameWithOwner: 'driftwood-js/driftwood', number: 1419 });
     const image = {
-      url: `https://gitranks.com${fixCardUrlOf(timelineFix, false)}`,
+      url: `https://gitranks.com${fixCardUrlOf(timelineFix)}`,
       width: 1200,
       height: 630,
       alt: timelineFix.title,
@@ -62,9 +58,9 @@ describe("a pull request timeline's link preview", () => {
 
   it('names no picture without a fix, for a closed one, or when it cannot be read', async () => {
     for (const read of [
-      { fix: null, failed: false, learnOpen: true },
-      { fix: { ...timelineFix, state: 'CLOSED' as const }, failed: false, learnOpen: true },
-      { fix: null, failed: true, learnOpen: true },
+      { fix: null, failed: false },
+      { fix: { ...timelineFix, state: 'CLOSED' as const }, failed: false },
+      { fix: null, failed: true },
     ]) {
       fix.mockResolvedValueOnce(read);
       const metadata = await generateMetadata({ params } as never);

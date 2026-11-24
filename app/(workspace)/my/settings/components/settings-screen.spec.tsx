@@ -29,8 +29,7 @@ const reads = vi.hoisted(() => ({
   viewerLogin: vi.fn(async () => 'octocat'),
 }));
 vi.mock('@/lib/workspace/contribute.data', () => reads);
-const gate = vi.hoisted(() => ({ loadLearnOpen: vi.fn(async () => false) }));
-vi.mock('@/lib/workspace/gate.data', () => gate);
+vi.mock('@/lib/workspace/gate.data', () => ({}));
 const jar = vi.hoisted(() => ({ value: undefined as string | undefined }));
 vi.mock('next/headers', () => ({
   cookies: async () => ({
@@ -46,7 +45,6 @@ vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction: v
 vi.mock('@/lib/learn/learn.data', () => ({
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(),
-  loadLearnOpen: vi.fn(),
 }));
 const skillsReads = vi.hoisted(() => ({ loadSkillsMine: vi.fn(async (): Promise<unknown> => null) }));
 vi.mock('@/lib/skills/skills.data', () => skillsReads);
@@ -73,7 +71,6 @@ const render = (props: Partial<ComponentProps<typeof SettingsScreen>> = {}) => {
   const html = renderToStaticMarkup(
     <SettingsScreen
       view={settingsViews.both}
-      learnOpen
       email={email.on}
       learnSetup={setupSaved}
       learnEmail={learnEmail.device}
@@ -126,18 +123,13 @@ describe('the Settings page (page 23)', () => {
     expect(emailRowsOf(html)).toEqual(['lessons-to-repeat', 'needs-you', 'ended', 'time-zone']);
   });
 
-  it('shows a learner Learn first and no Contribute preferences, and leaves Learn out where it is not open', () => {
+  it('shows a learner Learn first and no Contribute preferences', () => {
     const learner = render({ view: settingsViews.learner, bar: 'learn' });
     expect(groupsOf(learner.html)).toEqual(['learn-preferences', 'email', 'agent-github', 'pr-limits']);
     expect(learner.plain).toContain(
       'Removes your agent tokens, the GitHub access, your settings, and your attempts and lessons.',
     );
     expect(learner.plain).toContain('Attempts at a time 1 issue in work at once Edit');
-
-    const closed = render({ learnOpen: false, bar: 'learn', learnSetup: null, learnEmail: null });
-    expect(groupsOf(closed.html)).toEqual(['contribute-preferences', 'agent-github', 'pr-limits', 'email']);
-    expect(emailRowsOf(closed.html)).toEqual(['needs-you', 'ended']);
-    expect(closed.plain).not.toContain('Lessons to repeat');
   });
 
   it('names the agent connected last and when, the hosted one, or none with the connect steps', () => {
@@ -159,9 +151,9 @@ describe('the Settings page (page 23)', () => {
     expect(html).not.toMatch(/href="\/my\/agent\/connect"/);
   });
 
-  it('names the Claude key in Delete only with one, and the lessons only with Learn open', () => {
-    expect(render({ learnOpen: false }).plain).toContain(
-      'Removes your Claude key, your agent tokens, the GitHub access, your settings, and your attempt history.',
+  it('names the Claude key in Delete with one, and the attempts and lessons', () => {
+    expect(render().plain).toContain(
+      'Removes your Claude key, your agent tokens, the GitHub access, your settings, and your attempts and lessons.',
     );
   });
 
@@ -325,7 +317,6 @@ describe('the reads of Settings and the key page', () => {
   });
 
   it("puts Learn's groups first from Learn's link, else from the bar seen last, else for someone who only learns", async () => {
-    gate.loadLearnOpen.mockResolvedValue(true);
     learnReads.loadLearnEmailSettings.mockResolvedValue(learnEmail.device as never);
     learnReads.loadLearnSetupForSettings.mockResolvedValue(setupSaved as never);
     reads.loadContribute.mockResolvedValue(settingsViews.both);
@@ -344,7 +335,6 @@ describe('the reads of Settings and the key page', () => {
       expect(learnReads.loadLearnEmailSettings).toHaveBeenCalledWith('octocat');
     } finally {
       jar.value = undefined;
-      gate.loadLearnOpen.mockResolvedValue(false);
     }
   });
 
@@ -358,14 +348,6 @@ describe('the reads of Settings and the key page', () => {
     expect(text(html)).toContain('Your Skills page Everyone can see it.');
     expect(html).toContain('href="/profile/octocat/skills"');
     expect(skillsReads.loadSkillsMine).toHaveBeenCalledWith('octocat');
-  });
-
-  it('asks nothing of Learn where it is not open', async () => {
-    learnReads.loadLearnEmailSettings.mockClear();
-    reads.loadContribute.mockResolvedValue(settingsViews.both);
-    const html = renderToStaticMarkup(await SettingsView(params({ from: 'learn' })));
-    expect(learnReads.loadLearnEmailSettings).not.toHaveBeenCalled();
-    expect(groupsOf(html)[0]).toBe('contribute-preferences');
   });
 
   it.each([

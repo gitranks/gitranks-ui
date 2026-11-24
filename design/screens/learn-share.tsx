@@ -82,9 +82,9 @@ const { lesson: newLesson, longTitle, longFact } = shareLessons;
 /** A lesson 14 merged fixes used: the number is drawn from 3. */
 const lesson: LearnLesson = { ...newLesson, fixesMerged: 14 };
 
-/** A Skills page's picture, as a reader Learn is open to sees it; nothing when it has nothing to draw. */
+/** A Skills page's picture; nothing when it has nothing to draw. */
 function Skills({ page }: { page: Pick<SkillsPage, 'login' | 'numbers'> }) {
-  const card = skillsCardOf(page, true);
+  const card = skillsCardOf(page);
   return card ? <SkillsShareCard card={card} /> : <div />;
 }
 
@@ -186,10 +186,7 @@ export const LEARN_SHARE_SCREEN: Screen = {
                 title="A fix, beside How it was made"
                 caption="The project and the issue, who fixed it with which agent, its state; its lesson when it has one."
               >
-                <PostOf
-                  picture={<FixShareCard fix={mergedFix} learnOpen />}
-                  preview={fixPreviewOf({ fix: mergedFix, learnOpen: true }) ?? {}}
-                />
+                <PostOf picture={<FixShareCard fix={mergedFix} />} preview={fixPreviewOf({ fix: mergedFix }) ?? {}} />
               </Case>
               <Case
                 title="A Skills page"
@@ -197,17 +194,17 @@ export const LEARN_SHARE_SCREEN: Screen = {
               >
                 <PostOf
                   picture={<Skills page={contributorPage} />}
-                  preview={skillsMetadataOf(contributorPage, { learnOpen: true }).openGraph ?? {}}
+                  preview={skillsMetadataOf(contributorPage).openGraph ?? {}}
                 />
               </Case>
               <Case title="The pull request is still open" caption="Waiting for the project’s review.">
                 <Half framed>
-                  <FixShareCard fix={openFix} learnOpen />
+                  <FixShareCard fix={openFix} />
                 </Half>
               </Case>
               <Case title="A fix with no lesson, as most are" caption="The line simply ends after the date.">
                 <Half framed>
-                  <FixShareCard fix={noLessonFix} learnOpen />
+                  <FixShareCard fix={noLessonFix} />
                 </Half>
               </Case>
               <Case title="A learner" caption="Lessons learned, mastered, days active.">
@@ -257,7 +254,7 @@ export const LEARN_SHARE_SCREEN: Screen = {
               </Case>
               <Case title="A long fix title" caption="The type gets smaller in two steps; three lines at most.">
                 <Half framed>
-                  <FixShareCard fix={longFix} learnOpen />
+                  <FixShareCard fix={longFix} />
                 </Half>
               </Case>
             </div>

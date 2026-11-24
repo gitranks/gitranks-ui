@@ -67,7 +67,7 @@ afterEach(() => {
 describe('a public Skills page', () => {
   it('is the same for everyone else: no strip, no owner read', async () => {
     signedInAs('someone');
-    await draw(<SkillsScreen login="octocat" page={contributorPage} learnOpen now={SKILLS_NOW} />);
+    await draw(<SkillsScreen login="octocat" page={contributorPage} now={SKILLS_NOW} />);
     expect(container.querySelector('[data-skills-page]')).not.toBeNull();
     expect(container.querySelector('[data-skills-strip], [data-skills-strip-row]')).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -75,7 +75,7 @@ describe('a public Skills page', () => {
 
   it('adds the next fixes in place with "Show 20 more", and drops the button at the end', async () => {
     fetchMock.mockResolvedValueOnce(json({ fixes: { rows: [hiddenPageFix], total: 7, next: null } }));
-    await draw(<SkillsScreen login="octocat" page={longPage} learnOpen now={SKILLS_NOW} />);
+    await draw(<SkillsScreen login="octocat" page={longPage} now={SKILLS_NOW} />);
     expect(container.querySelectorAll('[data-skills-fix]')).toHaveLength(6);
     await act(async () => button('Show 20 more')?.click());
     await settle();
@@ -86,7 +86,7 @@ describe('a public Skills page', () => {
 
   it('keeps the button when the next fixes cannot be read', async () => {
     fetchMock.mockResolvedValueOnce(json({ fixes: null }));
-    await draw(<SkillsScreen login="octocat" page={longPage} learnOpen now={SKILLS_NOW} />);
+    await draw(<SkillsScreen login="octocat" page={longPage} now={SKILLS_NOW} />);
     await act(async () => button('Show 20 more')?.click());
     await settle();
     expect(container.querySelectorAll('[data-skills-fix]')).toHaveLength(6);
@@ -97,7 +97,7 @@ describe('a public Skills page', () => {
     signedInAs('OctoCat');
     let answer: (response: Response) => void = () => {};
     fetchMock.mockImplementationOnce(() => new Promise<Response>((resolve) => (answer = resolve)));
-    await draw(<SkillsScreen login="octocat" page={contributorPage} learnOpen now={SKILLS_NOW} />);
+    await draw(<SkillsScreen login="octocat" page={contributorPage} now={SKILLS_NOW} />);
     expect(container.querySelector('[data-skills-strip-row]')).not.toBeNull();
     expect(fetchMock).toHaveBeenCalledWith('/api/me/skills', { cache: 'no-store' });
 
@@ -117,7 +117,7 @@ describe('a public Skills page', () => {
   it('says so when hiding fails, and keeps the strip as it was', async () => {
     signedInAs('octocat');
     fetchMock.mockResolvedValueOnce(mineAnswer(skillsMine.publicLearner));
-    await draw(<SkillsScreen login="octocat" page={contributorPage} learnOpen now={SKILLS_NOW} />);
+    await draw(<SkillsScreen login="octocat" page={contributorPage} now={SKILLS_NOW} />);
     setSkillsHiddenAction.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
     await act(async () => button('Hide this page')?.click());
     await settle();
@@ -125,22 +125,10 @@ describe('a public Skills page', () => {
     expect(container.querySelector('[data-skills-strip]')?.getAttribute('data-skills-strip')).toBe('PUBLIC');
   });
 
-  it('gives its owner the box about Learn when Learn is open to them, though the page leaves Learn out', async () => {
-    signedInAs('octocat');
-    fetchMock.mockResolvedValueOnce(mineAnswer(skillsMine.publicFirstFix));
-    await draw(<SkillsScreen login="octocat" page={contributorPage} learnOpen={false} now={SKILLS_NOW} />);
-    expect(container.querySelector('[data-product-box="LEARN"]')).not.toBeNull();
-    await act(async () => root.unmount());
-    root = createRoot(container);
-    fetchMock.mockResolvedValueOnce(mineAnswer({ ...skillsMine.publicFirstFix, learnOpen: false }));
-    await draw(<SkillsScreen login="octocat" page={contributorPage} learnOpen={false} now={SKILLS_NOW} />);
-    expect(container.querySelector('[data-product-box]')).toBeNull();
-  });
-
   it('draws nothing of the owner when their view cannot be read', async () => {
     signedInAs('octocat');
     fetchMock.mockResolvedValueOnce(json({ mine: null, signedOut: false }));
-    await draw(<SkillsScreen login="octocat" page={contributorPage} learnOpen now={SKILLS_NOW} />);
+    await draw(<SkillsScreen login="octocat" page={contributorPage} now={SKILLS_NOW} />);
     expect(container.querySelector('[data-skills-strip], [data-skills-strip-row]')).toBeNull();
   });
 });

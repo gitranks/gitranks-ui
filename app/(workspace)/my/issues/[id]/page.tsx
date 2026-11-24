@@ -45,10 +45,10 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
   if (!id) notFound();
   const gate = await loadWorkspaceGate();
   if (gate.kind !== 'open') notFound();
-  const from = issuePageFromOf(search.from, gate.learnOpen);
+  const from = issuePageFromOf(search.from);
 
   // From Contribute, the start form names Learn too when the person uses it: a Learn profile of theirs.
-  const usesLearn = from === 'contribute' && gate.learnOpen ? loadLearnProfile().catch(() => null) : null;
+  const usesLearn = from === 'contribute' ? loadLearnProfile().catch(() => null) : null;
   const [load, numbers, start, profile] = await Promise.all([
     loadIssuePage(id),
     loadIssueNumbers(),

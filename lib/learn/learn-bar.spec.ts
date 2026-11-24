@@ -27,16 +27,12 @@ describe("Learn's bar", () => {
     expect(learnBarStateOf(read, true)).toMatchObject({ kind: 'learner' });
   });
 
-  it('shows Home and Courses to everyone, Issues to a visitor only while Learn is open to everyone', () => {
-    expect(learnBarTabsOf({ kind: 'visitor' })).toEqual(['home', 'courses']);
-    expect(learnBarTabsOf({ kind: 'visitor' }, false)).toEqual(['home', 'courses']);
-    expect(learnBarTabsOf({ kind: 'visitor' }, true)).toEqual(['home', 'courses', 'issues']);
+  it('shows Home, Courses and Issues to everyone', () => {
+    expect(learnBarTabsOf({ kind: 'visitor' })).toEqual(['home', 'courses', 'issues']);
   });
 
-  it('shows Issues, Progress and Settings to anyone signed in, open to everyone or not', () => {
+  it('shows Progress and Settings too to anyone signed in', () => {
     const all = ['home', 'courses', 'issues', 'progress', 'settings'];
-    expect(learnBarTabsOf(learnBarStateOf(read), false)).toEqual(all);
-    expect(learnBarTabsOf(learnBarStateOf(read), true)).toEqual(all);
     // Setting up is not required: a person who keeps our guess has their progress and settings all the same.
     for (const setup of ['NONE', 'WORKING', 'GUESSED'] as const) {
       expect(learnBarTabsOf(learnBarStateOf({ ...read, setup }))).toEqual(all);

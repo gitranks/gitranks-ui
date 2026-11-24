@@ -70,7 +70,6 @@ export function OwnerBoxView({ reads, colors }: { reads: OwnerReads; colors?: Re
           issues={picks.issues.map(ownIssueOf)}
           readyIssues={picks.kind === 'own' ? picks.stats?.readyIssues : null}
           matchedTo={ownMatchOf(picks.issues)}
-          learnOpen={skills.sides?.learnOpen === true}
         />
       );
     default:

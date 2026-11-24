@@ -10,7 +10,7 @@ import { learnCheckMetadata } from '@/lib/learn/seo/player';
  * personal data and is never indexed; the run and the marks are read in the browser. The course's name and groups come
  * from the cached course. The proxy asks the course's address first (a real 404 for a course that is not, a redirect
  * for a moved one); one the proxy could not ask is not found here. A course that offers no check says so on the page.
- * Behind Learn's gate: signed in only.
+ * The page asks a visitor to sign in itself and reads nothing personal on the server.
  */
 export const instant = false;
 

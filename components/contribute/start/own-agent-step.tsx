@@ -13,12 +13,10 @@ import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 export function OwnAgentStep({
   tokens,
   signIn,
-  learnOpen,
   openedAt,
 }: {
   tokens: ContributeMcpToken[] | undefined;
   signIn: boolean;
-  learnOpen: boolean;
   openedAt: string;
 }) {
   const goTo = useOnboardedPush();
@@ -28,7 +26,6 @@ export function OwnAgentStep({
       onboarded={false}
       tokens={tokens}
       signIn={signIn}
-      learnOpen={learnOpen}
       keyLink={false}
       openedAt={openedAt}
       onConnected={() => goTo(GETTING_IN_PATHS.contributeIssue, { replace: true })}

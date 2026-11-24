@@ -10,12 +10,10 @@ vi.mock('next/navigation', () => ({
   },
 }));
 const reads = vi.hoisted(() => ({
-  loadLearnOpen: vi.fn(async () => false),
   loadContribute: vi.fn(),
   loadContributeActivity: vi.fn(async () => null),
   loadRuns: vi.fn(),
 }));
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: reads.loadLearnOpen }));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: reads.loadContribute,
   loadContributeActivity: reads.loadContributeActivity,

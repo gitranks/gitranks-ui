@@ -16,20 +16,14 @@ describe('the Learn sitemap', () => {
     vi.stubEnv('NEXT_PUBLIC_URI', 'https://example.test');
   });
 
-  it('lists the page for maintainers and every public lesson at its last change, never a result page', () => {
-    const entries = learnSitemapEntries([LESSON], { frontDoorOpen: false });
+  it('lists the landing, the page for maintainers and every public lesson at its last change, never a result page', () => {
+    const entries = learnSitemapEntries([LESSON]);
     expect(entries.map((entry) => entry.url)).toEqual([
+      'https://example.test/learn',
       'https://example.test/learn/maintainers',
       'https://example.test/learn/lessons/route-cache-miss-8f3kab',
     ]);
-    expect(entries[1]).toMatchObject({ lastModified: LESSON.modifiedAt, priority: 0.6 });
-  });
-
-  it('lists the front door once it is open to visitors', () => {
-    expect(learnSitemapEntries([], { frontDoorOpen: true }).map((entry) => entry.url)).toEqual([
-      'https://example.test/learn',
-      'https://example.test/learn/maintainers',
-    ]);
+    expect(entries[2]).toMatchObject({ lastModified: LESSON.modifiedAt, priority: 0.6 });
   });
 
   const link = (slug: string) => ({ slug, title: slug });
@@ -43,8 +37,8 @@ describe('the Learn sitemap', () => {
     ],
   };
 
-  it('lists the courses and their live lessons, each at its last change, while Learn is open to everyone', () => {
-    const entries = learnSitemapEntries([LESSON], { frontDoorOpen: true, content: CONTENT });
+  it('lists the courses and their live lessons, each at its last change', () => {
+    const entries = learnSitemapEntries([LESSON], { content: CONTENT });
     expect(entries.map((entry) => [entry.url, entry.lastModified])).toEqual([
       ['https://example.test/learn', undefined],
       ['https://example.test/learn/courses', '2026-11-12T10:00:00.000Z'],
@@ -58,21 +52,16 @@ describe('the Learn sitemap', () => {
     ]);
   });
 
-  it('lists no course, no lesson of a course and no landing while Learn is closed, whatever it is given', () => {
-    const urls = learnSitemapEntries([], { frontDoorOpen: false, content: CONTENT }).map((entry) => entry.url);
-    expect(urls).toEqual(['https://example.test/learn/maintainers']);
-  });
-
   it('lists a course with no live lesson without a day, and the landing when the courses could not be read', () => {
     const paused = { courses: [{ slug: 'algorithms' }], lessons: [{ ...CONTENT.lessons[2] }] };
-    const entries = learnSitemapEntries([], { frontDoorOpen: true, content: paused });
+    const entries = learnSitemapEntries([], { content: paused });
     expect(entries.map((entry) => [entry.url, entry.lastModified])).toEqual([
       ['https://example.test/learn', undefined],
       ['https://example.test/learn/courses', undefined],
       ['https://example.test/learn/courses/algorithms', undefined],
       ['https://example.test/learn/maintainers', undefined],
     ]);
-    expect(learnSitemapEntries([], { frontDoorOpen: true, content: null }).map((entry) => entry.url)).toEqual([
+    expect(learnSitemapEntries([], { content: null }).map((entry) => entry.url)).toEqual([
       'https://example.test/learn',
       'https://example.test/learn/maintainers',
     ]);

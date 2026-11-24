@@ -313,22 +313,15 @@ export function FixRow({
   );
 }
 
-/**
- * Under every view: its Markdown copy (null while Learn is not open to everyone, when the copy is not found), how
- * Learn works, and the page for maintainers.
- */
-export function IssuesFoot({ markdownHref }: { markdownHref: string | null }) {
+/** Under every view: its Markdown copy, how Learn works, and the page for maintainers. */
+export function IssuesFoot({ markdownHref }: { markdownHref: string }) {
   return (
     <p className="m-0 text-xs text-muted-foreground" data-issues-foot="">
-      {markdownHref ? (
-        <>
-          {/* A route handler's answer, not a page: a plain link. */}
-          <a href={markdownHref} className="hover:underline">
-            Markdown version
-          </a>
-          {' · '}
-        </>
-      ) : null}
+      {/* A route handler's answer, not a page: a plain link. */}
+      <a href={markdownHref} className="hover:underline">
+        Markdown version
+      </a>
+      {' · '}
       <Link href={LEARN_ABOUT_PATH} prefetch={false} className="hover:underline">
         How Learn works
       </Link>

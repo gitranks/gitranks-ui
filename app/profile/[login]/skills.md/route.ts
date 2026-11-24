@@ -1,6 +1,5 @@
 import { connection } from 'next/server';
 
-import { fetchLearnForVisitors } from '@/app/components/landing/landing-data';
 import { skillsPath } from '@/lib/skills/paths';
 import { loadSkillsPage } from '@/lib/skills/skills.data';
 import { skillsMarkdownOf } from '@/lib/skills/skills-markdown';
@@ -16,7 +15,7 @@ export async function GET(_request: Request, { params }: RouteContext<'/profile/
   await connection();
   const { login } = await params;
   if (!isGithubLogin(login)) return new Response('Not found.\n', { status: 404, headers: NOT_KEPT });
-  const [skills, learnOpen] = await Promise.all([loadSkillsPage(login), fetchLearnForVisitors()]);
+  const skills = await loadSkillsPage(login);
   if (skills.failed) {
     return new Response('This Skills page cannot be read right now. Try again in a minute.\n', {
       status: 503,
@@ -24,7 +23,7 @@ export async function GET(_request: Request, { params }: RouteContext<'/profile/
     });
   }
   if (!skills.value) return new Response('Not found.\n', { status: 404, headers: NOT_KEPT });
-  return new Response(skillsMarkdownOf(skills.value, { learnOpen, now: new Date() }), {
+  return new Response(skillsMarkdownOf(skills.value, { now: new Date() }), {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
       'Cache-Control': 'public, max-age=60, s-maxage=60',

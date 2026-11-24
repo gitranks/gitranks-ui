@@ -7,7 +7,6 @@ import { sessionClearsOf } from '@/lib/session-hint';
 import { type ByAttemptRead, byAttemptTargetOf } from '@/lib/workspace/by-attempt';
 import { BY_ATTEMPT_HEADERS, byAttemptPageOf } from '@/lib/workspace/by-attempt-answer';
 import { loadAttemptRef, loadIssueAttempt, viewerLogin } from '@/lib/workspace/contribute.data';
-import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import { ATTEMPT_ID } from '@/lib/workspace/paths';
 
 /** A 307 on the site's own address: behind the proxy a route handler's request URL is the server's bind address. */
@@ -24,11 +23,11 @@ const pageOf = (status: 404 | 503) =>
 
 /**
  * A Learn first attempt's view, by its lesson's stage: the Lesson view until its pull request opens. Null for anything
- * else, for Learn closed to the viewer (the Pull request view alone), and while the lesson is not answered (the Pull
- * request view, whose header leads to the lesson).
+ * else (the Pull request view alone), and while the lesson is not answered (the Pull request view, whose header leads
+ * to the lesson).
  */
 async function learnViewFor(attempt: ByAttemptRead): Promise<LearnView | null> {
-  if (attempt.kind !== 'FIRST' || attempt.mode !== 'LEARN' || !(await loadLearnOpen())) return null;
+  if (attempt.kind !== 'FIRST' || attempt.mode !== 'LEARN') return null;
   const lesson = await loadAttemptLesson(attempt.attemptId).catch(() => null);
   return lesson ? learnViewOf(lesson.stage, !!attempt.pullRequest) : 'pr';
 }

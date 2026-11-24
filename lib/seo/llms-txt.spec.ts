@@ -74,7 +74,7 @@ describe('llms.txt', () => {
     `);
   });
 
-  it('lists Learn and its recent public lessons once its front door is open, and never before', () => {
+  it('lists Learn and its recent public lessons, and Learn alone when there are none', () => {
     const lesson = (n: number) => ({
       slug: `lesson-${n}-abcdef`,
       title: `Lesson [${n}]\nsecond line`,
@@ -102,10 +102,10 @@ describe('llms.txt', () => {
     expect(llmsTxtOf({ contribute: false, learn: [odd] })).toContain(
       '- [A https://x.test b c](https://example.test/learn/lessons/lesson-1-abcdef): a lesson on a fix in o/n (Go)\n',
     );
-    expect(llmsTxtOf({ contribute: true })).not.toMatch(/learn/i);
+    expect(llmsTxtOf({ contribute: true })).toContain('## Learn');
   });
 
-  it("lists Learn's landing, all courses and each course with its Markdown copy while Learn is open", () => {
+  it("lists Learn's landing, all courses and each course with its Markdown copy", () => {
     const open = llmsTxtOf({
       contribute: false,
       learn: [],
@@ -124,9 +124,6 @@ describe('llms.txt', () => {
       '- [Algorithms and data structures](https://example.test/learn/courses/algorithms.md): Sets, maps and sorting.\n',
     );
     expect(open).toContain('- [Go](https://example.test/learn/courses/go.md): a course of GitRanks Learn\n');
-    expect(llmsTxtOf({ contribute: false, learnCourses: [{ slug: 'go', name: 'Go', covers: '' }] })).not.toMatch(
-      /learn/i,
-    );
   });
 
   it('lists pull request timelines: what one is, its addresses and its sitemap', () => {

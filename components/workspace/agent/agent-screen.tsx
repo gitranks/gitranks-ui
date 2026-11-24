@@ -21,8 +21,6 @@ const KEY_NOTICES: readonly ContributeNotice['kind'][] = ['key-invalid', 'exhaus
 /** What the Agent tab shows, read on the server. */
 export type AgentData = {
   view: ContributeView;
-  /** Learn is open to the account. */
-  learnOpen?: boolean;
   /** The latest runs with the all-time totals; undefined when the read failed. */
   runs?: ContributeRunsPage;
   /** The work in progress, for the learner's "at work now". */
@@ -40,8 +38,8 @@ export type AgentData = {
  * line and no spend. With nothing connected (no key, no agent of their own, no token waiting), the two ways as cards
  * (`AgentFirst`) instead.
  */
-export function AgentScreen({ view, learnOpen = false, runs, activity, noted = [], counts, now }: AgentData) {
-  const learner = audienceOf(view.sides, learnOpen) === 'learner';
+export function AgentScreen({ view, runs, activity, noted = [], counts, now }: AgentData) {
+  const learner = audienceOf(view.sides) === 'learner';
   const notices = contributeNoticesOf(view);
   // The key's notices are said in the hosted agent's block.
   const top = notices.filter(({ kind }) => !KEY_NOTICES.includes(kind));
@@ -57,10 +55,8 @@ export function AgentScreen({ view, learnOpen = false, runs, activity, noted = [
           text="Who does the work: your own agent on your computer, or the hosted agent on your Claude key. Neither is set up yet."
         />
         <ContributeNotices notices={notices.filter(({ kind }) => kind !== 'no-key' && !KEY_NOTICES.includes(kind))} />
-        <AgentFirst entered={isOnboarded(view)} learnOpen={learnOpen} />
-        {runs?.items.length ? (
-          <RunsPreview page={runs} learner={learner} learnOpen={learnOpen} atWork={atWork} />
-        ) : null}
+        <AgentFirst entered={isOnboarded(view)} />
+        {runs?.items.length ? <RunsPreview page={runs} learner={learner} atWork={atWork} /> : null}
       </>
     );
   }
@@ -76,7 +72,7 @@ export function AgentScreen({ view, learnOpen = false, runs, activity, noted = [
         }
       />
       <ContributeNotices notices={top} />
-      <OwnAgentBlock ownAgent={view.ownAgent} learnOpen={learnOpen} now={now} />
+      <OwnAgentBlock ownAgent={view.ownAgent} now={now} />
       <HostedAgentBlock
         view={view}
         learner={learner}
@@ -85,7 +81,7 @@ export function AgentScreen({ view, learnOpen = false, runs, activity, noted = [
         counts={counts}
         now={now}
       />
-      <RunsPreview page={runs} learner={learner} learnOpen={learnOpen} atWork={atWork} />
+      <RunsPreview page={runs} learner={learner} atWork={atWork} />
     </>
   );
 }

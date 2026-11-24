@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { answerAfter } from './__fixtures__/learn-question';
 import { octocatAnswers, walkthrough, walkthroughParts } from './__fixtures__/walkthrough';
 import { answerStartOf } from './learn-answer';
-import { isLearnOpenPath } from './learn-path';
 import {
   isLearnFixRemovedPath,
   learnFixAnswersByAttemptPath,
@@ -266,12 +265,6 @@ describe("a fix's addresses", () => {
     expect(isLearnFixRemovedPath('/learn/fixes/_removed/acme/widgets/57')).toBe(true);
     expect(isLearnFixRemovedPath('/learn/fixes/_removed')).toBe(true);
     expect(isLearnFixRemovedPath('/learn/fixes/_removedx/acme')).toBe(false);
-  });
-
-  it('opens every page of a fix to everyone', () => {
-    expect(isLearnOpenPath('/learn/fixes/acme/widgets/57/walkthrough')).toBe(true);
-    expect(isLearnOpenPath('/Learn//Fixes/by-attempt/A_1/answers')).toBe(true);
-    expect(isLearnOpenPath('/learn/fixes')).toBe(false);
   });
 });
 

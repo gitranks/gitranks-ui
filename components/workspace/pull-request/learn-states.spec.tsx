@@ -26,7 +26,6 @@ vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/learn/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({}));
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => true) }));
 vi.mock('@/lib/learn/learn.data', () => ({}));
 
 const { ContributionShell, ReviewScreen } = await import('./review-view');
@@ -299,7 +298,7 @@ describe('the Learn states of the pull request page (W1 §8.6)', () => {
     }
   });
 
-  it('19 · Learn closed to the account: the pull request view alone, no lesson line, no views', () => {
+  it('19 · no lesson read for it: the pull request view alone, no lesson line, no views', () => {
     const html = prView(open(), null);
     expect(headerOf(html)).toMatchObject({ lesson: null, views: false });
   });
@@ -369,7 +368,7 @@ describe('a Learn pull request never offers the hosted agent, nor a second submi
     }
   });
 
-  it("19 · Learn closed to the account: before its pull request, the first pane is a contribution's, no link to a lesson", () => {
+  it("19 · no lesson read for it: before its pull request, the first pane is a contribution's, no link to a lesson", () => {
     const html = prView(learn({ state: 'REVIEW' }), null);
     expect(html).not.toContain('data-status="LEARN_LESSON"');
     expect(html).not.toContain(`href="${BASE}/lesson"`);

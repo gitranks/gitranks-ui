@@ -111,8 +111,6 @@ function FooterExample() {
 
 export type LearnLandingViewProps = {
   viewer: LandingViewer;
-  /** Whether the Markdown copy at `/learn.md` answers: only while Learn is open to everyone. */
-  markdown: boolean;
   /**
    * For someone part-way through fixing an issue with their agent (a goal saved, never entered): the step they reached,
    * linked under the top button. Null for everyone else.
@@ -132,7 +130,6 @@ export type LearnLandingViewProps = {
 /** The landing, top to bottom. */
 export function LearnLandingView({
   viewer,
-  markdown,
   resume = null,
   courses,
   lessons,
@@ -262,14 +259,10 @@ export function LearnLandingView({
 
       <footer className={cn(WIDTH, 'flex flex-wrap items-center gap-x-2 gap-y-1 py-8 text-sm text-muted-foreground')}>
         <span>Written and checked by GitRanks</span>
-        {markdown ? (
-          <>
-            <span aria-hidden="true">·</span>
-            <a href={LEARN_LANDING_MARKDOWN_PATH} className={cn('font-semibold text-link hover:underline', PHONE_LINK)}>
-              Markdown version
-            </a>
-          </>
-        ) : null}
+        <span aria-hidden="true">·</span>
+        <a href={LEARN_LANDING_MARKDOWN_PATH} className={cn('font-semibold text-link hover:underline', PHONE_LINK)}>
+          Markdown version
+        </a>
         <span aria-hidden="true">·</span>
         <span>
           For agents:{' '}

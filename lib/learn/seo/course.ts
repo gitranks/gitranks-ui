@@ -40,13 +40,6 @@ export const COURSES_DESCRIPTION =
 /** A preview: its title and description, the page, its picture and the picture's words. */
 type Preview = { title: string; description: string; page: string; picture: string; alt: string };
 
-/**
- * A public Learn page's metadata while the switch that opens Learn to everyone is closed: the page answers whoever has
- * its address, but nothing links to it yet, and search engines are told not to keep it. Open, unchanged.
- */
-export const learnIndexedWhile = (metadata: Metadata, open: boolean): Metadata =>
-  open ? metadata : { ...metadata, robots: NO_INDEX };
-
 /** The metadata of a page with a preview, its Markdown copy as an alternate. */
 export function withPreview(metadata: Metadata, preview: Preview, markdown: string): Metadata {
   const images = [{ url: absoluteUrl(preview.picture), ...SOCIAL_CARD_SIZE, alt: preview.alt }];
@@ -74,9 +67,9 @@ type MetadataCourse = Pick<
  * A course: its name, its own words as the description, its address as the canonical, its Markdown copy as an
  * alternate, and a preview with its picture, as page 21 draws it.
  */
-export function learnCourseMetadata(course: MetadataCourse, { open = true }: { open?: boolean } = {}): Metadata {
+export function learnCourseMetadata(course: MetadataCourse): Metadata {
   const path = coursePath(course.slug);
-  const metadata = withPreview(
+  return withPreview(
     pageMetadata({ title: course.name, description: courseDescriptionOf(course), path }),
     {
       title: learnShareTitleOf(course.name),
@@ -87,7 +80,6 @@ export function learnCourseMetadata(course: MetadataCourse, { open = true }: { o
     },
     courseMarkdownPath(course.slug),
   );
-  return learnIndexedWhile(metadata, open);
 }
 
 /**
@@ -96,7 +88,7 @@ export function learnCourseMetadata(course: MetadataCourse, { open = true }: { o
  */
 export function learnCoursesMetadata(
   courses: readonly LearnCourseCard[],
-  { searched, open = true }: { searched: boolean; open?: boolean },
+  { searched }: { searched: boolean },
 ): Metadata {
   const metadata = withPreview(
     pageMetadata({ title: 'All courses', description: COURSES_DESCRIPTION, path: LEARN_COURSES_PATH }),
@@ -109,7 +101,7 @@ export function learnCoursesMetadata(
     },
     LEARN_COURSES_MARKDOWN_PATH,
   );
-  return learnIndexedWhile(searched ? { ...metadata, robots: NO_INDEX_FOLLOW } : metadata, open);
+  return searched ? { ...metadata, robots: NO_INDEX_FOLLOW } : metadata;
 }
 
 /**

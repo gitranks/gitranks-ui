@@ -131,9 +131,6 @@ export const SKILLS_PART_SCREENS: Screen[] = [
           <Case title="Its page hidden by its sender: the GitHub links alone">
             <SkillsFixRow now={SKILLS_NOW} fix={hiddenPageFix} />
           </Case>
-          <Case title="Made with Learn, read by someone Learn is not open to">
-            <SkillsFixRow now={SKILLS_NOW} fix={learnerFixes[1]} learnOpen={false} />
-          </Case>
         </div>
       )),
       tab('course-cards', 'A course card: finished, on its first lesson, and about a repository', 1500, () => (
@@ -147,7 +144,6 @@ export const SKILLS_PART_SCREENS: Screen[] = [
         <>
           <Case title="Everyone can see it">{strip(skillsMine.publicLearner)}</Case>
           <Case title="Hidden">{strip(skillsMine.hiddenLearner)}</Case>
-          <Case title="Only theirs: nothing public yet">{strip(skillsMine.privateLearner)}</Case>
           <Case title="Empty">{strip(skillsMine.new)}</Case>
         </>
       )),
@@ -155,12 +151,6 @@ export const SKILLS_PART_SCREENS: Screen[] = [
         <>
           {strip(skillsMine.new)}
           <SkillsStart mine={skillsMine.new} />
-        </>
-      )),
-      tab('new-learn-closed', 'Someone who uses neither, while Learn is not open to them', 1100, () => (
-        <>
-          {strip(skillsMine.newLearnClosed)}
-          <SkillsStart mine={skillsMine.newLearnClosed} />
         </>
       )),
       tab('nothing-yet', 'Nothing on the page yet: the step for each product used', 1500, () => (
@@ -175,9 +165,6 @@ export const SKILLS_PART_SCREENS: Screen[] = [
             <SkillsStart mine={skillsMine.nothingYetLearner} />
           </Case>
         </>
-      )),
-      tab('learn-closed', 'Someone who uses both, read by someone Learn is not open to: nothing of Learn', 1100, () => (
-        <SkillsPageView now={SKILLS_NOW} page={skillsMine.publicBoth.page ?? longPage} learnOpen={false} />
       )),
       tab('missing', 'No Skills page for this person', 600, () => (
         <>
@@ -222,24 +209,12 @@ export const SKILLS_PART_SCREENS: Screen[] = [
           ),
       },
       {
-        id: 'learn-closed',
-        title: 'The block of someone who uses both, read by someone Learn is not open to',
+        id: 'owner',
+        title: 'The block its owner sees while the page is hidden',
         path: PROFILE_PATH,
         height: 500,
-        render: () => frame(<SkillsBlock login={SKILLS_LOGIN} numbers={bothNumbers} learnOpen={false} />),
-      },
-      {
-        id: 'owner',
-        title: 'The block its owner sees while the page is hidden, or only theirs',
-        path: PROFILE_PATH,
-        height: 800,
         render: () =>
-          frame(
-            <>
-              <SkillsBlock login={SKILLS_LOGIN} numbers={learnerNumbers} ownState="HIDDEN" id="profile-skills-5" />
-              <SkillsBlock login={SKILLS_LOGIN} numbers={learnerNumbers} ownState="PRIVATE" id="profile-skills-6" />
-            </>,
-          ),
+          frame(<SkillsBlock login={SKILLS_LOGIN} numbers={learnerNumbers} ownState="HIDDEN" id="profile-skills-5" />),
       },
       {
         id: 'phone',

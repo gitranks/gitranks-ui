@@ -1,17 +1,14 @@
 import { isValidElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadLearnLessonPage, loadLessonPage, learnOpenToEveryone, loadMergedFixes } = vi.hoisted(() => ({
+const { loadLearnLessonPage, loadLessonPage, loadMergedFixes } = vi.hoisted(() => ({
   loadLearnLessonPage: vi.fn(),
   loadLessonPage: vi.fn(),
-  learnOpenToEveryone: vi.fn(async () => true),
   loadMergedFixes: vi.fn(async (): Promise<unknown> => null),
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/learn/lesson-page.data', () => ({ loadLearnLessonPage }));
 vi.mock('@/lib/learn/lesson-public.data', () => ({ loadLessonPage }));
-vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone }));
-vi.mock('@/lib/learn/learn-everyone-cached', () => ({ learnOpenToEveryoneCached: learnOpenToEveryone }));
 vi.mock('@/lib/learn/real-issues.data', () => ({ loadMergedFixes }));
 vi.mock('@/app/learn/components/lesson-page', () => ({ LessonPageView: () => null }));
 vi.mock('@/components/learn/lesson/lesson-screen', () => ({ LessonScreen: () => null }));
@@ -48,27 +45,15 @@ describe("a lesson's address", () => {
     expect(loadLessonPage).not.toHaveBeenCalled();
     loadLearnLessonPage.mockResolvedValueOnce(ours);
     expect((await generateMetadata(props(setLesson.slug))).robots).toBeUndefined();
-
-    // Not indexed while the switch that opens Learn to everyone is closed.
-    learnOpenToEveryone.mockResolvedValueOnce(false);
-    loadLearnLessonPage.mockResolvedValueOnce(ours);
-    expect((await generateMetadata(props(setLesson.slug))).robots).toEqual({ index: false, follow: false });
   });
 
-  it("draws the lesson's merged fixes for everyone while Learn is open to everyone, and none while it is closed", async () => {
+  it("draws the lesson's merged fixes for everyone, and none when they cannot be read", async () => {
     loadLearnLessonPage.mockResolvedValue(ours);
     loadMergedFixes.mockResolvedValue(learnFixes);
     const fixesOf = async () =>
       ((await LessonPage(props(setLesson.slug))) as { props: { fixes: unknown } }).props.fixes;
     expect(await fixesOf()).toBe(learnFixes);
     expect(loadMergedFixes).toHaveBeenCalledWith({ lesson: setLesson.slug });
-    loadMergedFixes.mockClear();
-    learnOpenToEveryone.mockResolvedValueOnce(false);
-    expect(await fixesOf()).toBeNull();
-    expect(loadMergedFixes).not.toHaveBeenCalled();
-    // A switch that cannot be read is closed; fixes that cannot be read are none: the page is as it was.
-    learnOpenToEveryone.mockRejectedValueOnce(new Error('down'));
-    expect(await fixesOf()).toBeNull();
     loadMergedFixes.mockResolvedValueOnce(null);
     expect(await fixesOf()).toBeNull();
   });

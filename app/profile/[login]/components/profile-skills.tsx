@@ -49,9 +49,7 @@ export function ProfileSkills({ login, colors }: { login: string; colors?: Reado
   return (
     <>
       {owner && reads ? <OwnerBoxView reads={reads} colors={colors} /> : null}
-      {block ? (
-        <SkillsBlock login={profile} numbers={block.numbers} ownState={block.ownState} learnOpen={block.learnOpen} />
-      ) : null}
+      {block ? <SkillsBlock login={profile} numbers={block.numbers} ownState={block.ownState} /> : null}
     </>
   );
 }

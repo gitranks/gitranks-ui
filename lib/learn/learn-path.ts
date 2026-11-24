@@ -37,33 +37,6 @@ export function isLearnPath(pathname: string): boolean {
   }
 }
 
-/**
- * The Learn pages open to every visitor: a shared lesson and its result pages (`/learn/lessons/<slug>…`, which pull
- * requests link to), a person's public progress page (`/learn/progress/<login>`), the page for maintainers, and all
- * courses and each course (`/learn/courses`, `/learn/courses/<slug>…`) with their Markdown copies and pictures, and
- * everything of a fix (`/learn/fixes/…`: its walkthrough, a person's answers, the footer's address by attempt).
- * `/learn/lessons` itself is not: it goes on to Your progress.
- */
-export const isLearnOpenPath = (pathname: string): boolean =>
-  decodedMatches(pathname, /^\/+learn\/+maintainers\/?$/i) ||
-  decodedMatches(pathname, /^\/+learn\/+courses(?:\.md)?\/?$/i) ||
-  decodedMatches(pathname, /^\/+learn\/+courses\/+[^/\\]+(?:[/\\].*)?$/i) ||
-  decodedMatches(pathname, /^\/+learn\/+lessons\/+[^/\\]+(?:[/\\].*)?$/i) ||
-  decodedMatches(pathname, /^\/+learn\/+progress\/+[^/\\]+\/?$/i) ||
-  decodedMatches(pathname, /^\/+learn\/+fixes\/+[^/\\]+(?:[/\\].*)?$/i);
-
-/**
- * Issues and the views of it at a lesson's and a course's own address (`/learn/issues`,
- * `/learn/lessons/<slug>/real-world`, `/learn/courses/<slug>/real-world`), in any spelling the router reads as them.
- * A visitor sees them once Learn is open to everyone, though a lesson's and a course's other pages are open to all.
- */
-export const isLearnIssuesPath = (pathname: string): boolean =>
-  decodedMatches(pathname, /^\/+learn\/+issues\/?$/i) ||
-  decodedMatches(pathname, /^\/+learn\/+(?:lessons|courses)\/+[^/\\]+\/+real-world\/?$/i);
-
-/** Learn's front door, `/learn`, in any spelling the router reads as it. */
-export const isLearnHomePath = (pathname: string): boolean => decodedMatches(pathname, /^\/+learn\/?$/i);
-
 /** How Learn works, `/learn/about`, in any spelling the router reads as it. */
 export const isLearnAboutPath = (pathname: string): boolean => decodedMatches(pathname, /^\/+learn\/+about\/?$/i);
 

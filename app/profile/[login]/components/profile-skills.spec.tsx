@@ -25,10 +25,10 @@ let fetchMock: ReturnType<typeof vi.fn>;
 
 const json = (body: unknown) => ({ ok: true, json: async () => body }) as Response;
 const NONE = { sides: null, block: null, learnRows: null };
-type Answers = { brief?: unknown; learnOpen?: boolean; picks?: unknown; skills?: unknown };
-const answers = ({ brief = null, learnOpen = true, picks = { kind: 'none' }, skills = NONE }: Answers) =>
+type Answers = { brief?: unknown; picks?: unknown; skills?: unknown };
+const answers = ({ brief = null, picks = { kind: 'none' }, skills = NONE }: Answers) =>
   fetchMock.mockImplementation(async (url: string) => {
-    if (url.startsWith('/api/skills/')) return json({ brief, learnOpen });
+    if (url.startsWith('/api/skills/')) return json({ brief });
     if (url.startsWith('/api/me/contribute/profile-block')) return json(picks);
     if (url.startsWith('/api/me/skills/profile')) return json(skills);
     throw new Error(`unexpected read ${url}`);
@@ -86,12 +86,6 @@ describe("the overview's Skills block", () => {
     await settle();
     expect(container.innerHTML).toBe('');
   });
-
-  it('leaves out Learn’s words while Learn is not open to everyone', async () => {
-    answers({ brief: { login: 'octocat', numbers: learnerNumbers }, learnOpen: false });
-    await draw();
-    expect(container.textContent).not.toContain('Learn');
-  });
 });
 
 describe("the owner's own overview", () => {
@@ -103,7 +97,7 @@ describe("the owner's own overview", () => {
     });
     fetchMock.mockImplementation(async (url: string) => {
       if (url.startsWith('/api/skills/')) {
-        return json({ brief: { login: 'octocat', numbers: learnerNumbers }, learnOpen: true });
+        return json({ brief: { login: 'octocat', numbers: learnerNumbers } });
       }
       await wait;
       return json(url.startsWith('/api/me/skills/profile') ? skills : picks);
@@ -131,7 +125,7 @@ describe("the owner's own overview", () => {
 
   it('gives an owner whose box comes back empty the block alone, put in once', async () => {
     signedInAs('octocat');
-    const page = held({ ...NONE, sides: { usesContribute: false, usesLearn: true, learnOpen: true }, learnRows: [] });
+    const page = held({ ...NONE, sides: { usesContribute: false, usesLearn: true }, learnRows: [] });
     await draw();
     await page.release();
     await settle();
@@ -146,7 +140,7 @@ describe("the owner's own overview", () => {
     signedInAs('octocat');
     const page = held({
       ...NONE,
-      sides: { usesContribute: false, usesLearn: true, learnOpen: true },
+      sides: { usesContribute: false, usesLearn: true },
       learnRows: [{ kind: 'masked', masked: maskedIssue() }],
     });
     await draw();
@@ -172,7 +166,7 @@ describe("the owner's own overview", () => {
       brief: { login: 'octocat', numbers: learnerNumbers },
       skills: {
         ...NONE,
-        sides: { usesContribute: false, usesLearn: true, learnOpen: true },
+        sides: { usesContribute: false, usesLearn: true },
         learnRows: [{ kind: 'masked', masked: maskedIssue() }],
       },
     });
@@ -185,7 +179,7 @@ describe("the owner's own overview", () => {
 
   it('gives the owner of a hidden page their block, with the line that says so', async () => {
     signedInAs('octocat');
-    answers({ brief: null, skills: { ...NONE, block: { numbers: learnerNumbers, state: 'HIDDEN', learnOpen: true } } });
+    answers({ brief: null, skills: { ...NONE, block: { numbers: learnerNumbers, state: 'HIDDEN' } } });
     await draw();
     expect(q('[data-skills-block-owner]')?.textContent).toContain(
       'Only you see this block. Your Skills page is hidden.',
@@ -195,7 +189,7 @@ describe("the owner's own overview", () => {
 
   it("never draws the owner's block for someone else", async () => {
     signedInAs('someone');
-    answers({ brief: null, skills: { ...NONE, block: { numbers: learnerNumbers, state: 'HIDDEN', learnOpen: true } } });
+    answers({ brief: null, skills: { ...NONE, block: { numbers: learnerNumbers, state: 'HIDDEN' } } });
     await draw();
     expect(container.innerHTML).toBe('');
     expect(urls()).toEqual(['/api/skills/octocat']);

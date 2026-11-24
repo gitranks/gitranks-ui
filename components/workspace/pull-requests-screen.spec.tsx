@@ -32,7 +32,6 @@ const screen = (data: Partial<PullRequestsData> = {}) =>
   renderToStaticMarkup(
     <PullRequestsScreen
       sides={BOTH}
-      learnOpen
       limit={{ count: 3, limit: 8, open: 3 }}
       needsYou={needsYouAnswer()}
       page={pullRequestsPage()}
@@ -127,10 +126,7 @@ describe("the tab's states", () => {
     expect(both).toMatch(/data-card="learn"[\s\S]*?data-variant="default"/);
     const contributor = screen({ ...empty, sides: { contribute: true, learn: false } });
     expect(contributor).toMatch(/data-card="contribute"[\s\S]*?data-variant="default"[\s\S]*?data-card="learn"/);
-    const closed = screen({ ...empty, learnOpen: false });
-    expect(closed).not.toContain('data-card="learn"');
-    expect(text(closed)).toContain('Send your first one');
-    expect(primaries(closed)).toHaveLength(1);
+    expect(primaries(contributor)).toHaveLength(1);
   });
 
   it('all quiet: no Needs you block, In progress if any, the table', () => {
@@ -153,15 +149,17 @@ describe("the tab's states", () => {
     expect(text(html)).toContain('Passed 5 of 5 Lesson');
   });
 
-  it('a contributor, or Learn not open: no "Made with", no Learn pill in the table', () => {
-    for (const data of [{ sides: { contribute: true, learn: false } }, { learnOpen: false }]) {
-      const html = screen({ ...data, needsYou: needsYouAnswer({ items: [], inProgress: [], count: 0 }) });
-      expect(html).not.toContain('aria-label="Made with"');
-      expect(text(html)).toContain('Pull request State Dates Made with');
-    }
-    expect(audienceOf(null, true)).toBe('both');
-    expect(audienceOf({ contribute: false, learn: false }, true)).toBe('both');
-    expect(audienceOf({ contribute: false, learn: true }, false)).toBe('contributor');
+  it('a contributor: no "Made with", no Learn pill in the table', () => {
+    const html = screen({
+      sides: { contribute: true, learn: false },
+      needsYou: needsYouAnswer({ items: [], inProgress: [], count: 0 }),
+    });
+    expect(html).not.toContain('aria-label="Made with"');
+    expect(text(html)).toContain('Pull request State Dates Made with');
+    expect(audienceOf(null)).toBe('both');
+    expect(audienceOf({ contribute: false, learn: false })).toBe('both');
+    expect(audienceOf({ contribute: true, learn: false })).toBe('contributor');
+    expect(audienceOf({ contribute: false, learn: true })).toBe('learner');
   });
 
   it('a filter that matches nothing: says so, with the way back to all', () => {

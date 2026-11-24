@@ -9,7 +9,6 @@ import type {
   fetchTopOrgs,
   fetchTopRepos,
 } from './landing-data';
-import { LandingPromos } from './landing-promos';
 import {
   BadgesSection,
   Container,
@@ -31,7 +30,6 @@ import { ProductsBlockLive } from './products-block-live';
 import type { ReadmeShowcase } from './readme-showcase';
 import { ReposSection } from './repos-section';
 import { Header } from '@/components/header/header';
-import type { ShownPromo } from '@/lib/learn/learn-promo';
 import type { UnsungHero } from '@/lib/unsung-hero/unsung-hero';
 import type { CountryQuery, CountrySummaryQuery, LanguageSummaryQuery } from '@/types/generated/graphql';
 
@@ -56,15 +54,10 @@ export type LandingData = {
 };
 
 /**
- * GitRanks Learn on the landing: `forVisitors` draws the block for Contribute and Learn under the hero, in the place of
- * Learn's suggestion (the page passes whether the API says Learn is open to everyone; the design catalogue draws it
- * anyway); `promo` draws the suggestion for a signed-in user Learn may suit, without asking for it (the design catalogue
- * alone), while the block is not drawn.
+ * The landing page from its data: the same for every visitor, apart from the parts read in the browser. `contribute`:
+ * Contribute is launched, so the block for Contribute and Learn draws Contribute's card.
  */
-export type LandingLearn = { forVisitors?: boolean; promo?: ShownPromo };
-
-/** The landing page from its data: the same for every visitor, apart from the parts read in the browser. */
-export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
+export const LandingScreen: FC<LandingData & { contribute: boolean }> = ({
   insights,
   leaderboards,
   tiers,
@@ -77,7 +70,7 @@ export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
   showcase,
   hero = null,
   packages = null,
-  learn,
+  contribute,
 }) => {
   const flags = new Map(countryList.map((country) => [country.name, country.flag]));
 
@@ -146,14 +139,11 @@ export const LandingScreen: FC<LandingData & { learn?: LandingLearn }> = ({
       <InsightTicker insight={insights[0]} />
       <main>
         <Hero developersRanked={developersRanked} examples={examples} hero={hero} stats={stats} />
-        {/* Once Learn is open to everyone: the block for Contribute and Learn, its promotions with the page and a signed-in
-            person's own cards read in the browser. Until then nothing of it is drawn or asked for. */}
-        {learn?.forVisitors && <ProductsBlockLive />}
+        {/* The block for Contribute and Learn: its promotions with the page, a signed-in person's own cards read in the
+            browser. */}
+        <ProductsBlockLive contribute={contribute} />
         <Container>
-          {/* The package rankings, with the page; then, until Learn is open to everyone, Learn's suggestion for a
-              signed-in user it may suit, read in the browser. */}
           {packages && <PackagesSection {...packages} />}
-          {!learn?.forVisitors && <LandingPromos learnForVisitors={null} promo={learn?.promo} />}
           <LeaderboardSection boards={boards} />
           <InsightsSection insights={insights} />
           <OrganizationsSection orgs={orgs} flags={flags} featured={featured} />

@@ -18,7 +18,7 @@ let fetchMock: ReturnType<typeof vi.fn>;
 const json = (body: unknown) => ({ ok: true, json: async () => body }) as Response;
 const answers = (brief: unknown, tabNew: boolean) =>
   fetchMock.mockImplementation(async (url: string) =>
-    url.startsWith('/api/skills/') ? json({ brief, learnOpen: true }) : json({ tabNew }),
+    url.startsWith('/api/skills/') ? json({ brief }) : json({ tabNew }),
   );
 const signedInAs = (login: string | null) =>
   useSession.mockReturnValue({ data: login ? { user: { githubLogin: login } } : null });

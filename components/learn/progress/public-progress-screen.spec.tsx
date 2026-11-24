@@ -15,8 +15,6 @@ const data = vi.hoisted(() => ({ loadPublicProgress: vi.fn(), loadPublicRecord: 
 vi.mock('@/lib/learn/public-progress/public-progress.data', () => data);
 const session = vi.hoisted(() => ({ viewerLogin: vi.fn(async (): Promise<string | null> => null) }));
 vi.mock('@/lib/workspace/contribute.data', () => session);
-const everyone = vi.hoisted(() => ({ learnOpenToEveryone: vi.fn(async () => false) }));
-vi.mock('@/lib/learn/learn-everyone', () => everyone);
 
 const { PublicProgressScreen } = await import('./public-progress-screen');
 const { PublicProgressView } = await import('./public-progress-view');
@@ -65,9 +63,7 @@ const PROGRESS: LearnPublicProgress = {
 };
 
 const screen = (props: Partial<Parameters<typeof PublicProgressScreen>[0]> = {}) =>
-  renderToStaticMarkup(
-    <PublicProgressScreen login="octocat" page={1} progress={PROGRESS} own={false} everyone={false} {...props} />,
-  );
+  renderToStaticMarkup(<PublicProgressScreen login="octocat" page={1} progress={PROGRESS} own={false} {...props} />);
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -96,14 +92,13 @@ describe('the public progress page', () => {
     expect(html.match(/PR #/g)).toHaveLength(1);
   });
 
-  it('gives the person themself the way to their own page, and everyone the way in once Learn is open', () => {
+  it('gives the person themself the way to their own page, and everyone the way in', () => {
     expect(text(screen({ own: true }))).toContain(
       'This is your public page. Your progress, with everything, is here →',
     );
     expect(screen({ own: true })).toContain('href="/my/progress"');
     expect(screen()).not.toContain('data-own-line');
-    expect(text(screen())).not.toContain('Learn from a real fix yourself');
-    expect(text(screen({ everyone: true }))).toContain('Learn from a real fix yourself');
+    expect(text(screen())).toContain('Learn from a real fix yourself');
   });
 
   it('says so when the read failed', () => {

@@ -17,13 +17,10 @@ import { moreFixesAfter, ownerLayerOf } from '@/lib/skills/skills-view';
 export function SkillsScreen({
   login,
   page,
-  learnOpen,
   now,
 }: {
   login: string;
   page: SkillsPage;
-  /** Whether Learn is open to everyone: the public page names nothing of Learn until it is. */
-  learnOpen: boolean;
   /** The time the page was drawn at, for its dates. */
   now: Date;
 }) {
@@ -64,7 +61,6 @@ export function SkillsScreen({
       now={now}
       strip={strip}
       other={layer.kind === 'none' ? null : otherBoxOf(layer.mine)}
-      learnOpen={learnOpen}
       onMore={fixes.next ? more : undefined}
       loadingMore={loading}
     />

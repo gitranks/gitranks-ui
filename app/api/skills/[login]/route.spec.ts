@@ -7,8 +7,6 @@ const { loadSkillsBrief, loadSkillsFixes } = vi.hoisted(() => ({
   loadSkillsFixes: vi.fn(),
 }));
 vi.mock('@/lib/skills/skills.data', () => ({ loadSkillsBrief, loadSkillsFixes }));
-const everyone = vi.hoisted(() => ({ open: true }));
-vi.mock('@/app/components/landing/landing-data', () => ({ fetchLearnForVisitors: async () => everyone.open }));
 
 const brief = await import('./route');
 const fixes = await import('./fixes/route');
@@ -25,23 +23,21 @@ const BRIEF = { login: 'octocat', numbers: contributorNumbers };
 beforeEach(() => {
   loadSkillsBrief.mockReset();
   loadSkillsFixes.mockReset();
-  everyone.open = true;
 });
 
 describe("the route for a login's Skills numbers", () => {
-  it('answers the same for everyone, kept a minute, with whether Learn is open to everyone', async () => {
+  it('answers the same for everyone, kept a minute', async () => {
     loadSkillsBrief.mockResolvedValueOnce({ value: BRIEF, failed: false });
     const response = await getBrief('octocat');
-    expect(await response.json()).toEqual({ brief: BRIEF, learnOpen: true });
+    expect(await response.json()).toEqual({ brief: BRIEF });
     expect(response.headers.get('cache-control')).toBe('public, max-age=60');
     expect(loadSkillsBrief).toHaveBeenCalledWith('octocat');
   });
 
   it('answers none without a public page, and for what is not a login without asking', async () => {
-    everyone.open = false;
     loadSkillsBrief.mockResolvedValueOnce({ value: null, failed: false });
-    expect(await (await getBrief('octocat')).json()).toEqual({ brief: null, learnOpen: false });
-    expect(await (await getBrief('a.b')).json()).toEqual({ brief: null, learnOpen: false });
+    expect(await (await getBrief('octocat')).json()).toEqual({ brief: null });
+    expect(await (await getBrief('a.b')).json()).toEqual({ brief: null });
     expect(loadSkillsBrief).toHaveBeenCalledOnce();
   });
 
@@ -49,7 +45,7 @@ describe("the route for a login's Skills numbers", () => {
     loadSkillsBrief.mockResolvedValueOnce({ value: null, failed: true });
     const response = await getBrief('octocat');
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ brief: null, learnOpen: true });
+    expect(await response.json()).toEqual({ brief: null });
     expect(response.headers.get('cache-control')).toBe('no-store');
   });
 });

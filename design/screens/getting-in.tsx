@@ -241,7 +241,7 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
                 <span className="text-xs font-semibold text-primary">{OWN_AGENT_HEAD.eyebrow}</span>
                 <h1 className={HEADING.page}>{OWN_AGENT_HEAD.title}</h1>
               </div>
-              <OwnAgentStep tokens={[]} signIn={false} learnOpen openedAt="2026-10-28T12:00:00.000Z" />
+              <OwnAgentStep tokens={[]} signIn={false} openedAt="2026-10-28T12:00:00.000Z" />
             </>,
           ),
       },

@@ -11,7 +11,10 @@ import type { LearnFixMade, LearnIssueLesson } from '@/lib/workspace/pull-reques
 /** Which kind of person the page is about, read from what it shows. */
 export type SkillsKind = 'CONTRIBUTOR' | 'LEARNER' | 'BOTH';
 
-/** Where a page stands, for everyone else and for its owner. */
+/**
+ * Where a page stands, for everyone else and for its owner. `PRIVATE` is kept for an older API that may still answer
+ * it: drawn as `HIDDEN` for the owner, not found for anyone else.
+ */
 export type SkillsState = 'NEW' | 'NOTHING_YET' | 'PUBLIC' | 'HIDDEN' | 'PRIVATE';
 
 export type SkillsFigureKey =
@@ -126,15 +129,13 @@ export type SkillsMine = {
   page: SkillsPage | null;
   usesContribute: boolean;
   usesLearn: boolean;
-  /** Whether Learn is open to this person: Learn's boxes and links show only then. */
-  learnOpen: boolean;
   /** The tab's "New" mark, until the first visit. */
   tabNew: boolean;
   numbers: SkillsIssueNumbers | null;
 };
 
-/** The browser's read of a person's numbers: null without a public page; `learnOpen` while Learn is open to everyone. */
-export type SkillsBriefAnswer = { brief: SkillsBrief | null; learnOpen: boolean };
+/** The browser's read of a person's numbers: null without a public page. */
+export type SkillsBriefAnswer = { brief: SkillsBrief | null };
 
 /** The browser's read of the next fixes: null when they cannot be read. */
 export type SkillsFixesAnswer = { fixes: SkillsFixes | null };

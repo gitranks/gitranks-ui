@@ -24,7 +24,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContributeActivity: vi.fn(async () => null),
   loadNeedsYouCount: vi.fn(async () => 0),
 }));
-const learn = vi.hoisted(() => ({ loadLearnOpen: vi.fn(), loadLearnProfile: vi.fn() }));
+const learn = vi.hoisted(() => ({ loadLearnProfile: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => learn);
 const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn() }));
 vi.mock('@/lib/workspace/gate.data', () => gate);
@@ -57,7 +57,7 @@ async function renderInner(page: ReactElement): Promise<string> {
   return renderToStaticMarkup(await render(inner.props));
 }
 
-const OPEN = { kind: 'open', entered: true, agents: { hosted: false, own: true }, learnOpen: true } as const;
+const OPEN = { kind: 'open', entered: true, agents: { hosted: false, own: true } } as const;
 const ROUTE = { owner: 'driftwood-js', repo: 'driftwood', issue: '934' };
 
 const startPage = (search: Record<string, string> = {}, route: Record<string, string> = ROUTE) =>
@@ -69,7 +69,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   viewerLogin.mockResolvedValue('octocat');
   gate.loadWorkspaceGate.mockResolvedValue(OPEN);
-  learn.loadLearnOpen.mockResolvedValue(true);
   learn.loadLearnProfile.mockResolvedValue(filledProfile);
   masks.loadStartPageWithMask.mockResolvedValue(null);
   start.loadStartPageView.mockImplementation(async (_ref, _mode, goal) => ({
@@ -100,9 +99,7 @@ describe('the Start page at /my/start', () => {
     expect(text(await startPage({ lesson: '1' }))).toContain('Your lesson will be written for a general reader.');
   });
 
-  it('sends lesson mode to Fix mode for an account Learn is not open to, and when the API closes it', async () => {
-    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, learnOpen: false });
-    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /my/start/driftwood-js/driftwood/934');
+  it('sends lesson mode to Fix mode when the API has no lesson page for the issue', async () => {
     start.loadStartPageView.mockResolvedValueOnce({ kind: 'not-found' });
     await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /my/start/driftwood-js/driftwood/934');
   });
@@ -119,9 +116,6 @@ describe('the Start page at /my/start', () => {
     await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /learn/start/driftwood-js/driftwood/934');
     gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false });
     await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /contribute/start');
-    // Learn not open to them: lesson mode is Fix mode, whose own way in they get.
-    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false, learnOpen: false });
-    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /my/start/driftwood-js/driftwood/934');
     start.loadStartPageView.mockResolvedValueOnce({ kind: 'claimed', href: '/my/pull-requests/by-attempt/A_9' });
     await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /my/pull-requests/by-attempt/A_9');
   });

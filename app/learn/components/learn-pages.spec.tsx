@@ -26,8 +26,7 @@ vi.mock('@/lib/learn/actions', () => ({
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
 vi.mock('@/lib/workspace/issue-actions', () => ({}));
-const { everyone, viewerLogin } = vi.hoisted(() => ({
-  everyone: vi.fn(async () => false),
+const { viewerLogin } = vi.hoisted(() => ({
   viewerLogin: vi.fn(async (): Promise<string | undefined> => undefined),
 }));
 vi.mock('@/lib/workspace/contribute.data', () => ({
@@ -39,9 +38,7 @@ vi.mock('@/lib/workspace/contribute.data', () => ({
 vi.mock('@/lib/workspace/masked-issue.data', () => ({
   loadMaskedListReads: vi.fn(async () => ({ looks: null, numbers: null })),
 }));
-vi.mock('@/lib/learn/learn-front-door', () => ({ learnFrontDoorOpenToVisitor: everyone }));
 const data = vi.hoisted(() => ({
-  loadLearnOpen: vi.fn(),
   loadLearnProfile: vi.fn(),
   loadLearnSetup: vi.fn(),
   loadMyLearnAttempts: vi.fn(async () => ({ current: null, lastPullRequest: null })),
@@ -53,9 +50,9 @@ vi.mock('@/lib/skills/skills.data', () => ({}));
 vi.mock('@/lib/learn/settings.actions', () => ({}));
 vi.mock('@/lib/learn/learn.data', () => data);
 vi.mock('@/lib/learn/progress/progress.data', () => ({ loadLearnProgress: vi.fn(async () => undefined) }));
-const ENTERED = { kind: 'open', entered: true, agents: { hosted: false, own: true }, learnOpen: true };
+const ENTERED = { kind: 'open', entered: true, agents: { hosted: false, own: true } };
 const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn(async (): Promise<unknown> => ENTERED) }));
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn(async () => false), ...gate }));
+vi.mock('@/lib/workspace/gate.data', () => gate);
 
 const { LearnTab } = await import('@/app/(workspace)/learn/components/learn-tab-view');
 const { LearnMaintainers } = await import('./learn-maintainers');
@@ -194,23 +191,11 @@ describe('Goal and level', () => {
 });
 
 describe("Learn's gate on its own pages", () => {
-  const closed = () => {
-    data.loadLearnOpen.mockResolvedValue(false);
-    data.loadLearnProfile.mockRejectedValue(new Error('down'));
-  };
-
   afterEach(() => {
     data.loadLearnSetup.mockReset();
   });
 
-  it('answers not found to anyone Learn is not open to, whatever the other reads do', async () => {
-    closed();
-    data.loadLearnSetup.mockResolvedValue(true);
-    await expect(LearnProfileView()).rejects.toThrow('NEXT_NOT_FOUND');
-  });
-
   it('says a new account is being set up, in place of the form and the Learn tab, with a refresh', async () => {
-    data.loadLearnOpen.mockResolvedValue(true);
     data.loadLearnSetup.mockResolvedValue(true);
     data.loadLearnProfile.mockResolvedValue(null);
     for (const html of [renderToStaticMarkup(await LearnProfileView()), renderToStaticMarkup(await LearnTab())]) {
@@ -220,8 +205,7 @@ describe("Learn's gate on its own pages", () => {
     }
   });
 
-  it('draws the pages for a user Learn is open to', async () => {
-    data.loadLearnOpen.mockResolvedValue(true);
+  it('draws the pages for someone signed in', async () => {
     data.loadLearnProfile.mockResolvedValue(filledProfile);
     expect(renderToStaticMarkup(await LearnTab())).toContain('data-learn-tab="ready"');
     expect(renderToStaticMarkup(await LearnProfileView())).toContain('data-learn-profile="filled"');

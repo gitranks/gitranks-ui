@@ -7,7 +7,6 @@ import { notFound } from 'next/navigation';
 import { LayoutLeftColumn } from '../components/layout-left-column';
 import { SkillsHeading } from '../components/skills-owner';
 import { SkillsScreen } from '../components/skills-screen';
-import { fetchLearnForVisitors } from '@/app/components/landing/landing-data';
 import { JsonLd } from '@/components/json-ld/json-ld';
 import { fetchProfilePageOverview } from '@/graphql/helpers/fetch-profile-page-overview';
 import { skillsTag } from '@/lib/skills/paths';
@@ -17,14 +16,10 @@ import { profileCacheTag } from '@/utils/profile-refresh';
 
 export async function generateMetadata({ params }: PageProps<'/profile/[login]/skills'>): Promise<Metadata> {
   const { login } = await params;
-  const [skills, learnOpen, user] = await Promise.all([
-    loadSkillsPage(login),
-    fetchLearnForVisitors(),
-    fetchProfilePageOverview(login),
-  ]);
+  const [skills, user] = await Promise.all([loadSkillsPage(login), fetchProfilePageOverview(login)]);
   if (skills.failed) return { title: { absolute: skillsTitleOf(login) }, robots: { index: false, follow: false } };
   if (!user || !skills.value) return { title: 'No Skills page', robots: { index: false, follow: false } };
-  return skillsMetadataOf(skills.value, { name: user.name, learnOpen });
+  return skillsMetadataOf(skills.value, { name: user.name });
 }
 
 /** A failed read is an error, never "no Skills page"; while the site is built it is a "not found" kept for minutes. */
@@ -45,11 +40,7 @@ export default async function ProfileSkills({ params }: PageProps<'/profile/[log
   const { login } = await params;
   cacheTag(profileCacheTag(login), skillsTag(login));
 
-  const [user, skills, learnOpen] = await Promise.all([
-    fetchProfilePageOverview(login),
-    loadSkillsPage(login),
-    fetchLearnForVisitors(),
-  ]);
+  const [user, skills] = await Promise.all([fetchProfilePageOverview(login), loadSkillsPage(login)]);
   if (skills.failed) failedRead(login);
   cacheLife({ stale: 300, revalidate: 900, expire: 86_400 });
 
@@ -59,9 +50,9 @@ export default async function ProfileSkills({ params }: PageProps<'/profile/[log
 
   return (
     <LayoutLeftColumn user={user}>
-      <JsonLd payloads={skillsJsonLdOf(skills.value, { name: user.name, learnOpen })} />
+      <JsonLd payloads={skillsJsonLdOf(skills.value, { name: user.name })} />
       <SkillsHeading />
-      <SkillsScreen login={login} page={skills.value} learnOpen={learnOpen} now={new Date()} />
+      <SkillsScreen login={login} page={skills.value} now={new Date()} />
     </LayoutLeftColumn>
   );
 }

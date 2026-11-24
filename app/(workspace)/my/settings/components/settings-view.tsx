@@ -38,7 +38,6 @@ import type {
 } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
 import { emailHintOf } from '@/lib/workspace/email-settings';
-import { loadLearnOpen } from '@/lib/workspace/gate.data';
 import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
 import { autopilotOnOf } from '@/lib/workspace/hosted-level';
 import { SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -78,9 +77,9 @@ async function loadPrivacyGroup(): Promise<ReactNode> {
   return <SkillsPrivacyGroup login={githubLogin} mine={mine} setHidden={setSkillsHiddenAction} />;
 }
 
-/** Learn's two reads for its rows, each the person's own; none where Learn is not open to them. */
-async function loadLearnRows(learnOpen: boolean) {
-  const githubLogin = learnOpen ? await viewerLogin() : null;
+/** Learn's two reads for its rows, each the person's own; none signed out. */
+async function loadLearnRows() {
+  const githubLogin = await viewerLogin();
   if (!githubLogin) return { setup: null, email: null };
   const [setup, email] = await Promise.all([
     loadLearnSetupForSettings(githubLogin),
@@ -94,12 +93,11 @@ export async function SettingsView({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [view, params, set, email, learnOpen, counts, jar, privacy] = await Promise.all([
+  const [view, params, set, email, counts, jar, privacy] = await Promise.all([
     loadSummaryView(),
     searchParams,
     loadContributeSet(),
     loadContributeEmailSettings(),
-    loadLearnOpen(),
     loadScheduleCounts(),
     cookies(),
     loadPrivacyGroup(),
@@ -107,18 +105,16 @@ export async function SettingsView({
   // GitHub's consent comes back here when it was not saved: its answer is on GitHub's own page.
   const grant = grantRefusalOf(params.grant);
   if (grant) redirect(`${SETTINGS_PATHS.github}?grant=${grant}` as Route);
-  const learn = await loadLearnRows(learnOpen);
+  const learn = await loadLearnRows();
   const bar = settingsBarOf({
     from: params.from,
     lastBar: lastBarOf(jar.get(LAST_BAR_COOKIE)?.value),
-    audience: audienceOf(view.sides, learnOpen),
-    learnOpen,
+    audience: audienceOf(view.sides),
   });
   return (
     <SettingsScreen
       view={view}
       bar={bar}
-      learnOpen={learnOpen}
       set={set}
       setFailed={set === undefined}
       email={email ?? null}
@@ -265,7 +261,7 @@ function LimitsGroup({ view, openPrs }: { view: ContributeView; openPrs?: number
  * Settings (page 23): one page for both products, opened from either bar, with the product's own preferences first.
  * From Learn: Learn preferences, Email, Agent and GitHub, Limits, then Contribute preferences; from Contribute:
  * Contribute preferences, Agent and GitHub, Limits, Email, then Learn preferences. Privacy, then Delete all data,
- * last. A product's group shows only to someone who uses it (Learn's, wherever Learn is open; Contribute's, to all but
+ * last. A product's group shows only to someone who uses it (Learn's, to everyone; Contribute's, to all but
  * someone who only learns). In Email, Learn's "Lessons to repeat" comes first from Learn and after Contribute's rows from Contribute; the
  * time zone is last. Each row opens the page it is changed on; the Email rows change on the page itself. Old links to
  * a section go on to where it is now (`SettingsAnchors`).
@@ -273,7 +269,6 @@ function LimitsGroup({ view, openPrs }: { view: ContributeView; openPrs?: number
 export function SettingsScreen({
   view,
   bar = 'contribute',
-  learnOpen = false,
   set,
   setFailed = false,
   email = null,
@@ -289,7 +284,6 @@ export function SettingsScreen({
   view: ContributeView;
   /** The bar the page shows, whose product's groups come first. */
   bar?: ProductBar;
-  learnOpen?: boolean;
   /** What the user works on; null when the API hides it, `undefined` when it did not load. */
   set?: ContributeSet | null;
   /** What the user works on did not load. */
@@ -304,7 +298,7 @@ export function SettingsScreen({
   learnSetup?: LearnSetupRead | null;
   /** Learn's setup did not load: its row says so. */
   learnSetupFailed?: boolean;
-  /** Learn's email settings: null where Learn is not open. */
+  /** Learn's email settings: null when there are none. */
   learnEmail?: LearnEmailSettings | null;
   /** Learn's email settings did not load: a line in Email says so. */
   learnEmailFailed?: boolean;
@@ -313,19 +307,19 @@ export function SettingsScreen({
   /** The group "Privacy": who can see the person's Skills page. */
   privacy?: ReactNode;
 }) {
-  const audience = audienceOf(view.sides, learnOpen);
-  const fromLearn = learnOpen && bar === 'learn';
+  const audience = audienceOf(view.sides);
+  const fromLearn = bar === 'learn';
   const contribute =
     audience === 'learner' ? null : <ContributePreferencesGroup view={view} set={set} setFailed={setFailed} />;
-  const learn = learnOpen ? <LearnPreferencesGroup setup={learnSetupFailed ? undefined : learnSetup} /> : null;
+  const learn = <LearnPreferencesGroup setup={learnSetupFailed ? undefined : learnSetup} />;
 
   // Learn's rows of Email: the switch where its product's rows go, the time zone last.
   let lessons: ReactNode = null;
   let zone: ReactNode = null;
-  if (learnOpen && learnEmail) {
+  if (learnEmail) {
     lessons = <LessonsToRepeatRow on={learnEmail.lessonsToRepeat} noAddress={!!email && !email.to} />;
     zone = <TimeZoneRow settings={learnEmail} savedZone={email ? email.timeZone : undefined} />;
-  } else if (learnOpen && learnEmailFailed) {
+  } else if (learnEmailFailed) {
     zone = <LearnEmailFailedRow />;
   }
   const emailGroup =
@@ -370,7 +364,7 @@ export function SettingsScreen({
         </>
       )}
       {privacy}
-      <DeleteDataSection hasKey={!!claudeKeyOf(view)} learnOpen={learnOpen} />
+      <DeleteDataSection hasKey={!!claudeKeyOf(view)} />
       <SettingsAnchors />
     </>
   );

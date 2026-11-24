@@ -4,14 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
   viewerLogin: vi.fn(async (): Promise<string | undefined> => undefined),
-  openToVisitor: vi.fn(async () => false),
-  loadLearnOpen: vi.fn(async () => false),
   loadLearnHome: vi.fn(async (): Promise<unknown> => null),
   loadLearnSetup: vi.fn(async (): Promise<unknown> => null),
   loadWorkspaceGate: vi.fn(async (): Promise<unknown> => null),
   loadLearnCourses: vi.fn(async (): Promise<unknown[]> => []),
   loadTryLessons: vi.fn(async (): Promise<unknown[]> => []),
-  everyone: vi.fn(async () => false),
   loadLearnProfile: vi.fn(async (): Promise<unknown> => null),
   loadLearnTimeZone: vi.fn(async (): Promise<unknown> => null),
   loadHomeReal: vi.fn(async (): Promise<unknown> => ({ box: null, fixes: [], issues: [] })),
@@ -32,9 +29,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin: m.viewerLogin }));
-vi.mock('@/lib/learn/learn-front-door', () => ({ learnFrontDoorOpenToVisitor: m.openToVisitor }));
-vi.mock('@/lib/learn/learn.data', () => ({ loadLearnOpen: m.loadLearnOpen, loadLearnProfile: m.loadLearnProfile }));
-vi.mock('@/lib/learn/learn-everyone', () => ({ learnOpenToEveryone: m.everyone }));
+vi.mock('@/lib/learn/learn.data', () => ({ loadLearnProfile: m.loadLearnProfile }));
 vi.mock('@/lib/learn/my-progress.data', () => ({ loadLearnTimeZone: m.loadLearnTimeZone }));
 vi.mock('@/lib/learn/home.data', () => ({ loadLearnHome: m.loadLearnHome }));
 vi.mock('@/lib/learn/setup.data', () => ({ loadLearnSetup: m.loadLearnSetup }));
@@ -49,7 +44,6 @@ vi.mock('@/lib/workspace/masked-issue.actions', () => ({
   skipMaskedIssue: vi.fn(),
 }));
 vi.mock('@/components/learn/bar/learn-bar-live', () => ({ LearnBarLive: () => null }));
-vi.mock('@/components/learn/bar/learn-bar-frame', () => ({ LearnBarFrame: () => null }));
 vi.mock('@/lib/learn/lesson-page.actions', () => ({ answerLearnLessonAction: vi.fn() }));
 
 const { LearnAboutView, LearnFrontView } = await import('./learn-front');
@@ -82,12 +76,9 @@ const ENTERED = { kind: 'open', entered: true };
 
 beforeEach(() => {
   for (const mock of Object.values(m)) mock.mockReset();
-  m.openToVisitor.mockResolvedValue(false);
-  m.loadLearnOpen.mockResolvedValue(false);
   m.loadLearnCourses.mockResolvedValue(courseCards);
   m.loadTryLessons.mockResolvedValue([]);
   m.loadWorkspaceGate.mockResolvedValue(null);
-  m.everyone.mockResolvedValue(false);
   m.loadLearnProfile.mockResolvedValue(null);
   m.loadLearnTimeZone.mockResolvedValue(null);
   m.loadHomeReal.mockResolvedValue(NO_HOME_REAL);
@@ -97,37 +88,27 @@ beforeEach(() => {
 
 const signedIn = ({ home = homeDay as unknown, setup = SAVED as unknown, gate = null as unknown } = {}) => {
   m.viewerLogin.mockResolvedValue('octocat');
-  m.loadLearnOpen.mockResolvedValue(true);
   m.loadLearnHome.mockResolvedValue(home);
   m.loadLearnSetup.mockResolvedValue(setup);
   m.loadWorkspaceGate.mockResolvedValue(gate);
 };
 
 describe('/learn for a visitor', () => {
-  it('is not found while the switch that opens Learn to everyone is closed, reading nothing else', async () => {
-    await expect(LearnFrontView()).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(m.loadLearnCourses).not.toHaveBeenCalled();
-    expect(m.loadLearnHome).not.toHaveBeenCalled();
-  });
-
-  it('is the landing for a visitor once it is open, its Markdown copy linked', async () => {
-    m.openToVisitor.mockResolvedValue(true);
-    m.everyone.mockResolvedValue(true);
+  it('is the landing for a visitor, its Markdown copy linked, reading no home', async () => {
     const html = await landingHtmlOf(await LearnFrontView());
     expect(html).toContain('data-landing-viewer="visitor"');
     expect(html).toContain('href="/learn.md"');
     expect(m.loadTryLessons).toHaveBeenCalledWith(courseCards);
+    expect(m.loadLearnHome).not.toHaveBeenCalled();
   });
 
   it('is still the landing when the courses cannot be read', async () => {
-    m.openToVisitor.mockResolvedValue(true);
     m.loadLearnCourses.mockRejectedValue(new Error('down'));
     expect(await landingOf(await LearnFrontView())).toBe('visitor');
     expect(m.loadTryLessons).toHaveBeenCalledWith([]);
   });
 
   it('names the newest merged fixes made with Learn, and is as before when they cannot be read', async () => {
-    m.openToVisitor.mockResolvedValue(true);
     m.loadMergedFixes.mockResolvedValue(landingFixes);
     const html = await landingHtmlOf(await LearnFrontView());
     expect(m.loadMergedFixes).toHaveBeenCalledWith();
@@ -139,13 +120,6 @@ describe('/learn for a visitor', () => {
 });
 
 describe('/learn for someone signed in', () => {
-  it('is not found to someone Learn is not open to, whatever the switch for visitors says', async () => {
-    m.viewerLogin.mockResolvedValue('octocat');
-    m.openToVisitor.mockResolvedValue(true);
-    await expect(LearnFrontView()).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(m.loadLearnHome).not.toHaveBeenCalled();
-  });
-
   it('is the landing for someone not set up who has learned nothing', async () => {
     signedIn({ home: homeNewLearner, setup: UNSET });
     expect(await landingOf(await LearnFrontView())).toBe('member');
@@ -153,11 +127,11 @@ describe('/learn for someone signed in', () => {
     expect(m.loadLearnSetup).toHaveBeenCalledWith('octocat');
   });
 
-  it('links no Markdown copy while Learn is not open to everyone, as /learn.md is not found then', async () => {
+  it('links the Markdown copy for them too', async () => {
     signedIn({ home: homeNewLearner, setup: UNSET });
     const html = await landingHtmlOf(await LearnFrontView());
     expect(html).toContain('data-landing-viewer="member"');
-    expect(html).not.toContain('/learn.md');
+    expect(html).toContain('href="/learn.md"');
   });
 
   it('links someone part-way through fixing an issue back to Pick an issue', async () => {
@@ -242,17 +216,16 @@ describe('/learn for someone signed in', () => {
     signedIn({ home: homeNewLearner, setup: null });
     expect(((await LearnFrontView()) as Shown).type).toBe(LearnHomeView);
   });
+
+  it('is the landing as for a member when the API answers neither a setup nor a home', async () => {
+    signedIn({ home: null, setup: null });
+    expect(await landingOf(await LearnFrontView())).toBe('member');
+  });
 });
 
 describe('/learn/about, How Learn works', () => {
   it('sends a visitor to /learn, the one address of the landing', async () => {
-    m.openToVisitor.mockResolvedValue(true);
     await expect(LearnAboutView()).rejects.toThrow('NEXT_REDIRECT /learn');
-  });
-
-  it('is not found to someone Learn is not open to', async () => {
-    m.viewerLogin.mockResolvedValue('octocat');
-    await expect(LearnAboutView()).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
   it('sends someone not set up to /learn, where the landing is theirs', async () => {

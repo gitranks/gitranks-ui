@@ -16,12 +16,8 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { ContributeUnavailableError, viewerLogin } from '@/lib/workspace/contribute.data';
 import { contributeErrorOf } from '@/lib/workspace/errors';
 
-/** Whether Learn is open to the signed-in viewer: the workspace gate's own read, once per request. */
-export { loadLearnOpen } from '@/lib/workspace/gate.data';
-
 /**
- * Whether the viewer's GitRanks account is still being set up: a new account Learn is open to, which GitRanks has not
- * read yet. False signed out and on any failure. Read once per request.
+ * Whether the viewer's GitRanks account is still being set up: a new account GitRanks has not read yet. False signed out and on any failure. Read once per request.
  */
 export const loadLearnSetup = cache(async (): Promise<boolean> => {
   const githubLogin = await viewerLogin();

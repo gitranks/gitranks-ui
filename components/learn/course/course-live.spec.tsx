@@ -76,24 +76,19 @@ describe("a course's page in the browser, for a visitor", () => {
     expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/courses/algorithms' });
   });
 
-  it('names the merged fixes (from five) as a link while Learn is open to everyone, and not at all while it is closed', async () => {
+  it('names the merged fixes (from five) as a link', async () => {
     const numbers = (issuesFixed: number | null) => ({ ...algorithmsCourse.numbers, issuesFixed });
-    const drawWith = async (issuesFixed: number | null, everyone: boolean) => {
+    const drawWith = async (issuesFixed: number | null) => {
       await act(async () =>
         root.render(
-          <CourseLive
-            course={{ ...algorithmsCourse, numbers: numbers(issuesFixed) }}
-            others={otherCourses}
-            everyone={everyone}
-          />,
+          <CourseLive course={{ ...algorithmsCourse, numbers: numbers(issuesFixed) }} others={otherCourses} />,
         ),
       );
       return host.querySelector<HTMLAnchorElement>('[data-course-fixed]');
     };
-    expect((await drawWith(212, true))?.getAttribute('href')).toBe('/learn/courses/algorithms/real-world?fixed=1');
-    expect(await drawWith(212, false)).toBeNull();
-    expect(await drawWith(4, true)).toBeNull();
-    expect(await drawWith(null, true)).toBeNull();
+    expect((await drawWith(212))?.getAttribute('href')).toBe('/learn/courses/algorithms/real-world?fixed=1');
+    expect(await drawWith(4)).toBeNull();
+    expect(await drawWith(null)).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
@@ -177,7 +172,7 @@ describe("a course's page in the browser, for a person with a session", () => {
     }
   });
 
-  it("links the merged fixes' count for a learner, and for a visitor only while Learn is open to everyone", async () => {
+  it("links the merged fixes' count for a learner", async () => {
     const course = { ...algorithmsCourse, numbers: { ...algorithmsCourse.numbers, issuesFixed: 212 } };
     answer({ course: progressMine, checkFirst: false });
     await act(async () => root.render(<CourseLive course={course} others={otherCourses} />));

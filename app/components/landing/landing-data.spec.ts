@@ -14,7 +14,8 @@ vi.mock('next/cache', () => ({ cacheLife }));
 vi.mock('@/graphql/helpers/fetch-insights-server', () => ({ fetchInsightsServer: vi.fn() }));
 vi.mock('@/graphql/helpers/fetch-package-rankings', () => ({ fetchPackageRankings, fetchPackageRankingFacts }));
 
-const { fetchLandingPackages, fetchTopRepos } = await import('./landing-data');
+const { fetchContributeForVisitors, fetchLandingPackages, fetchTopRepos } = await import('./landing-data');
+const { ContributeOpenDocument } = await import('@/lib/workspace/contribute.documents');
 
 describe('fetchTopRepos', () => {
   beforeEach(() => {
@@ -42,6 +43,28 @@ describe('fetchTopRepos', () => {
     graphqlDirect.mockRejectedValueOnce(new Error('GraphQL error! 502: Bad Gateway'));
 
     await expect(fetchTopRepos()).resolves.toEqual([]);
+    expect(cacheLife).toHaveBeenLastCalledWith('minutes');
+  });
+});
+
+describe('fetchContributeForVisitors', () => {
+  beforeEach(() => {
+    graphqlDirect.mockReset();
+    cacheLife.mockReset();
+  });
+
+  it("follows the API's answer of whether Contribute is launched, kept as long as the page's shortest read", async () => {
+    graphqlDirect.mockResolvedValueOnce({ contributeOpen: true });
+    await expect(fetchContributeForVisitors()).resolves.toBe(true);
+    expect(graphqlDirect).toHaveBeenCalledWith(ContributeOpenDocument, undefined, { source: 'ssr' });
+    expect(cacheLife).toHaveBeenCalledWith(expect.objectContaining({ revalidate: 900 }));
+    graphqlDirect.mockResolvedValueOnce({ contributeOpen: false });
+    await expect(fetchContributeForVisitors()).resolves.toBe(false);
+  });
+
+  it('leaves the card out, for minutes, when the read fails', async () => {
+    graphqlDirect.mockRejectedValueOnce(new Error('GraphQL error! 502: Bad Gateway'));
+    await expect(fetchContributeForVisitors()).resolves.toBe(false);
     expect(cacheLife).toHaveBeenLastCalledWith('minutes');
   });
 });

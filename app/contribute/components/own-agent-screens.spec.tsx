@@ -11,7 +11,7 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/lib/workspace/actions', () => ({}));
 vi.mock('@/lib/contribute/actions', () => ({}));
-vi.mock('@/lib/workspace/gate.data', () => ({ loadLearnOpen: vi.fn() }));
+vi.mock('@/lib/workspace/gate.data', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   loadContribute: vi.fn(),
   loadAttempt: vi.fn(),
@@ -59,8 +59,8 @@ describe('the Agent tab, your own agent', () => {
     createdAt: '2026-11-12T09:00:00.000Z',
     lastUsedAt: new Date(NOW.getTime() - 2 * 60 * 60 * 1000).toISOString(),
   };
-  const block = (ownAgent: ContributeOwnAgent | undefined, learnOpen = true) =>
-    renderToStaticMarkup(<OwnAgentBlock ownAgent={ownAgent} learnOpen={learnOpen} now={NOW} />);
+  const block = (ownAgent: ContributeOwnAgent | undefined) =>
+    renderToStaticMarkup(<OwnAgentBlock ownAgent={ownAgent} now={NOW} />);
 
   it('shows one card per connection: a sign-in by its last call and day, with Disconnect, never a last 4', () => {
     const html = block({ ...withTokens, tokens: [TOKEN, SIGNED_IN] });
@@ -79,7 +79,6 @@ describe('the Agent tab, your own agent', () => {
     const html = block(withTokens);
     const plain = text(html);
     expect(plain).toContain('Your own agent For Contribute and Learn');
-    expect(text(block(withTokens, false))).toContain('Your own agent For Contribute ');
     expect(html).toMatch(/href="\/my\/agent\/connect"[^>]*>Connect another agent/);
     expect(html).toMatch(/href="\/contribute\/mcp"[^>]*>The MCP docs: setup and tools for every agent →/);
     expect(plain).not.toContain('Create token');

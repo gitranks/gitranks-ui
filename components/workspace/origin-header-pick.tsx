@@ -14,13 +14,11 @@ const noSubscribe = () => () => {};
  * reads the query, so it renders inside a Suspense boundary.
  */
 export function OriginHeaderPick({
-  learnOpen,
   audience,
   lastBar,
   learn,
   contribute,
 }: {
-  learnOpen: boolean;
   audience: Audience;
   /** The server's read of the bar seen last. */
   lastBar: ProductBar | null;
@@ -33,7 +31,5 @@ export function OriginHeaderPick({
     () => lastBarInCookies(document.cookie),
     () => lastBar,
   );
-  return settingsBarOf({ from: search.get('from'), lastBar: seenLast, audience, learnOpen }) === 'learn'
-    ? learn
-    : contribute;
+  return settingsBarOf({ from: search.get('from'), lastBar: seenLast, audience }) === 'learn' ? learn : contribute;
 }

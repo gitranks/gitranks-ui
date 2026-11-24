@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readSkillsBrief } from './skills-brief-read';
 import { contributorNumbers } from '@/lib/skills/__fixtures__/skills';
 
-const answer = { brief: { login: 'octocat', numbers: contributorNumbers }, learnOpen: false };
+const answer = { brief: { login: 'octocat', numbers: contributorNumbers } };
 
 afterEach(() => {
   vi.unstubAllGlobals();

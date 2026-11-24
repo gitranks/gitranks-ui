@@ -99,6 +99,14 @@ describe('the Start page, Fix it', () => {
     expect(html).toContain('data-start-page="waiting"');
   });
 
+  it("with VS Code connected, says the prompt goes in VS Code's chat, not a terminal", () => {
+    const { plain } = screen('fix', { connection: { ...startConnection, client: 'vscode' } });
+    expect(plain).toContain(
+      "2 · Paste this in VS Code In VS Code's chat, in Agent mode. Your agent forks the project and fixes the issue.",
+    );
+    expect(plain).not.toContain('In a terminal');
+  });
+
   it("shows owner/repo#n when GitHub's title was not read, and goes on", () => {
     const { html, plain } = screen('fix', { issue: startViews.untitled });
     expect(html).toContain('data-start-issue="unread"');

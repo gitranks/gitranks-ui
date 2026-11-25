@@ -263,6 +263,18 @@ describe('B1, your own agent', () => {
     ).not.toContain('data-agent-next');
   });
 
+  it('stays without the Contribute sign on the Agent tab, with "Finish setting up" to the setup and Learn', () => {
+    const learner = b1({ stage: 'added', connected: true, stay: true, finishSetup: true });
+    expect(learner.plain).toContain(
+      'Your agent is connected. Finish setting up to take issues on Contribute, or pick an issue on Learn and press Start.',
+    );
+    expect(learner.html).toMatch(
+      /data-agent-next="finish-setup"[^>]*>.*href="\/contribute\/start".*href="\/learn\/issues"/,
+    );
+    expect(learner.html).not.toContain('data-agent-next=""');
+    expect(learner.plain).not.toContain('Taking you on');
+  });
+
   it('says Copied from beside each copy button, not inside it', () => {
     const { html } = b1({ stage: 'token', shown: TOKEN });
     expect(html).toMatch(/aria-label="Copy the token"[^>]*>(?:(?!<\/button>).)*<\/button><span role="status"/s);

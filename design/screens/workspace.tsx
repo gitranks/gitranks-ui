@@ -169,6 +169,36 @@ export const WORKSPACE_SCREENS: Screen[] = [
           ),
       },
       {
+        id: 'connected-learn-sign-only',
+        title: 'Connected, the Learn sign only: the page stays, with "Finish setting up" and Learn',
+        path: '/my/agent/connect',
+        height: 1100,
+        render: () => (
+          <>
+            <Header />
+            <WorkspaceTabsNav tabs={[]} poll />
+            <main className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 pt-9 pb-16">
+              <AgentConnectView
+                client="claude-code"
+                onClient={noop}
+                stage="added"
+                shown={null}
+                os="mac"
+                detectedOs="mac"
+                onOs={noop}
+                onCreate={noop}
+                onAdded={noop}
+                onReopen={noop}
+                onReplace={noop}
+                connected
+                stay
+                finishSetup
+              />
+            </main>
+          </>
+        ),
+      },
+      {
         id: 'token-antigravity',
         title: "The token in Antigravity's config: one step",
         path: '/my/agent/connect',

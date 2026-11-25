@@ -72,6 +72,17 @@ describe('the own agent’s first call', () => {
     window.history.replaceState(null, '', '/');
   });
 
+  it('on the Agent tab’s connect page without the Contribute sign, stays once connected: no first issue, no sign', async () => {
+    await act(async () => root.render(<AgentConnect onboarded={false} finishSetup tokens={WAITING} />));
+    expect(actions.readAgentConnected).toHaveBeenCalledWith({ tokenId: 'T_9', onboarded: false, since: null });
+    expect(tracker.reportContributeConnect).toHaveBeenCalledWith('agent', undefined);
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-agent-next="finish-setup"] a')?.getAttribute('href')).toBe(
+      '/contribute/start',
+    );
+  });
+
   it('for an account already in the workspace, the connect page stays', async () => {
     await act(async () => root.render(<AgentConnect onboarded tokens={[mcpToken({ id: 'T_9' })]} />));
     expect(router.replace).not.toHaveBeenCalled();

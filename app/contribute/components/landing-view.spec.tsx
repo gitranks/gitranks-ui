@@ -217,15 +217,18 @@ describe('how Contribute works, /contribute/about', () => {
     ['the Learn sign only', null, '2026-11-25T09:00:00.000Z', 'Start contributing'],
     ['both signs', '2026-11-25T09:00:00.000Z', '2026-11-25T09:00:00.000Z', 'Go to your issues'],
     ['the signs not known', undefined, undefined, 'Go to your issues'],
-  ])('with %s, its main button reads %s', async (_who, contributeOnboardedAt, learnOnboardedAt, label) => {
-    data.loadContribute.mockResolvedValue({
-      ...views.active,
-      contributor: contributor({ contributeOnboardedAt, learnOnboardedAt }),
-    });
-    const [[href, first], [, last]] = startsOf(await about());
-    expect([first, last]).toEqual([label, label]);
-    expect(href).toBe(label === 'Go to your issues' ? '/contribute' : '/contribute/start');
-  });
+  ])(
+    'with %s, its main button goes by the Contribute sign',
+    async (_who, contributeOnboardedAt, learnOnboardedAt, label) => {
+      data.loadContribute.mockResolvedValue({
+        ...views.active,
+        contributor: contributor({ contributeOnboardedAt, learnOnboardedAt }),
+      });
+      const [[href, first], [, last]] = startsOf(await about());
+      expect([first, last]).toEqual([label, label]);
+      expect(href).toBe(label === 'Go to your issues' ? '/contribute' : '/contribute/start');
+    },
+  );
 
   it('tells an account being set up, one whose read failed, or one with no profile, so, as /contribute does', async () => {
     data.loadContribute.mockResolvedValue(null);

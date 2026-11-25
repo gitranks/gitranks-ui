@@ -18,9 +18,10 @@ import { LAST_BAR_COOKIE, lastBarOf } from '@/lib/workspace/settings-bar';
  * The workspace's tabs for the viewer, as the gate gives them (none without the Contribute sign), and the one poll for
  * either sign, with what the API is working on for them, the count of what needs them, and the version the poll starts
  * from (read first, inside the gate's read of the user). A person with the Learn sign only gets the poll alone. The
- * reads are the page's own (once per request). An outage leaves no tabs and no poll; the page says to try again. `learnBar` is Learn's bar, offered on Settings to an account the workspace is open to, with the bar
- * they saw last and the product they use. `learnDoorCount` is the door's count of lessons due, read in the browser: the
- * door into Learn is drawn with it, after the gate, only for a person who uses Learn.
+ * reads are the page's own (once per request). An outage leaves no tabs and no poll; the page says to try again.
+ * `learnBar` is Learn's bar, offered on Settings to an account the workspace is open to, with the bar they saw last and
+ * the product they use. `learnDoorCount` is the door's count of lessons due, read in the browser: the door into Learn
+ * is drawn with it, after the gate, only for a person who uses Learn and has the tabs.
  */
 export async function WorkspaceTabs({
   learnBar,

@@ -106,6 +106,8 @@ export type AgentConnectViewProps = {
   keyLink?: boolean;
   /** Once the agent says hello the page stays, with the next step: the account was in the workspace already. */
   stay?: boolean;
+  /** Staying, without the Contribute sign: the next step is Contribute's setup ("Finish setting up"), or Learn. */
+  finishSetup?: boolean;
   /** The name the next token gets; the client and the OS until the user writes another. */
   tokenName?: string;
   onTokenName?: (name: string) => void;
@@ -150,6 +152,7 @@ export function AgentConnectView({
   embedded = false,
   keyLink = true,
   stay = false,
+  finishSetup = false,
   tokenName,
   onTokenName = () => {},
   clients = MCP_CLIENTS,
@@ -446,7 +449,24 @@ export function AgentConnectView({
           )}
         </span>
       ) : null}
-      {connected && stay && !proof ? (
+      {connected && stay && !proof && finishSetup ? (
+        <p className="text-sm" data-agent-next="finish-setup">
+          Your agent is connected.{' '}
+          <Link
+            href={GETTING_IN_PATHS.contributeStart}
+            prefetch={false}
+            className="font-semibold text-link hover:underline"
+          >
+            Finish setting up
+          </Link>{' '}
+          to take issues on Contribute, or pick an issue on{' '}
+          <Link href={PICK_ISSUE_PATHS.learn} prefetch={false} className="font-semibold text-link hover:underline">
+            Learn
+          </Link>{' '}
+          and press Start.
+        </p>
+      ) : null}
+      {connected && stay && !proof && !finishSetup ? (
         <p className="text-sm" data-agent-next="">
           Next, pick an issue on{' '}
           <Link href={WORKSPACE_PATHS.contribute} prefetch={false} className="font-semibold text-link hover:underline">
@@ -567,6 +587,7 @@ export function AgentConnectView({
  */
 export function AgentConnect({
   onboarded,
+  finishSetup = false,
   tokens,
   proof = null,
   signIn = false,
@@ -580,6 +601,11 @@ export function AgentConnect({
 }: {
   /** Onboarded already (a key, or another agent): the new token's first use is what the page waits for. */
   onboarded: boolean;
+  /**
+   * The Agent tab's own page for a person without the Contribute sign: once connected the page stays, with "Finish
+   * setting up", and never moves on to the first issue, which would set the sign without the setup's first step.
+   */
+  finishSetup?: boolean;
   tokens: ContributeMcpToken[] | undefined;
   /** Reached from a proof's card: once the agent calls, the page goes back to the card. */
   proof?: AgentConnectProof | null;
@@ -647,8 +673,8 @@ export function AgentConnect({
       onConnected?.(clientRef.current);
       return;
     }
-    // In the workspace already: the page stays, with the next step.
-    if (!proof && onboarded) return;
+    // In the workspace already, or without the Contribute sign on the Agent tab: the page stays, with the next step.
+    if (!proof && (onboarded || finishSetup)) return;
     // A first connect goes on to the first issue, the last step of Contribute's flow, the way back (`?issue=`) kept.
     goTo(
       proof
@@ -656,7 +682,7 @@ export function AgentConnect({
         : (withFlowWayBack(GETTING_IN_PATHS.contributeIssue, flowWayBackHereOf()) as Route),
       { replace: true },
     );
-  }, [goTo, proof, embedded, onboarded, onConnected, connectSource]);
+  }, [goTo, proof, embedded, onboarded, finishSetup, onConnected, connectSource]);
 
   useEffect(() => {
     const detected = mcpOsOf(typeof navigator === 'undefined' ? null : (navigator as NavigatorLike));
@@ -788,7 +814,8 @@ export function AgentConnect({
       signIn={viaSignIn}
       embedded={embedded}
       keyLink={keyLink}
-      stay={onboarded && !proof}
+      stay={(onboarded || finishSetup) && !proof}
+      finishSetup={finishSetup}
       tokenName={customName ?? tokenName}
       onTokenName={setCustomName}
       clients={withVsCode ? MCP_CLIENTS_WITH_VS_CODE : MCP_CLIENTS}

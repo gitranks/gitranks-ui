@@ -146,7 +146,7 @@ describe('where a page under /my sends a person by their signs', () => {
   const ALL = Object.keys(STATES) as State[];
 
   it('opens the Agent tab and Settings to anyone with an account, so a person part way through can leave', () => {
-    for (const path of ['/my/agent', '/my/agent/', '/my/agent/key', '/my/agent/budget', '/my/settings/work']) {
+    for (const path of ['/my/agent', '/my/agent/', '/my/agent/budget', '/my/settings/work']) {
       for (const state of ALL) expect(target(path, state), `${path} ${state}`).toBeNull();
     }
   });
@@ -164,6 +164,16 @@ describe('where a page under /my sends a person by their signs', () => {
     }
     expect(target('/my/agent/connect', 'none')).toBe('/contribute/start/agent/own');
     expect(target('/my/agent/connect/', 'none', 'from=agent')).toBe('/contribute/start/agent/own?from=agent');
+  });
+
+  it("opens the key page unless the Contribute sign is known to be missing, else Contribute's key step", () => {
+    for (const state of ['contribute', 'both', 'unknown', 'unknownSetUp'] as const) {
+      expect(target('/my/agent/key', state, 'replace=1'), state).toBeNull();
+    }
+    for (const state of ['none', 'learn'] as const) {
+      expect(target('/my/agent/key', state), state).toBe('/contribute/start/agent/key');
+      expect(target('/my/agent/key/', state, 'replace=1'), state).toBe('/contribute/start/agent/key?replace=1');
+    }
   });
 
   it("opens the Agent tab's runs and the pull requests with either sign", () => {

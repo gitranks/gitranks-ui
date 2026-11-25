@@ -115,7 +115,7 @@ export function closedPageTargetOf(path: string, search?: URLSearchParams): Rout
 /**
  * Where a signed-in person is sent from a page under `/my` by the signs they have; null when the page opens.
  * - The agent's connect page opens with either sign; without one it is the own-agent step of Contribute's flow, the
- *   query kept.
+ *   query kept. The key page opens unless the Contribute sign is known to be missing: then the flow's key step.
  * - The Agent tab's runs and the pull requests open with either sign; without one, `closedPageTargetOf`.
  * - The rest of the Agent tab, Settings and the page of one issue open to anyone with an account, so a person part way
  *   through can revoke a token or delete their data.
@@ -133,6 +133,10 @@ export function signTargetOf(
   const either = signs.contribute === true || signs.learn !== false;
   if (path === WORKSPACE_PATHS.agentConnect) {
     return either ? null : (withSearch(GETTING_IN_PATHS.contributeAgentOwn, search) as Route);
+  }
+  // The hosted agent works for Contribute only: its key page waits for the Contribute sign (a sign not known opens it).
+  if (path === WORKSPACE_PATHS.agentKey) {
+    return signs.contribute === false ? (withSearch(GETTING_IN_PATHS.contributeAgentKey, search) as Route) : null;
   }
   if (SHARED_PAGE.test(path)) return either ? null : closedPageTargetOf(path, search);
   if (OPEN_PAGE.test(path)) return null;

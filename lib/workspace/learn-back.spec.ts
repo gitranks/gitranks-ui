@@ -12,6 +12,10 @@ describe('learnBackOf', () => {
     ['/learn/lessons/find-duplicates/real-world', '/learn/lessons/find-duplicates/real-world'],
     ['/learn/progress?view=history', '/learn/progress?view=history'],
     ['/learn/review', '/learn/review'],
+    // An issue's own start address under Learn, not the old `/learn/start` that redirects to the onboarding.
+    ['/learn/start/octo/app/12', '/learn/start/octo/app/12'],
+    // An encoded letter is taken as written; the page it spells decides.
+    ['/learn/lessons/%73ets', '/learn/lessons/%73ets'],
     ['/my/issues/k2m9qa?from=learn', '/my/issues/k2m9qa?from=learn'],
     ['/my/issues/k2m9qa?from=learn&repo=octo%2Fapp&look=1', '/my/issues/k2m9qa?from=learn&repo=octo%2Fapp&look=1'],
     ['/my/start/octo/app/12?lesson=1', '/my/start/octo/app/12?lesson=1'],
@@ -28,6 +32,12 @@ describe('learnBackOf', () => {
   it.each([
     ['Learn’s onboarding itself', '/learn/setup'],
     ['Learn’s onboarding with its own way back', '/learn/setup?back=%2Flearn'],
+    ['Learn’s onboarding spelled with an encoded letter', '/learn/%73etup'],
+    ['Learn’s onboarding in capitals, with a trailing slash', '/Learn/Setup/'],
+    ['an old address redirected to the onboarding: /learn/start', '/learn/start'],
+    ['an old address redirected to the onboarding: /learn/profile', '/learn/profile/'],
+    ['an old address redirected to the onboarding, encoded', '/learn/%70rofile'],
+    ['an old Settings address redirected to the onboarding', '/my/settings/goal?from=learn'],
     ['Learn’s onboarding in upper case', '/LEARN/SETUP'],
     ['Settings, not opened from Learn', '/my/settings'],
     ['Settings, opened from Contribute', '/my/settings?from=contribute'],

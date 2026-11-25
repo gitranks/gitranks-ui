@@ -56,22 +56,34 @@ export async function readSetup(): Promise<LearnSetupRead | 'signed-out' | null>
 /** Where the page stands besides its form: a visitor, a session that ended, a setup that did not come. */
 type Page = 'form' | 'visitor' | 'ended' | 'failed';
 
-/** What `/learn/setup` draws for a signed-in person: Learn's onboarding, or the editor of their setup. */
-export type SetupMode = 'onboarding' | 'editor';
+/** What `/learn/setup` draws: the sign-in for a visitor; Learn's onboarding, or the editor of their setup. */
+export type SetupMode = 'visitor' | 'onboarding' | 'editor';
 
 /**
  * Learn's setup page in the browser. The page is the person's own: once it is up, a person with a session reads
- * their setup, and a visitor is asked to sign in, back to the same address. With no setup yet our guess starts right
+ * their setup. A visitor (`visitor`, as the server found them) is asked to sign in from the first paint, back to the
+ * same address; a session that ended on the way is asked again. With no setup yet our guess starts right
  * here (the page may be the person's very first Learn page), and the setup is read again every two seconds until the
  * guess is in. A choice the person made meanwhile is never undone by the guess.
  * - `onboarding`, for a person without the Learn sign: "How Learn works", then "Your languages", ticked from the
- *   setup as read. "Save and start" saves the setup with the Learn sign and goes to `back`, else Learn home.
+ *   setup as read. "Save and start" saves the setup with the Learn sign and goes to `back`, else Learn home. When the
+ *   setup does not load here and the sign is not known (`sign`), the page says so instead: nothing is saved over a
+ *   setup that may be there.
  * - `editor`: the setup's three fields and "Save", which changes the setup in place, gives no sign, and goes to `back`
  *   when the page has one (only when the sign could not be read).
  */
-export function SetupLive({ mode, back }: { mode: SetupMode; back: Route | null }) {
+export function SetupLive({
+  mode,
+  back,
+  sign = null,
+}: {
+  mode: SetupMode;
+  back: Route | null;
+  /** The Learn sign as the server read it: null when it could not be read. */
+  sign?: boolean | null;
+}) {
   const onboarding = mode === 'onboarding';
-  const [page, setPage] = useState<Page>('form');
+  const [page, setPage] = useState<Page>(mode === 'visitor' ? 'visitor' : 'form');
   const [form, setForm] = useState<SetupForm>(pendingSetupForm);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<SetupNotice | null>(null);
@@ -99,7 +111,7 @@ export function SetupLive({ mode, back }: { mode: SetupMode; back: Route | null 
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Try again reads the setup once more.
   useEffect(() => {
-    if (!hasSessionHint(document.cookie)) {
+    if (mode === 'visitor' || !hasSessionHint(document.cookie)) {
       setPage('visitor');
       return;
     }
@@ -113,9 +125,10 @@ export function SetupLive({ mode, back }: { mode: SetupMode; back: Route | null 
         return;
       }
       if (!setup) {
-        // The editor's first read failing is the page's; the onboarding goes on with nothing ticked. A later read
+        // The editor's first read failing is the page's, and the onboarding's too while the sign is not known (a saved
+        // setup may be there); with the sign known, the onboarding goes on with nothing ticked. A later read
         // only ends the wait for our guess.
-        if (polls === 0 && !onboarding) setPage('failed');
+        if (polls === 0 && (!onboarding || sign === null)) setPage('failed');
         else setForm(setupFormUnread);
         return;
       }
@@ -233,7 +246,14 @@ export function SetupLive({ mode, back }: { mode: SetupMode; back: Route | null 
     );
   }
   if (howStep) {
-    return <OnboardingHow line={onboardingLineOf(back, answerKept)} hints={hints} onContinue={() => setStep(2)} />;
+    return (
+      <OnboardingHow
+        line={onboardingLineOf(back, answerKept)}
+        lineMayGrow={lessonSlugOfBack(back) !== null}
+        hints={hints}
+        onContinue={() => setStep(2)}
+      />
+    );
   }
   if (onboarding) {
     return (

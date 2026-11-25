@@ -2,6 +2,7 @@
 import type { Route } from 'next';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { hint, push, signIn, saveLearnSetupAction, startLearnSetupGuessAction } = vi.hoisted(() => ({
@@ -64,9 +65,9 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const draw = ({ mode = 'editor' as SetupMode, back = null as string | null } = {}) =>
+const draw = ({ mode = 'editor' as SetupMode, back = null as string | null, sign = true as boolean | null } = {}) =>
   act(async () => {
-    root.render(<SetupLive mode={mode} back={back as Route | null} />);
+    root.render(<SetupLive mode={mode} back={back as Route | null} sign={sign} />);
   });
 const $ = (selector: string) => host.querySelector<HTMLElement>(selector);
 const state = () => $('[data-learn-setup]')?.dataset.learnSetup ?? null;
@@ -336,7 +337,9 @@ describe('the editor at /learn/setup, for a person with the Learn sign', () => {
 });
 
 describe("Learn's onboarding at /learn/setup, for a person without the Learn sign", () => {
-  const onboard = (back: string | null = null) => draw({ mode: 'onboarding', back });
+  const LESSON = '/learn/lessons/hash-maps';
+  const onboard = (back: string | null = null, sign: boolean | null = false) =>
+    draw({ mode: 'onboarding', back, sign });
   const steps = () =>
     [...host.querySelectorAll('[data-flow-steps] li')].map((step) => step.textContent?.replace(/^\d/, ''));
   const line = () => $('[data-onboarding-line]')?.textContent ?? null;
@@ -467,7 +470,7 @@ describe("Learn's onboarding at /learn/setup, for a person without the Learn sig
     expect(saveLearnSetupAction).not.toHaveBeenCalled();
   });
 
-  it('goes on with nothing ticked when the setup cannot be read, and keeps the ticks when a save fails', async () => {
+  it('goes on with nothing ticked when the setup cannot be read and the sign is known unset, keeping the ticks when a save fails', async () => {
     answers({ status: 500 });
     saveLearnSetupAction.mockResolvedValue({ ok: false, error: 'FAILED' });
     await onboard();
@@ -478,6 +481,40 @@ describe("Learn's onboarding at /learn/setup, for a person without the Learn sig
     expect(notice()).toBe('We could not save just now. Your choices are still here: try again in a minute.');
     expect(ticked()).toEqual(['java']);
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it('saves nothing when the setup cannot be read here and the sign is not known: it says so, with Try again', async () => {
+    answers({ status: 500 }, { setup: setupSaved });
+    await onboard(null, null);
+    expect(state()).toBe('failed');
+    expect(title()).toBe('Your setup did not load');
+    expect($('[data-onboarding-save]')).toBeNull();
+    await click(buttonOf('Try again')!);
+    expect(title()).toBe('How Learn works');
+    expect(saveLearnSetupAction).not.toHaveBeenCalled();
+  });
+
+  it('draws the sign-in card from the first paint for a visitor the server found, reading nothing', async () => {
+    const first = renderToStaticMarkup(<SetupLive mode="visitor" back={LESSON as Route} />);
+    expect(first).toContain('Setting up Learn needs an account');
+    expect(first).not.toContain('How Learn works');
+    // A browser still holding a session hint changes nothing.
+    await draw({ mode: 'visitor', back: LESSON, sign: null });
+    expect(state()).toBe('visitor');
+    expect(fetchMock).not.toHaveBeenCalled();
+    await click(buttonOf('Sign in with GitHub')!);
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: `/learn/setup?back=${encodeURIComponent(LESSON)}`,
+    });
+  });
+
+  it('holds two lines for the line over the first step on a phone when it may grow', async () => {
+    await onboard(LESSON);
+    expect($('[data-onboarding-line]')!.className).toContain('max-sm:min-h-[2lh]');
+    act(() => root.unmount());
+    root = createRoot(host);
+    await onboard('/my/issues/q7k2m9xa?from=learn');
+    expect($('[data-onboarding-line]')!.className).not.toContain('min-h');
   });
 
   it('asks a visitor to sign in first, back to the same address', async () => {

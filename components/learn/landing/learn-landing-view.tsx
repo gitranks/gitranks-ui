@@ -41,7 +41,8 @@ function StartButton({ viewer, className }: { viewer: LandingViewer; className?:
   const classes = cn(START_CLASS, className);
   if (viewer === 'visitor') {
     return (
-      <LearnSignInButton redirectTo={LEARN_SETUP_PATH} className={classes}>
+      // Through the onboarding, ending on Learn home: a person who already has the Learn sign goes straight there.
+      <LearnSignInButton redirectTo={LEARN_HOME_PATH} className={classes}>
         Start learning
       </LearnSignInButton>
     );

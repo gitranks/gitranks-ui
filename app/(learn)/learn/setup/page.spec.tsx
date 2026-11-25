@@ -77,14 +77,32 @@ describe("Learn's setup page", () => {
     expect(await open(LESSON)).toEqual({ mode: 'editor', back: LESSON });
     loadLearnSetup.mockResolvedValue({ state: 'GUESSED' });
     expect(await open(LESSON)).toEqual({ mode: 'onboarding', back: LESSON });
-    loadLearnSetup.mockResolvedValue(null);
-    expect(await open()).toEqual({ mode: 'onboarding', back: null });
     expect(redirect).not.toHaveBeenCalled();
   });
 
-  it('reads nothing of a visitor: the page asks them to sign in itself', async () => {
+  it('gives the editor when neither the sign nor the setup can be read, so nothing saved is written over', async () => {
+    loadLearnSign.mockResolvedValue(null);
+    loadLearnSetup.mockResolvedValue(null);
+    expect(await open(LESSON)).toEqual({ mode: 'editor', back: LESSON });
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it('hands the page the sign it read, so it knows when a setup may be there', async () => {
+    const signOf = async () =>
+      (
+        (await SetupPage({ params: Promise.resolve({}), searchParams: Promise.resolve({}) } as never)) as ReactElement<{
+          sign: boolean | null;
+        }>
+      ).props.sign;
+    expect(await signOf()).toBe(false);
+    loadLearnSign.mockResolvedValue(null);
+    loadLearnSetup.mockResolvedValue({ state: 'GUESSED' });
+    expect(await signOf()).toBeNull();
+  });
+
+  it('draws the sign-in card for a visitor, reading nothing of them', async () => {
     viewerLogin.mockResolvedValue(null);
-    expect(await open(LESSON)).toEqual({ mode: 'onboarding', back: LESSON });
+    expect(await open(LESSON)).toEqual({ mode: 'visitor', back: LESSON });
     expect(loadLearnSign).not.toHaveBeenCalled();
     expect(loadLearnSetup).not.toHaveBeenCalled();
   });

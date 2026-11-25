@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import type { ContributeSetListMode } from './contribute.types';
+import { OLD_LEARN_REDIRECTS } from './old-addresses';
 
 /**
  * The pages of the signed-in workspace, Contribute's and Learn's: the front tab `/contribute`, Learn's home `/learn`
@@ -477,19 +478,36 @@ const BACK_ORIGIN = 'https://back.invalid';
 /** The pages under `/my` both products share, where Learn's way back may lead only when Learn opened them. */
 const SHARED_FROM_LEARN = /^\/my\/(?:settings|pull-requests|agent)(?:\/|$)/;
 
+/** The old addresses the site redirects to `/learn/setup` (`/learn/start`, `/learn/profile`, …), in lower case. */
+const TO_SETUP = new Set(
+  OLD_LEARN_REDIRECTS.filter((redirect) => redirect.destination === LEARN_SETUP).map((redirect) =>
+    redirect.source.replace('{/}?', '').toLowerCase(),
+  ),
+);
+
+/**
+ * `/learn/setup` itself, or an old address the site redirects there, in any case and with a trailing slash: a way
+ * back to one would open the onboarding again.
+ */
+function isSetupPage(page: string): boolean {
+  const path = page.toLowerCase().replace(/\/+$/, '');
+  return path === LEARN_SETUP || path.startsWith(`${LEARN_SETUP}/`) || TO_SETUP.has(path);
+}
+
 /** A Start page: `/my/start/<owner>/<repo>/<issue>`. */
 const START_PAGE = /^\/my\/start\/[^/]+\/[^/]+\/\d+\/?$/;
 
 /**
  * The way back from Learn's onboarding (`/learn/setup?back=`): the path it ends on, or null when `back` is not one it
  * may lead to. Only a path of this site is taken, and only one of:
- * - a Learn page (`/learn` and under it), but not `/learn/setup` itself;
+ * - a Learn page (`/learn` and under it), but not `/learn/setup` itself, nor an old address redirected there;
  * - the page of one issue opened from Learn (`/my/issues/<id>?from=learn`);
  * - a Start page opened from Learn (`?from=learn` or `?lesson=1`);
  * - Settings, the pull requests and the Agent tab opened from Learn (`?from=learn`).
  *
  * An outside address, a protocol-relative one, a backslash, an encoded slash or backslash, a dot segment and a control
- * character are refused whatever follows. The answer is the path and its query as the browser reads them.
+ * character are refused whatever follows. Pages are told apart by the decoded path, so an encoded letter names the
+ * page it spells. The answer is the path and its query as the browser reads them.
  */
 export function learnBackOf(back: unknown): Route | null {
   if (typeof back !== 'string' || !back.startsWith('/') || back.length > 2000) return null;
@@ -514,14 +532,16 @@ export function learnBackOf(back: unknown): Route | null {
   const path = url.pathname;
   // A dot segment the browser would fold away names another page than the one written.
   if (path !== back.split(/[?#]/)[0] || /\/\.\.?(?:\/|$)/.test(path)) return null;
+  // The page as the router reads it: `/learn/%73etup` is `/learn/setup`.
+  const page = decodeURIComponent(path);
+  if (isSetupPage(page)) return null;
   const query = url.searchParams;
   const fromLearn = query.get('from') === 'learn';
-  const learnPage = /^\/learn(?:\/|$)/.test(path) && !/^\/learn\/setup(?:\/|$)/i.test(path);
   const ok =
-    learnPage ||
-    (ISSUE_PAGE.test(path) && fromLearn) ||
-    (START_PAGE.test(path) && (fromLearn || query.get('lesson') === '1')) ||
-    (SHARED_FROM_LEARN.test(path) && fromLearn);
+    /^\/learn(?:\/|$)/.test(page) ||
+    (ISSUE_PAGE.test(page) && fromLearn) ||
+    (START_PAGE.test(page) && (fromLearn || query.get('lesson') === '1')) ||
+    (SHARED_FROM_LEARN.test(page) && fromLearn);
   return ok ? (`${path}${url.search}` as Route) : null;
 }
 

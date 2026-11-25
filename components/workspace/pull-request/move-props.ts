@@ -17,6 +17,6 @@ export type CardProps = {
   now: Date;
   blocked: ReadonlySet<ActionId>;
   orgAccess: OrgAccess;
-  /** Under the card: the proof's line, "Start a run anyway", Also waiting. */
+  /** Under the card: the proof's line, "Start a run anyway". */
   rider: ReactNode;
 };

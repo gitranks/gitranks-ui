@@ -242,6 +242,16 @@ describe('the lesson card, used', () => {
     expect(words(host)).toContain('Lesson 1 of 2');
   });
 
+  it("signs a visitor in from the landing's Start learning through the onboarding, ending on Learn home", async () => {
+    await act(async () =>
+      root.render(<LearnLandingView viewer="visitor" courses={courseCards} lessons={tryLessons} hints={false} />),
+    );
+    const start = host.querySelector('[data-sign-in="learn"]') as HTMLButtonElement;
+    expect(words(start)).toBe('Start learning');
+    await act(async () => start.click());
+    expect(m.signIn).toHaveBeenCalledWith(expect.any(String), { redirectTo: '/learn/setup?back=%2Flearn' });
+  });
+
   it('signs a visitor in on to the setup once the answer is right', async () => {
     await act(async () =>
       root.render(
@@ -249,7 +259,7 @@ describe('the lesson card, used', () => {
       ),
     );
     await act(async () => doneButton(TRY_DONE_LABELS.visitor)?.click());
-    expect(m.signIn).toHaveBeenCalledWith(expect.any(String), { redirectTo: '/learn/setup' });
+    expect(m.signIn).toHaveBeenCalledWith(expect.any(String), { redirectTo: '/learn/setup?back=%2Flearn' });
     expect(m.push).not.toHaveBeenCalled();
   });
 

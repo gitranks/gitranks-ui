@@ -36,7 +36,7 @@ vi.mock('@/components/workspace/use-grant-github', () => ({
 const { PullRequestPageView } = await import('./page-view');
 const { PrNotesPanel } = await import('./pr-notes');
 const { WalkthroughTakeDown } = await import('./walkthrough-take-down');
-const { prPage, prLinks } = await import('@/lib/workspace/__fixtures__/pull-request');
+const { prPage, prLinks, prOnlyYou } = await import('@/lib/workspace/__fixtures__/pull-request');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let container: HTMLDivElement;
@@ -171,6 +171,27 @@ describe("the pull request page keeps today's actions", () => {
     expect(document.querySelector('[data-note-form]')).toBeNull();
     for (const run of frames.splice(0)) run(0);
     expect(document.activeElement?.textContent).toMatch(/^Try again/);
+    vi.restoreAllMocks();
+  });
+
+  it('opens the rename form from a waiting row, and gives the focus back to that row when it closes', async () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((run) => {
+      frames.push(run);
+      return 0;
+    });
+    await page({ box: 'ONLY_YOU', number: 58, onlyYou: [prOnlyYou.dco, prOnlyYou.title] });
+    await press(document.querySelector<HTMLButtonElement>('[data-more-waiting] > button'));
+    const rename = document.querySelector<HTMLButtonElement>('[data-more-waiting-item="title"] button');
+    expect(rename?.textContent).toBe('Rename it');
+    await act(async () => rename?.focus());
+    await press(rename);
+    expect(document.querySelector('[role="dialog"] [data-note-form]')?.textContent).toContain(
+      'Rename the pull request',
+    );
+    await press(button('Keep it as it is'));
+    for (const run of frames.splice(0)) run(0);
+    expect(document.activeElement).toBe(rename);
     vi.restoreAllMocks();
   });
 

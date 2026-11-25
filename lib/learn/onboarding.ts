@@ -30,24 +30,30 @@ export const YOUR_LANGUAGES_TEXT = 'Pick the languages you want to learn. We sta
 /** What `/learn/setup` draws for a signed-in person, or where it sends them before drawing anything. */
 export type LearnSetupPage =
   | { kind: 'redirect'; to: Route }
+  | { kind: 'visitor'; back: Route | null }
   | { kind: 'onboarding'; back: Route | null }
   | { kind: 'editor'; back: Route | null };
 
 /**
- * The page by the Learn sign: with it, the editor, or straight `back` when a page sent the person here; without it,
- * the onboarding. When the sign cannot be read (null), never `back` (the page that sent them would send them here
- * again): the setup's state decides as before the sign, a saved setup getting the editor, anything else the onboarding.
+ * The page by the Learn sign. A visitor is asked to sign in, back to the same address. With the sign: the editor, or
+ * straight `back` when a page sent the person here; without it: the onboarding. When the sign cannot be read (null),
+ * never `back` (the page that sent them would send them here again): the setup decides as before the sign, a saved
+ * setup getting the editor, and so does a setup that could not be read either, so nothing saved is written over with
+ * the onboarding's defaults; anything else gets the onboarding.
  */
 export function learnSetupPageOf({
+  signedIn,
   sign,
   back,
   saved,
 }: {
+  signedIn: boolean;
   sign: boolean | null;
   back: Route | null;
-  /** The person's setup is saved; read only when the sign cannot be. */
+  /** The person's setup is saved, or could not be read; read only when the sign cannot be. */
   saved: boolean;
 }): LearnSetupPage {
+  if (!signedIn) return { kind: 'visitor', back };
   if (sign === true) return back ? { kind: 'redirect', to: back } : { kind: 'editor', back: null };
   if (sign === false) return { kind: 'onboarding', back };
   return { kind: saved ? 'editor' : 'onboarding', back };

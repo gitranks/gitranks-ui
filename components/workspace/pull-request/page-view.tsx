@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { AlsoWaiting } from '@/components/workspace/pr-parts/also-waiting';
 import { PullRequestFootLinks } from '@/components/workspace/pr-parts/foot-links';
 import { PullRequestIssueCard } from '@/components/workspace/pr-parts/issue-card';
 import { PullRequestBox, PullRequestOutcomeLine } from '@/components/workspace/pr-parts/pr-box';
@@ -94,7 +93,7 @@ function focusBox() {
 }
 
 /**
- * The pull request's page, one for Learn and Contribute: the issue's card, the strip, the box and its one action,
+ * The pull request's page, one for Learn and Contribute: the issue's card, the strip, the box with its one action and
  * what else waits, the two cards, the rounds and the rules' line. Each press goes to the API and the page draws what it
  * answers; while a stage works, the page reads itself again every few seconds.
  */
@@ -348,7 +347,6 @@ export function PullRequestPageView({
         </p>
       ) : null}
       <PullRequestOutcomeLine outcome={page.outcome} />
-      <AlsoWaiting box={page.box} onlyYou={page.onlyYou} onOnlyYou={onOnlyYou} />
       {proof}
       <PullRequestCards page={page} now={now} links={links} />
       {ops.timeline ? (

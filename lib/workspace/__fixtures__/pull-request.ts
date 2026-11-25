@@ -374,8 +374,14 @@ export const prOnlyYou: Record<string, PullRequestOnlyYou> = {
   },
 };
 
-export const prOnlyYouPage = (kind: string) =>
-  prPage({ ...REVIEW_PAGE, box: 'ONLY_YOU', rounds: [prRoundSent, prRoundOne], onlyYou: [prOnlyYou[kind]] });
+/** The box about the first kind; any further kinds wait behind it, in that order. */
+export const prOnlyYouPage = (kind: string, ...more: string[]) =>
+  prPage({
+    ...REVIEW_PAGE,
+    box: 'ONLY_YOU',
+    rounds: [prRoundSent, prRoundOne],
+    onlyYou: [kind, ...more].map((each) => prOnlyYou[each]),
+  });
 
 /** How it ends. */
 export const prEnds = {

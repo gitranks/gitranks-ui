@@ -2,7 +2,6 @@ import type { Route } from 'next';
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
-import { AlsoWaiting } from '@/components/workspace/pr-parts/also-waiting';
 import { ApproveScreen, type ApproveScreenProps } from '@/components/workspace/pr-parts/approve-screen';
 import { ChecksLine } from '@/components/workspace/pr-parts/checks-line';
 import { PullRequestFootLinks } from '@/components/workspace/pr-parts/foot-links';
@@ -64,7 +63,7 @@ const PRESSES = {
 /** How a state draws the box: autopilot about to send it ("Don't send it"), a hosted round stopped at the limit. */
 type UnderOptions = { veto?: boolean; stoppedAtLimit?: boolean };
 
-/** The part of the page under the issue: the strip, the box, what else waits, the two cards, the rounds. */
+/** The part of the page under the issue: the strip, the box with what else waits, the two cards, the rounds. */
 function Under({
   page,
   agent = 'Claude Code',
@@ -86,7 +85,6 @@ function Under({
         {...PRESSES}
       />
       <PullRequestOutcomeLine outcome={page.outcome} />
-      <AlsoWaiting box={page.box} onlyYou={page.onlyYou} onOnlyYou={noop} />
       <PullRequestCards page={page} now={PR_NOW} links={prLinks} />
       {open && page.made === 'LEARN' ? <FixLinkLine url={prLinks.fix} /> : null}
       <RoundsList
@@ -179,7 +177,7 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
       'components/workspace/pr-parts/stage-strip.tsx',
       'components/workspace/pr-parts/pr-box.tsx',
       'components/workspace/pr-parts/pr-cards.tsx',
-      'components/workspace/pr-parts/also-waiting.tsx',
+      'components/workspace/pr-parts/more-waiting.tsx',
       'components/workspace/pr-parts/rounds-list.tsx',
       'components/workspace/pr-parts/checks-line.tsx',
       'components/workspace/pr-parts/foot-links.tsx',
@@ -233,9 +231,10 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
       },
       {
         id: 'tasks',
-        title: 'What only you can do, one at a time in the box; marking a round as not needed; the checks opened',
+        title:
+          'What only you can do, one at a time in the box, and how many more wait; marking a round as not needed; the checks opened',
         path: PAGE_PATH,
-        height: 4000,
+        height: 4900,
         render: () =>
           frame(
             <>
@@ -252,6 +251,34 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
                   </Case>
                 ),
               )}
+              <Case title="Two more waiting behind the box, closed">
+                <PullRequestBox
+                  page={prOnlyYouPage('cla', 'dco', 'title')}
+                  now={PR_NOW}
+                  links={prLinks}
+                  enterKey={false}
+                  {...PRESSES}
+                />
+              </Case>
+              <Case title="Two more waiting, opened in place: each with its own button">
+                <PullRequestBox
+                  page={prOnlyYouPage('cla', 'dco', 'title')}
+                  now={PR_NOW}
+                  links={prLinks}
+                  enterKey={false}
+                  initialMoreOpen
+                  {...PRESSES}
+                />
+              </Case>
+              <Case title="One more waiting">
+                <PullRequestBox
+                  page={prOnlyYouPage('dco', 'conversation')}
+                  now={PR_NOW}
+                  links={prLinks}
+                  enterKey={false}
+                  {...PRESSES}
+                />
+              </Case>
               <Case title="A round marked as not needed asks why, in the buttons’ place">
                 <RoundsList
                   page={prReview.asked}

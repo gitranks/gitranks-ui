@@ -4,7 +4,6 @@ import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AlsoWaiting } from './also-waiting';
 import { PullRequestFootLinks } from './foot-links';
 import { PullRequestIssueCard } from './issue-card';
 import { PullRequestBox, PullRequestOutcomeLine } from './pr-box';
@@ -387,25 +386,84 @@ describe('the two cards', () => {
   });
 });
 
-describe('also waiting for you', () => {
-  it('lists the others under a box about one of them, each with its own button', async () => {
-    const onlyYou = [prCla, ...prOnlyYouPage('dco').onlyYou];
-    await render(<AlsoWaiting box="ONLY_YOU" onlyYou={onlyYou} onOnlyYou={vi.fn()} />);
-    expect(container.querySelector('h2')?.textContent).toBe('Also waiting for you');
-    expect(container.querySelectorAll('li')).toHaveLength(1);
-    expect(control('Sign off and push')).not.toBeNull();
+describe('more waiting, in the box', () => {
+  const line = () => container.querySelector<HTMLButtonElement>('[data-more-waiting] > button');
+  const list = () => container.querySelector<HTMLUListElement>('[data-more-waiting] ul');
+  const items = () =>
+    [...container.querySelectorAll('[data-more-waiting-item]')].map((each) => each.getAttribute('data-more-waiting-item'));
+
+  it('has no line when nothing else waits, and never a zero', async () => {
+    await box(prOnlyYouPage('cla'), { onOnlyYou: vi.fn() });
+    expect(container.querySelector('[data-more-waiting]')).toBeNull();
+    expect(text()).not.toMatch(/more waiting/);
+    await box(prStages.open);
+    expect(container.querySelector('[data-more-waiting]')).toBeNull();
   });
 
-  it('lists the only one waiting when the box is about a round', async () => {
-    await render(<AlsoWaiting box={prReview.asked.box} onlyYou={prReview.asked.onlyYou} />);
-    expect(prReview.asked.onlyYou).toHaveLength(1);
-    expect(container.querySelectorAll('li')).toHaveLength(1);
-    expect(control('Sign it')?.getAttribute('target')).toBe('_blank');
+  it('says "1 more waiting" for one', async () => {
+    await box(prOnlyYouPage('cla', 'dco'), { onOnlyYou: vi.fn() });
+    expect(wordsOf(line() as Element)).toBe('1 more waiting');
   });
 
-  it('is left out when the box shows the only one waiting', async () => {
-    await render(<AlsoWaiting box="ONLY_YOU" onlyYou={prOnlyYouPage('cla').onlyYou} />);
-    expect(container.querySelector('[data-also-waiting]')).toBeNull();
+  it('counts several, closed until pressed', async () => {
+    await box(prOnlyYouPage('cla', 'dco', 'title'), { onOnlyYou: vi.fn() });
+    expect(wordsOf(line() as Element)).toBe('2 more waiting');
+    expect(line()?.getAttribute('type')).toBe('button');
+    expect(line()?.getAttribute('aria-expanded')).toBe('false');
+    expect(line()?.getAttribute('aria-controls')).toBe(list()?.id);
+    expect(list()?.hidden).toBe(true);
+  });
+
+  it('opens the rest in place when pressed, each with its own button, and closes again', async () => {
+    const onOnlyYou = vi.fn();
+    await box(prOnlyYouPage('cla', 'dco', 'title'), { onOnlyYou });
+    const before = window.location.href;
+    await press(line());
+    expect(line()?.getAttribute('aria-expanded')).toBe('true');
+    expect(list()?.hidden).toBe(false);
+    expect(window.location.href).toBe(before);
+    expect(container.querySelector('[data-more-waiting]')?.closest('[data-box]')).not.toBeNull();
+    await press(control('Rename it'));
+    expect(onOnlyYou).toHaveBeenCalledWith('title', 'main');
+    await press(line());
+    expect(list()?.hidden).toBe(true);
+  });
+
+  it('is reached by keyboard, and Enter on it is its own, not the box's main action', async () => {
+    const onOnlyYou = vi.fn();
+    await box(prOnlyYouPage('dco', 'title'), { onOnlyYou });
+    const button = line() as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+    expect(button.tabIndex).toBe(0);
+    button.focus();
+    expect(document.activeElement).toBe(button);
+    await act(async () => {
+      button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    });
+    expect(onOnlyYou).not.toHaveBeenCalled();
+    // A browser turns Enter on a focused button into its click.
+    await press(button);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('does not repeat the job the box shows', async () => {
+    await box(prOnlyYouPage('cla', 'dco', 'title'), { onOnlyYou: vi.fn() });
+    expect(container.querySelector('[data-box] h2')?.textContent).toBe('Sign the project’s agreement');
+    expect(items()).toEqual(['dco', 'title']);
+    expect(container.querySelectorAll('[data-more-waiting] a[target="_blank"]')).toHaveLength(0);
+  });
+
+  it('lists every one when the box is about something else', async () => {
+    await box(prReview.asked);
+    expect(wordsOf(line() as Element)).toBe('1 more waiting');
+    expect(items()).toEqual(['cla']);
+    expect(container.querySelector('[data-more-waiting] a')?.getAttribute('target')).toBe('_blank');
+  });
+
+  it('draws opened when asked to (the catalogue)', async () => {
+    await box(prOnlyYouPage('cla', 'dco'), { onOnlyYou: vi.fn(), initialMoreOpen: true });
+    expect(line()?.getAttribute('aria-expanded')).toBe('true');
+    expect(list()?.hidden).toBe(false);
   });
 });
 

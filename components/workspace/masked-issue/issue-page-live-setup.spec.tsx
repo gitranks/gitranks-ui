@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { Activity, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -81,24 +81,25 @@ const START = {
   waitingPrs: null,
 };
 
-const live = (props: Partial<Parameters<typeof IssuePageLive>[0]> = {}) => {
-  const page = (
-    <IssuePageLive
-      id="q7k2m9xa"
-      page={issuePage()}
-      from="learn"
-      back={{ href: '/learn/issues', label: 'Issues' }}
-      numbers={issueNumbers}
-      openedAt={MASKED_NOW.toISOString()}
-      hosted={false}
-      start={START}
-      alsoLearn={false}
-      returning={false}
-      {...props}
-    />
-  );
-  return act(async () => root.render(page));
-};
+const pageOf = (props: Partial<Parameters<typeof IssuePageLive>[0]> = {}) => (
+  <IssuePageLive
+    id="q7k2m9xa"
+    page={issuePage()}
+    from="learn"
+    back={{ href: '/learn/issues', label: 'Issues' }}
+    numbers={issueNumbers}
+    openedAt={MASKED_NOW.toISOString()}
+    hosted={false}
+    start={START}
+    alsoLearn={false}
+    returning={false}
+    {...props}
+  />
+);
+const live = (props: Partial<Parameters<typeof IssuePageLive>[0]> = {}) => act(async () => root.render(pageOf(props)));
+/** The page inside an Activity, as the router keeps a page it navigated away from: hidden, then shown again. */
+const kept = (mode: 'visible' | 'hidden', props: Partial<Parameters<typeof IssuePageLive>[0]> = {}) =>
+  act(async () => root.render(<Activity mode={mode}>{pageOf(props)}</Activity>));
 /** Whether the page waits for the agent: the workspace's poll fast, and the attempts asked about. */
 const waiting = () =>
   changes.useChanges.mock.lastCall?.[2] === true && changes.useFastChanges.mock.lastCall?.[0] === true;
@@ -220,6 +221,46 @@ describe('a start the server refuses because the setup is not finished', () => {
     expect(setupPart()?.textContent).toContain('A 2-minute setup shows how Contribute works');
     expect(notice()).toBeUndefined();
     expect(waiting()).toBe(false);
+  });
+});
+
+describe('the way back from the onboarding', () => {
+  it('starts over once the sign is there: the start form and the hold the server read, not the setup button', async () => {
+    await live({ page: fullPage(), from: 'contribute', setup: 'contribute' });
+    expect(setupPart()).not.toBeNull();
+    await live({ page: fullPage({ until: EXTENDED_UNTIL }), from: 'contribute', setup: null });
+    expect(setupPart()).toBeNull();
+    expect(startForm()).not.toBeNull();
+    expect(container.textContent).toContain(`until ${clockOf(EXTENDED_UNTIL)}`);
+  });
+
+  it('makes the setup button pressable again when the page is shown again with the onboarding left unfinished', async () => {
+    actions.extendIssueLook.mockResolvedValue({ ok: true, data: fullPage({ until: EXTENDED_UNTIL }) });
+    const props = { page: fullPage(), from: 'contribute' as const, setup: 'contribute' as const };
+    await kept('visible', props);
+    await press('Start fixing it');
+    expect(router.push).toHaveBeenCalledWith('/contribute/start?issue=q7k2m9xa');
+    expect(button('Start fixing it')?.getAttribute('aria-disabled')).toBe('true');
+    await kept('hidden', props);
+    await kept('visible', props);
+    expect(button('Start fixing it')?.getAttribute('aria-disabled')).toBeNull();
+  });
+
+  it('drops a setup a refused start asked for when the page is shown again and the server asks for none', async () => {
+    actions.startHeldIssue.mockResolvedValue({ ok: true, data: refusal('SETUP_UNFINISHED') });
+    const props = {
+      page: fullPage(),
+      from: 'contribute' as const,
+      hosted: true,
+      start: { ...START, connection: null },
+    };
+    await kept('visible', props);
+    await press('Start with the hosted agent');
+    expect(setupPart()).not.toBeNull();
+    await kept('hidden', props);
+    await kept('visible', props);
+    expect(setupPart()).toBeNull();
+    expect(startForm()).not.toBeNull();
   });
 });
 

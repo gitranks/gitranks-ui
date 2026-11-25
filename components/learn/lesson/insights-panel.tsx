@@ -3,10 +3,10 @@
 import { ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { type ReactNode, useEffect, useId, useRef } from 'react';
 
-import { Kbd } from '@/components/learn/question/kbd';
 import { ShareButton } from '@/components/share/share-button';
 import { RichText } from '@/components/workspace/blocks/rich-text';
 import { CopyButton } from '@/components/workspace/copy-button';
+import { Kbd } from '@/components/workspace/kbd';
 import type { InsightId, InsightRow, LearnLesson } from '@/lib/learn/lesson-page';
 import { cn } from '@/lib/utils';
 

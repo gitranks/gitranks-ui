@@ -27,7 +27,7 @@ import {
 import type { LearnGroupLesson } from '@/lib/learn/lesson-page';
 import { courseHrefOf, courseMarkdownHrefOf, courseProjectOf, learnProjectIssuesPath } from '@/lib/learn/paths';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** The view a learner last picked, kept in this browser for every course. */
 export const COURSE_VIEW_KEY = 'gitranks:learn:course-view:v1';

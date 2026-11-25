@@ -16,12 +16,11 @@ import {
   walkthroughCrumbsOf,
 } from './walkthrough-parts';
 import { useEnter } from '@/components/learn/player/use-page-keys';
-import { Kbd } from '@/components/learn/question/kbd';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/workspace/kbd';
 import { PlayerRunEnd, PlayerStrip } from '@/components/workspace/player/player-strip';
 import { LEARN_ANSWERS_SHARE_SWITCH_ON } from '@/lib/learn/built-pages';
 import { learnFixMinePath, learnFixWalkthroughPath } from '@/lib/learn/paths';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import {
   answeredDateOf,
   type FixMine,
@@ -41,6 +40,7 @@ import { hasSessionHint } from '@/lib/session-hint';
 import { cn } from '@/lib/utils';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
 import type { PrRef } from '@/lib/workspace/pr-feedback';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** The signed-in person's side of a fix from their route; both null signed out and on any failure. */
 export async function readFixMine(

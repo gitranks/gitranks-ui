@@ -7,9 +7,9 @@ import { type KeyboardEvent, type ReactNode, type Ref, useId } from 'react';
 import { LiveStatus } from '@/components/learn/player/live-status';
 import { checkPlace } from '@/components/learn/player/places';
 import { AnswerPart } from '@/components/learn/question/answer-part';
-import { Kbd } from '@/components/learn/question/kbd';
 import type { LearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/workspace/kbd';
 import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/workspace/player/player-strip';
 import {
   type CheckQuestionShown,

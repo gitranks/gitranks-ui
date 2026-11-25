@@ -100,6 +100,7 @@ export const LEARN_QUESTION_SCREEN: Screen = {
     'components/learn/question/answer-part.tsx',
     'components/learn/question/question-part.tsx',
     'components/learn/question/kbd.tsx',
+    'components/workspace/kbd.tsx',
     'components/learn/question/use-learn-answer.ts',
     'lib/learn/learn-question.ts',
     'lib/learn/learn-answer.ts',

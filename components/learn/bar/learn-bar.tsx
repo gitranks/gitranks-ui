@@ -1,10 +1,9 @@
 'use client';
 
-import type { Route } from 'next';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useRef } from 'react';
 
-import { formatFull } from '@/badge/v3/format';
+import { BarItem, PHONE_TARGET } from '@/components/tabs/bar-item';
 import { revealSideways } from '@/components/tabs/reveal-sideways';
 import { Tab } from '@/components/tabs/tabs';
 import { TabsBar } from '@/components/tabs/tabs-bar';
@@ -117,9 +116,6 @@ function barEndOf(state: LearnBarState, place: LearnBarPlace | null): ReactNode 
   return items.length ? items : null;
 }
 
-/** A 44px tall target on a phone, the drawn item unchanged. */
-const PHONE_TARGET = "after:absolute after:inset-x-0 after:-inset-y-[9px] after:content-[''] sm:after:hidden";
-
 /**
  * "Set up Learn", as page 5's board draws it: quiet with a spinner while our guess runs; highlighted with a dot once
  * it is in, with one pulse when it becomes so (on each visit, never a constant blink, and none for people who turned
@@ -162,48 +158,6 @@ function SetupTab({ state, current }: { state: LearnBarSetup; current: boolean }
       {look === 'working' ? <span className="sr-only">, reading your GitHub profile</span> : null}
       {look === 'guessed' ? <span className="sr-only">, our guess is ready to check</span> : null}
       {look === 'open' ? <span className="sr-only">, nothing to check yet</span> : null}
-    </Link>
-  );
-}
-
-/** One quiet outlined item: a dashed edge, or a solid one while it is the current place; its count when above zero. */
-function BarItem({
-  href,
-  current,
-  count,
-  countLabel,
-  item,
-  children,
-}: {
-  href: Route;
-  current: boolean;
-  count: number;
-  countLabel: string;
-  item: string;
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      prefetch={false}
-      aria-current={current ? 'page' : undefined}
-      data-learn-bar-item={item}
-      className={cn(
-        'relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium whitespace-nowrap text-foreground',
-        PHONE_TARGET,
-        current ? 'border-foreground' : 'border-dashed',
-      )}
-    >
-      {children}
-      {count > 0 ? (
-        <>
-          {' '}
-          <span className="rounded-full bg-brand-soft px-1.5 font-mono text-[11px] font-semibold tabular-nums text-brand-soft-foreground">
-            {formatFull(count)}
-          </span>
-          <span className="sr-only"> {countLabel}</span>
-        </>
-      ) : null}
     </Link>
   );
 }

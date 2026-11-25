@@ -7,7 +7,7 @@ import { Fragment, type KeyboardEvent, type RefObject, useState } from 'react';
 import { CountLine } from './course-header';
 import { CourseMark, SquareCard } from './course-marks';
 import { GroupRepo } from './project-course-parts';
-import { Kbd } from '@/components/learn/question/kbd';
+import { Kbd } from '@/components/workspace/kbd';
 import {
   type CourseFilter,
   type CourseSearchGroup,

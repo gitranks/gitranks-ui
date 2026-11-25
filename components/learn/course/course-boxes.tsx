@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { type ReactNode, useState } from 'react';
 
 import { CourseMark } from './course-marks';
-import { Kbd } from '@/components/learn/question/kbd';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/workspace/kbd';
 import {
   type CourseBoxes,
   type CourseFirstBox,

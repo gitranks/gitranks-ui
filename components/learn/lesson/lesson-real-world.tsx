@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { type ReactNode, Suspense, use, useLayoutEffect, useRef, useState } from 'react';
 
 import { FixCard } from '@/components/learn/issues/issues-parts';
-import { PHONE_LINK } from '@/components/learn/phone-link';
 import { Button } from '@/components/ui/button';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
+import { PHONE_LINK } from '@/components/workspace/phone-link';
 import { RefChips } from '@/components/workspace/ref-chips';
 import { type IssuesRow, type LearnFixes, rowsAfterSkip } from '@/lib/learn/issues';
 import {

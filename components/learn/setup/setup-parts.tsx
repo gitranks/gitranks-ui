@@ -2,8 +2,8 @@ import { Check } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode, Ref } from 'react';
 
-import { Kbd } from '@/components/learn/question/kbd';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/workspace/kbd';
 import type { LearnActionError } from '@/lib/learn/learn-action';
 import { languageNameOf } from '@/lib/learn/learn-question';
 import { LEARN_PREFERENCES_PATH } from '@/lib/learn/paths';

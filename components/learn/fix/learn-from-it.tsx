@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
 import { useEnter } from '@/components/learn/player/use-page-keys';
-import { Kbd } from '@/components/learn/question/kbd';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/workspace/kbd';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
 import {
   type FixCardWords,

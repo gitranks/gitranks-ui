@@ -27,11 +27,17 @@ export type WorkspaceSigns = { contribute: boolean | null; learn: boolean | null
 /** A sign from its stamp: set, not set, or not known (`undefined`, its read failed). */
 const signOf = (at: string | null | undefined): boolean | null => (at === undefined ? null : !!at);
 
-/** The two signs of a Contribute view, as read; both not known without one. */
-export const signsOf = (view: ContributeView | null | undefined): WorkspaceSigns => ({
-  contribute: signOf(view?.contributor?.contributeOnboardedAt),
-  learn: signOf(view?.contributor?.learnOnboardedAt),
-});
+/**
+ * The two signs of a Contribute view, as read: both not known without one; both not set when it names no contributor
+ * (a new account has no row until its first write, so it has been through neither onboarding).
+ */
+export const signsOf = (view: ContributeView | null | undefined): WorkspaceSigns =>
+  view?.contributor === null
+    ? { contribute: false, learn: false }
+    : {
+        contribute: signOf(view?.contributor?.contributeOnboardedAt),
+        learn: signOf(view?.contributor?.learnOnboardedAt),
+      };
 
 /**
  * The gate's signs. A Contribute sign that is not known takes the rule from before the signs where that rule says yes

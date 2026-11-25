@@ -91,6 +91,19 @@ describe("the workspace gate, over the API's answers", () => {
     expect(workspaceGateOf({ ...read, view: viewWith(null, null) })).toMatchObject({ signs: STATES.none });
   });
 
+  it('reads both signs as not set for an account with no contributor yet', () => {
+    const gate = workspaceGateOf({ ...read, view: views.newcomer });
+    expect(gate).toMatchObject({ signs: STATES.none });
+    if (gate.kind !== 'open') throw new Error('expected an open gate');
+    expect(tabsOf(gate)).toEqual([]);
+    expect(signTargetOf('/my/agent/connect', undefined, gate.signs)).toBe('/contribute/start/agent/own');
+    expect(signTargetOf('/my/agent/key', undefined, gate.signs)).toBe('/contribute/start/agent/key');
+    expect(signTargetOf('/my/start/acme/widgets/42', new URLSearchParams('from=learn'), gate.signs)).toBe(
+      `/learn/setup?back=${encodeURIComponent('/my/start/acme/widgets/42?from=learn')}`,
+    );
+    expect(signTargetOf('/my/start/acme/widgets/42', undefined, gate.signs)).toBe('/contribute/start');
+  });
+
   it('fills a Contribute sign that is not known from the rule before it when that says yes, else leaves it not known', () => {
     expect(workspaceGateOf({ ...read, view: viewWith(undefined, undefined) })).toMatchObject({
       signs: STATES.unknownSetUp,

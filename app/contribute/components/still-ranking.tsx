@@ -5,9 +5,13 @@ import { useEffect, useState } from 'react';
 
 import { changesPollRunning, holdFastChanges } from '@/lib/workspace/changes-bus';
 
-/** How often the wait looks again while the first picks are ranked, and for how long before it stops. */
+/**
+ * How often the wait looks again while the first picks are ranked, and for how long before it stops: ten minutes, well
+ * past the few minutes the words promise, so "this page fills in by itself" holds while the person leaves it open.
+ */
 export const RANKING_REFRESH_SECONDS = 5;
-export const RANKING_REFRESH_FOR_SECONDS = 120;
+export const RANKING_WAIT_MINUTES = 10;
+export const RANKING_REFRESH_FOR_SECONDS = RANKING_WAIT_MINUTES * 60;
 
 /** One tick of the wait: read the page again, or stop once the round has run `forSeconds`. */
 export const rankingTickOf = (startedAt: number, now: number, forSeconds = RANKING_REFRESH_FOR_SECONDS) =>
@@ -16,8 +20,8 @@ export const rankingTickOf = (startedAt: number, now: number, forSeconds = RANKI
 /**
  * The first picks are computed after the key is connected. While they are, Contribute's poll goes fast (5 then 10 s),
  * and the page reads itself again once the poll says the picks are in (`FEED`); where the poll does not run yet (the
- * tabs show once the user is onboarded), the page reads itself again every few seconds instead. About two minutes on,
- * it stops and offers a refresh.
+ * tabs show once the user is onboarded), the page reads itself again every few seconds instead. Ten minutes on, it
+ * stops, says it is taking longer than usual, and offers a refresh.
  */
 export function StillRanking({
   seconds = RANKING_REFRESH_SECONDS,
@@ -55,7 +59,7 @@ export function StillRanking({
       className="flex flex-col gap-1 rounded-xl border border-dashed px-5 py-8 text-center"
       data-ranking={stopped ? 'stopped' : 'waiting'}
     >
-      <span className="font-semibold">Your first picks are still being ranked</span>
+      <span className="font-semibold">We are picking your first issues</span>
       <span className="text-sm text-muted-foreground">
         {stopped ? (
           <>
@@ -73,7 +77,7 @@ export function StillRanking({
             to look again.
           </>
         ) : (
-          'This takes a minute or two. They show up here by themselves.'
+          'It takes a few minutes. This page fills in by itself, and you can leave it open.'
         )}
       </span>
     </div>

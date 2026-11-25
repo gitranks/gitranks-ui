@@ -4,6 +4,7 @@ import type {
   ContributeSettings,
   ContributeView,
 } from './contribute.types';
+import type { KeyNotice } from './notice-words';
 
 /**
  * What stands between the user and their next attempt, most pressing first. The GitHub grant is not among them: it is
@@ -11,9 +12,7 @@ import type {
  */
 export type ContributeNotice =
   | { kind: 'no-key' }
-  | { kind: 'key-invalid' }
-  | { kind: 'exhausted'; until: string | null }
-  | { kind: 'limit-reached'; until: string | null }
+  | KeyNotice
   /**
    * Nothing new starts for this account: it can't see or claim issues. `fairUse` when a fair-use rule blocked it, with
    * the block's message (null when it could not be read).

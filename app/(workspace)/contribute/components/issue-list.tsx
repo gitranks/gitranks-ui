@@ -3,9 +3,8 @@
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createContext, type ReactNode, useContext, useEffect, useRef, useState, useTransition } from 'react';
+import { type ReactNode, useRef, useState, useTransition } from 'react';
 
-import { filterOf, type IssuesQuery, isFiltered, issuesHref } from '@/app/contribute/components/issues-filter';
 import { OtherIssuesDivider, SetIssuesHeading, SetOnlyEmpty } from '@/app/contribute/components/issues-mode';
 import { LiveAnnouncer, LiveRowItem, liveOf, useLiveFeed } from '@/app/contribute/components/live-issues';
 import { StillRanking } from '@/app/contribute/components/still-ranking';
@@ -23,6 +22,7 @@ import type { ContributeSource } from '@/lib/workspace/click-tracking';
 import type {
   ContributeIssue,
   ContributeIssuePage,
+  ContributeIssuesFilter,
   ContributeLanguage,
   ContributeSet,
 } from '@/lib/workspace/contribute.types';
@@ -33,27 +33,14 @@ import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import type { IssueStartFacts } from '@/lib/workspace/start-refusals';
 
 const link = 'font-semibold text-link hover:underline';
-const NO_QUERY: IssuesQuery = {};
-const NONE_TITLE = 'No issues match what you work on. New picks arrive every day.';
+/** The issues fetched once, for any list of issues: what a person works on is changed in Settings. */
+const NO_FILTER: ContributeIssuesFilter = {};
 
-/** The list's count as it is now: the page's total, less the issues that left the list since. */
-const IssuesTotalContext = createContext<{ total: number | null; setTotal: (total: number) => void } | null>(null);
-
-/** Around the list and the count over it, so the count follows the list. */
-export function IssuesTotalProvider({ children }: { children: ReactNode }) {
-  const [total, setTotal] = useState<number | null>(null);
-  return <IssuesTotalContext.Provider value={{ total, setTotal }}>{children}</IssuesTotalContext.Provider>;
-}
-
-/** "38 open issues", live: as the list counts them once it is drawn, the page's total until then. */
-export function LiveIssuesCount({ total: read }: { total: number }) {
-  const total = useContext(IssuesTotalContext)?.total ?? read;
-  return (
-    <span data-total={total}>
-      {total.toLocaleString('en-US')} open issue{total === 1 ? '' : 's'}
-    </span>
-  );
-}
+/** Nothing fits what the person works on: in words, and the way to change it. */
+export const NONE_FITS = {
+  title: 'No open issue fits what you work on right now',
+  text: 'New issues are checked every hour. Adding a language lets more of them fit.',
+} as const;
 
 /** A state of the list in place of its rows: one title, one line, one next step. */
 function ListNote({ title, children, name }: { title: string; children?: ReactNode; name: string }) {
@@ -72,8 +59,6 @@ export type ContributeIssueListProps = {
   agents: ConnectedAgents;
   /** The rows' "⋯": false leaves it out. */
   menu?: boolean;
-  /** The filters in the address. */
-  filter?: IssuesQuery;
   /** GitRanks holds the account: no issues, no Start. */
   held?: boolean;
   /** A fair-use rule holds the account: its message's answer page, the held note's one next step. */
@@ -87,7 +72,10 @@ export type ContributeIssueListProps = {
   facts?: IssueStartFacts;
   /** The mark on each row's Start, where the page counts its Starts. */
   source?: ContributeSource;
-  /** What the list says when nothing matches what the person works on. */
+  /**
+   * What the list says when nothing matches what the person works on, with "Change what you work on"; left out, the
+   * home's words and the button "What you work on".
+   */
   noneTitle?: string;
   /** For masked rows: the day's full issues and the numbers of a night. */
   masked?: MaskedListReads;
@@ -103,7 +91,6 @@ export function ContributeIssueList({
   page,
   agents,
   menu = true,
-  filter = NO_QUERY,
   held = false,
   heldAnswerHref,
   limit = null,
@@ -111,7 +98,7 @@ export function ContributeIssueList({
   languages = [],
   facts,
   source,
-  noneTitle = NONE_TITLE,
+  noneTitle,
   masked = NO_MASKED_READS,
   className,
 }: ContributeIssueListProps) {
@@ -146,18 +133,15 @@ export function ContributeIssueList({
         </Button>
       </ListNote>
     );
-  } else if (page && !page.computedAt && !page.items.length && !isFiltered(filter)) {
+  } else if (page && !page.computedAt && !page.items.length) {
     // The first picks are computed after the first way in: the page reads itself again until they are in.
     body = <StillRanking />;
   } else {
     body = (
       <LiveRows
-        // Other filters are another list: it starts again at its first 10.
-        key={issuesHref(filter)}
         page={page}
         agents={agents}
         menu={menu}
-        filter={filter}
         limit={limit}
         set={set}
         languages={languages}
@@ -184,7 +168,6 @@ function LiveRows({
   page,
   agents,
   menu,
-  filter,
   limit,
   set,
   languages,
@@ -193,7 +176,8 @@ function LiveRows({
   noneTitle,
   masked,
   onLimitReached,
-}: Required<Pick<ContributeIssueListProps, 'agents' | 'menu' | 'filter' | 'languages' | 'noneTitle' | 'masked'>> & {
+}: Required<Pick<ContributeIssueListProps, 'agents' | 'menu' | 'languages' | 'masked'>> & {
+  noneTitle?: string;
   page: ContributeIssuePage | null;
   limit: LimitCounts | null;
   set?: ContributeSet | null;
@@ -205,14 +189,10 @@ function LiveRows({
   const { feed, snapshot } = useLiveFeed(
     page ?? { items: [], total: 0, next: null },
     ISSUES_PAGE_SIZE,
-    filterOf(filter),
+    NO_FILTER,
     root,
   );
   const [growing, startGrowing] = useTransition();
-  const setTotal = useContext(IssuesTotalContext)?.setTotal;
-  useEffect(() => {
-    setTotal?.(snapshot.total);
-  }, [setTotal, snapshot.total]);
   const byId = new Map(snapshot.rows.map((row) => [row.issue.issueId, row]));
   const split = set
     ? tiersOf(
@@ -265,14 +245,19 @@ function LiveRows({
 
   let empty: ReactNode = null;
   if (!snapshot.rows.length && !snapshot.next) {
-    if (set && set.mode !== 'ALL' && setOnly(set) && !isFiltered(filter)) {
+    if (set && set.mode !== 'ALL' && setOnly(set)) {
       empty = <SetOnlyEmpty set={set as ContributeSet & { mode: 'STACK' | 'REPOS' }} languages={languages} />;
-    } else if (isFiltered(filter)) {
+    } else if (!noneTitle) {
       empty = (
-        <ListNote name="filtered" title="No issues match these filters">
-          <Link href={'/contribute#issues' as Route} prefetch={false} scroll={false} className={link}>
-            Clear the filters
-          </Link>
+        <ListNote name="none" title={NONE_FITS.title}>
+          <span className="flex flex-col items-center gap-3">
+            {NONE_FITS.text}
+            <Button asChild variant="outline" className="h-9 px-4 max-sm:min-h-11">
+              <Link href={WORKSPACE_PATHS.settingsWork} prefetch={false}>
+                What you work on
+              </Link>
+            </Button>
+          </span>
         </ListNote>
       );
     } else {

@@ -10,7 +10,7 @@ vi.mock('@/lib/workspace/setup.actions', () => ({ retryContributeSetup: vi.fn() 
 const { AuthorizeScreen, authorizeStateFor, authorizeWithSetup } = await import('./authorize-view');
 const { AuthorizeNextStep } = await import('./authorize-next-step');
 const { AGENT_FIRST_PROMPT } = await import('@/lib/workspace/mcp-setup');
-const { authorizeNeedsSetupOf } = await import('@/lib/workspace/oauth-consent');
+const { authorizeNeedsSetupOf, authorizeSignsOf } = await import('@/lib/workspace/oauth-consent');
 const { CONTACT_EMAIL } = await import('@/lib/legal');
 
 import type { ContributeOAuthRequest } from '@/lib/workspace/contribute.types';
@@ -266,6 +266,14 @@ describe('the Authorize page and the signs', () => {
     );
     expect(authorizeNeedsSetupOf({ contributeOnboardedAt: null })).toBe(false);
     expect(authorizeNeedsSetupOf(null)).toBe(false);
+  });
+
+  it('reads an account with no contributor yet as having neither sign, and no answer as not read', () => {
+    expect(authorizeNeedsSetupOf(authorizeSignsOf({ contributor: null }))).toBe(true);
+    expect(authorizeSignsOf(null)).toBeNull();
+    expect(authorizeNeedsSetupOf(authorizeSignsOf(undefined))).toBe(false);
+    const signed = { contributeOnboardedAt: '2026-11-20T10:00:00.000Z', learnOnboardedAt: null };
+    expect(authorizeSignsOf({ contributor: signed })).toBe(signed);
   });
 
   it('carries the setup into the ask and into "Already allowed"', () => {

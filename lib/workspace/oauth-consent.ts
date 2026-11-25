@@ -136,13 +136,24 @@ export const HOW_IT_WORKS = [
   },
 ] as const;
 
+type AuthorizeSigns = { contributeOnboardedAt?: string | null; learnOnboardedAt?: string | null };
+
+/**
+ * The signs from the API's answer of the person's Contribute data: not read without that answer; neither set when it
+ * names no contributor (a new account has no row until its first write); else the contributor's.
+ */
+export function authorizeSignsOf(
+  contribute: { contributor: AuthorizeSigns | null } | null | undefined,
+): AuthorizeSigns | null {
+  if (!contribute) return null;
+  return contribute.contributor ?? { contributeOnboardedAt: null, learnOnboardedAt: null };
+}
+
 /**
  * Whether the person who allows an agent has gone through neither product's onboarding: both signs read, and neither
  * set. A sign that was not read counts as there, so the page says what it said before the signs.
  */
-export function authorizeNeedsSetupOf(
-  signs: { contributeOnboardedAt?: string | null; learnOnboardedAt?: string | null } | null | undefined,
-): boolean {
+export function authorizeNeedsSetupOf(signs: AuthorizeSigns | null | undefined): boolean {
   return !!signs && signs.contributeOnboardedAt === null && signs.learnOnboardedAt === null;
 }
 

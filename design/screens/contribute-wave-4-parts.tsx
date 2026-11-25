@@ -2,35 +2,23 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { HomeBoxesView } from '@/app/(workspace)/contribute/components/home-boxes';
-import { LandingProofCard } from '@/app/contribute/components/landing-parts/proof-card';
-import { LandingProofRows } from '@/app/contribute/components/landing-parts/proof-rows';
-import { LandingWayBox } from '@/app/contribute/components/landing-parts/way-box';
 import { WhoDoesTheWork } from '@/components/contribute/start/who-does-the-work';
-import { ComingSoon } from '@/components/workspace/agent/coming-soon';
-import { LandingBand } from '@/components/workspace/getting-in/landing-band';
 import {
   agentRead,
   agentRun,
   homeRead,
-  landingBand,
-  landingWays,
   mergedRead,
   NEWEST_MERGED,
   needsYouRow,
-  proofMerged,
-  proofOpenOnly,
   startRead,
 } from '@/lib/contribute/__fixtures__/wave-4-parts';
 import { type HomeBoxesRead, homeBoxesOf } from '@/lib/contribute/home-boxes';
-import { landingProofOf } from '@/lib/contribute/landing-proof';
 import { type StartWaysRead, startWaysOf } from '@/lib/contribute/start-ways';
-import { MAINTAINERS_PATH } from '@/lib/workspace/paths';
 
 /**
- * Contribute's parts for wave 4, from fixtures, in every case, before the pages use them: the landing's top card,
- * proof rows, two ways, coming-soon rows and band; the start flow's first page. Held back from the export
- * (`exported: false`) until the pages switch to them. Home's three boxes are drawn by Contribute home, so they are
- * exported.
+ * Contribute's parts for wave 4, from fixtures, in every case: home's three boxes, drawn by Contribute home and exported
+ * with it; the start flow's first page, held back from the export (`exported: false`) until its page switches to it.
+ * The landing's parts are drawn by its own boards (`contribute.tsx`).
  */
 
 /** A labelled part of a board that shows several cases one under the other. */
@@ -50,178 +38,9 @@ const Page = ({ children, narrow = false }: { children: ReactNode; narrow?: bool
   </main>
 );
 
-const proof = landingProofOf(proofMerged);
-const band = (
-  <LandingBand
-    text={landingBand.text}
-    href={MAINTAINERS_PATH as never}
-    footer={
-      <>
-        {landingBand.footer[0]}
-        <br />
-        {landingBand.footer[1]}
-      </>
-    }
-  />
-);
-
 const boxes = (read: HomeBoxesRead) => <HomeBoxesView home={homeBoxesOf(read)} hints />;
 
 const ways = (read: Partial<StartWaysRead>) => <WhoDoesTheWork ways={startWaysOf(startRead(read))} />;
-
-const LANDING_SOURCES = [
-  'app/contribute/components/landing-parts/proof-card.tsx',
-  'app/contribute/components/landing-parts/proof-rows.tsx',
-  'app/contribute/components/landing-parts/way-box.tsx',
-  'components/workspace/agent/coming-soon.tsx',
-  'components/workspace/getting-in/landing-band.tsx',
-  'lib/contribute/landing-proof.ts',
-];
-
-export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
-  {
-    id: 'contribute-landing-parts',
-    title: "Contribute's landing: the new parts",
-    area: 'contribute',
-    route: '/contribute',
-    exported: false,
-    sources: LANDING_SOURCES,
-    states: [
-      {
-        id: 'proof',
-        title: 'The top card and "Merged through GitRanks": merged, open only, and the ledger closed',
-        path: '/contribute',
-        signedOut: true,
-        height: 1900,
-        render: () => (
-          <Page>
-            <Case title="The newest merged pull request with a public page">
-              {proof.card ? <LandingProofCard pr={proof.card} className="max-w-md" /> : <span />}
-            </Case>
-            <Case title="None merged yet: the newest open one">
-              {landingProofOf(proofOpenOnly).card ? (
-                <LandingProofCard pr={proofOpenOnly[0]} className="max-w-md" />
-              ) : (
-                <span />
-              )}
-            </Case>
-            <Case title="Three merged: the rows, with the public ledger open">
-              <LandingProofRows rows={proof.rows ?? []} ledgerOpen />
-            </Case>
-            <Case title="The public ledger closed: the heading stands alone">
-              <LandingProofRows rows={proof.rows ?? []} ledgerOpen={false} />
-            </Case>
-          </Page>
-        ),
-      },
-      {
-        id: 'ways-and-more',
-        title: 'Two ways, coming soon as rows, and the band',
-        path: '/contribute',
-        signedOut: true,
-        height: 1500,
-        render: () => (
-          <Page>
-            <Case title="Two ways to contribute">
-              <div className="grid gap-4 md:grid-cols-2">
-                {landingWays.map((way) => (
-                  <LandingWayBox key={way.title} way={way} />
-                ))}
-              </div>
-            </Case>
-            <Case title="Coming soon, one row a provider">
-              <ComingSoon viewer="visitor" variant="rows" />
-            </Case>
-            <Case title="Honest with maintainers">{band}</Case>
-          </Page>
-        ),
-      },
-      {
-        id: 'phone',
-        title: 'On a phone',
-        path: '/contribute',
-        signedOut: true,
-        width: 390,
-        height: 2600,
-        render: () => (
-          <Page>
-            {proof.card ? <LandingProofCard pr={proof.card} /> : null}
-            <LandingWayBox way={landingWays[0]} />
-            <ComingSoon viewer="visitor" variant="rows" />
-            <LandingProofRows rows={proof.rows ?? []} ledgerOpen />
-            {band}
-          </Page>
-        ),
-      },
-    ],
-  },
-  {
-    id: 'contribute-start-who',
-    title: 'Start, step 1: how Contribute works, and who does the work',
-    area: 'contribute',
-    route: '/contribute/start',
-    exported: false,
-    sources: ['components/contribute/start/who-does-the-work.tsx', 'lib/contribute/start-ways.ts'],
-    states: [
-      {
-        id: 'signed-in',
-        title: 'Signed in, nothing connected',
-        path: '/contribute/start',
-        height: 1100,
-        render: () => <Page narrow>{ways({})}</Page>,
-      },
-      {
-        id: 'visitor',
-        title: 'A visitor, opened from an issue',
-        path: '/contribute/start?issue=q7k2m9xa',
-        signedOut: true,
-        height: 1150,
-        render: () => <Page narrow>{ways({ signedIn: false, issue: 'q7k2m9xa', issueReads: true })}</Page>,
-      },
-      {
-        id: 'no-sign',
-        title: 'Connected, no Contribute sign: the step is done',
-        path: '/contribute/start',
-        height: 2600,
-        render: () => (
-          <Page narrow>
-            <Case title="An agent of their own">{ways({ own: 'Claude Code' })}</Case>
-            <Case title="A Claude key">{ways({ key: 'connected' })}</Case>
-            <Case title="Both">{ways({ own: 'Claude Code', key: 'connected' })}</Case>
-          </Page>
-        ),
-      },
-      {
-        id: 'with-sign',
-        title: 'Connected, with the Contribute sign: back to add the other way',
-        path: '/contribute/start',
-        height: 2600,
-        render: () => (
-          <Page narrow>
-            <Case title="An agent of their own">{ways({ sign: true, own: 'Claude Code' })}</Case>
-            <Case title="A Claude key, with an attempt">{ways({ sign: true, key: 'connected', attempt: true })}</Case>
-            <Case title="Both">{ways({ sign: true, own: 'Claude Code', key: 'connected' })}</Case>
-          </Page>
-        ),
-      },
-      {
-        id: 'key-invalid',
-        title: 'The Claude key stopped working, nothing else connected',
-        path: '/contribute/start',
-        height: 1100,
-        render: () => <Page narrow>{ways({ key: 'invalid' })}</Page>,
-      },
-      {
-        id: 'phone',
-        title: 'On a phone',
-        path: '/contribute/start',
-        width: 390,
-        height: 1700,
-        render: () => <Page narrow>{ways({})}</Page>,
-      },
-    ],
-  },
-];
 
 /** Contribute home's three boxes in every case: drawn by the page, so exported with it. */
 export const CONTRIBUTE_HOME_BOX_SCREENS: Screen[] = [
@@ -408,6 +227,75 @@ export const CONTRIBUTE_HOME_BOX_SCREENS: Screen[] = [
         width: 390,
         height: 1000,
         render: () => <Page>{boxes(homeRead({ needsYou: [needsYouRow()] }))}</Page>,
+      },
+    ],
+  },
+];
+
+export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
+  {
+    id: 'contribute-start-who',
+    title: 'Start, step 1: how Contribute works, and who does the work',
+    area: 'contribute',
+    route: '/contribute/start',
+    exported: false,
+    sources: ['components/contribute/start/who-does-the-work.tsx', 'lib/contribute/start-ways.ts'],
+    states: [
+      {
+        id: 'signed-in',
+        title: 'Signed in, nothing connected',
+        path: '/contribute/start',
+        height: 1100,
+        render: () => <Page narrow>{ways({})}</Page>,
+      },
+      {
+        id: 'visitor',
+        title: 'A visitor, opened from an issue',
+        path: '/contribute/start?issue=q7k2m9xa',
+        signedOut: true,
+        height: 1150,
+        render: () => <Page narrow>{ways({ signedIn: false, issue: 'q7k2m9xa', issueReads: true })}</Page>,
+      },
+      {
+        id: 'no-sign',
+        title: 'Connected, no Contribute sign: the step is done',
+        path: '/contribute/start',
+        height: 2600,
+        render: () => (
+          <Page narrow>
+            <Case title="An agent of their own">{ways({ own: 'Claude Code' })}</Case>
+            <Case title="A Claude key">{ways({ key: 'connected' })}</Case>
+            <Case title="Both">{ways({ own: 'Claude Code', key: 'connected' })}</Case>
+          </Page>
+        ),
+      },
+      {
+        id: 'with-sign',
+        title: 'Connected, with the Contribute sign: back to add the other way',
+        path: '/contribute/start',
+        height: 2600,
+        render: () => (
+          <Page narrow>
+            <Case title="An agent of their own">{ways({ sign: true, own: 'Claude Code' })}</Case>
+            <Case title="A Claude key, with an attempt">{ways({ sign: true, key: 'connected', attempt: true })}</Case>
+            <Case title="Both">{ways({ sign: true, own: 'Claude Code', key: 'connected' })}</Case>
+          </Page>
+        ),
+      },
+      {
+        id: 'key-invalid',
+        title: 'The Claude key stopped working, nothing else connected',
+        path: '/contribute/start',
+        height: 1100,
+        render: () => <Page narrow>{ways({ key: 'invalid' })}</Page>,
+      },
+      {
+        id: 'phone',
+        title: 'On a phone',
+        path: '/contribute/start',
+        width: 390,
+        height: 1700,
+        render: () => <Page narrow>{ways({})}</Page>,
       },
     ],
   },

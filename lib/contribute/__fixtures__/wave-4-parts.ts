@@ -71,41 +71,6 @@ export const proofOpenOnly: LandingProofPr[] = [
   prOf({ number: 920, title: 'Stop the date picker from closing on a typed date', mergedAt: null }),
 ];
 
-/** "Two ways to contribute": the hosted agent first, then the person's own. */
-export const landingWays = [
-  {
-    top: 'We run the agent',
-    title: 'On your Claude key',
-    text: 'Best if your Claude plan has API credits that expire unused. We pick an issue, run Claude in a hosted sandbox, and bring you a tested change to review. You never touch a terminal.',
-    facts: [
-      { label: 'You bring', value: 'A Claude API key with its own spend limit' },
-      { label: 'It spends', value: 'Your API credits, up to the caps you set' },
-      { label: 'The pace', value: 'Spread across your billing cycle' },
-      { label: 'Setup', value: 'One step, about two minutes' },
-    ],
-  },
-  {
-    top: 'Your agent does the work',
-    title: 'With your own agent',
-    text: 'Best if you already work with Claude Code, Codex, Cursor, Gemini CLI, VS Code or Antigravity. It asks GitRanks for an issue, fixes it on your machine, and hands the change back for your review.',
-    facts: [
-      { label: 'You bring', value: 'A coding agent that speaks MCP' },
-      { label: 'It spends', value: 'Nothing through us: your agent, your plan' },
-      { label: 'The pace', value: 'Whenever you ask your agent' },
-      { label: 'Setup', value: 'Add GitRanks and allow it, about a minute' },
-    ],
-  },
-] as const;
-
-/** The band's words on Contribute's landing, and the two footer lines it quotes. */
-export const landingBand = {
-  text: "Every pull request says an AI agent wrote the fix and who reviewed it. We open one pull request in a project at a time, follow each project's rules on AI, and stay out of projects that ask us to.",
-  footer: [
-    'Made with GitRanks Contribute and Claude Code (Opus) · Reviewed and submitted by @mira-dev',
-    'Something off? Tell us or opt out in one step. Maintainers are always in control.',
-  ],
-} as const;
-
 /* Home's boxes ------------------------------------------------------------------------------------------------------ */
 
 export const needsYouRow = (over: Partial<HomeNeedsYouRow> = {}): HomeNeedsYouRow => ({

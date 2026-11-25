@@ -101,8 +101,8 @@ function FooterLines() {
       Made with <span className="text-link">GitRanks Learn</span>, where developers learn on real issues · Claude Code
       (Opus) wrote this fix and taught it to @octocat, who passed a check on it and submitted it
       <br />
-      Something off? <span className="text-link">Tell us or opt out in one step</span> - maintainers are always in
-      control
+      Something off? <span className="text-link">Tell us or opt out in one step</span>. Maintainers are always in
+      control.
     </>
   );
 }

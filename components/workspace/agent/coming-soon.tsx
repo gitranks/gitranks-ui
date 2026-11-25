@@ -31,10 +31,6 @@ export const PROVIDER_ICONS: Partial<Record<ContributeComingSoonProvider, IconTy
 
 const EMAIL_ONCE = "We'll email you once, when it opens";
 
-/** The header's note beside the title: a visitor's Notify me signs them in first. */
-export const comingSoonNoteOf = (viewer: LandingViewer) =>
-  viewer === 'visitor' ? 'Press Notify me to be told when one opens' : EMAIL_ONCE;
-
 /** Overview's one line of what is coming: the first two, and how many more. */
 export function comingSoonLineOf(): string {
   const [first, second, ...rest] = COMING_SOON.map(({ title }) => title);
@@ -96,7 +92,7 @@ const RISE_DELAYS = [
 const CARD = cn(
   'flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4',
   'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-450 motion-safe:ease-out motion-safe:fill-mode-both',
-  // On a phone the cards are rows of one bordered list: the name and the button on a line, the text below.
+  // On a phone the cards are rows of one bordered list: the name and the button on a line.
   'max-sm:flex-row max-sm:flex-wrap max-sm:items-center max-sm:gap-x-3 max-sm:gap-y-2.5 max-sm:rounded-none max-sm:border-x-0 max-sm:border-t-0 max-sm:p-3.5 max-sm:last:border-b-0',
 );
 
@@ -104,7 +100,7 @@ const CARD = cn(
 const BUTTON =
   'inline-flex min-h-10 items-center gap-1.5 self-start rounded-lg border px-3 text-sm font-semibold motion-safe:transition-colors max-sm:ml-auto max-sm:self-center';
 const BUTTON_IDLE = 'bg-background text-foreground hover:bg-accent';
-/** A row's button (`rows`): smaller, beside the name on every width. */
+/** A landing row's button: smaller, beside the name on every width. */
 const ROW_BUTTON = 'min-h-9 flex-none self-center px-2.5 text-[13px] whitespace-nowrap max-sm:ml-0';
 const BUTTON_ON = 'border-primary/40 bg-brand-soft text-brand-soft-foreground hover:bg-primary/10';
 
@@ -193,8 +189,8 @@ function ProviderMark({
  * sign-in; a signed-in user's puts the provider on their list, or takes it off. `noted`: the user's list as the API
  * keeps it. `compact`: one line of what is coming (Overview's, inside "Ways you contribute", and the Agent tab's,
  * under the hosted agent, with its own `title`), its "Notify me" opening, over the page so nothing under the line
- * moves, the mark, the title and the toggle of each, for a signed-in user. `rows`: the landing's section at a third of
- * its height, each provider one row of its name, its kind and "Notify me".
+ * moves, the mark, the title and the toggle of each, for a signed-in user. `landing`: the landing's section, each
+ * provider one row of its name, its kind and "Notify me".
  */
 export function ComingSoon({
   viewer,
@@ -206,7 +202,7 @@ export function ComingSoon({
   viewer: LandingViewer;
   preview?: boolean;
   noted?: readonly ContributeComingSoonProvider[];
-  variant?: 'landing' | 'compact' | 'rows';
+  variant?: 'landing' | 'compact';
   /** The compact line's lead. */
   title?: string;
 }) {
@@ -271,99 +267,39 @@ export function ComingSoon({
     );
   }
 
-  if (variant === 'rows') {
-    return (
-      <section aria-labelledby="coming-soon-title" className="border-b" data-landing="coming-soon">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10 sm:py-14">
-          <div className="flex max-w-3xl flex-col gap-2">
-            <span className="text-xs font-semibold text-primary">Coming soon</span>
-            <h2 id="coming-soon-title" className="text-2xl font-bold tracking-tight">
-              More ways to spend credits you already have
-            </h2>
-            <p className="text-muted-foreground">
-              Other AI plans and keys, with the same review before anything is sent. Tell us which one you would use:
-              the most asked for comes first.
-            </p>
-          </div>
-          <ul className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 max-sm:gap-0 max-sm:overflow-hidden max-sm:rounded-xl max-sm:border">
-            {COMING_SOON.map(({ provider, mono, title, kind }, index) => (
-              <li
-                key={provider}
-                className={cn(CARD, 'flex-row items-center justify-between', RISE_DELAYS[index])}
-                data-provider={provider}
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <ProviderMark provider={provider} mono={mono} className="size-8.5 text-xs" iconClassName="size-4.5" />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="font-semibold whitespace-nowrap">{title}</span>
-                    <span className="text-xs text-muted-foreground">{kind}</span>
-                  </span>
-                </div>
-                {visitor ? (
-                  <SignInButton
-                    preview={preview}
-                    label={`Notify me when ${title} opens`}
-                    className={cn(ROW_BUTTON, BUTTON_IDLE)}
-                  >
-                    Notify me
-                  </SignInButton>
-                ) : (
-                  <NotifyToggle
-                    title={title}
-                    on={noted.has(provider)}
-                    busy={busy.has(provider)}
-                    onClick={() => flip(provider)}
-                    className={ROW_BUTTON}
-                  />
-                )}
-              </li>
-            ))}
-          </ul>
-          <p role="status" className="min-h-5 text-sm text-foreground/80">
-            {visitor ? '' : comingSoonStatusOf(noted)}
-          </p>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section aria-labelledby="coming-soon-title" className="border-b" data-landing="coming-soon">
-      <div className="mx-auto w-full max-w-7xl px-4 flex flex-col gap-6 py-10 sm:py-14">
-        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
-          <div className="flex max-w-3xl flex-col gap-2">
-            <span className="text-xs font-semibold text-primary">Coming soon</span>
-            <h2 id="coming-soon-title" className="text-2xl font-bold tracking-tight">
-              More ways to spend credits you already have
-            </h2>
-            <p className="text-muted-foreground">
-              Other AI plans and keys, with the same review before anything is sent. Tell us which one you'd use: we
-              count every request, and the most asked for comes first.
-            </p>
-          </div>
-          <span className="text-xs text-muted-foreground">{comingSoonNoteOf(viewer)}</span>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10 sm:py-14">
+        <div className="flex max-w-3xl flex-col gap-2">
+          <span className="text-xs font-semibold text-primary">Coming soon</span>
+          <h2 id="coming-soon-title" className="text-2xl font-bold tracking-tight">
+            More ways to spend credits you already have
+          </h2>
+          <p className="text-muted-foreground">
+            Other AI plans and keys, with the same review before anything is sent. Tell us which one you would use: the
+            most asked for comes first.
+          </p>
         </div>
-
         <ul className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 max-sm:gap-0 max-sm:overflow-hidden max-sm:rounded-xl max-sm:border">
-          {COMING_SOON.map(({ provider, mono, title, kind, text }, index) => (
-            <li key={provider} className={cn(CARD, RISE_DELAYS[index])} data-provider={provider}>
+          {COMING_SOON.map(({ provider, mono, title, kind }, index) => (
+            <li
+              key={provider}
+              className={cn(CARD, 'flex-row items-center justify-between', RISE_DELAYS[index])}
+              data-provider={provider}
+            >
               <div className="flex min-w-0 items-center gap-3">
                 <ProviderMark provider={provider} mono={mono} className="size-8.5 text-xs" iconClassName="size-4.5" />
                 <span className="flex min-w-0 flex-col">
-                  <span className="font-semibold">{title}</span>
+                  <span className="font-semibold whitespace-nowrap">{title}</span>
                   <span className="text-xs text-muted-foreground">{kind}</span>
                 </span>
               </div>
-              <span className="flex-1 text-sm text-foreground/80 max-sm:order-3 max-sm:basis-full max-sm:pl-11.5">
-                {text}
-              </span>
               {visitor ? (
                 <SignInButton
                   preview={preview}
                   label={`Notify me when ${title} opens`}
-                  className={cn(BUTTON, BUTTON_IDLE)}
+                  className={cn(ROW_BUTTON, BUTTON_IDLE)}
                 >
-                  <BellIcon aria-hidden="true" className="size-3.75" />
                   Notify me
                 </SignInButton>
               ) : (
@@ -372,12 +308,12 @@ export function ComingSoon({
                   on={noted.has(provider)}
                   busy={busy.has(provider)}
                   onClick={() => flip(provider)}
+                  className={ROW_BUTTON}
                 />
               )}
             </li>
           ))}
         </ul>
-
         <p role="status" className="min-h-5 text-sm text-foreground/80">
           {visitor ? '' : comingSoonStatusOf(noted)}
         </p>

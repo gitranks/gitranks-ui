@@ -124,6 +124,11 @@ describe('the landing for a visitor', () => {
     for (const link of links) expect(link?.className, link?.textContent ?? '').toContain('max-sm:min-h-11');
   });
 
+  it("quotes the pull request's footer as it is written now, its second line in two sentences", () => {
+    expect(words(page)).toContain('Something off? Tell us or opt out in one step. Maintainers are always in control.');
+    expect(words(page)).not.toContain('in one step - maintainers');
+  });
+
   it('shows a course without numbers on launch day by its lessons alone', () => {
     const launch = draw({ courses: launchCourses });
     expect(launch.textContent).not.toMatch(/learners|\b0 /);

@@ -76,57 +76,49 @@ export const COMING_SOON: {
   mono: string;
   title: string;
   kind: ComingSoonKind;
-  text: string;
 }[] = [
   {
     provider: 'CHATGPT',
     mono: 'CG',
     title: 'ChatGPT plan',
     kind: 'Plan',
-    text: 'Your Plus or Pro allowance, under a weekly cap you set',
   },
   {
     provider: 'COPILOT',
     mono: 'GC',
     title: 'GitHub Copilot',
     kind: 'Plan',
-    text: 'Your monthly AI credits, before they reset on the 1st',
   },
   {
     provider: 'GEMINI',
     mono: 'GE',
     title: 'Gemini',
     kind: 'Plan',
-    text: 'The credits that come with your Google AI plan',
   },
   {
     provider: 'CURSOR',
     mono: 'CU',
     title: 'Cursor in the cloud',
     kind: 'Cloud agent',
-    text: 'On your Cursor plan, no terminal needed',
   },
   {
     provider: 'JULES',
     mono: 'JU',
     title: 'Jules',
     kind: 'Cloud agent',
-    text: "Jules' daily tasks, run on your own fork",
   },
   {
     provider: 'OPENAI',
     mono: 'OA',
     title: 'OpenAI API key',
     kind: 'API key',
-    text: 'A project key with a hard monthly limit',
   },
-  { provider: 'XAI', mono: 'XG', title: 'xAI Grok', kind: 'API key', text: 'An API key with a prepaid stop' },
+  { provider: 'XAI', mono: 'XG', title: 'xAI Grok', kind: 'API key' },
   {
     provider: 'OPENROUTER',
     mono: 'OR',
     title: 'OpenRouter',
     kind: 'API key',
-    text: 'One key for many models, with a daily or weekly limit',
   },
 ];
 

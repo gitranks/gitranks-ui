@@ -13,7 +13,7 @@ import { ConnectScreen } from '@/components/workspace/agent/connect-view';
 import { FlowBack, FlowFrame } from '@/components/workspace/getting-in/flow-frame';
 import { MaskedIssueRow } from '@/components/workspace/masked-issue/masked-issue-row';
 import { HEADING } from '@/components/workspace/primitives';
-import { ContributeSettingUp } from '@/components/workspace/setting-up';
+import { ContributeNoProfile, ContributeSettingUp, ContributeSetupFailed } from '@/components/workspace/setting-up';
 import { issuePage } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { views } from '@/lib/contribute/__fixtures__/contribute-views';
 import { startRead } from '@/lib/contribute/__fixtures__/wave-4-parts';
@@ -149,6 +149,9 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
       'lib/workspace/getting-in.ts',
       'lib/workspace/flow-way-back.ts',
       'lib/workspace/sign-in-to-flow.ts',
+      'components/workspace/setting-up.tsx',
+      'components/workspace/setup-retry.tsx',
+      'components/workspace/no-profile-panel.tsx',
     ],
     states: [
       {
@@ -223,6 +226,20 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
         path: GETTING_IN_PATHS.contributeStart,
         height: 480,
         render: () => firstStep(<ContributeSettingUp />),
+      },
+      {
+        id: 'setup-failed',
+        title: 'A new account whose first read failed: the panel in the frame, with Try again, on every step',
+        path: GETTING_IN_PATHS.contributeStart,
+        height: 480,
+        render: () => firstStep(<ContributeSetupFailed />),
+      },
+      {
+        id: 'no-profile',
+        title: 'An account GitRanks does not read: the panel in the frame, nothing to try, on every step',
+        path: GETTING_IN_PATHS.contributeStart,
+        height: 440,
+        render: () => firstStep(<ContributeNoProfile />),
       },
     ],
   },

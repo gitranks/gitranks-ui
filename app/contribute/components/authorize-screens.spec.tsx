@@ -5,8 +5,9 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock('@/lib/workspace/actions', () => ({ approveContributeOAuth: vi.fn() }));
 vi.mock('@/lib/workspace/review-sign-in.actions', () => ({ approveContributeOAuthAsReviewer: vi.fn() }));
+vi.mock('@/lib/workspace/setup.actions', () => ({ retryContributeSetup: vi.fn() }));
 
-const { AuthorizeScreen, authorizeStateFor } = await import('./authorize-view');
+const { AuthorizeScreen, authorizeStateFor, authorizeWithSetup } = await import('./authorize-view');
 const { AuthorizeNextStep } = await import('./authorize-next-step');
 const { AGENT_FIRST_PROMPT } = await import('@/lib/workspace/mcp-setup');
 const { CONTACT_EMAIL } = await import('@/lib/legal');
@@ -123,15 +124,27 @@ describe('the consent page of an agent sign-in', () => {
     expect(html).not.toContain('data-authorize="allow"');
   });
 
-  it('says Contribute is not open to an account GitRanks has not read, never the preview nor "just now"', () => {
+  it('says Contribute is not open to an account GitRanks does not read, never the preview, an hour, nor "just now"', () => {
     const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'no-profile', requestId: ID }} />);
     const plain = text(html);
     expect(plain).toContain('Not open to your GitHub account');
-    expect(plain).toContain('GitRanks has not read your GitHub account, so Contribute is not open to it');
-    expect(plain).toContain('If your account is new, try again in an hour');
-    expect(plain).not.toContain("couldn't read");
+    expect(plain).toContain('GitRanks does not read your GitHub account, so Contribute is not open to it');
+    expect(plain).not.toMatch(/hour|try again/i);
     expect(plain).not.toContain('just now');
     expect(plain).not.toMatch(/preview/i);
+    expect(html).not.toContain('data-setup-retry');
+    expect(html).toContain(`href="${CANCEL}"`);
+    expect(html).not.toContain('data-authorize="allow"');
+  });
+
+  it('says a failed first read so, with Try again and Cancel, and nothing about an hour', () => {
+    const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'no-profile', requestId: ID, failed: true }} />);
+    const plain = text(html);
+    expect(plain).toContain('We could not set up your GitRanks account');
+    expect(plain).toContain("GitRanks could not read your GitHub profile, so your agent can't connect yet");
+    expect(html).toContain('data-setup-retry');
+    expect(plain).toContain('Try again');
+    expect(plain).not.toMatch(/hour|preview/i);
     expect(html).toContain(`href="${CANCEL}"`);
     expect(html).not.toContain('data-authorize="allow"');
   });
@@ -202,6 +215,14 @@ describe("the consent page's state, from the API's one read", () => {
   it('says no profile once launched, and names the preview only before the launch', () => {
     expect(authorizeStateFor(read(null), ID, 'newbie')).toEqual({ kind: 'no-profile', requestId: ID });
     expect(authorizeStateFor(read(null, false, false), ID, 'newbie')).toEqual({ kind: 'not-open', requestId: ID });
+  });
+
+  it('reads a no-profile account by its setup: setting up, failed, or not read', () => {
+    const noProfile = { kind: 'no-profile', requestId: ID } as const;
+    expect(authorizeWithSetup(noProfile, 'setting-up')).toEqual({ kind: 'setting-up', requestId: ID });
+    expect(authorizeWithSetup(noProfile, 'failed')).toEqual({ ...noProfile, failed: true });
+    expect(authorizeWithSetup(noProfile, 'removed')).toEqual(noProfile);
+    expect(authorizeWithSetup(noProfile, 'none')).toEqual(noProfile);
   });
 
   it('asks to allow a pending request, and reads expired and approved ones as such', () => {

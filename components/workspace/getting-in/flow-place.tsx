@@ -1,16 +1,20 @@
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
+import { ContributeNoProfileRead } from '@/components/workspace/no-profile-panel';
+import { ContributeSettingUp } from '@/components/workspace/setting-up';
 import type { FlowPlace } from '@/lib/workspace/getting-in';
 
-/** The panels a step shows in its frame in place of itself: its side's setting-up and no-profile panels. */
+/**
+ * The panels a step shows in its frame in place of itself: its side's setting-up panel, and the one for an account
+ * with no profile, which reads where its setup stands (on its way, failed with "Try again", or not read).
+ */
 export type FlowPanels = { settingUp: ReactNode; noProfile: ReactNode };
 
 /** Contribute's: the account being set up (the page reads itself again until it is ready), and no profile. */
 export const CONTRIBUTE_FLOW_PANELS: FlowPanels = {
   settingUp: <ContributeSettingUp />,
-  noProfile: <ContributeNoProfile />,
+  noProfile: <ContributeNoProfileRead />,
 };
 
 /**

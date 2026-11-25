@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 import { LandingProofCard } from './proof-card';
 import { LandingProofRows } from './proof-rows';
 import { LandingWayBox } from './way-box';
-import { landingWays, proofMerged, proofOpenOnly } from '@/lib/contribute/__fixtures__/wave-4-parts';
+import { proofMerged, proofOpenOnly } from '@/lib/contribute/__fixtures__/wave-4-parts';
+import { LANDING_WAYS } from '@/lib/contribute/landing-copy';
 
 const draw = (node: React.ReactElement) => {
   document.body.innerHTML = renderToStaticMarkup(node);
@@ -44,6 +45,12 @@ describe("the landing's top card", () => {
     expect(text(page)).toContain('The importer counts one email as two users Python');
   });
 
+  it('names the agent alone when the sender is not known', () => {
+    const page = draw(<LandingProofCard pr={{ ...proofMerged[0], contributorLogin: null }} />);
+    expect(text(page)).toContain('+18 −3 2 files with Claude Code How it was made');
+    expect(text(page)).not.toContain(' by ');
+  });
+
   it('says an open one is open, with no day it merged', () => {
     const page = draw(<LandingProofCard pr={proofOpenOnly[0]} />);
     expect(page.querySelector('[data-landing-proof-card]')?.getAttribute('data-landing-proof-card')).toBe('open');
@@ -64,6 +71,12 @@ describe('"Merged through GitRanks"', () => {
     expect(text(page.querySelector('a[href="/contribute/ledger"]'))).toBe('Every pull request, in the public ledger →');
   });
 
+  it('names the agent alone in a row whose sender is not known', () => {
+    const rows = proofMerged.slice(0, 3).map((pr, index) => (index ? pr : { ...pr, contributorLogin: null }));
+    const page = draw(<LandingProofRows rows={rows} ledgerOpen />);
+    expect(text(page.querySelector('li'))).toContain('Merged 30 Oct · with Claude Code How it was made');
+  });
+
   it('stands the heading alone while the ledger is closed', () => {
     const page = draw(<LandingProofRows rows={proofMerged.slice(0, 3)} ledgerOpen={false} />);
     expect(page.querySelector('a[href="/contribute/ledger"]')).toBeNull();
@@ -73,7 +86,7 @@ describe('"Merged through GitRanks"', () => {
 
 describe('a box of "Two ways to contribute"', () => {
   it('draws a line on top, a title, one paragraph and four facts', () => {
-    const page = draw(<LandingWayBox way={landingWays[1]} />);
+    const page = draw(<LandingWayBox way={LANDING_WAYS[1]} />);
     expect(text(page.querySelector('span'))).toBe('Your agent does the work');
     expect(text(page.querySelector('h3'))).toBe('With your own agent');
     expect([...page.querySelectorAll('dt')].map((term) => text(term))).toEqual([

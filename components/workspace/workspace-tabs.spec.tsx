@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -319,10 +321,21 @@ describe("the workspace's metadata", () => {
     expect('metadata' in group).toBe(false);
   });
 
-  it("keeps Contribute's pages and every page under /my out of the index", async () => {
+  it("keeps every page under /my and Contribute's answer page out of the index, the landing in it", async () => {
     const contribute = await import('@/app/(workspace)/contribute/layout');
     const my = await import('@/app/(workspace)/my/layout');
-    expect(contribute.metadata.robots).toEqual({ index: false, follow: false });
+    // The section's layout says nothing: each page under it says its own.
+    expect(contribute.metadata.robots).toBeUndefined();
+    // The answer page, the one other page under it, keeps itself out (the landing's own metadata has its spec).
+    const answer = readFileSync('app/(workspace)/contribute/answer/[noticeId]/page.tsx', 'utf8');
+    expect(answer).toContain('robots: { index: false, follow: false }');
+    expect(readdirSync('app/(workspace)/contribute').sort()).toEqual([
+      'answer',
+      'components',
+      'error.tsx',
+      'layout.tsx',
+      'page.tsx',
+    ]);
     expect(my.metadata.robots).toEqual({ index: false, follow: false });
   });
 });

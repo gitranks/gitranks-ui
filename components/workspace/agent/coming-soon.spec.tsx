@@ -7,9 +7,7 @@ vi.mock('@/lib/workspace/actions', () => actions);
 vi.mock('sonner', () => ({ toast }));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 
-const { ComingSoon, PROVIDER_ICONS, comingSoonNoteOf, comingSoonStatusOf, flipInterest, withInterest } = await import(
-  './coming-soon'
-);
+const { ComingSoon, PROVIDER_ICONS, comingSoonStatusOf, flipInterest, withInterest } = await import('./coming-soon');
 const { COMING_SOON } = await import('@/lib/workspace/format');
 
 import type { ContributeComingSoonProvider } from '@/lib/workspace/contribute.types';
@@ -27,7 +25,7 @@ const count = (html: string, needle: string) => html.split(needle).length - 1;
 const DIALOG_TRIGGER = 'aria-haspopup="dialog"';
 
 describe('the coming-soon cards', () => {
-  it('are the eight of the design, in its order, with their kinds, initials and lines', () => {
+  it('are the eight of the design, in its order, each one row of its name, its kind and Notify me', () => {
     expect(COMING_SOON.map(({ provider }) => provider)).toEqual([
       'CHATGPT',
       'COPILOT',
@@ -51,8 +49,8 @@ describe('the coming-soon cards', () => {
     expect(COMING_SOON.map(({ mono }) => mono)).toEqual(['CG', 'GC', 'GE', 'CU', 'JU', 'OA', 'XG', 'OR']);
 
     const plain = text(renderToStaticMarkup(<ComingSoon viewer="signed-in" />));
-    const at = COMING_SOON.map(({ title, text: line }) => {
-      expect(plain).toContain(line);
+    const at = COMING_SOON.map(({ title, kind }) => {
+      expect(plain).toContain(`${title} ${kind}`);
       return plain.indexOf(title);
     });
     expect(at.every((index) => index >= 0)).toBe(true);
@@ -74,8 +72,9 @@ describe('the coming-soon cards', () => {
 
     expect(plain).toContain('Coming soon');
     expect(plain).toContain('More ways to spend credits you already have');
-    expect(plain).toContain('we count every request, and the most asked for comes first');
-    expect(plain).toContain("We'll email you once, when it opens");
+    expect(plain).toContain(
+      'Other AI plans and keys, with the same review before anything is sent. Tell us which one you would use: the most asked for comes first.',
+    );
   });
 
   it("opens the sign-in from every one of a visitor's buttons, with nothing noted", () => {
@@ -85,10 +84,9 @@ describe('the coming-soon cards', () => {
     expect(count(html, DIALOG_TRIGGER)).toBe(8);
     expect(html).not.toContain('aria-pressed');
     expect(html).toContain('aria-label="Notify me when Gemini opens"');
-    // The eight buttons, and the note that names them.
-    expect(count(plain, 'Notify me')).toBe(9);
+    // The eight buttons, one a row.
+    expect(count(plain, 'Notify me')).toBe(8);
     expect(plain).not.toContain('On the list');
-    expect(plain).toContain('Press Notify me to be told when one opens');
     expect(html).toMatch(/<p role="status"[^>]*><\/p>/);
   });
 
@@ -136,11 +134,6 @@ describe('the status line', () => {
   it('counts only the cards shown', () => {
     expect(of('MISTRAL')).toBe('');
     expect(of('MISTRAL', 'XAI')).toBe("You're on the list for xAI Grok. We'll email you once, when it opens.");
-  });
-
-  it("asks a visitor to press Notify me, and tells a user they're emailed once", () => {
-    expect(comingSoonNoteOf('visitor')).toBe('Press Notify me to be told when one opens');
-    expect(comingSoonNoteOf('signed-in')).toBe("We'll email you once, when it opens");
   });
 });
 

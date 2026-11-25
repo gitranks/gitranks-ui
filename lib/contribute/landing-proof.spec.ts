@@ -5,6 +5,7 @@ import {
   filesOf,
   type LandingProofPr,
   landingProofOf,
+  landingProofPrsOf,
   mergedAfterOf,
   proofByOf,
   proofIssueMarksOf,
@@ -48,6 +49,30 @@ describe('landingProofOf', () => {
   });
 });
 
+describe('landingProofPrsOf', () => {
+  it('keeps the API order, drops a row without its title, and keeps one without its sender', () => {
+    expect(
+      landingProofPrsOf([
+        merged(1),
+        { ...merged(2), title: null },
+        { ...merged(3), contributorLogin: null },
+        merged(4),
+      ])?.map((row) => row.number),
+    ).toEqual([1, 3, 4]);
+  });
+
+  it('keeps a row whose issue title is not known', () => {
+    const [row] = landingProofPrsOf([{ ...merged(1), issue: { ...merged(1).issue, title: null } }]) ?? [];
+    expect(row?.issue.title).toBeNull();
+  });
+
+  it('answers null for a failed read, and none for none', () => {
+    expect(landingProofPrsOf(null)).toBeNull();
+    expect(landingProofPrsOf(undefined)).toBeNull();
+    expect(landingProofPrsOf([])).toEqual([]);
+  });
+});
+
 describe('mergedAfterOf', () => {
   it.each([
     ['2026-10-27T09:00:00Z', '2026-10-30T12:00:00Z', '3 days after it was sent'],
@@ -61,8 +86,10 @@ describe('mergedAfterOf', () => {
 });
 
 describe('the proof lines', () => {
-  it('names the person and the agent', () => {
+  it('names the person and the agent, or the agent alone when the sender is not known', () => {
     expect(proofByOf(merged(1))).toBe('by mira-dev with Claude Code');
+    expect(proofByOf({ ...merged(1), contributorLogin: null })).toBe('with Claude Code');
+    expect(proofRowLineOf({ ...merged(1), contributorLogin: null })).toBe('Merged 30 Oct · with Claude Code');
   });
 
   it('dates a row in UTC, or says it is open', () => {

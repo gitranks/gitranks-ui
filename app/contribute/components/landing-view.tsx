@@ -4,6 +4,9 @@ import type { ReactNode } from 'react';
 import { Landing } from './landing';
 import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
+import type { AgentPageStats } from '@/lib/contribute/agent-page.types';
+import { type LandingProof, landingProofOf } from '@/lib/contribute/landing-proof';
+import { loadLandingLedgerOpen, loadLandingProof } from '@/lib/contribute/landing-proof.data';
 import {
   loadContribute,
   loadContributeSetup,
@@ -26,6 +29,24 @@ export const VISITOR_START: LandingStart = { href: GETTING_IN_PATHS.contributeWo
 export const signedInStartOf = (view: ContributeView): LandingStart =>
   isOnboarded(view) ? { member: true } : { href: contributeResumeOf(view), signedIn: true };
 
+/** What the landing draws from live reads: the numbers line, the proof, and whether the public ledger is open. */
+export type LandingLive = { stats: AgentPageStats | null; proof: LandingProof; ledgerOpen: boolean };
+
+/**
+ * The landing's live reads, started beside the view's read so neither waits for the other: the numbers line and the
+ * newest pull requests with a public page, and whether the public ledger is open. Each settles to null (closed, for
+ * the ledger) on a failure, the proof and the ledger also past their time limit, and is read once per request.
+ */
+export function startLandingReads() {
+  return { agentPage: loadAgentPage(), proof: loadLandingProof(), ledgerOpen: loadLandingLedgerOpen() };
+}
+
+/** The live reads as the landing draws them, awaited before it draws (the head's layout differs without the card). */
+export async function landingLiveOf(reads: ReturnType<typeof startLandingReads>): Promise<LandingLive> {
+  const [agentPage, prs, ledgerOpen] = await Promise.all([reads.agentPage, reads.proof, reads.ledgerOpen]);
+  return { stats: agentPage?.stats ?? null, proof: landingProofOf(prs), ledgerOpen };
+}
+
 /** A panel of Contribute's home, in the page's column. */
 const panel = (children: ReactNode) => <main className="mx-auto w-full max-w-7xl px-4 pt-10 pb-16">{children}</main>;
 
@@ -43,26 +64,20 @@ export async function noViewPanelOf(): Promise<ReactNode | null> {
 }
 
 /**
- * How Contribute works (`/contribute/about`): the landing for anyone, the button to the step that is left, or Open
- * Contribute for a member. A visitor sees it once Contribute is launched; an account being set up or with no profile
+ * How Contribute works (`/contribute/about`): the landing for anyone, the button to the step that is left, or Go to
+ * your issues for a member. A visitor sees it once Contribute is launched; an account being set up or with no profile
  * sees the panel that says so, as on `/contribute`.
  */
 export async function ContributeAboutView() {
-  const agentPage = loadAgentPage();
+  const reads = startLandingReads();
   const view = await loadContribute();
   if (!view) {
     return (
       (await noViewPanelOf()) ?? (
-        <Landing viewer="visitor" start={VISITOR_START} noted={[]} stats={(await agentPage)?.stats} />
+        <Landing viewer="visitor" start={VISITOR_START} noted={[]} {...(await landingLiveOf(reads))} />
       )
     );
   }
-  return (
-    <Landing
-      viewer="signed-in"
-      start={signedInStartOf(view)}
-      noted={await loadProviderInterests()}
-      stats={(await agentPage)?.stats}
-    />
-  );
+  const [noted, live] = await Promise.all([loadProviderInterests(), landingLiveOf(reads)]);
+  return <Landing viewer="signed-in" start={signedInStartOf(view)} noted={noted} {...live} />;
 }

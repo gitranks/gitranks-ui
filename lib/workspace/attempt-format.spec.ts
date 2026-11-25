@@ -35,7 +35,22 @@ describe('editableBodyOf', () => {
     );
   });
 
-  it("takes out today's footer: both lines in one <sub>, on one line", () => {
+  it('takes out the second line in its new wording, on its own line or after <br>', () => {
+    const first =
+      '<sub>Made with [GitRanks Contribute](https://gitranks.com/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0) and Claude Code (Opus) · Reviewed and submitted by @mira-dev</sub>';
+    const say =
+      'Something off? [Tell us or opt out in one step](https://gitranks.com/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0). Maintainers are always in control.';
+    expect(editableBodyOf(`Done.\n\n${first}<br>\n<sub>${say}</sub>`)).toBe('Done.');
+    expect(editableBodyOf(`Done.\n\n${first}<br><sub>${say}</sub>`)).toBe('Done.');
+    expect(editableBodyOf(`Done.\n\n<sub>${say}</sub>`)).toBe('Done.');
+    expect(editableBodyOf(`Done.\n\n${say}`)).toBe('Done.');
+    // As a pull request carries it: both lines in one <sub>, on one line.
+    const made =
+      'Made with [GitRanks Contribute](https://gitranks.com/contribute/pr/6650a1b2c3d4e5f6a7b8c9d0) and Codex (GPT) · Reviewed and submitted by @octocat';
+    expect(editableBodyOf(`Done.\n\n<sub>${made}<br>${say}</sub>`)).toBe('Done.');
+  });
+
+  it('takes out the footer in its older wording: both lines in one <sub>, on one line', () => {
     const say =
       'Something off? [Tell us or opt out in one step](https://gitranks.com/contribute/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0) — maintainers are always in control';
     expect(

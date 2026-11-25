@@ -10,7 +10,12 @@ import {
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { loadContributeSetupState, viewerLogin } from '@/lib/workspace/contribute.data';
 import { ContributeOAuthRequestDocument, ContributeSignsDocument } from '@/lib/workspace/contribute.documents';
-import { authorizeNeedsSetupOf, REVIEW_SIGN_IN_SHOWN, requestIdOf } from '@/lib/workspace/oauth-consent';
+import {
+  authorizeNeedsSetupOf,
+  authorizeSignsOf,
+  REVIEW_SIGN_IN_SHOWN,
+  requestIdOf,
+} from '@/lib/workspace/oauth-consent';
 
 export const metadata: Metadata = {
   title: 'Connect your agent',
@@ -60,7 +65,7 @@ async function authorizeStateOf(value: string | string[] | undefined, review: bo
 /** The viewer's two signs; null when they cannot be read. */
 const readSigns = (githubLogin: string) =>
   graphqlDirect(ContributeSignsDocument, undefined, { source: 'ssr', githubLogin }).then(
-    ({ contribute }) => contribute?.contributor ?? null,
+    ({ contribute }) => authorizeSignsOf(contribute),
     () => null,
   );
 

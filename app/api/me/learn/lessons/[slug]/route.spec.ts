@@ -25,12 +25,19 @@ const { GET } = (await import('./route')) as unknown as {
 };
 const { LearnLessonMineDocument } = await import('@/lib/learn/lesson-page.documents');
 const { LearnSetupMainLanguageDocument } = await import('@/lib/learn/review.documents');
+const { ContributeSignsDocument } = await import('@/lib/workspace/contribute.documents');
 
-/** The API's answers, by document: the lesson's side, and the setup's main language. */
-const answers = (mine: unknown, setup: unknown) =>
+/** The API's answers, by document: the lesson's side, the setup's main language, and the two signs. */
+const answers = (mine: unknown, setup: unknown, signs: unknown = null) =>
   graphqlDirect.mockImplementation(async (document: unknown) => {
     const answer =
-      document === LearnLessonMineDocument ? mine : document === LearnSetupMainLanguageDocument ? setup : null;
+      document === LearnLessonMineDocument
+        ? mine
+        : document === LearnSetupMainLanguageDocument
+          ? setup
+          : document === ContributeSignsDocument
+            ? signs
+            : null;
     if (answer instanceof Error) throw answer;
     return answer;
   });
@@ -60,7 +67,7 @@ describe("a lesson's personal side", () => {
 
   it('answers nothing signed out, without asking the API, and is never kept', async () => {
     const res = await get('sets');
-    expect(await res.json()).toEqual({ mine: null, mainLanguage: null });
+    expect(await res.json()).toEqual({ mine: null, mainLanguage: null, learnOnboarded: null });
     expect(res.headers.get('cache-control')).toBe('private, no-store');
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
@@ -69,7 +76,7 @@ describe("a lesson's personal side", () => {
     current.session = { user: { githubLogin: 'octocat' }, expires: '2099-01-01T00:00:00.000Z' } as Session;
     answers({ learnLessonMine: read }, { learnSetupOfMine: { mainLanguage: 'javascript' } });
     const res = await getWithMain('sets');
-    expect(await res.json()).toEqual({ mine: read, mainLanguage: 'javascript' });
+    expect(await res.json()).toEqual({ mine: read, mainLanguage: 'javascript', learnOnboarded: null });
     expect(res.headers.get('cache-control')).toBe('private, no-store');
     expect(graphqlDirect).toHaveBeenCalledWith(
       LearnLessonMineDocument,
@@ -86,18 +93,22 @@ describe("a lesson's personal side", () => {
   it('answers the side without a main language when the setup has none or its read fails', async () => {
     current.session = { user: { githubLogin: 'octocat' }, expires: '2099-01-01T00:00:00.000Z' } as Session;
     answers({ learnLessonMine: read }, { learnSetupOfMine: null });
-    expect(await (await getWithMain('sets')).json()).toEqual({ mine: read, mainLanguage: null });
+    expect(await (await getWithMain('sets')).json()).toEqual({ mine: read, mainLanguage: null, learnOnboarded: null });
     answers({ learnLessonMine: read }, new Error('down'));
-    expect(await (await getWithMain('sets')).json()).toEqual({ mine: read, mainLanguage: null });
+    expect(await (await getWithMain('sets')).json()).toEqual({ mine: read, mainLanguage: null, learnOnboarded: null });
   });
 
   it('reads the main language only when the page asks for it, and only when the side came', async () => {
     current.session = { user: { githubLogin: 'octocat' }, expires: '2099-01-01T00:00:00.000Z' } as Session;
     answers({ learnLessonMine: read }, { learnSetupOfMine: { mainLanguage: 'go' } });
-    expect(await (await get('sets')).json()).toEqual({ mine: read, mainLanguage: null });
+    expect(await (await get('sets')).json()).toEqual({ mine: read, mainLanguage: null, learnOnboarded: null });
     for (const mine of [{ learnLessonMine: null }, new Error('down')]) {
       answers(mine, { learnSetupOfMine: { mainLanguage: 'go' } });
-      expect(await (await getWithMain('sets')).json()).toEqual({ mine: null, mainLanguage: null });
+      expect(await (await getWithMain('sets')).json()).toEqual({
+        mine: null,
+        mainLanguage: null,
+        learnOnboarded: null,
+      });
     }
     expect(graphqlDirect).not.toHaveBeenCalledWith(
       LearnSetupMainLanguageDocument,
@@ -109,13 +120,32 @@ describe("a lesson's personal side", () => {
   it('answers nothing when Learn is not open to them, on a failure, and for a slug of no shape', async () => {
     current.session = { user: { githubLogin: 'octocat' }, expires: '2099-01-01T00:00:00.000Z' } as Session;
     answers({ learnLessonMine: null }, { learnSetupOfMine: null });
-    expect(await (await get('sets')).json()).toEqual({ mine: null, mainLanguage: null });
+    expect(await (await get('sets')).json()).toEqual({ mine: null, mainLanguage: null, learnOnboarded: null });
     answers(new Error('down'), new Error('down'));
-    expect(await (await get('sets')).json()).toEqual({ mine: null, mainLanguage: null });
+    expect(await (await get('sets')).json()).toEqual({ mine: null, mainLanguage: null, learnOnboarded: null });
     graphqlDirect.mockClear();
     answers({ learnLessonMine: null }, { learnSetupOfMine: null });
-    expect(await (await get('_gone')).json()).toEqual({ mine: null, mainLanguage: null });
+    expect(await (await get('_gone')).json()).toEqual({ mine: null, mainLanguage: null, learnOnboarded: null });
     expect(graphqlDirect).not.toHaveBeenCalledWith(LearnLessonMineDocument, expect.anything(), expect.anything());
+  });
+
+  it('answers the Learn sign beside the side, and not known when it cannot be read', async () => {
+    current.session = { user: { githubLogin: 'octocat' }, expires: '2099-01-01T00:00:00.000Z' } as Session;
+    const signs = (learnOnboardedAt: string | null) => ({
+      contribute: { contributor: { contributeOnboardedAt: null, learnOnboardedAt } },
+    });
+    answers({ learnLessonMine: read }, null, signs('2026-11-25T10:00:00.000Z'));
+    expect(await (await get('sets')).json()).toMatchObject({ mine: read, learnOnboarded: true });
+    expect(graphqlDirect).toHaveBeenCalledWith(ContributeSignsDocument, undefined, {
+      source: 'ssr',
+      githubLogin: 'octocat',
+    });
+    answers({ learnLessonMine: read }, null, signs(null));
+    expect(await (await get('sets')).json()).toMatchObject({ mine: read, learnOnboarded: false });
+    answers({ learnLessonMine: read }, null, new Error('down'));
+    expect(await (await get('sets')).json()).toMatchObject({ mine: read, learnOnboarded: null });
+    answers({ learnLessonMine: read }, null, { contribute: null });
+    expect(await (await get('sets')).json()).toMatchObject({ mine: read, learnOnboarded: null });
   });
 
   it('treats a session the server could not read as signed out', async () => {
@@ -124,7 +154,7 @@ describe("a lesson's personal side", () => {
       expires: '2099-01-01T00:00:00.000Z',
       error: 'RefreshFailed',
     } as unknown as Session;
-    expect(await (await get('sets')).json()).toEqual({ mine: null, mainLanguage: null });
+    expect(await (await get('sets')).json()).toEqual({ mine: null, mainLanguage: null, learnOnboarded: null });
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });

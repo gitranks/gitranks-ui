@@ -190,17 +190,23 @@ export const isLastOfGroup = (place: Pick<LessonPlace, 'index' | 'count'>) => pl
 /** The first lesson of its group: its Previous goes to another group. */
 export const isFirstOfGroup = (place: Pick<LessonPlace, 'index'>) => place.index <= 0;
 
-/** The main button once the answer is right: a visitor signs in; a member goes on, or finishes the group. */
+/**
+ * The main button once the answer is right: a visitor signs in to keep their answer; a signed-in person without the
+ * Learn sign (`keep`) goes to Learn's onboarding; a member goes on, or finishes the group.
+ */
 export function mainLabelOf({
   member,
+  keep = false,
   last,
   next,
 }: {
   member: boolean;
+  keep?: boolean;
   last: boolean;
   next: LearnLessonLink | null;
 }): string {
-  if (!member) return 'Sign in with GitHub to continue';
+  if (!member) return 'Sign in to keep your progress';
+  if (keep) return 'Keep your progress';
   if (last || !next) return 'Finish this group';
   return `Next: ${next.title}`;
 }

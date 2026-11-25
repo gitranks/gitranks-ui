@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
+import type { Route } from 'next';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { hint, push, signIn, saveLearnSetupAction, startLearnSetupGuessAction } = vi.hoisted(() => ({
@@ -17,7 +19,8 @@ vi.mock('@/lib/learn/setup.actions', () => ({ saveLearnSetupAction, startLearnSe
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 
 const { SetupLive, SETUP_POLLS } = await import('./setup-live');
-const { setupGuessed, setupNone, setupNothing, setupSaved, setupStarts, setupWorking } = await import(
+type SetupMode = import('./setup-live').SetupMode;
+const { setupGuessed, setupNone, setupNothing, setupSaved, setupWorking } = await import(
   '@/lib/learn/__fixtures__/setup'
 );
 const { EXAMPLE_LANGUAGE_KEY } = await import('@/lib/learn/use-example-language');
@@ -62,9 +65,9 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const draw = () =>
+const draw = ({ mode = 'editor' as SetupMode, back = null as string | null, sign = true as boolean | null } = {}) =>
   act(async () => {
-    root.render(<SetupLive starts={setupStarts} />);
+    root.render(<SetupLive mode={mode} back={back as Route | null} sign={sign} />);
   });
 const $ = (selector: string) => host.querySelector<HTMLElement>(selector);
 const state = () => $('[data-learn-setup]')?.dataset.learnSetup ?? null;
@@ -90,7 +93,7 @@ const enter = () =>
     document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   });
 
-describe('Set up Learn in the browser', () => {
+describe('the editor at /learn/setup, for a person with the Learn sign', () => {
   it('asks a visitor to sign in and reads nothing, the title taking the focus', async () => {
     hint.present = false;
     await draw();
@@ -157,7 +160,7 @@ describe('Set up Learn in the browser', () => {
     expect(title()).toBe('Sign in again to go on');
   });
 
-  it('shows our guess, and the save sends an experienced developer to the check', async () => {
+  it('shows our guess, and saves it in place, sending no sign', async () => {
     answers({ setup: setupGuessed });
     saveLearnSetupAction.mockResolvedValue({ ok: true, data: { ...setupGuessed, state: 'SAVED', guessed: [] } });
     await draw();
@@ -167,7 +170,7 @@ describe('Set up Learn in the browser', () => {
     expect(pills()).toEqual(['Our guess', 'Our guess', 'Our guess']);
     // The main language is not offered among the others.
     expect(input('otherLanguages', 'go')).toBeNull();
-    expect(saveButton().textContent).toBe('Save and take the 2-minute check');
+    expect(saveButton().textContent).toBe('Save');
     // It points to Learn's group in Settings, opened with Learn's bar.
     expect(host.textContent).toContain('You can change this later in Settings, under Learn preferences.');
     expect(host.querySelector('[data-setup-later] a')?.getAttribute('href')).toBe(
@@ -175,22 +178,24 @@ describe('Set up Learn in the browser', () => {
     );
     expect(startLearnSetupGuessAction).not.toHaveBeenCalled();
     await click(saveButton());
-    expect(saveLearnSetupAction).toHaveBeenCalledWith({ mainLanguage: 'go', otherLanguages: ['python'], level: 3 });
-    expect(push).toHaveBeenCalledWith('/learn/check/go');
-    // Busy until the next page is up.
-    expect(saveButton().disabled).toBe(true);
+    expect(saveLearnSetupAction).toHaveBeenCalledWith(
+      { mainLanguage: 'go', otherLanguages: ['python'], level: 3 },
+      { onboarding: false },
+    );
+    expect(push).not.toHaveBeenCalled();
+    expect(notice()).toBe('Saved.');
+    expect(state()).toBe('saved');
   });
 
-  it('names where the save goes as the person changes the level, in place', async () => {
-    answers({ setup: setupGuessed });
-    await draw();
-    await click(input('level', 1));
-    expect(saveButton().textContent).toBe('Save and start the first lesson');
-    expect(pills()).toEqual(['Our guess', 'Our guess', 'You picked it']);
-    await click(input('mainLanguage', 'ruby'));
-    expect(saveButton().textContent).toBe('Save and start the first lesson');
-    await click(input('level', 2));
-    expect(saveButton().textContent).toBe('Save and open Algorithms and data structures');
+  it('goes to the way back after the save, when the sign could not be read and a page sent the person here', async () => {
+    answers({ setup: setupSaved });
+    saveLearnSetupAction.mockResolvedValue({ ok: true, data: setupSaved });
+    await draw({ back: '/learn/lessons/hash-maps' });
+    await click(saveButton());
+    expect(saveLearnSetupAction).toHaveBeenCalledWith(expect.anything(), { onboarding: false });
+    expect(push).toHaveBeenCalledWith('/learn/lessons/hash-maps');
+    // Busy until the next page is up.
+    expect(saveButton().disabled).toBe(true);
   });
 
   it('starts our guess on a first visit, keeps what the person chose meanwhile, and fills only the rest', async () => {
@@ -310,11 +315,10 @@ describe('Set up Learn in the browser', () => {
       data: { ...setupSaved, otherLanguages: ['python', 'go', 'ruby'] },
     });
     await enter();
-    expect(saveLearnSetupAction).toHaveBeenCalledWith({
-      mainLanguage: 'rust',
-      otherLanguages: ['python', 'go', 'ruby'],
-      level: 2,
-    });
+    expect(saveLearnSetupAction).toHaveBeenCalledWith(
+      { mainLanguage: 'rust', otherLanguages: ['python', 'go', 'ruby'], level: 2 },
+      { onboarding: false },
+    );
     expect(push).not.toHaveBeenCalled();
     expect(notice()).toBe('Saved.');
     expect(checked('otherLanguages')).toEqual(['python', 'go', 'ruby']);
@@ -329,5 +333,197 @@ describe('Set up Learn in the browser', () => {
     expect(group.getAttribute('aria-describedby')).toBe('learn-setup-mainLanguage-pill learn-setup-mainLanguage-hint');
     expect($('[data-setup-intro]')?.getAttribute('aria-live')).toBe('polite');
     expect($('#learn-setup-notice')?.getAttribute('role')).toBe('status');
+  });
+});
+
+describe("Learn's onboarding at /learn/setup, for a person without the Learn sign", () => {
+  const LESSON = '/learn/lessons/hash-maps';
+  const onboard = (back: string | null = null, sign: boolean | null = false) =>
+    draw({ mode: 'onboarding', back, sign });
+  const steps = () =>
+    [...host.querySelectorAll('[data-flow-steps] li')].map((step) => step.textContent?.replace(/^\d/, ''));
+  const line = () => $('[data-onboarding-line]')?.textContent ?? null;
+  const saveAndStart = () => $('[data-onboarding-save]') as HTMLButtonElement;
+  const ticked = () => checked('languages');
+  const keptFor = (slug: string) =>
+    window.localStorage.setItem(
+      'gr_learn_kept_answer',
+      JSON.stringify({ slug, question: 'q1', picked: 1, tries: 1, language: null, at: Date.now() }),
+    );
+
+  it('shows how Learn works first, under its own two steps, then the languages on Continue or Enter', async () => {
+    answers({ setup: setupGuessed });
+    await onboard();
+    expect(steps()).toEqual(['How Learn works', 'Your languages']);
+    expect(title()).toBe('How Learn works');
+    expect(host.querySelectorAll('[data-onboarding-step="how"] ~ ol li')).toHaveLength(3);
+    expect(host.textContent).toContain('Short lessons, one idea each.');
+    expect(line()).toBeNull();
+    await click(buttonOf('Continue')!);
+    expect(title()).toBe('Your languages');
+    expect(document.activeElement).toBe($('h1'));
+    expect(host.textContent).toContain(
+      'Pick the languages you want to learn. We start you at the first lesson of each.',
+    );
+    act(() => root.unmount());
+    root = createRoot(host);
+    await onboard();
+    await enter();
+    expect(title()).toBe('Your languages');
+  });
+
+  it('says where the person goes after: back to the lesson, with their answer kept, or to the issue', async () => {
+    answers({ setup: setupGuessed });
+    await onboard('/learn/lessons/hash-maps');
+    expect(line()).toBe('After this you go back to the lesson.');
+    act(() => root.unmount());
+    root = createRoot(host);
+    keptFor('hash-maps');
+    await onboard('/learn/lessons/hash-maps');
+    expect(line()).toBe('Your answer is kept. After this you go back to the lesson.');
+    act(() => root.unmount());
+    root = createRoot(host);
+    keptFor('another-lesson');
+    await onboard('/learn/lessons/hash-maps');
+    expect(line()).toBe('After this you go back to the lesson.');
+    act(() => root.unmount());
+    root = createRoot(host);
+    await onboard('/my/issues/q7k2m9xa?from=learn&look=1');
+    expect(line()).toBe('After this you go back to the issue.');
+    // The line is the first step's only.
+    await click(buttonOf('Continue')!);
+    expect(line()).toBeNull();
+  });
+
+  it('ticks our guess, and "Save and start" saves it with the sign, then goes back, else to Learn home', async () => {
+    answers({ setup: setupGuessed });
+    saveLearnSetupAction.mockResolvedValue({ ok: true, data: { ...setupGuessed, state: 'SAVED', guessed: [] } });
+    await onboard('/learn/lessons/hash-maps');
+    await click(buttonOf('Continue')!);
+    expect(ticked()).toEqual(['python', 'go']);
+    expect(host.querySelector('[data-setup-later] a')?.getAttribute('href')).toBe(
+      '/my/settings?from=learn#learn-preferences',
+    );
+    await click(saveAndStart());
+    expect(saveLearnSetupAction).toHaveBeenCalledWith(
+      { mainLanguage: 'go', otherLanguages: ['python'], level: 3 },
+      { onboarding: true },
+    );
+    expect(push).toHaveBeenCalledWith('/learn/lessons/hash-maps');
+    expect(saveAndStart().disabled).toBe(true);
+
+    act(() => root.unmount());
+    root = createRoot(host);
+    push.mockReset();
+    await onboard();
+    await enter();
+    await enter();
+    expect(push).toHaveBeenCalledWith('/learn');
+  });
+
+  it('keeps the main language while it is ticked, else takes the first ticked in Learn’s order', async () => {
+    answers({ setup: setupGuessed });
+    saveLearnSetupAction.mockResolvedValue({ ok: true, data: setupSaved });
+    await onboard();
+    await click(buttonOf('Continue')!);
+    await click(input('languages', 'ruby'));
+    await click(input('languages', 'go'));
+    expect(ticked()).toEqual(['python', 'ruby']);
+    await click(saveAndStart());
+    expect(saveLearnSetupAction).toHaveBeenCalledWith(
+      { mainLanguage: 'python', otherLanguages: ['ruby'], level: 3 },
+      { onboarding: true },
+    );
+  });
+
+  it('sends some experience when no level is saved or guessed', async () => {
+    answers({ setup: setupNone });
+    startLearnSetupGuessAction.mockResolvedValue({ ok: false, error: 'FAILED' });
+    saveLearnSetupAction.mockResolvedValue({ ok: true, data: setupSaved });
+    await onboard();
+    await click(buttonOf('Continue')!);
+    expect(ticked()).toEqual([]);
+    await click(input('languages', 'rust'));
+    await click(saveAndStart());
+    expect(saveLearnSetupAction).toHaveBeenCalledWith(
+      { mainLanguage: 'rust', otherLanguages: [], level: 2 },
+      { onboarding: true },
+    );
+  });
+
+  it('keeps "Save and start" off with nothing ticked, and while the setup is on its way', async () => {
+    fetchMock.mockImplementation(() => new Promise<Response>(() => {}));
+    await onboard();
+    await click(buttonOf('Continue')!);
+    expect(saveAndStart().disabled).toBe(true);
+    act(() => root.unmount());
+    root = createRoot(host);
+    answers({ setup: setupGuessed });
+    await onboard();
+    await click(buttonOf('Continue')!);
+    await click(input('languages', 'go'));
+    await click(input('languages', 'python'));
+    expect(ticked()).toEqual([]);
+    expect(saveAndStart().disabled).toBe(true);
+    await enter();
+    await click(saveAndStart());
+    expect(saveLearnSetupAction).not.toHaveBeenCalled();
+  });
+
+  it('goes on with nothing ticked when the setup cannot be read and the sign is known unset, keeping the ticks when a save fails', async () => {
+    answers({ status: 500 });
+    saveLearnSetupAction.mockResolvedValue({ ok: false, error: 'FAILED' });
+    await onboard();
+    expect(title()).toBe('How Learn works');
+    await click(buttonOf('Continue')!);
+    await click(input('languages', 'java'));
+    await click(saveAndStart());
+    expect(notice()).toBe('We could not save just now. Your choices are still here: try again in a minute.');
+    expect(ticked()).toEqual(['java']);
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('saves nothing when the setup cannot be read here and the sign is not known: it says so, with Try again', async () => {
+    answers({ status: 500 }, { setup: setupSaved });
+    await onboard(null, null);
+    expect(state()).toBe('failed');
+    expect(title()).toBe('Your setup did not load');
+    expect($('[data-onboarding-save]')).toBeNull();
+    await click(buttonOf('Try again')!);
+    expect(title()).toBe('How Learn works');
+    expect(saveLearnSetupAction).not.toHaveBeenCalled();
+  });
+
+  it('draws the sign-in card from the first paint for a visitor the server found, reading nothing', async () => {
+    const first = renderToStaticMarkup(<SetupLive mode="visitor" back={LESSON as Route} />);
+    expect(first).toContain('Setting up Learn needs an account');
+    expect(first).not.toContain('How Learn works');
+    // A browser still holding a session hint changes nothing.
+    await draw({ mode: 'visitor', back: LESSON, sign: null });
+    expect(state()).toBe('visitor');
+    expect(fetchMock).not.toHaveBeenCalled();
+    await click(buttonOf('Sign in with GitHub')!);
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: `/learn/setup?back=${encodeURIComponent(LESSON)}`,
+    });
+  });
+
+  it('holds two lines for the line over the first step on a phone when it may grow', async () => {
+    await onboard(LESSON);
+    expect($('[data-onboarding-line]')!.className).toContain('max-sm:min-h-[2lh]');
+    act(() => root.unmount());
+    root = createRoot(host);
+    await onboard('/my/issues/q7k2m9xa?from=learn');
+    expect($('[data-onboarding-line]')!.className).not.toContain('min-h');
+  });
+
+  it('asks a visitor to sign in first, back to the same address', async () => {
+    hint.present = false;
+    await onboard('/learn/lessons/hash-maps');
+    expect(state()).toBe('visitor');
+    await click(buttonOf('Sign in with GitHub')!);
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: `/learn/setup?back=${encodeURIComponent('/learn/lessons/hash-maps')}`,
+    });
   });
 });

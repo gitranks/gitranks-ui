@@ -134,7 +134,7 @@ export function HomeBoards() {
   return (
     <Board
       title="Learn home and How Learn works"
-      intro="Learn home at /learn for a learner: the next lesson and the review, the third column empty until real issues come, the courses started and the others. How Learn works at /learn/about is the landing for a learner, both buttons Back to Learn home."
+      intro="Learn home at /learn for a learner: the next lesson and the review, the third column empty until real issues come, the courses started and the others. How Learn works at /learn/about is the landing for a learner, both buttons Go to Learn home."
     >
       <Frame title="How Learn works · a learner, the lesson at the top learned before" height={880}>
         <Landing bar={learner(6)} viewer="learner" tryDrawn={{ answer: right, learnedOn: '14 Oct' }} />

@@ -110,7 +110,9 @@ describe('the review, for a visitor', () => {
     expect(title()).toBe('The review needs an account');
     expect(document.activeElement).toBe($('h1'));
     await click(buttonOf('Sign in with GitHub')!);
-    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/review?course=algorithms' });
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: `/learn/setup?back=${encodeURIComponent('/learn/review?course=algorithms')}`,
+    });
   });
 });
 
@@ -351,7 +353,9 @@ describe('the review, for a person with a session', () => {
     expect(host.textContent).toContain('The answers you gave are saved.');
     expect(document.activeElement).toBe($('h1:not(.sr-only)'));
     await click(buttonOf('Sign in with GitHub')!);
-    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/review?course=algorithms' });
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: `/learn/setup?back=${encodeURIComponent('/learn/review?course=algorithms')}`,
+    });
   });
 
   it('asks to sign in again when the set is read after the session ended, not to try again', async () => {

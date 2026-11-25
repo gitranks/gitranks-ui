@@ -85,8 +85,14 @@ describe('the main button once the answer is right', () => {
   const next = { slug: 'count', title: 'Count things with a hash map' };
 
   it('asks a visitor to sign in, and takes a member on', () => {
-    expect(mainLabelOf({ member: false, last: false, next })).toBe('Sign in with GitHub to continue');
+    expect(mainLabelOf({ member: false, last: false, next })).toBe('Sign in to keep your progress');
     expect(mainLabelOf({ member: true, last: false, next })).toBe('Next: Count things with a hash map');
+  });
+
+  it('sends a signed-in person without the Learn sign to keep their progress, wherever the lesson is', () => {
+    expect(mainLabelOf({ member: true, keep: true, last: false, next })).toBe('Keep your progress');
+    expect(mainLabelOf({ member: true, keep: true, last: true, next: null })).toBe('Keep your progress');
+    expect(mainLabelOf({ member: false, keep: true, last: false, next })).toBe('Sign in to keep your progress');
   });
 
   it('finishes the group on its last lesson, or where there is no next', () => {

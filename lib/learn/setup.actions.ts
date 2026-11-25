@@ -25,19 +25,24 @@ export async function startLearnSetupGuessAction(): Promise<LearnActionResult<Le
 
 /**
  * Saves the three fields: a main language of Learn's seven, at most six other languages of the seven (not the main
- * one, each once), and a level of the three. Anything else is refused before the API is asked.
+ * one, each once), and a level of the three. Anything else is refused before the API is asked. From Learn's onboarding
+ * (`onboarding: true`) the save also gives the person the Learn sign; the editor's save sends no `onboarding`.
  */
-export async function saveLearnSetupAction(input: {
-  mainLanguage: string;
-  otherLanguages: string[];
-  level: number;
-}): Promise<LearnActionResult<LearnSetupRead | null>> {
+export async function saveLearnSetupAction(
+  input: {
+    mainLanguage: string;
+    otherLanguages: string[];
+    level: number;
+  },
+  options?: { onboarding?: boolean },
+): Promise<LearnActionResult<LearnSetupRead | null>> {
   const setup = setupInputOf(input);
   if (!setup) return invalidAnswer();
   const githubLogin = await viewerLogin();
   if (!githubLogin) return { ok: false, error: 'SIGNED_OUT' };
   try {
-    const data = await graphqlDirect(SaveLearnSetupDocument, { setup }, { source: 'client', githubLogin });
+    const variables = options?.onboarding === true ? { setup, onboarding: true } : { setup };
+    const data = await graphqlDirect(SaveLearnSetupDocument, variables, { source: 'client', githubLogin });
     return { ok: true, data: setupReadOf(data.saveLearnSetup) };
   } catch (error) {
     return { ok: false, error: learnErrorOf(error) };

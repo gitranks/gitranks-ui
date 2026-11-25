@@ -1,9 +1,4 @@
-import type { Route } from 'next';
-
-import type { LearnCourse, LearnCourseCard } from './course';
 import { languageNameOf } from './learn-question';
-import type { LearnLessonLink } from './lesson-page';
-import { checkPath, coursePath, LEARN_COURSES_PATH, learnLessonPath } from './paths';
 
 /*
  * Set up Learn (page 5): three fields, main language, other languages and level. We guess them from the person's
@@ -310,63 +305,3 @@ export const setupInputOfForm = ({ values }: SetupForm): SetupInput | null =>
   values.mainLanguage && values.level
     ? { mainLanguage: values.mainLanguage, otherLanguages: values.otherLanguages, level: values.level }
     : null;
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* Where the save sends the person                                                                                    */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/** The course a main language starts in, its first lesson that is not paused, and whether it offers the check. */
-export type SetupStart = { course: LearnLessonLink; firstLesson: LearnLessonLink | null; checkOffered: boolean };
-
-/** The start of each language with a course of its own, and the course everyone else starts in. */
-export type SetupStarts = { byLanguage: Partial<Record<SetupLanguage, SetupStart>>; fallback: SetupStart | null };
-
-export const NO_SETUP_STARTS: SetupStarts = { byLanguage: {}, fallback: null };
-
-/** A course's start: its first lesson that is not paused, and whether it offers the check. */
-export function setupStartOf(course: Pick<LearnCourse, 'slug' | 'name' | 'groups' | 'checkOffered'>): SetupStart {
-  const first = course.groups.flatMap((group) => group.lessons).find((lesson) => !lesson.paused);
-  return {
-    course: { slug: course.slug, title: course.name },
-    firstLesson: first ? { slug: first.slug, title: first.title } : null,
-    checkOffered: course.checkOffered,
-  };
-}
-
-/** The courses the starts are read from: each language's own course, and the first topic course for everyone else. */
-export function setupCoursesOf(courses: readonly LearnCourseCard[]): {
-  byLanguage: Partial<Record<SetupLanguage, string>>;
-  fallback: string | null;
-} {
-  const byLanguage: Partial<Record<SetupLanguage, string>> = {};
-  for (const language of SETUP_LANGUAGES) {
-    const own = courses.find((course) => course.kind === 'LANGUAGE' && course.languages.includes(language));
-    if (own) byLanguage[language] = own.slug;
-  }
-  return { byLanguage, fallback: courses.find((course) => course.kind === 'TOPIC')?.slug ?? null };
-}
-
-/** Where a save sends the person, and the button's words. */
-export type SetupDestination =
-  | { kind: 'check' | 'lesson' | 'course' | 'courses'; href: Route; label: string }
-  | { kind: 'stay'; href: null; label: string };
-
-/**
- * Where the save sends the person, once the level says so: the course of their main language (else the first topic
- * course), at its check for an experienced developer when it offers one, at its first lesson for someone new to
- * programming, else at the course's page. With no course to start, all courses. A setup saved before is changed in
- * place: the page stays.
- */
-export function setupDestinationOf(form: SetupForm, starts: SetupStarts): SetupDestination {
-  if (form.source === 'saved') return { kind: 'stay', href: null, label: 'Save' };
-  const { mainLanguage, level } = form.values;
-  const start = (mainLanguage && starts.byLanguage[mainLanguage]) || starts.fallback;
-  if (!start) return { kind: 'courses', href: LEARN_COURSES_PATH, label: 'Save and see all courses' };
-  if (level === 3 && start.checkOffered) {
-    return { kind: 'check', href: checkPath(start.course.slug), label: 'Save and take the 2-minute check' };
-  }
-  if (level === 1 && start.firstLesson) {
-    return { kind: 'lesson', href: learnLessonPath(start.firstLesson.slug), label: 'Save and start the first lesson' };
-  }
-  return { kind: 'course', href: coursePath(start.course.slug), label: `Save and open ${start.course.title}` };
-}

@@ -59,6 +59,7 @@ import {
 import { MainLanguageContext, useExampleLanguage } from '@/lib/learn/use-example-language';
 import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
+import { learnSetupHrefOf } from '@/lib/workspace/paths';
 import { runWordsOf } from '@/lib/workspace/player';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
@@ -258,7 +259,7 @@ function CheckStill({
           className="min-h-11 font-semibold"
           onClick={() => {
             const back = mode === 'known' ? learnKnownPath(course.slug) : checkPath(course.slug);
-            signIn(IDENTITY_PROVIDER, { redirectTo: back }).catch(() => {});
+            signIn(IDENTITY_PROVIDER, { redirectTo: learnSetupHrefOf(back) }).catch(() => {});
           }}
         >
           Sign in with GitHub

@@ -51,9 +51,12 @@ export type LessonViewer = { mine: LearnLessonMine; depths: Readonly<Record<stri
 export type LessonCalls = {
   /** Each pick the page graded: the page saves a right one for a member. */
   onGraded?: (graded: { picked: LearnPicked; right: boolean; tries: number; language: string | null }) => void;
-  /** The main button after a right answer, for a member or a signed-in person: the next lesson, or the end of the group. */
+  /**
+   * The main button after a right answer, for a member or a signed-in person: the next lesson, or the end of the group;
+   * Learn's onboarding for one without the Learn sign.
+   */
   onNext: () => void;
-  /** The main button after a right answer, for a visitor. */
+  /** The main button after a right answer, for a visitor: the sign-in, which keeps their answer. */
   onSignIn: () => void;
   /** Saves the rating: true once it is saved. */
   onRate: (good: boolean) => Promise<boolean>;
@@ -142,6 +145,7 @@ export function LessonPlayer({
   drawn = {},
   openFact = false,
   signedIn = false,
+  keep = false,
   note,
   hints: hintsGiven,
   now,
@@ -168,6 +172,11 @@ export function LessonPlayer({
    * main button goes on, as a member's; the page saves their answer.
    */
   signedIn?: boolean;
+  /**
+   * A signed-in person without the Learn sign: after a right answer, their main button is "Keep your progress" (it
+   * calls `onNext`, which leads them to Learn's onboarding) in place of the next lesson.
+   */
+  keep?: boolean;
   /** A line under the card after a right answer, when there is no depth line to show (the page's word on the save). */
   note?: ReactNode;
   hints?: boolean;
@@ -265,12 +274,6 @@ export function LessonPlayer({
         {note}
       </div>
     );
-  } else if (right && !goesOn) {
-    below = (
-      <div className="flex min-h-8 items-center text-sm text-muted-foreground" data-visitor-line="">
-        Your answer is not saved without an account.
-      </div>
-    );
   }
 
   const crumbs: PlayerCrumb[] = [
@@ -293,7 +296,7 @@ export function LessonPlayer({
             <AnswerPart
               question={lesson.question}
               answer={answer}
-              place={lessonPlace(mainLabelOf({ member: goesOn, last, next: lesson.next }))}
+              place={lessonPlace(mainLabelOf({ member: goesOn, keep, last, next: lesson.next }))}
               hints={hints}
               highlighted={questionCodes}
               pill={opened ? 'You answered this' : undefined}

@@ -88,10 +88,21 @@ describe("the page of one issue's actions", () => {
 });
 
 describe('a visitor’s press, through the sign-in', () => {
+  /** The issue's page, through Learn's onboarding: where a sign-in from a Learn row leads. */
+  const throughLearn = (issue: string) => `/learn/setup?back=${encodeURIComponent(issue)}`;
+
   it('leaves a mark for the issue and signs in back to its page, with the press in the address', async () => {
+    await actions.signInToSeeIssue(form({ id: 'q7k2m9xa', from: 'contribute' }));
+    expect(store.get(MARK)).toBe('q7k2m9xa');
+    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/my/issues/q7k2m9xa?from=contribute&look=1' });
+  });
+
+  it("from a Learn row, signs in to Learn's onboarding, which leads back to the issue's page", async () => {
     await actions.signInToSeeIssue(form({ id: 'q7k2m9xa', from: 'learn' }));
     expect(store.get(MARK)).toBe('q7k2m9xa');
-    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/my/issues/q7k2m9xa?from=learn&look=1' });
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: throughLearn('/my/issues/q7k2m9xa?from=learn&look=1'),
+    });
   });
 
   it("carries the Learn view's filters back to the page, and nothing else", async () => {
@@ -99,7 +110,7 @@ describe('a visitor’s press, through the sign-in', () => {
       form({ id: 'q7k2m9xa', from: 'learn', view: 'lesson=a-queue&next=https://evil.example&for-you=0' }),
     );
     expect(signIn).toHaveBeenCalledWith('github-basic', {
-      redirectTo: '/my/issues/q7k2m9xa?from=learn&lesson=a-queue&for-you=0&look=1',
+      redirectTo: throughLearn('/my/issues/q7k2m9xa?from=learn&lesson=a-queue&for-you=0&look=1'),
     });
   });
 

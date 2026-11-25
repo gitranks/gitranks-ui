@@ -261,7 +261,7 @@ describe("Learn's bar", () => {
   const setupExpected = [
     { look: 'working', items: [['/learn/setup', SETUP_WORKING]], current: ['Courses'] },
     { look: 'guessed', items: [['/learn/setup', SETUP_READY]], current: ['Courses'] },
-    { look: 'current', items: [['/learn/setup', 'Set up Learn']], current: ['Set up Learn'] },
+    { look: undefined, items: [], current: [] },
     {
       look: 'guessed',
       items: [
@@ -314,8 +314,45 @@ describe("Learn's bar", () => {
     expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
   });
 
-  const barOf = (setup: string, due = 0) =>
-    Response.json({ bar: { setup, due, pullRequests: false, pullRequestsNeedYou: 0 } });
+  const barOf = (setup: string, due = 0, onboarded?: boolean | null) =>
+    Response.json({ bar: { setup, due, pullRequests: false, pullRequestsNeedYou: 0, onboarded } });
+
+  it('shows Set up Learn until the Learn sign, a saved setup without the sign included', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => barOf('SAVED', 0, false)),
+    );
+    path.current = '/learn/courses';
+    await act(async () => root.render(<LearnBarLive />));
+    expect(items()).toEqual([['/learn/setup', SETUP_OPEN]]);
+  });
+
+  it('shows no Set up Learn with the Learn sign, our guess still unsaved', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => barOf('GUESSED', 0, true)),
+    );
+    path.current = '/learn/courses';
+    await act(async () => root.render(<LearnBarLive />));
+    expect(items()).toEqual([]);
+  });
+
+  it('keeps the rule from before the sign when it cannot be read: shown until the setup is saved', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => barOf('GUESSED', 0, null)),
+    );
+    path.current = '/learn/courses';
+    await act(async () => root.render(<LearnBarLive />));
+    expect(items()).toEqual([['/learn/setup', SETUP_READY]]);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => barOf('SAVED', 0, null)),
+    );
+    path.current = '/learn/issues';
+    await act(async () => root.render(<LearnBarLive />));
+    expect(items()).toEqual([]);
+  });
 
   it('starts our guess on a first Learn page, spins while it runs, and reads again until it is in', async () => {
     vi.useFakeTimers();
@@ -368,15 +405,16 @@ describe("Learn's bar", () => {
     window.removeEventListener('gitranks:learn-setup-settled', settled);
   });
 
-  it('leaves our guess to Set up Learn on its own page, and only marks its tab there', async () => {
+  it("leaves our guess to Learn's onboarding on its own page, and draws no Set up Learn above it", async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn(async () => barOf('NONE'));
     vi.stubGlobal('fetch', fetchMock);
     path.current = '/learn/setup';
     await act(async () => root.render(<LearnBarLive />));
     expect(startLearnSetupGuessAction).not.toHaveBeenCalled();
-    expect(setupLook()).toBe('current');
-    expect(current()).toEqual(['Set up Learn']);
+    expect(setupLook()).toBeUndefined();
+    expect(current()).toEqual([]);
+    expect(tabs()).toHaveLength(5);
     await act(async () => vi.advanceTimersByTime(10_000));
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

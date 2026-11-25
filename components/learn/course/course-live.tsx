@@ -9,6 +9,7 @@ import type { CoursePerson, LearnCourse, LearnCourseCard, LearnCourseMine } from
 import { sendLearnCourseFeedbackAction } from '@/lib/learn/course.actions';
 import { courseHrefOf, learnCourseMinePath, learnCourseRealMinePath, learnCourseSidePath } from '@/lib/learn/paths';
 import { hasSessionHint } from '@/lib/session-hint';
+import { learnSetupHrefOf } from '@/lib/workspace/paths';
 
 /**
  * The signed-in person's side of a course, whether the check leads the page, and their setup's main language (asked
@@ -113,7 +114,7 @@ export function CourseLive({
       projectIssues={projectIssues}
       calls={{
         onSignIn: () => {
-          signIn(IDENTITY_PROVIDER, { redirectTo: courseHrefOf(course) }).catch(() => {});
+          signIn(IDENTITY_PROVIDER, { redirectTo: learnSetupHrefOf(courseHrefOf(course)) }).catch(() => {});
         },
         onRate: async (good) => {
           const result = await sendLearnCourseFeedbackAction({ course: slug, good });

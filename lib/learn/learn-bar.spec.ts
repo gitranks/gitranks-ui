@@ -20,6 +20,19 @@ describe("Learn's bar", () => {
     });
   });
 
+  it('asks for the onboarding until the Learn sign, whatever the setup', () => {
+    const waiting = { due: 6, pullRequests: true, pullRequestsNeedYou: 1 };
+    expect(learnBarStateOf({ ...read, onboarded: false })).toEqual({ kind: 'setup', setup: 'open', ...waiting });
+    expect(learnBarStateOf({ ...read, setup: 'GUESSED', onboarded: false })).toMatchObject({ setup: 'guessed' });
+    expect(learnBarStateOf({ ...read, setup: 'GUESSED', onboarded: true })).toEqual({ kind: 'learner', ...waiting });
+    expect(learnBarStateOf({ ...read, setup: 'NONE', onboarded: true })).toEqual({ kind: 'learner', ...waiting });
+  });
+
+  it('keeps the rule from before the sign when it cannot be read: asked until the setup is saved', () => {
+    expect(learnBarStateOf({ ...read, onboarded: null })).toMatchObject({ kind: 'learner' });
+    expect(learnBarStateOf({ ...read, setup: 'GUESSED', onboarded: null })).toMatchObject({ kind: 'setup' });
+  });
+
   it('shows the spinner while our guess runs from the page, and only before it is in', () => {
     expect(learnBarStateOf({ ...read, setup: 'NONE' }, true)).toMatchObject({ kind: 'setup', setup: 'working' });
     expect(learnBarStateOf({ ...read, setup: 'WORKING' }, true)).toMatchObject({ kind: 'setup', setup: 'working' });

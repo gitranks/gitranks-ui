@@ -15,7 +15,6 @@ import {
   SETUP_LANGUAGES,
   SETUP_LEVELS,
   SETUP_PILL_WORDS,
-  type SetupDestination,
   type SetupField,
   type SetupForm,
   type SetupPick,
@@ -103,7 +102,7 @@ function SetupFieldHead({
 }
 
 /** One choice: a real radio or checkbox, drawn as the board's outlined option, the chosen one in the brand's tint. */
-function SetupOption({
+export function SetupOption({
   type,
   name,
   checked,
@@ -163,13 +162,12 @@ const describedBy = (field: SetupField, pill: string | null) =>
   pill ? `${idsOf(field).pill} ${idsOf(field).hint}` : idsOf(field).hint;
 
 /**
- * The page with its form, in every state of page 5's board: our guess, still working, the guess arriving after the
+ * The editor: the page with its form, for a person with the Learn sign, in every state of page 5's board: our guess, still working, the guess arriving after the
  * person chose, nothing found, a setup saved before. `pending` draws the same page with nothing chosen and nothing to
  * press, while the person's setup is on its way. The fields change in place; nothing moves.
  */
 export function SetupView({
   form,
-  destination,
   hints,
   saving = false,
   notice = null,
@@ -181,7 +179,6 @@ export function SetupView({
   titleRef,
 }: {
   form: SetupForm;
-  destination: SetupDestination;
   hints: boolean;
   saving?: boolean;
   notice?: SetupNotice | null;
@@ -308,7 +305,7 @@ export function SetupView({
               aria-describedby={notice ? 'learn-setup-notice' : undefined}
               data-setup-save=""
             >
-              {destination.label}
+              Save
               {hints ? <Kbd onPrimary>⏎</Kbd> : null}
             </Button>
             {form.source === 'saved' ? null : (

@@ -20,19 +20,21 @@ import { answerLearnLessonAction } from '@/lib/learn/lesson-page.actions';
 import { shortDayWords } from '@/lib/learn/my-progress';
 import { coursePath, LEARN_HOME_PATH, LEARN_SETUP_PATH, learnLessonMinePath, learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
+import { learnSetupHrefOf } from '@/lib/workspace/paths';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /*
  * The lesson at the top of the landing (page 4): a real lesson, answered right there. A visitor's answer is graded here
- * and never saved, then they are asked to sign in; a signed-in person's right answer is saved, then they go on to set
- * up Learn, or back to Learn home for a learner. A lesson a learner learned before opens with their answer.
+ * and never kept (the landing is not a lesson, and the sign-in carries no lesson back), then "Start learning" signs
+ * them in to Learn's onboarding; a signed-in person's right answer is saved, then "Start learning" opens the
+ * onboarding, or "Go to Learn home" for a learner. A lesson a learner learned before opens with their answer.
  */
 
 /** The main button once the answer is right, by who reads the page. */
 export const TRY_DONE_LABELS: Record<LandingViewer, string> = {
-  visitor: 'Sign in with GitHub to continue',
-  member: 'Set up Learn to continue',
-  learner: 'Back to Learn home',
+  visitor: 'Start learning',
+  member: 'Start learning',
+  learner: 'Go to Learn home',
 };
 
 /** A state the catalogue draws: which lesson, the answer, and the line a save or an earlier answer leaves. */
@@ -85,7 +87,8 @@ function TryPlayer({
     },
     onDone: () => {
       if (viewer === 'visitor') {
-        signIn(IDENTITY_PROVIDER, { redirectTo: LEARN_SETUP_PATH }).catch(() => {});
+        // Through the onboarding, ending on Learn home: a person who has the Learn sign goes straight there.
+        signIn(IDENTITY_PROVIDER, { redirectTo: learnSetupHrefOf(LEARN_HOME_PATH) }).catch(() => {});
       } else router.push(viewer === 'member' ? LEARN_SETUP_PATH : LEARN_HOME_PATH);
     },
   });

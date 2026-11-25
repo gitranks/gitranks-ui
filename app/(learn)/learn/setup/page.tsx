@@ -1,21 +1,38 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
 
 import { SetupLive } from '@/components/learn/setup/setup-live';
+import { loadLearnSign } from '@/lib/learn/learn-sign.data';
+import { learnSetupPageOf } from '@/lib/learn/onboarding';
 import { LEARN_SETUP_METADATA } from '@/lib/learn/seo/setup';
-import { loadSetupStarts } from '@/lib/learn/setup.data';
+import { loadLearnSetup } from '@/lib/learn/setup.data';
+import { viewerLogin } from '@/lib/workspace/contribute.data';
+import { learnBackOf } from '@/lib/workspace/paths';
 
 /**
- * Set up Learn (page 5): only the person's own, so the page holds no personal data and is never indexed; the setup is
- * read in the browser. Where each language starts is the same for everyone, from the cached courses: the save sends
- * the person there. Drawn for each request, never kept: a page built ahead, with the courses not read then, would send
- * every save to all courses. The page asks a visitor to sign in itself and reads nothing personal on the server.
+ * Learn's setup page: the onboarding for a person without the Learn sign, the editor of their languages and level for
+ * one with it. Only the person's own, so it is never indexed or kept, and drawn for each request: the Learn sign is
+ * read here, on the server, so the page never draws one view and then another. With the sign and a way back (`back`,
+ * only an address `learnBackOf` takes), the person goes straight there. When the sign cannot be read, the saved setup
+ * decides (one that cannot be read either counts as saved), and nobody is sent back. A visitor reads nothing here and
+ * gets the sign-in card from the first paint.
  */
 export const instant = false;
 
 export const metadata: Metadata = LEARN_SETUP_METADATA;
 
-export default async function SetupPage() {
+export default async function SetupPage({ searchParams }: PageProps<'/learn/setup'>) {
   await connection();
-  return <SetupLive starts={await loadSetupStarts()} />;
+  const { back: given } = await searchParams;
+  const back = learnBackOf(Array.isArray(given) ? given[0] : given);
+  const login = await viewerLogin();
+  const sign = login ? await loadLearnSign(login) : null;
+  // The setup is read only when the sign cannot be: as before the sign, a saved setup gets the editor, and so does one
+  // that cannot be read, so the onboarding's defaults never go over a setup that may be saved.
+  const setup = login && sign === null ? await loadLearnSetup(login) : undefined;
+  const saved = setup === null || setup?.state === 'SAVED';
+  const page = learnSetupPageOf({ signedIn: login !== null, sign, back, saved });
+  if (page.kind === 'redirect') redirect(page.to);
+  return <SetupLive mode={page.kind} back={page.back} sign={sign} />;
 }

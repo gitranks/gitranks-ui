@@ -22,7 +22,13 @@ export const StartLearnSetupGuessDocument = doc<{ startLearnSetupGuess: LearnSet
   'mutation StartLearnSetupGuess { startLearnSetupGuess }',
 );
 
-/** Saves the three fields: the person's own from now on. */
-export const SaveLearnSetupDocument = doc<{ saveLearnSetup: LearnSetupRead | null }, { setup: SetupInput }>(
-  `mutation SaveLearnSetup($setup: LearnSetupInput!) { saveLearnSetup(setup: $setup) { ${SETUP} } }`,
+/**
+ * Saves the three fields: the person's own from now on. `onboarding`, sent only from Learn's onboarding, also gives the
+ * person the Learn sign.
+ */
+export const SaveLearnSetupDocument = doc<
+  { saveLearnSetup: LearnSetupRead | null },
+  { setup: SetupInput; onboarding?: boolean }
+>(
+  `mutation SaveLearnSetup($setup: LearnSetupInput!, $onboarding: Boolean) { saveLearnSetup(setup: $setup, onboarding: $onboarding) { ${SETUP} } }`,
 );

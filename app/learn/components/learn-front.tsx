@@ -23,8 +23,8 @@ import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { loadMaskedListReads } from '@/lib/workspace/masked-issue.data';
 
 /*
- * `/learn` and `/learn/about`, read per request. A visitor reads the landing; a signed-in person Learn home, or the
- * landing for someone who has not set up Learn and has learned no lesson.
+ * `/learn` and `/learn/about`, read per request. A visitor reads the landing; a signed-in person Learn home with the
+ * Learn sign, the landing without it.
  */
 
 /**
@@ -44,7 +44,8 @@ async function LoadedLanding({ viewer }: { viewer: LandingViewer }) {
 
 /**
  * What a signed-in person has: their home, their setup, the zone their days are counted in (null: Learn's default,
- * also when it cannot be read), and which page `/learn` is for them (the workspace's gate tells who uses Learn today).
+ * also when it cannot be read), and which page `/learn` is for them. The Learn sign comes with the workspace's gate: a
+ * gate that is not open, or a read that failed, leaves it not known, and `learnPageOf` keeps the rule from before it.
  */
 async function personOf(login: string): Promise<{
   home: LearnHomeRead | null;
@@ -58,11 +59,11 @@ async function personOf(login: string): Promise<{
     loadWorkspaceGate().catch(() => null),
     loadLearnTimeZone(login),
   ]);
-  const entered = gate?.kind === 'open' && gate.entered;
-  return { home, setup, timeZone: zone?.timeZone ?? null, page: learnPageOf({ setup, home, entered }) };
+  const sign = gate?.kind === 'open' ? gate.signs.learn : null;
+  return { home, setup, timeZone: zone?.timeZone ?? null, page: learnPageOf({ sign, setup, home }) };
 }
 
-/** `/learn`: the landing for a visitor and for someone not set up; Learn home for everyone else. */
+/** `/learn`: the landing for a visitor and for someone without the Learn sign; Learn home for everyone else. */
 export async function LearnFrontView() {
   const login = await viewerLogin();
   if (!login) return <LoadedLanding viewer="visitor" />;
@@ -86,7 +87,7 @@ export async function LearnFrontView() {
 }
 
 /**
- * `/learn/about`, How Learn works: the landing for a learner, with Learn's bar. A visitor or someone not set up is
+ * `/learn/about`, How Learn works: the landing for a learner, with Learn's bar. A visitor or someone without the sign is
  * sent to `/learn`, one address for one page.
  */
 export async function LearnAboutView() {

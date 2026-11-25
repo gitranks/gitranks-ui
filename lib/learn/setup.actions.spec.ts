@@ -28,6 +28,16 @@ describe("Set up Learn's save", () => {
     );
   });
 
+  it("gives the Learn sign only from the onboarding's save, sending nothing of it from the editor's", async () => {
+    graphqlDirect.mockResolvedValue({ saveLearnSetup: setupSaved });
+    await saveLearnSetupAction(input, { onboarding: true });
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({ setup: input, onboarding: true });
+    await saveLearnSetupAction(input, { onboarding: false });
+    await saveLearnSetupAction(input, { onboarding: 'yes' } as never);
+    expect(graphqlDirect.mock.calls[1][1]).toEqual({ setup: input });
+    expect(graphqlDirect.mock.calls[2][1]).toEqual({ setup: input });
+  });
+
   it('answers no data when Learn is not open to the person', async () => {
     graphqlDirect.mockResolvedValueOnce({ saveLearnSetup: null });
     expect(await saveLearnSetupAction(input)).toEqual({ ok: true, data: null });

@@ -18,12 +18,16 @@ import {
  */
 export const LEARN_SETUP_SETTLED_EVENT = 'gitranks:learn-setup-settled';
 
-/** What the API answers for Learn's bar: how far setup is, what is due, the person's pull requests. */
+/**
+ * What the API answers for Learn's bar: how far setup is, what is due, the person's pull requests. `onboarded` is the
+ * Learn sign, which the bar's route reads beside it: true or false, null or missing when it cannot be read.
+ */
 export type LearnBarRead = {
   setup: 'NONE' | 'WORKING' | 'GUESSED' | 'SAVED';
   due: number;
   pullRequests: boolean;
   pullRequestsNeedYou: number;
+  onboarded?: boolean | null;
 };
 
 /** What waits for the person, on the bar's right: lessons due, and their pull requests with how many need them. */
@@ -40,8 +44,8 @@ export type LearnBarSetup = 'working' | 'guessed' | 'open';
 /**
  * Who looks at Learn's bar, as the boards of pages 5 and 7 draw it:
  * - `visitor`: not signed in (or not known yet): Home, Courses and Issues; nothing on the right;
- * - `setup`: signed in, Learn not set up (setting up is not required): a learner's tabs, and "Set up Learn" on the
- *   right with how far it is; then what waits for them, as a learner's;
+ * - `setup`: signed in, without the Learn sign (Learn's onboarding not saved yet): a learner's tabs, and "Set up Learn"
+ *   on the right with how far our guess is; then what waits for them, as a learner's;
  * - `learner`: Home, Courses, Issues, Progress and Settings; "Pull requests" once one was sent through GitRanks, with
  *   how many need them; "Review" with how many lessons are due.
  */
@@ -51,7 +55,8 @@ export type LearnBarState =
   | ({ kind: 'learner' } & LearnBarWaiting);
 
 /**
- * The bar's state for the API's answer; a visitor's bar for none. `guessing`: our guess is being started from this
+ * The bar's state for the API's answer; a visitor's bar for none. "Set up Learn" shows until the Learn sign; when the
+ * sign cannot be read, until a setup is saved, as before the sign. `guessing`: our guess is being started from this
  * page, so a setup with none yet shows the spinner too; once the page stops waiting for it, there is no guess to check.
  */
 export function learnBarStateOf(read: LearnBarRead | null | undefined, guessing = false): LearnBarState {
@@ -61,7 +66,8 @@ export function learnBarStateOf(read: LearnBarRead | null | undefined, guessing 
     pullRequests: read.pullRequests,
     pullRequestsNeedYou: Math.max(0, read.pullRequestsNeedYou),
   };
-  if (read.setup === 'SAVED') return { kind: 'learner', ...waiting };
+  const onboarded = read.onboarded ?? read.setup === 'SAVED';
+  if (onboarded) return { kind: 'learner', ...waiting };
   if (read.setup === 'GUESSED') return { kind: 'setup', setup: 'guessed', ...waiting };
   const working = read.setup === 'WORKING' || guessing;
   return { kind: 'setup', setup: working ? 'working' : 'open', ...waiting };

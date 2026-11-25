@@ -161,14 +161,22 @@ describe('the landing for someone signed in', () => {
     const page = draw({ viewer: 'learner' });
     const starts = [...page.querySelectorAll('[data-landing-start]')];
     expect(starts.map((a) => [words(a), a.getAttribute('href')])).toEqual([
-      ['Back to Learn home', '/learn'],
-      ['Back to Learn home', '/learn'],
+      ['Go to Learn home', '/learn'],
+      ['Go to Learn home', '/learn'],
     ]);
     expect(page.textContent).not.toContain('Free.');
   });
 });
 
 describe('the lesson at the top, answered', () => {
+  it('ends on Start learning for a visitor and for someone without the sign, Go to Learn home for a learner', () => {
+    expect(TRY_DONE_LABELS).toEqual({
+      visitor: 'Start learning',
+      member: 'Start learning',
+      learner: 'Go to Learn home',
+    });
+  });
+
   const below = (page: Element) => words(page.querySelector('[data-try-line]'));
 
   it('gives the reason after a wrong pick, and no line under it', () => {
@@ -234,6 +242,16 @@ describe('the lesson card, used', () => {
     expect(words(host)).toContain('Lesson 1 of 2');
   });
 
+  it("signs a visitor in from the landing's Start learning through the onboarding, ending on Learn home", async () => {
+    await act(async () =>
+      root.render(<LearnLandingView viewer="visitor" courses={courseCards} lessons={tryLessons} hints={false} />),
+    );
+    const start = host.querySelector('[data-sign-in="learn"]') as HTMLButtonElement;
+    expect(words(start)).toBe('Start learning');
+    await act(async () => start.click());
+    expect(m.signIn).toHaveBeenCalledWith(expect.any(String), { redirectTo: '/learn/setup?back=%2Flearn' });
+  });
+
   it('signs a visitor in on to the setup once the answer is right', async () => {
     await act(async () =>
       root.render(
@@ -241,7 +259,7 @@ describe('the lesson card, used', () => {
       ),
     );
     await act(async () => doneButton(TRY_DONE_LABELS.visitor)?.click());
-    expect(m.signIn).toHaveBeenCalledWith(expect.any(String), { redirectTo: '/learn/setup' });
+    expect(m.signIn).toHaveBeenCalledWith(expect.any(String), { redirectTo: '/learn/setup?back=%2Flearn' });
     expect(m.push).not.toHaveBeenCalled();
   });
 

@@ -40,6 +40,8 @@ export type LessonViewProps = {
   /** The clock and the person's time zone: with both, the server draws the review's words; else the browser does. */
   now?: Date;
   timeZone?: string;
+  /** For the catalogue: a signed-in person without the Learn sign, whose main button is "Keep your progress". */
+  keep?: boolean;
   /** The person's real issues for the lesson, and "In the real world" drawn: for the catalogue. */
   real?: LessonReal | null;
   realWorld?: ReactNode;

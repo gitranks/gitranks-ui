@@ -135,14 +135,18 @@ describe('the check, for a visitor', () => {
     expect(host.textContent).toContain('one question for each of the 9 groups in Algorithms and data structures');
     expect(document.activeElement).toBe($('h1'));
     await click(buttonOf('Sign in with GitHub')!);
-    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/check/algorithms' });
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: `/learn/setup?back=${encodeURIComponent('/learn/check/algorithms')}`,
+    });
   });
 
   it('signs in back to "What you know" from there', async () => {
     await draw('known');
     expect(title()).toBe('What you know needs an account');
     await click(buttonOf('Sign in with GitHub')!);
-    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/check/algorithms?known' });
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: `/learn/setup?back=${encodeURIComponent('/learn/check/algorithms?known')}`,
+    });
   });
 });
 

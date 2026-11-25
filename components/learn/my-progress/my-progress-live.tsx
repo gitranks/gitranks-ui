@@ -60,6 +60,7 @@ import {
   learnHistoryMinePath,
 } from '@/lib/learn/paths';
 import { hasSessionHint } from '@/lib/session-hint';
+import { learnSetupHrefOf } from '@/lib/workspace/paths';
 
 /** The person's progress and today's date as the API counts days, when the route knows it. */
 export type MyProgressRead = { progress: LearnMyProgress; today: string | null };
@@ -310,7 +311,7 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
   }, [history]);
 
   const signInHere = useCallback(() => {
-    signIn(IDENTITY_PROVIDER, { redirectTo: myProgressPath({ view, day }) }).catch(() => {});
+    signIn(IDENTITY_PROVIDER, { redirectTo: learnSetupHrefOf(myProgressPath({ view, day })) }).catch(() => {});
   }, [view, day]);
 
   return (

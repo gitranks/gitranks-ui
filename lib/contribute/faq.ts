@@ -3,7 +3,7 @@ import type { Route } from 'next';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { CONTRIBUTE_RULES_PATH } from '@/lib/workspace/fair-use';
 import { AUTOPILOT_UNLOCK_AT } from '@/lib/workspace/format';
-import { MAINTAINERS_PATH, MCP_DOCS_PATH } from '@/lib/workspace/paths';
+import { MAINTAINERS_PATH, MCP_DOCS_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** A question, its answer, and where to read more. The id is its anchor on the questions page. */
 export type FaqEntry = { id: string; question: string; answer: string; more?: { href: Route; label: string } };
@@ -67,8 +67,27 @@ const FULL_ISSUES: FaqEntry = {
   more: { href: CONTRIBUTE_RULES_PATH, label: 'How you may use issues from GitRanks' },
 };
 
-/** The landing's six, short, in the landing's own order: that it will change, then cost (its visitors ask that first). */
-export const LANDING_QUESTIONS: readonly FaqEntry[] = [CHANGES, COST, GITHUB, BILL, NOT_GOOD, FAIR];
+/** The landing's answer on GitHub access: shorter than the questions page's, which lists every write. */
+const GITHUB_SHORT: FaqEntry = {
+  ...GITHUB,
+  answer:
+    'Only after you send your first pull request, and only on public repositories: we copy the project to your account, push your change, open the pull request, and post the replies you approve. Nothing on private repositories, never workflow files. You can take the access back at any time.',
+};
+
+/** How Contribute differs from Learn, on the landing only. */
+const LEARN: FaqEntry = {
+  id: 'learn',
+  question: 'How is it different from GitRanks Learn?',
+  answer:
+    'Contribute is for fixing: your agent writes the fix and you review it. Learn teaches first: short lessons, and when you fix an issue, a few questions on what the fix does before the pull request can be sent.',
+  more: { href: WORKSPACE_PATHS.learnHome, label: 'GitRanks Learn' },
+};
+
+/**
+ * The landing's six, short, in the landing's own order: that it will change, then cost (its visitors ask that first),
+ * and last how it differs from Learn. The question about maintainers is the band's ("Honest with maintainers").
+ */
+export const LANDING_QUESTIONS: readonly FaqEntry[] = [CHANGES, COST, GITHUB_SHORT, BILL, NOT_GOOD, LEARN];
 
 /** The questions page: contribution first, then the guardrails, the credits, and the record last. */
 export const FAQ_GROUPS: readonly FaqGroup[] = [

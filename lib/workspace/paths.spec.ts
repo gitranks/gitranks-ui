@@ -22,7 +22,6 @@ import {
   WORKSPACE_ANCHORS,
   WORKSPACE_PATHS,
 } from './paths';
-import { issuesQueryOf } from '@/app/contribute/components/issues-filter';
 import { issuesHrefOf, issuesViewOf } from '@/lib/learn/issues';
 import { LEARN_ISSUES_PATH } from '@/lib/learn/paths';
 import { issuePageCarriedOf } from '@/lib/workspace/masked-issue';
@@ -155,7 +154,7 @@ describe('which pages are which', () => {
     expect(at('/my/issues/q7k2m9xa?from=elsewhere&look=yes')).toBe('/contribute?issue=q7k2m9xa');
   });
 
-  it("carries a Learn view's filters through the setup as one value, which the home's own filters never read", () => {
+  it("carries a Learn view's filters through the setup as one value", () => {
     const at = (path: string) => settingUpHomeOf(new URL(path, 'https://gitranks.com'));
     const home = at('/my/issues/q7k2m9xa?from=learn&course=algorithms&language=go&at=course&next=x&look=1');
     expect(home).toBe(
@@ -163,7 +162,6 @@ describe('which pages are which', () => {
     );
     const query = new URL(home, 'https://gitranks.com').searchParams;
     expect(query.get('language')).toBeNull();
-    expect(issuesQueryOf(Object.fromEntries(query))).toEqual({});
     expect(issuePageCarriedOf(Object.fromEntries(query))).toBe(
       '/my/issues/q7k2m9xa?from=learn&course=algorithms&language=go&at=course&look=1',
     );

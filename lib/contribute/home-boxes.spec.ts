@@ -125,6 +125,14 @@ describe('needsYouBoxOf (box 1)', () => {
     ]);
   });
 
+  it('leaves out a row whose case it has no words for: the oldest it can say shows, counted with the others it can', () => {
+    const wordless = row({ box: 'FIXING', since: '2026-11-01T00:00:00Z', issueNumber: 1 });
+    expect(said(needsYouBoxOf([wordless]))).toEqual(said(needsYouBoxOf([])));
+    const box = needsYouBoxOf([wordless, row()]);
+    expect(box.project).toBe('harbor-kit/relay · #512');
+    expect(box.link).toBeNull();
+  });
+
   it('says it could not read the list, and nothing untrue', () => {
     expect(said(needsYouBoxOf(null))).toEqual([
       'Pull requests',
@@ -195,32 +203,32 @@ describe('agentBoxOf (box 2)', () => {
       'the key stopped working',
       {
         own: null,
-        notice: { kind: 'key-invalid', text: 'Anthropic turned the key down.', href: '/my/agent/key?replace=1' },
+        notice: { kind: 'key-invalid' },
       },
       [
         'Your agent',
         'Your Claude key stopped working',
-        'Anthropic turned the key down.',
+        'Anthropic refused it: it was deleted, or it is not the key you meant. Contributing is paused until you connect a working one.',
         'button: Connect a new key [/my/agent/key?replace=1]',
       ],
     ],
     [
       'credits used up',
-      { notice: { kind: 'exhausted', text: 'The hosted agent waits for the next cycle.', href: '/my/agent/key' } },
+      { notice: { kind: 'exhausted', until: '2026-12-01T00:00:00.000Z' } },
       [
         'Your agent',
         'Your credits are used up for this cycle',
-        'The hosted agent waits for the next cycle.',
+        'Nothing starts until they renew on Dec 1. Nothing is spent beyond them.',
         'button: Open the Agent tab [/my/agent]',
       ],
     ],
     [
       "the workspace's limit",
-      { notice: { kind: 'limit-reached', text: 'Your workspace stopped spending.', href: '/my/agent/key' } },
+      { notice: { kind: 'limit-reached', until: '2026-12-01T00:00:00.000Z' } },
       [
         'Your agent',
         "Your workspace's spend limit is reached",
-        'Your workspace stopped spending.',
+        'The Claude Console stopped this workspace at its monthly limit. Work starts again on Dec 1, or raise the limit in the Console.',
         'button: Open the Agent tab [/my/agent]',
       ],
     ],
@@ -320,6 +328,10 @@ describe('mergedBoxOf (box 3)', () => {
     newest: null,
     waiting: 0,
     ...over,
+  });
+
+  it('draws no Skills button when the Skills page is not known, rather than one that goes elsewhere', () => {
+    expect(mergedBoxOf(read({ merged: 4, reposHelped: 3, newest: NEWEST }), null).button).toBeNull();
   });
 
   it.each<[string, HomeMergedRead | null, string[]]>([
@@ -431,6 +443,13 @@ describe('homeBoxesOf: the highlight and the first day', () => {
     ['nothing connected', { agent: { ...AGENT, own: null } }, 1],
     ['an ordinary day', {}, null],
     ['the list could not be read', { needsYou: null }, null],
+    ['only a row box 1 has no words for: not lit', { needsYou: [row({ box: 'FIXING' })] }, null],
+    [
+      'only such a row, nothing connected: connecting',
+      { needsYou: [row({ box: 'FIXING' })], agent: { ...AGENT, own: null } },
+      1,
+    ],
+    ['only such a row on the first day: the first day', { firstDay: true, needsYou: [row({ box: 'FIXING' })] }, 0],
     ['the first day', { firstDay: true }, 0],
     ['the first day, nothing connected', { firstDay: true, agent: { ...AGENT, own: null } }, 1],
     ['the first day with a pull request that needs the person', { firstDay: true, needsYou: [row()] }, 0],
@@ -450,7 +469,7 @@ describe('homeBoxesOf: the highlight and the first day', () => {
   });
 
   it("on the first day, box 2 gives way to the key's notice", () => {
-    const notice = { kind: 'key-invalid' as const, text: 'The key was turned down.', href: '/my/agent/key?replace=1' };
+    const notice = { kind: 'key-invalid' as const };
     expect(homeBoxesOf({ ...READ, firstDay: true, agent: { ...AGENT, notice } }).boxes[1].title).toBe(
       'Your Claude key stopped working',
     );

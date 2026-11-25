@@ -23,6 +23,10 @@ const gate = vi.hoisted(() => ({ loadWorkspaceGate: vi.fn() }));
 vi.mock('@/lib/workspace/gate.data', () => gate);
 vi.mock('@/lib/workspace/preview-gate', () => ({ contributeOpen: vi.fn(async () => true) }));
 vi.mock('@/lib/contribute/agent-page', () => ({ loadAgentPage: vi.fn(async () => null) }));
+vi.mock('@/lib/contribute/landing-proof.data', () => ({
+  loadLandingProof: vi.fn(async () => null),
+  loadLandingLedgerOpen: vi.fn(async () => false),
+}));
 vi.mock('@/app/(workspace)/contribute/components/contribute-tab-view', () => ({
   ContributeTab: () => <div data-tab="" />,
 }));

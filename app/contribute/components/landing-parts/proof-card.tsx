@@ -35,7 +35,7 @@ export function LandingProofCard({ pr, className }: { pr: LandingProofPr; classN
           </span>
           <span>the issue</span>
         </div>
-        <span className="font-semibold">{pr.issue.title}</span>
+        {pr.issue.title ? <span className="font-semibold">{pr.issue.title}</span> : null}
         {marks.length ? (
           <div className="flex flex-wrap gap-1.5">
             {marks.map((mark) => (

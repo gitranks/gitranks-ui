@@ -89,6 +89,7 @@ describe('the landing', () => {
       'More ways to spend credits you already have',
       'From an issue to a merged pull request',
       'Everything is set for you, and all of it is yours to change',
+      'Honest with maintainers',
       'Questions',
       'Ready for your first issue?',
     ];
@@ -97,32 +98,26 @@ describe('the landing', () => {
     expect(at.every((index) => index >= 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(plain).toContain('Free to use. Nothing reaches GitHub without your OK. Leave any time.');
-    expect(plain).toContain('Issue details are hidden until you see the full issue');
-    expect(plain).toContain('Merged');
+    // No invented example: with no proof read, no top card and no "Merged through GitRanks".
+    expect(plain).not.toContain('Issue details are hidden until you see the full issue');
+    expect(plain).not.toContain('Merged through GitRanks');
   });
 
   it('states the facts the product holds to', () => {
     const plain = text(renderToStaticMarkup(<Landing viewer="visitor" start={VISITOR_START} />));
 
-    // The hold of an issue for the user's own agent.
+    // The own agent's way, and the hosted agent's, each as four facts.
+    expect(plain).toContain('A coding agent that speaks MCP');
+    expect(plain).toContain('A Claude API key with its own spend limit');
+    // GitHub access: after the first pull request, public repositories only.
+    expect(plain).toContain('Only after you send your first pull request, and only on public repositories');
+    expect(plain).toContain('Nothing on private repositories, never workflow files');
+    // The maintainers' rails, in the band, and autopilot opening about a month after launch.
     expect(plain).toContain(
-      'An issue is held for you 24 hours from its last step, 48 hours without a patch that passes the checks, 7 days at most',
-    );
-    // The own agent signs in with GitHub; a token is the fallback.
-    expect(plain).toContain(
-      "An agent that speaks MCP. It signs in with your GitHub account; a client that can't gets a token",
-    );
-    expect(plain).not.toContain('a token we give you');
-    // GitHub access: asked at the first submit, public_repo only.
-    expect(plain).toContain('On your first submit we ask GitHub for one permission, public_repo');
-    expect(plain).toContain('Nothing on private repos, never workflow files');
-    // The maintainers' rails, and autopilot opening about a month after launch.
-    expect(plain).toContain(
-      'We open at most one PR in a repo at a time, never more than four a month, and take a repo out of the shared pool for 90 days after two misses there within 90 days: a PR no one answers for 30 days, or one closed as wrong, low quality or harshly.',
+      "We open one pull request in a project at a time, follow each project's rules on AI, and stay out of projects that ask us to.",
     );
     expect(plain).toContain('Autopilot opens about a month after launch, and only if you turn it on');
-    // The plans by their current names, and auto-reload's real money.
-    expect(plain).toContain('Claude Max, Ultra or Team plan');
+    // Auto-reload's real money.
     expect(plain).toContain("keep auto-reload off: it can charge your card even while your plan's credits remain");
     expect(plain).not.toMatch(/Max 5x|Max 20x/);
   });
@@ -158,18 +153,17 @@ describe('the landing', () => {
     expect(text(html)).not.toContain('Almost there');
   });
 
-  it('opens Contribute for a member reading how it works', () => {
+  it('takes a member reading how it works back to their issues', () => {
     const html = renderToStaticMarkup(<Landing viewer="signed-in" start={{ member: true }} />);
     const starts = [...html.matchAll(/<a [^>]*data-landing-start[^>]*>([^<]*)<\/a>/g)];
 
-    expect(starts.map(([, label]) => label)).toEqual(['Open Contribute', 'Open Contribute']);
+    expect(starts.map(([, label]) => label)).toEqual(['Go to your issues', 'Go to your issues']);
     for (const [tag] of starts) expect(tag).toContain('href="/contribute"');
   });
 
   it('says the workspace’s words: Pull requests, the Agent tab', () => {
     const plain = text(renderToStaticMarkup(<Landing viewer="visitor" start={VISITOR_START} />));
 
-    expect(plain).toContain('Reviews and comments show up in Pull requests');
     expect(plain).toContain('You can add the other later on the Agent tab.');
     expect(plain).not.toContain('My contributions');
   });
@@ -183,14 +177,15 @@ describe('the landing', () => {
     expect(count(signedIn, 'aria-pressed="true"')).toBe(2);
     expect(text(signedIn)).toContain("You're on the list for 2 of these.");
     expect(visitor).not.toContain('aria-pressed');
-    expect(text(visitor)).toContain('Press Notify me to be told when one opens');
+    expect(text(visitor)).not.toContain("You're on the list");
   });
 
-  it('links the opt-out for maintainers', () => {
+  it('links the page for maintainers from the band, not from a line of its own', () => {
     const html = renderToStaticMarkup(<Landing viewer="signed-in" start={SIGNED_IN_START} />);
 
-    expect(text(html)).toContain('Maintain a repo? Opt it out →');
-    expect(html).toContain('href="/contribute/maintainers"');
+    expect(text(html)).toContain('For maintainers →');
+    expect(text(html)).not.toContain('Maintain a repo?');
+    expect(count(html, 'href="/contribute/maintainers"')).toBe(1);
   });
 });
 

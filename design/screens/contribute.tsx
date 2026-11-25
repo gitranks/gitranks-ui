@@ -7,6 +7,7 @@ import { FairUseAnswerScreen } from '@/app/(workspace)/contribute/components/fai
 import { ContributeBadgePreview } from '@/app/contribute/components/contribute-badge-preview';
 import { FaqScreen } from '@/app/contribute/components/faq';
 import { Landing } from '@/app/contribute/components/landing';
+import { LandingHead } from '@/app/contribute/components/landing-parts/head';
 import { LedgerScreen } from '@/app/contribute/components/ledger-view';
 import {
   MaintainerReposPanel,
@@ -45,6 +46,9 @@ import {
   prViewer,
 } from '@/lib/contribute/__fixtures__/maintainers';
 import { issueRules, maintainerConfig, maintainerRules } from '@/lib/contribute/__fixtures__/repo-rules';
+import { proofMerged, proofOpenOnly } from '@/lib/contribute/__fixtures__/wave-4-parts';
+import type { AgentPageStats } from '@/lib/contribute/agent-page.types';
+import { landingProofOf } from '@/lib/contribute/landing-proof';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
 import {
@@ -254,6 +258,23 @@ const publicPage = (page: ReactNode) => (
   </>
 );
 
+/** The landing's button for a visitor: the flow's first step. */
+const VISITOR = { href: GETTING_IN_PATHS.contributeWork, signedIn: false };
+const LANDING_STATS: AgentPageStats = {
+  readyIssues: 2792,
+  repos: 1291,
+  languages: [],
+  checkedAt: '2026-10-28T12:05:00Z',
+};
+/** The landing's live reads, as on a day with three merged pull requests that have a public page. */
+const LANDING_LIVE = { stats: LANDING_STATS, proof: landingProofOf(proofMerged), ledgerOpen: true };
+/** The top of the landing when there is less to show: what the newest pull requests read gives. */
+const LESS_TO_SHOW = [
+  { title: 'One or two merged: the card, and no "Merged through GitRanks"', read: proofMerged.slice(0, 2) },
+  { title: 'None merged yet: the newest open one', read: proofOpenOnly },
+  { title: 'None at all, or the read failed: the words take the full width', read: [] },
+];
+
 export const CONTRIBUTE_SCREENS: Screen[] = [
   {
     id: 'contribute-landing',
@@ -262,54 +283,72 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
     route: '/contribute',
     sources: [
       'app/contribute/components/landing.tsx',
+      'app/contribute/components/landing-parts/head.tsx',
+      'app/contribute/components/landing-parts/proof-card.tsx',
+      'app/contribute/components/landing-parts/proof-rows.tsx',
+      'app/contribute/components/landing-parts/ways.tsx',
+      'app/contribute/components/landing-parts/way-box.tsx',
+      'app/contribute/components/landing-parts/steps.tsx',
+      'app/contribute/components/landing-parts/defaults.tsx',
+      'app/contribute/components/landing-parts/pr-footer.tsx',
+      'app/contribute/components/landing-parts/questions.tsx',
+      'app/contribute/components/landing-parts/foot.tsx',
+      'app/contribute/components/landing-parts/start-button.tsx',
       'app/contribute/components/landing-view.tsx',
       'app/(public)/contribute/about/page.tsx',
+      'components/workspace/getting-in/landing-band.tsx',
       'components/workspace/getting-in/resume-link.tsx',
       'components/workspace/agent/coming-soon.tsx',
       'components/workspace/sign-in-dialog.tsx',
-      'lib/workspace/format.ts',
+      'lib/contribute/landing-copy.ts',
+      'lib/contribute/landing-proof.ts',
+      'lib/contribute/faq.ts',
     ],
     states: [
       {
         id: 'visitor',
-        title: 'Signed out, once launched',
+        title: 'Signed out: the newest merged pull request at the top, three merged through GitRanks',
         path: '/contribute',
         signedOut: true,
-        height: 4100,
+        height: 5200,
         // As the layout frames it for a visitor: the header's line, no tabs.
-        render: () => (
-          <>
-            <Header section="contribute" />
-            <HeaderLine />
-            <Landing viewer="visitor" start={{ href: GETTING_IN_PATHS.contributeWork, signedIn: false }} noted={[]} />
-          </>
-        ),
+        render: () => publicPage(<Landing viewer="visitor" start={VISITOR} noted={[]} {...LANDING_LIVE} />),
       },
       {
         id: 'phone',
-        title: 'Signed out, on a phone: the sections stacked, Start contributing full width',
+        title: 'Signed out, on a phone: the parts stacked, the top card after the button',
         path: '/contribute',
         signedOut: true,
         width: 390,
-        height: 7700,
-        render: () => (
-          <>
-            <Header section="contribute" />
-            <HeaderLine />
-            <Landing viewer="visitor" start={{ href: GETTING_IN_PATHS.contributeWork, signedIn: false }} noted={[]} />
-          </>
-        ),
+        height: 9800,
+        render: () => publicPage(<Landing viewer="visitor" start={VISITOR} noted={[]} {...LANDING_LIVE} />),
       },
       {
         id: 'about',
-        title: 'How Contribute works, for a member: the same page, Open Contribute',
+        title:
+          'How Contribute works, for a member: the same page, Go to your issues; the public ledger closed, so "Merged through GitRanks" stands alone',
         path: '/contribute/about',
-        height: 4100,
+        height: 5200,
+        render: () =>
+          publicPage(
+            <Landing viewer="signed-in" start={{ member: true }} noted={[]} {...LANDING_LIVE} ledgerOpen={false} />,
+          ),
+      },
+      {
+        id: 'less',
+        title: 'Less to show: one or two merged (no rows), only an open one, none at all',
+        path: '/contribute',
+        signedOut: true,
+        height: 2000,
+        // The head of each case; below it the page goes on as for a visitor, without "Merged through GitRanks".
         render: () => (
           <>
-            <Header section="contribute" />
-            <HeaderLine />
-            <Landing viewer="signed-in" start={{ member: true }} noted={[]} />
+            {LESS_TO_SHOW.map(({ title, read }) => (
+              <div key={title} className="border-b">
+                <p className="mx-auto max-w-7xl px-4 pt-4 text-sm font-semibold text-muted-foreground">{title}</p>
+                <LandingHead start={VISITOR} stats={LANDING_STATS} card={landingProofOf(read).card} />
+              </div>
+            ))}
           </>
         ),
       },

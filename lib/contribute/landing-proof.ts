@@ -15,19 +15,33 @@ export type LandingProofPr = {
   title: string;
   openedAt: string;
   mergedAt: string | null;
-  contributorLogin: string;
+  /** The sender's GitHub login; null when not known (the by-line then names the agent alone). */
+  contributorLogin: string | null;
   /** The agent as the footer names it: "Claude Code", "GitRanks' hosted agent", "an AI agent". */
   agent: string;
   issue: {
     number: number;
     url: string;
-    title: string;
+    /** The issue's title as it was taken; null when not known (the card leaves it out). */
+    title: string | null;
     /** The kind triage gave it; null when it gave none. */
     kind: string | null;
     language: ContributeLanguage | null;
   };
   change: { files: number; added: number; removed: number } | null;
 };
+
+/** A row as the API answers it (`contributeNewestMerged`): the pull request's title may be missing. */
+export type ContributeMergedPrRead = Omit<LandingProofPr, 'title'> & { title: string | null };
+
+/**
+ * The API's rows as the landing draws them, in its order (newest first); null when the read failed. A row without the
+ * pull request's title is dropped: the card and the rows are drawn around it. A row without its sender is kept.
+ */
+export function landingProofPrsOf(rows: readonly ContributeMergedPrRead[] | null | undefined): LandingProofPr[] | null {
+  if (!rows) return null;
+  return rows.flatMap(({ title, ...row }) => (title ? [{ ...row, title }] : []));
+}
 
 /** What the landing draws of the proof: the top card's pull request, and the three rows. Null leaves a part out. */
 export type LandingProof = { card: LandingProofPr | null; rows: LandingProofPr[] | null };
@@ -68,9 +82,9 @@ export function mergedAfterOf(pr: Pick<LandingProofPr, 'openedAt' | 'mergedAt'>)
   return `${days} ${days === 1 ? 'day' : 'days'} after it was sent`;
 }
 
-/** "by mira-dev with Claude Code". */
+/** "by mira-dev with Claude Code"; "with Claude Code" when the sender is not known. */
 export const proofByOf = (pr: Pick<LandingProofPr, 'contributorLogin' | 'agent'>): string =>
-  `by ${pr.contributorLogin} with ${pr.agent}`;
+  pr.contributorLogin ? `by ${pr.contributorLogin} with ${pr.agent}` : `with ${pr.agent}`;
 
 /** "30 Oct", in UTC. */
 export const dayMonthOf = (iso: string): string =>

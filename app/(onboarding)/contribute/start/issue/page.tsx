@@ -11,7 +11,6 @@ import { FlowFrame } from '@/components/workspace/getting-in/flow-frame';
 import { CONTRIBUTE_FLOW_PANELS, flowPanelOf } from '@/components/workspace/getting-in/flow-place';
 import { MaskedIssueRow } from '@/components/workspace/masked-issue/masked-issue-row';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
-import { HEADING } from '@/components/workspace/primitives';
 import { loadIssues } from '@/lib/contribute/contribute.data';
 import { type FirstIssueState, firstIssueLineOf } from '@/lib/contribute/start-flow';
 import { loadFlowProfileLanguages } from '@/lib/contribute/start-flow.data';
@@ -106,7 +105,9 @@ async function ContributeFirstIssue({ searchParams }: Pick<PageProps<'/contribut
       opened={
         opened?.masked ? (
           <section className="flex flex-col gap-3" data-opened-issue="">
-            <h2 className={HEADING.section}>{FIRST_ISSUE.opened}</h2>
+            <h2 className="m-0 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              {FIRST_ISSUE.opened}
+            </h2>
             <MaskedIssueRow
               issue={opened.masked}
               state={opened.state === 'FULL' && opened.full ? 'full' : 'masked'}
@@ -115,7 +116,9 @@ async function ContributeFirstIssue({ searchParams }: Pick<PageProps<'/contribut
               seeLabel={FIRST_ISSUE.openedStart}
               skippable={false}
             />
-            <h2 className={HEADING.section}>{FIRST_ISSUE.another}</h2>
+            <h2 className="m-0 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              {FIRST_ISSUE.another}
+            </h2>
           </section>
         ) : null
       }

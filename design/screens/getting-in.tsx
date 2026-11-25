@@ -84,14 +84,18 @@ function firstIssue({
         opened={
           opened ? (
             <section className="flex flex-col gap-3" data-opened-issue="">
-              <h2 className={HEADING.section}>{FIRST_ISSUE.opened}</h2>
+              <h2 className="m-0 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                {FIRST_ISSUE.opened}
+              </h2>
               <MaskedIssueRow
                 issue={maskedIssue({ id: WAY_BACK })}
                 href={issuePageHrefOf(WAY_BACK, 'contribute')}
                 seeLabel={FIRST_ISSUE.openedStart}
                 skippable={false}
               />
-              <h2 className={HEADING.section}>{FIRST_ISSUE.another}</h2>
+              <h2 className="m-0 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                {FIRST_ISSUE.another}
+              </h2>
             </section>
           ) : null
         }

@@ -429,7 +429,7 @@ describe('more waiting, in the box', () => {
     expect(list()?.hidden).toBe(true);
   });
 
-  it('is reached by keyboard, and Enter on it is its own, not the box's main action', async () => {
+  it("is reached by keyboard, and Enter on it is its own, not the box's main action", async () => {
     const onOnlyYou = vi.fn();
     await box(prOnlyYouPage('dco', 'title'), { onOnlyYou });
     const button = line() as HTMLButtonElement;

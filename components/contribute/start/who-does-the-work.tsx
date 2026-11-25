@@ -2,12 +2,10 @@
 
 import { Check } from 'lucide-react';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
 import { Button } from '@/components/ui/button';
-import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import {
   HOW_CONTRIBUTE_WORKS,
   MORE_ABOUT_CONTRIBUTE,
@@ -15,9 +13,12 @@ import {
   START_WAYS_TITLE,
   type StartWayBox,
   type StartWayButton,
+  type StartWayName,
   type StartWays,
 } from '@/lib/contribute/start-ways';
 import { cn } from '@/lib/utils';
+import { type ContributeSource, contributeSource } from '@/lib/workspace/click-tracking';
+import { signInToFlow } from '@/lib/workspace/sign-in-to-flow';
 
 /** "How Contribute works": three numbered lines, the same in every case, so nothing under them moves. */
 export function HowContributeWorks({ fromIssueLine }: { fromIssueLine: string | null }) {
@@ -53,8 +54,14 @@ export function HowContributeWorks({ fromIssueLine }: { fromIssueLine: string | 
 
 const BUTTON = 'min-h-11 gap-2 px-4 font-semibold max-sm:w-full';
 
-/** A box's button: a link, or for a visitor GitHub's sign-in that comes back to the way it names. */
-function WayButton({ button }: { button: StartWayButton }) {
+/** Where a box's link is counted from. */
+const SOURCES = { own: 'contribute_flow_own', key: 'contribute_flow_key' } as const satisfies Record<
+  StartWayName,
+  ContributeSource
+>;
+
+/** A box's button: a link, or for a visitor GitHub's sign-in that comes back to the way it names, the way back kept. */
+function WayButton({ button, source }: { button: StartWayButton; source?: ContributeSource }) {
   const [pending, setPending] = useState(false);
   const variant = button.filled ? 'default' : 'outline';
   if (button.signIn) {
@@ -65,9 +72,10 @@ function WayButton({ button }: { button: StartWayButton }) {
         disabled={pending}
         className={BUTTON}
         data-start-way-button=""
+        {...contributeSource('contribute_flow_sign_in')}
         onClick={() => {
           setPending(true);
-          signIn(IDENTITY_PROVIDER, { redirectTo: button.href }).catch(() => setPending(false));
+          signInToFlow(button.href).catch(() => setPending(false));
         }}
       >
         <FaGithub aria-hidden="true" className="size-4" />
@@ -77,7 +85,12 @@ function WayButton({ button }: { button: StartWayButton }) {
   }
   return (
     <Button asChild variant={variant} className={BUTTON}>
-      <Link href={button.href as never} prefetch={false} data-start-way-button="">
+      <Link
+        href={button.href as never}
+        prefetch={false}
+        data-start-way-button=""
+        {...(source ? contributeSource(source) : {})}
+      >
         {button.label}
       </Link>
     </Button>
@@ -119,7 +132,7 @@ function WayBox({ box }: { box: StartWayBox }) {
           <span className="text-sm font-semibold">{way.title}</span>
           <span className="text-sm text-muted-foreground">{box.small.line}</span>
         </div>
-        {box.button ? <WayButton button={box.button} /> : null}
+        {box.button ? <WayButton button={box.button} source={SOURCES[box.name]} /> : null}
       </section>
     );
   }
@@ -146,7 +159,7 @@ function WayBox({ box }: { box: StartWayBox }) {
       </dl>
       {box.button ? (
         <div className="mt-auto max-md:order-last">
-          <WayButton button={box.button} />
+          <WayButton button={box.button} source={SOURCES[box.name]} />
         </div>
       ) : null}
     </section>

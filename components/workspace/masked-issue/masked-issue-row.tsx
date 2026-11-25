@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { useInFlowExit } from '@/components/workspace/getting-in/flow-bookmark';
 import {
   IssueHints,
   LessonLine,
@@ -54,6 +55,13 @@ export type MaskedIssueRowProps = {
   colors?: Readonly<Record<string, string>>;
   /** The page of the issue; its mask id's page unless given. */
   href?: Route;
+  /**
+   * The button's words in place of "See the full issue" and, held in full, "Go to the issue" ("Start fixing it" for
+   * the issue a person opened).
+   */
+  seeLabel?: string;
+  /** False leaves Skip out (the issue a person opened is not one to skip). */
+  skippable?: boolean;
   /** The press; without it the button is a link to the issue's page, where the press is made. */
   onSee?: () => void;
   /** A skip with its reason: the list puts the next issue in the row's place. */
@@ -87,6 +95,8 @@ export function MaskedIssueRow({
   visitor = false,
   colors,
   href,
+  seeLabel: given,
+  skippable = true,
   onSee,
   onSkip,
   onNext,
@@ -94,6 +104,8 @@ export function MaskedIssueRow({
   onStatus,
 }: MaskedIssueRowProps) {
   const titleId = useId();
+  // Inside a flow's way out, the press leaves the flow: marked for `FlowExit`.
+  const leave = useInFlowExit() ? { 'data-flow-leave': '' } : {};
   const [asking, setAsking] = useState(initialAsking);
   const [skipped, setSkipped] = useState(false);
   const question = useRef<HTMLHeadingElement>(null);
@@ -182,7 +194,10 @@ export function MaskedIssueRow({
     );
   }
 
-  const seeLabel = state === 'opening' ? 'Opening…' : state === 'full' ? 'Go to the issue' : 'See the full issue';
+  // A label the caller gives wins in every state but the press's wait ("Start fixing it" on the issue a person opened,
+  // held in full or not).
+  const seeLabel =
+    state === 'opening' ? 'Opening…' : (given ?? (state === 'full' ? 'Go to the issue' : 'See the full issue'));
   const seeDisabled = state === 'opening' || state === 'limit';
   const seeClass = 'h-9 min-w-[9.5rem] px-4 max-sm:min-h-11';
 
@@ -219,7 +234,7 @@ export function MaskedIssueRow({
           </Button>
         ) : (
           <>
-            {visitor || state === 'full' ? null : (
+            {visitor || !skippable || state === 'full' ? null : (
               <Button
                 ref={skipButton}
                 type="button"
@@ -242,6 +257,7 @@ export function MaskedIssueRow({
                 aria-disabled={seeDisabled || undefined}
                 aria-describedby={titleId}
                 onClick={seeDisabled ? undefined : onSee}
+                {...leave}
               >
                 {seeLabel}
               </Button>
@@ -257,7 +273,7 @@ export function MaskedIssueRow({
               </Button>
             ) : (
               <Button asChild variant="outline" className={seeClass}>
-                <Link href={page} prefetch={false} aria-describedby={titleId}>
+                <Link href={page} prefetch={false} aria-describedby={titleId} {...leave}>
                   {seeLabel}
                 </Link>
               </Button>

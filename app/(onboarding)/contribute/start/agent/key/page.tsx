@@ -1,57 +1,49 @@
-import type { Metadata } from 'next';
+import type { Metadata, Route } from 'next';
 import { Suspense } from 'react';
 
-import { BACK_TO_CHOICE, CONNECT_SIGN_IN, KEY_HEAD } from '../../copy';
+import { BACK_TO_CHOICE, KEY_TITLE } from '../../copy';
 import { ConnectScreen } from '@/components/workspace/agent/connect-view';
+import { FlowBackHere } from '@/components/workspace/getting-in/flow-back-here';
 import { FlowBookmark } from '@/components/workspace/getting-in/flow-bookmark';
-import { FlowBack, FlowFrame, FlowHead } from '@/components/workspace/getting-in/flow-frame';
+import { FlowFrame } from '@/components/workspace/getting-in/flow-frame';
 import { CONTRIBUTE_FLOW_PANELS, flowPanelOf } from '@/components/workspace/getting-in/flow-place';
-import { FlowSignIn } from '@/components/workspace/getting-in/flow-sign-in';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { loadContribute, loadProfileLanguages } from '@/lib/workspace/contribute.data';
+import { flowWayBackOf, withFlowWayBack } from '@/lib/workspace/flow-way-back';
 import { loadContributeFlowPlace } from '@/lib/workspace/getting-in.data';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 
-export const metadata: Metadata = { title: KEY_HEAD.title };
+export const metadata: Metadata = { title: KEY_TITLE };
 
-/** Contribute's flow, step 2 with a Claude key: the key's one screen, then the matching moment and the first issue. */
-export default function ContributeKeyPage() {
+/** Contribute's flow, the first step's Claude key: the key's one screen, then the matching moment and the first issue. */
+export default function ContributeKeyPage({ searchParams }: PageProps<'/contribute/start/agent/key'>) {
   return (
-    <FlowFrame side="contribute" step={2}>
-      <FlowBack href={GETTING_IN_PATHS.contributeAgent}>{BACK_TO_CHOICE}</FlowBack>
+    <FlowFrame side="contribute" step={1}>
+      <FlowBackHere href={GETTING_IN_PATHS.contributeStart}>{BACK_TO_CHOICE}</FlowBackHere>
       <Suspense fallback={<ContributePageSkeleton />}>
-        <ContributeKey />
+        <ContributeKey searchParams={searchParams} />
       </Suspense>
     </FlowFrame>
   );
 }
 
-async function ContributeKey() {
-  const { place } = await loadContributeFlowPlace('agent-key');
+async function ContributeKey({ searchParams }: Pick<PageProps<'/contribute/start/agent/key'>, 'searchParams'>) {
+  const issue = flowWayBackOf(await searchParams);
+  const { place } = await loadContributeFlowPlace('agent-key', { issue });
   const panel = flowPanelOf(place, CONTRIBUTE_FLOW_PANELS);
-  let step = panel;
-  if (!step && place.kind === 'sign-in') {
-    step = (
-      <>
-        <FlowHead {...KEY_HEAD} />
-        <FlowSignIn {...CONNECT_SIGN_IN} source="contribute_flow_sign_in" />
-      </>
-    );
-  } else if (!step) {
-    const [view, languages] = await Promise.all([loadContribute(), loadProfileLanguages()]);
-    step = view ? (
-      <ConnectScreen
-        view={view}
-        today={new Date().getUTCDate()}
-        profileLanguages={languages}
-        ownAgentHref={GETTING_IN_PATHS.contributeAgentOwn}
-        eyebrow="About two minutes"
-      />
-    ) : null;
-  }
+  const [view, languages] = panel ? [null, []] : await Promise.all([loadContribute(), loadProfileLanguages()]);
   return (
     <>
-      {step}
+      {panel ??
+        (view ? (
+          <ConnectScreen
+            view={view}
+            today={new Date().getUTCDate()}
+            profileLanguages={languages}
+            ownAgentHref={withFlowWayBack(GETTING_IN_PATHS.contributeAgentOwn, issue) as Route}
+            eyebrow="About two minutes"
+          />
+        ) : null)}
       <FlowBookmark side="contribute" />
     </>
   );

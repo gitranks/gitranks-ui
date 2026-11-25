@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowLeft, CheckIcon } from 'lucide-react';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from 'react';
 import { flushSync } from 'react-dom';
@@ -18,6 +19,7 @@ import { AGENT_HINT_MS, AGENT_POLL_MS, replaceToken, unusedTokenOf } from '@/lib
 import type { ContributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeMcpToken } from '@/lib/workspace/contribute.types';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
+import { flowWayBackHereOf, withFlowWayBack } from '@/lib/workspace/flow-way-back';
 import {
   AGENT_FIRST_PROMPT,
   ANTIGRAVITY_RELOAD,
@@ -647,11 +649,11 @@ export function AgentConnect({
     }
     // In the workspace already: the page stays, with the next step.
     if (!proof && onboarded) return;
-    // A first connect goes on to the first issue, the last step of Contribute's flow.
+    // A first connect goes on to the first issue, the last step of Contribute's flow, the way back (`?issue=`) kept.
     goTo(
       proof
         ? pullRequestByAttemptPath(proof.attemptId, { query: { session: 'next' } })
-        : GETTING_IN_PATHS.contributeIssue,
+        : (withFlowWayBack(GETTING_IN_PATHS.contributeIssue, flowWayBackHereOf()) as Route),
       { replace: true },
     );
   }, [goTo, proof, embedded, onboarded, onConnected, connectSource]);

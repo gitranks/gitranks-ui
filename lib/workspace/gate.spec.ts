@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-const { notEnteredTargetOf, tabsOf, workspaceGateOf } = await import('./gate');
-const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { hasContributeSign, notEnteredTargetOf, tabsOf, workspaceGateOf } = await import('./gate');
+const { contributor, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { isLearnPath } = await import('@/lib/learn/learn-path');
 
 describe("Learn's paths", () => {
@@ -41,11 +41,13 @@ describe("the workspace gate, over today's answers", () => {
     expect(workspaceGateOf(read)).toEqual({
       kind: 'open',
       entered: true,
+      signs: { contribute: null, learn: null },
       agents: { hosted: true, own: false },
     });
     expect(workspaceGateOf({ ...read, view: views.agentOnboarded })).toEqual({
       kind: 'open',
       entered: true,
+      signs: { contribute: null, learn: null },
       agents: { hosted: false, own: true },
     });
     // Entered once, and everything revoked since: still entered, nothing connected.
@@ -55,6 +57,34 @@ describe("the workspace gate, over today's answers", () => {
     });
     expect(workspaceGateOf({ ...read, view: views.midSetup })).toMatchObject({ entered: false });
     expect(workspaceGateOf({ ...read, view: null })).toMatchObject({ entered: false });
+  });
+
+  it('carries the two signs beside `entered`: set, not set, or not known when their read failed', () => {
+    const withSigns = (
+      contributeOnboardedAt: string | null | undefined,
+      learnOnboardedAt: string | null | undefined,
+    ) => ({
+      ...views.active,
+      contributor: contributor({ contributeOnboardedAt, learnOnboardedAt }),
+    });
+    expect(workspaceGateOf({ ...read, view: withSigns('2026-11-25T09:00:00.000Z', null) })).toMatchObject({
+      entered: true,
+      signs: { contribute: true, learn: false },
+    });
+    expect(workspaceGateOf({ ...read, view: withSigns(null, '2026-11-25T09:00:00.000Z') })).toMatchObject({
+      signs: { contribute: false, learn: true },
+    });
+    expect(workspaceGateOf({ ...read, view: withSigns(undefined, undefined) })).toMatchObject({
+      signs: { contribute: null, learn: null },
+    });
+  });
+
+  it("reads the Contribute sign, and today's rule only while the sign is not known", () => {
+    const gate = { kind: 'open' as const, entered: true, agents: { hosted: false, own: false } };
+    expect(hasContributeSign({ ...gate, signs: { contribute: false, learn: null } })).toBe(false);
+    expect(hasContributeSign({ ...gate, entered: false, signs: { contribute: true, learn: null } })).toBe(true);
+    expect(hasContributeSign({ ...gate, signs: { contribute: null, learn: null } })).toBe(true);
+    expect(hasContributeSign({ ...gate, entered: false, signs: { contribute: null, learn: null } })).toBe(false);
   });
 
   it('shows every tab once entered', () => {

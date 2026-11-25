@@ -11,13 +11,35 @@ import type { ContributeAccess } from '@/lib/workspace/preview-gate';
  * - `hidden`: the API does not open the workspace to them (no profile, off the preview, or any failure): a 404.
  * - `setting-up`: a new account read for the first time; the home says so.
  * - `open`: `entered` once a way of contributing worked (a Claude key stored, or the own agent's first call; nothing
- *   clears it), `agents` what is connected now.
+ *   clears it), `signs` each product's onboarding gone through, `agents` what is connected now.
  */
 export type WorkspaceGate =
   | { kind: 'signed-out' }
   | { kind: 'hidden' }
   | { kind: 'setting-up' }
-  | { kind: 'open'; entered: boolean; agents: { hosted: boolean; own: boolean } };
+  | { kind: 'open'; entered: boolean; signs: WorkspaceSigns; agents: { hosted: boolean; own: boolean } };
+
+/**
+ * The two signs: the person went through Contribute's onboarding, or Learn's. Each is set once and never cleared. Null
+ * when it is not known (its read failed): a reader then keeps today's rule and sends nobody to an onboarding.
+ */
+export type WorkspaceSigns = { contribute: boolean | null; learn: boolean | null };
+
+/** A sign from its stamp: set, not set, or not known (`undefined`, its read failed). */
+const signOf = (at: string | null | undefined): boolean | null => (at === undefined ? null : !!at);
+
+/** The two signs of a Contribute view; both not known without one. */
+export const signsOf = (view: ContributeView | null | undefined): WorkspaceSigns => ({
+  contribute: signOf(view?.contributor?.contributeOnboardedAt),
+  learn: signOf(view?.contributor?.learnOnboardedAt),
+});
+
+/**
+ * Whether the person has the Contribute sign, for the flow's pages: the sign itself, or, while it is not known, today's
+ * rule ("entered"), so nobody is sent back through the onboarding by a failed read.
+ */
+export const hasContributeSign = (gate: Extract<WorkspaceGate, { kind: 'open' }>): boolean =>
+  gate.signs.contribute ?? gate.entered;
 
 /** What the gate is decided from: the session's login, the API's answers for it, and the user's Contribute view. */
 export type WorkspaceGateRead = {
@@ -34,6 +56,7 @@ export function workspaceGateOf({ githubLogin, access, view }: WorkspaceGateRead
   return {
     kind: 'open',
     entered: isOnboarded(view),
+    signs: signsOf(view),
     agents: { hosted: !!claudeKeyOf(view), own: !!view?.ownAgent?.paths.mcp },
   };
 }
@@ -63,7 +86,7 @@ export function notEnteredTargetOf(pathname: string, search?: URLSearchParams): 
   }
   if (/^\/my\/(?:agent|settings)(?:\/|$)/.test(path)) return null;
   if (/^\/my\/start\//.test(path)) {
-    return search?.get('from') === 'learn' ? PICK_ISSUE_PATHS.learn : GETTING_IN_PATHS.contributeWork;
+    return search?.get('from') === 'learn' ? PICK_ISSUE_PATHS.learn : GETTING_IN_PATHS.contributeStart;
   }
   return WORKSPACE_PATHS.contribute;
 }

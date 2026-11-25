@@ -15,7 +15,7 @@ export const CONTRIBUTE_FLOW_PANELS: FlowPanels = {
 
 /**
  * A step's place when it is not the step itself: the redirect and the 404 happen here, a panel is returned to draw in
- * the frame. Null for the step (with its sign-in card, or saving the address's answer first): the page draws it.
+ * the frame. Null for the step itself: the page draws it.
  */
 export function flowPanelOf(place: FlowPlace, panels: FlowPanels): ReactNode | null {
   switch (place.kind) {

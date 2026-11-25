@@ -4,16 +4,20 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { signIn } = vi.hoisted(() => ({ signIn: vi.fn(async () => undefined) }));
-vi.mock('next-auth/react', () => ({ signIn }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
+  usePathname: () => window.location.pathname,
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
 
 const { FlowSteps } = await import('./flow-steps');
 const { FlowFrame } = await import('./flow-frame');
-const { FlowSignIn } = await import('./flow-sign-in');
+const { FlowBackHere } = await import('./flow-back-here');
+const { MaskedIssueRow } = await import('@/components/workspace/masked-issue/masked-issue-row');
+const { maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
 const { FlowBookmark, FlowExit, forgetFlowBookmark, readFlowBookmark } = await import('./flow-bookmark');
 const { ResumeLink } = await import('./resume-link');
 const { BOOKMARK_KEY } = await import('@/lib/workspace/getting-in-bookmark');
-const { IDENTITY_PROVIDER } = await import('@/lib/auth-providers');
 const { GETTING_IN_PATHS } = await import('@/lib/workspace/paths');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -43,12 +47,16 @@ describe('the line of steps', () => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const steps = [...doc.querySelectorAll('li')].map((li) => [li.dataset.stepState, li.textContent]);
     expect(steps).toEqual([
-      ['done', 'Done: What you work on'],
-      ['current', '2Your agent'],
-      ['next', '3Your first issue'],
+      ['done', 'Done: Your agent'],
+      ['current', '2Your first issue'],
     ]);
-    expect(doc.querySelector('[aria-current="step"]')?.textContent).toContain('Your agent');
+    expect(doc.querySelector('[aria-current="step"]')?.textContent).toContain('Your first issue');
     expect(doc.querySelectorAll('[aria-current]')).toHaveLength(1);
+
+    const first = renderToStaticMarkup(<FlowSteps side="contribute" current={1} />);
+    expect(new DOMParser().parseFromString(first, 'text/html').querySelector('[aria-current]')?.textContent).toBe(
+      '1Your agent',
+    );
   });
 
   it('frames a step with no tabs, the line of steps over one narrow column', () => {
@@ -63,25 +71,15 @@ describe('the line of steps', () => {
   });
 });
 
-describe('the flow’s sign-in card', () => {
-  it('says why, what GitHub shares, and signs in back to this very address with its answers', async () => {
-    window.history.replaceState(null, '', '/contribute/start/agent?languages=go&kinds=bug');
-    await render(
-      <FlowSignIn
-        title="Sign in to connect an agent"
-        text="Your account is needed from this step."
-        source="contribute_flow_sign_in"
-      />,
-    );
-    expect(container.textContent).toContain('Sign in to connect an agent');
-    expect(container.textContent).toContain('GitHub shares your public profile and email with us, read-only.');
-    const button = container.querySelector<HTMLButtonElement>('[data-sign-in="flow"]');
-    expect(button?.dataset.contributeSource).toBe('contribute_flow_sign_in');
-    await act(async () => button?.click());
-    expect(signIn).toHaveBeenCalledWith(IDENTITY_PROVIDER, {
-      redirectTo: '/contribute/start/agent?languages=go&kinds=bug',
-    });
-    expect(button?.disabled).toBe(true);
+describe('the way back to an issue on a step’s links', () => {
+  it('"Two ways" keeps the address’s way back, and drops anything that is not an issue’s id', async () => {
+    window.history.replaceState(null, '', '/contribute/start/agent/key?issue=q7k2m9xa');
+    await render(<FlowBackHere href={GETTING_IN_PATHS.contributeStart}>Two ways</FlowBackHere>);
+    expect(container.querySelector('a')?.getAttribute('href')).toBe('/contribute/start?issue=q7k2m9xa');
+
+    window.history.replaceState(null, '', '/contribute/start/agent/key?issue=%2F%2Fevil.example');
+    await render(<FlowBackHere href={GETTING_IN_PATHS.contributeStart}>Two ways</FlowBackHere>);
+    expect(container.querySelector('a')?.getAttribute('href')).toBe('/contribute/start');
   });
 });
 
@@ -142,6 +140,27 @@ describe('the bookmark in the browser', () => {
     await act(async () => container.querySelector<HTMLButtonElement>('[data-more]')?.click());
     expect(readFlowBookmark('contribute')).toBe('/contribute/start/issue');
     await act(async () => container.querySelector<HTMLButtonElement>('[data-start-control]')?.click());
+    expect(readFlowBookmark('contribute')).toBeNull();
+  });
+
+  it('a masked row’s "See the full issue" is a way out inside the step, and only there', async () => {
+    window.history.replaceState(null, '', '/contribute/start/issue');
+    await render(<MaskedIssueRow issue={maskedIssue()} />);
+    expect(container.querySelector('[data-flow-leave]')).toBeNull();
+
+    await render(
+      <>
+        <FlowBookmark side="contribute" />
+        <FlowExit side="contribute">
+          <MaskedIssueRow issue={maskedIssue()} />
+        </FlowExit>
+      </>,
+    );
+    const see = container.querySelector<HTMLAnchorElement>('[data-flow-leave]');
+    expect(see?.textContent).toContain('See the full issue');
+    expect(readFlowBookmark('contribute')).toBe('/contribute/start/issue');
+    see?.addEventListener('click', (event) => event.preventDefault());
+    await act(async () => see?.click());
     expect(readFlowBookmark('contribute')).toBeNull();
   });
 

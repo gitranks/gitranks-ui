@@ -2,187 +2,227 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
-import {
-  AGENT_HEAD,
-  BACK_TO_CHOICE,
-  CHOICE_SIGN_IN,
-  FIRST_ISSUE,
-  OWN_AGENT_HEAD,
-  WORK_HEAD,
-} from '@/app/(onboarding)/contribute/start/copy';
-import { ContributeIssueList } from '@/app/(workspace)/contribute/components/issue-list';
-import { AgentChoice } from '@/components/contribute/start/agent-choice';
-import { PicksNotSaved } from '@/components/contribute/start/apply-picks';
+import { BACK_TO_CHOICE, FIRST_ISSUE, OWN_AGENT_HEAD } from '@/app/(onboarding)/contribute/start/copy';
+import { FirstIssueList } from '@/app/(onboarding)/contribute/start/first-issue-list';
+import { StillRanking } from '@/app/contribute/components/still-ranking';
+import { FirstIssueStep, type MarkState } from '@/components/contribute/start/first-issue-step';
 import { OwnAgentStep } from '@/components/contribute/start/own-agent-step';
-import { WorkStep } from '@/components/contribute/start/work-step';
+import { WhoDoesTheWork } from '@/components/contribute/start/who-does-the-work';
 import { Header } from '@/components/header/header';
 import { ConnectScreen } from '@/components/workspace/agent/connect-view';
-import { FlowBack, FlowFrame, FlowHead } from '@/components/workspace/getting-in/flow-frame';
-import { FlowSignIn } from '@/components/workspace/getting-in/flow-sign-in';
-import type { FlowStepNumber } from '@/components/workspace/getting-in/flow-steps';
+import { FlowBack, FlowFrame } from '@/components/workspace/getting-in/flow-frame';
+import { MaskedIssueRow } from '@/components/workspace/masked-issue/masked-issue-row';
 import { HEADING } from '@/components/workspace/primitives';
 import { ContributeSettingUp } from '@/components/workspace/setting-up';
 import { issuePage } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { views } from '@/lib/contribute/__fixtures__/contribute-views';
-import { firstIssueLineOf, type WorkPicks } from '@/lib/contribute/start-flow';
-import type { FlowSide } from '@/lib/workspace/getting-in';
+import { startRead } from '@/lib/contribute/__fixtures__/wave-4-parts';
+import { type FirstIssueState, firstIssueLineOf } from '@/lib/contribute/start-flow';
+import { type StartWaysRead, startWaysOf } from '@/lib/contribute/start-ways';
+import { maskedIssue } from '@/lib/workspace/__fixtures__/masked-issue';
+import type { ContributeIssuePage, ContributeLanguage } from '@/lib/workspace/contribute.types';
+import type { FlowConnected } from '@/lib/workspace/getting-in';
+import { issuePageHrefOf } from '@/lib/workspace/masked-issue';
 import { GETTING_IN_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /**
  * The flow that starts Contribute, as its pages draw it: the site header (its Contribute marked by the path), no
- * workspace tabs, the line of steps, then the step. The pages read their place on the server
- * (`loadContributeFlowPlace`); here each state is the step's own parts with fixtures.
+ * workspace tabs, the line of two steps, then the step. The pages read their place on the server
+ * (`loadContributeFlowPlace`); here each case is the step's own parts with fixtures.
  */
-const flow = (side: FlowSide, step: FlowStepNumber, children: ReactNode) => (
+
+/** A labelled part of a board that shows several cases one under the other. */
+const Case = ({ title, children }: { title: string; children: ReactNode }) => (
+  <div className="flex flex-col gap-3 border-t pt-4">
+    <span className="text-sm font-semibold text-foreground">{title}</span>
+    {children}
+  </div>
+);
+
+const firstStep = (children: ReactNode) => (
   <>
     <Header />
-    <FlowFrame side={side} step={step}>
+    <FlowFrame side="contribute" step={1}>
       {children}
     </FlowFrame>
   </>
 );
 
-const NO_PICKS: WorkPicks = { languages: [] };
-/** A signed-in person's languages, pre-ticked from their profile's top three. */
-const PROFILE_PICKS: WorkPicks = { languages: ['JS_TS', 'GO', 'RUST'] };
-const noop = () => {};
+/** The first step in one case, as `/contribute/start` draws it. */
+const ways = (read: Partial<StartWaysRead> = {}) => <WhoDoesTheWork ways={startWaysOf(startRead(read))} />;
 
-/**
- * Step 2's choice, as `/contribute/start/agent` draws it: the sign-in card above the dimmed cards for a visitor; signed
- * in, the line that the picks of step 1 could not be saved when `unsaved`.
- */
-const agentChoice = (visitor: boolean, unsaved = false) =>
-  flow(
-    'contribute',
-    2,
-    <>
-      <FlowHead {...AGENT_HEAD} />
-      {visitor ? <FlowSignIn {...CHOICE_SIGN_IN} source="contribute_flow_sign_in" /> : null}
-      {unsaved ? <PicksNotSaved pending={false} onRetry={noop} /> : null}
-      <AgentChoice enabled={!visitor} />
-    </>,
-  );
+const WAY_BACK = 'q7k2m9xa';
+const OWN: FlowConnected = { own: true, hosted: false };
+const PROFILE: ContributeLanguage[] = ['JS_TS', 'PYTHON', 'GO'];
+const NONE: ContributeIssuePage = { items: [], next: null, total: 0, computedAt: '2026-10-28T06:00:00.000Z' };
+const PICKING: ContributeIssuePage = { items: [], next: null, total: 0, computedAt: null };
 
-/** Step 3, as `/contribute/start/issue` draws it for a person whose own agent has connected. */
-const firstIssue = (page = issuePage) =>
-  flow(
-    'contribute',
-    3,
+/** The second step, as `/contribute/start/issue` draws it for a person whose own agent has connected. */
+function firstIssue({
+  state = 'list',
+  page = issuePage,
+  opened = false,
+  saved = null,
+  mark = 'done',
+}: {
+  state?: FirstIssueState;
+  page?: ContributeIssuePage;
+  opened?: boolean;
+  saved?: ContributeLanguage[] | null;
+  mark?: MarkState;
+} = {}) {
+  return (
     <>
-      <FlowHead title={FIRST_ISSUE.title} text={firstIssueLineOf({ hosted: false, own: true }, 'Claude Code')} />
-      <ContributeIssueList
-        page={page}
-        agents={{ hosted: false, own: true }}
-        menu={false}
-        languages={['JS_TS']}
-        facts={{ capUsd: null, keyWaiting: null }}
-        source="contribute_flow_issue"
-        noneTitle={FIRST_ISSUE.none}
-      />
-      <p className="text-sm text-muted-foreground">{FIRST_ISSUE.review}</p>
-      <Link
-        href={WORKSPACE_PATHS.contribute}
-        prefetch={false}
-        className="self-start text-sm font-semibold text-link hover:underline max-sm:min-h-11"
+      <Header />
+      <FirstIssueStep
+        mark={false}
+        initialMark={mark}
+        head={{ title: FIRST_ISSUE.title, text: firstIssueLineOf(OWN, 'Claude Code', state) }}
+        languages={{ saved, profile: PROFILE, preferences: null }}
+        nothingConnected={startWaysOf(startRead())}
+        picking={<StillRanking reads={false} />}
+        opened={
+          opened ? (
+            <section className="flex flex-col gap-3" data-opened-issue="">
+              <h2 className="m-0 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                {FIRST_ISSUE.opened}
+              </h2>
+              <MaskedIssueRow
+                issue={maskedIssue({ id: WAY_BACK })}
+                href={issuePageHrefOf(WAY_BACK, 'contribute')}
+                seeLabel={FIRST_ISSUE.openedStart}
+                skippable={false}
+              />
+              <h2 className="m-0 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                {FIRST_ISSUE.another}
+              </h2>
+            </section>
+          ) : null
+        }
+        foot={
+          <>
+            <p className="m-0 text-sm text-muted-foreground">{FIRST_ISSUE.next}</p>
+            <Link
+              href={WORKSPACE_PATHS.contribute}
+              prefetch={false}
+              data-flow-leave=""
+              className="self-start text-sm font-semibold text-link hover:underline max-sm:min-h-11"
+            >
+              {FIRST_ISSUE.skip}
+            </Link>
+          </>
+        }
       >
-        {FIRST_ISSUE.skip}
-      </Link>
-    </>,
+        {state === 'picking' ? (
+          <StillRanking />
+        ) : (
+          <FirstIssueList
+            none={state === 'none'}
+            page={page}
+            agents={OWN}
+            menu={false}
+            languages={saved ?? []}
+            facts={{ capUsd: null, keyWaiting: null }}
+            source="contribute_flow_issue"
+          />
+        )}
+      </FirstIssueStep>
+    </>
   );
+}
 
 export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
   {
-    id: 'contribute-flow-work',
-    title: 'Getting in · What you work on',
+    id: 'contribute-flow-start',
+    title: 'Getting in · Your agent',
     area: 'contribute',
     route: '/contribute/start',
     sources: [
       'app/(onboarding)/layout.tsx',
       'app/(onboarding)/contribute/start/page.tsx',
+      'app/(onboarding)/contribute/start/start-step.tsx',
+      'components/contribute/start/who-does-the-work.tsx',
       'components/workspace/getting-in/flow-frame.tsx',
       'components/workspace/getting-in/flow-steps.tsx',
       'components/workspace/getting-in/flow-place.tsx',
-      'components/contribute/start/work-step.tsx',
-      'lib/contribute/start-flow.ts',
+      'lib/contribute/start-ways.ts',
       'lib/workspace/getting-in.ts',
+      'lib/workspace/flow-way-back.ts',
+      'lib/workspace/sign-in-to-flow.ts',
     ],
     states: [
       {
+        id: 'signed-in',
+        title: 'Signed in, nothing connected',
+        path: GETTING_IN_PATHS.contributeStart,
+        height: 1180,
+        render: () => firstStep(ways()),
+      },
+      {
         id: 'visitor',
-        title: 'A visitor: nothing ticked, and the sign-in that fills languages from their repositories',
-        path: GETTING_IN_PATHS.contributeWork,
+        title: 'A visitor: the same page, each button signing in with GitHub first',
+        path: GETTING_IN_PATHS.contributeStart,
         signedOut: true,
-        height: 920,
+        height: 1220,
+        render: () => firstStep(ways({ signedIn: false })),
+      },
+      {
+        id: 'from-issue',
+        title: 'Opened from an issue that still reads: the line over the title, the way back on every button',
+        path: `${GETTING_IN_PATHS.contributeStart}?issue=${WAY_BACK}`,
+        height: 1220,
+        render: () => firstStep(ways({ issue: WAY_BACK, issueReads: true })),
+      },
+      {
+        id: 'no-sign',
+        title: 'Connected, no Contribute sign: the step is done, Continue to the second',
+        path: GETTING_IN_PATHS.contributeStart,
+        height: 2900,
         render: () =>
-          flow(
-            'contribute',
-            1,
+          firstStep(
             <>
-              <FlowHead {...WORK_HEAD} />
-              <WorkStep initial={NO_PICKS} signedIn={false} />
+              <Case title="An agent of their own">{ways({ own: 'Claude Code' })}</Case>
+              <Case title="A Claude key">{ways({ key: 'connected' })}</Case>
+              <Case title="Both">{ways({ own: 'Claude Code', key: 'connected' })}</Case>
             </>,
           ),
       },
       {
-        id: 'signed-in',
-        title: 'Signed in, nothing saved yet: languages pre-ticked from their profile',
-        path: GETTING_IN_PATHS.contributeWork,
-        height: 880,
+        id: 'with-sign',
+        title: 'Connected, with the Contribute sign: back to add the other way',
+        path: GETTING_IN_PATHS.contributeStart,
+        height: 2900,
         render: () =>
-          flow(
-            'contribute',
-            1,
+          firstStep(
             <>
-              <FlowHead {...WORK_HEAD} />
-              <WorkStep initial={PROFILE_PICKS} signedIn />
+              <Case title="An agent of their own">{ways({ sign: true, own: 'Claude Code' })}</Case>
+              <Case title="A Claude key, with an attempt">{ways({ sign: true, key: 'connected', attempt: true })}</Case>
+              <Case title="Both">{ways({ sign: true, own: 'Claude Code', key: 'connected' })}</Case>
             </>,
           ),
+      },
+      {
+        id: 'key-invalid',
+        title: 'The Claude key stopped working, nothing else connected',
+        path: GETTING_IN_PATHS.contributeStart,
+        height: 1180,
+        render: () => firstStep(ways({ key: 'invalid' })),
+      },
+      {
+        id: 'phone',
+        title: 'A visitor on a phone',
+        path: GETTING_IN_PATHS.contributeStart,
+        signedOut: true,
+        width: 390,
+        height: 1900,
+        render: () => firstStep(ways({ signedIn: false })),
       },
       {
         id: 'setting-up',
         title: 'A new account still being set up: the panel in the frame, on every step',
-        path: GETTING_IN_PATHS.contributeWork,
+        path: GETTING_IN_PATHS.contributeStart,
         height: 480,
-        render: () => flow('contribute', 1, <ContributeSettingUp />),
-      },
-    ],
-  },
-  {
-    id: 'contribute-flow-agent',
-    title: 'Getting in · Your agent',
-    area: 'contribute',
-    route: '/contribute/start/agent',
-    sources: [
-      'app/(onboarding)/contribute/start/agent/page.tsx',
-      'app/(onboarding)/contribute/start/sign-in-copy.ts',
-      'components/contribute/start/agent-choice.tsx',
-      'components/contribute/start/apply-picks.tsx',
-      'components/workspace/getting-in/flow-sign-in.tsx',
-    ],
-    states: [
-      {
-        id: 'visitor',
-        title: 'A visitor: sign in first, the two ways dimmed until then',
-        path: GETTING_IN_PATHS.contributeAgent,
-        signedOut: true,
-        height: 880,
-        render: () => agentChoice(true),
-      },
-      {
-        id: 'picks-unsaved',
-        title: 'Signed in, the picks of step 1 not saved: one quiet line with Try again; the cards still work',
-        path: `${GETTING_IN_PATHS.contributeAgent}?languages=rust,go`,
-        height: 760,
-        render: () => agentChoice(false, true),
-      },
-      {
-        id: 'phone',
-        title: 'A visitor on a phone: the sign-in card, then the two ways stacked',
-        path: GETTING_IN_PATHS.contributeAgent,
-        signedOut: true,
-        width: 390,
-        height: 1340,
-        render: () => agentChoice(true),
+        render: () => firstStep(<ContributeSettingUp />),
       },
     ],
   },
@@ -195,6 +235,7 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
       'app/(onboarding)/contribute/start/agent/own/page.tsx',
       'components/contribute/start/own-agent-step.tsx',
       'components/workspace/agent/agent-connect.tsx',
+      'components/workspace/getting-in/flow-back-here.tsx',
     ],
     states: [
       {
@@ -203,12 +244,10 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
         path: GETTING_IN_PATHS.contributeAgentOwn,
         height: 700,
         render: () =>
-          flow(
-            'contribute',
-            2,
+          firstStep(
             <>
+              <FlowBack href={GETTING_IN_PATHS.contributeStart}>{BACK_TO_CHOICE}</FlowBack>
               <div className="flex flex-col gap-2">
-                <FlowBack href={GETTING_IN_PATHS.contributeAgent}>{BACK_TO_CHOICE}</FlowBack>
                 <span className="text-xs font-semibold text-primary">{OWN_AGENT_HEAD.eyebrow}</span>
                 <h1 className={HEADING.page}>{OWN_AGENT_HEAD.title}</h1>
               </div>
@@ -236,11 +275,9 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
         path: GETTING_IN_PATHS.contributeAgentKey,
         height: 1920,
         render: () =>
-          flow(
-            'contribute',
-            2,
+          firstStep(
             <>
-              <FlowBack href={GETTING_IN_PATHS.contributeAgent}>{BACK_TO_CHOICE}</FlowBack>
+              <FlowBack href={GETTING_IN_PATHS.contributeStart}>{BACK_TO_CHOICE}</FlowBack>
               <ConnectScreen
                 view={views.noKey}
                 today={28}
@@ -260,24 +297,64 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
     route: '/contribute/start/issue',
     sources: [
       'app/(onboarding)/contribute/start/issue/page.tsx',
+      'app/(onboarding)/contribute/start/first-issue-list.tsx',
       'app/(workspace)/contribute/components/issue-list.tsx',
+      'components/contribute/start/first-issue-step.tsx',
+      'components/contribute/languages-dialog.tsx',
       'components/workspace/getting-in/flow-bookmark.tsx',
       'lib/contribute/start-flow.ts',
+      'lib/workspace/onboarding.actions.ts',
     ],
     states: [
       {
         id: 'list',
-        title: 'Your own agent connected: Start on one, or skip for now',
+        title: 'Your own agent connected, nothing saved: the profile’s languages, the list, the ways out',
         path: GETTING_IN_PATHS.contributeIssue,
-        height: 900,
+        height: 1000,
         render: () => firstIssue(),
       },
       {
-        id: 'none',
-        title: 'No issue matches what you work on yet: change it in Settings',
+        id: 'opened',
+        title: 'Opened from an issue: "The issue you opened" first, then the list',
+        path: `${GETTING_IN_PATHS.contributeIssue}?issue=${WAY_BACK}`,
+        height: 1240,
+        render: () => firstIssue({ opened: true, saved: ['RUST', 'GO'] }),
+      },
+      {
+        id: 'picking',
+        title: 'The first issues still being picked, or picked again after a save: the page fills in by itself',
         path: GETTING_IN_PATHS.contributeIssue,
-        height: 580,
-        render: () => firstIssue({ items: [], next: null, total: 0, computedAt: '2026-10-28T06:00:00.000Z' }),
+        height: 620,
+        render: () => firstIssue({ state: 'picking', page: PICKING }),
+      },
+      {
+        id: 'none',
+        title: 'Nothing fits: Add a language opens the languages dialog',
+        path: GETTING_IN_PATHS.contributeIssue,
+        height: 640,
+        render: () => firstIssue({ state: 'none', page: NONE }),
+      },
+      {
+        id: 'mark-failed',
+        title: 'Setting up failed twice: one line under the head, the ways out stay',
+        path: GETTING_IN_PATHS.contributeIssue,
+        height: 1040,
+        render: () => firstIssue({ mark: 'error' }),
+      },
+      {
+        id: 'nothing-connected',
+        title: 'Setting up found nothing connected: the first step in place, no Continue',
+        path: GETTING_IN_PATHS.contributeIssue,
+        height: 1180,
+        render: () => firstIssue({ mark: 'none' }),
+      },
+      {
+        id: 'phone',
+        title: 'On a phone',
+        path: GETTING_IN_PATHS.contributeIssue,
+        width: 390,
+        height: 1500,
+        render: () => firstIssue(),
       },
     ],
   },

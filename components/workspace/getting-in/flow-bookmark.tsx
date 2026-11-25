@@ -1,7 +1,7 @@
 'use client';
 
 import type { Route } from 'next';
-import { type ReactNode, useEffect } from 'react';
+import { createContext, type ReactNode, useContext, useEffect } from 'react';
 
 import type { FlowSide } from '@/lib/workspace/getting-in';
 import {
@@ -53,9 +53,16 @@ export function FlowBookmark({ side }: { side: FlowSide }) {
   return null;
 }
 
+/** Whether a part is drawn inside a flow's way out (`FlowExit`): a masked row's "See the full issue" leaves the flow there. */
+const InFlowExitContext = createContext(false);
+
+/** Inside `FlowExit`: the ways out a part draws are marked `data-flow-leave`. */
+export const useInFlowExit = () => useContext(InFlowExitContext);
+
 /**
- * Around the part of a step that leaves the flow into the workspace (a Start, Skip for now): a click on a Start control
- * or on a link marked `data-flow-leave` forgets `side`'s step, so the landing no longer resumes there.
+ * Around the part of a step that leaves the flow into the workspace (a Start, Skip for now, a masked row's "See the
+ * full issue"): a click on a Start control or on a control marked `data-flow-leave` forgets `side`'s step, so the
+ * landing no longer resumes there. The masked rows inside mark their own button (`useInFlowExit`).
  */
 export function FlowExit({ side, children }: { side: FlowSide; children: ReactNode }) {
   return (
@@ -63,12 +70,15 @@ export function FlowExit({ side, children }: { side: FlowSide; children: ReactNo
     <div
       className="contents"
       onClickCapture={(event) => {
-        if (event.target instanceof Element && event.target.closest('[data-start-control], [data-flow-leave]')) {
+        if (event.target instanceof Element && event.target.closest(FLOW_WAYS_OUT)) {
           forgetFlowBookmark(side);
         }
       }}
     >
-      {children}
+      <InFlowExitContext.Provider value={true}>{children}</InFlowExitContext.Provider>
     </div>
   );
 }
+
+/** The controls that leave the flow: a Start control, or anything marked `data-flow-leave`. */
+export const FLOW_WAYS_OUT = '[data-start-control], [data-flow-leave]';

@@ -21,14 +21,17 @@ export const rankingTickOf = (startedAt: number, now: number, forSeconds = RANKI
  * The first picks are computed after the key is connected. While they are, Contribute's poll goes fast (5 then 10 s),
  * and the page reads itself again once the poll says the picks are in (`FEED`); where the poll does not run yet (the
  * tabs show once the user is onboarded), the page reads itself again every few seconds instead. Ten minutes on, it
- * stops, says it is taking longer than usual, and offers a refresh.
+ * stops, says it is taking longer than usual, and offers a refresh. With `reads` off it is the box alone: a page that
+ * watches the picks itself (the flow's list picked again after a save) reads in place once they are in.
  */
 export function StillRanking({
   seconds = RANKING_REFRESH_SECONDS,
   forSeconds = RANKING_REFRESH_FOR_SECONDS,
+  reads = true,
 }: {
   seconds?: number;
   forSeconds?: number;
+  reads?: boolean;
 }) {
   const router = useRouter();
   const [round, setRound] = useState(0);
@@ -37,6 +40,7 @@ export function StillRanking({
   // biome-ignore lint/correctness/useExhaustiveDependencies: a refresh by hand starts another round.
   useEffect(() => {
     setStopped(false);
+    if (!reads) return;
     const startedAt = Date.now();
     const release = holdFastChanges();
     const timer = setInterval(() => {
@@ -52,7 +56,7 @@ export function StillRanking({
       clearInterval(timer);
       release();
     };
-  }, [router, seconds, forSeconds, round]);
+  }, [router, seconds, forSeconds, reads, round]);
 
   return (
     <div

@@ -42,6 +42,7 @@ const learnReads = vi.hoisted(() => ({
   loadLearnEmailSettings: vi.fn(async () => null),
   loadLearnSetupForSettings: vi.fn(async () => null),
   loadLearnIssuesEmail: vi.fn(async () => null),
+  loadLearnLessonIssuesEmail: vi.fn(async () => null),
 }));
 vi.mock('@/lib/learn/settings.data', () => learnReads);
 vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction: vi.fn() }));
@@ -57,7 +58,7 @@ const { SettingsAnchors } = await import('@/components/workspace/settings/settin
 const { contributor, email, limits, settingsViews, views } = await import(
   '@/lib/contribute/__fixtures__/contribute-views'
 );
-const { learnEmail, learnIssuesEmail } = await import('@/lib/learn/__fixtures__/settings');
+const { learnEmail, learnIssuesEmail, learnLessonIssuesEmail } = await import('@/lib/learn/__fixtures__/settings');
 const { setupGuessed, setupSaved, setupWorking } = await import('@/lib/learn/__fixtures__/setup');
 
 const text = (html: string) =>
@@ -136,6 +137,35 @@ describe('the Settings page (page 23)', () => {
       'time-zone',
     ]);
     expect(emailRowsOf(render({ bar: 'learn' }).html)).not.toContain('new-issues');
+  });
+
+  it('draws Issues for my lessons beside New issues for you when its read answered, and no row when it did not', () => {
+    const both = render({
+      bar: 'learn',
+      learnIssuesEmail: learnIssuesEmail.off,
+      learnLessonIssuesEmail: learnLessonIssuesEmail.on,
+    });
+    expect(emailRowsOf(both.html)).toEqual([
+      'lessons-to-repeat',
+      'new-issues',
+      'lesson-issues',
+      'needs-you',
+      'ended',
+      'time-zone',
+    ]);
+    expect(both.plain).toContain(
+      'Issues for my lessons This lesson and every lesson you learned but have not used on a real issue yet. One email a day at most.',
+    );
+    // Alone, from Contribute's bar: in Learn's rows after the shared ones.
+    const alone = render({ learnLessonIssuesEmail: learnLessonIssuesEmail.off });
+    expect(emailRowsOf(alone.html)).toEqual(['needs-you', 'ended', 'lessons-to-repeat', 'lesson-issues', 'time-zone']);
+    expect(emailRowsOf(render({ bar: 'learn' }).html)).not.toContain('lesson-issues');
+    // Learn's email settings did not load: no row of Learn's switches at all.
+    expect(
+      emailRowsOf(
+        render({ learnEmail: null, learnEmailFailed: true, learnLessonIssuesEmail: learnLessonIssuesEmail.on }).html,
+      ),
+    ).not.toContain('lesson-issues');
   });
 
   it('shows a learner Learn first and no Contribute preferences', () => {
@@ -349,6 +379,7 @@ describe('the reads of Settings and the key page', () => {
       expect(await first()).toBe('learn-preferences');
       expect(learnReads.loadLearnEmailSettings).toHaveBeenCalledWith('octocat');
       expect(learnReads.loadLearnIssuesEmail).toHaveBeenCalledWith('octocat');
+      expect(learnReads.loadLearnLessonIssuesEmail).toHaveBeenCalledWith('octocat');
     } finally {
       jar.value = undefined;
     }

@@ -11,7 +11,7 @@ import { SettingsGroup, SettingsList } from '@/components/workspace/settings-row
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { activityOf } from '@/lib/contribute/__fixtures__/agent-runs';
 import { contributor, email, settingsViews } from '@/lib/contribute/__fixtures__/contribute-views';
-import { BOARD_ZONES, learnEmail } from '@/lib/learn/__fixtures__/settings';
+import { BOARD_ZONES, learnEmail, learnIssuesEmail, learnLessonIssuesEmail } from '@/lib/learn/__fixtures__/settings';
 import { setupGuessed, setupSaved, setupWorking } from '@/lib/learn/__fixtures__/setup';
 import type { LearnBarState } from '@/lib/learn/learn-bar';
 import { type LearnEmailSettings, zoneChoicesOf } from '@/lib/learn/settings';
@@ -174,9 +174,10 @@ export const SETTINGS_SCREEN: Screen = {
     },
     {
       id: 'learner',
-      title: "Opened from Learn's bar by a learner: Learn's own settings first, Settings the bar's current tab",
+      title:
+        "Opened from Learn's bar by a learner: Learn's own settings first, its emails with Issues for my lessons, Settings the bar's current tab",
       path: '/my/settings?from=learn',
-      height: 1600,
+      height: 1800,
       render: () =>
         learnFrame(
           screen({
@@ -185,6 +186,8 @@ export const SETTINGS_SCREEN: Screen = {
             email: LISBON,
             learnSetup: setupSaved,
             learnEmail: learnEmail.device,
+            learnIssuesEmail: learnIssuesEmail.off,
+            learnLessonIssuesEmail: learnLessonIssuesEmail.on,
           }),
         ),
     },

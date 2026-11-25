@@ -1,7 +1,10 @@
+import type { Route } from 'next';
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { type IssuesLayer, IssuesScreen } from '@/components/learn/issues/issues-screen';
+import { LessonIssuesEmail } from '@/components/learn/issues/lesson-issues-email';
+import { RealProjectsEnd } from '@/components/learn/issues/real-projects';
 import type { FixesLayer } from '@/components/learn/issues/real-projects-screen';
 import {
   issuesNames,
@@ -14,6 +17,9 @@ import {
 } from '@/lib/learn/__fixtures__/issues';
 import { passedFixes, tenOfMany } from '@/lib/learn/__fixtures__/real-projects';
 import type { IssuesAt, IssuesView, LearnFixes } from '@/lib/learn/issues';
+import type { LessonIssuesEmailState } from '@/lib/learn/lesson-issues-email';
+import { OPEN_NONE } from '@/lib/learn/real-projects';
+import { learnSettingsErrorOf } from '@/lib/learn/settings';
 import { looksToday } from '@/lib/workspace/__fixtures__/masked-issue';
 import type { MaskedListReads } from '@/lib/workspace/masked-issue';
 
@@ -49,6 +55,13 @@ const draw = (
   <IssuesScreen view={view} at={at} names={issuesNames} layer={layer} fixes={fixes} shared={shared} passed={passed} />
 );
 
+/** The box of a lesson with no open issue, with "Email me issues for my lessons" in one of its states. */
+const emailBox = (state: LessonIssuesEmailState, error: string | null = null) => (
+  <RealProjectsEnd end={OPEN_NONE} kind="open-none">
+    <LessonIssuesEmail state={state} back={PAGE as Route} error={error} />
+  </RealProjectsEnd>
+);
+
 const mine = (rows: number) => ({
   kind: 'personal' as const,
   list: { ...personalList(), rows: personalList().rows.slice(0, rows) },
@@ -64,7 +77,9 @@ export const LEARN_REAL_PROJECTS_SCREENS: Screen[] = [
     sources: [
       'components/learn/issues/real-projects-screen.tsx',
       'components/learn/issues/real-projects.tsx',
+      'components/learn/issues/lesson-issues-email.tsx',
       'lib/learn/real-projects.ts',
+      'lib/learn/lesson-issues-email.ts',
       'lib/learn/issues.ts',
     ],
     states: [
@@ -102,6 +117,37 @@ export const LEARN_REAL_PROJECTS_SCREENS: Screen[] = [
             </Case>
             <Case title="The person's own view has none while the shared list has some; no fix yet">
               {draw({ kind: 'personal', list: listOutsideForYou(), reads: member }, noFix)}
+            </Case>
+          </main>
+        ),
+      },
+      {
+        id: 'email',
+        title: 'No open issue: "Email me issues for my lessons" in each state, in one place that never moves',
+        path: PAGE,
+        height: 1500,
+        render: () => (
+          <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pt-7 pb-16">
+            <Case title="A visitor: the press signs in through Learn's onboarding and comes back here, where the button waits">
+              {emailBox({ kind: 'visitor' })}
+            </Case>
+            <Case title="Signed in without the Learn sign: the button opens Learn's onboarding, then comes back here">
+              {emailBox({ kind: 'setup' })}
+            </Case>
+            <Case title="While the person's own list is read: the button stands in its place and waits">
+              {emailBox({ kind: 'unread' })}
+            </Case>
+            <Case title="With the Learn sign, off: one press turns it on and adds this lesson">
+              {emailBox({ kind: 'off' })}
+            </Case>
+            <Case title="On, and covering this lesson: where the email goes, in the button's place, with Turn off">
+              {emailBox({ kind: 'on', to: 'y***@example.com' })}
+            </Case>
+            <Case title="On with no address: says the email needs one, never looks on">
+              {emailBox({ kind: 'no-address' })}
+            </Case>
+            <Case title="A save that failed: why, under the box; nothing changed">
+              {emailBox({ kind: 'off' }, learnSettingsErrorOf('FAILED'))}
             </Case>
           </main>
         ),

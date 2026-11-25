@@ -464,6 +464,17 @@ describe("the API's answers checked", () => {
       outsideForYou: null,
       emailOn: false,
       emailTo: null,
+      lessonIssues: null,
+      lessonIssuesCovered: null,
+    });
+    // The lessons' email: its switch and whether it covers the lesson, as booleans or not known.
+    expect(issuesListOf({ ...personalList(), lessonIssues: true, lessonIssuesCovered: false })).toMatchObject({
+      lessonIssues: true,
+      lessonIssuesCovered: false,
+    });
+    expect(issuesListOf({ ...personalList(), lessonIssues: 'yes', lessonIssuesCovered: undefined })).toMatchObject({
+      lessonIssues: null,
+      lessonIssuesCovered: null,
     });
     expect(issuesListOf(null)).toBeNull();
     expect(issuesListOf({ rows: null })).toBeNull();

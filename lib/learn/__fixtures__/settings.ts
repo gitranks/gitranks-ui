@@ -1,4 +1,4 @@
-import type { LearnEmailSettings, LearnIssuesEmailSetting } from '../settings';
+import type { LearnEmailSettings, LearnIssuesEmailSetting, LearnLessonIssuesSetting } from '../settings';
 
 /** Learn's email settings as page 23's boards draw them. */
 export const learnEmail = {
@@ -27,4 +27,10 @@ export const learnIssuesEmail: Record<'off' | 'forYou' | 'learned', LearnIssuesE
   off: { on: false, cover: null },
   forYou: { on: true, cover: 'FOR_YOU' },
   learned: { on: true, cover: 'LEARNED' },
+};
+
+/** "Issues for my lessons": off as it starts, and on. */
+export const learnLessonIssuesEmail: Record<'off' | 'on', LearnLessonIssuesSetting> = {
+  off: { on: false },
+  on: { on: true },
 };

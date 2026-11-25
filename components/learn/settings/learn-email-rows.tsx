@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronsUpDown, CircleDot, Clock, Repeat } from 'lucide-react';
+import { BookOpen, Check, ChevronsUpDown, CircleDot, Clock, Repeat } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useId, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react';
 
@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SettingsRow } from '@/components/workspace/settings-rows';
-import { setLearnIssuesEmailAction } from '@/lib/learn/issues.actions';
+import { setLearnIssuesEmailAction, setLearnLessonIssuesEmailAction } from '@/lib/learn/issues.actions';
+import { LESSON_ISSUES_EMAIL_LINE } from '@/lib/learn/lesson-issues-email';
 import {
   allZonesOf,
   DEVICE_ZONE_NOT_SAVED,
   LEARN_EMAIL_READ_FAILED,
+  LESSON_ISSUES_TITLE,
   LESSONS_TO_REPEAT_LINE,
   LESSONS_TO_REPEAT_TITLE,
   type LearnEmailSettings,
@@ -37,7 +39,8 @@ import { setContributeEmailSettings } from '@/lib/workspace/actions';
 import { browserTimeZone, forgetSentTimeZone, rememberSentTimeZone } from '@/lib/workspace/email-settings';
 
 /*
- * Learn's rows of Settings' Email group (page 23): "Lessons to repeat", "New issues for you" and "Time zone". Each
+ * Learn's rows of Settings' Email group (page 23): "Lessons to repeat", "New issues for you", "Issues for my lessons"
+ * and "Time zone". Each
  * change saves at once and sends only its own field, so the switch never moves the zone and a zone never moves the
  * switch. A save that fails moves the row back and says why; a change while one saves is ignored.
  */
@@ -257,6 +260,80 @@ export function NewIssuesRow({
           // biome-ignore lint/a11y/useAriaPropsForRole: a native checkbox: the switch role reads its checked state, so aria-checked would only repeat it.
           role="switch"
           aria-label={`Email ${NEW_ISSUES_TITLE.toLowerCase()}`}
+          aria-describedby={`${id}-line`}
+          aria-disabled={pending || undefined}
+          checked={on}
+          onChange={(event) => change(event.target.checked)}
+          className="size-4.5 accent-primary disabled:opacity-60 aria-disabled:opacity-60"
+        />
+        {/* "On" and "Off" take the same width, so nothing moves when it changes. */}
+        <span className="inline-block w-6">{on ? 'On' : 'Off'}</span>
+      </label>
+    </SettingsRow>
+  );
+}
+
+/**
+ * "Issues for my lessons": the switch of "Email me issues for my lessons" on a lesson's view, off until the person
+ * turns it on. Turned on here it covers the lessons it covered before: the ones asked for, kept while it is off, and
+ * the lessons learned but not used on a real issue yet; off turns the whole switch off. With no address it says so
+ * but can still be turned on, as "New issues for you" can: the email goes out once an address is known.
+ */
+export function LessonIssuesRow({ on: initial, noAddress = false }: { on: boolean; noAddress?: boolean }) {
+  const router = useRouter();
+  const id = useId();
+  const [on, setOn] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const saved = useRef(initial);
+  const saving = useRef(false);
+
+  const change = (next: boolean) => {
+    if (saving.current) return;
+    saving.current = true;
+    setOn(next);
+    setError(null);
+    startTransition(async () => {
+      const result = await setLearnLessonIssuesEmailAction(next, null).catch(() => null);
+      saving.current = false;
+      const failure = !result
+        ? learnSettingsErrorOf('FAILED')
+        : !result.ok
+          ? learnSettingsErrorOf(result.error)
+          : !result.data
+            ? learnSettingsErrorOf('CLOSED')
+            : null;
+      if (failure || !result?.ok || !result.data) {
+        setOn(saved.current);
+        setError(failure);
+        return;
+      }
+      saved.current = result.data.lessonIssues;
+      setOn(result.data.lessonIssues);
+      router.refresh();
+    });
+  };
+
+  return (
+    <SettingsRow
+      icon={BookOpen}
+      title={LESSON_ISSUES_TITLE}
+      value={
+        <RowValue id={`${id}-line`} line={noAddress ? <EmailNeedsAddress /> : LESSON_ISSUES_EMAIL_LINE} error={error} />
+      }
+      data={{
+        'data-email-row': 'lesson-issues',
+        'data-email-lesson-issues': on ? 'on' : 'off',
+        ...(noAddress ? { 'data-email-no-address': '' } : {}),
+      }}
+    >
+      <label htmlFor={`${id}-switch`} className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm sm:min-h-0">
+        <input
+          id={`${id}-switch`}
+          type="checkbox"
+          // biome-ignore lint/a11y/useAriaPropsForRole: a native checkbox: the switch role reads its checked state, so aria-checked would only repeat it.
+          role="switch"
+          aria-label={`Email ${LESSON_ISSUES_TITLE.toLowerCase()}`}
           aria-describedby={`${id}-line`}
           aria-disabled={pending || undefined}
           checked={on}

@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { IssuesBox, IssuesEndBox, IssuesFilters, IssuesFoot } from '@/components/learn/issues/issues-parts';
 import type { IssuesHandlers, IssuesLayer } from '@/components/learn/issues/issues-screen';
+import { LessonIssuesEmail } from '@/components/learn/issues/lesson-issues-email';
 import {
   RealFixes,
   RealProjectsEnd,
@@ -22,6 +23,7 @@ import {
   type IssuesView,
   issuesChipsOf,
   issuesEndOf,
+  issuesHrefOf,
   issuesMarkdownPathOf,
   issuesPublicInputOf,
   issuesSwitchesOf,
@@ -30,6 +32,7 @@ import {
   rowLessonOf,
 } from '@/lib/learn/issues';
 import { readMoreLearnFixes } from '@/lib/learn/issues.actions';
+import { lessonIssuesEmailStateOf } from '@/lib/learn/lesson-issues-email';
 import { coursePath, LEARN_COURSES_PATH, learnLessonPath } from '@/lib/learn/paths';
 import { fixKeyOf, fixLanguageWordsOf, realProjectsEndsOf, realProjectsWordsOf } from '@/lib/learn/real-projects';
 import { type MaskedListReads, NO_MASKED_READS } from '@/lib/workspace/masked-issue';
@@ -149,8 +152,11 @@ function OpenGroup({
   }
   const ends = realProjectsEndsOf({ own: visitor ? null : rows.length, shared: shared ?? rows.length, fixes: 0 });
   if (ends.open === 'none') {
-    // The email of issues for the person's lessons comes in its own change: its place under the words stays empty.
-    return <RealProjectsEnd end={realProjectsWordsOf(at).openNone} kind="open-none" />;
+    return (
+      <RealProjectsEnd end={realProjectsWordsOf(at).openNone} kind="open-none">
+        {at === 'lesson' ? <LessonEmail view={view} layer={layer} handlers={handlers} /> : null}
+      </RealProjectsEnd>
+    );
   }
   if (ends.open === 'narrowed' && layer.kind === 'personal') {
     const end = issuesEndOf(view, layer.list, at);
@@ -166,6 +172,27 @@ function OpenGroup({
       reads={layer.kind === 'personal' ? (layer.reads ?? NO_MASKED_READS) : NO_MASKED_READS}
     />
   );
+}
+
+/**
+ * "Email me issues for my lessons" in the box of a lesson with no open issue. A visitor's five on the screen are a
+ * visitor's, unless the person's own are being read (`pending`): the button then waits. The person's list answers the
+ * switch, whether it covers this lesson and the address; the Learn sign comes with it.
+ */
+function LessonEmail({
+  view,
+  layer,
+  handlers,
+}: {
+  view: IssuesView;
+  layer: Extract<IssuesLayer, { kind: 'visitor' | 'personal' }>;
+  handlers: IssuesHandlers;
+}) {
+  const state =
+    layer.kind === 'visitor'
+      ? lessonIssuesEmailStateOf({ signedIn: !!layer.pending, list: null, sign: null })
+      : lessonIssuesEmailStateOf({ signedIn: true, list: layer.list, sign: layer.sign ?? null });
+  return <LessonIssuesEmail state={state} back={issuesHrefOf(view, 'lesson')} {...handlers.lessonEmail} />;
 }
 
 /** The masked rows. On a lesson's view a row does not repeat the lesson's name; on a course's it names its lesson. */

@@ -65,7 +65,9 @@ const flush = () => act(async () => {});
 describe("the person's read", () => {
   it('reads the list, the reads, or why there is none', async () => {
     fetchMock.mockReturnValueOnce(answer({ state: 'ok', list: personalList(), reads }));
-    expect(await readIssuesMine(views.course)).toEqual({ state: 'ok', list: personalList(), reads });
+    expect(await readIssuesMine(views.course)).toEqual({ state: 'ok', list: personalList(), reads, sign: null });
+    fetchMock.mockReturnValueOnce(answer({ state: 'ok', list: personalList(), reads, learnOnboarded: false }));
+    expect(await readIssuesMine(views.lesson)).toEqual({ state: 'ok', list: personalList(), reads, sign: false });
     expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/issues?course=algorithms&learned=1', { cache: 'no-store' });
     fetchMock.mockReturnValueOnce(answer({ state: 'unavailable' }));
     expect(await readIssuesMine(ISSUES_VIEW)).toEqual({ state: 'unavailable' });

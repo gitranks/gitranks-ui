@@ -85,6 +85,8 @@ export const personalList = (patch: Partial<IssuesList> = {}): IssuesList => ({
   outsideForYou: null,
   emailOn: false,
   emailTo: 'y***@example.com',
+  lessonIssues: false,
+  lessonIssuesCovered: null,
   ...patch,
 });
 

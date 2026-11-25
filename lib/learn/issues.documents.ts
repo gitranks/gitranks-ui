@@ -1,12 +1,14 @@
 import { parse } from 'graphql';
 
 import type { IssuesEmailCover, LearnFixes, LearnIssuesEmail } from './issues';
+import type { LearnLessonIssuesEmail } from './lesson-issues-email';
 import { MASKED_ISSUE_FIELDS } from '@/lib/workspace/masked-issue.fields';
 import type DocumentNode from '@/types/typed-document-node';
 
 /*
- * Issues: a visitor's five, the signed-in person's five with the switches, the merged fixes, and the switch of "A new
- * issue for you". Each is its own operation, so an API that does not know one yet fails that read alone.
+ * Issues: a visitor's five, the signed-in person's five with the switches, the merged fixes, and the switches of "A new
+ * issue for you" and "Email me issues for my lessons". Each is its own operation, so an API that does not know one yet
+ * fails that read alone.
  */
 
 const doc = <TData, TVariables extends Record<string, unknown> = Record<string, never>>(source: string) =>
@@ -35,8 +37,8 @@ export const IssuesListPublicDocument = doc<{ list: unknown }, { input: View }>(
 );
 
 /**
- * The person's five by the switches and the view, with the counts, the empty end and the email's switch; null when
- * Learn is not open to them. `issuesPage` is true from the Issues page alone: the read notes that they are looking.
+ * The person's five by the switches and the view, with the counts, the empty end and both emails' switches (on a
+ * lesson's view, whether the lessons' email covers that lesson); null when Learn is not open to them. `issuesPage` is true from the Issues page alone: the read notes that they are looking.
  */
 export const IssuesListDocument = doc<
   { list: unknown },
@@ -45,7 +47,7 @@ export const IssuesListDocument = doc<
   `query IssuesList($input: LearnQueueInput!, $issuesPage: Boolean) {
   list: learnQueue(input: $input, issuesPage: $issuesPage) {
     rows { ${ISSUES_ROW_FIELDS} }
-    forYouCount learnedCount emptyEnd outsideForYou emailOn emailTo
+    forYouCount learnedCount emptyEnd outsideForYou emailOn emailTo lessonIssues lessonIssuesCovered
   }
 }`,
 );
@@ -67,5 +69,15 @@ export const SetLearnIssuesEmailDocument = doc<
 >(
   `mutation SetLearnIssuesEmail($on: Boolean!, $cover: LearnQueueCover) {
   setLearnIssuesEmail(on: $on, cover: $cover) { newIssues newIssuesCover }
+}`,
+);
+
+/** Turns "Email me issues for my lessons" on or off; turned on with a lesson, it also adds that lesson. */
+export const SetLearnLessonIssuesEmailDocument = doc<
+  { setLearnLessonIssuesEmail: LearnLessonIssuesEmail | null },
+  { on: boolean; lesson: string | null }
+>(
+  `mutation SetLearnLessonIssuesEmail($on: Boolean!, $lesson: String) {
+  setLearnLessonIssuesEmail(on: $on, lesson: $lesson) { lessonIssues lessonIssuesAsked }
 }`,
 );

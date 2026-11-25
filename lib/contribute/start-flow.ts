@@ -78,6 +78,35 @@ export function repickedOf(before: string | null, now: string | null): boolean {
 }
 
 /**
+ * The issue the person opened, as the list under "Or pick another" knows it: its mask id, and while it is held in full
+ * its repository and number. It goes to the browser, so the pages read after the first one leave it out too.
+ */
+export type OpenedIssueKey = { id: string; repo: string | null; number: number | null };
+
+/** The key of the opened issue; null without one. */
+export function openedIssueKeyOf(opened: Pick<IssuePage, 'masked' | 'full'> | null | undefined): OpenedIssueKey | null {
+  if (!opened?.masked) return null;
+  return { id: opened.masked.id, repo: opened.full?.repo ?? null, number: opened.full?.number ?? null };
+}
+
+/**
+ * A page of the list without the opened issue (`key`), masked (by its mask id) or in full (by its repository and
+ * number), its total one fewer for each row left out. The same page when the issue is not on it.
+ */
+export function withoutOpenedKey<Page extends ContributeIssuePage | null | undefined>(
+  page: Page,
+  key: OpenedIssueKey | null | undefined,
+): Page {
+  if (!page || !key) return page;
+  const items = page.items.filter(
+    (item) =>
+      item.masked?.id !== key.id && !(key.repo && item.nameWithOwner === key.repo && item.number === key.number),
+  );
+  if (items.length === page.items.length) return page;
+  return { ...page, items, total: Math.max(0, page.total - (page.items.length - items.length)) };
+}
+
+/**
  * The list under "Or pick another": the issue the person opened is drawn above it, so it is left out here, masked (by
  * its mask id) or in full (by its repository and number).
  */
@@ -85,12 +114,5 @@ export function withoutOpenedIssue<Page extends ContributeIssuePage | null | und
   page: Page,
   opened: Pick<IssuePage, 'masked' | 'full'> | null,
 ): Page {
-  if (!page || !opened?.masked) return page;
-  const id = opened.masked.id;
-  const full = opened.full;
-  const items = page.items.filter(
-    (item) => item.masked?.id !== id && !(full && item.nameWithOwner === full.repo && item.number === full.number),
-  );
-  if (items.length === page.items.length) return page;
-  return { ...page, items, total: Math.max(0, page.total - (page.items.length - items.length)) };
+  return withoutOpenedKey(page, openedIssueKeyOf(opened));
 }

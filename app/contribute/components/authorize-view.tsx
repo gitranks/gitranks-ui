@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { AuthorizeActions, AuthorizeCancel, AuthorizeReviewSignIn, AuthorizeSignIn } from './authorize-actions';
-import { AuthorizeDocsLine, AuthorizeNextStep } from './authorize-next-step';
+import { AuthorizeDocsLine, AuthorizeNextStep, AuthorizeSetupStep } from './authorize-next-step';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { NO_PROFILE_TITLE, SETTING_UP_TITLE, SETUP_FAILED_TITLE } from '@/components/workspace/setting-up';
 import { SettingUpAutoRefresh } from '@/components/workspace/setting-up-refresh';
@@ -16,6 +16,7 @@ import {
   authorizeHrefOf,
   authorizeReviewHrefOf,
   clientWhereTextOf,
+  HOW_IT_WORKS,
   REVIEW_SIGN_IN_SHOWN,
   waitingLineOf,
 } from '@/lib/workspace/oauth-consent';
@@ -27,8 +28,11 @@ export type AuthorizeState =
   | { kind: 'signed-out'; requestId: string }
   /** Signed out, on the directory reviewers' sign-in (`&review=1`): username and password, no session. */
   | { kind: 'review-sign-in'; requestId: string }
-  /** Signed in, and the request waits for Allow. */
-  | { kind: 'pending'; requestId: string; login: string; request: ContributeOAuthRequest }
+  /**
+   * Signed in, and the request waits for Allow. `setup`: the person has gone through neither onboarding, so after Allow
+   * the page says what is left (left out: as before the signs).
+   */
+  | { kind: 'pending'; requestId: string; login: string; request: ContributeOAuthRequest; setup?: boolean }
   /** The preview, and this account is not on it: Cancel alone. */
   | { kind: 'not-open'; requestId: string }
   /** A new account, read for the first time now: Refresh and Cancel, and the page reads itself again. */
@@ -38,8 +42,8 @@ export type AuthorizeState =
    * failed: Try again and Cancel.
    */
   | { kind: 'no-profile'; requestId: string; failed?: boolean }
-  /** Allowed already. */
-  | { kind: 'approved'; requestId: string; clientName: string | null }
+  /** Allowed already. `setup`: as the ask's, "Finish setting up" follows. */
+  | { kind: 'approved'; requestId: string; clientName: string | null; setup?: boolean }
   /** Unknown, expired or used, or a link without a request. */
   | { kind: 'expired' }
   /** The request could not be read now. */
@@ -52,8 +56,16 @@ export type AuthorizeRead = {
   contributeOpen: boolean;
 };
 
-/** The signed-in viewer's state for one request, from the API's one read. */
-export function authorizeStateFor(read: AuthorizeRead, requestId: string, login: string): AuthorizeState {
+/**
+ * The signed-in viewer's state for one request, from the API's one read. `setup`: the person has gone through neither
+ * onboarding (`authorizeNeedsSetupOf`).
+ */
+export function authorizeStateFor(
+  read: AuthorizeRead,
+  requestId: string,
+  login: string,
+  setup = false,
+): AuthorizeState {
   const { contributeOAuthRequest: request, contributeSetup, contributeOpen } = read;
   // Null: Contribute is hidden from this account: being set up (a new account, read now), no profile here (launched),
   // or off the preview.
@@ -62,9 +74,9 @@ export function authorizeStateFor(read: AuthorizeRead, requestId: string, login:
     return { kind: contributeOpen ? 'no-profile' : 'not-open', requestId };
   }
   if (request.status === 'EXPIRED') return { kind: 'expired' };
-  if (request.status === 'APPROVED') return { kind: 'approved', requestId, clientName: request.clientName };
+  if (request.status === 'APPROVED') return { kind: 'approved', requestId, clientName: request.clientName, setup };
   if (!request.previewAllowed) return { kind: 'not-open', requestId };
-  return { kind: 'pending', requestId, login, request };
+  return { kind: 'pending', requestId, login, request, setup };
 }
 
 /**
@@ -100,15 +112,42 @@ function Frame({ title, text, children }: { title: string; text?: ReactNode; chi
   );
 }
 
-/** The signed-in ask: who asks, as whom, what it can and can't do, Allow and Cancel. */
+/** "How it works": three numbered lines, each led by its first sentence. */
+function HowItWorks() {
+  return (
+    <section className="flex flex-col gap-3 rounded-xl bg-muted/50 p-4" data-authorize-how="">
+      <h2 className="m-0 text-base font-semibold">How it works</h2>
+      <ol className="m-0 flex list-none flex-col gap-2.5 p-0">
+        {HOW_IT_WORKS.map(({ lead, rest }, index) => (
+          <li key={lead} className="flex items-start gap-3">
+            <span
+              aria-hidden="true"
+              className="inline-flex size-6 flex-none items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground"
+            >
+              {index + 1}
+            </span>
+            <span className="text-sm">
+              <strong className="font-semibold">{lead}</strong>
+              {rest ? ` ${rest}` : null}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/** The signed-in ask: who asks, as whom, how it works, what it can and can't do, Allow and Cancel. */
 function PendingCard({
   requestId,
   login,
   request,
+  setup,
 }: {
   requestId: string;
   login: string;
   request: ContributeOAuthRequest;
+  setup: boolean;
 }) {
   const named = request.clientName?.trim() || null;
   const where = clientWhereTextOf(request.clientWhere);
@@ -124,6 +163,7 @@ function PendingCard({
       }
     >
       <CardContent className="flex flex-col gap-4 text-sm">
+        <HowItWorks />
         {where.warning ? (
           <p role="note" className="rounded-lg border border-warning/40 bg-warning-soft px-3.5 py-2.5 font-medium">
             {where.warning}
@@ -151,7 +191,12 @@ function PendingCard({
         ) : null}
       </CardContent>
       <CardFooter className="flex flex-col items-stretch gap-3">
-        <AuthorizeActions requestId={requestId} clientName={named ?? undefined}>
+        <AuthorizeActions
+          requestId={requestId}
+          clientName={named ?? undefined}
+          kind={request.clientWhere?.kind ?? null}
+          setup={setup}
+        >
           <p className="text-sm text-muted-foreground">
             You can disconnect it any time on the{' '}
             <Link href={settingsPathOf('own-agent')} prefetch={false} className={LINK}>
@@ -178,7 +223,14 @@ function PendingCard({
 export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
   switch (state.kind) {
     case 'pending':
-      return <PendingCard requestId={state.requestId} login={state.login} request={state.request} />;
+      return (
+        <PendingCard
+          requestId={state.requestId}
+          login={state.login}
+          request={state.request}
+          setup={state.setup ?? false}
+        />
+      );
     case 'signed-out':
       return (
         <Frame
@@ -278,7 +330,11 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
           text={`You allowed ${state.clientName?.trim() || 'this app'} already. Go back to it: it is connected, or it starts the sign-in again.`}
         >
           <CardFooter className="flex flex-col items-stretch">
-            <AuthorizeNextStep clientName={state.clientName?.trim() || undefined} />
+            {state.setup ? (
+              <AuthorizeSetupStep />
+            ) : (
+              <AuthorizeNextStep clientName={state.clientName?.trim() || undefined} />
+            )}
           </CardFooter>
         </Frame>
       );

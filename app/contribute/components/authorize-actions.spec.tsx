@@ -108,6 +108,129 @@ describe('the step after Allow', () => {
   });
 });
 
+describe('after Allow, by the client’s kind and the signs', () => {
+  /** A callback on this computer: a terminal agent's. */
+  const LOOPBACK_REDIRECT = 'http://127.0.0.1:33418/callback?code=c0de';
+  const SETUP_LINE =
+    'Your agent is connected. One step left before it can take an issue: a 2-minute setup that shows how you approve its pull requests.';
+  let tab: { opener: unknown; location: { href: string }; close: ReturnType<typeof vi.fn> };
+  let open: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    tab = { opener: window, location: { href: 'about:blank' }, close: vi.fn() };
+    open = vi.fn(() => tab);
+    vi.stubGlobal('open', open);
+  });
+
+  const status = () => container.querySelector('[role="status"]')?.textContent;
+  const finish = () => container.querySelector<HTMLAnchorElement>('[data-authorize="finish-setup"]');
+
+  it('a terminal agent with neither sign: the way back opens in a new tab, and the page stays with the step left', async () => {
+    let answer: (value: unknown) => void = () => {};
+    approve.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    act(() => root.render(<AuthorizeActions requestId={ID} clientName="Claude Code" kind="LOOPBACK" setup />));
+
+    act(() => container.querySelector<HTMLButtonElement>('[data-authorize="allow"]')?.click());
+    // Opened in the press, before the approval answers, with no way back to this page.
+    expect(open).toHaveBeenCalledWith('about:blank', '_blank');
+    expect(open.mock.invocationCallOrder[0]).toBeLessThan(approve.mock.invocationCallOrder[0]);
+    expect(tab.opener).toBeNull();
+    expect(tab.location.href).toBe('about:blank');
+    await act(async () => answer({ ok: true, data: { redirectTo: LOOPBACK_REDIRECT } }));
+
+    expect(tab.location.href).toBe(LOOPBACK_REDIRECT);
+    expect(assign).not.toHaveBeenCalled();
+    expect(status()).toBe(SETUP_LINE);
+    expect(finish()?.getAttribute('href')).toBe('/contribute/start');
+    expect(finish()?.textContent).toBe('Finish setting up');
+    expect(container.querySelector('[data-authorize-setup] [data-authorize-back]')?.textContent).toBe(
+      'Started on gitranks.com? Go back to that tab: it moves on by itself.',
+    );
+    expect(container.querySelector('[data-authorize-next]')).toBeNull();
+  });
+
+  it('a terminal agent, the new tab blocked: as before the signs, the page goes back to the agent', async () => {
+    open.mockReturnValue(null);
+    approve.mockResolvedValue({ ok: true, data: { redirectTo: LOOPBACK_REDIRECT } });
+    act(() => root.render(<AuthorizeActions requestId={ID} clientName="Claude Code" kind="LOOPBACK" setup />));
+    await click('[data-authorize="allow"]');
+    expect(assign).toHaveBeenCalledWith(LOOPBACK_REDIRECT);
+    expect(status()).toBe('Allowed. Go back to Claude Code: it is connected.');
+    expect(finish()).toBeNull();
+  });
+
+  it('closes the new tab on an error, and on an address it does not allow, and says why as before', async () => {
+    approve.mockResolvedValue({ ok: false, error: 'FAILED', message: 'Not allowed now.' });
+    act(() => root.render(<AuthorizeActions requestId={ID} kind="LOOPBACK" setup />));
+    await click('[data-authorize="allow"]');
+    expect(tab.close).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe('Not allowed now.');
+    expect(status()).toBeUndefined();
+
+    approve.mockResolvedValue({ ok: true, data: { redirectTo: 'javascript:alert(1)' } });
+    await click('[data-authorize="allow"]');
+    expect(tab.close).toHaveBeenCalledTimes(2);
+    expect(tab.location.href).toBe('about:blank');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("We can't send you back to this app");
+  });
+
+  it('closes the new tab when the approval throws', async () => {
+    approve.mockRejectedValue(new Error('offline'));
+    act(() => root.render(<AuthorizeActions requestId={ID} kind="LOOPBACK" setup />));
+    await click('[data-authorize="allow"]');
+    expect(tab.close).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  it('a desktop app with neither sign: the app opens, and the page stays with the step left', async () => {
+    approve.mockResolvedValue({ ok: true, data: { redirectTo: APP_REDIRECT } });
+    act(() => root.render(<AuthorizeActions requestId={ID} clientName="Cursor" kind="SCHEME" setup />));
+    await click('[data-authorize="allow"]');
+    expect(open).not.toHaveBeenCalled();
+    expect(assign).toHaveBeenCalledWith(APP_REDIRECT);
+    expect(status()).toBe(SETUP_LINE);
+    expect(finish()).not.toBeNull();
+  });
+
+  it.each([['KNOWN'], ['WEB']] as const)('a web app (%s) with neither sign: back at once, as before', async (kind) => {
+    approve.mockResolvedValue({ ok: true, data: { redirectTo: 'https://claude.ai/api/mcp/auth_callback?code=c0de' } });
+    act(() => root.render(<AuthorizeActions requestId={ID} clientName="Claude" kind={kind} setup />));
+    await click('[data-authorize="allow"]');
+    expect(open).not.toHaveBeenCalled();
+    expect(assign).toHaveBeenCalledWith('https://claude.ai/api/mcp/auth_callback?code=c0de');
+    expect(finish()).toBeNull();
+  });
+
+  it.each([['LOOPBACK'], ['SCHEME'], ['WEB']] as const)(
+    'anyone with a sign (%s): as before the signs',
+    async (kind) => {
+      approve.mockResolvedValue({ ok: true, data: { redirectTo: APP_REDIRECT } });
+      act(() => root.render(<AuthorizeActions requestId={ID} clientName="Cursor" kind={kind} />));
+      await click('[data-authorize="allow"]');
+      expect(open).not.toHaveBeenCalled();
+      expect(assign).toHaveBeenCalledWith(APP_REDIRECT);
+      expect(status()).toBe('Allowed. Go back to Cursor: it is connected.');
+      expect(container.querySelector('[data-authorize-next] pre')?.textContent).toBe(AGENT_FIRST_PROMPT);
+      expect(finish()).toBeNull();
+    },
+  );
+
+  it('the review sign-in keeps the page as before the signs: no new tab, no setup', async () => {
+    approveAsReviewer.mockResolvedValue({ ok: true, data: { redirectTo: LOOPBACK_REDIRECT } });
+    act(() => root.render(<AuthorizeReviewSignIn requestId={ID} />));
+    const field = (name: string) => container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+    act(() => {
+      field('username')!.value = 'reviewer';
+      field('password')!.value = 'review-password';
+    });
+    await click('[data-authorize="review-allow"]');
+    expect(open).not.toHaveBeenCalled();
+    expect(assign).toHaveBeenCalledWith(LOOPBACK_REDIRECT);
+    expect(status()).toBe('Allowed. Go back to the app: it is connected.');
+    expect(finish()).toBeNull();
+  });
+});
+
 describe('no profile yet', () => {
   it('offers Cancel, the docs and the contact address', () => {
     const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'no-profile', requestId: ID }} />);

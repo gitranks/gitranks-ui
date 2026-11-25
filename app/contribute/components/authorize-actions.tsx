@@ -4,12 +4,13 @@ import { signIn } from 'next-auth/react';
 import { type ReactNode, useState, useTransition } from 'react';
 import { FaGithub } from 'react-icons/fa';
 
-import { AuthorizeNextStep } from './authorize-next-step';
+import { AUTHORIZE_SETUP_LINE, AuthorizeNextStep, AuthorizeSetupStep } from './authorize-next-step';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { approveContributeOAuth } from '@/lib/workspace/actions';
+import type { ContributeOAuthClientWhere } from '@/lib/workspace/contribute.types';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
 import {
   authorizeCancelHrefOf,
@@ -43,47 +44,93 @@ function OffCancel() {
 }
 
 /**
+ * A new tab for the agent's way back, opened in the press itself so the browser counts it as the person's own, with no
+ * way back to this page (`opener` null). Null when the browser blocks it.
+ */
+function openBlankTab(): Window | null {
+  try {
+    const tab = window.open('about:blank', '_blank');
+    if (tab) tab.opener = null;
+    return tab;
+  } catch {
+    return null;
+  }
+}
+
+/** How the page ends after Allow: it is leaving (today's words), or it stays with the setup's step. */
+type Left = 'today' | 'setup';
+
+/**
  * Allow and Cancel. Allow connects the agent, then the browser goes back to it, only to an address that passes the
  * check (`https:`, `http:` to this computer, or an app's own scheme): a server action's own redirect can't open an
  * app's scheme, so the page assigns it. An app's scheme leaves this page open, so it says what to ask the agent next.
  * Once allowed, Cancel stays in its place, off, and what to do next shows after the card's own lines (`children`), so
  * nothing above it moves.
+ *
+ * A person who has gone through neither onboarding (`setup`) is told of the one step left, with "Finish setting up",
+ * where the page stays: a terminal agent's way back (`LOOPBACK`) opens in a new tab (as today when the browser blocks
+ * it), and an app's scheme leaves the page open anyway. A web app takes the page back at once, as today.
  */
 export function AuthorizeActions({
   requestId,
   clientName,
+  kind = null,
+  setup = false,
   children,
 }: {
   requestId: string;
   /** The name the app gave itself; none, and the page says "the app". */
   clientName?: string;
+  /** Where the app goes back (`clientWhere.kind`); null when not known. */
+  kind?: ContributeOAuthClientWhere['kind'] | null;
+  /** The person has gone through neither onboarding. */
+  setup?: boolean;
   /** The card's lines under the buttons: they stay where they are when Allow goes through. */
   children?: ReactNode;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [left, setLeft] = useState(false);
+  const [left, setLeft] = useState<Left | null>(null);
 
-  const allow = () =>
+  const allow = () => {
+    // Before the approval is awaited, so the browser counts the tab as opened by the press.
+    const tab = setup && kind === 'LOOPBACK' ? openBlankTab() : null;
     startTransition(async () => {
       setError(null);
-      const result = await approveContributeOAuth(requestId);
+      // A call that throws is said as a failed one, so the new tab never stays open on nothing.
+      const result: Awaited<ReturnType<typeof approveContributeOAuth>> = (await approveContributeOAuth(requestId).catch(
+        () => null,
+      )) ?? { ok: false, error: 'FAILED' };
       if (!result.ok) {
+        tab?.close();
         setError(result.message ?? contributeErrorMessage(result.error));
         return;
       }
       if (!isSafeRedirect(result.data.redirectTo)) {
+        tab?.close();
         setError("We can't send you back to this app: its address isn't one we allow.");
         return;
       }
-      setLeft(true);
+      if (tab) {
+        tab.location.href = result.data.redirectTo;
+        setLeft('setup');
+        return;
+      }
+      setLeft(setup && kind === 'SCHEME' ? 'setup' : 'today');
       window.location.assign(result.data.redirectTo);
     });
+  };
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-2.5">
-        <Button type="button" onClick={allow} disabled={pending || left} className={ACTION} data-authorize="allow">
+        <Button
+          type="button"
+          onClick={allow}
+          disabled={pending || left !== null}
+          className={ACTION}
+          data-authorize="allow"
+        >
           {pending ? 'Allowing…' : 'Allow'}
         </Button>
         {left ? <OffCancel /> : <AuthorizeCancel requestId={requestId} />}
@@ -94,7 +141,14 @@ export function AuthorizeActions({
         </p>
       ) : null}
       {children}
-      {left ? (
+      {left === 'setup' ? (
+        <>
+          <p role="status" className="text-sm font-medium">
+            {AUTHORIZE_SETUP_LINE}
+          </p>
+          <AuthorizeSetupStep />
+        </>
+      ) : left === 'today' ? (
         <>
           <p role="status" className="text-sm font-medium">
             Allowed. Go back to {clientName ?? 'the app'}: it is connected.

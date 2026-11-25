@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { EnterKey } from '@/components/workspace/masked-issue/facts';
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
 import { cn } from '@/lib/utils';
+import { clockOf } from '@/lib/workspace/masked-issue';
 import { WORKSPACE_ANCHORS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { startPromptOf } from '@/lib/workspace/start/prompt';
 
@@ -32,6 +33,18 @@ export type IssueStartFormProps = {
   ownName?: string | null;
   /** From Contribute: the person also uses Learn, so one quiet line offers the walkthrough. */
   alsoLearn?: boolean;
+  /**
+   * From Learn: "Just fix it" is offered (a fix made with Contribute, for a person who went through its onboarding).
+   * Without it there is no "How" step: the fix comes with its walkthrough.
+   */
+  justFix?: boolean;
+  /**
+   * The look was held longer already (on the way into an onboarding): when the hold ends, said after the copy in place
+   * of the 30 minutes a first copy holds it for. Null: today's words.
+   */
+  heldUntil?: string | null;
+  /** The zone `heldUntil` is written in; the browser's without it. */
+  timeZone?: string;
   /** The steps that connect an agent, for someone who has none connected yet. */
   connect?: ReactNode;
   /** Pull requests waiting on maintainers, when they are too many to start another; null: room to start. */
@@ -124,11 +137,15 @@ function PromptBox({
   agentName,
   copied,
   onCopy,
+  heldUntil,
+  timeZone,
 }: {
   prompt: string;
   agentName: string;
   copied: boolean;
   onCopy: () => void;
+  heldUntil: string | null;
+  timeZone?: string;
 }) {
   return (
     <>
@@ -148,7 +165,10 @@ function PromptBox({
       </div>
       {copied ? (
         <p role="status" className="m-0 text-sm font-medium text-foreground">
-          Copied. Waiting for {agentName}. The issue is now held for 30 minutes.
+          Copied. Waiting for {agentName}.{' '}
+          {heldUntil
+            ? `The issue is held until ${clockOf(heldUntil, timeZone)}.`
+            : 'The issue is now held for 30 minutes.'}
         </p>
       ) : (
         <p className="m-0 text-xs text-muted-foreground">
@@ -174,6 +194,9 @@ export function IssueStartForm({
   agents,
   ownName = null,
   alsoLearn = false,
+  justFix = true,
+  heldUntil = null,
+  timeZone,
   connect = null,
   waitingPrs = null,
   initialCopied = false,
@@ -184,8 +207,8 @@ export function IssueStartForm({
   hostedSending = false,
 }: IssueStartFormProps) {
   const learn = from === 'learn';
-  // Kept for learners, from Learn: the walkthrough is always on, with nothing to choose.
-  const teachOnly = learn && learnOnly;
+  // Kept for learners from Learn, or "Just fix it" not offered: the walkthrough is always on, with nothing to choose.
+  const teachOnly = learn && (learnOnly || !justFix);
   const [chosenWay, setWay] = useState<StartWay>(initialWay ?? (learn ? 'teach' : 'fix'));
   const way: StartWay = teachOnly ? 'teach' : chosenWay;
   const hosted = agents.hosted && !learn;
@@ -313,7 +336,14 @@ export function IssueStartForm({
             </Link>
           </p>
         ) : chosen === 'own' ? (
-          <PromptBox prompt={prompt} agentName={agentName} copied={copied} onCopy={copy} />
+          <PromptBox
+            prompt={prompt}
+            agentName={agentName}
+            copied={copied}
+            onCopy={copy}
+            heldUntil={heldUntil}
+            timeZone={timeZone}
+          />
         ) : (
           <div className="flex flex-wrap items-center gap-3">
             <Button
@@ -343,7 +373,7 @@ export function IssueStartForm({
       <h2 id="start-fixing-title" className="m-0 text-lg font-semibold">
         Start fixing it
       </h2>
-      {teachOnly ? (
+      {learn && learnOnly ? (
         <p className="m-0 max-w-[70ch] text-sm text-muted-foreground" data-learn-only="">
           Your agent fixes it and writes the walkthrough. You answer a few questions, then send the pull request. This
           issue is kept for people who are learning, so it always comes with its walkthrough.
@@ -358,6 +388,47 @@ export function IssueStartForm({
           </button>
         </p>
       ) : null}
+    </section>
+  );
+}
+
+export type IssueSetupFormProps = {
+  /** The line under the button: how long the setup takes, and that it comes back here. */
+  line: string;
+  /** "Start fixing it": the look held longer, then the onboarding. */
+  onPress: () => void;
+  /** The press is on its way. */
+  pressing?: boolean;
+};
+
+/**
+ * "Start fixing it" for a person who has not gone through the onboarding the fix needs: in the form's place, its
+ * heading, one button with Enter, and one line that says the setup comes back to this issue.
+ */
+export function IssueSetupForm({ line, onPress, pressing = false }: IssueSetupFormProps) {
+  useEnterKey(pressing ? null : onPress);
+  return (
+    <section
+      className="flex min-w-0 flex-col items-start gap-2.5 rounded-xl border-2 border-primary bg-card p-5"
+      aria-labelledby="start-fixing-title"
+      data-start-setup=""
+    >
+      <h2 id="start-fixing-title" className="m-0 mb-2.5 text-lg font-semibold">
+        Start fixing it
+      </h2>
+      <Button
+        type="button"
+        onClick={pressing ? undefined : onPress}
+        aria-disabled={pressing || undefined}
+        className="h-10 px-6 font-semibold aria-disabled:opacity-60 max-sm:min-h-11"
+        data-setup-press=""
+      >
+        Start fixing it
+        <EnterKey />
+      </Button>
+      <p className="m-0 text-sm text-muted-foreground" data-setup-line="">
+        {line}
+      </p>
     </section>
   );
 }

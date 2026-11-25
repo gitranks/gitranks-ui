@@ -139,10 +139,11 @@ export function withQuery(path: Route, query: Query): Route {
 /**
  * The fixer's walkthrough's reads (`…/walkthrough`): the page's first attempt and its lesson. A Fix attempt's goes to
  * its page; an address in another spelling to the current one; no lesson is the 404. Null signed out (the layout asks
- * to sign in); `unread` while the API does not answer.
+ * to sign in); `unread` while the API does not answer. A walkthrough is Learn's alone, so a person with neither sign
+ * goes to Learn's onboarding, with the way back to this page (`query` kept, named as opened from Learn).
  */
-export async function lessonPageOf(params: Promise<PageParams>) {
-  const gated = await gate();
+export async function lessonPageOf(params: Promise<PageParams>, query: Query = {}) {
+  const gated = await gate({ path: pagePathOf(await params, 'walkthrough'), query: { ...query, from: 'learn' } });
   if (!gated) return null;
   const page = await pageOf(params);
   if (page.kind === 'unread') return 'unread' as const;

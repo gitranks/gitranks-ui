@@ -7,6 +7,7 @@ import { IssuePageScreen, type IssuePageScreenProps } from '@/components/workspa
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { fullPage, issueNumbers, issuePage, MASKED_NOW } from '@/lib/workspace/__fixtures__/masked-issue';
 import { issueLessonLineOf } from '@/lib/workspace/issue-page-learn';
+import { ISSUE_SETUP_LINES } from '@/lib/workspace/issue-page-signs';
 import { issuePageHrefOf } from '@/lib/workspace/masked-issue';
 import { MCP_CLIENTS_WITH_VS_CODE } from '@/lib/workspace/mcp-setup';
 import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
@@ -15,8 +16,9 @@ import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
  * The page of one issue from Learn, with Learn's parts: the lesson and why, an issue kept for learners with no "How"
  * step, the line of the started state, and VS Code among the agents to connect. Then the same issue kept for learners
  * as Contribute's page says it: one line in place of the press, the way to it in Learn for a person who uses Learn,
- * and the line in place of the plain end of a refused press. Held back from the export (`exported: false`): the export
- * is at its file limit.
+ * and the line in place of the plain end of a refused press. Then the page without the sign the fix needs: one button
+ * into the onboarding and its line, from Contribute and from Learn, and Learn's form without "Just fix it" for a person
+ * without the Contribute sign. Held back from the export (`exported: false`): the export is at its file limit.
  */
 
 const PATH = '/my/issues/q7k2m9xa?from=learn';
@@ -101,6 +103,8 @@ export const WORKSPACE_ISSUE_LEARN_SCREENS: Screen[] = [
       'lib/workspace/issue-page-learn.data.ts',
       'lib/workspace/issue-page-kept.ts',
       'lib/workspace/issue-page-kept.data.ts',
+      'lib/workspace/issue-page-signs.ts',
+      'lib/workspace/extended-look.ts',
     ],
     states: [
       {
@@ -173,6 +177,32 @@ export const WORKSPACE_ISSUE_LEARN_SCREENS: Screen[] = [
             learnHref: LEARN_HREF,
             keptOnRefusal: true,
           }),
+      },
+      {
+        id: 'setup-contribute',
+        title: 'Without the Contribute sign, from Contribute: one button into its setup, and the way back here',
+        path: CONTRIBUTE_PATH,
+        height: 1000,
+        render: () =>
+          drawKept({
+            page: fullPage(),
+            setup: { line: ISSUE_SETUP_LINES.contribute, onPress: noop },
+          }),
+      },
+      {
+        id: 'setup-learn',
+        title: "Without the Learn sign, from Learn: one button into Learn's setup, and the way back here",
+        path: PATH,
+        height: 1000,
+        render: () =>
+          draw({ page: fullPage(), lesson: teaches, setup: { line: ISSUE_SETUP_LINES.learn, onPress: noop } }),
+      },
+      {
+        id: 'learn-without-contribute-sign',
+        title: 'From Learn without the Contribute sign: no "Just fix it", the fix comes with its walkthrough',
+        path: PATH,
+        height: 1040,
+        render: () => draw({ page: fullPage(), lesson: uses, start: { ...OWN, justFix: false } }),
       },
     ],
   },

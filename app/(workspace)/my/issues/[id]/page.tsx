@@ -8,13 +8,8 @@ import { loadLearnSetupOfMine, loadUsesLearnSide } from '@/lib/learn/learn.data'
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { loadIssuePageKept } from '@/lib/workspace/issue-page-kept.data';
 import { loadIssuePageLearn } from '@/lib/workspace/issue-page-learn.data';
-import {
-  ISSUE_LOOK_PARAM,
-  issuePageBackOf,
-  issuePageFromOf,
-  maskIdOf,
-  usesLearnOf,
-} from '@/lib/workspace/masked-issue';
+import { issuePageProductOf, issueSetupOf, issueStartSignsOf } from '@/lib/workspace/issue-page-signs';
+import { ISSUE_LOOK_PARAM, issuePageBackOf, maskIdOf, usesLearnOf } from '@/lib/workspace/masked-issue';
 import { loadIssueNumbers, loadIssuePage, loadIssueStartReads } from '@/lib/workspace/masked-issue.data';
 import { learnIssuesViewOf, searchParamsOf } from '@/lib/workspace/paths';
 
@@ -39,7 +34,9 @@ export default function MaskedIssuePage({ params, searchParams }: Params) {
 
 /**
  * The page's reads. An id that names no issue and a viewer the workspace is not open to are both not found. The start
- * form's reads come with the page, since a press shows the form in place.
+ * form's reads come with the page, since a press shows the form in place. The page is Learn's or Contribute's by its
+ * `from`, or by the signs when the address names neither (`issuePageProductOf`); a fix without the sign its product
+ * needs starts with that product's onboarding (`issueSetupOf`).
  */
 async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'searchParams'>) {
   const [{ id: raw }, search] = await Promise.all([params, searchParams]);
@@ -47,12 +44,13 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
   if (!id) notFound();
   const gate = await loadWorkspaceGate();
   if (gate.kind !== 'open') notFound();
-  const from = issuePageFromOf(search.from);
+  const from = issuePageProductOf(search.from, gate.signs);
   const query = searchParamsOf(search);
 
-  // From Contribute, the start form names Learn too when the person uses it: their setup of Learn saved
-  // (`usesLearnOf`), or the API counting them on Learn's side (a Learn attempt of theirs). With no side in the address,
-  // the same reads send the way back to Learn's Issues for them. A read that fails says no: Contribute's words and list.
+  // From Contribute, whether the person uses Learn: their setup of Learn saved (`usesLearnOf`), or the API counting them
+  // on Learn's side (a Learn attempt of theirs). The start form's walkthrough line reads the Learn sign, and these only
+  // while it is not known; with no side in the address, the same reads send the way back to Learn's Issues for them.
+  // A read that fails says no: Contribute's words and list.
   const learnUse =
     from === 'contribute'
       ? Promise.all([loadLearnSetupOfMine().then(usesLearnOf, () => false), loadUsesLearnSide()]).then(
@@ -75,18 +73,22 @@ async function IssueView({ params, searchParams }: Pick<Params, 'params' | 'sear
     keptRead,
   ]);
   if (load.kind === 'not-found') notFound();
+  const { justFix, walkthrough } = issueStartSignsOf(gate.signs, usesLearn);
   return (
     <IssuePageLive
       id={id}
       page={load.page}
       from={from}
-      back={issuePageBackOf(search.from, query, usesLearn)}
+      back={issuePageBackOf(search.from, query, from === 'learn' || usesLearn)}
       view={from === 'learn' ? learnIssuesViewOf(query).toString() : null}
       numbers={numbers}
       openedAt={new Date().toISOString()}
       hosted={gate.agents.hosted}
       start={start}
       alsoLearn={usesLearn}
+      walkthrough={walkthrough}
+      justFix={justFix}
+      setup={issueSetupOf(from, gate.signs)}
       returning={search[ISSUE_LOOK_PARAM] === '1'}
       learn={learn}
       kept={kept}

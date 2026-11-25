@@ -58,7 +58,7 @@ describe("the fixer's walkthrough page", () => {
   it('reads the lesson as the Lesson view does, keeping the walkthrough address on a move', async () => {
     read('LESSON');
     await viewOf();
-    expect(lessonPageOf).toHaveBeenCalledWith(params);
+    expect(lessonPageOf).toHaveBeenCalledWith(params, undefined);
   });
 
   it("draws the run's parts, leading the end to the pull request's page until Approve exists", async () => {

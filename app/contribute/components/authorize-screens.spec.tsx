@@ -10,6 +10,7 @@ vi.mock('@/lib/workspace/setup.actions', () => ({ retryContributeSetup: vi.fn() 
 const { AuthorizeScreen, authorizeStateFor, authorizeWithSetup } = await import('./authorize-view');
 const { AuthorizeNextStep } = await import('./authorize-next-step');
 const { AGENT_FIRST_PROMPT } = await import('@/lib/workspace/mcp-setup');
+const { authorizeNeedsSetupOf } = await import('@/lib/workspace/oauth-consent');
 const { CONTACT_EMAIL } = await import('@/lib/legal');
 
 import type { ContributeOAuthRequest } from '@/lib/workspace/contribute.types';
@@ -231,10 +232,74 @@ describe("the consent page's state, from the API's one read", () => {
       requestId: ID,
       login: 'octocat',
       request: REQUEST,
+      setup: false,
     });
     expect(authorizeStateFor(read({ ...REQUEST, status: 'EXPIRED' }), ID, 'octocat')).toEqual({ kind: 'expired' });
     expect(authorizeStateFor(read({ ...REQUEST, status: 'APPROVED' }), ID, 'octocat')).toMatchObject({
       kind: 'approved',
     });
+  });
+});
+
+describe('the Authorize page and the signs', () => {
+  it('says how it works, above what the agent will be able to do', () => {
+    const { html, plain } = pending();
+    expect(plain).toContain('How it works');
+    expect(plain).toContain('1 Your agent fixes open-source issues picked for you.');
+    expect(plain).toContain(
+      '2 You read every change and approve each pull request on GitRanks. It opens in your name.',
+    );
+    expect(plain).toContain(
+      '3 It is free. You can see 10 to 70 full issues a day, by your GitRanks tier, and 5 more for each pull request merged through GitRanks, up to 100.',
+    );
+    expect(html.indexOf('data-authorize-how')).toBeLessThan(html.indexOf('It will be able to:'));
+    expect(plain).not.toMatch(/\u2014|claim/i);
+  });
+
+  it('needs the setup only when both signs are read and neither is set', () => {
+    expect(authorizeNeedsSetupOf({ contributeOnboardedAt: null, learnOnboardedAt: null })).toBe(true);
+    expect(authorizeNeedsSetupOf({ contributeOnboardedAt: '2026-11-20T10:00:00.000Z', learnOnboardedAt: null })).toBe(
+      false,
+    );
+    expect(authorizeNeedsSetupOf({ contributeOnboardedAt: null, learnOnboardedAt: '2026-11-20T10:00:00.000Z' })).toBe(
+      false,
+    );
+    expect(authorizeNeedsSetupOf({ contributeOnboardedAt: null })).toBe(false);
+    expect(authorizeNeedsSetupOf(null)).toBe(false);
+  });
+
+  it('carries the setup into the ask and into "Already allowed"', () => {
+    const read = (request: ContributeOAuthRequest) => ({
+      contributeOAuthRequest: request,
+      contributeSetup: false,
+      contributeOpen: true,
+    });
+    expect(authorizeStateFor(read(REQUEST), ID, 'octocat', true)).toMatchObject({ kind: 'pending', setup: true });
+    expect(authorizeStateFor(read({ ...REQUEST, status: 'APPROVED' }), ID, 'octocat', true)).toMatchObject({
+      kind: 'approved',
+      setup: true,
+    });
+  });
+
+  it('"Already allowed" with neither sign: its line, then "Finish setting up" and the way back to a tab', () => {
+    const html = renderToStaticMarkup(
+      <AuthorizeScreen state={{ kind: 'approved', requestId: ID, clientName: 'Codex', setup: true }} />,
+    );
+    const plain = text(html);
+    expect(plain).toContain('Already allowed');
+    expect(plain).toContain('You allowed Codex already.');
+    expect(html).toContain('href="/contribute/start"');
+    expect(plain).toContain('Finish setting up');
+    expect(plain).toContain('Started on gitranks.com? Go back to that tab: it moves on by itself.');
+    expect(html).not.toContain('data-authorize-next');
+    expect(plain.indexOf('You allowed Codex already.')).toBeLessThan(plain.indexOf('Finish setting up'));
+  });
+
+  it('"Already allowed" with a sign: as before, what to ask the agent', () => {
+    const html = renderToStaticMarkup(
+      <AuthorizeScreen state={{ kind: 'approved', requestId: ID, clientName: 'Codex', setup: false }} />,
+    );
+    expect(html).toContain('data-authorize-next');
+    expect(html).not.toContain('Finish setting up');
   });
 });

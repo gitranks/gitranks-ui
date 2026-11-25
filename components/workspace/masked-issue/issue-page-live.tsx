@@ -8,10 +8,12 @@ import { AgentConnect } from '@/components/workspace/agent/agent-connect';
 import { sendFairUseAppeal } from '@/components/workspace/fair-use-appeal-live';
 import { type IssuePageNotice, IssuePageScreen } from '@/components/workspace/masked-issue/issue-page-screen';
 import type { ContributeActionResult } from '@/lib/workspace/errors';
+import { isLookExtended, markExtendedLook } from '@/lib/workspace/extended-look';
 import { clearHeldMark, writeHeldMark } from '@/lib/workspace/held-mark';
 import { type IssueKeptForLearners, keptNowOf } from '@/lib/workspace/issue-page-kept';
 import { readIssueKept } from '@/lib/workspace/issue-page-kept.actions';
 import { type IssuePageLearn, issueLessonLineOf } from '@/lib/workspace/issue-page-learn';
+import { ISSUE_SETUP_LINES, type IssueSetup, issueSetupHrefOf } from '@/lib/workspace/issue-page-signs';
 import { limitWordsOf } from '@/lib/workspace/limit-words';
 import { type IssuePageFrom, issuePageHrefOf } from '@/lib/workspace/masked-issue';
 import {
@@ -75,6 +77,18 @@ export type IssuePageLiveProps = {
   start: IssueStartReads;
   /** From Contribute: the person also uses Learn (a saved setup of Learn, or a Learn attempt of theirs). */
   alsoLearn: boolean;
+  /**
+   * From Contribute, the line that adds the walkthrough to the fix: by the Learn sign (`issueStartSignsOf`). Left out,
+   * `alsoLearn`.
+   */
+  walkthrough?: boolean;
+  /** From Learn, "Just fix it" is offered: the person has the Contribute sign. Left out, it is. */
+  justFix?: boolean;
+  /**
+   * The onboarding the fix needs first (`issueSetupOf`): "Start fixing it" holds the issue longer and leads into it,
+   * with the way back here. Null or left out: the start form.
+   */
+  setup?: IssueSetup | null;
   /** Back from the sign-in with a press made before it (`?look=1`): the press is made now, once. */
   returning: boolean;
   /**
@@ -112,8 +126,16 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   const [keptOnRefusal, setKeptOnRefusal] = useState(false);
   const keptRef = useRef(kept);
   keptRef.current = kept;
-  // A page opened in full with the person's agent connected (a reload) waits for the agent at once.
-  const [waiting, setWaiting] = useState(props.page.state === 'FULL' && !!props.start.connection);
+  // The onboarding the fix needs first: from the page's read, or a hosted start the server refused for it.
+  const [setup, setSetup] = useState<IssueSetup | null>(props.setup ?? null);
+  const [setupPressing, setSetupPressing] = useState(false);
+  // The look was held longer on the way into the onboarding: the form says when the hold ends, and a copy asks for no
+  // second extension. Read in the browser, once the page is there.
+  const [extended, setExtended] = useState(false);
+  useEffect(() => setExtended(isLookExtended(id, Date.now())), [id]);
+  // A page opened in full with the person's agent connected (a reload) waits for the agent at once, unless the fix
+  // needs an onboarding first.
+  const [waiting, setWaiting] = useState(props.page.state === 'FULL' && !!props.start.connection && !props.setup);
   const routerRef = useRef(router);
   routerRef.current = router;
 
@@ -202,7 +224,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
   // Kept for learners shows only from Contribute, where it cannot be taken (the way to it in Learn only to a person who
   // uses Learn). Nothing can start there: no wait while it is kept.
   const keptHere = from === 'contribute' ? kept : null;
-  const waitingNow = waiting && keptHere === null;
+  const waitingNow = waiting && keptHere === null && setup === null;
   useFastChanges(waitingNow);
   useChanges(['ATTEMPTS'], () => void ask(), waitingNow);
 
@@ -223,12 +245,25 @@ export function IssuePageLive(props: IssuePageLiveProps) {
     return () => clearTimeout(timer);
   }, [keptHere]);
 
-  /** The issue held 30 minutes, once; then the page waits for the agent. */
+  /** The issue held 30 minutes, once (not again once held longer); then the page waits for the agent. */
   const holdLonger = useCallback(async () => {
     setWaiting(true);
+    if (extended) return;
     const result = await extendIssueLook(id).catch(() => null);
     if (result?.ok) setPage(result.data);
-  }, [id]);
+  }, [id, extended]);
+
+  /**
+   * "Start fixing it" without the sign: the look's one extension, so the issue is usually still held on the way back,
+   * then the onboarding. The extension's answer is awaited, so leaving the page does not cut it short.
+   */
+  const pressSetup = useCallback(async () => {
+    if (!setup) return;
+    setSetupPressing(true);
+    const result = await extendIssueLook(id).catch(() => null);
+    if (result?.ok && result.data.until) markExtendedLook({ id, until: result.data.until });
+    routerRef.current.push(issueSetupHrefOf(setup, id, view));
+  }, [id, setup, view]);
 
   /** The agent has called: the start form names it, and the page waits for it to start. */
   const onConnected = useCallback((client: McpClient) => {
@@ -246,6 +281,11 @@ export function IssuePageLive(props: IssuePageLiveProps) {
       return;
     }
     const refused = issueStartRefusalOf(result.data);
+    // The onboarding is not finished: the button into it and its line, in the form's place.
+    if (refused?.code === 'SETUP_UNFINISHED') {
+      setSetup(from);
+      return;
+    }
     if (refused) {
       const ended = START_REFUSAL_STATES[refused.code];
       if (ended) {
@@ -263,7 +303,7 @@ export function IssuePageLive(props: IssuePageLiveProps) {
     }
     setWaiting(true);
     await ask();
-  }, [id, ask]);
+  }, [id, from, ask]);
 
   const giveBack = useCallback(async () => {
     setGivingBack(true);
@@ -295,10 +335,15 @@ export function IssuePageLive(props: IssuePageLiveProps) {
       pressing={pressing}
       onSee={see}
       notice={notice}
+      setup={
+        setup ? { line: ISSUE_SETUP_LINES[setup], onPress: () => void pressSetup(), pressing: setupPressing } : null
+      }
       start={{
         agents: { own: !!connection, hosted: props.hosted },
         ownName,
-        alsoLearn: props.alsoLearn,
+        alsoLearn: props.walkthrough ?? props.alsoLearn,
+        justFix: props.justFix ?? true,
+        heldUntil: extended && page.state === 'FULL' ? page.until : null,
         waitingPrs: props.start.waitingPrs,
         connect: (
           <AgentConnect

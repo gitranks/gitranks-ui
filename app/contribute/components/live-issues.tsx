@@ -13,6 +13,7 @@ import {
 import type { IssueLive } from '@/components/workspace/issue-live-status';
 import { readIssueStatuses, readIssuesPage } from '@/lib/contribute/actions';
 import { createLiveFeed, type LiveFeed, type LiveRow } from '@/lib/contribute/live-issues';
+import { type OpenedIssueKey, withoutOpenedKey } from '@/lib/contribute/start-flow';
 import { cn } from '@/lib/utils';
 import { onContributeChanges } from '@/lib/workspace/changes-bus';
 import type { ContributeIssue, ContributeIssuesFilter } from '@/lib/workspace/contribute.types';
@@ -44,21 +45,28 @@ export function moveFocusOff(scope: HTMLElement | null, issueId: string) {
  * may have moved (`ISSUES`), and a taken one says so, then leaves; the total counts it out, and a page left short is
  * filled from the next issues under the same filters. The focus on a row that leaves moves to the next row, or the
  * list. One list for the life of the page: a newer read of it is taken in, never a list made anew, so nothing around
- * it (the filters, the focus) starts over.
+ * it (the filters, the focus) starts over. An issue drawn above the list (`leaveOut`, the one the person opened) is
+ * left out of every page read after the first, as the first was read without it.
  */
 export function useLiveFeed(
   page: LivePage,
   limit: number,
   filter: ContributeIssuesFilter,
   root: RefObject<HTMLElement | null>,
+  leaveOut: OpenedIssueKey | null = null,
 ) {
   const filterNow = useRef(filter);
+  const leaveOutNow = useRef(leaveOut);
+  leaveOutNow.current = leaveOut;
   const [feed] = useState(() =>
     createLiveFeed({
       ...page,
       limit,
       readStatus: (ids) => readIssueStatuses(ids),
-      readMore: (after, first) => readIssuesPage({ filter: filterNow.current, after, first }),
+      readMore: (after, first) =>
+        readIssuesPage({ filter: filterNow.current, after, first }).then((result) =>
+          result.ok ? { ...result, data: withoutOpenedKey(result.data, leaveOutNow.current) } : result,
+        ),
       reducedMotion,
     }),
   );

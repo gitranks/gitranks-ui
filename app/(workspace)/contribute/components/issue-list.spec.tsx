@@ -141,6 +141,31 @@ describe("Contribute's issue list", () => {
     expect(button('Show 5 more')).not.toBeNull();
   });
 
+  it('leaves the issue drawn above it out of a later page too, masked or in full', async () => {
+    const opened = issue({
+      issueId: 'mask:q7k2m9xa',
+      number: 15,
+      rank: 15,
+      masked: { ...maskedIssue(), id: 'q7k2m9xa' },
+    });
+    const named = issue({ issueId: 'I_16', nameWithOwner: 'acme/notebook', number: 1290, rank: 16 });
+    contribute.readIssuesPage.mockResolvedValueOnce({
+      ok: true,
+      data: { items: [...picks(11, 4), opened, named, ...picks(17, 4)], next: 'c3', total: 25, computedAt: null },
+    });
+    await render(
+      <ContributeIssueList
+        page={{ items: picks(1, 10), next: 'c2', total: 25, computedAt: '2026-10-28T07:00:00.000Z' }}
+        agents={AGENTS}
+        leaveOut={{ id: 'q7k2m9xa', repo: 'acme/notebook', number: 1290 }}
+      />,
+    );
+    await act(async () => button('Show 10 more')?.click());
+    expect(container.querySelector('[data-live-row="mask:q7k2m9xa"]')).toBeNull();
+    expect(container.querySelector('[data-live-row="I_16"]')).toBeNull();
+    expect(container.querySelectorAll('article[data-issue]')).toHaveLength(18);
+  });
+
   it('keeps its grown rows through a refresh', async () => {
     contribute.readIssuesPage.mockResolvedValueOnce({
       ok: true,

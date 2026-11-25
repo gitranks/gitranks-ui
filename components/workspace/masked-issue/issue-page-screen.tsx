@@ -15,7 +15,12 @@ import {
   type MaskedIssueLesson,
 } from '@/components/workspace/masked-issue/facts';
 import { GivenBack, type GivenBackProps, NotForMe } from '@/components/workspace/masked-issue/give-back';
-import { IssueStartForm, type IssueStartFormProps } from '@/components/workspace/masked-issue/issue-start-form';
+import {
+  IssueSetupForm,
+  type IssueSetupFormProps,
+  IssueStartForm,
+  type IssueStartFormProps,
+} from '@/components/workspace/masked-issue/issue-start-form';
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
 import { MaskedListFoot, WhyHiddenDialog } from '@/components/workspace/masked-issue/why-hidden';
 import { RefChips } from '@/components/workspace/ref-chips';
@@ -104,6 +109,11 @@ export type IssuePageScreenProps = {
   onSee?: () => void;
   /** "Start fixing it": the agents and what its buttons do. */
   start: Omit<IssueStartFormProps, 'from' | 'issueUrl' | 'learnOnly'>;
+  /**
+   * The person has not gone through the onboarding the fix needs: in the start form's place, one button into it and
+   * one line. Null or left out: the start form.
+   */
+  setup?: IssueSetupFormProps | null;
   /** "Give it back". */
   onGiveBack?: () => void;
   givingBack?: boolean;
@@ -492,8 +502,16 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
         <FullCard masked={masked} full={page.full} lesson={lesson} colors={colors} />
         {keptWords ? (
           <KeptForLearners words={keptWords} learnHref={learnHref} />
+        ) : props.setup ? (
+          <IssueSetupForm {...props.setup} />
         ) : (
-          <IssueStartForm from={from} issueUrl={page.full.url} learnOnly={props.learnOnly} {...props.start} />
+          <IssueStartForm
+            from={from}
+            issueUrl={page.full.url}
+            learnOnly={props.learnOnly}
+            timeZone={timeZone}
+            {...props.start}
+          />
         )}
         <NotForMe onGiveBack={props.onGiveBack} sending={props.givingBack} />
       </>

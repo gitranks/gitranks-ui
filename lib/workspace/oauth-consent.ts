@@ -127,6 +127,26 @@ export function waitingLineOf(waiting: Pick<ContributeOAuthWaiting, 'count'> | n
   return count === 1 ? '1 issue is waiting for you.' : `${count.toLocaleString('en-US')} issues are waiting for you.`;
 }
 
+/** "How it works", above what the agent can do: each line's first sentence, then the rest. */
+export const HOW_IT_WORKS = [
+  { lead: 'Your agent fixes open-source issues picked for you.', rest: null },
+  { lead: 'You read every change and approve each pull request on GitRanks.', rest: 'It opens in your name.' },
+  {
+    lead: 'It is free.',
+    rest: 'You can see 10 to 70 full issues a day, by your GitRanks tier, and 5 more for each pull request merged through GitRanks, up to 100.',
+  },
+] as const;
+
+/**
+ * Whether the person who allows an agent has gone through neither product's onboarding: both signs read, and neither
+ * set. A sign that was not read counts as there, so the page says what it said before the signs.
+ */
+export function authorizeNeedsSetupOf(
+  signs: { contributeOnboardedAt?: string | null; learnOnboardedAt?: string | null } | null | undefined,
+): boolean {
+  return !!signs && signs.contributeOnboardedAt === null && signs.learnOnboardedAt === null;
+}
+
 /** What the connected agent can do, as the consent page lists it. */
 export const AGENT_CAN = [
   'see the issues picked for you, and take one;',

@@ -4,9 +4,11 @@ import {
   firstIssueLineOf,
   languagesLineOf,
   languagesLineText,
+  openedIssueKeyOf,
   repickedOf,
   startingLanguagesOf,
   withoutOpenedIssue,
+  withoutOpenedKey,
 } from './start-flow';
 import { issue } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { fullIssue, maskedIssue } from '@/lib/workspace/__fixtures__/masked-issue';
@@ -119,5 +121,31 @@ describe('withoutOpenedIssue: the issue the person opened is not in the list und
     expect(withoutOpenedIssue(read, null)).toBe(read);
     expect(withoutOpenedIssue(read, { masked: maskedIssue(), full: null })).toBe(read);
     expect(withoutOpenedIssue(null, { masked: maskedIssue(), full: null })).toBeNull();
+  });
+
+  it('keys the opened issue by its mask id, and its repository and number while held in full', () => {
+    expect(openedIssueKeyOf({ masked: maskedIssue({ id: 'q7k2m9xa' }), full: null })).toEqual({
+      id: 'q7k2m9xa',
+      repo: null,
+      number: null,
+    });
+    const full = fullIssue();
+    expect(openedIssueKeyOf({ masked: maskedIssue({ id: 'q7k2m9xa' }), full })).toEqual({
+      id: 'q7k2m9xa',
+      repo: full.repo,
+      number: full.number,
+    });
+    expect(openedIssueKeyOf(null)).toBeNull();
+    expect(openedIssueKeyOf({ masked: null, full })).toBeNull();
+  });
+
+  it('leaves it out of any page by its key, a masked key matching no named row', () => {
+    const named = issue({ issueId: 'I_3', nameWithOwner: 'acme/notebook', number: 1290, masked: null });
+    const key = { id: 'q7k2m9xa', repo: null, number: null };
+    expect(withoutOpenedKey(page([masked, named, other]), key)?.items.map((item) => item.issueId)).toEqual([
+      'I_3',
+      'I_2',
+    ]);
+    expect(withoutOpenedKey(page([other]), null)?.items).toHaveLength(1);
   });
 });

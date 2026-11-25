@@ -118,7 +118,7 @@ function realProjectsLayersOf(
 }
 
 /**
- * Issues (page 8) from plain data: one list with no visible title. Above it the way back to the lesson or the course
+ * Issues from plain data: one list with no visible title. Above it the way back to the lesson or the course
  * that opened it, the chips with their crosses and, for a signed-in person, the switches with their counts; then the
  * line on how the list works, the masked rows with their lesson lines and the foot under them. An empty list says why,
  * with the one press that would show something; "Fixed" shows the merged fixes instead. While a new view is read, the

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import type { FixByline, FixChange, FixStatePill } from '@/lib/workspace/pr-timeline-made';
 
 /*
- * The frame both views of a fix share (page 12): the row with the way back and the two views, which stays at the
+ * The frame both views of a fix share: the row with the way back and the two views, which stays at the
  * top of the window, and the issue card. Then the view's own part, and the foot. Every address comes in as a prop:
  * the frame knows neither product.
  */

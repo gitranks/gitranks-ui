@@ -46,7 +46,7 @@ const skippedWarmupOf = (run: LessonRun) =>
   run.warmup.map((question) => ({ questionId: question.id, picked: [], dontKnow: true }));
 
 /**
- * The fixer's own walkthrough, before the pull request opens (page 11): today's run, graded on the server. The run
+ * The fixer's own walkthrough, before the pull request opens: today's run, graded on the server. The run
  * opens when the page shows (a version 2 run's warm-up answered "I don't know" without showing it); each pick is sent,
  * and the call's verdict shows in the card. A wrong pick shows why and the person picks again; on a version 2 run the
  * call may ask the part's other question instead, which then takes the card with the reason above it. On the last

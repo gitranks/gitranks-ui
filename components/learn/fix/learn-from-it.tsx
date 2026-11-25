@@ -26,7 +26,7 @@ import { NO_MASKED_READS } from '@/lib/workspace/masked-issue';
 import type { PrRef } from '@/lib/workspace/pr-feedback';
 
 /*
- * "Learn from it" under the issue card (page 12): the walkthrough's card and the lesson's, side by side, then the
+ * "Learn from it" under the issue card: the walkthrough's card and the lesson's, side by side, then the
  * change, then the person's similar issues. The cards are the same for everyone; a signed-in person's marks are read
  * in the browser once the page is up and fill places of fixed size on the cards, so nothing above the change moves.
  * What only a signed-in person sees (their similar issues, the line for the fixer) comes after the change.

@@ -27,9 +27,9 @@ import {
 import { cn } from '@/lib/utils';
 
 /*
- * The review's screens as page 16's boards draw them, from plain data: the strip, the card of one lesson before and
- * after its answer, the end, and the pages with nothing to repeat. The live page (`review-live.tsx`) moves them; the
- * catalogue draws each state from a fixture.
+ * The review's screens as the design catalogue draws them, from plain data: the strip, the card of one lesson before
+ * and after its answer, the end, and the pages with nothing to repeat. The live page (`review-live.tsx`) moves them;
+ * the catalogue draws each state from a fixture.
  */
 
 /** The strip's way back: Learn, the course when the review was opened from one, the review. */

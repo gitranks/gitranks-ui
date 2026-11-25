@@ -3,7 +3,7 @@ import { languageNameOf, languageNamesOf } from './learn-question';
 import { type CourseRef, courseCardHrefOf, courseHrefOf, LEARN_COURSES_CARD_PATH, LEARN_COURSES_PATH } from './paths';
 
 /*
- * The share pictures of a course and of all courses (page 21): where each lives, and what each says. Pure and free of
+ * The share pictures of a course and of all courses: where each lives, and what each says. Pure and free of
  * server reads, so the cards, the metadata and the design catalogue use the same rules. No zero on a card.
  */
 

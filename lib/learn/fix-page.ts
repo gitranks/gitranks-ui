@@ -7,7 +7,7 @@ import type { PrRef } from '@/lib/workspace/pr-feedback';
 import { dayMonthOf } from '@/lib/workspace/pr-timeline-made';
 
 /*
- * The public page of a fix, "Learn from it" (page 12): what the public read adds beside the timeline, the person's
+ * The public page of a fix, "Learn from it": what the public read adds beside the timeline, the person's
  * marks that fill fixed places on it, and every word of its two cards. Pure: the page, the person's route and the
  * board read the same functions.
  */

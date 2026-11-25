@@ -27,7 +27,7 @@ const mineCard = (slug: string, patch: Partial<LearnCourseMineCard>): LearnCours
   ...patch,
 });
 
-/** Page 18's three courses: one under way with the check taken, one language, one finished. */
+/** My progress's three courses: one under way with the check taken, one language, one finished. */
 export const progressCourses: LearnCourseMineCard[] = [
   mineCard('algorithms', {
     learned: 23,
@@ -41,7 +41,7 @@ export const progressCourses: LearnCourseMineCard[] = [
   mineCard('databases', { learned: 64, practised: 20, finishedAt: '2026-11-12T16:20:00.000Z' }),
 ];
 
-/** The newest days, as page 18's History draws them (what the API holds of them). */
+/** The newest days, as My progress's History draws them (what the API holds of them). */
 const recentDays: LearnDay[] = [
   {
     day: '2026-11-12',
@@ -101,7 +101,7 @@ function calendarDays(): LearnDay[] {
   return [...days, ...recentDays].sort((a, b) => a.day.localeCompare(b.day));
 }
 
-/** A learner of some months, as page 18 draws them. */
+/** A learner of some months, as the design catalogue draws them. */
 const allDays = calendarDays();
 
 export const myProgress: LearnMyProgress = {
@@ -180,7 +180,7 @@ export const historyEarlier: LearnHistory = {
 
 const lessonOf = (title: string) => ({ ...link(title), course: 'algorithms', courseName: 'Algorithms' });
 
-/** Page 18's "Your fixes": three merged in three projects, one open, one closed. */
+/** My progress's "Your fixes": three merged in three projects, one open, one closed. */
 export const myFixes: MyFixRow[] = [
   {
     repo: 'driftwood-js/driftwood',
@@ -239,7 +239,7 @@ export const myFixes: MyFixRow[] = [
   },
 ];
 
-/** Page 18's "Walkthroughs": other people's fixes, newest first. */
+/** My progress's "Walkthroughs": other people's fixes, newest first. */
 export const myWalkthroughs: MyWalkthroughRow[] = [
   {
     repo: 'vitejs/vite',

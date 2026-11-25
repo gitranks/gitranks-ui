@@ -42,10 +42,10 @@ import { coursePath, LEARN_COURSES_PATH, learnLessonPath, learnReviewPath } from
 import { cn } from '@/lib/utils';
 
 /*
- * My progress as page 18's boards draw it, from plain data: the boxes "Lessons" and "Days", the switch of views, the
- * course cards, History, and the pages with nothing to list (a visitor, nothing yet, a read that failed). The live page
- * (`my-progress-live.tsx`) moves them; the catalogue draws each state from a fixture. Every place keeps its size while
- * the person's side is on its way.
+ * My progress as the design catalogue draws it, from plain data: the boxes "Lessons" and "Days", the switch of views,
+ * the course cards, History, and the pages with nothing to list (a visitor, nothing yet, a read that failed). The live
+ * page (`my-progress-live.tsx`) moves them; the catalogue draws each state from a fixture. Every place keeps its size
+ * while the person's side is on its way.
  */
 
 /** The page's frame: the boxes, then the switch and its view, one under the other. */

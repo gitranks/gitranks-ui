@@ -4,7 +4,7 @@ import type { LearnLessonLevel } from '@/lib/learn/lesson-page';
 import { cn } from '@/lib/utils';
 
 /*
- * The marks of a course's page (page 2): a lesson's square by its state, the legend of the squares, and the card a
+ * The marks of a course's page: a lesson's square by its state, the legend of the squares, and the card a
  * square shows when pointed at. Every mark has a fixed size, so a mark never moves what it marks.
  */
 

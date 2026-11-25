@@ -5,7 +5,7 @@ import type { LessonGoneText } from '@/lib/learn/lesson-gone';
 import { LEARN_COURSES_PATH } from '@/lib/learn/paths';
 
 /**
- * The page of a course that is paused or removed, or of an address under Learn that leads nowhere (page 33): what the
+ * The page of a course that is paused or removed, or of an address under Learn that leads nowhere: what the
  * address was, a title, one sentence, and the way to all courses, which never leads to an empty page.
  */
 export function CourseGoneView({ text, state }: { text: LessonGoneText; state: 'paused' | 'removed' | 'missing' }) {

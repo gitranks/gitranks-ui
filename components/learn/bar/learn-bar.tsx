@@ -18,10 +18,10 @@ import {
 import { cn } from '@/lib/utils';
 
 /**
- * Learn's bar, as page 7's board draws it: the tabs on the left, the current one marked; on the right, "Set up Learn"
- * until the person saves their setup, then quiet outlined items for what waits for them ("Pull requests", "Review"
- * with how many). A count shows only when there is something to count. On a phone the tabs scroll sideways under the
- * right side, which stays at the edge, and the current tab is scrolled into sight.
+ * Learn's bar, as the design catalogue draws it: the tabs on the left, the current one marked; on the right, "Set up
+ * Learn" until the person saves their setup, then quiet outlined items for what waits for them ("Pull requests",
+ * "Review" with how many). A count shows only when there is something to count. On a phone the tabs scroll sideways
+ * under the right side, which stays at the edge, and the current tab is scrolled into sight.
  */
 export function LearnBar({
   state,
@@ -118,9 +118,10 @@ function barEndOf(state: LearnBarState, place: LearnBarPlace | null): ReactNode 
 }
 
 /**
- * "Set up Learn", as page 5's board draws it: quiet with a spinner while our guess runs; highlighted with a dot once
- * it is in, with one pulse when it becomes so (on each visit, never a constant blink, and none for people who turned
- * motion off); a plain outline when there is no guess to check. It never shows on its own page, Learn's onboarding.
+ * "Set up Learn", as the design catalogue draws it: quiet with a spinner while our guess runs; highlighted with a dot
+ * once it is in, with one pulse when it becomes so (on each visit, never a constant blink, and none for people who
+ * turned motion off); a plain outline when there is no guess to check. It never shows on its own page, Learn's
+ * onboarding.
  */
 function SetupTab({ state: look }: { state: LearnBarSetup }) {
   return (

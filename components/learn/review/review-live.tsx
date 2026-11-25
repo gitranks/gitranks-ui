@@ -61,7 +61,7 @@ type Personal =
   | { kind: 'ready'; side: ReviewSide; sitting: number; kept: Answered[] };
 
 /**
- * The daily review in the browser (page 16). The page is the person's own: once it is up, a person with a session
+ * The daily review in the browser. The page is the person's own: once it is up, a person with a session
  * reads today's set, and a visitor is asked to sign in. While the set is on its way, the card's place waits; a set
  * that does not come says so, with a way to try again. The sitting asks each lesson once, then ends with what changed.
  */

@@ -316,7 +316,7 @@ export const AnswersNotHere = ({ pr }: { pr: PrRef }) => (
 );
 
 /**
- * A person's answers (page 13), read, not worked: the parts one under another, each question with its right answer
+ * A person's answers, read, not worked: the parts one under another, each question with its right answer
  * and how many tries it took. The page is the same for everyone (`initial`, cached); once up, a signed-in person's
  * side is read in the browser: the fixer sees their own answers, shared or not, with the switch; a reader who has not
  * answered is offered to try the questions first.

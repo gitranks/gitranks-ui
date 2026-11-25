@@ -27,7 +27,7 @@ import { learnFixPath, learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
 
 /*
- * The parts of Issues (page 8), each from plain data: the row above the list (the way back, the chips, the switches),
+ * The parts of Issues, each from plain data: the row above the list (the way back, the chips, the switches),
  * an empty end with its one press, "Email me when one appears", the merged fixes and the foot.
  */
 

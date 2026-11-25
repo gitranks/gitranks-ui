@@ -107,7 +107,7 @@ type Personal =
   | { kind: 'sheet'; groups: KnownGroup[]; kept: string[]; check: string | null; sitting: number };
 
 /**
- * A course's check in the browser (page 17), or with `mode` "known", "What you know". The page is the person's own:
+ * A course's check in the browser, or with `mode` "known", "What you know". The page is the person's own:
  * once it is up, a person with a session reads their run (or their marks), and a visitor is asked to sign in. The run
  * asks each group's question once with no right or wrong, then the result proposes what they know; nothing is marked
  * until they save it. A course that offers no check, or stops offering it during the run, says so.

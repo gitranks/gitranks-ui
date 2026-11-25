@@ -1,6 +1,6 @@
 import type { LearnEmailSettings, LearnIssuesEmailSetting, LearnLessonIssuesSetting } from '../settings';
 
-/** Learn's email settings as page 23's boards draw them. */
+/** Learn's email settings as the design catalogue draws them. */
 export const learnEmail = {
   /** Off, the zone taken from the device. */
   device: { lessonsToRepeat: false, timeZone: 'Europe/Lisbon', timeZoneBy: 'DEVICE' },

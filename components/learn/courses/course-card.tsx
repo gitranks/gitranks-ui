@@ -24,7 +24,7 @@ import { projectLanguageOf } from '@/lib/learn/project-course';
 import { cn } from '@/lib/utils';
 
 /*
- * A course on the list of all courses (page 24): one link with three lines, its name, what it covers and its numbers.
+ * A course on the list of all courses: one link with three lines, its name, what it covers and its numbers.
  * A learner's figure takes the place of the lesson count, and a bar on the bottom edge shows their depths; nothing
  * is added beside or under the course, so a card keeps its size in every state.
  */

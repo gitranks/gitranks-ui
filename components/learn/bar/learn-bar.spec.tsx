@@ -73,7 +73,7 @@ describe("Learn's bar", () => {
   const items = () =>
     [...container.querySelectorAll('[data-learn-bar-item]')].map((a) => [a.getAttribute('href'), a.textContent]);
 
-  /** What each row of page 7's board shows: the tabs, the current place, and the right side. */
+  /** What each row of the bar's board shows: the tabs, the current place, and the right side. */
   const expected = [
     { tabs: 3, current: ['Home'], items: [] },
     { tabs: 5, current: ['Home'], items: [['/learn/setup', SETUP_READY]] },
@@ -257,7 +257,7 @@ describe("Learn's bar", () => {
     expect(tabs()).toEqual(['Home', 'Courses', 'Issues']);
   });
 
-  /** What each row of page 5's board of the tab shows: its look, the right side, and the current place. */
+  /** What each row of the tab's board shows: its look, the right side, and the current place. */
   const setupExpected = [
     { look: 'working', items: [['/learn/setup', SETUP_WORKING]], current: ['Courses'] },
     { look: 'guessed', items: [['/learn/setup', SETUP_READY]], current: ['Courses'] },

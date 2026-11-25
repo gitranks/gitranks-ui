@@ -1,7 +1,7 @@
 import type { LearnLesson } from '../lesson-page';
 import { regexLesson, setLesson } from './lesson-page';
 
-/** A lesson whose title is long: its picture's title gets smaller, as page 21's "Long words" board draws it. */
+/** A lesson whose title is long: its picture's title gets smaller, as the design catalogue draws it. */
 export const longTitleLesson: LearnLesson = {
   ...setLesson,
   slug: 'nested-repeats-are-slow',

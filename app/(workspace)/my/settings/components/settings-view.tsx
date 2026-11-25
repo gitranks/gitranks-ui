@@ -273,7 +273,7 @@ function LimitsGroup({ view, openPrs }: { view: ContributeView; openPrs?: number
 }
 
 /**
- * Settings (page 23): one page for both products, opened from either bar, with the product's own preferences first.
+ * Settings: one page for both products, opened from either bar, with the product's own preferences first.
  * From Learn: Learn preferences, Email, Agent and GitHub, Limits, then Contribute preferences; from Contribute:
  * Contribute preferences, Agent and GitHub, Limits, Email, then Learn preferences. Privacy, then Delete all data,
  * last. A product's group shows only to someone who uses it (Learn's, to everyone; Contribute's, to all but

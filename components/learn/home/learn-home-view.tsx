@@ -66,7 +66,7 @@ import type { MaskedListReads } from '@/lib/workspace/masked-issue';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /*
- * Learn home (page 3): three boxes (the next lesson, the review, and real issues: the person's fix that needs them,
+ * Learn home: three boxes (the next lesson, the review, and real issues: the person's fix that needs them,
  * else their fix merged in the last 7 days, else a fix of theirs followed to its end, else the open issues that fit
  * them, else a quiet box with the email for a new one), the "Real issues" rows, the
  * courses the person started, the courses they have not, and the foot. A new learner picks a first course in the

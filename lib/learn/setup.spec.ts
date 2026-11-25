@@ -82,7 +82,7 @@ describe('Set up Learn: what a save takes', () => {
   });
 });
 
-describe("Set up Learn: the page's states, as page 5's board draws them", () => {
+describe("Set up Learn: the page's states, as the design catalogue draws them", () => {
   it('1 · our guess is ready: every field ours, and the line says so', () => {
     const form = formOf(0);
     expect(form.values).toEqual({ mainLanguage: 'go', otherLanguages: ['python'], level: 3 });

@@ -6,7 +6,7 @@ import { loadLearnCourses, loadLearnLessons } from '@/lib/learn/course.data';
 import { learnCoursesJsonLd, learnCoursesMetadata } from '@/lib/learn/seo/course';
 
 /**
- * All courses (page 24): the same for everyone, read from the cached list under its tag; the person's side is read
+ * All courses: the same for everyone, read from the cached list under its tag; the person's side is read
  * later in the browser. The address's `?q=` opens the page with a search typed; such a page names the full list as
  * the one to index.
  */

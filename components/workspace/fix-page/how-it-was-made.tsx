@@ -10,7 +10,7 @@ import type { PrTimeline, PrTimelineHelped } from '@/lib/workspace/pr-timeline.t
 import { fixChangeOf, helpedMoreOf, type MadeRow } from '@/lib/workspace/pr-timeline-made';
 
 /*
- * "How it was made" (page 12, board B): a pull request's public page as a short list of what happened, then the
+ * "How it was made": a pull request's public page as a short list of what happened, then the
  * change and the notes for the project's maintainers. The same for everyone: it reads no session. A Learn fix adds
  * its part above the list (`learn`), which the page hands in.
  */

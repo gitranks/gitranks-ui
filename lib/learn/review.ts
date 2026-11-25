@@ -5,7 +5,7 @@ import { isLanguageKey, pickedOf } from './lesson-answer-input';
 import type { LearnLessonLink } from './lesson-page';
 
 /*
- * The daily review (page 16): the lessons that are due, one question each, no lesson text and the lesson's name hidden
+ * The daily review: the lessons that are due, one question each, no lesson text and the lesson's name hidden
  * until the answer. The first pick counts; a wrong pick or "I don't remember" brings the lesson back the next day. Pure:
  * the page, the specs and the catalogue read the same words.
  */

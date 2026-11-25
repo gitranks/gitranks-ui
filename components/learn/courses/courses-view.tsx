@@ -117,7 +117,7 @@ function FoundLesson({
 }
 
 /**
- * All courses (page 24): the search, then one section of courses a kind, each course a link to its page; a learner's
+ * All courses: the search, then one section of courses a kind, each course a link to its page; a learner's
  * own figures in place on the courses they started. The search filters as it is typed: courses by name or kind, then
  * lessons by name, in every course; the address keeps what was typed.
  */

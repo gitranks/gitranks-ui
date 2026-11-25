@@ -19,7 +19,7 @@ export const setupNone: LearnSetupRead = {
 /** Our guess runs. */
 export const setupWorking: LearnSetupRead = { ...setupNone, state: 'WORKING' };
 
-/** Our guess from the public profile, as page 5's board draws it: Go, Python too, an experienced developer. */
+/** Our guess from the public profile, as the design catalogue draws it: Go, Python too, an experienced developer. */
 export const setupGuessed: LearnSetupRead = {
   state: 'GUESSED',
   mainLanguage: 'go',
@@ -52,7 +52,7 @@ const pickedTwo = setupFormPick(
   { field: 'level', level: 2 },
 );
 
-/** The page's six states on page 5's board, in its order, then the ones it adds. */
+/** The page's six states on its board, in its order, then the ones it adds. */
 export const setupForms: { title: string; form: SetupForm }[] = [
   { title: '1 · Our guess is ready', form: setupFormAfter(pendingSetupForm(), setupGuessed, null) },
   {

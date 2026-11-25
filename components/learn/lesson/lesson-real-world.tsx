@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { NO_MASKED_READS } from '@/lib/workspace/masked-issue';
 
 /*
- * "In the real world", the last part of a lesson's page (page 15): the merged fixes that used the lesson, then, for a
+ * "In the real world", the last part of a lesson's page: the merged fixes that used the lesson, then, for a
  * signed-in person, their own fix that uses it or else the masked rows of their list for it. The parts stack in that
  * order, one under another, and a part with nothing in it is not drawn: the fixes come with the page and the person's
  * parts arrive later under them, so nothing already drawn moves or changes width. With nothing at all, no section.

@@ -11,7 +11,7 @@ import type { LearnProjectRoute } from '@/lib/learn/paths';
 import { learnCourseGoneMetadata } from '@/lib/learn/seo/course';
 
 /*
- * The page of a project course that was removed ("This course was removed", page 33) or paused, read from its
+ * The page of a project course that was removed ("This course was removed") or paused, read from its
  * project's address and the same for everyone. Opened for a project whose course is neither, it is not there.
  */
 

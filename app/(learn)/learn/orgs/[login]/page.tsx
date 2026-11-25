@@ -4,7 +4,7 @@ import { ProjectCoursePage, projectCourseMetadata } from '@/components/learn/cou
 import { learnProjectRouteOfSegments } from '@/lib/learn/paths';
 
 /**
- * An organisation's course (page 25), at `/learn/orgs/<login>`: the same for everyone, read from the cached course by
+ * An organisation's course, at `/learn/orgs/<login>`: the same for everyone, read from the cached course by
  * its organisation (`project-course-page.tsx`). The proxy answers a missing or removed course first.
  */
 export const instant = false;

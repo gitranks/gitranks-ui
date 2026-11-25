@@ -1,8 +1,8 @@
 import type { ContributeAgentRun, ContributeAgentRunPhase } from './contribute.types';
 
 /**
- * The steps an agent run walks, one list per kind of run and one name per step: the row's status, the hover card's line
- * and the screen reader's text all say the same name. Which step a run is on comes from its phase alone.
+ * The steps an agent run walks, one list per kind of run and one name per step: the row's status and the screen
+ * reader's text say the same name. Which step a run is on comes from its phase alone.
  */
 
 /** The three kinds of run: a first run on either side, and a follow-up on a pull request. */
@@ -90,14 +90,6 @@ export function stepsOf(run: Pick<ContributeAgentRun, 'phase' | 'kind' | 'mode'>
 export function stepNameOf(run: Pick<ContributeAgentRun, 'phase' | 'kind' | 'mode'>): string | null {
   const { steps, at } = stepsOf(run);
   return at < steps.length ? steps[at] : null;
-}
-
-/** Each step with where the run stands on it: done, now, or left. */
-export function stepMarksOf(
-  run: Pick<ContributeAgentRun, 'phase' | 'kind' | 'mode'>,
-): { name: string; mark: 'done' | 'now' | 'left' }[] {
-  const { steps, at } = stepsOf(run);
-  return steps.map((name, index) => ({ name, mark: index < at ? 'done' : index === at ? 'now' : 'left' }));
 }
 
 /** What a screen reader hears of the bars: "Step 3 of 5: Working", or "All steps done". */

@@ -19,7 +19,7 @@ import { fixRefOf, playerQuestionOf, type Walkthrough } from '@/lib/learn/walkth
 import { loadWalkthrough } from '@/lib/learn/walkthrough.data';
 
 /**
- * A fix's public walkthrough (page 11), open to everyone and indexed: the same for everyone, read with no session and
+ * A fix's public walkthrough, open to everyone and indexed: the same for everyone, read with no session and
  * cached under the fix's tag. Every part is in the page's HTML. The page streams, so a fix with nothing there gets its
  * real status from the proxy, which asks first (`lib/learn/fix-gate.ts`); a walkthrough the read does not bring (paused,
  * not public yet, a read that failed) says so in place.

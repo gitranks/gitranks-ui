@@ -42,7 +42,7 @@ export type LearnBarWaiting = { due: number; pullRequests: boolean; pullRequests
 export type LearnBarSetup = 'working' | 'guessed' | 'open';
 
 /**
- * Who looks at Learn's bar, as the boards of pages 5 and 7 draw it:
+ * Who looks at Learn's bar, as the design catalogue draws it:
  * - `visitor`: not signed in (or not known yet): Home, Courses and Issues; nothing on the right;
  * - `setup`: signed in, without the Learn sign (Learn's onboarding not saved yet): a learner's tabs, and "Set up Learn"
  *   on the right with how far our guess is; then what waits for them, as a learner's;

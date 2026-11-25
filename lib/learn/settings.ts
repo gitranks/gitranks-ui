@@ -6,7 +6,7 @@ import { type LearnSetupRead, SETUP_LEVELS, valuesOfRead } from './setup';
 import { zoneCityOf } from '@/lib/workspace/email-settings';
 
 /*
- * Learn's rows of Settings (page 23): "Languages and level" under Learn preferences, and in Email the switch "Lessons
+ * Learn's rows of Settings: "Languages and level" under Learn preferences, and in Email the switch "Lessons
  * to repeat" and the time zone the morning emails keep. A save sends only what the person changed, so the switch
  * never moves the zone and a zone never moves the switch.
  */

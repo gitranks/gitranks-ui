@@ -7,7 +7,7 @@ import { loadLearnCourses } from '@/lib/learn/course.data';
 import { learnLandingMetadata } from '@/lib/learn/seo/landing';
 
 /**
- * `/learn`: the landing (page 4) for a visitor and for a signed-in person who has not set up Learn; Learn home (page 3)
+ * `/learn`: the landing for a visitor and for a signed-in person who has not set up Learn; Learn home
  * for everyone else. Read per request. The landing is the page search engines get.
  */
 export const instant = false;

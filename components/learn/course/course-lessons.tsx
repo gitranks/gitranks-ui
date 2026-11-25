@@ -30,7 +30,7 @@ import { learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
 
 /*
- * A course's lessons (page 2): the filters, the search and the view's switch; the list of groups; and the Squares
+ * A course's lessons: the filters, the search and the view's switch; the list of groups; and the Squares
  * view, one row of squares a group, each square with its card.
  */
 

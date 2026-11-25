@@ -10,7 +10,7 @@ import { type LearnProjectRoute, projectOfRoute } from '@/lib/learn/paths';
 import { LEARN_MISSING_METADATA, learnCourseJsonLd, learnCourseMetadata } from '@/lib/learn/seo/course';
 
 /*
- * A project course's page (pages 25 and 26), at `/learn/repos/<owner>/<name>` and `/learn/orgs/<login>`: any course's
+ * A project course's page, at `/learn/repos/<owner>/<name>` and `/learn/orgs/<login>`: any course's
  * page, read from the cached course by its project, with the project's own parts. Its open issues change through the
  * day while the course is kept until the content changes, so they are read apart, kept for minutes only. The page
  * streams: a project with no course, or whose course was removed, gets its real status from the proxy, which asks

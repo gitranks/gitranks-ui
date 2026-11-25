@@ -83,7 +83,8 @@ describe('the workspace has one poll', () => {
   /**
    * The timers allowed under the workspace's pages and components: clocks that read nothing, and the bounded waits that
    * end by themselves (the setting-up reload, the matching moment, the connect page's wait for the agent's first call,
-   * the first picks being ranked). Anything else that reads the API again rides the one poll.
+   * the first picks being ranked, the flow's list picked again after a save). Anything else that reads the API again
+   * rides the one poll.
    */
   const ALLOWED: Record<string, string> = {
     'components/workspace/activity.tsx': 'a clock for the bar',
@@ -92,6 +93,7 @@ describe('the workspace has one poll', () => {
     'components/workspace/matching.tsx': 'the matching moment, bounded',
     'components/workspace/agent/agent-connect.tsx': "the wait for the agent's first call, bounded",
     'app/contribute/components/still-ranking.tsx': 'the first picks being ranked, bounded',
+    'components/contribute/start/first-issue-step.tsx': 'the list picked again after a save, bounded',
   };
 
   it('starts no interval of its own outside the bounded waits', () => {

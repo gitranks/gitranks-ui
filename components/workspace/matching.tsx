@@ -10,6 +10,7 @@ import { useOnboardedPush } from './use-onboarded-push';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { readFeedComputedAt } from '@/lib/workspace/actions';
+import { flowWayBackHereOf, withFlowWayBack } from '@/lib/workspace/flow-way-back';
 import {
   MATCHING_CONTINUE_MS,
   MATCHING_GIVE_UP_MS,
@@ -24,6 +25,9 @@ export const ISSUES_PATH: Route = PICK_ISSUE_PATHS.fix;
 
 /** Where the matching moment goes on to: the first issue, the last step of Contribute's flow. */
 const FIRST_ISSUE_PATH = GETTING_IN_PATHS.contributeIssue;
+
+/** The first issue with the way back (`?issue=`) the address carries, read in the browser. */
+const firstIssueHere = (): Route => withFlowWayBack(FIRST_ISSUE_PATH, flowWayBackHereOf()) as Route;
 
 /** Where each chip floats beside the orb; on a phone they sit closer in. */
 const CHIP_PLACES = [
@@ -47,8 +51,11 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
   const goOn = useCallback(() => {
     if (gone.current) return;
     gone.current = true;
-    push(FIRST_ISSUE_PATH);
+    push(firstIssueHere());
   }, [push]);
+  // The link's own address, for a new tab: the way back is read once drawn in the browser.
+  const [firstIssue, setFirstIssue] = useState<Route>(FIRST_ISSUE_PATH);
+  useEffect(() => setFirstIssue(firstIssueHere()), []);
   const [elapsed, setElapsed] = useState(0);
   const [computed, setComputed] = useState(false);
   const ticks = Math.max(initialTicks, matchingTicksOf(elapsed, computed));
@@ -171,7 +178,7 @@ export function Matching({ languages, initialTicks = 0 }: { languages: string[];
       {done ? (
         <Button asChild size="lg" className="min-h-12 px-5.5 text-base font-semibold">
           <Link
-            href={FIRST_ISSUE_PATH}
+            href={firstIssue}
             prefetch={false}
             onClick={(event) => {
               // The way on reads the layout again, for the tabs; a new tab or window loads it whole anyway.

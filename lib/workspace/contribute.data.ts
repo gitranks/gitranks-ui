@@ -56,6 +56,7 @@ import {
   ContributeSetDocument,
   ContributeSetupDocument,
   ContributeSidesDocument,
+  ContributeSignsDocument,
   type FollowUpFlowRead,
   type NeedsYouMovesRow,
 } from './contribute.documents';
@@ -182,7 +183,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
   await loadContributeVersion();
 
   const options = { source: 'ssr' as const, githubLogin };
-  const [overview, grant, autopilot, autopilotNotice, ownAgent, onboarding, limits, connections, signIn, sides] =
+  const [overview, grant, autopilot, autopilotNotice, ownAgent, onboarding, limits, connections, signIn, sides, signs] =
     await Promise.allSettled([
       graphqlDirect(ContributeOverviewDocument, undefined, options),
       graphqlDirect(ContributeGrantDocument, undefined, options),
@@ -194,6 +195,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
       graphqlDirect(ContributeMcpConnectionsDocument, undefined, options),
       contributeMcpSignIn(Date.now()),
       graphqlDirect(ContributeSidesDocument, undefined, options),
+      graphqlDirect(ContributeSignsDocument, undefined, options),
     ]);
 
   if (overview.status === 'rejected') throw new ContributeUnavailableError();
@@ -219,6 +221,7 @@ export const loadContribute = cache(async (): Promise<ContributeView | null> => 
       ? {
           ...withAutopilot,
           ...onboardedOf(onboardingFields?.contributor),
+          ...signsOf(settled(signs)?.contribute?.contributor),
           ...(limitsField ? { limits: limitsField } : {}),
         }
       : withAutopilot,
@@ -293,6 +296,17 @@ function onboardedOf(
   return {
     ...(fields.onboardedAt !== undefined ? { onboardedAt: fields.onboardedAt } : {}),
     ...(fields.onboardedVia !== undefined ? { onboardedVia: fields.onboardedVia } : {}),
+  };
+}
+
+/** The two signs the API answered; a failed read leaves them out, so they read as not known. */
+function signsOf(
+  fields: { contributeOnboardedAt?: string | null; learnOnboardedAt?: string | null } | null | undefined,
+): { contributeOnboardedAt?: string | null; learnOnboardedAt?: string | null } {
+  if (!fields) return {};
+  return {
+    ...(fields.contributeOnboardedAt !== undefined ? { contributeOnboardedAt: fields.contributeOnboardedAt } : {}),
+    ...(fields.learnOnboardedAt !== undefined ? { learnOnboardedAt: fields.learnOnboardedAt } : {}),
   };
 }
 

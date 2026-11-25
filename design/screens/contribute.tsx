@@ -267,7 +267,7 @@ const publicPage = (page: ReactNode) => (
 );
 
 /** The landing's button for a visitor: the flow's first step. */
-const VISITOR = { href: GETTING_IN_PATHS.contributeWork, signedIn: false };
+const VISITOR = { href: GETTING_IN_PATHS.contributeStart, signedIn: false };
 const LANDING_STATS: AgentPageStats = {
   readyIssues: 2792,
   repos: 1291,

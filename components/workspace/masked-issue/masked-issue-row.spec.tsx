@@ -9,6 +9,7 @@ import { IssueStartsProvider } from '@/components/workspace/start-control';
 import { issue } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { fullIssue, looksAtLimit, maskedIssue } from '@/lib/workspace/__fixtures__/masked-issue';
 import { issueRowOfContribute } from '@/lib/workspace/issue-row';
+import { issuePageHrefOf } from '@/lib/workspace/masked-issue';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
 vi.mock('@/lib/workspace/issue-actions', () => ({ startIssue: vi.fn(), skipIssue: vi.fn() }));
@@ -137,6 +138,26 @@ describe('a masked row', () => {
     expect(container.querySelector('[data-masked-facts]')).not.toBeNull();
     expect(text()).toContain('Duplicate tags appear in the sidebar after a rename');
     expect(button('Go to the issue')?.getAttribute('href')).toBe('/my/issues/q7k2m9xa');
+    expect(button('Skip')).toBeNull();
+  });
+
+  it('a label it is given wins over its own, held in full too: "Start fixing it" on the issue a person opened', async () => {
+    await render(
+      <MaskedIssueRow
+        issue={maskedIssue()}
+        state="full"
+        full={fullIssue()}
+        href={issuePageHrefOf('q7k2m9xa', 'contribute')}
+        seeLabel="Start fixing it"
+        skippable={false}
+      />,
+    );
+    expect(button('Go to the issue')).toBeNull();
+    expect(button('Start fixing it')?.getAttribute('href')).toBe('/my/issues/q7k2m9xa?from=contribute');
+    expect(button('Skip')).toBeNull();
+    await render(<MaskedIssueRow issue={maskedIssue()} seeLabel="Start fixing it" skippable={false} />);
+    expect(button('Start fixing it')).not.toBeNull();
+    expect(button('See the full issue')).toBeNull();
     expect(button('Skip')).toBeNull();
   });
 

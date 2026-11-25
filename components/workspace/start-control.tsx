@@ -172,12 +172,14 @@ export function StartControl({
           <ChevronDown aria-hidden="true" className="size-4" />
         </Button>
       </DropdownMenuTrigger>
+      {/* The items are drawn in a portal, outside the row: each carries the mark itself, so a page that waits on its
+          Start controls (the flow's ways out) finds them too. */}
       <DropdownMenuContent align="end" className="min-w-52">
-        <DropdownMenuItem className={ITEM} onSelect={onHosted}>
+        <DropdownMenuItem className={ITEM} onSelect={onHosted} data-start-control="menu-hosted">
           With the hosted agent
         </DropdownMenuItem>
         <DropdownMenuItem asChild className={ITEM}>
-          <Link href={control.ownHref as Route} prefetch={false}>
+          <Link href={control.ownHref as Route} prefetch={false} data-start-control="menu-own">
             With my own agent
           </Link>
         </DropdownMenuItem>

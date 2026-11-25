@@ -167,8 +167,8 @@ describe("the landing's proof, by what the newest pull requests' read answers", 
 });
 
 describe('where the landing’s button leads a signed-in person', () => {
-  it('the step that is left: the agent’s connect step mid-setup, step 2 with preferences saved, else step 1', () => {
-    expect(signedInStartOf(views.noKey)).toEqual({ href: '/contribute/start/agent', signedIn: true });
+  it('the step that is left: the agent’s connect step mid-setup, else the first step, saved preferences or not', () => {
+    expect(signedInStartOf(views.noKey)).toEqual({ href: '/contribute/start', signedIn: true });
     expect(signedInStartOf(views.newcomer)).toEqual({ href: '/contribute/start', signedIn: true });
     expect(signedInStartOf(views.midSetup)).toEqual({ href: '/contribute/start/agent/own', signedIn: true });
   });

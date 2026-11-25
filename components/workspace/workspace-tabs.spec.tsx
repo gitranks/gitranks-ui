@@ -69,6 +69,7 @@ const tabsAt = (pathname: string, search = '', props: Partial<Parameters<typeof 
 const open = (over: Partial<Extract<WorkspaceGate, { kind: 'open' }>> = {}): WorkspaceGate => ({
   kind: 'open',
   entered: true,
+  signs: { contribute: null, learn: null },
   agents: { hosted: true, own: false },
   ...over,
 });

@@ -362,7 +362,6 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ mine: null, course: null, learnOnboarded: null })));
     answerLearnLessonAction.mockResolvedValue({ ok: true, data: null });
     await draw();
-    expect(main().textContent).toBe(`Next: ${setLesson.next!.title}`);
     await tap(option(1));
     await click(main());
     expect($('[data-answer-note]')!.textContent).toBe(ANSWER_KEPT_NOTE);

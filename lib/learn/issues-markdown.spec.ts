@@ -115,6 +115,12 @@ describe("Issues' Markdown copies", () => {
       'lesson',
     );
     expect(missing.status).toBe(404);
+    const own = await learnIssuesMarkdownResponse(
+      async () => ({ rows: [], names: issuesNames, fixes: learnFixes }),
+      { ...views.lesson, language: 'go' },
+      'lesson',
+    );
+    expect(own.headers.get('link')).toBe('</learn/lessons/find-duplicates-with-a-set/real-world>; rel="canonical"');
   });
 
   it('answers a failed read with 503, never kept, and the API answering none with the copy', async () => {

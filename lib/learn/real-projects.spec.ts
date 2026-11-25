@@ -78,7 +78,7 @@ describe("a lesson's view and a course's", () => {
     expect(realProjectsWordsOf('course')).toEqual({
       back: '← The course',
       sentence:
-        'Open issues in real open-source projects that this course helps you fix, and merged fixes that used it.',
+        'Open issues in real open-source projects that this course helps you fix, and merged fixes that used its lessons.',
       openNone: { title: 'No open issue needs this course right now', text: 'New issues come in every day.' },
       fixedNone: {
         title: 'No fix yet',

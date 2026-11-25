@@ -116,6 +116,21 @@ describe('the view in the address', () => {
     expect(issuesHrefOf({ ...views.lesson, lesson: null }, 'lesson')).toBe('/learn/issues');
   });
 
+  it("points every variant of a lesson's or a course's own view to its bare address", () => {
+    for (const view of [
+      views.lesson,
+      { ...views.lesson, show: 'open' as const, language: 'go' as const, forYou: false, learned: true },
+      { ...views.lesson, show: 'fixed' as const, course: 'algorithms', repo: 'django/django' },
+    ]) {
+      expect(issuesCanonicalOf(view, 'lesson')).toBe('/learn/lessons/find-duplicates-with-a-set/real-world');
+    }
+    expect(issuesCanonicalOf({ ...views.course, language: 'go' }, 'course')).toBe(
+      '/learn/courses/algorithms/real-world',
+    );
+    // Without the page's own lesson or course, the view is Issues'.
+    expect(issuesCanonicalOf({ ...views.language, show: 'open' }, 'lesson')).toBe('/learn/issues?language=go');
+  });
+
   it('points search engines to the chips with the switches as they are by default, and the copy without "Fixed"', () => {
     expect(issuesCanonicalOf({ ...views.language, forYou: false, learned: true })).toBe('/learn/issues?language=go');
     expect(issuesCanonicalOf(views.courseFixed)).toBe('/learn/issues?course=algorithms&fixed=1');
@@ -203,8 +218,21 @@ describe('chips and the way back', () => {
     const [, chip] = issuesChipsOf(views.lesson, {}, 'lesson');
     expect(chip.label).toBe('Lesson: find-duplicates-with-a-set');
     expect(chip.removeHref).toBe('/learn/issues');
-    const [, fixedAlone] = issuesChipsOf({ ...views.lesson, show: 'fixed' }, {}, 'lesson');
-    expect(fixedAlone.removeHref).toBe('/learn/issues?fixed=1');
+    // The page's own chip leads to plain Issues, whatever else the view holds.
+    const [, fixedAlone] = issuesChipsOf(
+      { ...views.lesson, show: 'fixed', language: 'go', forYou: false, learned: true },
+      {},
+      'lesson',
+    );
+    expect(fixedAlone.removeHref).toBe('/learn/issues');
+    const [, course] = issuesChipsOf({ ...views.course, language: 'go' }, {}, 'course');
+    expect(course).toMatchObject({ key: 'course', removeHref: '/learn/issues' });
+    // Another chip on an own view keeps the page.
+    const lessonOnCourse = issuesChipsOf({ ...views.course, lesson: 'binary-search' }, {}, 'course')[2];
+    expect(lessonOnCourse).toMatchObject({
+      key: 'lesson',
+      removeHref: '/learn/courses/algorithms/real-world?open=1&learned=1',
+    });
   });
 
   it('draws what an own view shows first, as a chip: both groups, or one of them, the other way back', () => {

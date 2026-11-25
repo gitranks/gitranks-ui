@@ -226,11 +226,12 @@ export function IssuesLive({
   }, [waitsForAddress, setListOf]);
 
   // The person's list failed: read it again. The page's own layer failed (a visitor's five, the merged fixes): the
-  // page is drawn again on the server, which reads it again.
+  // page is drawn again on the server, which reads it again. Both failed: both.
   const mineFailed = personal && mine?.key === key && mine.read.state === 'failed';
+  const pageFailed = initial.kind === 'failed' || fixes?.kind === 'failed';
   const onRetry = () => {
     if (mineFailed) setAttempt((was) => was + 1);
-    else router.refresh();
+    if (pageFailed || !mineFailed) router.refresh();
   };
 
   return (

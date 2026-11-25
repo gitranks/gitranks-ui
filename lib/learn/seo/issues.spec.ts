@@ -33,18 +33,18 @@ describe("Issues' metadata", () => {
       });
       expect(metadata.robots).toBeUndefined();
     }
-    // A chip the page keeps stays in the address.
+    // Another chip too: the bare address.
     expect(
       learnIssuesMetadata({ ...views.lesson, language: 'go' }, { at: 'lesson', names: issuesNames }).alternates
         ?.canonical,
-    ).toBe('/learn/lessons/find-duplicates-with-a-set/real-world?language=go');
+    ).toBe('/learn/lessons/find-duplicates-with-a-set/real-world');
   });
 
   it("titles a course's own view after the course, in its words", () => {
     const metadata = learnIssuesMetadata(views.course, { at: 'course', names: issuesNames, fixed: true });
     expect(metadata.title).toBe('Algorithms and data structures: in real projects');
     expect(metadata.description).toBe(
-      'Open issues in real open-source projects that this course helps you fix, and merged fixes that used it.',
+      'Open issues in real open-source projects that this course helps you fix, and merged fixes that used its lessons.',
     );
     expect(metadata.alternates?.canonical).toBe('/learn/courses/algorithms/real-world');
   });

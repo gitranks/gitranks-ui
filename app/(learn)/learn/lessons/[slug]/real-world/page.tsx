@@ -7,11 +7,10 @@ import { hasMergedFixOf } from '@/lib/learn/issues.data';
 import { learnIssuesMetadata } from '@/lib/learn/seo/issues';
 
 /**
- * A lesson in real projects (page 53): Issues with the lesson set, at the lesson's own address, with its open issues
- * and the merged fixes that used it in two groups (`open=1` the first alone, `fixed=1` the second). Its chip's cross
- * leads to Issues without it. Not found for a slug that is no live lesson of ours. The proxy sends an address of a
- * lesson with neither to the lesson, before the page streams; search engines keep the page only while it has a merged
- * fix.
+ * A lesson in real projects: Issues with the lesson set, at the lesson's own address, with its open issues and the
+ * merged fixes that used it in two groups (`open=1` the first alone, `fixed=1` the second). Its chip's cross leads to
+ * plain Issues. Not found for a slug that is no live lesson of ours. The proxy sends an address of a lesson with
+ * neither to the lesson, before the page streams; search engines keep the page only while it has a merged fix.
  */
 export const instant = false;
 

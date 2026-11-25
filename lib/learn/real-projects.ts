@@ -16,7 +16,7 @@ export const realProjectsTitleOf = (name: string): string => `${name}: in real p
 
 /** The words of a course's view, which has the same top and the same groups as a lesson's. */
 export const REAL_PROJECTS_COURSE_SENTENCE =
-  'Open issues in real open-source projects that this course helps you fix, and merged fixes that used it.';
+  'Open issues in real open-source projects that this course helps you fix, and merged fixes that used its lessons.';
 
 /** The words of the top and the two ends, for a lesson's view or a course's. */
 export function realProjectsWordsOf(of: 'lesson' | 'course') {

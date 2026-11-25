@@ -35,7 +35,7 @@ import { fixKeyOf, fixLanguageWordsOf, realProjectsEndsOf, realProjectsWordsOf }
 import { type MaskedListReads, NO_MASKED_READS } from '@/lib/workspace/masked-issue';
 
 /*
- * A lesson in real projects (page 53), and a course's view with it: Issues at the lesson's or the course's own address.
+ * A lesson in real projects, and a course's view with it: Issues at the lesson's or the course's own address.
  * The visible top, then two groups always in this order, "Open" and "Fixed", each with its end in its own place, so
  * the other never moves up. `open=1` shows the first group alone, `fixed=1` the second.
  */
@@ -123,7 +123,8 @@ function NotHere({ kind, onRetry }: { kind: 'unavailable' | 'failed'; onRetry?: 
 
 /**
  * "Open": the masked rows with the foot of a masked list under them; with none, the dashed box when the shared list
- * has none either, else the list's own ends ("Turn off …" only where pressing it would show something).
+ * has none either, else the list's own ends ("Turn off …" only where pressing it would show something). When the
+ * shared list could not be read, the person's empty list says only what the list's own ends say.
  */
 function OpenGroup({
   view,
@@ -142,6 +143,10 @@ function OpenGroup({
     return <NotHere kind={layer.kind} onRetry={handlers.onRetry} />;
   const visitor = layer.kind === 'visitor';
   const rows = visitor ? layer.rows : layer.list.rows;
+  if (shared === null && layer.kind === 'personal' && !rows.length) {
+    const end = issuesEndOf(view, layer.list, at);
+    if (end) return <IssuesEndBox end={end} email={null} />;
+  }
   const ends = realProjectsEndsOf({ own: visitor ? null : rows.length, shared: shared ?? rows.length, fixes: 0 });
   if (ends.open === 'none') {
     // The email of issues for the person's lessons comes in its own change: its place under the words stays empty.

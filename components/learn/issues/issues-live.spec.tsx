@@ -271,6 +271,31 @@ describe('Issues in the browser', () => {
     expect($('main')?.getAttribute('data-issues')).toBe('personal');
   });
 
+  it("tries both again when the person's list and the merged fixes both failed", async () => {
+    fetchMock.mockReturnValueOnce(answer({}, 500));
+    await act(async () =>
+      root.render(
+        <IssuesLive
+          view={views.lesson}
+          at="lesson"
+          initial={{ kind: 'visitor', rows: visitorRows }}
+          fixes={{ kind: 'failed' }}
+        />,
+      ),
+    );
+    await flush();
+    const boxes = $$('[data-issues-box="failed"]');
+    expect(boxes).toHaveLength(2);
+    fetchMock.mockReturnValueOnce(answer({ state: 'ok', list: personalList(), reads }));
+    await act(async () => (boxes[0].querySelector('button') as HTMLButtonElement).click());
+    await flush();
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/me/learn/issues?lesson=find-duplicates-with-a-set',
+      '/api/me/learn/issues?lesson=find-duplicates-with-a-set',
+    ]);
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+  });
+
   it('says a save that failed, and keeps the button', async () => {
     fetchMock.mockReturnValueOnce(answer({ state: 'ok', list: listNone(), reads }));
     await act(async () => root.render(<IssuesLive view={ISSUES_VIEW} initial={{ kind: 'visitor', rows: [] }} />));

@@ -61,14 +61,20 @@ export async function loadLearnLessons(): Promise<LearnLessonListItem[]> {
 }
 
 /**
- * Which live lessons have a listed merged fix, for the sitemap: its own read, kept for hours (a lesson's view reaches
- * the sitemap within hours of its first merged fix) under the list's tag, purged with the content. A failed read throws.
+ * Which live lessons have a listed merged fix, for the sitemap: its own read under the list's tag, purged with the
+ * content. Kept for hours (a lesson's view reaches the sitemap within hours of its first merged fix) when it says
+ * something. A failed read throws; so does an answer where no lesson's `fixesListed` is known (the API could not read
+ * its fixes), so nothing is kept and the sitemap reads again soon.
  */
 export async function loadLearnLessonsFixesListed(): Promise<LearnLessonFixesListed[]> {
   'use cache';
   cacheTag(LEARN_COURSES_TAG);
-  cacheLife('hours');
   const { learnLessons } = await graphqlDirect(LearnLessonsFixesListedDocument, {}, { source: 'ssr' });
+  if (learnLessons.length && learnLessons.every((lesson) => lesson.fixesListed === null)) {
+    throw new Error('No lesson says whether it has a listed merged fix');
+  }
+  if (learnLessons.length) cacheLife('hours');
+  else cacheLife('minutes');
   return learnLessons;
 }
 

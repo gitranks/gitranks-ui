@@ -18,7 +18,7 @@ import { looksToday } from '@/lib/workspace/__fixtures__/masked-issue';
 import type { MaskedListReads } from '@/lib/workspace/masked-issue';
 
 /**
- * A lesson in real projects (page 53), and a course's view with it, from fixtures: the top, the chips, the two groups
+ * A lesson in real projects, and a course's view with it, from fixtures: the top, the chips, the two groups
  * "Open" then "Fixed" with their ends, and the foot, as the page draws them.
  */
 

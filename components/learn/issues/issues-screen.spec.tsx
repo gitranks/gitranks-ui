@@ -286,6 +286,22 @@ describe('Issues', () => {
     expect($('[data-real-projects-end]')).toBeNull();
   });
 
+  it("says only the list's own ends when the shared list could not be read and the person's has none", async () => {
+    await render(
+      <IssuesScreen
+        view={views.lesson}
+        at="lesson"
+        names={issuesNames}
+        layer={{ kind: 'personal', list: listNone() }}
+        fixes={{ kind: 'fixed', fixes: learnFixes }}
+        shared={null}
+      />,
+    );
+    expect($('[data-real-projects-end="open-none"]')).toBeNull();
+    expect($('[data-real-projects-group="open"] [data-issues-box="end"] h2')?.textContent).toBe('No issue matches');
+    expect($('[data-issues-email]')).toBeNull();
+  });
+
   it("names each row's lesson on a course's view, and says a failure in the group's own place", async () => {
     await render(
       <IssuesScreen

@@ -239,12 +239,15 @@ export function issuesViewQueryOf(view: IssuesView, at: IssuesAt = 'issues'): st
 export const isOwnView = (view: IssuesView, at: IssuesAt): boolean => baseOf(view, at).drop !== null;
 
 /**
- * The address search engines are pointed to: the view's chips, with the switches as they are by default. On a
- * lesson's or a course's own address every variant (`fixed=1`, `open=1`, the switches) points to that address with
- * both groups; on Issues, `fixed=1` is a page of its own.
+ * The address search engines are pointed to. On a lesson's or a course's own address every variant (`fixed=1`,
+ * `open=1`, the chips, the switches) points to that bare address. On Issues: the view's chips with the switches as
+ * they are by default, and `fixed=1` is a page of its own.
  */
-export const issuesCanonicalOf = (view: IssuesView, at: IssuesAt = 'issues'): Route =>
-  issuesHrefOf({ ...view, show: isOwnView(view, at) ? 'both' : view.show, forYou: true, learned: false }, at);
+export function issuesCanonicalOf(view: IssuesView, at: IssuesAt = 'issues'): Route {
+  const { path, drop } = baseOf(view, at);
+  if (drop) return path as Route;
+  return issuesHrefOf({ ...view, forYou: true, learned: false }, at);
+}
 
 /** The view's Markdown copy: its own address with `.md`, the chips kept and the switches left out. */
 export function issuesMarkdownPathOf(view: IssuesView, at: IssuesAt = 'issues'): string {
@@ -292,7 +295,7 @@ export const SHOW_CHIP_LABELS: Record<IssuesShow, string> = { both: 'Open and fi
  * The chips of a view, in the boards' order: the course, the lesson, the project ("Repository: django/django" or
  * "Org: kubernetes"), the language, then "Fixed". On a lesson's or a course's own address the view's own chip comes
  * first ("Open and fixed", "Open" or "Fixed"): its cross shows the open issues alone from "Open and fixed", and both
- * groups from the other two.
+ * groups from the other two. There the cross of the page's own lesson or course leads to plain Issues.
  */
 export function issuesChipsOf(view: IssuesView, names: IssuesNames = {}, at: IssuesAt = 'issues'): IssuesChip[] {
   const chips: IssuesChip[] = [];
@@ -304,18 +307,21 @@ export function issuesChipsOf(view: IssuesView, names: IssuesNames = {}, at: Iss
       removeHref: issuesHrefOf({ ...view, show: view.show === 'both' ? 'open' : 'both' }, at),
     });
   }
+  // The chip of the page's own lesson or course leads to plain Issues: the rest of the view is the page's own.
+  const leave = (key: 'lesson' | 'course', without: IssuesView) =>
+    own && at === key ? LEARN_ISSUES_PATH : issuesHrefOf(without, at);
   if (view.course) {
     chips.push({
       key: 'course',
       label: `Course: ${names.course ?? view.course}`,
-      removeHref: issuesHrefOf({ ...view, course: null }, at),
+      removeHref: leave('course', { ...view, course: null }),
     });
   }
   if (view.lesson) {
     chips.push({
       key: 'lesson',
       label: `Lesson: ${names.lesson ?? view.lesson}`,
-      removeHref: issuesHrefOf({ ...view, lesson: null }, at),
+      removeHref: leave('lesson', { ...view, lesson: null }),
     });
   }
   if (view.repo) {

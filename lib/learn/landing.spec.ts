@@ -194,6 +194,15 @@ describe("the landing's Markdown copy", () => {
     expect(markdown).not.toContain(String.fromCodePoint(0x2014));
   });
 
+  it('answers "Do I need an account?" with the sign-in and its 2-minute setup, on the page and in the copy', () => {
+    const setup =
+      'You can open any lesson and answer its question without one. To keep your progress, you sign in with GitHub and pick your languages: a 2-minute setup, once.';
+    expect(LANDING_QUESTIONS.find((each) => each.question === 'Do I need an account?')?.answer).toBe(setup);
+    expect(learnLandingMarkdownOf(courseCards)).toContain(`### Do I need an account?\n\n${setup}\n`);
+    const faq = learnLandingJsonLd(courseCards, setLesson) as unknown as { mainEntity?: unknown[] }[];
+    expect(JSON.stringify(faq[2]?.mainEntity)).toContain(setup);
+  });
+
   it('leaves the courses out when there are none', () => {
     const markdown = learnLandingMarkdownOf([]);
     expect(markdown).not.toContain('## Courses');

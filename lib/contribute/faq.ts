@@ -1,9 +1,10 @@
 import type { Route } from 'next';
 
+import { SETUP_FIRST_LINE } from './mcp-docs';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { CONTRIBUTE_RULES_PATH } from '@/lib/workspace/fair-use';
 import { AUTOPILOT_UNLOCK_AT } from '@/lib/workspace/format';
-import { MAINTAINERS_PATH, MCP_DOCS_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { GETTING_IN_PATHS, MAINTAINERS_PATH, MCP_DOCS_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /** A question, its answer, and where to read more. The id is its anchor on the questions page. */
 export type FaqEntry = { id: string; question: string; answer: string; more?: { href: Route; label: string } };
@@ -105,9 +106,8 @@ export const FAQ_GROUPS: readonly FaqGroup[] = [
       {
         id: 'agent-sign-in',
         question: 'How does my own agent connect?',
-        answer:
-          "It signs in with your GitHub account. Add our MCP server to your agent and sign in as its setup says: your browser opens GitRanks, where you press Allow. It can then see the issues picked for you and take one, hand back changes for your review, and see the issues you took and your pull requests. It can't open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub access. The Agent tab lists every agent you connected, each with Disconnect. A client that can't sign in, or a script, uses a personal token: make one under Connect another agent there.",
-        more: { href: MCP_DOCS_PATH, label: 'Setup for each agent' },
+        answer: `It signs in with your GitHub account. Add our MCP server to your agent and sign in as its setup says: your browser opens GitRanks, where you press Allow. It can then see the issues picked for you and take one, hand back changes for your review, and see the issues you took and your pull requests. It can't open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub access. The Agent tab lists every agent you connected, each with Disconnect. A client that can't sign in, or a script, uses a personal token: make one under Connect another agent there. ${SETUP_FIRST_LINE}`,
+        more: { href: GETTING_IN_PATHS.contributeStart, label: `gitranks.com${GETTING_IN_PATHS.contributeStart}` },
       },
       {
         id: 'whose-name',

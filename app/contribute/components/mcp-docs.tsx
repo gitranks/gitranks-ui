@@ -26,6 +26,7 @@ import {
   MCP_DOC_NEXT_STEPS,
   MCP_DOC_PLUGINS,
   MCP_DOC_SAVES,
+  MCP_DOC_SETUP_FIRST,
   MCP_DOC_SIGN_INS,
   MCP_DOC_TOOLS,
   MCP_DOC_TROUBLES,
@@ -363,6 +364,9 @@ export function McpDocsScreen({ plugin = MCP_PLUGIN_DOCS_SHOWN }: { plugin?: boo
             Your agent signs in with your GitHub account. Add GitRanks to it below and sign in as its setup says: your
             browser opens GitRanks, where you sign in with GitHub and press Allow. Nothing to copy, and nothing secret
             to keep. Every agent you connect is listed on Contribute&apos;s Agent tab, each with Disconnect.
+          </p>
+          <p data-setup-first>
+            <SiteText text={MCP_DOC_SETUP_FIRST} />
           </p>
           <details className="text-sm" data-token-start>
             <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">

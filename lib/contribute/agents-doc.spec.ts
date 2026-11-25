@@ -134,6 +134,22 @@ describe('agents.md', () => {
     expect(agentsDocOf(null)).toContain('## How many full issues a day');
   });
 
+  it('ends the human step with the setup the person finishes once, its full address in the text', () => {
+    const human = doc.slice(doc.indexOf('## The one human step'), doc.indexOf('## Connect'));
+    // The sign-in's own sentence stays.
+    expect(human).toContain('your client opens a GitRanks sign-in page in the browser, and your person presses Allow.');
+    expect(
+      human
+        .trimEnd()
+        .endsWith(
+          'Before you can take an issue, your person finishes a 2-minute setup on GitRanks once. If an answer says setup is not finished, give them the link it names: https://gitranks.com/contribute/start',
+        ),
+    ).toBe(true);
+    // A plain address, never only behind link words.
+    expect(human).not.toMatch(/\]\(https:\/\/gitranks\.com\/contribute\/start\)/);
+    expect(agentsDocOf(null)).toContain('give them the link it names: https://gitranks.com/contribute/start');
+  });
+
   it('has a part on Learn, with its Markdown pages, before the limits', () => {
     const learn = doc.slice(doc.indexOf('## With GitRanks Learn'), doc.indexOf('## Limits'));
     expect(learn).toContain(

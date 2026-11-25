@@ -1,4 +1,5 @@
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from './site';
+import { agentSetupLineOf } from '@/lib/contribute/mcp-docs';
 import { isProjectCourse, type LearnCourseCard, PROJECT_SECTION } from '@/lib/learn/course';
 import { LEARN_MAINTAINERS_PATH, LEARN_PATH } from '@/lib/learn/learn-path';
 import {
@@ -40,7 +41,7 @@ function registryPackageLines(registry: RegistryId, url: (path: string) => strin
 
 /**
  * The site's llms.txt (llmstxt.org): an H1, a one-line summary, then link sections. Top-level pages, and the address
- * patterns of per-item pages (never one person's or one project's own URL). `contribute`: Contribute is launched, so its pages for agents and its pull request timelines are listed. The packages section
+ * patterns of per-item pages (never one person's or one project's own URL). `contribute`: Contribute is launched, so its pages for agents, the setup a person finishes before their agent takes an issue, and its pull request timelines are listed. The packages section
  * lists the package rankings, the address patterns of a package's page and a repository's Used by tab, and the Unsung
  * heroes archive. Learn's pages are listed with its courses (`learnCourses`, each with its Markdown copy), and its page
  * for maintainers with Contribute.
@@ -66,6 +67,8 @@ export function llmsTxtOf({
       `- [MCP server docs](${url('/contribute/mcp')}): sign in with GitHub from Claude Code, Codex, ChatGPT, Cursor, Gemini CLI, Antigravity, VS Code, claude.ai, Kiro and more, or use a token`,
       `- [Questions](${url('/contribute/faq')})`,
       `- [Contribute in Markdown](${url(CONTRIBUTE_LANDING_MARKDOWN_PATH)}): what Contribute is, its two ways and its steps`,
+      '',
+      agentSetupLineOf(SITE_URL),
       '',
     );
     // Its pull request timelines: what one is, its address, its Markdown and its sitemap.

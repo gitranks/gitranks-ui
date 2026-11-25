@@ -99,13 +99,6 @@ export const LEARN_ISSUES_SCREENS: Screen[] = [
         ),
       },
       {
-        id: 'lesson',
-        title: "A lesson's view, at its own address",
-        path: '/learn/lessons/find-duplicates-with-a-set/real-world',
-        height: 1300,
-        render: () => draw(views.lesson, { kind: 'personal', list: personalList() }, 'lesson'),
-      },
-      {
         id: 'course-fixed',
         title: 'A course\'s merged fixes ("Fixed")',
         path: '/learn/issues?course=algorithms&fixed=1',

@@ -6,7 +6,6 @@ import { LEARN_FIX_SCREENS } from './learn-fix';
 import { LEARN_ISSUES_SCREENS } from './learn-issues';
 import { LEARN_PROGRESS_FIXES_SCREENS } from './learn-progress-fixes';
 import { LEARN_REAL_ISSUES_SCREENS } from './learn-real-issues';
-import { LEARN_REAL_PROJECTS_SCREENS } from './learn-real-projects';
 import { LEARN_WALKTHROUGH_SCREENS } from './learn-walkthrough';
 import { SKILLS_PART_SCREENS } from './skills-parts';
 import { WORKSPACE_ISSUE_LEARN_SCREENS } from './workspace-issue-learn';
@@ -29,5 +28,4 @@ export const HELD_BACK_SCREENS: Screen[] = [
   ...HOME_PRODUCT_SCREENS,
   ...WORKSPACE_ISSUE_LEARN_SCREENS,
   ...CONTRIBUTE_WAVE_4_PART_SCREENS,
-  ...LEARN_REAL_PROJECTS_SCREENS,
 ];

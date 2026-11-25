@@ -3,8 +3,9 @@ import type { Route } from 'next';
 import type { ContributeSetListMode } from './contribute.types';
 
 /**
- * The pages of the signed-in workspace, Contribute's and Learn's: the two front tabs, then everything under `/my`. Links
- * to them are built from here, so a page that moves changes this table and not its links.
+ * The pages of the signed-in workspace, Contribute's and Learn's: the front tab `/contribute`, Learn's home `/learn`
+ * (reached by the door at the bar's right edge), then everything under `/my`. Links to them are built from here, so a
+ * page that moves changes this table and not its links.
  */
 export const WORKSPACE_PATHS = {
   contribute: '/contribute' as Route,

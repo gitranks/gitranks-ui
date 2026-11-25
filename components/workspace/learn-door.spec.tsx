@@ -26,6 +26,12 @@ describe('LearnDoor', () => {
     expect(page.querySelector('[data-learn-door-count]')?.className).toContain('min-w-7');
   });
 
+  it("is counted as the tabs' clicks are, as the Learn tab it replaces was", () => {
+    const door = draw(<LearnDoor />).querySelector('a');
+    expect(door?.getAttribute('data-contribute-source')).toBe('workspace_tab');
+    expect(door?.getAttribute('data-learn-bar-item')).toBe('learn-door');
+  });
+
   it('counts the lessons due, and nothing with none due', () => {
     expect(text(draw(<LearnDoor count={<LearnDoorDue due={6} />} />).querySelector('a'))).toBe('Learn 6 lessons due');
     expect(text(draw(<LearnDoor count={<LearnDoorDue due={1} />} />).querySelector('a'))).toBe('Learn 1 lesson due');

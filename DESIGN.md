@@ -105,9 +105,9 @@ Tokens keep shadcn's names, so stock `components/ui` restyle with no edits. Ligh
 
 Contribute and Learn share one signed-in workspace (`components/workspace/`).
 
-- Its addresses: the two front tabs at `/contribute` and `/learn`; everything else under `/my` (`/my/pull-requests`, a
-  pull request's page by repo and issue, `/my/agent`, `/my/settings`, `/my/start/…`). Links are built from
-  `lib/workspace/paths.ts`, never written by hand.
+- Its addresses: the front tab at `/contribute`; Learn's home at `/learn`, reached by the door; everything else under
+  `/my` (`/my/pull-requests`, a pull request's page by repo and issue, `/my/agent`, `/my/settings`, `/my/start/…`).
+  Links are built from `lib/workspace/paths.ts`, never written by hand.
 - Four tabs, in this order: Contribute, Pull requests, Agent, Settings. Learn is not a tab: at the bar's right edge, a
   quiet outlined door "Learn" (`LearnDoor`, the item Learn's bar uses) opens Learn home, shown only to a person who
   also learns, with the number of lessons due when there are some. The bar keeps its place from the first paint: the

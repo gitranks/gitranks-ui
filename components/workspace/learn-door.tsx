@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react';
 
 import { BarCount, BarItem } from '@/components/tabs/bar-item';
+import { contributeSource } from '@/lib/workspace/click-tracking';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
+
+/** The door's click source: the tabs', as the Learn tab it replaces had, so its clicks are counted as before. */
+const DOOR_MARK = contributeSource('workspace_tab');
 
 /** The door's count: the lessons due, as Learn's bar counts them for "Review"; nothing with none due. */
 export function LearnDoorDue({ due }: { due: number }) {
@@ -19,6 +23,7 @@ export function LearnDoor({ count }: { count?: ReactNode }) {
       href={WORKSPACE_PATHS.learnHome}
       current={false}
       item="learn-door"
+      data={DOOR_MARK}
       countSlot={
         <span className="inline-flex min-w-7 items-center" data-learn-door-count="">
           {count}

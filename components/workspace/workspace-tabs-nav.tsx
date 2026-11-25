@@ -114,15 +114,18 @@ export function WorkspaceTabsBar({
   door?: ReactNode;
 }) {
   const { activity, needsYou } = useWorkspaceLive();
+  const pathname = usePathname();
   const bar = useRef<HTMLDivElement>(null);
   // The bar streams in on its own. Arriving after the screen, it pushes the section a link landed on (`#email`) down by
   // its height; browsers without scroll anchoring (Safari) leave the view where it was, so the link's jump is made
   // again. Before the screen is there, the id names nothing and the screen's own jump follows.
   useEffect(scrollToHash, []);
-  // The bar seen last, for Settings to show again (`settings-bar.ts`): Contribute's, but on a page Learn owns.
+  // The bar seen last, for Settings to show again (`settings-bar.ts`): written again on every page of the workspace's,
+  // since Learn's bar may have written its own in another browser tab meanwhile; never on a page Learn owns.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each move to another page records the bar again.
   useEffect(() => {
     if (!learnPage) rememberBar('contribute');
-  }, [learnPage]);
+  }, [learnPage, pathname]);
   useEffect(() => {
     if (!active) return;
     const tab = bar.current?.querySelector<HTMLElement>('[aria-current="page"]');

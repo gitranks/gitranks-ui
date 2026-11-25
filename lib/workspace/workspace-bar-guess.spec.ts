@@ -46,6 +46,36 @@ const ADDRESSES: [address: string, guess: WorkspaceTab | null | 'none'][] = [
   ['/myself', 'none'],
 ];
 
+/** Cookies with which the guess says no anywhere: no session hint, or a bar seen last that is not the workspace's. */
+const NO_GUESS = [
+  'gr_last_bar=contribute',
+  'has-session=1',
+  'has-session=1; gr_last_bar=learn',
+  'has-session=1; gr_last_bar=admin',
+  'gr_last_bar=admin',
+  '',
+];
+
+/** Cookies in another order, repeated, or written oddly: the helper's answer is the one to give. */
+const ODD = [
+  'gr_last_bar=contribute; other=1; has-session=1',
+  'has-session=1; gr_last_bar=learn; gr_last_bar=contribute',
+  'has-session=1;gr_last_bar=contribute',
+  // A bar seen last with no `=`, alone and before a well-formed one.
+  'has-session=1; gr_last_bar',
+  'has-session=1; gr_last_bar; gr_last_bar=contribute',
+  'has-session=1; gr_last_bar=',
+  // A value with an `=` in it: the part before it is read.
+  'has-session=1; gr_last_bar=contribute=x',
+  // A bare session hint, with no `=`, is no hint.
+  'has-session; gr_last_bar=contribute',
+  // Stray separators and spaces.
+  ';;has-session=1;; ;gr_last_bar=contribute;;',
+  ' has-session=1 ;  gr_last_bar=contribute ',
+  'has-sessionx=1; gr_last_bar=contribute',
+  'has-session=1; gr_last_bar = contribute',
+];
+
 const expected = (guess: WorkspaceTab | null | 'none') => (guess === 'none' ? null : { tab: guess });
 
 const guessAt = (address: string, cookies: string) => {
@@ -83,18 +113,16 @@ describe("the guess of the workspace's bar", () => {
   });
 
   it("says no without the session hint, or when the bar seen last is not the workspace's", () => {
-    for (const cookies of [
-      'gr_last_bar=contribute',
-      'has-session=1',
-      'has-session=1; gr_last_bar=learn',
-      'has-session=1; gr_last_bar=admin',
-      '',
-    ]) {
+    for (const cookies of NO_GUESS) {
       for (const [address] of ADDRESSES) expect(guessAt(address, cookies), `${address} ${cookies}`).toBeNull();
     }
   });
 
-  it('reads the cookies in any order, the first bar seen last only', () => {
+  it('reads the cookies in any order, the first bar seen last only, and malformed ones as the browser gives them', () => {
+    expect(guessAt('/my/agent', 'has-session=1; gr_last_bar')).toBeNull();
+    expect(guessAt('/my/agent', 'has-session=1; gr_last_bar=contribute=x')).toEqual({ tab: 'agent' });
+    expect(guessAt('/my/agent', 'has-session; gr_last_bar=contribute')).toBeNull();
+    expect(guessAt('/my/agent', ';;has-session=1;; ;gr_last_bar=contribute;;')).toEqual({ tab: 'agent' });
     expect(guessAt('/my/agent', 'gr_last_bar=contribute; other=1; has-session=1')).toEqual({ tab: 'agent' });
     expect(guessAt('/my/agent', 'has-session=1; gr_last_bar=learn; gr_last_bar=contribute')).toBeNull();
   });
@@ -106,14 +134,8 @@ describe("the head's script", () => {
     expect(runScript(address, MEMBER)).toEqual({ shown: !!want, tab: want?.tab ?? null });
   });
 
-  it('answers as the helper for every pair of cookies', () => {
-    for (const cookies of [
-      'has-session=1; gr_last_bar=learn',
-      'gr_last_bar=contribute',
-      'gr_last_bar=contribute; other=1; has-session=1',
-      'has-session=1; gr_last_bar=learn; gr_last_bar=contribute',
-      'has-session=1;gr_last_bar=contribute',
-    ]) {
+  it('answers as the helper for every set of cookies, malformed ones included', () => {
+    for (const cookies of [MEMBER, ...NO_GUESS, ...ODD]) {
       for (const [address] of ADDRESSES) {
         const want = guessAt(address, cookies);
         expect(runScript(address, cookies), `${address} ${cookies}`).toEqual({

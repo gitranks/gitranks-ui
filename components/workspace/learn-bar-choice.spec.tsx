@@ -174,4 +174,25 @@ describe('the bar on the workspace pages', () => {
     expect(lastBarInCookies(document.cookie)).toBe('contribute');
     expect(laterPageShows()).toBe('contribute');
   });
+
+  it("writes the workspace's bar again on each move between its tabs, after Learn wrote its own in another browser tab", () => {
+    at.path = '/my/agent';
+    expect(shown()).toBe('contribute');
+    expect(lastBarInCookies(document.cookie)).toBe('contribute');
+    // Learn, opened in another browser tab, records its bar.
+    setCookie('learn');
+    at.path = '/my/pull-requests';
+    expect(shown()).toBe('contribute');
+    expect(lastBarInCookies(document.cookie)).toBe('contribute');
+    setCookie('learn');
+    at.path = '/contribute';
+    expect(shown()).toBe('contribute');
+    expect(lastBarInCookies(document.cookie)).toBe('contribute');
+    // A move to a page Learn owns leaves Learn's.
+    setCookie('learn');
+    at.path = '/my/pull-requests';
+    at.search = 'from=learn';
+    expect(shown()).toBe('contribute');
+    expect(lastBarInCookies(document.cookie)).toBe('learn');
+  });
 });

@@ -30,7 +30,7 @@ import { cn } from '@/lib/utils';
 import type { PlayerSquare } from '@/lib/workspace/player';
 
 /*
- * The check's screens as page 17's boards draw them, from plain data: the strip, one question, the result with its
+ * The check's screens as the design catalogue draws them, from plain data: the strip, one question, the result with its
  * sheet of groups and its card, "What you know", and the pages with neither. The live page (`check-live.tsx`) moves
  * them; the catalogue draws each state from a fixture.
  */

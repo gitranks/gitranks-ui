@@ -1,7 +1,7 @@
 import { languageNameOf } from './learn-question';
 
 /*
- * Set up Learn (page 5): three fields, main language, other languages and level. We guess them from the person's
+ * Set up Learn: three fields, main language, other languages and level. We guess them from the person's
  * public profile the first time they open a Learn page; they confirm or change the guess. A value the person chose is
  * never overwritten by a guess that arrives later.
  */

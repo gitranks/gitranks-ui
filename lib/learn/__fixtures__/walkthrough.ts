@@ -12,7 +12,7 @@ import { answerAfter } from './learn-question';
 import type { LessonBlock } from '@/lib/workspace/blocks/block.types';
 
 /*
- * A fix's walkthrough, as pages 11 and 13 draw it: octocat's fix of acme/widgets #42 (pull request #57), four parts
+ * A fix's walkthrough, as the design catalogue draws it: octocat's fix of acme/widgets #42 (pull request #57), four parts
  * with a question each, the lesson it used, octocat's answers, and the fixer's run before the pull request opens.
  */
 

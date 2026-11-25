@@ -443,7 +443,7 @@ function nothingNextOf(course: Pick<LearnCourse, 'groups' | 'lessons'>, mine: Le
 }
 
 /**
- * The three boxes of a course's page (page 2). A visitor: the first lesson, the check behind signing in, and signing
+ * The three boxes of a course's page. A visitor: the first lesson, the check behind signing in, and signing
  * in highlighted. A person with a session and no side: the same without signing in, nothing lit while the side is on
  * its way. A learner: the next lesson, or the course finished, or why nothing new is left; the middle box is
  * the review while lessons are due, else the check in its state, else what they marked; the last box says how a
@@ -793,7 +793,7 @@ export type CoursesSearch = {
   lessons: LearnLessonListItem[];
 };
 
-/** The search of all courses (page 24). Nothing typed: every course, and no lessons. */
+/** The search of all courses. Nothing typed: every course, and no lessons. */
 export function coursesSearchOf(
   courses: readonly LearnCourseCard[],
   lessons: readonly LearnLessonListItem[],

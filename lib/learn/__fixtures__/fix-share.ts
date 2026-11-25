@@ -1,6 +1,6 @@
 import type { LearnFixCard } from '../fix-share-card';
 
-/** Fixes as their public pages read them, for the pictures' specs and the design catalogue: page 21's cases. */
+/** Fixes as their public pages read them, for the pictures' specs and the design catalogue's cases. */
 
 /** A merged fix made with Learn, which used a lesson. */
 export const mergedFix: LearnFixCard = {

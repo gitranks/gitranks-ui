@@ -85,7 +85,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 /**
- * A pull request's public page, "How it was made" (page 12): one cached page for everyone, no session read. A Learn
+ * A pull request's public page, "How it was made": one cached page for everyone, no session read. A Learn
  * fix shows Learn's bar, the row with its two views (one, for a pull request closed without a merge) and its Learn
  * part above the list; a Contribute pull request shows Contribute's header and no row.
  */

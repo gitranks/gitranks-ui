@@ -2,7 +2,7 @@ import type { LearnAddress } from './address-gate';
 import type { LessonGoneState, LessonGoneText } from './lesson-gone';
 
 /*
- * The page of a course that is paused or removed, as a lesson's (page 33): what the address was, a title, one
+ * The page of a course that is paused or removed, as a lesson's: what the address was, a title, one
  * sentence, and one way on, to all courses. The page is the same for everyone: what a learner had in the course is
  * not read.
  */

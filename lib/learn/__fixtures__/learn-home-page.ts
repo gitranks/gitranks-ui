@@ -6,7 +6,7 @@ import { courseCards } from './course';
 import { outputExampleCodes, outputLesson, outputQuestionCodes, setExampleCodes, setLesson } from './lesson-page';
 
 /*
- * Learn home (page 3) and the landing (page 4), as their boards draw them: fixture courses, never a real one.
+ * Learn home and the landing, as their boards draw them: fixture courses, never a real one.
  */
 
 /** The clock the boards are drawn at (the catalogue's): Wednesday 28 Oct 2026, noon UTC. */

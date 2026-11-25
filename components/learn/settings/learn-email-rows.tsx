@@ -39,7 +39,7 @@ import { setContributeEmailSettings } from '@/lib/workspace/actions';
 import { browserTimeZone, forgetSentTimeZone, rememberSentTimeZone } from '@/lib/workspace/email-settings';
 
 /*
- * Learn's rows of Settings' Email group (page 23): "Lessons to repeat", "New issues for you", "Issues for my lessons"
+ * Learn's rows of Settings' Email group: "Lessons to repeat", "New issues for you", "Issues for my lessons"
  * and "Time zone". Each
  * change saves at once and sends only its own field, so the switch never moves the zone and a zone never moves the
  * switch. A save that fails moves the row back and says why; a change while one saves is ignored.

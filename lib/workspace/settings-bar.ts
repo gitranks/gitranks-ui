@@ -1,7 +1,7 @@
 import type { Audience } from './audience';
 
 /*
- * Which product's bar a page both products share shows, Settings first (page 23): the link that opened it says
+ * Which product's bar a page both products share shows, Settings first: the link that opened it says
  * (`?from=learn`); else the bar the person saw last, which every Learn page and every Contribute page records in a
  * cookie; else the product they use, Learn's bar for someone who only learns. The same answer orders Settings' groups,
  * the product's own first.

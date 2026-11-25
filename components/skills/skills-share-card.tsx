@@ -4,7 +4,7 @@ import { type SkillsCard, skillsCardAddressSize, skillsCardSentenceSize } from '
 import { CARD_COLORS, Figure, Frame } from '@/lib/social-card/card-parts';
 
 /*
- * The picture a posted link to a Skills page shows, as page 21 draws it. Plain elements in the card's inline styles:
+ * The picture a posted link to a Skills page shows, as the design catalogue draws it. Plain elements in the card's inline styles:
  * the server draws them as a PNG, and the design catalogue draws the same elements. Light colours only, no avatar.
  */
 

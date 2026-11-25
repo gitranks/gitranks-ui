@@ -6,7 +6,7 @@ import { isContentSlug } from '@/lib/learn/paths';
 import { LEARN_REVIEW_METADATA } from '@/lib/learn/seo/player';
 
 /**
- * The daily review (page 16): only the person's own, so the page holds no personal data and is never indexed; the set
+ * The daily review: only the person's own, so the page holds no personal data and is never indexed; the set
  * is read in the browser. `?course=<slug>` scopes it to one course, named in the strip from the cached course; any
  * other value, or a course that cannot be read, is every course. The page asks a visitor to sign in itself and reads nothing personal on the server.
  */

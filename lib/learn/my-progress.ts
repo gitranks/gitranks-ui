@@ -6,7 +6,7 @@ import type { LearnDayFix, LearnDayFixes, LearnDayWalkthrough } from './my-progr
 import { LEARN_PROGRESS_PATH } from './paths';
 
 /*
- * My progress (page 18): the two boxes (lessons by depth, the days something was done), and four views under them,
+ * My progress: the two boxes (lessons by depth, the days something was done), and four views under them,
  * Courses, Your fixes, Walkthroughs and History. The rules the page draws, pure, so the page, the catalogue and the
  * specs agree. The fixes' own rules are in `my-progress-fixes.ts`.
  */

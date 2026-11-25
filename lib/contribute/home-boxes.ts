@@ -8,7 +8,7 @@ import type { PullRequestListRow } from '@/lib/workspace/pull-request-page.types
 import { isWorkingPhase, stepsOf } from '@/lib/workspace/run-steps';
 
 /*
- * Contribute home's three boxes (page 37): a pull request that needs the person, their agent, and what was merged.
+ * Contribute home's three boxes: a pull request that needs the person, their agent, and what was merged.
  * Always three, in this order; only their words change. Each box is worked out here from the reads, as words; the page
  * draws them. A box whose read failed says so in one sentence and never says something untrue.
  */

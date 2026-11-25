@@ -16,7 +16,7 @@ import {
 } from '@/lib/learn/project-course';
 
 /*
- * What a project course's page has of its own (pages 25 and 26): the line of facts, who wrote it, and the foot for
+ * What a project course's page has of its own: the line of facts, who wrote it, and the foot for
  * the project's maintainers. Everything else on the page is any course's.
  */
 

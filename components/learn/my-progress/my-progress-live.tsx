@@ -201,7 +201,7 @@ export type MyProgressHistory =
   | { kind: 'ready'; from: string | null; days: LearnDay[]; more: HistoryMore; focus: string | null };
 
 /**
- * My progress in the browser (page 18). The page is the person's own: once it is up, a person with a session reads
+ * My progress in the browser. The page is the person's own: once it is up, a person with a session reads
  * their progress, and a visitor is asked to sign in. History is read when its view is opened, twenty days at a time,
  * from the day a square of "Days" opened or from the newest; "Show earlier days" adds the next ones in place, the focus
  * on the first of them. Switching views keeps what was read.

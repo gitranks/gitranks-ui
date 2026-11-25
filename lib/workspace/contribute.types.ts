@@ -1309,9 +1309,6 @@ export type ContributeNeedsYouCount = { count: number; complete: boolean };
 /** Which sides the user uses; neither: connected and nothing else yet (both are assumed then). */
 export type ContributeSides = { contribute: boolean; learn: boolean };
 
-/** One side's pull requests by state. */
-export type ContributeSideTotals = { open: number; merged: number; closed: number; reposHelped: number };
-
 /**
  * A poll's answer: what moved, the work in progress when it was read too, and the count of what needs the user when it
  * was read too (each left out when it was not; null when the API did not answer it).

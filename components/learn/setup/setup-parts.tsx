@@ -24,7 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 
 /*
- * Set up Learn as page 5's boards draw it, from plain data: the three fields with their notes, the save, and the pages
+ * Set up Learn as the design catalogue draws it, from plain data: the three fields with their notes, the save, and the pages
  * with no form (signed out, a read that failed). The live page (`setup-live.tsx`) moves them; the catalogue draws each
  * state from a fixture.
  */
@@ -162,7 +162,7 @@ const describedBy = (field: SetupField, pill: string | null) =>
   pill ? `${idsOf(field).pill} ${idsOf(field).hint}` : idsOf(field).hint;
 
 /**
- * The editor: the page with its form, for a person with the Learn sign, in every state of page 5's board: our guess, still working, the guess arriving after the
+ * The editor: the page with its form, for a person with the Learn sign, in every state of its board: our guess, still working, the guess arriving after the
  * person chose, nothing found, a setup saved before. `pending` draws the same page with nothing chosen and nothing to
  * press, while the person's setup is on its way. The fields change in place; nothing moves.
  */

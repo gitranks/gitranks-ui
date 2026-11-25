@@ -7,7 +7,7 @@ import { GETTING_IN_PATHS, KEY_REPLACE_PATH, WORKSPACE_PATHS } from '@/lib/works
 import { learnStartConnectionOf } from '@/lib/workspace/start/start-page';
 
 /*
- * Step 1 of Contribute's flow (page 38): how Contribute works, then who does the work. The page is the same in every
+ * The first page of Contribute's flow: how Contribute works, then who does the work. The page is the same in every
  * case: the two boxes keep their place and only a box's top line and its button change, worked out here as words.
  */
 

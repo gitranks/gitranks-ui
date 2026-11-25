@@ -15,7 +15,7 @@ import {
 import { CARD_COLORS, Frame } from '@/lib/social-card/card-parts';
 
 /*
- * The picture a posted link to a fix shows, as page 21 draws it. Plain elements in the card's inline styles: the
+ * The picture a posted link to a fix shows, as the design catalogue draws it. Plain elements in the card's inline styles: the
  * server draws them as a PNG, and the design catalogue draws the same elements. Light colours only, no avatar.
  */
 

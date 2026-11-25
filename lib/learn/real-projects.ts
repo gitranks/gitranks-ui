@@ -3,7 +3,7 @@ import { myWalkthroughsOf } from './my-progress-fixes';
 import { LEARN_MY_WALKTHROUGHS_MINE_PATH } from './paths';
 
 /*
- * A lesson in real projects (page 53): the lesson's open issues and the merged fixes that used it, two groups always in
+ * A lesson in real projects: the lesson's open issues and the merged fixes that used it, two groups always in
  * this order. A group with nothing in it says so in its own place, so the other never moves up.
  */
 

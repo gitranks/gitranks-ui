@@ -4,7 +4,7 @@ import { hasDuplicateCodes, reviewQuestion, reviewQuestionKeyed } from './player
 
 /*
  * The review's fixtures: a set of six lessons from two courses, the call's replies for each outcome, the end's list
- * as page 16 draws it, and where the person goes next.
+ * as the design catalogue draws it, and where the person goes next.
  */
 
 export const algorithms: LearnLessonLink = { slug: 'algorithms', title: 'Algorithms and data structures' };

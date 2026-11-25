@@ -84,7 +84,7 @@ export type CourseViewProps = {
 };
 
 /**
- * A course's page under the site's header (page 2): its head, the three boxes, the bar over the lessons, the lessons
+ * A course's page under the site's header: its head, the three boxes, the bar over the lessons, the lessons
  * as a list by group or as squares, and the footer. A visitor sees the course; a learner sees it marked with their own
  * side, filters it, and may switch to the Squares view (never on a phone).
  */

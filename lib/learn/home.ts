@@ -17,7 +17,7 @@ import { learnCourseProjectOf } from './project-course';
 import { type LearnSetupRead, SETUP_LEVELS } from './setup';
 
 /*
- * Learn home (page 3): the rules of what it shows, from the person's `learnHome` answer. Every field is read
+ * Learn home: the rules of what it shows, from the person's `learnHome` answer. Every field is read
  * tolerantly: an answer without a newer field shows that part empty, never fails the page.
  */
 

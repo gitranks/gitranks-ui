@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { phaseTextOf } from './agent-runs';
 import type { ContributeAgentRunPhase } from './contribute.types';
-import { isLearnRun, RUN_STEPS, runKindOf, stepMarksOf, stepNameOf, stepsLabelOf, stepsOf } from './run-steps';
+import { isLearnRun, RUN_STEPS, runKindOf, stepNameOf, stepsLabelOf, stepsOf } from './run-steps';
 import { FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 
 const ALL: ContributeAgentRunPhase[] = [
@@ -98,16 +98,9 @@ describe("a run's steps", () => {
     }
   });
 
-  it('says the step for a screen reader, and marks each step done, now or left', () => {
+  it('says the step for a screen reader', () => {
     expect(stepsLabelOf(WORKING)).toBe('Step 3 of 5: Working');
     expect(stepsLabelOf(learn('WRITING_LESSON'))).toBe('Step 3 of 5: Writing your lesson');
-    expect(stepMarksOf(FOLLOW_UP)).toEqual([
-      { name: 'Queued', mark: 'done' },
-      { name: 'Addressing review', mark: 'now' },
-      { name: 'Checks', mark: 'left' },
-      { name: 'Ready for your review', mark: 'left' },
-      { name: 'Pushing', mark: 'left' },
-    ]);
   });
 
   it("is the row's status too, while an agent works: one name per step; the API's words otherwise", () => {

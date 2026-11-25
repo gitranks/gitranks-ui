@@ -8,7 +8,7 @@ import { courseHrefOf, coursePath } from '@/lib/learn/paths';
 import { LEARN_MISSING_METADATA, learnCourseJsonLd, learnCourseMetadata } from '@/lib/learn/seo/course';
 
 /**
- * A course's page (page 2): the same for everyone, read from the cached course under its tag, with the other courses
+ * A course's page: the same for everyone, read from the cached course under its tag, with the other courses
  * named at its foot; the person's side is read later in the browser. The count of merged fixes links to them. The
  * page streams, so its own notFound() reaches
  * the browser with a 200: an unknown, paused, removed or moved course gets its real status from the proxy, which asks

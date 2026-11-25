@@ -30,7 +30,7 @@ import { courseIssuesBoxWordsOf } from '@/lib/learn/real-issues';
 import { cn } from '@/lib/utils';
 
 /*
- * The three boxes at the top of a course's page (page 2), each in a place of its own size: where to start or go on,
+ * The three boxes at the top of a course's page, each in a place of its own size: where to start or go on,
  * the check or the review, and how a lesson grows or where to go next. The highlighted box takes Enter.
  */
 

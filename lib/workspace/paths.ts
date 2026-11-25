@@ -301,7 +301,7 @@ export const switchModeOf = (segment: string): ContributeSetListMode | null =>
 export const movedAnchorOf = (anchor: string): Route | null =>
   Object.hasOwn(ANCHORS, anchor) ? ANCHORS[anchor] : null;
 
-/** The summary's groups that took a new name with the regrouping (page 23), by their old anchor. */
+/** The summary's groups that took a new name with the regrouping, by their old anchor. */
 const RENAMED_ANCHORS: Record<string, string> = {
   'for-learning': 'learn-preferences',
   'for-contributing': 'contribute-preferences',

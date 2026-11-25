@@ -6,7 +6,7 @@ import { loadLearnCourse } from '@/lib/learn/course.data';
 import { learnCheckMetadata } from '@/lib/learn/seo/player';
 
 /**
- * A course's check (page 17), and with `?known`, "What you know": only the person's own, so the page holds no
+ * A course's check, and with `?known`, "What you know": only the person's own, so the page holds no
  * personal data and is never indexed; the run and the marks are read in the browser. The course's name and groups come
  * from the cached course. The proxy asks the course's address first (a real 404 for a course that is not, a redirect
  * for a moved one); one the proxy could not ask is not found here. A course that offers no check says so on the page.

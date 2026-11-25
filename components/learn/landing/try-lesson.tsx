@@ -24,7 +24,7 @@ import { learnSetupHrefOf } from '@/lib/workspace/paths';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /*
- * The lesson at the top of the landing (page 4): a real lesson, answered right there. A visitor's answer is graded here
+ * The lesson at the top of the landing: a real lesson, answered right there. A visitor's answer is graded here
  * and never kept (the landing is not a lesson, and the sign-in carries no lesson back), then "Start learning" signs
  * them in to Learn's onboarding; a signed-in person's right answer is saved, then "Start learning" opens the
  * onboarding, or "Go to Learn home" for a learner. A lesson a learner learned before opens with their answer.

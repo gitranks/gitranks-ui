@@ -5,7 +5,7 @@ import { checkQuestion } from './learn-question';
 import { hasDuplicateCodes } from './player';
 
 /*
- * The check's fixtures, as page 17's boards draw them: the algorithms course's run of nine questions, and its result
+ * The check's fixtures, as the design catalogue draws them: the algorithms course's run of nine questions, and its result
  * in each state (four groups right, none, all), with the lessons each proposes.
  */
 
@@ -42,7 +42,7 @@ const R: LearnCheckOutcome = 'RIGHT';
 const W: LearnCheckOutcome = 'WRONG';
 const D: LearnCheckOutcome = 'DONT_KNOW';
 
-/** Page 17's result: Big-O, arrays, hash maps and sorting right; the rest wrong or "I don't know". */
+/** The check's result: Big-O, arrays, hash maps and sorting right; the rest wrong or "I don't know". */
 export const checkResult = checkResultOf([R, R, R, W, D, D, D, R, W]);
 
 /** Nothing right. */

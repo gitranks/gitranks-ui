@@ -65,7 +65,7 @@ type MetadataCourse = Pick<
 
 /**
  * A course: its name, its own words as the description, its address as the canonical, its Markdown copy as an
- * alternate, and a preview with its picture, as page 21 draws it.
+ * alternate, and a preview with its picture, as the design catalogue draws it.
  */
 export function learnCourseMetadata(course: MetadataCourse): Metadata {
   const path = courseHrefOf(course);

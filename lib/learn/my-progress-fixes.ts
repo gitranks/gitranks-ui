@@ -7,7 +7,7 @@ import { fromLearn, learnFixPath, learnFixWalkthroughPath } from './paths';
 import { pullRequestPath } from '@/lib/workspace/paths';
 
 /*
- * My progress's views of real fixes (page 18): "Your fixes", every pull request of the person's that Learn opened, and
+ * My progress's views of real fixes: "Your fixes", every pull request of the person's that Learn opened, and
  * "Walkthroughs", the walkthroughs of other people's fixes they passed; and what a day of History and of the calendar
  * gains from them. The rules the page draws, pure. Every answer is read tolerantly: a row the page cannot draw is left
  * out.

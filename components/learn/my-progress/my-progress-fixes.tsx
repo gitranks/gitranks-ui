@@ -33,7 +33,7 @@ import { learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
 
 /*
- * My progress's views of real fixes as page 18's boards draw them, from plain data: "Your fixes", "Walkthroughs", each
+ * My progress's views of real fixes as the design catalogue draws them, from plain data: "Your fixes", "Walkthroughs", each
  * with its line beside the switch, its empty end, and its list on its way or not loaded. The live page moves them; the
  * catalogue draws each state from a fixture.
  */

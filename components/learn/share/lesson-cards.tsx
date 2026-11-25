@@ -11,7 +11,7 @@ import {
 import { CARD_COLORS, Figure, Frame } from '@/lib/social-card/card-parts';
 
 /*
- * The two pictures a posted link to a lesson shows, as page 21 draws them: the lesson's own, and its fun fact's (the
+ * The two pictures a posted link to a lesson shows, as the design catalogue draws them: the lesson's own, and its fun fact's (the
  * lesson's address with `?fact`). Plain elements in the card's inline styles: the server draws them as PNGs, and the
  * design catalogue draws the same elements. Light colours only, no avatar, no zero.
  */

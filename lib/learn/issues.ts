@@ -17,7 +17,7 @@ import { SETUP_LANGUAGES } from './setup';
 import type { FullIssue, MaskedIssue } from '@/lib/workspace/masked-issue.types';
 
 /*
- * Issues (page 8): one list of real open issues, each masked with the lesson it uses or teaches. The switches ("For
+ * Issues: one list of real open issues, each masked with the lesson it uses or teaches. The switches ("For
  * you", "Lessons I learned") and the chips (a course, a lesson, a project, a language, "Fixed") live in the address,
  * so a view can be linked. A visitor sees the same five for the view; a signed-in person sees their own five with the switches.
  */

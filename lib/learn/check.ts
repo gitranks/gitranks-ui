@@ -6,7 +6,7 @@ import type { LearnLessonLink } from './lesson-page';
 import { isContentSlug } from './paths';
 
 /*
- * The check of a course (page 17) and "What you know": one question for each group, no right or wrong until the end,
+ * The check of a course and "What you know": one question for each group, no right or wrong until the end,
  * then our guess of what the person knows, which they tick and untick before anything is saved. Pure: the page, the
  * specs and the catalogue read the same words and counts.
  */

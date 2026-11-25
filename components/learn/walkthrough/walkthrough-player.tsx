@@ -66,7 +66,7 @@ export function WalkthroughArticles({ articles, at }: { articles: readonly React
 export type WalkthroughDrawn = { at?: number; answered?: number; answer?: LearnAnswerState };
 
 /**
- * A fix's public walkthrough (page 11): one part at a time on the left, its question on the right, graded on the page
+ * A fix's public walkthrough: one part at a time on the left, its question on the right, graded on the page
  * from the key the read carries. A wrong pick shows why, and the person picks again; nothing is stored for a visitor.
  * On the last question "Finish the walkthrough" stores a signed-in person's pass, and leads them to the first issue
  * like this one of their own list; everyone else, and anyone the call does not answer, to the issues like this one

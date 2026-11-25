@@ -5,7 +5,7 @@ import { issuesViewOf } from '@/lib/learn/issues';
 import { learnIssuesMetadata } from '@/lib/learn/seo/issues';
 
 /**
- * Issues (page 8): real open issues to learn from, five at a time. The visitor's five for the view are the same for
+ * Issues: real open issues to learn from, five at a time. The visitor's five for the view are the same for
  * everyone and drawn here; a signed-in person's own five, with the switches, are read in the browser. The address
  * sets the view: the chips (`?course=`, `?lesson=`, `?language=`, `?fixed=1`) and the switches (`?for-you=0`,
  * `?learned=1`).

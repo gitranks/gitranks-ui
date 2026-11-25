@@ -92,14 +92,6 @@ export function stepNameOf(run: Pick<ContributeAgentRun, 'phase' | 'kind' | 'mod
   return at < steps.length ? steps[at] : null;
 }
 
-/** Each step with where the run stands on it: done, now, or left. */
-export function stepMarksOf(
-  run: Pick<ContributeAgentRun, 'phase' | 'kind' | 'mode'>,
-): { name: string; mark: 'done' | 'now' | 'left' }[] {
-  const { steps, at } = stepsOf(run);
-  return steps.map((name, index) => ({ name, mark: index < at ? 'done' : index === at ? 'now' : 'left' }));
-}
-
 /** What a screen reader hears of the bars: "Step 3 of 5: Working", or "All steps done". */
 export function stepsLabelOf(run: Pick<ContributeAgentRun, 'phase' | 'kind' | 'mode'>): string {
   const { steps, at } = stepsOf(run);

@@ -47,7 +47,7 @@ type MetadataLesson = Pick<
 
 /**
  * A lesson of ours: its title, its own words as the description, its address as the canonical, its Markdown copy as
- * an alternate, and an article preview with its picture, as page 21 draws it. Opened from a shared fact (`fact`,
+ * an alternate, and an article preview with its picture, as the design catalogue draws it. Opened from a shared fact (`fact`,
  * the address with `?fact`), the preview is the fact's own: its title, a line naming the lesson, its picture, and the
  * fact's address as its URL, since some sites read the preview from that URL; the canonical stays the lesson's.
  */

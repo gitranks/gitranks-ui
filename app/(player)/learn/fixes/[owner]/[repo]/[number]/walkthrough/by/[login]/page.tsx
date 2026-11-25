@@ -8,7 +8,7 @@ import { fixRefOf } from '@/lib/learn/walkthrough';
 import { loadWalkthroughAnswers } from '@/lib/learn/walkthrough.data';
 
 /**
- * A person's answers to a fix's walkthrough (page 13), open to everyone, never indexed (search engines go on to the
+ * A person's answers to a fix's walkthrough, open to everyone, never indexed (search engines go on to the
  * walkthrough). The page is the same for everyone, read with no session and cached under the fix's tag; the fixer's own
  * answers, shared or not, and a reader's side are read in the browser. The proxy asks the address first: nothing there
  * is a real 404, another spelling a redirect.

@@ -9,7 +9,7 @@ import type {
 import type { LearnCourseGroup, LearnDepth, LearnLessonLevel } from '../lesson-page';
 
 /*
- * The courses of pages 2 and 24's boards: the algorithms course with its 86 lessons in 9 groups, the list of every
+ * The courses of a course's page and all courses' boards: the algorithms course with its 86 lessons in 9 groups, the list of every
  * course, and a learner's side in each state the boards draw.
  */
 
@@ -236,7 +236,7 @@ export const algorithmsCourse: LearnCourse = {
   changedAt: '2026-11-20T09:00:00.000Z',
 };
 
-/** The same course with "Find duplicates in one pass with a set" paused (page 33). */
+/** The same course with "Find duplicates in one pass with a set" paused. */
 export const algorithmsCoursePaused: LearnCourse = {
   ...algorithmsCourse,
   groups: algorithmsCourse.groups.map((group) => ({

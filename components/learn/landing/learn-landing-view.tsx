@@ -29,8 +29,8 @@ import { ALL_FIXES_PATH, landingFixesLineOf, landingFixesOf } from '@/lib/learn/
 import { cn } from '@/lib/utils';
 
 /*
- * Learn's landing (page 4) at `/learn` for a visitor and for a signed-in person who has not set up Learn, and How
- * Learn works (page 31) at `/learn/about` for a learner: one page, its two buttons following who reads it.
+ * Learn's landing at `/learn` for a visitor and for a signed-in person who has not set up Learn, and How
+ * Learn works at `/learn/about` for a learner: one page, its two buttons following who reads it.
  */
 
 const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase';

@@ -1,6 +1,6 @@
 import type { LearnBarPlace, LearnBarState } from '../learn-bar';
 
-/** One row of page 7's board: what the bar shows, and where the person is. */
+/** One row of the bar's board: what the bar shows, and where the person is. */
 export type LearnBarFixture = { title: string; state: LearnBarState; place: LearnBarPlace | null };
 
 const learner = (patch: Partial<Extract<LearnBarState, { kind: 'learner' }>> = {}): LearnBarState => ({
@@ -21,7 +21,7 @@ const notSetUp = (patch: Partial<Extract<LearnBarState, { kind: 'setup' }>> = {}
   ...patch,
 });
 
-/** The rows of page 7's board, in its order. */
+/** The rows of the bar's board, in its order. */
 export const learnBarRows: LearnBarFixture[] = [
   { title: '1 · Not signed in', state: { kind: 'visitor' }, place: 'home' },
   { title: '2 · Signed in, Learn not set up yet', state: notSetUp(), place: 'home' },
@@ -45,7 +45,7 @@ export const learnBarRows: LearnBarFixture[] = [
   { title: '8 · On Settings, reached from Learn', state: learner({ due: 6 }), place: 'settings' },
 ];
 
-/** The phone rows of page 7's board (Learn's bar only). */
+/** The phone rows of the bar's board (Learn's bar only). */
 export const learnBarPhoneRows: LearnBarFixture[] = [
   { title: 'Learn, nothing waiting: the row scrolls to reach Settings', state: learner(), place: 'home' },
   { title: 'Learn, lessons due', state: learner({ due: 6 }), place: 'home' },
@@ -57,7 +57,7 @@ export const learnBarPhoneRows: LearnBarFixture[] = [
   { title: 'Learn, not set up', state: notSetUp(), place: 'home' },
 ];
 
-/** The rows of page 5's board of the "Set up Learn" tab, in its order. */
+/** The rows of the "Set up Learn" tab's board, in its order. */
 export const learnSetupTabRows: LearnBarFixture[] = [
   { title: '1 · We are working', state: notSetUp({ setup: 'working' }), place: 'courses' },
   { title: '2 · Our guess is ready', state: notSetUp(), place: 'courses' },

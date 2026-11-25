@@ -10,7 +10,7 @@ import { clipText } from '@/lib/seo/clip-text';
 import { absoluteUrl } from '@/lib/seo/site';
 
 /*
- * Learn's landing (page 4) and How Learn works (page 31): the words both pages, the Markdown copy and the structured
+ * Learn's landing and How Learn works: the words both pages, the Markdown copy and the structured
  * data share, and the rules of what the landing shows.
  */
 

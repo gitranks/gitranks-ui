@@ -23,7 +23,7 @@ import { fixBylineOf, fixChangeOf, fixStatePillOf } from '@/lib/workspace/pr-tim
 import { prTimelineMarkdownPath, prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
 /**
- * The public page of a fix, "Learn from it" (page 12): one cached page for everyone, read with no session. The proxy
+ * The public page of a fix, "Learn from it": one cached page for everyone, read with no session. The proxy
  * has asked where the address leads first (`lib/learn/fix-gate.ts`): nothing there (or a page its fixer hid) gets a
  * real 404, a removed fix its 410, and a pull request with no such view (made with Contribute, or closed without a
  * merge) goes to "How it was made". A read that fails throws: the error page answers, and no cache keeps it. The

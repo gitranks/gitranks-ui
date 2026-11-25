@@ -89,7 +89,7 @@ const groupsOf = (html: string) =>
 /** Email's rows by their marks, in the order they come. */
 const emailRowsOf = (html: string) => [...html.matchAll(/data-email-row="([a-z-]+)"/g)].map((match) => match[1]);
 
-describe('the Settings page (page 23)', () => {
+describe('the Settings page', () => {
   it('from Contribute: Contribute preferences, Agent and GitHub, Limits, Email, Learn preferences, Delete last', () => {
     const { html, plain } = render();
     expect(groupsOf(html)).toEqual([

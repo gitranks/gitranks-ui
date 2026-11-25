@@ -18,7 +18,7 @@ import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 /*
  * A fix's walkthrough and a person's answers stream: the response starts with a 200 before the page reads them, so
  * the page's own not found would reach the browser only inside the stream. The proxy asks where the address leads
- * first (page 33): nothing there is a real 404, a fix whose page was removed its own page with a 410, and an address
+ * first: nothing there is a real 404, a fix whose page was removed its own page with a 410, and an address
  * in another spelling than the API's (a renamed repository, a login's letter case) a redirect to the current one.
  * The footer's address by attempt is answered here too, since only the proxy can answer the site's own 404 page.
  */

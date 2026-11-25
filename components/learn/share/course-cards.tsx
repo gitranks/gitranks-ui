@@ -13,9 +13,9 @@ import {
 import { CARD_COLORS, Figure, Frame } from '@/lib/social-card/card-parts';
 
 /*
- * The pictures a posted link to a course, and to all courses, shows, as the design catalogue draws them. Plain elements in the
- * card's inline styles: the server draws them as PNGs, and the design catalogue draws the same elements. Light
- * colours only, no avatar, no zero: a figure not worth showing leaves its place empty.
+ * The pictures a posted link to a course, and to all courses, shows. Plain elements in the card's inline styles: the
+ * server draws them as PNGs, and the design catalogue draws the same elements. Light colours only, no avatar, no zero:
+ * a figure not worth showing leaves its place empty.
  */
 
 /** The figures in a row, and the page's address under them in the corner, so three figures keep their room. */

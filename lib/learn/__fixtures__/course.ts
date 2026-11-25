@@ -9,8 +9,8 @@ import type {
 import type { LearnCourseGroup, LearnDepth, LearnLessonLevel } from '../lesson-page';
 
 /*
- * The courses of a course's page and all courses' boards: the algorithms course with its 86 lessons in 9 groups, the list of every
- * course, and a learner's side in each state the boards draw.
+ * The courses the boards of a course's page and of all courses draw: the algorithms course with its 86 lessons in 9
+ * groups, the list of every course, and a learner's side in each state the boards draw.
  */
 
 const E: LearnLessonLevel = 'EASY';

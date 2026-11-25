@@ -78,7 +78,7 @@ const SETTLED_TEXT: Record<SettledPhase, string> = {
 
 /**
  * A run's few words of state: settled ones as the user acts on them; one an agent works on by its step's name (the
- * name its bars and their hover card say); queued, waiting and submitting ones as the API says.
+ * name its bars say to a screen reader); queued, waiting and submitting ones as the API says.
  */
 export const phaseTextOf = (run: Pick<ContributeAgentRun, 'phase' | 'label' | 'kind' | 'mode'>) =>
   isSettled(run)

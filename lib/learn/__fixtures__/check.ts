@@ -5,8 +5,8 @@ import { checkQuestion } from './learn-question';
 import { hasDuplicateCodes } from './player';
 
 /*
- * The check's fixtures, as the design catalogue draws them: the algorithms course's run of nine questions, and its result
- * in each state (four groups right, none, all), with the lessons each proposes.
+ * The check's fixtures, as the design catalogue draws them: the algorithms course's run of nine questions, and its
+ * result in each state (four groups right, none, all), with the lessons each proposes.
  */
 
 const course = { slug: algorithmsCourse.slug, title: algorithmsCourse.name };

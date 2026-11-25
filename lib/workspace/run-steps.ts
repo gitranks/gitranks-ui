@@ -1,8 +1,8 @@
 import type { ContributeAgentRun, ContributeAgentRunPhase } from './contribute.types';
 
 /**
- * The steps an agent run walks, one list per kind of run and one name per step: the row's status, the hover card's line
- * and the screen reader's text all say the same name. Which step a run is on comes from its phase alone.
+ * The steps an agent run walks, one list per kind of run and one name per step: the row's status and the screen
+ * reader's text say the same name. Which step a run is on comes from its phase alone.
  */
 
 /** The three kinds of run: a first run on either side, and a follow-up on a pull request. */

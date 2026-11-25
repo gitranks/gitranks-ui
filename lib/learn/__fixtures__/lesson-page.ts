@@ -6,8 +6,9 @@ import { answerAfter, mythQuestion, outputQuestion, pickLineQuestion } from './l
 import { hasDuplicateCodes, nestedLoopCodes } from './player';
 
 /*
- * A lesson's page, as the design catalogue draws it: "Find duplicates in one pass with a set" in a short and a full-size
- * text, its group of nine, a regex lesson of a language course for the Mastered board, and the person's side of each.
+ * A lesson's page, as the design catalogue draws it: "Find duplicates in one pass with a set" in a short and a
+ * full-size text, its group of nine, a regex lesson of a language course for the Mastered board, and the person's side
+ * of each.
  */
 
 /** The catalogue's clock: every board is drawn at this moment. */

@@ -3,10 +3,16 @@ import 'server-only';
 import {
   type LearnEmailSettings,
   type LearnIssuesEmailSetting,
+  type LearnLessonIssuesSetting,
   learnEmailSettingsOf,
   learnIssuesEmailOf,
+  learnLessonIssuesSettingOf,
 } from './settings';
-import { LearnEmailSettingsDocument, LearnIssuesEmailSettingsDocument } from './settings.documents';
+import {
+  LearnEmailSettingsDocument,
+  LearnIssuesEmailSettingsDocument,
+  LearnLessonIssuesEmailSettingsDocument,
+} from './settings.documents';
 import type { LearnSetupRead } from './setup';
 import { setupReadOf } from './setup';
 import { LearnSetupOfMineDocument } from './setup.documents';
@@ -55,6 +61,23 @@ export async function loadLearnIssuesEmail(githubLogin: string): Promise<LearnIs
       { source: 'ssr', githubLogin, signal: AbortSignal.timeout(LEARN_ISSUES_EMAIL_TIMEOUT_MS) },
     );
     return learnIssuesEmailOf(learnEmailSettings);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * "Email me issues for my lessons" on or off: null when Learn is not open to the person, when the API leaves it null
+ * (or does not know it yet), on any failure, and when it does not answer in time. Its row is drawn only with it.
+ */
+export async function loadLearnLessonIssuesEmail(githubLogin: string): Promise<LearnLessonIssuesSetting | null> {
+  try {
+    const { learnEmailSettings } = await graphqlDirect(
+      LearnLessonIssuesEmailSettingsDocument,
+      {},
+      { source: 'ssr', githubLogin, signal: AbortSignal.timeout(LEARN_ISSUES_EMAIL_TIMEOUT_MS) },
+    );
+    return learnLessonIssuesSettingOf(learnEmailSettings);
   } catch {
     return null;
   }

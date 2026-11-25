@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 
 import { type IssuesLayer, IssuesScreen } from '@/components/learn/issues/issues-screen';
+import { useLessonIssuesEmail } from '@/components/learn/issues/lesson-issues-email';
 import type { FixesLayer } from '@/components/learn/issues/real-projects-screen';
 import {
   bareRowOf,
@@ -20,15 +21,20 @@ import {
   rowsAfterSkip,
 } from '@/lib/learn/issues';
 import { setLearnIssuesEmailAction } from '@/lib/learn/issues.actions';
+import { learnSignFrom } from '@/lib/learn/learn-sign';
+import { lessonIssuesEmailStateOf } from '@/lib/learn/lesson-issues-email';
 import { readPassedFixes } from '@/lib/learn/real-projects';
 import { learnSettingsErrorOf } from '@/lib/learn/settings';
 import { hasSessionHint } from '@/lib/session-hint';
 import type { MaskedListReads } from '@/lib/workspace/masked-issue';
 import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 
-/** The person's read of Issues, as their route answers it. */
+/**
+ * The person's read of Issues, as their route answers it; on a view of one lesson, `sign` is the Learn sign (null when
+ * not known, and on every other view).
+ */
 export type IssuesMine =
-  | { state: 'ok'; list: IssuesList; reads: MaskedListReads | null }
+  | { state: 'ok'; list: IssuesList; reads: MaskedListReads | null; sign: boolean | null }
   | { state: 'unavailable' }
   | { state: 'failed' }
   | { state: 'signed-out' };
@@ -38,16 +44,20 @@ export async function readIssuesMine(view: IssuesView): Promise<IssuesMine> {
   try {
     const res = await fetch(issuesMinePathOf(view), { cache: 'no-store' });
     if (!res.ok) return { state: 'failed' };
-    const answer = (await res.json()) as { state?: unknown; list?: unknown; reads?: unknown };
+    const answer = (await res.json()) as { state?: unknown; list?: unknown; reads?: unknown; learnOnboarded?: unknown };
     if (answer.state === 'signed-out' || answer.state === 'unavailable') return { state: answer.state };
     const list = answer.state === 'ok' ? issuesListOf(answer.list) : null;
     if (!list) return { state: answer.state === 'ok' ? 'unavailable' : 'failed' };
     const reads = answer.reads && typeof answer.reads === 'object' ? (answer.reads as MaskedListReads) : null;
-    return { state: 'ok', list, reads };
+    return { state: 'ok', list, reads, sign: learnSignFrom(answer.learnOnboarded) };
   } catch {
     return { state: 'failed' };
   }
 }
+
+/** "Email me issues for my lessons" covers the lesson while there is no address: its box says it needs one. */
+const lessonWaitsForAddress = (list: IssuesList): boolean =>
+  lessonIssuesEmailStateOf({ signedIn: true, list, sign: null }).kind === 'no-address';
 
 /** The person's layer, and the view it was read for. */
 type Mine = { key: string; read: IssuesMine };
@@ -65,7 +75,9 @@ export const ADDRESS_READ_GAP_MS = 30_000;
  * in 30 seconds), so the line goes once an address is there. "Try again" reads the person's list again, or the page's
  * own (the visitor's five, the merged fixes) when that is what failed. On a lesson's or a course's own address with
  * fixes on the screen, a person with a session also reads the walkthroughs they passed, for the fixes' "Passed": none
- * is drawn while it loads, when it fails, and for a visitor.
+ * is drawn while it loads, when it fails, and for a visitor. On a lesson's own address with no open issue, "Email me
+ * issues for my lessons" changes in place the same way, its state from the person's list and the Learn sign read with
+ * it.
  */
 export function IssuesLive({
   view,
@@ -172,6 +184,8 @@ export function IssuesLive({
     [setListOf],
   );
 
+  const lessonEmail = useLessonIssuesEmail(setListOf, keyRef, viewRef);
+
   const turn = (on: boolean) =>
     startEmail(async () => {
       setEmailError(null);
@@ -190,7 +204,13 @@ export function IssuesLive({
   if (personal && mine) {
     const pending = asking || mine.key !== key;
     if (mine.read.state === 'ok')
-      layer = { kind: 'personal', list: mine.read.list, reads: mine.read.reads ?? undefined, pending };
+      layer = {
+        kind: 'personal',
+        list: mine.read.list,
+        reads: mine.read.reads ?? undefined,
+        pending,
+        sign: mine.read.sign,
+      };
     else if (mine.read.state === 'unavailable') layer = { kind: 'unavailable' };
     else if (mine.read.state === 'failed') layer = { kind: 'failed' };
   } else if (personal && asking && initial.kind === 'visitor') {
@@ -201,7 +221,9 @@ export function IssuesLive({
   // time, 30 seconds apart at least), and say it in place once an address is there.
   const shownList = layer.kind === 'personal' && !layer.pending ? layer.list : null;
   const waitsForAddress =
-    !!shownList && !!issuesEndOf(view, shownList, at)?.email && issuesEmailStateOf(shownList).kind === 'no-address';
+    !!shownList &&
+    ((!!issuesEndOf(view, shownList, at)?.email && issuesEmailStateOf(shownList).kind === 'no-address') ||
+      (at === 'lesson' && !shownList.rows.length && lessonWaitsForAddress(shownList)));
   const addressRead = useRef({ reading: false, last: Number.NEGATIVE_INFINITY });
   useEffect(() => {
     if (!waitsForAddress) return;
@@ -247,6 +269,7 @@ export function IssuesLive({
       onLeave={onLeave}
       onRetry={onRetry}
       email={{ pending: emailPending, error: emailError, onTurnOn: () => turn(true), onTurnOff: () => turn(false) }}
+      lessonEmail={lessonEmail}
     />
   );
 }

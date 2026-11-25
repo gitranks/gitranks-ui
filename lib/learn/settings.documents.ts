@@ -34,3 +34,11 @@ export const SaveLearnEmailSettingsDocument = doc<
 export const LearnIssuesEmailSettingsDocument = doc<{
   learnEmailSettings: { newIssues?: unknown; newIssuesCover?: unknown } | null;
 }>('query LearnIssuesEmailSettings { learnEmailSettings { newIssues newIssuesCover } }');
+
+/**
+ * "Email me issues for my lessons" on or off, and the lessons asked for: an operation of its own, so an API that does
+ * not know it yet fails it alone and Settings leaves only its row out.
+ */
+export const LearnLessonIssuesEmailSettingsDocument = doc<{
+  learnEmailSettings: { lessonIssues?: unknown; lessonIssuesAsked?: unknown } | null;
+}>('query LearnLessonIssuesEmailSettings { learnEmailSettings { lessonIssues lessonIssuesAsked } }');

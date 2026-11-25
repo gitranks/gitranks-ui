@@ -259,13 +259,16 @@ describe('Issues', () => {
         shared={0}
       />,
     );
-    expect($('[data-real-projects-group="open"] [data-real-projects-end="open-none"]')?.textContent).toBe(
-      'No open issue needs this lesson right nowNew issues come in every day.',
-    );
+    const none = $('[data-real-projects-group="open"] [data-real-projects-end="open-none"]');
+    expect([...(none?.querySelectorAll(':scope > p') ?? [])].map((line) => line.textContent)).toEqual([
+      'No open issue needs this lesson right now',
+      'New issues come in every day.',
+    ]);
     expect($('[data-real-projects-group="fixed"] [data-real-projects-end="fixed-none"]')?.textContent).toBe(
       'No fix yetWhen someone fixes a real issue with this lesson and the fix is merged, it shows here.',
     );
-    // The email of issues for the person's lessons is not offered here yet.
+    // Under its words, the email of issues for the person's lessons; never the new-issue email's own button.
+    expect(none?.querySelector('[data-lesson-issues-email]')?.getAttribute('data-lesson-issues-email')).toBe('visitor');
     expect($('[data-issues-email]')).toBeNull();
   });
 

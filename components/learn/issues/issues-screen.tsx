@@ -13,6 +13,7 @@ import {
   IssuesFilters,
   IssuesFoot,
 } from '@/components/learn/issues/issues-parts';
+import type { LessonIssuesEmailHandlers } from '@/components/learn/issues/lesson-issues-email';
 import { type FixesLayer, RealProjectsScreen } from '@/components/learn/issues/real-projects-screen';
 import { Button } from '@/components/ui/button';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
@@ -52,14 +53,21 @@ import { learnSetupHrefOf } from '@/lib/workspace/paths';
 /**
  * What the list shows:
  * - `visitor`: the five for the view, the same for everyone; `pending` while a signed-in person's own are read;
- * - `personal`: the signed-in person's five, with the switches, the counts, the empty end and the email;
+ * - `personal`: the signed-in person's five, with the switches, the counts, the empty end and the emails;
  * - `fixed`: the view's merged fixes ("Fixed" set), ten at a time, the same for everyone;
  * - `unavailable`: the API answers no list, or does not know it yet;
  * - `failed`: the person's list did not load.
  */
 export type IssuesLayer =
   | { kind: 'visitor'; rows: IssuesRow[]; pending?: boolean }
-  | { kind: 'personal'; list: IssuesList; reads?: MaskedListReads; pending?: boolean }
+  | {
+      kind: 'personal';
+      list: IssuesList;
+      reads?: MaskedListReads;
+      pending?: boolean;
+      /** The Learn sign, read on a view of one lesson: true, false, or null when not known. */
+      sign?: boolean | null;
+    }
   | { kind: 'fixed'; fixes: LearnFixes }
   | { kind: 'unavailable' }
   | { kind: 'failed' };
@@ -72,6 +80,8 @@ export type IssuesHandlers = {
   onLeave?: (id: string) => void;
   onRetry?: () => void;
   email?: { pending?: boolean; error?: string | null; onTurnOn?: () => void; onTurnOff?: () => void };
+  /** "Email me issues for my lessons", in the empty box of a lesson's view. */
+  lessonEmail?: LessonIssuesEmailHandlers;
 };
 
 export type IssuesScreenProps = {

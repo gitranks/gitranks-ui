@@ -107,6 +107,19 @@ export const NEW_ISSUES_TITLE = 'New issues for you';
 export const NEW_ISSUES_LINE =
   'When an issue comes onto your Learn list. One email a day at most, with five issues at most.';
 
+/** "Email me issues for my lessons" as Settings reads it; its row is drawn only when the API answers it. */
+export type LearnLessonIssuesSetting = { on: boolean };
+
+/** The switch of "Email me issues for my lessons" as the API answers it; null for any other shape, null included. */
+export function learnLessonIssuesSettingOf(value: unknown): LearnLessonIssuesSetting | null {
+  if (!value || typeof value !== 'object') return null;
+  const { lessonIssues } = value as { lessonIssues?: unknown };
+  return typeof lessonIssues === 'boolean' ? { on: lessonIssues } : null;
+}
+
+/** Its row, beside "New issues for you", with the same small line as the button on a lesson's view. */
+export const LESSON_ISSUES_TITLE = 'Issues for my lessons';
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Time zone                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */

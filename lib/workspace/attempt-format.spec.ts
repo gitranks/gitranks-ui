@@ -69,6 +69,20 @@ describe('editableBodyOf', () => {
     expect(editableBodyOf(`Done.\n\n<sub>${made}</sub><br>\n<sub>${say}</sub>`)).toBe('Done.');
     expect(editableBodyOf(`Done.\n\n<sub>${made}</sub>`)).toBe('Done.');
   });
+
+  it("takes out a Learn pull request's footer with the second line in its new wording", () => {
+    const made =
+      'Made with [GitRanks Learn](https://gitranks.com/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0), where developers learn on real issues · Claude Code (Opus) wrote this fix and taught it to @mira-dev, who [passed a check on the lesson](https://gitranks.com/learn/lessons/empty-config-abcdef/passes/mira-dev) and submitted it';
+    const say =
+      'Something off? [Tell us or opt out in one step](https://gitranks.com/learn/maintainers?from=6650a1b2c3d4e5f6a7b8c9d0). Maintainers are always in control.';
+    expect(editableBodyOf(`Done.\n\n<sub>${made}<br>${say}</sub>`)).toBe('Done.');
+    expect(editableBodyOf(`Done.\n\n<sub>${made}</sub><br>\n<sub>${say}</sub>`)).toBe('Done.');
+    expect(editableBodyOf(`Done.\n\n${say}`)).toBe('Done.');
+    // A line a person wrote that only begins the same way stays.
+    expect(editableBodyOf('Done.\n\nSomething off? Maintainers are always in control.')).toBe(
+      'Done.\n\nSomething off? Maintainers are always in control.',
+    );
+  });
 });
 
 describe('endMoveOf: what the user does after an attempt ended', () => {

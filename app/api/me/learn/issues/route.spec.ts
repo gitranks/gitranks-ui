@@ -2,9 +2,10 @@ import { NextRequest } from 'next/server';
 import type { Session } from 'next-auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadIssuesList, loadMaskedListReads, current } = vi.hoisted(() => ({
+const { loadIssuesList, loadMaskedListReads, loadLearnSign, current } = vi.hoisted(() => ({
   loadIssuesList: vi.fn(),
   loadMaskedListReads: vi.fn(),
+  loadLearnSign: vi.fn(),
   current: { session: null as Session | null },
 }));
 
@@ -18,6 +19,7 @@ vi.mock('@/auth', () => ({
 }));
 vi.mock('@/lib/learn/issues.data', () => ({ loadIssuesList }));
 vi.mock('@/lib/workspace/masked-issue.data', () => ({ loadMaskedListReads }));
+vi.mock('@/lib/learn/learn-sign.data', () => ({ loadLearnSign }));
 
 const { GET } = (await import('./route')) as unknown as { GET: (req: NextRequest) => Promise<Response> };
 const { personalList } = await import('@/lib/learn/__fixtures__/issues');
@@ -33,6 +35,7 @@ describe("the person's Issues route", () => {
   beforeEach(() => {
     loadIssuesList.mockReset();
     loadMaskedListReads.mockReset().mockResolvedValue(reads);
+    loadLearnSign.mockReset().mockResolvedValue(true);
     current.session = null;
   });
 
@@ -60,6 +63,19 @@ describe("the person's Issues route", () => {
       learned: true,
       show: 'fixed',
     });
+    // Not a view of one lesson: the Learn sign is not read.
+    expect(loadLearnSign).not.toHaveBeenCalled();
+  });
+
+  it('answers the Learn sign beside the list on a view of one lesson, null when it cannot be read', async () => {
+    signIn();
+    loadIssuesList.mockResolvedValue({ kind: 'ok', data: personalList() });
+    for (const sign of [true, false, null]) {
+      loadLearnSign.mockResolvedValueOnce(sign);
+      const res = await get('?lesson=find-duplicates-with-a-set&at=lesson');
+      expect(await res.json()).toEqual({ state: 'ok', list: personalList(), reads, learnOnboarded: sign });
+    }
+    expect(loadLearnSign).toHaveBeenCalledWith('octocat');
   });
 
   it('answers unavailable or failed as the read does', async () => {

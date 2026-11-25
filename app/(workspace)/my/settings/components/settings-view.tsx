@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { setSkillsHiddenAction } from '@/app/profile/[login]/components/skills-hidden.actions';
 import {
   LearnEmailFailedRow,
+  LessonIssuesRow,
   LessonsToRepeatRow,
   NewIssuesRow,
   TimeZoneRow,
@@ -21,8 +22,13 @@ import { SettingsAnchors } from '@/components/workspace/settings/settings-anchor
 import { SettingsGroup, SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
 import { modeTitleOf } from '@/lib/contribute/set-format';
 import { preferencesSummaryOf } from '@/lib/contribute/work-summary';
-import type { LearnEmailSettings, LearnIssuesEmailSetting } from '@/lib/learn/settings';
-import { loadLearnEmailSettings, loadLearnIssuesEmail, loadLearnSetupForSettings } from '@/lib/learn/settings.data';
+import type { LearnEmailSettings, LearnIssuesEmailSetting, LearnLessonIssuesSetting } from '@/lib/learn/settings';
+import {
+  loadLearnEmailSettings,
+  loadLearnIssuesEmail,
+  loadLearnLessonIssuesEmail,
+  loadLearnSetupForSettings,
+} from '@/lib/learn/settings.data';
 import type { LearnSetupRead } from '@/lib/learn/setup';
 import { loadSkillsMine } from '@/lib/skills/skills.data';
 import { openPrsOverrideOf } from '@/lib/workspace/access-limits';
@@ -85,13 +91,14 @@ async function loadPrivacyGroup(): Promise<ReactNode> {
 /** Learn's reads for its rows, each the person's own; none signed out. */
 async function loadLearnRows() {
   const githubLogin = await viewerLogin();
-  if (!githubLogin) return { setup: null, email: null, issues: null };
-  const [setup, email, issues] = await Promise.all([
+  if (!githubLogin) return { setup: null, email: null, issues: null, lessonIssues: null };
+  const [setup, email, issues, lessonIssues] = await Promise.all([
     loadLearnSetupForSettings(githubLogin),
     loadLearnEmailSettings(githubLogin),
     loadLearnIssuesEmail(githubLogin),
+    loadLearnLessonIssuesEmail(githubLogin),
   ]);
-  return { setup, email, issues };
+  return { setup, email, issues, lessonIssues };
 }
 
 export async function SettingsView({
@@ -131,6 +138,7 @@ export async function SettingsView({
       learnEmail={learn.email ?? null}
       learnEmailFailed={learn.email === undefined}
       learnIssuesEmail={learn.issues}
+      learnLessonIssuesEmail={learn.lessonIssues}
       openPrs={counts?.prBound}
       privacy={privacy}
     />
@@ -286,6 +294,7 @@ export function SettingsScreen({
   learnEmail = null,
   learnEmailFailed = false,
   learnIssuesEmail = null,
+  learnLessonIssuesEmail = null,
   openPrs,
   privacy = null,
 }: {
@@ -312,6 +321,8 @@ export function SettingsScreen({
   learnEmailFailed?: boolean;
   /** "A new issue for you": its row is drawn only when this read answered. */
   learnIssuesEmail?: LearnIssuesEmailSetting | null;
+  /** "Issues for my lessons": its row is drawn only when this read answered. */
+  learnLessonIssuesEmail?: LearnLessonIssuesSetting | null;
   /** The pull requests that count against the limit now. */
   openPrs?: number;
   /** The group "Privacy": who can see the person's Skills page. */
@@ -332,6 +343,7 @@ export function SettingsScreen({
       <>
         <LessonsToRepeatRow on={learnEmail.lessonsToRepeat} noAddress={noAddress} />
         {learnIssuesEmail ? <NewIssuesRow setting={learnIssuesEmail} noAddress={noAddress} /> : null}
+        {learnLessonIssuesEmail ? <LessonIssuesRow on={learnLessonIssuesEmail.on} noAddress={noAddress} /> : null}
       </>
     );
     zone = <TimeZoneRow settings={learnEmail} savedZone={email ? email.timeZone : undefined} />;

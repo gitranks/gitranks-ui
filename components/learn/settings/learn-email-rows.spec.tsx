@@ -4,22 +4,29 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { saveLearnEmailSettingsAction, setContributeEmailSettings, setLearnIssuesEmailAction, refresh } = vi.hoisted(
-  () => ({
-    saveLearnEmailSettingsAction: vi.fn(),
-    setContributeEmailSettings: vi.fn(),
-    setLearnIssuesEmailAction: vi.fn(),
-    refresh: vi.fn(),
-  }),
-);
-vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction }));
+const {
+  saveLearnEmailSettingsAction,
+  setContributeEmailSettings,
+  setLearnIssuesEmailAction,
+  setLearnLessonIssuesEmailAction,
+  refresh,
+} = vi.hoisted(() => ({
+  saveLearnEmailSettingsAction: vi.fn(),
+  setContributeEmailSettings: vi.fn(),
+  setLearnIssuesEmailAction: vi.fn(),
+  setLearnLessonIssuesEmailAction: vi.fn(),
+  refresh: vi.fn(),
+}));
+vi.mock('@/lib/learn/issues.actions', () => ({ setLearnIssuesEmailAction, setLearnLessonIssuesEmailAction }));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push: vi.fn(), replace: vi.fn() }) }));
 vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction }));
 vi.mock('@/lib/workspace/actions', () => ({ setContributeEmailSettings }));
 
-const { LearnEmailFailedRow, LessonsToRepeatRow, NewIssuesRow, TimeZoneRow } = await import('./learn-email-rows');
-const { learnEmail, learnIssuesEmail } = await import('@/lib/learn/__fixtures__/settings');
+const { LearnEmailFailedRow, LessonIssuesRow, LessonsToRepeatRow, NewIssuesRow, TimeZoneRow } = await import(
+  './learn-email-rows'
+);
+const { learnEmail, learnIssuesEmail, learnLessonIssuesEmail } = await import('@/lib/learn/__fixtures__/settings');
 const { email } = await import('@/lib/contribute/__fixtures__/contribute-views');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -106,6 +113,29 @@ describe("Learn's rows as the server draws them", () => {
     );
     expect(on).toContain('data-email-new-issues="on"');
     expect(on).not.toMatch(/role="switch"[^>]*disabled=""/);
+  });
+
+  it("draws Issues for my lessons off as it starts, with the button's line, and on with no address saying so", () => {
+    const off = renderToStaticMarkup(
+      <ul>
+        <LessonIssuesRow on={learnLessonIssuesEmail.off.on} />
+      </ul>,
+    );
+    expect(off).toContain('data-email-row="lesson-issues"');
+    expect(off).toContain('data-email-lesson-issues="off"');
+    expect(off).toContain('Issues for my lessons');
+    expect(off).toContain(
+      'This lesson and every lesson you learned but have not used on a real issue yet. One email a day at most.',
+    );
+    expect(off).toContain('aria-label="Email issues for my lessons"');
+    const none = renderToStaticMarkup(
+      <ul>
+        <LessonIssuesRow on={learnLessonIssuesEmail.on.on} noAddress />
+      </ul>,
+    );
+    expect(none).toContain('data-email-lesson-issues="on"');
+    expect(none).toContain('This email needs an address, and we have none for you.');
+    expect(none).not.toMatch(/role="switch"[^>]*disabled=""/);
   });
 
   it("says when Learn's rows did not load", () => {
@@ -395,6 +425,61 @@ describe('New issues for you in the browser', () => {
       'We could not save just now. Try again in a minute.',
     );
     expect(row().dataset.emailNewIssues).toBe('off');
+    expect(refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe('Issues for my lessons in the browser', () => {
+  let container: HTMLDivElement;
+  let root: Root;
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+  });
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    setLearnLessonIssuesEmailAction.mockReset();
+    refresh.mockReset();
+  });
+  const toggle = () => container.querySelector<HTMLInputElement>('[role="switch"]')!;
+  const row = () => container.querySelector<HTMLElement>('[data-email-row="lesson-issues"]')!;
+  const draw = (on: boolean) =>
+    act(() =>
+      root.render(
+        <ul>
+          <LessonIssuesRow on={on} />
+        </ul>,
+      ),
+    );
+
+  it('turns the same switch on and off with no lesson, saves at once and reads the page again', async () => {
+    setLearnLessonIssuesEmailAction
+      .mockResolvedValueOnce({ ok: true, data: { lessonIssues: true, lessonIssuesAsked: ['find-duplicates'] } })
+      .mockResolvedValueOnce({ ok: true, data: { lessonIssues: false, lessonIssuesAsked: ['find-duplicates'] } });
+    draw(false);
+    await act(async () => toggle().click());
+    expect(setLearnLessonIssuesEmailAction).toHaveBeenLastCalledWith(true, null);
+    expect(row().dataset.emailLessonIssues).toBe('on');
+    await act(async () => toggle().click());
+    expect(setLearnLessonIssuesEmailAction).toHaveBeenLastCalledWith(false, null);
+    expect(row().dataset.emailLessonIssues).toBe('off');
+    expect(refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it('moves back and says why when the save fails, or Learn is no longer open', async () => {
+    draw(true);
+    setLearnLessonIssuesEmailAction.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
+    await act(async () => toggle().click());
+    expect(toggle().checked).toBe(true);
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      'We could not save just now. Try again in a minute.',
+    );
+    setLearnLessonIssuesEmailAction.mockResolvedValueOnce({ ok: true, data: null });
+    await act(async () => toggle().click());
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe('Nothing was saved. Try again in a minute.');
+    expect(row().dataset.emailLessonIssues).toBe('on');
     expect(refresh).not.toHaveBeenCalled();
   });
 });

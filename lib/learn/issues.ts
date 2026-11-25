@@ -55,6 +55,10 @@ export type IssuesList = {
   emailOn: boolean;
   /** The address that email goes to, as the API shows it; null when there is none. */
   emailTo: string | null;
+  /** "Email me issues for my lessons" is on; null when the API does not say. */
+  lessonIssues: boolean | null;
+  /** On a view of one lesson: whether that email covers the lesson for the person; null otherwise. */
+  lessonIssuesCovered: boolean | null;
 };
 
 /** A visitor's five for a view. */
@@ -642,6 +646,8 @@ export function issuesListOf(value: unknown): IssuesList | null {
     outsideForYou: countOrNull(raw.outsideForYou),
     emailOn: raw.emailOn === true,
     emailTo: typeof raw.emailTo === 'string' && raw.emailTo ? raw.emailTo : null,
+    lessonIssues: typeof raw.lessonIssues === 'boolean' ? raw.lessonIssues : null,
+    lessonIssuesCovered: typeof raw.lessonIssuesCovered === 'boolean' ? raw.lessonIssuesCovered : null,
   };
 }
 

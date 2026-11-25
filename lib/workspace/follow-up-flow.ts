@@ -17,7 +17,7 @@ export const FOLLOW_UP_THREADS_MAX = 20;
 export const FOLLOW_UP_STEPS = ['reading', 'fixing', 'checks', 'ready'] as const;
 type FollowUpStep = (typeof FOLLOW_UP_STEPS)[number];
 
-/** The timeline's mark of the work phase: the go/no-go said go and the work was sent (contrib's `go:` note). */
+/** The timeline's mark of the work phase: the go/no-go said go and the work was sent (the API's `go:` note). */
 const WORK_SENT = /^go:/;
 
 /**

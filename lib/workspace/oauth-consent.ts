@@ -32,9 +32,8 @@ export const authorizeHrefOf = (requestId: string): Route =>
   `${AUTHORIZE_PATH}?request=${encodeURIComponent(requestId)}` as Route;
 
 /**
- * The directory reviewers' sign-in (octoscope's OpenAI directory spec §4): a username and password that connect one
- * review account, with no session here. Shown as a link on the signed-out consent page; contrib answers "not
- * available" while its `CONTRIB_REVIEW_LOGIN` is unset.
+ * The directory reviewers' sign-in: a username and password that connect one review account, with no session here.
+ * Shown as a link on the signed-out consent page; the API answers "not available" while no review account is set.
  */
 export const REVIEW_SIGN_IN_SHOWN = true;
 
@@ -42,7 +41,7 @@ export const REVIEW_SIGN_IN_SHOWN = true;
 export const authorizeReviewHrefOf = (requestId: string): Route =>
   `${AUTHORIZE_PATH}?request=${encodeURIComponent(requestId)}&review=1` as Route;
 
-/** The review sign-in's fields at most (contrib's DTO and gitranks' resolver check the same). */
+/** The review sign-in's fields at most (the API checks the same). */
 export const REVIEW_USERNAME_MAX = 64;
 export const REVIEW_PASSWORD_MAX = 200;
 

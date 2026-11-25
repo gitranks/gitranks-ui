@@ -135,6 +135,18 @@ function IssuePageLiveOnce(props: IssuePageLiveProps) {
   // The onboarding the fix needs first: from the page's read, or a hosted start the server refused for it.
   const [setup, setSetup] = useState<IssueSetup | null>(props.setup ?? null);
   const [setupPressing, setSetupPressing] = useState(false);
+  // Shown again after a client navigation away and back (the browser's Back from an onboarding left unfinished, or the
+  // way back while the sign cannot be read): the setup as the server last read it, and its button pressable again.
+  const setupRead = useRef(props.setup ?? null);
+  setupRead.current = props.setup ?? null;
+  const shownBefore = useRef(false);
+  useEffect(() => {
+    if (shownBefore.current) {
+      setSetup(setupRead.current);
+      setSetupPressing(false);
+    }
+    shownBefore.current = true;
+  }, []);
   // The look was held longer on the way into the onboarding: the form says when the hold ends, and a copy asks for no
   // second extension. Read in the browser, once the page is there.
   const [extended, setExtended] = useState(false);

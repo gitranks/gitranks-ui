@@ -1,6 +1,12 @@
 import { parse } from 'graphql';
 
-import type { LearnCourse, LearnCourseCard, LearnCourseMineCard, LearnLessonListItem } from './course';
+import type {
+  LearnCourse,
+  LearnCourseCard,
+  LearnCourseMineCard,
+  LearnLessonFixesListed,
+  LearnLessonListItem,
+} from './course';
 import type { LearnProject } from './paths';
 import type DocumentNode from '@/types/typed-document-node';
 
@@ -32,6 +38,14 @@ export const LearnCoursesDocument = doc<{ learnCourses: LearnCourseCard[] }>(
 /** Every live lesson of every course, paused ones included, for the search of all courses. */
 export const LearnLessonsDocument = doc<{ learnLessons: LearnLessonListItem[] }>(
   `query LearnLessons { learnLessons { slug title level course { ${LINK} } group { ${LINK} } paused changedAt } }`,
+);
+
+/**
+ * Which live lessons have a listed merged fix, for the sitemap alone: its own read, so the list of courses never asks for
+ * it and keeps its own time.
+ */
+export const LearnLessonsFixesListedDocument = doc<{ learnLessons: LearnLessonFixesListed[] }>(
+  'query LearnLessonsFixesListed { learnLessons { slug course { slug } paused fixesListed } }',
 );
 
 /** A course whole: the same for everyone. Null when it is not live, or not one of ours. */

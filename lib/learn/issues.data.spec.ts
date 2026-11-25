@@ -9,8 +9,15 @@ const content = vi.hoisted(() => ({ loadLearnLessonPage: vi.fn(), loadLearnCours
 vi.mock('./lesson-page.data', () => ({ loadLearnLessonPage: content.loadLearnLessonPage }));
 vi.mock('./course.data', () => ({ loadLearnCourse: content.loadLearnCourse }));
 
-const { fixesCached, issuesNamesOf, loadIssuesList, loadIssuesListPublic, loadLearnFixes, publicIssuesCached } =
-  await import('./issues.data');
+const {
+  fixesCached,
+  hasMergedFixOf,
+  issuesNamesOf,
+  loadIssuesList,
+  loadIssuesListPublic,
+  loadLearnFixes,
+  publicIssuesCached,
+} = await import('./issues.data');
 const { ISSUES_VIEW } = await import('./issues');
 const { issueRows, learnFixes, personalList, views } = await import('./__fixtures__/issues');
 
@@ -95,6 +102,23 @@ describe("Issues' reads", () => {
     expect(graphqlDirect.mock.calls[0][1]).toEqual({
       input: { lesson: null, course: 'algorithms', language: null, repo: null, org: null, after: 'cursor-2' },
     });
+  });
+
+  it("tells whether a lesson or a course has a merged fix from the read of its bare view's first ten", async () => {
+    graphqlDirect.mockResolvedValue({ learnFixes });
+    expect(await hasMergedFixOf('lesson', 'sets')).toBe(true);
+    await loadLearnFixes({ ...ISSUES_VIEW, lesson: 'sets', show: 'both' });
+    // The same input as the page's read, so both are one kept read.
+    expect(graphqlDirect.mock.calls[0][1]).toEqual(graphqlDirect.mock.calls[1][1]);
+    expect(graphqlDirect.mock.calls[0][1]).toEqual({
+      input: { lesson: 'sets', course: null, language: null, repo: null, org: null, after: null },
+    });
+    graphqlDirect.mockResolvedValue({ learnFixes: { rows: [], total: 0, next: null } });
+    expect(await hasMergedFixOf('course', 'algorithms')).toBe(false);
+    graphqlDirect.mockResolvedValue({ learnFixes: null });
+    expect(await hasMergedFixOf('course', 'algorithms')).toBeNull();
+    graphqlDirect.mockRejectedValue(new Error('down'));
+    expect(await hasMergedFixOf('lesson', 'sets')).toBeNull();
   });
 
   it('names the chips from the content, and none when it cannot be read', async () => {

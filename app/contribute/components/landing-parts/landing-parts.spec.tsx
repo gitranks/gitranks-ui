@@ -45,6 +45,12 @@ describe("the landing's top card", () => {
     expect(text(page)).toContain('The importer counts one email as two users Python');
   });
 
+  it('names the agent alone when the sender is not known', () => {
+    const page = draw(<LandingProofCard pr={{ ...proofMerged[0], contributorLogin: null }} />);
+    expect(text(page)).toContain('+18 −3 2 files with Claude Code How it was made');
+    expect(text(page)).not.toContain(' by ');
+  });
+
   it('says an open one is open, with no day it merged', () => {
     const page = draw(<LandingProofCard pr={proofOpenOnly[0]} />);
     expect(page.querySelector('[data-landing-proof-card]')?.getAttribute('data-landing-proof-card')).toBe('open');
@@ -63,6 +69,12 @@ describe('"Merged through GitRanks"', () => {
       'lumen-data/importer Issue #88 Pull request #93 Treat an email as one user whatever its case Merged 21 Oct · by ana-p with Claude Code How it was made',
     ]);
     expect(text(page.querySelector('a[href="/contribute/ledger"]'))).toBe('Every pull request, in the public ledger →');
+  });
+
+  it('names the agent alone in a row whose sender is not known', () => {
+    const rows = proofMerged.slice(0, 3).map((pr, index) => (index ? pr : { ...pr, contributorLogin: null }));
+    const page = draw(<LandingProofRows rows={rows} ledgerOpen />);
+    expect(text(page.querySelector('li'))).toContain('Merged 30 Oct · with Claude Code How it was made');
   });
 
   it('stands the heading alone while the ledger is closed', () => {

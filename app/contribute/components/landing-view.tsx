@@ -6,8 +6,7 @@ import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace
 import { loadAgentPage } from '@/lib/contribute/agent-page';
 import type { AgentPageStats } from '@/lib/contribute/agent-page.types';
 import { type LandingProof, landingProofOf } from '@/lib/contribute/landing-proof';
-import { loadLandingProof } from '@/lib/contribute/landing-proof.data';
-import { contributeLedgerOpen } from '@/lib/contribute/ledger-gate';
+import { loadLandingLedgerOpen, loadLandingProof } from '@/lib/contribute/landing-proof.data';
 import {
   loadContribute,
   loadContributeSetup,
@@ -35,25 +34,17 @@ export type LandingLive = { stats: AgentPageStats | null; proof: LandingProof; l
 
 /**
  * The landing's live reads, started beside the view's read so neither waits for the other: the numbers line and the
- * newest pull requests with a public page. Each settles to null on a failure (the proof also past its time limit), and
- * is read once per request.
+ * newest pull requests with a public page, and whether the public ledger is open. Each settles to null (closed, for
+ * the ledger) on a failure, the proof and the ledger also past their time limit, and is read once per request.
  */
 export function startLandingReads() {
-  return { agentPage: loadAgentPage(), proof: loadLandingProof() };
+  return { agentPage: loadAgentPage(), proof: loadLandingProof(), ledgerOpen: loadLandingLedgerOpen() };
 }
 
-/**
- * The live reads as the landing draws them, awaited before it draws (the head's layout differs without the card).
- * Whether the ledger is open is asked only when "Merged through GitRanks" is drawn, the one place that links it.
- */
+/** The live reads as the landing draws them, awaited before it draws (the head's layout differs without the card). */
 export async function landingLiveOf(reads: ReturnType<typeof startLandingReads>): Promise<LandingLive> {
-  const [agentPage, prs] = await Promise.all([reads.agentPage, reads.proof]);
-  const proof = landingProofOf(prs);
-  return {
-    stats: agentPage?.stats ?? null,
-    proof,
-    ledgerOpen: proof.rows ? await contributeLedgerOpen(Date.now()) : false,
-  };
+  const [agentPage, prs, ledgerOpen] = await Promise.all([reads.agentPage, reads.proof, reads.ledgerOpen]);
+  return { stats: agentPage?.stats ?? null, proof: landingProofOf(prs), ledgerOpen };
 }
 
 /** A panel of Contribute's home, in the page's column. */

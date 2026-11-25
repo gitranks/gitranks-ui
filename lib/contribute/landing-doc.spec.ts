@@ -92,6 +92,11 @@ describe('/contribute.md', () => {
     expect(doc).not.toContain('Merged through GitRanks');
   });
 
+  it("lists Learn first under More, as the page's foot does", () => {
+    const more = doc.slice(doc.indexOf('## More')).split('\n');
+    expect(more.filter((line) => line.startsWith('- '))[0]).toBe('- GitRanks Learn: https://gitranks.com/learn');
+  });
+
   it('leaves the numbers out when they are not there or cannot be drawn', () => {
     expect(contributeLandingDocOf(null)).not.toContain('issues ready in');
     const broken = contributeLandingDocOf({ readyIssues: null } as unknown as AgentPageStats);

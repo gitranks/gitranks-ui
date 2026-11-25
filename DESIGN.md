@@ -118,7 +118,7 @@ Contribute and Learn share one signed-in workspace (`components/workspace/`).
   (`FlowSteps`), the step in a `max-w-3xl` column. Contribute: What you work on → Your agent → Your first issue. Learn:
   Your goal → Pick an issue → Your agent, at the issue's own start address. Sign-in is asked only at the first step that
   needs an account, in one card (`FlowSignIn`); the steps after it show dimmed. The tabs appear once an agent has
-  connected. Members read the same landing at `/contribute/about` and `/learn/about`: on Contribute's its one button
+  connected. Members read the same landing at `/contribute/about` and `/learn/about`: on Contribute's, its one button
   reads "Go to your issues" (to Contribute home), at the top and at the foot; on Learn's, "Open Learn".
 - The reference line: every row, card and header that names an issue or a pull request opens with `RefChips` (the repo,
   `Issue #N ↗`, `PR #N ↗`). The title opens our page; the chips open GitHub.

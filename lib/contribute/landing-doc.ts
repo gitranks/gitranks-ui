@@ -86,6 +86,7 @@ export function contributeLandingDocOf(stats: AgentPageStats | null | undefined)
   lines.push(
     '## More',
     '',
+    `- GitRanks Learn: ${SITE}${WORKSPACE_PATHS.learnHome}`,
     `- Start contributing: ${SITE}${WORKSPACE_PATHS.contribute}`,
     `- For AI agents: ${SITE}${AGENTS_DOC_PATH}`,
     `- MCP server docs: ${SITE}${MCP_DOCS_PATH}`,

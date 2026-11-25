@@ -32,10 +32,11 @@ vi.mock('@/lib/workspace/contribute.data', () => data);
 const gate = vi.hoisted(() => ({ contributeOpen: vi.fn(async () => true) }));
 vi.mock('@/lib/workspace/preview-gate', () => gate);
 vi.mock('@/lib/contribute/agent-page', () => ({ loadAgentPage: vi.fn(async () => null) }));
-const proofRead = vi.hoisted(() => ({ loadLandingProof: vi.fn(async (): Promise<unknown> => null) }));
+const proofRead = vi.hoisted(() => ({
+  loadLandingProof: vi.fn(async (): Promise<unknown> => null),
+  loadLandingLedgerOpen: vi.fn(async () => true),
+}));
 vi.mock('@/lib/contribute/landing-proof.data', () => proofRead);
-const ledgerGate = vi.hoisted(() => ({ contributeLedgerOpen: vi.fn(async () => true) }));
-vi.mock('@/lib/contribute/ledger-gate', () => ledgerGate);
 
 const { ContributeAboutView, signedInStartOf } = await import('./landing-view');
 const { metadata: aboutMetadata } = await import('@/app/(public)/contribute/about/page');
@@ -58,7 +59,7 @@ beforeEach(() => {
   data.loadContributeSetup.mockResolvedValue(false);
   data.viewerLogin.mockResolvedValue(null);
   proofRead.loadLandingProof.mockResolvedValue(null);
-  ledgerGate.contributeLedgerOpen.mockResolvedValue(true);
+  proofRead.loadLandingLedgerOpen.mockResolvedValue(true);
 });
 
 /** The landing as drawn for a visitor, from the given answer of the newest pull requests' read. */
@@ -98,7 +99,7 @@ describe("the landing's proof, by what the newest pull requests' read answers", 
   });
 
   it('stands the heading alone while the ledger is closed', async () => {
-    ledgerGate.contributeLedgerOpen.mockResolvedValue(false);
+    proofRead.loadLandingLedgerOpen.mockResolvedValue(false);
     const page = await landingWith(proofMerged);
     expect(words(rows(page)?.querySelector('h2'))).toBe('Merged through GitRanks');
     expect(rows(page)?.querySelector('a[href="/contribute/ledger"]')).toBeNull();
@@ -112,7 +113,6 @@ describe("the landing's proof, by what the newest pull requests' read answers", 
     expect(card(page)?.getAttribute('data-landing-proof-card')).toBe('merged');
     expect(rows(page)).toBeNull();
     expect(page.textContent).not.toContain('Merged through GitRanks');
-    expect(ledgerGate.contributeLedgerOpen).not.toHaveBeenCalled();
   });
 
   it('none merged, an open one with a public page: the same card with "Open", and no days', async () => {
@@ -131,6 +131,32 @@ describe("the landing's proof, by what the newest pull requests' read answers", 
     expect(card(page)).toBeNull();
     expect(rows(page)).toBeNull();
     expect(page.querySelector('[data-landing="head"] > div')?.className).toContain('flex-[1_1_100%]');
+  });
+
+  it('starts the proof and the ledger reads before the view is read, so neither waits for it', async () => {
+    let viewAsked = false;
+    data.loadContribute.mockImplementation(async () => {
+      viewAsked = true;
+      return null;
+    });
+    proofRead.loadLandingProof.mockImplementation(async () => {
+      expect(viewAsked).toBe(false);
+      return proofMerged;
+    });
+    proofRead.loadLandingLedgerOpen.mockImplementation(async () => {
+      expect(viewAsked).toBe(false);
+      return true;
+    });
+    renderToStaticMarkup((await ContributeAboutView()) as ReactElement);
+    expect(proofRead.loadLandingProof).toHaveBeenCalledOnce();
+    expect(proofRead.loadLandingLedgerOpen).toHaveBeenCalledOnce();
+  });
+
+  it('draws a pull request whose sender is not known, its by-line naming the agent alone', async () => {
+    const page = await landingWith(proofMerged.map((pr) => ({ ...pr, contributorLogin: null })));
+    expect(words(card(page))).toContain('2 files with Claude Code How it was made');
+    expect(words(rows(page))).toContain('Merged 30 Oct · with Claude Code');
+    expect(words(page)).not.toContain('null');
   });
 
   it('leaves out an issue title that is not known', async () => {

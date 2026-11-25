@@ -325,10 +325,14 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       },
       {
         id: 'about',
-        title: 'How Contribute works, for a member: the same page, Go to your issues',
+        title:
+          'How Contribute works, for a member: the same page, Go to your issues; the public ledger closed, so "Merged through GitRanks" stands alone',
         path: '/contribute/about',
         height: 5200,
-        render: () => publicPage(<Landing viewer="signed-in" start={{ member: true }} noted={[]} {...LANDING_LIVE} />),
+        render: () =>
+          publicPage(
+            <Landing viewer="signed-in" start={{ member: true }} noted={[]} {...LANDING_LIVE} ledgerOpen={false} />,
+          ),
       },
       {
         id: 'less',

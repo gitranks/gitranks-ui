@@ -15,7 +15,8 @@ export type LandingProofPr = {
   title: string;
   openedAt: string;
   mergedAt: string | null;
-  contributorLogin: string;
+  /** The sender's GitHub login; null when not known (the by-line then names the agent alone). */
+  contributorLogin: string | null;
   /** The agent as the footer names it: "Claude Code", "GitRanks' hosted agent", "an AI agent". */
   agent: string;
   issue: {
@@ -30,21 +31,16 @@ export type LandingProofPr = {
   change: { files: number; added: number; removed: number } | null;
 };
 
-/** A row as the API answers it (`contributeNewestMerged`): the pull request's title and its sender may be missing. */
-export type ContributeMergedPrRead = Omit<LandingProofPr, 'title' | 'contributorLogin'> & {
-  title: string | null;
-  contributorLogin: string | null;
-};
+/** A row as the API answers it (`contributeNewestMerged`): the pull request's title may be missing. */
+export type ContributeMergedPrRead = Omit<LandingProofPr, 'title'> & { title: string | null };
 
 /**
  * The API's rows as the landing draws them, in its order (newest first); null when the read failed. A row without the
- * pull request's title or its sender is dropped: the card says a person reviewed it and sent it, and names them.
+ * pull request's title is dropped: the card and the rows are drawn around it. A row without its sender is kept.
  */
 export function landingProofPrsOf(rows: readonly ContributeMergedPrRead[] | null | undefined): LandingProofPr[] | null {
   if (!rows) return null;
-  return rows.flatMap(({ title, contributorLogin, ...row }) =>
-    title && contributorLogin ? [{ ...row, title, contributorLogin }] : [],
-  );
+  return rows.flatMap(({ title, ...row }) => (title ? [{ ...row, title }] : []));
 }
 
 /** What the landing draws of the proof: the top card's pull request, and the three rows. Null leaves a part out. */
@@ -86,9 +82,9 @@ export function mergedAfterOf(pr: Pick<LandingProofPr, 'openedAt' | 'mergedAt'>)
   return `${days} ${days === 1 ? 'day' : 'days'} after it was sent`;
 }
 
-/** "by mira-dev with Claude Code". */
+/** "by mira-dev with Claude Code"; "with Claude Code" when the sender is not known. */
 export const proofByOf = (pr: Pick<LandingProofPr, 'contributorLogin' | 'agent'>): string =>
-  `by ${pr.contributorLogin} with ${pr.agent}`;
+  pr.contributorLogin ? `by ${pr.contributorLogin} with ${pr.agent}` : `with ${pr.agent}`;
 
 /** "30 Oct", in UTC. */
 export const dayMonthOf = (iso: string): string =>

@@ -46,6 +46,17 @@ export function rememberBar(bar: ProductBar): void {
   }
 }
 
+/**
+ * The workspace's pages Learn owns: a Start page for a lesson (`?lesson=1`), and any page Learn opened (`?from=learn`:
+ * Learn's "Pull requests", an issue's page from Learn's Issues). Where the workspace's tabs show on them, they do not
+ * record themselves as the bar seen last, so a person who uses both keeps the bar they came from on Settings, in the
+ * player's header and on the empty list of pull requests.
+ */
+export function learnOwnsPage(pathname: string, search: Pick<URLSearchParams, 'get'>): boolean {
+  if (/^\/my\/start\//.test(pathname) && search.get('lesson') === '1') return true;
+  return search.get('from') === 'learn';
+}
+
 /** Settings and its own pages: the shared pages whose bar is chosen here. */
 export const isSharedSettingsPath = (pathname: string): boolean => /^\/my\/settings(?:\/|$)/.test(pathname);
 

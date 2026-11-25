@@ -22,7 +22,7 @@ import type { ContributeEmailSettings, ContributeView } from '@/lib/workspace/co
  * page's own parts with fixtures.
  */
 
-const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
+const TABS = ['contribute', 'pull-requests', 'agent', 'settings'] as const;
 
 /** A learner's bar, Settings its current tab. */
 const LEARNER_BAR: LearnBarState = { kind: 'learner', due: 4, pullRequests: true, pullRequestsNeedYou: 1 };

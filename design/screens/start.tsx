@@ -23,7 +23,7 @@ const LESSON_PATH = `${START_PATH}?lesson=1`;
 const noop = () => {};
 
 /** Every tab, as a signed-in account sees them. */
-const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
+const TABS = ['contribute', 'pull-requests', 'agent', 'settings'] as const;
 
 /** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */
 const frame = (children: ReactNode) => (

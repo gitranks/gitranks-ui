@@ -18,6 +18,7 @@ import type { WorkspaceTab } from '@/lib/workspace/gate';
 import {
   isSharedSettingsPath,
   lastBarInCookies,
+  learnOwnsPage,
   type ProductBar,
   rememberBar,
   settingsBarOf,
@@ -42,8 +43,9 @@ const noSubscribe = () => () => {};
  * The workspace's tabs under the header, as a profile's are, or the header's line when they do not show; with them,
  * the one poll (`ChangesProvider`) and the bar for the current tab's work. On Settings, Learn's bar takes the tabs'
  * place where Learn opened the page (`settingsBarOf`: the link's `?from=learn`, else the bar seen last, read from the
- * browser's cookie on each move, else the product the person uses); the poll and the work's bar stay under it. It
- * reads the path and the query, so it renders inside a Suspense boundary.
+ * browser's cookie on each move, else the product the person uses); the poll and the work's bar stay under it. `door`
+ * is the door into Learn at the tabs' right edge, given to a person who uses Learn. It reads the path and the query,
+ * so it renders inside a Suspense boundary.
  */
 export function WorkspaceTabsNav({
   tabs,
@@ -51,6 +53,7 @@ export function WorkspaceTabsNav({
   version = null,
   needsYou = null,
   learn,
+  door,
 }: {
   tabs: readonly WorkspaceTab[];
   activity?: ContributeActivity | null;
@@ -58,6 +61,7 @@ export function WorkspaceTabsNav({
   needsYou?: number | null;
   /** Given to an account the workspace is open to. */
   learn?: LearnBarChoice;
+  door?: ReactNode;
 }) {
   const pathname = usePathname();
   const search = useSearchParams();
@@ -77,7 +81,16 @@ export function WorkspaceTabsNav({
   if (!workspaceTabsShown(pathname, search.get('as'), tabs)) return showLearn ? learn.bar : <HeaderLine />;
   return (
     <ChangesProvider version={version} activity={activity} needsYou={needsYou}>
-      {showLearn ? learn.bar : <WorkspaceTabsBar tabs={tabs} active={activeTabOf(pathname, search)} />}
+      {showLearn ? (
+        learn.bar
+      ) : (
+        <WorkspaceTabsBar
+          tabs={tabs}
+          active={activeTabOf(pathname, search)}
+          learnPage={learnOwnsPage(pathname, search)}
+          door={door}
+        />
+      )}
       <ActivityBar />
     </ChangesProvider>
   );
@@ -85,20 +98,31 @@ export function WorkspaceTabsNav({
 
 /**
  * The tabs, the current one marked: Contribute and Settings with a dot while work for them runs, Pull requests with
- * the count of what needs the user, Agent with a spinner and the number of agents at work. On a phone the bar scrolls
- * sideways, and the current tab is scrolled into sight.
+ * the count of what needs the user, Agent with a spinner and the number of agents at work; at the right edge, the door
+ * into Learn when given. On a phone the tabs scroll sideways under the door, and the current tab is scrolled into
+ * sight. `learnPage` is a page Learn owns (`learnOwnsPage`), where the bar does not record itself as the one seen last.
  */
-export function WorkspaceTabsBar({ tabs, active }: { tabs: readonly WorkspaceTab[]; active: WorkspaceTab | null }) {
+export function WorkspaceTabsBar({
+  tabs,
+  active,
+  learnPage = false,
+  door,
+}: {
+  tabs: readonly WorkspaceTab[];
+  active: WorkspaceTab | null;
+  learnPage?: boolean;
+  door?: ReactNode;
+}) {
   const { activity, needsYou } = useWorkspaceLive();
   const bar = useRef<HTMLDivElement>(null);
   // The bar streams in on its own. Arriving after the screen, it pushes the section a link landed on (`#email`) down by
   // its height; browsers without scroll anchoring (Safari) leave the view where it was, so the link's jump is made
   // again. Before the screen is there, the id names nothing and the screen's own jump follows.
   useEffect(scrollToHash, []);
-  // The bar seen last, for Settings to show again (`settings-bar.ts`): Contribute's, but on the old Learn tab.
+  // The bar seen last, for Settings to show again (`settings-bar.ts`): Contribute's, but on a page Learn owns.
   useEffect(() => {
-    if (active !== 'learn') rememberBar('contribute');
-  }, [active]);
+    if (!learnPage) rememberBar('contribute');
+  }, [learnPage]);
   useEffect(() => {
     if (!active) return;
     const tab = bar.current?.querySelector<HTMLElement>('[aria-current="page"]');
@@ -108,7 +132,7 @@ export function WorkspaceTabsBar({ tabs, active }: { tabs: readonly WorkspaceTab
 
   return (
     <div ref={bar} data-workspace-tabs="">
-      <TabsBar>
+      <TabsBar end={door}>
         {tabs.map((tab) => {
           const { label, href } = WORKSPACE_TABS[tab];
           const count = tab === 'pull-requests' && needsYou ? needsYou : undefined;

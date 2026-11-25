@@ -8,7 +8,7 @@ import type { ContributeSetListMode } from './contribute.types';
  */
 export const WORKSPACE_PATHS = {
   contribute: '/contribute' as Route,
-  /** Learn home, which the workspace's Learn tab opens. */
+  /** Learn home, which the door into Learn at the workspace bar's right edge opens. */
   learnHome: '/learn' as Route,
   /** The user's pull requests, both sides. */
   pullRequests: '/my/pull-requests' as Route,

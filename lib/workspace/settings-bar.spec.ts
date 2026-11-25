@@ -7,6 +7,7 @@ import {
   lastBarCookieOf,
   lastBarInCookies,
   lastBarOf,
+  learnOwnsPage,
   rememberBar,
   settingsBarOf,
 } from './settings-bar';
@@ -70,5 +71,31 @@ describe('the bar Settings shows', () => {
       'gr_last_bar=contribute; Path=/; Max-Age=31536000; SameSite=Lax; Secure',
     );
     vi.unstubAllGlobals();
+  });
+});
+
+describe('the pages Learn owns', () => {
+  const owns = (pathname: string, search = '') => learnOwnsPage(pathname, new URLSearchParams(search));
+
+  it("are a lesson's Start page and every page Learn opened", () => {
+    expect(owns('/my/start/acme/widgets/42', 'lesson=1')).toBe(true);
+    expect(owns('/my/start/acme/widgets/42', 'lesson=1&from=contribute')).toBe(true);
+    // Learn's "Pull requests", a pull request and an issue's page, opened from Learn.
+    expect(owns('/my/pull-requests', 'from=learn')).toBe(true);
+    expect(owns('/my/pull-requests/acme/widgets/42', 'from=learn')).toBe(true);
+    expect(owns('/my/issues/M_1', 'from=learn')).toBe(true);
+    expect(owns('/my/settings', 'from=learn')).toBe(true);
+  });
+
+  it("are none of the workspace's own pages", () => {
+    expect(owns('/contribute')).toBe(false);
+    expect(owns('/my/start/acme/widgets/42')).toBe(false);
+    expect(owns('/my/start/acme/widgets/42', 'from=contribute')).toBe(false);
+    expect(owns('/my/pull-requests')).toBe(false);
+    expect(owns('/my/issues/M_1', 'from=contribute')).toBe(false);
+    expect(owns('/my/agent')).toBe(false);
+    expect(owns('/my/settings')).toBe(false);
+    // `lesson` names a lesson only on a Start page.
+    expect(owns('/my/pull-requests', 'lesson=1')).toBe(false);
   });
 });

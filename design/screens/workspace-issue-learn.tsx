@@ -22,7 +22,7 @@ import { PICK_ISSUE_PATHS } from '@/lib/workspace/paths';
 const PATH = '/my/issues/q7k2m9xa?from=learn';
 const CONTRIBUTE_PATH = '/my/issues/q7k2m9xa?from=contribute';
 const MAIN = 'mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 pt-7 pb-16';
-const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
+const TABS = ['contribute', 'pull-requests', 'agent', 'settings'] as const;
 const noop = () => {};
 
 const LESSON = { slug: 'a-queue-first-in-first-out', title: 'A queue: first in, first out' };

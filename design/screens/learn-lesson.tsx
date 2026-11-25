@@ -34,6 +34,7 @@ import {
   setLessonFull,
   setLessonLast,
 } from '@/lib/learn/__fixtures__/lesson-page';
+import { ANSWER_KEPT_NOTE } from '@/lib/learn/kept-answer';
 import { learnLessonMarkdownPath, lessonMistakeHref } from '@/lib/learn/paths';
 
 const noop = () => {};
@@ -159,6 +160,13 @@ export const LEARN_LESSON_SCREEN: Screen = {
       path: PATH,
       height: 1100,
       render: () => <Page viewer={member(mineLearned)} keep drawn={{ answer: setAnswerRight }} />,
+    },
+    {
+      id: 'right-kept',
+      title: 'Signed in, no profile yet, right: nothing saved, the answer kept here, the button is Keep your progress',
+      path: PATH,
+      height: 1100,
+      render: () => <Page viewer={null} signedIn keep note={ANSWER_KEPT_NOTE} drawn={{ answer: setAnswerRight }} />,
     },
     {
       id: 'right-fact',

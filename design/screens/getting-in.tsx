@@ -9,6 +9,9 @@ import { FirstIssueStep, type MarkState } from '@/components/contribute/start/fi
 import { OwnAgentStep } from '@/components/contribute/start/own-agent-step';
 import { WhoDoesTheWork } from '@/components/contribute/start/who-does-the-work';
 import { Header } from '@/components/header/header';
+import { LearnBar } from '@/components/learn/bar/learn-bar';
+import { OnboardingNoProfile } from '@/components/learn/setup/setup-no-profile';
+import { OnboardingHow } from '@/components/learn/setup/setup-onboarding';
 import { ConnectScreen } from '@/components/workspace/agent/connect-view';
 import { FlowBack, FlowFrame } from '@/components/workspace/getting-in/flow-frame';
 import { MaskedIssueRow } from '@/components/workspace/masked-issue/masked-issue-row';
@@ -20,7 +23,7 @@ import { startRead } from '@/lib/contribute/__fixtures__/wave-4-parts';
 import { type FirstIssueState, firstIssueLineOf } from '@/lib/contribute/start-flow';
 import { type StartWaysRead, startWaysOf } from '@/lib/contribute/start-ways';
 import { maskedIssue } from '@/lib/workspace/__fixtures__/masked-issue';
-import type { ContributeIssuePage, ContributeLanguage } from '@/lib/workspace/contribute.types';
+import type { ContributeIssuePage, ContributeLanguage, ContributeSetupState } from '@/lib/workspace/contribute.types';
 import type { FlowConnected } from '@/lib/workspace/getting-in';
 import { issuePageHrefOf } from '@/lib/workspace/masked-issue';
 import { GETTING_IN_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -376,3 +379,75 @@ export const CONTRIBUTE_FLOW_SCREENS: Screen[] = [
     ],
   },
 ];
+
+/**
+ * Learn's setup at `/learn/setup`, as it draws for a signed-in account GitRanks has no profile of yet: the site header,
+ * Learn's bar (a visitor's: the account has no Learn yet), then the panel on the onboarding's first step, where How
+ * Learn works takes its place once the profile is there.
+ */
+const learnSetup = (state: ContributeSetupState) => (
+  <>
+    <Header section="learn" />
+    <LearnBar state={{ kind: 'visitor' }} place="setup" />
+    <OnboardingNoProfile state={state} />
+  </>
+);
+
+/** Learn's setup for an account with no profile yet: the same panels as Contribute's, in the onboarding's frame. */
+export const LEARN_SETUP_NO_PROFILE_SCREEN: Screen = {
+  id: 'learn-setup-no-profile',
+  title: 'Getting in · Learn’s setup, no profile yet',
+  area: 'learn',
+  route: '/learn/setup',
+  sources: [
+    'app/(learn)/learn/setup/page.tsx',
+    'components/learn/setup/setup-no-profile.tsx',
+    'components/workspace/setting-up.tsx',
+    'components/workspace/setup-retry.tsx',
+    'lib/workspace/setup.actions.ts',
+  ],
+  states: [
+    {
+      id: 'setting-up',
+      title: 'A new account still being set up: the panel on the first step; the page reads itself again',
+      path: '/learn/setup',
+      height: 520,
+      render: () => learnSetup('setting-up'),
+    },
+    {
+      id: 'ready',
+      title: 'Its profile is there: How Learn works in the same place, the strip unmoved',
+      path: '/learn/setup',
+      height: 640,
+      render: () => (
+        <>
+          <Header section="learn" />
+          <LearnBar state={{ kind: 'visitor' }} place="setup" />
+          <OnboardingHow line={null} hints onContinue={() => {}} />
+        </>
+      ),
+    },
+    {
+      id: 'setup-failed',
+      title: 'A new account whose first read failed: the panel with Try again',
+      path: '/learn/setup',
+      height: 520,
+      render: () => learnSetup('failed'),
+    },
+    {
+      id: 'no-profile',
+      title: 'An account GitRanks does not read: the panel, nothing to try',
+      path: '/learn/setup',
+      height: 480,
+      render: () => learnSetup('removed'),
+    },
+    {
+      id: 'phone',
+      title: 'On a phone: being set up',
+      path: '/learn/setup',
+      width: 390,
+      height: 620,
+      render: () => learnSetup('setting-up'),
+    },
+  ],
+};

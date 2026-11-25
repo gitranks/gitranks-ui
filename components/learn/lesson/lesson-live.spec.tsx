@@ -27,7 +27,7 @@ const { startLearnSetupGuessAction } = vi.hoisted(() => ({
 // Our guess of the person's setup, which every Learn page a signed-in person opens starts.
 vi.mock('@/lib/learn/setup.actions', () => ({ startLearnSetupGuessAction }));
 
-const { ANSWER_NOT_SAVED_NOTE, LessonLive } = await import('./lesson-live');
+const { LessonLive } = await import('./lesson-live');
 const { forgetLearnSetupGuessStart } = await import('@/lib/learn/use-setup-guess');
 const {
   mineLearned,
@@ -41,7 +41,7 @@ const {
   setLessonLast,
 } = await import('@/lib/learn/__fixtures__/lesson-page');
 const { NO_LESSON_REAL } = await import('@/lib/learn/real-issues');
-const { KEPT_ANSWER_KEY, readKeptAnswer, writeKeptAnswer } = await import('@/lib/learn/kept-answer');
+const { ANSWER_KEPT_NOTE, KEPT_ANSWER_KEY, readKeptAnswer, writeKeptAnswer } = await import('@/lib/learn/kept-answer');
 /** The lesson, through Learn's onboarding. */
 const throughSetup = `/learn/setup?back=${encodeURIComponent(`/learn/lessons/${setLesson.slug}`)}`;
 const { learnFixes } = await import('@/lib/learn/__fixtures__/issues');
@@ -357,15 +357,40 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     expect(signIn).not.toHaveBeenCalled();
   });
 
-  it('says so in one line when the API saves no answer', async () => {
+  it("keeps the answer the API saves nothing of (no profile yet), and leads on through Learn's setup", async () => {
     signedIn();
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ mine: null, course: null })));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ mine: null, course: null, learnOnboarded: null })));
     answerLearnLessonAction.mockResolvedValue({ ok: true, data: null });
+    await draw();
+    expect(main().textContent).toBe(`Next: ${setLesson.next!.title}`);
+    await tap(option(1));
+    await click(main());
+    expect($('[data-answer-note]')!.textContent).toBe(ANSWER_KEPT_NOTE);
+    expect(ANSWER_KEPT_NOTE).not.toMatch(/hour|claim|—/i);
+    expect(readKeptAnswer()).toEqual({
+      slug: setLesson.slug,
+      question: setLesson.question.id,
+      picked: 1,
+      tries: 1,
+      language: expect.anything(),
+      at: expect.any(Number),
+    });
+    expect($('[data-visitor-line]')).toBeNull();
+    expect(main().textContent).toBe('Keep your progress');
+    await click(main());
+    expect(push).toHaveBeenCalledWith(throughSetup);
+    expect(signIn).not.toHaveBeenCalled();
+  });
+
+  it('keeps nothing in the browser when the save fails, and leads on as before', async () => {
+    signedIn();
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ mine: null, course: null, learnOnboarded: null })));
+    answerLearnLessonAction.mockResolvedValue({ ok: false, error: 'FAILED' });
     await draw();
     await tap(option(1));
     await click(main());
-    expect($('[data-answer-note]')!.textContent).toBe(ANSWER_NOT_SAVED_NOTE);
-    expect($('[data-visitor-line]')).toBeNull();
+    expect(readKeptAnswer()).toBeNull();
+    expect($('[data-answer-note]')).toBeNull();
     expect(main().textContent).toBe(`Next: ${setLesson.next!.title}`);
   });
 

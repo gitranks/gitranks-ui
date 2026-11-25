@@ -42,6 +42,9 @@ export type LessonViewProps = {
   timeZone?: string;
   /** For the catalogue: a signed-in person without the Learn sign, whose main button is "Keep your progress". */
   keep?: boolean;
+  /** For the catalogue: a person with a session whose side did not come, and the line under the card after a save. */
+  signedIn?: boolean;
+  note?: ReactNode;
   /** The person's real issues for the lesson, and "In the real world" drawn: for the catalogue. */
   real?: LessonReal | null;
   realWorld?: ReactNode;

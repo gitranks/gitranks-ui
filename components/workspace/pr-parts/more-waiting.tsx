@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
-import { type FocusEvent, type RefObject, useEffect, useId, useRef, useState } from 'react';
+import { type RefObject, useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -23,7 +23,6 @@ const focusable = (element: Element | null | undefined): element is HTMLElement 
  * Keeps the focus in the box when a row's own action takes it away: the row leaves, or its button waits while the call
  * runs. It goes back to that row's button while it can be pressed, else to the line, else to the box's first action.
  * Only when the focus was last on a row and has dropped to the page: a focus the person moved elsewhere stays there.
- * Returns the box's focus handler, which remembers whether the focus is on a row.
  */
 export function useRowFocus(
   box: RefObject<HTMLElement | null>,
@@ -32,6 +31,17 @@ export function useRowFocus(
 ) {
   const row = useRef<HTMLElement | null>(null);
   const rows = items.map((each) => each.kind).join(' ');
+  // Where the focus last went in the box: a row's control, or anything else.
+  useEffect(() => {
+    const element = box.current;
+    if (!element) return;
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target as HTMLElement;
+      row.current = target.closest('[data-more-waiting-item]') ? target : null;
+    };
+    element.addEventListener('focusin', onFocusIn);
+    return () => element.removeEventListener('focusin', onFocusIn);
+  }, [box]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the rows or the wait change; the box is a ref.
   useEffect(() => {
     if (!row.current) return;
@@ -44,10 +54,6 @@ export function useRowFocus(
     ].find(focusable);
     to?.focus();
   }, [rows, pending]);
-  return (event: FocusEvent<HTMLElement>) => {
-    const target = event.target as HTMLElement;
-    row.current = target.closest('[data-more-waiting-item]') ? target : null;
-  };
 }
 
 /**

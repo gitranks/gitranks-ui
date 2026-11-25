@@ -204,7 +204,7 @@ export function PullRequestBox({
   const actions = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLElement>(null);
   const rest = moreWaitingOf(page);
-  const onFocus = useRowFocus(box, rest, pending);
+  useRowFocus(box, rest, pending);
   const keyName = useSendKeyName();
   // The main action: the first one, never "Don't send it", which only stops what is under way.
   const mainOf = (each: Shown, index: number) => index === 0 && each.action.id !== 'veto';
@@ -238,7 +238,6 @@ export function PullRequestBox({
   return (
     <section
       ref={box}
-      onFocus={onFocus}
       aria-live="polite"
       className={cn(
         'flex flex-col gap-2 rounded-2xl border bg-card p-5',

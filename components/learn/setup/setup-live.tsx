@@ -25,8 +25,8 @@ import {
 } from '@/lib/learn/setup';
 import { saveLearnSetupAction, startLearnSetupGuessAction } from '@/lib/learn/setup.actions';
 import { readPicked } from '@/lib/learn/use-example-language';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { hasSessionHint } from '@/lib/session-hint';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** How often the setup is read again while our guess runs, and how many times at most. */
 export const SETUP_POLL_MS = 2000;

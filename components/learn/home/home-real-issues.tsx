@@ -4,8 +4,8 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 
-import { PHONE_LINK } from '@/components/learn/phone-link';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
+import { PHONE_LINK } from '@/components/workspace/phone-link';
 import { PullRequestListRowView } from '@/components/workspace/pr-parts/pr-list';
 import { type IssuesRow, rowLessonOf, rowsAfterSkip } from '@/lib/learn/issues';
 import { learnLessonPath } from '@/lib/learn/paths';

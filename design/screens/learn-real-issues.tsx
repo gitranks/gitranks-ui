@@ -49,6 +49,8 @@ const SOURCES = [
   'components/learn/course/course-boxes.tsx',
   'components/learn/course/course-header.tsx',
   'components/learn/landing/learn-landing-view.tsx',
+  'components/workspace/home-box.tsx',
+  'components/workspace/getting-in/landing-band.tsx',
   'lib/learn/real-issues.ts',
 ];
 

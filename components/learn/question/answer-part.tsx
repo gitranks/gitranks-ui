@@ -3,11 +3,12 @@
 import { Check, ChevronDown, ChevronUp, GripVertical, X } from 'lucide-react';
 import { type ReactNode, type Ref, useEffect, useId, useRef } from 'react';
 
-import { Kbd, KeyLine, type KeyLineItem } from './kbd';
+import { KeyLine, type KeyLineItem } from './kbd';
 import { QuestionPart } from './question-part';
 import { type LearnAnswer, PICKER } from './use-learn-answer';
 import { Button } from '@/components/ui/button';
 import { RichText } from '@/components/workspace/blocks/rich-text';
+import { Kbd } from '@/components/workspace/kbd';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
 import { type LearnAnswerState, pickCountOf } from '@/lib/learn/learn-answer';
 import {
@@ -25,8 +26,8 @@ import {
   QUESTION_TYPE_LABELS,
   rightOf,
 } from '@/lib/learn/learn-question';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { cn } from '@/lib/utils';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** What differs between the places that ask: the extra choice, whether a verdict shows, the button's words. */
 export type AnswerPartPlace = {

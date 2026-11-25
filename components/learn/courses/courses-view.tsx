@@ -9,8 +9,8 @@ import { CountLine } from '@/components/learn/course/course-header';
 import { Marked } from '@/components/learn/course/course-lessons';
 import { CourseMark, SQUARE_CLASS } from '@/components/learn/course/course-marks';
 import { useCoursePageKeys } from '@/components/learn/course/use-course-keys';
-import { Kbd } from '@/components/learn/question/kbd';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/workspace/kbd';
 import {
   type CourseSectionKind,
   type CourseSquareKind,
@@ -26,8 +26,8 @@ import {
 } from '@/lib/learn/course';
 import type { LearnDepth } from '@/lib/learn/lesson-page';
 import { coursesSearchPath, LEARN_COURSES_MARKDOWN_PATH, learnLessonPath } from '@/lib/learn/paths';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { cn } from '@/lib/utils';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** Everything the list of all courses draws from: plain data, the same for everyone but the learner's side. */
 export type CoursesViewProps = {

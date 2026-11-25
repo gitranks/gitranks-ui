@@ -8,11 +8,11 @@ import { LessonFeedback } from './lesson-feedback';
 import { LessonStripEnd } from './lesson-strip-end';
 import { lessonPlace } from '@/components/learn/player/places';
 import { AnswerPart } from '@/components/learn/question/answer-part';
-import { Kbd } from '@/components/learn/question/kbd';
 import { QuestionPart } from '@/components/learn/question/question-part';
 import { useLearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { useHydrated } from '@/components/pulse/use-hydrated';
 import { Button } from '@/components/ui/button';
+import { Kbd } from '@/components/workspace/kbd';
 import { type PlayerCrumb, PlayerStrip } from '@/components/workspace/player/player-strip';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
 import type { LearnAnswerState } from '@/lib/learn/learn-answer';
@@ -37,8 +37,8 @@ import {
 import { courseHrefOf, LEARN_HOME_PATH, learnFactPath } from '@/lib/learn/paths';
 import { FIX_A_REAL_ISSUE, FIX_ON_ITS_WAY_TAIL, fixOnItsWay, type LessonReal } from '@/lib/learn/real-issues';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { issuePageHrefOf } from '@/lib/workspace/masked-issue';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** The key of a lesson's player: another lesson, or a changed question, starts a new answer. */
 export const lessonPlayerKeyOf = (lesson: Pick<LearnLesson, 'slug' | 'question'>) =>

@@ -169,7 +169,8 @@ describe('"See the full issue" in a list', () => {
     expect(states).toEqual(['limit', 'limit']);
     expect(text()).toContain('You have seen 10 full issues today. More at 00:00 UTC.');
     expect(container.querySelector('[data-looks-line]')?.textContent).toBe(
-      'You can see 10 full issues a day. 0 left today.',
+      // The line under the list says the same once, never a zero.
+      'You have seen 10 full issues today. More at 00:00 UTC.',
     );
     expect(router.push).not.toHaveBeenCalled();
   });

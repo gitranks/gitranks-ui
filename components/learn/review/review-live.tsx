@@ -24,10 +24,10 @@ import { learnReviewMinePath, learnReviewPath } from '@/lib/learn/paths';
 import type { LearnReviewAnswered, ReviewDone, ReviewItemShown, ReviewSide } from '@/lib/learn/review';
 import { answerLearnReviewAction } from '@/lib/learn/review.actions';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
 import { runWordsOf } from '@/lib/workspace/player';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /**
  * The person's review from its route: `'signed-out'` when the session is gone or needs a new sign-in; null when there

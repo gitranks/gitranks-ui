@@ -57,10 +57,10 @@ import {
   learnLessonPath,
 } from '@/lib/learn/paths';
 import { MainLanguageContext, useExampleLanguage } from '@/lib/learn/use-example-language';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
 import { runWordsOf } from '@/lib/workspace/player';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** The person's run from its route: the run, or none (with `missing` when the course offers no check). */
 export async function readCheckSide(

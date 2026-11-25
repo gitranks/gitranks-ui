@@ -5,10 +5,11 @@ import { SQUARE_CLASS } from '@/components/learn/course/course-marks';
 import { CourseColumns } from '@/components/learn/home/learn-home-view';
 import { FixCard } from '@/components/learn/issues/issues-parts';
 import { LearnSignInButton } from '@/components/learn/learn-sign-in';
-import { PHONE_LINK } from '@/components/learn/phone-link';
 import { QuestionsBlock } from '@/components/questions-block/questions-block';
 import { buttonVariants } from '@/components/ui/button';
+import { LandingBand } from '@/components/workspace/getting-in/landing-band';
 import { H2, MUTED_SECTION, WIDTH } from '@/components/workspace/getting-in/landing-parts';
+import { PHONE_LINK } from '@/components/workspace/phone-link';
 import type { LearnCourseCard } from '@/lib/learn/course';
 import type { LearnFixes } from '@/lib/learn/issues';
 import {
@@ -94,18 +95,15 @@ function MergedFixes({ fixes }: { fixes: LearnFixes | null }) {
 }
 
 /** The footer every Learn pull request ends with, as a maintainer reads it. */
-function FooterExample() {
+function FooterLines() {
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm">
-      <span className={EYEBROW}>At the end of the pull request</span>
-      <p className="m-0 text-xs text-muted-foreground">
-        Made with <span className="text-link">GitRanks Learn</span>, where developers learn on real issues · Claude Code
-        (Opus) wrote this fix and taught it to @octocat, who passed a check on it and submitted it
-        <br />
-        Something off? <span className="text-link">Tell us or opt out in one step</span> - maintainers are always in
-        control
-      </p>
-    </div>
+    <>
+      Made with <span className="text-link">GitRanks Learn</span>, where developers learn on real issues · Claude Code
+      (Opus) wrote this fix and taught it to @octocat, who passed a check on it and submitted it
+      <br />
+      Something off? <span className="text-link">Tell us or opt out in one step</span> - maintainers are always in
+      control
+    </>
   );
 }
 
@@ -205,24 +203,7 @@ export function LearnLandingView({ viewer, courses, lessons, fixes = null, tryDr
         </div>
       </section>
 
-      <section
-        className={cn(
-          WIDTH,
-          'grid items-center gap-10 py-11 sm:py-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16',
-        )}
-      >
-        <div className="flex min-w-0 flex-col gap-4">
-          <h2 className={H2}>Honest with maintainers</h2>
-          <p className="m-0 max-w-prose text-muted-foreground">{LANDING_MAINTAINERS_TEXT}</p>
-          <Link
-            href={LEARN_MAINTAINERS_PATH}
-            className={cn('self-start font-semibold text-link hover:underline', PHONE_LINK)}
-          >
-            For maintainers →
-          </Link>
-        </div>
-        <FooterExample />
-      </section>
+      <LandingBand text={LANDING_MAINTAINERS_TEXT} href={LEARN_MAINTAINERS_PATH} footer={<FooterLines />} />
 
       <section className={MUTED_SECTION}>
         <div className={cn(WIDTH, 'flex flex-wrap gap-12 py-11 sm:py-16')}>

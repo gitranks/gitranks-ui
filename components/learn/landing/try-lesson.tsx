@@ -6,12 +6,12 @@ import { signIn } from 'next-auth/react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { CodeBox } from '@/components/learn/blocks/code-lines';
-import { PHONE_LINK } from '@/components/learn/phone-link';
 import { lessonPlace } from '@/components/learn/player/places';
 import { AnswerPart } from '@/components/learn/question/answer-part';
 import { QuestionPart } from '@/components/learn/question/question-part';
 import { useLearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { Button } from '@/components/ui/button';
+import { PHONE_LINK } from '@/components/workspace/phone-link';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { type LandingViewer, type TryLesson, tryLanguagesLineOf } from '@/lib/learn/landing';
 import type { LearnAnswerState } from '@/lib/learn/learn-answer';
@@ -19,8 +19,8 @@ import { isRightAnswer, type LearnLessonMine, storedAnswerOf } from '@/lib/learn
 import { answerLearnLessonAction } from '@/lib/learn/lesson-page.actions';
 import { shortDayWords } from '@/lib/learn/my-progress';
 import { coursePath, LEARN_HOME_PATH, LEARN_SETUP_PATH, learnLessonMinePath, learnLessonPath } from '@/lib/learn/paths';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { cn } from '@/lib/utils';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /*
  * The lesson at the top of the landing (page 4): a real lesson, answered right there. A visitor's answer is graded here

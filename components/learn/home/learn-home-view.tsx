@@ -1,16 +1,23 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 
 import { useCoursePageKeys } from '@/components/learn/course/use-course-keys';
 import { CourseStats } from '@/components/learn/courses/course-card';
 import { HomeIssuesEmail } from '@/components/learn/home/home-issues-email';
 import { HomeRealIssues } from '@/components/learn/home/home-real-issues';
 import { MyCourseCard } from '@/components/learn/my-progress/my-progress-parts';
-import { PHONE_LINK } from '@/components/learn/phone-link';
-import { Kbd } from '@/components/learn/question/kbd';
 import { Button } from '@/components/ui/button';
+import {
+  type ActionMarkers,
+  Eyebrow,
+  Action as HomeAction,
+  HomeBox,
+  Text,
+  Title,
+} from '@/components/workspace/home-box';
+import { PHONE_LINK } from '@/components/workspace/phone-link';
 import type { CourseSection, CourseSectionKind, LearnCourseCard } from '@/lib/learn/course';
 import {
   dueLineOf,
@@ -54,9 +61,9 @@ import {
   NO_ISSUES_BOX_WORDS,
 } from '@/lib/learn/real-issues';
 import type { LearnSetupRead } from '@/lib/learn/setup';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { cn } from '@/lib/utils';
 import type { MaskedListReads } from '@/lib/workspace/masked-issue';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /*
  * Learn home (page 3): three boxes (the next lesson, the review, and real issues: the person's fix that needs them,
@@ -73,75 +80,25 @@ const ignore = () => {};
 const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase';
 const H2 = 'm-0 text-xl font-semibold';
 
-/** A box: lit (it takes Enter), plain, or quiet (dashed, nothing to do). */
+/** Learn home's keys find a box's action by these marks (`useCoursePageKeys`): Enter's, and the review's R. */
+const COURSE_KEYS: ActionMarkers = { enter: 'data-course-enter', key: 'data-course-key' };
+
+/** A box: lit, plain, or quiet; the third box says its kind and where its fix stands. */
 function Box({
-  lit = false,
-  quiet = false,
   kind,
   state,
-  children,
-}: {
-  lit?: boolean;
-  quiet?: boolean;
+  ...props
+}: Omit<ComponentProps<typeof HomeBox>, 'data-third-box' | 'data-third-fix'> & {
   /** The third box's kind (a fix of the person's, the open issues, or none open), and where its fix stands. */
   kind?: HomeThirdBox['kind'];
   state?: HomeFixState;
-  children: ReactNode;
 }) {
-  return (
-    <section
-      className={cn(
-        'flex min-h-[224px] min-w-0 flex-col gap-3 rounded-xl p-5',
-        quiet ? 'border border-dashed' : 'bg-card',
-        !quiet && (lit ? 'border-2 border-primary' : 'border'),
-      )}
-      data-lit={lit ? '' : undefined}
-      data-quiet={quiet ? '' : undefined}
-      data-third-box={kind}
-      data-third-fix={state}
-    >
-      {children}
-    </section>
-  );
+  return <HomeBox {...props} data-third-box={kind} data-third-fix={state} />;
 }
 
-const Eyebrow = ({ children }: { children: ReactNode }) => <span className={EYEBROW}>{children}</span>;
-const Title = ({ quiet = false, children }: { quiet?: boolean; children: ReactNode }) => (
-  <h2 className={cn('m-0 text-lg font-semibold text-balance', quiet && 'text-muted-foreground')}>{children}</h2>
+const Action = (props: Omit<ComponentProps<typeof HomeAction>, 'markers'>) => (
+  <HomeAction {...props} markers={COURSE_KEYS} />
 );
-const Text = ({ children }: { children: ReactNode }) => <p className="m-0 text-sm text-muted-foreground">{children}</p>;
-
-/**
- * A box's one action: the main one (Enter) when its box is lit, else an outline one. Its own key, when it has one, works
- * either way; its hint shows only when the box is not lit, where Enter's is.
- */
-function Action({
-  lit,
-  hints,
-  href,
-  keyHint,
-  children,
-}: {
-  lit: boolean;
-  hints: boolean;
-  href: string;
-  keyHint?: string;
-  children: ReactNode;
-}) {
-  const kbd = hints ? lit ? <Kbd onPrimary>⏎</Kbd> : keyHint ? <Kbd>{keyHint}</Kbd> : null : null;
-  return (
-    <Button
-      asChild
-      variant={lit ? 'default' : 'outline'}
-      className={cn('mt-auto self-start max-sm:min-h-11', lit ? 'h-10 px-6 font-semibold' : 'h-9 px-4')}
-    >
-      <Link href={href as never} data-course-enter={lit ? '' : undefined} data-course-key={keyHint}>
-        {children}
-        {kbd}
-      </Link>
-    </Button>
-  );
-}
 
 function LessonBox({ box, lit, hints }: { box: HomeLessonBox; lit: boolean; hints: boolean }) {
   switch (box.kind) {
@@ -283,13 +240,7 @@ function ThirdBox({
     const href = words.button.to === 'fix' ? myFixPathOf(box.row) : skillsHref;
     return (
       <Box lit={lit} kind="fix" state={box.state}>
-        {needsYou ? (
-          <span className="self-start rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
-            {words.eyebrow}
-          </span>
-        ) : (
-          <Eyebrow>{words.eyebrow}</Eyebrow>
-        )}
+        <Eyebrow chip={needsYou}>{words.eyebrow}</Eyebrow>
         <Title>{words.title}</Title>
         <Text>{words.text}</Text>
         {issues ? (

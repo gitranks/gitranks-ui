@@ -167,7 +167,7 @@ export function LooksLine({
   return (
     <span className={cn('text-sm text-muted-foreground', className)} data-looks-line="">
       {looksLineOf(looks)
-        .split(/(\d[\d,]*)/)
+        .split(/(\d[\d,]*(?::\d\d)?)/)
         .map((part, at) =>
           /^\d/.test(part) ? (
             <span key={at} className="font-mono font-semibold text-foreground tabular-nums">

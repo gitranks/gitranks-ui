@@ -13,11 +13,11 @@ import { usePlayer } from '@/components/workspace/player/use-player';
 import type { LearnAnswerState } from '@/lib/learn/learn-answer';
 import type { LearnQuestion } from '@/lib/learn/learn-question';
 import { isRightAnswer } from '@/lib/learn/lesson-page';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { finishWalkthroughAction } from '@/lib/learn/walkthrough.actions';
 import { hasSessionHint } from '@/lib/session-hint';
 import { runWordsOf } from '@/lib/workspace/player';
 import type { PrRef } from '@/lib/workspace/pr-feedback';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** The last question's button, everywhere a walkthrough is played. */
 export const FINISH_WALKTHROUGH = 'Finish the walkthrough';

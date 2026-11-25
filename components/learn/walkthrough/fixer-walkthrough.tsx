@@ -16,10 +16,10 @@ import { HEADING } from '@/components/workspace/primitives';
 import { Box } from '@/components/workspace/status-box';
 import { answerLessonQuestion, answerWarmup, markStepShown, startLessonRun } from '@/lib/learn/actions';
 import type { LessonRun, LessonRunQuestion } from '@/lib/learn/learn.types';
-import { useKeyHints } from '@/lib/learn/use-key-hints';
 import { callVerdictOf, pickedIdsOf, playerQuestionOf } from '@/lib/learn/walkthrough';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
 import { type PlayerResult, type PlayerRun, runWordsOf, squaresOf } from '@/lib/workspace/player';
+import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** The line under the fixer's title: whose the walkthrough is until the pull request opens. */
 export const FIXER_SMALL_PRINT =

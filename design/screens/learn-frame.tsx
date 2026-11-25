@@ -111,6 +111,7 @@ export const LEARN_FRAME_SCREENS: Screen[] = [
       'components/learn/bar/learn-bar.tsx',
       'components/learn/bar/learn-bar-live.tsx',
       'components/tabs/tabs-bar.tsx',
+      'components/tabs/bar-item.tsx',
       'lib/learn/learn-bar.ts',
       'app/(learn)/layout.tsx',
       'components/learn/setup/setup-parts.tsx',

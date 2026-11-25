@@ -8,7 +8,13 @@ import { type LessonCalls, LessonPlayer, type LessonViewer, lessonPlayerKeyOf } 
 import { LessonRealWorldStreamed, type SharedFixes } from './lesson-real-world';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
-import { dropKeptAnswer, keptAnswerStepOf, readKeptAnswer, writeKeptAnswer } from '@/lib/learn/kept-answer';
+import {
+  ANSWER_KEPT_NOTE,
+  dropKeptAnswer,
+  keptAnswerStepOf,
+  readKeptAnswer,
+  writeKeptAnswer,
+} from '@/lib/learn/kept-answer';
 import { learnSignFrom } from '@/lib/learn/learn-sign';
 import {
   isLastOfGroup,
@@ -130,15 +136,14 @@ type Personal =
   | { kind: 'session' }
   | { kind: 'member'; viewer: LessonViewer };
 
-/** Said under the card when the API saves no answer for the person. */
-export const ANSWER_NOT_SAVED_NOTE = 'Your answer was not saved. Try again in a minute.';
-
 /**
  * A lesson's page as it lives in the browser. The page is the same for everyone and comes drawn (`article`, `more`);
  * once it is up, a person with a session reads their side of the lesson and of its course, and a visitor asks for
  * nothing. Only a visitor is asked to sign in: their right answer is kept in the browser and saved when they are back
  * with the Learn sign. A person with a session goes on as a member does, and their right answer is saved, whether their
- * side has come or not; without the Learn sign, their main button leads to Learn's onboarding ("Keep your progress"). When their side first arrives, the player is drawn again so
+ * side has come or not; without the Learn sign, their main button leads to Learn's onboarding ("Keep your progress").
+ * An answer the API saves nothing of (Learn not open to their account yet) is kept in the browser as a visitor's, and
+ * the main button leads the same way. When their side first arrives, the player is drawn again so
  * a lesson learned before opens as answered, but only while the person has not touched it: an answer started is
  * never drawn over, and the focus stays where it is.
  */
@@ -179,6 +184,8 @@ export function LessonLive({
   const [mainOfSide, setMainOfSide] = useState<string | null>(null);
   // The Learn sign, once their side brings it; null until then, and when it cannot be read.
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  // A right answer the API saved nothing of: Learn is not open to the account yet, so it goes on through Learn's setup.
+  const [unsaved, setUnsaved] = useState(false);
   const main = mainLanguage || mainOfSide;
   const { slug } = lesson;
   const course = lesson.course.slug;
@@ -224,8 +231,9 @@ export function LessonLive({
   };
 
   const last = isLastOfGroup(lessonPlaceOf(group, lesson.slug, null));
-  // A signed-in person without the Learn sign: their answer is saved, and the main button leads to the onboarding.
-  const keep = personal.kind !== 'visitor' && personal.kind !== 'pending' && onboarded === false;
+  // A signed-in person without the Learn sign: their answer is saved, and the main button leads to the onboarding. So
+  // does a right answer the API saved nothing of: Learn's setup shows where the account's own setup stands.
+  const keep = (personal.kind !== 'visitor' && personal.kind !== 'pending' && onboarded === false) || unsaved;
   // The lesson, through Learn's onboarding: where a visitor's sign-in and "Keep your progress" lead.
   const throughSetup = learnSetupHrefOf(learnLessonPath(lesson.slug));
   const calls: LessonCalls = {
@@ -240,8 +248,17 @@ export function LessonLive({
       answerLearnLessonAction({ slug: lesson.slug, question: lesson.question.id, picked, tries, language }).then(
         (result) => {
           if (!result.ok) return;
-          if (result.data) setSaved({ ...result.data.mine, language: result.data.mine.language ?? language });
-          else setNote(ANSWER_NOT_SAVED_NOTE);
+          if (result.data) {
+            setSaved({ ...result.data.mine, language: result.data.mine.language ?? language });
+            return;
+          }
+          // Without their side or the sign, Learn is not open to the account yet: the answer is kept here, as a
+          // visitor's, and saved once the person is back with the Learn sign. A person with either has a profile:
+          // their setup would send them straight back, so nothing is kept.
+          if (personal.kind === 'member' || onboarded === true) return;
+          writeKeptAnswer({ slug: lesson.slug, question: lesson.question.id, picked, tries, language, at: Date.now() });
+          setUnsaved(true);
+          setNote(ANSWER_KEPT_NOTE);
         },
         () => {},
       );

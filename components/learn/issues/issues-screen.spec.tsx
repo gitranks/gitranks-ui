@@ -267,7 +267,7 @@ describe('Issues', () => {
     expect($('[data-real-projects-group="fixed"] [data-real-projects-end="fixed-none"]')?.textContent).toBe(
       'No fix yetWhen someone fixes a real issue with this lesson and the fix is merged, it shows here.',
     );
-    // Under its words, the email of issues for the person's lessons; never wave 2's "Email me when one appears".
+    // Under its words, the email of issues for the person's lessons; never the new-issue email's own button.
     expect(none?.querySelector('[data-lesson-issues-email]')?.getAttribute('data-lesson-issues-email')).toBe('visitor');
     expect($('[data-issues-email]')).toBeNull();
   });

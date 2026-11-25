@@ -140,12 +140,14 @@ export function useLessonIssuesEmail(
   keyRef: RefObject<string>,
   viewRef: RefObject<IssuesView>,
 ): Required<LessonIssuesEmailHandlers> {
-  const [error, setError] = useState<string | null>(null);
+  // Why the last save failed, for the view it was made on: another view's box does not show it.
+  const [failure, setFailure] = useState<{ key: string; error: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const turn = (on: boolean) =>
     startTransition(async () => {
-      setError(null);
       const forKey = keyRef.current;
+      const setError = (error: string) => setFailure({ key: forKey, error });
+      setFailure(null);
       const lesson = viewRef.current.lesson;
       const result = await setLearnLessonIssuesEmailAction(on, on ? lesson : null).catch(() => null);
       if (!result) setError(learnSettingsErrorOf('FAILED'));
@@ -156,5 +158,6 @@ export function useLessonIssuesEmail(
         setListOf(forKey, (was) => listAfterLessonSave(was, saved, lesson));
       }
     });
+  const error = failure && failure.key === keyRef.current ? failure.error : null;
   return { pending, error, onTurnOn: () => turn(true), onTurnOff: () => turn(false) };
 }

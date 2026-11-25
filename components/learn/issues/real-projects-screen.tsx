@@ -176,8 +176,9 @@ function OpenGroup({
 
 /**
  * "Email me issues for my lessons" in the box of a lesson with no open issue. A visitor's five on the screen are a
- * visitor's, unless the person's own are being read (`pending`): the button then waits. The person's list answers the
- * switch, whether it covers this lesson and the address; the Learn sign comes with it.
+ * visitor's, unless the person's own are being read (`pending`); the person's list read again for a new view is the
+ * last view's until it lands. The button waits in both cases. The person's list answers the switch, whether it covers
+ * this lesson and the address; the Learn sign comes with it.
  */
 function LessonEmail({
   view,
@@ -191,7 +192,7 @@ function LessonEmail({
   const state =
     layer.kind === 'visitor'
       ? lessonIssuesEmailStateOf({ signedIn: !!layer.pending, list: null, sign: null })
-      : lessonIssuesEmailStateOf({ signedIn: true, list: layer.list, sign: layer.sign ?? null });
+      : lessonIssuesEmailStateOf({ signedIn: true, list: layer.pending ? null : layer.list, sign: layer.sign ?? null });
   return <LessonIssuesEmail state={state} back={issuesHrefOf(view, 'lesson')} {...handlers.lessonEmail} />;
 }
 

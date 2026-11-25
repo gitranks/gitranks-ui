@@ -223,6 +223,36 @@ describe('"Email me issues for my lessons" on a lesson\'s view', () => {
     expect(box()?.querySelector('[role="alert"]')?.textContent).toBe('Nothing was saved. Try again in a minute.');
   });
 
+  it('waits while the list is read again for a new view, and keeps a failure to the view it was made on', async () => {
+    mine(listNone({ lessonIssues: true, lessonIssuesCovered: true }));
+    await draw();
+    expect(stateOf()).toBe('on');
+    setLearnLessonIssuesEmailAction.mockResolvedValueOnce({ ok: false, error: 'FAILED' });
+    await act(async () => $('[data-lesson-issues-turn-off]')?.click());
+    await flush();
+    expect(box()?.querySelector('[role="alert"]')).not.toBeNull();
+
+    // A switch changes the view: the last view's answer is not this one's, so the button waits.
+    let land: (res: Response) => void = () => {};
+    fetchMock.mockImplementation((url: string) =>
+      url.endsWith('/walkthroughs')
+        ? answer({ walkthroughs: [] })
+        : new Promise<Response>((resolve) => {
+            land = resolve;
+          }),
+    );
+    await draw({ ...views.lesson, learned: true });
+    expect(stateOf()).toBe('unread');
+    await act(async () => place()?.querySelector('button')?.click());
+    expect(setLearnLessonIssuesEmailAction).toHaveBeenCalledTimes(1);
+    await act(async () =>
+      land(new Response(JSON.stringify({ state: 'ok', list: listNone(), reads, learnOnboarded: true }))),
+    );
+    await flush();
+    expect(stateOf()).toBe('off');
+    expect(box()?.querySelector('[role="alert"]')).toBeNull();
+  });
+
   it("is a lesson's alone: a course's empty box has no button", async () => {
     mine(listNone());
     await draw({ ...views.course, learned: false, show: 'both' }, 'course');

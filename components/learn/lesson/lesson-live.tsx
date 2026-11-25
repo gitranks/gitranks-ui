@@ -252,8 +252,10 @@ export function LessonLive({
             setSaved({ ...result.data.mine, language: result.data.mine.language ?? language });
             return;
           }
-          // Learn is not open to the account yet: the answer is kept here, as a visitor's, and saved once the person
-          // is back with the Learn sign.
+          // Without their side or the sign, Learn is not open to the account yet: the answer is kept here, as a
+          // visitor's, and saved once the person is back with the Learn sign. A person with either has a profile:
+          // their setup would send them straight back, so nothing is kept.
+          if (personal.kind === 'member' || onboarded === true) return;
           writeKeptAnswer({ slug: lesson.slug, question: lesson.question.id, picked, tries, language, at: Date.now() });
           setUnsaved(true);
           setNote(ANSWER_KEPT_NOTE);

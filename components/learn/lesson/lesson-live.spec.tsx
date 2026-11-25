@@ -393,6 +393,25 @@ describe("a lesson's page in the browser, for a person with a session", () => {
     expect(main().textContent).toBe(`Next: ${setLesson.next!.title}`);
   });
 
+  it('keeps nothing for a member, or a person with the sign, whose save answers nothing: they have a profile', async () => {
+    signedIn();
+    answerLearnLessonAction.mockResolvedValue({ ok: true, data: null });
+    for (const [mine, sign] of [
+      [mineNew, true],
+      [null, true],
+    ] as const) {
+      routes(mine, setDepths, NO_LESSON_REAL, sign);
+      await draw();
+      await tap(option(1));
+      await click(main());
+      expect(readKeptAnswer()).toBeNull();
+      expect($('[data-answer-note]')).toBeNull();
+      expect(main().textContent).toBe(`Next: ${setLesson.next!.title}`);
+      act(() => root.unmount());
+      root = createRoot(host);
+    }
+  });
+
   it("saves an answer given while the person's side is read, and does not draw over it when the side arrives", async () => {
     signedIn();
     const answers: ((response: Response) => void)[] = [];

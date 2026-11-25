@@ -240,10 +240,13 @@ export function agentBoxOf(agent: HomeAgentRead): HomeBoxWords {
   if (working.length > 1) {
     const hosted = working.filter((run) => run.runner !== 'MCP').length;
     const own = working.length - hosted;
+    // "The hosted agent on 2 issues, Claude Code on 1.": the first part carries the noun, whichever it is.
     const parts = [
-      hosted ? `${HOSTED} on ${countOf(hosted, 'issue', 'issues')}` : null,
-      own ? `${agent.own ?? 'Your agent'} on ${own}` : null,
-    ].filter((part): part is string => !!part);
+      hosted ? { who: HOSTED, count: hosted } : null,
+      own ? { who: agent.own ?? 'Your agent', count: own } : null,
+    ]
+      .filter((part): part is { who: string; count: number } => !!part)
+      .map(({ who, count }, index) => `${who} on ${index ? count : countOf(count, 'issue', 'issues')}`);
     return box({
       top: 'Your agents',
       title: `${working.length} fixes are under way`,

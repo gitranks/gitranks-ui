@@ -55,7 +55,7 @@ export function RealProjectsGroup({
 
 /**
  * A group's end: a dashed box in the group's own place, its title and line, and under them what it offers (the open
- * group's email button, section 9.1, comes with the page's own step).
+ * group's email button comes with the page's own step).
  */
 export function RealProjectsEnd({
   end,

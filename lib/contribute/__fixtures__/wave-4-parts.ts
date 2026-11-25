@@ -152,7 +152,7 @@ export const mergedRead = (over: Partial<HomeMergedRead> = {}): HomeMergedRead =
   ...over,
 });
 
-export const NEWEST_MERGED: HomeMergedRead['newest'] = {
+export const NEWEST_MERGED: NonNullable<HomeMergedRead['newest']> = {
   repo: 'driftwood-js/driftwood',
   issueNumber: 871,
   title: 'Count the last page when the total divides evenly',

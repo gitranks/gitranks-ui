@@ -71,7 +71,7 @@ describe('WhoDoesTheWork', () => {
     expect(done?.querySelector('svg')).not.toBeNull();
     const small = page.querySelector('[data-start-way="key"][data-small]');
     expect(text(small)).toBe(
-      'A hosted agent on your Claude key No terminal needed. You can add it later. Add a Claude key',
+      'A hosted agent on your Claude key No terminal needed. You can add it later. Use a Claude key',
     );
     expect(small?.querySelector('dl')).toBeNull();
   });

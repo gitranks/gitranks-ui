@@ -92,6 +92,29 @@ describe('needsYouBoxOf (box 1)', () => {
     expect(box.link?.label).toBe('All your pull requests →');
   });
 
+  it.each<[string, Partial<HomeNeedsYouRow>, string, string]>([
+    ['the fix walkthrough', { box: 'WALKTHROUGH' }, 'The fix walkthrough is ready', 'Start the walkthrough'],
+    [
+      'a blocked walkthrough',
+      { box: 'WALKTHROUGH', walkthroughBlocked: { reason: null } },
+      'The fix walkthrough needs another pass',
+      'Send it back to your agent',
+    ],
+    [
+      'a round ready',
+      { box: 'ROUND_READY', round: 2 },
+      'Round 2 is ready: your agent made the change',
+      'Read and approve',
+    ],
+    ['only the person can do it', { box: 'ONLY_YOU' }, 'Only you can do this', 'See what to do'],
+    ['ready to open', { box: 'APPROVE' }, 'Ready to open the pull request', 'Read and approve'],
+  ])('says %s with its own button', (_case, over, title, button) => {
+    const box = needsYouBoxOf([row(over)]);
+    expect(box.title).toBe(title);
+    expect(box.button?.label).toBe(button);
+    expect(box.chip).toBe(true);
+  });
+
   it('is quiet when nothing needs the person', () => {
     expect(said(needsYouBoxOf([]))).toEqual([
       'Pull requests',
@@ -147,6 +170,23 @@ describe('agentBoxOf (box 2)', () => {
         'Your agents',
         '3 fixes are under way',
         'The hosted agent on 2 issues, Claude Code on 1.',
+        'When one finishes, its pull request shows under "Needs you".',
+        'button: All runs [/my/agent/runs]',
+      ],
+    ],
+    [
+      'several runs, all of the own agent: the noun goes with the first part',
+      {
+        runs: [
+          run({ runner: 'MCP' }),
+          run({ attemptId: 'a2', runner: 'MCP' }),
+          run({ attemptId: 'a3', runner: 'MCP' }),
+        ],
+      },
+      [
+        'Your agents',
+        '3 fixes are under way',
+        'Claude Code on 3 issues.',
         'When one finishes, its pull request shows under "Needs you".',
         'button: All runs [/my/agent/runs]',
       ],

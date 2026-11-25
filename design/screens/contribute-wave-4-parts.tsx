@@ -193,10 +193,34 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
         ),
       },
       {
+        id: 'needs-you-rows',
+        title: 'Box 1 for each row that needs the person',
+        path: '/contribute',
+        height: 1700,
+        render: () => (
+          <Page>
+            <Case title="The fix walkthrough is ready">
+              {boxes(homeRead({ needsYou: [needsYouRow({ box: 'WALKTHROUGH' })] }))}
+            </Case>
+            <Case title="The walkthrough needs another pass">
+              {boxes(
+                homeRead({ needsYou: [needsYouRow({ box: 'WALKTHROUGH', walkthroughBlocked: { reason: null } })] }),
+              )}
+            </Case>
+            <Case title="A round is ready">
+              {boxes(homeRead({ needsYou: [needsYouRow({ box: 'ROUND_READY', round: 2 })] }))}
+            </Case>
+            <Case title="Only the person can do it">
+              {boxes(homeRead({ needsYou: [needsYouRow({ box: 'ONLY_YOU' })] }))}
+            </Case>
+          </Page>
+        ),
+      },
+      {
         id: 'agent',
         title: 'Box 2 in every case',
         path: '/contribute',
-        height: 2300,
+        height: 3200,
         render: () => (
           <Page>
             <Case title="Several runs">
@@ -228,6 +252,34 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
                 }),
               )}
             </Case>
+            <Case title="The credits are used up for this cycle">
+              {boxes(
+                homeRead({
+                  agent: agentRead({
+                    own: null,
+                    notice: {
+                      kind: 'exhausted',
+                      text: 'The hosted agent starts again when your next billing cycle begins.',
+                      href: '/my/agent/key',
+                    },
+                  }),
+                }),
+              )}
+            </Case>
+            <Case title="The workspace's spend limit is reached">
+              {boxes(
+                homeRead({
+                  agent: agentRead({
+                    own: null,
+                    notice: {
+                      kind: 'limit-reached',
+                      text: 'Your Anthropic workspace stopped spending. Raise its limit to start again.',
+                      href: '/my/agent/key',
+                    },
+                  }),
+                }),
+              )}
+            </Case>
             <Case title="A cap holds the hosted agent">
               {boxes(
                 homeRead({ agent: agentRead({ own: null, key: true, capHold: { period: 'week', attemptCapUsd: 2 } }) }),
@@ -240,6 +292,13 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
                 }),
               )}
             </Case>
+            <Case title="The even pace holds, the person picks the issues">
+              {boxes(
+                homeRead({
+                  agent: agentRead({ own: null, key: true, paceHold: { at: '14:00 UTC', picksOwn: false } }),
+                }),
+              )}
+            </Case>
           </Page>
         ),
       },
@@ -247,11 +306,21 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
         id: 'merged',
         title: 'Box 3 in every case',
         path: '/contribute',
-        height: 1300,
+        height: 2100,
         render: () => (
           <Page>
+            <Case title="Several merged, in one project">
+              {boxes(homeRead({ merged: mergedRead({ merged: 2, reposHelped: 1, newest: NEWEST_MERGED }) }))}
+            </Case>
             <Case title="The first one merged">
               {boxes(homeRead({ merged: mergedRead({ merged: 1, reposHelped: 1, newest: NEWEST_MERGED }) }))}
+            </Case>
+            <Case title="The first one merged, with no public page">
+              {boxes(
+                homeRead({
+                  merged: mergedRead({ merged: 1, reposHelped: 1, newest: { ...NEWEST_MERGED, publicPage: null } }),
+                }),
+              )}
             </Case>
             <Case title="Pull requests wait for their maintainers">
               {boxes(homeRead({ merged: mergedRead({ waiting: 1 }) }))}

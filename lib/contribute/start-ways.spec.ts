@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DONE_LINE, FROM_ISSUE_LINE, type StartWaysRead, startWaysOf, VISITOR_LINE, withWayBack } from './start-ways';
+import { FROM_ISSUE_LINE, type StartWaysRead, startWaysOf, VISITOR_LINE, withWayBack } from './start-ways';
 
 const BASE: StartWaysRead = {
   signedIn: true,
@@ -84,10 +84,10 @@ describe('startWaysOf', () => {
       'own agent connected, no sign: done, Continue, the key smaller',
       { own: 'Claude Code' },
       {
-        head: DONE_LINE,
+        head: PICK,
         boxes: [
           'own | done: Claude Code is connected. | Continue → /contribute/start/issue (filled)',
-          'key | brand: No terminal needed | Add a Claude key → /contribute/start/agent/key | small: No terminal needed. You can add it later.',
+          'key | brand: No terminal needed | Use a Claude key → /contribute/start/agent/key | small: No terminal needed. You can add it later.',
         ],
         next: null,
       },
@@ -96,10 +96,10 @@ describe('startWaysOf', () => {
       'own agent with no known name, no sign',
       { own: '' },
       {
-        head: DONE_LINE,
+        head: PICK,
         boxes: [
           'own | done: Your agent is connected. | Continue → /contribute/start/issue (filled)',
-          'key | brand: No terminal needed | Add a Claude key → /contribute/start/agent/key | small: No terminal needed. You can add it later.',
+          'key | brand: No terminal needed | Use a Claude key → /contribute/start/agent/key | small: No terminal needed. You can add it later.',
         ],
         next: null,
       },
@@ -108,7 +108,7 @@ describe('startWaysOf', () => {
       'a key connected, no sign: the same the other way round',
       { key: 'connected' },
       {
-        head: DONE_LINE,
+        head: PICK,
         boxes: [
           'key | done: Your Claude key is connected. | Continue → /contribute/start/issue (filled)',
           'own | brand: Recommended | Connect your agent → /contribute/start/agent/own | small: Recommended. You can add it later.',
@@ -120,7 +120,7 @@ describe('startWaysOf', () => {
       'both connected, no sign: both done at full size, one Continue under them',
       { own: 'Codex', key: 'connected' },
       {
-        head: DONE_LINE,
+        head: PICK,
         boxes: ['own | done: Codex is connected. | -', 'key | done: Your Claude key is connected. | -'],
         next: 'Continue → /contribute/start/issue',
       },

@@ -100,8 +100,6 @@ export type StartWays = {
   next: StartWayButton | null;
 };
 
-/** The head's line once a way is connected and the person has no sign yet: the step is done. */
-export const DONE_LINE = 'This step is done. Continue to your first issue.';
 const KEY_DONE_LINE = 'Your Claude key is connected.';
 
 /** `href` with the way back on it, when there is one. */
@@ -127,7 +125,7 @@ function readyLineOf(read: StartWaysRead): string | null {
 }
 
 /**
- * The page in every case of section 7.2: a visitor, opened from an issue, a key that stopped working, one way or both
+ * The page in every case: a visitor, opened from an issue, a key that stopped working, one way or both
  * connected without the sign (the step is done: "Continue"), and with the sign (back to add the other way).
  */
 export function startWaysOf(read: StartWaysRead): StartWays {
@@ -235,7 +233,7 @@ export function startWaysOf(read: StartWaysRead): StartWays {
   if (own && key) {
     return {
       fromIssueLine,
-      headLine: DONE_LINE,
+      headLine: PICK_LINE,
       visitorLine: null,
       boxes: [
         { name: 'own', top: { text: ownDoneLine(read.own ?? ''), tone: 'done' }, button: null, small: null },
@@ -247,14 +245,14 @@ export function startWaysOf(read: StartWaysRead): StartWays {
   if (own) {
     return {
       fromIssueLine,
-      headLine: DONE_LINE,
+      headLine: PICK_LINE,
       visitorLine: null,
       boxes: [
         { name: 'own', top: { text: ownDoneLine(read.own ?? ''), tone: 'done' }, button: cont, small: null },
         {
           name: 'key',
           top: keyTop,
-          button: { label: 'Add a Claude key', href: keyPath, filled: false, signIn: false },
+          button: { label: 'Use a Claude key', href: keyPath, filled: false, signIn: false },
           small: { line: 'No terminal needed. You can add it later.' },
         },
       ],
@@ -264,7 +262,7 @@ export function startWaysOf(read: StartWaysRead): StartWays {
   if (key) {
     return {
       fromIssueLine,
-      headLine: DONE_LINE,
+      headLine: PICK_LINE,
       visitorLine: null,
       boxes: [
         { name: 'key', top: { text: KEY_DONE_LINE, tone: 'done' }, button: cont, small: null },

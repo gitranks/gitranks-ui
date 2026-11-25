@@ -17,6 +17,8 @@ export const LEARN_SCREENS: Screen[] = [
       'lib/learn/home.ts',
       'lib/learn/landing.ts',
       'components/workspace/getting-in/landing-parts.ts',
+      'components/workspace/home-box.tsx',
+      'components/workspace/getting-in/landing-band.tsx',
     ],
     states: [
       {

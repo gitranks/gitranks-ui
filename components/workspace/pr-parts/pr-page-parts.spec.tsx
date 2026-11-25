@@ -15,6 +15,7 @@ import {
   prContribute,
   prEnds,
   prLinks,
+  prOnlyYou,
   prOnlyYouPage,
   prOnlyYouQueue,
   prPage,
@@ -467,6 +468,89 @@ describe('more waiting, in the box', () => {
     await box(prOnlyYouQueue('cla', 'dco'), { onOnlyYou: vi.fn(), initialMoreOpen: true });
     expect(line()?.getAttribute('aria-expanded')).toBe('true');
     expect(list()?.hidden).toBe(false);
+  });
+
+  it('starts closed when the line comes back after none was left', async () => {
+    await box(prOnlyYouQueue('cla', 'dco', 'title'), { onOnlyYou: vi.fn() });
+    await press(line());
+    expect(line()?.getAttribute('aria-expanded')).toBe('true');
+    await box(prOnlyYouQueue('cla'), { onOnlyYou: vi.fn() });
+    expect(container.querySelector('[data-more-waiting]')).toBeNull();
+    await box(prOnlyYouQueue('cla', 'dco'), { onOnlyYou: vi.fn() });
+    expect(line()?.getAttribute('aria-expanded')).toBe('false');
+    expect(list()?.hidden).toBe(true);
+  });
+
+  it('stays open across a read of the page that still has some waiting', async () => {
+    await box(prOnlyYouQueue('cla', 'dco', 'title'), { onOnlyYou: vi.fn() });
+    await press(line());
+    await box(prOnlyYouQueue('cla', 'dco', 'title', 'github'), { onOnlyYou: vi.fn() });
+    expect(wordsOf(line() as Element)).toBe('3 more waiting');
+    expect(line()?.getAttribute('aria-expanded')).toBe('true');
+    expect(list()?.hidden).toBe(false);
+    expect(items()).toEqual(['dco', 'title', 'github']);
+  });
+
+  it('lists two or more when the box is about something else', async () => {
+    await box(prPage({ ...prReview.asked, onlyYou: [prOnlyYou.cla, prOnlyYou.dco] }), { onOnlyYou: vi.fn() });
+    expect(wordsOf(line() as Element)).toBe('2 more waiting');
+    expect(items()).toEqual(['cla', 'dco']);
+  });
+
+  it("moves the box's job into the list when the box turns to something else, and loses none", async () => {
+    const queue = prOnlyYouQueue('cla', 'dco');
+    await box(queue, { onOnlyYou: vi.fn() });
+    expect(items()).toEqual(['dco']);
+    await box(prPage({ ...queue, box: 'ROUND_WAITING', round: 2 }), { onOnlyYou: vi.fn() });
+    expect(wordsOf(line() as Element)).toBe('2 more waiting');
+    expect(items()).toEqual(['cla', 'dco']);
+  });
+
+  it("makes the rows' buttons wait while a call runs, as the box's do", async () => {
+    await box(prOnlyYouQueue('dco', 'title', 'cla'), { onOnlyYou: vi.fn(), pending: true, initialMoreOpen: true });
+    const rename = control('Rename it') as HTMLButtonElement;
+    expect(rename.closest('[data-more-waiting-item]')).not.toBeNull();
+    expect(rename.disabled).toBe(true);
+    // A link to another site has nothing to wait for.
+    expect(container.querySelector('[data-more-waiting-item="cla"] a')).not.toBeNull();
+    await box(prOnlyYouQueue('dco', 'title', 'cla'), { onOnlyYou: vi.fn(), pending: false, initialMoreOpen: true });
+    expect((control('Rename it') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('gives the focus to the line when the row that had it leaves', async () => {
+    await box(prOnlyYouQueue('dco', 'title', 'github'), { onOnlyYou: vi.fn(), initialMoreOpen: true });
+    const rename = control('Rename it') as HTMLButtonElement;
+    await act(async () => rename.focus());
+    await box(prOnlyYouQueue('dco', 'github'), { onOnlyYou: vi.fn(), initialMoreOpen: true });
+    expect(rename.isConnected).toBe(false);
+    expect(document.activeElement).toBe(line());
+  });
+
+  it("gives the focus to the box's first action when the last row leaves with the line", async () => {
+    await box(prOnlyYouQueue('dco', 'title'), { onOnlyYou: vi.fn(), initialMoreOpen: true });
+    await act(async () => (control('Rename it') as HTMLButtonElement).focus());
+    await box(prOnlyYouQueue('dco'), { onOnlyYou: vi.fn() });
+    expect(container.querySelector('[data-more-waiting]')).toBeNull();
+    expect(wordsOf(document.activeElement as Element)).toBe('Sign off and push');
+  });
+
+  it('leaves the focus where the person put it when a row leaves', async () => {
+    await box(prOnlyYouQueue('dco', 'title', 'github'), { onOnlyYou: vi.fn(), initialMoreOpen: true });
+    await act(async () => (control('Rename it') as HTMLButtonElement).focus());
+    const elsewhere = document.createElement('button');
+    document.body.append(elsewhere);
+    await act(async () => elsewhere.focus());
+    await box(prOnlyYouQueue('dco', 'github'), { onOnlyYou: vi.fn(), initialMoreOpen: true });
+    expect(document.activeElement).toBe(elsewhere);
+    elsewhere.remove();
+  });
+
+  it("still lets Enter elsewhere on the page do the box's main action", async () => {
+    const onOnlyYou = vi.fn();
+    await box(prOnlyYouQueue('dco', 'title'), { onOnlyYou });
+    expect(line()).not.toBeNull();
+    await enter();
+    expect(onOnlyYou).toHaveBeenCalledWith('dco', 'main');
   });
 });
 

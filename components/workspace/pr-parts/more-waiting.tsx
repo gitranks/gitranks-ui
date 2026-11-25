@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
-import { useId, useState } from 'react';
+import { type FocusEvent, type RefObject, useEffect, useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -15,17 +15,56 @@ import type { PullRequestOnlyYou, PullRequestPage } from '@/lib/workspace/pull-r
 export const moreWaitingOf = (page: Pick<PullRequestPage, 'box' | 'onlyYou'>): readonly PullRequestOnlyYou[] =>
   page.box === 'ONLY_YOU' ? page.onlyYou.slice(1) : page.onlyYou;
 
+/** A control the focus can go back to: still on the page, and not waiting. */
+const focusable = (element: Element | null | undefined): element is HTMLElement =>
+  element instanceof HTMLElement && element.isConnected && !(element as HTMLButtonElement).disabled;
+
+/**
+ * Keeps the focus in the box when a row's own action takes it away: the row leaves, or its button waits while the call
+ * runs. It goes back to that row's button while it can be pressed, else to the line, else to the box's first action.
+ * Only when the focus was last on a row and has dropped to the page: a focus the person moved elsewhere stays there.
+ * Returns the box's focus handler, which remembers whether the focus is on a row.
+ */
+export function useRowFocus(
+  box: RefObject<HTMLElement | null>,
+  items: readonly PullRequestOnlyYou[],
+  pending: boolean,
+) {
+  const row = useRef<HTMLElement | null>(null);
+  const rows = items.map((each) => each.kind).join(' ');
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the rows or the wait change; the box is a ref.
+  useEffect(() => {
+    if (!row.current) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && active.isConnected) return;
+    const to = [
+      row.current,
+      box.current?.querySelector('[data-more-waiting] > button'),
+      box.current?.querySelector('[data-box-actions] :is(a, button):not([disabled])'),
+    ].find(focusable);
+    to?.focus();
+  }, [rows, pending]);
+  return (event: FocusEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement;
+    row.current = target.closest('[data-more-waiting-item]') ? target : null;
+  };
+}
+
 /**
  * The box's last line: "N more waiting", which opens the rest in place, each a row with its words and its own button.
- * Nothing when none is left. It comes with the box's own read, so it draws with the box and moves nothing under it.
+ * The box draws it only while some wait, so it starts closed each time it comes back. It comes with the box's own
+ * read, so it draws with the box and moves nothing under it.
  */
 export function MoreWaiting({
   items,
   onOnlyYou,
+  pending = false,
   initialOpen = false,
 }: {
   items: readonly PullRequestOnlyYou[];
   onOnlyYou?: (kind: string, which: 'main' | 'alt') => void;
+  /** A press went through and waits for the API: the rows' buttons wait, as the box's do. */
+  pending?: boolean;
   initialOpen?: boolean;
 }) {
   const [open, setOpen] = useState(initialOpen);
@@ -69,6 +108,7 @@ export function MoreWaiting({
                   type="button"
                   variant="outline"
                   className="h-9 self-start px-4 max-sm:min-h-11 sm:self-center"
+                  disabled={pending}
                   onClick={() => onOnlyYou(item.kind, 'main')}
                 >
                   {words.short}

@@ -80,9 +80,15 @@ export type PullRequestOps = {
 
 type Form = { kind: 'sendBack'; round: number | null } | { kind: 'rename' } | { kind: 'retry' } | null;
 
-/** Gives the focus back to the box's first action once a form's dialog closes; its title when it has none. */
-function focusBox() {
+/**
+ * Gives the focus back once a form's dialog closes: to the row that opened it, while it is there; to "N more waiting" if
+ * that row has left; otherwise to the box's first action, or its title when it has none.
+ */
+function focusBox(opener: HTMLElement | null = null) {
   requestAnimationFrame(() => {
+    if (opener?.isConnected && !(opener as HTMLButtonElement).disabled) return opener.focus();
+    const line = opener ? document.querySelector<HTMLElement>('[data-box] [data-more-waiting] > button') : null;
+    if (line) return line.focus();
     const action = document.querySelector<HTMLElement>('[data-box] [data-box-actions] :is(a, button):not([disabled])');
     if (action) return action.focus();
     const title = document.querySelector<HTMLElement>('[data-box] h2');
@@ -135,11 +141,17 @@ export function PullRequestPageView({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setFormState] = useState<Form>(null);
+  // The row of "N more waiting" whose button opened the form, to give the focus back to.
+  const opener = useRef<HTMLElement | null>(null);
   const setForm = (next: Form) => {
+    if (next && !form) {
+      const active = document.activeElement;
+      opener.current = active instanceof HTMLElement && active.closest('[data-more-waiting-item]') ? active : null;
+    }
     setFormState(next);
     // A form opens without an earlier call's error; it says its own.
     if (next) setError(null);
-    else focusBox();
+    else focusBox(opener.current);
   };
   // The public page's switch as the person last set it here, until the next read of the page.
   const [shown, setShown] = useState<{ from: PullRequestPage; shown: boolean } | null>(null);

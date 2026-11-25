@@ -19,7 +19,7 @@ export const MOVE_CARD = {
 /**
  * The one thing to do now on a session (M4): its kind line, a title that says the move, one visible sentence of why,
  * a body (a note field, a copy block), at most one primary button and two secondaries, the action's error, the rest of
- * the why behind a disclosure, and what rides along (a proof's line, "Start a run anyway", Also waiting).
+ * the why behind a disclosure, and what rides along (a proof's line, "Start a run anyway").
  */
 export function MoveCard({
   tone,

@@ -121,7 +121,7 @@ export type Move = {
   tone: MoveTone;
   /** "Run 2 · ready for you", "Title rule". */
   kindLine: string;
-  /** The card's title, and its "Also waiting" row. */
+  /** The card's title. */
   title: string;
   /** The row's pill: "First attempt", "Run 2", "Next step", "Proof". */
   chip: string;

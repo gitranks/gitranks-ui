@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/workspace/copy-button';
 import { EnterKey } from '@/components/workspace/masked-issue/facts';
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
-import { MoreWaiting, moreWaitingOf } from '@/components/workspace/pr-parts/more-waiting';
+import { MoreWaiting, moreWaitingOf, useRowFocus } from '@/components/workspace/pr-parts/more-waiting';
 import { SendKey, useSendKey, useSendKeyName } from '@/components/workspace/pr-parts/send-key';
 import { cn } from '@/lib/utils';
 import type { WalkthroughSendBack } from '@/lib/workspace/blocked-walkthrough';
@@ -202,6 +202,9 @@ export function PullRequestBox({
   const words = boxOf(page, { agent, now, stoppedAtLimit, walkthroughBlocked });
   const shown = shownOf(words.actions, { page, links, ...presses });
   const actions = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLElement>(null);
+  const rest = moreWaitingOf(page);
+  const onFocus = useRowFocus(box, rest, pending);
   const keyName = useSendKeyName();
   // The main action: the first one, never "Don't send it", which only stops what is under way.
   const mainOf = (each: Shown, index: number) => index === 0 && each.action.id !== 'veto';
@@ -234,6 +237,8 @@ export function PullRequestBox({
 
   return (
     <section
+      ref={box}
+      onFocus={onFocus}
       aria-live="polite"
       className={cn(
         'flex flex-col gap-2 rounded-2xl border bg-card p-5',
@@ -265,7 +270,9 @@ export function PullRequestBox({
       <div ref={actions} className="flex min-h-11 flex-wrap items-center gap-3 pt-1.5" data-box-actions="">
         {row}
       </div>
-      <MoreWaiting items={moreWaitingOf(page)} onOnlyYou={presses.onOnlyYou} initialOpen={initialMoreOpen} />
+      {rest.length ? (
+        <MoreWaiting items={rest} onOnlyYou={presses.onOnlyYou} pending={pending} initialOpen={initialMoreOpen} />
+      ) : null}
     </section>
   );
 }

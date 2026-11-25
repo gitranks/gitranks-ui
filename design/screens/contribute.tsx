@@ -856,7 +856,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         title: 'Signed out',
         path: '/contribute/mcp',
         signedOut: true,
-        height: 6000,
+        height: 6100,
         render: () => publicPage(<McpDocsScreen />),
       },
     ],
@@ -871,6 +871,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
       'app/contribute/components/faq.tsx',
       'app/contribute/components/public-pages.tsx',
       'lib/contribute/faq.ts',
+      'lib/contribute/mcp-docs.ts',
     ],
     states: [
       {
@@ -878,7 +879,7 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
         title: 'Signed out',
         path: '/contribute/faq',
         signedOut: true,
-        height: 2850,
+        height: 2900,
         render: () => publicPage(<FaqScreen />),
       },
     ],

@@ -1,12 +1,15 @@
 import type { Screen } from '../registry';
+import { CONTRIBUTE_WAVE_4_PART_SCREENS } from './contribute-wave-4-parts';
 import { HOME_PRODUCT_SCREENS } from './home-products';
 import { LEARN_ENTITY_PART_SCREENS } from './learn-entity-parts';
 import { LEARN_FIX_SCREENS } from './learn-fix';
 import { LEARN_ISSUES_SCREENS } from './learn-issues';
 import { LEARN_PROGRESS_FIXES_SCREENS } from './learn-progress-fixes';
 import { LEARN_REAL_ISSUES_SCREENS } from './learn-real-issues';
+import { LEARN_REAL_PROJECTS_SCREENS } from './learn-real-projects';
 import { LEARN_WALKTHROUGH_SCREENS } from './learn-walkthrough';
 import { SKILLS_PART_SCREENS } from './skills-parts';
+import { WORKSPACE_BAR_DOOR_SCREENS } from './workspace-bar-door';
 import { WORKSPACE_ISSUE_LEARN_SCREENS } from './workspace-issue-learn';
 import { WORKSPACE_PR_PART_SCREENS } from './workspace-pr-parts';
 
@@ -26,4 +29,7 @@ export const HELD_BACK_SCREENS: Screen[] = [
   ...LEARN_PROGRESS_FIXES_SCREENS,
   ...HOME_PRODUCT_SCREENS,
   ...WORKSPACE_ISSUE_LEARN_SCREENS,
+  ...CONTRIBUTE_WAVE_4_PART_SCREENS,
+  ...LEARN_REAL_PROJECTS_SCREENS,
+  ...WORKSPACE_BAR_DOOR_SCREENS,
 ];

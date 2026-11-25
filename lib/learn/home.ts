@@ -144,23 +144,24 @@ export function learnHomeReadOf(value: unknown): LearnHomeRead | null {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * What `/learn` shows a signed-in person: Learn home, or the landing for someone who has not set up Learn and has
- * learned no lesson. Someone who already uses today's Learn (`entered`) keeps a way to it, so gets Learn home. Neither a
- * setup nor a home (an API that answers neither for this person) is the landing. Otherwise a setup that could not be
- * read counts as set up, and a home that could not be read shows Learn home's error: one failed read never sends a
- * learner to the landing.
+ * What `/learn` shows a signed-in person: Learn home with the Learn sign (Learn's onboarding saved), the landing without
+ * it. When the sign cannot be read (null), the rule from before the sign: Learn home for someone who saved a setup or
+ * learned a lesson, the landing for someone who did neither. Then neither a setup nor a home (an API that answers
+ * neither for this person) is the landing; otherwise a setup that could not be read counts as set up, and a home that
+ * could not be read shows Learn home's error: one failed read never sends a learner to the landing.
  */
 export function learnPageOf({
+  sign,
   setup,
   home,
-  entered,
 }: {
+  sign: boolean | null;
   setup: Pick<LearnSetupRead, 'state'> | null;
   home: Pick<LearnHomeRead, 'learned'> | null;
-  entered: boolean;
 }): 'home' | 'landing' {
+  if (sign !== null) return sign ? 'home' : 'landing';
   if (!setup && !home) return 'landing';
-  if (entered || !setup || setup.state === 'SAVED') return 'home';
+  if (!setup || setup.state === 'SAVED') return 'home';
   return home && home.learned <= 0 ? 'landing' : 'home';
 }
 

@@ -147,11 +147,18 @@ export const LEARN_LESSON_SCREEN: Screen = {
     },
     {
       id: 'right-visitor',
-      title: 'Not signed in, right: the button asks to sign in, the answer is not saved',
+      title: 'Not signed in, right: the button asks to sign in to keep the answer',
       path: PATH,
       signedOut: true,
       height: 1050,
       render: () => <Page drawn={{ answer: setAnswerRight }} />,
+    },
+    {
+      id: 'right-keep',
+      title: 'Signed in without the Learn sign, right: saved, and the button is Keep your progress',
+      path: PATH,
+      height: 1100,
+      render: () => <Page viewer={member(mineLearned)} keep drawn={{ answer: setAnswerRight }} />,
     },
     {
       id: 'right-fact',

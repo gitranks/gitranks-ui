@@ -10,6 +10,7 @@ const HIDDEN: WorkspaceGate = { kind: 'hidden' };
 const open = (entered: boolean, agents = { hosted: false, own: entered }): WorkspaceGate => ({
   kind: 'open',
   entered,
+  signs: { contribute: null, learn: null },
   agents,
 });
 

@@ -2,13 +2,10 @@ import {
   type LearnSetupRead,
   pendingSetupForm,
   type SetupForm,
-  type SetupStarts,
   setupFormAfter,
   setupFormPick,
   setupFormUnread,
-  setupStartOf,
 } from '../setup';
-import { algorithmsCourse, goCourse } from './course';
 
 /** Our guess has not started: the person's very first Learn page. */
 export const setupNone: LearnSetupRead = {
@@ -85,9 +82,3 @@ export const setupForms: { title: string; form: SetupForm }[] = [
   },
   { title: '9 · Loading', form: pendingSetupForm() },
 ];
-
-/** Where each language starts: Go has its own course; everyone else starts in the first topic course. */
-export const setupStarts: SetupStarts = {
-  byLanguage: { go: setupStartOf(goCourse) },
-  fallback: setupStartOf(algorithmsCourse),
-};

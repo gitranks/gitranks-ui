@@ -466,6 +466,72 @@ export function startPath(
   return (text ? `${path}?${text}` : path) as Route;
 }
 
+/** Learn's onboarding, and the editor of a learner's languages and level: `/learn/setup`, as Learn's paths write it. */
+const LEARN_SETUP = '/learn/setup';
+
+/** A path Learn's onboarding may lead back to, checked against the address's own origin. */
+const BACK_ORIGIN = 'https://back.invalid';
+
+/** The pages under `/my` both products share, where Learn's way back may lead only when Learn opened them. */
+const SHARED_FROM_LEARN = /^\/my\/(?:settings|pull-requests|agent)(?:\/|$)/;
+
+/** A Start page: `/my/start/<owner>/<repo>/<issue>`. */
+const START_PAGE = /^\/my\/start\/[^/]+\/[^/]+\/\d+\/?$/;
+
+/**
+ * The way back from Learn's onboarding (`/learn/setup?back=`): the path it ends on, or null when `back` is not one it
+ * may lead to. Only a path of this site is taken, and only one of:
+ * - a Learn page (`/learn` and under it), but not `/learn/setup` itself;
+ * - the page of one issue opened from Learn (`/my/issues/<id>?from=learn`);
+ * - a Start page opened from Learn (`?from=learn` or `?lesson=1`);
+ * - Settings, the pull requests and the Agent tab opened from Learn (`?from=learn`).
+ *
+ * An outside address, a protocol-relative one, a backslash, an encoded slash or backslash, a dot segment and a control
+ * character are refused whatever follows. The answer is the path and its query as the browser reads them.
+ */
+export function learnBackOf(back: unknown): Route | null {
+  if (typeof back !== 'string' || !back.startsWith('/') || back.length > 2000) return null;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(back);
+  } catch {
+    return null;
+  }
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: a control character is what this refuses.
+  if (/[\\\u0000-\u001f\u007f]/.test(decoded)) return null;
+  // The path itself: no encoded slash, backslash or dot, and no empty segment (`//`), written or encoded.
+  const written = back.split(/[?#]/)[0];
+  if (/%(?:2f|5c|2e)/i.test(written) || written.includes('//')) return null;
+  let url: URL;
+  try {
+    url = new URL(back, BACK_ORIGIN);
+  } catch {
+    return null;
+  }
+  if (url.origin !== BACK_ORIGIN) return null;
+  const path = url.pathname;
+  // A dot segment the browser would fold away names another page than the one written.
+  if (path !== back.split(/[?#]/)[0] || /\/\.\.?(?:\/|$)/.test(path)) return null;
+  const query = url.searchParams;
+  const fromLearn = query.get('from') === 'learn';
+  const learnPage = /^\/learn(?:\/|$)/.test(path) && !/^\/learn\/setup(?:\/|$)/i.test(path);
+  const ok =
+    learnPage ||
+    (ISSUE_PAGE.test(path) && fromLearn) ||
+    (START_PAGE.test(path) && (fromLearn || query.get('lesson') === '1')) ||
+    (SHARED_FROM_LEARN.test(path) && fromLearn);
+  return ok ? (`${path}${url.search}` as Route) : null;
+}
+
+/**
+ * Learn's onboarding with its way back: `/learn/setup?back=<path>` when `back` is one `learnBackOf` takes, else
+ * `/learn/setup` alone (the onboarding then ends on Learn home). Every sign-in on a Learn page leads here.
+ */
+export function learnSetupHrefOf(back?: string | null): Route {
+  const checked = learnBackOf(back);
+  return (checked ? `${LEARN_SETUP}?back=${encodeURIComponent(checked)}` : LEARN_SETUP) as Route;
+}
+
 /**
  * Whether the path is a fair-use message's answer page, `/contribute/answer/<noticeId>`, in any spelling the router
  * reads as it. Its email and its agent link reach people signed out too, so it asks them to sign in as `/my` does; the

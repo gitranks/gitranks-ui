@@ -131,7 +131,7 @@ describe('a lesson for a visitor', () => {
     expect(text()).toContain('In 2011, researchers showed');
   });
 
-  it('crosses out a wrong pick and keeps the rows locked; a right one opens them, asks to sign in, saves nothing', () => {
+  it('crosses out a wrong pick and keeps the rows locked; a right one opens them and asks to sign in to keep it', () => {
     const calls = draw();
     click(option(0));
     click(main());
@@ -141,8 +141,8 @@ describe('a lesson for a visitor', () => {
     click(option(1));
     click(main());
     expect(calls.onGraded).toHaveBeenLastCalledWith({ picked: 1, right: true, tries: 2, language: 'python' });
-    expect(main().textContent).toBe('Sign in with GitHub to continue');
-    expect($('[data-visitor-line]')!.textContent).toBe('Your answer is not saved without an account.');
+    expect(main().textContent).toBe('Sign in to keep your progress');
+    expect($('[data-visitor-line]')).toBeNull();
     expect($('[data-visitor-note]')).toBeNull();
     expect($('[data-insights="open"]')).not.toBeNull();
     expect($('[data-lesson-feedback]')).toBeNull();

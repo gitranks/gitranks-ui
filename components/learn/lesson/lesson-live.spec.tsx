@@ -41,6 +41,9 @@ const {
   setLessonLast,
 } = await import('@/lib/learn/__fixtures__/lesson-page');
 const { NO_LESSON_REAL } = await import('@/lib/learn/real-issues');
+const { KEPT_ANSWER_KEY, readKeptAnswer, writeKeptAnswer } = await import('@/lib/learn/kept-answer');
+/** The lesson, through Learn's onboarding. */
+const throughSetup = `/learn/setup?back=${encodeURIComponent(`/learn/lessons/${setLesson.slug}`)}`;
 const { learnFixes } = await import('@/lib/learn/__fixtures__/issues');
 const { lessonRealIssues, lessonRealWithFix } = await import('@/lib/learn/__fixtures__/real-issues');
 
@@ -59,12 +62,17 @@ const fetchMock = vi.fn();
  * What the person's routes answer: their side of the lesson, each lesson's depth in the course, and what "In the real
  * world" adds (by default nothing, as an API without it answers).
  */
-function routes(mine: unknown, depths: Record<string, string> = setDepths, real: unknown = NO_LESSON_REAL) {
+function routes(
+  mine: unknown,
+  depths: Record<string, string> = setDepths,
+  real: unknown = NO_LESSON_REAL,
+  learnOnboarded: boolean | null = true,
+) {
   fetchMock.mockImplementation(async (path: string) => {
     const body = path.endsWith('/real-world')
       ? real
       : path.startsWith('/api/me/learn/lessons/')
-        ? { mine }
+        ? { mine, learnOnboarded }
         : { course: { slug: 'algorithms', lessons: Object.entries(depths).map(([slug, depth]) => ({ slug, depth })) } };
     return new Response(JSON.stringify(body), { status: 200 });
   });
@@ -93,6 +101,7 @@ afterEach(() => {
   act(() => root.unmount());
   host.remove();
   hint.present = false;
+  window.localStorage.clear();
   vi.unstubAllGlobals();
 });
 
@@ -132,13 +141,117 @@ describe("a lesson's page in the browser, for a visitor", () => {
     expect($('[data-depth-squares]')).toBeNull();
   });
 
-  it('saves nothing for a right answer, and signs in back to the lesson', async () => {
+  it("keeps a right answer in the browser, and signs in to keep it, through Learn's onboarding back to the lesson", async () => {
     await draw();
+    await click(option(0));
+    await click(main());
+    expect(window.localStorage.getItem(KEPT_ANSWER_KEY)).toBeNull();
     await click(option(1));
     await click(main());
     expect(answerLearnLessonAction).not.toHaveBeenCalled();
+    expect(readKeptAnswer()).toEqual({
+      slug: setLesson.slug,
+      question: setLesson.question.id,
+      picked: 1,
+      tries: 2,
+      language: expect.anything(),
+      at: expect.any(Number),
+    });
+    expect(main().textContent).toBe('Sign in to keep your progress');
+    expect($('[data-visitor-line]')).toBeNull();
     await click(main());
-    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: `/learn/lessons/${setLesson.slug}` });
+    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: throughSetup });
+  });
+});
+
+describe("a lesson's page for a signed-in person, by the Learn sign", () => {
+  /** A kept answer for the set's lesson, given `ago` milliseconds before now. */
+  const keep = (ago = 60_000, question = setLesson.question.id) =>
+    writeKeptAnswer({ slug: setLesson.slug, question, picked: 1, tries: 2, language: null, at: Date.now() - ago });
+  const saved = { ok: true, data: { right: true, mine: mineLearned, next: null } };
+
+  it('saves the answer of a person without the sign, shows its depth, and leads them on to keep their progress', async () => {
+    signedIn();
+    routes(mineNew, setDepths, NO_LESSON_REAL, false);
+    answerLearnLessonAction.mockResolvedValue(saved);
+    await draw();
+    await tap(option(1));
+    await click(main());
+    expect(answerLearnLessonAction).toHaveBeenCalledOnce();
+    expect($('[data-depth-line]')!.textContent).toContain('Learned.');
+    expect(main().textContent).toBe('Keep your progress');
+    await click(main());
+    expect(push).toHaveBeenCalledWith(throughSetup);
+    expect(signIn).not.toHaveBeenCalled();
+  });
+
+  it("keeps today's buttons when the sign cannot be read, and replays nothing", async () => {
+    signedIn();
+    keep();
+    routes(mineNew, setDepths, NO_LESSON_REAL, null);
+    answerLearnLessonAction.mockResolvedValue(saved);
+    await draw();
+    expect(answerLearnLessonAction).not.toHaveBeenCalled();
+    expect(readKeptAnswer()).not.toBeNull();
+    await tap(option(1));
+    await click(main());
+    expect(main().textContent).toBe(`Next: ${setLesson.next!.title}`);
+  });
+
+  it('replays a kept answer once, with the sign, while the lesson is unanswered, then removes it', async () => {
+    signedIn();
+    keep();
+    routes(mineNew);
+    answerLearnLessonAction.mockResolvedValue(saved);
+    await draw();
+    expect(answerLearnLessonAction).toHaveBeenCalledOnce();
+    expect(answerLearnLessonAction).toHaveBeenCalledWith({
+      slug: setLesson.slug,
+      question: setLesson.question.id,
+      picked: 1,
+      tries: 2,
+      language: null,
+    });
+    expect(window.localStorage.getItem(KEPT_ANSWER_KEY)).toBeNull();
+    // Back on the lesson, the answer shows as saved.
+    expect($('[data-answer-part]')!.getAttribute('data-answer-phase')).toBe('done');
+    expect($('[data-lesson-run]')!.textContent).toBe('3 of 9 learned');
+    act(() => root.unmount());
+    root = createRoot(host);
+    await draw();
+    expect(answerLearnLessonAction).toHaveBeenCalledOnce();
+  });
+
+  it('removes a kept answer unsaved when the lesson is answered, its question changed, or it is an hour old', async () => {
+    for (const [mine, ago, question] of [
+      [mineLearned, 60_000, setLesson.question.id],
+      [mineNew, 60_000, 'another-question'],
+      [mineNew, 60 * 60 * 1000, setLesson.question.id],
+    ] as const) {
+      act(() => root.unmount());
+      root = createRoot(host);
+      signedIn();
+      keep(ago, question);
+      routes(mine);
+      await draw();
+      expect(answerLearnLessonAction).not.toHaveBeenCalled();
+      expect(window.localStorage.getItem(KEPT_ANSWER_KEY)).toBeNull();
+    }
+  });
+
+  it('leaves a kept answer in place for a person without the sign yet, and for another lesson', async () => {
+    signedIn();
+    keep();
+    routes(mineNew, setDepths, NO_LESSON_REAL, false);
+    await draw();
+    expect(readKeptAnswer()).not.toBeNull();
+    act(() => root.unmount());
+    root = createRoot(host);
+    writeKeptAnswer({ slug: 'another-lesson', question: 'q', picked: 1, tries: 1, language: null, at: Date.now() });
+    routes(mineNew);
+    await draw();
+    expect(readKeptAnswer()!.slug).toBe('another-lesson');
+    expect(answerLearnLessonAction).not.toHaveBeenCalled();
   });
 });
 

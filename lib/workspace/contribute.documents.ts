@@ -273,6 +273,11 @@ export const ContributeOnboardingDocument = doc<{
   } | null;
 }>('query ContributeOnboarding { contribute { contributor { onboardedAt onboardedVia } } }');
 
+/** The two signs, read on their own: a failed read leaves them unknown and the rest of the page as it is. */
+export const ContributeSignsDocument = doc<{
+  contribute: { contributor: { contributeOnboardedAt: string | null; learnOnboardedAt: string | null } | null } | null;
+}>('query ContributeSigns { contribute { contributor { contributeOnboardedAt learnOnboardedAt } } }');
+
 export const ContributeGrantDocument = doc<{ contribute: { grant: ContributeGrant } | null }>(
   'query ContributeGrant { contribute { grant { connected login } } }',
 );

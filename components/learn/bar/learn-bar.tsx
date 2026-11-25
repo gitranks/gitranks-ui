@@ -76,14 +76,15 @@ export function LearnBar({
 const NOTHING_WAITING = { due: 0, pullRequests: false, pullRequestsNeedYou: 0 };
 
 /**
- * The right side: nothing for a visitor; before setup, "Set up Learn" first; then what waits for the person: their pull
- * requests and the lessons due. Only the setup tab is highlighted; the rest are quiet notices.
+ * The right side: nothing for a visitor; before setup, "Set up Learn" first, but not on Learn's onboarding itself,
+ * which is that item; then what waits for the person: their pull requests and the lessons due. Only the setup tab is
+ * highlighted; the rest are quiet notices.
  */
 function barEndOf(state: LearnBarState, place: LearnBarPlace | null): ReactNode {
   if (state.kind === 'visitor') return null;
   const items: ReactNode[] = [];
-  if (state.kind === 'setup') {
-    items.push(<SetupTab key="setup" state={state.setup} current={place === 'setup'} />);
+  if (state.kind === 'setup' && place !== 'setup') {
+    items.push(<SetupTab key="setup" state={state.setup} />);
   }
   if (state.pullRequests) {
     items.push(
@@ -119,21 +120,18 @@ function barEndOf(state: LearnBarState, place: LearnBarPlace | null): ReactNode 
 /**
  * "Set up Learn", as page 5's board draws it: quiet with a spinner while our guess runs; highlighted with a dot once
  * it is in, with one pulse when it becomes so (on each visit, never a constant blink, and none for people who turned
- * motion off); a plain outline when there is no guess to check; solid while it is the current place.
+ * motion off); a plain outline when there is no guess to check. It never shows on its own page, Learn's onboarding.
  */
-function SetupTab({ state, current }: { state: LearnBarSetup; current: boolean }) {
-  const look = current ? 'current' : state;
+function SetupTab({ state: look }: { state: LearnBarSetup }) {
   return (
     <Link
       href={LEARN_BAR_LINKS.setup}
       prefetch={false}
-      aria-current={current ? 'page' : undefined}
       data-learn-bar-item="setup"
       data-learn-setup-tab={look}
       className={cn(
         'relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold whitespace-nowrap',
         PHONE_TARGET,
-        look === 'current' && 'border-foreground bg-foreground text-background',
         look === 'working' && 'text-muted-foreground',
         look === 'open' && 'text-foreground',
         look === 'guessed' &&

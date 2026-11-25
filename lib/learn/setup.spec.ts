@@ -1,17 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { algorithmsCourse, algorithmsCoursePaused, courseCards, goCourse } from './__fixtures__/course';
-import { setupForms, setupGuessed, setupNone, setupNothing, setupStarts, setupWorking } from './__fixtures__/setup';
+import { setupForms, setupGuessed, setupNone, setupNothing, setupWorking } from './__fixtures__/setup';
 import {
   levelHintOf,
   missingOf,
   missingWordsOf,
-  NO_SETUP_STARTS,
   pendingSetupForm,
   type SetupField,
   type SetupForm,
-  setupCoursesOf,
-  setupDestinationOf,
   setupFormAfter,
   setupFormPick,
   setupFormUnread,
@@ -20,7 +16,6 @@ import {
   setupIntroOf,
   setupPillOf,
   setupReadOf,
-  setupStartOf,
   valuesOfRead,
 } from './setup';
 
@@ -251,93 +246,5 @@ describe('Set up Learn: what the person changes', () => {
       'You start on a course’s page and choose where to begin.',
       'We offer the 2-minute check, so you skip what you know.',
     ]);
-  });
-});
-
-describe('Set up Learn: where the save sends the person', () => {
-  const at = (form: SetupForm, change: Partial<SetupForm['values']>) => ({
-    ...form,
-    values: { ...form.values, ...change },
-  });
-
-  it('reads each language’s own course, and the first topic course for everyone else', () => {
-    expect(setupCoursesOf(courseCards)).toEqual({
-      byLanguage: {
-        python: 'python',
-        javascript: 'javascript',
-        go: 'go',
-        rust: 'rust',
-        java: 'java',
-        php: 'php',
-        ruby: 'ruby',
-      },
-      fallback: 'algorithms',
-    });
-    expect(setupCoursesOf([])).toEqual({ byLanguage: {}, fallback: null });
-  });
-
-  it('starts a course at its first lesson that is not paused', () => {
-    expect(setupStartOf(goCourse)).toEqual({
-      course: { slug: 'go', title: 'Go' },
-      firstLesson: { slug: 'go-variables', title: 'Declare a variable with :=' },
-      checkOffered: true,
-    });
-    const paused = {
-      ...algorithmsCoursePaused,
-      groups: [
-        {
-          ...algorithmsCourse.groups[0],
-          lessons: algorithmsCourse.groups[0].lessons.map((lesson, index) => ({ ...lesson, paused: index === 0 })),
-        },
-      ],
-    };
-    expect(setupStartOf(paused).firstLesson?.slug).toBe(algorithmsCourse.groups[0].lessons[1].slug);
-    expect(setupStartOf({ ...goCourse, groups: [] }).firstLesson).toBeNull();
-  });
-
-  it('sends an experienced developer to the check of their language’s course', () => {
-    expect(setupDestinationOf(formOf(0), setupStarts)).toEqual({
-      kind: 'check',
-      href: '/learn/check/go',
-      label: 'Save and take the 2-minute check',
-    });
-  });
-
-  it('sends them to the course’s page when it offers no check', () => {
-    const starts = { ...setupStarts, byLanguage: { go: { ...setupStartOf(goCourse), checkOffered: false } } };
-    expect(setupDestinationOf(formOf(0), starts)).toEqual({
-      kind: 'course',
-      href: '/learn/courses/go',
-      label: 'Save and open Go',
-    });
-  });
-
-  it('sends someone new to programming to the first lesson, and someone with some experience to the course', () => {
-    expect(setupDestinationOf(at(formOf(0), { level: 1 }), setupStarts)).toMatchObject({
-      kind: 'lesson',
-      href: '/learn/lessons/go-variables',
-      label: 'Save and start the first lesson',
-    });
-    expect(setupDestinationOf(at(formOf(0), { level: 2 }), setupStarts)).toMatchObject({
-      kind: 'course',
-      href: '/learn/courses/go',
-    });
-  });
-
-  it('starts a language with no course of its own in the first topic course', () => {
-    expect(setupDestinationOf(formOf(3), setupStarts)).toEqual({
-      kind: 'course',
-      href: '/learn/courses/algorithms',
-      label: 'Save and open Algorithms and data structures',
-    });
-  });
-
-  it('sends them to all courses with no course to start, and changes a saved setup in place', () => {
-    expect(setupDestinationOf(formOf(0), NO_SETUP_STARTS)).toEqual({
-      kind: 'courses',
-      href: '/learn/courses',
-      label: 'Save and see all courses',
-    });
-    expect(setupDestinationOf(formOf(7), setupStarts)).toEqual({ kind: 'stay', href: null, label: 'Save' });
   });
 });

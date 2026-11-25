@@ -45,6 +45,7 @@ import { readMoreLearnFixes } from '@/lib/learn/issues.actions';
 import { LEARN_COURSES_PATH } from '@/lib/learn/paths';
 import { LEARN_MASKED_LINE, type MaskedListReads, NO_MASKED_READS } from '@/lib/workspace/masked-issue';
 import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
+import { learnSetupHrefOf } from '@/lib/workspace/paths';
 
 /**
  * What the list shows:
@@ -231,7 +232,7 @@ function VisitorNote({ href }: { href: string }) {
         variant="outline"
         className="max-sm:min-h-11"
         onClick={() => {
-          signIn(IDENTITY_PROVIDER, { redirectTo: href }).catch(() => {});
+          signIn(IDENTITY_PROVIDER, { redirectTo: learnSetupHrefOf(href) }).catch(() => {});
         }}
       >
         Sign in with GitHub

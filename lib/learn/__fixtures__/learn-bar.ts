@@ -61,13 +61,13 @@ export const learnBarPhoneRows: LearnBarFixture[] = [
 export const learnSetupTabRows: LearnBarFixture[] = [
   { title: '1 · We are working', state: notSetUp({ setup: 'working' }), place: 'courses' },
   { title: '2 · Our guess is ready', state: notSetUp(), place: 'courses' },
-  { title: '3 · On its page', state: notSetUp(), place: 'setup' },
+  { title: '3 · On Learn’s onboarding, which is that item: not shown', state: notSetUp(), place: 'setup' },
   {
     title: '4 · Next to the other things on the right',
     state: notSetUp({ due: 6, pullRequests: true, pullRequestsNeedYou: 1 }),
     place: 'home',
   },
-  { title: '5 · After they save', state: learner({ due: 6 }), place: 'home' },
+  { title: '5 · After they save the onboarding', state: learner({ due: 6 }), place: 'home' },
   { title: '6 · Not signed in', state: { kind: 'visitor' }, place: 'home' },
   {
     title: '7 · No guess to check (it could not start, or was dropped): a plain outline',

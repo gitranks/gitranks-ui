@@ -161,14 +161,22 @@ describe('the landing for someone signed in', () => {
     const page = draw({ viewer: 'learner' });
     const starts = [...page.querySelectorAll('[data-landing-start]')];
     expect(starts.map((a) => [words(a), a.getAttribute('href')])).toEqual([
-      ['Back to Learn home', '/learn'],
-      ['Back to Learn home', '/learn'],
+      ['Go to Learn home', '/learn'],
+      ['Go to Learn home', '/learn'],
     ]);
     expect(page.textContent).not.toContain('Free.');
   });
 });
 
 describe('the lesson at the top, answered', () => {
+  it('ends on Start learning for a visitor and for someone without the sign, Go to Learn home for a learner', () => {
+    expect(TRY_DONE_LABELS).toEqual({
+      visitor: 'Start learning',
+      member: 'Start learning',
+      learner: 'Go to Learn home',
+    });
+  });
+
   const below = (page: Element) => words(page.querySelector('[data-try-line]'));
 
   it('gives the reason after a wrong pick, and no line under it', () => {

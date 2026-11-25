@@ -36,7 +36,7 @@ import { cn } from '@/lib/utils';
 const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase';
 const START_CLASS = cn(buttonVariants({ size: 'lg' }), 'min-h-11 px-5 text-base font-semibold max-sm:w-full');
 
-/** The page's one button, at the top and beside the questions: start learning, or back to Learn home. */
+/** The page's one button, at the top and beside the questions: start learning, or go to Learn home. */
 function StartButton({ viewer, className }: { viewer: LandingViewer; className?: string }) {
   const classes = cn(START_CLASS, className);
   if (viewer === 'visitor') {
@@ -48,7 +48,7 @@ function StartButton({ viewer, className }: { viewer: LandingViewer; className?:
   }
   return (
     <Link href={viewer === 'member' ? LEARN_SETUP_PATH : LEARN_HOME_PATH} className={classes} data-landing-start="">
-      {viewer === 'member' ? 'Start learning' : 'Back to Learn home'}
+      {viewer === 'member' ? 'Start learning' : 'Go to Learn home'}
     </Link>
   );
 }

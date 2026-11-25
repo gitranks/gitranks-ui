@@ -70,7 +70,8 @@ const landingOf = async (view: unknown) =>
 
 const UNSET = { state: 'NONE', mainLanguage: null, otherLanguages: [], level: null };
 const SAVED = { state: 'SAVED', mainLanguage: 'Go', otherLanguages: ['Python'], level: 3 };
-const ENTERED = { kind: 'open', entered: true };
+/** An open gate with the Learn sign set, not set, or not known. */
+const gateWith = (learn: boolean | null) => ({ kind: 'open', entered: true, signs: { contribute: true, learn } });
 
 beforeEach(() => {
   for (const mock of Object.values(m)) mock.mockReset();
@@ -175,9 +176,26 @@ describe('/learn for someone signed in', () => {
     expect(((await LearnFrontView()) as Shown).props.timeZone).toBeNull();
   });
 
-  it('is Learn home for someone who uses Learn today, not set up and with nothing learned', async () => {
-    signedIn({ home: homeNewLearner, setup: UNSET, gate: ENTERED });
+  it('is Learn home with the Learn sign, not set up and with nothing learned', async () => {
+    signedIn({ home: homeNewLearner, setup: UNSET, gate: gateWith(true) });
     expect(((await LearnFrontView()) as Shown).type).toBe(LearnHomeView);
+  });
+
+  it('is the landing without the Learn sign, for someone set up who learned lessons too', async () => {
+    signedIn({ gate: gateWith(false) });
+    expect(await landingOf(await LearnFrontView())).toBe('member');
+  });
+
+  it('keeps the rule from before the sign when it cannot be read', async () => {
+    signedIn({ gate: gateWith(null) });
+    expect(((await LearnFrontView()) as Shown).type).toBe(LearnHomeView);
+    signedIn({ home: homeNewLearner, setup: UNSET, gate: gateWith(null) });
+    expect(await landingOf(await LearnFrontView())).toBe('member');
+  });
+
+  it('is the landing for someone with Contribute only, as "entered" no longer opens Learn home', async () => {
+    signedIn({ home: homeNewLearner, setup: UNSET, gate: { ...gateWith(false), entered: true } });
+    expect(await landingOf(await LearnFrontView())).toBe('member');
   });
 
   it('is Learn home when the workspace cannot be read, for someone set up', async () => {
@@ -209,6 +227,17 @@ describe('/learn/about, How Learn works', () => {
   it('sends someone not set up to /learn, where the landing is theirs', async () => {
     signedIn({ home: homeNewLearner, setup: UNSET });
     await expect(LearnAboutView()).rejects.toThrow('NEXT_REDIRECT /learn');
+  });
+
+  it('sends someone without the Learn sign to /learn, set up or not', async () => {
+    signedIn({ gate: gateWith(false) });
+    await expect(LearnAboutView()).rejects.toThrow('NEXT_REDIRECT /learn');
+  });
+
+  it('is the landing for a learner with the sign, not set up', async () => {
+    signedIn({ home: homeNewLearner, setup: UNSET, gate: gateWith(true) });
+    const view = (await LearnAboutView()) as ReactElement<{ children: unknown[] }>;
+    expect(await landingOf((view.props.children as unknown[])[1])).toBe('learner');
   });
 
   it("is the landing for a learner, under Learn's bar", async () => {

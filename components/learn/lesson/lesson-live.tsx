@@ -8,6 +8,8 @@ import { type LessonCalls, LessonPlayer, type LessonViewer, lessonPlayerKeyOf } 
 import { LessonRealWorldStreamed, type SharedFixes } from './lesson-real-world';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { HighlightedCode } from '@/lib/learn/code-tokens';
+import { dropKeptAnswer, keptAnswerStepOf, readKeptAnswer, writeKeptAnswer } from '@/lib/learn/kept-answer';
+import { learnSignFrom } from '@/lib/learn/learn-sign';
 import {
   isLastOfGroup,
   type LearnDepth,
@@ -29,6 +31,7 @@ import { fixesOf, type LessonRealMine, lessonRealOf, realRowsOf } from '@/lib/le
 import { MainLanguageContext } from '@/lib/learn/use-example-language';
 import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
+import { learnSetupHrefOf } from '@/lib/workspace/paths';
 
 /** A JSON answer of one of the person's routes; null on any failure. */
 async function readJson<T>(path: string): Promise<T | null> {
@@ -40,25 +43,66 @@ async function readJson<T>(path: string): Promise<T | null> {
   }
 }
 
+/** What a lesson's page reads of the signed-in person. */
+export type LessonViewerRead = {
+  viewer: LessonViewer | null;
+  mainLanguage: string | null;
+  /** The Learn sign: true or false; null when it was not read. */
+  onboarded: boolean | null;
+};
+
 /**
  * The signed-in person's side of a lesson and the depth of each lesson of its course; null when there is none. With
- * it, their setup's main language, which comes with the lesson's side (null when it has none, or it was not read).
+ * it, their setup's main language and the Learn sign, which come with the lesson's side (null when it has none, or
+ * they were not read).
  */
-export async function readLessonViewer(lesson: {
-  slug: string;
-  course: { slug: string };
-}): Promise<{ viewer: LessonViewer | null; mainLanguage: string | null }> {
+export async function readLessonViewer(lesson: { slug: string; course: { slug: string } }): Promise<LessonViewerRead> {
   const [lessonAnswer, courseAnswer] = await Promise.all([
-    readJson<{ mine?: LearnLessonMine | null; mainLanguage?: unknown }>(learnLessonSidePath(lesson.slug)),
+    readJson<{ mine?: LearnLessonMine | null; mainLanguage?: unknown; learnOnboarded?: unknown }>(
+      learnLessonSidePath(lesson.slug),
+    ),
     readJson<{ course?: { lessons?: LearnCourseLessonMine[] } | null }>(learnCourseMinePath(lesson.course.slug)),
   ]);
   const main = lessonAnswer?.mainLanguage;
   const mainLanguage = typeof main === 'string' && main ? main : null;
+  const onboarded = learnSignFrom(lessonAnswer?.learnOnboarded);
   const mine = lessonAnswer?.mine;
-  if (!mine) return { viewer: null, mainLanguage };
+  if (!mine) return { viewer: null, mainLanguage, onboarded };
   const depths: Record<string, LearnDepth> = {};
   for (const row of courseAnswer?.course?.lessons ?? []) depths[row.slug] = row.depth;
-  return { viewer: { mine: { ...mine, language: mine.language ?? null }, depths }, mainLanguage };
+  return { viewer: { mine: { ...mine, language: mine.language ?? null }, depths }, mainLanguage, onboarded };
+}
+
+/**
+ * A visitor's right answer kept in this browser, saved once the person is back on its lesson with the Learn sign: only
+ * while their side shows the lesson unanswered and the question is the same. The record is removed before the save,
+ * so it is made once, and whenever it is out of date. Answers the person's side as the save left it, else as read.
+ */
+export async function replayKeptAnswer(
+  lesson: { slug: string; question: string },
+  read: Pick<LessonViewerRead, 'viewer' | 'onboarded'>,
+): Promise<LessonViewer | null> {
+  const { viewer, onboarded } = read;
+  // Without their side, whether the lesson is answered is not known: the record waits.
+  if (!viewer) return viewer;
+  const kept = readKeptAnswer();
+  const step = keptAnswerStepOf({
+    kept,
+    slug: lesson.slug,
+    question: lesson.question,
+    answered: viewer.mine.depth !== 'NONE',
+    sign: onboarded,
+    now: Date.now(),
+  });
+  if (step === 'keep' || !kept) return viewer;
+  dropKeptAnswer();
+  if (step === 'drop') return viewer;
+  const { question, picked, tries, language } = kept;
+  const result = await answerLearnLessonAction({ slug: lesson.slug, question, picked, tries, language }).catch(
+    () => null,
+  );
+  const mine = result?.ok ? result.data?.mine : null;
+  return mine ? { ...viewer, mine: { ...mine, language: mine.language ?? language } } : viewer;
 }
 
 /**
@@ -92,8 +136,9 @@ export const ANSWER_NOT_SAVED_NOTE = 'Your answer was not saved. Try again in a 
 /**
  * A lesson's page as it lives in the browser. The page is the same for everyone and comes drawn (`article`, `more`);
  * once it is up, a person with a session reads their side of the lesson and of its course, and a visitor asks for
- * nothing. Only a visitor is asked to sign in: a person with a session goes on as a member does, and their right
- * answer is saved, whether their side has come or not. When their side first arrives, the player is drawn again so
+ * nothing. Only a visitor is asked to sign in: their right answer is kept in the browser and saved when they are back
+ * with the Learn sign. A person with a session goes on as a member does, and their right answer is saved, whether their
+ * side has come or not; without the Learn sign, their main button leads to Learn's onboarding ("Keep your progress"). When their side first arrives, the player is drawn again so
  * a lesson learned before opens as answered, but only while the person has not touched it: an answer started is
  * never drawn over, and the focus stays where it is.
  */
@@ -132,9 +177,12 @@ export function LessonLive({
   const [realMine, setRealMine] = useState<LessonRealMine | null>(null);
   // The main language of the person's setup, once their side brings it: the examples and the question switch to it.
   const [mainOfSide, setMainOfSide] = useState<string | null>(null);
+  // The Learn sign, once their side brings it; null until then, and when it cannot be read.
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
   const main = mainLanguage || mainOfSide;
   const { slug } = lesson;
   const course = lesson.course.slug;
+  const question = lesson.question.id;
 
   useEffect(() => {
     if (!hasSessionHint(document.cookie)) {
@@ -143,13 +191,16 @@ export function LessonLive({
     }
     let live = true;
     setRealMine(null);
-    readLessonViewer({ slug, course: { slug: course } }).then(({ viewer, mainLanguage: read }) => {
-      if (!live) return;
-      // Only while the person has not touched the player: an answer started is graded and marked in the code it shows.
-      if (!touched.current) setMainOfSide(read);
-      setPersonal(viewer ? { kind: 'member', viewer } : { kind: 'session' });
-      if (viewer && !touched.current) setRedrawn(true);
-    });
+    readLessonViewer({ slug, course: { slug: course } })
+      .then(async (read) => ({ ...read, viewer: await replayKeptAnswer({ slug, question }, read) }))
+      .then(({ viewer, mainLanguage: read, onboarded: sign }) => {
+        if (!live) return;
+        // Only while the person has not touched the player: an answer started is graded and marked in the code it shows.
+        if (!touched.current) setMainOfSide(read);
+        setOnboarded(sign);
+        setPersonal(viewer ? { kind: 'member', viewer } : { kind: 'session' });
+        if (viewer && !touched.current) setRedrawn(true);
+      });
     // Apart from the person's side: it fails alone, and the lesson is then as it was.
     readLessonRealMine(slug).then((read) => {
       if (live) setRealMine(read);
@@ -157,7 +208,7 @@ export function LessonLive({
     return () => {
       live = false;
     };
-  }, [slug, course]);
+  }, [slug, course, question]);
 
   // A member's side, with their last saved answer over it; before their side comes, the saved answer alone.
   const viewer: LessonViewer | null =
@@ -173,10 +224,19 @@ export function LessonLive({
   };
 
   const last = isLastOfGroup(lessonPlaceOf(group, lesson.slug, null));
+  // A signed-in person without the Learn sign: their answer is saved, and the main button leads to the onboarding.
+  const keep = personal.kind !== 'visitor' && personal.kind !== 'pending' && onboarded === false;
+  // The lesson, through Learn's onboarding: where a visitor's sign-in and "Keep your progress" lead.
+  const throughSetup = learnSetupHrefOf(learnLessonPath(lesson.slug));
   const calls: LessonCalls = {
     onGraded: ({ picked, right, tries, language }) => {
-      // A visitor's answer is not saved; anyone with a session is saved as the session's user, side or not.
-      if (!right || personal.kind === 'visitor') return;
+      if (!right) return;
+      // A visitor's answer is kept in the browser for an hour, saved when they are back with the Learn sign; anyone
+      // with a session is saved as the session's user, side or not.
+      if (personal.kind === 'visitor') {
+        writeKeptAnswer({ slug: lesson.slug, question: lesson.question.id, picked, tries, language, at: Date.now() });
+        return;
+      }
       answerLearnLessonAction({ slug: lesson.slug, question: lesson.question.id, picked, tries, language }).then(
         (result) => {
           if (!result.ok) return;
@@ -187,10 +247,11 @@ export function LessonLive({
       );
     },
     onNext: () => {
-      router.push(last || !lesson.next ? courseHrefOf(lesson.course) : learnLessonPath(lesson.next.slug));
+      if (keep) router.push(throughSetup);
+      else router.push(last || !lesson.next ? courseHrefOf(lesson.course) : learnLessonPath(lesson.next.slug));
     },
     onSignIn: () => {
-      signIn(IDENTITY_PROVIDER, { redirectTo: learnLessonPath(lesson.slug) }).catch(() => {});
+      signIn(IDENTITY_PROVIDER, { redirectTo: throughSetup }).catch(() => {});
     },
     onRate: async (good) => {
       const result = await sendLearnFeedbackAction({ lesson: lesson.slug, good });
@@ -219,6 +280,7 @@ export function LessonLive({
           calls={calls}
           openFact={openFact}
           signedIn={personal.kind !== 'visitor'}
+          keep={keep}
           note={viewer ? null : note}
           real={realMine?.real ?? null}
           realWorld={<LessonRealWorldStreamed slug={lesson.slug} fixes={fixes} mine={realMine} />}

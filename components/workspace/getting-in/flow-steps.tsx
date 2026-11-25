@@ -11,14 +11,18 @@ export const FLOW_STEPS: Record<FlowSide, readonly [string, string, string]> = {
 /** A step's number in its flow: 1, 2 or 3. */
 export type FlowStepNumber = 1 | 2 | 3;
 
+/** A flow's strip: Contribute's by its side, or Learn's onboarding, which names its own steps. */
+export type FlowStrip = { side: FlowSide; steps?: undefined } | { side: 'learn'; steps: readonly string[] };
+
 /**
  * The flow's one line of numbered steps: those before the current one checked, the current one filled (and named for
  * assistive tech as the current step), later ones outlined. It wraps on a phone.
  */
-export function FlowSteps({ side, current }: { side: FlowSide; current: FlowStepNumber }) {
+export function FlowSteps({ current, ...strip }: FlowStrip & { current: FlowStepNumber }) {
+  const names = strip.side === 'learn' ? strip.steps : FLOW_STEPS[strip.side];
   return (
-    <ol aria-label="Steps" className="flex flex-wrap items-center gap-x-6 gap-y-2" data-flow-steps={side}>
-      {FLOW_STEPS[side].map((name, index) => {
+    <ol aria-label="Steps" className="flex flex-wrap items-center gap-x-6 gap-y-2" data-flow-steps={strip.side}>
+      {names.map((name, index) => {
         const number = index + 1;
         const state = number < current ? 'done' : number === current ? 'current' : 'next';
         return (

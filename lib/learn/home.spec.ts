@@ -112,28 +112,36 @@ describe("Learn home's answer, read tolerantly", () => {
 
 describe('who gets Learn home at /learn', () => {
   const unset = { state: 'NONE' as const };
-  it('gives the landing to someone not set up who has learned nothing', () => {
-    expect(learnPageOf({ setup: unset, home: { learned: 0 }, entered: false })).toBe('landing');
+  const saved = { state: 'SAVED' as const };
+
+  it('gives Learn home with the Learn sign, whatever the setup and the lessons', () => {
+    expect(learnPageOf({ sign: true, setup: unset, home: { learned: 0 } })).toBe('home');
+    expect(learnPageOf({ sign: true, setup: null, home: null })).toBe('home');
   });
 
-  it('gives Learn home to someone set up, or who has learned a lesson', () => {
-    expect(learnPageOf({ setup: { state: 'SAVED' }, home: { learned: 0 }, entered: false })).toBe('home');
-    expect(learnPageOf({ setup: unset, home: { learned: 1 }, entered: false })).toBe('home');
+  it('gives the landing without the Learn sign, a saved setup and learned lessons included', () => {
+    expect(learnPageOf({ sign: false, setup: saved, home: { learned: 4 } })).toBe('landing');
+    expect(learnPageOf({ sign: false, setup: unset, home: { learned: 0 } })).toBe('landing');
   });
 
-  it('gives Learn home to someone who already uses Learn today, set up or not', () => {
-    expect(learnPageOf({ setup: unset, home: { learned: 0 }, entered: true })).toBe('home');
-  });
+  describe('when the sign cannot be read: the rule from before the sign', () => {
+    it('gives the landing to someone not set up who has learned nothing', () => {
+      expect(learnPageOf({ sign: null, setup: unset, home: { learned: 0 } })).toBe('landing');
+    });
 
-  it('never sends a learner to the landing on a failed read', () => {
-    expect(learnPageOf({ setup: null, home: { learned: 0 }, entered: false })).toBe('home');
-    expect(learnPageOf({ setup: unset, home: null, entered: false })).toBe('home');
-  });
+    it('gives Learn home to someone set up, or who has learned a lesson', () => {
+      expect(learnPageOf({ sign: null, setup: saved, home: { learned: 0 } })).toBe('home');
+      expect(learnPageOf({ sign: null, setup: unset, home: { learned: 1 } })).toBe('home');
+    });
 
-  it('gives the landing to someone the API answers neither a setup nor a home for', () => {
-    for (const entered of [false, true]) {
-      expect(learnPageOf({ setup: null, home: null, entered })).toBe('landing');
-    }
+    it('never sends a learner to the landing on a failed read', () => {
+      expect(learnPageOf({ sign: null, setup: null, home: { learned: 0 } })).toBe('home');
+      expect(learnPageOf({ sign: null, setup: unset, home: null })).toBe('home');
+    });
+
+    it('gives the landing to someone the API answers neither a setup nor a home for', () => {
+      expect(learnPageOf({ sign: null, setup: null, home: null })).toBe('landing');
+    });
   });
 });
 

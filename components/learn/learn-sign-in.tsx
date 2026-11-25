@@ -5,8 +5,12 @@ import { type ReactNode, useState } from 'react';
 
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { LEARN_PATH } from '@/lib/learn/learn-path';
+import { learnSetupHrefOf } from '@/lib/workspace/paths';
 
-/** A visitor's "Start learning": the GitHub sign-in, back to Learn home (or `redirectTo`, a path of ours). */
+/**
+ * A visitor's "Start learning": the GitHub sign-in, then Learn's onboarding, which leads back to Learn home (or to
+ * `redirectTo`, a path of ours). A person who has the Learn sign is sent on from the onboarding at once.
+ */
 export function LearnSignInButton({
   className,
   children,
@@ -25,7 +29,7 @@ export function LearnSignInButton({
       data-sign-in="learn"
       onClick={() => {
         setPending(true);
-        signIn(IDENTITY_PROVIDER, { redirectTo }).catch(() => setPending(false));
+        signIn(IDENTITY_PROVIDER, { redirectTo: learnSetupHrefOf(redirectTo) }).catch(() => setPending(false));
       }}
     >
       {children}

@@ -19,9 +19,9 @@ export function SetupRetry({ className }: { className?: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [later, setLater] = useState(false);
-  const retry = () =>
+  const retry = () => {
+    setLater(false);
     startTransition(async () => {
-      setLater(false);
       const result = await retryContributeSetup();
       if (result.ok && result.data !== 'failed') {
         startTransition(() => router.refresh());
@@ -29,6 +29,7 @@ export function SetupRetry({ className }: { className?: string }) {
       }
       setLater(true);
     });
+  };
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       <Button type="button" className="self-start" disabled={pending} onClick={retry} data-setup-retry="">

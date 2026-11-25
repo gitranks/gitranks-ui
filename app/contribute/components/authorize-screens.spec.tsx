@@ -217,12 +217,12 @@ describe("the consent page's state, from the API's one read", () => {
     expect(authorizeStateFor(read(null, false, false), ID, 'newbie')).toEqual({ kind: 'not-open', requestId: ID });
   });
 
-  it('reads a no-profile account by its setup: setting up, failed, or not read', () => {
+  it('reads a no-profile account by its setup: setting up (or ready since), failed, or not read', () => {
     const noProfile = { kind: 'no-profile', requestId: ID } as const;
     expect(authorizeWithSetup(noProfile, 'setting-up')).toEqual({ kind: 'setting-up', requestId: ID });
+    expect(authorizeWithSetup(noProfile, 'none')).toEqual({ kind: 'setting-up', requestId: ID });
     expect(authorizeWithSetup(noProfile, 'failed')).toEqual({ ...noProfile, failed: true });
     expect(authorizeWithSetup(noProfile, 'removed')).toEqual(noProfile);
-    expect(authorizeWithSetup(noProfile, 'none')).toEqual(noProfile);
   });
 
   it('asks to allow a pending request, and reads expired and approved ones as such', () => {

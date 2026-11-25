@@ -65,7 +65,7 @@ describe('the panels of an account with no profile', () => {
     ['setting-up', 'data-contribute-setting-up'],
     ['failed', 'data-contribute-setup-failed'],
     ['removed', 'data-contribute-no-profile'],
-    ['none', 'data-contribute-no-profile'],
+    ['none', 'data-contribute-setting-up'],
   ] as const)('draws %s as its panel, read or given', async (state, mark) => {
     expect(renderToStaticMarkup(<ContributeNoProfileOf state={state} />)).toContain(mark);
     loadContributeSetupState.mockResolvedValueOnce(state);

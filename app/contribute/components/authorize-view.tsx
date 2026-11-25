@@ -68,15 +68,17 @@ export function authorizeStateFor(read: AuthorizeRead, requestId: string, login:
 }
 
 /**
- * A no-profile state by where the account's setup stands: setting up while its first read is on its way, `failed` once
- * that read failed (Try again), else as it is.
+ * A no-profile state by where the account's setup stands: setting up while its first read is on its way, and when
+ * nothing is left to set up (the profile landed between the reads: the page's next read asks to allow); `failed` once
+ * that read failed (Try again); not read, as it is.
  */
 export function authorizeWithSetup(
   state: Extract<AuthorizeState, { kind: 'no-profile' }>,
   setup: ContributeSetupState,
 ): AuthorizeState {
-  if (setup === 'setting-up') return { kind: 'setting-up', requestId: state.requestId };
-  return setup === 'failed' ? { ...state, failed: true } : state;
+  if (setup === 'failed') return { ...state, failed: true };
+  if (setup === 'removed') return state;
+  return { kind: 'setting-up', requestId: state.requestId };
 }
 
 const LINK = 'font-semibold text-link hover:underline';

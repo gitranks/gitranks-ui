@@ -77,7 +77,8 @@ export function ContributeNoProfile({ product = 'Contribute' }: { product?: Setu
 
 /**
  * The panel for a signed-in account with no Contribute view, by where its setup stands: setting up while its first read
- * is on its way; "Try again" once that read failed; otherwise the line that GitRanks does not read the account.
+ * is on its way, and when nothing is left to set up (the profile landed between the page's reads: its next read shows
+ * the page); "Try again" once that read failed; the line that GitRanks does not read the account when it does not.
  */
 export function ContributeNoProfileOf({
   state,
@@ -86,7 +87,7 @@ export function ContributeNoProfileOf({
   state: ContributeSetupState;
   product?: SetupProduct;
 }) {
-  if (state === 'setting-up') return <ContributeSettingUp product={product} />;
   if (state === 'failed') return <ContributeSetupFailed product={product} />;
-  return <ContributeNoProfile product={product} />;
+  if (state === 'removed') return <ContributeNoProfile product={product} />;
+  return <ContributeSettingUp product={product} />;
 }

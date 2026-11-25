@@ -38,12 +38,13 @@ export function workspaceGateOf({ githubLogin, access, view }: WorkspaceGateRead
   };
 }
 
-export type WorkspaceTab = 'contribute' | 'learn' | 'pull-requests' | 'agent' | 'settings';
+/** The workspace's four tabs. Learn is not one of them: it is a door at the bar's right edge (`LearnDoor`). */
+export type WorkspaceTab = 'contribute' | 'pull-requests' | 'agent' | 'settings';
 
 /** The tabs the gate shows: none until the user has entered. */
 export function tabsOf(gate: WorkspaceGate): WorkspaceTab[] {
   if (gate.kind !== 'open' || !gate.entered) return [];
-  return ['contribute', 'learn', 'pull-requests', 'agent', 'settings'];
+  return ['contribute', 'pull-requests', 'agent', 'settings'];
 }
 
 /**

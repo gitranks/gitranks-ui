@@ -1,24 +1,15 @@
 import { cn } from '@/lib/utils';
+import type { WorkspaceTab } from '@/lib/workspace/gate';
+import { WORKSPACE_TABS } from '@/lib/workspace/workspace-tabs';
 
-/** The four tabs the workspace's bar draws, in its order. */
-export const FALLBACK_TABS = [
-  { tab: 'contribute', label: 'Contribute' },
-  { tab: 'pull-requests', label: 'Pull requests' },
-  { tab: 'agent', label: 'Agent' },
-  { tab: 'settings', label: 'Settings' },
-] as const;
-
-export type FallbackTab = (typeof FALLBACK_TABS)[number]['tab'];
+/** The four tabs the workspace's bar draws, in its order (`tabsOf`). */
+export const FALLBACK_TABS: readonly WorkspaceTab[] = ['contribute', 'pull-requests', 'agent', 'settings'];
 
 /**
- * The attributes a script in the head sets on `<html>` before the first paint, from the page's address and two cookies
- * the site already sets: `data-bar-guess` when the page will most likely draw the workspace's tabs, and
- * `data-bar-guess-tab` naming the current one.
+ * Each tab's weight while the guess names it current (`data-bar-guess-tab`, `lib/workspace/workspace-bar-guess.ts`): whole
+ * class names, so the styles are built.
  */
-export const BAR_GUESS_ATTRIBUTES = { shown: 'data-bar-guess', tab: 'data-bar-guess-tab' } as const;
-
-/** Each tab's weight while the attribute names it current: whole class names, so the styles are built. */
-const CURRENT: Record<FallbackTab, string> = {
+const CURRENT: Record<WorkspaceTab, string> = {
   contribute:
     '[html[data-bar-guess-tab=contribute]_&]:border-foreground [html[data-bar-guess-tab=contribute]_&]:font-semibold [html[data-bar-guess-tab=contribute]_&]:text-foreground',
   'pull-requests':
@@ -33,11 +24,12 @@ const TAB = 'relative inline-block whitespace-nowrap px-3 pb-4 sm:px-4 border-b-
 
 /**
  * The bar's place while the workspace's tabs are read: the four tab names in their places, with no counts and the
- * current one marked, so the arriving bar changes nothing but the counts and the door. Hidden unless the head's script
- * guessed that the tabs will show; then the header's line shows instead, as before. Drawn for everyone, so the shell
- * stays prerendered. `shown` draws it as a guess that said yes, for the design catalogue.
+ * current one marked, so the arriving bar changes nothing but the counts and the door. Shown only while the browser
+ * guesses the tabs will show (`data-bar-guess`, set by the head's script and again on each move by
+ * `WorkspaceBarGuess`); otherwise the header's line, as before. Drawn for everyone, so the shell stays prerendered.
+ * `shown` draws it as a guess that said yes, for the design catalogue.
  */
-export function WorkspaceBarFallback({ shown }: { shown?: { current: FallbackTab | null } }) {
+export function WorkspaceBarFallback({ shown }: { shown?: { current: WorkspaceTab | null } }) {
   return (
     <>
       <div
@@ -54,7 +46,7 @@ export function WorkspaceBarFallback({ shown }: { shown?: { current: FallbackTab
         data-bar-fallback=""
       >
         <ul className="mx-auto m-0 flex w-full max-w-7xl -mb-px list-none overflow-x-hidden p-0">
-          {FALLBACK_TABS.map(({ tab, label }) => (
+          {FALLBACK_TABS.map((tab) => (
             <li key={tab} className="shrink-0 sm:me-2">
               <span
                 className={cn(
@@ -63,7 +55,7 @@ export function WorkspaceBarFallback({ shown }: { shown?: { current: FallbackTab
                 )}
                 data-fallback-tab={tab}
               >
-                {label}
+                {WORKSPACE_TABS[tab].label}
               </span>
             </li>
           ))}

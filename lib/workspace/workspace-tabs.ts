@@ -7,7 +7,6 @@ import { isTablessPath, WORKSPACE_PATHS } from './paths';
 /** Each tab's label and page. */
 export const WORKSPACE_TABS: Record<WorkspaceTab, { label: string; href: Route }> = {
   contribute: { label: 'Contribute', href: WORKSPACE_PATHS.contribute },
-  learn: { label: 'Learn', href: WORKSPACE_PATHS.learnHome },
   'pull-requests': { label: 'Pull requests', href: WORKSPACE_PATHS.pullRequests },
   agent: { label: 'Agent', href: WORKSPACE_PATHS.agent },
   settings: { label: 'Settings', href: WORKSPACE_PATHS.settings },
@@ -17,13 +16,12 @@ export const WORKSPACE_TABS: Record<WorkspaceTab, { label: string; href: Route }
 const under = (path: string, prefix: string) => path === prefix || path.startsWith(`${prefix}/`);
 
 /**
- * The tab a page belongs to; null for none. Learn's own page under `/my` that has no tab of its own (the earlier Your
- * progress) is Learn's; an attempt's page is the pull requests'. A Start page is the Learn tab's for a lesson
- * (`?lesson=1`), else Contribute's.
+ * The tab a page belongs to; null for none. An attempt's page is the pull requests'. A Start page is Contribute's, but
+ * for a lesson (`?lesson=1`), which is Learn's and marks no tab.
  */
 export function activeTabOf(pathname: string, search: Pick<URLSearchParams, 'get'>): WorkspaceTab | null {
   const path = pathname.replace(/\/+$/, '') || '/';
-  if (path.startsWith('/my/start/')) return search.get('lesson') === '1' ? 'learn' : 'contribute';
+  if (path.startsWith('/my/start/')) return search.get('lesson') === '1' ? null : 'contribute';
   if (path === '/contribute') return 'contribute';
   if (under(path, WORKSPACE_PATHS.pullRequests)) return 'pull-requests';
   if (under(path, WORKSPACE_PATHS.agent)) return 'agent';

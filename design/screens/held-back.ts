@@ -9,7 +9,6 @@ import { LEARN_REAL_ISSUES_SCREENS } from './learn-real-issues';
 import { LEARN_REAL_PROJECTS_SCREENS } from './learn-real-projects';
 import { LEARN_WALKTHROUGH_SCREENS } from './learn-walkthrough';
 import { SKILLS_PART_SCREENS } from './skills-parts';
-import { WORKSPACE_BAR_DOOR_SCREENS } from './workspace-bar-door';
 import { WORKSPACE_ISSUE_LEARN_SCREENS } from './workspace-issue-learn';
 import { WORKSPACE_PR_PART_SCREENS } from './workspace-pr-parts';
 
@@ -31,5 +30,4 @@ export const HELD_BACK_SCREENS: Screen[] = [
   ...WORKSPACE_ISSUE_LEARN_SCREENS,
   ...CONTRIBUTE_WAVE_4_PART_SCREENS,
   ...LEARN_REAL_PROJECTS_SCREENS,
-  ...WORKSPACE_BAR_DOOR_SCREENS,
 ];

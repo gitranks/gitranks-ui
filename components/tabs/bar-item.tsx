@@ -38,6 +38,7 @@ export function BarItem({
   countLabel = '',
   countSlot,
   item,
+  data,
   children,
 }: {
   href: Route;
@@ -47,6 +48,8 @@ export function BarItem({
   countSlot?: ReactNode;
   /** The item's name in `data-learn-bar-item`. */
   item: string;
+  /** More data attributes for the link (a click's source). */
+  data?: Record<`data-${string}`, string>;
   children: ReactNode;
 }) {
   return (
@@ -55,6 +58,7 @@ export function BarItem({
       prefetch={false}
       aria-current={current ? 'page' : undefined}
       data-learn-bar-item={item}
+      {...data}
       className={cn(
         'relative inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium whitespace-nowrap text-foreground',
         PHONE_TARGET,

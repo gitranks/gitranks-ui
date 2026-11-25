@@ -42,7 +42,7 @@ const { activityOf, QUEUED, READY, WORKING, FOLLOW_UP } = await import('@/lib/co
 
 import type { WorkspaceGate, WorkspaceTab } from '@/lib/workspace/gate';
 
-const ALL: WorkspaceTab[] = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'];
+const ALL: WorkspaceTab[] = ['contribute', 'pull-requests', 'agent', 'settings'];
 
 const text = (html: string) =>
   html
@@ -94,8 +94,35 @@ describe("the gate's tabs", () => {
   it('reads the gate, then the work, the count and the version, for the tabs it gives', async () => {
     gate.loadWorkspaceGate.mockResolvedValueOnce(open());
     const html = renderToStaticMarkup(await WorkspaceTabs());
-    expect(tabLinks(html)).toHaveLength(5);
+    expect(tabLinks(html)).toHaveLength(4);
     expect(text(html)).toContain('Pull requests 3 need you');
+  });
+
+  it('draws the door into Learn, with the count slot it is given, only for a person who uses Learn', async () => {
+    const count = <span data-door-slot="" />;
+    gate.loadWorkspaceGate.mockResolvedValueOnce(open());
+    let html = renderToStaticMarkup(await WorkspaceTabs({ learnDoorCount: count }));
+    const door = html.match(/<a [^>]*data-learn-bar-item="learn-door"[\s\S]*?<\/a>/)?.[0] ?? '';
+    expect(door).toContain('href="/learn"');
+    expect(door).toContain('data-door-slot');
+    expect(text(door)).toBe('Learn');
+    // After the four tabs, at the bar's right edge.
+    expect(html.indexOf('data-learn-bar-item')).toBeGreaterThan(html.lastIndexOf('data-workspace-tab='));
+
+    for (const sides of [{ contribute: true, learn: false }, null]) {
+      data.loadContribute.mockResolvedValueOnce({ sides } as never);
+      gate.loadWorkspaceGate.mockResolvedValueOnce(open());
+      html = renderToStaticMarkup(await WorkspaceTabs({ learnDoorCount: count }));
+      expect(html).not.toContain('learn-door');
+      expect(html).not.toContain('data-door-slot');
+      expect(tabLinks(html)).toHaveLength(4);
+    }
+    // A read of the person's view that fails leaves the four tabs, with no door.
+    data.loadContribute.mockRejectedValueOnce(new Error('down'));
+    gate.loadWorkspaceGate.mockResolvedValueOnce(open());
+    html = renderToStaticMarkup(await WorkspaceTabs({ learnDoorCount: count }));
+    expect(html).not.toContain('learn-door');
+    expect(tabLinks(html)).toHaveLength(4);
   });
 
   it("offers Learn's bar on Settings to an account the workspace is open to, with the bar seen last and the product used", async () => {
@@ -110,7 +137,7 @@ describe("the gate's tabs", () => {
     jar.lastBar = 'contribute';
     gate.loadWorkspaceGate.mockResolvedValueOnce(open());
     html = renderToStaticMarkup(await WorkspaceTabs({ learnBar }));
-    expect(tabLinks(html)).toHaveLength(5);
+    expect(tabLinks(html)).toHaveLength(4);
 
     jar.lastBar = 'learn';
     data.loadContribute.mockClear();
@@ -139,12 +166,11 @@ describe('the tab bar', () => {
     const html = tabsAt('/contribute');
     expect(tabLinks(html).map((link) => link.match(/href="([^"]+)"/)?.[1])).toEqual([
       '/contribute',
-      '/learn',
       '/my/pull-requests',
       '/my/agent',
       '/my/settings',
     ]);
-    expect(text(html)).toBe('Contribute Learn Pull requests Agent Settings');
+    expect(text(html)).toBe('Contribute Pull requests Agent Settings');
     for (const link of tabLinks(html)) expect(link).toContain('data-contribute-source="workspace_tab"');
     // The tabs' own line is the one under the header: no second one.
     expect(html.match(/\bborder-b(?![\w-])/g)).toHaveLength(1);
@@ -154,7 +180,11 @@ describe('the tab bar', () => {
     ['/contribute', '', 'contribute'],
     ['/contribute/', '', 'contribute'],
     ['/my/start/acme/widgets/42', '', 'contribute'],
-    ['/my/start/acme/widgets/42', 'lesson=1', 'learn'],
+    // A lesson's Start page is Learn's: the four tabs, none current.
+    ['/my/start/acme/widgets/42', 'lesson=1', null],
+    ['/my/start/acme/widgets/42', 'lesson=1&from=contribute', null],
+    ['/my/pull-requests', 'from=learn', 'pull-requests'],
+    ['/my/issues/M_1', 'from=learn', null],
     ['/learn/earlier', '', null],
     ['/learn/start/acme/widgets/42', '', null],
     // Learn home has Learn's own bar: no workspace tab is marked there.
@@ -268,7 +298,7 @@ describe('the current tab on a phone', () => {
 });
 
 describe("the workspace's layout", () => {
-  it("is the site's header with no section marked, then the line while the viewer is read", () => {
+  it("is the site's header with no section marked, then the bar's place while the viewer is read", () => {
     const html = renderToStaticMarkup(<WorkspaceLayout>{null}</WorkspaceLayout>);
     const header = html.match(/<header[\s\S]*<\/header>/)?.[0] ?? '';
 
@@ -276,7 +306,11 @@ describe("the workspace's layout", () => {
     expect(header).toContain('<nav aria-label="Main"');
     expect(header).toContain('data-avatar-menu');
     expect(header).not.toContain('>/</span>');
-    expect(html.slice(html.indexOf('</header>'))).toContain('<div class="border-b"></div>');
+    // The same for everyone: the header's line, and the four names shown only where the browser guessed the tabs.
+    const after = html.slice(html.indexOf('</header>'));
+    expect(after).toContain('data-bar-fallback-line=""');
+    expect(after).toContain('data-bar-fallback=""');
+    expect(after.match(/data-fallback-tab="([^"]+)"/g)).toHaveLength(4);
     expect(html).not.toContain('data-workspace-tab');
   });
 });

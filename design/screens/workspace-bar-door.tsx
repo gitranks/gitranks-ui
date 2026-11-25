@@ -1,15 +1,14 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
-import { Tab } from '@/components/tabs/tabs';
-import { TabsBar } from '@/components/tabs/tabs-bar';
+import { ChangesProvider } from '@/components/workspace/changes-provider';
 import { LearnDoor, LearnDoorDue } from '@/components/workspace/learn-door';
-import { FALLBACK_TABS, type FallbackTab, WorkspaceBarFallback } from '@/components/workspace/workspace-bar-fallback';
-import { WORKSPACE_TABS } from '@/lib/workspace/workspace-tabs';
+import { FALLBACK_TABS, WorkspaceBarFallback } from '@/components/workspace/workspace-bar-fallback';
+import { WorkspaceTabsBar } from '@/components/workspace/workspace-tabs-nav';
+import type { WorkspaceTab } from '@/lib/workspace/gate';
 
 /**
- * The workspace's bar for wave 4, from fixtures: four tabs with the door into Learn at the right edge, and the bar's
- * place held while it is read. Held back from the export (`exported: false`) until the bar switches to them.
+ * The workspace's bar: four tabs with the door into Learn at the right edge, and the bar's place kept while it is read.
  */
 
 const Case = ({ title, children }: { title: string; children: ReactNode }) => (
@@ -20,26 +19,19 @@ const Case = ({ title, children }: { title: string; children: ReactNode }) => (
 );
 
 /** The four tabs as the bar draws them, the current one marked, with the door when the person uses Learn. */
-function Bar({ current, needsYou, door }: { current: FallbackTab; needsYou?: number; door?: ReactNode }) {
+function Bar({
+  current,
+  needsYou = null,
+  door,
+}: {
+  current: WorkspaceTab;
+  needsYou?: number | null;
+  door?: ReactNode;
+}) {
   return (
-    <TabsBar end={door}>
-      {FALLBACK_TABS.map(({ tab }) => {
-        const { label, href } = WORKSPACE_TABS[tab];
-        const count = tab === 'pull-requests' && needsYou ? needsYou : undefined;
-        return (
-          <Tab
-            key={tab}
-            href={href}
-            active={tab === current}
-            count={count}
-            tone="brand"
-            countLabel={count ? 'need you' : undefined}
-          >
-            {label}
-          </Tab>
-        );
-      })}
-    </TabsBar>
+    <ChangesProvider version={null} activity={null} needsYou={needsYou}>
+      <WorkspaceTabsBar tabs={FALLBACK_TABS} active={current} door={door} />
+    </ChangesProvider>
   );
 }
 
@@ -49,10 +41,12 @@ export const WORKSPACE_BAR_DOOR_SCREENS: Screen[] = [
     title: "The workspace's bar: four tabs and the door into Learn",
     area: 'workspace',
     route: '/my/pull-requests',
-    exported: false,
     sources: [
+      'components/workspace/workspace-tabs-nav.tsx',
       'components/workspace/learn-door.tsx',
+      'app/(workspace)/learn-door-count.tsx',
       'components/workspace/workspace-bar-fallback.tsx',
+      'lib/workspace/workspace-bar-guess.ts',
       'components/tabs/bar-item.tsx',
     ],
     states: [

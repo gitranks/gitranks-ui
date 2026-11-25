@@ -68,13 +68,29 @@ describe('the tab bar in the browser', () => {
       root.render(<WorkspaceTabsBar tabs={['contribute', 'pull-requests', 'agent', 'settings']} active="settings" />),
     );
 
-  it("records Contribute's bar as the one seen last, but on the old Learn tab", () => {
-    // biome-ignore lint/suspicious/noDocumentCookie: the spec starts with no bar recorded.
+  it("records Contribute's bar as the one seen last, but on a page Learn owns", () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: the spec starts with Learn's bar recorded.
     document.cookie = 'gr_last_bar=learn; Path=/';
-    act(() => root.render(<WorkspaceTabsBar tabs={['contribute', 'learn', 'settings']} active="learn" />));
+    act(() => root.render(<WorkspaceTabsBar tabs={['contribute', 'settings']} active={null} learnPage />));
     expect(document.cookie).toContain('gr_last_bar=learn');
     mount();
     expect(document.cookie).toContain('gr_last_bar=contribute');
+  });
+
+  it('draws the door at the right edge, outside the scrolling tabs', () => {
+    act(() =>
+      root.render(
+        <WorkspaceTabsBar
+          tabs={['contribute', 'pull-requests', 'agent', 'settings']}
+          active="settings"
+          door={<a href="/learn" data-door="" />}
+        />,
+      ),
+    );
+    const door = container.querySelector('[data-door]');
+    expect(door).not.toBeNull();
+    expect(container.querySelector('ul')?.contains(door)).toBe(false);
+    expect(container.querySelectorAll('ul > li')).toHaveLength(4);
   });
 
   it('shows the current tab by scrolling the tab list sideways, never the page', () => {

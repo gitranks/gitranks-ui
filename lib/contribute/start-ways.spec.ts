@@ -236,7 +236,12 @@ describe('startWaysReadOf: the first step’s facts from the gate and the view',
     startWaysReadOf({ gate, view: v, attempt: false, issue: null, issueReads: false });
 
   it('a visitor: not signed in, no sign, nothing connected', () => {
-    expect(read({ kind: 'signed-out' }, null as never)).toMatchObject({ signedIn: false, sign: false, own: null, key: 'none' });
+    expect(read({ kind: 'signed-out' }, null as never)).toMatchObject({
+      signedIn: false,
+      sign: false,
+      own: null,
+      key: 'none',
+    });
   });
 
   it('names a used own agent, leaves an unused token out, and reads the key’s state', () => {

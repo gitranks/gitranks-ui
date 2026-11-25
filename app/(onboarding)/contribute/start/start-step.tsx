@@ -38,10 +38,7 @@ async function StartStepBody({ searchParams }: { searchParams: Query }) {
       </>
     );
   }
-  const [view, opened] = await Promise.all([
-    gate.kind === 'open' ? loadContribute() : null,
-    loadOpenedIssue(issue),
-  ]);
+  const [view, opened] = await Promise.all([gate.kind === 'open' ? loadContribute() : null, loadOpenedIssue(issue)]);
   const ways = startWaysOf(startWaysReadOf({ gate, view, attempt: facts.hasAttempt, issue, issueReads: !!opened }));
   return (
     <>

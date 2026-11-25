@@ -60,7 +60,10 @@ describe("the workspace gate, over today's answers", () => {
   });
 
   it('carries the two signs beside `entered`: set, not set, or not known when their read failed', () => {
-    const withSigns = (contributeOnboardedAt: string | null | undefined, learnOnboardedAt: string | null | undefined) => ({
+    const withSigns = (
+      contributeOnboardedAt: string | null | undefined,
+      learnOnboardedAt: string | null | undefined,
+    ) => ({
       ...views.active,
       contributor: contributor({ contributeOnboardedAt, learnOnboardedAt }),
     });

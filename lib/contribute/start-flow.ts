@@ -16,13 +16,18 @@ const FIT = 'These open issues fit what you work on.';
  * The head's sentence: the own agent by its name (`agent`, "Your agent" when unknown), the Claude key, or both; then
  * what the list holds.
  */
-export function firstIssueLineOf(connected: FlowConnected, agent: string | null, state: FirstIssueState = 'list'): string {
+export function firstIssueLineOf(
+  connected: FlowConnected,
+  agent: string | null,
+  state: FirstIssueState = 'list',
+): string {
   const both = connected.own && connected.hosted;
   const who = both ? 'Your agents are' : connected.hosted ? 'Your Claude key is' : `${agent || 'Your agent'} is`;
   if (state === 'picking') return `${who} connected. Your first issues are on their way.`;
   if (state === 'none') return `${who} connected, so you are ready when an issue comes.`;
   if (both) return `${who} connected. ${FIT} See one in full, then start it and choose who works on it.`;
-  if (connected.hosted) return `${who} connected. ${FIT} See one in full, then start it, and the hosted agent begins at once.`;
+  if (connected.hosted)
+    return `${who} connected. ${FIT} See one in full, then start it, and the hosted agent begins at once.`;
   return `${who} connected. ${FIT} See one in full, then start it.`;
 }
 
@@ -38,7 +43,10 @@ function namesOf(languages: readonly ContributeLanguage[]): string {
  */
 export type LanguagesLine = { names: string | null; fromProfile: boolean };
 
-export function languagesLineOf(saved: readonly ContributeLanguage[] | null, profile: readonly ContributeLanguage[]): LanguagesLine {
+export function languagesLineOf(
+  saved: readonly ContributeLanguage[] | null,
+  profile: readonly ContributeLanguage[],
+): LanguagesLine {
   if (saved) return { names: saved.length ? namesOf(saved) : null, fromProfile: false };
   return profile.length ? { names: namesOf(profile), fromProfile: true } : { names: null, fromProfile: false };
 }

@@ -71,7 +71,10 @@ function innerOf(node: ReactNode): ReactElement | null {
   if (!isValidElement(node)) return null;
   if (typeof node.type === 'function' && node.type.constructor.name === 'AsyncFunction') return node;
   const props = node.props as { children?: ReactNode; fallback?: ReactNode };
-  return innerOf(props.children) ?? (typeof node.type === 'function' ? innerOf((node.type as (p: object) => ReactNode)(props)) : null);
+  return (
+    innerOf(props.children) ??
+    (typeof node.type === 'function' ? innerOf((node.type as (p: object) => ReactNode)(props)) : null)
+  );
 }
 
 /** The page whole: the frame as drawn, with its async part rendered in place of the Suspense boundary. */
@@ -162,7 +165,10 @@ describe('Your agent: your own agent and a Claude key', () => {
     await expect(render(OwnAgentPage, { issue: 'q7k2m9xa' })).rejects.toThrow(
       'NEXT_REDIRECT /contribute/start?issue=q7k2m9xa',
     );
-    expect(place.loadContributeFlowPlace).toHaveBeenCalledWith('agent-own', { query: 'issue=q7k2m9xa', issue: 'q7k2m9xa' });
+    expect(place.loadContributeFlowPlace).toHaveBeenCalledWith('agent-own', {
+      query: 'issue=q7k2m9xa',
+      issue: 'q7k2m9xa',
+    });
     at('redirect', SIGNED_OUT, '/contribute/start');
     await expect(render(KeyPage)).rejects.toThrow('NEXT_REDIRECT /contribute/start');
   });
@@ -296,7 +302,9 @@ describe('Your first issue: the second step', () => {
 
   it('every other place is the rule’s, the way back kept', async () => {
     at('redirect', SIGNED_OUT, '/contribute/start?issue=q7k2m9xa');
-    await expect(render(IssuePage, { issue: 'q7k2m9xa' })).rejects.toThrow('NEXT_REDIRECT /contribute/start?issue=q7k2m9xa');
+    await expect(render(IssuePage, { issue: 'q7k2m9xa' })).rejects.toThrow(
+      'NEXT_REDIRECT /contribute/start?issue=q7k2m9xa',
+    );
     expect(place.loadContributeFlowPlace).toHaveBeenCalledWith('issue', { issue: 'q7k2m9xa' });
     expect(issues.loadIssues).not.toHaveBeenCalled();
     at('redirect', open(true, { hosted: false, own: false }), '/my/agent');

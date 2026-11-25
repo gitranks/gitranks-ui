@@ -81,6 +81,8 @@ export type FirstIssueLanguages = {
  * - the line of languages with "Change", and the languages dialog;
  * - after a save, the list says it is picking again (`picking`) until the list's time is later than before the save,
  *   then it is read again in place; past two minutes it is read as it stands.
+ * While the first picks are made, the list's own "being picked" box reads the page again by itself: no live poll runs
+ * on this page.
  */
 export function FirstIssueStep({
   mark: needsMark,
@@ -91,6 +93,7 @@ export function FirstIssueStep({
   opened,
   children,
   foot,
+  initialMark,
 }: {
   mark: boolean;
   head: { title: string; text: string };
@@ -103,15 +106,16 @@ export function FirstIssueStep({
   opened?: ReactNode;
   children: ReactNode;
   foot: ReactNode;
+  /** Where the sign stands when drawn, for the design catalogue's cases (the page leaves it to the effect). */
+  initialMark?: MarkState;
 }) {
   const router = useRouter();
-  const [mark, setMark] = useState<MarkState>(needsMark ? 'pending' : 'done');
+  const [mark, setMark] = useState<MarkState>(initialMark ?? (needsMark ? 'pending' : 'done'));
   const markNow = useRef<MarkState>(mark);
   const asking = useRef<Promise<Outcome> | null>(null);
 
   const settle = useCallback((outcome: Outcome) => {
-    const next: MarkState =
-      outcome === 'failed' ? (markNow.current === 'pending' ? 'failed' : 'error') : outcome;
+    const next: MarkState = outcome === 'failed' ? (markNow.current === 'pending' ? 'failed' : 'error') : outcome;
     markNow.current = next;
     setMark(next);
     return next;

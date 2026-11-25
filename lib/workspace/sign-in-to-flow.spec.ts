@@ -16,7 +16,9 @@ describe('signInToFlow: a visitor’s sign-in from the first step', () => {
     expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/contribute/start/agent/own?issue=q7k2m9xa' });
 
     await signInToFlow('/contribute/start/agent/key?issue=q7k2m9xa');
-    expect(signIn).toHaveBeenLastCalledWith('github-basic', { redirectTo: '/contribute/start/agent/key?issue=q7k2m9xa' });
+    expect(signIn).toHaveBeenLastCalledWith('github-basic', {
+      redirectTo: '/contribute/start/agent/key?issue=q7k2m9xa',
+    });
   });
 
   it('adds nothing without a way back, or with one that is not an issue’s id', async () => {
@@ -41,7 +43,9 @@ describe('the way back in an address', () => {
   });
 
   it('keeps the rest of an address, and replaces an older way back', () => {
-    expect(withFlowWayBack('/my/agent/key?replace=1#key', 'q7k2m9xa')).toBe('/my/agent/key?replace=1&issue=q7k2m9xa#key');
+    expect(withFlowWayBack('/my/agent/key?replace=1#key', 'q7k2m9xa')).toBe(
+      '/my/agent/key?replace=1&issue=q7k2m9xa#key',
+    );
     expect(withFlowWayBack('/contribute/start?issue=old', 'q7k2m9xa')).toBe('/contribute/start?issue=q7k2m9xa');
     expect(withFlowWayBack('/contribute/start', null)).toBe('/contribute/start');
   });

@@ -19,16 +19,15 @@ export const OWN_AGENT_HEAD = {
 /** Connecting a Claude key: its title (the key's own screen draws its head). */
 export const KEY_TITLE = 'Connect your Claude key';
 
-/** The second step: its title, its parts' headings, the case when nothing fits, and the two lines under the list. */
+/**
+ * The second step: its title, its parts' headings and the two lines under the list. When nothing fits, the list's place
+ * has Contribute home's words (`NONE_FITS`).
+ */
 export const FIRST_ISSUE = {
   title: 'Pick your first issue',
   opened: 'The issue you opened',
   openedStart: 'Start fixing it',
   another: 'Or pick another',
-  none: {
-    title: 'No open issue fits what you work on right now',
-    text: 'New issues are checked every hour. Adding a language lets more of them fit.',
-  },
   next: 'Next: you see one issue in full, your agent writes the fix, and you read it before anything reaches GitHub.',
   skip: 'Skip for now: open Contribute',
 } as const;

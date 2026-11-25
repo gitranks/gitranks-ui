@@ -49,7 +49,8 @@ describe('contributeFlowPlaceOf: who is sent where, row by row', () => {
   });
 
   it('before the launch a visitor gets the 404 on every step', () => {
-    for (const step of STEPS) expect(place(step, { gate: SIGNED_OUT, launched: false }), step).toEqual({ kind: 'not-found' });
+    for (const step of STEPS)
+      expect(place(step, { gate: SIGNED_OUT, launched: false }), step).toEqual({ kind: 'not-found' });
   });
 
   it('being set up, with no profile, or not open: the flow’s panel in the frame on every step', () => {

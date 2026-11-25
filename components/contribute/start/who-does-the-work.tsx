@@ -55,7 +55,10 @@ export function HowContributeWorks({ fromIssueLine }: { fromIssueLine: string | 
 const BUTTON = 'min-h-11 gap-2 px-4 font-semibold max-sm:w-full';
 
 /** Where a box's link is counted from. */
-const SOURCES = { own: 'contribute_flow_own', key: 'contribute_flow_key' } as const satisfies Record<StartWayName, ContributeSource>;
+const SOURCES = { own: 'contribute_flow_own', key: 'contribute_flow_key' } as const satisfies Record<
+  StartWayName,
+  ContributeSource
+>;
 
 /** A box's button: a link, or for a visitor GitHub's sign-in that comes back to the way it names, the way back kept. */
 function WayButton({ button, source }: { button: StartWayButton; source?: ContributeSource }) {

@@ -32,8 +32,12 @@ describe('the first issue’s head, by what is connected', () => {
     expect(firstIssueLineOf(OWN, 'Claude Code', 'none')).toBe(
       'Claude Code is connected, so you are ready when an issue comes.',
     );
-    expect(firstIssueLineOf(KEY, null, 'none')).toBe('Your Claude key is connected, so you are ready when an issue comes.');
-    expect(firstIssueLineOf(BOTH, null, 'picking')).toBe('Your agents are connected. Your first issues are on their way.');
+    expect(firstIssueLineOf(KEY, null, 'none')).toBe(
+      'Your Claude key is connected, so you are ready when an issue comes.',
+    );
+    expect(firstIssueLineOf(BOTH, null, 'picking')).toBe(
+      'Your agents are connected. Your first issues are on their way.',
+    );
   });
 });
 
@@ -49,7 +53,9 @@ describe('the line of languages', () => {
       'Picked for JavaScript / TypeScript, Python and Go, from your GitHub profile.',
     );
     expect(languagesLineText(languagesLineOf(null, ['GO']))).toBe('Picked for Go, from your GitHub profile.');
-    expect(languagesLineText(languagesLineOf(null, ['GO', 'RUST']))).toBe('Picked for Go and Rust, from your GitHub profile.');
+    expect(languagesLineText(languagesLineOf(null, ['GO', 'RUST']))).toBe(
+      'Picked for Go and Rust, from your GitHub profile.',
+    );
   });
 
   it('says every language when none is known, or none is saved', () => {

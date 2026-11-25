@@ -116,7 +116,9 @@ describe('loadContribute', () => {
         return { contribute: { contributor: { onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'MCP' } } };
       }
       if (document === ContributeSignsDocument) {
-        return { contribute: { contributor: { contributeOnboardedAt: '2026-11-25T09:00:00.000Z', learnOnboardedAt: null } } };
+        return {
+          contribute: { contributor: { contributeOnboardedAt: '2026-11-25T09:00:00.000Z', learnOnboardedAt: null } },
+        };
       }
       throw new Error('[{"message":"Cannot query field"}]');
     });

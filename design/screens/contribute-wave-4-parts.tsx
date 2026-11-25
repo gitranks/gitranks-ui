@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { HomeBoxesView } from '@/app/(workspace)/contribute/components/home-boxes';
-import { WhoDoesTheWork } from '@/components/contribute/start/who-does-the-work';
 import {
   agentRead,
   agentRun,
@@ -10,15 +9,12 @@ import {
   mergedRead,
   NEWEST_MERGED,
   needsYouRow,
-  startRead,
 } from '@/lib/contribute/__fixtures__/wave-4-parts';
 import { type HomeBoxesRead, homeBoxesOf } from '@/lib/contribute/home-boxes';
-import { type StartWaysRead, startWaysOf } from '@/lib/contribute/start-ways';
 
 /**
  * Contribute's parts for wave 4, from fixtures, in every case: home's three boxes, drawn by Contribute home and exported
- * with it; the start flow's first page, held back from the export (`exported: false`) until its page switches to it.
- * The landing's parts are drawn by its own boards (`contribute.tsx`).
+ * with it. The start flow's boards are its pages' (`getting-in.tsx`); the landing's are its own (`contribute.tsx`).
  */
 
 /** A labelled part of a board that shows several cases one under the other. */
@@ -29,18 +25,13 @@ const Case = ({ title, children }: { title: string; children: ReactNode }) => (
   </div>
 );
 
-const Page = ({ children, narrow = false }: { children: ReactNode; narrow?: boolean }) => (
-  <main
-    className={`mx-auto flex w-full flex-col gap-8 px-4 pt-8 pb-16 ${narrow ? 'max-w-3xl' : 'max-w-7xl'}`}
-    data-design-parts=""
-  >
+const Page = ({ children }: { children: ReactNode }) => (
+  <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-8 pb-16" data-design-parts="">
     {children}
   </main>
 );
 
 const boxes = (read: HomeBoxesRead) => <HomeBoxesView home={homeBoxesOf(read)} hints />;
-
-const ways = (read: Partial<StartWaysRead>) => <WhoDoesTheWork ways={startWaysOf(startRead(read))} />;
 
 /** Contribute home's three boxes in every case: drawn by the page, so exported with it. */
 export const CONTRIBUTE_HOME_BOX_SCREENS: Screen[] = [
@@ -227,75 +218,6 @@ export const CONTRIBUTE_HOME_BOX_SCREENS: Screen[] = [
         width: 390,
         height: 1000,
         render: () => <Page>{boxes(homeRead({ needsYou: [needsYouRow()] }))}</Page>,
-      },
-    ],
-  },
-];
-
-export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
-  {
-    id: 'contribute-start-who',
-    title: 'Start, step 1: how Contribute works, and who does the work',
-    area: 'contribute',
-    route: '/contribute/start',
-    exported: false,
-    sources: ['components/contribute/start/who-does-the-work.tsx', 'lib/contribute/start-ways.ts'],
-    states: [
-      {
-        id: 'signed-in',
-        title: 'Signed in, nothing connected',
-        path: '/contribute/start',
-        height: 1100,
-        render: () => <Page narrow>{ways({})}</Page>,
-      },
-      {
-        id: 'visitor',
-        title: 'A visitor, opened from an issue',
-        path: '/contribute/start?issue=q7k2m9xa',
-        signedOut: true,
-        height: 1150,
-        render: () => <Page narrow>{ways({ signedIn: false, issue: 'q7k2m9xa', issueReads: true })}</Page>,
-      },
-      {
-        id: 'no-sign',
-        title: 'Connected, no Contribute sign: the step is done',
-        path: '/contribute/start',
-        height: 2600,
-        render: () => (
-          <Page narrow>
-            <Case title="An agent of their own">{ways({ own: 'Claude Code' })}</Case>
-            <Case title="A Claude key">{ways({ key: 'connected' })}</Case>
-            <Case title="Both">{ways({ own: 'Claude Code', key: 'connected' })}</Case>
-          </Page>
-        ),
-      },
-      {
-        id: 'with-sign',
-        title: 'Connected, with the Contribute sign: back to add the other way',
-        path: '/contribute/start',
-        height: 2600,
-        render: () => (
-          <Page narrow>
-            <Case title="An agent of their own">{ways({ sign: true, own: 'Claude Code' })}</Case>
-            <Case title="A Claude key, with an attempt">{ways({ sign: true, key: 'connected', attempt: true })}</Case>
-            <Case title="Both">{ways({ sign: true, own: 'Claude Code', key: 'connected' })}</Case>
-          </Page>
-        ),
-      },
-      {
-        id: 'key-invalid',
-        title: 'The Claude key stopped working, nothing else connected',
-        path: '/contribute/start',
-        height: 1100,
-        render: () => <Page narrow>{ways({ key: 'invalid' })}</Page>,
-      },
-      {
-        id: 'phone',
-        title: 'On a phone',
-        path: '/contribute/start',
-        width: 390,
-        height: 1700,
-        render: () => <Page narrow>{ways({})}</Page>,
       },
     ],
   },

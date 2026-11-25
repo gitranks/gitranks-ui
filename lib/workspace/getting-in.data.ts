@@ -28,9 +28,7 @@ export async function loadContributeFlowPlace(
   const open = gate.kind === 'open';
   const [launched, hasAttempt, view] = await Promise.all([
     gate.kind === 'signed-out' || gate.kind === 'hidden' ? contributeOpen(Date.now()) : true,
-    open && hasContributeSign(gate) && step !== 'agent-own'
-      ? loadAttempts(undefined, 1).then(hasAnyAttempt)
-      : false,
+    open && hasContributeSign(gate) && step !== 'agent-own' ? loadAttempts(undefined, 1).then(hasAnyAttempt) : false,
     // The gate read it already: the same request's read, shared.
     open ? loadContribute() : null,
   ]);

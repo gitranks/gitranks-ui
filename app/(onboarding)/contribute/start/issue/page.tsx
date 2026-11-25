@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 
 import { FIRST_ISSUE } from '../copy';
-import { ContributeIssueList } from '@/app/(workspace)/contribute/components/issue-list';
+import { FirstIssueList } from '../first-issue-list';
 import { StillRanking } from '@/app/contribute/components/still-ranking';
-import { AddLanguageButton, FirstIssueStep } from '@/components/contribute/start/first-issue-step';
+import { FirstIssueStep } from '@/components/contribute/start/first-issue-step';
 import { FlowBookmark } from '@/components/workspace/getting-in/flow-bookmark';
 import { FlowFrame } from '@/components/workspace/getting-in/flow-frame';
 import { CONTRIBUTE_FLOW_PANELS, flowPanelOf } from '@/components/workspace/getting-in/flow-place';
@@ -134,29 +134,18 @@ async function ContributeFirstIssue({ searchParams }: Pick<PageProps<'/contribut
         </>
       }
     >
-      {state === 'none' ? (
-        <div
-          className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-5 py-8 text-center"
-          data-list-note="none"
-        >
-          <span className="font-semibold">{FIRST_ISSUE.none.title}</span>
-          <span className="text-sm text-muted-foreground">{FIRST_ISSUE.none.text}</span>
-          <AddLanguageButton />
-        </div>
-      ) : (
-        <ContributeIssueList
-          page={page}
-          agents={gate.agents}
-          menu={false}
-          held={held}
-          limit={limit}
-          languages={saved ?? []}
-          facts={{ capUsd: settings?.attemptCapUsd ?? null, keyWaiting }}
-          source="contribute_flow_issue"
-          noneTitle={FIRST_ISSUE.none.title}
-          masked={masked}
-        />
-      )}
+      <FirstIssueList
+        none={state === 'none'}
+        page={page}
+        agents={gate.agents}
+        menu={false}
+        held={held}
+        limit={limit}
+        languages={saved ?? []}
+        facts={{ capUsd: settings?.attemptCapUsd ?? null, keyWaiting }}
+        source="contribute_flow_issue"
+        masked={masked}
+      />
     </FirstIssueStep>
   );
 }

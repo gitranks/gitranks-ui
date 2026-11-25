@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
+import { LEARN_SETUP_NO_PROFILE_SCREEN } from './getting-in';
 import { LEARN_COURSE_SCREEN, LEARN_COURSES_SCREEN } from './learn-courses';
 import { LEARN_GONE_SCREEN } from './learn-gone';
 import { LEARN_LESSON_SCREEN } from './learn-lesson';
@@ -297,6 +298,7 @@ export const LEARN_FRAME_SCREENS: Screen[] = [
       },
     ],
   },
+  LEARN_SETUP_NO_PROFILE_SCREEN,
   LEARN_QUESTION_SCREEN,
   LEARN_PLAYER_SCREEN,
   LEARN_LESSON_SCREEN,

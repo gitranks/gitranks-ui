@@ -10,6 +10,12 @@ import type { LearnPicked } from './learn-question';
 /** Where the record is kept, in the browser's local storage. */
 export const KEPT_ANSWER_KEY = 'gr_learn_kept_answer';
 
+/**
+ * Said under a lesson's card when the API saves no answer for a person with a session: Learn is not open to their
+ * account yet (GitRanks has no profile of it). The answer is kept, as a visitor's is.
+ */
+export const ANSWER_KEPT_NOTE = 'Your answer is kept in this browser for now.';
+
 /** How long a kept answer waits for its person: an hour. */
 export const KEPT_ANSWER_MS = 60 * 60 * 1000;
 

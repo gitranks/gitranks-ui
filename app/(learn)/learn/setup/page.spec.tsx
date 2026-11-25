@@ -1,26 +1,31 @@
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { connection, redirect, viewerLogin, loadLearnSign, loadLearnSetup } = vi.hoisted(() => ({
-  connection: vi.fn(async () => undefined),
-  redirect: vi.fn((to: string) => {
-    throw Object.assign(new Error('NEXT_REDIRECT'), { to });
+const { connection, redirect, viewerLogin, loadLearnSign, loadLearnSetup, loadContributeSetupState } = vi.hoisted(
+  () => ({
+    connection: vi.fn(async () => undefined),
+    redirect: vi.fn((to: string) => {
+      throw Object.assign(new Error('NEXT_REDIRECT'), { to });
+    }),
+    viewerLogin: vi.fn(async (): Promise<string | null> => 'octocat'),
+    loadLearnSign: vi.fn(async (): Promise<boolean | null> => false),
+    loadLearnSetup: vi.fn(async (): Promise<{ state: string } | null> => null),
+    loadContributeSetupState: vi.fn(async (): Promise<string> => 'none'),
   }),
-  viewerLogin: vi.fn(async (): Promise<string | null> => 'octocat'),
-  loadLearnSign: vi.fn(async (): Promise<boolean | null> => false),
-  loadLearnSetup: vi.fn(async (): Promise<{ state: string } | null> => null),
-}));
+);
 vi.mock('next/server', async (original) => ({ ...(await original<object>()), connection }));
 vi.mock('next/navigation', () => ({ redirect }));
 vi.mock('server-only', () => ({}));
-vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin }));
+vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin, loadContributeSetupState }));
 vi.mock('@/lib/learn/learn-sign.data', () => ({ loadLearnSign }));
 vi.mock('@/lib/learn/setup.data', () => ({ loadLearnSetup }));
 vi.mock('@/components/learn/setup/setup-live', () => ({ SetupLive: () => null }));
+vi.mock('@/components/learn/setup/setup-no-profile', () => ({ OnboardingNoProfile: () => null }));
 
 const { default: SetupPage, metadata } = await import('./page');
+const { OnboardingNoProfile } = await import('@/components/learn/setup/setup-no-profile');
 
-type Drawn = { mode: string; back: string | null };
+type Drawn = { mode: string; back: string | null } | { noProfile: string };
 const LESSON = '/learn/lessons/hash-maps';
 
 /** The page for an address's `back`: what it draws, or where it sends the person. */
@@ -29,7 +34,8 @@ async function open(back?: string | string[]): Promise<Drawn | { redirect: strin
     const page = (await SetupPage({
       params: Promise.resolve({}),
       searchParams: Promise.resolve(back === undefined ? {} : { back }),
-    } as never)) as ReactElement<Drawn>;
+    } as never)) as ReactElement<{ mode: string; back: string | null; state: string }>;
+    if (page.type === OnboardingNoProfile) return { noProfile: page.props.state };
     return { mode: page.props.mode, back: page.props.back };
   } catch (error) {
     const to = (error as { to?: string }).to;
@@ -43,6 +49,7 @@ beforeEach(() => {
   viewerLogin.mockResolvedValue('octocat');
   loadLearnSign.mockResolvedValue(false);
   loadLearnSetup.mockResolvedValue(null);
+  loadContributeSetupState.mockResolvedValue('none');
 });
 
 describe("Learn's setup page", () => {
@@ -105,5 +112,52 @@ describe("Learn's setup page", () => {
     expect(await open(LESSON)).toEqual({ mode: 'visitor', back: LESSON });
     expect(loadLearnSign).not.toHaveBeenCalled();
     expect(loadLearnSetup).not.toHaveBeenCalled();
+    expect(loadContributeSetupState).not.toHaveBeenCalled();
+  });
+
+  describe('an account with no profile yet: neither the sign nor the setup answers', () => {
+    beforeEach(() => {
+      loadLearnSign.mockResolvedValue(null);
+      loadLearnSetup.mockResolvedValue(null);
+    });
+
+    it('shows the setting-up panel while its first read is on its way, and sends nobody on', async () => {
+      loadContributeSetupState.mockResolvedValue('setting-up');
+      expect(await open(LESSON)).toEqual({ noProfile: 'setting-up' });
+      expect(redirect).not.toHaveBeenCalled();
+    });
+
+    it('shows Try again once that read failed', async () => {
+      loadContributeSetupState.mockResolvedValue('failed');
+      expect(await open(LESSON)).toEqual({ noProfile: 'failed' });
+    });
+
+    it('says Learn is not open to an account GitRanks does not read', async () => {
+      loadContributeSetupState.mockResolvedValue('removed');
+      expect(await open()).toEqual({ noProfile: 'removed' });
+    });
+
+    it('draws the page as before when nothing is left to set up', async () => {
+      loadContributeSetupState.mockResolvedValue('none');
+      expect(await open(LESSON)).toEqual({ mode: 'editor', back: LESSON });
+    });
+
+    it('reads the state only when the sign cannot be read, after the request is known', async () => {
+      loadContributeSetupState.mockResolvedValue('setting-up');
+      await open();
+      expect(connection.mock.invocationCallOrder[0]).toBeLessThan(loadContributeSetupState.mock.invocationCallOrder[0]);
+      loadContributeSetupState.mockClear();
+      loadLearnSign.mockResolvedValue(false);
+      expect(await open(LESSON)).toEqual({ mode: 'onboarding', back: LESSON });
+      loadLearnSign.mockResolvedValue(true);
+      expect(await open()).toEqual({ mode: 'editor', back: null });
+      expect(loadContributeSetupState).not.toHaveBeenCalled();
+    });
+
+    it('draws the page as before when the setup answers, whatever the state reads', async () => {
+      loadContributeSetupState.mockResolvedValue('failed');
+      loadLearnSetup.mockResolvedValue({ state: 'GUESSED' });
+      expect(await open(LESSON)).toEqual({ mode: 'onboarding', back: LESSON });
+    });
   });
 });

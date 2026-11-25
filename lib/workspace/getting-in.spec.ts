@@ -1,103 +1,153 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContributeAttempt, ContributeView } from './contribute.types';
+import type { ContributeAttempt, ContributeMcpToken, ContributeView } from './contribute.types';
 import type { WorkspaceGate } from './gate';
-import { type ContributeFlowStep, contributeFlowPlaceOf, contributeResumeOf, hasAnyAttempt } from './getting-in';
+import {
+  type ContributeFlowFacts,
+  type ContributeFlowStep,
+  contributeFlowPlaceOf,
+  contributeResumeOf,
+  type FlowConnected,
+  flowConnectedOf,
+  hasAnyAttempt,
+} from './getting-in';
 
 const SIGNED_OUT: WorkspaceGate = { kind: 'signed-out' };
 const SETTING_UP: WorkspaceGate = { kind: 'setting-up' };
 const HIDDEN: WorkspaceGate = { kind: 'hidden' };
-const open = (entered: boolean, agents = { hosted: false, own: entered }): WorkspaceGate => ({
+/** An open account: with the Contribute sign or not (null: not known, `entered` then decides). */
+const open = (sign: boolean | null, entered = !!sign): WorkspaceGate => ({
   kind: 'open',
   entered,
-  agents,
+  signs: { contribute: sign, learn: null },
+  agents: { hosted: false, own: false },
 });
 
-const STEPS: ContributeFlowStep[] = ['work', 'agent', 'agent-own', 'agent-key', 'issue'];
-const contribute = (step: ContributeFlowStep, gate: WorkspaceGate, launched = true, hasAttempt = false) =>
-  contributeFlowPlaceOf(step, { gate, launched, hasAttempt });
+const NONE: FlowConnected = { own: false, hosted: false };
+const OWN: FlowConnected = { own: true, hosted: false };
+const KEY: FlowConnected = { own: false, hosted: true };
 
-describe('contributeFlowPlaceOf: who belongs on which step of Contribute', () => {
-  it('a visitor sees the steps open to them, and the sign-in card on the ones that need an account', () => {
-    expect(contribute('work', SIGNED_OUT)).toEqual({ kind: 'page' });
-    expect(contribute('agent', SIGNED_OUT)).toEqual({ kind: 'page' });
+const STEPS: ContributeFlowStep[] = ['agent', 'agent-own', 'agent-key', 'issue'];
+const place = (step: ContributeFlowStep, facts: Partial<ContributeFlowFacts> & { gate: WorkspaceGate }) =>
+  contributeFlowPlaceOf(step, { launched: true, hasAttempt: false, connected: NONE, ...facts });
+
+describe('contributeFlowPlaceOf: who is sent where, row by row', () => {
+  it('a visitor: the first step with its sign-in buttons; every other step sends them there', () => {
+    expect(place('agent', { gate: SIGNED_OUT })).toEqual({ kind: 'page' });
     for (const step of ['agent-own', 'agent-key', 'issue'] as const) {
-      expect(contribute(step, SIGNED_OUT), step).toEqual({ kind: 'sign-in' });
+      expect(place(step, { gate: SIGNED_OUT }), step).toEqual({ kind: 'redirect', to: '/contribute/start' });
+    }
+  });
+
+  it('a visitor keeps the way back when sent to the first step', () => {
+    for (const step of ['agent-own', 'agent-key', 'issue'] as const) {
+      expect(place(step, { gate: SIGNED_OUT, issue: 'q7k2m9xa' }), step).toEqual({
+        kind: 'redirect',
+        to: '/contribute/start?issue=q7k2m9xa',
+      });
     }
   });
 
   it('before the launch a visitor gets the 404 on every step', () => {
-    for (const step of STEPS) expect(contribute(step, SIGNED_OUT, false), step).toEqual({ kind: 'not-found' });
+    for (const step of STEPS) expect(place(step, { gate: SIGNED_OUT, launched: false }), step).toEqual({ kind: 'not-found' });
   });
 
-  it('an account being set up waits in the frame on every step, before the launch and after', () => {
+  it('being set up, with no profile, or not open: the flow’s panel in the frame on every step', () => {
     for (const step of STEPS) {
-      expect(contribute(step, SETTING_UP), step).toEqual({ kind: 'setting-up' });
-      expect(contribute(step, SETTING_UP, false), step).toEqual({ kind: 'setting-up' });
+      expect(place(step, { gate: SETTING_UP }), step).toEqual({ kind: 'setting-up' });
+      expect(place(step, { gate: SETTING_UP, launched: false }), step).toEqual({ kind: 'setting-up' });
+      expect(place(step, { gate: HIDDEN }), step).toEqual({ kind: 'no-profile' });
+      expect(place(step, { gate: HIDDEN, launched: false }), step).toEqual({ kind: 'not-found' });
     }
   });
 
-  it('an account with no profile sees the no-profile panel once launched, and the 404 off the preview before it', () => {
-    for (const step of STEPS) {
-      expect(contribute(step, HIDDEN), step).toEqual({ kind: 'no-profile' });
-      expect(contribute(step, HIDDEN, false), step).toEqual({ kind: 'not-found' });
+  it('signed in, no Contribute sign: the first step and both ways open', () => {
+    for (const connected of [NONE, OWN, KEY]) {
+      for (const step of ['agent', 'agent-own', 'agent-key'] as const) {
+        expect(place(step, { gate: open(false), connected }), step).toEqual({ kind: 'page' });
+      }
     }
   });
 
-  it('signed in and not entered: every step but the first issue, which sends them back to step 2', () => {
-    for (const step of ['work', 'agent', 'agent-own', 'agent-key'] as const) {
-      expect(contribute(step, open(false)), step).toEqual({ kind: 'page' });
-    }
-    expect(contribute('issue', open(false))).toEqual({ kind: 'redirect', to: '/contribute/start/agent' });
-  });
-
-  it('entered with no attempt yet: on to the first issue; the first issue itself shows', () => {
-    for (const step of ['work', 'agent', 'agent-key'] as const) {
-      expect(contribute(step, open(true)), step).toEqual({ kind: 'redirect', to: '/contribute/start/issue' });
-    }
-    expect(contribute('issue', open(true))).toEqual({ kind: 'page' });
-    expect(contribute('issue', open(true, { hosted: true, own: false }))).toEqual({ kind: 'page' });
-  });
-
-  it('entered: the own-agent step goes to the Agent tab’s connect page, the query kept', () => {
-    for (const hasAttempt of [false, true]) {
-      expect(
-        contributeFlowPlaceOf('agent-own', { gate: open(true), launched: true, hasAttempt, query: 'from=agent' }),
-      ).toEqual({ kind: 'redirect', to: '/my/agent/connect?from=agent' });
-    }
-    expect(contribute('agent-own', open(true, { hosted: false, own: false }))).toEqual({
+  it('signed in, no Contribute sign: the second step opens with something connected, else back to the first', () => {
+    expect(place('issue', { gate: open(false), connected: OWN })).toEqual({ kind: 'page' });
+    expect(place('issue', { gate: open(false), connected: KEY })).toEqual({ kind: 'page' });
+    expect(place('issue', { gate: open(false) })).toEqual({ kind: 'redirect', to: '/contribute/start' });
+    expect(place('issue', { gate: open(false), issue: 'q7k2m9xa' })).toEqual({
       kind: 'redirect',
-      to: '/my/agent/connect',
+      to: '/contribute/start?issue=q7k2m9xa',
     });
   });
 
-  it('entered with an attempt: every other step goes to the Contribute tab', () => {
-    for (const step of STEPS.filter((each) => each !== 'agent-own')) {
-      expect(contribute(step, open(true), true, true), step).toEqual({ kind: 'redirect', to: '/contribute' });
-    }
+  it('with the Contribute sign, no attempt: the first step opens; the ways and the second step as today', () => {
+    expect(place('agent', { gate: open(true), connected: OWN })).toEqual({ kind: 'page' });
+    expect(place('agent-own', { gate: open(true) })).toEqual({ kind: 'redirect', to: '/my/agent/connect' });
+    expect(place('agent-own', { gate: open(true), query: 'from=agent' })).toEqual({
+      kind: 'redirect',
+      to: '/my/agent/connect?from=agent',
+    });
+    expect(place('agent-key', { gate: open(true), connected: KEY, issue: 'q7k2m9xa' })).toEqual({
+      kind: 'redirect',
+      to: '/contribute/start/issue?issue=q7k2m9xa',
+    });
+    expect(place('issue', { gate: open(true), connected: OWN })).toEqual({ kind: 'page' });
+    expect(place('issue', { gate: open(true), connected: KEY })).toEqual({ kind: 'page' });
+    expect(place('issue', { gate: open(true) })).toEqual({ kind: 'redirect', to: '/my/agent' });
   });
 
-  it('entered with nothing connected now: the first issue goes to the Agent tab', () => {
-    expect(contribute('issue', open(true, { hosted: false, own: false }))).toEqual({
-      kind: 'redirect',
-      to: '/my/agent',
-    });
+  it('with the Contribute sign and an attempt: the first step opens; the key and the second step go home', () => {
+    const gate = open(true);
+    expect(place('agent', { gate, hasAttempt: true, connected: OWN })).toEqual({ kind: 'page' });
+    expect(place('agent-own', { gate, hasAttempt: true })).toEqual({ kind: 'redirect', to: '/my/agent/connect' });
+    expect(place('agent-key', { gate, hasAttempt: true })).toEqual({ kind: 'redirect', to: '/contribute' });
+    expect(place('issue', { gate, hasAttempt: true, connected: OWN })).toEqual({ kind: 'redirect', to: '/contribute' });
+  });
+
+  it('a sign that is not known keeps today’s rule: entered counts as the sign, nobody is sent back through', () => {
+    expect(place('agent-key', { gate: open(null, true) })).toEqual({ kind: 'redirect', to: '/contribute/start/issue' });
+    expect(place('agent-key', { gate: open(null, false) })).toEqual({ kind: 'page' });
+    // The sign itself wins over `entered` once it is known.
+    expect(place('agent-key', { gate: open(false, true) })).toEqual({ kind: 'page' });
   });
 });
 
-const view = (contributor: Partial<NonNullable<ContributeView['contributor']>> | null, mcp = false) =>
+const token = (patch: Partial<ContributeMcpToken>) =>
+  ({ id: 't1', name: 'Claude Code', lastUsedAt: null, kind: 'TOKEN', ...patch }) as unknown as ContributeMcpToken;
+
+const view = (
+  contributor: Partial<NonNullable<ContributeView['contributor']>> | null,
+  mcp = false,
+  tokens: ContributeMcpToken[] = [],
+) =>
   ({
     contributor: contributor ? { credentials: [], onboardedAt: null, preferences: null, ...contributor } : null,
-    ownAgent: { paths: { hosted: false, mcp }, tokens: [] },
+    ownAgent: { paths: { hosted: false, mcp }, tokens },
   }) as unknown as ContributeView;
 
+describe('flowConnectedOf: what counts as connected', () => {
+  const key = (state: string) => ({ provider: 'ANTHROPIC', state }) as never;
+
+  it('a used token or a signed-in agent is connected; a token never used is not', () => {
+    expect(flowConnectedOf(view({}, true, [token({})]))).toEqual(NONE);
+    expect(flowConnectedOf(view({}, true, [token({ lastUsedAt: '2026-11-25T09:00:00.000Z' })]))).toEqual(OWN);
+    expect(flowConnectedOf(view({}, true, [token({ kind: 'OAUTH' })]))).toEqual(OWN);
+  });
+
+  it('a saved key is connected unless it stopped working', () => {
+    expect(flowConnectedOf(view({ credentials: [key('VALID')] }))).toEqual(KEY);
+    expect(flowConnectedOf(view({ credentials: [key('EXHAUSTED')] }))).toEqual(KEY);
+    expect(flowConnectedOf(view({ credentials: [key('INVALID')] }))).toEqual(NONE);
+    expect(flowConnectedOf(null)).toEqual(NONE);
+  });
+});
+
 describe('the step a landing resumes at, signed in', () => {
-  it('Contribute: the agent’s connect step mid-setup, step 2 once preferences are saved, else step 1', () => {
+  it('Contribute: the agent’s connect step mid-setup, else the first step; saved preferences decide nothing', () => {
     expect(contributeResumeOf(null)).toBe('/contribute/start');
     expect(contributeResumeOf(view(null))).toBe('/contribute/start');
     expect(contributeResumeOf(view({}))).toBe('/contribute/start');
     const preferences = { languages: [], topicIds: [], kinds: [], maxSize: null };
-    expect(contributeResumeOf(view({ preferences }))).toBe('/contribute/start/agent');
+    expect(contributeResumeOf(view({ preferences }))).toBe('/contribute/start');
     expect(contributeResumeOf(view({ preferences }, true))).toBe('/contribute/start/agent/own');
     expect(contributeResumeOf(view({}, true))).toBe('/contribute/start/agent/own');
   });

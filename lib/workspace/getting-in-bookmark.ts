@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import { LAST_CLICK_DAYS } from './click-tracking';
+import { flowWayBackOf, withFlowWayBack } from './flow-way-back';
 import type { FlowSide } from './getting-in';
 import { GETTING_IN_PATHS } from './paths';
 
@@ -20,7 +21,7 @@ type Mark = { href: string; at: number };
 type Bookmarks = Partial<Record<FlowSide, Mark>>;
 
 const FLOW_ROOTS: Record<FlowSide, string> = {
-  contribute: GETTING_IN_PATHS.contributeWork,
+  contribute: GETTING_IN_PATHS.contributeStart,
 };
 
 /** Any origin: an address is accepted only when it stays on it. */
@@ -84,8 +85,9 @@ export function withoutBookmark(stored: string | null, side: FlowSide, now: numb
 export const keptBookmarks = (stored: string | null, now: number): string | null => recordOf(marksOf(stored, now));
 
 /**
- * Where a landing's button leads (§4.1): a visitor resumes at the bookmark when there is one; a signed-in person at the
- * server's step, whatever the bookmark says (it may be older than what the account holds, or another person's).
+ * Where a landing's button leads: a visitor resumes at the bookmark when there is one; a signed-in person at the
+ * server's step, whatever the bookmark says (it may be older than what the account holds, or another person's), with
+ * the bookmark's way back (`?issue=`) when it holds a good one, so a person sent in from an issue still goes back to it.
  */
 export function resumeHrefOf({
   server,
@@ -98,5 +100,6 @@ export function resumeHrefOf({
   bookmark: Route | null;
 }): Route {
   if (!bookmark) return server;
-  return signedIn ? server : bookmark;
+  if (!signedIn) return bookmark;
+  return withFlowWayBack(server, flowWayBackOf(new URL(bookmark, HERE).searchParams));
 }

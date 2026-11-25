@@ -2,58 +2,19 @@
 
 import { SlidersHorizontal } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 
-import { type PreferencesDraft, PreferencesFields } from './preferences-fields';
+import { LanguagesDialog } from './languages-dialog';
+import type { PreferencesDraft } from './preferences-fields';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { SettingsRow } from '@/components/workspace/settings-rows';
 import { useHashOpen } from '@/components/workspace/use-hash-open';
-import { savePreferences } from '@/lib/contribute/actions';
 import { preferencesSummaryOf } from '@/lib/contribute/work-summary';
 import type { ContributePreferences } from '@/lib/workspace/contribute.types';
-import { contributeErrorMessage } from '@/lib/workspace/errors';
-import { plural } from '@/lib/workspace/format';
-
-const draftOf = (preferences: ContributePreferences | null): PreferencesDraft => ({
-  languages: preferences?.languages ?? [],
-});
-
-/** The languages, with the topics counted, and why they apply. */
-export function PreferencesForm({
-  preferences,
-  modes,
-  draft,
-  onChange,
-}: {
-  preferences: ContributePreferences | null;
-  modes: boolean;
-  draft: PreferencesDraft;
-  onChange: (draft: PreferencesDraft) => void;
-}) {
-  const topics = preferences?.topicIds.length ?? 0;
-  return (
-    <>
-      <PreferencesFields value={draft} onChange={onChange} />
-      <p className="text-sm text-muted-foreground">
-        {topics ? `${plural(topics, 'topic')} from your profile` : 'Topics from your profile'}
-        {modes ? '. Picking topics here is coming soon.' : '. Picking topics and repos here is coming soon.'}
-      </p>
-    </>
-  );
-}
 
 /**
- * The languages' row on the Settings work page: the languages in short, and Edit, which opens them in a dialog saved
- * with one button. Opens by itself at `#work`, where links to them point.
+ * The languages' row on the Settings work page: the languages in short, and Edit, which opens them in the languages
+ * dialog. Opens by itself at `#work`, where links to them point.
  */
 export function PreferencesSection({
   preferences,
@@ -65,68 +26,28 @@ export function PreferencesSection({
 }) {
   const router = useRouter();
   const [open, setOpen] = useHashOpen('work');
-  const [draft, setDraft] = useState<PreferencesDraft>(() => draftOf(preferences));
   // What was last saved here, until the page's read catches up with it.
   const [saved, setSaved] = useState<PreferencesDraft | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
   const title = 'Languages';
-
-  const change = (next: boolean) => {
-    if (pending) return;
-    // Opened again: from what is saved, not from a draft left behind.
-    if (next) {
-      setDraft(saved ?? draftOf(preferences));
-      setError(null);
-    }
-    setOpen(next);
-  };
-
-  const save = () =>
-    startTransition(async () => {
-      const result = await savePreferences(draft);
-      if (!result.ok) {
-        setError(contributeErrorMessage(result.error, result.message));
-        return;
-      }
-      setSaved(draft);
-      setOpen(false);
-      router.refresh();
-    });
 
   return (
     <SettingsRow id="work" icon={SlidersHorizontal} title={title} value={preferencesSummaryOf(preferences)}>
-      <Dialog open={open} onOpenChange={change}>
-        <DialogTrigger asChild>
+      <LanguagesDialog
+        open={open}
+        onOpenChange={setOpen}
+        start={(saved ?? preferences)?.languages ?? []}
+        preferences={preferences}
+        modes={modes}
+        trigger={
           <Button type="button" variant="outline" size="sm" aria-label={`Edit ${title.toLowerCase()}`}>
             Edit
           </Button>
-        </DialogTrigger>
-        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>
-              {modes
-                ? 'Issues are matched to these in every mode. Filled from your profile.'
-                : 'Filled from your profile. Add or remove anything.'}
-            </DialogDescription>
-          </DialogHeader>
-          <PreferencesForm preferences={preferences} modes={modes} draft={draft} onChange={setDraft} />
-          {error ? (
-            <span role="alert" className="text-sm text-destructive">
-              {error}
-            </span>
-          ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => change(false)} disabled={pending}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={save} disabled={pending}>
-              {pending ? 'Saving…' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        }
+        onSaved={(draft) => {
+          setSaved(draft);
+          router.refresh();
+        }}
+      />
     </SettingsRow>
   );
 }

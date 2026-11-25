@@ -161,6 +161,13 @@ export type Contributor = {
   onboardedAt?: string | null;
   /** Which way that was; null until onboarded, `undefined` while the API does not answer it. */
   onboardedVia?: ContributeOnboardedVia | null;
+  /**
+   * The Contribute sign: when the person reached the second step of Contribute's onboarding with an agent connected.
+   * Null before; `undefined` while it is not known (its read failed).
+   */
+  contributeOnboardedAt?: string | null;
+  /** The Learn sign: when the person saved Learn's onboarding. Null before; `undefined` while it is not known. */
+  learnOnboardedAt?: string | null;
   /** The access level and the limits it sets now; `undefined` while the API does not answer it. */
   limits?: ContributeLimits;
 };

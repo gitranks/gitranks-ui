@@ -1,93 +1,77 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  firstIssueLineOf,
-  hasPicks,
-  needsProfileLanguages,
-  withWorkPicks,
-  workPicksOf,
-  workPicksQuery,
-  workStartPicksOf,
-} from './start-flow';
-import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
+import { firstIssueLineOf, languagesLineOf, languagesLineText, repickedOf, startingLanguagesOf } from './start-flow';
 
-describe('What you work on, in the address', () => {
-  it('reads the known names in either case, in the table’s order, each once', () => {
-    expect(workPicksOf({ languages: 'rust,js_ts,GO,rust' })).toEqual({ languages: ['JS_TS', 'GO', 'RUST'] });
-    expect(workPicksOf(new URLSearchParams('languages=python'))).toEqual({ languages: ['PYTHON'] });
+const OWN = { own: true, hosted: false };
+const KEY = { own: false, hosted: true };
+const BOTH = { own: true, hosted: true };
+
+describe('the first issue’s head, by what is connected', () => {
+  it('names the own agent, else "Your agent"', () => {
+    expect(firstIssueLineOf(OWN, 'Claude Code')).toBe(
+      'Claude Code is connected. These open issues fit what you work on. See one in full, then start it.',
+    );
+    expect(firstIssueLineOf(OWN, null)).toBe(
+      'Your agent is connected. These open issues fit what you work on. See one in full, then start it.',
+    );
   });
 
-  it('ignores an old address’s kinds: kinds of issue are no choice', () => {
-    expect(workPicksOf({ languages: 'go', kinds: 'tests,bug' })).toEqual({ languages: ['GO'] });
-    expect(workPicksOf(new URLSearchParams('kinds=docs'))).toEqual({ languages: [] });
+  it('says the hosted agent begins at once for a key, and asks who works on it for both', () => {
+    expect(firstIssueLineOf(KEY, null)).toBe(
+      'Your Claude key is connected. These open issues fit what you work on. See one in full, then start it, and the hosted agent begins at once.',
+    );
+    expect(firstIssueLineOf(BOTH, 'Codex')).toBe(
+      'Your agents are connected. These open issues fit what you work on. See one in full, then start it and choose who works on it.',
+    );
   });
 
-  it('drops what it does not know, and reads a missing or repeated parameter safely', () => {
-    expect(workPicksOf({ languages: 'cobol,,<script>' })).toEqual({ languages: [] });
-    expect(workPicksOf({})).toEqual({ languages: [] });
-    expect(workPicksOf({ languages: ['go', 'rust'] })).toEqual({ languages: ['GO'] });
-  });
-
-  it('writes the picks in lower case, an empty list left out, and round-trips', () => {
-    expect(workPicksQuery({ languages: ['RUST', 'JS_TS'] })).toBe('languages=rust,js_ts');
-    expect(workPicksQuery({ languages: [] })).toBe('');
-    const href = withWorkPicks(GETTING_IN_PATHS.contributeAgent, { languages: ['GO', 'PHP'] });
-    expect(href).toBe('/contribute/start/agent?languages=go,php');
-    expect(workPicksOf(new URL(href, 'https://gitranks.com').searchParams)).toEqual({ languages: ['GO', 'PHP'] });
-    expect(withWorkPicks(GETTING_IN_PATHS.contributeAgent, { languages: [] })).toBe('/contribute/start/agent');
+  it('while the first issues are picked, and when nothing fits', () => {
+    expect(firstIssueLineOf(OWN, 'Claude Code', 'picking')).toBe(
+      'Claude Code is connected. Your first issues are on their way.',
+    );
+    expect(firstIssueLineOf(OWN, 'Claude Code', 'none')).toBe(
+      'Claude Code is connected, so you are ready when an issue comes.',
+    );
+    expect(firstIssueLineOf(KEY, null, 'none')).toBe('Your Claude key is connected, so you are ready when an issue comes.');
+    expect(firstIssueLineOf(BOTH, null, 'picking')).toBe('Your agents are connected. Your first issues are on their way.');
   });
 });
 
-describe('the picks What you work on starts from', () => {
-  const address = { languages: ['RUST' as const] };
-  const saved = { languages: ['GO' as const] };
-
-  it('a visitor gets the address', () => {
-    expect(workStartPicksOf({ signedIn: false, saved: null, address, profile: ['PYTHON'] })).toEqual(address);
-    expect(needsProfileLanguages(false, null, { languages: [] })).toBe(false);
+describe('the line of languages', () => {
+  it('shows the saved languages, without naming the profile', () => {
+    expect(languagesLineText(languagesLineOf(['JS_TS', 'PYTHON', 'GO'], ['RUST']))).toBe(
+      'Picked for JavaScript / TypeScript, Python and Go.',
+    );
   });
 
-  it('saved preferences show as saved, never overwritten by the address', () => {
-    expect(workStartPicksOf({ signedIn: true, saved, address, profile: ['PYTHON'] })).toEqual(saved);
-    expect(needsProfileLanguages(true, saved, { languages: [] })).toBe(false);
+  it('shows the profile’s while nothing is saved, and says where they come from', () => {
+    expect(languagesLineText(languagesLineOf(null, ['JS_TS', 'PYTHON', 'GO']))).toBe(
+      'Picked for JavaScript / TypeScript, Python and Go, from your GitHub profile.',
+    );
+    expect(languagesLineText(languagesLineOf(null, ['GO']))).toBe('Picked for Go, from your GitHub profile.');
+    expect(languagesLineText(languagesLineOf(null, ['GO', 'RUST']))).toBe('Picked for Go and Rust, from your GitHub profile.');
   });
 
-  it('with nothing saved, the address’s languages win over the profile', () => {
-    expect(workStartPicksOf({ signedIn: true, saved: null, address, profile: ['PYTHON'] })).toEqual(address);
-    expect(needsProfileLanguages(true, null, address)).toBe(false);
+  it('says every language when none is known, or none is saved', () => {
+    expect(languagesLineText(languagesLineOf(null, []))).toBe('Picked from every language.');
+    expect(languagesLineText(languagesLineOf([], ['GO']))).toBe('Picked from every language.');
   });
 
-  it('with nothing saved and no languages in the address, the profile’s are pre-ticked', () => {
-    const none = { languages: [] };
-    expect(needsProfileLanguages(true, null, none)).toBe(true);
-    expect(workStartPicksOf({ signedIn: true, saved: null, address: none, profile: ['PYTHON', 'GO'] })).toEqual({
-      languages: ['PYTHON', 'GO'],
-    });
-  });
-
-  it('an unread profile pre-ticks nothing', () => {
-    expect(workStartPicksOf({ signedIn: true, saved: undefined, address: { languages: [] }, profile: [] })).toEqual({
-      languages: [],
-    });
+  it('"Change" opens with what the line shows', () => {
+    expect(startingLanguagesOf(['RUST'], ['GO'])).toEqual(['RUST']);
+    expect(startingLanguagesOf(null, ['GO', 'PYTHON'])).toEqual(['GO', 'PYTHON']);
+    expect(startingLanguagesOf([], ['GO'])).toEqual([]);
   });
 });
 
-describe('Your first issue’s line', () => {
-  it('names the own agent, the key, or both', () => {
-    expect(firstIssueLineOf({ hosted: false, own: true }, 'Codex')).toBe(
-      'Codex is connected. These open issues match what you work on: press Start on one, and you get one prompt to paste in your agent.',
-    );
-    expect(firstIssueLineOf({ hosted: false, own: true }, null)).toMatch(/^Your agent is connected\./);
-    expect(firstIssueLineOf({ hosted: true, own: false }, 'Codex')).toBe(
-      'Your Claude key is connected. These open issues match what you work on: press Start on one, and the hosted agent begins at once.',
-    );
-    expect(firstIssueLineOf({ hosted: true, own: true }, 'Codex')).toBe(
-      'Your agents are connected. These open issues match what you work on: press Start on one and choose who works on it.',
-    );
-  });
-
-  it('knows an address with picks', () => {
-    expect(hasPicks({ languages: [] })).toBe(false);
-    expect(hasPicks({ languages: ['GO'] })).toBe(true);
+describe('repickedOf: the list picked again after a save', () => {
+  it('compares two server times, and nothing else', () => {
+    expect(repickedOf('2026-11-25T09:00:00.000Z', '2026-11-25T09:00:01.000Z')).toBe(true);
+    expect(repickedOf('2026-11-25T09:00:00.000Z', '2026-11-25T09:00:00.000Z')).toBe(false);
+    expect(repickedOf('2026-11-25T09:00:00.000Z', '2026-11-25T08:59:00.000Z')).toBe(false);
+    expect(repickedOf('2026-11-25T09:00:00.000Z', null)).toBe(false);
+    expect(repickedOf(null, '2026-11-25T09:00:00.000Z')).toBe(true);
+    expect(repickedOf(null, null)).toBe(false);
+    expect(repickedOf('2026-11-25T09:00:00.000Z', 'not a time')).toBe(false);
   });
 });

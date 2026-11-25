@@ -72,6 +72,15 @@ export const settingsOf = (view: ContributeView): ContributeSettings | null =>
 export const claudeKeyOf = (view: ContributeView | null | undefined): ContributeCredential | undefined =>
   view?.contributor?.credentials.find((credential) => credential.provider === 'ANTHROPIC');
 
+/**
+ * The Claude key when it counts as connected: saved and not refused (`INVALID`). Every reader of "connected" uses it;
+ * `claudeKeyOf` still answers a refused key, whose notice says it stopped working.
+ */
+export const connectedKeyOf = (view: ContributeView | null | undefined): ContributeCredential | undefined => {
+  const key = claudeKeyOf(view);
+  return key && key.state !== 'INVALID' ? key : undefined;
+};
+
 /** Paused: by a refused key, which the key's notice says. */
 export const isPaused = (view: ContributeView) => view.contributor?.status === 'PAUSED';
 

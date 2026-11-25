@@ -167,17 +167,17 @@ export const ABOUT_PATH = '/contribute/about' as Route;
 export const CONTRIBUTE_TERMS_PATH = '/terms#contribute' as Route;
 
 /**
- * The steps of the flow that starts Contribute (getting in, §5.3): its landing's one button leads into it, and each
- * step's page checks who opens it.
+ * The steps of the flow that starts Contribute, Contribute's onboarding: its landing's one button leads into it, and
+ * each step's page checks who opens it.
  */
 export const GETTING_IN_PATHS = {
-  /** Contribute, step 1: what you work on. */
-  contributeWork: '/contribute/start' as Route,
-  /** Contribute, step 2: who does the work, your own agent or a Claude key. */
+  /** Contribute's first step: how Contribute works, and who does the work, your own agent or a Claude key. */
+  contributeStart: '/contribute/start' as Route,
+  /** The first step again, at the address older links and tabs hold. */
   contributeAgent: '/contribute/start/agent' as Route,
   contributeAgentOwn: '/contribute/start/agent/own' as Route,
   contributeAgentKey: '/contribute/start/agent/key' as Route,
-  /** Contribute, step 3: your first issue. */
+  /** Contribute's second step: your first issue. */
   contributeIssue: '/contribute/start/issue' as Route,
 } as const;
 

@@ -49,8 +49,9 @@ export const CONTRIBUTE_SOURCES = [
   /** Copy the prompt, on the Start page, Fix it. */
   'contribute_start_copy',
   /**
-   * The flow that starts Contribute: Continue on What you work on, Sign in with GitHub on any of its steps, Connect your
-   * agent and Use a Claude key on Your agent, Start on a row and Skip for now on Your first issue.
+   * The flow that starts Contribute: Sign in with GitHub on a box of Your agent, Connect your agent and Use a Claude
+   * key there, Start on a row and Skip for now on Your first issue. `contribute_flow_work` was Continue on a first step
+   * the flow no longer has: kept so the clicks counted under it still read.
    */
   'contribute_flow_work',
   'contribute_flow_sign_in',

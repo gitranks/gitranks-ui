@@ -74,6 +74,17 @@ describe('the flow’s bookmark', () => {
 });
 
 describe('resumeHrefOf: where a landing’s button leads', () => {
+  it('a signed-in person keeps the bookmark’s way back on the server’s step, and only a good one', () => {
+    const resume = (bookmark: string, server = '/contribute/start') =>
+      resumeHrefOf({ side: 'contribute', server: r(server), signedIn: true, bookmark: r(bookmark) });
+    expect(resume('/contribute/start/agent/key?issue=q7k2m9xa')).toBe('/contribute/start?issue=q7k2m9xa');
+    expect(resume('/contribute/start?issue=q7k2m9xa', '/contribute/start/agent/own')).toBe(
+      '/contribute/start/agent/own?issue=q7k2m9xa',
+    );
+    expect(resume('/contribute/start/agent?issue=..%2F..%2Fx')).toBe('/contribute/start');
+    expect(resume('/contribute/start/agent?languages=go')).toBe('/contribute/start');
+  });
+
   it('a visitor resumes at the bookmark, else the server’s step', () => {
     expect(resumeHrefOf({ side: 'contribute', server: r('/contribute/start'), signedIn: false, bookmark: null })).toBe(
       '/contribute/start',

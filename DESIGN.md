@@ -115,10 +115,13 @@ Contribute and Learn share one signed-in workspace (`components/workspace/`).
   Learn only on their own pages, never on the shared tabs.
 - Getting in: each side has one landing page with one button (Start contributing, Start learning), then a short flow
   with no tabs (`app/(onboarding)/`, `components/workspace/getting-in/`): the site header, one line of numbered steps
-  (`FlowSteps`), the step in a `max-w-3xl` column. Contribute: What you work on → Your agent → Your first issue. Learn:
-  Your goal → Pick an issue → Your agent, at the issue's own start address. Sign-in is asked only at the first step that
-  needs an account, in one card (`FlowSignIn`); the steps after it show dimmed. The tabs appear once an agent has
-  connected. Members read the same landing at `/contribute/about` and `/learn/about`: on Contribute's, its one button
+  (`FlowSteps`), the step in a `max-w-3xl` column. Contribute: Your agent → Your first issue. Learn: Your goal → Pick an
+  issue → Your agent, at the issue's own start address. Contribute's first step is one page in every case: how
+  Contribute works, then two boxes (your own agent, a Claude key) whose top line and button change; a visitor reads it
+  whole, and its buttons sign in with GitHub first (`signInToFlow`), then open the step the button names. No step draws
+  a sign-in card. The second step sets the Contribute sign from the browser once drawn, and every way out of it waits
+  for that. A flow opened from an issue keeps the way back (`?issue=`) on every address and every button, and the
+  second step starts with "The issue you opened". The tabs appear once an agent has connected. Members read the same landing at `/contribute/about` and `/learn/about`: on Contribute's, its one button
   reads "Go to your issues" (to Contribute home), at the top and at the foot; on Learn's, "Open Learn".
 - The reference line: every row, card and header that names an issue or a pull request opens with `RefChips` (the repo,
   `Issue #N ↗`, `PR #N ↗`). The title opens our page; the chips open GitHub.

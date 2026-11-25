@@ -113,11 +113,11 @@ describe('after Allow, by the client’s kind and the signs', () => {
   const LOOPBACK_REDIRECT = 'http://127.0.0.1:33418/callback?code=c0de';
   const SETUP_LINE =
     'Your agent is connected. One step left before it can take an issue: a 2-minute setup that shows how you approve its pull requests.';
-  let tab: { opener: unknown; location: { href: string }; close: ReturnType<typeof vi.fn> };
+  let tab: { opener: unknown; closed: boolean; location: { href: string }; close: ReturnType<typeof vi.fn> };
   let open: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    tab = { opener: window, location: { href: 'about:blank' }, close: vi.fn() };
+    tab = { opener: window, closed: false, location: { href: 'about:blank' }, close: vi.fn() };
     open = vi.fn(() => tab);
     vi.stubGlobal('open', open);
   });
@@ -154,6 +154,19 @@ describe('after Allow, by the client’s kind and the signs', () => {
     approve.mockResolvedValue({ ok: true, data: { redirectTo: LOOPBACK_REDIRECT } });
     act(() => root.render(<AuthorizeActions requestId={ID} clientName="Claude Code" kind="LOOPBACK" setup />));
     await click('[data-authorize="allow"]');
+    expect(assign).toHaveBeenCalledWith(LOOPBACK_REDIRECT);
+    expect(status()).toBe('Allowed. Go back to Claude Code: it is connected.');
+    expect(finish()).toBeNull();
+  });
+
+  it('a terminal agent, the new tab closed before the approval answers: the page goes back to the agent', async () => {
+    let answer: (value: unknown) => void = () => {};
+    approve.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    act(() => root.render(<AuthorizeActions requestId={ID} clientName="Claude Code" kind="LOOPBACK" setup />));
+    act(() => container.querySelector<HTMLButtonElement>('[data-authorize="allow"]')?.click());
+    tab.closed = true;
+    await act(async () => answer({ ok: true, data: { redirectTo: LOOPBACK_REDIRECT } }));
+    expect(tab.location.href).toBe('about:blank');
     expect(assign).toHaveBeenCalledWith(LOOPBACK_REDIRECT);
     expect(status()).toBe('Allowed. Go back to Claude Code: it is connected.');
     expect(finish()).toBeNull();

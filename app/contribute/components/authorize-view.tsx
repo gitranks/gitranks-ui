@@ -163,12 +163,12 @@ function PendingCard({
       }
     >
       <CardContent className="flex flex-col gap-4 text-sm">
-        <HowItWorks />
         {where.warning ? (
           <p role="note" className="rounded-lg border border-warning/40 bg-warning-soft px-3.5 py-2.5 font-medium">
             {where.warning}
           </p>
         ) : null}
+        <HowItWorks />
         <div className="flex flex-col gap-2">
           <p className="font-semibold">It will be able to:</p>
           <ul className="flex flex-col gap-2 text-foreground/80">

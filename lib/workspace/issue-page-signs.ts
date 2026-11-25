@@ -33,7 +33,7 @@ export function issueSetupOf(from: IssuePageFrom, signs: WorkspaceSigns): IssueS
 /**
  * What the start part offers by the signs.
  * - `justFix`: "Just fix it" from Learn is a fix made with Contribute, which the server refuses without the Contribute
- *   sign, so it is offered only with it.
+ *   sign, so it is offered only with it (or while that sign is not known, as before the signs).
  * - `walkthrough`: the line that adds the walkthrough to a fix from Contribute starts a fix made with Learn, so it reads
  *   the Learn sign; while that is not known, today's rule (`usesLearn`: a saved setup of Learn or the Learn side).
  */
@@ -41,7 +41,7 @@ export function issueStartSignsOf(
   signs: WorkspaceSigns,
   usesLearn: boolean,
 ): { justFix: boolean; walkthrough: boolean } {
-  return { justFix: signs.contribute === true, walkthrough: signs.learn ?? usesLearn };
+  return { justFix: signs.contribute !== false, walkthrough: signs.learn ?? usesLearn };
 }
 
 /**

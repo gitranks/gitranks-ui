@@ -55,11 +55,12 @@ describe('the onboarding a fix needs first', () => {
 });
 
 describe('what the start form offers by the signs', () => {
-  it('"Just fix it" only with the Contribute sign', () => {
+  it('"Just fix it" only with the Contribute sign, or while it is not known', () => {
     expect(issueStartSignsOf(BOTH, false).justFix).toBe(true);
     expect(issueStartSignsOf(CONTRIBUTE, false).justFix).toBe(true);
     expect(issueStartSignsOf(LEARN, false).justFix).toBe(false);
-    expect(issueStartSignsOf(UNKNOWN, true).justFix).toBe(false);
+    expect(issueStartSignsOf(UNKNOWN, true).justFix).toBe(true);
+    expect(issueStartSignsOf(NONE, false).justFix).toBe(false);
   });
 
   it('the walkthrough line by the Learn sign, today’s rule only while it is not known', () => {

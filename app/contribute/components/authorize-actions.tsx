@@ -111,7 +111,8 @@ export function AuthorizeActions({
         setError("We can't send you back to this app: its address isn't one we allow.");
         return;
       }
-      if (tab) {
+      // A tab closed meanwhile can't take the way back: the page goes back itself, as when the tab was blocked.
+      if (tab && !tab.closed) {
         tab.location.href = result.data.redirectTo;
         setLeft('setup');
         return;

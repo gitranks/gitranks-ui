@@ -104,6 +104,20 @@ describe('contributeFlowPlaceOf: who is sent where, row by row', () => {
     expect(place('issue', { gate, hasAttempt: true, connected: OWN })).toEqual({ kind: 'redirect', to: '/contribute' });
   });
 
+  it('with the Contribute sign, every redirect keeps the way back', () => {
+    const gate = open(true);
+    const issue = 'q7k2m9xa';
+    expect(place('agent-own', { gate, query: `issue=${issue}`, issue })).toEqual({
+      kind: 'redirect',
+      to: `/my/agent/connect?issue=${issue}`,
+    });
+    expect(place('agent-key', { gate, hasAttempt: true, issue })).toEqual({
+      kind: 'redirect',
+      to: `/contribute?issue=${issue}`,
+    });
+    expect(place('issue', { gate, issue })).toEqual({ kind: 'redirect', to: `/my/agent?issue=${issue}` });
+  });
+
   it('a sign that is not known keeps today’s rule: entered counts as the sign, nobody is sent back through', () => {
     expect(place('agent-key', { gate: open(null, true) })).toEqual({ kind: 'redirect', to: '/contribute/start/issue' });
     expect(place('agent-key', { gate: open(null, false) })).toEqual({ kind: 'page' });

@@ -98,9 +98,9 @@ export function contributeFlowPlaceOf(
   if (step === 'agent-own') {
     return redirectTo((query ? `${WORKSPACE_PATHS.agentConnect}?${query}` : WORKSPACE_PATHS.agentConnect) as Route);
   }
-  if (hasAttempt) return redirectTo(WORKSPACE_PATHS.contribute);
+  if (hasAttempt) return redirectTo(back(WORKSPACE_PATHS.contribute));
   if (step === 'agent-key') return redirectTo(back(GETTING_IN_PATHS.contributeIssue));
-  return anyConnected ? PAGE : redirectTo(WORKSPACE_PATHS.agent);
+  return anyConnected ? PAGE : redirectTo(back(WORKSPACE_PATHS.agent));
 }
 
 /**

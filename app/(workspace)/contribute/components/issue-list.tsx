@@ -16,6 +16,7 @@ import { ShowMore } from '@/components/workspace/show-more';
 import { IssueStartsProvider } from '@/components/workspace/start-control';
 import { ISSUES_PAGE_SIZE } from '@/lib/contribute/live-issues';
 import { tiersOf } from '@/lib/contribute/set-format';
+import type { OpenedIssueKey } from '@/lib/contribute/start-flow';
 import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
 import type { ContributeSource } from '@/lib/workspace/click-tracking';
@@ -79,6 +80,8 @@ export type ContributeIssueListProps = {
   noneTitle?: string;
   /** For masked rows: the day's full issues and the numbers of a night. */
   masked?: MaskedListReads;
+  /** An issue drawn above the list (the one the person opened): left out of the pages read after the first too. */
+  leaveOut?: OpenedIssueKey | null;
   className?: string;
 };
 
@@ -100,6 +103,7 @@ export function ContributeIssueList({
   source,
   noneTitle,
   masked = NO_MASKED_READS,
+  leaveOut = null,
   className,
 }: ContributeIssueListProps) {
   const router = useRouter();
@@ -149,6 +153,7 @@ export function ContributeIssueList({
         source={source}
         noneTitle={noneTitle}
         masked={masked}
+        leaveOut={leaveOut}
         onLimitReached={() => router.refresh()}
       />
     );
@@ -175,8 +180,9 @@ function LiveRows({
   source,
   noneTitle,
   masked,
+  leaveOut,
   onLimitReached,
-}: Required<Pick<ContributeIssueListProps, 'agents' | 'menu' | 'languages' | 'masked'>> & {
+}: Required<Pick<ContributeIssueListProps, 'agents' | 'menu' | 'languages' | 'masked' | 'leaveOut'>> & {
   noneTitle?: string;
   page: ContributeIssuePage | null;
   limit: LimitCounts | null;
@@ -191,6 +197,7 @@ function LiveRows({
     ISSUES_PAGE_SIZE,
     NO_FILTER,
     root,
+    leaveOut,
   );
   const [growing, startGrowing] = useTransition();
   const byId = new Map(snapshot.rows.map((row) => [row.issue.issueId, row]));

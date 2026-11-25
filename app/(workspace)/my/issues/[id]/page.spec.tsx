@@ -202,7 +202,8 @@ describe('the page of one issue at /my/issues/[id]', () => {
     await expect(issuePageAt()).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
-  it('names Learn in the start form, from Contribute, only to a person who uses it (a saved setup)', async () => {
+  it('names Learn in the start form, from Contribute, while the Learn sign is not known, by a saved setup', async () => {
+    gate.loadWorkspaceGate.mockResolvedValue({ ...OPEN, signs: { contribute: true, learn: null } });
     data.loadIssuePage.mockResolvedValue({ kind: 'page', page: fullPage() });
     expect(text(await issuePageAt())).not.toContain('You also use GitRanks Learn');
     learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
@@ -217,6 +218,83 @@ describe('the page of one issue at /my/issues/[id]', () => {
   it('shows the window without numbers when they cannot be read', async () => {
     data.loadIssueNumbers.mockResolvedValue(null);
     expect(stateOf(await issuePageAt())).toBe('MASKED');
+  });
+});
+
+describe('the page of one issue by the signs', () => {
+  const signed = (contribute: boolean | null, learn: boolean | null) =>
+    gate.loadWorkspaceGate.mockResolvedValue({ ...OPEN, signs: { contribute, learn } });
+  const setupLine = (html: string) => /data-setup-line="">([^<]*)</.exec(html)?.[1] ?? null;
+  const form = (html: string) => /data-start-form="(\w+)"/.exec(html)?.[1] ?? null;
+  const CONTRIBUTE_LINE =
+    'First time here? A 2-minute setup shows how Contribute works, then you come back to this issue.';
+  const LEARN_LINE = 'First time here? A 2-minute setup shows how Learn works, then you come back to this issue.';
+
+  beforeEach(() => {
+    data.loadIssuePage.mockResolvedValue({ kind: 'page', page: fullPage() });
+  });
+
+  it('a visitor is not drawn here: the layout asks them to sign in first', async () => {
+    gate.loadWorkspaceGate.mockResolvedValue({ kind: 'signed-out' });
+    await expect(issuePageAt({ from: 'contribute' })).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('no sign: Contribute’s setup from Contribute and from no product, Learn’s from Learn; reading stays open', async () => {
+    signed(false, false);
+    for (const from of ['contribute', 'email', 'agent', '']) {
+      const html = await issuePageAt(from ? { from } : {});
+      expect(setupLine(html)).toBe(CONTRIBUTE_LINE);
+      expect(form(html)).toBeNull();
+    }
+    const learnHtml = await issuePageAt({ from: 'learn' });
+    expect(setupLine(learnHtml)).toBe(LEARN_LINE);
+    expect(form(learnHtml)).toBeNull();
+    data.loadIssuePage.mockResolvedValue({ kind: 'page', page: issuePage() });
+    expect(text(await issuePageAt({ from: 'contribute' }))).toContain('See the full issue');
+  });
+
+  it('the Contribute sign only: today’s form from Contribute with no walkthrough line, Learn’s setup from Learn', async () => {
+    signed(true, false);
+    learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
+    const contribute = await issuePageAt({ from: 'contribute' });
+    expect(form(contribute)).toBe('contribute');
+    expect(setupLine(contribute)).toBeNull();
+    expect(text(contribute)).not.toContain('You also use GitRanks Learn');
+    expect(setupLine(await issuePageAt({ from: 'learn' }))).toBe(LEARN_LINE);
+    expect(form(await issuePageAt({ from: 'email' }))).toBe('contribute');
+  });
+
+  it('the Learn sign only: Learn’s form with no "Just fix it", from Learn and from no product; Contribute’s setup from Contribute', async () => {
+    signed(false, true);
+    const fromLearn = await issuePageAt({ from: 'learn' });
+    expect(form(fromLearn)).toBe('learn');
+    expect(text(fromLearn)).not.toContain('Just fix it');
+    expect(text(fromLearn)).toContain('with GitRanks Learn and teach me');
+    const fromEmail = await issuePageAt({ from: 'email' });
+    expect(form(fromEmail)).toBe('learn');
+    expect(fromEmail).toContain('href="/learn/issues"');
+    expect(setupLine(await issuePageAt({ from: 'contribute' }))).toBe(CONTRIBUTE_LINE);
+  });
+
+  it('both signs: "Just fix it" from Learn, and the walkthrough line from Contribute', async () => {
+    signed(true, true);
+    const fromLearn = await issuePageAt({ from: 'learn' });
+    expect(form(fromLearn)).toBe('learn');
+    expect(text(fromLearn)).toContain('Just fix it');
+    const fromContribute = await issuePageAt({ from: 'contribute' });
+    expect(form(fromContribute)).toBe('contribute');
+    expect(text(fromContribute)).toContain('You also use GitRanks Learn');
+  });
+
+  it('the signs unreadable: today’s page, no setup, the walkthrough line by a saved setup', async () => {
+    signed(null, null);
+    learn.loadLearnSetupOfMine.mockResolvedValue(SETUP_SAVED);
+    for (const from of ['contribute', 'learn', 'email']) {
+      const html = await issuePageAt({ from });
+      expect(setupLine(html)).toBeNull();
+      expect(form(html)).toBe(from === 'learn' ? 'learn' : 'contribute');
+    }
+    expect(text(await issuePageAt({ from: 'contribute' }))).toContain('You also use GitRanks Learn');
   });
 });
 

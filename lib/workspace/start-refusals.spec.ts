@@ -169,6 +169,15 @@ describe("an issue row's refused hosted Start", () => {
     });
   });
 
+  it('leads to the setup when it is not finished, and keeps the row', () => {
+    expect(words({ refusal: 'SETUP_UNFINISHED' })).toMatchObject({
+      code: 'SETUP_UNFINISHED',
+      text: 'Setup is not finished. A 2-minute setup shows how Contribute works.',
+      action: { href: '/contribute/start', label: 'Finish setting up' },
+      row: 'stays',
+    });
+  });
+
   it('folds the row away for an issue that is gone, and keeps it without a control for a closed repo', () => {
     expect(words({ refusal: 'TAKEN' })).toMatchObject({ text: "Someone else's agent took this issue.", row: 'folds' });
     expect(words({ refusal: 'CLOSED' })).toMatchObject({ text: 'This issue was closed meanwhile.', row: 'folds' });

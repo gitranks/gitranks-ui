@@ -12,7 +12,12 @@ import { CONTRIBUTE_FLOW_PANELS, flowPanelOf } from '@/components/workspace/gett
 import { MaskedIssueRow } from '@/components/workspace/masked-issue/masked-issue-row';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { loadIssues } from '@/lib/contribute/contribute.data';
-import { type FirstIssueState, firstIssueLineOf, withoutOpenedIssue } from '@/lib/contribute/start-flow';
+import {
+  type FirstIssueState,
+  firstIssueLineOf,
+  openedIssueKeyOf,
+  withoutOpenedIssue,
+} from '@/lib/contribute/start-flow';
 import { loadFlowProfileLanguages } from '@/lib/contribute/start-flow.data';
 import { startWaysOf, startWaysReadOf } from '@/lib/contribute/start-ways';
 import { contributeSource } from '@/lib/workspace/click-tracking';
@@ -80,8 +85,10 @@ async function ContributeFirstIssue({ searchParams }: Pick<PageProps<'/contribut
     loadOpenedIssue(issue),
     saved?.length ? Promise.resolve([]) : loadFlowProfileLanguages(),
   ]);
-  // The issue the person opened is drawn above the list, never in it as well.
+  // The issue the person opened is drawn above the list, never in it as well: not on the first page, nor on the pages
+  // "Show 10 more" reads.
   const page = withoutOpenedIssue(issues, opened);
+  const leaveOut = openedIssueKeyOf(opened);
   const settings = view?.contributor?.settings;
   const limit = held ? null : limitReachedOf(counts, settings, view?.contributor?.limits);
   const client = learnStartConnectionOf(view?.ownAgent?.tokens)?.client;
@@ -150,6 +157,7 @@ async function ContributeFirstIssue({ searchParams }: Pick<PageProps<'/contribut
         facts={{ capUsd: settings?.attemptCapUsd ?? null, keyWaiting }}
         source="contribute_flow_issue"
         masked={masked}
+        leaveOut={leaveOut}
       />
     </FirstIssueStep>
   );

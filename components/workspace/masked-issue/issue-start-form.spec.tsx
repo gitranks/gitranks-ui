@@ -3,7 +3,7 @@ import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { IssueStartForm, type IssueStartFormProps } from './issue-start-form';
+import { IssueSetupForm, IssueStartForm, type IssueStartFormProps } from './issue-start-form';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 // The radios measure themselves; jsdom has no ResizeObserver.
@@ -191,5 +191,62 @@ describe('Start fixing it, an issue kept for people who are learning', () => {
     expect(prompt()).toBe(`Fix ${URL} with GitRanks`);
     expect(container.querySelector('[data-learn-only]')).toBeNull();
     expect(container.textContent).not.toMatch(/walkthrough/i);
+  });
+});
+
+describe('Start fixing it, from Learn, without the Contribute sign', () => {
+  it('offers no "Just fix it": no "How" step, the fix comes with its walkthrough, and no kept-for-learners line', async () => {
+    await form({ justFix: false });
+    expect(steps()).toEqual(['Your agent', 'Paste this in Claude Code']);
+    expect(radio('Just fix it')).toBeNull();
+    expect(prompt()).toBe(`Fix ${URL} with GitRanks Learn and teach me`);
+    expect(container.querySelector('[data-learn-only]')).toBeNull();
+  });
+
+  it('from Contribute, changes nothing', async () => {
+    await form({ from: 'contribute', justFix: false });
+    expect(steps()).toEqual(['Your agent', 'Paste this in Claude Code']);
+    expect(prompt()).toBe(`Fix ${URL} with GitRanks`);
+  });
+});
+
+describe('the copy after the look was held longer on the way into an onboarding', () => {
+  it('says when the hold really ends, in place of the 30 minutes', async () => {
+    await form({ heldUntil: '2026-10-28T12:41:00.000Z', timeZone: 'UTC' });
+    await press(button('Copy the prompt'));
+    expect(container.querySelector('[role="status"]')?.textContent).toBe(
+      'Copied. Waiting for Claude Code. The issue is held until 12:41.',
+    );
+  });
+
+  it('says the 30 minutes without it', async () => {
+    await form();
+    await press(button('Copy the prompt'));
+    expect(container.querySelector('[role="status"]')?.textContent).toBe(
+      'Copied. Waiting for Claude Code. The issue is now held for 30 minutes.',
+    );
+  });
+});
+
+describe('"Start fixing it" without the sign', () => {
+  it('keeps the heading, one button with Enter and the line under it, and presses once', async () => {
+    const onPress = vi.fn();
+    await render(<IssueSetupForm line="First time here?" onPress={onPress} />);
+    expect(container.querySelector('h2')?.textContent).toBe('Start fixing it');
+    expect(container.querySelector('[data-setup-line]')?.textContent).toBe('First time here?');
+    await press(button('Start fixing it'));
+    expect(onPress).toHaveBeenCalledTimes(1);
+    await enter();
+    expect(onPress).toHaveBeenCalledTimes(2);
+  });
+
+  it('waits in place while the press is on its way', async () => {
+    const onPress = vi.fn();
+    await render(<IssueSetupForm line="First time here?" onPress={onPress} pressing />);
+    const pressed = button('Start fixing it');
+    expect(pressed?.getAttribute('aria-disabled')).toBe('true');
+    await press(pressed);
+    await enter();
+    expect(onPress).not.toHaveBeenCalled();
   });
 });

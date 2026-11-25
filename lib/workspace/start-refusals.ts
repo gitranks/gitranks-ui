@@ -4,7 +4,13 @@ import { contributeErrorMessage } from './errors';
 import { dayLabel, usd } from './format';
 import type { IssueStart, IssueStartRefusal } from './issue-start';
 import type { LimitCounts } from './limit-words';
-import { KEY_REPLACE_PATH, pullRequestByAttemptPath, WORKSPACE_ANCHORS, WORKSPACE_PATHS } from './paths';
+import {
+  GETTING_IN_PATHS,
+  KEY_REPLACE_PATH,
+  pullRequestByAttemptPath,
+  WORKSPACE_ANCHORS,
+  WORKSPACE_PATHS,
+} from './paths';
 import { isOpenPrsLimit } from './start/start-page';
 import type { StartPageIssueView, StartPageRefusal } from './start/start-page.types';
 import { CONTACT_EMAIL } from '@/lib/legal';
@@ -175,6 +181,11 @@ export function issueStartRefusalOf(answer: IssueStart, facts: IssueStartFacts =
       return say('This issue was closed meanwhile.', null, 'folds');
     case 'REPO_UNAVAILABLE':
       return say("This project can't take a pull request from us right now.", null, 'no-control');
+    case 'SETUP_UNFINISHED':
+      return say('Setup is not finished. A 2-minute setup shows how Contribute works.', {
+        href: GETTING_IN_PATHS.contributeStart,
+        label: 'Finish setting up',
+      });
     case 'ACCOUNT_PAUSED':
       return say("This account can't start issues right now.", {
         href: `mailto:${CONTACT_EMAIL}`,

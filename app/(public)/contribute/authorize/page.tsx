@@ -9,8 +9,8 @@ import {
 } from '@/app/contribute/components/authorize-view';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { loadContributeSetupState, viewerLogin } from '@/lib/workspace/contribute.data';
-import { ContributeOAuthRequestDocument } from '@/lib/workspace/contribute.documents';
-import { REVIEW_SIGN_IN_SHOWN, requestIdOf } from '@/lib/workspace/oauth-consent';
+import { ContributeOAuthRequestDocument, ContributeSignsDocument } from '@/lib/workspace/contribute.documents';
+import { authorizeNeedsSetupOf, REVIEW_SIGN_IN_SHOWN, requestIdOf } from '@/lib/workspace/oauth-consent';
 
 export const metadata: Metadata = {
   title: 'Connect your agent',
@@ -44,16 +44,25 @@ async function authorizeStateOf(value: string | string[] | undefined, review: bo
   const login = await viewerLogin();
   // The directory reviewers' sign-in (`&review=1`): signed out only; a signed-in user allows as themselves.
   if (!login) return { kind: review && REVIEW_SIGN_IN_SHOWN ? 'review-sign-in' : 'signed-out', requestId };
+  // The signs, read beside the request: a read that fails leaves the page as it was before them.
+  const signs = readSigns(login);
   let read: Awaited<ReturnType<typeof readRequest>>;
   try {
     read = await readRequest(requestId, login);
   } catch {
     return { kind: 'unavailable', requestId };
   }
-  const state = authorizeStateFor(read, requestId, login);
+  const state = authorizeStateFor(read, requestId, login, authorizeNeedsSetupOf(await signs));
   // No profile: where its setup stands now, read apart (its first read is asked here when none was).
   return state.kind === 'no-profile' ? authorizeWithSetup(state, await loadContributeSetupState()) : state;
 }
+
+/** The viewer's two signs; null when they cannot be read. */
+const readSigns = (githubLogin: string) =>
+  graphqlDirect(ContributeSignsDocument, undefined, { source: 'ssr', githubLogin }).then(
+    ({ contribute }) => contribute?.contributor ?? null,
+    () => null,
+  );
 
 /** The request, and in the same API call (one read of the viewer) whether their account is being set up. */
 const readRequest = async (requestId: string, githubLogin: string) =>

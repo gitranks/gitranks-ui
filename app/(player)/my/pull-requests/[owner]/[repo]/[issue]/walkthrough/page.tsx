@@ -19,10 +19,11 @@ export const metadata: Metadata = { title: 'Fix walkthrough' };
 /** The fixer's own walkthrough, before the pull request opens: signed in only (the layout's gate). */
 export default function FixerWalkthroughPage({
   params,
+  searchParams,
 }: PageProps<'/my/pull-requests/[owner]/[repo]/[issue]/walkthrough'>) {
   return (
     <Suspense fallback={<ContributeSessionSkeleton />}>
-      <FixerWalkthroughView params={params} />
+      <FixerWalkthroughView params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -50,8 +51,14 @@ const openPrOf = (lesson: LearnAttemptLesson, number: number | null | undefined)
  * walkthrough is public: its public address. A pull request opened by hand, or an attempt that ended, has its own words
  * on the pull request's page. A Fix attempt has no walkthrough: its pull request's page.
  */
-async function FixerWalkthroughView({ params }: { params: Promise<PageParams> }) {
-  const read = await lessonPageOf(params);
+async function FixerWalkthroughView({
+  params,
+  searchParams,
+}: {
+  params: Promise<PageParams>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const read = await lessonPageOf(params, await searchParams);
   if (!read) return null;
   if (read === 'unread') return <Unavailable />;
   const { first, lesson, base } = read;

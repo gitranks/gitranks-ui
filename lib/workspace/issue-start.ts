@@ -18,7 +18,9 @@ export type IssueStartRefusal =
   | 'UNAVAILABLE'
   | 'REPO_UNAVAILABLE'
   | 'TAKEN'
-  | 'CLOSED';
+  | 'CLOSED'
+  /** The person has not gone through the onboarding the fix needs. */
+  | 'SETUP_UNFINISHED';
 
 /** A run and its issue: `repo` is `owner/name`. */
 export type IssueStartRun = { id: string; repo: string; number: number };

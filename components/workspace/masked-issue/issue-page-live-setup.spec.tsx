@@ -82,22 +82,21 @@ const START = {
 };
 
 const pageOf = (props: Partial<Parameters<typeof IssuePageLive>[0]> = {}) => (
-    <IssuePageLive
-      id="q7k2m9xa"
-      page={issuePage()}
-      from="learn"
-      back={{ href: '/learn/issues', label: 'Issues' }}
-      numbers={issueNumbers}
-      openedAt={MASKED_NOW.toISOString()}
-      hosted={false}
-      start={START}
-      alsoLearn={false}
-      returning={false}
-      {...props}
-    />
+  <IssuePageLive
+    id="q7k2m9xa"
+    page={issuePage()}
+    from="learn"
+    back={{ href: '/learn/issues', label: 'Issues' }}
+    numbers={issueNumbers}
+    openedAt={MASKED_NOW.toISOString()}
+    hosted={false}
+    start={START}
+    alsoLearn={false}
+    returning={false}
+    {...props}
+  />
 );
-const live = (props: Partial<Parameters<typeof IssuePageLive>[0]> = {}) =>
-  act(async () => root.render(pageOf(props)));
+const live = (props: Partial<Parameters<typeof IssuePageLive>[0]> = {}) => act(async () => root.render(pageOf(props)));
 /** The page inside an Activity, as the router keeps a page it navigated away from: hidden, then shown again. */
 const kept = (mode: 'visible' | 'hidden', props: Partial<Parameters<typeof IssuePageLive>[0]> = {}) =>
   act(async () => root.render(<Activity mode={mode}>{pageOf(props)}</Activity>));
@@ -249,7 +248,12 @@ describe('the way back from the onboarding', () => {
 
   it('drops a setup a refused start asked for when the page is shown again and the server asks for none', async () => {
     actions.startHeldIssue.mockResolvedValue({ ok: true, data: refusal('SETUP_UNFINISHED') });
-    const props = { page: fullPage(), from: 'contribute' as const, hosted: true, start: { ...START, connection: null } };
+    const props = {
+      page: fullPage(),
+      from: 'contribute' as const,
+      hosted: true,
+      start: { ...START, connection: null },
+    };
     await kept('visible', props);
     await press('Start with the hosted agent');
     expect(setupPart()).not.toBeNull();

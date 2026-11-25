@@ -65,6 +65,18 @@ describe('pickedLineOf', () => {
     );
     expect(pickedLineOf(null, NOW)).toBe('For your languages and topics. See one in full before you decide.');
     expect(pickedLineOf(undefined, NOW)).toBe('For your languages and topics. See one in full before you decide.');
+    expect(pickedLineOf('not a date', NOW)).toBe('For your languages and topics. See one in full before you decide.');
+  });
+
+  it('says "just now" under a minute ago, and for a time ahead of the clock, never seconds or "in"', () => {
+    const just = 'Picked for your languages and topics, just now. See one in full before you decide.';
+    expect(pickedLineOf('2026-10-28T12:00:00.000Z', NOW)).toBe(just);
+    expect(pickedLineOf('2026-10-28T11:59:01.000Z', NOW)).toBe(just);
+    expect(pickedLineOf('2026-10-28T12:00:03.000Z', NOW)).toBe(just);
+    expect(pickedLineOf('2026-10-28T13:00:00.000Z', NOW)).toBe(just);
+    expect(pickedLineOf('2026-10-28T11:59:00.000Z', NOW)).toBe(
+      'Picked for your languages and topics, 1 minute ago. See one in full before you decide.',
+    );
   });
 });
 

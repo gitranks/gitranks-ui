@@ -92,8 +92,8 @@ export type HomeBoxesRead = {
   needsYou: readonly HomeNeedsYouRow[] | null;
   agent: HomeAgentRead;
   merged: HomeMergedRead | null;
-  /** The person's Skills page. */
-  skillsHref: string;
+  /** The person's Skills page; null when the login is not known, and box 3 then draws no button. */
+  skillsHref: string | null;
 };
 
 export type HomeBoxes = {
@@ -125,9 +125,13 @@ const projectOf = (repo: string, number: number) => `${repo} · #${number}`;
 const countOf = (count: number, one: string, many: string) =>
   `${count.toLocaleString('en-US')} ${count === 1 ? one : many}`;
 
-/** Box 1: the pull request that has waited longest for the person. */
-export function needsYouBoxOf(rows: readonly HomeNeedsYouRow[] | null): HomeBoxWords {
-  if (!rows) return notRead('Pull requests');
+/** The rows box 1 can say: those whose case has words. A case without them is left to the list. */
+const sayable = (rows: readonly HomeNeedsYouRow[]) => rows.filter((row) => needsYouRowWordsOf(row));
+
+/** Box 1: the pull request that has waited longest for the person, of those it can say. */
+export function needsYouBoxOf(read: readonly HomeNeedsYouRow[] | null): HomeBoxWords {
+  if (!read) return notRead('Pull requests');
+  const rows = sayable(read);
   const oldest = [...rows].sort((a, b) => a.since.localeCompare(b.since))[0];
   const words = oldest ? needsYouRowWordsOf(oldest) : null;
   if (!oldest || !words) {
@@ -267,7 +271,7 @@ export function agentBoxOf(agent: HomeAgentRead): HomeBoxWords {
 }
 
 /** Box 3: what was merged. A count shows only from two; none is said in words. */
-export function mergedBoxOf(read: HomeMergedRead | null, skillsHref: string): HomeBoxWords {
+export function mergedBoxOf(read: HomeMergedRead | null, skillsHref: string | null): HomeBoxWords {
   if (!read || (read.merged > 0 && !read.newest)) return notRead('Merged');
   const { merged, reposHelped, newest, waiting } = read;
   if (merged >= 2 && newest) {
@@ -278,7 +282,7 @@ export function mergedBoxOf(read: HomeMergedRead | null, skillsHref: string): Ho
         reposHelped > 1 ? `In ${reposHelped.toLocaleString('en-US')} projects.` : null,
         `Newest: ${newest.title}, ${dayMonthOf(newest.mergedAt)}.`,
       ].filter((line): line is string => !!line),
-      button: { label: 'See your Skills page', href: skillsHref },
+      button: skillsHref ? { label: 'See your Skills page', href: skillsHref } : null,
     });
   }
   if (merged === 1 && newest) {
@@ -335,7 +339,8 @@ export const FIRST_DAY_BOXES: [HomeBoxWords, HomeBoxWords, HomeBoxWords] = [
  * give way to anything wrong or missing.
  */
 export function homeBoxesOf(read: HomeBoxesRead): HomeBoxes {
-  const needsYou = !!read.needsYou?.length;
+  // Lit only for a row box 1 can say, so it is never lit while it says nothing needs the person.
+  const needsYou = !!read.needsYou && sayable(read.needsYou).length > 0;
   const empty = nothingConnected(read.agent);
   if (read.firstDay && !needsYou) {
     const agent = wrongBoxOf(read.agent) ?? FIRST_DAY_BOXES[1];

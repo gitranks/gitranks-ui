@@ -85,9 +85,8 @@ export async function loadPullRequestList(after: string | null = null): Promise<
 }
 
 /**
- * The first page of the person's list with their newest merged pull request, for Contribute home, in one read. Only
- * when that read fails (an API without `merged`), the plain list, with `merged` null: the list's boxes still show and
- * the "Merged" box says it could not read. `undefined` when neither answers.
+ * The first page of the person's list with their newest merged pull request, for Contribute home, in one read.
+ * `undefined` when it fails, so the boxes that read it say they could not.
  */
 export async function loadPullRequestListWithMerged(): Promise<PullRequestListWithMerged | undefined> {
   const options = await as();
@@ -95,12 +94,12 @@ export async function loadPullRequestListWithMerged(): Promise<PullRequestListWi
   try {
     const { pullRequestList } = await graphqlDirect(PullRequestListMergedDocument, undefined, options);
     const list = pullRequestListOf(pullRequestList);
-    if (list) return { ...list, merged: pullRequestsMergedOf((pullRequestList as { merged?: unknown }).merged) };
+    return list
+      ? { ...list, merged: pullRequestsMergedOf((pullRequestList as { merged?: unknown }).merged) }
+      : undefined;
   } catch {
-    // An API without `merged`: the plain list below.
+    return undefined;
   }
-  const list = await loadPullRequestList();
-  return list && { ...list, merged: null };
 }
 
 /**

@@ -46,9 +46,20 @@ export type ContributeTabData = {
   now: Date;
 };
 
+/** Under a minute ago, or a time ahead of the page's clock (the server's clock may lead): "just now". */
+const JUST_NOW_MS = 60_000;
+
+/** When the list was picked, in words: "1 hour ago", "just now"; '' when not known. */
+function pickedWhenOf(computedAt: string | null | undefined, now: Date): string {
+  if (!computedAt) return '';
+  const at = Date.parse(computedAt);
+  if (Number.isNaN(at)) return '';
+  return now.getTime() - at < JUST_NOW_MS ? 'just now' : relativeLabel(computedAt, now);
+}
+
 /** "Picked for your languages and topics, 1 hour ago. …": when the list was picked, while it is known. */
 export function pickedLineOf(computedAt: string | null | undefined, now: Date): string {
-  const when = computedAt ? relativeLabel(computedAt, now) : '';
+  const when = pickedWhenOf(computedAt, now);
   return when
     ? `Picked for your languages and topics, ${when}. See one in full before you decide.`
     : 'For your languages and topics. See one in full before you decide.';

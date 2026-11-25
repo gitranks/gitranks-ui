@@ -107,7 +107,7 @@ export function homeBoxesReadOf({
   totals: ContributeHomeTotals | null;
   activity: ContributeActivity | null;
   firstDay: boolean;
-  skillsHref: string;
+  skillsHref: string | null;
   now: Date;
 }): HomeBoxesRead {
   return {

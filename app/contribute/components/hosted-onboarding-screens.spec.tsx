@@ -165,12 +165,13 @@ describe('A2, matching', () => {
 });
 
 describe('the first picks still being ranked', () => {
-  it('reads the page again for about two minutes, then stops', async () => {
+  it('reads the page again for ten minutes, then stops', async () => {
     const { rankingTickOf, RANKING_REFRESH_FOR_SECONDS } = await import('./still-ranking');
 
-    expect(RANKING_REFRESH_FOR_SECONDS).toBe(120);
+    expect(RANKING_REFRESH_FOR_SECONDS).toBe(600);
     expect(rankingTickOf(0, 5_000)).toBe('refresh');
-    expect(rankingTickOf(0, 115_000)).toBe('refresh');
-    expect(rankingTickOf(0, 120_000)).toBe('stop');
+    expect(rankingTickOf(0, 120_000)).toBe('refresh');
+    expect(rankingTickOf(0, 595_000)).toBe('refresh');
+    expect(rankingTickOf(0, 600_000)).toBe('stop');
   });
 });

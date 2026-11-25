@@ -125,6 +125,14 @@ describe('needsYouBoxOf (box 1)', () => {
     ]);
   });
 
+  it('leaves out a row whose case it has no words for: the oldest it can say shows, counted with the others it can', () => {
+    const wordless = row({ box: 'FIXING', since: '2026-11-01T00:00:00Z', issueNumber: 1 });
+    expect(said(needsYouBoxOf([wordless]))).toEqual(said(needsYouBoxOf([])));
+    const box = needsYouBoxOf([wordless, row()]);
+    expect(box.project).toBe('harbor-kit/relay · #512');
+    expect(box.link).toBeNull();
+  });
+
   it('says it could not read the list, and nothing untrue', () => {
     expect(said(needsYouBoxOf(null))).toEqual([
       'Pull requests',
@@ -322,6 +330,10 @@ describe('mergedBoxOf (box 3)', () => {
     ...over,
   });
 
+  it('draws no Skills button when the Skills page is not known, rather than one that goes elsewhere', () => {
+    expect(mergedBoxOf(read({ merged: 4, reposHelped: 3, newest: NEWEST }), null).button).toBeNull();
+  });
+
   it.each<[string, HomeMergedRead | null, string[]]>([
     [
       'several merged in several projects',
@@ -431,6 +443,13 @@ describe('homeBoxesOf: the highlight and the first day', () => {
     ['nothing connected', { agent: { ...AGENT, own: null } }, 1],
     ['an ordinary day', {}, null],
     ['the list could not be read', { needsYou: null }, null],
+    ['only a row box 1 has no words for: not lit', { needsYou: [row({ box: 'FIXING' })] }, null],
+    [
+      'only such a row, nothing connected: connecting',
+      { needsYou: [row({ box: 'FIXING' })], agent: { ...AGENT, own: null } },
+      1,
+    ],
+    ['only such a row on the first day: the first day', { firstDay: true, needsYou: [row({ box: 'FIXING' })] }, 0],
     ['the first day', { firstDay: true }, 0],
     ['the first day, nothing connected', { firstDay: true, agent: { ...AGENT, own: null } }, 1],
     ['the first day with a pull request that needs the person', { firstDay: true, needsYou: [row()] }, 0],

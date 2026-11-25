@@ -49,7 +49,7 @@ describe("the pull request's reads", () => {
     await expect(data.loadPullRequestPage(REF)).resolves.toBeUndefined();
   });
 
-  it("reads home's list with its newest merged one in one read, else the plain list with none", async () => {
+  it("reads home's list with its newest merged one in one read, and nothing when that read fails", async () => {
     const row = {
       attemptId: 'A_1',
       repo: 'acme/widgets',
@@ -72,19 +72,11 @@ describe("the pull request's reads", () => {
     graphqlDirect.mockResolvedValueOnce({ pullRequestList: { rows: [row], open: 0, limit: 3 } });
     expect((await data.loadPullRequestListWithMerged())?.merged).toBeNull();
 
-    // An API without the field: the plain list after.
+    // A failed read is not read, in one try: no second read after it.
     graphqlDirect.mockReset();
     graphqlDirect.mockRejectedValueOnce(unknownField());
-    graphqlDirect.mockResolvedValueOnce({ pullRequestList: { rows: [row], open: 0, limit: 3 } });
-    const plain = await data.loadPullRequestListWithMerged();
-    expect(plain).toMatchObject({ merged: null });
-    expect(plain?.rows).toHaveLength(1);
-    expect(graphqlDirect.mock.calls[1][0]).toBe(documents.PullRequestListDocument);
-
-    // Neither: not read.
-    graphqlDirect.mockReset();
-    graphqlDirect.mockRejectedValue(unknownField());
     await expect(data.loadPullRequestListWithMerged()).resolves.toBeUndefined();
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
     viewerLogin.mockResolvedValue(null);
     await expect(data.loadPullRequestListWithMerged()).resolves.toBeUndefined();
   });

@@ -13,7 +13,6 @@ import {
 import { isSuspended } from '@/lib/workspace/contribute-state';
 import { hasAnyAttempt } from '@/lib/workspace/getting-in';
 import { loadMaskedListReads } from '@/lib/workspace/masked-issue.data';
-import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { loadBlockedWalkthroughs, loadPullRequestListWithMerged } from '@/lib/workspace/pull-request.data';
 import type { PullRequestListWithMerged } from '@/lib/workspace/pull-request-page.types';
 
@@ -48,7 +47,7 @@ export async function ContributeTab({ view, agents }: Pick<ContributeTabData, 'v
     totals,
     activity,
     firstDay: !hasAnyAttempt(attempts),
-    skillsHref: login ? skillsPath(login) : WORKSPACE_PATHS.pullRequests,
+    skillsHref: login ? skillsPath(login) : null,
     now,
   });
   return (

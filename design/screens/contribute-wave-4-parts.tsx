@@ -2,34 +2,23 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { HomeBoxesView } from '@/app/(workspace)/contribute/components/home-boxes';
-import { LandingProofCard } from '@/app/contribute/components/landing-parts/proof-card';
-import { LandingProofRows } from '@/app/contribute/components/landing-parts/proof-rows';
-import { LandingWayBox } from '@/app/contribute/components/landing-parts/way-box';
 import { WhoDoesTheWork } from '@/components/contribute/start/who-does-the-work';
-import { ComingSoon } from '@/components/workspace/agent/coming-soon';
-import { LandingBand } from '@/components/workspace/getting-in/landing-band';
 import {
   agentRead,
   agentRun,
   homeRead,
-  landingBand,
-  landingWays,
   mergedRead,
   NEWEST_MERGED,
   needsYouRow,
-  proofMerged,
-  proofOpenOnly,
   startRead,
 } from '@/lib/contribute/__fixtures__/wave-4-parts';
 import { type HomeBoxesRead, homeBoxesOf } from '@/lib/contribute/home-boxes';
-import { landingProofOf } from '@/lib/contribute/landing-proof';
 import { type StartWaysRead, startWaysOf } from '@/lib/contribute/start-ways';
-import { MAINTAINERS_PATH } from '@/lib/workspace/paths';
 
 /**
- * Contribute's parts for wave 4, from fixtures, in every case, before the pages use them: the landing's top card,
- * proof rows, two ways, coming-soon rows and band; home's three boxes; step 1 of the flow. Held back from the export
- * (`exported: false`) until the pages switch to them.
+ * Contribute's parts for wave 4, from fixtures, in every case, before the pages use them: home's three boxes; step 1
+ * of the flow. Held back from the export (`exported: false`) until the pages switch to them. The landing's parts are
+ * drawn by its own boards (`contribute.tsx`).
  */
 
 /** A labelled part of a board that shows several cases one under the other. */
@@ -49,111 +38,11 @@ const Page = ({ children, narrow = false }: { children: ReactNode; narrow?: bool
   </main>
 );
 
-const proof = landingProofOf(proofMerged);
-const band = (
-  <LandingBand
-    text={landingBand.text}
-    href={MAINTAINERS_PATH as never}
-    footer={
-      <>
-        {landingBand.footer[0]}
-        <br />
-        {landingBand.footer[1]}
-      </>
-    }
-  />
-);
-
 const boxes = (read: HomeBoxesRead) => <HomeBoxesView home={homeBoxesOf(read)} hints />;
 
 const ways = (read: Partial<StartWaysRead>) => <WhoDoesTheWork ways={startWaysOf(startRead(read))} />;
 
-const LANDING_SOURCES = [
-  'app/contribute/components/landing-parts/proof-card.tsx',
-  'app/contribute/components/landing-parts/proof-rows.tsx',
-  'app/contribute/components/landing-parts/way-box.tsx',
-  'components/workspace/agent/coming-soon.tsx',
-  'components/workspace/getting-in/landing-band.tsx',
-  'lib/contribute/landing-proof.ts',
-];
-
 export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
-  {
-    id: 'contribute-landing-parts',
-    title: "Contribute's landing: the new parts",
-    area: 'contribute',
-    route: '/contribute',
-    exported: false,
-    sources: LANDING_SOURCES,
-    states: [
-      {
-        id: 'proof',
-        title: 'The top card and "Merged through GitRanks": merged, open only, and the ledger closed',
-        path: '/contribute',
-        signedOut: true,
-        height: 1900,
-        render: () => (
-          <Page>
-            <Case title="The newest merged pull request with a public page">
-              {proof.card ? <LandingProofCard pr={proof.card} className="max-w-md" /> : <span />}
-            </Case>
-            <Case title="None merged yet: the newest open one">
-              {landingProofOf(proofOpenOnly).card ? (
-                <LandingProofCard pr={proofOpenOnly[0]} className="max-w-md" />
-              ) : (
-                <span />
-              )}
-            </Case>
-            <Case title="Three merged: the rows, with the public ledger open">
-              <LandingProofRows rows={proof.rows ?? []} ledgerOpen />
-            </Case>
-            <Case title="The public ledger closed: the heading stands alone">
-              <LandingProofRows rows={proof.rows ?? []} ledgerOpen={false} />
-            </Case>
-          </Page>
-        ),
-      },
-      {
-        id: 'ways-and-more',
-        title: 'Two ways, coming soon as rows, and the band',
-        path: '/contribute',
-        signedOut: true,
-        height: 1500,
-        render: () => (
-          <Page>
-            <Case title="Two ways to contribute">
-              <div className="grid gap-4 md:grid-cols-2">
-                {landingWays.map((way) => (
-                  <LandingWayBox key={way.title} way={way} />
-                ))}
-              </div>
-            </Case>
-            <Case title="Coming soon, one row a provider">
-              <ComingSoon viewer="visitor" variant="rows" />
-            </Case>
-            <Case title="Honest with maintainers">{band}</Case>
-          </Page>
-        ),
-      },
-      {
-        id: 'phone',
-        title: 'On a phone',
-        path: '/contribute',
-        signedOut: true,
-        width: 390,
-        height: 2600,
-        render: () => (
-          <Page>
-            {proof.card ? <LandingProofCard pr={proof.card} /> : null}
-            <LandingWayBox way={landingWays[0]} />
-            <ComingSoon viewer="visitor" variant="rows" />
-            <LandingProofRows rows={proof.rows ?? []} ledgerOpen />
-            {band}
-          </Page>
-        ),
-      },
-    ],
-  },
   {
     id: 'contribute-home-boxes',
     title: 'Contribute home: the three boxes',

@@ -61,7 +61,7 @@ describe('refusals, in plain words', () => {
     ['Your Claude key cannot start a session now', 'Your Claude key cannot start a session now: none is connected'],
     ['Your limits leave no room for another attempt now', 'Your spend limits leave no room'],
     ['The pull request has no branch of ours to add commits to', 'You opened this pull request yourself'],
-    // The API's words since octoscope#1417: each still maps to its own, never an earlier pattern.
+    // The API's newer words: each still maps to its own, never an earlier pattern.
     ['The pull request is not open, so a run has nothing to add commits to', 'The pull request is no longer open'],
     [
       'You opened it by hand, so it has no branch of ours a run can add to: change it on GitHub',

@@ -10,7 +10,7 @@ import { isSafeRedirect, REVIEW_PASSWORD_MAX, REVIEW_USERNAME_MAX, requestIdOf }
  */
 
 /**
- * A directory reviewer's Allow (octoscope's OpenAI directory spec §4): the review sign-in's username and password
+ * A directory reviewer's Allow: the review sign-in's username and password
  * connect the review account, with no session here, and the answer is where the browser goes back to the app, checked
  * as Allow's. The password goes to the API alone and is never kept or logged.
  */

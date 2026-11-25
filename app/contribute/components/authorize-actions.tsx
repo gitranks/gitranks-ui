@@ -185,7 +185,7 @@ export function AuthorizeSignIn({ requestId }: { requestId: string }) {
 }
 
 /**
- * The directory reviewers' sign-in (octoscope's OpenAI directory spec §4): the review account's username and password
+ * The directory reviewers' sign-in: the review account's username and password
  * allow this request as that account, with no session here; then the browser goes back to the app, as Allow's does.
  */
 export function AuthorizeReviewSignIn({ requestId, children }: { requestId: string; children?: ReactNode }) {

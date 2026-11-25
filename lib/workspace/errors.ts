@@ -36,7 +36,7 @@ const graphqlErrorsOf = (error: unknown): GraphqlError[] => {
 const UNKNOWN_FIELD = /Cannot query field|Unknown type|Unknown argument/i;
 
 /**
- * What the directory reviewers' sign-in says for each refusal the API answers (octoscope's OpenAI directory spec §4):
+ * What the directory reviewers' sign-in says for each refusal the API answers:
  * a wrong pair, the sign-in off, or a request that can't be used any more.
  */
 export const REVIEW_SIGN_IN_REFUSALS = {

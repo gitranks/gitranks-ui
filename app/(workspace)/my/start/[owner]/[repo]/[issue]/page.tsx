@@ -16,8 +16,8 @@ export const metadata: Metadata = { title: 'Start an issue', robots: { index: fa
 type Params = PageProps<'/my/start/[owner]/[repo]/[issue]'>;
 
 /**
- * The Start page for one issue, the viewer's own, read per request: Fix it, or with a lesson (`?lesson=1`, which lights
- * the Learn tab). Not indexed, and in no sitemap.
+ * The Start page for one issue, the viewer's own, read per request: Fix it, or with a lesson (`?lesson=1`, a page Learn
+ * owns: no tab is current). Not indexed, and in no sitemap.
  */
 export default function StartPage({ params, searchParams }: Params) {
   return (

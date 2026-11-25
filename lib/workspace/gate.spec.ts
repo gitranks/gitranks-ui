@@ -58,7 +58,7 @@ describe("the workspace gate, over today's answers", () => {
   });
 
   it('shows every tab once entered', () => {
-    expect(tabsOf(workspaceGateOf(read))).toEqual(['contribute', 'learn', 'pull-requests', 'agent', 'settings']);
+    expect(tabsOf(workspaceGateOf(read))).toEqual(['contribute', 'pull-requests', 'agent', 'settings']);
     expect(tabsOf(workspaceGateOf({ ...read, view: views.midSetup }))).toEqual([]);
     expect(tabsOf({ kind: 'signed-out' })).toEqual([]);
     expect(tabsOf({ kind: 'hidden' })).toEqual([]);

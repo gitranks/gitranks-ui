@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
+import { LearnDoor } from '@/components/workspace/learn-door';
 import { type LearnBarChoice, WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
 import { audienceOf } from '@/lib/workspace/audience';
 import {
@@ -18,20 +19,38 @@ import { LAST_BAR_COOKIE, lastBarOf } from '@/lib/workspace/settings-bar';
  * working on for them, the count of what needs them, and the version the poll starts from (read first, inside the
  * gate's read of the user). The reads are the page's own (once per request). An outage leaves no tabs; the page says
  * to try again. `learnBar` is Learn's bar, offered on Settings to an account the workspace is open to, with the bar
- * they saw last and the product they use.
+ * they saw last and the product they use. `learnDoorCount` is the door's count of lessons due, read in the browser: the
+ * door into Learn is drawn with it, after the gate, only for a person who uses Learn.
  */
-export async function WorkspaceTabs({ learnBar }: { learnBar?: ReactNode } = {}) {
+export async function WorkspaceTabs({
+  learnBar,
+  learnDoorCount,
+}: {
+  learnBar?: ReactNode;
+  learnDoorCount?: ReactNode;
+} = {}) {
   const gate = await loadWorkspaceGate().catch(() => null);
   const tabs = gate ? tabsOf(gate) : [];
   const learn = learnBar && gate?.kind === 'open' ? learnChoiceOf(learnBar) : undefined;
   if (!tabs.length) return <WorkspaceTabsNav tabs={tabs} learn={await learn} />;
-  const [version, activity, needsYou, choice] = await Promise.all([
+  const [version, activity, needsYou, choice, view] = await Promise.all([
     loadContributeVersion().catch(() => null),
     loadContributeActivity().catch(() => null),
     loadNeedsYouCount().catch(() => null),
     learn,
+    loadContribute().catch(() => null),
   ]);
-  return <WorkspaceTabsNav tabs={tabs} activity={activity} version={version} needsYou={needsYou} learn={choice} />;
+  const door = view?.sides?.learn ? <LearnDoor count={learnDoorCount} /> : undefined;
+  return (
+    <WorkspaceTabsNav
+      tabs={tabs}
+      activity={activity}
+      version={version}
+      needsYou={needsYou}
+      learn={choice}
+      door={door}
+    />
+  );
 }
 
 async function learnChoiceOf(bar: ReactNode): Promise<LearnBarChoice> {

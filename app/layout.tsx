@@ -16,9 +16,11 @@ import { SessionProvider } from '@/components/session-provider/session-provider'
 import { ThemeProvider } from '@/components/theme-provider/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { WebAnalytics } from '@/components/web-analytics/web-analytics';
+import { WorkspaceBarGuess } from '@/components/workspace/workspace-bar-guess';
 import { buildSiteJsonLd } from '@/lib/seo/json-ld';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_X_HANDLE } from '@/lib/seo/site';
 import { SESSION_HINT_SCRIPT } from '@/lib/session-hint';
+import { BAR_GUESS_SCRIPT } from '@/lib/workspace/workspace-bar-guess';
 
 import './globals.css';
 
@@ -63,6 +65,9 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
         {/* Before the first paint: marks the root when the browser holds a session, so the header and the bars draw a
             signed-in person's look from the start (`lib/session-hint.ts`). */}
         <script dangerouslySetInnerHTML={{ __html: SESSION_HINT_SCRIPT }} />
+        {/* Beside it: marks the root when the page will most likely draw the workspace's tabs, so their place is kept
+            from the first paint (`lib/workspace/workspace-bar-guess.ts`). It reads the browser's cookies alone. */}
+        <script dangerouslySetInnerHTML={{ __html: BAR_GUESS_SCRIPT }} />
         {/* In the head, not the body: tools that copy the page's text (directory listings, readers) then leave it out. */}
         <JsonLd payloads={buildSiteJsonLd()} />
         <link rel="preconnect" href="https://avatars.githubusercontent.com" crossOrigin="anonymous" />
@@ -78,6 +83,10 @@ export default function RootLayout({ children, modal }: RootLayoutProps) {
               {/* Reads the pathname, which can suspend on routes rendered on request. */}
               <Suspense fallback={null}>
                 <DailyUpdatesVisit />
+              </Suspense>
+              {/* The guess of the workspace's bar, made again on each move: it reads the path and the query. */}
+              <Suspense fallback={null}>
+                <WorkspaceBarGuess />
               </Suspense>
               <div className="flex flex-col min-h-screen">
                 {/* No Suspense around the page: React streams a large finished boundary into a hidden

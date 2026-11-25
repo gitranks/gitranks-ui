@@ -89,7 +89,7 @@ const agentAt = (
 });
 
 /** Every tab, as an account that has entered sees them. */
-const TABS = ['contribute', 'learn', 'pull-requests', 'agent', 'settings'] as const;
+const TABS = ['contribute', 'pull-requests', 'agent', 'settings'] as const;
 
 /** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */
 const frame = (children: ReactNode, activity: ContributeActivity = activityOf(), needsYou: number | null = 2) => (

@@ -185,7 +185,26 @@ describe('the facts of a masked issue', () => {
 describe('the full issues of a day', () => {
   it('says how many a day and how many are left', () => {
     expect(looksLineOf(looksToday())).toBe('You can see 20 full issues a day. 17 left today.');
-    expect(looksLineOf(looksToday({ limit: 100, left: -1 }))).toBe('You can see 100 full issues a day. 0 left today.');
+    expect(looksLineOf(looksToday({ limit: 1, left: 1 }))).toBe('You can see 1 full issue a day. 1 left today.');
+  });
+
+  it('says a fair-use warning holds the day down, with the real numbers', () => {
+    expect(looksLineOf(looksToday({ limit: 5, left: 3, warned: true }))).toBe(
+      'After a fair-use warning you can see 5 full issues a day. 3 left today.',
+    );
+  });
+
+  it('never says none are left: at the limit it says when more come', () => {
+    expect(looksLineOf(looksToday({ limit: 30, left: 0 }))).toBe(
+      'You have seen 30 full issues today. More at 00:00 UTC.',
+    );
+    expect(looksLineOf(looksToday({ limit: 100, left: -1 }))).toBe(
+      'You have seen 100 full issues today. More at 00:00 UTC.',
+    );
+    expect(looksLineOf(looksToday({ limit: 5, left: 0, warned: true }))).toBe(
+      'You have seen 5 full issues today. More at 00:00 UTC.',
+    );
+    expect(looksLineOf(looksToday({ limit: 5, left: 0 }))).not.toMatch(/\b0 left/);
   });
 
   it('says what the day is made of, above a list', () => {

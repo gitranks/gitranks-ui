@@ -185,9 +185,14 @@ export function starsTextOf(stars: number | null | undefined): string | null {
 
 const count = new Intl.NumberFormat('en-US');
 
-/** "You can see 20 full issues a day. 17 left today." */
+/**
+ * "You can see 20 full issues a day. 17 left today."; after a fair-use warning, "After a fair-use warning you can see 5
+ * full issues a day. 3 left today." Never a zero: with none left, the row's note at the limit.
+ */
 export function looksLineOf(looks: IssueLooksToday): string {
-  return `You can see ${count.format(looks.limit)} full ${looks.limit === 1 ? 'issue' : 'issues'} a day. ${count.format(Math.max(0, looks.left))} left today.`;
+  if (looks.left <= 0) return limitNoteOf(looks);
+  const day = `${count.format(looks.limit)} full ${looks.limit === 1 ? 'issue' : 'issues'} a day. ${count.format(looks.left)} left today.`;
+  return looks.warned ? `After a fair-use warning you can see ${day}` : `You can see ${day}`;
 }
 
 /** The line above Learn's list of masked issues. */

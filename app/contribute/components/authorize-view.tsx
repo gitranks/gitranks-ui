@@ -5,10 +5,11 @@ import type { ReactNode } from 'react';
 import { AuthorizeActions, AuthorizeCancel, AuthorizeReviewSignIn, AuthorizeSignIn } from './authorize-actions';
 import { AuthorizeDocsLine, AuthorizeNextStep } from './authorize-next-step';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { NO_PROFILE_TITLE, SETTING_UP_TITLE } from '@/components/workspace/setting-up';
+import { NO_PROFILE_TITLE, SETTING_UP_TITLE, SETUP_FAILED_TITLE } from '@/components/workspace/setting-up';
 import { SettingUpAutoRefresh } from '@/components/workspace/setting-up-refresh';
 import { LearnSetupRefresh } from '@/components/workspace/setup-refresh';
-import type { ContributeOAuthRequest } from '@/lib/workspace/contribute.types';
+import { SetupRetry } from '@/components/workspace/setup-retry';
+import type { ContributeOAuthRequest, ContributeSetupState } from '@/lib/workspace/contribute.types';
 import {
   AGENT_CAN,
   AGENT_CANNOT,
@@ -32,8 +33,11 @@ export type AuthorizeState =
   | { kind: 'not-open'; requestId: string }
   /** A new account, read for the first time now: Refresh and Cancel, and the page reads itself again. */
   | { kind: 'setting-up'; requestId: string }
-  /** Launched, and GitRanks has no profile of the account, nor is one on its way: Cancel alone. */
-  | { kind: 'no-profile'; requestId: string }
+  /**
+   * Launched, and GitRanks has no profile of the account, nor is one on its way: Cancel alone; `failed`, its first read
+   * failed: Try again and Cancel.
+   */
+  | { kind: 'no-profile'; requestId: string; failed?: boolean }
   /** Allowed already. */
   | { kind: 'approved'; requestId: string; clientName: string | null }
   /** Unknown, expired or used, or a link without a request. */
@@ -61,6 +65,20 @@ export function authorizeStateFor(read: AuthorizeRead, requestId: string, login:
   if (request.status === 'APPROVED') return { kind: 'approved', requestId, clientName: request.clientName };
   if (!request.previewAllowed) return { kind: 'not-open', requestId };
   return { kind: 'pending', requestId, login, request };
+}
+
+/**
+ * A no-profile state by where the account's setup stands: setting up while its first read is on its way, and when
+ * nothing is left to set up (the profile landed between the reads: the page's next read asks to allow); `failed` once
+ * that read failed (Try again); not read, as it is.
+ */
+export function authorizeWithSetup(
+  state: Extract<AuthorizeState, { kind: 'no-profile' }>,
+  setup: ContributeSetupState,
+): AuthorizeState {
+  if (setup === 'failed') return { ...state, failed: true };
+  if (setup === 'removed') return state;
+  return { kind: 'setting-up', requestId: state.requestId };
 }
 
 const LINK = 'font-semibold text-link hover:underline';
@@ -229,10 +247,23 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
         </Frame>
       );
     case 'no-profile':
+      if (state.failed) {
+        return (
+          <Frame
+            title={SETUP_FAILED_TITLE}
+            text="GitRanks could not read your GitHub profile, so your agent can't connect yet. Try again: it takes about a minute, then you can allow your agent here."
+          >
+            <CardFooter className="flex flex-wrap items-start gap-2.5">
+              <SetupRetry />
+              <AuthorizeCancel requestId={state.requestId} />
+            </CardFooter>
+          </Frame>
+        );
+      }
       return (
         <Frame
           title={NO_PROFILE_TITLE}
-          text="GitRanks has not read your GitHub account, so Contribute is not open to it and your agent can't connect. If your account is new, try again in an hour: start again from your agent then."
+          text="GitRanks does not read your GitHub account, so Contribute is not open to it and your agent can't connect."
         >
           <CardFooter className="flex flex-col items-start gap-4">
             <AuthorizeCancel requestId={state.requestId} />

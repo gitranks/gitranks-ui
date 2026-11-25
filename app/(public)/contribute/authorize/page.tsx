@@ -1,9 +1,14 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { AuthorizeScreen, type AuthorizeState, authorizeStateFor } from '@/app/contribute/components/authorize-view';
+import {
+  AuthorizeScreen,
+  type AuthorizeState,
+  authorizeStateFor,
+  authorizeWithSetup,
+} from '@/app/contribute/components/authorize-view';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { viewerLogin } from '@/lib/workspace/contribute.data';
+import { loadContributeSetupState, viewerLogin } from '@/lib/workspace/contribute.data';
 import { ContributeOAuthRequestDocument } from '@/lib/workspace/contribute.documents';
 import { REVIEW_SIGN_IN_SHOWN, requestIdOf } from '@/lib/workspace/oauth-consent';
 
@@ -45,7 +50,9 @@ async function authorizeStateOf(value: string | string[] | undefined, review: bo
   } catch {
     return { kind: 'unavailable', requestId };
   }
-  return authorizeStateFor(read, requestId, login);
+  const state = authorizeStateFor(read, requestId, login);
+  // No profile: where its setup stands now, read apart (its first read is asked here when none was).
+  return state.kind === 'no-profile' ? authorizeWithSetup(state, await loadContributeSetupState()) : state;
 }
 
 /** The request, and in the same API call (one read of the viewer) whether their account is being set up. */

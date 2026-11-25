@@ -30,6 +30,13 @@ export type ContributeClaudePlan = 'MAX_5X' | 'MAX_20X' | 'TEAM_STANDARD' | 'TEA
 export type ContributeOnboardingStep = 'KEY' | 'PREFERENCES' | 'DONE';
 /** The way that onboarded the user: a Claude key we run the agent on, or the first call of their own agent. */
 export type ContributeOnboardedVia = 'HOSTED' | 'MCP';
+
+/**
+ * Where a signed-in account's GitRanks setup stands: `none` (nothing to set up: the profile is there), `setting-up`
+ * (no profile yet, and its first read is on its way), `failed` (that read ended without a profile, or could not
+ * start: "Try again" asks it again), `removed` (GitRanks does not read the account).
+ */
+export type ContributeSetupState = 'none' | 'setting-up' | 'failed' | 'removed';
 export type ContributeConnectResult =
   | 'CONNECTED'
   | 'EXHAUSTED'

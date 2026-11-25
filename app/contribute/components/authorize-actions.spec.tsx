@@ -10,6 +10,7 @@ vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock('@/lib/workspace/actions', () => ({ approveContributeOAuth: approve }));
 vi.mock('@/lib/workspace/review-sign-in.actions', () => ({ approveContributeOAuthAsReviewer: approveAsReviewer }));
+vi.mock('@/lib/workspace/setup.actions', () => ({ retryContributeSetup: vi.fn() }));
 
 const { AuthorizeActions, AuthorizeReviewSignIn } = await import('./authorize-actions');
 const { AuthorizeScreen } = await import('./authorize-view');

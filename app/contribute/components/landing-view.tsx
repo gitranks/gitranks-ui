@@ -2,14 +2,14 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { Landing } from './landing';
-import { ContributeNoProfile, ContributeSettingUp } from '@/components/workspace/setting-up';
+import { ContributeNoProfileOf, ContributeSettingUp } from '@/components/workspace/setting-up';
 import { loadAgentPage } from '@/lib/contribute/agent-page';
 import type { AgentPageStats } from '@/lib/contribute/agent-page.types';
 import { type LandingProof, landingProofOf } from '@/lib/contribute/landing-proof';
 import { loadLandingLedgerOpen, loadLandingProof } from '@/lib/contribute/landing-proof.data';
 import {
   loadContribute,
-  loadContributeSetup,
+  loadContributeSetupState,
   loadProviderInterests,
   viewerLogin,
 } from '@/lib/workspace/contribute.data';
@@ -53,13 +53,14 @@ const panel = (children: ReactNode) => <main className="mx-auto w-full max-w-7xl
 /**
  * What a landing page shows when the request has no Contribute view: a new account being set up gets the panel that
  * says so (it reads itself again until ready); a signed-in account with no profile, once Contribute is launched, the
- * panel that says that; a visitor, once launched, nothing here (the page draws the visitor's landing). Before the
- * launch, a 404.
+ * panel for where its setup stands (a failed read: "Try again"); a visitor, once launched, nothing here (the page
+ * draws the visitor's landing). Before the launch, a 404.
  */
 export async function noViewPanelOf(): Promise<ReactNode | null> {
-  if (await loadContributeSetup()) return panel(<ContributeSettingUp />);
+  const setup = await loadContributeSetupState();
+  if (setup === 'setting-up') return panel(<ContributeSettingUp />);
   if (!(await contributeOpen(Date.now()))) notFound();
-  if (await viewerLogin()) return panel(<ContributeNoProfile />);
+  if (await viewerLogin()) return panel(<ContributeNoProfileOf state={setup} />);
   return null;
 }
 

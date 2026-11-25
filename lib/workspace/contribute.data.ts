@@ -55,6 +55,7 @@ import {
   ContributeScheduleCountsDocument,
   ContributeSetDocument,
   ContributeSetupDocument,
+  ContributeSetupStateDocument,
   ContributeSidesDocument,
   ContributeSignsDocument,
   type FollowUpFlowRead,
@@ -81,6 +82,7 @@ import type {
   ContributeReplyWaiting,
   ContributeScheduleCounts,
   ContributeSet,
+  ContributeSetupState,
   ContributeSides,
   ContributeView,
 } from './contribute.types';
@@ -90,6 +92,7 @@ import { ContributeFairUseNoticeDocument, ContributeFairUseNoticesDocument } fro
 import { isGrantAvailable } from './grant-availability';
 import { contributeMcpSignIn } from './mcp-sign-in';
 import { withRepliesPlanOf, withReplyPlansOf } from './one-comment';
+import { setupStateOf } from './setup-state';
 import { auth } from '@/auth';
 import { accountEmailOf } from '@/lib/account-email';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
@@ -156,19 +159,37 @@ export class ContributeUnavailableError extends Error {
 }
 
 /**
+ * Where the viewer's GitRanks setup stands (`ContributeSetupState`). The read itself starts the first read of an
+ * account with no profile, so a new account is `setting-up` at once. `none` signed out. When the API does not answer
+ * the state, its older yes or no for "being set up" stands in (no: `failed`, which offers "Try again"); `failed` when
+ * neither answers. Read once per request.
+ */
+export const loadContributeSetupState = cache(async (): Promise<ContributeSetupState> => {
+  const githubLogin = await viewerLogin();
+  if (!githubLogin) return 'none';
+  const options = { source: 'ssr' as const, githubLogin };
+  try {
+    const { contributeSetupState } = await graphqlDirect(ContributeSetupStateDocument, undefined, options);
+    const state = setupStateOf(contributeSetupState);
+    if (state) return state;
+  } catch {
+    // The older field below.
+  }
+  try {
+    const { contributeSetup } = await graphqlDirect(ContributeSetupDocument, undefined, options);
+    return contributeSetup === true ? 'setting-up' : 'failed';
+  } catch {
+    return 'failed';
+  }
+});
+
+/**
  * Whether the viewer's GitRanks account is being set up: a new GitHub account GitRanks is reading for the first time,
  * so Contribute cannot answer for it yet. False signed out and on any failure. Read once per request.
  */
-export const loadContributeSetup = cache(async (): Promise<boolean> => {
-  const githubLogin = await viewerLogin();
-  if (!githubLogin) return false;
-  try {
-    const { contributeSetup } = await graphqlDirect(ContributeSetupDocument, undefined, { source: 'ssr', githubLogin });
-    return contributeSetup === true;
-  } catch {
-    return false;
-  }
-});
+export const loadContributeSetup = cache(
+  async (): Promise<boolean> => (await loadContributeSetupState()) === 'setting-up',
+);
 
 /**
  * Everything the Contribute pages show for the signed-in user; null when Contribute is hidden from them (signed out,

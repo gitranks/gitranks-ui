@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/workspace/copy-button';
 import { EnterKey } from '@/components/workspace/masked-issue/facts';
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
+import { MoreWaiting, moreWaitingOf, useRowFocus } from '@/components/workspace/pr-parts/more-waiting';
 import { SendKey, useSendKey, useSendKeyName } from '@/components/workspace/pr-parts/send-key';
 import { cn } from '@/lib/utils';
 import type { WalkthroughSendBack } from '@/lib/workspace/blocked-walkthrough';
@@ -48,6 +49,8 @@ export type PullRequestBoxProps = PullRequestBoxPresses & {
   pending?: boolean;
   /** Enter does the main action (the page's one Enter key); a round's send takes Ctrl + Enter, as Approve does. */
   enterKey?: boolean;
+  /** "N more waiting" drawn opened (the catalogue). */
+  initialMoreOpen?: boolean;
 };
 
 /** The actions that lead to one of the page's links. */
@@ -181,8 +184,8 @@ function PromptToCopy({ prompt }: { prompt: string }) {
 /**
  * The box: where the pull request stands and the one thing to do, in every state of the page. Its parts keep their
  * places: the title, one line, then the actions' row (the main action filled, with the Enter key), a quiet note when
- * nothing is needed, the bar while the pull request opens, or the prompt to copy while a round waits. An end without
- * a merge is drawn grey and dashed.
+ * nothing is needed, the bar while the pull request opens, or the prompt to copy while a round waits; last, "N more
+ * waiting" when other things only the person can do wait too. An end without a merge is drawn grey and dashed.
  */
 export function PullRequestBox({
   page,
@@ -193,11 +196,15 @@ export function PullRequestBox({
   walkthroughBlocked = null,
   pending = false,
   enterKey = true,
+  initialMoreOpen = false,
   ...presses
 }: PullRequestBoxProps) {
   const words = boxOf(page, { agent, now, stoppedAtLimit, walkthroughBlocked });
   const shown = shownOf(words.actions, { page, links, ...presses });
   const actions = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLElement>(null);
+  const rest = moreWaitingOf(page);
+  useRowFocus(box, rest, pending);
   const keyName = useSendKeyName();
   // The main action: the first one, never "Don't send it", which only stops what is under way.
   const mainOf = (each: Shown, index: number) => index === 0 && each.action.id !== 'veto';
@@ -230,6 +237,7 @@ export function PullRequestBox({
 
   return (
     <section
+      ref={box}
       aria-live="polite"
       className={cn(
         'flex flex-col gap-2 rounded-2xl border bg-card p-5',
@@ -261,6 +269,9 @@ export function PullRequestBox({
       <div ref={actions} className="flex min-h-11 flex-wrap items-center gap-3 pt-1.5" data-box-actions="">
         {row}
       </div>
+      {rest.length ? (
+        <MoreWaiting items={rest} onOnlyYou={presses.onOnlyYou} pending={pending} initialOpen={initialMoreOpen} />
+      ) : null}
     </section>
   );
 }

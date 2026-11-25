@@ -223,6 +223,17 @@ describe('a start the server refuses because the setup is not finished', () => {
   });
 });
 
+describe('the way back from the onboarding', () => {
+  it('starts over once the sign is there: the start form and the hold the server read, not the setup button', async () => {
+    await live({ page: fullPage(), from: 'contribute', setup: 'contribute' });
+    expect(setupPart()).not.toBeNull();
+    await live({ page: fullPage({ until: EXTENDED_UNTIL }), from: 'contribute', setup: null });
+    expect(setupPart()).toBeNull();
+    expect(startForm()).not.toBeNull();
+    expect(container.textContent).toContain(`until ${clockOf(EXTENDED_UNTIL)}`);
+  });
+});
+
 describe('the start form by the signs', () => {
   it('from Learn without the Contribute sign: no "Just fix it"', async () => {
     await live({ page: fullPage(), from: 'learn', justFix: false });

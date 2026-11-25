@@ -111,6 +111,12 @@ export type IssuePageLiveProps = {
  * through leaves the page as it was and says so; a hosted start that is refused says why.
  */
 export function IssuePageLive(props: IssuePageLiveProps) {
+  // The way back from the onboarding is a client navigation, which keeps the page's state from before it (the setup
+  // button, the hold's old end): once the sign is there, the page starts over from what the server read.
+  return <IssuePageLiveOnce key={props.setup ?? 'ready'} {...props} />;
+}
+
+function IssuePageLiveOnce(props: IssuePageLiveProps) {
   const { id, from, view = null } = props;
   const router = useRouter();
   const [page, setPage] = useState(props.page);

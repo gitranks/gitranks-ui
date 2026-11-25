@@ -272,12 +272,44 @@ describe('the Agent tab with nothing connected', () => {
     expect(html).toContain('id="runs"');
   });
 
-  it('leads an account that has not entered into the flow', () => {
-    const { html, plain } = render({ view: agentTabViews.notEntered, runs: pageOf({ items: [] }) });
-    expect(html).toContain('data-agent-first="not-entered"');
+  it('leads a person with neither sign into the flow', () => {
+    const { html, plain } = render({ view: agentTabViews.noSign, runs: pageOf({ items: [] }) });
+    expect(html).toContain('data-agent-first="none"');
     expect(html).toMatch(/href="\/contribute\/start\/agent\/own"[^>]*>Connect your agent/);
     expect(html).toMatch(/href="\/contribute\/start\/agent\/key"[^>]*>Use a Claude key/);
     expect(plain).toContain('Then you pick your first issue.');
+  });
+
+  it("leads a person with the Learn sign only to the Agent tab's connect page, and their Claude key into the flow", () => {
+    const { html, plain } = render({ view: agentTabViews.learnSignOnly, runs: pageOf({ items: [] }) });
+    expect(html).toContain('data-agent-first="learn"');
+    expect(html).toMatch(/href="\/my\/agent\/connect"[^>]*>Connect your agent/);
+    // The hosted agent works for Contribute only: its key goes through Contribute's flow.
+    expect(html).toMatch(/href="\/contribute\/start\/agent\/key"[^>]*>Use a Claude key/);
+    expect(plain).toContain('Next, pick an issue on Contribute or Learn and press Start.');
+  });
+
+  it.each<[string, string | null | undefined, string | null | undefined, string, string, string]>([
+    ['no sign', null, null, 'none', '/contribute/start/agent/own', '/contribute/start/agent/key'],
+    ['the Contribute sign only', 'AT', null, 'contribute', '/my/agent/connect', '/my/agent/key'],
+    ['the Learn sign only', null, 'AT', 'learn', '/my/agent/connect', '/contribute/start/agent/key'],
+    ['both signs', 'AT', 'AT', 'contribute', '/my/agent/connect', '/my/agent/key'],
+    // Not known, and never set up before the signs: the Learn sign closes nothing, the Contribute sign is no sign.
+    ['the signs not known', undefined, undefined, 'learn', '/my/agent/connect', '/contribute/start/agent/key'],
+  ])('with %s, its buttons lead by the signs', (_who, contribute, learn, mark, own, key) => {
+    const at = (value: string | null | undefined) => (value === 'AT' ? '2026-11-25T09:00:00.000Z' : value);
+    const view = {
+      ...agentTabViews.noSign,
+      contributor: {
+        ...agentTabViews.noSign.contributor,
+        contributeOnboardedAt: at(contribute),
+        learnOnboardedAt: at(learn),
+      },
+    };
+    const { html } = render({ view, runs: pageOf({ items: [] }) });
+    expect(html).toContain(`data-agent-first="${mark}"`);
+    expect(html).toContain(`href="${own}"`);
+    expect(html).toContain(`href="${key}"`);
   });
 
   it('is not shown while a token waits for its agent, or anything is connected', () => {

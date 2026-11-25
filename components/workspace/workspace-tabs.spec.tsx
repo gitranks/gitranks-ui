@@ -68,8 +68,7 @@ const tabsAt = (pathname: string, search = '', props: Partial<Parameters<typeof 
 
 const open = (over: Partial<Extract<WorkspaceGate, { kind: 'open' }>> = {}): WorkspaceGate => ({
   kind: 'open',
-  entered: true,
-  signs: { contribute: null, learn: null },
+  signs: { contribute: true, learn: null },
   agents: { hosted: true, own: false },
   ...over,
 });
@@ -84,10 +83,13 @@ describe("the gate's tabs", () => {
     ['signed out', { kind: 'signed-out' } as WorkspaceGate, []],
     ['signed in, the workspace hidden', { kind: 'hidden' } as WorkspaceGate, []],
     ['setting up', { kind: 'setting-up' } as WorkspaceGate, []],
-    ['open, not entered', open({ entered: false }), []],
-    ['open, entered', open(), ALL],
+    ['open, no sign', open({ signs: { contribute: false, learn: false } }), []],
+    ['open, the Learn sign only', open({ signs: { contribute: false, learn: true } }), []],
+    ['open, the Contribute sign', open(), ALL],
+    ['open, both signs', open({ signs: { contribute: true, learn: true } }), ALL],
+    ['open, the signs not known', open({ signs: { contribute: null, learn: null } }), []],
     // Everything revoked: the tabs stay, and the pages say what to do.
-    ['entered with nothing connected now', open({ agents: { hosted: false, own: false } }), ALL],
+    ['the Contribute sign with nothing connected now', open({ agents: { hosted: false, own: false } }), ALL],
   ])('%s: %j', (_who, viewer, tabs) => {
     expect(tabsOf(viewer)).toEqual(tabs);
   });
@@ -149,10 +151,27 @@ describe("the gate's tabs", () => {
     jar.lastBar = undefined;
   });
 
+  it("reads the poll's start for a person with the Learn sign only, and draws no tabs and no door", async () => {
+    nav.pathname = '/my/issues/q7k2m9xa';
+    data.loadContributeVersion.mockClear();
+    data.loadNeedsYouCount.mockClear();
+    gate.loadWorkspaceGate.mockResolvedValueOnce(open({ signs: { contribute: false, learn: true } }));
+    const html = renderToStaticMarkup(await WorkspaceTabs({ learnDoorCount: <span data-door-slot="" /> }));
+    expect(data.loadContributeVersion).toHaveBeenCalled();
+    expect(data.loadNeedsYouCount).toHaveBeenCalled();
+    expect(tabLinks(html)).toHaveLength(0);
+    expect(html).not.toContain('learn-door');
+    expect(html).toBe(renderToStaticMarkup(<HeaderLine />));
+  });
+
   it('shows no tabs, and reads nothing more, without them; nor when the gate could not be read', async () => {
     data.loadNeedsYouCount.mockClear();
     const line = renderToStaticMarkup(<HeaderLine />);
-    for (const viewer of [{ kind: 'signed-out' }, { kind: 'hidden' }, open({ entered: false })]) {
+    for (const viewer of [
+      { kind: 'signed-out' },
+      { kind: 'hidden' },
+      open({ signs: { contribute: false, learn: false } }),
+    ]) {
       gate.loadWorkspaceGate.mockResolvedValueOnce(viewer);
       expect(renderToStaticMarkup(await WorkspaceTabs())).toBe(line);
     }

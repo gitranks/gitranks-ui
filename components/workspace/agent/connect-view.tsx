@@ -6,7 +6,13 @@ import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { manualDraftFromSettings, type StoredLimits } from '@/lib/workspace/connect-limits';
 import { loadAttempt, loadContribute, loadContributeSetup } from '@/lib/workspace/contribute.data';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
-import { claudeKeyOf, contributeNoticesOf, isOnboarded, withoutAccessNotices } from '@/lib/workspace/contribute-state';
+import {
+  claudeKeyOf,
+  contributeNoticesOf,
+  hasContributeSignIn,
+  isOnboarded,
+  withoutAccessNotices,
+} from '@/lib/workspace/contribute-state';
 import { LANGUAGES } from '@/lib/workspace/format';
 import { proofParamOf, proofPromptOf } from '@/lib/workspace/proof';
 import { contributeHidden } from '@/lib/workspace/setting-up';
@@ -26,6 +32,7 @@ export async function OwnAgentConnectView({
  * B1, the own-agent path: the agent, a token and its setup, then the agent's first call. Nothing asks for a key or for
  * preferences (guessed, changed in Settings), and GitHub access is asked for on the first review. One connection
  * serves Contribute and Learn; the Claude key is offered as the other way to contribute, not to someone on Learn alone.
+ * A person without the Contribute sign (a learner) stays here once connected, with "Finish setting up".
  */
 export function OwnAgentConnectScreen({
   view,
@@ -38,6 +45,7 @@ export function OwnAgentConnectScreen({
     <AgentConnect
       keyLink={view.sides?.contribute !== false}
       onboarded={isOnboarded(view)}
+      finishSetup={!hasContributeSignIn(view)}
       tokens={view.ownAgent?.tokens}
       proof={proof}
       signIn={view.ownAgent?.signIn === true}

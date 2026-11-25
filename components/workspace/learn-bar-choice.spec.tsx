@@ -51,11 +51,18 @@ const setCookie = (value: string | null) => {
   document.cookie = value ? `gr_last_bar=${value}; Path=/` : 'gr_last_bar=; Path=/; Max-Age=0';
 };
 
-type Choice = { audience?: Audience; lastBar?: ProductBar | null; withLearn?: boolean; tabs?: WorkspaceTab[] };
+type Choice = {
+  audience?: Audience;
+  lastBar?: ProductBar | null;
+  withLearn?: boolean;
+  tabs?: WorkspaceTab[];
+  poll?: boolean;
+};
 
-const nav = ({ audience = 'both', lastBar = null, withLearn = true, tabs = TABS }: Choice = {}) => (
+const nav = ({ audience = 'both', lastBar = null, withLearn = true, tabs = TABS, poll = true }: Choice = {}) => (
   <WorkspaceTabsNav
     tabs={tabs}
+    poll={poll}
     activity={READING}
     version="4.2"
     learn={withLearn ? { bar: LEARN, audience, lastBar } : undefined}
@@ -127,11 +134,43 @@ describe('the bar on the workspace pages', () => {
     expect(changesPollRunning()).toBe(true);
   });
 
-  it("shows Learn's bar alone, with no poll, before the person has entered the workspace", () => {
+  it("shows Learn's bar alone, with no poll, for a person with neither sign", () => {
+    at.search = 'from=learn';
+    expect(shown({ tabs: [], poll: false })).toBe('learn');
+    expect(container.querySelector('[data-activity-bar]')).toBeNull();
+    expect(changesPollRunning()).toBe(false);
+  });
+
+  it.each([
+    ['the page of one issue', '/my/issues/q7k2m9xa', 'from=learn'],
+    ['a Start page', '/my/start/acme/widgets/42', 'lesson=1'],
+    ["a pull request's page", '/my/pull-requests/acme/widgets/42', 'from=learn'],
+  ])(
+    'runs the poll alone, with no tabs and no bar, on %s for a person with the Learn sign only',
+    (_page, path, search) => {
+      at.path = path;
+      at.search = search;
+      expect(shown({ tabs: [] })).toBeNull();
+      expect(container.querySelector('[data-activity-bar]')).toBeNull();
+      expect(container.querySelector('[data-workspace-tabs]')).toBeNull();
+      expect(changesPollRunning()).toBe(true);
+    },
+  );
+
+  it("runs the poll under Learn's bar on Settings opened from Learn, for a person with the Learn sign only", () => {
     at.search = 'from=learn';
     expect(shown({ tabs: [] })).toBe('learn');
     expect(container.querySelector('[data-activity-bar]')).toBeNull();
-    expect(changesPollRunning()).toBe(false);
+    expect(changesPollRunning()).toBe(true);
+  });
+
+  it('runs no poll alone outside /my', () => {
+    for (const path of ['/contribute', '/contribute/start', '/learn']) {
+      at.path = path;
+      at.search = '';
+      expect(shown({ tabs: [], withLearn: false })).toBeNull();
+      expect(changesPollRunning(), path).toBe(false);
+    }
   });
 
   it("draws the server's read of the cookie before the page is up", () => {

@@ -15,6 +15,7 @@ import type { Audience } from '@/lib/workspace/audience';
 import { contributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeActivity } from '@/lib/workspace/contribute.types';
 import type { WorkspaceTab } from '@/lib/workspace/gate';
+import { isMyPath } from '@/lib/workspace/paths';
 import {
   isSharedSettingsPath,
   lastBarInCookies,
@@ -41,7 +42,9 @@ const noSubscribe = () => () => {};
 
 /**
  * The workspace's tabs under the header, as a profile's are, or the header's line when they do not show; with them,
- * the one poll (`ChangesProvider`) and the bar for the current tab's work. On Settings, Learn's bar takes the tabs'
+ * the one poll (`ChangesProvider`) and the bar for the current tab's work. `poll` is given for a person with either
+ * sign: without tabs (the Learn sign only) the poll mounts alone on the pages under `/my`, with no bar, so the shared
+ * pages (an issue's, a Start page, a pull request's) still move on. On Settings, Learn's bar takes the tabs'
  * place where Learn opened the page (`settingsBarOf`: the link's `?from=learn`, else the bar seen last, read from the
  * browser's cookie on each move, else the product the person uses); the poll and the work's bar stay under it. `door`
  * is the door into Learn at the tabs' right edge, given to a person who uses Learn. It reads the path and the query,
@@ -49,6 +52,7 @@ const noSubscribe = () => () => {};
  */
 export function WorkspaceTabsNav({
   tabs,
+  poll = false,
   activity = null,
   version = null,
   needsYou = null,
@@ -56,6 +60,8 @@ export function WorkspaceTabsNav({
   door,
 }: {
   tabs: readonly WorkspaceTab[];
+  /** The poll runs for this person (`pollsOf`). */
+  poll?: boolean;
   activity?: ContributeActivity | null;
   version?: string | null;
   needsYou?: number | null;
@@ -78,7 +84,15 @@ export function WorkspaceTabsNav({
   useEffect(() => {
     if (showLearn) scrollToHash();
   }, [showLearn]);
-  if (!workspaceTabsShown(pathname, search.get('as'), tabs)) return showLearn ? learn.bar : <HeaderLine />;
+  if (!workspaceTabsShown(pathname, search.get('as'), tabs)) {
+    const line = showLearn ? learn.bar : <HeaderLine />;
+    if (!poll || tabs.length || !isMyPath(pathname)) return line;
+    return (
+      <ChangesProvider version={version} activity={activity} needsYou={needsYou}>
+        {line}
+      </ChangesProvider>
+    );
+  }
   return (
     <ChangesProvider version={version} activity={activity} needsYou={needsYou}>
       {showLearn ? (

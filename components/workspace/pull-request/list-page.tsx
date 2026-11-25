@@ -8,7 +8,8 @@ import { audienceOf } from '@/lib/workspace/audience';
 import { withBlockedWalkthroughs } from '@/lib/workspace/blocked-walkthrough';
 import { loadContribute, loadContributeSetup } from '@/lib/workspace/contribute.data';
 import { isContributePageOpen } from '@/lib/workspace/contribute-state';
-import { PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { closedPageTargetOf } from '@/lib/workspace/gate';
+import { PICK_ISSUE_PATHS, searchParamsOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { loadBlockedWalkthroughs, loadPullRequestList } from '@/lib/workspace/pull-request.data';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 import { LAST_BAR_COOKIE, lastBarOf, settingsBarOf } from '@/lib/workspace/settings-bar';
@@ -29,7 +30,8 @@ export async function PullRequestListPage({ searchParams }: { searchParams: Prom
     cookies(),
   ]);
   if (!view) contributeHidden(await loadContributeSetup());
-  if (!isContributePageOpen(view, 'me')) redirect(WORKSPACE_PATHS.contribute);
+  if (!isContributePageOpen(view, 'me'))
+    redirect(closedPageTargetOf(WORKSPACE_PATHS.pullRequests, searchParamsOf(query)));
   if (!read) return <Unavailable />;
   // Only a Learn fix on its walkthrough can wait for another pass: the list asks only then.
   const walkthrough = read.rows.some((row) => row.made === 'LEARN' && row.box === 'WALKTHROUGH');

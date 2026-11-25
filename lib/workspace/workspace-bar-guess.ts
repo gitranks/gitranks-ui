@@ -25,7 +25,7 @@ export type WorkspaceBarGuess = { tab: WorkspaceTab | null } | null;
 const PLAYER_PAGE = /^\/my\/pull-requests\/[^/]+\/[^/]+\/[^/]+\/(?:approve|walkthrough)\/?$/;
 
 /**
- * Whether the page draws the workspace's tabs for someone who has entered and saw them last: every page under `/my`
+ * Whether the page draws the workspace's tabs for someone with the Contribute sign who saw them last: every page under `/my`
  * but Settings opened from Learn (Learn's bar shows there) and the player's pages; `/contribute`, but not as a visitor
  * would see it (`?as=visitor`); and a fair-use message's answer page.
  */
@@ -41,7 +41,7 @@ function drawsTabs(pathname: string, search: URLSearchParams): boolean {
 /**
  * Whether this page will most likely draw the workspace's four tabs, and which of them is current (`activeTabOf`'s
  * rule). Yes only when the browser holds a session, the bar seen last is the workspace's (it is written only where the
- * tabs were drawn, so only for someone who has entered; Learn's bar writes `learn` for everyone, visitors included),
+ * tabs were drawn, so only for someone with the Contribute sign; Learn's bar writes `learn` for everyone, visitors included),
  * and the address draws the tabs. A wrong yes closes the reserved line when the bar arrives; a wrong no moves the page
  * as it did before, so the guess errs towards reserving nothing.
  */

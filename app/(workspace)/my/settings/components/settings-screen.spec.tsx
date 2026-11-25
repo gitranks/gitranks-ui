@@ -373,6 +373,25 @@ describe('the reads of Settings and the key page', () => {
     reads.loadContribute.mockResolvedValue(views.active);
     await expect(read()).rejects.toThrow('NEXT_REDIRECT /my/settings/github?grant=refused');
   });
+
+  it.each<[string, string | null | undefined, string | null | undefined, string | null]>([
+    ['no sign', null, null, '/contribute/start/agent/key?replace=1'],
+    ['the Learn sign only', null, '2026-11-25T09:00:00.000Z', '/contribute/start/agent/key?replace=1'],
+    ['the Contribute sign only', '2026-11-25T09:00:00.000Z', null, null],
+    ['both signs', '2026-11-25T09:00:00.000Z', '2026-11-25T09:00:00.000Z', null],
+    ['the signs not known', undefined, undefined, null],
+  ])(
+    "opens the key page with %s by the Contribute sign, else Contribute's key step",
+    async (_who, contribute, learn, to) => {
+      reads.loadContribute.mockResolvedValue({
+        ...views.active,
+        contributor: { ...views.active.contributor, contributeOnboardedAt: contribute, learnOnboardedAt: learn },
+      } as never);
+      const read = KeyView(params({ replace: '1' }));
+      if (to) await expect(read).rejects.toThrow(`NEXT_REDIRECT ${to}`);
+      else expect(await read).toBeTruthy();
+    },
+  );
 });
 
 describe("the key page's old #github", () => {

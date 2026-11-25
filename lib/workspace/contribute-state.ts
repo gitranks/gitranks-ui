@@ -110,6 +110,25 @@ export function isOnboarded(view: ContributeView | null | undefined): boolean {
   return !!claudeKeyOf(view) || !!contributor.plan || !!view?.ownAgent?.tokens.some((token) => token.lastUsedAt);
 }
 
+/**
+ * The Contribute sign: the person went through Contribute's onboarding (its second step with an agent connected).
+ * While the sign is not known (its read failed), today's rule decides (`isOnboarded`), so a failed read sends nobody back
+ * through the onboarding.
+ */
+export function hasContributeSignIn(view: ContributeView | null | undefined): boolean {
+  const at = view?.contributor?.contributeOnboardedAt;
+  return at === undefined ? isOnboarded(view) : !!at;
+}
+
+/**
+ * Either sign, for the pages both products share (the Agent tab's runs, the pull requests, the connect page): the
+ * Contribute sign as `hasContributeSignIn` reads it, or the Learn sign. A Learn sign that is not known closes nothing.
+ */
+export function hasEitherSignIn(view: ContributeView | null | undefined): boolean {
+  if (!view?.contributor) return false;
+  return hasContributeSignIn(view) || view.contributor.learnOnboardedAt !== null;
+}
+
 /** Mid-setup: a token for the user's own agent is live, and the agent has not connected with it yet. */
 export const isMidSetup = (view: ContributeView | null | undefined): boolean =>
   !!view?.contributor && !isOnboarded(view) && !!view.ownAgent?.paths.mcp;
@@ -128,12 +147,12 @@ export type LandingViewer = 'visitor' | 'signed-in';
 export type ContributeHome = { screen: 'tab' } | { screen: 'landing'; viewer: LandingViewer; preview: boolean };
 
 /**
- * `/contribute` for the signed-in user: the landing until they have entered, then the Contribute tab. `?as=visitor`
+ * `/contribute` for the signed-in user: the landing until they have the Contribute sign, then Contribute home. `?as=visitor`
  * shows anyone the visitor's landing; how Contribute works has its own page for members (`/contribute/about`).
  */
 export function contributeHomeOf(view: ContributeView, params: { as?: string | string[] }): ContributeHome {
   if (isAsVisitor(params.as)) return { screen: 'landing', viewer: 'visitor', preview: true };
-  if (!isOnboarded(view)) return { screen: 'landing', viewer: 'signed-in', preview: false };
+  if (!hasContributeSignIn(view)) return { screen: 'landing', viewer: 'signed-in', preview: false };
   return { screen: 'tab' };
 }
 
@@ -141,11 +160,11 @@ export function contributeHomeOf(view: ContributeView, params: { as?: string | s
 export type ContributeGatedPage = 'issues' | 'me' | 'runs' | 'attempt' | 'settings';
 
 /**
- * Whether the page is open to the user; one that is not sends them to the landing. Settings is open to any
- * contributor, onboarded or not, so a user mid-setup can revoke a token or delete their data; the rest wait for
- * onboarding.
+ * Whether the page is open to the user; one that is not sends them away (`closedPageTargetOf`). Settings is open to any
+ * contributor, with a sign or not, so a person part way through can revoke a token or delete their data; the rest open
+ * with either sign, since fixes made with Learn have runs and pull requests too.
  */
 export function isContributePageOpen(view: ContributeView, page: ContributeGatedPage): boolean {
   if (page === 'settings') return !!view.contributor;
-  return isOnboarded(view);
+  return hasEitherSignIn(view);
 }

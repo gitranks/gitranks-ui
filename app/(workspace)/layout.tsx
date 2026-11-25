@@ -10,8 +10,8 @@ import { FROM_LEARN } from '@/lib/learn/paths';
 
 /**
  * The signed-in workspace, Contribute's and Learn's: the site header (its menu marks itself by the path), then the
- * workspace's tabs once the user has entered, with the one poll and, for a person who uses Learn, the door into Learn
- * with its count read in the browser; on Settings opened from Learn, Learn's bar instead.
+ * workspace's tabs for a person with the Contribute sign, with the one poll and, for a person who uses Learn, the door
+ * into Learn with its count read in the browser; on Settings opened from Learn, Learn's bar instead.
  * Who sees which page is decided by the proxy and by each page; the tabs follow the same gate. No metadata here: each
  * section and page sets its own, so `/learn` stays indexable.
  */

@@ -14,7 +14,7 @@ import {
   viewerLogin,
 } from '@/lib/workspace/contribute.data';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
-import { isOnboarded } from '@/lib/workspace/contribute-state';
+import { hasContributeSignIn } from '@/lib/workspace/contribute-state';
 import { contributeResumeOf, type LandingStart } from '@/lib/workspace/getting-in';
 import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 import { contributeOpen } from '@/lib/workspace/preview-gate';
@@ -23,11 +23,11 @@ import { contributeOpen } from '@/lib/workspace/preview-gate';
 export const VISITOR_START: LandingStart = { href: GETTING_IN_PATHS.contributeStart, signedIn: false };
 
 /**
- * Where the landing's one button leads a signed-in person: the step of the flow that is left for them (§4.1), or, once
- * they have entered, Contribute itself.
+ * Where the landing's one button leads a signed-in person: the step of the flow that is left for them, or, with the
+ * Contribute sign, Contribute home ("Go to your issues").
  */
 export const signedInStartOf = (view: ContributeView): LandingStart =>
-  isOnboarded(view) ? { member: true } : { href: contributeResumeOf(view), signedIn: true };
+  hasContributeSignIn(view) ? { member: true } : { href: contributeResumeOf(view), signedIn: true };
 
 /** What the landing draws from live reads: the numbers line, the proof, and whether the public ledger is open. */
 export type LandingLive = { stats: AgentPageStats | null; proof: LandingProof; ledgerOpen: boolean };

@@ -71,7 +71,7 @@ const landingOf = async (view: unknown) =>
 const UNSET = { state: 'NONE', mainLanguage: null, otherLanguages: [], level: null };
 const SAVED = { state: 'SAVED', mainLanguage: 'Go', otherLanguages: ['Python'], level: 3 };
 /** An open gate with the Learn sign set, not set, or not known. */
-const gateWith = (learn: boolean | null) => ({ kind: 'open', entered: true, signs: { contribute: true, learn } });
+const gateWith = (learn: boolean | null) => ({ kind: 'open', signs: { contribute: true, learn } });
 
 beforeEach(() => {
   for (const mock of Object.values(m)) mock.mockReset();
@@ -193,8 +193,8 @@ describe('/learn for someone signed in', () => {
     expect(await landingOf(await LearnFrontView())).toBe('member');
   });
 
-  it('is the landing for someone with Contribute only, as "entered" no longer opens Learn home', async () => {
-    signedIn({ home: homeNewLearner, setup: UNSET, gate: { ...gateWith(false), entered: true } });
+  it('is the landing for someone with Contribute only, as the Contribute sign does not open Learn home', async () => {
+    signedIn({ home: homeNewLearner, setup: UNSET, gate: gateWith(false) });
     expect(await landingOf(await LearnFrontView())).toBe('member');
   });
 

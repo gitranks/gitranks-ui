@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 
 import { OwnAgentConnectView } from '@/components/workspace/agent/connect-view';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
-import { notEnteredTargetOf } from '@/lib/workspace/gate';
+import { signTargetOf } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { searchParamsOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
@@ -22,11 +22,11 @@ export default function AgentConnectPage({ searchParams }: Params) {
   );
 }
 
-/** An account that has not entered connects its agent in Contribute's flow, the query kept. */
+/** A person with neither sign connects their agent in Contribute's flow, the query kept. */
 async function AgentConnect({ searchParams }: Pick<Params, 'searchParams'>) {
   const [gate, params] = await Promise.all([loadWorkspaceGate(), searchParams]);
-  if (gate.kind === 'open' && !gate.entered) {
-    const to = notEnteredTargetOf(WORKSPACE_PATHS.agentConnect, searchParamsOf(params));
+  if (gate.kind === 'open') {
+    const to = signTargetOf(WORKSPACE_PATHS.agentConnect, searchParamsOf(params), gate.signs);
     if (to) redirect(to);
   }
   return <OwnAgentConnectView searchParams={searchParams} />;

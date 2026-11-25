@@ -14,8 +14,9 @@ import { SettingsPageHead } from '@/components/workspace/settings-rows';
 import { loadContribute, loadContributeSetup, loadProfileLanguages } from '@/lib/workspace/contribute.data';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, settingsOf } from '@/lib/workspace/contribute-state';
+import { signsOf, signTargetOf } from '@/lib/workspace/gate';
 import { grantRefusalOf } from '@/lib/workspace/grant-refusal';
-import { SETTINGS_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { SETTINGS_PATHS, searchParamsOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 
 /** The Agent tab's own pages: Save goes back to it. */
@@ -100,6 +101,9 @@ export async function KeyView({
   // GitHub's consent came back here before its page moved to Settings: its answer is there now.
   const grant = grantRefusalOf(params.grant);
   if (grant) redirect(`${SETTINGS_PATHS.github}?grant=${grant}` as Route);
+  // The hosted agent works for Contribute only: without its sign, a key is saved in Contribute's setup.
+  const to = signTargetOf(WORKSPACE_PATHS.agentKey, searchParamsOf(params), signsOf(view));
+  if (to) redirect(to);
   return (
     <KeyScreen
       view={view}

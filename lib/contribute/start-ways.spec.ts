@@ -224,8 +224,8 @@ describe('withWayBack', () => {
 });
 
 describe('startWaysReadOf: the first step’s facts from the gate and the view', () => {
-  const open = (contribute: boolean | null, entered = false) =>
-    ({ kind: 'open', entered, signs: { contribute, learn: null }, agents: { hosted: false, own: false } }) as const;
+  const open = (contribute: boolean | null) =>
+    ({ kind: 'open', signs: { contribute, learn: null }, agents: { hosted: false, own: false } }) as const;
   const token = (patch: object) => ({ id: 't', name: 'Claude Code', lastUsedAt: null, kind: 'TOKEN', ...patch });
   const view = (tokens: object[], state: string | null) =>
     ({
@@ -254,9 +254,9 @@ describe('startWaysReadOf: the first step’s facts from the gate and the view',
     expect(read(open(false), view([token({ kind: 'OAUTH', name: 'my laptop' })], null))).toMatchObject({ own: '' });
   });
 
-  it('reads the Contribute sign, and today’s rule while it is not known', () => {
+  it('reads the Contribute sign as the gate gives it: a sign not known that the rule from before it did not fill is no sign', () => {
     expect(read(open(true), view([], null)).sign).toBe(true);
-    expect(read(open(false, true), view([], null)).sign).toBe(false);
-    expect(read(open(null, true), view([], null)).sign).toBe(true);
+    expect(read(open(false), view([], null)).sign).toBe(false);
+    expect(read(open(null), view([], null)).sign).toBe(false);
   });
 });

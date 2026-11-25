@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { fixPageUrlOf, pullRequestLinksOf } from './page-links';
-import { gate, type PageParams, pageOf, type Query, Unavailable, withQuery } from './page-read';
+import { gate, type PageParams, pageOf, pagePathOf, type Query, Unavailable, withQuery } from './page-read';
 import { type PullRequestOps, PullRequestPageView } from './page-view';
 import { PrNotesPanel } from './pr-notes';
 import { ProofSection } from './proof-section';
@@ -79,7 +79,9 @@ export async function PullRequestPageScreen({
   params: Promise<PageParams & { runId?: string }>;
   searchParams: Promise<Query>;
 }) {
-  const [gated, query, { runId }] = await Promise.all([gate(), searchParams, params]);
+  const [query, route] = await Promise.all([searchParams, params]);
+  const { runId } = route;
+  const gated = await gate({ path: pagePathOf(route), query });
   if (!gated) return <WorkspaceSignIn what="contribution" />;
   const read = await pageOf(params);
   if (read.kind === 'unread') return <Unavailable />;

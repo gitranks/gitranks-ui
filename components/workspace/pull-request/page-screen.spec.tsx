@@ -56,6 +56,12 @@ type ViewProps = {
   takeDown: ReactElement<{ slug: string }> | null;
 };
 
+/** A person with neither sign, a token waiting for its agent. */
+const NO_SIGN = {
+  ...views.midSetup,
+  contributor: { ...views.midSetup.contributor, contributeOnboardedAt: null, learnOnboardedAt: null },
+};
+
 const open = (params: Record<string, string> = {}, query: Record<string, string> = {}) =>
   PullRequestPageScreen({
     params: Promise.resolve({ owner: 'acme', repo: 'widgets', issue: '42', ...params }),
@@ -85,9 +91,23 @@ describe("the pull request's page, by its address", () => {
     expect(data.loadIssueAttempt).not.toHaveBeenCalled();
   });
 
-  it('sends a user not onboarded to the landing', async () => {
-    data.loadContribute.mockResolvedValue(views.midSetup);
-    await expect(open()).rejects.toThrow('NEXT_REDIRECT /contribute');
+  it("sends a person with neither sign to /contribute, or to Learn's onboarding with the way back to this page", async () => {
+    data.loadContribute.mockResolvedValue(NO_SIGN);
+    await expect(open()).rejects.toThrow(/NEXT_REDIRECT \/contribute$/);
+    await expect(open({}, { from: 'learn' })).rejects.toThrow(
+      `NEXT_REDIRECT /learn/setup?back=${encodeURIComponent('/my/pull-requests/acme/widgets/42?from=learn')}`,
+    );
+    await expect(open({ attemptId: 'A_0', runId: 'R_1' }, { from: 'learn' })).rejects.toThrow(
+      `NEXT_REDIRECT /learn/setup?back=${encodeURIComponent('/my/pull-requests/acme/widgets/42/earlier/A_0/runs/R_1?from=learn')}`,
+    );
+  });
+
+  it('opens for a person with the Learn sign only: a fix made with Learn has its page too', async () => {
+    data.loadContribute.mockResolvedValue({
+      ...NO_SIGN,
+      contributor: { ...NO_SIGN.contributor, learnOnboardedAt: '2026-11-25T09:00:00.000Z' },
+    });
+    expect((await open())?.type).toBe(PullRequestPageView);
   });
 
   it("is a 404 for an issue that is not the person's, and says so when the API does not answer", async () => {

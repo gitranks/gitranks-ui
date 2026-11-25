@@ -7,13 +7,13 @@ vi.mock('@/lib/workspace/actions', () => ({ setContributeEmailSettings: vi.fn() 
 const { WorkspaceClientSlots } = await import('./workspace-client-slots');
 const { TimeZoneNote } = await import('./time-zone-note');
 
-const open = { kind: 'open', entered: true, agents: { hosted: false, own: true } };
+const open = { kind: 'open', signs: { contribute: true, learn: null }, agents: { hosted: false, own: true } };
 
 describe('the workspace client slots', () => {
   it('mount the time zone note only for an account the workspace is open to', async () => {
     loadWorkspaceGate.mockResolvedValueOnce(open);
     expect((await WorkspaceClientSlots())?.type).toBe(TimeZoneNote);
-    loadWorkspaceGate.mockResolvedValueOnce({ ...open, entered: false });
+    loadWorkspaceGate.mockResolvedValueOnce({ ...open, signs: { contribute: false, learn: false } });
     expect((await WorkspaceClientSlots())?.type).toBe(TimeZoneNote);
   });
 

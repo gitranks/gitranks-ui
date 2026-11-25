@@ -17,7 +17,8 @@ import { loadContribute, loadContributeActivity, loadContributeSetup } from '@/l
 import type { ContributeActivity, ContributeView } from '@/lib/workspace/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
 import { plural } from '@/lib/workspace/format';
-import { PICK_ISSUE_PATHS, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { closedPageTargetOf } from '@/lib/workspace/gate';
+import { PICK_ISSUE_PATHS, searchParamsOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import {
   type ContributeRunsPage,
   type ContributeRunsTotals,
@@ -50,7 +51,8 @@ export async function RunsView({
     loadContributeActivity().catch(() => null),
   ]);
   if (!view) contributeHidden(await loadContributeSetup());
-  if (!isContributePageOpen(view, 'runs')) redirect('/contribute');
+  if (!isContributePageOpen(view, 'runs'))
+    redirect(closedPageTargetOf(WORKSPACE_PATHS.agentRuns, searchParamsOf(params)));
   // A page past the end: the last page.
   if (page && !page.items.length && number > 1) {
     const last = Math.max(1, Math.ceil(page.totals.runs / RUNS_PAGE_SIZE));

@@ -210,6 +210,19 @@ export const ContributeOpenDocument = doc<{ contributeOpen: boolean }>('query Co
 /** The viewer's GitRanks account is being set up: a new account, read for the first time now. */
 export const ContributeSetupDocument = doc<{ contributeSetup: boolean }>('query ContributeSetup { contributeSetup }');
 
+/**
+ * Where the viewer's GitRanks setup stands. A read of an account with no profile asks its first read when none is on
+ * its way or ended within the hour, so a new account answers SETTING_UP at once.
+ */
+export const ContributeSetupStateDocument = doc<{ contributeSetupState: string }>(
+  'query ContributeSetupState { contributeSetupState }',
+);
+
+/** "Try again" after a first read that failed: asks it again (never while one is on its way); the state after. */
+export const RetryContributeSetupDocument = doc<{ retryContributeSetup: string }>(
+  'mutation RetryContributeSetup { retryContributeSetup }',
+);
+
 /** Asked on every sign-in: a new account's first read, when GitRanks has none of it yet. */
 export const ContributeFirstFetchDocument = doc<{ contributeFirstFetch: boolean }>(
   'mutation ContributeFirstFetch { contributeFirstFetch }',

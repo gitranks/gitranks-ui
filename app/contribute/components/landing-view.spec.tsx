@@ -22,10 +22,11 @@ vi.mock('next/navigation', () => ({
 vi.mock('server-only', () => ({}));
 vi.mock('next-auth/react', () => ({ signIn: vi.fn(), useSession: () => ({ data: null }) }));
 vi.mock('@/lib/workspace/actions', () => ({}));
+vi.mock('@/lib/workspace/setup.actions', () => ({ retryContributeSetup: vi.fn() }));
 const data = vi.hoisted(() => ({
   loadContribute: vi.fn(),
   loadProviderInterests: vi.fn(async () => []),
-  loadContributeSetup: vi.fn(async () => false),
+  loadContributeSetupState: vi.fn(async (): Promise<string> => 'none'),
   viewerLogin: vi.fn(async (): Promise<string | null> => null),
 }));
 vi.mock('@/lib/workspace/contribute.data', () => data);
@@ -56,7 +57,7 @@ const startsOf = (html: string) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
-  data.loadContributeSetup.mockResolvedValue(false);
+  data.loadContributeSetupState.mockResolvedValue('none');
   data.viewerLogin.mockResolvedValue(null);
   proofRead.loadLandingProof.mockResolvedValue(null);
   proofRead.loadLandingLedgerOpen.mockResolvedValue(true);
@@ -226,16 +227,22 @@ describe('how Contribute works, /contribute/about', () => {
     expect(href).toBe(label === 'Go to your issues' ? '/contribute' : '/contribute/start');
   });
 
-  it('tells an account being set up, or one with no profile, so, as /contribute does', async () => {
+  it('tells an account being set up, one whose read failed, or one with no profile, so, as /contribute does', async () => {
     data.loadContribute.mockResolvedValue(null);
-    data.loadContributeSetup.mockResolvedValue(true);
+    data.loadContributeSetupState.mockResolvedValue('setting-up');
     data.viewerLogin.mockResolvedValue('octocat');
     const settingUp = await about();
     expect(settingUp).toContain('data-contribute-setting-up');
     expect(settingUp).not.toContain('data-landing-start');
-    data.loadContributeSetup.mockResolvedValue(false);
+    data.loadContributeSetupState.mockResolvedValue('failed');
+    const failed = await about();
+    expect(failed).toContain('data-contribute-setup-failed');
+    expect(failed).toContain('data-setup-retry');
+    expect(failed).not.toContain('data-landing-start');
+    data.loadContributeSetupState.mockResolvedValue('removed');
     const noProfile = await about();
     expect(noProfile).toContain('data-contribute-no-profile');
+    expect(noProfile).not.toContain('data-setup-retry');
     expect(noProfile).not.toContain('data-landing-start');
   });
 

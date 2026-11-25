@@ -390,12 +390,14 @@ describe('more waiting, in the box', () => {
   const line = () => container.querySelector<HTMLButtonElement>('[data-more-waiting] > button');
   const list = () => container.querySelector<HTMLUListElement>('[data-more-waiting] ul');
   const items = () =>
-    [...container.querySelectorAll('[data-more-waiting-item]')].map((each) => each.getAttribute('data-more-waiting-item'));
+    [...container.querySelectorAll('[data-more-waiting-item]')].map((each) =>
+      each.getAttribute('data-more-waiting-item'),
+    );
 
   it('has no line when nothing else waits, and never a zero', async () => {
     await box(prOnlyYouPage('cla'), { onOnlyYou: vi.fn() });
     expect(container.querySelector('[data-more-waiting]')).toBeNull();
-    expect(text()).not.toMatch(/more waiting/);
+    expect(text()).not.toMatch(/more waiting/);
     await box(prStages.open);
     expect(container.querySelector('[data-more-waiting]')).toBeNull();
   });

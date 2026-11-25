@@ -5,6 +5,7 @@ import {
   filesOf,
   type LandingProofPr,
   landingProofOf,
+  landingProofPrsOf,
   mergedAfterOf,
   proofByOf,
   proofIssueMarksOf,
@@ -45,6 +46,30 @@ describe('landingProofOf', () => {
     const proof = landingProofOf(read);
     expect(proof.card?.number ?? null).toBe(card);
     expect(proof.rows?.length ?? null).toBe(rows);
+  });
+});
+
+describe('landingProofPrsOf', () => {
+  it('keeps the API order, and drops a row without its title or its sender', () => {
+    expect(
+      landingProofPrsOf([
+        merged(1),
+        { ...merged(2), title: null },
+        { ...merged(3), contributorLogin: null },
+        merged(4),
+      ])?.map((row) => row.number),
+    ).toEqual([1, 4]);
+  });
+
+  it('keeps a row whose issue title is not known', () => {
+    const [row] = landingProofPrsOf([{ ...merged(1), issue: { ...merged(1).issue, title: null } }]) ?? [];
+    expect(row?.issue.title).toBeNull();
+  });
+
+  it('answers null for a failed read, and none for none', () => {
+    expect(landingProofPrsOf(null)).toBeNull();
+    expect(landingProofPrsOf(undefined)).toBeNull();
+    expect(landingProofPrsOf([])).toEqual([]);
   });
 });
 

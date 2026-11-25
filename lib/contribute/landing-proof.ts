@@ -21,13 +21,31 @@ export type LandingProofPr = {
   issue: {
     number: number;
     url: string;
-    title: string;
+    /** The issue's title as it was taken; null when not known (the card leaves it out). */
+    title: string | null;
     /** The kind triage gave it; null when it gave none. */
     kind: string | null;
     language: ContributeLanguage | null;
   };
   change: { files: number; added: number; removed: number } | null;
 };
+
+/** A row as the API answers it (`contributeNewestMerged`): the pull request's title and its sender may be missing. */
+export type ContributeMergedPrRead = Omit<LandingProofPr, 'title' | 'contributorLogin'> & {
+  title: string | null;
+  contributorLogin: string | null;
+};
+
+/**
+ * The API's rows as the landing draws them, in its order (newest first); null when the read failed. A row without the
+ * pull request's title or its sender is dropped: the card says a person reviewed it and sent it, and names them.
+ */
+export function landingProofPrsOf(rows: readonly ContributeMergedPrRead[] | null | undefined): LandingProofPr[] | null {
+  if (!rows) return null;
+  return rows.flatMap(({ title, contributorLogin, ...row }) =>
+    title && contributorLogin ? [{ ...row, title, contributorLogin }] : [],
+  );
+}
 
 /** What the landing draws of the proof: the top card's pull request, and the three rows. Null leaves a part out. */
 export type LandingProof = { card: LandingProofPr | null; rows: LandingProofPr[] | null };

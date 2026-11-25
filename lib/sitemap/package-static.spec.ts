@@ -16,6 +16,8 @@ const BEFORE = [
   { url: 'https://example.test/insights', changeFrequency: 'monthly', priority: 0.7 },
   { url: 'https://example.test/badge/gallery', changeFrequency: 'monthly', priority: 0.8 },
   { url: 'https://example.test/badge/builder', changeFrequency: 'monthly', priority: 0.8 },
+  // Contribute's landing, indexed for a visitor; its other address, /contribute/about, is not listed.
+  { url: 'https://example.test/contribute', changeFrequency: 'monthly', priority: 0.8 },
   { url: 'https://example.test/methodology', changeFrequency: 'monthly', priority: 0.6 },
   { url: 'https://example.test/terms', changeFrequency: 'monthly', priority: 0.2 },
   { url: 'https://example.test/privacy', changeFrequency: 'monthly', priority: 0.2 },

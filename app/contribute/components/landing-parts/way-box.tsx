@@ -1,12 +1,4 @@
-/** One way to contribute, as the landing's two boxes say it: the same parts in the same places. */
-export type LandingWay = {
-  /** The small line on top: who does the work. */
-  top: string;
-  title: string;
-  text: string;
-  /** Four facts, label then value, one line each. */
-  facts: readonly { label: string; value: string }[];
-};
+import type { LandingWay } from '@/lib/contribute/landing-copy';
 
 /** A box of "Two ways to contribute": a line on top, a title, one paragraph, four facts. */
 export function LandingWayBox({ way }: { way: LandingWay }) {

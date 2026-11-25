@@ -3,18 +3,21 @@ import { Suspense } from 'react';
 
 import { ContributeAboutView } from '@/app/contribute/components/landing-view';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
+import { LANDING_HERO } from '@/lib/contribute/landing-copy';
 import { pageMetadata } from '@/lib/seo/page-metadata';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
-/** One front door for search engines: this copy points at `/contribute` and is not indexed. */
+/**
+ * One front door for search engines: this copy names `/contribute` as its canonical. It says "index" itself, so the
+ * canonical it names is followed: the section's layout says "noindex".
+ */
 export const metadata: Metadata = {
   ...pageMetadata({
     title: 'How Contribute works',
-    description:
-      'Fix real open-source issues with the AI you already pay for. An agent writes the fix, you review every change, and the pull request opens in your name.',
+    description: LANDING_HERO.lead,
     path: WORKSPACE_PATHS.contribute,
   }),
-  robots: { index: false, follow: false },
+  robots: { index: true, follow: true },
 };
 
 /** How Contribute works, for anyone: the landing members reach from the Contribute tab, with no tabs. */

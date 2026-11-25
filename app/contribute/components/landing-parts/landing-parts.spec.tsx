@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 import { LandingProofCard } from './proof-card';
 import { LandingProofRows } from './proof-rows';
 import { LandingWayBox } from './way-box';
-import { landingWays, proofMerged, proofOpenOnly } from '@/lib/contribute/__fixtures__/wave-4-parts';
+import { proofMerged, proofOpenOnly } from '@/lib/contribute/__fixtures__/wave-4-parts';
+import { LANDING_WAYS } from '@/lib/contribute/landing-copy';
 
 const draw = (node: React.ReactElement) => {
   document.body.innerHTML = renderToStaticMarkup(node);
@@ -73,7 +74,7 @@ describe('"Merged through GitRanks"', () => {
 
 describe('a box of "Two ways to contribute"', () => {
   it('draws a line on top, a title, one paragraph and four facts', () => {
-    const page = draw(<LandingWayBox way={landingWays[1]} />);
+    const page = draw(<LandingWayBox way={LANDING_WAYS[1]} />);
     expect(text(page.querySelector('span'))).toBe('Your agent does the work');
     expect(text(page.querySelector('h3'))).toBe('With your own agent');
     expect([...page.querySelectorAll('dt')].map((term) => text(term))).toEqual([

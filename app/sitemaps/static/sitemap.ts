@@ -13,6 +13,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     sitemapEntry('/insights', { priority: 0.7 }),
     sitemapEntry('/badge/gallery', { priority: 0.8 }),
     sitemapEntry('/badge/builder', { priority: 0.8 }),
+    // Contribute's landing, the page a visitor gets; `/contribute/about` draws the same page and is not listed.
+    sitemapEntry('/contribute', { priority: 0.8 }),
     sitemapEntry('/methodology', { priority: 0.6 }),
     sitemapEntry('/terms', { priority: 0.2 }),
     sitemapEntry('/privacy', { priority: 0.2 }),

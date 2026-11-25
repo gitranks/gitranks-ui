@@ -128,10 +128,20 @@ function OnboardingStates() {
           <OnboardingHow line={null} hints onContinue={noop} />
         </OnboardingFrame>
         <OnboardingFrame title="2 · From a lesson, with the visitor's answer kept" height={ONBOARDING_HEIGHT}>
-          <OnboardingHow line={onboardingLineOf('/learn/lessons/hash-maps', true)} hints onContinue={noop} />
+          <OnboardingHow
+            line={onboardingLineOf('/learn/lessons/hash-maps', true)}
+            lineMayGrow
+            hints
+            onContinue={noop}
+          />
         </OnboardingFrame>
         <OnboardingFrame title="3 · From a lesson, no answer kept" height={ONBOARDING_HEIGHT}>
-          <OnboardingHow line={onboardingLineOf('/learn/lessons/hash-maps', false)} hints onContinue={noop} />
+          <OnboardingHow
+            line={onboardingLineOf('/learn/lessons/hash-maps', false)}
+            lineMayGrow
+            hints
+            onContinue={noop}
+          />
         </OnboardingFrame>
         <OnboardingFrame title="4 · From a Learn issue" height={ONBOARDING_HEIGHT}>
           <OnboardingHow line={onboardingLineOf('/my/issues/q7k2m9xa?from=learn', false)} hints onContinue={noop} />
@@ -157,7 +167,12 @@ function OnboardingStates() {
       </div>
       <div className="flex flex-wrap items-start gap-6">
         <OnboardingFrame title="On a phone: How Learn works, from a lesson" height={760} width={390}>
-          <OnboardingHow line={onboardingLineOf('/learn/lessons/hash-maps', true)} hints={false} onContinue={noop} />
+          <OnboardingHow
+            line={onboardingLineOf('/learn/lessons/hash-maps', true)}
+            lineMayGrow
+            hints={false}
+            onContinue={noop}
+          />
         </OnboardingFrame>
         <OnboardingFrame title="On a phone: Your languages" height={760} width={390}>
           <OnboardingLanguages ticked={['python', 'go']} hints={false} onTick={noop} onSave={noop} />

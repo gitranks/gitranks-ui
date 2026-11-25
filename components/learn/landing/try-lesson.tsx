@@ -20,6 +20,7 @@ import { answerLearnLessonAction } from '@/lib/learn/lesson-page.actions';
 import { shortDayWords } from '@/lib/learn/my-progress';
 import { coursePath, LEARN_HOME_PATH, LEARN_SETUP_PATH, learnLessonMinePath, learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
+import { learnSetupHrefOf } from '@/lib/workspace/paths';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /*
@@ -86,7 +87,8 @@ function TryPlayer({
     },
     onDone: () => {
       if (viewer === 'visitor') {
-        signIn(IDENTITY_PROVIDER, { redirectTo: LEARN_SETUP_PATH }).catch(() => {});
+        // Through the onboarding, ending on Learn home: a person who has the Learn sign goes straight there.
+        signIn(IDENTITY_PROVIDER, { redirectTo: learnSetupHrefOf(LEARN_HOME_PATH) }).catch(() => {});
       } else router.push(viewer === 'member' ? LEARN_SETUP_PATH : LEARN_HOME_PATH);
     },
   });

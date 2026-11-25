@@ -16,17 +16,39 @@ const nothing: SetupValues = { mainLanguage: null, otherLanguages: [], level: nu
 
 describe("Learn's setup page by the sign", () => {
   it('sends a person with the sign straight back, else gives them the editor', () => {
-    expect(learnSetupPageOf({ sign: true, back: LESSON, saved: false })).toEqual({ kind: 'redirect', to: LESSON });
-    expect(learnSetupPageOf({ sign: true, back: null, saved: false })).toEqual({ kind: 'editor', back: null });
+    expect(learnSetupPageOf({ signedIn: true, sign: true, back: LESSON, saved: false })).toEqual({
+      kind: 'redirect',
+      to: LESSON,
+    });
+    expect(learnSetupPageOf({ signedIn: true, sign: true, back: null, saved: false })).toEqual({
+      kind: 'editor',
+      back: null,
+    });
   });
 
   it('gives a person without the sign the onboarding, a saved setup or not', () => {
-    expect(learnSetupPageOf({ sign: false, back: LESSON, saved: true })).toEqual({ kind: 'onboarding', back: LESSON });
+    expect(learnSetupPageOf({ signedIn: true, sign: false, back: LESSON, saved: true })).toEqual({
+      kind: 'onboarding',
+      back: LESSON,
+    });
+  });
+
+  it('asks a visitor to sign in, whatever else is known', () => {
+    expect(learnSetupPageOf({ signedIn: false, sign: null, back: LESSON, saved: false })).toEqual({
+      kind: 'visitor',
+      back: LESSON,
+    });
   });
 
   it('decides by the saved setup when the sign cannot be read, and never sends the person back', () => {
-    expect(learnSetupPageOf({ sign: null, back: LESSON, saved: true })).toEqual({ kind: 'editor', back: LESSON });
-    expect(learnSetupPageOf({ sign: null, back: LESSON, saved: false })).toEqual({ kind: 'onboarding', back: LESSON });
+    expect(learnSetupPageOf({ signedIn: true, sign: null, back: LESSON, saved: true })).toEqual({
+      kind: 'editor',
+      back: LESSON,
+    });
+    expect(learnSetupPageOf({ signedIn: true, sign: null, back: LESSON, saved: false })).toEqual({
+      kind: 'onboarding',
+      back: LESSON,
+    });
   });
 });
 

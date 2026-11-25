@@ -20,11 +20,17 @@ import { cn } from '@/lib/utils';
 /** The first step, "How Learn works": the line saying where the person goes after, the three lines, and "Continue". */
 export function OnboardingHow({
   line,
+  lineMayGrow = false,
   hints,
   onContinue,
 }: {
   /** Where the person goes once the onboarding is done, when a page sent them here. */
   line: string | null;
+  /**
+   * The line may get longer once the browser's storage is read ("Your answer is kept." first): on a phone it holds two
+   * lines from the first paint, so the title does not move down.
+   */
+  lineMayGrow?: boolean;
   hints: boolean;
   onContinue: () => void;
 }) {
@@ -32,7 +38,10 @@ export function OnboardingHow({
     <FlowFrame side="learn" steps={ONBOARDING_STEPS} step={1}>
       <div className="flex flex-col gap-2" data-onboarding-step="how">
         {line ? (
-          <p className="m-0 text-sm font-medium text-muted-foreground" data-onboarding-line="">
+          <p
+            className={cn('m-0 text-sm font-medium text-muted-foreground', lineMayGrow && 'max-sm:min-h-[2lh]')}
+            data-onboarding-line=""
+          >
             {line}
           </p>
         ) : null}

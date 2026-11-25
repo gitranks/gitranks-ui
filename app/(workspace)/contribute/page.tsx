@@ -4,7 +4,6 @@ import { Suspense } from 'react';
 
 import { ContributeTabSkeleton } from '@/app/(workspace)/contribute/components/contribute-tab-skeleton';
 import { ContributeTab } from '@/app/(workspace)/contribute/components/contribute-tab-view';
-import { issuesQueryOf } from '@/app/contribute/components/issues-filter';
 import { Landing } from '@/app/contribute/components/landing';
 import {
   landingLiveOf,
@@ -42,7 +41,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Contribute's home: the landing until the user is onboarded, then the Contribute tab. The landing is the page search
+ * Contribute's home: the landing until the user is onboarded, then Contribute home. The landing is the page search
  * engines get.
  */
 export default function ContributeHomePage({ searchParams }: PageProps<'/contribute'>) {
@@ -83,13 +82,8 @@ async function ContributeHome({ searchParams }: Pick<PageProps<'/contribute'>, '
   if (home.screen === 'tab') {
     const gate = await loadWorkspaceGate();
     const open = gate.kind === 'open';
-    return (
-      <ContributeTab
-        view={view}
-        agents={open ? gate.agents : { hosted: false, own: false }}
-        query={issuesQueryOf(params)}
-      />
-    );
+    // An old address's filters (`kind`, `size`, `language`) are left in it: nothing reads them.
+    return <ContributeTab view={view} agents={open ? gate.agents : { hosted: false, own: false }} />;
   }
   // A visitor's page starts with nothing noted and at the flow's first step, the preview of it too.
   const visitor = home.viewer === 'visitor';

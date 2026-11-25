@@ -270,6 +270,20 @@ export type PullRequestListRow = {
   walkthroughBlocked?: { reason: string | null };
 };
 
+/**
+ * The person's newest merged pull request, of every one sent through GitRanks, as the first page of their list answers
+ * it for Contribute home.
+ */
+export type PullRequestsMerged = {
+  /** The newest merged one by its merge time (its row's `since`); null when none is merged. */
+  newest: PullRequestListRow | null;
+  /** Whether the newest one's public page shows now. */
+  newestPublicPage: boolean;
+};
+
+/** The first page of the person's list with its newest merged pull request; `merged` null when the API sent none. */
+export type PullRequestListWithMerged = PullRequestList & { merged: PullRequestsMerged | null };
+
 export type PullRequestList = {
   rows: PullRequestListRow[];
   /** Open now. */

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { phaseTextOf } from './agent-runs';
 import type { ContributeAgentRunPhase } from './contribute.types';
-import { runSideOf } from './right-now';
 import { isLearnRun, RUN_STEPS, runKindOf, stepMarksOf, stepNameOf, stepsLabelOf, stepsOf } from './run-steps';
 import { FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
 
@@ -33,11 +32,10 @@ describe("a run's steps", () => {
     });
   });
 
-  it('has one rule for a Learn run, which Right now uses too', () => {
+  it('has one rule for a Learn run', () => {
     expect(isLearnRun(learn('WORKING'))).toBe(true);
     expect(isLearnRun(runOf({ phase: 'WRITING_LESSON', mode: null }))).toBe(true);
     expect(isLearnRun(fix('WORKING'))).toBe(false);
-    expect(runSideOf(learn('WORKING'))).toBe('learn');
   });
 
   it('knows the kind: a follow-up by its kind, a Learn run by its side or its lesson phase', () => {

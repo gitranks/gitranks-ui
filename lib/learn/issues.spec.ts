@@ -41,9 +41,21 @@ describe('the view in the address', () => {
       ...ISSUES_VIEW,
       forYou: false,
       learned: true,
-      fixed: true,
+      show: 'fixed',
     });
     expect(issuesViewOf({ 'for-you': '1', learned: 'yes', fixed: 'true' })).toEqual(ISSUES_VIEW);
+  });
+
+  it("shows both groups on a lesson's or a course's own address, open issues alone with `open=1`, fixes with `fixed=1`", () => {
+    const own = { lesson: 'binary-search' };
+    expect(issuesViewOf({}, own).show).toBe('both');
+    expect(issuesViewOf({ open: '1' }, own).show).toBe('open');
+    expect(issuesViewOf({ fixed: '1' }, own).show).toBe('fixed');
+    expect(issuesViewOf({ open: '1', fixed: '1' }, { course: 'algorithms' }).show).toBe('fixed');
+    expect(issuesViewOf({ open: 'yes' }, own).show).toBe('both');
+    // Issues itself shows open issues unless "Fixed" is set: `open=1` means nothing there.
+    expect(issuesViewOf({ lesson: 'binary-search', open: '1' }).show).toBe('open');
+    expect(issuesViewOf({ lesson: 'binary-search' }).show).toBe('open');
   });
 
   it('keeps a lesson, a course and a language of the right shape only', () => {
@@ -73,15 +85,19 @@ describe('the view in the address', () => {
         lesson: 'binary-search',
         course: 'algorithms',
         language: 'go',
-        fixed: true,
+        show: 'fixed',
         forYou: false,
         learned: true,
         repo: null,
         org: null,
       }),
     ).toBe('/learn/issues?course=algorithms&lesson=binary-search&language=go&fixed=1&for-you=0&learned=1');
+    // On Issues itself a view shows open issues or fixes, never both.
     for (const view of Object.values(views)) {
-      expect(issuesViewOf(Object.fromEntries(new URL(issuesHrefOf(view), 'https://x').searchParams))).toEqual(view);
+      expect(issuesViewOf(Object.fromEntries(new URL(issuesHrefOf(view), 'https://x').searchParams))).toEqual({
+        ...view,
+        show: view.show === 'fixed' ? 'fixed' : 'open',
+      });
     }
   });
 
@@ -90,9 +106,29 @@ describe('the view in the address', () => {
     expect(issuesHrefOf({ ...views.lesson, language: 'go' }, 'lesson')).toBe(
       '/learn/lessons/find-duplicates-with-a-set/real-world?language=go',
     );
-    expect(issuesHrefOf(views.course, 'course')).toBe('/learn/courses/algorithms/real-world?learned=1');
+    // Both groups are the address's own; open issues alone or fixes alone are written.
+    expect(issuesHrefOf(views.course, 'course')).toBe('/learn/courses/algorithms/real-world?open=1&learned=1');
+    expect(issuesHrefOf(views.courseFixed, 'course')).toBe('/learn/courses/algorithms/real-world?fixed=1');
+    expect(issuesHrefOf({ ...views.course, show: 'both' }, 'course')).toBe(
+      '/learn/courses/algorithms/real-world?learned=1',
+    );
     // Without it, the view is Issues' own.
     expect(issuesHrefOf({ ...views.lesson, lesson: null }, 'lesson')).toBe('/learn/issues');
+  });
+
+  it("points every variant of a lesson's or a course's own view to its bare address", () => {
+    for (const view of [
+      views.lesson,
+      { ...views.lesson, show: 'open' as const, language: 'go' as const, forYou: false, learned: true },
+      { ...views.lesson, show: 'fixed' as const, course: 'algorithms', repo: 'django/django' },
+    ]) {
+      expect(issuesCanonicalOf(view, 'lesson')).toBe('/learn/lessons/find-duplicates-with-a-set/real-world');
+    }
+    expect(issuesCanonicalOf({ ...views.course, language: 'go' }, 'course')).toBe(
+      '/learn/courses/algorithms/real-world',
+    );
+    // Without the page's own lesson or course, the view is Issues'.
+    expect(issuesCanonicalOf({ ...views.language, show: 'open' }, 'lesson')).toBe('/learn/issues?language=go');
   });
 
   it('points search engines to the chips with the switches as they are by default, and the copy without "Fixed"', () => {
@@ -144,7 +180,7 @@ describe("a view as a row's link carries it to the page of one issue", () => {
     expect(issuesViewQueryOf(ISSUES_VIEW)).toBe('');
     expect(issuesViewQueryOf(views.course)).toBe('course=algorithms&learned=1');
     expect(issuesViewQueryOf(views.lesson, 'lesson')).toBe('lesson=find-duplicates-with-a-set&at=lesson');
-    expect(issuesViewQueryOf(views.course, 'course')).toBe('course=algorithms&learned=1&at=course');
+    expect(issuesViewQueryOf(views.course, 'course')).toBe('course=algorithms&open=1&learned=1&at=course');
     // A lesson's page whose view no longer names the lesson is Issues' own.
     expect(issuesViewQueryOf(views.language, 'lesson')).toBe('language=go');
   });
@@ -165,7 +201,7 @@ describe("a view as a row's link carries it to the page of one issue", () => {
 describe('chips and the way back', () => {
   it('draws the course, the lesson, the language and "Fixed", each with the address without it', () => {
     const chips = issuesChipsOf(
-      { ...ISSUES_VIEW, course: 'algorithms', lesson: 'binary-search', language: 'go', fixed: true },
+      { ...ISSUES_VIEW, course: 'algorithms', lesson: 'binary-search', language: 'go', show: 'fixed' },
       { course: 'Algorithms and data structures', lesson: 'Binary search' },
     );
     expect(chips.map(({ key, label }) => [key, label])).toEqual([
@@ -179,9 +215,45 @@ describe('chips and the way back', () => {
   });
 
   it('shows the slug when a name could not be read, and leaves a view of its own address when its chip goes', () => {
-    const [chip] = issuesChipsOf(views.lesson, {}, 'lesson');
+    const [, chip] = issuesChipsOf(views.lesson, {}, 'lesson');
     expect(chip.label).toBe('Lesson: find-duplicates-with-a-set');
     expect(chip.removeHref).toBe('/learn/issues');
+    // The page's own chip leads to plain Issues, whatever else the view holds.
+    const [, fixedAlone] = issuesChipsOf(
+      { ...views.lesson, show: 'fixed', language: 'go', forYou: false, learned: true },
+      {},
+      'lesson',
+    );
+    expect(fixedAlone.removeHref).toBe('/learn/issues');
+    const [, course] = issuesChipsOf({ ...views.course, language: 'go' }, {}, 'course');
+    expect(course).toMatchObject({ key: 'course', removeHref: '/learn/issues' });
+    // Another chip on an own view keeps the page.
+    const lessonOnCourse = issuesChipsOf({ ...views.course, lesson: 'binary-search' }, {}, 'course')[2];
+    expect(lessonOnCourse).toMatchObject({
+      key: 'lesson',
+      removeHref: '/learn/courses/algorithms/real-world?open=1&learned=1',
+    });
+  });
+
+  it('draws what an own view shows first, as a chip: both groups, or one of them, the other way back', () => {
+    const chipOf = (show: 'both' | 'open' | 'fixed') => issuesChipsOf({ ...views.lesson, show }, {}, 'lesson')[0];
+    expect(chipOf('both')).toEqual({
+      key: 'show',
+      label: 'Open and fixed',
+      removeHref: '/learn/lessons/find-duplicates-with-a-set/real-world?open=1',
+    });
+    expect(chipOf('open')).toEqual({
+      key: 'show',
+      label: 'Open',
+      removeHref: '/learn/lessons/find-duplicates-with-a-set/real-world',
+    });
+    expect(chipOf('fixed')).toEqual({
+      key: 'show',
+      label: 'Fixed',
+      removeHref: '/learn/lessons/find-duplicates-with-a-set/real-world',
+    });
+    // Off its own address there is no such chip, and "Fixed" is the last chip as on Issues.
+    expect(issuesChipsOf(views.courseFixed).map((chip) => chip.key)).toEqual(['course', 'fixed']);
   });
 
   it('leads back to the lesson, or else the course, that opened the page', () => {
@@ -219,7 +291,7 @@ describe('switches and counts', () => {
       href: '/learn/issues?learned=1',
     });
     const [, off] = issuesSwitchesOf(views.course, { forYouCount: null, learnedCount: null }, 'course');
-    expect(off).toMatchObject({ on: true, count: null, href: '/learn/courses/algorithms/real-world' });
+    expect(off).toMatchObject({ on: true, count: null, href: '/learn/courses/algorithms/real-world?open=1' });
   });
 
   it('never puts the count of the list without a pressed switch on that switch', () => {
@@ -412,7 +484,11 @@ describe("the API's answers checked", () => {
 describe("a project's issues", () => {
   it('reads a repository or an organisation from the address, in lower case, and never both', () => {
     expect(issuesViewOf({ repo: 'Django/Django' })).toEqual({ ...ISSUES_VIEW, repo: 'django/django' });
-    expect(issuesViewOf({ org: 'Kubernetes', fixed: '1' })).toEqual({ ...ISSUES_VIEW, org: 'kubernetes', fixed: true });
+    expect(issuesViewOf({ org: 'Kubernetes', fixed: '1' })).toEqual({
+      ...ISSUES_VIEW,
+      org: 'kubernetes',
+      show: 'fixed',
+    });
     expect(issuesViewOf({ repo: 'django/django', org: 'kubernetes' })).toEqual({
       ...ISSUES_VIEW,
       repo: 'django/django',

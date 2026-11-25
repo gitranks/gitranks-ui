@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 
 import { RealFixes, RealProjectsEnd, RealProjectsGroup, RealProjectsTop } from './real-projects';
 import { learnFixes } from '@/lib/learn/__fixtures__/issues';
-import { fixLanguageOf, passedFixes, tenOfMany } from '@/lib/learn/__fixtures__/real-projects';
+import { passedFixes, tenOfMany } from '@/lib/learn/__fixtures__/real-projects';
 import { learnLessonPath } from '@/lib/learn/paths';
-import { FIXED_NONE, OPEN_NONE } from '@/lib/learn/real-projects';
+import { FIXED_NONE, fixLanguageWordsOf, OPEN_NONE } from '@/lib/learn/real-projects';
 
 const draw = (node: React.ReactElement) => {
   document.body.innerHTML = renderToStaticMarkup(node);
@@ -53,7 +53,7 @@ describe('a lesson in real projects', () => {
 
   it('draws a fix with its language, who fixed it, "Passed" where passed, the day it merged and "Open the fix"', () => {
     const page = draw(
-      <RealFixes rows={learnFixes.rows.slice(0, 2)} total={2} passed={passedFixes} languageOf={fixLanguageOf} />,
+      <RealFixes rows={learnFixes.rows.slice(0, 2)} total={2} passed={passedFixes} languageOf={fixLanguageWordsOf} />,
     );
     const [first, second] = [...page.querySelectorAll('[data-real-fix]')];
     expect(first.querySelector('[data-fix-language]')?.textContent).toBe('Go');
@@ -68,10 +68,10 @@ describe('a lesson in real projects', () => {
   it('draws no "Passed" while the passed walkthroughs are not read, and no language when not known', () => {
     const page = draw(
       <RealFixes
-        rows={[{ ...learnFixes.rows[0], repo: 'unknown/project' }]}
+        rows={[{ ...learnFixes.rows[0], language: null }]}
         total={1}
         passed={null}
-        languageOf={fixLanguageOf}
+        languageOf={fixLanguageWordsOf}
       />,
     );
     expect(page.querySelector('[data-fix-passed]')).toBeNull();
@@ -80,7 +80,7 @@ describe('a lesson in real projects', () => {
 
   it('counts the fixes only above ten, with "Show N more"', () => {
     const page = draw(
-      <RealFixes rows={tenOfMany} total={23} passed={null} languageOf={fixLanguageOf} onMore={() => {}} />,
+      <RealFixes rows={tenOfMany} total={23} passed={null} languageOf={fixLanguageWordsOf} onMore={() => {}} />,
     );
     expect(page.querySelectorAll('[data-real-fix]')).toHaveLength(10);
     expect(text(page.querySelector('[data-fixes-count]'))).toBe('Showing 10 of 23 fixes Show 10 more');

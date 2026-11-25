@@ -5,6 +5,7 @@ import {
   pullRequestListOf,
   pullRequestPageOf,
   pullRequestRowOf,
+  pullRequestsMergedOf,
   sitePathOf,
 } from './pull-request-read';
 
@@ -149,6 +150,24 @@ describe("the list's read", () => {
     expect(list?.rows).toHaveLength(1);
     expect(list).toMatchObject({ open: 9, limit: 9, atLimit: false, more: 'c1' });
     expect(pullRequestListOf({ rows: null })).toBeNull();
+  });
+
+  it('reads the newest merged pull request, none merged, and a missing or broken answer as not read', () => {
+    const merged = { ...ROW, group: 'ENDED', box: 'MERGED', mark: 'MERGED', number: 57 };
+    expect(pullRequestsMergedOf({ newest: merged, newestPublicPage: true })).toMatchObject({
+      newest: { attemptId: 'A_1', number: 57, since: '2026-10-28T09:00:00.000Z' },
+      newestPublicPage: true,
+    });
+    // A page that does not show, or a value that does not say.
+    expect(pullRequestsMergedOf({ newest: merged, newestPublicPage: false })?.newestPublicPage).toBe(false);
+    expect(pullRequestsMergedOf({ newest: merged })?.newestPublicPage).toBe(false);
+    expect(pullRequestsMergedOf({ newest: null, newestPublicPage: false })).toEqual({
+      newest: null,
+      newestPublicPage: false,
+    });
+    expect(pullRequestsMergedOf(null)).toBeNull();
+    expect(pullRequestsMergedOf(undefined)).toBeNull();
+    expect(pullRequestsMergedOf({ newest: { ...merged, group: 'ELSEWHERE' }, newestPublicPage: true })).toBeNull();
   });
 });
 

@@ -43,22 +43,21 @@ const { SwitchSettingsScreen, WorkSettingsScreen } = await import(
 const { SwitchReview } = await import('@/components/contribute/mode-switch');
 const { IgnoredList, RulesContent } = await import('@/components/contribute/set-panels');
 const { ContributeTabScreen } = await import('@/app/(workspace)/contribute/components/contribute-tab');
-/** The Contribute tab, as Issues for you was: a hosted agent, nothing else read. */
+const { homeRead } = await import('@/lib/contribute/__fixtures__/wave-4-parts');
+/** Contribute home, as Issues for you was: a hosted agent, nothing else read. */
 const IssuesScreen = ({
   view,
   page,
-  query,
   now,
   set,
-}: Pick<ComponentProps<typeof ContributeTabScreen>, 'view' | 'page' | 'query' | 'now' | 'set'>) => (
+}: Pick<ComponentProps<typeof ContributeTabScreen>, 'view' | 'page' | 'now' | 'set'>) => (
   <ContributeTabScreen
     view={view}
     agents={{ hosted: true, own: false }}
-    tab={{ totals: null, hostedLevel: null }}
+    home={homeRead()}
     page={page}
     set={set}
     activity={null}
-    query={query}
     now={now}
   />
 );
@@ -376,11 +375,8 @@ const issue = (patch: Partial<ContributeIssue>): ContributeIssue => ({
 });
 
 describe('Issues for you, by mode', () => {
-  const render = (
-    set: ContributeSet | null | undefined,
-    page: Parameters<typeof IssuesScreen>[0]['page'],
-    query: Parameters<typeof IssuesScreen>[0]['query'] = {},
-  ) => renderToStaticMarkup(<IssuesScreen view={views.active} page={page} query={query} now={NOW} set={set} />);
+  const render = (set: ContributeSet | null | undefined, page: Parameters<typeof IssuesScreen>[0]['page']) =>
+    renderToStaticMarkup(<IssuesScreen view={views.active} page={page} now={NOW} set={set} />);
   const somePage = { items: [issue({})], next: null, total: 1, computedAt: '2026-10-28T07:00:00.000Z' };
 
   it("puts the list's issues first, and the other issues under a divider", () => {
@@ -429,8 +425,7 @@ describe('Issues for you, by mode', () => {
     expect(plain).toContain('Add more repos');
     expect(plain).toContain('Language filter: Rust. 12 of them are in other languages.');
 
-    // Filters, a later page, or a list that goes on with all issues: the feed's own empty states.
-    expect(render(smallReposSet(), empty, { kind: 'DOCS' })).not.toContain('data-empty="set-only"');
+    // A list that goes on with all issues, or no list read: the feed's own empty states.
     expect(render(smallReposSet({ repos: { ...smallReposSet().repos, fallback: 'THEN_ALL' } }), empty)).not.toContain(
       'data-empty="set-only"',
     );
@@ -454,9 +449,7 @@ describe('the Issues page while the stack is worked out', () => {
     const base = stackSet();
     for (const resolveState of [null, resolve({ state: 'RESOLVING', targets: [], endedAt: null })]) {
       const set = stackSet({ stack: { ...base.stack, fallback: 'SET_ONLY', resolve: resolveState } });
-      const plain = text(
-        renderToStaticMarkup(<IssuesScreen view={views.active} page={empty} query={{}} now={NOW} set={set} />),
-      );
+      const plain = text(renderToStaticMarkup(<IssuesScreen view={views.active} page={empty} now={NOW} set={set} />));
 
       expect(plain).toContain("We're working out the libraries your stack uses");
       expect(plain).toContain("We're reading the dependency files of your 3 repos.");

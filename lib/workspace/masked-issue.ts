@@ -203,23 +203,32 @@ export const LEARN_MASKED_LINE =
 export const VISITOR_LOOKS_LINE = 'Seeing an issue in full needs a GitHub sign-in. It costs no money.';
 
 /**
- * The line above Contribute's list: the day's full issues, what they are made of, and how many are left.
- * "You can see 20 full issues a day: your GitRanks tier (Skilled) gives 20, and every pull request merged through
- * GitRanks adds 5, up to 100. 17 left today."
+ * The short line above Contribute's list: "12 of 30 full issues left today."; null with none left, where each row's note
+ * and the foot's line say so, so no zero is shown.
  */
-export function looksLongLineOf(looks: IssueLooksToday): string {
-  const left = `${count.format(Math.max(0, looks.left))} left today.`;
-  if (looks.warned) return `After a fair-use warning you can see ${looks.limit} full issues a day. ${left}`;
+export function looksShortLineOf(looks: IssueLooksToday): string | null {
+  if (looks.left <= 0) return null;
+  return `${count.format(looks.left)} of ${count.format(looks.limit)} full ${looks.limit === 1 ? 'issue' : 'issues'} left today.`;
+}
+
+/**
+ * The short line's tip: how the day's limit is worked out, without how many are left (the line says that).
+ * "You can see 20 full issues a day: your GitRanks tier (Skilled) gives 20, and every pull request merged through
+ * GitRanks adds 5, up to 100."; after a fair-use warning, "After a fair-use warning you can see 5 full issues a day."
+ */
+export function looksTipOf(looks: IssueLooksToday): string {
+  const day = `${count.format(looks.limit)} full ${looks.limit === 1 ? 'issue' : 'issues'} a day`;
+  if (looks.warned) return `After a fair-use warning you can see ${day}.`;
   const tier = looks.tier ? TIER_NAMES[looks.tier - 1] : null;
   const from = tier
-    ? `your GitRanks tier (${tier}) gives ${looks.base}`
-    : `an account without a GitRanks tier gets ${looks.base}`;
-  const head = `You can see ${looks.limit} full issues a day: ${from}`;
+    ? `your GitRanks tier (${tier}) gives ${count.format(looks.base)}`
+    : `an account without a GitRanks tier gets ${count.format(looks.base)}`;
+  const head = `You can see ${day}: ${from}`;
   const rule = 'pull request merged through GitRanks adds 5, up to 100.';
-  if (!looks.merged) return `${head}, and every ${rule} ${left}`;
-  const added = looks.limit - looks.base;
-  const merged = `your ${looks.merged} merged pull ${looks.merged === 1 ? 'request adds' : 'requests add'} ${added}`;
-  return `${head}, and ${merged}. Every ${rule} ${left}`;
+  if (!looks.merged) return `${head}, and every ${rule}`;
+  const added = count.format(looks.limit - looks.base);
+  const merged = `your ${count.format(looks.merged)} merged pull ${looks.merged === 1 ? 'request adds' : 'requests add'} ${added}`;
+  return `${head}, and ${merged}. Every ${rule}`;
 }
 
 /** The row's note at the day's limit. */

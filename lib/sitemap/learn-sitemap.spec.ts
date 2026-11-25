@@ -51,4 +51,57 @@ describe('the Learn sitemap', () => {
     expect(learnSitemapEntries({ content: null }).map((entry) => entry.url)).toEqual(['https://example.test/learn']);
     expect(learnSitemapEntries().map((entry) => entry.url)).toEqual(['https://example.test/learn']);
   });
+
+  describe('the views in real projects', () => {
+    const fixes = (slug: string, course: string, fixesListed: boolean | null, paused = false) => ({
+      slug,
+      course: { slug: course },
+      paused,
+      fixesListed,
+    });
+    const real = (listed: Parameters<typeof learnSitemapEntries>[0]) =>
+      learnSitemapEntries(listed)
+        .filter((entry) => entry.url.endsWith('/real-world'))
+        .map((entry) => [entry.url, entry.priority]);
+
+    it("lists a live lesson's view with a listed merged fix, and its course's", () => {
+      expect(
+        real({
+          content: CONTENT,
+          listed: [fixes('sets', 'algorithms', true), fixes('hash-maps', 'algorithms', false)],
+        }),
+      ).toEqual([
+        ['https://example.test/learn/courses/algorithms/real-world', 0.5],
+        ['https://example.test/learn/lessons/sets/real-world', 0.5],
+      ]);
+    });
+
+    it('lists none for a lesson with no listed fix, a paused one, one not known, or one the sitemap leaves out', () => {
+      expect(
+        real({
+          content: CONTENT,
+          listed: [
+            fixes('hash-maps', 'algorithms', false),
+            fixes('heaps', 'algorithms', true, true),
+            fixes('go-variables', 'go', null),
+            fixes('elsewhere', 'go', true),
+          ],
+        }),
+      ).toEqual([]);
+    });
+
+    it("lists no project course's view, and none when the fixes or the courses could not be read", () => {
+      const project = {
+        courses: [{ slug: 'django', project: { kind: 'REPOSITORY', name: 'django/django' } }],
+        lessons: [
+          { slug: 'orm-queries', course: link('django'), paused: false, changedAt: '2026-11-10T10:00:00.000Z' },
+        ],
+      } as unknown as NonNullable<Parameters<typeof learnSitemapEntries>[0]>['content'];
+      expect(real({ content: project, listed: [fixes('orm-queries', 'django', true)] })).toEqual([
+        ['https://example.test/learn/lessons/orm-queries/real-world', 0.5],
+      ]);
+      expect(real({ content: CONTENT, listed: null })).toEqual([]);
+      expect(real({ content: null, listed: [fixes('sets', 'algorithms', true)] })).toEqual([]);
+    });
+  });
 });

@@ -8,7 +8,7 @@ import { CONTACT_EMAIL } from '@/lib/legal';
 import { cn } from '@/lib/utils';
 import type { ContributeNotice } from '@/lib/workspace/contribute-state';
 import { ASK_AGAIN, CONTRIBUTE_RULES_PATH, fairUseAnswerPathOf, isAccessClosed } from '@/lib/workspace/fair-use';
-import { dayLabel } from '@/lib/workspace/format';
+import { keyNoticeWordsOf } from '@/lib/workspace/notice-words';
 import { KEY_REPLACE_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 type NoticeCopy = {
@@ -19,8 +19,6 @@ type NoticeCopy = {
   more?: { href: Route; label: string };
   tone: 'info' | 'warn';
 };
-
-const untilText = (until: string | null, fallback: string) => (until ? `on ${dayLabel(until)}` : fallback);
 
 /** What each notice says, and where it sends the user. */
 export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
@@ -35,22 +33,12 @@ export function noticeCopyOf(notice: ContributeNotice): NoticeCopy {
     case 'key-invalid':
       return {
         tone: 'warn',
-        title: 'Your Claude key stopped working',
-        text: 'Anthropic refused it: it was deleted, or it is not the key you meant. Contributing is paused until you connect a working one.',
+        ...keyNoticeWordsOf(notice),
         action: { href: KEY_REPLACE_PATH, label: 'Connect a new key' },
       };
     case 'exhausted':
-      return {
-        tone: 'warn',
-        title: 'Your credits are used up for this cycle',
-        text: `Nothing starts until they renew ${untilText(notice.until, 'on your renewal day')}. Nothing is spent beyond them.`,
-      };
     case 'limit-reached':
-      return {
-        tone: 'warn',
-        title: "Your workspace's spend limit is reached",
-        text: `The Claude Console stopped this workspace at its monthly limit. Work starts again ${untilText(notice.until, 'when the limit resets on the 1st')}, or raise the limit in the Console.`,
-      };
+      return { tone: 'warn', ...keyNoticeWordsOf(notice) };
     case 'suspended':
       if (notice.fairUse) return fairUseBlockCopyOf(notice.fairUse.block);
       return {

@@ -49,6 +49,16 @@ export const PullRequestListDocument = doc<{ pullRequestList: unknown }, { after
 }`,
 );
 
+/**
+ * The first page of the person's list for Contribute home, with their newest merged pull request (answered only on a
+ * first page that reads "Ended").
+ */
+export const PullRequestListMergedDocument = doc<{ pullRequestList: unknown }>(
+  `query PullRequestListMerged {
+  pullRequestList { rows { ${ROW} } open limit atLimit more merged { newest { ${ROW} } newestPublicPage } }
+}`,
+);
+
 /** Whether an attempt's public page can still be hidden: only when its approval carried that choice. */
 export const AttemptTimelineHideableDocument = doc<{ contributeAttempt: unknown }, { id: string }>(
   `query AttemptTimelineHideable($id: ID!) {

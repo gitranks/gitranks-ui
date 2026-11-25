@@ -6,52 +6,51 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 const { viewerLogin } = vi.hoisted(() => ({ viewerLogin: vi.fn(async (): Promise<string | null> => 'octocat') }));
 vi.mock('@/lib/workspace/contribute.data', () => ({
   viewerLogin,
-  settled: <T>(result: PromiseSettledResult<T>) => (result.status === 'fulfilled' ? result.value : undefined),
 }));
 
 const { loadContributeTab } = await import('./contribute.data');
-const { ContributeTabStateDocument, ContributeTabTotalsDocument } = await import('./contribute-tab.documents');
+const { ContributeTabTotalsDocument } = await import('./contribute-tab.documents');
 
-const FIX = { open: 2, merged: 7, closed: 4, reposHelped: 6 };
-const answer = (totals: () => Promise<unknown>, state: () => Promise<unknown>) =>
-  graphqlDirect.mockImplementation(async (document) =>
-    document === ContributeTabTotalsDocument ? totals() : document === ContributeTabStateDocument ? state() : null,
-  );
-const fails = () => Promise.reject(new Error('down'));
+const answer = (totals: unknown) => graphqlDirect.mockImplementation(async () => totals);
 
-describe("the Contribute tab's own reads", () => {
+describe("Contribute home's totals", () => {
   beforeEach(() => {
     graphqlDirect.mockReset();
     viewerLogin.mockResolvedValue('octocat');
   });
 
-  it("reads Contribute's totals and the hosted agent's level, as the viewer", async () => {
-    answer(
-      async () => ({ contributeContributions: { totals: { byMode: { fix: FIX } } } }),
-      async () => ({ contribute: { contributor: { settings: { hostedLevel: 'NEXT' } } } }),
-    );
-    expect(await loadContributeTab()).toEqual({ totals: FIX, hostedLevel: 'NEXT' });
-    expect(graphqlDirect.mock.calls.every(([, , options]) => options.githubLogin === 'octocat')).toBe(true);
+  it('reads the merged pull requests and the projects helped of both products, as the viewer', async () => {
+    answer({ contributeContributions: { totals: { merged: 7, reposHelped: 6 } } });
+    expect(await loadContributeTab()).toEqual({ merged: 7, reposHelped: 6 });
+    expect(graphqlDirect).toHaveBeenCalledTimes(1);
+    const [document, , options] = graphqlDirect.mock.calls[0];
+    expect(document).toBe(ContributeTabTotalsDocument);
+    expect(options.githubLogin).toBe('octocat');
+  });
+
+  it('asks for the top-level totals alone, not one side of them', () => {
+    const source = ContributeTabTotalsDocument.loc?.source.body ?? '';
+    expect(source).toContain('totals { merged reposHelped }');
+    expect(source).not.toContain('byMode');
   });
 
   it('reads nothing without a session', async () => {
     viewerLogin.mockResolvedValueOnce(null);
-    expect(await loadContributeTab()).toEqual({ totals: null, hostedLevel: null });
+    expect(await loadContributeTab()).toBeNull();
     expect(graphqlDirect).not.toHaveBeenCalled();
   });
 
-  it('keeps the level when the totals fail, and the totals when the rest fails', async () => {
-    answer(fails, async () => ({ contribute: { contributor: { settings: { hostedLevel: 'MANUAL' } } } }));
-    expect(await loadContributeTab()).toEqual({ totals: null, hostedLevel: 'MANUAL' });
-    answer(async () => ({ contributeContributions: { totals: { byMode: { fix: FIX } } } }), fails);
-    expect(await loadContributeTab()).toEqual({ totals: FIX, hostedLevel: null });
+  it('answers null on a failed read or totals without numbers, so the box says it could not read', async () => {
+    graphqlDirect.mockRejectedValueOnce(new Error('down'));
+    expect(await loadContributeTab()).toBeNull();
+    answer({ contributeContributions: null });
+    expect(await loadContributeTab()).toBeNull();
+    answer({ contributeContributions: { totals: { merged: 2 } } });
+    expect(await loadContributeTab()).toBeNull();
   });
 
-  it('reads an unanswered level as not known, and an API without the sides as no totals', async () => {
-    answer(
-      async () => ({ contributeContributions: { totals: { byMode: null } } }),
-      async () => ({ contribute: { contributor: { settings: { hostedLevel: null } } } }),
-    );
-    expect(await loadContributeTab()).toEqual({ totals: null, hostedLevel: null });
+  it('reads none merged as a count, not a failure', async () => {
+    answer({ contributeContributions: { totals: { merged: 0, reposHelped: 0 } } });
+    expect(await loadContributeTab()).toEqual({ merged: 0, reposHelped: 0 });
   });
 });

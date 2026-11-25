@@ -6,6 +6,7 @@ import { HELD_BACK_SCREENS } from './held-back';
 import { LANDING_SCREENS } from './landing';
 import { LEARN_SCREENS } from './learn';
 import { LEARN_FRAME_SCREENS } from './learn-frame';
+import { LEARN_REAL_PROJECTS_SCREENS } from './learn-real-projects';
 import { ORG_SCREENS } from './org';
 import { PACKAGE_SCREENS } from './package';
 import { PROFILE_SCREENS } from './profile';
@@ -34,6 +35,7 @@ export const SCREENS: Screen[] = [
   ...WORKSPACE_PART_SCREENS,
   ...HELD_BACK_SCREENS,
   ...LEARN_SCREENS,
+  ...LEARN_REAL_PROJECTS_SCREENS,
   ...LEARN_FRAME_SCREENS,
   ...ADMIN_SCREENS,
 ];

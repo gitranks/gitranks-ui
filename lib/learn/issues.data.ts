@@ -151,3 +151,19 @@ export async function issuesNamesOf(view: IssuesView): Promise<IssuesNames> {
   ]);
   return { lesson: lesson?.lesson.title ?? null, course: course?.name ?? null };
 }
+
+/**
+ * Whether a lesson or a course has a listed merged fix: what indexes its view. Read as `loadLearnFixes` reads the
+ * first ten of its bare view, with the same six arguments, so the page and its metadata share one kept read. Null
+ * when it could not be read.
+ */
+export async function hasMergedFixOf(at: 'lesson' | 'course', slug: string): Promise<boolean | null> {
+  const lesson = at === 'lesson' ? slug : null;
+  const course = at === 'course' ? slug : null;
+  try {
+    const fixes = await fixesCached(lesson, course, null, null, null, null);
+    return fixes ? fixes.total > 0 : null;
+  } catch {
+    return null;
+  }
+}

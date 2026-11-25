@@ -85,14 +85,16 @@ describe('My progress in the browser', () => {
     expect(stateOf()).toBe('visitor');
     expect(document.activeElement).toBe(host.querySelector('h1'));
     await click(host.querySelector('button')!);
-    expect(signIn).toHaveBeenCalledWith(expect.any(String), { redirectTo: '/learn/progress?view=history' });
+    expect(signIn).toHaveBeenCalledWith(expect.any(String), {
+      redirectTo: `/learn/setup?back=${encodeURIComponent('/learn/progress?view=history')}`,
+    });
   });
 
   it('signing in again from History opened at a day comes back to that day', async () => {
     await draw('history', '2026-11-20');
     await click(host.querySelector('button')!);
     expect(signIn).toHaveBeenCalledWith(expect.any(String), {
-      redirectTo: '/learn/progress?view=history&day=2026-11-20',
+      redirectTo: `/learn/setup?back=${encodeURIComponent('/learn/progress?view=history&day=2026-11-20')}`,
     });
   });
 

@@ -337,7 +337,8 @@ describe('the editor at /learn/setup, for a person with the Learn sign', () => {
 
 describe("Learn's onboarding at /learn/setup, for a person without the Learn sign", () => {
   const onboard = (back: string | null = null) => draw({ mode: 'onboarding', back });
-  const steps = () => [...host.querySelectorAll('[data-flow-steps] li')].map((step) => step.textContent);
+  const steps = () =>
+    [...host.querySelectorAll('[data-flow-steps] li')].map((step) => step.textContent?.replace(/^\d/, ''));
   const line = () => $('[data-onboarding-line]')?.textContent ?? null;
   const saveAndStart = () => $('[data-onboarding-save]') as HTMLButtonElement;
   const ticked = () => checked('languages');

@@ -73,7 +73,9 @@ describe("a course's page in the browser, for a visitor", () => {
     expect(host.querySelector('[data-square]')).toBeNull();
     expect(lit()).toContain('Sign in with GitHub');
     await act(async () => buttonOf('Sign in with GitHub')!.click());
-    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/courses/algorithms' });
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: `/learn/setup?back=${encodeURIComponent('/learn/courses/algorithms')}`,
+    });
   });
 
   it('names the merged fixes (from five) as a link', async () => {

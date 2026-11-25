@@ -64,7 +64,9 @@ describe('Issues', () => {
     expect($$('[data-issues-switch]')).toHaveLength(0);
     expect($('[data-issues-visitor-note]')?.textContent).toContain('Sign in with GitHub to see the issues that fit');
     await act(async () => ($('[data-issues-visitor-note] button') as HTMLButtonElement).click());
-    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/learn/issues' });
+    expect(signIn).toHaveBeenCalledWith('github-basic', {
+      redirectTo: `/learn/setup?back=${encodeURIComponent('/learn/issues')}`,
+    });
     expect(hrefs('[data-issues-foot] a')).toEqual([
       '/learn/issues.md',
       '/learn/about',

@@ -74,7 +74,7 @@ export const LANDING_QUESTIONS = [
   {
     question: 'Do I need an account?',
     answer:
-      'You can open any lesson and answer its question without one. To save your progress, repeat lessons and go on, you sign in with GitHub.',
+      'You can open any lesson and answer its question without one. To keep your progress, you sign in with GitHub and pick your languages: a 2-minute setup, once.',
   },
   {
     question: 'Do I need a coding agent?',

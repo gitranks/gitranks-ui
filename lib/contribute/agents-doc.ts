@@ -1,6 +1,7 @@
 import { type AgentPage, type AgentPageIssue, agentPageStatsLineOf } from './agent-page.types';
 import { fullIssuesADayOf } from './faq';
 import {
+  agentSetupLineOf,
   CLAUDE_APP_DOC,
   MCP_DOC_CLIENTS,
   MCP_DOC_LIMITS,
@@ -97,13 +98,15 @@ const INSTALL_LINK_NAMES: Record<McpInstallClient, string> = {
   kiro: 'Kiro',
 };
 
-/** The page's one human step: the person allows the agent's sign-in in the browser. */
+/** The page's one human step: the person allows the agent's sign-in in the browser, then finishes the setup once. */
 const HUMAN_STEP = [
   'You cannot do this part yourself: your person signs in to GitRanks with GitHub and approves every pull request there.',
   '',
   `Add the server below, with no header, and sign in as its block says: your client opens a GitRanks sign-in page in the browser, and your person presses Allow. Nothing to copy. A client that cannot sign in uses a personal token, which your person creates on GitRanks: ${SITE}${START_AGENT_PATH}?from=agent`,
   '',
   'Signed in, you can see the issues picked for your person and take one, hand back changes for their review, and see what they hold and their pull requests. You cannot open a pull request, push or post on GitHub: your person approves each pull request on GitRanks.',
+  '',
+  agentSetupLineOf(SITE),
 ];
 
 /**

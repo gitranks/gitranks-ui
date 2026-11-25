@@ -26,6 +26,16 @@ describe('llms.txt', () => {
     }
   });
 
+  it("tells an agent, with Contribute's lines, that its person finishes a 2-minute setup first, and never before launch", () => {
+    const setup =
+      'Before you can take an issue, your person finishes a 2-minute setup on GitRanks once. If an answer says setup is not finished, give them the link it names: https://example.test/contribute/start';
+    const open = llmsTxtOf({ contribute: true });
+    const contribute = open.slice(open.indexOf('## Contribute'), open.indexOf('## Pull request timelines'));
+    expect(contribute).toContain(`\n\n${setup}\n\n`);
+    expect(contribute.indexOf('- [Contribute in Markdown]')).toBeLessThan(contribute.indexOf(setup));
+    expect(llmsTxtOf({ contribute: false })).not.toContain('2-minute setup');
+  });
+
   it('lists the packages after the rankings', () => {
     const open = llmsTxtOf({ contribute: false });
 

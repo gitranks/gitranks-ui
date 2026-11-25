@@ -63,6 +63,22 @@ describe('the MCP docs, sign-in first', () => {
     expect(html).not.toContain('/contribute/about#ways');
   });
 
+  it('say, after the sign-in, that a 2-minute setup comes before the first issue, its address linked', () => {
+    const html = renderToStaticMarkup(<McpDocsScreen />);
+    const start = html.slice(html.indexOf('id="start"'), html.indexOf('data-token-start'));
+    // A linked address ends where its sentence goes on: the stripped tags leave a space before the stop.
+    expect(text(start).replace(/ ([.:,])/g, '$1')).toContain(
+      'Before your agent takes its first issue, you finish a 2-minute setup on GitRanks once: it shows how you approve each pull request and the daily limits. Your agent gives you the link: gitranks.com/contribute/start',
+    );
+    // The sign-in's own sentence stays, and the setup's follows it, before the token fold.
+    expect(start.indexOf('data-sign-in-start')).toBeLessThan(start.indexOf('data-setup-first'));
+    expect(text(start)).toContain('Your agent signs in with your GitHub account.');
+    // The last words are the link, as the page writes its other addresses.
+    const link = start.match(/<p data-setup-first[^>]*>[\s\S]*?<a ([^>]*)>([^<]*)<\/a><\/p>/);
+    expect(link?.[1]).toContain('href="/contribute/start"');
+    expect(link?.[2]).toBe('gitranks.com/contribute/start');
+  });
+
   it('open with the clip of the Claude Code setup: muted, with controls, never playing from the markup', () => {
     const html = renderToStaticMarkup(<McpDocsScreen />);
     expect(html).toContain('data-setup-clip');
@@ -271,6 +287,21 @@ describe('the questions', () => {
     expect(said).toContain("It can't open a pull request, push or post on GitHub");
     expect(said).toContain('uses a personal token: make one under Connect another agent there');
     expect(said).not.toContain('revoke your tokens');
+  });
+
+  it("say, after how the agent connects, that a 2-minute setup comes first, its address the answer's link", () => {
+    const entry = FAQ_GROUPS.flatMap(({ entries }) => entries).find(({ id }) => id === 'agent-sign-in');
+    expect(entry?.answer.startsWith('It signs in with your GitHub account.')).toBe(true);
+    expect(
+      entry?.answer.endsWith(
+        'Before your agent takes its first issue, you finish a 2-minute setup on GitRanks once: it shows how you approve each pull request and the daily limits. Your agent gives you the link.',
+      ),
+    ).toBe(true);
+    expect(entry?.more).toEqual({ href: '/contribute/start', label: 'gitranks.com/contribute/start' });
+    const html = renderToStaticMarkup(<FaqScreen />);
+    const answer = html.slice(html.indexOf('id="agent-sign-in"'), html.indexOf('id="whose-name"'));
+    expect(answer).toContain('href="/contribute/start"');
+    expect(text(answer)).toContain('gitranks.com/contribute/start →');
   });
 
   it('say the misses rule, never the retired pause', () => {

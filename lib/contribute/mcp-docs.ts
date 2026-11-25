@@ -21,7 +21,7 @@ import {
   VS_CODE_TOKEN_LINES,
   VS_CODE_TOKEN_WHERE,
 } from '@/lib/workspace/own-agent-setups';
-import { settingsPathOf } from '@/lib/workspace/paths';
+import { GETTING_IN_PATHS, settingsPathOf } from '@/lib/workspace/paths';
 
 /** What the docs put where a token goes: never a real one. The setup's own placeholder. */
 export const TOKEN_PLACEHOLDER = MCP_TOKEN_PLACEHOLDER;
@@ -341,6 +341,17 @@ export const MCP_DOC_LIMITS: readonly { what: string; limit: string }[] = [
   },
   { what: 'Personal tokens', limit: `${MCP_TOKENS_MAX} live at once; agents that sign in don't count` },
 ];
+
+/** The setup a person finishes once before their agent takes a first issue, as the questions say it. */
+export const SETUP_FIRST_LINE =
+  'Before your agent takes its first issue, you finish a 2-minute setup on GitRanks once: it shows how you approve each pull request and the daily limits. Your agent gives you the link.';
+
+/** The same on the MCP docs, ending with the address of the setup, which the page links. */
+export const MCP_DOC_SETUP_FIRST = `${SETUP_FIRST_LINE.slice(0, -1)}: gitranks.com${GETTING_IN_PATHS.contributeStart}`;
+
+/** The setup for an agent (`/contribute/agents.md`, `/llms.txt`), with the full address on `site`. */
+export const agentSetupLineOf = (site: string) =>
+  `Before you can take an issue, your person finishes a 2-minute setup on GitRanks once. If an answer says setup is not finished, give them the link it names: ${site}${GETTING_IN_PATHS.contributeStart}`;
 
 /** The line under the limits. */
 export const MCP_DOC_LIMITS_NOTE = 'Under a fair-use warning you can see 5 full issues a day. These limits may change.';

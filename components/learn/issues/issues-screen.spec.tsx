@@ -16,6 +16,7 @@ const { IssuesEmail } = await import('./issues-parts');
 const { ISSUES_VIEW } = await import('@/lib/learn/issues');
 const { issueRows, issuesNames, learnFixes, listNone, listOutsideForYou, namedRow, personalList, views, visitorRows } =
   await import('@/lib/learn/__fixtures__/issues');
+const { passedFixes } = await import('@/lib/learn/__fixtures__/real-projects');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 window.matchMedia ??= ((query: string) => ({
@@ -170,33 +171,135 @@ describe('Issues', () => {
     expect(text()).toContain(namedRow.full?.repo);
   });
 
-  it("draws a lesson's view at its own address: the way back, its chip, the switches staying there", async () => {
+  it("draws a lesson's view at its own address: the top, its chips, the switches staying there, both groups", async () => {
     await render(
       <IssuesScreen
         view={views.lesson}
         at="lesson"
         names={issuesNames}
         layer={{ kind: 'personal', list: personalList() }}
+        fixes={{ kind: 'fixed', fixes: learnFixes }}
+        shared={5}
+        passed={passedFixes}
       />,
     );
-    expect($('[data-issues-back]')?.getAttribute('href')).toBe('/learn/lessons/find-duplicates-with-a-set');
-    expect($('[data-issues-back]')?.textContent).toBe('Find duplicates in one pass with a set');
-    expect($('[data-issues-chip="lesson"]')?.textContent).toBe('Lesson: Find duplicates in one pass with a set');
-    expect(hrefs('[data-issues-chip] a')).toEqual(['/learn/issues']);
+    expect($('main')?.getAttribute('data-real-projects')).toBe('both');
+    expect($('[data-real-projects-top] a')?.getAttribute('href')).toBe('/learn/lessons/find-duplicates-with-a-set');
+    expect($('[data-real-projects-top] a')?.textContent).toBe('← The lesson');
+    expect($('h1')?.textContent).toBe('Find duplicates in one pass with a set: in real projects');
+    expect($$('[data-issues-chip]').map((node) => node.textContent)).toEqual([
+      'Open and fixed',
+      'Lesson: Find duplicates in one pass with a set',
+    ]);
+    expect(hrefs('[data-issues-chip] a')).toEqual([
+      '/learn/lessons/find-duplicates-with-a-set/real-world?open=1',
+      '/learn/issues',
+    ]);
     expect(hrefs('[data-issues-switch]')).toEqual([
       '/learn/lessons/find-duplicates-with-a-set/real-world?for-you=0',
       '/learn/lessons/find-duplicates-with-a-set/real-world?learned=1',
     ]);
-    expect($('[data-issues-clear]')?.getAttribute('href')).toBe('/learn/issues');
+    expect($('[data-issues-clear]')).toBeNull();
+    expect($$('[data-real-projects-group]').map((node) => node.getAttribute('data-real-projects-group'))).toEqual([
+      'open',
+      'fixed',
+    ]);
+    // A row does not repeat the lesson the page is about.
+    expect($$('[data-real-projects-group="open"] li')).not.toHaveLength(0);
+    expect($$('[data-real-projects-group="open"] [data-lesson]')).toHaveLength(0);
+    expect($$('[data-real-fix]').map((node) => node.querySelector('[data-fix-language]')?.textContent)).toEqual([
+      'Go',
+      'Python',
+    ]);
+    expect($$('[data-fix-passed]')).toHaveLength(1);
+    expect(hrefs('[data-issues-foot] a')[0]).toBe('/learn/lessons/find-duplicates-with-a-set/real-world.md');
+    expect(text()).not.toContain('—');
+  });
+
+  it('draws one group alone with `open=1` or `fixed=1`, its chip back to both', async () => {
+    await render(
+      <IssuesScreen
+        view={{ ...views.lesson, show: 'open' }}
+        at="lesson"
+        names={issuesNames}
+        layer={{ kind: 'visitor', rows: visitorRows }}
+      />,
+    );
+    expect($$('[data-real-projects-group]').map((node) => node.getAttribute('data-real-projects-group'))).toEqual([
+      'open',
+    ]);
+    expect($('[data-issues-chip="show"]')?.textContent).toBe('Open');
+    expect(hrefs('[data-issues-chip="show"] a')).toEqual(['/learn/lessons/find-duplicates-with-a-set/real-world']);
+    expect($('[data-issues-switch]')).toBeNull();
+    await render(
+      <IssuesScreen
+        view={{ ...views.lesson, show: 'fixed' }}
+        at="lesson"
+        names={issuesNames}
+        layer={{ kind: 'fixed', fixes: learnFixes }}
+      />,
+    );
+    expect($$('[data-real-projects-group]').map((node) => node.getAttribute('data-real-projects-group'))).toEqual([
+      'fixed',
+    ]);
+    expect($('[data-issues-chip="show"]')?.textContent).toBe('Fixed');
+    expect($$('[data-fix-passed]')).toHaveLength(0);
+  });
+
+  it('says in its own place that a group holds nothing, the other group staying where it is', async () => {
     await render(
       <IssuesScreen
         view={views.lesson}
         at="lesson"
         names={issuesNames}
-        layer={{ kind: 'personal', list: personalList() }}
+        layer={{ kind: 'visitor', rows: [] }}
+        fixes={{ kind: 'fixed', fixes: { rows: [], total: 0, next: null } }}
+        shared={0}
       />,
     );
-    expect(hrefs('[data-issues-foot] a')[0]).toBe('/learn/lessons/find-duplicates-with-a-set/real-world.md');
+    expect($('[data-real-projects-group="open"] [data-real-projects-end="open-none"]')?.textContent).toBe(
+      'No open issue needs this lesson right nowNew issues come in every day.',
+    );
+    expect($('[data-real-projects-group="fixed"] [data-real-projects-end="fixed-none"]')?.textContent).toBe(
+      'No fix yetWhen someone fixes a real issue with this lesson and the fix is merged, it shows here.',
+    );
+    // The email of issues for the person's lessons is not offered here yet.
+    expect($('[data-issues-email]')).toBeNull();
+  });
+
+  it("draws the person's own ends while the shared list has issues their view leaves out", async () => {
+    await render(
+      <IssuesScreen
+        view={views.lesson}
+        at="lesson"
+        names={issuesNames}
+        layer={{ kind: 'personal', list: listOutsideForYou() }}
+        fixes={{ kind: 'fixed', fixes: learnFixes }}
+        shared={4}
+      />,
+    );
+    expect($('[data-real-projects-group="open"] [data-issues-box="end"] h2')?.textContent).toBe('No issue matches');
+    expect($('[data-issues-turn-off]')?.getAttribute('href')).toBe(
+      '/learn/lessons/find-duplicates-with-a-set/real-world?for-you=0',
+    );
+    expect($('[data-issues-email]')).toBeNull();
+    expect($('[data-real-projects-end]')).toBeNull();
+  });
+
+  it("names each row's lesson on a course's view, and says a failure in the group's own place", async () => {
+    await render(
+      <IssuesScreen
+        view={{ ...views.course, show: 'both' }}
+        at="course"
+        names={issuesNames}
+        layer={{ kind: 'visitor', rows: visitorRows }}
+        fixes={{ kind: 'failed' }}
+      />,
+    );
+    expect($('[data-real-projects-top] a')?.textContent).toBe('← The course');
+    expect($('h1')?.textContent).toBe('Algorithms and data structures: in real projects');
+    expect($$('[data-real-projects-group="open"] [data-lesson]')).not.toHaveLength(0);
+    expect($('[data-real-projects-group="fixed"] [data-issues-box="failed"]')).not.toBeNull();
   });
 
   it('says issues wait outside "For you", with the switch to turn off and the email', async () => {
@@ -215,6 +318,7 @@ describe('Issues', () => {
         at="course"
         names={issuesNames}
         layer={{ kind: 'personal', list: listNone() }}
+        shared={3}
       />,
     );
     expect($('[data-issues-box="end"] h2')?.textContent).toBe('No issue matches');
@@ -335,7 +439,7 @@ describe('Issues', () => {
 
   it("reads ten more of a project's fixes for the same project", async () => {
     readMoreLearnFixes.mockResolvedValue({ rows: [], total: 2, next: null });
-    const view = { ...views.repo, fixed: true };
+    const view = { ...views.repo, show: 'fixed' as const };
     await render(<IssuesScreen view={view} layer={{ kind: 'fixed', fixes: learnFixes }} />);
     expect($$('[data-issues-chip]').map((node) => node.getAttribute('data-issues-chip'))).toEqual(['repo', 'fixed']);
     await act(async () => ($('[data-fixes-count] button') as HTMLButtonElement).click());

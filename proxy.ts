@@ -25,7 +25,9 @@ import {
   learnLessonMarkdownRouteOf,
   learnProjectCourseMarkdownRouteOf,
   learnProjectCourseRouteOf,
+  realProjectsRouteOf,
 } from './lib/learn/paths';
+import { realProjectsGateOf } from './lib/learn/real-projects-gate';
 import { isLinkPagePath, LINK_PAGE_HEADERS } from './lib/link-token/link-token';
 import { packageMarkdownRewriteOf } from './lib/packages/package-paths';
 import { isImpossibleEntityPath } from './lib/routing/entity-routes';
@@ -201,7 +203,17 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return noStore(NextResponse.redirect(new URL(issuesFixed, request.url), 308));
   }
 
-  // The Markdown copies of Issues and of a lesson's and a course's view of it, the same way.
+  // A lesson's or a course's view in real projects, and its Markdown copy, with neither a merged fix nor an open issue
+  // is not made: it goes to the lesson or the course (their copy) before the page streams, for now only, since an issue
+  // or a fix may come any day. A read that failed or was slow lets the page answer. Never kept by a shared cache.
+  const realProjects =
+    request.method === 'GET' || request.method === 'HEAD' ? realProjectsRouteOf(request.nextUrl.pathname) : null;
+  if (realProjects) {
+    const notMade = await realProjectsGateOf(realProjects);
+    if (notMade) return noStore(NextResponse.redirect(new URL(notMade, request.url), 307));
+  }
+
+  // The Markdown copies of Issues and of a lesson's and a course's view of it, rewritten as the copies above are.
   const issuesMarkdown = learnIssuesMarkdownRouteOf(request.nextUrl.pathname, request.nextUrl.search);
   if (issuesMarkdown) {
     return NextResponse.rewrite(new URL(issuesMarkdown, request.url));

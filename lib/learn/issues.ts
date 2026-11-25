@@ -81,6 +81,8 @@ export type LearnFixRow = {
   fixer: string;
   lesson: LearnIssueLesson | null;
   mergedAt: string | null;
+  /** Learn's language of the project (`go`, `javascript`); null or left out when not known. */
+  language?: string | null;
 };
 
 /** Ten merged fixes at most, how many the view holds, and the next page's cursor (null on the last). */
@@ -94,8 +96,16 @@ export type LearnFixes = { rows: LearnFixRow[]; total: number; next: string | nu
 export type IssuesLanguage = (typeof SETUP_LANGUAGES)[number];
 
 /**
+ * What a view shows: the open issues and the merged fixes together (`both`, a lesson's or a course's own address
+ * only), the open issues alone (`open`), or the merged fixes alone (`fixed`).
+ */
+export type IssuesShow = 'both' | 'open' | 'fixed';
+
+/**
  * What the address sets: the chips (set by the link that opened the page, never picked by hand) and the two
- * switches. "For you" is on unless `?for-you=0`; "Lessons I learned" is off unless `?learned=1`.
+ * switches. "For you" is on unless `?for-you=0`; "Lessons I learned" is off unless `?learned=1`. What the view shows
+ * is written `fixed=1` (the fixes alone) and, on a lesson's or a course's own address, `open=1` (the open issues
+ * alone); no address says `show`.
  */
 export type IssuesView = {
   lesson: string | null;
@@ -105,7 +115,7 @@ export type IssuesView = {
   /** One organisation's login, in lower case: the issues of its projects. Never with `repo`. */
   org: string | null;
   language: IssuesLanguage | null;
-  fixed: boolean;
+  show: IssuesShow;
   forYou: boolean;
   learned: boolean;
 };
@@ -119,7 +129,7 @@ export const ISSUES_VIEW: IssuesView = {
   repo: null,
   org: null,
   language: null,
-  fixed: false,
+  show: 'open',
   forYou: true,
   learned: false,
 };
@@ -144,19 +154,31 @@ const projectNameOf = (value: string | null, shape: (value: string) => string | 
   value === null ? null : (shape(value)?.toLowerCase() ?? null);
 
 /**
+ * What a view shows on the page it is on (`at`): at a lesson's or a course's own address both groups, unless the
+ * address asks for the fixes alone (`fixed=1`) or the open issues alone (`open=1`); on Issues the open issues, or the
+ * fixes with `fixed=1`.
+ */
+function showOf(query: Query, at: IssuesAt): IssuesShow {
+  if (one(query.fixed) === '1') return 'fixed';
+  if (at === 'issues') return 'open';
+  return one(query.open) === '1' ? 'open' : 'both';
+}
+
+/**
  * The view an address sets; a value of the wrong shape is left out, and so is an organisation beside a repository
  * (the repository is the narrower). A lesson's or a course's own address sets that lesson or course from its path
- * (`fromPath`), over the query.
+ * (`fromPath`), over the query, and is the page the view is on: there it shows both groups by default.
  */
 export function issuesViewOf(query: Query, fromPath: Partial<Pick<IssuesView, 'lesson' | 'course'>> = {}): IssuesView {
   const repo = projectNameOf(one(query.repo), repoNameOf);
+  const at: IssuesAt = fromPath.lesson ? 'lesson' : fromPath.course ? 'course' : 'issues';
   return {
     lesson: fromPath.lesson ?? slugOf(one(query.lesson)),
     course: fromPath.course ?? slugOf(one(query.course)),
     repo,
     org: repo ? null : projectNameOf(one(query.org), orgLoginOf),
     language: issuesLanguageOf(one(query.language)),
-    fixed: one(query.fixed) === '1',
+    show: showOf(query, at),
     forYou: one(query['for-you']) !== '0',
     learned: one(query.learned) === '1',
   };
@@ -172,15 +194,20 @@ function baseOf(view: IssuesView, at: IssuesAt): { path: string; drop: 'lesson' 
 /** A query as the pages write it: a repository keeps its `/` (`repo=django/django`), as every link to it writes it. */
 const queryText = (query: URLSearchParams) => query.toString().replace(/%2F/g, '/');
 
-/** The query of a view, in one order, without what is as it is by default. */
-function queryOf(view: IssuesView, drop: 'lesson' | 'course' | null): string {
+/**
+ * The query of a view, in one order, without what is as it is by default. `own`: the address is a lesson's or a
+ * course's own view, where both groups are the default and the open issues alone are `open=1`; on Issues the open
+ * issues are the default, and `both` is never meant there.
+ */
+function queryOf(view: IssuesView, drop: 'lesson' | 'course' | null, own = drop !== null): string {
   const query = new URLSearchParams();
   if (view.course && drop !== 'course') query.set('course', view.course);
   if (view.lesson && drop !== 'lesson') query.set('lesson', view.lesson);
   if (view.repo) query.set('repo', view.repo);
   else if (view.org) query.set('org', view.org);
   if (view.language) query.set('language', view.language);
-  if (view.fixed) query.set('fixed', '1');
+  if (view.show === 'fixed') query.set('fixed', '1');
+  else if (view.show === 'open' && own) query.set('open', '1');
   if (!view.forYou) query.set('for-you', '0');
   if (view.learned) query.set('learned', '1');
   return queryText(query);
@@ -202,26 +229,34 @@ export function issuesHrefOf(view: IssuesView, at: IssuesAt = 'issues'): Route {
  * issue, so its way back opens this view again, at its own address (`issuesHrefOf`).
  */
 export function issuesViewQueryOf(view: IssuesView, at: IssuesAt = 'issues'): string {
-  const query = new URLSearchParams(queryOf(view, null));
-  if (baseOf(view, at).drop) query.set('at', at);
+  const own = baseOf(view, at).drop !== null;
+  const query = new URLSearchParams(queryOf(view, null, own));
+  if (own) query.set('at', at);
   return queryText(query);
 }
 
-/** The address search engines are pointed to: the view's chips, with the switches as they are by default. */
+/** Whether the view is on a lesson's or a course's own address, which shows both groups. */
+export const isOwnView = (view: IssuesView, at: IssuesAt): boolean => baseOf(view, at).drop !== null;
+
+/**
+ * The address search engines are pointed to: the view's chips, with the switches as they are by default. On a
+ * lesson's or a course's own address every variant (`fixed=1`, `open=1`, the switches) points to that address with
+ * both groups; on Issues, `fixed=1` is a page of its own.
+ */
 export const issuesCanonicalOf = (view: IssuesView, at: IssuesAt = 'issues'): Route =>
-  issuesHrefOf({ ...view, forYou: true, learned: false }, at);
+  issuesHrefOf({ ...view, show: isOwnView(view, at) ? 'both' : view.show, forYou: true, learned: false }, at);
 
 /** The view's Markdown copy: its own address with `.md`, the chips kept and the switches left out. */
 export function issuesMarkdownPathOf(view: IssuesView, at: IssuesAt = 'issues'): string {
   const { path, drop } = baseOf(view, at);
-  const query = queryOf({ ...view, fixed: false, forYou: true, learned: false }, drop);
+  const query = queryOf({ ...view, show: drop ? 'both' : 'open', forYou: true, learned: false }, drop);
   return query ? `${markdownPathOf(path)}?${query}` : markdownPathOf(path);
 }
 
 /** Where the browser reads the signed-in person's five for a view. */
 export const LEARN_ISSUES_MINE_PATH = '/api/me/learn/issues';
 export function issuesMinePathOf(view: IssuesView): string {
-  const query = queryOf({ ...view, fixed: false }, null);
+  const query = queryOf({ ...view, show: 'open' }, null);
   return query ? `${LEARN_ISSUES_MINE_PATH}?${query}` : LEARN_ISSUES_MINE_PATH;
 }
 
@@ -245,17 +280,30 @@ export type IssuesNames = { lesson?: string | null; course?: string | null };
 
 /** One chip: what it says, and the address without it (its cross). */
 export type IssuesChip = {
-  key: 'course' | 'lesson' | 'repo' | 'org' | 'language' | 'fixed';
+  key: 'show' | 'course' | 'lesson' | 'repo' | 'org' | 'language' | 'fixed';
   label: string;
   removeHref: Route;
 };
 
+/** What a lesson's or a course's own view shows, as its chip says it. */
+export const SHOW_CHIP_LABELS: Record<IssuesShow, string> = { both: 'Open and fixed', open: 'Open', fixed: 'Fixed' };
+
 /**
  * The chips of a view, in the boards' order: the course, the lesson, the project ("Repository: django/django" or
- * "Org: kubernetes"), the language, then "Fixed".
+ * "Org: kubernetes"), the language, then "Fixed". On a lesson's or a course's own address the view's own chip comes
+ * first ("Open and fixed", "Open" or "Fixed"): its cross shows the open issues alone from "Open and fixed", and both
+ * groups from the other two.
  */
 export function issuesChipsOf(view: IssuesView, names: IssuesNames = {}, at: IssuesAt = 'issues'): IssuesChip[] {
   const chips: IssuesChip[] = [];
+  const own = isOwnView(view, at);
+  if (own) {
+    chips.push({
+      key: 'show',
+      label: SHOW_CHIP_LABELS[view.show],
+      removeHref: issuesHrefOf({ ...view, show: view.show === 'both' ? 'open' : 'both' }, at),
+    });
+  }
   if (view.course) {
     chips.push({
       key: 'course',
@@ -286,7 +334,9 @@ export function issuesChipsOf(view: IssuesView, names: IssuesNames = {}, at: Iss
       removeHref: issuesHrefOf({ ...view, language: null }, at),
     });
   }
-  if (view.fixed) chips.push({ key: 'fixed', label: 'Fixed', removeHref: issuesHrefOf({ ...view, fixed: false }, at) });
+  if (!own && view.show === 'fixed') {
+    chips.push({ key: 'fixed', label: 'Fixed', removeHref: issuesHrefOf({ ...view, show: 'open' }, at) });
+  }
   return chips;
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-import { issueRows, issuesNames, views } from './__fixtures__/issues';
+import { issueRows, issuesNames, learnFixes, views } from './__fixtures__/issues';
 import { ISSUES_VIEW } from './issues';
 import { learnIssuesMarkdownOf, learnIssuesMarkdownResponse, markdownViewOf } from './issues-markdown';
 
@@ -14,10 +14,13 @@ describe("Issues' Markdown copies", () => {
       view: { ...ISSUES_VIEW, language: 'go' },
       at: 'issues',
     });
-    expect(markdownViewOf(query('lesson=binary-search&at=lesson'))).toEqual({
-      view: { ...ISSUES_VIEW, lesson: 'binary-search' },
-      at: 'lesson',
-    });
+    // A lesson's or a course's own copy lists both groups, whatever the page shows.
+    for (const search of ['lesson=binary-search&at=lesson', 'lesson=binary-search&at=lesson&open=1&fixed=1']) {
+      expect(markdownViewOf(query(search)), search).toEqual({
+        view: { ...ISSUES_VIEW, lesson: 'binary-search', show: 'both' },
+        at: 'lesson',
+      });
+    }
     expect(markdownViewOf(query('course=algorithms&at=course')).at).toBe('course');
     expect(markdownViewOf(query('at=elsewhere')).at).toBe('issues');
   });
@@ -39,15 +42,66 @@ describe("Issues' Markdown copies", () => {
     expect(copy).not.toContain('—');
   });
 
-  it("names a lesson's or a course's view, and its chips", () => {
-    const lesson = learnIssuesMarkdownOf(views.lesson, [], { at: 'lesson', names: issuesNames });
-    expect(lesson).toMatch(/^# Find duplicates in one pass with a set in the real world\n/);
-    expect(lesson).toContain('View: Lesson: Find duplicates in one pass with a set.');
-    expect(lesson).toContain('No open issue right now. We look for new ones every day.');
-    expect(lesson).toContain('/learn/lessons/find-duplicates-with-a-set/real-world\n');
+  it("names a view's chips, and says when its list is not available", () => {
     const language = learnIssuesMarkdownOf(views.language, null);
+    expect(language).toMatch(/^# Real issues and fixes\n/);
     expect(language).toContain('View: Language: Go.');
     expect(language).toContain('The list of real issues to learn from is not available right now.');
+  });
+
+  it("titles a lesson's own copy as its page, and lists the open issues then the merged fixes", () => {
+    const copy = learnIssuesMarkdownOf(views.lesson, issueRows, {
+      at: 'lesson',
+      names: issuesNames,
+      fixes: learnFixes,
+    });
+    const lines = copy.split('\n');
+    expect(lines.slice(0, 3)).toEqual([
+      '# Find duplicates in one pass with a set: in real projects',
+      '',
+      'Open issues in real open-source projects that this lesson helps you fix, and merged fixes that used it.',
+    ]);
+    expect(lines.indexOf('## Open')).toBeGreaterThan(0);
+    expect(lines.indexOf('## Fixed')).toBeGreaterThan(lines.indexOf('## Open'));
+    // A row does not repeat the lesson the copy is about; still masked, and seen in full on its own page.
+    expect(copy).not.toContain('Teaches');
+    expect(copy).toContain('See it in full: ');
+    expect(copy).toContain(
+      '- **Webhook deliveries were processed twice** (harbor-kit/relay, issue #412, pull request #418, Go). Fixed by octocat, merged 18 Nov. The fix: ',
+    );
+    expect(copy).toContain('/learn/fixes/harbor-kit/relay/418 On GitHub: https://github.com/harbor-kit/relay/pull/418');
+    // Two of twelve: the count, as the page words it.
+    expect(copy).toContain('Showing 2 of 12 fixes.');
+    expect(copy).toMatch(/The page: \S*\/learn\/lessons\/find-duplicates-with-a-set\/real-world\n$/);
+    expect(copy).not.toContain('View:');
+    expect(copy).not.toContain('\u2014');
+  });
+
+  it("says in each group's place that it holds nothing, in a course's words", () => {
+    const copy = learnIssuesMarkdownOf({ ...views.course, show: 'both' }, [], {
+      at: 'course',
+      names: issuesNames,
+      fixes: { rows: [], total: 0, next: null },
+    });
+    expect(copy).toMatch(/^# Algorithms and data structures: in real projects\n/);
+    expect(copy).toContain('## Open\n\nNo open issue needs this course right now. New issues come in every day.\n');
+    expect(copy).toContain(
+      '## Fixed\n\nNo fix yet. When someone fixes a real issue with a lesson of this course and the fix is merged, it shows here.\n',
+    );
+    const unread = learnIssuesMarkdownOf(views.lesson, null, { at: 'lesson', names: issuesNames, fixes: null });
+    expect(unread).toContain('## Open\n\nThe list of real issues to learn from is not available right now.');
+    expect(unread).toContain('## Fixed\n\nThe merged fixes are not available right now.');
+  });
+
+  it("lists a course's rows with their lesson, and leaves the count out with ten or fewer fixes", () => {
+    const copy = learnIssuesMarkdownOf({ ...views.course, show: 'both' }, issueRows, {
+      at: 'course',
+      names: issuesNames,
+      fixes: { ...learnFixes, total: 2, next: null },
+    });
+    expect(copy).toContain('Teaches [Find duplicates in one pass with a set](');
+    expect(copy).not.toContain('fixes.');
+    expect(copy).toContain('(lumen-data/importer, issue #88, pull request #93, Python).');
   });
 
   it("is the copy, and not found for a lesson's or a course's view of no known name", async () => {

@@ -2,12 +2,19 @@ import 'server-only';
 
 import { cacheLife, cacheTag } from 'next/cache';
 
-import type { LearnCourse, LearnCourseCard, LearnCourseMineCard, LearnLessonListItem } from './course';
+import type {
+  LearnCourse,
+  LearnCourseCard,
+  LearnCourseMineCard,
+  LearnLessonFixesListed,
+  LearnLessonListItem,
+} from './course';
 import {
   LearnCourseDocument,
   LearnCoursesDocument,
   LearnCoursesMineDocument,
   LearnLessonsDocument,
+  LearnLessonsFixesListedDocument,
   LearnProjectCourseDocument,
   LearnProjectOpenIssuesDocument,
   LearnSetupLevelDocument,
@@ -50,6 +57,18 @@ export async function loadLearnLessons(): Promise<LearnLessonListItem[]> {
   const { learnLessons } = await graphqlDirect(LearnLessonsDocument, {}, { source: 'ssr' });
   if (learnLessons.length) cacheLife('hours');
   else cacheLife('minutes');
+  return learnLessons;
+}
+
+/**
+ * Which live lessons have a listed merged fix, for the sitemap: its own read, kept for hours (a lesson's view reaches
+ * the sitemap within hours of its first merged fix) under the list's tag, purged with the content. A failed read throws.
+ */
+export async function loadLearnLessonsFixesListed(): Promise<LearnLessonFixesListed[]> {
+  'use cache';
+  cacheTag(LEARN_COURSES_TAG);
+  cacheLife('hours');
+  const { learnLessons } = await graphqlDirect(LearnLessonsFixesListedDocument, {}, { source: 'ssr' });
   return learnLessons;
 }
 

@@ -54,7 +54,7 @@ export const IssuesListDocument = doc<
 export const LearnFixesDocument = doc<{ learnFixes: LearnFixes | null }, { input: View & { after: string | null } }>(
   `query LearnFixes($input: LearnFixesInput!) {
   learnFixes(input: $input) {
-    rows { repo issueNumber number title issueUrl url fixer ${LESSON} mergedAt }
+    rows { repo issueNumber number title issueUrl url fixer ${LESSON} mergedAt language }
     total next
   }
 }`,

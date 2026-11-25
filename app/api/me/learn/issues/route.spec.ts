@@ -58,7 +58,7 @@ describe("the person's Issues route", () => {
       course: 'algorithms',
       forYou: false,
       learned: true,
-      fixed: true,
+      show: 'fixed',
     });
   });
 

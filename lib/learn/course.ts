@@ -69,6 +69,17 @@ export type LearnLessonListItem = {
   changedAt: string;
 };
 
+/**
+ * Whether a live lesson has a listed merged fix, for the sitemap: null when the API could not say, and then its view is
+ * left out.
+ */
+export type LearnLessonFixesListed = {
+  slug: string;
+  course: { slug: string };
+  paused: boolean;
+  fixesListed: boolean | null;
+};
+
 /** A lesson of the learner's side of a course. */
 export type LearnCourseLessonMine = { slug: string; depth: LearnDepth; known: boolean; due: boolean };
 

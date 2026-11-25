@@ -1,6 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { fixesCountLineOf, realProjectsEndsOf, realProjectsTitleOf, showMoreOf } from './real-projects';
+import {
+  fixesCountLineOf,
+  fixKeyOf,
+  fixLanguageWordsOf,
+  readPassedFixes,
+  realProjectsEndsOf,
+  realProjectsTitleOf,
+  realProjectsWordsOf,
+  showMoreOf,
+} from './real-projects';
 
 describe('realProjectsEndsOf', () => {
   it.each([
@@ -49,4 +58,80 @@ it('titles the page after the lesson', () => {
   expect(realProjectsTitleOf('Find duplicates in one pass with a set')).toBe(
     'Find duplicates in one pass with a set: in real projects',
   );
+});
+
+describe("a lesson's view and a course's", () => {
+  it('words the top and the two ends for a lesson', () => {
+    expect(realProjectsWordsOf('lesson')).toEqual({
+      back: '← The lesson',
+      sentence:
+        'Open issues in real open-source projects that this lesson helps you fix, and merged fixes that used it.',
+      openNone: { title: 'No open issue needs this lesson right now', text: 'New issues come in every day.' },
+      fixedNone: {
+        title: 'No fix yet',
+        text: 'When someone fixes a real issue with this lesson and the fix is merged, it shows here.',
+      },
+    });
+  });
+
+  it('words them for a course, whose fixes used one of its lessons', () => {
+    expect(realProjectsWordsOf('course')).toEqual({
+      back: '← The course',
+      sentence:
+        'Open issues in real open-source projects that this course helps you fix, and merged fixes that used it.',
+      openNone: { title: 'No open issue needs this course right now', text: 'New issues come in every day.' },
+      fixedNone: {
+        title: 'No fix yet',
+        text: 'When someone fixes a real issue with a lesson of this course and the fix is merged, it shows here.',
+      },
+    });
+  });
+
+  it('never words a long dash', () => {
+    for (const of of ['lesson', 'course'] as const) expect(JSON.stringify(realProjectsWordsOf(of))).not.toContain('—');
+  });
+});
+
+describe("a fix's row", () => {
+  it('names its language as a person reads it, and leaves out one not known', () => {
+    expect(fixLanguageWordsOf({ language: 'go' })).toBe('Go');
+    expect(fixLanguageWordsOf({ language: 'javascript' })).toBe('JavaScript');
+    for (const language of [null, undefined, '']) expect(fixLanguageWordsOf({ language })).toBeNull();
+    expect(fixLanguageWordsOf({})).toBeNull();
+  });
+
+  it('keys a pull request by its project and number', () => {
+    expect(fixKeyOf({ repo: 'acme/widgets', number: 36 })).toBe('acme/widgets#36');
+  });
+});
+
+describe('the walkthroughs the person passed', () => {
+  const row = (number: number) => ({
+    fix: { repo: 'acme/widgets', issueNumber: 31, number, title: 'Use a set', fixer: 'hubot', lesson: null },
+    passedAt: '2026-11-18T11:00:00Z',
+  });
+  const answer = (status: number, body: unknown) =>
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(body), { status }));
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('reads them from the signed-in route, never kept, as the keys the marks match', async () => {
+    const fetch = answer(200, { walkthroughs: [row(36), row(40), {}] });
+    expect(await readPassedFixes()).toEqual(new Set(['acme/widgets#36', 'acme/widgets#40']));
+    expect(fetch).toHaveBeenCalledWith('/api/me/learn/progress/walkthroughs', { cache: 'no-store' });
+  });
+
+  it('marks nothing when signed out, on a failure and when the route answers none', async () => {
+    answer(401, {});
+    expect(await readPassedFixes()).toBeNull();
+    answer(200, { walkthroughs: null });
+    expect(await readPassedFixes()).toBeNull();
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+    expect(await readPassedFixes()).toBeNull();
+  });
+
+  it('marks none, with nothing passed yet', async () => {
+    answer(200, { walkthroughs: [] });
+    expect(await readPassedFixes()).toEqual(new Set());
+  });
 });

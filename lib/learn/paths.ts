@@ -545,6 +545,21 @@ export function learnIssuesMarkdownRouteOf(pathname: string, search = ''): strin
   return `${LEARN_ISSUES_MARKDOWN_ROUTE}?${query}`;
 }
 
+/** A view's address as the proxy reads it: the lesson's or the course's, and whether it is the Markdown copy. */
+export type RealProjectsRoute = { of: 'lesson' | 'course'; slug: string; markdown: boolean };
+
+const REAL_PROJECTS_VIEW = /^\/learn\/(lessons|courses)\/([^/]+)\/real-world(\.md|\/?)$/;
+
+/**
+ * The view of a path, `/learn/lessons/<slug>/real-world` or `/learn/courses/<slug>/real-world`, with `.md` for its
+ * Markdown copy (a trailing slash allowed on the page); null for any other path and for a slug of no content's shape.
+ */
+export function realProjectsRouteOf(pathname: string): RealProjectsRoute | null {
+  const match = REAL_PROJECTS_VIEW.exec(pathname);
+  if (!match || !isContentSlug(match[2])) return null;
+  return { of: match[1] === 'lessons' ? 'lesson' : 'course', slug: match[2], markdown: match[3] === '.md' };
+}
+
 const COURSE_PAGE = /^\/learn\/courses\/([^/]+)\/?$/;
 
 /**

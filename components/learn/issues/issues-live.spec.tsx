@@ -107,6 +107,65 @@ describe('Issues in the browser', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("marks the fixes a person passed on a lesson's own view, after reading their five and their walkthroughs", async () => {
+    const passedRow = { fix: { ...learnFixes.rows[0], lesson: null }, passedAt: '2026-11-18T11:00:00Z' };
+    fetchMock.mockImplementation((url: string) =>
+      url.endsWith('/walkthroughs')
+        ? answer({ walkthroughs: [passedRow] })
+        : answer({ state: 'ok', list: personalList(), reads }),
+    );
+    await act(async () =>
+      root.render(
+        <IssuesLive
+          view={views.lesson}
+          at="lesson"
+          initial={{ kind: 'visitor', rows: visitorRows }}
+          fixes={{ kind: 'fixed', fixes: learnFixes }}
+        />,
+      ),
+    );
+    await flush();
+    expect($('main')?.getAttribute('data-issues')).toBe('personal');
+    expect($$('[data-fix-passed]')).toHaveLength(1);
+    expect(fetchMock.mock.calls.map(([url]) => url).sort()).toEqual([
+      '/api/me/learn/issues?lesson=find-duplicates-with-a-set',
+      '/api/me/learn/progress/walkthroughs',
+    ]);
+  });
+
+  it('never asks for the walkthroughs without a session, nor with the open issues alone', async () => {
+    hint.present = false;
+    await act(async () =>
+      root.render(
+        <IssuesLive
+          view={views.lesson}
+          at="lesson"
+          initial={{ kind: 'visitor', rows: visitorRows }}
+          fixes={{ kind: 'fixed', fixes: learnFixes }}
+        />,
+      ),
+    );
+    expect($$('[data-real-fix]')).toHaveLength(2);
+    expect(fetchMock).not.toHaveBeenCalled();
+    hint.present = true;
+    fetchMock.mockImplementation(() => answer({ state: 'ok', list: personalList(), reads }));
+    act(() => root.unmount());
+    root = createRoot(container);
+    await act(async () =>
+      root.render(
+        <IssuesLive
+          view={{ ...views.lesson, show: 'open' }}
+          at="lesson"
+          initial={{ kind: 'visitor', rows: visitorRows }}
+        />,
+      ),
+    );
+    await flush();
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/me/learn/issues?lesson=find-duplicates-with-a-set',
+    ]);
+  });
+
   it('says the unavailable state when the API does not know the read yet', async () => {
     fetchMock.mockReturnValueOnce(answer({ state: 'unavailable' }));
     await act(async () =>

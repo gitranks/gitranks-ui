@@ -50,6 +50,7 @@ vi.mock('@/lib/learn/settings.data', () => ({
   loadLearnEmailSettings: vi.fn(async () => null),
   loadLearnSetupForSettings: vi.fn(async () => null),
   loadLearnIssuesEmail: vi.fn(async () => null),
+  loadLearnLessonIssuesEmail: vi.fn(async () => null),
 }));
 vi.mock('@/lib/skills/skills.data', () => ({ loadSkillsMine: async () => undefined }));
 vi.mock('@/lib/learn/settings.actions', () => ({}));

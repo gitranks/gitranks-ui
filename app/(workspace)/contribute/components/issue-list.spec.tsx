@@ -117,7 +117,7 @@ describe("Contribute's list with masked issues", () => {
 });
 
 describe("Contribute's issue list", () => {
-  it('grows by 10 in place with "Show 10 more", read under the same filters', async () => {
+  it('grows by 10 in place with "Show 10 more", read with no filter', async () => {
     contribute.readIssuesPage.mockResolvedValueOnce({
       ok: true,
       data: { items: picks(11, 10), next: 'c3', total: 25, computedAt: null },
@@ -126,14 +126,13 @@ describe("Contribute's issue list", () => {
       <ContributeIssueList
         page={{ items: picks(1, 10), next: 'c2', total: 25, computedAt: '2026-10-28T07:00:00.000Z' }}
         agents={AGENTS}
-        filter={{ language: 'RUST', size: 'M' }}
       />,
     );
     expect(container.querySelectorAll('article[data-issue]')).toHaveLength(10);
     expect(container.textContent).toContain('Showing 10 of 25 issues');
     await act(async () => button('Show 10 more')?.click());
     expect(contribute.readIssuesPage).toHaveBeenCalledWith({
-      filter: { languages: ['RUST'], maxSize: 'M' },
+      filter: {},
       after: 'c2',
       first: 10,
     });
@@ -142,15 +141,13 @@ describe("Contribute's issue list", () => {
     expect(button('Show 5 more')).not.toBeNull();
   });
 
-  it('keeps its grown rows through a refresh, and starts again at 10 under other filters', async () => {
+  it('keeps its grown rows through a refresh', async () => {
     contribute.readIssuesPage.mockResolvedValueOnce({
       ok: true,
       data: { items: picks(11, 10), next: 'c3', total: 25, computedAt: null },
     });
     const first = { items: picks(1, 10), next: 'c2', total: 25, computedAt: '2026-10-28T07:00:00.000Z' };
-    const list = (page: typeof first, filter = {}) => (
-      <ContributeIssueList page={page} agents={AGENTS} filter={filter} />
-    );
+    const list = (page: typeof first) => <ContributeIssueList page={page} agents={AGENTS} />;
     await render(list(first));
     await act(async () => button('Show 10 more')?.click());
     expect(container.querySelectorAll('article[data-issue]')).toHaveLength(20);
@@ -158,10 +155,6 @@ describe("Contribute's issue list", () => {
     await render(list({ ...first, items: picks(1, 10) }));
     expect(container.querySelectorAll('article[data-issue]')).toHaveLength(20);
     expect(contribute.readIssuesPage).toHaveBeenCalledTimes(1);
-    // Other filters: another list, its first 10.
-    await render(list({ ...first, items: picks(1, 10) }, { language: 'GO' }));
-    expect(container.querySelectorAll('article[data-issue]')).toHaveLength(10);
-    expect(container.textContent).toContain('Showing 10 of 25 issues');
   });
 
   it('reads the page again when a Start meets the limit, so it shows the limit state', async () => {

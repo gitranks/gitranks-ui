@@ -21,6 +21,7 @@ import type {
   PullRequestRoundNotNeeded,
   PullRequestRoundState,
   PullRequestStage,
+  PullRequestsMerged,
   PullRequestWalkthroughCard,
   PullRequestWaysOn,
 } from './pull-request-page.types';
@@ -327,4 +328,16 @@ export function pullRequestListOf(value: unknown): PullRequestList | null {
     atLimit: list.atLimit === true,
     more: textOf(list.more),
   };
+}
+
+/**
+ * The list's newest merged pull request; null when the API sent none (an API older than it) or sent one that is not a
+ * row, so the page says it could not read rather than "nothing merged".
+ */
+export function pullRequestsMergedOf(value: unknown): PullRequestsMerged | null {
+  const merged = recordOf(value);
+  if (!merged) return null;
+  if (merged.newest === null) return { newest: null, newestPublicPage: false };
+  const newest = pullRequestRowOf(merged.newest);
+  return newest ? { newest, newestPublicPage: merged.newestPublicPage === true } : null;
 }

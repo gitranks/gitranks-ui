@@ -1,11 +1,10 @@
 import 'server-only';
 
-import type { ContributeTabRead } from './contribute-tab';
-import { ContributeTabStateDocument, ContributeTabTotalsDocument } from './contribute-tab.documents';
+import { type ContributeHomeTotals, ContributeTabTotalsDocument } from './contribute-tab.documents';
 import { ISSUES_PAGE_SIZE } from './live-issues';
 import { keyedPageOf } from './masked-feed';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
-import { settled, viewerLogin } from '@/lib/workspace/contribute.data';
+import { viewerLogin } from '@/lib/workspace/contribute.data';
 import { ContributeIssuesMaskedDocument } from '@/lib/workspace/contribute.documents';
 import type { ContributeIssuePage, ContributeIssuesFilter } from '@/lib/workspace/contribute.types';
 
@@ -31,20 +30,21 @@ export async function loadIssues(filter: ContributeIssuesFilter): Promise<Contri
 }
 
 /**
- * What the Contribute tab reads beside the user's view: its side's totals and the hosted agent's level. Each read on
- * its own: one the API does not answer leaves its part out ("–", the level not known).
+ * The totals Contribute home's "Merged" box reads: every pull request sent through GitRanks, merged and the projects
+ * helped. Null when the API does not answer them, or answers them without a number: the box then says it could not read.
  */
-export async function loadContributeTab(): Promise<ContributeTabRead> {
+export async function loadContributeTab(): Promise<ContributeHomeTotals | null> {
   const githubLogin = await viewerLogin();
-  if (!githubLogin) return { totals: null, hostedLevel: null };
-  const options = { source: 'ssr' as const, githubLogin };
-  const [totals, state] = await Promise.allSettled([
-    graphqlDirect(ContributeTabTotalsDocument, undefined, options),
-    graphqlDirect(ContributeTabStateDocument, undefined, options),
-  ]);
-  const contributor = settled(state)?.contribute?.contributor;
-  return {
-    totals: settled(totals)?.contributeContributions?.totals.byMode?.fix ?? null,
-    hostedLevel: contributor?.settings?.hostedLevel ?? null,
-  };
+  if (!githubLogin) return null;
+  try {
+    const { contributeContributions } = await graphqlDirect(ContributeTabTotalsDocument, undefined, {
+      source: 'ssr',
+      githubLogin,
+    });
+    const totals = contributeContributions?.totals;
+    const { merged, reposHelped } = totals ?? {};
+    return typeof merged === 'number' && typeof reposHelped === 'number' ? { merged, reposHelped } : null;
+  } catch {
+    return null;
+  }
 }

@@ -1,8 +1,9 @@
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
+import { CONTRIBUTE_HOME_BOX_SCREENS } from './contribute-wave-4-parts';
 import { CONTRIBUTE_FLOW_SCREENS } from './getting-in';
-import { ContributeTabScreen } from '@/app/(workspace)/contribute/components/contribute-tab';
+import { type ContributeTabData, ContributeTabScreen } from '@/app/(workspace)/contribute/components/contribute-tab';
 import { FairUseAnswerScreen } from '@/app/(workspace)/contribute/components/fair-use-answer';
 import { ContributeBadgePreview } from '@/app/contribute/components/contribute-badge-preview';
 import { FaqScreen } from '@/app/contribute/components/faq';
@@ -23,9 +24,9 @@ import { Header } from '@/components/header/header';
 import { CONTRIBUTE_MADE_LINKS, MadePage } from '@/components/workspace/fix-page/made-page';
 import { HeaderLine } from '@/components/workspace/header-line';
 import { WorkspaceTabsNav } from '@/components/workspace/workspace-tabs-nav';
-import { activityOf, FOLLOW_UP, runOf, WORKING } from '@/lib/contribute/__fixtures__/agent-runs';
-import { issuePage } from '@/lib/contribute/__fixtures__/contribute-overview';
-import { contributor, mcpToken, NOW, settings, views } from '@/lib/contribute/__fixtures__/contribute-views';
+import { activityOf, runOf } from '@/lib/contribute/__fixtures__/agent-runs';
+import { issue } from '@/lib/contribute/__fixtures__/contribute-overview';
+import { mcpToken, NOW, views } from '@/lib/contribute/__fixtures__/contribute-views';
 import {
   answeredNotice,
   blockNotice,
@@ -44,9 +45,17 @@ import {
   prReportSent,
   prViewer,
 } from '@/lib/contribute/__fixtures__/maintainers';
-import { issueRules, maintainerConfig, maintainerRules } from '@/lib/contribute/__fixtures__/repo-rules';
+import { maintainerConfig, maintainerRules } from '@/lib/contribute/__fixtures__/repo-rules';
+import {
+  agentRead,
+  homeRead,
+  mergedRead,
+  NEWEST_MERGED,
+  needsYouRow,
+} from '@/lib/contribute/__fixtures__/wave-4-parts';
 import type { MaintainerReposView } from '@/lib/contribute/maintainers.data';
 import type { PrReportRead } from '@/lib/contribute/pr-feedback.data';
+import { issueNumbers, looksToday, maskedIssues } from '@/lib/workspace/__fixtures__/masked-issue';
 import {
   autopilotTimeline,
   closedTimeline,
@@ -67,34 +76,6 @@ import type { PrFeedbackFlow } from '@/lib/workspace/pr-feedback';
 import type { PrTimeline } from '@/lib/workspace/pr-timeline.types';
 import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
-/** A key and a live token the agent has called with: both lanes of Right now. */
-const both: ContributeView = {
-  ...views.active,
-  contributor: contributor({ settings: { ...settings, attemptsAtATime: 2 } }),
-  ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken({ lastUsedAt: '2026-10-28T09:00:00.000Z' })] },
-};
-
-const own = runOf({
-  attemptId: 'att_own',
-  runner: 'MCP',
-  spendUsd: null,
-  budgetUsd: null,
-  nameWithOwner: 'quill-rs/quill',
-  number: 1204,
-  title: 'Panic when the config file is empty',
-  label: 'Your agent is working',
-});
-const stopped = runOf({
-  attemptId: 'att_stopped',
-  phase: 'STOPPED',
-  active: false,
-  label: 'Stopped',
-  nameWithOwner: 'iptv-org/iptv',
-  number: 57201,
-  title: 'Add: Mi Musica Hits SD',
-  latestEvent: { state: 'STOPPED', detail: 'No-go: nothing here needs a code change.', at: '2026-10-31T11:58:00.000Z' },
-});
-
 /** Every tab, as an account that has entered sees them. */
 const TABS = ['contribute', 'pull-requests', 'agent', 'settings'] as const;
 
@@ -107,42 +88,68 @@ const frame = (children: ReactNode, activity: ContributeActivity = activityOf(),
   </>
 );
 
-/** The feed with its repos' rules: a repo with several, one where autopilot is the only one, and one with none. */
-const rulesPage: ContributeIssuePage = {
-  ...issuePage,
-  items: issuePage.items.map((item, index) => ({
-    ...item,
-    repoRules: [
-      issueRules(),
-      issueRules({ lines: issueRules().lines.slice(0, 3) }),
-      issueRules({ lines: issueRules().lines.slice(0, 3) }),
-      { manualOnly: false, lines: [] },
-    ][index],
-  })),
+/** A key and a live token the agent has called with: both ways connected. */
+const both: ContributeView = {
+  ...views.active,
+  ownAgent: { paths: { hosted: true, mcp: true }, tokens: [mcpToken({ lastUsedAt: '2026-10-28T09:00:00.000Z' })] },
 };
 
-/** The Contribute tab, as its page reads it: both agents, the numbers, Learn open, nothing paused. */
-const tab = (
-  view: ContributeView,
-  activity: ContributeActivity,
-  patch: Partial<ComponentProps<typeof ContributeTabScreen>> = {},
-) =>
+/** The issues for the person as the list shows them now: masked rows, and one of a project they named. */
+const masked = (id: string, at: number) => {
+  const shown = maskedIssues[at % maskedIssues.length];
+  return issue({ issueId: `mask:${id}`, number: at + 100, rank: at + 1, masked: { ...shown, id } });
+};
+const homeIssues: ContributeIssuePage = {
+  items: [
+    masked('q7k2m9xa', 0),
+    masked('r3n8p1vd', 1),
+    issue({ issueId: 'I_named', rank: 3, title: 'A span that ends at the end of the file panics' }),
+    masked('t5w0c4hy', 2),
+    masked('u8b2k6zr', 1),
+  ],
+  next: null,
+  total: 5,
+  computedAt: '2026-10-28T11:00:00.000Z',
+};
+const LOOKS = { looks: looksToday({ limit: 30, left: 27, base: 25, merged: 1 }), numbers: issueNumbers };
+
+/** The person's own agent at work on one issue. */
+const ownRun = runOf({
+  attemptId: 'att_own',
+  runner: 'MCP',
+  spendUsd: null,
+  budgetUsd: null,
+  nameWithOwner: 'quill-rs/quill',
+  number: 1204,
+  title: 'Panic when the config file is empty',
+  label: 'Working',
+});
+
+/** Contribute home as its page reads it: both ways connected, the issues for the person, nothing paused. */
+const home = (patch: Partial<ContributeTabData> = {}, activity: ContributeActivity = activityOf()) =>
   frame(
     <ContributeTabScreen
-      view={view}
+      view={both}
       agents={{ hosted: true, own: true }}
-      tab={{ totals: { open: 2, merged: 7, closed: 4, reposHelped: 6 }, hostedLevel: 'MANUAL' }}
-      page={issuePage}
+      home={homeRead({ agent: agentRead({ key: true, runs: activity.runs }) })}
       activity={activity}
-      counts={{ prBound: 2 }}
-      query={{}}
+      page={homeIssues}
+      counts={{ prBound: 1 }}
+      masked={LOOKS}
       now={NOW}
       {...patch}
     />,
     activity,
   );
 
-const busy = activityOf(WORKING, FOLLOW_UP, own, stopped);
+/** A day: a pull request needs the person, their agent is at work, seven merged. */
+const DAY = homeRead({
+  needsYou: [needsYouRow(), needsYouRow({ since: '2026-11-25T09:00:00Z', issueNumber: 9 })],
+  agent: agentRead({ key: true, runs: [ownRun] }),
+  merged: mergedRead({ merged: 7, reposHelped: 6, newest: NEWEST_MERGED }),
+});
+const DAY_ACTIVITY = activityOf(ownRun);
+
 /** A message's answer page, as the workspace's layout frames it. */
 const answerPage = (notice: ContributeFairUseNotice) =>
   frame(
@@ -317,98 +324,108 @@ export const CONTRIBUTE_SCREENS: Screen[] = [
   },
   ...CONTRIBUTE_FLOW_SCREENS,
   {
-    id: 'contribute-tab',
-    title: 'Contribute tab',
+    id: 'contribute-home',
+    title: 'Contribute home',
     area: 'contribute',
     route: '/contribute',
     sources: [
       'app/(workspace)/contribute/page.tsx',
       'app/(workspace)/contribute/components/contribute-tab.tsx',
       'app/(workspace)/contribute/components/contribute-tab-view.tsx',
+      'app/(workspace)/contribute/components/home-boxes.tsx',
       'app/(workspace)/contribute/components/issue-list.tsx',
-      'app/(workspace)/contribute/components/picks-dialog.tsx',
-      'components/workspace/issue-row.tsx',
-      'components/workspace/right-now.tsx',
-      'lib/contribute/contribute-tab.ts',
+      'components/workspace/home-box.tsx',
+      'components/workspace/masked-issue/masked-list.tsx',
+      'lib/contribute/home-boxes.ts',
+      'lib/contribute/home-read.ts',
     ],
     states: [
       {
-        id: 'working',
-        title: 'Agents working: Right now above the issues',
-        path: '/contribute',
-        height: 2100,
-        render: () => tab(both, busy),
-      },
-      {
-        id: 'limit',
-        title: 'At the open pull request limit: its notice over the rows, which have no Start',
+        id: 'day',
+        title: 'A day: a pull request needs you (lit), your agent at work, merged; the issues for you',
         path: '/contribute',
         height: 1600,
-        render: () => tab(both, activityOf(), { counts: { prBound: 3 } }),
+        render: () => home({ home: DAY }, DAY_ACTIVITY),
       },
       {
-        id: 'nothing-connected',
-        title: 'Nothing connected now: every Start opens the Start page',
+        id: 'first-day',
+        title: 'The first day: the three boxes say what will happen, the first one lit',
         path: '/contribute',
-        height: 1700,
-        render: () => tab(both, activityOf(), { agents: { hosted: false, own: false } }),
+        height: 1600,
+        render: () => home({ home: homeRead({ firstDay: true, agent: agentRead({ key: true }) }) }),
       },
       {
         id: 'first-picks',
-        title: 'The first picks still being ranked',
+        title: 'The first issues are being picked',
         path: '/contribute',
-        height: 900,
-        render: () => tab(both, activityOf(), { page: { items: [], next: null, total: 0, computedAt: null } }),
+        height: 1000,
+        render: () =>
+          home({
+            home: homeRead({ firstDay: true, agent: agentRead({ key: true }) }),
+            page: { items: [], next: null, total: 0, computedAt: null },
+          }),
+      },
+      {
+        id: 'nothing-fits',
+        title: 'No open issue fits what you work on',
+        path: '/contribute',
+        height: 1000,
+        render: () => home({ page: { items: [], next: null, total: 0, computedAt: '2026-10-28T11:00:00.000Z' } }),
+      },
+      {
+        id: 'used',
+        title: "The day's full issues are used: no short line, each row says when more come",
+        path: '/contribute',
+        height: 1500,
+        render: () => home({ masked: { ...LOOKS, looks: looksToday({ limit: 30, left: 0, base: 25, merged: 1 }) } }),
+      },
+      {
+        id: 'limit',
+        title: 'Too many pull requests wait: the notice between the lines and the list',
+        path: '/contribute',
+        height: 1650,
+        render: () => home({ counts: { prBound: 3 } }),
       },
       {
         id: 'held',
         title: 'The account is held: no issues, no Start',
         path: '/contribute',
-        height: 800,
-        render: () => tab(views.suspended, activityOf()),
-      },
-      {
-        id: 'repo-rules',
-        title: 'Each repo’s rules on its row, closed; a repo with none says so',
-        path: '/contribute',
-        height: 1800,
-        render: () => tab(both, activityOf(), { page: rulesPage }),
-      },
-      {
-        id: 'phone',
-        title: 'Agents working · phone',
-        path: '/contribute',
-        width: 390,
-        height: 3600,
-        render: () => tab(both, busy),
+        height: 1000,
+        render: () => home({ view: views.suspended }),
       },
       {
         id: 'rules-banner',
         title: 'The Terms banner for people who connected an agent before the rule',
         path: '/contribute',
-        height: 1300,
-        render: () => tab(both, activityOf(), { page: issuePage, fairUse: fairUse({ rulesBanner }) }),
+        height: 1750,
+        render: () => home({ fairUse: fairUse({ rulesBanner }) }),
       },
       {
         id: 'fair-use-message',
         title: 'A message after a pull request opened outside GitRanks: Answer, the Terms, a close button',
         path: '/contribute',
-        height: 1400,
-        render: () => tab(both, activityOf(), { page: issuePage, fairUse: fairUse({ notices: [fairUseNotice()] }) }),
+        height: 1800,
+        render: () => home({ fairUse: fairUse({ notices: [fairUseNotice()] }) }),
       },
       {
         id: 'fair-use-blocked',
         title: 'Blocked by a fair-use rule: the block’s message, which cannot be closed; no issues',
         path: '/contribute',
-        height: 900,
+        height: 1100,
         render: () =>
-          tab(fairUseBlocked, activityOf(), {
-            page: null,
-            fairUse: fairUse({ notices: [blockNotice], block: blockNotice }),
-          }),
+          home({ view: fairUseBlocked, page: null, fairUse: fairUse({ notices: [blockNotice], block: blockNotice }) }),
+      },
+      {
+        id: 'phone',
+        title: 'A day, on a phone: the boxes one under the other',
+        path: '/contribute',
+        width: 390,
+        height: 3000,
+        render: () => home({ home: DAY }, DAY_ACTIVITY),
       },
     ],
   },
+  ...CONTRIBUTE_HOME_BOX_SCREENS,
   {
     id: 'contribute-answer',
     title: 'A message from GitRanks: the answer page',

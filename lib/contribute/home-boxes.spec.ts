@@ -195,32 +195,32 @@ describe('agentBoxOf (box 2)', () => {
       'the key stopped working',
       {
         own: null,
-        notice: { kind: 'key-invalid', text: 'Anthropic turned the key down.', href: '/my/agent/key?replace=1' },
+        notice: { kind: 'key-invalid' },
       },
       [
         'Your agent',
         'Your Claude key stopped working',
-        'Anthropic turned the key down.',
+        'Anthropic refused it: it was deleted, or it is not the key you meant. Contributing is paused until you connect a working one.',
         'button: Connect a new key [/my/agent/key?replace=1]',
       ],
     ],
     [
       'credits used up',
-      { notice: { kind: 'exhausted', text: 'The hosted agent waits for the next cycle.', href: '/my/agent/key' } },
+      { notice: { kind: 'exhausted', until: '2026-12-01T00:00:00.000Z' } },
       [
         'Your agent',
         'Your credits are used up for this cycle',
-        'The hosted agent waits for the next cycle.',
+        'Nothing starts until they renew on Dec 1. Nothing is spent beyond them.',
         'button: Open the Agent tab [/my/agent]',
       ],
     ],
     [
       "the workspace's limit",
-      { notice: { kind: 'limit-reached', text: 'Your workspace stopped spending.', href: '/my/agent/key' } },
+      { notice: { kind: 'limit-reached', until: '2026-12-01T00:00:00.000Z' } },
       [
         'Your agent',
         "Your workspace's spend limit is reached",
-        'Your workspace stopped spending.',
+        'The Claude Console stopped this workspace at its monthly limit. Work starts again on Dec 1, or raise the limit in the Console.',
         'button: Open the Agent tab [/my/agent]',
       ],
     ],
@@ -450,7 +450,7 @@ describe('homeBoxesOf: the highlight and the first day', () => {
   });
 
   it("on the first day, box 2 gives way to the key's notice", () => {
-    const notice = { kind: 'key-invalid' as const, text: 'The key was turned down.', href: '/my/agent/key?replace=1' };
+    const notice = { kind: 'key-invalid' as const };
     expect(homeBoxesOf({ ...READ, firstDay: true, agent: { ...AGENT, notice } }).boxes[1].title).toBe(
       'Your Claude key stopped working',
     );

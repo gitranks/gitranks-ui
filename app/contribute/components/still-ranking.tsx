@@ -55,7 +55,7 @@ export function StillRanking({
       className="flex flex-col gap-1 rounded-xl border border-dashed px-5 py-8 text-center"
       data-ranking={stopped ? 'stopped' : 'waiting'}
     >
-      <span className="font-semibold">Your first picks are still being ranked</span>
+      <span className="font-semibold">We are picking your first issues</span>
       <span className="text-sm text-muted-foreground">
         {stopped ? (
           <>
@@ -73,7 +73,7 @@ export function StillRanking({
             to look again.
           </>
         ) : (
-          'This takes a minute or two. They show up here by themselves.'
+          'It takes a few minutes. This page fills in by itself, and you can leave it open.'
         )}
       </span>
     </div>

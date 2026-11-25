@@ -1,7 +1,8 @@
 import { dayMonthOf } from '@/lib/contribute/landing-proof';
 import type { ContributeAgentRun } from '@/lib/workspace/contribute.types';
 import { usd } from '@/lib/workspace/format';
-import { pullRequestByAttemptPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { type KeyNotice, keyNoticeWordsOf } from '@/lib/workspace/notice-words';
+import { KEY_REPLACE_PATH, pullRequestByAttemptPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { needsYouRowWordsOf } from '@/lib/workspace/pull-request-list';
 import type { PullRequestListRow } from '@/lib/workspace/pull-request-page.types';
 import { isWorkingPhase, stepsOf } from '@/lib/workspace/run-steps';
@@ -38,9 +39,6 @@ export type HomeNeedsYouRow = Pick<
   'box' | 'round' | 'since' | 'repo' | 'issueNumber' | 'title' | 'path' | 'walkthroughBlocked'
 >;
 
-/** One of the key's notices box 2 says, with the Agent tab's words for it and the notice's own link. */
-export type HomeKeyNotice = { kind: 'key-invalid' | 'exhausted' | 'limit-reached'; text: string; href: string };
-
 /** What box 2 reads. */
 export type HomeAgentRead = {
   /** The runs, live; null when the activity could not be read. */
@@ -63,8 +61,8 @@ export type HomeAgentRead = {
   own: string | null;
   /** A Claude key is saved and works. */
   key: boolean;
-  /** The first of the key's notices, when there is one. */
-  notice: HomeKeyNotice | null;
+  /** The first of the key's notices, when there is one: box 2 says it in the Agent tab's words. */
+  notice: KeyNotice | null;
   /** A cap set in GitRanks has less left than one fix may spend: which period's, and what a fix may spend. */
   capHold: { period: 'day' | 'week' | 'cycle'; attemptCapUsd: number } | null;
   /** The even pace holds the hosted agent until a time, as the site words it; `picksOwn`: it picks its own issues. */
@@ -171,16 +169,11 @@ export function connectedLineOf({ own, key }: Pick<HomeAgentRead, 'own' | 'key'>
 /** Whether nothing is connected: neither an own agent that was used nor a key that works. */
 export const nothingConnected = (agent: Pick<HomeAgentRead, 'own' | 'key'>) => !agent.own && !agent.key;
 
-const NOTICE_TITLES: Record<HomeKeyNotice['kind'], string> = {
-  'key-invalid': 'Your Claude key stopped working',
-  exhausted: 'Your credits are used up for this cycle',
-  'limit-reached': "Your workspace's spend limit is reached",
-};
-
 /** A notice's box: the key stopped working (its own link), or its credits or its workspace's limit (the Agent tab). */
-function noticeBoxOf(notice: HomeKeyNotice): HomeBoxWords {
-  const button = notice.kind === 'key-invalid' ? { label: 'Connect a new key', href: notice.href } : AGENT_TAB;
-  return box({ top: 'Your agent', title: NOTICE_TITLES[notice.kind], lines: [notice.text], button });
+function noticeBoxOf(notice: KeyNotice): HomeBoxWords {
+  const { title, text } = keyNoticeWordsOf(notice);
+  const button = notice.kind === 'key-invalid' ? { label: 'Connect a new key', href: KEY_REPLACE_PATH } : AGENT_TAB;
+  return box({ top: 'Your agent', title, lines: [text], button });
 }
 
 /** The cases that say something is wrong or missing, which every day's words give way to; null for none. */

@@ -28,8 +28,9 @@ import { MAINTAINERS_PATH } from '@/lib/workspace/paths';
 
 /**
  * Contribute's parts for wave 4, from fixtures, in every case, before the pages use them: the landing's top card,
- * proof rows, two ways, coming-soon rows and band; home's three boxes; step 1 of the flow. Held back from the export
- * (`exported: false`) until the pages switch to them.
+ * proof rows, two ways, coming-soon rows and band; the start flow's first page. Held back from the export
+ * (`exported: false`) until the pages switch to them. Home's three boxes are drawn by Contribute home, so they are
+ * exported.
  */
 
 /** A labelled part of a board that shows several cases one under the other. */
@@ -155,11 +156,80 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
     ],
   },
   {
+    id: 'contribute-start-who',
+    title: 'Start, step 1: how Contribute works, and who does the work',
+    area: 'contribute',
+    route: '/contribute/start',
+    exported: false,
+    sources: ['components/contribute/start/who-does-the-work.tsx', 'lib/contribute/start-ways.ts'],
+    states: [
+      {
+        id: 'signed-in',
+        title: 'Signed in, nothing connected',
+        path: '/contribute/start',
+        height: 1100,
+        render: () => <Page narrow>{ways({})}</Page>,
+      },
+      {
+        id: 'visitor',
+        title: 'A visitor, opened from an issue',
+        path: '/contribute/start?issue=q7k2m9xa',
+        signedOut: true,
+        height: 1150,
+        render: () => <Page narrow>{ways({ signedIn: false, issue: 'q7k2m9xa', issueReads: true })}</Page>,
+      },
+      {
+        id: 'no-sign',
+        title: 'Connected, no Contribute sign: the step is done',
+        path: '/contribute/start',
+        height: 2600,
+        render: () => (
+          <Page narrow>
+            <Case title="An agent of their own">{ways({ own: 'Claude Code' })}</Case>
+            <Case title="A Claude key">{ways({ key: 'connected' })}</Case>
+            <Case title="Both">{ways({ own: 'Claude Code', key: 'connected' })}</Case>
+          </Page>
+        ),
+      },
+      {
+        id: 'with-sign',
+        title: 'Connected, with the Contribute sign: back to add the other way',
+        path: '/contribute/start',
+        height: 2600,
+        render: () => (
+          <Page narrow>
+            <Case title="An agent of their own">{ways({ sign: true, own: 'Claude Code' })}</Case>
+            <Case title="A Claude key, with an attempt">{ways({ sign: true, key: 'connected', attempt: true })}</Case>
+            <Case title="Both">{ways({ sign: true, own: 'Claude Code', key: 'connected' })}</Case>
+          </Page>
+        ),
+      },
+      {
+        id: 'key-invalid',
+        title: 'The Claude key stopped working, nothing else connected',
+        path: '/contribute/start',
+        height: 1100,
+        render: () => <Page narrow>{ways({ key: 'invalid' })}</Page>,
+      },
+      {
+        id: 'phone',
+        title: 'On a phone',
+        path: '/contribute/start',
+        width: 390,
+        height: 1700,
+        render: () => <Page narrow>{ways({})}</Page>,
+      },
+    ],
+  },
+];
+
+/** Contribute home's three boxes in every case: drawn by the page, so exported with it. */
+export const CONTRIBUTE_HOME_BOX_SCREENS: Screen[] = [
+  {
     id: 'contribute-home-boxes',
     title: 'Contribute home: the three boxes',
     area: 'contribute',
     route: '/contribute',
-    exported: false,
     sources: [
       'app/(workspace)/contribute/components/home-boxes.tsx',
       'components/workspace/home-box.tsx',
@@ -243,11 +313,7 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
                 homeRead({
                   agent: agentRead({
                     own: null,
-                    notice: {
-                      kind: 'key-invalid',
-                      text: 'Anthropic turned the key down. Connect a new one to start again.',
-                      href: '/my/agent/key?replace=1',
-                    },
+                    notice: { kind: 'key-invalid' },
                   }),
                 }),
               )}
@@ -257,11 +323,7 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
                 homeRead({
                   agent: agentRead({
                     own: null,
-                    notice: {
-                      kind: 'exhausted',
-                      text: 'The hosted agent starts again when your next billing cycle begins.',
-                      href: '/my/agent/key',
-                    },
+                    notice: { kind: 'exhausted', until: '2026-12-01T00:00:00.000Z' },
                   }),
                 }),
               )}
@@ -271,11 +333,7 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
                 homeRead({
                   agent: agentRead({
                     own: null,
-                    notice: {
-                      kind: 'limit-reached',
-                      text: 'Your Anthropic workspace stopped spending. Raise its limit to start again.',
-                      href: '/my/agent/key',
-                    },
+                    notice: { kind: 'limit-reached', until: '2026-12-01T00:00:00.000Z' },
                   }),
                 }),
               )}
@@ -350,72 +408,6 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
         width: 390,
         height: 1000,
         render: () => <Page>{boxes(homeRead({ needsYou: [needsYouRow()] }))}</Page>,
-      },
-    ],
-  },
-  {
-    id: 'contribute-start-who',
-    title: 'Start, step 1: how Contribute works, and who does the work',
-    area: 'contribute',
-    route: '/contribute/start',
-    exported: false,
-    sources: ['components/contribute/start/who-does-the-work.tsx', 'lib/contribute/start-ways.ts'],
-    states: [
-      {
-        id: 'signed-in',
-        title: 'Signed in, nothing connected',
-        path: '/contribute/start',
-        height: 1100,
-        render: () => <Page narrow>{ways({})}</Page>,
-      },
-      {
-        id: 'visitor',
-        title: 'A visitor, opened from an issue',
-        path: '/contribute/start?issue=q7k2m9xa',
-        signedOut: true,
-        height: 1150,
-        render: () => <Page narrow>{ways({ signedIn: false, issue: 'q7k2m9xa', issueReads: true })}</Page>,
-      },
-      {
-        id: 'no-sign',
-        title: 'Connected, no Contribute sign: the step is done',
-        path: '/contribute/start',
-        height: 2600,
-        render: () => (
-          <Page narrow>
-            <Case title="An agent of their own">{ways({ own: 'Claude Code' })}</Case>
-            <Case title="A Claude key">{ways({ key: 'connected' })}</Case>
-            <Case title="Both">{ways({ own: 'Claude Code', key: 'connected' })}</Case>
-          </Page>
-        ),
-      },
-      {
-        id: 'with-sign',
-        title: 'Connected, with the Contribute sign: back to add the other way',
-        path: '/contribute/start',
-        height: 2600,
-        render: () => (
-          <Page narrow>
-            <Case title="An agent of their own">{ways({ sign: true, own: 'Claude Code' })}</Case>
-            <Case title="A Claude key, with an attempt">{ways({ sign: true, key: 'connected', attempt: true })}</Case>
-            <Case title="Both">{ways({ sign: true, own: 'Claude Code', key: 'connected' })}</Case>
-          </Page>
-        ),
-      },
-      {
-        id: 'key-invalid',
-        title: 'The Claude key stopped working, nothing else connected',
-        path: '/contribute/start',
-        height: 1100,
-        render: () => <Page narrow>{ways({ key: 'invalid' })}</Page>,
-      },
-      {
-        id: 'phone',
-        title: 'On a phone',
-        path: '/contribute/start',
-        width: 390,
-        height: 1700,
-        render: () => <Page narrow>{ways({})}</Page>,
       },
     ],
   },

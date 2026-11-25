@@ -8,11 +8,17 @@ import {
   NeedsYouKindsDocument,
   PullRequestApprovalDocument,
   PullRequestListDocument,
+  PullRequestListMergedDocument,
   PullRequestPageDocument,
   type PullRequestRefInput,
 } from './pull-request.documents';
-import type { PullRequestApproval, PullRequestList, PullRequestPage } from './pull-request-page.types';
-import { pullRequestApprovalOf, pullRequestListOf, pullRequestPageOf } from './pull-request-read';
+import type {
+  PullRequestApproval,
+  PullRequestList,
+  PullRequestListWithMerged,
+  PullRequestPage,
+} from './pull-request-page.types';
+import { pullRequestApprovalOf, pullRequestListOf, pullRequestPageOf, pullRequestsMergedOf } from './pull-request-read';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /*
@@ -76,6 +82,25 @@ export async function loadPullRequestList(after: string | null = null): Promise<
   } catch {
     return undefined;
   }
+}
+
+/**
+ * The first page of the person's list with their newest merged pull request, for Contribute home, in one read. Only
+ * when that read fails (an API without `merged`), the plain list, with `merged` null: the list's boxes still show and
+ * the "Merged" box says it could not read. `undefined` when neither answers.
+ */
+export async function loadPullRequestListWithMerged(): Promise<PullRequestListWithMerged | undefined> {
+  const options = await as();
+  if (!options) return undefined;
+  try {
+    const { pullRequestList } = await graphqlDirect(PullRequestListMergedDocument, undefined, options);
+    const list = pullRequestListOf(pullRequestList);
+    if (list) return { ...list, merged: pullRequestsMergedOf((pullRequestList as { merged?: unknown }).merged) };
+  } catch {
+    // An API without `merged`: the plain list below.
+  }
+  const list = await loadPullRequestList();
+  return list && { ...list, merged: null };
 }
 
 /**

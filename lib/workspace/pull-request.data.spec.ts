@@ -49,6 +49,46 @@ describe("the pull request's reads", () => {
     await expect(data.loadPullRequestPage(REF)).resolves.toBeUndefined();
   });
 
+  it("reads home's list with its newest merged one in one read, else the plain list with none", async () => {
+    const row = {
+      attemptId: 'A_1',
+      repo: 'acme/widgets',
+      issueNumber: 42,
+      title: 'T',
+      group: 'ENDED',
+      box: 'MERGED',
+      since: '2026-10-28T09:00:00.000Z',
+    };
+    graphqlDirect.mockResolvedValueOnce({
+      pullRequestList: { rows: [row], open: 0, limit: 3, merged: { newest: row, newestPublicPage: true } },
+    });
+    const read = await data.loadPullRequestListWithMerged();
+    expect(read?.rows).toHaveLength(1);
+    expect(read?.merged).toMatchObject({ newest: { attemptId: 'A_1' }, newestPublicPage: true });
+    expect(graphqlDirect.mock.calls[0][0]).toBe(documents.PullRequestListMergedDocument);
+    expect(graphqlDirect.mock.calls[0][2].signal).toBeInstanceOf(AbortSignal);
+
+    // An API that answers no `merged`: the list, and the box says it could not read.
+    graphqlDirect.mockResolvedValueOnce({ pullRequestList: { rows: [row], open: 0, limit: 3 } });
+    expect((await data.loadPullRequestListWithMerged())?.merged).toBeNull();
+
+    // An API without the field: the plain list after.
+    graphqlDirect.mockReset();
+    graphqlDirect.mockRejectedValueOnce(unknownField());
+    graphqlDirect.mockResolvedValueOnce({ pullRequestList: { rows: [row], open: 0, limit: 3 } });
+    const plain = await data.loadPullRequestListWithMerged();
+    expect(plain).toMatchObject({ merged: null });
+    expect(plain?.rows).toHaveLength(1);
+    expect(graphqlDirect.mock.calls[1][0]).toBe(documents.PullRequestListDocument);
+
+    // Neither: not read.
+    graphqlDirect.mockReset();
+    graphqlDirect.mockRejectedValue(unknownField());
+    await expect(data.loadPullRequestListWithMerged()).resolves.toBeUndefined();
+    viewerLogin.mockResolvedValue(null);
+    await expect(data.loadPullRequestListWithMerged()).resolves.toBeUndefined();
+  });
+
   it('offers to hide or show the public page only when its approval carried the choice', async () => {
     const answer = (timeline: unknown) => graphqlDirect.mockResolvedValueOnce({ contributeAttempt: { timeline } });
     answer({ eligible: true, shown: true, hideable: true });

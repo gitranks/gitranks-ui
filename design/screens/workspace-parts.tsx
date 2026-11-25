@@ -2,10 +2,7 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { IssueRow, type IssueRowProps } from '@/components/workspace/issue-row';
-import { RightNow } from '@/components/workspace/right-now';
-import { RunStepsList } from '@/components/workspace/run-steps';
 import { IssueStartsProvider } from '@/components/workspace/start-control';
-import { activityOf, runOf } from '@/lib/contribute/__fixtures__/agent-runs';
 import { issue } from '@/lib/contribute/__fixtures__/contribute-overview';
 import { issueRowOfContribute } from '@/lib/workspace/issue-row';
 import { ISSUE_START_FAILED, issueStartRefusalOf } from '@/lib/workspace/start-refusals';
@@ -60,56 +57,6 @@ const refused = (refusal: Parameters<typeof issueStartRefusalOf>[0]['refusal'], 
     { attempt: null, started: false, refusal, value: null, holder: null, until: null, ...patch },
     { capUsd: 2 },
   );
-
-const working = runOf({
-  mode: 'FIX',
-  title: 'Panic when a span ends at EOF',
-  nameWithOwner: 'quill-rs/quill',
-  number: 1204,
-});
-const checking = runOf({
-  attemptId: 'att_checking',
-  mode: 'FIX',
-  phase: 'CHECKING_ISSUE',
-  nameWithOwner: 'tidewave/tide',
-  number: 930,
-  title: 'Dark mode toggle flashes on first load',
-  elapsedSeconds: 40,
-  spendUsd: 0.05,
-});
-const ownFix = runOf({
-  attemptId: 'att_own',
-  runner: 'MCP',
-  mode: 'FIX',
-  nameWithOwner: 'oxbow-dev/oxbow',
-  number: 381,
-  title: 'Retry the upload after a 503',
-  spendUsd: null,
-  budgetUsd: null,
-  lastCallAt: '2026-10-31T11:58:00.000Z',
-});
-const followUp = runOf({
-  attemptId: 'att_follow_up',
-  kind: 'FOLLOW_UP',
-  mode: 'FIX',
-  phase: 'ADDRESSING_REVIEW',
-  nameWithOwner: 'recharts/recharts',
-  number: 8136,
-  title: 'Tooltip flickers on resize',
-  prUrl: 'https://github.com/recharts/recharts/pull/8140',
-});
-const lesson = runOf({
-  attemptId: 'att_lesson',
-  runner: 'MCP',
-  mode: 'LEARN',
-  phase: 'WRITING_LESSON',
-  nameWithOwner: 'driftwood-js/driftwood',
-  number: 934,
-  title: 'Route params lose their type after a redirect',
-  spendUsd: null,
-  budgetUsd: null,
-  lastCallAt: '2026-10-31T11:55:00.000Z',
-});
 
 export const WORKSPACE_PART_SCREENS: Screen[] = [
   {
@@ -175,63 +122,6 @@ export const WORKSPACE_PART_SCREENS: Screen[] = [
         width: 390,
         height: 820,
         render: () => contributeRows(),
-      },
-    ],
-  },
-  {
-    id: 'right-now',
-    title: 'Right now',
-    area: 'workspace',
-    route: '/contribute',
-    sources: [
-      'components/workspace/right-now.tsx',
-      'components/workspace/run-steps.tsx',
-      'components/ui/hover-card.tsx',
-      'lib/workspace/right-now.ts',
-      'lib/workspace/run-steps.ts',
-    ],
-    states: [
-      {
-        id: 'contribute',
-        title: 'Contribute: the hosted agent and the own agent at work, a follow-up among them',
-        path: '/contribute',
-        height: 720,
-        render: () =>
-          frame(
-            <RightNow
-              side="fix"
-              activity={activityOf(checking, working, followUp, ownFix)}
-              notes={{
-                hosted: { note: 'on your Claude key · Sonnet 5.5', aside: '3 of 3 at a time' },
-                own: { note: 'Claude Code' },
-              }}
-            />,
-          ),
-      },
-      {
-        id: 'steps-card',
-        title: "The hover card on the bars: this run's steps, done, now and left",
-        path: '/contribute',
-        height: 320,
-        render: () =>
-          frame(
-            <div className="flex flex-wrap gap-4">
-              {[working, lesson, followUp].map((run) => (
-                <div key={run.attemptId} className="w-60 rounded-md border bg-popover p-3.5 shadow-md">
-                  <p className="mb-2 text-xs font-semibold text-muted-foreground">This run&apos;s steps</p>
-                  <RunStepsList run={run} />
-                </div>
-              ))}
-            </div>,
-          ),
-      },
-      {
-        id: 'phone',
-        title: 'Contribute, on a phone',
-        path: '/contribute',
-        width: 390,
-        height: 900,
-        render: () => frame(<RightNow side="fix" activity={activityOf(checking, working, ownFix)} />),
       },
     ],
   },

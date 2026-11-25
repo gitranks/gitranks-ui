@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { useLiveActivity } from '@/components/workspace/agent/agent-runs';
 import { Action, type ActionMarkers, Eyebrow, HomeBox, Text, Title } from '@/components/workspace/home-box';
 import { useEnterKey } from '@/components/workspace/masked-issue/use-enter-key';
-import type { HomeBoxes, HomeBoxWords } from '@/lib/contribute/home-boxes';
+import { type HomeBoxes, type HomeBoxesRead, type HomeBoxWords, homeBoxesOf } from '@/lib/contribute/home-boxes';
+import type { ContributeActivity } from '@/lib/workspace/contribute.types';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** Contribute home's keys find the lit box's button by this mark. */
@@ -62,4 +64,15 @@ export function HomeBoxesView({ home, hints: hintsGiven }: { home: HomeBoxes; hi
       ))}
     </div>
   );
+}
+
+/**
+ * Contribute home's boxes as the page reads them, with the agent's runs live: the activity the page read, then each
+ * newer one the poll brings, so box 2 follows a run as it starts and ends. A failed read of the runs stays failed until
+ * the poll answers.
+ */
+export function ContributeHomeBoxes({ read, activity }: { read: HomeBoxesRead; activity: ContributeActivity | null }) {
+  const live = useLiveActivity(activity);
+  const runs = live ? live.runs : read.agent.runs;
+  return <HomeBoxesView home={homeBoxesOf({ ...read, agent: { ...read.agent, runs } })} />;
 }

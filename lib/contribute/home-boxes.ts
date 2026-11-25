@@ -1,7 +1,8 @@
 import { dayMonthOf } from '@/lib/contribute/landing-proof';
 import type { ContributeAgentRun } from '@/lib/workspace/contribute.types';
 import { usd } from '@/lib/workspace/format';
-import { pullRequestByAttemptPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { type KeyNotice, keyNoticeWordsOf } from '@/lib/workspace/notice-words';
+import { KEY_REPLACE_PATH, pullRequestByAttemptPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { needsYouRowWordsOf } from '@/lib/workspace/pull-request-list';
 import type { PullRequestListRow } from '@/lib/workspace/pull-request-page.types';
 import { isWorkingPhase, stepsOf } from '@/lib/workspace/run-steps';
@@ -38,9 +39,6 @@ export type HomeNeedsYouRow = Pick<
   'box' | 'round' | 'since' | 'repo' | 'issueNumber' | 'title' | 'path' | 'walkthroughBlocked'
 >;
 
-/** One of the key's notices box 2 says, with the Agent tab's words for it and the notice's own link. */
-export type HomeKeyNotice = { kind: 'key-invalid' | 'exhausted' | 'limit-reached'; text: string; href: string };
-
 /** What box 2 reads. */
 export type HomeAgentRead = {
   /** The runs, live; null when the activity could not be read. */
@@ -63,8 +61,8 @@ export type HomeAgentRead = {
   own: string | null;
   /** A Claude key is saved and works. */
   key: boolean;
-  /** The first of the key's notices, when there is one. */
-  notice: HomeKeyNotice | null;
+  /** The first of the key's notices, when there is one: box 2 says it in the Agent tab's words. */
+  notice: KeyNotice | null;
   /** A cap set in GitRanks has less left than one fix may spend: which period's, and what a fix may spend. */
   capHold: { period: 'day' | 'week' | 'cycle'; attemptCapUsd: number } | null;
   /** The even pace holds the hosted agent until a time, as the site words it; `picksOwn`: it picks its own issues. */
@@ -94,8 +92,8 @@ export type HomeBoxesRead = {
   needsYou: readonly HomeNeedsYouRow[] | null;
   agent: HomeAgentRead;
   merged: HomeMergedRead | null;
-  /** The person's Skills page. */
-  skillsHref: string;
+  /** The person's Skills page; null when the login is not known, and box 3 then draws no button. */
+  skillsHref: string | null;
 };
 
 export type HomeBoxes = {
@@ -127,9 +125,13 @@ const projectOf = (repo: string, number: number) => `${repo} · #${number}`;
 const countOf = (count: number, one: string, many: string) =>
   `${count.toLocaleString('en-US')} ${count === 1 ? one : many}`;
 
-/** Box 1: the pull request that has waited longest for the person. */
-export function needsYouBoxOf(rows: readonly HomeNeedsYouRow[] | null): HomeBoxWords {
-  if (!rows) return notRead('Pull requests');
+/** The rows box 1 can say: those whose case has words. A case without them is left to the list. */
+const sayable = (rows: readonly HomeNeedsYouRow[]) => rows.filter((row) => needsYouRowWordsOf(row));
+
+/** Box 1: the pull request that has waited longest for the person, of those it can say. */
+export function needsYouBoxOf(read: readonly HomeNeedsYouRow[] | null): HomeBoxWords {
+  if (!read) return notRead('Pull requests');
+  const rows = sayable(read);
   const oldest = [...rows].sort((a, b) => a.since.localeCompare(b.since))[0];
   const words = oldest ? needsYouRowWordsOf(oldest) : null;
   if (!oldest || !words) {
@@ -171,16 +173,11 @@ export function connectedLineOf({ own, key }: Pick<HomeAgentRead, 'own' | 'key'>
 /** Whether nothing is connected: neither an own agent that was used nor a key that works. */
 export const nothingConnected = (agent: Pick<HomeAgentRead, 'own' | 'key'>) => !agent.own && !agent.key;
 
-const NOTICE_TITLES: Record<HomeKeyNotice['kind'], string> = {
-  'key-invalid': 'Your Claude key stopped working',
-  exhausted: 'Your credits are used up for this cycle',
-  'limit-reached': "Your workspace's spend limit is reached",
-};
-
 /** A notice's box: the key stopped working (its own link), or its credits or its workspace's limit (the Agent tab). */
-function noticeBoxOf(notice: HomeKeyNotice): HomeBoxWords {
-  const button = notice.kind === 'key-invalid' ? { label: 'Connect a new key', href: notice.href } : AGENT_TAB;
-  return box({ top: 'Your agent', title: NOTICE_TITLES[notice.kind], lines: [notice.text], button });
+function noticeBoxOf(notice: KeyNotice): HomeBoxWords {
+  const { title, text } = keyNoticeWordsOf(notice);
+  const button = notice.kind === 'key-invalid' ? { label: 'Connect a new key', href: KEY_REPLACE_PATH } : AGENT_TAB;
+  return box({ top: 'Your agent', title, lines: [text], button });
 }
 
 /** The cases that say something is wrong or missing, which every day's words give way to; null for none. */
@@ -274,7 +271,7 @@ export function agentBoxOf(agent: HomeAgentRead): HomeBoxWords {
 }
 
 /** Box 3: what was merged. A count shows only from two; none is said in words. */
-export function mergedBoxOf(read: HomeMergedRead | null, skillsHref: string): HomeBoxWords {
+export function mergedBoxOf(read: HomeMergedRead | null, skillsHref: string | null): HomeBoxWords {
   if (!read || (read.merged > 0 && !read.newest)) return notRead('Merged');
   const { merged, reposHelped, newest, waiting } = read;
   if (merged >= 2 && newest) {
@@ -285,7 +282,7 @@ export function mergedBoxOf(read: HomeMergedRead | null, skillsHref: string): Ho
         reposHelped > 1 ? `In ${reposHelped.toLocaleString('en-US')} projects.` : null,
         `Newest: ${newest.title}, ${dayMonthOf(newest.mergedAt)}.`,
       ].filter((line): line is string => !!line),
-      button: { label: 'See your Skills page', href: skillsHref },
+      button: skillsHref ? { label: 'See your Skills page', href: skillsHref } : null,
     });
   }
   if (merged === 1 && newest) {
@@ -342,7 +339,8 @@ export const FIRST_DAY_BOXES: [HomeBoxWords, HomeBoxWords, HomeBoxWords] = [
  * give way to anything wrong or missing.
  */
 export function homeBoxesOf(read: HomeBoxesRead): HomeBoxes {
-  const needsYou = !!read.needsYou?.length;
+  // Lit only for a row box 1 can say, so it is never lit while it says nothing needs the person.
+  const needsYou = !!read.needsYou && sayable(read.needsYou).length > 0;
   const empty = nothingConnected(read.agent);
   if (read.firstDay && !needsYou) {
     const agent = wrongBoxOf(read.agent) ?? FIRST_DAY_BOXES[1];

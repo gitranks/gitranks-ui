@@ -16,9 +16,9 @@ import { type HomeBoxesRead, homeBoxesOf } from '@/lib/contribute/home-boxes';
 import { type StartWaysRead, startWaysOf } from '@/lib/contribute/start-ways';
 
 /**
- * Contribute's parts for wave 4, from fixtures, in every case, before the pages use them: home's three boxes; step 1
- * of the flow. Held back from the export (`exported: false`) until the pages switch to them. The landing's parts are
- * drawn by its own boards (`contribute.tsx`).
+ * Contribute's parts for wave 4, from fixtures, in every case: home's three boxes, drawn by Contribute home and exported
+ * with it; the start flow's first page, held back from the export (`exported: false`) until its page switches to it.
+ * The landing's parts are drawn by its own boards (`contribute.tsx`).
  */
 
 /** A labelled part of a board that shows several cases one under the other. */
@@ -42,13 +42,13 @@ const boxes = (read: HomeBoxesRead) => <HomeBoxesView home={homeBoxesOf(read)} h
 
 const ways = (read: Partial<StartWaysRead>) => <WhoDoesTheWork ways={startWaysOf(startRead(read))} />;
 
-export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
+/** Contribute home's three boxes in every case: drawn by the page, so exported with it. */
+export const CONTRIBUTE_HOME_BOX_SCREENS: Screen[] = [
   {
     id: 'contribute-home-boxes',
     title: 'Contribute home: the three boxes',
     area: 'contribute',
     route: '/contribute',
-    exported: false,
     sources: [
       'app/(workspace)/contribute/components/home-boxes.tsx',
       'components/workspace/home-box.tsx',
@@ -132,11 +132,7 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
                 homeRead({
                   agent: agentRead({
                     own: null,
-                    notice: {
-                      kind: 'key-invalid',
-                      text: 'Anthropic turned the key down. Connect a new one to start again.',
-                      href: '/my/agent/key?replace=1',
-                    },
+                    notice: { kind: 'key-invalid' },
                   }),
                 }),
               )}
@@ -146,11 +142,7 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
                 homeRead({
                   agent: agentRead({
                     own: null,
-                    notice: {
-                      kind: 'exhausted',
-                      text: 'The hosted agent starts again when your next billing cycle begins.',
-                      href: '/my/agent/key',
-                    },
+                    notice: { kind: 'exhausted', until: '2026-12-01T00:00:00.000Z' },
                   }),
                 }),
               )}
@@ -160,11 +152,7 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
                 homeRead({
                   agent: agentRead({
                     own: null,
-                    notice: {
-                      kind: 'limit-reached',
-                      text: 'Your Anthropic workspace stopped spending. Raise its limit to start again.',
-                      href: '/my/agent/key',
-                    },
+                    notice: { kind: 'limit-reached', until: '2026-12-01T00:00:00.000Z' },
                   }),
                 }),
               )}
@@ -242,6 +230,9 @@ export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
       },
     ],
   },
+];
+
+export const CONTRIBUTE_WAVE_4_PART_SCREENS: Screen[] = [
   {
     id: 'contribute-start-who',
     title: 'Start, step 1: how Contribute works, and who does the work',

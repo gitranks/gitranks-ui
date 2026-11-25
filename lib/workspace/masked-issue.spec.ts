@@ -18,7 +18,8 @@ import {
   limitEndOf,
   limitNoteOf,
   looksLineOf,
-  looksLongLineOf,
+  looksShortLineOf,
+  looksTipOf,
   minutesLeftOf,
   numbersLineOf,
   projectTierNameOf,
@@ -207,19 +208,39 @@ describe('the full issues of a day', () => {
     expect(looksLineOf(looksToday({ limit: 5, left: 0 }))).not.toMatch(/\b0 left/);
   });
 
-  it('says what the day is made of, above a list', () => {
-    expect(looksLongLineOf(looksToday())).toBe(
-      'You can see 20 full issues a day: your GitRanks tier (Skilled) gives 20, and every pull request merged through GitRanks adds 5, up to 100. 17 left today.',
+  it("says above Contribute's list how many full issues are left, and none at none left", () => {
+    expect(looksShortLineOf(looksToday())).toBe('17 of 20 full issues left today.');
+    expect(looksShortLineOf(looksToday({ limit: 30, left: 12, merged: 2 }))).toBe('12 of 30 full issues left today.');
+    expect(looksShortLineOf(looksToday({ limit: 5, left: 3, warned: true }))).toBe('3 of 5 full issues left today.');
+    // A count of one.
+    expect(looksShortLineOf(looksToday({ limit: 30, left: 1 }))).toBe('1 of 30 full issues left today.');
+    expect(looksShortLineOf(looksToday({ limit: 1, base: 1, left: 1 }))).toBe('1 of 1 full issue left today.');
+    // None left: no line, so no zero; the rows' notes and the foot say it.
+    expect(looksShortLineOf(looksToday({ limit: 30, left: 0 }))).toBeNull();
+    expect(looksShortLineOf(looksToday({ limit: 30, left: -1 }))).toBeNull();
+  });
+
+  it("says in the short line's tip how the day's limit is worked out, without what is left", () => {
+    // A tier, nothing merged.
+    expect(looksTipOf(looksToday())).toBe(
+      'You can see 20 full issues a day: your GitRanks tier (Skilled) gives 20, and every pull request merged through GitRanks adds 5, up to 100.',
     );
-    expect(looksLongLineOf(looksToday({ limit: 30, merged: 2 }))).toBe(
-      'You can see 30 full issues a day: your GitRanks tier (Skilled) gives 20, and your 2 merged pull requests add 10. Every pull request merged through GitRanks adds 5, up to 100. 17 left today.',
+    // Merged pull requests, plural and singular.
+    expect(looksTipOf(looksToday({ limit: 30, merged: 2 }))).toBe(
+      'You can see 30 full issues a day: your GitRanks tier (Skilled) gives 20, and your 2 merged pull requests add 10. Every pull request merged through GitRanks adds 5, up to 100.',
     );
-    expect(looksLongLineOf(looksToday({ tier: null, limit: 10, base: 10, left: 4 }))).toBe(
-      'You can see 10 full issues a day: an account without a GitRanks tier gets 10, and every pull request merged through GitRanks adds 5, up to 100. 4 left today.',
+    expect(looksTipOf(looksToday({ limit: 25, merged: 1 }))).toBe(
+      'You can see 25 full issues a day: your GitRanks tier (Skilled) gives 20, and your 1 merged pull request adds 5. Every pull request merged through GitRanks adds 5, up to 100.',
     );
-    expect(looksLongLineOf(looksToday({ limit: 5, left: 2, warned: true }))).toBe(
-      'After a fair-use warning you can see 5 full issues a day. 2 left today.',
+    // No tier.
+    expect(looksTipOf(looksToday({ tier: null, limit: 10, base: 10, left: 4 }))).toBe(
+      'You can see 10 full issues a day: an account without a GitRanks tier gets 10, and every pull request merged through GitRanks adds 5, up to 100.',
     );
+    // After a fair-use warning.
+    expect(looksTipOf(looksToday({ limit: 5, left: 2, warned: true }))).toBe(
+      'After a fair-use warning you can see 5 full issues a day.',
+    );
+    expect(looksTipOf(looksToday({ limit: 30, left: 0 }))).not.toMatch(/left today/);
   });
 
   it('says at the limit when more come, on the row and on the page', () => {
@@ -306,7 +327,8 @@ describe('the words people read', () => {
     WHY_HIDDEN_CLOSING,
     BAN_TEXT,
     numbersLineOf({ read: 2_707_100, kept: 3_138 }),
-    looksLongLineOf(looksToday()),
+    looksShortLineOf(looksToday()) ?? '',
+    looksTipOf(looksToday()),
     limitEndOf(looksAtLimit).text,
     beforePressLineOf({ until: HELD_UNTIL }, MASKED_NOW),
   ];

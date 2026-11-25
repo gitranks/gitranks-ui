@@ -8,11 +8,17 @@ import {
   NeedsYouKindsDocument,
   PullRequestApprovalDocument,
   PullRequestListDocument,
+  PullRequestListMergedDocument,
   PullRequestPageDocument,
   type PullRequestRefInput,
 } from './pull-request.documents';
-import type { PullRequestApproval, PullRequestList, PullRequestPage } from './pull-request-page.types';
-import { pullRequestApprovalOf, pullRequestListOf, pullRequestPageOf } from './pull-request-read';
+import type {
+  PullRequestApproval,
+  PullRequestList,
+  PullRequestListWithMerged,
+  PullRequestPage,
+} from './pull-request-page.types';
+import { pullRequestApprovalOf, pullRequestListOf, pullRequestPageOf, pullRequestsMergedOf } from './pull-request-read';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /*
@@ -73,6 +79,24 @@ export async function loadPullRequestList(after: string | null = null): Promise<
   try {
     const { pullRequestList } = await graphqlDirect(PullRequestListDocument, { after }, options);
     return pullRequestListOf(pullRequestList) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The first page of the person's list with their newest merged pull request, for Contribute home, in one read.
+ * `undefined` when it fails, so the boxes that read it say they could not.
+ */
+export async function loadPullRequestListWithMerged(): Promise<PullRequestListWithMerged | undefined> {
+  const options = await as();
+  if (!options) return undefined;
+  try {
+    const { pullRequestList } = await graphqlDirect(PullRequestListMergedDocument, undefined, options);
+    const list = pullRequestListOf(pullRequestList);
+    return list
+      ? { ...list, merged: pullRequestsMergedOf((pullRequestList as { merged?: unknown }).merged) }
+      : undefined;
   } catch {
     return undefined;
   }

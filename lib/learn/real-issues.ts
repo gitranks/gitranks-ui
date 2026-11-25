@@ -236,15 +236,15 @@ export const myFixPathOf = (fix: { repo: string; issueNumber: number }): Route =
   fromLearn(pullRequestPath({ repo: fix.repo, issue: fix.issueNumber }));
 
 /** Every merged fix made with Learn: Issues with "Fixed" set. */
-export const ALL_FIXES_PATH: Route = issuesHrefOf({ ...ISSUES_VIEW, fixed: true });
+export const ALL_FIXES_PATH: Route = issuesHrefOf({ ...ISSUES_VIEW, show: 'fixed' });
 
 /** A course's merged fixes: its view of Issues with "Fixed" set. */
 export const courseFixesPathOf = (course: string): Route =>
-  issuesHrefOf({ ...ISSUES_VIEW, course, fixed: true }, 'course');
+  issuesHrefOf({ ...ISSUES_VIEW, course, show: 'fixed' }, 'course');
 
 /** A lesson's merged fixes: its view of Issues with "Fixed" set. */
 export const lessonFixesPathOf = (lesson: string): Route =>
-  issuesHrefOf({ ...ISSUES_VIEW, lesson, fixed: true }, 'lesson');
+  issuesHrefOf({ ...ISSUES_VIEW, lesson, show: 'fixed' }, 'lesson');
 
 /** A lesson's open issues: its view of Issues. */
 export const lessonIssuesPathOf = (lesson: string): Route => learnLessonRealWorldPath(lesson);

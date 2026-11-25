@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const { notEnteredTargetOf, tabsOf, workspaceGateOf } = await import('./gate');
+const { hasContributeSign, notEnteredTargetOf, tabsOf, workspaceGateOf } = await import('./gate');
 const { contributor, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { isLearnPath } = await import('@/lib/learn/learn-path');
 
@@ -77,6 +77,14 @@ describe("the workspace gate, over today's answers", () => {
     expect(workspaceGateOf({ ...read, view: withSigns(undefined, undefined) })).toMatchObject({
       signs: { contribute: null, learn: null },
     });
+  });
+
+  it("reads the Contribute sign, and today's rule only while the sign is not known", () => {
+    const gate = { kind: 'open' as const, entered: true, agents: { hosted: false, own: false } };
+    expect(hasContributeSign({ ...gate, signs: { contribute: false, learn: null } })).toBe(false);
+    expect(hasContributeSign({ ...gate, entered: false, signs: { contribute: true, learn: null } })).toBe(true);
+    expect(hasContributeSign({ ...gate, signs: { contribute: null, learn: null } })).toBe(true);
+    expect(hasContributeSign({ ...gate, entered: false, signs: { contribute: null, learn: null } })).toBe(false);
   });
 
   it('shows every tab once entered', () => {

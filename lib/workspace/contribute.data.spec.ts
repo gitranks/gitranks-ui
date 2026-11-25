@@ -44,6 +44,7 @@ const {
   ContributeOverviewDocument,
   ContributeProviderInterestsDocument,
   ContributeEmailSettingsDocument,
+  ContributeSignsDocument,
 } = await import('./contribute.documents');
 
 /** Answers the overview with `overview`, the grant and the pause with nothing. */
@@ -105,6 +106,39 @@ describe('loadContribute', () => {
     const view = await loadContribute();
     expect(view?.contributor).not.toHaveProperty('onboardedAt');
     expect(view?.contributor).not.toHaveProperty('onboardedVia');
+  });
+
+  it('adds the two signs from their own read, and leaves them out (not known) when that read fails', async () => {
+    const contributor = { status: 'ACTIVE', login: 'octocat', autopilot: null };
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
+      if (document === ContributeOnboardingDocument) {
+        return { contribute: { contributor: { onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'MCP' } } };
+      }
+      if (document === ContributeSignsDocument) {
+        return {
+          contribute: { contributor: { contributeOnboardedAt: '2026-11-25T09:00:00.000Z', learnOnboardedAt: null } },
+        };
+      }
+      throw new Error('[{"message":"Cannot query field"}]');
+    });
+    expect((await loadContribute())?.contributor).toMatchObject({
+      onboardedAt: '2026-10-30T09:00:00.000Z',
+      contributeOnboardedAt: '2026-11-25T09:00:00.000Z',
+      learnOnboardedAt: null,
+    });
+
+    graphqlDirect.mockImplementation(async (document) => {
+      if (document === ContributeOverviewDocument) return { contribute: { previewAllowed: true, contributor } };
+      if (document === ContributeOnboardingDocument) {
+        return { contribute: { contributor: { onboardedAt: '2026-10-30T09:00:00.000Z', onboardedVia: 'MCP' } } };
+      }
+      throw new Error('GraphQL error! 502: Bad Gateway');
+    });
+    const view = await loadContribute();
+    expect(view?.contributor).toMatchObject({ onboardedAt: '2026-10-30T09:00:00.000Z' });
+    expect(view?.contributor).not.toHaveProperty('contributeOnboardedAt');
+    expect(view?.contributor).not.toHaveProperty('learnOnboardedAt');
   });
 
   it('adds the limits when the API answers them, and leaves them out when it does not', async () => {

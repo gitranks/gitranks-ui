@@ -13,6 +13,7 @@ import {
   IssuesFilters,
   IssuesFoot,
 } from '@/components/learn/issues/issues-parts';
+import { type FixesLayer, RealProjectsScreen } from '@/components/learn/issues/real-projects-screen';
 import { Button } from '@/components/ui/button';
 import { MaskedList, MaskedListRow } from '@/components/workspace/masked-issue/masked-list';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
@@ -26,6 +27,7 @@ import {
   type IssuesNames,
   type IssuesRow,
   type IssuesView,
+  isOwnView,
   issuesBackOf,
   issuesChipsOf,
   issuesEmailStateOf,
@@ -76,10 +78,34 @@ export type IssuesScreenProps = {
   view: IssuesView;
   at?: IssuesAt;
   names?: IssuesNames;
+  /**
+   * What the list shows. On a lesson's or a course's own address it is the "Open" group, or the "Fixed" group when the
+   * view shows the fixes alone.
+   */
   layer: IssuesLayer;
+  /** On a lesson's or a course's own address showing both groups: the merged fixes of the "Fixed" group. */
+  fixes?: FixesLayer | null;
+  /** How many open issues the shared list holds, for the "Open" group's end; null when it could not be read. */
+  shared?: number | null;
+  /** The pull requests whose walkthrough the reader passed, for the fixes' "Passed"; null when not known. */
+  passed?: ReadonlySet<string> | null;
 } & IssuesHandlers;
 
 const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
+
+/**
+ * A lesson's or a course's own view draws its two groups from the layers: with `fixed=1` the page's one layer is the
+ * fixes; with `open=1` it is the open issues; with both, the open issues and the fixes read beside them.
+ */
+function realProjectsLayersOf(
+  view: IssuesView,
+  layer: IssuesLayer,
+  fixes: FixesLayer | null,
+): { open: Exclude<IssuesLayer, { kind: 'fixed' }> | null; fixes: FixesLayer | null } {
+  if (view.show === 'fixed')
+    return { open: null, fixes: layer.kind === 'visitor' || layer.kind === 'personal' ? null : layer };
+  return { open: layer.kind === 'fixed' ? null : layer, fixes: view.show === 'both' ? fixes : null };
+}
 
 /**
  * Issues (page 8) from plain data: one list with no visible title. Above it the way back to the lesson or the course
@@ -88,11 +114,35 @@ const MAIN = 'mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pt-7 pb-16';
  * with the one press that would show something; "Fixed" shows the merged fixes instead. While a new view is read, the
  * switches show its state with no count: the counts on the screen are still the last view's.
  */
-export function IssuesScreen({ view, at = 'issues', names = {}, layer, ...handlers }: IssuesScreenProps) {
+export function IssuesScreen({
+  view,
+  at = 'issues',
+  names = {},
+  layer,
+  fixes = null,
+  shared = null,
+  passed = null,
+  ...handlers
+}: IssuesScreenProps) {
+  if (at !== 'issues' && isOwnView(view, at)) {
+    return (
+      <RealProjectsScreen
+        view={view}
+        at={at}
+        names={names}
+        {...realProjectsLayersOf(view, layer, fixes)}
+        shared={shared}
+        passed={passed}
+        handlers={handlers}
+      />
+    );
+  }
   const chips = issuesChipsOf(view, names, at);
   const back = issuesBackOf(view, names);
   const switches =
-    layer.kind === 'personal' && !view.fixed ? issuesSwitchesOf(view, layer.pending ? null : layer.list, at) : [];
+    layer.kind === 'personal' && view.show !== 'fixed'
+      ? issuesSwitchesOf(view, layer.pending ? null : layer.list, at)
+      : [];
   const clearHref = chips.length ? issuesHrefOf(unchippedOf(view), 'issues') : null;
   return (
     <main className={MAIN} data-issues={layer.kind} aria-busy={('pending' in layer && layer.pending) || undefined}>

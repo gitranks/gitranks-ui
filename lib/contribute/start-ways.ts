@@ -1,4 +1,10 @@
+import type { ContributeView } from '@/lib/workspace/contribute.types';
+import { claudeKeyOf, connectedKeyOf } from '@/lib/workspace/contribute-state';
+import { withFlowWayBack } from '@/lib/workspace/flow-way-back';
+import { hasContributeSign, type WorkspaceGate } from '@/lib/workspace/gate';
+import { MCP_CLIENT_NAMES } from '@/lib/workspace/mcp-setup';
 import { GETTING_IN_PATHS, KEY_REPLACE_PATH, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { learnStartConnectionOf } from '@/lib/workspace/start/start-page';
 
 /*
  * Step 1 of Contribute's flow (page 38): how Contribute works, then who does the work. The page is the same in every
@@ -103,9 +109,35 @@ export type StartWays = {
 const KEY_DONE_LINE = 'Your Claude key is connected.';
 
 /** `href` with the way back on it, when there is one. */
-export function withWayBack(href: string, issue: string | null): string {
-  if (!issue) return href;
-  return `${href}${href.includes('?') ? '&' : '?'}issue=${encodeURIComponent(issue)}`;
+export const withWayBack = (href: string, issue: string | null): string => withFlowWayBack(href, issue);
+
+/**
+ * What the first step reads, from the flow's gate and the person's Contribute view: the sign (today's rule while it is
+ * not known), the own agent's name when it is connected ('' when its name is not known), and the key's state.
+ */
+export function startWaysReadOf({
+  gate,
+  view,
+  attempt,
+  issue,
+  issueReads,
+}: {
+  gate: WorkspaceGate;
+  view: ContributeView | null | undefined;
+  attempt: boolean;
+  issue: string | null;
+  issueReads: boolean;
+}): StartWaysRead {
+  const connection = learnStartConnectionOf(view?.ownAgent?.tokens);
+  return {
+    signedIn: gate.kind !== 'signed-out',
+    sign: gate.kind === 'open' && hasContributeSign(gate),
+    own: connection ? (connection.client ? MCP_CLIENT_NAMES[connection.client] : '') : null,
+    key: connectedKeyOf(view) ? 'connected' : claudeKeyOf(view) ? 'invalid' : 'none',
+    attempt,
+    issue,
+    issueReads,
+  };
 }
 
 /** "Claude Code is connected." for a box without the sign, or "Your agent is connected." when its name is not known. */

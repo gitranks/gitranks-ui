@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { FROM_ISSUE_LINE, type StartWaysRead, startWaysOf, VISITOR_LINE, withWayBack } from './start-ways';
+import {
+  FROM_ISSUE_LINE,
+  type StartWaysRead,
+  startWaysOf,
+  startWaysReadOf,
+  VISITOR_LINE,
+  withWayBack,
+} from './start-ways';
 
 const BASE: StartWaysRead = {
   signedIn: true,
@@ -206,8 +213,50 @@ describe('withWayBack', () => {
   it.each([
     ['/contribute/start/issue', null, '/contribute/start/issue'],
     ['/contribute/start/issue', 'm_1', '/contribute/start/issue?issue=m_1'],
-    ['/my/agent/key?replace=1', 'm 1', '/my/agent/key?replace=1&issue=m%201'],
+    ['/my/agent/key?replace=1', 'm_1', '/my/agent/key?replace=1&issue=m_1'],
+    ['/contribute/start?issue=old', 'm_1', '/contribute/start?issue=m_1'],
+    // Not a mask id: no way back is written.
+    ['/my/agent/key?replace=1', 'm 1', '/my/agent/key?replace=1'],
+    ['/contribute/start', '../x', '/contribute/start'],
   ])('%s with %s', (href, issue, expected) => {
     expect(withWayBack(href, issue)).toBe(expected);
+  });
+});
+
+describe('startWaysReadOf: the first step’s facts from the gate and the view', () => {
+  const open = (contribute: boolean | null, entered = false) =>
+    ({ kind: 'open', entered, signs: { contribute, learn: null }, agents: { hosted: false, own: false } }) as const;
+  const token = (patch: object) => ({ id: 't', name: 'Claude Code', lastUsedAt: null, kind: 'TOKEN', ...patch });
+  const view = (tokens: object[], state: string | null) =>
+    ({
+      contributor: { credentials: state ? [{ provider: 'ANTHROPIC', state }] : [] },
+      ownAgent: { paths: { hosted: false, mcp: tokens.length > 0 }, tokens },
+    }) as never;
+  const read = (gate: Parameters<typeof startWaysReadOf>[0]['gate'], v: never) =>
+    startWaysReadOf({ gate, view: v, attempt: false, issue: null, issueReads: false });
+
+  it('a visitor: not signed in, no sign, nothing connected', () => {
+    expect(read({ kind: 'signed-out' }, null as never)).toMatchObject({
+      signedIn: false,
+      sign: false,
+      own: null,
+      key: 'none',
+    });
+  });
+
+  it('names a used own agent, leaves an unused token out, and reads the key’s state', () => {
+    expect(read(open(false), view([token({ lastUsedAt: '2026-11-25T09:00:00.000Z' })], null))).toMatchObject({
+      own: 'Claude Code',
+      key: 'none',
+    });
+    expect(read(open(false), view([token({})], 'VALID'))).toMatchObject({ own: null, key: 'connected' });
+    expect(read(open(false), view([], 'INVALID'))).toMatchObject({ own: null, key: 'invalid' });
+    expect(read(open(false), view([token({ kind: 'OAUTH', name: 'my laptop' })], null))).toMatchObject({ own: '' });
+  });
+
+  it('reads the Contribute sign, and today’s rule while it is not known', () => {
+    expect(read(open(true), view([], null)).sign).toBe(true);
+    expect(read(open(false, true), view([], null)).sign).toBe(false);
+    expect(read(open(null, true), view([], null)).sign).toBe(true);
   });
 });

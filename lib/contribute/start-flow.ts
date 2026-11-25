@@ -1,90 +1,96 @@
-import type { Route } from 'next';
-
-import type { ContributeLanguage, ContributePreferences } from '@/lib/workspace/contribute.types';
+import type { ContributeIssuePage, ContributeLanguage } from '@/lib/workspace/contribute.types';
 import { LANGUAGES } from '@/lib/workspace/format';
+import type { FlowConnected } from '@/lib/workspace/getting-in';
+import type { IssuePage } from '@/lib/workspace/masked-issue.types';
+
+/*
+ * The second step of Contribute's flow, "Pick your first issue", as words: the head's sentence by what is connected
+ * and what the list holds, and the one line on the languages the issues are picked for.
+ */
+
+/** What the list holds: issues, the first ones still being picked, or nothing that fits. */
+export type FirstIssueState = 'list' | 'picking' | 'none';
+
+const FIT = 'These open issues fit what you work on.';
 
 /**
- * What a visitor picked on What you work on, carried in the address from step to step and through the GitHub sign-in
- * (getting in, §6.1): `?languages=rust,js_ts`, the names in lower case. Nothing is kept anywhere else. Kinds of issue are
- * no choice: an address's `kinds` is ignored.
+ * The head's sentence: the own agent by its name (`agent`, "Your agent" when unknown), the Claude key, or both; then
+ * what the list holds.
  */
-export type WorkPicks = { languages: ContributeLanguage[] };
-
-type Query = Record<string, string | string[] | undefined> | URLSearchParams;
-
-const paramOf = (query: Query, name: string): string | undefined => {
-  if (query instanceof URLSearchParams) return query.get(name) ?? undefined;
-  const value = query[name];
-  return Array.isArray(value) ? value[0] : value;
-};
-
-/** The known names of one list, in the table's order, each once; anything else is dropped. */
-function namesOf<T extends string>(value: string | undefined, table: Record<T, string>): T[] {
-  const asked = new Set((value ?? '').split(',').map((name) => name.trim().toUpperCase()));
-  return (Object.keys(table) as T[]).filter((name) => asked.has(name));
+export function firstIssueLineOf(
+  connected: FlowConnected,
+  agent: string | null,
+  state: FirstIssueState = 'list',
+): string {
+  const both = connected.own && connected.hosted;
+  const who = both ? 'Your agents are' : connected.hosted ? 'Your Claude key is' : `${agent || 'Your agent'} is`;
+  if (state === 'picking') return `${who} connected. Your first issues are on their way.`;
+  if (state === 'none') return `${who} connected, so you are ready when an issue comes.`;
+  if (both) return `${who} connected. ${FIT} See one in full, then start it and choose who works on it.`;
+  if (connected.hosted)
+    return `${who} connected. ${FIT} See one in full, then start it, and the hosted agent begins at once.`;
+  return `${who} connected. ${FIT} See one in full, then start it.`;
 }
 
-/** The picks an address carries; an unknown name, an empty list or a missing one is none. */
-export function workPicksOf(query: Query): WorkPicks {
-  return { languages: namesOf(paramOf(query, 'languages'), LANGUAGES) };
-}
-
-/** Whether the address carries any pick. */
-export const hasPicks = (picks: WorkPicks): boolean => picks.languages.length > 0;
-
-/** The query that carries the picks (`languages=…`, an empty list left out); empty for none. */
-export function workPicksQuery(picks: WorkPicks): string {
-  const query = new URLSearchParams();
-  if (picks.languages.length) query.set('languages', picks.languages.map((name) => name.toLowerCase()).join(','));
-  // The list's commas read better left as they are; every name is letters and `_`.
-  return query.toString().replaceAll('%2C', ',');
-}
-
-/** A step's address with the picks in its query. */
-export function withWorkPicks(path: Route, picks: WorkPicks): Route {
-  const query = workPicksQuery(picks);
-  // A plain string: on `Route`, the conditional joins every typed route with each one plus a query, and TypeScript
-  // gives up as routes grow (TS2590).
-  const base: string = path;
-  return (query ? `${base}?${query}` : base) as Route;
+/** "Go", "Go and Rust", "Go, Rust and Python". */
+function namesOf(languages: readonly ContributeLanguage[]): string {
+  const names = languages.map((language) => LANGUAGES[language] ?? language);
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : (names[0] ?? '');
 }
 
 /**
- * The picks What you work on starts from (§5.4, §6.2): a visitor's are the address's. Signed in, saved preferences show
- * as saved, whatever the address says (a saved answer is never overwritten by an address); with none saved, the
- * address's picks, the languages otherwise pre-ticked from their profile (`profile`, none when unread).
+ * The line of languages: the saved ones (`saved`, null when nothing is saved), else the profile's, which the line says
+ * it took from the GitHub profile. With none known at all, every language.
  */
-export function workStartPicksOf({
-  signedIn,
-  saved,
-  address,
-  profile,
-}: {
-  signedIn: boolean;
-  saved: Pick<ContributePreferences, 'languages'> | null | undefined;
-  address: WorkPicks;
-  profile: readonly ContributeLanguage[];
-}): WorkPicks {
-  if (!signedIn) return address;
-  if (saved) return { languages: [...saved.languages] };
-  return { languages: address.languages.length ? address.languages : [...profile] };
+export type LanguagesLine = { names: string | null; fromProfile: boolean };
+
+export function languagesLineOf(
+  saved: readonly ContributeLanguage[] | null,
+  profile: readonly ContributeLanguage[],
+): LanguagesLine {
+  if (saved) return { names: saved.length ? namesOf(saved) : null, fromProfile: false };
+  return profile.length ? { names: namesOf(profile), fromProfile: true } : { names: null, fromProfile: false };
 }
 
-/** Whether the profile's languages are asked for: signed in, nothing saved, and no languages in the address. */
-export const needsProfileLanguages = (signedIn: boolean, saved: unknown, address: WorkPicks): boolean =>
-  signedIn && !saved && !address.languages.length;
+/** The line as one sentence, before its "Change". */
+export const languagesLineText = ({ names, fromProfile }: LanguagesLine): string =>
+  names ? `Picked for ${names}${fromProfile ? ', from your GitHub profile' : ''}.` : 'Picked from every language.';
 
-const MATCH = 'These open issues match what you work on:';
+/** The languages "Change" opens with: the saved ones, else the ones the line shows from the profile. */
+export const startingLanguagesOf = (
+  saved: readonly ContributeLanguage[] | null,
+  profile: readonly ContributeLanguage[],
+): ContributeLanguage[] => [...(saved ?? profile)];
+
+/** After a save of the languages: how often the list's time is asked, and how long before the list is drawn as it is. */
+export const REPICK_POLL_MS = 3_000;
+export const REPICK_GIVE_UP_MS = 120_000;
 
 /**
- * Your first issue's line, by what is connected (§5.6): the own agent by its name (`agent`, "Your agent" when unknown),
- * the Claude key, or both.
+ * Whether the list was picked again since the save: its time (`now`) is later than the one read just before the save
+ * (`before`). Both are the server's times; the browser's clock is never compared. With no time before, any time counts.
  */
-export function firstIssueLineOf(agents: { hosted: boolean; own: boolean }, agent: string | null): string {
-  if (agents.hosted && agents.own) {
-    return `Your agents are connected. ${MATCH} press Start on one and choose who works on it.`;
-  }
-  if (agents.hosted)
-    return `Your Claude key is connected. ${MATCH} press Start on one, and the hosted agent begins at once.`;
-  return `${agent ?? 'Your agent'} is connected. ${MATCH} press Start on one, and you get one prompt to paste in your agent.`;
+export function repickedOf(before: string | null, now: string | null): boolean {
+  const at = now ? Date.parse(now) : Number.NaN;
+  if (Number.isNaN(at)) return false;
+  const was = before ? Date.parse(before) : Number.NaN;
+  return Number.isNaN(was) || at > was;
+}
+
+/**
+ * The list under "Or pick another": the issue the person opened is drawn above it, so it is left out here, masked (by
+ * its mask id) or in full (by its repository and number).
+ */
+export function withoutOpenedIssue<Page extends ContributeIssuePage | null | undefined>(
+  page: Page,
+  opened: Pick<IssuePage, 'masked' | 'full'> | null,
+): Page {
+  if (!page || !opened?.masked) return page;
+  const id = opened.masked.id;
+  const full = opened.full;
+  const items = page.items.filter(
+    (item) => item.masked?.id !== id && !(full && item.nameWithOwner === full.repo && item.number === full.number),
+  );
+  if (items.length === page.items.length) return page;
+  return { ...page, items, total: Math.max(0, page.total - (page.items.length - items.length)) };
 }

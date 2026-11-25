@@ -34,6 +34,13 @@ export const signsOf = (view: ContributeView | null | undefined): WorkspaceSigns
   learn: signOf(view?.contributor?.learnOnboardedAt),
 });
 
+/**
+ * Whether the person has the Contribute sign, for the flow's pages: the sign itself, or, while it is not known, today's
+ * rule ("entered"), so nobody is sent back through the onboarding by a failed read.
+ */
+export const hasContributeSign = (gate: Extract<WorkspaceGate, { kind: 'open' }>): boolean =>
+  gate.signs.contribute ?? gate.entered;
+
 /** What the gate is decided from: the session's login, the API's answers for it, and the user's Contribute view. */
 export type WorkspaceGateRead = {
   githubLogin: string | null | undefined;
@@ -79,7 +86,7 @@ export function notEnteredTargetOf(pathname: string, search?: URLSearchParams): 
   }
   if (/^\/my\/(?:agent|settings)(?:\/|$)/.test(path)) return null;
   if (/^\/my\/start\//.test(path)) {
-    return search?.get('from') === 'learn' ? PICK_ISSUE_PATHS.learn : GETTING_IN_PATHS.contributeWork;
+    return search?.get('from') === 'learn' ? PICK_ISSUE_PATHS.learn : GETTING_IN_PATHS.contributeStart;
   }
   return WORKSPACE_PATHS.contribute;
 }

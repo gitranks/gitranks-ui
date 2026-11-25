@@ -20,7 +20,7 @@ import { GETTING_IN_PATHS } from '@/lib/workspace/paths';
 import { contributeOpen } from '@/lib/workspace/preview-gate';
 
 /** A visitor's way in, the same for every visitor: the flow's first step (a bookmark may resume them further on). */
-export const VISITOR_START: LandingStart = { href: GETTING_IN_PATHS.contributeWork, signedIn: false };
+export const VISITOR_START: LandingStart = { href: GETTING_IN_PATHS.contributeStart, signedIn: false };
 
 /**
  * Where the landing's one button leads a signed-in person: the step of the flow that is left for them (§4.1), or, once

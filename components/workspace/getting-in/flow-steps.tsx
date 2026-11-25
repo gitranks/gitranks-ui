@@ -4,12 +4,12 @@ import { cn } from '@/lib/utils';
 import type { FlowSide } from '@/lib/workspace/getting-in';
 
 /** Each flow's steps, in order, by their fixed names. */
-export const FLOW_STEPS: Record<FlowSide, readonly [string, string, string]> = {
-  contribute: ['What you work on', 'Your agent', 'Your first issue'],
+export const FLOW_STEPS: Record<FlowSide, readonly [string, string]> = {
+  contribute: ['Your agent', 'Your first issue'],
 };
 
-/** A step's number in its flow: 1, 2 or 3. */
-export type FlowStepNumber = 1 | 2 | 3;
+/** A step's number in its flow: 1 or 2. */
+export type FlowStepNumber = 1 | 2;
 
 /** A flow's strip: Contribute's by its side, or Learn's onboarding, which names its own steps. */
 export type FlowStrip = { side: FlowSide; steps?: undefined } | { side: 'learn'; steps: readonly string[] };

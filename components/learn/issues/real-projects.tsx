@@ -11,14 +11,27 @@ import { type LearnFixRow, mergedOnOf } from '@/lib/learn/issues';
 import { learnFixPath } from '@/lib/learn/paths';
 import {
   fixesCountLineOf,
+  fixKeyOf,
   REAL_PROJECTS_GROUPS,
-  REAL_PROJECTS_SENTENCE,
   realProjectsTitleOf,
+  realProjectsWordsOf,
   showMoreOf,
 } from '@/lib/learn/real-projects';
 
-/** The top: "← The lesson", "[the lesson's title]: in real projects", and the sentence on what the page holds. */
-export function RealProjectsTop({ backHref, name }: { backHref: Route; name: string }) {
+/**
+ * The top: "← The lesson", "[the lesson's title]: in real projects", and the sentence on what the page holds; a
+ * course's view says the same of the course.
+ */
+export function RealProjectsTop({
+  backHref,
+  name,
+  of = 'lesson',
+}: {
+  backHref: Route;
+  name: string;
+  of?: 'lesson' | 'course';
+}) {
+  const words = realProjectsWordsOf(of);
   return (
     <div className="flex flex-col gap-1.5" data-real-projects-top="">
       <Link
@@ -26,10 +39,10 @@ export function RealProjectsTop({ backHref, name }: { backHref: Route; name: str
         prefetch={false}
         className="self-start text-sm font-semibold text-link hover:underline max-sm:inline-flex max-sm:min-h-11 max-sm:items-center"
       >
-        ← The lesson
+        {words.back}
       </Link>
       <h1 className="m-0 text-2xl font-bold tracking-tight text-balance">{realProjectsTitleOf(name)}</h1>
-      <p className="m-0 max-w-[80ch] text-sm text-muted-foreground">{REAL_PROJECTS_SENTENCE}</p>
+      <p className="m-0 max-w-[80ch] text-sm text-muted-foreground">{words.sentence}</p>
     </div>
   );
 }
@@ -160,8 +173,8 @@ export function RealFixes({
     <div className="flex flex-col gap-4" data-real-fixes="">
       <ul className="m-0 list-none divide-y overflow-hidden rounded-xl border bg-card p-0">
         {rows.map((fix) => (
-          <li key={`${fix.repo}#${fix.number}`}>
-            <RealFixRow fix={fix} language={languageOf(fix)} passed={!!passed?.has(`${fix.repo}#${fix.number}`)} />
+          <li key={fixKeyOf(fix)}>
+            <RealFixRow fix={fix} language={languageOf(fix)} passed={!!passed?.has(fixKeyOf(fix))} />
           </li>
         ))}
       </ul>

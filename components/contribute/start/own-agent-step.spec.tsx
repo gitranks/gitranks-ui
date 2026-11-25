@@ -56,6 +56,22 @@ describe('the own agent’s first call', () => {
     expect(router.replace).toHaveBeenCalledWith('/contribute/start/issue');
   });
 
+  it('opened from an issue, both keep the way back on to the first issue', async () => {
+    window.history.replaceState(null, '', '/contribute/start/agent/own?issue=q7k2m9xa');
+    await act(async () =>
+      root.render(<OwnAgentStep tokens={WAITING} signIn={false} openedAt="2026-11-20T00:00:00Z" />),
+    );
+    expect(router.replace).toHaveBeenCalledWith('/contribute/start/issue?issue=q7k2m9xa');
+
+    router.replace.mockClear();
+    act(() => root.unmount());
+    root = createRoot(container);
+    window.history.replaceState(null, '', '/my/agent/connect?issue=q7k2m9xa');
+    await act(async () => root.render(<AgentConnect onboarded={false} tokens={WAITING} />));
+    expect(router.replace).toHaveBeenCalledWith('/contribute/start/issue?issue=q7k2m9xa');
+    window.history.replaceState(null, '', '/');
+  });
+
   it('for an account already in the workspace, the connect page stays', async () => {
     await act(async () => root.render(<AgentConnect onboarded tokens={[mcpToken({ id: 'T_9' })]} />));
     expect(router.replace).not.toHaveBeenCalled();

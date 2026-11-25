@@ -104,6 +104,8 @@ const CARD = cn(
 const BUTTON =
   'inline-flex min-h-10 items-center gap-1.5 self-start rounded-lg border px-3 text-sm font-semibold motion-safe:transition-colors max-sm:ml-auto max-sm:self-center';
 const BUTTON_IDLE = 'bg-background text-foreground hover:bg-accent';
+/** A row's button (`rows`): smaller, beside the name on every width. */
+const ROW_BUTTON = 'min-h-9 flex-none self-center px-2.5 text-[13px] whitespace-nowrap max-sm:ml-0';
 const BUTTON_ON = 'border-primary/40 bg-brand-soft text-brand-soft-foreground hover:bg-primary/10';
 
 /** The user's list, the cards with a call in flight, and the press that flips one. */
@@ -191,7 +193,8 @@ function ProviderMark({
  * sign-in; a signed-in user's puts the provider on their list, or takes it off. `noted`: the user's list as the API
  * keeps it. `compact`: one line of what is coming (Overview's, inside "Ways you contribute", and the Agent tab's,
  * under the hosted agent, with its own `title`), its "Notify me" opening, over the page so nothing under the line
- * moves, the mark, the title and the toggle of each, for a signed-in user.
+ * moves, the mark, the title and the toggle of each, for a signed-in user. `rows`: the landing's section at a third of
+ * its height, each provider one row of its name, its kind and "Notify me".
  */
 export function ComingSoon({
   viewer,
@@ -203,7 +206,7 @@ export function ComingSoon({
   viewer: LandingViewer;
   preview?: boolean;
   noted?: readonly ContributeComingSoonProvider[];
-  variant?: 'landing' | 'compact';
+  variant?: 'landing' | 'compact' | 'rows';
   /** The compact line's lead. */
   title?: string;
 }) {
@@ -265,6 +268,62 @@ export function ComingSoon({
           </Popover>
         </div>
       </div>
+    );
+  }
+
+  if (variant === 'rows') {
+    return (
+      <section aria-labelledby="coming-soon-title" className="border-b" data-landing="coming-soon">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10 sm:py-14">
+          <div className="flex max-w-3xl flex-col gap-2">
+            <span className="text-xs font-semibold text-primary">Coming soon</span>
+            <h2 id="coming-soon-title" className="text-2xl font-bold tracking-tight">
+              More ways to spend credits you already have
+            </h2>
+            <p className="text-muted-foreground">
+              Other AI plans and keys, with the same review before anything is sent. Tell us which one you would use:
+              the most asked for comes first.
+            </p>
+          </div>
+          <ul className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 max-sm:gap-0 max-sm:overflow-hidden max-sm:rounded-xl max-sm:border">
+            {COMING_SOON.map(({ provider, mono, title, kind }, index) => (
+              <li
+                key={provider}
+                className={cn(CARD, 'flex-row items-center justify-between', RISE_DELAYS[index])}
+                data-provider={provider}
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <ProviderMark provider={provider} mono={mono} className="size-8.5 text-xs" iconClassName="size-4.5" />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="font-semibold whitespace-nowrap">{title}</span>
+                    <span className="text-xs text-muted-foreground">{kind}</span>
+                  </span>
+                </div>
+                {visitor ? (
+                  <SignInButton
+                    preview={preview}
+                    label={`Notify me when ${title} opens`}
+                    className={cn(ROW_BUTTON, BUTTON_IDLE)}
+                  >
+                    Notify me
+                  </SignInButton>
+                ) : (
+                  <NotifyToggle
+                    title={title}
+                    on={noted.has(provider)}
+                    busy={busy.has(provider)}
+                    onClick={() => flip(provider)}
+                    className={ROW_BUTTON}
+                  />
+                )}
+              </li>
+            ))}
+          </ul>
+          <p role="status" className="min-h-5 text-sm text-foreground/80">
+            {visitor ? '' : comingSoonStatusOf(noted)}
+          </p>
+        </div>
+      </section>
     );
   }
 

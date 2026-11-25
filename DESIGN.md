@@ -121,8 +121,9 @@ Contribute and Learn share one signed-in workspace (`components/workspace/`).
   whole, and its buttons sign in with GitHub first (`signInToFlow`), then open the step the button names. No step draws
   a sign-in card. The second step sets the Contribute sign from the browser once drawn, and every way out of it waits
   for that. A flow opened from an issue keeps the way back (`?issue=`) on every address and every button, and the
-  second step starts with "The issue you opened". The tabs appear once an agent has connected. Members read the same landing at `/contribute/about` and `/learn/about`: on Contribute's, its one button
-  reads "Go to your issues" (to Contribute home), at the top and at the foot; on Learn's, "Open Learn".
+  second step starts with "The issue you opened". The tabs appear once an agent has connected. Members read the same
+  landing at `/contribute/about` and `/learn/about`: on Contribute's, its one button reads "Go to your issues" (to
+  Contribute home), at the top and at the foot; on Learn's, "Open Learn".
 - The reference line: every row, card and header that names an issue or a pull request opens with `RefChips` (the repo,
   `Issue #N ↗`, `PR #N ↗`). The title opens our page; the chips open GitHub.
 - The Learn pill (`LearnPill`, violet) marks a Learn pull request wherever one shows.

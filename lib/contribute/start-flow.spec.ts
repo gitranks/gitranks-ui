@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { firstIssueLineOf, languagesLineOf, languagesLineText, repickedOf, startingLanguagesOf } from './start-flow';
+import {
+  firstIssueLineOf,
+  languagesLineOf,
+  languagesLineText,
+  repickedOf,
+  startingLanguagesOf,
+  withoutOpenedIssue,
+} from './start-flow';
+import { issue } from '@/lib/contribute/__fixtures__/contribute-overview';
+import { fullIssue, maskedIssue } from '@/lib/workspace/__fixtures__/masked-issue';
 
 const OWN = { own: true, hosted: false };
 const KEY = { own: false, hosted: true };
@@ -79,5 +88,36 @@ describe('repickedOf: the list picked again after a save', () => {
     expect(repickedOf(null, '2026-11-25T09:00:00.000Z')).toBe(true);
     expect(repickedOf(null, null)).toBe(false);
     expect(repickedOf('2026-11-25T09:00:00.000Z', 'not a time')).toBe(false);
+  });
+});
+
+describe('withoutOpenedIssue: the issue the person opened is not in the list under it', () => {
+  const page = (items: ReturnType<typeof issue>[]) => ({
+    items,
+    next: null,
+    total: items.length + 5,
+    computedAt: null,
+  });
+  const masked = issue({ issueId: 'I_1', masked: maskedIssue({ id: 'q7k2m9xa' }) });
+  const other = issue({ issueId: 'I_2', masked: maskedIssue({ id: 'other123' }) });
+
+  it('leaves out its masked row by its mask id, and counts one fewer', () => {
+    const list = withoutOpenedIssue(page([masked, other]), { masked: maskedIssue({ id: 'q7k2m9xa' }), full: null });
+    expect(list?.items.map((item) => item.issueId)).toEqual(['I_2']);
+    expect(list?.total).toBe(6);
+  });
+
+  it('held in full, leaves out its row by its repository and number', () => {
+    const full = fullIssue();
+    const named = issue({ issueId: 'I_3', nameWithOwner: full.repo, number: full.number, masked: null });
+    const list = withoutOpenedIssue(page([named, other]), { masked: maskedIssue(), full });
+    expect(list?.items.map((item) => item.issueId)).toEqual(['I_2']);
+  });
+
+  it('keeps the page as it is with no opened issue, or none of it in the list', () => {
+    const read = page([other]);
+    expect(withoutOpenedIssue(read, null)).toBe(read);
+    expect(withoutOpenedIssue(read, { masked: maskedIssue(), full: null })).toBe(read);
+    expect(withoutOpenedIssue(null, { masked: maskedIssue(), full: null })).toBeNull();
   });
 });

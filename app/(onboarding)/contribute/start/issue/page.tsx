@@ -12,7 +12,7 @@ import { CONTRIBUTE_FLOW_PANELS, flowPanelOf } from '@/components/workspace/gett
 import { MaskedIssueRow } from '@/components/workspace/masked-issue/masked-issue-row';
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { loadIssues } from '@/lib/contribute/contribute.data';
-import { type FirstIssueState, firstIssueLineOf } from '@/lib/contribute/start-flow';
+import { type FirstIssueState, firstIssueLineOf, withoutOpenedIssue } from '@/lib/contribute/start-flow';
 import { loadFlowProfileLanguages } from '@/lib/contribute/start-flow.data';
 import { startWaysOf, startWaysReadOf } from '@/lib/contribute/start-ways';
 import { contributeSource } from '@/lib/workspace/click-tracking';
@@ -73,13 +73,15 @@ async function ContributeFirstIssue({ searchParams }: Pick<PageProps<'/contribut
   const view = await loadContribute();
   const held = isSuspended(view);
   const saved = view?.contributor?.preferences?.languages;
-  const [page, counts, masked, opened, profile] = await Promise.all([
+  const [issues, counts, masked, opened, profile] = await Promise.all([
     held ? Promise.resolve(null) : loadIssues({}),
     loadScheduleCounts(),
     loadMaskedListReads(),
     loadOpenedIssue(issue),
     saved?.length ? Promise.resolve([]) : loadFlowProfileLanguages(),
   ]);
+  // The issue the person opened is drawn above the list, never in it as well.
+  const page = withoutOpenedIssue(issues, opened);
   const settings = view?.contributor?.settings;
   const limit = held ? null : limitReachedOf(counts, settings, view?.contributor?.limits);
   const client = learnStartConnectionOf(view?.ownAgent?.tokens)?.client;
@@ -101,7 +103,7 @@ async function ContributeFirstIssue({ searchParams }: Pick<PageProps<'/contribut
         preferences: view?.contributor?.preferences ?? null,
       }}
       nothingConnected={startWaysOf({ ...read, own: null, key: 'none', sign: false })}
-      picking={<StillRanking />}
+      picking={<StillRanking reads={false} />}
       opened={
         opened?.masked ? (
           <section className="flex flex-col gap-3" data-opened-issue="">

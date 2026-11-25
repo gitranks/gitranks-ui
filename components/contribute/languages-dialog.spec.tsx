@@ -36,15 +36,20 @@ const beforeSave = vi.fn(async () => undefined);
 function Harness() {
   const [open, setOpen] = useState(false);
   return (
-    <LanguagesDialog
-      open={open}
-      onOpenChange={setOpen}
-      start={['JS_TS', 'GO']}
-      preferences={null}
-      trigger={<button type="button">Change</button>}
-      beforeSave={beforeSave}
-      onSaved={onSaved}
-    />
+    <>
+      <button type="button" onClick={() => setOpen(true)}>
+        Add a language
+      </button>
+      <LanguagesDialog
+        open={open}
+        onOpenChange={setOpen}
+        start={['JS_TS', 'GO']}
+        preferences={null}
+        trigger={<button type="button">Change</button>}
+        beforeSave={beforeSave}
+        onSaved={onSaved}
+      />
+    </>
   );
 }
 
@@ -88,6 +93,17 @@ describe('the one languages dialog', () => {
     await act(async () => buttonOf('Rust')?.click());
     await act(async () => buttonOf('Cancel')?.click());
     await act(async () => buttonOf('Change')?.click());
+    await act(async () => buttonOf('Save')?.click());
+    expect(contribute.savePreferences).toHaveBeenCalledWith({ languages: ['JS_TS', 'GO'] });
+  });
+
+  it('opened by the page ("Add a language") after a Cancel, starts from its starting languages too', async () => {
+    contribute.savePreferences.mockResolvedValue({ ok: true, data: {} });
+    await openIt();
+    await act(async () => buttonOf('Rust')?.click());
+    await act(async () => buttonOf('Cancel')?.click());
+    await act(async () => buttonOf('Add a language')?.click());
+    expect(isOpen()).toBe(true);
     await act(async () => buttonOf('Save')?.click());
     expect(contribute.savePreferences).toHaveBeenCalledWith({ languages: ['JS_TS', 'GO'] });
   });

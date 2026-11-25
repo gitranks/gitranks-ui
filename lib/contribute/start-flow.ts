@@ -1,6 +1,7 @@
-import type { ContributeLanguage } from '@/lib/workspace/contribute.types';
+import type { ContributeIssuePage, ContributeLanguage } from '@/lib/workspace/contribute.types';
 import { LANGUAGES } from '@/lib/workspace/format';
 import type { FlowConnected } from '@/lib/workspace/getting-in';
+import type { IssuePage } from '@/lib/workspace/masked-issue.types';
 
 /*
  * The second step of Contribute's flow, "Pick your first issue", as words: the head's sentence by what is connected
@@ -74,4 +75,22 @@ export function repickedOf(before: string | null, now: string | null): boolean {
   if (Number.isNaN(at)) return false;
   const was = before ? Date.parse(before) : Number.NaN;
   return Number.isNaN(was) || at > was;
+}
+
+/**
+ * The list under "Or pick another": the issue the person opened is drawn above it, so it is left out here, masked (by
+ * its mask id) or in full (by its repository and number).
+ */
+export function withoutOpenedIssue<Page extends ContributeIssuePage | null | undefined>(
+  page: Page,
+  opened: Pick<IssuePage, 'masked' | 'full'> | null,
+): Page {
+  if (!page || !opened?.masked) return page;
+  const id = opened.masked.id;
+  const full = opened.full;
+  const items = page.items.filter(
+    (item) => item.masked?.id !== id && !(full && item.nameWithOwner === full.repo && item.number === full.number),
+  );
+  if (items.length === page.items.length) return page;
+  return { ...page, items, total: Math.max(0, page.total - (page.items.length - items.length)) };
 }

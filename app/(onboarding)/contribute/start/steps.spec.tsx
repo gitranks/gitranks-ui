@@ -50,7 +50,7 @@ const { default: KeyPage } = await import('./agent/key/page');
 const { default: IssuePage } = await import('./issue/page');
 const { views, agentTabViews } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { issue } = await import('@/lib/contribute/__fixtures__/contribute-overview');
-const { issuePage } = await import('@/lib/workspace/__fixtures__/masked-issue');
+const { issuePage, maskedIssue } = await import('@/lib/workspace/__fixtures__/masked-issue');
 
 const text = (html: string) =>
   html
@@ -288,6 +288,17 @@ describe('Your first issue: the second step', () => {
     expect(text(opened)).not.toContain('Skip');
     expect(opened).toContain('data-flow-leave');
     expect(html.indexOf('Or pick another')).toBeLessThan(html.indexOf('data-issue='));
+  });
+
+  it('the issue the person opened is not in the list under it as well', async () => {
+    at('page', open(true), undefined, { issue: 'q7k2m9xa' });
+    data.loadContribute.mockResolvedValue(agentTabViews.ownOnly);
+    place.loadOpenedIssue.mockResolvedValue(issuePage());
+    page([issue({ issueId: 'I_opened', masked: maskedIssue({ id: 'q7k2m9xa' }) }), issue({ issueId: 'I_other' })]);
+    const html = await render(IssuePage, { issue: 'q7k2m9xa' });
+    expect(html.match(/data-masked-row="q7k2m9xa"/g)).toHaveLength(1);
+    expect(html).toContain('data-issue="I_other"');
+    expect(html).not.toContain('data-issue="I_opened"');
   });
 
   it('the sign: asked from the browser only, never while the server draws; a person with it is not held', async () => {

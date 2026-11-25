@@ -14,8 +14,9 @@ export const ContributeFlowLanguagesDocument = parse(
 ) as DocumentNode<{ contributeProfileLanguages: ContributeLanguage[] | null }>;
 
 /**
- * The languages What you work on pre-ticks for a signed-in person with nothing saved: read on their own, so a failed
- * read (or an API without the field) pre-ticks nothing. None signed out, without a question.
+ * The profile's languages, for the second step's line of languages and the dialog's start when nothing is saved: read
+ * on their own, so a failed read (or an API without the field) gives none and the line reads "every language". None
+ * signed out, without a question.
  */
 export async function loadFlowProfileLanguages(): Promise<ContributeLanguage[]> {
   const githubLogin = await viewerLogin();

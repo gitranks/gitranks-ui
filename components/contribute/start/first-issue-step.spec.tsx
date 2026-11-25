@@ -10,6 +10,8 @@ const mark = vi.hoisted(() => ({ markContributeOnboarded: vi.fn() }));
 vi.mock('@/lib/workspace/onboarding.actions', () => mark);
 const actions = vi.hoisted(() => ({ readFeedComputedAt: vi.fn() }));
 vi.mock('@/lib/workspace/actions', () => actions);
+vi.mock('@/lib/workspace/issue-actions', () => ({ startIssue: vi.fn(), skipIssue: vi.fn() }));
+vi.mock('@/lib/workspace/start/start-page.actions', () => ({ readStartPageAttempt: vi.fn() }));
 // The dialog has its own spec: here it is its trigger and a save that runs its two callbacks in order.
 vi.mock('@/components/contribute/languages-dialog', () => ({
   LanguagesDialog: ({
@@ -41,6 +43,8 @@ const { FirstIssueStep, MARK_FAILED_LINE } = await import('./first-issue-step');
 const { StillRanking } = await import('@/app/contribute/components/still-ranking');
 const { startWaysOf } = await import('@/lib/contribute/start-ways');
 const { REPICK_GIVE_UP_MS, REPICK_POLL_MS } = await import('@/lib/contribute/start-flow');
+const { StartControl } = await import('@/components/workspace/start-control');
+const { startControlOf } = await import('@/lib/workspace/issue-row');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -152,6 +156,22 @@ describe('the Contribute sign, set from the page', () => {
     expect(leave).toHaveBeenCalledTimes(1);
   });
 
+  it('one failure with a press waiting on it counts once: no line yet, and the next press tries again and goes on', async () => {
+    const answer = answerLater();
+    await draw(step());
+    await skip();
+    await answer({ ok: false, error: 'UNAVAILABLE' });
+    expect(markOf()).toBe('failed');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(leave).not.toHaveBeenCalled();
+
+    mark.markContributeOnboarded.mockResolvedValueOnce({ ok: true, data: true });
+    await skip();
+    expect(mark.markContributeOnboarded).toHaveBeenCalledTimes(2);
+    expect(leave).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
   it('answered false: the first step’s "nothing connected" case in place, never this step again by itself', async () => {
     mark.markContributeOnboarded.mockResolvedValue({ ok: true, data: false });
     await draw(step());
@@ -160,6 +180,69 @@ describe('the Contribute sign, set from the page', () => {
     expect(container.querySelector('[aria-current="step"]')?.textContent).toContain('Your agent');
     expect(container.textContent).not.toContain('Continue');
     expect(mark.markContributeOnboarded).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the Start controls wait for the sign too', () => {
+  const REF = { repo: 'acme/widgets', issue: 42 };
+  const onHosted = vi.fn();
+
+  it('a plain hosted Start is held, then sent once the sign is set', async () => {
+    const answer = answerLater();
+    await draw(
+      step({
+        children: (
+          <StartControl
+            control={startControlOf('contribute', REF, { hosted: true, own: false })}
+            onHosted={onHosted}
+            label="acme/widgets #42"
+          />
+        ),
+      }),
+    );
+    await act(async () => container.querySelector<HTMLButtonElement>('[data-start-control="hosted"]')?.click());
+    expect(onHosted).not.toHaveBeenCalled();
+    await answer({ ok: true, data: true });
+    expect(onHosted).toHaveBeenCalledTimes(1);
+  });
+
+  it('the menu’s two ways, drawn outside the step in a portal, are held as well', async () => {
+    const answer = answerLater();
+    await draw(
+      step({
+        children: (
+          <StartControl
+            control={startControlOf('contribute', REF, { hosted: true, own: true })}
+            onHosted={onHosted}
+            label="acme/widgets #42"
+          />
+        ),
+      }),
+    );
+    const trigger = container.querySelector<HTMLButtonElement>('[data-start-control="menu"]');
+    await act(async () => {
+      trigger?.focus();
+      trigger?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+    const hosted = document.querySelector<HTMLElement>('[data-start-control="menu-hosted"]');
+    const own = document.querySelector<HTMLAnchorElement>('[data-start-control="menu-own"]');
+    expect(hosted).not.toBeNull();
+    expect(container.contains(hosted)).toBe(false);
+    expect(own?.getAttribute('href')).toBe('/my/start/acme/widgets/42');
+
+    let followed = false;
+    const watch = (event: Event) => {
+      if (event.target === own) followed = !event.defaultPrevented;
+    };
+    document.addEventListener('click', watch);
+    await act(async () => own?.click());
+    document.removeEventListener('click', watch);
+    expect(followed).toBe(false);
+
+    await act(async () => hosted?.click());
+    expect(onHosted).not.toHaveBeenCalled();
+    await answer({ ok: true, data: true });
+    expect(onHosted).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -190,6 +273,41 @@ describe('the list picked again after a save of the languages', () => {
 
     await tick(REPICK_POLL_MS * 3);
     expect(actions.readFeedComputedAt).toHaveBeenCalledTimes(3);
+  });
+
+  it('a time that could not be read before the save is not "no time yet": only the two minutes end the wait', async () => {
+    vi.useFakeTimers();
+    await draw(step({ needsMark: false }));
+    actions.readFeedComputedAt.mockResolvedValueOnce({ ok: false, error: 'UNAVAILABLE' });
+    await save();
+    actions.readFeedComputedAt.mockResolvedValue({ ok: true, data: '2026-11-25T09:00:00.000Z' });
+    await tick(REPICK_POLL_MS * 3);
+    expect(router.refresh).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-picking]')).not.toBeNull();
+    await tick(REPICK_GIVE_UP_MS);
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-list]')).not.toBeNull();
+  });
+
+  it('the box it shows meanwhile reads nothing itself: the step’s own poll reads the list once, in place', async () => {
+    vi.useFakeTimers();
+    actions.readFeedComputedAt.mockResolvedValue({ ok: true, data: '2026-11-25T09:00:00.000Z' });
+    await draw(
+      <FirstIssueStep
+        mark={false}
+        head={{ title: 'Pick your first issue', text: 'Claude Code is connected.' }}
+        languages={{ saved: null, profile: ['GO'], preferences: null }}
+        nothingConnected={NOTHING_CONNECTED}
+        picking={<StillRanking reads={false} />}
+        foot={null}
+      >
+        <div data-list="" />
+      </FirstIssueStep>,
+    );
+    await save();
+    expect(container.querySelector('[data-ranking="waiting"]')).not.toBeNull();
+    await tick(30_000);
+    expect(router.refresh).not.toHaveBeenCalled();
   });
 
   it('past two minutes stops and draws the list as it stands', async () => {

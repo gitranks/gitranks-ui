@@ -112,33 +112,25 @@ export function FirstIssueStep({
   const router = useRouter();
   const [mark, setMark] = useState<MarkState>(initialMark ?? (needsMark ? 'pending' : 'done'));
   const markNow = useRef<MarkState>(mark);
-  const asking = useRef<Promise<Outcome> | null>(null);
+  const asking = useRef<Promise<MarkState> | null>(null);
 
-  const settle = useCallback((outcome: Outcome) => {
-    const next: MarkState = outcome === 'failed' ? (markNow.current === 'pending' ? 'failed' : 'error') : outcome;
-    markNow.current = next;
-    setMark(next);
-    return next;
-  }, []);
-
-  const ask = useCallback(() => {
-    asking.current ??= markOnce().finally(() => {
+  // One call at a time, settled once when it answers: everyone waiting on it reads the state it settled. A failure
+  // after the first try says so.
+  const ask = useCallback((): Promise<MarkState> => {
+    asking.current ??= markOnce().then((outcome) => {
       asking.current = null;
+      const next: MarkState = outcome === 'failed' ? (markNow.current === 'pending' ? 'failed' : 'error') : outcome;
+      markNow.current = next;
+      setMark(next);
+      return next;
     });
     return asking.current;
   }, []);
 
   // Once drawn in the browser: a second call changes nothing, so a remount asking again is harmless.
   useEffect(() => {
-    if (!needsMark) return;
-    let live = true;
-    void ask().then((outcome) => {
-      if (live) settle(outcome);
-    });
-    return () => {
-      live = false;
-    };
-  }, [needsMark, ask, settle]);
+    if (needsMark) void ask();
+  }, [needsMark, ask]);
 
   const hold = (event: MouseEvent<HTMLDivElement>) => {
     if (markNow.current === 'done' || !(event.target instanceof Element)) return;
@@ -148,15 +140,17 @@ export function FirstIssueStep({
     event.stopPropagation();
     if (markNow.current === 'none') return;
     const control = event.target.closest<HTMLElement>('a, button') ?? (way as HTMLElement);
-    void ask().then((outcome) => {
-      if (settle(outcome) === 'done') control.click();
+    void ask().then((state) => {
+      if (state === 'done') control.click();
     });
   };
 
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState<ContributeLanguage[] | null>(languages.saved);
   const [repicking, setRepicking] = useState(false);
-  const before = useRef<string | null>(null);
+  // The list's time read just before the save: null when it had none yet; `failed` when it could not be read, and then
+  // only the two minutes end the wait (no later time can be told apart from an older one).
+  const before = useRef<{ at: string | null } | 'failed'>('failed');
   const [, startRefresh] = useTransition();
 
   // After a save: ask the list's time until it is later than the one read before the save, or two minutes pass.
@@ -177,7 +171,8 @@ export function FirstIssueStep({
       if (Date.now() - started >= REPICK_GIVE_UP_MS) return finish();
       if (document.visibilityState !== 'visible') return;
       const result = await readFeedComputedAt().catch(() => null);
-      if (!stopped && result?.ok && repickedOf(before.current, result.data)) finish();
+      const since = before.current;
+      if (!stopped && result?.ok && since !== 'failed' && repickedOf(since.at, result.data)) finish();
     };
     const timer = setInterval(tick, REPICK_POLL_MS);
     return () => {
@@ -229,7 +224,7 @@ export function FirstIssueStep({
                 }
                 beforeSave={async () => {
                   const result = await readFeedComputedAt().catch(() => null);
-                  before.current = result?.ok ? result.data : null;
+                  before.current = result?.ok ? { at: result.data } : 'failed';
                 }}
                 onSaved={(draft) => {
                   setSaved(draft.languages);

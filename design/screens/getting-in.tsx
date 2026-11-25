@@ -80,7 +80,7 @@ function firstIssue({
         head={{ title: FIRST_ISSUE.title, text: firstIssueLineOf(OWN, 'Claude Code', state) }}
         languages={{ saved, profile: PROFILE, preferences: null }}
         nothingConnected={startWaysOf(startRead())}
-        picking={<StillRanking />}
+        picking={<StillRanking reads={false} />}
         opened={
           opened ? (
             <section className="flex flex-col gap-3" data-opened-issue="">

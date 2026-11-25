@@ -55,7 +55,10 @@ export type MaskedIssueRowProps = {
   colors?: Readonly<Record<string, string>>;
   /** The page of the issue; its mask id's page unless given. */
   href?: Route;
-  /** The button's words in place of "See the full issue" ("Start fixing it" for the issue a person opened). */
+  /**
+   * The button's words in place of "See the full issue" and, held in full, "Go to the issue" ("Start fixing it" for
+   * the issue a person opened).
+   */
   seeLabel?: string;
   /** False leaves Skip out (the issue a person opened is not one to skip). */
   skippable?: boolean;
@@ -92,7 +95,7 @@ export function MaskedIssueRow({
   visitor = false,
   colors,
   href,
-  seeLabel: label = 'See the full issue',
+  seeLabel: given,
   skippable = true,
   onSee,
   onSkip,
@@ -191,7 +194,10 @@ export function MaskedIssueRow({
     );
   }
 
-  const seeLabel = state === 'opening' ? 'Opening…' : state === 'full' ? 'Go to the issue' : label;
+  // A label the caller gives wins in every state but the press's wait ("Start fixing it" on the issue a person opened,
+  // held in full or not).
+  const seeLabel =
+    state === 'opening' ? 'Opening…' : (given ?? (state === 'full' ? 'Go to the issue' : 'See the full issue'));
   const seeDisabled = state === 'opening' || state === 'limit';
   const seeClass = 'h-9 min-w-[9.5rem] px-4 max-sm:min-h-11';
 

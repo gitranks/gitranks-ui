@@ -81,13 +81,19 @@ export function LanguagesDialog({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const change = (next: boolean) => {
-    if (pending) return;
-    // Opened again: from what it starts with now, not from a draft left behind.
-    if (next) {
+  // Each time it opens, by its own trigger or by the page ("Add a language"): from what it starts with now, not from
+  // a draft left behind.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
       setDraft({ languages: [...start] });
       setError(null);
     }
+  }
+
+  const change = (next: boolean) => {
+    if (pending) return;
     onOpenChange(next);
   };
 

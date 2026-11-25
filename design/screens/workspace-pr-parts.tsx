@@ -20,6 +20,7 @@ import {
   prLinks,
   prLists,
   prOnlyYouPage,
+  prOnlyYouQueue,
   prPatch,
   prReview,
   prStages,
@@ -253,7 +254,7 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
               )}
               <Case title="Two more waiting behind the box, closed">
                 <PullRequestBox
-                  page={prOnlyYouPage('cla', 'dco', 'title')}
+                  page={prOnlyYouQueue('cla', 'dco', 'title')}
                   now={PR_NOW}
                   links={prLinks}
                   enterKey={false}
@@ -262,7 +263,7 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
               </Case>
               <Case title="Two more waiting, opened in place: each with its own button">
                 <PullRequestBox
-                  page={prOnlyYouPage('cla', 'dco', 'title')}
+                  page={prOnlyYouQueue('cla', 'dco', 'title')}
                   now={PR_NOW}
                   links={prLinks}
                   enterKey={false}
@@ -272,7 +273,7 @@ export const WORKSPACE_PR_PART_SCREENS: Screen[] = [
               </Case>
               <Case title="One more waiting">
                 <PullRequestBox
-                  page={prOnlyYouPage('dco', 'conversation')}
+                  page={prOnlyYouQueue('dco', 'conversation')}
                   now={PR_NOW}
                   links={prLinks}
                   enterKey={false}

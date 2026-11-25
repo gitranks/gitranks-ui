@@ -16,6 +16,7 @@ import {
   prEnds,
   prLinks,
   prOnlyYouPage,
+  prOnlyYouQueue,
   prPage,
   prReview,
   prRoundOne,
@@ -403,12 +404,12 @@ describe('more waiting, in the box', () => {
   });
 
   it('says "1 more waiting" for one', async () => {
-    await box(prOnlyYouPage('cla', 'dco'), { onOnlyYou: vi.fn() });
+    await box(prOnlyYouQueue('cla', 'dco'), { onOnlyYou: vi.fn() });
     expect(wordsOf(line() as Element)).toBe('1 more waiting');
   });
 
   it('counts several, closed until pressed', async () => {
-    await box(prOnlyYouPage('cla', 'dco', 'title'), { onOnlyYou: vi.fn() });
+    await box(prOnlyYouQueue('cla', 'dco', 'title'), { onOnlyYou: vi.fn() });
     expect(wordsOf(line() as Element)).toBe('2 more waiting');
     expect(line()?.getAttribute('type')).toBe('button');
     expect(line()?.getAttribute('aria-expanded')).toBe('false');
@@ -418,7 +419,7 @@ describe('more waiting, in the box', () => {
 
   it('opens the rest in place when pressed, each with its own button, and closes again', async () => {
     const onOnlyYou = vi.fn();
-    await box(prOnlyYouPage('cla', 'dco', 'title'), { onOnlyYou });
+    await box(prOnlyYouQueue('cla', 'dco', 'title'), { onOnlyYou });
     const before = window.location.href;
     await press(line());
     expect(line()?.getAttribute('aria-expanded')).toBe('true');
@@ -433,7 +434,7 @@ describe('more waiting, in the box', () => {
 
   it("is reached by keyboard, and Enter on it is its own, not the box's main action", async () => {
     const onOnlyYou = vi.fn();
-    await box(prOnlyYouPage('dco', 'title'), { onOnlyYou });
+    await box(prOnlyYouQueue('dco', 'title'), { onOnlyYou });
     const button = line() as HTMLButtonElement;
     expect(button.disabled).toBe(false);
     expect(button.tabIndex).toBe(0);
@@ -449,7 +450,7 @@ describe('more waiting, in the box', () => {
   });
 
   it('does not repeat the job the box shows', async () => {
-    await box(prOnlyYouPage('cla', 'dco', 'title'), { onOnlyYou: vi.fn() });
+    await box(prOnlyYouQueue('cla', 'dco', 'title'), { onOnlyYou: vi.fn() });
     expect(container.querySelector('[data-box] h2')?.textContent).toBe('Sign the project’s agreement');
     expect(items()).toEqual(['dco', 'title']);
     expect(container.querySelectorAll('[data-more-waiting] a[target="_blank"]')).toHaveLength(0);
@@ -463,7 +464,7 @@ describe('more waiting, in the box', () => {
   });
 
   it('draws opened when asked to (the catalogue)', async () => {
-    await box(prOnlyYouPage('cla', 'dco'), { onOnlyYou: vi.fn(), initialMoreOpen: true });
+    await box(prOnlyYouQueue('cla', 'dco'), { onOnlyYou: vi.fn(), initialMoreOpen: true });
     expect(line()?.getAttribute('aria-expanded')).toBe('true');
     expect(list()?.hidden).toBe(false);
   });

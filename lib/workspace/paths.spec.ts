@@ -287,8 +287,19 @@ describe("the pull request's page, by repo and issue", () => {
     ] as const;
     for (const [search, at] of cases) {
       const query = new URLSearchParams(search);
-      expect(learnIssuesPathOf(query), search).toBe(issuesHrefOf(issuesViewOf(Object.fromEntries(query)), at));
+      const own = { [at]: query.get(at) ?? undefined };
+      expect(learnIssuesPathOf(query), search).toBe(issuesHrefOf(issuesViewOf(Object.fromEntries(query), own), at));
     }
+    // The view's groups are carried: open issues alone, or fixes alone.
+    expect(learnIssuesPathOf(new URLSearchParams('at=lesson&lesson=a-queue&open=1'))).toBe(
+      '/learn/lessons/a-queue/real-world?open=1',
+    );
+    expect(learnIssuesPathOf(new URLSearchParams('at=course&course=algorithms&fixed=1'))).toBe(
+      '/learn/courses/algorithms/real-world?fixed=1',
+    );
+    expect(learnIssuesPathOf(new URLSearchParams('at=course&course=algorithms&open=2'))).toBe(
+      '/learn/courses/algorithms/real-world',
+    );
     expect(learnIssuesPathOf(new URLSearchParams('at=lesson&lesson=a-queue'))).toBe(
       '/learn/lessons/a-queue/real-world',
     );

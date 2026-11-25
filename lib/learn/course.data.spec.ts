@@ -15,6 +15,7 @@ const {
   loadLearnCourses,
   loadLearnCoursesMine,
   loadLearnLessons,
+  loadLearnLessonsFixesListed,
   loadLearnLevel,
 } = await import('./course.data');
 const { LearnCourseDocument, LearnCoursesMineDocument, LearnSetupLevelDocument } = await import('./course.documents');
@@ -43,6 +44,30 @@ describe('the public reads, cached for everyone', () => {
     expect(cacheLife).toHaveBeenLastCalledWith('minutes');
     // Read with no session: the same for everyone.
     for (const call of graphqlDirect.mock.calls) expect(call[2]).toEqual({ source: 'ssr' });
+  });
+
+  it("keeps which lessons have a listed fix for hours; throws when no lesson's is known, so nothing is kept", async () => {
+    const listed = (fixesListed: boolean | null) => ({
+      slug: 'sets',
+      course: { slug: 'algorithms' },
+      paused: false,
+      fixesListed,
+    });
+    graphqlDirect.mockResolvedValueOnce({ learnLessons: [listed(true), listed(null)] });
+    expect(await loadLearnLessonsFixesListed()).toEqual([listed(true), listed(null)]);
+    expect(cacheTag).toHaveBeenLastCalledWith('learn:courses');
+    expect(cacheLife).toHaveBeenLastCalledWith('hours');
+    graphqlDirect.mockResolvedValueOnce({ learnLessons: [listed(false)] });
+    expect(await loadLearnLessonsFixesListed()).toEqual([listed(false)]);
+    expect(cacheLife).toHaveBeenLastCalledWith('hours');
+    // The API could not read the fixes: every lesson's is null. Kept, it would leave every view out for hours.
+    cacheLife.mockClear();
+    graphqlDirect.mockResolvedValueOnce({ learnLessons: [listed(null), listed(null)] });
+    await expect(loadLearnLessonsFixesListed()).rejects.toThrow();
+    expect(cacheLife).not.toHaveBeenCalled();
+    graphqlDirect.mockResolvedValueOnce({ learnLessons: [] });
+    expect(await loadLearnLessonsFixesListed()).toEqual([]);
+    expect(cacheLife).toHaveBeenLastCalledWith('minutes');
   });
 
   it('throws a failed read of the list, so nothing is kept', async () => {

@@ -106,13 +106,13 @@ export const listNone = (patch: Partial<IssuesList> = {}): IssuesList =>
 /** Views as the address sets them. */
 export const views = {
   plain: ISSUES_VIEW,
-  lesson: { ...ISSUES_VIEW, lesson: 'find-duplicates-with-a-set' },
+  lesson: { ...ISSUES_VIEW, lesson: 'find-duplicates-with-a-set', show: 'both' },
   course: { ...ISSUES_VIEW, course: 'algorithms', learned: true },
-  courseFixed: { ...ISSUES_VIEW, course: 'algorithms', fixed: true },
+  courseFixed: { ...ISSUES_VIEW, course: 'algorithms', show: 'fixed' },
   language: { ...ISSUES_VIEW, language: 'go' },
   learned: { ...ISSUES_VIEW, learned: true },
   repo: { ...ISSUES_VIEW, repo: 'django/django' },
-  orgFixed: { ...ISSUES_VIEW, org: 'kubernetes', fixed: true },
+  orgFixed: { ...ISSUES_VIEW, org: 'kubernetes', show: 'fixed' },
 } satisfies Record<string, IssuesView>;
 
 export const issuesNames = {
@@ -133,6 +133,7 @@ export const learnFixes: LearnFixes = {
       fixer: 'octocat',
       lesson: lesson('find-duplicates-with-a-set', 'Find duplicates in one pass with a set'),
       mergedAt: '2026-11-18T09:30:00.000Z',
+      language: 'go',
     },
     {
       repo: 'lumen-data/importer',
@@ -144,6 +145,7 @@ export const learnFixes: LearnFixes = {
       fixer: 'hubot',
       lesson: null,
       mergedAt: '2026-11-12T16:00:00.000Z',
+      language: 'python',
     },
   ],
   total: 12,

@@ -219,7 +219,7 @@ export const pullUrlOf = (fix: { repo: string; number: number }) => `https://git
 /** The open issues of the person's list: Issues, as it opens. */
 export const MY_ISSUES_PATH: Route = issuesHrefOf(ISSUES_VIEW);
 /** The merged fixes made with Learn, each with its walkthrough. */
-export const FIXED_ISSUES_PATH: Route = issuesHrefOf({ ...ISSUES_VIEW, fixed: true });
+export const FIXED_ISSUES_PATH: Route = issuesHrefOf({ ...ISSUES_VIEW, show: 'fixed' });
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Your fixes                                                                                                         */

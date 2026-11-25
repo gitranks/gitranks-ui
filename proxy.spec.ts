@@ -43,6 +43,10 @@ const { checkGate } = vi.hoisted(() => ({
 const { projectGate } = vi.hoisted(() => ({
   projectGate: vi.fn(async (_route: unknown): Promise<unknown> => ({ kind: 'page' })),
 }));
+const { realProjectsGate } = vi.hoisted(() => ({
+  realProjectsGate: vi.fn(async (_route: unknown): Promise<string | null> => null),
+}));
+vi.mock('./lib/learn/real-projects-gate', () => ({ realProjectsGateOf: realProjectsGate }));
 vi.mock('./lib/learn/course-gate', () => ({
   courseGateOf: courseGate,
   checkGateOf: checkGate,
@@ -98,6 +102,8 @@ describe('proxy', () => {
     viewGate.mockResolvedValue({ kind: 'page' });
     checkGate.mockReset();
     checkGate.mockResolvedValue({ kind: 'page' });
+    realProjectsGate.mockReset();
+    realProjectsGate.mockResolvedValue(null);
     sessionRead.ok = true;
   });
 
@@ -1103,6 +1109,56 @@ describe('proxy', () => {
       expect(response?.status).toBe(308);
       expect(response?.headers.get('location')).toBe('https://gitranks.com/learn/issues?repo=django/django&fixed=1');
       expect(response?.headers.get('cache-control')).toBe('private, no-store');
+    });
+
+    describe("a lesson's or a course's view in real projects", () => {
+      it('asks whether the view is made, on GET and HEAD only, for the page and its Markdown copy', async () => {
+        await proxy(request(undefined, '/learn/lessons/sets-in-one-pass/real-world?fixed=1'), event);
+        await proxy(request('authjs.session-token=t', '/learn/courses/algorithms/real-world'), event);
+        await proxy(request(undefined, '/learn/lessons/sets-in-one-pass/real-world.md'), event);
+        await proxy(
+          new NextRequest('https://gitranks.com/learn/lessons/sets-in-one-pass/real-world', { method: 'POST' }),
+          event,
+        );
+        await proxy(new NextRequest('https://gitranks.com/learn/lessons/sets/real-world', { method: 'HEAD' }), event);
+        expect(realProjectsGate.mock.calls.map(([route]) => route)).toEqual([
+          { of: 'lesson', slug: 'sets-in-one-pass', markdown: false },
+          { of: 'course', slug: 'algorithms', markdown: false },
+          { of: 'lesson', slug: 'sets-in-one-pass', markdown: true },
+          { of: 'lesson', slug: 'sets', markdown: false },
+        ]);
+      });
+
+      it('sends a view that is not made to the lesson or the course for now, never kept', async () => {
+        realProjectsGate.mockResolvedValue('/learn/lessons/sets-in-one-pass');
+        for (const cookie of [undefined, 'authjs.session-token=t']) {
+          const response = await proxy(request(cookie, '/learn/lessons/sets-in-one-pass/real-world?open=1'), event);
+          expect(response?.status).toBe(307);
+          expect(response?.headers.get('location')).toBe('https://gitranks.com/learn/lessons/sets-in-one-pass');
+          expect(response?.headers.get('cache-control')).toBe('private, no-store');
+        }
+        realProjectsGate.mockResolvedValue('/learn/lessons/sets-in-one-pass.md');
+        const copy = await proxy(request(undefined, '/learn/lessons/sets-in-one-pass/real-world.md'), event);
+        expect(copy?.status).toBe(307);
+        expect(copy?.headers.get('location')).toBe('https://gitranks.com/learn/lessons/sets-in-one-pass.md');
+      });
+
+      it("lets a made view, or one the reads could not tell, go on: the page, or the copy's route handler", async () => {
+        const page = await proxy(request(undefined, '/learn/lessons/sets-in-one-pass/real-world'), event);
+        expect(page?.status).toBe(200);
+        expect(page?.headers.get('location')).toBeNull();
+        const copy = await proxy(request(undefined, '/learn/lessons/sets-in-one-pass/real-world.md'), event);
+        expect(copy?.headers.get('x-middleware-rewrite')).toBe(
+          'https://gitranks.com/api/learn/issues.md?lesson=sets-in-one-pass&at=lesson',
+        );
+      });
+
+      it('asks nothing for Issues itself, nor for an address of no lesson or course shape', async () => {
+        for (const path of ['/learn/issues', '/learn/issues.md', '/learn/lessons/Sets/real-world']) {
+          await proxy(request(undefined, path), event);
+        }
+        expect(realProjectsGate).not.toHaveBeenCalled();
+      });
     });
 
     describe("a fix's walkthrough and a person's answers", () => {

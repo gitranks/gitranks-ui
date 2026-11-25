@@ -44,6 +44,7 @@ import {
   learnReviewMinePath,
   learnReviewPath,
   markdownPathOf,
+  realProjectsRouteOf,
 } from './paths';
 
 describe("Learn's addresses", () => {
@@ -223,6 +224,35 @@ describe("a course's addresses", () => {
       '/learn/lessons/binary-search/real-world',
     ]) {
       expect(learnIssuesMarkdownRouteOf(path), path).toBeNull();
+    }
+  });
+
+  it("reads a lesson's or a course's view in real projects, and its Markdown copy, for the proxy to ask", () => {
+    expect(realProjectsRouteOf('/learn/lessons/binary-search/real-world')).toEqual({
+      of: 'lesson',
+      slug: 'binary-search',
+      markdown: false,
+    });
+    expect(realProjectsRouteOf('/learn/lessons/binary-search/real-world/')).toEqual({
+      of: 'lesson',
+      slug: 'binary-search',
+      markdown: false,
+    });
+    expect(realProjectsRouteOf('/learn/courses/algorithms/real-world.md')).toEqual({
+      of: 'course',
+      slug: 'algorithms',
+      markdown: true,
+    });
+    for (const path of [
+      '/learn/issues',
+      '/learn/lessons/binary-search',
+      '/learn/lessons/Binary-Search/real-world',
+      '/learn/lessons/binary-search/real-world.md/',
+      '/learn/lessons/a/b/real-world',
+      '/learn/repos/django/django/real-world',
+      '/learn/lessons/binary-search/real-world/x',
+    ]) {
+      expect(realProjectsRouteOf(path), path).toBeNull();
     }
   });
 

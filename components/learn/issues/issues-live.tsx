@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 
 import { type IssuesLayer, IssuesScreen } from '@/components/learn/issues/issues-screen';
+import type { FixesLayer } from '@/components/learn/issues/real-projects-screen';
 import {
   bareRowOf,
   emailCoverOf,
@@ -11,6 +12,7 @@ import {
   type IssuesList,
   type IssuesNames,
   type IssuesView,
+  isOwnView,
   issuesEmailStateOf,
   issuesEndOf,
   issuesListOf,
@@ -18,6 +20,7 @@ import {
   rowsAfterSkip,
 } from '@/lib/learn/issues';
 import { setLearnIssuesEmailAction } from '@/lib/learn/issues.actions';
+import { readPassedFixes } from '@/lib/learn/real-projects';
 import { learnSettingsErrorOf } from '@/lib/learn/settings';
 import { hasSessionHint } from '@/lib/session-hint';
 import type { MaskedListReads } from '@/lib/workspace/masked-issue';
@@ -60,23 +63,43 @@ export const ADDRESS_READ_GAP_MS = 30_000;
  * older than one already applied, is dropped, and a row skipped in this view never comes back. "Email me when one
  * appears" changes in place; on with no address, the page reads again when the person comes back to it (at most once
  * in 30 seconds), so the line goes once an address is there. "Try again" reads the person's list again, or the page's
- * own (the visitor's five, the merged fixes) when that is what failed.
+ * own (the visitor's five, the merged fixes) when that is what failed. On a lesson's or a course's own address with
+ * fixes on the screen, a person with a session also reads the walkthroughs they passed, for the fixes' "Passed": none
+ * is drawn while it loads, when it fails, and for a visitor.
  */
 export function IssuesLive({
   view,
   at = 'issues',
   names,
   initial,
+  fixes = null,
 }: {
   view: IssuesView;
   at?: IssuesAt;
   names?: IssuesNames;
   /** The public layer, drawn on the server. */
   initial: IssuesLayer;
+  /** On a lesson's or a course's own address showing both groups: the merged fixes, drawn on the server. */
+  fixes?: FixesLayer | null;
 }) {
   const router = useRouter();
   const key = issuesMinePathOf(view);
-  const personal = !view.fixed && initial.kind !== 'unavailable';
+  const personal = view.show !== 'fixed' && initial.kind !== 'unavailable';
+  const own = isOwnView(view, at);
+  // The "Passed" marks: asked once there are fixes on the screen, and never for the open issues alone.
+  const fixesShown =
+    own && ((view.show === 'fixed' && initial.kind === 'fixed') || (view.show === 'both' && fixes?.kind === 'fixed'));
+  const [passed, setPassed] = useState<ReadonlySet<string> | null>(null);
+  useEffect(() => {
+    if (!fixesShown || !hasSessionHint(document.cookie)) return;
+    let live = true;
+    readPassedFixes().then((read) => {
+      if (live) setPassed(read);
+    });
+    return () => {
+      live = false;
+    };
+  }, [fixesShown]);
   const [mine, setMine] = useState<Mine | null>(null);
   const [asking, setAsking] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -203,11 +226,12 @@ export function IssuesLive({
   }, [waitsForAddress, setListOf]);
 
   // The person's list failed: read it again. The page's own layer failed (a visitor's five, the merged fixes): the
-  // page is drawn again on the server, which reads it again.
+  // page is drawn again on the server, which reads it again. Both failed: both.
   const mineFailed = personal && mine?.key === key && mine.read.state === 'failed';
+  const pageFailed = initial.kind === 'failed' || fixes?.kind === 'failed';
   const onRetry = () => {
     if (mineFailed) setAttempt((was) => was + 1);
-    else router.refresh();
+    if (pageFailed || !mineFailed) router.refresh();
   };
 
   return (
@@ -216,6 +240,9 @@ export function IssuesLive({
       at={at}
       names={names}
       layer={layer}
+      fixes={fixes}
+      shared={initial.kind === 'visitor' ? initial.rows.length : null}
+      passed={passed}
       onSkipped={onSkipped}
       onLeave={onLeave}
       onRetry={onRetry}

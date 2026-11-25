@@ -66,12 +66,23 @@ function WayCard({
   );
 }
 
+/** Which signs the person has: either one, and Contribute's. */
+export type AgentFirstSigns = { either: boolean; contribute: boolean };
+
+/** The signs as the cards' mark names them: Contribute's, the Learn sign only, or none. */
+function signMarkOf(signs: AgentFirstSigns): 'contribute' | 'learn' | 'none' {
+  if (signs.contribute) return 'contribute';
+  return signs.either ? 'learn' : 'none';
+}
+
 /**
  * The Agent tab with nothing connected (`agent-tab-first`): the two ways side by side (stacked on a phone), the
- * person's own agent first and recommended, then the one line on what comes next. For an account that has entered the
- * buttons lead to the Agent tab's own connect and key pages; for one that has not, into Contribute's flow.
+ * person's own agent first and recommended, then the one line on what comes next. With either sign "Connect your agent"
+ * leads to the Agent tab's own connect page, without one into Contribute's flow. "Use a Claude key" goes by the
+ * Contribute sign alone, since the hosted agent works for Contribute only: the Agent tab's key page with it, the flow's
+ * key step without it.
  */
-export function AgentFirst({ entered }: { entered: boolean }) {
+export function AgentFirst({ signs }: { signs: AgentFirstSigns }) {
   const own: Fact[] = [
     { label: 'Where it runs', text: 'On your computer: Claude Code, Codex CLI, Cursor, Gemini CLI and others.' },
     { label: 'What it costs', text: 'Nothing here. It works with the plan you already pay for.' },
@@ -86,7 +97,7 @@ export function AgentFirst({ entered }: { entered: boolean }) {
   ];
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2" data-agent-first={entered ? 'entered' : 'not-entered'}>
+      <div className="grid gap-4 sm:grid-cols-2" data-agent-first={signMarkOf(signs)}>
         <WayCard
           title="Your own agent"
           recommended
@@ -98,7 +109,7 @@ export function AgentFirst({ entered }: { entered: boolean }) {
           }
           button={{
             label: 'Connect your agent',
-            href: entered ? WORKSPACE_PATHS.agentConnect : GETTING_IN_PATHS.contributeAgentOwn,
+            href: signs.either ? WORKSPACE_PATHS.agentConnect : GETTING_IN_PATHS.contributeAgentOwn,
             primary: true,
           }}
         />
@@ -112,13 +123,13 @@ export function AgentFirst({ entered }: { entered: boolean }) {
           }
           button={{
             label: 'Use a Claude key',
-            href: entered ? WORKSPACE_PATHS.agentKey : GETTING_IN_PATHS.contributeAgentKey,
+            href: signs.contribute ? WORKSPACE_PATHS.agentKey : GETTING_IN_PATHS.contributeAgentKey,
             primary: false,
           }}
         />
       </div>
       <p className="text-sm text-muted-foreground" data-agent-first-next="">
-        {!entered ? (
+        {!signs.either ? (
           'Then you pick your first issue.'
         ) : (
           <>

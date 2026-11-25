@@ -158,7 +158,7 @@ describe('the budget lines', () => {
 
 describe('the Agent tab with nothing connected', () => {
   it('gives the two ways the same parts: a pill row, the facts, a link to read more, one button', () => {
-    const html = renderToStaticMarkup(<AgentFirst entered />);
+    const html = renderToStaticMarkup(<AgentFirst signs={{ either: true, contribute: true }} />);
     const cards = html
       .split('data-agent-way=')
       .slice(1)

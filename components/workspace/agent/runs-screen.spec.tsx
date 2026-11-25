@@ -165,4 +165,30 @@ describe('RunsView', () => {
     const html = renderToStaticMarkup(await RunsView({ searchParams: Promise.resolve({ page: '2' }) }));
     expect(text(html)).toContain('21–40 of 46 runs');
   });
+
+  /** A person with these signs. */
+  const signed = (contributeOnboardedAt: string | null, learnOnboardedAt: string | null) => ({
+    ...views.active,
+    contributor: { ...views.active.contributor, contributeOnboardedAt, learnOnboardedAt },
+  });
+  const AT = '2026-11-25T09:00:00.000Z';
+
+  it.each([
+    ['the Contribute sign only', AT, null],
+    ['the Learn sign only', null, AT],
+    ['both signs', AT, AT],
+  ])('opens with %s: fixes made with Learn have runs too', async (_who, contribute, learn) => {
+    reads.loadContribute.mockResolvedValue(signed(contribute, learn));
+    reads.loadRuns.mockResolvedValue(pageOf());
+    expect(text(renderToStaticMarkup(await RunsView({ searchParams: Promise.resolve({}) })))).toContain('runs');
+  });
+
+  it("sends a person with neither sign to /contribute, or to Learn's onboarding with the way back from Learn", async () => {
+    reads.loadContribute.mockResolvedValue(signed(null, null));
+    reads.loadRuns.mockResolvedValue(pageOf());
+    await expect(RunsView({ searchParams: Promise.resolve({}) })).rejects.toThrow(/NEXT_REDIRECT \/contribute$/);
+    await expect(RunsView({ searchParams: Promise.resolve({ from: 'learn' }) })).rejects.toThrow(
+      `NEXT_REDIRECT /learn/setup?back=${encodeURIComponent('/my/agent/runs?from=learn')}`,
+    );
+  });
 });

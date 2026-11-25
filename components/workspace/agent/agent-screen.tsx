@@ -12,7 +12,13 @@ import type {
   ContributeScheduleCounts,
   ContributeView,
 } from '@/lib/workspace/contribute.types';
-import { type ContributeNotice, contributeNoticesOf, hasNoAgent, isOnboarded } from '@/lib/workspace/contribute-state';
+import {
+  type ContributeNotice,
+  contributeNoticesOf,
+  hasContributeSignIn,
+  hasEitherSignIn,
+  hasNoAgent,
+} from '@/lib/workspace/contribute-state';
 import type { ContributeRunsPage } from '@/lib/workspace/runs';
 
 /** The key's trouble: shown above the hosted block, where it is fixed. */
@@ -55,7 +61,7 @@ export function AgentScreen({ view, runs, activity, noted = [], counts, now }: A
           text="Who does the work: your own agent on your computer, or the hosted agent on your Claude key. Neither is set up yet."
         />
         <ContributeNotices notices={notices.filter(({ kind }) => kind !== 'no-key' && !KEY_NOTICES.includes(kind))} />
-        <AgentFirst entered={isOnboarded(view)} />
+        <AgentFirst signs={{ either: hasEitherSignIn(view), contribute: hasContributeSignIn(view) }} />
         {runs?.items.length ? <RunsPreview page={runs} learner={learner} atWork={atWork} /> : null}
       </>
     );

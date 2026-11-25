@@ -91,7 +91,7 @@ type Agents = { hosted: boolean; own: boolean };
 const OWN: Agents = { hosted: false, own: true };
 /** An open account, with the Contribute sign or without it. */
 const open = (sign: boolean, agents: Agents = OWN) =>
-  ({ kind: 'open', entered: sign, signs: { contribute: sign, learn: null }, agents }) as const;
+  ({ kind: 'open', signs: { contribute: sign, learn: null }, agents }) as const;
 const at = (kind: string, gate: object = open(false), to?: string, facts: object = {}) =>
   place.loadContributeFlowPlace.mockResolvedValue({
     place: to ? { kind, to } : { kind },

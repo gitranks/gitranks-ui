@@ -4,6 +4,8 @@ import {
   accessNoticesOf,
   contributeHomeOf,
   contributeNoticesOf,
+  hasContributeSignIn,
+  hasEitherSignIn,
   isContributePageOpen,
   isMidSetup,
   isOnboarded,
@@ -99,12 +101,58 @@ describe('isMidSetup', () => {
   });
 });
 
+const AT = '2026-11-25T09:00:00.000Z';
+
+/**
+ * A person in each state of the signs, set up under the rule from before them (`onboardedAt` set) or not: none, the
+ * Contribute sign only, the Learn sign only, both, and the signs not known.
+ */
+const signed = (
+  contributeOnboardedAt: string | null | undefined,
+  learnOnboardedAt: string | null | undefined,
+  onboardedAt: string | null = AT,
+) => ({ ...views.active, contributor: contributor({ contributeOnboardedAt, learnOnboardedAt, onboardedAt }) });
+const SIGNED = {
+  none: signed(null, null),
+  contribute: signed(AT, null, null),
+  learn: signed(null, AT),
+  both: signed(AT, AT),
+  unknown: signed(undefined, undefined, null),
+  unknownSetUp: signed(undefined, undefined),
+};
+
+describe('the signs, read from the view', () => {
+  it.each<[keyof typeof SIGNED, boolean, boolean]>([
+    ['none', false, false],
+    ['contribute', true, true],
+    ['learn', false, true],
+    ['both', true, true],
+    ['unknown', false, true],
+    ['unknownSetUp', true, true],
+  ])('%s: the Contribute sign %s, either sign %s', (state, contribute, either) => {
+    expect(hasContributeSignIn(SIGNED[state])).toBe(contribute);
+    expect(hasEitherSignIn(SIGNED[state])).toBe(either);
+  });
+
+  it('is neither sign for a visitor or someone with no contributor row', () => {
+    expect(hasContributeSignIn(null)).toBe(false);
+    expect(hasEitherSignIn(null)).toBe(false);
+    expect(hasEitherSignIn(views.newcomer)).toBe(false);
+  });
+});
+
 describe('contributeHomeOf', () => {
-  it('is the landing until the user has entered, mid-setup too, then the tab', () => {
-    expect(contributeHomeOf(views.newcomer, {})).toEqual({ screen: 'landing', viewer: 'signed-in', preview: false });
-    expect(contributeHomeOf(views.noKey, {})).toEqual({ screen: 'landing', viewer: 'signed-in', preview: false });
-    expect(contributeHomeOf(views.midSetup, {})).toEqual({ screen: 'landing', viewer: 'signed-in', preview: false });
-    expect(contributeHomeOf(views.active, {})).toEqual({ screen: 'tab' });
+  it('is the landing without the Contribute sign, a learner too, then Contribute home', () => {
+    const landing = { screen: 'landing', viewer: 'signed-in', preview: false };
+    expect(contributeHomeOf(views.newcomer, {})).toEqual(landing);
+    expect(contributeHomeOf(SIGNED.none, {})).toEqual(landing);
+    expect(contributeHomeOf(SIGNED.learn, {})).toEqual(landing);
+    expect(contributeHomeOf(SIGNED.unknown, {})).toEqual(landing);
+    expect(contributeHomeOf(views.midSetup, {})).toEqual(landing);
+    expect(contributeHomeOf(SIGNED.contribute, {})).toEqual({ screen: 'tab' });
+    expect(contributeHomeOf(SIGNED.both, {})).toEqual({ screen: 'tab' });
+    // Not known: the rule from before the sign keeps a person who was in on Contribute home.
+    expect(contributeHomeOf(SIGNED.unknownSetUp, {})).toEqual({ screen: 'tab' });
   });
 
   it("shows anyone the visitor's landing under ?as=visitor", () => {
@@ -117,12 +165,12 @@ describe('contributeHomeOf', () => {
 });
 
 describe('isContributePageOpen', () => {
-  it('opens Issues, My contributions and the reviews only once the user is onboarded', () => {
-    for (const page of ['issues', 'me', 'attempt'] as const) {
-      expect(isContributePageOpen(views.active, page)).toBe(true);
-      expect(isContributePageOpen(views.agentOnboarded, page)).toBe(true);
-      expect(isContributePageOpen(views.noKey, page)).toBe(false);
-      expect(isContributePageOpen(views.midSetup, page)).toBe(false);
+  it('opens the runs, the pull requests and a pull request with either sign: Learn fixes have them too', () => {
+    for (const page of ['issues', 'me', 'runs', 'attempt'] as const) {
+      for (const state of ['contribute', 'learn', 'both', 'unknown', 'unknownSetUp'] as const) {
+        expect(isContributePageOpen(SIGNED[state], page), `${page} ${state}`).toBe(true);
+      }
+      expect(isContributePageOpen(SIGNED.none, page)).toBe(false);
       expect(isContributePageOpen(views.newcomer, page)).toBe(false);
     }
   });
@@ -131,6 +179,7 @@ describe('isContributePageOpen', () => {
     expect(isContributePageOpen(views.active, 'settings')).toBe(true);
     expect(isContributePageOpen(views.midSetup, 'settings')).toBe(true);
     expect(isContributePageOpen(views.noKey, 'settings')).toBe(true);
+    expect(isContributePageOpen(SIGNED.none, 'settings')).toBe(true);
     expect(isContributePageOpen(views.newcomer, 'settings')).toBe(false);
   });
 });

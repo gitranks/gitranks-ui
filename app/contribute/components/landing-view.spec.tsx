@@ -43,7 +43,7 @@ const { metadata: aboutMetadata } = await import('@/app/(public)/contribute/abou
 const { default: ContributeHomePage, metadata: homeMetadata } = await import('@/app/(workspace)/contribute/page');
 const { AuthorizeNextStep } = await import('./authorize-next-step');
 const { loadAgentPage } = await import('@/lib/contribute/agent-page');
-const { views } = await import('@/lib/contribute/__fixtures__/contribute-views');
+const { contributor, views } = await import('@/lib/contribute/__fixtures__/contribute-views');
 const { proofMerged, proofOpenOnly } = await import('@/lib/contribute/__fixtures__/wave-4-parts');
 const { default: staticSitemap } = await import('@/app/sitemaps/static/sitemap');
 
@@ -173,8 +173,25 @@ describe('where the landing’s button leads a signed-in person', () => {
     expect(signedInStartOf(views.midSetup)).toEqual({ href: '/contribute/start/agent/own', signedIn: true });
   });
 
-  it('Contribute itself once they have entered', () => {
-    expect(signedInStartOf(views.active)).toEqual({ member: true });
+  it('Contribute home ("Go to your issues") with the Contribute sign, the step that is left without it', () => {
+    const AT = '2026-11-25T09:00:00.000Z';
+    const signed = (
+      contributeOnboardedAt?: string | null,
+      learnOnboardedAt?: string | null,
+      onboardedAt: string | null = AT,
+    ) => ({
+      ...views.active,
+      contributor: contributor({ contributeOnboardedAt, learnOnboardedAt, onboardedAt }),
+    });
+    const left = { href: '/contribute/start', signedIn: true };
+    expect(signedInStartOf(signed(AT, null, null))).toEqual({ member: true });
+    expect(signedInStartOf(signed(AT, AT))).toEqual({ member: true });
+    expect(signedInStartOf(signed(null, null))).toEqual(left);
+    // A learner without the Contribute sign gets the landing's way in, though a way of contributing worked once.
+    expect(signedInStartOf(signed(null, AT))).toEqual(left);
+    // The signs not known: the rule from before them.
+    expect(signedInStartOf(signed(undefined, undefined))).toEqual({ member: true });
+    expect(signedInStartOf(signed(undefined, undefined, null))).toEqual(left);
   });
 });
 
@@ -191,6 +208,22 @@ describe('how Contribute works, /contribute/about', () => {
     for (const [tag] of html.matchAll(/<a [^>]*data-landing-start[^>]*>/g)) {
       expect(tag).not.toContain('data-contribute-source');
     }
+  });
+
+  it.each<[string, string | null | undefined, string | null | undefined, string]>([
+    ['no sign', null, null, 'Start contributing'],
+    ['the Contribute sign only', '2026-11-25T09:00:00.000Z', null, 'Go to your issues'],
+    ['the Learn sign only', null, '2026-11-25T09:00:00.000Z', 'Start contributing'],
+    ['both signs', '2026-11-25T09:00:00.000Z', '2026-11-25T09:00:00.000Z', 'Go to your issues'],
+    ['the signs not known', undefined, undefined, 'Go to your issues'],
+  ])('with %s, its main button reads %s', async (_who, contributeOnboardedAt, learnOnboardedAt, label) => {
+    data.loadContribute.mockResolvedValue({
+      ...views.active,
+      contributor: contributor({ contributeOnboardedAt, learnOnboardedAt }),
+    });
+    const [[href, first], [, last]] = startsOf(await about());
+    expect([first, last]).toEqual([label, label]);
+    expect(href).toBe(label === 'Go to your issues' ? '/contribute' : '/contribute/start');
   });
 
   it('tells an account being set up, or one with no profile, so, as /contribute does', async () => {
@@ -251,7 +284,7 @@ describe('the landing at /contribute', () => {
     vi.unstubAllEnvs();
   });
 
-  it('draws the landing for a signed-in person who has not entered, with the same proof', async () => {
+  it('draws the landing for a signed-in person without the Contribute sign, with the same proof', async () => {
     data.loadContribute.mockResolvedValue(views.newcomer);
     proofRead.loadLandingProof.mockResolvedValue(proofMerged);
     const page = ContributeHomePage({ searchParams: Promise.resolve({}) } as never) as ReactElement<{

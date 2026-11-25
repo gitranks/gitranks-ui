@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ContributeAttempt, ContributeMcpToken, ContributeView } from './contribute.types';
-import type { WorkspaceGate } from './gate';
+import { type WorkspaceGate, workspaceGateOf } from './gate';
 import {
   type ContributeFlowFacts,
   type ContributeFlowStep,
@@ -11,14 +11,14 @@ import {
   flowConnectedOf,
   hasAnyAttempt,
 } from './getting-in';
+import { contributor, views } from '@/lib/contribute/__fixtures__/contribute-views';
 
 const SIGNED_OUT: WorkspaceGate = { kind: 'signed-out' };
 const SETTING_UP: WorkspaceGate = { kind: 'setting-up' };
 const HIDDEN: WorkspaceGate = { kind: 'hidden' };
-/** An open account: with the Contribute sign or not (null: not known, `entered` then decides). */
-const open = (sign: boolean | null, entered = !!sign): WorkspaceGate => ({
+/** An open account: with the Contribute sign or not (null: not known, and the rule from before it says no). */
+const open = (sign: boolean | null): WorkspaceGate => ({
   kind: 'open',
-  entered,
   signs: { contribute: sign, learn: null },
   agents: { hosted: false, own: false },
 });
@@ -118,11 +118,22 @@ describe('contributeFlowPlaceOf: who is sent where, row by row', () => {
     expect(place('issue', { gate, issue })).toEqual({ kind: 'redirect', to: `/my/agent?issue=${issue}` });
   });
 
-  it('a sign that is not known keeps today’s rule: entered counts as the sign, nobody is sent back through', () => {
-    expect(place('agent-key', { gate: open(null, true) })).toEqual({ kind: 'redirect', to: '/contribute/start/issue' });
-    expect(place('agent-key', { gate: open(null, false) })).toEqual({ kind: 'page' });
-    // The sign itself wins over `entered` once it is known.
-    expect(place('agent-key', { gate: open(false, true) })).toEqual({ kind: 'page' });
+  it('a sign that is not known reads as the gate gives it: filled by the rule from before it, else no sign', () => {
+    const gateOf = (contributeOnboardedAt: string | null | undefined, onboardedAt: string | null) =>
+      workspaceGateOf({
+        githubLogin: 'octocat',
+        access: 'allowed',
+        view: { ...views.active, contributor: contributor({ contributeOnboardedAt, onboardedAt }) },
+      });
+    const AT = '2026-11-25T09:00:00.000Z';
+    // Not known, set up under the rule from before the sign: nobody is sent back through.
+    expect(place('agent-key', { gate: gateOf(undefined, AT) })).toEqual({
+      kind: 'redirect',
+      to: '/contribute/start/issue',
+    });
+    expect(place('agent-key', { gate: gateOf(undefined, null) })).toEqual({ kind: 'page' });
+    // The sign itself wins once it is known.
+    expect(place('agent-key', { gate: gateOf(null, AT) })).toEqual({ kind: 'page' });
   });
 });
 

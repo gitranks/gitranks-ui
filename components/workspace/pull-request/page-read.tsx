@@ -12,7 +12,8 @@ import {
 } from '@/lib/workspace/contribute.data';
 import type { ContributeAttemptDetail } from '@/lib/workspace/contribute.types';
 import { isContributePageOpen } from '@/lib/workspace/contribute-state';
-import { type IssueRef, pullRequestPath, WORKSPACE_PATHS } from '@/lib/workspace/paths';
+import { closedPageTargetOf } from '@/lib/workspace/gate';
+import { type IssueRef, pullRequestPath, searchParamsOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
 import { contributeHidden } from '@/lib/workspace/setting-up';
 
 /** The page's address, as the router reads it: the issue, and on an earlier attempt's page its id. */
@@ -22,14 +23,27 @@ export type PageParams = { owner: string; repo: string; issue: string; attemptId
 export type Query = Record<string, string | string[] | undefined>;
 
 /**
- * The gates every page of a pull request passes: signed in, and let in. Null signed out: the workspace's layout asks
- * the visitor to sign in (the link an agent hands its person), and the page shows nothing under it.
+ * The page's own path from its address as the router gives it: the issue's, an earlier attempt's, a run's, or a step
+ * under it (`approve`).
  */
-export async function gate() {
+export function pagePathOf({ owner, repo, issue, attemptId, runId }: PageParams & { runId?: string }, step?: string) {
+  const ref = { repo: `${owner}/${repo}`, issue: Number(issue), earlier: attemptId };
+  const path = pullRequestPath(ref, runId ? { run: runId } : undefined);
+  return step ? `${path}/${step}` : path;
+}
+
+/**
+ * The gates every page of a pull request passes: signed in, and let in. Null signed out: the workspace's layout asks
+ * the visitor to sign in (the link an agent hands its person), and the page shows nothing under it. A person with
+ * neither sign goes where `closedPageTargetOf` says for `page`, the address as it was opened (its query names Learn).
+ */
+export async function gate(page?: { path: string; query: Query }) {
   if (!(await viewerLogin())) return null;
   const view = await loadContribute();
   if (!view) contributeHidden(await loadContributeSetup());
-  if (!isContributePageOpen(view, 'attempt')) redirect('/contribute');
+  if (!isContributePageOpen(view, 'attempt')) {
+    redirect(page ? closedPageTargetOf(page.path, searchParamsOf(page.query)) : WORKSPACE_PATHS.contribute);
+  }
   return { view };
 }
 

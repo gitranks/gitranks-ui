@@ -30,10 +30,6 @@ const start = vi.hoisted(() => ({ loadStartPageView: vi.fn() }));
 vi.mock('@/lib/workspace/start/start-page.data', () => start);
 const masks = vi.hoisted(() => ({ loadStartPageWithMask: vi.fn() }));
 vi.mock('@/lib/workspace/masked-issue.data', () => ({ loadStartPageWithMask: masks.loadStartPageWithMask }));
-// The poll outside the tabs: a mark, so the page says where it mounts it.
-vi.mock('@/components/workspace/workspace-live', () => ({
-  WorkspaceLive: ({ children }: { children: ReactElement }) => <div data-workspace-live="">{children}</div>,
-}));
 
 const { default: StartPage } = await import('./page');
 const { startPageViewOf } = await import('@/lib/workspace/start/__fixtures__/start-page');
@@ -54,7 +50,10 @@ async function renderInner(page: ReactElement): Promise<string> {
   return renderToStaticMarkup(await render(inner.props));
 }
 
-const OPEN = { kind: 'open', entered: true, agents: { hosted: false, own: true } } as const;
+/** An open gate with these signs. */
+const openWith = (contribute: boolean | null, learn: boolean | null) =>
+  ({ kind: 'open', signs: { contribute, learn }, agents: { hosted: false, own: true } }) as const;
+const OPEN = openWith(true, true);
 const ROUTE = { owner: 'driftwood-js', repo: 'driftwood', issue: '934' };
 
 const startPage = (search: Record<string, string> = {}, route: Record<string, string> = ROUTE) =>
@@ -78,7 +77,6 @@ describe('the Start page at /my/start', () => {
     expect(start.loadStartPageView).toHaveBeenCalledWith(REF, 'fix', undefined);
     expect(html).toContain('data-start-mode="fix"');
     expect(text(html)).toContain('Fix this issue');
-    expect(html).not.toContain('data-workspace-live');
   });
 
   it('is lesson mode for ?lesson=1, back to the tab it came from', async () => {
@@ -102,13 +100,65 @@ describe('the Start page at /my/start', () => {
     await expect(startPage()).rejects.toThrow('NEXT_NOT_FOUND');
   });
 
-  it("sends an account that has not entered where the gate says, and moves on to the viewer's attempt", async () => {
-    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false });
-    await expect(startPage({ lesson: '1' })).rejects.toThrow('NEXT_REDIRECT /contribute/start');
-    gate.loadWorkspaceGate.mockResolvedValueOnce({ ...OPEN, entered: false });
-    await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /contribute/start');
-    start.loadStartPageView.mockResolvedValueOnce({ kind: 'claimed', href: '/my/pull-requests/by-attempt/A_9' });
-    await expect(startPage()).rejects.toThrow('NEXT_REDIRECT /my/pull-requests/by-attempt/A_9');
+  describe('by the sign the page needs', () => {
+    const LEARN_BACK = (query: string) =>
+      `NEXT_REDIRECT /learn/setup?back=${encodeURIComponent(`/my/start/driftwood-js/driftwood/934?${query}`)}`;
+
+    it.each<[string, boolean | null, boolean | null, boolean]>([
+      ['no sign', false, false, false],
+      ['the Contribute sign only', true, false, true],
+      ['the Learn sign only', false, true, false],
+      ['both signs', true, true, true],
+      ['the signs not known', null, null, false],
+    ])('from Contribute, %s: opens %s, else the flow’s first step', async (_who, contribute, learn, opens) => {
+      for (const search of [{}, { from: 'contribute' }] as Record<string, string>[]) {
+        gate.loadWorkspaceGate.mockResolvedValueOnce(openWith(contribute, learn));
+        if (opens) expect(await startPage(search)).toContain('data-start-mode="fix"');
+        else await expect(startPage(search)).rejects.toThrow(/^NEXT_REDIRECT \/contribute\/start$/);
+      }
+    });
+
+    it.each<[string, boolean | null, boolean | null, boolean]>([
+      ['no sign', false, false, false],
+      ['the Contribute sign only', true, false, false],
+      ['the Learn sign only', false, true, true],
+      ['both signs', true, true, true],
+      ['the signs not known', null, null, true],
+    ])(
+      "from Learn, %s: opens %s, else Learn's onboarding with the way back",
+      async (_who, contribute, learn, opens) => {
+        for (const search of [{ from: 'learn' }, { lesson: '1' }, { lesson: '1', from: 'contribute' }] as Record<
+          string,
+          string
+        >[]) {
+          gate.loadWorkspaceGate.mockResolvedValueOnce(openWith(contribute, learn));
+          const query = new URLSearchParams(search).toString();
+          if (opens) expect(await startPage(search)).toContain('data-start-mode');
+          else await expect(startPage(search)).rejects.toThrow(LEARN_BACK(query));
+        }
+      },
+    );
+
+    it("moves on to the viewer's own attempt first, whatever sign they have", async () => {
+      for (const search of [{}, { from: 'learn' }, { lesson: '1' }] as Record<string, string>[]) {
+        gate.loadWorkspaceGate.mockResolvedValueOnce(openWith(false, false));
+        start.loadStartPageView.mockResolvedValueOnce({ kind: 'claimed', href: '/my/pull-requests/by-attempt/A_9' });
+        await expect(startPage(search)).rejects.toThrow('NEXT_REDIRECT /my/pull-requests/by-attempt/A_9');
+      }
+    });
+
+    it('checks the sign before saying the issue is not found', async () => {
+      gate.loadWorkspaceGate.mockResolvedValueOnce(openWith(false, false));
+      start.loadStartPageView.mockResolvedValueOnce({ kind: 'not-found' });
+      await expect(startPage()).rejects.toThrow(/^NEXT_REDIRECT \/contribute\/start$/);
+    });
+
+    it('is not found for a visitor and for an account the workspace is not open to (the layout signs a visitor in)', async () => {
+      for (const kind of ['signed-out', 'hidden', 'setting-up']) {
+        gate.loadWorkspaceGate.mockResolvedValueOnce({ kind });
+        await expect(startPage()).rejects.toThrow('NEXT_NOT_FOUND');
+      }
+    });
   });
 
   describe('the old address of an issue whose details are hidden', () => {

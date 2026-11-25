@@ -2,7 +2,7 @@ import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 
 import { ApproveView } from './approve-view';
-import { gate, type PageParams, pageOf, paramOf, type Query, Unavailable } from './page-read';
+import { gate, type PageParams, pageOf, pagePathOf, paramOf, type Query, Unavailable } from './page-read';
 import { PlayerStrip } from '@/components/workspace/player/player-strip';
 import { LEARN_PULL_REQUESTS_PATH, learnLessonPath } from '@/lib/learn/paths';
 import { ownAgentChangesOf } from '@/lib/workspace/attempt-format';
@@ -26,7 +26,8 @@ export async function ApprovePageScreen({
   params: Promise<PageParams>;
   searchParams: Promise<Query>;
 }) {
-  const [gated, query] = await Promise.all([gate(), searchParams]);
+  const [query, route] = await Promise.all([searchParams, params]);
+  const gated = await gate({ path: pagePathOf(route, 'approve'), query });
   if (!gated) return null;
   const read = await pageOf(params);
   if (read.kind === 'unread') return <Unavailable />;

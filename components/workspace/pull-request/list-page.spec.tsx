@@ -20,6 +20,12 @@ const { views } = await import('@/lib/contribute/__fixtures__/contribute-views')
 const { prList, prRow } = await import('@/lib/workspace/__fixtures__/pull-request');
 
 type Props = { list: ReturnType<typeof prList>; side: string; issuesHref: string };
+/** A person with neither sign, a token waiting for its agent. */
+const NO_SIGN = {
+  ...views.midSetup,
+  contributor: { ...views.midSetup.contributor, contributeOnboardedAt: null, learnOnboardedAt: null },
+};
+
 const open = (query: Record<string, string> = {}) =>
   PullRequestListPage({ searchParams: Promise.resolve(query) }) as Promise<ReactElement<Props>>;
 
@@ -59,10 +65,29 @@ describe('the Pull requests tab', () => {
     expect(prData.loadBlockedWalkthroughs).toHaveBeenCalledOnce();
   });
 
-  it('says so when the list does not load, and sends a user not onboarded to the landing', async () => {
+  it('says so when the list does not load', async () => {
     prData.loadPullRequestList.mockResolvedValue(undefined);
     expect((await open()).type).not.toBe(PullRequestListPageView);
-    data.loadContribute.mockResolvedValue(views.midSetup);
-    await expect(open()).rejects.toThrow('NEXT_REDIRECT /contribute');
+  });
+
+  it.each<[string, string | null | undefined, string | null | undefined]>([
+    ['the Contribute sign only', '2026-11-25T09:00:00.000Z', null],
+    ['the Learn sign only', null, '2026-11-25T09:00:00.000Z'],
+    ['both signs', '2026-11-25T09:00:00.000Z', '2026-11-25T09:00:00.000Z'],
+    ['the signs not known', undefined, undefined],
+  ])('opens with %s: Learn fixes have pull requests too', async (_who, contributeOnboardedAt, learnOnboardedAt) => {
+    data.loadContribute.mockResolvedValue({
+      ...views.midSetup,
+      contributor: { ...views.midSetup.contributor, contributeOnboardedAt, learnOnboardedAt },
+    });
+    expect((await open()).type).toBe(PullRequestListPageView);
+  });
+
+  it("sends a person with neither sign to /contribute, or to Learn's onboarding with the way back when Learn opened it", async () => {
+    data.loadContribute.mockResolvedValue(NO_SIGN);
+    await expect(open()).rejects.toThrow(/NEXT_REDIRECT \/contribute$/);
+    await expect(open({ from: 'learn' })).rejects.toThrow(
+      `NEXT_REDIRECT /learn/setup?back=${encodeURIComponent('/my/pull-requests?from=learn')}`,
+    );
   });
 });

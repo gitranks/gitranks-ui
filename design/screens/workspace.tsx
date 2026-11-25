@@ -88,7 +88,7 @@ const agentAt = (
   ...patch,
 });
 
-/** Every tab, as an account that has entered sees them. */
+/** Every tab, as a person with the Contribute sign sees them. */
 const TABS = ['contribute', 'pull-requests', 'agent', 'settings'] as const;
 
 /** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */
@@ -285,8 +285,8 @@ export const WORKSPACE_SCREENS: Screen[] = [
           ),
       },
       {
-        id: 'not-entered',
-        title: 'Not entered yet, by its address: no tabs, both ways lead into the flow',
+        id: 'no-sign',
+        title: 'Neither sign, by its address: no tabs, both ways lead into the flow',
         path: '/my/agent',
         height: 800,
         render: () => (
@@ -294,7 +294,22 @@ export const WORKSPACE_SCREENS: Screen[] = [
             <Header />
             <WorkspaceTabsNav tabs={[]} />
             <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
-              <AgentScreen view={agentTabViews.notEntered} runs={pageOf({ items: [] })} now={NOW} />
+              <AgentScreen view={agentTabViews.noSign} runs={pageOf({ items: [] })} now={NOW} />
+            </main>
+          </>
+        ),
+      },
+      {
+        id: 'learn-sign-only',
+        title: "The Learn sign only: no tabs, your own agent on the Agent tab's connect page, a Claude key in the flow",
+        path: '/my/agent',
+        height: 800,
+        render: () => (
+          <>
+            <Header />
+            <WorkspaceTabsNav tabs={[]} poll />
+            <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-16">
+              <AgentScreen view={agentTabViews.learnSignOnly} runs={pageOf({ items: [] })} now={NOW} />
             </main>
           </>
         ),

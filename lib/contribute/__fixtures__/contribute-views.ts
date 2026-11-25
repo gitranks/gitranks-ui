@@ -322,15 +322,30 @@ export const agentTabViews = {
     sides: { contribute: false, learn: true },
   },
   keyInvalid: { ...views.keyInvalid, ownAgent: ownAgentConnected, sides: { contribute: true, learn: true } },
-  /** Entered once, then the key and the last connection were removed: nothing connected now. */
+  /** Set up once, then the key and the last connection were removed: nothing connected now. */
   nothing: {
     ...views.agentOnboarded,
     contributor: contributor({ credentials: [], plan: null, settings: null, spend: null, onboardedVia: 'MCP' }),
     ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] },
     sides: { contribute: true, learn: true },
   },
-  /** Not entered yet (preferences saved, no agent), opening the Agent tab by its address. */
-  notEntered: { ...views.noKey, ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] } },
+  /** Neither sign yet (preferences saved, no agent), opening the Agent tab by its address. */
+  noSign: {
+    ...views.noKey,
+    contributor: { ...views.noKey.contributor, contributeOnboardedAt: null, learnOnboardedAt: null },
+    ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] },
+  },
+  /** The Learn sign only, nothing connected now: a learner whose agent was disconnected. */
+  learnSignOnly: {
+    ...views.noKey,
+    contributor: {
+      ...views.noKey.contributor,
+      contributeOnboardedAt: null,
+      learnOnboardedAt: '2026-11-20T09:00:00.000Z',
+    },
+    ownAgent: { paths: { hosted: false, mcp: false }, tokens: [] },
+    sides: { contribute: false, learn: true },
+  },
 } satisfies Record<string, ContributeView>;
 
 /** The Settings tab's people (W1 §10.3): using both sides, a contributor, a learner (own agent, settings stored). */

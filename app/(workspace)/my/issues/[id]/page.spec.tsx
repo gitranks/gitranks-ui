@@ -39,7 +39,7 @@ const { fullPage, issueNumbers, issuePage, looksAtLimit, MASKED_NOW } = await im
   '@/lib/workspace/__fixtures__/masked-issue'
 );
 
-const OPEN = { kind: 'open', entered: true, agents: { hosted: false, own: true } } as const;
+const OPEN = { kind: 'open', signs: { contribute: true, learn: true }, agents: { hosted: false, own: true } } as const;
 /** A setup of Learn the person saved, as the API answers it. */
 const SETUP_SAVED = { state: 'SAVED', mainLanguage: 'python', otherLanguages: [], level: 2, guessed: [] } as const;
 const START = {

@@ -4,10 +4,10 @@ import { Suspense } from 'react';
 
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { StartPageBody } from '@/components/workspace/start/start-page-body';
-import { notEnteredTargetOf } from '@/lib/workspace/gate';
+import { signTargetOf } from '@/lib/workspace/gate';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { loadStartPageWithMask } from '@/lib/workspace/masked-issue.data';
-import { startPath } from '@/lib/workspace/paths';
+import { searchParamsOf, startPath } from '@/lib/workspace/paths';
 import { learnStartIssueOf, startBackOf, startModeOf } from '@/lib/workspace/start/start-page';
 import { loadStartPageView } from '@/lib/workspace/start/start-page.data';
 
@@ -30,10 +30,11 @@ export default function StartPage({ params, searchParams }: Params) {
 }
 
 /**
- * The page's reads. An address that names no issue is not found. Lesson mode the API has no page for goes to the same
- * address in Fix mode; an account that has not entered goes where the gate says (a lesson: Learn's step for the issue).
- * The viewer's own attempt on the issue moves on to its pull request's page (a Fix attempt in lesson mode is worded
- * instead).
+ * The page's reads. An address that names no issue is not found. The viewer's own attempt on the issue moves on to its
+ * pull request's page (a Fix attempt in lesson mode is worded instead), whatever sign they have, so such a link still
+ * leads to it. Only then the sign the page needs is checked (`signTargetOf`): the Contribute sign from Contribute, the
+ * Learn sign from Learn (`?from=learn` or `?lesson=1`), each sending a person without it to its onboarding. Lesson mode
+ * the API has no page for goes to the same address in Fix mode.
  *
  * Issue details are hidden until a person asks to see one, and an issue's own page is at its mask's address. This
  * address keeps working for an issue the viewer works on (its pull request's page), holds or named (this page), and is
@@ -50,18 +51,16 @@ async function StartView({ params, searchParams }: Pick<Params, 'params' | 'sear
   // Signed out, hidden and being set up are the layout's (the sign-in, the 404, Contribute's home).
   const gate = await loadWorkspaceGate();
   if (gate.kind !== 'open') notFound();
-  if (!gate.entered) {
-    const to = notEnteredTargetOf(fixMode, new URLSearchParams(mode === 'lesson' ? { lesson: '1' } : {}));
-    if (to) redirect(to);
-  }
 
   const withMask = await loadStartPageWithMask(ref, mode);
   const load = await loadStartPageView(ref, mode, withMask?.answer);
+  if (load.kind === 'claimed') redirect(load.href);
+  const to = signTargetOf(fixMode, searchParamsOf(search), gate.signs);
+  if (to) redirect(to);
   if (load.kind === 'not-found') {
     if (mode === 'lesson') redirect(fixMode);
     notFound();
   }
-  if (load.kind === 'claimed') redirect(load.href);
   if (withMask?.maskId) notFound();
 
   const back = startBackOf(mode, search.from);

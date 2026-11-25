@@ -81,7 +81,7 @@ import type { PrFeedbackFlow } from '@/lib/workspace/pr-feedback';
 import type { PrTimeline } from '@/lib/workspace/pr-timeline.types';
 import { prTimelinePath } from '@/lib/workspace/pr-timeline-path';
 
-/** Every tab, as an account that has entered sees them. */
+/** Every tab, as a person with the Contribute sign sees them. */
 const TABS = ['contribute', 'pull-requests', 'agent', 'settings'] as const;
 
 /** The page as the workspace's layout frames it: the site header (it marks itself by the path), then the tabs. */

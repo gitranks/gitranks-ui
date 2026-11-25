@@ -24,8 +24,8 @@ Contribute, Workspace, Learn, Admin), plus To review and Archive. Workspace hold
 (Pull requests, a pull request's page with its Lesson view, Agent, Settings, the Start page, the parts both front tabs
 use); Contribute and Learn hold their own tab and their public pages. Contribute's way in sits on its page right under
 its landing: the flow's steps, one row each (`design/screens/getting-in.tsx`; routes under `/contribute/start`). The
-Agent tab's "nothing connected" states, for an account that has entered and for one that has not, are on Workspace with
-the Agent tab.
+Agent tab's "nothing connected" states, with the Contribute sign, with the Learn sign only and with neither, are on
+Workspace with the Agent tab.
 
 - **Live boards** (`project/current/<area>/<screen>--<state>.dc.html`) are drawn from this repo's code by
   `pnpm design:export`: the real components, rendered from fixtures, with the app's own stylesheet

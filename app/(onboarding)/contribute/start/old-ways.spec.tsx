@@ -48,7 +48,11 @@ async function renderInner(page: ReactElement): Promise<string> {
   return renderToStaticMarkup(drawn);
 }
 
-const OPEN = (entered: boolean) => ({ kind: 'open', entered, agents: { hosted: false, own: true } });
+const OPEN = (contribute: boolean | null, learn: boolean | null = false) => ({
+  kind: 'open',
+  signs: { contribute, learn },
+  agents: { hosted: false, own: true },
+});
 const home = (search: Record<string, string>) =>
   renderInner(ContributeHomePage({ searchParams: Promise.resolve(search) } as never) as ReactElement);
 const connect = (search: Record<string, string>) =>
@@ -75,7 +79,7 @@ describe('the own agent’s old welcome, /contribute?welcome=agent', () => {
     await expect(home({ welcome: 'agent' })).rejects.toThrow(/NEXT_REDIRECT \/contribute$/);
   });
 
-  it('is the landing as before for an account that has not entered, and the tab without it', async () => {
+  it('is the landing as before for a person without the Contribute sign, and the tab without it', async () => {
     data.loadContribute.mockResolvedValue(views.noKey);
     expect(await home({ welcome: 'agent' })).toContain('data-landing');
     data.loadContribute.mockResolvedValue(agentTabViews.ownOnly);
@@ -85,14 +89,24 @@ describe('the own agent’s old welcome, /contribute?welcome=agent', () => {
 });
 
 describe('the Agent tab’s connect page', () => {
-  it('sends an account that has not entered to the own-agent step, the query kept', async () => {
+  it('sends a person with neither sign to the own-agent step, the query kept', async () => {
     gate.loadWorkspaceGate.mockResolvedValue(OPEN(false));
     await expect(connect({ from: 'agent', proof: 'A_1' })).rejects.toThrow(
       'NEXT_REDIRECT /contribute/start/agent/own?from=agent&proof=A_1',
     );
   });
 
-  it('opens for an account that has entered, and leaves a visitor to the layout’s sign-in', async () => {
+  it.each<[string, boolean | null, boolean | null]>([
+    ['the Contribute sign only', true, false],
+    ['the Learn sign only', false, true],
+    ['both signs', true, true],
+    ['the signs not known', null, null],
+  ])('opens with %s', async (_who, contribute, learn) => {
+    gate.loadWorkspaceGate.mockResolvedValue(OPEN(contribute, learn));
+    expect(await connect({ from: 'agent' })).toContain('data-connect');
+  });
+
+  it('leaves a visitor to the layout’s sign-in', async () => {
     expect(await connect({ from: 'agent' })).toContain('data-connect');
     gate.loadWorkspaceGate.mockResolvedValue({ kind: 'signed-out' });
     expect(await connect({})).toContain('data-connect');

@@ -20,7 +20,7 @@ const { WorkspaceSignIn } = await import('@/components/workspace/workspace-sign-
 const { ContributePageSkeleton } = await import('@/components/workspace/page-skeleton');
 const { WORKSPACE_PATHS } = await import('@/lib/workspace/paths');
 
-const OPEN = { kind: 'open', entered: true, agents: { hosted: false, own: true } };
+const OPEN = { kind: 'open', signs: { contribute: true, learn: null }, agents: { hosted: false, own: true } };
 const page = <section data-page="" />;
 const readFor = () => MyGateRead({ children: page });
 

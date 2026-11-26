@@ -1,5 +1,6 @@
 import { Loader2 } from 'lucide-react';
 
+import { ManagedSignOut } from './managed-sign-out';
 import { SettingUpAutoRefresh } from './setting-up-refresh';
 import { SetupRetry } from './setup-retry';
 import { LearnSetupRefresh } from '@/components/workspace/setup-refresh';
@@ -10,6 +11,10 @@ export const NO_PROFILE_TITLE = 'Not open to your GitHub account';
 export const SETUP_FAILED_TITLE = 'We could not set up your GitRanks account';
 export const SETTING_UP_TEXT =
   'GitRanks is reading your GitHub profile for the first time. This takes about a minute, and this page updates by itself.';
+export const MANAGED_ACCOUNT_TITLE = "This GitHub account can't be used";
+/** What a company-managed account reads: why, and what to do instead. */
+export const managedAccountText = (product: SetupProduct) =>
+  `You signed in with a company-managed GitHub account. These accounts can't open pull requests on public projects, so ${product} can't work with it. Sign out, then sign in with your personal GitHub account.`;
 export const SETUP_FAILED_TEXT = 'GitRanks could not read your GitHub profile. Try again: it takes about a minute.';
 
 /** Which side's page a panel stands on: its eyebrow names it. */
@@ -76,9 +81,28 @@ export function ContributeNoProfile({ product = 'Contribute' }: { product?: Setu
 }
 
 /**
+ * Contribute's home (or a step of Learn's flow, `product`) for a company-managed GitHub account: why it can't be used,
+ * and "Sign out", so the person can sign in with their personal account.
+ */
+export function ContributeManagedAccount({ product = 'Contribute' }: { product?: SetupProduct }) {
+  return (
+    <section
+      data-contribute-managed-account=""
+      className="mx-auto flex w-full max-w-xl flex-col gap-4 rounded-2xl border border-border bg-card px-6 py-6"
+    >
+      <span className="text-xs font-semibold uppercase tracking-wider text-primary">GitRanks {product}</span>
+      <h1 className="text-2xl leading-tight font-bold text-balance">{MANAGED_ACCOUNT_TITLE}</h1>
+      <p className="text-base leading-normal text-foreground/80">{managedAccountText(product)}</p>
+      <ManagedSignOut className="self-start" />
+    </section>
+  );
+}
+
+/**
  * The panel for a signed-in account with no Contribute view, by where its setup stands: setting up while its first read
  * is on its way, and when nothing is left to set up (the profile landed between the page's reads: its next read shows
- * the page); "Try again" once that read failed; the line that GitRanks does not read the account when it does not.
+ * the page); "Try again" once that read failed; the line that GitRanks does not read the account when it does not; why
+ * a company-managed account can't be used, with "Sign out".
  */
 export function ContributeNoProfileOf({
   state,
@@ -89,5 +113,6 @@ export function ContributeNoProfileOf({
 }) {
   if (state === 'failed') return <ContributeSetupFailed product={product} />;
   if (state === 'removed') return <ContributeNoProfile product={product} />;
+  if (state === 'managed') return <ContributeManagedAccount product={product} />;
   return <ContributeSettingUp product={product} />;
 }

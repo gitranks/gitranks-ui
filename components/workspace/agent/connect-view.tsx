@@ -4,7 +4,7 @@ import { AgentConnect, type AgentConnectProof } from './agent-connect';
 import { KeyConnect } from './key-connect';
 import { ContributeNotices } from '@/components/workspace/contribute-notices';
 import { manualDraftFromSettings, type StoredLimits } from '@/lib/workspace/connect-limits';
-import { loadAttempt, loadContribute, loadContributeSetup } from '@/lib/workspace/contribute.data';
+import { loadAttempt, loadContribute, loadContributeSetupState } from '@/lib/workspace/contribute.data';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import {
   claudeKeyOf,
@@ -24,7 +24,7 @@ export async function OwnAgentConnectView({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [view, params] = await Promise.all([loadContribute(), searchParams]);
-  if (!view) contributeHidden(await loadContributeSetup());
+  if (!view) contributeHidden(await loadContributeSetupState());
   return <OwnAgentConnectScreen view={view} proof={await proofOf(proofParamOf(params?.proof))} />;
 }
 

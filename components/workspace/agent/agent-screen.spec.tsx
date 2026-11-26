@@ -11,6 +11,7 @@ const reads = vi.hoisted(() => ({
   loadContribute: vi.fn(),
   loadContributeActivity: vi.fn(async () => null),
   loadContributeSetup: vi.fn(),
+  loadContributeSetupState: vi.fn(async () => 'none'),
   loadProviderInterests: vi.fn(async () => []),
   loadRuns: vi.fn(),
   loadScheduleCounts: vi.fn(async () => undefined),

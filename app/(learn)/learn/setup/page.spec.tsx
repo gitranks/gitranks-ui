@@ -63,6 +63,13 @@ describe("Learn's setup page", () => {
     expect(connection.mock.invocationCallOrder[0]).toBeLessThan(viewerLogin.mock.invocationCallOrder[0]);
   });
 
+  it("tells a company-managed account it can't be used, before any read", async () => {
+    viewerLogin.mockResolvedValue('jane-doe_acme');
+    expect(await open('/learn')).toEqual({ noProfile: 'managed' });
+    expect(loadLearnSign).not.toHaveBeenCalled();
+    expect(loadLearnSetup).not.toHaveBeenCalled();
+  });
+
   it('draws the onboarding without the Learn sign, keeping a way back it takes', async () => {
     expect(await open(LESSON)).toEqual({ mode: 'onboarding', back: LESSON });
     expect(await open([LESSON, '/learn/courses'])).toEqual({ mode: 'onboarding', back: LESSON });

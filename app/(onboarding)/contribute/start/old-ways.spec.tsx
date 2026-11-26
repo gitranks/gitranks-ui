@@ -15,6 +15,7 @@ const data = vi.hoisted(() => ({
   loadContribute: vi.fn(),
   loadAttempts: vi.fn(),
   loadContributeSetup: vi.fn(async () => false),
+  loadContributeSetupState: vi.fn(async () => 'none'),
   loadProviderInterests: vi.fn(async () => []),
   viewerLogin: vi.fn(async () => 'octocat'),
 }));

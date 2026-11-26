@@ -24,6 +24,7 @@ vi.mock('@/lib/learn/actions', () => ({}));
 const reads = vi.hoisted(() => ({
   loadContribute: vi.fn(),
   loadContributeSetup: vi.fn(),
+  loadContributeSetupState: vi.fn(async () => 'none'),
   loadContributeSet: vi.fn(async () => null),
   loadContributeEmailSettings: vi.fn(async () => null),
   loadScheduleCounts: vi.fn(async () => undefined),

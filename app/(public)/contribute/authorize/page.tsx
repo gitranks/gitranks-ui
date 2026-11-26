@@ -10,6 +10,7 @@ import {
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 import { loadContributeSetupState, viewerLogin } from '@/lib/workspace/contribute.data';
 import { ContributeOAuthRequestDocument, ContributeSignsDocument } from '@/lib/workspace/contribute.documents';
+import { isManagedLogin } from '@/lib/workspace/managed-account';
 import {
   authorizeNeedsSetupOf,
   authorizeSignsOf,
@@ -49,6 +50,8 @@ async function authorizeStateOf(value: string | string[] | undefined, review: bo
   const login = await viewerLogin();
   // The directory reviewers' sign-in (`&review=1`): signed out only; a signed-in user allows as themselves.
   if (!login) return { kind: review && REVIEW_SIGN_IN_SHOWN ? 'review-sign-in' : 'signed-out', requestId };
+  // A company-managed account: why it can't be used, before any read.
+  if (isManagedLogin(login)) return { kind: 'managed', requestId };
   // The signs, read beside the request: a read that fails leaves the page as it was before them.
   const signs = readSigns(login);
   let read: Awaited<ReturnType<typeof readRequest>>;

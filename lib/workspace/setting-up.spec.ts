@@ -13,10 +13,16 @@ const { contributeHidden } = await import('./setting-up');
 
 describe('a Contribute page with no view', () => {
   it("sends an account being set up to Contribute's home, which says so", () => {
-    expect(() => contributeHidden(true)).toThrow('NEXT_REDIRECT /contribute');
+    expect(() => contributeHidden('setting-up')).toThrow('NEXT_REDIRECT /contribute');
+  });
+
+  it("sends a company-managed account to Contribute's home, which says why it can't be used", () => {
+    expect(() => contributeHidden('managed')).toThrow('NEXT_REDIRECT /contribute');
   });
 
   it('is not found otherwise', () => {
-    expect(() => contributeHidden(false)).toThrow('NEXT_NOT_FOUND');
+    for (const state of ['none', 'failed', 'removed'] as const) {
+      expect(() => contributeHidden(state), state).toThrow('NEXT_NOT_FOUND');
+    }
   });
 });

@@ -3,13 +3,13 @@ import { LogIn } from 'lucide-react';
 import type { Route } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { IDENTITY_PROVIDER, TOKEN_PROVIDER } from '@/lib/auth-providers';
-import { forgetHeroApplication } from '@/lib/unsung-hero/hero-application-cookie';
+import { signOutHere } from '@/lib/sign-out';
 
 const AVATAR_SIZE = 32;
 
@@ -24,12 +24,6 @@ export const showsAdminLinks = (login: string | null | undefined) =>
   !!login && MENU_ADMIN_LOGINS.some((admin) => admin.toLowerCase() === login.toLowerCase());
 
 const UNSUNG_HERO_ADMIN_PATH = '/admin/unsung-hero';
-
-/** Signing out forgets the browser's note of an open application, so the next account does not see it. */
-const signOutHere = () => {
-  forgetHeroApplication();
-  return signOut();
-};
 
 /**
  * The box the header's right end holds, whatever is in it: the Sign in button's (36 by 32 px), so the avatar, its place

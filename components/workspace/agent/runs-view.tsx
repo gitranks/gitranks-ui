@@ -13,7 +13,7 @@ import { HEADING } from '@/components/workspace/primitives';
 import { SettingsPageHead } from '@/components/workspace/settings-rows';
 import { cn } from '@/lib/utils';
 import { audienceOf } from '@/lib/workspace/audience';
-import { loadContribute, loadContributeActivity, loadContributeSetup } from '@/lib/workspace/contribute.data';
+import { loadContribute, loadContributeActivity, loadContributeSetupState } from '@/lib/workspace/contribute.data';
 import type { ContributeActivity, ContributeView } from '@/lib/workspace/contribute.types';
 import { contributeNoticesOf, isContributePageOpen } from '@/lib/workspace/contribute-state';
 import { plural } from '@/lib/workspace/format';
@@ -50,7 +50,7 @@ export async function RunsView({
     loadRuns(runsFilterOf(query, now), { page: number }),
     loadContributeActivity().catch(() => null),
   ]);
-  if (!view) contributeHidden(await loadContributeSetup());
+  if (!view) contributeHidden(await loadContributeSetupState());
   if (!isContributePageOpen(view, 'runs'))
     redirect(closedPageTargetOf(WORKSPACE_PATHS.agentRuns, searchParamsOf(params)));
   // A page past the end: the last page.

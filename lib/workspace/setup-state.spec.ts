@@ -73,6 +73,14 @@ describe('loadContributeSetupState', () => {
     expect(await loadContributeSetupState()).toBe('failed');
   });
 
+  it('answers `managed` for a company-managed account, without a read', async () => {
+    auth.mockResolvedValue({ user: { githubLogin: 'jane-doe_acme' }, expires: '2099-01-01' });
+    answer('NONE');
+    expect(await loadContributeSetupState()).toBe('managed');
+    expect(await loadContributeSetup()).toBe(false);
+    expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+
   it('gives loadContributeSetup its yes only while the account is being set up', async () => {
     answer('SETTING_UP');
     expect(await loadContributeSetup()).toBe(true);

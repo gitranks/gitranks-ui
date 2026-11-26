@@ -9,6 +9,7 @@ import { learnSetupPageOf } from '@/lib/learn/onboarding';
 import { LEARN_SETUP_METADATA } from '@/lib/learn/seo/setup';
 import { loadLearnSetup } from '@/lib/learn/setup.data';
 import { loadContributeSetupState, viewerLogin } from '@/lib/workspace/contribute.data';
+import { isManagedLogin } from '@/lib/workspace/managed-account';
 import { learnBackOf } from '@/lib/workspace/paths';
 
 /**
@@ -17,7 +18,8 @@ import { learnBackOf } from '@/lib/workspace/paths';
  * read here, on the server, so the page never draws one view and then another. With the sign and a way back (`back`,
  * only an address `learnBackOf` takes), the person goes straight there. When the sign cannot be read, the saved setup
  * decides (one that cannot be read either counts as saved), and nobody is sent back. An account GitRanks has no profile
- * of yet has neither: the page shows where its setup stands (`OnboardingNoProfile`). A visitor reads nothing here and
+ * of yet has neither: the page shows where its setup stands (`OnboardingNoProfile`), and a company-managed account why
+ * it can't be used, before any read. A visitor reads nothing here and
  * gets the sign-in card from the first paint.
  */
 export const instant = false;
@@ -29,6 +31,7 @@ export default async function SetupPage({ searchParams }: PageProps<'/learn/setu
   const { back: given } = await searchParams;
   const back = learnBackOf(Array.isArray(given) ? given[0] : given);
   const login = await viewerLogin();
+  if (login && isManagedLogin(login)) return <OnboardingNoProfile state="managed" />;
   const sign = login ? await loadLearnSign(login) : null;
   // The setup is read only when the sign cannot be: as before the sign, a saved setup gets the editor, and so does one
   // that cannot be read, so the onboarding's defaults never go over a setup that may be saved. Beside it, where the

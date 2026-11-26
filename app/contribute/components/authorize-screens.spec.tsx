@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
+vi.mock('next-auth/react', () => ({ signIn: vi.fn(), signOut: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock('@/lib/workspace/actions', () => ({ approveContributeOAuth: vi.fn() }));
 vi.mock('@/lib/workspace/review-sign-in.actions', () => ({ approveContributeOAuthAsReviewer: vi.fn() }));
@@ -148,6 +148,18 @@ describe('the consent page of an agent sign-in', () => {
     expect(plain).not.toMatch(/hour|preview/i);
     expect(html).toContain(`href="${CANCEL}"`);
     expect(html).not.toContain('data-authorize="allow"');
+  });
+
+  it("tells a company-managed account it can't be used, with Sign out and Cancel, and no Allow", () => {
+    const html = renderToStaticMarkup(<AuthorizeScreen state={{ kind: 'managed', requestId: ID }} />);
+    const plain = text(html);
+    expect(plain).toContain("This GitHub account can't be used");
+    expect(plain).toContain('company-managed GitHub account');
+    expect(plain).toContain('Sign out, then sign in with your personal GitHub account.');
+    expect(html).toContain('data-managed-sign-out');
+    expect(html).toContain(`href="${CANCEL}"`);
+    expect(html).not.toContain('data-authorize="allow"');
+    expect(plain).not.toMatch(/claim|—/i);
   });
 
   it('asks to connect "your agent" when the app gave no name, never "An app" as a title', () => {

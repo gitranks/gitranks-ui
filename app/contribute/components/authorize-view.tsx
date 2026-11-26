@@ -5,7 +5,14 @@ import type { ReactNode } from 'react';
 import { AuthorizeActions, AuthorizeCancel, AuthorizeReviewSignIn, AuthorizeSignIn } from './authorize-actions';
 import { AuthorizeDocsLine, AuthorizeNextStep, AuthorizeSetupStep } from './authorize-next-step';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { NO_PROFILE_TITLE, SETTING_UP_TITLE, SETUP_FAILED_TITLE } from '@/components/workspace/setting-up';
+import { ManagedSignOut } from '@/components/workspace/managed-sign-out';
+import {
+  MANAGED_ACCOUNT_TITLE,
+  managedAccountText,
+  NO_PROFILE_TITLE,
+  SETTING_UP_TITLE,
+  SETUP_FAILED_TITLE,
+} from '@/components/workspace/setting-up';
 import { SettingUpAutoRefresh } from '@/components/workspace/setting-up-refresh';
 import { LearnSetupRefresh } from '@/components/workspace/setup-refresh';
 import { SetupRetry } from '@/components/workspace/setup-retry';
@@ -42,6 +49,8 @@ export type AuthorizeState =
    * failed: Try again and Cancel.
    */
   | { kind: 'no-profile'; requestId: string; failed?: boolean }
+  /** A company-managed GitHub account: why it can't be used, Sign out and Cancel. */
+  | { kind: 'managed'; requestId: string }
   /** Allowed already. `setup`: as the ask's, "Finish setting up" follows. */
   | { kind: 'approved'; requestId: string; clientName: string | null; setup?: boolean }
   /** Unknown, expired or used, or a link without a request. */
@@ -320,6 +329,15 @@ export function AuthorizeScreen({ state }: { state: AuthorizeState }) {
           <CardFooter className="flex flex-col items-start gap-4">
             <AuthorizeCancel requestId={state.requestId} />
             <AuthorizeDocsLine contact />
+          </CardFooter>
+        </Frame>
+      );
+    case 'managed':
+      return (
+        <Frame title={MANAGED_ACCOUNT_TITLE} text={managedAccountText('Contribute')}>
+          <CardFooter className="flex flex-wrap gap-2.5">
+            <ManagedSignOut />
+            <AuthorizeCancel requestId={state.requestId} />
           </CardFooter>
         </Frame>
       );

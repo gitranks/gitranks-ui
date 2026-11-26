@@ -4,18 +4,24 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { refresh, retry, loadContributeSetupState } = vi.hoisted(() => ({
+const { refresh, retry, loadContributeSetupState, signOutHere } = vi.hoisted(() => ({
   refresh: vi.fn(),
   retry: vi.fn(),
   loadContributeSetupState: vi.fn(),
+  signOutHere: vi.fn(),
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
 vi.mock('@/lib/workspace/setup.actions', () => ({ retryContributeSetup: retry }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContributeSetupState }));
+vi.mock('@/lib/sign-out', () => ({ signOutHere }));
 
-const { ContributeNoProfile, ContributeNoProfileOf, ContributeSettingUp, ContributeSetupFailed } = await import(
-  './setting-up'
-);
+const {
+  ContributeManagedAccount,
+  ContributeNoProfile,
+  ContributeNoProfileOf,
+  ContributeSettingUp,
+  ContributeSetupFailed,
+} = await import('./setting-up');
 const { ContributeNoProfileRead } = await import('./no-profile-panel');
 const { SETUP_RETRY_LATER, SetupRetry } = await import('./setup-retry');
 
@@ -61,7 +67,23 @@ describe('the panels of an account with no profile', () => {
     expect(html).not.toContain('data-setup-retry');
   });
 
+  it("says a company-managed account can't be used and why, with Sign out, on either side", () => {
+    for (const product of ['Contribute', 'Learn'] as const) {
+      const html = renderToStaticMarkup(<ContributeManagedAccount product={product} />);
+      const plain = text(html);
+      expect(plain).toContain(`GitRanks ${product}`);
+      expect(plain).toContain("This GitHub account can't be used");
+      expect(plain).toContain(
+        `You signed in with a company-managed GitHub account. These accounts can't open pull requests on public projects, so ${product} can't work with it. Sign out, then sign in with your personal GitHub account.`,
+      );
+      expect(html).toContain('data-managed-sign-out');
+      expect(html).not.toContain('data-setup-retry');
+      expect(plain).not.toMatch(NEVER);
+    }
+  });
+
   it.each([
+    ['managed', 'data-contribute-managed-account'],
     ['setting-up', 'data-contribute-setting-up'],
     ['failed', 'data-contribute-setup-failed'],
     ['removed', 'data-contribute-no-profile'],

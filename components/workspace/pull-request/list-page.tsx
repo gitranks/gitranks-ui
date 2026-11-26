@@ -6,7 +6,7 @@ import { Unavailable } from './page-read';
 import { LEARN_HOME_PATH } from '@/lib/learn/paths';
 import { audienceOf } from '@/lib/workspace/audience';
 import { withBlockedWalkthroughs } from '@/lib/workspace/blocked-walkthrough';
-import { loadContribute, loadContributeSetup } from '@/lib/workspace/contribute.data';
+import { loadContribute, loadContributeSetupState } from '@/lib/workspace/contribute.data';
 import { isContributePageOpen } from '@/lib/workspace/contribute-state';
 import { closedPageTargetOf } from '@/lib/workspace/gate';
 import { PICK_ISSUE_PATHS, searchParamsOf, WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -29,7 +29,7 @@ export async function PullRequestListPage({ searchParams }: { searchParams: Prom
     searchParams,
     cookies(),
   ]);
-  if (!view) contributeHidden(await loadContributeSetup());
+  if (!view) contributeHidden(await loadContributeSetupState());
   if (!isContributePageOpen(view, 'me'))
     redirect(closedPageTargetOf(WORKSPACE_PATHS.pullRequests, searchParamsOf(query)));
   if (!read) return <Unavailable />;

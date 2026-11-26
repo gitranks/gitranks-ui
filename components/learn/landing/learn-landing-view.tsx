@@ -126,25 +126,25 @@ export function LearnLandingView({ viewer, courses, lessons, fixes = null, tryDr
   const sections = landingSectionsOf(courses);
   return (
     <main className="flex flex-col" data-landing-viewer={viewer}>
-      <section
-        className={cn(
-          WIDTH,
-          'grid items-start gap-9 pt-8 pb-11 sm:pt-12 sm:pb-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,8fr)] lg:gap-12',
-        )}
-      >
-        <div className="flex min-w-0 flex-col gap-5 lg:pt-6">
-          <div className="flex items-center gap-2">
-            <span className="rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
-              New
-            </span>
-            <span className={EYEBROW}>GitRanks Learn</span>
+      {/* The intro over the lesson, so the lesson has the page's whole width: its code and its question side by side. */}
+      <section className={cn(WIDTH, 'flex flex-col gap-9 pt-8 pb-11 sm:pt-12 sm:pb-16 lg:gap-10')}>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end lg:gap-12">
+          <div className="flex min-w-0 flex-col gap-5">
+            <div className="flex items-center gap-2">
+              <span className="rounded-sm bg-brand-soft px-1.5 text-[11px] font-semibold tracking-wide text-brand-soft-foreground uppercase">
+                New
+              </span>
+              <span className={EYEBROW}>GitRanks Learn</span>
+            </div>
+            <h1 className="m-0 text-4xl font-bold tracking-tight text-balance md:text-5xl">{LANDING_TITLE}</h1>
           </div>
-          <h1 className="m-0 text-4xl font-bold tracking-tight text-balance md:text-5xl">{LANDING_TITLE}</h1>
-          <p className="m-0 text-lg text-foreground/80">{landingTextOf(courses)}</p>
-          <div className="flex flex-wrap gap-3">
-            <StartButton viewer={viewer} />
+          <div className="flex min-w-0 flex-col gap-5">
+            <p className="m-0 text-lg text-foreground/80">{landingTextOf(courses)}</p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+              <StartButton viewer={viewer} />
+              {START_LINES[viewer] ? <p className="m-0 text-sm text-muted-foreground">{START_LINES[viewer]}</p> : null}
+            </div>
           </div>
-          {START_LINES[viewer] ? <p className="m-0 text-sm text-muted-foreground">{START_LINES[viewer]}</p> : null}
         </div>
         {lessons.length ? <TryLessonCard lessons={lessons} viewer={viewer} drawn={tryDrawn} hints={hints} /> : null}
       </section>

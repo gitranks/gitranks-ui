@@ -85,9 +85,11 @@ describe('the landing for a visitor', () => {
   it('opens with what Learn is, the start button and its line, and a real lesson to answer', () => {
     expect(page.querySelector('[data-landing-viewer="visitor"]')).not.toBeNull();
     expect(words(page.querySelector('h1'))).toBe(LANDING_TITLE);
-    expect(words(page.querySelector('h1')?.nextElementSibling ?? null)).toBe(landingTextOf(courseCards));
-    expect(page.textContent).toContain('Start learning');
-    expect(page.textContent).toContain('Free. You sign in with GitHub.');
+    // The title on one side, its text and the start button on the other, over the lesson.
+    const beside = page.querySelector('h1')?.parentElement?.nextElementSibling ?? null;
+    expect(words(beside?.querySelector('p') ?? null)).toBe(landingTextOf(courseCards));
+    expect(beside?.textContent).toContain('Start learning');
+    expect(beside?.textContent).toContain('Free. You sign in with GitHub.');
     const card = page.querySelector('[data-try-lesson="visitor"]');
     expect(words(card)).toContain('Lesson 1 of 2');
     expect(card?.querySelector('[data-try-another]')).not.toBeNull();

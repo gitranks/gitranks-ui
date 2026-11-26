@@ -99,7 +99,7 @@ function TryPlayer({
   else if (right && saved) below = <DoneLine>Learned. Saved to your account.</DoneLine>;
   const languages = item.code ? tryLanguagesLineOf(item.code.language, item.languages) : null;
   return (
-    <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-8">
       <div className="flex min-w-0 flex-col gap-3">
         <Link
           href={coursePath(lesson.course.slug)}

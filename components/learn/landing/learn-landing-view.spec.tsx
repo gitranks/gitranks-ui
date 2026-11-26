@@ -89,8 +89,7 @@ describe('the landing for a visitor', () => {
     const beside = page.querySelector('h1')?.parentElement?.nextElementSibling ?? null;
     expect(words(beside?.querySelector('p') ?? null)).toBe(landingTextOf(courseCards));
     expect(beside?.textContent).toContain('Start learning');
-    expect(page.textContent).toContain('Start learning');
-    expect(page.textContent).toContain('Free. You sign in with GitHub.');
+    expect(beside?.textContent).toContain('Free. You sign in with GitHub.');
     const card = page.querySelector('[data-try-lesson="visitor"]');
     expect(words(card)).toContain('Lesson 1 of 2');
     expect(card?.querySelector('[data-try-another]')).not.toBeNull();

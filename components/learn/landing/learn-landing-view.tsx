@@ -140,7 +140,7 @@ export function LearnLandingView({ viewer, courses, lessons, fixes = null, tryDr
           </div>
           <div className="flex min-w-0 flex-col gap-5">
             <p className="m-0 text-lg text-foreground/80">{landingTextOf(courses)}</p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-5">
               <StartButton viewer={viewer} />
               {START_LINES[viewer] ? <p className="m-0 text-sm text-muted-foreground">{START_LINES[viewer]}</p> : null}
             </div>

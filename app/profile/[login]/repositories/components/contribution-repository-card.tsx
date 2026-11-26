@@ -18,7 +18,7 @@ type RepositoryCardProps = {
   year: number;
 };
 
-const PR_FETCH_LIMIT = 3;
+const PR_FETCH_LIMIT = 5;
 
 export const ContributionRepositoryCard: FC<RepositoryCardProps> = ({
   repository,

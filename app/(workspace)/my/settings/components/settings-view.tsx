@@ -37,7 +37,7 @@ import {
   loadContribute,
   loadContributeEmailSettings,
   loadContributeSet,
-  loadContributeSetup,
+  loadContributeSetupState,
   loadScheduleCounts,
   viewerLogin,
 } from '@/lib/workspace/contribute.data';
@@ -76,7 +76,7 @@ export async function loadSettingsView(): Promise<ContributeView> {
  */
 async function loadSummaryView(): Promise<ContributeView> {
   const view = await loadContribute();
-  if (!view) contributeHidden(await loadContributeSetup());
+  if (!view) contributeHidden(await loadContributeSetupState());
   return view;
 }
 

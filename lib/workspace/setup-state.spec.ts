@@ -18,12 +18,13 @@ const answer = (state: unknown, setup: unknown = new Error('not asked')) =>
   });
 
 describe('setupStateOf', () => {
-  it("reads the API's four states, and nothing else", () => {
-    expect(['NONE', 'SETTING_UP', 'FAILED', 'REMOVED'].map(setupStateOf)).toEqual([
+  it("reads the API's five states, and nothing else", () => {
+    expect(['NONE', 'SETTING_UP', 'FAILED', 'REMOVED', 'MANAGED_ACCOUNT'].map(setupStateOf)).toEqual([
       'none',
       'setting-up',
       'failed',
       'removed',
+      'managed',
     ]);
     for (const odd of ['', 'failed', 'toString', null, undefined, 3]) expect(setupStateOf(odd)).toBeNull();
   });
@@ -71,6 +72,12 @@ describe('loadContributeSetupState', () => {
   it('is failed when neither read answers, so the page offers Try again', async () => {
     answer(new Error('502'), new Error('502'));
     expect(await loadContributeSetupState()).toBe('failed');
+  });
+
+  it('answers `managed` for a company-managed account, as the API says, never "being set up"', async () => {
+    answer('MANAGED_ACCOUNT');
+    expect(await loadContributeSetupState()).toBe('managed');
+    expect(await loadContributeSetup()).toBe(false);
   });
 
   it('gives loadContributeSetup its yes only while the account is being set up', async () => {

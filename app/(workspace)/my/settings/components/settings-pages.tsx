@@ -14,7 +14,7 @@ import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
 import { SettingsForm } from '@/components/workspace/settings/settings-form';
 import { SettingsGroup, SettingsList, SettingsPageHead, SettingsRow } from '@/components/workspace/settings-rows';
 import { MODES, modeTitleOf } from '@/lib/contribute/set-format';
-import { loadContribute, loadContributeSet, loadContributeSetup } from '@/lib/workspace/contribute.data';
+import { loadContribute, loadContributeSet, loadContributeSetupState } from '@/lib/workspace/contribute.data';
 import type {
   ContributePreferences,
   ContributeSet,
@@ -118,7 +118,7 @@ export async function GithubSettingsView({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [view, params] = await Promise.all([loadContribute(), searchParams]);
-  if (!view) contributeHidden(await loadContributeSetup());
+  if (!view) contributeHidden(await loadContributeSetupState());
   return <GithubSettingsScreen view={view} grantRefusal={grantRefusalOf(params.grant)} />;
 }
 

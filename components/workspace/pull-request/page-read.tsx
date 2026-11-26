@@ -6,7 +6,7 @@ import { HEADING } from '@/components/workspace/primitives';
 import {
   loadAttempt,
   loadContribute,
-  loadContributeSetup,
+  loadContributeSetupState,
   loadIssueAttempt,
   viewerLogin,
 } from '@/lib/workspace/contribute.data';
@@ -40,7 +40,7 @@ export function pagePathOf({ owner, repo, issue, attemptId, runId }: PageParams 
 export async function gate(page?: { path: string; query: Query }) {
   if (!(await viewerLogin())) return null;
   const view = await loadContribute();
-  if (!view) contributeHidden(await loadContributeSetup());
+  if (!view) contributeHidden(await loadContributeSetupState());
   if (!isContributePageOpen(view, 'attempt')) {
     redirect(page ? closedPageTargetOf(page.path, searchParamsOf(page.query)) : WORKSPACE_PATHS.contribute);
   }

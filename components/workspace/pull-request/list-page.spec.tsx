@@ -1,7 +1,11 @@
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const data = vi.hoisted(() => ({ loadContribute: vi.fn(), loadContributeSetup: vi.fn() }));
+const data = vi.hoisted(() => ({
+  loadContribute: vi.fn(),
+  loadContributeSetup: vi.fn(),
+  loadContributeSetupState: vi.fn(async () => 'none'),
+}));
 const prData = vi.hoisted(() => ({ loadPullRequestList: vi.fn(), loadBlockedWalkthroughs: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));

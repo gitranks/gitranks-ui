@@ -11,7 +11,7 @@ import { ScrollToHash } from '@/components/workspace/scroll-to-hash';
 import { SettingsAnchors } from '@/components/workspace/settings/settings-anchors';
 import { SettingsForm } from '@/components/workspace/settings/settings-form';
 import { SettingsPageHead } from '@/components/workspace/settings-rows';
-import { loadContribute, loadContributeSetup, loadProfileLanguages } from '@/lib/workspace/contribute.data';
+import { loadContribute, loadContributeSetupState, loadProfileLanguages } from '@/lib/workspace/contribute.data';
 import type { ContributeView } from '@/lib/workspace/contribute.types';
 import { claudeKeyOf, contributeNoticesOf, isOwnAgentOnly, settingsOf } from '@/lib/workspace/contribute-state';
 import { signsOf, signTargetOf } from '@/lib/workspace/gate';
@@ -97,7 +97,7 @@ export async function KeyView({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [view, params, languages] = await Promise.all([loadContribute(), searchParams, loadProfileLanguages()]);
-  if (!view) contributeHidden(await loadContributeSetup());
+  if (!view) contributeHidden(await loadContributeSetupState());
   // GitHub's consent came back here before its page moved to Settings: its answer is there now.
   const grant = grantRefusalOf(params.grant);
   if (grant) redirect(`${SETTINGS_PATHS.github}?grant=${grant}` as Route);

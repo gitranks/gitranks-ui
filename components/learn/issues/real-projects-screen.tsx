@@ -3,7 +3,13 @@
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 
-import { IssuesBox, IssuesEndBox, IssuesFilters, IssuesFoot } from '@/components/learn/issues/issues-parts';
+import {
+  IssuesBox,
+  IssuesEndBox,
+  IssuesFilters,
+  IssuesFoot,
+  IssuesManagedBox,
+} from '@/components/learn/issues/issues-parts';
 import type { IssuesHandlers, IssuesLayer } from '@/components/learn/issues/issues-screen';
 import { LessonIssuesEmail } from '@/components/learn/issues/lesson-issues-email';
 import {
@@ -44,7 +50,7 @@ import { type MaskedListReads, NO_MASKED_READS } from '@/lib/workspace/masked-is
  */
 
 /** The merged fixes as the page reads them: ten and the count, or the API answering none, or a failure. */
-export type FixesLayer = Extract<IssuesLayer, { kind: 'fixed' | 'unavailable' | 'failed' }>;
+export type FixesLayer = Extract<IssuesLayer, { kind: 'fixed' | 'unavailable' | 'managed' | 'failed' }>;
 
 export type RealProjectsScreenProps = {
   view: IssuesView;
@@ -101,7 +107,8 @@ export function RealProjectsScreen({
 }
 
 /** The unavailable state and a failure, in a group's own place. */
-function NotHere({ kind, onRetry }: { kind: 'unavailable' | 'failed'; onRetry?: () => void }) {
+function NotHere({ kind, onRetry }: { kind: 'unavailable' | 'managed' | 'failed'; onRetry?: () => void }) {
+  if (kind === 'managed') return <IssuesManagedBox />;
   if (kind === 'unavailable') {
     return (
       <IssuesBox kind="unavailable" title={ISSUES_UNAVAILABLE.title} text={ISSUES_UNAVAILABLE.text}>
@@ -142,7 +149,7 @@ function OpenGroup({
   shared: number | null;
   handlers: IssuesHandlers;
 }) {
-  if (layer.kind === 'unavailable' || layer.kind === 'failed')
+  if (layer.kind === 'unavailable' || layer.kind === 'managed' || layer.kind === 'failed')
     return <NotHere kind={layer.kind} onRetry={handlers.onRetry} />;
   const visitor = layer.kind === 'visitor';
   const rows = visitor ? layer.rows : layer.list.rows;

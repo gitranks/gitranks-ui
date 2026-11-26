@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 
 import { ContributeOpenDocument, ContributePreviewDocument } from './contribute.documents';
 import { sessionTokenOf } from './session-token';
+import { setupStateOf } from './setup-state';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /** How long an answer of `contributeOpen` is reused: the launch reaches every server within a minute. */
@@ -44,19 +45,25 @@ export function resetContributeOpen(): void {
 /**
  * Whether Contribute is open to a signed-in user: `allowed`; `setting-up` while their GitRanks account is being set up
  * (a new GitHub account, read for the first time now), which Contribute's home says; `hidden` otherwise (off the
- * preview, no profile, or any failure).
+ * preview, no profile, or any failure); `managed` for a company-managed GitHub account, which Contribute's home tells
+ * why it can't be used.
  */
-export type ContributeAccess = 'allowed' | 'setting-up' | 'hidden';
+export type ContributeAccess = 'allowed' | 'setting-up' | 'managed' | 'hidden';
 
 /** Whether the API opens Contribute to this GitHub login, or is setting up its account; hidden on any failure. */
 export async function contributeAccessOf(githubLogin: string | null | undefined): Promise<ContributeAccess> {
   if (!githubLogin) return 'hidden';
   try {
-    const { contribute, contributeSetup } = await graphqlDirect(ContributePreviewDocument, undefined, {
-      source: 'ssr',
-      githubLogin,
-    });
+    const { contribute, contributeSetup, contributeSetupState } = await graphqlDirect(
+      ContributePreviewDocument,
+      undefined,
+      {
+        source: 'ssr',
+        githubLogin,
+      },
+    );
     if (contribute?.previewAllowed === true) return 'allowed';
+    if (setupStateOf(contributeSetupState) === 'managed') return 'managed';
     return contributeSetup === true ? 'setting-up' : 'hidden';
   } catch {
     return 'hidden';

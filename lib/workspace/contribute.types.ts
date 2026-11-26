@@ -34,9 +34,10 @@ export type ContributeOnboardedVia = 'HOSTED' | 'MCP';
 /**
  * Where a signed-in account's GitRanks setup stands: `none` (nothing to set up: the profile is there), `setting-up`
  * (no profile yet, and its first read is on its way), `failed` (that read ended without a profile, or could not
- * start: "Try again" asks it again), `removed` (GitRanks does not read the account).
+ * start: "Try again" asks it again), `removed` (GitRanks does not read the account), `managed` (a company-managed
+ * GitHub account: neither Contribute nor Learn can work with it).
  */
-export type ContributeSetupState = 'none' | 'setting-up' | 'failed' | 'removed';
+export type ContributeSetupState = 'none' | 'setting-up' | 'failed' | 'removed' | 'managed';
 export type ContributeConnectResult =
   | 'CONNECTED'
   | 'EXHAUSTED'

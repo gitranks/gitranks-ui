@@ -7,6 +7,8 @@ import { type KeyboardEvent, type ReactNode, useEffect, useRef } from 'react';
 
 import { EmailNeedsAddress } from '@/components/learn/email-needs-address';
 import { Button } from '@/components/ui/button';
+import { MANAGED_ACCOUNT_TITLE, managedAccountText } from '@/components/workspace/managed-account-words';
+import { ManagedSignOut } from '@/components/workspace/managed-sign-out';
 import { RefChips } from '@/components/workspace/ref-chips';
 import { LEARN_FIXES_PAGE_BUILT } from '@/lib/learn/built-pages';
 import {
@@ -180,6 +182,15 @@ export function IssuesBox({
       <div className="max-w-prose text-sm text-muted-foreground">{text}</div>
       {children ? <div className="flex flex-wrap items-center gap-3">{children}</div> : null}
     </section>
+  );
+}
+
+/** No list for a company-managed GitHub account: why it can't be used, and Sign out to pick another. */
+export function IssuesManagedBox() {
+  return (
+    <IssuesBox kind="managed" title={MANAGED_ACCOUNT_TITLE} text={managedAccountText('Learn')}>
+      <ManagedSignOut />
+    </IssuesBox>
   );
 }
 

@@ -1,8 +1,9 @@
 import { isValidElement, type ReactElement, Suspense } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadWorkspaceGate, notFound, redirect } = vi.hoisted(() => ({
+const { loadWorkspaceGate, loadContributeSetupState, notFound, redirect } = vi.hoisted(() => ({
   loadWorkspaceGate: vi.fn(),
+  loadContributeSetupState: vi.fn(async () => 'none'),
   notFound: vi.fn(() => {
     throw new Error('NEXT_NOT_FOUND');
   }),
@@ -13,6 +14,7 @@ const { loadWorkspaceGate, notFound, redirect } = vi.hoisted(() => ({
 vi.mock('server-only', () => ({}));
 vi.mock('next/navigation', () => ({ notFound, redirect }));
 vi.mock('@/lib/workspace/gate.data', () => ({ loadWorkspaceGate }));
+vi.mock('@/lib/workspace/contribute.data', () => ({ loadContributeSetupState }));
 vi.mock('@/components/workspace/workspace-sign-in', () => ({ WorkspaceSignIn: () => null }));
 
 const { MyGate, MyGateRead } = await import('./my-gate');
@@ -49,6 +51,13 @@ describe('the gate of the pages under /my', () => {
     const shown = (await readFor()) as ReactElement<{ children: ReactElement }>;
     expect(isValidElement(shown) && shown.type).toBe('main');
     expect(shown.props.children.type).toBe(WorkspaceSignIn);
+  });
+
+  it("sends a company-managed account to Contribute's home, which says why it can't be used", async () => {
+    loadWorkspaceGate.mockResolvedValue({ kind: 'hidden' });
+    loadContributeSetupState.mockResolvedValueOnce('managed');
+    await expect(readFor()).rejects.toThrow(`NEXT_REDIRECT ${WORKSPACE_PATHS.contribute}`);
+    expect(notFound).not.toHaveBeenCalled();
   });
 
   it('answers 404 to an account the workspace is not open to', async () => {

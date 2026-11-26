@@ -490,6 +490,21 @@ describe('Issues', () => {
     expect($('[data-masked-row]')).toBeNull();
   });
 
+  it("says why a company-managed account has no list, with Sign out, on Issues and a course's real world", async () => {
+    for (const [view, at] of [
+      [ISSUES_VIEW, undefined],
+      [views.course, 'course'],
+    ] as const) {
+      await render(<IssuesScreen view={view} at={at} names={issuesNames} layer={{ kind: 'managed' }} />);
+      expect($('[data-issues-box="managed"] h2')?.textContent, at).toBe("This GitHub account can't be used");
+      expect($('[data-issues-box="managed"]')?.textContent, at).toContain(
+        "You signed in with a company-managed GitHub account. These accounts can't open pull requests on public projects, so Learn can't work with it. Sign out, then sign in with your personal GitHub account.",
+      );
+      expect($('[data-issues-box="managed"] [data-managed-sign-out]')?.textContent, at).toBe('Sign out');
+      expect($('[data-masked-row]'), at).toBeNull();
+    }
+  });
+
   it('says a failed read, with "Try again" when it can', async () => {
     const onRetry = vi.fn();
     await render(<IssuesScreen view={ISSUES_VIEW} layer={{ kind: 'failed' }} onRetry={onRetry} />);
@@ -505,6 +520,7 @@ describe('Issues', () => {
       { kind: 'personal', list: listOutsideForYou({ emailOn: true, emailTo: null }) },
       { kind: 'fixed', fixes: learnFixes },
       { kind: 'unavailable' },
+      { kind: 'managed' },
       { kind: 'failed' },
     ] as const) {
       await render(<IssuesScreen view={views.course} at="course" names={issuesNames} layer={layer} />);

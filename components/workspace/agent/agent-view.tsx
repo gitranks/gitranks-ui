@@ -4,7 +4,7 @@ import { AgentScreen } from './agent-screen';
 import {
   loadContribute,
   loadContributeActivity,
-  loadContributeSetup,
+  loadContributeSetupState,
   loadProviderInterests,
   loadScheduleCounts,
 } from '@/lib/workspace/contribute.data';
@@ -26,7 +26,7 @@ export async function AgentView() {
     loadProviderInterests(),
     loadScheduleCounts(),
   ]);
-  if (!view) contributeHidden(await loadContributeSetup());
+  if (!view) contributeHidden(await loadContributeSetupState());
   if (!isContributePageOpen(view, 'settings')) redirect(WORKSPACE_PATHS.contribute);
   return <AgentScreen view={view} runs={runs} activity={activity} noted={noted} counts={counts} now={new Date()} />;
 }

@@ -17,7 +17,8 @@ import { learnBackOf } from '@/lib/workspace/paths';
  * read here, on the server, so the page never draws one view and then another. With the sign and a way back (`back`,
  * only an address `learnBackOf` takes), the person goes straight there. When the sign cannot be read, the saved setup
  * decides (one that cannot be read either counts as saved), and nobody is sent back. An account GitRanks has no profile
- * of yet has neither: the page shows where its setup stands (`OnboardingNoProfile`). A visitor reads nothing here and
+ * of yet has neither: the page shows where its setup stands (`OnboardingNoProfile`), and a company-managed account why
+ * it can't be used. A visitor reads nothing here and
  * gets the sign-in card from the first paint.
  */
 export const instant = false;
@@ -37,7 +38,9 @@ export default async function SetupPage({ searchParams }: PageProps<'/learn/setu
     login && sign === null
       ? await Promise.all([loadLearnSetup(login), loadContributeSetupState()])
       : ([undefined, 'none'] as const);
-  if (setup === null && setupState !== 'none') return <OnboardingNoProfile state={setupState} />;
+  if (setupState === 'managed' || (setup === null && setupState !== 'none')) {
+    return <OnboardingNoProfile state={setupState} />;
+  }
   const saved = setup === null || setup?.state === 'SAVED';
   const page = learnSetupPageOf({ signedIn: login !== null, sign, back, saved });
   if (page.kind === 'redirect') redirect(page.to);

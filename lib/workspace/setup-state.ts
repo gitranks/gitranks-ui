@@ -5,6 +5,7 @@ const STATES: Record<string, ContributeSetupState> = {
   SETTING_UP: 'setting-up',
   FAILED: 'failed',
   REMOVED: 'removed',
+  MANAGED_ACCOUNT: 'managed',
 };
 
 /** The API's answer as a setup state; null for anything else. */

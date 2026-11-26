@@ -5,16 +5,23 @@ const withSession = vi.fn(() => new Response(null, { headers: { 'set-cookie': 'a
 
 vi.mock('next-auth', () => ({ default: () => ({ auth: () => withSession }) }));
 
-const { maySeeContribute, settingUp, open, sessionRead } = vi.hoisted(() => ({
+const { maySeeContribute, settingUp, managed, open, sessionRead } = vi.hoisted(() => ({
   maySeeContribute: vi.fn(async (_req?: unknown) => false),
   settingUp: vi.fn(async () => false),
+  managed: vi.fn(async () => false),
   open: vi.fn(async () => false),
   // Whether the session the request carries can be read (not expired).
   sessionRead: { ok: true },
 }));
 vi.mock('./lib/workspace/preview-gate', () => {
   const access = async (req: unknown) =>
-    (await maySeeContribute(req)) ? 'allowed' : (await settingUp()) ? 'setting-up' : 'hidden';
+    (await maySeeContribute(req))
+      ? 'allowed'
+      : (await managed())
+        ? 'managed'
+        : (await settingUp())
+          ? 'setting-up'
+          : 'hidden';
   return {
     requestContributeAccess: access,
     requestWorkspaceAccess: async (req: unknown) => (sessionRead.ok ? access(req) : 'signed-out'),
@@ -82,6 +89,8 @@ describe('proxy', () => {
     maySeeContribute.mockResolvedValue(false);
     settingUp.mockReset();
     settingUp.mockResolvedValue(false);
+    managed.mockReset();
+    managed.mockResolvedValue(false);
     open.mockReset();
     open.mockResolvedValue(false);
     ledgerOpen.mockReset();
@@ -351,6 +360,18 @@ describe('proxy', () => {
         expect(response?.headers.get('x-middleware-rewrite'), path).toBe('https://gitranks.com/_404');
       }
       expect(open).not.toHaveBeenCalled();
+    });
+
+    it("sends a company-managed account to Contribute's home, which says why, and lets the flow's steps say it there", async () => {
+      managed.mockResolvedValue(true);
+      for (const path of ['/contribute/issues', '/my/agent', '/my/settings', '/my/pull-requests']) {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.headers.get('location'), path).toBe('https://gitranks.com/contribute');
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+      }
+      const step = await proxy(request('authjs.session-token=t', '/contribute/start'), event);
+      expect(step?.headers.get('location')).toBeNull();
+      expect(step?.headers.get('x-middleware-rewrite')).toBeNull();
     });
 
     it("sends a new account being set up to Contribute's home, with the way it picked, never cached", async () => {
@@ -827,7 +848,22 @@ describe('proxy', () => {
         expect(response?.headers.get('location'), path).toBeNull();
         expect(response?.headers.get('cache-control'), path).toBe('private, no-cache');
       }
-      expect(maySeeContribute).not.toHaveBeenCalled();
+      // Asked only on the person's own pages: the review, the check and My progress.
+      expect(maySeeContribute).toHaveBeenCalledTimes(3);
+    });
+
+    it("sends a company-managed account from the person's own pages to Learn's setup, which says why", async () => {
+      managed.mockResolvedValue(true);
+      for (const path of ['/learn/progress', '/learn/review', '/learn/review/', '/learn/check/algorithms']) {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.status, path).toBe(307);
+        expect(response?.headers.get('location'), path).toBe('https://gitranks.com/learn/setup');
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+      }
+      for (const path of ['/learn/setup', '/learn/issues', '/learn/courses']) {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.headers.get('location'), path).toBeNull();
+      }
     });
 
     it.each(['/learn/about', '/learn/about/'])(

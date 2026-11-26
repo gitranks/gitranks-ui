@@ -3,6 +3,7 @@ import { type ReactNode, Suspense } from 'react';
 
 import { ContributePageSkeleton } from '@/components/workspace/page-skeleton';
 import { WorkspaceSignIn } from '@/components/workspace/workspace-sign-in';
+import { loadContributeSetupState } from '@/lib/workspace/contribute.data';
 import { loadWorkspaceGate } from '@/lib/workspace/gate.data';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
@@ -36,7 +37,11 @@ export async function MyGateRead({ children }: { children: ReactNode }) {
       </main>
     );
   }
-  if (gate?.kind === 'hidden') notFound();
+  // A company-managed account: Contribute's home says why it can't be used.
+  if (gate?.kind === 'hidden') {
+    if ((await loadContributeSetupState()) === 'managed') redirect(WORKSPACE_PATHS.contribute);
+    notFound();
+  }
   if (gate?.kind === 'setting-up') redirect(WORKSPACE_PATHS.contribute);
   return children;
 }

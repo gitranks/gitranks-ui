@@ -50,7 +50,7 @@ import { type MaskedListReads, NO_MASKED_READS } from '@/lib/workspace/masked-is
  */
 
 /** The merged fixes as the page reads them: ten and the count, or the API answering none, or a failure. */
-export type FixesLayer = Extract<IssuesLayer, { kind: 'fixed' | 'unavailable' | 'failed' }>;
+export type FixesLayer = Extract<IssuesLayer, { kind: 'fixed' | 'unavailable' | 'managed' | 'failed' }>;
 
 export type RealProjectsScreenProps = {
   view: IssuesView;

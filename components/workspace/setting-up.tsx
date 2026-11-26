@@ -1,5 +1,6 @@
 import { Loader2 } from 'lucide-react';
 
+import { MANAGED_ACCOUNT_TITLE, managedAccountText, type SetupProduct } from './managed-account-words';
 import { ManagedSignOut } from './managed-sign-out';
 import { SettingUpAutoRefresh } from './setting-up-refresh';
 import { SetupRetry } from './setup-retry';
@@ -11,14 +12,8 @@ export const NO_PROFILE_TITLE = 'Not open to your GitHub account';
 export const SETUP_FAILED_TITLE = 'We could not set up your GitRanks account';
 export const SETTING_UP_TEXT =
   'GitRanks is reading your GitHub profile for the first time. This takes about a minute, and this page updates by itself.';
-export const MANAGED_ACCOUNT_TITLE = "This GitHub account can't be used";
-/** What a company-managed account reads: why, and what to do instead. */
-export const managedAccountText = (product: SetupProduct) =>
-  `You signed in with a company-managed GitHub account. These accounts can't open pull requests on public projects, so ${product} can't work with it. Sign out, then sign in with your personal GitHub account.`;
+export { MANAGED_ACCOUNT_TITLE, managedAccountText, type SetupProduct };
 export const SETUP_FAILED_TEXT = 'GitRanks could not read your GitHub profile. Try again: it takes about a minute.';
-
-/** Which side's page a panel stands on: its eyebrow names it. */
-export type SetupProduct = 'Contribute' | 'Learn';
 
 /**
  * Contribute's home (or a step of Learn's flow, `product`) while the viewer's account is being set up (a new GitHub

@@ -36,6 +36,7 @@ import type { MaskedIssue } from '@/lib/workspace/masked-issue.types';
 export type IssuesMine =
   | { state: 'ok'; list: IssuesList; reads: MaskedListReads | null; sign: boolean | null }
   | { state: 'unavailable' }
+  | { state: 'managed' }
   | { state: 'failed' }
   | { state: 'signed-out' };
 
@@ -45,7 +46,8 @@ export async function readIssuesMine(view: IssuesView): Promise<IssuesMine> {
     const res = await fetch(issuesMinePathOf(view), { cache: 'no-store' });
     if (!res.ok) return { state: 'failed' };
     const answer = (await res.json()) as { state?: unknown; list?: unknown; reads?: unknown; learnOnboarded?: unknown };
-    if (answer.state === 'signed-out' || answer.state === 'unavailable') return { state: answer.state };
+    if (answer.state === 'signed-out' || answer.state === 'unavailable' || answer.state === 'managed')
+      return { state: answer.state };
     const list = answer.state === 'ok' ? issuesListOf(answer.list) : null;
     if (!list) return { state: answer.state === 'ok' ? 'unavailable' : 'failed' };
     const reads = answer.reads && typeof answer.reads === 'object' ? (answer.reads as MaskedListReads) : null;
@@ -212,6 +214,7 @@ export function IssuesLive({
         sign: mine.read.sign,
       };
     else if (mine.read.state === 'unavailable') layer = { kind: 'unavailable' };
+    else if (mine.read.state === 'managed') layer = { kind: 'managed' };
     else if (mine.read.state === 'failed') layer = { kind: 'failed' };
   } else if (personal && asking && initial.kind === 'visitor') {
     layer = { ...initial, pending: true };

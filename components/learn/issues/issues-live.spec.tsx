@@ -71,6 +71,8 @@ describe("the person's read", () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/me/learn/issues?course=algorithms&learned=1', { cache: 'no-store' });
     fetchMock.mockReturnValueOnce(answer({ state: 'unavailable' }));
     expect(await readIssuesMine(ISSUES_VIEW)).toEqual({ state: 'unavailable' });
+    fetchMock.mockReturnValueOnce(answer({ state: 'managed' }));
+    expect(await readIssuesMine(ISSUES_VIEW)).toEqual({ state: 'managed' });
     fetchMock.mockReturnValueOnce(answer({ state: 'ok', list: null }));
     expect(await readIssuesMine(ISSUES_VIEW)).toEqual({ state: 'unavailable' });
     fetchMock.mockReturnValueOnce(answer({}, 500));

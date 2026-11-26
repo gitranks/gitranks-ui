@@ -16,6 +16,7 @@ import {
   courseRouteOf,
   isLearnFixRemovedPath,
   LEARN_COURSE_MISSING_PATH,
+  LEARN_SETUP_PATH,
   learnCourseMarkdownRouteOf,
   learnFixByAttemptOf,
   learnFixRouteOf,
@@ -81,6 +82,8 @@ function noStore(response: NextResponse): NextResponse {
 
 /** The admin pages: answered per viewer, never stored. */
 const ADMIN_PATH = /^\/admin(?:\/|$)/;
+/** A person's own Learn pages, read for them alone: progress, review and a course's check. */
+const LEARN_OWN_PAGE = /^\/learn\/(?:progress|review|check\/[^/]+)\/?$/;
 
 // `__Secure-` over HTTPS, bare in local dev; `.0`, `.1`… when the JWT is split across cookies.
 
@@ -367,6 +370,15 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     const response = NextResponse.redirect(new URL(LEARN_PATH, request.url), 307);
     response.headers.set('Cache-Control', 'private, no-store');
     return response;
+  }
+  // A person's own Learn pages have nothing to read for a company-managed GitHub account: it goes to Learn's setup,
+  // which says why it can't be used.
+  if (asked && LEARN_OWN_PAGE.test(pathname) && hasSession(request)) {
+    if ((await requestContributeAccess(request)) === 'managed') {
+      const response = NextResponse.redirect(new URL(LEARN_SETUP_PATH, request.url), 307);
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
   }
   // The admin pages answer a visitor without a session with a real 404 here, before anything renders: the page reads
   // the session, so it is sent behind a prerendered shell, and its own not-found would come after a 200. Nothing is

@@ -12,6 +12,7 @@ import {
   IssuesEndBox,
   IssuesFilters,
   IssuesFoot,
+  IssuesManagedBox,
 } from '@/components/learn/issues/issues-parts';
 import type { LessonIssuesEmailHandlers } from '@/components/learn/issues/lesson-issues-email';
 import { type FixesLayer, RealProjectsScreen } from '@/components/learn/issues/real-projects-screen';
@@ -56,6 +57,7 @@ import { learnSetupHrefOf } from '@/lib/workspace/paths';
  * - `personal`: the signed-in person's five, with the switches, the counts, the empty end and the emails;
  * - `fixed`: the view's merged fixes ("Fixed" set), ten at a time, the same for everyone;
  * - `unavailable`: the API answers no list, or does not know it yet;
+ * - `managed`: no list, for a company-managed GitHub account: why it can't be used, and Sign out;
  * - `failed`: the person's list did not load.
  */
 export type IssuesLayer =
@@ -70,6 +72,7 @@ export type IssuesLayer =
     }
   | { kind: 'fixed'; fixes: LearnFixes }
   | { kind: 'unavailable' }
+  | { kind: 'managed' }
   | { kind: 'failed' };
 
 /** The presses a signed-in person's list answers; each optional, so a board draws the list without them. */
@@ -187,6 +190,7 @@ function IssuesBody({
       </IssuesBox>
     );
   }
+  if (layer.kind === 'managed') return <IssuesManagedBox />;
   if (layer.kind === 'failed') {
     return (
       <IssuesBox kind="failed" title="Not loaded" text={ISSUES_FAILED}>

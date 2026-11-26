@@ -848,7 +848,22 @@ describe('proxy', () => {
         expect(response?.headers.get('location'), path).toBeNull();
         expect(response?.headers.get('cache-control'), path).toBe('private, no-cache');
       }
-      expect(maySeeContribute).not.toHaveBeenCalled();
+      // Asked only on the person's own pages: the review, the check and My progress.
+      expect(maySeeContribute).toHaveBeenCalledTimes(3);
+    });
+
+    it("sends a company-managed account from the person's own pages to Learn's setup, which says why", async () => {
+      managed.mockResolvedValue(true);
+      for (const path of ['/learn/progress', '/learn/review', '/learn/review/', '/learn/check/algorithms']) {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.status, path).toBe(307);
+        expect(response?.headers.get('location'), path).toBe('https://gitranks.com/learn/setup');
+        expect(response?.headers.get('cache-control'), path).toBe('private, no-store');
+      }
+      for (const path of ['/learn/setup', '/learn/issues', '/learn/courses']) {
+        const response = await proxy(request('authjs.session-token=t', path), event);
+        expect(response?.headers.get('location'), path).toBeNull();
+      }
     });
 
     it.each(['/learn/about', '/learn/about/'])(

@@ -2,8 +2,9 @@ import { NextRequest } from 'next/server';
 import type { Session } from 'next-auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { loadIssuesList, loadMaskedListReads, loadLearnSign, current } = vi.hoisted(() => ({
+const { loadIssuesList, loadMaskedListReads, loadLearnSign, loadContributeSetupState, current } = vi.hoisted(() => ({
   loadIssuesList: vi.fn(),
+  loadContributeSetupState: vi.fn(),
   loadMaskedListReads: vi.fn(),
   loadLearnSign: vi.fn(),
   current: { session: null as Session | null },
@@ -20,6 +21,7 @@ vi.mock('@/auth', () => ({
 vi.mock('@/lib/learn/issues.data', () => ({ loadIssuesList }));
 vi.mock('@/lib/workspace/masked-issue.data', () => ({ loadMaskedListReads }));
 vi.mock('@/lib/learn/learn-sign.data', () => ({ loadLearnSign }));
+vi.mock('@/lib/workspace/contribute.data', () => ({ loadContributeSetupState }));
 
 const { GET } = (await import('./route')) as unknown as { GET: (req: NextRequest) => Promise<Response> };
 const { personalList } = await import('@/lib/learn/__fixtures__/issues');
@@ -36,6 +38,7 @@ describe("the person's Issues route", () => {
     loadIssuesList.mockReset();
     loadMaskedListReads.mockReset().mockResolvedValue(reads);
     loadLearnSign.mockReset().mockResolvedValue(true);
+    loadContributeSetupState.mockReset().mockResolvedValue('none');
     current.session = null;
   });
 
@@ -84,5 +87,14 @@ describe("the person's Issues route", () => {
       loadIssuesList.mockResolvedValueOnce({ kind });
       expect(await (await get()).json()).toEqual({ state: kind });
     }
+  });
+
+  it('answers managed for a company-managed account with no list', async () => {
+    signIn();
+    loadContributeSetupState.mockResolvedValue('managed');
+    loadIssuesList.mockResolvedValueOnce({ kind: 'unavailable' });
+    expect(await (await get()).json()).toEqual({ state: 'managed' });
+    loadIssuesList.mockResolvedValueOnce({ kind: 'failed' });
+    expect(await (await get()).json()).toEqual({ state: 'failed' });
   });
 });

@@ -63,11 +63,13 @@ describe("Learn's setup page", () => {
     expect(connection.mock.invocationCallOrder[0]).toBeLessThan(viewerLogin.mock.invocationCallOrder[0]);
   });
 
-  it("tells a company-managed account it can't be used, before any read", async () => {
-    viewerLogin.mockResolvedValue('jane-doe_acme');
+  it("tells a company-managed account it can't be used, never that its setup did not load", async () => {
+    loadLearnSign.mockResolvedValue(null);
+    loadContributeSetupState.mockResolvedValue('managed');
     expect(await open('/learn')).toEqual({ noProfile: 'managed' });
-    expect(loadLearnSign).not.toHaveBeenCalled();
-    expect(loadLearnSetup).not.toHaveBeenCalled();
+    // Even with a setup read back: the account still can't be used.
+    loadLearnSetup.mockResolvedValue({ state: 'SAVED' });
+    expect(await open('/learn')).toEqual({ noProfile: 'managed' });
   });
 
   it('draws the onboarding without the Learn sign, keeping a way back it takes', async () => {

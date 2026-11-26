@@ -403,6 +403,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     const access = await requestContributeAccess(request);
     // A new account being set up goes to Contribute's home, which says so (and is let through itself). A step of
     // Contribute's flow says so in place, so the address and the answers it carries are kept.
+    // A company-managed account goes there too: the home says why it can't be used.
+    if (access === 'managed' && !isLandingPath(pathname) && !isContributeFlowPath(pathname)) {
+      const response = NextResponse.redirect(new URL(WORKSPACE_PATHS.contribute, request.url));
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
     if (access === 'setting-up' && !isLandingPath(pathname) && !isContributeFlowPath(pathname)) {
       const response = NextResponse.redirect(new URL(settingUpHomeOf(request.nextUrl), request.url));
       response.headers.set('Cache-Control', 'private, no-store');
@@ -432,6 +438,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   if (myPage && hasSession(request) && (request.method === 'GET' || request.method === 'HEAD')) {
     const access = await requestWorkspaceAccess(request);
     if (access === 'signed-out' && byAttempt) return signInHere();
+    if (access === 'managed') {
+      const response = NextResponse.redirect(new URL(WORKSPACE_PATHS.contribute, request.url));
+      response.headers.set('Cache-Control', 'private, no-store');
+      return response;
+    }
     if (access === 'setting-up') {
       const response = NextResponse.redirect(new URL(settingUpHomeOf(request.nextUrl), request.url));
       response.headers.set('Cache-Control', 'private, no-store');

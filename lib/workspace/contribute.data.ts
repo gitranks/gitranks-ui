@@ -90,7 +90,6 @@ import { contributeErrorOf } from './errors';
 import { fairUseNoticeIdOf } from './fair-use';
 import { ContributeFairUseNoticeDocument, ContributeFairUseNoticesDocument } from './fair-use.documents';
 import { isGrantAvailable } from './grant-availability';
-import { isManagedLogin } from './managed-account';
 import { contributeMcpSignIn } from './mcp-sign-in';
 import { withRepliesPlanOf, withReplyPlansOf } from './one-comment';
 import { setupStateOf } from './setup-state';
@@ -161,15 +160,13 @@ export class ContributeUnavailableError extends Error {
 
 /**
  * Where the viewer's GitRanks setup stands (`ContributeSetupState`). The read itself starts the first read of an
- * account with no profile, so a new account is `setting-up` at once. `none` signed out; `managed` for a company-managed
- * account, without a read. When the API does not answer
+ * account with no profile, so a new account is `setting-up` at once. `none` signed out. When the API does not answer
  * the state, its older yes or no for "being set up" stands in (no: `failed`, which offers "Try again"); `failed` when
  * neither answers. Read once per request.
  */
 export const loadContributeSetupState = cache(async (): Promise<ContributeSetupState> => {
   const githubLogin = await viewerLogin();
   if (!githubLogin) return 'none';
-  if (isManagedLogin(githubLogin)) return 'managed';
   const options = { source: 'ssr' as const, githubLogin };
   try {
     const { contributeSetupState } = await graphqlDirect(ContributeSetupStateDocument, undefined, options);

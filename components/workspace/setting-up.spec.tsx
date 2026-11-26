@@ -14,6 +14,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
 vi.mock('@/lib/workspace/setup.actions', () => ({ retryContributeSetup: retry }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContributeSetupState }));
 vi.mock('@/lib/sign-out', () => ({ signOutHere }));
+vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
 
 const {
   ContributeManagedAccount,

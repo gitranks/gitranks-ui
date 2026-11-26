@@ -202,6 +202,13 @@ describe('the Contribute preview gate', () => {
 
     graphqlDirect.mockResolvedValue({ contribute: null, contributeSetup: false });
     expect(await requestContributeAccess(req)).toBe('hidden');
+    graphqlDirect.mockResolvedValue({
+      contribute: null,
+      contributeSetup: false,
+      contributeSetupState: 'MANAGED_ACCOUNT',
+    });
+    expect(await requestContributeAccess(req)).toBe('managed');
+    expect(await requestMaySeeContribute(req)).toBe(false);
     graphqlDirect.mockResolvedValue({ contribute: { previewAllowed: true }, contributeSetup: false });
     expect(await requestContributeAccess(req)).toBe('allowed');
     graphqlDirect.mockRejectedValue(new Error('GraphQL error! 502'));

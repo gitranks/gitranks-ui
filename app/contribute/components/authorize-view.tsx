@@ -91,7 +91,7 @@ export function authorizeStateFor(
 /**
  * A no-profile state by where the account's setup stands: setting up while its first read is on its way, and when
  * nothing is left to set up (the profile landed between the reads: the page's next read asks to allow); `failed` once
- * that read failed (Try again); not read, as it is.
+ * that read failed (Try again); not read, as it is; a company-managed account, why it can't be used.
  */
 export function authorizeWithSetup(
   state: Extract<AuthorizeState, { kind: 'no-profile' }>,
@@ -99,6 +99,7 @@ export function authorizeWithSetup(
 ): AuthorizeState {
   if (setup === 'failed') return { ...state, failed: true };
   if (setup === 'removed') return state;
+  if (setup === 'managed') return { kind: 'managed', requestId: state.requestId };
   return { kind: 'setting-up', requestId: state.requestId };
 }
 

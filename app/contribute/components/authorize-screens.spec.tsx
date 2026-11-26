@@ -236,6 +236,7 @@ describe("the consent page's state, from the API's one read", () => {
     expect(authorizeWithSetup(noProfile, 'none')).toEqual({ kind: 'setting-up', requestId: ID });
     expect(authorizeWithSetup(noProfile, 'failed')).toEqual({ ...noProfile, failed: true });
     expect(authorizeWithSetup(noProfile, 'removed')).toEqual(noProfile);
+    expect(authorizeWithSetup(noProfile, 'managed')).toEqual({ kind: 'managed', requestId: ID });
   });
 
   it('asks to allow a pending request, and reads expired and approved ones as such', () => {

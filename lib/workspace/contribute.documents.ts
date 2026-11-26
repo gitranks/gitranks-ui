@@ -231,7 +231,8 @@ export const ContributeFirstFetchDocument = doc<{ contributeFirstFetch: boolean 
 export const ContributePreviewDocument = doc<{
   contribute: { previewAllowed: boolean } | null;
   contributeSetup: boolean;
-}>('query ContributePreview { contribute { previewAllowed } contributeSetup }');
+  contributeSetupState?: string | null;
+}>('query ContributePreview { contribute { previewAllowed } contributeSetup contributeSetupState }');
 
 export const ContributeOverviewDocument = doc<{
   contribute: { previewAllowed: boolean; contributor: Contributor | null } | null;

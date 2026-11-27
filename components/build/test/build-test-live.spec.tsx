@@ -9,9 +9,9 @@ vi.mock('next-auth/react', () => ({ signIn }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 
 const { BuildTestLive } = await import('./build-test-live');
-const { endTestOpen, endTestPassed, goldTestReady, passedResult, testRun, testRunFresh } = await import(
-  '@/lib/build/__fixtures__/test'
-);
+const { readBuildTest, startBuildTestRun } = await import('@/lib/build/test-live');
+const { endTestOpen, endTestPassed, goldTestReady, testQuestionsKeyed, passedResult, testRun, testRunFresh } =
+  await import('@/lib/build/__fixtures__/test');
 const {
   endTestAllRight,
   endTestClosed,
@@ -201,6 +201,43 @@ describe('a question', () => {
     expect(strip()).toContain('Question 6 of 10');
   });
 
+  it('asks to sign in again when the session ended, never "try again"', async () => {
+    reads(endTestOpen);
+    answers.push({ ok: false, error: 'SIGNED_OUT' });
+    await draw();
+    await click(option(0));
+    await click(main());
+    expect($('[data-test-box="visitor"]')).not.toBeNull();
+    await click(buttonOf('Sign in with GitHub')!);
+    expect(signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/build/mcp-server/test' });
+  });
+
+  it('says in one line that a run ran out after a day, then shows the new one', async () => {
+    reads(endTestOpen, { ...endTestOpen, open: { ...testRunFresh, run: 'r-new' } });
+    answers.push({ ok: false, error: 'CONFLICT' });
+    await draw();
+    await click(option(0));
+    await click(main());
+    expect($('[data-test-notice]')?.textContent).toBe(
+      'Your last test ran out after a day without its last answer, so its answers are gone.',
+    );
+    expect(strip()).toContain('Question 1 of 10');
+  });
+
+  it('keeps the keys out of an open run, whatever the route sends', async () => {
+    const keyed = { ...testRun, questions: testQuestionsKeyed };
+    reads({ ...endTestOpen, open: keyed });
+    starts.push({ ok: true, data: keyed });
+    const keyless = (questions: { content: unknown }[]) =>
+      questions.every((question) =>
+        (question.content as { options: object[] }).options.every((option) => Object.keys(option).join() === 'text'),
+      );
+    const read = await readBuildTest('mcp-server', 'end', null);
+    expect(keyless(read?.open?.questions ?? [])).toBe(true);
+    const started = await startBuildTestRun('mcp-server', 'end', null);
+    expect(started.ok && keyless(started.data.questions)).toBe(true);
+  });
+
   it('asks for the build the address names', async () => {
     reads(endTestOpen);
     await draw('end', 'python');
@@ -221,6 +258,13 @@ describe('the start', () => {
     expect(strip()).toContain('The gold test');
     expect(strip()).toContain('Question 1 of 10');
     expect($('[data-test-rule]')?.textContent).toBe('10 questions about what you built. 8 right earns the gold mark.');
+  });
+
+  it('asks to sign in again when the session ended before the start', async () => {
+    reads(goldTestReady);
+    starts.push({ ok: false, error: 'SIGNED_OUT' });
+    await draw('gold');
+    expect($('[data-test-box="visitor"]')?.textContent).toContain('The gold test needs an account');
   });
 
   it('says so when the run does not start, and tries again', async () => {
@@ -263,7 +307,8 @@ describe('the result', () => {
     mine = { mine: mineBuilt };
     await draw();
     expect($('[data-test-score]')?.textContent).toBe('9 of 10. It is Built.');
-    expect(text()).toContain('You needed 7. “Build an MCP server” now shows on your Skills page.');
+    expect(text()).toContain('You needed 7.');
+    expect(text()).not.toContain('Skills page');
     expect($('[data-test-pill="every-step"]')).not.toBeNull();
     expect(buttonOf('Open the project')?.getAttribute('href')).toBe('/build/mcp-server');
     expect([...host.querySelectorAll('button')].some((button) => button.textContent?.startsWith('Share'))).toBe(true);
@@ -361,6 +406,15 @@ describe('a test that cannot start', () => {
     await draw('gold');
     expect(text()).toContain('The gold test opens on 3 Dec');
     expect($('[data-answer-part]')).toBeNull();
+  });
+
+  it('someone with no build of the project: told so plainly, with the way to the project', async () => {
+    reads(null);
+    mine = { mine: { builds: [], agentConnected: false, say: 'Build an MCP server with GitRanks' } };
+    await draw();
+    expect($('[data-test-box="no-build"]')?.textContent).toContain('You have no build of this project yet');
+    expect(buttonOf('Back to the project')?.getAttribute('href')).toBe('/build/mcp-server');
+    expect(buttonOf('Try again')).toBeUndefined();
   });
 
   it('a test that did not load: try again, or go back', async () => {

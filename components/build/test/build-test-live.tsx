@@ -9,6 +9,7 @@ import {
   TestDoneEnd,
   TestFrame,
   TestMessage,
+  TestNotice,
   TestPending,
   TestQuestion,
   TestResult,
@@ -25,6 +26,8 @@ import {
   type BuildTestShown,
   buildTestViewOf,
   closedWordsOf,
+  NO_BUILD_WORDS,
+  RUN_EXPIRED_NOTE,
   scoreTextOf,
   scoreTitleOf,
   TEST_NAMES,
@@ -42,6 +45,7 @@ type Personal =
   | { kind: 'pending' }
   | { kind: 'visitor' }
   | { kind: 'failed' }
+  | { kind: 'no-build' }
   | { kind: 'start-failed' }
   | { kind: 'closed'; test: BuildTestShown; build: BuildMine | null }
   | { kind: 'run'; test: BuildTestShown; run: BuildTestRunShown; sitting: number }
@@ -75,6 +79,7 @@ export function BuildTestLive({
   const [personal, setPersonal] = useState<Personal>({ kind: 'pending' });
   const [starting, setStarting] = useState(false);
   const [startFailed, setStartFailed] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const sittings = useRef(0);
   const { slug } = project;
 
@@ -87,7 +92,8 @@ export function BuildTestLive({
   const read = useCallback(
     async (retried = false): Promise<Personal> => {
       const [test, mine] = await Promise.all([readBuildTest(slug, kind, language), readBuildProjectMine(slug)]);
-      if (!test) return { kind: 'failed' };
+      // No test, and the person's side of the project read with no build in it: there is nothing to take yet.
+      if (!test) return mine && !mine.builds.length ? { kind: 'no-build' } : { kind: 'failed' };
       const view = buildTestViewOf(test);
       const build = testBuildOf(mine, test);
       if (view.kind === 'question') return runOf(test, view.run);
@@ -101,6 +107,8 @@ export function BuildTestLive({
       if (started.ok) return runOf(test, started.data);
       // The test changed since it was read (another window): what stands is read once more.
       if (started.error === 'CONFLICT' && !retried) return read(true);
+      // The session ended: the way back in, which returns to the test.
+      if (started.error === 'SIGNED_OUT') return { kind: 'visitor' };
       return { kind: 'start-failed' };
     },
     [slug, kind, language, runOf],
@@ -109,8 +117,33 @@ export function BuildTestLive({
   const load = useCallback(async () => {
     setPersonal({ kind: 'pending' });
     setStartFailed(false);
+    setNotice(null);
     setPersonal(await read());
   }, [read]);
+
+  /**
+   * An answer refused: given already (another window), or a run that ended or ran out. What stands is read again; when
+   * the run is not the one on the page any more, one line says it ran out.
+   */
+  const refused = useCallback(
+    async (run: string) => {
+      setPersonal({ kind: 'pending' });
+      setStartFailed(false);
+      const next = await read();
+      const moved =
+        (next.kind === 'run' && next.run.run !== run) ||
+        (next.kind === 'result' && next.result.run !== run) ||
+        next.kind === 'closed';
+      setNotice(moved ? RUN_EXPIRED_NOTE : null);
+      setPersonal(next);
+    },
+    [read],
+  );
+
+  const signedOut = useCallback(() => {
+    setNotice(null);
+    setPersonal({ kind: 'visitor' });
+  }, []);
 
   useEffect(() => {
     if (!hasSessionHint(document.cookie)) {
@@ -135,6 +168,7 @@ export function BuildTestLive({
     async (test: BuildTestShown, result: BuildTestResult) => {
       sittings.current += 1;
       const sitting = sittings.current;
+      setNotice(null);
       const ended: BuildTestShown = {
         ...test,
         open: null,
@@ -156,13 +190,15 @@ export function BuildTestLive({
     async (test: BuildTestShown) => {
       setStarting(true);
       setStartFailed(false);
+      setNotice(null);
       const started = await startBuildTestRun(slug, kind, language);
       setStarting(false);
       if (started.ok) return setPersonal(runOf(test, started.data));
       if (started.error === 'CONFLICT') return load();
+      if (started.error === 'SIGNED_OUT') return signedOut();
       setStartFailed(true);
     },
-    [slug, kind, language, runOf, load],
+    [slug, kind, language, runOf, load, signedOut],
   );
 
   if (personal.kind === 'run') {
@@ -172,14 +208,18 @@ export function BuildTestLive({
         project={project}
         test={personal.test}
         run={personal.run}
+        notice={notice}
         onResult={(result) => showResult(personal.test, result)}
         onReload={load}
+        onRefused={refused}
+        onSignedOut={signedOut}
       />
     );
   }
   if (personal.kind === 'result') {
     return (
       <TestFrame project={project} kind={kind} layout="page" end={<TestDoneEnd count={personal.result.items.length} />}>
+        {notice ? <TestNotice text={notice} /> : null}
         <ResultView
           key={personal.sitting}
           project={project}
@@ -240,6 +280,13 @@ function Still({
         >
           Sign in with GitHub
         </Button>
+      </TestMessage>
+    );
+  }
+  if (personal.kind === 'no-build') {
+    return (
+      <TestMessage state="no-build" titleRef={titleRef} title={NO_BUILD_WORDS.title} text={NO_BUILD_WORDS.text}>
+        <BackToProject project={project} main />
       </TestMessage>
     );
   }
@@ -319,14 +366,21 @@ function TestRun({
   project,
   test,
   run,
+  notice,
   onResult,
   onReload,
+  onRefused,
+  onSignedOut,
 }: {
   project: BuildTestProject;
   test: BuildTestShown;
   run: BuildTestRunShown;
+  /** One line above the question, when the run on the page before ran out. */
+  notice: string | null;
   onResult: (result: BuildTestResult) => void;
   onReload: () => void;
+  onRefused: (run: string) => void;
+  onSignedOut: () => void;
 }) {
   const count = run.questions.length;
   const answered = Math.min(run.answered, count);
@@ -370,6 +424,7 @@ function TestRun({
   }
   return (
     <TestFrame project={project} kind={test.kind} layout="question" end={end}>
+      {notice ? <TestNotice text={notice} /> : null}
       <h1 className="sr-only">
         {TEST_NAMES[test.kind]} of {project.name}
       </h1>
@@ -393,7 +448,8 @@ function TestRun({
             resulted.current = true;
             onResult(result);
           }}
-          onConflict={onReload}
+          onConflict={() => onRefused(run.run)}
+          onSignedOut={onSignedOut}
         />
       </section>
     </TestFrame>
@@ -412,6 +468,7 @@ function RunQuestion({
   onNext,
   onResult,
   onConflict,
+  onSignedOut,
 }: {
   project: BuildTestProject;
   test: BuildTestShown;
@@ -423,6 +480,7 @@ function RunQuestion({
   onNext: () => void;
   onResult: (result: BuildTestResult) => void;
   onConflict: () => void;
+  onSignedOut: () => void;
 }) {
   const answer = useLearnAnswer({
     question,
@@ -436,6 +494,8 @@ function RunQuestion({
       if (!sent.ok) {
         // Answered in another window, or a run that ended or expired: what stands is read again.
         if (sent.error === 'CONFLICT' || sent.error === 'NOT_FOUND') onConflict();
+        // The session ended: the way back in, which returns to the test and its run.
+        if (sent.error === 'SIGNED_OUT') onSignedOut();
         return null;
       }
       onAnswered();

@@ -1,3 +1,4 @@
+import { BUILD_EMAILS_BUILT, BUILD_SKILLS_BUILT } from './built-parts';
 import type {
   BuildMine,
   BuildProjectMine,
@@ -55,7 +56,10 @@ export function buildTestViewOf(test: BuildTestShown): BuildTestView {
   return { kind: 'closed' };
 }
 
-/** The person's build that the test is of: the one in the test's language, or else the one touched last. */
+/**
+ * The person's build that the test is of: the one in the test's language, or none. The API answers in the language of
+ * the build it picked (the one touched last when `?language=` names none), so the test's language is the build's.
+ */
 export function testBuildOf(mine: BuildProjectMine | null, test: Pick<BuildTest, 'language'>): BuildMine | null {
   if (!mine?.builds.length) return null;
   return mine.builds.find((build) => build.language === test.language) ?? null;
@@ -147,19 +151,31 @@ const moreOf = (more: number) => (more === 1 ? 'one more right answer' : `${coun
 
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
+/**
+ * The parts of Build that later work brings, which a sentence may speak of only once they are there: the gold test's
+ * email and the Skills page's Built section.
+ */
+export type BuiltParts = { emails: boolean; skills: boolean };
+
+const BUILT: BuiltParts = { emails: BUILD_EMAILS_BUILT, skills: BUILD_SKILLS_BUILT };
+
 /** The sentence under the score. */
 export function scoreTextOf(
   test: Pick<BuildTest, 'kind' | 'need'>,
   result: BuildTestResult,
   project: { name: string },
+  built: BuiltParts = BUILT,
 ): string {
   const more = Math.max(1, test.need - result.right);
   if (test.kind === 'gold') {
-    return result.passed
-      ? `A week after you built it, you still know it. Your Skills page now shows “${project.name}” as repeated.`
-      : `The project stays Built. The gold mark only needs ${moreOf(more)}.`;
+    if (!result.passed) return `The project stays Built. The gold mark only needs ${moreOf(more)}.`;
+    const skills = built.skills ? ` Your Skills page now shows “${project.name}” as repeated.` : '';
+    return `A week after you built it, you still know it.${skills}`;
   }
-  if (result.passed) return `You needed ${test.need}. “${project.name}” now shows on your Skills page.`;
+  if (result.passed) {
+    const skills = built.skills ? ` “${project.name}” now shows on your Skills page.` : '';
+    return `You needed ${test.need}.${skills}`;
+  }
   return `${capital(moreOf(more))} ${more === 1 ? 'makes' : 'make'} “${project.name}” Built. Nothing is lost: your steps stay done.`;
 }
 
@@ -220,7 +236,9 @@ export function testBoxOf(
   build: BuildMine | null,
   now: Date,
   timeZone?: string,
+  built: BuiltParts = BUILT,
 ): BuildTestBox {
+  const email = built.emails ? ' We will email you that day.' : '';
   const everyStep: BuildTestPill[] = build?.answeredEveryStep ? ['every-step'] : [];
   const wrong = result.items.length - result.right;
   if (result.passed && test.kind === 'gold') {
@@ -241,7 +259,7 @@ export function testBoxOf(
     let pills = everyStep;
     if (gold?.kind === 'opens_on') {
       const week = daysBetween(localDayOf(now, timeZone), gold.date) === 7 ? ', a week from today' : '';
-      text = `The gold test opens on ${dayOf(gold.date)}${week}: ${rule} We will email you that day.`;
+      text = `The gold test opens on ${dayOf(gold.date)}${week}: ${rule}${email}`;
     } else if (gold?.kind === 'open') {
       text = `The gold test is open now: ${rule}`;
       main = { kind: 'gold' };
@@ -268,6 +286,21 @@ export function testBoxOf(
       share: false,
     };
   }
+  if (!test.canStart) {
+    // The day of the next try is not known yet: a failed gold test opens again on the next local day.
+    const worth = wrong === 1 ? 'The one below is worth a look' : `The ${countWordOf(wrong)} below are worth a look`;
+    return {
+      title: test.kind === 'gold' ? 'You can try again tomorrow' : `Look at ${many} before you try again`,
+      aside: test.kind === 'gold' ? 'One try a day' : null,
+      pills: [],
+      text:
+        test.kind === 'gold'
+          ? `The next gold test opens tomorrow, with other questions. ${worth} before then.`
+          : 'Each wrong answer has its reason and the step it comes from. The next test asks other questions.',
+      main: { kind: 'again', label, ready: false },
+      share: false,
+    };
+  }
   return {
     title: `Look at ${many}, then take it again`,
     aside: test.kind === 'gold' ? 'One try a day' : null,
@@ -276,15 +309,25 @@ export function testBoxOf(
       test.kind === 'gold'
         ? 'Each wrong answer has its reason and the step it comes from. The next gold test asks other questions.'
         : 'Each wrong answer has its reason and the step it comes from. The next test asks other questions, and you can take it as often as you like.',
-    main: { kind: 'again', label, ready: test.canStart },
+    main: { kind: 'again', label, ready: true },
     share: false,
   };
 }
+
+/** What the page says to someone with no build of the project: the test is for a build, after its last step. */
+export const NO_BUILD_WORDS = {
+  title: 'You have no build of this project yet',
+  text: 'The test is for your own build, after its last step. Start the project in your agent, and the test opens here once its steps are done.',
+};
+
+/** What the page says when the run in progress ran out (a run is kept for a day) and the page moved on. */
+export const RUN_EXPIRED_NOTE = 'Your last test ran out after a day without its last answer, so its answers are gone.';
 
 /** Why a test cannot start, when there is no result to show: its title and sentence. */
 export function closedWordsOf(
   test: Pick<BuildTest, 'kind' | 'nextTryAt'>,
   build: BuildMine | null,
+  built: BuiltParts = BUILT,
 ): { title: string; text: string } {
   if (test.kind === 'end') {
     if (build?.state.kind === 'in_progress') {
@@ -315,7 +358,7 @@ export function closedWordsOf(
   if (opens) {
     return {
       title: `The gold test opens on ${opens}`,
-      text: 'It opens a week after you built the project. We will email you that day.',
+      text: `It opens a week after you built the project.${built.emails ? ' We will email you that day.' : ''}`,
     };
   }
   return { title: 'The gold test is not open yet', text: 'It opens a week after you built the project.' };

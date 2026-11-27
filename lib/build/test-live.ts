@@ -7,6 +7,7 @@ import {
 } from './paths';
 import type { BuildTestRunShown, BuildTestShown } from './test';
 import type { BuildLanguage, BuildProjectMine, BuildTestAnswer, BuildTestKind } from './types';
+import type { LearnQuestion } from '@/lib/workspace/learn-question';
 
 /*
  * What the test's page asks from the browser: the test (which writes nothing), the person's side of the project, a
@@ -19,6 +20,25 @@ const isRun = (run: unknown): run is BuildTestRunShown =>
   Array.isArray((run as BuildTestRunShown).questions) &&
   typeof (run as BuildTestRunShown).answered === 'number';
 
+/**
+ * A question of an open run with no key: an option keeps only its text. The API sends none before the end; this keeps
+ * the rule on this side too, whatever it sends.
+ */
+function keylessOf(question: LearnQuestion): LearnQuestion {
+  const content = question.content as { options?: unknown } | null;
+  if (!content || typeof content !== 'object' || !Array.isArray(content.options)) return question;
+  const options = content.options.map((option: unknown) =>
+    option && typeof option === 'object' ? { text: (option as { text?: unknown }).text } : option,
+  );
+  return { ...question, content: { ...content, options } };
+}
+
+/** An open run, every question without its key. */
+export const keylessRunOf = <T extends BuildTestRunShown>(run: T): T => ({
+  ...run,
+  questions: run.questions.map(keylessOf),
+});
+
 /** The person's test of the project: null when there is none for them, and on any failure. */
 export async function readBuildTest(
   project: string,
@@ -30,7 +50,7 @@ export async function readBuildTest(
     if (!res.ok) return null;
     const { test } = (await res.json()) as { test?: BuildTestShown | null };
     if (!test || test.kind !== kind || (test.open !== null && !isRun(test.open))) return null;
-    return test;
+    return test.open ? { ...test, open: keylessRunOf(test.open) } : test;
   } catch {
     return null;
   }
@@ -76,7 +96,7 @@ export async function startBuildTestRun(
 ): Promise<BuildActionResult<BuildTestRunShown>> {
   const started = await post<BuildTestRunShown | null>(BUILD_TEST_START_MINE_PATH, { project, kind, language });
   if (!started.ok) return started;
-  return isRun(started.data) ? { ok: true, data: started.data } : { ok: false, error: 'FAILED' };
+  return isRun(started.data) ? { ok: true, data: keylessRunOf(started.data) } : { ok: false, error: 'FAILED' };
 }
 
 /** One answer: the option's place in the run's order, or null for "I don't know". The tenth brings the result. */

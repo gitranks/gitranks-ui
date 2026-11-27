@@ -96,6 +96,15 @@ export function TestPending() {
   );
 }
 
+/** One plain line above the page, when it moved on by itself (the run on the page ran out). */
+export function TestNotice({ text }: { text: string }) {
+  return (
+    <p className="m-0 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground" role="status" data-test-notice="">
+      {text}
+    </p>
+  );
+}
+
 /** Where a test asks: no verdict until the result; "I don't know" is picked like an option; the last one finishes. */
 export function testPlace(last: boolean): AnswerPartPlace {
   const label = testNextLabelOf(last);

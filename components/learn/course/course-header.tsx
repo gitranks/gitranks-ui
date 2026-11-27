@@ -19,9 +19,9 @@ import {
   type LearnCourseMine,
   learnersOf,
 } from '@/lib/learn/course';
-import { languageNameOf, languageNamesOf } from '@/lib/learn/learn-question';
 import { checkPath, LEARN_COURSES_PATH, learnKnownPath } from '@/lib/learn/paths';
 import { courseFixesCountOf, courseFixesPathOf } from '@/lib/learn/real-issues';
+import { languageNameOf, languageNamesOf } from '@/lib/workspace/learn-question';
 
 /** A number in the pages' mono face. */
 export function Figure({ count }: { count: number }) {

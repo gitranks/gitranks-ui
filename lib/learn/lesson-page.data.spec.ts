@@ -11,7 +11,7 @@ const { graphqlDirect, cacheLife, cacheTag, highlightCodes } = vi.hoisted(() => 
 vi.mock('server-only', () => ({}));
 vi.mock('next/cache', () => ({ cacheLife, cacheTag }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
-vi.mock('./highlight', () => ({ highlightCodes }));
+vi.mock('@/lib/workspace/highlight', () => ({ highlightCodes }));
 
 const { loadLearnAddress, loadLearnCourseGroups, loadLearnCourseMine, loadLearnLessonMine, loadLearnLessonPage } =
   await import('./lesson-page.data');

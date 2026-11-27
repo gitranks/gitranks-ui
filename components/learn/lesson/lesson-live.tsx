@@ -7,7 +7,6 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { type LessonCalls, LessonPlayer, type LessonViewer, lessonPlayerKeyOf } from './lesson-player';
 import { LessonRealWorldStreamed, type SharedFixes } from './lesson-real-world';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
-import type { HighlightedCode } from '@/lib/learn/code-tokens';
 import {
   ANSWER_KEPT_NOTE,
   dropKeptAnswer,
@@ -37,6 +36,7 @@ import { fixesOf, type LessonRealMine, lessonRealOf, realRowsOf } from '@/lib/le
 import { MainLanguageContext } from '@/lib/learn/use-example-language';
 import { useLearnSetupGuess } from '@/lib/learn/use-setup-guess';
 import { hasSessionHint } from '@/lib/session-hint';
+import type { HighlightedCode } from '@/lib/workspace/code-tokens';
 import { learnSetupHrefOf } from '@/lib/workspace/paths';
 
 /** A JSON answer of one of the person's routes; null on any failure. */

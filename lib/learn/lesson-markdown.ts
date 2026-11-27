@@ -1,14 +1,4 @@
 import {
-  isChoice,
-  isKeyed,
-  type LearnQuestion,
-  languageNameOf,
-  linesOf,
-  optionsOf,
-  orderItemsOf,
-  QUESTION_TYPE_LABELS,
-} from './learn-question';
-import {
   bodyPartsOf,
   checkedDateOf,
   type LearnExample,
@@ -20,6 +10,16 @@ import {
 import { courseHrefOf, learnLessonMarkdownPath, learnLessonPath } from './paths';
 import { quoteFileWordsOf, quoteLineOf, quoteUrlOf } from './project-course';
 import { absoluteUrl } from '@/lib/seo/site';
+import {
+  isChoice,
+  isKeyed,
+  type LearnQuestion,
+  languageNameOf,
+  linesOf,
+  optionsOf,
+  orderItemsOf,
+  QUESTION_TYPE_LABELS,
+} from '@/lib/workspace/learn-question';
 
 /*
  * A lesson's Markdown copy, for agents: everything the lesson's public answer holds, the question's key included, in

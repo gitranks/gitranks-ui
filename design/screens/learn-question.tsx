@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
-import { AnswerPart, type AnswerPartPlace } from '@/components/learn/question/answer-part';
-import { QuestionPart } from '@/components/learn/question/question-part';
-import type { LearnAnswer } from '@/components/learn/question/use-learn-answer';
+import { AnswerPart, type AnswerPartPlace } from '@/components/workspace/question/answer-part';
+import { QuestionPart } from '@/components/workspace/question/question-part';
+import type { LearnAnswer } from '@/components/workspace/question/use-learn-answer';
 import {
   answerAfter,
   checkQuestion,
@@ -13,9 +13,9 @@ import {
   pickAllQuestion,
   pickLineQuestion,
   pickOneQuestion,
-} from '@/lib/learn/__fixtures__/learn-question';
-import { canSendOf, type LearnAnswerAction } from '@/lib/learn/learn-answer';
-import { codeOf, type LearnQuestion, verdictOf } from '@/lib/learn/learn-question';
+} from '@/lib/workspace/__fixtures__/learn-question';
+import { canSendOf, type LearnAnswerAction } from '@/lib/workspace/learn-answer';
+import { codeOf, type LearnQuestion, verdictOf } from '@/lib/workspace/learn-question';
 
 const noop = () => {};
 
@@ -97,13 +97,13 @@ export const LEARN_QUESTION_SCREEN: Screen = {
   area: 'learn',
   route: '/learn/lessons/big-o',
   sources: [
-    'components/learn/question/answer-part.tsx',
-    'components/learn/question/question-part.tsx',
-    'components/learn/question/kbd.tsx',
+    'components/workspace/question/answer-part.tsx',
+    'components/workspace/question/question-part.tsx',
+    'components/workspace/question/kbd.tsx',
     'components/workspace/kbd.tsx',
-    'components/learn/question/use-learn-answer.ts',
-    'lib/learn/learn-question.ts',
-    'lib/learn/learn-answer.ts',
+    'components/workspace/question/use-learn-answer.ts',
+    'lib/workspace/learn-question.ts',
+    'lib/workspace/learn-answer.ts',
   ],
   states: [
     {

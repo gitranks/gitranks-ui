@@ -9,9 +9,9 @@ import {
   type LessonViewer,
   lessonPlayerKeyOf,
 } from './lesson-player';
-import type { HighlightedCode } from '@/lib/learn/code-tokens';
 import { type LearnGroupLesson, type LearnLesson, lessonPlaceOf } from '@/lib/learn/lesson-page';
 import type { LessonReal } from '@/lib/learn/real-issues';
+import type { HighlightedCode } from '@/lib/workspace/code-tokens';
 
 export type { HighlightedExample } from './lesson-article';
 export type { LessonFooterLinks } from './lesson-more';

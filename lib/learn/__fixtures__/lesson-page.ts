@@ -1,9 +1,14 @@
-import { type HighlightedCode, plainCodeOf } from '../code-tokens';
-import type { LearnAnswerState } from '../learn-answer';
-import { type LearnCode, type LearnQuestion, verdictOf } from '../learn-question';
 import type { LearnDepth, LearnGroupLesson, LearnLesson, LearnLessonMine } from '../lesson-page';
-import { answerAfter, mythQuestion, outputQuestion, pickLineQuestion } from './learn-question';
 import { hasDuplicateCodes, nestedLoopCodes } from './player';
+import {
+  answerAfter,
+  mythQuestion,
+  outputQuestion,
+  pickLineQuestion,
+} from '@/lib/workspace/__fixtures__/learn-question';
+import { type HighlightedCode, plainCodeOf } from '@/lib/workspace/code-tokens';
+import type { LearnAnswerState } from '@/lib/workspace/learn-answer';
+import { type LearnCode, type LearnQuestion, verdictOf } from '@/lib/workspace/learn-question';
 
 /*
  * A lesson's page, as the design catalogue draws it: "Find duplicates in one pass with a set" in a short and a

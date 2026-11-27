@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 
-import type { CodeToken, HighlightedCode } from '@/lib/learn/code-tokens';
 import { cn } from '@/lib/utils';
+import type { CodeToken, HighlightedCode } from '@/lib/workspace/code-tokens';
 
 /** A token's colours: the light theme's, and the dark theme's under `.dark`. A missing one takes the page's text. */
 const TOKEN = 'text-(--shiki-light) dark:text-(--shiki-dark)';

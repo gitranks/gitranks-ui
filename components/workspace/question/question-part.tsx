@@ -1,9 +1,10 @@
 'use client';
 
 import { type LearnAnswer, PICKER } from './use-learn-answer';
-import { CodeBox, CodeLine } from '@/components/learn/blocks/code-lines';
-import { type HighlightedCode, plainCodeOf } from '@/lib/learn/code-tokens';
-import type { LearnAnswerState } from '@/lib/learn/learn-answer';
+import { CodeBox, CodeLine } from '@/components/workspace/blocks/code-lines';
+import { cn } from '@/lib/utils';
+import { type HighlightedCode, plainCodeOf } from '@/lib/workspace/code-tokens';
+import type { LearnAnswerState } from '@/lib/workspace/learn-answer';
 import {
   codeOf,
   isChoice,
@@ -13,8 +14,7 @@ import {
   linesOf,
   optionsOf,
   rightOf,
-} from '@/lib/learn/learn-question';
-import { cn } from '@/lib/utils';
+} from '@/lib/workspace/learn-question';
 
 const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase';
 

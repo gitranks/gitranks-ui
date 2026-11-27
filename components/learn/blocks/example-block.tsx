@@ -2,11 +2,11 @@
 
 import { useId } from 'react';
 
-import { CodeBox } from './code-lines';
-import { type HighlightedCode, highlightedOf } from '@/lib/learn/code-tokens';
-import { languageNameOf } from '@/lib/learn/learn-question';
+import { CodeBox } from '@/components/workspace/blocks/code-lines';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import { cn } from '@/lib/utils';
+import { type HighlightedCode, highlightedOf } from '@/lib/workspace/code-tokens';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 const EYEBROW = 'text-xs font-semibold tracking-wider text-muted-foreground uppercase';
 

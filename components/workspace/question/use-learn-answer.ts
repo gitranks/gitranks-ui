@@ -9,7 +9,7 @@ import {
   type LearnAnswerAction,
   type LearnAnswerState,
   pickCountOf,
-} from '@/lib/learn/learn-answer';
+} from '@/lib/workspace/learn-answer';
 import {
   codeOf,
   keyActionOf,
@@ -18,7 +18,7 @@ import {
   type LearnVerdict,
   verdictOf,
   wirePickOf,
-} from '@/lib/learn/learn-question';
+} from '@/lib/workspace/learn-question';
 
 /** An answer as a place sends it: the pick as the API takes it, or the place's extra choice; and the code's language. */
 export type LearnAnswerSent = { picked: LearnPicked | null; extra: boolean; language: string | null };

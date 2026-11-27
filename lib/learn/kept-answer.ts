@@ -1,4 +1,4 @@
-import type { LearnPicked } from './learn-question';
+import type { LearnPicked } from '@/lib/workspace/learn-question';
 
 /*
  * A visitor's right answer on a lesson, kept in this browser while they sign in and go through Learn's onboarding, so

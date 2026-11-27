@@ -1,6 +1,6 @@
 import type { LearnIssueLesson } from './issues';
-import type { LearnQuestion, LearnVerdict } from './learn-question';
 import type { LessonBlock, LessonDiagramTone } from '@/lib/workspace/blocks/block.types';
+import type { LearnQuestion, LearnVerdict } from '@/lib/workspace/learn-question';
 import { type PrRef, parsePrLink } from '@/lib/workspace/pr-feedback';
 
 /*

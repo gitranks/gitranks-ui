@@ -8,7 +8,7 @@ const { graphqlDirect, highlightCodes } = vi.hoisted(() => ({
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
-vi.mock('./highlight', () => ({ highlightCodes }));
+vi.mock('@/lib/workspace/highlight', () => ({ highlightCodes }));
 
 const { loadLearnReviewSide } = await import('./review.data');
 const { LearnCourseNextDocument, LearnHomeNextDocument, LearnReviewDocument, LearnSetupMainLanguageDocument } =

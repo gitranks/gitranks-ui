@@ -1,5 +1,5 @@
-import type { AnswerPartPlace } from '@/components/learn/question/answer-part';
-import { type LearnPicked, type LearnQuestionType, openNoteOf } from '@/lib/learn/learn-question';
+import type { AnswerPartPlace } from '@/components/workspace/question/answer-part';
+import { type LearnPicked, type LearnQuestionType, openNoteOf } from '@/lib/workspace/learn-question';
 
 /**
  * The three places that ask, as their boards draw them. Each sets only what differs: its extra choice, whether a

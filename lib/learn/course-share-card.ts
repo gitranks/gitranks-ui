@@ -1,6 +1,6 @@
 import { countWords, type LearnCourse, type LearnCourseCard, learnersOf } from './course';
-import { languageNameOf, languageNamesOf } from './learn-question';
 import { type CourseRef, courseCardHrefOf, courseHrefOf, LEARN_COURSES_CARD_PATH, LEARN_COURSES_PATH } from './paths';
+import { languageNameOf, languageNamesOf } from '@/lib/workspace/learn-question';
 
 /*
  * The share pictures of a course and of all courses: where each lives, and what each says. Pure and free of

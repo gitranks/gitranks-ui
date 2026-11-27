@@ -1,6 +1,4 @@
 import type { LessonRun, LessonStep } from '../learn.types';
-import type { LearnAnswerState } from '../learn-answer';
-import { type LearnQuestion, verdictOf } from '../learn-question';
 import {
   type FixMine,
   playerQuestionOf,
@@ -8,8 +6,10 @@ import {
   type WalkthroughAnswers,
   type WalkthroughPart,
 } from '../walkthrough';
-import { answerAfter } from './learn-question';
+import { answerAfter } from '@/lib/workspace/__fixtures__/learn-question';
 import type { LessonBlock } from '@/lib/workspace/blocks/block.types';
+import type { LearnAnswerState } from '@/lib/workspace/learn-answer';
+import { type LearnQuestion, verdictOf } from '@/lib/workspace/learn-question';
 
 /*
  * A fix's walkthrough, as the design catalogue draws it: octocat's fix of acme/widgets #42 (pull request #57), four

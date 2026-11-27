@@ -3,9 +3,7 @@ import 'server-only';
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { isAddressSlug, type LearnAddress, type LearnAddressKind } from './address-gate';
-import type { HighlightedCode } from './code-tokens';
 import type { LearnCourseMine } from './course';
-import { highlightCodes } from './highlight';
 import type {
   HighlightedExample,
   LearnCourseGroup,
@@ -23,7 +21,9 @@ import {
 } from './lesson-page.documents';
 import { isContentSlug, LEARN_COURSES_TAG, learnCourseTag, learnLessonTag } from './paths';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import type { HighlightedCode } from '@/lib/workspace/code-tokens';
 import { contributeErrorOf } from '@/lib/workspace/errors';
+import { highlightCodes } from '@/lib/workspace/highlight';
 
 /*
  * A lesson's page in two layers. The public one is the same for everyone and read with no session: cached for hours

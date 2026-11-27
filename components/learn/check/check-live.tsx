@@ -18,10 +18,10 @@ import {
   KnownSheet,
 } from './check-parts';
 import { useEnter, useFocusOnShow } from '@/components/learn/player/use-page-keys';
-import { type LearnAnswer, useLearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { Button } from '@/components/ui/button';
 import { PlayerRunEnd } from '@/components/workspace/player/player-strip';
 import { usePlayer } from '@/components/workspace/player/use-player';
+import { type LearnAnswer, useLearnAnswer } from '@/components/workspace/question/use-learn-answer';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import {
   type CheckQuestionShown,

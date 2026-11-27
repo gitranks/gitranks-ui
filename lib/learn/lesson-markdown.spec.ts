@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { orderQuestion } from './__fixtures__/learn-question';
 import {
   loopLesson,
   mythLesson,
@@ -12,6 +11,7 @@ import {
 import { learnLessonMarkdownOf } from './lesson-markdown';
 import type { LearnLesson } from './lesson-page';
 import { absoluteUrl } from '@/lib/seo/site';
+import { orderQuestion } from '@/lib/workspace/__fixtures__/learn-question';
 
 const FENCE = '```';
 /** Never in our copy: written by its code point. */

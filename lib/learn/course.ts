@@ -1,6 +1,6 @@
-import { languageNameOf } from './learn-question';
 import type { LearnCourseGroup, LearnDepth, LearnGroupLesson, LearnLessonLevel, LearnLessonLink } from './lesson-page';
 import { SETUP_LANGUAGES } from './setup';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
  * A course and the list of courses, as everyone reads them and as a learner's own side marks them: the rules the pages

@@ -2,11 +2,11 @@ import 'server-only';
 
 import type { CheckSide, LearnCheck } from './check';
 import { LearnCheckDocument } from './check.documents';
-import { plainCodeOf } from './code-tokens';
-import { highlightCodes } from './highlight';
 import { learnErrorOf } from './learn-action';
 import { isContentSlug } from './paths';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { plainCodeOf } from '@/lib/workspace/code-tokens';
+import { highlightCodes } from '@/lib/workspace/highlight';
 
 /*
  * The signed-in person's run of a course's check, read for them alone and never kept: its questions with their code

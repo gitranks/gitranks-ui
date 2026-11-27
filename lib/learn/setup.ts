@@ -1,4 +1,4 @@
-import { languageNameOf } from './learn-question';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
  * Set up Learn: three fields, main language, other languages and level. We guess them from the person's

@@ -4,12 +4,12 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { checkPlace, lessonPlace, reviewPlace } from './places';
-import { QuestionPart } from '@/components/learn/question/question-part';
-import type { LearnAnswer } from '@/components/learn/question/use-learn-answer';
-import { answerAfter, pickLineQuestion } from '@/lib/learn/__fixtures__/learn-question';
+import { QuestionPart } from '@/components/workspace/question/question-part';
+import type { LearnAnswer } from '@/components/workspace/question/use-learn-answer';
 import { nestedLoopCodes } from '@/lib/learn/__fixtures__/player';
-import { answerStartOf, type LearnAnswerAction } from '@/lib/learn/learn-answer';
-import { verdictOf } from '@/lib/learn/learn-question';
+import { answerAfter, pickLineQuestion } from '@/lib/workspace/__fixtures__/learn-question';
+import { answerStartOf, type LearnAnswerAction } from '@/lib/workspace/learn-answer';
+import { verdictOf } from '@/lib/workspace/learn-question';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

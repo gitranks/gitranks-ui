@@ -5,21 +5,21 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import { CodeBox } from '@/components/learn/blocks/code-lines';
 import { lessonPlace } from '@/components/learn/player/places';
-import { AnswerPart } from '@/components/learn/question/answer-part';
-import { QuestionPart } from '@/components/learn/question/question-part';
-import { useLearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { Button } from '@/components/ui/button';
+import { CodeBox } from '@/components/workspace/blocks/code-lines';
 import { PHONE_LINK } from '@/components/workspace/phone-link';
+import { AnswerPart } from '@/components/workspace/question/answer-part';
+import { QuestionPart } from '@/components/workspace/question/question-part';
+import { useLearnAnswer } from '@/components/workspace/question/use-learn-answer';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { type LandingViewer, type TryLesson, tryLanguagesLineOf } from '@/lib/learn/landing';
-import type { LearnAnswerState } from '@/lib/learn/learn-answer';
 import { isRightAnswer, type LearnLessonMine, storedAnswerOf } from '@/lib/learn/lesson-page';
 import { answerLearnLessonAction } from '@/lib/learn/lesson-page.actions';
 import { shortDayWords } from '@/lib/learn/my-progress';
 import { coursePath, LEARN_HOME_PATH, LEARN_SETUP_PATH, learnLessonMinePath, learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
+import type { LearnAnswerState } from '@/lib/workspace/learn-answer';
 import { learnSetupHrefOf } from '@/lib/workspace/paths';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';
 

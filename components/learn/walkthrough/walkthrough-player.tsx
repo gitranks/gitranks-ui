@@ -6,15 +6,15 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 
 import { partHeadingIdOf, WALKTHROUGH_GRID, WALKTHROUGH_MAIN } from './walkthrough-parts';
 import { lessonPlace } from '@/components/learn/player/places';
-import { AnswerPart } from '@/components/learn/question/answer-part';
-import { useLearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/workspace/player/player-strip';
 import { usePlayer } from '@/components/workspace/player/use-player';
-import type { LearnAnswerState } from '@/lib/learn/learn-answer';
-import type { LearnQuestion } from '@/lib/learn/learn-question';
+import { AnswerPart } from '@/components/workspace/question/answer-part';
+import { useLearnAnswer } from '@/components/workspace/question/use-learn-answer';
 import { isRightAnswer } from '@/lib/learn/lesson-page';
 import { finishWalkthroughAction } from '@/lib/learn/walkthrough.actions';
 import { hasSessionHint } from '@/lib/session-hint';
+import type { LearnAnswerState } from '@/lib/workspace/learn-answer';
+import type { LearnQuestion } from '@/lib/workspace/learn-question';
 import { runWordsOf } from '@/lib/workspace/player';
 import type { PrRef } from '@/lib/workspace/pr-feedback';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';

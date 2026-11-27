@@ -1,6 +1,5 @@
 import type { Route } from 'next';
 
-import { languageNameOf } from './learn-question';
 import {
   coursePath,
   isContentSlug,
@@ -14,6 +13,7 @@ import {
   repoNameOf,
 } from './paths';
 import { SETUP_LANGUAGES } from './setup';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 import type { FullIssue, MaskedIssue } from '@/lib/workspace/masked-issue.types';
 
 /*

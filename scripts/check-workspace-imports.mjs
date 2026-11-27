@@ -26,6 +26,14 @@
 // |                                         |   server action                                                         |
 // | The Skills page (app/profile/[login]/   | anything but Contribute's own (lib/contribute/, components/contribute/, |
 // |   skills/)                              |   its pages), Learn's pages and any server action                       |
+// | lib/build/ (Build)                      | itself, lib/workspace/                                                  |
+// | components/build/                       | itself, lib/build/, components/workspace/ (not its pull-request/        |
+// |                                         |   folder, which reads Learn), lib/workspace/                            |
+// | Build's routes (the groups (build) and  | themselves, lib/build/, components/build/, components/workspace/ (not   |
+// |   (build-player), app/api/me/build/,    |   its pull-request/ folder), lib/workspace/                             |
+// |   the start flow app/(onboarding)/build)|                                                                         |
+//
+// Build is a section of its own: nothing of Learn's or Contribute's. What it needs from Learn moved to the shared folders.
 //
 // Learn's own parts include components/learn/entity/, the Learn card on a project's page. A server action module is
 // one whose file starts with the `'use server'` directive, or one of Learn's modules named `actions` or
@@ -59,8 +67,14 @@ export const ALLOWED = [
   'app/(workspace)/my/settings/components/settings-view.tsx -> lib/learn/setup',
 ];
 
+/** Build's routes: its two groups, its start flow inside the flow frame, and its personal API routes. */
+const BUILD_ROUTES = ['app/(build)/', 'app/(build-player)/', 'app/(onboarding)/build/', 'app/api/me/build/'];
+
 /** The folder rule's name for a path, or null for a site-wide module every folder may import. */
 export function zoneOf(path) {
+  if (path.startsWith('lib/build/')) return 'lib/build';
+  if (path.startsWith('components/build/')) return 'components/build';
+  if (BUILD_ROUTES.some((dir) => path.startsWith(dir))) return 'app/build';
   if (path.startsWith('lib/skills/')) return 'lib/skills';
   if (path.startsWith('components/skills/')) return 'components/skills';
   if (path.startsWith('app/profile/[login]/skills/')) return 'app/skills';
@@ -97,6 +111,9 @@ const MAY_IMPORT = {
   ],
   'lib/contribute': ['lib/contribute', 'lib/workspace'],
   'lib/learn': ['lib/learn', 'lib/workspace'],
+  'lib/build': ['lib/build', 'lib/workspace'],
+  'components/build': ['components/build', 'lib/build', 'components/workspace', 'lib/workspace'],
+  'app/build': ['app/build', 'lib/build', 'components/build', 'components/workspace', 'lib/workspace'],
   'lib/auth': ['lib/auth', 'lib/workspace'],
   'components/workspace': ['components/workspace', 'components/workspace/pull-request', 'lib/workspace'],
   'components/workspace/pull-request': [

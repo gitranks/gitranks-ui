@@ -10,11 +10,11 @@ import {
   reviewMinutesWords,
   toRepeatWords,
 } from './course';
-import { languageNameOf } from './learn-question';
 import type { LearnLessonLink } from './lesson-page';
 import { addLearnDays, learnTodayIn, shortDayWords } from './my-progress';
 import { learnCourseProjectOf } from './project-course';
 import { type LearnSetupRead, SETUP_LEVELS } from './setup';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
  * Learn home: the rules of what it shows, from the person's `learnHome` answer. Every field is read

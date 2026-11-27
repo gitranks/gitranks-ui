@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 import { FlowFrame } from '@/components/workspace/getting-in/flow-frame';
 import { Kbd } from '@/components/workspace/kbd';
 import { HEADING } from '@/components/workspace/primitives';
-import { languageNameOf } from '@/lib/learn/learn-question';
 import { HOW_LEARN_WORKS, ONBOARDING_STEPS, YOUR_LANGUAGES_TEXT } from '@/lib/learn/onboarding';
 import { LEARN_PREFERENCES_PATH } from '@/lib/learn/paths';
 import { SETUP_LANGUAGES, type SetupLanguage } from '@/lib/learn/setup';
 import { cn } from '@/lib/utils';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
  * Learn's onboarding as its boards draw it, from plain data: two steps in one frame like Contribute's, under the strip

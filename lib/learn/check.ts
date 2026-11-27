@@ -1,9 +1,9 @@
-import type { HighlightedCode } from './code-tokens';
 import type { LearnCourse, LearnCourseMine } from './course';
-import type { LearnPicked, LearnQuestion } from './learn-question';
 import { isLanguageKey, pickedOf } from './lesson-answer-input';
 import type { LearnLessonLink } from './lesson-page';
 import { isContentSlug } from './paths';
+import type { HighlightedCode } from '@/lib/workspace/code-tokens';
+import type { LearnPicked, LearnQuestion } from '@/lib/workspace/learn-question';
 
 /*
  * The check of a course and "What you know": one question for each group, no right or wrong until the end,

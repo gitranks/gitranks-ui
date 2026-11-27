@@ -129,6 +129,19 @@ describe('POST /api/cache/expire', () => {
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
   });
 
+  it("takes Build's tags: the list of projects, a project and a step, beside the others", async () => {
+    const tags = [
+      'build:projects',
+      'build:project:mcp-server',
+      'build:step:mcp-server:list-the-tools',
+      'learn:courses',
+    ];
+    const response = await signed({ tags });
+
+    expect(response.status).toBe(200);
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
+  });
+
   it("takes the fixes' tags: the list of merged fixes and one fix's, beside the others", async () => {
     const tags = ['learn:fixes', 'learn:fix:octo-labs/scroll.guard#42', 'learn:courses', 'profile:octocat'];
     const response = await signed({ tags });
@@ -243,6 +256,13 @@ describe('POST /api/cache/expire', () => {
     ["Unsung hero's tag with a suffix", { tags: ['unsung-hero:2026-W47'] }],
     ['the plural of the hero tag', { tags: ['unsung-heroes'] }],
     ['another kind of Learn tag', { tags: ['learn:lessons'] }],
+    ['another kind of Build tag', { tags: ['build:steps'] }],
+    ['a Build tag with no slug', { tags: ['build:project:'] }],
+    ['a Build tag in capitals', { tags: ['build:project:MCP-Server'] }],
+    ['a Build tag of a page that is no project', { tags: ['build:project:mine'] }],
+    ['a step tag with no step', { tags: ['build:step:mcp-server:'] }],
+    ['a step tag of a test', { tags: ['build:step:mcp-server:test'] }],
+    ['a step tag with a third part', { tags: ['build:step:mcp-server:list-the-tools:x'] }],
     ['a Learn tag with no slug', { tags: ['learn:course:'] }],
     ['a Learn tag in capitals', { tags: ['learn:lesson:Hash-Sets'] }],
     ['a Learn tag with a doubled hyphen', { tags: ['learn:lesson:hash--sets'] }],

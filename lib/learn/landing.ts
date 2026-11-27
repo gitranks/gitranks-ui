@@ -1,13 +1,13 @@
-import { type HighlightedCode, highlightedOf } from './code-tokens';
 import { type CourseSection, courseSectionsOf, type LearnCourseCard, lessonsWords } from './course';
 import { type CourseInLine, landingCoursesLineOf } from './courses-line';
 import { LEARN_MAINTAINERS_PATH } from './learn-path';
-import { languageNameOf } from './learn-question';
 import type { LearnLesson } from './lesson-page';
 import { courseMarkdownHrefOf, LEARN_COURSES_MARKDOWN_PATH, LEARN_COURSES_PATH, LEARN_HOME_PATH } from './paths';
 import { lessonPlainTextOf } from './seo/lesson';
 import { clipText } from '@/lib/seo/clip-text';
 import { absoluteUrl } from '@/lib/seo/site';
+import { type HighlightedCode, highlightedOf } from '@/lib/workspace/code-tokens';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
  * Learn's landing and How Learn works: the words both pages, the Markdown copy and the structured

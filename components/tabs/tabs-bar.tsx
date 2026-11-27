@@ -15,6 +15,8 @@ type TabsBarProps = {
    * fit only a desktop's width (the package rankings' registries).
    */
   scrollsBelow?: 'sm' | 'lg';
+  /** How wide the tabs' row is: the site's width by default; a section with a narrower reading column passes its own. */
+  width?: string;
 };
 
 /**
@@ -26,12 +28,12 @@ const PHONE_SCROLL =
 const TABLET_SCROLL =
   "max-lg:[mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)] max-lg:after:w-8 max-lg:after:shrink-0 max-lg:after:content-['']";
 
-export const TabsBar: FC<TabsBarProps> = ({ children, className, end, scrollsBelow = 'sm' }) => {
+export const TabsBar: FC<TabsBarProps> = ({ children, className, end, scrollsBelow = 'sm', width = 'max-w-7xl' }) => {
   const scroll = scrollsBelow === 'lg' ? TABLET_SCROLL : PHONE_SCROLL;
   if (!end) {
     return (
       <div className={cn('text-sm text-center text-muted-foreground border-b', className)}>
-        <ul className={cn('mx-auto flex w-full max-w-7xl -mb-px overflow-x-auto [scrollbar-width:none]', scroll)}>
+        <ul className={cn('mx-auto flex w-full', width, '-mb-px overflow-x-auto [scrollbar-width:none]', scroll)}>
           {children}
         </ul>
       </div>
@@ -39,7 +41,7 @@ export const TabsBar: FC<TabsBarProps> = ({ children, className, end, scrollsBel
   }
   return (
     <div className={cn('text-sm text-center text-muted-foreground border-b', className)}>
-      <div className="mx-auto flex w-full max-w-7xl items-end">
+      <div className={cn('mx-auto flex w-full', width, 'items-end')}>
         <ul className={cn('flex min-w-0 flex-1 -mb-px overflow-x-auto [scrollbar-width:none]', scroll)}>{children}</ul>
         <div className="relative flex shrink-0 items-center gap-2 bg-background ps-2.5 pe-3 pb-2 max-sm:shadow-[-14px_0_12px_-8px_var(--background)] sm:px-4">
           {end}

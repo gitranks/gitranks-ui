@@ -93,7 +93,7 @@ function CasesBoard() {
       </Case>
       <Case
         title="5 · Only built projects"
-        line="No “Waiting for you”, no “In progress”, and no sentence to say. One line leads on. A project built in two languages is two rows."
+        line="No “Waiting for you”, no “In progress”, and no sentence to say. One line leads on. One row a build: a project built in two languages is two rows, each with its own score and gold test (the approved board drew one row for both)."
       >
         <Lists list={mineBoardOnlyBuilt} />
       </Case>

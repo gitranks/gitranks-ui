@@ -6,6 +6,7 @@ import { type KeyboardEvent, type ReactNode, type Ref, useEffect, useRef, useSta
 
 import { ShareButton } from '@/components/share/share-button';
 import { Button } from '@/components/ui/button';
+import { BUILD_SKILLS_BUILT } from '@/lib/build/built-parts';
 import {
   CONTINUE_SENTENCE,
   isEmptyMine,
@@ -146,8 +147,9 @@ function ProgressRow({
   const ask = useRef<HTMLButtonElement>(null);
   const asked = useRef(false);
   useEffect(() => {
-    // The question takes the focus on its safe answer; "Keep it" gives it back to "Remove".
-    if (remove === 'asking' && !asked.current) keep.current?.focus();
+    // The question takes the focus on its safe answer, and again when removing failed; "Keep it" gives it back to
+    // "Remove".
+    if ((remove === 'asking' && !asked.current) || remove === 'failed') keep.current?.focus();
     if (remove === null && asked.current) ask.current?.focus();
     asked.current = remove !== null;
   }, [remove]);
@@ -358,21 +360,36 @@ export function MineBody({
   view,
   login,
   asking = null,
+  skills = BUILD_SKILLS_BUILT,
   onRemove,
 }: {
   view: MineView;
   /** The person's login, for their Skills page; null leaves the words without the link. */
   login: string | null;
   asking?: string | null;
+  /** Whether Skills lists built projects yet: only then does the page say so. */
+  skills?: boolean;
   onRemove: (build: string) => Promise<RemoveOutcome>;
 }) {
   const [remove, setRemove] = useState<{ build: string; step: RemoveStep } | null>(
     asking ? { build: asking, step: 'asking' } : null,
   );
-  const [removed, setRemoved] = useState(0);
+  // What the last removal came to, counted so each one is told and moves the focus.
+  const [after, setAfter] = useState<{ outcome: 'removed' | 'reload'; build: string; count: number } | null>(null);
   useEffect(() => {
+    if (!after) return;
+    // A refused removal: the build is drawn as it is now, maybe in another list; its name takes the focus.
+    if (after.outcome === 'reload') {
+      const row = [...document.querySelectorAll<HTMLElement>('[data-build-mine-row]')].find(
+        (each) => each.dataset.build === after.build,
+      );
+      const name = row?.querySelector<HTMLElement>('a');
+      if (name) {
+        name.focus();
+        return;
+      }
+    }
     // The removed row took the focus with it: the list it was in takes it, or what the page shows now.
-    if (!removed) return;
     for (const id of AFTER_REMOVE_IDS) {
       const heading = document.getElementById(id);
       if (heading) {
@@ -380,11 +397,13 @@ export function MineBody({
         return;
       }
     }
-  }, [removed]);
+  }, [after]);
 
+  // The same words twice in a row are read out again: every other one ends in a space a screen reader skips.
+  const removedWords = after?.outcome === 'removed' ? `The build was removed.${after.count % 2 ? '' : '\u00a0'}` : '';
   const status = (
     <span role="status" aria-live="polite" className="sr-only" data-build-mine-status>
-      {removed ? 'The build was removed.' : ''}
+      {removedWords}
     </span>
   );
   if (isEmptyMine(view)) {
@@ -398,15 +417,21 @@ export function MineBody({
 
   const confirm = async (build: string) => {
     setRemove({ build, step: 'removing' });
+    setAfter(null);
     const outcome = await onRemove(build);
     setRemove((current) =>
       current?.build !== build ? current : outcome === 'failed' ? { build, step: 'failed' } : null,
     );
-    if (outcome === 'removed') setRemoved((count) => count + 1);
+    if (outcome !== 'failed') setAfter((last) => ({ outcome, build, count: (last?.count ?? 0) + 1 }));
   };
 
   return (
     <div className="contents" data-build-mine="ready">
+      {after?.outcome === 'reload' ? (
+        <p role="status" className="m-0 text-sm" data-build-mine-notice>
+          That build changed since this page was read, so it was not removed. It is shown here as it is now.
+        </p>
+      ) : null}
       {view.tests.length ? (
         <Section
           id="build-mine-waiting"
@@ -428,7 +453,12 @@ export function MineBody({
                 key={row.build}
                 row={row}
                 remove={remove?.build === row.build ? remove.step : null}
-                onAsk={() => setRemove({ build: row.build, step: 'asking' })}
+                onAsk={() =>
+                  // One question at a time: a build being removed keeps its row until the answer comes.
+                  setRemove((current) =>
+                    current?.step === 'removing' ? current : { build: row.build, step: 'asking' },
+                  )
+                }
                 onKeep={() => setRemove(null)}
                 onConfirm={() => void confirm(row.build)}
               />
@@ -454,17 +484,19 @@ export function MineBody({
           </Link>
         </p>
       ) : null}
-      <p className="m-0 text-xs text-muted-foreground" data-build-mine-skills>
-        Built projects also show on{' '}
-        {login ? (
-          <Link href={buildSkillsPath(login)} className="font-medium text-link hover:underline">
-            your Skills page
-          </Link>
-        ) : (
-          'your Skills page'
-        )}
-        , for everyone. Builds in progress show only here.
-      </p>
+      {skills ? (
+        <p className="m-0 text-xs text-muted-foreground" data-build-mine-skills>
+          Built projects also show on{' '}
+          {login ? (
+            <Link href={buildSkillsPath(login)} className="font-medium text-link hover:underline">
+              your Skills page
+            </Link>
+          ) : (
+            'your Skills page'
+          )}
+          , for everyone. Builds in progress show only here.
+        </p>
+      ) : null}
       {status}
     </div>
   );

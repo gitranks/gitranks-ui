@@ -4,6 +4,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { MINE_MAIN_CLASS, MineBody, MineHead, MineMessage, MinePending, type RemoveOutcome } from './mine-parts';
+import { askBuildBarAgain } from '@/components/build/bar/build-bar-live';
 import { Button } from '@/components/ui/button';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { BuildActionResult } from '@/lib/build/build-action';
@@ -53,8 +54,12 @@ type Page =
 export function BuildMineLive() {
   const [page, setPage] = useState<Page>({ kind: 'pending' });
   const [attempt, setAttempt] = useState(0);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const login = session?.user?.githubLogin ?? null;
+  // The route answers no list both signed out and on a failure. The session tells them apart: one the server no longer
+  // reads (the readable hint outlived it) needs a new sign-in, which "Try again" would never give.
+  const sessionGone = status === 'unauthenticated' || !!session?.error;
+  const shown = page.kind === 'failed' && sessionGone ? 'ended' : page.kind;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Try again reads the list once more.
   useEffect(() => {
@@ -77,6 +82,8 @@ export function BuildMineLive() {
       setPage((current) =>
         current.kind === 'ready' ? { ...current, list: withoutBuild(current.list, build) } : current,
       );
+      // My builds, Settings and the count on "Test" may all change with it.
+      askBuildBarAgain();
       return 'removed';
     }
     if (result.error === 'SIGNED_OUT') {
@@ -88,6 +95,7 @@ export function BuildMineLive() {
     const list = await readBuildMine();
     if (!list) return 'failed';
     setPage({ kind: 'ready', list, now: new Date() });
+    askBuildBarAgain();
     return 'reload';
   }, []);
 
@@ -98,12 +106,12 @@ export function BuildMineLive() {
   return (
     <main className={MINE_MAIN_CLASS}>
       <MineHead />
-      {page.kind === 'visitor' || page.kind === 'ended' ? (
+      {shown === 'visitor' || shown === 'ended' ? (
         <MineMessage
-          state={page.kind}
-          title={page.kind === 'ended' ? 'Sign in again to see your builds' : 'Sign in to see your builds'}
+          state={shown}
+          title={shown === 'ended' ? 'Sign in again to see your builds' : 'Sign in to see your builds'}
           text={
-            page.kind === 'ended'
+            shown === 'ended'
               ? 'Your session ended. Sign in, and you come back here.'
               : 'Your builds are kept with your GitHub account, so this page needs you signed in.'
           }
@@ -112,7 +120,7 @@ export function BuildMineLive() {
             Sign in with GitHub
           </Button>
         </MineMessage>
-      ) : page.kind === 'failed' ? (
+      ) : shown === 'failed' ? (
         <MineMessage
           state="failed"
           title="Your builds did not load"
@@ -129,7 +137,7 @@ export function BuildMineLive() {
             Try again
           </Button>
         </MineMessage>
-      ) : page.kind === 'pending' ? (
+      ) : page.kind !== 'ready' ? (
         <MinePending />
       ) : (
         <MineBody view={mineViewOf(page.list, page.now)} login={login} onRemove={remove} />

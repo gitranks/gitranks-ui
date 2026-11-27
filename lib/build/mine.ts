@@ -1,5 +1,6 @@
 import type { Route } from 'next';
 
+import { BUILD_EMAILS_BUILT } from './built-parts';
 import { buildProjectPath, buildTestPath } from './paths';
 import {
   type BuildGold,
@@ -142,13 +143,35 @@ export function removeQuestionOf(passed: number): string {
   return `Remove this build? ${steps} forgotten, and the folder on your computer stays as it is.`;
 }
 
-/** The line on the gold test of a built project; null once it is earned. */
-export function goldLineOf(gold: BuildGold, waits: boolean): string | null {
+/** The day `days` after a day, as `YYYY-MM-DD`; null for a day that cannot be read. */
+export function dayAfter(key: string | null, days: number): string | null {
+  const utc = key ? utcOf(key) : null;
+  return utc === null ? null : new Date(utc + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** What the gold test's line needs besides its state. */
+export type GoldLineContext = {
+  /** The gold test waits at the top of the page. */
+  waits: boolean;
+  /** The day the gold test first opens: a week after the person's day of Built. */
+  firstDay: string | null;
+  /** Whether the email on that morning is sent. */
+  emails?: boolean;
+};
+
+/**
+ * The line on the gold test of a built project; null once it is earned. The email goes once, on the day the test first
+ * opens: a test that opens again after a failed try promises none.
+ */
+export function goldLineOf(gold: BuildGold, { waits, firstDay, emails = BUILD_EMAILS_BUILT }: GoldLineContext) {
   if (gold.kind === 'earned') return null;
-  if (gold.kind === 'open')
+  if (gold.kind === 'open') {
     return waits ? 'The gold test is open. It is at the top of this page.' : 'The gold test is open.';
+  }
   const day = shortDayOf(gold.date, null);
-  return day ? `The gold test opens on ${day}. We will email you that day.` : null;
+  if (!day) return null;
+  const email = emails && firstDay !== null && gold.date === firstDay;
+  return `The gold test opens on ${day}.${email ? ' We will email you that day.' : ''}`;
 }
 
 /** The optional parts built, when any: "2 of 5 optional parts", or "the optional part built" when it is the one. */
@@ -188,7 +211,12 @@ function testTextOf(
  * again in "In progress"; a built project whose gold test is open is in both "Waiting for you" and "Built", the second
  * pointing up.
  */
-export function mineViewOf(list: BuildMineList, now: Date, timeZone?: string): MineView {
+export function mineViewOf(
+  list: BuildMineList,
+  now: Date,
+  timeZone?: string,
+  { emails = BUILD_EMAILS_BUILT }: { emails?: boolean } = {},
+): MineView {
   const todayKey = dayKeyOf(now, timeZone);
   const waiting = new Set(list.tests.map((test) => test.build));
   const builtAtOf = new Map(
@@ -244,7 +272,11 @@ export function mineViewOf(list: BuildMineList, now: Date, timeZone?: string): M
         meta,
         repeated: gold.kind === 'earned',
         answeredEveryStep: build.answeredEveryStep,
-        gold: goldLineOf(gold, waiting.has(build.build)),
+        gold: goldLineOf(gold, {
+          waits: waiting.has(build.build),
+          firstDay: dayAfter(dayKeyOf(builtAt, timeZone), 7),
+          emails,
+        }),
         answersHref: buildTestPath(build.project.slug, 'end', build.language),
       },
     ];

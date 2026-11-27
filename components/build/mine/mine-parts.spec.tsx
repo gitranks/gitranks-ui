@@ -44,10 +44,19 @@ afterEach(() => {
   host.remove();
 });
 
-const draw = (list: List, { asking = null as string | null, login = 'octocat' as string | null } = {}) =>
+const draw = (
+  list: List,
+  { asking = null as string | null, login = 'octocat' as string | null, skills = true, emails = false } = {},
+) =>
   act(async () => {
     root.render(
-      <MineBody view={mineViewOf(list, fixtures.MINE_NOW, 'UTC')} login={login} asking={asking} onRemove={onRemove} />,
+      <MineBody
+        view={mineViewOf(list, fixtures.MINE_NOW, 'UTC', { emails })}
+        login={login}
+        asking={asking}
+        skills={skills}
+        onRemove={onRemove}
+      />,
     );
   });
 
@@ -141,19 +150,47 @@ describe('My builds, from its fixtures', () => {
     expect(onRemove).toHaveBeenCalledWith(fixtures.mineMcpInProgress.build);
     expect(rows('progress')[0].getAttribute('data-remove')).toBe('failed');
     expect(text(rows('progress')[0])).toContain('The build was not removed. Try again in a minute.');
+    expect(document.activeElement?.textContent).toBe('Keep it');
 
     await act(async () => removeButton().click());
     expect(rows('progress')[0].getAttribute('data-remove')).toBeNull();
     expect(host.querySelector('[data-build-mine-status]')?.textContent).toBe('The build was removed.');
   });
 
+  it('asks one question at a time: a build being removed keeps its row', async () => {
+    let answer: (outcome: 'removed') => void = () => {};
+    onRemove.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)) as never);
+    await draw(fixtures.mineBoardTwoInProgress, { asking: fixtures.mineMcpInProgress.build });
+    await act(async () => (rows('progress')[0].querySelector('button') as HTMLButtonElement).click());
+    expect(rows('progress')[0].getAttribute('data-remove')).toBe('removing');
+    await act(async () => (rows('progress')[1].querySelector('button') as HTMLButtonElement).click());
+    expect(rows('progress')[0].getAttribute('data-remove')).toBe('removing');
+    expect(rows('progress')[1].getAttribute('data-remove')).toBeNull();
+    await act(async () => answer('removed'));
+  });
+
+  it("gives the refused build's name the focus once the list was read again", async () => {
+    onRemove.mockResolvedValueOnce('reload' as never);
+    await draw(fixtures.mineBoardTwoInProgress, { asking: fixtures.mineCodingAgent.build });
+    await act(async () => (rows('progress')[1].querySelector('button') as HTMLButtonElement).click());
+    expect(host.querySelector('[data-build-mine-notice]')).not.toBeNull();
+    expect(document.activeElement?.textContent).toBe('Build a coding agent');
+  });
+
+  it('leaves out the line on Skills until Skills lists built projects', async () => {
+    await draw(fixtures.mineBoardOne, { skills: false });
+    expect(host.querySelector('[data-build-mine-skills]')).toBeNull();
+    await draw(fixtures.mineBoardGoldOpensOn, { emails: true });
+    expect(text(host.querySelector('[data-build-gold]'))).toBe(
+      'The gold test opens on 3 Dec. We will email you that day.',
+    );
+  });
+
   it('says when the gold test of a built project opens, with the optional parts built', async () => {
     await draw(fixtures.mineBoardGoldOpensOn);
     const [row] = rows('built');
     expect(text(row)).toContain('TypeScript · built 26 Nov · 9 of 10 in the test · 2 of 5 optional parts');
-    expect(text(row.querySelector('[data-build-gold]'))).toBe(
-      'The gold test opens on 3 Dec. We will email you that day.',
-    );
+    expect(text(row.querySelector('[data-build-gold]'))).toBe('The gold test opens on 3 Dec.');
     expect(buttonsOf(row)).not.toContain('Take the gold test');
   });
 

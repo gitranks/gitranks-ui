@@ -20,11 +20,17 @@ vi.mock('next/link', () => ({
   ),
   useLinkStatus: () => ({ pending: false }),
 }));
-const { hint, signIn } = vi.hoisted(() => ({ hint: { present: true }, signIn: vi.fn(async () => undefined) }));
+const { hint, signIn, session } = vi.hoisted(() => ({
+  hint: { present: true },
+  signIn: vi.fn(async () => undefined),
+  session: {
+    current: { data: { user: { githubLogin: 'octocat' } } as unknown, status: 'authenticated' },
+  },
+}));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 vi.mock('next-auth/react', () => ({
   signIn,
-  useSession: () => ({ data: { user: { githubLogin: 'octocat' } }, status: 'authenticated' }),
+  useSession: () => session.current,
 }));
 
 const { BuildMineLive } = await import('./mine-live');
@@ -55,6 +61,7 @@ beforeEach(() => {
   fetchMock.mockReset();
   signIn.mockClear();
   hint.present = true;
+  session.current = { data: { user: { githubLogin: 'octocat' } }, status: 'authenticated' };
   host = document.createElement('div');
   document.body.append(host);
   root = createRoot(host);
@@ -102,7 +109,32 @@ describe('My builds in the browser', () => {
       'In progress',
       'Built',
     ]);
-    expect(host.querySelector('[data-build-mine-skills] a')?.getAttribute('href')).toBe('/profile/octocat/skills');
+    // Skills does not list built projects yet, so the page does not say it does.
+    expect(host.querySelector('[data-build-mine-skills]')).toBeNull();
+  });
+
+  it('asks to sign in again when the server no longer reads the session the browser still hints at', async () => {
+    routes({ lists: [null] });
+    session.current = { data: null, status: 'unauthenticated' };
+    await draw();
+    expect(stateOf()).toBe('ended');
+    session.current = {
+      data: { user: { githubLogin: 'octocat' }, error: 'RefreshTokenError' },
+      status: 'authenticated',
+    };
+    await draw();
+    expect(stateOf()).toBe('ended');
+  });
+
+  it("asks Build's bar to read itself again after a removal", async () => {
+    routes({ lists: [mineBoardOne] });
+    const heard = vi.fn();
+    window.addEventListener('build:bar-changed', heard);
+    await draw();
+    await click(progressRows()[0].querySelector('button'));
+    await click(buttonNamed('Remove the build'));
+    window.removeEventListener('build:bar-changed', heard);
+    expect(heard).toHaveBeenCalledTimes(1);
   });
 
   it('says a read that failed, and reads again on "Try again"', async () => {
@@ -169,6 +201,9 @@ describe('My builds in the browser', () => {
     expect(fetchMock.mock.calls.filter(([path]) => path === '/api/me/build/mine')).toHaveLength(2);
     expect(progressRows()).toHaveLength(0);
     expect(host.querySelectorAll('[data-build-mine-row="built"]')).toHaveLength(2);
+    expect(host.querySelector('[data-build-mine-notice]')?.textContent).toBe(
+      'That build changed since this page was read, so it was not removed. It is shown here as it is now.',
+    );
   });
 
   it('asks to sign in again when the session ended', async () => {

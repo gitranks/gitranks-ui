@@ -15,7 +15,6 @@ export const AREAS = {
   /** The signed-in pages both sides share: Pull requests, a pull request's page, Agent, Settings, the Start page. */
   workspace: 'Workspace',
   learn: 'Learn',
-  /** Build's pages: Home, Projects, a project, a step, the start flow, the tests, My builds. */
   build: 'Build',
   admin: 'Admin',
 } as const;

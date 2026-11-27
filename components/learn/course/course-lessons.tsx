@@ -7,6 +7,7 @@ import { Fragment, type KeyboardEvent, type RefObject, useState } from 'react';
 import { CountLine } from './course-header';
 import { CourseMark, SquareCard } from './course-marks';
 import { GroupRepo } from './project-course-parts';
+import { GroupAskedAt } from '@/components/interviews/learn-gate/course-gate';
 import { Kbd } from '@/components/workspace/kbd';
 import {
   type CourseFilter,
@@ -25,6 +26,7 @@ import {
   SQUARE_WORDS,
   squareLabelOf,
 } from '@/lib/learn/course';
+import { type CourseInterviews, courseGroupInterviewsOf } from '@/lib/learn/course-interviews';
 import type { LearnCourseGroup, LearnGroupLesson } from '@/lib/learn/lesson-page';
 import { learnLessonPath } from '@/lib/learn/paths';
 import { cn } from '@/lib/utils';
@@ -248,6 +250,7 @@ export function CourseList({
   learner,
   query,
   filter,
+  interviews = null,
 }: {
   found: CourseSearchGroup[];
   squareOf: (lesson: LearnGroupLesson) => CourseSquare;
@@ -255,6 +258,8 @@ export function CourseList({
   learner: boolean;
   query: string;
   filter: CourseFilter;
+  /** What Interviews shows on the course: "Asked at" on each group whose topic candidates report. */
+  interviews?: CourseInterviews | null;
 }) {
   return (
     <div className="flex flex-col gap-8">
@@ -265,6 +270,7 @@ export function CourseList({
         // While searching or filtering, every group found says how many of its lessons show.
         const narrowed = query !== '' || filter !== 'all';
         const id = `group-${group.slug}`;
+        const asked = courseGroupInterviewsOf(interviews, group.slug);
         return (
           <section key={group.slug} className="flex flex-col gap-2" aria-labelledby={id}>
             <div className="flex flex-wrap items-baseline justify-between gap-3 border-b pb-2">
@@ -273,6 +279,7 @@ export function CourseList({
                 <GroupRepo repo={group.repo} />
               </h2>
               <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                {asked ? <GroupAskedAt entry={asked} /> : null}
                 {narrowed ? (
                   <span>
                     <CountLine

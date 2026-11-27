@@ -29,6 +29,7 @@ import {
   ProgressVisitor,
   ViewHead,
 } from './my-progress-parts';
+import { LearnPlanRowView, useLearnPlanRowRead } from '@/components/interviews/learn-gate/plan-row';
 import { useFocusOnShow } from '@/components/learn/player/use-page-keys';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import {
@@ -207,7 +208,11 @@ export type MyProgressHistory =
  * on the first of them. Switching views keeps what was read.
  */
 export function MyProgressLive({ view, day }: { view: MyProgressView; day: string | null }) {
-  const [page, setPage] = useState<Page>({ kind: 'pending' });
+  const [read, setPage] = useState<Page>({ kind: 'pending' });
+  // The plan to go on with is read from the start, beside the progress; the page shows once both are known, so the
+  // row comes with it and nothing moves.
+  const plans = useLearnPlanRowRead();
+  const page: Page = read.kind === 'ready' && !plans.settled ? { kind: 'pending' } : read;
   const [history, setHistory] = useState<MyProgressHistory | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [historyAttempt, setHistoryAttempt] = useState(0);
@@ -316,6 +321,8 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
 
   return (
     <main className={MY_PROGRESS_MAIN_CLASS}>
+      {/* The plan to go on with, as on Learn home: for a person with their progress in, and a plan in progress. */}
+      {page.kind === 'ready' && plans.row ? <LearnPlanRowView row={plans.row} /> : null}
       {page.kind === 'visitor' || page.kind === 'ended' ? (
         <ProgressVisitor ended={page.kind === 'ended'} titleRef={titleRef} onSignIn={signInHere} />
       ) : page.kind === 'failed' ? (

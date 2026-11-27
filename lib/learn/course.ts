@@ -367,7 +367,9 @@ export type CourseMiddleBox =
   | { kind: 'known'; known: number }
   | { kind: 'due'; due: number }
   | { kind: 'review-none' }
-  | { kind: 'grows' };
+  | { kind: 'grows' }
+  /** A company's own course: its interview plans, where other courses have the check (`course-interviews.ts`). */
+  | { kind: 'plans'; company: string; plans: number; href: string };
 
 /**
  * The last box: how a lesson grows, signing in, where to go after the course, or the open issues of the learner's list

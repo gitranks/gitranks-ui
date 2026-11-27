@@ -14,6 +14,8 @@ const { hint, signIn } = vi.hoisted(() => ({ hint: { present: false }, signIn: v
 // The session's hint cookie, as the browser holds it.
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 vi.mock('next-auth/react', () => ({ signIn }));
+// Interviews is closed to this person: its row asks nothing here (`my-progress-plan-row.spec.tsx` draws it).
+vi.mock('@/components/interviews/interviews-viewer', () => ({ interviewsOpenForDocument: async () => false }));
 
 const { MyProgressLive, readHistory, readMyProgress } = await import('./my-progress-live');
 const { historyEarlier, historyFirst, myFixes, myProgress, myProgressEmpty, myProgressFirstDay, myWalkthroughs } =

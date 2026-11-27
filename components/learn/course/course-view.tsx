@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import { Fragment, useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
@@ -24,6 +25,7 @@ import {
   passesFilter,
   searchQueryOf,
 } from '@/lib/learn/course';
+import { type CourseCompanyOwn, type CourseInterviews, companyPlansBoxesOf } from '@/lib/learn/course-interviews';
 import type { LearnGroupLesson } from '@/lib/learn/lesson-page';
 import { courseHrefOf, courseMarkdownHrefOf, courseProjectOf, learnProjectIssuesPath } from '@/lib/learn/paths';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
@@ -78,6 +80,11 @@ export type CourseViewProps = {
   openIssues?: number | null;
   /** A project course's open issues to fix, the same for everyone: linked in its line of facts, while there are some. */
   projectIssues?: number | null;
+  /**
+   * What Interviews shows on the course: the companies whose plans use it, "Asked at" on its groups, and a company's
+   * own course. None for anyone Interviews is not open to: the page is then today's.
+   */
+  interviews?: CourseInterviews | null;
   /** For the catalogue: a state drawn as it stands. */
   drawn?: { view?: CourseLessonsView; filter?: CourseFilter; query?: string; openCard?: string };
   hints?: boolean;
@@ -98,6 +105,7 @@ export function CourseView({
   mainLanguage = null,
   openIssues = null,
   projectIssues = null,
+  interviews = null,
   drawn = {},
   hints: hintsGiven,
 }: CourseViewProps) {
@@ -126,7 +134,8 @@ export function CourseView({
   const counts = filterCountsOf(foundLessons, squareOf);
   const foundSlugs = useMemo(() => new Set(foundLessons.map((lesson) => lesson.slug)), [foundLessons]);
   const visible = (lesson: LearnGroupLesson) => foundSlugs.has(lesson.slug) && passesFilter(squareOf(lesson), filter);
-  const boxes = courseBoxesOf(course, mine, { checkFirst, person, openIssues });
+  // A company's own course has its plans where other courses have the check.
+  const boxes = companyPlansBoxesOf(courseBoxesOf(course, mine, { checkFirst, person, openIssues }), interviews?.own);
   // "Fix a real issue" on a project course leads to the Issues of its project.
   const project = courseProjectOf(course);
   const issuesHref = project ? learnProjectIssuesPath(project) : undefined;
@@ -154,12 +163,26 @@ export function CourseView({
     </p>
   ) : null;
   const list = nothing ? null : (
-    <CourseList found={found} squareOf={squareOf} mine={own} learner={learner} query={q} filter={filter} />
+    <CourseList
+      found={found}
+      squareOf={squareOf}
+      mine={own}
+      learner={learner}
+      query={q}
+      filter={filter}
+      interviews={interviews}
+    />
   );
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-course={course.slug}>
-      <CourseHeader course={course} language={language} onLanguage={pickLanguage} projectIssues={projectIssues} />
+      <CourseHeader
+        course={course}
+        language={language}
+        onLanguage={pickLanguage}
+        projectIssues={projectIssues}
+        interviews={interviews}
+      />
       <CourseBoxesRow boxes={boxes} slug={course.slug} hints={hints} calls={calls} issuesHref={issuesHref} />
       <div className="flex flex-col gap-3">
         <CourseProgressLine course={course} mine={mine} />
@@ -203,6 +226,8 @@ export function CourseView({
       )}
       {course.project ? (
         <ProjectFoot project={course.project} markdown={courseMarkdownHrefOf(course)} />
+      ) : interviews?.own ? (
+        <CompanyCourseFooter course={course} own={interviews.own} />
       ) : (
         <CourseFooter course={course} others={others} />
       )}
@@ -232,6 +257,24 @@ function CourseFooter({ course, others }: { course: LearnCourseCard; others: rea
           ))}
         </>
       ) : null}
+    </p>
+  );
+}
+
+/** A company's own course: who wrote it from what, the day its facts were checked, how we research, its Markdown copy. */
+function CompanyCourseFooter({ course, own }: { course: LearnCourseCard; own: CourseCompanyOwn }) {
+  return (
+    <p className="m-0 text-xs text-muted-foreground" data-course-foot="company">
+      Written by GitRanks from what {own.company.name} states and what candidates report
+      {own.checked ? ` · Facts checked ${own.checked}` : null}
+      {' · '}
+      <Link href={own.researchHref as Route} className="hover:underline">
+        How we research
+      </Link>
+      {' · '}
+      <a href={courseMarkdownHrefOf(course)} className="hover:underline">
+        Markdown version
+      </a>
     </p>
   );
 }

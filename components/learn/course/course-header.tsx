@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { ProjectAuthor, ProjectFacts } from './project-course-parts';
 import { CourseBuildDoor } from '@/components/build/doors-gate';
+import { CoursePlansLine, CourseTitleLogo } from '@/components/interviews/learn-gate/course-gate';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,11 @@ import {
   type LearnCourseMine,
   learnersOf,
 } from '@/lib/learn/course';
+import {
+  type CourseInterviews,
+  companyCourseLessonsFactOf,
+  companyCourseNoticeOf,
+} from '@/lib/learn/course-interviews';
 import { checkPath, LEARN_COURSES_PATH, learnKnownPath } from '@/lib/learn/paths';
 import { courseFixesCountOf, courseFixesPathOf } from '@/lib/learn/real-issues';
 import { languageNameOf, languageNamesOf } from '@/lib/workspace/learn-question';
@@ -78,14 +84,15 @@ function LanguagePicker({
 
 /**
  * The right end of a course's row of facts: the language of its examples. A topic course offers the choice when it
- * has more than one; a language course names its own. A project course has none here: its line names its project.
+ * has more than one; a language course names its own. A project course has none here: its line names its project. A
+ * company's course has no code, so no language.
  */
 function examplesLanguageOf(
   course: LearnCourse,
   language: string | null,
   onLanguage: (language: string) => void,
 ): ReactNode {
-  if (course.project) return null;
+  if (course.project || course.kind === 'COMPANY') return null;
   if (course.kind === 'TOPIC') {
     const [only] = course.languages;
     if (course.languages.length > 1) {
@@ -136,31 +143,47 @@ export function CourseHeader({
   language,
   onLanguage,
   projectIssues = null,
+  interviews = null,
 }: {
   course: LearnCourse;
   language: string | null;
   onLanguage: (language: string) => void;
   /** A project course's open issues to fix: its line of facts links them, while there are some. */
   projectIssues?: number | null;
+  /**
+   * What Interviews shows on the course, for a person it is open to: the line of the companies whose plans use it, or
+   * for a company's own course its logo, its notice and its lessons by round.
+   */
+  interviews?: CourseInterviews | null;
 }) {
   const learners = learnersOf(course.numbers);
   // "N real issues fixed" shows from five, as a link to the course's merged fixes.
   const fixed = courseFixesCountOf(course.numbers.issuesFixed);
   const examples = examplesLanguageOf(course, language, onLanguage);
+  const own = interviews?.own ?? null;
   return (
     <header className="flex flex-col gap-2">
       <Link href={LEARN_COURSES_PATH} className="self-start text-sm font-semibold text-link hover:underline">
         ← All courses
       </Link>
-      <h1 className="m-0 text-2xl font-bold tracking-tight text-balance sm:text-3xl">{course.name}</h1>
-      <p className="m-0 max-w-[70ch] text-base text-muted-foreground">{course.about}</p>
+      {own ? (
+        <h1 className="m-0 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight text-balance sm:text-3xl">
+          <CourseTitleLogo company={own.company} />
+          {course.name}
+        </h1>
+      ) : (
+        <h1 className="m-0 text-2xl font-bold tracking-tight text-balance sm:text-3xl">{course.name}</h1>
+      )}
+      <p className="m-0 max-w-[70ch] text-base text-muted-foreground">
+        {own ? `${course.about} ${companyCourseNoticeOf(own)}` : course.about}
+      </p>
       {course.project ? <ProjectAuthor project={course.project} /> : null}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground" data-course-facts="">
         <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-foreground">
           {COURSE_KIND_LABELS[course.kind]}
         </span>
         <span className="whitespace-nowrap" data-course-lessons="">
-          {courseLessonsFactOf(course)}
+          {own ? companyCourseLessonsFactOf(course) : courseLessonsFactOf(course)}
         </span>
         {learners !== null ? (
           <span className="whitespace-nowrap">
@@ -186,6 +209,8 @@ export function CourseHeader({
           </span>
         ) : null}
       </div>
+      {/* The companies whose interview plans use the course; a company's own course names its company above. */}
+      {interviews && !own ? <CoursePlansLine companies={interviews.companies} /> : null}
       {/* Build's door, under the row of facts: only for a person Build is open to, once their browser knows it. */}
       <CourseBuildDoor course={course.slug} />
     </header>

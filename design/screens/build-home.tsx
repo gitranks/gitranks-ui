@@ -18,6 +18,8 @@ import {
   sideBuilder,
   sideGoldOpen,
   sideNothingWaits,
+  sideTestFailed,
+  sideTestGoing,
   sideTestWaits,
 } from '@/lib/build/__fixtures__/home';
 import { BUILD_FIXTURE_NOW, buildProjectsFew, buildProjectsMany } from '@/lib/build/__fixtures__/projects';
@@ -144,9 +146,10 @@ export const BUILD_HOME_SCREEN: Screen = {
     },
     {
       id: 'cases',
-      title: 'The other cases: an agent connected, the gold test open, nothing waits, everything built, many projects',
+      title:
+        'The other cases: an agent connected, the gold test open, nothing waits, everything built, many projects, a test in progress, a failed test',
       path: '/build',
-      height: 2700,
+      height: 3900,
       render: () => (
         <Cases
           title="Build home: the other cases"
@@ -186,6 +189,22 @@ export const BUILD_HOME_SCREEN: Screen = {
           >
             <div className={BUILD_COLUMN}>
               <ProjectCards cards={buildProjectsFourteen.slice(0, 6)} placeOf={placeOf} />
+            </div>
+          </Frame>
+          <Frame
+            title="7 · A test left in the middle"
+            note="The box says where the person was and what is kept. Its button goes on with the test."
+          >
+            <div className="h-[330px] overflow-hidden">
+              <HomeView view={homeViewOf(sideTestGoing, buildProjectsFew)} projects={buildProjectsFew} now={NOW} />
+            </div>
+          </Frame>
+          <Frame
+            title="8 · The test failed"
+            note="The score and what is needed, as the project's box says it. One button to the answers and the next try."
+          >
+            <div className="h-[330px] overflow-hidden">
+              <HomeView view={homeViewOf(sideTestFailed, buildProjectsFew)} projects={buildProjectsFew} now={NOW} />
             </div>
           </Frame>
         </Cases>

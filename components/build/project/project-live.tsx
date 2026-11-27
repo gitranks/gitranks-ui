@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 
 import { ProjectView } from './project-view';
+import { TimeZoneNote } from '@/components/workspace/time-zone-note';
 import { HOME_READ_WAIT_MS } from '@/lib/build/home';
 import { buildProjectMinePath, buildTestMinePath } from '@/lib/build/paths';
 import type { ProjectSide } from '@/lib/build/project';
 import type { BuildProjectMine, BuildProjectPage, BuildTest } from '@/lib/build/types';
+import { readBuildZone } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** The person's side of a project from its route; null when there is none, and on any failure. */
@@ -24,18 +26,25 @@ export async function readProjectMine(slug: string): Promise<BuildProjectMine | 
 }
 
 /**
- * The end test of the build the page is about, read only when that build has the test left, so the box can say a
- * failed test's score. None on any failure: the box then offers the test as for a first try.
+ * The test that waits for the build the page is about, read only when one waits (the end test with the test left, the
+ * gold test once open), so the box can say a run in progress or a failed test's score. None on any failure: the box
+ * then offers the test as for a first try.
  */
 export async function readProjectTest(slug: string, mine: BuildProjectMine): Promise<BuildTest | null> {
   const build = mine.builds[0];
-  if (build?.state.kind !== 'test_left') return null;
+  const kind =
+    build?.state.kind === 'test_left'
+      ? 'end'
+      : build?.state.kind === 'built' && build.state.gold.kind === 'open'
+        ? 'gold'
+        : null;
+  if (!build || !kind) return null;
   try {
     const language = mine.builds.length > 1 ? build.language : null;
-    const res = await fetch(buildTestMinePath(slug, 'end', language), { cache: 'no-store' });
+    const res = await fetch(buildTestMinePath(slug, kind, language), { cache: 'no-store' });
     if (!res.ok) return null;
     const { test } = (await res.json()) as { test?: BuildTest | null };
-    return test && test.kind === 'end' ? test : null;
+    return test && test.kind === kind ? test : null;
   } catch {
     return null;
   }
@@ -63,11 +72,11 @@ export function ProjectLive({ project }: { project: BuildProjectPage }) {
     setReading(true);
     const late = setTimeout(() => setReading(false), HOME_READ_WAIT_MS);
     void (async () => {
-      const mine = await readProjectMine(slug);
+      const [mine, zone] = await Promise.all([readProjectMine(slug), readBuildZone()]);
       const test = mine ? await readProjectTest(slug, mine) : null;
       if (!live) return;
       clearTimeout(late);
-      setSide(mine ? { kind: 'person', mine, test } : { kind: 'session' });
+      setSide(mine ? { kind: 'person', mine, test, zone } : { kind: 'session' });
       setReading(false);
     })();
     return () => {
@@ -76,5 +85,11 @@ export function ProjectLive({ project }: { project: BuildProjectPage }) {
     };
   }, [slug]);
 
-  return <ProjectView project={project} side={side} reading={reading} />;
+  return (
+    <>
+      <ProjectView project={project} side={side} reading={reading} />
+      {/* Once the person's side is read, their device's time zone is sent, as on Learn's pages. */}
+      {side.kind === 'person' ? <TimeZoneNote /> : null}
+    </>
+  );
 }

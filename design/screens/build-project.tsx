@@ -25,6 +25,7 @@ import {
   mineTwoBuildsOneBuilt,
   mineTwoBuildsOtherTestLeft,
 } from '@/lib/build/__fixtures__/project-page';
+import { endTestOpen, goldTestReady, testRun } from '@/lib/build/__fixtures__/test';
 import { buildBarViewOf } from '@/lib/build/build-bar';
 import { buildProjectPath } from '@/lib/build/paths';
 import type { ProjectSide } from '@/lib/build/project';
@@ -148,7 +149,7 @@ export const BUILD_PROJECT_SCREEN: Screen = {
       title: 'What changes with the person: the box in every state, the optional parts folded and opened, What next',
       path: PATH,
       width: 1000,
-      height: 6900,
+      height: 7600,
       render: () => (
         <main className="mx-auto flex w-full max-w-[920px] flex-col gap-10 px-4 pt-8 pb-16">
           <div className="flex flex-col gap-2">
@@ -180,8 +181,20 @@ export const BUILD_PROJECT_SCREEN: Screen = {
             >
               {box(person(mineTestLeft, endTestFailedNow))}
             </Case>
+            <Case
+              title="6 · The test left in the middle"
+              note="Where the person was, and what is kept. The button goes on with the test."
+            >
+              {box(person(mineTestLeft, endTestOpen))}
+            </Case>
             <Case title="7 · Built, the gold test not open yet">{box(person(mineBuilt))}</Case>
             <Case title="8 · Built, the gold test open">{box(person(mineGoldOpen))}</Case>
+            <Case
+              title="8 · Built, the gold test left in the middle"
+              note="The gold test's line says where the person was. The button goes on with it."
+            >
+              {box(person(mineGoldOpen, { ...goldTestReady, open: testRun, canStart: false }))}
+            </Case>
             <Case title="9 · Built and repeated">{box(person(mineGoldEarned))}</Case>
             <Case title="10 · Built, and now in an optional part">{box(person(mineInPart))}</Case>
             <Case

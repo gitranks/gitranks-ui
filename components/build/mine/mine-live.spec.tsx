@@ -28,6 +28,10 @@ const { hint, signIn, session } = vi.hoisted(() => ({
   },
 }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
+// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone.
+const zoneRead = vi.hoisted(() => ({ value: 'UTC' as string | undefined }));
+vi.mock('@/lib/build/zone-live', () => ({ readBuildZone: async () => zoneRead.value }));
+vi.mock('@/components/workspace/time-zone-note', () => ({ TimeZoneNote: () => <span data-time-zone-note="" /> }));
 vi.mock('next-auth/react', () => ({
   signIn,
   useSession: () => session.current,
@@ -37,6 +41,7 @@ const { BuildMineLive } = await import('./mine-live');
 const { mineBoardFull, mineBoardOne, mineBoardOnlyBuilt, mineMcpInProgress } = await import(
   '@/lib/build/__fixtures__/mine'
 );
+const { endTestFailed, goldTestReady, testRun } = await import('@/lib/build/__fixtures__/test');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -45,11 +50,16 @@ let host: HTMLDivElement;
 const fetchMock = vi.fn();
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
-/** The two routes: My builds, read in turn from `lists`, and removing a build. */
-function routes({ lists = [mineBoardFull as unknown], remove = json({ ok: true, data: true }) as Response } = {}) {
+/** The routes: My builds, read in turn from `lists`; removing a build; each waiting test, by its address (none: no test). */
+function routes({
+  lists = [mineBoardFull as unknown],
+  remove = json({ ok: true, data: true }) as Response,
+  tests = {} as Record<string, unknown>,
+} = {}) {
   let read = 0;
   fetchMock.mockImplementation(async (path: string) => {
     if (path === '/api/me/build/remove') return remove.clone();
+    if (path.startsWith('/api/me/build/test')) return json({ test: tests[path] ?? null });
     const mine = lists[Math.min(read++, lists.length - 1)];
     return mine === 'down' ? json({}, 502) : json({ mine });
   });
@@ -111,6 +121,39 @@ describe('My builds in the browser', () => {
     ]);
     // Skills does not list built projects yet, so the page does not say it does.
     expect(host.querySelector('[data-build-mine-skills]')).toBeNull();
+    // Once the builds are read, the browser's zone is sent, as on Learn's pages.
+    expect(host.querySelector('[data-time-zone-note]')).not.toBeNull();
+  });
+
+  it('reads each waiting test, and says a run left in the middle and a failed try in their rows', async () => {
+    routes({
+      tests: {
+        '/api/me/build/test?project=key-value-database&kind=end&language=python': {
+          ...endTestFailed,
+          project: { slug: 'key-value-database', name: 'Build a key-value database' },
+          language: 'python',
+        },
+        '/api/me/build/test?project=web-server&kind=gold&language=typescript': {
+          ...goldTestReady,
+          open: testRun,
+          canStart: false,
+        },
+      },
+    });
+    await draw();
+    const links = [...host.querySelectorAll('a')].map((link) => link.textContent);
+    expect(links).toContain('See your answers and try again');
+    expect(links).toContain('Go on with the gold test');
+    expect(host.textContent).toContain('Python. The test: 6 of 10 right, 7 are needed.');
+    expect(host.textContent).toContain('TypeScript. The gold test: you were on question 4 of 10.');
+  });
+
+  it('offers a waiting test as for a first try when its read fails', async () => {
+    routes();
+    await draw();
+    const links = [...host.querySelectorAll('a')].map((link) => link.textContent);
+    expect(links).toContain('Take the test');
+    expect(links).toContain('Take the gold test');
   });
 
   it('asks to sign in again when the server no longer reads the session the browser still hints at', async () => {

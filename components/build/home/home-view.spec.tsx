@@ -118,6 +118,39 @@ describe("Build's home", () => {
     expect(container.querySelectorAll('[data-project-card]')).toHaveLength(3);
   });
 
+  it('goes on with a test left in the middle, in place of taking it', async () => {
+    await draw(fixtures.sideTestGoing);
+    const box = container.querySelector('[data-home-box="end-going"]');
+    expect(box?.querySelector('h2')?.textContent).toBe('Build an MCP server: you were on question 4 of 10');
+    expect(box?.textContent).toContain('Your first three answers are kept. Go on from question 4.');
+    expect(link('Go on with the test')).toBe('/build/mcp-server/test?language=typescript');
+    expect(link('Take the test')).toBeNull();
+  });
+
+  it("says a failed test's score as the project's box does, with its answers to look at", async () => {
+    await draw(fixtures.sideTestFailed);
+    const box = container.querySelector('[data-home-box="test-failed"]');
+    expect(box?.querySelector('h2')?.textContent).toBe('Build an MCP server: the test, 6 of 10 right. 7 are needed');
+    expect(box?.textContent).toContain('Each wrong answer has its reason and its step.');
+    expect(link('See your answers and try again')).toBe('/build/mcp-server/test?language=typescript');
+  });
+
+  it('says when a build with no step passed was started', async () => {
+    const [build] = fixtures.sideBuilderAlone.home?.builds ?? [];
+    const fresh = { ...build, stepsDone: [], lastStepAt: new Date(now.getTime() - 5 * 60_000).toISOString() };
+    await draw({ ...fixtures.sideBuilderAlone, home: { builds: [fresh], tests: [], next: [] }, builds: [fresh] });
+    expect(container.querySelector('[data-home-box="build"]')?.textContent).toContain('started 5 minutes ago');
+    expect(text()).not.toContain('last step');
+  });
+
+  it("writes the gold test box's day in the zone the person's days are counted in", async () => {
+    const view = homeViewOf(fixtures.sideGoldOpen, buildProjectsFew);
+    await act(async () =>
+      root.render(<HomeView view={view} projects={buildProjectsFew} now={now} zone="Pacific/Kiritimati" />),
+    );
+    expect(container.querySelector('[data-home-box="gold"]')?.textContent).toContain('Built on 13 Nov');
+  });
+
   it('puts an open gold test first, with the day the project was built', async () => {
     await draw(fixtures.sideGoldOpen);
     const box = container.querySelector('[data-home-box="gold"]');

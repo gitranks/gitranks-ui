@@ -8,6 +8,7 @@ import { BUILD_COLUMN } from '@/components/build/column';
 import { BUILD_CODE_REPOSITORY_PUBLIC } from '@/lib/build/built-parts';
 import { BUILD_PROJECTS_PATH, buildCoursePath } from '@/lib/build/paths';
 import { boxBuildOf, needRowsOf, type ProjectSide, projectFactsOf, whatNextOf } from '@/lib/build/project';
+import { buildBaseUrlOf } from '@/lib/build/step-page';
 import type { BuildMine, BuildProjectPage } from '@/lib/build/types';
 import { cn } from '@/lib/utils';
 
@@ -21,9 +22,6 @@ import { cn } from '@/lib/utils';
  * under the head stays hidden in its place, so a builder never sees the start box or the sections about starting
  * first; the stylesheet shows it after the read's time limit, so a late read never leaves a hole.
  */
-
-/** The public repository of every project's code, one branch for each project and language. */
-export const BUILD_CODE_URL = 'https://github.com/gitranks/build';
 
 const SECTION_TITLE = 'm-0 text-xl font-bold tracking-tight';
 const LIST = 'm-0 flex list-none flex-col overflow-hidden rounded-lg border bg-card p-0';
@@ -170,6 +168,8 @@ export type ProjectViewProps = {
 export function ProjectView({ project, side, openParts, reading = false }: ProjectViewProps) {
   const build = boxBuildOf(side);
   const starting = !build;
+  // The code of the person's build's language, else of the project's first language.
+  const codeLanguage = build?.language ?? project.languages[0];
   return (
     <main data-project-page={project.slug} className={cn(BUILD_COLUMN, 'gap-5 sm:gap-5')}>
       <ProjectHead project={project} />
@@ -189,10 +189,15 @@ export function ProjectView({ project, side, openParts, reading = false }: Proje
         {starting && <WhatYouNeed project={project} />}
         <p className="m-0 text-xs text-muted-foreground">
           Written and checked by GitRanks
-          {BUILD_CODE_REPOSITORY_PUBLIC && (
+          {BUILD_CODE_REPOSITORY_PUBLIC && codeLanguage && (
             <>
               <span aria-hidden="true"> · </span>
-              <a href={BUILD_CODE_URL} className="hover:underline">
+              <a
+                href={buildBaseUrlOf(project.slug, codeLanguage)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
                 The code on GitHub
               </a>
             </>

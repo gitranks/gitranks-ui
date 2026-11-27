@@ -23,6 +23,7 @@ vi.mock('next/link', () => ({
 const { ProjectView } = await import('./project-view');
 const { mcpServerProject, smallProject } = await import('@/lib/build/__fixtures__/project');
 const fixtures = await import('@/lib/build/__fixtures__/project-page');
+const { endTestOpen, goldTestReady, testRun } = await import('@/lib/build/__fixtures__/test');
 type Side = import('@/lib/build/project').ProjectSide;
 type Mine = import('@/lib/build/types').BuildProjectMine;
 type Test = import('@/lib/build/types').BuildTest;
@@ -175,6 +176,29 @@ describe('the box, in each state', () => {
     expect(box()?.querySelectorAll('a')).toHaveLength(1);
   });
 
+  it('6 · the test left in the middle: where the person was, and one button to go on with it', async () => {
+    await draw(person(fixtures.mineTestLeft, endTestOpen));
+    expect(boxKind()).toBe('test_going');
+    expect(title()).toBe('The test: you were on question 4 of 10');
+    expect(boxText()).toContain('Your first three answers are kept. Go on from question 4.');
+    expect(linkOf('Go on with the test')?.getAttribute('href')).toBe('/build/mcp-server/test');
+    expect(mainButtons()).toHaveLength(1);
+    expect(boxText()).not.toContain(' 0 ');
+  });
+
+  it('6 · the test failed with none right: the score says so, never a zero', async () => {
+    const last = fixtures.endTestFailedNow.last;
+    await draw(person(fixtures.mineTestLeft, { ...fixtures.endTestFailedNow, last: last && { ...last, right: 0 } }));
+    expect(title()).toBe('The test: none of the 10 right. 7 are needed');
+  });
+
+  it("7 · built, its dates in the zone the person's days are counted in", async () => {
+    await draw({ ...person(fixtures.mineBuilt), zone: 'Pacific/Kiritimati' } as Side);
+    // Built at 11:30 UTC on 26 Nov: already 27 Nov at UTC+14. The gold test's day is the API's, as it is.
+    expect(title()).toBe('Built on 27 Nov 2026');
+    expect(boxText()).toContain('The gold test opens on 3 Dec');
+  });
+
   it('7 · built, the gold test opens on a date: the date, the score, the marks', async () => {
     await draw(person(fixtures.mineBuilt));
     expect(boxKind()).toBe('built');
@@ -195,6 +219,16 @@ describe('the box, in each state', () => {
     await draw(person(fixtures.mineGoldOpen));
     expect(boxText()).toContain('The gold test is open: 10 questions, and 8 right earns the gold mark. One try a day.');
     expect(linkOf('Take the gold test')?.getAttribute('href')).toBe('/build/mcp-server/test/gold');
+    expect(mainButtons()).toHaveLength(1);
+  });
+
+  it('8 · built, the gold test left in the middle: where the person was, and one button to go on with it', async () => {
+    await draw(person(fixtures.mineGoldOpen, { ...goldTestReady, open: testRun, canStart: false }));
+    expect(boxText()).toContain(
+      'The gold test: you were on question 4 of 10. Your first three answers are kept. Go on from question 4.',
+    );
+    expect(linkOf('Go on with the gold test')?.getAttribute('href')).toBe('/build/mcp-server/test/gold');
+    expect(linkOf('Take the gold test')).toBeUndefined();
     expect(mainButtons()).toHaveLength(1);
   });
 
@@ -276,7 +310,10 @@ describe('the sections around the box', () => {
   it('a built project adds "What next" right under the box', async () => {
     await draw(person(fixtures.mineBuilt));
     expect(sections()).toEqual(['What next', 'The steps']);
-    expect(linkOf('The code on GitHub')).toBeUndefined();
+    // The base the build started from, in the build's language, in the public code repository.
+    expect(linkOf('The code on GitHub')?.getAttribute('href')).toBe(
+      'https://github.com/gitranks/build/tree/mcp-server/typescript/base',
+    );
     const next = host.querySelector('[data-project-next]');
     expect(next?.textContent).toContain('Go on with this project');
     expect(next?.textContent).toContain('Build next');

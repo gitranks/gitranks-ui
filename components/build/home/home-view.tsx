@@ -11,6 +11,8 @@ export type HomeViewProps = {
   projects: readonly BuildProjectCard[];
   /** The browser's clock, once the person's side is read; none on the server. */
   now?: Date | null;
+  /** The zone the person's days are counted in, once read: every date of the page is written in it. */
+  zone?: string;
   /**
    * The person's side is being read: in a browser that holds a session the page stays hidden in its place until it
    * comes, so a builder never sees the landing first, and shows by itself 4s after the first paint, script or not
@@ -20,7 +22,7 @@ export type HomeViewProps = {
 };
 
 /** Build's home: the landing, or the person's own home once they have a build. */
-export function HomeView({ view, projects, now = null, reading = false }: HomeViewProps) {
+export function HomeView({ view, projects, now = null, zone, reading = false }: HomeViewProps) {
   return (
     <main
       className={cn(
@@ -33,7 +35,7 @@ export function HomeView({ view, projects, now = null, reading = false }: HomeVi
       {view.kind === 'landing' ? (
         <HomeLanding projects={projects} agentConnected={view.agentConnected} />
       ) : (
-        <HomeBuilder view={view} now={now} />
+        <HomeBuilder view={view} now={now} zone={zone} />
       )}
     </main>
   );

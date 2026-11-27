@@ -38,6 +38,7 @@ const ROUTES: Record<string, { GET?: Route; POST?: Route }> = {
   './remove/route': (await import('./remove/route')) as { GET?: Route; POST?: Route },
   './settings/save/route': (await import('./settings/save/route')) as { GET?: Route; POST?: Route },
   './doors/route': (await import('./doors/route')) as { GET?: Route; POST?: Route },
+  './zone/route': (await import('./zone/route')) as { GET?: Route; POST?: Route },
 };
 const route = async (path: string) => ROUTES[path];
 
@@ -48,6 +49,7 @@ const { endTestOpen, testRun } = await import('@/lib/build/__fixtures__/test');
 const { keyValueDatabaseStepNine } = await import('@/lib/build/__fixtures__/doors');
 const { keyValueDatabaseCard, webServerCard } = await import('@/lib/build/__fixtures__/projects');
 const { webServerBuilt } = await import('@/lib/build/__fixtures__/builds');
+const { BuildOpenDocument } = await import('@/lib/build/build.documents');
 
 const URL_BASE = 'https://gitranks.com';
 const signedIn = () => {
@@ -131,6 +133,49 @@ describe("Build's personal reads", () => {
     const res = await (GET as Route)(new NextRequest(`${URL_BASE}/api/me/build/test?project=mcp-server&kind=silver`));
     expect(await res.json()).toEqual({ test: null });
     expect(graphqlDirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("the zone the person's days are counted in", () => {
+  const get = async () => {
+    const { GET } = await route('./zone/route');
+    return (GET as Route)(new NextRequest(`${URL_BASE}/api/me/build/zone`));
+  };
+  /** The API's answers: whether Build is open to the person, and the settings they saved (an Error: the read fails). */
+  const api = (open: boolean, settings: unknown) =>
+    graphqlDirect.mockImplementation(async (document: unknown) => {
+      if (document === BuildOpenDocument) return { buildOpen: open };
+      if (settings instanceof Error) throw settings;
+      return { contributeEmailSettings: settings };
+    });
+
+  it('is the zone they saved, never kept, and none signed out without asking the API', async () => {
+    const signedOut = await get();
+    expect(await signedOut.json()).toEqual({ zone: null });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    signedIn();
+    api(true, { timeZone: 'Europe/Kyiv' });
+    const res = await get();
+    expect(await res.json()).toEqual({ zone: 'Europe/Kyiv' });
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
+    expect(graphqlDirect.mock.calls.every((call) => call[2].githubLogin === 'octocat')).toBe(true);
+  });
+
+  it("is the API's default when they saved none, and none when it cannot be read", async () => {
+    signedIn();
+    api(true, { timeZone: null });
+    expect(await (await get()).json()).toEqual({ zone: 'America/New_York' });
+    api(true, null);
+    expect(await (await get()).json()).toEqual({ zone: null });
+    api(true, new Error('down'));
+    expect(await (await get()).json()).toEqual({ zone: null });
+  });
+
+  it('is none when Build is not open to the person, as every read of Build', async () => {
+    signedIn();
+    api(false, { timeZone: 'Europe/Kyiv' });
+    expect(await (await get()).json()).toEqual({ zone: null });
   });
 });
 

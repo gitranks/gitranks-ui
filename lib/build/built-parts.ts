@@ -10,7 +10,7 @@ export const BUILD_EMAILS_BUILT = false;
 export const BUILD_SKILLS_BUILT = false;
 
 /** The public repository of every project's code: a project's page links it once it is published. */
-export const BUILD_CODE_REPOSITORY_PUBLIC = false;
+export const BUILD_CODE_REPOSITORY_PUBLIC = true;
 
 /**
  * Build is open to everyone: the header's Grow menu and the home page's three cards are then in the page as the

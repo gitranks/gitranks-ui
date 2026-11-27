@@ -6,11 +6,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { MINE_MAIN_CLASS, MineBody, MineHead, MineMessage, MinePending, type RemoveOutcome } from './mine-parts';
 import { askBuildBarAgain } from '@/components/build/bar/build-bar-live';
 import { Button } from '@/components/ui/button';
+import { TimeZoneNote } from '@/components/workspace/time-zone-note';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { BuildActionResult } from '@/lib/build/build-action';
 import { mineListOf, mineViewOf, withoutBuild } from '@/lib/build/mine';
-import { BUILD_MINE_MINE_PATH, BUILD_MINE_PATH, BUILD_REMOVE_MINE_PATH } from '@/lib/build/paths';
-import type { BuildMineList } from '@/lib/build/types';
+import { BUILD_MINE_MINE_PATH, BUILD_MINE_PATH, BUILD_REMOVE_MINE_PATH, buildTestMinePath } from '@/lib/build/paths';
+import { type TestStanding, testStandingOf } from '@/lib/build/test';
+import type { BuildMineList, BuildTest } from '@/lib/build/types';
+import { readBuildZone } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** The person's builds from their route; null on any failure (Build not open to them, or an API that does not know it). */
@@ -39,12 +42,46 @@ export async function postRemoveBuild(build: string): Promise<BuildActionResult<
   }
 }
 
+/**
+ * Where each test that waits stands (a run in progress, a failed try), by build: each read on its own, none where a
+ * read fails, so the row then offers the test as for a first try.
+ */
+export async function readMineStandings(list: BuildMineList): Promise<Record<string, TestStanding | null>> {
+  const readOne = async (test: BuildMineList['tests'][number]) => {
+    try {
+      const res = await fetch(buildTestMinePath(test.project.slug, test.kind, test.language), { cache: 'no-store' });
+      if (!res.ok) return null;
+      const { test: read } = (await res.json()) as { test?: BuildTest | null };
+      return read && read.kind === test.kind ? testStandingOf(read) : null;
+    } catch {
+      return null;
+    }
+  };
+  const standings = await Promise.all(list.tests.map(readOne));
+  return Object.fromEntries(list.tests.map((test, at) => [test.build, standings[at]]));
+}
+
 type Page =
   | { kind: 'pending' }
   | { kind: 'visitor' }
   | { kind: 'ended' }
   | { kind: 'failed' }
-  | { kind: 'ready'; list: BuildMineList; now: Date };
+  | {
+      kind: 'ready';
+      list: BuildMineList;
+      now: Date;
+      /** The zone the person's days are counted in. */
+      zone?: string;
+      /** Where each waiting test stands, by build. */
+      standings?: Record<string, TestStanding | null>;
+    };
+
+/** The person's builds, where their waiting tests stand, and the zone their days are counted in; null on a failure. */
+async function readMinePage(): Promise<Extract<Page, { kind: 'ready' }> | null> {
+  const [list, zone] = await Promise.all([readBuildMine(), readBuildZone()]);
+  if (!list) return null;
+  return { kind: 'ready', list, now: new Date(), zone, standings: await readMineStandings(list) };
+}
 
 /**
  * My builds in the browser. The page is the same for everyone; once it is up, a person with a session reads their
@@ -68,8 +105,8 @@ export function BuildMineLive() {
       return;
     }
     let live = true;
-    readBuildMine().then((list) => {
-      if (live) setPage(list ? { kind: 'ready', list, now: new Date() } : { kind: 'failed' });
+    readMinePage().then((ready) => {
+      if (live) setPage(ready ?? { kind: 'failed' });
     });
     return () => {
       live = false;
@@ -92,9 +129,9 @@ export function BuildMineLive() {
     }
     if (result.error === 'FAILED') return 'failed';
     // Built since, removed elsewhere, or refused: the list as it is now says why.
-    const list = await readBuildMine();
-    if (!list) return 'failed';
-    setPage({ kind: 'ready', list, now: new Date() });
+    const ready = await readMinePage();
+    if (!ready) return 'failed';
+    setPage(ready);
     askBuildBarAgain();
     return 'reload';
   }, []);
@@ -140,8 +177,14 @@ export function BuildMineLive() {
       ) : page.kind !== 'ready' ? (
         <MinePending />
       ) : (
-        <MineBody view={mineViewOf(page.list, page.now)} login={login} onRemove={remove} />
+        <MineBody
+          view={mineViewOf(page.list, page.now, page.zone, { standings: page.standings })}
+          login={login}
+          onRemove={remove}
+        />
       )}
+      {/* Once the person's builds are read, their device's time zone is sent, as on Learn's pages. */}
+      {page.kind === 'ready' ? <TimeZoneNote /> : null}
     </main>
   );
 }

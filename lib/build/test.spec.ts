@@ -15,13 +15,16 @@ import {
   endTestClosed,
   endTestCode,
   endTestFailedAgain,
+  endTestFailedCode,
   endTestNoneRight,
   goldTestClosed,
   goldTestFailed,
   goldTestPassed,
   mineBuilt,
+  predictQuestion,
   predictQuestionKeyed,
   testResultOf,
+  testRunCode,
 } from './__fixtures__/test-pages';
 import {
   answerGroupsOf,
@@ -30,7 +33,11 @@ import {
   closedWordsOf,
   countWordOf,
   dayOf,
+  FAILED_TEST_ACTION,
+  goingWordsOf,
+  goOnLabelOf,
   momentOf,
+  rightWordsOf,
   scoreTextOf,
   scoreTitleOf,
   testBoxOf,
@@ -38,8 +45,10 @@ import {
   testNextLabelOf,
   testNoteOf,
   testRuleOf,
+  testStandingOf,
 } from './test';
 import type { BuildTestResult } from './types';
+import { plainCodeOf } from '@/lib/workspace/code-tokens';
 
 const NOW = new Date('2026-11-26T12:00:00.000Z');
 /** The parts later work brings (the gold test's email, Skills' Built section), once they are there. */
@@ -178,6 +187,22 @@ describe('the answers', () => {
     });
   });
 
+  it('draw the code a question asked about, as its card drew it, with the colours the server gave', () => {
+    const rows = answerRowsOf(resultOf(endTestFailedCode), 'typescript');
+    const code = rows.find((row) => row.number === 7)?.code;
+    expect(code).toEqual(endTestFailedCode.last?.highlighted?.[predictQuestion.id]?.[0]);
+    expect(code?.language).toBe('typescript');
+    expect(rows.filter((row) => row.code)).toHaveLength(1);
+    expect(rows.find((row) => row.number === 7)?.isRight).toBe(false);
+  });
+
+  it('draw the code plain when the server sent no colours, and none for a question with no code', () => {
+    const plain = { ...resultOf(endTestFailedCode), highlighted: undefined };
+    const row = answerRowsOf(plain, 'typescript').find((item) => item.number === 7);
+    expect(row?.code).toEqual(plainCodeOf(predictQuestion.codes.find((code) => code.language === 'typescript')!));
+    expect(answerRowsOf(failedResult, 'typescript').every((item) => item.code === null)).toBe(true);
+  });
+
   it('leave the first list out when nothing is wrong', () => {
     const { wrong, right } = answerGroupsOf(resultOf(endTestAllRight), 'typescript');
     expect(wrong).toEqual([]);
@@ -293,7 +318,7 @@ describe('a test that cannot start', () => {
   });
 
   it('the gold test before its day: the day it opens', () => {
-    expect(closedWordsOf(goldTestClosed, buildBuilt, ON)).toEqual({
+    expect(closedWordsOf(goldTestClosed, buildBuilt, 'UTC', ON)).toEqual({
       title: 'The gold test opens on 3 Dec',
       text: 'It opens a week after you built the project. We will email you that day.',
     });
@@ -315,5 +340,47 @@ describe('the words', () => {
     expect(dayOf('2026-12-03')).toBe('3 Dec');
     expect(momentOf('2026-12-04T09:14:00.000Z', 'UTC')).toEqual({ day: '4 Dec', time: '09:14' });
     expect(momentOf('not a date')).toBeNull();
+  });
+});
+
+describe('where a test stands, as the boxes outside the test say it', () => {
+  it('a run in progress: the question the person was on', () => {
+    expect(testStandingOf(endTestOpen)).toEqual({ kind: 'going', answered: 3, count: 10 });
+    expect(testStandingOf(endTestCode)).toEqual({ kind: 'going', answered: 6, count: 10 });
+    expect(testStandingOf({ ...goldTestReady, open: testRunCode })).toEqual({ kind: 'going', answered: 6, count: 10 });
+  });
+
+  it('a failed end test: its score and what is needed', () => {
+    expect(testStandingOf(endTestFailed)).toEqual({ kind: 'failed', right: 6, count: 10, need: 7 });
+    expect(testStandingOf(endTestFailedCode)).toEqual({ kind: 'failed', right: 5, count: 10, need: 7 });
+  });
+
+  it('nothing to say for a test not begun, passed, a failed gold test, or nothing read', () => {
+    expect(testStandingOf(endTestPassed)).toBeNull();
+    expect(testStandingOf(goldTestReady)).toBeNull();
+    expect(testStandingOf(goldTestFailed)).toBeNull();
+    expect(testStandingOf({ ...endTestFailed, open: { ...testRunCode, answered: 0 } })).toEqual({
+      kind: 'failed',
+      right: 6,
+      count: 10,
+      need: 7,
+    });
+    expect(testStandingOf(null)).toBeNull();
+  });
+
+  it('says a score as a sentence does, never a zero', () => {
+    expect(rightWordsOf(3, 10)).toBe('3 of 10 right');
+    expect(rightWordsOf(0, 10)).toBe('none of the 10 right');
+  });
+
+  it('says where a run stopped, and what is kept', () => {
+    expect(goingWordsOf({ answered: 3, count: 10 })).toEqual({
+      where: 'You were on question 4 of 10',
+      kept: 'Your first three answers are kept. Go on from question 4.',
+    });
+    expect(goingWordsOf({ answered: 1, count: 10 }).kept).toBe('Your first answer is kept. Go on from question 2.');
+    expect(goOnLabelOf('end')).toBe('Go on with the test');
+    expect(goOnLabelOf('gold')).toBe('Go on with the gold test');
+    expect(FAILED_TEST_ACTION).toBe('See your answers and try again');
   });
 });

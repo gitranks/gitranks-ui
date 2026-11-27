@@ -30,6 +30,10 @@ export const buildFileUrlOf = (commit: string, path: string) =>
 /** The whole project as a step's commit holds it, on GitHub. */
 export const buildTreeUrlOf = (commit: string) => `${BUILD_CODE_REPO}/tree/${encodeURIComponent(commit)}`;
 
+/** A project's base in one language, on GitHub: its branch (`mcp-server/typescript/base`), one commit a step. */
+export const buildBaseUrlOf = (project: string, language: string) =>
+  `${BUILD_CODE_REPO}/tree/${[project, language, 'base'].map(encodeURIComponent).join('/')}`;
+
 /** The sentence a person says in their agent to start a project: "Teach me how to build an MCP server with GitRanks". */
 export const buildSayOf = (thing: string) => `Teach me how to build ${thing} with GitRanks`;
 

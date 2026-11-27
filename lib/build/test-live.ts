@@ -5,8 +5,8 @@ import {
   buildProjectMinePath,
   buildTestMinePath,
 } from './paths';
-import type { BuildTestRunShown, BuildTestShown } from './test';
-import type { BuildLanguage, BuildProjectMine, BuildTestAnswer, BuildTestKind } from './types';
+import type { BuildTestAnswerShown, BuildTestRunShown, BuildTestShown } from './test';
+import type { BuildLanguage, BuildProjectMine, BuildTestKind } from './types';
 import type { LearnQuestion } from '@/lib/workspace/learn-question';
 
 /*
@@ -104,8 +104,8 @@ export async function answerBuildTestRun(
   run: string,
   question: string,
   pick: number | null,
-): Promise<BuildActionResult<BuildTestAnswer>> {
-  const answered = await post<BuildTestAnswer | null>(BUILD_TEST_ANSWER_MINE_PATH, { run, question, pick });
+): Promise<BuildActionResult<BuildTestAnswerShown>> {
+  const answered = await post<BuildTestAnswerShown | null>(BUILD_TEST_ANSWER_MINE_PATH, { run, question, pick });
   if (!answered.ok) return answered;
   return answered.data ? { ok: true, data: answered.data } : { ok: false, error: 'FAILED' };
 }

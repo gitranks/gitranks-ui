@@ -11,6 +11,7 @@ import {
   mineBoardOnlyBuilt,
   mineBoardRepeated,
   mineBoardTwoGoldTests,
+  mineMcpFirstStep,
   mineMcpInProgress,
 } from './__fixtures__/mine';
 import {
@@ -136,6 +137,47 @@ describe('My builds: the lists', () => {
       ['Build a JSON parser', ['TypeScript', 'built 3 Nov', '10 of 10 in the test'], true, true, null],
     ]);
     expect(view.built[0].answersHref).toBe('/build/web-server/test?language=typescript');
+  });
+
+  it('offers each waiting test as a first try when nothing more is read', () => {
+    const view = viewOf(mineBoardFull);
+    expect(view.tests.map((row) => row.action)).toEqual(['Take the test', 'Take the gold test']);
+  });
+
+  it('says where a waiting test stands once read: a run in progress, or a failed try', () => {
+    const [endTest, goldTest] = mineBoardFull.tests;
+    const view = mineViewOf(mineBoardFull, MINE_NOW, 'UTC', {
+      standings: {
+        [endTest.build]: { kind: 'failed', right: 3, count: 10, need: 7 },
+        [goldTest.build]: { kind: 'going', answered: 3, count: 10 },
+      },
+    });
+    expect(view.tests.map((row) => [row.text, row.action])).toEqual([
+      [
+        'Python. The test: 3 of 10 right, 7 are needed. Look at your answers, then take it again when you like: the questions will be different.',
+        'See your answers and try again',
+      ],
+      [
+        'TypeScript. The gold test: you were on question 4 of 10. Your first three answers are kept. Go on from question 4.',
+        'Go on with the gold test',
+      ],
+    ]);
+    const going = mineViewOf(mineBoardFull, MINE_NOW, 'UTC', {
+      standings: { [endTest.build]: { kind: 'going', answered: 1, count: 10 } },
+    });
+    expect([going.tests[0].text, going.tests[0].action]).toEqual([
+      'Python. You were on question 2 of 10. Your first answer is kept. Go on from question 2.',
+      'Go on with the test',
+    ]);
+    const none = mineViewOf(mineBoardFull, MINE_NOW, 'UTC', {
+      standings: { [endTest.build]: { kind: 'failed', right: 0, count: 10, need: 7 } },
+    });
+    expect(none.tests[0].text).toMatch(/^Python. The test: none of the 10 right, 7 are needed./);
+  });
+
+  it('says when a build with no step passed was started, not when its last step was', () => {
+    const view = viewOf({ tests: [], inProgress: [mineMcpFirstStep, mineMcpInProgress], built: [] });
+    expect(view.inProgress.map((row) => row.started)).toEqual([true, false]);
   });
 
   it('draws the usual start: one build in progress and nothing else', () => {

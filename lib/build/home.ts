@@ -1,6 +1,8 @@
 import { formatDistanceStrict } from 'date-fns';
 
-import type { BuildHome, BuildMine, BuildProjectCard, BuildStepRef, BuildWaitingTest } from './types';
+import { type TestStanding, testStandingOf } from './test';
+import type { BuildHome, BuildMine, BuildProjectCard, BuildStepRef, BuildTest, BuildWaitingTest } from './types';
+import { dayWordsIn } from './zone';
 
 /*
  * Build's home: one address, two pages. The landing for a visitor and for a signed-in person with no build; the
@@ -25,12 +27,19 @@ export type BuildHomeSide = {
   builds: BuildMine[] | null;
   /** Whether an agent of theirs ever connected; read only for a person with no build. */
   agentConnected: boolean | null;
+  /** The test that waits first, as read: a run in progress or a failed try changes what the box says. */
+  test?: BuildTest | null;
+  /** The zone the person's days are counted in: every date of the page is written in it. */
+  zone?: string;
 };
 
 /** What the box at the top asks the person to do now. */
 export type BuildHomeBox =
-  /** A test waits: the end test, or a gold test that opened (with the day the project was built, when known). */
-  | { kind: 'test'; test: BuildWaitingTest; builtAt: string | null }
+  /**
+   * A test waits: the end test, or a gold test that opened (with the day the project was built, when known), and where
+   * it stands when it was read (a run in progress, a failed try; none for a test not started).
+   */
+  | { kind: 'test'; test: BuildWaitingTest; builtAt: string | null; standing: TestStanding | null }
   /** The build to go on with: the one touched last. */
   | { kind: 'build'; build: BuildMine; step: BuildStepRef; of: number }
   /** Nothing waits and nothing is in progress: the projects left to build, how many (null: some, the number not known). */
@@ -83,7 +92,15 @@ export function homeViewOf(side: BuildHomeSide | null, projects: readonly BuildP
   let box: BuildHomeBox;
   if (test) {
     const built = side.builds?.find((build) => build.build === test.build);
-    box = { kind: 'test', test, builtAt: built?.state.kind === 'built' ? built.state.builtAt : null };
+    const read = side.test;
+    const same =
+      read && read.kind === test.kind && read.project.slug === test.project.slug && read.language === test.language;
+    box = {
+      kind: 'test',
+      test,
+      builtAt: built?.state.kind === 'built' ? built.state.builtAt : null,
+      standing: same ? testStandingOf(read) : null,
+    };
   } else if (going) {
     const { step, of } = stepOfBuild(going) as { step: BuildStepRef; of: number };
     box = { kind: 'build', build: going, step, of };
@@ -95,20 +112,20 @@ export function homeViewOf(side: BuildHomeSide | null, projects: readonly BuildP
   return { kind: 'home', box, others: home.builds.filter((build) => build.build !== inBox), next: home.next };
 }
 
-/** When the last step was passed: "last step 2 days ago"; "last step just now" under a minute. */
-export function lastStepWords(iso: string, now: Date): string {
+/**
+ * When a build last moved: "last step 2 days ago", "last step just now" under a minute. A build with no step passed
+ * yet says when it started ("started 5 minutes ago"): its time is the start's.
+ */
+export function lastStepWords(iso: string, now: Date, started = false): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return '';
-  if (now.getTime() - at.getTime() < 60_000) return 'last step just now';
-  return `last step ${formatDistanceStrict(at, now, { addSuffix: true, roundingMethod: 'round' })}`;
+  const what = started ? 'started' : 'last step';
+  if (now.getTime() - at.getTime() < 60_000) return `${what} just now`;
+  return `${what} ${formatDistanceStrict(at, now, { addSuffix: true, roundingMethod: 'round' })}`;
 }
 
-/** A day as Build's boxes write it: "26 Nov", in UTC. */
-export function dayWords(iso: string): string {
-  const at = new Date(iso);
-  if (Number.isNaN(at.getTime())) return '';
-  return at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-}
+/** A day as Build's boxes write it: "26 Nov", in the zone the person's days are counted in. */
+export const dayWords = (iso: string, zone?: string): string => dayWordsIn(iso, zone);
 
 /** The code of every project, in its public repository. */
 export const BUILD_CODE_URL = 'https://github.com/gitranks/build';

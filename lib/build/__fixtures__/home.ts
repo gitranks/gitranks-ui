@@ -19,6 +19,7 @@ import {
   mcpServerCard,
   webServerCard,
 } from './projects';
+import { endTestFailed, endTestOpen } from './test';
 
 /*
  * Home and Projects as the approved designs draw them: the landing, a builder's home, a test that waits, the other
@@ -219,6 +220,12 @@ export const sideTestWaits: BuildHomeSide = {
   builds: [buildTestLeft, keyValueDatabaseInProgress],
   agentConnected: null,
 };
+
+/** The first project's test waits, left at question 4: the box goes on with it. */
+export const sideTestGoing: BuildHomeSide = { ...sideTestWaits, test: endTestOpen };
+
+/** The first project's test waits, its last try failed with 6 of 10: the box says so, as the project's box does. */
+export const sideTestFailed: BuildHomeSide = { ...sideTestWaits, test: endTestFailed };
 
 /** The gold test of the first project is open, nothing in progress. */
 export const sideGoldOpen: BuildHomeSide = {

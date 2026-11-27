@@ -3,9 +3,16 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { HomeView } from './home-view';
+import { TimeZoneNote } from '@/components/workspace/time-zone-note';
 import { type BuildHomeSide, HOME_READ_WAIT_MS, hasBuildOf, homeViewOf } from '@/lib/build/home';
-import { BUILD_HOME_MINE_PATH, BUILD_PROJECTS_MINE_PATH, buildStartMinePath } from '@/lib/build/paths';
-import type { BuildHome, BuildMine, BuildProjectCard, BuildStart } from '@/lib/build/types';
+import {
+  BUILD_HOME_MINE_PATH,
+  BUILD_PROJECTS_MINE_PATH,
+  buildStartMinePath,
+  buildTestMinePath,
+} from '@/lib/build/paths';
+import type { BuildHome, BuildMine, BuildProjectCard, BuildStart, BuildTest } from '@/lib/build/types';
+import { readBuildZone } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** One key of a JSON answer of one of the person's routes; null on any failure. */
@@ -21,15 +28,22 @@ export async function readKey<T>(path: string, key: string): Promise<T | null> {
 }
 
 /**
- * The person's side of Home: their home and every build they have, read together; and, only for a person with no
- * build, whether an agent of theirs connected, for the landing's main button.
+ * The person's side of Home: their home, every build they have and the zone their days are counted in, read together;
+ * then the test that waits first, when one does, so the box can say a run in progress or a failed try; and, only for a
+ * person with no build, whether an agent of theirs connected, for the landing's main button.
  */
 export async function readHomeSide(): Promise<BuildHomeSide> {
-  const [home, builds] = await Promise.all([
+  const [home, builds, zone] = await Promise.all([
     readKey<BuildHome>(BUILD_HOME_MINE_PATH, 'home'),
     readKey<BuildMine[]>(BUILD_PROJECTS_MINE_PATH, 'builds'),
+    readBuildZone(),
   ]);
-  const side: BuildHomeSide = { home, builds: Array.isArray(builds) ? builds : null, agentConnected: null };
+  const side: BuildHomeSide = { home, builds: Array.isArray(builds) ? builds : null, agentConnected: null, zone };
+  const waiting = home?.tests?.[0];
+  if (waiting) {
+    const path = buildTestMinePath(waiting.project.slug, waiting.kind, waiting.language);
+    side.test = await readKey<BuildTest>(path, 'test');
+  }
   if (home && !hasBuildOf(side)) {
     side.agentConnected = (await readKey<BuildStart>(buildStartMinePath(), 'start'))?.agentConnected ?? null;
   }
@@ -68,5 +82,11 @@ export function HomeLive({ projects }: { projects: readonly BuildProjectCard[] }
   }, []);
 
   const view = useMemo(() => homeViewOf(side, projects), [side, projects]);
-  return <HomeView view={view} projects={projects} now={now} reading={reading} />;
+  return (
+    <>
+      <HomeView view={view} projects={projects} now={now} zone={side?.zone} reading={reading} />
+      {/* Once the person's home is read, their device's time zone is sent, as on Learn's pages. */}
+      {side?.home ? <TimeZoneNote /> : null}
+    </>
+  );
 }

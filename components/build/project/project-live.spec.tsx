@@ -21,10 +21,23 @@ vi.mock('next/link', () => ({
 }));
 const hint = vi.hoisted(() => ({ present: false }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
+// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone.
+const zoneRead = vi.hoisted(() => ({ value: 'UTC' as string | undefined }));
+vi.mock('@/lib/build/zone-live', () => ({ readBuildZone: async () => zoneRead.value }));
+vi.mock('@/components/workspace/time-zone-note', () => ({ TimeZoneNote: () => <span data-time-zone-note="" /> }));
 
 const { ProjectLive, readProjectMine } = await import('./project-live');
-const { mcpServerFiveParts, mineInProgress, mineTestLeft, mineTwoBuilds, endTestFailedNow, testLeftOnePart } =
-  await import('@/lib/build/__fixtures__/project-page');
+const {
+  mcpServerFiveParts,
+  mineGoldOpen,
+  mineBuilt,
+  mineInProgress,
+  mineTestLeft,
+  mineTwoBuilds,
+  endTestFailedNow,
+  testLeftOnePart,
+} = await import('@/lib/build/__fixtures__/project-page');
+const { goldTestReady, testRun } = await import('@/lib/build/__fixtures__/test');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -69,6 +82,7 @@ describe("a project's page in the browser", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(boxKind()).toBe('connect');
     expect(held()).toBeNull();
+    expect(host.querySelector('[data-time-zone-note]')).toBeNull();
   });
 
   it('with a session, holds what may change in its place while the side is read, then shows it', async () => {
@@ -105,6 +119,39 @@ describe("a project's page in the browser", () => {
     expect(boxKind()).toBe('in_progress');
     expect(host.querySelectorAll('[data-mark="done"]')).toHaveLength(8);
     expect(host.querySelector('[data-project-have]')).toBeNull();
+    // Once the side is read, the browser's zone is sent, as on Learn's pages; never for a visitor.
+    expect(host.querySelector('[data-time-zone-note]')).not.toBeNull();
+  });
+
+  it("writes the box's dates in the zone the person's days are counted in", async () => {
+    hint.present = true;
+    zoneRead.value = 'Pacific/Kiritimati';
+    try {
+      answer(mineBuilt);
+      await draw();
+      expect(host.querySelector('[data-project-box] h2')?.textContent).toBe('Built on 27 Nov 2026');
+    } finally {
+      zoneRead.value = 'UTC';
+    }
+  });
+
+  it('reads the gold test once it is open, and goes on with a run left in the middle', async () => {
+    hint.present = true;
+    answer(mineGoldOpen, { ...goldTestReady, open: testRun, canStart: false });
+    await draw();
+    expect(urls()).toEqual(['/api/me/build/projects/mcp-server', '/api/me/build/test?project=mcp-server&kind=gold']);
+    expect(host.querySelector('[data-project-box]')?.textContent).toContain(
+      'The gold test: you were on question 4 of 10. Your first three answers are kept. Go on from question 4.',
+    );
+    const goOn = [...host.querySelectorAll('a')].find((link) => link.textContent === 'Go on with the gold test');
+    expect(goOn?.getAttribute('href')).toBe('/build/mcp-server/test/gold');
+  });
+
+  it('reads no test for a build none waits for', async () => {
+    hint.present = true;
+    answer(mineBuilt);
+    await draw();
+    expect(urls()).toEqual(['/api/me/build/projects/mcp-server']);
   });
 
   it('reads the end test too when the build has the test left, and says a failed score', async () => {

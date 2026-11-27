@@ -7,6 +7,7 @@ import { type ReactNode, type Ref, useId, useState } from 'react';
 
 import { ShareButton } from '@/components/share/share-button';
 import { Button } from '@/components/ui/button';
+import { CodeBox } from '@/components/workspace/blocks/code-lines';
 import { LiveStatus } from '@/components/workspace/player/live-status';
 import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/workspace/player/player-strip';
 import { AnswerPart, type AnswerPartPlace } from '@/components/workspace/question/answer-part';
@@ -328,7 +329,8 @@ function AnswerRow({ row, project }: { row: BuildTestAnswerRow; project: BuildTe
         </span>
         <span className="min-w-0 flex-1 text-sm font-semibold">{row.prompt}</span>
       </div>
-      <div className="flex flex-col gap-1.5 pl-8">
+      <div className="flex min-w-0 flex-col gap-1.5 pl-8">
+        {row.code ? <CodeBox code={row.code} className="mb-1 py-3" /> : null}
         {row.isRight ? null : (
           <p className="m-0 text-sm" data-test-picked="">
             <span className="text-muted-foreground">{row.picked === null ? 'You said:' : 'You picked:'}</span>{' '}

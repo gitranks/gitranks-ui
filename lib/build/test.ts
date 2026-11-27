@@ -4,14 +4,19 @@ import type {
   BuildProjectMine,
   BuildStepRef,
   BuildTest,
+  BuildTestAnswer,
   BuildTestKind,
   BuildTestResult,
   BuildTestRun,
 } from './types';
-import type { HighlightedCode } from '@/lib/workspace/code-tokens';
+import { dayKeyIn, daysFromTo, dayWordsIn, timeWordsIn } from './zone';
+import { type HighlightedCode, plainCodeOf } from '@/lib/workspace/code-tokens';
 import {
+  codeOf,
   type LearnPicked,
+  type LearnQuestion,
   type LearnQuestionType,
+  linesOf,
   optionsOf,
   rightOf,
   rightWhyOf,
@@ -26,8 +31,17 @@ import {
 /** A run as the page draws it: each question with code also carries it highlighted on the server, by question id. */
 export type BuildTestRunShown = BuildTestRun & { highlighted?: Record<string, HighlightedCode[]> };
 
-/** A test as the page reads it: its open run with the code highlighted. */
-export type BuildTestShown = Omit<BuildTest, 'open'> & { open: BuildTestRunShown | null };
+/** A result as the page draws it: each answer whose question has code also carries it highlighted, by question id. */
+export type BuildTestResultShown = BuildTestResult & { highlighted?: Record<string, HighlightedCode[]> };
+
+/** A test as the page reads it: its open run and its last result with the code highlighted. */
+export type BuildTestShown = Omit<BuildTest, 'open' | 'last'> & {
+  open: BuildTestRunShown | null;
+  last: BuildTestResultShown | null;
+};
+
+/** An answer as the page reads it: with the tenth, the result with its code highlighted. */
+export type BuildTestAnswerShown = Omit<BuildTestAnswer, 'result'> & { result: BuildTestResultShown | null };
 
 /** What the strip calls each test. */
 export const TEST_NAMES: Record<BuildTestKind, string> = { end: 'The test', gold: 'The gold test' };
@@ -42,7 +56,7 @@ export type BuildTestView =
   /** A run in progress: its next question. */
   | { kind: 'question'; run: BuildTestRunShown }
   /** The last run's result, with no run open. */
-  | { kind: 'result'; result: BuildTestResult }
+  | { kind: 'result'; result: BuildTestResultShown }
   /** No run and no result, and a run can start: it starts at once, with no start page. */
   | { kind: 'start' }
   /** No run, no result, and none can start: the page says why and leads back to the project. */
@@ -106,13 +120,30 @@ export type BuildTestAnswerRow = {
   right: string;
   why: string | null;
   step: BuildStepRef;
+  /** The question's code, as its card drew it: highlighted when the server could, else plain; none without code. */
+  code: HighlightedCode | null;
   /** The options are code's output: set in mono. */
   mono: boolean;
   isRight: boolean;
 };
 
+/**
+ * A question's code in the test's language, as its card drew it: the server's colours when they count the same lines
+ * as the code, else the plain code. None for a question with no code.
+ */
+function codeLinesOf(
+  question: LearnQuestion,
+  language: string | null,
+  highlighted: readonly HighlightedCode[] | undefined,
+): HighlightedCode | null {
+  const code = codeOf(question, language);
+  if (!code) return null;
+  const found = highlighted?.find((entry) => entry.language === code.language);
+  return found && found.lines.length === linesOf(code.code).length ? found : plainCodeOf(code);
+}
+
 /** Each answer of a result, in the run's order. A pick names an option by its place in the run's order. */
-export function answerRowsOf(result: BuildTestResult, language: string | null): BuildTestAnswerRow[] {
+export function answerRowsOf(result: BuildTestResultShown, language: string | null): BuildTestAnswerRow[] {
   return result.items.map((item, index) => {
     const options = optionsOf(item.question);
     const right = rightOf(item.question, language);
@@ -124,6 +155,7 @@ export function answerRowsOf(result: BuildTestResult, language: string | null): 
       right: rights.map((at) => options[at]?.text ?? '').join(' and '),
       why: rightWhyOf(item.question, language),
       step: item.step,
+      code: codeLinesOf(item.question, language, result.highlighted?.[item.question.id]),
       mono: item.question.type === 'PREDICT_OUTPUT',
       isRight: item.pick !== null && rights.includes(item.pick) && rights.length === 1,
     };
@@ -131,7 +163,7 @@ export function answerRowsOf(result: BuildTestResult, language: string | null): 
 }
 
 /** The answers split: the wrong ones first and open, the right ones folded. A list with none is not drawn. */
-export function answerGroupsOf(result: BuildTestResult, language: string | null) {
+export function answerGroupsOf(result: BuildTestResultShown, language: string | null) {
   const rows = answerRowsOf(result, language);
   return { wrong: rows.filter((row) => !row.isRight), right: rows.filter((row) => row.isRight) };
 }
@@ -180,33 +212,17 @@ export function scoreTextOf(
 }
 
 /** "3 Dec": a local day (`2026-12-03`) as written. */
-export function dayOf(day: string): string {
-  const date = new Date(`${day.slice(0, 10)}T12:00:00.000Z`);
-  if (Number.isNaN(date.getTime())) return day;
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(date);
-}
+export const dayOf = (day: string): string => dayWordsIn(day.slice(0, 10)) || day;
 
-/** "4 Dec" and "09:14": a moment in the person's own time. */
+/** "4 Dec" and "09:14": a moment in the zone the person's days are counted in. */
 export function momentOf(at: string, timeZone?: string): { day: string; time: string } | null {
-  const date = new Date(at);
-  if (Number.isNaN(date.getTime())) return null;
-  return {
-    day: new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone }).format(date),
-    time: new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone }).format(
-      date,
-    ),
-  };
+  const day = dayWordsIn(at, timeZone);
+  return day ? { day, time: timeWordsIn(at, timeZone) } : null;
 }
 
-/** A local day (`2026-12-03`) of a moment, in the person's own time. */
-function localDayOf(date: Date, timeZone?: string): string {
-  return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).format(date);
-}
-
-/** Whole days from one local day to another. */
-function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
-}
+/** Whole days from today to a local day (or to a moment's day), in the zone; null when either cannot be read. */
+const daysFromToday = (now: Date, to: string, timeZone?: string) =>
+  daysFromTo(dayKeyIn(now, timeZone), dayKeyIn(to, timeZone));
 
 /** The marks the box shows: the gold mark ("Repeated after a week") and "Answered every step". */
 export type BuildTestPill = 'repeated' | 'every-step';
@@ -258,7 +274,7 @@ export function testBoxOf(
     let main: BuildTestMain = { kind: 'project' };
     let pills = everyStep;
     if (gold?.kind === 'opens_on') {
-      const week = daysBetween(localDayOf(now, timeZone), gold.date) === 7 ? ', a week from today' : '';
+      const week = daysFromToday(now, gold.date, timeZone) === 7 ? ', a week from today' : '';
       text = `The gold test opens on ${dayOf(gold.date)}${week}: ${rule}${email}`;
     } else if (gold?.kind === 'open') {
       text = `The gold test is open now: ${rule}`;
@@ -272,9 +288,7 @@ export function testBoxOf(
   const many = wrong === 1 ? 'the one below' : `the ${countWordOf(wrong)} below`;
   const next = test.nextTryAt ? momentOf(test.nextTryAt, timeZone) : null;
   if (!test.canStart && next) {
-    const days = test.nextTryAt
-      ? daysBetween(localDayOf(now, timeZone), localDayOf(new Date(test.nextTryAt), timeZone))
-      : 0;
+    const days = (test.nextTryAt && daysFromToday(now, test.nextTryAt, timeZone)) || 0;
     const when = days === 1 ? 'tomorrow' : days <= 0 ? 'later today' : `on ${next.day}`;
     const worth = wrong === 1 ? 'The one below is worth a look' : `The ${countWordOf(wrong)} below are worth a look`;
     return {
@@ -327,6 +341,7 @@ export const RUN_EXPIRED_NOTE = 'Your last test ran out after a day without its 
 export function closedWordsOf(
   test: Pick<BuildTest, 'kind' | 'nextTryAt'>,
   build: BuildMine | null,
+  timeZone?: string,
   built: BuiltParts = BUILT,
 ): { title: string; text: string } {
   if (test.kind === 'end') {
@@ -345,7 +360,8 @@ export function closedWordsOf(
     };
   }
   const gold = build?.state.kind === 'built' ? build.state.gold : null;
-  const opens = gold?.kind === 'opens_on' ? dayOf(gold.date) : test.nextTryAt ? momentOf(test.nextTryAt)?.day : null;
+  const opens =
+    gold?.kind === 'opens_on' ? dayOf(gold.date) : test.nextTryAt ? momentOf(test.nextTryAt, timeZone)?.day : null;
   if (build && build.state.kind !== 'built') {
     return {
       title: 'The gold test comes after the test',
@@ -363,3 +379,50 @@ export function closedWordsOf(
   }
   return { title: 'The gold test is not open yet', text: 'It opens a week after you built the project.' };
 }
+
+/**
+ * Where a test that waits stands, which Home, a project's box and My builds say before "Take the test": a run in
+ * progress with some answers given (`going`), or, with none in progress, an end test whose last run did not pass
+ * (`failed`). None for a test not started yet, and when the test could not be read. Never a zero: a run with no answer
+ * is not in progress, and a score of none is said in words.
+ */
+export type TestStanding =
+  | { kind: 'going'; answered: number; count: number }
+  | { kind: 'failed'; right: number; count: number; need: number };
+
+export function testStandingOf(test: Pick<BuildTest, 'kind' | 'need' | 'open' | 'last'> | null): TestStanding | null {
+  if (!test) return null;
+  const { open, last } = test;
+  const count = open?.questions.length ?? 0;
+  if (open && open.answered > 0 && open.answered < count) return { kind: 'going', answered: open.answered, count };
+  if (test.kind === 'end' && !open?.answered && last && !last.passed) {
+    return { kind: 'failed', right: last.right, count: last.items.length || 10, need: test.need };
+  }
+  return null;
+}
+
+/** "3 of 10 right", or "none of the 10 right": a score as a sentence says it, never a zero. */
+export const rightWordsOf = (right: number, count: number): string =>
+  right > 0 ? `${right} of ${count} right` : `none of the ${count} right`;
+
+/** The words of a run in progress: where the person was, and what is kept. */
+export function goingWordsOf(going: { answered: number; count: number }) {
+  const next = going.answered + 1;
+  return {
+    /** "You were on question 4 of 10". */
+    where: `You were on question ${next} of ${going.count}`,
+    /** "Your first three answers are kept. Go on from question 4." */
+    kept: `${going.answered === 1 ? 'Your first answer is' : `Your first ${countWordOf(going.answered)} answers are`} kept. Go on from question ${next}.`,
+  };
+}
+
+/** The button that goes on with a run in progress. */
+export const goOnLabelOf = (kind: BuildTestKind) =>
+  kind === 'gold' ? 'Go on with the gold test' : 'Go on with the test';
+
+/** The button that opens a failed end test's result, whose page offers the test again. */
+export const FAILED_TEST_ACTION = 'See your answers and try again';
+
+/** What a failed end test's result holds, as the boxes say it. */
+export const FAILED_TEST_WORDS =
+  'Each wrong answer has its reason and its step. Look at them, then take the test again when you like. The questions will be different.';

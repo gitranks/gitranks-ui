@@ -6,6 +6,7 @@ import {
   buildInProgress,
   buildPythonSecond,
   buildTestLeft,
+  projectMineNone,
   projectMineOne,
   projectMineTwo,
   stepMineCurrent,
@@ -25,6 +26,7 @@ import {
   needLinesOf,
   openFilesOf,
   paragraphsOf,
+  personalLanguageOf,
   placeWordsOf,
   playgroundWordsOf,
   playItemOf,
@@ -106,19 +108,29 @@ describe("the strip's squares", () => {
 });
 
 describe('the row under the title', () => {
-  it('is a visitor’s with no person, and for a language the person has no build in', () => {
+  it('is a visitor’s with no person, and for a person with no build of the project', () => {
     expect(agentRowOf(null, 'typescript')).toEqual({ kind: 'visitor' });
-    expect(agentRowOf(current, 'python')).toEqual({ kind: 'visitor' });
+    expect(agentRowOf({ step: { builds: [] }, project: projectMineNone }, 'typescript')).toEqual({ kind: 'visitor' });
+  });
+
+  it('follows the person’s one build whatever language the code is shown in', () => {
+    expect(agentRowOf(current, 'python')).toEqual({ kind: 'current', language: 'typescript' });
+    expect(personalLanguageOf(current, 'python')).toBe('typescript');
+    expect(personalLanguageOf(two, 'python')).toBe('python');
+    expect(personalLanguageOf(two, null)).toBe('typescript');
+    expect(personalLanguageOf(null, 'python')).toBeNull();
   });
 
   it('says the build is on this step, or past it with where it stands, or that the step comes later', () => {
     expect(agentRowOf(current, 'typescript')).toEqual({ kind: 'current', language: 'typescript' });
     expect(agentRowOf(two, 'typescript')).toEqual({
       kind: 'done',
+      language: 'typescript',
       standing: { kind: 'step', step: mcpServerStep(9), part: false },
     });
     expect(agentRowOf(two, 'python')).toEqual({
       kind: 'to_come',
+      language: 'python',
       standing: { kind: 'step', step: mcpServerStep(4), part: false },
     });
   });

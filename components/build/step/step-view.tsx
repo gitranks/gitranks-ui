@@ -23,6 +23,7 @@ import {
   isFirstStep,
   openFilesOf,
   paragraphsOf,
+  personalLanguageOf,
   placeWordsOf,
   playgroundWordsOf,
   playItemOf,
@@ -44,8 +45,10 @@ import type { LearnAnswerState } from '@/lib/workspace/learn-answer';
  * A step's page, one reading column, the same order for everyone: the title and the row with the sentence to say;
  * what the step does (and its sketch); on the first step, the base's steps and what the project needs; the change,
  * file by file, in the language picked; things to try; the question; "Explain more"; the steps before and after.
- * The person's side (the strip's squares, the row) changes in place once read; the language switch changes the files
- * and the note. A section with nothing in it is left out.
+ * The person's side (the strip's squares, the row) follows their build, in its own language, whatever language the
+ * code is shown in. While a browser with a session reads it, everything under the title stays hidden in its place, so
+ * the code does not flip to the build's language under the reader's eyes; it shows by itself after the read's time
+ * limit. The language switch changes the files and the note. A section with nothing in it is left out.
  */
 
 export type BuildStepViewProps = {
@@ -56,6 +59,8 @@ export type BuildStepViewProps = {
   questionCodes: readonly HighlightedCode[];
   /** The person's side, once read in the browser; none for a visitor, and until it is read. */
   personal: StepPersonal | null;
+  /** A browser with a session is reading the person's side: everything under the title stays hidden in its place. */
+  reading?: boolean;
   /** The language to start at in place of the kept one (the catalogue's). */
   startLanguage?: BuildLanguage | null;
   /** Where the question's answer starts (the catalogue's). */
@@ -157,6 +162,7 @@ export function BuildStepView({
   codes,
   questionCodes,
   personal,
+  reading = false,
   startLanguage = null,
   answer,
   hints,
@@ -175,7 +181,7 @@ export function BuildStepView({
     removed: 0,
   });
   const fileCodes = codes.find((one) => one.language === side?.language)?.files ?? [];
-  const build = buildInOf(personal, side?.language ?? null);
+  const build = buildInOf(personal, personalLanguageOf(personal, side?.language ?? null));
   const squares = stripSquaresOf(stripStepsOf(page, project), page, build);
   const row = agentRowOf(personal, side?.language ?? null);
   const note = side?.note?.trim() || null;
@@ -195,150 +201,159 @@ export function BuildStepView({
   return (
     <div className="relative" data-build-step={page.step.slug} data-build-step-language={side?.language ?? ''}>
       <StepStrip project={page.project} part={page.part} place={placeWordsOf(page)} squares={squares} />
-      <main className="mx-auto flex w-full max-w-[860px] flex-col gap-8 px-4 pt-6 pb-16 sm:gap-10 sm:pt-8">
-        <div className="flex flex-col gap-5">
-          <h1 className="m-0 text-2xl font-bold tracking-tight text-balance sm:text-3xl">{page.step.title}</h1>
-          <AgentRow
-            row={row}
-            project={page.project.slug}
-            say={project ? buildSayOf(project.thing) : `${page.project.name} with GitRanks`}
-          />
-          <Paragraphs text={page.say} />
-          {page.sketch?.trim() ? (
-            <pre
-              className="m-0 overflow-x-auto rounded-lg border bg-muted/50 p-4 font-mono text-[13px] leading-relaxed"
-              data-build-sketch=""
+      <main className="mx-auto flex w-full max-w-[860px] flex-col gap-5 px-4 pt-6 pb-16 sm:pt-8">
+        <h1 className="m-0 text-2xl font-bold tracking-tight text-balance sm:text-3xl">{page.step.title}</h1>
+        <div
+          data-build-step-held={reading ? '' : undefined}
+          className={cn(
+            'flex flex-col gap-8 sm:gap-10',
+            reading && '[html[data-has-session]_&]:invisible [html[data-has-session]_&]:animate-build-reveal',
+          )}
+          aria-busy={reading || undefined}
+        >
+          <div className="flex flex-col gap-5">
+            <AgentRow
+              row={row}
+              project={page.project.slug}
+              say={project ? buildSayOf(project.thing) : `${page.project.name} with GitRanks`}
+            />
+            <Paragraphs text={page.say} />
+            {page.sketch?.trim() ? (
+              <pre
+                className="m-0 overflow-x-auto rounded-lg border bg-muted/50 p-4 font-mono text-[13px] leading-relaxed"
+                data-build-sketch=""
+              >
+                {page.sketch.replace(/\s+$/, '')}
+              </pre>
+            ) : null}
+            {!anyChange && note ? <p className="m-0 text-sm text-muted-foreground">{note}</p> : null}
+          </div>
+
+          {project && isFirstStep(page) ? <StepPlan project={project} here={page.step.slug} /> : null}
+
+          {anyChange ? (
+            <section
+              className="flex min-w-0 flex-col gap-3"
+              aria-labelledby="build-step-change"
+              data-build-step-change=""
             >
-              {page.sketch.replace(/\s+$/, '')}
-            </pre>
-          ) : null}
-          {!anyChange && note ? <p className="m-0 text-sm text-muted-foreground">{note}</p> : null}
-        </div>
-
-        {project && isFirstStep(page) ? <StepPlan project={project} here={page.step.slug} /> : null}
-
-        {anyChange ? (
-          <section
-            className="flex min-w-0 flex-col gap-3"
-            aria-labelledby="build-step-change"
-            data-build-step-change=""
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-baseline gap-3">
-                <h2 id="build-step-change" className="m-0 text-xl font-bold tracking-tight">
-                  The change
-                </h2>
-                {files.length ? (
-                  <span className="text-sm text-muted-foreground" data-build-change-counts="">
-                    {filesWordsOf(files.length)}
-                    {counts.added || counts.removed ? ' · ' : null}
-                    <DiffCounts added={counts.added} removed={counts.removed} />
-                  </span>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <h2 id="build-step-change" className="m-0 text-xl font-bold tracking-tight">
+                    The change
+                  </h2>
+                  {files.length ? (
+                    <span className="text-sm text-muted-foreground" data-build-change-counts="">
+                      {filesWordsOf(files.length)}
+                      {counts.added || counts.removed ? ' · ' : null}
+                      <DiffCounts added={counts.added} removed={counts.removed} />
+                    </span>
+                  ) : null}
+                </div>
+                {languages.length > 1 ? (
+                  <LanguageSwitch languages={languages} shown={side?.language ?? null} onPick={pick} />
                 ) : null}
               </div>
-              {languages.length > 1 ? (
-                <LanguageSwitch languages={languages} shown={side?.language ?? null} onPick={pick} />
+              {note ? (
+                <p className="m-0 text-sm text-muted-foreground" data-build-note="">
+                  <RichText text={note} />
+                </p>
               ) : null}
-            </div>
-            {note ? (
-              <p className="m-0 text-sm text-muted-foreground" data-build-note="">
-                <RichText text={note} />
-              </p>
-            ) : null}
-            {files.length && side ? (
-              files.map((file, index) => (
-                <StepFileBox
-                  key={`${side.language}:${file.path}`}
-                  file={file}
-                  code={fileCodes.find((one) => one.path === file.path) ?? null}
-                  text={side.files.find((one) => one.path === file.path)?.text ?? null}
-                  commit={side.commit}
-                  open={opens[index] ?? false}
-                  onWholeFile={() => setWhole(file.path)}
-                />
-              ))
-            ) : (
-              <p className="m-0 text-sm text-muted-foreground">
-                {side ? `This step changes no file in ${buildLanguageNameOf(side.language)}.` : null}
-              </p>
-            )}
-          </section>
-        ) : null}
-
-        {play.length ? (
-          <section className="flex min-w-0 flex-col gap-3" aria-labelledby="build-step-try" data-build-step-try="">
-            <div className="flex flex-col gap-1">
-              <h2 id="build-step-try" className="m-0 text-xl font-bold tracking-tight">
-                Try it
-              </h2>
-              {playground ? <p className="m-0 text-sm text-muted-foreground">{playground}</p> : null}
-            </div>
-            <ol className="m-0 flex list-none flex-col rounded-lg border bg-card p-0">
-              {play.map((item, index) => (
-                // Things to try never move: the index is the item.
-                <li key={index} className={cn('flex items-start gap-3 p-3', index > 0 && 'border-t')}>
-                  <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-semibold tabular-nums">
-                    {index + 1}
-                  </span>
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span className="text-sm">
-                      <RichText text={item.text} />
-                    </span>
-                    {item.type ? (
-                      <code className="font-mono text-[13px] break-words whitespace-pre-wrap text-muted-foreground">
-                        {item.type}
-                      </code>
-                    ) : null}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        ) : null}
-
-        {page.question ? (
-          <StepQuestion
-            key={page.question.type === 'PREDICT_OUTPUT' ? `${page.question.id}:${side?.language}` : page.question.id}
-            question={page.question}
-            language={side?.language ?? null}
-            highlighted={questionCodes}
-            start={answer}
-            hints={hints}
-            onDone={() => nextRef.current?.focus()}
-          />
-        ) : null}
-
-        {more.length ? (
-          <details className="group rounded-lg border bg-card" data-build-step-more="">
-            <summary className="cursor-pointer rounded-lg px-4 py-3 text-sm font-semibold outline-none select-none hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50">
-              Explain more
-            </summary>
-            <Paragraphs text={page.more} className="border-t px-4 pt-3 pb-4" />
-          </details>
-        ) : null}
-
-        {page.before || page.after ? (
-          <nav className="grid grid-cols-2 gap-3" aria-label="Steps beside this one">
-            {page.before ? <AroundCard project={page.project.slug} step={page.before} side="before" /> : <span />}
-            {page.after ? (
-              <AroundCard project={page.project.slug} step={page.after} side="after" cardRef={nextRef} />
-            ) : (
-              <span />
-            )}
-          </nav>
-        ) : null}
-
-        <p className="m-0 text-xs text-muted-foreground" data-build-step-foot="">
-          Written and checked by GitRanks
-          {commit ? (
-            <>
-              {' · '}
-              <a href={buildTreeUrlOf(commit)} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                The whole project on GitHub
-              </a>
-            </>
+              {files.length && side ? (
+                files.map((file, index) => (
+                  <StepFileBox
+                    key={`${side.language}:${file.path}`}
+                    file={file}
+                    code={fileCodes.find((one) => one.path === file.path) ?? null}
+                    text={side.files.find((one) => one.path === file.path)?.text ?? null}
+                    commit={side.commit}
+                    open={opens[index] ?? false}
+                    onWholeFile={() => setWhole(file.path)}
+                  />
+                ))
+              ) : (
+                <p className="m-0 text-sm text-muted-foreground">
+                  {side ? `This step changes no file in ${buildLanguageNameOf(side.language)}.` : null}
+                </p>
+              )}
+            </section>
           ) : null}
-        </p>
+
+          {play.length ? (
+            <section className="flex min-w-0 flex-col gap-3" aria-labelledby="build-step-try" data-build-step-try="">
+              <div className="flex flex-col gap-1">
+                <h2 id="build-step-try" className="m-0 text-xl font-bold tracking-tight">
+                  Try it
+                </h2>
+                {playground ? <p className="m-0 text-sm text-muted-foreground">{playground}</p> : null}
+              </div>
+              <ol className="m-0 flex list-none flex-col rounded-lg border bg-card p-0">
+                {play.map((item, index) => (
+                  // Things to try never move: the index is the item.
+                  <li key={index} className={cn('flex items-start gap-3 p-3', index > 0 && 'border-t')}>
+                    <span className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-semibold tabular-nums">
+                      {index + 1}
+                    </span>
+                    <span className="flex min-w-0 flex-col gap-1">
+                      <span className="text-sm">
+                        <RichText text={item.text} />
+                      </span>
+                      {item.type ? (
+                        <code className="font-mono text-[13px] break-words whitespace-pre-wrap text-muted-foreground">
+                          {item.type}
+                        </code>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
+
+          {page.question ? (
+            <StepQuestion
+              key={page.question.type === 'PREDICT_OUTPUT' ? `${page.question.id}:${side?.language}` : page.question.id}
+              question={page.question}
+              language={side?.language ?? null}
+              highlighted={questionCodes}
+              start={answer}
+              hints={hints}
+              onDone={() => nextRef.current?.focus()}
+            />
+          ) : null}
+
+          {more.length ? (
+            <details className="group rounded-lg border bg-card" data-build-step-more="">
+              <summary className="cursor-pointer rounded-lg px-4 py-3 text-sm font-semibold outline-none select-none hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50">
+                Explain more
+              </summary>
+              <Paragraphs text={page.more} className="border-t px-4 pt-3 pb-4" />
+            </details>
+          ) : null}
+
+          {page.before || page.after ? (
+            <nav className="grid grid-cols-2 gap-3" aria-label="Steps beside this one">
+              {page.before ? <AroundCard project={page.project.slug} step={page.before} side="before" /> : <span />}
+              {page.after ? (
+                <AroundCard project={page.project.slug} step={page.after} side="after" cardRef={nextRef} />
+              ) : (
+                <span />
+              )}
+            </nav>
+          ) : null}
+
+          <p className="m-0 text-xs text-muted-foreground" data-build-step-foot="">
+            Written and checked by GitRanks
+            {commit ? (
+              <>
+                {' · '}
+                <a href={buildTreeUrlOf(commit)} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                  The whole project on GitHub
+                </a>
+              </>
+            ) : null}
+          </p>
+        </div>
       </main>
       {commit ? (
         <WholeFilePanel

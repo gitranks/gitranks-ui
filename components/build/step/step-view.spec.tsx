@@ -312,6 +312,67 @@ describe('what changes with the person', () => {
     ).toBe('dddcpppppppppppp');
   });
 
+  it('keeps a person’s one build in the squares and the row when the code is shown in the other language', async () => {
+    await draw({ personal: { step: builds.stepMineCurrent, project: builds.projectMineOne } });
+    await click($('[data-build-language="python"]'));
+    expect(host.firstElementChild?.getAttribute('data-build-step-language')).toBe('python');
+    expect($('[data-build-agent-row]')?.dataset.buildAgentRow).toBe('current');
+    expect(textOf('[data-build-row-line]')).toBe(
+      'Your build is in TypeScript. Say this in your agent to go on from here. My builds',
+    );
+    expect(
+      $$('[data-build-squares] a')
+        .map((a) => a.dataset.square?.[0])
+        .join(''),
+    ).toBe('ddddddddcppppppp');
+  });
+
+  it('sends the row’s test link to the test of the build it is about', async () => {
+    const waiting = {
+      ...builds.projectMineTwo,
+      builds: [builds.buildTestLeft, { ...builds.buildTestLeft, language: 'python' as const }],
+    };
+    await draw({ personal: { step: builds.stepMineTwo, project: waiting } });
+    await click($('[data-build-language="python"]'));
+    const link = $('[data-build-row-line] a');
+    expect(link?.textContent).toBe('Take the test');
+    expect(link?.getAttribute('href')).toContain('python');
+  });
+
+  it('holds everything under the title in its place while a session reads, then shows it', async () => {
+    hint.present = true;
+    const waits: Array<() => void> = [];
+    const fetchMock = vi.fn(
+      (path: string) =>
+        new Promise((resolve) => {
+          const mine = path.includes('/steps/') ? builds.stepMineTwo : builds.projectMineTwo;
+          waits.push(() => resolve({ ok: true, json: async () => ({ mine }) }));
+        }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await act(async () => {
+      root.render(<BuildStepLive page={listTheToolsStep} project={mcpServerProject} codes={[]} questionCodes={[]} />);
+    });
+    const held = $('[data-build-step-held]');
+    expect(held?.className).toContain('[html[data-has-session]_&]:invisible');
+    expect(held?.className).toContain('[html[data-has-session]_&]:animate-build-reveal');
+    expect(held?.getAttribute('aria-busy')).toBe('true');
+    expect(textOf('h1')).toBe('List the tools');
+    await act(async () => {
+      for (const wait of waits) wait();
+    });
+    expect($('[data-build-step-held]')).toBeNull();
+    expect($('[data-build-agent-row]')?.dataset.buildAgentRow).toBe('done');
+  });
+
+  it('holds nothing for a browser with no session', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+    await act(async () => {
+      root.render(<BuildStepLive page={listTheToolsStep} project={mcpServerProject} codes={[]} questionCodes={[]} />);
+    });
+    expect($('[data-build-step-held]')).toBeNull();
+  });
+
   it('is read in the browser for a session, and changes the row in place', async () => {
     hint.present = true;
     const fetchMock = vi.fn(async (path: string) => ({

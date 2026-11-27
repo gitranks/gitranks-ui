@@ -132,6 +132,17 @@ export type StepPersonal = { step: BuildStepMine; project: BuildProjectMine | nu
 export const buildInOf = (personal: StepPersonal | null, language: BuildLanguage | null): BuildMine | null =>
   personal?.project?.builds.find((build) => build.language === language) ?? null;
 
+/**
+ * The language of the person's build the squares and the row follow: the language shown when they have a build in it,
+ * else their build touched last, whatever language the code is shown in; none with no build of the project.
+ */
+export function personalLanguageOf(personal: StepPersonal | null, shown: BuildLanguage | null): BuildLanguage | null {
+  if (!personal) return null;
+  const mine = [...(personal.project?.builds ?? []), ...personal.step.builds].map((build) => build.language);
+  if (shown && mine.includes(shown)) return shown;
+  return startLanguageOf(personal);
+}
+
 /** The language of the person's build a step's page starts its switch at: their build touched last. */
 export function startLanguageOf(personal: StepPersonal | null): BuildLanguage | null {
   return personal?.project?.builds[0]?.language ?? personal?.step.builds[0]?.language ?? null;
@@ -157,19 +168,20 @@ export function standingOf(build: BuildMine | null): BuildStanding {
 export type AgentRow =
   | { kind: 'visitor' }
   | { kind: 'current'; language: BuildLanguage }
-  | { kind: 'done'; standing: BuildStanding }
-  | { kind: 'to_come'; standing: BuildStanding };
+  | { kind: 'done'; language: BuildLanguage; standing: BuildStanding }
+  | { kind: 'to_come'; language: BuildLanguage; standing: BuildStanding };
 
 /**
- * The row under the title, for the language the page shows: a visitor's (and anyone with no build in that language),
- * or the person's build on this step, past it, or before it.
+ * The row under the title: a visitor's (and anyone with no build of the project), or the person's build on this step,
+ * past it, or before it. It follows the build in the language shown when there is one, else the build touched last.
  */
-export function agentRowOf(personal: StepPersonal | null, language: BuildLanguage | null): AgentRow {
+export function agentRowOf(personal: StepPersonal | null, shown: BuildLanguage | null): AgentRow {
+  const language = personalLanguageOf(personal, shown);
   const status = personal?.step.builds.find((build) => build.language === language)?.status;
   if (!status || !language) return { kind: 'visitor' };
   if (status === 'current') return { kind: 'current', language };
   const standing = standingOf(buildInOf(personal, language));
-  return status === 'done' ? { kind: 'done', standing } : { kind: 'to_come', standing };
+  return status === 'done' ? { kind: 'done', language, standing } : { kind: 'to_come', language, standing };
 }
 
 /** A language's name, as the switch and the row say it. */

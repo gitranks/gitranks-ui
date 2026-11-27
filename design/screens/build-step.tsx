@@ -78,7 +78,7 @@ export const BUILD_STEP_SCREEN: Screen = {
       title: 'Not signed in: one file changed, three things to try, the question',
       path: PATH,
       signedOut: true,
-      height: 2100,
+      height: 2200,
       render: () => <Page />,
     },
     {
@@ -86,7 +86,7 @@ export const BUILD_STEP_SCREEN: Screen = {
       title: 'Five files: the first three open, two to show',
       path: pathOf(bigStep),
       signedOut: true,
-      height: 2700,
+      height: 3470,
       render: () => <Page page={bigStep} />,
     },
     {
@@ -94,7 +94,7 @@ export const BUILD_STEP_SCREEN: Screen = {
       title: 'A short diff under the lines above it, one thing to try',
       path: pathOf(smallStep),
       signedOut: true,
-      height: 1500,
+      height: 1650,
       render: () => <Page page={smallStep} />,
     },
     {
@@ -102,7 +102,7 @@ export const BUILD_STEP_SCREEN: Screen = {
       title: 'The first step: no code, the steps of the base and what you need',
       path: pathOf(firstStepNoCode),
       signedOut: true,
-      height: 1900,
+      height: 1920,
       render: () => <Page page={firstStepNoCode} />,
     },
     {
@@ -110,7 +110,7 @@ export const BUILD_STEP_SCREEN: Screen = {
       title: 'A removed file: no whole file and no link',
       path: pathOf(removedFileStep),
       signedOut: true,
-      height: 1700,
+      height: 1800,
       render: () => <Page page={removedFileStep} />,
     },
     {
@@ -118,7 +118,7 @@ export const BUILD_STEP_SCREEN: Screen = {
       title: 'A long diff, drawn whole',
       path: pathOf(longDiffStep),
       signedOut: true,
-      height: 3400,
+      height: 2620,
       render: () => <Page page={longDiffStep} />,
     },
     {
@@ -126,7 +126,7 @@ export const BUILD_STEP_SCREEN: Screen = {
       title: 'A step of a part: the part on the way back, its own squares',
       path: pathOf(partStep),
       signedOut: true,
-      height: 1900,
+      height: 1560,
       render: () => <Page page={partStep} />,
     },
     {
@@ -134,7 +134,7 @@ export const BUILD_STEP_SCREEN: Screen = {
       title: 'In Python: a sketch, the note, the question’s code in Python',
       path: pathOf(sketchStep),
       signedOut: true,
-      height: 2100,
+      height: 2420,
       render: () => <Page page={sketchStep} startLanguage="python" />,
     },
     {
@@ -142,28 +142,28 @@ export const BUILD_STEP_SCREEN: Screen = {
       title: 'The whole file, beside the page',
       path: PATH,
       signedOut: true,
-      height: 1100,
+      height: 900,
       render: () => <Page drawnWholeFile="server.ts" />,
     },
     {
       id: 'current',
       title: 'Signed in, the build on this step',
       path: PATH,
-      height: 2100,
+      height: 2200,
       render: () => <Page personal={{ step: stepMineCurrent, project: projectMineOne }} />,
     },
     {
       id: 'done',
       title: 'Signed in, this step passed, the build further on',
       path: PATH,
-      height: 2100,
+      height: 2200,
       render: () => <Page personal={{ step: stepMineTwo, project: projectMineTwo }} />,
     },
     {
       id: 'to-come',
       title: 'Signed in, this step still to come in the Python build',
       path: PATH,
-      height: 2100,
+      height: 2190,
       render: () => <Page personal={{ step: stepMineTwo, project: projectMineTwo }} startLanguage="python" />,
     },
     {
@@ -180,7 +180,7 @@ export const BUILD_STEP_SCREEN: Screen = {
       path: PATH,
       signedOut: true,
       width: 390,
-      height: 3300,
+      height: 2660,
       render: () => <Page />,
     },
   ],

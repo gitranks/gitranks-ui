@@ -80,7 +80,7 @@ export function AgentRow({
 }) {
   const links = {
     step: (slug: string) => buildStepPath(project, slug),
-    test: buildTestPath(project, 'end', row.kind === 'current' ? row.language : null),
+    test: buildTestPath(project, 'end', row.kind === 'visitor' ? null : row.language),
     mine: BUILD_MINE_PATH,
   };
   let label: ReactNode;

@@ -110,6 +110,12 @@ describe('routes whose missing pages answer 404', () => {
     }
   });
 
+  it("has no loading.tsx in Build's player group, on the way to a step", () => {
+    for (const dir of ['', 'build', 'build/[project]', 'build/[project]/[step]']) {
+      expect(existsSync(join(APP, '(build-player)', dir, 'loading.tsx'))).toBe(false);
+    }
+  });
+
   it('lists a language with ranked repositories, not the no-language list', async () => {
     const { generateStaticParams } = await import('@/app/repos/language/[language]/[page]/layout');
     await expect(generateStaticParams()).resolves.toEqual([{ language: 'Rust', page: '1' }]);

@@ -30,7 +30,7 @@ const { interviewsHomeViewOf, LANDING_HOME_VIEW } = await import('@/lib/intervie
 const { EMPTY_INTERVIEWS_HOME } = await import('@/lib/interviews/home.data');
 const { interviewsHome } = await import('@/lib/interviews/__fixtures__/companies');
 const { interviewsHomeMany } = await import('@/lib/interviews/__fixtures__/home');
-const { myHomeOne, myHomeTwo } = await import('@/lib/interviews/__fixtures__/mine');
+const { myHomeOne, myHomeTwo, tallgrassRow } = await import('@/lib/interviews/__fixtures__/mine');
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect: vi.fn() }));
@@ -118,7 +118,7 @@ describe('Interviews home', () => {
     expect(text()).toContain('7 plans');
     expect(text()).toContain('1 plan');
     expect(container.querySelectorAll('ol li')).toHaveLength(3);
-    expect(link('How we research')).toBe('/interviews/about#how-we-research');
+    expect(link('How we research')).toBe('/interviews/about#interviews-about-facts');
     expect(container.querySelector('[data-interviews-home]')?.getAttribute('data-interviews-home')).toBe('landing');
     expect(text()).not.toContain('Your plan');
   });
@@ -284,7 +284,7 @@ describe('Interviews home', () => {
     expect(text()).not.toContain('Free. Your interview plans');
     expect(text()).not.toContain('Where the facts come from');
     expect(link('How Interviews works')).toBe('/interviews/about');
-    expect(link('How we research')).toBe('/interviews/about#how-we-research');
+    expect(link('How we research')).toBe('/interviews/about#interviews-about-facts');
   });
 
   it('has no "Your other plans" with one plan, and marks only that company', async () => {
@@ -308,6 +308,52 @@ describe('Interviews home', () => {
     const main = container.querySelector('main');
     expect(main?.getAttribute('aria-busy')).toBe('true');
     expect(main?.className).toContain('[html[data-has-session]_&]:invisible');
+  });
+
+  it('puts the cursor in the field on a press in the box, and takes a chip out only by its own button', async () => {
+    await draw();
+    await type('site');
+    await press('Enter');
+    expect(container.querySelector('label')?.getAttribute('for')).toBe(field()?.id);
+    await click(container.querySelector('[data-chip-name]'));
+    await click(container.querySelector('[data-field-line]'));
+    expect(chips()).toEqual(['Site reliability engineer']);
+    await click(container.querySelector('button[aria-label="Remove Site reliability engineer"]'));
+    expect(chips()).toEqual([]);
+  });
+
+  it('says what is missing for the chips when the letters find something without them', async () => {
+    await draw();
+    await type('manager');
+    await press('Enter');
+    await type('tall');
+    expect(suggestions()).toEqual([]);
+    expect(container.querySelector('[data-search-nothing]')?.textContent).toContain(
+      'No plan for an engineering manager matches “tall”.',
+    );
+  });
+
+  it('keeps the box that says nothing matches in its place when the field loses the cursor', async () => {
+    await draw();
+    await type('acme');
+    await act(async () => field()?.blur());
+    expect(container.querySelector('[data-search-nothing]')).not.toBeNull();
+  });
+
+  it('names a position’s single plan with "all levels" in the box too', async () => {
+    await draw(interviewsHome, interviewsHomeViewOf({ plans: [tallgrassRow] }));
+    // Tallgrass has no logo: its first letter stands in the heading's square.
+    expect(headings()[0]).toBe('TTallgrass · Site reliability engineer, all levels');
+  });
+
+  it('shows the list once the position the address keeps is read', async () => {
+    window.history.replaceState(null, '', '/interviews?position=site-reliability-engineer');
+    document.documentElement.setAttribute('data-interviews-position', '');
+    await draw();
+    expect(document.documentElement.hasAttribute('data-interviews-position')).toBe(false);
+    const list = container.querySelector('[data-home-list]');
+    expect(list?.getAttribute('data-home-list')).toBe('plans');
+    expect(list?.className).toContain('[html[data-interviews-position]_&]:invisible');
   });
 
   it('never draws a zero, in any state', async () => {
@@ -353,13 +399,20 @@ describe('Interviews home', () => {
       expect(container.querySelector('main')?.getAttribute('aria-busy')).toBeNull();
     });
 
-    it('stays the landing for a person with no plan in progress, or when the read fails', async () => {
+    it('stays the landing for a person with no plan in progress', async () => {
       hint.present = true;
-      serve({ '/api/me/interviews/home': { home: { plans: [] } } });
+      const asked = serve({ '/api/me/interviews/home': { home: { plans: [] } } });
       await act(async () => root.render(<InterviewsHomeLive home={interviewsHome} />));
+      expect(asked).toEqual(['/api/me/interviews/home']);
       expect(kind()).toBe('landing');
-      serve({});
-      await act(async () => root.render(<InterviewsHomeLive home={interviewsHomeMany} />));
+      expect(container.querySelector('main')?.getAttribute('aria-busy')).toBeNull();
+    });
+
+    it('stays the landing when the read fails', async () => {
+      hint.present = true;
+      const asked = serve({});
+      await act(async () => root.render(<InterviewsHomeLive home={interviewsHome} />));
+      expect(asked).toEqual(['/api/me/interviews/home']);
       expect(kind()).toBe('landing');
       expect(container.querySelector('main')?.getAttribute('aria-busy')).toBeNull();
     });

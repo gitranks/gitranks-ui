@@ -12,7 +12,7 @@ export const INTERVIEWS_MINE_PATH = '/interviews/mine' as Route;
 /** "How it works": the same page for everyone. */
 export const INTERVIEWS_ABOUT_PATH = '/interviews/about' as Route;
 /** "How we research": the part of How it works on where the facts come from. */
-export const INTERVIEWS_RESEARCH_PATH = `${INTERVIEWS_ABOUT_PATH}#how-we-research` as Route;
+export const INTERVIEWS_RESEARCH_PATH = `${INTERVIEWS_ABOUT_PATH}#interviews-about-facts` as Route;
 
 /** The sizes of a company's logo file the site serves: 64 px up to a 20 px logo, 128 px above. */
 export const INTERVIEW_LOGO_SIZES = [64, 128] as const;

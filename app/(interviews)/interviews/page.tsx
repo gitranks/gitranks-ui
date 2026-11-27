@@ -1,5 +1,6 @@
 import { InterviewsHomeLive } from '@/components/interviews/home/home-live';
 import { loadInterviewsHome } from '@/lib/interviews/home.data';
+import { HOME_POSITION_HINT_SCRIPT } from '@/lib/interviews/home-search';
 import { INTERVIEWS_HOME_METADATA } from '@/lib/interviews/home-seo';
 
 /**
@@ -10,5 +11,12 @@ import { INTERVIEWS_HOME_METADATA } from '@/lib/interviews/home-seo';
 export const metadata = INTERVIEWS_HOME_METADATA;
 
 export default async function InterviewsHomePage() {
-  return <InterviewsHomeLive home={await loadInterviewsHome()} />;
+  const home = await loadInterviewsHome();
+  return (
+    <>
+      {/* Runs before the list is drawn: an address that keeps a position holds the list hidden until the search has read it. */}
+      <script dangerouslySetInnerHTML={{ __html: HOME_POSITION_HINT_SCRIPT }} />
+      <InterviewsHomeLive home={home} />
+    </>
+  );
 }

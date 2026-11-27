@@ -2,7 +2,16 @@
 
 import { Briefcase, Search, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type KeyboardEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { CompanyCards, PlanRows, TEXT_LINK } from './home-parts';
 import { CompanyLogo } from '@/components/interviews/company-logo';
@@ -11,6 +20,7 @@ import { companiesLineOf, planRowNameOf, planSizeOf } from '@/lib/interviews/hom
 import {
   chooseHomeTag,
   dropHomeTag,
+  HOME_POSITION_HINT_ATTRIBUTE,
   type HomeChosen,
   type HomeSuggestion,
   type HomeTag,
@@ -18,6 +28,7 @@ import {
   homeChosenOfAddress,
   homeFieldLineOf,
   homeListOf,
+  homeNothingOf,
   homeQueryOf,
   homeSuggestionsOf,
   homeTagKeyOf,
@@ -36,6 +47,9 @@ const TAG_LOOK: Record<HomeTag['kind'], string> = {
     'bg-[oklch(0.95_0.035_20)] text-[oklch(0.45_0.13_20)] dark:bg-[oklch(0.32_0.07_20)] dark:text-[oklch(0.9_0.05_20)]',
 };
 const TAG = 'inline-flex items-center gap-1 whitespace-nowrap rounded-full py-0.5 text-xs font-semibold';
+/** The list's section: hidden in its place while a position the address keeps is not read yet (4s at the most). */
+const LIST_SECTION =
+  'flex flex-col gap-4 [html[data-interviews-position]_&]:invisible [html[data-interviews-position]_&]:animate-build-reveal';
 const FLOAT =
   'absolute top-[calc(100%+6px)] right-0 left-0 z-10 rounded-lg border bg-card shadow-[0_10px_30px_-10px_color-mix(in_oklch,var(--foreground)_35%,transparent)]';
 
@@ -116,20 +130,27 @@ export function HomeSearch({ home, place, intro, mine }: Readonly<HomeSearchProp
   const read = useRef(false);
   const id = useId();
   const listId = `${id}-suggestions`;
+  const inputId = `${id}-field`;
 
-  // The address keeps the chosen position: read once the page is up, written on each change after.
+  // The address keeps the chosen position. It is read before the first paint after the page comes alive, and the
+  // list, hidden in its place until then when the address has a position, shows already turned into its plans.
+  useLayoutEffect(() => {
+    const fromAddress = homeChosenOfAddress(home, window.location.search);
+    if (fromAddress.position) setChosen(fromAddress);
+    document.documentElement.removeAttribute(HOME_POSITION_HINT_ATTRIBUTE);
+  }, [home]);
+
+  // Then each change of the chips is written to it; the first pass has nothing new to write.
   useEffect(() => {
     if (!read.current) {
       read.current = true;
-      const fromAddress = homeChosenOfAddress(home, window.location.search);
-      if (fromAddress.position) setChosen(fromAddress);
       return;
     }
     const address = `${window.location.pathname}${homeAddressQueryOf(chosen)}${window.location.hash}`;
     if (address !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
       window.history.replaceState(window.history.state, '', address);
     }
-  }, [chosen, home]);
+  }, [chosen]);
 
   const suggestions = useMemo(() => homeSuggestionsOf(home, query, chosen), [home, query, chosen]);
   const line = useMemo(() => homeFieldLineOf(home, query, chosen), [home, query, chosen]);
@@ -193,89 +214,97 @@ export function HomeSearch({ home, place, intro, mine }: Readonly<HomeSearchProp
 
   const hasChips = !!chosen.company || !!chosen.position;
   const field = (
-    <div className="relative" data-interviews-search="">
-      {/* A label: pressing anywhere in the box puts the cursor in the field. */}
-      <label className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border bg-background px-3 py-1.5 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
-        <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        {chosen.company ? (
-          <Chip
-            tag={{ kind: 'company', company: chosen.company }}
-            onDrop={() => setChosen(dropHomeTag(chosen, 'company'))}
+    <div className="flex flex-col gap-3" data-interviews-search="">
+      <div className="relative">
+        {/* The input's label: pressing anywhere in the box but a chip's button puts the cursor in the field. */}
+        <label
+          htmlFor={inputId}
+          className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border bg-background px-3 py-1.5 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50"
+        >
+          <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          {chosen.company ? (
+            <Chip
+              tag={{ kind: 'company', company: chosen.company }}
+              onDrop={() => setChosen(dropHomeTag(chosen, 'company'))}
+            />
+          ) : null}
+          {chosen.position ? (
+            <Chip
+              tag={{ kind: 'position', position: chosen.position }}
+              onDrop={() => setChosen(dropHomeTag(chosen, 'position'))}
+            />
+          ) : null}
+          <input
+            ref={input}
+            id={inputId}
+            type="text"
+            role="combobox"
+            aria-label="Find a company or a position"
+            aria-expanded={showing && suggestions.length > 0}
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-activedescendant={showing && suggestions.length ? `${id}-option-${litIndex}` : undefined}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={hasChips ? '' : 'Find a company or a position'}
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setLit(0);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
+            onKeyDown={onKeyDown}
+            className="h-8 min-w-24 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
-        ) : null}
-        {chosen.position ? (
-          <Chip
-            tag={{ kind: 'position', position: chosen.position }}
-            onDrop={() => setChosen(dropHomeTag(chosen, 'position'))}
-          />
-        ) : null}
-        <input
-          ref={input}
-          type="text"
-          role="combobox"
-          aria-label="Find a company or a position"
-          aria-expanded={showing && suggestions.length > 0}
-          aria-controls={listId}
-          aria-autocomplete="list"
-          aria-activedescendant={showing && suggestions.length ? `${id}-option-${litIndex}` : undefined}
-          autoComplete="off"
-          spellCheck={false}
-          placeholder={hasChips ? '' : 'Find a company or a position'}
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setLit(0);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setOpen(false)}
-          onKeyDown={onKeyDown}
-          className="h-8 min-w-24 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-        />
-        {line ? (
-          <span
-            className="ml-auto whitespace-nowrap text-xs text-muted-foreground"
-            aria-live="polite"
-            data-field-line=""
-          >
-            {line}
-          </span>
-        ) : null}
-      </label>
-      {showing && suggestions.length ? (
-        <div id={listId} role="listbox" aria-label="Companies and positions" className={cn(FLOAT, 'flex flex-col p-1')}>
-          {suggestions.map((suggestion, index) => (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: the field above takes the keys (arrows and Enter) for the list.
-            <div
-              key={homeTagKeyOf(suggestion.tag)}
-              id={`${id}-option-${index}`}
-              role="option"
-              tabIndex={-1}
-              aria-selected={index === litIndex}
-              data-suggestion={suggestion.tag.kind}
-              // The field keeps the focus, so the list stays open under the press.
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setLit(index)}
-              onClick={() => choose(suggestion.tag)}
-              className={cn(
-                'flex cursor-pointer items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm hover:bg-accent',
-                index === litIndex && 'bg-accent/60',
-              )}
+          {line ? (
+            <span
+              className="ml-auto whitespace-nowrap text-xs text-muted-foreground"
+              aria-live="polite"
+              data-field-line=""
             >
-              <SuggestionRow suggestion={suggestion} />
-            </div>
-          ))}
-        </div>
-      ) : null}
-      {showing && !suggestions.length ? (
-        <div className={cn(FLOAT, 'flex flex-col gap-3 p-4')} data-search-nothing="">
-          <p className="m-0 text-sm">
-            No plan for “{typed}” yet. A company gets its plans when public sources describe its interviews well enough.
-          </p>
+              {line}
+            </span>
+          ) : null}
+        </label>
+        {showing && suggestions.length ? (
+          <div
+            id={listId}
+            role="listbox"
+            aria-label="Companies and positions"
+            className={cn(FLOAT, 'flex flex-col p-1')}
+          >
+            {suggestions.map((suggestion, index) => (
+              // biome-ignore lint/a11y/useKeyWithClickEvents: the field above takes the keys (arrows and Enter) for the list.
+              <div
+                key={homeTagKeyOf(suggestion.tag)}
+                id={`${id}-option-${index}`}
+                role="option"
+                tabIndex={-1}
+                aria-selected={index === litIndex}
+                data-suggestion={suggestion.tag.kind}
+                // The field keeps the focus, so the list stays open under the press.
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setLit(index)}
+                onClick={() => choose(suggestion.tag)}
+                className={cn(
+                  'flex cursor-pointer items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm hover:bg-accent',
+                  index === litIndex && 'bg-accent/60',
+                )}
+              >
+                <SuggestionRow suggestion={suggestion} />
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      {typed && !suggestions.length ? (
+        <div className="flex flex-col gap-3 rounded-lg border bg-card p-4" data-search-nothing="">
+          <p className="m-0 text-sm">{homeNothingOf(home, query, chosen)}</p>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onMouseDown={(event) => event.preventDefault()}
               onClick={clear}
               className={cn(buttonVariants({ variant: 'outline' }), 'font-semibold')}
             >
@@ -320,7 +349,7 @@ export function HomeSearch({ home, place, intro, mine }: Readonly<HomeSearchProp
 
   if (place === 'mine') {
     return (
-      <section className="flex flex-col gap-4" aria-labelledby={titleId} data-home-list={list.kind}>
+      <section className={LIST_SECTION} aria-labelledby={titleId} data-home-list={list.kind}>
         <h2 id={titleId} className="m-0 text-xl font-bold tracking-tight">
           {title}
         </h2>
@@ -337,7 +366,7 @@ export function HomeSearch({ home, place, intro, mine }: Readonly<HomeSearchProp
         {field}
         {free}
       </div>
-      <section className="flex flex-col gap-4" aria-labelledby={titleId} data-home-list={list.kind}>
+      <section className={LIST_SECTION} aria-labelledby={titleId} data-home-list={list.kind}>
         <div className="flex flex-col gap-1">
           <h2 id={titleId} className="m-0 text-xl font-bold tracking-tight">
             {title}

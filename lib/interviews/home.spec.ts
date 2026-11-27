@@ -114,6 +114,10 @@ describe('the box of the plan to go on with', () => {
     });
   });
 
+  it('names a position’s single plan with "all levels", as its row does', () => {
+    expect(planBoxOf(tallgrassRow).title).toBe('Tallgrass · Site reliability engineer, all levels');
+  });
+
   it('says a round just done, and opens the plan when the next part names no lesson', () => {
     const box = planBoxOf({
       ...seniorRow,

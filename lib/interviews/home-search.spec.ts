@@ -22,6 +22,7 @@ import {
   homeChosenOfAddress,
   homeFieldLineOf,
   homeListOf,
+  homeNothingOf,
   homeSuggestionsOf,
   lowerFirst,
   NOTHING_CHOSEN,
@@ -101,6 +102,20 @@ describe('homeSuggestionsOf', () => {
     expect(names(interviewsHome, 's', chosen)).toEqual([]);
     const northwindChosen = { position: siteReliabilityEngineer, company: northwind };
     expect(names(interviewsHome, 's', northwindChosen)).toEqual(['position:software-engineer']);
+  });
+
+  it('keeps room for positions when many companies are found, eight at the most', () => {
+    const tallgrassCompany = interviewsHome.companies[1];
+    const many = {
+      ...interviewsHome,
+      companies: Array.from({ length: 10 }, (_, index) => ({
+        ...tallgrassCompany,
+        company: { ...tallgrassCompany.company, slug: `site-${index}`, name: `Site Works ${index}` },
+      })),
+    };
+    const found = homeSuggestionsOf(many, 'site', NOTHING_CHOSEN);
+    expect(found.map((one) => one.tag.kind)).toEqual([...Array(7).fill('company'), 'position']);
+    expect(homeFieldLineOf(many, 'site', NOTHING_CHOSEN)).toBe('10 companies · 1 position');
   });
 
   it('finds a company past the first twelve', () => {
@@ -215,6 +230,23 @@ describe('homeFieldLineOf', () => {
         }
       }
     }
+  });
+});
+
+describe('homeNothingOf', () => {
+  it('says the company has no plan yet when the letters find nothing at all', () => {
+    expect(homeNothingOf(interviewsHome, ' acme ', sre)).toBe(
+      'No plan for “acme” yet. A company gets its plans when public sources describe its interviews well enough.',
+    );
+  });
+
+  it('says what is missing for the chips when the letters would find something without them', () => {
+    expect(homeNothingOf(interviewsHome, 'tall', { position: engineeringManager, company: null })).toBe(
+      'No plan for an engineering manager matches “tall”.',
+    );
+    expect(homeNothingOf(interviewsHome, 'soft', { position: siteReliabilityEngineer, company: tallgrass })).toBe(
+      'No plan for a site reliability engineer at Tallgrass matches “soft”.',
+    );
   });
 });
 

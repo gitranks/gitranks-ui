@@ -28,6 +28,15 @@ export const NOTHING_CHOSEN: HomeChosen = { position: null, company: null };
 /** The query of the address that keeps the chosen position. */
 export const HOME_POSITION_QUERY = 'position';
 
+/**
+ * Set on the page's root before the first paint when the address keeps a position, and taken off once the search has
+ * read it: until then the list under the field stays hidden in its place, so a visitor never sees the companies turn
+ * into the position's plans.
+ */
+export const HOME_POSITION_HINT_ATTRIBUTE = 'data-interviews-position';
+/** The inline script that sets it. */
+export const HOME_POSITION_HINT_SCRIPT = `try{if(new URLSearchParams(location.search).get(${JSON.stringify(HOME_POSITION_QUERY)}))document.documentElement.setAttribute(${JSON.stringify(HOME_POSITION_HINT_ATTRIBUTE)},'')}catch(e){}`;
+
 /** The companies the list shows before "All N companies": the first twelve, in the read's order. */
 export const HOME_COMPANIES_SHOWN = 12;
 
@@ -106,14 +115,8 @@ const keyOf = (tag: HomeTag) =>
 /** A tag's identity, for lists and the lit suggestion. */
 export const homeTagKeyOf = keyOf;
 
-/**
- * What the typed letters offer, with the tags already chosen: the companies first, in the read's order, then the
- * positions. A tag with no plan under the chosen ones is not offered, and a tag already chosen is not offered again.
- * Nothing typed offers nothing.
- */
-export function homeSuggestionsOf(home: InterviewsHome, query: string, chosen: HomeChosen): HomeSuggestion[] {
-  const q = homeQueryOf(query);
-  if (!q) return [];
+/** Everything the typed letters find with the tags already chosen, before the list under the field is cut. */
+function homeFoundOf(home: InterviewsHome, q: string, chosen: HomeChosen) {
   const companies = home.companies.flatMap((card): HomeSuggestion[] => {
     if (chosen.company?.slug === card.company.slug || !companyMatches(card, q)) return [];
     const plans = plansKept(card, { ...chosen, company: null }).length;
@@ -135,7 +138,42 @@ export function homeSuggestionsOf(home: InterviewsHome, query: string, chosen: H
       },
     ];
   });
-  return [...companies, ...positions].slice(0, HOME_SUGGESTIONS_MAX);
+  return { companies, positions };
+}
+
+/** The positions always kept in the list when the letters find any, however many companies they find. */
+export const HOME_POSITIONS_KEPT = 2;
+
+/**
+ * What the typed letters offer, with the tags already chosen: the companies first, in the read's order, then the
+ * positions, eight at the most, with room kept for two positions. A tag with no plan under the chosen ones is not
+ * offered, and a tag already chosen is not offered again. Nothing typed offers nothing.
+ */
+export function homeSuggestionsOf(home: InterviewsHome, query: string, chosen: HomeChosen): HomeSuggestion[] {
+  const q = homeQueryOf(query);
+  if (!q) return [];
+  const { companies, positions } = homeFoundOf(home, q, chosen);
+  const positionsShown = positions.slice(
+    0,
+    Math.max(Math.min(positions.length, HOME_POSITIONS_KEPT), HOME_SUGGESTIONS_MAX - companies.length),
+  );
+  return [...companies.slice(0, HOME_SUGGESTIONS_MAX - positionsShown.length), ...positionsShown];
+}
+
+/**
+ * When the typed letters find nothing with the chips chosen, what the box under the field says: that nothing is
+ * found for the chips when the letters would find something without them, and that the company has no plan yet when
+ * they find nothing at all.
+ */
+export function homeNothingOf(home: InterviewsHome, query: string, chosen: HomeChosen): string {
+  const q = homeQueryOf(query);
+  const found = homeFoundOf(home, q, NOTHING_CHOSEN);
+  if ((chosen.position || chosen.company) && found.companies.length + found.positions.length) {
+    const forWhom = chosen.position ? ` for ${positionInTextOf(chosen.position)}` : '';
+    const at = chosen.company ? ` at ${chosen.company.name}` : '';
+    return `No plan${forWhom}${at} matches “${q}”.`;
+  }
+  return `No plan for “${q}” yet. A company gets its plans when public sources describe its interviews well enough.`;
 }
 
 /** The plans the chosen tags keep, across companies in the read's order, each company's in its own order. */
@@ -196,17 +234,16 @@ const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : 
 
 /**
  * The line on the right of the field, saying what was found, never a zero. While typing: how many companies and
- * positions the letters offer, or "No company or position". With chips: how many plans they keep, and at how many
+ * positions the letters find (all of them, past the eight the list shows), or "No company or position". With chips: how many plans they keep, and at how many
  * companies when no company is chosen. Empty with nothing typed and nothing chosen.
  */
 export function homeFieldLineOf(home: InterviewsHome, query: string, chosen: HomeChosen): string {
-  if (homeQueryOf(query)) {
-    const found = homeSuggestionsOf(home, query, chosen);
-    const companies = found.filter((one) => one.tag.kind === 'company').length;
-    const positions = found.length - companies;
+  const q = homeQueryOf(query);
+  if (q) {
+    const found = homeFoundOf(home, q, chosen);
     const parts = [
-      companies ? count(companies, 'company', 'companies') : '',
-      positions ? count(positions, 'position', 'positions') : '',
+      found.companies.length ? count(found.companies.length, 'company', 'companies') : '',
+      found.positions.length ? count(found.positions.length, 'position', 'positions') : '',
     ].filter(Boolean);
     return parts.length ? parts.join(' · ') : 'No company or position';
   }

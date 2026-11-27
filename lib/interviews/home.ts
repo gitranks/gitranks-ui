@@ -88,7 +88,7 @@ export function roundOfLine(row: InterviewPlanRow): string {
 
 /** What the box of the plan to go on with says and links to. */
 export type PlanBox = {
-  /** "Northwind · Senior software engineer". */
+  /** "Northwind · Senior software engineer", the plan named as its row names it. */
   title: string;
   round: string;
   /** "Round 2 is done." when the person just finished one; empty otherwise. */
@@ -110,7 +110,7 @@ export function planBoxOf(row: InterviewPlanRow): PlanBox {
       }
     : null;
   return {
-    title: `${company.name} · ${row.plan.name}`,
+    title: `${company.name} · ${planRowNameOf(row.plan)}`,
     round: roundOfLine(row),
     done: row.justDone ? `Round ${row.justDone} is done.` : '',
     next,

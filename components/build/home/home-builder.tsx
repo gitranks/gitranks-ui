@@ -44,7 +44,7 @@ function Box({ heading, note, kind, children }: { heading: string; note?: string
       data-home-box={kind}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="m-0 text-base font-semibold">{heading}</h2>
+        <h2 className="m-0 min-w-0 text-base font-semibold break-words">{heading}</h2>
         {note ? <span className="text-sm text-muted-foreground">{note}</span> : null}
       </div>
       {children}
@@ -132,8 +132,9 @@ function NowBox({ box, now }: { box: BuildHomeBox; now: Date | null }) {
     return (
       <Box kind="pick" heading="Pick your next project">
         <p className="m-0 text-sm text-muted-foreground">
-          Nothing waits for you. {numberWordsFirst(box.left)} {box.left === 1 ? 'project is' : 'projects are'} left to
-          build.
+          {box.left === null
+            ? 'Nothing waits for you, and there are projects left to build.'
+            : `Nothing waits for you. ${numberWordsFirst(box.left)} ${box.left === 1 ? 'project is' : 'projects are'} left to build.`}
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <Link href={BUILD_PROJECTS_PATH} className={SMALL_BUTTON}>
@@ -180,7 +181,7 @@ function BuildRow({ build }: { build: BuildMine }) {
         className="flex items-center justify-between gap-3 p-3 hover:bg-accent"
       >
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-sm font-semibold">{build.project.name}</span>
+          <span className="text-sm font-semibold break-words">{build.project.name}</span>
           <span className="text-sm text-muted-foreground">{rowWordsOf(build)}</span>
         </span>
         <span className="flex shrink-0 items-center gap-3">

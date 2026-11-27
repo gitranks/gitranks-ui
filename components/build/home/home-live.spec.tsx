@@ -23,6 +23,8 @@ const hint = vi.hoisted(() => ({ present: true }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 
 const { HomeLive, readHomeSide } = await import('./home-live');
+const { AboutLive } = await import('./about-live');
+const { HOME_READ_WAIT_MS } = await import('@/lib/build/home');
 const { sideBuilder, sideNoBuild } = await import('@/lib/build/__fixtures__/home');
 const { buildProjectsFew } = await import('@/lib/build/__fixtures__/projects');
 
@@ -96,6 +98,47 @@ describe("Build's home in the browser", () => {
     serve({ '/api/me/build/home': { home: null } });
     await act(async () => root.render(<HomeLive projects={buildProjectsFew} />));
     expect(kind()).toBe('landing');
+    expect(container.querySelector('[data-landing-start]')?.getAttribute('data-landing-start')).toBe('connect');
+  });
+
+  it('shows the landing when the side is late, then the home in place once it comes', async () => {
+    vi.useFakeTimers();
+    try {
+      let answer: (value: Response) => void = () => {};
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((path: string) =>
+          path.startsWith('/api/me/build/home')
+            ? new Promise<Response>((resolve) => {
+                answer = resolve;
+              })
+            : Promise.resolve(new Response(JSON.stringify({ builds: sideBuilder.builds }))),
+        ),
+      );
+      await act(async () => root.render(<HomeLive projects={buildProjectsFew} />));
+      expect(container.querySelector('main')?.getAttribute('aria-busy')).toBe('true');
+      await act(async () => vi.advanceTimersByTime(HOME_READ_WAIT_MS));
+      expect(container.querySelector('main')?.getAttribute('aria-busy')).toBeNull();
+      expect(kind()).toBe('landing');
+      await act(async () => answer(new Response(JSON.stringify({ home: sideBuilder.home }))));
+      expect(kind()).toBe('home');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('turns the main button of "How Build works" once the agent is known, and asks nothing for a visitor', async () => {
+    const asked = serve({ '/api/me/build/start': { start: { agentConnected: true, build: null } } });
+    await act(async () => root.render(<AboutLive projects={buildProjectsFew} />));
+    expect(asked).toEqual(['/api/me/build/start']);
+    expect(container.querySelector('[data-landing-start]')?.getAttribute('data-landing-start')).toBe('pick');
+    expect(container.querySelector('[data-build-foot]')).toBeNull();
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    hint.present = false;
+    const none = serve({});
+    await act(async () => root.render(<AboutLive projects={buildProjectsFew} />));
+    expect(none).toEqual([]);
     expect(container.querySelector('[data-landing-start]')?.getAttribute('data-landing-start')).toBe('connect');
   });
 

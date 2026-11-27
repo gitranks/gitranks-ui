@@ -3,16 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { HomeView } from './home-view';
-import { type BuildHomeSide, hasBuildOf, homeViewOf } from '@/lib/build/home';
+import { type BuildHomeSide, HOME_READ_WAIT_MS, hasBuildOf, homeViewOf } from '@/lib/build/home';
 import { BUILD_HOME_MINE_PATH, BUILD_PROJECTS_MINE_PATH, buildStartMinePath } from '@/lib/build/paths';
 import type { BuildHome, BuildMine, BuildProjectCard, BuildStart } from '@/lib/build/types';
 import { hasSessionHint } from '@/lib/session-hint';
 
-/** The longest the page stays hidden for a person's side: after it, the landing shows and the side comes in place. */
-export const HOME_READ_WAIT_MS = 4_000;
-
 /** One key of a JSON answer of one of the person's routes; null on any failure. */
-async function readKey<T>(path: string, key: string): Promise<T | null> {
+export async function readKey<T>(path: string, key: string): Promise<T | null> {
   try {
     const res = await fetch(path, { cache: 'no-store' });
     if (!res.ok) return null;

@@ -10,6 +10,7 @@ import {
   sideNone,
   sideNothingWaits,
   sideTestWaits,
+  sideTwoOfOne,
 } from './__fixtures__/home';
 import { mcpServerStep } from './__fixtures__/project';
 import { BUILD_FIXTURE_NOW, buildProjectsFew, codingAgentCard } from './__fixtures__/projects';
@@ -58,8 +59,16 @@ describe("Build's home", () => {
     expect(homeViewOf(sideNothingWaits, projects)).toMatchObject({ kind: 'home', box: { kind: 'pick', left: 3 } });
   });
 
-  it('counts the projects left from the API when the public list is not known', () => {
-    expect(homeViewOf(sideNothingWaits, [])).toMatchObject({ box: { kind: 'pick', left: 3 } });
+  it('says some projects are left, with no number, when the public list is not known', () => {
+    expect(homeViewOf(sideNothingWaits, [])).toMatchObject({ box: { kind: 'pick', left: null } });
+    expect(homeViewOf(sideAllBuilt, [])).toMatchObject({ box: { kind: 'all_built' } });
+  });
+
+  it('puts one build of a project in the box and the other below it', () => {
+    const view = homeViewOf(sideTwoOfOne, projects);
+    if (view.kind !== 'home') throw new Error('home expected');
+    expect(view.box).toMatchObject({ kind: 'build', build: { build: 'b-mcp-ts' } });
+    expect(view.others.map((build) => build.build)).toEqual(['b-mcp-py']);
   });
 
   it('says every project is built when none is left', () => {

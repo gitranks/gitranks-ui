@@ -103,6 +103,7 @@ describe('All projects', () => {
       'No project matches “kubernetes”. Show all 14',
     );
     expect(count()).toBe('');
+    expect(container.querySelector('[data-projects-nothing]')?.className).toContain('break-words');
     expect(container.textContent).not.toMatch(/\b0\b/);
     const button = [...container.querySelectorAll('button')].find((item) => item.textContent === 'Show all 14');
     await act(async () => button?.click());

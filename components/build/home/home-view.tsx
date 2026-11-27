@@ -13,7 +13,8 @@ export type HomeViewProps = {
   now?: Date | null;
   /**
    * The person's side is being read: in a browser that holds a session the page stays hidden in its place until it
-   * comes, so a builder never sees the landing first. A visitor's browser shows the landing at once.
+   * comes, so a builder never sees the landing first, and shows by itself 4s after the first paint, script or not
+   * (`animate-build-reveal`). A visitor's browser shows the landing at once.
    */
   reading?: boolean;
 };
@@ -22,7 +23,10 @@ export type HomeViewProps = {
 export function HomeView({ view, projects, now = null, reading = false }: HomeViewProps) {
   return (
     <main
-      className={cn(BUILD_COLUMN, reading && '[html[data-has-session]_&]:invisible')}
+      className={cn(
+        BUILD_COLUMN,
+        reading && '[html[data-has-session]_&]:invisible [html[data-has-session]_&]:animate-build-reveal',
+      )}
       data-build-home={view.kind}
       aria-busy={reading || undefined}
     >

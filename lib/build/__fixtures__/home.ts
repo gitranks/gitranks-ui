@@ -4,6 +4,7 @@ import {
   buildGoldEarned,
   buildGoldOpen,
   buildInProgress,
+  buildPythonSecond,
   buildTestLeft,
   keyValueDatabaseInProgress,
   keyValueDatabaseTestLeft,
@@ -250,5 +251,27 @@ export const sideAllBuilt: BuildHomeSide = {
 export const sideBuilderAlone: BuildHomeSide = {
   home: { builds: [buildInProgress], tests: [], next: [] },
   builds: [buildInProgress],
+  agentConnected: null,
+};
+
+/** Two builds of the first project, one in each language: TypeScript touched last. */
+export const sideTwoOfOne: BuildHomeSide = {
+  home: { builds: [buildInProgress, buildPythonSecond], tests: [], next: [codingAgentCard] },
+  builds: [buildInProgress, buildPythonSecond],
+  agentConnected: null,
+};
+
+/** A build of a project with a long name, in the box and in a row. */
+export const longName = 'Build a very small but complete relational database engine with transactions and indexes';
+export const sideLongNames: BuildHomeSide = {
+  home: {
+    builds: [
+      { ...buildInProgress, project: { ...buildInProgress.project, name: longName } },
+      { ...keyValueDatabaseInProgress, project: { ...keyValueDatabaseInProgress.project, name: longName } },
+    ],
+    tests: [],
+    next: [],
+  },
+  builds: null,
   agentConnected: null,
 };

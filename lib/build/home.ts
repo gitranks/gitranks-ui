@@ -12,6 +12,9 @@ import type { BuildHome, BuildMine, BuildProjectCard, BuildStepRef, BuildWaiting
 /** The landing lists this many projects at the most, then one link to the Projects page. */
 export const HOME_PROJECTS_SHOWN = 6;
 
+/** How long Home stays hidden for a person's side: the stylesheet's `animate-build-reveal` shows it after as long. */
+export const HOME_READ_WAIT_MS = 4_000;
+
 /** The sentence a person says in their agent to go on with a build, in any chat, on any machine. */
 export const CONTINUE_SENTENCE = 'Continue my build';
 
@@ -30,8 +33,8 @@ export type BuildHomeBox =
   | { kind: 'test'; test: BuildWaitingTest; builtAt: string | null }
   /** The build to go on with: the one touched last. */
   | { kind: 'build'; build: BuildMine; step: BuildStepRef; of: number }
-  /** Nothing waits and nothing is in progress: the projects left to build, how many. */
-  | { kind: 'pick'; left: number }
+  /** Nothing waits and nothing is in progress: the projects left to build, how many (null: some, the number not known). */
+  | { kind: 'pick'; left: number | null }
   /** Every project is built. */
   | { kind: 'all_built' };
 
@@ -55,9 +58,12 @@ export function hasBuildOf(side: BuildHomeSide): boolean {
   return !!home && (home.builds.length > 0 || home.tests.length > 0 || (builds?.length ?? 0) > 0);
 }
 
-/** How many projects the person has not touched: of the public list, or the API's next ones when it is not known. */
-function leftOf(side: BuildHomeSide, home: BuildHome, projects: readonly BuildProjectCard[]): number {
-  if (!projects.length) return home.next.length;
+/**
+ * How many projects the person has not touched, of the public list. When the list is not known (its read failed), the
+ * API's next projects say only whether some are left, not how many (it names three at the most): null for some.
+ */
+function leftOf(side: BuildHomeSide, home: BuildHome, projects: readonly BuildProjectCard[]): number | null {
+  if (!projects.length) return home.next.length ? null : 0;
   const touched = new Set([...home.builds, ...(side.builds ?? [])].map((build) => build.project.slug));
   return projects.filter((card) => !touched.has(card.slug)).length;
 }
@@ -83,7 +89,7 @@ export function homeViewOf(side: BuildHomeSide | null, projects: readonly BuildP
     box = { kind: 'build', build: going, step, of };
   } else {
     const left = leftOf(side, home, projects);
-    box = left > 0 ? { kind: 'pick', left } : { kind: 'all_built' };
+    box = left === 0 ? { kind: 'all_built' } : { kind: 'pick', left };
   }
   const inBox = test?.build ?? going?.build ?? null;
   return { kind: 'home', box, others: home.builds.filter((build) => build.build !== inBox), next: home.next };

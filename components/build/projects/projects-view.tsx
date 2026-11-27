@@ -84,7 +84,7 @@ export function ProjectsView({ projects, mine, query: typedFirst = '' }: Project
         </div>
       ) : null}
       {nothing ? (
-        <p className="m-0 text-sm" data-projects-nothing="">
+        <p className="m-0 text-sm break-words" data-projects-nothing="">
           No project matches “{search.query}”.{' '}
           <button type="button" onClick={showAll} className="font-medium text-link hover:underline">
             Show all {search.total}

@@ -135,6 +135,31 @@ describe("Build's home", () => {
     expect(link('My builds')).toBe('/build/mine');
   });
 
+  it('says some projects are left, with no number, when the full list is missing', async () => {
+    await draw(fixtures.sideNothingWaits, []);
+    expect(container.querySelector('[data-home-box="pick"]')?.textContent).toContain(
+      'Nothing waits for you, and there are projects left to build.',
+    );
+  });
+
+  it('shows two builds of one project: one in the box, the other in a row', async () => {
+    await draw(fixtures.sideTwoOfOne);
+    expect(container.querySelector('[data-home-box="build"] h2')?.textContent).toBe(
+      'Build an MCP server: step 9 of 16',
+    );
+    expect(container.querySelector('[data-home-row="b-mcp-py"]')?.textContent).toContain('Python · step 4 of 16');
+  });
+
+  it('wraps a long project name in the box and in a row', async () => {
+    await draw(fixtures.sideLongNames);
+    const heading = container.querySelector('[data-home-box="build"] h2');
+    expect(heading?.textContent).toContain(fixtures.longName);
+    expect(heading?.className).toContain('break-words');
+    const name = container.querySelector('[data-home-row="b-kv-py"] span span');
+    expect(name?.textContent).toBe(fixtures.longName);
+    expect(name?.className).toContain('break-words');
+  });
+
   it('leads to Learn and to real issues when every project is built, with no "Build next"', async () => {
     await draw(fixtures.sideAllBuilt);
     expect(container.querySelector('[data-home-box="all_built"] h2')?.textContent).toBe(
@@ -159,6 +184,8 @@ describe("Build's home", () => {
     await draw(fixtures.sideNone, buildProjectsFew, true);
     const main = container.querySelector('main');
     expect(main?.className).toContain('[html[data-has-session]_&]:invisible');
+    // Shown by the stylesheet after the time limit, whether or not a script ever runs.
+    expect(main?.className).toContain('[html[data-has-session]_&]:animate-build-reveal');
     expect(main?.getAttribute('aria-busy')).toBe('true');
     await draw(fixtures.sideNone, buildProjectsFew, false);
     expect(container.querySelector('main')?.className).not.toContain('invisible');

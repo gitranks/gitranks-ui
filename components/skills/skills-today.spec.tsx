@@ -3,7 +3,12 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// The site's address, read once as the modules load, is the same wherever the spec runs.
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_URI = 'https://gitranks.com';
+});
 
 import { SkillsBlock } from './skills-block';
 import { SkillsPageView } from './skills-page-view';
@@ -20,11 +25,11 @@ import {
   SKILLS_NOW,
   skillsMine,
 } from '@/lib/skills/__fixtures__/skills';
-import type { SkillsMine, SkillsPage } from '@/lib/skills/skills.types';
 import { skillsMetadataOf } from '@/lib/skills/seo';
-import { skillsCardOf } from '@/lib/skills/skills-share-card';
+import type { SkillsMine, SkillsPage } from '@/lib/skills/skills.types';
 import { skillsMarkdownOf } from '@/lib/skills/skills-markdown';
 import { otherBoxOf } from '@/lib/skills/skills-owner';
+import { skillsCardOf } from '@/lib/skills/skills-share-card';
 
 /*
  * A Skills page with nothing of Build in its answer, compared with the page served before Build's "Built" section came,
@@ -60,7 +65,9 @@ function casesOf(): Record<string, string> {
   for (const [name, mine] of MINES) {
     const strip = <SkillsStrip mine={mine} href="/profile/octocat/skills" onHide={() => {}} onShow={() => {}} />;
     cases[`owner: ${name}`] = mine.page
-      ? renderToStaticMarkup(<SkillsPageView page={mine.page} now={SKILLS_NOW} strip={strip} other={otherBoxOf(mine)} />)
+      ? renderToStaticMarkup(
+          <SkillsPageView page={mine.page} now={SKILLS_NOW} strip={strip} other={otherBoxOf(mine)} />,
+        )
       : renderToStaticMarkup(
           <>
             {strip}

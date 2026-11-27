@@ -51,6 +51,15 @@ export const INTERVIEWS_BAR_MINE_PATH = '/api/me/interviews/bar';
 export const INTERVIEWS_MINE_MINE_PATH = '/api/me/interviews/mine';
 /** Sends one "This is wrong" (`POST`, `{ company, plan, fact, note }`). */
 export const INTERVIEWS_REPORT_MINE_PATH = '/api/me/interviews/report';
+/** One plan for the person: where they stand in each round and item (`GET`). */
+export const interviewPlanMinePath = (company: string, plan: string) =>
+  `/api/me/interviews/plans/${encodeURIComponent(company)}/${encodeURIComponent(plan)}`;
+/** Starts a plan, or starts a stopped one again (`POST`, `{ company, plan }`). */
+export const INTERVIEWS_START_MINE_PATH = '/api/me/interviews/start';
+/** Stops a plan (`POST`, `{ company, plan, reason }`, the reason null when skipped). */
+export const INTERVIEWS_STOP_MINE_PATH = '/api/me/interviews/stop';
+/** The query a plan's address carries after a visitor signs in to start it: the page then starts the plan. */
+export const PLAN_START_QUERY = 'start';
 
 /*
  * Cache tags. The public pages are kept for hours under them, and the API expires them when the content changes.

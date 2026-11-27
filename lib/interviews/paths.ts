@@ -120,3 +120,55 @@ export const interviewCoursesSearchPath = (company: string) =>
   `/learn/courses?q=${encodeURIComponent(company)}` as Route;
 /** An organisation's page on GitRanks: its public repositories, ranked. */
 export const interviewOrgPath = (org: string) => `/org/${encodeURIComponent(org)}` as Route;
+
+/*
+ * The share pictures and the Markdown copies of Interviews home, a company and a plan. Each sits under Interviews'
+ * own prefix, so the proxy's gate closes it as it closes the pages.
+ */
+
+/** The size of the logo file a company's and a plan's picture draws: the largest the API keeps. */
+export const INTERVIEW_CARD_LOGO_SIZE = 256;
+/** Every size of a company's logo file the API keeps: the two the site serves, and the picture's. */
+export type InterviewLogoFileSize = InterviewLogoSize | typeof INTERVIEW_CARD_LOGO_SIZE;
+
+/** The picture a posted link to Interviews home shows; How it works uses it too. */
+export const INTERVIEWS_HOME_CARD_PATH = `${INTERVIEWS_HOME_PATH}/card.png`;
+/** The picture a posted link to a company's page shows. */
+export const interviewCompanyCardPath = (company: string) => `${interviewCompanyPath(company)}/card.png`;
+/** The picture a posted link to a plan's page shows. */
+export const interviewPlanCardPath = (company: string, plan: string) => `${interviewPlanPath(company, plan)}/card.png`;
+
+/** Interviews home's Markdown copy, for agents: the page's address with `.md`. */
+export const INTERVIEWS_HOME_MARKDOWN_PATH = `${INTERVIEWS_HOME_PATH}.md`;
+/** A company's Markdown copy. */
+export const interviewCompanyMarkdownPath = (company: string) => `${interviewCompanyPath(company)}.md`;
+/** A plan's Markdown copy. */
+export const interviewPlanMarkdownPath = (company: string, plan: string) => `${interviewPlanPath(company, plan)}.md`;
+
+/**
+ * Where the Markdown copies are answered from, since a page and a route handler cannot share a segment: a file name no
+ * company or plan slug can have, under each page's own address.
+ */
+export const INTERVIEWS_HOME_MARKDOWN_ROUTE = `${INTERVIEWS_HOME_PATH}/copy.md`;
+export const interviewCompanyMarkdownRoute = (company: string) => `${interviewCompanyPath(company)}/copy.md`;
+export const interviewPlanMarkdownRoute = (company: string, plan: string) =>
+  `${interviewPlanPath(company, plan)}/copy.md`;
+
+const COMPANY_MARKDOWN = /^\/interviews\/([^/]+)\.md$/;
+const PLAN_MARKDOWN = /^\/interviews\/([^/]+)\/([^/]+)\.md$/;
+
+/**
+ * Where the proxy answers a Markdown copy from: for `/interviews.md`, `/interviews/<company>.md` and
+ * `/interviews/<company>/<plan>.md` with slugs a company and a plan can have; null for any other path.
+ */
+export function interviewsMarkdownRouteOf(pathname: string): string | null {
+  if (pathname === INTERVIEWS_HOME_MARKDOWN_PATH) return INTERVIEWS_HOME_MARKDOWN_ROUTE;
+  const company = COMPANY_MARKDOWN.exec(pathname)?.[1];
+  if (company !== undefined) return isInterviewCompanySlug(company) ? interviewCompanyMarkdownRoute(company) : null;
+  const plan = PLAN_MARKDOWN.exec(pathname);
+  if (!plan || !isInterviewCompanySlug(plan[1]) || !isInterviewPlanSlug(plan[2])) return null;
+  return interviewPlanMarkdownRoute(plan[1], plan[2]);
+}
+
+/** Interviews' own sitemap: listed in the site's index only once Interviews is open to everyone. */
+export const INTERVIEWS_SITEMAP_PATH = '/sitemaps/interviews/sitemap.xml';

@@ -1618,7 +1618,13 @@ describe('proxy', () => {
       '/interviews/northwind/logo-64.png',
       '/interviews/northwind/logo-128.png',
       '/interviews/card.png',
+      '/interviews/northwind/card.png',
+      '/interviews/northwind/senior-software-engineer/card.png',
+      '/interviews/northwind.md',
       '/interviews/northwind/senior-software-engineer.md',
+      '/interviews/copy.md',
+      '/interviews/northwind/copy.md',
+      '/interviews/northwind/senior-software-engineer/copy.md',
     ];
     const isNotFound = (response: Awaited<ReturnType<typeof proxy>>) =>
       response?.headers.get('x-middleware-rewrite')?.endsWith('/_404') ?? false;
@@ -1676,6 +1682,27 @@ describe('proxy', () => {
         const response = await proxy(request(cookie, '/interviews'), event);
         expect(isNotFound(response)).toBe(false);
         expect(response?.headers.get('x-robots-tag')).toBeNull();
+      }
+    });
+
+    it.each<[string, string]>([
+      ['/interviews.md', '/interviews/copy.md'],
+      ['/interviews/northwind.md', '/interviews/northwind/copy.md'],
+      ['/interviews/northwind/senior-software-engineer.md', '/interviews/northwind/senior-software-engineer/copy.md'],
+    ])('answers the Markdown copy %s from %s once the gate lets it through', async (path, route) => {
+      for (const gate of ['person', 'everyone'] as const) {
+        interviewsGate.mockResolvedValue(gate);
+        const response = await proxy(request(SIGNED_IN, path), event);
+        expect(response?.headers.get('x-middleware-rewrite')).toBe(`https://gitranks.com${route}`);
+      }
+      expect(withSession).not.toHaveBeenCalled();
+    });
+
+    it('rewrites no Markdown copy for a slug no company or plan can have', async () => {
+      interviewsGate.mockResolvedValue('everyone');
+      for (const path of ['/interviews/about.md', '/interviews/Northwind.md', '/interviews/northwind/next.md']) {
+        const response = await proxy(request(undefined, path), event);
+        expect(response?.headers.get('x-middleware-rewrite') ?? '', path).not.toContain('copy.md');
       }
     });
 

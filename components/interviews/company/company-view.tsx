@@ -26,6 +26,7 @@ import {
 import {
   INTERVIEWS_ABOUT_PATH,
   INTERVIEWS_HOME_PATH,
+  interviewCompanyMarkdownPath,
   interviewCoursePath,
   interviewCoursesSearchPath,
   interviewOrgPath,
@@ -418,6 +419,9 @@ export function CompanyView({ page, mine, reading = false }: CompanyViewProps) {
               <Link key="about" href={INTERVIEWS_ABOUT_PATH} className="hover:underline">
                 How we research
               </Link>,
+              <a key="markdown" href={interviewCompanyMarkdownPath(company.slug)} className="hover:underline">
+                Markdown version
+              </a>,
             ]}
           />
         </p>

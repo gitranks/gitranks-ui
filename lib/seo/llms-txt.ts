@@ -1,5 +1,13 @@
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from './site';
 import { agentSetupLineOf } from '@/lib/contribute/mcp-docs';
+import {
+  INTERVIEWS_ABOUT_PATH,
+  INTERVIEWS_HOME_MARKDOWN_PATH,
+  INTERVIEWS_HOME_PATH,
+  interviewCompanyMarkdownPath,
+  interviewPlanMarkdownPath,
+} from '@/lib/interviews/paths';
+import type { InterviewsHome } from '@/lib/interviews/types';
 import { isProjectCourse, type LearnCourseCard, PROJECT_SECTION } from '@/lib/learn/course';
 import { LEARN_MAINTAINERS_PATH, LEARN_PATH } from '@/lib/learn/learn-path';
 import {
@@ -44,15 +52,18 @@ function registryPackageLines(registry: RegistryId, url: (path: string) => strin
  * patterns of per-item pages (never one person's or one project's own URL). `contribute`: Contribute is launched, so its pages for agents, the setup a person finishes before their agent takes an issue, and its pull request timelines are listed. The packages section
  * lists the package rankings, the address patterns of a package's page and a repository's Used by tab, and the Unsung
  * heroes archive. Learn's pages are listed with its courses (`learnCourses`, each with its Markdown copy), and its page
- * for maintainers with Contribute.
+ * for maintainers with Contribute. Interviews' pages are listed only when `interviews` is given, which the route does
+ * once Interviews is open to everyone: its home, How it works, and each company and plan with its Markdown copy.
  */
 export function llmsTxtOf({
   contribute,
   learnCourses = [],
+  interviews = null,
 }: {
   contribute: boolean;
   learnCourses?: readonly (Pick<LearnCourseCard, 'slug' | 'name' | 'covers'> &
     Partial<Pick<LearnCourseCard, 'kind' | 'project'>>)[];
+  interviews?: Pick<InterviewsHome, 'companies'> | null;
 }): string {
   const url = (path: string) => `${SITE_URL}${path}`;
   const courseLine = (course: (typeof learnCourses)[number]) =>
@@ -99,6 +110,7 @@ export function llmsTxtOf({
     ...(contribute ? [`- [For maintainers](${url(LEARN_MAINTAINERS_PATH)}): what a Learn pull request is`] : []),
     '',
   );
+  if (interviews) lines.push(...interviewsLines(interviews, url));
   lines.push(
     '## Rankings and badges',
     '',
@@ -131,4 +143,27 @@ function oneLine(text: string): string {
     .replace(/\s+/g, ' ')
     .replace(/[[\]\\<>`]/g, '')
     .trim();
+}
+
+/**
+ * Interviews' section: its home and How it works, the address of a company's and a plan's Markdown copy, then each
+ * company that has a plan with its plans, each linked to its copy.
+ */
+function interviewsLines(home: Pick<InterviewsHome, 'companies'>, url: (path: string) => string): string[] {
+  const companies = home.companies.filter((card) => card.company?.slug && card.plans.length > 0);
+  return [
+    '## Interviews',
+    '',
+    `- [GitRanks Interviews](${url(INTERVIEWS_HOME_PATH)}): interview plans for engineers. A plan follows the real rounds of one company's interview, in order, with short lessons for each round. Built from public sources, each fact with who states it; not official pages of the companies ([Markdown](${url(INTERVIEWS_HOME_MARKDOWN_PATH)}))`,
+    `- [How it works](${url(INTERVIEWS_ABOUT_PATH)}): where the facts come from`,
+    `- A company's page in Markdown: ${url('/interviews/<company>.md')}`,
+    `- A plan's page in Markdown: ${url('/interviews/<company>/<plan>.md')}`,
+    ...companies.flatMap((card) => [
+      `- [${oneLine(card.company.name)}](${url(interviewCompanyMarkdownPath(card.company.slug))}): ${card.plans.length} ${card.plans.length === 1 ? 'plan' : 'plans'}`,
+      ...card.plans.map(
+        (plan) => `  - [${oneLine(plan.name)}](${url(interviewPlanMarkdownPath(plan.company.slug, plan.slug))})`,
+      ),
+    ]),
+    '',
+  ];
 }

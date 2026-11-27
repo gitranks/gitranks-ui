@@ -202,9 +202,12 @@ describe("a plan's page for a visitor", () => {
     expect(others).toContain('Site reliability engineer, mid level and senior · N2 and N3 4 rounds');
     expect(others).toContain('Engineering manager 4 rounds');
     expect(text(host.querySelector('[data-plan-foot]'))).toBe(
-      'Facts from 8 public sources, written in our own words · last checked 26 Nov 2026 · How we research',
+      'Facts from 8 public sources, written in our own words · last checked 26 Nov 2026 · How we research · Markdown version',
     );
     expect(linkNamed('How we research')?.getAttribute('href')).toBe('/interviews/about');
+    expect(linkNamed('Markdown version')?.getAttribute('href')).toBe(
+      '/interviews/northwind/senior-software-engineer.md',
+    );
   });
 });
 

@@ -2,6 +2,8 @@ import { startOfMonth } from 'date-fns';
 
 import { fetchOrgSitemapParts } from '@/graphql/helpers/fetch-org-sitemap-parts';
 import { fetchRepoSitemapParts } from '@/graphql/helpers/fetch-repo-sitemap-parts';
+import { INTERVIEWS_OPEN_TO_EVERYONE } from '@/lib/interviews/interviews-parts';
+import { INTERVIEWS_SITEMAP_PATH } from '@/lib/interviews/paths';
 import { apiRegistryOf, DEFAULT_REGISTRY, REGISTRY_IDS, type RegistryId } from '@/lib/packages/registries';
 import { fetchPackageSitemapParts, fetchRepoTabSitemapParts } from '@/lib/sitemap/package-sitemap-data';
 import {
@@ -53,12 +55,13 @@ const partsOf = (count: number, max: number, loc: (part: number) => string) =>
   Array.from({ length: Math.max(0, Math.min(Math.floor(count), max)) }, (_, part) => loc(part));
 
 /**
- * Every child sitemap: the fixed segments, then the first `repoParts` repository parts and the first `orgParts`
- * organization-page parts.
+ * Every child sitemap: the fixed segments, Interviews' once it is open to everyone (`interviews`), then the first
+ * `repoParts` repository parts and the first `orgParts` organization-page parts.
  */
-export function listChildSitemapLocs(repoParts = 0, orgParts = 0): string[] {
+export function listChildSitemapLocs(repoParts = 0, orgParts = 0, interviews = INTERVIEWS_OPEN_TO_EVERYONE): string[] {
   return [
     ...SITEMAP_SEGMENTS.map(childSitemapLoc),
+    ...(interviews ? [absoluteSitemapUrl(INTERVIEWS_SITEMAP_PATH)] : []),
     ...partsOf(repoParts, SITEMAP_REPO_PARTS_MAX, repoSitemapLoc),
     ...partsOf(orgParts, SITEMAP_ORG_PARTS_MAX, orgSitemapLoc),
   ];

@@ -8,6 +8,7 @@ import { SourceList } from './source-list';
 import { WrongForm, WrongLink } from './wrong-form';
 import { readOnOf, sourcesWordsOf } from '@/lib/interviews/sources';
 import type { InterviewSource } from '@/lib/interviews/types';
+import { cn } from '@/lib/utils';
 
 /**
  * The line under a section's facts: "21 sources" opens them in place, under the facts they belong to, and "This is
@@ -45,7 +46,10 @@ export function SourcesInPlace({
             aria-expanded={open}
             aria-controls={panel}
             onClick={() => setOpen((was) => !was)}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-foreground hover:underline"
+            className={cn(
+              'inline-flex items-center gap-1 text-xs hover:underline',
+              open ? 'font-semibold text-foreground' : 'text-muted-foreground',
+            )}
           >
             <Chevron aria-hidden="true" className="size-3.5 shrink-0" />
             {sourcesWordsOf(sources.length)}

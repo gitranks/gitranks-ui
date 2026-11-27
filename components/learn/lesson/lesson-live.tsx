@@ -2,10 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, use, useEffect, useRef, useState } from 'react';
 
 import { type LessonCalls, LessonPlayer, type LessonViewer, lessonPlayerKeyOf } from './lesson-player';
 import { LessonRealWorldStreamed, type SharedFixes } from './lesson-real-world';
+import { LessonSettingContext } from '@/components/workspace/player/lesson-setting';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import {
   ANSWER_KEPT_NOTE,
@@ -171,6 +172,9 @@ export function LessonLive({
 }) {
   useLearnSetupGuess();
   const router = useRouter();
+  // The setting the lesson was opened in (an interview plan), when the part that opened it provides one.
+  const settingState = use(LessonSettingContext);
+  const setting = settingState?.setting ?? null;
   const [personal, setPersonal] = useState<Personal>({ kind: 'pending' });
   // The person's side as their last saved answer left it: fresher than any read.
   const [saved, setSaved] = useState<LearnLessonMine | null>(null);
@@ -245,7 +249,20 @@ export function LessonLive({
         writeKeptAnswer({ slug: lesson.slug, question: lesson.question.id, picked, tries, language, at: Date.now() });
         return;
       }
-      answerLearnLessonAction({ slug: lesson.slug, question: lesson.question.id, picked, tries, language }).then(
+      // In another setting, the answer goes with it, once its read is over: never with a setting the person is not in.
+      const send = (plan: string | null) =>
+        answerLearnLessonAction({
+          slug: lesson.slug,
+          question: lesson.question.id,
+          picked,
+          tries,
+          language,
+          ...(plan ? { plan } : {}),
+        });
+      const sent = settingState
+        ? settingState.settled().then((inSetting) => send(inSetting?.plan ?? null))
+        : send(null);
+      sent.then(
         (result) => {
           if (!result.ok) return;
           if (result.data) {
@@ -265,6 +282,7 @@ export function LessonLive({
     },
     onNext: () => {
       if (keep) router.push(throughSetup);
+      else if (setting) router.push(setting.next.href);
       else router.push(last || !lesson.next ? courseHrefOf(lesson.course) : learnLessonPath(lesson.next.slug));
     },
     onSignIn: () => {
@@ -301,6 +319,8 @@ export function LessonLive({
           note={viewer ? null : note}
           real={realMine?.real ?? null}
           realWorld={<LessonRealWorldStreamed slug={lesson.slug} fixes={fixes} mine={realMine} />}
+          setting={setting}
+          held={saved?.held ?? setting?.held ?? false}
         />
       </div>
     </MainLanguageContext>

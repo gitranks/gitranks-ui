@@ -6,7 +6,9 @@ vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 vi.mock('@/lib/workspace/contribute.data', () => ({ viewerLogin }));
 
 const { answerLearnLessonAction, sendLearnFeedbackAction } = await import('./lesson-page.actions');
-const { AnswerLearnLessonDocument, SendLearnFeedbackDocument } = await import('./lesson-page.documents');
+const { AnswerLearnLessonDocument, AnswerLearnLessonInPlanDocument, SendLearnFeedbackDocument } = await import(
+  './lesson-page.documents'
+);
 
 const answer = { slug: 'sets', question: 'q1', picked: [0, 2], tries: 2, language: 'python' };
 const answered = {
@@ -57,6 +59,32 @@ describe("a lesson's answer", () => {
   it('passes on what the API refuses', async () => {
     graphqlDirect.mockRejectedValueOnce(apiError('NOT_FOUND'));
     expect(await answerLearnLessonAction(answer)).toMatchObject({ ok: false, error: 'NOT_FOUND' });
+  });
+
+  it('sends the interview plan the lesson was opened from, and answers whether the lesson is held', async () => {
+    const held = { ...answered, mine: { ...answered.mine, held: true } };
+    graphqlDirect.mockResolvedValueOnce({ answerLearnLesson: held });
+    const plan = 'northwind/senior-software-engineer';
+    expect(await answerLearnLessonAction({ ...answer, plan })).toEqual({ ok: true, data: held });
+    expect(graphqlDirect).toHaveBeenCalledWith(
+      AnswerLearnLessonInPlanDocument,
+      { ...answer, plan },
+      { source: 'client', githubLogin: 'octocat' },
+    );
+  });
+
+  it('sends the answer as before with no plan, and refuses a plan that is not two slugs', async () => {
+    graphqlDirect.mockResolvedValueOnce({ answerLearnLesson: answered });
+    await answerLearnLessonAction({ ...answer, plan: null });
+    expect(graphqlDirect).toHaveBeenCalledWith(AnswerLearnLessonDocument, answer, expect.anything());
+    graphqlDirect.mockReset();
+    for (const plan of ['northwind', 'northwind/senior/more', 'Northwind/senior', `${'a'.repeat(200)}/b`, 7]) {
+      expect(await answerLearnLessonAction({ ...answer, plan } as never)).toMatchObject({
+        ok: false,
+        error: 'INVALID',
+      });
+    }
+    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });
 

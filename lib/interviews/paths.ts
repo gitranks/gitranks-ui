@@ -120,3 +120,37 @@ export const interviewCoursesSearchPath = (company: string) =>
   `/learn/courses?q=${encodeURIComponent(company)}` as Route;
 /** An organisation's page on GitRanks: its public repositories, ranked. */
 export const interviewOrgPath = (org: string) => `/org/${encodeURIComponent(org)}` as Route;
+
+/*
+ * A lesson inside a plan and the connecting screen.
+ */
+
+/** The anchor of a round on its plan's page. */
+export const interviewRoundAnchor = (number: number) => `round-${number}`;
+/** One round on its plan's page. */
+export const interviewRoundPath = (company: string, plan: string, number: number) =>
+  `${interviewPlanPath(company, plan)}#${interviewRoundAnchor(number)}` as Route;
+/**
+ * A lesson opened from a plan, for the person (`GET`): the plan, the round and the part that hold it, while their plan
+ * is in progress. `course` and `group`: the lesson's own, which the plan's parts are matched by.
+ */
+export const interviewLessonMinePath = (
+  plan: { company: string; plan: string },
+  lesson: { slug: string; course: string; group: string },
+) =>
+  `/api/me/interviews/lesson?${new URLSearchParams({
+    company: plan.company,
+    plan: plan.plan,
+    lesson: lesson.slug,
+    course: lesson.course,
+    group: lesson.group,
+  }).toString()}`;
+/** The connecting screen for the person (`GET`): what was just done after one part (`after`: its key), and the plan now. */
+export const interviewNextMinePath = (company: string, plan: string, after: string) =>
+  `/api/me/interviews/next/${encodeURIComponent(company)}/${encodeURIComponent(plan)}?after=${encodeURIComponent(after)}`;
+
+const PART_KEY = /^(?:[a-z0-9]+(?:-[a-z0-9]+)*)\/(?:[a-z0-9]+(?:-[a-z0-9]+)*)$/;
+
+/** Whether a value has the shape of a part's key: `<course>/<group>` or `project/<slug>`. */
+export const isInterviewPartKey = (key: unknown): key is string =>
+  typeof key === 'string' && key.length <= 2 * SLUG_MAX_LENGTH + 1 && PART_KEY.test(key);

@@ -14,13 +14,27 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib/learn/lesson-page.data', () => ({ loadLearnLessonPage }));
 vi.mock('@/lib/learn/real-issues.data', () => ({ loadMergedFixes }));
 vi.mock('@/components/learn/lesson/lesson-screen', () => ({ LessonScreen: () => null }));
+vi.mock('@/components/interviews/lesson/lesson-in-plan', () => ({ LessonInPlanProvider: () => null }));
 
 const { default: LessonPage, generateMetadata } = await import('./page');
 const { LessonScreen } = await import('@/components/learn/lesson/lesson-screen');
+const { LessonInPlanProvider } = await import('@/components/interviews/lesson/lesson-in-plan');
 const { setGroup, setLesson } = await import('@/lib/learn/__fixtures__/lesson-page');
 const { learnFixes } = await import('@/lib/learn/__fixtures__/issues');
 
 const ours = { lesson: setLesson, examples: [], questionCodes: [], group: setGroup };
+/** The lesson's screen inside the part that asks, in the browser, whether a plan the address names holds it. */
+const screenOf = async (page: Promise<unknown>) => {
+  const drawn = (await page) as { type: unknown; props: { lesson: unknown; titles: unknown; children: unknown } };
+  expect(drawn.type).toBe(LessonInPlanProvider);
+  expect(drawn.props.lesson).toEqual({
+    slug: setLesson.slug,
+    course: setLesson.course.slug,
+    group: setLesson.group.slug,
+  });
+  expect(drawn.props.titles).toEqual(setGroup.map(({ slug, title }) => ({ slug, title })));
+  return drawn.props.children;
+};
 const props = (slug: string, query: Record<string, string> = {}) =>
   ({
     params: Promise.resolve({ slug }),
@@ -35,12 +49,12 @@ beforeEach(() => {
 describe("a lesson's address", () => {
   it('draws a lesson of ours, opening its fact when the address asks', async () => {
     loadLearnLessonPage.mockResolvedValue(ours);
-    const page = await LessonPage(props(setLesson.slug, { fact: '' }));
+    const page = await screenOf(LessonPage(props(setLesson.slug, { fact: '' })));
     expect(isValidElement(page) && page.type).toBe(LessonScreen);
     // The merged fixes are on their way, never awaited before the lesson is drawn: they stream in their own boundary.
     expect((page as { props: object }).props).toEqual({ page: ours, openFact: true, fixes: expect.any(Promise) });
     expect(await (page as { props: { fixes: Promise<unknown> } }).props.fixes).toBeNull();
-    const plain = await LessonPage(props(setLesson.slug));
+    const plain = await screenOf(LessonPage(props(setLesson.slug)));
     expect((plain as { props: { openFact: boolean } }).props.openFact).toBe(false);
     loadLearnLessonPage.mockResolvedValueOnce(ours);
     expect((await generateMetadata(props(setLesson.slug))).robots).toBeUndefined();
@@ -50,7 +64,7 @@ describe("a lesson's address", () => {
     loadLearnLessonPage.mockResolvedValue(ours);
     loadMergedFixes.mockResolvedValue(learnFixes);
     const fixesOf = async () =>
-      ((await LessonPage(props(setLesson.slug))) as { props: { fixes: unknown } }).props.fixes;
+      ((await screenOf(LessonPage(props(setLesson.slug)))) as { props: { fixes: unknown } }).props.fixes;
     expect(await fixesOf()).toBe(learnFixes);
     expect(loadMergedFixes).toHaveBeenCalledWith({ lesson: setLesson.slug });
     loadMergedFixes.mockResolvedValueOnce(null);

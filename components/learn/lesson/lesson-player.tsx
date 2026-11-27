@@ -1,5 +1,6 @@
 'use client';
 
+import { Check } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
@@ -37,6 +38,7 @@ import { useExampleLanguage } from '@/lib/learn/use-example-language';
 import type { HighlightedCode } from '@/lib/workspace/code-tokens';
 import type { LearnAnswerState } from '@/lib/workspace/learn-answer';
 import type { LearnPicked } from '@/lib/workspace/learn-question';
+import type { LessonSetting } from '@/lib/workspace/lesson-setting';
 import { issuePageHrefOf } from '@/lib/workspace/masked-issue';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
@@ -127,6 +129,17 @@ function FixRealIssue({ href, hints }: { href: string; hints: boolean }) {
   );
 }
 
+/** The quiet button on the right of the line under the answer, in a lesson opened in another setting. */
+function SettingBack({ back }: { back: LessonSetting['back'] }) {
+  return (
+    <Button asChild variant="outline" className="h-8 shrink-0 px-2.5 text-[13px] max-sm:min-h-11">
+      <Link href={back.href} data-setting-back="">
+        {back.label}
+      </Link>
+    </Button>
+  );
+}
+
 /**
  * A lesson's page, its living part: the strip, the two columns (one on a phone), and the aside's question, depth line
  * and insights, which all follow the one answer. The article and what follows it come drawn (`article`, `more`), so
@@ -152,6 +165,8 @@ export function LessonPlayer({
   timeZone,
   real = null,
   realWorld = null,
+  setting = null,
+  held = false,
 }: {
   lesson: LearnLesson;
   group: readonly LearnGroupLesson[];
@@ -193,6 +208,13 @@ export function LessonPlayer({
    * person's parts of it arrive, nothing they are reading moves.
    */
   realWorld?: ReactNode;
+  /**
+   * The setting the lesson was opened in (an interview plan), none in its course: the strip's way back, the main
+   * button after a right answer, and the line under it follow the setting. `held`: the lesson is not repeated in the
+   * review, as the person's side says.
+   */
+  setting?: LessonSetting | null;
+  held?: boolean;
 }) {
   const live = useKeyHints();
   const hints = hintsGiven ?? live;
@@ -254,8 +276,24 @@ export function LessonPlayer({
   // "Fix a real issue": after a right answer, for a person whose list has an issue for the lesson and no fix of theirs.
   const fixIssueHref = member && right && real?.fixAnIssue ? issuePageHrefOf(real.fixAnIssue.issue.id, 'learn') : null;
 
+  // In another setting: its own line where it words one, with its way back on the right.
+  const settingLine = setting && member && right ? setting.lineOf(held) : null;
+
   let below: ReactNode;
-  if (right && line) {
+  if (settingLine && setting) {
+    below = (
+      <div className="flex min-h-8 flex-wrap items-center justify-between gap-x-3 gap-y-2 text-sm" data-setting-line="">
+        <span className="flex min-w-0 items-center gap-2">
+          <Check aria-hidden="true" className="size-4 shrink-0 text-positive" />
+          <span>
+            <b className="font-semibold">{settingLine.lead}</b>{' '}
+            <span className="text-muted-foreground">{settingLine.tail}</span>
+          </span>
+        </span>
+        <SettingBack back={setting.back} />
+      </div>
+    );
+  } else if (right && line) {
     below = (
       <div className="flex min-h-8 items-center justify-between gap-3 text-sm" data-depth-line="">
         <span className="flex min-w-0 items-center gap-2">
@@ -265,7 +303,11 @@ export function LessonPlayer({
             {tail ? <span className="text-muted-foreground"> {tail}</span> : null}
           </span>
         </span>
-        {fixIssueHref ? <FixRealIssue href={fixIssueHref} hints={hints} /> : null}
+        {setting ? (
+          <SettingBack back={setting.back} />
+        ) : fixIssueHref ? (
+          <FixRealIssue href={fixIssueHref} hints={hints} />
+        ) : null}
       </div>
     );
   } else if (right && note) {
@@ -276,11 +318,14 @@ export function LessonPlayer({
     );
   }
 
-  const crumbs: PlayerCrumb[] = [
+  const crumbs: readonly PlayerCrumb[] = setting?.crumbs ?? [
     { label: 'Learn', href: LEARN_HOME_PATH },
     { label: lesson.course.title, href: courseHrefOf(lesson.course) },
     { label: lesson.group.title },
   ];
+  // The main button after a right answer: the setting's for a person who goes on, else the lesson's own.
+  const mainLabel =
+    setting && goesOn && !keep ? setting.next.label : mainLabelOf({ member: goesOn, keep, last, next: lesson.next });
 
   return (
     <>
@@ -296,7 +341,7 @@ export function LessonPlayer({
             <AnswerPart
               question={lesson.question}
               answer={answer}
-              place={lessonPlace(mainLabelOf({ member: goesOn, keep, last, next: lesson.next }))}
+              place={lessonPlace(mainLabel)}
               hints={hints}
               highlighted={questionCodes}
               pill={opened ? 'You answered this' : undefined}

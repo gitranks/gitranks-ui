@@ -14,6 +14,8 @@ export type LessonSetting = {
   crumbs: readonly { label: string; href?: Route }[];
   /** Sent with a right answer: where the lesson was opened from. */
   plan: string;
+  /** The lesson's own address in the setting: where Learn's setup leads back to. */
+  here: Route;
   /** The main button after a right answer: its words, and where it leads. */
   next: { label: string; href: Route };
   /**

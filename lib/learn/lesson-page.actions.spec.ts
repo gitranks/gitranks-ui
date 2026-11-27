@@ -78,7 +78,13 @@ describe("a lesson's answer", () => {
     await answerLearnLessonAction({ ...answer, plan: null });
     expect(graphqlDirect).toHaveBeenCalledWith(AnswerLearnLessonDocument, answer, expect.anything());
     graphqlDirect.mockReset();
-    for (const plan of ['northwind', 'northwind/senior/more', 'Northwind/senior', `${'a'.repeat(200)}/b`, 7]) {
+    for (const plan of [
+      'northwind',
+      'northwind/senior/more',
+      'Northwind/senior',
+      `${'a'.repeat(100)}/${'b'.repeat(100)}`,
+      7,
+    ]) {
       expect(await answerLearnLessonAction({ ...answer, plan } as never)).toMatchObject({
         ok: false,
         error: 'INVALID',

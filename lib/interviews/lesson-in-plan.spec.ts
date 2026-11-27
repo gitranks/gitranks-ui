@@ -101,6 +101,7 @@ describe('what the lesson page does inside the plan', () => {
       { label: 'Graphs' },
     ]);
     expect(setting.plan).toBe('northwind/senior-software-engineer');
+    expect(setting.here).toBe('/learn/lessons/graphs-4?plan=northwind/senior-software-engineer');
     expect(setting.back).toEqual({ label: 'Back to the plan', href: '/interviews/northwind/senior-software-engineer' });
   });
 

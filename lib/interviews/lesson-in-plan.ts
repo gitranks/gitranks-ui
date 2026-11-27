@@ -133,6 +133,7 @@ export function lessonSettingOf(
       { label: inPlan.part.name },
     ],
     plan: `${company}/${plan}`,
+    here: interviewLessonPath(slug, company, plan),
     next: next
       ? { label: title ? `Next: ${title}` : 'Next lesson', href: interviewLessonPath(next, company, plan) }
       : {

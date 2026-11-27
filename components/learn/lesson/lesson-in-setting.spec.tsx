@@ -45,6 +45,7 @@ const setting: LessonSetting = {
     { label: 'Sets' },
   ],
   plan: 'northwind/senior-software-engineer',
+  here: `/learn/lessons/${setLesson.slug}?plan=northwind/senior-software-engineer` as Route,
   next: {
     label: 'Next: Sets, lesson 2',
     href: '/learn/lessons/sets-2?plan=northwind/senior-software-engineer' as Route,
@@ -58,12 +59,12 @@ let root: Root;
 let host: HTMLDivElement;
 const fetchMock = vi.fn();
 
-function routes(mine: unknown, real: unknown = NO_LESSON_REAL) {
+function routes(mine: unknown, real: unknown = NO_LESSON_REAL, learnOnboarded = true) {
   fetchMock.mockImplementation(async (path: string) => {
     const body = path.endsWith('/real-world')
       ? real
       : path.startsWith('/api/me/learn/lessons/')
-        ? { mine, learnOnboarded: true }
+        ? { mine, learnOnboarded }
         : {
             course: {
               slug: 'algorithms',
@@ -194,12 +195,27 @@ describe('a lesson opened in another setting', () => {
     expect($('[data-setting-back]')!.textContent).toBe('Back to the plan');
   });
 
-  it('is the lesson as in its course when no setting is provided', async () => {
+  it('leads a person without the Learn sign through the setup back to the lesson in its setting', async () => {
+    routes(mineNew, NO_LESSON_REAL, false);
+    answerLearnLessonAction.mockResolvedValue({ ok: true, data: { right: true, mine: mineLearned, next: null } });
+    await draw(inSetting());
+    await answerRight();
+    expect(main().textContent).toContain('Keep your progress');
+    await click(main());
+    expect(push).toHaveBeenCalledWith(`/learn/setup?back=${encodeURIComponent(setting.here)}`);
+  });
+
+  // Every visitor, and every lesson opened outside a setting: no setting is provided at all.
+  it.each([
+    ['no setting is provided', null],
+    ['the setting read finds none', inSetting(null)],
+  ])('is the lesson as in its course when %s', async (_, state) => {
     routes(mineNew, lessonRealIssues);
     answerLearnLessonAction.mockResolvedValue({ ok: true, data: { right: true, mine: mineLearned, next: null } });
-    await draw(inSetting(null));
+    await draw(state);
     expect(crumbs()[0]).toBe('Learn');
     await answerRight();
+    expect(answerLearnLessonAction).toHaveBeenCalledTimes(1);
     expect(answerLearnLessonAction.mock.calls[0][0]).not.toHaveProperty('plan');
     expect($('[data-setting-back]')).toBeNull();
     expect($('[data-fix-real-issue]')).not.toBeNull();

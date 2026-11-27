@@ -20,9 +20,19 @@ export function planOfAddress(search: string): PlanAddress | null {
   return planQueryOf(new URLSearchParams(search).get(PLAN_QUERY));
 }
 
+/**
+ * How long the lesson's place in the plan is waited for. A right answer waits for it, and one sent without the plan
+ * starts the course, which cannot be undone: so the wait is longer than Interviews' other reads, which only draw.
+ */
+export const LESSON_IN_PLAN_WAIT_MS = 15_000;
+
 /** The lesson inside the person's plan, from their route; null when it is not, and on any failure or past the wait. */
 export async function readLessonInPlan(address: PlanAddress, lesson: LessonPlace): Promise<LessonInPlan | null> {
-  const answer = await readInterviewsKeyWithin(interviewLessonMinePath(address, lesson), 'lesson');
+  const answer = await readInterviewsKeyWithin(
+    interviewLessonMinePath(address, lesson),
+    'lesson',
+    LESSON_IN_PLAN_WAIT_MS,
+  );
   return answer && typeof answer === 'object' ? (answer as LessonInPlan) : null;
 }
 

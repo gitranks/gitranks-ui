@@ -24,7 +24,7 @@ const invalid = <T>(): ContributeActionResult<T> => ({
 
 /** An interview plan's address as a lesson opened from it carries it: two slugs, `<company>/<plan>`. */
 const PLAN = /^[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const PLAN_MAX = 201;
+const PLAN_MAX = 200;
 
 /**
  * A right answer to a lesson's question: the API's own verdict, the person's side as it is now, and what is next.

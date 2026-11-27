@@ -238,8 +238,9 @@ export function LessonLive({
   // A signed-in person without the Learn sign: their answer is saved, and the main button leads to the onboarding. So
   // does a right answer the API saved nothing of: Learn's setup shows where the account's own setup stands.
   const keep = (personal.kind !== 'visitor' && personal.kind !== 'pending' && onboarded === false) || unsaved;
-  // The lesson, through Learn's onboarding: where a visitor's sign-in and "Keep your progress" lead.
-  const throughSetup = learnSetupHrefOf(learnLessonPath(lesson.slug));
+  // The lesson, through Learn's onboarding: where a visitor's sign-in and "Keep your progress" lead. Inside another
+  // setting, back to the lesson in it, so what is answered after the setup goes with the setting.
+  const throughSetup = learnSetupHrefOf(setting?.here ?? learnLessonPath(lesson.slug));
   const calls: LessonCalls = {
     onGraded: ({ picked, right, tries, language }) => {
       if (!right) return;

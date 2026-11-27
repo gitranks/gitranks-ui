@@ -1,8 +1,13 @@
-import { BUILD_PLACEHOLDER_METADATA, BuildPlaceholder } from '@/components/build/build-placeholder';
+import { ProjectsLive } from '@/components/build/projects/projects-live';
+import { loadBuildProjects } from '@/lib/build/projects.data';
+import { BUILD_PROJECTS_METADATA } from '@/lib/build/seo';
 
-/** All projects, until the page is built. */
-export const metadata = BUILD_PLACEHOLDER_METADATA;
+/**
+ * All projects: the same for everyone and prerendered, read from the cached list, which never throws; the person's
+ * place on each card is read in the browser.
+ */
+export const metadata = BUILD_PROJECTS_METADATA;
 
-export default function BuildProjectsPage() {
-  return <BuildPlaceholder title="Projects" />;
+export default async function BuildProjectsPage() {
+  return <ProjectsLive projects={await loadBuildProjects()} />;
 }

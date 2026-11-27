@@ -15,7 +15,13 @@ import { HEADING } from '@/components/workspace/primitives';
 import { useOnboardedPush } from '@/components/workspace/use-onboarded-push';
 import { cn } from '@/lib/utils';
 import { createMcpToken, readAgentConnected, revokeMcpToken } from '@/lib/workspace/actions';
-import { AGENT_HINT_MS, AGENT_POLL_MS, replaceToken, unusedTokenOf } from '@/lib/workspace/agent-connect';
+import {
+  AGENT_HINT_MS,
+  AGENT_POLL_MS,
+  type AgentConnectVariant,
+  replaceToken,
+  unusedTokenOf,
+} from '@/lib/workspace/agent-connect';
 import type { ContributeSource } from '@/lib/workspace/click-tracking';
 import type { ContributeMcpToken } from '@/lib/workspace/contribute.types';
 import { contributeErrorMessage } from '@/lib/workspace/errors';
@@ -113,6 +119,13 @@ export type AgentConnectViewProps = {
   onTokenName?: (name: string) => void;
   /** The agents to pick, in order; VS Code only where a page asks for it. */
   clients?: readonly McpClient[];
+  /**
+   * Embedded, signing in: another page's own words (Build's start flow). Its line over the agent buttons, its
+   * paragraph, no token fold, the agent buttons only until the setup is done, and the late line.
+   */
+  variant?: AgentConnectVariant | null;
+  /** With a variant: long enough without a call that the waiting line says so. */
+  late?: boolean;
 };
 
 /** The proof the page was reached for: its contribution, its prompt and its pull request's number. */
@@ -156,6 +169,8 @@ export function AgentConnectView({
   tokenName,
   onTokenName = () => {},
   clients = MCP_CLIENTS,
+  variant = null,
+  late = false,
 }: AgentConnectViewProps) {
   const tokenNameValue = tokenName ?? mcpTokenNameOf(client, os);
   const id = useId();
@@ -285,10 +300,16 @@ export function AgentConnectView({
   ) : signInSetup ? (
     <div className="flex flex-col gap-3" data-agent-sign-in="setup">
       <p className="max-w-2xl text-sm text-foreground/80">
-        {name} signs in to GitRanks with your GitHub account, and you allow it in your browser. It can see the issues
-        picked for you and take one, hand back changes for your review, and see the issues you took and your pull
-        requests. It can&apos;t open a pull request, push or post on GitHub, or see your Claude key, settings or GitHub
-        access. Disconnect it any time on the Agent tab.
+        {variant ? (
+          variant.about(name)
+        ) : (
+          <>
+            {name} signs in to GitRanks with your GitHub account, and you allow it in your browser. It can see the
+            issues picked for you and take one, hand back changes for your review, and see the issues you took and your
+            pull requests. It can&apos;t open a pull request, push or post on GitHub, or see your Claude key, settings
+            or GitHub access. Disconnect it any time on the Agent tab.
+          </>
+        )}
       </p>
       <p className="text-sm text-muted-foreground">{signInSetup.where}</p>
       <CodeBlock label={signInSetup.label} file={signInSetup.file} copyLabel={`Copy the ${name} setup`}>
@@ -302,33 +323,41 @@ export function AgentConnectView({
       >
         I added it
       </Button>
-      <details className="text-sm" data-token-fold>
-        <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
-          {USE_A_TOKEN_INSTEAD}
-        </summary>
-        <div className="mt-2 flex flex-col items-start gap-3">
-          {full ? null : nameField}
-          <Button type="button" variant="outline" onClick={onCreate} disabled={working || full} className={plainButton}>
-            {working ? 'Creating…' : 'Create a GitRanks token'}
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            {full ? (
-              <>
-                You have {MCP_TOKENS_MAX} live tokens.{' '}
-                <Link href={settingsPathOf('own-agent')} prefetch={false} className="font-semibold text-link">
-                  Revoke one on the Agent tab
-                </Link>{' '}
-                to create another.
-              </>
-            ) : (
-              <>
-                We show its setup here, and list it on the Agent tab by this name. For clients that can&apos;t sign in,
-                and for scripts.
-              </>
-            )}
-          </span>
-        </div>
-      </details>
+      {variant ? null : (
+        <details className="text-sm" data-token-fold>
+          <summary className="flex cursor-pointer items-center text-muted-foreground hover:text-foreground max-sm:min-h-11">
+            {USE_A_TOKEN_INSTEAD}
+          </summary>
+          <div className="mt-2 flex flex-col items-start gap-3">
+            {full ? null : nameField}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCreate}
+              disabled={working || full}
+              className={plainButton}
+            >
+              {working ? 'Creating…' : 'Create a GitRanks token'}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {full ? (
+                <>
+                  You have {MCP_TOKENS_MAX} live tokens.{' '}
+                  <Link href={settingsPathOf('own-agent')} prefetch={false} className="font-semibold text-link">
+                    Revoke one on the Agent tab
+                  </Link>{' '}
+                  to create another.
+                </>
+              ) : (
+                <>
+                  We show its setup here, and list it on the Agent tab by this name. For clients that can&apos;t sign
+                  in, and for scripts.
+                </>
+              )}
+            </span>
+          </div>
+        </details>
+      )}
     </div>
   ) : (
     <div className="flex flex-col items-start gap-3">
@@ -401,21 +430,32 @@ export function AgentConnectView({
     </>
   );
 
+  // With a variant, long without a call: the line says so in its place, and its dot turns to a warning.
+  const lateText =
+    variant && late && signInSetup && !connected ? (
+      <>
+        <span className="font-semibold">{variant.late.title(name)}</span>{' '}
+        <span className="text-muted-foreground">{variant.late.text(client, signInSetup.check)}</span>
+      </>
+    ) : null;
+
   const waitStatus = (
     <div
       role="status"
       aria-live="polite"
       className="flex flex-col gap-2.5 rounded-xl border border-dashed border-primary/40 bg-muted/40 px-4 py-3.5"
+      data-agent-late={lateText ? '' : undefined}
     >
       <div className="flex items-center gap-3.5">
         <span aria-hidden="true" className="relative size-3 flex-none">
           <span
             className={cn(
-              'absolute inset-0 rounded-full bg-primary',
-              !connected && 'motion-safe:animate-contribute-pulse',
+              'absolute inset-0 rounded-full',
+              lateText ? 'bg-warning' : 'bg-primary',
+              !connected && !lateText && 'motion-safe:animate-contribute-pulse',
             )}
           />
-          <span className="absolute inset-0 rounded-full bg-primary" />
+          <span className={cn('absolute inset-0 rounded-full', lateText ? 'bg-warning' : 'bg-primary')} />
         </span>
         {connected ? (
           <span className="text-sm font-semibold">
@@ -426,7 +466,7 @@ export function AgentConnectView({
                 : 'Your agent is connected. Taking you on…'}
           </span>
         ) : (
-          <span className="text-sm">{waitingText}</span>
+          <span className="text-sm">{lateText ?? waitingText}</span>
         )}
       </div>
       {/* The embedded sign-in says how to check it already. */}
@@ -486,7 +526,8 @@ export function AgentConnectView({
     // Inside another page, under its "Connect your agent": the agent, its setup, then the wait for its call.
     return (
       <div className="flex flex-col gap-3.5" data-connect-path="agent" data-connect-mode="embedded">
-        {picker}
+        {variant && !added ? <p className="text-sm text-muted-foreground">{variant.intro}</p> : null}
+        {variant && added ? null : picker}
         <div ref={connectBlock} tabIndex={-1} className="flex flex-col gap-3.5 outline-none" data-agent-stage={stage}>
           {connectBody}
           {errorBlock}
@@ -598,6 +639,7 @@ export function AgentConnect({
   onAdded,
   connectSource,
   withVsCode = false,
+  variant = null,
 }: {
   /** Onboarded already (a key, or another agent): the new token's first use is what the page waits for. */
   onboarded: boolean;
@@ -619,12 +661,17 @@ export function AgentConnect({
   keyLink?: boolean;
   /** Embedded: the agent has called, with the client picked here (our guess: the call does not say which client made it). */
   onConnected?: (client: McpClient) => void;
-  /** "I added it" pressed: the person says GitRanks is in their agent now, before the agent's first call. */
-  onAdded?: () => void;
+  /**
+   * "I added it" pressed: the person says GitRanks is in their agent now, before the agent's first call. With the agent
+   * picked, which the page around may name.
+   */
+  onAdded?: (client: McpClient) => void;
   /** Where the connect is counted from, in place of the click that led here. */
   connectSource?: ContributeSource;
   /** VS Code is one of the agents to pick (the page of one issue, from Learn and Contribute alike). */
   withVsCode?: boolean;
+  /** Embedded, signing in: another page's own words and parts (`AgentConnectViewProps.variant`). */
+  variant?: AgentConnectVariant | null;
 }) {
   const goTo = useOnboardedPush();
   // Mid-setup: the newest token the agent has not called with is the one the user came back to.
@@ -645,6 +692,8 @@ export function AgentConnect({
   const [stage, setStage] = useState<AgentStage>(unused ? 'added' : 'none');
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState(false);
+  // With a variant: long without a call once the setup is done.
+  const [late, setLate] = useState(false);
   const [focus, setFocus] = useState<AgentFocus | null>(null);
   // Live tokens: those listed, and those made or revoked here since.
   const [live, setLive] = useState(personalTokensOf(tokens).length);
@@ -668,7 +717,8 @@ export function AgentConnect({
       setShown(null);
       setConnected(true);
     });
-    if (!proof) reportContributeConnect('agent', connectSource);
+    // Another page's connect (a variant) is not Contribute's: it is not counted there, and leaves its click alone.
+    if (!proof && !variant) reportContributeConnect('agent', connectSource);
     if (embedded) {
       onConnected?.(clientRef.current);
       return;
@@ -682,7 +732,7 @@ export function AgentConnect({
         : (withFlowWayBack(GETTING_IN_PATHS.contributeIssue, flowWayBackHereOf()) as Route),
       { replace: true },
     );
-  }, [goTo, proof, embedded, onboarded, finishSetup, onConnected, connectSource]);
+  }, [goTo, proof, embedded, onboarded, finishSetup, onConnected, connectSource, variant]);
 
   useEffect(() => {
     const detected = mcpOsOf(typeof navigator === 'undefined' ? null : (navigator as NavigatorLike));
@@ -727,6 +777,17 @@ export function AgentConnect({
     const timer = setTimeout(() => setHint(true), AGENT_HINT_MS);
     return () => clearTimeout(timer);
   }, [stage]);
+
+  // With a variant, longer still: the late line, until the setup is shown again.
+  const lateMs = variant?.late.ms ?? null;
+  useEffect(() => {
+    if (stage !== 'added' || lateMs === null) return;
+    const timer = setTimeout(() => setLate(true), lateMs);
+    return () => {
+      clearTimeout(timer);
+      setLate(false);
+    };
+  }, [stage, lateMs]);
 
   const create = () =>
     startTransition(async () => {
@@ -789,7 +850,7 @@ export function AgentConnect({
       onAdded={() => {
         setStage('added');
         moveFocus('hello');
-        onAdded?.();
+        onAdded?.(client);
       }}
       onReopen={() => {
         if (viaSignIn && !shown) {
@@ -819,6 +880,8 @@ export function AgentConnect({
       tokenName={customName ?? tokenName}
       onTokenName={setCustomName}
       clients={withVsCode ? MCP_CLIENTS_WITH_VS_CODE : MCP_CLIENTS}
+      variant={variant}
+      late={late}
     />
   );
 }

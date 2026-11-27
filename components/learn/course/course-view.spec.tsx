@@ -49,10 +49,8 @@ describe("a course's page, not signed in", () => {
     expect(page.querySelectorAll('h1')).toHaveLength(1);
     expect(textOf(page, 'h1')).toBe('Algorithms and data structures');
     expect(page.textContent).toContain('Topic course');
-    expect(page.textContent).toContain('Works in any language');
     expect(page.textContent).toContain('1,240 learners');
-    expect(page.textContent).toContain('94% rate it good');
-    expect(textOf(page, '[data-course-line]')).toBe('86 lessons in 9 groups. Each one takes about two minutes.');
+    expect(textOf(page, '[data-course-line]')).toBe('86 lessons in 9 groups');
   });
 
   it('starts with the first lesson, the check behind signing in, and signing in highlighted', () => {
@@ -80,10 +78,9 @@ describe("a course's page, not signed in", () => {
     expect(foot.querySelector('a')!.getAttribute('href')).toBe('/learn/courses/algorithms.md');
   });
 
-  it('hides learners under 10 and a rating the API does not give', () => {
+  it('hides learners under 10', () => {
     const few = draw({ course: { ...algorithmsCourse, numbers: { learners: 9, goodShare: null } } });
     expect(few.textContent).not.toContain('learners');
-    expect(few.textContent).not.toContain('rate it good');
   });
 });
 
@@ -92,7 +89,7 @@ describe("a course's page, signed in", () => {
     const page = draw({ mine: freshMine });
     expect(litOf(page)).toContain('Next for you');
     expect(boxesOf(page)[1]).toContain('Take the check');
-    expect(textOf(page, '[data-course-line]')).toBe('86 lessons in 9 groups. Each one takes about two minutes.');
+    expect(textOf(page, '[data-course-line]')).toBe('86 lessons in 9 groups');
     const chips = [...page.querySelectorAll('fieldset button')].map((chip) => chip.textContent);
     // No page shows a zero: "Due now" keeps its name alone.
     expect(chips).toEqual(['All86', 'To learn86', 'Due now', 'List', 'Squares']);

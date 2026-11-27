@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 import { ProjectAuthor, ProjectFacts } from './project-course-parts';
 import { CourseBuildDoor } from '@/components/build/doors-gate';
@@ -13,9 +14,8 @@ import {
 import {
   COURSE_KIND_LABELS,
   type CountPart,
-  courseCountLineOf,
+  courseLessonsFactOf,
   courseProgressLineOf,
-  goodShareOf,
   type LearnCourse,
   type LearnCourseMine,
   learnersOf,
@@ -77,10 +77,33 @@ function LanguagePicker({
 }
 
 /**
- * A course's head: the way back, its name, a line saying what kind of course it is with its public numbers (each only
- * when worth showing), what it is about, and a line of counts: the course's own, or the learner's figures in its place.
- * A project course's line names its project with its links instead of its examples' languages, and who wrote it
- * follows what it is about.
+ * The right end of a course's row of facts: the language of its examples. A topic course offers the choice when it
+ * has more than one; a language course names its own. A project course has none here: its line names its project.
+ */
+function examplesLanguageOf(
+  course: LearnCourse,
+  language: string | null,
+  onLanguage: (language: string) => void,
+): ReactNode {
+  if (course.project) return null;
+  if (course.kind === 'TOPIC') {
+    const [only] = course.languages;
+    if (course.languages.length > 1) {
+      return <LanguagePicker languages={course.languages} language={language} onPick={onLanguage} />;
+    }
+    return only ? <span className="whitespace-nowrap">Examples in {languageNameOf(only)}</span> : null;
+  }
+  // A language course has one language, or two that are one language with and without types ("JavaScript and
+  // TypeScript"); each example is in one of them.
+  const examplesIn = course.languages.length ? languageNamesOf(course.languages) : course.name;
+  return <span className="whitespace-nowrap">Examples in {examplesIn} only</span>;
+}
+
+/**
+ * A course's head, short: the way back, its name, what it is about (for a project course, who wrote it), and one row
+ * of facts: the kind, the lessons and groups (or the learner's figures in their place), the learners and the real
+ * issues fixed (each only when worth showing), a project course's links, and the language of the examples at its
+ * right end. How the course is rated is on its card in the list, not here.
  */
 export function CourseHeader({
   course,
@@ -97,84 +120,68 @@ export function CourseHeader({
   projectIssues?: number | null;
 }) {
   const learners = learnersOf(course.numbers);
-  const good = goodShareOf(course.numbers);
   // "N real issues fixed" shows from five, as a link to the course's merged fixes.
   const fixed = courseFixesCountOf(course.numbers.issuesFixed);
   const progress = mine ? courseProgressLineOf(mine, course) : null;
-  // A language course has one language, or two that are one language with and without types ("JavaScript and
-  // TypeScript"); each example is in one of them.
-  const examplesIn = course.languages.length ? languageNamesOf(course.languages) : course.name;
+  const examples = examplesLanguageOf(course, language, onLanguage);
   return (
     <header className="flex flex-col gap-2">
       <Link href={LEARN_COURSES_PATH} className="self-start text-sm font-semibold text-link hover:underline">
         ← All courses
       </Link>
       <h1 className="m-0 text-2xl font-bold tracking-tight text-balance sm:text-3xl">{course.name}</h1>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+      <p className="m-0 max-w-[70ch] text-base text-muted-foreground">{course.about}</p>
+      {course.project ? <ProjectAuthor project={course.project} /> : null}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground" data-course-facts="">
         <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-foreground">
           {COURSE_KIND_LABELS[course.kind]}
         </span>
+        {/* One place for two things: the course's lessons and groups, or the learner's figures and the door to the check. */}
+        <span className={progress ? undefined : 'whitespace-nowrap'} data-course-line={progress ? 'mine' : 'course'}>
+          {progress ? (
+            <>
+              <CountLine parts={progress.parts} />
+              {progress.check ? (
+                <>
+                  {progress.parts.length ? ' · ' : null}
+                  <Link
+                    href={mine && mine.known > 0 ? learnKnownPath(course.slug) : checkPath(course.slug)}
+                    className="font-medium text-link hover:underline"
+                  >
+                    {progress.check}
+                  </Link>
+                </>
+              ) : null}
+            </>
+          ) : (
+            courseLessonsFactOf(course)
+          )}
+        </span>
+        {learners !== null ? (
+          <span className="whitespace-nowrap">
+            <Figure count={learners} /> learners
+          </span>
+        ) : null}
+        {fixed !== null ? (
+          <Link
+            href={courseFixesPathOf(course.slug)}
+            prefetch={false}
+            className="whitespace-nowrap text-link hover:underline"
+            data-course-fixed=""
+          >
+            <Figure count={fixed} /> real issues fixed
+          </Link>
+        ) : null}
         {course.project ? (
           <ProjectFacts project={course.project} slug={course.slug} openIssues={projectIssues} />
-        ) : course.kind === 'TOPIC' ? (
-          <>
-            <span className="whitespace-nowrap">Works in any language</span>
-            {course.languages.length > 1 ? (
-              <LanguagePicker languages={course.languages} language={language} onPick={onLanguage} />
-            ) : null}
-          </>
-        ) : (
-          <span className="whitespace-nowrap">Examples in {examplesIn} only</span>
-        )}
-        {learners !== null || good !== null || fixed !== null ? (
-          <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1">
-            {learners !== null ? (
-              <span className="whitespace-nowrap">
-                <Figure count={learners} /> learners
-              </span>
-            ) : null}
-            {fixed !== null ? (
-              <Link
-                href={courseFixesPathOf(course.slug)}
-                prefetch={false}
-                className="whitespace-nowrap text-link hover:underline"
-                data-course-fixed=""
-              >
-                <Figure count={fixed} /> real issues fixed
-              </Link>
-            ) : null}
-            {good !== null ? (
-              <span className="whitespace-nowrap">
-                <span className="font-mono font-semibold text-foreground tabular-nums">{good}%</span> rate it good
-              </span>
-            ) : null}
+        ) : null}
+        {examples ? (
+          <span className="ml-auto" data-course-examples="">
+            {examples}
           </span>
         ) : null}
       </div>
-      <p className="m-0 max-w-[70ch] text-base text-muted-foreground">{course.about}</p>
-      {course.project ? <ProjectAuthor project={course.project} /> : null}
-      {/* One line in one place: the course's count, or the learner's figures and the door to the check. */}
-      <p className="m-0 text-sm text-muted-foreground" data-course-line={progress ? 'mine' : 'course'}>
-        {progress ? (
-          <>
-            <CountLine parts={progress.parts} />
-            {progress.check ? (
-              <>
-                {progress.parts.length ? ' · ' : null}
-                <Link
-                  href={mine && mine.known > 0 ? learnKnownPath(course.slug) : checkPath(course.slug)}
-                  className="font-medium text-link hover:underline"
-                >
-                  {progress.check}
-                </Link>
-              </>
-            ) : null}
-          </>
-        ) : (
-          courseCountLineOf(course)
-        )}
-      </p>
-      {/* Build's door, under the numbers: only for a person Build is open to, once their browser knows it. */}
+      {/* Build's door, under the row of facts: only for a person Build is open to, once their browser knows it. */}
       <CourseBuildDoor course={course.slug} />
     </header>
   );

@@ -17,6 +17,7 @@ import {
   coursesMine,
   coursesMineAllLearned,
   coursesMineChecked,
+  djangoCourse,
   doneMine,
   donePausedMine,
   freshMine,
@@ -137,11 +138,11 @@ export const LEARN_COURSE_SCREEN: Screen = {
       id: 'states',
       title: 'Every state, one under the other',
       path: COURSE_PATH,
-      height: 20200,
+      height: 22600,
       render: () => (
         <Board
           title="A course, in every state"
-          intro="One page for a visitor and for a learner. A learner's own side changes the line under the title, the three boxes and the squares in place; the lessons, their groups and the footer are the same for everyone."
+          intro="One page for a visitor and for a learner. A short head: the name, what the course is about and one row of facts. A learner's own side changes the lessons count in that row, the three boxes and the squares in place; the lessons, their groups and the footer are the same for everyone."
         >
           <Frame title="1 · Not signed in: the course, the first lesson, the check behind signing in" height={1500}>
             <Course bar={visitor} />
@@ -227,6 +228,27 @@ export const LEARN_COURSE_SCREEN: Screen = {
             <Site bar={visitor}>
               <CourseGoneView text={LEARN_MISSING_TEXT} state="missing" />
             </Site>
+          </Frame>
+          <Frame
+            title="22 · No learners and no real issues fixed yet: the row keeps the kind, the lessons and the language"
+            height={760}
+          >
+            <Course
+              course={{ ...algorithmsCourse, numbers: { learners: null, goodShare: null, issuesFixed: null } }}
+              bar={visitor}
+            />
+          </Frame>
+          <Frame title="23 · Real issues fixed with the course: the count links to them" height={760}>
+            <Course
+              course={{ ...algorithmsCourse, numbers: { ...algorithmsCourse.numbers, issuesFixed: 212 } }}
+              bar={visitor}
+            />
+          </Frame>
+          <Frame
+            title="24 · A repository course: who wrote it under what it is about, then the row with the project's links"
+            height={760}
+          >
+            <Course course={djangoCourse} others={[]} projectIssues={9} bar={visitor} />
           </Frame>
         </Board>
       ),

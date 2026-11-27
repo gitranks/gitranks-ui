@@ -152,7 +152,17 @@ const KIND_WORDS: Record<LearnCourseKind, string> = {
   ORG: 'org organisation project',
 };
 
-/** "86 lessons in 9 groups. Each one takes about two minutes." */
+/**
+ * The lessons and groups in a course's row of facts: "86 lessons in 9 groups", or "104 lessons" when the course has
+ * one group (a group's count says nothing then).
+ */
+export function courseLessonsFactOf(course: Pick<LearnCourse, 'lessons' | 'groups'>): string {
+  const groups = course.groups.length;
+  const lessons = lessonsWords(course.lessons);
+  return groups > 1 ? `${lessons} in ${countWords(groups)} groups` : lessons;
+}
+
+/** The Markdown copy's count: "86 lessons in 9 groups. Each one takes about two minutes." */
 export function courseCountLineOf(course: Pick<LearnCourse, 'lessons' | 'groups'>): string {
   const groups = course.groups.length;
   return `${lessonsWords(course.lessons)} in ${countWords(groups)} ${groups === 1 ? 'group' : 'groups'}. Each one takes about two minutes.`;

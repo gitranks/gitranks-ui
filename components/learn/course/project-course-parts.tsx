@@ -23,8 +23,8 @@ import {
 const LINK = 'whitespace-nowrap text-link hover:underline';
 
 /**
- * The line of facts after the chip: the project's language, then its links: on GitHub, on GitRanks (only when GitRanks
- * has its page) and its open issues (only with a count).
+ * The project's part of the course's row of facts, after the course's own numbers: the project's language, then its
+ * links: on GitHub, on GitRanks (only when GitRanks has its page) and its open issues (only with a count).
  */
 export function ProjectFacts({
   project,

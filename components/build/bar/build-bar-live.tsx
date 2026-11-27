@@ -9,6 +9,12 @@ import { BUILD_BAR_MINE_PATH } from '@/lib/build/paths';
 import type { BuildBar as BuildBarRead } from '@/lib/build/types';
 import { hasSessionHint } from '@/lib/session-hint';
 
+/** The event a page sends when it changed what the bar shows (a build removed): the bar reads itself again. */
+export const BUILD_BAR_CHANGED_EVENT = 'build:bar-changed';
+
+/** Asks Build's bar on this page to read the person's bar again. */
+export const askBuildBarAgain = () => window.dispatchEvent(new Event(BUILD_BAR_CHANGED_EVENT));
+
 /** The person's bar as the API answers it; none on any failure. */
 export async function readBuildBar(): Promise<BuildBarRead | null> {
   try {
@@ -30,7 +36,13 @@ export async function readBuildBar(): Promise<BuildBarRead | null> {
 export function BuildBarLive({ from = null }: { from?: string | null }) {
   const pathname = usePathname();
   const [view, setView] = useState<BuildBarView>(VISITOR_BUILD_BAR);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: each move to another page reads the bar again.
+  const [changed, setChanged] = useState(0);
+  useEffect(() => {
+    const again = () => setChanged((count) => count + 1);
+    window.addEventListener(BUILD_BAR_CHANGED_EVENT, again);
+    return () => window.removeEventListener(BUILD_BAR_CHANGED_EVENT, again);
+  }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each move to another page, and each change a page tells of, reads the bar again.
   useEffect(() => {
     if (!hasSessionHint(document.cookie)) return;
     let live = true;
@@ -40,6 +52,6 @@ export function BuildBarLive({ from = null }: { from?: string | null }) {
     return () => {
       live = false;
     };
-  }, [pathname]);
+  }, [pathname, changed]);
   return <BuildBar view={view} place={buildBarPlaceOf(pathname, from)} />;
 }

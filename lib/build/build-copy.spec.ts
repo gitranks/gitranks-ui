@@ -21,7 +21,12 @@ function filesOf(folder: string): string[] {
   });
 }
 
-const files = BUILD_FOLDERS.flatMap(filesOf)
+/** Build's screens in the design catalogue: `design/screens/build*.tsx`. */
+const BUILD_SCREENS = readdirSync(join(ROOT, 'design/screens'))
+  .filter((name) => /^build.*\.tsx$/.test(name))
+  .map((name) => join('design/screens', name));
+
+const files = [...BUILD_FOLDERS.flatMap(filesOf), ...BUILD_SCREENS]
   .map((file) => relative(ROOT, join(ROOT, file)).replaceAll('\\', '/'))
   .filter((file) => file !== THIS_FILE);
 

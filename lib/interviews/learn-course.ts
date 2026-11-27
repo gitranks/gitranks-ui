@@ -97,6 +97,15 @@ export function courseInterviewsOf(answer: InterviewsForCourse | null | undefine
   return { companies, groups, own };
 }
 
+/**
+ * What a lesson's page needs of one course's answer: its group's entry alone, so the page carries nothing else.
+ */
+export function forCourseGroupOf(answer: InterviewsForCourse | null, group: string): InterviewsForCourse | null {
+  if (!answer || !Array.isArray(answer.groups)) return null;
+  const groups = answer.groups.filter((entry) => entry?.group === group);
+  return groups.length ? { companies: [], groups, own: null } : null;
+}
+
 /** The row of the plan to go on with, on Learn home and My progress. */
 export type LearnPlanRow = {
   company: InterviewCompanyRef;
@@ -104,7 +113,10 @@ export type LearnPlanRow = {
   title: string;
   /** "Round 3 of 5" or "Round 2 of 5 is done"; empty when the read names no round. */
   round: string;
-  /** What comes next, in the row's strong words: "Graphs, 11 lessons", or the next round "System design, round 4". */
+  /**
+   * What comes next, in the row's strong words: "Graphs, 11 lessons", "Build a rate limiter, a project", or the next
+   * round "System design, round 4".
+   */
   next: string;
   /** The next thing: its first lesson inside the plan, else the plan. */
   href: string;
@@ -135,9 +147,11 @@ export function learnPlanRowOf(home: InterviewsMyHome | null | undefined): Learn
       ? `Round ${row.here} of ${rounds}`
       : '';
   const lessons = row.next.lessons > 0 ? `${row.next.lessons} ${row.next.lessons === 1 ? 'lesson' : 'lessons'}` : '';
+  // A project (its key `project/<slug>`) is named as one; a group of lessons with its count.
+  const item = row.next.item?.startsWith('project/') ? 'a project' : lessons;
   const next = justDone
     ? [row.next.roundName, row.here ? `round ${row.here}` : ''].filter(Boolean).join(', ')
-    : [row.next.itemName, lessons].filter(Boolean).join(', ');
+    : [row.next.itemName, item].filter(Boolean).join(', ');
   const others = plans.length - 1;
   return {
     company,

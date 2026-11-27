@@ -2,7 +2,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { LessonView, type LessonViewProps } from './lesson-view';
+import { LessonPlayer } from './lesson-player';
+import { LessonView, type LessonViewProps, lessonPartsOf } from './lesson-view';
+import { LessonInterviewsNote } from '@/components/interviews/learn-gate/course-gate';
 import {
   LESSON_NOW,
   mineLearned,
@@ -54,5 +56,33 @@ describe("a lesson's page without Interviews' part", () => {
   it("is today's page, for a visitor and a learner", async () => {
     const pages = PAGES.map(([name, props]) => `<!-- ${name} -->\n${markupOf(props)}\n`);
     await expect(pages.join('\n')).toMatchFileSnapshot('./__snapshots__/lesson-view-today.html');
+  });
+});
+
+describe("the lesson page's own path while Interviews is closed", () => {
+  it("draws the lesson as the view does, the sentence's place empty", () => {
+    const links = { markdown: '/learn/lessons/find-duplicates-with-a-set.md', report: 'mailto:hello@gitranks.com' };
+    const examples = [{ name: 'main', codes: setExampleCodes }];
+    // As the lesson's route puts it together: its parts, the article ending with the sentence about its group.
+    const parts = lessonPartsOf({
+      lesson: setLesson,
+      examples,
+      group: setGroup,
+      links,
+      articleEnd: <LessonInterviewsNote course={setLesson.course.slug} group={setLesson.group.slug} />,
+    });
+    const page = renderToStaticMarkup(
+      <LessonPlayer
+        lesson={setLesson}
+        group={setGroup}
+        {...parts}
+        viewer={null}
+        calls={calls}
+        hints={false}
+        now={LESSON_NOW}
+        timeZone="UTC"
+      />,
+    );
+    expect(page).toBe(markupOf({}));
   });
 });

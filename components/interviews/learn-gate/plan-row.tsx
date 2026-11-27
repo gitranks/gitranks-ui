@@ -29,22 +29,39 @@ export type ServedLearnPlans = InterviewsMyHome | null;
  * closed to, with no plan, and with every round done.
  */
 export function useLearnPlanRow(served?: ServedLearnPlans): LearnPlanRow | null {
-  const [read, setRead] = useState<LearnPlanRow | null>(null);
+  return useLearnPlanRowRead(served).row;
+}
+
+/**
+ * The row and whether it is known yet (`settled`): at once when served, with no session, or once Interviews is closed
+ * to the person or their plans are read (each read within its wait). A page drawn in the browser waits for it, so the
+ * row comes with the page and nothing under it moves.
+ */
+export function useLearnPlanRowRead(served?: ServedLearnPlans): { row: LearnPlanRow | null; settled: boolean } {
+  const [read, setRead] = useState<{ row: LearnPlanRow | null; settled: boolean }>({ row: null, settled: false });
   const serving = served !== undefined;
   useEffect(() => {
-    if (serving || !hasSessionHint(document.cookie)) return;
+    if (serving) return;
+    if (!hasSessionHint(document.cookie)) {
+      setRead({ row: null, settled: true });
+      return;
+    }
     let live = true;
     void interviewsOpenForDocument().then(async (open) => {
-      if (!open || !live) return;
+      if (!live) return;
+      if (!open) {
+        setRead({ row: null, settled: true });
+        return;
+      }
       const home = await readInterviewsKeyWithin(INTERVIEWS_MY_HOME_MINE_PATH, 'home');
-      if (live) setRead(learnPlanRowOf(home as InterviewsMyHome | null));
+      if (live) setRead({ row: learnPlanRowOf(home as InterviewsMyHome | null), settled: true });
     });
     return () => {
       live = false;
     };
   }, [serving]);
   const fromServer = useMemo(() => (serving ? learnPlanRowOf(served) : null), [serving, served]);
-  return serving ? fromServer : read;
+  return serving ? { row: fromServer, settled: true } : read;
 }
 
 /** The row, drawn: the plan's logo and name, where the person stands and what is next, then the other plans. */

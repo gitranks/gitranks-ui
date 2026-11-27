@@ -5,6 +5,7 @@ import { LessonInPlanProvider } from '@/components/interviews/lesson/lesson-in-p
 import { LessonScreen } from '@/components/learn/lesson/lesson-screen';
 import { INTERVIEWS_OPEN_TO_EVERYONE } from '@/lib/interviews/interviews-parts';
 import { loadInterviewsForCourse } from '@/lib/interviews/learn.data';
+import { forCourseGroupOf } from '@/lib/interviews/learn-course';
 import { COURSE_NOT_READ, withInterviewsSectionNoindex } from '@/lib/interviews/learn-noindex';
 import { loadLearnCourse } from '@/lib/learn/course.data';
 import { loadLearnLessonPage } from '@/lib/learn/lesson-page.data';
@@ -48,8 +49,11 @@ export default async function LessonPage({ params, searchParams }: PageProps<'/l
   const ours = await loadLearnLessonPage(slug);
   if (!ours) notFound();
   const { lesson, group } = ours;
-  // The public loader never throws: a failed read is an empty answer, and the lesson has no sentence.
-  const interviews = INTERVIEWS_OPEN_TO_EVERYONE ? await loadInterviewsForCourse(lesson.course.slug) : undefined;
+  // The public loader never throws: a failed read is an empty answer, and the lesson has no sentence. Only the lesson's
+  // group goes to the browser.
+  const interviews = INTERVIEWS_OPEN_TO_EVERYONE
+    ? forCourseGroupOf(await loadInterviewsForCourse(lesson.course.slug), lesson.group.slug)
+    : undefined;
   return (
     <LessonInPlanProvider
       lesson={{ slug: lesson.slug, course: lesson.course.slug, group: lesson.group.slug }}
@@ -59,7 +63,7 @@ export default async function LessonPage({ params, searchParams }: PageProps<'/l
         page={ours}
         openFact={query.fact !== undefined}
         fixes={fixes}
-        {...(interviews ? { interviews } : {})}
+        {...(interviews !== undefined ? { interviews } : {})}
       />
     </LessonInPlanProvider>
   );

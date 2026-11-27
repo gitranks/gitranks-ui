@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
+vi.mock('@/lib/learn/course.actions', () => ({ sendLearnCourseFeedbackAction: vi.fn() }));
+
+import { CourseLive } from './course-live';
 import { CourseView, type CourseViewProps } from './course-view';
 import { interviewSkillsCard } from '@/components/interviews/learn-gate/__fixtures__/courses';
 import {
@@ -59,5 +63,13 @@ describe("a course's page without Interviews' part", () => {
   it("is today's page, for a visitor and a learner, for each kind of course", async () => {
     const pages = PAGES.map(([name, props]) => `<!-- ${name} -->\n${markupOf(props)}\n`);
     await expect(pages.join('\n')).toMatchFileSnapshot('./__snapshots__/course-view-today.html');
+  });
+});
+
+describe("the course page's own path while Interviews is closed", () => {
+  it('draws the page as the view does before the person is known', () => {
+    expect(renderToStaticMarkup(<CourseLive course={algorithmsCourse} others={otherCourses} />)).toBe(
+      markupOf({ person: 'pending', hints: undefined }),
+    );
   });
 });

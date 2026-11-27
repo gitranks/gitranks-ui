@@ -69,6 +69,20 @@ describe('My progress with an interview plan', () => {
     expect(paths()).toContain('/api/me/interviews/home');
   });
 
+  it('shows the page only once the plans are known, so the row comes with it', async () => {
+    hint.present = true;
+    let answer: (response: Response) => void = () => {};
+    fetchMock.mockImplementation((path: string) => {
+      if (path === '/api/me/interviews/open') return Promise.resolve(Response.json({ open: true }));
+      if (path === '/api/me/interviews/home') return new Promise<Response>((resolve) => (answer = resolve));
+      return Promise.resolve(Response.json({ progress: myProgress, signedOut: false }));
+    });
+    await draw();
+    expect(host.querySelector('[data-my-progress="pending"]')).not.toBeNull();
+    await act(async () => answer(Response.json({ home: myHomeTwo })));
+    expect(host.querySelector('main')!.firstElementChild!.hasAttribute('data-plan-row')).toBe(true);
+  });
+
   it('has no row with no plan to go on with, or while Interviews is closed to the person', async () => {
     hint.present = true;
     routes(true, myHomeNone);

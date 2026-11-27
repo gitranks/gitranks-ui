@@ -9,6 +9,7 @@ import {
   askedAtHrefOf,
   askedAtOf,
   courseInterviewsOf,
+  forCourseGroupOf,
   learnPlanRowOf,
   namedCompaniesOf,
   topicSentenceOf,
@@ -153,6 +154,11 @@ describe('the row of the plan to go on with', () => {
     );
   });
 
+  it('names a project as one', () => {
+    const project = { ...seniorRow.next!, item: 'project/rate-limiter', itemName: 'Build a rate limiter', lessons: 4 };
+    expect(learnPlanRowOf({ plans: [{ ...seniorRow, next: project }] })!.next).toBe('Build a rate limiter, a project');
+  });
+
   it('opens the plan when the next part names no lesson', () => {
     expect(learnPlanRowOf({ plans: [{ ...seniorRow, next: { ...seniorRow.next!, lesson: null } }] })!.href).toBe(
       '/interviews/northwind/senior-software-engineer',
@@ -176,5 +182,17 @@ describe('the row of the plan to go on with', () => {
     expect(learnPlanRowOf({ plans: [longNameRow] })!.title).toBe(
       'Northwind · Site reliability engineer, mid level and senior, all teams and all offices',
     );
+  });
+});
+
+describe("what a lesson's page carries of the course's answer", () => {
+  it("is its group's entry alone, and nothing when its group has none", () => {
+    expect(forCourseGroupOf(forAlgorithmsCourse, 'graphs')).toEqual({
+      companies: [],
+      groups: [forAlgorithmsCourse.groups.find((entry) => entry.group === 'graphs')],
+      own: null,
+    });
+    expect(forCourseGroupOf(forAlgorithmsCourse, 'linked-lists')).toBeNull();
+    expect(forCourseGroupOf(null, 'graphs')).toBeNull();
   });
 });

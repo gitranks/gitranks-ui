@@ -11,6 +11,8 @@ export const INTERVIEWS_HOME_PATH = '/interviews' as Route;
 export const INTERVIEWS_MINE_PATH = '/interviews/mine' as Route;
 /** "How it works": the same page for everyone. */
 export const INTERVIEWS_ABOUT_PATH = '/interviews/about' as Route;
+/** "How we research": the part of How it works on where the facts come from. */
+export const INTERVIEWS_RESEARCH_PATH = `${INTERVIEWS_ABOUT_PATH}#how-we-research` as Route;
 
 /** The sizes of a company's logo file the site serves: 64 px up to a 20 px logo, 128 px above. */
 export const INTERVIEW_LOGO_SIZES = [64, 128] as const;
@@ -95,3 +97,15 @@ export function isInterviewsTag(tag: string): boolean {
  * included), and the home's Markdown copy, `/interviews.md`. The proxy's gate closes them all.
  */
 export const isInterviewsPath = (pathname: string): boolean => /^\/interviews(?:\/|\.md$|$)/.test(pathname);
+
+/*
+ * A company's page: the person's plans in progress, and where its last rows lead outside Interviews.
+ */
+
+/** The signed-in person's plans in progress, the one worked on last first (a company's page, Interviews home). */
+export const INTERVIEWS_MY_HOME_MINE_PATH = '/api/me/interviews/home';
+/** Learn's Courses with a company's name typed in its search: the courses that company's plans use. */
+export const interviewCoursesSearchPath = (company: string) =>
+  `/learn/courses?q=${encodeURIComponent(company)}` as Route;
+/** An organisation's page on GitRanks: its public repositories, ranked. */
+export const interviewOrgPath = (org: string) => `/org/${encodeURIComponent(org)}` as Route;

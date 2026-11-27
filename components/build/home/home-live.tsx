@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { HomeView } from './home-view';
-import { TimeZoneNote } from '@/components/workspace/time-zone-note';
 import { type BuildHomeSide, HOME_READ_WAIT_MS, hasBuildOf, homeViewOf } from '@/lib/build/home';
 import {
   BUILD_HOME_MINE_PATH,
@@ -85,11 +84,6 @@ export function HomeLive({ projects }: { projects: readonly BuildProjectCard[] }
   }, []);
 
   const view = useMemo(() => homeViewOf(side, projects), [side, projects]);
-  return (
-    <>
-      <HomeView view={view} projects={projects} now={now} zone={side?.zone} reading={reading} />
-      {/* Once the person's home is read, their device's time zone is sent, as on Learn's pages. */}
-      {side?.home ? <TimeZoneNote /> : null}
-    </>
-  );
+  // The browser's zone was saved before the reads (`zoneSent`), so no note sends it again.
+  return <HomeView view={view} projects={projects} now={now} zone={side?.zone} reading={reading} />;
 }

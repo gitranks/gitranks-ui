@@ -12,7 +12,7 @@ import {
   isBuildLanguage,
   isBuildTestKind,
 } from './types';
-import { dayKeyIn } from './zone';
+import { dayKeyIn, MONTH_WORDS } from './zone';
 import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
@@ -91,7 +91,6 @@ export type MineView = {
   built: MineBuiltRow[];
 };
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** The day a moment falls on in a time zone (the browser's own when none is named), as `YYYY-MM-DD`; null if unread. */
@@ -107,7 +106,7 @@ const utcOf = (key: string): number | null => {
 export function shortDayOf(key: string, todayKey: string | null): string | null {
   const match = DAY_KEY.exec(key);
   if (!match) return null;
-  const month = MONTHS[Number(match[2]) - 1];
+  const month = MONTH_WORDS[Number(match[2]) - 1];
   if (!month) return null;
   const day = `${Number(match[3])} ${month}`;
   return todayKey && todayKey.slice(0, 4) !== match[1] ? `${day} ${match[1]}` : day;
@@ -279,9 +278,13 @@ export function mineViewOf(
     };
   });
 
-  // A built project with an optional part in hand is in progress too: its row says the part's step. Its test, when one
-  // waits, is at the top; the part goes on in the agent all the same.
-  const inPart = list.built.filter((build) => build.state.kind === 'built' && build.partStep);
+  // A build with an optional part in hand is in progress too, built or with its test left: its row says the part's
+  // step. Its test, when one waits, is at the top; the part goes on in the agent all the same. A built one the API
+  // lists in progress already is not added twice.
+  const listed = new Set(list.inProgress.map((build) => build.build));
+  const inPart = list.built.filter(
+    (build) => build.state.kind === 'built' && build.partStep && !listed.has(build.build),
+  );
   const going = inPart.length
     ? [...list.inProgress, ...inPart].sort((a, b) => momentOf(b.lastStepAt) - momentOf(a.lastStepAt))
     : list.inProgress;
@@ -289,7 +292,7 @@ export function mineViewOf(
     const place =
       build.state.kind === 'in_progress' && !waiting.has(build.build)
         ? { step: build.state.step, of: build.state.of, part: false }
-        : build.state.kind === 'built' && build.partStep
+        : build.state.kind !== 'in_progress' && build.partStep
           ? { step: build.partStep.step, of: build.partStep.of, part: true }
           : null;
     if (!place) return [];

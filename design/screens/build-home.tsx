@@ -16,6 +16,7 @@ import {
   sideAgentConnected,
   sideAllBuilt,
   sideBuilder,
+  sideBuiltInPart,
   sideGoldOpen,
   sideNothingWaits,
   sideTestFailed,
@@ -147,9 +148,9 @@ export const BUILD_HOME_SCREEN: Screen = {
     {
       id: 'cases',
       title:
-        'The other cases: an agent connected, the gold test open, nothing waits, everything built, many projects, a test in progress, a failed test',
+        'The other cases: an agent connected, the gold test open, nothing waits, everything built, many projects, a test in progress, a failed test, an optional part in progress',
       path: '/build',
-      height: 3900,
+      height: 4300,
       render: () => (
         <Cases
           title="Build home: the other cases"
@@ -205,6 +206,18 @@ export const BUILD_HOME_SCREEN: Screen = {
           >
             <div className="h-[330px] overflow-hidden">
               <HomeView view={homeViewOf(sideTestFailed, buildProjectsFew)} projects={buildProjectsFew} now={NOW} />
+            </div>
+          </Frame>
+          <Frame
+            title="9 · Every project built, and an optional part in progress"
+            note="The part is the build to go on with: its step, the next one, and the sentence to say."
+          >
+            <div className="h-[330px] overflow-hidden">
+              <HomeView
+                view={homeViewOf(sideBuiltInPart, buildProjectsFew.slice(0, 1))}
+                projects={buildProjectsFew.slice(0, 1)}
+                now={NOW}
+              />
             </div>
           </Frame>
         </Cases>

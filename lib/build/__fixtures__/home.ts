@@ -3,6 +3,7 @@ import type { BuildMine, BuildProjectCard, BuildWaitingTest } from '../types';
 import {
   buildGoldEarned,
   buildGoldOpen,
+  buildInPart,
   buildInProgress,
   buildPythonSecond,
   buildTestLeft,
@@ -258,6 +259,13 @@ export const sideAllBuilt: BuildHomeSide = {
 export const sideBuilderAlone: BuildHomeSide = {
   home: { builds: [buildInProgress], tests: [], next: [] },
   builds: [buildInProgress],
+  agentConnected: null,
+};
+
+/** Every project there is built, the first one now on step 3 of 6 of its optional part: the part is what to go on with. */
+export const sideBuiltInPart: BuildHomeSide = {
+  home: { builds: [], tests: [], next: [] },
+  builds: [buildInPart],
   agentConnected: null,
 };
 

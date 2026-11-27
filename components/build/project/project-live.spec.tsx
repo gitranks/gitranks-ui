@@ -21,7 +21,8 @@ vi.mock('next/link', () => ({
 }));
 const hint = vi.hoisted(() => ({ present: false }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
-// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone.
+// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone,
+// which these pages no longer draw (the zone is saved before their reads).
 // The save of the browser's zone, when it is new, which the reads wait for: settled at once unless a test holds it.
 const zoneRead = vi.hoisted(() => ({ value: 'UTC' as string | undefined }));
 const zoneSave = vi.hoisted(() => ({ held: null as Promise<void> | null }));
@@ -124,8 +125,8 @@ describe("a project's page in the browser", () => {
     expect(boxKind()).toBe('in_progress');
     expect(host.querySelectorAll('[data-mark="done"]')).toHaveLength(8);
     expect(host.querySelector('[data-project-have]')).toBeNull();
-    // Once the side is read, the browser's zone is sent, as on Learn's pages; never for a visitor.
-    expect(host.querySelector('[data-time-zone-note]')).not.toBeNull();
+    // The browser's zone was saved before the reads: no note sends it again.
+    expect(host.querySelector('[data-time-zone-note]')).toBeNull();
   });
 
   it("reads the person's side only once a new zone of the browser is saved, so the first page's days are in it", async () => {

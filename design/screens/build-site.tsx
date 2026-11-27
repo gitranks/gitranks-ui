@@ -10,6 +10,7 @@ import type { MenuSection } from '@/components/header/components/main-menu';
 import { Header } from '@/components/header/header';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/components/ui/navigation-menu';
 import {
+  buildInPart,
   buildInProgress,
   keyValueDatabaseEndTest,
   keyValueDatabaseInProgress,
@@ -186,13 +187,14 @@ export const BUILD_SITE_SCREENS: Screen[] = [
         id: 'build-card',
         title: "What Build's card says to someone with a build, the first that is true",
         path: '/',
-        height: 1600,
+        height: 1900,
         render: () => (
           <main>
             {block(side({ tests: [keyValueDatabaseEndTest] }), null, 'grow-test')}
             {block(side({ tests: [webServerGoldTest] }), null, 'grow-gold')}
             {block(side({ builds: [buildInProgress] }), null, 'grow-one')}
             {block(side({ builds: [buildInProgress, keyValueDatabaseInProgress] }), null, 'grow-several')}
+            {block({ home: home({}), builds: [buildInPart], hasBuild: true }, null, 'grow-part')}
             {block({ ...sideNothingWaits, hasBuild: true }, null, 'grow-built')}
           </main>
         ),

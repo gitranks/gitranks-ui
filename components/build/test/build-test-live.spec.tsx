@@ -7,7 +7,8 @@ const { hint, signIn } = vi.hoisted(() => ({ hint: { present: true }, signIn: vi
 vi.mock('next-auth/react', () => ({ signIn }));
 // The session's hint cookie, as the browser holds it.
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
-// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone.
+// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone,
+// which these pages no longer draw (the zone is saved before their reads).
 const zoneRead = vi.hoisted(() => ({ value: 'UTC' as string | undefined }));
 vi.mock('@/lib/build/zone-live', () => ({ readBuildZone: async () => zoneRead.value, zoneSent: async () => {} }));
 vi.mock('@/components/workspace/time-zone-note', () => ({ TimeZoneNote: () => <span data-time-zone-note="" /> }));
@@ -318,11 +319,11 @@ describe('the result', () => {
     expect(host.querySelectorAll('[data-test-answer] pre')).toHaveLength(1);
   });
 
-  it('draws the code of an answer again on a reload, and sends the browser zone once the test is read', async () => {
+  it('draws the code of an answer again on a reload, with no note: the zone was saved before the read', async () => {
     reads(endTestFailedCode);
     await draw();
     expect($('[data-test-answer="7"] pre[data-code-language="typescript"]')).not.toBeNull();
-    expect($('[data-time-zone-note]')).not.toBeNull();
+    expect($('[data-time-zone-note]')).toBeNull();
   });
 
   it('shows again on a reload: the score, what comes now, then the answers', async () => {

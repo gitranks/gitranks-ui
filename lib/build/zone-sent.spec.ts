@@ -9,7 +9,7 @@ vi.mock('@/lib/workspace/email-settings', async (original) => ({
 const { setContributeEmailSettings } = vi.hoisted(() => ({ setContributeEmailSettings: vi.fn() }));
 vi.mock('@/lib/workspace/actions', () => ({ setContributeEmailSettings }));
 
-const { zoneSent } = await import('./zone-live');
+const { forgetZoneTried, zoneSent } = await import('./zone-live');
 
 const SENT = 'gitranks:time-zone-sent';
 
@@ -27,6 +27,7 @@ function heldSave() {
 beforeEach(() => {
   setContributeEmailSettings.mockReset();
   window.localStorage.clear();
+  forgetZoneTried();
   browser.zone = 'Europe/Berlin';
 });
 
@@ -65,15 +66,27 @@ describe("the browser's zone, saved before a page of Build reads the person's si
     expect(window.localStorage.getItem(SENT)).toBe('Europe/Berlin');
   });
 
-  it('lets the page read when the save fails, and tries again the next time', async () => {
+  it('lets the page read when the save fails or is refused, and sends it again only on the next visit', async () => {
     setContributeEmailSettings.mockRejectedValueOnce(new Error('network'));
     await zoneSent();
     expect(window.localStorage.getItem(SENT)).toBeNull();
+    setContributeEmailSettings.mockResolvedValueOnce({ ok: false, error: 'SIGNED_OUT' });
+    await zoneSent();
+    expect(setContributeEmailSettings).toHaveBeenCalledTimes(1);
+
+    // The next visit: a refusal such as signed out is answered, and not kept either.
+    forgetZoneTried();
+    await zoneSent();
+    expect(setContributeEmailSettings).toHaveBeenCalledTimes(2);
+    expect(window.localStorage.getItem(SENT)).toBeNull();
+    await zoneSent();
+    expect(setContributeEmailSettings).toHaveBeenCalledTimes(2);
+
+    // A zone the API does not know is kept as sent, and never sent again.
+    forgetZoneTried();
     setContributeEmailSettings.mockResolvedValueOnce({ ok: false, error: 'INVALID' });
     await zoneSent();
-    // A zone the API refused is not sent again.
     expect(window.localStorage.getItem(SENT)).toBe('Europe/Berlin');
-    expect(setContributeEmailSettings).toHaveBeenCalledTimes(2);
   });
 
   it('does not hold the page past its wait when the save is slow', async () => {

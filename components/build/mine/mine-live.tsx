@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { MINE_MAIN_CLASS, MineBody, MineHead, MineMessage, MinePending, type RemoveOutcome } from './mine-parts';
 import { askBuildBarAgain } from '@/components/build/bar/build-bar-live';
 import { Button } from '@/components/ui/button';
-import { TimeZoneNote } from '@/components/workspace/time-zone-note';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { BuildActionResult } from '@/lib/build/build-action';
 import { mineListOf, mineViewOf, withoutBuild } from '@/lib/build/mine';
@@ -187,8 +186,6 @@ export function BuildMineLive() {
           onRemove={remove}
         />
       )}
-      {/* Once the person's builds are read, their device's time zone is sent, as on Learn's pages. */}
-      {page.kind === 'ready' ? <TimeZoneNote /> : null}
     </main>
   );
 }

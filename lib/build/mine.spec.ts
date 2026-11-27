@@ -27,6 +27,7 @@ import {
   squaresOf,
   withoutBuild,
 } from './mine';
+import { dayWordsIn } from './zone';
 
 const viewOf = (list: Parameters<typeof mineViewOf>[0]) => mineViewOf(list, MINE_NOW, 'UTC');
 
@@ -196,6 +197,32 @@ describe('My builds: the lists', () => {
     ]);
     expect(view.inProgress[0].squares).toEqual(['done', 'done', 'current', 'to_come', 'to_come', 'to_come']);
     expect(view.built.map((row) => row.build)).toEqual([buildInPart.build]);
+  });
+
+  it('draws a built project with a part once when the API lists it in progress too', () => {
+    const view = viewOf({ tests: [], inProgress: [buildInPart], built: [buildInPart] });
+    expect(view.inProgress.map((row) => [row.build, row.part])).toEqual([[buildInPart.build, true]]);
+    expect(view.built.map((row) => row.build)).toEqual([buildInPart.build]);
+  });
+
+  it('gives a part in progress its row when the end test is left, the test at the top', () => {
+    const testLeftInPart = { ...buildTestLeft, partStep: buildInPart.partStep };
+    const view = viewOf({
+      tests: [{ ...keyValueDatabaseEndTest, build: testLeftInPart.build }],
+      inProgress: [testLeftInPart],
+      built: [],
+    });
+    expect(view.tests.map((row) => row.build)).toEqual([testLeftInPart.build]);
+    expect(view.inProgress.map((row) => [row.build, row.part, row.step, row.of])).toEqual([
+      [testLeftInPart.build, true, 3, 6],
+    ]);
+  });
+
+  it('writes every month as the rest of Build does, September as "Sep"', () => {
+    const started = { ...mineMcpFirstStep, lastStepAt: '2026-09-03T10:00:00.000Z' };
+    const view = mineViewOf({ tests: [], inProgress: [started], built: [] }, MINE_NOW, 'UTC');
+    expect(view.inProgress[0].lastStep).toBe('3 Sep');
+    expect(dayWordsIn('2026-09-03T10:00:00.000Z', 'UTC')).toBe('3 Sep');
   });
 
   it('draws the usual start: one build in progress and nothing else', () => {

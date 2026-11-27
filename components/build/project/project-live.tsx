@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 
 import { ProjectView } from './project-view';
-import { TimeZoneNote } from '@/components/workspace/time-zone-note';
 import { HOME_READ_WAIT_MS } from '@/lib/build/home';
 import { buildProjectMinePath, buildTestMinePath } from '@/lib/build/paths';
 import type { ProjectSide } from '@/lib/build/project';
@@ -87,11 +86,6 @@ export function ProjectLive({ project }: { project: BuildProjectPage }) {
     };
   }, [slug]);
 
-  return (
-    <>
-      <ProjectView project={project} side={side} reading={reading} />
-      {/* Once the person's side is read, their device's time zone is sent, as on Learn's pages. */}
-      {side.kind === 'person' ? <TimeZoneNote /> : null}
-    </>
-  );
+  // The browser's zone was saved before the reads (`zoneSent`), so no note sends it again.
+  return <ProjectView project={project} side={side} reading={reading} />;
 }

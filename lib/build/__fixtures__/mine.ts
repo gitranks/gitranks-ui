@@ -1,5 +1,6 @@
 import type { BuildMine, BuildMineList, BuildWaitingTest } from '../types';
 import {
+  buildInPart,
   buildInProgress,
   codingAgentInProgress,
   jsonParserBuiltPython,
@@ -73,6 +74,13 @@ export const mineBoardFull: BuildMineList = {
 
 /** The usual start: one build in progress and nothing else. */
 export const mineBoardOne: BuildMineList = { tests: [], inProgress: [mineMcpInProgress], built: [] };
+
+/** A built project now on step 3 of 6 of its optional part, its last step this morning: in progress, and built. */
+export const mineBoardBuiltInPart: BuildMineList = {
+  tests: [],
+  inProgress: [],
+  built: [{ ...buildInPart, lastStepAt: '2026-11-26T09:40:00.000Z' }],
+};
 
 /** On a phone: a test that waits, a build in progress, a built project. */
 export const mineBoardPhone: BuildMineList = {

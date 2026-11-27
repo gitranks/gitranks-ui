@@ -7,12 +7,13 @@ import { SkillsPageView } from '@/components/skills/skills-page-view';
 import { skillsFixesApiPath } from '@/lib/skills/paths';
 import type { SkillsFixesAnswer, SkillsPage } from '@/lib/skills/skills.types';
 import { otherBoxOf } from '@/lib/skills/skills-owner';
-import { moreFixesAfter, ownerLayerOf } from '@/lib/skills/skills-view';
+import { builtShownOf, moreFixesAfter, ownerLayerOf } from '@/lib/skills/skills-view';
 
 /**
  * A public Skills page: the same content for everyone, drawn on the server, with "Show 20 more" adding fixes in place.
  * Its owner gets the strip above it (its row held from the moment the session says it is theirs) and, last, the box
- * about the product they do not use; hiding and showing change only the strip.
+ * about the product they do not use; hiding and showing change only the strip. While the public answer has no built
+ * project, its owner's own built projects come with their view, below their fixes.
  */
 export function SkillsScreen({
   login,
@@ -57,7 +58,7 @@ export function SkillsScreen({
 
   return (
     <SkillsPageView
-      page={{ ...page, fixes }}
+      page={{ ...page, fixes, built: builtShownOf(page, layer) }}
       now={now}
       strip={strip}
       other={layer.kind === 'none' ? null : otherBoxOf(layer.mine)}

@@ -4,12 +4,12 @@ import type { IssueNumbers } from '@/lib/workspace/masked-issue.types';
 import type { LearnFixMade, LearnIssueLesson } from '@/lib/workspace/pull-request-page.types';
 
 /**
- * A person's Skills page as the GitRanks GraphQL API answers it: what they proved with GitRanks Contribute and
- * GitRanks Learn. The parts in `components/skills/` draw it from this data alone.
+ * A person's Skills page as the GitRanks GraphQL API answers it: what they proved with GitRanks Contribute, GitRanks
+ * Learn and GitRanks Build. The parts in `components/skills/` draw it from this data alone.
  */
 
-/** Which kind of person the page is about, read from what it shows. */
-export type SkillsKind = 'CONTRIBUTOR' | 'LEARNER' | 'BOTH';
+/** Which kind of person the page is about, read from what it shows; `BUILDER`: only built projects. */
+export type SkillsKind = 'CONTRIBUTOR' | 'LEARNER' | 'BOTH' | 'BUILDER';
 
 /** Where a page stands, for everyone else and for its owner. */
 export type SkillsState = 'NEW' | 'NOTHING_YET' | 'PUBLIC' | 'HIDDEN';
@@ -22,11 +22,13 @@ export type SkillsFigureKey =
   | 'MASTERED'
   | 'DAYS_ACTIVE'
   | 'HELPED'
-  | 'AGENT';
+  | 'AGENT'
+  | 'PROJECTS_BUILT';
 
 /**
  * One number of the row. `value` is null for the agent, whose `name` is the agent and `also` the second one; `second`
- * is the number worded after it (the projects of the fixes, the courses of the lessons).
+ * is the number worded after it (the projects of the fixes, the courses of the lessons, the built projects repeated
+ * after a week).
  */
 export type SkillsFigure = {
   key: SkillsFigureKey;
@@ -102,11 +104,36 @@ export type SkillsCourse = {
   notStarted: string[];
 };
 
+/**
+ * A project the person built with GitRanks Build, one row for both languages: what it builds as a sentence names it
+ * ("an MCP server"), its one line, the languages built (the first built first, as the API names them), the most steps
+ * a build of it passed, the optional parts built of how many, when it was first built, and the two marks.
+ */
+export type SkillsBuilt = {
+  project: string;
+  thing: string;
+  line: string;
+  languages: string[];
+  steps: number;
+  parts: number;
+  partsOf: number;
+  builtAt: string;
+  /** Repeated after a week: the gold test passed. */
+  gold: boolean;
+  /** Every step's question answered. */
+  answeredAll: boolean;
+};
+
 /** The public page. */
 export type SkillsPage = {
   login: string;
   numbers: SkillsNumbers;
   fixes: SkillsFixes;
+  /**
+   * The projects built, the one built last first. Left out when there is none (always, while Build is not open to
+   * everyone), so a public page's data is today's.
+   */
+  built?: SkillsBuilt[];
   courses: SkillsCourse[];
   indexable: boolean;
 };
@@ -126,6 +153,8 @@ export type SkillsMine = {
   page: SkillsPage | null;
   usesContribute: boolean;
   usesLearn: boolean;
+  /** They have a build; false while Build is not open to them. */
+  usesBuild: boolean;
   /** The tab's "New" mark, until the first visit. */
   tabNew: boolean;
   numbers: SkillsIssueNumbers | null;

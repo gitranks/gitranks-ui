@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { buildBuilt, buildGoldEarned, buildGoldOpen, buildInProgress, buildTestLeft } from './__fixtures__/builds';
 import { mcpServerStep } from './__fixtures__/project';
-import { endTestOpen, endTestPassed, failedResult, goldTestReady, passedResult } from './__fixtures__/test';
+import {
+  endTestFailed,
+  endTestOpen,
+  endTestPassed,
+  failedResult,
+  goldTestReady,
+  passedResult,
+} from './__fixtures__/test';
 import {
   endTestAllRight,
   endTestClosed,
@@ -224,6 +231,13 @@ describe('what comes now', () => {
       main: { kind: 'again', label: 'Take the test again', ready: true },
       share: false,
     });
+  });
+
+  it('after a failed end test: no next-try time, since the end test can start again at once', () => {
+    expect(endTestFailed).toMatchObject({ canStart: true, nextTryAt: null });
+    expect(testBoxOf(endTestFailed, failedResult, buildTestLeft, NOW, 'UTC')).toEqual(
+      testBoxOf(endTestFailedAgain, failedResult, buildTestLeft, NOW, 'UTC'),
+    );
   });
 
   it('after the gold test failed: the button waits for the next day, and says when', () => {

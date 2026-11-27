@@ -17,6 +17,7 @@ vi.mock('@/lib/workspace/gate.data', () => ({}));
 vi.mock('@/lib/workspace/contribute.data', () => ({ loadContribute: vi.fn(), loadIssues: vi.fn() }));
 vi.mock('@/lib/contribute/contribute.data', () => ({ loadIssues: vi.fn() }));
 vi.mock('@/lib/learn/actions', () => ({}));
+vi.mock('@/lib/build/settings.data', () => ({ loadBuildSettings: vi.fn(async () => null) }));
 vi.mock('@/lib/learn/settings.data', () => ({}));
 vi.mock('@/lib/skills/skills.data', () => ({}));
 vi.mock('@/lib/learn/settings.actions', () => ({}));

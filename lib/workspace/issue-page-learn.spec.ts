@@ -34,6 +34,7 @@ describe("Learn's parts of the page of one issue, as the API answers them", () =
 describe('the lesson line', () => {
   it('says "Teaches" for a lesson new to the person and "Uses" for one they learned, linking its page', () => {
     expect(issueLessonLineOf({ lesson: LESSON, why: 'TEACHES_NEW' })).toEqual({
+      slug: LESSON.slug,
       title: LESSON.title,
       href: '/learn/lessons/a-queue',
       learned: false,

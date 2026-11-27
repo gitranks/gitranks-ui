@@ -208,13 +208,13 @@ export const endTestReady: BuildTest = { ...TEST_BASE, open: null, last: null, c
 /** The end test with a run in progress. */
 export const endTestOpen: BuildTest = { ...TEST_BASE, open: testRun, last: null, canStart: false, nextTryAt: null };
 
-/** The end test after a failed try: the next try opens later. */
+/** The end test after a failed try: the end test has no wait, so it can be started again at once. */
 export const endTestFailed: BuildTest = {
   ...TEST_BASE,
   open: null,
   last: failedResult,
-  canStart: false,
-  nextTryAt: '2026-11-27T12:00:00.000Z',
+  canStart: true,
+  nextTryAt: null,
 };
 
 /** The end test passed. */

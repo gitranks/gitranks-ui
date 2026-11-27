@@ -36,6 +36,8 @@ const ROUTES: Record<string, { GET?: Route; POST?: Route }> = {
   './test/start/route': (await import('./test/start/route')) as { GET?: Route; POST?: Route },
   './test/answer/route': (await import('./test/answer/route')) as { GET?: Route; POST?: Route },
   './remove/route': (await import('./remove/route')) as { GET?: Route; POST?: Route },
+  './settings/save/route': (await import('./settings/save/route')) as { GET?: Route; POST?: Route },
+  './doors/route': (await import('./doors/route')) as { GET?: Route; POST?: Route },
 };
 const route = async (path: string) => ROUTES[path];
 
@@ -43,6 +45,9 @@ const { barTwoTests, homeBuilder, mineFull, projectMineTwo, startFresh, stepMine
   '@/lib/build/__fixtures__/builds'
 );
 const { endTestOpen, testRun } = await import('@/lib/build/__fixtures__/test');
+const { keyValueDatabaseStepNine } = await import('@/lib/build/__fixtures__/doors');
+const { keyValueDatabaseCard, webServerCard } = await import('@/lib/build/__fixtures__/projects');
+const { webServerBuilt } = await import('@/lib/build/__fixtures__/builds');
 
 const URL_BASE = 'https://gitranks.com';
 const signedIn = () => {
@@ -165,6 +170,7 @@ describe("Build's personal writes", () => {
       { run: testRun, result: null },
     ],
     ['removes a build', './remove/route', { build: 'b-mcp-ts' }, 'removeBuild', true],
+    ['saves the settings', './settings/save/route', { reminders: false }, 'saveBuildSettings', { reminders: false }],
   ];
 
   it.each(WRITES)('%s for the session’s person, with the status of a refusal', async (_, file, body, field, value) => {
@@ -193,5 +199,64 @@ describe("Build's personal writes", () => {
     expect((await send(post(body))).status).toBe(409);
     graphqlDirect.mockRejectedValueOnce(new Error('down'));
     expect((await send(post(body))).status).toBe(502);
+  });
+});
+
+describe('the doors into Build', () => {
+  const get = async (query: string) => {
+    const { GET } = await route('./doors/route');
+    return (GET as Route)(new NextRequest(`${URL_BASE}/api/me/build/doors?${query}`));
+  };
+
+  it("answers a course's projects and the person's builds of them, never kept", async () => {
+    expect(await (await get('course=algorithms')).json()).toEqual({ doors: null });
+    expect(graphqlDirect).not.toHaveBeenCalled();
+
+    signedIn();
+    graphqlDirect.mockImplementation(async (_doc: unknown, variables: Record<string, unknown> | undefined) =>
+      variables && 'course' in variables
+        ? { buildCourseProjects: [keyValueDatabaseCard] }
+        : { buildProjectsMine: [keyValueDatabaseStepNine, webServerBuilt] },
+    );
+    const res = await get('course=algorithms');
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
+    expect(await res.json()).toEqual({
+      doors: { projects: [keyValueDatabaseCard], builds: [keyValueDatabaseStepNine] },
+    });
+  });
+
+  it("reads the course of an issue's lesson", async () => {
+    signedIn();
+    graphqlDirect.mockImplementation(async (_doc: unknown, variables: Record<string, unknown> | undefined) => {
+      if (variables && 'slug' in variables) return { learnLesson: { course: { slug: 'algorithms' } } };
+      if (variables && 'course' in variables) return { buildCourseProjects: [webServerCard] };
+      return { buildProjectsMine: [] };
+    });
+    expect(await (await get('lesson=find-duplicates')).json()).toEqual({
+      doors: { projects: [webServerCard], builds: [] },
+    });
+    expect(graphqlDirect.mock.calls.some(([, variables]) => variables?.course === 'algorithms')).toBe(true);
+  });
+
+  it("answers none when a course's projects cannot be read, so the page stays as today", async () => {
+    signedIn();
+    graphqlDirect.mockImplementation(async (_doc: unknown, variables: Record<string, unknown> | undefined) => {
+      if (variables && 'course' in variables) throw new Error('down');
+      return { buildProjectsMine: [keyValueDatabaseStepNine] };
+    });
+    expect(await (await get('course=algorithms')).json()).toEqual({ doors: null });
+  });
+
+  it('answers none when Build is not open to the person, and for an ask not of the shape', async () => {
+    signedIn();
+    graphqlDirect.mockImplementation(async (_doc: unknown, variables: Record<string, unknown> | undefined) => {
+      if (variables && 'course' in variables) return { buildCourseProjects: [keyValueDatabaseCard] };
+      throw new Error(JSON.stringify([{ extensions: { code: 'NOT_FOUND' } }]));
+    });
+    expect(await (await get('course=algorithms')).json()).toEqual({ doors: null });
+    graphqlDirect.mockClear();
+    expect(await (await get('course=Not%20a%20slug')).json()).toEqual({ doors: null });
+    expect(await (await get('')).json()).toEqual({ doors: null });
+    expect(graphqlDirect).not.toHaveBeenCalled();
   });
 });

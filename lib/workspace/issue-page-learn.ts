@@ -61,9 +61,10 @@ export function issuePageLearnOf(answer: unknown): IssuePageLearn | null {
 /** The lesson line of the page: none without a lesson or a why that names one. */
 export function issueLessonLineOf(
   learn: Pick<IssuePageLearn, 'lesson' | 'why'> | null,
-): { title: string; href: Route; learned: boolean } | null {
+): { slug: string; title: string; href: Route; learned: boolean } | null {
   if (!learn?.lesson || !learn.why || learn.why === 'NO_LESSON') return null;
   return {
+    slug: learn.lesson.slug,
     title: learn.lesson.title,
     href: issueLessonPath(learn.lesson.slug),
     learned: learn.why === 'USES_LEARNED',

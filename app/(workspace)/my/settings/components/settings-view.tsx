@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { setSkillsHiddenAction } from '@/app/profile/[login]/components/skills-hidden.actions';
+import { BuildRemindersRow } from '@/components/build/settings/build-reminders-row';
 import {
   LearnEmailFailedRow,
   LessonIssuesRow,
@@ -20,6 +21,10 @@ import { DeleteDataSection } from '@/components/workspace/settings/delete-data-s
 import { EmailRows } from '@/components/workspace/settings/email-rows';
 import { SettingsAnchors } from '@/components/workspace/settings/settings-anchors';
 import { SettingsGroup, SettingsList, SettingsRow } from '@/components/workspace/settings-rows';
+import { BUILD_EMAILS_BUILT } from '@/lib/build/built-parts';
+import { FROM_BUILD } from '@/lib/build/paths';
+import { loadBuildSettings } from '@/lib/build/settings.data';
+import type { BuildSettings } from '@/lib/build/types';
 import { modeTitleOf } from '@/lib/contribute/set-format';
 import { preferencesSummaryOf } from '@/lib/contribute/work-summary';
 import type { LearnEmailSettings, LearnIssuesEmailSetting, LearnLessonIssuesSetting } from '@/lib/learn/settings';
@@ -88,6 +93,16 @@ async function loadPrivacyGroup(): Promise<ReactNode> {
   return <SkillsPrivacyGroup login={githubLogin} mine={mine} setHidden={setSkillsHiddenAction} />;
 }
 
+/**
+ * Build's row, "Build reminders": once Build's emails are built, for a person with a build (the API answers none to
+ * anyone else, and to a person Build is not open to). None signed out, and on any failure.
+ */
+async function loadBuildRow(): Promise<BuildSettings | null> {
+  if (!BUILD_EMAILS_BUILT) return null;
+  const githubLogin = await viewerLogin();
+  return githubLogin ? loadBuildSettings(githubLogin) : null;
+}
+
 /** Learn's reads for its rows, each the person's own; none signed out. */
 async function loadLearnRows() {
   const githubLogin = await viewerLogin();
@@ -118,7 +133,7 @@ export async function SettingsView({
   // GitHub's consent comes back here when it was not saved: its answer is on GitHub's own page.
   const grant = grantRefusalOf(params.grant);
   if (grant) redirect(`${SETTINGS_PATHS.github}?grant=${grant}` as Route);
-  const learn = await loadLearnRows();
+  const [learn, build] = await Promise.all([loadLearnRows(), loadBuildRow()]);
   const bar = settingsBarOf({
     from: params.from,
     lastBar: lastBarOf(jar.get(LAST_BAR_COOKIE)?.value),
@@ -139,6 +154,8 @@ export async function SettingsView({
       learnEmailFailed={learn.email === undefined}
       learnIssuesEmail={learn.issues}
       learnLessonIssuesEmail={learn.lessonIssues}
+      buildSettings={build}
+      fromBuild={(Array.isArray(params.from) ? params.from[0] : params.from) === FROM_BUILD}
       openPrs={counts?.prBound}
       privacy={privacy}
     />
@@ -278,7 +295,8 @@ function LimitsGroup({ view, openPrs }: { view: ContributeView; openPrs?: number
  * Contribute preferences, Agent and GitHub, Limits, Email, then Learn preferences. Privacy, then Delete all data,
  * last. A product's group shows only to someone who uses it (Learn's, to everyone; Contribute's, to all but
  * someone who only learns). In Email, Learn's "Lessons to repeat" and "New issues for you" come first from Learn and
- * after Contribute's rows from Contribute; the time zone is last. Each row opens the page it is changed on; the Email
+ * after Contribute's rows from Contribute; Build's "Build reminders", for a person with a build, comes first from Build
+ * and after the other products' rows otherwise; the time zone is last. Each row opens the page it is changed on; the Email
  * rows change on the page itself. Old links to a section go on to where it is now (`SettingsAnchors`).
  */
 export function SettingsScreen({
@@ -295,6 +313,8 @@ export function SettingsScreen({
   learnEmailFailed = false,
   learnIssuesEmail = null,
   learnLessonIssuesEmail = null,
+  buildSettings = null,
+  fromBuild = false,
   openPrs,
   privacy = null,
 }: {
@@ -323,6 +343,10 @@ export function SettingsScreen({
   learnIssuesEmail?: LearnIssuesEmailSetting | null;
   /** "Issues for my lessons": its row is drawn only when this read answered. */
   learnLessonIssuesEmail?: LearnLessonIssuesSetting | null;
+  /** Build's settings: its row is drawn only for a person with a build, once Build's emails are built. */
+  buildSettings?: BuildSettings | null;
+  /** Opened from Build's bar (`?from=build`): Build's row comes first in Email. */
+  fromBuild?: boolean;
   /** The pull requests that count against the limit now. */
   openPrs?: number;
   /** The group "Privacy": who can see the person's Skills page. */
@@ -350,16 +374,40 @@ export function SettingsScreen({
   } else if (learnEmailFailed) {
     zone = <LearnEmailFailedRow />;
   }
+  // Build's row: first from Build's bar, else after the other products' rows, before the time zone.
+  const build = buildSettings ? (
+    <BuildRemindersRow on={buildSettings.reminders} noAddress={!!email && !email.to} />
+  ) : null;
+  // Without Build's row the tail keeps today's two slots, so the page's ids stay as they were.
+  const tailLessons = fromLearn ? null : lessons;
+  const tailFirst =
+    build && !fromBuild ? (
+      <>
+        {tailLessons}
+        {build}
+      </>
+    ) : (
+      tailLessons
+    );
   const emailGroup =
-    email || emailFailed || lessons || zone ? (
+    email || emailFailed || lessons || zone || build ? (
       <EmailRows
         settings={emailFailed ? undefined : email}
         autopilotOn={autopilotOnOf(view.contributor)}
         hint={emailHint}
-        lead={fromLearn ? lessons : null}
+        lead={
+          build && fromBuild ? (
+            <>
+              {build}
+              {fromLearn ? lessons : null}
+            </>
+          ) : fromLearn ? (
+            lessons
+          ) : null
+        }
         tail={
           <>
-            {fromLearn ? null : lessons}
+            {tailFirst}
             {zone}
           </>
         }

@@ -83,6 +83,11 @@ export const BUILD_TEST_START_MINE_PATH = '/api/me/build/test/start';
 export const BUILD_TEST_ANSWER_MINE_PATH = '/api/me/build/test/answer';
 /** Removes a build in progress (`POST`, `{ build }`). */
 export const BUILD_REMOVE_MINE_PATH = '/api/me/build/remove';
+/** Turns Build's reminders on or off (`POST`, `{ reminders }`). */
+export const BUILD_SETTINGS_SAVE_MINE_PATH = '/api/me/build/settings/save';
+/** The doors into Build for a course, or for the course of an issue's lesson: its projects and the person's builds. */
+export const buildDoorsMinePath = (of: { course: string } | { lesson: string }) =>
+  `/api/me/build/doors?${new URLSearchParams(of)}`;
 
 /*
  * Cache tags. The public pages are kept for hours under them, and the API expires them when the content changes.

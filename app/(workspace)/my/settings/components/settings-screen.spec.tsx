@@ -48,6 +48,8 @@ const learnReads = vi.hoisted(() => ({
 vi.mock('@/lib/learn/settings.data', () => learnReads);
 vi.mock('@/lib/learn/settings.actions', () => ({ saveLearnEmailSettingsAction: vi.fn() }));
 vi.mock('@/lib/learn/learn.data', () => ({}));
+const buildReads = vi.hoisted(() => ({ loadBuildSettings: vi.fn(async (): Promise<unknown> => null) }));
+vi.mock('@/lib/build/settings.data', () => buildReads);
 const skillsReads = vi.hoisted(() => ({ loadSkillsMine: vi.fn(async (): Promise<unknown> => null) }));
 vi.mock('@/lib/skills/skills.data', () => skillsReads);
 vi.mock('@/app/profile/[login]/components/skills-hidden.actions', () => ({ setSkillsHiddenAction: vi.fn() }));
@@ -61,6 +63,7 @@ const { contributor, email, limits, settingsViews, views } = await import(
 );
 const { learnEmail, learnIssuesEmail, learnLessonIssuesEmail } = await import('@/lib/learn/__fixtures__/settings');
 const { setupGuessed, setupSaved, setupWorking } = await import('@/lib/learn/__fixtures__/setup');
+const { buildRemindersOff, buildRemindersOn } = await import('@/lib/build/__fixtures__/settings');
 
 const text = (html: string) =>
   html
@@ -257,6 +260,48 @@ describe('the Settings page', () => {
   });
 });
 
+describe("Build's row in Settings", () => {
+  const LINE =
+    'Two emails at most for a project: when its gold test opens, and once if a build stands still for 3 days.';
+
+  it('comes first under Email from Build, one switch, on', () => {
+    const { html, plain } = render({ buildSettings: buildRemindersOn, fromBuild: true });
+    expect(emailRowsOf(html)).toEqual(['build-reminders', 'needs-you', 'ended', 'lessons-to-repeat', 'time-zone']);
+    expect(plain).toContain(`Build reminders ${LINE} On`);
+    expect(html).toMatch(/data-build-reminders="on"/);
+    expect(html).toMatch(/role="switch"[^>]*checked=""/);
+  });
+
+  it("comes after the other sections' rows from Learn's or Contribute's bar, with the same value", () => {
+    expect(emailRowsOf(render({ buildSettings: buildRemindersOff }).html)).toEqual([
+      'needs-you',
+      'ended',
+      'lessons-to-repeat',
+      'build-reminders',
+      'time-zone',
+    ]);
+    const learn = render({ buildSettings: buildRemindersOff, bar: 'learn' });
+    expect(emailRowsOf(learn.html)).toEqual([
+      'lessons-to-repeat',
+      'needs-you',
+      'ended',
+      'build-reminders',
+      'time-zone',
+    ]);
+    expect(learn.plain).toContain(`Build reminders ${LINE} Off`);
+  });
+
+  it('is not there for someone with no build, nor while Build’s emails are not built', async () => {
+    expect(render().html).not.toContain('build-reminders');
+    expect(render({ fromBuild: true }).html).not.toContain('build-reminders');
+  });
+
+  it('says no email is sent while there is no address', () => {
+    const { plain } = render({ buildSettings: buildRemindersOn, email: { ...email.on, to: null } });
+    expect(plain).toContain('Build reminders We have no email address for you, so no email is sent.');
+  });
+});
+
 describe("Settings' pull requests page", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -381,6 +426,8 @@ describe('the reads of Settings and the key page', () => {
       expect(learnReads.loadLearnEmailSettings).toHaveBeenCalledWith('octocat');
       expect(learnReads.loadLearnIssuesEmail).toHaveBeenCalledWith('octocat');
       expect(learnReads.loadLearnLessonIssuesEmail).toHaveBeenCalledWith('octocat');
+      // Build's row is not read before Build's emails are built.
+      expect(buildReads.loadBuildSettings).not.toHaveBeenCalled();
     } finally {
       jar.value = undefined;
     }

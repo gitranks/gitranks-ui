@@ -1,6 +1,7 @@
 import type { Screen } from '../registry';
 import { ADMIN_SCREENS } from './admin';
 import { BADGES_SCREENS } from './badges';
+import { BUILD_DOORS_SCREENS } from './build-doors';
 import { BUILD_HOME_SCREENS } from './build-home';
 import { BUILD_MINE_SCREENS } from './build-mine';
 import { BUILD_PROJECT_SCREENS } from './build-project';
@@ -51,5 +52,6 @@ export const SCREENS: Screen[] = [
   ...BUILD_START_SCREENS,
   ...BUILD_TEST_SCREENS,
   ...BUILD_SITE_SCREENS,
+  ...BUILD_DOORS_SCREENS,
   ...ADMIN_SCREENS,
 ];

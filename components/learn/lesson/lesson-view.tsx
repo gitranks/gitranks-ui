@@ -12,6 +12,7 @@ import {
 import { type LearnGroupLesson, type LearnLesson, lessonPlaceOf } from '@/lib/learn/lesson-page';
 import type { LessonReal } from '@/lib/learn/real-issues';
 import type { HighlightedCode } from '@/lib/workspace/code-tokens';
+import type { LessonSetting } from '@/lib/workspace/lesson-setting';
 
 export type { HighlightedExample } from './lesson-article';
 export type { LessonFooterLinks } from './lesson-more';
@@ -48,6 +49,9 @@ export type LessonViewProps = {
   /** The person's real issues for the lesson, and "In the real world" drawn: for the catalogue. */
   real?: LessonReal | null;
   realWorld?: ReactNode;
+  /** The setting the lesson was opened in (an interview plan), and whether the lesson is held: for the catalogue. */
+  setting?: LessonSetting | null;
+  held?: boolean;
 };
 
 /** The parts of a lesson's page that render on the server: the lesson, previous and next, and the footer ("In the real world" goes between the last two). */

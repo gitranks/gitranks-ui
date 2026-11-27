@@ -99,6 +99,11 @@ export type LearnLessonMine = {
   tries: number | null;
   /** "Good", "Not good", or not rated. */
   feedbackGood: boolean | null;
+  /**
+   * Learned in another setting (an interview plan) in a course the person has not started: not repeated until they
+   * start it. Read only by an answer sent with that setting; absent otherwise.
+   */
+  held?: boolean;
 };
 
 /**

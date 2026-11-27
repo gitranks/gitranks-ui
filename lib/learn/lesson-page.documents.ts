@@ -98,6 +98,22 @@ export const AnswerLearnLessonDocument = doc<
   }`,
 );
 
+/**
+ * A lesson's answer given in another setting (`plan`: the interview plan it was opened from, `<company>/<plan>`): the
+ * same answer, which never starts the course, and the person's side with whether the lesson is held. Only a lesson
+ * opened in that setting sends it; every other answer is the one above, as it always was.
+ */
+export const AnswerLearnLessonInPlanDocument = doc<
+  { answerLearnLesson: LearnLessonAnswered | null },
+  { slug: string; question: string; picked: unknown; tries: number; language: string | null; plan: string }
+>(
+  `mutation AnswerLearnLessonInPlan($slug: String!, $question: String!, $picked: JSON!, $tries: Int!, $language: String, $plan: String) {
+    answerLearnLesson(slug: $slug, question: $question, picked: $picked, tries: $tries, language: $language, plan: $plan) {
+      right mine { ${MINE} held } next { ${LINK} }
+    }
+  }`,
+);
+
 /** "Good" or "Not good" on a lesson, with an optional comment. */
 export const SendLearnFeedbackDocument = doc<
   { sendLearnFeedback: boolean | null },

@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 
+import { interviewRoundAnchor } from '@/lib/interviews/paths';
 import type { RoundLineMark, RoundPoint, RoundSegment } from '@/lib/interviews/round-line';
 import { cn } from '@/lib/utils';
 
@@ -37,13 +38,24 @@ function Segment({ segment, height }: { segment: RoundSegment; height?: number }
 
 const POINT = 'inline-flex size-7 flex-none items-center justify-center rounded-full';
 
-/** A round's point: a tick once done, else its number, ringed for the round the person is in or started. */
-export function RoundPointMark({ point, number }: { point: RoundPoint; number: number }) {
+/**
+ * A round's point: a tick once done, else its number, ringed for the round the person is in or started. `className`:
+ * another size, where a line draws smaller points.
+ */
+export function RoundPointMark({
+  point,
+  number,
+  className,
+}: {
+  point: RoundPoint;
+  number: number;
+  className?: string;
+}) {
   if (point === 'done') {
     return (
       <span
         data-round-point="done"
-        className={POINT}
+        className={cn(POINT, className)}
         style={{ background: 'var(--brand-soft-foreground)', color: 'var(--background)' }}
       >
         <Check aria-hidden="true" className="size-4" />
@@ -71,6 +83,7 @@ export function RoundPointMark({ point, number }: { point: RoundPoint; number: n
         POINT,
         'font-mono text-xs font-semibold tabular-nums',
         point === 'plain' && 'text-muted-foreground',
+        className,
       )}
       style={look[point]}
     >
@@ -99,7 +112,12 @@ export function RoundLineRow({
   children: ReactNode;
 }) {
   return (
-    <li data-round-row={mark.number} data-round-point-kind={mark.point} className={ROW}>
+    <li
+      id={interviewRoundAnchor(mark.number)}
+      data-round-row={mark.number}
+      data-round-point-kind={mark.point}
+      className={cn(ROW, 'scroll-mt-6')}
+    >
       <div className={COLUMN}>
         <Segment segment={mark.above} height={14} />
         <RoundPointMark point={mark.point} number={mark.number} />

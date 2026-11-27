@@ -4,6 +4,7 @@ import { BADGES_SCREENS } from './badges';
 import { BUILD_HOME_SCREENS } from './build-home';
 import { BUILD_MINE_SCREENS } from './build-mine';
 import { BUILD_START_SCREENS } from './build-start';
+import { BUILD_TEST_SCREENS } from './build-test';
 import { CONTRIBUTE_SCREENS } from './contribute';
 import { HELD_BACK_SCREENS } from './held-back';
 import { LANDING_SCREENS } from './landing';
@@ -43,5 +44,6 @@ export const SCREENS: Screen[] = [
   ...BUILD_HOME_SCREENS,
   ...BUILD_MINE_SCREENS,
   ...BUILD_START_SCREENS,
+  ...BUILD_TEST_SCREENS,
   ...ADMIN_SCREENS,
 ];

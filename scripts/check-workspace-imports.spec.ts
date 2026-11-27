@@ -207,11 +207,26 @@ describe('the workspace import rule', () => {
     expect(crosses('components/interviews/learn-gate/courses-gate.tsx', 'components/interviews/company-logo')).toBe(
       false,
     );
-    expect(crosses('components/interviews/learn-gate/courses-gate.tsx', 'lib/learn/courses-interviews')).toBe(false);
-    expect(crosses('components/interviews/learn-gate/courses-gate.tsx', 'components/learn/courses/course-card')).toBe(
-      true,
-    );
-    expect(crosses('components/interviews/company-logo.tsx', 'lib/learn/course')).toBe(true);
+    const gate = 'components/interviews/learn-gate/courses-gate.tsx';
+    expect(crosses(gate, 'lib/learn/courses-interviews', undefined, true)).toBe(false);
+    expect(crosses(gate, 'lib/learn/courses-interviews')).toBe(true);
+    expect(crosses(gate, 'components/learn/courses/course-card', undefined, true)).toBe(true);
+    expect(crosses(gate, 'components/learn/courses/course-card')).toBe(true);
+    expect(crosses('components/interviews/company-logo.tsx', 'lib/learn/course', undefined, true)).toBe(true);
+  });
+
+  it("lets the parts of Interviews on Learn's pages read Learn's types alone", () => {
+    const gate = 'components/interviews/learn-gate/courses-gate.tsx';
+    const source = [
+      "import type { CoursesInterviews } from '@/lib/learn/courses-interviews';",
+      "export type { LearnCourseCard } from '@/lib/learn/course';",
+      'import {',
+      '  type LearnCourseCard,',
+      "} from '@/lib/learn/course';",
+      "import { coursesSearchOf } from '@/lib/learn/course';",
+      "const paths = import('@/lib/learn/paths');",
+    ].join('\n');
+    expect(crossingsOf(gate, source)).toEqual([`${gate} -> lib/learn/course`, `${gate} -> lib/learn/paths`]);
   });
 
   it('lets only the pull request folder of the shared components read Learn', () => {

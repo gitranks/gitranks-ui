@@ -837,8 +837,9 @@ export type CoursesSearch = {
 };
 
 /**
- * The search of all courses. Nothing typed: every course, and no lessons. `uses`: the courses the typed company's plans
- * use, by slug (`courseCompanyUsesOf`), each found with its line.
+ * The search of all courses. Nothing typed: every course, and no lessons. `uses`, given only to a list with Interviews'
+ * part: the courses the typed company's plans use, by slug (`courseCompanyUsesOf`), each found with its line; such a
+ * list also finds a project course by its language's whole name. Without it the search is today's.
  */
 export function coursesSearchOf(
   courses: readonly LearnCourseCard[],
@@ -857,7 +858,7 @@ export function coursesSearchOf(
       const project = course.project;
       const byProject = [project?.repo, project?.org].some((text) => !!text && wordStartMatchOf(text, query));
       const language = project ? projectLanguageNameOf(project) : null;
-      const byLanguage = !!language && isWholeNameOf(language, query);
+      const byLanguage = !!uses && !!language && isWholeNameOf(language, query);
       return byProject || byLanguage || wordStartMatchOf(KIND_WORDS[course.kind], query) ? [{ course, name }] : [];
     });
     return found.length ? [{ ...section, found }] : [];

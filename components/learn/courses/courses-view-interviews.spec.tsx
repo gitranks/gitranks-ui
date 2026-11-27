@@ -178,12 +178,17 @@ describe('the section Interviews with a hundred companies', () => {
     expect(rowOf(host)!.querySelectorAll('[data-company-tag]')).toHaveLength(5);
     const button = host.querySelector<HTMLButtonElement>('section[aria-labelledby="interviews"] button')!;
     expect(button.textContent).toBe('Show all 101 courses');
+    const before = slugsOf(host, 'interviews');
     act(() => button.focus());
     act(() => button.click());
-    expect(slugsOf(host, 'interviews')).toHaveLength(101);
+    const after = slugsOf(host, 'interviews');
+    expect(after).toHaveLength(101);
+    // The courses shown stay where they were; the rest come after them.
+    expect(after.slice(0, 6)).toEqual(before);
+    expect(after[6]).toBe('interviewing-at-company-2');
     expect(host.querySelector('section[aria-labelledby="interviews"] button')).toBeNull();
     // The keyboard goes on from the first course the button showed.
-    expect(document.activeElement).toBe(host.querySelectorAll('section[aria-labelledby="interviews"] a')[6]);
+    expect(document.activeElement!.getAttribute('data-course-card')).toBe('interviewing-at-company-2');
     act(() => root.unmount());
     host.remove();
   });

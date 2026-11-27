@@ -89,10 +89,11 @@ describe("a lesson's address", () => {
     expect(closed.robots).toEqual({ index: false, follow: false });
     expect(closed.title).toBe(setLesson.title);
     expect(loadLearnCourse).toHaveBeenCalledWith(setLesson.course.slug);
-    // Any other course's lesson, or a course that cannot be read: as today.
+    // Any other course's lesson: as today.
     loadLearnCourse.mockResolvedValueOnce({ slug: setLesson.course.slug, kind: 'TOPIC', section: null });
     expect((await generateMetadata(props(setLesson.slug))).robots).toBeUndefined();
+    // A course that cannot be read might be of the section: not indexed while closed.
     loadLearnCourse.mockRejectedValueOnce(new Error('down'));
-    expect((await generateMetadata(props(setLesson.slug))).robots).toBeUndefined();
+    expect((await generateMetadata(props(setLesson.slug))).robots).toEqual({ index: false, follow: false });
   });
 });

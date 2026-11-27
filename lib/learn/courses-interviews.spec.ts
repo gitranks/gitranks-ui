@@ -126,6 +126,11 @@ describe("the search finds a project course by its language's whole name", () =>
     expect(foundSlugs('g', [...courseCards, kubernetes])).not.toContain('kubernetes');
   });
 
+  it('without Interviews\' part the search is today\'s: "go" finds Go alone', () => {
+    const today = coursesSearchOf([...courseCards, kubernetes], lessonList, 'go');
+    expect(today.sections.flatMap((section) => section.found.map(({ course }) => course.slug))).toEqual(['go']);
+  });
+
   it('"company" finds the company courses by their kind', () => {
     expect(foundSlugs('company')).toEqual(['interviewing-at-northwind']);
   });
@@ -146,6 +151,19 @@ describe('the section Interviews with many companies', () => {
       'interviewing-at-company-5',
       'interviewing-at-company-9',
     ]);
+  });
+
+  it("once opened keeps the shown courses first, where they were, then the rest in the answer's order", () => {
+    const first = interviewsSectionShownOf(found, hundredCompanies, { searched: false });
+    const opened = interviewsSectionShownOf(found, hundredCompanies, { searched: false, all: true });
+    expect(opened).toHaveLength(101);
+    expect(opened.slice(0, first.length)).toEqual(first);
+    expect(opened.slice(first.length, first.length + 3).map(({ course }) => course.slug)).toEqual([
+      'interviewing-at-company-2',
+      'interviewing-at-company-6',
+      'interviewing-at-company-7',
+    ]);
+    expect(new Set(opened).size).toBe(101);
   });
 
   it('shows every course up to twelve, and with a search', () => {

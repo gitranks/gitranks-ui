@@ -175,10 +175,12 @@ export function CoursesView({
     inputRef.current?.focus();
   };
 
-  // Interviews' courses join the list, and a company's whole name finds the courses its plans use.
+  // Interviews' courses join the list, and a company's whole name finds the courses its plans use. Without Interviews'
+  // part the search is today's.
   const listed = useMemo(() => coursesWithInterviewsOf(courses, interviews), [courses, interviews]);
   const search = useMemo(
-    () => coursesSearchOf(listed, lessons, query, courseCompanyUsesOf(interviews, query, listed)),
+    () =>
+      coursesSearchOf(listed, lessons, query, interviews ? courseCompanyUsesOf(interviews, query, listed) : undefined),
     [listed, lessons, query, interviews],
   );
   const companyOf = useMemo(() => sectionCompaniesOf(interviews), [interviews]);
@@ -293,8 +295,11 @@ export function CoursesView({
           {search.sections.map((section) => {
             const id = SECTION_IDS[section.kind];
             const shown =
-              section.kind === 'INTERVIEWS' && !allInterviews
-                ? interviewsSectionShownOf(section.found, interviews, { searched: search.query !== '' })
+              section.kind === 'INTERVIEWS'
+                ? interviewsSectionShownOf(section.found, interviews, {
+                    searched: search.query !== '',
+                    all: allInterviews,
+                  })
                 : section.found;
             const hidden = section.found.length - shown.length;
             return (

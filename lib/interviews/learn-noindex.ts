@@ -14,9 +14,19 @@ type SectionOf = { kind?: string; section?: string | null };
 export const isInterviewsSectionCourse = (course: SectionOf | null | undefined): boolean =>
   !!course && (course.section === 'INTERVIEWS' || course.kind === 'COMPANY');
 
-/** A page of such a course, or one of its lessons: `noindex, nofollow` while Interviews is not open to everyone. */
-export function withInterviewsSectionNoindex(metadata: Metadata, course: SectionOf | null | undefined): Metadata {
-  return !INTERVIEWS_OPEN_TO_EVERYONE && isInterviewsSectionCourse(course)
+/** A course whose read failed: its section is not known. */
+export const COURSE_NOT_READ: 'not read' = 'not read';
+
+/**
+ * A page of such a course, or one of its lessons: `noindex, nofollow` while Interviews is not open to everyone. A
+ * course not read (`COURSE_NOT_READ`) might be of the section, so its page is not indexed while closed either.
+ */
+export function withInterviewsSectionNoindex(
+  metadata: Metadata,
+  course: SectionOf | typeof COURSE_NOT_READ | null | undefined,
+): Metadata {
+  if (INTERVIEWS_OPEN_TO_EVERYONE) return metadata;
+  return course === COURSE_NOT_READ || isInterviewsSectionCourse(course)
     ? { ...metadata, robots: { index: false, follow: false } }
     : metadata;
 }

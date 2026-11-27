@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { INTERVIEWS_OPEN_TO_EVERYONE } from './interviews-parts';
-import { isInterviewsSectionCourse, withInterviewsSectionNoindex } from './learn-noindex';
+import { COURSE_NOT_READ, isInterviewsSectionCourse, withInterviewsSectionNoindex } from './learn-noindex';
 
 describe("Learn's courses of the section Interviews and search engines", () => {
   const metadata = { title: 'Interview skills', alternates: { canonical: '/learn/courses/interview-skills' } };
@@ -23,5 +23,12 @@ describe("Learn's courses of the section Interviews and search engines", () => {
     });
     expect(withInterviewsSectionNoindex(metadata, { kind: 'TOPIC', section: null })).toBe(metadata);
     expect(withInterviewsSectionNoindex(metadata, undefined)).toBe(metadata);
+  });
+
+  it('a course not read might be of the section: not indexed while closed', () => {
+    expect(withInterviewsSectionNoindex(metadata, COURSE_NOT_READ)).toEqual({
+      ...metadata,
+      robots: { index: false, follow: false },
+    });
   });
 });

@@ -103,11 +103,12 @@ export const INTERVIEWS_SECTION_SHOWN_UP_TO = 12;
 /**
  * The courses the section Interviews shows. With a search, or up to 12 courses: every one. Else the courses of no
  * company (Interview skills), then those of the top five companies in their order; the rest wait for the button.
+ * `all`, once the button is pressed: the same courses first, where they were, then the rest in the answer's order.
  */
 export function interviewsSectionShownOf(
   found: readonly FoundCourse[],
   interviews: CoursesInterviews | null,
-  { searched }: { searched: boolean },
+  { searched, all = false }: { searched: boolean; all?: boolean },
 ): readonly FoundCourse[] {
   if (searched || found.length <= INTERVIEWS_SECTION_SHOWN_UP_TO || !interviews) return found;
   const companyOf = sectionCompaniesOf(interviews);
@@ -115,5 +116,8 @@ export function interviewsSectionShownOf(
   const top = interviews.top.flatMap((company) =>
     found.filter(({ course }) => companyOf.get(course.slug)?.slug === company.slug),
   );
-  return [...general, ...top];
+  const first = [...general, ...top];
+  if (!all) return first;
+  const shown = new Set(first);
+  return [...first, ...found.filter((course) => !shown.has(course))];
 }

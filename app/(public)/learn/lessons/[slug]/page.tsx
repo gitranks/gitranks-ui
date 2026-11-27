@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { LessonScreen } from '@/components/learn/lesson/lesson-screen';
-import { withInterviewsSectionNoindex } from '@/lib/interviews/learn-noindex';
+import { COURSE_NOT_READ, withInterviewsSectionNoindex } from '@/lib/interviews/learn-noindex';
 import { loadLearnCourse } from '@/lib/learn/course.data';
 import { loadLearnLessonPage } from '@/lib/learn/lesson-page.data';
 import { loadMergedFixes } from '@/lib/learn/real-issues.data';
@@ -23,8 +23,9 @@ export async function generateMetadata({
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const ours = await loadLearnLessonPage(slug);
   if (!ours) return {};
-  // A lesson of the section Interviews is not indexed while Interviews is closed: its course says so.
-  const course = await loadLearnCourse(ours.lesson.course.slug).catch(() => null);
+  // A lesson of the section Interviews is not indexed while Interviews is closed: its course says so (not read: not
+  // indexed while closed either).
+  const course = await loadLearnCourse(ours.lesson.course.slug).catch(() => COURSE_NOT_READ);
   // A shared fact's link (`?fact`) shows the fact's own preview.
   return withInterviewsSectionNoindex(learnLessonMetadata(ours.lesson, { fact: query.fact !== undefined }), course);
 }

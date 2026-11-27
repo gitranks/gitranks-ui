@@ -15,9 +15,9 @@ import {
   ReviewVisitor,
 } from './review-parts';
 import { useEnter, useFocusOnShow } from '@/components/learn/player/use-page-keys';
-import { useLearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { PlayerRunEnd } from '@/components/workspace/player/player-strip';
 import { usePlayer } from '@/components/workspace/player/use-player';
+import { useLearnAnswer } from '@/components/workspace/question/use-learn-answer';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { LearnLessonLink } from '@/lib/learn/lesson-page';
 import { learnReviewMinePath, learnReviewPath } from '@/lib/learn/paths';

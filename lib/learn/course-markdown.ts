@@ -12,7 +12,6 @@ import {
   lessonsWords,
 } from './course';
 import { courseCardSubOf } from './course-share-card';
-import { languageNameOf } from './learn-question';
 import {
   courseHrefOf,
   courseMarkdownHrefOf,
@@ -32,6 +31,7 @@ import {
   projectOpenIssuesWordsOf,
 } from './project-course';
 import { absoluteUrl } from '@/lib/seo/site';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
  * The Markdown copies of a course and of all courses, for agents: what the pages show everyone, in their order, each

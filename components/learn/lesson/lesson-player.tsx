@@ -7,16 +7,13 @@ import { InsightsPanel } from './insights-panel';
 import { LessonFeedback } from './lesson-feedback';
 import { LessonStripEnd } from './lesson-strip-end';
 import { lessonPlace } from '@/components/learn/player/places';
-import { AnswerPart } from '@/components/learn/question/answer-part';
-import { QuestionPart } from '@/components/learn/question/question-part';
-import { useLearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { useHydrated } from '@/components/pulse/use-hydrated';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/workspace/kbd';
 import { type PlayerCrumb, PlayerStrip } from '@/components/workspace/player/player-strip';
-import type { HighlightedCode } from '@/lib/learn/code-tokens';
-import type { LearnAnswerState } from '@/lib/learn/learn-answer';
-import type { LearnPicked } from '@/lib/learn/learn-question';
+import { AnswerPart } from '@/components/workspace/question/answer-part';
+import { QuestionPart } from '@/components/workspace/question/question-part';
+import { useLearnAnswer } from '@/components/workspace/question/use-learn-answer';
 import {
   deeperOf,
   depthLineOf,
@@ -37,6 +34,9 @@ import {
 import { courseHrefOf, LEARN_HOME_PATH, learnFactPath } from '@/lib/learn/paths';
 import { FIX_A_REAL_ISSUE, FIX_ON_ITS_WAY_TAIL, fixOnItsWay, type LessonReal } from '@/lib/learn/real-issues';
 import { useExampleLanguage } from '@/lib/learn/use-example-language';
+import type { HighlightedCode } from '@/lib/workspace/code-tokens';
+import type { LearnAnswerState } from '@/lib/workspace/learn-answer';
+import type { LearnPicked } from '@/lib/workspace/learn-question';
 import { issuePageHrefOf } from '@/lib/workspace/masked-issue';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';
 

@@ -1,7 +1,7 @@
-import { CodeBox } from './code-lines';
-import type { HighlightedCode } from '@/lib/learn/code-tokens';
+import { CodeBox } from '@/components/workspace/blocks/code-lines';
 import type { LearnCodeSource } from '@/lib/learn/lesson-page';
 import { quoteFileWordsOf, quoteLineOf, quoteUrlOf } from '@/lib/learn/project-course';
+import type { HighlightedCode } from '@/lib/workspace/code-tokens';
 
 /**
  * A quote of a project's own code in a lesson: the file and its lines as a link to that exact version on GitHub, the

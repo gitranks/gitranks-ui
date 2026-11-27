@@ -1,12 +1,12 @@
 import 'server-only';
 
-import { plainCodeOf } from './code-tokens';
-import { highlightCodes } from './highlight';
 import { isContentSlug } from './paths';
 import type { ReviewNext, ReviewSide } from './review';
 import { LearnCourseNextDocument, LearnHomeNextDocument, LearnReviewDocument } from './review.documents';
 import { loadLearnMainLanguage } from './setup.data';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import { plainCodeOf } from '@/lib/workspace/code-tokens';
+import { highlightCodes } from '@/lib/workspace/highlight';
 
 /*
  * The signed-in person's review, read for them alone and never kept: today's set with each question's code highlighted

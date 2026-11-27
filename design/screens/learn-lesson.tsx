@@ -76,7 +76,7 @@ const SOURCES = [
   'components/learn/lesson/lesson-strip-end.tsx',
   'components/learn/lesson/insights-panel.tsx',
   'components/learn/lesson/lesson-feedback.tsx',
-  'components/learn/question/question-part.tsx',
+  'components/workspace/question/question-part.tsx',
   'lib/learn/lesson-page.ts',
 ];
 

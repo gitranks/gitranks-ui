@@ -1,5 +1,5 @@
-import type { HighlightedCode } from '../code-tokens';
-import type { LearnQuestion } from '../learn-question';
+import type { HighlightedCode } from '@/lib/workspace/code-tokens';
+import type { LearnQuestion } from '@/lib/workspace/learn-question';
 
 /*
  * The player's fixtures: code as the server highlights it (GitHub's light and dark themes), a review question with the

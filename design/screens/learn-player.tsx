@@ -14,9 +14,6 @@ import {
   KnownSheet,
 } from '@/components/learn/check/check-parts';
 import { lessonPlace } from '@/components/learn/player/places';
-import { AnswerPart } from '@/components/learn/question/answer-part';
-import { QuestionPart } from '@/components/learn/question/question-part';
-import type { LearnAnswer } from '@/components/learn/question/use-learn-answer';
 import {
   ReviewCard,
   ReviewEmpty,
@@ -29,6 +26,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { VisualBlock } from '@/components/workspace/blocks/visual-block';
 import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/workspace/player/player-strip';
+import { AnswerPart } from '@/components/workspace/question/answer-part';
+import { QuestionPart } from '@/components/workspace/question/question-part';
+import type { LearnAnswer } from '@/components/workspace/question/use-learn-answer';
 import {
   checkResult,
   checkResultAll,
@@ -38,7 +38,6 @@ import {
   knownSinceMine,
 } from '@/lib/learn/__fixtures__/check';
 import { algorithmsCourse } from '@/lib/learn/__fixtures__/course';
-import { answerAfter, checkQuestion, pickLineQuestion } from '@/lib/learn/__fixtures__/learn-question';
 import {
   compareVisual,
   diagramVisual,
@@ -71,10 +70,11 @@ import {
   startOf,
   tickedFirstOf,
 } from '@/lib/learn/check';
-import { canSendOf, type LearnAnswerAction } from '@/lib/learn/learn-answer';
-import type { LearnQuestion } from '@/lib/learn/learn-question';
 import type { LearnLessonLink } from '@/lib/learn/lesson-page';
 import type { LearnReviewChange } from '@/lib/learn/review';
+import { answerAfter, checkQuestion, pickLineQuestion } from '@/lib/workspace/__fixtures__/learn-question';
+import { canSendOf, type LearnAnswerAction } from '@/lib/workspace/learn-answer';
+import type { LearnQuestion } from '@/lib/workspace/learn-question';
 import { type PlayerRun, runWordsOf, squaresOf } from '@/lib/workspace/player';
 
 const noop = () => {};
@@ -304,10 +304,10 @@ export const LEARN_PLAYER_SCREEN: Screen = {
     'lib/learn/check.ts',
     'lib/learn/review.ts',
     'components/learn/blocks/example-block.tsx',
-    'components/learn/blocks/code-lines.tsx',
+    'components/workspace/blocks/code-lines.tsx',
     'components/workspace/blocks/visual-block.tsx',
     'lib/workspace/player.ts',
-    'lib/learn/highlight.ts',
+    'lib/workspace/highlight.ts',
     'lib/workspace/blocks/learn-visual.ts',
   ],
   states: [

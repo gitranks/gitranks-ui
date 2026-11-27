@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { answerAfter } from './__fixtures__/learn-question';
 import { octocatAnswers, walkthrough, walkthroughParts } from './__fixtures__/walkthrough';
-import { answerStartOf } from './learn-answer';
 import {
   isLearnFixRemovedPath,
   learnFixAnswersByAttemptPath,
@@ -29,6 +27,8 @@ import {
   walkthroughBlockOf,
   walkthroughOf,
 } from './walkthrough';
+import { answerAfter } from '@/lib/workspace/__fixtures__/learn-question';
+import { answerStartOf } from '@/lib/workspace/learn-answer';
 
 const PR = { nameWithOwner: 'acme/widgets', number: 57 };
 

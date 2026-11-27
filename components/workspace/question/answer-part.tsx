@@ -9,8 +9,9 @@ import { type LearnAnswer, PICKER } from './use-learn-answer';
 import { Button } from '@/components/ui/button';
 import { RichText } from '@/components/workspace/blocks/rich-text';
 import { Kbd } from '@/components/workspace/kbd';
-import type { HighlightedCode } from '@/lib/learn/code-tokens';
-import { type LearnAnswerState, pickCountOf } from '@/lib/learn/learn-answer';
+import { cn } from '@/lib/utils';
+import type { HighlightedCode } from '@/lib/workspace/code-tokens';
+import { type LearnAnswerState, pickCountOf } from '@/lib/workspace/learn-answer';
 import {
   againNoteOf,
   EXTRA_NOTE,
@@ -25,8 +26,7 @@ import {
   orderItemsOf,
   QUESTION_TYPE_LABELS,
   rightOf,
-} from '@/lib/learn/learn-question';
-import { cn } from '@/lib/utils';
+} from '@/lib/workspace/learn-question';
 import { useKeyHints } from '@/lib/workspace/use-key-hints';
 
 /** What differs between the places that ask: the extra choice, whether a verdict shows, the button's words. */

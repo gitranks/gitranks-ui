@@ -13,8 +13,8 @@ import {
   pickAllQuestion,
   pickLineQuestion,
   pickOneQuestion,
-} from '@/lib/learn/__fixtures__/learn-question';
-import type { LearnQuestion } from '@/lib/learn/learn-question';
+} from '@/lib/workspace/__fixtures__/learn-question';
+import type { LearnQuestion } from '@/lib/workspace/learn-question';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

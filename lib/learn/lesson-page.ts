@@ -1,6 +1,12 @@
-import type { HighlightedCode } from './code-tokens';
-import { answerStartOf, type LearnAnswerState } from './learn-answer';
-import { codeOf, type LearnCode, type LearnPicked, type LearnQuestion, verdictOf } from './learn-question';
+import type { HighlightedCode } from '@/lib/workspace/code-tokens';
+import { answerStartOf, type LearnAnswerState } from '@/lib/workspace/learn-answer';
+import {
+  codeOf,
+  type LearnCode,
+  type LearnPicked,
+  type LearnQuestion,
+  verdictOf,
+} from '@/lib/workspace/learn-question';
 
 /**
  * A lesson's page: the lesson as the API gives it, the person's side of it, its place in its group, and the rules the

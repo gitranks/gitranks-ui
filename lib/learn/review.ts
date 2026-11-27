@@ -1,8 +1,8 @@
-import type { HighlightedCode } from './code-tokens';
-import type { LearnQuestion } from './learn-question';
 import type { LessonAnswerInput } from './lesson-answer-input';
 import { isLanguageKey, pickedOf } from './lesson-answer-input';
 import type { LearnLessonLink } from './lesson-page';
+import type { HighlightedCode } from '@/lib/workspace/code-tokens';
+import type { LearnQuestion } from '@/lib/workspace/learn-question';
 
 /*
  * The daily review: the lessons that are due, one question each, no lesson text and the lesson's name hidden

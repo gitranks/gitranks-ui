@@ -1,8 +1,8 @@
 import type { CheckSide, LearnCheckGroup, LearnCheckOutcome } from '../check';
 import type { LearnCourseMine } from '../course';
 import { algorithmsCourse } from './course';
-import { checkQuestion } from './learn-question';
 import { hasDuplicateCodes } from './player';
+import { checkQuestion } from '@/lib/workspace/__fixtures__/learn-question';
 
 /*
  * The check's fixtures, as the design catalogue draws them: the algorithms course's run of nine questions, and its

@@ -2,8 +2,8 @@ import type { Route } from 'next';
 
 import type { LearnCourseProject } from './course';
 import { issuesCountTextOf } from './issues';
-import { languageNameOf } from './learn-question';
 import type { LearnCodeSource } from './lesson-page';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
  * A project course's own parts, pure: the line of facts with its links, who wrote it and when it was last checked

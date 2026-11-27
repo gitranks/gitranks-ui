@@ -1,9 +1,9 @@
 import type { LearnActionError } from './learn-action';
-import { languageNameOf } from './learn-question';
 import { LEARN_DEFAULT_TIME_ZONE } from './my-progress';
 import { LEARN_SETUP_PATH } from './paths';
 import { type LearnSetupRead, SETUP_LEVELS, valuesOfRead } from './setup';
 import { zoneCityOf } from '@/lib/workspace/email-settings';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
  * Learn's rows of Settings: "Languages and level" under Learn preferences, and in Email the switch "Lessons

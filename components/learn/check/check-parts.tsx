@@ -4,13 +4,13 @@ import { Check, ChevronDown, Minus } from 'lucide-react';
 import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { type KeyboardEvent, type ReactNode, type Ref, useId } from 'react';
 
-import { LiveStatus } from '@/components/learn/player/live-status';
 import { checkPlace } from '@/components/learn/player/places';
-import { AnswerPart } from '@/components/learn/question/answer-part';
-import type { LearnAnswer } from '@/components/learn/question/use-learn-answer';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/workspace/kbd';
+import { LiveStatus } from '@/components/workspace/player/live-status';
 import { type PlayerCrumb, PlayerRunEnd, PlayerStrip } from '@/components/workspace/player/player-strip';
+import { AnswerPart } from '@/components/workspace/question/answer-part';
+import type { LearnAnswer } from '@/components/workspace/question/use-learn-answer';
 import {
   type CheckQuestionShown,
   checkResultWordsOf,

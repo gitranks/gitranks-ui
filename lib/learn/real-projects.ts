@@ -1,6 +1,6 @@
-import { languageNameOf } from './learn-question';
 import { myWalkthroughsOf } from './my-progress-fixes';
 import { LEARN_MY_WALKTHROUGHS_MINE_PATH } from './paths';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
  * A lesson in real projects: the lesson's open issues and the merged fixes that used it, two groups always in

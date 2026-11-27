@@ -5,7 +5,6 @@ import type { ReactNode, Ref } from 'react';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/workspace/kbd';
 import type { LearnActionError } from '@/lib/learn/learn-action';
-import { languageNameOf } from '@/lib/learn/learn-question';
 import { LEARN_PREFERENCES_PATH } from '@/lib/learn/paths';
 import {
   levelHintOf,
@@ -22,6 +21,7 @@ import {
   setupPillOf,
 } from '@/lib/learn/setup';
 import { cn } from '@/lib/utils';
+import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
  * Set up Learn as the design catalogue draws it, from plain data: the three fields with their notes, the save, and the

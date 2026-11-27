@@ -36,8 +36,15 @@
 // | components/build/doors-gate (the doors  | itself, components/build/, lib/workspace/; the rest of Build's code is  |
 // |   into Build on Learn's and Contribute's|   fetched with import() only once Build is open to the viewer           |
 // |   pages)                                |                                                                         |
+// | lib/interviews/ (Interviews)            | itself, lib/workspace/                                                  |
+// | components/interviews/                  | itself, lib/interviews/, components/workspace/ (not its pull-request/   |
+// |                                         |   folder), lib/workspace/                                               |
+// | Interviews' routes (the groups          | themselves, lib/interviews/, components/interviews/,                    |
+// |   (interviews) and (interviews-player), |   components/workspace/ (not its pull-request/ folder), lib/workspace/  |
+// |   app/api/me/interviews/)               |                                                                         |
 //
 // Build is a section of its own: nothing of Learn's or Contribute's. What it needs from Learn moved to the shared folders.
+// Interviews is one too, apart from Build as well.
 //
 // Learn's own parts include components/learn/entity/, the Learn card on a project's page. A server action module is
 // one whose file starts with the `'use server'` directive, or one of Learn's modules named `actions` or
@@ -74,8 +81,14 @@ export const ALLOWED = [
 /** Build's routes: its two groups, its start flow inside the flow frame, and its personal API routes. */
 const BUILD_ROUTES = ['app/(build)/', 'app/(build-player)/', 'app/(onboarding)/build/', 'app/api/me/build/'];
 
+/** Interviews' routes: its two groups and its personal API routes. */
+const INTERVIEWS_ROUTES = ['app/(interviews)/', 'app/(interviews-player)/', 'app/api/me/interviews/'];
+
 /** The folder rule's name for a path, or null for a site-wide module every folder may import. */
 export function zoneOf(path) {
+  if (path.startsWith('lib/interviews/')) return 'lib/interviews';
+  if (path.startsWith('components/interviews/')) return 'components/interviews';
+  if (INTERVIEWS_ROUTES.some((dir) => path.startsWith(dir))) return 'app/interviews';
   if (path.startsWith('lib/build/')) return 'lib/build';
   if (path.startsWith('components/build/doors-gate')) return 'components/build/doors-gate';
   if (path.startsWith('components/build/')) return 'components/build';
@@ -123,6 +136,9 @@ const MAY_IMPORT = {
   // the rest of Build's code with `import()` only once Build is open to the viewer.
   'components/build/doors-gate': ['components/build/doors-gate', 'components/build', 'lib/workspace'],
   'app/build': ['app/build', 'lib/build', 'components/build', 'components/build/doors-gate', 'components/workspace', 'lib/workspace'],
+  'lib/interviews': ['lib/interviews', 'lib/workspace'],
+  'components/interviews': ['components/interviews', 'lib/interviews', 'components/workspace', 'lib/workspace'],
+  'app/interviews': ['app/interviews', 'lib/interviews', 'components/interviews', 'components/workspace', 'lib/workspace'],
   'lib/auth': ['lib/auth', 'lib/workspace'],
   'components/workspace': ['components/workspace', 'components/workspace/pull-request', 'components/build/doors-gate', 'lib/workspace'],
   'components/workspace/pull-request': [

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
-import { INTERVIEWS_OPEN_TO_EVERYONE, INTERVIEWS_PRIVACY_UPDATED } from './interviews-open';
+import { INTERVIEWS_OPEN_TO_EVERYONE } from './interviews-open';
+import { privacyUpdated } from './privacy-updated';
 import { TermsRulesLink } from './terms-rules-link';
 import { A, B, LegalPage, type LegalSection, List, P } from '@/components/legal/legal-page';
 import { CONTACT_EMAIL, OPERATOR_ADDRESS, OPERATOR_NAME } from '@/lib/legal';
@@ -610,13 +611,8 @@ const sections: LegalSection[] = [
   },
 ];
 
-/** The day the Privacy policy last changed (YYYY-MM-DD). */
-const PRIVACY_UPDATED = '2026-11-25';
-
 export default function Privacy() {
   // Interviews' section waits until Interviews is open to everyone; the page stays today's, byte for byte, till then.
   const shown = INTERVIEWS_OPEN_TO_EVERYONE ? sections : sections.filter((section) => section.id !== 'interviews');
-  const updated =
-    INTERVIEWS_OPEN_TO_EVERYONE && INTERVIEWS_PRIVACY_UPDATED ? INTERVIEWS_PRIVACY_UPDATED : PRIVACY_UPDATED;
-  return <LegalPage title="Privacy policy" sections={shown} updated={updated} />;
+  return <LegalPage title="Privacy policy" sections={shown} updated={privacyUpdated(INTERVIEWS_OPEN_TO_EVERYONE)} />;
 }

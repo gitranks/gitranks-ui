@@ -1,22 +1,28 @@
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { legalDate } from '@/lib/legal';
 
 vi.mock('@/components/header/header', () => ({ Header: () => null }));
 vi.mock('@/lib/workspace/preview-gate', () => ({ contributeShown: vi.fn(async () => false) }));
 
-// Whether Interviews is open to everyone, and the day its section first shows: flipped here to draw both cases.
-const open = vi.hoisted(() => ({ everyone: false, updated: null as string | null }));
+// Whether Interviews is open to everyone: flipped here to draw both cases.
+const open = vi.hoisted(() => ({ everyone: false }));
 vi.mock('./interviews-open', () => ({
   get INTERVIEWS_OPEN_TO_EVERYONE() {
     return open.everyone;
   },
-  get INTERVIEWS_PRIVACY_UPDATED() {
-    return open.updated;
-  },
 }));
 
 const { default: Privacy } = await import('./page');
+const { INTERVIEWS_PRIVACY_UPDATED, PRIVACY_UPDATED, privacyUpdated } = await import('./privacy-updated');
 const real = await vi.importActual<typeof import('./interviews-open')>('./interviews-open');
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 
 const text = (html: string) =>
   html
@@ -32,20 +38,18 @@ const PARAGRAPH =
 describe("the Privacy policy's GitRanks Interviews section", () => {
   afterEach(() => {
     open.everyone = false;
-    open.updated = null;
   });
 
-  it('is not on the page, nor in its contents, while Interviews is closed, and the date stays', () => {
+  it("is not on the page, nor in its contents, while Interviews is closed, and the date is the policy's own", () => {
     const html = renderToStaticMarkup(<Privacy />);
     expect(html).not.toContain('id="interviews"');
     expect(html).not.toContain('href="#interviews"');
     expect(text(html)).not.toContain('Interviews');
-    expect(text(html)).toContain('Last updated 25 November 2026');
+    expect(text(html)).toContain(`Last updated ${legalDate(PRIVACY_UPDATED)}`);
   });
 
-  it('shows once Interviews is open to everyone, after Learn, with its day as the last update', () => {
+  it('shows once Interviews is open to everyone, between Learn and Following a package', () => {
     open.everyone = true;
-    open.updated = '2026-12-01';
     const html = renderToStaticMarkup(<Privacy />);
     const plain = text(html);
     expect(html).toContain('id="interviews"');
@@ -54,21 +58,40 @@ describe("the Privacy policy's GitRanks Interviews section", () => {
     expect(html.indexOf('id="interviews"')).toBeLessThan(html.indexOf('id="following"'));
     expect(plain).toContain(PARAGRAPH);
     expect(html).toContain('href="#removal"');
-    expect(plain).toContain('Last updated 1 December 2026');
+    expect(plain).toContain(`Last updated ${legalDate(privacyUpdated(true))}`);
   });
 
   it('says the plans are not publicly visible and never that we do not share them', () => {
     open.everyone = true;
     const plain = text(renderToStaticMarkup(<Privacy />));
-    const section = plain.slice(
-      plain.indexOf('GitRanks Interviews sets out'),
-      plain.indexOf('Following a package', plain.indexOf('GitRanks Interviews sets out')),
-    );
+    const start = plain.indexOf('GitRanks Interviews sets out');
+    const section = plain.slice(start, plain.indexOf('Following a package', start));
     expect(section).toContain('Your interview plans are not publicly visible.');
     expect(section).not.toMatch(/never share|not share|don't share|do not share|claim|\u2014|\u2013/i);
   });
+});
 
-  it('has a day for its last update whenever it is open', () => {
-    if (real.INTERVIEWS_OPEN_TO_EVERYONE) expect(real.INTERVIEWS_PRIVACY_UPDATED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+describe("the policy's last updated day", () => {
+  it("is the policy's own while the Interviews section is hidden, whatever day it has", () => {
+    expect(privacyUpdated(false, '2026-11-25', '2026-12-01')).toBe('2026-11-25');
+  });
+
+  it('is the later of the two once the section shows', () => {
+    expect(privacyUpdated(true, '2026-11-25', '2026-12-01')).toBe('2026-12-01');
+    expect(privacyUpdated(true, '2027-01-10', '2026-12-01')).toBe('2027-01-10');
+    expect(privacyUpdated(true, '2026-11-25', null)).toBe('2026-11-25');
+  });
+
+  it('has a day for the Interviews section whenever it shows', () => {
+    if (real.INTERVIEWS_OPEN_TO_EVERYONE) expect(INTERVIEWS_PRIVACY_UPDATED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('the switch the section waits for', () => {
+  it("is Interviews' own constant once that is on main, not a second copy here", () => {
+    // When `lib/interviews/interviews-parts.ts` is in the tree, the page imports its constant and this file goes.
+    if (existsSync(join(ROOT, 'lib/interviews/interviews-parts.ts'))) {
+      expect(existsSync(join(ROOT, 'app/privacy/interviews-open.ts'))).toBe(false);
+    }
   });
 });

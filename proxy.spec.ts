@@ -73,9 +73,14 @@ const { buildGate } = vi.hoisted(() => ({
   buildGate: vi.fn(async (_req: unknown, _now: number): Promise<'everyone' | 'person' | 'closed'> => 'closed'),
 }));
 vi.mock('./lib/build/build-gate', () => ({ buildGateOf: buildGate }));
+const { interviewsGate } = vi.hoisted(() => ({
+  interviewsGate: vi.fn(async (_req: unknown, _now: number): Promise<'everyone' | 'person' | 'closed'> => 'closed'),
+}));
+vi.mock('./lib/interviews/interviews-gate', () => ({ interviewsGateOf: interviewsGate }));
 
 const {
   BUILD_NOINDEX,
+  INTERVIEWS_NOINDEX,
   default: proxy,
   config,
   ENTITY_PAGE_CACHE_CONTROL,
@@ -121,6 +126,8 @@ describe('proxy', () => {
     sessionRead.ok = true;
     buildGate.mockReset();
     buildGate.mockResolvedValue('closed');
+    interviewsGate.mockReset();
+    interviewsGate.mockResolvedValue('closed');
   });
 
   describe('packages', () => {
@@ -1594,6 +1601,89 @@ describe('proxy', () => {
         expect(isNotFound(response)).toBe(false);
         expect(response?.headers.get('x-robots-tag')).toBeNull();
       }
+    });
+  });
+
+  describe('Interviews', () => {
+    const SIGNED_IN = 'authjs.session-token=t';
+    const INTERVIEWS_PATHS = [
+      '/interviews',
+      '/interviews/',
+      '/interviews.md',
+      '/interviews/about',
+      '/interviews/mine',
+      '/interviews/northwind',
+      '/interviews/northwind/senior-software-engineer',
+      '/interviews/northwind/senior-software-engineer/next?after=algorithms%2Fgraphs',
+      '/interviews/northwind/logo-64.png',
+      '/interviews/northwind/logo-128.png',
+      '/interviews/card.png',
+      '/interviews/northwind/senior-software-engineer.md',
+    ];
+    const isNotFound = (response: Awaited<ReturnType<typeof proxy>>) =>
+      response?.headers.get('x-middleware-rewrite')?.endsWith('/_404') ?? false;
+
+    it.each(INTERVIEWS_PATHS)(
+      'answers %s with the 404 to anyone Interviews is not open to, never kept',
+      async (path) => {
+        for (const cookie of [undefined, SIGNED_IN]) {
+          const response = await proxy(request(cookie, path), event);
+          expect(isNotFound(response)).toBe(true);
+          expect(response?.headers.get('cache-control')).toBe('private, no-store');
+          expect(response?.headers.get('set-cookie')).toBeNull();
+        }
+        expect(interviewsGate).toHaveBeenCalledTimes(2);
+        expect(buildGate).not.toHaveBeenCalled();
+        expect(withSession).not.toHaveBeenCalled();
+      },
+    );
+
+    it('closes a page’s other requests too', async () => {
+      const post = new NextRequest('https://gitranks.com/interviews/mine', {
+        method: 'POST',
+        headers: { cookie: SIGNED_IN },
+      });
+      expect(isNotFound(await proxy(post, event))).toBe(true);
+    });
+
+    it('asks nothing on any other address, its personal routes and Learn included', async () => {
+      for (const path of [
+        '/profile/torvalds',
+        '/learn',
+        '/learn/lessons/what-a-graph-is?plan=northwind/senior-software-engineer',
+        '/interviewsx',
+        '/interview',
+        '/api/me/interviews/bar',
+        '/build',
+      ]) {
+        await proxy(request(SIGNED_IN, path), event);
+      }
+      expect(interviewsGate).not.toHaveBeenCalled();
+    });
+
+    it('lets a person Interviews is open to through, and tells search engines not to index the page', async () => {
+      interviewsGate.mockResolvedValue('person');
+      const response = await proxy(request(SIGNED_IN, '/interviews/northwind'), event);
+      expect(isNotFound(response)).toBe(false);
+      expect(withSession).toHaveBeenCalledOnce();
+      expect(response?.headers.get('x-robots-tag')).toBe(INTERVIEWS_NOINDEX);
+      expect(response?.headers.get('cache-control')).toBe('private, no-cache');
+    });
+
+    it('lets everyone through once Interviews is open to everyone, indexed as any page', async () => {
+      interviewsGate.mockResolvedValue('everyone');
+      for (const cookie of [undefined, SIGNED_IN]) {
+        const response = await proxy(request(cookie, '/interviews'), event);
+        expect(isNotFound(response)).toBe(false);
+        expect(response?.headers.get('x-robots-tag')).toBeNull();
+      }
+    });
+
+    it("leaves a logo's own headers to a visitor once Interviews is open to everyone", async () => {
+      interviewsGate.mockResolvedValue('everyone');
+      const response = await proxy(request(undefined, '/interviews/northwind/logo-64.png'), event);
+      expect(isNotFound(response)).toBe(false);
+      expect(response?.headers.get('cache-control')).toBeNull();
     });
   });
 

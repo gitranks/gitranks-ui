@@ -3,6 +3,7 @@ import { revalidateTag } from 'next/cache';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { isBuildTag } from '@/lib/build/paths';
+import { isInterviewsTag } from '@/lib/interviews/paths';
 import { isLearnTag, learnFixTagOf } from '@/lib/learn/paths';
 import { packageCacheTag } from '@/lib/packages/package-paths';
 import { ALL_REGISTRY_IDS, isRegistryRow, type RegistryId, registryOf } from '@/lib/packages/registries';
@@ -41,6 +42,7 @@ const isTag = (tag: unknown) =>
     PACKAGE_TAG.test(tag) ||
     isLearnTag(tag) ||
     isBuildTag(tag) ||
+    isInterviewsTag(tag) ||
     isSkillsTag(tag) ||
     PLAIN_TAGS.has(tag));
 
@@ -86,11 +88,12 @@ const isTagList = (value: unknown): value is string[] =>
 
 /**
  * Expires the cached data of repositories, profiles, packages, Learn's courses, lessons, fixes and project cards, Build's
- * projects and steps, and Skills pages whose data changed, and of the Unsung heroes: `{ tags }`, 1 to `MAX_TAGS` tags
- * of a repository, a profile, a package, a Learn page (`learn:courses`, `learn:course:<slug>`, `learn:lesson:<slug>`,
+ * projects and steps, Interviews' pages, and Skills pages whose data changed, and of the Unsung heroes: `{ tags }`, 1
+ * to `MAX_TAGS` tags of a repository, a profile, a package, a Learn page (`learn:courses`, `learn:course:<slug>`, `learn:lesson:<slug>`,
  * `learn:fixes`, `learn:fix:<owner>/<repo>#<number>`, `learn:entity:repo:<owner>/<name>`, `learn:entity:org:<login>`),
- * a Build page (`build:projects`, `build:project:<slug>`, `build:step:<project>:<step>`), a Skills page
- * (`skills:<login>`), or `unsung-hero`. Only a call signed with
+ * a Build page (`build:projects`, `build:project:<slug>`, `build:step:<project>:<step>`), an Interviews page
+ * (`interviews:home`, `interviews:company:<slug>`, `interviews:plan:<company>:<plan>`, `interviews:courses`,
+ * `interviews:course:<slug>`), a Skills page (`skills:<login>`), or `unsung-hero`. Only a call signed with
  * the internal secret and naming the API as its source is served; a visitor's own refresh goes through
  * `/api/revalidate` instead.
  */
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
   if (!isTagList(tags)) {
     return refuse(
       400,
-      `Expected 1 to ${MAX_TAGS} repository, profile, package, Learn, Build, Skills or Unsung hero tags`,
+      `Expected 1 to ${MAX_TAGS} repository, profile, package, Learn, Build, Interviews, Skills or Unsung hero tags`,
     );
   }
 

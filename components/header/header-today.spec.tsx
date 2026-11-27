@@ -13,6 +13,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 
 const { Header } = await import('./header');
 const { BUILD_OPEN_TO_EVERYONE } = await import('@/lib/build/built-parts');
+const { INTERVIEWS_OPEN_TO_EVERYONE } = await import('@/lib/interviews/interviews-parts');
 
 /*
  * The header as the server renders it while Build is not open to everyone, compared with the header served before
@@ -65,6 +66,14 @@ describe.skipIf(BUILD_OPEN_TO_EVERYONE)('the header served while Build is closed
       const html = markupOf(pathname, header);
       expect(html).not.toContain('/build');
       expect(html).not.toContain('Grow');
+    }
+  });
+
+  it.skipIf(INTERVIEWS_OPEN_TO_EVERYONE)('names nothing of Interviews', () => {
+    for (const [, pathname, header] of CASES) {
+      const html = markupOf(pathname, header);
+      expect(html).not.toContain('/interviews');
+      expect(html).not.toContain('Interviews');
     }
   });
 });

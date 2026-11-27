@@ -142,6 +142,21 @@ describe('POST /api/cache/expire', () => {
     expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
   });
 
+  it("takes Interviews' tags: home, a company, a plan, Learn's Courses and a course, beside the others", async () => {
+    const tags = [
+      'interviews:home',
+      'interviews:company:northwind',
+      'interviews:plan:northwind:senior-software-engineer',
+      'interviews:courses',
+      'interviews:course:algorithms',
+      'build:projects',
+    ];
+    const response = await signed({ tags });
+
+    expect(response.status).toBe(200);
+    expect(revalidateTag.mock.calls.map(([tag]) => tag)).toEqual(tags);
+  });
+
   it("takes the fixes' tags: the list of merged fixes and one fix's, beside the others", async () => {
     const tags = ['learn:fixes', 'learn:fix:octo-labs/scroll.guard#42', 'learn:courses', 'profile:octocat'];
     const response = await signed({ tags });
@@ -263,6 +278,13 @@ describe('POST /api/cache/expire', () => {
     ['a step tag with no step', { tags: ['build:step:mcp-server:'] }],
     ['a step tag of a test', { tags: ['build:step:mcp-server:test'] }],
     ['a step tag with a third part', { tags: ['build:step:mcp-server:list-the-tools:x'] }],
+    ['another kind of Interviews tag', { tags: ['interviews:companies'] }],
+    ['an Interviews tag with no slug', { tags: ['interviews:company:'] }],
+    ['an Interviews tag of a page that is no company', { tags: ['interviews:company:mine'] }],
+    ['a plan tag of the connecting screen', { tags: ['interviews:plan:northwind:next'] }],
+    ['a plan tag with no plan', { tags: ['interviews:plan:northwind:'] }],
+    ['a plan tag with a third part', { tags: ['interviews:plan:northwind:senior-software-engineer:x'] }],
+    ['an Interviews course tag in capitals', { tags: ['interviews:course:Algorithms'] }],
     ['a Learn tag with no slug', { tags: ['learn:course:'] }],
     ['a Learn tag in capitals', { tags: ['learn:lesson:Hash-Sets'] }],
     ['a Learn tag with a doubled hyphen', { tags: ['learn:lesson:hash--sets'] }],

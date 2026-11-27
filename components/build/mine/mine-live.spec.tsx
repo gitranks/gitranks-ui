@@ -42,7 +42,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 /** The two routes: My builds, read in turn from `lists`, and removing a build. */
 function routes({ lists = [mineBoardFull as unknown], remove = json({ ok: true, data: true }) as Response } = {}) {
   let read = 0;
-  fetchMock.mockImplementation(async (path: string, init?: RequestInit) => {
+  fetchMock.mockImplementation(async (path: string) => {
     if (path === '/api/me/build/remove') return remove.clone();
     const mine = lists[Math.min(read++, lists.length - 1)];
     return mine === 'down' ? json({}, 502) : json({ mine });

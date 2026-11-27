@@ -32,6 +32,15 @@ describe('the workspace import rule', () => {
     expect(zoneOf('app/(pr-timeline)/contribute/pr/[owner]/route.ts')).toBeNull();
   });
 
+  it("names Build's folders, its start flow inside the flow frame among them", () => {
+    expect(zoneOf('lib/build/paths.ts')).toBe('lib/build');
+    expect(zoneOf('components/build/bar/build-bar.tsx')).toBe('components/build');
+    expect(zoneOf('app/(build)/layout.tsx')).toBe('app/build');
+    expect(zoneOf('app/(build-player)/build/[project]/[step]/page.tsx')).toBe('app/build');
+    expect(zoneOf('app/(onboarding)/build/start/page.tsx')).toBe('app/build');
+    expect(zoneOf('app/api/me/build/bar/route.ts')).toBe('app/build');
+  });
+
   it("names the shared pages under /my, Approve among them, and the fixer's walkthrough as Learn's", () => {
     expect(zoneOf('app/(workspace)/my/settings/page.tsx')).toBe('app/shared');
     expect(zoneOf('app/(workspace)/my/pull-requests/[owner]/[repo]/[issue]/(latest)/page.tsx')).toBe('app/shared');

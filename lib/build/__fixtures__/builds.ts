@@ -21,6 +21,10 @@ const MCP = { slug: 'mcp-server', name: 'Build an MCP server', thing: 'an MCP se
 const slugsBefore = (number: number) => mcpServerBase.slice(0, number - 1).map((step) => step.slug);
 const allSlugs = mcpServerBase.map((step) => step.slug);
 
+/** Every base step of another project, done: the slugs the boards name first, then one for each step left. */
+const doneOf = (count: number, named: string[] = ['what-you-will-build']) =>
+  Array.from({ length: count }, (_, index) => named[index] ?? `step-${index + 1}`);
+
 /** The first project in TypeScript, at step 9 "Check the input", started two days ago. */
 export const buildInProgress: BuildMine = {
   build: 'b-mcp-ts',
@@ -134,6 +138,7 @@ export const keyValueDatabaseTestLeft: BuildMine = {
   ...keyValueDatabaseInProgress,
   build: 'b-kv-py-test',
   state: { kind: 'test_left' },
+  stepsDone: doneOf(keyValueDatabaseCard.baseSteps, ['what-you-will-build', 'set-and-get', 'keep-it-on-disk']),
 };
 
 /** The web server in TypeScript, built 12 November with 8 of 10; its gold test is open. */
@@ -143,7 +148,7 @@ export const webServerBuilt: BuildMine = {
   language: 'typescript',
   state: { kind: 'built', builtAt: '2026-11-12T16:00:00.000Z', score: 8, gold: { kind: 'open' } },
   lastStepAt: '2026-11-12T15:40:00.000Z',
-  stepsDone: [],
+  stepsDone: doneOf(webServerCard.baseSteps),
   partStep: null,
   partsBuilt: [],
   partsOf: 0,
@@ -162,7 +167,7 @@ export const jsonParserBuiltTs: BuildMine = {
     gold: { kind: 'earned', at: '2026-11-10T12:00:00.000Z' },
   },
   lastStepAt: '2026-11-03T11:30:00.000Z',
-  stepsDone: [],
+  stepsDone: doneOf(jsonParserCard.baseSteps),
   partStep: null,
   partsBuilt: [],
   partsOf: 0,

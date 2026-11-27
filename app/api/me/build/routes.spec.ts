@@ -135,7 +135,7 @@ describe('whether Build is open to the person', () => {
     const get = () => (GET as Route)(new NextRequest(`${URL_BASE}/api/me/build/open`));
     const signedOut = await get();
     expect(await signedOut.json()).toEqual({ open: false });
-    expect(signedOut.headers.get('cache-control')).toBe('private, max-age=60');
+    expect(signedOut.headers.get('cache-control')).toBe('private, no-store');
     expect(graphqlDirect).not.toHaveBeenCalled();
 
     signedIn();

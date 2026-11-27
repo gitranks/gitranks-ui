@@ -4,7 +4,8 @@ vi.mock('server-only', () => ({}));
 const { graphqlDirect } = vi.hoisted(() => ({ graphqlDirect: vi.fn() }));
 vi.mock('@/lib/graphql/graphql-direct', () => ({ graphqlDirect }));
 
-const { BUILD_EVERYONE_TIMEOUT_MS, buildOpenToEveryone, resetBuildOpenToEveryone } = await import('./build-everyone');
+const { BUILD_EVERYONE_RETRY_MS, BUILD_EVERYONE_TIMEOUT_MS, buildOpenToEveryone, resetBuildOpenToEveryone } =
+  await import('./build-everyone');
 
 /** Lets an ask made in the background land. */
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -35,12 +36,15 @@ describe('buildOpenToEveryone', () => {
     expect(await buildOpenToEveryone(60_001)).toBe(false);
   });
 
-  it('is closed while the API does not know the field, and asks again only a minute later', async () => {
+  it('is closed while the API does not know the field, and asks again 10 seconds later', async () => {
     graphqlDirect.mockRejectedValue(new Error('[{"message":"Cannot query field \\"buildOpenToEveryone\\""}]'));
     const error = vi.spyOn(console, 'error');
     expect(await buildOpenToEveryone(0)).toBe(false);
-    expect(await buildOpenToEveryone(59_999)).toBe(false);
+    expect(await buildOpenToEveryone(BUILD_EVERYONE_RETRY_MS - 1)).toBe(false);
     expect(graphqlDirect).toHaveBeenCalledOnce();
+    expect(await buildOpenToEveryone(BUILD_EVERYONE_RETRY_MS)).toBe(false);
+    await settle();
+    expect(graphqlDirect).toHaveBeenCalledTimes(2);
     expect(error).not.toHaveBeenCalled();
     error.mockRestore();
   });
@@ -53,13 +57,31 @@ describe('buildOpenToEveryone', () => {
     }
   });
 
-  it('is closed when the API fails after answering open, once the answer is old', async () => {
+  it('keeps the last real answer through a failed ask, and asks again 10 seconds later', async () => {
     graphqlDirect.mockResolvedValueOnce({ buildOpenToEveryone: true });
     expect(await buildOpenToEveryone(0)).toBe(true);
-    graphqlDirect.mockRejectedValue(new Error('down'));
+    graphqlDirect.mockRejectedValueOnce(new Error('down'));
     expect(await buildOpenToEveryone(60_000)).toBe(true);
     await settle();
-    expect(await buildOpenToEveryone(60_001)).toBe(false);
+    expect(await buildOpenToEveryone(60_001)).toBe(true);
+    expect(await buildOpenToEveryone(60_000 + BUILD_EVERYONE_RETRY_MS - 1)).toBe(true);
+    expect(graphqlDirect).toHaveBeenCalledTimes(2);
+
+    // The next try answers: a real false closes it.
+    graphqlDirect.mockResolvedValueOnce({ buildOpenToEveryone: false });
+    expect(await buildOpenToEveryone(60_000 + BUILD_EVERYONE_RETRY_MS)).toBe(true);
+    await settle();
+    expect(await buildOpenToEveryone(60_000 + BUILD_EVERYONE_RETRY_MS + 1)).toBe(false);
+  });
+
+  it('keeps the last real answer through a slow ask', async () => {
+    graphqlDirect.mockResolvedValueOnce({ buildOpenToEveryone: true });
+    expect(await buildOpenToEveryone(0)).toBe(true);
+    vi.useFakeTimers();
+    graphqlDirect.mockImplementationOnce(() => new Promise(() => {}));
+    expect(await buildOpenToEveryone(60_000)).toBe(true);
+    await vi.advanceTimersByTimeAsync(BUILD_EVERYONE_TIMEOUT_MS);
+    expect(await buildOpenToEveryone(60_001)).toBe(true);
   });
 
   it('answers closed when the API is slow, without waiting past the timeout, and stops the ask', async () => {

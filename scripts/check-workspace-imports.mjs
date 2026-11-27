@@ -30,7 +30,8 @@
 // | components/build/                       | itself, lib/build/, components/workspace/ (not its pull-request/        |
 // |                                         |   folder, which reads Learn), lib/workspace/                            |
 // | Build's routes (the groups (build) and  | themselves, lib/build/, components/build/, components/workspace/ (not   |
-// |   (build-player), app/api/me/build/)    |   its pull-request/ folder), lib/workspace/                             |
+// |   (build-player), app/api/me/build/,    |   its pull-request/ folder), lib/workspace/                             |
+// |   the start flow app/(onboarding)/build)|                                                                         |
 //
 // Build is a section of its own: nothing of Learn's or Contribute's. What it needs from Learn moved to the shared folders.
 //
@@ -66,11 +67,14 @@ export const ALLOWED = [
   'app/(workspace)/my/settings/components/settings-view.tsx -> lib/learn/setup',
 ];
 
+/** Build's routes: its two groups, its start flow inside the flow frame, and its personal API routes. */
+const BUILD_ROUTES = ['app/(build)/', 'app/(build-player)/', 'app/(onboarding)/build/', 'app/api/me/build/'];
+
 /** The folder rule's name for a path, or null for a site-wide module every folder may import. */
 export function zoneOf(path) {
   if (path.startsWith('lib/build/')) return 'lib/build';
   if (path.startsWith('components/build/')) return 'components/build';
-  if (['app/(build)/', 'app/(build-player)/', 'app/api/me/build/'].some((dir) => path.startsWith(dir))) return 'app/build';
+  if (BUILD_ROUTES.some((dir) => path.startsWith(dir))) return 'app/build';
   if (path.startsWith('lib/skills/')) return 'lib/skills';
   if (path.startsWith('components/skills/')) return 'components/skills';
   if (path.startsWith('app/profile/[login]/skills/')) return 'app/skills';

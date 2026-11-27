@@ -3,11 +3,10 @@ import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const path = vi.hoisted(() => ({ current: '/build', from: null as string | null }));
+const path = vi.hoisted(() => ({ current: '/build' }));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => path.current,
-  useSearchParams: () => new URLSearchParams(path.from ? { from: path.from } : {}),
 }));
 vi.mock('next/link', () => ({
   default: ({
@@ -45,7 +44,6 @@ describe("Build's bar", () => {
     root = createRoot(container);
     hint.present = true;
     path.current = '/build';
-    path.from = null;
   });
 
   afterEach(async () => {
@@ -121,14 +119,15 @@ describe("Build's bar", () => {
     expect(tabs()).toEqual(['Home', 'Projects']);
   });
 
-  it('marks Settings when Build opened it', async () => {
+  it('marks Settings only when the page says Build opened it', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => Response.json({ bar: barBuilder })),
     );
     path.current = '/my/settings';
-    path.from = 'build';
     await act(async () => root.render(<BuildBarLive />));
+    expect(current()).toBeNull();
+    await act(async () => root.render(<BuildBarLive from="build" />));
     expect(current()).toBe('Settings');
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import * as builds from './__fixtures__/builds';
 import { buildInProgress, buildPythonSecond, mineFull, projectMineTwo } from './__fixtures__/builds';
 import { mcpServerBase, mcpServerProject, mcpServerSdkPart } from './__fixtures__/project';
 import { buildProjectsFew, buildProjectsMany, mcpServerCard } from './__fixtures__/projects';
@@ -7,6 +8,7 @@ import { listTheToolsStep } from './__fixtures__/step';
 import { failedResult, passedResult, testQuestionsKeyed, testQuestionsKeyless, testRun } from './__fixtures__/test';
 import { buildBarViewOf } from './build-bar';
 import { isBuildProjectSlug, isBuildStepSlug } from './paths';
+import type { BuildMine } from './types';
 import { isKeyed, optionsOf, verdictOf } from '@/lib/workspace/learn-question';
 
 /* The fixtures the pages are built and tested on agree with each other and with the rules, as the API's answers do. */
@@ -49,6 +51,25 @@ describe("Build's fixtures", () => {
     }
     expect([passedResult.right, failedResult.right]).toEqual([9, 6]);
     expect(failedResult.items.filter((item) => item.pick === null)).toHaveLength(1);
+  });
+
+  it('give every build the steps its state says are done', () => {
+    const all = Object.values(builds).filter(
+      (value): value is BuildMine => !!value && typeof value === 'object' && 'build' in value && 'stepsDone' in value,
+    );
+    expect(all.length).toBeGreaterThan(10);
+    for (const build of all) {
+      const card = buildProjectsMany.find((project) => project.slug === build.project.slug);
+      const of = card?.baseSteps;
+      expect(of, build.build).toBeDefined();
+      if (build.state.kind === 'in_progress') {
+        expect(build.state.of, build.build).toBe(of);
+        expect(build.stepsDone, build.build).toHaveLength(build.state.step.number - 1);
+      } else {
+        expect(build.stepsDone, build.build).toHaveLength(of as number);
+      }
+      expect(new Set(build.stepsDone).size, build.build).toBe(build.stepsDone.length);
+    }
   });
 
   it('give a person two builds of one project, touched last first, and a full My builds', () => {

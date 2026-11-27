@@ -61,6 +61,8 @@ const ROUTES = [
     module: () => import('@/app/package/[registry]/[...name]/page'),
     params: ['registry', 'name'],
   },
+  // A Build project, in Build's route group.
+  { segment: 'build/[project]', module: () => import('@/app/(build)/build/[project]/page'), params: ['project'] },
   {
     segment: 'packages/[registry]/[by]/[page]',
     module: () => import('@/app/packages/[registry]/[by]/[page]/layout'),
@@ -94,6 +96,12 @@ describe('routes whose missing pages answer 404', () => {
   it("has no loading.tsx in the repository tabs' route group", () => {
     for (const tab of ['', 'overview', 'used-by', 'contributors']) {
       expect(existsSync(join(APP, 'repo/[owner]/[name]/(tabs)', tab, 'loading.tsx'))).toBe(false);
+    }
+  });
+
+  it("has no loading.tsx in Build's route group, on the way to a project", () => {
+    for (const dir of ['', 'build', 'build/[project]']) {
+      expect(existsSync(join(APP, '(build)', dir, 'loading.tsx'))).toBe(false);
     }
   });
 

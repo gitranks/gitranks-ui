@@ -18,7 +18,7 @@ const INTERVIEWS_FOLDERS = [
   'app/api/me/interviews',
 ];
 const THIS_FILE = 'lib/interviews/interviews-copy.spec.ts';
-/** Interviews' words outside its folders: the header's Grow menu, and its sitemap. */
+/** Interviews' words outside its folders: the header's Grow menu, its sitemap, and its parts on Learn's pages. */
 const INTERVIEWS_FILES = [
   'components/header/components/grow-menu-item.tsx',
   'components/header/components/main-menu.tsx',
@@ -26,6 +26,10 @@ const INTERVIEWS_FILES = [
   'lib/sitemap/interviews-sitemap.spec.ts',
   'app/sitemaps/interviews/sitemap.xml/route.ts',
   'app/sitemaps/interviews/sitemap.xml/route.spec.ts',
+  'lib/learn/course-interviews.ts',
+  'lib/learn/course-interviews.spec.ts',
+  'components/learn/home/learn-home-plan-row.spec.tsx',
+  'components/learn/my-progress/my-progress-plan-row.spec.tsx',
 ];
 
 function filesOf(folder: string): string[] {

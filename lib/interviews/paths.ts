@@ -210,3 +210,9 @@ const PART_KEY = /^(?:[a-z0-9]+(?:-[a-z0-9]+)*)\/(?:[a-z0-9]+(?:-[a-z0-9]+)*)$/;
 /** Whether a value has the shape of a part's key: `<course>/<group>` or `project/<slug>`. */
 export const isInterviewPartKey = (key: unknown): key is string =>
   typeof key === 'string' && key.length <= 2 * SLUG_MAX_LENGTH + 1 && PART_KEY.test(key);
+
+/**
+ * What one Learn course's pages show of Interviews, for the signed-in person (`GET`), while Interviews is not open to
+ * everyone: the course page's line and "Asked at", a company's own course, a lesson's sentence.
+ */
+export const interviewsForCourseMinePath = (course: string) => `/api/me/interviews/learn/${encodeURIComponent(course)}`;

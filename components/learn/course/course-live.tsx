@@ -4,6 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
 import { CourseView } from './course-view';
+import { type ServedCourseInterviews, useCourseInterviews } from '@/components/interviews/learn-gate/course-gate';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { CoursePerson, LearnCourse, LearnCourseCard, LearnCourseMine } from '@/lib/learn/course';
 import { sendLearnCourseFeedbackAction } from '@/lib/learn/course.actions';
@@ -72,15 +73,19 @@ export function CourseLive({
   course,
   others,
   projectIssues = null,
+  interviews: served,
 }: {
   course: LearnCourse;
   others: readonly LearnCourseCard[];
   /** A project course's open issues to fix, read apart from the cached course. */
   projectIssues?: number | null;
+  /** What Interviews shows on the course, served once Interviews is open to everyone; else read in the browser. */
+  interviews?: ServedCourseInterviews;
 }) {
   const [personal, setPersonal] = useState<Personal>({ kind: 'pending' });
   const [openIssues, setOpenIssues] = useState<number | null>(null);
   const { slug } = course;
+  const interviews = useCourseInterviews(slug, served);
 
   useEffect(() => {
     if (!hasSessionHint(document.cookie)) {
@@ -112,6 +117,7 @@ export function CourseLive({
       mainLanguage={side?.mainLanguage ?? null}
       openIssues={side ? openIssues : null}
       projectIssues={projectIssues}
+      interviews={interviews}
       calls={{
         onSignIn: () => {
           signIn(IDENTITY_PROVIDER, { redirectTo: learnSetupHrefOf(courseHrefOf(course)) }).catch(() => {});

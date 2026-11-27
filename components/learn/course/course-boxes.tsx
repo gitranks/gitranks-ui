@@ -19,6 +19,7 @@ import {
   reviewMinutesWords,
   toRepeatWords,
 } from '@/lib/learn/course';
+import { companyPlansButtonOf } from '@/lib/learn/course-interviews';
 import {
   checkPath,
   courseHrefOf,
@@ -321,6 +322,20 @@ function MiddleBox({
       );
     case 'grows':
       return <GrowsBox />;
+    case 'plans':
+      return (
+        <Box lit={false}>
+          <Eyebrow>Preparing for {box.company}?</Eyebrow>
+          <Title>Follow an interview plan</Title>
+          <Text>
+            A plan puts these lessons, and lessons from other courses, in the order of the rounds for your position and
+            level.
+          </Text>
+          <Action lit={false} hints={hints} href={box.href}>
+            {companyPlansButtonOf(box.company, box.plans)}
+          </Action>
+        </Box>
+      );
   }
 }
 

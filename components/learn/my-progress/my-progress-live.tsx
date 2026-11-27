@@ -29,6 +29,7 @@ import {
   ProgressVisitor,
   ViewHead,
 } from './my-progress-parts';
+import { LearnPlanRowLive } from '@/components/interviews/learn-gate/plan-row';
 import { useFocusOnShow } from '@/components/learn/player/use-page-keys';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import {
@@ -316,6 +317,8 @@ export function MyProgressLive({ view, day }: { view: MyProgressView; day: strin
 
   return (
     <main className={MY_PROGRESS_MAIN_CLASS}>
+      {/* The plan to go on with, as on Learn home: for a person with their progress in, and a plan in progress. */}
+      {page.kind === 'ready' ? <LearnPlanRowLive /> : null}
       {page.kind === 'visitor' || page.kind === 'ended' ? (
         <ProgressVisitor ended={page.kind === 'ended'} titleRef={titleRef} onSignIn={signInHere} />
       ) : page.kind === 'failed' ? (

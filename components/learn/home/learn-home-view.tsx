@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { ComponentProps } from 'react';
 
+import { LearnPlanRowLive, type ServedLearnPlans } from '@/components/interviews/learn-gate/plan-row';
 import { useCoursePageKeys } from '@/components/learn/course/use-course-keys';
 import { CourseStats } from '@/components/learn/courses/course-card';
 import { HomeIssuesEmail } from '@/components/learn/home/home-issues-email';
@@ -484,6 +485,11 @@ export type LearnHomeViewProps = {
   reads?: MaskedListReads | null;
   /** The person's Skills page, which the box of a merged fix leads to; none, and that box has no button. */
   skillsHref?: string | null;
+  /**
+   * The person's interview plans in progress, served once Interviews is open to everyone; until then a person it is
+   * open to reads them in the browser. The plan to go on with is a row above the boxes.
+   */
+  plans?: ServedLearnPlans;
 };
 
 /** Learn home, as the person's answer says. */
@@ -496,6 +502,7 @@ export function LearnHomeView({
   real = null,
   reads = null,
   skillsHref = null,
+  plans,
 }: LearnHomeViewProps) {
   const live = useKeyHints();
   const hints = hintsGiven ?? live;
@@ -508,12 +515,19 @@ export function LearnHomeView({
   // (the reviews due, else the next lesson). The open issues never take it.
   const third = real?.box ?? null;
   const highlight = third?.kind === 'fix' && third.state === 'needs-you' ? 'third' : boxes.highlight;
+  // The plan to go on with, close above the boxes: nothing for anyone without one. It sits in the boxes' place, so the
+  // parts after it keep their places in the tree.
+  const planRow = <LearnPlanRowLive {...(plans !== undefined ? { served: plans } : {})} className="-mb-6" />;
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 pt-7 pb-16" data-learn-home="">
       {fresh ? (
-        <FirstCourse home={home} setup={setup} hints={hints} />
+        <>
+          {planRow}
+          <FirstCourse home={home} setup={setup} hints={hints} />
+        </>
       ) : (
         <>
+          {planRow}
           <h1 className="sr-only">Learn home</h1>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-home-boxes="">
             <LessonBox box={boxes.lesson} lit={highlight === 'lesson'} hints={hints} />

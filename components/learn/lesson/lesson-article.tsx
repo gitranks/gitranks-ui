@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { LessonMarkdown } from './lesson-markdown';
 import { ExampleBlock } from '@/components/learn/blocks/example-block';
 import { QuoteBlock } from '@/components/learn/blocks/quote-block';
@@ -9,17 +11,20 @@ export type { HighlightedExample } from '@/lib/learn/lesson-page';
 /**
  * The lesson itself: its one title, then its text with each example and visual where the text places it (the main
  * example after the text when the text places none). A quote of a project's code shows as a quote, in its one
- * language.
+ * language. `end`: a line after the text, the last thing of the article (a sentence about the group's topic in
+ * interviews).
  */
 export function LessonArticle({
   lesson,
   examples,
   mainLanguage,
+  end = null,
 }: {
   lesson: Pick<LearnLesson, 'slug' | 'title' | 'body' | 'visuals'>;
   examples: readonly HighlightedExample[];
   /** The learner's main language, when the page knows it. */
   mainLanguage?: string | null;
+  end?: ReactNode;
 }) {
   const visuals = visualsOf(lesson.visuals);
   const shown = examples.filter((example) => example.codes.length);
@@ -45,6 +50,7 @@ export function LessonArticle({
         }
         return <ExampleBlock key={index} codes={example.codes} main={mainLanguage} />;
       })}
+      {end}
     </article>
   );
 }

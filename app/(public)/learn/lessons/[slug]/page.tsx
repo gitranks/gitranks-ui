@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 
 import { LessonInPlanProvider } from '@/components/interviews/lesson/lesson-in-plan';
 import { LessonScreen } from '@/components/learn/lesson/lesson-screen';
+import { INTERVIEWS_OPEN_TO_EVERYONE } from '@/lib/interviews/interviews-parts';
+import { loadInterviewsForCourse } from '@/lib/interviews/learn.data';
 import { COURSE_NOT_READ, withInterviewsSectionNoindex } from '@/lib/interviews/learn-noindex';
 import { loadLearnCourse } from '@/lib/learn/course.data';
 import { loadLearnLessonPage } from '@/lib/learn/lesson-page.data';
@@ -34,7 +36,9 @@ export async function generateMetadata({
 /**
  * A lesson of a course, open to everyone. Its merged fixes ("In the real world") are drawn for everyone, streamed in
  * after the lesson. Opened from an interview plan (`?plan=`), the same page: the browser asks whether the person's plan
- * holds it, and only then do its strip, its main button and the line under the answer follow the plan.
+ * holds it, and only then do its strip, its main button and the line under the answer follow the plan. The sentence
+ * about its group's topic in interviews is in the page once Interviews is open to everyone; until then a person
+ * Interviews is open to reads it in the browser.
  */
 export default async function LessonPage({ params, searchParams }: PageProps<'/learn/lessons/[slug]'>) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
@@ -44,12 +48,19 @@ export default async function LessonPage({ params, searchParams }: PageProps<'/l
   const ours = await loadLearnLessonPage(slug);
   if (!ours) notFound();
   const { lesson, group } = ours;
+  // The public loader never throws: a failed read is an empty answer, and the lesson has no sentence.
+  const interviews = INTERVIEWS_OPEN_TO_EVERYONE ? await loadInterviewsForCourse(lesson.course.slug) : undefined;
   return (
     <LessonInPlanProvider
       lesson={{ slug: lesson.slug, course: lesson.course.slug, group: lesson.group.slug }}
       titles={group.map(({ slug: one, title }) => ({ slug: one, title }))}
     >
-      <LessonScreen page={ours} openFact={query.fact !== undefined} fixes={fixes} />
+      <LessonScreen
+        page={ours}
+        openFact={query.fact !== undefined}
+        fixes={fixes}
+        {...(interviews ? { interviews } : {})}
+      />
     </LessonInPlanProvider>
   );
 }

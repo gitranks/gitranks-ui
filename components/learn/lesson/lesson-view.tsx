@@ -54,17 +54,21 @@ export type LessonViewProps = {
   held?: boolean;
 };
 
-/** The parts of a lesson's page that render on the server: the lesson, previous and next, and the footer ("In the real world" goes between the last two). */
+/**
+ * The parts of a lesson's page that render on the server: the lesson, previous and next, and the footer ("In the real
+ * world" goes between the last two). `articleEnd`: the last line of the lesson's text, when there is one.
+ */
 export function lessonPartsOf({
   lesson,
   examples,
   group,
   links,
   mainLanguage,
-}: Pick<LessonViewProps, 'lesson' | 'examples' | 'group' | 'links' | 'mainLanguage'>) {
+  articleEnd = null,
+}: Pick<LessonViewProps, 'lesson' | 'examples' | 'group' | 'links' | 'mainLanguage'> & { articleEnd?: ReactNode }) {
   const place = lessonPlaceOf(group, lesson.slug, null);
   return {
-    article: <LessonArticle lesson={lesson} examples={examples} mainLanguage={mainLanguage} />,
+    article: <LessonArticle lesson={lesson} examples={examples} mainLanguage={mainLanguage} end={articleEnd} />,
     more: <LessonNeighbours lesson={lesson} place={place} />,
     footer: <LessonFooter changedAt={lesson.changedAt} links={links} />,
   };

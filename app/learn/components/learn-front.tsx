@@ -6,6 +6,8 @@ import { LearnBar } from '@/components/learn/bar/learn-bar';
 import { LearnBarLive } from '@/components/learn/bar/learn-bar-live';
 import { LearnHomeError, LearnHomeView } from '@/components/learn/home/learn-home-view';
 import { LearnLandingView } from '@/components/learn/landing/learn-landing-view';
+import { INTERVIEWS_OPEN_TO_EVERYONE } from '@/lib/interviews/interviews-parts';
+import { loadInterviewsMyHome } from '@/lib/interviews/my-home.data';
 import { loadLearnCourses } from '@/lib/learn/course.data';
 import { type LearnHomeRead, learnPageOf } from '@/lib/learn/home';
 import { loadLearnHome } from '@/lib/learn/home.data';
@@ -68,8 +70,13 @@ export async function LearnFrontView() {
   const login = await viewerLogin();
   if (!login) return <LoadedLanding viewer="visitor" />;
   // The third box and the "Real issues" rows are read apart, beside the home: none of them (an API without them yet)
-  // draws the home as before.
-  const [{ home, setup, timeZone, page }, real] = await Promise.all([personOf(login), loadHomeReal(login)]);
+  // draws the home as before. The person's interview plans too, once Interviews is open to everyone: until then a
+  // person it is open to reads them in the browser.
+  const [{ home, setup, timeZone, page }, real, plans] = await Promise.all([
+    personOf(login),
+    loadHomeReal(login),
+    INTERVIEWS_OPEN_TO_EVERYONE ? loadInterviewsMyHome(login) : undefined,
+  ]);
   if (page === 'landing') return <LoadedLanding viewer="member" />;
   if (!home) return <LearnHomeError />;
   const reads = real.issues.length ? await loadMaskedListReads().catch(() => null) : null;
@@ -82,6 +89,7 @@ export async function LearnFrontView() {
       real={real}
       reads={reads}
       skillsHref={skillsPath(login)}
+      {...(plans !== undefined ? { plans } : {})}
     />
   );
 }

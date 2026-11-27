@@ -43,9 +43,9 @@ afterEach(() => {
   host.remove();
 });
 
-const draw = (side: Side, project = fixtures.mcpServerFiveParts, openParts?: string[]) =>
+const draw = (side: Side, project = fixtures.mcpServerFiveParts, openParts?: string[], reading = false) =>
   act(async () => {
-    root.render(<ProjectView project={project} side={side} openParts={openParts} />);
+    root.render(<ProjectView project={project} side={side} openParts={openParts} reading={reading} />);
   });
 const person = (mine: Mine, test: Test | null = null): Side => ({ kind: 'person', mine, test });
 
@@ -58,7 +58,11 @@ const linkOf = (text: string) =>
 const buttonOf = (text: string) =>
   [...host.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent?.includes(text));
 const sections = () =>
-  [...host.querySelectorAll('main > section h2, main > section > div > h2')].map((h) => h.textContent);
+  [
+    ...host.querySelectorAll(
+      'main section:not([data-project-box]) > h2, main section:not([data-project-box]) > div > h2',
+    ),
+  ].map((h) => h.textContent);
 const mainButtons = () => box()?.querySelectorAll('[data-slot="button"]') ?? [];
 const marks = (mark: string) => [...host.querySelectorAll(`[data-step-row][data-mark="${mark}"]`)];
 
@@ -91,11 +95,23 @@ describe('the box, in each state', () => {
     expect(boxText()).not.toMatch(/sign in/i);
   });
 
-  it('while the side is on its way: the sentence, and no button that may turn out wrong', async () => {
-    await draw({ kind: 'pending' });
-    expect(boxKind()).toBe('pending');
-    expect(boxText()).toContain('Teach me how to build an MCP server with GitRanks');
-    expect(mainButtons()).toHaveLength(0);
+  it("before the side is known: the visitor's page, whole, held in its place for a browser with a session", async () => {
+    await draw({ kind: 'pending' }, fixtures.mcpServerFiveParts, undefined, true);
+    expect(boxKind()).toBe('connect');
+    expect(linkOf('Connect your agent')).toBeDefined();
+    expect(sections()).toEqual(['What you will have', 'The steps', 'Before you start', 'What you need']);
+    const held = host.querySelector<HTMLElement>('[data-project-held]');
+    expect(held?.getAttribute('aria-busy')).toBe('true');
+    expect(held?.className).toContain('[html[data-has-session]_&]:invisible');
+    expect(held?.className).toContain('[html[data-has-session]_&]:animate-build-reveal');
+    expect(held?.contains(box())).toBe(true);
+    expect(held?.contains(host.querySelector('h1'))).toBe(false);
+  });
+
+  it('once the side is known, nothing is held', async () => {
+    await draw(person(fixtures.mineInProgress));
+    expect(host.querySelector('[data-project-held]')).toBeNull();
+    expect(host.querySelector('[aria-busy]')).toBeNull();
   });
 
   it('2 · signed in, no agent ever connected: the same main button', async () => {
@@ -150,13 +166,13 @@ describe('the box, in each state', () => {
     expect(box()?.querySelector('[data-project-box-quiet]')).toBeNull();
   });
 
-  it('6 · the test not passed: its score, and "Take the test again"', async () => {
+  it('6 · the test not passed: its score, and one link to the answers and the next try', async () => {
     await draw(person(fixtures.mineTestLeft, fixtures.endTestFailedNow));
     expect(boxKind()).toBe('test_failed');
     expect(title()).toBe('The test: 6 of 10 right. 7 are needed');
-    expect(linkOf('Take the test again')?.getAttribute('href')).toBe('/build/mcp-server/test');
-    expect(linkOf('See your answers of last time')).toBeDefined();
+    expect(linkOf('See your answers and try again')?.getAttribute('href')).toBe('/build/mcp-server/test');
     expect(mainButtons()).toHaveLength(1);
+    expect(box()?.querySelectorAll('a')).toHaveLength(1);
   });
 
   it('7 · built, the gold test opens on a date: the date, the score, the marks', async () => {
@@ -197,13 +213,41 @@ describe('the box, in each state', () => {
     expect(box()?.querySelector('code')?.textContent).toBe('Continue my build');
     expect(boxText()).toContain('The gold test opens on 3 Dec.');
     expect(box()?.querySelector('[data-project-chip="parts"]')).toBeNull();
+    expect(mainButtons()).toHaveLength(0);
+  });
+
+  it('10 · in an optional part with the gold test open: the test is the main button, the part under it', async () => {
+    await draw(person(fixtures.mineInPartGoldOpen));
+    expect(mainButtons()).toHaveLength(1);
+    expect(linkOf('Take the gold test')?.getAttribute('href')).toBe('/build/mcp-server/test/gold');
+    expect(boxText()).toContain('Serve it over HTTP: step 3 of 7');
+    expect(box()?.querySelector('code')?.textContent).toBe('Continue my build');
+    const text = boxText();
+    expect(text.indexOf('Take the gold test')).toBeLessThan(text.indexOf('Serve it over HTTP'));
   });
 
   it('11 · two builds: the box is the one touched last, and names the other in one line', async () => {
     await draw(person(fixtures.mineTwoBuilds));
     expect(title()).toBe('Your build is on step 9 of 16');
     expect(host.querySelectorAll('[data-project-box]')).toHaveLength(1);
-    expect(box()?.querySelector('[data-project-other-build]')?.textContent).toBe('Your Python build: step 4 of 16.');
+    expect(box()?.querySelector('[data-project-other-line]')?.textContent).toBe('Your Python build: step 4 of 16.');
+    // The box says the sentence already: not twice.
+    expect(box()?.querySelectorAll('code')).toHaveLength(1);
+  });
+
+  it("two builds, the other's test left: the line leads to that build's test", async () => {
+    await draw(person(fixtures.mineTwoBuildsOtherTestLeft));
+    expect(box()?.querySelector('[data-project-other-line]')?.textContent).toBe(
+      'Your Python build: every step done, the test left. Take its test',
+    );
+    expect(linkOf('Take its test')?.getAttribute('href')).toBe('/build/mcp-server/test?language=python');
+  });
+
+  it('two builds, the one touched last built: the sentence to go on with the other', async () => {
+    await draw(person(fixtures.mineTwoBuildsOneBuilt));
+    const other = box()?.querySelector('[data-project-other-build]');
+    expect(other?.querySelector('code')?.textContent).toBe('Continue my build');
+    expect(other?.textContent).toContain('Your agent goes on with the build that is not finished.');
   });
 
   it("two builds with the test left: the test's address names this build's language", async () => {
@@ -232,6 +276,7 @@ describe('the sections around the box', () => {
   it('a built project adds "What next" right under the box', async () => {
     await draw(person(fixtures.mineBuilt));
     expect(sections()).toEqual(['What next', 'The steps']);
+    expect(linkOf('The code on GitHub')).toBeUndefined();
     const next = host.querySelector('[data-project-next]');
     expect(next?.textContent).toContain('Go on with this project');
     expect(next?.textContent).toContain('Build next');

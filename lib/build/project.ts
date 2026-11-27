@@ -74,9 +74,6 @@ export function projectFactsOf(project: BuildProjectPage): string[] {
 export const startSentenceOf = (project: Pick<BuildProjectPage, 'thing'>): string =>
   `Teach me how to build ${project.thing} with GitRanks`;
 
-/** What a person says in their agent to go on with a build, in any chat, on any machine. */
-export const CONTINUE_SENTENCE = 'Continue my build';
-
 /** A day as the page writes it: "26 Nov". A date alone (`2026-12-03`) is that day. */
 export function dayOf(iso: string): string {
   const at = new Date(iso);

@@ -6,9 +6,9 @@ import type { ReactNode } from 'react';
 import { ProjectSay } from './project-say';
 import { ProjectSquares } from './project-squares';
 import { Button } from '@/components/ui/button';
+import { CONTINUE_SENTENCE } from '@/lib/build/home';
 import { BUILD_ABOUT_PATH, buildStartPath, buildStepPath, buildTestPath } from '@/lib/build/paths';
 import {
-  CONTINUE_SENTENCE,
   dayOf,
   dayYearOf,
   failedTestOf,
@@ -133,18 +133,14 @@ function Chip({ kind, children }: { kind: 'answered' | 'parts' | 'repeated'; chi
   );
 }
 
-/** The box for someone with no build: connect an agent first, or say the sentence once one is connected. */
+/**
+ * The box for someone with no build: connect an agent first, or say the sentence once one is connected. Before the
+ * side is known it is the visitor's box, so a visitor's page is whole from the first paint; a browser with a session
+ * keeps the box hidden in its place until the side is read (the page's `reading`).
+ */
 function StartBox({ project, side }: { project: BuildProjectPage; side: ProjectSide }) {
   const title = 'Build it with your own agent';
   const start = startSentenceOf(project);
-  if (side.kind === 'pending') {
-    // Not known yet whether the reader has an agent: the sentence, and no button that may turn out wrong.
-    return (
-      <Box kind="pending" title={title}>
-        <ProjectSay sentence={start} />
-      </Box>
-    );
-  }
   if (side.kind === 'person' && side.mine.agentConnected) {
     return (
       <Box kind="say" title={title}>
@@ -259,12 +255,12 @@ function TestLeftBox({
         tail={tail}
       >
         <Words>
-          Each wrong answer showed its reason and its step. Take it again when you like. The questions will be
-          different.
+          Each wrong answer has its reason and its step. Look at them, then take the test again when you like. The
+          questions will be different.
         </Words>
+        {/* The test's page opens on the last result, the answers and its own "Take the test again": one link. */}
         <Actions>
-          <Main href={testHref}>Take the test again</Main>
-          <TextLink href={testHref}>See your answers of last time</TextLink>
+          <Main href={testHref}>See your answers and try again</Main>
         </Actions>
       </Box>
     );
@@ -345,6 +341,17 @@ function BuiltBox({
       {chips.length > 0 && <div className="flex flex-wrap items-center gap-2">{chips}</div>}
       {inPart && part && partName ? (
         <>
+          {/* A test that waits is the main button: the part's place and its sentence come under it. */}
+          {gold.kind === 'open' && (
+            <>
+              {goldWords && <Words>{goldWords}</Words>}
+              <Actions>
+                <Main href={goldHref} size="default">
+                  Take the gold test
+                </Main>
+              </Actions>
+            </>
+          )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <span className="text-sm font-medium">
               {partName}: step {inPart.step.number} of {inPart.of}
@@ -352,11 +359,10 @@ function BuiltBox({
             <ProjectSquares squares={squaresOf(part.steps, stepMarksOf(build))} />
           </div>
           <ProjectSay sentence={CONTINUE_SENTENCE} />
-          {gold.kind === 'opens_on' && <Quiet>The gold test opens on {dayOf(gold.date)}.</Quiet>}
-          {gold.kind === 'open' && (
-            <Quiet>
-              The gold test is open. <TextLink href={goldHref}>Take the gold test</TextLink>
-            </Quiet>
+          {gold.kind === 'open' ? (
+            <Quiet>Or keep building first: say this in your agent to go on with the part. The gold test waits.</Quiet>
+          ) : (
+            gold.kind === 'opens_on' && <Quiet>The gold test opens on {dayOf(gold.date)}.</Quiet>
           )}
         </>
       ) : (
@@ -375,17 +381,49 @@ function BuiltBox({
   );
 }
 
+/**
+ * The person's other build of the project, last in the box: where it stands, with a way to its test when one waits,
+ * and the sentence to go on with it when it is the one not finished.
+ */
+function OtherBuild({ project, build, other }: { project: BuildProjectPage; build: BuildMine; other: BuildMine }) {
+  const line = otherBuildLineOf(other);
+  const test =
+    other.state.kind === 'test_left'
+      ? { href: buildTestPath(project.slug, 'end', other.language), label: 'Take its test' }
+      : other.state.kind === 'built' && other.state.gold.kind === 'open'
+        ? { href: buildTestPath(project.slug, 'gold', other.language), label: 'Take its gold test' }
+        : null;
+  // Only where the box above says no sentence of its own, so the page never says it twice.
+  const boxSays = build.state.kind === 'in_progress' || (build.state.kind === 'built' && Boolean(build.partStep));
+  const goOn = other.state.kind === 'in_progress' && !boxSays;
+  return (
+    <div data-project-other-build className="flex flex-col gap-2 border-t pt-3">
+      <p data-project-other-line className="m-0 text-sm text-muted-foreground">
+        {line}
+        {test && (
+          <>
+            {' '}
+            <TextLink href={test.href}>{test.label}</TextLink>
+          </>
+        )}
+      </p>
+      {goOn && (
+        <>
+          <ProjectSay sentence={CONTINUE_SENTENCE} />
+          <Quiet>Your agent goes on with the build that is not finished.</Quiet>
+        </>
+      )}
+    </div>
+  );
+}
+
 /** The box "what to do now", for whoever reads the page. */
 export function ProjectBox({ project, side }: { project: BuildProjectPage; side: ProjectSide }) {
   const builds = side.kind === 'person' ? side.mine.builds : [];
   const build = builds[0];
   if (!build) return <StartBox project={project} side={side} />;
   const other = builds[1] ?? null;
-  const tail = other ? (
-    <p data-project-other-build className="m-0 text-sm text-muted-foreground">
-      {otherBuildLineOf(other)}
-    </p>
-  ) : null;
+  const tail = other ? <OtherBuild project={project} build={build} other={other} /> : null;
   // With two builds the test's address names this one's language, so the test is this build's.
   const language = other ? build.language : null;
   if (build.state.kind === 'in_progress') return <InProgressBox project={project} build={build} tail={tail} />;

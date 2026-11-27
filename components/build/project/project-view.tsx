@@ -4,6 +4,8 @@ import { Fragment } from 'react';
 
 import { ProjectBox } from './project-box';
 import { ProjectSteps } from './project-steps';
+import { BUILD_COLUMN } from '@/components/build/column';
+import { BUILD_CODE_REPOSITORY_PUBLIC } from '@/lib/build/built-parts';
 import { BUILD_PROJECTS_PATH, buildCoursePath } from '@/lib/build/paths';
 import { boxBuildOf, needRowsOf, type ProjectSide, projectFactsOf, whatNextOf } from '@/lib/build/project';
 import type { BuildMine, BuildProjectPage } from '@/lib/build/types';
@@ -14,6 +16,10 @@ import { cn } from '@/lib/utils';
  * built project, "What next"; what you will have; the steps; the Learn courses that help; what you need. Once the
  * person has a build of the project, the sections about starting are not shown: the page is the box, then the steps
  * with their place. A section with nothing in it is not shown, heading included.
+ *
+ * The page comes drawn for a visitor. While a browser with a session reads the person's side (`reading`), everything
+ * under the head stays hidden in its place, so a builder never sees the start box or the sections about starting
+ * first; the stylesheet shows it after the read's time limit, so a late read never leaves a hole.
  */
 
 /** The public repository of every project's code, one branch for each project and language. */
@@ -156,33 +162,43 @@ export type ProjectViewProps = {
   side: ProjectSide;
   /** The optional parts drawn open from the start, by slug (the designs draw them so). */
   openParts?: readonly string[];
+  /** A browser with a session is reading the person's side: what may change stays hidden in its place. */
+  reading?: boolean;
 };
 
 /** A project's page, for whoever reads it. */
-export function ProjectView({ project, side, openParts }: ProjectViewProps) {
+export function ProjectView({ project, side, openParts, reading = false }: ProjectViewProps) {
   const build = boxBuildOf(side);
   const starting = !build;
   return (
-    <main
-      data-project-page={project.slug}
-      className="mx-auto flex w-full max-w-[860px] flex-col gap-8 px-4 pt-6 pb-16 sm:gap-10 sm:pt-8"
-    >
-      <div className="flex flex-col gap-5">
-        <ProjectHead project={project} />
+    <main data-project-page={project.slug} className={cn(BUILD_COLUMN, 'gap-5 sm:gap-5')}>
+      <ProjectHead project={project} />
+      <div
+        data-project-held={reading ? '' : undefined}
+        className={cn(
+          'flex flex-col gap-8 sm:gap-10',
+          reading && '[html[data-has-session]_&]:invisible [html[data-has-session]_&]:animate-build-reveal',
+        )}
+        aria-busy={reading || undefined}
+      >
         <ProjectBox project={project} side={side} />
+        {build?.state.kind === 'built' && <WhatNext project={project} build={build} />}
+        {starting && <WhatYouWillHave project={project} />}
+        <ProjectSteps project={project} build={build} openParts={openParts} />
+        {starting && <BeforeYouStart project={project} />}
+        {starting && <WhatYouNeed project={project} />}
+        <p className="m-0 text-xs text-muted-foreground">
+          Written and checked by GitRanks
+          {BUILD_CODE_REPOSITORY_PUBLIC && (
+            <>
+              <span aria-hidden="true"> · </span>
+              <a href={BUILD_CODE_URL} className="hover:underline">
+                The code on GitHub
+              </a>
+            </>
+          )}
+        </p>
       </div>
-      {build?.state.kind === 'built' && <WhatNext project={project} build={build} />}
-      {starting && <WhatYouWillHave project={project} />}
-      <ProjectSteps project={project} build={build} openParts={openParts} />
-      {starting && <BeforeYouStart project={project} />}
-      {starting && <WhatYouNeed project={project} />}
-      <p className="m-0 text-xs text-muted-foreground">
-        Written and checked by GitRanks
-        <span aria-hidden="true"> · </span>
-        <a href={BUILD_CODE_URL} className="hover:underline">
-          The code on GitHub
-        </a>
-      </p>
     </main>
   );
 }

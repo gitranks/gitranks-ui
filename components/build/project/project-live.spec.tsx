@@ -61,12 +61,40 @@ const draw = () =>
     root.render(<ProjectLive project={mcpServerFiveParts} />);
   });
 const boxKind = () => host.querySelector<HTMLElement>('[data-project-box]')?.dataset.projectBox;
+const held = () => host.querySelector('[data-project-held]');
 
 describe("a project's page in the browser", () => {
   it('asks nothing for a visitor, and shows the box for connecting an agent', async () => {
     await draw();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(boxKind()).toBe('connect');
+    expect(held()).toBeNull();
+  });
+
+  it('with a session, holds what may change in its place while the side is read, then shows it', async () => {
+    hint.present = true;
+    let arrive: (response: Response) => void = () => {};
+    fetchMock.mockImplementation(() => new Promise<Response>((resolve) => (arrive = resolve)));
+    await draw();
+    expect(held()?.getAttribute('aria-busy')).toBe('true');
+    await act(async () => arrive(new Response(JSON.stringify({ mine: mineInProgress }), { status: 200 })));
+    expect(held()).toBeNull();
+    expect(boxKind()).toBe('in_progress');
+  });
+
+  it('a read that does not come in time stops holding the page, so it never stays hidden', async () => {
+    vi.useFakeTimers();
+    try {
+      hint.present = true;
+      fetchMock.mockImplementation(() => new Promise<Response>(() => {}));
+      await draw();
+      expect(held()).not.toBeNull();
+      await act(async () => vi.advanceTimersByTime(4_000));
+      expect(held()).toBeNull();
+      expect(boxKind()).toBe('connect');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("reads a person's side once, and fills the box and the marks in place", async () => {

@@ -17,10 +17,13 @@ import {
   mineGoldEarned,
   mineGoldOpen,
   mineInPart,
+  mineInPartGoldOpen,
   mineInProgress,
   mineNoAgent,
   mineTestLeft,
   mineTwoBuilds,
+  mineTwoBuildsOneBuilt,
+  mineTwoBuildsOtherTestLeft,
 } from '@/lib/build/__fixtures__/project-page';
 import { buildBarViewOf } from '@/lib/build/build-bar';
 import { buildProjectPath } from '@/lib/build/paths';
@@ -145,7 +148,7 @@ export const BUILD_PROJECT_SCREEN: Screen = {
       title: 'What changes with the person: the box in every state, the optional parts folded and opened, What next',
       path: PATH,
       width: 1000,
-      height: 6130,
+      height: 6900,
       render: () => (
         <main className="mx-auto flex w-full max-w-[920px] flex-col gap-10 px-4 pt-8 pb-16">
           <div className="flex flex-col gap-2">
@@ -171,21 +174,33 @@ export const BUILD_PROJECT_SCREEN: Screen = {
             </Case>
             <Case title="4 · A build in progress">{box(person(mineInProgress))}</Case>
             <Case title="5 · Every step done, the test left">{box(person(mineTestLeft))}</Case>
-            <Case title="6 · The test was not passed" note="It can be taken again at once.">
+            <Case
+              title="6 · The test was not passed"
+              note="It can be taken again at once. One link: the test's page opens on the answers and its own Take the test again."
+            >
               {box(person(mineTestLeft, endTestFailedNow))}
             </Case>
             <Case title="7 · Built, the gold test not open yet">{box(person(mineBuilt))}</Case>
             <Case title="8 · Built, the gold test open">{box(person(mineGoldOpen))}</Case>
             <Case title="9 · Built and repeated">{box(person(mineGoldEarned))}</Case>
             <Case title="10 · Built, and now in an optional part">{box(person(mineInPart))}</Case>
+            <Case
+              title="10 · In an optional part, with the gold test open"
+              note="A test that waits is the main button; the part's place and the sentence come under it."
+            >
+              {box(person(mineInPartGoldOpen))}
+            </Case>
             <Case title="11 · Two builds of one project" note="The one touched last, and the other in one line.">
               {box(person(mineTwoBuilds))}
             </Case>
+            <Case title="11 · Two builds, the other's test left" note="The line leads to that build's test.">
+              {box(person(mineTwoBuildsOtherTestLeft))}
+            </Case>
             <Case
-              title="While the person's side is on its way"
-              note="The sentence alone, no button that may turn out wrong."
+              title="11 · Two builds, the one touched last built"
+              note="The sentence to go on with the other, which is not finished."
             >
-              {box({ kind: 'pending' })}
+              {box(person(mineTwoBuildsOneBuilt))}
             </Case>
           </Part>
           <Part title="The optional parts">

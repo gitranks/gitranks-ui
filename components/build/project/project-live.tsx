@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { ProjectView } from './project-view';
+import { HOME_READ_WAIT_MS } from '@/lib/build/home';
 import { buildProjectMinePath, buildTestMinePath } from '@/lib/build/paths';
 import type { ProjectSide } from '@/lib/build/project';
 import type { BuildProjectMine, BuildProjectPage, BuildTest } from '@/lib/build/types';
@@ -43,30 +44,37 @@ export async function readProjectTest(slug: string, mine: BuildProjectMine): Pro
 /**
  * A project's page as it lives in the browser. The page is the same for everyone; once it is up, a person with a
  * session reads their side of the project (and, with the test left, that test), which fills the box and the steps'
- * marks in place, and a visitor asks for nothing. While the side is on its way the box shows the sentence alone, with
- * no button that may turn out wrong.
+ * marks in place, and a visitor asks for nothing. The page comes drawn for a visitor; while a browser with a session
+ * reads, what may change stays hidden in its place, and shows by itself after the read's time limit.
  */
 export function ProjectLive({ project }: { project: BuildProjectPage }) {
   const [side, setSide] = useState<ProjectSide>({ kind: 'pending' });
+  const [reading, setReading] = useState(true);
   const { slug } = project;
 
   useEffect(() => {
     if (!hasSessionHint(document.cookie)) {
       setSide({ kind: 'visitor' });
+      setReading(false);
       return;
     }
     let live = true;
     setSide({ kind: 'pending' });
+    setReading(true);
+    const late = setTimeout(() => setReading(false), HOME_READ_WAIT_MS);
     void (async () => {
       const mine = await readProjectMine(slug);
       const test = mine ? await readProjectTest(slug, mine) : null;
       if (!live) return;
+      clearTimeout(late);
       setSide(mine ? { kind: 'person', mine, test } : { kind: 'session' });
+      setReading(false);
     })();
     return () => {
       live = false;
+      clearTimeout(late);
     };
   }, [slug]);
 
-  return <ProjectView project={project} side={side} />;
+  return <ProjectView project={project} side={side} reading={reading} />;
 }

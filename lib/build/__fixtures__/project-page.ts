@@ -192,3 +192,17 @@ export const mineGoldFailedToday: BuildProjectMine = mineOf([builtGoldFailedToda
 export const mineTwoBuilds: BuildProjectMine = mineOf([buildInProgress, buildPythonSecond]);
 /** Two builds, the one touched last built: TypeScript built, Python on step 4. */
 export const mineTwoBuildsOneBuilt: BuildProjectMine = mineOf([builtOnePart, buildPythonSecond]);
+
+/** Built, the gold test open, and on step 3 of 7 of the part on HTTP. */
+export const builtInPartGoldOpen: BuildMine = {
+  ...builtInHttpPart,
+  build: 'b-mcp-ts-http-gold-open',
+  state: buildGoldOpen.state,
+};
+/** Built, the gold test open, now in an optional part. */
+export const mineInPartGoldOpen: BuildProjectMine = mineOf([builtInPartGoldOpen]);
+/** Two builds, the one touched last built; the Python one has its test left. */
+export const mineTwoBuildsOtherTestLeft: BuildProjectMine = mineOf([
+  builtOnePart,
+  { ...buildPythonSecond, state: { kind: 'test_left' } },
+]);

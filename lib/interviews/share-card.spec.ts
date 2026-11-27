@@ -37,18 +37,23 @@ describe("Interviews' pictures: what they say", () => {
 
   it("names a plan's picture with its company, and its rounds in one line", () => {
     expect(planCardTitleOf(northwindSeniorPlan)).toBe('Northwind · Senior software engineer');
-    expect(planCardLineOf(northwindSeniorPlan)).toBe('5 rounds, from the recruiter call to the values interview');
-    expect(planCardLineOf(tallgrassSrePlan)).toBe('3 rounds, from the recruiter call to the systems interview');
+    expect(planCardLineOf(northwindSeniorPlan)).toBe('5 rounds, from the recruiter call to Values interview');
+    expect(planCardLineOf(tallgrassSrePlan)).toBe('3 rounds, from the recruiter call to Systems interview');
     expect(planCardLineOf({ rounds: [northwindSeniorPlan.rounds[0]] })).toBe('1 round: the recruiter call');
     expect(planCardLineOf({ rounds: [] })).toBeNull();
   });
 
-  it('keeps a round title written in capitals as it is', () => {
-    const rounds = [
-      { ...northwindSeniorPlan.rounds[0], title: 'HR screen' },
-      { ...northwindSeniorPlan.rounds[1], title: 'Values interview' },
-    ];
-    expect(planCardLineOf({ rounds })).toBe('2 rounds, from the HR screen to the values interview');
+  it('writes a round named by its kind with "the", and a company\'s own name for a round as it is', () => {
+    const [call, assessment, , , values] = northwindSeniorPlan.rounds;
+    const googleyness = { ...values, kind: 'behavioral', title: 'Googleyness and leadership' };
+    expect(planCardLineOf({ rounds: [call, googleyness] })).toBe(
+      '2 rounds, from the recruiter call to Googleyness and leadership',
+    );
+    expect(planCardLineOf({ rounds: [{ ...call, title: 'HR screen' }, assessment] })).toBe(
+      '2 rounds, from HR screen to the online assessment',
+    );
+    const takeHome = { ...assessment, kind: 'take_home', title: 'Take-home' };
+    expect(planCardLineOf({ rounds: [takeHome] })).toBe('1 round: the take-home');
   });
 
   it('says every company or plan picture is not official', () => {

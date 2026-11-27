@@ -32,7 +32,8 @@ export async function loadInterviewPlanShare(
 
 /**
  * The logo files a picture draws, by company slug, as base64 PNG: null for a company with no logo (its letter is
- * drawn). Only a company the read says has a logo is asked.
+ * drawn), or for a file that could not be read (the picture then answers 503). Only a company the read says has a
+ * logo is asked.
  */
 export async function loadCardLogos(
   companies: readonly InterviewCompanyRef[],

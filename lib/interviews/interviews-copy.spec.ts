@@ -24,7 +24,8 @@ const INTERVIEWS_FILES = [
   'components/header/components/main-menu.tsx',
   'lib/sitemap/interviews-sitemap.ts',
   'lib/sitemap/interviews-sitemap.spec.ts',
-  'app/sitemaps/interviews/sitemap.ts',
+  'app/sitemaps/interviews/sitemap.xml/route.ts',
+  'app/sitemaps/interviews/sitemap.xml/route.spec.ts',
 ];
 
 function filesOf(folder: string): string[] {

@@ -126,7 +126,11 @@ export const interviewOrgPath = (org: string) => `/org/${encodeURIComponent(org)
  * own prefix, so the proxy's gate closes it as it closes the pages.
  */
 
-/** The size of the logo file a company's and a plan's picture draws: the largest the API keeps. */
+/**
+ * The size of the logo file a company's and a plan's picture draws: the largest the API keeps. A picture's version
+ * sees whether a company has a logo, not which file: a logo replaced under the same flag shows once the picture's
+ * short cache runs out.
+ */
 export const INTERVIEW_CARD_LOGO_SIZE = 256;
 /** Every size of a company's logo file the API keeps: the two the site serves, and the picture's. */
 export type InterviewLogoFileSize = InterviewLogoSize | typeof INTERVIEW_CARD_LOGO_SIZE;

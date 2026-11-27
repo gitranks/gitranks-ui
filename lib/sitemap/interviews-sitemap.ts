@@ -30,3 +30,32 @@ export function interviewsSitemapEntries(
     ]),
   ];
 }
+
+/** Text safe inside an XML element. */
+const xmlText = (text: string): string =>
+  text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+/** The entries as a sitemap file, as Next writes one for a `sitemap.ts`. */
+export function interviewsSitemapXmlOf(entries: MetadataRoute.Sitemap): string {
+  const urls = entries.map((entry) =>
+    [
+      '<url>',
+      `<loc>${xmlText(entry.url)}</loc>`,
+      entry.changeFrequency ? `<changefreq>${entry.changeFrequency}</changefreq>` : '',
+      entry.priority === undefined ? '' : `<priority>${entry.priority}</priority>`,
+      '</url>',
+    ].join('\n'),
+  );
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls,
+    '</urlset>',
+    '',
+  ].join('\n');
+}

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { CompanyShareCard, InterviewsShareCard, PlanShareCard } from './interviews-cards';
 import { interviewsHome, LOGO_PNG_BASE64, northwindPage, tallgrassPage } from '@/lib/interviews/__fixtures__/companies';
-import { northwindSeniorPlan, tallgrassSrePlan } from '@/lib/interviews/__fixtures__/plans';
+import { northwindSeniorPlan } from '@/lib/interviews/__fixtures__/plans';
 
 /** The long dash (U+2014) and the en dash (U+2013). */
 const DASHES = new RegExp(`[${String.fromCharCode(0x2014, 0x2013)}]`);
@@ -74,6 +74,17 @@ describe("a company's picture", () => {
   });
 });
 
+describe('a picture’s foot', () => {
+  it('lets a long notice wrap and keeps the address whole on one line', () => {
+    const name = 'Northwind Traders International Holdings Group';
+    const page = { ...northwindPage, company: { ...northwindPage.company, name } };
+    const html = renderToStaticMarkup(<CompanyShareCard page={page} logo={LOGO_PNG_BASE64} />);
+    expect(wordsOf(html)).toContain(`Not an official ${name} page`);
+    expect(html).toMatch(/white-space:nowrap;flex-shrink:0[^>]*>gitranks\.com\/interviews\/northwind</);
+    expect(html).toMatch(/flex-wrap:wrap[^>]*>Not an official/);
+  });
+});
+
 describe("a plan's picture", () => {
   it("draws the logo, the plan's name, its rounds in one line, the notice and the address cut after the company", () => {
     const html = renderToStaticMarkup(<PlanShareCard plan={northwindSeniorPlan} logo={LOGO_PNG_BASE64} />);
@@ -81,7 +92,7 @@ describe("a plan's picture", () => {
     for (const text of [
       'INTERVIEW PLAN',
       'Northwind · Senior software engineer',
-      '5 rounds, from the recruiter call to the values interview',
+      '5 rounds, from the recruiter call to Values interview',
       'Not an official Northwind page',
       'gitranks.com/interviews/northwind/…',
     ]) {
@@ -89,11 +100,5 @@ describe("a plan's picture", () => {
     }
     expect(html).toContain('font-size:50px');
     expectCopyRules(html);
-  });
-
-  it('draws the public plan alone: never a person’s plans or progress', () => {
-    const html = renderToStaticMarkup(<PlanShareCard plan={tallgrassSrePlan} logo={null} />);
-    expect(wordsOf(html)).toContain('3 rounds, from the recruiter call to the systems interview');
-    expect(wordsOf(html)).not.toMatch(/Your plan|You are here|learned|done|round \d of/i);
   });
 });

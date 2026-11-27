@@ -14,7 +14,12 @@ import {
   interviewsCardVersionOf,
   planCardVersionOf,
 } from '@/lib/interviews/share-card';
-import type { InterviewCompanyPage, InterviewPlanPage, InterviewsHome } from '@/lib/interviews/types';
+import type {
+  InterviewCompanyPage,
+  InterviewCompanyRef,
+  InterviewPlanPage,
+  InterviewsHome,
+} from '@/lib/interviews/types';
 import { drawSocialCard } from '@/lib/social-card/social-card';
 
 /*
@@ -39,6 +44,23 @@ const unavailable = () =>
     headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store', 'Retry-After': '60' },
   });
 
+/**
+ * A company the read says has a logo, whose file could not be read now. Its picture is not drawn with the letter:
+ * that would be kept under the logo picture's address.
+ */
+class LogoUnread extends Error {}
+
+/** The logos a picture draws, every one the read promises: a failed file read stops the picture (`LogoUnread`). */
+async function logosFor(
+  companies: readonly InterviewCompanyRef[],
+  size: Parameters<LogosOf>[1],
+  logosOf: LogosOf,
+): Promise<ReadonlyMap<string, string | null>> {
+  const logos = await logosOf(companies, size);
+  if (companies.some((company) => company.logo && !logos.get(company.slug))) throw new LogoUnread();
+  return logos;
+}
+
 /** A picture under exactly `?v=<version>`, else a 308 to its current address. */
 async function versionedCard(
   path: string,
@@ -55,7 +77,7 @@ async function versionedCard(
   try {
     return new Response(await draw(), { headers: interviewCardHeadersOf() });
   } catch (error) {
-    console.error('Error drawing an Interviews card:', error);
+    if (!(error instanceof LogoUnread)) console.error('Error drawing an Interviews card:', error);
     return unavailable();
   }
 }
@@ -75,7 +97,7 @@ export async function interviewsCardResponse(
   }
   const top = cardTopOf(read);
   return versionedCard(INTERVIEWS_HOME_CARD_PATH, interviewsCardVersionOf(read), search, async () =>
-    draw(<InterviewsShareCard top={top} logos={await logosOf(top, 128)} />),
+    draw(<InterviewsShareCard top={top} logos={await logosFor(top, 128, logosOf)} />),
   );
 }
 
@@ -95,7 +117,7 @@ export async function companyCardResponse(
   if (found.kind !== 'live') return interviewNotServedResponse(found, '/card.png');
   const { page } = found;
   return versionedCard(interviewCompanyCardPath(page.company.slug), companyCardVersionOf(page), search, async () => {
-    const logos = await logosOf([page.company], INTERVIEW_CARD_LOGO_SIZE);
+    const logos = await logosFor([page.company], INTERVIEW_CARD_LOGO_SIZE, logosOf);
     return draw(<CompanyShareCard page={page} logo={logos.get(page.company.slug) ?? null} />);
   });
 }
@@ -120,7 +142,7 @@ export async function planCardResponse(
     planCardVersionOf(page),
     search,
     async () => {
-      const logos = await logosOf([page.company], INTERVIEW_CARD_LOGO_SIZE);
+      const logos = await logosFor([page.company], INTERVIEW_CARD_LOGO_SIZE, logosOf);
       return draw(<PlanShareCard plan={page} logo={logos.get(page.company.slug) ?? null} />);
     },
   );

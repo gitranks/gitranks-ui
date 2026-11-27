@@ -86,6 +86,7 @@ function Address({ address }: Readonly<{ address: string }>) {
         fontSize: cardAddressSizeOf(address),
         color: CARD_COLORS.muted,
         whiteSpace: 'nowrap',
+        flexShrink: 0,
       }}
     >
       {address}
@@ -97,7 +98,19 @@ function Address({ address }: Readonly<{ address: string }>) {
 function Foot({ children, address }: Readonly<{ children?: ReactElement | null; address: string }>) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 26, color: CARD_COLORS.muted }}>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 14,
+          fontSize: 26,
+          lineHeight: 1.3,
+          color: CARD_COLORS.muted,
+          flexShrink: 1,
+          minWidth: 0,
+        }}
+      >
         {children ?? null}
       </div>
       <Address address={address} />
@@ -185,7 +198,7 @@ export function CompanyShareCard({
         logo={<CardLogo company={page.company} logo={logo} size={96} />}
       />
       <Foot address={companyCardAddressOf(page.company.slug)}>
-        <div style={{ display: 'flex' }}>{cardNoticeOf(page.company.name)}</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>{cardNoticeOf(page.company.name)}</div>
       </Foot>
     </Frame>
   );
@@ -206,7 +219,7 @@ export function PlanShareCard({
         logo={<CardLogo company={plan.company} logo={logo} size={96} />}
       />
       <Foot address={planCardAddressOf(plan.company.slug)}>
-        <div style={{ display: 'flex' }}>{cardNoticeOf(plan.company.name)}</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>{cardNoticeOf(plan.company.name)}</div>
       </Foot>
     </Frame>
   );

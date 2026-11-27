@@ -7,7 +7,13 @@ import {
   interviewCompanyPath,
   interviewPlanCardPath,
 } from './paths';
-import type { InterviewCompanyPage, InterviewCompanyRef, InterviewPlanPage, InterviewsHome } from './types';
+import type {
+  InterviewCompanyPage,
+  InterviewCompanyRef,
+  InterviewPlanPage,
+  InterviewRound,
+  InterviewsHome,
+} from './types';
 import { clipText } from '@/lib/seo/clip-text';
 
 /*
@@ -62,20 +68,33 @@ export function companyCardLineOf(page: Pick<InterviewCompanyPage, 'positions'>)
   return `${countOf(plans, 'plan', 'plans')} for ${countOf(positions, 'position', 'positions')}`;
 }
 
-/** A round's title inside a sentence: "the recruiter call". */
-const roundInSentence = (title: string): string => `the ${lowerFirst(title.replace(/\s+/g, ' ').trim())}`;
+/** Words only, in lower case: "Take-home" and "take_home" read alike. */
+const wordsOf = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[\s_-]+/g, ' ')
+    .trim();
 
 /**
- * A plan picture's line, its rounds in one line: "5 rounds, from the recruiter call to the values interview", or
+ * A round's title inside a sentence. A round named by its kind's plain name takes "the" and a small first letter
+ * ("the recruiter call"); a company's own name for a round is written as it is ("Googleyness and leadership").
+ */
+const roundInSentence = ({ kind, title }: Pick<InterviewRound, 'kind' | 'title'>): string => {
+  const written = title.replace(/\s+/g, ' ').trim();
+  return wordsOf(written) === wordsOf(kind) ? `the ${lowerFirst(written)}` : written;
+};
+
+/**
+ * A plan picture's line, its rounds in one line: "5 rounds, from the recruiter call to Googleyness and leadership", or
  * "1 round: the recruiter call"; null with no round.
  */
 export function planCardLineOf(plan: Pick<InterviewPlanPage, 'rounds'>): string | null {
-  const titles = plan.rounds.map((round) => round.title).filter((title) => title?.trim());
-  const [first] = titles;
+  const rounds = plan.rounds.filter((round) => round.title?.trim());
+  const [first] = rounds;
   if (!first) return null;
-  if (titles.length === 1) return `1 round: ${roundInSentence(first)}`;
-  const last = titles[titles.length - 1];
-  return `${titles.length} rounds, from ${roundInSentence(first)} to ${roundInSentence(last)}`;
+  if (rounds.length === 1) return `1 round: ${roundInSentence(first)}`;
+  const last = rounds[rounds.length - 1];
+  return `${rounds.length} rounds, from ${roundInSentence(first)} to ${roundInSentence(last)}`;
 }
 
 /** The companies whose logos Interviews' picture shows: the top five, in order. */

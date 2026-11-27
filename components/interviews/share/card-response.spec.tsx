@@ -136,4 +136,29 @@ describe("Interviews' pictures, as answered", () => {
     );
     expect([home.status, home.headers.get('cache-control')]).toEqual([503, 'private, no-store']);
   });
+
+  it('answers 503, kept by no one, when a logo the read promises cannot be read, rather than draw the letter', async () => {
+    const unread = vi.fn(async (companies: readonly { slug: string }[], _size: number) => {
+      return new Map(companies.map((one) => [one.slug, null]));
+    });
+    drawn.mockClear();
+    const answers = [
+      await interviewsCardResponse(HOME, async () => interviewsHome, unread, drawn),
+      await companyCardResponse(COMPANY, liveCompany, unread, drawn),
+      await planCardResponse(PLAN, livePlan, unread, drawn),
+    ];
+    for (const answer of answers) {
+      expect([answer.status, answer.headers.get('cache-control')]).toEqual([503, 'private, no-store']);
+      expect(answer.headers.get('retry-after')).toBe('60');
+    }
+    expect(drawn).not.toHaveBeenCalled();
+    // A company with no logo draws its letter, as before.
+    const letter = await companyCardResponse(
+      `?v=${companyCardVersionOf(tallgrassPage)}`,
+      async () => ({ kind: 'live' as const, page: tallgrassPage }),
+      unread,
+      drawn,
+    );
+    expect(letter.status).toBe(200);
+  });
 });

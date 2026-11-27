@@ -6,6 +6,9 @@ vi.mock('@/lib/workspace/email-settings', async (original) => ({
   browserTimeZone: () => browser.zone,
 }));
 
+// The save of the zone is a server action: not reached by these reads.
+vi.mock('@/lib/workspace/actions', () => ({ setContributeEmailSettings: vi.fn() }));
+
 const { readBuildZone } = await import('./zone-live');
 
 const fetchMock = vi.fn();

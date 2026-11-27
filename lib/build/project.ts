@@ -226,8 +226,11 @@ export function whatNextOf(project: BuildProjectPage, build: BuildMine): WhatNex
     const { built, of } = partsBuiltOf(project, build);
     const left = of - built;
     const steps = stepsWordsOf(part.steps.length);
-    const line =
-      of === 1
+    // The part in progress says where the person is in it.
+    const at = build.partStep?.part === part.slug ? build.partStep : null;
+    const line = at
+      ? `You are on step ${at.step.number} of ${at.of}`
+      : of === 1
         ? `The optional part · ${steps}`
         : built === 0
           ? `The first of ${of} optional parts · ${steps}`

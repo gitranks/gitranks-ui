@@ -28,9 +28,15 @@ const { hint, signIn, session } = vi.hoisted(() => ({
   },
 }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
-// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone.
+// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone,
+// which these pages no longer draw (the zone is saved before their reads).
 const zoneRead = vi.hoisted(() => ({ value: 'UTC' as string | undefined }));
-vi.mock('@/lib/build/zone-live', () => ({ readBuildZone: async () => zoneRead.value }));
+// The save of the browser's zone, when it is new, which the reads wait for: settled at once unless a test holds it.
+const zoneSave = vi.hoisted(() => ({ held: null as Promise<void> | null }));
+vi.mock('@/lib/build/zone-live', () => ({
+  readBuildZone: async () => zoneRead.value,
+  zoneSent: () => zoneSave.held ?? Promise.resolve(),
+}));
 vi.mock('@/components/workspace/time-zone-note', () => ({ TimeZoneNote: () => <span data-time-zone-note="" /> }));
 vi.mock('next-auth/react', () => ({
   signIn,
@@ -121,8 +127,26 @@ describe('My builds in the browser', () => {
     ]);
     // Skills does not list built projects yet, so the page does not say it does.
     expect(host.querySelector('[data-build-mine-skills]')).toBeNull();
-    // Once the builds are read, the browser's zone is sent, as on Learn's pages.
-    expect(host.querySelector('[data-time-zone-note]')).not.toBeNull();
+    // The browser's zone was saved before the reads: no note sends it again.
+    expect(host.querySelector('[data-time-zone-note]')).toBeNull();
+  });
+
+  it("reads the person's builds only once a new zone of the browser is saved, so the first page's days are in it", async () => {
+    routes();
+    let saved: () => void = () => {};
+    zoneSave.held = new Promise<void>((resolve) => {
+      saved = resolve;
+    });
+    try {
+      await draw();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(stateOf()).toBe('pending');
+      await act(async () => saved());
+      expect(fetchMock).toHaveBeenCalledWith('/api/me/build/mine', { cache: 'no-store' });
+      expect(stateOf()).toBe('ready');
+    } finally {
+      zoneSave.held = null;
+    }
   });
 
   it('reads each waiting test, and says a run left in the middle and a failed try in their rows', async () => {

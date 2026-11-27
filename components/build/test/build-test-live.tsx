@@ -18,7 +18,6 @@ import { Button } from '@/components/ui/button';
 import { PlayerRunEnd } from '@/components/workspace/player/player-strip';
 import { usePlayer } from '@/components/workspace/player/use-player';
 import { useLearnAnswer } from '@/components/workspace/question/use-learn-answer';
-import { TimeZoneNote } from '@/components/workspace/time-zone-note';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { buildTestPath } from '@/lib/build/paths';
 import {
@@ -38,7 +37,7 @@ import {
 } from '@/lib/build/test';
 import { answerBuildTestRun, readBuildProjectMine, readBuildTest, startBuildTestRun } from '@/lib/build/test-live';
 import type { BuildLanguage, BuildMine, BuildTestKind } from '@/lib/build/types';
-import { readBuildZone } from '@/lib/build/zone-live';
+import { readBuildZone, zoneSent } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
 import type { LearnQuestion } from '@/lib/workspace/learn-question';
 import { type PlayerResult, runWordsOf } from '@/lib/workspace/player';
@@ -85,8 +84,6 @@ export function BuildTestLive({
   const [notice, setNotice] = useState<string | null>(null);
   /** The zone the person's days are counted in, once read: every date of the page is written in it. */
   const [zone, setZone] = useState<string | undefined>(undefined);
-  /** Whether the person's own test was read once: their device's time zone is then sent, as on Learn's pages. */
-  const [known, setKnown] = useState(false);
   const sittings = useRef(0);
   const { slug } = project;
 
@@ -158,11 +155,14 @@ export function BuildTestLive({
       return;
     }
     let live = true;
-    Promise.all([read(), readBuildZone()]).then(([next, zoneRead]) => {
-      if (!live) return;
-      setZone(zoneRead);
-      setPersonal(next);
-    });
+    // A zone being saved first: the test's days and the zone are read in it.
+    zoneSent()
+      .then(() => Promise.all([read(), readBuildZone()]))
+      .then(([next, zoneRead]) => {
+        if (!live) return;
+        setZone(zoneRead);
+        setPersonal(next);
+      });
     return () => {
       live = false;
     };
@@ -210,54 +210,39 @@ export function BuildTestLive({
     [slug, kind, language, runOf, load, signedOut],
   );
 
-  // Sent once the person's test was read, so the dates of this page and the API's days stay in one zone.
-  useEffect(() => {
-    if (['run', 'result', 'closed', 'no-build'].includes(personal.kind)) setKnown(true);
-  }, [personal.kind]);
-  const note = known ? <TimeZoneNote /> : null;
+  // The browser's zone was saved before the first read (`zoneSent`), so no note sends it again.
 
   if (personal.kind === 'run') {
     return (
-      <>
-        {note}
-        <TestRun
-          key={personal.sitting}
-          project={project}
-          test={personal.test}
-          run={personal.run}
-          notice={notice}
-          onResult={(result) => showResult(personal.test, result)}
-          onReload={load}
-          onRefused={refused}
-          onSignedOut={signedOut}
-        />
-      </>
+      <TestRun
+        key={personal.sitting}
+        project={project}
+        test={personal.test}
+        run={personal.run}
+        notice={notice}
+        onResult={(result) => showResult(personal.test, result)}
+        onReload={load}
+        onRefused={refused}
+        onSignedOut={signedOut}
+      />
     );
   }
   if (personal.kind === 'result') {
     return (
-      <>
-        {note}
-        <TestFrame
+      <TestFrame project={project} kind={kind} layout="page" end={<TestDoneEnd count={personal.result.items.length} />}>
+        {notice ? <TestNotice text={notice} /> : null}
+        <ResultView
+          key={personal.sitting}
           project={project}
-          kind={kind}
-          layout="page"
-          end={<TestDoneEnd count={personal.result.items.length} />}
-        >
-          {notice ? <TestNotice text={notice} /> : null}
-          <ResultView
-            key={personal.sitting}
-            project={project}
-            test={personal.test}
-            result={personal.result}
-            build={personal.build}
-            zone={zone}
-            starting={starting}
-            startFailed={startFailed}
-            onAgain={() => again(personal.test)}
-          />
-        </TestFrame>
-      </>
+          test={personal.test}
+          result={personal.result}
+          build={personal.build}
+          zone={zone}
+          starting={starting}
+          startFailed={startFailed}
+          onAgain={() => again(personal.test)}
+        />
+      </TestFrame>
     );
   }
   if (personal.kind === 'pending') {
@@ -269,7 +254,6 @@ export function BuildTestLive({
   }
   return (
     <TestFrame project={project} kind={kind} layout="page">
-      {note}
       <Still personal={personal} project={project} kind={kind} language={language} zone={zone} onReload={load} />
     </TestFrame>
   );

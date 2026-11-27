@@ -109,8 +109,20 @@ describe('My builds, from its fixtures', () => {
 
   it('says when a build with no step passed was started, not when its last step was', async () => {
     await draw({ tests: [], inProgress: [fixtures.mineMcpFirstStep], built: [] });
-    expect(rows('progress')[0]?.textContent).toContain('started 2 days ago');
+    expect(rows('progress')[0]?.textContent).toContain('started 24 Nov');
     expect(rows('progress')[0]?.textContent).not.toContain('last step');
+  });
+
+  it('draws a built project whose optional part is in progress as a build in progress too, with no "Remove"', async () => {
+    const { buildInPart } = await import('@/lib/build/__fixtures__/builds');
+    await draw({ tests: [], inProgress: [], built: [buildInPart] });
+    expect(headings()).toEqual(['In progress', 'Built']);
+    const [row] = rows('progress');
+    expect(text(row)).toContain('TypeScript · optional part, step 3 of 6 · last step today');
+    expect(buttonsOf(row)).toEqual(['Build an MCP server', 'Open: Build an MCP server']);
+    expect(host.querySelector('[data-build-say]')).not.toBeNull();
+    expect(rows('built')).toHaveLength(1);
+    expect(host.querySelector('[data-build-mine-next]')).toBeNull();
   });
 
   it('draws the usual start: one build in progress, the sentence to say, and the line on Skills', async () => {

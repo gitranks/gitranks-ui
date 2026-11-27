@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildInPart, buildInProgress, buildTestLeft, keyValueDatabaseInProgress } from './__fixtures__/builds';
+import {
+  buildGoldOpen,
+  buildInPart,
+  buildInProgress,
+  buildTestLeft,
+  keyValueDatabaseInProgress,
+} from './__fixtures__/builds';
 import {
   sideAgentConnected,
   sideAllBuilt,
@@ -15,9 +21,9 @@ import {
   sideTwoOfOne,
 } from './__fixtures__/home';
 import { mcpServerStep } from './__fixtures__/project';
-import { BUILD_FIXTURE_NOW, buildProjectsFew, codingAgentCard } from './__fixtures__/projects';
+import { BUILD_FIXTURE_NOW, buildProjectsFew, codingAgentCard, mcpServerCard } from './__fixtures__/projects';
 import { endTestOpen } from './__fixtures__/test';
-import { dayWords, hasBuildOf, homeViewOf, lastStepWords, stepOfBuild, VISITOR_HOME } from './home';
+import { dayWords, hasBuildOf, homeViewOf, lastStepWords, placeWordsOf, stepOfBuild, VISITOR_HOME } from './home';
 
 const projects = buildProjectsFew;
 
@@ -37,7 +43,7 @@ describe("Build's home", () => {
     const view = homeViewOf(sideBuilder, projects);
     expect(view.kind).toBe('home');
     if (view.kind !== 'home') return;
-    expect(view.box).toEqual({ kind: 'build', build: buildInProgress, step: mcpServerStep(9), of: 16 });
+    expect(view.box).toEqual({ kind: 'build', build: buildInProgress, step: mcpServerStep(9), of: 16, part: false });
     expect(view.others).toEqual([keyValueDatabaseInProgress]);
     expect(view.next.map((card) => card.slug)).toEqual(['coding-agent', 'interpreter']);
   });
@@ -102,8 +108,61 @@ describe("Build's home", () => {
     expect(view.others).toEqual([buildTestLeft]);
   });
 
+  it('goes on with a built project whose optional part is in progress, as the project page does', () => {
+    // The only project is built: the part is what to go on with, not "every project is built".
+    const side = { home: { builds: [], tests: [], next: [] }, builds: [buildInPart], agentConnected: null };
+    const view = homeViewOf(side, [mcpServerCard]);
+    if (view.kind !== 'home') throw new Error('home expected');
+    expect(view.box).toEqual({
+      kind: 'build',
+      build: buildInPart,
+      step: buildInPart.partStep?.step,
+      of: 6,
+      part: true,
+    });
+    expect(view.others).toEqual([]);
+  });
+
+  it('puts the build touched last in the box, a part in progress among them', () => {
+    const older = { ...keyValueDatabaseInProgress, lastStepAt: '2026-11-20T10:00:00.000Z' };
+    const later = { ...keyValueDatabaseInProgress, lastStepAt: '2026-11-26T11:50:00.000Z' };
+    const side = (inProgress: typeof older) => ({
+      home: { builds: [inProgress], tests: [], next: [] },
+      builds: [buildInPart, inProgress],
+      agentConnected: null,
+    });
+    const first = homeViewOf(side(older), projects);
+    expect(first.kind === 'home' && first.box.kind === 'build' && first.box.build.build).toBe(buildInPart.build);
+    expect(first.kind === 'home' && first.others).toEqual([older]);
+    const second = homeViewOf(side(later), projects);
+    expect(second.kind === 'home' && second.box.kind === 'build' && second.box.build.build).toBe(later.build);
+    expect(second.kind === 'home' && second.others).toEqual([buildInPart]);
+  });
+
+  it('keeps an optional part in progress below the gold test of the same build', () => {
+    const gold = { ...buildInPart, state: buildGoldOpen.state };
+    const test = {
+      build: gold.build,
+      kind: 'gold' as const,
+      project: { slug: gold.project.slug, name: gold.project.name },
+      language: gold.language,
+    };
+    const view = homeViewOf(
+      { home: { builds: [], tests: [test], next: [] }, builds: [gold], agentConnected: null },
+      projects,
+    );
+    if (view.kind !== 'home') throw new Error('home expected');
+    expect(view.box.kind).toBe('test');
+    expect(view.others).toEqual([gold]);
+  });
+
+  it("says a part's place apart from the base's", () => {
+    expect(placeWordsOf({ step: { number: 9 }, of: 16, part: false })).toBe('step 9 of 16');
+    expect(placeWordsOf({ step: { number: 3 }, of: 6, part: true })).toBe('optional part, step 3 of 6');
+  });
+
   it("tells a part's step after the base", () => {
-    expect(stepOfBuild(buildInPart)).toEqual({ step: buildInPart.partStep?.step, of: 6 });
+    expect(stepOfBuild(buildInPart)).toEqual({ step: buildInPart.partStep?.step, of: 6, part: true });
     expect(stepOfBuild(buildTestLeft)).toBeNull();
   });
 });
@@ -118,9 +177,12 @@ describe("Home's words of time", () => {
     expect(lastStepWords('not a date', now)).toBe('');
   });
 
-  it('say when a build with no step passed was started', () => {
-    expect(lastStepWords('2026-11-26T11:55:00.000Z', now, true)).toBe('started 5 minutes ago');
-    expect(lastStepWords('2026-11-26T11:59:30.000Z', now, true)).toBe('started just now');
+  it('say the day a build with no step passed was started, as the project page and My builds do', () => {
+    expect(lastStepWords('2026-11-26T11:55:00.000Z', now, true)).toBe('started 26 Nov');
+    expect(lastStepWords('2026-11-26T11:59:30.000Z', now, true, 'Europe/Berlin')).toBe('started 26 Nov');
+    // In the zone the person's days are counted in.
+    expect(lastStepWords('2026-11-27T02:30:00.000Z', now, true, 'America/New_York')).toBe('started 26 Nov');
+    expect(lastStepWords('not a date', now, true)).toBe('');
   });
 
   it('write a day as the boxes do', () => {

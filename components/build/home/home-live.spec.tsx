@@ -21,9 +21,15 @@ vi.mock('next/link', () => ({
 }));
 const hint = vi.hoisted(() => ({ present: true }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
-// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone.
+// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone,
+// which these pages no longer draw (the zone is saved before their reads).
 const zoneRead = vi.hoisted(() => ({ value: 'UTC' as string | undefined }));
-vi.mock('@/lib/build/zone-live', () => ({ readBuildZone: async () => zoneRead.value }));
+// The save of the browser's zone, when it is new, which the reads wait for: settled at once unless a test holds it.
+const zoneSave = vi.hoisted(() => ({ held: null as Promise<void> | null }));
+vi.mock('@/lib/build/zone-live', () => ({
+  readBuildZone: async () => zoneRead.value,
+  zoneSent: () => zoneSave.held ?? Promise.resolve(),
+}));
 vi.mock('@/components/workspace/time-zone-note', () => ({ TimeZoneNote: () => <span data-time-zone-note="" /> }));
 
 const { HomeLive, readHomeSide } = await import('./home-live');
@@ -85,8 +91,28 @@ describe("Build's home in the browser", () => {
     expect(kind()).toBe('home');
     expect(container.textContent).toContain('last step');
     expect(container.querySelector('main')?.getAttribute('aria-busy')).toBeNull();
-    // Once the side is read, the browser's zone is sent, as on Learn's pages.
-    expect(container.querySelector('[data-time-zone-note]')).not.toBeNull();
+    // The browser's zone was saved before the reads: no note sends it again.
+    expect(container.querySelector('[data-time-zone-note]')).toBeNull();
+  });
+
+  it("reads the person's side only once a new zone of the browser is saved, so the first page's days are in it", async () => {
+    const asked = serve({
+      '/api/me/build/home': { home: sideBuilder.home },
+      '/api/me/build/projects': { builds: sideBuilder.builds },
+    });
+    let saved: () => void = () => {};
+    zoneSave.held = new Promise<void>((resolve) => {
+      saved = resolve;
+    });
+    try {
+      await act(async () => root.render(<HomeLive projects={buildProjectsFew} />));
+      expect(asked).toEqual([]);
+      await act(async () => saved());
+      expect(asked.sort()).toEqual(['/api/me/build/home', '/api/me/build/projects']);
+      expect(kind()).toBe('home');
+    } finally {
+      zoneSave.held = null;
+    }
   });
 
   it('reads the test that waits first, so the box can go on with a run left in the middle', async () => {

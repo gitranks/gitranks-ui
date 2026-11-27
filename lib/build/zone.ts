@@ -24,6 +24,22 @@ export function isTimeZone(value: unknown): value is string {
 export const buildZoneOf = (saved: string | null | undefined): string =>
   isTimeZone(saved) ? saved : BUILD_DEFAULT_TIME_ZONE;
 
+/** The months as every date of Build writes them: fixed, not the runtime's, which writes "Sept" in some versions. */
+export const MONTH_WORDS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const;
+
 /** A day alone, as the API writes a local day: `2026-12-03`. */
 const DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -48,16 +64,11 @@ export function dayKeyIn(value: string | Date, zone?: string): string | null {
  * alone as it is. Empty for a value that cannot be read.
  */
 export function dayWordsIn(value: string, zone?: string, { year = false }: { year?: boolean } = {}): string {
-  const key = dayKeyIn(value, zone);
-  if (!key) return '';
-  const date = new Date(`${key}T12:00:00.000Z`);
-  if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    ...(year && { year: 'numeric' }),
-    timeZone: 'UTC',
-  }).format(date);
+  const match = DAY.exec(dayKeyIn(value, zone) ?? '');
+  const month = match ? MONTH_WORDS[Number(match[2]) - 1] : undefined;
+  if (!match || !month) return '';
+  const day = `${Number(match[3])} ${month}`;
+  return year ? `${day} ${match[1]}` : day;
 }
 
 /** "09:14": the time of a moment in the zone. Empty for a moment that cannot be read. */

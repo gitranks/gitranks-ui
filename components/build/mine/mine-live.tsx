@@ -6,14 +6,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { MINE_MAIN_CLASS, MineBody, MineHead, MineMessage, MinePending, type RemoveOutcome } from './mine-parts';
 import { askBuildBarAgain } from '@/components/build/bar/build-bar-live';
 import { Button } from '@/components/ui/button';
-import { TimeZoneNote } from '@/components/workspace/time-zone-note';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import type { BuildActionResult } from '@/lib/build/build-action';
 import { mineListOf, mineViewOf, withoutBuild } from '@/lib/build/mine';
 import { BUILD_MINE_MINE_PATH, BUILD_MINE_PATH, BUILD_REMOVE_MINE_PATH, buildTestMinePath } from '@/lib/build/paths';
 import { type TestStanding, testStandingOf } from '@/lib/build/test';
 import type { BuildMineList, BuildTest } from '@/lib/build/types';
-import { readBuildZone } from '@/lib/build/zone-live';
+import { readBuildZone, zoneSent } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** The person's builds from their route; null on any failure (Build not open to them, or an API that does not know it). */
@@ -80,6 +79,8 @@ type Page =
 
 /** The person's builds, where their waiting tests stand, and the zone their days are counted in; null on a failure. */
 async function readMinePage(): Promise<Extract<Page, { kind: 'ready' }> | null> {
+  // A zone being saved first: the list's days and the zone are read in it.
+  await zoneSent();
   const [list, zone] = await Promise.all([readBuildMine(), readBuildZone()]);
   if (!list) return null;
   return { kind: 'ready', list, now: new Date(), zone, standings: await readMineStandings(list) };
@@ -185,8 +186,6 @@ export function BuildMineLive() {
           onRemove={remove}
         />
       )}
-      {/* Once the person's builds are read, their device's time zone is sent, as on Learn's pages. */}
-      {page.kind === 'ready' ? <TimeZoneNote /> : null}
     </main>
   );
 }

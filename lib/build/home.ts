@@ -40,8 +40,8 @@ export type BuildHomeBox =
    * it stands when it was read (a run in progress, a failed try; none for a test not started).
    */
   | { kind: 'test'; test: BuildWaitingTest; builtAt: string | null; standing: TestStanding | null }
-  /** The build to go on with: the one touched last. */
-  | { kind: 'build'; build: BuildMine; step: BuildStepRef; of: number }
+  /** The build to go on with: the one touched last, on a step of the base or of an optional part (`part`). */
+  | { kind: 'build'; build: BuildMine; step: BuildStepRef; of: number; part: boolean }
   /** Nothing waits and nothing is in progress: the projects left to build, how many (null: some, the number not known). */
   | { kind: 'pick'; left: number | null }
   /** Every project is built. */
@@ -55,10 +55,37 @@ export type BuildHomeView =
 /** A visitor's page: the landing with "Connect your agent". */
 export const VISITOR_HOME: BuildHomeView = { kind: 'landing', agentConnected: false };
 
+/** Where a build stands: a step of the base, or of an optional part (`part`), and of how many. */
+export type BuildPlace = { step: BuildStepRef; of: number; part: boolean };
+
 /** The step a build is on, and of how many: the base's step, or a part's after the base. None with the test left. */
-export function stepOfBuild(build: BuildMine): { step: BuildStepRef; of: number } | null {
-  if (build.state.kind === 'in_progress') return { step: build.state.step, of: build.state.of };
-  return build.partStep ? { step: build.partStep.step, of: build.partStep.of } : null;
+export function stepOfBuild(build: BuildMine): BuildPlace | null {
+  if (build.state.kind === 'in_progress') return { step: build.state.step, of: build.state.of, part: false };
+  const part = build.partStep;
+  return part?.step && typeof part.of === 'number' ? { step: part.step, of: part.of, part: true } : null;
+}
+
+/** Where a build stands in words: "step 9 of 16", or "optional part, step 3 of 6" for a step of a part. */
+export const placeWordsOf = (place: { step: { number: number }; of: number; part: boolean }): string =>
+  `${place.part ? 'optional part, step' : 'step'} ${place.step.number} of ${place.of}`;
+
+/** When a moment was, as a number: later is larger; a moment that cannot be read is the earliest. */
+const momentOf = (iso: string): number => {
+  const at = Date.parse(iso);
+  return Number.isNaN(at) ? Number.NEGATIVE_INFINITY : at;
+};
+
+/**
+ * Every build to go on with, touched last first: the API's builds in progress (`home.builds`, the test left included)
+ * and the built ones with an optional part in hand, which only the list of every build (`builds`) carries.
+ */
+export function buildsInProgressOf(home: BuildHome, builds: readonly BuildMine[] | null): BuildMine[] {
+  const listed = new Set(home.builds.map((build) => build.build));
+  const inPart = (builds ?? []).filter(
+    (build) => build.state.kind === 'built' && build.partStep && !listed.has(build.build),
+  );
+  if (!inPart.length) return home.builds;
+  return [...home.builds, ...inPart].sort((a, b) => momentOf(b.lastStepAt) - momentOf(a.lastStepAt));
 }
 
 /** Whether the person has a build of any kind: in progress, with a test waiting, or built. */
@@ -88,7 +115,8 @@ export function homeViewOf(side: BuildHomeSide | null, projects: readonly BuildP
   }
   const { home } = side;
   const test = home.tests[0] ?? null;
-  const going = test ? null : (home.builds.find((build) => stepOfBuild(build) !== null) ?? null);
+  const inProgress = buildsInProgressOf(home, side.builds);
+  const going = test ? null : (inProgress.find((build) => stepOfBuild(build) !== null) ?? null);
   let box: BuildHomeBox;
   if (test) {
     const built = side.builds?.find((build) => build.build === test.build);
@@ -102,30 +130,43 @@ export function homeViewOf(side: BuildHomeSide | null, projects: readonly BuildP
       standing: same ? testStandingOf(read) : null,
     };
   } else if (going) {
-    const { step, of } = stepOfBuild(going) as { step: BuildStepRef; of: number };
-    box = { kind: 'build', build: going, step, of };
+    const { step, of, part } = stepOfBuild(going) as BuildPlace;
+    box = { kind: 'build', build: going, step, of, part };
   } else {
     const left = leftOf(side, home, projects);
     box = left === 0 ? { kind: 'all_built' } : { kind: 'pick', left };
   }
-  const inBox = test?.build ?? going?.build ?? null;
-  return { kind: 'home', box, others: home.builds.filter((build) => build.build !== inBox), next: home.next };
-}
-
-/**
- * When a build last moved: "last step 2 days ago", "last step just now" under a minute. A build with no step passed
- * yet says when it started ("started 5 minutes ago"): its time is the start's.
- */
-export function lastStepWords(iso: string, now: Date, started = false): string {
-  const at = new Date(iso);
-  if (Number.isNaN(at.getTime())) return '';
-  const what = started ? 'started' : 'last step';
-  if (now.getTime() - at.getTime() < 60_000) return `${what} just now`;
-  return `${what} ${formatDistanceStrict(at, now, { addSuffix: true, roundingMethod: 'round' })}`;
+  // The box's build is not listed again; a build whose test is in the box still is while it is in an optional part,
+  // since the part goes on in the agent.
+  const others = inProgress.filter(
+    (build) => build.build !== going?.build && (build.build !== test?.build || stepOfBuild(build)?.part === true),
+  );
+  return { kind: 'home', box, others, next: home.next };
 }
 
 /** A day as Build's boxes write it: "26 Nov", in the zone the person's days are counted in. */
 export const dayWords = (iso: string, zone?: string): string => dayWordsIn(iso, zone);
+
+/**
+ * When a build with no step passed was started, as Home, a project's box and My builds all say it: "started 26 Nov",
+ * the day in the zone the person's days are counted in. Empty for a moment that cannot be read.
+ */
+export function startedWords(iso: string, zone?: string): string {
+  const day = dayWords(iso, zone);
+  return day ? `started ${day}` : '';
+}
+
+/**
+ * When a build last moved: "last step 2 days ago", "last step just now" under a minute. A build with no step passed
+ * yet says the day it started instead (`startedWords`): its time is the start's.
+ */
+export function lastStepWords(iso: string, now: Date, started = false, zone?: string): string {
+  if (started) return startedWords(iso, zone);
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return '';
+  if (now.getTime() - at.getTime() < 60_000) return 'last step just now';
+  return `last step ${formatDistanceStrict(at, now, { addSuffix: true, roundingMethod: 'round' })}`;
+}
 
 /** The code of every project, in its public repository. */
 export const BUILD_CODE_URL = 'https://github.com/gitranks/build';

@@ -7,6 +7,7 @@ import { type KeyboardEvent, type ReactNode, type Ref, useEffect, useRef, useSta
 import { ShareButton } from '@/components/share/share-button';
 import { Button } from '@/components/ui/button';
 import { BUILD_SKILLS_BUILT } from '@/lib/build/built-parts';
+import { placeWordsOf } from '@/lib/build/home';
 import {
   CONTINUE_SENTENCE,
   isEmptyMine,
@@ -128,7 +129,8 @@ export type RemoveStep = 'asking' | 'removing' | 'failed';
 
 /**
  * A build in progress: the project, the language, the step, when the last step was, the squares; "Remove" and "Open".
- * "Remove" asks in the row's own place, and "Keep it" puts the row back as it was.
+ * "Remove" asks in the row's own place, and "Keep it" puts the row back as it was. A built project's optional part in
+ * progress has no "Remove": a built project is kept.
  */
 function ProgressRow({
   row,
@@ -209,16 +211,18 @@ function ProgressRow({
           <Meta
             parts={[
               row.language,
-              `step ${row.step} of ${row.of}`,
+              placeWordsOf({ step: { number: row.step }, of: row.of, part: row.part }),
               ...(row.lastStep ? [`${row.started ? 'started' : 'last step'} ${row.lastStep}`] : []),
             ]}
           />
           <Squares squares={row.squares} />
         </div>
         <div className={ACTIONS_CLASS}>
-          <button ref={ask} type="button" className={QUIET_CLASS} onClick={onAsk}>
-            Remove<span className="sr-only">: {`${row.project.name}, ${row.language}`}</span>
-          </button>
+          {row.part ? null : (
+            <button ref={ask} type="button" className={QUIET_CLASS} onClick={onAsk}>
+              Remove<span className="sr-only">: {`${row.project.name}, ${row.language}`}</span>
+            </button>
+          )}
           <Button asChild variant="outline" className={BUTTON_CLASS}>
             <Link href={mineProjectHref(row.project)}>
               Open<span className="sr-only">: {row.project.name}</span>

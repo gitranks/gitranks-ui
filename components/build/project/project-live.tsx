@@ -3,12 +3,11 @@
 import { useEffect, useState } from 'react';
 
 import { ProjectView } from './project-view';
-import { TimeZoneNote } from '@/components/workspace/time-zone-note';
 import { HOME_READ_WAIT_MS } from '@/lib/build/home';
 import { buildProjectMinePath, buildTestMinePath } from '@/lib/build/paths';
 import type { ProjectSide } from '@/lib/build/project';
 import type { BuildProjectMine, BuildProjectPage, BuildTest } from '@/lib/build/types';
-import { readBuildZone } from '@/lib/build/zone-live';
+import { readBuildZone, zoneSent } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** The person's side of a project from its route; null when there is none, and on any failure. */
@@ -72,6 +71,8 @@ export function ProjectLive({ project }: { project: BuildProjectPage }) {
     setReading(true);
     const late = setTimeout(() => setReading(false), HOME_READ_WAIT_MS);
     void (async () => {
+      // A zone being saved first: the box's days and the zone are read in it.
+      await zoneSent();
       const [mine, zone] = await Promise.all([readProjectMine(slug), readBuildZone()]);
       const test = mine ? await readProjectTest(slug, mine) : null;
       if (!live) return;
@@ -85,11 +86,6 @@ export function ProjectLive({ project }: { project: BuildProjectPage }) {
     };
   }, [slug]);
 
-  return (
-    <>
-      <ProjectView project={project} side={side} reading={reading} />
-      {/* Once the person's side is read, their device's time zone is sent, as on Learn's pages. */}
-      {side.kind === 'person' ? <TimeZoneNote /> : null}
-    </>
-  );
+  // The browser's zone was saved before the reads (`zoneSent`), so no note sends it again.
+  return <ProjectView project={project} side={side} reading={reading} />;
 }

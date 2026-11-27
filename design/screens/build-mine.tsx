@@ -6,6 +6,7 @@ import { MINE_MAIN_CLASS, MineBody, MineHead } from '@/components/build/mine/min
 import { Header } from '@/components/header/header';
 import {
   MINE_NOW,
+  mineBoardBuiltInPart,
   mineBoardEmpty,
   mineBoardFull,
   mineBoardGoldOpensOn,
@@ -137,6 +138,12 @@ function CasesBoard() {
       >
         <Lists list={{ tests: [], inProgress: [mineMcpFirstStep], built: [] }} />
       </Case>
+      <Case
+        title="9 · A built project with an optional part in progress"
+        line="A row under “In progress” for the part, with the sentence to say and no “Remove”; the project stays under “Built”."
+      >
+        <Lists list={mineBoardBuiltInPart} />
+      </Case>
     </main>
   );
 }
@@ -174,7 +181,7 @@ export const BUILD_MINE_SCREENS: Screen[] = [
         title:
           'The other cases: removing a build, a built project in each state, only built projects, nothing started, tests as read, a build just started',
         path: '/build/mine',
-        height: 2600,
+        height: 2900,
         render: () => <CasesBoard />,
       },
       {

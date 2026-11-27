@@ -26,6 +26,8 @@ export const BLOCKING_ROUTES = [
   '/contribute/pr/[owner]/[repo]/[number]',
   // A Build project: a missing one answers 404.
   '/build/[project]',
+  // A step of a Build project: a missing or removed step answers 404.
+  '/build/[project]/[step]',
 ];
 
 /** Static pages that must be prerendered with a 404 status: the proxy rewrites missing lessons, results and courses there. */

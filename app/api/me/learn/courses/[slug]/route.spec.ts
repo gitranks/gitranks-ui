@@ -119,6 +119,17 @@ describe("a course's personal side", () => {
     });
   });
 
+  it("asks the API's `started`: a course touched only through an interview plan is not started", async () => {
+    signIn();
+    const planOnly = { ...progressMine, started: false };
+    answers({ learnCourseMine: planOnly }, { learnSetupOfMine: { level: 3 } });
+    expect(await (await get('algorithms', '?check=1')).json()).toEqual({
+      course: planOnly,
+      checkFirst: true,
+      mainLanguage: null,
+    });
+  });
+
   it("answers the person's main language to the course's page, read apart so it fails alone", async () => {
     signIn();
     answers({ learnCourseMine: progressMine }, null, { learnSetupOfMine: { mainLanguage: 'javascript' } });

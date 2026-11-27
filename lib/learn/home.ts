@@ -157,12 +157,12 @@ export function learnPageOf({
 }: {
   sign: boolean | null;
   setup: Pick<LearnSetupRead, 'state'> | null;
-  home: Pick<LearnHomeRead, 'learned'> | null;
+  home: Pick<LearnHomeRead, 'learned' | 'courses' | 'suggested'> | null;
 }): 'home' | 'landing' {
   if (sign !== null) return sign ? 'home' : 'landing';
   if (!setup && !home) return 'landing';
   if (!setup || setup.state === 'SAVED') return 'home';
-  return home && home.learned <= 0 ? 'landing' : 'home';
+  return home && learnedNothingOf(home) ? 'landing' : 'home';
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -329,9 +329,17 @@ export function totalsLineOf(home: Pick<LearnHomeRead, 'learned' | 'practised' |
 export const otherSectionsOf = (home: Pick<LearnHomeRead, 'otherCourses'>): CourseSection[] =>
   courseSectionsOf(home.otherCourses);
 
+/**
+ * Nothing learned, a lesson learned inside an interview plan aside: the API counts those in `learned`, and suggests
+ * first courses only to a person with no course started and nothing learned outside a plan. For a person with no plan
+ * this is `learned` alone.
+ */
+export const learnedNothingOf = (home: Pick<LearnHomeRead, 'courses' | 'learned' | 'suggested'>) =>
+  home.learned <= 0 || (!home.courses.length && home.suggested.length > 0);
+
 /** A new learner: no course started and nothing learned; the page asks them to pick a first course. */
-export const isNewLearner = (home: Pick<LearnHomeRead, 'courses' | 'learned'>) =>
-  !home.courses.length && home.learned <= 0;
+export const isNewLearner = (home: Pick<LearnHomeRead, 'courses' | 'learned' | 'suggested'>) =>
+  !home.courses.length && learnedNothingOf(home);
 
 /** The words over a suggested course. */
 export const SUGGESTED_REASON_WORDS: Record<LearnSuggestedReason, string> = {

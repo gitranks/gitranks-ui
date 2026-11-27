@@ -96,6 +96,11 @@ export type LearnCheckProgress = 'NONE' | 'UNFINISHED' | 'ENDED' | 'SAVED';
 /** The learner's side of a course. `learned` counts every depth; `known`, the lessons marked and not learned. */
 export type LearnCourseMine = {
   slug: string;
+  /**
+   * The person's own course, as the API says: a course they started in Learn. A lesson learned inside an interview
+   * plan does not start it, so a course touched only through a plan is not their own though it has lessons learned.
+   */
+  started: boolean;
   learned: number;
   practised: number;
   mastered: number;
@@ -524,7 +529,9 @@ export function courseBoxesOf(
   else if (mine.check.state === 'UNFINISHED' && course.checkOffered && checkAnsweredOf(course, mine)) {
     middle = { kind: 'check-unfinished', left: mine.check.left };
   } else if (mine.check.state === 'ENDED' && course.checkOffered) middle = { kind: 'check-ended' };
-  else if (mine.learned > 0) middle = { kind: 'review-none' };
+  // A course touched only through an interview plan is not started: its lessons are not repeated, and it is offered
+  // as a course not started.
+  else if (mine.learned > 0 && mine.started) middle = { kind: 'review-none' };
   else if (mine.known > 0) middle = { kind: 'known', known: mine.known };
   else if (course.checkOffered) middle = { kind: 'check' };
   else middle = { kind: 'review-none' };
@@ -571,15 +578,14 @@ export const EXPERIENCED_LEVEL = 3;
 export const checkAnsweredOf = (course: Pick<LearnCourse, 'groups'>, mine: Pick<LearnCourseMine, 'check'>) =>
   mine.check.state === 'UNFINISHED' && mine.check.left !== course.groups.length;
 
-/** A course not started: nothing learned, nothing marked as known, and no check begun. */
-export const courseNotStartedOf = (mine: Pick<LearnCourseMine, 'learned' | 'known' | 'check'>) =>
-  mine.learned <= 0 && mine.known <= 0 && mine.check.state === 'NONE';
+/** A course not started: not the person's own, as the API says (`started`). */
+export const courseNotStartedOf = (mine: Pick<LearnCourseMine, 'started'>) => !mine.started;
 
 /**
  * Whether the check leads a course's page (`courseBoxesOf`'s `checkFirst`): a course not started, for a learner whose
  * level, set up or guessed, is an experienced developer's. Everyone else starts at the first lesson.
  */
-export const checkFirstOf = (mine: Pick<LearnCourseMine, 'learned' | 'known' | 'check'>, level: number | null) =>
+export const checkFirstOf = (mine: Pick<LearnCourseMine, 'started'>, level: number | null) =>
   courseNotStartedOf(mine) && level === EXPERIENCED_LEVEL;
 
 /** "4 lessons to repeat". */

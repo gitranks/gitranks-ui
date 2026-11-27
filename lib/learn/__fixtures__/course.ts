@@ -285,16 +285,22 @@ function mineOf(
   }));
   const at = (depths: LearnDepth[]) => lessons.filter((lesson) => depths.includes(lesson.depth)).length;
   const next = rest.nextAt ? lessonAt(rest.nextAt) : null;
+  const learned = at(['LEARNED', 'PRACTISED', 'MASTERED']);
+  const known = lessons.filter((lesson) => lesson.known).length;
+  const check = rest.check ?? { state: 'NONE', left: 0 };
   return {
     slug: 'algorithms',
-    learned: at(['LEARNED', 'PRACTISED', 'MASTERED']),
+    // With no interview plan, the API's `started` is the rule Learn's pages used before: something learned, marked
+    // or a check begun.
+    started: learned > 0 || known > 0 || check.state !== 'NONE',
+    learned,
     practised: at(['PRACTISED', 'MASTERED']),
     mastered: at(['MASTERED']),
-    known: lessons.filter((lesson) => lesson.known).length,
+    known,
     due: lessons.filter((lesson) => lesson.due).length,
     lessons,
     next: next ? { slug: next.slug, title: next.title } : (rest.next ?? null),
-    check: rest.check ?? { state: 'NONE', left: 0 },
+    check,
     finishedAt: rest.finishedAt ?? null,
     feedbackGood: rest.feedbackGood ?? null,
   };

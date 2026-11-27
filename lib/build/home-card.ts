@@ -99,7 +99,7 @@ export function buildCardOf(side: BuildCardSide | null): BuildCardWords {
       title: `${last.project.name}: step ${place.step.number} of ${place.of}`,
       line: others
         ? `${next} And ${plural(others, 'more build', 'more builds')} in progress.`
-        : `${next} Say "${CONTINUE_SENTENCE}" in your agent.`,
+        : `${next} Say “${CONTINUE_SENTENCE}” in your agent.`,
       action: others ? 'Open your builds' : 'Open your build',
       href: others ? BUILD_MINE_PATH : buildProjectPath(last.project.slug),
     };

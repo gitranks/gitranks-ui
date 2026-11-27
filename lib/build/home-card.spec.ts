@@ -65,7 +65,7 @@ describe("Build's card in the home page's block", () => {
   it('says the build touched last and its next step, with the sentence to say', () => {
     expect(buildCardOf(side({ home: home({ builds: [buildInProgress] }) }))).toMatchObject({
       title: 'Build an MCP server: step 9 of 16',
-      line: 'Next: Check the input. Say "Continue my build" in your agent.',
+      line: 'Next: Check the input. Say “Continue my build” in your agent.',
       action: 'Open your build',
       href: '/build/mcp-server',
     });

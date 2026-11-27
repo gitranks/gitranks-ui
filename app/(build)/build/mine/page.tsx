@@ -1,8 +1,15 @@
-import { BUILD_PLACEHOLDER_METADATA, BuildPlaceholder } from '@/components/build/build-placeholder';
+import type { Metadata } from 'next';
 
-/** My builds, until the page is built. */
-export const metadata = BUILD_PLACEHOLDER_METADATA;
+import { BuildMineLive } from '@/components/build/mine/mine-live';
 
+/** My builds: only the person's own, so search engines never keep it. */
+export const metadata: Metadata = { title: 'My builds', robots: { index: false, follow: false } };
+
+/**
+ * My builds: the tests that wait, the builds in progress and the built projects of the signed-in person. The page
+ * holds nothing personal and reads nothing on the server: the builds are read in the browser, and a visitor is asked
+ * to sign in there.
+ */
 export default function BuildMinePage() {
-  return <BuildPlaceholder title="My builds" />;
+  return <BuildMineLive />;
 }

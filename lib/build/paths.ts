@@ -22,6 +22,8 @@ export const BUILD_ABOUT_PATH = '/build/about' as Route;
 export const FROM_BUILD = 'build';
 /** Settings, reached from Build. */
 export const BUILD_SETTINGS_PATH = `/my/settings?from=${FROM_BUILD}` as Route;
+/** A person's Skills page, where their built projects show too. */
+export const buildSkillsPath = (login: string) => `/profile/${encodeURIComponent(login)}/skills` as Route;
 
 /** The test's two kinds in an address: the end test at `/test`, the gold test at `/test/gold`. */
 const TEST_SEGMENT: Record<BuildTestKind, string> = { end: 'test', gold: 'test/gold' };

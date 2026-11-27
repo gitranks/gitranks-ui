@@ -19,6 +19,7 @@ const SENTENCES: Record<SkillsKind, string> = {
   CONTRIBUTOR: 'fixes real issues in open-source projects',
   LEARNER: 'is learning from real open-source fixes',
   BOTH: 'fixes real open-source issues and learns from them',
+  BUILDER: 'builds real projects with an AI agent, one step at a time',
 };
 
 /** The sentence after the login, by kind. */

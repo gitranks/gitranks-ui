@@ -5,16 +5,20 @@ import { cacheLife, cacheTag } from 'next/cache';
 import { SKILLS_LOGINS_TAG, skillsTag } from './paths';
 import {
   MarkSkillsSeenDocument,
+  SetSkillsHiddenBeforeBuildDocument,
   SetSkillsHiddenDocument,
   SkillsBriefDocument,
   SkillsFixesDocument,
   SkillsLoginsDocument,
+  SkillsMineBeforeBuildDocument,
   SkillsMineDocument,
+  SkillsPageBeforeBuildDocument,
   SkillsPageDocument,
   SkillsTabDocument,
 } from './skills.documents';
 import type { SkillsBrief, SkillsFixes, SkillsMine, SkillsPage, SkillsState } from './skills.types';
 import { graphqlDirect } from '@/lib/graphql/graphql-direct';
+import type DocumentNode from '@/types/typed-document-node';
 
 /*
  * The Skills reads. The public ones are the same for everyone, read signed out and kept fifteen minutes under the
@@ -22,6 +26,51 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
  * function, so a failed read never fails a page rendered ahead of a request: it is kept for minutes and says it failed.
  * The owner's reads are never kept.
  */
+
+/** An error the API gives for a field it does not know. */
+const UNKNOWN_FIELD = /Cannot query field|Unknown type/i;
+
+/** The fallback to today's documents is said once a server, not once a read. */
+let saidBefore = false;
+
+/**
+ * Asks `document`, and `before` (the same without Build's fields) when the API does not know a field of the first:
+ * an API not yet serving Build's fields still answers the page. Any other failure is thrown as it came.
+ */
+async function askWithBuild<TData, TVariables extends Record<string, unknown>>(
+  document: DocumentNode<TData, TVariables>,
+  before: DocumentNode<TData, TVariables>,
+  variables: TVariables,
+  params: Parameters<typeof graphqlDirect>[2],
+): Promise<TData> {
+  try {
+    return await graphqlDirect(document, variables, params);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!UNKNOWN_FIELD.test(message)) throw error;
+    if (!saidBefore) {
+      saidBefore = true;
+      console.warn(`Skills read without Build's fields: the API does not know them (${message.slice(0, 200)})`);
+    }
+    return graphqlDirect(before, variables, params);
+  }
+}
+
+/**
+ * A page as the site keeps it: the Built rows when there are some, else no `built` key at all, so a page with nothing
+ * of Build is the same data as before Build (the public page hands it to the browser whole).
+ */
+function withBuiltOf(page: SkillsPage): SkillsPage {
+  const { built, ...rest } = page;
+  return built?.length ? page : rest;
+}
+
+/** The owner's view with Build's fields: no Built row and no build when the answer had none. */
+const mineWithBuildOf = (mine: SkillsMine): SkillsMine => ({
+  ...mine,
+  page: mine.page ? withBuiltOf(mine.page) : null,
+  usesBuild: mine.usesBuild ?? false,
+});
 
 /** Fifteen minutes fresh, as the API keeps its own answers. */
 const SKILLS_LIFE = { stale: 300, revalidate: 900, expire: 86_400 };
@@ -34,9 +83,16 @@ export async function loadSkillsPage(login: string): Promise<SkillsRead<SkillsPa
   'use cache';
   cacheTag(skillsTag(login));
   try {
-    const { skillsPage } = await graphqlDirect(SkillsPageDocument, { login }, { source: 'ssr' });
+    const { skillsPage } = await askWithBuild(
+      SkillsPageDocument,
+      SkillsPageBeforeBuildDocument,
+      { login },
+      {
+        source: 'ssr',
+      },
+    );
     cacheLife(SKILLS_LIFE);
-    return { value: skillsPage ?? null, failed: false };
+    return { value: skillsPage ? withBuiltOf(skillsPage) : null, failed: false };
   } catch {
     cacheLife('minutes');
     return { value: null, failed: true };
@@ -104,8 +160,13 @@ export async function loadSkillsLogins(): Promise<string[] | null> {
 /** The viewer's own view of their page: null signed out, `undefined` when it could not be read. */
 export async function loadSkillsMine(githubLogin: string): Promise<SkillsMine | null | undefined> {
   try {
-    const { skillsMine } = await graphqlDirect(SkillsMineDocument, {}, { source: 'client', githubLogin });
-    return skillsMine ?? null;
+    const { skillsMine } = await askWithBuild(
+      SkillsMineDocument,
+      SkillsMineBeforeBuildDocument,
+      {},
+      { source: 'client', githubLogin },
+    );
+    return skillsMine ? mineWithBuildOf(skillsMine) : null;
   } catch {
     return undefined;
   }
@@ -137,10 +198,11 @@ export async function markSkillsSeen(githubLogin: string): Promise<boolean> {
 
 /** Hides the viewer's page or shows it again: the owner's view after it; null with nothing to show; throws on a failure. */
 export async function setSkillsHidden(githubLogin: string, hidden: boolean): Promise<SkillsMine | null> {
-  const { setSkillsHidden: mine } = await graphqlDirect(
+  const { setSkillsHidden: mine } = await askWithBuild(
     SetSkillsHiddenDocument,
+    SetSkillsHiddenBeforeBuildDocument,
     { hidden },
     { source: 'client', githubLogin },
   );
-  return mine ?? null;
+  return mine ? mineWithBuildOf(mine) : null;
 }

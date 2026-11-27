@@ -3,18 +3,22 @@
  * that builds the part turns its switch on.
  */
 
-/** The email on the morning the gold test first opens. */
-export const BUILD_EMAILS_BUILT = false;
-
-/** The "Built" section of a person's Skills page, which lists their built projects. */
-export const BUILD_SKILLS_BUILT = false;
-
-/** The public repository of every project's code: a project's page links it once it is published. */
-export const BUILD_CODE_REPOSITORY_PUBLIC = true;
-
 /**
  * Build is open to everyone: the header's Grow menu and the home page's three cards are then in the page as the
  * server renders it, for every visitor. While false, only a person Build is open to sees them, once their browser
  * read `/api/me/build/open`; everyone else gets today's header and block, unchanged.
  */
 export const BUILD_OPEN_TO_EVERYONE = false;
+
+/** The email on the morning the gold test first opens. */
+export const BUILD_EMAILS_BUILT = false;
+
+/**
+ * The "Built" section of a person's Skills page, which lists their built projects. The section is there, but until
+ * Build is open to everyone the API sends a person's built projects only to them, and a page with nothing but built
+ * projects is not public: so the sentences that say a project shows on the Skills page "for everyone" wait for that.
+ */
+export const BUILD_SKILLS_BUILT = BUILD_OPEN_TO_EVERYONE;
+
+/** The public repository of every project's code: a project's page links it once it is published. */
+export const BUILD_CODE_REPOSITORY_PUBLIC = true;

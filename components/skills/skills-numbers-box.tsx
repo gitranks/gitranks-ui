@@ -1,6 +1,6 @@
 import { SkillsLine } from './skills-line';
 import type { SkillsNumbers } from '@/lib/skills/skills.types';
-import { figureWordsOf, shownFigures, sinceLineOf } from '@/lib/skills/skills-figures';
+import { countsBuildsOf, figureWordsOf, shownFigures, sinceLineOf } from '@/lib/skills/skills-figures';
 import { cn } from '@/lib/utils';
 
 /** The row's columns by how many figures it holds: one cell each, from a phone's two upwards. */
@@ -27,6 +27,7 @@ export function SkillsNumbersBox({
 }) {
   const shown = shownFigures(place === 'block' ? numbers.blockFigures : numbers.figures);
   if (!shown.length) return null;
+  const builds = countsBuildsOf(numbers);
   return (
     <section
       aria-label="In numbers"
@@ -35,7 +36,7 @@ export function SkillsNumbersBox({
     >
       <dl className={cn('m-0 grid gap-4', COLUMNS[Math.min(shown.length, 4)])}>
         {shown.map((figure, index) => {
-          const words = figureWordsOf(figure, numbers.kind, numbers.fixes);
+          const words = figureWordsOf(figure, numbers.kind, numbers.fixes, builds);
           const oddLast = shown.length > 1 && shown.length % 2 === 1 && index === shown.length - 1;
           return (
             <div

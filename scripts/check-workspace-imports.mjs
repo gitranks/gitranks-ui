@@ -20,11 +20,11 @@
 // | Shared pages (both products open them:  | anything but either product's own: lib/learn/, components/learn/,       |
 // |   (workspace)/my/ and (player)/my/,     |   lib/contribute/, components/contribute/ and either product's pages    |
 // |   Approve included)                     |                                                                         |
-// | lib/skills/ (Skills, shared by both     | itself, Learn's read-only parts (lib/learn/), lib/workspace/; never a   |
-// |   products)                             |   server action                                                         |
+// | lib/skills/ (Skills, shared by every    | itself, Learn's read-only parts (lib/learn/), Build's (lib/build/),     |
+// |   product)                              |   lib/workspace/; never a server action                                 |
 // | components/skills/                      | itself, lib/skills/, Learn's read-only parts (lib/learn/ and            |
-// |                                         |   components/learn/), components/workspace/, lib/workspace/; never a    |
-// |                                         |   server action                                                         |
+// |                                         |   components/learn/), Build's (lib/build/), components/workspace/,      |
+// |                                         |   lib/workspace/; never a server action                                 |
 // | The Skills page (app/profile/[login]/   | anything but Contribute's own (lib/contribute/, components/contribute/, |
 // |   skills/)                              |   its pages), Learn's pages and any server action                       |
 // | lib/build/ (Build)                      | itself, lib/workspace/                                                  |
@@ -104,12 +104,13 @@ export function zoneOf(path) {
 
 const MAY_IMPORT = {
   'lib/workspace': ['lib/workspace'],
-  'lib/skills': ['lib/skills', 'lib/learn', 'lib/workspace'],
+  'lib/skills': ['lib/skills', 'lib/learn', 'lib/build', 'lib/workspace'],
   'components/skills': [
     'components/skills',
     'lib/skills',
     'components/learn',
     'lib/learn',
+    'lib/build',
     'components/workspace',
     'components/workspace/pull-request',
     'lib/workspace',

@@ -49,6 +49,7 @@ export const BUILD_START_WORDS = {
   openProject: 'Open the project',
   home: 'Build home',
   startedFoot: 'Your place shows on the project’s page and on Build home from now on.',
+  lost: 'This page stopped checking: we could not read where you stand. Reload it to check again.',
 } as const;
 
 /** The agent's part of step 1: Build's own words in the shared connect steps, where signing in is the one way. */

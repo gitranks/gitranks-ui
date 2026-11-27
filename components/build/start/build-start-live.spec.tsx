@@ -24,10 +24,11 @@ vi.mock('next/link', () => ({
 const actions = vi.hoisted(() => ({
   createMcpToken: vi.fn(),
   revokeMcpToken: vi.fn(),
-  readAgentConnected: vi.fn(async () => ({ ok: true, data: false })),
+  readAgentConnected: vi.fn(async (_watch?: { onboarded?: boolean }) => ({ ok: true, data: false })),
 }));
 vi.mock('@/lib/workspace/actions', () => actions);
-vi.mock('@/components/contribute-click-tracker/contribute-click-tracker', () => ({ reportContributeConnect: vi.fn() }));
+const tracker = vi.hoisted(() => ({ reportContributeConnect: vi.fn() }));
+vi.mock('@/components/contribute-click-tracker/contribute-click-tracker', () => tracker);
 const auth = vi.hoisted(() => ({ signIn: vi.fn(async () => undefined) }));
 vi.mock('next-auth/react', () => auth);
 
@@ -45,9 +46,14 @@ let container: HTMLDivElement;
 let root: Root;
 /** What each read of the flow's state answers, in turn; the last one again once they run out. */
 let answers: (BuildStart | null)[];
+/** The status of each read; 200 unless a spec says otherwise. */
+let status = 200;
 const fetchMock = vi.fn(async (_url: string) => {
   const start = answers.length > 1 ? answers.shift() : answers[0];
-  return new Response(JSON.stringify({ start: start ?? null }), { headers: { 'content-type': 'application/json' } });
+  return new Response(JSON.stringify({ start: start ?? null }), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
 });
 
 beforeEach(() => {
@@ -56,6 +62,8 @@ beforeEach(() => {
   document.body.append(container);
   root = createRoot(container);
   answers = [startFresh];
+  status = 200;
+  actions.readAgentConnected.mockResolvedValue({ ok: true, data: false });
   vi.stubGlobal('fetch', fetchMock);
   Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
 });
@@ -156,7 +164,7 @@ describe('the start flow, live', () => {
     await press('I added it');
     expect(actions.readAgentConnected).toHaveBeenCalledWith({
       tokenId: null,
-      onboarded: false,
+      onboarded: true,
       since: '2026-11-26T12:00:00.000Z',
     });
     expect(container.textContent).toContain('Waiting for Codex CLI to call GitRanks…');
@@ -176,6 +184,52 @@ describe('the start flow, live', () => {
     expect(projectCard()?.textContent).toContain('Say this in Codex CLI.');
     expect(router.push).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
+    // Build's connect is not counted in Contribute's numbers, and leaves Contribute's stored click alone.
+    expect(tracker.reportContributeConnect).not.toHaveBeenCalled();
+  });
+
+  it("never takes Contribute's onboarded stamp for a call: onboarded with a Claude key, no agent, step 2 stays locked", async () => {
+    // Asked about the stamp (`onboarded: false`), the API would say yes; asked about a sign-in since the page opened, no.
+    actions.readAgentConnected.mockImplementation(async (watch?: { onboarded?: boolean }) => ({
+      ok: true,
+      data: watch?.onboarded === false,
+    }));
+    await draw();
+    await press('I added it');
+    await wait(AGENT_POLL_MS * 3);
+    expect(actions.readAgentConnected).toHaveBeenCalled();
+    for (const [watch] of actions.readAgentConnected.mock.calls as unknown as [{ onboarded: boolean }][]) {
+      expect(watch.onboarded).toBe(true);
+    }
+    expect(projectCard()?.getAttribute('data-build-start-project')).toBe('locked');
+    expect(container.querySelector('[data-build-start-agent="connected"]')).toBeNull();
+    expect(container.textContent).toContain('Waiting for Claude Code to call GitRanks…');
+  });
+
+  it('stops asking and says so in one line when a read answers nothing (signed out since, or a failure)', async () => {
+    answers = [startFresh, null];
+    await draw();
+    await wait(AGENT_POLL_MS);
+    expect(container.querySelector('[data-build-start-lost]')).toBeNull();
+    await wait(AGENT_POLL_MS);
+    expect(container.querySelector('[data-build-start-lost]')?.textContent).toBe(
+      'This page stopped checking: we could not read where you stand. Reload it to check again.',
+    );
+    const asked = fetchMock.mock.calls.length;
+    await wait(AGENT_POLL_MS * 3);
+    expect(fetchMock.mock.calls.length).toBe(asked);
+    expect(projectCard()?.getAttribute('data-build-start-project')).toBe('locked');
+  });
+
+  it('stops asking on a read that fails outright too', async () => {
+    status = 500;
+    await draw({ start: startConnected });
+    await wait(AGENT_POLL_MS);
+    expect(container.querySelector('[data-build-start-lost]')).not.toBeNull();
+    expect(projectCard()?.getAttribute('data-build-start-project')).toBe('say');
+    const asked = fetchMock.mock.calls.length;
+    await wait(AGENT_POLL_MS * 3);
+    expect(fetchMock.mock.calls.length).toBe(asked);
   });
 
   it('opens the setup again for another agent, under the connected line', async () => {

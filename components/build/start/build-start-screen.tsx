@@ -63,6 +63,8 @@ export type BuildStartScreenProps = {
   signingIn?: boolean;
   /** Step 2's heading, which takes the focus as the step opens or changes in place. */
   projectHeadingRef?: Ref<HTMLHeadingElement>;
+  /** A read of the state answered nothing: the page stopped asking, and says so in one line. */
+  lost?: boolean;
 };
 
 /** The whole page under the site header. */
@@ -72,6 +74,11 @@ export function BuildStartScreen(props: BuildStartScreenProps) {
       <FlowHead title={BUILD_START_HEAD.title} text={BUILD_START_HEAD.text} />
       <AgentCard {...props} />
       <ProjectCard {...props} />
+      {props.lost ? (
+        <p role="status" className="text-sm text-muted-foreground" data-build-start-lost="">
+          {WORDS.lost}
+        </p>
+      ) : null}
     </FlowFrame>
   );
 }
@@ -132,6 +139,7 @@ function AgentCard({ stage, connect, agent, another = false, onAnother, onSignIn
 function ProjectCard({
   stage,
   agent,
+  another = false,
   project,
   onPick,
   onPickAnother,
@@ -170,7 +178,11 @@ function ProjectCard({
           <p className="text-sm text-muted-foreground">{startedTextOf(build)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <Button asChild className="h-10 self-start px-6 font-semibold max-sm:min-h-11">
+          <Button
+            asChild
+            variant={another ? 'outline' : 'default'}
+            className="h-10 self-start px-6 font-semibold max-sm:min-h-11"
+          >
             <Link href={buildProjectPath(build.project.slug)} prefetch={false}>
               {WORDS.openProject}
             </Link>
@@ -197,7 +209,7 @@ function ProjectCard({
             <CopyButton
               text={buildSayOf(project.project)}
               label={WORDS.copy}
-              variant="default"
+              variant={another ? 'outline' : 'default'}
               className="h-10 self-start px-6 font-semibold"
             />
             {project.from === 'address' ? (

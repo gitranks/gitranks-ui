@@ -11,7 +11,8 @@ export const AGENT_HINT_MS = 180_000;
 
 /**
  * Another page's own words and parts for the embedded sign-in setup, where signing in is the one way (Build's start
- * flow). Without it the setup is Contribute's and Learn's, as it always was.
+ * flow). Without it the setup is Contribute's and Learn's, as it always was. A connect through it is not counted in
+ * Contribute's numbers.
  */
 export type AgentConnectVariant = {
   /** The line over the agent buttons while the setup shows. */

@@ -717,7 +717,8 @@ export function AgentConnect({
       setShown(null);
       setConnected(true);
     });
-    if (!proof) reportContributeConnect('agent', connectSource);
+    // Another page's connect (a variant) is not Contribute's: it is not counted there, and leaves its click alone.
+    if (!proof && !variant) reportContributeConnect('agent', connectSource);
     if (embedded) {
       onConnected?.(clientRef.current);
       return;
@@ -731,7 +732,7 @@ export function AgentConnect({
         : (withFlowWayBack(GETTING_IN_PATHS.contributeIssue, flowWayBackHereOf()) as Route),
       { replace: true },
     );
-  }, [goTo, proof, embedded, onboarded, finishSetup, onConnected, connectSource]);
+  }, [goTo, proof, embedded, onboarded, finishSetup, onConnected, connectSource, variant]);
 
   useEffect(() => {
     const detected = mcpOsOf(typeof navigator === 'undefined' ? null : (navigator as NavigatorLike));

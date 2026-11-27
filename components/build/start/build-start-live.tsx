@@ -38,6 +38,8 @@ export function BuildStartLive({ signedIn, start: initial, project, projects, op
   const [another, setAnother] = useState(false);
   const [picked, setPicked] = useState<BuildProjectCard | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+  // A read answered nothing (signed out since, or a failure): the page stops asking and says so.
+  const [lost, setLost] = useState(false);
   // Since when a sign-in is an agent calling: the page's drawing, or the press of "Connect another agent".
   const [since, setSince] = useState(openedAt);
   const projectHeading = useRef<HTMLHeadingElement>(null);
@@ -49,7 +51,7 @@ export function BuildStartLive({ signedIn, start: initial, project, projects, op
 
   // The flow's state, read again while the page is shown, until the build has started.
   useEffect(() => {
-    if (!signedIn || started) return;
+    if (!signedIn || started || lost) return;
     let stopped = false;
     let asking = false;
     const ask = async () => {
@@ -57,9 +59,15 @@ export function BuildStartLive({ signedIn, start: initial, project, projects, op
       asking = true;
       try {
         const response = await fetch(buildStartMinePath(slug), { cache: 'no-store' });
-        if (!response.ok) return;
+        if (!response.ok) {
+          if (!stopped) setLost(true);
+          return;
+        }
         const { start: read } = (await response.json()) as { start: BuildStart | null };
-        if (!stopped) setStart((held) => mergeBuildStart(held, read));
+        if (stopped) return;
+        // Signed out since, or the state could not be read: stop asking, and say so.
+        if (!read) setLost(true);
+        else setStart((held) => mergeBuildStart(held, read));
       } catch {
         // Offline, or a deploy under way: the next read tries again.
       } finally {
@@ -71,7 +79,7 @@ export function BuildStartLive({ signedIn, start: initial, project, projects, op
       stopped = true;
       clearInterval(timer);
     };
-  }, [signedIn, started, slug]);
+  }, [signedIn, started, lost, slug]);
 
   // Step 2 takes the focus as it opens, and as it changes in place.
   const moved = useRef(stage);
@@ -89,7 +97,9 @@ export function BuildStartLive({ signedIn, start: initial, project, projects, op
     <AgentConnect
       embedded
       signIn
-      onboarded={another}
+      // Never Contribute's onboarded stamp: someone onboarded with a Claude key has no agent. The wait is for a sign-in
+      // after the page opened, or after "Connect another agent"; the page's own read catches the API's word.
+      onboarded
       tokens={[]}
       keyLink={false}
       openedAt={since}
@@ -131,6 +141,7 @@ export function BuildStartLive({ signedIn, start: initial, project, projects, op
         signIn(IDENTITY_PROVIDER, { redirectTo: here }).catch(() => setSigningIn(false));
       }}
       projectHeadingRef={projectHeading}
+      lost={lost}
     />
   );
 }

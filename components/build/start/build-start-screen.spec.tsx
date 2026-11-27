@@ -236,12 +236,28 @@ describe("the start flow's screens", () => {
     expect(host.querySelector('[data-build-start-agent="connected"]')).not.toBeNull();
   });
 
+  it('says in one line that it stopped checking, under the cards', () => {
+    expect(screen({ stage: 'project', agent: 'Claude Code' }).querySelector('[data-build-start-lost]')).toBeNull();
+    const host = screen({ stage: 'project', agent: 'Claude Code', lost: true });
+    expect(host.querySelector('[data-build-start-lost]')?.textContent).toBe(
+      'This page stopped checking: we could not read where you stand. Reload it to check again.',
+    );
+  });
+
   it('draws one main button a view', () => {
     const states: Partial<Props>[] = [
       { stage: 'sign_in' },
       { stage: 'agent' },
       { stage: 'project', agent: 'Claude Code', project: { kind: 'say', project: startProject, from: 'address' } },
       { stage: 'started', agent: 'Claude Code', build: startedBuild },
+      // "Connect another agent" open: its "I added it" is the main button, step 2's turns plain.
+      {
+        stage: 'project',
+        agent: 'Claude Code',
+        another: true,
+        project: { kind: 'say', project: startProject, from: 'address' },
+      },
+      { stage: 'started', agent: 'Claude Code', build: startedBuild, another: true },
     ];
     for (const state of states) {
       const host = screen(state);

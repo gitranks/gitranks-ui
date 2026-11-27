@@ -198,3 +198,15 @@ export type BuildTest = {
 
 /** What an answer of a test gives back: the run, and with the tenth answer its result too. */
 export type BuildTestAnswer = { run: BuildTestRun; result: BuildTestResult | null };
+
+/**
+ * The person's Build settings, as Settings reads them: `reminders`, Build's two emails (the gold test is open; a build
+ * stands still), one switch for both, on from the first build until turned off.
+ */
+export type BuildSettings = { reminders: boolean };
+
+/**
+ * What the doors into Build on Learn's and Contribute's pages read, for one course: the projects that name it, in our
+ * order, and the person's builds of those projects (the one touched last first).
+ */
+export type BuildDoors = { projects: BuildProjectCard[]; builds: BuildMine[] };

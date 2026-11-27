@@ -76,6 +76,29 @@ describe("a company's logo", () => {
     expect(html).toContain('width:40px');
     expect(html).toContain('font-size:20px');
   });
+
+  it('keeps the picture while it loads, and draws the letter in its place when the file does not load', async () => {
+    await render(<CompanyLogo company={northwind} size={28} />);
+    const image = container.querySelector('img');
+    expect(image).not.toBeNull();
+    await act(async () => image?.dispatchEvent(new Event('error')));
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('[data-company-letter]')?.textContent).toBe('N');
+  });
+
+  it('draws the letter when the file failed before the page came alive', async () => {
+    const complete = vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true);
+    const width = vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(0);
+    await render(<CompanyLogo company={northwind} size={20} />);
+    expect(container.querySelector('[data-company-letter]')?.textContent).toBe('N');
+    width.mockReturnValue(64);
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    await render(<CompanyLogo company={northwind} size={20} />);
+    expect(container.querySelector('img')).not.toBeNull();
+    complete.mockRestore();
+    width.mockRestore();
+  });
 });
 
 describe('who states a fact', () => {

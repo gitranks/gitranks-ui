@@ -49,10 +49,9 @@ describe("a course's page, not signed in", () => {
     expect(page.querySelectorAll('h1')).toHaveLength(1);
     expect(textOf(page, 'h1')).toBe('Algorithms and data structures');
     expect(page.textContent).toContain('Topic course');
-    expect(page.textContent).toContain('Works in any language');
     expect(page.textContent).toContain('1,240 learners');
-    expect(page.textContent).toContain('94% rate it good');
-    expect(textOf(page, '[data-course-line]')).toBe('86 lessons in 9 groups. Each one takes about two minutes.');
+    expect(textOf(page, '[data-course-lessons]')).toBe('86 lessons in 9 groups');
+    expect(page.querySelector('[data-course-line]')).toBeNull();
   });
 
   it('starts with the first lesson, the check behind signing in, and signing in highlighted', () => {
@@ -80,19 +79,36 @@ describe("a course's page, not signed in", () => {
     expect(foot.querySelector('a')!.getAttribute('href')).toBe('/learn/courses/algorithms.md');
   });
 
-  it('hides learners under 10 and a rating the API does not give', () => {
+  it('hides learners under 10', () => {
     const few = draw({ course: { ...algorithmsCourse, numbers: { learners: 9, goodShare: null } } });
     expect(few.textContent).not.toContain('learners');
-    expect(few.textContent).not.toContain('rate it good');
   });
 });
 
 describe("a course's page, signed in", () => {
+  it("draws the head exactly as a visitor's, so nothing under it moves when the learner's side arrives", () => {
+    const visitor = draw().querySelector('header')!.outerHTML;
+    for (const mine of [freshMine, progressMine, checkSavedMine, knownLaterMine, doneMine, allKnownMine]) {
+      expect(draw({ mine }).querySelector('header')!.outerHTML).toBe(visitor);
+    }
+  });
+
+  it("puts the learner's figures over the lessons, just above their filters, outside the head", () => {
+    const page = draw({ mine: progressMine });
+    const line = page.querySelector('[data-course-line="mine"]')!;
+    expect(line.closest('header')).toBeNull();
+    expect(line.nextElementSibling?.querySelector('fieldset')).not.toBeNull();
+    expect(page.querySelector('[data-course-boxes]')!.compareDocumentPosition(line)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
   it('nothing learned: the first lesson next, the check offered, the counts of the filters', () => {
     const page = draw({ mine: freshMine });
     expect(litOf(page)).toContain('Next for you');
     expect(boxesOf(page)[1]).toContain('Take the check');
-    expect(textOf(page, '[data-course-line]')).toBe('86 lessons in 9 groups. Each one takes about two minutes.');
+    // Nothing learned and nothing marked: no figures of their own yet.
+    expect(page.querySelector('[data-course-line]')).toBeNull();
     const chips = [...page.querySelectorAll('fieldset button')].map((chip) => chip.textContent);
     // No page shows a zero: "Due now" keeps its name alone.
     expect(chips).toEqual(['All86', 'To learn86', 'Due now', 'List', 'Squares']);

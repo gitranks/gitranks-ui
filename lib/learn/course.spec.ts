@@ -31,6 +31,7 @@ import {
   courseCardStandingOf,
   courseCountLineOf,
   courseFinishedOf,
+  courseLessonsFactOf,
   coursePageKeyOf,
   courseProgressLineOf,
   courseSearchOf,
@@ -84,6 +85,15 @@ describe("a course's public numbers", () => {
   it("counts a course's lessons and groups", () => {
     expect(courseCountLineOf(algorithmsCourse)).toBe('86 lessons in 9 groups. Each one takes about two minutes.');
     expect(courseCountLineOf(goCourse)).toBe('104 lessons in 1 group. Each one takes about two minutes.');
+  });
+
+  it("writes the lessons and groups of a course's row of facts, with no group count for one group", () => {
+    expect(courseLessonsFactOf(algorithmsCourse)).toBe('86 lessons in 9 groups');
+    expect(courseLessonsFactOf(goCourse)).toBe('104 lessons');
+    expect(courseLessonsFactOf({ lessons: 1, groups: goCourse.groups })).toBe('1 lesson');
+    expect(courseLessonsFactOf({ lessons: 1240, groups: [...goCourse.groups, ...goCourse.groups] })).toBe(
+      '1,240 lessons in 2 groups',
+    );
   });
 });
 
@@ -547,6 +557,7 @@ describe('the words of these pages', () => {
   it('never hold a long dash', () => {
     const words = [
       courseCountLineOf(algorithmsCourse),
+      courseLessonsFactOf(algorithmsCourse),
       learnersWords(1240),
       squareLabelOf('x', { kind: 'known', due: true }),
       ...courseSectionsOf(courseCards).flatMap((section) => [section.title, section.sub]),

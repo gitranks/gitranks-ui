@@ -3,22 +3,15 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { CourseHeader } from './course-header';
-import {
-  algorithmsCourse,
-  checkSavedMine,
-  djangoCourse,
-  goCourse,
-  kubernetesCourse,
-  progressMine,
-} from '@/lib/learn/__fixtures__/course';
-import type { LearnCourse, LearnCourseMine, LearnCourseNumbers } from '@/lib/learn/course';
+import { algorithmsCourse, djangoCourse, goCourse, kubernetesCourse } from '@/lib/learn/__fixtures__/course';
+import type { LearnCourse, LearnCourseNumbers } from '@/lib/learn/course';
 
 const LONG_DASH = String.fromCodePoint(0x2014);
 
-function draw(course: LearnCourse, mine: LearnCourseMine | null = null, projectIssues: number | null = null) {
+function draw(course: LearnCourse, projectIssues: number | null = null) {
   const host = document.createElement('div');
   host.innerHTML = renderToStaticMarkup(
-    <CourseHeader course={course} mine={mine} language="python" onLanguage={() => {}} projectIssues={projectIssues} />,
+    <CourseHeader course={course} language="python" onLanguage={() => {}} projectIssues={projectIssues} />,
   );
   return host.querySelector('header') as HTMLElement;
 }
@@ -139,7 +132,7 @@ describe("a course's head: a language course", () => {
 
 describe("a course's head: a project course", () => {
   it('says who wrote it under what it is about, then the row with the project’s links and no example language', () => {
-    const head = draw(djangoCourse, null, 9);
+    const head = draw(djangoCourse, 9);
     expect(orderOf(head)).toEqual(['back', 'name', 'about', 'author', 'facts']);
     expect(factsOf(head)).toEqual([
       'Repository course',
@@ -168,28 +161,6 @@ describe("a course's head: a project course", () => {
     expect(orderOf(head)).toEqual(['back', 'name', 'about', 'author', 'facts']);
     expect(factsOf(head).slice(0, 3)).toEqual(['Org course', '2 lessons', 'Go']);
     expect(head.querySelector('[data-course-examples]')).toBeNull();
-  });
-});
-
-describe("a course's head for a learner", () => {
-  it("puts the learner's figures in the place of the lessons and groups, in the same row", () => {
-    const head = draw(withNumbers(algorithmsCourse, full), progressMine);
-    expect(factsOf(head)).toEqual([
-      'Topic course',
-      '10 of 86 learned · 4 practised · 1 mastered · Mark lessons you already know',
-      '1,240 learners',
-      '212 real issues fixed',
-      'Examples in Python',
-    ]);
-    expect(head.querySelector('[data-course-facts] [data-course-line="mine"] a')?.getAttribute('href')).toBe(
-      '/learn/check/algorithms',
-    );
-  });
-
-  it('only marked lessons: the marks, as the door to what they know', () => {
-    const head = draw(algorithmsCourse, checkSavedMine);
-    expect(head.querySelector('[data-course-line]')?.textContent).toBe('37 marked as known');
-    expect(head.querySelector('[data-course-line] a')?.getAttribute('href')).toBe('/learn/check/algorithms?known');
   });
 });
 

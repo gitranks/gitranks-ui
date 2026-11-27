@@ -100,20 +100,44 @@ function examplesLanguageOf(
 }
 
 /**
- * A course's head, short: the way back, its name, what it is about (for a project course, who wrote it), and one row
- * of facts: the kind, the lessons and groups (or the learner's figures in their place), the learners and the real
- * issues fixed (each only when worth showing), a project course's links, and the language of the examples at its
- * right end. How the course is rated is on its card in the list, not here.
+ * The learner's figures over the lessons: learned, practised, mastered, and the door to the check (the lessons marked
+ * as known, or the offer to mark some). Nothing while they have none. It stands with the lessons' filters, which a
+ * learner's side brings too, so the head above never changes when the side arrives.
+ */
+export function CourseProgressLine({ course, mine }: { course: LearnCourse; mine: LearnCourseMine | null }) {
+  const progress = mine ? courseProgressLineOf(mine, course) : null;
+  if (!mine || !progress) return null;
+  return (
+    <p className="m-0 text-sm text-muted-foreground" data-course-line="mine">
+      <CountLine parts={progress.parts} />
+      {progress.check ? (
+        <>
+          {progress.parts.length ? ' · ' : null}
+          <Link
+            href={mine.known > 0 ? learnKnownPath(course.slug) : checkPath(course.slug)}
+            className="font-medium text-link hover:underline"
+          >
+            {progress.check}
+          </Link>
+        </>
+      ) : null}
+    </p>
+  );
+}
+
+/**
+ * A course's head, short and the same for everyone, so nothing under it moves when a learner's side arrives: the way
+ * back, its name, what it is about (for a project course, who wrote it), and one row of facts: the kind, the lessons
+ * and groups, the learners and the real issues fixed (each only when worth showing), a project course's links, and
+ * the language of the examples at its right end. How the course is rated is on its card in the list, not here.
  */
 export function CourseHeader({
   course,
-  mine,
   language,
   onLanguage,
   projectIssues = null,
 }: {
   course: LearnCourse;
-  mine: LearnCourseMine | null;
   language: string | null;
   onLanguage: (language: string) => void;
   /** A project course's open issues to fix: its line of facts links them, while there are some. */
@@ -122,7 +146,6 @@ export function CourseHeader({
   const learners = learnersOf(course.numbers);
   // "N real issues fixed" shows from five, as a link to the course's merged fixes.
   const fixed = courseFixesCountOf(course.numbers.issuesFixed);
-  const progress = mine ? courseProgressLineOf(mine, course) : null;
   const examples = examplesLanguageOf(course, language, onLanguage);
   return (
     <header className="flex flex-col gap-2">
@@ -136,26 +159,8 @@ export function CourseHeader({
         <span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-foreground">
           {COURSE_KIND_LABELS[course.kind]}
         </span>
-        {/* One place for two things: the course's lessons and groups, or the learner's figures and the door to the check. */}
-        <span className={progress ? undefined : 'whitespace-nowrap'} data-course-line={progress ? 'mine' : 'course'}>
-          {progress ? (
-            <>
-              <CountLine parts={progress.parts} />
-              {progress.check ? (
-                <>
-                  {progress.parts.length ? ' · ' : null}
-                  <Link
-                    href={mine && mine.known > 0 ? learnKnownPath(course.slug) : checkPath(course.slug)}
-                    className="font-medium text-link hover:underline"
-                  >
-                    {progress.check}
-                  </Link>
-                </>
-              ) : null}
-            </>
-          ) : (
-            courseLessonsFactOf(course)
-          )}
+        <span className="whitespace-nowrap" data-course-lessons="">
+          {courseLessonsFactOf(course)}
         </span>
         {learners !== null ? (
           <span className="whitespace-nowrap">

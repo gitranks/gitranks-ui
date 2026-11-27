@@ -142,7 +142,7 @@ export const LEARN_COURSE_SCREEN: Screen = {
       render: () => (
         <Board
           title="A course, in every state"
-          intro="One page for a visitor and for a learner. A short head: the name, what the course is about and one row of facts. A learner's own side changes the lessons count in that row, the three boxes and the squares in place; the lessons, their groups and the footer are the same for everyone."
+          intro="One page for a visitor and for a learner. A short head, the same for everyone: the name, what the course is about and one row of facts. A learner's own side changes the three boxes in place and brings their figures and filters over the lessons, and the squares; the head, the lessons, their groups and the footer are the same for everyone."
         >
           <Frame title="1 · Not signed in: the course, the first lesson, the check behind signing in" height={1500}>
             <Course bar={visitor} />

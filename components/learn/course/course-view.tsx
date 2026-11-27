@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Fragment, useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import { type CourseBoxCalls, CourseBoxesRow } from './course-boxes';
-import { CourseHeader } from './course-header';
+import { CourseHeader, CourseProgressLine } from './course-header';
 import { type CourseLessonsView, CourseList, CourseSquares, CourseToolbar } from './course-lessons';
 import { CourseLegend } from './course-marks';
 import { ProjectFoot } from './project-course-parts';
@@ -159,15 +159,10 @@ export function CourseView({
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pt-7 pb-16" data-course={course.slug}>
-      <CourseHeader
-        course={course}
-        mine={mine}
-        language={language}
-        onLanguage={pickLanguage}
-        projectIssues={projectIssues}
-      />
+      <CourseHeader course={course} language={language} onLanguage={pickLanguage} projectIssues={projectIssues} />
       <CourseBoxesRow boxes={boxes} slug={course.slug} hints={hints} calls={calls} issuesHref={issuesHref} />
       <div className="flex flex-col gap-3">
+        <CourseProgressLine course={course} mine={mine} />
         <CourseToolbar
           learner={learner}
           filter={filter}

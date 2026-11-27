@@ -31,6 +31,8 @@ const tracker = vi.hoisted(() => ({ reportContributeConnect: vi.fn() }));
 vi.mock('@/components/contribute-click-tracker/contribute-click-tracker', () => tracker);
 const auth = vi.hoisted(() => ({ signIn: vi.fn(async () => undefined) }));
 vi.mock('next-auth/react', () => auth);
+// The note that sends the browser's time zone, drawn as a mark.
+vi.mock('@/components/workspace/time-zone-note', () => ({ TimeZoneNote: () => <span data-time-zone-note="" /> }));
 
 const { BuildStartLive } = await import('./build-start-live');
 const { AGENT_POLL_MS } = await import('@/lib/workspace/agent-connect');
@@ -255,6 +257,12 @@ describe('the start flow, live', () => {
     expect(auth.signIn).toHaveBeenCalledWith('github-basic', { redirectTo: '/build/start?project=mcp-server' });
     await wait(AGENT_POLL_MS * 2);
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-time-zone-note]')).toBeNull();
     window.history.replaceState(null, '', '/');
+  });
+
+  it("sends the browser's time zone once the flow is read for the person, before any build exists", async () => {
+    await draw();
+    expect(container.querySelector('[data-time-zone-note]')).not.toBeNull();
   });
 });

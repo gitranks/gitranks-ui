@@ -4,8 +4,10 @@
  * works out in that zone, never disagree. Pure: the pages and their specs read the same rules.
  */
 
-/** The zone the API counts a person's days in when they saved none. */
-export const BUILD_DEFAULT_TIME_ZONE = 'America/New_York';
+import { API_DEFAULT_TIME_ZONE } from '@/lib/workspace/email-settings';
+
+/** The zone the API counts a person's days in when they saved none: the same one Learn counts in. */
+export const BUILD_DEFAULT_TIME_ZONE = API_DEFAULT_TIME_ZONE;
 
 /** Whether a value names a time zone this runtime knows. */
 export function isTimeZone(value: unknown): value is string {
@@ -33,12 +35,12 @@ export function dayKeyIn(value: string | Date, zone?: string): string | null {
   if (typeof value === 'string' && DAY.test(value)) return value;
   const date = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    timeZone: usable(zone),
-  }).format(date);
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: usable(zone) })
+      .formatToParts(date)
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 /**

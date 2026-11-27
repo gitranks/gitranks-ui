@@ -128,12 +128,12 @@ describe('My builds in the browser', () => {
   it('reads each waiting test, and says a run left in the middle and a failed try in their rows', async () => {
     routes({
       tests: {
-        '/api/me/build/test?project=key-value-database&kind=end&language=python': {
+        '/api/me/build/test?project=key-value-database&kind=end&language=python&plain=1': {
           ...endTestFailed,
           project: { slug: 'key-value-database', name: 'Build a key-value database' },
           language: 'python',
         },
-        '/api/me/build/test?project=web-server&kind=gold&language=typescript': {
+        '/api/me/build/test?project=web-server&kind=gold&language=typescript&plain=1': {
           ...goldTestReady,
           open: testRun,
           canStart: false,

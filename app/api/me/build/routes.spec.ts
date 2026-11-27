@@ -127,6 +127,16 @@ describe("Build's personal reads", () => {
     expect(await (await get()).json()).toEqual({ [key]: null });
   });
 
+  it('answers a test as read, its code not highlighted, for a box outside the test (`plain=1`)', async () => {
+    signedIn();
+    const { GET } = await route('./test/route');
+    graphqlDirect.mockResolvedValueOnce({ buildTest: endTestOpen });
+    const res = await (GET as Route)(
+      new NextRequest(`${URL_BASE}/api/me/build/test?project=mcp-server&kind=end&plain=1`),
+    );
+    expect(await res.json()).toEqual({ test: endTestOpen });
+  });
+
   it('answers no test for an ask not of the shape, without asking the API', async () => {
     signedIn();
     const { GET } = await route('./test/route');

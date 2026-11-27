@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { type BuildStartProject, BuildStartScreen } from './build-start-screen';
 import { AgentConnect } from '@/components/workspace/agent/agent-connect';
+import { TimeZoneNote } from '@/components/workspace/time-zone-note';
 import { IDENTITY_PROVIDER } from '@/lib/auth-providers';
 import { buildStartMinePath } from '@/lib/build/paths';
 import { BUILD_AGENT_VARIANT, buildStartStageOf, mergeBuildStart } from '@/lib/build/start';
@@ -115,33 +116,38 @@ export function BuildStartLive({ signedIn, start: initial, project, projects, op
   );
 
   return (
-    <BuildStartScreen
-      stage={stage}
-      connect={connect}
-      agent={client ? MCP_CLIENT_NAMES[client] : null}
-      another={another}
-      onAnother={() => {
-        if (!another) setSince(new Date().toISOString());
-        setAnother(!another);
-      }}
-      project={view}
-      onPick={(each) => {
-        setPicked(each);
-        projectHeading.current?.focus();
-      }}
-      onPickAnother={() => {
-        setPicked(null);
-        projectHeading.current?.focus();
-      }}
-      build={start?.build ?? null}
-      signingIn={signingIn}
-      onSignIn={() => {
-        setSigningIn(true);
-        const here = `${window.location.pathname}${window.location.search}`;
-        signIn(IDENTITY_PROVIDER, { redirectTo: here }).catch(() => setSigningIn(false));
-      }}
-      projectHeadingRef={projectHeading}
-      lost={lost}
-    />
+    <>
+      {/* Once the flow is read for the person, the browser's zone is sent: saved before any build, so none of a
+          builder's days is counted in the default zone. */}
+      {start ? <TimeZoneNote /> : null}
+      <BuildStartScreen
+        stage={stage}
+        connect={connect}
+        agent={client ? MCP_CLIENT_NAMES[client] : null}
+        another={another}
+        onAnother={() => {
+          if (!another) setSince(new Date().toISOString());
+          setAnother(!another);
+        }}
+        project={view}
+        onPick={(each) => {
+          setPicked(each);
+          projectHeading.current?.focus();
+        }}
+        onPickAnother={() => {
+          setPicked(null);
+          projectHeading.current?.focus();
+        }}
+        build={start?.build ?? null}
+        signingIn={signingIn}
+        onSignIn={() => {
+          setSigningIn(true);
+          const here = `${window.location.pathname}${window.location.search}`;
+          signIn(IDENTITY_PROVIDER, { redirectTo: here }).catch(() => setSigningIn(false));
+        }}
+        projectHeadingRef={projectHeading}
+        lost={lost}
+      />
+    </>
   );
 }

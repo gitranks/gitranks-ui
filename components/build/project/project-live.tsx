@@ -41,7 +41,7 @@ export async function readProjectTest(slug: string, mine: BuildProjectMine): Pro
   if (!build || !kind) return null;
   try {
     const language = mine.builds.length > 1 ? build.language : null;
-    const res = await fetch(buildTestMinePath(slug, kind, language), { cache: 'no-store' });
+    const res = await fetch(buildTestMinePath(slug, kind, language, { plain: true }), { cache: 'no-store' });
     if (!res.ok) return null;
     const { test } = (await res.json()) as { test?: BuildTest | null };
     return test && test.kind === kind ? test : null;

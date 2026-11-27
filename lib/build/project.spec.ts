@@ -165,6 +165,23 @@ describe('the gold test, in words', () => {
     expect(dayYearOf(builtAt, 'UTC')).toBe('27 Nov 2026');
     expect(dayOf('2026-12-03', 'Asia/Tokyo')).toBe('3 Dec');
   });
+
+  it('counts calendar days in the zone across a change of the clocks: the gold day is the day of Built plus 7', () => {
+    const NY = 'America/New_York';
+    const FIRST = ', a week after you built it: 10 questions, and 8 right earns the gold mark.';
+    // Built at 23:30 on 7 Mar 2027, a week before the clocks go forward: the API answers 14 Mar.
+    expect(goldWordsOf({ kind: 'opens_on', date: '2027-03-14' }, '2027-03-08T04:30:00.000Z', NY)).toBe(
+      `The gold test opens on 14 Mar${FIRST}`,
+    );
+    // Built at 00:30 on 1 Nov 2027, a week before the clocks go back: the API answers 8 Nov.
+    expect(goldWordsOf({ kind: 'opens_on', date: '2027-11-08' }, '2027-11-01T04:30:00.000Z', NY)).toBe(
+      `The gold test opens on 8 Nov${FIRST}`,
+    );
+    // A day later than that is a failed try's next day.
+    expect(goldWordsOf({ kind: 'opens_on', date: '2027-03-15' }, '2027-03-08T04:30:00.000Z', NY)).toMatch(
+      /^The gold test opens again on 15 Mar/,
+    );
+  });
 });
 
 describe('what next, for a built project', () => {

@@ -12,6 +12,7 @@ import {
   isBuildLanguage,
   isBuildTestKind,
 } from './types';
+import { dayKeyIn } from './zone';
 import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
@@ -86,18 +87,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** The day a moment falls on in a time zone (the browser's own when none is named), as `YYYY-MM-DD`; null if unread. */
-export function dayKeyOf(moment: string | Date, timeZone?: string): string | null {
-  const date = typeof moment === 'string' ? new Date(moment) : moment;
-  if (Number.isNaN(date.getTime())) return null;
-  try {
-    const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
-      .formatToParts(date)
-      .reduce<Record<string, string>>((all, part) => ({ ...all, [part.type]: part.value }), {});
-    return `${parts.year}-${parts.month}-${parts.day}`;
-  } catch {
-    return null;
-  }
-}
+export const dayKeyOf = (moment: string | Date, timeZone?: string): string | null =>
+  dayKeyIn(moment, timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
 
 const utcOf = (key: string): number | null => {
   const match = DAY_KEY.exec(key);

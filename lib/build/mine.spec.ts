@@ -37,6 +37,12 @@ describe('My builds: the days', () => {
     expect(dayKeyOf('not a date', 'UTC')).toBeNull();
   });
 
+  it("counts the gold test's first day as calendar days in the zone, across a change of the clocks", () => {
+    // Built at 23:30 on 7 Mar 2027 and at 00:30 on 1 Nov 2027, New York: the API answers 14 Mar and 8 Nov.
+    expect(dayAfter(dayKeyOf('2027-03-08T04:30:00.000Z', 'America/New_York'), 7)).toBe('2027-03-14');
+    expect(dayAfter(dayKeyOf('2027-11-01T04:30:00.000Z', 'America/New_York'), 7)).toBe('2027-11-08');
+  });
+
   it('names a day of this year without its year, and one of another year with it', () => {
     expect(shortDayOf('2026-11-03', '2026-11-26')).toBe('3 Nov');
     expect(shortDayOf('2026-09-30', null)).toBe('30 Sep');

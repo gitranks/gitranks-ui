@@ -74,7 +74,7 @@ function NowBox({ box, now, zone }: { box: BuildHomeBox; now: Date | null; zone?
     // A test left in the middle: where the person was, and the button goes on with it.
     if (standing?.kind === 'going') {
       const words = goingWordsOf(standing);
-      const what = test.kind === 'gold' ? `The gold test of “${test.project.name}”` : test.project.name;
+      const what = `${test.kind === 'gold' ? 'The gold test' : 'The test'} of “${test.project.name}”`;
       return (
         <Box
           kind={`${test.kind}-going`}

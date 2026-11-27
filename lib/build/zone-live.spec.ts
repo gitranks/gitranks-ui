@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const browser = vi.hoisted(() => ({ zone: 'Asia/Tokyo' as string | null }));
-vi.mock('@/lib/workspace/email-settings', () => ({ browserTimeZone: () => browser.zone }));
+vi.mock('@/lib/workspace/email-settings', async (original) => ({
+  ...(await original<typeof import('@/lib/workspace/email-settings')>()),
+  browserTimeZone: () => browser.zone,
+}));
 
 const { readBuildZone } = await import('./zone-live');
 

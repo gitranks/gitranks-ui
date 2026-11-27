@@ -359,12 +359,9 @@ describe('where a test stands, as the boxes outside the test say it', () => {
     expect(testStandingOf(endTestPassed)).toBeNull();
     expect(testStandingOf(goldTestReady)).toBeNull();
     expect(testStandingOf(goldTestFailed)).toBeNull();
-    expect(testStandingOf({ ...endTestFailed, open: { ...testRunCode, answered: 0 } })).toEqual({
-      kind: 'failed',
-      right: 6,
-      count: 10,
-      need: 7,
-    });
+    // A new run started from the result and left before its first answer: the test's page opens on question 1,
+    // so the boxes offer the test as for a first try, not the answers.
+    expect(testStandingOf({ ...endTestFailed, open: { ...testRunCode, answered: 0 } })).toBeNull();
     expect(testStandingOf(null)).toBeNull();
   });
 

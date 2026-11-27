@@ -72,9 +72,16 @@ export const BUILD_MINE_MINE_PATH = '/api/me/build/mine';
 export const buildStartMinePath = (project: string | null = null) =>
   project ? `/api/me/build/start?project=${encodeURIComponent(project)}` : '/api/me/build/start';
 /** A test of the person's build of a project: the run in progress, the last result, whether a new one can start. */
-export const buildTestMinePath = (project: string, kind: BuildTestKind, language: BuildLanguage | null = null) => {
+export const buildTestMinePath = (
+  project: string,
+  kind: BuildTestKind,
+  language: BuildLanguage | null = null,
+  { plain = false }: { plain?: boolean } = {},
+) => {
   const query = new URLSearchParams({ project, kind });
   if (language) query.set('language', language);
+  // A box outside the test reads only where it stands: the code is not highlighted for it.
+  if (plain) query.set('plain', '1');
   return `/api/me/build/test?${query}`;
 };
 /** Starts a run of a test (`POST`, `{ project, kind, language }`). */

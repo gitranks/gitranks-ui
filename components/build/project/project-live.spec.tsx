@@ -139,7 +139,10 @@ describe("a project's page in the browser", () => {
     hint.present = true;
     answer(mineGoldOpen, { ...goldTestReady, open: testRun, canStart: false });
     await draw();
-    expect(urls()).toEqual(['/api/me/build/projects/mcp-server', '/api/me/build/test?project=mcp-server&kind=gold']);
+    expect(urls()).toEqual([
+      '/api/me/build/projects/mcp-server',
+      '/api/me/build/test?project=mcp-server&kind=gold&plain=1',
+    ]);
     expect(host.querySelector('[data-project-box]')?.textContent).toContain(
       'The gold test: you were on question 4 of 10. Your first three answers are kept. Go on from question 4.',
     );
@@ -158,7 +161,10 @@ describe("a project's page in the browser", () => {
     hint.present = true;
     answer(mineTestLeft, endTestFailedNow);
     await draw();
-    expect(urls()).toEqual(['/api/me/build/projects/mcp-server', '/api/me/build/test?project=mcp-server&kind=end']);
+    expect(urls()).toEqual([
+      '/api/me/build/projects/mcp-server',
+      '/api/me/build/test?project=mcp-server&kind=end&plain=1',
+    ]);
     expect(boxKind()).toBe('test_failed');
   });
 
@@ -166,7 +172,7 @@ describe("a project's page in the browser", () => {
     hint.present = true;
     answer({ ...mineTwoBuilds, builds: [testLeftOnePart, mineTwoBuilds.builds[1]] }, null);
     await draw();
-    expect(urls()[1]).toBe('/api/me/build/test?project=mcp-server&kind=end&language=typescript');
+    expect(urls()[1]).toBe('/api/me/build/test?project=mcp-server&kind=end&language=typescript&plain=1');
     expect(boxKind()).toBe('test_left');
   });
 

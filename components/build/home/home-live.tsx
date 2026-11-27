@@ -41,7 +41,7 @@ export async function readHomeSide(): Promise<BuildHomeSide> {
   const side: BuildHomeSide = { home, builds: Array.isArray(builds) ? builds : null, agentConnected: null, zone };
   const waiting = home?.tests?.[0];
   if (waiting) {
-    const path = buildTestMinePath(waiting.project.slug, waiting.kind, waiting.language);
+    const path = buildTestMinePath(waiting.project.slug, waiting.kind, waiting.language, { plain: true });
     side.test = await readKey<BuildTest>(path, 'test');
   }
   if (home && !hasBuildOf(side)) {

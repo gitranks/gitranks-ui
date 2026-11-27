@@ -395,7 +395,7 @@ export function testStandingOf(test: Pick<BuildTest, 'kind' | 'need' | 'open' | 
   const { open, last } = test;
   const count = open?.questions.length ?? 0;
   if (open && open.answered > 0 && open.answered < count) return { kind: 'going', answered: open.answered, count };
-  if (test.kind === 'end' && !open?.answered && last && !last.passed) {
+  if (test.kind === 'end' && !open && last && !last.passed) {
     return { kind: 'failed', right: last.right, count: last.items.length || 10, need: test.need };
   }
   return null;

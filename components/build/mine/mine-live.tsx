@@ -49,7 +49,9 @@ export async function postRemoveBuild(build: string): Promise<BuildActionResult<
 export async function readMineStandings(list: BuildMineList): Promise<Record<string, TestStanding | null>> {
   const readOne = async (test: BuildMineList['tests'][number]) => {
     try {
-      const res = await fetch(buildTestMinePath(test.project.slug, test.kind, test.language), { cache: 'no-store' });
+      const res = await fetch(buildTestMinePath(test.project.slug, test.kind, test.language, { plain: true }), {
+        cache: 'no-store',
+      });
       if (!res.ok) return null;
       const { test: read } = (await res.json()) as { test?: BuildTest | null };
       return read && read.kind === test.kind ? testStandingOf(read) : null;

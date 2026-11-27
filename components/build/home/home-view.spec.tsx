@@ -121,7 +121,9 @@ describe("Build's home", () => {
   it('goes on with a test left in the middle, in place of taking it', async () => {
     await draw(fixtures.sideTestGoing);
     const box = container.querySelector('[data-home-box="end-going"]');
-    expect(box?.querySelector('h2')?.textContent).toBe('Build an MCP server: you were on question 4 of 10');
+    expect(box?.querySelector('h2')?.textContent).toBe(
+      'The test of “Build an MCP server”: you were on question 4 of 10',
+    );
     expect(box?.textContent).toContain('Your first three answers are kept. Go on from question 4.');
     expect(link('Go on with the test')).toBe('/build/mcp-server/test?language=typescript');
     expect(link('Take the test')).toBeNull();

@@ -96,7 +96,7 @@ describe("Build's home in the browser", () => {
       '/api/me/build/test': { test: endTestOpen },
     });
     await act(async () => root.render(<HomeLive projects={buildProjectsFew} />));
-    expect(asked).toContain('/api/me/build/test?project=mcp-server&kind=end&language=typescript');
+    expect(asked).toContain('/api/me/build/test?project=mcp-server&kind=end&language=typescript&plain=1');
     expect(container.querySelector('[data-home-box="end-going"]')).not.toBeNull();
   });
 

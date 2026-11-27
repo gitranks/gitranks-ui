@@ -24,6 +24,8 @@ export const BLOCKING_ROUTES = [
   '/repo/[owner]/[name]/contributors',
   // A pull request's public timeline.
   '/contribute/pr/[owner]/[repo]/[number]',
+  // A Build project: a missing one answers 404.
+  '/build/[project]',
 ];
 
 /** Static pages that must be prerendered with a 404 status: the proxy rewrites missing lessons, results and courses there. */

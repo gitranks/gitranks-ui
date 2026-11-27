@@ -8,3 +8,6 @@ export const BUILD_EMAILS_BUILT = false;
 
 /** The "Built" section of a person's Skills page, which lists their built projects. */
 export const BUILD_SKILLS_BUILT = false;
+
+/** The public repository of every project's code: a project's page links it once it is published. */
+export const BUILD_CODE_REPOSITORY_PUBLIC = false;

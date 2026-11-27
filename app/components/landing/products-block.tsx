@@ -32,7 +32,7 @@ const Stacked: FC<{ shown: string; promo: string; className: string }> = ({ show
 );
 
 /** One card: the product's name with its mark, a title, one line and where it leads, in the same places in every state. */
-const ProductCard: FC<{ card: HomeCardWords; promo: HomeCardWords }> = ({ card, promo }) => {
+export const ProductCard: FC<{ card: HomeCardWords; promo: HomeCardWords }> = ({ card, promo }) => {
   return (
     <Link
       href={card.href}

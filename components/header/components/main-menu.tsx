@@ -8,10 +8,12 @@ import { GoPackage, GoRepo } from 'react-icons/go';
 import { GrLocation } from 'react-icons/gr';
 
 import { ContributeMenuItem } from './contribute-menu-item';
+import { GrowMenuItem, type GrowSection } from './grow-menu-item';
 import { LearnMenuItem } from './learn-menu-item';
 import { ListItem } from './menu-list-item';
 import { mainMenuItemClass } from './menu-styles';
 import { PhoneMenu } from './phone-menu';
+import { type BuildViewer, useBuildViewer } from '@/components/build/build-viewer';
 import {
   NavigationMenuContent,
   NavigationMenuItem,
@@ -20,14 +22,31 @@ import {
 } from '@/components/ui/navigation-menu';
 import { packageRankingPath } from '@/utils/package-paths';
 
-export type MenuSection = 'rankings' | 'badges' | 'contribute' | 'learn';
+export type MenuSection = 'rankings' | 'badges' | 'contribute' | 'learn' | 'build';
 
-export function MainMenu({ className, section }: Readonly<{ className?: string; section?: MenuSection }>) {
+const GROW_SECTIONS: ReadonlySet<MenuSection> = new Set<MenuSection>(['learn', 'build', 'contribute']);
+
+/** The section Grow marks: the one the page names, none for a page outside Grow, or (undefined) the path's. */
+const growSectionOf = (section: MenuSection | undefined): GrowSection | null | undefined => {
+  if (section === undefined) return undefined;
+  return GROW_SECTIONS.has(section) ? (section as GrowSection) : null;
+};
+
+export function MainMenu({
+  className,
+  section,
+  build: drawn,
+}: Readonly<{ className?: string; section?: MenuSection; build?: BuildViewer }>) {
   // The shared viewport mounts menu content on the client only, so the menu runs without it.
   // `forceMount` puts the links in the server HTML for crawlers (hidden while closed). After
   // hydration it is dropped and the closed menu unmounts as usual: a mounted one keeps its
   // dismiss layer listening and swallows Escape on every page.
   const [hydrated, setHydrated] = useState(false);
+  // Whether Build is open to this viewer, read in the browser since the page is shared: closed, the menu is today's.
+  // Build's own pages reach only people Build is open to (the proxy answers 404 to anyone else), so they serve Grow
+  // from the start; whether the person has a build ("New") is still read in the browser.
+  const read = useBuildViewer();
+  const build = drawn ?? { open: read.open || section === 'build', hasBuild: read.hasBuild };
 
   useEffect(() => {
     setHydrated(true);
@@ -76,9 +95,16 @@ export function MainMenu({ className, section }: Readonly<{ className?: string; 
           </Link>
         </NavigationMenuLink>
       </NavigationMenuItem>
-      {/* With no section named, the two mark themselves by the path: the workspace's layout reads no path. */}
-      <ContributeMenuItem active={section ? section === 'contribute' : undefined} />
-      <LearnMenuItem active={section ? section === 'learn' : undefined} />
+      {build.open ? (
+        // Grow, in the place of Contribute and Learn.
+        <GrowMenuItem section={growSectionOf(section)} isNew={build.hasBuild !== true} />
+      ) : (
+        <>
+          {/* With no section named, the two mark themselves by the path: the workspace's layout reads no path. */}
+          <ContributeMenuItem active={section ? section === 'contribute' : undefined} />
+          <LearnMenuItem active={section ? section === 'learn' : undefined} />
+        </>
+      )}
     </PhoneMenu>
   );
 }

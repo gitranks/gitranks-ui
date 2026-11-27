@@ -12,6 +12,8 @@ const session = vi.hoisted(() => ({
 vi.mock('next-auth/react', () => ({ useSession: () => session.current }));
 
 const { HOME_PRODUCTS_WAIT_MS, ProductsBlockLive } = await import('./products-block-live');
+// Today's block: once Build is open to everyone, the three cards take its place (`products-block-grow.spec.tsx`).
+const { BUILD_OPEN_TO_EVERYONE } = await import('@/lib/build/built-parts');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -71,7 +73,7 @@ describe('ProductsBlockLive', () => {
     expectPromotions();
   });
 
-  it("changes a signed-in person's cards in place once read", async () => {
+  it.skipIf(BUILD_OPEN_TO_EVERYONE)("changes a signed-in person's cards in place once read", async () => {
     signIn();
     fetchMock.mockResolvedValueOnce(answer({ products: homeProducts.both }));
     await render();

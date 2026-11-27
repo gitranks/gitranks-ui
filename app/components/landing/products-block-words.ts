@@ -47,9 +47,12 @@ export type HomeProducts = {
 
 export type HomeProduct = 'CONTRIBUTE' | 'LEARN';
 
+/** The product a card stands for: Build's card is drawn only in the block with Build (`products-block-grow`). */
+export type HomeCardProduct = HomeProduct | 'BUILD';
+
 /** A card's words: `mark` (Learn's "New") only while the person does not use the product. */
 export type HomeCardWords = {
-  product: HomeProduct;
+  product: HomeCardProduct;
   name: string;
   mark: string | null;
   title: string;

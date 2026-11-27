@@ -10,7 +10,7 @@ import { Header } from '@/components/header/header';
 export default function BuildPlayerLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <Header />
+      <Header section="build" />
       {children}
     </>
   );

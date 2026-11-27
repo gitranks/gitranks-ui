@@ -12,6 +12,14 @@ import { describe, expect, it } from 'vitest';
 const ROOT = process.cwd();
 const BUILD_FOLDERS = ['lib/build', 'components/build', 'app/(build)', 'app/(build-player)', 'app/api/me/build'];
 const THIS_FILE = 'lib/build/build-copy.spec.ts';
+/** Build's words outside its folders: the header's Grow menu and the home page's block with Build's card. */
+const BUILD_FILES = [
+  'components/header/components/grow-menu-item.tsx',
+  'components/header/components/main-menu.tsx',
+  'app/components/landing/products-block-grow.tsx',
+  'app/components/landing/products-block.tsx',
+  'app/components/landing/products-block-live.tsx',
+];
 
 function filesOf(folder: string): string[] {
   const path = join(ROOT, folder);
@@ -26,7 +34,7 @@ const BUILD_SCREENS = readdirSync(join(ROOT, 'design/screens'))
   .filter((name) => /^build.*\.tsx$/.test(name))
   .map((name) => join('design/screens', name));
 
-const files = [...BUILD_FOLDERS.flatMap(filesOf), ...BUILD_SCREENS]
+const files = [...BUILD_FOLDERS.flatMap(filesOf), ...BUILD_SCREENS, ...BUILD_FILES]
   .map((file) => relative(ROOT, join(ROOT, file)).replaceAll('\\', '/'))
   .filter((file) => file !== THIS_FILE);
 

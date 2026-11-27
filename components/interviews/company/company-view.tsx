@@ -365,6 +365,9 @@ export function CompanyView({ page, mine, reading = false }: CompanyViewProps) {
   const hires = page.timeline ? [...page.process, page.timeline] : page.process;
   const values = page.values;
   const disagreements = disagreementsWordsOf(page.disagreements);
+  // The line on disagreements closes the sources of the last section of facts that has sources to open.
+  const valuesHaveSources = sourcesOfFacts(values, page.sources).length > 0;
+  const disagreementsIn = values.length && valuesHaveSources ? 'values' : 'process';
   const checked = dayWordsOf(page.checkedAt);
   return (
     <main data-interview-company={company.slug} className={INTERVIEWS_COLUMN}>
@@ -388,7 +391,7 @@ export function CompanyView({ page, mine, reading = false }: CompanyViewProps) {
             title={`How ${company.name} hires`}
             line="True for every interview there, whatever the position."
             facts={hires}
-            after={values.length ? null : disagreements}
+            after={disagreementsIn === 'process' ? disagreements : null}
           >
             {!values.length && <CourseDoor page={page} />}
           </FactsSection>
@@ -400,7 +403,7 @@ export function CompanyView({ page, mine, reading = false }: CompanyViewProps) {
             title={`What ${company.name} looks for`}
             line={valuesLineOf(values, company.name)}
             facts={values}
-            after={disagreements}
+            after={disagreementsIn === 'values' ? disagreements : null}
           >
             <CourseDoor page={page} />
           </FactsSection>

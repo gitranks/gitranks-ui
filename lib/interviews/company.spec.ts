@@ -20,6 +20,7 @@ import {
   leftOutWordsOf,
   myPlansAtOf,
   notOfficialWordsOf,
+  planCardsOf,
   planLevelNamesOf,
   planLevelWordsOf,
   planSizeOf,
@@ -39,6 +40,16 @@ describe("a plan's row on a company's page", () => {
     );
     expect(planLevelWordsOf(northwindEngineeringManagerCard)).toBe('All levels');
     expect(planLevelWordsOf(tallgrassSreCard)).toBe('All levels');
+  });
+
+  it('says a level as the plan names it', () => {
+    for (const plan of planCardsOf(northwindPage)) {
+      if (plan.levels.length === 1 && plan.slug !== plan.position.slug) {
+        expect(plan.name.startsWith(planLevelWordsOf(plan))).toBe(true);
+      }
+    }
+    expect(planLevelWordsOf({ ...northwindSeniorSoftwareEngineerCard, levels: ['principal'] })).toBe('Principal');
+    expect(planLevelWordsOf({ ...northwindSeniorSoftwareEngineerCard, levels: ['lead'] })).toBe('lead');
   });
 
   it("names the company's own levels, and nothing when the sources give none", () => {

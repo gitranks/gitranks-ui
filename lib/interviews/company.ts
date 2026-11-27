@@ -7,7 +7,11 @@ import type { InterviewCompanyPage, InterviewFact, InterviewPlanCard, InterviewP
  * count of nothing.
  */
 
-/** The words of each level id, as the plans name them. */
+/**
+ * The words of each level id, as the plans name them. The same five levels and words the content's check allows and
+ * the API writes into each plan's name ("Senior software engineer"); a row needs the words alone, which the wire does
+ * not carry. An id not listed here is shown as it is.
+ */
 const LEVEL_WORDS: Record<string, string> = {
   entry: 'Entry level',
   mid: 'Mid level',

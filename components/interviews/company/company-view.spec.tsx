@@ -198,6 +198,27 @@ describe('the sources and "This is wrong" in place', () => {
     );
   });
 
+  it('puts the line on disagreements under how the company hires when the values name no source to open', async () => {
+    await draw({ ...northwindPage, values: northwindPage.values.map((value) => ({ ...value, sources: ['nowhere'] })) });
+    const values = section('values') as HTMLElement;
+    expect(buttonIn(values, 'This is wrong')).not.toBeNull();
+    expect([...values.querySelectorAll('button')].some((button) => /sources?$/.test(button.textContent ?? ''))).toBe(
+      false,
+    );
+    const hires = section('process') as HTMLElement;
+    await press(buttonIn(hires, '4 sources'));
+    expect(hires.textContent).toContain('Sources disagree on 3 points');
+  });
+
+  it('draws the sources line quiet while closed and strong while open', async () => {
+    await draw(northwindPage);
+    const toggle = buttonIn(section('process') as HTMLElement, '4 sources');
+    expect(toggle?.className).toContain('text-muted-foreground');
+    expect(toggle?.className).not.toContain('font-semibold');
+    await press(toggle);
+    expect(toggle?.className).toContain('font-semibold text-foreground');
+  });
+
   it.each([
     ['process', 'process'],
     ['values', 'values'],

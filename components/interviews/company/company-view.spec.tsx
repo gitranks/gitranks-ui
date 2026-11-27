@@ -166,13 +166,14 @@ describe("a company's page for a visitor (the full case)", () => {
     expect(org?.textContent).toContain("Northwind's open-source projects");
   });
 
-  it('ends with where the facts come from, the day of the check and how we research', async () => {
+  it('ends with where the facts come from, the day of the check, how we research and the Markdown copy', async () => {
     await draw(northwindPage);
     const foot = host.querySelector('[data-company-foot]');
     expect(foot?.textContent).toBe(
-      'Facts from 8 public sources, written in our own words · last checked 26 Nov 2026 · How we research',
+      'Facts from 8 public sources, written in our own words · last checked 26 Nov 2026 · How we research · Markdown version',
     );
     expect(linkNamed('How we research')?.getAttribute('href')).toBe('/interviews/about');
+    expect(linkNamed('Markdown version')?.getAttribute('href')).toBe('/interviews/northwind.md');
   });
 
   it('draws its sections in reading order', async () => {
@@ -282,7 +283,7 @@ describe("a company's page, the small case", () => {
       [...host.querySelectorAll('[data-company-section]')].map((one) => one.getAttribute('data-company-section')),
     ).toEqual(['plans']);
     expect(host.querySelector('[data-company-foot]')?.textContent).toBe(
-      'Facts written in our own words · last checked 26 Nov 2026 · How we research',
+      'Facts written in our own words · last checked 26 Nov 2026 · How we research · Markdown version',
     );
   });
 });

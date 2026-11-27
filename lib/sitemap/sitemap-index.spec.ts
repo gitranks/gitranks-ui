@@ -71,6 +71,16 @@ describe('sitemap index', () => {
     expect(paths(listChildSitemapLocs(0, 99)).filter((loc) => loc.startsWith('/sitemaps/orgs/pages'))).toHaveLength(5);
   });
 
+  it("lists Interviews' sitemap only once Interviews is open to everyone", () => {
+    expect(paths(listChildSitemapLocs(2, 1))).not.toContain('/sitemaps/interviews/sitemap.xml');
+    expect(paths(listChildSitemapLocs(2, 1, false))).not.toContain('/sitemaps/interviews/sitemap.xml');
+    const open = paths(listChildSitemapLocs(2, 1, true));
+    expect(open).toContain('/sitemaps/interviews/sitemap.xml');
+    expect(open.indexOf('/sitemaps/interviews/sitemap.xml')).toBeLessThan(
+      open.indexOf('/sitemaps/repos/sitemap/0.xml'),
+    );
+  });
+
   it('writes one entry per loc with the month as lastmod', () => {
     const xml = buildSitemapIndexXml(['https://example.test/a.xml'], new Date('2026-10-01T00:00:00.000Z'));
 

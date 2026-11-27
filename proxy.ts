@@ -9,7 +9,7 @@ import { prefersMarkdown } from './lib/contribute/accept-markdown';
 import { contributeLedgerOpen } from './lib/contribute/ledger-gate';
 import { prTimelineGateOf } from './lib/contribute/pr-timeline-gate';
 import { interviewsGateOf } from './lib/interviews/interviews-gate';
-import { isInterviewsPath } from './lib/interviews/paths';
+import { interviewsMarkdownRouteOf, isInterviewsPath } from './lib/interviews/paths';
 import { checkGateOf, courseGateOf, projectCourseGateOf } from './lib/learn/course-gate';
 import { fixByAttemptRouteGateOf, fixRouteGateOf, fixViewRouteGateOf } from './lib/learn/fix-gate';
 import { issuesShowFixedRedirectOf } from './lib/learn/issues';
@@ -198,6 +198,12 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     : null;
   if (interviewsGate === 'closed') {
     return noStore(NextResponse.rewrite(new URL(NOT_FOUND_PATH, request.url)));
+  }
+  // Interviews' Markdown copies, at the page's address with `.md`, once the gate let them through: answered by their
+  // route handlers, which follow the page's state (moved, gone, missing) and are never indexed.
+  const interviewsMarkdown = interviewsMarkdownRouteOf(request.nextUrl.pathname);
+  if (interviewsMarkdown) {
+    return NextResponse.rewrite(new URL(interviewsMarkdown, request.url));
   }
 
   // A lesson's Markdown copy, for agents, at the page's address with `.md`: answered by its route handler, which follows

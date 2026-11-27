@@ -15,6 +15,8 @@ export const AREAS = {
   /** The signed-in pages both sides share: Pull requests, a pull request's page, Agent, Settings, the Start page. */
   workspace: 'Workspace',
   learn: 'Learn',
+  /** GitRanks Build: its pages, the start flow first. */
+  build: 'Build',
   admin: 'Admin',
 } as const;
 

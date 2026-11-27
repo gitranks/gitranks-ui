@@ -1,6 +1,7 @@
 import type { Screen } from '../registry';
 import { ADMIN_SCREENS } from './admin';
 import { BADGES_SCREENS } from './badges';
+import { BUILD_START_SCREENS } from './build-start';
 import { CONTRIBUTE_SCREENS } from './contribute';
 import { HELD_BACK_SCREENS } from './held-back';
 import { LANDING_SCREENS } from './landing';
@@ -37,5 +38,6 @@ export const SCREENS: Screen[] = [
   ...LEARN_SCREENS,
   ...LEARN_REAL_PROJECTS_SCREENS,
   ...LEARN_FRAME_SCREENS,
+  ...BUILD_START_SCREENS,
   ...ADMIN_SCREENS,
 ];

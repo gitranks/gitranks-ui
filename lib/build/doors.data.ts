@@ -10,29 +10,30 @@ import { graphqlDirect } from '@/lib/graphql/graphql-direct';
 
 /*
  * The doors into Build: read from what a project already names, its Learn courses. The public parts are cached and
- * never throw (a failed read is none, kept for minutes); the person's builds are read for the session's own person.
+ * never throw (a failed read is null, kept for minutes, and the page stays as today); the person's builds are read for
+ * the session's own person.
  */
 
-/** The projects that name a course, in our order. Hours when there are some; minutes for none or a failed read. */
-export async function loadBuildCourseProjects(course: string): Promise<BuildProjectCard[]> {
+/**
+ * The projects that name a course, in our order: [] when none does, null when the read failed. Hours when there are
+ * some; minutes for none or a failure.
+ */
+export async function loadBuildCourseProjects(course: string): Promise<BuildProjectCard[] | null> {
   'use cache';
   cacheTag(BUILD_PROJECTS_TAG);
-  let projects: BuildProjectCard[] = [];
+  let projects: BuildProjectCard[] | null = null;
   try {
-    ({ buildCourseProjects: projects } = await graphqlDirect(
-      BuildCourseProjectsDocument,
-      { course },
-      { source: 'ssr' },
-    ));
+    const { buildCourseProjects } = await graphqlDirect(BuildCourseProjectsDocument, { course }, { source: 'ssr' });
+    projects = Array.isArray(buildCourseProjects) ? buildCourseProjects : null;
   } catch {
-    projects = [];
+    projects = null;
   }
-  if (Array.isArray(projects) && projects.length) {
+  if (projects?.length) {
     cacheLife('hours');
     return projects;
   }
   cacheLife('minutes');
-  return [];
+  return projects;
 }
 
 /** The course a lesson belongs to; null for an unknown lesson or a failed read (kept for minutes then). */
@@ -52,7 +53,8 @@ export async function loadBuildLessonCourse(lesson: string): Promise<string | nu
 
 /**
  * The doors for one course, or for the course of an issue's lesson: its projects and the person's builds of them.
- * Null when Build is not open to the person (their builds are refused), and on a failure of the person's read.
+ * Null when Build is not open to the person (their builds are refused), and when either read fails: the page then
+ * stays as today, rather than drawing "no project names the course".
  */
 export async function loadBuildDoors(
   githubLogin: string,
@@ -61,7 +63,7 @@ export async function loadBuildDoors(
   const course = of.course ?? (of.lesson && isBuildSlug(of.lesson) ? await loadBuildLessonCourse(of.lesson) : null);
   if (!course || !isBuildSlug(course)) return null;
   const [projects, builds] = await Promise.all([loadBuildCourseProjects(course), loadBuildProjectsMine(githubLogin)]);
-  if (!builds) return null;
+  if (!projects || !builds) return null;
   const named = new Set(projects.map((project) => project.slug));
   return { projects, builds: builds.filter((build) => named.has(build.project.slug)) };
 }

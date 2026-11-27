@@ -201,7 +201,8 @@ export type BuildTestAnswer = { run: BuildTestRun; result: BuildTestResult | nul
 
 /**
  * The person's Build settings, as Settings reads them: `reminders`, Build's two emails (the gold test is open; a build
- * stands still), one switch for both, on from the first build until turned off.
+ * stands still), one switch for both, on from the first build until turned off. Only a person with a build has them:
+ * the API answers none for a person with no build yet, and Settings then shows no row.
  */
 export type BuildSettings = { reminders: boolean };
 

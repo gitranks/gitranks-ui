@@ -1,4 +1,8 @@
 // @vitest-environment jsdom
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import type { Route } from 'next';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -31,6 +35,7 @@ const { CourseBuildLine } = await import('./course-build-line');
 const { GoFurtherRows } = await import('./go-further-rows');
 const { IssueBuildLine } = await import('./issue-build-line');
 const { forgetBuildDoors } = await import('./doors-live');
+const { CourseBuildDoor, GoFurtherDoor, IssueBuildDoor } = await import('../doors-gate');
 const { resetBuildViewer } = await import('@/components/build/build-viewer');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -185,5 +190,81 @@ describe('the doors into Build', () => {
     expect(container.textContent).toBe(
       'Want more practice first? Build a key-value database with your agent. It uses the same idea.',
     );
+  });
+});
+
+describe("the doors' gate, the one part Learn's and Contribute's pages import", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+
+  beforeEach(() => {
+    resetBuildViewer();
+    forgetBuildDoors();
+    hint.present = true;
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+    vi.unstubAllGlobals();
+  });
+
+  /** Draws, then lets the reads and the fetched code settle. */
+  const draw = async (part: ReactNode) => {
+    await act(async () => root.render(part));
+    for (let i = 0; i < 5; i += 1) await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  };
+  const page = (
+    <>
+      <CourseBuildDoor course="algorithms" />
+      <GoFurtherDoor course="algorithms" parts={PARTS} today={TODAY} />
+      <IssueBuildDoor lesson={LESSON} />
+    </>
+  );
+
+  it("holds none of Build's words or addresses, which come only with the code it fetches", () => {
+    const source = readFileSync(join(process.cwd(), 'components/build/doors-gate.tsx'), 'utf8');
+    expect(source).not.toMatch(/Build it yourself|Go further|\/build\/|api\/me\/build|@\/lib\/build/);
+    expect(source).toContain("import('./doors/doors-parts')");
+  });
+
+  it('is served as today', () => {
+    expect(renderToStaticMarkup(page)).toBe(renderToStaticMarkup(TODAY));
+  });
+
+  it('asks nothing for a visitor, and stays as today', async () => {
+    hint.present = false;
+    const fetch = routes(true, doorsOne);
+    vi.stubGlobal('fetch', fetch);
+    await draw(page);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(container.innerHTML).toBe(renderToStaticMarkup(TODAY));
+  });
+
+  it('reads only whether Build is open for a person it is closed to, and stays as today', async () => {
+    const fetch = routes(false, doorsOne);
+    vi.stubGlobal('fetch', fetch);
+    await draw(page);
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual(['/api/me/build/open']);
+    expect(container.innerHTML).toBe(renderToStaticMarkup(TODAY));
+  });
+
+  it('draws the doors once Build is open, the course read once for the line and the box', async () => {
+    const fetch = routes(true, doorsOne);
+    vi.stubGlobal('fetch', fetch);
+    await draw(page);
+    expect(container.querySelector('[data-course-build-line]')?.textContent).toBe(
+      'Build it yourself: a key-value database',
+    );
+    expect(container.querySelector('[data-further-row="project"]')).not.toBeNull();
+    expect(container.textContent).toContain('New to this?');
+    expect(fetch.mock.calls.map(([url]) => url).sort()).toEqual([
+      '/api/me/build/doors?course=algorithms',
+      '/api/me/build/doors?lesson=find-duplicates',
+      '/api/me/build/open',
+    ]);
   });
 });

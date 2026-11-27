@@ -378,6 +378,17 @@ export function SettingsScreen({
   const build = buildSettings ? (
     <BuildRemindersRow on={buildSettings.reminders} noAddress={!!email && !email.to} />
   ) : null;
+  // Without Build's row the tail keeps today's two slots, so the page's ids stay as they were.
+  const tailLessons = fromLearn ? null : lessons;
+  const tailFirst =
+    build && !fromBuild ? (
+      <>
+        {tailLessons}
+        {build}
+      </>
+    ) : (
+      tailLessons
+    );
   const emailGroup =
     email || emailFailed || lessons || zone || build ? (
       <EmailRows
@@ -396,8 +407,7 @@ export function SettingsScreen({
         }
         tail={
           <>
-            {fromLearn ? null : lessons}
-            {fromBuild ? null : build}
+            {tailFirst}
             {zone}
           </>
         }

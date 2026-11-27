@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { buildOpenForDocument, readBuildKeyWithin } from '@/components/build/build-viewer';
 import { buildDoorsMinePath } from '@/lib/build/paths';
 import type { BuildDoors } from '@/lib/build/types';
+import { hasSessionHint } from '@/lib/session-hint';
 
 /*
  * The doors into Build are drawn only for a person Build is open to, once their browser knows it: a cached page of
@@ -25,12 +26,18 @@ function doorsOf(value: unknown): BuildDoors | null {
   return Array.isArray(projects) && Array.isArray(builds) ? (value as BuildDoors) : null;
 }
 
-/** The doors of a course, once for the document: none when Build is not open to the person, or the read failed. */
+/**
+ * The doors of a course, once for the document: none when Build is not open to the person, or the read failed. A
+ * browser with no session asks nothing, even once Build is open to everyone: the route answers none signed out.
+ */
 export function readBuildDoors(of: BuildDoorsOf): Promise<BuildDoors | null> {
   const path = buildDoorsMinePath(of);
   let read = reads.get(path);
   if (!read) {
-    read = (async () => ((await buildOpenForDocument()) ? doorsOf(await readBuildKeyWithin(path, 'doors')) : null))();
+    read = (async () =>
+      (await buildOpenForDocument()) && hasSessionHint(document.cookie)
+        ? doorsOf(await readBuildKeyWithin(path, 'doors'))
+        : null)();
     reads.set(path, read);
   }
   return read;

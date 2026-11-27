@@ -152,6 +152,21 @@ describe('the workspace import rule', () => {
     expect(crosses('app/learn/components/learn-home.tsx', 'components/workspace/primitives')).toBe(false);
   });
 
+  it("lets Learn and the shared components import Build's doors through the gate alone, which holds no Build words", () => {
+    expect(zoneOf('components/build/doors-gate.tsx')).toBe('components/build/doors-gate');
+    expect(zoneOf('components/build/doors/course-build-line.tsx')).toBe('components/build');
+    expect(crosses('components/learn/course/course-header.tsx', 'components/build/doors-gate')).toBe(false);
+    expect(crosses('components/workspace/masked-issue/issue-page-screen.tsx', 'components/build/doors-gate')).toBe(
+      false,
+    );
+    expect(crosses('components/learn/course/course-header.tsx', 'components/build/doors/course-build-line')).toBe(true);
+    expect(crosses('components/workspace/masked-issue/issue-page-screen.tsx', 'components/build/build-viewer')).toBe(
+      true,
+    );
+    expect(crosses('components/build/doors-gate.tsx', 'components/build/doors/doors-parts')).toBe(false);
+    expect(crosses('components/build/doors-gate.tsx', 'lib/build/paths')).toBe(true);
+  });
+
   it('lets only the pull request folder of the shared components read Learn', () => {
     expect(crosses('components/workspace/pull-request/review-view.tsx', 'lib/learn/learn.types')).toBe(false);
     expect(crosses('components/workspace/agent/agent-connect.tsx', 'lib/learn/learn.types')).toBe(true);

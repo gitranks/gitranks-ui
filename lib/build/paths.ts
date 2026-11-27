@@ -83,8 +83,6 @@ export const BUILD_TEST_START_MINE_PATH = '/api/me/build/test/start';
 export const BUILD_TEST_ANSWER_MINE_PATH = '/api/me/build/test/answer';
 /** Removes a build in progress (`POST`, `{ build }`). */
 export const BUILD_REMOVE_MINE_PATH = '/api/me/build/remove';
-/** The person's Build settings: whether Build's reminders are on. */
-export const BUILD_SETTINGS_MINE_PATH = '/api/me/build/settings';
 /** Turns Build's reminders on or off (`POST`, `{ reminders }`). */
 export const BUILD_SETTINGS_SAVE_MINE_PATH = '/api/me/build/settings/save';
 /** The doors into Build for a course, or for the course of an issue's lesson: its projects and the person's builds. */

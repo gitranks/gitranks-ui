@@ -100,7 +100,7 @@ export const BUILD_DOORS_SCREENS: Screen[] = [
         id: 'cases',
         title: 'Every case of the three doors: the line on a course, "Go further", the line on an issue',
         path: '/learn/courses/algorithms',
-        height: 2600,
+        height: 2900,
         render: () => (
           <Cases
             title="The doors into Build, in every case"
@@ -118,6 +118,9 @@ export const BUILD_DOORS_SCREENS: Screen[] = [
             <Frame title="The person's place" note="A built project has the tick. A build in progress says its step.">
               {line(doorsPlaces)}
             </Frame>
+            <Frame title="The test left" note="Every step of the build is built; only its test is left.">
+              {line(doorsTestLeft)}
+            </Frame>
             <Frame title="No project names the course" note="The line is not there.">
               {line(doorsNone)}
             </Frame>
@@ -132,6 +135,12 @@ export const BUILD_DOORS_SCREENS: Screen[] = [
             </Frame>
             <Frame title="Go further: no project left" note="The job row takes the free place.">
               {further(doorsAllBuilt, { next: NEXT, issues: ISSUES })}
+            </Frame>
+            <Frame
+              title="Go further: no next course, no project left"
+              note="Issues, then the job row in the free place."
+            >
+              {further(doorsAllBuilt, { next: null, issues: ISSUES })}
             </Frame>
             <Frame title="Go further: nothing else to offer" note="One row, never an empty box.">
               {further(doorsNone, { next: null, issues: null })}
@@ -150,9 +159,9 @@ export const BUILD_DOORS_SCREENS: Screen[] = [
       },
       {
         id: 'settings',
-        title: 'Settings: "Build reminders", first under Email from Build\'s bar, on and off',
+        title: 'Settings: "Build reminders", first under Email from Build\'s bar, on, off, and with no address',
         path: '/my/settings?from=build',
-        height: 520,
+        height: 720,
         render: () => (
           <Cases
             title="Build reminders"
@@ -166,6 +175,11 @@ export const BUILD_DOORS_SCREENS: Screen[] = [
             <SettingsGroup id="email-off" title="Email">
               <SettingsList>
                 <BuildRemindersRow on={false} />
+              </SettingsList>
+            </SettingsGroup>
+            <SettingsGroup id="email-no-address" title="Email">
+              <SettingsList>
+                <BuildRemindersRow on={false} noAddress />
               </SettingsList>
             </SettingsGroup>
           </Cases>

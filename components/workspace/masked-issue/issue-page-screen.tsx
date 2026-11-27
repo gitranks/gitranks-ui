@@ -5,7 +5,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import { IssueBuildLine } from '@/components/build/doors/issue-build-line';
+import { IssueBuildDoor } from '@/components/build/doors-gate';
 import { Button } from '@/components/ui/button';
 import { FairUseAppealForm, type FairUseAppealFormProps } from '@/components/workspace/fair-use-appeal';
 import {
@@ -516,7 +516,7 @@ export function IssuePageScreen(props: IssuePageScreenProps) {
         )}
         <NotForMe onGiveBack={props.onGiveBack} sending={props.givingBack} />
         {/* Build's door, the last thing on the page: only for a person Build is open to, once their browser knows it. */}
-        {lesson?.slug ? <IssueBuildLine lesson={{ ...lesson, slug: lesson.slug }} /> : null}
+        {lesson?.slug ? <IssueBuildDoor lesson={{ ...lesson, slug: lesson.slug }} /> : null}
       </>
     );
   } else if (state === 'GIVEN_BACK') {

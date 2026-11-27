@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { type ReactNode, useState } from 'react';
 
 import { CourseMark } from './course-marks';
-import { GoFurtherRows } from '@/components/build/doors/go-further-rows';
+import { GoFurtherDoor } from '@/components/build/doors-gate';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/workspace/kbd';
 import {
@@ -396,7 +396,7 @@ function LastBox({
       return (
         <Box lit={lit}>
           <Eyebrow>Go further</Eyebrow>
-          <GoFurtherRows
+          <GoFurtherDoor
             course={slug}
             parts={{
               next: box.next ? { name: box.next.name, href: courseHrefOf(box.next), lessons: box.next.lessons } : null,

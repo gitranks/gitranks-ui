@@ -36,7 +36,6 @@ const ROUTES: Record<string, { GET?: Route; POST?: Route }> = {
   './test/start/route': (await import('./test/start/route')) as { GET?: Route; POST?: Route },
   './test/answer/route': (await import('./test/answer/route')) as { GET?: Route; POST?: Route },
   './remove/route': (await import('./remove/route')) as { GET?: Route; POST?: Route },
-  './settings/route': (await import('./settings/route')) as { GET?: Route; POST?: Route },
   './settings/save/route': (await import('./settings/save/route')) as { GET?: Route; POST?: Route },
   './doors/route': (await import('./doors/route')) as { GET?: Route; POST?: Route },
 };
@@ -46,7 +45,6 @@ const { barTwoTests, homeBuilder, mineFull, projectMineTwo, startFresh, stepMine
   '@/lib/build/__fixtures__/builds'
 );
 const { endTestOpen, testRun } = await import('@/lib/build/__fixtures__/test');
-const { buildRemindersOn } = await import('@/lib/build/__fixtures__/settings');
 const { keyValueDatabaseStepNine } = await import('@/lib/build/__fixtures__/doors');
 const { keyValueDatabaseCard, webServerCard } = await import('@/lib/build/__fixtures__/projects');
 const { webServerBuilt } = await import('@/lib/build/__fixtures__/builds');
@@ -98,15 +96,6 @@ const READS: [string, string, string, unknown, string, string, unknown][] = [
     'test',
     'buildTest',
     endTestOpen,
-  ],
-  [
-    'the settings',
-    './settings/route',
-    '/api/me/build/settings',
-    undefined,
-    'settings',
-    'buildSettings',
-    buildRemindersOn,
   ],
 ];
 
@@ -247,6 +236,15 @@ describe('the doors into Build', () => {
       doors: { projects: [webServerCard], builds: [] },
     });
     expect(graphqlDirect.mock.calls.some(([, variables]) => variables?.course === 'algorithms')).toBe(true);
+  });
+
+  it("answers none when a course's projects cannot be read, so the page stays as today", async () => {
+    signedIn();
+    graphqlDirect.mockImplementation(async (_doc: unknown, variables: Record<string, unknown> | undefined) => {
+      if (variables && 'course' in variables) throw new Error('down');
+      return { buildProjectsMine: [keyValueDatabaseStepNine] };
+    });
+    expect(await (await get('course=algorithms')).json()).toEqual({ doors: null });
   });
 
   it('answers none when Build is not open to the person, and for an ask not of the shape', async () => {

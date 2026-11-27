@@ -529,7 +529,9 @@ export function courseBoxesOf(
   else if (mine.check.state === 'UNFINISHED' && course.checkOffered && checkAnsweredOf(course, mine)) {
     middle = { kind: 'check-unfinished', left: mine.check.left };
   } else if (mine.check.state === 'ENDED' && course.checkOffered) middle = { kind: 'check-ended' };
-  else if (mine.learned > 0) middle = { kind: 'review-none' };
+  // A course touched only through an interview plan is not started: its lessons are not repeated, and it is offered
+  // as a course not started.
+  else if (mine.learned > 0 && mine.started) middle = { kind: 'review-none' };
   else if (mine.known > 0) middle = { kind: 'known', known: mine.known };
   else if (course.checkOffered) middle = { kind: 'check' };
   else middle = { kind: 'review-none' };

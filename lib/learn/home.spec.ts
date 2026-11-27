@@ -115,27 +115,33 @@ describe('who gets Learn home at /learn', () => {
   const saved = { state: 'SAVED' as const };
 
   it('gives Learn home with the Learn sign, whatever the setup and the lessons', () => {
-    expect(learnPageOf({ sign: true, setup: unset, home: { learned: 0 } })).toBe('home');
+    expect(learnPageOf({ sign: true, setup: unset, home: { learned: 0, courses: [], suggested: [] } })).toBe('home');
     expect(learnPageOf({ sign: true, setup: null, home: null })).toBe('home');
   });
 
   it('gives the landing without the Learn sign, a saved setup and learned lessons included', () => {
-    expect(learnPageOf({ sign: false, setup: saved, home: { learned: 4 } })).toBe('landing');
-    expect(learnPageOf({ sign: false, setup: unset, home: { learned: 0 } })).toBe('landing');
+    expect(learnPageOf({ sign: false, setup: saved, home: { learned: 4, courses: [], suggested: [] } })).toBe(
+      'landing',
+    );
+    expect(learnPageOf({ sign: false, setup: unset, home: { learned: 0, courses: [], suggested: [] } })).toBe(
+      'landing',
+    );
   });
 
   describe('when the sign cannot be read: the rule from before the sign', () => {
     it('gives the landing to someone not set up who has learned nothing', () => {
-      expect(learnPageOf({ sign: null, setup: unset, home: { learned: 0 } })).toBe('landing');
+      expect(learnPageOf({ sign: null, setup: unset, home: { learned: 0, courses: [], suggested: [] } })).toBe(
+        'landing',
+      );
     });
 
     it('gives Learn home to someone set up, or who has learned a lesson', () => {
-      expect(learnPageOf({ sign: null, setup: saved, home: { learned: 0 } })).toBe('home');
-      expect(learnPageOf({ sign: null, setup: unset, home: { learned: 1 } })).toBe('home');
+      expect(learnPageOf({ sign: null, setup: saved, home: { learned: 0, courses: [], suggested: [] } })).toBe('home');
+      expect(learnPageOf({ sign: null, setup: unset, home: { learned: 1, courses: [], suggested: [] } })).toBe('home');
     });
 
     it('never sends a learner to the landing on a failed read', () => {
-      expect(learnPageOf({ sign: null, setup: null, home: { learned: 0 } })).toBe('home');
+      expect(learnPageOf({ sign: null, setup: null, home: { learned: 0, courses: [], suggested: [] } })).toBe('home');
       expect(learnPageOf({ sign: null, setup: unset, home: null })).toBe('home');
     });
 
@@ -295,7 +301,16 @@ describe('the courses below the boxes', () => {
   it('knows a new learner: no course started and nothing learned', () => {
     expect(isNewLearner(homeNewLearner)).toBe(true);
     expect(isNewLearner(homeDay)).toBe(false);
-    expect(isNewLearner({ courses: [], learned: 2 })).toBe(false);
+    expect(isNewLearner({ courses: [], learned: 2, suggested: [] })).toBe(false);
+  });
+
+  it('counts a lesson learned only inside an interview plan as nothing learned: the API suggests first courses', () => {
+    const planOnly = { ...homeNewLearner, learned: 2 };
+    expect(planOnly.suggested.length).toBeGreaterThan(0);
+    expect(isNewLearner(planOnly)).toBe(true);
+    expect(learnPageOf({ sign: null, setup: { state: 'NONE' }, home: planOnly })).toBe('landing');
+    // A course started is the person's own: never a new learner.
+    expect(isNewLearner({ ...homeDay, suggested: homeNewLearner.suggested })).toBe(false);
   });
 
   it('says whom the suggested courses are for, from the setup', () => {

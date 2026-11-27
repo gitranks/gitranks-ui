@@ -586,4 +586,14 @@ describe("whether a course is the person's own", () => {
     // A course the person started with nothing learned or marked yet is theirs: the first lesson leads.
     expect(checkFirstOf({ ...freshMine, started: true }, 3)).toBe(false);
   });
+
+  it('offers the check of a course touched only through a plan, lit when it leads, never "nothing to repeat"', () => {
+    const planOnly = { ...progressMine, started: false, due: 0 };
+    const led = courseBoxesOf(algorithmsCourse, planOnly, { checkFirst: true });
+    expect(led.middle).toEqual({ kind: 'check' });
+    expect(led.highlight).toBe('middle');
+    expect(courseBoxesOf(algorithmsCourse, planOnly).middle).toEqual({ kind: 'check' });
+    // Started, the same lessons keep the review's place.
+    expect(courseBoxesOf(algorithmsCourse, { ...planOnly, started: true }).middle).toEqual({ kind: 'review-none' });
+  });
 });

@@ -33,7 +33,7 @@ const text = (html: string) =>
     .replace(/\s+/g, ' ');
 
 const PARAGRAPH =
-  'GitRanks Interviews sets out a company\'s interview rounds as an interview plan, with Learn lessons to prepare for them. For My interviews , we keep the interview plans you started and when, when you finished or stopped one and why you stopped it (if you said), and each "This is wrong" report you sent about a fact, with its note. When you learn a lesson inside a plan, your progress in Learn also keeps which plan you learned it in. Your interview plans are not publicly visible. A report never shows your name. We keep all of this until you delete it: Delete all data in Settings and removing your data from GitRanks (see Removing your data ) delete it. Basis: contract (Article 6(1)(b)), to provide what you ask for.';
+  'GitRanks Interviews sets out a company\'s interview rounds as an interview plan, with Learn lessons to prepare for them. For My interviews , we keep the interview plans you started and when, when you finished or stopped one and why you stopped it (if you said), and your latest "This is wrong" report on each fact, with its note. When you learn a lesson inside a plan, your progress in Learn also keeps which plan you learned it in. Your interview plans are not publicly visible. A report never shows your name. We keep all of this until you delete it: Delete all data in Settings and removing your data from GitRanks (see Removing your data ) delete it. Basis: contract (Article 6(1)(b)), to provide what you ask for.';
 
 describe("the Privacy policy's GitRanks Interviews section", () => {
   afterEach(() => {

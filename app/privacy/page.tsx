@@ -331,7 +331,7 @@ const sections: LegalSection[] = [
       <P>
         GitRanks Interviews sets out a company&apos;s interview rounds as an interview plan, with Learn lessons to
         prepare for them. For <B>My interviews</B>, we keep the interview plans you started and when, when you finished
-        or stopped one and why you stopped it (if you said), and each &quot;This is wrong&quot; report you sent about a
+        or stopped one and why you stopped it (if you said), and your latest &quot;This is wrong&quot; report on each
         fact, with its note. When you learn a lesson inside a plan, your progress in Learn also keeps which plan you
         learned it in. Your interview plans are not publicly visible. A report never shows your name. We keep all of
         this until you delete it: <B>Delete all data</B> in Settings and removing your data from GitRanks (see{' '}

@@ -8,7 +8,8 @@
 // | components/workspace/                   | itself, lib/workspace/; its pull-request/ folder also lib/learn/        |
 // | components/contribute/                  | itself, lib/contribute/, lib/workspace/, components/workspace/          |
 // | components/learn/                       | itself, lib/learn/, lib/workspace/, components/workspace/,              |
-// |                                         |   components/build/doors-gate (also for components/workspace/)          |
+// |                                         |   components/build/doors-gate (also for components/workspace/),         |
+// |                                         |   components/interviews/learn-gate                                      |
 // | lib/auth/ (site-wide: any folder may    | itself, lib/workspace/                                                  |
 // |   import it)                            |                                                                         |
 // | Contribute's pages (app/contribute/)    | anything but lib/learn/, components/learn/ and Learn's pages            |
@@ -42,9 +43,11 @@
 // | Interviews' routes (the groups          | themselves, lib/interviews/, components/interviews/,                    |
 // |   (interviews) and (interviews-player), |   components/workspace/ (not its pull-request/ folder), lib/workspace/  |
 // |   app/api/me/interviews/)               |                                                                         |
+// | components/interviews/learn-gate/ (the  | itself, components/interviews/, lib/interviews/, lib/workspace/;        |
+// |   parts of Interviews on Learn's pages) |   Learn's types alone (`import type` from lib/learn/)                   |
 //
 // Build is a section of its own: nothing of Learn's or Contribute's. What it needs from Learn moved to the shared folders.
-// Interviews is one too, apart from Build as well.
+// Interviews is one too, apart from Build as well. Its parts on Learn's pages are the one folder of it Learn imports.
 //
 // Learn's own parts include components/learn/entity/, the Learn card on a project's page. A server action module is
 // one whose file starts with the `'use server'` directive, or one of Learn's modules named `actions` or
@@ -87,6 +90,7 @@ const INTERVIEWS_ROUTES = ['app/(interviews)/', 'app/(interviews-player)/', 'app
 /** The folder rule's name for a path, or null for a site-wide module every folder may import. */
 export function zoneOf(path) {
   if (path.startsWith('lib/interviews/')) return 'lib/interviews';
+  if (path.startsWith('components/interviews/learn-gate/')) return 'components/interviews/learn-gate';
   if (path.startsWith('components/interviews/')) return 'components/interviews';
   if (INTERVIEWS_ROUTES.some((dir) => path.startsWith(dir))) return 'app/interviews';
   if (path.startsWith('lib/build/')) return 'lib/build';
@@ -138,6 +142,14 @@ const MAY_IMPORT = {
   'app/build': ['app/build', 'lib/build', 'components/build', 'components/build/doors-gate', 'components/workspace', 'lib/workspace'],
   'lib/interviews': ['lib/interviews', 'lib/workspace'],
   'components/interviews': ['components/interviews', 'lib/interviews', 'components/workspace', 'lib/workspace'],
+  // The parts of Interviews on Learn's pages: the one folder of Interviews Learn's components import, and the one of
+  // Interviews that reads Learn's types (`TYPES_ONLY`).
+  'components/interviews/learn-gate': [
+    'components/interviews/learn-gate',
+    'components/interviews',
+    'lib/interviews',
+    'lib/workspace',
+  ],
   'app/interviews': ['app/interviews', 'lib/interviews', 'components/interviews', 'components/workspace', 'lib/workspace'],
   'lib/auth': ['lib/auth', 'lib/workspace'],
   'components/workspace': ['components/workspace', 'components/workspace/pull-request', 'components/build/doors-gate', 'lib/workspace'],
@@ -157,11 +169,17 @@ const MAY_IMPORT = {
   'components/learn': [
     'components/learn',
     'components/build/doors-gate',
+    'components/interviews/learn-gate',
     'components/workspace',
     'components/workspace/pull-request',
     'lib/learn',
     'lib/workspace',
   ],
+};
+
+/** The folders a folder may import types from, with `import type` or `export type`, and nothing else. */
+const TYPES_ONLY = {
+  'components/interviews/learn-gate': ['lib/learn'],
 };
 
 const MAY_NOT_IMPORT = {
@@ -192,14 +210,15 @@ export function isServerActionSource(source) {
 
 /**
  * Whether a file at `from` may not import the module at `to` (both repo paths). `isServerAction` tells whether a
- * module's file is a server action module, which no Skills folder imports.
+ * module's file is a server action module, which no Skills folder imports. `typeOnly`: the import brings types alone.
  */
-export function crosses(from, to, isServerAction = () => false) {
+export function crosses(from, to, isServerAction = () => false, typeOnly = false) {
   const a = zoneOf(from);
   const b = zoneOf(to);
   if (SKILLS_ZONES.has(a) && (isLearnAction(to) || isServerAction(to))) return true;
   // Site-wide modules: every folder may import them. `lib/auth/` is one, with its own imports checked.
   if (!a || !b || b === 'lib/auth') return false;
+  if (typeOnly && TYPES_ONLY[a]?.includes(b)) return false;
   if (MAY_IMPORT[a]) return !MAY_IMPORT[a].includes(b);
   return (MAY_NOT_IMPORT[a] ?? []).includes(b);
 }
@@ -216,12 +235,18 @@ export function moduleOf(file, specifier) {
   return posix.normalize(posix.join(posix.dirname(file), specifier)).replace(/\.(?:tsx?|mjs|js)$/, '');
 }
 
+/** A whole `import type ... from '...'` or `export type ... from '...'`: it brings types alone. */
+const TYPE_ONLY_IMPORT = /^\s*(?:import|export)\s+type\s+[^;'"]*?\bfrom\s*(['"])([^'"\n]+)\1/gm;
+
 /** Every import of `source` (a file at `file`) the rule forbids, as `<file> -> <module>`. */
 export function crossingsOf(file, source, isServerAction = () => false) {
+  // Where each type-only import's specifier ends: a specifier found there brings types alone.
+  const typeOnlyEnds = new Set([...source.matchAll(TYPE_ONLY_IMPORT)].map((match) => match.index + match[0].length));
   const found = new Set();
   for (const match of source.matchAll(SPECIFIER)) {
     const module = moduleOf(file, match[2]);
-    if (module && crosses(file, module, isServerAction)) found.add(`${file} -> ${module}`);
+    const typeOnly = typeOnlyEnds.has(match.index + match[0].length);
+    if (module && crosses(file, module, isServerAction, typeOnly)) found.add(`${file} -> ${module}`);
   }
   return [...found];
 }

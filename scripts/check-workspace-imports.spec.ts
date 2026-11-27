@@ -195,6 +195,40 @@ describe('the workspace import rule', () => {
     expect(crosses('components/build/doors-gate.tsx', 'lib/build/paths')).toBe(true);
   });
 
+  it("lets Learn's components import Interviews' parts on Learn's pages, and nothing else of Interviews", () => {
+    expect(zoneOf('components/interviews/learn-gate/courses-gate.tsx')).toBe('components/interviews/learn-gate');
+    expect(crosses('components/learn/courses/courses-view.tsx', 'components/interviews/learn-gate/courses-gate')).toBe(
+      false,
+    );
+    expect(crosses('components/learn/courses/courses-view.tsx', 'components/interviews/company-logo')).toBe(true);
+    expect(crosses('components/learn/courses/courses-view.tsx', 'lib/interviews/paths')).toBe(true);
+    expect(crosses('lib/learn/course.ts', 'components/interviews/learn-gate/courses-interviews')).toBe(true);
+    // The parts read Interviews and Learn's types; the rest of Interviews never reads Learn.
+    expect(crosses('components/interviews/learn-gate/courses-gate.tsx', 'components/interviews/company-logo')).toBe(
+      false,
+    );
+    const gate = 'components/interviews/learn-gate/courses-gate.tsx';
+    expect(crosses(gate, 'lib/learn/courses-interviews', undefined, true)).toBe(false);
+    expect(crosses(gate, 'lib/learn/courses-interviews')).toBe(true);
+    expect(crosses(gate, 'components/learn/courses/course-card', undefined, true)).toBe(true);
+    expect(crosses(gate, 'components/learn/courses/course-card')).toBe(true);
+    expect(crosses('components/interviews/company-logo.tsx', 'lib/learn/course', undefined, true)).toBe(true);
+  });
+
+  it("lets the parts of Interviews on Learn's pages read Learn's types alone", () => {
+    const gate = 'components/interviews/learn-gate/courses-gate.tsx';
+    const source = [
+      "import type { CoursesInterviews } from '@/lib/learn/courses-interviews';",
+      "export type { LearnCourseCard } from '@/lib/learn/course';",
+      'import {',
+      '  type LearnCourseCard,',
+      "} from '@/lib/learn/course';",
+      "import { coursesSearchOf } from '@/lib/learn/course';",
+      "const paths = import('@/lib/learn/paths');",
+    ].join('\n');
+    expect(crossingsOf(gate, source)).toEqual([`${gate} -> lib/learn/course`, `${gate} -> lib/learn/paths`]);
+  });
+
   it('lets only the pull request folder of the shared components read Learn', () => {
     expect(crosses('components/workspace/pull-request/review-view.tsx', 'lib/learn/learn.types')).toBe(false);
     expect(crosses('components/workspace/agent/agent-connect.tsx', 'lib/learn/learn.types')).toBe(true);

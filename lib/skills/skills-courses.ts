@@ -14,6 +14,7 @@ export const COURSE_KIND_WORDS: Record<SkillsCourseKind, string> = {
   LANGUAGE: 'Language course',
   REPOSITORY: 'Repository course',
   ORG: 'Org course',
+  COMPANY: 'Company course',
 };
 
 /**

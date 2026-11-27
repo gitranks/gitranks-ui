@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { IssuesPage, issuesNamesOf } from '@/components/learn/issues/issues-page';
+import { COURSE_NOT_READ, withInterviewsSectionNoindex } from '@/lib/interviews/learn-noindex';
+import { loadLearnCourse } from '@/lib/learn/course.data';
 import { issuesViewOf } from '@/lib/learn/issues';
 import { hasMergedFixOf } from '@/lib/learn/issues.data';
 import { learnIssuesMetadata } from '@/lib/learn/seo/issues';
@@ -20,8 +22,13 @@ export async function generateMetadata({
 }: PageProps<'/learn/courses/[slug]/real-world'>): Promise<Metadata> {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const view = issuesViewOf(query, { course: slug });
-  const [names, fixed] = await Promise.all([issuesNamesOf(view), hasMergedFixOf('course', slug)]);
-  return learnIssuesMetadata(view, { at: 'course', names, fixed });
+  const [names, fixed, course] = await Promise.all([
+    issuesNamesOf(view),
+    hasMergedFixOf('course', slug),
+    loadLearnCourse(slug).catch(() => COURSE_NOT_READ),
+  ]);
+  // A course of the section Interviews is not indexed while Interviews is closed.
+  return withInterviewsSectionNoindex(learnIssuesMetadata(view, { at: 'course', names, fixed }), course);
 }
 
 export default async function CourseRealWorldPage({

@@ -10,7 +10,8 @@ import { CodeBlock } from '@/components/workspace/code-block';
 import { CopyButton } from '@/components/workspace/copy-button';
 import { FlowFrame, FlowHead } from '@/components/workspace/getting-in/flow-frame';
 import { HEADING } from '@/components/workspace/primitives';
-import { BUILD_HOME_PATH, BUILD_PROJECTS_PATH, buildProjectPath } from '@/lib/build/paths';
+import { BUILD_EMAILS_BUILT } from '@/lib/build/built-parts';
+import { BUILD_HOME_PATH, BUILD_PROJECTS_PATH, BUILD_SETTINGS_PATH, buildProjectPath } from '@/lib/build/paths';
 import {
   BUILD_START_HEAD,
   BUILD_START_STEPS,
@@ -223,6 +224,15 @@ function ProjectCard({
             )}
           </div>
           <p className="text-sm text-muted-foreground">{WORDS.movesOn}</p>
+          {/* Build's reminders are on from the first build: the one place that says so before the first email. */}
+          {BUILD_EMAILS_BUILT ? (
+            <p className="text-sm text-muted-foreground" data-build-start-reminders="">
+              {WORDS.reminders}{' '}
+              <Link href={BUILD_SETTINGS_PATH} prefetch={false} className="font-medium text-link hover:underline">
+                {WORDS.remindersOff}
+              </Link>
+            </p>
+          ) : null}
         </>
       ) : project.projects.length ? (
         <>

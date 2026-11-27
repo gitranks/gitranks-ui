@@ -115,7 +115,7 @@ function TestRow({ row }: { row: MineTestRow }) {
         </div>
         <div className={ACTIONS_CLASS}>
           <Button asChild className={BUTTON_CLASS}>
-            <Link href={row.href}>{row.kind === 'gold' ? 'Take the gold test' : 'Take the test'}</Link>
+            <Link href={row.href}>{row.action}</Link>
           </Button>
         </div>
       </div>
@@ -210,7 +210,7 @@ function ProgressRow({
             parts={[
               row.language,
               `step ${row.step} of ${row.of}`,
-              ...(row.lastStep ? [`last step ${row.lastStep}`] : []),
+              ...(row.lastStep ? [`${row.started ? 'started' : 'last step'} ${row.lastStep}`] : []),
             ]}
           />
           <Squares squares={row.squares} />

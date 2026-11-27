@@ -45,6 +45,9 @@ export const BUILD_START_WORDS = {
   copy: 'Copy the sentence',
   pickAnother: 'Pick another project',
   movesOn: 'This page moves on by itself when your build starts, usually within a minute of the sentence.',
+  reminders:
+    'We email you twice at most for a project: when its gold test opens, and once if your build stands still for 3 days.',
+  remindersOff: 'Turn it off in Settings',
   startedTitle: 'Your build has started',
   openProject: 'Open the project',
   home: 'Build home',

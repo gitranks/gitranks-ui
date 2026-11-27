@@ -20,6 +20,15 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+// Whether Build's emails go yet: the switch the reminder line waits for, flipped here to draw both cases.
+const built = vi.hoisted(() => ({ emails: false }));
+vi.mock('@/lib/build/built-parts', async (original) => ({
+  ...(await original<typeof import('@/lib/build/built-parts')>()),
+  get BUILD_EMAILS_BUILT() {
+    return built.emails;
+  },
+}));
+
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
 vi.mock('@/lib/workspace/actions', () => ({
   createMcpToken: vi.fn(),
@@ -167,6 +176,26 @@ describe("the start flow's screens", () => {
     expect(project.querySelector('a')?.textContent).toBe('Back to Build an MCP server');
     expect(project.querySelector('a')?.getAttribute('href')).toBe('/build/mcp-server');
     expect(project.textContent).toContain('This page moves on by itself when your build starts');
+    // Until Build's emails go, the page says nothing of them.
+    expect(project.querySelector('[data-build-start-reminders]')).toBeNull();
+  });
+
+  it("says once Build's emails go, under the sentence to say, how often they come and where to turn them off", () => {
+    built.emails = true;
+    try {
+      const host = screen({
+        stage: 'project',
+        agent: 'Claude Code',
+        project: { kind: 'say', project: startProject, from: 'address' },
+      });
+      const line = host.querySelector('[data-build-start-reminders]');
+      expect(line?.textContent).toBe(
+        'We email you twice at most for a project: when its gold test opens, and once if your build stands still for 3 days. Turn it off in Settings',
+      );
+      expect(line?.querySelector('a')?.getAttribute('href')).toBe('/my/settings?from=build');
+    } finally {
+      built.emails = false;
+    }
   });
 
   it('connected, with no project: the projects as rows to pick from', () => {

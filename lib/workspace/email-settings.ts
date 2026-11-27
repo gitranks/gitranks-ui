@@ -16,6 +16,9 @@ export const ENDED_TITLE = 'When a pull request is merged or closed';
 /** What "When a pull request needs you" covers, whatever the choice. */
 export const NEEDS_YOU_COVERS = 'A fix to approve, a change or a comment from a maintainer, or a step only you can do.';
 
+/** The zone the API counts a person's days in when they saved none, or saved one that is not a real zone. */
+export const API_DEFAULT_TIME_ZONE = 'America/New_York';
+
 /** A zone's city, as people say it: `America/New_York` is "New York". */
 export function zoneCityOf(zone: string): string {
   const city = zone.split('/').at(-1) || zone;

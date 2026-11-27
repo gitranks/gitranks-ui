@@ -13,15 +13,15 @@ import {
   resourcesPart,
   testLeftOnePart,
 } from './__fixtures__/project-page';
-import { endTestPassed } from './__fixtures__/test';
+import { endTestOpen, endTestPassed, goldTestReady, testRun } from './__fixtures__/test';
 import { buildCoursePath } from './paths';
 import {
   baseWordsOf,
   boxBuildOf,
+  boxTestOf,
   dayOf,
   dayYearOf,
   durationWordsOf,
-  failedTestOf,
   goldWordsOf,
   languagesWordsOf,
   levelWordOf,
@@ -122,11 +122,24 @@ describe('where a build stands on the steps', () => {
     expect(boxBuildOf({ kind: 'person', mine: mineTestLeft, test: null })).toBe(testLeftOnePart);
   });
 
-  it('reads a failed end test only for a build with the test left', () => {
-    expect(failedTestOf({ kind: 'person', mine: mineTestLeft, test: endTestFailedNow })).toBe(endTestFailedNow);
-    expect(failedTestOf({ kind: 'person', mine: mineTestLeft, test: endTestPassed })).toBeNull();
-    expect(failedTestOf({ kind: 'person', mine: mineTestLeft, test: null })).toBeNull();
-    expect(failedTestOf({ kind: 'visitor' })).toBeNull();
+  it('reads where the waiting test stands only for a build it waits for', () => {
+    expect(boxTestOf({ kind: 'person', mine: mineTestLeft, test: endTestFailedNow })).toEqual({
+      kind: 'failed',
+      right: 6,
+      count: 10,
+      need: 7,
+    });
+    expect(boxTestOf({ kind: 'person', mine: mineTestLeft, test: endTestOpen })).toEqual({
+      kind: 'going',
+      answered: 3,
+      count: 10,
+    });
+    expect(boxTestOf({ kind: 'person', mine: mineTestLeft, test: endTestPassed })).toBeNull();
+    expect(boxTestOf({ kind: 'person', mine: mineTestLeft, test: null })).toBeNull();
+    // A gold test does not wait for a build with the test left.
+    const goldGoing = { ...goldTestReady, open: testRun, canStart: false };
+    expect(boxTestOf({ kind: 'person', mine: mineTestLeft, test: goldGoing })).toBeNull();
+    expect(boxTestOf({ kind: 'visitor' })).toBeNull();
   });
 });
 
@@ -140,6 +153,34 @@ describe('the gold test, in words', () => {
     );
     expect(goldWordsOf({ kind: 'open' }, '2026-11-12T15:00:00.000Z')).toContain('One try a day.');
     expect(goldWordsOf({ kind: 'earned', at: '2026-11-11T18:00:00.000Z' }, '2026-11-03T10:00:00.000Z')).toBeNull();
+  });
+
+  it("reads the day it was built in the zone the API counted the gold test's day in", () => {
+    // Built late on 26 Nov in New York, which is 27 Nov in UTC: the gold test opens on 3 Dec, a week after.
+    const builtAt = '2026-11-27T02:00:00.000Z';
+    expect(goldWordsOf({ kind: 'opens_on', date: '2026-12-03' }, builtAt, 'America/New_York')).toBe(
+      'The gold test opens on 3 Dec, a week after you built it: 10 questions, and 8 right earns the gold mark.',
+    );
+    expect(dayYearOf(builtAt, 'America/New_York')).toBe('26 Nov 2026');
+    expect(dayYearOf(builtAt, 'UTC')).toBe('27 Nov 2026');
+    expect(dayOf('2026-12-03', 'Asia/Tokyo')).toBe('3 Dec');
+  });
+
+  it('counts calendar days in the zone across a change of the clocks: the gold day is the day of Built plus 7', () => {
+    const NY = 'America/New_York';
+    const FIRST = ', a week after you built it: 10 questions, and 8 right earns the gold mark.';
+    // Built at 23:30 on 7 Mar 2027, a week before the clocks go forward: the API answers 14 Mar.
+    expect(goldWordsOf({ kind: 'opens_on', date: '2027-03-14' }, '2027-03-08T04:30:00.000Z', NY)).toBe(
+      `The gold test opens on 14 Mar${FIRST}`,
+    );
+    // Built at 00:30 on 1 Nov 2027, a week before the clocks go back: the API answers 8 Nov.
+    expect(goldWordsOf({ kind: 'opens_on', date: '2027-11-08' }, '2027-11-01T04:30:00.000Z', NY)).toBe(
+      `The gold test opens on 8 Nov${FIRST}`,
+    );
+    // A day later than that is a failed try's next day.
+    expect(goldWordsOf({ kind: 'opens_on', date: '2027-03-15' }, '2027-03-08T04:30:00.000Z', NY)).toMatch(
+      /^The gold test opens again on 15 Mar/,
+    );
   });
 });
 

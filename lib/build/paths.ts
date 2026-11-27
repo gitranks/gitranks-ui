@@ -72,9 +72,16 @@ export const BUILD_MINE_MINE_PATH = '/api/me/build/mine';
 export const buildStartMinePath = (project: string | null = null) =>
   project ? `/api/me/build/start?project=${encodeURIComponent(project)}` : '/api/me/build/start';
 /** A test of the person's build of a project: the run in progress, the last result, whether a new one can start. */
-export const buildTestMinePath = (project: string, kind: BuildTestKind, language: BuildLanguage | null = null) => {
+export const buildTestMinePath = (
+  project: string,
+  kind: BuildTestKind,
+  language: BuildLanguage | null = null,
+  { plain = false }: { plain?: boolean } = {},
+) => {
   const query = new URLSearchParams({ project, kind });
   if (language) query.set('language', language);
+  // A box outside the test reads only where it stands: the code is not highlighted for it.
+  if (plain) query.set('plain', '1');
   return `/api/me/build/test?${query}`;
 };
 /** Starts a run of a test (`POST`, `{ project, kind, language }`). */
@@ -85,6 +92,8 @@ export const BUILD_TEST_ANSWER_MINE_PATH = '/api/me/build/test/answer';
 export const BUILD_REMOVE_MINE_PATH = '/api/me/build/remove';
 /** Turns Build's reminders on or off (`POST`, `{ reminders }`). */
 export const BUILD_SETTINGS_SAVE_MINE_PATH = '/api/me/build/settings/save';
+/** The time zone the person's days are counted in, which every date of Build is written in. */
+export const BUILD_ZONE_MINE_PATH = '/api/me/build/zone';
 /** The doors into Build for a course, or for the course of an issue's lesson: its projects and the person's builds. */
 export const buildDoorsMinePath = (of: { course: string } | { lesson: string }) =>
   `/api/me/build/doors?${new URLSearchParams(of)}`;

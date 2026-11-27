@@ -21,11 +21,16 @@ vi.mock('next/link', () => ({
 }));
 const hint = vi.hoisted(() => ({ present: true }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
+// The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone.
+const zoneRead = vi.hoisted(() => ({ value: 'UTC' as string | undefined }));
+vi.mock('@/lib/build/zone-live', () => ({ readBuildZone: async () => zoneRead.value }));
+vi.mock('@/components/workspace/time-zone-note', () => ({ TimeZoneNote: () => <span data-time-zone-note="" /> }));
 
 const { HomeLive, readHomeSide } = await import('./home-live');
 const { AboutLive } = await import('./about-live');
 const { HOME_READ_WAIT_MS } = await import('@/lib/build/home');
-const { sideBuilder, sideNoBuild } = await import('@/lib/build/__fixtures__/home');
+const { sideBuilder, sideNoBuild, sideTestWaits } = await import('@/lib/build/__fixtures__/home');
+const { endTestOpen } = await import('@/lib/build/__fixtures__/test');
 const { buildProjectsFew } = await import('@/lib/build/__fixtures__/projects');
 
 /** Answers the person's routes as given; records what was asked. */
@@ -80,6 +85,28 @@ describe("Build's home in the browser", () => {
     expect(kind()).toBe('home');
     expect(container.textContent).toContain('last step');
     expect(container.querySelector('main')?.getAttribute('aria-busy')).toBeNull();
+    // Once the side is read, the browser's zone is sent, as on Learn's pages.
+    expect(container.querySelector('[data-time-zone-note]')).not.toBeNull();
+  });
+
+  it('reads the test that waits first, so the box can go on with a run left in the middle', async () => {
+    const asked = serve({
+      '/api/me/build/home': { home: sideTestWaits.home },
+      '/api/me/build/projects': { builds: sideTestWaits.builds },
+      '/api/me/build/test': { test: endTestOpen },
+    });
+    await act(async () => root.render(<HomeLive projects={buildProjectsFew} />));
+    expect(asked).toContain('/api/me/build/test?project=mcp-server&kind=end&language=typescript&plain=1');
+    expect(container.querySelector('[data-home-box="end-going"]')).not.toBeNull();
+  });
+
+  it('offers the test as for a first try when its read fails', async () => {
+    serve({
+      '/api/me/build/home': { home: sideTestWaits.home },
+      '/api/me/build/projects': { builds: sideTestWaits.builds },
+    });
+    await act(async () => root.render(<HomeLive projects={buildProjectsFew} />));
+    expect(container.querySelector('[data-home-box="test"]')).not.toBeNull();
   });
 
   it('reads whether an agent connected only for a person with no build', async () => {
@@ -98,6 +125,7 @@ describe("Build's home in the browser", () => {
     serve({ '/api/me/build/home': { home: null } });
     await act(async () => root.render(<HomeLive projects={buildProjectsFew} />));
     expect(kind()).toBe('landing');
+    expect(container.querySelector('[data-time-zone-note]')).toBeNull();
     expect(container.querySelector('[data-landing-start]')?.getAttribute('data-landing-start')).toBe('connect');
   });
 
@@ -149,6 +177,6 @@ describe("Build's home in the browser", () => {
         throw new Error('offline');
       }),
     );
-    expect(await readHomeSide()).toEqual({ home: null, builds: null, agentConnected: null });
+    expect(await readHomeSide()).toEqual({ home: null, builds: null, agentConnected: null, zone: 'UTC' });
   });
 });

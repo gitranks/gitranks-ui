@@ -9,9 +9,9 @@ import { Button } from '@/components/ui/button';
 import { CONTINUE_SENTENCE } from '@/lib/build/home';
 import { BUILD_ABOUT_PATH, buildStartPath, buildStepPath, buildTestPath } from '@/lib/build/paths';
 import {
+  boxTestOf,
   dayOf,
   dayYearOf,
-  failedTestOf,
   goldWordsOf,
   languageNameOf,
   nextPartOf,
@@ -24,7 +24,15 @@ import {
   startSentenceOf,
   stepMarksOf,
 } from '@/lib/build/project';
-import type { BuildMine, BuildProjectPage, BuildTest } from '@/lib/build/types';
+import {
+  FAILED_TEST_ACTION,
+  FAILED_TEST_WORDS,
+  goingWordsOf,
+  goOnLabelOf,
+  rightWordsOf,
+  type TestStanding,
+} from '@/lib/build/test';
+import type { BuildMine, BuildProjectPage } from '@/lib/build/types';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
 
 /*
@@ -174,18 +182,28 @@ function StartBox({ project, side }: { project: BuildProjectPage; side: ProjectS
 }
 
 /** "TypeScript · last step 26 Nov": the build's language and when it last moved. */
-const movedAsideOf = (build: BuildMine) =>
-  `${languageNameOf(build.language)} · ${build.stepsDone.length ? 'last step' : 'started'} ${dayOf(build.lastStepAt)}`;
+const movedAsideOf = (build: BuildMine, zone?: string) =>
+  `${languageNameOf(build.language)} · ${build.stepsDone.length ? 'last step' : 'started'} ${dayOf(build.lastStepAt, zone)}`;
 
 /** A build on a step of the base. */
-function InProgressBox({ project, build, tail }: { project: BuildProjectPage; build: BuildMine; tail: ReactNode }) {
+function InProgressBox({
+  project,
+  build,
+  zone,
+  tail,
+}: {
+  project: BuildProjectPage;
+  build: BuildMine;
+  zone?: string;
+  tail: ReactNode;
+}) {
   if (build.state.kind !== 'in_progress') return null;
   const { step, of } = build.state;
   return (
     <Box
       kind="in_progress"
       title={`Your build is on step ${step.number} of ${of}`}
-      aside={movedAsideOf(build)}
+      aside={movedAsideOf(build, zone)}
       tail={tail}
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -235,32 +253,48 @@ function KeepBuildingLine({ project, build }: { project: BuildProjectPage; build
 function TestLeftBox({
   project,
   build,
-  failed,
+  standing,
   testHref,
+  zone,
   tail,
 }: {
   project: BuildProjectPage;
   build: BuildMine;
-  failed: BuildTest | null;
+  /** Where the test stands: a run in progress, or a failed try; none for a test not started. */
+  standing: TestStanding | null;
   testHref: Route;
+  zone?: string;
   tail: ReactNode;
 }) {
-  const last = failed?.last;
-  if (failed && last) {
+  if (standing?.kind === 'going') {
+    const words = goingWordsOf(standing);
     return (
       <Box
-        kind="test_failed"
-        title={`The test: ${last.right} of ${last.items.length || TEST_QUESTIONS} right. ${failed.need} are needed`}
+        kind="test_going"
+        title={`The test: ${words.where.toLowerCase()}`}
         aside={languageNameOf(build.language)}
         tail={tail}
       >
-        <Words>
-          Each wrong answer has its reason and its step. Look at them, then take the test again when you like. The
-          questions will be different.
-        </Words>
+        <Words>{words.kept}</Words>
+        {/* The test's page opens on the question that was left. */}
+        <Actions>
+          <Main href={testHref}>{goOnLabelOf('end')}</Main>
+        </Actions>
+      </Box>
+    );
+  }
+  if (standing?.kind === 'failed') {
+    return (
+      <Box
+        kind="test_failed"
+        title={`The test: ${rightWordsOf(standing.right, standing.count || TEST_QUESTIONS)}. ${standing.need} are needed`}
+        aside={languageNameOf(build.language)}
+        tail={tail}
+      >
+        <Words>{FAILED_TEST_WORDS}</Words>
         {/* The test's page opens on the last result, the answers and its own "Take the test again": one link. */}
         <Actions>
-          <Main href={testHref}>See your answers and try again</Main>
+          <Main href={testHref}>{FAILED_TEST_ACTION}</Main>
         </Actions>
       </Box>
     );
@@ -269,7 +303,7 @@ function TestLeftBox({
     <Box
       kind="test_left"
       title={`All ${project.base.length} steps are done. One thing is left: the test`}
-      aside={movedAsideOf(build)}
+      aside={movedAsideOf(build, zone)}
       tail={tail}
     >
       <Words>
@@ -290,11 +324,16 @@ function BuiltBox({
   project,
   build,
   goldHref,
+  standing,
+  zone,
   tail,
 }: {
   project: BuildProjectPage;
   build: BuildMine;
   goldHref: Route;
+  /** Where the open gold test stands: a run in progress; none for a test not started. */
+  standing: TestStanding | null;
+  zone?: string;
   tail: ReactNode;
 }) {
   if (build.state.kind !== 'built') return null;
@@ -325,12 +364,17 @@ function BuiltBox({
       <span className="text-positive">
         <Check aria-hidden="true" className="size-4" />
       </span>
-      Built on {dayYearOf(builtAt)}
-      {gold.kind === 'earned' ? `, repeated on ${dayOf(gold.at)}` : ''}
+      Built on {dayYearOf(builtAt, zone)}
+      {gold.kind === 'earned' ? `, repeated on ${dayOf(gold.at, zone)}` : ''}
     </span>
   );
   const language = languageNameOf(build.language);
-  const goldWords = goldWordsOf(gold, builtAt);
+  // A gold test left in the middle says where the person was, and its button goes on with it.
+  const going = gold.kind === 'open' && standing?.kind === 'going' ? goingWordsOf(standing) : null;
+  const goldWords = going
+    ? `The gold test: ${going.where.toLowerCase()}. ${going.kept}`
+    : goldWordsOf(gold, builtAt, zone);
+  const goldLabel = going ? goOnLabelOf('gold') : 'Take the gold test';
   return (
     <Box
       kind="built"
@@ -347,7 +391,7 @@ function BuiltBox({
               {goldWords && <Words>{goldWords}</Words>}
               <Actions>
                 <Main href={goldHref} size="default">
-                  Take the gold test
+                  {goldLabel}
                 </Main>
               </Actions>
             </>
@@ -362,7 +406,7 @@ function BuiltBox({
           {gold.kind === 'open' ? (
             <Quiet>Or keep building first: say this in your agent to go on with the part. The gold test waits.</Quiet>
           ) : (
-            gold.kind === 'opens_on' && <Quiet>The gold test opens on {dayOf(gold.date)}.</Quiet>
+            gold.kind === 'opens_on' && <Quiet>The gold test opens on {dayOf(gold.date, zone)}.</Quiet>
           )}
         </>
       ) : (
@@ -371,7 +415,7 @@ function BuiltBox({
           {gold.kind === 'open' && (
             <Actions>
               <Main href={goldHref} size="default">
-                Take the gold test
+                {goldLabel}
               </Main>
             </Actions>
           )}
@@ -385,8 +429,18 @@ function BuiltBox({
  * The person's other build of the project, last in the box: where it stands, with a way to its test when one waits,
  * and the sentence to go on with it when it is the one not finished.
  */
-function OtherBuild({ project, build, other }: { project: BuildProjectPage; build: BuildMine; other: BuildMine }) {
-  const line = otherBuildLineOf(other);
+function OtherBuild({
+  project,
+  build,
+  other,
+  zone,
+}: {
+  project: BuildProjectPage;
+  build: BuildMine;
+  other: BuildMine;
+  zone?: string;
+}) {
+  const line = otherBuildLineOf(other, zone);
   const test =
     other.state.kind === 'test_left'
       ? { href: buildTestPath(project.slug, 'end', other.language), label: 'Take its test' }
@@ -422,23 +476,35 @@ export function ProjectBox({ project, side }: { project: BuildProjectPage; side:
   const builds = side.kind === 'person' ? side.mine.builds : [];
   const build = builds[0];
   if (!build) return <StartBox project={project} side={side} />;
+  const zone = side.kind === 'person' ? side.zone : undefined;
+  const standing = boxTestOf(side);
   const other = builds[1] ?? null;
-  const tail = other ? <OtherBuild project={project} build={build} other={other} /> : null;
+  const tail = other ? <OtherBuild project={project} build={build} other={other} zone={zone} /> : null;
   // With two builds the test's address names this one's language, so the test is this build's.
   const language = other ? build.language : null;
-  if (build.state.kind === 'in_progress') return <InProgressBox project={project} build={build} tail={tail} />;
+  if (build.state.kind === 'in_progress') {
+    return <InProgressBox project={project} build={build} zone={zone} tail={tail} />;
+  }
   if (build.state.kind === 'test_left') {
     return (
       <TestLeftBox
         project={project}
         build={build}
-        failed={failedTestOf(side)}
+        standing={standing}
         testHref={buildTestPath(project.slug, 'end', language)}
+        zone={zone}
         tail={tail}
       />
     );
   }
   return (
-    <BuiltBox project={project} build={build} goldHref={buildTestPath(project.slug, 'gold', language)} tail={tail} />
+    <BuiltBox
+      project={project}
+      build={build}
+      goldHref={buildTestPath(project.slug, 'gold', language)}
+      standing={standing}
+      zone={zone}
+      tail={tail}
+    />
   );
 }

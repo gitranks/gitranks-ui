@@ -23,6 +23,7 @@ import {
   buildTestPath,
 } from '@/lib/build/paths';
 import { LANGUAGE_NAMES, numberWordsFirst } from '@/lib/build/project-card';
+import { FAILED_TEST_ACTION, FAILED_TEST_WORDS, goingWordsOf, goOnLabelOf, rightWordsOf } from '@/lib/build/test';
 import type { BuildMine } from '@/lib/build/types';
 import { cn } from '@/lib/utils';
 import { WORKSPACE_PATHS } from '@/lib/workspace/paths';
@@ -66,16 +67,52 @@ function BuiltElsewhere() {
 }
 
 /** What to do now, in one box. */
-function NowBox({ box, now }: { box: BuildHomeBox; now: Date | null }) {
+function NowBox({ box, now, zone }: { box: BuildHomeBox; now: Date | null; zone?: string }) {
   if (box.kind === 'test') {
-    const { test } = box;
+    const { test, standing } = box;
     const href = buildTestPath(test.project.slug, test.kind, test.language);
+    // A test left in the middle: where the person was, and the button goes on with it.
+    if (standing?.kind === 'going') {
+      const words = goingWordsOf(standing);
+      const what = `${test.kind === 'gold' ? 'The gold test' : 'The test'} of “${test.project.name}”`;
+      return (
+        <Box
+          kind={`${test.kind}-going`}
+          heading={`${what}: ${words.where.toLowerCase()}`}
+          note={LANGUAGE_NAMES[test.language]}
+        >
+          <p className="m-0 text-sm text-muted-foreground">{words.kept}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href={href} className={MAIN_BUTTON}>
+              {goOnLabelOf(test.kind)}
+            </Link>
+          </div>
+        </Box>
+      );
+    }
+    // A failed end test, as the project's box says it: the score, and the answers to look at before trying again.
+    if (standing?.kind === 'failed') {
+      return (
+        <Box
+          kind="test-failed"
+          heading={`${test.project.name}: the test, ${rightWordsOf(standing.right, standing.count)}. ${standing.need} are needed`}
+          note={LANGUAGE_NAMES[test.language]}
+        >
+          <p className="m-0 text-sm text-muted-foreground">{FAILED_TEST_WORDS}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href={href} className={MAIN_BUTTON}>
+              {FAILED_TEST_ACTION}
+            </Link>
+          </div>
+        </Box>
+      );
+    }
     if (test.kind === 'gold') {
       return (
         <Box
           kind="gold"
           heading={`The gold test of “${test.project.name}” is open`}
-          note={box.builtAt ? `Built on ${dayWords(box.builtAt)}` : undefined}
+          note={box.builtAt ? `Built on ${dayWords(box.builtAt, zone)}` : undefined}
         >
           <p className="m-0 text-sm text-muted-foreground">
             A week has passed. 10 questions, and 8 right earns the gold mark. One try a day.
@@ -108,7 +145,7 @@ function NowBox({ box, now }: { box: BuildHomeBox; now: Date | null }) {
   }
   if (box.kind === 'build') {
     const { build, step, of } = box;
-    const when = now ? lastStepWords(build.lastStepAt, now) : '';
+    const when = now ? lastStepWords(build.lastStepAt, now, build.stepsDone.length === 0) : '';
     return (
       <Box
         kind="build"
@@ -196,11 +233,20 @@ function BuildRow({ build }: { build: BuildMine }) {
 }
 
 /** The person's home: their builds first. `now` is the browser's clock once the page is up; none, no "last step". */
-export function HomeBuilder({ view, now }: { view: Extract<BuildHomeView, { kind: 'home' }>; now: Date | null }) {
+export function HomeBuilder({
+  view,
+  now,
+  zone,
+}: {
+  view: Extract<BuildHomeView, { kind: 'home' }>;
+  now: Date | null;
+  /** The zone the person's days are counted in. */
+  zone?: string;
+}) {
   return (
     <>
       <h1 className="m-0 text-3xl font-bold tracking-tight">Your builds</h1>
-      <NowBox box={view.box} now={now} />
+      <NowBox box={view.box} now={now} zone={zone} />
       {view.others.length ? (
         <section className="flex flex-col gap-3" aria-labelledby="build-others-title">
           <h2 id="build-others-title" className="m-0 text-xl font-bold tracking-tight">

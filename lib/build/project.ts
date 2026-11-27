@@ -1,6 +1,7 @@
 import type { Route } from 'next';
 
 import { buildCoursePath, buildProjectPath, buildStepPath } from './paths';
+import { type TestStanding, testStandingOf } from './test';
 import type {
   BuildGold,
   BuildLanguage,
@@ -12,6 +13,7 @@ import type {
   BuildStepRef,
   BuildTest,
 } from './types';
+import { dayKeyIn, daysFromTo, dayWordsIn } from './zone';
 
 /*
  * A project's page, as the approved designs draw it: the words of its facts, where the person stands on each step and
@@ -74,21 +76,14 @@ export function projectFactsOf(project: BuildProjectPage): string[] {
 export const startSentenceOf = (project: Pick<BuildProjectPage, 'thing'>): string =>
   `Teach me how to build ${project.thing} with GitRanks`;
 
-/** A day as the page writes it: "26 Nov". A date alone (`2026-12-03`) is that day. */
-export function dayOf(iso: string): string {
-  const at = new Date(iso);
-  return Number.isNaN(at.getTime())
-    ? ''
-    : at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-}
+/**
+ * A day as the page writes it: "26 Nov", the day a moment falls on in the zone the person's days are counted in. A
+ * date alone (`2026-12-03`) is that day.
+ */
+export const dayOf = (iso: string, zone?: string): string => dayWordsIn(iso, zone);
 
 /** A day with its year: "26 Nov 2026". */
-export function dayYearOf(iso: string): string {
-  const at = new Date(iso);
-  return Number.isNaN(at.getTime())
-    ? ''
-    : at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-}
+export const dayYearOf = (iso: string, zone?: string): string => dayWordsIn(iso, zone, { year: true });
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Where the person stands                                                                                            */
@@ -102,7 +97,14 @@ export type ProjectSide =
   | { kind: 'pending' }
   | { kind: 'visitor' }
   | { kind: 'session' }
-  | { kind: 'person'; mine: BuildProjectMine; test: BuildTest | null };
+  | {
+      kind: 'person';
+      mine: BuildProjectMine;
+      /** The test that waits for the build the page is about (the end test, or a gold test that is open), when read. */
+      test: BuildTest | null;
+      /** The zone the person's days are counted in: every date of the box is written in it. */
+      zone?: string;
+    };
 
 /** The build the page is about: the one touched last. None before the side comes, and for a person with none. */
 export const boxBuildOf = (side: ProjectSide): BuildMine | null =>
@@ -166,42 +168,41 @@ export const partNameOf = (project: BuildProjectPage, slug: string): string | nu
   project.partsFull.find((part) => part.slug === slug)?.name ?? null;
 
 /** A build's place in one short phrase, for the line that names a person's other build: "step 4 of 16". */
-export function standingWordsOf(build: BuildMine): string {
+export function standingWordsOf(build: BuildMine, zone?: string): string {
   const { state } = build;
   if (state.kind === 'in_progress') return `step ${state.step.number} of ${state.of}`;
   if (state.kind === 'test_left') return 'every step done, the test left';
-  return `built on ${dayOf(state.builtAt)}`;
+  return `built on ${dayOf(state.builtAt, zone)}`;
 }
 
 /** The line that names the person's other build of the project: "Your Python build: step 4 of 16." */
-export const otherBuildLineOf = (build: BuildMine): string =>
-  `Your ${languageNameOf(build.language)} build: ${standingWordsOf(build)}.`;
+export const otherBuildLineOf = (build: BuildMine, zone?: string): string =>
+  `Your ${languageNameOf(build.language)} build: ${standingWordsOf(build, zone)}.`;
 
-/** Whether the box's test is a failed end test: the build has the test left, and its last run ended under the mark. */
-export const failedTestOf = (side: ProjectSide): BuildTest | null =>
-  side.kind === 'person' &&
-  side.mine.builds[0]?.state.kind === 'test_left' &&
-  side.test?.kind === 'end' &&
-  side.test.last &&
-  !side.test.last.passed
-    ? side.test
-    : null;
-
-/** Whole days from one moment to a later day, each read as its day in UTC. */
-const daysBetween = (from: string, to: string): number =>
-  Math.round((Date.parse(to.slice(0, 10)) - Date.parse(new Date(from).toISOString().slice(0, 10))) / 86_400_000);
+/**
+ * Where the test that waits for the box's build stands: a run in progress, or a failed end test. None when nothing was
+ * read, and for a test that is not the one waiting (an end test once Built, a gold test that is not open).
+ */
+export function boxTestOf(side: ProjectSide): TestStanding | null {
+  if (side.kind !== 'person' || !side.test) return null;
+  const state = side.mine.builds[0]?.state;
+  const waits =
+    side.test.kind === 'end' ? state?.kind === 'test_left' : state?.kind === 'built' && state.gold.kind === 'open';
+  return waits ? testStandingOf(side.test) : null;
+}
 
 /**
  * What a built project's box says of its gold test: when it opens, a week after the build was built; that it is
- * open; nothing once earned. A gold test that failed opens again the next day: more than a week after (read in UTC, so a build
- * finished near midnight may read one day off).
+ * open; nothing once earned. A gold test that failed opens again the next day: more than a week after. The day the
+ * project was built is read in the zone the API counted the gold test's day in, so the two agree.
  */
-export function goldWordsOf(gold: BuildGold, builtAt: string): string | null {
+export function goldWordsOf(gold: BuildGold, builtAt: string, zone?: string): string | null {
   if (gold.kind === 'earned') return null;
   if (gold.kind === 'open')
     return 'The gold test is open: 10 questions, and 8 right earns the gold mark. One try a day.';
-  if (Number.isNaN(Date.parse(builtAt))) return `The gold test opens on ${dayOf(gold.date)}.`;
-  return daysBetween(builtAt, gold.date) > 7
+  const days = daysFromTo(dayKeyIn(builtAt, zone), dayKeyIn(gold.date, zone));
+  if (days === null) return `The gold test opens on ${dayOf(gold.date)}.`;
+  return days > 7
     ? `The gold test opens again on ${dayOf(gold.date)}: 10 questions, and 8 right earns the gold mark.`
     : `The gold test opens on ${dayOf(gold.date)}, a week after you built it: 10 questions, and 8 right earns the gold mark.`;
 }

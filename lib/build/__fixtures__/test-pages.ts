@@ -1,4 +1,4 @@
-import type { BuildTestRunShown, BuildTestShown } from '../test';
+import type { BuildTestResultShown, BuildTestRunShown, BuildTestShown } from '../test';
 import type { BuildProjectMine, BuildTestItem, BuildTestResult } from '../types';
 import { buildBuilt, buildGoldEarned, buildGoldOpen, buildInProgress, buildTestLeft } from './builds';
 import { mcpServerStep } from './project';
@@ -93,6 +93,29 @@ export const endTestFailedAgain: BuildTestShown = {
   ...END,
   open: null,
   last: testResultOf('r-mcp-ts-0', [2, 5, 9], [8]),
+  canStart: true,
+  nextTryAt: null,
+};
+
+/** A failed result, 5 of 10, whose question 7, wrong, asks what code prints: its row draws the code, as its card did. */
+const failedCodeResult = ((): BuildTestResultShown => {
+  const result = testResultOf('r-mcp-ts-7', [2, 5, 9], [8]);
+  const items = result.items.map((item, index) =>
+    index === 6 ? { ...item, question: predictQuestionKeyed, pick: wrongPick(predictQuestionKeyed) } : item,
+  );
+  return {
+    ...result,
+    right: result.right - 1,
+    items,
+    highlighted: { [predictQuestion.id]: predictQuestion.codes.map(plainCodeOf) },
+  };
+})();
+
+/** The end test failed with a code question among the wrong answers: it can be taken again at once. */
+export const endTestFailedCode: BuildTestShown = {
+  ...END,
+  open: null,
+  last: failedCodeResult,
   canStart: true,
   nextTryAt: null,
 };

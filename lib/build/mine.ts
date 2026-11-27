@@ -2,6 +2,7 @@ import type { Route } from 'next';
 
 import { BUILD_EMAILS_BUILT } from './built-parts';
 import { buildProjectPath, buildTestPath } from './paths';
+import { FAILED_TEST_ACTION, goingWordsOf, goOnLabelOf, rightWordsOf, type TestStanding } from './test';
 import {
   type BuildGold,
   type BuildMine,
@@ -11,6 +12,7 @@ import {
   isBuildLanguage,
   isBuildTestKind,
 } from './types';
+import { dayKeyIn } from './zone';
 import { languageNameOf } from '@/lib/workspace/learn-question';
 
 /*
@@ -35,6 +37,8 @@ export type MineTestRow = {
   kind: BuildTestKind;
   project: MineProject;
   text: string;
+  /** The row's button: take the test, go on with a run left in the middle, or see a failed try's answers. */
+  action: string;
   href: Route;
 };
 
@@ -50,6 +54,8 @@ export type MineProgressRow = {
   of: number;
   /** "today", "yesterday", "2 days ago", "on 3 Nov"; null for a date that cannot be read. */
   lastStep: string | null;
+  /** No step is passed yet: `lastStep` is when the build started. */
+  started: boolean;
   squares: MineSquare[];
   /** How many steps were passed, which removing the build forgets. */
   passed: number;
@@ -81,18 +87,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** The day a moment falls on in a time zone (the browser's own when none is named), as `YYYY-MM-DD`; null if unread. */
-export function dayKeyOf(moment: string | Date, timeZone?: string): string | null {
-  const date = typeof moment === 'string' ? new Date(moment) : moment;
-  if (Number.isNaN(date.getTime())) return null;
-  try {
-    const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
-      .formatToParts(date)
-      .reduce<Record<string, string>>((all, part) => ({ ...all, [part.type]: part.value }), {});
-    return `${parts.year}-${parts.month}-${parts.day}`;
-  } catch {
-    return null;
-  }
-}
+export const dayKeyOf = (moment: string | Date, timeZone?: string): string | null =>
+  dayKeyIn(moment, timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
 
 const utcOf = (key: string): number | null => {
   const match = DAY_KEY.exec(key);
@@ -186,16 +182,26 @@ const projectOf = (build: { project: MineProject }): MineProject => ({
   name: build.project.name,
 });
 
-/** The line under a test that waits. */
+/** The line under a test that waits. A run left in the middle, or a failed try, says so first. */
 function testTextOf(
   test: BuildWaitingTest,
   builtAt: string | null,
   named: boolean,
   todayKey: string | null,
   tz?: string,
+  standing: TestStanding | null = null,
 ) {
   const language = languageNameOf(test.language);
   const need = BUILD_TEST_NEED[test.kind];
+  if (standing?.kind === 'going') {
+    const words = goingWordsOf(standing);
+    const where = test.kind === 'gold' ? `The gold test: ${words.where.toLowerCase()}` : words.where;
+    return `${language}. ${where}. ${words.kept}`;
+  }
+  if (standing?.kind === 'failed') {
+    const score = rightWordsOf(standing.right, standing.count);
+    return `${language}. The test: ${score}, ${standing.need} are needed. Look at your answers, then take it again when you like: the questions will be different.`;
+  }
   if (test.kind === 'end') {
     return `${language}. Every step is done, and the test is left: ${BUILD_TEST_QUESTIONS} questions, about 3 minutes. ${need} right makes it Built.`;
   }
@@ -215,7 +221,14 @@ export function mineViewOf(
   list: BuildMineList,
   now: Date,
   timeZone?: string,
-  { emails = BUILD_EMAILS_BUILT }: { emails?: boolean } = {},
+  {
+    emails = BUILD_EMAILS_BUILT,
+    standings = {},
+  }: {
+    emails?: boolean;
+    /** Where each waiting test stands, by build, as read: a run in progress or a failed try. */
+    standings?: Record<string, TestStanding | null>;
+  } = {},
 ): MineView {
   const todayKey = dayKeyOf(now, timeZone);
   const waiting = new Set(list.tests.map((test) => test.build));
@@ -224,19 +237,31 @@ export function mineViewOf(
   );
   const projectsWaiting = list.tests.map((test) => test.project.slug);
 
-  const tests = list.tests.map<MineTestRow>((test) => ({
-    build: test.build,
-    kind: test.kind,
-    project: projectOf(test),
-    text: testTextOf(
-      test,
-      builtAtOf.get(test.build) ?? null,
-      projectsWaiting.filter((slug) => slug === test.project.slug).length > 1,
-      todayKey,
-      timeZone,
-    ),
-    href: buildTestPath(test.project.slug, test.kind, test.language),
-  }));
+  const tests = list.tests.map<MineTestRow>((test) => {
+    const standing = standings[test.build] ?? null;
+    return {
+      build: test.build,
+      kind: test.kind,
+      project: projectOf(test),
+      text: testTextOf(
+        test,
+        builtAtOf.get(test.build) ?? null,
+        projectsWaiting.filter((slug) => slug === test.project.slug).length > 1,
+        todayKey,
+        timeZone,
+        standing,
+      ),
+      action:
+        standing?.kind === 'going'
+          ? goOnLabelOf(test.kind)
+          : standing?.kind === 'failed'
+            ? FAILED_TEST_ACTION
+            : test.kind === 'gold'
+              ? 'Take the gold test'
+              : 'Take the test',
+      href: buildTestPath(test.project.slug, test.kind, test.language),
+    };
+  });
 
   const inProgress = list.inProgress.flatMap<MineProgressRow>((build) => {
     if (build.state.kind !== 'in_progress' || waiting.has(build.build)) return [];
@@ -249,6 +274,7 @@ export function mineViewOf(
         step: step.number,
         of,
         lastStep: lastStepOf(build.lastStepAt, now, timeZone),
+        started: build.stepsDone.length === 0,
         squares: squaresOf(step.number, of),
         passed: build.stepsDone.length,
       },

@@ -4,6 +4,7 @@ import { countWords, type LearnCourseMineCard } from './course';
 import type { LearnLessonLink } from './lesson-page';
 import type { LearnDayFix, LearnDayFixes, LearnDayWalkthrough } from './my-progress-fixes';
 import { LEARN_PROGRESS_PATH } from './paths';
+import { API_DEFAULT_TIME_ZONE } from '@/lib/workspace/email-settings';
 
 /*
  * My progress: the two boxes (lessons by depth, the days something was done), and four views under them,
@@ -93,7 +94,7 @@ export const learnDayOfDate = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 /** The zone Learn counts a person's days in when they saved none, or saved one that is not a real zone. */
-export const LEARN_DEFAULT_TIME_ZONE = 'America/New_York';
+export const LEARN_DEFAULT_TIME_ZONE = API_DEFAULT_TIME_ZONE;
 
 /**
  * Today's date as the API counts a person's days: in the zone they saved (`null`: none saved), else in Learn's default

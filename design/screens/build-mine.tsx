@@ -15,10 +15,12 @@ import {
   mineBoardPhone,
   mineBoardRepeated,
   mineBoardTwoInProgress,
+  mineMcpFirstStep,
   mineMcpInProgress,
 } from '@/lib/build/__fixtures__/mine';
 import type { BuildBarView } from '@/lib/build/build-bar';
 import { mineViewOf } from '@/lib/build/mine';
+import type { TestStanding } from '@/lib/build/test';
 import type { BuildMineList } from '@/lib/build/types';
 
 /*
@@ -57,13 +59,33 @@ function Case({ title, line, children }: { title: string; line: string; children
   );
 }
 
-function Lists({ list, asking = null }: { list: BuildMineList; asking?: string | null }) {
+function Lists({
+  list,
+  asking = null,
+  standings,
+}: {
+  list: BuildMineList;
+  asking?: string | null;
+  standings?: Record<string, TestStanding | null>;
+}) {
   return (
     <div className="flex flex-col gap-10">
-      <MineBody view={mineViewOf(list, MINE_NOW, 'UTC')} login="octocat" asking={asking} onRemove={removed} />
+      <MineBody
+        view={mineViewOf(list, MINE_NOW, 'UTC', { standings })}
+        login="octocat"
+        asking={asking}
+        onRemove={removed}
+      />
     </div>
   );
 }
+
+/** Two tests wait, each as read: the end test failed with 3 of 10, the gold test left at question 4. */
+const [failedTest, goingTest] = mineBoardFull.tests;
+const testsRead: Record<string, TestStanding> = {
+  [failedTest.build]: { kind: 'failed', right: 3, count: 10, need: 7 },
+  [goingTest.build]: { kind: 'going', answered: 3, count: 10 },
+};
 
 /** The other cases, each drawn by the part that differs. */
 function CasesBoard() {
@@ -103,6 +125,18 @@ function CasesBoard() {
       >
         <Lists list={mineBoardEmpty} />
       </Case>
+      <Case
+        title="7 · A test failed, and a test left in the middle"
+        line="A failed test says its score and what is needed, and leads to its answers. A test left in the middle says where the person was, and goes on with it."
+      >
+        <Lists list={{ tests: mineBoardFull.tests, inProgress: [], built: [] }} standings={testsRead} />
+      </Case>
+      <Case
+        title="8 · A build with no step passed yet"
+        line="Its row says when it was started, not when its last step was."
+      >
+        <Lists list={{ tests: [], inProgress: [mineMcpFirstStep], built: [] }} />
+      </Case>
     </main>
   );
 }
@@ -137,9 +171,10 @@ export const BUILD_MINE_SCREENS: Screen[] = [
       },
       {
         id: 'cases',
-        title: 'The other cases: removing a build, a built project in each state, only built projects, nothing started',
+        title:
+          'The other cases: removing a build, a built project in each state, only built projects, nothing started, tests as read, a build just started',
         path: '/build/mine',
-        height: 2000,
+        height: 2600,
         render: () => <CasesBoard />,
       },
       {

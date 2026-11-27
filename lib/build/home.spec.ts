@@ -9,11 +9,14 @@ import {
   sideNoBuild,
   sideNone,
   sideNothingWaits,
+  sideTestFailed,
+  sideTestGoing,
   sideTestWaits,
   sideTwoOfOne,
 } from './__fixtures__/home';
 import { mcpServerStep } from './__fixtures__/project';
 import { BUILD_FIXTURE_NOW, buildProjectsFew, codingAgentCard } from './__fixtures__/projects';
+import { endTestOpen } from './__fixtures__/test';
 import { dayWords, hasBuildOf, homeViewOf, lastStepWords, stepOfBuild, VISITOR_HOME } from './home';
 
 const projects = buildProjectsFew;
@@ -44,6 +47,19 @@ describe("Build's home", () => {
     if (view.kind !== 'home') throw new Error('home expected');
     expect(view.box.kind).toBe('test');
     expect(view.others).toEqual([keyValueDatabaseInProgress]);
+  });
+
+  it('says where the waiting test stands when it was read: a run in progress, or a failed try', () => {
+    const boxOf = (side: typeof sideTestWaits) => {
+      const view = homeViewOf(side, projects);
+      return view.kind === 'home' && view.box.kind === 'test' ? view.box.standing : undefined;
+    };
+    expect(boxOf(sideTestWaits)).toBeNull();
+    expect(boxOf(sideTestGoing)).toEqual({ kind: 'going', answered: 3, count: 10 });
+    expect(boxOf(sideTestFailed)).toEqual({ kind: 'failed', right: 6, count: 10, need: 7 });
+    // A test read for another project, kind or language says nothing of this one.
+    expect(boxOf({ ...sideTestGoing, test: { ...endTestOpen, language: 'python' } })).toBeNull();
+    expect(boxOf({ ...sideTestGoing, test: { ...endTestOpen, kind: 'gold' } })).toBeNull();
   });
 
   it('names the day a project was built in the gold test box, when it is known', () => {
@@ -102,8 +118,15 @@ describe("Home's words of time", () => {
     expect(lastStepWords('not a date', now)).toBe('');
   });
 
+  it('say when a build with no step passed was started', () => {
+    expect(lastStepWords('2026-11-26T11:55:00.000Z', now, true)).toBe('started 5 minutes ago');
+    expect(lastStepWords('2026-11-26T11:59:30.000Z', now, true)).toBe('started just now');
+  });
+
   it('write a day as the boxes do', () => {
     expect(dayWords('2026-11-26T11:30:00.000Z')).toBe('26 Nov');
     expect(dayWords('')).toBe('');
+    // In the zone the person's days are counted in.
+    expect(dayWords('2026-11-27T02:30:00.000Z', 'America/New_York')).toBe('26 Nov');
   });
 });

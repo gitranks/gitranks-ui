@@ -20,6 +20,7 @@ import {
   endTestClosed,
   endTestCode,
   endTestFailedAgain,
+  endTestFailedCode,
   goldTestClosed,
   goldTestFailed,
   goldTestPassed,
@@ -28,6 +29,7 @@ import {
 import { buildTestPath } from '@/lib/build/paths';
 import {
   answerGroupsOf,
+  type BuildTestResultShown,
   type BuildTestRunShown,
   type BuildTestShown,
   closedWordsOf,
@@ -123,7 +125,7 @@ function Result({
   now = NOW,
 }: {
   test: BuildTest;
-  result: BuildTestResult;
+  result: BuildTestResultShown;
   build: BuildMine | null;
   header?: boolean;
   now?: Date;
@@ -220,11 +222,12 @@ export const BUILD_TEST_SCREENS: Screen[] = [
       },
       {
         id: 'failed',
-        title: 'Failed: 6 of 10, the wrong ones first with their steps, the right ones folded',
+        title:
+          'Failed: 5 of 10, the wrong ones first with their steps, a code question with its code, the right ones folded',
         path: '/build/mcp-server/test',
-        height: 1360,
+        height: 1560,
         render: () => (
-          <Result test={endTestFailedAgain} result={endTestFailedAgain.last ?? failedResult} build={buildTestLeft} />
+          <Result test={endTestFailedCode} result={endTestFailedCode.last ?? failedResult} build={buildTestLeft} />
         ),
       },
       {

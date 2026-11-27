@@ -107,6 +107,12 @@ describe('My builds, from its fixtures', () => {
     expect(host.querySelector('[data-build-mine-skills] a')?.getAttribute('href')).toBe('/profile/octocat/skills');
   });
 
+  it('says when a build with no step passed was started, not when its last step was', async () => {
+    await draw({ tests: [], inProgress: [fixtures.mineMcpFirstStep], built: [] });
+    expect(rows('progress')[0]?.textContent).toContain('started 2 days ago');
+    expect(rows('progress')[0]?.textContent).not.toContain('last step');
+  });
+
   it('draws the usual start: one build in progress, the sentence to say, and the line on Skills', async () => {
     await draw(fixtures.mineBoardOne);
     expect(headings()).toEqual(['In progress']);

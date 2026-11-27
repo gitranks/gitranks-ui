@@ -79,7 +79,8 @@ function GrowLink({ entry, current, isNew }: Readonly<{ entry: GrowEntry; curren
   );
 }
 
-function GrowList({ current, isNew }: Readonly<{ current: GrowSection | null; isNew: boolean }>) {
+/** Grow's entries as list items, the current section's marked: under Grow's button, in the phone's panel, on a board. */
+export function GrowList({ current, isNew }: Readonly<{ current: GrowSection | null; isNew: boolean }>) {
   return GROW_ENTRIES.map((entry) => (
     <GrowLink key={entry.section} entry={entry} current={entry.section === current} isNew={isNew} />
   ));

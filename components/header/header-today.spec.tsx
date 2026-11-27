@@ -12,6 +12,7 @@ const nav = vi.hoisted(() => ({ pathname: '/' }));
 vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 
 const { Header } = await import('./header');
+const { BUILD_OPEN_TO_EVERYONE } = await import('@/lib/build/built-parts');
 
 /*
  * The header as the server renders it while Build is not open to everyone, compared with the header served before
@@ -41,7 +42,8 @@ const markupOf = (pathname: string, header: ReactElement) => {
 
 const hashOf = (markup: string) => createHash('sha256').update(markup).digest('hex');
 
-describe('the header served while Build is closed to the viewer', () => {
+// Once Build is open to everyone, every visitor gets Grow: `build-open-to-everyone.spec.tsx` checks that header.
+describe.skipIf(BUILD_OPEN_TO_EVERYONE)('the header served while Build is closed to the viewer', () => {
   if (process.env.WRITE_TODAY) {
     it('saves the markup', () => {
       const today = Object.fromEntries(

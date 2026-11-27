@@ -2,9 +2,9 @@
 
 import { useSyncExternalStore } from 'react';
 
+import { forgetBuildBarRead, readBuildBarWithin } from './build-bar-read';
 import { BUILD_OPEN_TO_EVERYONE } from '@/lib/build/built-parts';
-import { BUILD_BAR_MINE_PATH, BUILD_OPEN_MINE_PATH } from '@/lib/build/paths';
-import type { BuildBar } from '@/lib/build/types';
+import { BUILD_OPEN_MINE_PATH } from '@/lib/build/paths';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /*
@@ -23,8 +23,12 @@ export type BuildViewer = { open: boolean; hasBuild: boolean | null };
 /** What the server renders, and what a browser has until its answer comes: open only once Build is open to everyone. */
 export const SERVED_BUILD_VIEWER: BuildViewer = { open: BUILD_OPEN_TO_EVERYONE, hasBuild: null };
 
+/** The longest the browser waits for each of the person's reads about Build; a later answer is closed, or not known. */
+export const BUILD_READ_WAIT_MS = 3_000;
+
 let viewer: BuildViewer = SERVED_BUILD_VIEWER;
 let asked = false;
+let openRead: Promise<boolean> | null = null;
 const listeners = new Set<() => void>();
 
 /** One key of the JSON answer of one of the person's routes; undefined on any failure. */
@@ -38,19 +42,46 @@ export async function readBuildKey(path: string, key: string, signal?: AbortSign
   }
 }
 
-/** Whether Build is open to the signed-in person, as the route answers; closed on any failure. */
-export const readBuildOpen = async (): Promise<boolean> => (await readBuildKey(BUILD_OPEN_MINE_PATH, 'open')) === true;
+/** `readBuildKey` within `waitMs`: later, undefined, and the read stops. */
+export async function readBuildKeyWithin(path: string, key: string, waitMs = BUILD_READ_WAIT_MS): Promise<unknown> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve(undefined);
+    }, waitMs);
+  });
+  try {
+    return await Promise.race([readBuildKey(path, key, controller.signal), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Whether Build is open to this browser's person, read once for the document and shared by every part that asks: open
+ * to everyone, yes; with no session, no and nothing asked; otherwise the route's answer, closed on a failure or past
+ * the wait.
+ */
+export function buildOpenForDocument(): Promise<boolean> {
+  openRead ??= (async () => {
+    if (BUILD_OPEN_TO_EVERYONE) return true;
+    if (!hasSessionHint(document.cookie)) return false;
+    return (await readBuildKeyWithin(BUILD_OPEN_MINE_PATH, 'open')) === true;
+  })();
+  return openRead;
+}
 
 /**
  * Asks once for this document. A browser with no session asks nothing and keeps what was served. For a signed-in
  * person, whether Build is open to them, then, only when it is, their bar, so the header changes once, with "New"
- * already right.
+ * already right; a bar that fails or is late leaves "New" (not known).
  */
 async function ask(): Promise<void> {
   if (!hasSessionHint(document.cookie)) return;
-  const open = BUILD_OPEN_TO_EVERYONE || (await readBuildOpen());
-  if (!open) return;
-  const bar = (await readBuildKey(BUILD_BAR_MINE_PATH, 'bar')) as BuildBar | null | undefined;
+  if (!(await buildOpenForDocument())) return;
+  const bar = await readBuildBarWithin(BUILD_READ_WAIT_MS);
   viewer = { open: true, hasBuild: typeof bar?.hasBuild === 'boolean' ? bar.hasBuild : null };
   for (const listener of listeners) listener();
 }
@@ -78,5 +109,7 @@ export function useBuildViewer(): BuildViewer {
 export function resetBuildViewer(): void {
   viewer = SERVED_BUILD_VIEWER;
   asked = false;
+  openRead = null;
   listeners.clear();
+  forgetBuildBarRead();
 }

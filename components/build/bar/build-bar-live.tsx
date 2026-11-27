@@ -3,10 +3,9 @@
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { readBuildBar } from '../build-bar-read';
 import { BuildBar } from './build-bar';
 import { type BuildBarView, buildBarPlaceOf, buildBarViewOf, VISITOR_BUILD_BAR } from '@/lib/build/build-bar';
-import { BUILD_BAR_MINE_PATH } from '@/lib/build/paths';
-import type { BuildBar as BuildBarRead } from '@/lib/build/types';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** The event a page sends when it changed what the bar shows (a build removed): the bar reads itself again. */
@@ -14,17 +13,6 @@ export const BUILD_BAR_CHANGED_EVENT = 'build:bar-changed';
 
 /** Asks Build's bar on this page to read the person's bar again. */
 export const askBuildBarAgain = () => window.dispatchEvent(new Event(BUILD_BAR_CHANGED_EVENT));
-
-/** The person's bar as the API answers it; none on any failure. */
-export async function readBuildBar(): Promise<BuildBarRead | null> {
-  try {
-    const res = await fetch(BUILD_BAR_MINE_PATH, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return ((await res.json()) as { bar?: BuildBarRead | null }).bar ?? null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Build's bar on Build's pages. The page is the same for everyone, so the bar starts as a visitor's, and the person's

@@ -13,6 +13,7 @@ const session = vi.hoisted(() => ({
 vi.mock('next-auth/react', () => ({ useSession: () => session.current }));
 
 const { ProductsBlockLive } = await import('./products-block-live');
+const { BUILD_OPEN_TO_EVERYONE } = await import('@/lib/build/built-parts');
 
 /*
  * The home page's block as the server renders it while Build is not open to everyone, compared with the block served
@@ -42,7 +43,8 @@ const markupOf = (signedIn: boolean, block: ReactElement) => {
   return renderToStaticMarkup(block);
 };
 
-describe("the home page's block served while Build is closed to the viewer", () => {
+// Once Build is open to everyone, every visitor gets the three cards: `build-open-to-everyone.spec.tsx` checks them.
+describe.skipIf(BUILD_OPEN_TO_EVERYONE)("the home page's block served while Build is closed to the viewer", () => {
   if (process.env.WRITE_TODAY) {
     it('saves the markup', () => {
       const today = Object.fromEntries(CASES.map(([name, signedIn, block]) => [name, markupOf(signedIn, block)]));

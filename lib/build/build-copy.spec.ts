@@ -16,7 +16,7 @@ const THIS_FILE = 'lib/build/build-copy.spec.ts';
 const BUILD_FILES = [
   'components/header/components/grow-menu-item.tsx',
   'components/header/components/main-menu.tsx',
-  'app/components/landing/products-block-words.ts',
+  'app/components/landing/products-block-grow.tsx',
   'app/components/landing/products-block.tsx',
   'app/components/landing/products-block-live.tsx',
 ];

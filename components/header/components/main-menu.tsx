@@ -43,8 +43,10 @@ export function MainMenu({
   // dismiss layer listening and swallows Escape on every page.
   const [hydrated, setHydrated] = useState(false);
   // Whether Build is open to this viewer, read in the browser since the page is shared: closed, the menu is today's.
+  // Build's own pages reach only people Build is open to (the proxy answers 404 to anyone else), so they serve Grow
+  // from the start; whether the person has a build ("New") is still read in the browser.
   const read = useBuildViewer();
-  const build = drawn ?? read;
+  const build = drawn ?? { open: read.open || section === 'build', hasBuild: read.hasBuild };
 
   useEffect(() => {
     setHydrated(true);

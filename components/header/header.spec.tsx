@@ -8,6 +8,8 @@ vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 
 const { Header } = await import('./header');
 const { MainMenu } = await import('./components/main-menu');
+// Today's menu, with Contribute and Learn of their own: once Build is open to everyone, Grow takes their place.
+const { BUILD_OPEN_TO_EVERYONE } = await import('@/lib/build/built-parts');
 
 const RANKINGS = [
   '/by/stars/1',
@@ -19,29 +21,32 @@ const RANKINGS = [
 ];
 
 describe('the main menu', () => {
-  it('is the Rankings submenu and Badges, in the row from sm up and in a closed panel under a menu button below it', () => {
-    const html = renderToStaticMarkup(<MainMenu />);
-    const toggle = html.match(/<button [^>]*>/)?.[0] ?? '';
-    const panel = toggle.match(/aria-controls="([^"]+)"/)?.[1];
+  it.skipIf(BUILD_OPEN_TO_EVERYONE)(
+    'is the Rankings submenu and Badges, in the row from sm up and in a closed panel under a menu button below it',
+    () => {
+      const html = renderToStaticMarkup(<MainMenu />);
+      const toggle = html.match(/<button [^>]*>/)?.[0] ?? '';
+      const panel = toggle.match(/aria-controls="([^"]+)"/)?.[1];
 
-    expect(html).toMatch(/^<nav aria-label="Main"[^>]*class="[^"]*max-sm:\[&amp;&gt;div\]:static!"/);
-    expect(toggle).toContain('aria-expanded="false"');
-    expect(toggle).toContain('aria-label="Open menu"');
-    expect(toggle).toContain('sm:hidden');
-    expect(html).toMatch(
-      new RegExp(
-        `<ul [^>]*class="[^"]*max-sm:absolute max-sm:top-full max-sm:right-0[^"]*max-sm:hidden" id="${panel}"`,
-      ),
-    );
-    expect(html).toMatch(/<button [^>]*data-state="closed"[^>]*>Rankings/);
-    // Rankings' links are in the server HTML for crawlers, hidden while the submenu is closed.
-    for (const href of RANKINGS) expect(html).toContain(`href="${href}"`);
-    expect(html).toMatch(/<a [^>]*href="\/badge\/gallery">Badges<\/a>/);
-    // Contribute is offered to everyone, in the server HTML.
-    expect(html).toMatch(/<a [^>]*href="\/contribute"[^>]*>Contribute/);
-    // Contribute carries no mark beside it, in the header row and the phone's panel alike (the same link).
-    expect(html).toMatch(/<a [^>]*href="\/contribute"[^>]*>Contribute<\/a>/);
-  });
+      expect(html).toMatch(/^<nav aria-label="Main"[^>]*class="[^"]*max-sm:\[&amp;&gt;div\]:static!"/);
+      expect(toggle).toContain('aria-expanded="false"');
+      expect(toggle).toContain('aria-label="Open menu"');
+      expect(toggle).toContain('sm:hidden');
+      expect(html).toMatch(
+        new RegExp(
+          `<ul [^>]*class="[^"]*max-sm:absolute max-sm:top-full max-sm:right-0[^"]*max-sm:hidden" id="${panel}"`,
+        ),
+      );
+      expect(html).toMatch(/<button [^>]*data-state="closed"[^>]*>Rankings/);
+      // Rankings' links are in the server HTML for crawlers, hidden while the submenu is closed.
+      for (const href of RANKINGS) expect(html).toContain(`href="${href}"`);
+      expect(html).toMatch(/<a [^>]*href="\/badge\/gallery">Badges<\/a>/);
+      // Contribute is offered to everyone, in the server HTML.
+      expect(html).toMatch(/<a [^>]*href="\/contribute"[^>]*>Contribute/);
+      // Contribute carries no mark beside it, in the header row and the phone's panel alike (the same link).
+      expect(html).toMatch(/<a [^>]*href="\/contribute"[^>]*>Contribute<\/a>/);
+    },
+  );
 });
 
 describe('the Package Rankings menu entry', () => {
@@ -63,16 +68,19 @@ describe("the menu's mark", () => {
     return marked(renderToStaticMarkup(<MainMenu section={section} />));
   };
 
-  it("marks Contribute by the path on Contribute's pages when no section is named, never on the workspace's /my", () => {
-    expect(at('/contribute')).toEqual(['Contribute']);
-    expect(at('/contribute/issues')).toEqual(['Contribute']);
-    expect(at('/contribute/maintainers')).toEqual(['Contribute']);
-    for (const path of ['/my/pull-requests', '/my/agent', '/my/settings', '/', '/profile/a']) {
-      expect(at(path), path).toEqual([]);
-    }
-  });
+  it.skipIf(BUILD_OPEN_TO_EVERYONE)(
+    "marks Contribute by the path on Contribute's pages when no section is named, never on the workspace's /my",
+    () => {
+      expect(at('/contribute')).toEqual(['Contribute']);
+      expect(at('/contribute/issues')).toEqual(['Contribute']);
+      expect(at('/contribute/maintainers')).toEqual(['Contribute']);
+      for (const path of ['/my/pull-requests', '/my/agent', '/my/settings', '/', '/profile/a']) {
+        expect(at(path), path).toEqual([]);
+      }
+    },
+  );
 
-  it('follows the section a page names over its path', () => {
+  it.skipIf(BUILD_OPEN_TO_EVERYONE)('follows the section a page names over its path', () => {
     expect(at('/contribute/issues', 'rankings')).toEqual([]);
     expect(at('/', 'contribute')).toEqual(['Contribute']);
   });

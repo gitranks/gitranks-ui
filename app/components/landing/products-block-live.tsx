@@ -1,9 +1,9 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { type FC, useEffect, useState } from 'react';
+import { type FC, lazy, Suspense, useEffect, useState } from 'react';
 
-import { ProductsBlock, ProductsBlockGrow } from './products-block';
+import { ProductsBlock } from './products-block';
 import { HOME_PRODUCTS_URL, type HomeProductsAnswer, homeProductsOf } from './products-block-read';
 import type { HomeProducts } from './products-block-words';
 import { SERVED_BUILD_VIEWER, useBuildViewer } from '@/components/build/build-viewer';
@@ -18,6 +18,11 @@ export const HOME_PRODUCTS_WAIT_MS = 3_000;
 
 /** The promotions word no time; this stands in for the clock until the person's cards arrive. */
 const PROMOTIONS_NOW = new Date(0);
+
+/** The block with Build's card: its code is fetched only once Build is known to be open to the viewer. */
+const loadGrowBlock = () => import('./products-block-grow');
+const ProductsBlockGrow = lazy(() => loadGrowBlock().then(({ ProductsBlockGrow }) => ({ default: ProductsBlockGrow })));
+const preloadGrowBlock = () => void loadGrowBlock();
 
 type Personal = { viewer: string; products: HomeProducts; now: Date };
 
@@ -53,7 +58,8 @@ export function useHomeProducts(viewer: string | undefined): Personal | null {
  *
  * For a viewer Build is open to, the block with Build's card takes its place. The server cannot know who that is on a
  * shared page, so it serves today's block, and the browser changes it once, when it knows both that Build is open and
- * what Build's card says (or the wait is over). Once Build is open to everyone the server serves the three cards.
+ * what Build's card says (or the wait is over). Back on the home page in the same document, the three cards are drawn
+ * at once from the last read. Once Build is open to everyone the server serves the three cards.
  */
 export const ProductsBlockLive: FC<{ contribute: boolean; courses?: readonly CourseInLine[] }> = ({
   contribute,
@@ -63,24 +69,27 @@ export const ProductsBlockLive: FC<{ contribute: boolean; courses?: readonly Cou
   const viewer = status === 'authenticated' && session && !session.error ? session.user?.githubLogin : undefined;
   const personal = useHomeProducts(viewer);
   const build = useBuildViewer();
-  const buildRead = useBuildCardSide(build.open);
-  if (build.open && (buildRead.settled || SERVED_BUILD_VIEWER.open)) {
-    return (
-      <ProductsBlockGrow
-        products={personal?.products ?? null}
-        build={{ home: buildRead.home, builds: buildRead.builds, hasBuild: build.hasBuild }}
-        now={personal?.now ?? PROMOTIONS_NOW}
-        contribute={contribute}
-        courses={courses}
-      />
-    );
-  }
-  return (
+  const buildRead = useBuildCardSide(preloadGrowBlock);
+  const today = (
     <ProductsBlock
       products={personal?.products ?? null}
       now={personal?.now ?? PROMOTIONS_NOW}
       contribute={contribute}
       courses={courses}
     />
+  );
+  if (!build.open || !(buildRead.settled || SERVED_BUILD_VIEWER.open)) return today;
+  return (
+    // Today's block stays until the block's code is here (it is fetched while the card is read, so rarely waits).
+    <Suspense fallback={today}>
+      <ProductsBlockGrow
+        products={personal?.products ?? null}
+        // Until the card is read, whether the person has a build is not used either, so Build's card changes once.
+        build={{ home: buildRead.home, builds: buildRead.builds, hasBuild: buildRead.settled ? build.hasBuild : null }}
+        now={personal?.now ?? PROMOTIONS_NOW}
+        contribute={contribute}
+        courses={courses}
+      />
+    </Suspense>
   );
 };

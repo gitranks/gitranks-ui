@@ -3,9 +3,7 @@ import Link from 'next/link';
 import type { FC } from 'react';
 
 import {
-  buildCardWordsOf,
   contributeCardOf,
-  growWordsOf,
   type HomeCardWords,
   type HomeProducts,
   homePromosOf,
@@ -13,7 +11,6 @@ import {
   productsWordsOf,
   showsContributeOf,
 } from './products-block-words';
-import type { BuildCardSide } from '@/lib/build/home-card';
 import type { CourseInLine } from '@/lib/learn/courses-line';
 
 const NO_COURSES: readonly CourseInLine[] = [];
@@ -35,7 +32,7 @@ const Stacked: FC<{ shown: string; promo: string; className: string }> = ({ show
 );
 
 /** One card: the product's name with its mark, a title, one line and where it leads, in the same places in every state. */
-const ProductCard: FC<{ card: HomeCardWords; promo: HomeCardWords }> = ({ card, promo }) => {
+export const ProductCard: FC<{ card: HomeCardWords; promo: HomeCardWords }> = ({ card, promo }) => {
   return (
     <Link
       href={card.href}
@@ -92,42 +89,6 @@ export const ProductsBlock: FC<{
         <div className={`grid grid-cols-1 gap-4${both ? ' md:grid-cols-2' : ''}`}>
           {both ? <ProductCard card={contributeCardOf(products)} promo={promos.CONTRIBUTE} /> : null}
           <ProductCard card={learnCardOf(products, now, promos)} promo={promos.LEARN} />
-        </div>
-      </div>
-    </section>
-  );
-};
-
-/**
- * The block with Build's card, for a viewer Build is open to: three cards of one size, in the order Learn, Build,
- * Contribute, in three columns from a wide screen and in one below it. Learn's and Contribute's cards say what they say
- * in the block above; Build's says what it has for the person (`build`, their side as read; none promotes it).
- * `contribute` false leaves Contribute's card out as above, and Learn and Build share the row.
- */
-export const ProductsBlockGrow: FC<{
-  products?: HomeProducts | null;
-  build?: BuildCardSide | null;
-  now: Date;
-  contribute?: boolean;
-  id?: string;
-  courses?: readonly CourseInLine[];
-}> = ({ products = null, build = null, now, contribute = true, id = 'products', courses = NO_COURSES }) => {
-  const promos = homePromosOf(courses);
-  const both = showsContributeOf(contribute, products);
-  const { heading, line } = growWordsOf(both);
-  return (
-    <section aria-labelledby={id} className="py-12 lg:py-16" data-products-block={both ? 'grow' : 'grow-learn-build'}>
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4">
-        <div className="flex flex-col gap-2">
-          <h2 id={id} className="m-0 text-2xl font-semibold tracking-tight text-balance md:text-3xl">
-            {heading}
-          </h2>
-          <p className="m-0 max-w-prose text-muted-foreground">{line}</p>
-        </div>
-        <div className={`grid grid-cols-1 gap-4 ${both ? 'lg:grid-cols-3' : 'md:grid-cols-2'}`}>
-          <ProductCard card={learnCardOf(products, now, promos)} promo={promos.LEARN} />
-          <ProductCard card={buildCardWordsOf(build)} promo={promos.BUILD} />
-          {both ? <ProductCard card={contributeCardOf(products)} promo={promos.CONTRIBUTE} /> : null}
         </div>
       </div>
     </section>

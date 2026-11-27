@@ -21,8 +21,10 @@ const hint = vi.hoisted(() => ({ present: true }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 
 const { ProductsBlockLive } = await import('./products-block-live');
-const { ProductsBlockGrow } = await import('./products-block');
+const { ProductsBlockGrow } = await import('./products-block-grow');
+const { BUILD_OPEN_TO_EVERYONE } = await import('@/lib/build/built-parts');
 const { resetBuildViewer } = await import('@/components/build/build-viewer');
+const { BUILD_CARD_WAIT_MS, forgetBuildCardRead } = await import('@/components/build/home-card-live');
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -41,12 +43,20 @@ const routes = ({ open, hasBuild = true, home = null, builds = null }: Side) =>
 
 const home = (fields: Partial<BuildHome>): BuildHome => ({ builds: [], tests: [], next: [], ...fields });
 
+/** Lets every answer in flight land, and the block's code load. */
+const settle = () =>
+  act(async () => {
+    if (vi.isFakeTimers()) await vi.advanceTimersByTimeAsync(0);
+    else await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
 describe("the home page's block with Build's card", () => {
   let container: HTMLDivElement;
   let root: Root;
 
   beforeEach(() => {
     resetBuildViewer();
+    forgetBuildCardRead();
     hint.present = true;
     session.current = { data: { user: { githubLogin: 'octocat' } }, status: 'authenticated' };
     container = document.createElement('div');
@@ -58,9 +68,18 @@ describe("the home page's block with Build's card", () => {
     await act(async () => root.unmount());
     container.remove();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
-  const render = () => act(async () => root.render(<ProductsBlockLive contribute />));
+  const render = async () => {
+    await act(async () => root.render(<ProductsBlockLive contribute />));
+    await settle();
+  };
+  /** The block drawn again in the same document, as on a return to the home page. */
+  const drawAgain = async () => {
+    await act(async () => root.unmount());
+    root = createRoot(container);
+  };
   const cards = () => [...container.querySelectorAll<HTMLAnchorElement>('[data-home-card]')];
   const order = () => cards().map((card) => card.dataset.homeCard);
   const card = (product: string) => container.querySelector<HTMLAnchorElement>(`[data-home-card="${product}"]`);
@@ -71,7 +90,7 @@ describe("the home page's block with Build's card", () => {
     return copy?.textContent ?? '';
   };
 
-  it("keeps today's block for a person Build is not open to", async () => {
+  it.skipIf(BUILD_OPEN_TO_EVERYONE)("keeps today's block for a person Build is not open to", async () => {
     vi.stubGlobal('fetch', routes({ open: false }));
     await render();
     expect(order()).toEqual(['CONTRIBUTE', 'LEARN']);
@@ -110,6 +129,7 @@ describe("the home page's block with Build's card", () => {
     await act(async () => root.unmount());
     root = createRoot(container);
     resetBuildViewer();
+    forgetBuildCardRead();
     vi.stubGlobal('fetch', routes({ open: true, home: home({ tests: [webServerGoldTest] }), builds: [] }));
     await render();
     expect(shown('BUILD')).toContain('Your gold test is open');
@@ -117,6 +137,7 @@ describe("the home page's block with Build's card", () => {
     await act(async () => root.unmount());
     root = createRoot(container);
     resetBuildViewer();
+    forgetBuildCardRead();
     vi.stubGlobal(
       'fetch',
       routes({ open: true, home: home({ builds: [buildInProgress, keyValueDatabaseInProgress] }), builds: [] }),
@@ -135,26 +156,83 @@ describe("the home page's block with Build's card", () => {
     );
   });
 
-  it("changes once: today's block stays until both Build's answer and its card are read", async () => {
-    let releaseHome: (() => void) | undefined;
-    const base = routes({ open: true, home: home({ builds: [buildInProgress] }), builds: [] });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url: string) => {
-        if (url === '/api/me/build/home') await new Promise<void>((resolve) => (releaseHome = resolve));
-        return base(url);
-      }),
-    );
+  it.skipIf(BUILD_OPEN_TO_EVERYONE)(
+    "changes once: today's block stays until both Build's answer and its card are read",
+    async () => {
+      let releaseHome: (() => void) | undefined;
+      const base = routes({ open: true, home: home({ builds: [buildInProgress] }), builds: [] });
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string) => {
+          if (url === '/api/me/build/home') await new Promise<void>((resolve) => (releaseHome = resolve));
+          return base(url);
+        }),
+      );
+      await render();
+      expect(order()).toEqual(['CONTRIBUTE', 'LEARN']);
+      await act(async () => releaseHome?.());
+      await settle();
+      expect(order()).toEqual(['LEARN', 'BUILD', 'CONTRIBUTE']);
+      expect(shown('BUILD')).toContain('Build an MCP server: step 9 of 16');
+    },
+  );
+
+  it.skipIf(BUILD_OPEN_TO_EVERYONE)(
+    'changes at the end of the wait, Build promoting, when its card is not read by then',
+    async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      const signals: AbortSignal[] = [];
+      const base = routes({ open: true, hasBuild: false });
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((url: string, init?: RequestInit) => {
+          if (url !== '/api/me/build/home') return base(url);
+          if (init?.signal) signals.push(init.signal);
+          return new Promise<Response>(() => {});
+        }),
+      );
+      await render();
+      await act(async () => vi.advanceTimersByTimeAsync(BUILD_CARD_WAIT_MS - 1));
+      expect(order()).toEqual(['CONTRIBUTE', 'LEARN']);
+      await act(async () => vi.advanceTimersByTimeAsync(1));
+      await settle();
+      expect(order()).toEqual(['LEARN', 'BUILD', 'CONTRIBUTE']);
+      expect(shown('BUILD')).toContain('Start building');
+      expect(signals.every((signal) => signal.aborted)).toBe(true);
+    },
+  );
+
+  it('draws the three cards at once back on the home page, and changes their words in place once read', async () => {
+    vi.stubGlobal('fetch', routes({ open: true, home: home({ tests: [keyValueDatabaseEndTest] }), builds: [] }));
     await render();
-    expect(order()).toEqual(['CONTRIBUTE', 'LEARN']);
-    await act(async () => releaseHome?.());
+    expect(shown('BUILD')).toContain('Your test is waiting');
+
+    await drawAgain();
+    let releaseHome: (() => void) | undefined;
+    const base = routes({ open: true, home: home({ tests: [webServerGoldTest] }), builds: [] });
+    const fetch = vi.fn(async (url: string) => {
+      if (url === '/api/me/build/home') await new Promise<void>((resolve) => (releaseHome = resolve));
+      return base(url);
+    });
+    vi.stubGlobal('fetch', fetch);
+    act(() => root.render(<ProductsBlockLive contribute />));
     expect(order()).toEqual(['LEARN', 'BUILD', 'CONTRIBUTE']);
-    expect(shown('BUILD')).toContain('Build an MCP server: step 9 of 16');
+    expect(shown('BUILD')).toContain('Your test is waiting');
+    await settle();
+    await act(async () => releaseHome?.());
+    await settle();
+    expect(shown('BUILD')).toContain('Your gold test is open');
+    // Whether Build is open is kept for the document: only the card is read again.
+    expect(fetch.mock.calls.map(([url]) => url).filter((url) => url.startsWith('/api/me/build/'))).toEqual([
+      '/api/me/build/home',
+      '/api/me/build/projects',
+    ]);
   });
 
   it("promotes Build when its card's reads fail, and keeps Contribute for someone who uses it before it is launched", async () => {
     vi.stubGlobal('fetch', routes({ open: true, hasBuild: false, home: null, builds: null }));
     await act(async () => root.render(<ProductsBlockLive contribute={false} />));
+    await settle();
     expect(order()).toEqual(['LEARN', 'BUILD', 'CONTRIBUTE']);
     expect(shown('BUILD')).toContain('Start building');
   });

@@ -2,11 +2,13 @@ import type { ReactNode } from 'react';
 
 import type { Screen } from '../registry';
 import { HOME_NOW, homeLearnCourses, homeProducts } from '@/app/components/landing/__fixtures__/products-block';
-import { ProductsBlockGrow } from '@/app/components/landing/products-block';
+import { ProductsBlockGrow } from '@/app/components/landing/products-block-grow';
 import type { HomeProducts } from '@/app/components/landing/products-block-words';
 import type { BuildViewer } from '@/components/build/build-viewer';
+import { GrowList, GrowMenuItem, type GrowSection } from '@/components/header/components/grow-menu-item';
 import type { MenuSection } from '@/components/header/components/main-menu';
 import { Header } from '@/components/header/header';
+import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/components/ui/navigation-menu';
 import {
   buildInProgress,
   keyValueDatabaseEndTest,
@@ -58,8 +60,41 @@ const Row = ({ build, section, title }: { build: BuildViewer; section?: MenuSect
   <Header build={build} section={section} title={title} />
 );
 
-const block = (build: BuildCardSide | null, products: HomeProducts | null = null, id?: string) => (
-  <ProductsBlockGrow products={products} build={build} now={HOME_NOW} id={id} courses={homeLearnCourses} />
+const block = (build: BuildCardSide | null, products: HomeProducts | null = null, id?: string, contribute = true) => (
+  <ProductsBlockGrow
+    products={products}
+    build={build}
+    now={HOME_NOW}
+    id={id}
+    courses={homeLearnCourses}
+    contribute={contribute}
+  />
+);
+
+/** Grow's list as it opens under its button, at the right of the row. */
+const OpenList = ({ current, isNew }: { current: GrowSection | null; isNew: boolean }) => (
+  <div className="flex justify-end p-4">
+    <NavigationMenu viewport={false} className="max-w-none flex-none">
+      <NavigationMenuList>
+        <NavigationMenuItem>
+          <ul className="w-[300px] rounded-md border bg-popover p-2 text-popover-foreground shadow">
+            <GrowList current={current} isNew={isNew} />
+          </ul>
+        </NavigationMenuItem>
+      </NavigationMenuList>
+    </NavigationMenu>
+  </div>
+);
+
+/** The phone's open panel, from Grow's label down (Rankings, folded, and Badges sit above it, as today). */
+const OpenPanel = ({ section, isNew }: { section: GrowSection | null; isNew: boolean }) => (
+  <div className="flex justify-end p-4">
+    <NavigationMenu viewport={false} className="max-w-none flex-none">
+      <NavigationMenuList className="w-64 flex-col items-stretch gap-0.5 rounded-lg border bg-popover p-1.5 text-popover-foreground shadow-md">
+        <GrowMenuItem section={section} isNew={isNew} />
+      </NavigationMenuList>
+    </NavigationMenu>
+  </div>
 );
 
 const SOURCES = [
@@ -68,6 +103,8 @@ const SOURCES = [
   'components/build/build-viewer.ts',
   'components/build/home-card-live.ts',
   'app/components/landing/products-block.tsx',
+  'app/components/landing/products-block-grow.tsx',
+  'components/build/build-bar-read.ts',
   'app/components/landing/products-block-live.tsx',
   'app/components/landing/products-block-words.ts',
   'lib/build/home-card.ts',
@@ -104,6 +141,25 @@ export const BUILD_SITE_SCREENS: Screen[] = [
         ),
       },
       {
+        id: 'grow-open',
+        title: 'Grow\'s list, open: with "New" until the person builds, and Build marked on Build\'s pages',
+        path: '/',
+        height: 760,
+        render: () => (
+          <Cases
+            title="Grow's list"
+            intro="Under Grow's button, at the right of the row: each section's name and one line."
+          >
+            <Frame title="Someone with no build yet" note={'Build carries "New". Nothing is marked outside Grow.'}>
+              <OpenList current={null} isNew />
+            </Frame>
+            <Frame title="On a page of Build, for someone who builds" note={'Build is marked, and "New" has gone.'}>
+              <OpenList current="build" isNew={false} />
+            </Frame>
+          </Cases>
+        ),
+      },
+      {
         id: 'home',
         title: 'The home page: Learn, Build, Contribute, three cards of one size',
         path: '/',
@@ -114,13 +170,15 @@ export const BUILD_SITE_SCREENS: Screen[] = [
         id: 'viewers',
         title: "The block for each viewer: Build's card is theirs once they build",
         path: '/',
-        height: 1300,
+        height: 1650,
         render: () => (
           <main>
             {block({ home: home({}), builds: [], hasBuild: false }, homeProducts.neither, 'grow-neither')}
             {block(side({ builds: [buildInProgress] }), homeProducts.neither, 'grow-builder')}
             {block({ home: home({}), builds: [], hasBuild: false }, homeProducts.both, 'grow-learns-contributes')}
             {block(side({ tests: [keyValueDatabaseEndTest] }), homeProducts.both, 'grow-all-three')}
+            {/* Before Contribute is launched, for someone who does not use it: Learn and Build share the row. */}
+            {block(null, homeProducts.learner, 'grow-learn-build', false)}
           </main>
         ),
       },
@@ -141,13 +199,15 @@ export const BUILD_SITE_SCREENS: Screen[] = [
       },
       {
         id: 'phone',
-        title: 'On a phone: the header with its menu button, the cards one under the other',
+        title:
+          "On a phone: the header with its menu button, the panel open at Grow's entries, the cards one under the other",
         path: '/',
         width: 390,
-        height: 1100,
+        height: 1400,
         render: () => (
           <>
             <Row build={NEW_TO_BUILD} />
+            <OpenPanel section={null} isNew />
             <main>{block(null)}</main>
           </>
         ),

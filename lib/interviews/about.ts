@@ -69,7 +69,7 @@ export const ABOUT_QUESTIONS: readonly { question: string; answer: string }[] = 
   {
     question: 'Does anyone see which interview I prepare for?',
     answer:
-      'No. Your interview plans are not publicly visible. They are not on your profile, on your Skills page or in a share picture.',
+      'Your interview plans are not publicly visible. They are not on your profile, on your Skills page or in a share picture.',
   },
   {
     question: 'Do the lessons of a plan count in Learn?',
@@ -78,8 +78,7 @@ export const ABOUT_QUESTIONS: readonly { question: string; answer: string }[] = 
   },
   {
     question: 'What if a fact is wrong?',
-    answer:
-      'Press “This is wrong” under it and say in a few words what is wrong. We look at the fact again with its sources and change the page when it needs it.',
+    answer: 'Press “This is wrong” under it and say in a few words what is wrong.',
   },
   {
     question: 'What does it cost?',

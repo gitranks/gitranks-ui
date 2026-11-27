@@ -94,11 +94,17 @@ export function progressLineOf(row: InterviewPlanRow): string[] {
   return line;
 }
 
-/** The marks of a plan in progress: a round done, the round the person is on, the rounds to come. */
+/**
+ * The marks of a plan in progress: a round done, the round the person is on, the rounds to come. A round with nothing
+ * to prepare has no state of its own: behind the round the person is on it reads as passed, as the plan's line is solid
+ * behind them, and ahead of it as one to come.
+ */
 export function marksOf(row: InterviewPlanRow): MineMark[] {
   return row.rounds.map((round, index) => {
+    const number = index + 1;
     if (round.state === 'done') return 'done';
-    return index + 1 === row.here ? 'current' : 'to_come';
+    if (number === row.here) return 'current';
+    return round.state === 'none' && row.here && number < row.here ? 'done' : 'to_come';
   });
 }
 

@@ -88,6 +88,9 @@ describe('How it works', () => {
     expect(kept?.querySelectorAll('p')).toHaveLength(1);
     expect(kept?.textContent).toContain('Your interview plans are not publicly visible.');
     expect(host.textContent).not.toMatch(/never share/i);
+    // The questions keep to the same wording: no flat promise that nobody sees the plans.
+    expect(host.textContent).not.toContain('No. Your interview plans');
+    expect(host.textContent).not.toMatch(/no one (sees|can see)|nobody (sees|can see)/i);
     expect(host.textContent).not.toMatch(/delete all data/i);
   });
 

@@ -64,6 +64,20 @@ describe('the marks of a plan in progress', () => {
     };
     expect(marksOf(row)).toEqual(['current', 'to_come', 'done']);
   });
+
+  it('draws a round with nothing to prepare as passed behind the person, and as to come ahead of them', () => {
+    const row = {
+      ...seniorRow,
+      here: 3,
+      rounds: [
+        { key: 'a', state: 'done' as const },
+        { key: 'b', state: 'none' as const },
+        { key: 'c', state: 'started' as const },
+        { key: 'd', state: 'none' as const },
+      ],
+    };
+    expect(marksOf(row)).toEqual(['done', 'done', 'current', 'to_come']);
+  });
 });
 
 describe('the line of a finished plan', () => {

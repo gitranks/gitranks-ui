@@ -13,6 +13,7 @@ import {
   CONTINUE_SENTENCE,
   dayWords,
   lastStepWords,
+  placeWordsOf,
   stepOfBuild,
 } from '@/lib/build/home';
 import {
@@ -145,11 +146,11 @@ function NowBox({ box, now, zone }: { box: BuildHomeBox; now: Date | null; zone?
   }
   if (box.kind === 'build') {
     const { build, step, of } = box;
-    const when = now ? lastStepWords(build.lastStepAt, now, build.stepsDone.length === 0) : '';
+    const when = now ? lastStepWords(build.lastStepAt, now, build.stepsDone.length === 0, zone) : '';
     return (
       <Box
         kind="build"
-        heading={`${build.project.name}: step ${step.number} of ${of}`}
+        heading={`${build.project.name}: ${placeWordsOf(box)}`}
         note={[LANGUAGE_NAMES[build.language], when].filter(Boolean).join(' · ')}
       >
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -201,10 +202,10 @@ function NowBox({ box, now, zone }: { box: BuildHomeBox; now: Date | null; zone?
   );
 }
 
-/** Where a build stands, under its name: "Python · step 3 of 14". */
+/** Where a build stands, under its name: "Python · step 3 of 14", or "TypeScript · optional part, step 3 of 6". */
 function rowWordsOf(build: BuildMine): string {
   const at = stepOfBuild(build);
-  const where = at ? `step ${at.step.number} of ${at.of}` : 'every step done, the test is left';
+  const where = at ? placeWordsOf(at) : 'every step done, the test is left';
   return `${LANGUAGE_NAMES[build.language]} · ${where}`;
 }
 

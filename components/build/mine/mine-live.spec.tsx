@@ -30,7 +30,7 @@ const { hint, signIn, session } = vi.hoisted(() => ({
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 // The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone.
 const zoneRead = vi.hoisted(() => ({ value: 'UTC' as string | undefined }));
-vi.mock('@/lib/build/zone-live', () => ({ readBuildZone: async () => zoneRead.value }));
+vi.mock('@/lib/build/zone-live', () => ({ readBuildZone: async () => zoneRead.value, zoneSent: async () => {} }));
 vi.mock('@/components/workspace/time-zone-note', () => ({ TimeZoneNote: () => <span data-time-zone-note="" /> }));
 vi.mock('next-auth/react', () => ({
   signIn,

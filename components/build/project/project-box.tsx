@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { ProjectSay } from './project-say';
 import { ProjectSquares } from './project-squares';
 import { Button } from '@/components/ui/button';
-import { CONTINUE_SENTENCE } from '@/lib/build/home';
+import { CONTINUE_SENTENCE, startedWords } from '@/lib/build/home';
 import { BUILD_ABOUT_PATH, buildStartPath, buildStepPath, buildTestPath } from '@/lib/build/paths';
 import {
   boxTestOf,
@@ -181,9 +181,9 @@ function StartBox({ project, side }: { project: BuildProjectPage; side: ProjectS
   );
 }
 
-/** "TypeScript · last step 26 Nov": the build's language and when it last moved. */
+/** "TypeScript · last step 26 Nov": the build's language and when it last moved; "started 26 Nov" with no step passed. */
 const movedAsideOf = (build: BuildMine, zone?: string) =>
-  `${languageNameOf(build.language)} · ${build.stepsDone.length ? 'last step' : 'started'} ${dayOf(build.lastStepAt, zone)}`;
+  `${languageNameOf(build.language)} · ${build.stepsDone.length ? `last step ${dayOf(build.lastStepAt, zone)}` : startedWords(build.lastStepAt, zone)}`;
 
 /** A build on a step of the base. */
 function InProgressBox({

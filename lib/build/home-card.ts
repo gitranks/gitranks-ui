@@ -1,6 +1,6 @@
 import type { Route } from 'next';
 
-import { stepOfBuild } from './home';
+import { buildsInProgressOf, placeWordsOf, stepOfBuild } from './home';
 import { BUILD_TEST_NEED, BUILD_TEST_QUESTIONS, CONTINUE_SENTENCE } from './mine';
 import { BUILD_HOME_PATH, BUILD_MINE_PATH, BUILD_PROJECTS_PATH, buildProjectPath, buildTestPath } from './paths';
 import type { BuildHome, BuildMine } from './types';
@@ -88,7 +88,8 @@ export function buildCardOf(side: BuildCardSide | null): BuildCardWords {
     };
   }
 
-  const going = home.builds.filter((build) => stepOfBuild(build) !== null);
+  // A built project with an optional part in hand is a build to go on with too.
+  const going = buildsInProgressOf(home, side.builds).filter((build) => stepOfBuild(build) !== null);
   const last = going[0];
   const place = last ? stepOfBuild(last) : null;
   if (last && place) {
@@ -96,7 +97,7 @@ export function buildCardOf(side: BuildCardSide | null): BuildCardWords {
     const next = `Next: ${sentence(place.step.title)}`;
     return {
       ...base,
-      title: `${last.project.name}: step ${place.step.number} of ${place.of}`,
+      title: `${last.project.name}: ${placeWordsOf(place)}`,
       line: others
         ? `${next} And ${plural(others, 'more build', 'more builds')} in progress.`
         : `${next} Say “${CONTINUE_SENTENCE}” in your agent.`,

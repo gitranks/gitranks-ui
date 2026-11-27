@@ -12,7 +12,7 @@ import {
   buildTestMinePath,
 } from '@/lib/build/paths';
 import type { BuildHome, BuildMine, BuildProjectCard, BuildStart, BuildTest } from '@/lib/build/types';
-import { readBuildZone } from '@/lib/build/zone-live';
+import { readBuildZone, zoneSent } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** One key of a JSON answer of one of the person's routes; null on any failure. */
@@ -28,11 +28,14 @@ export async function readKey<T>(path: string, key: string): Promise<T | null> {
 }
 
 /**
- * The person's side of Home: their home, every build they have and the zone their days are counted in, read together;
- * then the test that waits first, when one does, so the box can say a run in progress or a failed try; and, only for a
- * person with no build, whether an agent of theirs connected, for the landing's main button.
+ * The person's side of Home, once the browser's zone is saved when it is new: their home, every build they have and the
+ * zone their days are counted in, read together; then the test that waits first, when one does, so the box can say a
+ * run in progress or a failed try; and, only for a person with no build, whether an agent of theirs connected, for the
+ * landing's main button.
  */
 export async function readHomeSide(): Promise<BuildHomeSide> {
+  // A zone being saved first: the home's days and the zone are read in it.
+  await zoneSent();
   const [home, builds, zone] = await Promise.all([
     readKey<BuildHome>(BUILD_HOME_MINE_PATH, 'home'),
     readKey<BuildMine[]>(BUILD_PROJECTS_MINE_PATH, 'builds'),

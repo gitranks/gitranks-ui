@@ -215,6 +215,17 @@ describe('what next, for a built project', () => {
     expect(only.line).toBe('The optional part · 6 steps');
   });
 
+  it('says where the person is in a part in progress', () => {
+    const inPart = {
+      ...builtOnePart,
+      partsBuilt: [],
+      partStep: { part: mcpServerSdkPart.slug, step: mcpServerSdkPart.steps[2], of: mcpServerSdkPart.steps.length },
+    };
+    const [part] = whatNextOf(mcpServerProject, inPart);
+    expect(part.title).toBe(mcpServerSdkPart.name);
+    expect(part.line).toBe(`You are on step 3 of ${mcpServerSdkPart.steps.length}`);
+  });
+
   it('leaves out a door with nothing behind it', () => {
     const doors = whatNextOf(smallProject, builtOnePart);
     expect(doors.map((door) => door.label)).toEqual(['Build next']);

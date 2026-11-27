@@ -8,7 +8,7 @@ import { HOME_READ_WAIT_MS } from '@/lib/build/home';
 import { buildProjectMinePath, buildTestMinePath } from '@/lib/build/paths';
 import type { ProjectSide } from '@/lib/build/project';
 import type { BuildProjectMine, BuildProjectPage, BuildTest } from '@/lib/build/types';
-import { readBuildZone } from '@/lib/build/zone-live';
+import { readBuildZone, zoneSent } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
 
 /** The person's side of a project from its route; null when there is none, and on any failure. */
@@ -72,6 +72,8 @@ export function ProjectLive({ project }: { project: BuildProjectPage }) {
     setReading(true);
     const late = setTimeout(() => setReading(false), HOME_READ_WAIT_MS);
     void (async () => {
+      // A zone being saved first: the box's days and the zone are read in it.
+      await zoneSent();
       const [mine, zone] = await Promise.all([readProjectMine(slug), readBuildZone()]);
       const test = mine ? await readProjectTest(slug, mine) : null;
       if (!live) return;

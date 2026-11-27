@@ -52,9 +52,17 @@ export type MineProgressRow = {
   language: string;
   step: number;
   of: number;
-  /** "today", "yesterday", "2 days ago", "on 3 Nov"; null for a date that cannot be read. */
+  /**
+   * The step is one of an optional part of a built project: the row says so, and has no "Remove" (a built project is
+   * kept).
+   */
+  part: boolean;
+  /**
+   * "today", "yesterday", "2 days ago", "on 3 Nov"; with no step passed, the day it started ("26 Nov"). Null for a date
+   * that cannot be read.
+   */
   lastStep: string | null;
-  /** No step is passed yet: `lastStep` is when the build started. */
+  /** No step is passed yet: `lastStep` is the day the build started. */
   started: boolean;
   squares: MineSquare[];
   /** How many steps were passed, which removing the build forgets. */
@@ -166,6 +174,8 @@ export function goldLineOf(gold: BuildGold, { waits, firstDay, emails = BUILD_EM
   }
   const day = shortDayOf(gold.date, null);
   if (!day) return null;
+  // A day past the first one is after a failed try: the test opens again, as the project's box says.
+  if (firstDay !== null && gold.date > firstDay) return `The gold test opens again on ${day}.`;
   const email = emails && firstDay !== null && gold.date === firstDay;
   return `The gold test opens on ${day}.${email ? ' We will email you that day.' : ''}`;
 }
@@ -176,6 +186,12 @@ function partsOf(build: BuildMine): string | null {
   if (built <= 0 || build.partsOf <= 0) return null;
   return build.partsOf === 1 ? 'the optional part built' : `${built} of ${build.partsOf} optional parts`;
 }
+
+/** When a moment was, as a number: later is larger; a moment that cannot be read is the earliest. */
+const momentOf = (iso: string): number => {
+  const at = Date.parse(iso);
+  return Number.isNaN(at) ? Number.NEGATIVE_INFINITY : at;
+};
 
 const projectOf = (build: { project: MineProject }): MineProject => ({
   slug: build.project.slug,
@@ -263,19 +279,33 @@ export function mineViewOf(
     };
   });
 
-  const inProgress = list.inProgress.flatMap<MineProgressRow>((build) => {
-    if (build.state.kind !== 'in_progress' || waiting.has(build.build)) return [];
-    const { step, of } = build.state;
+  // A built project with an optional part in hand is in progress too: its row says the part's step. Its test, when one
+  // waits, is at the top; the part goes on in the agent all the same.
+  const inPart = list.built.filter((build) => build.state.kind === 'built' && build.partStep);
+  const going = inPart.length
+    ? [...list.inProgress, ...inPart].sort((a, b) => momentOf(b.lastStepAt) - momentOf(a.lastStepAt))
+    : list.inProgress;
+  const inProgress = going.flatMap<MineProgressRow>((build) => {
+    const place =
+      build.state.kind === 'in_progress' && !waiting.has(build.build)
+        ? { step: build.state.step, of: build.state.of, part: false }
+        : build.state.kind === 'built' && build.partStep
+          ? { step: build.partStep.step, of: build.partStep.of, part: true }
+          : null;
+    if (!place) return [];
+    const started = build.stepsDone.length === 0;
+    const startKey = started ? dayKeyOf(build.lastStepAt, timeZone) : null;
     return [
       {
         build: build.build,
         project: projectOf(build),
         language: languageNameOf(build.language),
-        step: step.number,
-        of,
-        lastStep: lastStepOf(build.lastStepAt, now, timeZone),
-        started: build.stepsDone.length === 0,
-        squares: squaresOf(step.number, of),
+        step: place.step.number,
+        of: place.of,
+        part: place.part,
+        lastStep: started ? startKey && shortDayOf(startKey, null) : lastStepOf(build.lastStepAt, now, timeZone),
+        started,
+        squares: squaresOf(place.step.number, place.of),
         passed: build.stepsDone.length,
       },
     ];
@@ -344,6 +374,18 @@ function isBuild(value: unknown): value is BuildMine {
   return Array.isArray(value.stepsDone) && Array.isArray(value.partsBuilt);
 }
 
+/** The step of an optional part a build is on, as the wire sends it; null for none or anything it cannot read. */
+function partStepOf(value: unknown): BuildMine['partStep'] {
+  if (!isRecord(value) || typeof value.part !== 'string' || typeof value.of !== 'number') return null;
+  const step = value.step;
+  if (!isRecord(step) || typeof step.number !== 'number') return null;
+  return {
+    part: value.part,
+    step: { slug: String(step.slug ?? ''), title: String(step.title ?? ''), number: step.number },
+    of: value.of,
+  };
+}
+
 /** A state as the wire sends it: one object with every kind's fields, null where a kind has none. */
 function stateOf(value: Record<string, unknown>): BuildMine['state'] | null {
   if (value.kind === 'test_left') return { kind: 'test_left' };
@@ -375,6 +417,7 @@ function buildsOf(value: unknown): BuildMine[] {
       ? [
           {
             ...item,
+            partStep: partStepOf(item.partStep),
             partsOf: typeof item.partsOf === 'number' ? item.partsOf : 0,
             answeredEveryStep: item.answeredEveryStep === true,
             state,

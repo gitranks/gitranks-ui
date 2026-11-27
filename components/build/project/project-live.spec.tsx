@@ -22,8 +22,13 @@ vi.mock('next/link', () => ({
 const hint = vi.hoisted(() => ({ present: false }));
 vi.mock('@/lib/session-hint', () => ({ hasSessionHint: () => hint.present }));
 // The zone the person's days are counted in, as the API's route answers it; and the note that sends the browser's zone.
+// The save of the browser's zone, when it is new, which the reads wait for: settled at once unless a test holds it.
 const zoneRead = vi.hoisted(() => ({ value: 'UTC' as string | undefined }));
-vi.mock('@/lib/build/zone-live', () => ({ readBuildZone: async () => zoneRead.value }));
+const zoneSave = vi.hoisted(() => ({ held: null as Promise<void> | null }));
+vi.mock('@/lib/build/zone-live', () => ({
+  readBuildZone: async () => zoneRead.value,
+  zoneSent: () => zoneSave.held ?? Promise.resolve(),
+}));
 vi.mock('@/components/workspace/time-zone-note', () => ({ TimeZoneNote: () => <span data-time-zone-note="" /> }));
 
 const { ProjectLive, readProjectMine } = await import('./project-live');
@@ -121,6 +126,24 @@ describe("a project's page in the browser", () => {
     expect(host.querySelector('[data-project-have]')).toBeNull();
     // Once the side is read, the browser's zone is sent, as on Learn's pages; never for a visitor.
     expect(host.querySelector('[data-time-zone-note]')).not.toBeNull();
+  });
+
+  it("reads the person's side only once a new zone of the browser is saved, so the first page's days are in it", async () => {
+    hint.present = true;
+    answer(mineInProgress);
+    let saved: () => void = () => {};
+    zoneSave.held = new Promise<void>((resolve) => {
+      saved = resolve;
+    });
+    try {
+      await draw();
+      expect(fetchMock).not.toHaveBeenCalled();
+      await act(async () => saved());
+      expect(urls()).toEqual(['/api/me/build/projects/mcp-server']);
+      expect(boxKind()).toBe('in_progress');
+    } finally {
+      zoneSave.held = null;
+    }
   });
 
   it("writes the box's dates in the zone the person's days are counted in", async () => {

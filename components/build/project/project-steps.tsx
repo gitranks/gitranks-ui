@@ -96,22 +96,25 @@ function PartRow({
         >
           <ChevronRight aria-hidden="true" className="size-4" />
         </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-sm font-medium">{part.name}</span>
-          <span className="text-sm text-muted-foreground">{part.line}</span>
+        {/* On a phone the part's standing drops under its text, so the text keeps the row's width. */}
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="flex min-w-0 flex-[1_1_100%] flex-col gap-0.5 sm:flex-1">
+            <span className="text-sm font-medium">{part.name}</span>
+            <span className="text-sm text-muted-foreground">{part.line}</span>
+          </span>
+          {standing.built && (
+            <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-positive">
+              <Check aria-hidden="true" className="size-4" />
+              Built
+            </span>
+          )}
+          {standing.done !== null && (
+            <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">
+              {standing.done} of {part.steps.length}
+            </span>
+          )}
+          <span className="whitespace-nowrap text-xs text-muted-foreground">{stepsWordsOf(part.steps.length)}</span>
         </span>
-        {standing.built && (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-positive">
-            <Check aria-hidden="true" className="size-4" />
-            Built
-          </span>
-        )}
-        {standing.done !== null && (
-          <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">
-            {standing.done} of {part.steps.length}
-          </span>
-        )}
-        <span className="whitespace-nowrap text-xs text-muted-foreground">{stepsWordsOf(part.steps.length)}</span>
       </button>
       {open && (
         <ol id={stepsId} className="m-0 list-none bg-[color-mix(in_oklch,var(--muted)_45%,transparent)] p-0">

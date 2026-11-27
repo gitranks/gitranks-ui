@@ -141,7 +141,7 @@ describe("Build's home", () => {
     const [build] = fixtures.sideBuilderAlone.home?.builds ?? [];
     const fresh = { ...build, stepsDone: [], lastStepAt: new Date(now.getTime() - 5 * 60_000).toISOString() };
     await draw({ ...fixtures.sideBuilderAlone, home: { builds: [fresh], tests: [], next: [] }, builds: [fresh] });
-    expect(container.querySelector('[data-home-box="build"]')?.textContent).toContain('started 5 minutes ago');
+    expect(container.querySelector('[data-home-box="build"]')?.textContent).toContain('started 26 Nov');
     expect(text()).not.toContain('last step');
   });
 

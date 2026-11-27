@@ -38,7 +38,7 @@ import {
 } from '@/lib/build/test';
 import { answerBuildTestRun, readBuildProjectMine, readBuildTest, startBuildTestRun } from '@/lib/build/test-live';
 import type { BuildLanguage, BuildMine, BuildTestKind } from '@/lib/build/types';
-import { readBuildZone } from '@/lib/build/zone-live';
+import { readBuildZone, zoneSent } from '@/lib/build/zone-live';
 import { hasSessionHint } from '@/lib/session-hint';
 import type { LearnQuestion } from '@/lib/workspace/learn-question';
 import { type PlayerResult, runWordsOf } from '@/lib/workspace/player';
@@ -158,11 +158,14 @@ export function BuildTestLive({
       return;
     }
     let live = true;
-    Promise.all([read(), readBuildZone()]).then(([next, zoneRead]) => {
-      if (!live) return;
-      setZone(zoneRead);
-      setPersonal(next);
-    });
+    // A zone being saved first: the test's days and the zone are read in it.
+    zoneSent()
+      .then(() => Promise.all([read(), readBuildZone()]))
+      .then(([next, zoneRead]) => {
+        if (!live) return;
+        setZone(zoneRead);
+        setPersonal(next);
+      });
     return () => {
       live = false;
     };

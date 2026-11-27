@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildGoldOpen,
+  buildInPart,
   buildInProgress,
   buildTestLeft,
   codingAgentInProgress,
@@ -66,6 +67,15 @@ describe("Build's card in the home page's block", () => {
     expect(buildCardOf(side({ home: home({ builds: [buildInProgress] }) }))).toMatchObject({
       title: 'Build an MCP server: step 9 of 16',
       line: 'Next: Check the input. Say “Continue my build” in your agent.',
+      action: 'Open your build',
+      href: '/build/mcp-server',
+    });
+  });
+
+  it('goes on with an optional part of a built project, not "every project built"', () => {
+    expect(buildCardOf(side({ builds: [buildInPart] }))).toMatchObject({
+      title: 'Build an MCP server: optional part, step 3 of 6',
+      line: 'Next: Describe a tool with a schema. Say “Continue my build” in your agent.',
       action: 'Open your build',
       href: '/build/mcp-server',
     });

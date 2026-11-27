@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildInProgress, buildTestLeft, keyValueDatabaseEndTest } from './__fixtures__/builds';
+import { buildInPart, buildInProgress, buildTestLeft, keyValueDatabaseEndTest } from './__fixtures__/builds';
 import {
   MINE_NOW,
   mineBoardEmpty,
@@ -101,8 +101,8 @@ describe('My builds: the parts of a row', () => {
     expect(goldLineOf({ kind: 'opens_on', date: '2026-12-03' }, first)).toBe(
       'The gold test opens on 3 Dec. We will email you that day.',
     );
-    // A failed try closes it until the next day: no email goes for that.
-    expect(goldLineOf({ kind: 'opens_on', date: '2026-12-04' }, first)).toBe('The gold test opens on 4 Dec.');
+    // A failed try closes it until the next day: it opens again, as the project's box says, and no email goes for that.
+    expect(goldLineOf({ kind: 'opens_on', date: '2026-12-04' }, first)).toBe('The gold test opens again on 4 Dec.');
     expect(goldLineOf({ kind: 'opens_on', date: '2026-12-03' }, { ...first, emails: false })).toBe(
       'The gold test opens on 3 Dec.',
     );
@@ -184,6 +184,18 @@ describe('My builds: the lists', () => {
   it('says when a build with no step passed was started, not when its last step was', () => {
     const view = viewOf({ tests: [], inProgress: [mineMcpFirstStep, mineMcpInProgress], built: [] });
     expect(view.inProgress.map((row) => row.started)).toEqual([true, false]);
+    // The day it started, as Home and the project's box say it.
+    expect(view.inProgress[0].lastStep).toBe('24 Nov');
+  });
+
+  it('lists a built project whose optional part is in progress under "In progress" too, and keeps it under "Built"', () => {
+    const view = viewOf({ tests: [], inProgress: [mineMcpInProgress], built: [buildInPart] });
+    expect(view.inProgress.map((row) => [row.build, row.part, row.step, row.of, row.lastStep])).toEqual([
+      [buildInPart.build, true, 3, 6, 'today'],
+      [mineMcpInProgress.build, false, 9, 16, '2 days ago'],
+    ]);
+    expect(view.inProgress[0].squares).toEqual(['done', 'done', 'current', 'to_come', 'to_come', 'to_come']);
+    expect(view.built.map((row) => row.build)).toEqual([buildInPart.build]);
   });
 
   it('draws the usual start: one build in progress and nothing else', () => {

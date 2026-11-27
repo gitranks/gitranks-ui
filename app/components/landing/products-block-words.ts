@@ -1,5 +1,6 @@
 import type { Route } from 'next';
 
+import { BUILD_CARD_PROMO, type BuildCardSide, type BuildCardWords, buildCardOf } from '@/lib/build/home-card';
 import { toRepeatWords } from '@/lib/learn/course';
 import { type CourseInLine, landingCoursesLineOf } from '@/lib/learn/courses-line';
 import type { LearnLessonLink } from '@/lib/learn/lesson-page';
@@ -45,7 +46,7 @@ export type HomeProducts = {
   learn: HomeLearnCard | null;
 };
 
-export type HomeProduct = 'CONTRIBUTE' | 'LEARN';
+export type HomeProduct = 'CONTRIBUTE' | 'LEARN' | 'BUILD';
 
 /** A card's words: `mark` (Learn's "New") only while the person does not use the product. */
 export type HomeCardWords = {
@@ -64,6 +65,19 @@ export const PRODUCTS_LINE = 'Both work with your own coding agent, on real issu
 /** The heading and line when Learn's card is drawn alone. */
 export const LEARN_ONLY_HEADING = 'Learn from real open source';
 export const LEARN_ONLY_LINE = 'Short lessons, then real issues in real projects to use them on.';
+
+/** The heading and line of the block with Build's card, for a viewer Build is open to. */
+export const GROW_HEADING = 'Learn, build, and contribute to open source';
+export const GROW_LINE = 'All three work with your own coding agent, on real code.';
+/** The same without Contribute's card (Contribute not launched, and the person does not use it). */
+export const GROW_NO_CONTRIBUTE_HEADING = 'Learn and build with your own coding agent';
+export const GROW_NO_CONTRIBUTE_LINE = 'Both work with your own coding agent, on real code.';
+
+/** The block's heading and line with Build's card: all three products', or Learn's and Build's. */
+export const growWordsOf = (both: boolean): { heading: string; line: string } =>
+  both
+    ? { heading: GROW_HEADING, line: GROW_LINE }
+    : { heading: GROW_NO_CONTRIBUTE_HEADING, line: GROW_NO_CONTRIBUTE_LINE };
 
 /**
  * Whether the block draws Contribute's card: while Contribute is launched, and for a person who uses it, whose card
@@ -84,6 +98,24 @@ export const productsWordsOf = (both: boolean): { heading: string; line: string 
  */
 export const learnPromoLineOf = (courses: readonly CourseInLine[]) =>
   `${landingCoursesLineOf(courses)}. Then fix a real issue with what you learned.`;
+
+/** Build's card as the block draws it, from its own words. */
+const buildWordsOf = (words: BuildCardWords): HomeCardWords => ({
+  product: 'BUILD',
+  name: 'GitRanks Build',
+  mark: words.isNew ? 'New' : null,
+  title: words.title,
+  line: words.line,
+  action: words.action,
+  href: words.href,
+  personal: words.personal,
+});
+
+/**
+ * Build's card: the promotion, with "New", for someone with no build; for someone with one, the first of a test that
+ * waits, the gold test, the build touched last, the projects built (see `buildCardOf`).
+ */
+export const buildCardWordsOf = (side: BuildCardSide | null): HomeCardWords => buildWordsOf(buildCardOf(side));
 
 /** Each product's promotion, the same for everyone; Learn's line here names no course (see `homePromosOf`). */
 export const HOME_PROMOS: Record<HomeProduct, HomeCardWords> = {
@@ -107,6 +139,7 @@ export const HOME_PROMOS: Record<HomeProduct, HomeCardWords> = {
     href: LEARN_HOME_PATH,
     personal: false,
   },
+  BUILD: buildWordsOf(BUILD_CARD_PROMO),
 };
 
 /** The promotions with Learn's line naming the live courses; none (or a failed read) keeps the plain line. */
@@ -122,7 +155,7 @@ const NUMBER = new Intl.NumberFormat('en-US');
 const usedPromoOf = (product: HomeProduct, promos = HOME_PROMOS): HomeCardWords => ({
   ...promos[product],
   mark: null,
-  action: product === 'LEARN' ? 'Open Learn' : 'Open Contribute',
+  action: { LEARN: 'Open Learn', CONTRIBUTE: 'Open Contribute', BUILD: 'Open Build' }[product],
 });
 
 /**

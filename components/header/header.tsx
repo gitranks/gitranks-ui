@@ -4,19 +4,23 @@ import type { FC } from 'react';
 import { Logo, LogoMark } from '../logo/logo';
 import SigninButton from '../signin-button/signin-button';
 import { MainMenu, type MenuSection } from './components/main-menu';
+import type { BuildViewer } from '@/components/build/build-viewer';
 import { cn } from '@/lib/utils';
 
 type HeaderProps = {
   /** Text after the logo and a "/": a profile's login, or a section's name. Not a link. */
   title?: string;
   /**
-   * The menu item to mark: the section the page belongs to. Left out, Contribute and Learn mark themselves on their own
-   * pages by the path (the workspace's layout reads none), and nothing on the workspace's pages under `/my`.
+   * The menu item to mark: the section the page belongs to. Left out, Contribute and Learn (or Grow, and the section in
+   * its list) mark themselves on their own pages by the path (the workspace's layout reads none), and nothing on the
+   * workspace's pages under `/my`.
    */
   section?: MenuSection;
+  /** Whether Build is open to the viewer, for the design boards; left out, the browser reads it. */
+  build?: BuildViewer;
 };
 
-export const Header: FC<HeaderProps> = ({ title, section }) => {
+export const Header: FC<HeaderProps> = ({ title, section, build }) => {
   return (
     <header className="mx-auto flex w-full max-w-7xl items-center justify-between p-4">
       <div className="flex min-w-0 items-center gap-3">
@@ -30,7 +34,7 @@ export const Header: FC<HeaderProps> = ({ title, section }) => {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <MainMenu section={section} />
+        <MainMenu section={section} build={build} />
         <SigninButton />
       </div>
     </header>

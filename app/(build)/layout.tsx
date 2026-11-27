@@ -14,7 +14,7 @@ import { VISITOR_BUILD_BAR } from '@/lib/build/build-bar';
 export default function BuildLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <Header />
+      <Header section="build" />
       <Suspense fallback={<BuildBar view={VISITOR_BUILD_BAR} place={null} />}>
         <BuildBarLive />
       </Suspense>
